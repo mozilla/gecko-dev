@@ -199,7 +199,7 @@ protected:
   /**
    * Remove IME composition text from password buffer.
    */
-  void RemoveIMETextFromPWBuf(int32_t& aStart, nsAString* aIMEString);
+  void RemoveIMETextFromPWBuf(uint32_t& aStart, nsAString* aIMEString);
 
   nsresult CreateMozBR(nsIDOMNode* inParent, int32_t inOffset,
                        nsIDOMNode** outBRNode = nullptr);
@@ -224,8 +224,11 @@ protected:
   bool IsMailEditor() const;
   bool DontEchoPassword() const;
 
+private:
   // Note that we do not refcount the editor.
   TextEditor* mTextEditor;
+
+protected:
   // A buffer we use to store the real value of password editors.
   nsString mPasswordText;
   // A buffer we use to track the IME composition string.
@@ -269,32 +272,30 @@ public:
     , bulletType(nullptr)
     , alignType(nullptr)
     , blockType(nullptr)
-    , insertElement(nullptr)
   {}
 
-  // kInsertText
+  // EditAction::insertText / EditAction::insertIMEText
   const nsAString* inString;
   nsAString* outString;
   const nsAString* outputFormat;
   int32_t maxLength;
 
-  // kDeleteSelection
+  // EditAction::deleteSelection
   nsIEditor::EDirection collapsedAction;
   nsIEditor::EStripWrappers stripWrappers;
 
-  // kMakeList
+  // EditAction::removeList
   bool bOrdered;
+
+  // EditAction::makeList
   bool entireList;
   const nsAString* bulletType;
 
-  // kAlign
+  // EditAction::align
   const nsAString* alignType;
 
-  // kMakeBasicBlock
+  // EditAction::makeBasicBlock
   const nsAString* blockType;
-
-  // kInsertElement
-  const nsIDOMElement* insertElement;
 };
 
 /**

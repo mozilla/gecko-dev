@@ -160,11 +160,12 @@ public:
   NS_DECL_IMGICONTAINERDEBUG
 #endif
 
+  nsresult GetNativeSizes(nsTArray<gfx::IntSize>& aNativeSizes) const override;
   virtual nsresult StartAnimation() override;
   virtual nsresult StopAnimation() override;
 
   // Methods inherited from Image
-  virtual void OnSurfaceDiscarded() override;
+  virtual void OnSurfaceDiscarded(const SurfaceKey& aSurfaceKey) override;
 
   virtual size_t SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf)
     const override;
@@ -264,11 +265,6 @@ public:
    */
   nsresult SetSourceSizeHint(uint32_t aSizeHint);
 
-  /* Provide a hint for the requested dimension of the resulting image. */
-  void SetRequestedSampleSize(int requestedSampleSize) {
-    mRequestedSampleSize = requestedSampleSize;
-  }
-
  nsCString GetURIString() {
     nsCString spec;
     if (GetURI()) {
@@ -307,7 +303,8 @@ private:
                           const nsIntSize& aSize,
                           const ImageRegion& aRegion,
                           gfx::SamplingFilter aSamplingFilter,
-                          uint32_t aFlags);
+                          uint32_t aFlags,
+                          float aOpacity);
 
   Pair<DrawResult, RefPtr<gfx::SourceSurface>>
     GetFrameInternal(const gfx::IntSize& aSize,
@@ -327,7 +324,6 @@ private:
     return (mLockCount == 0 || (mAnimationState && mAnimationConsumers == 0));
   }
 
-
   //////////////////////////////////////////////////////////////////////////////
   // Decoding.
   //////////////////////////////////////////////////////////////////////////////
@@ -341,10 +337,12 @@ private:
    *
    * It's an error to call Decode() before this image's intrinsic size is
    * available. A metadata decode must successfully complete first.
+   *
+   * Returns true of the decode was run synchronously.
    */
-  NS_IMETHOD Decode(const gfx::IntSize& aSize,
-                    uint32_t aFlags,
-                    PlaybackType aPlaybackType);
+  bool Decode(const gfx::IntSize& aSize,
+              uint32_t aFlags,
+              PlaybackType aPlaybackType);
 
   /**
    * Creates and runs a metadata decoder, either synchronously or
@@ -383,6 +381,7 @@ private:
 
 private: // data
   nsIntSize                  mSize;
+  nsTArray<nsIntSize>        mNativeSizes;
   Orientation                mOrientation;
 
   /// If this has a value, we're waiting for SetSize() to send the load event.
@@ -406,9 +405,6 @@ private: // data
   // This is currently only used for statistics
   int32_t                        mDecodeCount;
 
-  // A hint for image decoder that directly scale the image to smaller buffer
-  int                        mRequestedSampleSize;
-
   // A weak pointer to our ImageContainer, which stays alive only as long as
   // the layer system needs it.
   WeakPtr<layers::ImageContainer> mImageContainer;
@@ -428,11 +424,12 @@ private: // data
   NotNull<RefPtr<SourceBuffer>>  mSourceBuffer;
 
   // Boolean flags (clustered together to conserve space):
-  bool                       mHasSize:1;       // Has SetSize() been called?
-  bool                       mTransient:1;     // Is the image short-lived?
-  bool                       mSyncLoad:1;      // Are we loading synchronously?
-  bool                       mDiscardable:1;   // Is container discardable?
-  bool                       mHasSourceData:1; // Do we have source data?
+  bool                       mHasSize:1;        // Has SetSize() been called?
+  bool                       mTransient:1;      // Is the image short-lived?
+  bool                       mSyncLoad:1;       // Are we loading synchronously?
+  bool                       mDiscardable:1;    // Is container discardable?
+  bool                       mSomeSourceData:1; // Do we have some source data?
+  bool                       mAllSourceData:1;  // Do we have all the source data?
   bool                       mHasBeenDecoded:1; // Decoded at least once?
 
   // Whether we're waiting to start animation. If we get a StartAnimation() call
@@ -485,6 +482,8 @@ private: // data
   bool CanDiscard();
 
   bool IsOpaque();
+
+  DrawableSurface RequestDecodeForSizeInternal(const gfx::IntSize& aSize, uint32_t aFlags);
 
 protected:
   explicit RasterImage(ImageURL* aURI = nullptr);

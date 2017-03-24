@@ -22,6 +22,14 @@ config = {
     'app_ini_path': '%(obj_dir)s/dist/bin/application.ini',
     # decides whether we want to use moz_sign_cmd in env
     'enable_signing': True,
+    'secret_files': [
+        {'filename': '/builds/gapi.data',
+         'secret_name': 'project/releng/gecko/build/level-%(scm-level)s/gapi.data',
+         'min_scm_level': 2, 'default': 'try-build-has-no-secrets'},
+        {'filename': '/builds/mozilla-desktop-geoloc-api.key',
+         'secret_name': 'project/releng/gecko/build/level-%(scm-level)s/mozilla-desktop-geoloc-api.key',
+         'min_scm_level': 2, 'default': 'try-build-has-no-secrets'},
+    ],
     'enable_ccache': True,
     'enable_check_test': False,
     'vcs_share_base': '/builds/hg-shared',
@@ -29,8 +37,8 @@ config = {
     'tooltool_script': ["/builds/tooltool.py"],
     'tooltool_bootstrap': "setup.sh",
     'enable_count_ctors': False,
-    'enable_talos_sendchange': True,
-    'enable_unittest_sendchange': True,
+    'enable_talos_sendchange': False,
+    'enable_unittest_sendchange': False,
     #########################################################################
 
 
@@ -71,5 +79,6 @@ config = {
     },
     'src_mozconfig': 'browser/config/mozconfigs/macosx64/nightly',
     'tooltool_manifest_src': 'browser/config/tooltool-manifests/macosx64/cross-releng.manifest',
+    'artifact_flag_build_variant_in_try': 'cross-artifact',
     #########################################################################
 }

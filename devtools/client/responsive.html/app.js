@@ -11,18 +11,21 @@ const { createClass, createFactory, PropTypes, DOM: dom } =
 const { connect } = require("devtools/client/shared/vendor/react-redux");
 
 const {
+  addCustomDevice,
+  removeCustomDevice,
   updateDeviceDisplayed,
-  updateDeviceModalOpen,
+  updateDeviceModal,
   updatePreferredDevices,
 } = require("./actions/devices");
 const { changeNetworkThrottling } = require("./actions/network-throttling");
 const { takeScreenshot } = require("./actions/screenshot");
-const { updateTouchSimulationEnabled } = require("./actions/touch-simulation");
+const { changeTouchSimulation } = require("./actions/touch-simulation");
 const {
   changeDevice,
-  changeViewportPixelRatio,
+  changePixelRatio,
+  removeDeviceAssociation,
   resizeViewport,
-  rotateViewport
+  rotateViewport,
 } = require("./actions/viewports");
 const DeviceModal = createFactory(require("./components/device-modal"));
 const GlobalToolbar = createFactory(require("./components/global-toolbar"));
@@ -34,7 +37,8 @@ let App = createClass({
 
   propTypes: {
     devices: PropTypes.shape(Types.devices).isRequired,
-    displayPixelRatio: PropTypes.number.isRequired,
+    dispatch: PropTypes.func.isRequired,
+    displayPixelRatio: Types.pixelRatio.value.isRequired,
     location: Types.location.isRequired,
     networkThrottling: PropTypes.shape(Types.networkThrottling).isRequired,
     screenshot: PropTypes.shape(Types.screenshot).isRequired,
@@ -42,8 +46,25 @@ let App = createClass({
     viewports: PropTypes.arrayOf(PropTypes.shape(Types.viewport)).isRequired,
   },
 
+  onAddCustomDevice(device) {
+    this.props.dispatch(addCustomDevice(device));
+  },
+
   onBrowserMounted() {
     window.postMessage({ type: "browser-mounted" }, "*");
+  },
+
+  onChangeDevice(id, device, deviceType) {
+    // TODO: Bug 1332754: Move messaging and logic into the action creator so that the
+    // message is sent from the action creator and device property changes are sent from
+    // there instead of this function.
+    window.postMessage({
+      type: "change-device",
+      device,
+    }, "*");
+    this.props.dispatch(changeDevice(id, device.name, deviceType));
+    this.props.dispatch(changeTouchSimulation(device.touch));
+    this.props.dispatch(changePixelRatio(id, device.pixelRatio));
   },
 
   onChangeNetworkThrottling(enabled, profile) {
@@ -55,23 +76,20 @@ let App = createClass({
     this.props.dispatch(changeNetworkThrottling(enabled, profile));
   },
 
-  onChangeViewportDevice(id, device) {
+  onChangePixelRatio(pixelRatio) {
     window.postMessage({
-      type: "change-viewport-device",
-      device,
-    }, "*");
-    this.props.dispatch(changeDevice(id, device.name));
-    this.props.dispatch(updateTouchSimulationEnabled(device.touch));
-    this.props.dispatch(changeViewportPixelRatio(id, device.pixelRatio));
-  },
-
-  onChangeViewportPixelRatio(pixelRatio) {
-    window.postMessage({
-      type: "change-viewport-pixel-ratio",
+      type: "change-pixel-ratio",
       pixelRatio,
     }, "*");
+    this.props.dispatch(changePixelRatio(0, pixelRatio));
+  },
 
-    this.props.dispatch(changeViewportPixelRatio(0, pixelRatio));
+  onChangeTouchSimulation(enabled) {
+    window.postMessage({
+      type: "change-touch-simulation",
+      enabled,
+    }, "*");
+    this.props.dispatch(changeTouchSimulation(enabled));
   },
 
   onContentResize({ width, height }) {
@@ -90,6 +108,18 @@ let App = createClass({
     window.postMessage({ type: "exit" }, "*");
   },
 
+  onRemoveCustomDevice(device) {
+    this.props.dispatch(removeCustomDevice(device));
+  },
+
+  onRemoveDeviceAssociation(id) {
+    // TODO: Bug 1332754: Move messaging and logic into the action creator so that device
+    // property changes are sent from there instead of this function.
+    this.props.dispatch(removeDeviceAssociation(id));
+    this.props.dispatch(changeTouchSimulation(false));
+    this.props.dispatch(changePixelRatio(id, 0));
+  },
+
   onResizeViewport(id, width, height) {
     this.props.dispatch(resizeViewport(id, width, height));
   },
@@ -106,17 +136,8 @@ let App = createClass({
     this.props.dispatch(updateDeviceDisplayed(device, deviceType, displayed));
   },
 
-  onUpdateDeviceModalOpen(isOpen) {
-    this.props.dispatch(updateDeviceModalOpen(isOpen));
-  },
-
-  onUpdateTouchSimulation(isEnabled) {
-    window.postMessage({
-      type: "update-touch-simulation",
-      enabled: isEnabled,
-    }, "*");
-
-    this.props.dispatch(updateTouchSimulationEnabled(isEnabled));
+  onUpdateDeviceModal(isOpen, modalOpenedFromViewport) {
+    this.props.dispatch(updateDeviceModal(isOpen, modalOpenedFromViewport));
   },
 
   render() {
@@ -131,27 +152,35 @@ let App = createClass({
     } = this.props;
 
     let {
+      onAddCustomDevice,
       onBrowserMounted,
+      onChangeDevice,
       onChangeNetworkThrottling,
-      onChangeViewportDevice,
-      onChangeViewportPixelRatio,
+      onChangePixelRatio,
+      onChangeTouchSimulation,
       onContentResize,
       onDeviceListUpdate,
       onExit,
+      onRemoveCustomDevice,
+      onRemoveDeviceAssociation,
       onResizeViewport,
       onRotateViewport,
       onScreenshot,
       onUpdateDeviceDisplayed,
-      onUpdateDeviceModalOpen,
-      onUpdateTouchSimulation,
+      onUpdateDeviceModal,
     } = this;
 
     let selectedDevice = "";
-    let selectedPixelRatio = 0;
+    let selectedPixelRatio = { value: 0 };
 
     if (viewports.length) {
       selectedDevice = viewports[0].device;
       selectedPixelRatio = viewports[0].pixelRatio;
+    }
+
+    let deviceAdderViewportTemplate = {};
+    if (devices.modalOpenedFromViewport !== null) {
+      deviceAdderViewportTemplate = viewports[devices.modalOpenedFromViewport];
     }
 
     return dom.div(
@@ -167,10 +196,10 @@ let App = createClass({
         selectedPixelRatio,
         touchSimulation,
         onChangeNetworkThrottling,
-        onChangeViewportPixelRatio,
+        onChangePixelRatio,
+        onChangeTouchSimulation,
         onExit,
         onScreenshot,
-        onUpdateTouchSimulation,
       }),
       Viewports({
         devices,
@@ -178,17 +207,21 @@ let App = createClass({
         screenshot,
         viewports,
         onBrowserMounted,
-        onChangeViewportDevice,
+        onChangeDevice,
         onContentResize,
+        onRemoveDeviceAssociation,
         onRotateViewport,
         onResizeViewport,
-        onUpdateDeviceModalOpen,
+        onUpdateDeviceModal,
       }),
       DeviceModal({
+        deviceAdderViewportTemplate,
         devices,
+        onAddCustomDevice,
         onDeviceListUpdate,
+        onRemoveCustomDevice,
         onUpdateDeviceDisplayed,
-        onUpdateDeviceModalOpen,
+        onUpdateDeviceModal,
       })
     );
   },

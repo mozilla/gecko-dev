@@ -13,6 +13,7 @@
 #include "mozilla/dom/TextTrackRegion.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLTrackElement.h"
+#include "nsGlobalWindow.h"
 
 namespace mozilla {
 namespace dom {
@@ -136,6 +137,11 @@ TextTrack::GetId(nsAString& aId) const
 void
 TextTrack::AddCue(TextTrackCue& aCue)
 {
+  TextTrack* oldTextTrack = aCue.GetTrack();
+  if (oldTextTrack) {
+    ErrorResult dummy;
+    oldTextTrack->RemoveCue(aCue, dummy);
+  }
   mCueList->AddCue(aCue);
   aCue.SetTrack(this);
   if (mTextTrackList) {
@@ -258,6 +264,7 @@ TextTrack::SetReadyState(TextTrackReadyState aState)
   if (mediaElement && (mReadyState == TextTrackReadyState::Loaded||
       mReadyState == TextTrackReadyState::FailedToLoad)) {
     mediaElement->RemoveTextTrack(this, true);
+    mediaElement->UpdateReadyState();
   }
 }
 
@@ -324,12 +331,34 @@ TextTrack::GetLanguage(nsAString& aLanguage) const
 void
 TextTrack::DispatchAsyncTrustedEvent(const nsString& aEventName)
 {
+  nsPIDOMWindowInner* win = GetOwner();
+  if (!win) {
+    return;
+  }
   RefPtr<TextTrack> self = this;
-  NS_DispatchToMainThread(
+  nsGlobalWindow::Cast(win)->Dispatch(
+    "TextTrack::DispatchAsyncTrustedEvent", TaskCategory::Other,
     NS_NewRunnableFunction([self, aEventName]() {
       self->DispatchTrustedEvent(aEventName);
     })
   );
+}
+
+bool
+TextTrack::IsLoaded()
+{
+  if (mMode == TextTrackMode::Disabled) {
+    return true;
+  }
+  // If the TrackElement's src is null, we can not block the
+  // MediaElement.
+  if (mTrackElement) {
+    nsAutoString src;
+    if (!(mTrackElement->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src))) {
+      return true;
+    }
+  }
+  return (mReadyState >= Loaded);
 }
 
 } // namespace dom

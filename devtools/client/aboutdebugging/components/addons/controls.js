@@ -11,7 +11,7 @@ loader.lazyImporter(this, "AddonManager",
   "resource://gre/modules/AddonManager.jsm");
 
 const { Cc, Ci } = require("chrome");
-const { createFactory, createClass, DOM: dom } =
+const { createFactory, createClass, DOM: dom, PropTypes } =
   require("devtools/client/shared/vendor/react");
 const Services = require("Services");
 const AddonsInstallError = createFactory(require("./install-error"));
@@ -24,6 +24,10 @@ const MORE_INFO_URL = "https://developer.mozilla.org/docs/Tools" +
 
 module.exports = createClass({
   displayName: "AddonsControls",
+
+  propTypes: {
+    debugDisabled: PropTypes.bool
+  },
 
   getInitialState() {
     return {
@@ -43,22 +47,23 @@ module.exports = createClass({
     fp.init(window,
       Strings.GetStringFromName("selectAddonFromFile2"),
       Ci.nsIFilePicker.modeOpen);
-    let res = fp.show();
-    if (res == Ci.nsIFilePicker.returnCancel || !fp.file) {
-      return;
-    }
-    let file = fp.file;
-    // AddonManager.installTemporaryAddon accepts either
-    // addon directory or final xpi file.
-    if (!file.isDirectory() && !file.leafName.endsWith(".xpi")) {
-      file = file.parent;
-    }
+    fp.open(res => {
+      if (res == Ci.nsIFilePicker.returnCancel || !fp.file) {
+        return;
+      }
+      let file = fp.file;
+      // AddonManager.installTemporaryAddon accepts either
+      // addon directory or final xpi file.
+      if (!file.isDirectory() && !file.leafName.endsWith(".xpi")) {
+        file = file.parent;
+      }
 
-    AddonManager.installTemporaryAddon(file)
-      .catch(e => {
-        console.error(e);
-        this.setState({ installError: e.message });
-      });
+      AddonManager.installTemporaryAddon(file)
+        .catch(e => {
+          console.error(e);
+          this.setState({ installError: e.message });
+        });
+    });
   },
 
   render() {
@@ -66,12 +71,13 @@ module.exports = createClass({
 
     return dom.div({ className: "addons-top" },
       dom.div({ className: "addons-controls" },
-        dom.div({ className: "addons-options" },
+        dom.div({ className: "addons-options toggle-container-with-text" },
           dom.input({
             id: "enable-addon-debugging",
             type: "checkbox",
             checked: !debugDisabled,
             onChange: this.onEnableAddonDebuggingChange,
+            role: "checkbox",
           }),
           dom.label({
             className: "addons-debugging-label",

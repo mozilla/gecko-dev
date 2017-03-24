@@ -12,6 +12,7 @@
 #include "mozilla/dom/TextTrackCue.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Telemetry.h"
 #include "nsComponentManagerUtils.h"
 #include "nsVariant.h"
@@ -37,6 +38,7 @@ CompareTextTracks::CompareTextTracks(HTMLMediaElement* aMediaElement)
 
 int32_t
 CompareTextTracks::TrackChildPosition(TextTrack* aTextTrack) const {
+  MOZ_DIAGNOSTIC_ASSERT(aTextTrack);
   HTMLTrackElement* trackElement = aTextTrack->GetTrackElement();
   if (!trackElement) {
     return -1;
@@ -56,6 +58,14 @@ CompareTextTracks::Equals(TextTrack* aOne, TextTrack* aTwo) const {
 bool
 CompareTextTracks::LessThan(TextTrack* aOne, TextTrack* aTwo) const
 {
+  // Protect against nullptr TextTrack objects; treat them as
+  // sorting toward the end.
+  if (!aOne) {
+    return false;
+  }
+  if (!aTwo) {
+    return true;
+  }
   TextTrackSource sourceOne = aOne->GetTextTrackSource();
   TextTrackSource sourceTwo = aTwo->GetTextTrackSource();
   if (sourceOne != sourceTwo) {
@@ -149,7 +159,8 @@ TextTrackManager::AddTextTrack(TextTrackKind aKind, const nsAString& aLabel,
     return nullptr;
   }
   WEBVTT_LOG("%p AddTextTrack",this);
-  WEBVTT_LOGV("AddTextTrack kind %d Label %s Language %s",aKind,
+  WEBVTT_LOGV("AddTextTrack kind %" PRIu32 " Label %s Language %s",
+    static_cast<uint32_t>(aKind),
     NS_ConvertUTF16toUTF8(aLabel).get(), NS_ConvertUTF16toUTF8(aLanguage).get());
   RefPtr<TextTrack> track =
     mTextTracks->AddTextTrack(aKind, aLabel, aLanguage, aMode, aReadyState,
@@ -158,7 +169,9 @@ TextTrackManager::AddTextTrack(TextTrackKind aKind, const nsAString& aLabel,
   ReportTelemetryForTrack(track);
 
   if (aTextTrackSource == TextTrackSource::Track) {
-    NS_DispatchToMainThread(NewRunnableMethod(this, &TextTrackManager::HonorUserPreferencesForTrackSelection));
+    RefPtr<nsIRunnable> task =
+      NewRunnableMethod(this, &TextTrackManager::HonorUserPreferencesForTrackSelection);
+    nsContentUtils::RunInStableState(task.forget());
   }
 
   return track.forget();
@@ -176,7 +189,9 @@ TextTrackManager::AddTextTrack(TextTrack* aTextTrack)
   ReportTelemetryForTrack(aTextTrack);
 
   if (aTextTrack->GetTextTrackSource() == TextTrackSource::Track) {
-    NS_DispatchToMainThread(NewRunnableMethod(this, &TextTrackManager::HonorUserPreferencesForTrackSelection));
+    RefPtr<nsIRunnable> task =
+      NewRunnableMethod(this, &TextTrackManager::HonorUserPreferencesForTrackSelection);
+    nsContentUtils::RunInStableState(task.forget());
   }
 }
 
@@ -265,7 +280,7 @@ TextTrackManager::UpdateCueDisplay()
 
   if (activeCues.Length() > 0) {
     WEBVTT_LOG("UpdateCueDisplay ProcessCues");
-    WEBVTT_LOGV("UpdateCueDisplay activeCues.Length() %d",activeCues.Length());
+    WEBVTT_LOGV("UpdateCueDisplay activeCues.Length() %" PRIuSIZE, activeCues.Length());
     RefPtr<nsVariantCC> jsCues = new nsVariantCC();
 
     jsCues->SetAsArray(nsIDataType::VTYPE_INTERFACE,
@@ -394,7 +409,8 @@ TextTrackManager::PerformTrackSelection(TextTrackKind aTextTrackKinds[],
   // Step 3: If any TextTracks in candidates are showing then abort these steps.
   for (uint32_t i = 0; i < candidates.Length(); i++) {
     if (candidates[i]->Mode() == TextTrackMode::Showing) {
-      WEBVTT_LOGV("PerformTrackSelection Showing return kind %d",candidates[i]->Kind());
+      WEBVTT_LOGV("PerformTrackSelection Showing return kind %d",
+                  static_cast<int>(candidates[i]->Kind()));
       return;
     }
   }
@@ -406,7 +422,8 @@ TextTrackManager::PerformTrackSelection(TextTrackKind aTextTrackKinds[],
     if (TrackIsDefault(candidates[i]) &&
         candidates[i]->Mode() == TextTrackMode::Disabled) {
       candidates[i]->SetMode(TextTrackMode::Showing);
-      WEBVTT_LOGV("PerformTrackSelection set Showing kind %d", candidates[i]->Kind());
+      WEBVTT_LOGV("PerformTrackSelection set Showing kind %d",
+                  static_cast<int>(candidates[i]->Kind()));
       return;
     }
   }
@@ -491,11 +508,13 @@ class CompareSimpleTextTrackEvents {
 private:
   int32_t TrackChildPosition(SimpleTextTrackEvent* aEvent) const
   {
-    HTMLTrackElement* trackElement = aEvent->mTrack->GetTrackElement();;
-    if (!trackElement) {
-      return -1;
+    if (aEvent->mTrack) {
+      HTMLTrackElement* trackElement = aEvent->mTrack->GetTrackElement();
+      if (trackElement) {
+        return mMediaElement->IndexOf(trackElement);
+      }
     }
-    return mMediaElement->IndexOf(trackElement);
+    return -1;
   }
   HTMLMediaElement* mMediaElement;
 public:
@@ -828,6 +847,13 @@ TextTrackManager::ReportTelemetryForCue()
     mCueTelemetryReported = true;
   }
 }
+
+bool
+TextTrackManager::IsLoaded()
+{
+  return mTextTracks ? mTextTracks->AreTextTracksLoaded() : true;
+}
+
 
 } // namespace dom
 } // namespace mozilla

@@ -190,7 +190,7 @@ public:
     NS_ENSURE_TRUE(underlyingChannel, NS_ERROR_UNEXPECTED);
     nsCOMPtr<nsILoadInfo> loadInfo = underlyingChannel->GetLoadInfo();
 
-    if (!CSPPermitsResponse(loadInfo)) {
+    if (!loadInfo || !CSPPermitsResponse(loadInfo)) {
       mChannel->Cancel(NS_ERROR_CONTENT_BLOCKED);
       return NS_OK;
     }
@@ -237,23 +237,19 @@ public:
 
     return rv;
   }
-
   bool CSPPermitsResponse(nsILoadInfo* aLoadInfo)
   {
     AssertIsOnMainThread();
     MOZ_ASSERT(aLoadInfo);
-
     nsresult rv;
     nsCOMPtr<nsIURI> uri;
-    nsAutoCString url;
-    mInternalResponse->GetUnfilteredURL(url);
+    nsCString url = mInternalResponse->GetUnfilteredURL();
     if (url.IsEmpty()) {
       // Synthetic response. The buck stops at the worker script.
       url = mScriptSpec;
     }
     rv = NS_NewURI(getter_AddRefs(uri), url, nullptr, nullptr);
     NS_ENSURE_SUCCESS(rv, false);
-
     int16_t decision = nsIContentPolicy::ACCEPT;
     rv = NS_CheckContentLoadPolicy(aLoadInfo->InternalContentPolicyType(), uri,
                                    aLoadInfo->LoadingPrincipal(),
@@ -635,18 +631,16 @@ RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
   if (NS_WARN_IF(!ir)) {
     return;
   }
-
   // When an opaque response is encountered, we need the original channel's principal
   // to reflect the final URL. Non-opaque responses are either same-origin or CORS-enabled
   // cross-origin responses, which are treated as same-origin by consumers.
   nsCString responseURL;
   if (response->Type() == ResponseType::Opaque) {
-    ir->GetUnfilteredURL(responseURL);
+    responseURL = ir->GetUnfilteredURL();
     if (NS_WARN_IF(responseURL.IsEmpty())) {
       return;
     }
   }
-
   nsAutoPtr<RespondWithClosure> closure(new RespondWithClosure(mInterceptedChannel,
                                                                mRegistration, ir,
                                                                worker->GetChannelInfo(),
@@ -664,7 +658,7 @@ RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
 
     nsCOMPtr<nsIOutputStream> responseBody;
     rv = mInterceptedChannel->GetResponseBody(getter_AddRefs(responseBody));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
+    if (NS_WARN_IF(NS_FAILED(rv)) || !responseBody) {
       return;
     }
 
@@ -773,15 +767,17 @@ FetchEvent::RespondWith(JSContext* aCx, Promise& aArg, ErrorResult& aRv)
                            spec, line, column);
   aArg.AppendNativeHandler(handler);
 
-  // Append directly to the lifecycle promises array.  Don't call WaitUntil()
-  // because that will lead to double-reporting any errors.
-  mPromises.AppendElement(&aArg);
+  if (!WaitOnPromise(aArg)) {
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+  }
 }
 
 void
-FetchEvent::PreventDefault(JSContext* aCx)
+FetchEvent::PreventDefault(JSContext* aCx, CallerType aCallerType)
 {
   MOZ_ASSERT(aCx);
+  MOZ_ASSERT(aCallerType != CallerType::System,
+             "Since when do we support system-principal service workers?");
 
   if (mPreventDefaultScriptSpec.IsEmpty()) {
     // Note when the FetchEvent might have been canceled by script, but don't
@@ -794,7 +790,7 @@ FetchEvent::PreventDefault(JSContext* aCx)
                                   &mPreventDefaultColumnNumber);
   }
 
-  Event::PreventDefault(aCx);
+  Event::PreventDefault(aCx, aCallerType);
 }
 
 void
@@ -878,6 +874,10 @@ public:
   {
     AssertIsOnMainThread();
     RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+    if (!swm) {
+      // browser shutdown
+      return;
+    }
 
     // TODO: Make the error message a localized string. (bug 1222720)
     nsString message;
@@ -916,12 +916,31 @@ ExtendableEvent::ExtendableEvent(EventTarget* aOwner)
 {
 }
 
+bool
+ExtendableEvent::WaitOnPromise(Promise& aPromise)
+{
+  if (!mExtensionsHandler) {
+    return false;
+  }
+  return mExtensionsHandler->WaitOnPromise(aPromise);
+}
+
+void
+ExtendableEvent::SetKeepAliveHandler(ExtensionsHandler* aExtensionsHandler)
+{
+  MOZ_ASSERT(!mExtensionsHandler);
+  WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
+  MOZ_ASSERT(worker);
+  worker->AssertIsOnWorkerThread();
+  mExtensionsHandler = aExtensionsHandler;
+}
+
 void
 ExtendableEvent::WaitUntil(JSContext* aCx, Promise& aPromise, ErrorResult& aRv)
 {
   MOZ_ASSERT(!NS_IsMainThread());
 
-  if (EventPhase() == nsIDOMEvent::NONE) {
+  if (!WaitOnPromise(aPromise)) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
@@ -931,34 +950,6 @@ ExtendableEvent::WaitUntil(JSContext* aCx, Promise& aPromise, ErrorResult& aRv)
   RefPtr<WaitUntilHandler> handler =
     new WaitUntilHandler(GetCurrentThreadWorkerPrivate(), aCx);
   aPromise.AppendNativeHandler(handler);
-
-  mPromises.AppendElement(&aPromise);
-}
-
-already_AddRefed<Promise>
-ExtendableEvent::GetPromise()
-{
-  WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
-  MOZ_ASSERT(worker);
-  worker->AssertIsOnWorkerThread();
-
-  nsIGlobalObject* globalObj = worker->GlobalScope();
-
-  AutoJSAPI jsapi;
-  if (!jsapi.Init(globalObj)) {
-    return nullptr;
-  }
-  JSContext* cx = jsapi.cx();
-
-  GlobalObject global(cx, globalObj->GetGlobalJSObject());
-
-  ErrorResult result;
-  RefPtr<Promise> p = Promise::All(global, Move(mPromises), result);
-  if (NS_WARN_IF(result.MaybeSetPendingException(cx))) {
-    return nullptr;
-  }
-
-  return p.forget();
 }
 
 NS_IMPL_ADDREF_INHERITED(ExtendableEvent, Event)
@@ -966,8 +957,6 @@ NS_IMPL_RELEASE_INHERITED(ExtendableEvent, Event)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(ExtendableEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
-
-NS_IMPL_CYCLE_COLLECTION_INHERITED(ExtendableEvent, Event, mPromises)
 
 namespace {
 nsresult
@@ -1202,7 +1191,8 @@ ExtendableMessageEvent::GetSource(Nullable<OwningClientOrServiceWorkerOrMessageP
   } else if (mMessagePort) {
     aValue.SetValue().SetAsMessagePort() = mMessagePort;
   } else {
-    MOZ_CRASH("Unexpected source value");
+    // nullptr source is possible for manually constructed event
+    aValue.SetNull();
   }
 }
 

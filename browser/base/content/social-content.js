@@ -5,6 +5,8 @@
 
 /* This content script is intended for use by iframes in the share panel. */
 
+/* eslint-env mozilla/frame-script */
+
 var {interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -114,7 +116,7 @@ const SocialErrorListener = {
       webNav.loadURI(url, null, null, null, null);
     }
     sendAsyncMessage("Social:ErrorPageNotify", {
-        origin: origin,
+        origin,
         url: src
     });
   },

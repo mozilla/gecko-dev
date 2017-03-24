@@ -164,7 +164,7 @@ ScriptSettingsStackEntry::~ScriptSettingsStackEntry()
 // If the entry or incumbent global ends up being something that the subject
 // principal doesn't subsume, we don't want to use it. This never happens on
 // the web, but can happen with asymmetric privilege relationships (i.e.
-// nsExpandedPrincipal and System Principal).
+// ExpandedPrincipal and System Principal).
 //
 // The most correct thing to use instead would be the topmost global on the
 // callstack whose principal is subsumed by the subject principal. But that's
@@ -376,6 +376,13 @@ AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
     if (exn.isObject()) {
       JS::Rooted<JSObject*> exnObj(aCx, &exn.toObject());
 
+      // Make sure we can actually read things from it.  This UncheckedUwrap is
+      // safe because we're only getting data for a debug printf.  In
+      // particular, we do not expose this data to anyone, which is very
+      // important; otherwise it could be a cross-origin information leak.
+      exnObj = js::UncheckedUnwrap(exnObj);
+      JSAutoCompartment ac(aCx, exnObj);
+
       nsAutoJSString stack, filename, name, message;
       int32_t line;
 
@@ -545,7 +552,7 @@ WarningOnlyErrorReporter(JSContext* aCx, JSErrorReport* aRep)
     // DOM Window.
     win = xpc::AddonWindowOrNull(JS::CurrentGlobalOrNull(aCx));
   }
-  xpcReport->Init(aRep, nullptr, nsContentUtils::IsCallerChrome(),
+  xpcReport->Init(aRep, nullptr, nsContentUtils::IsSystemCaller(aCx),
                   win ? win->AsInner()->WindowID() : 0);
   xpcReport->LogToConsole();
 }
@@ -585,8 +592,10 @@ AutoJSAPI::ReportException()
         win = xpc::AddonWindowOrNull(errorGlobal);
       }
       nsPIDOMWindowInner* inner = win ? win->AsInner() : nullptr;
+      bool isChrome = nsContentUtils::IsSystemPrincipal(
+        nsContentUtils::ObjectPrincipal(errorGlobal));
       xpcReport->Init(jsReport.report(), jsReport.toStringResult().c_str(),
-                      nsContentUtils::IsCallerChrome(),
+                      isChrome,
                       inner ? inner->WindowID() : 0);
       if (inner && jsReport.report()->errorNumber != JSMSG_OUT_OF_MEMORY) {
         JS::RootingContext* rcx = JS::RootingContext::get(cx());
@@ -653,6 +662,9 @@ AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
                                  bool aIsMainThread)
   : AutoJSAPI(aGlobalObject, aIsMainThread, eEntryScript)
   , mWebIDLCallerPrincipal(nullptr)
+  // This relies on us having a cx() because the AutoJSAPI constructor already
+  // ran.
+  , mCallerOverride(cx())
 {
   MOZ_ASSERT(aGlobalObject);
 

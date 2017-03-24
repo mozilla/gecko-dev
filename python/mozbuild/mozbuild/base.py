@@ -386,16 +386,13 @@ class MozbuildObject(ProcessExecutionMixin):
                     '-message', msg], ensure_exit_code=False)
             elif sys.platform.startswith('linux'):
                 try:
-                    import dbus
-                except ImportError:
-                    raise Exception('Install the python dbus module to '
-                        'get a notification when the build finishes.')
-                bus = dbus.SessionBus()
-                notify = bus.get_object('org.freedesktop.Notifications',
-                                        '/org/freedesktop/Notifications')
-                method = notify.get_dbus_method('Notify',
-                                                'org.freedesktop.Notifications')
-                method('Mozilla Build System', 0, '', msg, '', [], [], -1)
+                    notifier = which.which('notify-send')
+                except which.WhichError:
+                    raise Exception('Install notify-send (usually part of '
+                        'the libnotify package) to get a notification when '
+                        'the build finishes.')
+                self.run_process([notifier, '--app-name=Mozilla Build System',
+                    'Mozilla Build System', msg], ensure_exit_code=False)
             elif sys.platform.startswith('win'):
                 from ctypes import Structure, windll, POINTER, sizeof
                 from ctypes.wintypes import DWORD, HANDLE, WINFUNCTYPE, BOOL, UINT
@@ -656,13 +653,7 @@ class MachCommandBase(MozbuildObject):
                 # of the wrong objdir when the current objdir is ambiguous.
                 config_topobjdir = dummy.resolve_mozconfig_topobjdir()
 
-                try:
-                    universal_bin = dummy.substs.get('UNIVERSAL_BINARY')
-                except:
-                    universal_bin = False
-
-                if config_topobjdir and not (samepath(topobjdir, config_topobjdir) or
-                        universal_bin and topobjdir.startswith(config_topobjdir)):
+                if config_topobjdir and not samepath(topobjdir, config_topobjdir):
                     raise ObjdirMismatchException(topobjdir, config_topobjdir)
         except BuildEnvironmentNotFoundException:
             pass
@@ -786,16 +777,22 @@ class MachCommandConditions(object):
         """Must have a mercurial source checkout."""
         if hasattr(cls, 'substs'):
             top_srcdir = cls.substs.get('top_srcdir')
-            return top_srcdir and os.path.isdir(os.path.join(top_srcdir, '.hg'))
-        return False
+        elif hasattr(cls, 'topsrcdir'):
+            top_srcdir = cls.topsrcdir
+        else:
+            return False
+        return top_srcdir and os.path.isdir(os.path.join(top_srcdir, '.hg'))
 
     @staticmethod
     def is_git(cls):
         """Must have a git source checkout."""
         if hasattr(cls, 'substs'):
             top_srcdir = cls.substs.get('top_srcdir')
-            return top_srcdir and os.path.isdir(os.path.join(top_srcdir, '.git'))
-        return False
+        elif hasattr(cls, 'topsrcdir'):
+            top_srcdir = cls.topsrcdir
+        else:
+            return False
+        return top_srcdir and os.path.exists(os.path.join(top_srcdir, '.git'))
 
 
 class PathArgument(object):

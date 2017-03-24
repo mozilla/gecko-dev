@@ -30,7 +30,6 @@
 #include "nsIURL.h"
 #include "nsILoadGroup.h"
 #include "nsContainerFrame.h"
-#include "prprf.h"
 #include "nsCSSRendering.h"
 #include "nsIDOMHTMLImageElement.h"
 #include "nsNameSpaceManager.h"
@@ -48,11 +47,12 @@
 #include "nsIContent.h"
 
 #include "nsContentUtils.h"
-#include "nsSerializationHelper.h"
 
 #include "mozilla/BasicEvents.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/Maybe.h"
+#include "SVGImageContext.h"
+#include "Units.h"
 
 #define ONLOAD_CALLED_TOO_EARLY 1
 
@@ -227,28 +227,11 @@ nsImageBoxFrame::UpdateImage()
   if (mUseSrcAttr) {
     nsIDocument* doc = mContent->GetComposedDoc();
     if (doc) {
-      // Use the serialized loadingPrincipal from the image element. Fall back
-      // to mContent's principal (SystemPrincipal) if not available.
-      nsContentPolicyType contentPolicyType = nsIContentPolicy::TYPE_INTERNAL_IMAGE;
-      nsCOMPtr<nsIPrincipal> loadingPrincipal = mContent->NodePrincipal();
-      nsAutoString imageLoadingPrincipal;
-      mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::loadingprincipal,
-                        imageLoadingPrincipal);
-      if (!imageLoadingPrincipal.IsEmpty()) {
-        nsCOMPtr<nsISupports> serializedPrincipal;
-        NS_DeserializeObject(NS_ConvertUTF16toUTF8(imageLoadingPrincipal),
-                             getter_AddRefs(serializedPrincipal));
-        loadingPrincipal = do_QueryInterface(serializedPrincipal);
-
-        if (loadingPrincipal) {
-          // Set the content policy type to TYPE_INTERNAL_IMAGE_FAVICON for
-          // indicating it's a favicon loading.
-          contentPolicyType = nsIContentPolicy::TYPE_INTERNAL_IMAGE_FAVICON;
-        } else {
-          // Fallback if the deserialization is failed.
-          loadingPrincipal = mContent->NodePrincipal();
-        }
-      }
+      nsContentPolicyType contentPolicyType;
+      nsCOMPtr<nsIPrincipal> loadingPrincipal;
+      nsContentUtils::GetContentPolicyTypeForUIImageLoading(mContent,
+                                                            getter_AddRefs(loadingPrincipal),
+                                                            contentPolicyType);
 
       nsCOMPtr<nsIURI> baseURI = mContent->GetBaseURI();
       nsCOMPtr<nsIURI> uri;
@@ -273,7 +256,7 @@ nsImageBoxFrame::UpdateImage()
   } else {
     // Only get the list-style-image if we aren't being drawn
     // by a native theme.
-    uint8_t appearance = StyleDisplay()->mAppearance;
+    uint8_t appearance = StyleDisplay()->UsedAppearance();
     if (!(appearance && nsBox::gTheme &&
           nsBox::gTheme->ThemeSupportsWidget(nullptr, this, appearance))) {
       // get the list-style-image
@@ -289,7 +272,7 @@ nsImageBoxFrame::UpdateImage()
     mIntrinsicSize.SizeTo(0, 0);
   } else {
     // We don't want discarding or decode-on-draw for xul images.
-    mImageRequest->StartDecoding();
+    mImageRequest->StartDecoding(imgIContainer::FLAG_NONE);
     mImageRequest->LockImage();
   }
 
@@ -422,12 +405,19 @@ nsImageBoxFrame::PaintImage(nsRenderingContext& aRenderingContext,
                                                 anchorPoint.ptr());
   }
 
+  Maybe<SVGImageContext> svgContext;
+  if (imgCon->GetType() == imgIContainer::TYPE_VECTOR) {
+    // We avoid this overhead for raster images.
+    svgContext.emplace();
+    svgContext->MaybeStoreContextPaint(this);
+  }
 
   return nsLayoutUtils::DrawSingleImage(
            *aRenderingContext.ThebesContext(),
            PresContext(), imgCon,
            nsLayoutUtils::GetSamplingFilterForFrame(this),
-           dest, dirty, nullptr, aFlags,
+           dest, dirty,
+           svgContext, aFlags,
            anchorPoint.ptrOr(nullptr),
            hasSubRect ? &mSubRect : nullptr);
 }
@@ -435,7 +425,11 @@ nsImageBoxFrame::PaintImage(nsRenderingContext& aRenderingContext,
 void nsDisplayXULImage::Paint(nsDisplayListBuilder* aBuilder,
                               nsRenderingContext* aCtx)
 {
-  uint32_t flags = imgIContainer::FLAG_NONE;
+  // Even though we call StartDecoding when we get a new image we pass
+  // FLAG_SYNC_DECODE_IF_FAST here for the case where the size we draw at is not
+  // the intrinsic size of the image and we aren't likely to implement predictive
+  // decoding at the correct size for this class like nsImageFrame has.
+  uint32_t flags = imgIContainer::FLAG_SYNC_DECODE_IF_FAST;
   if (aBuilder->ShouldSyncDecodeImages())
     flags |= imgIContainer::FLAG_SYNC_DECODE;
   if (aBuilder->IsPaintingToWindow())
@@ -538,8 +532,8 @@ nsImageBoxFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 
   // If we're using a native theme implementation, we shouldn't draw anything.
   const nsStyleDisplay* disp = StyleDisplay();
-  if (disp->mAppearance && nsBox::gTheme &&
-      nsBox::gTheme->ThemeSupportsWidget(nullptr, this, disp->mAppearance))
+  if (disp->UsedAppearance() && nsBox::gTheme &&
+      nsBox::gTheme->ThemeSupportsWidget(nullptr, this, disp->UsedAppearance()))
     return;
 
   // If list-style-image changes, we have a new image.

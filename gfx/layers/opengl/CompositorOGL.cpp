@@ -235,7 +235,7 @@ CompositorOGL::Initialize(nsCString* const out_failureReason)
 #ifdef MOZ_WIDGET_ANDROID
   if (!mGLContext){
     *out_failureReason = "FEATURE_FAILURE_OPENGL_NO_ANDROID_CONTEXT";
-    NS_RUNTIMEABORT("We need a context on Android");
+    MOZ_CRASH("We need a context on Android");
   }
 #endif
 
@@ -468,10 +468,13 @@ void
 CompositorOGL::PrepareViewport(CompositingRenderTargetOGL* aRenderTarget)
 {
   MOZ_ASSERT(aRenderTarget);
+  // Logical surface size.
   const gfx::IntSize& size = aRenderTarget->mInitParams.mSize;
+  // Physical surface size.
+  const gfx::IntSize& phySize = aRenderTarget->mInitParams.mPhySize;
 
   // Set the viewport correctly.
-  mGLContext->fViewport(0, 0, size.width, size.height);
+  mGLContext->fViewport(0, 0, phySize.width, phySize.height);
 
   mViewportSize = size;
 
@@ -531,10 +534,12 @@ CompositorOGL::CreateRenderTarget(const IntRect &aRect, SurfaceInitMode aInit)
 
   GLuint tex = 0;
   GLuint fbo = 0;
-  CreateFBOWithTexture(aRect, false, 0, &fbo, &tex);
+  IntRect rect = aRect;
+  IntSize FBOSize;
+  CreateFBOWithTexture(rect, false, 0, &fbo, &tex, &FBOSize);
   RefPtr<CompositingRenderTargetOGL> surface
     = new CompositingRenderTargetOGL(this, aRect.TopLeft(), tex, fbo);
-  surface->Initialize(aRect.Size(), mFBOTextureTarget, aInit);
+  surface->Initialize(aRect.Size(), FBOSize, mFBOTextureTarget, aInit);
   return surface.forget();
 }
 
@@ -569,6 +574,7 @@ CompositorOGL::CreateRenderTargetFromSource(const IntRect &aRect,
   RefPtr<CompositingRenderTargetOGL> surface
     = new CompositingRenderTargetOGL(this, aRect.TopLeft(), tex, fbo);
   surface->Initialize(aRect.Size(),
+                      sourceRect.Size(),
                       mFBOTextureTarget,
                       INIT_MODE_NONE);
   return surface.forget();
@@ -699,16 +705,20 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
 }
 
 void
-CompositorOGL::CreateFBOWithTexture(const gfx::IntRect& aRect, bool aCopyFromSource,
+CompositorOGL::CreateFBOWithTexture(const gfx::IntRect& aRect,
+                                    bool aCopyFromSource,
                                     GLuint aSourceFrameBuffer,
-                                    GLuint *aFBO, GLuint *aTexture)
+                                    GLuint *aFBO, GLuint *aTexture,
+                                    gfx::IntSize* aAllocSize)
 {
-  *aTexture = CreateTexture(aRect, aCopyFromSource, aSourceFrameBuffer);
+  *aTexture = CreateTexture(aRect, aCopyFromSource, aSourceFrameBuffer,
+                            aAllocSize);
   mGLContext->fGenFramebuffers(1, aFBO);
 }
 
 GLuint
-CompositorOGL::CreateTexture(const IntRect& aRect, bool aCopyFromSource, GLuint aSourceFrameBuffer)
+CompositorOGL::CreateTexture(const IntRect& aRect, bool aCopyFromSource,
+                             GLuint aSourceFrameBuffer, IntSize* aAllocSize)
 {
   // we're about to create a framebuffer backed by textures to use as an intermediate
   // surface. What to do if its size (as given by aRect) would exceed the
@@ -800,6 +810,11 @@ CompositorOGL::CreateTexture(const IntRect& aRect, bool aCopyFromSource, GLuint 
   mGLContext->fTexParameteri(mFBOTextureTarget, LOCAL_GL_TEXTURE_WRAP_T,
                              LOCAL_GL_CLAMP_TO_EDGE);
   mGLContext->fBindTexture(mFBOTextureTarget, 0);
+
+  if (aAllocSize) {
+    aAllocSize->width = clampedRect.width;
+    aAllocSize->height = clampedRect.height;
+  }
 
   return tex;
 }
@@ -1629,15 +1644,6 @@ CompositorOGL::EndFrame()
 }
 
 void
-CompositorOGL::EndFrameForExternalComposition(const gfx::Matrix& aTransform)
-{
-  MOZ_ASSERT(!mTarget);
-  if (mTexturePool) {
-    mTexturePool->EndFrame();
-  }
-}
-
-void
 CompositorOGL::SetDestinationSurfaceSize(const IntSize& aSize)
 {
   mSurfaceSize.width = aSize.width;
@@ -1714,7 +1720,7 @@ CompositorOGL::Resume()
     return false;
 
   // RenewSurface internally calls MakeCurrent.
-  return gl()->RenewSurface(GetWidget()->RealWidget());
+  return gl()->RenewSurface(GetWidget());
 #endif
   return true;
 }
@@ -1813,88 +1819,10 @@ PerUnitTexturePoolOGL::DestroyTextures()
   mTextures.SetLength(0);
 }
 
-void
-PerFrameTexturePoolOGL::DestroyTextures()
+bool
+CompositorOGL::SupportsLayerGeometry() const
 {
-  if (!mGL->MakeCurrent()) {
-    return;
-  }
-
-  if (mUnusedTextures.Length() > 0) {
-    mGL->fDeleteTextures(mUnusedTextures.Length(), &mUnusedTextures[0]);
-    mUnusedTextures.Clear();
-  }
-
-  if (mCreatedTextures.Length() > 0) {
-    mGL->fDeleteTextures(mCreatedTextures.Length(), &mCreatedTextures[0]);
-    mCreatedTextures.Clear();
-  }
-}
-
-GLuint
-PerFrameTexturePoolOGL::GetTexture(GLenum aTarget, GLenum)
-{
-  if (mTextureTarget == 0) {
-    mTextureTarget = aTarget;
-  }
-
-  // The pool should always use the same texture target because it is illegal
-  // to change the target of an already exisiting gl texture.
-  // If we need to use several targets, a pool with several sub-pools (one per
-  // target) will have to be implemented.
-  // At the moment this pool is only used with tiling on b2g so we always need
-  // the same target.
-  MOZ_ASSERT(mTextureTarget == aTarget);
-
-  GLuint texture = 0;
-
-  if (!mUnusedTextures.IsEmpty()) {
-    // Try to reuse one from the unused pile first
-    texture = mUnusedTextures[0];
-    mUnusedTextures.RemoveElementAt(0);
-  } else if (mGL->MakeCurrent()) {
-    // There isn't one to reuse, create one.
-    mGL->fGenTextures(1, &texture);
-    mGL->fBindTexture(aTarget, texture);
-    mGL->fTexParameteri(aTarget, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
-    mGL->fTexParameteri(aTarget, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
-  }
-
-  if (texture) {
-    mCreatedTextures.AppendElement(texture);
-  }
-
-  return texture;
-}
-
-void
-PerFrameTexturePoolOGL::EndFrame()
-{
-  if (!mGL->MakeCurrent()) {
-    // this means the context got destroyed underneith us somehow, and the driver
-    // already has destroyed the textures.
-    mCreatedTextures.Clear();
-    mUnusedTextures.Clear();
-    return;
-  }
-
-  // Some platforms have issues unlocking Gralloc buffers even when they're
-  // rebound.
-  if (gfxPrefs::OverzealousGrallocUnlocking()) {
-    mUnusedTextures.AppendElements(mCreatedTextures);
-    mCreatedTextures.Clear();
-  }
-
-  // Delete unused textures
-  for (size_t i = 0; i < mUnusedTextures.Length(); i++) {
-    GLuint texture = mUnusedTextures[i];
-    mGL->fDeleteTextures(1, &texture);
-  }
-  mUnusedTextures.Clear();
-
-  // Move all created textures into the unused pile
-  mUnusedTextures.AppendElements(mCreatedTextures);
-  mCreatedTextures.Clear();
+  return gfxPrefs::OGLLayerGeometry();
 }
 
 } // namespace layers

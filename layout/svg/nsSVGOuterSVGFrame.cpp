@@ -21,6 +21,7 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::image;
 
 //----------------------------------------------------------------------
 // Implementation helpers
@@ -65,6 +66,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsSVGOuterSVGFrame)
 
 nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
     : nsSVGDisplayContainerFrame(aContext)
+    , mCallingReflowSVG(false)
     , mFullZoom(aContext->PresContext()->GetFullZoom())
     , mViewportInitialized(false)
     , mIsRootContent(false)
@@ -368,7 +370,7 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
   NS_PRECONDITION(mState & NS_FRAME_IN_REFLOW, "frame is not in reflow");
 
-  aStatus = NS_FRAME_COMPLETE;
+  aStatus.Reset();
 
   aDesiredSize.Width()  = aReflowInput.ComputedWidth() +
                           aReflowInput.ComputedPhysicalBorderPadding().LeftRight();
@@ -625,7 +627,7 @@ nsDisplayOuterSVG::Paint(nsDisplayListBuilder* aBuilder,
   aContext->ThebesContext()->Save();
   // We include the offset of our frame and a scale from device pixels to user
   // units (i.e. CSS px) in the matrix that we pass to our children):
-  gfxMatrix tm = nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(mFrame) *
+  gfxMatrix tm = nsSVGUtils::GetCSSPxToDevPxMatrix(mFrame) *
                    gfxMatrix::Translation(devPixelOffset);
   DrawResult result =
     nsSVGUtils::PaintFrameWithEffects(mFrame, *aContext->ThebesContext(), tm,
@@ -836,7 +838,7 @@ nsSVGOuterSVGFrame::NotifyViewportOrTransformChanged(uint32_t aFlags)
 }
 
 //----------------------------------------------------------------------
-// nsISVGChildFrame methods:
+// nsSVGDisplayableFrame methods:
 
 DrawResult
 nsSVGOuterSVGFrame::PaintSVG(gfxContext& aContext,
@@ -947,6 +949,16 @@ nsSVGOuterSVGFrame::VerticalScrollbarNotNeeded() const
   return height.IsPercentage() && height.GetBaseValInSpecifiedUnits() <= 100;
 }
 
+void
+nsSVGOuterSVGFrame::DoUpdateStyleOfOwnedAnonBoxes(
+  mozilla::ServoStyleSet& aStyleSet,
+  nsStyleChangeList& aChangeList,
+  nsChangeHint aHintForThisFrame)
+{
+  nsIFrame* anonKid = PrincipalChildList().FirstChild();
+  MOZ_ASSERT(anonKid->GetType() == nsGkAtoms::svgOuterSVGAnonChildFrame);
+  UpdateStyleOfChildAnonBox(anonKid, aStyleSet, aChangeList, aHintForThisFrame);
+}
 
 //----------------------------------------------------------------------
 // Implementation of nsSVGOuterSVGAnonChildFrame

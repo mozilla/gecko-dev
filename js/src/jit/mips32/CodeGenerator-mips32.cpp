@@ -490,7 +490,7 @@ CodeGeneratorMIPS::emitWasmLoadI64(T* lir)
     masm.memoryBarrier(mir->access().barrierBefore());
 
     MOZ_ASSERT(INT64LOW_OFFSET == 0);
-    if (mir->access().isUnaligned()) {
+    if (IsUnaligned(mir->access())) {
         Register temp = ToRegister(lir->getTemp(1));
 
         if (byteSize <= 4) {
@@ -577,7 +577,7 @@ CodeGeneratorMIPS::emitWasmStoreI64(T* lir)
     masm.memoryBarrier(mir->access().barrierBefore());
 
     MOZ_ASSERT(INT64LOW_OFFSET == 0);
-    if (mir->access().isUnaligned()) {
+    if (IsUnaligned(mir->access())) {
         Register temp = ToRegister(lir->getTemp(1));
 
         if (byteSize <= 4) {
@@ -618,30 +618,6 @@ void
 CodeGeneratorMIPS::visitWasmUnalignedStoreI64(LWasmUnalignedStoreI64* lir)
 {
     emitWasmStoreI64(lir);
-}
-
-void
-CodeGeneratorMIPS::visitWasmLoadGlobalVarI64(LWasmLoadGlobalVarI64* ins)
-{
-    const MWasmLoadGlobalVar* mir = ins->mir();
-    unsigned addr = mir->globalDataOffset() - WasmGlobalRegBias;
-    MOZ_ASSERT(mir->type() == MIRType::Int64);
-    Register64 output = ToOutRegister64(ins);
-
-    masm.load32(Address(GlobalReg, addr + INT64LOW_OFFSET), output.low);
-    masm.load32(Address(GlobalReg, addr + INT64HIGH_OFFSET), output.high);
-}
-
-void
-CodeGeneratorMIPS::visitWasmStoreGlobalVarI64(LWasmStoreGlobalVarI64* ins)
-{
-    const MWasmStoreGlobalVar* mir = ins->mir();
-    unsigned addr = mir->globalDataOffset() - WasmGlobalRegBias;
-    MOZ_ASSERT (mir->value()->type() == MIRType::Int64);
-    Register64 input = ToRegister64(ins->value());
-
-    masm.store32(input.low, Address(GlobalReg, addr + INT64LOW_OFFSET));
-    masm.store32(input.high, Address(GlobalReg, addr + INT64HIGH_OFFSET));
 }
 
 void

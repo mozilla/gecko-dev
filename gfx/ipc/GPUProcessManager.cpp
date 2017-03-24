@@ -3,14 +3,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include "GPUProcessManager.h"
+
+#include "gfxPrefs.h"
 #include "GPUProcessHost.h"
 #include "GPUProcessListener.h"
+#include "mozilla/MemoryReportingProcess.h"
+#include "mozilla/Sprintf.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/layers/APZCTreeManager.h"
 #include "mozilla/layers/APZCTreeManagerChild.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
+#include "mozilla/layers/CompositorOptions.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/ImageBridgeParent.h"
 #include "mozilla/layers/InProcessCompositorSession.h"
@@ -29,6 +35,12 @@
 #include "VsyncSource.h"
 #include "mozilla/dom/VideoDecoderManagerChild.h"
 #include "mozilla/dom/VideoDecoderManagerParent.h"
+#include "MediaPrefs.h"
+
+#if defined(MOZ_WIDGET_ANDROID)
+#include "mozilla/widget/AndroidUiThread.h"
+#include "mozilla/layers/UiCompositorControllerChild.h"
+#endif // defined(MOZ_WIDGET_ANDROID)
 
 namespace mozilla {
 namespace gfx {
@@ -59,7 +71,9 @@ GPUProcessManager::Shutdown()
 GPUProcessManager::GPUProcessManager()
  : mTaskFactory(this),
    mNextLayerTreeId(0),
+   mNextResetSequenceNo(0),
    mNumProcessAttempts(0),
+   mDeviceResetCount(0),
    mProcess(nullptr),
    mGPUChild(nullptr)
 {
@@ -67,6 +81,8 @@ GPUProcessManager::GPUProcessManager()
 
   mObserver = new Observer(this);
   nsContentUtils::RegisterShutdownObserver(mObserver);
+
+  mDeviceResetLastTime = TimeStamp::Now();
 
   LayerTreeOwnerTracker::Initialize();
 }
@@ -140,6 +156,8 @@ GPUProcessManager::DisableGPUProcess(const char* aMessage)
 
   gfxConfig::SetFailed(Feature::GPU_PROCESS, FeatureStatus::Failed, aMessage);
   gfxCriticalNote << aMessage;
+
+  gfxPlatform::NotifyGPUProcessDisabled();
 
   DestroyProcess();
   ShutdownVsyncIOThread();
@@ -222,13 +240,51 @@ GPUProcessManager::EnsureVRManager()
   VRManagerChild::InitWithGPUProcess(Move(childPipe));
 }
 
+#if defined(MOZ_WIDGET_ANDROID)
+void
+GPUProcessManager::EnsureUiCompositorController()
+{
+  if (UiCompositorControllerChild::IsInitialized()) {
+    return;
+  }
+
+  EnsureGPUReady();
+
+  RefPtr<nsThread> uiThread;
+
+  uiThread = GetAndroidUiThread();
+
+  MOZ_ASSERT(uiThread);
+
+  if (!mGPUChild) {
+    UiCompositorControllerChild::InitSameProcess(uiThread);
+    return;
+  }
+
+  ipc::Endpoint<PUiCompositorControllerParent> parentPipe;
+  ipc::Endpoint<PUiCompositorControllerChild> childPipe;
+  nsresult rv = PUiCompositorController::CreateEndpoints(
+    mGPUChild->OtherPid(),
+    base::GetCurrentProcId(),
+    &parentPipe,
+    &childPipe);
+  if (NS_FAILED(rv)) {
+    DisableGPUProcess("Failed to create PUiCompositorController endpoints");
+    return;
+  }
+
+  mGPUChild->SendInitUiCompositorController(Move(parentPipe));
+  UiCompositorControllerChild::InitWithGPUProcess(uiThread, mProcessToken, Move(childPipe));
+}
+#endif // defined(MOZ_WIDGET_ANDROID)
+
 void
 GPUProcessManager::OnProcessLaunchComplete(GPUProcessHost* aHost)
 {
   MOZ_ASSERT(mProcess && mProcess == aHost);
 
   if (!mProcess->IsConnected()) {
-    DisableGPUProcess("Failed to launch GPU process");
+    DisableGPUProcess("Failed to connect GPU process");
     return;
   }
 
@@ -257,6 +313,60 @@ GPUProcessManager::OnProcessLaunchComplete(GPUProcessHost* aHost)
   mGPUChild->SendAddLayerTreeIdMapping(mappings);
 }
 
+static bool
+ShouldLimitDeviceResets(uint32_t count, int32_t deltaMilliseconds)
+{
+  // We decide to limit by comparing the amount of resets that have happened
+  // and time since the last reset to two prefs. 
+  int32_t timeLimit = gfxPrefs::DeviceResetThresholdMilliseconds();
+  int32_t countLimit = gfxPrefs::DeviceResetLimitCount();
+
+  bool hasTimeLimit = timeLimit >= 0;
+  bool hasCountLimit = countLimit >= 0;
+
+  bool triggeredTime = deltaMilliseconds < timeLimit;
+  bool triggeredCount = count > (uint32_t)countLimit;
+
+  // If we have both prefs set then it needs to trigger both limits,
+  // otherwise we only test the pref that is set or none
+  if (hasTimeLimit && hasCountLimit) {
+    return triggeredTime && triggeredCount;
+  } else if (hasTimeLimit) {
+    return triggeredTime;
+  } else if (hasCountLimit) {
+    return triggeredCount;
+  }
+
+  return false;
+}
+
+void
+GPUProcessManager::OnProcessDeviceReset(GPUProcessHost* aHost)
+{
+  // Detect whether the device is resetting too quickly or too much
+  // indicating that we should give up and use software
+  mDeviceResetCount++;
+
+  auto newTime = TimeStamp::Now();
+  auto delta = (int32_t)(newTime - mDeviceResetLastTime).ToMilliseconds();
+  mDeviceResetLastTime = newTime;
+
+  if (ShouldLimitDeviceResets(mDeviceResetCount, delta)) {
+    DestroyProcess();
+    DisableGPUProcess("GPU processed experienced too many device resets");
+
+    HandleProcessLost();
+    return;
+  }
+  
+  uint64_t seqNo = GetNextDeviceResetSequenceNumber();
+
+  // We're good, do a reset like normal
+  for (auto& session : mRemoteSessions) {
+    session->NotifyDeviceReset(seqNo);
+  }
+}
+
 void
 GPUProcessManager::OnProcessUnexpectedShutdown(GPUProcessHost* aHost)
 {
@@ -264,9 +374,19 @@ GPUProcessManager::OnProcessUnexpectedShutdown(GPUProcessHost* aHost)
 
   DestroyProcess();
 
-  if (mNumProcessAttempts > uint32_t(gfxPrefs::GPUProcessDevMaxRestarts())) {
-    DisableGPUProcess("GPU processed crashed too many times");
+  if (mNumProcessAttempts > uint32_t(gfxPrefs::GPUProcessMaxRestarts())) {
+    char disableMessage[64];
+    SprintfLiteral(disableMessage, "GPU process disabled after %d attempts",
+                   mNumProcessAttempts);
+    DisableGPUProcess(disableMessage);
   }
+
+  HandleProcessLost();
+}
+
+void
+GPUProcessManager::HandleProcessLost()
+{
   if (gfxConfig::IsEnabled(Feature::GPU_PROCESS)) {
     LaunchGPUProcess();
   }
@@ -411,13 +531,16 @@ GPUProcessManager::DestroyProcess()
     mVsyncBridge->Close();
     mVsyncBridge = nullptr;
   }
+#if defined(MOZ_WIDGET_ANDROID)
+  UiCompositorControllerChild::Shutdown();
+#endif // defined(MOZ_WIDGET_ANDROID)
 }
 
 RefPtr<CompositorSession>
 GPUProcessManager::CreateTopLevelCompositor(nsBaseWidget* aWidget,
-                                            ClientLayerManager* aLayerManager,
+                                            LayerManager* aLayerManager,
                                             CSSToLayoutDeviceScale aScale,
-                                            bool aUseAPZ,
+                                            const CompositorOptions& aOptions,
                                             bool aUseExternalSurfaceSize,
                                             const gfx::IntSize& aSurfaceSize)
 {
@@ -426,6 +549,9 @@ GPUProcessManager::CreateTopLevelCompositor(nsBaseWidget* aWidget,
   EnsureGPUReady();
   EnsureImageBridgeChild();
   EnsureVRManager();
+#if defined(MOZ_WIDGET_ANDROID)
+  EnsureUiCompositorController();
+#endif // defined(MOZ_WIDGET_ANDROID)
 
   if (mGPUChild) {
     RefPtr<CompositorSession> session = CreateRemoteSession(
@@ -433,7 +559,7 @@ GPUProcessManager::CreateTopLevelCompositor(nsBaseWidget* aWidget,
       aLayerManager,
       layerTreeId,
       aScale,
-      aUseAPZ,
+      aOptions,
       aUseExternalSurfaceSize,
       aSurfaceSize);
     if (session) {
@@ -449,17 +575,17 @@ GPUProcessManager::CreateTopLevelCompositor(nsBaseWidget* aWidget,
     aLayerManager,
     layerTreeId,
     aScale,
-    aUseAPZ,
+    aOptions,
     aUseExternalSurfaceSize,
     aSurfaceSize);
 }
 
 RefPtr<CompositorSession>
 GPUProcessManager::CreateRemoteSession(nsBaseWidget* aWidget,
-                                       ClientLayerManager* aLayerManager,
+                                       LayerManager* aLayerManager,
                                        const uint64_t& aRootLayerTreeId,
                                        CSSToLayoutDeviceScale aScale,
-                                       bool aUseAPZ,
+                                       const CompositorOptions& aOptions,
                                        bool aUseExternalSurfaceSize,
                                        const gfx::IntSize& aSurfaceSize)
 {
@@ -496,6 +622,7 @@ GPUProcessManager::CreateRemoteSession(nsBaseWidget* aWidget,
     Move(parentPipe),
     aScale,
     vsyncRate,
+    aOptions,
     aUseExternalSurfaceSize,
     aSurfaceSize);
   if (!ok) {
@@ -515,7 +642,7 @@ GPUProcessManager::CreateRemoteSession(nsBaseWidget* aWidget,
   }
 
   RefPtr<APZCTreeManagerChild> apz = nullptr;
-  if (aUseAPZ) {
+  if (aOptions.UseAPZ()) {
     PAPZCTreeManagerChild* papz = child->SendPAPZCTreeManagerConstructor(0);
     if (!papz) {
       return nullptr;
@@ -536,7 +663,8 @@ bool
 GPUProcessManager::CreateContentBridges(base::ProcessId aOtherProcess,
                                         ipc::Endpoint<PCompositorBridgeChild>* aOutCompositor,
                                         ipc::Endpoint<PImageBridgeChild>* aOutImageBridge,
-                                        ipc::Endpoint<PVRManagerChild>* aOutVRBridge)
+                                        ipc::Endpoint<PVRManagerChild>* aOutVRBridge,
+                                        ipc::Endpoint<dom::PVideoDecoderManagerChild>* aOutVideoManager)
 {
   if (!CreateContentCompositorBridge(aOtherProcess, aOutCompositor) ||
       !CreateContentImageBridge(aOtherProcess, aOutImageBridge) ||
@@ -544,6 +672,9 @@ GPUProcessManager::CreateContentBridges(base::ProcessId aOtherProcess,
   {
     return false;
   }
+  // VideoDeocderManager is only supported in the GPU process, so we allow this to be
+  // fallible.
+  CreateContentVideoDecoderManager(aOtherProcess, aOutVideoManager);
   return true;
 }
 
@@ -659,12 +790,12 @@ GPUProcessManager::CreateContentVRManager(base::ProcessId aOtherProcess,
   return true;
 }
 
-bool
+void
 GPUProcessManager::CreateContentVideoDecoderManager(base::ProcessId aOtherProcess,
                                                     ipc::Endpoint<dom::PVideoDecoderManagerChild>* aOutEndpoint)
 {
-  if (!mGPUChild) {
-    return false;
+  if (!mGPUChild || !MediaPrefs::PDMUseGPUDecoder()) {
+    return;
   }
 
   ipc::Endpoint<dom::PVideoDecoderManagerParent> parentPipe;
@@ -677,13 +808,13 @@ GPUProcessManager::CreateContentVideoDecoderManager(base::ProcessId aOtherProces
     &childPipe);
   if (NS_FAILED(rv)) {
     gfxCriticalNote << "Could not create content video decoder: " << hexa(int(rv));
-    return false;
+    return;
   }
 
   mGPUChild->SendNewContentVideoDecoderManager(Move(parentPipe));
 
   *aOutEndpoint = Move(childPipe);
-  return true;
+  return;
 }
 
 already_AddRefed<IAPZCTreeManager>
@@ -779,6 +910,62 @@ GPUProcessManager::NotifyGpuObservers(const char* aTopic)
   nsCString topic(aTopic);
   mGPUChild->SendNotifyGpuObservers(topic);
   return true;
+}
+
+class GPUMemoryReporter : public MemoryReportingProcess
+{
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GPUMemoryReporter, override)
+
+  bool IsAlive() const override {
+    if (GPUProcessManager* gpm = GPUProcessManager::Get()) {
+      return !!gpm->GetGPUChild();
+    }
+    return false;
+  }
+
+  bool SendRequestMemoryReport(const uint32_t& aGeneration,
+                               const bool& aAnonymize,
+                               const bool& aMinimizeMemoryUsage,
+                               const dom::MaybeFileDesc& aDMDFile) override
+  {
+    GPUChild* child = GetChild();
+    if (!child) {
+      return false;
+    }
+
+    return child->SendRequestMemoryReport(
+      aGeneration, aAnonymize, aMinimizeMemoryUsage, aDMDFile);
+  }
+
+  int32_t Pid() const override {
+    if (GPUChild* child = GetChild()) {
+      return (int32_t)child->OtherPid();
+    }
+    return 0;
+  }
+
+private:
+  GPUChild* GetChild() const {
+    if (GPUProcessManager* gpm = GPUProcessManager::Get()) {
+      if (GPUChild* child = gpm->GetGPUChild()) {
+        return child;
+      }
+    }
+    return nullptr;
+  }
+
+protected:
+  ~GPUMemoryReporter() = default;
+};
+
+RefPtr<MemoryReportingProcess>
+GPUProcessManager::GetProcessMemoryReporter()
+{
+  if (!mGPUChild) {
+    return nullptr;
+  }
+  return new GPUMemoryReporter();
 }
 
 } // namespace gfx

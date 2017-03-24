@@ -21,8 +21,7 @@ this.EXPORTED_SYMBOLS = ["ForgetAboutSite"];
  * "mozilla.org", this will return true.  It would return false the other way
  * around.
  */
-function hasRootDomain(str, aDomain)
-{
+function hasRootDomain(str, aDomain) {
   let index = str.indexOf(aDomain);
   // If aDomain is not found, we know we do not have it as a root domain.
   if (index == -1)
@@ -45,8 +44,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 this.ForgetAboutSite = {
-  removeDataFromDomain: function CRH_removeDataFromDomain(aDomain)
-  {
+  removeDataFromDomain: function CRH_removeDataFromDomain(aDomain) {
     PlacesUtils.history.removePagesFromHost(aDomain, true);
 
     // Cache
@@ -93,7 +91,6 @@ this.ForgetAboutSite = {
     let promises = [];
     for (let i = 0; i < tags.length; i++) {
       let promise = new Promise(resolve => {
-        let tag = tags[i];
         try {
           ph.clearSiteData(tags[i], aDomain, FLAG_CLEAR_ALL, -1, function(rv) {
             resolve();
@@ -122,10 +119,9 @@ this.ForgetAboutSite = {
       for (let i = 0; i < logins.length; i++)
         if (hasRootDomain(logins[i].hostname, aDomain))
           lm.removeLogin(logins[i]);
-    }
-    // XXXehsan: is there a better way to do this rather than this
-    // hacky comparison?
-    catch (ex) {
+    } catch (ex) {
+      // XXXehsan: is there a better way to do this rather than this
+      // hacky comparison?
       if (ex.message.indexOf("User canceled Master Password entry") == -1) {
         throw ex;
       }
@@ -179,7 +175,7 @@ this.ForgetAboutSite = {
                getService(Ci.nsIContentPrefService2);
     cps2.removeBySubdomain(aDomain, null, {
       handleCompletion: () => onContentPrefsRemovalFinished(),
-      handleError: function() {}
+      handleError() {}
     });
 
     // Predictive network data - like cache, no way to clear this per
@@ -189,7 +185,7 @@ this.ForgetAboutSite = {
     np.reset();
 
     // Push notifications.
-    promises.push(new Promise(resolve => {
+    promises.push(new Promise((resolve, reject) => {
       var push = Cc["@mozilla.org/push/Service;1"]
                   .getService(Ci.nsIPushService);
       push.clearForDomain(aDomain, status => {
@@ -201,14 +197,25 @@ this.ForgetAboutSite = {
     }));
 
     // HSTS and HPKP
-    // TODO (bug 1290529): also remove HSTS/HPKP information for subdomains.
-    // Since we can't enumerate the information in the site security service
-    // (bug 1115712), we can't implement this right now.
     try {
       let sss = Cc["@mozilla.org/ssservice;1"].
                 getService(Ci.nsISiteSecurityService);
-      sss.removeState(Ci.nsISiteSecurityService.HEADER_HSTS, httpsURI, 0);
-      sss.removeState(Ci.nsISiteSecurityService.HEADER_HPKP, httpsURI, 0);
+      for (let type of [Ci.nsISiteSecurityService.HEADER_HSTS,
+                        Ci.nsISiteSecurityService.HEADER_HPKP]) {
+        // Also remove HSTS/HPKP information for subdomains by enumerating the
+        // information in the site security service.
+        let enumerator = sss.enumerate(type);
+        while (enumerator.hasMoreElements()) {
+          let entry = enumerator.getNext();
+          let hostname = entry.QueryInterface(Ci.nsISiteSecurityState).hostname;
+          // If the hostname is aDomain's subdomain, we remove its state.
+          if (hostname == aDomain || hostname.endsWith("." + aDomain)) {
+            // This uri is used as a key to remove the state.
+            let uri = caUtils.makeURI("https://" + hostname);
+            sss.removeState(type, uri, 0, entry.originAttributes);
+          }
+        }
+      }
     } catch (e) {
       Cu.reportError("Exception thrown while clearing HSTS/HPKP: " +
                      e.toString());

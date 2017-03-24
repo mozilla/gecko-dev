@@ -21,6 +21,7 @@
 #include "nsIWeakReference.h"             // base class
 #include "nsNodeUtils.h"                  // class member nsNodeUtils::CloneNodeImpl
 #include "nsIHTMLCollection.h"
+#include "nsDataHashtable.h"
 
 class ContentUnbinder;
 class nsContentList;
@@ -35,6 +36,7 @@ class nsIURI;
 namespace mozilla {
 class DeclarationBlock;
 namespace dom {
+struct CustomElementData;
 class DOMIntersectionObserver;
 class Element;
 } // namespace dom
@@ -123,7 +125,7 @@ public:
                                  bool aNotify) override;
   virtual void RemoveChildAt(uint32_t aIndex, bool aNotify) override;
   virtual void GetTextContentInternal(nsAString& aTextContent,
-                                      mozilla::ErrorResult& aError) override;
+                                      mozilla::OOMReporter& aError) override;
   virtual void SetTextContentInternal(const nsAString& aTextContent,
                                       mozilla::ErrorResult& aError) override;
 
@@ -141,6 +143,7 @@ public:
   virtual nsresult AppendText(const char16_t* aBuffer, uint32_t aLength,
                               bool aNotify) override;
   virtual bool TextIsOnlyWhitespace() override;
+  virtual bool ThreadSafeTextIsOnlyWhitespace() const override;
   virtual bool HasTextForTranslation() override;
   virtual void AppendTextTo(nsAString& aResult) override;
   MOZ_MUST_USE
@@ -156,9 +159,6 @@ public:
   virtual nsIContent *GetXBLInsertionParent() const override;
   virtual void SetXBLInsertionParent(nsIContent* aContent) override;
   virtual bool IsLink(nsIURI** aURI) const override;
-
-  virtual CustomElementData *GetCustomElementData() const override;
-  virtual void SetCustomElementData(CustomElementData* aData) override;
 
   virtual void DestroyContent() override;
   virtual void SaveSubtreeState() override;
@@ -347,12 +347,8 @@ public:
     /**
      * Registered Intersection Observers on the element.
      */
-    struct IntersectionObserverRegistration {
-      DOMIntersectionObserver* observer;
-      int32_t previousThreshold;
-    };
-
-    nsTArray<IntersectionObserverRegistration> mRegisteredIntersectionObservers;
+    nsDataHashtable<nsRefPtrHashKey<DOMIntersectionObserver>, int32_t>
+      mRegisteredIntersectionObservers;
   };
 
 protected:

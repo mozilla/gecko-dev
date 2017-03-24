@@ -219,6 +219,34 @@ struct ParamTraits<mozilla::WidgetWheelEvent>
 };
 
 template<>
+struct ParamTraits<mozilla::WidgetPointerHelper>
+{
+  typedef mozilla::WidgetPointerHelper paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, aParam.pointerId);
+    WriteParam(aMsg, aParam.tiltX);
+    WriteParam(aMsg, aParam.tiltY);
+    WriteParam(aMsg, aParam.twist);
+    WriteParam(aMsg, aParam.tangentialPressure);
+    // We don't serialize convertToPointer since it's temporarily variable and
+    // should be reset to default.
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
+  {
+    bool rv;
+    rv = ReadParam(aMsg, aIter, &aResult->pointerId) &&
+         ReadParam(aMsg, aIter, &aResult->tiltX) &&
+         ReadParam(aMsg, aIter, &aResult->tiltY) &&
+         ReadParam(aMsg, aIter, &aResult->twist) &&
+         ReadParam(aMsg, aIter, &aResult->tangentialPressure);
+    return rv;
+  }
+};
+
+template<>
 struct ParamTraits<mozilla::WidgetMouseEvent>
 {
   typedef mozilla::WidgetMouseEvent paramType;
@@ -226,13 +254,13 @@ struct ParamTraits<mozilla::WidgetMouseEvent>
   static void Write(Message* aMsg, const paramType& aParam)
   {
     WriteParam(aMsg, static_cast<mozilla::WidgetMouseEventBase>(aParam));
+    WriteParam(aMsg, static_cast<mozilla::WidgetPointerHelper>(aParam));
     WriteParam(aMsg, aParam.mIgnoreRootScrollFrame);
     WriteParam(aMsg, static_cast<paramType::ReasonType>(aParam.mReason));
     WriteParam(aMsg, static_cast<paramType::ContextMenuTriggerType>(
                        aParam.mContextMenuTrigger));
     WriteParam(aMsg, static_cast<paramType::ExitFromType>(aParam.mExitFrom));
     WriteParam(aMsg, aParam.mClickCount);
-    WriteParam(aMsg, aParam.pointerId);
   }
 
   static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
@@ -243,12 +271,13 @@ struct ParamTraits<mozilla::WidgetMouseEvent>
     paramType::ExitFromType exitFrom = 0;
     rv = ReadParam(aMsg, aIter,
                    static_cast<mozilla::WidgetMouseEventBase*>(aResult)) &&
+         ReadParam(aMsg, aIter,
+                   static_cast<mozilla::WidgetPointerHelper*>(aResult)) &&
          ReadParam(aMsg, aIter, &aResult->mIgnoreRootScrollFrame) &&
          ReadParam(aMsg, aIter, &reason) &&
          ReadParam(aMsg, aIter, &contextMenuTrigger) &&
          ReadParam(aMsg, aIter, &exitFrom) &&
-         ReadParam(aMsg, aIter, &aResult->mClickCount) &&
-         ReadParam(aMsg, aIter, &aResult->pointerId);
+         ReadParam(aMsg, aIter, &aResult->mClickCount);
     aResult->mReason = static_cast<paramType::Reason>(reason);
     aResult->mContextMenuTrigger =
       static_cast<paramType::ContextMenuTrigger>(contextMenuTrigger);
@@ -290,8 +319,6 @@ struct ParamTraits<mozilla::WidgetPointerEvent>
     WriteParam(aMsg, static_cast<mozilla::WidgetMouseEvent>(aParam));
     WriteParam(aMsg, aParam.mWidth);
     WriteParam(aMsg, aParam.mHeight);
-    WriteParam(aMsg, aParam.tiltX);
-    WriteParam(aMsg, aParam.tiltY);
     WriteParam(aMsg, aParam.mIsPrimary);
   }
 
@@ -301,8 +328,6 @@ struct ParamTraits<mozilla::WidgetPointerEvent>
       ReadParam(aMsg, aIter, static_cast<mozilla::WidgetMouseEvent*>(aResult)) &&
       ReadParam(aMsg, aIter, &aResult->mWidth) &&
       ReadParam(aMsg, aIter, &aResult->mHeight) &&
-      ReadParam(aMsg, aIter, &aResult->tiltX) &&
-      ReadParam(aMsg, aIter, &aResult->tiltY) &&
       ReadParam(aMsg, aIter, &aResult->mIsPrimary);
     return rv;
   }
@@ -396,7 +421,6 @@ struct ParamTraits<mozilla::WidgetKeyboardEvent>
     WriteParam(aMsg, aParam.mCharCode);
     WriteParam(aMsg, aParam.mPseudoCharCode);
     WriteParam(aMsg, aParam.mAlternativeCharCodes);
-    WriteParam(aMsg, aParam.mIsChar);
     WriteParam(aMsg, aParam.mIsRepeat);
     WriteParam(aMsg, aParam.mIsReserved);
     WriteParam(aMsg, aParam.mAccessKeyForwardedToChild);
@@ -432,7 +456,6 @@ struct ParamTraits<mozilla::WidgetKeyboardEvent>
         ReadParam(aMsg, aIter, &aResult->mCharCode) &&
         ReadParam(aMsg, aIter, &aResult->mPseudoCharCode) &&
         ReadParam(aMsg, aIter, &aResult->mAlternativeCharCodes) &&
-        ReadParam(aMsg, aIter, &aResult->mIsChar) &&
         ReadParam(aMsg, aIter, &aResult->mIsRepeat) &&
         ReadParam(aMsg, aIter, &aResult->mIsReserved) &&
         ReadParam(aMsg, aIter, &aResult->mAccessKeyForwardedToChild) &&
@@ -458,37 +481,6 @@ struct ParamTraits<mozilla::WidgetKeyboardEvent>
       return true;
     }
     return false;
-  }
-};
-
-template<>
-struct ParamTraits<mozilla::InternalBeforeAfterKeyboardEvent>
-{
-  typedef mozilla::InternalBeforeAfterKeyboardEvent paramType;
-
-  static void Write(Message* aMsg, const paramType& aParam)
-  {
-    WriteParam(aMsg, static_cast<mozilla::WidgetKeyboardEvent>(aParam));
-    WriteParam(aMsg, aParam.mEmbeddedCancelled.IsNull());
-    WriteParam(aMsg, aParam.mEmbeddedCancelled.Value());
-  }
-
-  static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
-  {
-    bool isNull;
-    bool value;
-    bool rv =
-      ReadParam(aMsg, aIter,
-                static_cast<mozilla::WidgetKeyboardEvent*>(aResult)) &&
-      ReadParam(aMsg, aIter, &isNull) &&
-      ReadParam(aMsg, aIter, &value);
-
-    aResult->mEmbeddedCancelled = Nullable<bool>();
-    if (rv && !isNull) {
-      aResult->mEmbeddedCancelled.SetValue(value);
-    }
-
-    return rv;
   }
 };
 

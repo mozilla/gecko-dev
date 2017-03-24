@@ -139,6 +139,7 @@ nsNPAPIPluginInstance::nsNPAPIPluginInstance()
   , mCachedParamLength(0)
   , mCachedParamNames(nullptr)
   , mCachedParamValues(nullptr)
+  , mMuted(false)
 {
   mNPP.pdata = nullptr;
   mNPP.ndata = this;
@@ -340,15 +341,6 @@ nsNPAPIPluginInstance::GetTagType(nsPluginTagType *result)
   return mOwner->GetTagType(result);
 }
 
-nsresult
-nsNPAPIPluginInstance::GetMode(int32_t *result)
-{
-  if (mOwner)
-    return mOwner->GetMode(result);
-  else
-    return NS_ERROR_FAILURE;
-}
-
 nsTArray<nsNPAPIPluginStreamListener*>*
 nsNPAPIPluginInstance::StreamListeners()
 {
@@ -417,11 +409,9 @@ nsNPAPIPluginInstance::Start()
     pos++;
   }
 
-  int32_t       mode;
   const char*   mimetype;
   NPError       error = NPERR_GENERIC_ERROR;
 
-  GetMode(&mode);
   GetMIMEType(&mimetype);
 
   CheckJavaC2PJSObjectQuirk(quirkParamLength, mCachedParamNames, mCachedParamValues);
@@ -445,14 +435,14 @@ nsNPAPIPluginInstance::Start()
   // before returning. If the plugin returns failure, we'll clear it out below.
   mRunning = RUNNING;
 
-  nsresult newResult = library->NPP_New((char*)mimetype, &mNPP, (uint16_t)mode,
+  nsresult newResult = library->NPP_New((char*)mimetype, &mNPP,
                                         quirkParamLength, mCachedParamNames,
                                         mCachedParamValues, nullptr, &error);
   mInPluginInitCall = oldVal;
 
   NPP_PLUGIN_LOG(PLUGIN_LOG_NORMAL,
-  ("NPP New called: this=%p, npp=%p, mime=%s, mode=%d, argc=%d, return=%d\n",
-  this, &mNPP, mimetype, mode, quirkParamLength, error));
+  ("NPP New called: this=%p, npp=%p, mime=%s, argc=%d, return=%d\n",
+  this, &mNPP, mimetype, quirkParamLength, error));
 
   if (NS_FAILED(newResult) || error != NPERR_NO_ERROR) {
     mRunning = DESTROYED;
@@ -650,7 +640,7 @@ nsresult nsNPAPIPluginInstance::GetValueFromPlugin(NPPVariable variable, void* v
     NS_TRY_SAFE_CALL_RETURN(pluginError, (*pluginFunctions->getvalue)(&mNPP, variable, value), this,
                             NS_PLUGIN_CALL_UNSAFE_TO_REENTER_GECKO);
     NPP_PLUGIN_LOG(PLUGIN_LOG_NORMAL,
-    ("NPP GetValue called: this=%p, npp=%p, var=%d, value=%d, return=%d\n",
+    ("NPP GetValue called: this=%p, npp=%p, var=%d, value=%p, return=%d\n",
     this, &mNPP, variable, value, pluginError));
 
     if (pluginError == NPERR_NO_ERROR) {
@@ -679,20 +669,6 @@ nsresult nsNPAPIPluginInstance::GetNPP(NPP* aNPP)
 NPError nsNPAPIPluginInstance::SetWindowless(bool aWindowless)
 {
   mWindowless = aWindowless;
-
-  if (mMIMEType) {
-    // bug 558434 - Prior to 3.6.4, we assumed windowless was transparent.
-    // Silverlight apparently relied on this quirk, so we default to
-    // transparent unless they specify otherwise after setting the windowless
-    // property. (Last tested version: sl 4.0).
-    // Changes to this code should be matched with changes in
-    // PluginInstanceChild::InitQuirksMode.
-    if (nsPluginHost::GetSpecialType(nsDependentCString(mMIMEType)) ==
-        nsPluginHost::eSpecialType_Silverlight) {
-      mTransparent = true;
-    }
-  }
-
   return NPERR_NO_ERROR;
 }
 
@@ -1602,49 +1578,6 @@ nsNPAPIPluginInstance::SetCurrentAsyncSurface(NPAsyncSurface *surface, NPRect *c
   }
 }
 
-class CarbonEventModelFailureEvent : public Runnable {
-public:
-  nsCOMPtr<nsIContent> mContent;
-
-  explicit CarbonEventModelFailureEvent(nsIContent* aContent)
-    : mContent(aContent)
-  {}
-
-  ~CarbonEventModelFailureEvent() {}
-
-  NS_IMETHOD Run();
-};
-
-NS_IMETHODIMP
-CarbonEventModelFailureEvent::Run()
-{
-  nsString type = NS_LITERAL_STRING("npapi-carbon-event-model-failure");
-  nsContentUtils::DispatchTrustedEvent(mContent->GetComposedDoc(), mContent,
-                                       type, true, true);
-  return NS_OK;
-}
-
-void
-nsNPAPIPluginInstance::CarbonNPAPIFailure()
-{
-  nsCOMPtr<nsIDOMElement> element;
-  GetDOMElement(getter_AddRefs(element));
-  if (!element) {
-    return;
-  }
-
-  nsCOMPtr<nsIContent> content(do_QueryInterface(element));
-  if (!content) {
-    return;
-  }
-
-  nsCOMPtr<nsIRunnable> e = new CarbonEventModelFailureEvent(content);
-  nsresult rv = NS_DispatchToCurrentThread(e);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Failed to dispatch CarbonEventModelFailureEvent.");
-  }
-}
-
 static bool
 GetJavaVersionFromMimetype(nsPluginTag* pluginTag, nsCString& version)
 {
@@ -1808,6 +1741,16 @@ nsNPAPIPluginInstance::WindowVolumeChanged(float aVolume, bool aMuted)
   // We just support mute/unmute
   nsresult rv = SetMuted(aMuted);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "SetMuted failed");
+  if (mMuted != aMuted) {
+    mMuted = aMuted;
+    if (mAudioChannelAgent) {
+      AudioChannelService::AudibleState audible = aMuted ?
+        AudioChannelService::AudibleState::eNotAudible :
+        AudioChannelService::AudibleState::eAudible;
+      mAudioChannelAgent->NotifyStartedAudible(audible,
+                                               AudioChannelService::AudibleChangedReasons::eVolumeChanged);
+    }
+  }
   return rv;
 }
 

@@ -27,6 +27,7 @@ from mozharness.base.log import FATAL
 from mozharness.base.script import BaseScript, PreScriptAction, PostScriptAction
 from mozharness.base.vcs.vcsbase import VCSMixin
 from mozharness.mozilla.blob_upload import BlobUploadMixin, blobupload_config_options
+from mozharness.mozilla.buildbot import TBPL_RETRY, EXIT_STATUS_DICT
 from mozharness.mozilla.mozbase import MozbaseMixin
 from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
 from mozharness.mozilla.testing.unittest import EmulatorMixin
@@ -154,10 +155,10 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
         dirs['abs_mochitest_dir'] = os.path.join(
             dirs['abs_test_install_dir'], 'mochitest')
         dirs['abs_marionette_dir'] = os.path.join(
-            dirs['abs_test_install_dir'], 'marionette', 'marionette')
+            dirs['abs_test_install_dir'], 'marionette', 'harness', 'marionette_harness')
         dirs['abs_marionette_tests_dir'] = os.path.join(
             dirs['abs_test_install_dir'], 'marionette', 'tests', 'testing',
-            'marionette', 'harness', 'marionette', 'tests')
+            'marionette', 'harness', 'marionette_harness', 'tests')
         dirs['abs_avds_dir'] = self.config.get("avds_dir", "/home/cltbld/.android")
 
         for key in dirs.keys():
@@ -170,8 +171,8 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
     def _pre_create_virtualenv(self, action):
         dirs = self.query_abs_dirs()
         requirements = None
-        if os.path.isdir(dirs['abs_mochitest_dir']):
-            # mochitest is the only thing that needs this
+        if self.test_suite == 'mochitest-media':
+            # mochitest-media is the only thing that needs this
             requirements = os.path.join(dirs['abs_mochitest_dir'],
                         'websocketprocessbridge',
                         'websocketprocessbridge_requirements.txt')
@@ -190,13 +191,17 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
         # constructed in start_emulator.
         env['LD_LIBRARY_PATH'] = self.abs_dirs['abs_work_dir']
 
+        # Write a default ddms.cfg to avoid unwanted prompts
+        avd_home_dir = self.abs_dirs['abs_avds_dir']
+        with open(os.path.join(avd_home_dir, "ddms.cfg"), 'w') as f:
+            f.write("pingOptIn=false\npingId=0\n")
+
         # Set environment variables to help emulator find the AVD.
         # In newer versions of the emulator, ANDROID_AVD_HOME should
         # point to the 'avd' directory.
         # For older versions of the emulator, ANDROID_SDK_HOME should
         # point to the directory containing the '.android' directory
         # containing the 'avd' directory.
-        avd_home_dir = self.abs_dirs['abs_avds_dir']
         env['ANDROID_AVD_HOME'] = os.path.join(avd_home_dir, 'avd')
         env['ANDROID_SDK_HOME'] = os.path.abspath(os.path.join(avd_home_dir, '..'))
 
@@ -243,17 +248,17 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
             status = func()
         return status
 
-    def _run_with_timeout(self, timeout, cmd):
+    def _run_with_timeout(self, timeout, cmd, quiet=False):
         timeout_cmd = ['timeout', '%s' % timeout] + cmd
-        return self._run_proc(timeout_cmd)
+        return self._run_proc(timeout_cmd, quiet=quiet)
 
-    def _run_proc(self, cmd):
+    def _run_proc(self, cmd, quiet=False):
         self.info('Running %s' % subprocess.list2cmdline(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         out, err = p.communicate()
-        if out:
+        if out and not quiet:
             self.info('%s' % str(out.strip()))
-        if err:
+        if err and not quiet:
             self.info('stderr: %s' % str(err.strip()))
         return out
 
@@ -415,7 +420,13 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
 
     def _query_package_name(self):
         if self.app_name is None:
-            #find appname from package-name.txt - assumes download-and-extract has completed successfully
+            # Find appname from package-name.txt - assumes download-and-extract
+            # has completed successfully.
+            # The app/package name will typically be org.mozilla.fennec,
+            # but org.mozilla.firefox for release builds, and there may be
+            # other variations. 'aapt dump badging <apk>' could be used as an
+            # alternative to package-name.txt, but introduces a dependency
+            # on aapt, found currently in the Android SDK build-tools component.
             apk_dir = self.abs_dirs['abs_work_dir']
             self.apk_path = os.path.join(apk_dir, self.installer_path)
             unzip = self.query_exe("unzip")
@@ -451,7 +462,6 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
         error_summary_file = os.path.join(dirs['abs_blob_upload_dir'],
                                           '%s_errorsummary.log' % self.test_suite)
         str_format_values = {
-            'app': self._query_package_name(),
             'remote_webserver': c['remote_webserver'],
             'xre_path': self.xre_path,
             'utility_path': self.xre_path,
@@ -465,7 +475,6 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
             'installer_path': self.installer_path,
             'raw_log_file': raw_log_file,
             'error_summary_file': error_summary_file,
-            'dm_trans': c['device_manager'],
             # marionette options
             'address': c.get('marionette_address'),
             'gecko_log': os.path.join(dirs["abs_blob_upload_dir"], 'gecko.log'),
@@ -481,7 +490,11 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
                 continue
             if opt == '--total-chunks' and self.total_chunks is not None:
                 continue
-            cmd.extend([option % str_format_values])
+            if '%(app)' in option:
+                # only query package name if requested
+                cmd.extend([option % {'app' : self._query_package_name()}])
+            else:
+                cmd.extend([option % str_format_values])
 
         if self.this_chunk is not None:
             cmd.extend(['--this-chunk', self.this_chunk])
@@ -616,6 +629,47 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
                 break
         self.emulator_proc = self._launch_emulator()
 
+    def _dump_perf_info(self):
+        '''
+        Dump some host and emulator performance-related information
+        to an artifact file, to help understand why jobs run slowly
+        sometimes. This is hopefully a temporary diagnostic.
+        See bug 1321605.
+        '''
+        dir = self.query_abs_dirs()['abs_blob_upload_dir']
+        perf_path = os.path.join(dir, "android-performance.log")
+        with open(perf_path, "w") as f:
+
+            f.write('\n\nHost /proc/cpuinfo:\n')
+            out = self._run_proc(['cat', '/proc/cpuinfo'], quiet=True)
+            f.write(out)
+
+            f.write('\n\nHost /proc/meminfo:\n')
+            out = self._run_proc(['cat', '/proc/meminfo'], quiet=True)
+            f.write(out)
+
+            f.write('\n\nHost process list:\n')
+            out = self._run_proc(['ps', '-ef'], quiet=True)
+            f.write(out)
+
+            f.write('\n\nEmulator /proc/cpuinfo:\n')
+            cmd = [self.adb_path, '-s', self.emulator['device_id'],
+                    'shell', 'cat', '/proc/cpuinfo']
+            out = self._run_with_timeout(30, cmd, quiet=True)
+            f.write(out)
+
+            f.write('\n\nEmulator /proc/meminfo:\n')
+            cmd = [self.adb_path, '-s', self.emulator['device_id'],
+                    'shell', 'cat', '/proc/meminfo']
+            out = self._run_with_timeout(30, cmd, quiet=True)
+            f.write(out)
+
+            f.write('\n\nEmulator process list:\n')
+            cmd = [self.adb_path, '-s', self.emulator['device_id'],
+                    'shell', 'ps']
+            out = self._run_with_timeout(30, cmd, quiet=True)
+            f.write(out)
+
     def verify_emulator(self):
         '''
         Check to see if the emulator can be contacted via adb and telnet.
@@ -625,7 +679,9 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
         max_restarts = 5
         emulator_ok = self._retry(max_restarts, 10, self._verify_emulator_and_restart_on_fail, "Check emulator")
         if not emulator_ok:
-            self.fatal('INFRA-ERROR: Unable to start emulator after %d attempts' % max_restarts)
+            self.fatal('INFRA-ERROR: Unable to start emulator after %d attempts' % max_restarts,
+                EXIT_STATUS_DICT[TBPL_RETRY])
+        self._dump_perf_info()
         # Start logcat for the emulator. The adb process runs until the
         # corresponding emulator is killed. Output is written directly to
         # the blobber upload directory so that it is uploaded automatically
@@ -667,26 +723,29 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
         """
         Install APKs on the emulator
         """
-        assert self.installer_path is not None, \
-            "Either add installer_path to the config or use --installer-path."
         install_needed = self.config["suite_definitions"][self.test_suite].get("install")
         if install_needed == False:
             self.info("Skipping apk installation for %s" % self.test_suite)
             return
 
+        assert self.installer_path is not None, \
+            "Either add installer_path to the config or use --installer-path."
+
         self.sdk_level = self._run_with_timeout(30, [self.adb_path, '-s', self.emulator['device_id'],
             'shell', 'getprop', 'ro.build.version.sdk'])
 
         # Install Fennec
-        install_ok = self._retry(3, 30, self._install_fennec_apk, "Install Fennec APK")
+        install_ok = self._retry(3, 30, self._install_fennec_apk, "Install app APK")
         if not install_ok:
-            self.fatal('INFRA-ERROR: Failed to install %s on %s' % (self.installer_path, self.emulator["name"]))
+            self.fatal('INFRA-ERROR: Failed to install %s on %s' %
+                (self.installer_path, self.emulator["name"]), EXIT_STATUS_DICT[TBPL_RETRY])
 
         # Install Robocop if required
         if self.test_suite.startswith('robocop'):
             install_ok = self._retry(3, 30, self._install_robocop_apk, "Install Robocop APK")
             if not install_ok:
-                self.fatal('INFRA-ERROR: Failed to install %s on %s' % (self.robocop_path, self.emulator["name"]))
+                self.fatal('INFRA-ERROR: Failed to install %s on %s' %
+                    (self.robocop_path, self.emulator["name"]), EXIT_STATUS_DICT[TBPL_RETRY])
 
         self.info("Finished installing apps for %s" % self.emulator["name"])
 
@@ -705,6 +764,7 @@ class AndroidEmulatorTest(BlobUploadMixin, TestingMixin, EmulatorMixin, VCSMixin
             env['MINIDUMP_STACKWALK'] = self.minidump_stackwalk_path
         env['MOZ_UPLOAD_DIR'] = self.query_abs_dirs()['abs_blob_upload_dir']
         env['MINIDUMP_SAVE_PATH'] = self.query_abs_dirs()['abs_blob_upload_dir']
+        env['RUST_BACKTRACE'] = '1'
 
         self.info("Running on %s the command %s" % (self.emulator["name"], subprocess.list2cmdline(cmd)))
         self.info("##### %s log begins" % self.test_suite)

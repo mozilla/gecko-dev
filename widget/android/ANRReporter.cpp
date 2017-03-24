@@ -38,19 +38,16 @@ ANRReporter::RequestNativeStack(bool aUnwind)
     const char *NATIVE_STACK_THREADS[] =
         {"GeckoMain", "Compositor"};
     // Buffer one sample and let the profiler wait a long time
-    profiler_start(100, 10000, features, features_size / sizeof(char*),
-        NATIVE_STACK_THREADS, sizeof(NATIVE_STACK_THREADS) / sizeof(char*));
+    profiler_start(/* entries */ 100, /* interval */ 10000,
+                   features, features_size / sizeof(char*),
+                   NATIVE_STACK_THREADS,
+                   sizeof(NATIVE_STACK_THREADS) / sizeof(char*));
     return true;
 }
 
 jni::String::LocalRef
 ANRReporter::GetNativeStack()
 {
-    if (!profiler_is_active()) {
-        // Maybe profiler support is disabled?
-        return nullptr;
-    }
-
     // Timeout if we don't get a profiler sample after 5 seconds.
     const PRIntervalTime timeout = PR_SecondsToInterval(5);
     const PRIntervalTime startTime = PR_IntervalNow();
@@ -58,7 +55,12 @@ ANRReporter::GetNativeStack()
     // Pointer to a profile JSON string
     typedef mozilla::UniquePtr<char[]> ProfilePtr;
 
+    // profiler_get_profile() will return nullptr if the profiler is disabled
+    // or inactive.
     ProfilePtr profile(profiler_get_profile());
+    if (!profile) {
+        return nullptr;
+    }
 
     while (profile && !strstr(profile.get(), "\"samples\":[{")) {
         // no sample yet?

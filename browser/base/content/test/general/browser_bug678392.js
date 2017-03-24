@@ -13,7 +13,7 @@ function test() {
 
   BrowserOpenTab();
   let tab = gBrowser.selectedTab;
-  registerCleanupFunction(function () { gBrowser.removeTab(tab); });
+  registerCleanupFunction(function() { gBrowser.removeTab(tab); });
 
   ok(gHistorySwipeAnimation, "gHistorySwipeAnimation exists.");
 
@@ -35,10 +35,9 @@ function test() {
 }
 
 function load(aTab, aUrl, aCallback) {
-  aTab.linkedBrowser.addEventListener("load", function onload(aEvent) {
-    aEvent.currentTarget.removeEventListener("load", onload, true);
+  aTab.linkedBrowser.addEventListener("load", function(aEvent) {
     waitForFocus(aCallback, content);
-  }, true);
+  }, {capture: true, once: true});
   aTab.linkedBrowser.loadURI(aUrl);
 }
 

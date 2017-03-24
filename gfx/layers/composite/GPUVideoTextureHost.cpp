@@ -33,6 +33,15 @@ GPUVideoTextureHost::Lock()
   return mWrappedTextureHost->Lock();
 }
 
+void
+GPUVideoTextureHost::Unlock()
+{
+  if (!mWrappedTextureHost) {
+    return;
+  }
+  mWrappedTextureHost->Unlock();
+}
+
 bool
 GPUVideoTextureHost::BindTextureSource(CompositableTextureSourceRef& aTexture)
 {
@@ -42,20 +51,11 @@ GPUVideoTextureHost::BindTextureSource(CompositableTextureSourceRef& aTexture)
   return mWrappedTextureHost->BindTextureSource(aTexture);
 }
 
-Compositor*
-GPUVideoTextureHost::GetCompositor()
-{
-  if (!mWrappedTextureHost) {
-    return nullptr;
-  }
-  return mWrappedTextureHost->GetCompositor();
-}
-
 void
-GPUVideoTextureHost::SetCompositor(Compositor* aCompositor)
+GPUVideoTextureHost::SetTextureSourceProvider(TextureSourceProvider* aProvider)
 {
   if (mWrappedTextureHost) {
-    mWrappedTextureHost->SetCompositor(aCompositor);
+    mWrappedTextureHost->SetTextureSourceProvider(aProvider);
   }
 }
 

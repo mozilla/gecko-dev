@@ -10,23 +10,21 @@ const CHARSET_ANNO = "URIProperties/characterSet";
 const TEST_URI = uri("http://foo.com");
 const TEST_BOOKMARKED_URI = uri("http://bar.com");
 
-function run_test()
-{
+function run_test() {
   run_next_test();
 }
 
-add_task(function* test_execute()
-{
+add_task(function* test_execute() {
   // add pages to history
   yield PlacesTestUtils.addVisits(TEST_URI);
   yield PlacesTestUtils.addVisits(TEST_BOOKMARKED_URI);
 
   // create bookmarks on TEST_BOOKMARKED_URI
-  var bm1 = PlacesUtils.bookmarks.insertBookmark(
+  PlacesUtils.bookmarks.insertBookmark(
               PlacesUtils.unfiledBookmarksFolderId,
               TEST_BOOKMARKED_URI, PlacesUtils.bookmarks.DEFAULT_INDEX,
               TEST_BOOKMARKED_URI.spec);
-  var bm2 = PlacesUtils.bookmarks.insertBookmark(
+  PlacesUtils.bookmarks.insertBookmark(
               PlacesUtils.toolbarFolderId,
               TEST_BOOKMARKED_URI, PlacesUtils.bookmarks.DEFAULT_INDEX,
               TEST_BOOKMARKED_URI.spec);

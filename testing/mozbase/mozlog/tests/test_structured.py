@@ -9,8 +9,9 @@ import unittest
 import signal
 import xml.etree.ElementTree as ET
 
-import mozfile
+import mozunit
 
+import mozfile
 from mozlog import (
     commandline,
     reader,
@@ -109,7 +110,7 @@ class TestStructuredLog(BaseStructuredTest):
     def test_suite_start(self):
         self.logger.suite_start(["test"])
         self.assert_log_equals({"action": "suite_start",
-                                "tests": ["test"]})
+                                "tests": {"default": ["test"]}})
         self.logger.suite_end()
 
     def test_suite_end(self):
@@ -262,7 +263,7 @@ class TestStructuredLog(BaseStructuredTest):
     def test_suite_start_twice(self):
         self.logger.suite_start([])
         self.assert_log_equals({"action": "suite_start",
-                                "tests": []})
+                                "tests": {"default": []}})
         self.logger.suite_start([])
         last_item = self.pop_last_item()
         self.assertEquals(last_item["action"], "log")
@@ -272,7 +273,7 @@ class TestStructuredLog(BaseStructuredTest):
     def test_suite_end_no_start(self):
         self.logger.suite_start([])
         self.assert_log_equals({"action": "suite_start",
-                                "tests": []})
+                                "tests": {"default": []}})
         self.logger.suite_end()
         self.assert_log_equals({"action": "suite_end"})
         self.logger.suite_end()
@@ -400,7 +401,7 @@ class TestTypeConversions(BaseStructuredTest):
                              "tests": [1],
                              "time": "1234"})
         self.assert_log_equals({"action": "suite_start",
-                                "tests": ["1"],
+                                "tests": {"default": ["1"]},
                                 "time": 1234})
         self.logger.suite_end()
 
@@ -445,7 +446,7 @@ class TestTypeConversions(BaseStructuredTest):
 
         self.logger.suite_start([], {})
         self.assert_log_equals({"action": "suite_start",
-                                "tests": [],
+                                "tests": {"default": []},
                                 "run_info": {}})
         self.logger.test_start(test="test1")
         self.logger.test_status(
@@ -1011,7 +1012,7 @@ class TestBuffer(BaseStructuredTest):
                                 "status": "PASS",
                                 "subtest": "sub5"})
         self.assert_log_equals({"action": "suite_start",
-                                "tests": []})
+                                "tests": {"default": []}})
 
 
 class TestReader(unittest.TestCase):
@@ -1095,4 +1096,4 @@ class TestReader(unittest.TestCase):
         self.assertEquals(handler.action_1_count, 1)
 
 if __name__ == "__main__":
-    unittest.main()
+    mozunit.main()

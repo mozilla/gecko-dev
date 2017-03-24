@@ -4,7 +4,7 @@
 const testState = {
   windows: [{
     tabs: [
-      { entries: [{ url: "about:blank" }] },
+      { entries: [{ url: "about:blank", triggeringPrincipal_base64 }] },
     ]
   }],
   scratchpads: [
@@ -14,12 +14,12 @@ const testState = {
 };
 
 // only finish() when correct number of windows opened
-var restored = [];
+var restoredStates = [];
 function addState(state) {
-  restored.push(state);
+  restoredStates.push(state);
 
-  if (restored.length == testState.scratchpads.length) {
-    ok(statesMatch(restored, testState.scratchpads),
+  if (restoredStates.length == testState.scratchpads.length) {
+    ok(statesMatch(restoredStates, testState.scratchpads),
       "Two scratchpad windows restored");
 
     Services.ww.unregisterNotification(windowObserver);
@@ -38,12 +38,10 @@ function test() {
 function windowObserver(aSubject, aTopic, aData) {
   if (aTopic == "domwindowopened") {
     let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
-    win.addEventListener("load", function onLoad() {
-      win.removeEventListener("load", onLoad, false);
-
+    win.addEventListener("load", function() {
       if (win.Scratchpad) {
         win.Scratchpad.addObserver({
-          onReady: function() {
+          onReady() {
             win.Scratchpad.removeObserver(this);
 
             let state = win.Scratchpad.getState();
@@ -53,7 +51,7 @@ function windowObserver(aSubject, aTopic, aData) {
           },
         });
       }
-    }, false);
+    }, {once: true});
   }
 }
 

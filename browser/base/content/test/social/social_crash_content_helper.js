@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
 * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+/* eslint-env mozilla/frame-script */
+
 var Cu = Components.utils;
 
 // Ideally we would use CrashTestUtils.jsm, but that's only available for
@@ -14,11 +16,11 @@ var crash = function() { // this will crash when called.
 
 
 var TestHelper = {
-  init: function() {
+  init() {
     addMessageListener("social-test:crash", this);
   },
 
-  receiveMessage: function(msg) {
+  receiveMessage(msg) {
     switch (msg.name) {
       case "social-test:crash":
         privateNoteIntentionalCrash();

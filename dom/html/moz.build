@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files("**"):
+    BUG_COMPONENT = ("Core", "DOM")
+
 MOCHITEST_MANIFESTS += [
     'test/forms/mochitest.ini',
     'test/imports/mochitest.ini',
@@ -20,7 +23,6 @@ BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 XPIDL_SOURCES += [
     'nsIDateTimeInputArea.idl',
     'nsIFormSubmitObserver.idl',
-    'nsIHTMLMenu.idl',
     'nsIImageDocument.idl',
     'nsIMenuBuilder.idl',
     'nsIPhonetic.idl',
@@ -56,6 +58,7 @@ EXPORTS.mozilla.dom += [
     'HTMLDataElement.h',
     'HTMLDataListElement.h',
     'HTMLDetailsElement.h',
+    'HTMLDialogElement.h',
     'HTMLDivElement.h',
     'HTMLFieldSetElement.h',
     'HTMLFontElement.h',
@@ -134,6 +137,7 @@ UNIFIED_SOURCES += [
     'HTMLDataElement.cpp',
     'HTMLDataListElement.cpp',
     'HTMLDetailsElement.cpp',
+    'HTMLDialogElement.cpp',
     'HTMLDivElement.cpp',
     'HTMLElement.cpp',
     'HTMLFieldSetElement.cpp',

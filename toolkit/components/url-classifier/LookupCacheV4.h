@@ -17,17 +17,28 @@ class TableUpdateV4;
 class LookupCacheV4 final : public LookupCache
 {
 public:
-  explicit LookupCacheV4(const nsACString& aTableName, nsIFile* aStoreFile)
-    : LookupCache(aTableName, aStoreFile) {}
+  explicit LookupCacheV4(const nsACString& aTableName,
+                         const nsACString& aProvider,
+                         nsIFile* aStoreFile)
+    : LookupCache(aTableName, aProvider, aStoreFile) {}
   ~LookupCacheV4() {}
 
   virtual nsresult Init() override;
   virtual nsresult Has(const Completion& aCompletion,
-                       bool* aHas, bool* aComplete) override;
+                       bool* aHas, uint32_t* aMatchLength,
+                       bool* aFromCache) override;
+
+  virtual void IsHashEntryConfirmed(const Completion& aEntry,
+                                    const TableFreshnessMap& aTableFreshness,
+                                    uint32_t aFreshnessGuarantee,
+                                    bool* aConfirmed) override;
+
+  virtual bool IsEmpty() override;
 
   nsresult Build(PrefixStringMap& aPrefixMap);
 
   nsresult GetPrefixes(PrefixStringMap& aPrefixMap);
+  nsresult GetFixedLengthPrefixes(FallibleTArray<uint32_t>& aPrefixes);
 
   // ApplyUpdate will merge data stored in aTableUpdate with prefixes in aInputMap.
   nsresult ApplyUpdate(TableUpdateV4* aTableUpdate,
@@ -50,14 +61,6 @@ private:
 
   nsresult InitCrypto(nsCOMPtr<nsICryptoHash>& aCrypto);
   nsresult VerifyChecksum(const nsACString& aChecksum);
-
-  enum UPDATE_ERROR_TYPES {
-    DUPLICATE_PREFIX = 0,
-    INFINITE_LOOP = 1,
-    WRONG_REMOVAL_INDICES = 2,
-    CHECKSUM_MISMATCH = 3,
-    MISSING_CHECKSUM = 4,
-  };
 
   RefPtr<VariableLengthPrefixSet> mVLPrefixSet;
 };

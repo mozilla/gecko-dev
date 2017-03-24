@@ -11,10 +11,14 @@ add_task(function* () {
   let { tab, monitor } = yield initNetMonitor(CYRILLIC_URL);
   info("Starting test... ");
 
-  let { document, EVENTS, Editor, NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
+  let { document, gStore, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/actions/index");
+  let {
+    getDisplayedRequests,
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/selectors/index");
 
-  RequestsMenu.lazyUpdate = false;
+  gStore.dispatch(Actions.batchEnable(false));
 
   let wait = waitForNetworkEvents(monitor, 1);
   yield ContentTask.spawn(tab.linkedBrowser, {}, function* () {
@@ -22,24 +26,33 @@ add_task(function* () {
   });
   yield wait;
 
-  verifyRequestItemTarget(RequestsMenu.getItemAtIndex(0),
-    "GET", CONTENT_TYPE_SJS + "?fmt=txt", {
+  verifyRequestItemTarget(
+    document,
+    getDisplayedRequests(gStore.getState()),
+    getSortedRequests(gStore.getState()).get(0),
+    "GET",
+    CONTENT_TYPE_SJS + "?fmt=txt",
+    {
       status: 200,
       statusText: "DA DA DA"
-    });
+    }
+  );
 
+  wait = waitForDOM(document, "#headers-panel");
   EventUtils.sendMouseEvent({ type: "mousedown" },
-    document.getElementById("details-pane-toggle"));
-  EventUtils.sendMouseEvent({ type: "mousedown" },
-    document.querySelectorAll("#details-pane tab")[3]);
+    document.querySelectorAll(".request-list-item")[0]);
+  yield wait;
+  wait = waitForDOM(document, "#response-panel .editor-mount iframe");
+  EventUtils.sendMouseEvent({ type: "click" },
+    document.querySelector("#response-tab"));
+  let [editor] = yield wait;
+  yield once(editor, "DOMContentLoaded");
+  yield waitForDOM(editor.contentDocument, ".CodeMirror-code");
+  let text = editor.contentDocument
+          .querySelector(".CodeMirror-line").textContent;
 
-  yield monitor.panelWin.once(EVENTS.RESPONSE_BODY_DISPLAYED);
-  let editor = yield NetMonitorView.editor("#response-content-textarea");
-  // u044F = я
-  is(editor.getText().indexOf("\u044F"), 26,
+  ok(text.includes("\u0411\u0440\u0430\u0442\u0430\u043d"),
     "The text shown in the source editor is correct.");
-  is(editor.getMode(), Editor.modes.text,
-    "The mode active in the source editor is correct.");
 
   yield teardown(monitor);
 });

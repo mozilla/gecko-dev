@@ -37,8 +37,11 @@
 #include "nsCheckSummedOutputStream.h"
 #include "prio.h"
 #include "mozilla/Logging.h"
+#include "mozilla/IntegerPrintfMacros.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "zlib.h"
 #include "Classifier.h"
+#include "nsUrlClassifierDBService.h"
 
 // Main store for SafeBrowsing protocol data. We store
 // known add/sub chunks, prefixes and completions in memory
@@ -185,7 +188,7 @@ TableUpdateV4::NewPrefixes(int32_t aSize, std::string& aPrefixes)
       LOG(("%.2X%.2X%.2X%.2X", c[0], c[1], c[2], c[3]));
     }
 
-    LOG(("---- %d fixed-length prefixes in total.", aPrefixes.size() / aSize));
+    LOG(("---- %" PRIuSIZE " fixed-length prefixes in total.", aPrefixes.size() / aSize));
   }
 
   PrefixStdString* prefix = new PrefixStdString(aPrefixes);
@@ -206,13 +209,16 @@ TableUpdateV4::NewChecksum(const std::string& aChecksum)
   mChecksum.Assign(aChecksum.data(), aChecksum.size());
 }
 
-HashStore::HashStore(const nsACString& aTableName, nsIFile* aRootStoreDir)
+HashStore::HashStore(const nsACString& aTableName,
+                     const nsACString& aProvider,
+                     nsIFile* aRootStoreDir)
   : mTableName(aTableName)
   , mInUpdate(false)
   , mFileSize(0)
 {
   nsresult rv = Classifier::GetPrivateStoreDirectory(aRootStoreDir,
                                                      aTableName,
+                                                     aProvider,
                                                      getter_AddRefs(mStoreDirectory));
   if (NS_FAILED(rv)) {
     LOG(("Failed to get private store directory for %s", mTableName.get()));
@@ -221,8 +227,7 @@ HashStore::HashStore(const nsACString& aTableName, nsIFile* aRootStoreDir)
 }
 
 HashStore::~HashStore()
-{
-}
+= default;
 
 nsresult
 HashStore::Reset()
@@ -300,9 +305,8 @@ HashStore::Open()
   if (rv == NS_ERROR_FILE_NOT_FOUND) {
     UpdateHeader();
     return NS_OK;
-  } else {
-    SUCCESS_OR_RESET(rv);
   }
+  SUCCESS_OR_RESET(rv);
 
   int64_t fileSize;
   rv = storeFile->GetFileSize(&fileSize);
@@ -549,33 +553,30 @@ Merge(ChunkSet* aStoreChunks,
 {
   EntrySort(aUpdatePrefixes);
 
-  T* updateIter = aUpdatePrefixes.Elements();
-  T* updateEnd = aUpdatePrefixes.Elements() + aUpdatePrefixes.Length();
-
-  T* storeIter = aStorePrefixes->Elements();
-  T* storeEnd = aStorePrefixes->Elements() + aStorePrefixes->Length();
+  auto storeIter = aStorePrefixes->begin();
+  auto storeEnd = aStorePrefixes->end();
 
   // use a separate array so we can keep the iterators valid
   // if the nsTArray grows
   nsTArray<T> adds;
 
-  for (; updateIter != updateEnd; updateIter++) {
+  for (const auto& updatePrefix : aUpdatePrefixes) {
     // skip this chunk if we already have it, unless we're
     // merging completions, in which case we'll always already
     // have the chunk from the original prefix
-    if (aStoreChunks->Has(updateIter->Chunk()))
+    if (aStoreChunks->Has(updatePrefix.Chunk()))
       if (!aAllowMerging)
         continue;
     // XXX: binary search for insertion point might be faster in common
     // case?
-    while (storeIter < storeEnd && (storeIter->Compare(*updateIter) < 0)) {
+    while (storeIter < storeEnd && (storeIter->Compare(updatePrefix) < 0)) {
       // skip forward to matching element (or not...)
       storeIter++;
     }
     // no match, add
     if (storeIter == storeEnd
-        || storeIter->Compare(*updateIter) != 0) {
-      if (!adds.AppendElement(*updateIter))
+        || storeIter->Compare(updatePrefix) != 0) {
+      if (!adds.AppendElement(updatePrefix))
         return NS_ERROR_OUT_OF_MEMORY;
     }
   }
@@ -656,17 +657,16 @@ template<class T>
 static void
 ExpireEntries(FallibleTArray<T>* aEntries, ChunkSet& aExpirations)
 {
-  T* addIter = aEntries->Elements();
-  T* end = aEntries->Elements() + aEntries->Length();
+  auto addIter = aEntries->begin();
 
-  for (T *iter = addIter; iter != end; iter++) {
-    if (!aExpirations.Has(iter->Chunk())) {
-      *addIter = *iter;
+  for (const auto& entry : *aEntries) {
+    if (!aExpirations.Has(entry.Chunk())) {
+      *addIter = entry;
       addIter++;
     }
   }
 
-  aEntries->TruncateLength(addIter - aEntries->Elements());
+  aEntries->TruncateLength(addIter - aEntries->begin());
 }
 
 nsresult
@@ -703,7 +703,7 @@ nsresult DeflateWriteTArray(nsIOutputStream* aStream, nsTArray<T>& aIn)
   if (zerr != Z_OK) {
     return NS_ERROR_FAILURE;
   }
-  LOG(("DeflateWriteTArray: %d in %d out", insize, outsize));
+  LOG(("DeflateWriteTArray: %lu in %lu out", insize, outsize));
 
   outBuff.TruncateLength(outsize);
 
@@ -755,7 +755,7 @@ nsresult InflateReadTArray(nsIInputStream* aStream, FallibleTArray<T>* aOut,
   if (zerr != Z_OK) {
     return NS_ERROR_FAILURE;
   }
-  LOG(("InflateReadTArray: %d in %d out", insize, outsize));
+  LOG(("InflateReadTArray: %lu in %lu out", insize, outsize));
 
   NS_ASSERTION(outsize == aExpectedSize * sizeof(T), "Decompression size mismatch");
 
@@ -949,6 +949,9 @@ nsresult
 HashStore::WriteFile()
 {
   NS_ASSERTION(mInUpdate, "Must be in update to write database.");
+  if (nsUrlClassifierDBService::ShutdownHasStarted()) {
+    return NS_ERROR_ABORT;
+  }
 
   nsCOMPtr<nsIFile> storeFile;
   nsresult rv = mStoreDirectory->Clone(getter_AddRefs(storeFile));
@@ -996,9 +999,11 @@ HashStore::WriteFile()
 
 template <class T>
 static void
-Erase(FallibleTArray<T>* array, T* iterStart, T* iterEnd)
+Erase(FallibleTArray<T>* array,
+      typename nsTArray<T>::iterator& iterStart,
+      typename nsTArray<T>::iterator& iterEnd)
 {
-  uint32_t start = iterStart - array->Elements();
+  uint32_t start = iterStart - array->begin();
   uint32_t count = iterEnd - iterStart;
 
   if (count > 0) {
@@ -1022,14 +1027,14 @@ KnockoutSubs(FallibleTArray<TSub>* aSubs, FallibleTArray<TAdd>* aAdds)
   // deletions, these may lag the main iterators.  Using erase() on
   // individual items would result in O(N^2) copies.  Using a list
   // would work around that, at double or triple the memory cost.
-  TAdd* addOut = aAdds->Elements();
-  TAdd* addIter = aAdds->Elements();
+  auto addOut = aAdds->begin();
+  auto addIter = aAdds->begin();
 
-  TSub* subOut = aSubs->Elements();
-  TSub* subIter = aSubs->Elements();
+  auto subOut = aSubs->begin();
+  auto subIter = aSubs->begin();
 
-  TAdd* addEnd = addIter + aAdds->Length();
-  TSub* subEnd = subIter + aSubs->Length();
+  auto addEnd = aAdds->end();
+  auto subEnd = aSubs->end();
 
   while (addIter != addEnd && subIter != subEnd) {
     // additer compare, so it compares on add chunk
@@ -1062,12 +1067,12 @@ static void
 RemoveMatchingPrefixes(const SubPrefixArray& aSubs, FallibleTArray<T>* aFullHashes)
 {
   // Where to store kept items.
-  T* out = aFullHashes->Elements();
-  T* hashIter = out;
-  T* hashEnd = aFullHashes->Elements() + aFullHashes->Length();
+  auto out = aFullHashes->begin();
+  auto hashIter = aFullHashes->begin();
+  auto hashEnd = aFullHashes->end();
 
-  SubPrefix const * removeIter = aSubs.Elements();
-  SubPrefix const * removeEnd = aSubs.Elements() + aSubs.Length();
+  auto removeIter = aSubs.begin();
+  auto removeEnd = aSubs.end();
 
   while (hashIter != hashEnd && removeIter != removeEnd) {
     int32_t cmp = removeIter->CompareAlt(*hashIter);
@@ -1094,31 +1099,31 @@ RemoveMatchingPrefixes(const SubPrefixArray& aSubs, FallibleTArray<T>* aFullHash
 static void
 RemoveDeadSubPrefixes(SubPrefixArray& aSubs, ChunkSet& aAddChunks)
 {
-  SubPrefix * subIter = aSubs.Elements();
-  SubPrefix * subEnd = aSubs.Elements() + aSubs.Length();
+  auto subIter = aSubs.begin();
 
-  for (SubPrefix * iter = subIter; iter != subEnd; iter++) {
-    bool hasChunk = aAddChunks.Has(iter->AddChunk());
+  for (const auto& sub : aSubs) {
+    bool hasChunk = aAddChunks.Has(sub.AddChunk());
     // Keep the subprefix if the chunk it refers to is one
     // we haven't seen it yet.
     if (!hasChunk) {
-      *subIter = *iter;
+      *subIter = sub;
       subIter++;
     }
   }
 
-  LOG(("Removed %u dead SubPrefix entries.", subEnd - subIter));
-  aSubs.TruncateLength(subIter - aSubs.Elements());
+  LOG(("Removed %" PRId64 " dead SubPrefix entries.",
+       static_cast<int64_t>(aSubs.end() - subIter)));
+  aSubs.TruncateLength(subIter - aSubs.begin());
 }
 
 #ifdef DEBUG
 template <class T>
 static void EnsureSorted(FallibleTArray<T>* aArray)
 {
-  T* start = aArray->Elements();
-  T* end = aArray->Elements() + aArray->Length();
-  T* iter = start;
-  T* previous = start;
+  auto start = aArray->begin();
+  auto end = aArray->end();
+  auto iter = start;
+  auto previous = start;
 
   while (iter != end) {
     previous = iter;
@@ -1171,7 +1176,7 @@ HashStore::AugmentAdds(const nsTArray<uint32_t>& aPrefixes)
 {
   uint32_t cnt = aPrefixes.Length();
   if (cnt != mAddPrefixes.Length()) {
-    LOG(("Amount of prefixes in cache not consistent with store (%d vs %d)",
+    LOG(("Amount of prefixes in cache not consistent with store (%" PRIuSIZE " vs %" PRIuSIZE ")",
          aPrefixes.Length(), mAddPrefixes.Length()));
     return NS_ERROR_FAILURE;
   }

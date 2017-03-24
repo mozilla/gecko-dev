@@ -22,20 +22,21 @@ from .base import (ExecutorException,
                    strip_server)
 from ..testrunner import Stop
 
-
 here = os.path.join(os.path.split(__file__)[0])
 
 webdriver = None
 exceptions = None
+RemoteConnection = None
 
 extra_timeout = 5
 
 def do_delayed_imports():
     global webdriver
     global exceptions
+    global RemoteConnection
     from selenium import webdriver
     from selenium.common import exceptions
-
+    from selenium.webdriver.remote.remote_connection import RemoteConnection
 
 class SeleniumProtocol(Protocol):
     def __init__(self, executor, browser, capabilities, **kwargs):
@@ -53,8 +54,9 @@ class SeleniumProtocol(Protocol):
 
         session_started = False
         try:
-            self.webdriver = webdriver.Remote(
-                self.url, desired_capabilities=self.capabilities)
+            self.webdriver = webdriver.Remote(command_executor=RemoteConnection(self.url.strip("/"),
+                                                                                resolve_ip=False),
+                                              desired_capabilities=self.capabilities)
         except:
             self.logger.warning(
                 "Connecting to Selenium failed:\n%s" % traceback.format_exc())
@@ -133,7 +135,7 @@ class SeleniumRun(object):
         try:
             self.webdriver.set_script_timeout((timeout + extra_timeout) * 1000)
         except exceptions.ErrorInResponseException:
-            self.logger.error("Lost webdriver connection")
+            self.logger.error("Lost WebDriver connection")
             return Stop
 
         executor = threading.Thread(target=self._run)
@@ -179,8 +181,9 @@ class SeleniumTestharnessExecutor(TestharnessExecutor):
     def is_alive(self):
         return self.protocol.is_alive()
 
-    def on_protocol_change(self, new_protocol):
-        self.protocol.load_runner(new_protocol)
+    def on_environment_change(self, new_environment):
+        if new_environment["protocol"] != self.last_environment["protocol"]:
+            self.protocol.load_runner(new_environment["protocol"])
 
     def do_test(self, test):
         url = self.test_url(test)
@@ -231,17 +234,7 @@ class SeleniumRefTestExecutor(RefTestExecutor):
     def do_test(self, test):
         self.logger.info("Test requires OS-level window focus")
 
-        if self.close_after_done and self.has_window:
-            self.protocol.webdriver.close()
-            self.protocol.webdriver.switch_to_window(
-                self.protocol.webdriver.window_handles[-1])
-            self.has_window = False
-
-        if not self.has_window:
-            self.protocol.webdriver.execute_script(self.script)
-            self.protocol.webdriver.switch_to_window(
-                self.protocol.webdriver.window_handles[-1])
-            self.has_window = True
+        self.protocol.webdriver.set_window_size(600, 600)
 
         result = self.implementation.run_test(test)
 

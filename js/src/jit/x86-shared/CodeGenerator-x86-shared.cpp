@@ -141,14 +141,14 @@ CodeGeneratorX86Shared::visitBitAndAndBranch(LBitAndAndBranch* baab)
         masm.test32(ToRegister(baab->left()), Imm32(ToInt32(baab->right())));
     else
         masm.test32(ToRegister(baab->left()), ToRegister(baab->right()));
-    emitBranch(Assembler::NonZero, baab->ifTrue(), baab->ifFalse());
+    emitBranch(baab->cond(), baab->ifTrue(), baab->ifFalse());
 }
 
 void
 CodeGeneratorX86Shared::emitCompare(MCompare::CompareType type, const LAllocation* left, const LAllocation* right)
 {
 #ifdef JS_CODEGEN_X64
-    if (type == MCompare::Compare_Object) {
+    if (type == MCompare::Compare_Object || type == MCompare::Compare_Symbol) {
         masm.cmpPtr(ToRegister(left), ToOperand(right));
         return;
     }
@@ -294,8 +294,10 @@ CodeGeneratorX86Shared::visitWasmStackArg(LWasmStackArg* ins)
     } else {
         switch (mir->input()->type()) {
           case MIRType::Double:
-          case MIRType::Float32:
             masm.storeDouble(ToFloatRegister(ins->arg()), dst);
+            return;
+          case MIRType::Float32:
+            masm.storeFloat32(ToFloatRegister(ins->arg()), dst);
             return;
           // StackPointer is SIMD-aligned and ABIArgGenerator guarantees
           // stack offsets are SIMD-aligned.
@@ -2333,6 +2335,26 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF* lir)
     }
 
     masm.bind(&end);
+}
+
+void
+CodeGeneratorX86Shared::visitNearbyInt(LNearbyInt* lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister output = ToFloatRegister(lir->output());
+
+    RoundingMode roundingMode = lir->mir()->roundingMode();
+    masm.vroundsd(Assembler::ToX86RoundingMode(roundingMode), input, output, output);
+}
+
+void
+CodeGeneratorX86Shared::visitNearbyIntF(LNearbyIntF* lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister output = ToFloatRegister(lir->output());
+
+    RoundingMode roundingMode = lir->mir()->roundingMode();
+    masm.vroundss(Assembler::ToX86RoundingMode(roundingMode), input, output, output);
 }
 
 void

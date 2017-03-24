@@ -9,15 +9,14 @@ import org.json.JSONObject;
 
 import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.EventDispatcher;
-import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.icons.IconRequest;
 import org.mozilla.gecko.icons.Icons;
+import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.EventCallback;
-import org.mozilla.gecko.util.NativeEventListener;
-import org.mozilla.gecko.util.NativeJSObject;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UIAsyncTask;
 
@@ -26,7 +25,7 @@ import android.util.Log;
 
 import java.util.concurrent.ExecutionException;
 
-public final class ReadingListHelper implements NativeEventListener {
+public final class ReadingListHelper implements BundleEventListener {
     private static final String LOGTAG = "GeckoReadingListHelper";
 
     protected final Context context;
@@ -36,17 +35,17 @@ public final class ReadingListHelper implements NativeEventListener {
         this.context = context;
         this.db = BrowserDB.from(profile);
 
-        GeckoApp.getEventDispatcher().registerGeckoThreadListener((NativeEventListener) this,
+        EventDispatcher.getInstance().registerGeckoThreadListener(this,
             "Reader:FaviconRequest", "Reader:AddedToCache");
     }
 
     public void uninit() {
-        GeckoApp.getEventDispatcher().unregisterGeckoThreadListener((NativeEventListener) this,
+        EventDispatcher.getInstance().unregisterGeckoThreadListener(this,
             "Reader:FaviconRequest", "Reader:AddedToCache");
     }
 
     @Override
-    public void handleMessage(final String event, final NativeJSObject message,
+    public void handleMessage(final String event, final GeckoBundle message,
                               final EventCallback callback) {
         switch (event) {
             case "Reader:FaviconRequest": {
@@ -102,17 +101,13 @@ public final class ReadingListHelper implements NativeEventListener {
             }
 
             @Override
-            public void onPostExecute(String faviconUrl) {
-                JSONObject args = new JSONObject();
+            public void onPostExecute(final String faviconUrl) {
+                final GeckoBundle args = new GeckoBundle(2);
                 if (faviconUrl != null) {
-                    try {
-                        args.put("url", url);
-                        args.put("faviconUrl", faviconUrl);
-                    } catch (JSONException e) {
-                        Log.w(LOGTAG, "Error building JSON favicon arguments.", e);
-                    }
+                    args.putString("url", url);
+                    args.putString("faviconUrl", faviconUrl);
                 }
-                callback.sendSuccess(args.toString());
+                callback.sendSuccess(args);
             }
         }).execute();
     }
@@ -131,7 +126,9 @@ public final class ReadingListHelper implements NativeEventListener {
         SavedReaderViewHelper rch = SavedReaderViewHelper.getSavedReaderViewHelper(context);
 
         if (!rch.isURLCached(url)) {
-            GeckoAppShell.notifyObservers("Reader:AddToCache", Integer.toString(tabID));
+            final GeckoBundle data = new GeckoBundle(1);
+            data.putInt("tabID", tabID);
+            EventDispatcher.getInstance().dispatch("Reader:AddToCache", data);
         }
     }
 
@@ -143,7 +140,9 @@ public final class ReadingListHelper implements NativeEventListener {
         SavedReaderViewHelper rch = SavedReaderViewHelper.getSavedReaderViewHelper(context);
 
         if (rch.isURLCached(url)) {
-            GeckoAppShell.notifyObservers("Reader:RemoveFromCache", url);
+            final GeckoBundle data = new GeckoBundle(1);
+            data.putString("url", url);
+            EventDispatcher.getInstance().dispatch("Reader:RemoveFromCache", data);
         }
 
         // When removing items from the cache we can probably spare ourselves the async callback

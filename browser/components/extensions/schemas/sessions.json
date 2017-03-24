@@ -103,7 +103,6 @@
       },
       {
         "name": "restore",
-        "unsupported": true,
         "type": "function",
         "description": "Reopens a $(ref:windows.Window) or $(ref:tabs.Tab), with an optional callback to run when the entry has been restored.",
         "async": "callback",
@@ -132,7 +131,6 @@
     "events": [
       {
         "name": "onChanged",
-        "unsupported": true,
         "description": "Fired when recently closed tabs and/or windows are changed. This event does not monitor synced sessions changes.",
         "type": "function"
       }

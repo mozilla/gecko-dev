@@ -18,6 +18,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/File.h"
 
 class nsINode;
@@ -132,11 +133,10 @@ public:
     }
   }
 
-  void SetDragImage(Element& aElement, int32_t aX, int32_t aY,
-                    ErrorResult& aRv);
+  void SetDragImage(Element& aElement, int32_t aX, int32_t aY);
+  void UpdateDragImage(Element& aElement, int32_t aX, int32_t aY);
 
-  void GetTypes(nsTArray<nsString>& aTypes,
-                nsIPrincipal& aSubjectPrincipal) const;
+  void GetTypes(nsTArray<nsString>& aTypes, CallerType aCallerType) const;
 
   void GetData(const nsAString& aFormat, nsAString& aData,
                nsIPrincipal& aSubjectPrincipal,
@@ -178,6 +178,7 @@ public:
   }
 
   already_AddRefed<DOMStringList> MozTypesAt(uint32_t aIndex,
+                                             CallerType aCallerType,
                                              mozilla::ErrorResult& aRv) const;
 
   void MozClearDataAt(const nsAString& aFormat, uint32_t aIndex,
@@ -306,7 +307,7 @@ protected:
   void CacheExternalDragFormats();
 
   // caches the formats that exist in the clipboard
-  void CacheExternalClipboardFormats();
+  void CacheExternalClipboardFormats(bool aPlainTextOnly);
 
   FileList* GetFilesInternal(ErrorResult& aRv, nsIPrincipal* aSubjectPrincipal);
   nsresult GetDataAtInternal(const nsAString& aFormat, uint32_t aIndex,

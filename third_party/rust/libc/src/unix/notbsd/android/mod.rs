@@ -25,6 +25,7 @@ pub type rlim_t = ::c_ulong;
 pub type dev_t = ::c_ulong;
 pub type ino_t = ::c_ulong;
 pub type __CPU_BITTYPE = ::c_ulong;
+pub type idtype_t = ::c_int;
 
 s! {
     pub struct dirent {
@@ -73,6 +74,12 @@ s! {
         pub msg_control: *mut ::c_void,
         pub msg_controllen: ::size_t,
         pub msg_flags: ::c_int,
+    }
+
+    pub struct cmsghdr {
+        pub cmsg_len: ::size_t,
+        pub cmsg_level: ::c_int,
+        pub cmsg_type: ::c_int,
     }
 
     pub struct termios {
@@ -130,6 +137,34 @@ s! {
         unused: [::c_char; 20],
     }
 }
+
+pub const O_TRUNC: ::c_int = 512;
+
+pub const O_CLOEXEC: ::c_int = 0x80000;
+
+pub const EBFONT: ::c_int = 59;
+pub const ENOSTR: ::c_int = 60;
+pub const ENODATA: ::c_int = 61;
+pub const ETIME: ::c_int = 62;
+pub const ENOSR: ::c_int = 63;
+pub const ENONET: ::c_int = 64;
+pub const ENOPKG: ::c_int = 65;
+pub const EREMOTE: ::c_int = 66;
+pub const ENOLINK: ::c_int = 67;
+pub const EADV: ::c_int = 68;
+pub const ESRMNT: ::c_int = 69;
+pub const ECOMM: ::c_int = 70;
+pub const EPROTO: ::c_int = 71;
+pub const EDOTDOT: ::c_int = 73;
+
+pub const SA_NODEFER: ::c_int = 0x40000000;
+pub const SA_RESETHAND: ::c_int = 0x80000000;
+pub const SA_RESTART: ::c_int = 0x10000000;
+pub const SA_NOCLDSTOP: ::c_int = 0x00000001;
+
+pub const EPOLL_CLOEXEC: ::c_int = 0x80000;
+
+pub const EFD_CLOEXEC: ::c_int = 0x80000;
 
 pub const USER_PROCESS: ::c_short = 7;
 
@@ -221,7 +256,6 @@ pub const FIOCLEX: ::c_int = 0x5451;
 pub const SA_ONSTACK: ::c_ulong = 0x08000000;
 pub const SA_SIGINFO: ::c_ulong = 0x00000004;
 pub const SA_NOCLDWAIT: ::c_ulong = 0x00000002;
-
 pub const SIGCHLD: ::c_int = 17;
 pub const SIGBUS: ::c_int = 7;
 pub const SIGUSR1: ::c_int = 10;
@@ -331,6 +365,7 @@ pub const ENOPROTOOPT: ::c_int = 92;
 pub const EPROTONOSUPPORT: ::c_int = 93;
 pub const ESOCKTNOSUPPORT: ::c_int = 94;
 pub const EOPNOTSUPP: ::c_int = 95;
+pub const ENOTSUP: ::c_int = EOPNOTSUPP;
 pub const EPFNOSUPPORT: ::c_int = 96;
 pub const EAFNOSUPPORT: ::c_int = 97;
 pub const EADDRINUSE: ::c_int = 98;
@@ -579,6 +614,69 @@ pub const ISIG: ::tcflag_t = 0x00000001;
 pub const ICANON: ::tcflag_t = 0x00000002;
 pub const PENDIN: ::tcflag_t = 0x00004000;
 pub const NOFLSH: ::tcflag_t = 0x00000080;
+
+pub const EAI_SYSTEM: ::c_int = 11;
+
+pub const NETLINK_ROUTE: ::c_int = 0;
+pub const NETLINK_UNUSED: ::c_int = 1;
+pub const NETLINK_USERSOCK: ::c_int = 2;
+pub const NETLINK_FIREWALL: ::c_int = 3;
+pub const NETLINK_SOCK_DIAG: ::c_int = 4;
+pub const NETLINK_NFLOG: ::c_int = 5;
+pub const NETLINK_XFRM: ::c_int = 6;
+pub const NETLINK_SELINUX: ::c_int = 7;
+pub const NETLINK_ISCSI: ::c_int = 8;
+pub const NETLINK_AUDIT: ::c_int = 9;
+pub const NETLINK_FIB_LOOKUP: ::c_int = 10;
+pub const NETLINK_CONNECTOR: ::c_int = 11;
+pub const NETLINK_NETFILTER: ::c_int = 12;
+pub const NETLINK_IP6_FW: ::c_int = 13;
+pub const NETLINK_DNRTMSG: ::c_int = 14;
+pub const NETLINK_KOBJECT_UEVENT: ::c_int = 15;
+pub const NETLINK_GENERIC: ::c_int = 16;
+pub const NETLINK_SCSITRANSPORT: ::c_int = 18;
+pub const NETLINK_ECRYPTFS: ::c_int = 19;
+pub const NETLINK_RDMA: ::c_int = 20;
+pub const NETLINK_CRYPTO: ::c_int = 21;
+pub const NETLINK_INET_DIAG: ::c_int = NETLINK_SOCK_DIAG;
+
+pub const MAX_LINKS: ::c_int = 32;
+
+pub const NLM_F_REQUEST: ::c_int = 1;
+pub const NLM_F_MULTI: ::c_int = 2;
+pub const NLM_F_ACK: ::c_int = 4;
+pub const NLM_F_ECHO: ::c_int = 8;
+pub const NLM_F_DUMP_INTR: ::c_int = 16;
+
+pub const NLM_F_ROOT: ::c_int = 0x100;
+pub const NLM_F_MATCH: ::c_int = 0x200;
+pub const NLM_F_ATOMIC: ::c_int = 0x400;
+pub const NLM_F_DUMP: ::c_int = NLM_F_ROOT | NLM_F_MATCH;
+
+pub const NLM_F_REPLACE: ::c_int = 0x100;
+pub const NLM_F_EXCL: ::c_int = 0x200;
+pub const NLM_F_CREATE: ::c_int = 0x400;
+pub const NLM_F_APPEND: ::c_int = 0x800;
+
+pub const NLMSG_NOOP: ::c_int = 0x1;
+pub const NLMSG_ERROR: ::c_int = 0x2;
+pub const NLMSG_DONE: ::c_int = 0x3;
+pub const NLMSG_OVERRUN: ::c_int = 0x4;
+pub const NLMSG_MIN_TYPE: ::c_int = 0x10;
+
+pub const NETLINK_ADD_MEMBERSHIP: ::c_int = 1;
+pub const NETLINK_DROP_MEMBERSHIP: ::c_int = 2;
+pub const NETLINK_PKTINFO: ::c_int = 3;
+pub const NETLINK_BROADCAST_ERROR: ::c_int = 4;
+pub const NETLINK_NO_ENOBUFS: ::c_int = 5;
+pub const NETLINK_RX_RING: ::c_int = 6;
+pub const NETLINK_TX_RING: ::c_int = 7;
+
+pub const NLA_F_NESTED: ::c_int = 1 << 15;
+pub const NLA_F_NET_BYTEORDER: ::c_int = 1 << 14;
+pub const NLA_TYPE_MASK: ::c_int = !(NLA_F_NESTED | NLA_F_NET_BYTEORDER);
+
+pub const SIGEV_THREAD_ID: ::c_int = 4;
 
 f! {
     pub fn sigemptyset(set: *mut sigset_t) -> ::c_int {

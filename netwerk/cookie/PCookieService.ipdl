@@ -8,7 +8,7 @@
 include protocol PNecko;
 include URIParams;
 
-using mozilla::NeckoOriginAttributes from "mozilla/ipc/BackgroundUtils.h";
+using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 
 namespace mozilla {
 namespace net {
@@ -61,8 +61,7 @@ parent:
    */
   nested(inside_cpow) sync GetCookieString(URIParams host,
                                            bool isForeign,
-                                           bool fromHttp,
-                                           NeckoOriginAttributes attrs)
+                                           OriginAttributes attrs)
        returns (nsCString result);
 
   /*
@@ -98,8 +97,7 @@ parent:
                                             bool isForeign,
                                             nsCString cookieString,
                                             nsCString serverTime,
-                                            bool fromHttp,
-                                            NeckoOriginAttributes attrs);
+                                            OriginAttributes attrs);
 
   async __delete__();
 };

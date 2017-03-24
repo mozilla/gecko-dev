@@ -134,7 +134,7 @@ function convertESEError(errorCode) {
 }
 
 function handleESEError(method, methodName, shouldThrow = true, errorLog = true) {
-  return function () {
+  return function() {
     let rv;
     try {
       rv = method.apply(null, arguments);
@@ -354,7 +354,7 @@ ESEDB.prototype = {
     return true;
   },
 
-  tableItems: function*(tableName, columns) {
+  *tableItems(tableName, columns) {
     if (!this._opened) {
       throw new Error("The database was closed!");
     }
@@ -432,7 +432,7 @@ ESEDB.prototype = {
         // Deal with null values:
         buffer = null;
       } else {
-        Cu.reportError("Unexpected JET error: " + err + ";" + " retrieving value for column " + column.name);
+        Cu.reportError("Unexpected JET error: " + err + "; retrieving value for column " + column.name);
         throw new Error(convertESEError(err));
       }
     }

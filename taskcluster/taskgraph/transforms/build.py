@@ -19,6 +19,7 @@ def set_defaults(config, jobs):
     for job in jobs:
         job['treeherder'].setdefault('kind', 'build')
         job['treeherder'].setdefault('tier', 1)
+        job.setdefault('needs-sccache', True)
         if job['worker']['implementation'] in ('docker-worker', 'docker-engine'):
             job['worker'].setdefault('docker-image', {'in-tree': 'desktop-build'})
             job['worker']['chain-of-trust'] = True
@@ -28,4 +29,16 @@ def set_defaults(config, jobs):
             job['extra']['chainOfTrust']['inputs']['docker-image'] = {
                 "task-reference": "<docker-image>"
             }
+        job['worker'].setdefault('env', {})
+        yield job
+
+
+@transforms.add
+def set_env(config, jobs):
+    """Set extra environment variables from try command line."""
+    for job in jobs:
+        env = config.config['args'].env
+        if env:
+            job_env = job['worker']['env']
+            job_env.update(dict(x.split('=') for x in env))
         yield job

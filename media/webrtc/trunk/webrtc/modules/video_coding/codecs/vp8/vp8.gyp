@@ -21,12 +21,12 @@
         '<(webrtc_root)/system_wrappers/system_wrappers.gyp:system_wrappers',
       ],
       'include_dirs': [
-        '../../../../../../../libyuv/include',
+        '../../../../../../../libyuv/libyuv/include',
       ],
       'conditions': [
         ['build_libvpx==1', {
           'dependencies': [
-            '<(libvpx_dir)/libvpx.gyp:libvpx',
+            '<(libvpx_dir)/libvpx.gyp:libvpx_new',
           ],
         },{
           'link_settings': {

@@ -230,6 +230,37 @@ DataTransferItem::FillInExternalData()
   }
 }
 
+void
+DataTransferItem::GetType(nsAString& aType)
+{
+  // If we don't have a File, we can just put whatever our recorded internal
+  // type is.
+  if (Kind() != KIND_FILE) {
+    aType = mType;
+    return;
+  }
+
+  // If we do have a File, then we need to look at our File object to discover
+  // what its mime type is. We can use the System Principal here, as this
+  // information should be avaliable even if the data is currently inaccessible
+  // (for example during a dragover).
+  //
+  // XXX: This seems inefficient, as it seems like we should be able to get this
+  // data without getting the entire File object, which may require talking to
+  // the OS.
+  ErrorResult rv;
+  RefPtr<File> file = GetAsFile(*nsContentUtils::GetSystemPrincipal(), rv);
+  MOZ_ASSERT(!rv.Failed(), "Failed to get file data with system principal");
+
+  // If we don't actually have a file, fall back to returning the internal type.
+  if (NS_WARN_IF(!file)) {
+    aType = mType;
+    return;
+  }
+
+  file->GetType(aType);
+}
+
 already_AddRefed<File>
 DataTransferItem::GetAsFile(nsIPrincipal& aSubjectPrincipal,
                             ErrorResult& aRv)
@@ -319,8 +350,10 @@ DataTransferItem::GetAsEntry(nsIPrincipal& aSubjectPrincipal,
     }
 
     nsCOMPtr<nsIFile> directoryFile;
-    nsresult rv = NS_NewNativeLocalFile(NS_ConvertUTF16toUTF8(fullpath),
-                                        true, getter_AddRefs(directoryFile));
+    // fullPath is already in unicode, we don't have to use
+    // NS_NewNativeLocalFile.
+    nsresult rv = NS_NewLocalFile(fullpath, true,
+                                  getter_AddRefs(directoryFile));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return nullptr;
     }
@@ -477,9 +510,13 @@ DataTransferItem::Data(nsIPrincipal* aPrincipal, ErrorResult& aRv)
   // source of the drag is in a child frame of the caller. In that case,
   // we only allow access to data of the same principal. During other events,
   // only allow access to the data with the same principal.
+  //
+  // We don't want to fail with an exception in this siutation, rather we want
+  // to just pretend as though the stored data is "nullptr". This is consistent
+  // with Chrome's behavior and is less surprising for web applications which
+  // don't expect execptions to be raised when performing certain operations.
   if (Principal() && checkItemPrincipal &&
       !aPrincipal->Subsumes(Principal())) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return nullptr;
   }
 
@@ -494,13 +531,11 @@ DataTransferItem::Data(nsIPrincipal* aPrincipal, ErrorResult& aRv)
     if (pt) {
       nsIScriptContext* c = pt->GetContextForEventHandlers(&rv);
       if (NS_WARN_IF(NS_FAILED(rv) || !c)) {
-        aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
         return nullptr;
       }
 
       nsIGlobalObject* go = c->GetGlobalObject();
       if (NS_WARN_IF(!go)) {
-        aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
         return nullptr;
       }
 
@@ -509,7 +544,6 @@ DataTransferItem::Data(nsIPrincipal* aPrincipal, ErrorResult& aRv)
 
       nsIPrincipal* dataPrincipal = sp->GetPrincipal();
       if (NS_WARN_IF(!dataPrincipal || !aPrincipal->Equals(dataPrincipal))) {
-        aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
         return nullptr;
       }
     }

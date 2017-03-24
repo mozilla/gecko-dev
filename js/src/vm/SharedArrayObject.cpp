@@ -22,8 +22,8 @@
 # include <valgrind/memcheck.h>
 #endif
 
+#include "jit/AtomicOperations.h"
 #include "vm/SharedMem.h"
-#include "vm/TypedArrayCommon.h"
 #include "wasm/AsmJS.h"
 #include "wasm/WasmTypes.h"
 
@@ -220,28 +220,38 @@ SharedArrayBufferObject::byteLengthGetter(JSContext* cx, unsigned argc, Value* v
     return CallNonGenericMethod<IsSharedArrayBuffer, byteLengthGetterImpl>(cx, args);
 }
 
+// ES2017 draft rev 6390c2f1b34b309895d31d8c0512eac8660a0210
+// 24.2.2.1 SharedArrayBuffer( length )
 bool
 SharedArrayBufferObject::class_constructor(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
+    // Step 1.
     if (!ThrowIfNotConstructing(cx, args, "SharedArrayBuffer"))
         return false;
 
-    // Bugs 1068458, 1161298: Limit length to 2^31-1.
-    uint32_t length;
-    bool overflow_unused;
-    if (!ToLengthClamped(cx, args.get(0), &length, &overflow_unused) || length > INT32_MAX) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SHARED_ARRAY_BAD_LENGTH);
+    // Step 2.
+    uint64_t byteLength;
+    if (!ToIndex(cx, args.get(0), &byteLength))
         return false;
-    }
 
+    // Step 3 (Inlined 24.2.1.1 AllocateSharedArrayBuffer).
+    // 24.2.1.1, step 1 (Inlined 9.1.14 OrdinaryCreateFromConstructor).
     RootedObject proto(cx);
     RootedObject newTarget(cx, &args.newTarget().toObject());
     if (!GetPrototypeFromConstructor(cx, newTarget, &proto))
         return false;
 
-    JSObject* bufobj = New(cx, length, proto);
+    // 24.2.1.1, step 3 (Inlined 6.2.7.2 CreateSharedByteDataBlock, step 2).
+    // Refuse to allocate too large buffers, currently limited to ~2 GiB.
+    if (byteLength > INT32_MAX) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SHARED_ARRAY_BAD_LENGTH);
+        return false;
+    }
+
+    // 24.2.1.1, steps 1 and 4-6.
+    JSObject* bufobj = New(cx, uint32_t(byteLength), proto);
     if (!bufobj)
         return false;
     args.rval().setObject(*bufobj);
@@ -299,7 +309,7 @@ SharedArrayBufferObject::rawBufferObject() const
 void
 SharedArrayBufferObject::Finalize(FreeOp* fop, JSObject* obj)
 {
-    MOZ_ASSERT(fop->maybeOffMainThread());
+    MOZ_ASSERT(fop->maybeOnHelperThread());
 
     SharedArrayBufferObject& buf = obj->as<SharedArrayBufferObject>();
 
@@ -328,41 +338,25 @@ SharedArrayBufferObject::addSizeOfExcludingThis(JSObject* obj, mozilla::MallocSi
 }
 
 /* static */ void
-SharedArrayBufferObject::copyData(Handle<SharedArrayBufferObject*> toBuffer,
-                                  Handle<SharedArrayBufferObject*> fromBuffer,
-                                  uint32_t fromIndex, uint32_t count)
+SharedArrayBufferObject::copyData(Handle<SharedArrayBufferObject*> toBuffer, uint32_t toIndex,
+                                  Handle<SharedArrayBufferObject*> fromBuffer, uint32_t fromIndex,
+                                  uint32_t count)
 {
     MOZ_ASSERT(toBuffer->byteLength() >= count);
+    MOZ_ASSERT(toBuffer->byteLength() >= toIndex + count);
     MOZ_ASSERT(fromBuffer->byteLength() >= fromIndex);
     MOZ_ASSERT(fromBuffer->byteLength() >= fromIndex + count);
 
-    jit::AtomicOperations::memcpySafeWhenRacy(toBuffer->dataPointerShared(),
+    jit::AtomicOperations::memcpySafeWhenRacy(toBuffer->dataPointerShared() + toIndex,
                                               fromBuffer->dataPointerShared() + fromIndex,
                                               count);
 }
 
-static const ClassSpec SharedArrayBufferObjectProtoClassSpec = {
-    DELEGATED_CLASSSPEC(SharedArrayBufferObject::class_.spec),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ClassSpec::IsDelegated
-};
-
-static const Class SharedArrayBufferObjectProtoClass = {
-    "SharedArrayBufferPrototype",
-    JSCLASS_HAS_CACHED_PROTO(JSProto_SharedArrayBuffer),
-    JS_NULL_CLASS_OPS,
-    &SharedArrayBufferObjectProtoClassSpec
-};
-
 static JSObject*
 CreateSharedArrayBufferPrototype(JSContext* cx, JSProtoKey key)
 {
-    return cx->global()->createBlankPrototype(cx, &SharedArrayBufferObjectProtoClass);
+    return GlobalObject::createBlankPrototype(cx, cx->global(),
+                                              &SharedArrayBufferObject::protoClass_);
 }
 
 static const ClassOps SharedArrayBufferObjectClassOps = {
@@ -400,7 +394,7 @@ static const JSPropertySpec prototype_properties[] = {
     JS_PS_END
 };
 
-static const ClassSpec ArrayBufferObjectClassSpec = {
+static const ClassSpec SharedArrayBufferObjectClassSpec = {
     GenericCreateConstructor<SharedArrayBufferObject::class_constructor, 1, gc::AllocKind::FUNCTION>,
     CreateSharedArrayBufferPrototype,
     static_functions,
@@ -416,8 +410,15 @@ const Class SharedArrayBufferObject::class_ = {
     JSCLASS_HAS_CACHED_PROTO(JSProto_SharedArrayBuffer) |
     JSCLASS_BACKGROUND_FINALIZE,
     &SharedArrayBufferObjectClassOps,
-    &ArrayBufferObjectClassSpec,
+    &SharedArrayBufferObjectClassSpec,
     JS_NULL_CLASS_EXT
+};
+
+const Class SharedArrayBufferObject::protoClass_ = {
+    "SharedArrayBufferPrototype",
+    JSCLASS_HAS_CACHED_PROTO(JSProto_SharedArrayBuffer),
+    JS_NULL_CLASS_OPS,
+    &SharedArrayBufferObjectClassSpec
 };
 
 bool

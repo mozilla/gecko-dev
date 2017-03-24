@@ -23,7 +23,7 @@ namespace nss_test {
 // Replaces the client hello with an SSLv2 version once.
 class SSLv2ClientHelloFilter : public PacketFilter {
  public:
-  SSLv2ClientHelloFilter(TlsAgent* client, uint16_t version)
+  SSLv2ClientHelloFilter(std::shared_ptr<TlsAgent>& client, uint16_t version)
       : replaced_(false),
         client_(client),
         version_(version),
@@ -121,7 +121,7 @@ class SSLv2ClientHelloFilter : public PacketFilter {
 
     // Update the client random so that the handshake succeeds.
     SECStatus rv = SSLInt_UpdateSSLv2ClientRandom(
-        client_->ssl_fd(), challenge.data(), challenge.size(),
+        client_.lock()->ssl_fd(), challenge.data(), challenge.size(),
         output->data() + hdr_len, output->len() - hdr_len);
     EXPECT_EQ(SECSuccess, rv);
 
@@ -130,7 +130,7 @@ class SSLv2ClientHelloFilter : public PacketFilter {
 
  private:
   bool replaced_;
-  TlsAgent* client_;
+  std::weak_ptr<TlsAgent> client_;
   uint16_t version_;
   uint8_t pad_len_;
   uint8_t reported_pad_len_;
@@ -148,7 +148,7 @@ class SSLv2ClientHelloTestF : public TlsConnectTestBase {
 
   void SetUp() {
     TlsConnectTestBase::SetUp();
-    filter_ = new SSLv2ClientHelloFilter(client_, version_);
+    filter_ = std::make_shared<SSLv2ClientHelloFilter>(client_, version_);
     client_->SetPacketFilter(filter_);
   }
 
@@ -185,7 +185,7 @@ class SSLv2ClientHelloTestF : public TlsConnectTestBase {
   void SetSendEscape(bool send_escape) { filter_->SetSendEscape(send_escape); }
 
  private:
-  SSLv2ClientHelloFilter* filter_;
+  std::shared_ptr<SSLv2ClientHelloFilter> filter_;
 };
 
 // Parameterized version of SSLv2ClientHelloTestF we can
@@ -200,6 +200,28 @@ class SSLv2ClientHelloTest : public SSLv2ClientHelloTestF,
 TEST_P(SSLv2ClientHelloTest, Connect) {
   SetAvailableCipherSuite(TLS_DHE_RSA_WITH_AES_128_CBC_SHA);
   Connect();
+}
+
+// Sending a v2 ClientHello after a no-op v3 record must fail.
+TEST_P(SSLv2ClientHelloTest, ConnectAfterEmptyV3Record) {
+  DataBuffer buffer;
+
+  size_t idx = 0;
+  idx = buffer.Write(idx, 0x16, 1);    // handshake
+  idx = buffer.Write(idx, 0x0301, 2);  // record_version
+  (void)buffer.Write(idx, 0U, 2);      // length=0
+
+  SetAvailableCipherSuite(TLS_DHE_RSA_WITH_AES_128_CBC_SHA);
+  EnsureTlsSetup();
+  client_->SendDirect(buffer);
+
+  // Need padding so the connection doesn't just time out. With a v2
+  // ClientHello parsed as a v3 record we will use the record version
+  // as the record length.
+  SetPadding(255);
+
+  ConnectExpectFail();
+  EXPECT_EQ(SSL_ERROR_BAD_CLIENT, server_->error_code());
 }
 
 // Test negotiating TLS 1.3.

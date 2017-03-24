@@ -12,10 +12,16 @@ var FindHelper = {
 
   // Start of nsIObserver implementation.
 
-  observe: function(aMessage, aTopic, aData) {
-    switch(aTopic) {
+  onEvent: function(event, data, callback) {
+    switch (event) {
       case "FindInPage:Opened": {
         this._findOpened();
+        break;
+      }
+
+      case "FindInPage:Closed": {
+        this._uninit();
+        this._findClosed();
         break;
       }
 
@@ -25,10 +31,20 @@ var FindHelper = {
         break;
       }
 
-      case "FindInPage:Closed":
-        this._uninit();
-        this._findClosed();
+      case "FindInPage:Find": {
+        this.doFind(data.searchString);
         break;
+      }
+
+      case "FindInPage:Next": {
+        this.findAgain(data.searchString, false);
+        break;
+      }
+
+      case "FindInPage:Prev": {
+        this.findAgain(data.searchString, true);
+        break;
+      }
     }
   },
 
@@ -38,9 +54,11 @@ var FindHelper = {
    * 2. initialize the Finder instance, if necessary.
    */
   _findOpened: function() {
-    Messaging.addListener(data => this.doFind(data), "FindInPage:Find");
-    Messaging.addListener(data => this.findAgain(data, false), "FindInPage:Next");
-    Messaging.addListener(data => this.findAgain(data, true), "FindInPage:Prev");
+    GlobalEventDispatcher.registerListener(this, [
+      "FindInPage:Find",
+      "FindInPage:Next",
+      "FindInPage:Prev",
+    ]);
 
     // Initialize the finder component for the current page by performing a fake find.
     this._init();
@@ -68,6 +86,10 @@ var FindHelper = {
     this._finder.addResultListener(this);
     this._initialViewport = JSON.stringify(this._targetTab.getViewport());
     this._viewportChanged = false;
+
+    GlobalEventDispatcher.registerListener(this, [
+      "Tab:Selected",
+    ]);
   },
 
   /**
@@ -86,15 +108,21 @@ var FindHelper = {
     this._targetTab = null;
     this._initialViewport = null;
     this._viewportChanged = false;
+
+    GlobalEventDispatcher.unregisterListener(this, [
+      "Tab:Selected",
+    ]);
   },
 
   /**
    * When the FindInPageBar closes, it's time to stop listening for its messages.
    */
   _findClosed: function() {
-    Messaging.removeListener("FindInPage:Find");
-    Messaging.removeListener("FindInPage:Next");
-    Messaging.removeListener("FindInPage:Prev");
+    GlobalEventDispatcher.unregisterListener(this, [
+      "FindInPage:Find",
+      "FindInPage:Next",
+      "FindInPage:Prev",
+    ]);
   },
 
   /**
@@ -150,7 +178,7 @@ var FindHelper = {
   onMatchesCountResult: function(result) {
     this._result = result;
 
-    Messaging.sendRequest(Object.assign({
+    GlobalEventDispatcher.sendRequest(Object.assign({
       type: "FindInPage:MatchesCountResult"
     }, this._result));
   },

@@ -510,7 +510,7 @@ class TypedObject : public ShapedObject
 
     static MOZ_MUST_USE bool obj_lookupProperty(JSContext* cx, HandleObject obj,
                                                 HandleId id, MutableHandleObject objp,
-                                                MutableHandleShape propp);
+                                                MutableHandle<PropertyResult> propp);
 
     static MOZ_MUST_USE bool obj_defineProperty(JSContext* cx, HandleObject obj, HandleId id,
                                                 Handle<PropertyDescriptor> desc,
@@ -552,6 +552,10 @@ class TypedObject : public ShapedObject
     TypeDescr& typeDescr() const {
         return group()->typeDescr();
     }
+
+    static JS::Result<TypedObject*, JS::OOM&>
+    create(JSContext* cx, js::gc::AllocKind kind, js::gc::InitialHeap heap,
+           js::HandleShape shape, js::HandleObjectGroup group);
 
     uint32_t offset() const;
     uint32_t length() const;

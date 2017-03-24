@@ -20,11 +20,12 @@ module.exports = createClass({
     screenshot: PropTypes.shape(Types.screenshot).isRequired,
     viewports: PropTypes.arrayOf(PropTypes.shape(Types.viewport)).isRequired,
     onBrowserMounted: PropTypes.func.isRequired,
-    onChangeViewportDevice: PropTypes.func.isRequired,
+    onChangeDevice: PropTypes.func.isRequired,
     onContentResize: PropTypes.func.isRequired,
+    onRemoveDeviceAssociation: PropTypes.func.isRequired,
     onResizeViewport: PropTypes.func.isRequired,
     onRotateViewport: PropTypes.func.isRequired,
-    onUpdateDeviceModalOpen: PropTypes.func.isRequired,
+    onUpdateDeviceModal: PropTypes.func.isRequired,
   },
 
   render() {
@@ -34,11 +35,12 @@ module.exports = createClass({
       screenshot,
       viewports,
       onBrowserMounted,
-      onChangeViewportDevice,
+      onChangeDevice,
       onContentResize,
+      onRemoveDeviceAssociation,
       onResizeViewport,
       onRotateViewport,
-      onUpdateDeviceModalOpen,
+      onUpdateDeviceModal,
     } = this.props;
 
     return dom.div(
@@ -54,11 +56,12 @@ module.exports = createClass({
           swapAfterMount: i == 0,
           viewport,
           onBrowserMounted,
-          onChangeViewportDevice,
+          onChangeDevice,
           onContentResize,
+          onRemoveDeviceAssociation,
           onResizeViewport,
           onRotateViewport,
-          onUpdateDeviceModalOpen,
+          onUpdateDeviceModal,
         });
       })
     );

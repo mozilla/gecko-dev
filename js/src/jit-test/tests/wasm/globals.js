@@ -1,6 +1,3 @@
-// |jit-test| test-also-wasm-baseline
-load(libdir + "wasm.js");
-
 const { Instance, Module } = WebAssembly;
 
 // Locally-defined globals
@@ -132,7 +129,7 @@ module = new WebAssembly.Module(wasmTextToBinary(`(module
 )`));
 
 const assertLinkFails = (m, imp, err) => {
-    assertErrorMessage(() => new WebAssembly.Instance(m, imp), TypeError, err);
+    assertErrorMessage(() => new WebAssembly.Instance(m, imp), WebAssembly.LinkError, err);
 }
 
 var imp = {
@@ -156,15 +153,15 @@ for (let v of [
     { valueOf() { return 42; } }
 ]) {
     imp.globs.i32 = v;
-    assertLinkFails(module, imp, /not a number/);
+    assertLinkFails(module, imp, /not a Number/);
 
     imp.globs.i32 = 0;
     imp.globs.f32 = v;
-    assertLinkFails(module, imp, /not a number/);
+    assertLinkFails(module, imp, /not a Number/);
 
     imp.globs.f32 = Math.fround(13.37);
     imp.globs.f64 = v;
-    assertLinkFails(module, imp, /not a number/);
+    assertLinkFails(module, imp, /not a Number/);
 
     imp.globs.f64 = 13.37;
 }

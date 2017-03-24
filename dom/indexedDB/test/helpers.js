@@ -4,8 +4,6 @@
  */
 
 var testGenerator = testSteps();
-var archiveReaderEnabled = false;
-
 // The test js is shared between xpcshell (which has no SpecialPowers object)
 // and content mochitests (where the |Components| object is accessible only as
 // SpecialPowers.Components). Expose Components if necessary here to make things
@@ -44,9 +42,9 @@ function clearAllDatabases(callback) {
 var testHarnessGenerator = testHarnessSteps();
 testHarnessGenerator.next();
 
-function testHarnessSteps() {
+function* testHarnessSteps() {
   function nextTestHarnessStep(val) {
-    testHarnessGenerator.send(val);
+    testHarnessGenerator.next(val);
   }
 
   let testScriptPath;
@@ -75,9 +73,6 @@ function testHarnessSteps() {
       "set": [
         ["dom.indexedDB.testing", true],
         ["dom.indexedDB.experimental", true],
-        ["dom.archivereader.enabled", true],
-        ["dom.workers.latestJSVersion", true],
-        ["javascript.options.wasm", true]
       ]
     },
     nextTestHarnessStep
@@ -108,7 +103,7 @@ function testHarnessSteps() {
 
     let workerScriptBlob =
       new Blob([ "(" + workerScript.toString() + ")();" ],
-               { type: "text/javascript;version=1.7" });
+               { type: "text/javascript" });
     let workerScriptURL = URL.createObjectURL(workerScriptBlob);
 
     let worker = new Worker(workerScriptURL);
@@ -222,8 +217,6 @@ function finishTest()
                                                "free");
 
   SimpleTest.executeSoon(function() {
-    testGenerator.close();
-    testHarnessGenerator.close();
     clearAllDatabases(function() { SimpleTest.finish(); });
   });
 }
@@ -235,12 +228,11 @@ function browserRunTest()
 
 function browserFinishTest()
 {
-  setTimeout(function() { testGenerator.close(); }, 0);
 }
 
 function grabEventAndContinueHandler(event)
 {
-  testGenerator.send(event);
+  testGenerator.next(event);
 }
 
 function continueToNextStep()
@@ -258,6 +250,13 @@ function continueToNextStepSync()
 function errorHandler(event)
 {
   ok(false, "indexedDB error, '" + event.target.error.name + "'");
+  finishTest();
+}
+
+// For error callbacks where the argument is not an event object.
+function errorCallbackHandler(err)
+{
+  ok(false, "got unexpected error callback: " + err);
   finishTest();
 }
 
@@ -442,7 +441,7 @@ function workerScript() {
   };
 
   self.grabEventAndContinueHandler = function(_event_) {
-    testGenerator.send(_event_);
+    testGenerator.next(_event_);
   };
 
   self.continueToNextStep = function() {
@@ -608,7 +607,7 @@ function workerScript() {
 
       case "getWasmBinaryDone":
         info("Worker: get wasm binary done");
-        testGenerator.send(message.wasmBinary);
+        testGenerator.next(message.wasmBinary);
         break;
 
       default:

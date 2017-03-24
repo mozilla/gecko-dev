@@ -8,6 +8,8 @@
 #include "CacheFile.h"
 #include "nsThreadUtils.h"
 
+#include "mozilla/IntegerPrintfMacros.h"
+
 namespace mozilla {
 namespace net {
 
@@ -126,7 +128,7 @@ CacheFileChunkBuffer::SetDataSize(uint32_t aDataSize)
     // empty (see CacheFileChunk::Read). We need to set mBuf::mDataSize
     // accordingly so that DataSize() methods return correct value, but we don't
     // want to allocate the buffer since it wouldn't be used in most cases.
-    (mDataSize == 0 && mBufSize == 0 && mChunk->mState == CacheFileChunk::READING));
+    (mBufSize == 0 && mChunk->mState == CacheFileChunk::READING));
 
   mDataSize = aDataSize;
 }
@@ -251,7 +253,6 @@ public:
   {
     LOG(("NotifyUpdateListenerEvent::NotifyUpdateListenerEvent() [this=%p]",
          this));
-    MOZ_COUNT_CTOR(NotifyUpdateListenerEvent);
   }
 
 protected:
@@ -259,7 +260,6 @@ protected:
   {
     LOG(("NotifyUpdateListenerEvent::~NotifyUpdateListenerEvent() [this=%p]",
          this));
-    MOZ_COUNT_DTOR(NotifyUpdateListenerEvent);
   }
 
 public:
@@ -347,15 +347,12 @@ CacheFileChunk::CacheFileChunk(CacheFile *aFile, uint32_t aIndex,
 {
   LOG(("CacheFileChunk::CacheFileChunk() [this=%p, index=%u, initByWriter=%d]",
        this, aIndex, aInitByWriter));
-  MOZ_COUNT_CTOR(CacheFileChunk);
-
   mBuf = new CacheFileChunkBuffer(this);
 }
 
 CacheFileChunk::~CacheFileChunk()
 {
   LOG(("CacheFileChunk::~CacheFileChunk() [this=%p]", this));
-  MOZ_COUNT_DTOR(CacheFileChunk);
 }
 
 void
@@ -568,8 +565,6 @@ CacheFileChunk::Index() const
 CacheHash::Hash16_t
 CacheFileChunk::Hash() const
 {
-  AssertOwnsLock();
-
   MOZ_ASSERT(!mListener);
   MOZ_ASSERT(IsReady());
 
@@ -629,6 +624,12 @@ CacheFileChunk::UpdateDataSize(uint32_t aOffset, uint32_t aLen)
 nsresult
 CacheFileChunk::Truncate(uint32_t aOffset)
 {
+  MOZ_RELEASE_ASSERT(mState == READY || mState == WRITING || mState == READING);
+
+  if (mState == READING) {
+    mIsDirty = true;
+  }
+
   mBuf->SetDataSize(aOffset);
   return NS_OK;
 }
@@ -644,8 +645,8 @@ nsresult
 CacheFileChunk::OnDataWritten(CacheFileHandle *aHandle, const char *aBuf,
                               nsresult aResult)
 {
-  LOG(("CacheFileChunk::OnDataWritten() [this=%p, handle=%p, result=0x%08x]",
-       this, aHandle, aResult));
+  LOG(("CacheFileChunk::OnDataWritten() [this=%p, handle=%p, result=0x%08" PRIx32 "]",
+       this, aHandle, static_cast<uint32_t>(aResult)));
 
   nsCOMPtr<CacheFileChunkListener> listener;
 
@@ -674,8 +675,8 @@ nsresult
 CacheFileChunk::OnDataRead(CacheFileHandle *aHandle, char *aBuf,
                            nsresult aResult)
 {
-  LOG(("CacheFileChunk::OnDataRead() [this=%p, handle=%p, result=0x%08x]",
-       this, aHandle, aResult));
+  LOG(("CacheFileChunk::OnDataRead() [this=%p, handle=%p, result=0x%08" PRIx32 "]",
+       this, aHandle, static_cast<uint32_t>(aResult)));
 
   nsCOMPtr<CacheFileChunkListener> listener;
 
@@ -700,6 +701,11 @@ CacheFileChunk::OnDataRead(CacheFileHandle *aHandle, char *aBuf,
              hash, mExpectedHash, this, mIndex));
         aResult = NS_ERROR_FILE_CORRUPTED;
       } else {
+        if (mBuf->DataSize() < tmpBuf->DataSize()) {
+          // Truncate() was called while the data was being read.
+          tmpBuf->SetDataSize(mBuf->DataSize());
+        }
+
         if (!mBuf->Buf()) {
           // Just swap the buffers if mBuf is still empty
           mBuf.swap(tmpBuf);
@@ -759,8 +765,6 @@ CacheFileChunk::IsKilled()
 bool
 CacheFileChunk::IsReady() const
 {
-  AssertOwnsLock();
-
   return (NS_SUCCEEDED(mStatus) && (mState == READY || mState == WRITING));
 }
 
@@ -783,7 +787,8 @@ CacheFileChunk::GetStatus()
 void
 CacheFileChunk::SetError(nsresult aStatus)
 {
-  LOG(("CacheFileChunk::SetError() [this=%p, status=0x%08x]", this, aStatus));
+  LOG(("CacheFileChunk::SetError() [this=%p, status=0x%08" PRIx32 "]",
+       this, static_cast<uint32_t>(aStatus)));
 
   MOZ_ASSERT(NS_FAILED(aStatus));
 

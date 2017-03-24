@@ -13,7 +13,7 @@ add_task(function* test_addPage() {
 });
 
 add_task(function* test_removePage() {
-  PlacesUtils.bhistory.removePage(TEST_URI);
+  yield PlacesUtils.history.remove(TEST_URI);
   do_check_eq(0, PlacesUtils.history.hasHistoryEntries);
 });
 
@@ -23,7 +23,7 @@ add_task(function* test_removePages() {
     pages.push(NetUtil.newURI(TEST_URI.spec + i));
   }
 
-  yield PlacesTestUtils.addVisits(pages.map(uri => ({ uri: uri })));
+  yield PlacesTestUtils.addVisits(pages.map(uri => ({ uri })));
   // Bookmarked item should not be removed from moz_places.
   const ANNO_INDEX = 1;
   const ANNO_NAME = "testAnno";
@@ -40,7 +40,7 @@ add_task(function* test_removePages() {
                                             ANNO_NAME, ANNO_VALUE, 0,
                                             Ci.nsIAnnotationService.EXPIRE_NEVER);
 
-  PlacesUtils.bhistory.removePages(pages, pages.length);
+  yield PlacesUtils.history.remove(pages);
   do_check_eq(0, PlacesUtils.history.hasHistoryEntries);
 
   // Check that the bookmark and its annotation still exist.
@@ -109,12 +109,12 @@ add_task(function* test_getObservers() {
   // This is just for testing purposes, never do it.
   return new Promise((resolve, reject) => {
     DBConn().executeSimpleSQLAsync("DELETE FROM moz_historyvisits", {
-      handleError: function(error) {
+      handleError(error) {
         reject(error);
       },
-      handleResult: function(result) {
+      handleResult(result) {
       },
-      handleCompletion: function(result) {
+      handleCompletion(result) {
         // Just invoking getObservers should be enough to invalidate the cache.
         PlacesUtils.history.getObservers();
         do_check_eq(0, PlacesUtils.history.hasHistoryEntries);

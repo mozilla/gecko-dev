@@ -24,6 +24,7 @@ namespace dom {
 class PerformanceEntry;
 class PerformanceNavigation;
 class PerformanceObserver;
+class PerformanceService;
 class PerformanceTiming;
 
 namespace workers {
@@ -38,15 +39,12 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Performance,
                                            DOMEventTargetHelper)
 
-  static bool IsEnabled(JSContext* aCx, JSObject* aGlobal);
-
   static bool IsObserverEnabled(JSContext* aCx, JSObject* aGlobal);
 
   static already_AddRefed<Performance>
   CreateForMainThread(nsPIDOMWindowInner* aWindow,
                       nsDOMNavigationTiming* aDOMTiming,
-                      nsITimedChannel* aChannel,
-                      Performance* aParentPerformance);
+                      nsITimedChannel* aChannel);
 
   static already_AddRefed<Performance>
   CreateForWorker(workers::WorkerPrivate* aWorkerPrivate);
@@ -68,7 +66,9 @@ public:
 
   void ClearResourceTimings();
 
-  virtual DOMHighResTimeStamp Now() const = 0;
+  DOMHighResTimeStamp Now() const;
+
+  DOMHighResTimeStamp TimeOrigin();
 
   void Mark(const nsAString& aName, ErrorResult& aRv);
 
@@ -101,8 +101,6 @@ public:
 
   virtual nsITimedChannel* GetChannel() const = 0;
 
-  virtual Performance* GetParentPerformance() const = 0;
-
 protected:
   Performance();
   explicit Performance(nsPIDOMWindowInner* aWindow);
@@ -126,10 +124,16 @@ protected:
 
   virtual DOMHighResTimeStamp CreationTime() const = 0;
 
-  virtual bool IsPerformanceTimingAttribute(const nsAString& aName) = 0;
+  virtual bool IsPerformanceTimingAttribute(const nsAString& aName)
+  {
+    return false;
+  }
 
   virtual DOMHighResTimeStamp
-  GetPerformanceTimingFromString(const nsAString& aTimingName) = 0;
+  GetPerformanceTimingFromString(const nsAString& aTimingName)
+  {
+    return 0;
+  }
 
   bool IsResourceEntryLimitReached() const
   {
@@ -154,6 +158,8 @@ private:
   uint64_t mResourceTimingBufferSize;
   static const uint64_t kDefaultResourceTimingBufferSize = 150;
   bool mPendingNotificationObserversTask;
+
+  RefPtr<PerformanceService> mPerformanceService;
 };
 
 } // namespace dom

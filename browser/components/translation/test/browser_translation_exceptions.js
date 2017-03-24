@@ -18,22 +18,21 @@ function test() {
   Services.prefs.setBoolPref(kShowUIPref, true);
   let tab = gBrowser.addTab();
   gBrowser.selectedTab = tab;
-  registerCleanupFunction(function () {
+  registerCleanupFunction(function() {
     gBrowser.removeTab(tab);
     Services.prefs.clearUserPref(kShowUIPref);
   });
-  tab.linkedBrowser.addEventListener("load", function onload() {
-    tab.linkedBrowser.removeEventListener("load", onload, true);
+  tab.linkedBrowser.addEventListener("load", function() {
     Task.spawn(function* () {
-      for (let test of gTests) {
-        info(test.desc);
-        yield test.run();
+      for (let testCase of gTests) {
+        info(testCase.desc);
+        yield testCase.run();
       }
     }).then(finish, ex => {
      ok(false, "Unexpected Exception: " + ex);
      finish();
     });
-   }, true);
+   }, {capture: true, once: true});
 
   content.location = "http://example.com/";
 }
@@ -76,10 +75,9 @@ function getInfoBar() {
 function openPopup(aPopup) {
   let deferred = Promise.defer();
 
-  aPopup.addEventListener("popupshown", function popupShown() {
-    aPopup.removeEventListener("popupshown", popupShown);
+  aPopup.addEventListener("popupshown", function() {
     deferred.resolve();
-  });
+  }, {once: true});
 
   aPopup.focus();
   // One down event to open the popup.
@@ -92,10 +90,9 @@ function openPopup(aPopup) {
 function waitForWindowLoad(aWin) {
   let deferred = Promise.defer();
 
-  aWin.addEventListener("load", function onload() {
-    aWin.removeEventListener("load", onload, true);
+  aWin.addEventListener("load", function() {
     deferred.resolve();
-  }, true);
+  }, {capture: true, once: true});
 
   return deferred.promise;
 }

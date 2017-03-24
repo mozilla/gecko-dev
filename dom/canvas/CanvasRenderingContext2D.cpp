@@ -50,7 +50,6 @@
 #include "ImageRegion.h"
 
 #include "gfxContext.h"
-#include "gfxImageSurface.h"
 #include "gfxPlatform.h"
 #include "gfxFont.h"
 #include "gfxBlur.h"
@@ -58,7 +57,6 @@
 #include "gfxUtils.h"
 
 #include "nsFrameLoader.h"
-#include "nsBidi.h"
 #include "nsBidiPresUtils.h"
 #include "Layers.h"
 #include "LayerUserData.h"
@@ -72,6 +70,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/Conversions.h"
+#include "js/HeapAPI.h"
 
 #include "mozilla/Alignment.h"
 #include "mozilla/Assertions.h"
@@ -90,6 +89,7 @@
 #include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/PatternHelpers.h"
+#include "mozilla/gfx/Swizzle.h"
 #include "mozilla/ipc/DocumentRendererParent.h"
 #include "mozilla/ipc/PDocumentRendererParent.h"
 #include "mozilla/layers/PersistentBufferProvider.h"
@@ -120,6 +120,7 @@
 #include "nsFontMetrics.h"
 #include "Units.h"
 #include "CanvasUtils.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/StyleSetHandle.h"
 #include "mozilla/StyleSetHandleInlines.h"
 #include "mozilla/layers/CanvasClient.h"
@@ -565,7 +566,9 @@ public:
   explicit AdjustedTarget(CanvasRenderingContext2D* aCtx,
                           const gfx::Rect *aBounds = nullptr)
   {
-    mTarget = aCtx->mTarget;
+    // There are operations that can invalidate aCtx->mTarget along the way,
+    // so don't cache the pointer to it too soon.
+    mTarget = nullptr;
 
     // All rects in this function are in the device space of ctx->mTarget.
 
@@ -594,7 +597,7 @@ public:
     // are used.
     if (aCtx->NeedToDrawShadow()) {
       mShadowTarget = MakeUnique<AdjustedTargetForShadow>(
-        aCtx, mTarget, boundsAfterFilter, op);
+        aCtx, aCtx->mTarget, boundsAfterFilter, op);
       mTarget = mShadowTarget->DT();
       offsetToFinalDT = mShadowTarget->OffsetToFinalDT();
 
@@ -607,6 +610,9 @@ public:
     if (aCtx->NeedToApplyFilter()) {
       bounds.RoundOut();
 
+      if (!mTarget) {
+        mTarget = aCtx->mTarget;
+      }
       gfx::IntRect intBounds;
       if (!bounds.ToIntRect(&intBounds)) {
         return;
@@ -615,6 +621,9 @@ public:
         aCtx, mTarget, offsetToFinalDT, intBounds,
         gfx::RoundedToInt(boundsAfterFilter), op);
       mTarget = mFilterTarget->DT();
+    }
+    if (!mTarget) {
+      mTarget = aCtx->mTarget;
     }
   }
 
@@ -1010,13 +1019,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(CanvasRenderingContext2D)
       ImplCycleCollectionTraverse(cb, info.mElement, "Hit region fallback element");
     }
   }
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(CanvasRenderingContext2D)
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(CanvasRenderingContext2D)
- if (nsCCUncollectableMarker::sGeneration && tmp->IsBlack()) {
+ if (nsCCUncollectableMarker::sGeneration && tmp->HasKnownLiveWrapper()) {
    dom::Element* canvasElement = tmp->mCanvasElement;
     if (canvasElement) {
       if (canvasElement->IsPurple()) {
@@ -1029,11 +1037,11 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(CanvasRenderingContext2D)
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(CanvasRenderingContext2D)
-  return nsCCUncollectableMarker::sGeneration && tmp->IsBlack();
+  return nsCCUncollectableMarker::sGeneration && tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(CanvasRenderingContext2D)
-  return nsCCUncollectableMarker::sGeneration && tmp->IsBlack();
+  return nsCCUncollectableMarker::sGeneration && tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CanvasRenderingContext2D)
@@ -1050,6 +1058,8 @@ NS_INTERFACE_MAP_END
 // Initialize our static variables.
 uint32_t CanvasRenderingContext2D::sNumLivingContexts = 0;
 DrawTarget* CanvasRenderingContext2D::sErrorTarget = nullptr;
+static bool sMaxContextsInitialized = false;
+static int32_t sMaxContexts = 0;
 
 
 
@@ -1070,6 +1080,11 @@ CanvasRenderingContext2D::CanvasRenderingContext2D(layers::LayersBackend aCompos
   , mPathTransformWillUpdate(false)
   , mInvalidateCount(0)
 {
+  if (!sMaxContextsInitialized) {
+    sMaxContexts = gfxPrefs::CanvasAzureAcceleratedLimit();
+    sMaxContextsInitialized = true;
+  }
+
   sNumLivingContexts++;
 
   mShutdownObserver = new CanvasShutdownObserver(this);
@@ -1344,7 +1359,7 @@ CanvasRenderingContext2D::AllowOpenGLCanvas() const
 
 bool CanvasRenderingContext2D::SwitchRenderingMode(RenderingMode aRenderingMode)
 {
-  if (!IsTargetValid() || mRenderingMode == aRenderingMode) {
+  if (!(IsTargetValid() || mBufferProvider) || mRenderingMode == aRenderingMode) {
     return false;
   }
 
@@ -1367,23 +1382,37 @@ bool CanvasRenderingContext2D::SwitchRenderingMode(RenderingMode aRenderingMode)
   mBufferProvider = nullptr;
   mResetLayer = true;
 
-  // Borrowing the snapshot must be done after ReturnTarget.
-  RefPtr<SourceSurface> snapshot = oldBufferProvider->BorrowSnapshot();
-
   // Recreate mTarget using the new rendering mode
   RenderingMode attemptedMode = EnsureTarget(nullptr, aRenderingMode);
+
   if (!IsTargetValid()) {
-    oldBufferProvider->ReturnSnapshot(snapshot.forget());
     return false;
+  }
+
+  if (oldBufferProvider && mTarget) {
+    CopyBufferProvider(*oldBufferProvider, *mTarget, IntRect(0, 0, mWidth, mHeight));
   }
 
   // We succeeded, so update mRenderingMode to reflect reality
   mRenderingMode = attemptedMode;
 
-  // Restore the content from the old DrawTarget
-  // Clips and transform were already restored in EnsureTarget.
-  mTarget->CopySurface(snapshot, IntRect(0, 0, mWidth, mHeight), IntPoint());
-  oldBufferProvider->ReturnSnapshot(snapshot.forget());
+  return true;
+}
+
+bool
+CanvasRenderingContext2D::CopyBufferProvider(PersistentBufferProvider& aOld,
+                                             DrawTarget& aTarget,
+                                             IntRect aCopyRect)
+{
+  // Borrowing the snapshot must be done after ReturnTarget.
+  RefPtr<SourceSurface> snapshot = aOld.BorrowSnapshot();
+
+  if (!snapshot) {
+    return false;
+  }
+
+  aTarget.CopySurface(snapshot, aCopyRect, IntPoint());
+  aOld.ReturnSnapshot(snapshot.forget());
   return true;
 }
 
@@ -1408,10 +1437,13 @@ CanvasRenderingContext2D::DemotableContexts()
 void
 CanvasRenderingContext2D::DemoteOldestContextIfNecessary()
 {
-  const size_t kMaxContexts = 64;
+  MOZ_ASSERT(sMaxContextsInitialized);
+  if (sMaxContexts <= 0) {
+    return;
+  }
 
   std::vector<CanvasRenderingContext2D*>& contexts = DemotableContexts();
-  if (contexts.size() < kMaxContexts)
+  if (contexts.size() < (size_t)sMaxContexts)
     return;
 
   CanvasRenderingContext2D* oldest = contexts.front();
@@ -1423,6 +1455,10 @@ CanvasRenderingContext2D::DemoteOldestContextIfNecessary()
 void
 CanvasRenderingContext2D::AddDemotableContext(CanvasRenderingContext2D* aContext)
 {
+  MOZ_ASSERT(sMaxContextsInitialized);
+  if (sMaxContexts <= 0)
+    return;
+
   std::vector<CanvasRenderingContext2D*>::iterator iter = std::find(DemotableContexts().begin(), DemotableContexts().end(), aContext);
   if (iter != DemotableContexts().end())
     return;
@@ -1433,17 +1469,24 @@ CanvasRenderingContext2D::AddDemotableContext(CanvasRenderingContext2D* aContext
 void
 CanvasRenderingContext2D::RemoveDemotableContext(CanvasRenderingContext2D* aContext)
 {
+  MOZ_ASSERT(sMaxContextsInitialized);
+  if (sMaxContexts <= 0)
+    return;
+
   std::vector<CanvasRenderingContext2D*>::iterator iter = std::find(DemotableContexts().begin(), DemotableContexts().end(), aContext);
   if (iter != DemotableContexts().end())
     DemotableContexts().erase(iter);
 }
+
+#define MIN_SKIA_GL_DIMENSION 16
 
 bool
 CanvasRenderingContext2D::CheckSizeForSkiaGL(IntSize aSize) {
   MOZ_ASSERT(NS_IsMainThread());
 
   int minsize = Preferences::GetInt("gfx.canvas.min-size-for-skia-gl", 128);
-  if (aSize.width < minsize || aSize.height < minsize) {
+  if (aSize.width < MIN_SKIA_GL_DIMENSION || aSize.height < MIN_SKIA_GL_DIMENSION ||
+      (aSize.width * aSize.height < minsize * minsize)) {
     return false;
   }
 
@@ -1627,24 +1670,41 @@ CanvasRenderingContext2D::EnsureTarget(const gfx::Rect* aCoveredRect,
   if (mode == RenderingMode::SoftwareBackendMode &&
       !TrySharedTarget(newTarget, newProvider) &&
       !TryBasicTarget(newTarget, newProvider)) {
+
+    gfxCriticalError(
+      CriticalLog::DefaultOptions(Factory::ReasonableSurfaceSize(GetSize()))
+    ) << "Failed borrow shared and basic targets.";
+
     SetErrorState();
     return mode;
   }
 
+
   MOZ_ASSERT(newTarget);
   MOZ_ASSERT(newProvider);
+
+  bool needsClear = !canDiscardContent;
+  if (newTarget->GetBackendType() == gfx::BackendType::SKIA) {
+    // Skia expects the unused X channel to contains 0xFF even for opaque operations
+    // so we can't skip clearing in that case, even if we are going to cover the
+    // entire canvas in the next drawing operation.
+    newTarget->ClearRect(canvasRect);
+    needsClear = false;
+  }
+
+  // Try to copy data from the previous buffer provider if there is one.
+  if (!canDiscardContent && mBufferProvider && CopyBufferProvider(*mBufferProvider, *newTarget, persistedRect)) {
+    needsClear = false;
+  }
+
+  if (needsClear) {
+    newTarget->ClearRect(canvasRect);
+  }
 
   mTarget = newTarget.forget();
   mBufferProvider = newProvider.forget();
 
   RegisterAllocation();
-
-  // Skia expects the unused X channel to contains 0 even for opaque operations
-  // so we can't skip clearing in that case, even if we are going to cover the
-  // entire canvas in the next drawing operation.
-  if (!canDiscardContent || mTarget->GetBackendType() == gfx::BackendType::SKIA) {
-    mTarget->ClearRect(canvasRect);
-  }
 
   RestoreClipsAndTransformToTarget();
 
@@ -1709,6 +1769,12 @@ CanvasRenderingContext2D::RegisterAllocation()
   JSContext* context = nsContentUtils::GetCurrentJSContext();
   if (context) {
     JS_updateMallocCounter(context, mWidth * mHeight * 4);
+  }
+
+  JSObject* wrapper = GetWrapperPreserveColor();
+  if (wrapper) {
+    CycleCollectedJSContext::Get()->
+      AddZoneWaitingForGC(JS::GetObjectZone(wrapper));
   }
 }
 
@@ -1784,6 +1850,12 @@ CanvasRenderingContext2D::TrySharedTarget(RefPtr<gfx::DrawTarget>& aOutDT,
     return false;
   }
 
+  if (mBufferProvider && mBufferProvider->GetType() == LayersBackend::LAYERS_CLIENT) {
+    // we are already using a shared buffer provider, we are allocating a new one
+    // because the current one failed so let's just fall back to the basic provider.
+    return false;
+  }
+
   RefPtr<LayerManager> layerManager = LayerManagerFromCanvasElement(mCanvasElement);
 
   if (!layerManager) {
@@ -1833,11 +1905,7 @@ CanvasRenderingContext2D::GetHeight() const
 NS_IMETHODIMP
 CanvasRenderingContext2D::SetDimensions(int32_t aWidth, int32_t aHeight)
 {
-  bool retainBuffer = false;
-  if (aWidth == mWidth && aHeight == mHeight) {
-    retainBuffer = true;
-  }
-  ClearTarget(retainBuffer);
+  ClearTarget();
 
   // Zero sized surfaces can cause problems.
   mZero = false;
@@ -1856,22 +1924,9 @@ CanvasRenderingContext2D::SetDimensions(int32_t aWidth, int32_t aHeight)
 }
 
 void
-CanvasRenderingContext2D::ClearTarget(bool aRetainBuffer)
+CanvasRenderingContext2D::ClearTarget()
 {
-  RefPtr<PersistentBufferProvider> provider = mBufferProvider;
-  if (aRetainBuffer && provider) {
-    // We should reset the buffer data before reusing the buffer.
-    if (mTarget) {
-      mTarget->SetTransform(Matrix());
-    }
-    ClearRect(0, 0, mWidth, mHeight);
-  }
-
   Reset();
-
-  if (aRetainBuffer) {
-    mBufferProvider = provider;
-  }
 
   mResetLayer = true;
 
@@ -2872,7 +2927,7 @@ CanvasRenderingContext2D::UpdateFilter()
   // The filter might reference an SVG filter that is declared inside this
   // document. Flush frames so that we'll have an nsSVGFilterFrame to work
   // with.
-  presShell->FlushPendingNotifications(Flush_Frames);
+  presShell->FlushPendingNotifications(FlushType::Frames);
 
   bool sourceGraphicIsTainted =
     (mCanvasElement && mCanvasElement->IsWriteOnly());
@@ -4017,6 +4072,11 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
     AdjustedTarget target(mCtx);
     RefPtr<gfxContext> thebes =
       gfxContext::CreatePreservingTransformOrNull(target);
+    if (!thebes) {
+      // If CreatePreservingTransformOrNull returns null, it will also have
+      // issued a gfxCriticalNote already, so here we'll just bail out.
+      return;
+    }
     gfxTextRun::DrawParams params(thebes);
 
     if (mState->StyleIsColor(style)) { // Color
@@ -4215,7 +4275,6 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
 
   // calls bidi algo twice since it needs the full text width and the
   // bounding boxes before rendering anything
-  nsBidi bidiEngine;
   rv = nsBidiPresUtils::ProcessText(textToDraw.get(),
                                     textToDraw.Length(),
                                     isRTL ? NSBIDI_RTL : NSBIDI_LTR,
@@ -4225,7 +4284,7 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
                                     nullptr,
                                     0,
                                     &totalWidthCoord,
-                                    &bidiEngine);
+                                    &mBidiEngine);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -4340,7 +4399,7 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
                                     nullptr,
                                     0,
                                     nullptr,
-                                    &bidiEngine);
+                                    &mBidiEngine);
 
 
   mTarget->SetTransform(oldTransform);
@@ -4962,7 +5021,7 @@ CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
   }
 
   if (!IsTargetValid()) {
-    gfxCriticalError() << "Unexpected invalid target in a Canvas2d.";
+    aError.Throw(NS_ERROR_FAILURE);
     return;
   }
 
@@ -4976,8 +5035,13 @@ CanvasRenderingContext2D::DrawImage(const CanvasImageSource& aImage,
       // that we need.
       srcSurf = ExtractSubrect(srcSurf, &sourceRect, mTarget);
     }
-    AdjustedTarget(this, bounds.IsEmpty() ? nullptr : &bounds)->
-      DrawSurface(srcSurf,
+
+    AdjustedTarget tempTarget(this, bounds.IsEmpty() ? nullptr : &bounds);
+    if (!tempTarget) {
+      gfxDevCrash(LogReason::InvalidDrawTarget) << "Invalid adjusted target in Canvas2D " << gfx::hexa((DrawTarget*)mTarget) << ", " << NeedToDrawShadow() << NeedToApplyFilter();
+      return;
+    }
+    tempTarget->DrawSurface(srcSurf,
                   gfx::Rect(aDx, aDy, aDw, aDh),
                   sourceRect,
                   DrawSurfaceOptions(samplingFilter, SamplingBounds::UNBOUNDED),
@@ -5042,12 +5106,12 @@ CanvasRenderingContext2D::DrawDirectlyToCanvas(
   uint32_t modifiedFlags = aImage.mDrawingFlags | imgIContainer::FLAG_CLAMP;
 
   CSSIntSize sz(scaledImageSize.width, scaledImageSize.height); // XXX hmm is scaledImageSize really in CSS pixels?
-  SVGImageContext svgContext(sz, Nothing(), CurrentState().globalAlpha);
+  SVGImageContext svgContext(Some(sz), Nothing(), CurrentState().globalAlpha);
 
   auto result = aImage.mImgContainer->
     Draw(context, scaledImageSize,
          ImageRegion::Create(gfxRect(aSrc.x, aSrc.y, aSrc.width, aSrc.height)),
-         aImage.mWhichFrame, SamplingFilter::GOOD, Some(svgContext), modifiedFlags);
+         aImage.mWhichFrame, SamplingFilter::GOOD, Some(svgContext), modifiedFlags, 1.0);
 
   if (result != DrawResult::SUCCESS) {
     NS_WARNING("imgIContainer::Draw failed");
@@ -5164,19 +5228,6 @@ CanvasRenderingContext2D::DrawWindow(nsGlobalWindow& aWindow, double aX,
     && (op == CompositionOp::OP_OVER || op == CompositionOp::OP_SOURCE);
   const gfx::Rect drawRect(aX, aY, aW, aH);
   EnsureTarget(discardContent ? &drawRect : nullptr);
-
-  // We can't allow web apps to call this until we fix at least the
-  // following potential security issues:
-  // -- rendering cross-domain IFRAMEs and then extracting the results
-  // -- rendering the user's theme and then extracting the results
-  // -- rendering native anonymous content (e.g., file input paths;
-  // scrollbars should be allowed)
-  if (!nsContentUtils::IsCallerChrome()) {
-    // not permitted to use DrawWindow
-    // XXX ERRMSG we need to report an error to developers here! (bug 329026)
-    aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return;
-  }
 
   // Flush layout updates
   if (!(aFlags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH)) {
@@ -5311,7 +5362,6 @@ CanvasRenderingContext2D::DrawWindow(nsGlobalWindow& aWindow, double aX,
                          DrawSurfaceOptions(gfx::SamplingFilter::POINT),
                          DrawOptions(GlobalAlpha(), UsedOperation(),
                                      AntialiasMode::NONE));
-    mTarget->Flush();
   } else {
     mTarget->SetTransform(matrix);
   }
@@ -5320,98 +5370,6 @@ CanvasRenderingContext2D::DrawWindow(nsGlobalWindow& aWindow, double aX,
   // we're drawing; x and y are drawn to 0,0 in current user
   // space.
   RedrawUser(gfxRect(0, 0, aW, aH));
-}
-
-void
-CanvasRenderingContext2D::AsyncDrawXULElement(nsXULElement& aElem,
-                                              double aX, double aY,
-                                              double aW, double aH,
-                                              const nsAString& aBgColor,
-                                              uint32_t aFlags,
-                                              ErrorResult& aError)
-{
-  // We can't allow web apps to call this until we fix at least the
-  // following potential security issues:
-  // -- rendering cross-domain IFRAMEs and then extracting the results
-  // -- rendering the user's theme and then extracting the results
-  // -- rendering native anonymous content (e.g., file input paths;
-  // scrollbars should be allowed)
-  if (!nsContentUtils::IsCallerChrome()) {
-    // not permitted to use DrawWindow
-    // XXX ERRMSG we need to report an error to developers here! (bug 329026)
-    aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return;
-  }
-
-#if 0
-  nsCOMPtr<nsIFrameLoaderOwner> loaderOwner = do_QueryInterface(&elem);
-  if (!loaderOwner) {
-    aError.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  RefPtr<nsFrameLoader> frameloader = loaderOwner->GetFrameLoader();
-  if (!frameloader) {
-    aError.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  PBrowserParent *child = frameloader->GetRemoteBrowser();
-  if (!child) {
-    nsIDocShell* docShell = frameLoader->GetExistingDocShell();
-    if (!docShell) {
-      aError.Throw(NS_ERROR_FAILURE);
-      return;
-    }
-
-    nsCOMPtr<nsPIDOMWindowOuter> window = docShell->GetWindow();
-    if (!window) {
-      aError.Throw(NS_ERROR_FAILURE);
-      return;
-    }
-
-    return DrawWindow(window->GetCurrentInnerWindow(), aX, aY, aW, aH,
-                      aBgColor, aFlags);
-  }
-
-  // protect against too-large surfaces that will cause allocation
-  // or overflow issues
-  if (!Factory::CheckSurfaceSize(IntSize(aW, aH), 0xffff)) {
-    aError.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  bool flush =
-    (aFlags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH) == 0;
-
-  uint32_t renderDocFlags = nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
-  if (aFlags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DRAW_CARET) {
-    renderDocFlags |= nsIPresShell::RENDER_CARET;
-  }
-  if (aFlags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DRAW_VIEW) {
-    renderDocFlags &= ~nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
-  }
-
-  nsRect rect(nsPresContext::CSSPixelsToAppUnits(aX),
-              nsPresContext::CSSPixelsToAppUnits(aY),
-              nsPresContext::CSSPixelsToAppUnits(aW),
-              nsPresContext::CSSPixelsToAppUnits(aH));
-  if (mIPC) {
-    PDocumentRendererParent *pdocrender =
-      child->SendPDocumentRendererConstructor(rect,
-                                              mThebes->CurrentMatrix(),
-                                              nsString(aBGColor),
-                                              renderDocFlags, flush,
-                                              nsIntSize(mWidth, mHeight));
-    if (!pdocrender)
-      return NS_ERROR_FAILURE;
-
-    DocumentRendererParent *docrender =
-      static_cast<DocumentRendererParent *>(pdocrender);
-
-    docrender->SetCanvasContext(this, mThebes);
-  }
-#endif
 }
 
 //
@@ -5436,7 +5394,11 @@ CanvasRenderingContext2D::GetImageData(JSContext* aCx, double aSx,
   // Check only if we have a canvas element; if we were created with a docshell,
   // then it's special internal use.
   if (mCanvasElement && mCanvasElement->IsWriteOnly() &&
-      !nsContentUtils::IsCallerChrome())
+      // We could ask bindings for the caller type, but they already hand us a
+      // JSContext, and we're at least _somewhat_ perf-sensitive (so may not
+      // want to compute the caller type in the common non-write-only case), so
+      // let's just use what we have.
+      !nsContentUtils::IsSystemCaller(aCx))
   {
     // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -5562,69 +5524,33 @@ CanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
   IntRect dstWriteRect = srcReadRect;
   dstWriteRect.MoveBy(-aX, -aY);
 
-  JS::AutoCheckCannotGC nogc;
-  bool isShared;
-  uint8_t* data = JS_GetUint8ClampedArrayData(darray, &isShared, nogc);
-  MOZ_ASSERT(!isShared);        // Should not happen, data was created above
+  {
+    JS::AutoCheckCannotGC nogc;
+    bool isShared;
+    uint8_t* data = JS_GetUint8ClampedArrayData(darray, &isShared, nogc);
+    MOZ_ASSERT(!isShared);        // Should not happen, data was created above
 
-  uint8_t* src;
-  uint32_t srcStride;
-  if (readback) {
-    srcStride = rawData.mStride;
-    src = rawData.mData + srcReadRect.y * srcStride + srcReadRect.x * 4;
-  } else {
-    src = data;
-    srcStride = aWidth * 4;
-  }
-
-  uint8_t* dst = data + dstWriteRect.y * (aWidth * 4) + dstWriteRect.x * 4;
-
-  if (mOpaque) {
-    for (int32_t j = 0; j < dstWriteRect.height; ++j) {
-      for (int32_t i = 0; i < dstWriteRect.width; ++i) {
-        // XXX Is there some useful swizzle MMX we can use here?
-#if MOZ_LITTLE_ENDIAN
-        uint8_t b = *src++;
-        uint8_t g = *src++;
-        uint8_t r = *src++;
-        src++;
-#else
-        src++;
-        uint8_t r = *src++;
-        uint8_t g = *src++;
-        uint8_t b = *src++;
-#endif
-        *dst++ = r;
-        *dst++ = g;
-        *dst++ = b;
-        *dst++ = 255;
-      }
-      src += srcStride - (dstWriteRect.width * 4);
-      dst += (aWidth * 4) - (dstWriteRect.width * 4);
+    uint8_t* src;
+    uint32_t srcStride;
+    if (readback) {
+      srcStride = rawData.mStride;
+      src = rawData.mData + srcReadRect.y * srcStride + srcReadRect.x * 4;
+    } else {
+      src = data;
+      srcStride = aWidth * 4;
     }
-  } else
-  for (int32_t j = 0; j < dstWriteRect.height; ++j) {
-    for (int32_t i = 0; i < dstWriteRect.width; ++i) {
-      // XXX Is there some useful swizzle MMX we can use here?
-#if MOZ_LITTLE_ENDIAN
-      uint8_t b = *src++;
-      uint8_t g = *src++;
-      uint8_t r = *src++;
-      uint8_t a = *src++;
-#else
-      uint8_t a = *src++;
-      uint8_t r = *src++;
-      uint8_t g = *src++;
-      uint8_t b = *src++;
-#endif
-      // Convert to non-premultiplied color
-      *dst++ = gfxUtils::sUnpremultiplyTable[a * 256 + r];
-      *dst++ = gfxUtils::sUnpremultiplyTable[a * 256 + g];
-      *dst++ = gfxUtils::sUnpremultiplyTable[a * 256 + b];
-      *dst++ = a;
+
+    uint8_t* dst = data + dstWriteRect.y * (aWidth * 4) + dstWriteRect.x * 4;
+
+    if (mOpaque) {
+      SwizzleData(src, srcStride, SurfaceFormat::X8R8G8B8_UINT32,
+                  dst, aWidth * 4, SurfaceFormat::R8G8B8A8,
+                  dstWriteRect.Size());
+    } else {
+      UnpremultiplyData(src, srcStride, SurfaceFormat::A8R8G8B8_UINT32,
+                        dst, aWidth * 4, SurfaceFormat::R8G8B8A8,
+                        dstWriteRect.Size());
     }
-    src += srcStride - (dstWriteRect.width * 4);
-    dst += (aWidth * 4) - (dstWriteRect.width * 4);
   }
 
   if (readback) {
@@ -5759,52 +5685,6 @@ CanvasRenderingContext2D::PutImageData_explicit(int32_t aX, int32_t aY, uint32_t
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
-  uint32_t copyWidth = dirtyRect.Width();
-  uint32_t copyHeight = dirtyRect.Height();
-  RefPtr<gfxImageSurface> imgsurf = new gfxImageSurface(gfx::IntSize(copyWidth, copyHeight),
-                                                          SurfaceFormat::A8R8G8B8_UINT32,
-                                                          false);
-  if (!imgsurf || imgsurf->CairoStatus()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  uint32_t copyX = dirtyRect.x - aX;
-  uint32_t copyY = dirtyRect.y - aY;
-  //uint8_t *src = aArray->Data();
-  uint8_t *dst = imgsurf->Data();
-  uint8_t* srcLine = aArray->Data() + copyY * (aW * 4) + copyX * 4;
-  // For opaque canvases, we must still premultiply the RGB components, but write the alpha as opaque.
-  uint8_t alphaMask = mOpaque ? 255 : 0;
-#if 0
-  printf("PutImageData_explicit: dirty x=%d y=%d w=%d h=%d copy x=%d y=%d w=%d h=%d ext x=%d y=%d w=%d h=%d\n",
-       dirtyRect.x, dirtyRect.y, copyWidth, copyHeight,
-       copyX, copyY, copyWidth, copyHeight,
-       x, y, w, h);
-#endif
-  for (uint32_t j = 0; j < copyHeight; j++) {
-    uint8_t *src = srcLine;
-    for (uint32_t i = 0; i < copyWidth; i++) {
-      uint8_t r = *src++;
-      uint8_t g = *src++;
-      uint8_t b = *src++;
-      uint8_t a = *src++;
-
-      // Convert to premultiplied color (losslessly if the input came from getImageData)
-#if MOZ_LITTLE_ENDIAN
-      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + b];
-      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + g];
-      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + r];
-      *dst++ = a | alphaMask;
-#else
-      *dst++ = a | alphaMask;
-      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + r];
-      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + g];
-      *dst++ = gfxUtils::sPremultiplyTable[a * 256 + b];
-#endif
-    }
-    srcLine += aW * 4;
-  }
-
   // The canvas spec says that the current path, transformation matrix, shadow attributes,
   // global alpha, the clipping region, and global composition operator must not affect the
   // getImageData() and putImageData() methods.
@@ -5815,21 +5695,48 @@ CanvasRenderingContext2D::PutImageData_explicit(int32_t aX, int32_t aY, uint32_t
     return NS_ERROR_FAILURE;
   }
 
-  RefPtr<SourceSurface> sourceSurface =
-    mTarget->CreateSourceSurfaceFromData(imgsurf->Data(), IntSize(copyWidth, copyHeight), imgsurf->Stride(), SurfaceFormat::B8G8R8A8);
+  RefPtr<DataSourceSurface> sourceSurface;
+  uint8_t* lockedBits = nullptr;
+  uint8_t* dstData;
+  IntSize dstSize;
+  int32_t dstStride;
+  SurfaceFormat dstFormat;
+  if (mTarget->LockBits(&lockedBits, &dstSize, &dstStride, &dstFormat)) {
+    dstData = lockedBits + dirtyRect.y * dstStride + dirtyRect.x * 4;
+  } else {
+    sourceSurface =
+      Factory::CreateDataSourceSurface(dirtyRect.Size(),
+                                       SurfaceFormat::B8G8R8A8,
+                                       false);
 
-  // In certain scenarios, requesting larger than 8k image fails.  Bug 803568
-  // covers the details of how to run into it, but the full detailed
-  // investigation hasn't been done to determine the underlying cause.  We
-  // will just handle the failure to allocate the surface to avoid a crash.
-  if (!sourceSurface) {
-    return NS_ERROR_FAILURE;
+    // In certain scenarios, requesting larger than 8k image fails.  Bug 803568
+    // covers the details of how to run into it, but the full detailed
+    // investigation hasn't been done to determine the underlying cause.  We
+    // will just handle the failure to allocate the surface to avoid a crash.
+    if (!sourceSurface) {
+      return NS_ERROR_FAILURE;
+    }
+    dstData = sourceSurface->GetData();
+    if (!dstData) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    dstStride = sourceSurface->Stride();
+    dstFormat = sourceSurface->GetFormat();
   }
 
-  mTarget->CopySurface(sourceSurface,
-                       IntRect(0, 0,
-                               dirtyRect.width, dirtyRect.height),
-                       IntPoint(dirtyRect.x, dirtyRect.y));
+  IntRect srcRect = dirtyRect - IntPoint(aX, aY);
+  uint8_t* srcData = aArray->Data() + srcRect.y * (aW * 4) + srcRect.x * 4;
+
+  PremultiplyData(srcData, aW * 4, SurfaceFormat::R8G8B8A8,
+                  dstData, dstStride,
+                  mOpaque ? SurfaceFormat::X8R8G8B8_UINT32 : SurfaceFormat::A8R8G8B8_UINT32,
+                  dirtyRect.Size());
+
+  if (lockedBits) {
+    mTarget->ReleaseBits(lockedBits);
+  } else if (sourceSurface) {
+    mTarget->CopySurface(sourceSurface, dirtyRect - dirtyRect.TopLeft(), dirtyRect.TopLeft());
+  }
 
   Redraw(gfx::Rect(dirtyRect.x, dirtyRect.y, dirtyRect.width, dirtyRect.height));
 
@@ -5933,7 +5840,7 @@ CanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
   // we have nothing to paint and there is no need to create a surface just
   // to paint nothing. Also, EnsureTarget() can cause creation of a persistent
   // layer manager which must NOT happen during a paint.
-  if ((!mBufferProvider && !mTarget) || !IsTargetValid()) {
+  if (!mBufferProvider && !IsTargetValid()) {
     // No DidTransactionCallback will be received, so mark the context clean
     // now so future invalidations will be dispatched.
     MarkContextClean();

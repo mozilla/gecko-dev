@@ -70,9 +70,9 @@ CacheOpChild::CacheOpChild(CacheWorkerHolder* aWorkerHolder,
   , mParent(aParent)
   , mPromise(aPromise)
 {
-  MOZ_ASSERT(mGlobal);
-  MOZ_ASSERT(mParent);
-  MOZ_ASSERT(mPromise);
+  MOZ_DIAGNOSTIC_ASSERT(mGlobal);
+  MOZ_DIAGNOSTIC_ASSERT(mParent);
+  MOZ_DIAGNOSTIC_ASSERT(mPromise);
 
   MOZ_ASSERT_IF(!NS_IsMainThread(), aWorkerHolder);
   SetWorkerHolder(aWorkerHolder);
@@ -81,7 +81,7 @@ CacheOpChild::CacheOpChild(CacheWorkerHolder* aWorkerHolder,
 CacheOpChild::~CacheOpChild()
 {
   NS_ASSERT_OWNINGTHREAD(CacheOpChild);
-  MOZ_ASSERT(!mPromise);
+  MOZ_DIAGNOSTIC_ASSERT(!mPromise);
 }
 
 void
@@ -99,20 +99,20 @@ CacheOpChild::ActorDestroy(ActorDestroyReason aReason)
   RemoveWorkerHolder();
 }
 
-bool
+mozilla::ipc::IPCResult
 CacheOpChild::Recv__delete__(const ErrorResult& aRv,
                              const CacheOpResult& aResult)
 {
   NS_ASSERT_OWNINGTHREAD(CacheOpChild);
 
   if (NS_WARN_IF(aRv.Failed())) {
-    MOZ_ASSERT(aResult.type() == CacheOpResult::Tvoid_t);
+    MOZ_DIAGNOSTIC_ASSERT(aResult.type() == CacheOpResult::Tvoid_t);
     // TODO: Remove this const_cast (bug 1152078).
     // It is safe for now since this ErrorResult is handed off to us by IPDL
     // and is thrown into the trash afterwards.
     mPromise->MaybeReject(const_cast<ErrorResult&>(aRv));
     mPromise = nullptr;
-    return true;
+    return IPC_OK();
   }
 
   switch (aResult.type()) {
@@ -155,6 +155,17 @@ CacheOpChild::Recv__delete__(const ErrorResult& aRv,
     {
       auto actor = static_cast<CacheChild*>(
         aResult.get_StorageOpenResult().actorChild());
+
+      // If we have a success status then we should have an actor.  Gracefully
+      // reject instead of crashing, though, if we get a nullptr here.
+      MOZ_DIAGNOSTIC_ASSERT(actor);
+      if (!actor) {
+        ErrorResult status;
+        status.ThrowTypeError<MSG_CACHE_OPEN_FAILED>();
+        mPromise->MaybeReject(status);
+        break;
+      }
+
       actor->SetWorkerHolder(GetWorkerHolder());
       RefPtr<Cache> cache = new Cache(mGlobal, actor);
       mPromise->MaybeResolve(cache);
@@ -176,7 +187,7 @@ CacheOpChild::Recv__delete__(const ErrorResult& aRv,
 
   mPromise = nullptr;
 
-  return true;
+  return IPC_OK();
 }
 
 void

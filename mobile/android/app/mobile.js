@@ -99,10 +99,6 @@ pref("network.protocol-handler.warn-external.mailto", false);
 pref("network.protocol-handler.warn-external.vnd.youtube", false);
 
 /* http prefs */
-pref("network.http.pipelining", true);
-pref("network.http.pipelining.ssl", true);
-pref("network.http.proxy.pipelining", true);
-pref("network.http.pipelining.maxrequests" , 6);
 pref("network.http.keep-alive.timeout", 109);
 pref("network.http.max-connections", 20);
 pref("network.http.max-persistent-connections-per-server", 6);
@@ -137,7 +133,6 @@ pref("browser.sessionhistory.contentViewerTimeout", 360);
 pref("browser.sessionhistory.bfcacheIgnoreMemoryPressure", false);
 
 /* session store */
-pref("browser.sessionstore.resume_session_once", false);
 pref("browser.sessionstore.resume_from_crash", true);
 pref("browser.sessionstore.interval", 10000); // milliseconds
 pref("browser.sessionstore.backupInterval", 120000); // milliseconds -> 2 minutes
@@ -172,6 +167,7 @@ pref("browser.helperApps.deleteTempFileOnExit", false);
 
 /* password manager */
 pref("signon.rememberSignons", true);
+pref("signon.autofillForms.http", true);
 pref("signon.expireMasterPassword", false);
 pref("signon.debug", false);
 
@@ -300,12 +296,6 @@ pref("browser.search.noCurrentEngine", true);
 
 // Control media casting & mirroring features
 pref("browser.casting.enabled", true);
-#ifdef RELEASE_OR_BETA
-// Chromecast mirroring is broken (bug 1131084)
-pref("browser.mirroring.enabled", false);
-#else
-pref("browser.mirroring.enabled", true);
-#endif
 
 // Enable sparse localization by setting a few package locale overrides
 pref("chrome.override_package.global", "browser");
@@ -425,8 +415,10 @@ pref("browser.ui.zoom.force-user-scalable", false);
 // in GeckoPreferences and BrowserApp (see bug 1245930).
 #ifdef NIGHTLY_BUILD
 pref("ui.zoomedview.enabled", true);
+pref("ui.bookmark.mobilefolder.enabled", true);
 #else
 pref("ui.zoomedview.enabled", false);
+pref("ui.bookmark.mobilefolder.enabled", false);
 #endif
 pref("ui.zoomedview.keepLimitSize", 16); // value in layer pixels, used to not keep the large elements in the cluster list (Bug 1191041)
 pref("ui.zoomedview.limitReadableSize", 8); // value in layer pixels
@@ -560,12 +552,14 @@ pref("ui.dragThresholdY", 25);
 pref("layers.acceleration.disabled", false);
 pref("layers.async-video.enabled", true);
 
-pref("apz.content_response_timeout", 600);
+// APZ physics settings (fling acceleration, fling curving and axis lock) have
+// been reviewed by UX
 pref("apz.allow_immediate_handoff", false);
-pref("apz.touch_start_tolerance", "0.06");
 pref("apz.axis_lock.breakout_angle", "0.7853982");    // PI / 4 (45 degrees)
-// APZ physics settings reviewed by UX
 pref("apz.axis_lock.mode", 1); // Use "strict" axis locking
+pref("apz.content_response_timeout", 600);
+pref("apz.drag.enabled", false);
+pref("apz.fling_accel_interval_ms", 750);
 pref("apz.fling_curve_function_x1", "0.59");
 pref("apz.fling_curve_function_y1", "0.46");
 pref("apz.fling_curve_function_x2", "0.05");
@@ -575,8 +569,8 @@ pref("apz.fling_curve_threshold_inches_per_ms", "0.01");
 pref("apz.fling_friction", "0.004");
 pref("apz.fling_stopped_threshold", "0.0");
 pref("apz.max_velocity_inches_per_ms", "0.07");
-pref("apz.fling_accel_interval_ms", 750);
 pref("apz.overscroll.enabled", true);
+pref("apz.touch_start_tolerance", "0.06");
 
 pref("layers.progressive-paint", true);
 pref("layers.low-precision-buffer", true);
@@ -614,17 +608,27 @@ pref("media.cache_readahead_limit", 30);
 // chronically starved of video frames. All decoders seen so far have a value
 // of at least 4.
 pref("media.video-queue.default-size", 3);
+// The maximum number of queued frames to send to the compositor.
+// On Android, it needs to be throttled because SurfaceTexture contains only one
+// (the most recent) image data.
+pref("media.video-queue.send-to-compositor-size", 1);
+
+// Allow to check if the decoder supports recycling only on Fennec nightly build.
+pref("media.decoder.recycle.enabled", true);
 
 // Enable the MediaCodec PlatformDecoderModule by default.
 pref("media.android-media-codec.enabled", true);
 pref("media.android-media-codec.preferred", true);
-// Run decoder in seperate process.
-pref("media.android-remote-codec.enabled", false);
 
 // Enable MSE
 pref("media.mediasource.enabled", true);
 
 pref("media.mediadrm-widevinecdm.visible", true);
+
+#ifdef NIGHTLY_BUILD
+// Enable EME (Encrypted Media Extensions)
+pref("media.eme.enabled", true);
+#endif
 
 // optimize images memory usage
 pref("image.downscale-during-decode.enabled", true);
@@ -726,10 +730,6 @@ pref("media.stagefright.omxcodec.flags", 0);
 // Coalesce touch events to prevent them from flooding the event queue
 pref("dom.event.touch.coalescing.enabled", false);
 
-// default orientation for the app, default to undefined
-// the java GeckoScreenOrientationListener needs this to be defined
-pref("app.orientation.default", "");
-
 // On memory pressure, release dirty but unused pages held by jemalloc
 // back to the system.
 pref("memory.free_dirty_pages", true);
@@ -774,6 +774,7 @@ pref("dom.phonenumber.substringmatching.VE", 7);
 // Enable hardware-accelerated Skia canvas
 pref("gfx.canvas.azure.backends", "skia");
 pref("gfx.canvas.azure.accelerated", true);
+pref("gfx.canvas.azure.accelerated.limit", 64);
 
 // See ua-update.json.in for the packaged UA override list
 pref("general.useragent.updates.enabled", true);
@@ -839,9 +840,6 @@ pref("reader.toolbar.vertical", false);
 // Whether to use the unified telemetry behavior, requires a restart.
 pref("toolkit.telemetry.unified", false);
 
-// Unified AccessibleCarets (touch-caret and selection-carets).
-pref("layout.accessiblecaret.enabled", true);
-
 // AccessibleCaret CSS for the Android L style assets.
 pref("layout.accessiblecaret.width", "22.0");
 pref("layout.accessiblecaret.height", "22.0");
@@ -892,6 +890,10 @@ pref("dom.push.maxRecentMessageIDsPerSubscription", 0);
 pref("dom.push.enabled", true);
 #endif
 
+// Maximum number of setTimeout()/setInterval() callbacks to run in a single
+// event loop runnable. Minimum value of 1.
+pref("dom.timeout.max_consecutive_callbacks", 3);
+
 // The remote content URL where FxAccountsWebChannel messages originate.  Must use HTTPS.
 pref("identity.fxaccounts.remote.webchannel.uri", "https://accounts.firefox.com");
 
@@ -904,10 +906,12 @@ pref("identity.fxaccounts.remote.oauth.uri", "https://oauth.accounts.firefox.com
 // Token server used by Firefox Account-authenticated Sync.
 pref("identity.sync.tokenserver.uri", "https://token.services.mozilla.com/1.0/sync/1.5");
 
-// Enable Presentation API
-pref("dom.presentation.enabled", false);
-pref("dom.presentation.discovery.enabled", true);
-pref("dom.presentation.discovery.legacy.enabled", true); // for TV 2.5 backward capability
+#ifndef RELEASE_OR_BETA
+// Enable Presentation API on Nightly
+pref("dom.presentation.enabled", true);
+pref("dom.presentation.controller.enabled", true); // enable 1-UA mode
+pref("dom.presentation.receiver.enabled", true); // enable 1-UA mode
+#endif
 
 pref("dom.audiochannel.audioCompeting", true);
 pref("dom.audiochannel.mediaControl", true);
@@ -917,3 +921,5 @@ pref("dom.audiochannel.mediaControl", true);
 pref("webchannel.allowObject.urlWhitelist", "https://accounts.firefox.com https://content.cdn.mozilla.net https://input.mozilla.org https://support.mozilla.org https://install.mozilla.org");
 
 pref("media.openUnsupportedTypeWithExternalApp", true);
+
+pref("dom.keyboardevent.dispatch_during_composition", true);

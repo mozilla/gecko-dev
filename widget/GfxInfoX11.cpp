@@ -135,7 +135,7 @@ GfxInfo::GetData()
     // only useful for Linux kernel version check for FGLRX driver.
     // assumes X client == X server, which is sad.
     struct utsname unameobj;
-    if (!uname(&unameobj))
+    if (uname(&unameobj) >= 0)
     {
       mOS.Assign(unameobj.sysname);
       mOSRelease.Assign(unameobj.release);
@@ -313,6 +313,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
     // Only check features relevant to Linux.
     if (aFeature == nsIGfxInfo::FEATURE_OPENGL_LAYERS ||
         aFeature == nsIGfxInfo::FEATURE_WEBGL_OPENGL ||
+        aFeature == nsIGfxInfo::FEATURE_WEBGL2 ||
         aFeature == nsIGfxInfo::FEATURE_WEBGL_MSAA) {
 
       // whitelist the linux test slaves' current configuration.

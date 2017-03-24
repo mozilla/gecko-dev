@@ -9,23 +9,23 @@ add_task(function* test() {
   Services.prefs.setBoolPref(PREF_RESTORE_ON_DEMAND, true);
   Services.prefs.setBoolPref(PREF_RESTORE_PINNED_TABS_ON_DEMAND, true);
 
-  registerCleanupFunction(function () {
+  registerCleanupFunction(function() {
     Services.prefs.clearUserPref(PREF_RESTORE_ON_DEMAND);
     Services.prefs.clearUserPref(PREF_RESTORE_PINNED_TABS_ON_DEMAND);
   });
 
   let state = { windows: [{ tabs: [
-    { entries: [{ url: "http://example.org/#1" }], extData: { "uniq": r() }, pinned: true },
-    { entries: [{ url: "http://example.org/#2" }], extData: { "uniq": r() }, pinned: true },
-    { entries: [{ url: "http://example.org/#3" }], extData: { "uniq": r() }, pinned: true },
-    { entries: [{ url: "http://example.org/#4" }], extData: { "uniq": r() } },
-    { entries: [{ url: "http://example.org/#5" }], extData: { "uniq": r() } },
-    { entries: [{ url: "http://example.org/#6" }], extData: { "uniq": r() } },
-    { entries: [{ url: "http://example.org/#7" }], extData: { "uniq": r() } },
+    { entries: [{ url: "http://example.org/#1", triggeringPrincipal_base64 }], extData: { "uniq": r() }, pinned: true },
+    { entries: [{ url: "http://example.org/#2", triggeringPrincipal_base64 }], extData: { "uniq": r() }, pinned: true },
+    { entries: [{ url: "http://example.org/#3", triggeringPrincipal_base64 }], extData: { "uniq": r() }, pinned: true },
+    { entries: [{ url: "http://example.org/#4", triggeringPrincipal_base64 }], extData: { "uniq": r() } },
+    { entries: [{ url: "http://example.org/#5", triggeringPrincipal_base64 }], extData: { "uniq": r() } },
+    { entries: [{ url: "http://example.org/#6", triggeringPrincipal_base64 }], extData: { "uniq": r() } },
+    { entries: [{ url: "http://example.org/#7", triggeringPrincipal_base64 }], extData: { "uniq": r() } },
   ], selected: 5 }] };
 
   let promiseRestoringTabs = new Promise(resolve => {
-    gProgressListener.setCallback(function (aBrowser, aNeedRestore, aRestoring, aRestored) {
+    gProgressListener.setCallback(function(aBrowser, aNeedRestore, aRestoring, aRestored) {
       // get the tab
       let tab;
       for (let i = 0; i < window.gBrowser.tabs.length; i++) {

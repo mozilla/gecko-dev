@@ -8,8 +8,7 @@
 #define mozilla_PreallocatedProcessManager_h
 
 #include "base/basictypes.h"
-#include "nsCOMPtr.h"
-#include "nsIObserver.h"
+#include "mozilla/AlreadyAddRefed.h"
 
 namespace mozilla {
 namespace dom {
@@ -28,11 +27,6 @@ class ContentParent;
  *
  * We don't expect this pref to flip between true and false in production, but
  * flipping the pref is important for tests.
- *
- * The static methods here are implemented by forwarding calls on to a
- * PreallocatedProcessManagerImpl singleton class, so if you add a new static
- * method here, you'll need to write a corresponding public method on the
- * singleton.
  */
 class PreallocatedProcessManager final
 {

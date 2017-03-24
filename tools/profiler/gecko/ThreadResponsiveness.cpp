@@ -9,8 +9,6 @@
 #include "nsThreadUtils.h"
 #include "nsITimer.h"
 #include "mozilla/Monitor.h"
-#include "ProfileEntry.h"
-#include "ThreadProfile.h"
 
 using mozilla::Monitor;
 using mozilla::MonitorAutoLock;
@@ -25,16 +23,16 @@ public:
     , mTimer(nullptr)
     , mStop(false)
   {
-    MOZ_COUNT_CTOR(CheckResponsivenessTask);
   }
 
 protected:
   ~CheckResponsivenessTask()
   {
-    MOZ_COUNT_DTOR(CheckResponsivenessTask);
   }
 
 public:
+
+  // Can only run on the main thread.
   NS_IMETHOD Run() override
   {
     MonitorAutoLock mon(mMonitor);
@@ -82,9 +80,8 @@ private:
 NS_IMPL_ISUPPORTS_INHERITED(CheckResponsivenessTask, mozilla::Runnable,
                             nsITimerCallback)
 
-ThreadResponsiveness::ThreadResponsiveness(ThreadProfile *aThreadProfile)
-  : mThreadProfile(aThreadProfile)
-  , mActiveTracerEvent(nullptr)
+ThreadResponsiveness::ThreadResponsiveness()
+  : mActiveTracerEvent(nullptr)
 {
   MOZ_COUNT_CTOR(ThreadResponsiveness);
 }
@@ -98,21 +95,17 @@ ThreadResponsiveness::~ThreadResponsiveness()
 }
 
 void
-ThreadResponsiveness::Update()
+ThreadResponsiveness::Update(bool aIsMainThread, nsIThread* aThread)
 {
-  if (!mActiveTracerEvent) {
-    if (mThreadProfile->GetThreadInfo()->IsMainThread()) {
-      mActiveTracerEvent = new CheckResponsivenessTask();
-      NS_DispatchToMainThread(mActiveTracerEvent);
-    } else if (mThreadProfile->GetThreadInfo()->GetThread()) {
-      mActiveTracerEvent = new CheckResponsivenessTask();
-      mThreadProfile->GetThreadInfo()->
-        GetThread()->Dispatch(mActiveTracerEvent, NS_DISPATCH_NORMAL);
-    }
+  if (!aIsMainThread) {
+    return;
   }
 
-  if (mActiveTracerEvent) {
-    mLastTracerTime = mActiveTracerEvent->GetLastTracerTime();
+  if (!mActiveTracerEvent) {
+    mActiveTracerEvent = new CheckResponsivenessTask();
+    NS_DispatchToMainThread(mActiveTracerEvent);
   }
+
+  mLastTracerTime = mActiveTracerEvent->GetLastTracerTime();
 }
 

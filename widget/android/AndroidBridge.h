@@ -42,16 +42,12 @@
 
 class nsPIDOMWindowOuter;
 
-namespace base {
-class Thread;
-} // end namespace base
-
 typedef void* EGLSurface;
+class nsIRunnable;
 
 namespace mozilla {
 
 class AutoLocalJNIFrame;
-class Runnable;
 
 namespace hal {
 class BatteryInformation;
@@ -157,8 +153,6 @@ public:
     // DeleteGlobalRef() when the context is no longer needed.
     jobject GetGlobalContextRef(void);
 
-    void HandleGeckoMessage(JSContext* cx, JS::HandleObject message);
-
     void GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo);
 
     void GetCurrentNetworkInformation(hal::NetworkInformation* aNetworkInfo);
@@ -202,8 +196,6 @@ public:
     static uint32_t InputStreamAvailable(jni::Object::Param obj);
     static nsresult InputStreamRead(jni::Object::Param obj, char *aBuf, uint32_t aCount, uint32_t *aRead);
 
-    static nsresult GetExternalPublicDirectory(const nsAString& aType, nsAString& aPath);
-
 protected:
     static nsDataHashtable<nsStringHashKey, nsString> sStoragePaths;
 
@@ -239,7 +231,7 @@ private:
     mozilla::Mutex mUiTaskQueueLock;
 
 public:
-    void PostTaskToUiThread(already_AddRefed<Runnable> aTask, int aDelayMs);
+    void PostTaskToUiThread(already_AddRefed<nsIRunnable> aTask, int aDelayMs);
     int64_t RunDelayedUiThreadTasks();
 };
 
@@ -403,6 +395,8 @@ public:
   NS_DECL_NSIANDROIDBRIDGE
   NS_DECL_NSIOBSERVER
 
+  NS_FORWARD_SAFE_NSIANDROIDEVENTDISPATCHER(mEventDispatcher)
+
   nsAndroidBridge();
 
 private:
@@ -414,6 +408,7 @@ private:
   void UpdateAudioPlayingWindows(uint64_t aWindowId, bool aPlaying);
 
   nsTArray<uint64_t> mAudioPlayingWindows;
+  nsCOMPtr<nsIAndroidEventDispatcher> mEventDispatcher;
 
 protected:
 };

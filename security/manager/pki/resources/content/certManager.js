@@ -57,19 +57,17 @@ var userTreeView;
 var orphanTreeView;
 
 var smartCardObserver = {
-  observe: function() {
+  observe() {
     onSmartCardChange();
   }
 };
 
-function DeregisterSmartCardObservers()
-{
+function DeregisterSmartCardObservers() {
   Services.obs.removeObserver(smartCardObserver, "smartcard-insert");
   Services.obs.removeObserver(smartCardObserver, "smartcard-remove");
 }
 
-function LoadCerts()
-{
+function LoadCerts() {
   Services.obs.addObserver(smartCardObserver, "smartcard-insert", false);
   Services.obs.addObserver(smartCardObserver, "smartcard-remove", false);
 
@@ -79,39 +77,37 @@ function LoadCerts()
   caTreeView = Components.classes[nsCertTree]
                     .createInstance(nsICertTree);
   caTreeView.loadCertsFromCache(certcache, nsIX509Cert.CA_CERT);
-  document.getElementById('ca-tree').view = caTreeView;
+  document.getElementById("ca-tree").view = caTreeView;
 
   serverTreeView = Components.classes[nsCertTree]
                         .createInstance(nsICertTree);
   serverTreeView.loadCertsFromCache(certcache, nsIX509Cert.SERVER_CERT);
-  document.getElementById('server-tree').view = serverTreeView;
+  document.getElementById("server-tree").view = serverTreeView;
 
   emailTreeView = Components.classes[nsCertTree]
                        .createInstance(nsICertTree);
   emailTreeView.loadCertsFromCache(certcache, nsIX509Cert.EMAIL_CERT);
-  document.getElementById('email-tree').view = emailTreeView;
+  document.getElementById("email-tree").view = emailTreeView;
 
   userTreeView = Components.classes[nsCertTree]
                       .createInstance(nsICertTree);
   userTreeView.loadCertsFromCache(certcache, nsIX509Cert.USER_CERT);
-  document.getElementById('user-tree').view = userTreeView;
+  document.getElementById("user-tree").view = userTreeView;
 
   orphanTreeView = Components.classes[nsCertTree]
                       .createInstance(nsICertTree);
   orphanTreeView.loadCertsFromCache(certcache, nsIX509Cert.UNKNOWN_CERT);
-  document.getElementById('orphan-tree').view = orphanTreeView;
+  document.getElementById("orphan-tree").view = orphanTreeView;
 
   enableBackupAllButton();
 }
 
-function enableBackupAllButton()
-{
+function enableBackupAllButton() {
   let backupAllButton = document.getElementById("mine_backupAllButton");
   backupAllButton.disabled = userTreeView.rowCount < 1;
 }
 
-function getSelectedCerts()
-{
+function getSelectedCerts() {
   var ca_tab = document.getElementById("ca_tab");
   var mine_tab = document.getElementById("mine_tab");
   var others_tab = document.getElementById("others_tab");
@@ -162,8 +158,7 @@ function getSelectedCerts()
   }
 }
 
-function getSelectedTreeItems()
-{
+function getSelectedTreeItems() {
   var ca_tab = document.getElementById("ca_tab");
   var mine_tab = document.getElementById("mine_tab");
   var others_tab = document.getElementById("others_tab");
@@ -223,8 +218,7 @@ function getSelectedTreeItems()
  * @param {nsICertTree} certTree
  * @returns {Boolean}
  */
-function nothingOrContainerSelected(certTree)
-{
+function nothingOrContainerSelected(certTree) {
   var certTreeSelection = certTree.selection;
   var numSelectionRanges = certTreeSelection.getRangeCount();
 
@@ -256,8 +250,7 @@ function nothingOrContainerSelected(certTree)
  * @param {Array} idList A list of string identifiers for button elements to
  *    enable or disable.
  */
-function enableButtonsForCertTree(certTree, idList)
-{
+function enableButtonsForCertTree(certTree, idList) {
   let disableButtons = nothingOrContainerSelected(certTree);
 
   for (let id of idList) {
@@ -265,8 +258,7 @@ function enableButtonsForCertTree(certTree, idList)
   }
 }
 
-function ca_enableButtons()
-{
+function ca_enableButtons() {
   let idList = [
     "ca_viewButton",
     "ca_editButton",
@@ -276,8 +268,7 @@ function ca_enableButtons()
   enableButtonsForCertTree(caTreeView, idList);
 }
 
-function mine_enableButtons()
-{
+function mine_enableButtons() {
   let idList = [
     "mine_viewButton",
     "mine_backupButton",
@@ -286,8 +277,7 @@ function mine_enableButtons()
   enableButtonsForCertTree(userTreeView, idList);
 }
 
-function websites_enableButtons()
-{
+function websites_enableButtons() {
   let idList = [
     "websites_viewButton",
     "websites_exportButton",
@@ -296,8 +286,7 @@ function websites_enableButtons()
   enableButtonsForCertTree(serverTreeView, idList);
 }
 
-function email_enableButtons()
-{
+function email_enableButtons() {
   let idList = [
     "email_viewButton",
     "email_exportButton",
@@ -306,8 +295,7 @@ function email_enableButtons()
   enableButtonsForCertTree(emailTreeView, idList);
 }
 
-function orphan_enableButtons()
-{
+function orphan_enableButtons() {
   let idList = [
     "orphan_viewButton",
     "orphan_exportButton",
@@ -316,8 +304,7 @@ function orphan_enableButtons()
   enableButtonsForCertTree(orphanTreeView, idList);
 }
 
-function backupCerts()
-{
+function backupCerts() {
   getSelectedCerts();
   var numcerts = selected_certs.length;
   if (numcerts == 0) {
@@ -332,22 +319,20 @@ function backupCerts()
   fp.appendFilter(bundle.getString("file_browse_PKCS12_spec"),
                   "*.p12");
   fp.appendFilters(nsIFilePicker.filterAll);
-  var rv = fp.show();
-  if (rv == nsIFilePicker.returnOK || rv == nsIFilePicker.returnReplace) {
-    certdb.exportPKCS12File(null, fp.file, selected_certs.length,
-                            selected_certs);
-  }
+  fp.open(rv => {
+    if (rv == nsIFilePicker.returnOK || rv == nsIFilePicker.returnReplace) {
+      certdb.exportPKCS12File(fp.file, selected_certs.length, selected_certs);
+    }
+  });
 }
 
-function backupAllCerts()
-{
+function backupAllCerts() {
   // Select all rows, then call doBackup()
-  var items = userTreeView.selection.selectAll();
+  userTreeView.selection.selectAll();
   backupCerts();
 }
 
-function editCerts()
-{
+function editCerts() {
   getSelectedCerts();
 
   for (let cert of selected_certs) {
@@ -356,8 +341,7 @@ function editCerts()
   }
 }
 
-function restoreCerts()
-{
+function restoreCerts() {
   var bundle = document.getElementById("pippki_bundle");
   var fp = Components.classes[nsFilePicker].createInstance(nsIFilePicker);
   fp.init(window,
@@ -368,11 +352,15 @@ function restoreCerts()
   fp.appendFilter(bundle.getString("file_browse_Certificate_spec"),
                   gCertFileTypes);
   fp.appendFilters(nsIFilePicker.filterAll);
-  if (fp.show() == nsIFilePicker.returnOK) {
+  fp.open(rv => {
+    if (rv != nsIFilePicker.returnOK) {
+      return;
+    }
+
     // If this is an X509 user certificate, import it as one.
 
     var isX509FileType = false;
-    var fileTypesList = gCertFileTypes.slice(1).split('; *');
+    var fileTypesList = gCertFileTypes.slice(1).split("; *");
     for (var type of fileTypesList) {
       if (fp.file.path.endsWith(type)) {
         isX509FileType = true;
@@ -392,14 +380,14 @@ function restoreCerts()
       fstream.close();
       let prompter = Services.ww.getNewPrompter(window);
       let interfaceRequestor = {
-        getInterface: function() {
+        getInterface() {
           return prompter;
         }
       };
       certdb.importUserCertificate(dataArray, dataArray.length, interfaceRequestor);
     } else {
       // Otherwise, assume it's a PKCS12 file and import it that way.
-      certdb.importPKCS12File(null, fp.file);
+      certdb.importPKCS12File(fp.file);
     }
 
     var certcache = certdb.getCerts();
@@ -408,11 +396,10 @@ function restoreCerts()
     caTreeView.loadCertsFromCache(certcache, nsIX509Cert.CA_CERT);
     caTreeView.selection.clearSelection();
     enableBackupAllButton();
-  }
+  });
 }
 
-function exportCerts()
-{
+function exportCerts() {
   getSelectedCerts();
 
   for (let cert of selected_certs) {
@@ -467,8 +454,7 @@ function deleteCerts() {
   }
 }
 
-function viewCerts()
-{
+function viewCerts() {
   getSelectedCerts();
 
   for (let cert of selected_certs) {
@@ -476,8 +462,7 @@ function viewCerts()
   }
 }
 
-function addCACerts()
-{
+function addCACerts() {
   var bundle = document.getElementById("pippki_bundle");
   var fp = Components.classes[nsFilePicker].createInstance(nsIFilePicker);
   fp.init(window,
@@ -486,15 +471,16 @@ function addCACerts()
   fp.appendFilter(bundle.getString("file_browse_Certificate_spec"),
                   gCertFileTypes);
   fp.appendFilters(nsIFilePicker.filterAll);
-  if (fp.show() == nsIFilePicker.returnOK) {
-    certdb.importCertsFromFile(fp.file, nsIX509Cert.CA_CERT);
-    caTreeView.loadCerts(nsIX509Cert.CA_CERT);
-    caTreeView.selection.clearSelection();
-  }
+  fp.open(rv => {
+    if (rv == nsIFilePicker.returnOK) {
+      certdb.importCertsFromFile(fp.file, nsIX509Cert.CA_CERT);
+      caTreeView.loadCerts(nsIX509Cert.CA_CERT);
+      caTreeView.selection.clearSelection();
+    }
+  });
 }
 
-function onSmartCardChange()
-{
+function onSmartCardChange() {
   var certcache = certdb.getCerts();
   // We've change the state of the smart cards inserted or removed
   // that means the available certs may have changed. Update the display
@@ -510,8 +496,7 @@ function onSmartCardChange()
   orphanTreeView.selection.clearSelection();
 }
 
-function addEmailCert()
-{
+function addEmailCert() {
   var bundle = document.getElementById("pippki_bundle");
   var fp = Components.classes[nsFilePicker].createInstance(nsIFilePicker);
   fp.init(window,
@@ -520,20 +505,21 @@ function addEmailCert()
   fp.appendFilter(bundle.getString("file_browse_Certificate_spec"),
                   gCertFileTypes);
   fp.appendFilters(nsIFilePicker.filterAll);
-  if (fp.show() == nsIFilePicker.returnOK) {
-    certdb.importCertsFromFile(fp.file, nsIX509Cert.EMAIL_CERT);
-    var certcache = certdb.getCerts();
-    emailTreeView.loadCertsFromCache(certcache, nsIX509Cert.EMAIL_CERT);
-    emailTreeView.selection.clearSelection();
-    caTreeView.loadCertsFromCache(certcache, nsIX509Cert.CA_CERT);
-    caTreeView.selection.clearSelection();
-  }
+  fp.open(rv => {
+    if (rv == nsIFilePicker.returnOK) {
+      certdb.importCertsFromFile(fp.file, nsIX509Cert.EMAIL_CERT);
+      var certcache = certdb.getCerts();
+      emailTreeView.loadCertsFromCache(certcache, nsIX509Cert.EMAIL_CERT);
+      emailTreeView.selection.clearSelection();
+      caTreeView.loadCertsFromCache(certcache, nsIX509Cert.CA_CERT);
+      caTreeView.selection.clearSelection();
+    }
+  });
 }
 
-function addException()
-{
-  window.openDialog('chrome://pippki/content/exceptionDialog.xul', "",
-                    'chrome,centerscreen,modal');
+function addException() {
+  window.openDialog("chrome://pippki/content/exceptionDialog.xul", "",
+                    "chrome,centerscreen,modal");
   var certcache = certdb.getCerts();
   serverTreeView.loadCertsFromCache(certcache, nsIX509Cert.SERVER_CERT);
   serverTreeView.selection.clearSelection();

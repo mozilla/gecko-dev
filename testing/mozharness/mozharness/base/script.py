@@ -394,11 +394,6 @@ class ScriptMixin(PlatformMixin):
         if parsed_url.scheme in ('http', 'https'):
             expected_file_size = int(response.headers.get('Content-Length'))
 
-        self.info('Http code: {}'.format(response.getcode()))
-        for k in sorted(response.headers.keys()):
-            if k.lower().startswith('x-amz-') or k in ('Content-Encoding', 'Content-Type', 'via'):
-                self.info('{}: {}'.format(k, response.headers.get(k)))
-
         file_contents = response.read()
         obtained_file_size = len(file_contents)
         self.info('Expected file size: {}'.format(expected_file_size))
@@ -490,8 +485,7 @@ class ScriptMixin(PlatformMixin):
             raise
 
     def _retry_download(self, url, error_level, file_name=None, retry_config=None):
-        """ Helper method to retry download methods
-        Split out so we can alter the retry logic in mozharness.mozilla.testing.gaia_test.
+        """ Helper method to retry download methods.
 
         This method calls `self.retry` on `self._download_file` using the passed
         parameters if a file_name is specified. If no file is specified, we will
@@ -689,9 +683,8 @@ class ScriptMixin(PlatformMixin):
         try:
             function(**kwargs)
         except zipfile.BadZipfile:
-            # Bug 1306189 - Sometimes a good download turns out to be a
-            # corrupted zipfile. Let's create a signature that is easy to match
-            self.fatal('Check bug 1306189 for details on downloading a truncated zip file.')
+            # Dump the exception and exit
+            self.exception(level=FATAL)
 
 
     def load_json_url(self, url, error_level=None, *args, **kwargs):
@@ -2248,9 +2241,9 @@ class BaseScript(ScriptMixin, LogMixin, object):
             self.log("%s doesn't exist after copy!" % dest, level=error_level)
             return None
 
-    def file_sha512sum(self, file_path):
+    def get_hash_for_file(self, file_path, hash_type="sha512"):
         bs = 65536
-        hasher = hashlib.sha512()
+        hasher = hashlib.new(hash_type)
         with open(file_path, 'rb') as fh:
             buf = fh.read(bs)
             while len(buf) > 0:

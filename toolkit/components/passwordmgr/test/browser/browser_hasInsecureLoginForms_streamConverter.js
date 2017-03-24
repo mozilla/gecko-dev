@@ -58,7 +58,7 @@ function* registerConverter() {
   let registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
   registrar.registerFactory(TestStreamConverter.prototype.classID, "",
                             TestStreamConverter.prototype.contractID, factory);
-  this.cleanupFunction = function () {
+  this.cleanupFunction = function() {
     registrar.unregisterFactory(TestStreamConverter.prototype.classID, factory);
   };
 }
@@ -83,7 +83,7 @@ add_task(function* test_streamConverter() {
 
   let tab = gBrowser.addTab("http://example.com/browser/toolkit/components/" +
                             "passwordmgr/test/browser/streamConverter_content.sjs",
-                            { relatedBrowser: originalBrowser.linkedBrowser });
+                            { sameProcessAsFrameLoader: originalBrowser.frameLoader });
   let browser = tab.linkedBrowser;
   yield Promise.all([
     BrowserTestUtils.switchTab(gBrowser, tab),

@@ -73,7 +73,12 @@ private:
   bool mInitialized;
   bool mDownloadError;
   bool mBeganStream;
+
+  nsCString mDownloadErrorStatusStr;
+
+  // Note that mStreamTable is only used by v2, it is empty for v4 update.
   nsCString mStreamTable;
+
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIUrlClassifierDBService> mDBService;
   nsCOMPtr<nsITimer> mTimer;
@@ -98,6 +103,10 @@ private:
   nsCOMPtr<nsIUrlClassifierCallback> mSuccessCallback;
   nsCOMPtr<nsIUrlClassifierCallback> mUpdateErrorCallback;
   nsCOMPtr<nsIUrlClassifierCallback> mDownloadErrorCallback;
+
+  // The provider for current update request and should be only used by telemetry
+  // since it would show up as "other" for any other providers.
+  nsCString mTelemetryProvider;
 };
 
 #endif // nsUrlClassifierStreamUpdater_h_

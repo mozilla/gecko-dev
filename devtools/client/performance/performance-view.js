@@ -296,7 +296,7 @@ var PerformanceView = {
    * @param {boolean} activate
    */
   _toggleRecordButtons: function (activate) {
-    this._recordingControlsState.isRecording = !!activate;
+    this._recordingControlsState.isRecording = activate;
     this._renderRecordingControls();
   },
 
@@ -307,8 +307,8 @@ var PerformanceView = {
     let currentRecording = PerformanceController.getCurrentRecording();
     let recordings = PerformanceController.getRecordings();
 
-    this._toggleRecordButtons(recordings.find(r => !r.isConsole() && r.isRecording()));
-    this._lockRecordButtons(recordings.find(r => !r.isConsole() && r.isFinalizing()));
+    this._toggleRecordButtons(!!recordings.find(r => !r.isConsole() && r.isRecording()));
+    this._lockRecordButtons(!!recordings.find(r => !r.isConsole() && r.isFinalizing()));
 
     if (currentRecording && currentRecording.isFinalizing()) {
       this.setState("loading");
@@ -359,9 +359,11 @@ var PerformanceView = {
     fp.appendFilter(L10N.getStr("recordingsList.saveDialogJSONFilter"), "*.json");
     fp.appendFilter(L10N.getStr("recordingsList.saveDialogAllFilter"), "*.*");
 
-    if (fp.show() == Ci.nsIFilePicker.returnOK) {
-      this.emit(EVENTS.UI_IMPORT_RECORDING, fp.file);
-    }
+    fp.open(rv => {
+      if (rv == Ci.nsIFilePicker.returnOK) {
+        this.emit(EVENTS.UI_IMPORT_RECORDING, fp.file);
+      }
+    });
   },
 
   /**

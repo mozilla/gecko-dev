@@ -61,7 +61,7 @@ window.dialog {
 }
 
 .message-icon {
-  list-style-image: url("chrome://global/skin/icons/information-32.png");
+  list-style-image: url("chrome://global/skin/icons/info.svg");
 }
 
 .alert-dialog #info\.icon,
@@ -156,8 +156,7 @@ toolbar[mode="text"] .toolbarbutton-text {
 
 /* ::::: miscellaneous formatting ::::: */
 
-:root:-moz-lwtheme,
-[lwthemefooter="true"] {
+:root:-moz-lwtheme {
   -moz-appearance: none;
 }
 
@@ -297,6 +296,8 @@ popupnotificationcontent {
   margin-top: .5em;
 }
 
+%include ../../shared/notification-popup.inc.css
+
 /* :::::: autoscroll popup ::::: */
 
 .autoscroller {
@@ -350,9 +351,7 @@ popupnotificationcontent {
   width: 20px;
 }
 
-@media (-moz-os-version: windows-xp),
-       (-moz-os-version: windows-vista),
-       (-moz-os-version: windows-win7) {
+@media (-moz-os-version: windows-win7) {
   .close-icon {
     -moz-image-region: rect(0, 16px, 16px, 0);
   }
@@ -386,9 +385,7 @@ popupnotificationcontent {
     -moz-image-region: rect(0, 120px, 40px, 80px);
   }
 
-  @media (-moz-os-version: windows-xp),
-         (-moz-os-version: windows-vista),
-         (-moz-os-version: windows-win7) {
+  @media (-moz-os-version: windows-win7) {
     .close-icon {
       -moz-image-region: rect(0, 32px, 32px, 0);
     }

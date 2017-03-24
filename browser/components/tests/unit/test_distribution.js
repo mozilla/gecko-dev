@@ -46,7 +46,7 @@ function installDistributionEngine() {
   do_get_file("data/engine-de-DE.xml").copyTo(localeDir, "engine-de-DE.xml");
 
   Services.dirsvc.registerProvider({
-    getFile: function(aProp, aPersistent) {
+    getFile(aProp, aPersistent) {
       aPersistent.value = true;
       if (aProp == XRE_APP_DISTRIBUTION_DIR)
         return distDir.clone();
@@ -79,7 +79,7 @@ function run_test() {
   run_next_test();
 }
 
-do_register_cleanup(function () {
+do_register_cleanup(function() {
   // Remove the distribution dir, even if the test failed, otherwise all
   // next tests will use it.
   let distDir = gProfD.clone();
@@ -97,7 +97,7 @@ add_task(function* () {
 
   Assert.equal(defaultBranch.getCharPref("distribution.id"), "disttest");
   Assert.equal(defaultBranch.getCharPref("distribution.version"), "1.0");
-  Assert.equal(defaultBranch.getComplexValue("distribution.about", Ci.nsISupportsString).data, "Tèƨƭ δïƨƭřïβúƭïôñ ƒïℓè");
+  Assert.equal(defaultBranch.getStringPref("distribution.about"), "Tèƨƭ δïƨƭřïβúƭïôñ ƒïℓè");
 
   Assert.equal(defaultBranch.getCharPref("distribution.test.string"), "Test String");
   Assert.equal(defaultBranch.getCharPref("distribution.test.string.noquotes"), "Test String");

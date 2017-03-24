@@ -28,11 +28,16 @@
  * possible to fix some or all of these in the test itself.
  */
 
-'use strict';
+"use strict";
+/* eslint-disable no-undef */
 
 const { classes: Cc, interfaces: Ci, manager: Cm, results: Cr,
         utils: Cu } = Components;
 
+/* global INSTALL_LOCALE, MOZ_APP_NAME, BIN_SUFFIX, MOZ_APP_VENDOR */
+/* global MOZ_APP_BASENAME, APP_BIN_SUFFIX, APP_INFO_NAME, APP_INFO_VENDOR */
+/* global IS_WIN, IS_MACOSX, IS_UNIX, IS_ANDROID, IS_TOOLKIT_GONK */
+/* global MOZ_VERIFY_MAR_SIGNATURE, MOZ_VERIFY_MAR_SIGNATURE, IS_AUTHENTICODE_CHECK_ENABLED */
 load("../data/xpcshellConstantsPP.js");
 
 function getLogSuffix() {
@@ -193,6 +198,7 @@ var gEnvLdLibraryPath;
 var DEBUG_AUS_TEST = true;
 
 const DATA_URI_SPEC = Services.io.newFileURI(do_get_file("../data", false)).spec;
+/* import-globals-from ../data/shared.js */
 Services.scriptloader.loadSubScript(DATA_URI_SPEC + "shared.js", this);
 
 var gTestFiles = [];
@@ -1320,7 +1326,7 @@ function getSpecialFolderDir(aCSIDL) {
                                            ctypes.bool /* BOOL fCreate */);
 
   let aryPath = ctypes.char16_t.array()(260);
-  let rv = SHGetSpecialFolderPath(0, aryPath, aCSIDL, false);
+  SHGetSpecialFolderPath(0, aryPath, aCSIDL, false);
   lib.close();
 
   let path = aryPath.readString(); // Convert the c-string to js-string
@@ -1878,7 +1884,7 @@ function getUpdateLog(aLogLeafName) {
  * The update-staged observer for the call to nsIUpdateProcessor:processUpdate.
  */
 const gUpdateStagedObserver = {
-  observe: function(aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     debugDump("observe called with topic: " + aTopic + ", data: " + aData);
     if (aTopic == "update-staged") {
       Services.obs.removeObserver(gUpdateStagedObserver, "update-staged");
@@ -3651,7 +3657,7 @@ function UpdatePrompt(aCallback) {
 UpdatePrompt.prototype = {
   flags: Ci.nsIClassInfo.SINGLETON,
   getScriptableHelper: () => null,
-  getInterfaces: function(aCount) {
+  getInterfaces(aCount) {
     let interfaces = [Ci.nsISupports, Ci.nsIUpdatePrompt];
     aCount.value = interfaces.length;
     return interfaces;
@@ -3796,7 +3802,7 @@ function createAppInfo(aID, aName, aVersion, aPlatformVersion) {
   };
 
   const XULAppInfoFactory = {
-    createInstance: function(aOuter, aIID) {
+    createInstance(aOuter, aIID) {
       if (aOuter == null) {
         return XULAppInfo.QueryInterface(aIID);
       }
@@ -4068,8 +4074,6 @@ function runUpdateUsingApp(aExpectedStatus) {
   }
 
   debugDump("start - launching application to apply update");
-
-  let appBin = getApplyDirFile(DIR_MACOS + FILE_APP_BIN, false);
 
   let launchBin = getLaunchBin();
   let args = getProcessArgs();

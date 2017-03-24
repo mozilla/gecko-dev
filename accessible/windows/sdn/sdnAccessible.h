@@ -7,7 +7,7 @@
 #ifndef mozilla_a11y_sdnAccessible_h_
 #define mozilla_a11y_sdnAccessible_h_
 
-#include "ISimpleDOMNode.h"
+#include "ISimpleDOM.h"
 #include "AccessibleWrap.h"
 #include "IUnknownImpl.h"
 
@@ -19,7 +19,7 @@ namespace a11y {
 class sdnAccessible final : public ISimpleDOMNode
 {
 public:
-  sdnAccessible(nsINode* aNode) :
+  explicit sdnAccessible(nsINode* aNode) :
     mNode(aNode)
   {
     if (!mNode)

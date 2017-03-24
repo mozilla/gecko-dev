@@ -39,13 +39,27 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--dep', action='store_true',
                     help='do not clobber the objdir before building')
 parser.add_argument('--platform', '-p', type=str, metavar='PLATFORM',
-                    default='', help='build platform')
+                    default='', help='build platform, including a suffix ("-debug" or "") used by buildbot to override the variant\'s "debug" setting. The platform can be used to specify 32 vs 64 bits.')
 parser.add_argument('--timeout', '-t', type=int, metavar='TIMEOUT',
                     default=10800,
                     help='kill job after TIMEOUT seconds')
 parser.add_argument('--objdir', type=str, metavar='DIR',
                     default=env.get('OBJDIR', 'obj-spider'),
                     help='object directory')
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--optimize', action='store_true',
+                   help='generate an optimized build. Overrides variant setting.')
+group.add_argument('--no-optimize', action='store_false',
+                   dest='optimize',
+                   help='generate a non-optimized build. Overrides variant setting.')
+group.set_defaults(optimize=None)
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--debug', action='store_true',
+                   help='generate a debug build. Overrides variant setting.')
+group.add_argument('--no-debug', action='store_false',
+                   dest='debug',
+                   help='generate a non-debug build. Overrides variant setting.')
+group.set_defaults(debug=None)
 parser.add_argument('--run-tests', '--tests', type=str, metavar='TESTSUITE',
                     default='',
                     help="comma-separated set of test suites to add to the variant's default set")
@@ -55,6 +69,8 @@ parser.add_argument('--skip-tests', '--skip', type=str, metavar='TESTSUITE',
 parser.add_argument('--build-only', '--build',
                     dest='skip_tests', action='store_const', const='all',
                     help="only do a build, do not run any tests")
+parser.add_argument('--noconf', action='store_true',
+                    help="skip running configure when doing a build")
 parser.add_argument('--nobuild', action='store_true',
                     help='Do not do a build. Rerun tests on existing build.')
 parser.add_argument('variant', type=str,
@@ -132,9 +148,25 @@ OUTDIR = os.path.join(OBJDIR, "out")
 POBJDIR = posixpath.join(PDIR.source, args.objdir)
 AUTOMATION = env.get('AUTOMATION', False)
 MAKE = env.get('MAKE', 'make')
-MAKEFLAGS = env.get('MAKEFLAGS', '-j6')
-CONFIGURE_ARGS = variant['configure-args']
+MAKEFLAGS = env.get('MAKEFLAGS', '-j6' + ('' if AUTOMATION else ' -s'))
 UNAME_M = subprocess.check_output(['uname', '-m']).strip()
+
+CONFIGURE_ARGS = variant['configure-args']
+
+opt = args.optimize
+if opt is None:
+    opt = variant.get('optimize')
+if opt is not None:
+    CONFIGURE_ARGS += (" --enable-optimize" if opt else " --disable-optimize")
+
+opt = args.debug
+if opt is None and args.platform:
+    # Override variant['debug'].
+    opt = ('-debug' in args.platform)
+if opt is None:
+    opt = variant.get('debug')
+if opt is not None:
+    CONFIGURE_ARGS += (" --enable-debug" if opt else " --disable-debug")
 
 # Any jobs that wish to produce additional output can save them into the upload
 # directory if there is such a thing, falling back to OBJDIR.
@@ -178,6 +210,14 @@ else:
     env.setdefault('CC', compiler)
     env.setdefault('CXX', cxx)
 
+rust_dir = os.path.join(DIR.tooltool, 'rustc')
+if os.path.exists(os.path.join(rust_dir, 'bin', 'rustc')):
+    env.setdefault('RUSTC', os.path.join(rust_dir, 'bin', 'rustc'))
+    env.setdefault('CARGO', os.path.join(rust_dir, 'bin', 'cargo'))
+else:
+    env.setdefault('RUSTC', 'rustc')
+    env.setdefault('CARGO', 'cargo')
+
 if platform.system() == 'Darwin':
     os.environ['SOURCE'] = DIR.source
     set_vars_from_script(os.path.join(DIR.scripts, 'macbuildenv.sh'),
@@ -208,6 +248,15 @@ if word_bits == 32:
     elif platform.system() == 'Linux':
         if UNAME_M != 'arm':
             CONFIGURE_ARGS += ' --target=i686-pc-linux --host=i686-pc-linux'
+
+    # Add SSE2 support for x86/x64 architectures.
+    if UNAME_M != 'arm':
+        if platform.system() == 'Windows':
+            sse_flags = '-arch:SSE2'
+        else:
+            sse_flags = '-msse -msse2 -mfpmath=sse'
+        env['CCFLAGS'] = '{0} {1}'.format(env.get('CCFLAGS', ''), sse_flags)
+        env['CXXFLAGS'] = '{0} {1}'.format(env.get('CXXFLAGS', ''), sse_flags)
 else:
     if platform.system() == 'Windows':
         CONFIGURE_ARGS += ' --target=x86_64-pc-mingw32 --host=x86_64-pc-mingw32'
@@ -252,19 +301,36 @@ for k, v in variant.get('env', {}).items():
         OUTDIR=OUTDIR,
     )
 
+def need_updating_configure(configure):
+    if not os.path.exists(configure):
+        return True
+
+    dep_files = [
+        os.path.join(DIR.js_src, 'configure.in'),
+        os.path.join(DIR.js_src, 'old-configure.in'),
+    ]
+    for file in dep_files:
+        if os.path.getmtime(file) > os.path.getmtime(configure):
+            return True
+
+    return False
+
 if not args.nobuild:
     CONFIGURE_ARGS += ' --enable-nspr-build'
     CONFIGURE_ARGS += ' --prefix={OBJDIR}/dist'.format(OBJDIR=POBJDIR)
 
     # Generate a configure script from configure.in.
     configure = os.path.join(DIR.js_src, 'configure')
-    if not os.path.exists(configure):
+    if need_updating_configure(configure):
         shutil.copyfile(configure + ".in", configure)
         os.chmod(configure, 0755)
 
-    # Run configure; make
-    run_command(['sh', '-c', posixpath.join(PDIR.js_src, 'configure') + ' ' + CONFIGURE_ARGS], check=True)
-    run_command('%s -s -w %s' % (MAKE, MAKEFLAGS), shell=True, check=True)
+    # Run configure
+    if not args.noconf:
+        run_command(['sh', '-c', posixpath.join(PDIR.js_src, 'configure') + ' ' + CONFIGURE_ARGS], check=True)
+
+    # Run make
+    run_command('%s -w %s' % (MAKE, MAKEFLAGS), shell=True, check=True)
 
 COMMAND_PREFIX = []
 # On Linux, disable ASLR to make shell builds a bit more reproducible.
@@ -322,7 +388,11 @@ if 'jittest' in test_suites:
     results.append(run_test_command([MAKE, 'check-jit-test']))
 if 'jsapitests' in test_suites:
     jsapi_test_binary = os.path.join(OBJDIR, 'dist', 'bin', 'jsapi-tests')
-    results.append(run_test_command([jsapi_test_binary]))
+    st = run_test_command([jsapi_test_binary])
+    if st < 0:
+        print("PROCESS-CRASH | jsapi-tests | application crashed")
+        print("Return code: {}".format(st))
+    results.append(st)
 if 'jstests' in test_suites:
     results.append(run_test_command([MAKE, 'check-jstests']))
 

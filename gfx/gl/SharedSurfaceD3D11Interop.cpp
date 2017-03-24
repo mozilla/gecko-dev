@@ -6,6 +6,7 @@
 #include "SharedSurfaceD3D11Interop.h"
 
 #include <d3d11.h>
+#include <d3d11_1.h>
 #include "gfxPrefs.h"
 #include "GLContext.h"
 #include "WGLLibrary.h"
@@ -114,6 +115,33 @@ while (!done) {
 ////////////////////////////////////////////////////////////////////////////////
 // DXInterop2Device
 
+class ScopedContextState final
+{
+    ID3D11DeviceContext1* const mD3DContext;
+    RefPtr<ID3DDeviceContextState> mOldContextState;
+
+public:
+    ScopedContextState(ID3D11DeviceContext1* d3dContext,
+                       ID3DDeviceContextState* newContextState)
+        : mD3DContext(d3dContext)
+        , mOldContextState(nullptr)
+    {
+        if (!mD3DContext)
+            return;
+
+        mD3DContext->SwapDeviceContextState(newContextState,
+                                            getter_AddRefs(mOldContextState));
+    }
+
+    ~ScopedContextState()
+    {
+        if (!mD3DContext)
+            return;
+
+        mD3DContext->SwapDeviceContextState(mOldContextState, nullptr);
+    }
+};
+
 class DXInterop2Device : public RefCounted<DXInterop2Device>
 {
 public:
@@ -123,6 +151,10 @@ public:
     const RefPtr<ID3D11Device> mD3D; // Only needed for lifetime guarantee.
     const HANDLE mInteropDevice;
     GLContext* const mGL;
+
+    // AMD workaround.
+    const RefPtr<ID3D11DeviceContext1> mD3DContext;
+    const RefPtr<ID3DDeviceContextState> mContextState;
 
     static already_AddRefed<DXInterop2Device> Open(WGLLibrary* wgl, GLContext* gl)
     {
@@ -137,27 +169,53 @@ public:
         if (!gl->MakeCurrent())
             return nullptr;
 
-        const auto interopDevice = wgl->fDXOpenDevice(d3d);
+        RefPtr<ID3D11DeviceContext1> d3dContext;
+        RefPtr<ID3DDeviceContextState> contextState;
+        if (gl->WorkAroundDriverBugs() && gl->Vendor() == GLVendor::ATI) {
+            // AMD calls ID3D10Device::Flush, so we need to be in ID3D10Device mode.
+            RefPtr<ID3D11Device1> d3d11_1;
+            auto hr = d3d->QueryInterface(__uuidof(ID3D11Device1),
+                                          getter_AddRefs(d3d11_1));
+            if (!SUCCEEDED(hr))
+                return nullptr;
+
+            d3d11_1->GetImmediateContext1(getter_AddRefs(d3dContext));
+            MOZ_ASSERT(d3dContext);
+
+            const D3D_FEATURE_LEVEL featureLevel10_0 = D3D_FEATURE_LEVEL_10_0;
+            hr = d3d11_1->CreateDeviceContextState(0, &featureLevel10_0, 1,
+                                                   D3D11_SDK_VERSION,
+                                                   __uuidof(ID3D10Device), nullptr,
+                                                   getter_AddRefs(contextState));
+            if (!SUCCEEDED(hr))
+                return nullptr;
+        }
+
+        const auto interopDevice = wgl->mSymbols.fDXOpenDeviceNV(d3d);
         if (!interopDevice) {
             gfxCriticalNote << "DXInterop2Device::Open: DXOpenDevice failed.";
             return nullptr;
         }
 
-        return MakeAndAddRef<DXInterop2Device>(wgl, d3d, interopDevice, gl);
+        return MakeAndAddRef<DXInterop2Device>(wgl, d3d, interopDevice, gl, d3dContext,
+                                               contextState);
     }
 
     DXInterop2Device(WGLLibrary* wgl, ID3D11Device* d3d, HANDLE interopDevice,
-                     GLContext* gl)
+                     GLContext* gl, ID3D11DeviceContext1* d3dContext,
+                     ID3DDeviceContextState* contextState)
         : mWGL(wgl)
         , mD3D(d3d)
         , mInteropDevice(interopDevice)
         , mGL(gl)
+        , mD3DContext(d3dContext)
+        , mContextState(contextState)
     { }
 
     ~DXInterop2Device() {
         const auto isCurrent = mGL->MakeCurrent();
 
-        if (mWGL->fDXCloseDevice(mInteropDevice))
+        if (mWGL->mSymbols.fDXCloseDeviceNV(mInteropDevice))
             return;
 
         if (isCurrent) {
@@ -176,8 +234,9 @@ public:
         if (!mGL->MakeCurrent())
             return nullptr;
 
-        const auto ret = mWGL->fDXRegisterObject(mInteropDevice, d3dObject, name, type,
-                                                 access);
+        const ScopedContextState autoCS(mD3DContext, mContextState);
+        const auto ret = mWGL->mSymbols.fDXRegisterObjectNV(mInteropDevice, d3dObject,
+                                                            name, type, access);
         if (ret)
             return ret;
 
@@ -193,7 +252,8 @@ public:
     bool UnregisterObject(HANDLE lockHandle) const {
         const auto isCurrent = mGL->MakeCurrent();
 
-        if (mWGL->fDXUnregisterObject(mInteropDevice, lockHandle))
+        const ScopedContextState autoCS(mD3DContext, mContextState);
+        if (mWGL->mSymbols.fDXUnregisterObjectNV(mInteropDevice, lockHandle))
             return true;
 
         if (!isCurrent) {
@@ -210,7 +270,7 @@ public:
     bool LockObject(HANDLE lockHandle) const {
         MOZ_ASSERT(mGL->IsCurrent());
 
-        if (mWGL->fDXLockObjects(mInteropDevice, 1, &lockHandle))
+        if (mWGL->mSymbols.fDXLockObjectsNV(mInteropDevice, 1, &lockHandle))
             return true;
 
         if (!mGL->MakeCurrent())
@@ -219,7 +279,7 @@ public:
         gfxCriticalNote << "wglDXLockObjects called without mGL being current."
                         << " Retrying after MakeCurrent.";
 
-        if (mWGL->fDXLockObjects(mInteropDevice, 1, &lockHandle))
+        if (mWGL->mSymbols.fDXLockObjectsNV(mInteropDevice, 1, &lockHandle))
             return true;
 
         const uint32_t error = GetLastError();
@@ -233,7 +293,7 @@ public:
     bool UnlockObject(HANDLE lockHandle) const {
         MOZ_ASSERT(mGL->IsCurrent());
 
-        if (mWGL->fDXUnlockObjects(mInteropDevice, 1, &lockHandle))
+        if (mWGL->mSymbols.fDXUnlockObjectsNV(mInteropDevice, 1, &lockHandle))
             return true;
 
         if (!mGL->MakeCurrent())
@@ -242,7 +302,7 @@ public:
         gfxCriticalNote << "wglDXUnlockObjects called without mGL being current."
                         << " Retrying after MakeCurrent.";
 
-        if (mWGL->fDXUnlockObjects(mInteropDevice, 1, &lockHandle))
+        if (mWGL->mSymbols.fDXUnlockObjectsNV(mInteropDevice, 1, &lockHandle))
             return true;
 
         const uint32_t error = GetLastError();
@@ -295,45 +355,88 @@ SharedSurface_D3D11Interop::Create(DXInterop2Device* interop,
         return nullptr;
     }
 
-    GLuint rbGL = 0;
-    gl->fGenRenderbuffers(1, &rbGL);
-    const auto lockHandle = interop->RegisterObject(texD3D, rbGL, LOCAL_GL_RENDERBUFFER,
+    GLuint interopRB = 0;
+    gl->fGenRenderbuffers(1, &interopRB);
+    const auto lockHandle = interop->RegisterObject(texD3D, interopRB,
+                                                    LOCAL_GL_RENDERBUFFER,
                                                     LOCAL_WGL_ACCESS_WRITE_DISCARD_NV);
     if (!lockHandle) {
         NS_WARNING("Failed to register D3D object with WGL.");
-        gl->fDeleteRenderbuffers(1, &rbGL);
+        gl->fDeleteRenderbuffers(1, &interopRB);
         return nullptr;
     }
 
     ////
 
+    GLuint prodTex = 0;
+    GLuint interopFB = 0;
+    {
+        GLint samples = 0;
+        {
+            const ScopedBindRenderbuffer bindRB(gl, interopRB);
+            gl->fGetRenderbufferParameteriv(LOCAL_GL_RENDERBUFFER,
+                                            LOCAL_GL_RENDERBUFFER_SAMPLES, &samples);
+        }
+        if (samples > 0) { // Intel
+            // Intel's dx_interop GL-side textures have SAMPLES=1, likely because that's
+            // what the D3DTextures technically have. However, SAMPLES=1 is very different
+            // from SAMPLES=0 in GL.
+            // For more, see https://bugzilla.mozilla.org/show_bug.cgi?id=1325835
+
+            // Our ShSurf tex or rb must be single-sampled.
+            gl->fGenTextures(1, &prodTex);
+            const ScopedBindTexture bindTex(gl, prodTex);
+            gl->TexParams_SetClampNoMips();
+
+            const GLenum format = (hasAlpha ? LOCAL_GL_RGBA : LOCAL_GL_RGB);
+            const ScopedBindPBO nullPBO(gl, LOCAL_GL_PIXEL_UNPACK_BUFFER);
+            gl->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, format, size.width, size.height, 0,
+                            format, LOCAL_GL_UNSIGNED_BYTE, nullptr);
+
+            gl->fGenFramebuffers(1, &interopFB);
+            ScopedBindFramebuffer bindFB(gl, interopFB);
+            gl->fFramebufferRenderbuffer(LOCAL_GL_FRAMEBUFFER, LOCAL_GL_COLOR_ATTACHMENT0,
+                                         LOCAL_GL_RENDERBUFFER, interopRB);
+            MOZ_ASSERT(gl->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) ==
+                       LOCAL_GL_FRAMEBUFFER_COMPLETE);
+        }
+    }
+
+    ////
+
     typedef SharedSurface_D3D11Interop ptrT;
-    UniquePtr<ptrT> ret ( new ptrT(gl, size, hasAlpha, rbGL, interop, lockHandle,
-                                   texD3D, dxgiHandle) );
+    UniquePtr<ptrT> ret ( new ptrT(gl, size, hasAlpha, prodTex, interopFB, interopRB,
+                                   interop, lockHandle, texD3D, dxgiHandle) );
     return Move(ret);
 }
 
 SharedSurface_D3D11Interop::SharedSurface_D3D11Interop(GLContext* gl,
                                                        const gfx::IntSize& size,
-                                                       bool hasAlpha, GLuint rbGL,
+                                                       bool hasAlpha, GLuint prodTex,
+                                                       GLuint interopFB, GLuint interopRB,
                                                        DXInterop2Device* interop,
                                                        HANDLE lockHandle,
                                                        ID3D11Texture2D* texD3D,
                                                        HANDLE dxgiHandle)
     : SharedSurface(SharedSurfaceType::DXGLInterop2,
-                    AttachmentType::GLRenderbuffer,
+                    prodTex ? AttachmentType::GLTexture
+                            : AttachmentType::GLRenderbuffer,
                     gl,
                     size,
                     hasAlpha,
                     true)
-    , mProdRB(rbGL)
+    , mProdTex(prodTex)
+    , mInteropFB(interopFB)
+    , mInteropRB(interopRB)
     , mInterop(interop)
     , mLockHandle(lockHandle)
     , mTexD3D(texD3D)
     , mDXGIHandle(dxgiHandle)
     , mNeedsFinish(gfxPrefs::WebGLDXGLNeedsFinish())
     , mLockedForGL(false)
-{ }
+{
+    MOZ_ASSERT(bool(mProdTex) == bool(mInteropFB));
+}
 
 SharedSurface_D3D11Interop::~SharedSurface_D3D11Interop()
 {
@@ -346,7 +449,9 @@ SharedSurface_D3D11Interop::~SharedSurface_D3D11Interop()
         NS_WARNING("Failed to release mLockHandle, possibly leaking it.");
     }
 
-    mGL->fDeleteRenderbuffers(1, &mProdRB);
+    mGL->fDeleteTextures(1, &mProdTex);
+    mGL->fDeleteFramebuffers(1, &mInteropFB);
+    mGL->fDeleteRenderbuffers(1, &mInteropRB);
 }
 
 void
@@ -364,6 +469,11 @@ void
 SharedSurface_D3D11Interop::ProducerReleaseImpl()
 {
     MOZ_ASSERT(mLockedForGL);
+
+    if (mProdTex) {
+        mGL->BlitHelper()->DrawBlitTextureToFramebuffer(mProdTex, mInteropFB, mSize,
+                                                        mSize);
+    }
 
     if (mNeedsFinish) {
         mGL->fFinish();

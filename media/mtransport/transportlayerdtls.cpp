@@ -16,6 +16,7 @@
 #include "keyhi.h"
 #include "logging.h"
 #include "mozilla/Move.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
 #include "nsCOMPtr.h"
@@ -518,10 +519,17 @@ bool TransportLayerDtls::Setup() {
     MOZ_MTLOG(ML_INFO, "Setting up DTLS as server");
     // Server side
     rv = SSL_ConfigSecureServer(ssl_fd.get(), identity_->cert().get(),
-                                identity_->privkey(),
+                                identity_->privkey().get(),
                                 identity_->auth_type());
     if (rv != SECSuccess) {
       MOZ_MTLOG(ML_ERROR, "Couldn't set identity");
+      return false;
+    }
+
+    UniqueCERTCertList zero_certs(CERT_NewCertList());
+    rv = SSL_SetTrustAnchors(ssl_fd.get(), zero_certs.get());
+    if (rv != SECSuccess) {
+      MOZ_MTLOG(ML_ERROR, "Couldn't set trust anchors");
       return false;
     }
 
@@ -657,15 +665,14 @@ bool TransportLayerDtls::SetupAlpn(UniquePRFileDesc& ssl_fd) const {
 
   unsigned char buf[MAX_ALPN_LENGTH];
   size_t offset = 0;
-  for (auto tag = alpn_allowed_.begin();
-       tag != alpn_allowed_.end(); ++tag) {
-    if ((offset + 1 + tag->length()) >= sizeof(buf)) {
+  for (const auto& tag : alpn_allowed_) {
+    if ((offset + 1 + tag.length()) >= sizeof(buf)) {
       MOZ_MTLOG(ML_ERROR, "ALPN too long");
       return false;
     }
-    buf[offset++] = tag->length();
-    memcpy(buf + offset, tag->c_str(), tag->length());
-    offset += tag->length();
+    buf[offset++] = tag.length();
+    memcpy(buf + offset, tag.c_str(), tag.length());
+    offset += tag.length();
   }
   rv = SSL_SetNextProtoNego(ssl_fd.get(), buf, offset);
   if (rv != SECSuccess) {
@@ -862,6 +869,8 @@ void TransportLayerDtls::Handshake() {
   // Clear the retransmit timer
   timer_->Cancel();
 
+  MOZ_ASSERT(state_ == TS_CONNECTING);
+
   SECStatus rv = SSL_ForceHandshake(ssl_fd_.get());
 
   if (rv == SECSuccess) {
@@ -1027,6 +1036,34 @@ void TransportLayerDtls::PacketReceived(TransportLayer* layer,
   }
 }
 
+void TransportLayerDtls::SetState(State state,
+                                  const char *file,
+                                  unsigned line) {
+  if (state > state_) {
+    switch (state) {
+      case TS_NONE:
+      case TS_INIT:
+        MOZ_ASSERT(false);
+        break;
+      case TS_CONNECTING:
+        handshake_started_ = TimeStamp::Now();
+        break;
+      case TS_OPEN:
+      case TS_CLOSED:
+      case TS_ERROR:
+        timer_->Cancel();
+        if (state_ == TS_CONNECTING) {
+          RecordHandshakeCompletionTelemetry(state);
+        }
+        break;
+    }
+  } else {
+    MOZ_ASSERT(false, "Invalid state transition");
+  }
+
+  TransportLayer::SetState(state, file, line);
+}
+
 TransportResult TransportLayerDtls::SendPacket(const unsigned char *data,
                                                size_t len) {
   CheckThread();
@@ -1083,7 +1120,7 @@ SECStatus TransportLayerDtls::GetClientAuthDataHook(void *arg, PRFileDesc *fd,
     return SECFailure;
   }
 
-  *pRetKey = SECKEY_CopyPrivateKey(stream->identity_->privkey());
+  *pRetKey = SECKEY_CopyPrivateKey(stream->identity_->privkey().get());
   if (!*pRetKey) {
     CERT_DestroyCertificate(*pRetCert);
     *pRetCert = nullptr;
@@ -1225,8 +1262,7 @@ SECStatus TransportLayerDtls::AuthCertificateHook(PRFileDesc *fd,
 
         // Checking functions call PR_SetError()
         SECStatus rv = SECFailure;
-        for (size_t i = 0; i < digests_.size(); i++) {
-          RefPtr<VerificationDigest> digest = digests_[i];
+        for (auto digest : digests_) {
           rv = CheckDigest(digest, peer_cert);
 
           // Matches a digest, we are good to go
@@ -1250,6 +1286,42 @@ void TransportLayerDtls::TimerCallback(nsITimer *timer, void *arg) {
   MOZ_MTLOG(ML_DEBUG, "DTLS timer expired");
 
   dtls->Handshake();
+}
+
+void
+TransportLayerDtls::RecordHandshakeCompletionTelemetry(
+    TransportLayer::State endState) {
+  int32_t delta = (TimeStamp::Now() - handshake_started_).ToMilliseconds();
+
+  switch (endState) {
+    case TransportLayer::State::TS_OPEN:
+      if (role_ == TransportLayerDtls::CLIENT) {
+        Telemetry::Accumulate(Telemetry::WEBRTC_DTLS_CLIENT_SUCCESS_TIME,
+                              delta);
+      } else {
+        Telemetry::Accumulate(Telemetry::WEBRTC_DTLS_SERVER_SUCCESS_TIME,
+                              delta);
+      }
+      return;
+    case TransportLayer::State::TS_ERROR:
+      if (role_ == TransportLayerDtls::CLIENT) {
+        Telemetry::Accumulate(Telemetry::WEBRTC_DTLS_CLIENT_FAILURE_TIME,
+                              delta);
+      } else {
+        Telemetry::Accumulate(Telemetry::WEBRTC_DTLS_SERVER_FAILURE_TIME,
+                              delta);
+      }
+      return;
+    case TransportLayer::State::TS_CLOSED:
+      if (role_ == TransportLayerDtls::CLIENT) {
+        Telemetry::Accumulate(Telemetry::WEBRTC_DTLS_CLIENT_ABORT_TIME, delta);
+      } else {
+        Telemetry::Accumulate(Telemetry::WEBRTC_DTLS_SERVER_ABORT_TIME, delta);
+      }
+      return;
+    default:
+      MOZ_ASSERT(false);
+  }
 }
 
 }  // close namespace

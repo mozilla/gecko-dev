@@ -10,8 +10,6 @@
 #include "nss.h"
 #include "pk11pub.h"
 #include "seccomon.h"
-#include "ssl.h"
-#include "sslimpl.h"
 
 SECStatus SSLInt_IncrementClientHandshakeVersion(PRFileDesc *fd) {
   sslSocket *ss = ssl_FindSocket(fd);
@@ -35,15 +33,8 @@ SECStatus SSLInt_UpdateSSLv2ClientRandom(PRFileDesc *fd, uint8_t *rnd,
     return SECFailure;
   }
 
-  SECStatus rv = ssl3_InitState(ss);
-  if (rv != SECSuccess) {
-    return rv;
-  }
-
-  rv = ssl3_RestartHandshakeHashes(ss);
-  if (rv != SECSuccess) {
-    return rv;
-  }
+  ssl3_InitState(ss);
+  ssl3_RestartHandshakeHashes(ss);
 
   // Ensure we don't overrun hs.client_random.
   rnd_len = PR_MIN(SSL3_RANDOM_LENGTH, rnd_len);
@@ -64,18 +55,15 @@ PRBool SSLInt_ExtensionNegotiated(PRFileDesc *fd, PRUint16 ext) {
   return (PRBool)(ss && ssl3_ExtensionNegotiated(ss, ext));
 }
 
-void SSLInt_ClearSessionTicketKey() {
-  ssl3_SessionTicketShutdown(NULL, NULL);
-  NSS_UnregisterShutdown(ssl3_SessionTicketShutdown, NULL);
-}
+void SSLInt_ClearSessionTicketKey() { ssl_ResetSessionTicketKeys(); }
 
 SECStatus SSLInt_SetMTU(PRFileDesc *fd, PRUint16 mtu) {
   sslSocket *ss = ssl_FindSocket(fd);
-  if (ss) {
-    ss->ssl3.mtu = mtu;
-    return SECSuccess;
+  if (!ss) {
+    return SECFailure;
   }
-  return SECFailure;
+  ss->ssl3.mtu = mtu;
+  return SECSuccess;
 }
 
 PRInt32 SSLInt_CountTls13CipherSpecs(PRFileDesc *fd) {
@@ -92,6 +80,22 @@ PRInt32 SSLInt_CountTls13CipherSpecs(PRFileDesc *fd) {
     ++ct;
   }
   return ct;
+}
+
+void SSLInt_PrintTls13CipherSpecs(PRFileDesc *fd) {
+  PRCList *cur_p;
+
+  sslSocket *ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return;
+  }
+
+  fprintf(stderr, "Cipher specs\n");
+  for (cur_p = PR_NEXT_LINK(&ss->ssl3.hs.cipherSpecs);
+       cur_p != &ss->ssl3.hs.cipherSpecs; cur_p = PR_NEXT_LINK(cur_p)) {
+    ssl3CipherSpec *spec = (ssl3CipherSpec *)cur_p;
+    fprintf(stderr, "  %s\n", spec->phase);
+  }
 }
 
 /* Force a timer expiry by backdating when the timer was started.
@@ -122,7 +126,7 @@ PRBool SSLInt_CheckSecretsDestroyed(PRFileDesc *fd) {
   }
 
   CHECK_SECRET(currentSecret);
-  CHECK_SECRET(resumptionPsk);
+  CHECK_SECRET(resumptionMasterSecret);
   CHECK_SECRET(dheSecret);
   CHECK_SECRET(clientEarlyTrafficSecret);
   CHECK_SECRET(clientHsTrafficSecret);
@@ -179,12 +183,14 @@ SECStatus SSLInt_Set0RttAlpn(PRFileDesc *fd, PRUint8 *data, unsigned int len) {
     return SECFailure;
   }
 
-  ss->ssl3.nextProtoState = SSL_NEXT_PROTO_EARLY_VALUE;
-  if (ss->ssl3.nextProto.data) {
-    SECITEM_FreeItem(&ss->ssl3.nextProto, PR_FALSE);
+  ss->xtnData.nextProtoState = SSL_NEXT_PROTO_EARLY_VALUE;
+  if (ss->xtnData.nextProto.data) {
+    SECITEM_FreeItem(&ss->xtnData.nextProto, PR_FALSE);
   }
-  if (!SECITEM_AllocItem(NULL, &ss->ssl3.nextProto, len)) return SECFailure;
-  PORT_Memcpy(ss->ssl3.nextProto.data, data, len);
+  if (!SECITEM_AllocItem(NULL, &ss->xtnData.nextProto, len)) {
+    return SECFailure;
+  }
+  PORT_Memcpy(ss->xtnData.nextProto.data, data, len);
 
   return SECSuccess;
 }
@@ -195,7 +201,7 @@ PRBool SSLInt_HasCertWithAuthType(PRFileDesc *fd, SSLAuthType authType) {
     return PR_FALSE;
   }
 
-  return (PRBool)(!!ssl_FindServerCertByAuthType(ss, authType));
+  return (PRBool)(!!ssl_FindServerCert(ss, authType, NULL));
 }
 
 PRBool SSLInt_SendAlert(PRFileDesc *fd, uint8_t level, uint8_t type) {
@@ -240,6 +246,7 @@ SECStatus SSLInt_AdvanceReadSeqNum(PRFileDesc *fd, PRUint64 to) {
     return SECFailure;
   }
   if (to >= (1ULL << 48)) {
+    PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
   }
   ssl_GetSpecWriteLock(ss);
@@ -251,6 +258,7 @@ SECStatus SSLInt_AdvanceReadSeqNum(PRFileDesc *fd, PRUint64 to) {
    * scrub the entire structure on the assumption that the new sequence number
    * is far enough past the last received sequence number. */
   if (to <= spec->recvdRecords.right + DTLS_RECVD_RECORDS_WINDOW) {
+    PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
   }
   dtls_RecordSetRecvd(&spec->recvdRecords, to);
@@ -268,6 +276,7 @@ SECStatus SSLInt_AdvanceWriteSeqNum(PRFileDesc *fd, PRUint64 to) {
     return SECFailure;
   }
   if (to >= (1ULL << 48)) {
+    PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
   }
   ssl_GetSpecWriteLock(ss);
@@ -296,4 +305,93 @@ SSLKEAType SSLInt_GetKEAType(SSLNamedGroup group) {
   if (!groupDef) return ssl_kea_null;
 
   return groupDef->keaType;
+}
+
+SECStatus SSLInt_SetCipherSpecChangeFunc(PRFileDesc *fd,
+                                         sslCipherSpecChangedFunc func,
+                                         void *arg) {
+  sslSocket *ss;
+
+  ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return SECFailure;
+  }
+
+  ss->ssl3.changedCipherSpecFunc = func;
+  ss->ssl3.changedCipherSpecArg = arg;
+
+  return SECSuccess;
+}
+
+static ssl3KeyMaterial *GetKeyingMaterial(PRBool isServer,
+                                          ssl3CipherSpec *spec) {
+  return isServer ? &spec->server : &spec->client;
+}
+
+PK11SymKey *SSLInt_CipherSpecToKey(PRBool isServer, ssl3CipherSpec *spec) {
+  return GetKeyingMaterial(isServer, spec)->write_key;
+}
+
+SSLCipherAlgorithm SSLInt_CipherSpecToAlgorithm(PRBool isServer,
+                                                ssl3CipherSpec *spec) {
+  return spec->cipher_def->calg;
+}
+
+unsigned char *SSLInt_CipherSpecToIv(PRBool isServer, ssl3CipherSpec *spec) {
+  return GetKeyingMaterial(isServer, spec)->write_iv;
+}
+
+SECStatus SSLInt_EnableShortHeaders(PRFileDesc *fd) {
+  sslSocket *ss;
+
+  ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return SECFailure;
+  }
+
+  ss->opt.enableShortHeaders = PR_TRUE;
+  return SECSuccess;
+}
+
+SECStatus SSLInt_UsingShortHeaders(PRFileDesc *fd, PRBool *result) {
+  sslSocket *ss;
+
+  ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return SECFailure;
+  }
+
+  *result = ss->ssl3.hs.shortHeaders;
+  return SECSuccess;
+}
+
+void SSLInt_SetTicketLifetime(uint32_t lifetime) {
+  ssl_ticket_lifetime = lifetime;
+}
+
+void SSLInt_SetMaxEarlyDataSize(uint32_t size) {
+  ssl_max_early_data_size = size;
+}
+
+SECStatus SSLInt_SetSocketMaxEarlyDataSize(PRFileDesc *fd, uint32_t size) {
+  sslSocket *ss;
+
+  ss = ssl_FindSocket(fd);
+  if (!ss) {
+    return SECFailure;
+  }
+
+  /* This only works when resuming. */
+  if (!ss->statelessResume) {
+    PORT_SetError(SEC_INTERNAL_ONLY);
+    return SECFailure;
+  }
+
+  /* Modifying both specs allows this to be used on either peer. */
+  ssl_GetSpecWriteLock(ss);
+  ss->ssl3.crSpec->earlyDataRemaining = size;
+  ss->ssl3.cwSpec->earlyDataRemaining = size;
+  ssl_ReleaseSpecWriteLock(ss);
+
+  return SECSuccess;
 }

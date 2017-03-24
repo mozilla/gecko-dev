@@ -16,7 +16,7 @@ interface ServiceWorkerContainer : EventTarget {
   // and discussion at https://etherpad.mozilla.org/serviceworker07apr
   [Unforgeable] readonly attribute ServiceWorker? controller;
 
-  [SameObject, Throws]
+  [Throws]
   readonly attribute Promise<ServiceWorkerRegistration> ready;
 
   [NewObject]
@@ -42,4 +42,5 @@ partial interface ServiceWorkerContainer {
 
 dictionary RegistrationOptions {
   USVString scope;
+  boolean useCache;
 };

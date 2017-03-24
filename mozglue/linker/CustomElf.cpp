@@ -12,6 +12,7 @@
 #include "BaseElf.h"
 #include "Mappable.h"
 #include "Logging.h"
+#include "mozilla/IntegerPrintfMacros.h"
 
 using namespace Elf;
 using namespace mozilla;
@@ -23,9 +24,11 @@ using namespace mozilla;
 #ifdef ANDROID
 extern "C" {
   void report_mapping(char *name, void *base, uint32_t len, uint32_t offset);
+  void delete_mapping(const char *name);
 }
 #else
 #define report_mapping(...)
+#define delete_mapping(...)
 #endif
 
 const Ehdr *Ehdr::validate(const void *buf)
@@ -57,10 +60,10 @@ namespace {
 
 void debug_phdr(const char *type, const Phdr *phdr)
 {
-  DEBUG_LOG("%s @0x%08" PRIxAddr " ("
-            "filesz: 0x%08" PRIxAddr ", "
-            "memsz: 0x%08" PRIxAddr ", "
-            "offset: 0x%08" PRIxAddr ", "
+  DEBUG_LOG("%s @0x%08" PRIxPTR " ("
+            "filesz: 0x%08" PRIxPTR ", "
+            "memsz: 0x%08" PRIxPTR ", "
+            "offset: 0x%08" PRIxPTR ", "
             "flags: %c%c%c)",
             type, phdr->p_vaddr, phdr->p_filesz, phdr->p_memsz,
             phdr->p_offset, phdr->p_flags & PF_R ? 'r' : '-',
@@ -182,7 +185,7 @@ CustomElf::Load(Mappable *mappable, const char *path, int flags)
   }
 
   if (min_vaddr != 0) {
-    ERROR("%s: Unsupported minimal virtual address: 0x%08" PRIxAddr,
+    ERROR("%s: Unsupported minimal virtual address: 0x%08" PRIxPTR,
         elf->GetPath(), min_vaddr);
     return nullptr;
   }
@@ -276,6 +279,7 @@ CustomElf::~CustomElf()
    * calls destructors once, so call it in all cases. */
   ElfLoader::__wrap_cxa_finalize(this);
   ElfLoader::Singleton.Forget(this);
+  delete_mapping(GetName());
 }
 
 void *
@@ -452,7 +456,7 @@ namespace {
 
 void debug_dyn(const char *type, const Dyn *dyn)
 {
-  DEBUG_LOG("%s 0x%08" PRIxAddr, type, dyn->d_un.d_val);
+  DEBUG_LOG("%s 0x%08" PRIxPTR, type, dyn->d_un.d_val);
 }
 
 } /* anonymous namespace */
@@ -582,7 +586,7 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
            /* we can treat this like having a DT_SYMBOLIC tag */
            flags &= ~DF_SYMBOLIC;
            if (flags)
-             WARN("%s: unhandled flags #%" PRIxAddr" not handled",
+             WARN("%s: unhandled flags #%" PRIxPTR" not handled",
                  GetPath(), flags);
         }
         break;
@@ -605,7 +609,7 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
         /* Ignored */
         break;
       default:
-        WARN("%s: dynamic header type #%" PRIxAddr" not handled",
+        WARN("%s: dynamic header type #%" PRIxPTR" not handled",
             GetPath(), dyn->d_tag);
     }
   }
@@ -666,7 +670,7 @@ CustomElf::Relocate()
     }
 
     if (symptr == nullptr)
-      WARN("%s: Relocation to NULL @0x%08" PRIxAddr,
+      WARN("%s: Relocation to NULL @0x%08" PRIxPTR,
           GetPath(), rel->r_offset);
 
     /* Apply relocation */
@@ -680,7 +684,7 @@ CustomElf::Relocate()
       *(const char **) ptr = (const char *)symptr + rel->GetAddend(base);
       break;
     default:
-      ERROR("%s: Unsupported relocation type: 0x%" PRIxAddr,
+      ERROR("%s: Unsupported relocation type: 0x%" PRIxPTR,
           GetPath(), ELF_R_TYPE(rel->r_info));
       return false;
     }
@@ -713,11 +717,11 @@ CustomElf::RelocateJumps()
 
     if (symptr == nullptr) {
       if (ELF_ST_BIND(sym.st_info) == STB_WEAK) {
-        WARN("%s: Relocation to NULL @0x%08" PRIxAddr " for symbol \"%s\"",
+        WARN("%s: Relocation to NULL @0x%08" PRIxPTR " for symbol \"%s\"",
             GetPath(),
             rel->r_offset, strtab.GetStringAt(sym.st_name));
       } else {
-        ERROR("%s: Relocation to NULL @0x%08" PRIxAddr " for symbol \"%s\"",
+        ERROR("%s: Relocation to NULL @0x%08" PRIxPTR " for symbol \"%s\"",
             GetPath(),
             rel->r_offset, strtab.GetStringAt(sym.st_name));
         return false;

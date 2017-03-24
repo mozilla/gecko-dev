@@ -109,7 +109,7 @@
             return;
           var stars = this.stars;
           for (let i = 0; i < stars.length; i++)
-            stars[i].setAttribute("on", i <= (aScore -1));
+            stars[i].setAttribute("on", i <= (aScore - 1));
         ]]></body>
       </method>
 
@@ -396,7 +396,7 @@
           if (aItem.hasAttribute("disabled") &&
               aItem.getAttribute("disabled") == "true")
             return false;
-          var style = document.defaultView.getComputedStyle(aItem, "");
+          var style = document.defaultView.getComputedStyle(aItem);
           return style.display != "none" && style.visibility == "visible";
         ]]>
         </body>
@@ -653,6 +653,26 @@
           delete this.mControl.mAddon;
           this.mControl.mInstall = this.mInstall;
           this.mControl.setAttribute("status", "installing");
+          let prompt = Services.prefs.getBoolPref("extensions.webextPermissionPrompts", false);
+          if (prompt) {
+            this.mInstall.promptHandler = info => new Promise((resolve, reject) => {
+              let subject = {
+                wrappedJSObject: {
+                  target: window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDocShell).chromeEventHandler,
+                  info: {
+                    addon: info.addon,
+                    source: "AMO",
+                    icon: info.addon.iconURL,
+                    permissions: info.addon.userPermissions,
+                    resolve,
+                    reject,
+                  },
+                },
+              };
+              Services.obs.notifyObservers(subject, "webextension-permission-prompt", null);
+            });
+          }
           this.mInstall.install();
         ]]></body>
       </method>
@@ -759,7 +779,7 @@
 
       <method name="onUninstalled">
         <body><![CDATA[
-          this.parentNode.removeChild(this);
+          this.remove();
         ]]></body>
       </method>
     </implementation>
@@ -1086,7 +1106,13 @@
           return this.mAddon.userDisabled;
         ]]></getter>
         <setter><![CDATA[
-          this.mAddon.userDisabled = val;
+          if (val === true) {
+            gViewController.commands["cmd_disableItem"].doCommand(this.mAddon);
+          } else if (val === false) {
+            gViewController.commands["cmd_enableItem"].doCommand(this.mAddon);
+          } else {
+            this.mAddon.userDisabled = val;
+          }
         ]]></setter>
       </property>
 
@@ -1165,11 +1191,8 @@
       <method name="_updateDates">
         <body><![CDATA[
           function formatDate(aDate) {
-            const locale = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
-                           .getService(Components.interfaces.nsIXULChromeRegistry)
-                           .getSelectedLocale("global", true);
-            const dtOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-            return aDate.toLocaleDateString(locale, dtOptions);
+            const dtOptions = { year: "numeric", month: "long", day: "numeric" };
+            return aDate.toLocaleDateString(undefined, dtOptions);
           }
 
           if (this.mAddon.updateDate)
@@ -1332,7 +1355,7 @@
               ["ask_to_activate", "enable", "disable"].some(perm => this.hasPermission(perm));
             this._stateMenulist.disabled = !hasActivatePermission;
             this._stateMenulist.hidden = false;
-            this._stateMenulist.classList.add('no-auto-hide');
+            this._stateMenulist.classList.add("no-auto-hide");
           } else {
             this._stateMenulist.hidden = true;
 
@@ -1472,16 +1495,16 @@
                               .createInstance(Components.interfaces.nsIXMLHttpRequest);
           dataReq.open("GET", aURI.spec, true);
           dataReq.responseType = "document";
-          dataReq.addEventListener("load", handleResponse, false);
-          dataReq.addEventListener("error", handleError, false);
+          dataReq.addEventListener("load", handleResponse);
+          dataReq.addEventListener("error", handleError);
           dataReq.send(null);
 
           var styleReq = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
                               .createInstance(Components.interfaces.nsIXMLHttpRequest);
           styleReq.open("GET", UPDATES_RELEASENOTES_TRANSFORMFILE, true);
           styleReq.responseType = "document";
-          styleReq.addEventListener("load", handleResponse, false);
-          styleReq.addEventListener("error", handleError, false);
+          styleReq.addEventListener("load", handleResponse);
+          styleReq.addEventListener("error", handleError);
           styleReq.send(null);
         ]]></body>
       </method>
@@ -1750,8 +1773,8 @@
           this._lastClickTarget = event.originalTarget;
           break;
         case 2:
-          if (event.originalTarget.localName != 'button' &&
-              !event.originalTarget.classList.contains('text-link') &&
+          if (event.originalTarget.localName != "button" &&
+              !event.originalTarget.classList.contains("text-link") &&
               event.originalTarget == this._lastClickTarget) {
             this.showInDetailView();
           }

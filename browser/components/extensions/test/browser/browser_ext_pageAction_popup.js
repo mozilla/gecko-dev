@@ -22,7 +22,7 @@ add_task(function* testPageActionPopup() {
       "popup-a.js": function() {
         window.onload = () => {
           let background = window.getComputedStyle(document.body).backgroundColor;
-          browser.test.assertEq("transparent", background);
+          browser.test.assertEq("rgba(0, 0, 0, 0)", background);
           browser.runtime.sendMessage("from-popup-a");
         };
         browser.runtime.onMessage.addListener(msg => {
@@ -39,7 +39,7 @@ add_task(function* testPageActionPopup() {
 
       "data/background.html": scriptPage("background.js"),
 
-      "data/background.js": function() {
+      "data/background.js": async function() {
         let tabId;
 
         let sendClick;
@@ -115,7 +115,7 @@ add_task(function* testPageActionPopup() {
           browser.test.sendMessage("next-test");
         });
 
-        browser.test.onMessage.addListener((msg) => {
+        browser.test.onMessage.addListener(msg => {
           if (msg == "close-popup") {
             browser.runtime.sendMessage("close-popup");
             return;
@@ -133,13 +133,11 @@ add_task(function* testPageActionPopup() {
           }
         });
 
-        browser.tabs.query({active: true, currentWindow: true}, tabs => {
-          tabId = tabs[0].id;
+        let [tab] = await browser.tabs.query({active: true, currentWindow: true});
+        tabId = tab.id;
 
-          browser.pageAction.show(tabId).then(() => {
-            browser.test.sendMessage("next-test");
-          });
-        });
+        await browser.pageAction.show(tabId);
+        browser.test.sendMessage("next-test");
       },
     },
   });

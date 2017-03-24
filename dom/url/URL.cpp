@@ -80,8 +80,7 @@ public:
 
   static void
   CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
-                  const objectURLOptions& aOptions, nsAString& aResult,
-                  ErrorResult& aRv)
+                  nsAString& aResult, ErrorResult& aRv)
   {
     MOZ_ASSERT(NS_IsMainThread());
     CreateObjectURLInternal(aGlobal, aBlob.Impl(), aResult, aRv);
@@ -89,8 +88,7 @@ public:
 
   static void
   CreateObjectURL(const GlobalObject& aGlobal, DOMMediaStream& aStream,
-                  const objectURLOptions& aOptions, nsAString& aResult,
-                  ErrorResult& aRv)
+                  nsAString& aResult, ErrorResult& aRv)
   {
     MOZ_ASSERT(NS_IsMainThread());
     CreateObjectURLInternal(aGlobal, &aStream, aResult, aRv);
@@ -98,8 +96,7 @@ public:
 
   static void
   CreateObjectURL(const GlobalObject& aGlobal, MediaSource& aSource,
-                  const objectURLOptions& aOptions, nsAString& aResult,
-                  ErrorResult& aRv);
+                  nsAString& aResult, ErrorResult& aRv);
 
   static void
   RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aURL,
@@ -257,7 +254,6 @@ URLMainThread::Constructor(nsISupports* aParent, const nsAString& aURL,
 /* static */ void
 URLMainThread::CreateObjectURL(const GlobalObject& aGlobal,
                                MediaSource& aSource,
-                               const objectURLOptions& aOptions,
                                nsAString& aResult, ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -521,22 +517,11 @@ URLMainThread::GetPathname(nsAString& aPathname, ErrorResult& aRv) const
 {
   aPathname.Truncate();
 
-  nsCOMPtr<nsIURL> url(do_QueryInterface(mURI));
-  if (!url) {
-    nsAutoCString path;
-    nsresult rv = mURI->GetPath(path);
-    if (NS_FAILED(rv)){
-      // Do not throw!  Not having a valid URI or URL should result in an empty
-      // string.
-      return;
-    }
-
-    CopyUTF8toUTF16(path, aPathname);
-    return;
-  }
+  // Do not throw!  Not having a valid URI or URL should result in an empty
+  // string.
 
   nsAutoCString file;
-  nsresult rv = url->GetFilePath(file);
+  nsresult rv = mURI->GetFilePath(file);
   if (NS_SUCCEEDED(rv)) {
     CopyUTF8toUTF16(file, aPathname);
   }
@@ -545,13 +530,9 @@ URLMainThread::GetPathname(nsAString& aPathname, ErrorResult& aRv) const
 void
 URLMainThread::SetPathname(const nsAString& aPathname, ErrorResult& aRv)
 {
-  nsCOMPtr<nsIURL> url(do_QueryInterface(mURI));
-  if (!url) {
-    // Ignore failures to be compatible with NS4.
-    return;
-  }
+  // Do not throw!
 
-  url->SetFilePath(NS_ConvertUTF16toUTF8(aPathname));
+  mURI->SetFilePath(NS_ConvertUTF16toUTF8(aPathname));
 }
 
 void
@@ -559,15 +540,13 @@ URLMainThread::GetSearch(nsAString& aSearch, ErrorResult& aRv) const
 {
   aSearch.Truncate();
 
-  nsCOMPtr<nsIURL> url(do_QueryInterface(mURI));
-  if (!url) {
-    // Do not throw!  Not having a valid URI or URL should result in an empty
-    // string.
-    return;
-  }
+  // Do not throw!  Not having a valid URI or URL should result in an empty
+  // string.
 
   nsAutoCString search;
-  nsresult rv = url->GetQuery(search);
+  nsresult rv;
+
+  rv = mURI->GetQuery(search);
   if (NS_SUCCEEDED(rv) && !search.IsEmpty()) {
     CopyUTF8toUTF16(NS_LITERAL_CSTRING("?") + search, aSearch);
   }
@@ -582,9 +561,6 @@ URLMainThread::GetHash(nsAString& aHash, ErrorResult& aRv) const
   nsresult rv = mURI->GetRef(ref);
   if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
     aHash.Assign(char16_t('#'));
-    if (nsContentUtils::GettersDecodeURLHash()) {
-      NS_UnescapeURL(ref); // XXX may result in random non-ASCII bytes!
-    }
     AppendUTF8toUTF16(ref, aHash);
   }
 }
@@ -598,13 +574,9 @@ URLMainThread::SetHash(const nsAString& aHash, ErrorResult& aRv)
 void
 URLMainThread::SetSearchInternal(const nsAString& aSearch, ErrorResult& aRv)
 {
-  nsCOMPtr<nsIURL> url(do_QueryInterface(mURI));
-  if (!url) {
-    // Ignore failures to be compatible with NS4.
-    return;
-  }
+  // Ignore failures to be compatible with NS4.
 
-  url->SetQuery(NS_ConvertUTF16toUTF8(aSearch));
+  mURI->SetQuery(NS_ConvertUTF16toUTF8(aSearch));
 }
 
 } // anonymous namespace
@@ -675,7 +647,6 @@ public:
 
   static void
   CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
-                  const mozilla::dom::objectURLOptions& aOptions,
                   nsAString& aResult, mozilla::ErrorResult& aRv);
 
   static void
@@ -776,7 +747,6 @@ private:
 
 public:
   CreateURLRunnable(WorkerPrivate* aWorkerPrivate, BlobImpl* aBlobImpl,
-                    const objectURLOptions& aOptions,
                     nsAString& aURL)
   : WorkerMainThreadRunnable(aWorkerPrivate,
                              NS_LITERAL_CSTRING("URL :: CreateURL"))
@@ -1134,6 +1104,12 @@ public:
     return true;
   }
 
+  void
+  Dispatch(ErrorResult& aRv)
+  {
+    WorkerMainThreadRunnable::Dispatch(Terminating, aRv);
+  }
+
 private:
   nsAString& mValue;
   GetterType mType;
@@ -1234,6 +1210,12 @@ public:
     return mFailed;
   }
 
+  void
+  Dispatch(ErrorResult& aRv)
+  {
+    WorkerMainThreadRunnable::Dispatch(Terminating, aRv);
+  }
+
 private:
   const nsString mValue;
   SetterType mType;
@@ -1245,7 +1227,7 @@ already_AddRefed<URLWorker>
 FinishConstructor(JSContext* aCx, WorkerPrivate* aPrivate,
                   ConstructorRunnable* aRunnable, ErrorResult& aRv)
 {
-  aRunnable->Dispatch(aRv);
+  aRunnable->Dispatch(Terminating, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -1306,7 +1288,6 @@ URLWorker::Constructor(const GlobalObject& aGlobal, const nsAString& aURL,
 
 /* static */ void
 URLWorker::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
-                           const mozilla::dom::objectURLOptions& aOptions,
                            nsAString& aResult, mozilla::ErrorResult& aRv)
 {
   JSContext* cx = aGlobal.Context();
@@ -1321,9 +1302,9 @@ URLWorker::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
   }
 
   RefPtr<CreateURLRunnable> runnable =
-    new CreateURLRunnable(workerPrivate, blobImpl, aOptions, aResult);
+    new CreateURLRunnable(workerPrivate, blobImpl, aResult);
 
-  runnable->Dispatch(aRv);
+  runnable->Dispatch(Terminating, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
@@ -1346,7 +1327,7 @@ URLWorker::RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aUrl,
   RefPtr<RevokeURLRunnable> runnable =
     new RevokeURLRunnable(workerPrivate, aUrl);
 
-  runnable->Dispatch(aRv);
+  runnable->Dispatch(Terminating, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
@@ -1369,7 +1350,7 @@ URLWorker::IsValidURL(const GlobalObject& aGlobal, const nsAString& aUrl,
   RefPtr<IsValidURLRunnable> runnable =
     new IsValidURLRunnable(workerPrivate, aUrl);
 
-  runnable->Dispatch(aRv);
+  runnable->Dispatch(Terminating, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return false;
   }
@@ -1729,33 +1710,32 @@ URL::WorkerConstructor(const GlobalObject& aGlobal, const nsAString& aURL,
 
 void
 URL::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
-                     const objectURLOptions& aOptions, nsAString& aResult,
-                     ErrorResult& aRv)
+                     nsAString& aResult, ErrorResult& aRv)
 {
   if (NS_IsMainThread()) {
-    URLMainThread::CreateObjectURL(aGlobal, aBlob, aOptions, aResult, aRv);
+    URLMainThread::CreateObjectURL(aGlobal, aBlob, aResult, aRv);
   } else {
-    URLWorker::CreateObjectURL(aGlobal, aBlob, aOptions, aResult, aRv);
+    URLWorker::CreateObjectURL(aGlobal, aBlob, aResult, aRv);
   }
 }
 
 void
 URL::CreateObjectURL(const GlobalObject& aGlobal, DOMMediaStream& aStream,
-                     const objectURLOptions& aOptions, nsAString& aResult,
-                     ErrorResult& aRv)
+                     nsAString& aResult, ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  URLMainThread::CreateObjectURL(aGlobal, aStream, aOptions, aResult, aRv);
+
+  DeprecationWarning(aGlobal, nsIDocument::eURLCreateObjectURL_MediaStream);
+
+  URLMainThread::CreateObjectURL(aGlobal, aStream, aResult, aRv);
 }
 
 void
 URL::CreateObjectURL(const GlobalObject& aGlobal, MediaSource& aSource,
-                     const objectURLOptions& aOptions,
-                     nsAString& aResult,
-                     ErrorResult& aRv)
+                     nsAString& aResult, ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  URLMainThread::CreateObjectURL(aGlobal, aSource, aOptions, aResult, aRv);
+  URLMainThread::CreateObjectURL(aGlobal, aSource, aResult, aRv);
 }
 
 void

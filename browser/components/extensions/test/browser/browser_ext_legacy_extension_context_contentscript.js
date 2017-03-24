@@ -27,17 +27,19 @@ add_task(function* test_legacy_extension_context_contentscript_connection() {
     // in a test message.
     let uuid = window.location.hostname;
 
-    browser.test.onMessage.addListener(msg => {
+    browser.test.onMessage.addListener(async msg => {
       if (msg == "open-test-tab") {
-        browser.tabs.create({url: "http://example.com/"})
-          .then(tab => browser.test.sendMessage("get-expected-sender-info", {
-            uuid, tab,
-          }));
+        let tab = await browser.tabs.create({url: "http://example.com/"});
+        browser.test.sendMessage("get-expected-sender-info",
+                                 {uuid, tab});
       } else if (msg == "close-current-tab") {
-        browser.tabs.query({active: true})
-          .then(tabs => browser.tabs.remove(tabs[0].id))
-          .then(() => browser.test.sendMessage("current-tab-closed", true))
-          .catch(() => browser.test.sendMessage("current-tab-closed", false));
+        try {
+          let [tab] = await browser.tabs.query({active: true});
+          await browser.tabs.remove(tab.id);
+          browser.test.sendMessage("current-tab-closed", true);
+        } catch (e) {
+          browser.test.sendMessage("current-tab-closed", false);
+        }
       }
     });
 
@@ -113,14 +115,14 @@ add_task(function* test_legacy_extension_context_contentscript_connection() {
 
   extension.sendMessage("open-test-tab");
 
-  let {uuid, tab} = yield extension.awaitMessage("get-expected-sender-info");
+  let {tab} = yield extension.awaitMessage("get-expected-sender-info");
 
   let {singleMsg, msgSender} = yield waitMessage;
   is(singleMsg, "webextension -> legacy_extension message",
      "Got the expected message");
   ok(msgSender, "Got a message sender object");
 
-  is(msgSender.id, uuid, "The sender has the expected id property");
+  is(msgSender.id, extension.id, "The sender has the expected id property");
   is(msgSender.url, "http://example.com/", "The sender has the expected url property");
   ok(msgSender.tab, "The sender has a tab property");
   is(msgSender.tab.id, tab.id, "The port sender has the expected tab.id");
@@ -133,7 +135,7 @@ add_task(function* test_legacy_extension_context_contentscript_connection() {
   ok(port, "Got the Port API object");
   ok(port.sender, "The port has a sender property");
 
-  is(port.sender.id, uuid, "The port sender has an id property");
+  is(port.sender.id, extension.id, "The port sender has an id property");
   is(port.sender.url, "http://example.com/", "The port sender has the expected url property");
   ok(port.sender.tab, "The port sender has a tab property");
   is(port.sender.tab.id, tab.id, "The port sender has the expected tab.id");

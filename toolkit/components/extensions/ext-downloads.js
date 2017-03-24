@@ -21,7 +21,6 @@ Cu.import("resource://gre/modules/ExtensionUtils.jsm");
 const {
   ignoreEvent,
   normalizeTime,
-  runSafeSync,
   SingletonEventManager,
   PlatformInfo,
 } = ExtensionUtils;
@@ -40,10 +39,10 @@ const DOWNLOAD_ITEM_CHANGE_FIELDS = ["endTime", "state", "paused", "canResume",
 
 // From https://fetch.spec.whatwg.org/#forbidden-header-name
 const FORBIDDEN_HEADERS = ["ACCEPT-CHARSET", "ACCEPT-ENCODING",
-  "ACCESS-CONTROL-REQUEST-HEADERS", "ACCESS-CONTROL-REQUEST-METHOD",
-  "CONNECTION", "CONTENT-LENGTH", "COOKIE", "COOKIE2", "DATE", "DNT",
-  "EXPECT", "HOST", "KEEP-ALIVE", "ORIGIN", "REFERER", "TE", "TRAILER",
-  "TRANSFER-ENCODING", "UPGRADE", "VIA"];
+                           "ACCESS-CONTROL-REQUEST-HEADERS", "ACCESS-CONTROL-REQUEST-METHOD",
+                           "CONNECTION", "CONTENT-LENGTH", "COOKIE", "COOKIE2", "DATE", "DNT",
+                           "EXPECT", "HOST", "KEEP-ALIVE", "ORIGIN", "REFERER", "TE", "TRAILER",
+                           "TRANSFER-ENCODING", "UPGRADE", "VIA"];
 
 const FORBIDDEN_PREFIXES = /^PROXY-|^SEC-/i;
 
@@ -751,7 +750,7 @@ extensions.registerSchemaAPI("downloads", "addon_parent", context => {
           });
           if (Object.keys(changes).length > 0) {
             changes.id = item.id;
-            runSafeSync(context, fire, changes);
+            fire.async(changes);
           }
         };
 
@@ -767,7 +766,7 @@ extensions.registerSchemaAPI("downloads", "addon_parent", context => {
 
       onCreated: new SingletonEventManager(context, "downloads.onCreated", fire => {
         const handler = (what, item) => {
-          runSafeSync(context, fire, item.serialize());
+          fire.async(item.serialize());
         };
         let registerPromise = DownloadMap.getDownloadList().then(() => {
           DownloadMap.on("create", handler);
@@ -781,7 +780,7 @@ extensions.registerSchemaAPI("downloads", "addon_parent", context => {
 
       onErased: new SingletonEventManager(context, "downloads.onErased", fire => {
         const handler = (what, item) => {
-          runSafeSync(context, fire, item.id);
+          fire.async(item.id);
         };
         let registerPromise = DownloadMap.getDownloadList().then(() => {
           DownloadMap.on("erase", handler);

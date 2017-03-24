@@ -175,23 +175,23 @@ if (AppConstants.platform == "win") {
 
 // Test sendNativeMessage()
 add_task(function* test_sendNativeMessage() {
-  function background() {
+  async function background() {
     let MSG = {test: "hello world"};
 
     // Check error handling
-    browser.runtime.sendNativeMessage("nonexistent", MSG).then(() => {
-      browser.test.fail("sendNativeMessage() to a nonexistent app should have failed");
-    }, err => {
-      browser.test.succeed("sendNativeMessage() to a nonexistent app failed");
-    }).then(() => {
-      // Check regular message exchange
-      return browser.runtime.sendNativeMessage("echo", MSG);
-    }).then(reply => {
-      let expected = JSON.stringify(MSG);
-      let received = JSON.stringify(reply);
-      browser.test.assertEq(expected, received, "Received echoed native message");
-      browser.test.sendMessage("finished");
-    });
+    await browser.test.assertRejects(
+      browser.runtime.sendNativeMessage("nonexistent", MSG),
+      /Attempt to postMessage on disconnected port/,
+      "sendNativeMessage() to a nonexistent app failed");
+
+    // Check regular message exchange
+    let reply = await browser.runtime.sendNativeMessage("echo", MSG);
+
+    let expected = JSON.stringify(MSG);
+    let received = JSON.stringify(reply);
+    browser.test.assertEq(expected, received, "Received echoed native message");
+
+    browser.test.sendMessage("finished");
   }
 
   let extension = ExtensionTestUtils.loadExtension({
@@ -363,10 +363,10 @@ add_task(function* test_read_limit() {
 // use native messaging.
 add_task(function* test_ext_permission() {
   function background() {
-    browser.test.assertFalse("connectNative" in chrome.runtime, "chrome.runtime.connectNative does not exist without nativeMessaging permission");
-    browser.test.assertFalse("connectNative" in browser.runtime, "browser.runtime.connectNative does not exist without nativeMessaging permission");
-    browser.test.assertFalse("sendNativeMessage" in chrome.runtime, "chrome.runtime.sendNativeMessage does not exist without nativeMessaging permission");
-    browser.test.assertFalse("sendNativeMessage" in browser.runtime, "browser.runtime.sendNativeMessage does not exist without nativeMessaging permission");
+    browser.test.assertEq(chrome.runtime.connectNative, undefined, "chrome.runtime.connectNative does not exist without nativeMessaging permission");
+    browser.test.assertEq(browser.runtime.connectNative, undefined, "browser.runtime.connectNative does not exist without nativeMessaging permission");
+    browser.test.assertEq(chrome.runtime.sendNativeMessage, undefined, "chrome.runtime.sendNativeMessage does not exist without nativeMessaging permission");
+    browser.test.assertEq(browser.runtime.sendNativeMessage, undefined, "browser.runtime.sendNativeMessage does not exist without nativeMessaging permission");
     browser.test.sendMessage("finished");
   }
 
@@ -475,4 +475,40 @@ add_task(function* test_stderr() {
   notEqual(lines[0], -1, "Saw first line of stderr output on the console");
   notEqual(lines[1], -1, "Saw second line of stderr output on the console");
   notEqual(lines[0], lines[1], "Stderr output lines are separated in the console");
+});
+
+// Test that calling connectNative() multiple times works
+// (bug 1313980 was a previous regression in this area)
+add_task(function* test_multiple_connects() {
+  async function background() {
+    function once() {
+      return new Promise(resolve => {
+        let MSG = "hello";
+        let port = browser.runtime.connectNative("echo");
+
+        port.onMessage.addListener(msg => {
+          browser.test.assertEq(MSG, msg, "Got expected message back");
+          port.disconnect();
+          resolve();
+        });
+        port.postMessage(MSG);
+      });
+    }
+
+    await once();
+    await once();
+    browser.test.notifyPass("multiple-connect");
+  }
+
+  let extension = ExtensionTestUtils.loadExtension({
+    background,
+    manifest: {
+      applications: {gecko: {id: ID}},
+      permissions: ["nativeMessaging"],
+    },
+  });
+
+  yield extension.startup();
+  yield extension.awaitFinish("multiple-connect");
+  yield extension.unload();
 });

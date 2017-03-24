@@ -14,13 +14,12 @@ const EventEmitter = require("devtools/shared/event-emitter");
 const {LocalizationHelper} = require("devtools/shared/l10n");
 const {PluralForm} = require("devtools/shared/plural-form");
 const {template} = require("devtools/shared/gcli/templater");
-const {AutocompletePopup} = require("devtools/client/shared/autocomplete-popup");
-const {KeyShortcuts} = require("devtools/client/shared/key-shortcuts");
+const AutocompletePopup = require("devtools/client/shared/autocomplete-popup");
+const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 const {scrollIntoViewIfNeeded} = require("devtools/client/shared/scroll");
 const {UndoStack} = require("devtools/client/shared/undo");
 const {HTMLTooltip} = require("devtools/client/shared/widgets/tooltip/HTMLTooltip");
-const {PrefObserver} = require("devtools/client/styleeditor/utils");
-const HTMLEditor = require("devtools/client/inspector/markup/views/html-editor");
+const {PrefObserver} = require("devtools/client/shared/prefs");
 const MarkupElementContainer = require("devtools/client/inspector/markup/views/element-container");
 const MarkupReadOnlyContainer = require("devtools/client/inspector/markup/views/read-only-container");
 const MarkupTextContainer = require("devtools/client/inspector/markup/views/text-container");
@@ -71,13 +70,9 @@ function MarkupView(inspector, frame, controllerWindow) {
   this.win = this._frame.contentWindow;
   this.doc = this._frame.contentDocument;
   this._elt = this.doc.querySelector("#root");
-  this.htmlEditor = new HTMLEditor(this.doc);
 
-  try {
-    this.maxChildren = Services.prefs.getIntPref("devtools.markup.pagesize");
-  } catch (ex) {
-    this.maxChildren = DEFAULT_MAX_CHILDREN;
-  }
+  this.maxChildren = Services.prefs.getIntPref("devtools.markup.pagesize",
+                                               DEFAULT_MAX_CHILDREN);
 
   this.collapseAttributes =
     Services.prefs.getBoolPref(ATTR_COLLAPSE_ENABLED_PREF);
@@ -117,13 +112,13 @@ function MarkupView(inspector, frame, controllerWindow) {
   EventEmitter.decorate(this);
 
   // Listening to various events.
-  this._elt.addEventListener("click", this._onMouseClick, false);
-  this._elt.addEventListener("mousemove", this._onMouseMove, false);
-  this._elt.addEventListener("mouseout", this._onMouseOut, false);
+  this._elt.addEventListener("click", this._onMouseClick);
+  this._elt.addEventListener("mousemove", this._onMouseMove);
+  this._elt.addEventListener("mouseout", this._onMouseOut);
   this._elt.addEventListener("blur", this._onBlur, true);
   this.win.addEventListener("mouseup", this._onMouseUp);
   this.win.addEventListener("copy", this._onCopy);
-  this._frame.addEventListener("focus", this._onFocus, false);
+  this._frame.addEventListener("focus", this._onFocus);
   this.walker.on("mutations", this._mutationObserver);
   this.walker.on("display-change", this._onDisplayChange);
   this.inspector.selection.on("new-node-front", this._onNewSelection);
@@ -168,10 +163,14 @@ MarkupView.prototype = {
 
   _initTooltips: function () {
     // The tooltips will be attached to the toolbox document.
-    this.eventDetailsTooltip = new HTMLTooltip(this.toolbox.doc,
-      {type: "arrow"});
-    this.imagePreviewTooltip = new HTMLTooltip(this.toolbox.doc,
-      {type: "arrow", useXulWrapper: "true"});
+    this.eventDetailsTooltip = new HTMLTooltip(this.toolbox.doc, {
+      type: "arrow",
+      consumeOutsideClicks: false,
+    });
+    this.imagePreviewTooltip = new HTMLTooltip(this.toolbox.doc, {
+      type: "arrow",
+      useXulWrapper: true,
+    });
     this._enableImagePreviewTooltip();
   },
 
@@ -423,7 +422,8 @@ MarkupView.prototype = {
    *         requests queued up
    */
   _showBoxModel: function (nodeFront) {
-    return this.toolbox.highlighterUtils.highlightNodeFront(nodeFront);
+    return this.toolbox.highlighterUtils.highlightNodeFront(nodeFront)
+      .catch(this._handleRejectionIfNotDestroyed);
   },
 
   /**
@@ -436,7 +436,8 @@ MarkupView.prototype = {
    *         requests queued up
    */
   _hideBoxModel: function (forceHide) {
-    return this.toolbox.highlighterUtils.unhighlight(forceHide);
+    return this.toolbox.highlighterUtils.unhighlight(forceHide)
+      .catch(this._handleRejectionIfNotDestroyed);
   },
 
   _briefBoxModelTimer: null,
@@ -569,7 +570,9 @@ MarkupView.prototype = {
   _onNewSelection: function () {
     let selection = this.inspector.selection;
 
-    this.htmlEditor.hide();
+    if (this.htmlEditor) {
+      this.htmlEditor.hide();
+    }
     if (this._hoveredNode && this._hoveredNode !== selection.nodeFront) {
       this.getContainer(this._hoveredNode).hovered = false;
       this._hoveredNode = null;
@@ -1044,7 +1047,9 @@ MarkupView.prototype = {
 
       // Since the htmlEditor is absolutely positioned, a mutation may change
       // the location in which it should be shown.
-      this.htmlEditor.refresh();
+      if (this.htmlEditor) {
+        this.htmlEditor.refresh();
+      }
     });
   },
 
@@ -1414,6 +1419,11 @@ MarkupView.prototype = {
       if (!container) {
         return;
       }
+      // Load load and create HTML Editor as it is rarely used and fetch complex deps
+      if (!this.htmlEditor) {
+        let HTMLEditor = require("devtools/client/inspector/markup/views/html-editor");
+        this.htmlEditor = new HTMLEditor(this.doc);
+      }
       this.htmlEditor.show(container.tagLine, oldValue);
       this.htmlEditor.once("popuphidden", (e, commit, value) => {
         // Need to focus the <html> element instead of the frame / window
@@ -1424,6 +1434,8 @@ MarkupView.prototype = {
           this.updateNodeOuterHTML(node, value, oldValue);
         }
       });
+
+      this.emit("begin-editing");
     });
   },
 
@@ -1598,7 +1610,7 @@ MarkupView.prototype = {
       // this container will do double duty as the container for the single
       // text child.
       while (container.children.firstChild) {
-        container.children.removeChild(container.children.firstChild);
+        container.children.firstChild.remove();
       }
 
       container.setInlineTextChild(container.node.inlineTextChild);
@@ -1610,7 +1622,7 @@ MarkupView.prototype = {
 
     if (!container.hasChildren) {
       while (container.children.firstChild) {
-        container.children.removeChild(container.children.firstChild);
+        container.children.firstChild.remove();
       }
       container.childrenDirty = false;
       container.setExpanded(false);
@@ -1653,7 +1665,7 @@ MarkupView.prototype = {
         }
 
         while (container.children.firstChild) {
-          container.children.removeChild(container.children.firstChild);
+          container.children.firstChild.remove();
         }
 
         if (!(children.hasFirst && children.hasLast)) {
@@ -1724,8 +1736,10 @@ MarkupView.prototype = {
 
     this._hoveredNode = null;
 
-    this.htmlEditor.destroy();
-    this.htmlEditor = null;
+    if (this.htmlEditor) {
+      this.htmlEditor.destroy();
+      this.htmlEditor = null;
+    }
 
     this.undo.destroy();
     this.undo = null;
@@ -1733,13 +1747,13 @@ MarkupView.prototype = {
     this.popup.destroy();
     this.popup = null;
 
-    this._elt.removeEventListener("click", this._onMouseClick, false);
-    this._elt.removeEventListener("mousemove", this._onMouseMove, false);
-    this._elt.removeEventListener("mouseout", this._onMouseOut, false);
+    this._elt.removeEventListener("click", this._onMouseClick);
+    this._elt.removeEventListener("mousemove", this._onMouseMove);
+    this._elt.removeEventListener("mouseout", this._onMouseOut);
     this._elt.removeEventListener("blur", this._onBlur, true);
     this.win.removeEventListener("mouseup", this._onMouseUp);
     this.win.removeEventListener("copy", this._onCopy);
-    this._frame.removeEventListener("focus", this._onFocus, false);
+    this._frame.removeEventListener("focus", this._onFocus);
     this.walker.off("mutations", this._mutationObserver);
     this.walker.off("display-change", this._onDisplayChange);
     this.inspector.selection.off("new-node-front", this._onNewSelection);

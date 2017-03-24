@@ -10,6 +10,8 @@ Library('cubeb')
 
 SOURCES += [
     'cubeb.c',
+    'cubeb_log.cpp',
+    'cubeb_mixer.cpp',
     'cubeb_panner.cpp'
 ]
 

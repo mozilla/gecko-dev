@@ -13,7 +13,7 @@
     <link rel="stylesheet"
           type="text/css"
           href="chrome://devtools/content/sourceeditor/codemirror/mozilla.css" />
-    <link rel="stylesheet" type="text/css" href="resource://devtools/client/debugger/new/styles.css" />
+    <link rel="stylesheet" type="text/css" href="resource://devtools/client/debugger/new/debugger.css" />
   </head>
   <body>
     <div id="mount"></div>
@@ -21,11 +21,11 @@
             src="chrome://devtools/content/shared/theme-switching.js"></script>
     <script type="text/javascript">
       const { BrowserLoader } = Components.utils.import("resource://devtools/client/shared/browser-loader.js", {});
-      const { require: devtoolsRequire } = BrowserLoader({
+      const { require } = BrowserLoader({
         baseURI: "resource://devtools/client/debugger/new/",
         window,
       });
+      Debugger = require("devtools/client/debugger/new/debugger");
     </script>
-    <script type="text/javascript" src="resource://devtools/client/debugger/new/bundle.js"></script>
   </body>
 </html>

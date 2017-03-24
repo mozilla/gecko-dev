@@ -138,7 +138,7 @@ EventListenerInfo::GetJSVal(JSContext* aCx,
   nsCOMPtr<JSEventHandler> jsHandler = do_QueryInterface(mListener);
   if (jsHandler && jsHandler->GetTypedEventHandler().HasEventHandler()) {
     JS::Handle<JSObject*> handler =
-      jsHandler->GetTypedEventHandler().Ptr()->Callable();
+      jsHandler->GetTypedEventHandler().Ptr()->CallableOrNull();
     if (handler) {
       aAc.emplace(aCx, handler);
       aJSVal.setObject(*handler);
@@ -206,14 +206,7 @@ EventListenerService::GetListenerInfoFor(nsIDOMEventTarget* aEventTarget,
     return NS_OK;
   }
 
-  *aOutArray =
-    static_cast<nsIEventListenerInfo**>(
-      moz_xmalloc(sizeof(nsIEventListenerInfo*) * count));
-  NS_ENSURE_TRUE(*aOutArray, NS_ERROR_OUT_OF_MEMORY);
-
-  for (int32_t i = 0; i < count; ++i) {
-    NS_ADDREF((*aOutArray)[i] = listenerInfos[i]);
-  }
+  listenerInfos.Forget(aOutArray);
   *aCount = count;
   return NS_OK;
 }

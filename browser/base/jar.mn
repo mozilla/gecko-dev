@@ -4,11 +4,7 @@
 browser.jar:
 %  content browser %content/browser/ contentaccessible=yes
 #ifdef XP_MACOSX
-%  overlay chrome://mozapps/content/downloads/downloads.xul chrome://browser/content/downloadManagerOverlay.xul
 %  overlay chrome://mozapps/content/update/updates.xul chrome://browser/content/softwareUpdateOverlay.xul
-#endif
-#ifdef XP_WIN
-%  overlay chrome://browser/content/browser.xul chrome://browser/content/win6BrowserOverlay.xul os=WINNT osversion>=6
 #endif
 %  overlay chrome://global/content/viewSource.xul chrome://browser/content/viewSourceOverlay.xul
 %  overlay chrome://global/content/viewPartialSource.xul chrome://browser/content/viewSourceOverlay.xul
@@ -56,9 +52,6 @@ browser.jar:
         content/browser/aboutaccounts/aboutaccounts.css                       (content/aboutaccounts/aboutaccounts.css)
         content/browser/aboutaccounts/main.css                                (content/aboutaccounts/main.css)
         content/browser/aboutaccounts/normalize.css                           (content/aboutaccounts/normalize.css)
-        content/browser/aboutaccounts/images/fox.png                          (content/aboutaccounts/images/fox.png)
-        content/browser/aboutaccounts/images/graphic_sync_intro.png           (content/aboutaccounts/images/graphic_sync_intro.png)
-        content/browser/aboutaccounts/images/graphic_sync_intro@2x.png        (content/aboutaccounts/images/graphic_sync_intro@2x.png)
 
 
         content/browser/aboutRobots-icon.png          (content/aboutRobots-icon.png)
@@ -72,10 +65,11 @@ browser.jar:
         content/browser/browser.js                    (content/browser.js)
 *       content/browser/browser.xul                   (content/browser.xul)
         content/browser/browser-addons.js             (content/browser-addons.js)
+        content/browser/browser-captivePortal.js      (content/browser-captivePortal.js)
         content/browser/browser-ctrlTab.js            (content/browser-ctrlTab.js)
         content/browser/browser-customization.js      (content/browser-customization.js)
         content/browser/browser-data-submission-info-bar.js (content/browser-data-submission-info-bar.js)
-        content/browser/browser-devedition.js         (content/browser-devedition.js)
+        content/browser/browser-compacttheme.js       (content/browser-compacttheme.js)
         content/browser/browser-feeds.js              (content/browser-feeds.js)
         content/browser/browser-fullScreenAndPointerLock.js  (content/browser-fullScreenAndPointerLock.js)
         content/browser/browser-fullZoom.js           (content/browser-fullZoom.js)
@@ -100,6 +94,7 @@ browser.jar:
         content/browser/tab-content.js                (content/tab-content.js)
         content/browser/content.js                    (content/content.js)
         content/browser/social-content.js             (content/social-content.js)
+        content/browser/default-theme-icon.svg        (content/default-theme-icon.svg)
         content/browser/defaultthemes/1.footer.jpg    (content/defaultthemes/1.footer.jpg)
         content/browser/defaultthemes/1.header.jpg    (content/defaultthemes/1.header.jpg)
         content/browser/defaultthemes/1.icon.jpg      (content/defaultthemes/1.icon.jpg)
@@ -120,8 +115,9 @@ browser.jar:
         content/browser/defaultthemes/5.header.png    (content/defaultthemes/5.header.png)
         content/browser/defaultthemes/5.icon.jpg      (content/defaultthemes/5.icon.jpg)
         content/browser/defaultthemes/5.preview.jpg   (content/defaultthemes/5.preview.jpg)
-        content/browser/defaultthemes/devedition.header.png   (content/defaultthemes/devedition.header.png)
-        content/browser/defaultthemes/devedition.icon.png     (content/defaultthemes/devedition.icon.png)
+        content/browser/defaultthemes/compact.header.png    (content/defaultthemes/compact.header.png)
+        content/browser/defaultthemes/compactdark.icon.svg  (content/defaultthemes/compactdark.icon.svg)
+        content/browser/defaultthemes/compactlight.icon.svg (content/defaultthemes/compactlight.icon.svg)
         content/browser/gcli_sec_bad.svg              (content/gcli_sec_bad.svg)
         content/browser/gcli_sec_good.svg             (content/gcli_sec_good.svg)
         content/browser/gcli_sec_moderate.svg         (content/gcli_sec_moderate.svg)
@@ -129,6 +125,7 @@ browser.jar:
 *       content/browser/newtab/newTab.js              (content/newtab/newTab.js)
         content/browser/newtab/newTab.css             (content/newtab/newTab.css)
         content/browser/newtab/newTab.inadjacent.json         (content/newtab/newTab.inadjacent.json)
+        content/browser/newtab/alternativeDefaultSites.json   (content/newtab/alternativeDefaultSites.json)
 *       content/browser/pageinfo/pageInfo.xul         (content/pageinfo/pageInfo.xul)
         content/browser/pageinfo/pageInfo.js          (content/pageinfo/pageInfo.js)
         content/browser/pageinfo/pageInfo.css         (content/pageinfo/pageInfo.css)
@@ -141,23 +138,12 @@ browser.jar:
         content/browser/sync/aboutSyncTabs.js         (content/sync/aboutSyncTabs.js)
         content/browser/sync/aboutSyncTabs.css        (content/sync/aboutSyncTabs.css)
         content/browser/sync/aboutSyncTabs-bindings.xml  (content/sync/aboutSyncTabs-bindings.xml)
-        content/browser/sync/setup.xul                (content/sync/setup.xul)
-        content/browser/sync/addDevice.js             (content/sync/addDevice.js)
-        content/browser/sync/addDevice.xul            (content/sync/addDevice.xul)
-        content/browser/sync/setup.js                 (content/sync/setup.js)
-        content/browser/sync/genericChange.xul        (content/sync/genericChange.xul)
-        content/browser/sync/genericChange.js         (content/sync/genericChange.js)
-        content/browser/sync/key.xhtml                (content/sync/key.xhtml)
-        content/browser/sync/utils.js                 (content/sync/utils.js)
-*       content/browser/sync/customize.xul            (content/sync/customize.xul)
-        content/browser/sync/customize.js             (content/sync/customize.js)
-        content/browser/sync/customize.css            (content/sync/customize.css)
         content/browser/safeMode.css                  (content/safeMode.css)
         content/browser/safeMode.js                   (content/safeMode.js)
         content/browser/safeMode.xul                  (content/safeMode.xul)
         content/browser/sanitize.js                   (content/sanitize.js)
-*       content/browser/sanitize.xul                  (content/sanitize.xul)
-*       content/browser/sanitizeDialog.js             (content/sanitizeDialog.js)
+        content/browser/sanitize.xul                  (content/sanitize.xul)
+        content/browser/sanitizeDialog.js             (content/sanitizeDialog.js)
         content/browser/sanitizeDialog.css            (content/sanitizeDialog.css)
         content/browser/contentSearchUI.js            (content/contentSearchUI.js)
         content/browser/contentSearchUI.css           (content/contentSearchUI.css)
@@ -168,22 +154,20 @@ browser.jar:
         content/browser/usercontext.svg               (content/usercontext.svg)
         content/browser/web-panels.js                 (content/web-panels.js)
 *       content/browser/web-panels.xul                (content/web-panels.xul)
+        content/browser/webext-panels.js              (content/webext-panels.js)
+*       content/browser/webext-panels.xul             (content/webext-panels.xul)
 *       content/browser/baseMenuOverlay.xul           (content/baseMenuOverlay.xul)
 *       content/browser/nsContextMenu.js              (content/nsContextMenu.js)
 # XXX: We should exclude this one as well (bug 71895)
 *       content/browser/hiddenWindow.xul              (content/hiddenWindow.xul)
 #ifdef XP_MACOSX
 *       content/browser/macBrowserOverlay.xul         (content/macBrowserOverlay.xul)
-*       content/browser/downloadManagerOverlay.xul    (content/downloadManagerOverlay.xul)
 *       content/browser/softwareUpdateOverlay.xul  (content/softwareUpdateOverlay.xul)
 #endif
 *       content/browser/viewSourceOverlay.xul         (content/viewSourceOverlay.xul)
 #ifndef XP_MACOSX
 *       content/browser/webrtcIndicator.xul           (content/webrtcIndicator.xul)
         content/browser/webrtcIndicator.js            (content/webrtcIndicator.js)
-#endif
-#ifdef XP_WIN
-        content/browser/win6BrowserOverlay.xul        (content/win6BrowserOverlay.xul)
 #endif
 # the following files are browser-specific overrides
 *       content/browser/license.html                  (/toolkit/content/license.html)

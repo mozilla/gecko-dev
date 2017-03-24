@@ -15,6 +15,8 @@
 %define forwardTransitionLength 150ms
 %define conditionalForwardWithUrlbar window:not([chromehidden~="toolbar"]) #urlbar-wrapper
 
+%include ../shared/browser.inc.css
+
 :root {
   --space-above-tabbar: 15px;
 
@@ -24,7 +26,6 @@
   --forwardbutton-width: 25px;
 
   --toolbarbutton-vertical-inner-padding: 2px;
-  --toolbarbutton-vertical-outer-padding: 8px;
 
   --toolbarbutton-hover-background: rgba(0,0,0,.1);
   --toolbarbutton-hover-bordercolor: rgba(0,0,0,.2);
@@ -108,17 +109,9 @@ toolbar:-moz-lwtheme {
   margin-top: var(--space-above-tabbar);
 }
 
-#main-window[customize-entered][tabsintitlebar]:not([inFullscreen]) #toolbar-menubar[customizing-dragovertarget].customization-target::before,
-#main-window[customize-entered][tabsintitlebar]:not([inFullscreen]) #TabsToolbar[customizing-dragovertarget].customization-target::before,
-#main-window[customize-entered][tabsintitlebar]:not([inFullscreen]) #toolbar-menubar.customization-target:hover::before,
-#main-window[customize-entered][tabsintitlebar]:not([inFullscreen]) #TabsToolbar.customization-target:hover::before {
-  outline-color: CaptionText;
-}
-
-#navigator-toolbox {
+#navigator-toolbox,
+#navigator-toolbox > toolbar {
   -moz-appearance: none;
-  background-color: transparent;
-  border-top: none;
 }
 
 #navigator-toolbox::after {
@@ -129,8 +122,7 @@ toolbar:-moz-lwtheme {
 }
 
 @media (-moz-windows-default-theme) {
-  @media (-moz-os-version: windows-vista),
-         (-moz-os-version: windows-win7) {
+  @media (-moz-os-version: windows-win7) {
     #navigator-toolbox::after {
       border-bottom-color: #aabccf;
     }
@@ -148,19 +140,12 @@ toolbar:-moz-lwtheme {
   border-bottom-color: rgba(0,0,0,.3);
 }
 
-#navigator-toolbox > toolbar {
-  -moz-appearance: none;
-  border-style: none;
-}
-
 #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar) {
   background-clip: padding-box;
   background-image: linear-gradient(@toolbarHighlight@, @toolbarHighlight@);
 }
 
-@media (-moz-os-version: windows-xp),
-       (-moz-os-version: windows-vista),
-       (-moz-os-version: windows-win7) {
+@media (-moz-os-version: windows-win7) {
   #nav-bar {
     background-image: linear-gradient(@toolbarHighlight@, transparent) !important;
   }
@@ -187,10 +172,10 @@ toolbar:-moz-lwtheme {
   transition: min-height 170ms ease-out, max-height 170ms ease-out, visibility 170ms linear;
 }
 
-@media not all and (-moz-windows-compositor),
-       not all and (-moz-windows-default-theme) {
+@media (-moz-windows-compositor: 0),
+       (-moz-windows-default-theme: 0) {
   /* Please keep the menu text colors in this media block in sync with
-   * devedition.css, minus the :not(:-moz-lwtheme) condition - see Bug 1165718.
+   * compacttheme.css, minus the :not(:-moz-lwtheme) condition - see Bug 1165718.
    */
   #main-window[tabsintitlebar]:not([inFullscreen]) #toolbar-menubar:not(:-moz-lwtheme),
   #main-window[tabsintitlebar]:not([inFullscreen]) #TabsToolbar:not(:-moz-lwtheme) {
@@ -203,7 +188,7 @@ toolbar:-moz-lwtheme {
   }
 }
 
-@media not all and (-moz-windows-compositor) {
+@media (-moz-windows-compositor: 0) {
   #main-window[tabsintitlebar] #titlebar:-moz-lwtheme {
     visibility: hidden;
   }
@@ -313,64 +298,6 @@ toolbar:-moz-lwtheme {
   }
 }
 
-/* Render a window top border for lwthemes on WinXP modern themes: */
-@media (-moz-windows-theme: luna-blue) {
-  #main-window[tabsintitlebar][sizemode="normal"] > #tab-view-deck > #browser-panel:-moz-lwtheme {
-    background-image: linear-gradient(to bottom,
-        rgb(8, 49, 216) 0, rgb(8, 49, 216) 1px,
-        rgb(15, 77, 227) 1px, rgb(15, 77, 227) 2px,
-        rgb(22, 106, 238) 2px, rgb(22, 106, 238) 3px,
-        rgb(8, 85, 221) 3px, rgb(8, 85, 221) 4px,
-        transparent 4px);
-  }
-
-  #main-window[tabsintitlebar][sizemode="normal"] > #tab-view-deck > #browser-panel:-moz-lwtheme:-moz-window-inactive {
-    background-image: linear-gradient(to bottom,
-        rgb(91, 104, 205) 0, rgb(91, 104, 205) 1px,
-        rgb(116, 128, 220) 1px, rgb(116, 128, 220) 2px,
-        rgb(117, 140, 221) 2px, rgb(117, 140, 221) 4px,
-        transparent 4px);
-  }
-}
-
-@media (-moz-windows-theme: luna-silver) {
-  #main-window[tabsintitlebar][sizemode="normal"] > #tab-view-deck > #browser-panel:-moz-lwtheme {
-    background-image: linear-gradient(to bottom,
-        rgb(102,102,126) 0, rgb(102,102,126) 1px,
-        rgb(168,167,191) 1px, rgb(168,167,191) 2px,
-        white 2px, white 3px,
-        rgb(188,188,207) 3px, rgb(188,188,207) 4px,
-        transparent 4px);
-  }
-
-  #main-window[tabsintitlebar][sizemode="normal"] > #tab-view-deck > #browser-panel:-moz-lwtheme:-moz-window-inactive {
-    background-image: linear-gradient(to bottom,
-        rgb(186,186,197) 0, rgb(186,186,197) 1px,
-        rgb(236,238,245) 1px, rgb(236,238,245) 2px,
-        white 2px, white 3px,
-        rgb(215,215,227) 3px, rgb(215,215,227) 4px,
-        transparent 4px);
-  }
-}
-
-@media (-moz-windows-theme: luna-olive) {
-  #main-window[tabsintitlebar][sizemode="normal"] > #tab-view-deck > #browser-panel:-moz-lwtheme {
-    background-image: linear-gradient(to bottom,
-        rgb(139,161,105) 0, rgb(139,161,105) 1px,
-        rgb(171, 189, 133) 1px, rgb(171, 189, 133) 2px,
-        rgb(164,178,127) 2px, rgb(164,178,127) 3px,
-        transparent 3px);
-  }
-
-  #main-window[tabsintitlebar][sizemode="normal"] > #tab-view-deck > #browser-panel:-moz-lwtheme:-moz-window-inactive {
-    background-image: linear-gradient(to bottom,
-        rgb(207, 214, 188) 0, rgb(207, 214, 188) 1px,
-        rgb(224, 226, 200) 1px, rgb(224, 226, 200) 2px,
-        rgb(214, 216, 190) 2px, rgb(214, 216, 190) 3px,
-        transparent 3px);
-  }
-}
-
 #TabsToolbar:not([collapsed="true"]) + #nav-bar {
   /* Move up into the TabsToolbar for the inner highlight at the top of the nav-bar */
   margin-top: calc(-1 * var(--navbar-tab-toolbar-highlight-overlap));
@@ -383,7 +310,7 @@ toolbar:-moz-lwtheme {
   border-top: 1px solid @toolbarShadowColor@ !important;
   box-shadow: 0 1px 0 @toolbarHighlight@ inset;
 }
-@media not all and (-moz-windows-compositor) {
+@media (-moz-windows-compositor: 0) {
   #TabsToolbar[collapsed="true"] + #nav-bar {
     border-top-style: none !important;
   }
@@ -399,12 +326,6 @@ toolbar:-moz-lwtheme {
 
 #browser-bottombox:not(:-moz-lwtheme) {
   background-color: -moz-dialog;
-}
-
-@media (-moz-os-version: windows-xp) and (-moz-windows-default-theme) {
-  #main-window[tabsintitlebar][sizemode="normal"] #toolbar-menubar {
-    margin-top: 4px;
-  }
 }
 
 /* ::::: titlebar ::::: */
@@ -427,7 +348,7 @@ toolbar:-moz-lwtheme {
  * click and hover mouse events to work properly for the button in the restored
  * window state. Otherwise, elements in the navigator-toolbox, like the menubar,
  * can swallow those events. It will also place the buttons above the fog on
- * themes with Aero Glass.
+ * Windows 7 with Aero Glass.
  */
 #titlebar-buttonbox {
   z-index: 1;
@@ -435,12 +356,6 @@ toolbar:-moz-lwtheme {
 
 .titlebar-placeholder[type="caption-buttons"] {
   margin-left: 22px; /* space needed for Aero Snap */
-}
-
-@media (-moz-os-version: windows-xp) {
-  .titlebar-placeholder[type="caption-buttons"] {
-    margin-left: 10px; /* less space needed on XP because there's no Aero Snap */
-  }
 }
 
 /* titlebar command buttons */
@@ -665,13 +580,6 @@ menuitem.bookmark-item {
 
 %include ../shared/toolbarbuttons.inc.css
 
-@media (-moz-windows-theme: luna-silver) and (max-resolution: 1dppx) {
-  :-moz-any(@primaryToolbarButtons@),
-  #bookmarks-menu-button.toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
-    list-style-image: url("chrome://browser/skin/Toolbar-lunaSilver.png");
-  }
-}
-
 #main-window:not([customizing]) .toolbarbutton-1[disabled=true] > .toolbarbutton-icon,
 #main-window:not([customizing]) .toolbarbutton-1[disabled=true] > .toolbarbutton-menu-dropmarker,
 #main-window:not([customizing]) .toolbarbutton-1[disabled=true] > .toolbarbutton-menubutton-dropmarker,
@@ -712,15 +620,13 @@ toolbar[brighttext] .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
 #nav-bar .toolbarbutton-1,
 #nav-bar .toolbarbutton-1 > .toolbarbutton-menubutton-button {
   -moz-appearance: none;
-  border: none;
   padding: 0;
-  background: none;
 }
 
 #nav-bar .toolbarbutton-1:not([type=menu-button]),
 #nav-bar .toolbarbutton-1 > .toolbarbutton-menubutton-button,
 #nav-bar .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
-  padding: var(--toolbarbutton-vertical-outer-padding) 2px;
+  padding: 0 2px;
   -moz-box-pack: center;
 }
 
@@ -775,10 +681,7 @@ toolbar[brighttext] .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
   max-width: 32px;
 }
 
-@media (-moz-os-version: windows-xp),
-       (-moz-os-version: windows-vista),
-       (-moz-os-version: windows-win7) {
-  /* < Win8 */
+@media (-moz-os-version: windows-win7) {
   :root {
     --toolbarbutton-hover-background: linear-gradient(hsla(0,0%,100%,.6), hsla(0,0%,100%,.1));
     --toolbarbutton-hover-bordercolor: hsla(210,54%,20%,.15) hsla(210,54%,20%,.2) hsla(210,54%,20%,.25);
@@ -822,14 +725,14 @@ toolbar[brighttext] .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
 
 #nav-bar .toolbarbutton-1[type=panel] > .toolbarbutton-icon,
 #nav-bar .toolbarbutton-1[type=panel] > .toolbarbutton-badge-stack,
-#nav-bar .toolbarbutton-1[type=menu]:not(#PanelUI-menu-button):not(#back-button):not(#forward-button) > .toolbarbutton-icon,
+#nav-bar .toolbarbutton-1[type=menu]:not(#PanelUI-menu-button):not(#back-button):not(#forward-button):not(#new-tab-button) > .toolbarbutton-icon,
 #nav-bar .toolbarbutton-1[type=menu]:not(#PanelUI-menu-button) > .toolbarbutton-badge-stack,
 #nav-bar .toolbarbutton-1[type=menu] > .toolbarbutton-text /* hack for add-ons that forcefully display the label */ {
   padding-inline-end: 17px;
 }
 
 #nav-bar .toolbarbutton-1[type=panel] > .toolbarbutton-icon,
-#nav-bar .toolbarbutton-1[type=menu]:not(#PanelUI-menu-button):not(#back-button):not(#forward-button) > .toolbarbutton-icon {
+#nav-bar .toolbarbutton-1[type=menu]:not(#PanelUI-menu-button):not(#back-button):not(#forward-button):not(#new-tab-button) > .toolbarbutton-icon {
   /* horizontal padding + border + icon width */
   max-width: 43px;
 }
@@ -1018,20 +921,6 @@ toolbar[brighttext] .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
   list-style-image: url("chrome://browser/skin/menu-forward.png") !important;
 }
 
-/* undo close tab menu item */
-#alltabs_undoCloseTab {
-  list-style-image: url(chrome://browser/skin/undoCloseTab.png);
-}
-
-@media (min-resolution: 1.1dppx) {
-  #alltabs_undoCloseTab {
-    list-style-image: url(chrome://browser/skin/undoCloseTab@2x.png);
-  }
-  #alltabs_undoCloseTab > .toolbarbutton-icon {
-    width: 16px;
-  }
-}
-
 /* zoom control text (reset) button special case: */
 
 #nav-bar #zoom-reset-button > .toolbarbutton-text {
@@ -1096,9 +985,7 @@ toolbar[brighttext] #close-button {
   list-style-image: url(chrome://browser/skin/caption-buttons.svg#close-white);
 }
 
-@media (-moz-os-version: windows-xp),
-       (-moz-os-version: windows-vista),
-       (-moz-os-version: windows-win7) {
+@media (-moz-os-version: windows-win7) {
   #window-controls {
     margin-inline-start: 4px;
   }
@@ -1106,7 +993,11 @@ toolbar[brighttext] #close-button {
   #minimize-button,
   #restore-button,
   #close-button {
-    list-style-image: url("chrome://global/skin/icons/windowControls.png");
+    /* Important to ensure this applies even on toolbar[brighttext] */
+    list-style-image: url("chrome://global/skin/icons/windowControls.png") !important;
+    /* Also override background color to a avoid hover background styling
+     * leaking through around the image. */
+    background-color: transparent !important;
     padding: 0;
   }
 
@@ -1150,8 +1041,7 @@ toolbar[brighttext] #close-button {
   }
 }
 
-@media (-moz-os-version: windows-vista),
-       (-moz-os-version: windows-win7) {
+@media (-moz-os-version: windows-win7) {
   #window-controls {
     -moz-box-align: start;
   }
@@ -1195,8 +1085,7 @@ toolbar[brighttext] #close-button {
 }
 
 @media (-moz-windows-default-theme) {
-  @media (-moz-os-version: windows-vista),
-         (-moz-os-version: windows-win7),
+  @media (-moz-os-version: windows-win7),
          (-moz-os-version: windows-win8) {
     #main-window:not(:-moz-lwtheme) {
       --urlbar-border-color: hsla(210,54%,20%,.25) hsla(210,54%,20%,.27) hsla(210,54%,20%,.3);
@@ -1233,8 +1122,7 @@ toolbar[brighttext] #close-button {
     border-radius: 1px;
   }
 
-  @media (-moz-os-version: windows-vista),
-         (-moz-os-version: windows-win7),
+  @media (-moz-os-version: windows-win7),
          (-moz-os-version: windows-win8) {
     #urlbar:not(:-moz-lwtheme),
     .searchbar-textbox:not(:-moz-lwtheme) {
@@ -1257,11 +1145,9 @@ toolbar[brighttext] #close-button {
     }
   }
 
-  @media not all and (-moz-os-version: windows-xp) {
-    #urlbar:not(:-moz-lwtheme)[focused],
-    .searchbar-textbox:not(:-moz-lwtheme)[focused] {
-      border-color: Highlight;
-    }
+  #urlbar:not(:-moz-lwtheme)[focused],
+  .searchbar-textbox:not(:-moz-lwtheme)[focused] {
+    border-color: Highlight;
   }
 }
 
@@ -1275,7 +1161,6 @@ toolbar[brighttext] #close-button {
   :root {
     /* let toolbar buttons match the location and search bar's minimum height */
     --toolbarbutton-vertical-inner-padding: 4px;
-    --toolbarbutton-vertical-outer-padding: 5px;
   }
 }
 
@@ -1388,34 +1273,7 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
 
 #urlbar-zoom-button {
   -moz-appearance: none;
-  margin: 0 3px;
-  font-size: .8em;
-  padding: 0 8px;
-  border-radius: 1em;
-  background-color: hsla(0,0%,0%,.05);
   color: inherit;
-  border: 1px solid ThreeDLightShadow;
-}
-
-#urlbar-zoom-button[animate="true"] {
-  animation-name: urlbar-zoom-reset-pulse;
-  animation-duration: 250ms;
-}
-
-#urlbar-zoom-button:hover {
-  background-color: hsla(0,0%,0%,.1);
-}
-
-#urlbar-zoom-button:hover:active {
-  background-color: hsla(0,0%,0%,.15);
-}
-
-#urlbar-zoom-button > .toolbarbutton-text {
-  display: -moz-box;
-}
-
-#urlbar-zoom-button > .toolbarbutton-icon {
-  display: none;
 }
 
 .search-go-container {
@@ -1446,14 +1304,13 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
 }
 
 #urlbar-search-splitter {
-  min-width: 6px;
-  margin-inline-start: -3px;
+  /* The splitter width should equal the location and search bars' combined
+     neighboring margin and border width. */
+  min-width: 8px;
+  margin: 0 -4px;
+  position: relative;
   border: none;
   background: transparent;
-}
-
-#urlbar-search-splitter + #search-container > #searchbar > .searchbar-textbox {
-  margin-inline-start: 0;
 }
 
 .urlbar-display {
@@ -1554,13 +1411,8 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
   border: 1px solid transparent;
 }
 
-.autocomplete-richlistitem[selected=true] {
-  background-color: hsl(210, 80%, 52%);
-}
-
 .ac-title {
   font-size: 14px;
-  color: hsl(0, 0%, 0%);
 }
 
 .ac-tags {
@@ -1568,8 +1420,6 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
 }
 
 html|span.ac-tag {
-  background-color: hsl(216, 0%, 88%);
-  color: hsl(0, 0%, 0%);
   border-radius: 2px;
   border: 1px solid transparent;
   padding: 0 1px;
@@ -1581,54 +1431,55 @@ html|span.ac-tag {
   font-size: 12px;
 }
 
-.ac-separator {
-  color: hsl(0, 0%, 50%);
-}
-
-.ac-url {
-  color: hsl(210, 77%, 47%);
-}
-
-.ac-action {
-  color: hsl(178, 100%, 28%);
-}
-
-.ac-title[selected=true],
-.ac-separator[selected],
-.ac-url[selected=true],
-.ac-action[selected=true] {
-  color: hsl(0, 0%, 100%);
-}
-
-.ac-tags-text[selected] > html|span.ac-tag {
-  background-color: hsl(0, 0%, 100%);
-  color: hsl(210, 80%, 40%);
-}
-
 html|span.ac-emphasize-text-title,
 html|span.ac-emphasize-text-tag,
 html|span.ac-emphasize-text-url {
   font-weight: 600;
 }
 
-@media not all and (-moz-windows-default-theme) {
+@media (-moz-windows-default-theme) {
   .autocomplete-richlistitem[selected=true] {
-    background-color: Highlight;
+    background-color: hsl(210, 80%, 52%);
+    color: hsl(0, 0%, 100%);
   }
 
-  .ac-title {
-    color: inherit;
+  .ac-title:not([selected=true]) {
+    color: hsl(0, 0%, 0%);
+  }
+
+  .ac-separator:not([selected=true]) {
+    color: hsl(0, 0%, 50%);
+  }
+
+  .ac-url:not([selected=true]) {
+    color: hsl(210, 77%, 47%);
+  }
+
+  .ac-action:not([selected=true]) {
+    color: hsl(178, 100%, 28%);
+  }
+
+  html|span.ac-tag {
+    background-color: hsl(216, 0%, 88%);
+    color: hsl(0, 0%, 0%);
+  }
+
+  .ac-tags-text[selected] > html|span.ac-tag {
+    background-color: hsl(0, 0%, 100%);
+    color: hsl(210, 80%, 40%);
+  }
+}
+
+@media (-moz-windows-default-theme: 0) {
+  .ac-separator:not([selected=true]),
+  .ac-url:not([selected=true]),
+  .ac-action:not([selected=true]) {
+    color: -moz-nativehyperlinktext;
   }
 
   html|span.ac-tag {
     background-color: -moz-FieldText;
     color: -moz-Field;
-  }
-
-  .ac-separator,
-  .ac-url,
-  .ac-action {
-    color: -moz-nativehyperlinktext;
   }
 
   .ac-tags-text[selected] > html|span.ac-tag {
@@ -1645,54 +1496,14 @@ html|span.ac-emphasize-text-url {
   list-style-image: url("chrome://browser/skin/urlbar-star.svg#star-inverted");
 }
 
-.autocomplete-treebody::-moz-tree-image(bookmark, treecolAutoCompleteImage) {
-  list-style-image: url("chrome://browser/skin/places/autocomplete-star.png");
-  -moz-image-region: rect(0 16px 16px 0);
-  width: 16px;
-  height: 16px;
-}
-
-@media (min-resolution: 1.1dppx) {
-  .autocomplete-treebody::-moz-tree-image(bookmark, treecolAutoCompleteImage) {
-    list-style-image: url("chrome://browser/skin/places/autocomplete-star@2x.png");
-    -moz-image-region: rect(0 32px 32px 0);
-  }
-}
-
-@media not all and (-moz-os-version: windows-vista) and (-moz-windows-default-theme) {
-  @media not all and (-moz-os-version: windows-win7) and (-moz-windows-default-theme) {
-    .autocomplete-treebody::-moz-tree-image(selected, current, bookmark, treecolAutoCompleteImage) {
-      -moz-image-region: rect(0 32px 16px 16px);
-    }
-
-    @media (min-resolution: 1.1dppx) {
-      .autocomplete-treebody::-moz-tree-image(selected, current, bookmark, treecolAutoCompleteImage) {
-        -moz-image-region: rect(0 64px 32px 32px);
-      }
-    }
-
-    .autocomplete-treebody::-moz-tree-image(keyword, treecolAutoCompleteImage, selected) {
-      list-style-image: url(chrome://global/skin/icons/autocomplete-search.svg#search-icon-inverted);
-    }
-  }
-}
-
 .ac-type-icon[type=keyword],
-.ac-site-icon[type=searchengine],
-.autocomplete-treebody::-moz-tree-image(keyword, treecolAutoCompleteImage) {
+.ac-site-icon[type=searchengine] {
   list-style-image: url(chrome://global/skin/icons/autocomplete-search.svg#search-icon);
 }
 
 .ac-type-icon[type=keyword][selected],
-.ac-site-icon[type=searchengine][selected],
-.autocomplete-treebody::-moz-tree-image(keyword, treecolAutoCompleteImage, selected) {
+.ac-site-icon[type=searchengine][selected] {
   list-style-image: url(chrome://global/skin/icons/autocomplete-search.svg#search-icon-inverted);
-}
-
-.autocomplete-treebody::-moz-tree-image(tag, treecolAutoCompleteImage) {
-  list-style-image: url("chrome://browser/skin/places/tag.png");
-  width: 16px;
-  height: 16px;
 }
 
 .ac-type-icon[type=switchtab],
@@ -2014,9 +1825,7 @@ html|span.ac-emphasize-text-url {
   }
 }
 
-@media (-moz-os-version: windows-xp),
-       (-moz-os-version: windows-vista),
-       (-moz-os-version: windows-win7) {
+@media (-moz-os-version: windows-win7) {
   #sidebar-header > .close-icon {
     padding-top: 4px;
     padding-bottom: 4px;
@@ -2037,39 +1846,28 @@ html|span.ac-emphasize-text-url {
   margin-bottom: calc(-1 * var(--tab-toolbar-navbar-overlap)); /* overlap the nav-bar's top border */
 }
 
-@media (-moz-os-version: windows-xp) and (-moz-windows-default-theme) {
-  #main-window[sizemode=normal] #TabsToolbar {
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-}
-
 %include ../shared/tabs.inc.css
 
 /* Remove border between tab strip and navigation toolbar on Windows 10+ */
-@media not all and (-moz-os-version: windows-xp) {
-  @media not all and (-moz-os-version: windows-vista) {
-    @media not all and (-moz-os-version: windows-win7) {
-      @media not all and (-moz-os-version: windows-win8) {
-        @media (-moz-windows-default-theme) {
-          .tab-background-end[selected=true]::after,
-          .tab-background-start[selected=true]::after {
-            content: none;
-          }
+@media not all and (-moz-os-version: windows-win7) {
+  @media not all and (-moz-os-version: windows-win8) {
+    @media (-moz-windows-default-theme) {
+      .tab-background-end[selected=true]::after,
+      .tab-background-start[selected=true]::after {
+        content: none;
+      }
 
-          #TabsToolbar {
-            --tab-stroke-background-size: 0 0;
-          }
+      #TabsToolbar {
+        --tab-stroke-background-size: 0 0;
+      }
 
-          :root {
-            --tab-toolbar-navbar-overlap: 0px;
-          }
+      :root {
+        --tab-toolbar-navbar-overlap: 0px;
+      }
 
-          #nav-bar {
-            border-top-style: none !important;
-            box-shadow: none;
-          }
-        }
+      #nav-bar {
+        border-top-style: none !important;
+        box-shadow: none;
       }
     }
   }
@@ -2136,7 +1934,7 @@ html|span.ac-emphasize-text-url {
   transition: 1s background-color ease-out;
 }
 
-.tabbrowser-arrowscrollbox > .scrollbutton-down[notifybgtab] {
+.tabbrowser-arrowscrollbox > .scrollbutton-down[highlight] {
   background-color: Highlight;
   transition: none;
 }
@@ -2274,6 +2072,30 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
 
 .addon-install-confirmation-name {
   font-weight: bold;
+}
+
+.addon-webext-perm-header {
+  font-size: 1.3em;
+}
+
+.addon-webext-name {
+  display: inline;
+  font-weight: bold;
+  margin: 0;
+}
+
+.addon-addon-icon {
+  width: 14px;
+  height: 14px;
+  list-style-image: url("chrome://browser/skin/menuPanel.svg");
+  -moz-image-region: rect(0px, 288px, 32px, 256px);
+}
+
+.addon-toolbar-icon {
+  width: 14px;
+  height: 14px;
+  list-style-image: url("chrome://browser/skin/Toolbar.png");
+  -moz-image-region: rect(0, 486px, 18px, 468px);
 }
 
 /* Notification icon box */
@@ -2470,15 +2292,6 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
   background-attachment: fixed;
 }
 
-#main-window[customization-lwtheme] > #tab-view-deck:-moz-lwtheme {
-  background-repeat: no-repeat;
-  background-position: right top;
-  background-attachment: fixed;
-  /* The image will get set from CustomizeMode.jsm */
-  background-image: none;
-  background-color: transparent;
-}
-
 #main-window[customization-lwtheme]:-moz-lwtheme {
   background-image: url("chrome://browser/skin/customizableui/customizeMode-gridTexture.png");
   background-repeat: repeat;
@@ -2554,22 +2367,6 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
   position: relative;
 }
 
-@media (-moz-os-version: windows-xp) {
-  @media not all and (-moz-windows-classic) {
-    #private-browsing-indicator-titlebar > .private-browsing-indicator {
-      background-image: url("chrome://browser/skin/privatebrowsing-mask-titlebar-XPVista7-tall.png");
-      height: 28px;
-    }
-
-    #main-window[sizemode="maximized"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
-      top: -5px;
-    }
-    #main-window[sizemode="normal"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
-      top: -1px;
-    }
-  }
-}
-
 @media (-moz-windows-classic) {
   /**
    * We have to use top instead of background-position in this case, otherwise
@@ -2581,8 +2378,7 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
   }
 }
 
-@media (-moz-os-version: windows-vista),
-       (-moz-os-version: windows-win7) {
+@media (-moz-os-version: windows-win7) {
   @media (-moz-windows-glass) {
     #main-window[sizemode="normal"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
       top: 1px;
@@ -2597,9 +2393,9 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
    * window caption buttons, and therefore needs to be special-cased.
    */
   @media (-moz-windows-default-theme) {
-    @media not all and (-moz-windows-compositor) {
+    @media (-moz-windows-compositor: 0) {
       #main-window[sizemode="normal"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
-        background-image: url("chrome://browser/skin/privatebrowsing-mask-titlebar-XPVista7-tall.png");
+        background-image: url("chrome://browser/skin/privatebrowsing-mask-titlebar-win7-tall.png");
         height: 28px;
       }
     }
@@ -2632,19 +2428,14 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
   margin-top: -4px;
 }
 
-
-@media not all and (-moz-os-version: windows-xp) {
 %include browser-aero.css
-}
 
 .browser-extension-panel > .panel-arrowcontainer > .panel-arrowcontent {
   padding: 0;
   overflow: hidden;
 }
 
-@media (-moz-os-version: windows-xp),
-       (-moz-os-version: windows-vista),
-       (-moz-os-version: windows-win7) {
+@media (-moz-os-version: windows-win7) {
   .cui-widget-panelview[id^=PanelUI-webext-] {
     border-radius: 4px;
   }
@@ -2668,19 +2459,17 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
 
 #ContentSelectDropdown > menupopup > menucaption,
 #ContentSelectDropdown > menupopup > menuitem {
-  padding: 4px 6px;
+  padding: 0 6px;
+  border-width: 0;
+  font: -moz-list;
 }
 
 #ContentSelectDropdown > menupopup > menucaption > .menu-iconic-text,
 #ContentSelectDropdown > menupopup > menuitem > .menu-iconic-text {
-  font: message-box;
-  font-size: 11px;
-  /**
-   * Remove the extra vertical padding set by menu.css since
-   * the menuitem itself will include enough padding.
-   */
-  padding-top: 0px;
-  padding-bottom: 0px;
+  /* Padding should follow the 4/12 ratio, where 12px is the default font-size
+     with 4px being the preferred padding size. */
+  padding-top: .3333em;
+  padding-bottom: .3333em;
 }
 
 #ContentSelectDropdown > menupopup > menucaption > .menu-iconic-text {
@@ -2700,8 +2489,10 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
   color: GrayText;
 }
 
-#ContentSelectDropdown > .isOpenedViaTouch > menucaption,
-#ContentSelectDropdown > .isOpenedViaTouch > menuitem {
-  padding-top: 11px;
-  padding-bottom: 11px;
+#ContentSelectDropdown > .isOpenedViaTouch > menucaption > .menu-iconic-text,
+#ContentSelectDropdown > .isOpenedViaTouch > menuitem > .menu-iconic-text {
+  /* Touch padding should follow the 11/12 ratio, where 12px is the default
+     font-size with 11px being the preferred padding size. */
+  padding-top: .9167em;
+  padding-bottom: .9167em;
 }

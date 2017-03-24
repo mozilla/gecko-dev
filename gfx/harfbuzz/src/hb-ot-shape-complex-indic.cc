@@ -1497,7 +1497,7 @@ final_reordering_syllable (const hb_ot_shape_plan_t *plan,
     if (reph_pos == REPH_POS_AFTER_SUB)
     {
       new_reph_pos = base;
-      while (new_reph_pos < end &&
+      while (new_reph_pos + 1 < end &&
 	     !( FLAG_SAFE (info[new_reph_pos + 1].indic_position()) & (FLAG (POS_POST_C) | FLAG (POS_AFTER_POST) | FLAG (POS_SMVD))))
 	new_reph_pos++;
       if (new_reph_pos < end)
@@ -1713,33 +1713,28 @@ decompose_indic (const hb_ot_shape_normalize_context_t *c,
   switch (ab)
   {
     /* Don't decompose these. */
-    case 0x0931u  : return false;
-    case 0x0B94u  : return false;
+    case 0x0931u  : return false; /* DEVANAGARI LETTER RRA */
+    case 0x0B94u  : return false; /* TAMIL LETTER AU */
 
 
     /*
      * Decompose split matras that don't have Unicode decompositions.
      */
 
-    case 0x0F77u  : *a = 0x0FB2u; *b= 0x0F81u; return true;
-    case 0x0F79u  : *a = 0x0FB3u; *b= 0x0F81u; return true;
+    /* Khmer */
     case 0x17BEu  : *a = 0x17C1u; *b= 0x17BEu; return true;
     case 0x17BFu  : *a = 0x17C1u; *b= 0x17BFu; return true;
     case 0x17C0u  : *a = 0x17C1u; *b= 0x17C0u; return true;
     case 0x17C4u  : *a = 0x17C1u; *b= 0x17C4u; return true;
     case 0x17C5u  : *a = 0x17C1u; *b= 0x17C5u; return true;
-    case 0x1925u  : *a = 0x1920u; *b= 0x1923u; return true;
-    case 0x1926u  : *a = 0x1920u; *b= 0x1924u; return true;
-    case 0x1B3Cu  : *a = 0x1B42u; *b= 0x1B3Cu; return true;
-    case 0x1112Eu  : *a = 0x11127u; *b= 0x11131u; return true;
-    case 0x1112Fu  : *a = 0x11127u; *b= 0x11132u; return true;
+
 #if 0
+    /* Gujarati */
     /* This one has no decomposition in Unicode, but needs no decomposition either. */
     /* case 0x0AC9u  : return false; */
+
+    /* Oriya */
     case 0x0B57u  : *a = no decomp, -> RIGHT; return true;
-    case 0x1C29u  : *a = no decomp, -> LEFT; return true;
-    case 0xA9C0u  : *a = no decomp, -> RIGHT; return true;
-    case 0x111BuF  : *a = no decomp, -> ABOVE; return true;
 #endif
   }
 
@@ -1819,6 +1814,7 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_indic =
   decompose_indic,
   compose_indic,
   setup_masks_indic,
+  NULL, /* disable_otl */
   HB_OT_SHAPE_ZERO_WIDTH_MARKS_NONE,
   false, /* fallback_position */
 };

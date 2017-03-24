@@ -17,6 +17,7 @@
 #include "mozilla/plugins/PluginTypes.h"
 #include "mozilla/ipc/TaskFactory.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/Unused.h"
 #include "npapi.h"
 #include "npfunctions.h"
 #include "nsDataHashtable.h"
@@ -24,24 +25,28 @@
 #include "nsIObserver.h"
 #ifdef XP_WIN
 #include "nsWindowsHelpers.h"
+#if defined(MOZ_SANDBOX)
+#include "sandboxPermissions.h"
 #endif
+#endif
+#include "ProfilerControllingProcess.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #endif
 
-class nsIProfileSaveEvent;
 class nsPluginTag;
 
 namespace mozilla {
-#ifdef MOZ_ENABLE_PROFILER_SPS
-class ProfileGatherer;
-#endif
-namespace dom {
-class PCrashReporterParent;
-class CrashReporterParent;
-} // namespace dom
 
+#ifdef MOZ_GECKO_PROFILER
+class CrossProcessProfilerController;
+#endif
+
+
+namespace ipc {
+class CrashReporterHost;
+} // namespace ipc
 namespace layers {
 class TextureClientRecycleAllocator;
 } // namespace layers
@@ -80,18 +85,16 @@ class FinishInjectorInitTask;
 class PluginModuleParent
     : public PPluginModuleParent
     , public PluginLibrary
+    , public mozilla::ProfilerControllingProcess
 #ifdef MOZ_CRASHREPORTER_INJECTOR
     , public CrashReporter::InjectorCrashCallback
 #endif
 {
 protected:
     typedef mozilla::PluginLibrary PluginLibrary;
-    typedef mozilla::dom::PCrashReporterParent PCrashReporterParent;
-    typedef mozilla::dom::CrashReporterParent CrashReporterParent;
 
     PPluginInstanceParent*
     AllocPPluginInstanceParent(const nsCString& aMimeType,
-                               const uint16_t& aMode,
                                const InfallibleTArray<nsCString>& aNames,
                                const InfallibleTArray<nsCString>& aValues)
                                override;
@@ -144,6 +147,23 @@ public:
 
     int GetQuirks() { return mQuirks; }
 
+    void SendStartProfiler(const ProfilerInitParams& aParams) override
+    {
+        Unused << PPluginModuleParent::SendStartProfiler(aParams);
+    }
+    void SendStopProfiler() override
+    {
+        Unused << PPluginModuleParent::SendStopProfiler();
+    }
+    void SendPauseProfiler(const bool& aPause) override
+    {
+        Unused << PPluginModuleParent::SendPauseProfiler(aPause);
+    }
+    void SendGatherProfile() override
+    {
+        Unused << PPluginModuleParent::SendGatherProfile();
+    }
+
 protected:
     virtual mozilla::ipc::RacyInterruptPolicy
     MediateInterruptRace(const MessageInfo& parent,
@@ -152,56 +172,58 @@ protected:
         return MediateRace(parent, child);
     }
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvBackUpXResources(const FileDescriptor& aXSocketFd) override;
 
-    virtual bool AnswerProcessSomeEvents() override;
+    virtual mozilla::ipc::IPCResult AnswerProcessSomeEvents() override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvProcessNativeEventsInInterruptCall() override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvPluginShowWindow(const uint32_t& aWindowId, const bool& aModal,
                          const int32_t& aX, const int32_t& aY,
                          const size_t& aWidth, const size_t& aHeight) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvPluginHideWindow(const uint32_t& aWindowId) override;
 
-    virtual PCrashReporterParent*
-    AllocPCrashReporterParent(mozilla::dom::NativeThreadId* id,
-                              uint32_t* processType) override;
-    virtual bool
-    DeallocPCrashReporterParent(PCrashReporterParent* actor) override;
-
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvSetCursor(const NSCursorInfo& aCursorInfo) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvShowCursor(const bool& aShow) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvPushCursor(const NSCursorInfo& aCursorInfo) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvPopCursor() override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvNPN_SetException(const nsCString& aMessage) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvNPN_ReloadPlugins(const bool& aReloadPages) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvNP_InitializeResult(const NPError& aError) override;
 
     static BrowserStreamParent* StreamCast(NPP instance, NPStream* s,
                                            PluginAsyncSurrogate** aSurrogate = nullptr);
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     AnswerNPN_SetValue_NPPVpluginRequiresAudioDeviceChanges(
                                         const bool& shouldRegister,
                                         NPError* result) override;
+
+    virtual mozilla::ipc::IPCResult
+    AnswerGetFileName(const GetFileNameFunc& aFunc,
+                      const OpenFileNameIPC& aOfnIn,
+                      OpenFileNameRetIPC* aOfnOut, bool* aResult) override
+    {
+      return IPC_FAIL_NO_REASON(this);
+    }
 
 protected:
     void SetChildTimeout(const int32_t aChildTimeout);
@@ -209,21 +231,21 @@ protected:
 
     virtual void UpdatePluginTimeout() {}
 
-    virtual bool RecvNotifyContentModuleDestroyed() override { return true; }
+    virtual mozilla::ipc::IPCResult RecvNotifyContentModuleDestroyed() override { return IPC_OK(); }
 
-    virtual bool RecvProfile(const nsCString& aProfile) override { return true; }
+    virtual mozilla::ipc::IPCResult RecvProfile(const nsCString& aProfile) override { return IPC_OK(); }
 
-    virtual bool AnswerGetKeyState(const int32_t& aVirtKey, int16_t* aRet) override;
+    virtual mozilla::ipc::IPCResult AnswerGetKeyState(const int32_t& aVirtKey, int16_t* aRet) override;
 
-    virtual bool RecvReturnClearSiteData(const NPError& aRv,
-                                         const uint64_t& aCallbackId) override;
+    virtual mozilla::ipc::IPCResult RecvReturnClearSiteData(const NPError& aRv,
+                                                            const uint64_t& aCallbackId) override;
 
-    virtual bool RecvReturnSitesWithData(nsTArray<nsCString>&& aSites,
-                                         const uint64_t& aCallbackId) override;
+    virtual mozilla::ipc::IPCResult RecvReturnSitesWithData(nsTArray<nsCString>&& aSites,
+                                                            const uint64_t& aCallbackId) override;
 
     void SetPluginFuncs(NPPluginFuncs* aFuncs);
 
-    nsresult NPP_NewInternal(NPMIMEType pluginType, NPP instance, uint16_t mode,
+    nsresult NPP_NewInternal(NPMIMEType pluginType, NPP instance,
                              InfallibleTArray<nsCString>& names,
                              InfallibleTArray<nsCString>& values,
                              NPSavedData* saved, NPError* error);
@@ -291,7 +313,7 @@ protected:
     virtual nsresult NP_GetEntryPoints(NPPluginFuncs* pFuncs, NPError* error) override;
 #endif
     virtual nsresult NPP_New(NPMIMEType pluginType, NPP instance,
-                             uint16_t mode, int16_t argc, char* argn[],
+                             int16_t argc, char* argn[],
                              char* argv[], NPSavedData* saved,
                              NPError* error) override;
     virtual nsresult NPP_ClearSiteData(const char* site, uint64_t flags, uint64_t maxAge,
@@ -317,7 +339,8 @@ public:
 
     void InitAsyncSurrogates();
 
-    layers::TextureClientRecycleAllocator* EnsureTextureAllocator();
+    layers::TextureClientRecycleAllocator* EnsureTextureAllocatorForDirectBitmap();
+    layers::TextureClientRecycleAllocator* EnsureTextureAllocatorForDXGISurface();
 
 protected:
     void NotifyFlashHang();
@@ -338,10 +361,7 @@ protected:
     NPPluginFuncs* mNPPIface;
     nsNPAPIPlugin* mPlugin;
     ipc::TaskFactory<PluginModuleParent> mTaskFactory;
-    nsString mPluginDumpID;
-    nsString mBrowserDumpID;
     nsString mHangID;
-    RefPtr<nsIObserver> mProfilerObserver;
     TimeDuration mTimeBlocked;
     nsCString mPluginName;
     nsCString mPluginVersion;
@@ -357,7 +377,6 @@ protected:
     bool
     GetPluginDetails();
 
-    friend class mozilla::dom::CrashReporterParent;
     friend class mozilla::plugins::PluginAsyncSurrogate;
 
     bool              mIsStartingAsync;
@@ -367,7 +386,19 @@ protected:
     nsresult          mAsyncNewRv;
     uint32_t          mRunID;
 
-    RefPtr<layers::TextureClientRecycleAllocator> mTextureAllocator;
+    RefPtr<layers::TextureClientRecycleAllocator> mTextureAllocatorForDirectBitmap;
+    RefPtr<layers::TextureClientRecycleAllocator> mTextureAllocatorForDXGISurface;
+
+#ifdef MOZ_CRASHREPORTER
+    /**
+     * This mutex protects the crash reporter when the Plugin Hang UI event
+     * handler is executing off main thread. It is intended to protect both
+     * the mCrashReporter variable in addition to the CrashReporterHost object
+     * that mCrashReporter refers to.
+     */
+    mozilla::Mutex mCrashReporterMutex;
+    UniquePtr<ipc::CrashReporterHost> mCrashReporter;
+#endif // MOZ_CRASHREPORTER
 };
 
 class PluginModuleContentParent : public PluginModuleParent
@@ -377,10 +408,10 @@ class PluginModuleContentParent : public PluginModuleParent
 
     static PluginLibrary* LoadModule(uint32_t aPluginId, nsPluginTag* aPluginTag);
 
-    static PluginModuleContentParent* Initialize(mozilla::ipc::Transport* aTransport,
-                                                 base::ProcessId aOtherProcess);
+    static void OnLoadPluginResult(const uint32_t& aPluginId,
+                                   const bool& aResult,
+                                   Endpoint<PPluginModuleParent>&& aEndpoint);
 
-    static void OnLoadPluginResult(const uint32_t& aPluginId, const bool& aResult);
     static void AssociatePluginId(uint32_t aPluginId, base::ProcessId aProcessId);
 
     virtual ~PluginModuleContentParent();
@@ -390,6 +421,8 @@ class PluginModuleContentParent : public PluginModuleParent
 #endif
 
   private:
+    static void Initialize(Endpoint<PPluginModuleParent>&& aEndpoint);
+
     virtual bool ShouldContinueFromReplyTimeout() override;
     virtual void OnExitedSyncSend() override;
 
@@ -406,6 +439,7 @@ class PluginModuleChromeParent
     : public PluginModuleParent
     , public mozilla::HangMonitor::Annotator
 {
+    friend class mozilla::ipc::CrashReporterHost;
   public:
     /**
      * LoadModule
@@ -481,7 +515,7 @@ class PluginModuleChromeParent
 
     virtual bool WaitForIPCConnection() override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvNP_InitializeResult(const NPError& aError) override;
 
     void
@@ -492,18 +526,17 @@ class PluginModuleChromeParent
 
     void CachedSettingChanged();
 
-#ifdef  MOZ_ENABLE_PROFILER_SPS
-    void GatherAsyncProfile();
-    void GatheredAsyncProfile(nsIProfileSaveEvent* aSaveEvent);
-    void StartProfiler(nsIProfilerStartParams* aParams);
-    void StopProfiler();
-#endif
-
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvProfile(const nsCString& aProfile) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     AnswerGetKeyState(const int32_t& aVirtKey, int16_t* aRet) override;
+
+    // Proxy GetOpenFileName/GetSaveFileName on Windows.
+    virtual mozilla::ipc::IPCResult
+    AnswerGetFileName(const GetFileNameFunc& aFunc,
+                      const OpenFileNameIPC& aOfnIn,
+                      OpenFileNameRetIPC* aOfnOut, bool* aResult) override;
 
 private:
     virtual void
@@ -522,14 +555,8 @@ private:
 
 #ifdef MOZ_CRASHREPORTER
     void ProcessFirstMinidump();
-    void WriteExtraDataForMinidump(CrashReporter::AnnotationTable& notes);
+    void WriteExtraDataForMinidump();
 #endif
-
-    virtual PCrashReporterParent*
-    AllocPCrashReporterParent(mozilla::dom::NativeThreadId* id,
-                              uint32_t* processType) override;
-    virtual bool
-    DeallocPCrashReporterParent(PCrashReporterParent* actor) override;
 
     PluginProcessParent* Process() const { return mSubprocess; }
     base::ProcessHandle ChildProcessHandle() { return mSubprocess->GetChildProcessHandle(); }
@@ -551,25 +578,20 @@ private:
                                       int32_t aSandboxLevel,
                                       bool aAllowAsyncInit);
 
-    CrashReporterParent* CrashReporter();
-
     void CleanupFromTimeout(const bool aByHangUI);
 
     virtual void UpdatePluginTimeout() override;
 
-#ifdef MOZ_ENABLE_PROFILER_SPS
-    void InitPluginProfiling();
-    void ShutdownPluginProfiling();
-#endif
-
     void RegisterSettingsCallbacks();
     void UnregisterSettingsCallbacks();
 
-    virtual bool RecvNotifyContentModuleDestroyed() override;
+    bool InitCrashReporter();
+
+    virtual mozilla::ipc::IPCResult RecvNotifyContentModuleDestroyed() override;
 
     static void CachedSettingChanged(const char* aPref, void* aModule);
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     AnswerNPN_SetValue_NPPVpluginRequiresAudioDeviceChanges(
                                         const bool& shouldRegister,
                                         NPError* result) override;
@@ -592,17 +614,6 @@ private:
     PluginHangUIParent *mHangUIParent;
     bool mHangUIEnabled;
     bool mIsTimerReset;
-#ifdef MOZ_CRASHREPORTER
-    /**
-     * This mutex protects the crash reporter when the Plugin Hang UI event
-     * handler is executing off main thread. It is intended to protect both
-     * the mCrashReporter variable in addition to the CrashReporterParent object
-     * that mCrashReporter refers to.
-     */
-    mozilla::Mutex mCrashReporterMutex;
-    CrashReporterParent* mCrashReporter;
-#endif // MOZ_CRASHREPORTER
-
 
     /**
      * Launches the Plugin Hang UI.
@@ -621,7 +632,6 @@ private:
     FinishHangUI();
 #endif
 
-    friend class mozilla::dom::CrashReporterParent;
     friend class mozilla::plugins::PluginAsyncSurrogate;
 
 #ifdef MOZ_CRASHREPORTER_INJECTOR
@@ -670,12 +680,14 @@ private:
     // processes in existence!
     dom::ContentParent* mContentParent;
     nsCOMPtr<nsIObserver> mPluginOfflineObserver;
-#ifdef MOZ_ENABLE_PROFILER_SPS
-    RefPtr<mozilla::ProfileGatherer> mGatherer;
+#ifdef MOZ_GECKO_PROFILER
+    UniquePtr<CrossProcessProfilerController> mProfilerController;
 #endif
-    nsCString mProfile;
     bool mIsBlocklisted;
     static bool sInstantiated;
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+    mozilla::SandboxPermissions mSandboxPermissions;
+#endif
 };
 
 } // namespace plugins

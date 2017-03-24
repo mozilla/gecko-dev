@@ -17,14 +17,12 @@ const moz_anno_favicon_prefix = "moz-anno:favicon:";
 
 // streamListener
 
-function streamListener(aExpectedContentType)
-{
+function streamListener(aExpectedContentType) {
   this._expectedContentType = aExpectedContentType;
 }
 streamListener.prototype =
 {
-  onStartRequest: function(aRequest, aContext)
-  {
+  onStartRequest(aRequest, aContext) {
     // We have other tests that make sure the data is what we expect.  We just
     // need to check the content type here.
     let channel = aRequest.QueryInterface(Ci.nsIChannel);
@@ -35,25 +33,20 @@ streamListener.prototype =
     // we do this for extra sanity.
     this._checked = true;
   },
-  onStopRequest: function()
-  {
+  onStopRequest() {
     do_check_true(this._checked);
     do_test_finished();
   },
-  onDataAvailable: function(aRequest, aContext, aInputStream, aOffset, aCount)
-  {
+  onDataAvailable(aRequest, aContext, aInputStream, aOffset, aCount) {
     aRequest.cancel(Cr.NS_ERROR_ABORT);
   }
 };
 
 // Test Runner
 
-function run_test()
-{
+function run_test() {
   let fs = Cc["@mozilla.org/browser/favicon-service;1"].
            getService(Ci.nsIFaviconService);
-  let ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
 
   // Test that the default icon has the content type of image/png.
   let channel = NetUtil.newChannel({

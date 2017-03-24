@@ -10,6 +10,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.TextViewCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewStub;
@@ -17,11 +18,11 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import org.json.JSONObject;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.util.GeckoBundle;
 
 import java.util.Locale;
 
@@ -39,10 +40,10 @@ public abstract class DoorHanger extends LinearLayout {
     }
 
     // Doorhanger types created from Gecko are checked against enum strings to determine type.
-    public static enum Type { DEFAULT, LOGIN, TRACKING, GEOLOCATION, DESKTOPNOTIFICATION2, WEBRTC, VIBRATION }
+    public static enum Type { DEFAULT, LOGIN, TRACKING, GEOLOCATION, DESKTOPNOTIFICATION2, WEBRTC, VIBRATION, FLYWEBPUBLISHSERVER }
 
     public interface OnButtonClickListener {
-        public void onButtonClick(JSONObject response, DoorHanger doorhanger);
+        public void onButtonClick(GeckoBundle response, DoorHanger doorhanger);
     }
 
     private static final String LOGTAG = "GeckoDoorHanger";
@@ -110,15 +111,15 @@ public abstract class DoorHanger extends LinearLayout {
 
     protected abstract void loadConfig(DoorhangerConfig config);
 
-    protected void setOptions(final JSONObject options) {
-        final int persistence = options.optInt("persistence");
+    protected void setOptions(final GeckoBundle options) {
+        final int persistence = options.getInt("persistence");
         if (persistence > 0) {
             mPersistenceCount = persistence;
         }
 
-        mPersistWhileVisible = options.optBoolean("persistWhileVisible");
+        mPersistWhileVisible = options.getBoolean("persistWhileVisible");
 
-        final long timeout = options.optLong("timeout");
+        final long timeout = (long) options.getDouble("timeout");
         if (timeout > 0) {
             mTimeout = timeout;
         }
@@ -207,7 +208,7 @@ public abstract class DoorHanger extends LinearLayout {
 
     public void showTitle(Bitmap favicon, String title) {
         mDoorhangerTitle.setText(title);
-        mDoorhangerTitle.setCompoundDrawablesWithIntrinsicBounds(new BitmapDrawable(getResources(), favicon), null, null, null);
+        TextViewCompat.setCompoundDrawablesRelativeWithIntrinsicBounds(mDoorhangerTitle, new BitmapDrawable(getResources(), favicon), null, null, null);
         if (favicon != null) {
             mDoorhangerTitle.setCompoundDrawablePadding((int) mContext.getResources().getDimension(R.dimen.doorhanger_drawable_padding));
         }

@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/PContent.h"
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
@@ -60,11 +60,22 @@
     return NS_ERROR_NOT_AVAILABLE;                                             \
   }                                                                            \
 } while (0);
+class WatchinPrefRAII {
+public:
+  WatchinPrefRAII() {
+    pref_SetWatchingPref(true);
+  }
+  ~WatchinPrefRAII() {
+    pref_SetWatchingPref(false);
+  }
+};
+#define WATCHING_PREF_RAII() WatchinPrefRAII watchingPrefRAII
 #else
 #define ENSURE_MAIN_PROCESS(message, pref)                                     \
   if (MOZ_UNLIKELY(!XRE_IsParentProcess())) {        \
     return NS_ERROR_NOT_AVAILABLE;                                             \
   }
+#define WATCHING_PREF_RAII()
 #endif
 
 class PrefCallback;
@@ -546,6 +557,14 @@ NS_INTERFACE_MAP_END
  * nsIPrefService Implementation
  */
 
+InfallibleTArray<Preferences::PrefSetting>* gInitPrefs;
+
+/*static*/
+void
+Preferences::SetInitPreferences(nsTArray<PrefSetting>* aPrefs) {
+  gInitPrefs = new InfallibleTArray<PrefSetting>(mozilla::Move(*aPrefs));
+}
+
 nsresult
 Preferences::Init()
 {
@@ -557,15 +576,13 @@ Preferences::Init()
   rv = pref_InitInitialObjects();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  using mozilla::dom::ContentChild;
   if (XRE_IsContentProcess()) {
-    InfallibleTArray<PrefSetting> prefs;
-    ContentChild::GetSingleton()->SendReadPrefsArray(&prefs);
-
-    // Store the array
-    for (uint32_t i = 0; i < prefs.Length(); ++i) {
-      pref_SetPref(prefs[i]);
+    MOZ_ASSERT(gInitPrefs);
+    for (unsigned int i = 0; i < gInitPrefs->Length(); i++) {
+      Preferences::SetPreference(gInitPrefs->ElementAt(i));
     }
+    delete gInitPrefs;
+    gInitPrefs = nullptr;
     return NS_OK;
   }
 
@@ -779,6 +796,20 @@ Preferences::GetPreferences(InfallibleTArray<PrefSetting>* aPrefs)
     pref_GetPrefFromEntry(entry, pref);
   }
 }
+
+#ifdef DEBUG
+void
+Preferences::SetInitPhase(pref_initPhase phase)
+{
+  pref_SetInitPhase(phase);
+}
+
+pref_initPhase
+Preferences::InitPhase()
+{
+  return pref_GetInitPhase();
+}
+#endif
 
 NS_IMETHODIMP
 Preferences::GetBranch(const char *aPrefRoot, nsIPrefBranch **_retval)
@@ -1718,6 +1749,7 @@ Preferences::RegisterCallbackAndCall(PrefChangedFunc aCallback,
                                      void* aClosure,
                                      MatchKind aMatchKind)
 {
+  WATCHING_PREF_RAII();
   nsresult rv = RegisterCallback(aCallback, aPref, aClosure, aMatchKind);
   if (NS_SUCCEEDED(rv)) {
     (*aCallback)(aPref, aClosure);
@@ -1765,6 +1797,7 @@ Preferences::AddBoolVarCache(bool* aCache,
                              const char* aPref,
                              bool aDefault)
 {
+  WATCHING_PREF_RAII();
   NS_ASSERTION(aCache, "aCache must not be NULL");
 #ifdef DEBUG
   AssertNotAlreadyCached("bool", aPref, aCache);
@@ -1790,6 +1823,7 @@ Preferences::AddIntVarCache(int32_t* aCache,
                             const char* aPref,
                             int32_t aDefault)
 {
+  WATCHING_PREF_RAII();
   NS_ASSERTION(aCache, "aCache must not be NULL");
 #ifdef DEBUG
   AssertNotAlreadyCached("int", aPref, aCache);
@@ -1815,6 +1849,7 @@ Preferences::AddUintVarCache(uint32_t* aCache,
                              const char* aPref,
                              uint32_t aDefault)
 {
+  WATCHING_PREF_RAII();
   NS_ASSERTION(aCache, "aCache must not be NULL");
 #ifdef DEBUG
   AssertNotAlreadyCached("uint", aPref, aCache);
@@ -1842,6 +1877,7 @@ Preferences::AddAtomicUintVarCache(Atomic<uint32_t, Order>* aCache,
                                    const char* aPref,
                                    uint32_t aDefault)
 {
+  WATCHING_PREF_RAII();
   NS_ASSERTION(aCache, "aCache must not be NULL");
 #ifdef DEBUG
   AssertNotAlreadyCached("uint", aPref, aCache);
@@ -1874,6 +1910,7 @@ Preferences::AddFloatVarCache(float* aCache,
                              const char* aPref,
                              float aDefault)
 {
+  WATCHING_PREF_RAII();
   NS_ASSERTION(aCache, "aCache must not be NULL");
 #ifdef DEBUG
   AssertNotAlreadyCached("float", aPref, aCache);

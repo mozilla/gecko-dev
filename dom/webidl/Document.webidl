@@ -17,6 +17,9 @@ enum VisibilityState { "hidden", "visible", "prerender" };
 /* https://dom.spec.whatwg.org/#dictdef-elementcreationoptions */
 dictionary ElementCreationOptions {
   DOMString is;
+
+  [ChromeOnly]
+  DOMString pseudo;
 };
 
 /* http://dom.spec.whatwg.org/#interface-document */
@@ -24,9 +27,9 @@ dictionary ElementCreationOptions {
 interface Document : Node {
   [Throws]
   readonly attribute DOMImplementation implementation;
-  [Pure, Throws]
+  [Pure, Throws, BinaryName="documentURIFromJS", NeedsCallerType]
   readonly attribute DOMString URL;
-  [Pure, Throws]
+  [Pure, Throws, BinaryName="documentURIFromJS", NeedsCallerType]
   readonly attribute DOMString documentURI;
   [Pure]
   readonly attribute DOMString compatMode;
@@ -55,7 +58,7 @@ interface Document : Node {
   [NewObject, Throws]
   Element createElement(DOMString localName, optional (ElementCreationOptions or DOMString) options);
   [NewObject, Throws]
-  Element createElementNS(DOMString? namespace, DOMString qualifiedName, optional ElementCreationOptions options);
+  Element createElementNS(DOMString? namespace, DOMString qualifiedName, optional (ElementCreationOptions or DOMString) options);
   [NewObject]
   DocumentFragment createDocumentFragment();
   [NewObject]
@@ -152,9 +155,6 @@ partial interface Document {
 
   // Gecko extensions?
                 attribute EventHandler onwheel;
-                attribute EventHandler oncopy;
-                attribute EventHandler oncut;
-                attribute EventHandler onpaste;
                 attribute EventHandler onbeforescriptexecute;
                 attribute EventHandler onafterscriptexecute;
 
@@ -232,9 +232,9 @@ partial interface Document {
   readonly attribute boolean fullscreen;
   [BinaryName="fullscreen"]
   readonly attribute boolean mozFullScreen;
-  [LenientSetter, Func="nsDocument::IsUnprefixedFullscreenEnabled"]
+  [LenientSetter, Func="nsDocument::IsUnprefixedFullscreenEnabled", NeedsCallerType]
   readonly attribute boolean fullscreenEnabled;
-  [BinaryName="fullscreenEnabled"]
+  [BinaryName="fullscreenEnabled", NeedsCallerType]
   readonly attribute boolean mozFullScreenEnabled;
   [LenientSetter, Func="nsDocument::IsUnprefixedFullscreenEnabled"]
   readonly attribute Element? fullscreenElement;
@@ -257,11 +257,7 @@ partial interface Document {
 // https://w3c.github.io/pointerlock/#extensions-to-the-documentorshadowroot-mixin
 partial interface Document {
   readonly attribute Element? pointerLockElement;
-  [BinaryName="pointerLockElement", Pref="pointer-lock-api.prefixed.enabled"]
-  readonly attribute Element? mozPointerLockElement;
   void exitPointerLock();
-  [BinaryName="exitPointerLock", Pref="pointer-lock-api.prefixed.enabled"]
-  void mozExitPointerLock();
 
   // Event handlers
   attribute EventHandler onpointerlockchange;
@@ -386,6 +382,10 @@ partial interface Document {
 
   [ChromeOnly] readonly attribute nsILoadGroup? documentLoadGroup;
 
+  // Blocks the initial document parser until the given promise is settled.
+  [ChromeOnly, Throws]
+  Promise<any> blockParsing(Promise<any> promise);
+
   // like documentURI, except that for error pages, it returns the URI we were
   // trying to load when we hit an error, rather than the error page's own URI.
   [ChromeOnly] readonly attribute URI? mozDocumentURIIfNotForErrorPages;
@@ -443,8 +443,23 @@ partial interface Document {
   [Func="IsChromeOrXBL"] readonly attribute boolean inlineScriptAllowedByCSP;
 };
 
+// For more information on Flash classification, see
+// toolkit/components/url-classifier/flash-block-lists.rst
+enum FlashClassification {
+  "unclassified",   // Denotes a classification that has not yet been computed.
+                    // Allows for lazy classification.
+  "unknown",        // Site is not on the whitelist or blacklist
+  "allowed",        // Site is on the Flash whitelist
+  "denied"          // Site is on the Flash blacklist
+};
+partial interface Document {
+  [ChromeOnly]
+  readonly attribute FlashClassification documentFlashClassification;
+};
+
 Document implements XPathEvaluator;
 Document implements GlobalEventHandlers;
+Document implements DocumentAndElementEventHandlers;
 Document implements TouchEventHandlers;
 Document implements ParentNode;
 Document implements OnErrorEventHandlerForNodes;

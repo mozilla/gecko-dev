@@ -7,18 +7,19 @@
 #if !defined(WMFVideoMFTManager_h_)
 #define WMFVideoMFTManager_h_
 
-#include "WMF.h"
 #include "MFTDecoder.h"
-#include "nsAutoPtr.h"
-#include "nsRect.h"
+#include "WMF.h"
 #include "WMFMediaDataDecoder.h"
 #include "mozilla/RefPtr.h"
+#include "nsAutoPtr.h"
+#include "nsRect.h"
 
 namespace mozilla {
 
 class DXVA2Manager;
 
-class WMFVideoMFTManager : public MFTManager {
+class WMFVideoMFTManager : public MFTManager
+{
 public:
   WMFVideoMFTManager(const VideoInfo& aConfig,
                      layers::KnowsCompositor* aKnowsCompositor,
@@ -36,15 +37,13 @@ public:
 
   bool IsHardwareAccelerated(nsACString& aFailureReason) const override;
 
-  TrackInfo::TrackType GetType() override {
-    return TrackInfo::kVideoTrack;
-  }
+  TrackInfo::TrackType GetType() override { return TrackInfo::kVideoTrack; }
 
   const char* GetDescriptionName() const override
   {
     nsCString failureReason;
-    return IsHardwareAccelerated(failureReason)
-      ? "wmf hardware video decoder" : "wmf software video decoder";
+    return IsHardwareAccelerated(failureReason) ? "wmf hardware video decoder"
+                                                : "wmf software video decoder";
   }
 
   void Flush() override
@@ -60,15 +59,19 @@ public:
     mDraining = true;
   }
 
-private:
+  MediaDataDecoder::ConversionRequired NeedsConversion() const override
+  {
+    return mStreamType == H264
+           ? MediaDataDecoder::ConversionRequired::kNeedAnnexB
+           : MediaDataDecoder::ConversionRequired::kNeedNone;
+  }
 
+private:
   bool ValidateVideoInfo();
 
-  bool InitializeDXVA(bool aForceD3D9);
+  bool InitializeDXVA();
 
-  bool InitInternal(bool aForceD3D9);
-
-  HRESULT ConfigureVideoFrameGeometry();
+  bool InitInternal();
 
   HRESULT CreateBasicVideoFrame(IMFSample* aSample,
                                 int64_t aStreamOffset,
@@ -83,15 +86,14 @@ private:
   bool CanUseDXVA(IMFMediaType* aType);
 
   // Video frame geometry.
-  VideoInfo mVideoInfo;
+  const VideoInfo mVideoInfo;
+  const nsIntSize mImageSize;
   uint32_t mVideoStride;
-  nsIntSize mImageSize;
 
   RefPtr<layers::ImageContainer> mImageContainer;
   RefPtr<layers::KnowsCompositor> mKnowsCompositor;
   nsAutoPtr<DXVA2Manager> mDXVA2Manager;
 
-  RefPtr<IMFSample> mLastInput;
   float mLastDuration;
   int64_t mLastTime = 0;
   bool mDraining = false;
@@ -102,7 +104,8 @@ private:
 
   nsCString mDXVAFailureReason;
 
-  enum StreamType {
+  enum StreamType
+  {
     Unknown,
     H264,
     VP8,
@@ -114,10 +117,10 @@ private:
   const GUID& GetMFTGUID();
   const GUID& GetMediaSubtypeGUID();
 
-  uint32_t mNullOutputCount;
-  bool mGotValidOutputAfterNullOutput;
-  bool mGotExcessiveNullOutput;
-  bool mIsValid;
+  uint32_t mNullOutputCount = 0;
+  bool mGotValidOutputAfterNullOutput = false;
+  bool mGotExcessiveNullOutput = false;
+  bool mIsValid = true;
 };
 
 } // namespace mozilla

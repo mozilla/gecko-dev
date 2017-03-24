@@ -105,6 +105,7 @@ public:
   nsresult GetLastModified(uint32_t *_retval);
   nsresult GetLastFetched(uint32_t *_retval);
   nsresult GetFetchCount(uint32_t *_retval);
+  nsresult GetDiskStorageSizeInKB(uint32_t *aDiskStorageSize);
   // Called by upper layers to indicated the entry has been fetched,
   // i.e. delivered to the consumer.
   nsresult OnFetched();
@@ -185,6 +186,7 @@ private:
   nsresult PadChunkWithZeroes(uint32_t aChunkIdx);
 
   void SetError(nsresult aStatus);
+  nsresult SetAltMetadata(const char* aAltMetadata);
 
   nsresult InitIndexEntry();
 

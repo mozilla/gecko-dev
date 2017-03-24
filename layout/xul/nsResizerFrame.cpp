@@ -60,7 +60,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
     return NS_OK;
   }
 
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   bool doDefault = true;
 
   switch (aEvent->mMessage) {
@@ -173,8 +173,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       if (window || menuPopupFrame) {
         if (menuPopupFrame) {
           menuPopupFrame->CanAdjustEdges(
-            (direction.mHorizontal == -1) ? NS_SIDE_LEFT : NS_SIDE_RIGHT,
-            (direction.mVertical == -1) ? NS_SIDE_TOP : NS_SIDE_BOTTOM, mouseMove);
+            (direction.mHorizontal == -1) ? eSideLeft : eSideRight,
+            (direction.mVertical == -1) ? eSideTop : eSideBottom, mouseMove);
         }
       }
       else if (!contentToResize) {
@@ -247,7 +247,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
         nsIntRect cssRect = appUnitsRect.ToInsidePixels(nsPresContext::AppUnitsPerCSSPixel());
 
         LayoutDeviceIntRect oldRect;
-        nsWeakFrame weakFrame(menuPopupFrame);
+        AutoWeakFrame weakFrame(menuPopupFrame);
         if (menuPopupFrame) {
           nsCOMPtr<nsIWidget> widget = menuPopupFrame->GetWidget();
           if (widget)

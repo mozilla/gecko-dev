@@ -1,5 +1,7 @@
 /* Check presence of the "Ignore this warning" button */
 
+/* eslint-env mozilla/frame-script */
+
 function onDOMContentLoaded(callback) {
   function complete({ data }) {
     mm.removeMessageListener("Test:DOMContentLoaded", complete);
@@ -10,7 +12,7 @@ function onDOMContentLoaded(callback) {
   mm.addMessageListener("Test:DOMContentLoaded", complete);
 
   function contentScript() {
-    let listener = function () {
+    let listener = function() {
       removeEventListener("DOMContentLoaded", listener);
 
       let button = content.document.getElementById("ignoreWarningButton");

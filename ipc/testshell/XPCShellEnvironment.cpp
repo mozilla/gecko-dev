@@ -378,7 +378,7 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
 XPCShellEnvironment*
 XPCShellEnvironment::CreateEnvironment()
 {
-    XPCShellEnvironment* env = new XPCShellEnvironment();
+    auto* env = new XPCShellEnvironment();
     if (env && !env->Init()) {
         delete env;
         env = nullptr;
@@ -451,7 +451,7 @@ XPCShellEnvironment::Init()
     }
 
     JS::CompartmentOptions options;
-    options.creationOptions().setZone(JS::SystemZone);
+    options.creationOptions().setSystemZone();
     options.behaviors().setVersion(JSVERSION_LATEST);
     if (xpc::SharedMemoryEnabled())
         options.creationOptions().setSharedMemoryAndAtomicsEnabled(true);

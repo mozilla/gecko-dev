@@ -70,6 +70,7 @@
 #include "mozilla/LinkedList.h"
 #include "CustomElementRegistry.h"
 #include "mozilla/dom/Performance.h"
+#include "mozilla/Maybe.h"
 
 #define XML_DECLARATION_BITS_DECLARATION_EXISTS   (1 << 0)
 #define XML_DECLARATION_BITS_ENCODING_EXISTS      (1 << 1)
@@ -536,6 +537,8 @@ public:
 
   virtual void ApplySettingsFromCSP(bool aSpeculative) override;
 
+  virtual already_AddRefed<nsIParser> CreatorParserOrNull() override;
+
   /**
    * Set the principal responsible for this document.
    */
@@ -593,13 +596,13 @@ public:
    * its presentation context (presentation contexts <b>must not</b> be
    * shared among multiple presentation shells).
    */
-  virtual already_AddRefed<nsIPresShell> CreateShell(
-      nsPresContext* aContext,
-      nsViewManager* aViewManager,
-      mozilla::StyleSetHandle aStyleSet) override;
+  already_AddRefed<nsIPresShell> CreateShell(nsPresContext* aContext,
+                                             nsViewManager* aViewManager,
+                                             mozilla::StyleSetHandle aStyleSet)
+    final;
   virtual void DeleteShell() override;
 
-  virtual nsresult GetAllowPlugins(bool* aAllowPlugins) override;
+  virtual bool GetAllowPlugins() override;
 
   static bool IsElementAnimateEnabled(JSContext* aCx, JSObject* aObject);
   static bool IsWebAnimationsEnabled(JSContext* aCx, JSObject* aObject);
@@ -714,8 +717,8 @@ public:
   virtual void StyleRuleRemoved(mozilla::StyleSheet* aStyleSheet,
                                 mozilla::css::Rule* aStyleRule) override;
 
-  virtual void FlushPendingNotifications(mozFlushType aType) override;
-  virtual void FlushExternalResources(mozFlushType aType) override;
+  virtual void FlushPendingNotifications(mozilla::FlushType aType) override;
+  virtual void FlushExternalResources(mozilla::FlushType aType) override;
   virtual void SetXMLDeclaration(const char16_t *aVersion,
                                  const char16_t *aEncoding,
                                  const int32_t aStandalone) override;
@@ -774,7 +777,19 @@ public:
 
   virtual nsViewportInfo GetViewportInfo(const mozilla::ScreenIntSize& aDisplaySize) override;
 
-  void ReportUseCounters();
+  enum class UseCounterReportKind {
+    // Flush the document's use counters only; the use counters for any
+    // external resource documents will be flushed when the external
+    // resource documents themselves are destroyed.
+    eDefault,
+
+    // Flush use counters for the document and for its external resource
+    // documents. (Should only be necessary for tests, where we need
+    // flushing to happen synchronously and deterministically.)
+    eIncludeExternalResources,
+  };
+
+  void ReportUseCounters(UseCounterReportKind aKind = UseCounterReportKind::eDefault);
 
   virtual void AddIntersectionObserver(
     mozilla::dom::DOMIntersectionObserver* aObserver) override;
@@ -786,6 +801,9 @@ public:
 
   virtual void NotifyLayerManagerRecreated() override;
 
+  virtual void ScheduleSVGForPresAttrEvaluation(nsSVGElement* aSVG) override;
+  virtual void UnscheduleSVGForPresAttrEvaluation(nsSVGElement* aSVG) override;
+  virtual void ResolveScheduledSVGPresAttrs() override;
 
 private:
   void AddOnDemandBuiltInUASheet(mozilla::StyleSheet* aSheet);
@@ -803,7 +821,7 @@ public:
   NS_DECL_NSIDOMDOCUMENTXBL
 
   // nsIDOMEventTarget
-  virtual nsresult PreHandleEvent(
+  virtual nsresult GetEventTargetParent(
                      mozilla::EventChainPreVisitor& aVisitor) override;
   virtual mozilla::EventListenerManager*
     GetOrCreateListenerManager() override;
@@ -895,21 +913,13 @@ public:
   virtual mozilla::PendingAnimationTracker*
   GetOrCreatePendingAnimationTracker() override;
 
-  virtual void SuppressEventHandling(SuppressionType aWhat,
-                                     uint32_t aIncrease) override;
+  virtual void SuppressEventHandling(uint32_t aIncrease) override;
 
-  virtual void UnsuppressEventHandlingAndFireEvents(SuppressionType aWhat,
-                                                    bool aFireEvents) override;
+  virtual void UnsuppressEventHandlingAndFireEvents(bool aFireEvents) override;
 
   void DecreaseEventSuppression() {
     MOZ_ASSERT(mEventsSuppressed);
     --mEventsSuppressed;
-    MaybeRescheduleAnimationFrameNotifications();
-  }
-
-  void ResumeAnimations() {
-    MOZ_ASSERT(mAnimationsPaused);
-    --mAnimationsPaused;
     MaybeRescheduleAnimationFrameNotifications();
   }
 
@@ -970,7 +980,12 @@ public:
 
   virtual nsISupports* GetCurrentContentSink() override;
 
-  virtual mozilla::EventStates GetDocumentState() override;
+  virtual mozilla::EventStates GetDocumentState() final;
+  // GetDocumentState() mutates the state due to lazy resolution;
+  // and can't be used during parallel traversal. Use this instead,
+  // and ensure GetDocumentState() has been called first.
+  // This will assert if the state is stale.
+  virtual mozilla::EventStates ThreadSafeGetDocumentState() const final;
 
   // Only BlockOnload should call this!
   void AsyncBlockOnload();
@@ -1006,6 +1021,13 @@ public:
   // Notifies any responsive content added by AddResponsiveContent upon media
   // features values changing.
   virtual void NotifyMediaFeatureValuesChanged() override;
+
+  // Adds an element to mMediaContent when the element is added to the tree.
+  virtual void AddMediaContent(nsIContent* aContent) override;
+
+  // Removes an element from mMediaContent when the element is removed from
+  // the tree.
+  virtual void RemoveMediaContent(nsIContent* aContent) override;
 
   virtual nsresult GetStateObject(nsIVariant** aResult) override;
 
@@ -1080,10 +1102,11 @@ public:
   Element* FullScreenStackTop();
 
   // DOM-exposed fullscreen API
-  bool FullscreenEnabled() override;
+  bool FullscreenEnabled(mozilla::dom::CallerType aCallerType) override;
   Element* GetFullscreenElement() override;
 
-  void RequestPointerLock(Element* aElement) override;
+  void RequestPointerLock(Element* aElement,
+                          mozilla::dom::CallerType aCallerType) override;
   bool SetPointerLock(Element* aElement, int aCursorStyle);
   static void UnlockPointer(nsIDocument* aDoc = nullptr);
 
@@ -1127,7 +1150,7 @@ public:
                                                   ErrorResult& rv) override;
   virtual already_AddRefed<Element> CreateElementNS(const nsAString& aNamespaceURI,
                                                     const nsAString& aQualifiedName,
-                                                    const mozilla::dom::ElementCreationOptions& aOptions,
+                                                    const mozilla::dom::ElementCreationOptionsOrString& aOptions,
                                                     mozilla::ErrorResult& rv) override;
 
   virtual nsIDocument* MasterDocument() override
@@ -1272,10 +1295,6 @@ public:
   bool ContainsMSEContent();
 
 protected:
-  already_AddRefed<nsIPresShell> doCreateShell(nsPresContext* aContext,
-                                               nsViewManager* aViewManager,
-                                               mozilla::StyleSetHandle aStyleSet);
-
   void RemoveDocStyleSheetsFromStyleSets();
   void RemoveStyleSheetsFromStyleSets(
       const nsTArray<RefPtr<mozilla::StyleSheet>>& aSheets,
@@ -1296,6 +1315,9 @@ protected:
 
   void UpdateScreenOrientation();
 
+  virtual mozilla::dom::FlashClassification DocumentFlashClassification() override;
+  virtual bool IsThirdParty() override;
+
 #define NS_DOCUMENT_NOTIFY_OBSERVERS(func_, params_)                        \
   NS_OBSERVER_ARRAY_NOTIFY_XPCOM_OBSERVERS(mObservers, nsIDocumentObserver, \
                                            func_, params_);
@@ -1315,6 +1337,14 @@ protected:
   // events. It returns false if the fullscreen element ready check
   // fails and nothing gets changed.
   bool ApplyFullscreen(const FullscreenRequest& aRequest);
+
+  // Retrieves the classification of the Flash plugins in the document based on
+  // the classification lists.
+  mozilla::dom::FlashClassification PrincipalFlashClassification();
+
+  // Attempts to determine the Flash classification of this page based on the
+  // the classification lists and the classification of parent documents.
+  mozilla::dom::FlashClassification ComputeFlashClassification();
 
   nsTArray<nsIObserver*> mCharSetObservers;
 
@@ -1340,7 +1370,8 @@ protected:
   nsTObserverArray<nsIDocumentObserver*> mObservers;
 
   // Array of intersection observers
-  nsTArray<RefPtr<mozilla::dom::DOMIntersectionObserver>> mIntersectionObservers;
+  nsTHashtable<nsPtrHashKey<mozilla::dom::DOMIntersectionObserver>>
+    mIntersectionObservers;
 
   // Tracker for animations that are waiting to start.
   // nullptr until GetOrCreatePendingAnimationTracker is called.
@@ -1360,7 +1391,12 @@ protected:
   // non-null when this document is in fullscreen mode.
   nsWeakPtr mFullscreenRoot;
 
+  mozilla::dom::FlashClassification mFlashClassification;
+  // Do not use this value directly. Call the |IsThirdParty()| method, which
+  // caches its result here.
+  mozilla::Maybe<bool> mIsThirdParty;
 private:
+  void UpdatePossiblyStaleDocumentState();
   static bool CustomElementConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 
   /**
@@ -1381,7 +1417,13 @@ public:
   virtual already_AddRefed<mozilla::dom::CustomElementRegistry>
     GetCustomElementRegistry() override;
 
+  // Check whether web components are enabled for the global of aObject.
   static bool IsWebComponentsEnabled(JSContext* aCx, JSObject* aObject);
+  // Check whether web components are enabled for the global of the document
+  // this nodeinfo comes from.
+  static bool IsWebComponentsEnabled(mozilla::dom::NodeInfo* aNodeInfo);
+  // Check whether web components are enabled for the given window.
+  static bool IsWebComponentsEnabled(nsPIDOMWindowInner* aWindow);
 
   RefPtr<mozilla::EventListenerManager> mListenerManager;
   RefPtr<mozilla::dom::StyleSheetList> mDOMStyleSheets;
@@ -1418,10 +1460,6 @@ public:
   bool mSynchronousDOMContentLoaded:1;
 
   bool mInXBLUpdate:1;
-
-  // Whether we're currently under a FlushPendingNotifications call to
-  // our presshell.  This is used to handle flush reentry correctly.
-  bool mInFlush:1;
 
   // Parser aborted. True if the parser of this document was forcibly
   // terminated instead of letting it finish at its own pace.
@@ -1513,7 +1551,7 @@ private:
   void ClearAllBoxObjects();
 
   // Returns true if the scheme for the url for this document is "about"
-  bool IsAboutPage();
+  bool IsAboutPage() const;
 
   // These are not implemented and not supported.
   nsDocument(const nsDocument& aOther);
@@ -1542,6 +1580,9 @@ private:
 
   // A set of responsive images keyed by address pointer.
   nsTHashtable< nsPtrHashKey<nsIContent> > mResponsiveContent;
+
+  // A set of media elements keyed by address pointer.
+  nsTHashtable<nsPtrHashKey<nsIContent>> mMediaContent;
 
   // Member to store out last-selected stylesheet set.
   nsString mLastStyleSheetSet;
@@ -1616,6 +1657,11 @@ private:
   // Set to true when the document is possibly controlled by the ServiceWorker.
   // Used to prevent multiple requests to ServiceWorkerManager.
   bool mMaybeServiceWorkerControlled;
+
+  // We lazily calculate declaration blocks for SVG elements
+  // with mapped attributes in Servo mode. This list contains all elements which
+  // need lazy resolution
+  nsTHashtable<nsPtrHashKey<nsSVGElement>> mLazySVGPresElements;
 
 #ifdef DEBUG
 public:

@@ -3,6 +3,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'Hardware Abstraction Layer (HAL)')
 
 XPIDL_SOURCES += [
     'gonk/nsIRecoveryService.idl',
@@ -18,6 +21,10 @@ EXPORTS.mozilla += [
     'HalSensor.h',
     'HalTypes.h',
     'HalWakeLock.h',
+]
+
+EXPORTS.mozilla.fallback += [
+    'fallback/FallbackScreenConfiguration.h',
 ]
 
 UNIFIED_SOURCES += [
@@ -48,7 +55,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     UNIFIED_SOURCES += [
         'gonk/GonkDiskSpaceWatcher.cpp',
-        'gonk/GonkFMRadio.cpp',
         'gonk/GonkSensor.cpp',
         'gonk/GonkSensorsHelpers.cpp',
         'gonk/GonkSensorsInterface.cpp',
@@ -136,7 +142,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
     UNIFIED_SOURCES += [
         'fallback/FallbackDiskSpaceWatcher.cpp',
         'fallback/FallbackFactoryReset.cpp',
-        'fallback/FallbackFMRadio.cpp',
         'fallback/FallbackProcessPriority.cpp',
         'fallback/FallbackScreenPower.cpp',
         'fallback/FallbackSwitch.cpp',
@@ -166,10 +171,9 @@ include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 
-if CONFIG['MOZ_GAMEPAD']:
-    LOCAL_INCLUDES += [
-        '/dom/base',
-    ]
+LOCAL_INCLUDES += [
+    '/dom/base',
+]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     # So that we can call nsScreenManagerGonk::GetConfiguration().

@@ -92,12 +92,13 @@ public:
   /* Scrollbar info */
 
   void SetScrollbarData(FrameMetrics::ViewID aScrollViewId,
-                        Layer::ScrollDirection aDir,
-                        int32_t aScrollSize,
+                        ScrollDirection aDir,
+                        int32_t aScrollThumbLength,
                         bool aIsScrollContainer);
   bool MatchesScrollDragMetrics(const AsyncDragMetrics& aDragMetrics) const;
-  int32_t GetScrollSize() const;
+  LayerIntCoord GetScrollThumbLength() const;
   bool IsScrollbarNode() const;
+  FrameMetrics::ViewID GetScrollTargetId() const;
 
   /* Fixed pos info */
 
@@ -128,9 +129,15 @@ private:
 
   uint64_t mLayersId;
 
+  // This is set for both scroll track and scroll thumb Container layers, and
+  // represents the scroll id of the scroll frame scrolled by the scrollbar.
   FrameMetrics::ViewID mScrollViewId;
-  Layer::ScrollDirection mScrollDir;
-  int32_t mScrollSize;
+
+  // This is set for scroll thumb Container layers only.
+  ScrollDirection mScrollDir;
+  int32_t mScrollThumbLength;
+
+  // This is set for scroll track Container layers only.
   bool mIsScrollbarContainer;
 
   FrameMetrics::ViewID mFixedPosTarget;

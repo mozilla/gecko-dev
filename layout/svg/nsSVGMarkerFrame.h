@@ -16,9 +16,9 @@
 #include "nsSVGUtils.h"
 
 class gfxContext;
-class nsSVGPathGeometryFrame;
 
 namespace mozilla {
+class SVGGeometryFrame;
 namespace dom {
 class SVGSVGElement;
 } // namespace dom
@@ -84,19 +84,24 @@ public:
   // nsSVGMarkerFrame methods:
   nsresult PaintMark(gfxContext& aContext,
                      const gfxMatrix& aToMarkedFrameUserSpace,
-                     nsSVGPathGeometryFrame *aMarkedFrame,
+                     mozilla::SVGGeometryFrame *aMarkedFrame,
                      nsSVGMark *aMark,
                      float aStrokeWidth);
 
   SVGBBox GetMarkBBoxContribution(const Matrix &aToBBoxUserspace,
                                   uint32_t aFlags,
-                                  nsSVGPathGeometryFrame *aMarkedFrame,
+                                  mozilla::SVGGeometryFrame *aMarkedFrame,
                                   const nsSVGMark *aMark,
                                   float aStrokeWidth);
 
+  // Update the style on our anonymous box child.
+  void DoUpdateStyleOfOwnedAnonBoxes(mozilla::ServoStyleSet& aStyleSet,
+                                     nsStyleChangeList& aChangeList,
+                                     nsChangeHint aHintForThisFrame) override;
+
 private:
   // stuff needed for callback
-  nsSVGPathGeometryFrame *mMarkedFrame;
+  mozilla::SVGGeometryFrame *mMarkedFrame;
   float mStrokeWidth, mX, mY, mAutoAngle;
   bool mIsStart;  // whether the callback is for a marker-start marker
 
@@ -112,7 +117,7 @@ private:
   {
   public:
     AutoMarkerReferencer(nsSVGMarkerFrame *aFrame,
-                         nsSVGPathGeometryFrame *aMarkedFrame
+                         mozilla::SVGGeometryFrame *aMarkedFrame
                          MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
     ~AutoMarkerReferencer();
   private:

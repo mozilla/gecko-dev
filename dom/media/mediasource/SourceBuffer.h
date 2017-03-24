@@ -8,6 +8,7 @@
 #define mozilla_dom_SourceBuffer_h_
 
 #include "mozilla/MozPromise.h"
+#include "MediaContainerType.h"
 #include "MediaSource.h"
 #include "js/RootingAPI.h"
 #include "mozilla/Assertions.h"
@@ -22,7 +23,6 @@
 #include "nsCycleCollectionNoteChild.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupports.h"
-#include "nsString.h"
 #include "nscore.h"
 #include "TrackBuffersManager.h"
 #include "SourceBufferTask.h"
@@ -32,6 +32,7 @@ struct JSContext;
 
 namespace mozilla {
 
+class AbstractThread;
 class ErrorResult;
 class MediaByteBuffer;
 template <typename T> class AsyncEventRunner;
@@ -99,7 +100,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SourceBuffer, DOMEventTargetHelper)
 
-  SourceBuffer(MediaSource* aMediaSource, const nsACString& aType);
+  SourceBuffer(MediaSource* aMediaSource, const MediaContainerType& aType);
 
   MediaSource* GetParentObject() const;
 
@@ -163,10 +164,11 @@ private:
                                                   uint32_t aLength,
                                                   ErrorResult& aRv);
 
-  void AppendDataCompletedWithSuccess(SourceBufferTask::AppendBufferResult aResult);
+  void AppendDataCompletedWithSuccess(const SourceBufferTask::AppendBufferResult& aResult);
   void AppendDataErrored(const MediaResult& aError);
 
   RefPtr<MediaSource> mMediaSource;
+  const RefPtr<AbstractThread> mAbstractMainThread;
 
   RefPtr<TrackBuffersManager> mTrackBuffersManager;
   SourceBufferAttributes mCurrentAttributes;
@@ -177,7 +179,7 @@ private:
 
   MozPromiseRequestHolder<SourceBufferTask::AppendPromise> mPendingAppend;
   MozPromiseRequestHolder<SourceBufferTask::RangeRemovalPromise> mPendingRemoval;
-  const nsCString mType;
+  const MediaContainerType mType;
 
   RefPtr<TimeRanges> mBuffered;
 };

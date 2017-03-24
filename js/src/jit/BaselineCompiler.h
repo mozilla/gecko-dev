@@ -42,6 +42,7 @@ namespace jit {
     _(JSOP_DUP2)               \
     _(JSOP_SWAP)               \
     _(JSOP_PICK)               \
+    _(JSOP_UNPICK)             \
     _(JSOP_GOTO)               \
     _(JSOP_IFEQ)               \
     _(JSOP_IFNE)               \
@@ -71,6 +72,7 @@ namespace jit {
     _(JSOP_REGEXP)             \
     _(JSOP_LAMBDA)             \
     _(JSOP_LAMBDA_ARROW)       \
+    _(JSOP_SETFUNNAME)         \
     _(JSOP_BITOR)              \
     _(JSOP_BITXOR)             \
     _(JSOP_BITAND)             \
@@ -134,7 +136,7 @@ namespace jit {
     _(JSOP_DELPROP)            \
     _(JSOP_STRICTDELPROP)      \
     _(JSOP_LENGTH)             \
-    _(JSOP_GETXPROP)           \
+    _(JSOP_GETBOUNDNAME)       \
     _(JSOP_GETALIASEDVAR)      \
     _(JSOP_SETALIASEDVAR)      \
     _(JSOP_GETNAME)            \
@@ -158,6 +160,7 @@ namespace jit {
     _(JSOP_INITALIASEDLEXICAL) \
     _(JSOP_UNINITIALIZED)      \
     _(JSOP_CALL)               \
+    _(JSOP_CALL_IGNORES_RV)    \
     _(JSOP_CALLITER)           \
     _(JSOP_FUNCALL)            \
     _(JSOP_FUNAPPLY)           \
@@ -193,6 +196,7 @@ namespace jit {
     _(JSOP_ARGUMENTS)          \
     _(JSOP_RUNONCE)            \
     _(JSOP_REST)               \
+    _(JSOP_TOASYNC)            \
     _(JSOP_TOID)               \
     _(JSOP_TOSTRING)           \
     _(JSOP_TABLESWITCH)        \
@@ -200,9 +204,11 @@ namespace jit {
     _(JSOP_MOREITER)           \
     _(JSOP_ISNOITER)           \
     _(JSOP_ENDITER)            \
+    _(JSOP_ISGENCLOSING)       \
     _(JSOP_GENERATOR)          \
     _(JSOP_INITIALYIELD)       \
     _(JSOP_YIELD)              \
+    _(JSOP_AWAIT)              \
     _(JSOP_DEBUGAFTERYIELD)    \
     _(JSOP_FINALYIELDRVAL)     \
     _(JSOP_RESUME)             \
@@ -214,6 +220,7 @@ namespace jit {
     _(JSOP_FUNCTIONTHIS)       \
     _(JSOP_GLOBALTHIS)         \
     _(JSOP_CHECKISOBJ)         \
+    _(JSOP_CHECKISCALLABLE)    \
     _(JSOP_CHECKTHIS)          \
     _(JSOP_CHECKRETURN)        \
     _(JSOP_NEWTARGET)          \
@@ -249,9 +256,9 @@ class BaselineCompiler : public BaselineCompilerSpecific
     // equivalent positions when debug mode is off.
     CodeOffset postDebugPrologueOffset_;
 
-    // For each INITIALYIELD or YIELD op, this Vector maps the yield index
-    // to the bytecode offset of the next op.
-    Vector<uint32_t>            yieldOffsets_;
+    // For each INITIALYIELD or YIELD or AWAIT op, this Vector maps the yield
+    // index to the bytecode offset of the next op.
+    Vector<uint32_t>            yieldAndAwaitOffsets_;
 
     // Whether any on stack arguments are modified.
     bool modifiesArguments_;
@@ -339,9 +346,11 @@ class BaselineCompiler : public BaselineCompilerSpecific
     MOZ_MUST_USE bool emitThrowConstAssignment();
     MOZ_MUST_USE bool emitUninitializedLexicalCheck(const ValueOperand& val);
 
+    MOZ_MUST_USE bool emitIsMagicValue();
+
     MOZ_MUST_USE bool addPCMappingEntry(bool addIndexEntry);
 
-    MOZ_MUST_USE bool addYieldOffset();
+    MOZ_MUST_USE bool addYieldAndAwaitOffset();
 
     void getEnvironmentCoordinateObject(Register reg);
     Address getEnvironmentCoordinateAddressFromObject(Register objReg, Register reg);

@@ -12,22 +12,28 @@ const {Task} = require("devtools/shared/task");
 const {Tools} = require("devtools/client/definitions");
 const {l10n} = require("devtools/shared/inspector/css-logic");
 const {ELEMENT_STYLE} = require("devtools/shared/specs/styles");
-const {OutputParser} = require("devtools/client/shared/output-parser");
-const {PrefObserver, PREF_ORIG_SOURCES} = require("devtools/client/styleeditor/utils");
-const {ElementStyle} = require("devtools/client/inspector/rules/models/element-style");
-const {Rule} = require("devtools/client/inspector/rules/models/rule");
-const {RuleEditor} = require("devtools/client/inspector/rules/views/rule-editor");
-const {createChild, promiseWarn, throttle} = require("devtools/client/inspector/shared/utils");
+const OutputParser = require("devtools/client/shared/output-parser");
+const {PrefObserver} = require("devtools/client/shared/prefs");
+const ElementStyle = require("devtools/client/inspector/rules/models/element-style");
+const Rule = require("devtools/client/inspector/rules/models/rule");
+const RuleEditor = require("devtools/client/inspector/rules/views/rule-editor");
+const ClassListPreviewer = require("devtools/client/inspector/rules/views/class-list-previewer");
 const {gDevTools} = require("devtools/client/framework/devtools");
 const {getCssProperties} = require("devtools/shared/fronts/css-properties");
-
-const overlays = require("devtools/client/inspector/shared/style-inspector-overlays");
-const EventEmitter = require("devtools/shared/event-emitter");
+const {
+  VIEW_NODE_SELECTOR_TYPE,
+  VIEW_NODE_PROPERTY_TYPE,
+  VIEW_NODE_VALUE_TYPE,
+  VIEW_NODE_IMAGE_URL_TYPE,
+  VIEW_NODE_LOCATION_TYPE,
+} = require("devtools/client/inspector/shared/node-types");
 const StyleInspectorMenu = require("devtools/client/inspector/shared/style-inspector-menu");
-const {KeyShortcuts} = require("devtools/client/shared/key-shortcuts");
+const TooltipsOverlay = require("devtools/client/inspector/shared/tooltips-overlay");
+const {createChild, promiseWarn, throttle} = require("devtools/client/inspector/shared/utils");
+const EventEmitter = require("devtools/shared/event-emitter");
+const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 const clipboardHelper = require("devtools/shared/platform/clipboard");
-
-const {AutocompletePopup} = require("devtools/client/shared/autocomplete-popup");
+const AutocompletePopup = require("devtools/client/shared/autocomplete-popup");
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const PREF_UA_STYLES = "devtools.inspector.showUserAgentStyles";
@@ -35,6 +41,7 @@ const PREF_DEFAULT_COLOR_UNIT = "devtools.defaultColorUnit";
 const PREF_ENABLE_MDN_DOCS_TOOLTIP =
       "devtools.inspector.mdnDocsTooltip.enabled";
 const FILTER_CHANGED_TIMEOUT = 150;
+const PREF_ORIG_SOURCES = "devtools.styleeditor.source-maps-enabled";
 
 // This is used to parse user input when filtering.
 const FILTER_PROP_RE = /\s*([^:\s]*)\s*:\s*(.*?)\s*;?$/;
@@ -94,6 +101,7 @@ const FILTER_STRICT_RE = /\s*`(.*?)`\s*$/;
  */
 function CssRuleView(inspector, document, store, pageStyle) {
   this.inspector = inspector;
+  this.highlighters = inspector.highlighters;
   this.styleDocument = document;
   this.styleWindow = this.styleDocument.defaultView;
   this.store = store || {};
@@ -113,6 +121,7 @@ function CssRuleView(inspector, document, store, pageStyle) {
   this._onClearSearch = this._onClearSearch.bind(this);
   this._onTogglePseudoClassPanel = this._onTogglePseudoClassPanel.bind(this);
   this._onTogglePseudoClass = this._onTogglePseudoClass.bind(this);
+  this._onToggleClassPanel = this._onToggleClassPanel.bind(this);
 
   let doc = this.styleDocument;
   this.element = doc.getElementById("ruleview-container-focusable");
@@ -121,6 +130,8 @@ function CssRuleView(inspector, document, store, pageStyle) {
   this.searchClearButton = doc.getElementById("ruleview-searchinput-clear");
   this.pseudoClassPanel = doc.getElementById("pseudo-class-panel");
   this.pseudoClassToggle = doc.getElementById("pseudo-class-panel-toggle");
+  this.classPanel = doc.getElementById("ruleview-class-panel");
+  this.classToggle = doc.getElementById("class-panel-toggle");
   this.hoverCheckbox = doc.getElementById("pseudo-hover-toggle");
   this.activeCheckbox = doc.getElementById("pseudo-active-toggle");
   this.focusCheckbox = doc.getElementById("pseudo-focus-toggle");
@@ -139,8 +150,8 @@ function CssRuleView(inspector, document, store, pageStyle) {
   this.searchField.addEventListener("input", this._onFilterStyles);
   this.searchField.addEventListener("contextmenu", this.inspector.onTextBoxContextMenu);
   this.searchClearButton.addEventListener("click", this._onClearSearch);
-  this.pseudoClassToggle.addEventListener("click",
-                                          this._onTogglePseudoClassPanel);
+  this.pseudoClassToggle.addEventListener("click", this._onTogglePseudoClassPanel);
+  this.classToggle.addEventListener("click", this._onToggleClassPanel);
   this.hoverCheckbox.addEventListener("click", this._onTogglePseudoClass);
   this.activeCheckbox.addEventListener("click", this._onTogglePseudoClass);
   this.focusCheckbox.addEventListener("click", this._onTogglePseudoClass);
@@ -169,10 +180,12 @@ function CssRuleView(inspector, document, store, pageStyle) {
   this._contextmenu = new StyleInspectorMenu(this, { isRuleView: true });
 
   // Add the tooltips and highlighters to the view
-  this.tooltips = new overlays.TooltipsOverlay(this);
+  this.tooltips = new TooltipsOverlay(this);
   this.tooltips.addToView();
-  this.highlighters = new overlays.HighlightersOverlay(this);
-  this.highlighters.addToView();
+
+  this.highlighters.addToView(this);
+
+  this.classListPreviewer = new ClassListPreviewer(this.inspector, this.classPanel);
 
   EventEmitter.decorate(this);
 }
@@ -206,6 +219,10 @@ CssRuleView.prototype = {
    * @return {Promise} Resolves to the instance of the highlighter.
    */
   getSelectorHighlighter: Task.async(function* () {
+    if (!this.inspector) {
+      return null;
+    }
+
     let utils = this.inspector.toolbox.highlighterUtils;
     if (!utils.supportsCustomHighlighters()) {
       return null;
@@ -242,49 +259,37 @@ CssRuleView.prototype = {
    * @param {String} selector
    *        The selector used to find nodes in the page.
    */
-  toggleSelectorHighlighter: function (selectorIcon, selector) {
+  toggleSelectorHighlighter: Task.async(function* (selectorIcon, selector) {
     if (this.lastSelectorIcon) {
       this.lastSelectorIcon.classList.remove("highlighted");
     }
     selectorIcon.classList.remove("highlighted");
 
-    this.unhighlightSelector().then(() => {
-      if (selector !== this.highlightedSelector) {
-        this.highlightedSelector = selector;
-        selectorIcon.classList.add("highlighted");
-        this.lastSelectorIcon = selectorIcon;
-        this.highlightSelector(selector).then(() => {
-          this.emit("ruleview-selectorhighlighter-toggled", true);
-        }, e => console.error(e));
-      } else {
-        this.highlightedSelector = null;
-        this.emit("ruleview-selectorhighlighter-toggled", false);
-      }
-    }, e => console.error(e));
-  },
-
-  highlightSelector: Task.async(function* (selector) {
-    let node = this.inspector.selection.nodeFront;
-
-    let highlighter = yield this.getSelectorHighlighter();
-    if (!highlighter) {
-      return;
-    }
-
-    yield highlighter.show(node, {
-      hideInfoBar: true,
-      hideGuides: true,
-      selector
-    });
-  }),
-
-  unhighlightSelector: Task.async(function* () {
     let highlighter = yield this.getSelectorHighlighter();
     if (!highlighter) {
       return;
     }
 
     yield highlighter.hide();
+
+    if (selector !== this.highlighters.selectorHighlighterShown) {
+      this.highlighters.selectorHighlighterShown = selector;
+      selectorIcon.classList.add("highlighted");
+      this.lastSelectorIcon = selectorIcon;
+
+      let node = this.inspector.selection.nodeFront;
+
+      yield highlighter.show(node, {
+        hideInfoBar: true,
+        hideGuides: true,
+        selector
+      });
+
+      this.emit("ruleview-selectorhighlighter-toggled", true);
+    } else {
+      this.highlighters.selectorHighlighterShown = null;
+      this.emit("ruleview-selectorhighlighter-toggled", false);
+    }
   }),
 
   /**
@@ -294,7 +299,7 @@ CssRuleView.prototype = {
    *        The node which we want information about
    * @return {Object} The type information object contains the following props:
    * - type {String} One of the VIEW_NODE_XXX_TYPE const in
-   *   style-inspector-overlays
+   *   client/inspector/shared/node-types
    * - value {Object} Depends on the type of the node
    * returns null of the node isn't anything we care about
    */
@@ -308,7 +313,7 @@ CssRuleView.prototype = {
     let prop = getParentTextProperty(node);
 
     if (classes.contains("ruleview-propertyname") && prop) {
-      type = overlays.VIEW_NODE_PROPERTY_TYPE;
+      type = VIEW_NODE_PROPERTY_TYPE;
       value = {
         property: node.textContent,
         value: getPropertyNameAndValue(node).value,
@@ -319,7 +324,7 @@ CssRuleView.prototype = {
         textProperty: prop
       };
     } else if (classes.contains("ruleview-propertyvalue") && prop) {
-      type = overlays.VIEW_NODE_VALUE_TYPE;
+      type = VIEW_NODE_VALUE_TYPE;
       value = {
         property: getPropertyNameAndValue(node).name,
         value: node.textContent,
@@ -331,7 +336,7 @@ CssRuleView.prototype = {
       };
     } else if (classes.contains("theme-link") &&
                !classes.contains("ruleview-rule-source") && prop) {
-      type = overlays.VIEW_NODE_IMAGE_URL_TYPE;
+      type = VIEW_NODE_IMAGE_URL_TYPE;
       value = {
         property: getPropertyNameAndValue(node).name,
         value: node.parentNode.textContent,
@@ -349,11 +354,11 @@ CssRuleView.prototype = {
                classes.contains("ruleview-selector-attribute") ||
                classes.contains("ruleview-selector-pseudo-class") ||
                classes.contains("ruleview-selector-pseudo-class-lock")) {
-      type = overlays.VIEW_NODE_SELECTOR_TYPE;
+      type = VIEW_NODE_SELECTOR_TYPE;
       value = this._getRuleEditorForNode(node).selectorText.textContent;
     } else if (classes.contains("ruleview-rule-source") ||
                classes.contains("ruleview-rule-source-label")) {
-      type = overlays.VIEW_NODE_LOCATION_TYPE;
+      type = VIEW_NODE_LOCATION_TYPE;
       let rule = this._getRuleEditorForNode(node).rule;
       value = (rule.sheet && rule.sheet.href) ? rule.sheet.href : rule.title;
     } else {
@@ -673,7 +678,8 @@ CssRuleView.prototype = {
     }
 
     this.tooltips.destroy();
-    this.highlighters.destroy();
+    this.highlighters.removeFromView(this);
+    this.classListPreviewer.destroy();
 
     // Remove bound listeners
     this.shortcuts.destroy();
@@ -684,8 +690,8 @@ CssRuleView.prototype = {
     this.searchField.removeEventListener("contextmenu",
       this.inspector.onTextBoxContextMenu);
     this.searchClearButton.removeEventListener("click", this._onClearSearch);
-    this.pseudoClassToggle.removeEventListener("click",
-      this._onTogglePseudoClassPanel);
+    this.pseudoClassToggle.removeEventListener("click", this._onTogglePseudoClassPanel);
+    this.classToggle.removeEventListener("click", this._onToggleClassPanel);
     this.hoverCheckbox.removeEventListener("click", this._onTogglePseudoClass);
     this.activeCheckbox.removeEventListener("click", this._onTogglePseudoClass);
     this.focusCheckbox.removeEventListener("click", this._onTogglePseudoClass);
@@ -694,16 +700,19 @@ CssRuleView.prototype = {
     this.searchClearButton = null;
     this.pseudoClassPanel = null;
     this.pseudoClassToggle = null;
+    this.classPanel = null;
+    this.classToggle = null;
     this.hoverCheckbox = null;
     this.activeCheckbox = null;
     this.focusCheckbox = null;
 
     this.inspector = null;
+    this.highlighters = null;
     this.styleDocument = null;
     this.styleWindow = null;
 
     if (this.element.parentNode) {
-      this.element.parentNode.removeChild(this.element);
+      this.element.remove();
     }
 
     if (this._elementStyle) {
@@ -986,12 +995,12 @@ CssRuleView.prototype = {
     header.addEventListener("dblclick", () => {
       this._toggleContainerVisibility(twisty, container, isPseudo,
         !this.showPseudoElements);
-    }, false);
+    });
 
     twisty.addEventListener("click", () => {
       this._toggleContainerVisibility(twisty, container, isPseudo,
         !this.showPseudoElements);
-    }, false);
+    });
 
     if (isPseudo) {
       this._toggleContainerVisibility(twisty, container, isPseudo,
@@ -1089,11 +1098,11 @@ CssRuleView.prototype = {
         this.element.appendChild(div);
       }
 
-      let inheritedSource = rule.inheritedSource;
+      let inheritedSource = rule.inherited;
       if (inheritedSource && inheritedSource !== lastInheritedSource) {
         let div = this.styleDocument.createElementNS(HTML_NS, "div");
         div.className = this._getRuleViewHeaderClassName();
-        div.textContent = inheritedSource;
+        div.textContent = rule.inheritedSource;
         lastInheritedSource = inheritedSource;
         this.element.appendChild(div);
       }
@@ -1372,18 +1381,30 @@ CssRuleView.prototype = {
    */
   _onTogglePseudoClassPanel: function () {
     if (this.pseudoClassPanel.hidden) {
-      this.pseudoClassToggle.setAttribute("checked", "true");
-      this.hoverCheckbox.setAttribute("tabindex", "0");
-      this.activeCheckbox.setAttribute("tabindex", "0");
-      this.focusCheckbox.setAttribute("tabindex", "0");
+      this.showPseudoClassPanel();
     } else {
-      this.pseudoClassToggle.removeAttribute("checked");
-      this.hoverCheckbox.setAttribute("tabindex", "-1");
-      this.activeCheckbox.setAttribute("tabindex", "-1");
-      this.focusCheckbox.setAttribute("tabindex", "-1");
+      this.hidePseudoClassPanel();
     }
+  },
 
-    this.pseudoClassPanel.hidden = !this.pseudoClassPanel.hidden;
+  showPseudoClassPanel: function () {
+    this.hideClassPanel();
+
+    this.pseudoClassToggle.classList.add("checked");
+    this.hoverCheckbox.setAttribute("tabindex", "0");
+    this.activeCheckbox.setAttribute("tabindex", "0");
+    this.focusCheckbox.setAttribute("tabindex", "0");
+
+    this.pseudoClassPanel.hidden = false;
+  },
+
+  hidePseudoClassPanel: function () {
+    this.pseudoClassToggle.classList.remove("checked");
+    this.hoverCheckbox.setAttribute("tabindex", "-1");
+    this.activeCheckbox.setAttribute("tabindex", "-1");
+    this.focusCheckbox.setAttribute("tabindex", "-1");
+
+    this.pseudoClassPanel.hidden = true;
   },
 
   /**
@@ -1393,6 +1414,32 @@ CssRuleView.prototype = {
   _onTogglePseudoClass: function (event) {
     let target = event.currentTarget;
     this.inspector.togglePseudoClass(target.value);
+  },
+
+  /**
+   * Called when the class panel button is clicked and toggles the display of the class
+   * panel.
+   */
+  _onToggleClassPanel: function () {
+    if (this.classPanel.hidden) {
+      this.showClassPanel();
+    } else {
+      this.hideClassPanel();
+    }
+  },
+
+  showClassPanel: function () {
+    this.hidePseudoClassPanel();
+
+    this.classToggle.classList.add("checked");
+    this.classPanel.hidden = false;
+
+    this.classListPreviewer.focusAddClassField();
+  },
+
+  hideClassPanel: function () {
+    this.classToggle.classList.remove("checked");
+    this.classPanel.hidden = true;
   },
 
   /**
@@ -1499,15 +1546,15 @@ function RuleViewTool(inspector, window) {
 
   this.view = new CssRuleView(this.inspector, this.document);
 
-  this.onLinkClicked = this.onLinkClicked.bind(this);
-  this.onSelected = this.onSelected.bind(this);
-  this.refresh = this.refresh.bind(this);
   this.clearUserProperties = this.clearUserProperties.bind(this);
-  this.onPropertyChanged = this.onPropertyChanged.bind(this);
-  this.onViewRefreshed = this.onViewRefreshed.bind(this);
-  this.onPanelSelected = this.onPanelSelected.bind(this);
+  this.refresh = this.refresh.bind(this);
+  this.onLinkClicked = this.onLinkClicked.bind(this);
   this.onMutations = this.onMutations.bind(this);
+  this.onPanelSelected = this.onPanelSelected.bind(this);
+  this.onPropertyChanged = this.onPropertyChanged.bind(this);
   this.onResized = this.onResized.bind(this);
+  this.onSelected = this.onSelected.bind(this);
+  this.onViewRefreshed = this.onViewRefreshed.bind(this);
 
   this.view.on("ruleview-changed", this.onPropertyChanged);
   this.view.on("ruleview-refreshed", this.onViewRefreshed);
@@ -1607,7 +1654,6 @@ RuleViewTool.prototype = {
           toolbox.getCurrentPanel().selectStyleSheet(url, line, column);
         });
       }
-      return;
     });
   },
 

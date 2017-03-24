@@ -748,9 +748,10 @@ Dashboard::RequestDNSLookup(const nsACString &aHost,
     helper->mCallback =
         new nsMainThreadPtrHolder<NetDashboardCallback>(aCallback, true);
     helper->mThread = NS_GetCurrentThread();
-    rv = mDnsService->AsyncResolve(aHost, 0, helper.get(),
-                                   NS_GetCurrentThread(),
-                                   getter_AddRefs(helper->mCancel));
+    OriginAttributes attrs;
+    rv = mDnsService->AsyncResolveNative(aHost, 0, helper.get(),
+                                         NS_GetCurrentThread(), attrs,
+                                         getter_AddRefs(helper->mCancel));
     return rv;
 }
 
@@ -892,13 +893,15 @@ typedef struct
 #define ERROR(key, val) {key, #key}
 
 ErrorEntry socketTransportStatuses[] = {
-        ERROR(NS_NET_STATUS_RESOLVING_HOST,  FAILURE(3)),
-        ERROR(NS_NET_STATUS_RESOLVED_HOST,   FAILURE(11)),
-        ERROR(NS_NET_STATUS_CONNECTING_TO,   FAILURE(7)),
-        ERROR(NS_NET_STATUS_CONNECTED_TO,    FAILURE(4)),
-        ERROR(NS_NET_STATUS_SENDING_TO,      FAILURE(5)),
-        ERROR(NS_NET_STATUS_WAITING_FOR,     FAILURE(10)),
-        ERROR(NS_NET_STATUS_RECEIVING_FROM,  FAILURE(6)),
+        ERROR(NS_NET_STATUS_RESOLVING_HOST,         FAILURE(3)),
+        ERROR(NS_NET_STATUS_RESOLVED_HOST,          FAILURE(11)),
+        ERROR(NS_NET_STATUS_CONNECTING_TO,          FAILURE(7)),
+        ERROR(NS_NET_STATUS_CONNECTED_TO,           FAILURE(4)),
+        ERROR(NS_NET_STATUS_TLS_HANDSHAKE_STARTING, FAILURE(12)),
+        ERROR(NS_NET_STATUS_TLS_HANDSHAKE_ENDED,    FAILURE(13)),
+        ERROR(NS_NET_STATUS_SENDING_TO,             FAILURE(5)),
+        ERROR(NS_NET_STATUS_WAITING_FOR,            FAILURE(10)),
+        ERROR(NS_NET_STATUS_RECEIVING_FROM,         FAILURE(6)),
 };
 #undef ERROR
 

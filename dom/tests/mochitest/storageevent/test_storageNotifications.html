@@ -5,7 +5,7 @@
 <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
 <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 
-<script type="application/javascript;version=1.7">
+<script type="application/javascript">
 
 var expectedTypes = [
   "localStorage",
@@ -34,7 +34,7 @@ function setup() {
   });
 }
 
-function Tests()
+function* Tests()
 {
   // Initially check the both storages are empty
   is(sessionStorage.length, 0, "Session storage is empty [1]");
@@ -44,7 +44,7 @@ function Tests()
     observe: function(subject, topic, type) {
       if (topic == "dom-storage2-changed") {
         ok(expectedTypes.length > 0, "Not more then expected events encountered");
-        is(type, expectedTypes.shift(), "Expected type of the storage notificaiton");
+        is(type, expectedTypes.shift(), "Expected type of the storage notification");
         tests.next();
       }
     }

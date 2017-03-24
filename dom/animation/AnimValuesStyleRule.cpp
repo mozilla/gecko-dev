@@ -67,7 +67,7 @@ AnimValuesStyleRule::AddValue(nsCSSPropertyID aProperty,
 {
   MOZ_ASSERT(aProperty != eCSSProperty_UNKNOWN,
              "Unexpected css property");
-  mAnimationValues.Put(aProperty, Move(aValue));
+  mAnimationValues.Put(aProperty, aValue);
   mStyleBits |=
     nsCachedStyleData::GetBitForSID(nsCSSProps::kSIDTable[aProperty]);
 }
@@ -81,6 +81,13 @@ AnimValuesStyleRule::AddValue(nsCSSPropertyID aProperty,
   mAnimationValues.Put(aProperty, Move(aValue));
   mStyleBits |=
     nsCachedStyleData::GetBitForSID(nsCSSProps::kSIDTable[aProperty]);
+}
+
+bool
+AnimValuesStyleRule::GetValue(nsCSSPropertyID aProperty,
+                              StyleAnimationValue& aValue) const
+{
+  return mAnimationValues.Get(aProperty, &aValue);
 }
 
 #ifdef DEBUG

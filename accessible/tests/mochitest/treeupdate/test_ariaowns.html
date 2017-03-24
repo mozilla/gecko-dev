@@ -27,11 +27,11 @@
     {
       this.eventSeq = [
         new invokerChecker(EVENT_HIDE, getNode("t1_button")),
-        new invokerChecker(EVENT_SHOW, getNode("t1_button")),
-        new invokerChecker(EVENT_SHOW, getNode("t1_subdiv")),
         // no hide for t1_subdiv because it is contained by hidden t1_checkbox
         new invokerChecker(EVENT_HIDE, getNode("t1_checkbox")),
         new invokerChecker(EVENT_SHOW, getNode("t1_checkbox")),
+        new invokerChecker(EVENT_SHOW, getNode("t1_button")),
+        new invokerChecker(EVENT_SHOW, getNode("t1_subdiv")),
         new invokerChecker(EVENT_REORDER, getNode("t1_container"))
       ];
 
@@ -73,10 +73,12 @@
     function removeARIAOwns()
     {
       this.eventSeq = [
-        new invokerChecker(EVENT_HIDE, getNode("t1_subdiv")),
-        new invokerChecker(EVENT_SHOW, getNode("t1_subdiv")),
         new invokerChecker(EVENT_HIDE, getNode("t1_button")),
-        new invokerChecker(EVENT_SHOW, getNode("t1_button")),
+        new invokerChecker(EVENT_HIDE, getNode("t1_subdiv")),
+        new orderChecker(),
+        new asyncInvokerChecker(EVENT_SHOW, getNode("t1_button")),
+        new asyncInvokerChecker(EVENT_SHOW, getNode("t1_subdiv")),
+        new orderChecker(),
         new invokerChecker(EVENT_REORDER, getNode("t1_container")),
         new unexpectedInvokerChecker(EVENT_REORDER, getNode("t1_checkbox"))
       ];
@@ -108,8 +110,8 @@
     function setARIAOwns()
     {
       this.eventSeq = [
-        new invokerChecker(EVENT_HIDE, getNode("t1_subdiv")),
         new invokerChecker(EVENT_HIDE, getNode("t1_button")),
+        new invokerChecker(EVENT_HIDE, getNode("t1_subdiv")),
         new invokerChecker(EVENT_SHOW, getNode("t1_button")),
         new invokerChecker(EVENT_SHOW, getNode("t1_subdiv")),
         new invokerChecker(EVENT_REORDER, getNode("t1_container"))
@@ -221,7 +223,7 @@
       this.invoke = function removeEl_invoke()
       {
         // remove a container of t1_subdiv
-        getNode("t1_span").parentNode.removeChild(getNode("t1_span"));
+        getNode("t1_span").remove();
       }
 
       this.finalCheck = function removeEl_finalCheck()
@@ -447,6 +449,9 @@
       this.eventSeq = [];
       for (var id of aIdList) {
         this.eventSeq.push(new invokerChecker(EVENT_HIDE, getNode(id)));
+      }
+
+      for (var id of aIdList) {
         this.eventSeq.push(new invokerChecker(EVENT_SHOW, getNode(id)));
       }
       this.eventSeq.push(new invokerChecker(EVENT_REORDER, getNode(aContainer)));
@@ -518,7 +523,7 @@
       {
         getNode(aChild).setAttribute("aria-owns", "no_id");
         getNode(aParent).removeChild(getNode(aChild));
-        getNode(aParent).parentNode.removeChild(getNode(aParent));
+        getNode(aParent).remove();
       }
 
       this.getID = function setARIAOwnsOnElToRemove_getID()
@@ -527,6 +532,50 @@
       }
     }
 
+    /**
+     * Set ARIA owns on inaccessible span element that contains
+     * accessible children. This will move children from the container for
+     * the span.
+     */
+    function test8()
+    {
+      this.eventSeq = [
+        new invokerChecker(EVENT_REORDER, "t8_container")
+      ];
+
+      this.invoke = function test8_invoke()
+      {
+        var tree =
+          { SECTION: [
+            { PUSHBUTTON: [] },
+            { ENTRY: [] },
+            { ENTRY: [] },
+            { ENTRY: [] }
+          ] };
+        testAccessibleTree("t8_container", tree);
+
+        getNode(t8_container).setAttribute("aria-owns", "t8_span t8_button");
+      }
+
+      this.finalCheck = function test8_finalCheck()
+      {
+        var tree =
+          { SECTION: [
+            { TEXT: [
+              { ENTRY: [] },
+              { ENTRY: [] },
+              { ENTRY: [] }
+            ] },
+            { PUSHBUTTON: [] }
+          ] };
+        testAccessibleTree("t8_container", tree);
+      }
+
+      this.getID = function test8_getID()
+      {
+        return `Set ARIA owns on inaccessible span element that contains accessible children`;
+      }
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // Test
@@ -574,6 +623,8 @@
       gQueue.push(new removeNotARIAOwnedEl("t6_container", "t6_span"));
 
       gQueue.push(new setARIAOwnsOnElToRemove("t7_parent", "t7_child"));
+
+      gQueue.push(new test8());
 
       gQueue.invoke(); // SimpleTest.finish() will be called in the end
     }
@@ -632,6 +683,10 @@
     <div id="t7_parent">
       <div id="t7_child"></div>
     </div>
+  </div>
+
+  <div id="t8_container">
+    <input id="t8_button" type="button"><span id="t8_span"><input><input><input></span>
   </div>
 </body>
 

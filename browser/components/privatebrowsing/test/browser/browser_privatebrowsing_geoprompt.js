@@ -6,7 +6,7 @@
 // control inside the private browsing mode.
 
 add_task(function* test() {
-  const testPageURL = "http://mochi.test:8888/browser/" +
+  const testPageURL = "https://example.com/browser/" +
     "browser/components/privatebrowsing/test/browser/browser_privatebrowsing_geoprompt_page.html";
 
   function checkGeolocation(aPrivateMode, aWindow) {
@@ -17,22 +17,22 @@ add_task(function* test() {
       let notification = aWindow.PopupNotifications.getNotification("geolocation");
 
       // Wait until the notification is available.
-      while (!notification){
+      while (!notification) {
         yield new Promise(resolve => { executeSoon(resolve); });
-        let notification = aWindow.PopupNotifications.getNotification("geolocation");
+        notification = aWindow.PopupNotifications.getNotification("geolocation");
       }
 
       if (aPrivateMode) {
         // Make sure the notification is correctly displayed without a remember control
-        is(notification.secondaryActions.length, 0, "Secondary actions shouldn't exist (always/never remember)");
+        ok(!notification.options.checkbox.show, "Secondary actions should exist (always/never remember)");
       } else {
-        ok(notification.secondaryActions.length > 1, "Secondary actions should exist (always/never remember)");
+        ok(notification.options.checkbox.show, "Secondary actions should exist (always/never remember)");
       }
       notification.remove();
 
       aWindow.gBrowser.removeCurrentTab();
     });
-  };
+  }
 
   let win = yield BrowserTestUtils.openNewBrowserWindow();
   let browser = win.gBrowser.selectedBrowser;

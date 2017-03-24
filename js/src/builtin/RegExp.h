@@ -31,7 +31,7 @@ enum RegExpStaticsUpdate { UpdateRegExpStatics, DontUpdateRegExpStatics };
  * |chars| and |length|.
  */
 MOZ_MUST_USE bool
-ExecuteRegExpLegacy(JSContext* cx, RegExpStatics* res, RegExpObject& reobj,
+ExecuteRegExpLegacy(JSContext* cx, RegExpStatics* res, Handle<RegExpObject*> reobj,
                     HandleLinearString input, size_t* lastIndex, bool test,
                     MutableHandleValue rval);
 
@@ -113,13 +113,13 @@ extern MOZ_MUST_USE bool
 RegExpPrototypeOptimizable(JSContext* cx, unsigned argc, Value* vp);
 
 extern MOZ_MUST_USE bool
-RegExpPrototypeOptimizableRaw(JSContext* cx, JSObject* proto, uint8_t* result);
+RegExpPrototypeOptimizableRaw(JSContext* cx, JSObject* proto);
 
 extern MOZ_MUST_USE bool
 RegExpInstanceOptimizable(JSContext* cx, unsigned argc, Value* vp);
 
 extern MOZ_MUST_USE bool
-RegExpInstanceOptimizableRaw(JSContext* cx, JSObject* obj, JSObject* proto, uint8_t* result);
+RegExpInstanceOptimizableRaw(JSContext* cx, JSObject* obj, JSObject* proto);
 
 extern MOZ_MUST_USE bool
 RegExpGetSubstitution(JSContext* cx, HandleLinearString matched, HandleLinearString string,

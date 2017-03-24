@@ -33,6 +33,7 @@ from collections import (
     OrderedDict,
 )
 from io import StringIO
+from multiprocessing import cpu_count
 
 from mozbuild.util import (
     EmptyValue,
@@ -80,6 +81,8 @@ from .context import (
 )
 
 from mozbuild.base import ExecutionSummary
+from concurrent.futures.process import ProcessPoolExecutor
+
 
 
 if sys.version_info.major == 2:
@@ -110,21 +113,23 @@ class EmptyConfig(object):
         def get(self, key, default=None):
             return self[key]
 
-    def __init__(self, topsrcdir):
+    default_substs = {
+        # These 2 variables are used semi-frequently and it isn't worth
+        # changing all the instances.
+        b'MOZ_APP_NAME': b'empty',
+        b'MOZ_CHILD_PROCESS_NAME': b'empty',
+        # Set manipulations are performed within the moz.build files. But
+        # set() is not an exposed symbol, so we can't create an empty set.
+        b'NECKO_PROTOCOLS': set(),
+        # Needed to prevent js/src's config.status from loading.
+        b'JS_STANDALONE': b'1',
+    }
+
+    def __init__(self, topsrcdir, substs=None):
         self.topsrcdir = topsrcdir
         self.topobjdir = ''
 
-        self.substs = self.PopulateOnGetDict(EmptyValue, {
-            # These 2 variables are used semi-frequently and it isn't worth
-            # changing all the instances.
-            b'MOZ_APP_NAME': b'empty',
-            b'MOZ_CHILD_PROCESS_NAME': b'empty',
-            # Set manipulations are performed within the moz.build files. But
-            # set() is not an exposed symbol, so we can't create an empty set.
-            b'NECKO_PROTOCOLS': set(),
-            # Needed to prevent js/src's config.status from loading.
-            b'JS_STANDALONE': b'1',
-        })
+        self.substs = self.PopulateOnGetDict(EmptyValue, substs or self.default_substs)
         udict = {}
         for k, v in self.substs.items():
             if isinstance(v, str):
@@ -879,8 +884,13 @@ class BuildReader(object):
         self._execution_stack = []
         self._finder = finder
 
+        max_workers = cpu_count()
+        self._gyp_worker_pool = ProcessPoolExecutor(max_workers=max_workers)
+        self._gyp_processors = []
         self._execution_time = 0.0
         self._file_count = 0
+        self._gyp_execution_time = 0.0
+        self._gyp_file_count = 0
 
     def summary(self):
         return ExecutionSummary(
@@ -888,6 +898,13 @@ class BuildReader(object):
             '{execution_time:.2f}s',
             file_count=self._file_count,
             execution_time=self._execution_time)
+
+    def gyp_summary(self):
+        return ExecutionSummary(
+            'Read {file_count:d} gyp files in parallel contributing '
+            '{execution_time:.2f}s to total wall time',
+            file_count=self._gyp_file_count,
+            execution_time=self._gyp_execution_time)
 
     def read_topsrcdir(self):
         """Read the tree of linked moz.build files.
@@ -899,7 +916,16 @@ class BuildReader(object):
         read, a new Context is created and emitted.
         """
         path = mozpath.join(self.config.topsrcdir, 'moz.build')
-        return self.read_mozbuild(path, self.config)
+        for r in self.read_mozbuild(path, self.config):
+            yield r
+        all_gyp_paths = set()
+        for g in self._gyp_processors:
+            for gyp_context in g.results:
+                all_gyp_paths |= gyp_context.all_paths
+                yield gyp_context
+            self._gyp_execution_time += g.execution_time
+        self._gyp_file_count += len(all_gyp_paths)
+        self._gyp_worker_pool.shutdown()
 
     def all_mozbuild_paths(self):
         """Iterator over all available moz.build files.
@@ -918,8 +944,7 @@ class BuildReader(object):
             'obj*',
         }
 
-        finder = FileFinder(self.config.topsrcdir, find_executables=False,
-            ignore=ignore)
+        finder = FileFinder(self.config.topsrcdir, ignore=ignore)
 
         # The root doesn't get picked up by FileFinder.
         yield 'moz.build'
@@ -1136,7 +1161,6 @@ class BuildReader(object):
 
         curdir = mozpath.dirname(path)
 
-        gyp_contexts = []
         for target_dir in context.get('GYP_DIRS', []):
             gyp_dir = context['GYP_DIRS'][target_dir]
             for v in ('input', 'variables'):
@@ -1149,7 +1173,7 @@ class BuildReader(object):
             # We could emit the parent context before processing gyp
             # configuration, but we need to add the gyp objdirs to that context
             # first.
-            from .gyp_reader import read_from_gyp
+            from .gyp_reader import GypProcessor
             non_unified_sources = set()
             for s in gyp_dir.non_unified_sources:
                 source = SourcePath(context, s)
@@ -1157,21 +1181,19 @@ class BuildReader(object):
                     raise SandboxValidationError('Cannot find %s.' % source,
                         context)
                 non_unified_sources.add(source)
-            time_start = time.time()
-            for gyp_context in read_from_gyp(context.config,
-                                             mozpath.join(curdir, gyp_dir.input),
-                                             mozpath.join(context.objdir,
-                                                          target_dir),
-                                             gyp_dir.variables,
-                                             non_unified_sources = non_unified_sources):
-                gyp_context.update(gyp_dir.sandbox_vars)
-                gyp_contexts.append(gyp_context)
-                self._file_count += len(gyp_context.all_paths)
-            self._execution_time += time.time() - time_start
+            action_overrides = {}
+            for action, script in gyp_dir.action_overrides.iteritems():
+                action_overrides[action] = SourcePath(context, script)
 
-        for gyp_context in gyp_contexts:
-            context['DIRS'].append(mozpath.relpath(gyp_context.objdir, context.objdir))
-            sandbox.subcontexts.append(gyp_context)
+            gyp_processor = GypProcessor(context.config,
+                                         gyp_dir,
+                                         mozpath.join(curdir, gyp_dir.input),
+                                         mozpath.join(context.objdir,
+                                                      target_dir),
+                                         self._gyp_worker_pool,
+                                         action_overrides,
+                                         non_unified_sources)
+            self._gyp_processors.append(gyp_processor)
 
         for subcontext in sandbox.subcontexts:
             yield subcontext

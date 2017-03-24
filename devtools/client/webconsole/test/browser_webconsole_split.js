@@ -9,10 +9,6 @@ const TEST_URI = "data:text/html;charset=utf-8,Web Console test for splitting";
 
 function test() {
   waitForExplicitFinish();
-  SpecialPowers.pushPrefEnv({"set": [["dom.ipc.processCount", 1]]}, runTest);
-}
-
-function runTest() {
   // Test is slow on Linux EC2 instances - Bug 962931
   requestLongerTimeout(2);
 
@@ -85,17 +81,15 @@ function runTest() {
       webconsoleHeight: webconsoleHeight,
       splitterVisibility: splitterVisibility,
       openedConsolePanel: openedConsolePanel,
-      buttonSelected: cmdButton.hasAttribute("checked")
+      buttonSelected: cmdButton.classList.contains("checked")
     };
   }
 
-  function checkWebconsolePanelOpened() {
+  const checkWebconsolePanelOpened = Task.async(function* () {
     info("About to check special cases when webconsole panel is open.");
 
-    let deferred = promise.defer();
-
     // Start with console split, so we can test for transition to main panel.
-    toolbox.toggleSplitConsole();
+    yield toolbox.toggleSplitConsole();
 
     let currentUIState = getCurrentUIState();
 
@@ -109,78 +103,54 @@ function runTest() {
        "The console panel is not the current tool");
     ok(currentUIState.buttonSelected, "The command button is selected");
 
-    openPanel("webconsole").then(() => {
-      currentUIState = getCurrentUIState();
+    yield openPanel("webconsole");
+    currentUIState = getCurrentUIState();
 
-      ok(!currentUIState.splitterVisibility,
-         "Splitter is hidden when console is opened.");
-      is(currentUIState.deckHeight, 0,
-         "Deck has a height == 0 when console is opened.");
-      is(currentUIState.webconsoleHeight, currentUIState.containerHeight,
-         "Web console is full height.");
-      ok(currentUIState.openedConsolePanel,
-         "The console panel is the current tool");
-      ok(currentUIState.buttonSelected,
-         "The command button is still selected.");
+    ok(!currentUIState.splitterVisibility,
+       "Splitter is hidden when console is opened.");
+    is(currentUIState.deckHeight, 0,
+       "Deck has a height == 0 when console is opened.");
+    is(currentUIState.webconsoleHeight, currentUIState.containerHeight,
+       "Web console is full height.");
+    ok(currentUIState.openedConsolePanel,
+       "The console panel is the current tool");
+    ok(currentUIState.buttonSelected,
+       "The command button is still selected.");
 
-      // Make sure splitting console does nothing while webconsole is opened
-      toolbox.toggleSplitConsole();
+    // Make sure splitting console does nothing while webconsole is opened
+    yield toolbox.toggleSplitConsole();
 
-      currentUIState = getCurrentUIState();
+    currentUIState = getCurrentUIState();
 
-      ok(!currentUIState.splitterVisibility,
-         "Splitter is hidden when console is opened.");
-      is(currentUIState.deckHeight, 0,
-         "Deck has a height == 0 when console is opened.");
-      is(currentUIState.webconsoleHeight, currentUIState.containerHeight,
-         "Web console is full height.");
-      ok(currentUIState.openedConsolePanel,
-         "The console panel is the current tool");
-      ok(currentUIState.buttonSelected,
-         "The command button is still selected.");
+    ok(!currentUIState.splitterVisibility,
+       "Splitter is hidden when console is opened.");
+    is(currentUIState.deckHeight, 0,
+       "Deck has a height == 0 when console is opened.");
+    is(currentUIState.webconsoleHeight, currentUIState.containerHeight,
+       "Web console is full height.");
+    ok(currentUIState.openedConsolePanel,
+       "The console panel is the current tool");
+    ok(currentUIState.buttonSelected,
+       "The command button is still selected.");
 
-      // Make sure that split state is saved after opening another panel
-      openPanel("inspector").then(() => {
-        currentUIState = getCurrentUIState();
-        ok(currentUIState.splitterVisibility,
-           "Splitter is visible when console is split");
-        ok(currentUIState.deckHeight > 0,
-           "Deck has a height > 0 when console is split");
-        ok(currentUIState.webconsoleHeight > 0,
-           "Web console has a height > 0 when console is split");
-        ok(!currentUIState.openedConsolePanel,
-           "The console panel is not the current tool");
-        ok(currentUIState.buttonSelected,
-           "The command button is still selected.");
+    // Make sure that split state is saved after opening another panel
+    yield openPanel("inspector");
+    currentUIState = getCurrentUIState();
+    ok(currentUIState.splitterVisibility,
+       "Splitter is visible when console is split");
+    ok(currentUIState.deckHeight > 0,
+       "Deck has a height > 0 when console is split");
+    ok(currentUIState.webconsoleHeight > 0,
+       "Web console has a height > 0 when console is split");
+    ok(!currentUIState.openedConsolePanel,
+       "The console panel is not the current tool");
+    ok(currentUIState.buttonSelected,
+       "The command button is still selected.");
 
-        toolbox.toggleSplitConsole();
-        deferred.resolve();
-      });
-    });
-    return deferred.promise;
-  }
+    yield toolbox.toggleSplitConsole();
+  });
 
-  function openPanel(toolId) {
-    let deferred = promise.defer();
-    let target = TargetFactory.forTab(gBrowser.selectedTab);
-    gDevTools.showToolbox(target, toolId).then(function (box) {
-      toolbox = box;
-      deferred.resolve();
-    }).then(null, console.error);
-    return deferred.promise;
-  }
-
-  function openAndCheckPanel(toolId) {
-    let deferred = promise.defer();
-    openPanel(toolId).then(() => {
-      info("Checking toolbox for " + toolId);
-      checkToolboxUI(toolbox.getCurrentPanel());
-      deferred.resolve();
-    });
-    return deferred.promise;
-  }
-
-  function checkToolboxUI() {
+  const checkToolboxUI = Task.async(function* () {
     let currentUIState = getCurrentUIState();
 
     ok(!currentUIState.splitterVisibility, "Splitter is hidden by default");
@@ -192,7 +162,7 @@ function runTest() {
        "The console panel is not the current tool");
     ok(!currentUIState.buttonSelected, "The command button is not selected.");
 
-    toolbox.toggleSplitConsole();
+    yield toolbox.toggleSplitConsole();
 
     currentUIState = getCurrentUIState();
 
@@ -209,7 +179,7 @@ function runTest() {
        "The console panel is not the current tool");
     ok(currentUIState.buttonSelected, "The command button is selected.");
 
-    toolbox.toggleSplitConsole();
+    yield toolbox.toggleSplitConsole();
 
     currentUIState = getCurrentUIState();
 
@@ -221,6 +191,23 @@ function runTest() {
     ok(!currentUIState.openedConsolePanel,
        "The console panel is not the current tool");
     ok(!currentUIState.buttonSelected, "The command button is not selected.");
+  });
+
+  function openPanel(toolId) {
+    let deferred = promise.defer();
+    let target = TargetFactory.forTab(gBrowser.selectedTab);
+    gDevTools.showToolbox(target, toolId).then(function (box) {
+      toolbox = box;
+      deferred.resolve();
+    }).then(null, console.error);
+    return deferred.promise;
+  }
+
+  function openAndCheckPanel(toolId) {
+    return openPanel(toolId).then(() => {
+      info("Checking toolbox for " + toolId);
+      return checkToolboxUI(toolbox.getCurrentPanel());
+    });
   }
 
   function testBottomHost() {

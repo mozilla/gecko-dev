@@ -11,10 +11,13 @@ add_task(function* () {
   let { monitor } = yield initNetMonitor(SIMPLE_SJS);
   info("Starting test... ");
 
-  let { NetMonitorView, NetMonitorController } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
+  let { gStore, windowRequire, NetMonitorController } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/actions/index");
+  let {
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/selectors/index");
 
-  RequestsMenu.lazyUpdate = false;
+  gStore.dispatch(Actions.batchEnable(false));
 
   let requestUrl = SIMPLE_SJS;
   let requestHeaders = [
@@ -35,21 +38,21 @@ add_task(function* () {
   });
   yield wait;
 
-  let { attachment } = RequestsMenu.getItemAtIndex(0);
-  is(attachment.method, "POST", "The request has the right method");
-  is(attachment.url, requestUrl, "The request has the right URL");
+  let item = getSortedRequests(gStore.getState()).get(0);
+  is(item.method, "POST", "The request has the right method");
+  is(item.url, requestUrl, "The request has the right URL");
 
-  for (let { name, value } of attachment.requestHeaders.headers) {
+  for (let { name, value } of item.requestHeaders.headers) {
     info(`Request header: ${name}: ${value}`);
   }
 
   function hasRequestHeader(name, value) {
-    let { headers } = attachment.requestHeaders;
+    let { headers } = item.requestHeaders;
     return headers.some(h => h.name === name && h.value === value);
   }
 
   function hasNotRequestHeader(name) {
-    let { headers } = attachment.requestHeaders;
+    let { headers } = item.requestHeaders;
     return headers.every(h => h.name !== name);
   }
 

@@ -20,7 +20,9 @@
 #include "nsMultiplexInputStream.h"
 #include "nsNetCID.h"
 #include "nsStringStream.h"
+#include "nsTemporaryFileInputStream.h"
 #include "nsXULAppAPI.h"
+#include "SlicedInputStream.h"
 
 using namespace mozilla::dom;
 
@@ -28,7 +30,6 @@ namespace {
 
 NS_DEFINE_CID(kStringInputStreamCID, NS_STRINGINPUTSTREAM_CID);
 NS_DEFINE_CID(kFileInputStreamCID, NS_LOCALFILEINPUTSTREAM_CID);
-NS_DEFINE_CID(kPartialFileInputStreamCID, NS_PARTIALLOCALFILEINPUTSTREAM_CID);
 NS_DEFINE_CID(kBufferedInputStreamCID, NS_BUFFEREDINPUTSTREAM_CID);
 NS_DEFINE_CID(kMIMEInputStreamCID, NS_MIMEINPUTSTREAM_CID);
 NS_DEFINE_CID(kMultiplexInputStreamCID, NS_MULTIPLEXINPUTSTREAM_CID);
@@ -39,9 +40,9 @@ namespace mozilla {
 namespace ipc {
 
 void
-SerializeInputStream(nsIInputStream* aInputStream,
-                     InputStreamParams& aParams,
-                     nsTArray<FileDescriptor>& aFileDescriptors)
+InputStreamHelper::SerializeInputStream(nsIInputStream* aInputStream,
+                                        InputStreamParams& aParams,
+                                        nsTArray<FileDescriptor>& aFileDescriptors)
 {
   MOZ_ASSERT(aInputStream);
 
@@ -58,24 +59,9 @@ SerializeInputStream(nsIInputStream* aInputStream,
   }
 }
 
-void
-SerializeInputStream(nsIInputStream* aInputStream,
-                     OptionalInputStreamParams& aParams,
-                     nsTArray<FileDescriptor>& aFileDescriptors)
-{
-  if (aInputStream) {
-    InputStreamParams params;
-    SerializeInputStream(aInputStream, params, aFileDescriptors);
-    aParams = params;
-  }
-  else {
-    aParams = mozilla::void_t();
-  }
-}
-
 already_AddRefed<nsIInputStream>
-DeserializeInputStream(const InputStreamParams& aParams,
-                       const nsTArray<FileDescriptor>& aFileDescriptors)
+InputStreamHelper::DeserializeInputStream(const InputStreamParams& aParams,
+                                          const nsTArray<FileDescriptor>& aFileDescriptors)
 {
   nsCOMPtr<nsIInputStream> stream;
   nsCOMPtr<nsIIPCSerializableInputStream> serializable;
@@ -87,10 +73,6 @@ DeserializeInputStream(const InputStreamParams& aParams,
 
     case InputStreamParams::TFileInputStreamParams:
       serializable = do_CreateInstance(kFileInputStreamCID);
-      break;
-
-    case InputStreamParams::TPartialFileInputStreamParams:
-      serializable = do_CreateInstance(kPartialFileInputStreamCID);
       break;
 
     case InputStreamParams::TTemporaryFileInputStreamParams:
@@ -147,6 +129,10 @@ DeserializeInputStream(const InputStreamParams& aParams,
       return stream.forget();
     }
 
+    case InputStreamParams::TSlicedInputStreamParams:
+      serializable = new SlicedInputStream();
+      break;
+
     default:
       MOZ_ASSERT(false, "Unknown params!");
       return nullptr;
@@ -161,29 +147,6 @@ DeserializeInputStream(const InputStreamParams& aParams,
 
   stream = do_QueryInterface(serializable);
   MOZ_ASSERT(stream);
-
-  return stream.forget();
-}
-
-already_AddRefed<nsIInputStream>
-DeserializeInputStream(const OptionalInputStreamParams& aParams,
-                       const nsTArray<FileDescriptor>& aFileDescriptors)
-{
-  nsCOMPtr<nsIInputStream> stream;
-
-  switch (aParams.type()) {
-    case OptionalInputStreamParams::Tvoid_t:
-      // Leave stream null.
-      break;
-
-    case OptionalInputStreamParams::TInputStreamParams:
-      stream = DeserializeInputStream(aParams.get_InputStreamParams(),
-                                      aFileDescriptors);
-      break;
-
-    default:
-      MOZ_ASSERT(false, "Unknown params!");
-  }
 
   return stream.forget();
 }

@@ -32,6 +32,7 @@
 #include "mozilla/ProcessPriorityManager.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Services.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Telemetry.h"
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
@@ -71,7 +72,6 @@
 #include "WebGLSampler.h"
 #include "WebGLShader.h"
 #include "WebGLSync.h"
-#include "WebGLTimerQuery.h"
 #include "WebGLTransformFeedback.h"
 #include "WebGLVertexArray.h"
 #include "WebGLVertexAttribData.h"
@@ -115,17 +115,22 @@ WebGLContextOptions::WebGLContextOptions()
 
 WebGLContext::WebGLContext()
     : WebGLContextUnchecked(nullptr)
+    , mMaxPerfWarnings(gfxPrefs::WebGLMaxPerfWarnings())
+    , mNumPerfWarnings(0)
+    , mMaxAcceptableFBStatusInvals(gfxPrefs::WebGLMaxAcceptableFBStatusInvals())
     , mBufferFetchingIsVerified(false)
     , mBufferFetchingHasPerVertex(false)
     , mMaxFetchedVertices(0)
     , mMaxFetchedInstances(0)
     , mLayerIsMirror(false)
     , mBypassShaderValidation(false)
+    , mEmptyTFO(0)
     , mContextLossHandler(this)
     , mNeedsFakeNoAlpha(false)
     , mNeedsFakeNoDepth(false)
     , mNeedsFakeNoStencil(false)
     , mNeedsEmulatedLoneDepthStencil(false)
+    , mAllowFBInvalidation(gfxPrefs::WebGLFBInvalidation())
 {
     mGeneration = 0;
     mInvalidated = false;
@@ -141,18 +146,6 @@ WebGLContext::WebGLContext()
     mUnderlyingGLError = 0;
 
     mActiveTexture = 0;
-
-    mVertexAttrib0Vector[0] = 0;
-    mVertexAttrib0Vector[1] = 0;
-    mVertexAttrib0Vector[2] = 0;
-    mVertexAttrib0Vector[3] = 1;
-    mFakeVertexAttrib0BufferObjectVector[0] = 0;
-    mFakeVertexAttrib0BufferObjectVector[1] = 0;
-    mFakeVertexAttrib0BufferObjectVector[2] = 0;
-    mFakeVertexAttrib0BufferObjectVector[3] = 1;
-    mFakeVertexAttrib0BufferObjectSize = 0;
-    mFakeVertexAttrib0BufferObject = 0;
-    mFakeVertexAttrib0BufferStatus = WebGLVertexAttrib0Status::Default;
 
     mStencilRefFront = 0;
     mStencilRefBack = 0;
@@ -202,8 +195,6 @@ WebGLContext::WebGLContext()
 
     InvalidateBufferFetching();
 
-    mBackbufferNeedsClear = true;
-
     mDisableFragHighP = false;
 
     mDrawCallsSinceLastFlush = 0;
@@ -221,7 +212,7 @@ WebGLContext::~WebGLContext()
 }
 
 template<typename T>
-static void
+void
 ClearLinkedList(LinkedList<T>& list)
 {
     while (!list.isEmpty()) {
@@ -252,12 +243,15 @@ WebGLContext::DestroyResourcesAndContext()
     mActiveProgramLinkInfo = nullptr;
     mBoundDrawFramebuffer = nullptr;
     mBoundReadFramebuffer = nullptr;
-    mActiveOcclusionQuery = nullptr;
     mBoundRenderbuffer = nullptr;
     mBoundVertexArray = nullptr;
     mDefaultVertexArray = nullptr;
     mBoundTransformFeedback = nullptr;
     mDefaultTransformFeedback = nullptr;
+
+    mQuerySlot_SamplesPassed = nullptr;
+    mQuerySlot_TFPrimsWritten = nullptr;
+    mQuerySlot_TimeElapsed = nullptr;
 
     mIndexedUniformBufferBindings.clear();
 
@@ -272,9 +266,15 @@ WebGLContext::DestroyResourcesAndContext()
     ClearLinkedList(mShaders);
     ClearLinkedList(mSyncs);
     ClearLinkedList(mTextures);
-    ClearLinkedList(mTimerQueries);
     ClearLinkedList(mTransformFeedbacks);
     ClearLinkedList(mVertexArrays);
+
+    //////
+
+    if (mEmptyTFO) {
+        gl->fDeleteTransformFeedbacks(1, &mEmptyTFO);
+        mEmptyTFO = 0;
+    }
 
     //////
 
@@ -710,8 +710,25 @@ bool
 WebGLContext::CreateAndInitGL(bool forceEnabled,
                               std::vector<FailureReason>* const out_failReasons)
 {
+    // WebGL2 is separately blocked:
+    if (IsWebGL2()) {
+        const nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
+        const auto feature = nsIGfxInfo::FEATURE_WEBGL2;
+
+        FailureReason reason;
+        if (IsFeatureInBlacklist(gfxInfo, feature, &reason.key)) {
+            reason.info = "Refused to create WebGL2 context because of blacklist"
+                          " entry: ";
+            reason.info.Append(reason.key);
+            out_failReasons->push_back(reason);
+            GenerateWarning("%s", reason.info.BeginReading());
+            return false;
+        }
+    }
+
     const gl::SurfaceCaps baseCaps = BaseCaps(mOptions, this);
-    gl::CreateContextFlags flags = gl::CreateContextFlags::NO_VALIDATION;
+    gl::CreateContextFlags flags = (gl::CreateContextFlags::NO_VALIDATION |
+                                    gl::CreateContextFlags::PREFER_ROBUSTNESS);
     bool tryNativeGL = true;
     bool tryANGLE = false;
 
@@ -755,7 +772,7 @@ WebGLContext::CreateAndInitGL(bool forceEnabled,
 
             out_failReasons->push_back(reason);
 
-            GenerateWarning(reason.info.BeginReading());
+            GenerateWarning("%s", reason.info.BeginReading());
             tryNativeGL = false;
         }
     }
@@ -1083,6 +1100,7 @@ WebGLContext::SetDimensions(int32_t signedWidth, int32_t signedHeight)
     MakeContextCurrent();
 
     gl->fViewport(0, 0, mWidth, mHeight);
+    mViewportX = mViewportY = 0;
     mViewportWidth = mWidth;
     mViewportHeight = mHeight;
 
@@ -1129,14 +1147,6 @@ WebGLContext::ClearBackbufferIfNeeded()
 {
     if (!mBackbufferNeedsClear)
         return;
-
-#ifdef DEBUG
-    gl->MakeCurrent();
-
-    GLuint fb = 0;
-    gl->GetUIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, &fb);
-    MOZ_ASSERT(fb == 0);
-#endif
 
     ClearScreen();
 
@@ -1219,13 +1229,13 @@ WebGLContext::LoseOldestWebGLContextIfLimitExceeded()
     }
 
     if (numContextsThisPrincipal > kMaxWebGLContextsPerPrincipal) {
-        GenerateWarning("Exceeded %d live WebGL contexts for this principal, losing the "
+        GenerateWarning("Exceeded %" PRIuSIZE " live WebGL contexts for this principal, losing the "
                         "least recently used one.", kMaxWebGLContextsPerPrincipal);
         MOZ_ASSERT(oldestContextThisPrincipal); // if we reach this point, this can't be null
         const_cast<WebGLContext*>(oldestContextThisPrincipal)->LoseContext();
     } else if (numContexts > kMaxWebGLContexts) {
-        GenerateWarning("Exceeded %d live WebGL contexts, losing the least recently used one.",
-                        kMaxWebGLContexts);
+        GenerateWarning("Exceeded %" PRIuSIZE " live WebGL contexts, losing the least "
+                        "recently used one.", kMaxWebGLContexts);
         MOZ_ASSERT(oldestContext); // if we reach this point, this can't be null
         const_cast<WebGLContext*>(oldestContext)->LoseContext();
     }
@@ -1285,8 +1295,7 @@ WebGLContext::UpdateLastUseIndex()
     // should never happen with 64-bit; trying to handle this would be riskier than
     // not handling it as the handler code would never get exercised.
     if (!sIndex.isValid())
-        NS_RUNTIMEABORT("Can't believe it's been 2^64 transactions already!");
-
+        MOZ_CRASH("Can't believe it's been 2^64 transactions already!");
     mLastUseIndex = sIndex.value();
 }
 
@@ -1647,7 +1656,7 @@ WebGLContext::DummyReadFramebufferOperation(const char* funcName)
 }
 
 bool
-WebGLContext::HasTimestampBits() const
+WebGLContext::Has64BitTimestamps() const
 {
     // 'sync' provides glGetInteger64v either by supporting ARB_sync, GL3+, or GLES3+.
     return gl->IsSupported(GLFeature::sync);
@@ -2035,12 +2044,16 @@ WebGLContext::ValidateCurFBForRead(const char* funcName,
 
 ////////////////////////////////////////////////////////////////////////////////
 
-WebGLContext::ScopedMaskWorkaround::ScopedMaskWorkaround(WebGLContext& webgl)
+WebGLContext::ScopedDrawCallWrapper::ScopedDrawCallWrapper(WebGLContext& webgl)
     : mWebGL(webgl)
     , mFakeNoAlpha(ShouldFakeNoAlpha(webgl))
     , mFakeNoDepth(ShouldFakeNoDepth(webgl))
     , mFakeNoStencil(ShouldFakeNoStencil(webgl))
 {
+    if (!mWebGL.mBoundDrawFramebuffer) {
+        mWebGL.ClearBackbufferIfNeeded();
+    }
+
     if (mFakeNoAlpha) {
         mWebGL.gl->fColorMask(mWebGL.mColorWriteMask[0],
                               mWebGL.mColorWriteMask[1],
@@ -2055,7 +2068,7 @@ WebGLContext::ScopedMaskWorkaround::ScopedMaskWorkaround(WebGLContext& webgl)
     }
 }
 
-WebGLContext::ScopedMaskWorkaround::~ScopedMaskWorkaround()
+WebGLContext::ScopedDrawCallWrapper::~ScopedDrawCallWrapper()
 {
     if (mFakeNoAlpha) {
         mWebGL.gl->fColorMask(mWebGL.mColorWriteMask[0],
@@ -2070,14 +2083,29 @@ WebGLContext::ScopedMaskWorkaround::~ScopedMaskWorkaround()
         MOZ_ASSERT(mWebGL.mStencilTestEnabled);
         mWebGL.gl->fEnable(LOCAL_GL_STENCIL_TEST);
     }
+
+    if (!mWebGL.mBoundDrawFramebuffer) {
+        mWebGL.Invalidate();
+        mWebGL.mShouldPresent = true;
+    }
 }
 
 /*static*/ bool
-WebGLContext::ScopedMaskWorkaround::HasDepthButNoStencil(const WebGLFramebuffer* fb)
+WebGLContext::ScopedDrawCallWrapper::HasDepthButNoStencil(const WebGLFramebuffer* fb)
 {
     const auto& depth = fb->DepthAttachment();
     const auto& stencil = fb->StencilAttachment();
     return depth.IsDefined() && !stencil.IsDefined();
+}
+
+////
+
+void
+WebGLContext::OnBeforeReadCall()
+{
+    if (!mBoundReadFramebuffer) {
+        ClearBackbufferIfNeeded();
+    }
 }
 
 ////////////////////////////////////////
@@ -2218,176 +2246,6 @@ Intersect(uint32_t srcSize, int32_t dstStartInSrc, uint32_t dstSize,
     *out_intSize = std::max<int32_t>(0, intEndInSrc - *out_intStartInSrc);
 }
 
-static bool
-ZeroTexImageWithClear(WebGLContext* webgl, GLContext* gl, TexImageTarget target,
-                      GLuint tex, uint32_t level, const webgl::FormatUsageInfo* usage,
-                      uint32_t width, uint32_t height)
-{
-    MOZ_ASSERT(gl->IsCurrent());
-
-    ScopedFramebuffer scopedFB(gl);
-    ScopedBindFramebuffer scopedBindFB(gl, scopedFB.FB());
-
-    const auto format = usage->format;
-
-    GLenum attachPoint = 0;
-    GLbitfield clearBits = 0;
-
-    if (format->IsColorFormat()) {
-        attachPoint = LOCAL_GL_COLOR_ATTACHMENT0;
-        clearBits = LOCAL_GL_COLOR_BUFFER_BIT;
-    }
-
-    if (format->d) {
-        attachPoint = LOCAL_GL_DEPTH_ATTACHMENT;
-        clearBits |= LOCAL_GL_DEPTH_BUFFER_BIT;
-    }
-
-    if (format->s) {
-        attachPoint = (format->d ? LOCAL_GL_DEPTH_STENCIL_ATTACHMENT
-                                 : LOCAL_GL_STENCIL_ATTACHMENT);
-        clearBits |= LOCAL_GL_STENCIL_BUFFER_BIT;
-    }
-
-    MOZ_RELEASE_ASSERT(attachPoint && clearBits, "GFX: No bits cleared.");
-
-    {
-        gl::GLContext::LocalErrorScope errorScope(*gl);
-        gl->fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER, attachPoint, target.get(), tex,
-                                  level);
-        if (errorScope.GetError()) {
-            MOZ_ASSERT(false);
-            return false;
-        }
-    }
-
-    auto status = gl->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
-    if (status != LOCAL_GL_FRAMEBUFFER_COMPLETE)
-        return false;
-
-    {
-        gl::GLContext::LocalErrorScope errorScope(*gl);
-
-        const bool fakeNoAlpha = false;
-        webgl->ForceClearFramebufferWithDefaultValues(clearBits, fakeNoAlpha);
-        if (errorScope.GetError()) {
-            MOZ_ASSERT(false);
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool
-ZeroTextureData(WebGLContext* webgl, const char* funcName, GLuint tex,
-                TexImageTarget target, uint32_t level,
-                const webgl::FormatUsageInfo* usage, uint32_t xOffset, uint32_t yOffset,
-                uint32_t zOffset, uint32_t width, uint32_t height, uint32_t depth)
-{
-    // This has two usecases:
-    // 1. Lazy zeroing of uninitialized textures:
-    //    a. Before draw, when FakeBlack isn't viable. (TexStorage + Draw*)
-    //    b. Before partial upload. (TexStorage + TexSubImage)
-    // 2. Zero subrects from out-of-bounds blits. (CopyTex(Sub)Image)
-
-    // We have no sympathy for any of these cases.
-
-    // "Doctor, it hurts when I do this!" "Well don't do that!"
-    webgl->GenerateWarning("%s: This operation requires zeroing texture data. This is"
-                           " slow.",
-                           funcName);
-
-    gl::GLContext* gl = webgl->GL();
-    gl->MakeCurrent();
-
-    auto compression = usage->format->compression;
-    if (compression) {
-        MOZ_RELEASE_ASSERT(!xOffset && !yOffset && !zOffset, "GFX: Can't zero compressed texture with offsets.");
-
-        auto sizedFormat = usage->format->sizedFormat;
-        MOZ_RELEASE_ASSERT(sizedFormat, "GFX: texture sized format not set");
-
-        const auto fnSizeInBlocks = [](CheckedUint32 pixels, uint8_t pixelsPerBlock) {
-            return RoundUpToMultipleOf(pixels, pixelsPerBlock) / pixelsPerBlock;
-        };
-
-        const auto widthBlocks = fnSizeInBlocks(width, compression->blockWidth);
-        const auto heightBlocks = fnSizeInBlocks(height, compression->blockHeight);
-
-        CheckedUint32 checkedByteCount = compression->bytesPerBlock;
-        checkedByteCount *= widthBlocks;
-        checkedByteCount *= heightBlocks;
-        checkedByteCount *= depth;
-
-        if (!checkedByteCount.isValid())
-            return false;
-
-        const size_t byteCount = checkedByteCount.value();
-
-        UniqueBuffer zeros = calloc(1, byteCount);
-        if (!zeros)
-            return false;
-
-        ScopedUnpackReset scopedReset(webgl);
-        gl->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 1); // Don't bother with striding it
-                                                        // well.
-
-        GLenum error = DoCompressedTexSubImage(gl, target.get(), level, xOffset, yOffset,
-                                               zOffset, width, height, depth, sizedFormat,
-                                               byteCount, zeros.get());
-        if (error)
-            return false;
-
-        return true;
-    }
-
-    const auto driverUnpackInfo = usage->idealUnpack;
-    MOZ_RELEASE_ASSERT(driverUnpackInfo, "GFX: ideal unpack info not set.");
-
-    if (usage->IsRenderable() && depth == 1 &&
-        !xOffset && !yOffset && !zOffset)
-    {
-        // While we would like to skip the extra complexity of trying to zero with an FB
-        // clear, ANGLE_depth_texture requires this.
-        do {
-            if (ZeroTexImageWithClear(webgl, gl, target, tex, level, usage, width,
-                                      height))
-            {
-                return true;
-            }
-        } while (false);
-    }
-
-    const webgl::PackingInfo packing = driverUnpackInfo->ToPacking();
-
-    const auto bytesPerPixel = webgl::BytesPerPixel(packing);
-
-    CheckedUint32 checkedByteCount = bytesPerPixel;
-    checkedByteCount *= width;
-    checkedByteCount *= height;
-    checkedByteCount *= depth;
-
-    if (!checkedByteCount.isValid())
-        return false;
-
-    const size_t byteCount = checkedByteCount.value();
-
-    UniqueBuffer zeros = calloc(1, byteCount);
-    if (!zeros)
-        return false;
-
-    ScopedUnpackReset scopedReset(webgl);
-    gl->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 1); // Don't bother with striding it well.
-
-    const auto error = DoTexSubImage(gl, target, level, xOffset, yOffset, zOffset, width,
-                                     height, depth, packing, zeros.get());
-    if (error)
-        return false;
-
-    return true;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 CheckedUint32
@@ -2507,11 +2365,23 @@ WebGLContext::StartVRPresentation()
             vrmc->GetBackendType(),
             TextureFlags::ORIGIN_BOTTOM_LEFT);
 
-    screen->Morph(Move(factory));
+    if (factory) {
+        screen->Morph(Move(factory));
+    }
     return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+static inline size_t
+SizeOfViewElem(const dom::ArrayBufferView& view)
+{
+    const auto& elemType = view.Type();
+    if (elemType == js::Scalar::MaxTypedArrayViewType) // DataViews.
+        return 1;
+
+    return js::Scalar::byteSize(elemType);
+}
 
 bool
 WebGLContext::ValidateArrayBufferView(const char* funcName,
@@ -2523,8 +2393,7 @@ WebGLContext::ValidateArrayBufferView(const char* funcName,
     uint8_t* const bytes = view.DataAllowShared();
     const size_t byteLen = view.LengthAllowShared();
 
-    const auto& elemType = view.Type();
-    const auto& elemSize = js::Scalar::byteSize(elemType);
+    const auto& elemSize = SizeOfViewElem(view);
 
     size_t elemCount = byteLen / elemSize;
     if (elemOffset > elemCount) {
@@ -2592,8 +2461,9 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(WebGLContext,
   mBoundRenderbuffer,
   mBoundVertexArray,
   mDefaultVertexArray,
-  mActiveOcclusionQuery,
-  mActiveTransformFeedbackQuery)
+  mQuerySlot_SamplesPassed,
+  mQuerySlot_TFPrimsWritten,
+  mQuerySlot_TimeElapsed)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebGLContext)
     NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY

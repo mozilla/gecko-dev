@@ -65,10 +65,9 @@ function openDeleteCertConfirmDialog(tabID) {
   let win = window.openDialog("chrome://pippki/content/deletecert.xul", "", "",
                               tabID, gCertArray, retVals);
   return new Promise((resolve, reject) => {
-    win.addEventListener("load", function onLoad() {
-      win.removeEventListener("load", onLoad);
+    win.addEventListener("load", function() {
       resolve([win, retVals]);
-    });
+    }, {once: true});
   });
 }
 
@@ -80,7 +79,7 @@ add_task(function* setup() {
     }
     let certTreeItem = {
       hostPort: FAKE_HOST_PORT,
-      cert: cert,
+      cert,
       QueryInterface(iid) {
         if (iid.equals(Ci.nsICertTreeItem)) {
           return this;
@@ -106,7 +105,7 @@ add_task(function* setup() {
  *        Impact the dialog is expected to show.
  */
 function* testHelper(tabID, expectedTitle, expectedConfirmMsg, expectedImpact) {
-  let [win, retVals] = yield openDeleteCertConfirmDialog(tabID);
+  let [win] = yield openDeleteCertConfirmDialog(tabID);
   let certList = win.document.getElementById("certlist");
 
   Assert.equal(win.document.title, expectedTitle,
@@ -194,7 +193,7 @@ add_task(function* testDeleteOtherCerts() {
 
 // Test that the right values are returned when the dialog is accepted.
 add_task(function* testAcceptDialogReturnValues() {
-  let [win, retVals] = yield openDeleteCertConfirmDialog("ca_tab" /*arbitrary*/);
+  let [win, retVals] = yield openDeleteCertConfirmDialog("ca_tab" /* arbitrary */);
   info("Accepting dialog");
   win.document.getElementById("deleteCertificate").acceptDialog();
   yield BrowserTestUtils.windowClosed(win);
@@ -205,7 +204,7 @@ add_task(function* testAcceptDialogReturnValues() {
 
 // Test that the right values are returned when the dialog is canceled.
 add_task(function* testCancelDialogReturnValues() {
-  let [win, retVals] = yield openDeleteCertConfirmDialog("ca_tab" /*arbitrary*/);
+  let [win, retVals] = yield openDeleteCertConfirmDialog("ca_tab" /* arbitrary */);
   info("Canceling dialog");
   win.document.getElementById("deleteCertificate").cancelDialog();
   yield BrowserTestUtils.windowClosed(win);

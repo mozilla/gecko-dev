@@ -117,7 +117,7 @@ Structure:
             kernelVersion: <string>, // android/b2g only or null on failure
             servicePackMajor: <number>, // windows only or null on failure
             servicePackMinor: <number>, // windows only or null on failure
-            windowsBuildNumber: <number>, // windows 10 only or null on failure
+            windowsBuildNumber: <number>, // windows only or null on failure
             windowsUBR: <number>, // windows 10 only or null on failure
             installYear: <number>, // windows only or null on failure
             locale: <string>, // "en" or null on failure
@@ -178,7 +178,7 @@ Structure:
               //   "disabled"    - User explicitly disabled this default feature.
               //   "failed"      - This feature was attempted but failed to initialize.
               //   "available"   - User has this feature available.
-              "d3d11" { // This feature is Windows-only.
+              d3d11: { // This feature is Windows-only.
                 status: <string>,
                 warp: <bool>,           // Software rendering (WARP) mode was chosen.
                 textureSharing: <bool>  // Whether or not texture sharing works.
@@ -186,9 +186,12 @@ Structure:
                 blacklisted: <bool>,    // Whether D3D11 is blacklisted; use to see whether WARP
                                         // was blacklist induced or driver-failure induced.
               },
-              "d2d" { // This feature is Windows-only.
+              d2d: { // This feature is Windows-only.
                 status: <string>,
                 version: <string>,      // Either "1.0" or "1.1".
+              },
+              gpuProcess: { // Out-of-process compositing ("GPU process") feature
+                status: <string>, // "Available" means currently in use
               },
             },
           },
@@ -254,6 +257,10 @@ Structure:
         },
         persona: <string>, // id of the current persona, null on GONK
       },
+      experiments: {
+        "<experiment id>": { branch: "<branch>" },
+        // ...
+      }
     }
 
 build
@@ -321,9 +328,9 @@ The following is a partial list of collected preferences.
 
 - ``browser.urlbar.userMadeSearchSuggestionsChoice``: True if the user has clicked Yes or No in the urlbar's opt-in notification. Defaults to false.
 
-- ``browser.zoom.full``: True if zoom is enabled for both text and images, that is if "Zoom Text Only" is not enabled. Defaults to true. Collection of this preference has been enabled in Firefox 50 and will be disabled again in Firefox 53 (`Bug 979323 <https://bugzilla.mozilla.org/show_bug.cgi?id=979323>`_).
+- ``browser.zoom.full`` (deprecated): True if zoom is enabled for both text and images, that is if "Zoom Text Only" is not enabled. Defaults to true. This preference was collected in Firefox 50 to 52 (`Bug 979323 <https://bugzilla.mozilla.org/show_bug.cgi?id=979323>`_).
 
-- ``security.sandbox.content.level``: The meanings of the values are OS dependent, but 0 means not sandboxed for all OS. Details of the meanings can be found in the `Firefox prefs file <http://hg.mozilla.org/mozilla-central/file/tip/browser/app/profile/firefox.js>`_.
+- ``security.sandbox.content.level``: The meanings of the values are OS dependent, but 0 means not sandboxed for all OS. Details of the meanings can be found in the `Firefox prefs file <https://hg.mozilla.org/mozilla-central/file/tip/browser/app/profile/firefox.js>`_.
 
 attribution
 ~~~~~~~~~~~
@@ -339,7 +346,7 @@ partner
 
 If the user is using a partner repack, this contains information identifying the repack being used, otherwise "partnerNames" will be an empty array and other entries will be null. The information may be missing when the profile just becomes available. In Firefox for desktop, the information along with other customizations defined in distribution.ini are processed later in the startup phase, and will be fully applied when "distribution-customization-complete" notification is sent.
 
-Distributions are most reliably identified by the ``distributionId`` field. Partner information can be found in the `partner repacks <https://github.com/mozilla-partners>`_ (`the old one <http://hg.mozilla.org/build/partner-repacks/>`_ is deprecated): it contains one private repository per partner.
+Distributions are most reliably identified by the ``distributionId`` field. Partner information can be found in the `partner repacks <https://github.com/mozilla-partners>`_ (`the old one <https://hg.mozilla.org/build/partner-repacks/>`_ is deprecated): it contains one private repository per partner.
 Important values for ``distributionId`` include:
 
 - "MozillaOnline" for the Mozilla China repack.
@@ -359,7 +366,7 @@ This object contains operating system information.
 - ``kernelVersion``: an Android/B2G only string representing the kernel version.
 - ``servicePackMajor``: the Windows only major version number for the installed service pack.
 - ``servicePackMinor``: the Windows only minor version number for the installed service pack.
-- ``windowsBuildNumber``: the Windows build number, only available for Windows >= 10.
+- ``windowsBuildNumber``: the Windows build number.
 - ``windowsUBR``: the Windows UBR number, only available for Windows >= 10. This value is incremented by Windows cumulative updates patches.
 - ``installYear``: the Windows only integer representing the year the OS was installed.
 - ``locale``: the string representing the OS locale.
@@ -371,3 +378,7 @@ activeAddons
 ~~~~~~~~~~~~
 
 Starting from Firefox 44, the length of the following string fields: ``name``, ``description`` and ``version`` is limited to 100 characters. The same limitation applies to the same fields in ``theme`` and ``activePlugins``.
+
+experiments
+-----------
+For each experiment we collect the ``id`` and the ``branch`` the client is enrolled in. Both fields are truncated to 100 characters and a warning is printed when that happens. This section will eventually supersede ``addons/activeExperiment``.

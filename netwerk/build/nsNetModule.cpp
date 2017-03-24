@@ -38,6 +38,7 @@
 #include "nsCategoryCache.h"
 #include "nsIContentSniffer.h"
 #include "Predictor.h"
+#include "ThrottlingService.h"
 #include "nsIThreadPool.h"
 #include "mozilla/net/NeckoChild.h"
 
@@ -348,9 +349,8 @@ WebSocketChannelConstructor(bool aSecure)
 
   if (aSecure) {
     return new WebSocketSSLChannel;
-  } else {
-    return new WebSocketChannel;
   }
+  return new WebSocketChannel;
 }
 
 #define WEB_SOCKET_HANDLER_CONSTRUCTOR(type, secure)  \
@@ -402,6 +402,12 @@ typedef mozilla::net::nsStandardURL nsStandardURL;
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsStandardURL)
 typedef mozilla::net::nsSimpleURI nsSimpleURI;
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSimpleURI)
+
+#ifdef MOZ_RUST_URLPARSE
+#include "mozilla/net/RustURL.h"
+typedef mozilla::net::RustURL RustURL;
+NS_GENERIC_FACTORY_CONSTRUCTOR(RustURL)
+#endif // MOZ_RUST_URLPARSE
 
 typedef mozilla::net::nsSimpleNestedURI nsSimpleNestedURI;
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSimpleNestedURI)
@@ -750,7 +756,6 @@ NS_DEFINE_NAMED_CID(NS_STREAMLISTENERTEE_CID);
 NS_DEFINE_NAMED_CID(NS_LOADGROUP_CID);
 NS_DEFINE_NAMED_CID(NS_LOCALFILEINPUTSTREAM_CID);
 NS_DEFINE_NAMED_CID(NS_LOCALFILEOUTPUTSTREAM_CID);
-NS_DEFINE_NAMED_CID(NS_PARTIALLOCALFILEINPUTSTREAM_CID);
 NS_DEFINE_NAMED_CID(NS_ATOMICLOCALFILEOUTPUTSTREAM_CID);
 NS_DEFINE_NAMED_CID(NS_SAFELOCALFILEOUTPUTSTREAM_CID);
 NS_DEFINE_NAMED_CID(NS_LOCALFILESTREAM_CID);
@@ -759,6 +764,9 @@ NS_DEFINE_NAMED_CID(NS_STDURLPARSER_CID);
 NS_DEFINE_NAMED_CID(NS_NOAUTHURLPARSER_CID);
 NS_DEFINE_NAMED_CID(NS_AUTHURLPARSER_CID);
 NS_DEFINE_NAMED_CID(NS_STANDARDURL_CID);
+#ifdef MOZ_RUST_URLPARSE
+NS_DEFINE_NAMED_CID(NS_RUSTURL_CID);
+#endif
 NS_DEFINE_NAMED_CID(NS_ARRAYBUFFERINPUTSTREAM_CID);
 NS_DEFINE_NAMED_CID(NS_BUFFEREDINPUTSTREAM_CID);
 NS_DEFINE_NAMED_CID(NS_BUFFEREDOUTPUTSTREAM_CID);
@@ -867,6 +875,7 @@ NS_DEFINE_NAMED_CID(NS_REQUESTCONTEXTSERVICE_CID);
 #ifdef BUILD_NETWORK_INFO_SERVICE
 NS_DEFINE_NAMED_CID(NETWORKINFOSERVICE_CID);
 #endif // BUILD_NETWORK_INFO_SERVICE
+NS_DEFINE_NAMED_CID(NS_THROTTLINGSERVICE_CID);
 
 static const mozilla::Module::CIDEntry kNeckoCIDs[] = {
     { &kNS_IOSERVICE_CID, false, nullptr, nsIOServiceConstructor },
@@ -899,7 +908,6 @@ static const mozilla::Module::CIDEntry kNeckoCIDs[] = {
     { &kNS_LOADGROUP_CID, false, nullptr, nsLoadGroupConstructor },
     { &kNS_LOCALFILEINPUTSTREAM_CID, false, nullptr, nsFileInputStream::Create },
     { &kNS_LOCALFILEOUTPUTSTREAM_CID, false, nullptr, nsFileOutputStream::Create },
-    { &kNS_PARTIALLOCALFILEINPUTSTREAM_CID, false, nullptr, nsPartialFileInputStream::Create },
     { &kNS_ATOMICLOCALFILEOUTPUTSTREAM_CID, false, nullptr, nsAtomicFileOutputStreamConstructor },
     { &kNS_SAFELOCALFILEOUTPUTSTREAM_CID, false, nullptr, nsSafeFileOutputStreamConstructor },
     { &kNS_LOCALFILESTREAM_CID, false, nullptr, nsFileStreamConstructor },
@@ -908,6 +916,9 @@ static const mozilla::Module::CIDEntry kNeckoCIDs[] = {
     { &kNS_NOAUTHURLPARSER_CID, false, nullptr, nsNoAuthURLParserConstructor },
     { &kNS_AUTHURLPARSER_CID, false, nullptr, nsAuthURLParserConstructor },
     { &kNS_STANDARDURL_CID, false, nullptr, nsStandardURLConstructor },
+#ifdef MOZ_RUST_URLPARSE
+    { &kNS_RUSTURL_CID, false, nullptr, RustURLConstructor },
+#endif
     { &kNS_ARRAYBUFFERINPUTSTREAM_CID, false, nullptr, ArrayBufferInputStreamConstructor },
     { &kNS_BUFFEREDINPUTSTREAM_CID, false, nullptr, nsBufferedInputStream::Create },
     { &kNS_BUFFEREDOUTPUTSTREAM_CID, false, nullptr, nsBufferedOutputStream::Create },
@@ -1018,6 +1029,7 @@ static const mozilla::Module::CIDEntry kNeckoCIDs[] = {
 #ifdef BUILD_NETWORK_INFO_SERVICE
     { &kNETWORKINFOSERVICE_CID, false, nullptr, nsNetworkInfoServiceConstructor },
 #endif
+    { &kNS_THROTTLINGSERVICE_CID, false, nullptr, mozilla::net::ThrottlingService::Create },
     { nullptr }
 };
 
@@ -1050,7 +1062,6 @@ static const mozilla::Module::ContractIDEntry kNeckoContracts[] = {
     { NS_LOADGROUP_CONTRACTID, &kNS_LOADGROUP_CID },
     { NS_LOCALFILEINPUTSTREAM_CONTRACTID, &kNS_LOCALFILEINPUTSTREAM_CID },
     { NS_LOCALFILEOUTPUTSTREAM_CONTRACTID, &kNS_LOCALFILEOUTPUTSTREAM_CID },
-    { NS_PARTIALLOCALFILEINPUTSTREAM_CONTRACTID, &kNS_PARTIALLOCALFILEINPUTSTREAM_CID },
     { NS_ATOMICLOCALFILEOUTPUTSTREAM_CONTRACTID, &kNS_ATOMICLOCALFILEOUTPUTSTREAM_CID },
     { NS_SAFELOCALFILEOUTPUTSTREAM_CONTRACTID, &kNS_SAFELOCALFILEOUTPUTSTREAM_CID },
     { NS_LOCALFILESTREAM_CONTRACTID, &kNS_LOCALFILESTREAM_CID },
@@ -1059,6 +1070,9 @@ static const mozilla::Module::ContractIDEntry kNeckoContracts[] = {
     { NS_NOAUTHURLPARSER_CONTRACTID, &kNS_NOAUTHURLPARSER_CID },
     { NS_AUTHURLPARSER_CONTRACTID, &kNS_AUTHURLPARSER_CID },
     { NS_STANDARDURL_CONTRACTID, &kNS_STANDARDURL_CID },
+#ifdef MOZ_RUST_URLPARSE
+    { NS_RUSTURL_CONTRACTID, &kNS_RUSTURL_CID },
+#endif
     { NS_ARRAYBUFFERINPUTSTREAM_CONTRACTID, &kNS_ARRAYBUFFERINPUTSTREAM_CID },
     { NS_BUFFEREDINPUTSTREAM_CONTRACTID, &kNS_BUFFEREDINPUTSTREAM_CID },
     { NS_BUFFEREDOUTPUTSTREAM_CONTRACTID, &kNS_BUFFEREDOUTPUTSTREAM_CID },
@@ -1174,6 +1188,7 @@ static const mozilla::Module::ContractIDEntry kNeckoContracts[] = {
 #ifdef BUILD_NETWORK_INFO_SERVICE
     { NETWORKINFOSERVICE_CONTRACT_ID, &kNETWORKINFOSERVICE_CID },
 #endif
+    { NS_THROTTLINGSERVICE_CONTRACTID, &kNS_THROTTLINGSERVICE_CID },
     { nullptr }
 };
 

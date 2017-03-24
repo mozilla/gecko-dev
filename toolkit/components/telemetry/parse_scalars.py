@@ -4,7 +4,7 @@
 
 import re
 import yaml
-from shared_telemetry_utils import add_expiration_postfix
+import shared_telemetry_utils as utils
 
 # The map of containing the allowed scalar types and their mapping to
 # nsITelemetry::SCALAR_* type constants.
@@ -13,6 +13,7 @@ SCALAR_TYPES_MAP = {
     'string': 'nsITelemetry::SCALAR_STRING',
     'boolean': 'nsITelemetry::SCALAR_BOOLEAN'
 }
+
 
 class ScalarType:
     """A class for representing a scalar definition."""
@@ -30,7 +31,7 @@ class ScalarType:
 
         # Everything is ok, set the rest of the data.
         self._definition = definition
-        definition['expires'] = add_expiration_postfix(definition['expires'])
+        definition['expires'] = utils.add_expiration_postfix(definition['expires'])
 
     def validate_names(self, group_name, probe_name):
         """Validate the group and probe name:
@@ -47,8 +48,8 @@ class ScalarType:
         MAX_NAME_LENGTH = 40
         for n in [group_name, probe_name]:
             if len(n) > MAX_NAME_LENGTH:
-                raise ValueError("Name '{}' exceeds maximum name length of {} characters."\
-                                .format(n, MAX_NAME_LENGTH))
+                raise ValueError("Name '{}' exceeds maximum name length of {} characters."
+                                 .format(n, MAX_NAME_LENGTH))
 
         def check_name(name, error_msg_prefix, allowed_char_regexp):
             # Check if we only have the allowed characters.
@@ -59,8 +60,8 @@ class ScalarType:
             # Don't allow leading/trailing digits, '.' or '_'.
             if re.search(r'(^[\d\._])|([\d\._])$', name):
                 raise ValueError(error_msg_prefix +
-                    " name must not have a leading/trailing digit, a dot or underscore. Got: '{}'"\
-                    .format(name))
+                                 " name must not have a leading/trailing digit, a dot or underscore. Got: '{}'"
+                                 .format(name))
 
         check_name(group_name, 'Group', r'\.')
         check_name(probe_name, 'Probe', r'_')
@@ -77,23 +78,25 @@ class ScalarType:
 
         # The required and optional fields in a scalar type definition.
         REQUIRED_FIELDS = {
-            'bug_numbers': list, # This contains ints. See LIST_FIELDS_CONTENT.
+            'bug_numbers': list,  # This contains ints. See LIST_FIELDS_CONTENT.
             'description': basestring,
             'expires': basestring,
             'kind': basestring,
-            'notification_emails': list # This contains strings. See LIST_FIELDS_CONTENT.
+            'notification_emails': list,  # This contains strings. See LIST_FIELDS_CONTENT.
+            'record_in_processes': list,
         }
 
         OPTIONAL_FIELDS = {
             'cpp_guard': basestring,
             'release_channel_collection': basestring,
-            'keyed': bool
+            'keyed': bool,
         }
 
         # The types for the data within the fields that hold lists.
         LIST_FIELDS_CONTENT = {
             'bug_numbers': int,
-            'notification_emails': basestring
+            'notification_emails': basestring,
+            'record_in_processes': basestring,
         }
 
         # Concatenate the required and optional field definitions.
@@ -111,8 +114,8 @@ class ScalarType:
             raise KeyError(self._name + ' - unknown fields: ' + ', '.join(unknown_fields))
 
         # Checks the type for all the fields.
-        wrong_type_names = ['{} must be {}'.format(f, ALL_FIELDS[f].__name__) \
-            for f in definition.keys() if not isinstance(definition[f], ALL_FIELDS[f])]
+        wrong_type_names = ['{} must be {}'.format(f, ALL_FIELDS[f].__name__)
+                            for f in definition.keys() if not isinstance(definition[f], ALL_FIELDS[f])]
         if len(wrong_type_names) > 0:
             raise TypeError(self._name + ' - ' + ', '.join(wrong_type_names))
 
@@ -152,6 +155,12 @@ class ScalarType:
         cpp_guard = definition.get('cpp_guard')
         if cpp_guard and re.match(r'\W', cpp_guard):
             raise ValueError(self._name + ' - invalid cpp_guard: ' + cpp_guard)
+
+        # Validate record_in_processes.
+        record_in_processes = definition.get('record_in_processes', [])
+        for proc in record_in_processes:
+            if not utils.is_valid_process_name(proc):
+                raise ValueError(self._name + ' - unknown value in record_in_processes: ' + proc)
 
     @property
     def name(self):
@@ -209,6 +218,16 @@ class ScalarType:
         return self._definition['notification_emails']
 
     @property
+    def record_in_processes(self):
+        """Get the non-empty list of processes to record data in"""
+        return self._definition['record_in_processes']
+
+    @property
+    def record_in_processes_enum(self):
+        """Get the non-empty list of flags representing the processes to record data in"""
+        return [utils.process_name_to_enum(p) for p in self.record_in_processes]
+
+    @property
     def dataset(self):
         """Get the nsITelemetry constant equivalent to the chose release channel collection
         policy for the scalar.
@@ -217,13 +236,14 @@ class ScalarType:
         # behaviour for it.
         release_channel_collection = \
             self._definition.get('release_channel_collection', 'opt-in')
-        return 'nsITelemetry::' +  ('DATASET_RELEASE_CHANNEL_OPTOUT' \
-            if release_channel_collection == 'opt-out' else 'DATASET_RELEASE_CHANNEL_OPTIN')
+        return 'nsITelemetry::' + ('DATASET_RELEASE_CHANNEL_OPTOUT'
+                                   if release_channel_collection == 'opt-out' else 'DATASET_RELEASE_CHANNEL_OPTIN')
 
     @property
     def cpp_guard(self):
         """Get the cpp guard for this scalar"""
         return self._definition.get('cpp_guard')
+
 
 def load_scalars(filename):
     """Parses a YAML file containing the scalar definition.

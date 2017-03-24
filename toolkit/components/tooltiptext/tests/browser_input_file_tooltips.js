@@ -1,9 +1,7 @@
 
 let tempFile;
 add_task(function* setup() {
-  yield new Promise(resolve => {
-    SpecialPowers.pushPrefEnv({"set": [["ui.tooltipDelay", 0]]}, resolve);
-  });
+  yield SpecialPowers.pushPrefEnv({"set": [["ui.tooltipDelay", 0]]});
   tempFile = createTempFile();
   registerCleanupFunction(function() {
     tempFile.remove(true);
@@ -65,7 +63,8 @@ function* do_test(test) {
     MockFilePicker.init(window);
     MockFilePicker.returnValue = MockFilePicker.returnOK;
     MockFilePicker.displayDirectory = FileUtils.getDir("TmpD", [], false);
-    MockFilePicker.returnFiles = [tempFile];
+    MockFilePicker.setFiles([tempFile]);
+    MockFilePicker.afterOpenCallback = MockFilePicker.cleanup;
 
     try {
       // Open the File Picker dialog (MockFilePicker) to select
@@ -78,9 +77,7 @@ function* do_test(test) {
           "The input should have at least one file selected");
         info(`The input has ${input.files.length} file(s) selected.`);
       });
-    } finally {
-      MockFilePicker.cleanup();
-    }
+    } catch (e) {}
   } else {
     info("No real file selection required.");
   }
@@ -90,10 +87,9 @@ function* do_test(test) {
                       "remoteBrowserTooltip" :
                       "aHTMLTooltip";
     let tooltip = document.getElementById(tooltipId);
-    tooltip.addEventListener("popupshown", function onpopupshown(event) {
-      tooltip.removeEventListener("popupshown", onpopupshown);
+    tooltip.addEventListener("popupshown", function(event) {
       resolve(event.target);
-    });
+    }, {once: true});
   });
   info("Initial mouse move");
   yield new Promise(resolve => {

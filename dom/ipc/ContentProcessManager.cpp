@@ -355,17 +355,16 @@ ContentProcessManager::GetTabParentsByProcessId(const ContentParentId& aChildCpI
 }
 
 uint32_t
-ContentProcessManager::GetAppIdByProcessAndTabId(const ContentParentId& aChildCpId,
-                                                 const TabId& aChildTabId)
+ContentProcessManager::GetTabParentCountByProcessId(const ContentParentId& aChildCpId)
 {
-  uint32_t appId = nsIScriptSecurityManager::NO_APP_ID;
-  if (aChildCpId && aChildTabId) {
-    TabContext tabContext;
-    if (GetTabContextByProcessAndTabId(aChildCpId, aChildTabId, &tabContext)) {
-      appId = tabContext.OwnOrContainingAppId();
-    }
+  MOZ_ASSERT(NS_IsMainThread());
+
+  auto iter = mContentParentMap.find(aChildCpId);
+  if (NS_WARN_IF(iter == mContentParentMap.end())) {
+    return 0;
   }
-  return appId;
+
+  return iter->second.mRemoteFrames.size();
 }
 
 } // namespace dom

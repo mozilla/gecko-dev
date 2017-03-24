@@ -10,9 +10,15 @@
 #include "nsPrintfCString.h"
 #include "nsThreadUtils.h"
 #include "mozilla/IOInterposer.h"
+#include "GeckoProfiler.h"
 
 #ifdef XP_WIN
 #include <windows.h>
+#endif
+
+#ifdef MOZ_TASK_TRACER
+#include "GeckoTaskTracer.h"
+#include "TracedTaskCommon.h"
 #endif
 
 namespace mozilla {
@@ -43,7 +49,7 @@ void CacheIOTelemetry::Report(uint32_t aLevel, CacheIOTelemetry::size_type aLeng
     return;
   }
 
-  static Telemetry::ID telemetryID[] = {
+  static Telemetry::HistogramID telemetryID[] = {
     Telemetry::HTTP_CACHE_IO_QUEUE_2_OPEN_PRIORITY,
     Telemetry::HTTP_CACHE_IO_QUEUE_2_READ_PRIORITY,
     Telemetry::HTTP_CACHE_IO_QUEUE_2_MANAGEMENT,
@@ -232,6 +238,10 @@ CacheIOThread::CacheIOThread()
 , mInsideLoop(true)
 #endif
 {
+  for (uint32_t i = 0; i < LAST_LEVEL; ++i) {
+    mQueueLength[i] = 0;
+  }
+
   sSelf = this;
 }
 
@@ -304,6 +314,8 @@ nsresult CacheIOThread::DispatchAfterPendingOpens(nsIRunnable* aRunnable)
 
   // Move everything from later executed OPEN level to the OPEN_PRIORITY level
   // where we post the (eviction) runnable.
+  mQueueLength[OPEN_PRIORITY] += mEventQueue[OPEN].Length();
+  mQueueLength[OPEN] -= mEventQueue[OPEN].Length();
   mEventQueue[OPEN_PRIORITY].AppendElements(mEventQueue[OPEN]);
   mEventQueue[OPEN].Clear();
 
@@ -314,12 +326,17 @@ nsresult CacheIOThread::DispatchInternal(already_AddRefed<nsIRunnable> aRunnable
 					 uint32_t aLevel)
 {
   nsCOMPtr<nsIRunnable> runnable(aRunnable);
+#ifdef MOZ_TASK_TRACER
+  runnable = tasktracer::CreateTracedRunnable(runnable.forget());
+  (static_cast<tasktracer::TracedRunnable*>(runnable.get()))->DispatchTask();
+#endif
 
   if (NS_WARN_IF(!runnable))
     return NS_ERROR_NULL_POINTER;
 
   mMonitor.AssertCurrentThreadOwns();
 
+  ++mQueueLength[aLevel];
   mEventQueue[aLevel].AppendElement(runnable.forget());
   if (mLowestLevelWaiting > aLevel)
     mLowestLevelWaiting = aLevel;
@@ -332,6 +349,17 @@ nsresult CacheIOThread::DispatchInternal(already_AddRefed<nsIRunnable> aRunnable
 bool CacheIOThread::IsCurrentThread()
 {
   return mThread == PR_GetCurrentThread();
+}
+
+uint32_t CacheIOThread::QueueSize(bool highPriority)
+{
+  MonitorAutoLock lock(mMonitor);
+  if (highPriority) {
+    return mQueueLength[OPEN_PRIORITY] + mQueueLength[READ_PRIORITY];
+  }
+
+  return mQueueLength[OPEN_PRIORITY] + mQueueLength[READ_PRIORITY] +
+         mQueueLength[MANAGEMENT] + mQueueLength[OPEN] + mQueueLength[READ];
 }
 
 bool CacheIOThread::YieldInternal()
@@ -410,6 +438,8 @@ already_AddRefed<nsIEventTarget> CacheIOThread::Target()
 // static
 void CacheIOThread::ThreadFunc(void* aClosure)
 {
+  // XXXmstange We'd like to register this thread with the profiler, but doing
+  // so causes leaks, see bug 1323100.
   PR_SetCurrentThreadName("Cache2 I/O");
   mozilla::IOInterposer::RegisterCurrentThread();
   CacheIOThread* thread = static_cast<CacheIOThread*>(aClosure);
@@ -542,6 +572,8 @@ void CacheIOThread::LoopOneLevel(uint32_t aLevel)
         returnEvents = true;
         break;
       }
+
+      --mQueueLength[aLevel];
 
       // Release outside the lock.
       events[index] = nullptr;

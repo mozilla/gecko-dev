@@ -7,6 +7,7 @@
 /* The "Components" xpcom objects for JavaScript. */
 
 #include "xpcprivate.h"
+#include "xpc_make_class.h"
 #include "xpcIJSModuleLoader.h"
 #include "XPCJSWeakReference.h"
 #include "WrapperFactory.h"
@@ -33,9 +34,11 @@
 #include "nsDOMClassInfo.h"
 #include "ShimInterfaceInfo.h"
 #include "nsIAddonInterposition.h"
+#include "nsIScriptError.h"
 #include "nsISimpleEnumerator.h"
 #include "nsPIDOMWindow.h"
 #include "nsGlobalWindow.h"
+#include "nsScriptError.h"
 
 using namespace mozilla;
 using namespace JS;
@@ -213,11 +216,11 @@ NS_IMPL_ADDREF(nsXPCComponents_Interfaces)
 NS_IMPL_RELEASE(nsXPCComponents_Interfaces)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCComponents_Interfaces
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_Interfaces"
-#define                             XPC_MAP_WANT_RESOLVE
-#define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_CLASSNAME         nsXPCComponents_Interfaces
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents_Interfaces"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_RESOLVE | \
+                       XPC_SCRIPTABLE_WANT_NEWENUMERATE | \
+                       XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 
@@ -437,11 +440,11 @@ NS_IMPL_ADDREF(nsXPCComponents_InterfacesByID)
 NS_IMPL_RELEASE(nsXPCComponents_InterfacesByID)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCComponents_InterfacesByID
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_InterfacesByID"
-#define                             XPC_MAP_WANT_RESOLVE
-#define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_CLASSNAME         nsXPCComponents_InterfacesByID
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents_InterfacesByID"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_RESOLVE | \
+                       XPC_SCRIPTABLE_WANT_NEWENUMERATE | \
+                       XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 NS_IMETHODIMP
@@ -662,11 +665,11 @@ NS_IMPL_ADDREF(nsXPCComponents_Classes)
 NS_IMPL_RELEASE(nsXPCComponents_Classes)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCComponents_Classes
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_Classes"
-#define                             XPC_MAP_WANT_RESOLVE
-#define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_CLASSNAME         nsXPCComponents_Classes
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents_Classes"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_RESOLVE | \
+                       XPC_SCRIPTABLE_WANT_NEWENUMERATE | \
+                       XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 NS_IMETHODIMP
@@ -869,11 +872,11 @@ NS_IMPL_ADDREF(nsXPCComponents_ClassesByID)
 NS_IMPL_RELEASE(nsXPCComponents_ClassesByID)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCComponents_ClassesByID
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_ClassesByID"
-#define                             XPC_MAP_WANT_RESOLVE
-#define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_CLASSNAME         nsXPCComponents_ClassesByID
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents_ClassesByID"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_RESOLVE | \
+                       XPC_SCRIPTABLE_WANT_NEWENUMERATE | \
+                       XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 NS_IMETHODIMP
@@ -1101,11 +1104,11 @@ NS_IMPL_ADDREF(nsXPCComponents_Results)
 NS_IMPL_RELEASE(nsXPCComponents_Results)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCComponents_Results
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_Results"
-#define                             XPC_MAP_WANT_RESOLVE
-#define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_CLASSNAME         nsXPCComponents_Results
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents_Results"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_RESOLVE | \
+                       XPC_SCRIPTABLE_WANT_NEWENUMERATE | \
+                       XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 NS_IMETHODIMP
@@ -1289,12 +1292,12 @@ NS_IMPL_ADDREF(nsXPCComponents_ID)
 NS_IMPL_RELEASE(nsXPCComponents_ID)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCComponents_ID
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_ID"
-#define                             XPC_MAP_WANT_CALL
-#define                             XPC_MAP_WANT_CONSTRUCT
-#define                             XPC_MAP_WANT_HASINSTANCE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_CLASSNAME         nsXPCComponents_ID
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents_ID"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_CALL | \
+                       XPC_SCRIPTABLE_WANT_CONSTRUCT | \
+                       XPC_SCRIPTABLE_WANT_HASINSTANCE | \
+                       XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 
@@ -1486,12 +1489,12 @@ NS_IMPL_ADDREF(nsXPCComponents_Exception)
 NS_IMPL_RELEASE(nsXPCComponents_Exception)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCComponents_Exception
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_Exception"
-#define                             XPC_MAP_WANT_CALL
-#define                             XPC_MAP_WANT_CONSTRUCT
-#define                             XPC_MAP_WANT_HASINSTANCE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_CLASSNAME         nsXPCComponents_Exception
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents_Exception"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_CALL | \
+                       XPC_SCRIPTABLE_WANT_CONSTRUCT | \
+                       XPC_SCRIPTABLE_WANT_HASINSTANCE | \
+                       XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 
@@ -1881,11 +1884,10 @@ NS_IMPL_ADDREF(nsXPCConstructor)
 NS_IMPL_RELEASE(nsXPCConstructor)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCConstructor
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCConstructor"
-#define                             XPC_MAP_WANT_CALL
-#define                             XPC_MAP_WANT_CONSTRUCT
-#define XPC_MAP_FLAGS               0
+#define XPC_MAP_CLASSNAME         nsXPCConstructor
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCConstructor"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_CALL | \
+                       XPC_SCRIPTABLE_WANT_CONSTRUCT)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 
@@ -2076,12 +2078,12 @@ NS_IMPL_ADDREF(nsXPCComponents_Constructor)
 NS_IMPL_RELEASE(nsXPCComponents_Constructor)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCComponents_Constructor
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_Constructor"
-#define                             XPC_MAP_WANT_CALL
-#define                             XPC_MAP_WANT_CONSTRUCT
-#define                             XPC_MAP_WANT_HASINSTANCE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_CLASSNAME         nsXPCComponents_Constructor
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents_Constructor"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_CALL | \
+                       XPC_SCRIPTABLE_WANT_CONSTRUCT | \
+                       XPC_SCRIPTABLE_WANT_HASINSTANCE | \
+                       XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 
@@ -2272,9 +2274,9 @@ NS_IMPL_ADDREF(nsXPCComponents_Utils)
 NS_IMPL_RELEASE(nsXPCComponents_Utils)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           nsXPCComponents_Utils
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_Utils"
-#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_CLASSNAME         nsXPCComponents_Utils
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents_Utils"
+#define XPC_MAP_FLAGS XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE
 #include "xpc_map_end.h" /* This will #undef the above */
 
 NS_IMETHODIMP
@@ -2627,10 +2629,6 @@ class PreciseGCRunnable : public Runnable
 
     NS_IMETHOD Run() override
     {
-        JSContext* cx = dom::danger::GetJSContext();
-        if (JS_IsRunning(cx))
-            return NS_DispatchToMainThread(this);
-
         nsJSContext::GarbageCollectNow(gcreason::COMPONENT_UTILS,
                                        nsJSContext::NonIncrementalGC,
                                        mShrinking ?
@@ -3020,11 +3018,11 @@ nsXPCComponents_Utils::NukeSandbox(HandleValue obj, JSContext* cx)
     NS_ENSURE_TRUE(obj.isObject(), NS_ERROR_INVALID_ARG);
     JSObject* wrapper = &obj.toObject();
     NS_ENSURE_TRUE(IsWrapper(wrapper), NS_ERROR_INVALID_ARG);
-    JSObject* sb = UncheckedUnwrap(wrapper);
+    RootedObject sb(cx, UncheckedUnwrap(wrapper));
     NS_ENSURE_TRUE(IsSandbox(sb), NS_ERROR_INVALID_ARG);
-    NukeCrossCompartmentWrappers(cx, AllCompartments(),
-                                 SingleCompartment(GetObjectCompartment(sb)),
-                                 NukeWindowReferences);
+
+    xpc::NukeAllWrappersForCompartment(cx, GetObjectCompartment(sb));
+
     return NS_OK;
 }
 
@@ -3544,9 +3542,9 @@ NS_INTERFACE_MAP_END_INHERITING(nsXPCComponentsBase)
 NS_IMPL_CI_INTERFACE_GETTER(nsXPCComponents, nsIXPCComponents)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us
-#define XPC_MAP_CLASSNAME           ComponentsSH
-#define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents"
-#define                             XPC_MAP_WANT_PRECREATE
+#define XPC_MAP_CLASSNAME ComponentsSH
+#define XPC_MAP_QUOTED_CLASSNAME "nsXPCComponents"
+#define XPC_MAP_FLAGS XPC_SCRIPTABLE_WANT_PRECREATE
 #include "xpc_map_end.h" /* This will #undef the above */
 
 NS_IMETHODIMP

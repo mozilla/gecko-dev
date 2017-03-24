@@ -24,8 +24,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
-function AddonPolicyService()
-{
+function AddonPolicyService() {
   this.wrappedJSObject = this;
   this.cspStrings = new Map();
   this.backgroundPageUrlCallbacks = new Map();
@@ -64,7 +63,7 @@ AddonPolicyService.prototype = {
    */
   getGeneratedBackgroundPageUrl(aAddonId) {
     let cb = this.backgroundPageUrlCallbacks.get(aAddonId);
-    return cb && cb(aAddonId) || '';
+    return cb && cb(aAddonId) || "";
   },
 
   /*
@@ -85,9 +84,9 @@ AddonPolicyService.prototype = {
    *
    * @see nsIAddonPolicyService.addonMayLoadURI
    */
-  addonMayLoadURI(aAddonId, aURI) {
+  addonMayLoadURI(aAddonId, aURI, aExplicit = false) {
     let cb = this.mayLoadURICallbacks.get(aAddonId);
-    return cb ? cb(aURI) : false;
+    return cb ? cb(aURI, aExplicit) : false;
   },
 
   /*
@@ -223,8 +222,7 @@ AddonPolicyService.prototype = {
  * See SubstituteChannel in netwerk/protocol/res/ExtensionProtocolHandler.cpp
  * for usage.
  */
-function AddonLocalizationConverter()
-{
+function AddonLocalizationConverter() {
   this.aps = Cc["@mozilla.org/addons/policy-service;1"].getService(Ci.nsIAddonPolicyService)
     .wrappedJSObject;
 }
@@ -274,7 +272,7 @@ AddonLocalizationConverter.prototype = {
 
     let string = (
       aStream.available() ?
-      NetUtil.readInputStreamToString(aStream, aStream.available()): ""
+      NetUtil.readInputStreamToString(aStream, aStream.available()) : ""
     );
     return this.convertToStream(addonId, string);
   },

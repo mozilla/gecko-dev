@@ -78,7 +78,8 @@ static MOZ_ALWAYS_INLINE int32_t
 JSID_TO_INT(jsid id)
 {
     MOZ_ASSERT(JSID_IS_INT(id));
-    return ((uint32_t)JSID_BITS(id)) >> 1;
+    uint32_t bits = static_cast<uint32_t>(JSID_BITS(id)) >> 1;
+    return static_cast<int32_t>(bits);
 }
 
 #define JSID_INT_MIN  0
@@ -95,7 +96,8 @@ INT_TO_JSID(int32_t i)
 {
     jsid id;
     MOZ_ASSERT(INT_FITS_IN_JSID(i));
-    JSID_BITS(id) = ((i << 1) | JSID_TYPE_INT);
+    uint32_t bits = (static_cast<uint32_t>(i) << 1) | JSID_TYPE_INT;
+    JSID_BITS(id) = static_cast<size_t>(bits);
     return id;
 }
 
@@ -174,18 +176,6 @@ struct GCPolicy<jsid>
 } // namespace JS
 
 namespace js {
-
-template <>
-struct DefaultHasher<jsid>
-{
-    typedef jsid Lookup;
-    static HashNumber hash(jsid id) {
-        return JSID_BITS(id);
-    }
-    static bool match(jsid id1, jsid id2) {
-        return id1 == id2;
-    }
-};
 
 template <>
 struct BarrierMethods<jsid>

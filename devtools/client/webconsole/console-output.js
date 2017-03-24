@@ -64,7 +64,6 @@ const COMPAT = {
   // division of message type into "category" and "severity".
   /* eslint-disable no-multi-spaces */
   /* eslint-disable max-len */
-  /* eslint-disable no-inline-comments */
   PREFERENCE_KEYS: [
     // Error         Warning       Info          Log
     [ "network",     "netwarn",    null,         "networkinfo", ],  // Network
@@ -76,7 +75,6 @@ const COMPAT = {
     [ "secerror",    "secwarn",    null,         null,          ],  // Security
     [ "servererror", "serverwarn", "serverinfo", "serverlog",   ],  // Server Logging
   ],
-  /* eslint-enable no-inline-comments */
   /* eslint-enable max-len */
   /* eslint-enable no-multi-spaces */
 
@@ -2520,11 +2518,10 @@ Widgets.JSObject.prototype = extend(Widgets.BaseWidget.prototype, {
     let openVarView = this.openObjectInVariablesView.bind(this);
     openInVarViewCmd.addEventListener("command", openVarView);
     openInVarViewCmd.removeAttribute("disabled");
-    cmPopup.addEventListener("popuphiding", function onPopupHiding() {
-      cmPopup.removeEventListener("popuphiding", onPopupHiding);
+    cmPopup.addEventListener("popuphiding", function () {
       openInVarViewCmd.removeEventListener("command", openVarView);
       openInVarViewCmd.setAttribute("disabled", "true");
-    });
+    }, {once: true});
 
     // 'Store as global variable' command isn't supported on pre-44 servers,
     // so remove it from the menu in that case.
@@ -2535,11 +2532,10 @@ Widgets.JSObject.prototype = extend(Widgets.BaseWidget.prototype, {
       let storeObjectInWindow = this.storeObjectInWindow.bind(this);
       storeInGlobalCmd.addEventListener("command", storeObjectInWindow);
       storeInGlobalCmd.removeAttribute("disabled");
-      cmPopup.addEventListener("popuphiding", function onPopupHiding() {
-        cmPopup.removeEventListener("popuphiding", onPopupHiding);
+      cmPopup.addEventListener("popuphiding", function () {
         storeInGlobalCmd.removeEventListener("command", storeObjectInWindow);
         storeInGlobalCmd.setAttribute("disabled", "true");
-      });
+      }, {once: true});
     }
   },
 
@@ -3208,9 +3204,9 @@ Widgets.ObjectRenderers.add({
     this._linkedToInspector = true;
 
     this.highlightDomNode = this.highlightDomNode.bind(this);
-    this.element.addEventListener("mouseover", this.highlightDomNode, false);
+    this.element.addEventListener("mouseover", this.highlightDomNode);
     this.unhighlightDomNode = this.unhighlightDomNode.bind(this);
-    this.element.addEventListener("mouseout", this.unhighlightDomNode, false);
+    this.element.addEventListener("mouseout", this.unhighlightDomNode);
 
     this._openInspectorNode = this._anchor("", {
       className: "open-inspector",
@@ -3273,8 +3269,8 @@ Widgets.ObjectRenderers.add({
   destroy: function ()
   {
     if (this.toolbox && this._nodeFront) {
-      this.element.removeEventListener("mouseover", this.highlightDomNode, false);
-      this.element.removeEventListener("mouseout", this.unhighlightDomNode, false);
+      this.element.removeEventListener("mouseover", this.highlightDomNode);
+      this.element.removeEventListener("mouseout", this.unhighlightDomNode);
       this._openInspectorNode.removeEventListener("mousedown", this.openNodeInInspector, true);
 
       if (this._linkedToInspector) {

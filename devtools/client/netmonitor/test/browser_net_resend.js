@@ -1,5 +1,5 @@
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+*  http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
@@ -16,11 +16,14 @@ add_task(function* () {
   let { tab, monitor } = yield initNetMonitor(POST_DATA_URL);
   info("Starting test... ");
 
-  let { panelWin } = monitor;
-  let { document, EVENTS, NetMonitorView } = panelWin;
-  let { RequestsMenu } = NetMonitorView;
+  let { document, gStore, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/actions/index");
+  let {
+    getSelectedRequest,
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/selectors/index");
 
-  RequestsMenu.lazyUpdate = false;
+  gStore.dispatch(Actions.batchEnable(false));
 
   let wait = waitForNetworkEvents(monitor, 0, 2);
   yield ContentTask.spawn(tab.linkedBrowser, {}, function* () {
@@ -28,62 +31,51 @@ add_task(function* () {
   });
   yield wait;
 
-  let origItem = RequestsMenu.getItemAtIndex(0);
+  let origItem = getSortedRequests(gStore.getState()).get(0);
 
-  let onTabUpdated = panelWin.once(EVENTS.TAB_UPDATED);
-  RequestsMenu.selectedItem = origItem;
-  yield onTabUpdated;
+  gStore.dispatch(Actions.selectRequest(origItem.id));
 
   // add a new custom request cloned from selected request
-  let onPopulated = panelWin.once(EVENTS.CUSTOMREQUESTVIEW_POPULATED);
-  RequestsMenu.cloneSelectedRequest();
-  yield onPopulated;
+  gStore.dispatch(Actions.cloneSelectedRequest());
 
-  testCustomForm(origItem.attachment);
+  testCustomForm(origItem);
 
-  let customItem = RequestsMenu.selectedItem;
+  let customItem = getSelectedRequest(gStore.getState());
   testCustomItem(customItem, origItem);
 
   // edit the custom request
   yield editCustomForm();
+  // FIXME: reread the customItem, it's been replaced by a new object (immutable!)
+  customItem = getSelectedRequest(gStore.getState());
   testCustomItemChanged(customItem, origItem);
 
   // send the new request
   wait = waitForNetworkEvents(monitor, 0, 1);
-  RequestsMenu.sendCustomRequest();
+  gStore.dispatch(Actions.sendCustomRequest());
   yield wait;
 
-  let sentItem = RequestsMenu.selectedItem;
-  testSentRequest(sentItem.attachment, origItem.attachment);
+  let sentItem = getSelectedRequest(gStore.getState());
+  testSentRequest(sentItem, origItem);
 
   return teardown(monitor);
 
   function testCustomItem(item, orig) {
-    let method = item.target.querySelector(".requests-menu-method").value;
-    let origMethod = orig.target.querySelector(".requests-menu-method").value;
-    is(method, origMethod, "menu item is showing the same method as original request");
-
-    let file = item.target.querySelector(".requests-menu-file").value;
-    let origFile = orig.target.querySelector(".requests-menu-file").value;
-    is(file, origFile, "menu item is showing the same file name as original request");
-
-    let domain = item.target.querySelector(".requests-menu-domain").value;
-    let origDomain = orig.target.querySelector(".requests-menu-domain").value;
-    is(domain, origDomain, "menu item is showing the same domain as original request");
+    is(item.method, orig.method, "item is showing the same method as original request");
+    is(item.url, orig.url, "item is showing the same URL as original request");
   }
 
   function testCustomItemChanged(item, orig) {
-    let file = item.target.querySelector(".requests-menu-file").value;
-    let expectedFile = orig.target.querySelector(".requests-menu-file").value +
-      "&" + ADD_QUERY;
+    let url = item.url;
+    let expectedUrl = orig.url + "&" + ADD_QUERY;
 
-    is(file, expectedFile, "menu item is updated to reflect url entered in form");
+    is(url, expectedUrl, "menu item is updated to reflect url entered in form");
   }
 
   /*
    * Test that the New Request form was populated correctly
    */
-  function testCustomForm(data) {
+  function* testCustomForm(data) {
+    yield waitUntil(() => document.querySelector(".custom-request-panel"));
     is(document.getElementById("custom-method-value").value, data.method,
        "new request form showing correct method");
 
@@ -108,12 +100,13 @@ add_task(function* () {
    * Add some params and headers to the request form
    */
   function* editCustomForm() {
-    panelWin.focus();
+    monitor.panelWin.focus();
 
     let query = document.getElementById("custom-query-value");
     let queryFocus = once(query, "focus", false);
     // Bug 1195825: Due to some unexplained dark-matter with promise,
     // focus only works if delayed by one tick.
+    query.setSelectionRange(query.value.length, query.value.length);
     executeSoon(() => query.focus());
     yield queryFocus;
 
@@ -123,6 +116,7 @@ add_task(function* () {
 
     let headers = document.getElementById("custom-headers-value");
     let headersFocus = once(headers, "focus", false);
+    headers.setSelectionRange(headers.value.length, headers.value.length);
     headers.focus();
     yield headersFocus;
 
@@ -137,6 +131,7 @@ add_task(function* () {
 
     let postData = document.getElementById("custom-postdata-value");
     let postFocus = once(postData, "focus", false);
+    postData.setSelectionRange(postData.value.length, postData.value.length);
     postData.focus();
     yield postFocus;
 
@@ -165,7 +160,7 @@ add_task(function* () {
 
   function type(string) {
     for (let ch of string) {
-      EventUtils.synthesizeKey(ch, {}, panelWin);
+      EventUtils.synthesizeKey(ch, {}, monitor.panelWin);
     }
   }
 });

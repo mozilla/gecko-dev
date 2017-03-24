@@ -59,7 +59,7 @@ const BackgroundPageThumbs = {
    *                 elapsed after the capture has progressed to the head of
    *                 the queue and started.  Defaults to 30000 (30 seconds).
    */
-  capture: function (url, options={}) {
+  capture(url, options = {}) {
     if (!PageThumbs._prefEnabled()) {
       if (options.onDone)
         schedule(() => options.onDone(url));
@@ -94,7 +94,7 @@ const BackgroundPageThumbs = {
    *                 capture() for description.
    * @return {Promise} A Promise that resolves when this task completes
    */
-  captureIfMissing: Task.async(function* (url, options={}) {
+  captureIfMissing: Task.async(function* (url, options = {}) {
     // The fileExistsForURL call is an optimization, potentially but unlikely
     // incorrect, and no big deal when it is.  After the capture is done, we
     // atomically test whether the file exists before writing it.
@@ -139,7 +139,7 @@ const BackgroundPageThumbs = {
    * Tell the service that the thumbnail browser should be recreated at next
    * call of _ensureBrowser().
    */
-  renewThumbnailBrowser: function() {
+  renewThumbnailBrowser() {
     this._renewThumbBrowser = true;
   },
 
@@ -150,7 +150,7 @@ const BackgroundPageThumbs = {
    * @return  True if the parent window is completely initialized and can be
    *          used, and false if initialization has started but not completed.
    */
-  _ensureParentWindowReady: function () {
+  _ensureParentWindowReady() {
     if (this._parentWin)
       // Already fully initialized.
       return true;
@@ -160,20 +160,32 @@ const BackgroundPageThumbs = {
 
     this._startedParentWinInit = true;
 
-    // Create an html:iframe, stick it in the parent document, and
-    // use it to host the browser.  about:blank will not have the system
-    // principal, so it can't host, but a document with a chrome URI will.
-    let hostWindow = Services.appShell.hiddenDOMWindow;
-    let iframe = hostWindow.document.createElementNS(HTML_NS, "iframe");
-    iframe.setAttribute("src", "chrome://global/content/mozilla.xhtml");
-    let onLoad = function onLoadFn() {
-      iframe.removeEventListener("load", onLoad, true);
-      this._parentWin = iframe.contentWindow;
-      this._processCaptureQueue();
-    }.bind(this);
-    iframe.addEventListener("load", onLoad, true);
-    hostWindow.document.documentElement.appendChild(iframe);
-    this._hostIframe = iframe;
+    // Create a windowless browser and load our hosting
+    // (privileged) document in it.
+    let wlBrowser = Services.appShell.createWindowlessBrowser(true);
+    wlBrowser.QueryInterface(Ci.nsIInterfaceRequestor);
+    let webProgress = wlBrowser.getInterface(Ci.nsIWebProgress);
+    this._listener = {
+      QueryInterface: XPCOMUtils.generateQI([
+        Ci.nsIWebProgressListener, Ci.nsIWebProgressListener2,
+        Ci.nsISupportsWeakReference]),
+    };
+    this._listener.onStateChange = (wbp, request, stateFlags, status) => {
+      if (!request) {
+        return;
+      }
+      if (stateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+          stateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
+        webProgress.removeProgressListener(this._listener);
+        delete this._listener;
+        // Get the window reference via the document.
+        this._parentWin = wlBrowser.document.defaultView;
+        this._processCaptureQueue();
+      }
+    };
+    webProgress.addProgressListener(this._listener, Ci.nsIWebProgress.NOTIFY_STATE_ALL);
+    wlBrowser.loadURI("chrome://global/content/backgroundPageThumbs.xhtml", 0, null, null, null);
+    this._windowlessContainer = wlBrowser;
 
     return false;
   },
@@ -182,22 +194,23 @@ const BackgroundPageThumbs = {
    * Destroys the service.  Queued and pending captures will never complete, and
    * their consumer callbacks will never be called.
    */
-  _destroy: function () {
+  _destroy() {
     if (this._captureQueue)
       this._captureQueue.forEach(cap => cap.destroy());
     this._destroyBrowser();
-    if (this._hostIframe)
-      this._hostIframe.remove();
+    if (this._windowlessContainer)
+      this._windowlessContainer.close();
     delete this._captureQueue;
-    delete this._hostIframe;
+    delete this._windowlessContainer;
     delete this._startedParentWinInit;
     delete this._parentWin;
+    delete this._listener;
   },
 
   /**
    * Creates the thumbnail browser if it doesn't already exist.
    */
-  _ensureBrowser: function () {
+  _ensureBrowser() {
     if (this._thumbBrowser && !this._renewThumbBrowser)
       return;
 
@@ -264,7 +277,7 @@ const BackgroundPageThumbs = {
     this._thumbBrowser = browser;
   },
 
-  _destroyBrowser: function () {
+  _destroyBrowser() {
     if (!this._thumbBrowser)
       return;
     this._thumbBrowser.remove();
@@ -275,7 +288,7 @@ const BackgroundPageThumbs = {
    * Starts the next capture if the queue is not empty and the service is fully
    * initialized.
    */
-  _processCaptureQueue: function () {
+  _processCaptureQueue() {
     if (!this._captureQueue.length ||
         this._captureQueue[0].pending ||
         !this._ensureParentWindowReady())
@@ -294,7 +307,7 @@ const BackgroundPageThumbs = {
    * Called when the current capture completes or fails (eg, times out, remote
    * process crashes.)
    */
-  _onCaptureOrTimeout: function (capture) {
+  _onCaptureOrTimeout(capture) {
     // Since timeouts start as an item is being processed, only the first
     // item in the queue can be passed to this method.
     if (capture !== this._captureQueue[0])
@@ -363,7 +376,7 @@ Capture.prototype = {
    *
    * @param messageManager  The nsIMessageSender of the thumbnail browser.
    */
-  start: function (messageManager) {
+  start(messageManager) {
     this.startDate = new Date();
     tel("CAPTURE_QUEUE_TIME_MS", this.startDate - this.creationDate);
 
@@ -387,7 +400,7 @@ Capture.prototype = {
    * uninitializing and doing things like destroying the thumbnail browser.  In
    * that case the consumer's completion callback will never be called.
    */
-  destroy: function () {
+  destroy() {
     // This method may be called for captures that haven't started yet, so
     // guard against not yet having _timeoutTimer, _msgMan etc properties...
     if (this._timeoutTimer) {
@@ -405,7 +418,7 @@ Capture.prototype = {
   },
 
   // Called when the didCapture message is received.
-  receiveMessage: function (msg) {
+  receiveMessage(msg) {
     if (msg.data.imageData)
       tel("CAPTURE_SERVICE_TIME_MS", new Date() - this.startDate);
 
@@ -424,11 +437,11 @@ Capture.prototype = {
   },
 
   // Called when the timeout timer fires.
-  notify: function () {
+  notify() {
     this._done(null, TEL_CAPTURE_DONE_TIMEOUT);
   },
 
-  _done: function (data, reason) {
+  _done(data, reason) {
     // Note that _done will be called only once, by either receiveMessage or
     // notify, since it calls destroy here, which cancels the timeout timer and
     // removes the didCapture message listener.
@@ -452,8 +465,7 @@ Capture.prototype = {
       for (let callback of doneCallbacks) {
         try {
           callback.call(options, this.url);
-        }
-        catch (err) {
+        } catch (err) {
           Cu.reportError(err);
         }
       }

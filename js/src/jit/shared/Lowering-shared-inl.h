@@ -487,6 +487,14 @@ LIRGeneratorShared::useRegisterOrConstantAtStart(MDefinition* mir)
 }
 
 LAllocation
+LIRGeneratorShared::useRegisterOrZero(MDefinition* mir)
+{
+    if (mir->isConstant() && mir->toConstant()->isInt32(0))
+        return LAllocation();
+    return useRegister(mir);
+}
+
+LAllocation
 LIRGeneratorShared::useRegisterOrZeroAtStart(MDefinition* mir)
 {
     if (mir->isConstant() && mir->toConstant()->isInt32(0))
@@ -750,12 +758,22 @@ LIRGeneratorShared::useBox(MDefinition* mir, LUse::Policy policy, bool useAtStar
 }
 
 LBoxAllocation
-LIRGeneratorShared::useBoxOrTypedOrConstant(MDefinition* mir, bool useConstant)
+LIRGeneratorShared::useBoxOrTyped(MDefinition* mir)
 {
     if (mir->type() == MIRType::Value)
         return useBox(mir);
 
 
+#if defined(JS_NUNBOX32)
+    return LBoxAllocation(useRegister(mir), LAllocation());
+#else
+    return LBoxAllocation(useRegister(mir));
+#endif
+}
+
+LBoxAllocation
+LIRGeneratorShared::useBoxOrTypedOrConstant(MDefinition* mir, bool useConstant)
+{
     if (useConstant && mir->isConstant()) {
 #if defined(JS_NUNBOX32)
         return LBoxAllocation(LAllocation(mir->toConstant()), LAllocation());
@@ -764,11 +782,7 @@ LIRGeneratorShared::useBoxOrTypedOrConstant(MDefinition* mir, bool useConstant)
 #endif
     }
 
-#if defined(JS_NUNBOX32)
-    return LBoxAllocation(useRegister(mir), LAllocation());
-#else
-    return LBoxAllocation(useRegister(mir));
-#endif
+    return useBoxOrTyped(mir);
 }
 
 LInt64Allocation
@@ -801,6 +815,12 @@ LIRGeneratorShared::useInt64Fixed(MDefinition* mir, Register64 regs, bool useAtS
 #else
     return LInt64Allocation(LUse(regs.reg, vreg, useAtStart));
 #endif
+}
+
+LInt64Allocation
+LIRGeneratorShared::useInt64FixedAtStart(MDefinition* mir, Register64 regs)
+{
+    return useInt64Fixed(mir, regs, true);
 }
 
 LInt64Allocation
@@ -837,6 +857,19 @@ LIRGeneratorShared::useInt64OrConstant(MDefinition* mir, bool useAtStart)
 #endif
     }
     return useInt64(mir, useAtStart);
+}
+
+LInt64Allocation
+LIRGeneratorShared::useInt64RegisterOrConstant(MDefinition* mir, bool useAtStart)
+{
+    if (mir->isConstant()) {
+#if defined(JS_NUNBOX32)
+        return LInt64Allocation(LAllocation(mir->toConstant()), LAllocation());
+#else
+        return LInt64Allocation(LAllocation(mir->toConstant()));
+#endif
+    }
+    return useInt64Register(mir, useAtStart);
 }
 
 } // namespace jit

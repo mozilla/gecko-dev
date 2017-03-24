@@ -11,6 +11,7 @@
 #include "nsDOMClassInfoID.h"
 #include "nsIXPCScriptable.h"
 #include "nsIScriptGlobalObject.h"
+#include "js/Class.h"
 #include "js/Id.h"
 #include "nsIXPConnect.h"
 
@@ -30,8 +31,10 @@ typedef nsresult (*nsDOMConstructorFunc)(nsISupports** aNewObject);
 
 struct nsDOMClassInfoData
 {
-  const char *mName;
+  // The ASCII name is available as mClass.name.
   const char16_t *mNameUTF16;
+  const js::ClassOps mClassOps;
+  const js::Class mClass;
   nsDOMClassInfoConstructorFnc mConstructorFptr;
 
   nsIClassInfo *mCachedClassInfo;
@@ -175,16 +178,8 @@ protected:
 public:
   NS_IMETHOD PreCreate(nsISupports *nativeObj, JSContext *cx,
                        JSObject *globalObj, JSObject **parentObj) override;
-  NS_IMETHOD AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, jsid id, JS::Handle<JS::Value> val,
-                         bool *_retval) override;
 
   virtual void PreserveWrapper(nsISupports *aNative) override;
-
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsEventTargetSH(aData);
-  }
 };
 
 // A place to hang some static methods that we should really consider

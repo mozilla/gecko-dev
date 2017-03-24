@@ -18,6 +18,7 @@
 #include "cubeb-speex-resampler.h"
 #include "cubeb_resampler_internal.h"
 #include "cubeb_utils.h"
+#include "cubeb_log.h"
 
 int
 to_speex_quality(cubeb_resampler_quality q)
@@ -35,29 +36,50 @@ to_speex_quality(cubeb_resampler_quality q)
   }
 }
 
-long noop_resampler::fill(void * input_buffer, long * input_frames_count,
-                          void * output_buffer, long output_frames)
+template<typename T>
+passthrough_resampler<T>::passthrough_resampler(cubeb_stream * s,
+                                                cubeb_data_callback cb,
+                                                void * ptr,
+                                                uint32_t input_channels)
+  : processor(input_channels)
+  , stream(s)
+  , data_callback(cb)
+  , user_ptr(ptr)
+{
+}
+
+template<typename T>
+long passthrough_resampler<T>::fill(void * input_buffer, long * input_frames_count,
+                                    void * output_buffer, long output_frames)
 {
   if (input_buffer) {
     assert(input_frames_count);
   }
   assert((input_buffer && output_buffer &&
-         *input_frames_count >= output_frames) ||
-         (!input_buffer && (!input_frames_count || *input_frames_count == 0)) ||
-         (!output_buffer && output_frames == 0));
+         *input_frames_count + static_cast<int>(samples_to_frames(internal_input_buffer.length())) >= output_frames) ||
+         (output_buffer && !input_buffer && (!input_frames_count || *input_frames_count == 0)) ||
+         (input_buffer && !output_buffer && output_frames == 0));
 
-  if (output_buffer == nullptr) {
-    assert(input_buffer);
-    output_frames = *input_frames_count;
+  if (input_buffer) {
+    if (!output_buffer) {
+      output_frames = *input_frames_count;
+    }
+    internal_input_buffer.push(static_cast<T*>(input_buffer),
+                               frames_to_samples(*input_frames_count));
   }
 
-  if (input_buffer && *input_frames_count != output_frames) {
-    assert(*input_frames_count > output_frames);
+  long rv = data_callback(stream, user_ptr, internal_input_buffer.data(),
+                          output_buffer, output_frames);
+
+  if (input_buffer) {
+    internal_input_buffer.pop(nullptr, frames_to_samples(output_frames));
     *input_frames_count = output_frames;
   }
 
-  return data_callback(stream, user_ptr,
-                       input_buffer, output_buffer, output_frames);
+  ALOGV("passthrough: after callback, internal input buffer length: %zu",
+        internal_input_buffer.length());
+
+  return rv;
 }
 
 template<typename T, typename InputProcessor, typename OutputProcessor>
@@ -124,7 +146,6 @@ cubeb_resampler_speex<T, InputProcessor, OutputProcessor>
   T * out_unprocessed = nullptr;
   long output_frames_before_processing = 0;
 
-
   /* fill directly the input buffer of the output processor to save a copy */
   output_frames_before_processing =
     output_processor->input_needed_for_output(output_frames_needed);
@@ -163,7 +184,7 @@ cubeb_resampler_speex<T, InputProcessor, OutputProcessor>
   /* process the input, and present exactly `output_frames_needed` in the
   * callback. */
   input_processor->input(input_buffer, *input_frames_count);
-  resampled_input = input_processor->output(resampled_frame_count);
+  resampled_input = input_processor->output(resampled_frame_count, (size_t*)input_frames_count);
 
   long got = data_callback(stream, user_ptr,
                            resampled_input, nullptr, resampled_frame_count);
@@ -173,7 +194,6 @@ cubeb_resampler_speex<T, InputProcessor, OutputProcessor>
   * available number outside resampler is the initial number of frames. */
   return (*input_frames_count) * (got / resampled_frame_count);
 }
-
 
 template<typename T, typename InputProcessor, typename OutputProcessor>
 long
@@ -211,7 +231,7 @@ cubeb_resampler_speex<T, InputProcessor, OutputProcessor>
     * callback. */
     input_processor->input(in_buffer, *input_frames_count);
     resampled_input =
-      input_processor->output(output_frames_before_processing);
+      input_processor->output(output_frames_before_processing, (size_t*)input_frames_count);
   } else {
     resampled_input = nullptr;
   }
@@ -219,6 +239,16 @@ cubeb_resampler_speex<T, InputProcessor, OutputProcessor>
   got = data_callback(stream, user_ptr,
                       resampled_input, out_unprocessed,
                       output_frames_before_processing);
+
+  size_t input_processor_buffer_sizes[2];
+  size_t output_processor_buffer_sizes[2];
+  input_processor->internal_buffer_sizes(input_processor_buffer_sizes);
+  output_processor->internal_buffer_sizes(output_processor_buffer_sizes);
+  ALOGV("duplex resampler: after callback, resampling buffer state:"
+        "input_processor(input: %zu, output: %zu) "
+        "output_processor(input: %zu, output: %zu) ",
+        input_processor_buffer_sizes[0], input_processor_buffer_sizes[1],
+        output_processor_buffer_sizes[0], output_processor_buffer_sizes[1]);
 
   if (got < 0) {
     return got;

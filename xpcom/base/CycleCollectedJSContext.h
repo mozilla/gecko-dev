@@ -37,6 +37,9 @@ namespace mozilla {
 class JSGCThingParticipant: public nsCycleCollectionParticipant
 {
 public:
+  constexpr JSGCThingParticipant()
+    : nsCycleCollectionParticipant(false) {}
+
   NS_IMETHOD_(void) Root(void*) override
   {
     MOZ_ASSERT(false, "Don't call Root on GC things");
@@ -57,7 +60,7 @@ public:
     MOZ_ASSERT(false, "Can't directly delete a cycle collectable GC thing");
   }
 
-  NS_IMETHOD Traverse(void* aPtr, nsCycleCollectionTraversalCallback& aCb)
+  NS_IMETHOD TraverseNative(void* aPtr, nsCycleCollectionTraversalCallback& aCb)
     override;
 
   NS_DECL_CYCLE_COLLECTION_CLASS_NAME_METHOD(JSGCThingParticipant)
@@ -66,7 +69,7 @@ public:
 class JSZoneParticipant : public nsCycleCollectionParticipant
 {
 public:
-  constexpr JSZoneParticipant(): nsCycleCollectionParticipant()
+  constexpr JSZoneParticipant(): nsCycleCollectionParticipant(false)
   {
   }
 
@@ -90,7 +93,7 @@ public:
     MOZ_ASSERT(false, "Can't directly delete a cycle collectable GC thing");
   }
 
-  NS_IMETHOD Traverse(void* aPtr, nsCycleCollectionTraversalCallback& aCb)
+  NS_IMETHOD TraverseNative(void* aPtr, nsCycleCollectionTraversalCallback& aCb)
     override;
 
   NS_DECL_CYCLE_COLLECTION_CLASS_NAME_METHOD(JSZoneParticipant)
@@ -144,7 +147,7 @@ protected:
   virtual ~CycleCollectedJSContext();
 
   MOZ_IS_CLASS_INIT
-  nsresult Initialize(JSContext* aParentContext,
+  nsresult Initialize(JSRuntime* aParentRuntime,
                       uint32_t aMaxBytes,
                       uint32_t aMaxNurseryBytes);
 
@@ -216,6 +219,12 @@ private:
                                           JS::gcreason::Reason aReason);
   static void OutOfMemoryCallback(JSContext* aContext, void* aData);
   static void LargeAllocationFailureCallback(void* aData);
+  /**
+   * Callback for reporting external string memory.
+   */
+  static size_t SizeofExternalStringCallback(JSString* aStr,
+                                             mozilla::MallocSizeOf aMallocSizeOf);
+
   static bool ContextCallback(JSContext* aCx, unsigned aOperation,
                               void* aData);
   static JSObject* GetIncumbentGlobalCallback(JSContext* aCx);
@@ -224,12 +233,10 @@ private:
                                         JS::HandleObject aAllocationSite,
                                         JS::HandleObject aIncumbentGlobal,
                                         void* aData);
-#ifdef SPIDERMONKEY_PROMISE
   static void PromiseRejectionTrackerCallback(JSContext* aCx,
                                               JS::HandleObject aPromise,
                                               PromiseRejectionHandlingState state,
                                               void* aData);
-#endif // SPIDERMONKEY_PROMISE
 
   virtual void TraceNativeBlackRoots(JSTracer* aTracer) { };
   void TraceNativeGrayRoots(JSTracer* aTracer);
@@ -306,6 +313,7 @@ public:
   nsresult TraverseRoots(nsCycleCollectionNoteRootCallback& aCb);
   virtual bool UsefulToMergeZones() const;
   void FixWeakMappingGrayBits() const;
+  void CheckGrayBits() const;
   bool AreGCGrayBitsValid() const;
   void GarbageCollect(uint32_t aReason) const;
 
@@ -406,7 +414,6 @@ public:
 
   // Storage for watching rejected promises waiting for some client to
   // consume their rejection.
-#ifdef SPIDERMONKEY_PROMISE
   // Promises in this list have been rejected in the last turn of the
   // event loop without the rejection being handled.
   // Note that this can contain nullptrs in place of promises removed because
@@ -417,13 +424,6 @@ public:
   // (because they were in the above list), but the rejection was handled
   // in the last turn of the event loop.
   JS::PersistentRooted<JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>> mConsumedRejections;
-#else
-  // We store values as `nsISupports` to avoid adding compile-time dependencies
-  // from xpcom to dom/promise, but they can really only have a single concrete
-  // type.
-  nsTArray<nsCOMPtr<nsISupports /* Promise */>> mUncaughtRejections;
-  nsTArray<nsCOMPtr<nsISupports /* Promise */ >> mConsumedRejections;
-#endif // SPIDERMONKEY_PROMISE
   nsTArray<nsCOMPtr<nsISupports /* UncaughtRejectionObserver */ >> mUncaughtRejectionObservers;
 
 private:

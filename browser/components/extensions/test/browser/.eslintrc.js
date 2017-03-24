@@ -1,7 +1,7 @@
 "use strict";
 
-module.exports = {  // eslint-disable-line no-undef
-  "extends": "../../../../../testing/mochitest/browser.eslintrc.js",
+module.exports = {
+  "extends": "plugin:mozilla/browser-test",
 
   "env": {
     "webextensions": true,
@@ -28,5 +28,9 @@ module.exports = {  // eslint-disable-line no-undef
     "openContextMenu": true,
     "openExtensionContextMenu": true,
     "CustomizableUI": true,
+  },
+
+  "rules": {
+    "no-shadow": 0,
   },
 };

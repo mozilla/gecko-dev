@@ -42,10 +42,7 @@ add_task(function* invalid_input_throws() {
   Assert.throws(() => PlacesUtils.bookmarks.insert({ lastModified: Date.now() }),
                 /Invalid value for property 'lastModified'/);
   let time = new Date();
-  let future = new Date(time + 86400000);
-  Assert.throws(() => PlacesUtils.bookmarks.insert({ dateAdded: future,
-                                                     lastModified: time }),
-                /Invalid value for property 'dateAdded'/);
+
   let past = new Date(time - 86400000);
   Assert.throws(() => PlacesUtils.bookmarks.insert({ lastModified: past }),
                 /Invalid value for property 'lastModified'/);
@@ -196,7 +193,7 @@ add_task(function* create_folder() {
 
   // And then create a nested folder.
   let parentGuid = bm.guid;
-  bm = yield PlacesUtils.bookmarks.insert({ parentGuid: parentGuid,
+  bm = yield PlacesUtils.bookmarks.insert({ parentGuid,
                                             type: PlacesUtils.bookmarks.TYPE_FOLDER,
                                             title: "a folder" });
   checkBookmarkObject(bm);
@@ -211,7 +208,7 @@ add_task(function* create_bookmark() {
                                                 type: PlacesUtils.bookmarks.TYPE_FOLDER });
   let parentGuid = bm.guid;
 
-  bm = yield PlacesUtils.bookmarks.insert({ parentGuid: parentGuid,
+  bm = yield PlacesUtils.bookmarks.insert({ parentGuid,
                                             type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
                                             url: "http://example.com/",
                                             title: "a bookmark" });
@@ -226,7 +223,7 @@ add_task(function* create_bookmark() {
   let parent = yield PlacesUtils.bookmarks.fetch({ guid: bm.parentGuid });
   Assert.deepEqual(parent.lastModified, bm.dateAdded);
 
-  bm = yield PlacesUtils.bookmarks.insert({ parentGuid: parentGuid,
+  bm = yield PlacesUtils.bookmarks.insert({ parentGuid,
                                             type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
                                             url: new URL("http://example.com/") });
   checkBookmarkObject(bm);

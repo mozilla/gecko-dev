@@ -1,14 +1,14 @@
 "use strict";
 
 module.exports = { // eslint-disable-line no-undef
-  "extends": "../../../../../testing/mochitest/mochitest.eslintrc.js",
+  "extends": "plugin:mozilla/mochitest-test",
 
   "env": {
+    "browser": true,
     "webextensions": true,
   },
 
   "globals": {
-    "ChromeWorker": false,
     "onmessage": true,
     "sendAsyncMessage": false,
 
@@ -19,5 +19,17 @@ module.exports = { // eslint-disable-line no-undef
     "NetUtil": true,
     "webrequest_test": false,
     "XPCOMUtils": true,
+
+    // head_webrequest.js symbols
+    "addStylesheet": true,
+    "addLink": true,
+    "addImage": true,
+    "addScript": true,
+    "addFrame": true,
+    "makeExtension": false,
+  },
+
+  "rules": {
+    "no-shadow": 0,
   },
 };

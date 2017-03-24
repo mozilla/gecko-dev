@@ -31,8 +31,15 @@ public class TabsListLayout extends TabsLayout {
 
         setLayoutManager(new LinearLayoutManager(context));
 
-        // A TouchHelper handler for swipe to close.
-        final TabsTouchHelperCallback callback = new TabsTouchHelperCallback(this);
+        final int dragDirections = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
+        // A TouchHelper handler for drag and drop and swipe to close.
+        final TabsTouchHelperCallback callback = new TabsTouchHelperCallback(this, dragDirections, this) {
+            @Override
+            protected float alphaForItemSwipeDx(float dX, int distanceToAlphaMin) {
+                return Math.max(0.1f,
+                        Math.min(1f, 1f - 2f * Math.abs(dX) / distanceToAlphaMin));
+            }
+        };
         final ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
         touchHelper.attachToRecyclerView(this);
 
@@ -105,14 +112,5 @@ public class TabsListLayout extends TabsLayout {
     @Override
     protected boolean addAtIndexRequiresScroll(int index) {
         return index == 0 || index == getAdapter().getItemCount() - 1;
-    }
-
-    @Override
-    public void onChildAttachedToWindow(View child) {
-        // Make sure we reset any attributes that may have been animated in this child's previous
-        // incarnation.
-        child.setTranslationX(0);
-        child.setTranslationY(0);
-        child.setAlpha(1);
     }
 }

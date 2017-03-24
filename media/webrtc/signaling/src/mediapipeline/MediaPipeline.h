@@ -10,9 +10,6 @@
 
 #include "sigslot.h"
 
-#ifdef USE_FAKE_MEDIA_STREAMS
-#include "FakeMediaStreams.h"
-#endif
 #include "MediaConduitInterface.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/Atomics.h"
@@ -23,7 +20,7 @@
 #include "AudioPacketizer.h"
 #include "StreamTracks.h"
 
-#include "webrtc/modules/rtp_rtcp/interface/rtp_header_parser.h"
+#include "webrtc/modules/rtp_rtcp/include/rtp_header_parser.h"
 
 // Should come from MediaEngine.h, but that's a pain to include here
 // because of the MOZILLA_EXTERNAL_LINKAGE stuff.
@@ -35,17 +32,13 @@ namespace mozilla {
 class MediaPipelineFilter;
 class PeerIdentity;
 class AudioProxyThread;
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
 class VideoFrameConverter;
-#endif
 
-#ifndef USE_FAKE_MEDIA_STREAMS
 namespace dom {
   class MediaStreamTrack;
 } // namespace dom
 
 class SourceMediaStream;
-#endif // USE_FAKE_MEDIA_STREAMS
 
 // A class that represents the pipeline of audio and video
 // The dataflow looks like:
@@ -124,7 +117,7 @@ class MediaPipeline : public sigslot::has_slots<> {
   // Used only for testing; installs a MediaPipelineFilter that filters
   // everything but the nth ssrc
   void SelectSsrc_m(size_t ssrc_index);
-  void SelectSsrc_s(size_t ssrc_index);
+  void SelectSsrc_s(uint32_t ssrc);
 
   virtual Direction direction() const { return direction_; }
   virtual const std::string& trackid() const { return track_id_; }
@@ -154,11 +147,6 @@ class MediaPipeline : public sigslot::has_slots<> {
     MAX_RTP_TYPE
   } RtpType;
 
- protected:
-  virtual ~MediaPipeline();
-  virtual void DetachMedia() {}
-  nsresult AttachTransport_s();
-
   // Separate class to allow ref counting
   class PipelineTransport : public TransportInterface {
    public:
@@ -171,8 +159,8 @@ class MediaPipeline : public sigslot::has_slots<> {
     void Detach() { pipeline_ = nullptr; }
     MediaPipeline *pipeline() const { return pipeline_; }
 
-    virtual nsresult SendRtpPacket(const void* data, int len);
-    virtual nsresult SendRtcpPacket(const void* data, int len);
+    virtual nsresult SendRtpPacket(const uint8_t* data, size_t len);
+    virtual nsresult SendRtcpPacket(const uint8_t* data, size_t len);
 
    private:
     nsresult SendRtpRtcpPacket_s(nsAutoPtr<DataBuffer> data,
@@ -181,6 +169,15 @@ class MediaPipeline : public sigslot::has_slots<> {
     MediaPipeline *pipeline_;  // Raw pointer to avoid cycles
     nsCOMPtr<nsIEventTarget> sts_thread_;
   };
+
+  RefPtr<PipelineTransport> GetPiplelineTransport() {
+    return transport_;
+  }
+
+ protected:
+  virtual ~MediaPipeline();
+  virtual void DetachMedia() {}
+  nsresult AttachTransport_s();
   friend class PipelineTransport;
 
   class TransportInfo {
@@ -320,14 +317,12 @@ public:
   // written and used from MainThread
   bool IsVideo() const override;
 
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   // When the principal of the domtrack changes, it calls through to here
   // so that we can determine whether to enable track transmission.
   // `track` has to be null or equal `domtrack_` for us to apply the update.
   virtual void UpdateSinkIdentity_m(dom::MediaStreamTrack* track,
                                     nsIPrincipal* principal,
                                     const PeerIdentity* sinkIdentity);
-#endif
 
   // Called on the main thread.
   void DetachMedia() override;
@@ -344,7 +339,6 @@ public:
   // Separate classes to allow ref counting
   class PipelineListener;
   class VideoFrameFeeder;
-  class PipelineVideoSink;
 
  protected:
   ~MediaPipelineTransmit();
@@ -352,11 +346,8 @@ public:
  private:
   RefPtr<PipelineListener> listener_;
   RefPtr<AudioProxyThread> audio_processing_;
-#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   RefPtr<VideoFrameFeeder> feeder_;
   RefPtr<VideoFrameConverter> converter_;
-#endif
-  RefPtr<PipelineVideoSink> video_sink_;
   dom::MediaStreamTrack* domtrack_;
 };
 
@@ -379,11 +370,9 @@ class MediaPipelineReceive : public MediaPipeline {
 
   int segments_added() const { return segments_added_; }
 
-#ifndef USE_FAKE_MEDIA_STREAMS
   // Sets the PrincipalHandle we set on the media chunks produced by this
   // pipeline. Must be called on the main thread.
   virtual void SetPrincipalHandle_m(const PrincipalHandle& principal_handle) = 0;
-#endif // USE_FAKE_MEDIA_STREAMS
  protected:
   ~MediaPipelineReceive();
 
@@ -420,9 +409,7 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
   nsresult Init() override;
   bool IsVideo() const override { return false; }
 
-#ifndef USE_FAKE_MEDIA_STREAMS
   void SetPrincipalHandle_m(const PrincipalHandle& principal_handle) override;
-#endif // USE_FAKE_MEDIA_STREAMS
 
  private:
   // Separate class to allow ref counting
@@ -459,9 +446,7 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
   nsresult Init() override;
   bool IsVideo() const override { return true; }
 
-#ifndef USE_FAKE_MEDIA_STREAMS
   void SetPrincipalHandle_m(const PrincipalHandle& principal_handle) override;
-#endif // USE_FAKE_MEDIA_STREAMS
 
  private:
   class PipelineRenderer;

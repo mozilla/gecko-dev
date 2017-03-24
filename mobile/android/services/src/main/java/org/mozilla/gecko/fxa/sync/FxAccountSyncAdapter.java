@@ -34,6 +34,7 @@ import org.mozilla.gecko.fxa.login.State.StateLabel;
 import org.mozilla.gecko.fxa.sync.FxAccountSyncDelegate.Result;
 import org.mozilla.gecko.sync.BackoffHandler;
 import org.mozilla.gecko.sync.GlobalSession;
+import org.mozilla.gecko.sync.MetaGlobal;
 import org.mozilla.gecko.sync.PrefsBackoffHandler;
 import org.mozilla.gecko.sync.SharedPreferencesClientsDataDelegate;
 import org.mozilla.gecko.sync.SyncConfiguration;
@@ -53,13 +54,15 @@ import org.mozilla.gecko.tokenserver.TokenServerToken;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
   private static final String LOG_TAG = FxAccountSyncAdapter.class.getSimpleName();
@@ -73,6 +76,11 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
   // successfully synced within this duration.
   private static final int MINIMUM_SYNC_DELAY_MILLIS = 15 * 1000;        // 15 seconds.
   private volatile long lastSyncRealtimeMillis;
+
+  // Non-user initiated sync can't take longer than 30 minutes.
+  // To ensure we're not churning through device's battery/resources, we limit sync to 10 minutes,
+  // and request a re-sync if we hit that deadline.
+  private static final long SYNC_DEADLINE_DELTA_MILLIS = TimeUnit.MINUTES.toMillis(10);
 
   protected final ExecutorService executor;
   protected final FxAccountNotificationManager notificationManager;
@@ -117,7 +125,15 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
       super.rejectSync();
     }
 
+    /* package-local */ void requestFollowUpSync(String stage) {
+      this.stageNamesForFollowUpSync.add(stage);
+    }
+
     protected final Collection<String> stageNamesToSync;
+
+    // Keeps track of incomplete stages during this sync that need to be re-synced once we're done.
+    private final List<String> stageNamesForFollowUpSync = Collections.synchronizedList(new ArrayList<String>());
+    private boolean fullSyncNecessary = false;
 
     public SyncDelegate(BlockingQueue<Result> latch, SyncResult syncResult, AndroidFxAccount fxAccount, Collection<String> stageNamesToSync) {
       super(latch, syncResult);
@@ -177,6 +193,23 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
     public void handleStageCompleted(Stage currentState, GlobalSession globalSession) {
     }
 
+    /**
+     * Schedule an incomplete stage for a follow-up sync.
+     */
+    @Override
+    public void handleIncompleteStage(Stage currentState,
+                                      GlobalSession globalSession) {
+      syncDelegate.requestFollowUpSync(currentState.getRepositoryName());
+    }
+
+    /**
+     * Use with caution, as this will request an immediate follow-up sync of all stages.
+     */
+    @Override
+    public void handleFullSyncNecessary() {
+      syncDelegate.fullSyncNecessary = true;
+    }
+
     @Override
     public void handleSuccess(GlobalSession globalSession) {
       Logger.info(LOG_TAG, "Global session succeeded.");
@@ -231,8 +264,7 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
     return forced;
   }
 
-  protected void syncWithAssertion(final String audience,
-                                   final String assertion,
+  protected void syncWithAssertion(final String assertion,
                                    final URI tokenServerEndpointURI,
                                    final BackoffHandler tokenBackoffHandler,
                                    final SharedPreferences sharedPrefs,
@@ -240,7 +272,8 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
                                    final String clientState,
                                    final SessionCallback callback,
                                    final Bundle extras,
-                                   final AndroidFxAccount fxAccount) {
+                                   final AndroidFxAccount fxAccount,
+                                   final long syncDeadline) {
     final TokenServerClientDelegate delegate = new TokenServerClientDelegate() {
       private boolean didReceiveBackoff = false;
 
@@ -321,7 +354,7 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
           syncConfig.setClusterURL(storageServerURI);
 
           globalSession = new GlobalSession(syncConfig, callback, context, clientsDataDelegate);
-          globalSession.start();
+          globalSession.start(syncDeadline);
         } catch (Exception e) {
           callback.handleError(globalSession, e);
           return;
@@ -386,6 +419,10 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
     final Context context = getContext();
     final AndroidFxAccount fxAccount = new AndroidFxAccount(context, account);
 
+    // NB: we use elapsedRealtime which is time since boot, to ensure our clock is monotonic and isn't
+    // paused while CPU is in the power-saving mode.
+    final long syncDeadline = SystemClock.elapsedRealtime() + SYNC_DEADLINE_DELTA_MILLIS;
+
     Logger.info(LOG_TAG, "Syncing FxAccount" +
         " account named like " + Utils.obfuscateEmail(account.name) +
         " for authority " + authority +
@@ -427,6 +464,7 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
     Collection<String> stageNamesToSync = Utils.getStagesToSyncFromBundle(knownStageNames, extras);
 
     final SyncDelegate syncDelegate = new SyncDelegate(latch, syncResult, fxAccount, stageNamesToSync);
+    Result offeredResult = null;
 
     try {
       // This will be the same chunk of SharedPreferences that we pass through to GlobalSession/SyncConfiguration.
@@ -536,12 +574,22 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
             final SessionCallback sessionCallback = new SessionCallback(syncDelegate, schedulePolicy);
             final KeyBundle syncKeyBundle = married.getSyncKeyBundle();
             final String clientState = married.getClientState();
-            syncWithAssertion(audience, assertion, tokenServerEndpointURI, tokenBackoffHandler, sharedPrefs, syncKeyBundle, clientState, sessionCallback, extras, fxAccount);
+            syncWithAssertion(
+                    assertion, tokenServerEndpointURI, tokenBackoffHandler, sharedPrefs,
+                    syncKeyBundle, clientState, sessionCallback, extras, fxAccount, syncDeadline);
 
-            // Register the device if necessary (asynchronous, in another thread)
+            // Register the device if necessary (asynchronous, in another thread).
+            // As part of device registration, we obtain a PushSubscription, register our push endpoint
+            // with FxA, and update account data with fxaDeviceId, which is part of our synced
+            // clients record.
             if (fxAccount.getDeviceRegistrationVersion() != FxAccountDeviceRegistrator.DEVICE_REGISTRATION_VERSION
-                || TextUtils.isEmpty(fxAccount.getDeviceId())) {
+              || TextUtils.isEmpty(fxAccount.getDeviceId())) {
               FxAccountDeviceRegistrator.register(context);
+            // We might need to re-register periodically to ensure our FxA push subscription is valid.
+            // This involves unsubscribing, subscribing and updating remote FxA device record with
+            // new push subscription information.
+            } else if (FxAccountDeviceRegistrator.needToRenewRegistration(fxAccount.getDeviceRegistrationTimestamp())) {
+              FxAccountDeviceRegistrator.renewRegistration(context);
             }
 
             // Force fetch the profile avatar information. (asynchronous, in another thread)
@@ -554,7 +602,7 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
         }
       });
 
-      latch.take();
+      offeredResult = latch.take();
     } catch (Exception e) {
       Logger.error(LOG_TAG, "Got error syncing.", e);
       syncDelegate.handleError(e);
@@ -562,7 +610,44 @@ public class FxAccountSyncAdapter extends AbstractThreadedSyncAdapter {
       fxAccount.releaseSharedAccountStateLock();
     }
 
-    Logger.info(LOG_TAG, "Syncing done.");
     lastSyncRealtimeMillis = SystemClock.elapsedRealtime();
+
+    // We got to this point without being offered a result, and so it's unwise to proceed with
+    // trying to sync stages again. Nothing else we can do but log an error.
+    if (offeredResult == null) {
+      Logger.error(LOG_TAG, "Did not receive a sync result from the delegate.");
+      return;
+    }
+
+    // Full sync (of all of stages) is necessary if we hit "concurrent modification" errors while
+    // uploading meta/global stage. This is considered both a rare and important event, so it's
+    // deemed safe and necessary to request an immediate sync, which will ignore any back-offs and
+    // will happen right away.
+    if (syncDelegate.fullSyncNecessary) {
+      Logger.info(LOG_TAG, "Syncing done. Full follow-up sync necessary, requesting immediate sync.");
+      fxAccount.requestImmediateSync(null, null);
+      return;
+    }
+
+    // If there are any incomplete stages, request a follow-up sync. Otherwise, we're done.
+    // Incomplete stage is:
+    // - one that hit a 412 error during either upload or download of data, indicating that
+    //   its collection has been modified remotely, or
+    // - one that hit a sync deadline
+    final String[] stagesToSyncAgain;
+    synchronized (syncDelegate.stageNamesForFollowUpSync) {
+      stagesToSyncAgain = syncDelegate.stageNamesForFollowUpSync.toArray(
+              new String[syncDelegate.stageNamesForFollowUpSync.size()]
+      );
+    }
+
+    if (stagesToSyncAgain.length == 0) {
+      Logger.info(LOG_TAG, "Syncing done.");
+      return;
+    }
+
+    // If there are any other stages marked as incomplete, request that they're synced again.
+    Logger.info(LOG_TAG, "Syncing done. Requesting an immediate follow-up sync.");
+    fxAccount.requestImmediateSync(stagesToSyncAgain, null);
   }
 }

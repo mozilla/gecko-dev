@@ -18,10 +18,10 @@ function resolveGeckoURI(uri) {
   }
   if (uri.startsWith("chrome://")) {
     let registry = Cc['@mozilla.org/chrome/chrome-registry;1'].getService(Ci["nsIChromeRegistry"]);
-    return registry.convertChromeURL(Services.io.newURI(uri, null, null)).spec;
+    return registry.convertChromeURL(Services.io.newURI(uri)).spec;
   } else if (uri.startsWith("resource://")) {
     let handler = Services.io.getProtocolHandler("resource").QueryInterface(Ci.nsIResProtocolHandler);
-    return handler.resolveURI(Services.io.newURI(uri, null, null));
+    return handler.resolveURI(Services.io.newURI(uri));
   }
   return uri;
 }
@@ -37,7 +37,7 @@ var JavaAddonManager = Object.freeze({
     if (!filename) {
       throw new Error("filename cannot be null");
     }
-    return Messaging.sendRequestForResult({
+    return EventDispatcher.instance.sendRequestForResult({
       type: "JavaAddonManagerV1:Load",
       classname: classname,
       filename: resolveGeckoURI(filename)
@@ -64,7 +64,19 @@ function JavaAddonV1(options = {}) {
   this._classname = options.classname;
   this._guid = options.guid;
   this._loaded = true;
-  this._listeners = {};
+
+  this._listeners = {
+    list: {},
+    onEvent: function(event, data, callback) {
+      let listener = this.list[event];
+      if (listener) {
+        let ret = listener(data);
+        callback && callback.onSuccess(ret);
+      } else {
+        callback && callback.onError("No listener");
+      }
+    },
+  };
 }
 
 JavaAddonV1.prototype = Object.freeze({
@@ -73,17 +85,17 @@ JavaAddonV1.prototype = Object.freeze({
       return;
     }
 
-    Messaging.sendRequestForResult({
+    EventDispatcher.instance.sendRequestForResult({
       type: "JavaAddonManagerV1:Unload",
       guid: this._guid
     })
       .then(() => {
         this._loaded = false;
-        for (let listener of this._listeners) {
+        for (let event in this._listeners.list) {
           // If we use this.removeListener, we prefix twice.
-          Messaging.removeListener(listener);
+          EventDispatcher.instance.unregisterListener(this._listeners, event);
         }
-        this._listeners = {};
+        this._listeners.list = {};
       });
   },
 
@@ -94,22 +106,23 @@ JavaAddonV1.prototype = Object.freeze({
   },
 
   sendRequest: function(message) {
-    return Messaging.sendRequest(this._prefix(message));
+    return EventDispatcher.instance.sendRequest(this._prefix(message));
   },
 
   sendRequestForResult: function(message) {
-    return Messaging.sendRequestForResult(this._prefix(message));
+    return EventDispatcher.instance.sendRequestForResult(this._prefix(message)).then(
+        wrapper => wrapper.response, wrapper => { throw wrapper && wrapper.response; });
   },
 
   addListener: function(listener, message) {
     let prefixedMessage = this._guid + ":" + message;
-    this._listeners[prefixedMessage] = listener;
-    return Messaging.addListener(listener, prefixedMessage);
+    this._listeners.list[prefixedMessage] = listener;
+    return EventDispatcher.instance.registerListener(this._listeners, prefixedMessage);
   },
 
   removeListener: function(message) {
     let prefixedMessage = this._guid + ":" + message;
-    delete this._listeners[prefixedMessage];
-    return Messaging.removeListener(prefixedMessage);
+    delete this._listeners.list[prefixedMessage];
+    return EventDispatcher.instance.unregisterListener(this._listeners, prefixedMessage);
   }
 });

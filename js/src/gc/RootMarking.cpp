@@ -28,6 +28,8 @@
 #include "jsgcinlines.h"
 #include "jsobjinlines.h"
 
+#include "gc/Nursery-inl.h"
+
 using namespace js;
 using namespace js::gc;
 
@@ -56,7 +58,7 @@ struct ConcreteTraceable {
 
 template <typename T, TraceFunction<T> TraceFn = TraceNullableRoot>
 static inline void
-MarkExactStackRootList(JSTracer* trc, JS::Rooted<void*>* rooter, const char* name)
+TraceExactStackRootList(JSTracer* trc, JS::Rooted<void*>* rooter, const char* name)
 {
     while (rooter) {
         T* addr = reinterpret_cast<JS::Rooted<T>*>(rooter)->address();
@@ -66,36 +68,34 @@ MarkExactStackRootList(JSTracer* trc, JS::Rooted<void*>* rooter, const char* nam
 }
 
 static inline void
-TraceStackRoots(JSTracer* trc, RootedListHeads& stackRoots)
+TraceStackRoots(JSTracer* trc, JS::RootedListHeads& stackRoots)
 {
-#define MARK_ROOTS(name, type, _) \
-    MarkExactStackRootList<type*>(trc, stackRoots[JS::RootKind::name], "exact-" #name);
-JS_FOR_EACH_TRACEKIND(MARK_ROOTS)
-#undef MARK_ROOTS
-    MarkExactStackRootList<jsid>(trc, stackRoots[JS::RootKind::Id], "exact-id");
-    MarkExactStackRootList<Value>(trc, stackRoots[JS::RootKind::Value], "exact-value");
-    MarkExactStackRootList<ConcreteTraceable,
+#define TRACE_ROOTS(name, type, _) \
+    TraceExactStackRootList<type*>(trc, stackRoots[JS::RootKind::name], "exact-" #name);
+JS_FOR_EACH_TRACEKIND(TRACE_ROOTS)
+#undef TRACE_ROOTS
+    TraceExactStackRootList<jsid>(trc, stackRoots[JS::RootKind::Id], "exact-id");
+    TraceExactStackRootList<Value>(trc, stackRoots[JS::RootKind::Value], "exact-value");
+    TraceExactStackRootList<ConcreteTraceable,
                            js::DispatchWrapper<ConcreteTraceable>::TraceWrapped>(
         trc, stackRoots[JS::RootKind::Traceable], "Traceable");
 }
 
 void
-js::RootLists::traceStackRoots(JSTracer* trc)
+JS::RootingContext::traceStackRoots(JSTracer* trc)
 {
     TraceStackRoots(trc, stackRoots_);
 }
 
 static void
-MarkExactStackRoots(JSRuntime* rt, JSTracer* trc)
+TraceExactStackRoots(const CooperatingContext& target, JSTracer* trc)
 {
-    for (ZonesIter zone(rt, SkipAtoms); !zone.done(); zone.next())
-        TraceStackRoots(trc, zone->stackRoots_);
-    rt->contextFromMainThread()->roots.traceStackRoots(trc);
+    target.context()->traceStackRoots(trc);
 }
 
 template <typename T, TraceFunction<T> TraceFn = TraceNullableRoot>
 static inline void
-MarkPersistentRootedList(JSTracer* trc, mozilla::LinkedList<PersistentRooted<void*>>& list,
+TracePersistentRootedList(JSTracer* trc, mozilla::LinkedList<PersistentRooted<void*>>& list,
                          const char* name)
 {
     for (PersistentRooted<void*>* r : list)
@@ -103,23 +103,23 @@ MarkPersistentRootedList(JSTracer* trc, mozilla::LinkedList<PersistentRooted<voi
 }
 
 void
-js::RootLists::tracePersistentRoots(JSTracer* trc)
+JSRuntime::tracePersistentRoots(JSTracer* trc)
 {
-#define MARK_ROOTS(name, type, _) \
-    MarkPersistentRootedList<type*>(trc, heapRoots_[JS::RootKind::name], "persistent-" #name);
-JS_FOR_EACH_TRACEKIND(MARK_ROOTS)
-#undef MARK_ROOTS
-    MarkPersistentRootedList<jsid>(trc, heapRoots_[JS::RootKind::Id], "persistent-id");
-    MarkPersistentRootedList<Value>(trc, heapRoots_[JS::RootKind::Value], "persistent-value");
-    MarkPersistentRootedList<ConcreteTraceable,
+#define TRACE_ROOTS(name, type, _) \
+    TracePersistentRootedList<type*>(trc, heapRoots.ref()[JS::RootKind::name], "persistent-" #name);
+JS_FOR_EACH_TRACEKIND(TRACE_ROOTS)
+#undef TRACE_ROOTS
+    TracePersistentRootedList<jsid>(trc, heapRoots.ref()[JS::RootKind::Id], "persistent-id");
+    TracePersistentRootedList<Value>(trc, heapRoots.ref()[JS::RootKind::Value], "persistent-value");
+    TracePersistentRootedList<ConcreteTraceable,
                              js::DispatchWrapper<ConcreteTraceable>::TraceWrapped>(trc,
-            heapRoots_[JS::RootKind::Traceable], "persistent-traceable");
+            heapRoots.ref()[JS::RootKind::Traceable], "persistent-traceable");
 }
 
 static void
-MarkPersistentRooted(JSRuntime* rt, JSTracer* trc)
+TracePersistentRooted(JSRuntime* rt, JSTracer* trc)
 {
-    rt->contextFromMainThread()->roots.tracePersistentRoots(trc);
+    rt->tracePersistentRoots(trc);
 }
 
 template <typename T>
@@ -132,14 +132,14 @@ FinishPersistentRootedChain(mozilla::LinkedList<PersistentRooted<void*>>& listAr
 }
 
 void
-js::RootLists::finishPersistentRoots()
+JSRuntime::finishPersistentRoots()
 {
-#define FINISH_ROOT_LIST(name, type, _) \
-    FinishPersistentRootedChain<type*>(heapRoots_[JS::RootKind::name]);
+#define FINISH_ROOT_LIST(name, type, _)                                 \
+    FinishPersistentRootedChain<type*>(heapRoots.ref()[JS::RootKind::name]);
 JS_FOR_EACH_TRACEKIND(FINISH_ROOT_LIST)
 #undef FINISH_ROOT_LIST
-    FinishPersistentRootedChain<jsid>(heapRoots_[JS::RootKind::Id]);
-    FinishPersistentRootedChain<Value>(heapRoots_[JS::RootKind::Value]);
+    FinishPersistentRootedChain<jsid>(heapRoots.ref()[JS::RootKind::Id]);
+    FinishPersistentRootedChain<Value>(heapRoots.ref()[JS::RootKind::Value]);
 
     // Note that we do not finalize the Traceable list as we do not know how to
     // safely clear memebers. We instead assert that none escape the RootLists.
@@ -151,7 +151,7 @@ AutoGCRooter::trace(JSTracer* trc)
 {
     switch (tag_) {
       case PARSER:
-        frontend::MarkParser(trc, this);
+        frontend::TraceParser(trc, this);
         return;
 
       case VALARRAY: {
@@ -171,7 +171,7 @@ AutoGCRooter::trace(JSTracer* trc)
 
       case WRAPPER: {
         /*
-         * We need to use TraceManuallyBarrieredEdge here because we mark
+         * We need to use TraceManuallyBarrieredEdge here because we trace
          * wrapper roots in every slice. This is because of some rule-breaking
          * in RemapAllWrappersForObject; see comment there.
          */
@@ -183,7 +183,7 @@ AutoGCRooter::trace(JSTracer* trc)
       case WRAPVECTOR: {
         AutoWrapperVector::VectorImpl& vector = static_cast<AutoWrapperVector*>(this)->vector;
         /*
-         * We need to use TraceManuallyBarrieredEdge here because we mark
+         * We need to use TraceManuallyBarrieredEdge here because we trace
          * wrapper roots in every slice. This is because of some rule-breaking
          * in RemapAllWrappersForObject; see comment there.
          */
@@ -203,18 +203,16 @@ AutoGCRooter::trace(JSTracer* trc)
 }
 
 /* static */ void
-AutoGCRooter::traceAll(JSTracer* trc)
+AutoGCRooter::traceAll(const CooperatingContext& target, JSTracer* trc)
 {
-    for (AutoGCRooter* gcr = trc->runtime()->contextFromMainThread()->roots.autoGCRooters_; gcr; gcr = gcr->down)
+    for (AutoGCRooter* gcr = target.context()->autoGCRooters_; gcr; gcr = gcr->down)
         gcr->trace(trc);
 }
 
 /* static */ void
-AutoGCRooter::traceAllWrappers(JSTracer* trc)
+AutoGCRooter::traceAllWrappers(const CooperatingContext& target, JSTracer* trc)
 {
-    JSContext* cx = trc->runtime()->contextFromMainThread();
-
-    for (AutoGCRooter* gcr = cx->roots.autoGCRooters_; gcr; gcr = gcr->down) {
+    for (AutoGCRooter* gcr = target.context()->autoGCRooters_; gcr; gcr = gcr->down) {
         if (gcr->tag_ == WRAPVECTOR || gcr->tag_ == WRAPPER)
             gcr->trace(trc);
     }
@@ -261,7 +259,7 @@ js::gc::GCRuntime::traceRuntimeForMajorGC(JSTracer* trc, AutoLockForExclusiveAcc
     if (rt->isBeingDestroyed())
         return;
 
-    gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_ROOTS);
+    gcstats::AutoPhase ap(stats(), gcstats::PHASE_MARK_ROOTS);
     if (rt->atomsCompartment(lock)->zone()->isCollecting())
         traceRuntimeAtoms(trc, lock);
     JSCompartment::traceIncomingCrossCompartmentEdgesForZoneGC(trc);
@@ -278,10 +276,10 @@ js::gc::GCRuntime::traceRuntimeForMinorGC(JSTracer* trc, AutoLockForExclusiveAcc
     // the map. And we can reach its trace function despite having finished the
     // roots via the edges stored by the pre-barrier verifier when we finish
     // the verifier for the last time.
-    gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_ROOTS);
+    gcstats::AutoPhase ap(stats(), gcstats::PHASE_MARK_ROOTS);
 
     // FIXME: As per bug 1298816 comment 12, we should be able to remove this.
-    jit::JitRuntime::MarkJitcodeGlobalTableUnconditionally(trc);
+    jit::JitRuntime::TraceJitcodeGlobalTable(trc);
 
     traceRuntimeCommon(trc, TraceRuntime, lock);
 }
@@ -292,9 +290,9 @@ js::TraceRuntime(JSTracer* trc)
     MOZ_ASSERT(!trc->isMarkingTracer());
 
     JSRuntime* rt = trc->runtime();
-    rt->gc.evictNursery();
-    AutoPrepareForTracing prep(rt->contextFromMainThread(), WithAtoms);
-    gcstats::AutoPhase ap(rt->gc.stats, gcstats::PHASE_TRACE_HEAP);
+    EvictAllNurseries(rt);
+    AutoPrepareForTracing prep(TlsContext.get(), WithAtoms);
+    gcstats::AutoPhase ap(rt->gc.stats(), gcstats::PHASE_TRACE_HEAP);
     rt->gc.traceRuntime(trc, prep.session().lock);
 }
 
@@ -303,7 +301,7 @@ js::gc::GCRuntime::traceRuntime(JSTracer* trc, AutoLockForExclusiveAccess& lock)
 {
     MOZ_ASSERT(!rt->isBeingDestroyed());
 
-    gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_ROOTS);
+    gcstats::AutoPhase ap(stats(), gcstats::PHASE_MARK_ROOTS);
     traceRuntimeAtoms(trc, lock);
     traceRuntimeCommon(trc, TraceRuntime, lock);
 }
@@ -311,62 +309,69 @@ js::gc::GCRuntime::traceRuntime(JSTracer* trc, AutoLockForExclusiveAccess& lock)
 void
 js::gc::GCRuntime::traceRuntimeAtoms(JSTracer* trc, AutoLockForExclusiveAccess& lock)
 {
-    gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_RUNTIME_DATA);
-    MarkPermanentAtoms(trc);
-    MarkAtoms(trc, lock);
-    MarkWellKnownSymbols(trc);
-    jit::JitRuntime::Mark(trc, lock);
+    gcstats::AutoPhase ap(stats(), gcstats::PHASE_MARK_RUNTIME_DATA);
+    TracePermanentAtoms(trc);
+    TraceAtoms(trc, lock);
+    TraceWellKnownSymbols(trc);
+    jit::JitRuntime::Trace(trc, lock);
 }
 
 void
 js::gc::GCRuntime::traceRuntimeCommon(JSTracer* trc, TraceOrMarkRuntime traceOrMark,
                                       AutoLockForExclusiveAccess& lock)
 {
-    MOZ_ASSERT(!rt->mainThread.suppressGC);
+    MOZ_ASSERT(!TlsContext.get()->suppressGC);
 
     {
-        gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_STACK);
+        gcstats::AutoPhase ap(stats(), gcstats::PHASE_MARK_STACK);
 
-        // Trace active interpreter and JIT stack roots.
-        MarkInterpreterActivations(rt, trc);
-        jit::MarkJitActivations(rt, trc);
+        JSContext* cx = TlsContext.get();
+        for (const CooperatingContext& target : rt->cooperatingContexts()) {
+            // Trace active interpreter and JIT stack roots.
+            TraceInterpreterActivations(cx, target, trc);
+            jit::TraceJitActivations(cx, target, trc);
+            wasm::TraceActivations(cx, target, trc);
 
-        // Trace legacy C stack roots.
-        AutoGCRooter::traceAll(trc);
+            // Trace legacy C stack roots.
+            AutoGCRooter::traceAll(target, trc);
 
-        for (RootRange r = rootsHash.all(); !r.empty(); r.popFront()) {
+            // Trace C stack roots.
+            TraceExactStackRoots(target, trc);
+        }
+
+        for (RootRange r = rootsHash.ref().all(); !r.empty(); r.popFront()) {
             const RootEntry& entry = r.front();
             TraceRoot(trc, entry.key(), entry.value());
         }
-
-        // Trace C stack roots.
-        MarkExactStackRoots(rt, trc);
     }
 
     // Trace runtime global roots.
-    MarkPersistentRooted(rt, trc);
+    TracePersistentRooted(rt, trc);
 
     // Trace the self-hosting global compartment.
-    rt->markSelfHostingGlobal(trc);
+    rt->traceSelfHostingGlobal(trc);
 
-    // Trace anything in the single context. Note that this is actually the
-    // same struct as the JSRuntime, but is still split for historical reasons.
-    rt->contextFromMainThread()->mark(trc);
+    // Trace the shared Intl data.
+    rt->traceSharedIntlData(trc);
+
+    // Trace anything in any of the cooperating threads.
+    for (const CooperatingContext& target : rt->cooperatingContexts())
+        target.context()->trace(trc);
 
     // Trace all compartment roots, but not the compartment itself; it is
-    // marked via the parent pointer if traceRoots actually traces anything.
+    // traced via the parent pointer if traceRoots actually traces anything.
     for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next())
         c->traceRoots(trc, traceOrMark);
 
-    // Trace SPS.
-    rt->spsProfiler.trace(trc);
+    // Trace the Gecko Profiler.
+    rt->geckoProfiler().trace(trc);
 
     // Trace helper thread roots.
     HelperThreadState().trace(trc);
 
     // Trace the embedding's black and gray roots.
-    if (!rt->isHeapMinorCollecting()) {
-        gcstats::AutoPhase ap(stats, gcstats::PHASE_MARK_EMBEDDING);
+    if (!JS::CurrentThreadIsHeapMinorCollecting()) {
+        gcstats::AutoPhase ap(stats(), gcstats::PHASE_MARK_EMBEDDING);
 
         /*
          * The embedding can register additional roots here.
@@ -375,12 +380,12 @@ js::gc::GCRuntime::traceRuntimeCommon(JSTracer* trc, TraceOrMarkRuntime traceOrM
          * the nursery should be in the store buffer, and we want to avoid the
          * time taken to trace all these roots.
          */
-        for (size_t i = 0; i < blackRootTracers.length(); i++) {
-            const Callback<JSTraceDataOp>& e = blackRootTracers[i];
+        for (size_t i = 0; i < blackRootTracers.ref().length(); i++) {
+            const Callback<JSTraceDataOp>& e = blackRootTracers.ref()[i];
             (*e.op)(trc, e.data);
         }
 
-        /* During GC, we don't mark gray roots at this stage. */
+        /* During GC, we don't trace gray roots at this stage. */
         if (JSTraceDataOp op = grayRootTracer.op) {
             if (traceOrMark == TraceRuntime)
                 (*op)(trc, grayRootTracer.data);
@@ -405,12 +410,14 @@ class AssertNoRootsTracer : public JS::CallbackTracer
 void
 js::gc::GCRuntime::finishRoots()
 {
+    AutoNoteSingleThreadedRegion anstr;
+
     rt->finishAtoms();
 
-    if (rootsHash.initialized())
-        rootsHash.clear();
+    if (rootsHash.ref().initialized())
+        rootsHash.ref().clear();
 
-    rt->contextFromMainThread()->roots.finishPersistentRoots();
+    rt->finishPersistentRoots();
 
     rt->finishSelfHosting();
 
@@ -424,8 +431,8 @@ js::gc::GCRuntime::finishRoots()
     grayRootTracer = Callback<JSTraceDataOp>(nullptr, nullptr);
 
     AssertNoRootsTracer trc(rt, TraceWeakMapKeysValues);
-    AutoPrepareForTracing prep(rt->contextFromMainThread(), WithAtoms);
-    gcstats::AutoPhase ap(rt->gc.stats, gcstats::PHASE_TRACE_HEAP);
+    AutoPrepareForTracing prep(TlsContext.get(), WithAtoms);
+    gcstats::AutoPhase ap(rt->gc.stats(), gcstats::PHASE_TRACE_HEAP);
     traceRuntime(&trc, prep.session().lock);
 
     // Restore the wrapper tracing so that we leak instead of leaving dangling
@@ -473,8 +480,9 @@ js::gc::GCRuntime::bufferGrayRoots()
     //               and the zone's buffers have been cleared.
     MOZ_ASSERT(grayBufferState == GrayBufferState::Unused);
     for (GCZonesIter zone(rt); !zone.done(); zone.next())
-        MOZ_ASSERT(zone->gcGrayRoots.empty());
+        MOZ_ASSERT(zone->gcGrayRoots().empty());
 
+    gcstats::AutoPhase ap(stats(), gcstats::PHASE_BUFFER_GRAY_ROOTS);
 
     BufferGrayRootsTracer grayBufferer(rt);
     if (JSTraceDataOp op = grayRootTracer.op)
@@ -496,7 +504,7 @@ struct SetMaybeAliveFunctor {
 void
 BufferGrayRootsTracer::onChild(const JS::GCCellPtr& thing)
 {
-    MOZ_ASSERT(runtime()->isHeapBusy());
+    MOZ_ASSERT(JS::CurrentThreadIsHeapBusy());
     MOZ_RELEASE_ASSERT(thing);
     // Check if |thing| is corrupt by calling a method that touches the heap.
     MOZ_RELEASE_ASSERT(thing.asCell()->getTraceKind() <= JS::TraceKind::Null);
@@ -514,7 +522,7 @@ BufferGrayRootsTracer::onChild(const JS::GCCellPtr& thing)
         // incremental GCs (when we do gray root buffering).
         DispatchTyped(SetMaybeAliveFunctor(), thing);
 
-        if (!zone->gcGrayRoots.append(tenured))
+        if (!zone->gcGrayRoots().append(tenured))
             bufferingGrayRootsFailed = true;
     }
 }
@@ -525,7 +533,7 @@ GCRuntime::markBufferedGrayRoots(JS::Zone* zone)
     MOZ_ASSERT(grayBufferState == GrayBufferState::Okay);
     MOZ_ASSERT(zone->isGCMarkingGray() || zone->isGCCompacting());
 
-    for (auto cell : zone->gcGrayRoots)
+    for (auto cell : zone->gcGrayRoots())
         TraceManuallyBarrieredGenericPointerEdge(&marker, &cell, "buffered gray root");
 }
 
@@ -535,6 +543,11 @@ GCRuntime::resetBufferedGrayRoots() const
     MOZ_ASSERT(grayBufferState != GrayBufferState::Okay,
                "Do not clear the gray buffers unless we are Failed or becoming Unused");
     for (GCZonesIter zone(rt); !zone.done(); zone.next())
-        zone->gcGrayRoots.clearAndFree();
+        zone->gcGrayRoots().clearAndFree();
 }
 
+JS_PUBLIC_API(void)
+JS::AddPersistentRoot(JS::RootingContext* cx, RootKind kind, PersistentRooted<void*>* root)
+{
+    static_cast<JSContext*>(cx)->runtime()->heapRoots.ref()[kind].insertBack(root);
+}

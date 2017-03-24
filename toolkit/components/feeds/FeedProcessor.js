@@ -42,7 +42,7 @@ const ARRAY_CONTRACTID = "@mozilla.org/array;1";
 const SAX_CONTRACTID = "@mozilla.org/saxparser/xmlreader;1";
 const PARSERUTILS_CONTRACTID = "@mozilla.org/parserutils;1";
 
-
+const gMimeService = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService);
 var gIoService = null;
 
 const XMLNS = "http://www.w3.org/XML/1998/namespace";
@@ -55,8 +55,7 @@ function strToURI(link, base) {
     gIoService = Cc[IO_CONTRACTID].getService(Ci.nsIIOService);
   try {
     return gIoService.newURI(link, null, base);
-  }
-  catch (e) {
+  } catch (e) {
     return null;
   }
 }
@@ -78,8 +77,7 @@ function isIID(a, iid) {
   try {
     a.QueryInterface(iid);
     rv = true;
-  }
-  catch (e) {
+  } catch (e) {
   }
   return rv;
 }
@@ -146,8 +144,7 @@ function bagHasKey(bag, key) {
   try {
     bag.getProperty(key);
     return true;
-  }
-  catch (e) {
+  } catch (e) {
     return false;
   }
 }
@@ -155,9 +152,8 @@ function bagHasKey(bag, key) {
 function makePropGetter(key) {
   return function FeedPropGetter(bag) {
     try {
-      return value = bag.getProperty(key);
-    }
-    catch (e) {
+      return bag.getProperty(key);
+    } catch (e) {
     }
     return null;
   }
@@ -166,31 +162,31 @@ function makePropGetter(key) {
 const RDF_NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 // namespace map
 var gNamespaces = {
-  "http://webns.net/mvcb/":"admin",
-  "http://backend.userland.com/rss":"",
-  "http://blogs.law.harvard.edu/tech/rss":"",
-  "http://www.w3.org/2005/Atom":"atom",
-  "http://purl.org/atom/ns#":"atom03",
-  "http://purl.org/rss/1.0/modules/content/":"content",
-  "http://purl.org/dc/elements/1.1/":"dc",
-  "http://purl.org/dc/terms/":"dcterms",
-  "http://www.w3.org/1999/02/22-rdf-syntax-ns#":"rdf",
-  "http://purl.org/rss/1.0/":"rss1",
-  "http://my.netscape.com/rdf/simple/0.9/":"rss1",
-  "http://wellformedweb.org/CommentAPI/":"wfw",
-  "http://purl.org/rss/1.0/modules/wiki/":"wiki",
-  "http://www.w3.org/XML/1998/namespace":"xml",
-  "http://search.yahoo.com/mrss/":"media",
-  "http://search.yahoo.com/mrss":"media"
+  "http://webns.net/mvcb/": "admin",
+  "http://backend.userland.com/rss": "",
+  "http://blogs.law.harvard.edu/tech/rss": "",
+  "http://www.w3.org/2005/Atom": "atom",
+  "http://purl.org/atom/ns#": "atom03",
+  "http://purl.org/rss/1.0/modules/content/": "content",
+  "http://purl.org/dc/elements/1.1/": "dc",
+  "http://purl.org/dc/terms/": "dcterms",
+  "http://www.w3.org/1999/02/22-rdf-syntax-ns#": "rdf",
+  "http://purl.org/rss/1.0/": "rss1",
+  "http://my.netscape.com/rdf/simple/0.9/": "rss1",
+  "http://wellformedweb.org/CommentAPI/": "wfw",
+  "http://purl.org/rss/1.0/modules/wiki/": "wiki",
+  "http://www.w3.org/XML/1998/namespace": "xml",
+  "http://search.yahoo.com/mrss/": "media",
+  "http://search.yahoo.com/mrss": "media"
 }
 
 // We allow a very small set of namespaces in XHTML content,
 // for attributes only
 var gAllowedXHTMLNamespaces = {
-  "http://www.w3.org/XML/1998/namespace":"xml",
+  "http://www.w3.org/XML/1998/namespace": "xml",
   // if someone ns qualifies XHTML, we have to prefix it to avoid an
   // attribute collision.
-  "http://www.w3.org/1999/xhtml":"xhtml"
+  "http://www.w3.org/1999/xhtml": "xhtml"
 }
 
 function FeedResult() {}
@@ -233,7 +229,7 @@ Feed.prototype = {
     items: ["items", "atom03_entries", "entries"],
     id: ["atom:id", "rdf:about"],
     generator: ["generator"],
-    authors : ["authors"],
+    authors: ["authors"],
     contributors: ["contributors"],
     link:  [["link", strToURI], ["rss1:link", strToURI]],
     categories: ["categories", "dc:subject"],
@@ -358,8 +354,7 @@ Feed.prototype = {
     try {
       var base = baseSpec ? strToURI(baseSpec, this.baseURI) : this.baseURI;
       uri = strToURI(linkSpec, base);
-    }
-    catch (e) {
+    } catch (e) {
       LOG(e);
     }
 
@@ -368,8 +363,8 @@ Feed.prototype = {
 
   // reset the bag to raw contents, not text constructs
   _resetBagMembersToRawText: function Feed_resetBagMembers(fieldLists) {
-    for (var i=0; i<fieldLists.length; i++) {
-      for (var j=0; j<fieldLists[i].length; j++) {
+    for (var i = 0; i < fieldLists.length; i++) {
+      for (var j = 0; j < fieldLists[i].length; j++) {
         if (bagHasKey(this.fields, fieldLists[i][j])) {
           var textConstruct = this.fields.getProperty(fieldLists[i][j]);
           this.fields.setPropertyAsAString(fieldLists[i][j],
@@ -409,7 +404,7 @@ Entry.prototype = {
     link: [["link", strToURI], ["rss1:link", strToURI]],
     id: [["guid", makePropGetter("guid")], "rdf:about",
          "atom03:id", "atom:id"],
-    authors : ["authors"],
+    authors: ["authors"],
     contributors: ["contributors"],
     summary: ["description", "rss1:description", "dc:description",
               "atom03:summary", "atom:summary"],
@@ -489,8 +484,15 @@ Entry.prototype = {
     if (previous_enc != undefined) {
       previous_enc.QueryInterface(Ci.nsIWritablePropertyBag2);
 
-      if (!bagHasKey(previous_enc, "type") && bagHasKey(new_enc, "type"))
+      if (!bagHasKey(previous_enc, "type") && bagHasKey(new_enc, "type")) {
         previous_enc.setPropertyAsAString("type", new_enc.getPropertyAsAString("type"));
+        try {
+          let handlerInfoWrapper = gMimeService.getFromTypeAndExtension(new_enc.getPropertyAsAString("type"), null);
+          if (handlerInfoWrapper && handlerInfoWrapper.description) {
+            previous_enc.setPropertyAsAString("typeDesc", handlerInfoWrapper.description);
+          }
+        } catch (ext) {}
+      }
 
       if (!bagHasKey(previous_enc, "length") && bagHasKey(new_enc, "length"))
         previous_enc.setPropertyAsAString("length", new_enc.getPropertyAsAString("length"));
@@ -630,7 +632,8 @@ TextConstruct.prototype = {
     else
       return null;
 
-    return this.parserUtils.parseFragment(this.text, 0, isXML,
+    let flags = Ci.nsIParserUtils.SanitizerDropForms;
+    return this.parserUtils.parseFragment(this.text, flags, isXML,
                                           this.base, element);
   },
 
@@ -709,14 +712,13 @@ function fieldsToObj(container, fields) {
   var props, prop, field, searchList;
   for (var key in fields) {
     searchList = fields[key];
-    for (var i=0; i < searchList.length; ++i) {
+    for (var i = 0; i < searchList.length; ++i) {
       props = searchList[i];
       prop = null;
       field = isArray(props) ? props[0] : props;
       try {
         prop = container.fields.getProperty(field);
-      }
-      catch (e) {
+      } catch (e) {
       }
       if (prop) {
         prop = isArray(props) ? props[1](prop) : prop;
@@ -790,19 +792,16 @@ function rssAuthor(s, author) {
     if (emailCheck.test(match1)) {
       author.email = match1;
       author.name = match2;
-    }
-    else if (emailCheck.test(match2)) {
+    } else if (emailCheck.test(match2)) {
       author.email = match2;
       author.name = match1;
-    }
-    else {
+    } else {
       // put it back together
       author.name = match1 + " (" + match2 + ")";
     }
-  }
-  else {
+  } else {
     author.name = chars;
-    if (chars.indexOf('@'))
+    if (chars.indexOf("@"))
       author.email = chars;
   }
   return author;
@@ -884,7 +883,7 @@ XHTMLHandler.prototype = {
     if (namespace == XHTML_NS) {
       this._buf += "<" + localName;
       var uri;
-      for (var i=0; i < attributes.length; ++i) {
+      for (var i = 0; i < attributes.length; ++i) {
         uri = attributes.getURI(i);
         // XHTML attributes aren't in a namespace
         if (uri == "") {
@@ -970,8 +969,6 @@ ExtensionHandler.prototype = {
   },
   startElement: function EH_startElement(uri, localName, qName, attrs) {
     ++this._depth;
-    var prefix = gNamespaces[uri] ? gNamespaces[uri] + ":" : "";
-    var key =  prefix + localName;
 
     if (this._depth == 1) {
       this._uri = uri;
@@ -1057,21 +1054,21 @@ function FeedProcessor() {
 
   // These elements can contain (X)HTML or plain text.
   // We keep a table here that contains their default treatment
-  this._textConstructs = {"atom:title":"text",
-                          "atom:summary":"text",
-                          "atom:rights":"text",
-                          "atom:content":"text",
-                          "atom:subtitle":"text",
-                          "description":"html",
-                          "rss1:description":"html",
-                          "dc:description":"html",
-                          "content:encoded":"html",
-                          "title":"text",
-                          "rss1:title":"text",
-                          "atom03:title":"text",
-                          "atom03:tagline":"text",
-                          "atom03:summary":"text",
-                          "atom03:content":"text"};
+  this._textConstructs = {"atom:title": "text",
+                          "atom:summary": "text",
+                          "atom:rights": "text",
+                          "atom:content": "text",
+                          "atom:subtitle": "text",
+                          "description": "html",
+                          "rss1:description": "html",
+                          "dc:description": "html",
+                          "content:encoded": "html",
+                          "title": "text",
+                          "rss1:title": "text",
+                          "atom03:title": "text",
+                          "atom03:tagline": "text",
+                          "atom03:summary": "text",
+                          "atom03:content": "text"};
   this._stack = [];
 
   this._trans = {
@@ -1136,7 +1133,7 @@ function FeedProcessor() {
       "day": new ElementInfo("days", null, rssArrayElement, true)
     },
 
-    "IN_SKIPHOURS":{
+    "IN_SKIPHOURS": {
       "hour": new ElementInfo("hours", null, rssArrayElement, true)
     },
 
@@ -1172,7 +1169,7 @@ function FeedProcessor() {
                                      null, true),
       "atom:generator": new ElementInfo("generator", Cc[GENERATOR_CONTRACTID],
                                         atomGenerator, false),
-      "atom:contributor": new ElementInfo("contributors",  Cc[PERSON_CONTRACTID],
+      "atom:contributor": new ElementInfo("contributors", Cc[PERSON_CONTRACTID],
                                           null, true),
       "atom:link": new ElementInfo("links", null, null, true),
       "atom:logo": new ElementInfo("atom:logo", null, atomLogo, false),
@@ -1249,16 +1246,14 @@ FeedProcessor.prototype = {
       // Can be null when a non-feed is fed to us
       if (this._result.doc)
         this._result.doc.normalize();
-    }
-    catch (e) {
+    } catch (e) {
       LOG("FIXME: " + e);
     }
 
     try {
       if (this.listener != null)
         this.listener.handleResult(this._result);
-    }
-    finally {
+    } finally {
       this._result = null;
     }
   },
@@ -1296,8 +1291,7 @@ FeedProcessor.prototype = {
   onStopRequest: function FP_onStopRequest(request, context, statusCode) {
     try {
       this._reader.onStopRequest(request, context, statusCode);
-    }
-    finally {
+    } finally {
       this._reader = null;
     }
   },
@@ -1414,8 +1408,7 @@ FeedProcessor.prototype = {
     // will have one, and it tells us to add an item to our authors array.
     if (this._trans[this._state] && this._trans[this._state][key]) {
       elementInfo = this._trans[this._state][key];
-    }
-    else {
+    } else {
       // If we don't have a transition, hand off to extension handler
       this._extensionHandler = new ExtensionHandler(this);
       this._reader.contentHandler = this._extensionHandler;
@@ -1429,8 +1422,7 @@ FeedProcessor.prototype = {
     if (elementInfo.isWrapper) {
       this._state = "IN_" + elementInfo.fieldName.toUpperCase();
       this._stack.push([this._feed, this._state]);
-    }
-    else if (elementInfo.feedVersion) {
+    } else if (elementInfo.feedVersion) {
       this._state = "IN_" + elementInfo.fieldName.toUpperCase();
 
       // Check for the older RSS2 variants
@@ -1442,8 +1434,7 @@ FeedProcessor.prototype = {
       this._docVerified(elementInfo.feedVersion);
       this._stack.push([this._feed, this._state]);
       this._mapAttributes(this._feed, attributes);
-    }
-    else {
+    } else {
       this._state = this._processComplexElement(elementInfo, attributes);
     }
   },
@@ -1498,7 +1489,7 @@ FeedProcessor.prototype = {
   // attributes and child elements.
   _processComplexElement:
   function FP__processComplexElement(elementInfo, attributes) {
-    var obj, key, prefix;
+    var obj;
 
     // If the container is an entry/item, it'll need to have its
     // more esoteric properties put in the 'fields' property bag.
@@ -1506,13 +1497,11 @@ FeedProcessor.prototype = {
       obj = elementInfo.containerClass.createInstance(Ci.nsIFeedEntry);
       obj.baseURI = this._xmlBaseStack[this._xmlBaseStack.length - 1];
       this._mapAttributes(obj.fields, attributes);
-    }
-    else if (elementInfo.containerClass) {
+    } else if (elementInfo.containerClass) {
       obj = elementInfo.containerClass.createInstance(Ci.nsIFeedElementBase);
       obj.baseURI = this._xmlBaseStack[this._xmlBaseStack.length - 1];
       obj.attributes = attributes; // just set the SAX attributes
-    }
-    else {
+    } else {
       obj = Cc[BAG_CONTRACTID].createInstance(Ci.nsIWritablePropertyBag2);
       this._mapAttributes(obj, attributes);
     }
@@ -1529,8 +1518,7 @@ FeedProcessor.prototype = {
     var prop;
     try {
       prop = container.getProperty(elementInfo.fieldName);
-    }
-    catch (e) {
+    } catch (e) {
     }
 
     if (elementInfo.isArray) {
@@ -1552,8 +1540,7 @@ FeedProcessor.prototype = {
       if (isIFeedContainer(obj))
         newProp = obj.fields;
 
-    }
-    else {
+    } else {
       // If it doesn't, set it.
       if (!prop) {
         container.setPropertyAsInterface(elementInfo.fieldName, obj);
@@ -1623,10 +1610,10 @@ FeedProcessor.prototype = {
   // Only for RSS2esque formats
   _findRSSVersion: function FP__findRSSVersion(attributes) {
     var versionAttr = attributes.getValueFromName("", "version").trim();
-    var versions = { "0.91":"rss091",
-                     "0.92":"rss092",
-                     "0.93":"rss093",
-                     "0.94":"rss094" }
+    var versions = { "0.91": "rss091",
+                     "0.92": "rss092",
+                     "0.93": "rss093",
+                     "0.94": "rss094" }
     if (versions[versionAttr])
       return versions[versionAttr];
     if (versionAttr.substr(0, 2) != "2.")
@@ -1689,8 +1676,7 @@ FeedProcessor.prototype = {
             }
             el[propName] = propValue;
           }
-        }
-        catch (e) {
+        } catch (e) {
           // ignore XPConnect errors
         }
         // the rest of the function deals with entry- and feed-level stuff
@@ -1715,15 +1701,12 @@ FeedProcessor.prototype = {
       var typeAttribute = attributes.getValueFromName("", "type");
       if (this._result.version == "atom" && typeAttribute != null) {
         type = typeAttribute;
-      }
-      else if (this._result.version == "atom03" && typeAttribute != null) {
+      } else if (this._result.version == "atom03" && typeAttribute != null) {
         if (typeAttribute.toLowerCase().indexOf("xhtml") >= 0) {
           type = "xhtml";
-        }
-        else if (typeAttribute.toLowerCase().indexOf("html") >= 0) {
+        } else if (typeAttribute.toLowerCase().indexOf("html") >= 0) {
           type = "html";
-        }
-        else if (typeAttribute.toLowerCase().indexOf("text") >= 0) {
+        } else if (typeAttribute.toLowerCase().indexOf("text") >= 0) {
           type = "text";
         }
       }
@@ -1736,8 +1719,7 @@ FeedProcessor.prototype = {
       newProp.type = type;
       newProp.base = this._xmlBaseStack[this._xmlBaseStack.length - 1];
       container.setPropertyAsInterface(propName, newProp);
-    }
-    else {
+    } else {
       container.setPropertyAsAString(propName, chars);
     }
   },

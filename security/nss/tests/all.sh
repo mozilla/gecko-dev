@@ -39,6 +39,8 @@
 #   gtests.sh    - Gtest based unit tests for everything else
 #   bogo.sh      - Bogo interop tests (disabled by default)
 #                  https://boringssl.googlesource.com/boringssl/+/master/ssl/test/PORTING.md
+#   interop.sh   - Interoperability tests (disabled by default)
+#                  https://github.com/ekr/tls_interop
 #
 # NSS testing is now devided to 4 cycles:
 # ---------------------------------------
@@ -60,7 +62,6 @@
 # -------------------------------------------------------
 #   BUILT_OPT    - use optimized/debug build
 #   USE_64       - use 64bit/32bit build
-#   USE_ASAN     - use Address Sanitizer build
 #
 # Optional environment variables to enable specific NSS features:
 # ---------------------------------------------------------------

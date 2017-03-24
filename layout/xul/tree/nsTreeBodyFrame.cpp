@@ -357,7 +357,7 @@ nsTreeBodyFrame::EnsureView()
     }
     nsCOMPtr<nsIBoxObject> box = do_QueryInterface(mTreeBoxObject);
     if (box) {
-      nsWeakFrame weakFrame(this);
+      AutoWeakFrame weakFrame(this);
       nsCOMPtr<nsITreeView> treeView;
       mTreeBoxObject->GetView(getter_AddRefs(treeView));
       if (treeView && weakFrame.IsAlive()) {
@@ -417,7 +417,7 @@ bool
 nsTreeBodyFrame::ReflowFinished()
 {
   if (!mView) {
-    nsWeakFrame weakFrame(this);
+    AutoWeakFrame weakFrame(this);
     EnsureView();
     NS_ENSURE_TRUE(weakFrame.IsAlive(), false);
   }
@@ -469,7 +469,7 @@ nsresult
 nsTreeBodyFrame::GetView(nsITreeView * *aView)
 {
   *aView = nullptr;
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   EnsureView();
   NS_ENSURE_STATE(weakFrame.IsAlive());
   NS_IF_ADDREF(*aView = mView);
@@ -522,7 +522,7 @@ nsTreeBodyFrame::SetView(nsITreeView * aView)
     }
 
     // View, meet the tree.
-    nsWeakFrame weakFrame(this);
+    AutoWeakFrame weakFrame(this);
     mView->SetTree(mTreeBoxObject);
     NS_ENSURE_STATE(weakFrame.IsAlive());
     mView->GetRowCount(&mRowCount);
@@ -852,7 +852,7 @@ nsTreeBodyFrame::UpdateScrollbars(const ScrollParts& aParts)
 {
   nscoord rowHeightAsPixels = nsPresContext::AppUnitsToIntCSSPixels(mRowHeight);
 
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
 
   if (aParts.mVScrollbar) {
     nsAutoString curPos;
@@ -907,7 +907,7 @@ nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
     }
   }
 
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
 
   RefPtr<nsPresContext> presContext = PresContext();
   nsCOMPtr<nsIPresShell> presShell = presContext->GetPresShell();
@@ -939,7 +939,7 @@ nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
   // Don't use AutoRestore since we want to not touch mCheckingOverflow if we fail
   // the weakFrame.IsAlive() check below
   mCheckingOverflow = true;
-  presShell->FlushPendingNotifications(Flush_Layout);
+  presShell->FlushPendingNotifications(FlushType::Layout);
   if (!weakFrame.IsAlive()) {
     return;
   }
@@ -947,11 +947,11 @@ nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
 }
 
 void
-nsTreeBodyFrame::InvalidateScrollbars(const ScrollParts& aParts, nsWeakFrame& aWeakColumnsFrame)
+nsTreeBodyFrame::InvalidateScrollbars(const ScrollParts& aParts, AutoWeakFrame& aWeakColumnsFrame)
 {
   if (mUpdateBatchNest || !mView)
     return;
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
 
   if (aParts.mVScrollbar) {
     // Do Vertical Scrollbar 
@@ -2075,16 +2075,16 @@ nsTreeBodyFrame::GetTwistyRect(int32_t aRowIndex,
   bool useTheme = false;
   nsITheme *theme = nullptr;
   const nsStyleDisplay* twistyDisplayData = aTwistyContext->StyleDisplay();
-  if (twistyDisplayData->mAppearance) {
+  if (twistyDisplayData->UsedAppearance()) {
     theme = aPresContext->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(aPresContext, nullptr, twistyDisplayData->mAppearance))
+    if (theme && theme->ThemeSupportsWidget(aPresContext, nullptr, twistyDisplayData->UsedAppearance()))
       useTheme = true;
   }
 
   if (useTheme) {
     LayoutDeviceIntSize minTwistySizePx;
     bool canOverride = true;
-    theme->GetMinimumWidgetSize(aPresContext, this, twistyDisplayData->mAppearance,
+    theme->GetMinimumWidgetSize(aPresContext, this, twistyDisplayData->UsedAppearance(),
                                 &minTwistySizePx, &canOverride);
 
     // GMWS() returns size in pixels, we need to convert it back to app units
@@ -2205,7 +2205,7 @@ nsTreeBodyFrame::GetImage(int32_t aRowIndex, nsTreeColumn* aCol, bool aUseContex
       return NS_ERROR_FAILURE;
 
     // We don't want discarding/decode-on-draw for xul images
-    imageRequest->StartDecoding();
+    imageRequest->StartDecoding(imgIContainer::FLAG_ASYNC_NOTIFY);
     imageRequest->LockImage();
 
     // In a case it was already cached.
@@ -2851,7 +2851,7 @@ nsTreeBodyFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // geometrics for the row. In order to make the vibrancy effect to work
   // properly, we also need the tree to be themed as a source list.
   if (selection && treeFrame && theme &&
-      treeFrame->StyleDisplay()->mAppearance == NS_THEME_MAC_SOURCE_LIST) {
+      treeFrame->StyleDisplay()->UsedAppearance() == NS_THEME_MAC_SOURCE_LIST) {
     // Loop through our onscreen rows. If the row is selected and a
     // -moz-appearance is provided, RegisterThemeGeometry might be necessary.
     const auto end = std::min(mRowCount, LastVisibleRow() + 1);
@@ -2865,7 +2865,7 @@ nsTreeBodyFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         nsTreeUtils::TokenizeProperties(properties, mScratchArray);
         nsStyleContext* rowContext =
           GetPseudoStyleContext(nsCSSAnonBoxes::moztreerow);
-        auto appearance = rowContext->StyleDisplay()->mAppearance;
+        auto appearance = rowContext->StyleDisplay()->UsedAppearance();
         if (appearance) {
           if (theme->ThemeSupportsWidget(PresContext(), this, appearance)) {
             nsITheme::ThemeGeometryType type =
@@ -3045,7 +3045,7 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
 
   // Paint our borders and background for our row rect.
   nsITheme* theme = nullptr;
-  auto appearance = rowContext->StyleDisplay()->mAppearance;
+  auto appearance = rowContext->StyleDisplay()->UsedAppearance();
   if (appearance) {
     theme = aPresContext->GetTheme();
   }
@@ -3186,9 +3186,9 @@ nsTreeBodyFrame::PaintSeparator(int32_t              aRowIndex,
   bool useTheme = false;
   nsITheme *theme = nullptr;
   const nsStyleDisplay* displayData = separatorContext->StyleDisplay();
-  if ( displayData->mAppearance ) {
+  if ( displayData->UsedAppearance() ) {
     theme = aPresContext->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(aPresContext, nullptr, displayData->mAppearance))
+    if (theme && theme->ThemeSupportsWidget(aPresContext, nullptr, displayData->UsedAppearance()))
       useTheme = true;
   }
 
@@ -3199,7 +3199,7 @@ nsTreeBodyFrame::PaintSeparator(int32_t              aRowIndex,
     nsRect dirty;
     dirty.IntersectRect(aSeparatorRect, aDirtyRect);
     theme->DrawWidgetBackground(&aRenderingContext, this,
-                                displayData->mAppearance, aSeparatorRect, dirty); 
+                                displayData->UsedAppearance(), aSeparatorRect, dirty); 
   }
   else {
     const nsStylePosition* stylePosition = separatorContext->StylePosition();
@@ -3319,7 +3319,7 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
         CalcComplexColor(borderStyle->mBorderLeftColor);
       ColorPattern colorPatt(ToDeviceColor(color));
 
-      uint8_t style = borderStyle->GetBorderStyle(NS_SIDE_LEFT);
+      uint8_t style = borderStyle->GetBorderStyle(eSideLeft);
       StrokeOptions strokeOptions;
       nsLayoutUtils::InitDashPattern(strokeOptions, style);
 
@@ -3503,7 +3503,7 @@ nsTreeBodyFrame::PaintTwisty(int32_t              aRowIndex,
       nsRect dirty;
       dirty.IntersectRect(twistyRect, aDirtyRect);
       theme->DrawWidgetBackground(&aRenderingContext, this, 
-                                  twistyContext->StyleDisplay()->mAppearance, twistyRect, dirty);
+                                  twistyContext->StyleDisplay()->UsedAppearance(), twistyRect, dirty);
     }
     else {
       // Time to paint the twisty.
@@ -4149,7 +4149,8 @@ nsTreeBodyFrame::PaintBackgroundLayer(nsStyleContext*      aStyleContext,
                                                 aDirtyRect, aRect, this,
                                                 nsCSSRendering::PAINTBG_SYNC_DECODE_IMAGES);
   DrawResult result =
-    nsCSSRendering::PaintBackgroundWithSC(params, aStyleContext, *myBorder);
+    nsCSSRendering::PaintStyleImageLayerWithSC(params, aStyleContext,
+                                               *myBorder);
 
   result &=
     nsCSSRendering::PaintBorderWithStyleBorder(aPresContext, aRenderingContext,
@@ -4364,7 +4365,7 @@ nsTreeBodyFrame::ScrollHorzInternal(const ScrollParts& aParts, int32_t aPosition
   Invalidate();
 
   // Update the column scroll view
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   aParts.mColumnsScrollFrame->ScrollTo(nsPoint(mHorzPosition, 0),
                                        nsIScrollableFrame::INSTANT);
   if (!weakFrame.IsAlive()) {
@@ -4416,7 +4417,7 @@ nsTreeBodyFrame::RepeatButtonScroll(nsScrollbarFrame* aScrollbar)
   }
   bool isHorizontal = aScrollbar->IsXULHorizontal();
 
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   if (isHorizontal) {
     int32_t curpos = aScrollbar->MoveToNewPosition();
     if (weakFrame.IsAlive()) {
@@ -4444,7 +4445,7 @@ nsTreeBodyFrame::ThumbMoved(nsScrollbarFrame* aScrollbar,
   if (aOldPos == aNewPos)
     return;
 
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
 
   // Vertical Scrollbar 
   if (parts.mVScrollbar == aScrollbar) {
@@ -4905,15 +4906,15 @@ public:
     return NS_OK;
   }
 private:
-  nsWeakFrame mFrame;
+  WeakFrame mFrame;
 };
 
 bool
 nsTreeBodyFrame::FullScrollbarsUpdate(bool aNeedsFullInvalidation)
 {
   ScrollParts parts = GetScrollParts();
-  nsWeakFrame weakFrame(this);
-  nsWeakFrame weakColumnsFrame(parts.mColumnsFrame);
+  AutoWeakFrame weakFrame(this);
+  AutoWeakFrame weakColumnsFrame(parts.mColumnsFrame);
   UpdateScrollbars(parts);
   NS_ENSURE_TRUE(weakFrame.IsAlive(), false);
   if (aNeedsFullInvalidation) {

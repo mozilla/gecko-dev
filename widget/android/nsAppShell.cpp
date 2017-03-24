@@ -24,15 +24,19 @@
 #include "nsIDOMWakeLockListener.h"
 #include "nsIPowerManagerService.h"
 #include "nsISpeculativeConnect.h"
+#include "nsITabChild.h"
 #include "nsIURIFixup.h"
 #include "nsCategoryManagerUtils.h"
 #include "nsCDefaultURIFixup.h"
 #include "nsToolkitCompsCID.h"
 #include "nsGeoPosition.h"
 
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Hal.h"
+#include "mozilla/dom/TabChild.h"
 #include "prenv.h"
 
 #include "AndroidBridge.h"
@@ -59,9 +63,11 @@
 #endif
 
 #include "AndroidAlerts.h"
+#include "AndroidUiThread.h"
 #include "ANRReporter.h"
 #include "GeckoBatteryManager.h"
 #include "GeckoNetworkManager.h"
+#include "GeckoProcessManager.h"
 #include "GeckoScreenOrientation.h"
 #include "PrefsHelper.h"
 #include "fennec/MemoryMonitor.h"
@@ -80,6 +86,9 @@ nsIGeolocationUpdate *gLocationCallback = nullptr;
 
 nsAppShell* nsAppShell::sAppShell;
 StaticAutoPtr<Mutex> nsAppShell::sAppShellLock;
+
+uint32_t nsAppShell::Queue::sLatencyCount[];
+uint64_t nsAppShell::Queue::sLatencyTime[];
 
 NS_IMPL_ISUPPORTS_INHERITED(nsAppShell, nsBaseAppShell, nsIObserver)
 
@@ -129,13 +138,30 @@ public:
         if (!uri) {
             return;
         }
-        specConn->SpeculativeConnect(uri, nullptr);
+
+        OriginAttributes attrs;
+        nsCOMPtr<nsIPrincipal> principal = BasePrincipal::CreateCodebasePrincipal(uri, attrs);
+        specConn->SpeculativeConnect2(uri, principal, nullptr);
     }
 
     static void WaitOnGecko()
     {
-        struct NoOpEvent : nsAppShell::Event {
-            void Run() override {}
+        struct NoOpRunnable : Runnable
+        {
+            NS_IMETHOD Run() override { return NS_OK; }
+        };
+
+        struct NoOpEvent : nsAppShell::Event
+        {
+            void Run() override
+            {
+                // We cannot call NS_DispatchToMainThread from within
+                // WaitOnGecko itself because the thread that is calling
+                // WaitOnGecko may not be an nsThread, and may not be able to do
+                // a sync dispatch.
+                NS_DispatchToMainThread(do_AddRef(new NoOpRunnable()),
+                                        NS_DISPATCH_SYNC);
+            }
         };
         nsAppShell::SyncRunEvent(NoOpEvent());
     }
@@ -155,8 +181,7 @@ public:
             mozilla::services::GetObserverService();
         obsServ->NotifyObservers(nullptr, "application-background", nullptr);
 
-        NS_NAMED_LITERAL_STRING(minimize, "heap-minimize");
-        obsServ->NotifyObservers(nullptr, "memory-pressure", minimize.get());
+        obsServ->NotifyObservers(nullptr, "memory-pressure", u"heap-minimize");
 
         // If we are OOM killed with the disk cache enabled, the entire
         // cache will be cleared (bug 105843), so shut down the cache here
@@ -241,13 +266,6 @@ public:
         }
 
         MOZ_CRASH("Uncaught Java exception");
-    }
-
-    static void SyncNotifyObservers(jni::String::Param aTopic,
-                                    jni::String::Param aData)
-    {
-        MOZ_RELEASE_ASSERT(NS_IsMainThread());
-        NotifyObservers(aTopic, aData);
     }
 
     static void NotifyObservers(jni::String::Param aTopic,
@@ -368,6 +386,10 @@ nsAppShell::nsAppShell()
     }
 
     if (!XRE_IsParentProcess()) {
+        if (jni::IsAvailable()) {
+            // Set the corresponding state in GeckoThread.
+            java::GeckoThread::SetState(java::GeckoThread::State::RUNNING());
+        }
         return;
     }
 
@@ -378,6 +400,7 @@ nsAppShell::nsAppShell()
         GeckoThreadSupport::Init();
         mozilla::GeckoBatteryManager::Init();
         mozilla::GeckoNetworkManager::Init();
+        mozilla::GeckoProcessManager::Init();
         mozilla::GeckoScreenOrientation::Init();
         mozilla::PrefsHelper::Init();
         nsWindow::InitNatives();
@@ -390,6 +413,8 @@ nsAppShell::nsAppShell()
         }
 
         java::GeckoThread::SetState(java::GeckoThread::State::JNI_READY());
+
+        CreateAndroidUiThread();
     }
 
     sPowerManagerService = do_GetService(POWERMANAGERSERVICE_CONTRACTID);
@@ -404,8 +429,10 @@ nsAppShell::nsAppShell()
 nsAppShell::~nsAppShell()
 {
     {
+        // Release any thread waiting for a sync call to finish.
         MutexAutoLock lock(*sAppShellLock);
         sAppShell = nullptr;
+        mSyncRunFinished.NotifyAll();
     }
 
     while (mEventQueue.Pop(/* mayWait */ false)) {
@@ -419,7 +446,8 @@ nsAppShell::~nsAppShell()
         sWakeLockListener = nullptr;
     }
 
-    if (jni::IsAvailable()) {
+    if (jni::IsAvailable() && XRE_IsParentProcess()) {
+        DestroyAndroidUiThread();
         AndroidBridge::DeconstructBridge();
     }
 }
@@ -428,6 +456,43 @@ void
 nsAppShell::NotifyNativeEvent()
 {
     mEventQueue.Signal();
+}
+
+void
+nsAppShell::RecordLatencies()
+{
+    if (!mozilla::Telemetry::CanRecordExtended()) {
+        return;
+    }
+
+    const mozilla::Telemetry::HistogramID timeIDs[] = {
+        mozilla::Telemetry::HistogramID::FENNEC_LOOP_UI_LATENCY,
+        mozilla::Telemetry::HistogramID::FENNEC_LOOP_OTHER_LATENCY
+    };
+
+    static_assert(ArrayLength(Queue::sLatencyCount) == Queue::LATENCY_COUNT,
+                  "Count array length mismatch");
+    static_assert(ArrayLength(Queue::sLatencyTime) == Queue::LATENCY_COUNT,
+                  "Time array length mismatch");
+    static_assert(ArrayLength(timeIDs) == Queue::LATENCY_COUNT,
+                  "Time ID array length mismatch");
+
+    for (size_t i = 0; i < Queue::LATENCY_COUNT; i++) {
+        if (!Queue::sLatencyCount[i]) {
+            continue;
+        }
+
+        const uint64_t time = Queue::sLatencyTime[i] / 1000ull /
+                              Queue::sLatencyCount[i];
+        if (time) {
+            mozilla::Telemetry::Accumulate(
+                    timeIDs[i], uint32_t(std::min<uint64_t>(UINT32_MAX, time)));
+        }
+
+        // Reset latency counts.
+        Queue::sLatencyCount[i] = 0;
+        Queue::sLatencyTime[i] = 0;
+    }
 }
 
 #define PREFNAME_COALESCE_TOUCHES "dom.event.touch.coalescing.enabled"
@@ -445,9 +510,13 @@ nsAppShell::Init()
     if (obsServ) {
         obsServ->AddObserver(this, "browser-delayed-startup-finished", false);
         obsServ->AddObserver(this, "profile-after-change", false);
-        obsServ->AddObserver(this, "chrome-document-loaded", false);
+        obsServ->AddObserver(this, "tab-child-created", false);
         obsServ->AddObserver(this, "quit-application-granted", false);
         obsServ->AddObserver(this, "xpcom-shutdown", false);
+
+        if (XRE_IsParentProcess()) {
+            obsServ->AddObserver(this, "chrome-document-loaded", false);
+        }
     }
 
     if (sPowerManagerService)
@@ -517,8 +586,18 @@ nsAppShell::Observe(nsISupports* aSubject,
                     java::GeckoThread::State::PROFILE_READY(),
                     java::GeckoThread::State::RUNNING());
         }
-        removeObserver = true;
 
+        // Enable the window event dispatcher for the given GeckoView.
+        nsCOMPtr<nsIDocument> doc = do_QueryInterface(aSubject);
+        MOZ_ASSERT(doc);
+        nsCOMPtr<nsIWidget> widget =
+            WidgetUtils::DOMWindowToWidget(doc->GetWindow());
+        MOZ_ASSERT(widget);
+        if (widget->WindowType() == nsWindowType::eWindowType_toplevel) {
+            // Make sure to call this only on top level nsWindow.
+            const auto window = static_cast<nsWindow*>(widget.get());
+            window->EnableEventDispatcher();
+        }
     } else if (!strcmp(aTopic, "quit-application-granted")) {
         if (jni::IsAvailable()) {
             java::GeckoThread::SetState(
@@ -539,6 +618,37 @@ nsAppShell::Observe(nsISupports* aSubject,
         if (jni::IsAvailable()) {
             mozilla::PrefsHelper::OnPrefChange(aData);
         }
+
+    } else if (!strcmp(aTopic, "tab-child-created")) {
+        // Associate the PuppetWidget of the newly-created TabChild with a
+        // GeckoEditableChild instance.
+        MOZ_ASSERT(!XRE_IsParentProcess());
+
+        dom::ContentChild* contentChild = dom::ContentChild::GetSingleton();
+        nsCOMPtr<nsITabChild> ptabChild = do_QueryInterface(aSubject);
+        NS_ENSURE_TRUE(contentChild && ptabChild, NS_OK);
+
+        // Get the content/tab ID in order to get the correct
+        // IGeckoEditableParent object, which GeckoEditableChild uses to
+        // communicate with the parent process.
+        const auto tabChild = static_cast<dom::TabChild*>(ptabChild.get());
+        const uint64_t contentId = contentChild->GetID();
+        const uint64_t tabId = tabChild->GetTabId();
+        NS_ENSURE_TRUE(contentId && tabId, NS_OK);
+
+        auto editableParent = java::GeckoServiceChildProcess::GetEditableParent(
+                contentId, tabId);
+        NS_ENSURE_TRUE(editableParent, NS_OK);
+
+        RefPtr<widget::PuppetWidget> widget(tabChild->WebWidget());
+        auto editableChild = java::GeckoEditableChild::New(editableParent);
+        NS_ENSURE_TRUE(widget && editableChild, NS_OK);
+
+        RefPtr<GeckoEditableSupport> editableSupport =
+                new GeckoEditableSupport(editableChild);
+
+        // Tell PuppetWidget to use our listener for IME operations.
+        widget->SetNativeTextEventDispatcherListener(editableSupport);
     }
 
     if (removeObserver) {
@@ -570,7 +680,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             // (bug 750713). Looper messages effectively have the lowest
             // priority because we only process them before we're about to
             // wait for new events.
-            if (jni::IsAvailable() &&
+            if (jni::IsAvailable() && XRE_IsParentProcess() &&
                     AndroidBridge::Bridge()->PumpMessageLoop()) {
                 return true;
             }
@@ -612,13 +722,13 @@ nsAppShell::SyncRunEvent(Event&& event,
 
     bool finished = false;
     auto runAndNotify = [&event, &finished] {
-        mozilla::MutexAutoLock shellLock(*sAppShellLock);
-        nsAppShell* const appShell = sAppShell;
+        nsAppShell* const appShell = nsAppShell::Get();
         if (MOZ_UNLIKELY(!appShell || appShell->mSyncRunQuit)) {
             return;
         }
         event.Run();
         finished = true;
+        mozilla::MutexAutoLock shellLock(*sAppShellLock);
         appShell->mSyncRunFinished.NotifyAll();
     };
 

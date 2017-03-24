@@ -74,6 +74,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "jsprf.h"
 #include "js/Debug.h"
+#include "js/GCAPI.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollectionParticipant.h"
@@ -81,6 +82,7 @@
 #include "nsDOMJSUtils.h"
 #include "nsJSUtils.h"
 #include "nsWrapperCache.h"
+#include "nsStringBuffer.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
@@ -225,7 +227,44 @@ NoteWeakMapsTracer::trace(JSObject* aMap, JS::GCCellPtr aKey,
   }
 }
 
-// This is based on the logic in FixWeakMappingGrayBitsTracer::trace.
+// Report whether the key or value of a weak mapping entry are gray but need to
+// be marked black.
+static void
+ShouldWeakMappingEntryBeBlack(JSObject* aMap, JS::GCCellPtr aKey, JS::GCCellPtr aValue,
+                              bool* aKeyShouldBeBlack, bool* aValueShouldBeBlack)
+{
+  *aKeyShouldBeBlack = false;
+  *aValueShouldBeBlack = false;
+
+  // If nothing that could be held alive by this entry is marked gray, return.
+  bool keyMightNeedMarking = aKey && JS::GCThingIsMarkedGray(aKey);
+  bool valueMightNeedMarking = aValue && JS::GCThingIsMarkedGray(aValue) &&
+    aValue.kind() != JS::TraceKind::String;
+  if (!keyMightNeedMarking && !valueMightNeedMarking) {
+    return;
+  }
+
+  if (!AddToCCKind(aKey.kind())) {
+    aKey = nullptr;
+  }
+
+  if (keyMightNeedMarking && aKey.is<JSObject>()) {
+    JSObject* kdelegate = js::GetWeakmapKeyDelegate(&aKey.as<JSObject>());
+    if (kdelegate && !JS::ObjectIsMarkedGray(kdelegate) &&
+        (!aMap || !JS::ObjectIsMarkedGray(aMap)))
+    {
+      *aKeyShouldBeBlack = true;
+    }
+  }
+
+  if (aValue && JS::GCThingIsMarkedGray(aValue) &&
+      (!aKey || !JS::GCThingIsMarkedGray(aKey)) &&
+      (!aMap || !JS::ObjectIsMarkedGray(aMap)) &&
+      aValue.kind() != JS::TraceKind::Shape) {
+    *aValueShouldBeBlack = true;
+  }
+}
+
 struct FixWeakMappingGrayBitsTracer : public js::WeakMapTracer
 {
   explicit FixWeakMappingGrayBitsTracer(JSContext* aCx)
@@ -244,39 +283,62 @@ struct FixWeakMappingGrayBitsTracer : public js::WeakMapTracer
 
   void trace(JSObject* aMap, JS::GCCellPtr aKey, JS::GCCellPtr aValue) override
   {
-    // If nothing that could be held alive by this entry is marked gray, return.
-    bool delegateMightNeedMarking = aKey && JS::GCThingIsMarkedGray(aKey);
-    bool valueMightNeedMarking = aValue && JS::GCThingIsMarkedGray(aValue) &&
-                                 aValue.kind() != JS::TraceKind::String;
-    if (!delegateMightNeedMarking && !valueMightNeedMarking) {
-      return;
+    bool keyShouldBeBlack;
+    bool valueShouldBeBlack;
+    ShouldWeakMappingEntryBeBlack(aMap, aKey, aValue,
+                                  &keyShouldBeBlack, &valueShouldBeBlack);
+    if (keyShouldBeBlack && JS::UnmarkGrayGCThingRecursively(aKey)) {
+      mAnyMarked = true;
     }
 
-    if (!AddToCCKind(aKey.kind())) {
-      aKey = nullptr;
-    }
-
-    if (delegateMightNeedMarking && aKey.is<JSObject>()) {
-      JSObject* kdelegate = js::GetWeakmapKeyDelegate(&aKey.as<JSObject>());
-      if (kdelegate && !JS::ObjectIsMarkedGray(kdelegate)) {
-        if (JS::UnmarkGrayGCThingRecursively(aKey)) {
-          mAnyMarked = true;
-        }
-      }
-    }
-
-    if (aValue && JS::GCThingIsMarkedGray(aValue) &&
-        (!aKey || !JS::GCThingIsMarkedGray(aKey)) &&
-        (!aMap || !JS::ObjectIsMarkedGray(aMap)) &&
-        aValue.kind() != JS::TraceKind::Shape) {
-      if (JS::UnmarkGrayGCThingRecursively(aValue)) {
-        mAnyMarked = true;
-      }
+    if (valueShouldBeBlack && JS::UnmarkGrayGCThingRecursively(aValue)) {
+      mAnyMarked = true;
     }
   }
 
   MOZ_INIT_OUTSIDE_CTOR bool mAnyMarked;
 };
+
+#ifdef DEBUG
+// Check whether weak maps are marked correctly according to the logic above.
+struct CheckWeakMappingGrayBitsTracer : public js::WeakMapTracer
+{
+  explicit CheckWeakMappingGrayBitsTracer(JSContext* aCx)
+    : js::WeakMapTracer(aCx), mFailed(false)
+  {
+  }
+
+  static bool
+  Check(JSContext* aCx)
+  {
+    CheckWeakMappingGrayBitsTracer tracer(aCx);
+    js::TraceWeakMaps(&tracer);
+    return !tracer.mFailed;
+  }
+
+  void trace(JSObject* aMap, JS::GCCellPtr aKey, JS::GCCellPtr aValue) override
+  {
+    bool keyShouldBeBlack;
+    bool valueShouldBeBlack;
+    ShouldWeakMappingEntryBeBlack(aMap, aKey, aValue,
+                                  &keyShouldBeBlack, &valueShouldBeBlack);
+
+    if (keyShouldBeBlack) {
+      fprintf(stderr, "Weak mapping key %p of map %p should be black\n",
+              aKey.asCell(), aMap);
+      mFailed = true;
+    }
+
+    if (valueShouldBeBlack) {
+      fprintf(stderr, "Weak mapping value %p of map %p should be black\n",
+              aValue.asCell(), aMap);
+      mFailed = true;
+    }
+  }
+
+  bool mFailed;
+};
+#endif // DEBUG
 
 static void
 CheckParticipatesInCycleCollection(JS::GCCellPtr aThing, const char* aName,
@@ -294,8 +356,8 @@ CheckParticipatesInCycleCollection(JS::GCCellPtr aThing, const char* aName,
 }
 
 NS_IMETHODIMP
-JSGCThingParticipant::Traverse(void* aPtr,
-                               nsCycleCollectionTraversalCallback& aCb)
+JSGCThingParticipant::TraverseNative(void* aPtr,
+                                     nsCycleCollectionTraversalCallback& aCb)
 {
   auto runtime = reinterpret_cast<CycleCollectedJSContext*>(
     reinterpret_cast<char*>(this) - offsetof(CycleCollectedJSContext,
@@ -311,7 +373,8 @@ JSGCThingParticipant::Traverse(void* aPtr,
 static JSGCThingParticipant sGCThingCycleCollectorGlobal;
 
 NS_IMETHODIMP
-JSZoneParticipant::Traverse(void* aPtr, nsCycleCollectionTraversalCallback& aCb)
+JSZoneParticipant::TraverseNative(void* aPtr,
+                                  nsCycleCollectionTraversalCallback& aCb)
 {
   auto runtime = reinterpret_cast<CycleCollectedJSContext*>(
     reinterpret_cast<char*>(this) - offsetof(CycleCollectedJSContext,
@@ -470,10 +533,8 @@ CycleCollectedJSContext::~CycleCollectedJSContext()
   MOZ_ASSERT(mDebuggerPromiseMicroTaskQueue.empty());
   MOZ_ASSERT(mPromiseMicroTaskQueue.empty());
 
-#ifdef SPIDERMONKEY_PROMISE
   mUncaughtRejections.reset();
   mConsumedRejections.reset();
-#endif // SPIDERMONKEY_PROMISE
 
   JS_DestroyContext(mJSContext);
   mJSContext = nullptr;
@@ -492,7 +553,7 @@ MozCrashWarningReporter(JSContext*, JSErrorReport*)
 }
 
 nsresult
-CycleCollectedJSContext::Initialize(JSContext* aParentContext,
+CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
                                     uint32_t aMaxBytes,
                                     uint32_t aMaxNurseryBytes)
 {
@@ -503,7 +564,7 @@ CycleCollectedJSContext::Initialize(JSContext* aParentContext,
   mBaseRecursionDepth = RecursionDepth();
 
   mozilla::dom::InitScriptSettings();
-  mJSContext = JS_NewContext(aMaxBytes, aMaxNurseryBytes, aParentContext);
+  mJSContext = JS_NewContext(aMaxBytes, aMaxNurseryBytes, aParentRuntime);
   if (!mJSContext) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -533,6 +594,7 @@ CycleCollectedJSContext::Initialize(JSContext* aParentContext,
   JS::SetOutOfMemoryCallback(mJSContext, OutOfMemoryCallback, this);
   JS::SetLargeAllocationFailureCallback(mJSContext,
                                         LargeAllocationFailureCallback, this);
+  JS_SetExternalStringSizeofCallback(mJSContext, SizeofExternalStringCallback);
   JS_SetDestroyZoneCallback(mJSContext, XPCStringConvert::FreeZoneCache);
   JS_SetSweepZoneCallback(mJSContext, XPCStringConvert::ClearZoneCache);
   JS::SetBuildIdOp(mJSContext, GetBuildId);
@@ -550,12 +612,10 @@ CycleCollectedJSContext::Initialize(JSContext* aParentContext,
 
   JS::SetGetIncumbentGlobalCallback(mJSContext, GetIncumbentGlobalCallback);
 
-#ifdef SPIDERMONKEY_PROMISE
   JS::SetEnqueuePromiseJobCallback(mJSContext, EnqueuePromiseJobCallback, this);
   JS::SetPromiseRejectionTrackerCallback(mJSContext, PromiseRejectionTrackerCallback, this);
   mUncaughtRejections.init(mJSContext, JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(js::SystemAllocPolicy()));
   mConsumedRejections.init(mJSContext, JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(js::SystemAllocPolicy()));
-#endif // SPIDERMONKEY_PROMISE
 
   JS::dbg::SetDebuggerMallocSizeOf(mJSContext, moz_malloc_size_of);
 
@@ -921,6 +981,26 @@ CycleCollectedJSContext::LargeAllocationFailureCallback(void* aData)
   self->OnLargeAllocationFailure();
 }
 
+/* static */ size_t
+CycleCollectedJSContext::SizeofExternalStringCallback(JSString* aStr,
+                                                      MallocSizeOf aMallocSizeOf)
+{
+  // We promised the JS engine we would not GC.  Enforce that:
+  JS::AutoCheckCannotGC autoCannotGC;
+  
+  if (!XPCStringConvert::IsDOMString(aStr)) {
+    // Might be a literal or something we don't understand.  Just claim 0.
+    return 0;
+  }
+
+  const char16_t* chars = JS_GetTwoByteExternalStringChars(aStr);
+  const nsStringBuffer* buf = nsStringBuffer::FromData((void*)chars);
+  // We want sizeof including this, because the entire string buffer is owned by
+  // the external string.  But only report here if we're unshared; if we're
+  // shared then we don't know who really owns this data.
+  return buf->SizeOfIncludingThisIfUnshared(aMallocSizeOf);
+}
+
 class PromiseJobRunnable final : public Runnable
 {
 public:
@@ -938,7 +1018,8 @@ protected:
   NS_IMETHOD
   Run() override
   {
-    nsIGlobalObject* global = xpc::NativeGlobal(mCallback->CallbackPreserveColor());
+    JSObject* callback = mCallback->CallbackPreserveColor();
+    nsIGlobalObject* global = callback ? xpc::NativeGlobal(callback) : nullptr;
     if (global && !global->IsDying()) {
       mCallback->Call("promise callback");
     }
@@ -981,7 +1062,6 @@ CycleCollectedJSContext::EnqueuePromiseJobCallback(JSContext* aCx,
   return true;
 }
 
-#ifdef SPIDERMONKEY_PROMISE
 /* static */
 void
 CycleCollectedJSContext::PromiseRejectionTrackerCallback(JSContext* aCx,
@@ -1001,7 +1081,6 @@ CycleCollectedJSContext::PromiseRejectionTrackerCallback(JSContext* aCx,
     PromiseDebugging::AddConsumedRejection(aPromise);
   }
 }
-#endif // SPIDERMONKEY_PROMISE
 
 struct JsGcTracer : public TraceCallbacks
 {
@@ -1234,6 +1313,23 @@ CycleCollectedJSContext::FixWeakMappingGrayBits() const
   fixer.FixAll();
 }
 
+void
+CycleCollectedJSContext::CheckGrayBits() const
+{
+  MOZ_ASSERT(mJSContext);
+  MOZ_ASSERT(!JS::IsIncrementalGCInProgress(mJSContext),
+             "Don't call CheckGrayBits during a GC.");
+
+#ifndef ANDROID
+  // Bug 1346874 - The gray state check is expensive. Android tests are already
+  // slow enough that this check can easily push them over the threshold to a
+  // timeout.
+
+  MOZ_ASSERT(js::CheckGrayMarkingState(mJSContext));
+  MOZ_ASSERT(CheckWeakMappingGrayBitsTracer::Check(mJSContext));
+#endif
+}
+
 bool
 CycleCollectedJSContext::AreGCGrayBitsValid() const
 {
@@ -1261,7 +1357,7 @@ CycleCollectedJSContext::JSObjectsTenured()
   for (auto iter = mNurseryObjects.Iter(); !iter.Done(); iter.Next()) {
     nsWrapperCache* cache = iter.Get();
     JSObject* wrapper = cache->GetWrapperPreserveColor();
-    MOZ_ASSERT(wrapper);
+    MOZ_DIAGNOSTIC_ASSERT(wrapper);
     if (!JS::ObjectIsTenured(wrapper)) {
       MOZ_ASSERT(!cache->PreservingWrapper());
       const JSClass* jsClass = js::GetObjectJSClass(wrapper);
@@ -1460,7 +1556,8 @@ CycleCollectedJSContext::RunInMetastableState(already_AddRefed<nsIRunnable>&& aR
 
 IncrementalFinalizeRunnable::IncrementalFinalizeRunnable(CycleCollectedJSContext* aCx,
                                                          DeferredFinalizerTable& aFinalizers)
-  : mContext(aCx)
+  : Runnable("IncrementalFinalizeRunnable")
+  , mContext(aCx)
   , mFinalizeFunctionToRun(0)
   , mReleasing(false)
 {

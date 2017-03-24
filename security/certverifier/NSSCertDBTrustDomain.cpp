@@ -17,8 +17,9 @@
 #include "certdb.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Casting.h"
+#include "mozilla/Move.h"
 #include "mozilla/PodOperations.h"
-#include "mozilla/UniquePtr.h"
+#include "mozilla/TimeStamp.h"
 #include "mozilla/Unused.h"
 #include "nsNSSCertificate.h"
 #include "nsServiceManagerUtils.h"
@@ -29,7 +30,6 @@
 #include "pkix/pkixnss.h"
 #include "prerror.h"
 #include "prmem.h"
-#include "prprf.h"
 #include "secerr.h"
 
 #include "CNNICHashWhitelist.inc"
@@ -44,8 +44,6 @@ static const uint64_t ServerFailureDelaySeconds = 5 * 60;
 
 namespace mozilla { namespace psm {
 
-const char BUILTIN_ROOTS_MODULE_DEFAULT_NAME[] = "Builtin Roots Module";
-
 NSSCertDBTrustDomain::NSSCertDBTrustDomain(SECTrustType certDBTrustType,
                                            OCSPFetching ocspFetching,
                                            OCSPCache& ocspCache,
@@ -57,7 +55,7 @@ NSSCertDBTrustDomain::NSSCertDBTrustDomain(SECTrustType certDBTrustType,
                                            ValidityCheckingMode validityCheckingMode,
                                            CertVerifier::SHA1Mode sha1Mode,
                                            NetscapeStepUpPolicy netscapeStepUpPolicy,
-                                           const char* firstPartyDomain,
+                                           const OriginAttributes& originAttributes,
                                            UniqueCERTCertList& builtChain,
                               /*optional*/ PinningTelemetryInfo* pinningTelemetryInfo,
                               /*optional*/ const char* hostname)
@@ -72,7 +70,7 @@ NSSCertDBTrustDomain::NSSCertDBTrustDomain(SECTrustType certDBTrustType,
   , mValidityCheckingMode(validityCheckingMode)
   , mSHA1Mode(sha1Mode)
   , mNetscapeStepUpPolicy(netscapeStepUpPolicy)
-  , mFirstPartyDomain(firstPartyDomain)
+  , mOriginAttributes(originAttributes)
   , mBuiltChain(builtChain)
   , mPinningTelemetryInfo(pinningTelemetryInfo)
   , mHostname(hostname)
@@ -194,25 +192,29 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  bool isCertRevoked;
-  nsresult nsrv = mCertBlocklist->IsCertRevoked(
-                    candidateCert->derIssuer.data,
-                    candidateCert->derIssuer.len,
-                    candidateCert->serialNumber.data,
-                    candidateCert->serialNumber.len,
-                    candidateCert->derSubject.data,
-                    candidateCert->derSubject.len,
-                    candidateCert->derPublicKey.data,
-                    candidateCert->derPublicKey.len,
-                    &isCertRevoked);
-  if (NS_FAILED(nsrv)) {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
+  // The certificate blocklist currently only applies to TLS server
+  // certificates.
+  if (mCertDBTrustType == trustSSL) {
+    bool isCertRevoked;
+    nsresult nsrv = mCertBlocklist->IsCertRevoked(
+                      candidateCert->derIssuer.data,
+                      candidateCert->derIssuer.len,
+                      candidateCert->serialNumber.data,
+                      candidateCert->serialNumber.len,
+                      candidateCert->derSubject.data,
+                      candidateCert->derSubject.len,
+                      candidateCert->derPublicKey.data,
+                      candidateCert->derPublicKey.len,
+                      &isCertRevoked);
+    if (NS_FAILED(nsrv)) {
+      return Result::FATAL_ERROR_LIBRARY_FAILURE;
+    }
 
-  if (isCertRevoked) {
-    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-           ("NSSCertDBTrustDomain: certificate is in blocklist"));
-    return Result::ERROR_REVOKED_CERTIFICATE;
+    if (isCertRevoked) {
+      MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
+             ("NSSCertDBTrustDomain: certificate is in blocklist"));
+      return Result::ERROR_REVOKED_CERTIFICATE;
+    }
   }
 
   // XXX: CERT_GetCertTrust seems to be abusing SECStatus as a boolean, where
@@ -241,7 +243,11 @@ NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
     // For TRUST, we only use the CERTDB_TRUSTED_CA bit, because Gecko hasn't
     // needed to consider end-entity certs to be their own trust anchors since
     // Gecko implemented nsICertOverrideService.
-    if (flags & CERTDB_TRUSTED_CA) {
+    // Of course, for this to work as expected, we need to make sure we're
+    // inquiring about the trust of a CA and not an end-entity. If an end-entity
+    // has the CERTDB_TRUSTED_CA bit set, Gecko does not consider it to be a
+    // trust anchor; it must inherit its trust.
+    if (flags & CERTDB_TRUSTED_CA && endEntityOrCA == EndEntityOrCA::MustBeCA) {
       if (policy.IsAnyPolicy()) {
         trustLevel = TrustLevel::TrustAnchor;
         return Success;
@@ -264,25 +270,25 @@ NSSCertDBTrustDomain::DigestBuf(Input item, DigestAlgorithm digestAlg,
   return DigestBufNSS(item, digestAlg, digestBuf, digestBufLen);
 }
 
-static PRIntervalTime
+static TimeDuration
 OCSPFetchingTypeToTimeoutTime(NSSCertDBTrustDomain::OCSPFetching ocspFetching)
 {
   switch (ocspFetching) {
     case NSSCertDBTrustDomain::FetchOCSPForDVSoftFail:
-      return PR_SecondsToInterval(2);
+      return TimeDuration::FromSeconds(2);
     case NSSCertDBTrustDomain::FetchOCSPForEV:
     case NSSCertDBTrustDomain::FetchOCSPForDVHardFail:
-      return PR_SecondsToInterval(10);
+      return TimeDuration::FromSeconds(10);
     // The rest of these are error cases. Assert in debug builds, but return
     // the default value corresponding to 2 seconds in release builds.
     case NSSCertDBTrustDomain::NeverFetchOCSP:
     case NSSCertDBTrustDomain::LocalOnlyOCSPForEV:
-      PR_NOT_REACHED("we should never see this OCSPFetching type here");
+      MOZ_ASSERT_UNREACHABLE("we should never see this OCSPFetching type here");
       break;
   }
 
-  PR_NOT_REACHED("we're not handling every OCSPFetching type");
-  return PR_SecondsToInterval(2);
+  MOZ_ASSERT_UNREACHABLE("we're not handling every OCSPFetching type");
+  return TimeDuration::FromSeconds(2);
 }
 
 // Copied and modified from CERT_GetOCSPAuthorityInfoAccessLocation and
@@ -379,7 +385,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
   // OCSP_STAPLING_NONE unless/until we implement multi-stapling.
   Result stapledOCSPResponseResult = Success;
   if (stapledOCSPResponse) {
-    PR_ASSERT(endEntityOrCA == EndEntityOrCA::MustBeEndEntity);
+    MOZ_ASSERT(endEntityOrCA == EndEntityOrCA::MustBeEndEntity);
     bool expired;
     stapledOCSPResponseResult =
       VerifyAndMaybeCacheEncodedOCSPResponse(certID, time,
@@ -415,7 +421,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
 
   Result cachedResponseResult = Success;
   Time cachedResponseValidThrough(Time::uninitialized);
-  bool cachedResponsePresent = mOCSPCache.Get(certID, mFirstPartyDomain,
+  bool cachedResponsePresent = mOCSPCache.Get(certID, mOriginAttributes,
                                               cachedResponseResult,
                                               cachedResponseValidThrough);
   if (cachedResponsePresent) {
@@ -435,7 +441,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
     // able to fetch a more recent one.
     MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
            ("NSSCertDBTrustDomain: cached OCSP response: error %d",
-           cachedResponseResult));
+            static_cast<int>(cachedResponseResult)));
     // When a good cached response has expired, it is more convenient
     // to convert that to an error code and just deal with
     // cachedResponseResult from here on out.
@@ -457,8 +463,8 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
   }
   // At this point, if and only if cachedErrorResult is Success, there was no
   // cached response.
-  PR_ASSERT((!cachedResponsePresent && cachedResponseResult == Success) ||
-            (cachedResponsePresent && cachedResponseResult != Success));
+  MOZ_ASSERT((!cachedResponsePresent && cachedResponseResult == Success) ||
+             (cachedResponsePresent && cachedResponseResult != Success));
 
   // If we have a fresh OneCRL Blocklist we can skip OCSP for CA certs
   bool blocklistIsFresh;
@@ -558,7 +564,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
     // Owned by arena
     SECItem* responseSECItem = nullptr;
     Result tempRV =
-      DoOCSPRequest(arena, url, &ocspRequestItem,
+      DoOCSPRequest(arena, url, mOriginAttributes, &ocspRequestItem,
                     OCSPFetchingTypeToTimeoutTime(mOCSPFetching),
                     mOCSPGetConfig == CertVerifier::ocspGetEnabled,
                     responseSECItem);
@@ -582,7 +588,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
       if (timeout.AddSeconds(ServerFailureDelaySeconds) != Success) {
         return Result::FATAL_ERROR_LIBRARY_FAILURE; // integer overflow
       }
-      rv = mOCSPCache.Put(certID, mFirstPartyDomain, error, time, timeout);
+      rv = mOCSPCache.Put(certID, mOriginAttributes, error, time, timeout);
       if (rv != Success) {
         return rv;
       }
@@ -667,7 +673,7 @@ NSSCertDBTrustDomain::VerifyAndMaybeCacheEncodedOCSPResponse(
   // If a response was stapled and expired, we don't want to cache it. Return
   // early to simplify the logic here.
   if (responseSource == ResponseWasStapled && expired) {
-    PR_ASSERT(rv != Success);
+    MOZ_ASSERT(rv != Success);
     return rv;
   }
   // validThrough is only trustworthy if the response successfully verifies
@@ -687,7 +693,7 @@ NSSCertDBTrustDomain::VerifyAndMaybeCacheEncodedOCSPResponse(
       rv == Result::ERROR_OCSP_UNKNOWN_CERT) {
     MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
            ("NSSCertDBTrustDomain: caching OCSP response"));
-    Result putRV = mOCSPCache.Put(certID, mFirstPartyDomain, rv, thisUpdate,
+    Result putRV = mOCSPCache.Put(certID, mOriginAttributes, rv, thisUpdate,
                                   validThrough);
     if (putRV != Success) {
       return putRV;
@@ -865,8 +871,8 @@ NSSCertDBTrustDomain::IsChainValid(const DERArray& certArray, Time time)
       (mPinningMode == CertVerifier::pinningEnforceTestMode);
     bool chainHasValidPins;
     nsresult nsrv = PublicKeyPinningService::ChainHasValidPins(
-      certList, mHostname, time, enforceTestMode, chainHasValidPins,
-      mPinningTelemetryInfo);
+      certList, mHostname, time, enforceTestMode, mOriginAttributes,
+      chainHasValidPins, mPinningTelemetryInfo);
     if (NS_FAILED(nsrv)) {
       return Result::FATAL_ERROR_LIBRARY_FAILURE;
     }
@@ -984,7 +990,7 @@ NSSCertDBTrustDomain::CheckValidityIsAcceptable(Time notBefore, Time notAfter,
       maxValidityDuration = DURATION_27_MONTHS_PLUS_SLOP;
       break;
     default:
-      PR_NOT_REACHED("We're not handling every ValidityCheckingMode type");
+      MOZ_ASSERT_UNREACHABLE("We're not handling every ValidityCheckingMode type");
   }
 
   if (validityDuration > maxValidityDuration) {
@@ -1107,20 +1113,13 @@ DisableMD5()
     0, NSS_USE_ALG_IN_CERT_SIGNATURE | NSS_USE_ALG_IN_CMS_SIGNATURE);
 }
 
-SECStatus
-LoadLoadableRoots(/*optional*/ const char* dir, const char* modNameUTF8)
+bool
+LoadLoadableRoots(const nsCString& dir, const nsCString& modNameUTF8)
 {
-  PR_ASSERT(modNameUTF8);
-
-  if (!modNameUTF8) {
-    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
-    return SECFailure;
-  }
-
-  UniquePtr<char, void(&)(char*)>
-    fullLibraryPath(PR_GetLibraryName(dir, "nssckbi"), PR_FreeLibraryName);
+  UniquePRLibraryName fullLibraryPath(
+    PR_GetLibraryName(dir.IsEmpty() ? nullptr : dir.get(), "nssckbi"));
   if (!fullLibraryPath) {
-    return SECFailure;
+    return false;
   }
 
   // Escape the \ and " characters.
@@ -1128,39 +1127,40 @@ LoadLoadableRoots(/*optional*/ const char* dir, const char* modNameUTF8)
   escapedFullLibraryPath.ReplaceSubstring("\\", "\\\\");
   escapedFullLibraryPath.ReplaceSubstring("\"", "\\\"");
   if (escapedFullLibraryPath.IsEmpty()) {
-    return SECFailure;
+    return false;
   }
 
-  // If a module exists with the same name, delete it.
-  int modType;
-  SECMOD_DeleteModule(modNameUTF8, &modType);
+  // If a module exists with the same name, make a best effort attempt to delete
+  // it. Note that it isn't possible to delete the internal module, so checking
+  // the return value would be detrimental in that case.
+  int unusedModType;
+  Unused << SECMOD_DeleteModule(modNameUTF8.get(), &unusedModType);
 
   nsAutoCString pkcs11ModuleSpec;
-  pkcs11ModuleSpec.AppendPrintf("name=\"%s\" library=\"%s\"", modNameUTF8,
+  pkcs11ModuleSpec.AppendPrintf("name=\"%s\" library=\"%s\"", modNameUTF8.get(),
                                 escapedFullLibraryPath.get());
   if (pkcs11ModuleSpec.IsEmpty()) {
-    return SECFailure;
+    return false;
   }
 
   UniqueSECMODModule rootsModule(
     SECMOD_LoadUserModule(const_cast<char*>(pkcs11ModuleSpec.get()), nullptr,
                           false));
   if (!rootsModule) {
-    return SECFailure;
+    return false;
   }
 
   if (!rootsModule->loaded) {
-    PR_SetError(PR_INVALID_STATE_ERROR, 0);
-    return SECFailure;
+    return false;
   }
 
-  return SECSuccess;
+  return true;
 }
 
 void
 UnloadLoadableRoots(const char* modNameUTF8)
 {
-  PR_ASSERT(modNameUTF8);
+  MOZ_ASSERT(modNameUTF8);
   UniqueSECMODModule rootsModule(SECMOD_FindModule(modNameUTF8));
 
   if (rootsModule) {

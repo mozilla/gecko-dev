@@ -1,5 +1,7 @@
 var ExtensionTestUtils = {};
 
+const {ExtensionTestCommon} = SpecialPowers.Cu.import("resource://testing-common/ExtensionTestCommon.jsm", {});
+
 ExtensionTestUtils.loadExtension = function(ext)
 {
   // Cleanup functions need to be registered differently depending on
@@ -53,19 +55,19 @@ ExtensionTestUtils.loadExtension = function(ext)
 
   function testHandler(kind, pass, msg, ...args) {
     if (kind == "test-eq") {
-      var [expected, actual] = args;
-      SimpleTest.ok(pass, `${msg} - Expected: ${expected}, Actual: ${actual}`);
+      let [expected, actual, stack] = args;
+      SimpleTest.ok(pass, `${msg} - Expected: ${expected}, Actual: ${actual}`, undefined, stack);
     } else if (kind == "test-log") {
       SimpleTest.info(msg);
     } else if (kind == "test-result") {
-      SimpleTest.ok(pass, msg);
+      SimpleTest.ok(pass, msg, undefined, args[0]);
     }
   }
 
   var handler = {
     testResult(kind, pass, msg, ...args) {
       if (kind == "test-done") {
-        SimpleTest.ok(pass, msg);
+        SimpleTest.ok(pass, msg, undefined, args[0]);
         return testResolve(msg);
       }
       testHandler(kind, pass, msg, ...args);
@@ -91,13 +93,13 @@ ExtensionTestUtils.loadExtension = function(ext)
     ext.files = Object.assign({}, ext.files);
     for (let filename of Object.keys(ext.files)) {
       let file = ext.files[filename];
-      if (typeof file == "function") {
-        ext.files[filename] = `(${file})();`
+      if (typeof file === "function" || Array.isArray(file)) {
+        ext.files[filename] = ExtensionTestCommon.serializeScript(file);
       }
     }
   }
-  if (typeof ext.background == "function") {
-    ext.background = `(${ext.background})();`
+  if ("background" in ext) {
+    ext.background = ExtensionTestCommon.serializeScript(ext.background);
   }
 
   var extension = SpecialPowers.loadExtension(ext, handler);

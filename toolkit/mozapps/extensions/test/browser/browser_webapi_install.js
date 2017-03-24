@@ -10,7 +10,7 @@ function waitForClear() {
   const MSG = "WebAPICleanup";
   return new Promise(resolve => {
     let listener = {
-      receiveMessage: function(msg) {
+      receiveMessage(msg) {
         if (msg.name == MSG) {
           Services.mm.removeMessageListener(MSG, listener);
           resolve();
@@ -125,7 +125,16 @@ function* testInstall(browser, args, steps, description) {
       let nextStep = steps.shift();
       if (nextStep.action) {
         if (nextStep.action == "install") {
-          yield install.install();
+          try {
+            yield install.install();
+            if (nextStep.expectError) {
+              throw new Error("Expected install to fail but it did not");
+            }
+          } catch (err) {
+            if (!nextStep.expectError) {
+              throw new Error("Install failed unexpectedly");
+            }
+          }
         } else if (nextStep.action == "cancel") {
           yield install.cancel();
         } else {
@@ -188,7 +197,11 @@ function makeRegularTest(options, what) {
       },
     ];
 
+    let promptPromise = promiseNotification("addon-installed");
+
     yield testInstall(browser, options, steps, what);
+
+    yield promptPromise;
 
     let version = Services.prefs.getIntPref("webapitest.active_version");
     is(version, 1, "the install really did work");
@@ -234,7 +247,7 @@ add_task(makeInstallTest(function* (browser) {
 
 add_task(makeInstallTest(function* (browser) {
   let steps = [
-    {action: "install"},
+    {action: "install", expectError: true},
     {
       event: "onDownloadStarted",
       props: {state: "STATE_DOWNLOADING"},
@@ -259,7 +272,7 @@ add_task(makeInstallTest(function* (browser) {
 
 add_task(makeInstallTest(function* (browser) {
   let steps = [
-    {action: "install"},
+    {action: "install", expectError: true},
     {
       event: "onDownloadStarted",
       props: {state: "STATE_DOWNLOADING"},
@@ -285,7 +298,7 @@ add_task(makeInstallTest(function* (browser) {
 add_task(function* test_permissions() {
   function testBadUrl(url, pattern, successMessage) {
     return BrowserTestUtils.withNewTab(TESTPAGE, function* (browser) {
-      let result = yield ContentTask.spawn(browser, {url, pattern}, function (opts) {
+      let result = yield ContentTask.spawn(browser, {url, pattern}, function(opts) {
         return new Promise(resolve => {
           content.navigator.mozAddonManager.createInstall({url: opts.url})
             .then(() => {

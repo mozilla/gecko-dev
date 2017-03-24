@@ -33,6 +33,7 @@ struct MemoryCounter
     : mSource(0)
     , mDecodedHeap(0)
     , mDecodedNonHeap(0)
+    , mSharedHandles(0)
   { }
 
   void SetSource(size_t aCount) { mSource = aCount; }
@@ -41,12 +42,15 @@ struct MemoryCounter
   size_t DecodedHeap() const { return mDecodedHeap; }
   void SetDecodedNonHeap(size_t aCount) { mDecodedNonHeap = aCount; }
   size_t DecodedNonHeap() const { return mDecodedNonHeap; }
+  void SetSharedHandles(size_t aCount) { mSharedHandles = aCount; }
+  size_t SharedHandles() const { return mSharedHandles; }
 
   MemoryCounter& operator+=(const MemoryCounter& aOther)
   {
     mSource += aOther.mSource;
     mDecodedHeap += aOther.mDecodedHeap;
     mDecodedNonHeap += aOther.mDecodedNonHeap;
+    mSharedHandles += aOther.mSharedHandles;
     return *this;
   }
 
@@ -54,6 +58,7 @@ private:
   size_t mSource;
   size_t mDecodedHeap;
   size_t mDecodedNonHeap;
+  size_t mSharedHandles;
 };
 
 enum class SurfaceMemoryCounterType
@@ -211,7 +216,7 @@ public:
   /**
    * Called when the SurfaceCache discards a surface belonging to this image.
    */
-  virtual void OnSurfaceDiscarded() = 0;
+  virtual void OnSurfaceDiscarded(const SurfaceKey& aSurfaceKey) = 0;
 
   virtual void SetInnerWindowID(uint64_t aInnerWindowId) = 0;
   virtual uint64_t InnerWindowID() const = 0;
@@ -251,7 +256,7 @@ public:
   }
 #endif
 
-  virtual void OnSurfaceDiscarded() override { }
+  virtual void OnSurfaceDiscarded(const SurfaceKey& aSurfaceKey) override { }
 
   virtual void SetInnerWindowID(uint64_t aInnerWindowId) override
   {
@@ -304,6 +309,8 @@ protected:
 
   virtual nsresult StartAnimation() = 0;
   virtual nsresult StopAnimation() = 0;
+
+  void SendOnUnlockedDraw(uint32_t aFlags);
 
   // Member data shared by all implementations of this abstract class
   RefPtr<ProgressTracker>     mProgressTracker;

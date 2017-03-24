@@ -51,7 +51,7 @@ nsSVGForeignObjectFrame::nsSVGForeignObjectFrame(nsStyleContext* aContext)
 // nsIFrame methods
 
 NS_QUERYFRAME_HEAD(nsSVGForeignObjectFrame)
-  NS_QUERYFRAME_ENTRY(nsISVGChildFrame)
+  NS_QUERYFRAME_ENTRY(nsSVGDisplayableFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 void
@@ -158,7 +158,7 @@ nsSVGForeignObjectFrame::Reflow(nsPresContext*           aPresContext,
                         aReflowInput.ComputedBSize());
   aDesiredSize.SetSize(wm, finalSize);
   aDesiredSize.SetOverflowAreasToDesiredBounds();
-  aStatus = NS_FRAME_COMPLETE;
+  aStatus.Reset();
 }
 
 void
@@ -589,4 +589,13 @@ nsSVGForeignObjectFrame::GetInvalidRegion()
   return nsRect();
 }
 
-
+void
+nsSVGForeignObjectFrame::DoUpdateStyleOfOwnedAnonBoxes(
+  ServoStyleSet& aStyleSet,
+  nsStyleChangeList& aChangeList,
+  nsChangeHint aHintForThisFrame)
+{
+  MOZ_ASSERT(PrincipalChildList().FirstChild(), "Must have our anon box");
+  UpdateStyleOfChildAnonBox(PrincipalChildList().FirstChild(),
+                            aStyleSet, aChangeList, aHintForThisFrame);
+}

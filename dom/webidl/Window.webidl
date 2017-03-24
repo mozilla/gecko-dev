@@ -15,6 +15,8 @@
  * http://dvcs.w3.org/hg/speech-api/raw-file/tip/speechapi.html
  * https://w3c.github.io/webappsec-secure-contexts/#monkey-patching-global-object
  * https://w3c.github.io/requestidlecallback/
+ * https://webaudio.github.io/web-audio-api/#widl-Window-audioWorklet
+ * https://drafts.css-houdini.org/css-paint-api-1/#dom-window-paintworklet
  */
 
 interface ApplicationCache;
@@ -22,7 +24,6 @@ interface IID;
 interface nsIBrowserDOMWindow;
 interface nsIMessageBroadcaster;
 interface nsIDOMCrypto;
-typedef any Transferable;
 
 // http://www.whatwg.org/specs/web-apps/current-work/
 [PrimaryGlobal, LegacyUnenumerableNamedProperties, NeedResolve]
@@ -83,7 +84,7 @@ typedef any Transferable;
   any showModalDialog(DOMString url, optional any argument, optional DOMString options = "");
 
   [Throws, CrossOriginCallable, NeedsSubjectPrincipal]
-  void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
+  void postMessage(any message, DOMString targetOrigin, optional sequence<object> transfer = []);
 
   // also has obsolete members
 };
@@ -154,10 +155,10 @@ partial interface Window {
   //[Throws] void moveBy(double x, double y);
   //[Throws] void resizeTo(double x, double y);
   //[Throws] void resizeBy(double x, double y);
-  [Throws, UnsafeInPrerendering] void moveTo(long x, long y);
-  [Throws, UnsafeInPrerendering] void moveBy(long x, long y);
-  [Throws, UnsafeInPrerendering] void resizeTo(long x, long y);
-  [Throws, UnsafeInPrerendering] void resizeBy(long x, long y);
+  [Throws, UnsafeInPrerendering, NeedsCallerType] void moveTo(long x, long y);
+  [Throws, UnsafeInPrerendering, NeedsCallerType] void moveBy(long x, long y);
+  [Throws, UnsafeInPrerendering, NeedsCallerType] void resizeTo(long x, long y);
+  [Throws, UnsafeInPrerendering, NeedsCallerType] void resizeBy(long x, long y);
 
   // viewport
   // These are writable because we allow chrome to write them.  And they need
@@ -165,8 +166,8 @@ partial interface Window {
   // like a [Replaceable] attribute would, which needs the original JS value.
   //[Replaceable, Throws] readonly attribute double innerWidth;
   //[Replaceable, Throws] readonly attribute double innerHeight;
-  [Throws] attribute any innerWidth;
-  [Throws] attribute any innerHeight;
+  [Throws, NeedsCallerType] attribute any innerWidth;
+  [Throws, NeedsCallerType] attribute any innerHeight;
 
   // viewport scrolling
   void scroll(unrestricted double x, unrestricted double y);
@@ -182,14 +183,10 @@ partial interface Window {
   [ChromeOnly] void mozScrollSnap();
   // The four properties below are double per spec at the moment, but whether
   // that will continue is unclear.
-  //[Replaceable, Throws] readonly attribute double scrollX;
-  //[Replaceable, Throws] readonly attribute double pageXOffset;
-  //[Replaceable, Throws] readonly attribute double scrollY;
-  //[Replaceable, Throws] readonly attribute double pageYOffset;
-  [Replaceable, Throws] readonly attribute long scrollX;
-  [Replaceable, Throws] readonly attribute long pageXOffset;
-  [Replaceable, Throws] readonly attribute long scrollY;
-  [Replaceable, Throws] readonly attribute long pageYOffset;
+  [Replaceable, Throws] readonly attribute double scrollX;
+  [Replaceable, Throws] readonly attribute double pageXOffset;
+  [Replaceable, Throws] readonly attribute double scrollY;
+  [Replaceable, Throws] readonly attribute double pageYOffset;
 
   // client
   // These are writable because we allow chrome to write them.  And they need
@@ -199,22 +196,11 @@ partial interface Window {
   //[Replaceable, Throws] readonly attribute double screenY;
   //[Replaceable, Throws] readonly attribute double outerWidth;
   //[Replaceable, Throws] readonly attribute double outerHeight;
-  [Throws] attribute any screenX;
-  [Throws] attribute any screenY;
-  [Throws] attribute any outerWidth;
-  [Throws] attribute any outerHeight;
+  [Throws, NeedsCallerType] attribute any screenX;
+  [Throws, NeedsCallerType] attribute any screenY;
+  [Throws, NeedsCallerType] attribute any outerWidth;
+  [Throws, NeedsCallerType] attribute any outerHeight;
 };
-
-/**
- * Special function that gets the fill ratio from the compositor used for testing
- * and is an indicator that we're layerizing correctly.
- * This function will call the given callback current fill ratio for a
- * composited frame. We don't guarantee which frame fill ratios will be returned.
- */
-partial interface Window {
-  [ChromeOnly, Throws] void mozRequestOverfill(OverfillCallback callback);
-};
-callback OverfillCallback = void (unsigned long overfill);
 
 // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/RequestAnimationFrame/Overview.html
 partial interface Window {
@@ -255,12 +241,6 @@ interface WindowModal {
 };
 Window implements WindowModal;
 
-// https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#self-caches
-partial interface Window {
-[Throws, Func="mozilla::dom::cache::CacheStorage::PrefEnabled", SameObject]
-readonly attribute CacheStorage caches;
-};
-
 // Mozilla-specific stuff
 partial interface Window {
   //[NewObject, Throws] CSSStyleDeclaration getDefaultComputedStyle(Element elt, optional DOMString pseudoElt = "");
@@ -280,16 +260,19 @@ partial interface Window {
   /**
    * Method for sizing this window to the content in the window.
    */
-  [Throws, UnsafeInPrerendering] void             sizeToContent();
+  [Throws, UnsafeInPrerendering, NeedsCallerType] void sizeToContent();
 
   // XXX Shouldn't this be in nsIDOMChromeWindow?
   [ChromeOnly, Replaceable, Throws] readonly attribute MozControllers controllers;
 
   [ChromeOnly, Throws] readonly attribute Element? realFrameElement;
 
-  [Throws] readonly attribute float               mozInnerScreenX;
-  [Throws] readonly attribute float               mozInnerScreenY;
-  [Replaceable, Throws] readonly attribute float  devicePixelRatio;
+  [Throws, NeedsCallerType]
+  readonly attribute float mozInnerScreenX;
+  [Throws, NeedsCallerType]
+  readonly attribute float mozInnerScreenY;
+  [Replaceable, Throws, NeedsCallerType]
+  readonly attribute float devicePixelRatio;
 
   /* The maximum offset that the window can be scrolled to
      (i.e., the document width/height minus the scrollport width/height) */
@@ -375,9 +358,9 @@ partial interface Window {
                                                                    optional DOMString options = "",
                                                                    any... extraArguments);
 
-  [Replaceable, Throws] readonly attribute object? content;
+  [Replaceable, Throws, NeedsCallerType] readonly attribute object? content;
 
-  [ChromeOnly, Throws] readonly attribute object? __content;
+  [ChromeOnly, Throws, NeedsCallerType] readonly attribute object? __content;
 
   [Throws, ChromeOnly] any getInterface(IID iid);
 
@@ -395,6 +378,7 @@ Window implements OnErrorEventHandlerForWindow;
 #if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
 // https://compat.spec.whatwg.org/#windoworientation-interface
 partial interface Window {
+  [NeedsCallerType]
   readonly attribute short orientation;
            attribute EventHandler onorientationchange;
 };
@@ -483,13 +467,23 @@ partial interface Window {
   [Pref="dom.vr.enabled"]
   attribute EventHandler onvrdisplaydisconnect;
   [Pref="dom.vr.enabled"]
+  attribute EventHandler onvrdisplayactivate;
+  [Pref="dom.vr.enabled"]
+  attribute EventHandler onvrdisplaydeactivate;
+  [Pref="dom.vr.enabled"]
   attribute EventHandler onvrdisplaypresentchange;
 };
 
-// For testing worklet only
+// https://webaudio.github.io/web-audio-api/#widl-Window-audioWorklet
 partial interface Window {
-  [Pref="dom.worklet.testing.enabled", Throws]
-  Worklet createWorklet();
+  [Pref="dom.audioWorklet.enabled", Throws]
+  readonly attribute Worklet audioWorklet;
+};
+
+// https://drafts.css-houdini.org/css-paint-api-1/#dom-window-paintworklet
+partial interface Window {
+    [Pref="dom.paintWorklet.enabled", Throws]
+    readonly attribute Worklet paintWorklet;
 };
 
 Window implements ChromeWindow;
@@ -508,3 +502,40 @@ dictionary IdleRequestOptions {
 };
 
 callback IdleRequestCallback = void (IdleDeadline deadline);
+
+/**
+ * Similar to |isSecureContext|, but doesn't pay attention to whether the
+ * window's opener (if any) is a secure context or not.
+ *
+ * WARNING: Do not use this unless you are familiar with the issues that
+ * taking opener state into account is designed to address (or else you may
+ * introduce security issues).  If in doubt, use |isSecureContext|.  In
+ * particular do not use this to gate access to JavaScript APIs.
+ */
+partial interface Window {
+  [ChromeOnly] readonly attribute boolean isSecureContextIfOpenerIgnored;
+};
+
+partial interface Window {
+  /**
+   * Returns a list of locales that the application should be localized to.
+   *
+   * The result is a sorted list of valid locale IDs and it should be
+   * used for all APIs that accept list of locales, like ECMA402 and L10n APIs.
+   *
+   * This API always returns at least one locale.
+   *
+   * Example: ["en-US", "de", "pl", "sr-Cyrl", "zh-Hans-HK"]
+   */
+  [Func="IsChromeOrXBL"]
+  sequence<DOMString> getAppLocalesAsBCP47();
+
+#ifdef ENABLE_INTL_API
+  /**
+   * Getter funcion for IntlUtils, which provides helper functions for
+   * localization.
+   */
+  [Throws, Func="IsChromeOrXBL"]
+  readonly attribute IntlUtils intlUtils;
+#endif
+};

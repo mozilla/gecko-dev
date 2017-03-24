@@ -106,7 +106,7 @@ exports.getActiveTab = getActiveTab;
 function getOwnerWindow(tab) {
   // normal case
   if (tab.ownerDocument)
-    return tab.ownerDocument.defaultView;
+    return tab.ownerGlobal;
 
   // try fennec case
   return getWindowHoldingTab(tab);
@@ -207,7 +207,7 @@ function getTabId(tab) {
   if (tab.browser) // fennec
     return tab.id
 
-  return String.split(tab.linkedPanel, 'panel').pop();
+  return String(tab.linkedPanel).split('panel').pop();
 }
 exports.getTabId = getTabId;
 

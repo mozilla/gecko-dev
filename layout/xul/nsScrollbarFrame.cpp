@@ -268,7 +268,7 @@ nsScrollbarFrame::MoveToNewPosition()
   nsAutoString curposStr;
   curposStr.AppendInt(curpos);
 
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   if (mSmoothScroll) {
     content->SetAttr(kNameSpaceID_None, nsGkAtoms::smooth, NS_LITERAL_STRING("true"), false);
   }
@@ -296,13 +296,13 @@ nsScrollbarFrame::MoveToNewPosition()
   // See if we have appearance information for a theme.
   const nsStyleDisplay* disp = StyleDisplay();
   nsPresContext* presContext = PresContext();
-  if (disp->mAppearance) {
+  if (disp->UsedAppearance()) {
     nsITheme *theme = presContext->GetTheme();
-    if (theme && theme->ThemeSupportsWidget(presContext, this, disp->mAppearance)) {
+    if (theme && theme->ThemeSupportsWidget(presContext, this, disp->UsedAppearance())) {
       bool repaint;
       nsAttrValue oldValue;
       oldValue.SetTo(oldCurpos);
-      theme->WidgetStateChanged(this, disp->mAppearance, nsGkAtoms::curpos,
+      theme->WidgetStateChanged(this, disp->UsedAppearance(), nsGkAtoms::curpos,
           &repaint, &oldValue);
     }
   }

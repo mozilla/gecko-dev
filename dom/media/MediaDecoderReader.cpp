@@ -80,14 +80,18 @@ MediaDecoderReader::MediaDecoderReader(AbstractMediaDecoder* aDecoder)
 {
   MOZ_COUNT_CTOR(MediaDecoderReader);
   MOZ_ASSERT(NS_IsMainThread());
+}
 
+nsresult
+MediaDecoderReader::Init()
+{
   if (mDecoder && mDecoder->DataArrivedEvent()) {
     mDataArrivedListener = mDecoder->DataArrivedEvent()->Connect(
       mTaskQueue, this, &MediaDecoderReader::NotifyDataArrived);
   }
-
   // Dispatch initialization that needs to happen on that task queue.
   mTaskQueue->Dispatch(NewRunnableMethod(this, &MediaDecoderReader::InitializationTask));
+  return InitInternal();
 }
 
 void
@@ -149,11 +153,11 @@ nsresult MediaDecoderReader::ResetDecode(TrackSet aTracks)
   return NS_OK;
 }
 
-RefPtr<MediaDecoderReader::MediaDataPromise>
+RefPtr<MediaDecoderReader::VideoDataPromise>
 MediaDecoderReader::DecodeToFirstVideoData()
 {
   MOZ_ASSERT(OnTaskQueue());
-  typedef MediaDecoderReader::MediaDataPromise PromiseType;
+  typedef VideoDataPromise PromiseType;
   RefPtr<PromiseType::Private> p = new PromiseType::Private(__func__);
   RefPtr<MediaDecoderReader> self = this;
   InvokeUntil([self] () -> bool {
@@ -194,9 +198,7 @@ media::TimeIntervals
 MediaDecoderReader::GetBuffered()
 {
   MOZ_ASSERT(OnTaskQueue());
-  if (!HaveStartTime()) {
-    return media::TimeIntervals();
-  }
+
   AutoPinned<MediaResource> stream(mDecoder->GetResource());
 
   if (!mDuration.Ref().isSome()) {
@@ -217,10 +219,14 @@ MediaDecoderReader::AsyncReadMetadata()
   nsresult rv = ReadMetadata(&metadata->mInfo, getter_Transfers(metadata->mTags));
   metadata->mInfo.AssertValid();
 
+  // Update the buffer ranges before resolving the metadata promise. Bug 1320258.
+  UpdateBuffered();
+
   // We're not waiting for anything. If we didn't get the metadata, that's an
   // error.
   if (NS_FAILED(rv) || !metadata->mInfo.HasValidMedia()) {
-    DECODER_WARN("ReadMetadata failed, rv=%x HasValidMedia=%d", rv, metadata->mInfo.HasValidMedia());
+    DECODER_WARN("ReadMetadata failed, rv=%" PRIx32 " HasValidMedia=%d",
+                 static_cast<uint32_t>(rv), metadata->mInfo.HasValidMedia());
     return MetadataPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_METADATA_ERR, __func__);
   }
 
@@ -279,11 +285,11 @@ private:
   RefPtr<MediaDecoderReader> mReader;
 };
 
-RefPtr<MediaDecoderReader::MediaDataPromise>
+RefPtr<MediaDecoderReader::VideoDataPromise>
 MediaDecoderReader::RequestVideoData(bool aSkipToNextKeyframe,
                                      int64_t aTimeThreshold)
 {
-  RefPtr<MediaDataPromise> p = mBaseVideoPromise.Ensure(__func__);
+  RefPtr<VideoDataPromise> p = mBaseVideoPromise.Ensure(__func__);
   bool skip = aSkipToNextKeyframe;
   while (VideoQueue().GetSize() == 0 &&
          !VideoQueue().IsFinished()) {
@@ -311,10 +317,10 @@ MediaDecoderReader::RequestVideoData(bool aSkipToNextKeyframe,
   return p;
 }
 
-RefPtr<MediaDecoderReader::MediaDataPromise>
+RefPtr<MediaDecoderReader::AudioDataPromise>
 MediaDecoderReader::RequestAudioData()
 {
-  RefPtr<MediaDataPromise> p = mBaseAudioPromise.Ensure(__func__);
+  RefPtr<AudioDataPromise> p = mBaseAudioPromise.Ensure(__func__);
   while (AudioQueue().GetSize() == 0 &&
          !AudioQueue().IsFinished()) {
     if (!DecodeAudioData()) {

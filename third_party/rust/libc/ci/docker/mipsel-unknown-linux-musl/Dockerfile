@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:16.10
 
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
@@ -6,7 +6,10 @@ RUN apt-get install -y --no-install-recommends \
         bzip2
 
 RUN mkdir /toolchain
-RUN curl -L https://downloads.openwrt.org/snapshots/trunk/malta/generic/OpenWrt-Toolchain-malta-le_gcc-5.3.0_musl-1.1.15.Linux-x86_64.tar.bz2 | \
+
+# Note that this originally came from:
+# https://downloads.openwrt.org/snapshots/trunk/malta/generic/OpenWrt-Toolchain-malta-le_gcc-5.3.0_musl-1.1.15.Linux-x86_64.tar.bz2
+RUN curl -L https://s3.amazonaws.com/rust-lang-ci/libc/OpenWrt-Toolchain-malta-le_gcc-5.3.0_musl-1.1.15.Linux-x86_64.tar.bz2 | \
       tar xjf - -C /toolchain --strip-components=2
 
 ENV PATH=$PATH:/rust/bin:/toolchain/bin \

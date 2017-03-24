@@ -27,6 +27,7 @@ include toblob-todataurl/reftest.list
 == 610935.html 610935-ref.html
 == 649134-1.html 649134-ref.html
 skip-if(Android) == 649134-2.html 649134-2-ref.html
+== 741776-1.vtt 741776-1-ref.html
 
 == bug448564-1_malformed.html bug448564-1_well-formed.html
 == bug448564-1_malformed.html bug448564-1_ideal.html
@@ -35,7 +36,8 @@ skip-if(Android) == 649134-2.html 649134-2-ref.html
 == bug502168-1_malformed.html bug502168-1_well-formed.html
 
 == responsive-image-load-shortcircuit.html responsive-image-load-shortcircuit-ref.html
-== image-load-shortcircuit.html image-load-shortcircuit-ref.html
+== image-load-shortcircuit-1.html image-load-shortcircuit-ref.html
+== image-load-shortcircuit-2.html image-load-shortcircuit-ref.html
 
 # Test that image documents taken into account CSS properties like
 # image-orientation when determining the size of the image.

@@ -93,12 +93,11 @@ var gPlayedTests = [
 // Used by test_mozLoadFrom.  Need one test file per decoder backend, plus
 // anything for testing clone-specific bugs.
 var cloneKey = Math.floor(Math.random()*100000000);
-var gCloneTests = gSmallTests.concat([
-  { name:"bug520908.ogv", type:"video/ogg", duration:0.2 },
+var gCloneTests = [
   // short-video is more like 1s, so if you load this twice you'll get an unexpected duration
   { name:"dynamic_resource.sjs?key=" + cloneKey + "&res1=320x240.ogv&res2=short-video.ogv",
     type:"video/ogg", duration:0.266 },
-]);
+];
 
 // Used by test_play_twice.  Need one test file per decoder backend, plus
 // anything for testing bugs that occur when replying a played file.
@@ -538,15 +537,9 @@ var gErrorTests = [
   { name:"bogus.duh", type:"bogus/duh" }
 ];
 
-function IsWindowsVistaOrLater() {
-  var re = /Windows NT (\d+.\d)/;
-  var winver = manifestNavigator().userAgent.match(re);
-  return winver && winver.length == 2 && parseFloat(winver[1]) >= 6.0;
-}
-
 // Windows' H.264 decoder cannot handle H.264 streams with resolution
 // less than 48x48 pixels. We refuse to play and error on such streams.
-if (IsWindowsVistaOrLater() &&
+if (manifestNavigator().userAgent.includes("Windows") &&
     manifestVideo().canPlayType('video/mp4; codecs="avc1.42E01E"')) {
   gErrorTests = gErrorTests.concat({name: "red-46x48.mp4", type:"video/mp4"},
                                    {name: "red-48x46.mp4", type:"video/mp4"});
@@ -795,6 +788,29 @@ var gMetadataTests = [
 
 // Test files for Encrypted Media Extensions
 var gEMETests = [
+  {
+    name:"vp9 in mp4",
+    tracks: [
+      {
+          name:"video",
+          type:"video/mp4; codecs=\"vp9.0\"",
+          fragments:[ "short-vp9-encrypted-video.mp4",
+                    ]
+      },
+      {
+          name:"audio",
+          type:"audio/mp4; codecs=\"mp4a.40.2\"",
+          fragments:[ "short-aac-encrypted-audio.mp4",
+                    ]
+      }
+    ],
+    keys: {
+      "2cdb0ed6119853e7850671c3e9906c3c":"808B9ADAC384DE1E4F56140F4AD76194"
+    },
+    sessionType:"temporary",
+    sessionCount:2,
+    duration:0.47
+  },
   {
     name:"video-only with 2 keys",
     tracks: [
@@ -1428,6 +1444,30 @@ var gEMETests = [
     sessionCount:2,
     duration:1.60,
   },
+  {
+    name: "WebM vorbis audio & vp9 video clearkey with subsample encryption",
+    tracks: [
+      {
+        name:"audio",
+        type:"audio/webm; codecs=\"vorbis\"",
+        fragments:[ "sintel-short-clearkey-subsample-encrypted-audio.webm",
+                  ],
+      },
+      {
+        name:"video",
+        type:"video/webm; codecs=\"vp9\"",
+        fragments:[ "sintel-short-clearkey-subsample-encrypted-video.webm",
+                  ],
+      },
+    ],
+    keys: {
+      // "keyid" : "key"
+      "2cdb0ed6119853e7850671c3e9906c3c" : "808B9ADAC384DE1E4F56140F4AD76194",
+    },
+    sessionType:"temporary",
+    sessionCount:2,
+    duration:2.0,
+  },
 ];
 
 var gEMENonMSEFailTests = [
@@ -1505,16 +1545,15 @@ function removeNodeAndSource(n) {
   n.srcObject = null;
   n.src = "";
   while (n.firstChild) {
-    n.removeChild(n.firstChild);
+    n.firstChild.remove();
   }
 }
 
 function once(target, name, cb) {
   var p = new Promise(function(resolve, reject) {
-    target.addEventListener(name, function onceEvent() {
-      target.removeEventListener(name, onceEvent);
+    target.addEventListener(name, function() {
       resolve();
-    });
+    }, {once: true});
   });
   if (cb) {
     p.then(cb);
@@ -1572,6 +1611,12 @@ const DEBUG_TEST_LOOP_FOREVER = false;
 //      or end the mochitest if all the tests are done.
 function MediaTestManager() {
 
+  // Set a very large timeout to prevent Mochitest timeout.
+  // Instead MediaTestManager will manage timeout of each test.
+  SimpleTest.requestLongerTimeout(1000);
+
+  this.hasTimeout = false;
+
   // Return how many seconds elapsed since |begin|.
   function elapsedTime(begin) {
     var end = new Date();
@@ -1595,6 +1640,7 @@ function MediaTestManager() {
     this.isShutdown = false;
     this.numTestsRunning = 0;
     this.handlers = {};
+    this.timers = {};
 
     // Always wait for explicit finish.
     SimpleTest.waitForExplicitFinish();
@@ -1621,6 +1667,15 @@ function MediaTestManager() {
     this.tokens.push(token);
     this.numTestsRunning++;
     this.handlers[token] = handler;
+
+    var onTimeout = function() {
+      this.hasTimeout = true;
+      ok(false, `${token} timed out!`);
+      this.finished(token);
+    }.bind(this);
+    // Default timeout to 180s for each test.
+    this.timers[token] = setTimeout(onTimeout, 180000);
+
     is(this.numTestsRunning, this.tokens.length,
        "[started " + token + " t=" + elapsedTime(this.startTime) + "] Length of array should match number of running tests");
   }
@@ -1634,6 +1689,12 @@ function MediaTestManager() {
     if (i != -1) {
       // Remove the element from the list of running tests.
       this.tokens.splice(i, 1);
+    }
+
+    if (this.timers[token]) {
+      // Cancel the timer when the test finishes.
+      clearTimeout(this.timers[token]);
+      this.timers[token] = null;
     }
 
     info("[finished " + token + "] remaining= " + this.tokens);
@@ -1674,6 +1735,9 @@ function MediaTestManager() {
       if (this.onFinished) {
         this.onFinished();
       }
+      if (this.hasTimeout) {
+        dumpDebugInfo();
+      }
       var onCleanup = function() {
         var end = new Date();
         SimpleTest.info("Finished at " + end + " (" + (end.getTime() / 1000) + "s)");
@@ -1708,18 +1772,20 @@ function isSlowPlatform() {
   return SpecialPowers.Services.appinfo.name == "B2G" || getAndroidVersion() == 10;
 }
 
+function dumpDebugInfo() {
+  for (var v of document.getElementsByTagName("video")) {
+    v.mozDumpDebugInfo();
+  }
+  for (var a of document.getElementsByTagName("audio")) {
+    a.mozDumpDebugInfo();
+  }
+}
+
 // Could be undefined in a page opened by the parent test page
 // like file_access_controls.html.
 if ("SimpleTest" in window) {
   SimpleTest.requestFlakyTimeout("untriaged");
 
   // Register timeout function to dump debugging logs.
-  SimpleTest.registerTimeoutFunction(function() {
-    for (var v of document.getElementsByTagName("video")) {
-      v.mozDumpDebugInfo();
-    }
-    for (var a of document.getElementsByTagName("audio")) {
-      a.mozDumpDebugInfo();
-    }
-  });
+  SimpleTest.registerTimeoutFunction(dumpDebugInfo);
 }

@@ -36,7 +36,7 @@ do_register_cleanup(() => {
 
 Services.prefs.setCharPref("network.dns.localDomains", "www.example.com");
 Services.prefs.setIntPref("security.OCSP.enabled", 1);
-addCertFromFile(certdb, "test_ev_certs/evroot.pem", "CTu,,");
+const evroot = addCertFromFile(certdb, "test_ev_certs/evroot.pem", "CTu,,");
 addCertFromFile(certdb, "test_ev_certs/non-evroot-ca.pem", "CTu,,");
 
 const SERVER_PORT = 8888;
@@ -65,8 +65,7 @@ class EVCertVerificationResult {
 }
 
 function asyncTestEV(cert, expectedPRErrorCode, expectedEV,
-                     expectedOCSPRequestPaths, ocspResponseTypes = undefined)
-{
+                     expectedOCSPRequestPaths, ocspResponseTypes = undefined) {
   let now = Date.now() / 1000;
   return new Promise((resolve, reject) => {
     let ocspResponder = expectedOCSPRequestPaths.length > 0
@@ -214,7 +213,6 @@ add_task(function* expectDVFallbackTests() {
 // causes the verifications to succeed again).
 add_task(function* evRootTrustTests() {
   clearOCSPCache();
-  let evroot = certdb.findCertByNickname("evroot");
   do_print("untrusting evroot");
   certdb.setCertTrust(evroot, Ci.nsIX509Cert.CA_CERT,
                       Ci.nsIX509CertDB.UNTRUSTED);

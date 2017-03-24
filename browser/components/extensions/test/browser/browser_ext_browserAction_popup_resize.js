@@ -2,10 +2,10 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-function* openPanel(extension, win = window) {
+function* openPanel(extension, win = window, awaitLoad = false) {
   clickBrowserAction(extension, win);
 
-  return yield awaitExtensionPanel(extension, win, false);
+  return yield awaitExtensionPanel(extension, win, awaitLoad);
 }
 
 add_task(function* testBrowserActionPopupResize() {
@@ -24,7 +24,7 @@ add_task(function* testBrowserActionPopupResize() {
 
   yield extension.startup();
 
-  let browser = yield openPanel(extension);
+  let browser = yield openPanel(extension, undefined, true);
 
   function* checkSize(expected) {
     let dims = yield promiseContentDimensions(browser);
@@ -113,7 +113,7 @@ function* testPopupSize(standardsMode, browserWin = window, arrowSide = "top") {
 
   if (arrowSide == "top") {
     // Test the standalone panel for a toolbar button.
-    let browser = yield openPanel(extension, browserWin);
+    let browser = yield openPanel(extension, browserWin, true);
 
     let dims = yield promiseContentDimensions(browser);
 
@@ -180,7 +180,7 @@ function* testPopupSize(standardsMode, browserWin = window, arrowSide = "top") {
 
   // Wait long enough to make sure the initial resize debouncing timer has
   // expired.
-  yield new Promise(resolve => setTimeout(resolve, 100));
+  yield delay(100);
 
   let dims = yield promiseContentDimensions(browser);
 
@@ -295,8 +295,10 @@ add_task(function* testBrowserActionMenuResizeBottomArrow() {
       break;
     }
 
-    yield new Promise(resolve => setTimeout(resolve, 100));
+    yield delay(100);
   }
+
+  yield SimpleTest.promiseFocus(win);
 
   yield testPopupSize(true, win, "bottom");
 

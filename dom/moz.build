@@ -4,6 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# interfaces/*/ are annotated per directory, this is for new files
+with Files("**"):
+    BUG_COMPONENT = ("Core", "DOM")
+
+with Files("plugins/**"):
+    BUG_COMPONENT = ("Core", "Plug-ins")
+
 JAR_MANIFESTS += ['jar.mn']
 
 interfaces = [
@@ -12,7 +19,6 @@ interfaces = [
     'core',
     'html',
     'events',
-    'settings',
     'stylesheets',
     'sidebar',
     'css',
@@ -27,10 +33,8 @@ interfaces = [
     'offline',
     'geolocation',
     'notification',
-    'permission',
     'svg',
     'smil',
-    'apps',
     'push',
 ]
 
@@ -38,19 +42,18 @@ DIRS += ['interfaces/' + i for i in interfaces]
 
 DIRS += [
     'animation',
-    'apps',
     'base',
-    'archivereader',
     'bindings',
     'battery',
     'browser-element',
     'cache',
     'canvas',
+    'commandhandler',
     'crypto',
-    'devicestorage',
     'encoding',
     'events',
     'fetch',
+    'file',
     'filehandle',
     'filesystem',
     'flyweb',
@@ -58,7 +61,6 @@ DIRS += [
     'geolocation',
     'grid',
     'html',
-    'inputport',
     'json',
     'jsurl',
     'asmjscache',
@@ -70,7 +72,6 @@ DIRS += [
     'push',
     'quota',
     'security',
-    'settings',
     'storage',
     'svg',
     'time',
@@ -89,7 +90,7 @@ DIRS += [
     'promise',
     'smil',
     'url',
-    'inputmethod',
+    'webauthn',
     'webidl',
     'xbl',
     'xml',
@@ -100,6 +101,7 @@ DIRS += [
     'u2f',
     'console',
     'performance',
+    'webbrowserpersist',
     'xhr',
     'worklet',
 ]
@@ -107,20 +109,8 @@ DIRS += [
 if CONFIG['OS_ARCH'] == 'WINNT':
     DIRS += ['plugins/ipc/hangui']
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    DIRS += [
-        'speakermanager',
-        'tethering',
-        'wifi',
-    ]
-
 if CONFIG['MOZ_SECUREELEMENT']:
     DIRS += ['secureelement']
-
-if CONFIG['MOZ_B2G']:
-    DIRS += [
-        'downloads',
-    ]
 
 DIRS += ['presentation']
 

@@ -44,19 +44,11 @@ public:
   NS_IMETHOD GetNodeId(const nsAString& aOrigin,
                        const nsAString& aTopLevelOrigin,
                        const nsAString& aGMPName,
-                       bool aInPrivateBrowsingMode,
                        UniquePtr<GetNodeIdCallback>&& aCallback) override;
 
   NS_DECL_MOZIGECKOMEDIAPLUGINCHROMESERVICE
   NS_DECL_NSIOBSERVER
 
-  void AsyncShutdownNeeded(GMPParent* aParent);
-  void AsyncShutdownComplete(GMPParent* aParent);
-
-  int32_t AsyncShutdownTimeoutMs();
-#ifdef MOZ_CRASHREPORTER
-  void SetAsyncShutdownPluginState(GMPParent* aGMPParent, char aId, const nsCString& aState);
-#endif // MOZ_CRASHREPORTER
   RefPtr<GenericPromise> EnsureInitialized();
   RefPtr<GenericPromise> AsyncAddPluginDirectory(const nsAString& aDirectory);
 
@@ -72,6 +64,8 @@ public:
   void ServiceUserDestroyed();
 
   void UpdateContentProcessGMPCapabilities();
+
+  AbstractThread* MainThread() const { return mMainThread; }
 
 private:
   friend class GMPServiceParent;
@@ -90,21 +84,17 @@ private:
                                                    size_t* aOutPluginIndex);
 
   nsresult GetNodeId(const nsAString& aOrigin, const nsAString& aTopLevelOrigin,
-                     const nsAString& aGMPName,
-                     bool aInPrivateBrowsing, nsACString& aOutId);
+                     const nsAString& aGMPName, nsACString& aOutId);
 
   void UnloadPlugins();
   void CrashPlugins();
   void NotifySyncShutdownComplete();
-  void NotifyAsyncShutdownComplete();
 
   void ProcessPossiblePlugin(nsIFile* aDir);
 
   void RemoveOnGMPThread(const nsAString& aDirectory,
                          const bool aDeleteFromDisk,
                          const bool aCanDefer);
-
-  nsresult SetAsyncShutdownTimeout();
 
   struct DirectoryFilter {
     virtual bool operator()(nsIFile* aPath) = 0;
@@ -126,12 +116,19 @@ protected:
   void InitializePlugins(AbstractThread* aAbstractGMPThread) override;
   RefPtr<GenericPromise::AllPromiseType> LoadFromEnvironment();
   RefPtr<GenericPromise> AddOnGMPThread(nsString aDirectory);
-  bool GetContentParentFrom(GMPCrashHelper* aHelper,
-                            const nsACString& aNodeId,
-                            const nsCString& aAPI,
-                            const nsTArray<nsCString>& aTags,
-                            UniquePtr<GetGMPContentParentCallback>&& aCallback)
-    override;
+
+  virtual RefPtr<GetGMPContentParentPromise> GetContentParent(
+    GMPCrashHelper* aHelper,
+    const nsACString& aNodeIdString,
+    const nsCString& aAPI,
+    const nsTArray<nsCString>& aTags) override;
+
+  RefPtr<GetGMPContentParentPromise> GetContentParent(
+    GMPCrashHelper* aHelper,
+    const NodeId& aNodeId,
+    const nsCString& aAPI,
+    const nsTArray<nsCString>& aTags) override;
+
 private:
   // Creates a copy of aOriginal. Note that the caller is responsible for
   // adding this to GeckoMediaPluginServiceParent::mPlugins.
@@ -167,22 +164,6 @@ private:
   // Protected by mMutex from the base class.
   nsTArray<RefPtr<GMPParent>> mPlugins;
   bool mShuttingDown;
-  nsTArray<RefPtr<GMPParent>> mAsyncShutdownPlugins;
-
-#ifdef MOZ_CRASHREPORTER
-  Mutex mAsyncShutdownPluginStatesMutex; // Protects mAsyncShutdownPluginStates.
-  class AsyncShutdownPluginStates
-  {
-  public:
-    void Update(const nsCString& aPlugin, const nsCString& aInstance,
-                char aId, const nsCString& aState);
-  private:
-    struct State { nsCString mStateSequence; nsCString mLastStateDescription; };
-    typedef nsClassHashtable<nsCStringHashKey, State> StatesByInstance;
-    typedef nsClassHashtable<nsCStringHashKey, StatesByInstance> StateInstancesByPlugin;
-    StateInstancesByPlugin mStates;
-  } mAsyncShutdownPluginStates;
-#endif // MOZ_CRASHREPORTER
 
   // True if we've inspected MOZ_GMP_PATH on the GMP thread and loaded any
   // plugins found there into mPlugins.
@@ -229,6 +210,8 @@ private:
   // Tracks how many users are running (on the GMP thread). Only when this count
   // drops to 0 can we safely shut down the thread.
   MainThreadOnly<int32_t> mServiceUserCount;
+
+  const RefPtr<AbstractThread> mMainThread;
 };
 
 nsresult ReadSalt(nsIFile* aPath, nsACString& aOutData);
@@ -246,26 +229,34 @@ public:
   }
   virtual ~GMPServiceParent();
 
-  bool RecvGetGMPNodeId(const nsString& aOrigin,
-                        const nsString& aTopLevelOrigin,
-                        const nsString& aGMPName,
-                        const bool& aInPrivateBrowsing,
-                        nsCString* aID) override;
+  ipc::IPCResult RecvGetGMPNodeId(const nsString& aOrigin,
+                                  const nsString& aTopLevelOrigin,
+                                  const nsString& aGMPName,
+                                  nsCString* aID) override;
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  static PGMPServiceParent* Create(Transport* aTransport, ProcessId aOtherPid);
+  static bool Create(Endpoint<PGMPServiceParent>&& aGMPService);
 
-  bool RecvSelectGMP(const nsCString& aNodeId,
-                     const nsCString& aAPI,
-                     nsTArray<nsCString>&& aTags,
-                     uint32_t* aOutPluginId,
-                     nsresult* aOutRv) override;
+  ipc::IPCResult RecvLaunchGMP(const nsCString& aNodeId,
+                               const nsCString& aAPI,
+                               nsTArray<nsCString>&& aTags,
+                               nsTArray<ProcessId>&& aAlreadyBridgedTo,
+                               uint32_t* aOutPluginId,
+                               ProcessId* aOutID,
+                               nsCString* aOutDisplayName,
+                               Endpoint<PGMPContentParent>* aOutEndpoint,
+                               nsresult* aOutRv) override;
 
-  bool RecvLaunchGMP(const uint32_t& aPluginId,
-                     nsTArray<ProcessId>&& aAlreadyBridgedTo,
-                     ProcessId* aOutID,
-                     nsCString* aOutDisplayName,
-                     nsresult* aOutRv) override;
+  ipc::IPCResult RecvLaunchGMPForNodeId(
+    const NodeIdData& nodeId,
+    const nsCString& aAPI,
+    nsTArray<nsCString>&& aTags,
+    nsTArray<ProcessId>&& aAlreadyBridgedTo,
+    uint32_t* aOutPluginId,
+    ProcessId* aOutID,
+    nsCString* aOutDisplayName,
+    Endpoint<PGMPContentParent>* aOutEndpoint,
+    nsresult* aOutRv) override;
 
 private:
   void CloseTransport(Monitor* aSyncMonitor, bool* aCompleted);

@@ -55,7 +55,7 @@ this.TabCrashHandler = {
     return this.prefs = Services.prefs.getBranch("browser.tabs.crashReporting.");
   },
 
-  init: function () {
+  init() {
     if (this.initialized)
       return;
     this.initialized = true;
@@ -74,7 +74,7 @@ this.TabCrashHandler = {
     this.pageListener.addMessageListener("restoreAll", this.receiveMessage.bind(this));
   },
 
-  observe: function (aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     switch (aTopic) {
       case "ipc:content-shutdown": {
         aSubject.QueryInterface(Ci.nsIPropertyBag2);
@@ -140,7 +140,7 @@ this.TabCrashHandler = {
     }
   },
 
-  receiveMessage: function(message) {
+  receiveMessage(message) {
     let browser = message.target.browser;
     let gBrowser = browser.ownerGlobal.gBrowser;
     let tab = gBrowser.getTabForBrowser(browser);
@@ -335,6 +335,12 @@ this.TabCrashHandler = {
 
     let browser = message.target.browser;
 
+    if (message.data.autoSubmit) {
+      // The user has opted in to autosubmitted backlogged
+      // crash reports in the future.
+      UnsubmittedCrashHandler.autoSubmit = true;
+    }
+
     let childID = this.browserMap.get(browser.permanentKey);
     let dumpID = this.childMap.get(childID);
     if (!dumpID)
@@ -394,7 +400,7 @@ this.TabCrashHandler = {
     this.removeSubmitCheckboxesForSameCrash(childID);
   },
 
-  removeSubmitCheckboxesForSameCrash: function(childID) {
+  removeSubmitCheckboxesForSameCrash(childID) {
     let enumerator = Services.wm.getEnumerator("navigator:browser");
     while (enumerator.hasMoreElements()) {
       let window = enumerator.getNext();
@@ -422,7 +428,7 @@ this.TabCrashHandler = {
     }
   },
 
-  onAboutTabCrashedLoad: function (message) {
+  onAboutTabCrashedLoad(message) {
     this._crashedTabCount++;
 
     // Broadcast to all about:tabcrashed pages a count of
@@ -449,13 +455,23 @@ this.TabCrashHandler = {
       return;
     }
 
+    let requestAutoSubmit = !UnsubmittedCrashHandler.autoSubmit;
+    let requestEmail = this.prefs.getBoolPref("requestEmail");
     let sendReport = this.prefs.getBoolPref("sendReport");
     let includeURL = this.prefs.getBoolPref("includeURL");
     let emailMe = this.prefs.getBoolPref("emailMe");
 
-    let data = { hasReport: true, sendReport, includeURL, emailMe };
+    let data = {
+      hasReport: true,
+      sendReport,
+      includeURL,
+      emailMe,
+      requestAutoSubmit,
+      requestEmail,
+    };
+
     if (emailMe) {
-      data.email = this.prefs.getCharPref("email", "");
+      data.email = this.prefs.getCharPref("email");
     }
 
     // Make sure to only count once even if there are multiple windows
@@ -818,7 +834,7 @@ this.UnsubmittedCrashHandler = {
     },
     {
       label: gNavigatorBundle.GetStringFromName("pendingCrashReports.viewAll"),
-      callback: function() {
+      callback() {
         chromeWin.openUILinkIn("about:crashes", "tab");
         return true;
       },
@@ -893,9 +909,9 @@ this.PluginCrashReporter = {
   },
 
   uninit() {
-    Services.obs.removeObserver(this, "plugin-crashed", false);
-    Services.obs.removeObserver(this, "gmp-plugin-crash", false);
-    Services.obs.removeObserver(this, "profile-after-change", false);
+    Services.obs.removeObserver(this, "plugin-crashed");
+    Services.obs.removeObserver(this, "gmp-plugin-crash");
+    Services.obs.removeObserver(this, "profile-after-change");
     this.initialized = false;
   },
 

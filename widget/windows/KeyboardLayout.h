@@ -382,9 +382,17 @@ private:
   // Please note that the event may not cause any text input even if this
   // is true.  E.g., it might be dead key state or Ctrl key may be pressed.
   bool    mIsPrintableKey;
+  // mCharMessageHasGone is true if the message is a keydown message and
+  // it's followed by at least one char message but it's gone at removing
+  // from the queue.  This could occur if PeekMessage() or something is
+  // hooked by odd tool.
+  bool    mCharMessageHasGone;
   // mIsOverridingKeyboardLayout is true if the instance temporarily overriding
   // keyboard layout with specified by the constructor.
   bool    mIsOverridingKeyboardLayout;
+  // mCanIgnoreModifierStateAtKeyPress is true if it's allowed to remove
+  // Ctrl or Alt modifier state at dispatching eKeyPress.
+  bool    mCanIgnoreModifierStateAtKeyPress;
 
   nsTArray<FakeCharMsg>* mFakeCharMsgs;
 
@@ -447,7 +455,7 @@ private:
 
   UINT GetScanCodeWithExtendedFlag() const;
 
-  // The result is one of nsIDOMKeyEvent::DOM_KEY_LOCATION_*.
+  // The result is one of eKeyLocation*.
   uint32_t GetKeyLocation() const;
 
   /**
@@ -508,6 +516,8 @@ private:
     return (aMessage == WM_SYSCHAR || aMessage == WM_SYSDEADCHAR);
   }
   bool MayBeSameCharMessage(const MSG& aCharMsg1, const MSG& aCharMsg2) const;
+  bool IsSamePhysicalKeyMessage(const MSG& aKeyOrCharMsg1,
+                                const MSG& aKeyOrCharMsg2) const;
   bool IsFollowedByPrintableCharMessage() const;
   bool IsFollowedByPrintableCharOrSysCharMessage() const;
   bool IsFollowedByDeadCharMessage() const;
@@ -548,11 +558,6 @@ private:
    *          hwnd may be different window.
    */
   bool GetFollowingCharMessage(MSG& aCharMsg);
-
-  /**
-   * Whether the key event can compute virtual keycode from the scancode value.
-   */
-  bool CanComputeVirtualKeyCodeFromScanCode() const;
 
   /**
    * Wraps MapVirtualKeyEx() with MAPVK_VSC_TO_VK.
@@ -662,6 +667,8 @@ private:
 
   static const MSG sEmptyMSG;
 
+  static MSG sLastKeyMSG;
+
   static bool IsEmptyMSG(const MSG& aMSG)
   {
     return !memcmp(&aMSG, &sEmptyMSG, sizeof(MSG));
@@ -671,6 +678,13 @@ private:
   {
     return mLastInstance && !IsEmptyMSG(mLastInstance->mRemovingMsg);
   }
+
+public:
+  /**
+   * Returns last key MSG.  If no key MSG has been received yet, the result
+   * is empty MSG (i.e., .message is WM_NULL).
+   */
+  static const MSG& LastKeyMSG() { return sLastKeyMSG; }
 };
 
 class KeyboardLayout
@@ -678,6 +692,8 @@ class KeyboardLayout
 public:
   static KeyboardLayout* GetInstance();
   static void Shutdown();
+  static HKL GetActiveLayout();
+  static nsCString GetActiveLayoutName();
   static void NotifyIdleServiceOfUserActivity();
 
   static bool IsPrintableCharKey(uint8_t aVirtualKey);
@@ -694,7 +710,7 @@ public:
    * It starts when a dead key is down and ends when another key down causes
    * inactivating the dead key state.
    */
-  bool IsInDeadKeySequence() const { return mActiveDeadKey >= 0; }
+  bool IsInDeadKeySequence() const { return !mActiveDeadKeys.IsEmpty(); }
 
   /**
    * IsSysKey() returns true if aVirtualKey with aModKeyState causes WM_SYSKEY*
@@ -811,8 +827,14 @@ private:
 
   VirtualKey mVirtualKeys[NS_NUM_OF_KEYS];
   DeadKeyTableListEntry* mDeadKeyTableListHead;
-  int32_t mActiveDeadKey;                 // -1 = no active dead-key
-  VirtualKey::ShiftState mDeadKeyShiftState;
+  // When mActiveDeadKeys is empty, it's not in dead key sequence.
+  // Otherwise, it contains virtual keycodes which are pressed in current
+  // dead key sequence.
+  nsTArray<uint8_t> mActiveDeadKeys;
+  // mDeadKeyShiftStates is always same length as mActiveDeadKeys.
+  // This stores shift states at pressing each dead key stored in
+  // mActiveDeadKeys.
+  nsTArray<VirtualKey::ShiftState> mDeadKeyShiftStates;
 
   bool mIsOverridden;
   bool mIsPendingToRestoreKeyboardLayout;
@@ -845,6 +867,12 @@ private:
    * state.
    */
   void LoadLayout(HKL aLayout);
+
+  /**
+   * Gets the keyboard layout name of aLayout.  Be careful, this may be too
+   * slow to call at handling user input.
+   */
+  nsCString GetLayoutName(HKL aLayout) const;
 
   /**
    * InitNativeKey() must be called when actually widget receives WM_KEYDOWN or
@@ -884,15 +912,19 @@ private:
                          VirtualKey::ShiftState aShiftState) const;
 
   /**
+   * GetDeadUniCharsAndModifiers() returns dead chars which are stored in
+   * current dead key sequence.  So, this is stateful.
+   */
+  UniCharsAndModifiers GetDeadUniCharsAndModifiers() const;
+
+  /**
    * GetCompositeChar() returns a composite character with dead character
-   * caused by aVirtualKeyOfDeadKey and aShiftStateOfDeadKey and a base
-   * character (aBaseChar).
+   * caused by mActiveDeadKeys, mDeadKeyShiftStates and a base character
+   * (aBaseChar).
    * If the combination of the dead character and the base character doesn't
    * cause a composite character, this returns 0.
    */
-  char16_t GetCompositeChar(uint8_t aVirtualKeyOfDeadKey,
-                            VirtualKey::ShiftState aShiftStateOfDeadKey,
-                            char16_t aBaseChar) const;
+  char16_t GetCompositeChar(char16_t aBaseChar) const;
 
   // NativeKey class should access InitNativeKey() directly, but it shouldn't
   // be available outside of NativeKey.  So, let's make NativeKey a friend

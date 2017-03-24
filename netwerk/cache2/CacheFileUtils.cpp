@@ -6,6 +6,7 @@
 #include "CacheLog.h"
 #include "CacheFileUtils.h"
 #include "LoadContextInfo.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Tokenizer.h"
 #include "mozilla/Telemetry.h"
 #include "nsCOMPtr.h"
@@ -34,8 +35,6 @@ class KeyParser : protected Tokenizer
 public:
   explicit KeyParser(nsACString const& aInput)
     : Tokenizer(aInput)
-    // Initialize attributes to their default values
-    , originAttribs(0, false)
     , isAnonymous(false)
     // Initialize the cache key to a zero length by default
     , lastTag(0)
@@ -44,7 +43,7 @@ public:
 
 private:
   // Results
-  NeckoOriginAttributes originAttribs;
+  OriginAttributes originAttribs;
   bool isAnonymous;
   nsCString idEnhance;
   nsDependentCSubstring cacheKey;
@@ -212,7 +211,7 @@ AppendKeyPrefix(nsILoadContextInfo* aInfo, nsACString &_retval)
    * Keep the attributes list sorted according their ASCII code.
    */
 
-  NeckoOriginAttributes const *oa = aInfo->OriginAttributesPtr();
+  OriginAttributes const *oa = aInfo->OriginAttributesPtr();
   nsAutoCString suffix;
   oa->CreateSuffix(suffix);
   if (!suffix.IsEmpty()) {
@@ -320,7 +319,7 @@ ValidityPair::Merge(const ValidityPair& aOther)
 void
 ValidityMap::Log() const
 {
-  LOG(("ValidityMap::Log() - number of pairs: %u", mMap.Length()));
+  LOG(("ValidityMap::Log() - number of pairs: %" PRIuSIZE, mMap.Length()));
   for (uint32_t i=0; i<mMap.Length(); i++) {
     LOG(("    (%u, %u)", mMap[i].Offset() + 0, mMap[i].Len() + 0));
   }
@@ -551,7 +550,10 @@ ParseAlternativeDataInfo(const char *aInfo, int64_t *_offset, nsACString *_type)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  *_offset = altDataOffset;
+  if (_offset) {
+    *_offset = altDataOffset;
+  }
+
   if (_type) {
     mozilla::Unused << p.ReadUntil(Tokenizer::Token::EndOfFile(), *_type);
   }

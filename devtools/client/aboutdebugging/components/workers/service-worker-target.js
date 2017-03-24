@@ -6,16 +6,35 @@
 
 "use strict";
 
-const { createClass, DOM: dom } =
+const { createClass, DOM: dom, PropTypes } =
   require("devtools/client/shared/vendor/react");
 const { debugWorker } = require("../../modules/worker");
 const Services = require("Services");
+
+loader.lazyRequireGetter(this, "DebuggerClient",
+  "devtools/shared/client/main", true);
 
 const Strings = Services.strings.createBundle(
   "chrome://devtools/locale/aboutdebugging.properties");
 
 module.exports = createClass({
   displayName: "ServiceWorkerTarget",
+
+  propTypes: {
+    client: PropTypes.instanceOf(DebuggerClient).isRequired,
+    debugDisabled: PropTypes.bool,
+    target: PropTypes.shape({
+      active: PropTypes.bool,
+      fetch: PropTypes.bool.isRequired,
+      icon: PropTypes.string,
+      name: PropTypes.string.isRequired,
+      url: PropTypes.string,
+      scope: PropTypes.string.isRequired,
+      // registrationActor can be missing in e10s.
+      registrationActor: PropTypes.string,
+      workerActor: PropTypes.string
+    }).isRequired
+  },
 
   getInitialState() {
     return {
@@ -136,7 +155,8 @@ module.exports = createClass({
   renderButtons() {
     let pushButton = dom.button({
       className: "push-button",
-      onClick: this.push
+      onClick: this.push,
+      disabled: this.props.debugDisabled
     }, Strings.GetStringFromName("push"));
 
     let debugButton = dom.button({
@@ -148,6 +168,7 @@ module.exports = createClass({
     let startButton = dom.button({
       className: "start-button",
       onClick: this.start,
+      disabled: this.props.debugDisabled
     }, Strings.GetStringFromName("start"));
 
     if (this.isRunning()) {
@@ -168,7 +189,7 @@ module.exports = createClass({
 
     return dom.a({
       onClick: this.unregister,
-      className: "unregister-link"
+      className: "unregister-link",
     }, Strings.GetStringFromName("unregister"));
   },
 
@@ -176,6 +197,9 @@ module.exports = createClass({
     let { target } = this.props;
     let { pushSubscription } = this.state;
     let status = this.getServiceWorkerStatus();
+
+    let fetch = target.fetch ? Strings.GetStringFromName("listeningForFetchEvents") :
+      Strings.GetStringFromName("notListeningForFetchEvents");
 
     return dom.div({ className: "target-container" },
       dom.img({
@@ -197,6 +221,12 @@ module.exports = createClass({
               }, pushSubscription.endpoint)) :
             null
           ),
+          dom.li({ className: "target-detail" },
+            dom.strong(null, Strings.GetStringFromName("fetch")),
+            dom.span({
+              className: "service-worker-fetch-flag",
+              title: fetch
+            }, fetch)),
           dom.li({ className: "target-detail" },
             dom.strong(null, Strings.GetStringFromName("scope")),
             dom.span({

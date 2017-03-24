@@ -22,6 +22,8 @@ namespace mozilla {
 // block frame uses along with ReflowInput. Like ReflowInput, this
 // is read-only data that is passed down from a parent frame to its children.
 class BlockReflowInput {
+  using BandInfoType = nsFloatManager::BandInfoType;
+  using ShapeType = nsFloatManager::ShapeType;
 
   // Block reflow input flags.
   struct Flags {
@@ -121,10 +123,14 @@ public:
    */
   nsFlowAreaRect GetFloatAvailableSpace() const
     { return GetFloatAvailableSpace(mBCoord); }
+  nsFlowAreaRect GetFloatAvailableSpaceForPlacingFloat(nscoord aBCoord) const
+    { return GetFloatAvailableSpaceWithState(
+        aBCoord, ShapeType::Margin, nullptr); }
   nsFlowAreaRect GetFloatAvailableSpace(nscoord aBCoord) const
-    { return GetFloatAvailableSpaceWithState(aBCoord, nullptr); }
+    { return GetFloatAvailableSpaceWithState(
+        aBCoord, ShapeType::ShapeOutside, nullptr); }
   nsFlowAreaRect
-    GetFloatAvailableSpaceWithState(nscoord aBCoord,
+    GetFloatAvailableSpaceWithState(nscoord aBCoord, ShapeType aShapeType,
                                     nsFloatManager::SavedState *aState) const;
   nsFlowAreaRect
     GetFloatAvailableSpaceForBSize(nscoord aBCoord, nscoord aBSize,
@@ -152,6 +158,13 @@ public:
   nscoord ClearFloats(nscoord aBCoord, mozilla::StyleClear aBreakType,
                       nsIFrame *aReplacedBlock = nullptr,
                       uint32_t aFlags = 0);
+
+  nsFloatManager* FloatManager() const {
+    MOZ_ASSERT(mReflowInput.mFloatManager,
+               "Float manager should be valid during the lifetime of "
+               "BlockReflowInput!");
+    return mReflowInput.mFloatManager;
+  }
 
   // Advances to the next band, i.e., the next horizontal stripe in
   // which there is a different set of floats.
@@ -191,9 +204,10 @@ public:
   }
 
   /**
-   * Retrieve the block-direction size "consumed" by any previous-in-flows.
+   * Retrieve the block-axis content size "consumed" by any prev-in-flows.
+   * @note the value is cached so subsequent calls will return the same value
    */
-  nscoord GetConsumedBSize();
+  nscoord ConsumedBSize();
 
   // Reconstruct the previous block-end margin that goes before |aLine|.
   void ReconstructMarginBefore(nsLineList::iterator aLine);
@@ -232,8 +246,6 @@ public:
   nsPresContext* mPresContext;
 
   const ReflowInput& mReflowInput;
-
-  nsFloatManager* mFloatManager;
 
   // The coordinates within the float manager where the block is being
   // placed <b>after</b> taking into account the blocks border and
@@ -375,6 +387,12 @@ public:
 
   // The amount of computed block-direction size "consumed" by previous-in-flows.
   nscoord mConsumedBSize;
+
+  // Cache the current line's BSize if nsBlockFrame::PlaceLine() fails to
+  // place the line. When redoing the line, it will be used to query the
+  // accurate float available space in AddFloat() and
+  // nsBlockFrame::PlaceLine().
+  mozilla::Maybe<nscoord> mLineBSize;
 
 private:
   bool CanPlaceFloat(nscoord aFloatISize,

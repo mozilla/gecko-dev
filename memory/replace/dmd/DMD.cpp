@@ -20,6 +20,8 @@
 #include <windows.h>
 #include <process.h>
 #else
+#include <pthread.h>
+#include <sys/types.h>
 #include <unistd.h>
 #endif
 
@@ -440,9 +442,6 @@ public:
 
 #else
 
-#include <pthread.h>
-#include <sys/types.h>
-
 class MutexBase
 {
   pthread_mutex_t mMutex;
@@ -526,8 +525,6 @@ public:
 #define DMD_SET_TLS_DATA(i_, v_)        TlsSetValue((i_), (v_))
 
 #else
-
-#include <pthread.h>
 
 #define DMD_TLS_INDEX_TYPE               pthread_key_t
 #define DMD_CREATE_TLS_INDEX(i_)         pthread_key_create(&(i_), nullptr)
@@ -1546,6 +1543,22 @@ NopStackWalkCallback(uint32_t aFrameNumber, void* aPc, void* aSp,
 }
 #endif
 
+static void
+prefork()
+{
+  if (gStateLock) {
+    gStateLock->Lock();
+  }
+}
+
+static void
+postfork()
+{
+  if (gStateLock) {
+    gStateLock->Unlock();
+  }
+}
+
 // WARNING: this function runs *very* early -- before all static initializers
 // have run.  For this reason, non-scalar globals such as gStateLock and
 // gStackTraceTable are allocated dynamically (so we can guarantee their
@@ -1555,6 +1568,16 @@ Init(const malloc_table_t* aMallocTable)
 {
   gMallocTable = aMallocTable;
   gDMDBridge = InfallibleAllocPolicy::new_<DMDBridge>();
+
+#ifndef XP_WIN
+  // Avoid deadlocks when forking by acquiring our state lock prior to forking
+  // and releasing it after forking. See |LogAlloc|'s |replace_init| for
+  // in-depth details.
+  //
+  // Note: This must run after attempting an allocation so as to give the
+  // system malloc a chance to insert its own atfork handler.
+  pthread_atfork(prefork, postfork, postfork);
+#endif
 
   // DMD is controlled by the |DMD| environment variable.
   const char* e = getenv("DMD");

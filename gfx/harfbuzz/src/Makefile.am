@@ -218,7 +218,7 @@ harfbuzz.def: $(HBHEADERS) $(HBNODISTHEADERS)
 	(cat $^ || echo 'hb_ERROR ()' ) | \
 	$(EGREP) '^hb_.* \(' | \
 	sed -e 's/ (.*//' | \
-	LANG=C sort; \
+	LC_ALL=C sort; \
 	echo LIBRARY libharfbuzz-0.dll; \
 	) >"$@"
 	@ ! grep -q hb_ERROR "$@" \
@@ -298,6 +298,8 @@ test_size_params_LDADD = libharfbuzz.la $(HBLIBS)
 test_buffer_serialize_SOURCES = test-buffer-serialize.cc
 test_buffer_serialize_CPPFLAGS = $(HBCFLAGS)
 test_buffer_serialize_LDADD = libharfbuzz.la $(HBLIBS)
+
+check: harfbuzz.def # For check-defs.sh
 
 dist_check_SCRIPTS = \
 	check-c-linkage-decls.sh \

@@ -114,7 +114,7 @@ public:
     NS_IMETHOD WillInterrupt(void) override;
     NS_IMETHOD WillResume(void) override;
     NS_IMETHOD SetParser(nsParserBase* aParser) override;
-    virtual void FlushPendingNotifications(mozFlushType aType) override { }
+    virtual void FlushPendingNotifications(mozilla::FlushType aType) override { }
     NS_IMETHOD SetDocumentCharset(nsACString& aCharset) override { return NS_OK; }
     virtual nsISupports *GetTarget() override { return nullptr; }
 
@@ -257,6 +257,13 @@ static const nsStaticAtom rdf_atoms[] = {
 #undef RDF_ATOM
 };
 
+// static
+void
+nsRDFAtoms::RegisterAtoms()
+{
+    NS_RegisterStaticAtoms(rdf_atoms);
+}
+
 RDFContentSinkImpl::RDFContentSinkImpl()
     : mText(nullptr),
       mTextLength(0),
@@ -287,8 +294,6 @@ RDFContentSinkImpl::RDFContentSinkImpl()
 
         NS_DEFINE_CID(kRDFContainerUtilsCID, NS_RDFCONTAINERUTILS_CID);
         rv = CallGetService(kRDFContainerUtilsCID, &gRDFContainerUtils);
-
-        NS_RegisterStaticAtoms(rdf_atoms);
     }
 }
 

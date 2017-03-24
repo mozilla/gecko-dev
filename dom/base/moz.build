@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files("**"):
+    BUG_COMPONENT = ("Core", "DOM")
+
 TEST_DIRS += ['test']
 
 XPIDL_SOURCES += [
@@ -11,11 +14,9 @@ XPIDL_SOURCES += [
     'nsIContentPolicy.idl',
     'nsIContentPolicyBase.idl',
     'nsIDocumentEncoder.idl',
-    'nsIDOMBlob.idl',
     'nsIDOMDataChannel.idl',
     'nsIDOMDOMCursor.idl',
     'nsIDOMDOMRequest.idl',
-    'nsIDOMFileList.idl',
     'nsIDOMFormData.idl',
     'nsIDOMParser.idl',
     'nsIDOMSerializer.idl',
@@ -45,7 +46,6 @@ EXPORTS += [
     'HTMLSplitOnSpacesTokenizer.h',
     'IframeSandboxKeywordList.h',
     'mozAutoDocUpdate.h',
-    'mozFlushType.h',
     'nsAtomListUtils.h',
     'nsAttrAndChildArray.h',
     'nsAttrName.h',
@@ -68,7 +68,6 @@ EXPORTS += [
     'nsDocumentWarningList.h',
     'nsDOMAttributeMap.h',
     'nsDOMCID.h',
-    'nsDOMClassInfoClasses.h',
     'nsDOMClassInfoID.h',
     'nsDOMJSUtils.h',
     'nsDOMNavigationTiming.h',
@@ -78,8 +77,6 @@ EXPORTS += [
     'nsGenericDOMDataNode.h',
     'nsGkAtomList.h',
     'nsGkAtoms.h',
-    'nsHostObjectProtocolHandler.h',
-    'nsHostObjectURI.h',
     'nsIAnimationObserver.h',
     'nsIAttribute.h',
     'nsIContent.h',
@@ -142,6 +139,7 @@ if CONFIG['MOZ_WEBRTC']:
 EXPORTS.mozilla += [
     'CORSMode.h',
     'FeedWriterEnabled.h',
+    'FlushType.h',
     'TextInputProcessor.h',
     'UseCounter.h',
 ]
@@ -151,7 +149,6 @@ EXPORTS.mozilla.dom += [
     'AnonymousContent.h',
     'Attr.h',
     'BarProps.h',
-    'BlobSet.h',
     'BodyUtil.h',
     'BorrowedAttrInfo.h',
     'ChildIterator.h',
@@ -160,6 +157,7 @@ EXPORTS.mozilla.dom += [
     'Comment.h',
     'CustomElementRegistry.h',
     'DirectionalityUtils.h',
+    'DispatcherTrait.h',
     'DocGroup.h',
     'DocumentFragment.h',
     'DocumentType.h',
@@ -179,9 +177,6 @@ EXPORTS.mozilla.dom += [
     'Element.h',
     'ElementInlines.h',
     'EventSource.h',
-    'File.h',
-    'FileList.h',
-    'FileReader.h',
     'FormData.h',
     'FragmentOrElement.h',
     'FromParser.h',
@@ -193,14 +188,13 @@ EXPORTS.mozilla.dom += [
     'ImportManager.h',
     'Link.h',
     'Location.h',
-    'MutableBlobStorage.h',
-    'MutableBlobStreamListener.h',
     'NameSpaceConstants.h',
     'Navigator.h',
     'NodeInfo.h',
     'NodeInfoInlines.h',
     'NodeIterator.h',
     'PartialSHistory.h',
+    'Pose.h',
     'ProcessGlobal.h',
     'ResponsiveImageSelector.h',
     'SameProcessMessageQueue.h',
@@ -214,17 +208,23 @@ EXPORTS.mozilla.dom += [
     'TabGroup.h',
     'Text.h',
     'Timeout.h',
+    'TimeoutHandler.h',
+    'TimeoutManager.h',
     'TreeWalker.h',
     'WebKitCSSMatrix.h',
     'WebSocket.h',
     'WindowOrientationObserver.h',
 ]
 
+if CONFIG['FUZZING']:
+    EXPORTS.mozilla.dom += [
+        'FuzzingFunctions.h',
+    ]
+
 UNIFIED_SOURCES += [
     'AnonymousContent.cpp',
     'Attr.cpp',
     'BarProps.cpp',
-    'BlobSet.cpp',
     'BodyUtil.cpp',
     'BorrowedAttrInfo.cpp',
     'ChildIterator.cpp',
@@ -234,6 +234,7 @@ UNIFIED_SOURCES += [
     'Crypto.cpp',
     'CustomElementRegistry.cpp',
     'DirectionalityUtils.cpp',
+    'DispatcherTrait.cpp',
     'DocGroup.cpp',
     'DocumentFragment.cpp',
     'DocumentType.cpp',
@@ -250,9 +251,6 @@ UNIFIED_SOURCES += [
     'DOMStringList.cpp',
     'Element.cpp',
     'EventSource.cpp',
-    'File.cpp',
-    'FileList.cpp',
-    'FileReader.cpp',
     'FormData.cpp',
     'FragmentOrElement.cpp',
     'GroupedSHistory.cpp',
@@ -263,9 +261,6 @@ UNIFIED_SOURCES += [
     'ImportManager.cpp',
     'Link.cpp',
     'Location.cpp',
-    'MultipartBlobImpl.cpp',
-    'MutableBlobStorage.cpp',
-    'MutableBlobStreamListener.cpp',
     'Navigator.cpp',
     'NodeInfo.cpp',
     'NodeIterator.cpp',
@@ -299,8 +294,6 @@ UNIFIED_SOURCES += [
     'nsGkAtoms.cpp',
     'nsGlobalWindowCommands.cpp',
     'nsHistory.cpp',
-    'nsHostObjectProtocolHandler.cpp',
-    'nsHostObjectURI.cpp',
     'nsHTMLContentSerializer.cpp',
     'nsIGlobalObject.cpp',
     'nsINode.cpp',
@@ -345,6 +338,7 @@ UNIFIED_SOURCES += [
     'nsXMLContentSerializer.cpp',
     'nsXMLNameSpaceMap.cpp',
     'PartialSHistory.cpp',
+    'Pose.cpp',
     'PostMessageEvent.cpp',
     'ProcessGlobal.cpp',
     'ResponsiveImageSelector.cpp',
@@ -360,6 +354,8 @@ UNIFIED_SOURCES += [
     'TextInputProcessor.cpp',
     'ThirdPartyUtil.cpp',
     'Timeout.cpp',
+    'TimeoutHandler.cpp',
+    'TimeoutManager.cpp',
     'TreeWalker.cpp',
     'WebKitCSSMatrix.cpp',
     'WebSocket.cpp',
@@ -370,6 +366,19 @@ UNIFIED_SOURCES += [
 if CONFIG['MOZ_WEBRTC']:
     UNIFIED_SOURCES += [
         'nsDOMDataChannel.cpp',
+    ]
+
+if CONFIG['FUZZING']:
+    UNIFIED_SOURCES += [
+        'FuzzingFunctions.cpp',
+    ]
+
+if CONFIG['ENABLE_INTL_API']:
+    UNIFIED_SOURCES += [
+        'IntlUtils.cpp',
+    ]
+    EXPORTS.mozilla.dom += [
+        'IntlUtils.h',
     ]
 
 # these files couldn't be in UNIFIED_SOURCES for now for reasons given below:
@@ -403,6 +412,8 @@ EXTRA_COMPONENTS += [
     'contentAreaDropListener.manifest',
     'messageWakeupService.js',
     'messageWakeupService.manifest',
+    'ProcessSelector.js',
+    'ProcessSelector.manifest',
     'SlowScriptDebug.js',
     'SlowScriptDebug.manifest',
 ]
@@ -428,6 +439,7 @@ LOCAL_INCLUDES += [
     '/caps',
     '/docshell/base',
     '/dom/base',
+    '/dom/file',
     '/dom/geolocation',
     '/dom/html',
     '/dom/ipc',

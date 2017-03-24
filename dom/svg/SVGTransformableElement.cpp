@@ -13,7 +13,7 @@
 #include "nsContentUtils.h"
 #include "nsIDOMMutationEvent.h"
 #include "nsIFrame.h"
-#include "nsISVGChildFrame.h"
+#include "nsSVGDisplayableFrame.h"
 #include "mozilla/dom/SVGRect.h"
 #include "nsSVGUtils.h"
 #include "SVGContentUtils.h"
@@ -172,13 +172,13 @@ already_AddRefed<SVGIRect>
 SVGTransformableElement::GetBBox(const SVGBoundingBoxOptions& aOptions, 
                                  ErrorResult& rv)
 {
-  nsIFrame* frame = GetPrimaryFrame(Flush_Layout);
+  nsIFrame* frame = GetPrimaryFrame(FlushType::Layout);
 
   if (!frame || (frame->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
     rv.Throw(NS_ERROR_FAILURE);
     return nullptr;
   }
-  nsISVGChildFrame* svgframe = do_QueryFrame(frame);
+  nsSVGDisplayableFrame* svgframe = do_QueryFrame(frame);
   if (!svgframe) {
     rv.Throw(NS_ERROR_NOT_IMPLEMENTED); // XXX: outer svg
     return nullptr;
@@ -217,7 +217,7 @@ SVGTransformableElement::GetCTM()
   nsIDocument* currentDoc = GetComposedDoc();
   if (currentDoc) {
     // Flush all pending notifications so that our frames are up to date
-    currentDoc->FlushPendingNotifications(Flush_Layout);
+    currentDoc->FlushPendingNotifications(FlushType::Layout);
   }
   gfx::Matrix m = SVGContentUtils::GetCTM(this, false);
   RefPtr<SVGMatrix> mat = m.IsSingular() ? nullptr : new SVGMatrix(ThebesMatrix(m));
@@ -230,7 +230,7 @@ SVGTransformableElement::GetScreenCTM()
   nsIDocument* currentDoc = GetComposedDoc();
   if (currentDoc) {
     // Flush all pending notifications so that our frames are up to date
-    currentDoc->FlushPendingNotifications(Flush_Layout);
+    currentDoc->FlushPendingNotifications(FlushType::Layout);
   }
   gfx::Matrix m = SVGContentUtils::GetCTM(this, true);
   RefPtr<SVGMatrix> mat = m.IsSingular() ? nullptr : new SVGMatrix(ThebesMatrix(m));

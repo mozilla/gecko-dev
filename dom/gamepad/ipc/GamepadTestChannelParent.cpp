@@ -10,7 +10,7 @@
 namespace mozilla {
 namespace dom {
 
-bool
+mozilla::ipc::IPCResult
 GamepadTestChannelParent::RecvGamepadTestEvent(const uint32_t& aID,
                                                const GamepadChangeEvent& aEvent)
 {
@@ -23,40 +23,47 @@ GamepadTestChannelParent::RecvGamepadTestEvent(const uint32_t& aID,
     nsCString gamepadID;
     LossyCopyUTF16toASCII(a.id(), gamepadID);
     uint32_t index = service->AddGamepad(gamepadID.get(),
-                                         a.mapping(),
+                                         static_cast<GamepadMappingType>(a.mapping()),
+                                         a.hand(),
                                          a.num_buttons(),
-                                         a.num_axes());
+                                         a.num_axes(),
+                                         a.num_haptics());
     if (!mShuttingdown) {
       Unused << SendReplyGamepadIndex(aID, index);
     }
-    return true;
+    return IPC_OK();
   }
   if (aEvent.type() == GamepadChangeEvent::TGamepadRemoved) {
     const GamepadRemoved& a = aEvent.get_GamepadRemoved();
     service->RemoveGamepad(a.index());
-    return true;
+    return IPC_OK();
   }
   if (aEvent.type() == GamepadChangeEvent::TGamepadButtonInformation) {
     const GamepadButtonInformation& a = aEvent.get_GamepadButtonInformation();
     service->NewButtonEvent(a.index(), a.button(), a.pressed(), a.value());
-    return true;
+    return IPC_OK();
   }
   if (aEvent.type() == GamepadChangeEvent::TGamepadAxisInformation) {
     const GamepadAxisInformation& a = aEvent.get_GamepadAxisInformation();
     service->NewAxisMoveEvent(a.index(), a.axis(), a.value());
-    return true;
+    return IPC_OK();
+  }
+  if (aEvent.type() == GamepadChangeEvent::TGamepadPoseInformation) {
+    const GamepadPoseInformation& a = aEvent.get_GamepadPoseInformation();
+    service->NewPoseEvent(a.index(), a.pose_state());
+    return IPC_OK();
   }
 
   NS_WARNING("Unknown event type.");
-  return false;
+  return IPC_FAIL_NO_REASON(this);
 }
 
-bool
+mozilla::ipc::IPCResult
 GamepadTestChannelParent::RecvShutdownChannel()
 {
   mShuttingdown = true;
   Unused << Send__delete__(this);
-  return true;
+  return IPC_OK();
 }
 
 } // namespace dom

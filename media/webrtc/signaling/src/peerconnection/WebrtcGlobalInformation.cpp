@@ -34,7 +34,7 @@
 #include "runnable_utils.h"
 #include "PeerConnectionCtx.h"
 #include "PeerConnectionImpl.h"
-#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/include/trace.h"
 
 static const char* logTag = "WebrtcGlobalInformation";
 
@@ -420,7 +420,8 @@ RunStatsQuery(
 
   if (NS_FAILED(rv)) {
     return rv;
-  } else if (!stsThread) {
+  }
+  if (!stsThread) {
     return NS_ERROR_FAILURE;
   }
 
@@ -542,7 +543,8 @@ RunLogQuery(const nsCString& aPattern,
 
   if (NS_FAILED(rv)) {
     return rv;
-  } else if (!stsThread) {
+  }
+  if (!stsThread) {
     return NS_ERROR_FAILURE;
   }
 
@@ -704,7 +706,7 @@ WebrtcGlobalInformation::AecDebug(const GlobalObject& aGlobal)
   return sLastAECDebug;
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
                                        nsTArray<RTCStatsReportInternal>&& Stats)
 {
@@ -715,7 +717,7 @@ WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
 
   if (!request) {
     CSFLogError(logTag, "Bad RequestId");
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
 
   for (auto&& s : Stats) {
@@ -725,7 +727,10 @@ WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
   auto next = request->GetNextParent();
   if (next) {
     // There are more content instances to query.
-    return next->SendGetStatsRequest(request->mRequestId, request->mPcIdFilter);
+    if (!next->SendGetStatsRequest(request->mRequestId, request->mPcIdFilter)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   // Content queries complete, run chrome instance query if applicable
@@ -740,10 +745,13 @@ WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
     StatsRequest::Delete(aRequestId);
   }
 
-  return NS_SUCCEEDED(rv);
+  if (NS_FAILED(rv)) {
+    return IPC_FAIL_NO_REASON(this);
+  }
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalParent::RecvGetLogResult(const int& aRequestId,
                                      const WebrtcGlobalLog& aLog)
 {
@@ -753,14 +761,17 @@ WebrtcGlobalParent::RecvGetLogResult(const int& aRequestId,
 
   if (!request) {
     CSFLogError(logTag, "Bad RequestId");
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
   request->mResult.AppendElements(aLog, fallible);
 
   auto next = request->GetNextParent();
   if (next) {
     // There are more content instances to query.
-    return next->SendGetLogRequest(request->mRequestId, request->mPattern);
+    if (!next->SendGetLogRequest(request->mRequestId, request->mPattern)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   // Content queries complete, run chrome instance query if applicable
@@ -773,7 +784,7 @@ WebrtcGlobalParent::RecvGetLogResult(const int& aRequestId,
     LogRequest::Delete(aRequestId);
   }
 
-  return true;
+  return IPC_OK();
 }
 
 WebrtcGlobalParent*
@@ -796,10 +807,10 @@ WebrtcGlobalParent::ActorDestroy(ActorDestroyReason aWhy)
   return;
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalParent::Recv__delete__()
 {
-  return true;
+  return IPC_OK();
 }
 
 MOZ_IMPLICIT WebrtcGlobalParent::WebrtcGlobalParent()
@@ -813,12 +824,12 @@ MOZ_IMPLICIT WebrtcGlobalParent::~WebrtcGlobalParent()
   MOZ_COUNT_DTOR(WebrtcGlobalParent);
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvGetStatsRequest(const int& aRequestId,
                                        const nsString& aPcIdFilter)
 {
   if (mShutdown) {
-    return true;
+    return IPC_OK();
   }
 
   PeerConnectionCtx* ctx = GetPeerConnectionCtx();
@@ -826,32 +837,35 @@ WebrtcGlobalChild::RecvGetStatsRequest(const int& aRequestId,
   if (ctx) {
     nsresult rv = RunStatsQuery(ctx->mGetPeerConnections(),
                                 aPcIdFilter, this, aRequestId);
-    return NS_SUCCEEDED(rv);
+    if (NS_FAILED(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   nsTArray<RTCStatsReportInternal> empty_stats;
   SendGetStatsResult(aRequestId, empty_stats);
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvClearStatsRequest()
 {
   if (mShutdown) {
-    return true;
+    return IPC_OK();
   }
 
   ClearClosedStats();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvGetLogRequest(const int& aRequestId,
                                      const nsCString& aPattern)
 {
   if (mShutdown) {
-    return true;
+    return IPC_OK();
   }
 
   nsresult rv;
@@ -864,28 +878,28 @@ WebrtcGlobalChild::RecvGetLogRequest(const int& aRequestId,
                        NS_DISPATCH_NORMAL);
 
     if (NS_SUCCEEDED(rv)) {
-      return true;
+      return IPC_OK();
     }
   }
 
   Sequence<nsString> empty_log;
   SendGetLogResult(aRequestId, empty_log);
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvClearLogRequest()
 {
   if (mShutdown) {
-    return true;
+    return IPC_OK();
   }
 
   RunLogClear();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvSetAecLogging(const bool& aEnable)
 {
   if (!mShutdown) {
@@ -895,10 +909,10 @@ WebrtcGlobalChild::RecvSetAecLogging(const bool& aEnable)
       StopAecLog();
     }
   }
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvSetDebugMode(const int& aLevel)
 {
   if (!mShutdown) {
@@ -908,7 +922,7 @@ WebrtcGlobalChild::RecvSetDebugMode(const int& aLevel)
       StopWebRtcLog();
     }
   }
-  return true;
+  return IPC_OK();
 }
 
 WebrtcGlobalChild*
@@ -1069,7 +1083,7 @@ static void StoreLongTermICEStatisticsImpl_m(
     uint32_t candBitmask = GetCandidateIpAndTransportMask(&cand);
 
     // Note: shift values need to result in the above enum table
-    if (cand.mType.Value() == RTCStatsType::Localcandidate) {
+    if (cand.mType.Value() == RTCStatsType::Local_candidate) {
       candBitmask <<= kLocalShift;
     }
 
@@ -1090,9 +1104,9 @@ static void StoreLongTermICEStatisticsImpl_m(
     streamResults[streamId].candidateTypeBitpattern |= candBitmask;
   }
 
-  for (auto i = streamResults.begin(); i != streamResults.end(); ++i) {
-    Telemetry::RecordWebrtcIceCandidates(i->second.candidateTypeBitpattern,
-                                         i->second.streamSucceeded);
+  for (auto& streamResult : streamResults) {
+    Telemetry::RecordWebrtcIceCandidates(streamResult.second.candidateTypeBitpattern,
+                                         streamResult.second.streamSucceeded);
   }
 
   // Beyond ICE, accumulate telemetry for various PER_CALL settings here.

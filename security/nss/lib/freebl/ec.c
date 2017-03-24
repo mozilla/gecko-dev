@@ -233,7 +233,6 @@ ec_NewKey(ECParams *ecParams, ECPrivateKey **privKey,
     key->ecParams.type = ecParams->type;
     key->ecParams.fieldID.size = ecParams->fieldID.size;
     key->ecParams.fieldID.type = ecParams->fieldID.type;
-    key->ecParams.pointSize = ecParams->pointSize;
     if (ecParams->fieldID.type == ec_field_GFp ||
         ecParams->fieldID.type == ec_field_plain) {
         CHECK_SEC_OK(SECITEM_CopyItem(arena, &key->ecParams.fieldID.u.prime,
@@ -262,7 +261,7 @@ ec_NewKey(ECParams *ecParams, ECPrivateKey **privKey,
     CHECK_SEC_OK(SECITEM_CopyItem(arena, &key->ecParams.curveOID,
                                   &ecParams->curveOID));
 
-    SECITEM_AllocItem(arena, &key->publicValue, ecParams->pointSize);
+    SECITEM_AllocItem(arena, &key->publicValue, EC_GetPointSize(ecParams));
     len = ecParams->order.len;
     SECITEM_AllocItem(arena, &key->privateValue, len);
 
@@ -566,11 +565,20 @@ ECDH_Derive(SECItem *publicValue,
         return SECFailure;
     }
 
+    /*
+     * Make sure the point is on the requested curve to avoid
+     * certain small subgroup attacks.
+     */
+    if (EC_ValidatePublicKey(ecParams, publicValue) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_BAD_KEY);
+        return SECFailure;
+    }
+
     /* Perform curve specific multiplication using ECMethod */
     if (ecParams->fieldID.type == ec_field_plain) {
         const ECMethod *method;
         memset(derivedSecret, 0, sizeof(*derivedSecret));
-        derivedSecret = SECITEM_AllocItem(NULL, derivedSecret, ecParams->pointSize);
+        derivedSecret = SECITEM_AllocItem(NULL, derivedSecret, EC_GetPointSize(ecParams));
         if (derivedSecret == NULL) {
             PORT_SetError(SEC_ERROR_NO_MEMORY);
             return SECFailure;
@@ -579,10 +587,6 @@ ECDH_Derive(SECItem *publicValue,
         if (method == NULL || method->validate == NULL ||
             method->mul == NULL) {
             PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
-            return SECFailure;
-        }
-        if (method->validate(publicValue) != SECSuccess) {
-            PORT_SetError(SEC_ERROR_BAD_KEY);
             return SECFailure;
         }
         return method->mul(derivedSecret, privateValue, publicValue);
@@ -600,8 +604,8 @@ ECDH_Derive(SECItem *publicValue,
     MP_DIGITS(&k) = 0;
     memset(derivedSecret, 0, sizeof *derivedSecret);
     len = (ecParams->fieldID.size + 7) >> 3;
-    pointQ.len = ecParams->pointSize;
-    if ((pointQ.data = PORT_Alloc(ecParams->pointSize)) == NULL)
+    pointQ.len = EC_GetPointSize(ecParams);
+    if ((pointQ.data = PORT_Alloc(pointQ.len)) == NULL)
         goto cleanup;
 
     CHECK_MPI_OK(mp_init(&k));
@@ -648,7 +652,7 @@ cleanup:
     }
 
     if (pointQ.data) {
-        PORT_ZFree(pointQ.data, ecParams->pointSize);
+        PORT_ZFree(pointQ.data, pointQ.len);
     }
 #else
     PORT_SetError(SEC_ERROR_UNSUPPORTED_KEYALG);
@@ -763,8 +767,8 @@ ECDSA_SignDigestWithSeed(ECPrivateKey *key, SECItem *signature,
     **
     ** Compute kG
     */
-    kGpoint.len = ecParams->pointSize;
-    kGpoint.data = PORT_Alloc(ecParams->pointSize);
+    kGpoint.len = EC_GetPointSize(ecParams);
+    kGpoint.data = PORT_Alloc(kGpoint.len);
     if ((kGpoint.data == NULL) ||
         (ec_points_mul(ecParams, &k, NULL, NULL, &kGpoint) != SECSuccess))
         goto cleanup;
@@ -883,7 +887,7 @@ cleanup:
     }
 
     if (kGpoint.data) {
-        PORT_ZFree(kGpoint.data, ecParams->pointSize);
+        PORT_ZFree(kGpoint.data, kGpoint.len);
     }
 
     if (err) {
@@ -1002,9 +1006,14 @@ ECDSA_VerifyDigest(ECPublicKey *key, const SECItem *signature,
     }
     slen = signature->len / 2;
 
-    SECITEM_AllocItem(NULL, &pointC, ecParams->pointSize);
-    if (pointC.data == NULL)
+    /*
+     * The incoming point has been verified in sftk_handlePublicKeyObject.
+     */
+
+    SECITEM_AllocItem(NULL, &pointC, EC_GetPointSize(ecParams));
+    if (pointC.data == NULL) {
         goto cleanup;
+    }
 
     CHECK_MPI_OK(mp_init(&r_));
     CHECK_MPI_OK(mp_init(&s_));

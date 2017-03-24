@@ -68,6 +68,7 @@ class TlsConnectTestBase : public ::testing::Test {
   void CheckConnected();
   // Connect and expect it to fail.
   void ConnectExpectFail();
+  void ConnectExpectFailOneSide(TlsAgent::Role failingSide);
   void ConnectWithCipherSuite(uint16_t cipher_suite);
   // Check that the keys used in the handshake match expectations.
   void CheckKeys(SSLKEAType kea_type, SSLNamedGroup kea_group,
@@ -107,13 +108,14 @@ class TlsConnectTestBase : public ::testing::Test {
   void Receive(size_t amount);
   void ExpectExtendedMasterSecret(bool expected);
   void ExpectEarlyDataAccepted(bool expected);
+  void DisableECDHEServerKeyReuse();
 
  protected:
   Mode mode_;
-  TlsAgent* client_;
-  TlsAgent* server_;
-  TlsAgent* client_model_;
-  TlsAgent* server_model_;
+  std::shared_ptr<TlsAgent> client_;
+  std::shared_ptr<TlsAgent> server_;
+  std::unique_ptr<TlsAgent> client_model_;
+  std::unique_ptr<TlsAgent> server_model_;
   uint16_t version_;
   SessionResumptionMode expected_resumption_mode_;
   std::vector<std::vector<uint8_t>> session_ids_;
@@ -244,17 +246,25 @@ class TlsConnectGenericPre13 : public TlsConnectGeneric {};
 
 class TlsKeyExchangeTest : public TlsConnectGeneric {
  protected:
-  TlsExtensionCapture* groups_capture_;
-  TlsExtensionCapture* shares_capture_;
-  TlsInspectorRecordHandshakeMessage* capture_hrr_;
+  std::shared_ptr<TlsExtensionCapture> groups_capture_;
+  std::shared_ptr<TlsExtensionCapture> shares_capture_;
+  std::shared_ptr<TlsExtensionCapture> shares_capture2_;
+  std::shared_ptr<TlsInspectorRecordHandshakeMessage> capture_hrr_;
 
   void EnsureKeyShareSetup();
   void ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups);
   std::vector<SSLNamedGroup> GetGroupDetails(const DataBuffer& ext);
   std::vector<SSLNamedGroup> GetShareDetails(const DataBuffer& ext);
   void CheckKEXDetails(const std::vector<SSLNamedGroup>& expectedGroups,
+                       const std::vector<SSLNamedGroup>& expectedShares);
+  void CheckKEXDetails(const std::vector<SSLNamedGroup>& expectedGroups,
                        const std::vector<SSLNamedGroup>& expectedShares,
-                       bool expect_hrr = false);
+                       SSLNamedGroup expectedShare2);
+
+ private:
+  void CheckKEXDetails(const std::vector<SSLNamedGroup>& expectedGroups,
+                       const std::vector<SSLNamedGroup>& expectedShares,
+                       bool expect_hrr);
 };
 
 class TlsKeyExchangeTest13 : public TlsKeyExchangeTest {};

@@ -449,9 +449,19 @@ function parseDeclarations(isCssPropertyKnown, inputString,
 }
 
 /**
+ * Like @see parseDeclarations, but removes properties that do not
+ * have a name.
+ */
+function parseNamedDeclarations(isCssPropertyKnown, inputString,
+                                parseComments = false) {
+  return parseDeclarations(isCssPropertyKnown, inputString, parseComments)
+         .filter(item => !!item.name);
+}
+
+/**
  * Return an object that can be used to rewrite declarations in some
  * source text.  The source text and parsing are handled in the same
- * way as @see parseDeclarations, with |parseComments| being true.
+ * way as @see parseNamedDeclarations, with |parseComments| being true.
  * Rewriting is done by calling one of the modification functions like
  * setPropertyEnabled.  The returned object has the same interface
  * as @see RuleModificationList.
@@ -519,8 +529,8 @@ RuleRewriter.prototype = {
     // Whether there are any newlines in the input text.
     this.hasNewLine = /[\r\n]/.test(this.inputString);
     // The declarations.
-    this.declarations = parseDeclarations(this.isCssPropertyKnown, this.inputString,
-                                          true);
+    this.declarations = parseNamedDeclarations(this.isCssPropertyKnown, this.inputString,
+                                               true);
     this.decl = null;
     this.result = null;
   },
@@ -591,12 +601,45 @@ RuleRewriter.prototype = {
    *                  to be "lexically safe".
    */
   sanitizePropertyValue: function (text) {
+    // Start by stripping any trailing ";".  This is done here to
+    // avoid the case where the user types "url(" (which is turned
+    // into "url(;" by the rule view before coming here), being turned
+    // into "url(;)" by this code -- due to the way "url(...)" is
+    // parsed as a single token.
+    text = text.replace(/;$/, "");
     let lexer = getCSSLexer(text);
 
     let result = "";
     let previousOffset = 0;
-    let braceDepth = 0;
+    let parenStack = [];
     let anySanitized = false;
+
+    // Push a closing paren on the stack.
+    let pushParen = (token, closer) => {
+      result += text.substring(previousOffset, token.startOffset);
+      parenStack.push({closer, offset: result.length});
+      result += text.substring(token.startOffset, token.endOffset);
+      previousOffset = token.endOffset;
+    };
+
+    // Pop a closing paren from the stack.
+    let popSomeParens = (closer) => {
+      while (parenStack.length > 0) {
+        let paren = parenStack.pop();
+
+        if (paren.closer === closer) {
+          return true;
+        }
+
+        // Found a non-matching closing paren, so quote it.  Note that
+        // these are processed in reverse order.
+        result = result.substring(0, paren.offset) + "\\" +
+          result.substring(paren.offset);
+        anySanitized = true;
+      }
+      return false;
+    };
+
     while (true) {
       let token = lexer.nextToken();
       if (!token) {
@@ -614,14 +657,22 @@ RuleRewriter.prototype = {
             break;
 
           case "{":
-            ++braceDepth;
+            pushParen(token, "}");
+            break;
+
+          case "(":
+            pushParen(token, ")");
+            break;
+
+          case "[":
+            pushParen(token, "]");
             break;
 
           case "}":
-            --braceDepth;
-            if (braceDepth < 0) {
-              // Found an unmatched close bracket.
-              braceDepth = 0;
+          case ")":
+          case "]":
+            // Did we find an unmatched close bracket?
+            if (!popSomeParens(token.text)) {
               // Copy out text from |previousOffset|.
               result += text.substring(previousOffset, token.startOffset);
               // Quote the offending symbol.
@@ -631,8 +682,13 @@ RuleRewriter.prototype = {
             }
             break;
         }
+      } else if (token.tokenType === "function") {
+        pushParen(token, ")");
       }
     }
+
+    // Fix up any unmatched parens.
+    popSomeParens(null);
 
     // Copy out any remaining text, then any needed terminators.
     result += text.substring(previousOffset, text.length);
@@ -1163,6 +1219,7 @@ exports.escapeCSSComment = escapeCSSComment;
 // unescapeCSSComment is exported for testing.
 exports._unescapeCSSComment = unescapeCSSComment;
 exports.parseDeclarations = parseDeclarations;
+exports.parseNamedDeclarations = parseNamedDeclarations;
 // parseCommentDeclarations is exported for testing.
 exports._parseCommentDeclarations = parseCommentDeclarations;
 exports.RuleRewriter = RuleRewriter;

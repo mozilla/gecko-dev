@@ -12,11 +12,11 @@
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Swizzle.h"
 #include "ImageBitmapColorUtils.h"
 #include "ImageBitmapUtils.h"
 #include "ImageUtils.h"
 #include "imgTools.h"
-#include "libyuv.h"
 
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
@@ -33,6 +33,45 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ImageBitmap)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
+
+/*
+ * This helper function is used to notify DOM that aBytes memory is allocated
+ * here so that we could trigger GC appropriately.
+ */
+static void
+RegisterAllocation(nsIGlobalObject* aGlobal, size_t aBytes)
+{
+  AutoJSAPI jsapi;
+  if (jsapi.Init(aGlobal)) {
+    JS_updateMallocCounter(jsapi.cx(), aBytes);
+  }
+}
+
+static void
+RegisterAllocation(nsIGlobalObject* aGlobal, SourceSurface* aSurface)
+{
+  // Calculate how many bytes are used.
+  const int bytesPerPixel = BytesPerPixel(aSurface->GetFormat());
+  const size_t bytes =
+    aSurface->GetSize().height * aSurface->GetSize().width * bytesPerPixel;
+
+  // Register.
+  RegisterAllocation(aGlobal, bytes);
+}
+
+static void
+RegisterAllocation(nsIGlobalObject* aGlobal, layers::Image* aImage)
+{
+  // Calculate how many bytes are used.
+  if (aImage->GetFormat() == mozilla::ImageFormat::PLANAR_YCBCR) {
+    RegisterAllocation(aGlobal, aImage->AsPlanarYCbCrImage()->GetDataSize());
+  } else if (aImage->GetFormat() == mozilla::ImageFormat::NV_IMAGE) {
+    RegisterAllocation(aGlobal, aImage->AsNVImage()->GetBufferSize());
+  } else {
+    RefPtr<SourceSurface> surface = aImage->GetAsSourceSurface();
+    RegisterAllocation(aGlobal, surface);
+  }
+}
 
 /*
  * If either aRect.width or aRect.height are negative, then return a new IntRect
@@ -233,10 +272,9 @@ CreateImageFromRawData(const gfx::IntSize& aSize,
     return nullptr;
   }
 
-  libyuv::ABGRToARGB(rgbaMap.mData, rgbaMap.mStride,
-                     bgraMap.mData, bgraMap.mStride,
-                     bgraDataSurface->GetSize().width,
-                     bgraDataSurface->GetSize().height);
+  SwizzleData(rgbaMap.mData, rgbaMap.mStride, SurfaceFormat::R8G8B8A8,
+              bgraMap.mData, bgraMap.mStride, SurfaceFormat::B8G8R8A8,
+              bgraDataSurface->GetSize());
 
   rgbaDataSurface->Unmap();
   bgraDataSurface->Unmap();
@@ -602,7 +640,9 @@ ImageBitmap::PrepareForDrawTarget(gfx::DrawTarget* aTarget)
     DataSourceSurface::MappedSurface srcMap;
     DataSourceSurface::MappedSurface dstMap;
 
-    if (!dstSurface->Map(DataSourceSurface::MapType::READ_WRITE, &dstMap)) {
+    if (dstSurface->Map(DataSourceSurface::MapType::READ_WRITE, &dstMap)) {
+      srcMap = dstMap;
+    } else {
       srcSurface = dstSurface;
       if (!srcSurface->Map(DataSourceSurface::READ, &srcMap)) {
         gfxCriticalError() << "Failed to map source surface for premultiplying alpha.";
@@ -618,46 +658,9 @@ ImageBitmap::PrepareForDrawTarget(gfx::DrawTarget* aTarget)
       }
     }
 
-    uint8_t rIndex = 0;
-    uint8_t gIndex = 0;
-    uint8_t bIndex = 0;
-    uint8_t aIndex = 0;
-
-    if (mSurface->GetFormat() == SurfaceFormat::R8G8B8A8) {
-      rIndex = 0;
-      gIndex = 1;
-      bIndex = 2;
-      aIndex = 3;
-    } else if (mSurface->GetFormat() == SurfaceFormat::B8G8R8A8) {
-      rIndex = 2;
-      gIndex = 1;
-      bIndex = 0;
-      aIndex = 3;
-    } else if (mSurface->GetFormat() == SurfaceFormat::A8R8G8B8) {
-      rIndex = 1;
-      gIndex = 2;
-      bIndex = 3;
-      aIndex = 0;
-    }
-
-    for (int i = 0; i < dstSurface->GetSize().height; ++i) {
-      uint8_t* bufferPtr = dstMap.mData + dstMap.mStride * i;
-      uint8_t* srcBufferPtr = srcSurface ? srcMap.mData + srcMap.mStride * i : bufferPtr;
-      for (int i = 0; i < dstSurface->GetSize().width; ++i) {
-        uint8_t r = *(srcBufferPtr+rIndex);
-        uint8_t g = *(srcBufferPtr+gIndex);
-        uint8_t b = *(srcBufferPtr+bIndex);
-        uint8_t a = *(srcBufferPtr+aIndex);
-
-        *(bufferPtr+rIndex) = gfxUtils::sPremultiplyTable[a * 256 + r];
-        *(bufferPtr+gIndex) = gfxUtils::sPremultiplyTable[a * 256 + g];
-        *(bufferPtr+bIndex) = gfxUtils::sPremultiplyTable[a * 256 + b];
-        *(bufferPtr+aIndex) = a;
-
-        bufferPtr += 4;
-        srcBufferPtr += 4;
-      }
-    }
+    PremultiplyData(srcMap.mData, srcMap.mStride, mSurface->GetFormat(),
+                    dstMap.mData, dstMap.mStride, mSurface->GetFormat(),
+                    dstSurface->GetSize());
 
     dstSurface->Unmap();
     if (srcSurface) {
@@ -684,10 +687,10 @@ ImageBitmap::TransferAsImage()
   return image.forget();
 }
 
-ImageBitmapCloneData*
-ImageBitmap::ToCloneData()
+UniquePtr<ImageBitmapCloneData>
+ImageBitmap::ToCloneData() const
 {
-  ImageBitmapCloneData* result = new ImageBitmapCloneData();
+  UniquePtr<ImageBitmapCloneData> result(new ImageBitmapCloneData());
   result->mPictureRect = mPictureRect;
   result->mIsPremultipliedAlpha = mIsPremultipliedAlpha;
   result->mIsCroppingAreaOutSideOfSourceImage = mIsCroppingAreaOutSideOfSourceImage;
@@ -695,7 +698,7 @@ ImageBitmap::ToCloneData()
   result->mSurface = surface->GetDataSurface();
   MOZ_ASSERT(result->mSurface);
 
-  return result;
+  return Move(result);
 }
 
 /* static */ already_AddRefed<ImageBitmap>
@@ -706,6 +709,9 @@ ImageBitmap::CreateFromCloneData(nsIGlobalObject* aGlobal,
 
   RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data,
                                             aData->mIsPremultipliedAlpha);
+
+  // Report memory allocation.
+  RegisterAllocation(aGlobal, aData->mSurface);
 
   ret->mIsCroppingAreaOutSideOfSourceImage =
     aData->mIsCroppingAreaOutSideOfSourceImage;
@@ -741,6 +747,10 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
     CreateImageFromSurface(surface);
 
   RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data);
+
+  // Report memory allocation.
+  RegisterAllocation(aGlobal, surface);
+
   return ret.forget();
 }
 
@@ -817,15 +827,7 @@ ImageBitmap::CreateInternal(nsIGlobalObject* aGlobal, HTMLVideoElement& aVideoEl
   }
 
   // Create ImageBitmap.
-  ImageContainer *container = aVideoEl.GetImageContainer();
-
-  if (!container) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-    return nullptr;
-  }
-
-  AutoLockImage lockImage(container);
-  layers::Image* data = lockImage.GetImage();
+  RefPtr<layers::Image> data = aVideoEl.GetCurrentImage();
   if (!data) {
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
     return nullptr;
@@ -865,16 +867,18 @@ ImageBitmap::CreateInternal(nsIGlobalObject* aGlobal, HTMLCanvasElement& aCanvas
   // If the HTMLCanvasElement's rendering context is WebGL, then the snapshot
   // we got from the HTMLCanvasElement is a DataSourceSurface which is a copy
   // of the rendering context. We handle cropping in this case.
+  bool needToReportMemoryAllocation = false;
   if ((aCanvasEl.GetCurrentContextType() == CanvasContextType::WebGL1 ||
        aCanvasEl.GetCurrentContextType() == CanvasContextType::WebGL2) &&
       aCropRect.isSome()) {
     // The _surface_ must be a DataSourceSurface.
-    MOZ_ASSERT(surface->GetType() == SurfaceType::DATA,
+    MOZ_ASSERT(surface->IsDataSourceSurface(),
                "The snapshot SourceSurface from WebGL rendering contest is not \
                DataSourceSurface.");
     RefPtr<DataSourceSurface> dataSurface = surface->GetDataSurface();
     croppedSurface = CropAndCopyDataSourceSurface(dataSurface, cropRect);
     cropRect.MoveTo(0, 0);
+    needToReportMemoryAllocation = true;
   }
   else {
     croppedSurface = surface;
@@ -894,6 +898,11 @@ ImageBitmap::CreateInternal(nsIGlobalObject* aGlobal, HTMLCanvasElement& aCanvas
   }
 
   RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data);
+
+  // Report memory allocation if needed.
+  if (needToReportMemoryAllocation) {
+    RegisterAllocation(aGlobal, croppedSurface);
+  }
 
   // Set the picture rectangle.
   if (ret && aCropRect.isSome()) {
@@ -946,7 +955,7 @@ ImageBitmap::CreateInternal(nsIGlobalObject* aGlobal, ImageData& aImageData,
                                                        imageSize,
                                                        aCropRect,
                                                        getter_AddRefs(data));
-    task->Dispatch(aRv);
+    task->Dispatch(Terminating, aRv);
   }
 
   if (NS_WARN_IF(!data)) {
@@ -957,6 +966,9 @@ ImageBitmap::CreateInternal(nsIGlobalObject* aGlobal, ImageData& aImageData,
   // Create an ImageBimtap.
   // ImageData's underlying data is not alpha-premultiplied.
   RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, false);
+
+  // Report memory allocation.
+  RegisterAllocation(aGlobal, data);
 
   // The cropping information has been handled in the CreateImageFromRawData()
   // function.
@@ -998,6 +1010,9 @@ ImageBitmap::CreateInternal(nsIGlobalObject* aGlobal, CanvasRenderingContext2D& 
   }
 
   RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data);
+
+  // Report memory allocation.
+  RegisterAllocation(aGlobal, surface);
 
   // Set the picture rectangle.
   if (ret && aCropRect.isSome()) {
@@ -1240,6 +1255,9 @@ protected:
       }
     }
 
+    // Report memory allocation.
+    RegisterAllocation(mGlobalObject, imageBitmap->mData);
+
     mPromise->MaybeResolve(imageBitmap);
     return true;
   }
@@ -1373,10 +1391,10 @@ private:
     RefPtr<DecodeBlobInMainThreadSyncTask> task =
       new DecodeBlobInMainThreadSyncTask(mWorkerPrivate, *mBlob, mCropRect,
                                          getter_AddRefs(data), sourceSize);
-    task->Dispatch(rv); // This is a synchronous call.
+    task->Dispatch(Terminating, rv); // This is a synchronous call.
 
+    // In case the worker is terminating, this rejection can be handled.
     if (NS_WARN_IF(rv.Failed())) {
-      // XXXbz does this really make sense if we're shutting down?  Ah, well.
       mPromise->MaybeReject(rv);
       return nullptr;
     }
@@ -1456,6 +1474,7 @@ ImageBitmap::Create(nsIGlobalObject* aGlobal, const ImageBitmapSource& aSrc,
     return promise.forget();
   } else {
     aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
+    return nullptr;
   }
 
   if (!aRv.Failed()) {
@@ -1524,6 +1543,9 @@ ImageBitmap::ReadStructuredClone(JSContext* aCx,
     if (!GetOrCreateDOMReflector(aCx, imageBitmap, &value)) {
       return nullptr;
     }
+
+    // Report memory allocation.
+    RegisterAllocation(aParent, aClonedSurfaces[aIndex]);
   }
 
   return &(value.toObject());
@@ -1662,13 +1684,13 @@ protected:
     } else if (JS_IsArrayBufferViewObject(mBuffer)) {
       js::GetArrayBufferViewLengthAndData(mBuffer, &bufferLength, &isSharedMemory, &bufferData);
     } else {
-      error.Throw(NS_ERROR_NOT_IMPLEMENTED);
+      error.ThrowWithCustomCleanup(NS_ERROR_NOT_IMPLEMENTED);
       mPromise->MaybeReject(error);
       return;
     }
 
     if (NS_WARN_IF(!bufferData) || NS_WARN_IF(!bufferLength)) {
-      error.Throw(NS_ERROR_NOT_AVAILABLE);
+      error.ThrowWithCustomCleanup(NS_ERROR_NOT_AVAILABLE);
       mPromise->MaybeReject(error);
       return;
     }
@@ -1678,7 +1700,7 @@ protected:
       mImageBitmap->MappedDataLength(mFormat, error);
 
     if (((int32_t)bufferLength - mOffset) < neededBufferLength) {
-      error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+      error.ThrowWithCustomCleanup(NS_ERROR_DOM_INDEX_SIZE_ERR);
       mPromise->MaybeReject(error);
       return;
     }
@@ -2100,7 +2122,10 @@ ImageBitmap::Create(nsIGlobalObject* aGlobal,
                                                                  aFormat,
                                                                  aLayout,
                                                                  getter_AddRefs(data));
-    task->Dispatch(aRv);
+    task->Dispatch(Terminating, aRv);
+    if (aRv.Failed()) {
+      return promise.forget();
+    }
   }
 
   if (NS_WARN_IF(!data)) {
@@ -2111,6 +2136,9 @@ ImageBitmap::Create(nsIGlobalObject* aGlobal,
   // Create an ImageBimtap.
   // Assume the data from an external buffer is not alpha-premultiplied.
   RefPtr<ImageBitmap> imageBitmap = new ImageBitmap(aGlobal, data, false);
+
+  // Report memory allocation.
+  RegisterAllocation(aGlobal, data);
 
   // We don't need to call SetPictureRect() here because there is no cropping
   // supported and the ImageBitmap's mPictureRect is the size of the source

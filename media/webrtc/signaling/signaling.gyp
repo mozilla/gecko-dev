@@ -76,7 +76,7 @@
         '../../../dom/media',
         '../../../media/mtransport',
         '../trunk',
-        '../../libyuv/include',
+        '../../libyuv/libyuv/include',
         '../../mtransport/third_party/nrappkit/src/util/libekr',
       ],
 
@@ -99,8 +99,6 @@
         './src/media-conduit/AudioConduit.cpp',
         './src/media-conduit/VideoConduit.h',
         './src/media-conduit/VideoConduit.cpp',
-        './src/media-conduit/CodecStatistics.h',
-        './src/media-conduit/CodecStatistics.cpp',
         './src/media-conduit/RunningStat.h',
         # Common
         './src/common/CommonTypes.h',
@@ -132,6 +130,8 @@
         './src/mediapipeline/MediaPipeline.cpp',
         './src/mediapipeline/MediaPipelineFilter.h',
         './src/mediapipeline/MediaPipelineFilter.cpp',
+        './src/mediapipeline/RtpLogger.h',
+        './src/mediapipeline/RtpLogger.cpp',
          # SDP
          './src/sdp/sipcc/ccsdp.h',
          './src/sdp/sipcc/cpr_string.c',
@@ -260,9 +260,6 @@
           ],
         }],
         ['(build_for_test==0) and (build_for_standalone==0)', {
-          'defines' : [
-            'MOZILLA_INTERNAL_API',
-          ],
           'sources': [
             './src/peerconnection/MediaStreamList.cpp',
             './src/peerconnection/MediaStreamList.h',
@@ -276,9 +273,7 @@
           ],
           'defines' : [
             'NO_CHROMIUM_LOGGING',
-            'USE_FAKE_MEDIA_STREAMS',
             'USE_FAKE_PCOBSERVER',
-            'MOZILLA_EXTERNAL_LINKAGE',
           ],
         }],
         ['build_for_standalone==0', {
@@ -292,10 +287,7 @@
             './test'
           ],
           'defines' : [
-            'MOZILLA_INTERNAL_API',
-            'MOZILLA_EXTERNAL_LINKAGE',
             'NO_CHROMIUM_LOGGING',
-            'USE_FAKE_MEDIA_STREAMS',
             'USE_FAKE_PCOBSERVER',
           ],
         }],
@@ -366,6 +358,12 @@
 
           'cflags_mozilla': [
           ],
+        }],
+        ['clang == 1', {
+          'cflags_mozilla': [
+            '-Wno-inconsistent-missing-override',
+            '-Wno-macro-redefined',
+         ],
         }],
       ],
     },

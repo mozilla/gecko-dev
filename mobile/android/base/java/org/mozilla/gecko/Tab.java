@@ -6,14 +6,10 @@
 package org.mozilla.gecko;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.db.BrowserDB;
@@ -27,16 +23,17 @@ import org.mozilla.gecko.icons.Icons;
 import org.mozilla.gecko.reader.ReaderModeUtils;
 import org.mozilla.gecko.reader.ReadingListHelper;
 import org.mozilla.gecko.toolbar.BrowserToolbar.TabEditingState;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.widget.SiteLogins;
 
 import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -46,6 +43,7 @@ public class Tab {
 
     private static Pattern sColorPattern;
     private final int mId;
+    private TabType mType;
     private final BrowserDB mDB;
     private long mLastUsed;
     private String mUrl;
@@ -60,11 +58,12 @@ public class Tab {
     private Future<IconResponse> mRunningIconRequest;
 
     private boolean mHasFeeds;
+    private String mManifestUrl;
     private boolean mHasOpenSearch;
     private final SiteIdentity mSiteIdentity;
     private SiteLogins mSiteLogins;
     private BitmapDrawable mThumbnail;
-    private final int mParentId;
+    private volatile int mParentId;
     // Indicates the url was loaded from a source external to the app. This will be cleared
     // when the user explicitly loads a new url (e.g. clicking a link is not explicit).
     private final boolean mExternal;
@@ -93,8 +92,6 @@ public class Tab {
      */
     private Bundle mMostRecentHomePanelData;
 
-    private int mHistoryIndex;
-    private int mHistorySize;
     private boolean mCanDoBack;
     private boolean mCanDoForward;
 
@@ -122,10 +119,11 @@ public class Tab {
         NONE         // Non error pages
     }
 
-    public Tab(Context context, int id, String url, boolean external, int parentId, String title) {
+    public Tab(Context context, int id, String url, boolean external, int parentId, String title, TabType type) {
         mAppContext = context.getApplicationContext();
         mDB = BrowserDB.from(context);
         mId = id;
+        mType = type;
         mUrl = url;
         mBaseDomain = "";
         mUserRequested = "";
@@ -133,7 +131,6 @@ public class Tab {
         mParentId = parentId;
         mTitle = title == null ? "" : title;
         mSiteIdentity = new SiteIdentity();
-        mHistoryIndex = -1;
         mContentType = "";
         mPluginViews = new ArrayList<View>();
         mState = shouldShowProgress(url) ? STATE_LOADING : STATE_SUCCESS;
@@ -166,6 +163,17 @@ public class Tab {
 
     public int getParentId() {
         return mParentId;
+    }
+
+    /**
+     * Updates the stored parent tab ID to a new value.
+     * Note: Calling this directly from Java currently won't update the parent ID value
+     * held by Gecko and the session store.
+     *
+     * @param parentId The ID of the tab to be set as new parent, or -1 for no parent.
+     */
+    public void setParentId(int parentId) {
+        mParentId = parentId;
     }
 
     // may be null if user-entered query hasn't yet been resolved to a URI
@@ -289,6 +297,10 @@ public class Tab {
         return mHasFeeds;
     }
 
+    public String getManifestUrl() {
+        return mManifestUrl;
+    }
+
     public boolean hasOpenSearch() {
         return mHasOpenSearch;
     }
@@ -374,14 +386,6 @@ public class Tab {
         return mContentType;
     }
 
-    public int getHistoryIndex() {
-        return mHistoryIndex;
-    }
-
-    public int getHistorySize() {
-        return mHistorySize;
-    }
-
     public synchronized void updateTitle(String title) {
         // Keep the title unchanged while entering reader mode.
         if (mEnteringReaderMode) {
@@ -417,13 +421,13 @@ public class Tab {
         return mHasTouchListeners;
     }
 
-    public synchronized void addFavicon(String faviconURL, int faviconSize, String mimeType) {
+    public synchronized void addFavicon(@NonNull String faviconURL, int faviconSize, String mimeType) {
         mIconRequestBuilder
                 .icon(IconDescriptor.createFavicon(faviconURL, faviconSize, mimeType))
                 .deferBuild();
     }
 
-    public synchronized void addTouchicon(String iconUrl, int faviconSize, String mimeType) {
+    public synchronized void addTouchicon(@NonNull String iconUrl, int faviconSize, String mimeType) {
         mIconRequestBuilder
                 .icon(IconDescriptor.createTouchicon(iconUrl, faviconSize, mimeType))
                 .deferBuild();
@@ -466,6 +470,10 @@ public class Tab {
         mHasFeeds = hasFeeds;
     }
 
+    public void setManifestUrl(String manifestUrl) {
+        mManifestUrl = manifestUrl;
+    }
+
     public void setHasOpenSearch(boolean hasOpenSearch) {
         mHasOpenSearch = hasOpenSearch;
     }
@@ -474,7 +482,7 @@ public class Tab {
         mLoadedFromCache = loadedFromCache;
     }
 
-    public void updateIdentityData(JSONObject identityData) {
+    public void updateIdentityData(final GeckoBundle identityData) {
         mSiteIdentity.update(identityData);
     }
 
@@ -510,16 +518,18 @@ public class Tab {
 
         final String pageUrl = ReaderModeUtils.stripAboutReaderUrl(getURL());
 
-        ThreadUtils.postToBackgroundThread(new Runnable() {
-            @Override
-            public void run() {
-                mDB.addBookmark(getContentResolver(), mTitle, pageUrl);
-                Tabs.getInstance().notifyListeners(Tab.this, Tabs.TabEvents.BOOKMARK_ADDED);
-            }
-        });
-
         if (AboutPages.isAboutReader(url)) {
             ReadingListHelper.cacheReaderItem(pageUrl, mId, mAppContext);
+            // defer bookmarking after completely added to cache.
+        } else {
+            ThreadUtils.postToBackgroundThread(new Runnable() {
+                @Override
+                public void run() {
+                    mDB.addBookmark(getContentResolver(), mTitle, pageUrl);
+                    Tabs.getInstance().notifyListeners(Tab.this, Tabs.TabEvents.BOOKMARK_ADDED);
+                }
+            });
+
         }
     }
 
@@ -549,7 +559,9 @@ public class Tab {
     }
 
     public void doReload(boolean bypassCache) {
-        GeckoAppShell.notifyObservers("Session:Reload", "{\"bypassCache\":" + String.valueOf(bypassCache) + "}");
+        final GeckoBundle data = new GeckoBundle(1);
+        data.putBoolean("bypassCache", bypassCache);
+        EventDispatcher.getInstance().dispatch("Session:Reload", data);
     }
 
     // Our version of nsSHistory::GetCanGoBack
@@ -561,12 +573,12 @@ public class Tab {
         if (!canDoBack())
             return false;
 
-        GeckoAppShell.notifyObservers("Session:Back", "");
+        EventDispatcher.getInstance().dispatch("Session:Back", null);
         return true;
     }
 
     public void doStop() {
-        GeckoAppShell.notifyObservers("Session:Stop", "");
+        EventDispatcher.getInstance().dispatch("Session:Stop", null);
     }
 
     // Our version of nsSHistory::GetCanGoForward
@@ -578,19 +590,16 @@ public class Tab {
         if (!canDoForward())
             return false;
 
-        GeckoAppShell.notifyObservers("Session:Forward", "");
+        EventDispatcher.getInstance().dispatch("Session:Forward", null);
         return true;
     }
 
-    void handleLocationChange(JSONObject message) throws JSONException {
+    void handleLocationChange(final GeckoBundle message) {
         final String uri = message.getString("uri");
         final String oldUrl = getURL();
         final boolean sameDocument = message.getBoolean("sameDocument");
         mEnteringReaderMode = ReaderModeUtils.isEnteringReaderMode(oldUrl, uri);
-        mHistoryIndex = message.getInt("historyIndex");
-        mHistorySize = message.getInt("historySize");
-        mCanDoBack = message.getBoolean("canGoBack");
-        mCanDoForward = message.getBoolean("canGoForward");
+        handleButtonStateChange(message);
 
         if (!TextUtils.equals(oldUrl, uri)) {
             updateURL(uri);
@@ -624,9 +633,10 @@ public class Tab {
 
         setContentType(message.getString("contentType"));
         updateUserRequested(message.getString("userRequested"));
-        mBaseDomain = message.optString("baseDomain");
+        mBaseDomain = message.getString("baseDomain", "");
 
         setHasFeeds(false);
+        setManifestUrl(null);
         setHasOpenSearch(false);
         mSiteIdentity.reset();
         setSiteLogins(null);
@@ -635,6 +645,16 @@ public class Tab {
         setLoadProgressIfLoading(LOAD_PROGRESS_LOCATION_CHANGE);
 
         Tabs.getInstance().notifyListeners(this, Tabs.TabEvents.LOCATION_CHANGE, oldUrl);
+    }
+
+    void handleButtonStateChange(final GeckoBundle message) {
+        mCanDoBack = message.getBoolean("canGoBack");
+        mCanDoForward = message.getBoolean("canGoForward");
+    }
+
+    void handleButtonStateChange(boolean canGoBack, boolean canGoForward) {
+        mCanDoBack = canGoBack;
+        mCanDoForward = canGoForward;
     }
 
     private static boolean shouldShowProgress(final String url) {
@@ -745,6 +765,16 @@ public class Tab {
 
     public boolean isPrivate() {
         return false;
+    }
+
+    public TabType getType() {
+        return mType;
+    }
+
+    public enum TabType {
+        BROWSING,
+        CUSTOMTAB,
+        WEBAPP
     }
 
     /**

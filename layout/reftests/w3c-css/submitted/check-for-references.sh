@@ -3,7 +3,7 @@
 cd "$(dirname "$0")"
 find . -name reftest.list | sed 's,/reftest.list$,,' | while read DIRNAME
 do
-    cat "$DIRNAME/reftest.list" | grep -v "^\(include\|default-preferences\)" | sed 's/ #.*//;s/^#.*//;s/.* == /== /;s/.* != /!= /' | grep -v "^ *$" | while read TYPE TEST REF
+    cat "$DIRNAME/reftest.list" | grep -v -e "^default-preferences" -e "include " | sed 's/ #.*//;s/^#.*//;s/.* == /== /;s/.* != /!= /' | grep -v "^ *$" | while read TYPE TEST REF
     do
         REFTYPE=""
         if [ "$TYPE" == "==" ]
@@ -15,7 +15,7 @@ do
         else
             echo "Unexpected type $TYPE for $DIRNAME/$TEST"
         fi
-        if grep "rel=\"$REFTYPE\"" "$DIRNAME/$TEST" | head -1 | grep -q "href=\"$REF\""
+        if grep "rel=\(\"$REFTYPE\"\|'$REFTYPE'\)" "$DIRNAME/$TEST" | head -1 | grep -q "href=\(\"$REF\"\|'$REF'\)"
         then
             #echo "Good link for $DIRNAME/$TEST"
             echo -n

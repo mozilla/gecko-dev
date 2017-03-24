@@ -18,10 +18,10 @@
 #include "nsUnicharUtils.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/ServoBindingTypes.h"
+#include "mozilla/ServoStyleSet.h"
 #include "mozilla/DeclarationBlockInlines.h"
 #include "nsContentUtils.h"
 #include "nsReadableUtils.h"
-#include "prprf.h"
 #include "nsHTMLCSSStyleSheet.h"
 #include "nsCSSParser.h"
 #include "nsStyledElement.h"
@@ -647,7 +647,15 @@ nsAttrValue::ToString(nsAString& aResult) const
       if (DeclarationBlock* decl = container->mValue.mCSSDeclaration) {
         decl->ToString(aResult);
       }
-      const_cast<nsAttrValue*>(this)->SetMiscAtomOrString(&aResult);
+
+      // We can reach this during parallel style traversal. If that happens,
+      // don't cache the string. The TLS overhead should't hurt us here, since
+      // main thread consumers will subsequently use the cache, and
+      // off-main-thread consumers only reach this in the rare case of selector
+      // matching on the "style" attribute.
+      if (!ServoStyleSet::IsInServoTraversal()) {
+        const_cast<nsAttrValue*>(this)->SetMiscAtomOrString(&aResult);
+      }
 
       break;
     }
@@ -1694,7 +1702,7 @@ nsAttrValue::ParseStyleAttribute(const nsAString& aString,
 {
   nsIDocument* ownerDoc = aElement->OwnerDoc();
   nsHTMLCSSStyleSheet* sheet = ownerDoc->GetInlineStyleSheet();
-  nsCOMPtr<nsIURI> baseURI = aElement->GetBaseURI();
+  nsCOMPtr<nsIURI> baseURI = aElement->GetBaseURIForStyleAttr();
   nsIURI* docURI = ownerDoc->GetDocumentURI();
 
   NS_ASSERTION(aElement->NodePrincipal() == ownerDoc->NodePrincipal(),
@@ -1717,7 +1725,8 @@ nsAttrValue::ParseStyleAttribute(const nsAString& aString,
 
   RefPtr<DeclarationBlock> decl;
   if (ownerDoc->GetStyleBackendType() == StyleBackendType::Servo) {
-    decl = ServoDeclarationBlock::FromCssText(aString);
+    GeckoParserExtraData data(baseURI, docURI, aElement->NodePrincipal());
+    decl = ServoDeclarationBlock::FromCssText(aString, data);
   } else {
     css::Loader* cssLoader = ownerDoc->CSSLoader();
     nsCSSParser cssParser(cssLoader);

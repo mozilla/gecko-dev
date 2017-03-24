@@ -535,16 +535,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
   nsresult rv = NS_NewURI(getter_AddRefs(uri), aURL, baseURI);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
-  if (aDoCheckLoadURIChecks) {
-    nsCOMPtr<nsIScriptSecurityManager> secMan(
-      do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
-    NS_ENSURE_TRUE(secMan, NS_ERROR_FAILURE);
-
-    rv = secMan->CheckLoadURIWithPrincipal(content->NodePrincipal(), uri,
-                                           nsIScriptSecurityManager::STANDARD);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   nsCOMPtr<nsIInputStream> headersDataStream;
   if (aPostStream && aHeadersData) {
     if (!aHeadersDataLen)
@@ -563,8 +553,21 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
     Preferences::GetInt("privacy.popups.disable_from_plugins");
   nsAutoPopupStatePusher popupStatePusher((PopupControlState)blockPopups);
 
+
+  // if security checks (in particular CheckLoadURIWithPrincipal) needs
+  // to be skipped we are creating a codebasePrincipal to make sure
+  // that security check succeeds. Please note that we do not want to
+  // fall back to using the systemPrincipal, because that would also
+  // bypass ContentPolicy checks which should still be enforced.
+  nsCOMPtr<nsIPrincipal> triggeringPrincipal;
+  if (!aDoCheckLoadURIChecks) {
+    mozilla::OriginAttributes attrs =
+      BasePrincipal::Cast(content->NodePrincipal())->OriginAttributesRef();
+    triggeringPrincipal = BasePrincipal::CreateCodebasePrincipal(uri, attrs);
+  }
+
   rv = lh->OnLinkClick(content, uri, unitarget.get(), NullString(),
-                       aPostStream, headersDataStream, true);
+                       aPostStream, headersDataStream, true, triggeringPrincipal);
 
   return rv;
 }
@@ -607,7 +610,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
 #endif
 
 #ifndef XP_MACOSX
-  // Silverlight calls invalidate for windowed plugins so this needs to work.
+  // Invalidate for windowed plugins needs to work.
   if (mWidget) {
     mWidget->Invalidate(
       LayoutDeviceIntRect(invalidRect->left, invalidRect->top,
@@ -2532,6 +2535,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
       NS_ASSERTION(anEvent.mMessage == eMouseDown ||
                    anEvent.mMessage == eMouseUp ||
                    anEvent.mMessage == eMouseDoubleClick ||
+                   anEvent.mMessage == eMouseAuxClick ||
                    anEvent.mMessage == eMouseOver ||
                    anEvent.mMessage == eMouseOut ||
                    anEvent.mMessage == eMouseMove ||
@@ -2594,6 +2598,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
         switch (anEvent.mMessage) {
           case eMouseClick:
           case eMouseDoubleClick:
+          case eMouseAuxClick:
             // Button up/down events sent instead.
             return rv;
           default:
@@ -2797,6 +2802,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
         switch (anEvent.mMessage) {
           case eMouseClick:
           case eMouseDoubleClick:
+          case eMouseAuxClick:
             // Button up/down events sent instead.
             return rv;
           default:
@@ -3338,8 +3344,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
 {
   NS_ENSURE_TRUE(mPluginWindow, NS_ERROR_NULL_POINTER);
 
-  nsresult rv = NS_ERROR_FAILURE;
-
   // Can't call this twice!
   if (mWidget) {
     NS_WARNING("Trying to create a plugin widget twice!");
@@ -3349,15 +3353,21 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
   bool windowless = false;
   mInstance->IsWindowless(&windowless);
   if (!windowless) {
+#ifndef XP_WIN
+    // Only Windows supports windowed mode!
+    MOZ_ASSERT_UNREACHABLE();
+    return NS_ERROR_FAILURE;
+#else
     // Try to get a parent widget, on some platforms widget creation will fail without
     // a parent.
+    nsresult rv = NS_ERROR_FAILURE;
+
     nsCOMPtr<nsIWidget> parentWidget;
     nsIDocument *doc = nullptr;
     nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
     if (content) {
       doc = content->OwnerDoc();
       parentWidget = nsContentUtils::WidgetForDocument(doc);
-#ifndef XP_MACOSX
       // If we're running in the content process, we need a remote widget created in chrome.
       if (XRE_IsContentProcess()) {
         if (nsCOMPtr<nsPIDOMWindowOuter> window = doc->GetWindow()) {
@@ -3373,16 +3383,13 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
           }
         }
       }
-#endif // XP_MACOSX
     }
 
-#ifndef XP_MACOSX
     // A failure here is terminal since we can't fall back on the non-e10s code
     // path below.
     if (!mWidget && XRE_IsContentProcess()) {
       return NS_ERROR_UNEXPECTED;
     }
-#endif // XP_MACOSX
 
     if (!mWidget) {
       // native (single process)
@@ -3404,6 +3411,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
     mWidget->EnableDragDrop(true);
     mWidget->Show(false);
     mWidget->Enable(false);
+#endif // XP_WIN
   }
 
   if (mPluginFrame) {

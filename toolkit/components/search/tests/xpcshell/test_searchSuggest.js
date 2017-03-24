@@ -25,10 +25,9 @@ function run_test() {
   Services.prefs.setBoolPref("browser.search.suggest.enabled", true);
 
   removeMetadata();
-  updateAppInfo();
 
-  let httpServer = useHttpServer();
-  httpServer.registerContentType("sjs", "sjs");
+  let server = useHttpServer();
+  server.registerContentType("sjs", "sjs");
 
   do_register_cleanup(() => Task.spawn(function* cleanup() {
     // Remove added form history entries
@@ -556,14 +555,14 @@ function updateSearchHistory(operation, value) {
   FormHistory.update({
                        op: operation,
                        fieldname: "searchbar-history",
-                       value: value,
+                       value,
                      },
                      {
-                       handleError: function (error) {
+                       handleError(error) {
                          do_throw("Error occurred updating form history: " + error);
                          deferred.reject(error);
                        },
-                       handleCompletion: function (reason) {
+                       handleCompletion(reason) {
                          if (!reason)
                            deferred.resolve();
                        }

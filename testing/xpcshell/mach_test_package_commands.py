@@ -22,7 +22,6 @@ from mach.decorators import (
 def run_xpcshell(context, **kwargs):
     args = Namespace(**kwargs)
     args.appPath = args.appPath or os.path.dirname(context.firefox_bin)
-    args.e10s = context.mozharness_config.get('e10s', args.e10s)
     args.utility_path = context.bin_dir
     args.testingModulesDir = context.modules_dir
 
@@ -61,4 +60,5 @@ class MochitestCommands(object):
              description='Run the xpcshell harness.',
              parser=parser_desktop)
     def xpcshell(self, **kwargs):
+        self.context.activate_mozharness_venv()
         return run_xpcshell(self.context, **kwargs)

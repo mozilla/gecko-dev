@@ -34,16 +34,10 @@
 #include "hb-ot-layout-gdef-table.hh"
 #include "hb-ot-layout-gsub-table.hh"
 #include "hb-ot-layout-gpos-table.hh"
-#include "hb-ot-layout-jstf-table.hh"
-#include "hb-ot-layout-math-table.hh"
+#include "hb-ot-layout-jstf-table.hh" // Just so we compile it; unused otherwise.
 
 #include "hb-ot-map-private.hh"
 
-#include <stdlib.h>
-#include <string.h>
-
-
-HB_SHAPER_DATA_ENSURE_DECLARE(ot, face)
 
 hb_ot_layout_t *
 _hb_ot_layout_create (hb_face_t *face)
@@ -61,9 +55,9 @@ _hb_ot_layout_create (hb_face_t *face)
   layout->gpos_blob = OT::Sanitizer<OT::GPOS>::sanitize (face->reference_table (HB_OT_TAG_GPOS));
   layout->gpos = OT::Sanitizer<OT::GPOS>::lock_instance (layout->gpos_blob);
 
-  /* The MATH table is rarely used, so only try and load it in _get_math. */
-  layout->math_blob = NULL;
-  layout->math = NULL;
+  layout->math.init (face);
+  layout->fvar.init (face);
+  layout->avar.init (face);
 
   {
     /*
@@ -111,10 +105,16 @@ _hb_ot_layout_create (hb_face_t *face)
       || (994 == gdef_len && 60336 == gpos_len && 24474 == gsub_len)
       /* sha1sum:7199385abb4c2cc81c83a151a7599b6368e92343  tahomabd.ttf from Windows 10 */
       || (1006 == gdef_len && 61740 == gpos_len && 24470 == gsub_len)
+      /* sha1sum:b9c84d820c49850d3d27ec498be93955b82772b5  tahoma.ttf from Windows 10 AU */
+      || (1006 == gdef_len && 61352 == gpos_len && 24576 == gsub_len)
+      /* sha1sum:2bdfaab28174bdadd2f3d4200a30a7ae31db79d2  tahomabd.ttf from Windows 10 AU */
+      || (1018 == gdef_len && 62834 == gpos_len && 24572 == gsub_len)
       /* sha1sum:b0d36cf5a2fbe746a3dd277bffc6756a820807a7  Tahoma.ttf from Mac OS X 10.9 */
       || (832 == gdef_len && 47162 == gpos_len && 7324 == gsub_len)
       /* sha1sum:12fc4538e84d461771b30c18b5eb6bd434e30fba  Tahoma Bold.ttf from Mac OS X 10.9 */
       || (844 == gdef_len && 45474 == gpos_len && 7302 == gsub_len)
+      /* sha1sum:eb8afadd28e9cf963e886b23a30b44ab4fd83acc  himalaya.ttf from Windows 7 */
+      || (180 == gdef_len && 7254 == gpos_len && 13054 == gsub_len)
       /* sha1sum:73da7f025b238a3f737aa1fde22577a6370f77b0  himalaya.ttf from Windows 8 */
       || (192 == gdef_len && 7254 == gpos_len && 12638 == gsub_len)
       /* sha1sum:6e80fd1c0b059bbee49272401583160dc1e6a427  himalaya.ttf from Windows 8.1 */
@@ -133,6 +133,9 @@ _hb_ot_layout_create (hb_face_t *face)
       || (1330 == gdef_len && 57938 == gpos_len && 109904 == gsub_len)
       /* 91fcc10cf15e012d27571e075b3b4dfe31754a8a padauk-3.0/Padauk-bookbold.ttf */
       || (1330 == gdef_len && 58972 == gpos_len && 109904 == gsub_len)
+      /* sha1sum: c26e41d567ed821bed997e937bc0c41435689e85  Padauk.ttf
+       *  "Padauk Regular" "Version 2.5", see https://crbug.com/681813 */
+      || (1004 == gdef_len && 14836 == gpos_len && 59092 == gsub_len)
     )
     {
       /* Many versions of Tahoma have bad GDEF tables that incorrectly classify some spacing marks
@@ -182,7 +185,10 @@ _hb_ot_layout_destroy (hb_ot_layout_t *layout)
   hb_blob_destroy (layout->gdef_blob);
   hb_blob_destroy (layout->gsub_blob);
   hb_blob_destroy (layout->gpos_blob);
-  hb_blob_destroy (layout->math_blob);
+
+  layout->math.fini ();
+  layout->fvar.fini ();
+  layout->avar.fini ();
 
   free (layout);
 }
@@ -205,31 +211,6 @@ _get_gpos (hb_face_t *face)
   if (unlikely (!hb_ot_shaper_face_data_ensure (face))) return OT::Null(OT::GPOS);
   return *hb_ot_layout_from_face (face)->gpos;
 }
-static inline const OT::MATH&
-_get_math (hb_face_t *face)
-{
-  if (unlikely (!hb_ot_shaper_face_data_ensure (face))) return OT::Null(OT::MATH);
-
-  hb_ot_layout_t * layout = hb_ot_layout_from_face (face);
-
-retry:
-  const OT::MATH *math = (const OT::MATH *) hb_atomic_ptr_get (&layout->math);
-
-  if (unlikely (!math))
-  {
-    hb_blob_t *blob = OT::Sanitizer<OT::MATH>::sanitize (face->reference_table (HB_OT_TAG_MATH));
-    math = OT::Sanitizer<OT::MATH>::lock_instance (blob);
-    if (!hb_atomic_ptr_cmpexch (&layout->math, NULL, math))
-    {
-      hb_blob_destroy (blob);
-      goto retry;
-    }
-    layout->math_blob = blob;
-  }
-
-  return *math;
-}
-
 
 /*
  * GDEF
@@ -582,10 +563,13 @@ hb_ot_layout_feature_get_lookups (hb_face_t    *face,
 				  unsigned int *lookup_count /* IN/OUT */,
 				  unsigned int *lookup_indexes /* OUT */)
 {
-  const OT::GSUBGPOS &g = get_gsubgpos_table (face, table_tag);
-  const OT::Feature &f = g.get_feature (feature_index);
-
-  return f.get_lookup_indexes (start_offset, lookup_count, lookup_indexes);
+  return hb_ot_layout_feature_with_variations_get_lookups (face,
+							   table_tag,
+							   feature_index,
+							   HB_OT_LAYOUT_NO_VARIATIONS_INDEX,
+							   start_offset,
+							   lookup_count,
+							   lookup_indexes);
 }
 
 /**
@@ -833,6 +817,38 @@ hb_ot_layout_lookup_collect_glyphs (hb_face_t    *face,
       return;
     }
   }
+}
+
+
+/* Variations support */
+
+hb_bool_t
+hb_ot_layout_table_find_feature_variations (hb_face_t    *face,
+					    hb_tag_t      table_tag,
+					    const int    *coords,
+					    unsigned int  num_coords,
+					    unsigned int *variations_index /* out */)
+{
+  const OT::GSUBGPOS &g = get_gsubgpos_table (face, table_tag);
+
+  return g.find_variations_index (coords, num_coords, variations_index);
+}
+
+unsigned int
+hb_ot_layout_feature_with_variations_get_lookups (hb_face_t    *face,
+						  hb_tag_t      table_tag,
+						  unsigned int  feature_index,
+						  unsigned int  variations_index,
+						  unsigned int  start_offset,
+						  unsigned int *lookup_count /* IN/OUT */,
+						  unsigned int *lookup_indexes /* OUT */)
+{
+  ASSERT_STATIC (OT::FeatureVariations::NOT_FOUND_INDEX == HB_OT_LAYOUT_NO_VARIATIONS_INDEX);
+  const OT::GSUBGPOS &g = get_gsubgpos_table (face, table_tag);
+
+  const OT::Feature &f = g.get_feature_variation (feature_index, variations_index);
+
+  return f.get_lookup_indexes (start_offset, lookup_count, lookup_indexes);
 }
 
 
@@ -1219,222 +1235,4 @@ hb_ot_layout_substitute_lookup (OT::hb_apply_context_t *c,
 				const hb_ot_layout_lookup_accelerator_t &accel)
 {
   apply_string<GSUBProxy> (c, lookup, accel);
-}
-
-
-/*
- * MATH
- */
-/* TODO Move this to hb-ot-math.cc and separate it from hb_ot_layout_t. */
-
-/**
- * hb_ot_math_has_data:
- * @face: #hb_face_t to test
- *
- * This function allows to verify the presence of an OpenType MATH table on the
- * face. If so, such a table will be loaded into memory and sanitized. You can
- * then safely call other functions for math layout and shaping.
- *
- * Return value: #TRUE if face has a MATH table and #FALSE otherwise
- *
- * Since: 1.3.3
- **/
-hb_bool_t
-hb_ot_math_has_data (hb_face_t *face)
-{
-  return &_get_math (face) != &OT::Null(OT::MATH);
-}
-
-/**
- * hb_ot_math_get_constant:
- * @font: #hb_font_t from which to retrieve the value
- * @constant: #hb_ot_math_constant_t the constant to retrieve
- *
- * This function returns the requested math constants as a #hb_position_t.
- * If the request constant is HB_OT_MATH_CONSTANT_SCRIPT_PERCENT_SCALE_DOWN,
- * HB_OT_MATH_CONSTANT_SCRIPT_SCRIPT_PERCENT_SCALE_DOWN or
- * HB_OT_MATH_CONSTANT_SCRIPT_PERCENT_SCALE_DOWN then the return value is
- * actually an integer between 0 and 100 representing that percentage.
- *
- * Return value: the requested constant or 0
- *
- * Since: 1.3.3
- **/
-hb_position_t
-hb_ot_math_get_constant (hb_font_t *font,
-			 hb_ot_math_constant_t constant)
-{
-  const OT::MATH &math = _get_math (font->face);
-  return math.get_constant(constant, font);
-}
-
-/**
- * hb_ot_math_get_glyph_italics_correction:
- * @font: #hb_font_t from which to retrieve the value
- * @glyph: glyph index from which to retrieve the value
- *
- * Return value: the italics correction of the glyph or 0
- *
- * Since: 1.3.3
- **/
-hb_position_t
-hb_ot_math_get_glyph_italics_correction (hb_font_t *font,
-					 hb_codepoint_t glyph)
-{
-  const OT::MATH &math = _get_math (font->face);
-  return math.get_math_glyph_info().get_italics_correction (glyph, font);
-}
-
-/**
- * hb_ot_math_get_glyph_top_accent_attachment:
- * @font: #hb_font_t from which to retrieve the value
- * @glyph: glyph index from which to retrieve the value
- *
- * Return value: the top accent attachment of the glyph or 0
- *
- * Since: 1.3.3
- **/
-hb_position_t
-hb_ot_math_get_glyph_top_accent_attachment (hb_font_t *font,
-					    hb_codepoint_t glyph)
-{
-  const OT::MATH &math = _get_math (font->face);
-  return math.get_math_glyph_info().get_top_accent_attachment (glyph, font);
-}
-
-/**
- * hb_ot_math_is_glyph_extended_shape:
- * @font: a #hb_font_t to test
- * @glyph: a glyph index to test
- *
- * Return value: #TRUE if the glyph is an extended shape and #FALSE otherwise
- *
- * Since: 1.3.3
- **/
-hb_bool_t
-hb_ot_math_is_glyph_extended_shape (hb_face_t *face,
-				    hb_codepoint_t glyph)
-{
-  const OT::MATH &math = _get_math (face);
-  return math.get_math_glyph_info().is_extended_shape (glyph);
-}
-
-/**
- * hb_ot_math_get_glyph_kerning:
- * @font: #hb_font_t from which to retrieve the value
- * @glyph: glyph index from which to retrieve the value
- * @kern: the #hb_ot_math_kern_t from which to retrieve the value
- * @correction_height: the correction height to use to determine the kerning.
- *
- * This function tries to retrieve the MathKern table for the specified font,
- * glyph and #hb_ot_math_kern_t. Then it browses the list of heights from the
- * MathKern table to find one value that is greater or equal to specified
- * correction_height. If one is found the corresponding value from the list of
- * kerns is returned and otherwise the last kern value is returned.
- *
- * Return value: requested kerning or 0
- *
- * Since: 1.3.3
- **/
-hb_position_t
-hb_ot_math_get_glyph_kerning (hb_font_t *font,
-			      hb_codepoint_t glyph,
-			      hb_ot_math_kern_t kern,
-			      hb_position_t correction_height)
-{
-  const OT::MATH &math = _get_math (font->face);
-  return math.get_math_glyph_info().get_kerning (glyph, kern, correction_height, font);
-}
-
-/**
- * hb_ot_math_get_glyph_variants:
- * @font: #hb_font_t from which to retrieve the values
- * @glyph: index of the glyph to stretch
- * @direction: direction of the stretching
- * @start_offset: offset of the first variant to retrieve
- * @variants_count: maximum number of variants to retrieve after start_offset
- * (IN) and actual number of variants retrieved (OUT)
- * @variants: array of size at least @variants_count to store the result
- *
- * This function tries to retrieve the MathGlyphConstruction for the specified
- * font, glyph and direction. Note that only the value of
- * #HB_DIRECTION_IS_HORIZONTAL is considered. It provides the corresponding list
- * of size variants as an array of hb_ot_math_glyph_variant_t structs.
- *
- * Return value: the total number of size variants available or 0
- *
- * Since: 1.3.3
- **/
-unsigned int
-hb_ot_math_get_glyph_variants (hb_font_t *font,
-			       hb_codepoint_t glyph,
-			       hb_direction_t direction,
-			       unsigned int start_offset,
-			       unsigned int *variants_count, /* IN/OUT */
-			       hb_ot_math_glyph_variant_t *variants /* OUT */)
-{
-  const OT::MATH &math = _get_math (font->face);
-  return math.get_math_variants().get_glyph_variants (glyph, direction, font,
-						      start_offset,
-						      variants_count,
-						      variants);
-}
-
-/**
- * hb_ot_math_get_min_connector_overlap:
- * @font: #hb_font_t from which to retrieve the value
- * @direction: direction of the stretching
- *
- * This function tries to retrieve the MathVariants table for the specified
- * font and returns the minimum overlap of connecting glyphs to draw a glyph
- * assembly in the specified direction. Note that only the value of
- * #HB_DIRECTION_IS_HORIZONTAL is considered.
- *
- * Return value: requested min connector overlap or 0
- *
- * Since: 1.3.3
- **/
-hb_position_t
-hb_ot_math_get_min_connector_overlap (hb_font_t *font,
-				      hb_direction_t direction)
-{
-  const OT::MATH &math = _get_math (font->face);
-  return math.get_math_variants().get_min_connector_overlap (direction, font);
-}
-
-/**
- * hb_ot_math_get_glyph_assembly:
- * @font: #hb_font_t from which to retrieve the values
- * @glyph: index of the glyph to stretch
- * @direction: direction of the stretching
- * @start_offset: offset of the first glyph part to retrieve
- * @parts_count: maximum number of glyph parts to retrieve after start_offset
- * (IN) and actual number of parts retrieved (OUT)
- * @parts: array of size at least @parts_count to store the result
- * @italics_correction: italic correction of the glyph assembly
- *
- * This function tries to retrieve the GlyphAssembly for the specified font,
- * glyph and direction. Note that only the value of #HB_DIRECTION_IS_HORIZONTAL
- * is considered. It provides the information necessary to draw the glyph
- * assembly as an array of #hb_ot_math_glyph_part_t.
- *
- * Return value: the total number of parts in the glyph assembly
- *
- * Since: 1.3.3
- **/
-unsigned int
-hb_ot_math_get_glyph_assembly (hb_font_t *font,
-			       hb_codepoint_t glyph,
-			       hb_direction_t direction,
-			       unsigned int start_offset,
-			       unsigned int *parts_count, /* IN/OUT */
-			       hb_ot_math_glyph_part_t *parts, /* OUT */
-			       hb_position_t *italics_correction /* OUT */)
-{
-  const OT::MATH &math = _get_math (font->face);
-  return math.get_math_variants().get_glyph_parts (glyph, direction, font,
-						   start_offset,
-						   parts_count,
-						   parts,
-						   italics_correction);
 }

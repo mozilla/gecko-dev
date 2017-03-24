@@ -658,7 +658,7 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
 
 #endif
 
-  aStatus = NS_FRAME_COMPLETE;
+  aStatus.Reset();
 
   // create the layout state
   nsBoxLayoutState state(aPresContext, aReflowInput.mRenderingContext,
@@ -944,7 +944,7 @@ nsBoxFrame::DoXULLayout(nsBoxLayoutState& aState)
     AddStateBits(NS_FRAME_IN_REFLOW);
     // Set up a |reflowStatus| to pass into ReflowAbsoluteFrames
     // (just a dummy value; hopefully that's OK)
-    nsReflowStatus reflowStatus = NS_FRAME_COMPLETE;
+    nsReflowStatus reflowStatus;
     ReflowAbsoluteFrames(aState.PresContext(), desiredSize,
                          reflowInput, reflowStatus);
     RemoveStateBits(NS_FRAME_IN_REFLOW);
@@ -1237,7 +1237,7 @@ nsBoxFrame::AttributeChanged(int32_t aNameSpaceID,
     // kPopupList and XULRelayoutChildAtOrdinal() only handles
     // principal children.
     if (parent && !(GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
-        StyleDisplay()->mDisplay != mozilla::StyleDisplay::Popup) {
+        StyleDisplay()->mDisplay != mozilla::StyleDisplay::MozPopup) {
       parent->XULRelayoutChildAtOrdinal(this);
       // XXXldb Should this instead be a tree change on the child or parent?
       PresContext()->PresShell()->
@@ -1323,7 +1323,7 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     // Check for frames that are marked as a part of the region used
     // in calculating glass margins on Windows.
     const nsStyleDisplay* styles = StyleDisplay();
-    if (styles && styles->mAppearance == NS_THEME_WIN_EXCLUDE_GLASS) {
+    if (styles && styles->UsedAppearance() == NS_THEME_WIN_EXCLUDE_GLASS) {
       aBuilder->AddWindowExcludeGlassRegion(
           nsRect(aBuilder->ToReferenceFrame(this), GetSize()));
     }
@@ -1344,6 +1344,11 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 #endif
 
+  Maybe<nsDisplayListBuilder::AutoContainerASRTracker> contASRTracker;
+  if (forceLayer) {
+    contASRTracker.emplace(aBuilder);
+  }
+
   BuildDisplayListForChildren(aBuilder, aDirtyRect, destination);
 
   // see if we have to draw a selection frame around this container
@@ -1362,9 +1367,14 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     masterList.AppendToTop(tempLists.PositionedDescendants());
     masterList.AppendToTop(tempLists.Outlines());
 
+    const ActiveScrolledRoot* ownLayerASR = contASRTracker->GetContainerASR();
+
+    DisplayListClipState::AutoSaveRestore ownLayerClipState(aBuilder);
+    ownLayerClipState.ClearUpToASR(ownLayerASR);
+
     // Wrap the list to make it its own layer
     aLists.Content()->AppendNewToTop(new (aBuilder)
-      nsDisplayOwnLayer(aBuilder, this, &masterList));
+      nsDisplayOwnLayer(aBuilder, this, &masterList, ownLayerASR));
   }
 }
 

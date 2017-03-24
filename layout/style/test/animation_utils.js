@@ -46,9 +46,9 @@ function advance_clock(milliseconds) {
     function listener(event) {
       gEventsReceived.push(event);
     }
-    gElem.addEventListener("animationstart", listener, false);
-    gElem.addEventListener("animationiteration", listener, false);
-    gElem.addEventListener("animationend", listener, false);
+    gElem.addEventListener("animationstart", listener);
+    gElem.addEventListener("animationiteration", listener);
+    gElem.addEventListener("animationend", listener);
   }
 
   function check_events(eventsExpected, desc) {
@@ -248,8 +248,8 @@ function runOMTATest(aTestFunction, aOnSkip, specialPowersForPrefs) {
 
     // Common clean up code
     var cleanUp = function() {
-      div.parentNode.removeChild(div);
-      style.parentNode.removeChild(style);
+      div.remove();
+      style.remove();
       if (utils.isTestControllingRefreshes) {
         utils.restoreNormalRefresh();
       }

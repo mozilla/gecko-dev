@@ -62,6 +62,29 @@ public:
                       const ReflowInput& aReflowInput,
                       nsReflowStatus&          aStatus) override;
 
+  bool GetVerticalAlignBaseline(mozilla::WritingMode aWM,
+                                nscoord* aBaseline) const override
+  {
+    return GetNaturalBaselineBOffset(aWM, BaselineSharingGroup::eFirst, aBaseline);
+  }
+
+  bool GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
+                                 BaselineSharingGroup aBaselineGroup,
+                                 nscoord* aBaseline) const override
+  {
+    if (!IsSingleLineTextControl()) {
+      return false;
+    }
+    NS_ASSERTION(mFirstBaseline != NS_INTRINSIC_WIDTH_UNKNOWN,
+                 "please call Reflow before asking for the baseline");
+    if (aBaselineGroup == BaselineSharingGroup::eFirst) {
+      *aBaseline = mFirstBaseline;
+    } else {
+      *aBaseline = BSize(aWM) - mFirstBaseline;
+    }
+    return true;
+  }
+
   virtual nsSize GetXULMinSize(nsBoxLayoutState& aBoxLayoutState) override;
   virtual bool IsXULCollapsed() override;
 
@@ -87,6 +110,14 @@ public:
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
+#ifdef DEBUG
+  void MarkIntrinsicISizesDirty() override
+  {
+    // Need another Reflow to have a correct baseline value again.
+    mFirstBaseline = NS_INTRINSIC_WIDTH_UNKNOWN;
+  }
+#endif
+
   // nsIAnonymousContentCreator
   virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
   virtual void AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
@@ -111,14 +142,9 @@ public:
 //==== NSITEXTCONTROLFRAME
 
   NS_IMETHOD    GetEditor(nsIEditor **aEditor) override;
-  NS_IMETHOD    SetSelectionStart(int32_t aSelectionStart) override;
-  NS_IMETHOD    SetSelectionEnd(int32_t aSelectionEnd) override;
-  NS_IMETHOD    SetSelectionRange(int32_t aSelectionStart,
-                                  int32_t aSelectionEnd,
+  NS_IMETHOD    SetSelectionRange(uint32_t aSelectionStart,
+                                  uint32_t aSelectionEnd,
                                   SelectionDirection aDirection = eNone) override;
-  NS_IMETHOD    GetSelectionRange(int32_t* aSelectionStart,
-                                  int32_t* aSelectionEnd,
-                                  SelectionDirection* aDirection = nullptr) override;
   NS_IMETHOD    GetOwnedSelectionController(nsISelectionController** aSelCon) override;
   virtual nsFrameSelection* GetOwnedFrameSelection() override;
 
@@ -188,9 +214,9 @@ public: //for methods who access nsTextControlFrame directly
   DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsTextArea)
   DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsPlainTextControl)
   DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsPasswordTextControl)
-  DEFINE_TEXTCTRL_FORWARDER(int32_t, GetCols)
-  DEFINE_TEXTCTRL_FORWARDER(int32_t, GetWrapCols)
-  DEFINE_TEXTCTRL_FORWARDER(int32_t, GetRows)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(int32_t, GetCols)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(int32_t, GetWrapCols)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(int32_t, GetRows)
 
 #undef DEFINE_TEXTCTRL_CONST_FORWARDER
 #undef DEFINE_TEXTCTRL_FORWARDER
@@ -212,7 +238,7 @@ protected:
 
     NS_IMETHOD Run() override;
 
-    // avoids use of nsWeakFrame
+    // avoids use of AutoWeakFrame
     void Revoke() {
       mFrame = nullptr;
     }
@@ -239,7 +265,7 @@ protected:
     nsTextControlFrame* mFrame;
   };
 
-  nsresult OffsetToDOMPoint(int32_t aOffset, nsIDOMNode** aResult, int32_t* aPosition);
+  nsresult OffsetToDOMPoint(uint32_t aOffset, nsIDOMNode** aResult, uint32_t* aPosition);
 
   /**
    * Update the textnode under our anonymous div to show the new
@@ -274,26 +300,29 @@ protected:
   // Compute our intrinsic size.  This does not include any borders, paddings,
   // etc.  Just the size of our actual area for the text (and the scrollbars,
   // for <textarea>).
-  nsresult CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
-                             mozilla::WritingMode aWM,
-                             mozilla::LogicalSize& aIntrinsicSize,
-                             float aFontSizeInflation);
+  mozilla::LogicalSize CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
+                                         mozilla::WritingMode aWM,
+                                         float aFontSizeInflation) const;
 
   nsresult ScrollSelectionIntoView() override;
 
 private:
   //helper methods
-  nsresult SetSelectionInternal(nsIDOMNode *aStartNode, int32_t aStartOffset,
-                                nsIDOMNode *aEndNode, int32_t aEndOffset,
+  nsresult SetSelectionInternal(nsIDOMNode *aStartNode, uint32_t aStartOffset,
+                                nsIDOMNode *aEndNode, uint32_t aEndOffset,
                                 SelectionDirection aDirection = eNone);
   nsresult SelectAllOrCollapseToEndOfText(bool aSelect);
-  nsresult SetSelectionEndPoints(int32_t aSelStart, int32_t aSelEnd,
+  nsresult SetSelectionEndPoints(uint32_t aSelStart, uint32_t aSelEnd,
                                  SelectionDirection aDirection = eNone);
 
   /**
-   * Return the root DOM element, and implicitly initialize the editor if needed.
+   * Return the root DOM element, and implicitly initialize the editor if
+   * needed.
+   *
+   * XXXbz This function is slow.  Very slow.  Consider using
+   * EnsureEditorInitialized() if you need that, and
+   * nsITextControlElement::GetRootEditorNode on our content if you need that.
    */
-  mozilla::dom::Element* GetRootNodeAndInitializeEditor();
   nsresult GetRootNodeAndInitializeEditor(nsIDOMElement **aRootElement);
 
   void FinishedInitializer() {
@@ -301,6 +330,10 @@ private:
   }
 
 private:
+  // Our first baseline, or NS_INTRINSIC_WIDTH_UNKNOWN if we have a pending
+  // Reflow.
+  nscoord mFirstBaseline;
+
   // these packed bools could instead use the high order bits on mState, saving 4 bytes 
   bool mEditorHasBeenInitialized;
   bool mIsProcessing;

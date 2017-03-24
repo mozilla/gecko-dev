@@ -1,6 +1,10 @@
 load(libdir + "asm.js");
 load(libdir + "asserts.js");
 
+// Run test only for asm.js
+if (!isAsmJSCompilationAvailable())
+    quit();
+
 // Single-step profiling currently only works in the ARM simulator
 if (!getBuildConfiguration()["arm-simulator"])
     quit();
@@ -55,17 +59,17 @@ function assertStackContainsSeq(got, expect)
 var stacks;
 var ffi = function(enable) {
     if (enable == +1)
-        enableSPSProfiling();
+        enableGeckoProfiling();
     enableSingleStepProfiling();
     stacks = disableSingleStepProfiling();
     if (enable == -1)
-        disableSPSProfiling();
+        disableGeckoProfiling();
 }
 var f = asmLink(asmCompile('global','ffis',USE_ASM + "var ffi=ffis.ffi; function g(i) { i=i|0; ffi(i|0) } function f(i) { i=i|0; g(i|0) } return f"), null, {ffi});
 f(0);
 assertStackContainsSeq(stacks, "");
 f(+1);
-assertStackContainsSeq(stacks, "");
+assertStackContainsSeq(stacks, "<,g,f,>");
 f(0);
 assertStackContainsSeq(stacks, "<,g,f,>");
 f(-1);
@@ -74,7 +78,7 @@ f(0);
 assertStackContainsSeq(stacks, "");
 
 // Enable profiling for the rest of the tests.
-enableSPSProfiling();
+enableGeckoProfiling();
 
 var f = asmLink(asmCompile(USE_ASM + "function f() { return 42 } return f"));
 enableSingleStepProfiling();
@@ -108,7 +112,7 @@ function testBuiltinD2D(name) {
         enableSingleStepProfiling();
         assertEq(f(.1), eval("Math." + name + "(.1)"));
         var stacks = disableSingleStepProfiling();
-        assertStackContainsSeq(stacks, ">,f,>,native call,>,f,>,>");
+        assertStackContainsSeq(stacks, ">,f,>,f,>,>");
     }
 }
 for (name of ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'ceil', 'floor', 'exp', 'log'])
@@ -121,7 +125,7 @@ function testBuiltinF2F(name) {
         enableSingleStepProfiling();
         assertEq(f(.1), eval("Math.fround(Math." + name + "(Math.fround(.1)))"));
         var stacks = disableSingleStepProfiling();
-        assertStackContainsSeq(stacks, ">,f,>,native call,>,f,>,>");
+        assertStackContainsSeq(stacks, ">,f,>,f,>,>");
     }
 }
 for (name of ['ceil', 'floor'])
@@ -134,7 +138,7 @@ function testBuiltinDD2D(name) {
         enableSingleStepProfiling();
         assertEq(f(.1, .2), eval("Math." + name + "(.1, .2)"));
         var stacks = disableSingleStepProfiling();
-        assertStackContainsSeq(stacks, ">,f,>,native call,>,f,>,>");
+        assertStackContainsSeq(stacks, ">,f,>,f,>,>");
     }
 }
 for (name of ['atan2', 'pow'])

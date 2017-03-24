@@ -13,6 +13,7 @@ extern "C" {
 
 #include "databuffer.h"
 #include "gtest_utils.h"
+#include "scoped_ptrs.h"
 #include "sslproto.h"
 
 extern std::string g_working_dir_path;
@@ -173,18 +174,15 @@ void TlsConnectTestBase::ClearServerCache() {
 void TlsConnectTestBase::SetUp() {
   SSL_ConfigServerSessionIDCache(1024, 0, 0, g_working_dir_path.c_str());
   SSLInt_ClearSessionTicketKey();
+  SSLInt_SetTicketLifetime(30);
+  SSLInt_SetMaxEarlyDataSize(1024);
   ClearStats();
   Init();
 }
 
 void TlsConnectTestBase::TearDown() {
-  delete client_;
-  delete server_;
-  if (client_model_) {
-    ASSERT_NE(server_model_, nullptr);
-    delete client_model_;
-    delete server_model_;
-  }
+  client_ = nullptr;
+  server_ = nullptr;
 
   SSL_ClearSessionCache();
   SSLInt_ClearSessionTicketKey();
@@ -192,9 +190,6 @@ void TlsConnectTestBase::TearDown() {
 }
 
 void TlsConnectTestBase::Init() {
-  EXPECT_TRUE(client_->Init());
-  EXPECT_TRUE(server_->Init());
-
   client_->SetPeer(server_);
   server_->SetPeer(client_);
 
@@ -212,11 +207,8 @@ void TlsConnectTestBase::Reset() {
 
 void TlsConnectTestBase::Reset(const std::string& server_name,
                                const std::string& client_name) {
-  delete client_;
-  delete server_;
-
-  client_ = new TlsAgent(client_name, TlsAgent::CLIENT, mode_);
-  server_ = new TlsAgent(server_name, TlsAgent::SERVER, mode_);
+  client_.reset(new TlsAgent(client_name, TlsAgent::CLIENT, mode_));
+  server_.reset(new TlsAgent(server_name, TlsAgent::SERVER, mode_));
 
   Init();
 }
@@ -309,6 +301,9 @@ void TlsConnectTestBase::CheckConnected() {
   CheckResumption(expected_resumption_mode_);
   client_->CheckSecretsDestroyed();
   server_->CheckSecretsDestroyed();
+
+  client_->CheckAlerts();
+  server_->CheckAlerts();
 }
 
 void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type, SSLNamedGroup kea_group,
@@ -345,6 +340,13 @@ void TlsConnectTestBase::CheckKeys(SSLKEAType kea_type,
       scheme = ssl_sig_none;
       break;
     case ssl_auth_rsa_sign:
+      if (version_ >= SSL_LIBRARY_VERSION_TLS_1_2) {
+        scheme = ssl_sig_rsa_pss_sha256;
+      } else {
+        scheme = ssl_sig_rsa_pkcs1_sha256;
+      }
+      break;
+    case ssl_auth_rsa_pss:
       scheme = ssl_sig_rsa_pss_sha256;
       break;
     case ssl_auth_ecdsa:
@@ -373,7 +375,22 @@ void TlsConnectTestBase::ConnectExpectFail() {
   ASSERT_EQ(TlsAgent::STATE_ERROR, server_->state());
 }
 
+void TlsConnectTestBase::ConnectExpectFailOneSide(TlsAgent::Role failing_side) {
+  server_->StartConnect();
+  client_->StartConnect();
+  client_->SetServerKeyBits(server_->server_key_bits());
+  client_->Handshake();
+  server_->Handshake();
+
+  auto failing_agent = server_;
+  if (failing_side == TlsAgent::CLIENT) {
+    failing_agent = client_;
+  }
+  ASSERT_TRUE_WAIT(failing_agent->state() == TlsAgent::STATE_ERROR, 5000);
+}
+
 void TlsConnectTestBase::ConfigureVersion(uint16_t version) {
+  version_ = version;
   client_->SetVersionRange(version, version);
   server_->SetVersionRange(version, version);
 }
@@ -424,10 +441,16 @@ void TlsConnectTestBase::ConfigureSessionCache(SessionResumptionMode client,
   client_->ConfigureSessionCache(client);
   server_->ConfigureSessionCache(server);
   if ((server & RESUME_TICKET) != 0) {
-    // This is an abomination.  NSS encrypts session tickets with the server's
-    // RSA public key.  That means we need the server to have an RSA certificate
-    // even if it won't be used for the connection.
-    server_->ConfigServerCert(TlsAgent::kServerRsaDecrypt);
+    ScopedCERTCertificate cert;
+    ScopedSECKEYPrivateKey privKey;
+    ASSERT_TRUE(TlsAgent::LoadCertificate(TlsAgent::kServerRsaDecrypt, &cert,
+                                          &privKey));
+
+    ScopedSECKEYPublicKey pubKey(CERT_ExtractPublicKey(cert.get()));
+    ASSERT_TRUE(pubKey);
+
+    EXPECT_EQ(SECSuccess,
+              SSL_SetSessionTicketKeyPair(pubKey.get(), privKey.get()));
   }
 }
 
@@ -472,13 +495,11 @@ void TlsConnectTestBase::EnsureModelSockets() {
   // Make sure models agents are available.
   if (!client_model_) {
     ASSERT_EQ(server_model_, nullptr);
-    client_model_ = new TlsAgent(TlsAgent::kClient, TlsAgent::CLIENT, mode_);
-    server_model_ = new TlsAgent(TlsAgent::kServerRsa, TlsAgent::SERVER, mode_);
+    client_model_.reset(
+        new TlsAgent(TlsAgent::kClient, TlsAgent::CLIENT, mode_));
+    server_model_.reset(
+        new TlsAgent(TlsAgent::kServerRsa, TlsAgent::SERVER, mode_));
   }
-
-  // Initialise agents.
-  ASSERT_TRUE(client_model_->Init());
-  ASSERT_TRUE(server_model_->Init());
 }
 
 void TlsConnectTestBase::CheckAlpn(const std::string& val) {
@@ -595,6 +616,10 @@ void TlsConnectTestBase::CheckEarlyDataAccepted() {
   server_->CheckEarlyDataAccepted(expect_early_data_accepted_);
 }
 
+void TlsConnectTestBase::DisableECDHEServerKeyReuse() {
+  server_->DisableECDHEServerKeyReuse();
+}
+
 TlsConnectGeneric::TlsConnectGeneric()
     : TlsConnectTestBase(std::get<0>(GetParam()), std::get<1>(GetParam())) {}
 
@@ -612,14 +637,17 @@ TlsConnectTls13::TlsConnectTls13()
 
 void TlsKeyExchangeTest::EnsureKeyShareSetup() {
   EnsureTlsSetup();
-  groups_capture_ = new TlsExtensionCapture(ssl_supported_groups_xtn);
-  shares_capture_ = new TlsExtensionCapture(ssl_tls13_key_share_xtn);
-  std::vector<PacketFilter*> captures;
-  captures.push_back(groups_capture_);
-  captures.push_back(shares_capture_);
-  client_->SetPacketFilter(new ChainedPacketFilter(captures));
-  capture_hrr_ =
-      new TlsInspectorRecordHandshakeMessage(kTlsHandshakeHelloRetryRequest);
+  groups_capture_ =
+      std::make_shared<TlsExtensionCapture>(ssl_supported_groups_xtn);
+  shares_capture_ =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn);
+  shares_capture2_ =
+      std::make_shared<TlsExtensionCapture>(ssl_tls13_key_share_xtn, true);
+  std::vector<std::shared_ptr<PacketFilter>> captures = {
+      groups_capture_, shares_capture_, shares_capture2_};
+  client_->SetPacketFilter(std::make_shared<ChainedPacketFilter>(captures));
+  capture_hrr_ = std::make_shared<TlsInspectorRecordHandshakeMessage>(
+      kTlsHandshakeHelloRetryRequest);
   server_->SetPacketFilter(capture_hrr_);
 }
 
@@ -679,4 +707,24 @@ void TlsKeyExchangeTest::CheckKEXDetails(
   EXPECT_EQ(expect_hrr, capture_hrr_->buffer().len() != 0);
 }
 
+void TlsKeyExchangeTest::CheckKEXDetails(
+    const std::vector<SSLNamedGroup>& expected_groups,
+    const std::vector<SSLNamedGroup>& expected_shares) {
+  CheckKEXDetails(expected_groups, expected_shares, false);
+}
+
+void TlsKeyExchangeTest::CheckKEXDetails(
+    const std::vector<SSLNamedGroup>& expected_groups,
+    const std::vector<SSLNamedGroup>& expected_shares,
+    SSLNamedGroup expected_share2) {
+  CheckKEXDetails(expected_groups, expected_shares, true);
+
+  for (auto it : expected_shares) {
+    EXPECT_NE(expected_share2, it);
+  }
+  std::vector<SSLNamedGroup> expected_shares2 = {expected_share2};
+  std::vector<SSLNamedGroup> shares =
+      GetShareDetails(shares_capture2_->extension());
+  EXPECT_EQ(expected_shares2, shares);
+}
 }  // namespace nss_test

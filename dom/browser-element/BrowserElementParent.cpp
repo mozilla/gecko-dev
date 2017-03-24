@@ -55,23 +55,6 @@ CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
 
   popupFrameElement->SetMozbrowser(true);
 
-  // Copy the opener frame's mozapp attribute to the popup frame.
-  if (aOpenerFrameElement->HasAttr(kNameSpaceID_None, nsGkAtoms::mozapp)) {
-    nsAutoString mozapp;
-    aOpenerFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::mozapp, mozapp);
-    popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::mozapp,
-                               mozapp, /* aNotify = */ false);
-  }
-
-  // Copy the opener frame's parentApp attribute to the popup frame.
-  if (aOpenerFrameElement->HasAttr(kNameSpaceID_None, nsGkAtoms::parentapp)) {
-    nsAutoString parentApp;
-    aOpenerFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::parentapp,
-                                 parentApp);
-    popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::parentapp,
-                               parentApp, /* aNotify = */ false);
-  }
-
   // Copy the window name onto the iframe.
   popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::name,
                              aName, /* aNotify = */ false);
@@ -187,7 +170,8 @@ BrowserElementParent::DispatchOpenWindowEvent(Element* aOpenerFrameElement,
   if (dispatchSucceeded) {
     if (aPopupFrameElement->IsInUncomposedDoc()) {
       return BrowserElementParent::OPEN_WINDOW_ADDED;
-    } else if (status == nsEventStatus_eConsumeNoDefault) {
+    }
+    if (status == nsEventStatus_eConsumeNoDefault) {
       // If the frame was not added to a document, report to callers whether
       // preventDefault was called on or not
       return BrowserElementParent::OPEN_WINDOW_CANCELLED;

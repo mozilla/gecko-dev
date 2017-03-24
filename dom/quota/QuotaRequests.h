@@ -10,6 +10,7 @@
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIQuotaRequests.h"
+#include "nsIVariant.h"
 
 class nsIPrincipal;
 class nsIQuotaCallback;
@@ -71,17 +72,15 @@ class UsageRequest final
 {
   nsCOMPtr<nsIQuotaUsageCallback> mCallback;
 
-  uint64_t mUsage;
-  uint64_t mFileUsage;
-
-  // Group Limit.
-  uint64_t mLimit;
+  nsCOMPtr<nsIVariant> mResult;
 
   QuotaUsageRequestChild* mBackgroundActor;
 
   bool mCanceled;
 
 public:
+  explicit UsageRequest(nsIQuotaUsageCallback* aCallback);
+
   UsageRequest(nsIPrincipal* aPrincipal,
                nsIQuotaUsageCallback* aCallback);
 
@@ -97,7 +96,7 @@ public:
   }
 
   void
-  SetResult(uint64_t aUsage, uint64_t aFileUsage, uint64_t aLimit);
+  SetResult(nsIVariant* aResult);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIQUOTAREQUESTBASE(RequestBase::)
@@ -117,13 +116,15 @@ class Request final
 {
   nsCOMPtr<nsIQuotaCallback> mCallback;
 
+  nsCOMPtr<nsIVariant> mResult;
+
 public:
   Request();
 
   explicit Request(nsIPrincipal* aPrincipal);
 
   void
-  SetResult();
+  SetResult(nsIVariant* aResult);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIQUOTAREQUESTBASE(RequestBase::)

@@ -43,7 +43,7 @@ WBORecord.prototype = {
   // Get thyself from your URI, then deserialize.
   // Set thine 'response' field.
   fetch: function fetch(resource) {
-    if (!resource instanceof Resource) {
+    if (!(resource instanceof Resource)) {
       throw new Error("First argument must be a Resource instance.");
     }
 
@@ -56,7 +56,7 @@ WBORecord.prototype = {
   },
 
   upload: function upload(resource) {
-    if (!resource instanceof Resource) {
+    if (!(resource instanceof Resource)) {
       throw new Error("First argument must be a Resource instance.");
     }
 
@@ -65,7 +65,7 @@ WBORecord.prototype = {
 
   // Take a base URI string, with trailing slash, and return the URI of this
   // WBO based on collection and ID.
-  uri: function(base) {
+  uri(base) {
     if (this.collection && this.id) {
       let url = Utils.makeURI(base + this.collection + "/" + this.id);
       url.QueryInterface(Ci.nsIURL);
@@ -80,7 +80,7 @@ WBORecord.prototype = {
     try {
       // The payload is likely to be JSON, but if not, keep it as a string
       this.payload = JSON.parse(this.payload);
-    } catch(ex) {}
+    } catch (ex) {}
   },
 
   toJSON: function toJSON() {
@@ -95,11 +95,11 @@ WBORecord.prototype = {
 
   toString: function toString() {
     return "{ " +
-      "id: "       + this.id        + "  " +
-      "index: "    + this.sortindex + "  " +
-      "modified: " + this.modified  + "  " +
-      "ttl: "      + this.ttl       + "  " +
-      "payload: "  + JSON.stringify(this.payload) +
+      "id: " + this.id + "  " +
+      "index: " + this.sortindex + "  " +
+      "modified: " + this.modified + "  " +
+      "ttl: " + this.ttl + "  " +
+      "payload: " + JSON.stringify(this.payload) +
       " }";
   }
 };
@@ -186,11 +186,11 @@ CryptoWrapper.prototype = {
     let payload = this.deleted ? "DELETED" : JSON.stringify(this.cleartext);
 
     return "{ " +
-      "id: "         + this.id          + "  " +
-      "index: "      + this.sortindex   + "  " +
-      "modified: "   + this.modified    + "  " +
-      "ttl: "        + this.ttl         + "  " +
-      "payload: "    + payload          + "  " +
+      "id: " + this.id + "  " +
+      "index: " + this.sortindex + "  " +
+      "modified: " + this.modified + "  " +
+      "ttl: " + this.ttl + "  " +
+      "payload: " + payload + "  " +
       "collection: " + (this.collection || "undefined") +
       " }";
   },
@@ -281,10 +281,10 @@ RecordManager.prototype = {
  * You can update this thing simply by giving it /info/collections. It'll
  * use the last modified time to bring itself up to date.
  */
-this.CollectionKeyManager = function CollectionKeyManager() {
-  this.lastModified = 0;
-  this._collections = {};
-  this._default = null;
+this.CollectionKeyManager = function CollectionKeyManager(lastModified, default_, collections) {
+  this.lastModified = lastModified || 0;
+  this._default = default_ || null;
+  this._collections = collections || {};
 
   this._log = Log.repository.getLogger("Sync.CollectionKeyManager");
 }
@@ -292,6 +292,19 @@ this.CollectionKeyManager = function CollectionKeyManager() {
 // TODO: persist this locally as an Identity. Bug 610913.
 // Note that the last modified time needs to be preserved.
 CollectionKeyManager.prototype = {
+
+  /**
+   * Generate a new CollectionKeyManager that has the same attributes
+   * as this one.
+   */
+  clone() {
+    const newCollections = {};
+    for (let c in this._collections) {
+      newCollections[c] = this._collections[c];
+    }
+
+    return new CollectionKeyManager(this.lastModified, this._default, newCollections);
+  },
 
   // Return information about old vs new keys:
   // * same: true if two collections are equal
@@ -317,7 +330,7 @@ CollectionKeyManager.prototype = {
     let last;
     changed = changed.filter(x => (x != last) && (last = x));
     return {same: changed.length == 0,
-            changed: changed};
+            changed};
   },
 
   get isClear() {
@@ -331,7 +344,7 @@ CollectionKeyManager.prototype = {
     this._default = null;
   },
 
-  keyForCollection: function(collection) {
+  keyForCollection(collection) {
     if (collection && this._collections[collection])
       return this._collections[collection];
 
@@ -343,7 +356,7 @@ CollectionKeyManager.prototype = {
    * over it and generate random keys for each collection.
    * Create a WBO for the given data.
    */
-  _makeWBO: function(collections, defaultBundle) {
+  _makeWBO(collections, defaultBundle) {
     let wbo = new CryptoWrapper(CRYPTO_COLLECTION, KEYS_WBO);
     let c = {};
     for (let k in collections) {
@@ -361,42 +374,92 @@ CollectionKeyManager.prototype = {
   /**
    * Create a WBO for the current keys.
    */
-  asWBO: function(collection, id) {
+  asWBO(collection, id) {
     return this._makeWBO(this._collections, this._default);
   },
 
   /**
    * Compute a new default key, and new keys for any specified collections.
    */
-  newKeys: function(collections) {
-    let newDefaultKey = new BulkKeyBundle(DEFAULT_KEYBUNDLE_NAME);
-    newDefaultKey.generateRandom();
+  newKeys(collections) {
+    let newDefaultKeyBundle = this.newDefaultKeyBundle();
 
     let newColls = {};
     if (collections) {
-      collections.forEach(function (c) {
+      collections.forEach(function(c) {
         let b = new BulkKeyBundle(c);
         b.generateRandom();
         newColls[c] = b;
       });
     }
-    return [newDefaultKey, newColls];
+    return [newDefaultKeyBundle, newColls];
   },
 
   /**
    * Generates new keys, but does not replace our local copy. Use this to
    * verify an upload before storing.
    */
-  generateNewKeysWBO: function(collections) {
+  generateNewKeysWBO(collections) {
     let newDefaultKey, newColls;
     [newDefaultKey, newColls] = this.newKeys(collections);
 
     return this._makeWBO(newColls, newDefaultKey);
   },
 
+  /**
+   * Create a new default key.
+   *
+   * @returns {BulkKeyBundle}
+   */
+  newDefaultKeyBundle() {
+    const key = new BulkKeyBundle(DEFAULT_KEYBUNDLE_NAME);
+    key.generateRandom();
+    return key;
+  },
+
+  /**
+   * Create a new default key and store it as this._default, since without one you cannot use setContents.
+   */
+  generateDefaultKey() {
+    this._default = this.newDefaultKeyBundle();
+  },
+
+  /**
+   * Return true if keys are already present for each of the given
+   * collections.
+   */
+  hasKeysFor(collections) {
+    // We can't use filter() here because sometimes collections is an iterator.
+    for (let collection of collections) {
+      if (!this._collections[collection]) {
+        return false;
+      }
+    }
+    return true;
+  },
+
+  /**
+   * Return a new CollectionKeyManager that has keys for each of the
+   * given collections (creating new ones for collections where we
+   * don't already have keys).
+   */
+  ensureKeysFor(collections) {
+    const newKeys = Object.assign({}, this._collections);
+    for (let c of collections) {
+      if (newKeys[c]) {
+        continue;  // don't replace existing keys
+      }
+
+      const b = new BulkKeyBundle(c);
+      b.generateRandom();
+      newKeys[c] = b;
+    }
+    return new CollectionKeyManager(this.lastModified, this._default, newKeys);
+  },
+
   // Take the fetched info/collections WBO, checking the change
   // time of the crypto collection.
-  updateNeeded: function(info_collections) {
+  updateNeeded(info_collections) {
 
     this._log.info("Testing for updateNeeded. Last modified: " + this.lastModified);
 
@@ -423,9 +486,6 @@ CollectionKeyManager.prototype = {
   // * Otherwise, return false -- we were up-to-date.
   //
   setContents: function setContents(payload, modified) {
-
-    if (!modified)
-      throw "No modified time provided to setContents.";
 
     let self = this;
 
@@ -456,9 +516,7 @@ CollectionKeyManager.prototype = {
         if (v) {
           let keyObj = new BulkKeyBundle(k);
           keyObj.keyPairB64 = v;
-          if (keyObj) {
-            newCollections[k] = keyObj;
-          }
+          newCollections[k] = keyObj;
         }
       }
     }
@@ -469,8 +527,11 @@ CollectionKeyManager.prototype = {
     let sameColls = collComparison.same;
 
     if (sameDefault && sameColls) {
-      self._log.info("New keys are the same as our old keys! Bumped local modified time.");
-      self.lastModified = modified;
+      self._log.info("New keys are the same as our old keys!");
+      if (modified) {
+        self._log.info("Bumped local modified time.");
+        self.lastModified = modified;
+      }
       return false;
     }
 
@@ -482,8 +543,10 @@ CollectionKeyManager.prototype = {
     this._collections = newCollections;
 
     // Always trust the server.
-    self._log.info("Bumping last modified to " + modified);
-    self.lastModified = modified;
+    if (modified) {
+      self._log.info("Bumping last modified to " + modified);
+      self.lastModified = modified;
+    }
 
     return sameDefault ? collComparison.changed : true;
   },
@@ -548,14 +611,14 @@ Collection.prototype = {
 
     let args = [];
     if (this.older)
-      args.push('older=' + this.older);
+      args.push("older=" + this.older);
     else if (this.newer) {
-      args.push('newer=' + this.newer);
+      args.push("newer=" + this.newer);
     }
     if (this.full)
-      args.push('full=1');
+      args.push("full=1");
     if (this.sort)
-      args.push('sort=' + this.sort);
+      args.push("sort=" + this.sort);
     if (this.ids != null)
       args.push("ids=" + this.ids);
     if (this.limit > 0 && this.limit != Infinity)
@@ -567,7 +630,7 @@ Collection.prototype = {
     if (this._offset)
       args.push("offset=" + encodeURIComponent(this._offset));
 
-    this.uri.query = (args.length > 0)? '?' + args.join('&') : '';
+    this.uri.query = (args.length > 0) ? "?" + args.join("&") : "";
   },
 
   // get full items
@@ -720,12 +783,22 @@ Collection.prototype = {
 
     this._onRecord = onRecord;
 
-    this._onProgress = function() {
-      let newline;
+    this._onProgress = function(httpChannel) {
+      let newline, length = 0, contentLength = "unknown";
+
+      try {
+          // Content-Length of the value of this response header
+          contentLength = httpChannel.getResponseHeader("Content-Length");
+      } catch (ex) { }
+
       while ((newline = this._data.indexOf("\n")) > 0) {
         // Split the json record from the rest of the data
         let json = this._data.slice(0, newline);
         this._data = this._data.slice(newline + 1);
+
+        length += json.length;
+        coll._log.trace("Record: Content-Length = " + contentLength +
+                        ", ByteCount = " + length);
 
         // Deserialize a record from json and give it to the callback
         let record = new coll._recordObj();
@@ -912,7 +985,7 @@ PostQueue.prototype = {
 
     headers.push(["x-if-unmodified-since", this.lastModified]);
 
-    this.log.info(`Posting ${this.numQueued} records of ${this.queued.length+1} bytes with batch=${batch}`);
+    this.log.info(`Posting ${this.numQueued} records of ${this.queued.length + 1} bytes with batch=${batch}`);
     let queued = this.queued + "]";
     if (finalBatchPost) {
       this.bytesAlreadyBatched = 0;
@@ -929,14 +1002,16 @@ PostQueue.prototype = {
       this.log.trace("Server error response during a batch", response);
       // not clear what we should do here - we expect the consumer of this to
       // abort by throwing in the postCallback below.
-      return this.postCallback(response, !finalBatchPost);
+      this.postCallback(response, !finalBatchPost);
+      return;
     }
 
     if (finalBatchPost) {
       this.log.trace("Committed batch", this.batchID);
       this.batchID = undefined; // we are now in "first post for the batch" state.
       this.lastModified = response.headers["x-last-modified"];
-      return this.postCallback(response, false);
+      this.postCallback(response, false);
+      return;
     }
 
     if (response.status != 202) {
@@ -945,7 +1020,8 @@ PostQueue.prototype = {
       }
       this.batchID = null; // no batch semantics are in place.
       this.lastModified = response.headers["x-last-modified"];
-      return this.postCallback(response, false);
+      this.postCallback(response, false);
+      return;
     }
 
     // this response is saying the server has batch semantics - we should

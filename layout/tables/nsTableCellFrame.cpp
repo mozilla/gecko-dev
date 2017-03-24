@@ -92,6 +92,13 @@ nsTableCellFrame::Init(nsIContent*       aContent,
     int32_t           colIndex;
     cellFrame->GetColIndex(colIndex);
     SetColIndex(colIndex);
+  } else {
+    // Although the spec doesn't say that writing-mode is not applied to
+    // table-cells, we still override style value here because we want to
+    // make effective writing mode of table structure frames consistent
+    // within a table. The content inside table cells is reflowed by an
+    // anonymous block, hence their writing mode is not affected.
+    mWritingMode = GetTableFrame()->GetWritingMode();
   }
 }
 
@@ -320,11 +327,10 @@ nsTableCellFrame::DecorateForSelection(DrawTarget* aDrawTarget, nsPoint aPt)
           LookAndFeel::GetColor(LookAndFeel::eColorID_TextSelectBackground);
       }
       nscoord threePx = nsPresContext::CSSPixelsToAppUnits(3);
-      if ((mRect.width > threePx) && (mRect.height > threePx))
-      {
-        //compare bordercolor to ((nsStyleColor *)myColor)->mBackgroundColor)
-        bordercolor = EnsureDifferentColors(bordercolor,
-                                            StyleBackground()->mBackgroundColor);
+      if ((mRect.width > threePx) && (mRect.height > threePx)) {
+        //compare bordercolor to background-color
+        bordercolor = EnsureDifferentColors(
+          bordercolor, StyleBackground()->BackgroundColor(this));
 
         int32_t appUnitsPerDevPixel = PresContext()->AppUnitsPerDevPixel();
         Point devPixelOffset = NSPointToPoint(aPt, appUnitsPerDevPixel);
@@ -377,7 +383,7 @@ nsTableCellFrame::PaintBackground(nsRenderingContext& aRenderingContext,
                                                 aRenderingContext,
                                                 aDirtyRect, rect,
                                                 this, aFlags);
-  return nsCSSRendering::PaintBackground(params);
+  return nsCSSRendering::PaintStyleImageLayer(params);
 }
 
 // Called by nsTablePainter
@@ -501,17 +507,22 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
       // display background if we need to.
       if (aBuilder->IsForEventDelivery() ||
-          !StyleBackground()->IsTransparent() || StyleDisplay()->mAppearance) {
-        if (!tableFrame->IsBorderCollapse() ||
-            aBuilder->IsAtRootOfPseudoStackingContext() ||
-            aBuilder->IsForEventDelivery()) {
-          // The cell background was not painted by the nsTablePainter,
-          // so we need to do it. We have special background processing here
-          // so we need to duplicate some code from nsFrame::DisplayBorderBackgroundOutline
+          !StyleBackground()->IsTransparent(this) ||
+          StyleDisplay()->UsedAppearance()) {
+        if (!tableFrame->IsBorderCollapse()) {
           nsDisplayBackgroundImage::AppendBackgroundItemsToTop(aBuilder,
               this,
               GetRectRelativeToSelf(),
               aLists.BorderBackground());
+        } else if (aBuilder->IsAtRootOfPseudoStackingContext() ||
+                   aBuilder->IsForEventDelivery()) {
+          // The cell background was not painted by the nsTablePainter,
+          // so we need to do it. We have special background processing here
+          // so we need to duplicate some code from nsFrame::DisplayBorderBackgroundOutline
+          nsDisplayTableItem* item =
+            new (aBuilder) nsDisplayTableCellBackground(aBuilder, this);
+          aLists.BorderBackground()->AppendNewToTop(item);
+          item->UpdateForFrameBackground(this);
         } else {
           // The nsTablePainter will paint our background. Make sure it
           // knows if we're background-attachment:fixed.
@@ -872,7 +883,7 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   // see if a special bsize reflow needs to occur due to having a pct height
   nsTableFrame::CheckRequestSpecialBSizeReflow(aReflowInput);
 
-  aStatus = NS_FRAME_COMPLETE;
+  aStatus.Reset();
   WritingMode wm = aReflowInput.GetWritingMode();
   LogicalSize availSize(wm, aReflowInput.AvailableISize(),
                             aReflowInput.AvailableBSize());
@@ -953,10 +964,10 @@ nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
 
   ReflowChild(firstKid, aPresContext, kidSize, kidReflowInput,
               wm, kidOrigin, containerSize, 0, aStatus);
-  if (NS_FRAME_OVERFLOW_IS_INCOMPLETE(aStatus)) {
+  if (aStatus.IsOverflowIncomplete()) {
     // Don't pass OVERFLOW_INCOMPLETE through tables until they can actually handle it
     //XXX should paginate overflow as overflow, but not in this patch (bug 379349)
-    NS_FRAME_SET_INCOMPLETE(aStatus);
+    aStatus.SetIncomplete();
     printf("Set table cell incomplete %p\n", static_cast<void*>(this));
   }
 
@@ -1093,6 +1104,17 @@ nsTableCellFrame::GetType() const
   return nsGkAtoms::tableCellFrame;
 }
 
+void
+nsTableCellFrame::DoUpdateStyleOfOwnedAnonBoxes(ServoStyleSet& aStyleSet,
+                                                nsStyleChangeList& aChangeList,
+                                                nsChangeHint aHintForThisFrame)
+{
+  nsIFrame* kid = mFrames.FirstChild();
+  MOZ_ASSERT(kid && !kid->GetNextSibling(),
+             "Table cells should have just one child");
+  UpdateStyleOfChildAnonBox(kid, aStyleSet, aChangeList, aHintForThisFrame);
+}
+
 #ifdef DEBUG_FRAME_DUMP
 nsresult
 nsTableCellFrame::GetFrameName(nsAString& aResult) const
@@ -1204,7 +1226,6 @@ nsBCTableCellFrame::GetBorderOverflow()
   return halfBorder.GetPhysicalMargin(wm);
 }
 
-
 DrawResult
 nsBCTableCellFrame::PaintBackground(nsRenderingContext& aRenderingContext,
                                     const nsRect&        aDirtyRect,
@@ -1230,5 +1251,6 @@ nsBCTableCellFrame::PaintBackground(nsRenderingContext& aRenderingContext,
                                                 aRenderingContext, aDirtyRect,
                                                 rect, this,
                                                 aFlags);
-  return nsCSSRendering::PaintBackgroundWithSC(params, StyleContext(), myBorder);
+  return nsCSSRendering::PaintStyleImageLayerWithSC(params, StyleContext(),
+                                                    myBorder);
 }

@@ -18,7 +18,7 @@
      uri: "https://foo.com/", lastVisit: today},
 
     // Begin the invalid queries: wrong search term
-    {isInQuery: false, isVisit:true, isDetails: true, title: "m o z",
+    {isInQuery: false, isVisit: true, isDetails: true, title: "m o z",
      uri: "http://foo.com/wrongsearch.php", lastVisit: today},
 
      // Test subdomain inclued, search term at end
@@ -31,23 +31,21 @@
       title: "hugelongconfmozlagurationofwordswithasearchtermsinit whoo-hoo"},
 
     // Test what we do with escaping in titles
-    {isInQuery: false, isVisit:true, isDetails: true, title: "m%0o%0z",
+    {isInQuery: false, isVisit: true, isDetails: true, title: "m%0o%0z",
      uri: "http://foo.com/changeme1.htm", lastVisit: yesterday},
 
     // Test another invalid title - for updating later
-    {isInQuery: false, isVisit:true, isDetails: true, title: "m,oz",
+    {isInQuery: false, isVisit: true, isDetails: true, title: "m,oz",
      uri: "http://foo.com/changeme2.htm", lastVisit: yesterday}];
 
 /**
  * This test will test Queries that use relative search terms and URI options
  */
-function run_test()
-{
+function run_test() {
   run_next_test();
 }
 
-add_task(function* test_searchterms_uri()
-{
+add_task(function* test_searchterms_uri() {
   yield task_populateDB(testData);
    var query = PlacesUtils.history.getNewQuery();
    query.searchTerms = "moz";
@@ -64,7 +62,7 @@ add_task(function* test_searchterms_uri()
    root.containerOpen = true;
 
    do_print("Number of items in result set: " + root.childCount);
-   for (var i=0; i < root.childCount; ++i) {
+   for (var i = 0; i < root.childCount; ++i) {
      do_print("result: " + root.getChild(i).uri + " Title: " + root.getChild(i).title);
    }
 
@@ -73,12 +71,12 @@ add_task(function* test_searchterms_uri()
 
    // live update.
    do_print("change title");
-   var change1 = [{isDetails: true, uri:"http://foo.com/",
+   var change1 = [{isDetails: true, uri: "http://foo.com/",
                    title: "mo"}, ];
    yield task_populateDB(change1);
 
    do_check_false(isInResult({uri: "http://foo.com/"}, root));
-   var change2 = [{isDetails: true, uri:"http://foo.com/",
+   var change2 = [{isDetails: true, uri: "http://foo.com/",
                    title: "moz"}, ];
    yield task_populateDB(change2);
    do_check_true(isInResult({uri: "http://foo.com/"}, root));

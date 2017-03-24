@@ -5,74 +5,55 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaPrefs.h"
+#include "MediaContainerType.h"
 #include "MediaDecoderStateMachine.h"
 #include "MediaFormatReader.h"
 #include "OggDemuxer.h"
-#include "OggReader.h"
 #include "OggDecoder.h"
-#include "nsContentTypeParser.h"
 
 namespace mozilla {
 
 MediaDecoderStateMachine* OggDecoder::CreateStateMachine()
 {
-  bool useFormatDecoder = MediaPrefs::OggFormatReader();
-  RefPtr<OggDemuxer> demuxer =
-    useFormatDecoder ? new OggDemuxer(GetResource()) : nullptr;
-  RefPtr<MediaDecoderReader> reader = useFormatDecoder
-    ? static_cast<MediaDecoderReader*>(new MediaFormatReader(this, demuxer, GetVideoFrameContainer()))
-    : new OggReader(this);
-  if (useFormatDecoder) {
-    demuxer->SetChainingEvents(&reader->TimedMetadataProducer(),
-                               &reader->MediaNotSeekableProducer());
-  }
+  RefPtr<OggDemuxer> demuxer = new OggDemuxer(GetResource());
+  RefPtr<MediaFormatReader> reader =
+    new MediaFormatReader(this, demuxer, GetVideoFrameContainer());
+  demuxer->SetChainingEvents(&reader->TimedMetadataProducer(),
+                             &reader->MediaNotSeekableProducer());
   return new MediaDecoderStateMachine(this, reader);
 }
 
 /* static */
 bool
-OggDecoder::IsEnabled()
+OggDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 {
-  return MediaPrefs::OggEnabled();
-}
-
-/* static */
-bool
-OggDecoder::CanHandleMediaType(const nsACString& aMIMETypeExcludingCodecs,
-                               const nsAString& aCodecs)
-{
-  if (!IsEnabled()) {
+  if (!MediaPrefs::OggEnabled()) {
     return false;
   }
 
-  const bool isOggAudio = aMIMETypeExcludingCodecs.EqualsASCII("audio/ogg");
-  const bool isOggVideo =
-    aMIMETypeExcludingCodecs.EqualsASCII("video/ogg") ||
-    aMIMETypeExcludingCodecs.EqualsASCII("application/ogg");
-
-  if (!isOggAudio && !isOggVideo) {
+  if (aContainerType.Type() != MEDIAMIMETYPE("audio/ogg") &&
+      aContainerType.Type() != MEDIAMIMETYPE("video/ogg") &&
+      aContainerType.Type() != MEDIAMIMETYPE("application/ogg")) {
     return false;
   }
 
-  nsTArray<nsCString> codecMimes;
-  if (aCodecs.IsEmpty()) {
+  const bool isOggVideo = (aContainerType.Type() != MEDIAMIMETYPE("audio/ogg"));
+
+  const MediaCodecs& codecs = aContainerType.ExtendedType().Codecs();
+  if (codecs.IsEmpty()) {
     // WebM guarantees that the only codecs it contained are vp8, vp9, opus or vorbis.
     return true;
   }
   // Verify that all the codecs specified are ones that we expect that
   // we can play.
-  nsTArray<nsString> codecs;
-  if (!ParseCodecsString(aCodecs, codecs)) {
-    return false;
-  }
-  for (const nsString& codec : codecs) {
+  for (const auto& codec : codecs.Range()) {
     if ((IsOpusEnabled() && codec.EqualsLiteral("opus")) ||
         codec.EqualsLiteral("vorbis") ||
         (MediaPrefs::FlacInOgg() && codec.EqualsLiteral("flac"))) {
       continue;
     }
-    // Note: Only accept Theora in a video content type, not in an audio
-    // content type.
+    // Note: Only accept Theora in a video container type, not in an audio
+    // container type.
     if (isOggVideo && codec.EqualsLiteral("theora")) {
       continue;
     }

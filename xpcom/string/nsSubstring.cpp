@@ -285,7 +285,8 @@ nsStringBuffer::ToString(uint32_t aLen, nsAString& aStr,
   char16_t* data = static_cast<char16_t*>(Data());
 
   nsAStringAccessor* accessor = static_cast<nsAStringAccessor*>(&aStr);
-  NS_ASSERTION(data[aLen] == char16_t(0), "data should be null terminated");
+  MOZ_DIAGNOSTIC_ASSERT(data[aLen] == char16_t(0),
+                        "data should be null terminated");
 
   // preserve class flags
   uint32_t flags = accessor->flags();
@@ -304,7 +305,8 @@ nsStringBuffer::ToString(uint32_t aLen, nsACString& aStr,
   char* data = static_cast<char*>(Data());
 
   nsACStringAccessor* accessor = static_cast<nsACStringAccessor*>(&aStr);
-  NS_ASSERTION(data[aLen] == char(0), "data should be null terminated");
+  MOZ_DIAGNOSTIC_ASSERT(data[aLen] == char(0),
+                        "data should be null terminated");
 
   // preserve class flags
   uint32_t flags = accessor->flags();
@@ -341,17 +343,17 @@ nsStringBuffer::SizeOfIncludingThisEvenIfShared(mozilla::MallocSizeOf aMallocSiz
 #include "nsTSubstring.cpp"
 #include "string-template-undef.h"
 
-// Check that internal and external strings have the same size.
-// See https://bugzilla.mozilla.org/show_bug.cgi?id=430581
-
-#include "mozilla/Logging.h"
-#include "nsXPCOMStrings.h"
-
-static_assert(sizeof(nsStringContainer_base) == sizeof(nsSubstring),
-              "internal and external strings must have the same size");
-
 // Provide rust bindings to the nsA[C]String types
 extern "C" {
+
+// This is a no-op on release, so we ifdef it out such that using it in release
+// results in a linker error.
+#ifdef DEBUG
+void Gecko_IncrementStringAdoptCount(void* aData)
+{
+  MOZ_LOG_CTOR(aData, "StringAdopt", 1);
+}
+#endif
 
 void Gecko_FinalizeCString(nsACString* aThis)
 {
@@ -368,6 +370,26 @@ void Gecko_AppendCString(nsACString* aThis, const nsACString* aOther)
   aThis->Append(*aOther);
 }
 
+void Gecko_SetLengthCString(nsACString* aThis, uint32_t aLength)
+{
+  aThis->SetLength(aLength);
+}
+
+bool Gecko_FallibleAssignCString(nsACString* aThis, const nsACString* aOther)
+{
+  return aThis->Assign(*aOther, mozilla::fallible);
+}
+
+bool Gecko_FallibleAppendCString(nsACString* aThis, const nsACString* aOther)
+{
+  return aThis->Append(*aOther, mozilla::fallible);
+}
+
+bool Gecko_FallibleSetLengthCString(nsACString* aThis, uint32_t aLength)
+{
+  return aThis->SetLength(aLength, mozilla::fallible);
+}
+
 void Gecko_FinalizeString(nsAString* aThis)
 {
   aThis->~nsAString();
@@ -381,6 +403,40 @@ void Gecko_AssignString(nsAString* aThis, const nsAString* aOther)
 void Gecko_AppendString(nsAString* aThis, const nsAString* aOther)
 {
   aThis->Append(*aOther);
+}
+
+void Gecko_SetLengthString(nsAString* aThis, uint32_t aLength)
+{
+  aThis->SetLength(aLength);
+}
+
+bool Gecko_FallibleAssignString(nsAString* aThis, const nsAString* aOther)
+{
+  return aThis->Assign(*aOther, mozilla::fallible);
+}
+
+bool Gecko_FallibleAppendString(nsAString* aThis, const nsAString* aOther)
+{
+  return aThis->Append(*aOther, mozilla::fallible);
+}
+
+bool Gecko_FallibleSetLengthString(nsAString* aThis, uint32_t aLength)
+{
+  return aThis->SetLength(aLength, mozilla::fallible);
+}
+
+// NOTE: These two methods, Gecko_TruncateString and Gecko_TruncateCString are
+// not used by the nsstring bindings, but until the version in servo
+// (nsstring_vendor) is udpated, they still need to be included in the binary to
+// not break the tree. These will be removed in bug 1348398.
+void Gecko_TruncateString(nsAString* aThis)
+{
+  aThis->Truncate();
+}
+
+void Gecko_TruncateCString(nsACString* aThis)
+{
+  aThis->Truncate();
 }
 
 } // extern "C"

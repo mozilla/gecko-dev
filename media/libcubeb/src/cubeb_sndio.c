@@ -245,7 +245,7 @@ sndio_stream_init(cubeb * context,
   s->data_cb = data_callback;
   s->state_cb = state_callback;
   s->arg = user_ptr;
-  s->mtx = PTHREAD_MUTEX_INITIALIZER;
+  s->mtx = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
   s->rdpos = s->wrpos = 0;
   if (output_stream_params->format == CUBEB_SAMPLE_FLOAT32LE) {
     s->conv = 1;
@@ -366,6 +366,7 @@ static struct cubeb_ops const sndio_ops = {
   .get_max_channel_count = sndio_get_max_channel_count,
   .get_min_latency = sndio_get_min_latency,
   .get_preferred_sample_rate = sndio_get_preferred_sample_rate,
+  .get_preferred_channel_layout = NULL,
   .enumerate_devices = NULL,
   .destroy = sndio_destroy,
   .stream_init = sndio_stream_init,

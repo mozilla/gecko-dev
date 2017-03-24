@@ -110,10 +110,9 @@ let SyncedTabsInternal = {
     let engine = Weave.Service.engineManager.get("tabs");
 
     let seenURLs = new Set();
-    let parentIndex = 0;
     let ntabs = 0;
 
-    for (let [guid, client] of Object.entries(engine.getAllClients())) {
+    for (let client of Object.values(engine.getAllClients())) {
       if (!Weave.Service.clientsEngine.remoteClientExists(client.id)) {
         continue;
       }
@@ -181,7 +180,7 @@ let SyncedTabsInternal = {
         } catch (ex) {
           log.error("Sync failed", ex);
           reject(ex);
-        };
+        }
       }, Ci.nsIThread.DISPATCH_NORMAL);
     });
   },
@@ -273,16 +272,13 @@ this.SyncedTabs = {
     return this._internal.syncTabs(force);
   },
 
-  sortTabClientsByLastUsed(clients, maxTabs = Infinity) {
-    // First sort and filter the list of tabs for each client. Note that
+  sortTabClientsByLastUsed(clients) {
+    // First sort the list of tabs for each client. Note that
     // this module promises that the objects it returns are never
     // shared, so we are free to mutate those objects directly.
     for (let client of clients) {
       let tabs = client.tabs;
       tabs.sort((a, b) => b.lastUsed - a.lastUsed);
-      if (Number.isFinite(maxTabs)) {
-        client.tabs = tabs.slice(0, maxTabs);
-      }
     }
     // Now sort the clients - the clients are sorted in the order of the
     // most recent tab for that client (ie, it is important the tabs for

@@ -127,10 +127,9 @@ function* testTheBasics(widget) {
   * listening until "load" is triggered for a different URI.
   */
 function checkLinkClick(link) {
-
   function loadListener(tab) {
-    var browser = getBrowser().getBrowserForTab(tab);
-    var uri = browser.currentURI.spec;
+    let browser = getBrowser().getBrowserForTab(tab);
+    let uri = browser.currentURI.spec;
 
     info("New browser tab has loaded");
     gBrowser.removeTab(tab);
@@ -140,15 +139,14 @@ function checkLinkClick(link) {
 
   function newTabListener(e) {
     gBrowser.tabContainer.removeEventListener("TabOpen", newTabListener);
-    var tab = e.target;
-    BrowserTestUtils.browserLoaded(tab.linkedBrowser, false,
-                                   url => { return url != "about:blank"; })
+    let tab = e.target;
+    BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, url => url != "about:blank")
       .then(url => loadListener(tab));
   }
 
   let deferred = defer();
   info("Check that clicking the link opens a new tab with the correct URI");
-  gBrowser.tabContainer.addEventListener("TabOpen", newTabListener, false);
+  gBrowser.tabContainer.addEventListener("TabOpen", newTabListener);
   info("Click the link to MDN");
   link.click();
   return deferred.promise;
@@ -158,7 +156,6 @@ function checkLinkClick(link) {
  * Utility function to check content of the tooltip.
  */
 function checkTooltipContents(doc, expected) {
-
   is(doc.heading.textContent,
      expected.propertyName,
      "Property name is correct");

@@ -4,14 +4,17 @@
 
 import re
 import os
-import time
 
-from marionette import BrowserMobProxyTestCaseMixin, MarionetteTestCase, Marionette
 from marionette_driver import Wait
 from marionette_driver.errors import TimeoutException
-from marionette.marionette_test import SkipTest
+from marionette_harness import (
+    BrowserMobProxyTestCaseMixin,
+    MarionetteTestCase,
+    Marionette,
+    SkipTest,
+)
 
-from firefox_puppeteer.testcases import BaseFirefoxTestCase
+from firefox_puppeteer import PuppeteerMixin
 from external_media_tests.utils import (timestamp_now, verbose_until)
 from external_media_tests.media_utils.video_puppeteer import (
     VideoException,
@@ -19,7 +22,7 @@ from external_media_tests.media_utils.video_puppeteer import (
 )
 
 
-class MediaTestCase(BaseFirefoxTestCase, MarionetteTestCase):
+class MediaTestCase(PuppeteerMixin, MarionetteTestCase):
 
     """
     Necessary methods for MSE playback
@@ -197,19 +200,6 @@ class NetworkBandwidthTestsMixin(object):
         self.run_videos(timeout=120)
 
 
-reset_adobe_gmp_script = """
-navigator.requestMediaKeySystemAccess('com.adobe.primetime',
-[{initDataTypes: ['cenc']}]).then(
-    function(access) {
-        marionetteScriptFinished('success');
-    },
-    function(ex) {
-        marionetteScriptFinished(ex);
-    }
-);
-"""
-
-
 reset_widevine_gmp_script = """
 navigator.requestMediaKeySystemAccess('com.widevine.alpha',
 [{initDataTypes: ['cenc']}]).then(
@@ -226,7 +216,7 @@ navigator.requestMediaKeySystemAccess('com.widevine.alpha',
 class EMESetupMixin(object):
 
     """
-    An object that needs to use the Adobe or Widevine GMP system must inherit
+    An object that needs to use the Widevine GMP system must inherit
     from this class, and then call check_eme_system() to insure that everything
     is setup correctly.
     """
@@ -235,7 +225,7 @@ class EMESetupMixin(object):
 
     def check_eme_system(self):
         """
-        Download the most current version of the Adobe and Widevine GMP
+        Download the most current version of the Widevine GMP
         Plugins. Verify that all MSE and EME prefs are set correctly. Raises
         if things are not OK.
         """
@@ -248,26 +238,17 @@ class EMESetupMixin(object):
             # https://bugzilla.mozilla.org/show_bug.cgi?id=1187471#c28
             # 2015-09-28 cpearce says this is no longer necessary, but in case
             # we are working with older firefoxes...
-            self.prefs.set_pref('media.gmp.trial-create.enabled', False)
+            self.marionette.set_pref('media.gmp.trial-create.enabled', False)
 
     def reset_GMP_version(self):
         if EMESetupMixin.version_needs_reset:
             with self.marionette.using_context(Marionette.CONTEXT_CHROME):
-                if self.prefs.get_pref('media.gmp-eme-adobe.version'):
-                    self.prefs.reset_pref('media.gmp-eme-adobe.version')
-                if self.prefs.get_pref('media.gmp-widevinecdm.version'):
-                    self.prefs.reset_pref('media.gmp-widevinecdm.version')
+                if self.marionette.get_pref('media.gmp-widevinecdm.version'):
+                    self.marionette.reset_pref('media.gmp-widevinecdm.version')
             with self.marionette.using_context(Marionette.CONTEXT_CONTENT):
-                adobe_result = self.marionette.execute_async_script(
-                    reset_adobe_gmp_script,
-                    script_timeout=60000)
                 widevine_result = self.marionette.execute_async_script(
                     reset_widevine_gmp_script,
                     script_timeout=60000)
-                if not adobe_result == 'success':
-                    raise VideoException(
-                        'ERROR: Resetting Adobe GMP failed {}'
-                        .format(adobe_result))
                 if not widevine_result == 'success':
                     raise VideoException(
                         'ERROR: Resetting Widevine GMP failed {}'
@@ -277,7 +258,7 @@ class EMESetupMixin(object):
 
     def check_and_log_boolean_pref(self, pref_name, expected_value):
         with self.marionette.using_context(Marionette.CONTEXT_CHROME):
-            pref_value = self.prefs.get_pref(pref_name)
+            pref_value = self.marionette.get_pref(pref_name)
 
             if pref_value is None:
                 self.logger.info('Pref {} has no value.'.format(pref_name))
@@ -293,7 +274,7 @@ class EMESetupMixin(object):
 
     def check_and_log_integer_pref(self, pref_name, minimum_value=0):
         with self.marionette.using_context(Marionette.CONTEXT_CHROME):
-            pref_value = self.prefs.get_pref(pref_name)
+            pref_value = self.marionette.get_pref(pref_name)
 
             if pref_value is None:
                 self.logger.info('Pref {} has no value.'.format(pref_name))
@@ -320,7 +301,7 @@ class EMESetupMixin(object):
         fails.
         """
         with self.marionette.using_context(Marionette.CONTEXT_CHROME):
-            pref_value = self.prefs.get_pref(pref_name)
+            pref_value = self.marionette.get_pref(pref_name)
 
             if pref_value is None:
                 self.logger.info('Pref {} has no value.'.format(pref_name))
@@ -348,10 +329,6 @@ class EMESetupMixin(object):
                     'media.eme.enabled', True),
                 self.check_and_log_boolean_pref(
                     'media.mediasource.mp4.enabled', True),
-                self.check_and_log_boolean_pref(
-                    'media.gmp-eme-adobe.enabled', True),
-                self.check_and_log_integer_pref(
-                    'media.gmp-eme-adobe.version', 1),
                 self.check_and_log_boolean_pref(
                     'media.gmp-widevinecdm.enabled', True),
                 self.chceck_and_log_version_string_pref(

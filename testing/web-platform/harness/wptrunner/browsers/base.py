@@ -93,7 +93,7 @@ class Browser(object):
         pass
 
     @abstractmethod
-    def stop(self):
+    def stop(self, force=False):
         """Stop the running browser process."""
         pass
 
@@ -127,13 +127,16 @@ class Browser(object):
 
 
 class NullBrowser(Browser):
+    def __init__(self, logger, **kwargs):
+        super(NullBrowser, self).__init__(logger)
+
     def start(self):
         """No-op browser to use in scenarios where the TestRunnerManager shouldn't
         actually own the browser process (e.g. Servo where we start one browser
         per test)"""
         pass
 
-    def stop(self):
+    def stop(self, force=False):
         pass
 
     def pid(self):

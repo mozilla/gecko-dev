@@ -71,7 +71,9 @@
         <item name="android:textAppearance">?android:attr/textAppearanceLargeInverse</item>
         <item name="android:gravity">center_vertical</item>
         <item name="android:paddingLeft">12dip</item>
+        <item name="android:paddingStart">12dip</item>
         <item name="android:paddingRight">7dip</item>
+        <item name="android:paddingEnd">7dip</item>
         <item name="android:checkMark">?android:attr/listChoiceIndicatorMultiple</item>
         <item name="android:ellipsize">marquee</item>
     </style>
@@ -101,18 +103,32 @@
     </style>
 
     <style name="Widget.MenuItemSwitcherLayout">
-        <item name="android:gravity">left</item>
+        <item name="android:gravity">left|start</item>
     </style>
 
     <style name="Widget.MenuItemDefault">
         <item name="android:paddingLeft">15dip</item>
+        <item name="android:paddingStart">15dip</item>
         <item name="android:paddingRight">10dip</item>
+        <item name="android:paddingEnd">10dip</item>
         <item name="android:drawablePadding">6dip</item>
         <item name="android:gravity">center_vertical</item>
         <item name="android:textAppearance">@style/TextAppearance</item>
         <item name="android:singleLine">true</item>
         <item name="android:ellipsize">middle</item>
         <item name="android:textSize">@dimen/menu_item_textsize</item>
+    </style>
+
+    <style name="Widget.MenuButtonCustomTabs" parent="GeckoActionBar.Button.MenuButton">
+        <item name="android:tint">?android:textColorPrimary</item>
+    </style>
+
+    <style name="Widget.MenuItemCustomTabs" parent="Widget.MenuItemDefault">
+        <!-- In current design, there is only one style for Popup-menu, regardless of Dark/Light theme -->
+        <item name="android:textColor">@android:color/black</item>
+        <item name="android:textColorHighlight">?android:textColorHighlight</item>
+        <item name="android:textColorHint">?android:attr/textColorHint</item>
+        <item name="android:textColorLink">?android:attr/textColorLink</item>
     </style>
 
     <style name="Widget.FolderTitle">
@@ -149,6 +165,9 @@
         <item name="android:ellipsize">none</item>
         <item name="android:background">@color/about_page_header_grey</item>
         <item name="android:paddingLeft">20dp</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingRight">0dp</item>
+        <item name="android:paddingEnd">0dp</item>
         <item name="android:drawablePadding">20dp</item>
     </style>
 
@@ -180,21 +199,6 @@
         <item name="android:orientation">vertical</item>
     </style>
 
-    <style name="Widget.TabsGridLayout" parent="Widget.GridView">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">match_parent</item>
-        <item name="android:paddingTop">0dp</item>
-        <item name="android:stretchMode">spacingWidth</item>
-        <item name="android:scrollbarStyle">outsideOverlay</item>
-        <item name="android:gravity">center</item>
-        <item name="android:numColumns">auto_fit</item>
-        <item name="android:columnWidth">@dimen/tab_panel_column_width</item>
-        <item name="android:horizontalSpacing">2dp</item>
-        <item name="android:verticalSpacing">@dimen/tab_panel_grid_vspacing</item>
-        <item name="android:drawSelectorOnTop">true</item>
-        <item name="android:clipToPadding">false</item>
-    </style>
-
     <style name="Widget.BookmarkItemView" parent="Widget.TwoLinePageRow"/>
 
     <style name="Widget.BookmarksListView" parent="Widget.HomeListView"/>
@@ -214,7 +218,7 @@
       <item name="android:textColor">@color/top_sites_grid_item_title</item>
       <item name="android:textSize">12sp</item>
       <item name="android:paddingTop">5dip</item>
-      <item name="android:gravity">left</item>
+      <item name="android:gravity">left|start</item>
     </style>
 
     <style name="Widget.HomeListView" parent="Widget.ListView">
@@ -233,9 +237,11 @@
         <item name="android:textAppearance">@style/TextAppearance.Widget.Home.Header</item>
         <item name="android:background">@android:color/white</item>
         <item name="android:focusable">false</item>
-        <item name="android:gravity">center|left</item>
+        <item name="android:gravity">center|left|start</item>
         <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingStart">16dp</item>
         <item name="android:paddingRight">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
         <item name="android:paddingTop">11dp</item>
         <item name="android:paddingBottom">11dp</item>
         <item name="android:includeFontPadding">false</item>
@@ -250,7 +256,9 @@
         <item name="android:focusable">true</item>
         <item name="android:gravity">center</item>
         <item name="android:paddingLeft">10dip</item>
+        <item name="android:paddingStart">10dip</item>
         <item name="android:paddingRight">10dip</item>
+        <item name="android:paddingEnd">10dip</item>
     </style>
 
     <style name="Widget.Home.ActionItem">
@@ -459,7 +467,7 @@
         <item name="android:textSelectHandleRight">@drawable/handle_end</item>
         <item name="android:textCursorDrawable">@null</item>
         <item name="android:singleLine">true</item>
-        <item name="android:gravity">center_vertical|left</item>
+        <item name="android:gravity">center_vertical|left|start</item>
         <item name="android:hint">@string/url_bar_default_text</item>
     </style>
 
@@ -475,13 +483,8 @@
     </style>
 
     <!-- TabsLayout -->
-    <style name="TabsLayoutBase">
+    <style name="TabsLayout">
          <item name="android:background">@android:color/transparent</item>
-         <item name="android:listSelector">@android:color/transparent</item>
-    </style>
-
-    <style name="TabsLayout" parent="TabsLayoutBase">
-         <item name="android:orientation">vertical</item>
          <item name="android:scrollbars">vertical</item>
     </style>
 
@@ -491,44 +494,6 @@
 
     <style name="TabsItemClose">
          <item name="android:nextFocusLeft">@+id/info</item>
-    </style>
-
-    <!-- Tabs panel -->
-    <style name="TabsPanelSectionBase">
-        <item name="android:orientation">vertical</item>
-        <item name="android:layout_marginLeft">40dp</item>
-        <item name="android:layout_marginRight">40dp</item>
-    </style>
-
-    <style name="TabsPanelSection" parent="TabsPanelSectionBase">
-        <!-- We set values in landscape. -->
-    </style>
-
-    <style name="TabsPanelItemBase">
-        <item name="android:layout_marginBottom">28dp</item>
-        <item name="android:layout_gravity">center</item>
-        <item name="android:gravity">center</item>
-    </style>
-
-    <style name="TabsPanelItem" parent="TabsPanelItemBase">
-        <!-- We set values in landscape. -->
-    </style>
-
-    <style name="TabsPanelItem.TextAppearance">
-        <item name="android:textColor">#C0C9D0</item>
-        <item name="android:textSize">14sp</item>
-        <item name="android:lineSpacingMultiplier">1.35</item>
-    </style>
-
-    <style name="TabsPanelItem.TextAppearance.Header">
-        <item name="android:textSize">18sp</item>
-        <item name="android:layout_marginBottom">16dp</item>
-    </style>
-
-    <style name="TabsPanelItem.TextAppearance.Linkified">
-        <item name="android:clickable">true</item>
-        <item name="android:focusable">true</item>
-        <item name="android:textColor">#0292D6</item>
     </style>
 
     <style name="Widget.RemoteTabsItemView" parent="Widget.TwoLinePageRow"/>
@@ -558,18 +523,13 @@
         <item name="android:textColor">#FFA4A7A9</item>
     </style>
 
-    <!-- TabWidget --> 
-    <style name="TabWidget">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">40dip</item>
-        <item name="android:layout_weight">1.0</item>
-    </style>
-
     <!-- Find bar -->
     <style name="FindBar">
         <item name="android:background">@color/text_and_tabs_tray_grey</item>
         <item name="android:paddingLeft">3dip</item>
+        <item name="android:paddingStart">3dip</item>
         <item name="android:paddingRight">3dip</item>
+        <item name="android:paddingEnd">3dip</item>
         <item name="android:paddingTop">6dip</item>
         <item name="android:paddingBottom">6dip</item>
     </style>
@@ -579,17 +539,13 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginLeft">5dip</item>
+        <item name="android:layout_marginStart">5dip</item>
         <item name="android:layout_marginRight">5dip</item>
+        <item name="android:layout_marginEnd">5dip</item>
         <item name="android:scaleType">fitCenter</item>
         <item name="android:layout_centerVertical">true</item>
         <item name="android:background">@drawable/action_bar_button_inverse</item>
     </style>
-
-    <style name="GeckoDialogTitle">
-        <item name="android:textAppearance">@android:style/TextAppearance.DialogWindowTitle</item>
-    </style>
-
-    <style name="GeckoDialogTitle.SubTitle" />
 
     <style name="PopupAnimation">
         <item name="@android:windowEnterAnimation">@anim/popup_show</item>
@@ -611,13 +567,17 @@
 
     <style name="Toast" parent="ToastBase">
         <item name="android:layout_marginLeft">16dp</item>
+        <item name="android:layout_marginStart">16dp</item>
         <item name="android:layout_marginRight">16dp</item>
+        <item name="android:layout_marginEnd">16dp</item>
     </style>
 
     <style name="ToastElementBase">
         <item name="android:background">@null</item>
         <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingStart">12dp</item>
         <item name="android:paddingRight">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
         <item name="android:paddingTop">11dp</item>
         <item name="android:paddingBottom">11dp</item>
     </style>
@@ -688,8 +648,11 @@
         <item name="android:background">@android:color/transparent</item>
         <item name="android:textAppearance">@style/TextAppearance.Medium</item>
         <item name="android:drawableLeft">@drawable/ab_done</item>
+        <item name="android:drawableStart">@drawable/ab_done</item>
         <item name="android:paddingLeft">15dp</item>
+        <item name="android:paddingStart">15dp</item>
         <item name="android:paddingRight">15dp</item>
+        <item name="android:paddingEnd">15dp</item>
         <item name="android:contentDescription">@string/actionbar_done</item>
     </style>
 
@@ -708,13 +671,15 @@
     <style name="GeckoActionBar.Buttons">
         <item name="android:background">@android:color/transparent</item>
         <item name="android:textColor">@color/placeholder_active_grey</item>
-        <item name="android:gravity">right</item>
+        <item name="android:gravity">right|end</item>
     </style>
 
     <style name="ShareOverlayTitle">
         <item name="android:gravity">center_horizontal</item>
         <item name="android:paddingLeft">15dp</item>
+        <item name="android:paddingStart">15dp</item>
         <item name="android:paddingRight">15dp</item>
+        <item name="android:paddingEnd">15dp</item>
     </style>
 
     <style name="TextAppearance.ShareOverlay">
@@ -769,7 +734,9 @@
     <!-- Remote Tabs home panel -->
     <style name="RemoteTabsPanelFrame">
         <item name="android:paddingLeft">32dp</item>
+        <item name="android:paddingStart">32dp</item>
         <item name="android:paddingRight">32dp</item>
+        <item name="android:paddingEnd">32dp</item>
         <item name="android:paddingTop">@dimen/home_remote_tabs_top_padding</item>
         <item name="android:orientation">vertical</item>
         <item name="android:layout_gravity">center_horizontal</item>
@@ -789,7 +756,9 @@
         <item name="android:textSize">16sp</item>
         <item name="android:lineSpacingMultiplier">1.25</item>
         <item name="android:layout_marginLeft">8dp</item>
+        <item name="android:layout_marginStart">8dp</item>
         <item name="android:layout_marginRight">8dp</item>
+        <item name="android:layout_marginEnd">8dp</item>
     </style>
 
     <style name="RemoteTabsPanelItem.TextAppearance.Header">
@@ -812,7 +781,9 @@
         <item name="android:paddingTop">16dp</item>
         <item name="android:paddingBottom">16dp</item>
         <item name="android:paddingLeft">8dp</item>
+        <item name="android:paddingStart">8dp</item>
         <item name="android:paddingRight">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
 
         <!-- AppCompat sets Button text to all caps so we override that here. -->
         <item name="textAllCaps">false</item>
@@ -827,6 +798,11 @@
     <!-- We use this style to provide our own divider that has an inset on the left side -->
     <style name="ActivityStreamContextMenuStyle">
         <item name="android:listDivider">@drawable/as_contextmenu_divider</item>
+    </style>
+
+    <style name="ActivityStreamButton" parent="Widget.AppCompat.Button.Colored">
+        <item name="colorButtonNormal">@color/link_blue</item>
+        <item name="android:textColor">@android:color/white</item>
     </style>
 
 </resources>

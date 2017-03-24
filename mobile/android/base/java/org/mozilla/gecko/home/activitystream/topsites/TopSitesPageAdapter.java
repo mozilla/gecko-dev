@@ -14,26 +14,20 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.activitystream.ActivityStreamTelemetry;
 import org.mozilla.gecko.home.HomePager;
+import org.mozilla.gecko.home.activitystream.model.TopSite;
+import org.mozilla.gecko.widget.RecyclerViewClickSupport;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
-public class TopSitesPageAdapter extends RecyclerView.Adapter<TopSitesCard> {
-    static final class TopSite {
-        public final long id;
-        public final String url;
-        public final String title;
-
-        TopSite(long id, String url, String title) {
-            this.id = id;
-            this.url = url;
-            this.title = title;
-        }
-    }
-
+/* package-local */ class TopSitesPageAdapter extends RecyclerView.Adapter<TopSitesCard> implements RecyclerViewClickSupport.OnItemClickListener {
     private List<TopSite> topSites;
+    private final int pageNumber;
     private int tiles;
     private int tilesWidth;
     private int tilesHeight;
@@ -42,11 +36,12 @@ public class TopSitesPageAdapter extends RecyclerView.Adapter<TopSitesCard> {
     private final HomePager.OnUrlOpenListener onUrlOpenListener;
     private final HomePager.OnUrlOpenInBackgroundListener onUrlOpenInBackgroundListener;
 
-    public TopSitesPageAdapter(Context context, int tiles, int tilesWidth, int tilesHeight,
+    /* package-local */ TopSitesPageAdapter(Context context, int pageNumber, int tiles, int tilesWidth, int tilesHeight,
                                HomePager.OnUrlOpenListener onUrlOpenListener, HomePager.OnUrlOpenInBackgroundListener onUrlOpenInBackgroundListener) {
         setHasStableIds(true);
 
         this.topSites = new ArrayList<>();
+        this.pageNumber = pageNumber;
         this.tiles = tiles;
         this.tilesWidth = tilesWidth;
         this.tilesHeight = tilesHeight;
@@ -57,8 +52,6 @@ public class TopSitesPageAdapter extends RecyclerView.Adapter<TopSitesCard> {
     }
 
     /**
-     *
-     * @param cursor
      * @param startIndex The first item that this topsites group should show. This item, and the following
      * 3 items will be displayed by this adapter.
      */
@@ -72,21 +65,34 @@ public class TopSitesPageAdapter extends RecyclerView.Adapter<TopSitesCard> {
         for (int i = 0; i < tiles && startIndex + i < cursor.getCount(); i++) {
             cursor.moveToPosition(startIndex + i);
 
-            // The Combined View only contains pages that have been visited at least once, i.e. any
-            // page in the TopSites query will contain a HISTORY_ID. _ID however will be 0 for all rows.
-            final long id = cursor.getLong(cursor.getColumnIndexOrThrow(BrowserContract.Combined.HISTORY_ID));
-            final String url = cursor.getString(cursor.getColumnIndexOrThrow(BrowserContract.Combined.URL));
-            final String title = cursor.getString(cursor.getColumnIndexOrThrow(BrowserContract.Combined.TITLE));
-
-            topSites.add(new TopSite(id, url, title));
+            topSites.add(TopSite.fromCursor(cursor));
         }
 
         notifyDataSetChanged();
     }
 
     @Override
+    public void onItemClicked(RecyclerView recyclerView, int position, View v) {
+        final TopSite topSite = topSites.get(position);
+        final int absolutePosition = getTopSiteAbsolutePosition(position);
+
+        ActivityStreamTelemetry.Extras.Builder extras = ActivityStreamTelemetry.Extras.builder()
+                .forTopSite(topSite)
+                .set(ActivityStreamTelemetry.Contract.PAGE_NUMBER, pageNumber)
+                .set(ActivityStreamTelemetry.Contract.ACTION_POSITION, absolutePosition);
+
+        Telemetry.sendUIEvent(
+                TelemetryContract.Event.LOAD_URL,
+                TelemetryContract.Method.LIST_ITEM,
+                extras.build()
+        );
+
+        onUrlOpenListener.onUrlOpen(topSite.getUrl(), EnumSet.noneOf(HomePager.OnUrlOpenListener.Flags.class));
+    }
+
+    @Override
     public void onBindViewHolder(TopSitesCard holder, int position) {
-        holder.bind(topSites.get(position));
+        holder.bind(topSites.get(position), getTopSiteAbsolutePosition(position));
     }
 
     @Override
@@ -112,6 +118,17 @@ public class TopSitesPageAdapter extends RecyclerView.Adapter<TopSitesCard> {
     @Override
     @UiThread
     public long getItemId(int position) {
-        return topSites.get(position).id;
+        return topSites.get(position).getId();
+    }
+
+    /**
+     * This assumes that every TopSite page up to the current one has the same number of tiles.
+     * relativePosition must range from 0 to {number of tiles on the current page}.
+     */
+    private int getTopSiteAbsolutePosition(int relativePosition) {
+        if (relativePosition < 0 || relativePosition > tiles) {
+            throw new IllegalArgumentException("Illegal relative top site position encountered");
+        }
+        return relativePosition + pageNumber * tiles;
     }
 }

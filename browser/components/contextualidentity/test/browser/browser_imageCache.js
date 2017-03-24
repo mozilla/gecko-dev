@@ -6,13 +6,13 @@ const NUM_USER_CONTEXTS = 3;
 let gHits = 0;
 
 let server = new HttpServer();
-server.registerPathHandler('/image.png', imageHandler);
-server.registerPathHandler('/file.html', fileHandler);
+server.registerPathHandler("/image.png", imageHandler);
+server.registerPathHandler("/file.html", fileHandler);
 server.start(-1);
 
-let BASE_URI = 'http://localhost:' + server.identity.primaryPort;
-let IMAGE_URI = BASE_URI + '/image.png';
-let FILE_URI = BASE_URI + '/file.html';
+let BASE_URI = "http://localhost:" + server.identity.primaryPort;
+let IMAGE_URI = BASE_URI + "/image.png";
+let FILE_URI = BASE_URI + "/file.html";
 
 function imageHandler(metadata, response) {
   gHits++;
@@ -43,7 +43,7 @@ function* openTabInUserContext(uri, userContextId) {
 
   // select tab and make sure its browser is focused
   gBrowser.selectedTab = tab;
-  tab.ownerDocument.defaultView.focus();
+  tab.ownerGlobal.focus();
 
   let browser = gBrowser.getBrowserForTab(tab);
   yield BrowserTestUtils.browserLoaded(browser);

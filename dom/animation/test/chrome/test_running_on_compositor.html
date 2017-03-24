@@ -236,11 +236,9 @@ promise_test(function(t) {
 // This is to test that we don't temporarily clear the flag when forcing
 // an unthrottled sample.
 promise_test(function(t) {
-  return new Promise(function(resolve) {
-    // Needs scrollbars to cause overflow.
-    SpecialPowers.pushPrefEnv({ set: [["ui.showHideScrollbars", 1]] },
-                              resolve);
-  }).then(function() {
+  // Needs scrollbars to cause overflow.
+  return SpecialPowers.pushPrefEnv({ set: [["ui.showHideScrollbars", 1]] })
+  .then(function() {
     var div = addDiv(t, { style: 'animation: rotate 100s' });
     var animation = div.getAnimations()[0];
 
@@ -256,7 +254,7 @@ promise_test(function(t) {
 
           // we have to wait at least 200ms because this animation is
           // unthrottled on every 200ms.
-          // See http://hg.mozilla.org/mozilla-central/file/cafb1c90f794/layout/style/AnimationCommon.cpp#l863
+          // See https://hg.mozilla.org/mozilla-central/file/cafb1c90f794/layout/style/AnimationCommon.cpp#l863
           if (window.performance.now() - timeAtStart > 200) {
             resolve();
             return;

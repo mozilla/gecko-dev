@@ -54,7 +54,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(OverOutElementsWrapper)
 
-  nsWeakFrame mLastOverFrame;
+  WeakFrame mLastOverFrame;
 
   nsCOMPtr<nsIContent> mLastOverElement;
 
@@ -408,13 +408,20 @@ protected:
                            EventMessage aMessage,
                            nsIContent* aRelatedTarget,
                            nsIContent* aTargetContent,
-                           nsWeakFrame& aTargetFrame);
+                           AutoWeakFrame& aTargetFrame);
   /**
    * Update the initial drag session data transfer with any changes that occur
    * on cloned data transfer objects used for events.
    */
   void UpdateDragDataTransfer(WidgetDragEvent* dragEvent);
 
+  static nsresult InitAndDispatchClickEvent(WidgetMouseEvent* aEvent,
+                                            nsEventStatus* aStatus,
+                                            EventMessage aMessage,
+                                            nsIPresShell* aPresShell,
+                                            nsIContent* aMouseTarget,
+                                            AutoWeakFrame aCurrentTarget,
+                                            bool aNoContentDispatch);
   nsresult SetClickCount(WidgetMouseEvent* aEvent, nsEventStatus* aStatus);
   nsresult CheckForAndDispatchClick(WidgetMouseEvent* aEvent,
                                     nsEventStatus* aStatus);
@@ -836,7 +843,7 @@ protected:
   void BeginTrackingRemoteDragGesture(nsIContent* aContent);
   void StopTrackingDragGesture();
   void GenerateDragGesture(nsPresContext* aPresContext,
-                           WidgetMouseEvent* aEvent);
+                           WidgetInputEvent* aEvent);
 
   /**
    * Determine which node the drag should be targeted at.
@@ -914,7 +921,7 @@ private:
   // Last mouse event mRefPoint (the offset from the widget's origin in
   // device pixels) when mouse was locked, used to restore mouse position
   // after unlocking.
-  LayoutDeviceIntPoint mPreLockPoint;
+  static LayoutDeviceIntPoint sPreLockPoint;
 
   // Stores the mRefPoint of the last synthetic mouse move we dispatched
   // to re-center the mouse when we were pointer locked. If this is (-1,-1) it
@@ -923,9 +930,9 @@ private:
   // to content.
   static LayoutDeviceIntPoint sSynthCenteringPoint;
 
-  nsWeakFrame mCurrentTarget;
+  WeakFrame mCurrentTarget;
   nsCOMPtr<nsIContent> mCurrentTargetContent;
-  static nsWeakFrame sLastDragOverFrame;
+  static AutoWeakFrame sLastDragOverFrame;
 
   // Stores the mRefPoint (the offset from the widget's origin in device
   // pixels) of the last mouse event.
@@ -963,6 +970,8 @@ private:
   uint32_t mLClickCount;
   uint32_t mMClickCount;
   uint32_t mRClickCount;
+
+  bool mInTouchDrag;
 
   bool m_haveShutdown;
 
@@ -1008,7 +1017,7 @@ public:
   void KillClickHoldTimer();
   void FireContextClick();
 
-  void SetPointerLock(nsIWidget* aWidget, nsIContent* aElement) ;
+  static void SetPointerLock(nsIWidget* aWidget, nsIContent* aElement) ;
   static void sClickHoldCallback ( nsITimer* aTimer, void* aESM ) ;
 };
 
@@ -1044,6 +1053,7 @@ private:
 #define NS_EVENT_NEEDS_FRAME(event) \
     (!(event)->HasPluginActivationEventMessage() && \
      (event)->mMessage != eMouseClick && \
-     (event)->mMessage != eMouseDoubleClick)
+     (event)->mMessage != eMouseDoubleClick && \
+     (event)->mMessage != eMouseAuxClick)
 
 #endif // mozilla_EventStateManager_h_

@@ -36,7 +36,8 @@ public:
   {
     DeleteCaption();
     if (aCaption) {
-      nsINode::AppendChild(*aCaption, aError);
+      nsCOMPtr<nsINode> firstChild = nsINode::GetFirstChild();
+      nsINode::InsertBefore(*aCaption, firstChild, aError);
     }
   }
 
@@ -59,7 +60,18 @@ public:
 
     DeleteTHead();
     if (aTHead) {
-      nsCOMPtr<nsINode> refNode = nsINode::GetFirstChild();
+
+      nsCOMPtr<nsIContent> refNode = nullptr;
+      for (refNode = nsINode::GetFirstChild();
+           refNode;
+           refNode = refNode->GetNextSibling()) {
+        if (refNode->IsHTMLElement() &&
+            !refNode->IsHTMLElement(nsGkAtoms::caption) &&
+            !refNode->IsHTMLElement(nsGkAtoms::colgroup)) {
+          break;
+        }
+      }
+
       nsINode::InsertBefore(*aTHead, refNode, aError);
     }
   }
@@ -190,7 +202,7 @@ public:
    * Called when an attribute is about to be changed
    */
   virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                 nsAttrValueOrString* aValue,
+                                 const nsAttrValueOrString* aValue,
                                  bool aNotify) override;
   /**
    * Called when an attribute has just been changed
@@ -228,7 +240,7 @@ protected:
 
 private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                    nsRuleData* aData);
+                                    GenericSpecifiedValues* aGenericData);
 };
 
 } // namespace dom

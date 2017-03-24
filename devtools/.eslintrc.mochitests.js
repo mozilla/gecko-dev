@@ -1,7 +1,7 @@
 // Parent config file for all devtools browser mochitest files.
 module.exports = {
   "extends": [
-    "../testing/mochitest/browser.eslintrc.js"
+    "plugin:mozilla/browser-test"
   ],
   // All globals made available in the test environment.
   "globals": {
@@ -11,6 +11,12 @@ module.exports = {
     "synthesizeKeyFromKeyTag": true,
     "TargetFactory": true,
     "waitForTick": true,
+  },
+
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true,
+    }
   },
 
   "rules": {

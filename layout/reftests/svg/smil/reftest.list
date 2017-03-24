@@ -206,7 +206,7 @@ fails == anim-strokecolor-1.svg anim-standard-ref.svg # bug 436296
 == anim-targethref-8.svg anim-standard-ref.svg
 == anim-targethref-9.svg anim-standard-ref.svg
 
-skip-if(/^Windows\x20NT\x205\.1/.test(http.oscpu)) == anim-text-rotate-01.svg anim-text-rotate-01-ref.svg # Bug 645104 for skip failure on WinXP
+== anim-text-rotate-01.svg anim-text-rotate-01-ref.svg
 == anim-feFuncR-tableValues-01.svg anim-feFuncR-tableValues-01-ref.svg
 
 skip == anim-text-x-y-dx-dy-01.svg anim-text-x-y-dx-dy-01-ref.svg # bug 579588
@@ -253,9 +253,6 @@ fuzzy-if(cocoaWidget&&layersGPUAccelerated,1,2) == anim-gradient-attr-presence-0
 == mapped-attr-long-url-1.svg lime.svg
 == mapped-attr-long-url-2.svg lime.svg
 
-# interaction between xml mapped attributes and their css equivalents
-== mapped-attr-vs-css-prop-1.svg lime.svg
-
 == min-1.svg lime.svg
 
 == smil-transitions-interaction-1a.svg lime.svg
@@ -279,5 +276,11 @@ fuzzy-if(cocoaWidget&&layersGPUAccelerated,1,2) == anim-gradient-attr-presence-0
 # Test animation that changes 'display' attribute
 == anim-display.svg lime.svg
 == anim-display-in-g-element.svg lime.svg
+
+# Test animation that change 'display' style value to 'none'
+== anim-change-display-none-for-ancestor-elem.html lime.html
+== anim-change-display-none-for-target-elem.html lime.html
+== anim-change-display-none-for-dynamically-appended-elem.html lime.html
+== anim-change-display-block-for-dynamically-appended-elem.html anim-standard-ref.html
 
 pref(layout.css.clip-path-shapes.enabled,true) fuzzy(63,146) == anim-clipPath-viewBox.svg anim-clipPath-viewBox-ref.svg

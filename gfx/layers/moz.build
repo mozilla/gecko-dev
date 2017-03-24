@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'Graphics: Layers')
+
 with Files('apz/**'):
     BUG_COMPONENT = ('Core', 'Panning and Zooming')
 
@@ -21,7 +24,6 @@ EXPORTS += [
     'composite/CompositableHost.h',
     'composite/ImageHost.h',
     'CompositorTypes.h',
-    'CopyableCanvasLayer.h',
     'D3D9SurfaceImage.h',
     'FrameMetrics.h',
     'GLImages.h',
@@ -38,7 +40,6 @@ EXPORTS += [
     'LayersTypes.h',
     'LayerTreeInvalidation.h',
     'LayerUserData.h',
-    'opengl/Composer2D.h',
     'opengl/OGLShaderProgram.h',
     'opengl/TexturePoolOGL.h',
     'protobuf/LayerScopePacket.pb.h',
@@ -58,22 +59,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     EXPORTS.mozilla.layers += [
         'TextureDIB.h',
     ]
-    if CONFIG['MOZ_ENABLE_D3D9_LAYER']:
-        EXPORTS += [
-            'd3d9/DeviceManagerD3D9.h',
-        ]
-        EXPORTS.mozilla.layers += [
-            'd3d9/CompositorD3D9.h',
-            'd3d9/TextureD3D9.h',
-        ]
-        UNIFIED_SOURCES += [
-            'd3d9/TextureD3D9.cpp',
-        ]
-        SOURCES += [
-            'd3d9/CompositorD3D9.cpp',
-            'd3d9/DeviceManagerD3D9.cpp',
-            'd3d9/Nv3DVUtils.cpp',
-        ]
     if CONFIG['MOZ_ENABLE_D3D10_LAYER']:
         EXPORTS.mozilla.layers += [
             'd3d11/CompositorD3D11.h',
@@ -97,6 +82,7 @@ EXPORTS.mozilla.dom += [
 ]
 
 EXPORTS.mozilla.layers += [
+    'AnimationHelper.h',
     'apz/public/CompositorController.h',
     'apz/public/GeckoContentController.h',
     'apz/public/IAPZCTreeManager.h',
@@ -130,7 +116,6 @@ EXPORTS.mozilla.layers += [
     'BSPTree.h',
     'BufferTexture.h',
     'client/CanvasClient.h',
-    'client/CompositableChild.h',
     'client/CompositableClient.h',
     'client/ContentClient.h',
     'client/GPUVideoTextureClient.h',
@@ -141,6 +126,7 @@ EXPORTS.mozilla.layers += [
     'client/TextureClientRecycleAllocator.h',
     'client/TextureClientSharedSurface.h',
     'client/TiledContentClient.h',
+    'composite/AnimationMetricsTracker.h',
     'composite/AsyncCompositionManager.h',
     'composite/CanvasLayerComposite.h',
     'composite/ColorLayerComposite.h',
@@ -148,6 +134,7 @@ EXPORTS.mozilla.layers += [
     'composite/ContentHost.h',
     'composite/FrameUniformityData.h',
     'composite/GPUVideoTextureHost.h',
+    'composite/ImageComposite.h',
     'composite/ImageHost.h',
     'composite/ImageLayerComposite.h',
     'composite/LayerManagerComposite.h',
@@ -168,12 +155,11 @@ EXPORTS.mozilla.layers += [
     'ipc/CompositorBridgeChild.h',
     'ipc/CompositorBridgeParent.h',
     'ipc/CompositorThread.h',
-    'ipc/GonkNativeHandle.h',
-    'ipc/GonkNativeHandleUtils.h',
+    'ipc/CompositorVsyncScheduler.h',
+    'ipc/CompositorVsyncSchedulerOwner.h',
+    'ipc/CrossProcessCompositorBridgeParent.h',
     'ipc/ImageBridgeChild.h',
     'ipc/ImageBridgeParent.h',
-    'ipc/ImageContainerChild.h',
-    'ipc/ImageContainerParent.h',
     'ipc/ISurfaceAllocator.h',
     'ipc/KnowsCompositor.h',
     'ipc/LayerAnimationUtils.h',
@@ -181,14 +167,16 @@ EXPORTS.mozilla.layers += [
     'ipc/LayerTransactionParent.h',
     'ipc/LayerTreeOwnerTracker.h',
     'ipc/RemoteContentController.h',
-    'ipc/ShadowLayerChild.h',
     'ipc/ShadowLayers.h',
     'ipc/SharedPlanarYCbCrImage.h',
     'ipc/SharedRGBImage.h',
     'ipc/SynchronousTask.h',
     'ipc/TextureForwarder.h',
+    'ipc/UiCompositorControllerChild.h',
+    'ipc/UiCompositorControllerParent.h',
     'ipc/VideoBridgeChild.h',
     'ipc/VideoBridgeParent.h',
+    'LayerAttributes.h',
     'LayerMetricsWrapper.h',
     'LayersTypes.h',
     'opengl/CompositingRenderTargetOGL.h',
@@ -199,8 +187,20 @@ EXPORTS.mozilla.layers += [
     'opengl/TextureHostOGL.h',
     'PersistentBufferProvider.h',
     'RenderTrace.h',
+    'SourceSurfaceSharedData.h',
+    'SourceSurfaceVolatileData.h',
+    'TextureSourceProvider.h',
     'TextureWrapperImage.h',
     'TransactionIdAllocator.h',
+    'wr/WebRenderBridgeChild.h',
+    'wr/WebRenderBridgeParent.h',
+    'wr/WebRenderCompositableHolder.h',
+    'wr/WebRenderDisplayItemLayer.h',
+    'wr/WebRenderImageHost.h',
+    'wr/WebRenderLayerManager.h',
+    'wr/WebRenderLayersLogging.h',
+    'wr/WebRenderMessageUtils.h',
+    'wr/WebRenderTextureHost.h',
 ]
 
 if CONFIG['MOZ_X11']:
@@ -243,6 +243,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     ]
 
 UNIFIED_SOURCES += [
+    'AnimationHelper.cpp',
     'apz/public/IAPZCTreeManager.cpp',
     'apz/src/APZCTreeManager.cpp',
     'apz/src/AsyncPanZoomController.cpp',
@@ -273,27 +274,31 @@ UNIFIED_SOURCES += [
     'AsyncCanvasRenderer.cpp',
     'AxisPhysicsModel.cpp',
     'AxisPhysicsMSDModel.cpp',
+    'basic/BasicBorderLayer.cpp',
     'basic/BasicCanvasLayer.cpp',
     'basic/BasicColorLayer.cpp',
     'basic/BasicCompositor.cpp',
     'basic/BasicContainerLayer.cpp',
+    'basic/BasicDisplayItemLayer.cpp',
     'basic/BasicImages.cpp',
     'basic/BasicLayerManager.cpp',
     'basic/BasicLayersImpl.cpp',
     'basic/BasicPaintedLayer.cpp',
+    'basic/BasicTextLayer.cpp',
     'basic/TextureHostBasic.cpp',
     'BSPTree.cpp',
     'BufferTexture.cpp',
     'BufferUnrotate.cpp',
     'client/CanvasClient.cpp',
+    'client/ClientBorderLayer.cpp',
     'client/ClientCanvasLayer.cpp',
     'client/ClientColorLayer.cpp',
     'client/ClientContainerLayer.cpp',
     'client/ClientImageLayer.cpp',
     'client/ClientLayerManager.cpp',
     'client/ClientPaintedLayer.cpp',
+    'client/ClientTextLayer.cpp',
     'client/ClientTiledPaintedLayer.cpp',
-    'client/CompositableChild.cpp',
     'client/CompositableClient.cpp',
     'client/ContentClient.cpp',
     'client/GPUVideoTextureClient.cpp',
@@ -304,6 +309,7 @@ UNIFIED_SOURCES += [
     'client/TextureClientRecycleAllocator.cpp',
     'client/TextureClientSharedSurface.cpp',
     'client/TiledContentClient.cpp',
+    'composite/AnimationMetricsTracker.cpp',
     'composite/AsyncCompositionManager.cpp',
     'composite/CanvasLayerComposite.cpp',
     'composite/ColorLayerComposite.cpp',
@@ -313,10 +319,10 @@ UNIFIED_SOURCES += [
     'composite/FPSCounter.cpp',
     'composite/FrameUniformityData.cpp',
     'composite/GPUVideoTextureHost.cpp',
+    'composite/ImageComposite.cpp',
     'composite/ImageHost.cpp',
     'composite/ImageLayerComposite.cpp',
     'composite/LayerManagerComposite.cpp',
-    'composite/PaintCounter.cpp',
     'composite/PaintedLayerComposite.cpp',
     'composite/TextRenderer.cpp',
     'composite/TextureHost.cpp',
@@ -331,33 +337,31 @@ UNIFIED_SOURCES += [
     'ipc/APZChild.cpp',
     'ipc/APZCTreeManagerChild.cpp',
     'ipc/APZCTreeManagerParent.cpp',
-    'ipc/CompositableForwarder.cpp',
     'ipc/CompositableTransactionParent.cpp',
     'ipc/CompositorBench.cpp',
     'ipc/CompositorBridgeChild.cpp',
     'ipc/CompositorBridgeParent.cpp',
     'ipc/CompositorThread.cpp',
+    'ipc/CompositorVsyncScheduler.cpp',
+    'ipc/CrossProcessCompositorBridgeParent.cpp',
     'ipc/ImageBridgeChild.cpp',
     'ipc/ImageBridgeParent.cpp',
-    'ipc/ImageContainerChild.cpp',
-    'ipc/ImageContainerParent.cpp',
     'ipc/ISurfaceAllocator.cpp',
     'ipc/LayerAnimationUtils.cpp',
     'ipc/LayerTransactionChild.cpp',
     'ipc/LayerTransactionParent.cpp',
     'ipc/LayerTreeOwnerTracker.cpp',
     'ipc/RemoteContentController.cpp',
-    'ipc/ShadowLayerChild.cpp',
-    'ipc/ShadowLayerParent.cpp',
     'ipc/ShadowLayers.cpp',
     'ipc/SharedPlanarYCbCrImage.cpp',
     'ipc/SharedRGBImage.cpp',
+    'ipc/UiCompositorControllerChild.cpp',
+    'ipc/UiCompositorControllerParent.cpp',
     'ipc/VideoBridgeChild.cpp',
     'ipc/VideoBridgeParent.cpp',
     'LayerScope.cpp',
     'LayersLogging.cpp',
     'LayerSorter.cpp',
-    'LayersTypes.cpp',
     'opengl/CompositingRenderTargetOGL.cpp',
     'opengl/CompositorOGL.cpp',
     'opengl/GLBlitTextureImageHelper.cpp',
@@ -369,7 +373,25 @@ UNIFIED_SOURCES += [
     'ReadbackProcessor.cpp',
     'RenderTrace.cpp',
     'RotatedBuffer.cpp',
+    'ShareableCanvasLayer.cpp',
+    'SourceSurfaceSharedData.cpp',
+    'SourceSurfaceVolatileData.cpp',
+    'TextureSourceProvider.cpp',
     'TextureWrapperImage.cpp',
+    'wr/WebRenderBridgeChild.cpp',
+    'wr/WebRenderBridgeParent.cpp',
+    'wr/WebRenderCanvasLayer.cpp',
+    'wr/WebRenderColorLayer.cpp',
+    'wr/WebRenderCompositableHolder.cpp',
+    'wr/WebRenderContainerLayer.cpp',
+    'wr/WebRenderDisplayItemLayer.cpp',
+    'wr/WebRenderImageHost.cpp',
+    'wr/WebRenderImageLayer.cpp',
+    'wr/WebRenderLayerManager.cpp',
+    'wr/WebRenderLayersLogging.cpp',
+    'wr/WebRenderPaintedLayer.cpp',
+    'wr/WebRenderTextLayer.cpp',
+    'wr/WebRenderTextureHost.cpp',
 ]
 
 SOURCES += [
@@ -398,19 +420,19 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
         'opengl/MacIOSurfaceTextureHostOGL.cpp',
     ]
 
-IPDL_SOURCES = [
+IPDL_SOURCES += [
     'ipc/LayersMessages.ipdlh',
     'ipc/LayersSurfaces.ipdlh',
     'ipc/PAPZ.ipdl',
     'ipc/PAPZCTreeManager.ipdl',
-    'ipc/PCompositable.ipdl',
     'ipc/PCompositorBridge.ipdl',
     'ipc/PImageBridge.ipdl',
-    'ipc/PImageContainer.ipdl',
-    'ipc/PLayer.ipdl',
     'ipc/PLayerTransaction.ipdl',
     'ipc/PTexture.ipdl',
+    'ipc/PUiCompositorController.ipdl',
     'ipc/PVideoBridge.ipdl',
+    'ipc/PWebRenderBridge.ipdl',
+    'ipc/WebRenderMessages.ipdlh',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
@@ -419,7 +441,7 @@ LOCAL_INCLUDES += [
     '/docshell/base',  # for nsDocShell.h
     '/layout/base',    # for TouchManager.h
     '/layout/generic', # for nsTextFrame.h
-    '/media/libyuv/include', # for libyuv.h
+    '/media/libyuv/libyuv/include', # for libyuv.h
 ]
 
 FINAL_LIBRARY = 'xul'
@@ -443,3 +465,8 @@ LOCAL_INCLUDES += CONFIG['SKIA_INCLUDES']
 
 if CONFIG['GNU_CXX']:
     CXXFLAGS += ['-Wno-error=shadow']
+
+if CONFIG['MOZ_ENABLE_SKIA']:
+  UNIFIED_SOURCES += [
+    'composite/PaintCounter.cpp',
+  ]

@@ -75,17 +75,21 @@ function run_test() {
 }
 
 function checkDefaultSiteHPKPStatus() {
-  ok(gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HPKP,
-                             "a.pinning2.example.com", 0),
+  ok(gSSService.isSecureURI(
+       Ci.nsISiteSecurityService.HEADER_HPKP,
+       Services.io.newURI("https://a.pinning2.example.com"), 0),
      "a.pinning2.example.com should have HPKP status");
-  ok(!gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HPKP,
-                              "x.a.pinning2.example.com", 0),
+  ok(!gSSService.isSecureURI(
+       Ci.nsISiteSecurityService.HEADER_HPKP,
+       Services.io.newURI("https://x.a.pinning2.example.com"), 0),
      "x.a.pinning2.example.com should not have HPKP status");
-  ok(gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HPKP,
-                             "b.pinning2.example.com", 0),
+  ok(gSSService.isSecureURI(
+       Ci.nsISiteSecurityService.HEADER_HPKP,
+       Services.io.newURI("https://b.pinning2.example.com"), 0),
      "b.pinning2.example.com should have HPKP status");
-  ok(gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HPKP,
-                             "x.b.pinning2.example.com", 0),
+  ok(gSSService.isSecureURI(
+       Ci.nsISiteSecurityService.HEADER_HPKP,
+       Services.io.newURI("https://x.b.pinning2.example.com"), 0),
      "x.b.pinning2.example.com should have HPKP status");
 }
 
@@ -117,15 +121,23 @@ function checkStateRead(aSubject, aTopic, aData) {
 
   // the written entry is for a.pinning2.example.com without subdomains
   // and b.pinning2.example.com with subdomains
-  checkFail(certFromFile('a.pinning2.example.com-badca'), "a.pinning2.example.com");
-  checkOK(certFromFile('a.pinning2.example.com-pinningroot'), "a.pinning2.example.com");
-  checkOK(certFromFile('x.a.pinning2.example.com-badca'), "x.a.pinning2.example.com");
-  checkOK(certFromFile('x.a.pinning2.example.com-pinningroot'), "x.a.pinning2.example.com");
+  checkFail(certFromFile("a.pinning2.example.com-badca"),
+            "a.pinning2.example.com");
+  checkOK(certFromFile("a.pinning2.example.com-pinningroot"),
+          "a.pinning2.example.com");
+  checkOK(certFromFile("x.a.pinning2.example.com-badca"),
+          "x.a.pinning2.example.com");
+  checkOK(certFromFile("x.a.pinning2.example.com-pinningroot"),
+          "x.a.pinning2.example.com");
 
-  checkFail(certFromFile('b.pinning2.example.com-badca'), "b.pinning2.example.com");
-  checkOK(certFromFile('b.pinning2.example.com-pinningroot'), "b.pinning2.example.com");
-  checkFail(certFromFile('x.b.pinning2.example.com-badca'), "x.b.pinning2.example.com");
-  checkOK(certFromFile('x.b.pinning2.example.com-pinningroot'), "x.b.pinning2.example.com");
+  checkFail(certFromFile("b.pinning2.example.com-badca"),
+            "b.pinning2.example.com");
+  checkOK(certFromFile("b.pinning2.example.com-pinningroot"),
+          "b.pinning2.example.com");
+  checkFail(certFromFile("x.b.pinning2.example.com-badca"),
+            "x.b.pinning2.example.com");
+  checkOK(certFromFile("x.b.pinning2.example.com-pinningroot"),
+          "x.b.pinning2.example.com");
 
   checkDefaultSiteHPKPStatus();
 
@@ -134,21 +146,31 @@ function checkStateRead(aSubject, aTopic, aData) {
   gSSService.setKeyPins("a.pinning2.example.com", true,
                         new Date().getTime() + 1000000, 2,
                         [NON_ISSUED_KEY_HASH, PINNING_ROOT_KEY_HASH]);
-  checkFail(certFromFile('a.pinning2.example.com-badca'), "a.pinning2.example.com");
-  checkOK(certFromFile('a.pinning2.example.com-pinningroot'), "a.pinning2.example.com");
-  checkFail(certFromFile('x.a.pinning2.example.com-badca'), "x.a.pinning2.example.com");
-  checkOK(certFromFile('x.a.pinning2.example.com-pinningroot'), "x.a.pinning2.example.com");
-  checkFail(certFromFile('b.pinning2.example.com-badca'), "b.pinning2.example.com");
-  checkOK(certFromFile('b.pinning2.example.com-pinningroot'), "b.pinning2.example.com");
-  checkFail(certFromFile('x.b.pinning2.example.com-badca'), "x.b.pinning2.example.com");
-  checkOK(certFromFile('x.b.pinning2.example.com-pinningroot'), "x.b.pinning2.example.com");
+  checkFail(certFromFile("a.pinning2.example.com-badca"),
+            "a.pinning2.example.com");
+  checkOK(certFromFile("a.pinning2.example.com-pinningroot"),
+          "a.pinning2.example.com");
+  checkFail(certFromFile("x.a.pinning2.example.com-badca"),
+            "x.a.pinning2.example.com");
+  checkOK(certFromFile("x.a.pinning2.example.com-pinningroot"),
+          "x.a.pinning2.example.com");
+  checkFail(certFromFile("b.pinning2.example.com-badca"),
+            "b.pinning2.example.com");
+  checkOK(certFromFile("b.pinning2.example.com-pinningroot"),
+          "b.pinning2.example.com");
+  checkFail(certFromFile("x.b.pinning2.example.com-badca"),
+            "x.b.pinning2.example.com");
+  checkOK(certFromFile("x.b.pinning2.example.com-pinningroot"),
+          "x.b.pinning2.example.com");
 
-  ok(gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HPKP,
-                             "a.pinning2.example.com", 0),
+  ok(gSSService.isSecureURI(
+       Ci.nsISiteSecurityService.HEADER_HPKP,
+       Services.io.newURI("https://a.pinning2.example.com"), 0),
      "a.pinning2.example.com should still have HPKP status after adding" +
      " includeSubdomains to a.pinning2.example.com");
-  ok(gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HPKP,
-                             "x.a.pinning2.example.com", 0),
+  ok(gSSService.isSecureURI(
+       Ci.nsISiteSecurityService.HEADER_HPKP,
+       Services.io.newURI("https://x.a.pinning2.example.com"), 0),
      "x.a.pinning2.example.com should now have HPKP status after adding" +
      " includeSubdomains to a.pinning2.example.com");
 
@@ -156,15 +178,23 @@ function checkStateRead(aSubject, aTopic, aData) {
   gSSService.setKeyPins("a.pinning2.example.com", false,
                         new Date().getTime() + 1000000, 2,
                         [NON_ISSUED_KEY_HASH, PINNING_ROOT_KEY_HASH]);
-  checkFail(certFromFile('a.pinning2.example.com-badca'), "a.pinning2.example.com");
-  checkOK(certFromFile('a.pinning2.example.com-pinningroot'), "a.pinning2.example.com");
-  checkOK(certFromFile('x.a.pinning2.example.com-badca'), "x.a.pinning2.example.com");
-  checkOK(certFromFile('x.a.pinning2.example.com-pinningroot'), "x.a.pinning2.example.com");
+  checkFail(certFromFile("a.pinning2.example.com-badca"),
+            "a.pinning2.example.com");
+  checkOK(certFromFile("a.pinning2.example.com-pinningroot"),
+          "a.pinning2.example.com");
+  checkOK(certFromFile("x.a.pinning2.example.com-badca"),
+          "x.a.pinning2.example.com");
+  checkOK(certFromFile("x.a.pinning2.example.com-pinningroot"),
+          "x.a.pinning2.example.com");
 
-  checkFail(certFromFile('b.pinning2.example.com-badca'), "b.pinning2.example.com");
-  checkOK(certFromFile('b.pinning2.example.com-pinningroot'), "b.pinning2.example.com");
-  checkFail(certFromFile('x.b.pinning2.example.com-badca'), "x.b.pinning2.example.com");
-  checkOK(certFromFile('x.b.pinning2.example.com-pinningroot'), "x.b.pinning2.example.com");
+  checkFail(certFromFile("b.pinning2.example.com-badca"),
+            "b.pinning2.example.com");
+  checkOK(certFromFile("b.pinning2.example.com-pinningroot"),
+          "b.pinning2.example.com");
+  checkFail(certFromFile("x.b.pinning2.example.com-badca"),
+            "x.b.pinning2.example.com");
+  checkOK(certFromFile("x.b.pinning2.example.com-pinningroot"),
+          "x.b.pinning2.example.com");
 
   checkDefaultSiteHPKPStatus();
 
@@ -173,15 +203,23 @@ function checkStateRead(aSubject, aTopic, aData) {
     gSSService.setKeyPins("a.pinning2.example.com", true,
                           new Date().getTime() + 1000000, 1, ["not a hash"]);
   }, /NS_ERROR_ILLEGAL_VALUE/, "Attempting to set an invalid pin should fail");
-  checkFail(certFromFile('a.pinning2.example.com-badca'), "a.pinning2.example.com");
-  checkOK(certFromFile('a.pinning2.example.com-pinningroot'), "a.pinning2.example.com");
-  checkOK(certFromFile('x.a.pinning2.example.com-badca'), "x.a.pinning2.example.com");
-  checkOK(certFromFile('x.a.pinning2.example.com-pinningroot'), "x.a.pinning2.example.com");
+  checkFail(certFromFile("a.pinning2.example.com-badca"),
+            "a.pinning2.example.com");
+  checkOK(certFromFile("a.pinning2.example.com-pinningroot"),
+          "a.pinning2.example.com");
+  checkOK(certFromFile("x.a.pinning2.example.com-badca"),
+          "x.a.pinning2.example.com");
+  checkOK(certFromFile("x.a.pinning2.example.com-pinningroot"),
+          "x.a.pinning2.example.com");
 
-  checkFail(certFromFile('b.pinning2.example.com-badca'), "b.pinning2.example.com");
-  checkOK(certFromFile('b.pinning2.example.com-pinningroot'), "b.pinning2.example.com");
-  checkFail(certFromFile('x.b.pinning2.example.com-badca'), "x.b.pinning2.example.com");
-  checkOK(certFromFile('x.b.pinning2.example.com-pinningroot'), "x.b.pinning2.example.com");
+  checkFail(certFromFile("b.pinning2.example.com-badca"),
+            "b.pinning2.example.com");
+  checkOK(certFromFile("b.pinning2.example.com-pinningroot"),
+          "b.pinning2.example.com");
+  checkFail(certFromFile("x.b.pinning2.example.com-badca"),
+            "x.b.pinning2.example.com");
+  checkOK(certFromFile("x.b.pinning2.example.com-pinningroot"),
+          "x.b.pinning2.example.com");
 
   checkDefaultSiteHPKPStatus();
 
@@ -193,11 +231,13 @@ function checkStateRead(aSubject, aTopic, aData) {
      "Attempting to set a pin with an incorrect size should fail");
 
   // Ensure built-in pins work as expected
-  ok(!gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HPKP,
-                              "nonexistent.example.com", 0),
+  ok(!gSSService.isSecureURI(
+       Ci.nsISiteSecurityService.HEADER_HPKP,
+       Services.io.newURI("https://nonexistent.example.com"), 0),
      "Not built-in nonexistent.example.com should not have HPKP status");
-  ok(gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HPKP,
-                             "include-subdomains.pinning.example.com", 0),
+  ok(gSSService.isSecureURI(
+       Ci.nsISiteSecurityService.HEADER_HPKP,
+       Services.io.newURI("https://include-subdomains.pinning.example.com"), 0),
      "Built-in include-subdomains.pinning.example.com should have HPKP status");
 
   gSSService.setKeyPins("a.pinning2.example.com", false, new Date().getTime(),
@@ -209,38 +249,46 @@ function checkStateRead(aSubject, aTopic, aData) {
 
   // Check a dynamic addition works as expected
   // first, it should succeed with the badCA - because there's no pin
-  checkOK(certFromFile('b.preload.example.com-badca'), "b.preload.example.com");
+  checkOK(certFromFile("b.preload.example.com-badca"), "b.preload.example.com");
   // then we add a pin, and we should get a failure (ensuring the expiry is
   // after the test timeout)
   gSSService.setKeyPins("b.preload.example.com", false,
                         new Date().getTime() + 1000000, 2,
                         [NON_ISSUED_KEY_HASH, PINNING_ROOT_KEY_HASH], true);
-  checkFail(certFromFile('b.preload.example.com-badca'), "b.preload.example.com");
+  checkFail(certFromFile("b.preload.example.com-badca"), "b.preload.example.com");
 
   do_timeout(1250, checkExpiredState);
 }
 
 function checkExpiredState() {
-  checkOK(certFromFile('a.pinning2.example.com-badca'), "a.pinning2.example.com");
-  checkOK(certFromFile('a.pinning2.example.com-pinningroot'), "a.pinning2.example.com");
-  checkOK(certFromFile('x.a.pinning2.example.com-badca'), "x.a.pinning2.example.com");
-  checkOK(certFromFile('x.a.pinning2.example.com-pinningroot'), "x.a.pinning2.example.com");
+  checkOK(certFromFile("a.pinning2.example.com-badca"),
+          "a.pinning2.example.com");
+  checkOK(certFromFile("a.pinning2.example.com-pinningroot"),
+          "a.pinning2.example.com");
+  checkOK(certFromFile("x.a.pinning2.example.com-badca"),
+          "x.a.pinning2.example.com");
+  checkOK(certFromFile("x.a.pinning2.example.com-pinningroot"),
+          "x.a.pinning2.example.com");
 
-  checkFail(certFromFile('b.pinning2.example.com-badca'), "b.pinning2.example.com");
-  checkOK(certFromFile('b.pinning2.example.com-pinningroot'), "b.pinning2.example.com");
-  checkFail(certFromFile('x.b.pinning2.example.com-badca'), "x.b.pinning2.example.com");
-  checkOK(certFromFile('x.b.pinning2.example.com-pinningroot'), "x.b.pinning2.example.com");
+  checkFail(certFromFile("b.pinning2.example.com-badca"),
+          "b.pinning2.example.com");
+  checkOK(certFromFile("b.pinning2.example.com-pinningroot"),
+          "b.pinning2.example.com");
+  checkFail(certFromFile("x.b.pinning2.example.com-badca"),
+          "x.b.pinning2.example.com");
+  checkOK(certFromFile("x.b.pinning2.example.com-pinningroot"),
+          "x.b.pinning2.example.com");
   checkPreloadClear();
 }
 
 function checkPreloadClear() {
   // Check that the preloaded pins still work after private data is cleared
   gSSService.clearAll();
-  checkFail(certFromFile('b.preload.example.com-badca'), "b.preload.example.com");
+  checkFail(certFromFile("b.preload.example.com-badca"), "b.preload.example.com");
 
   // Check that the preloaded pins are cleared when we clear preloads
   gSSService.clearPreloads();
-  checkOK(certFromFile('b.preload.example.com-badca'), "b.preload.example.com");
+  checkOK(certFromFile("b.preload.example.com-badca"), "b.preload.example.com");
 
   do_test_finished();
 }

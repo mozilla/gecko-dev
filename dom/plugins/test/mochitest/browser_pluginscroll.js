@@ -5,7 +5,7 @@ var gTestRoot = getRootDirectory(gTestPath).replace("chrome://mochitests/content
  */
 
 function coordinatesRelativeToWindow(aX, aY, aElement) {
-  var targetWindow = aElement.ownerDocument.defaultView;
+  var targetWindow = aElement.ownerGlobal;
   var scale = targetWindow.devicePixelRatio;
   var rect = aElement.getBoundingClientRect();
   return {
@@ -25,18 +25,16 @@ add_task(function* () {
 });
 
 add_task(function*() {
-  yield new Promise((resolve) => {
-    SpecialPowers.pushPrefEnv({
-      "set": [
-               ["general.smoothScroll", true],
-               ["general.smoothScroll.other", true],
-               ["general.smoothScroll.mouseWheel", true],
-               ["general.smoothScroll.other.durationMaxMS", 2000],
-               ["general.smoothScroll.other.durationMinMS", 1999],
-               ["general.smoothScroll.mouseWheel.durationMaxMS", 2000],
-               ["general.smoothScroll.mouseWheel.durationMinMS", 1999],
-             ]}, resolve);
-  });
+  yield SpecialPowers.pushPrefEnv({
+    "set": [
+             ["general.smoothScroll", true],
+             ["general.smoothScroll.other", true],
+             ["general.smoothScroll.mouseWheel", true],
+             ["general.smoothScroll.other.durationMaxMS", 2000],
+             ["general.smoothScroll.other.durationMinMS", 1999],
+             ["general.smoothScroll.mouseWheel.durationMaxMS", 2000],
+             ["general.smoothScroll.mouseWheel.durationMinMS", 1999],
+           ]});
 });
 
 /*

@@ -70,7 +70,7 @@ HTMLFieldSetElement::IsDisabledForEvents(EventMessage aMessage)
 
 // nsIContent
 nsresult
-HTMLFieldSetElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
+HTMLFieldSetElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   // Do not process any DOM events if the element is disabled.
   aVisitor.mCanHandle = false;
@@ -78,7 +78,7 @@ HTMLFieldSetElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
     return NS_OK;
   }
 
-  return nsGenericHTMLFormElement::PreHandleEvent(aVisitor);
+  return nsGenericHTMLFormElement::GetEventTargetParent(aVisitor);
 }
 
 nsresult
@@ -120,10 +120,10 @@ HTMLFieldSetElement::GetType(nsAString& aType)
 
 /* static */
 bool
-HTMLFieldSetElement::MatchListedElements(nsIContent* aContent, int32_t aNamespaceID,
+HTMLFieldSetElement::MatchListedElements(Element* aElement, int32_t aNamespaceID,
                                          nsIAtom* aAtom, void* aData)
 {
-  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aContent);
+  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aElement);
   return formControl;
 }
 

@@ -68,7 +68,7 @@ interface HTMLMediaElement : HTMLElement {
   [SetterThrows]
            attribute boolean loop;
   [Throws]
-  void play();
+  Promise<void> play();
   [Throws]
   void pause();
 
@@ -100,10 +100,12 @@ interface HTMLMediaElement : HTMLElement {
 
 // Mozilla extensions:
 partial interface HTMLMediaElement {
-  [ChromeOnly]
+  [Func="HasDebuggerPrivilege"]
   readonly attribute MediaSource? mozMediaSourceObject;
-  [ChromeOnly]
+  [Func="HasDebuggerPrivilege"]
   readonly attribute DOMString mozDebugReaderData;
+  [Func="HasDebuggerPrivilege", NewObject]
+  Promise<DOMString> mozRequestDebugInfo();
 
   [Pref="media.test.dumpDebugInfo"]
   void mozDumpDebugInfo();
@@ -155,17 +157,14 @@ partial interface HTMLMediaElement {
 
 // Encrypted Media Extensions
 partial interface HTMLMediaElement {
-  [Pref="media.eme.apiVisible"]
   readonly attribute MediaKeys? mediaKeys;
 
   // void, not any: https://www.w3.org/Bugs/Public/show_bug.cgi?id=26457
-  [Pref="media.eme.apiVisible", NewObject]
+  [NewObject]
   Promise<void> setMediaKeys(MediaKeys? mediaKeys);
 
-  [Pref="media.eme.apiVisible"]
   attribute EventHandler onencrypted;
 
-  [Pref="media.eme.apiVisible"]
   attribute EventHandler onwaitingforkey;
 };
 
@@ -217,8 +216,16 @@ partial interface HTMLMediaElement {
 /*
  * This is an API for simulating visibility changes to help debug and write
  * tests about suspend-video-decoding.
+ *
+ * - SetVisible() is for simulating visibility changes.
+ * - HasSuspendTaint() is for querying that the element's decoder cannot suspend
+ *   video decoding because it has been tainted by an operation, such as
+ *   drawImage().
  */
 partial interface HTMLMediaElement {
-  [Pref="media.test.setVisible"]
+  [Pref="media.test.video-suspend"]
   void setVisible(boolean aVisible);
+
+  [Pref="media.test.video-suspend"]
+  boolean hasSuspendTaint();
 };

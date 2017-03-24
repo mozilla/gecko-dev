@@ -446,7 +446,7 @@ LoginManager.prototype = {
       return false;
     }
 
-    let uri = Services.io.newURI(origin, null, null);
+    let uri = Services.io.newURI(origin);
     return Services.perms.testPermission(uri, PERMISSION_SAVE_LOGINS) != Services.perms.DENY_ACTION;
   },
 
@@ -458,7 +458,7 @@ LoginManager.prototype = {
     // Throws if there are bogus values.
     LoginHelper.checkHostnameValue(origin);
 
-    let uri = Services.io.newURI(origin, null, null);
+    let uri = Services.io.newURI(origin);
     if (enabled) {
       Services.perms.remove(uri, PERMISSION_SAVE_LOGINS);
     } else {
@@ -484,11 +484,34 @@ LoginManager.prototype = {
 
     let form = LoginFormFactory.createFromField(aElement);
     let isSecure = InsecurePasswordUtils.isFormSecure(form);
+    let isPasswordField = aElement.type == "password";
+
+    let completeSearch = (autoCompleteLookupPromise, { logins, messageManager }) => {
+      // If the search was canceled before we got our
+      // results, don't bother reporting them.
+      if (this._autoCompleteLookupPromise !== autoCompleteLookupPromise) {
+        return;
+      }
+
+      this._autoCompleteLookupPromise = null;
+      let results = new UserAutoCompleteResult(aSearchString, logins, {
+        messageManager,
+        isSecure,
+        isPasswordField,
+      });
+      aCallback.onSearchCompletion(results);
+    };
+
+    if (isPasswordField && aSearchString) {
+      // Return empty result on password fields with password already filled.
+      let acLookupPromise = this._autoCompleteLookupPromise = Promise.resolve({ logins: [] });
+      acLookupPromise.then(completeSearch.bind(this, acLookupPromise));
+      return;
+    }
 
     if (!this._remember) {
-      setTimeout(function() {
-        aCallback.onSearchCompletion(new UserAutoCompleteResult(aSearchString, [], {isSecure}));
-      }, 0);
+      let acLookupPromise = this._autoCompleteLookupPromise = Promise.resolve({ logins: [] });
+      acLookupPromise.then(completeSearch.bind(this, acLookupPromise));
       return;
     }
 
@@ -503,25 +526,11 @@ LoginManager.prototype = {
     }
 
     let rect = BrowserUtils.getElementBoundingScreenRect(aElement);
-    let autoCompleteLookupPromise = this._autoCompleteLookupPromise =
+    let acLookupPromise = this._autoCompleteLookupPromise =
       LoginManagerContent._autoCompleteSearchAsync(aSearchString, previousResult,
                                                    aElement, rect);
-    autoCompleteLookupPromise.then(({ logins, messageManager }) => {
-                               // If the search was canceled before we got our
-                               // results, don't bother reporting them.
-                               if (this._autoCompleteLookupPromise !== autoCompleteLookupPromise) {
-                                 return;
-                               }
-
-                               this._autoCompleteLookupPromise = null;
-                               let results =
-                                 new UserAutoCompleteResult(aSearchString, logins, {
-                                   messageManager,
-                                   isSecure,
-                                 });
-                               aCallback.onSearchCompletion(results);
-                             })
-                            .then(null, Cu.reportError);
+    acLookupPromise.then(completeSearch.bind(this, acLookupPromise))
+                             .then(null, Cu.reportError);
   },
 
   stopSearch() {

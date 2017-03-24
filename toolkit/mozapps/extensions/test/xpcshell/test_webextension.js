@@ -14,34 +14,14 @@ profileDir.append("extensions");
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "42");
 startupManager();
 
-const { GlobalManager, Management } = Components.utils.import("resource://gre/modules/Extension.jsm", {});
-
-function promiseAddonStartup() {
-  return new Promise(resolve => {
-    let listener = (evt, extension) => {
-      Management.off("ready", listener);
-      resolve(extension);
-    };
-
-    Management.on("ready", listener);
-  });
-}
-
-function promiseInstallWebExtension(aData) {
-  let addonFile = createTempWebExtensionFile(aData);
-
-  return promiseInstallAllFiles([addonFile]).then(() => {
-    Services.obs.notifyObservers(addonFile, "flush-cache-entry", null);
-    return promiseAddonStartup();
-  });
-}
+const { GlobalManager } = Components.utils.import("resource://gre/modules/Extension.jsm", {});
 
 add_task(function*() {
   equal(GlobalManager.extensionMap.size, 0);
 
   yield Promise.all([
     promiseInstallAllFiles([do_get_addon("webextension_1")], true),
-    promiseAddonStartup()
+    promiseWebExtensionStartup()
   ]);
 
   equal(GlobalManager.extensionMap.size, 1);
@@ -52,8 +32,7 @@ add_task(function*() {
   try {
     chromeReg.convertChromeURL(NetUtil.newURI("chrome://webex/content/webex.xul"));
     do_throw("Chrome manifest should not have been registered");
-  }
-  catch (e) {
+  } catch (e) {
     // Expected the chrome url to not be registered
   }
 
@@ -80,7 +59,7 @@ add_task(function*() {
   equal(GlobalManager.extensionMap.size, 0);
 
   startupManager();
-  yield promiseAddonStartup();
+  yield promiseWebExtensionStartup();
 
   equal(GlobalManager.extensionMap.size, 1);
   ok(GlobalManager.extensionMap.has(ID));
@@ -109,7 +88,7 @@ add_task(function*() {
   equal(GlobalManager.extensionMap.size, 0);
 
   addon.userDisabled = false;
-  yield promiseAddonStartup();
+  yield promiseWebExtensionStartup();
 
   equal(GlobalManager.extensionMap.size, 1);
   ok(GlobalManager.extensionMap.has(ID));
@@ -136,7 +115,7 @@ add_task(function*() {
   }, profileDir);
 
   startupManager();
-  yield promiseAddonStartup();
+  yield promiseWebExtensionStartup();
 
   let addon = yield promiseAddonByID(ID);
   do_check_neq(addon, null);
@@ -158,12 +137,12 @@ add_task(function*() {
 });
 
 add_task(function* test_manifest_localization() {
-  const ID = "webextension3@tests.mozilla.org";
+  const extensionId = "webextension3@tests.mozilla.org";
 
   yield promiseInstallAllFiles([do_get_addon("webextension_3")], true);
-  yield promiseAddonStartup();
+  yield promiseWebExtensionStartup();
 
-  let addon = yield promiseAddonByID(ID);
+  let addon = yield promiseAddonByID(extensionId);
   addon.userDisabled = true;
 
   equal(addon.name, "Web Extensiøn foo ☹");
@@ -172,7 +151,7 @@ add_task(function* test_manifest_localization() {
   Services.prefs.setCharPref(PREF_SELECTED_LOCALE, "fr-FR");
   yield promiseRestartManager();
 
-  addon = yield promiseAddonByID(ID);
+  addon = yield promiseAddonByID(extensionId);
 
   equal(addon.name, "Web Extensiøn le foo ☺");
   equal(addon.description, "Descriptïon le bar ☺ of add-on");
@@ -180,7 +159,7 @@ add_task(function* test_manifest_localization() {
   Services.prefs.setCharPref(PREF_SELECTED_LOCALE, "de");
   yield promiseRestartManager();
 
-  addon = yield promiseAddonByID(ID);
+  addon = yield promiseAddonByID(extensionId);
 
   equal(addon.name, "Web Extensiøn foo ☹");
   equal(addon.description, "Descriptïon bar ☹ of add-on");
@@ -251,7 +230,7 @@ add_task(function*() {
   do_check_true(first_addon.isActive);
   do_check_false(first_addon.isSystem);
 
-  let manifestjson_id= "last-webextension2@tests.mozilla.org";
+  let manifestjson_id = "last-webextension2@tests.mozilla.org";
   let last_addon = yield promiseAddonByID(manifestjson_id);
   do_check_eq(last_addon, null);
 
@@ -262,17 +241,17 @@ add_task(function*() {
 add_task(function* test_options_ui() {
   let OPTIONS_RE = /^moz-extension:\/\/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}\/options\.html$/;
 
-  const ID = "webextension@tests.mozilla.org";
+  const extensionId = "webextension@tests.mozilla.org";
   yield promiseInstallWebExtension({
     manifest: {
-      applications: {gecko: {id: ID}},
+      applications: {gecko: {id: extensionId}},
       "options_ui": {
         "page": "options.html",
       },
     },
   });
 
-  let addon = yield promiseAddonByID(ID);
+  let addon = yield promiseAddonByID(extensionId);
   equal(addon.optionsType, AddonManager.OPTIONS_TYPE_INLINE_BROWSER,
         "Addon should have an INLINE_BROWSER options type");
 
@@ -317,7 +296,7 @@ add_task(function* test_experiments_dependencies() {
 
   yield promiseInstallAllFiles([addonFile]);
 
-  let addon = yield new Promise(resolve => AddonManager.getAddonByID("meh@experiment", resolve));
+  let addon = yield AddonManager.getAddonByID("meh@experiment");
 
   deepEqual(addon.dependencies, ["meh@experiments.addons.mozilla.org"],
             "Addon should have the expected dependencies");
@@ -333,10 +312,10 @@ add_task(function* test_experiments_api() {
     // Experiments are not enabled on release builds.
     return;
 
-  const ID = "meh@experiments.addons.mozilla.org";
+  const extensionId = "meh@experiments.addons.mozilla.org";
 
   let addonFile = createTempXPIFile({
-    id: ID,
+    id: extensionId,
     type: 256,
     version: "0.1",
     name: "Meh API",
@@ -344,12 +323,12 @@ add_task(function* test_experiments_api() {
 
   yield promiseInstallAllFiles([addonFile]);
 
-  let addons = yield new Promise(resolve => AddonManager.getAddonsByTypes(["apiextension"], resolve));
+  let addons = yield AddonManager.getAddonsByTypes(["apiextension"]);
   let addon = addons.pop();
-  equal(addon.id, ID, "Add-on should be installed as an API extension");
+  equal(addon.id, extensionId, "Add-on should be installed as an API extension");
 
-  addons = yield new Promise(resolve => AddonManager.getAddonsByTypes(["extension"], resolve));
-  equal(addons.pop().id, ID, "Add-on type should be aliased to extension");
+  addons = yield AddonManager.getAddonsByTypes(["extension"]);
+  equal(addons.pop().id, extensionId, "Add-on type should be aliased to extension");
 
   addon.uninstall();
 });
@@ -388,7 +367,7 @@ add_task(function* developerEmpty() {
     let addon = yield promiseInstallWebExtension({
       manifest: {
         author: "Some author",
-        developer: developer,
+        developer,
         homepage_url: "https://example.net",
         manifest_version: 2,
         name: "Web Extension Name",
@@ -407,7 +386,7 @@ add_task(function* authorNotString() {
   for (let author of [{}, [], 42]) {
     let addon = yield promiseInstallWebExtension({
       manifest: {
-        author: author,
+        author,
         manifest_version: 2,
         name: "Web Extension Name",
         version: "1.0",
@@ -418,4 +397,49 @@ add_task(function* authorNotString() {
     equal(addon.creator, null);
     addon.uninstall();
   }
+});
+
+add_task(function* testThemeExtension() {
+  let addon = yield promiseInstallWebExtension({
+    manifest: {
+      "author": "Some author",
+      manifest_version: 2,
+      name: "Web Extension Name",
+      version: "1.0",
+      theme: { images: { headerURL: "https://example.com/example.png" } },
+    }
+  });
+
+  addon = yield promiseAddonByID(addon.id);
+  do_check_neq(addon, null);
+  do_check_eq(addon.creator, "Some author");
+  do_check_eq(addon.version, "1.0");
+  do_check_eq(addon.name, "Web Extension Name");
+  do_check_true(addon.isCompatible);
+  do_check_false(addon.appDisabled);
+  do_check_false(addon.isActive);
+  do_check_true(addon.userDisabled);
+  do_check_false(addon.isSystem);
+  do_check_eq(addon.type, "theme");
+  do_check_true(addon.isWebExtension);
+  do_check_eq(addon.signedState, mozinfo.addon_signing ? AddonManager.SIGNEDSTATE_SIGNED : AddonManager.SIGNEDSTATE_NOT_REQUIRED);
+
+  addon.uninstall();
+
+  // Also test one without a proper 'theme' section.
+  addon = yield promiseInstallWebExtension({
+    manifest: {
+      "author": "Some author",
+      manifest_version: 2,
+      name: "Web Extension Name",
+      version: "1.0",
+      theme: null,
+    }
+  });
+
+  addon = yield promiseAddonByID(addon.id);
+  do_check_eq(addon.type, "extension");
+  do_check_true(addon.isWebExtension);
+
+  addon.uninstall();
 });

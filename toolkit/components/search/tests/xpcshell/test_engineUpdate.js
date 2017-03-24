@@ -6,7 +6,6 @@
 "use strict";
 
 function run_test() {
-  updateAppInfo();
   useHttpServer();
 
   run_next_test();
@@ -33,11 +32,11 @@ add_task(function* test_engineUpdate() {
   yield new Promise(resolve => {
     Services.obs.addObserver(function obs(subject, topic, data) {
       if (data == "engine-loaded") {
-        let engine = subject.QueryInterface(Ci.nsISearchEngine);
-        let rawEngine = engine.wrappedJSObject;
-        equal(engine.alias, KEYWORD, "Keyword not cleared by update");
+        let loadedEngine = subject.QueryInterface(Ci.nsISearchEngine);
+        let rawEngine = loadedEngine.wrappedJSObject;
+        equal(loadedEngine.alias, KEYWORD, "Keyword not cleared by update");
         equal(rawEngine.getAttr("order"), 1, "Order not cleared by update");
-        Services.obs.removeObserver(obs, TOPIC, false);
+        Services.obs.removeObserver(obs, TOPIC);
         resolve();
       }
     }, TOPIC, false);

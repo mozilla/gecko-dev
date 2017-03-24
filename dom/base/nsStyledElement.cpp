@@ -68,8 +68,6 @@ nsStyledElement::SetInlineStyleDeclaration(DeclarationBlock* aDeclaration,
   // and thus will be the same.
   if (hasListeners) {
     // save the old attribute so we can set up the mutation event properly
-    // XXXbz if the old rule points to the same declaration as the new one,
-    // this is getting the new attr value, not the old one....
     nsAutoString oldValueStr;
     modification = GetAttr(kNameSpaceID_None, nsGkAtoms::style,
                            oldValueStr);
@@ -91,21 +89,6 @@ nsStyledElement::SetInlineStyleDeclaration(DeclarationBlock* aDeclaration,
   return SetAttrAndNotify(kNameSpaceID_None, nsGkAtoms::style, nullptr,
                           oldValue, attrValue, modType, hasListeners,
                           aNotify, kDontCallAfterSetAttr);
-}
-
-DeclarationBlock*
-nsStyledElement::GetInlineStyleDeclaration()
-{
-  if (!MayHaveStyle()) {
-    return nullptr;
-  }
-  const nsAttrValue* attrVal = mAttrsAndChildren.GetAttr(nsGkAtoms::style);
-
-  if (attrVal && attrVal->Type() == nsAttrValue::eCSSDeclaration) {
-    return attrVal->GetCSSDeclarationValue();
-  }
-
-  return nullptr;
 }
 
 // ---------------------------------------------------------------

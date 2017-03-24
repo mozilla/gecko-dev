@@ -67,15 +67,14 @@ function setup() {
           teardown();
         }
       }
-    }, false);
+    });
 
     var promise = new Promise(function(aResolve, aReject) {
       document.body.appendChild(receiverIframe);
-      receiverIframe.addEventListener("mozbrowserloadstart", function onLoadEnd() {
-        receiverIframe.removeEventListener("mozbrowserloadstart", onLoadEnd);
+      receiverIframe.addEventListener("mozbrowserloadstart", function() {
         var mm = SpecialPowers.getBrowserFrameMessageManager(receiverIframe);
         mm.loadFrameScript("data:,(" + loadPrivilegedScriptTest.toString() + ")();", false);
-      });
+      }, {once: true});
 
       aResolve(receiverIframe);
     });
@@ -109,7 +108,7 @@ function setup() {
           teardown();
         }
       }
-    }, false);
+    });
 
     document.body.appendChild(nonReceiverIframe);
 
@@ -202,6 +201,7 @@ SpecialPowers.pushPermissions([
                                       ["dom.presentation.receiver.enabled", true],
                                       ["dom.presentation.session_transport.data_channel.enable", true],
                                       ["dom.mozBrowserFramesEnabled", true],
+                                      ["network.disable.ipc.security", true],
                                       ["dom.ipc.browser_frames.oop_by_default", true],
                                       ["presentation.receiver.loading.timeout", 5000000]]},
                             runTests);

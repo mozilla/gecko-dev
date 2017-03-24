@@ -44,7 +44,7 @@ class TestLint(unittest.TestCase):
 
             @depends('--help', foo)
             def bar(help, foo):
-                return
+                return foo
         '''):
             self.lint_test()
 
@@ -58,7 +58,7 @@ class TestLint(unittest.TestCase):
 
                 @depends('--help', foo)
                 def bar(help, foo):
-                    return
+                    return foo
             '''):
                 self.lint_test()
 
@@ -80,29 +80,7 @@ class TestLint(unittest.TestCase):
 
                     @depends('--help', foo)
                     def bar(help, foo):
-                        return
-                tmpl()
-            '''):
-                self.lint_test()
-
-        self.assertEquals(e.exception.message,
-                          "`bar` depends on '--help' and `foo`. "
-                          "`foo` must depend on '--help'")
-
-        with self.assertRaises(ConfigureError) as e:
-            with self.moz_configure('''
-                @template
-                @imports('os')
-                def tmpl():
-                    option('--foo', help='foo')
-                    @depends('--foo')
-                    def foo(value):
-                        os
-                        return value
-
-                    @depends('--help', foo)
-                    def bar(help, foo):
-                        return
+                        return foo
                 tmpl()
             '''):
                 self.lint_test()
@@ -138,24 +116,117 @@ class TestLint(unittest.TestCase):
 
         with self.assertRaises(ConfigureError) as e:
             with self.moz_configure('''
-                @template
+                option('--foo', help='foo')
+                @depends('--foo')
                 @imports('os')
-                def tmpl():
-                    option('--foo', help='foo')
-                    @depends('--foo')
-                    def foo(value):
-                        os
-                        return value
-                    return foo
+                def foo(value):
+                    return value
 
-                foo = tmpl()
+                @depends(foo)
+                def bar(value):
+                    return value
+
+                include(bar)
+            '''):
+                self.lint_test()
+
+        self.assertEquals(e.exception.message,
+                          "Missing @depends for `foo`: '--help'")
+
+        with self.assertRaises(ConfigureError) as e:
+            with self.moz_configure('''
+                option('--foo', help='foo')
+                @depends('--foo')
+                @imports('os')
+                def foo(value):
+                    return value
+
+                option('--bar', help='bar', when=foo)
+            '''):
+                self.lint_test()
+
+        self.assertEquals(e.exception.message,
+                          "Missing @depends for `foo`: '--help'")
+
+        # There is a default restricted `os` module when there is no explicit
+        # @imports, and it's fine to use it without a dependency on --help.
+        with self.moz_configure('''
+            option('--foo', help='foo')
+            @depends('--foo')
+            def foo(value):
+                os
+                return value
+
+            include(foo)
+        '''):
+            self.lint_test()
+
+        with self.assertRaises(ConfigureError) as e:
+            with self.moz_configure('''
+                option('--foo', help='foo')
+                @depends('--foo')
+                def foo(value):
+                    return
 
                 include(foo)
             '''):
                 self.lint_test()
 
         self.assertEquals(e.exception.message,
-                          "Missing @depends for `foo`: '--help'")
+                          "%s:3: The dependency on `--foo` is unused."
+                          % mozpath.join(test_data_path, 'moz.configure'))
+
+        with self.assertRaises(ConfigureError) as e:
+            with self.moz_configure('''
+                @depends(when=True)
+                def bar():
+                    return
+                @depends(bar)
+                def foo(value):
+                    return
+
+                include(foo)
+            '''):
+                self.lint_test()
+
+        self.assertEquals(e.exception.message,
+                          "%s:5: The dependency on `bar` is unused."
+                          % mozpath.join(test_data_path, 'moz.configure'))
+
+        with self.assertRaises(ConfigureError) as e:
+            with self.moz_configure('''
+                @depends(depends(when=True)(lambda: None))
+                def foo(value):
+                    return
+
+                include(foo)
+            '''):
+                self.lint_test()
+
+        self.assertEquals(e.exception.message,
+                          "%s:2: The dependency on `<lambda>` is unused."
+                          % mozpath.join(test_data_path, 'moz.configure'))
+
+        with self.assertRaises(ConfigureError) as e:
+            with self.moz_configure('''
+                @template
+                def tmpl():
+                    @depends(when=True)
+                    def bar():
+                        return
+                    return bar
+                qux = tmpl()
+                @depends(qux)
+                def foo(value):
+                    return
+
+                include(foo)
+            '''):
+                self.lint_test()
+
+        self.assertEquals(e.exception.message,
+                          "%s:9: The dependency on `qux` is unused."
+                          % mozpath.join(test_data_path, 'moz.configure'))
 
 
 if __name__ == '__main__':

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* import-globals-from preferences.js */
+
 Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/ContextualIdentityService.jsm");
 
@@ -15,7 +17,7 @@ let gContainersPane = {
   init() {
     this._list = document.getElementById("containersView");
 
-    document.getElementById("backContainersLink").addEventListener("click", function () {
+    document.getElementById("backContainersLink").addEventListener("click", function() {
       gotoPref("privacy");
     });
 
@@ -23,7 +25,7 @@ let gContainersPane = {
   },
 
   _rebuildView() {
-    const containers = ContextualIdentityService.getIdentities();
+    const containers = ContextualIdentityService.getPublicIdentities();
     while (this._list.firstChild) {
       this._list.firstChild.remove();
     }
@@ -39,11 +41,35 @@ let gContainersPane = {
   },
 
   onRemoveClick(button) {
-    let userContextId = button.getAttribute("value");
+    let userContextId = parseInt(button.getAttribute("value"), 10);
+
+    let count = ContextualIdentityService.countContainerTabs(userContextId);
+    if (count > 0) {
+      let bundlePreferences = document.getElementById("bundlePreferences");
+
+      let title = bundlePreferences.getString("removeContainerAlertTitle");
+      let message = PluralForm.get(count, bundlePreferences.getString("removeContainerMsg"))
+                              .replace("#S", count)
+      let okButton = bundlePreferences.getString("removeContainerOkButton");
+      let cancelButton = bundlePreferences.getString("removeContainerButton2");
+
+      let buttonFlags = (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
+                        (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_1);
+
+      let rv = Services.prompt.confirmEx(window, title, message, buttonFlags,
+                                         okButton, cancelButton, null, null, {});
+      if (rv != 0) {
+        return;
+      }
+
+      ContextualIdentityService.closeContainerTabs(userContextId);
+    }
+
     ContextualIdentityService.remove(userContextId);
     this._rebuildView();
   },
-  onPeferenceClick(button) {
+
+  onPreferenceClick(button) {
     this.openPreferenceDialog(button.getAttribute("value"));
   },
 
@@ -59,7 +85,7 @@ let gContainersPane = {
     };
     let title;
     if (userContextId) {
-      identity = ContextualIdentityService.getIdentityFromId(userContextId);
+      identity = ContextualIdentityService.getPublicIdentityFromId(userContextId);
       // This is required to get the translation string from defaults
       identity.name = ContextualIdentityService.getUserContextLabel(identity.userContextId);
       title = containersBundle.formatStringFromName("containers.updateContainerTitle", [identity.name], 1);

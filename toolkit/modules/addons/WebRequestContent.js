@@ -80,6 +80,19 @@ var ContentPolicy = {
 
   shouldLoad(policyType, contentLocation, requestOrigin,
              node, mimeTypeGuess, extra, requestPrincipal) {
+    // Loads of TYPE_DOCUMENT and TYPE_SUBDOCUMENT perform a ConPol check
+    // within docshell as well as within the ContentSecurityManager. To avoid
+    // duplicate evaluations we ignore ConPol checks performed within docShell.
+    if (extra instanceof Ci.nsISupportsString) {
+      if (extra.data === "conPolCheckFromDocShell") {
+        return Ci.nsIContentPolicy.ACCEPT;
+      }
+    }
+
+    if (requestPrincipal &&
+        Services.scriptSecurityManager.isSystemPrincipal(requestPrincipal)) {
+      return Ci.nsIContentPolicy.ACCEPT;
+    }
     let url = contentLocation.spec;
     if (IS_HTTP.test(url)) {
       // We'll handle this in our parent process HTTP observer.

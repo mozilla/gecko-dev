@@ -9,6 +9,7 @@
 #include "ExtendedValidation.h"
 #include "NSSCertDBTrustDomain.h"
 #include "certdb.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
 #include "mozilla/Casting.h"
 #include "mozilla/NotNull.h"
@@ -34,14 +35,12 @@
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsUnicharUtils.h"
-#include "nsXULAppAPI.h"
 #include "nspr.h"
 #include "pkix/pkixnss.h"
 #include "pkix/pkixtypes.h"
 #include "pkix/Result.h"
 #include "prerror.h"
 #include "prmem.h"
-#include "prprf.h"
 #include "secasn1.h"
 #include "secder.h"
 #include "secerr.h"
@@ -70,14 +69,10 @@ NS_IMPL_ISUPPORTS(nsNSSCertificate,
 static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 
 /*static*/ nsNSSCertificate*
-nsNSSCertificate::Create(CERTCertificate* cert, SECOidTag* evOidPolicy)
+nsNSSCertificate::Create(CERTCertificate* cert)
 {
-  if (GeckoProcessType_Default != XRE_GetProcessType()) {
-    NS_ERROR("Trying to initialize nsNSSCertificate in a non-chrome process!");
-    return nullptr;
-  }
   if (cert)
-    return new nsNSSCertificate(cert, evOidPolicy);
+    return new nsNSSCertificate(cert);
   else
     return new nsNSSCertificate();
 }
@@ -85,10 +80,6 @@ nsNSSCertificate::Create(CERTCertificate* cert, SECOidTag* evOidPolicy)
 nsNSSCertificate*
 nsNSSCertificate::ConstructFromDER(char* certDER, int derLen)
 {
-  // On non-chrome process prevent instantiation
-  if (GeckoProcessType_Default != XRE_GetProcessType())
-    return nullptr;
-
   nsNSSCertificate* newObject = nsNSSCertificate::Create();
   if (newObject && !newObject->InitFromDER(certDER, derLen)) {
     delete newObject;
@@ -122,44 +113,25 @@ nsNSSCertificate::InitFromDER(char* certDER, int derLen)
   return true;
 }
 
-nsNSSCertificate::nsNSSCertificate(CERTCertificate* cert,
-                                   SECOidTag* evOidPolicy)
+nsNSSCertificate::nsNSSCertificate(CERTCertificate* cert)
   : mCert(nullptr)
   , mPermDelete(false)
   , mCertType(CERT_TYPE_NOT_YET_INITIALIZED)
-  , mCachedEVStatus(ev_status_unknown)
 {
-#if defined(DEBUG)
-  if (GeckoProcessType_Default != XRE_GetProcessType())
-    NS_ERROR("Trying to initialize nsNSSCertificate in a non-chrome process!");
-#endif
-
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
     return;
 
   if (cert) {
     mCert.reset(CERT_DupCertificate(cert));
-    if (evOidPolicy) {
-      if (*evOidPolicy == SEC_OID_UNKNOWN) {
-        mCachedEVStatus =  ev_status_invalid;
-      }
-      else {
-        mCachedEVStatus = ev_status_valid;
-      }
-      mCachedEVOidTag = *evOidPolicy;
-    }
   }
 }
 
-nsNSSCertificate::nsNSSCertificate() :
-  mCert(nullptr),
-  mPermDelete(false),
-  mCertType(CERT_TYPE_NOT_YET_INITIALIZED),
-  mCachedEVStatus(ev_status_unknown)
+nsNSSCertificate::nsNSSCertificate()
+  : mCert(nullptr)
+  , mPermDelete(false)
+  , mCertType(CERT_TYPE_NOT_YET_INITIALIZED)
 {
-  if (GeckoProcessType_Default != XRE_GetProcessType())
-    NS_ERROR("Trying to initialize nsNSSCertificate in a non-chrome process!");
 }
 
 nsNSSCertificate::~nsNSSCertificate()
@@ -378,58 +350,71 @@ nsNSSCertificate::GetDbKey(const UniqueCERTCertificate& cert, nsACString& aDbKey
 }
 
 NS_IMETHODIMP
-nsNSSCertificate::GetWindowTitle(nsAString& aWindowTitle)
+nsNSSCertificate::GetDisplayName(nsAString& aDisplayName)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  aWindowTitle.Truncate();
+  aDisplayName.Truncate();
 
+  MOZ_ASSERT(mCert, "mCert should not be null in GetDisplayName");
   if (!mCert) {
-    NS_ERROR("Somehow got nullptr for mCert in nsNSSCertificate.");
     return NS_ERROR_FAILURE;
   }
 
   UniquePORTString commonName(CERT_GetCommonName(&mCert->subject));
+  UniquePORTString organizationalUnitName(CERT_GetOrgUnitName(&mCert->subject));
+  UniquePORTString organizationName(CERT_GetOrgName(&mCert->subject));
 
-  const char* titleOptions[] = {
-    mCert->nickname,
+  bool isBuiltInRoot;
+  nsresult rv = GetIsBuiltInRoot(&isBuiltInRoot);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  // Only use the nickname for built-in roots where we already have a hard-coded
+  // reasonable display name (unfortunately we have to strip off the leading
+  // slot identifier followed by a ':'). Otherwise, attempt to use the following
+  // in order:
+  //  - the common name, if present
+  //  - an organizational unit name, if present
+  //  - an organization name, if present
+  //  - the entire subject distinguished name, if non-empty
+  //  - an email address, if one can be found
+  // In the unlikely event that none of these fields are present and non-empty
+  // (the subject really shouldn't be empty), an empty string is returned.
+  nsAutoCString builtInRootNickname;
+  if (isBuiltInRoot) {
+    nsAutoCString fullNickname(mCert->nickname);
+    int32_t index = fullNickname.Find(":");
+    if (index != kNotFound) {
+      // Substring will gracefully handle the case where index is the last
+      // character in the string (that is, if the nickname is just
+      // "Builtin Object Token:"). In that case, we'll get an empty string.
+      builtInRootNickname = Substring(fullNickname,
+                                      AssertedCast<uint32_t>(index + 1));
+    }
+  }
+  const char* nameOptions[] = {
+    builtInRootNickname.get(),
     commonName.get(),
+    organizationalUnitName.get(),
+    organizationName.get(),
     mCert->subjectName,
     mCert->emailAddr
   };
 
-  nsAutoCString titleOption;
-  for (size_t i = 0; i < ArrayLength(titleOptions); i++) {
-    titleOption = titleOptions[i];
-    if (titleOption.Length() > 0 && IsUTF8(titleOption)) {
-      CopyUTF8toUTF16(titleOption, aWindowTitle);
+  nsAutoCString nameOption;
+  for (auto nameOptionPtr : nameOptions) {
+    nameOption.Assign(nameOptionPtr);
+    if (nameOption.Length() > 0 && IsUTF8(nameOption)) {
+      CopyUTF8toUTF16(nameOption, aDisplayName);
       return NS_OK;
     }
   }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSCertificate::GetNickname(nsAString& aNickname)
-{
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
-    return NS_ERROR_NOT_AVAILABLE;
-
-  if (mCert->nickname) {
-    CopyUTF8toUTF16(mCert->nickname, aNickname);
-  } else {
-    nsresult rv;
-    nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
-    if (NS_FAILED(rv) || !nssComponent) {
-      return NS_ERROR_FAILURE;
-    }
-    nssComponent->GetPIPNSSBundleString("CertNoNickname", aNickname);
-  }
   return NS_OK;
 }
 
@@ -667,7 +652,6 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
     return NS_ERROR_NOT_AVAILABLE;
 
   NS_ENSURE_ARG(_rvChain);
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("Getting chain for \"%s\"\n", mCert->nickname));
 
   mozilla::pkix::Time now(mozilla::pkix::Now());
 
@@ -701,9 +685,6 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
     if ((usage & otherUsagesToTest) == 0) {
       continue;
     }
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-           ("pipnss: PKIX attempting chain(%d) for '%s'\n",
-            usage, mCert->nickname));
     if (certVerifier->VerifyCert(mCert.get(), usage, now,
                                  nullptr, /*XXX fixme*/
                                  nullptr, /*hostname*/
@@ -719,9 +700,6 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
     // There is not verified path for the chain, however we still want to
     // present to the user as much of a possible chain as possible, in the case
     // where there was a problem with the cert or the issuers.
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-           ("pipnss: getchain :CertVerify failed to get chain for '%s'\n",
-            mCert->nickname));
     nssChain = UniqueCERTCertList(
       CERT_GetCertChainFromCert(mCert.get(), PR_Now(), certUsageSSLClient));
   }
@@ -738,8 +716,6 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
   for (node = CERT_LIST_HEAD(nssChain.get());
        !CERT_LIST_END(node, nssChain.get());
        node = CERT_LIST_NEXT(node)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-           ("adding %s to chain\n", node->cert->nickname));
     nsCOMPtr<nsIX509Cert> cert = nsNSSCertificate::Create(node->cert);
     array->AppendElement(cert, false);
   }
@@ -761,7 +737,6 @@ nsNSSCertificate::GetAllTokenNames(uint32_t* aLength, char16_t*** aTokenNames)
   *aTokenNames = nullptr;
 
   // Get the slots from NSS
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("Getting slots for \"%s\"\n", mCert->nickname));
   UniquePK11SlotList slots(PK11_GetAllSlotsForCert(mCert.get(), nullptr));
   if (!slots) {
     if (PORT_GetError() == SEC_ERROR_NO_TOKEN) {
@@ -1116,6 +1091,9 @@ NS_IMETHODIMP
 nsNSSCertificate::GetASN1Structure(nsIASN1Object** aASN1Structure)
 {
   NS_ENSURE_ARG_POINTER(aASN1Structure);
+  if (!NS_IsMainThread()) {
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
   return CreateASN1Struct(aASN1Structure);
 }
 
@@ -1132,85 +1110,6 @@ nsNSSCertificate::Equals(nsIX509Cert* other, bool* result)
   UniqueCERTCertificate cert(other->GetCert());
   *result = (mCert.get() == cert.get());
   return NS_OK;
-}
-
-nsresult
-nsNSSCertificate::hasValidEVOidTag(SECOidTag& resultOidTag, bool& validEV)
-{
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown()) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  RefPtr<mozilla::psm::SharedCertVerifier>
-    certVerifier(mozilla::psm::GetDefaultCertVerifier());
-  NS_ENSURE_TRUE(certVerifier, NS_ERROR_UNEXPECTED);
-
-  validEV = false;
-  resultOidTag = SEC_OID_UNKNOWN;
-
-  uint32_t flags = mozilla::psm::CertVerifier::FLAG_LOCAL_ONLY |
-    mozilla::psm::CertVerifier::FLAG_MUST_BE_EV;
-  UniqueCERTCertList unusedBuiltChain;
-  mozilla::pkix::Result result = certVerifier->VerifyCert(mCert.get(),
-    certificateUsageSSLServer, mozilla::pkix::Now(),
-    nullptr /* XXX pinarg */,
-    nullptr /* hostname */,
-    unusedBuiltChain,
-    flags,
-    nullptr /* stapledOCSPResponse */,
-    nullptr /* sctsFromTLSExtension */,
-    nullptr /* firstPartyDomain */,
-    &resultOidTag);
-
-  if (result != mozilla::pkix::Success) {
-    resultOidTag = SEC_OID_UNKNOWN;
-  }
-  if (resultOidTag != SEC_OID_UNKNOWN) {
-    validEV = true;
-  }
-  return NS_OK;
-}
-
-nsresult
-nsNSSCertificate::getValidEVOidTag(SECOidTag& resultOidTag, bool& validEV)
-{
-  if (mCachedEVStatus != ev_status_unknown) {
-    validEV = (mCachedEVStatus == ev_status_valid);
-    if (validEV) {
-      resultOidTag = mCachedEVOidTag;
-    }
-    return NS_OK;
-  }
-
-  nsresult rv = hasValidEVOidTag(resultOidTag, validEV);
-  if (NS_SUCCEEDED(rv)) {
-    if (validEV) {
-      mCachedEVOidTag = resultOidTag;
-    }
-    mCachedEVStatus = validEV ? ev_status_valid : ev_status_invalid;
-  }
-  return rv;
-}
-
-nsresult
-nsNSSCertificate::GetIsExtendedValidation(bool* aIsEV)
-{
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown()) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  NS_ENSURE_ARG(aIsEV);
-  *aIsEV = false;
-
-  if (mCachedEVStatus != ev_status_unknown) {
-    *aIsEV = (mCachedEVStatus == ev_status_valid);
-    return NS_OK;
-  }
-
-  SECOidTag oid_tag;
-  return getValidEVOidTag(oid_tag, *aIsEV);
 }
 
 namespace mozilla {
@@ -1623,12 +1522,12 @@ nsNSSCertListEnumerator::GetNext(nsISupports** _retval)
   return NS_OK;
 }
 
-// NB: This serialization must match that of nsNSSCertificateFakeTransport.
 NS_IMETHODIMP
 nsNSSCertificate::Write(nsIObjectOutputStream* aStream)
 {
   NS_ENSURE_STATE(mCert);
-  nsresult rv = aStream->Write32(static_cast<uint32_t>(mCachedEVStatus));
+  // This field used to be the cached EV status, but it is no longer necessary.
+  nsresult rv = aStream->Write32(0);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1644,19 +1543,11 @@ nsNSSCertificate::Read(nsIObjectInputStream* aStream)
 {
   NS_ENSURE_STATE(!mCert);
 
-  uint32_t cachedEVStatus;
-  nsresult rv = aStream->Read32(&cachedEVStatus);
+  // This field is no longer used.
+  uint32_t unusedCachedEVStatus;
+  nsresult rv = aStream->Read32(&unusedCachedEVStatus);
   if (NS_FAILED(rv)) {
     return rv;
-  }
-  if (cachedEVStatus == static_cast<uint32_t>(ev_status_unknown)) {
-    mCachedEVStatus = ev_status_unknown;
-  } else if (cachedEVStatus == static_cast<uint32_t>(ev_status_valid)) {
-    mCachedEVStatus = ev_status_valid;
-  } else if (cachedEVStatus == static_cast<uint32_t>(ev_status_invalid)) {
-    mCachedEVStatus = ev_status_invalid;
-  } else {
-    return NS_ERROR_UNEXPECTED;
   }
 
   uint32_t len;

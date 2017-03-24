@@ -147,11 +147,6 @@ interface BrowserElementPrivileged {
   [Throws,
    Pref="dom.mozBrowserFramesEnabled",
    ChromeOnly]
-  DOMRequest setInputMethodActive(boolean isActive);
-
-  [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
-   ChromeOnly]
   void findAll(DOMString searchString, BrowserFindCaseSensitivity caseSensitivity);
 
   [Throws,
@@ -175,4 +170,52 @@ interface BrowserElementPrivileged {
    ChromeOnly]
   DOMRequest getWebManifest();
 
+};
+
+// Bits needed for BrowserElementAudioChannel.
+partial interface BrowserElementPrivileged {
+  [Pure, Cached, Throws,
+   Pref="dom.mozBrowserFramesEnabled",
+   ChromeOnly]
+  readonly attribute sequence<BrowserElementAudioChannel> allowedAudioChannels;
+
+  /**
+   * Mutes all audio in this browser.
+   */
+  [Throws,
+   Pref="dom.mozBrowserFramesEnabled",
+   ChromeOnly]
+  void mute();
+
+  /**
+   * Unmutes all audio in this browser.
+   */
+  [Throws,
+   Pref="dom.mozBrowserFramesEnabled",
+   ChromeOnly]
+  void unmute();
+
+  /**
+   * Obtains whether or not the browser is muted.
+   */
+  [Throws,
+   Pref="dom.mozBrowserFramesEnabled",
+   ChromeOnly]
+  DOMRequest getMuted();
+
+  /**
+   * Sets the volume for the browser.
+   */
+  [Throws,
+   Pref="dom.mozBrowserFramesEnabled",
+   ChromeOnly]
+  void setVolume(float volume);
+
+  /**
+   * Gets the volume for the browser.
+   */
+  [Throws,
+   Pref="dom.mozBrowserFramesEnabled",
+   ChromeOnly]
+  DOMRequest getVolume();
 };

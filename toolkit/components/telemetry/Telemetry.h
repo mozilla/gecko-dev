@@ -36,6 +36,9 @@ namespace Telemetry {
 
 struct Accumulation;
 struct KeyedAccumulation;
+struct ScalarAction;
+struct KeyedScalarAction;
+struct ChildEventData;
 
 enum TimerResolution {
   Millisecond,
@@ -60,7 +63,7 @@ void Init();
  * @param id - histogram id
  * @param sample - value to record.
  */
-void Accumulate(ID id, uint32_t sample);
+void Accumulate(HistogramID id, uint32_t sample);
 
 /**
  * Adds sample to a keyed histogram defined in TelemetryHistogramEnums.h
@@ -69,7 +72,7 @@ void Accumulate(ID id, uint32_t sample);
  * @param key - the string key
  * @param sample - (optional) value to record, defaults to 1.
  */
-void Accumulate(ID id, const nsCString& key, uint32_t sample = 1);
+void Accumulate(HistogramID id, const nsCString& key, uint32_t sample = 1);
 
 /**
  * Adds a sample to a histogram defined in TelemetryHistogramEnums.h.
@@ -105,7 +108,7 @@ template<class E>
 void AccumulateCategorical(E enumValue) {
   static_assert(IsCategoricalLabelEnum<E>::value,
                 "Only categorical label enum types are supported.");
-  Accumulate(static_cast<ID>(CategoricalLabelId<E>::value),
+  Accumulate(static_cast<HistogramID>(CategoricalLabelId<E>::value),
              static_cast<uint32_t>(enumValue));
 };
 
@@ -118,7 +121,7 @@ void AccumulateCategorical(E enumValue) {
  * @param id - The histogram id.
  * @param label - A string label value that is defined in Histograms.json for this histogram.
  */
-void AccumulateCategorical(ID id, const nsCString& label);
+void AccumulateCategorical(HistogramID id, const nsCString& label);
 
 /**
  * Adds time delta in milliseconds to a histogram defined in TelemetryHistogramEnums.h
@@ -127,21 +130,7 @@ void AccumulateCategorical(ID id, const nsCString& label);
  * @param start - start time
  * @param end - end time
  */
-void AccumulateTimeDelta(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now());
-
-/**
- * Accumulate child process data into histograms for the given process type.
- *
- * @param aAccumulations - accumulation actions to perform
- */
-void AccumulateChild(GeckoProcessType aProcessType, const nsTArray<Accumulation>& aAccumulations);
-
-/**
- * Accumulate child process data into keyed histograms for the given process type.
- *
- * @param aAccumulations - accumulation actions to perform
- */
-void AccumulateChildKeyed(GeckoProcessType aProcessType, const nsTArray<KeyedAccumulation>& aAccumulations);
+void AccumulateTimeDelta(HistogramID id, TimeStamp start, TimeStamp end = TimeStamp::Now());
 
 /**
  * Enable/disable recording for this histogram at runtime.
@@ -151,9 +140,9 @@ void AccumulateChildKeyed(GeckoProcessType aProcessType, const nsTArray<KeyedAcc
  * @param id - histogram id
  * @param enabled - whether or not to enable recording from now on.
  */
-void SetHistogramRecordingEnabled(ID id, bool enabled);
+void SetHistogramRecordingEnabled(HistogramID id, bool enabled);
 
-const char* GetHistogramName(ID id);
+const char* GetHistogramName(HistogramID id);
 
 /**
  * Those wrappers are needed because the VS versions we use do not support free
@@ -162,17 +151,17 @@ const char* GetHistogramName(ID id);
 template<TimerResolution res>
 struct AccumulateDelta_impl
 {
-  static void compute(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now());
-  static void compute(ID id, const nsCString& key, TimeStamp start, TimeStamp end = TimeStamp::Now());
+  static void compute(HistogramID id, TimeStamp start, TimeStamp end = TimeStamp::Now());
+  static void compute(HistogramID id, const nsCString& key, TimeStamp start, TimeStamp end = TimeStamp::Now());
 };
 
 template<>
 struct AccumulateDelta_impl<Millisecond>
 {
-  static void compute(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
+  static void compute(HistogramID id, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
     Accumulate(id, static_cast<uint32_t>((end - start).ToMilliseconds()));
   }
-  static void compute(ID id, const nsCString& key, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
+  static void compute(HistogramID id, const nsCString& key, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
     Accumulate(id, key, static_cast<uint32_t>((end - start).ToMilliseconds()));
   }
 };
@@ -180,16 +169,16 @@ struct AccumulateDelta_impl<Millisecond>
 template<>
 struct AccumulateDelta_impl<Microsecond>
 {
-  static void compute(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
+  static void compute(HistogramID id, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
     Accumulate(id, static_cast<uint32_t>((end - start).ToMicroseconds()));
   }
-  static void compute(ID id, const nsCString& key, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
+  static void compute(HistogramID id, const nsCString& key, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
     Accumulate(id, key, static_cast<uint32_t>((end - start).ToMicroseconds()));
   }
 };
 
 
-template<ID id, TimerResolution res = Millisecond>
+template<HistogramID id, TimerResolution res = Millisecond>
 class MOZ_RAII AutoTimer {
 public:
   explicit AutoTimer(TimeStamp aStart = TimeStamp::Now() MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
@@ -219,7 +208,7 @@ private:
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-template<ID id>
+template<HistogramID id>
 class MOZ_RAII AutoCounter {
 public:
   explicit AutoCounter(uint32_t counterStart = 0 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
@@ -321,13 +310,24 @@ class ProcessedStack;
  * @param aFirefoxUptime - Firefox uptime at the time of the hang, in minutes
  * @param aAnnotations - Any annotations to be added to the report
  */
-#if defined(MOZ_ENABLE_PROFILER_SPS)
+#if defined(MOZ_GECKO_PROFILER)
 void RecordChromeHang(uint32_t aDuration,
                       ProcessedStack &aStack,
                       int32_t aSystemUptime,
                       int32_t aFirefoxUptime,
                       mozilla::UniquePtr<mozilla::HangMonitor::HangAnnotations>
                               aAnnotations);
+
+/**
+ * Record the current thread's call stack on demand. Note that, the stack is
+ * only captured once. Subsequent calls result in incrementing the capture
+ * counter.
+ *
+ * @param aKey - A user defined key associated with the captured stack.
+ *
+ * NOTE: Unwinding call stacks is an expensive operation performance-wise.
+ */
+void CaptureStack(const nsCString& aKey);
 #endif
 
 class ThreadHangStats;

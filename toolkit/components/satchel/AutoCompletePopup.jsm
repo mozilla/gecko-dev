@@ -54,11 +54,11 @@ var AutoCompleteResultView = {
     return this.results[index].image;
   },
 
-  handleEnter: function(aIsPopupSelection) {
+  handleEnter(aIsPopupSelection) {
     AutoCompletePopup.handleEnter(aIsPopupSelection);
   },
 
-  stopSearch: function() {},
+  stopSearch() {},
 
   searchString: "",
 
@@ -76,11 +76,11 @@ var AutoCompleteResultView = {
   },
 
   // Internal JS-only API
-  clearResults: function() {
+  clearResults() {
     this.results = [];
   },
 
-  setResults: function(results) {
+  setResults(results) {
     this.results = results;
   },
 };
@@ -97,19 +97,19 @@ this.AutoCompletePopup = {
     "FormAutoComplete:Invalidate",
   ],
 
-  init: function() {
+  init() {
     for (let msg of this.MESSAGES) {
       Services.mm.addMessageListener(msg, this);
     }
   },
 
-  uninit: function() {
+  uninit() {
     for (let msg of this.MESSAGES) {
       Services.mm.removeMessageListener(msg, this);
     }
   },
 
-  handleEvent: function(evt) {
+  handleEvent(evt) {
     switch (evt.type) {
       case "popupshowing": {
         this.sendMessageToBrowser("FormAutoComplete:PopupOpened");
@@ -136,7 +136,7 @@ this.AutoCompletePopup = {
   // this function is also called directly by the login manager, which
   // uses a single message to fill in the autocomplete results. See
   // "RemoteLogins:autoCompleteLogins".
-  showPopupWithResults: function({ browser, rect, dir, results }) {
+  showPopupWithResults({ browser, rect, dir, results }) {
     if (!results.length || this.openedPopup) {
       // We shouldn't ever be showing an empty popup, and if we
       // already have a popup open, the old one needs to close before
@@ -144,7 +144,7 @@ this.AutoCompletePopup = {
       return;
     }
 
-    let window = browser.ownerDocument.defaultView;
+    let window = browser.ownerGlobal;
     let tabbrowser = window.gBrowser;
     if (Services.focus.activeWindow != window ||
         tabbrowser.selectedBrowser != browser) {
@@ -155,6 +155,8 @@ this.AutoCompletePopup = {
 
     this.weakBrowser = Cu.getWeakReference(browser);
     this.openedPopup = browser.autoCompletePopup;
+    // the layout varies according to different result type
+    this.openedPopup.setAttribute("firstresultstyle", results[0].style);
     this.openedPopup.hidden = false;
     // don't allow the popup to become overly narrow
     this.openedPopup.setAttribute("width", Math.max(100, rect.width));
@@ -206,7 +208,7 @@ this.AutoCompletePopup = {
     Services.logins.removeLogin(login);
   },
 
-  receiveMessage: function(message) {
+  receiveMessage(message) {
     if (!message.target.autoCompletePopup) {
       // Returning false to pacify ESLint, but this return value is
       // ignored by the messaging infrastructure.
@@ -271,8 +273,11 @@ this.AutoCompletePopup = {
   },
 
   /**
-   * Despite its name, handleEnter is what is called when the
-   * user clicks on one of the items in the popup.
+   * Despite its name, this handleEnter is only called when the user clicks on
+   * one of the items in the popup since the popup is rendered in the parent process.
+   * The real controller's handleEnter is called directly in the content process
+   * for other methods of completing a selection (e.g. using the tab or enter
+   * keys) since the field with focus is in that process.
    */
   handleEnter(aIsPopupSelection) {
     if (this.openedPopup) {
@@ -300,13 +305,13 @@ this.AutoCompletePopup = {
     }
   },
 
-  stopSearch: function() {},
+  stopSearch() {},
 
   /**
    * Sends a message to the browser requesting that the input
    * that the AutoCompletePopup is open for be focused.
    */
-  requestFocus: function() {
+  requestFocus() {
     if (this.openedPopup) {
       this.sendMessageToBrowser("FormAutoComplete:Focus");
     }

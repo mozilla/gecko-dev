@@ -33,10 +33,10 @@ IdToObjectMap::init()
 }
 
 void
-IdToObjectMap::trace(JSTracer* trc, uint64_t minimimId)
+IdToObjectMap::trace(JSTracer* trc, uint64_t minimumId)
 {
     for (Table::Range r(table_.all()); !r.empty(); r.popFront()) {
-        if (r.front().key().serialNumber() >= minimimId)
+        if (r.front().key().serialNumber() >= minimumId)
             JS::TraceEdge(trc, &r.front().value(), "ipc-object");
     }
 }
@@ -59,6 +59,15 @@ IdToObjectMap::find(ObjectId id)
     if (!p)
         return nullptr;
     return p->value();
+}
+
+JSObject*
+IdToObjectMap::findPreserveColor(ObjectId id)
+{
+    Table::Ptr p = table_.lookup(id);
+    if (!p)
+        return nullptr;
+    return p->value().unbarrieredGet();
 }
 
 bool
@@ -92,7 +101,7 @@ IdToObjectMap::has(const ObjectId& id, const JSObject* obj) const
     auto p = table_.lookup(id);
     if (!p)
         return false;
-    return p->value().unbarrieredGet() == obj;
+    return p->value() == obj;
 }
 #endif
 
@@ -227,7 +236,7 @@ bool
 JavaScriptShared::toVariant(JSContext* cx, JS::HandleValue from, JSVariant* to)
 {
     switch (JS_TypeOfValue(cx, from)) {
-      case JSTYPE_VOID:
+      case JSTYPE_UNDEFINED:
         *to = UndefinedVariant();
         return true;
 
@@ -641,16 +650,38 @@ JavaScriptShared::fromObjectOrNullVariant(JSContext* cx, const ObjectOrNullVaria
 CrossProcessCpowHolder::CrossProcessCpowHolder(dom::CPOWManagerGetter* managerGetter,
                                                const InfallibleTArray<CpowEntry>& cpows)
   : js_(nullptr),
-    cpows_(cpows)
+    cpows_(cpows),
+    unwrapped_(false)
 {
     // Only instantiate the CPOW manager if we might need it later.
     if (cpows.Length())
         js_ = managerGetter->GetCPOWManager();
 }
 
+CrossProcessCpowHolder::~CrossProcessCpowHolder()
+{
+    if (cpows_.Length() && !unwrapped_) {
+        // This should only happen if a message manager message
+        // containing CPOWs gets ignored for some reason. We need to
+        // unwrap every incoming CPOW in this process to ensure that
+        // the corresponding part of the CPOW in the other process
+        // will eventually be collected. The scope for this object
+        // doesn't really matter, because it immediately becomes
+        // garbage.
+        AutoJSAPI jsapi;
+        if (!jsapi.Init(xpc::PrivilegedJunkScope()))
+            return;
+        JSContext* cx = jsapi.cx();
+        JS::Rooted<JSObject*> cpows(cx);
+        js_->Unwrap(cx, cpows_, &cpows);
+    }
+}
+
 bool
 CrossProcessCpowHolder::ToObject(JSContext* cx, JS::MutableHandleObject objp)
 {
+    unwrapped_ = true;
+
     if (!cpows_.Length())
         return true;
 

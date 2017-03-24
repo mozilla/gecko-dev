@@ -5,12 +5,6 @@
 
 const TAB_URL = "data:text/html,<title>foo</title>";
 
-add_task(function* setup() {
-  yield SpecialPowers.pushPrefEnv({
-    set: [["dom.ipc.processCount", 1]]
-  });
-});
-
 add_task(function* () {
   let { tab, document } = yield openAboutDebugging("tabs");
 
@@ -41,6 +35,10 @@ add_task(function* () {
   if (newTabTarget.textContent != "foo") {
     yield waitForContentMutation(newTabTarget);
   }
+
+  // Then wait for title update, but on slow test runner, the title may already
+  // be set to the expected value
+  yield waitUntil(() => newTabTarget.title === TAB_URL);
 
   // Check that the new tab appears in the UI
   is(newTabTarget.textContent, "foo", "The tab title got updated");

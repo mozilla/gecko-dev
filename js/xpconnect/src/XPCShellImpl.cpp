@@ -34,6 +34,7 @@
 #include "nsJSUtils.h"
 #include "gfxPrefs.h"
 #include "nsIXULRuntime.h"
+#include "GeckoProfiler.h"
 
 #include "base/histogram.h"
 
@@ -62,6 +63,10 @@
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #include "nsICrashReporter.h"
+#endif
+
+#ifdef ENABLE_TESTS
+#include "xpctest_private.h"
 #endif
 
 using namespace mozilla;
@@ -643,6 +648,24 @@ RegisterAppManifest(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
+#ifdef ENABLE_TESTS
+static bool
+RegisterXPCTestComponents(JSContext* cx, unsigned argc, Value* vp)
+{
+    JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+    if (args.length() != 0) {
+        JS_ReportErrorASCII(cx, "Wrong number of arguments");
+        return false;
+    }
+    nsresult rv = XRE_AddStaticComponent(&kXPCTestModule);
+    if (NS_FAILED(rv)) {
+        XPCThrower::Throw(rv, cx);
+        return false;
+    }
+    return true;
+}
+#endif
+
 static const JSFunctionSpec glob_functions[] = {
     JS_FS("print",           Print,          0,0),
     JS_FS("readline",        ReadLine,       1,0),
@@ -662,6 +685,9 @@ static const JSFunctionSpec glob_functions[] = {
     JS_FS("setInterruptCallback", SetInterruptCallback, 1,0),
     JS_FS("simulateActivityCallback", SimulateActivityCallback, 1,0),
     JS_FS("registerAppManifest", RegisterAppManifest, 1, 0),
+#ifdef ENABLE_TESTS
+    JS_FS("registerXPCTestComponents", RegisterXPCTestComponents, 0, 0),
+#endif
     JS_FS_END
 };
 
@@ -1167,11 +1193,11 @@ public:
 NS_IMPL_ISUPPORTS(TestGlobal, nsIXPCTestNoisy, nsIXPCScriptable)
 
 // The nsIXPCScriptable map declaration that will generate stubs for us...
-#define XPC_MAP_CLASSNAME           TestGlobal
-#define XPC_MAP_QUOTED_CLASSNAME   "TestGlobal"
-#define XPC_MAP_FLAGS               nsIXPCScriptable::USE_JSSTUB_FOR_ADDPROPERTY |\
-                                    nsIXPCScriptable::USE_JSSTUB_FOR_DELPROPERTY |\
-                                    nsIXPCScriptable::USE_JSSTUB_FOR_SETPROPERTY
+#define XPC_MAP_CLASSNAME         TestGlobal
+#define XPC_MAP_QUOTED_CLASSNAME "TestGlobal"
+#define XPC_MAP_FLAGS (XPC_SCRIPTABLE_USE_JSSTUB_FOR_ADDPROPERTY |\
+                       XPC_SCRIPTABLE_USE_JSSTUB_FOR_DELPROPERTY |\
+                       XPC_SCRIPTABLE_USE_JSSTUB_FOR_SETPROPERTY)
 #include "xpc_map_end.h" /* This will #undef the above */
 
 NS_IMETHODIMP TestGlobal::Squawk() {return NS_OK;}
@@ -1280,6 +1306,9 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
     UniquePtr<base::StatisticsRecorder> telStats =
        MakeUnique<base::StatisticsRecorder>();
 
+    char aLocal;
+    profiler_init(&aLocal);
+
     if (PR_GetEnv("MOZ_CHAOSMODE")) {
         ChaosFeature feature = ChaosFeature::Any;
         long featureInt = strtol(PR_GetEnv("MOZ_CHAOSMODE"), nullptr, 16);
@@ -1294,115 +1323,115 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
         printf_stderr("*** You are running in chaos test mode. See ChaosMode.h. ***\n");
     }
 
-    nsCOMPtr<nsIFile> appFile;
-    rv = XRE_GetBinaryPath(argv[0], getter_AddRefs(appFile));
-    if (NS_FAILED(rv)) {
-        printf("Couldn't find application file.\n");
-        return 1;
-    }
-    nsCOMPtr<nsIFile> appDir;
-    rv = appFile->GetParent(getter_AddRefs(appDir));
-    if (NS_FAILED(rv)) {
-        printf("Couldn't get application directory.\n");
-        return 1;
-    }
-
-    XPCShellDirProvider dirprovider;
-
-    dirprovider.SetAppFile(appFile);
-
-    nsCOMPtr<nsIFile> greDir;
-    if (argc > 1 && !strcmp(argv[1], "-g")) {
-        if (argc < 3)
-            return usage();
-
-        rv = XRE_GetFileFromPath(argv[2], getter_AddRefs(greDir));
+    { // Start scoping nsCOMPtrs
+        nsCOMPtr<nsIFile> appFile;
+        rv = XRE_GetBinaryPath(argv[0], getter_AddRefs(appFile));
         if (NS_FAILED(rv)) {
-            printf("Couldn't use given GRE dir.\n");
+            printf("Couldn't find application file.\n");
+            return 1;
+        }
+        nsCOMPtr<nsIFile> appDir;
+        rv = appFile->GetParent(getter_AddRefs(appDir));
+        if (NS_FAILED(rv)) {
+            printf("Couldn't get application directory.\n");
             return 1;
         }
 
-        dirprovider.SetGREDirs(greDir);
+        XPCShellDirProvider dirprovider;
 
-        argc -= 2;
-        argv += 2;
-    } else {
+        dirprovider.SetAppFile(appFile);
+
+        nsCOMPtr<nsIFile> greDir;
+        if (argc > 1 && !strcmp(argv[1], "-g")) {
+            if (argc < 3)
+                return usage();
+
+            rv = XRE_GetFileFromPath(argv[2], getter_AddRefs(greDir));
+            if (NS_FAILED(rv)) {
+                printf("Couldn't use given GRE dir.\n");
+                return 1;
+            }
+
+            dirprovider.SetGREDirs(greDir);
+
+            argc -= 2;
+            argv += 2;
+        } else {
 #ifdef XP_MACOSX
-        // On OSX, the GreD needs to point to Contents/Resources in the .app
-        // bundle. Libraries will be loaded at a relative path to GreD, i.e.
-        // ../MacOS.
-        nsCOMPtr<nsIFile> tmpDir;
-        XRE_GetFileFromPath(argv[0], getter_AddRefs(greDir));
-        greDir->GetParent(getter_AddRefs(tmpDir));
-        tmpDir->Clone(getter_AddRefs(greDir));
-        tmpDir->SetNativeLeafName(NS_LITERAL_CSTRING("Resources"));
-        bool dirExists = false;
-        tmpDir->Exists(&dirExists);
-        if (dirExists) {
-            greDir = tmpDir.forget();
-        }
-        dirprovider.SetGREDirs(greDir);
+            // On OSX, the GreD needs to point to Contents/Resources in the .app
+            // bundle. Libraries will be loaded at a relative path to GreD, i.e.
+            // ../MacOS.
+            nsCOMPtr<nsIFile> tmpDir;
+            XRE_GetFileFromPath(argv[0], getter_AddRefs(greDir));
+            greDir->GetParent(getter_AddRefs(tmpDir));
+            tmpDir->Clone(getter_AddRefs(greDir));
+            tmpDir->SetNativeLeafName(NS_LITERAL_CSTRING("Resources"));
+            bool dirExists = false;
+            tmpDir->Exists(&dirExists);
+            if (dirExists) {
+                greDir = tmpDir.forget();
+            }
+            dirprovider.SetGREDirs(greDir);
 #else
-        nsAutoString workingDir;
-        if (!GetCurrentWorkingDirectory(workingDir)) {
-            printf("GetCurrentWorkingDirectory failed.\n");
-            return 1;
-        }
-        rv = NS_NewLocalFile(workingDir, true, getter_AddRefs(greDir));
-        if (NS_FAILED(rv)) {
-            printf("NS_NewLocalFile failed.\n");
-            return 1;
-        }
+            nsAutoString workingDir;
+            if (!GetCurrentWorkingDirectory(workingDir)) {
+                printf("GetCurrentWorkingDirectory failed.\n");
+                return 1;
+            }
+            rv = NS_NewLocalFile(workingDir, true, getter_AddRefs(greDir));
+            if (NS_FAILED(rv)) {
+                printf("NS_NewLocalFile failed.\n");
+                return 1;
+            }
 #endif
-    }
-
-    if (argc > 1 && !strcmp(argv[1], "-a")) {
-        if (argc < 3)
-            return usage();
-
-        nsCOMPtr<nsIFile> dir;
-        rv = XRE_GetFileFromPath(argv[2], getter_AddRefs(dir));
-        if (NS_SUCCEEDED(rv)) {
-            appDir = do_QueryInterface(dir, &rv);
-            dirprovider.SetAppDir(appDir);
         }
-        if (NS_FAILED(rv)) {
-            printf("Couldn't use given appdir.\n");
-            return 1;
+
+        if (argc > 1 && !strcmp(argv[1], "-a")) {
+            if (argc < 3)
+                return usage();
+
+            nsCOMPtr<nsIFile> dir;
+            rv = XRE_GetFileFromPath(argv[2], getter_AddRefs(dir));
+            if (NS_SUCCEEDED(rv)) {
+                appDir = do_QueryInterface(dir, &rv);
+                dirprovider.SetAppDir(appDir);
+            }
+            if (NS_FAILED(rv)) {
+                printf("Couldn't use given appdir.\n");
+                return 1;
+            }
+            argc -= 2;
+            argv += 2;
         }
-        argc -= 2;
-        argv += 2;
-    }
 
-    while (argc > 1 && !strcmp(argv[1], "-r")) {
-        if (argc < 3)
-            return usage();
+        while (argc > 1 && !strcmp(argv[1], "-r")) {
+            if (argc < 3)
+                return usage();
 
-        nsCOMPtr<nsIFile> lf;
-        rv = XRE_GetFileFromPath(argv[2], getter_AddRefs(lf));
-        if (NS_FAILED(rv)) {
-            printf("Couldn't get manifest file.\n");
-            return 1;
+            nsCOMPtr<nsIFile> lf;
+            rv = XRE_GetFileFromPath(argv[2], getter_AddRefs(lf));
+            if (NS_FAILED(rv)) {
+                printf("Couldn't get manifest file.\n");
+                return 1;
+            }
+            XRE_AddManifestLocation(NS_APP_LOCATION, lf);
+
+            argc -= 2;
+            argv += 2;
         }
-        XRE_AddManifestLocation(NS_APP_LOCATION, lf);
-
-        argc -= 2;
-        argv += 2;
-    }
 
 #ifdef MOZ_CRASHREPORTER
-    const char* val = getenv("MOZ_CRASHREPORTER");
-    if (val && *val) {
-        rv = CrashReporter::SetExceptionHandler(greDir, true);
-        if (NS_FAILED(rv)) {
-            printf("CrashReporter::SetExceptionHandler failed!\n");
-            return 1;
+        const char* val = getenv("MOZ_CRASHREPORTER");
+        if (val && *val) {
+            rv = CrashReporter::SetExceptionHandler(greDir, true);
+            if (NS_FAILED(rv)) {
+                printf("CrashReporter::SetExceptionHandler failed!\n");
+                return 1;
+            }
+            MOZ_ASSERT(CrashReporter::GetEnabled());
         }
-        MOZ_ASSERT(CrashReporter::GetEnabled());
-    }
 #endif
 
-    {
         if (argc > 1 && !strcmp(argv[1], "--greomni")) {
             nsCOMPtr<nsIFile> greOmni;
             nsCOMPtr<nsIFile> appOmni;
@@ -1497,7 +1526,7 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
         // Make the default XPCShell global use a fresh zone (rather than the
         // System Zone) to improve cross-zone test coverage.
         JS::CompartmentOptions options;
-        options.creationOptions().setZone(JS::FreshZone);
+        options.creationOptions().setNewZoneInSystemZoneGroup();
         if (xpc::SharedMemoryEnabled())
             options.creationOptions().setSharedMemoryAndAtomicsEnabled(true);
         options.behaviors().setVersion(JSVERSION_LATEST);
@@ -1597,6 +1626,11 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
             JS_GC(cx);
         }
         JS_GC(cx);
+
+        dirprovider.ClearGREDirs();
+        dirprovider.ClearAppDir();
+        dirprovider.ClearPluginDir();
+        dirprovider.ClearAppFile();
     } // this scopes the nsCOMPtrs
 
     if (!XRE_ShutdownTestShell())
@@ -1614,18 +1648,16 @@ XRE_XPCShellMain(int argc, char** argv, char** envp,
 #endif
 
     telStats = nullptr;
-    appDir = nullptr;
-    appFile = nullptr;
-    dirprovider.ClearGREDirs();
-    dirprovider.ClearAppDir();
-    dirprovider.ClearPluginDir();
-    dirprovider.ClearAppFile();
 
 #ifdef MOZ_CRASHREPORTER
     // Shut down the crashreporter service to prevent leaking some strings it holds.
     if (CrashReporter::GetEnabled())
         CrashReporter::UnsetExceptionHandler();
 #endif
+
+    // This must precede NS_LogTerm(), otherwise xpcshell return non-zero
+    // during some tests, which causes failures.
+    profiler_shutdown();
 
     NS_LogTerm();
 

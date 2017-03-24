@@ -10,10 +10,10 @@ add_task(function* testExecuteScript() {
 
   let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "http://mochi.test:8888/", true);
 
-  function background() {
-    let promises = [
+  async function background() {
+    let tasks = [
       {
-        background: "transparent",
+        background: "rgba(0, 0, 0, 0)",
         foreground: "rgb(0, 113, 4)",
         promise: () => {
           return browser.tabs.insertCSS({
@@ -30,6 +30,33 @@ add_task(function* testExecuteScript() {
           });
         },
       },
+      {
+        background: "rgb(42, 42, 42)",
+        foreground: "rgb(0, 113, 4)",
+        promise: () => {
+          return browser.tabs.insertCSS({
+            code: "* { background: rgb(100, 100, 100) !important }",
+            cssOrigin: "author",
+          }).then(r => browser.tabs.insertCSS({
+            code: "* { background: rgb(42, 42, 42) !important }",
+            cssOrigin: "author",
+          }));
+        },
+      },
+      {
+        background: "rgb(100, 100, 100)",
+        foreground: "rgb(0, 113, 4)",
+        promise: () => {
+          // User has higher importance
+          return browser.tabs.insertCSS({
+            code: "* { background: rgb(100, 100, 100) !important }",
+            cssOrigin: "user",
+          }).then(r => browser.tabs.insertCSS({
+            code: "* { background: rgb(42, 42, 42) !important }",
+            cssOrigin: "author",
+          }));
+        },
+      },
     ];
 
     function checkCSS() {
@@ -37,31 +64,25 @@ add_task(function* testExecuteScript() {
       return [computedStyle.backgroundColor, computedStyle.color];
     }
 
-    function next() {
-      if (!promises.length) {
-        return;
-      }
+    try {
+      for (let {promise, background, foreground} of tasks) {
+        let result = await promise();
 
-      let {promise, background, foreground} = promises.shift();
-      return promise().then(result => {
         browser.test.assertEq(undefined, result, "Expected callback result");
 
-        return browser.tabs.executeScript({
+        [result] = await browser.tabs.executeScript({
           code: `(${checkCSS})()`,
         });
-      }).then(([result]) => {
+
         browser.test.assertEq(background, result[0], "Expected background color");
         browser.test.assertEq(foreground, result[1], "Expected foreground color");
-        return next();
-      });
-    }
+      }
 
-    next().then(() => {
       browser.test.notifyPass("insertCSS");
-    }).catch(e => {
+    } catch (e) {
       browser.test.fail(`Error: ${e} :: ${e.stack}`);
       browser.test.notifyFailure("insertCSS");
-    });
+    }
   }
 
   let extension = ExtensionTestUtils.loadExtension({

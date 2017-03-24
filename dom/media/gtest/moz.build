@@ -6,14 +6,19 @@
 
 UNIFIED_SOURCES += [
     'MockMediaResource.cpp',
+    'TestAudioBuffers.cpp',
     'TestAudioCompactor.cpp',
+    'TestAudioMixer.cpp',
+    'TestAudioPacketizer.cpp',
+    'TestAudioSegment.cpp',
+    'TestBlankVideoDataCreator.cpp',
     'TestGMPCrossOrigin.cpp',
     'TestGMPRemoveAndDelete.cpp',
     'TestGMPUtils.cpp',
     'TestIntervalSet.cpp',
     'TestMediaDataDecoder.cpp',
     'TestMediaEventSource.cpp',
-    'TestMediaFormatReader.cpp',
+    'TestMediaMIMETypes.cpp',
     'TestMozPromise.cpp',
     'TestMP3Demuxer.cpp',
     'TestMP4Demuxer.cpp',
@@ -42,11 +47,13 @@ TEST_HARNESS_FILES.gtest += [
     'dash_dashinit.mp4',
     'id3v2header.mp3',
     'mediasource_test.mp4',
+    'negative_duration.mp4',
     'noise.mp3',
     'noise_vbr.mp3',
     'short-zero-in-moov.mp4',
     'short-zero-inband.mov',
     'small-shot-false-positive.mp3',
+    'small-shot-partial-xing.mp3',
     'small-shot.mp3',
     'test.webm',
     'test_case_1224361.vp8.ivf',
@@ -61,6 +68,8 @@ LOCAL_INCLUDES += [
     '/dom/media/encoder',
     '/dom/media/fmp4',
     '/dom/media/gmp',
+    '/dom/media/platforms',
+    '/dom/media/platforms/agnostic',
     '/security/certverifier',
     '/security/pkix/include',
 ]
@@ -69,7 +78,3 @@ FINAL_LIBRARY = 'xul-gtest'
 
 if CONFIG['GNU_CXX']:
     CXXFLAGS += ['-Wno-error=shadow']
-
-USE_LIBS += [
-   'rlz',
-]

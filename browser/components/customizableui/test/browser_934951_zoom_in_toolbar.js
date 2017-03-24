@@ -29,9 +29,10 @@ add_task(function*() {
   yield zoomChangePromise;
   is(parseInt(zoomResetButton.label, 10), 110, "Zoom is changed to 110% for about:mozilla");
 
-  let tabSelectPromise = promiseTabSelect();
+  let tabSelectPromise = promiseObserverNotification("browser-fullZoom:location-change");
   gBrowser.selectedTab = tab2;
   yield tabSelectPromise;
+  yield new Promise(resolve => executeSoon(resolve));
   is(parseInt(zoomResetButton.label, 10), 100, "Default zoom is 100% for about:robots");
 
   gBrowser.selectedTab = tab1;
@@ -60,12 +61,12 @@ add_task(function*() {
 function promiseObserverNotification(aObserver) {
   let deferred = Promise.defer();
   function notificationCallback(e) {
-    Services.obs.removeObserver(notificationCallback, aObserver, false);
+    Services.obs.removeObserver(notificationCallback, aObserver);
     clearTimeout(timeoutId);
     deferred.resolve();
   }
   let timeoutId = setTimeout(() => {
-    Services.obs.removeObserver(notificationCallback, aObserver, false);
+    Services.obs.removeObserver(notificationCallback, aObserver);
     deferred.reject("Notification '" + aObserver + "' did not happen within 20 seconds.");
   }, kTimeoutInMS);
   Services.obs.addObserver(notificationCallback, aObserver, false);

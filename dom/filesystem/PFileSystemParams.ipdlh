@@ -7,30 +7,11 @@ include protocol PBlob;
 namespace mozilla {
 namespace dom {
 
-struct FileSystemCreateDirectoryParams
-{
-  nsString filesystem;
-  nsString realPath;
-};
-
-union FileSystemFileDataValue
-{
-  uint8_t[];
-  PBlob;
-};
-
-struct FileSystemCreateFileParams
-{
-  nsString filesystem;
-  nsString realPath;
-  FileSystemFileDataValue data;
-  bool replace;
-};
-
 struct FileSystemGetDirectoryListingParams
 {
   nsString filesystem;
   nsString realPath;
+  nsString domPath;
 
   // 'filters' could be an array rather than a semicolon separated string
   // (we'd then use InfallibleTArray<nsString> internally), but that is
@@ -58,22 +39,11 @@ struct FileSystemGetFileOrDirectoryParams
   nsString realPath;
 };
 
-struct FileSystemRemoveParams
-{
-  nsString filesystem;
-  nsString directory;
-  nsString targetDirectory;
-  bool recursive;
-};
-
 union FileSystemParams
 {
-  FileSystemCreateDirectoryParams;
-  FileSystemCreateFileParams;
   FileSystemGetDirectoryListingParams;
   FileSystemGetFilesParams;
   FileSystemGetFileOrDirectoryParams;
-  FileSystemRemoveParams;
 };
 
 } // dom namespace

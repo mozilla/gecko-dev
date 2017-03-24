@@ -9,21 +9,21 @@ const URL_NESTED = getRootDirectory(gTestPath) + "browser_pageStyle_sample_neste
 /**
  * This test ensures that page style information is correctly persisted.
  */
-add_task(function page_style() {
+add_task(function* page_style() {
   let tab = gBrowser.addTab(URL);
   let browser = tab.linkedBrowser;
   yield promiseBrowserLoaded(browser);
   let sheets = yield getStyleSheets(browser);
 
   // Enable all style sheets one by one.
-  for (let [title, disabled] of sheets) {
+  for (let [title, /*disabled */] of sheets) {
     yield enableStyleSheetsForSet(browser, title);
 
     let tab2 = gBrowser.duplicateTab(tab);
     yield promiseTabRestored(tab2);
 
-    let sheets = yield getStyleSheets(tab2.linkedBrowser);
-    let enabled = sheets.filter(([title, disabled]) => !disabled);
+    let tab2Sheets = yield getStyleSheets(tab2.linkedBrowser);
+    let enabled = tab2Sheets.filter(([, disabled]) => !disabled);
 
     if (title.startsWith("fail_")) {
       ok(!enabled.length, "didn't restore " + title);
@@ -53,7 +53,7 @@ add_task(function page_style() {
  * This test ensures that page style notification from nested documents are
  * received and the page style is persisted correctly.
  */
-add_task(function nested_page_style() {
+add_task(function* nested_page_style() {
   let tab = gBrowser.addTab(URL_NESTED);
   let browser = tab.linkedBrowser;
   yield promiseBrowserLoaded(browser);

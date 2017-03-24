@@ -28,7 +28,6 @@
 #include "nsIDragService.h"
 #include "nsIDragSession.h"
 #include "nsIEditor.h"
-#include "nsIEditorIMESupport.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIPrincipal.h"
@@ -98,7 +97,7 @@ TextEditor::InsertTextAt(const nsAString& aStringToInsert,
   return InsertText(aStringToInsert);
 }
 
-NS_IMETHODIMP
+nsresult
 TextEditor::InsertTextFromTransferable(nsITransferable* aTransferable,
                                        nsIDOMNode* aDestinationNode,
                                        int32_t aDestOffset,
@@ -229,23 +228,6 @@ TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
   NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
 
   bool isCollapsed = selection->Collapsed();
-
-  // Only the HTMLEditor::FindUserSelectAllNode returns a node.
-  nsCOMPtr<nsIDOMNode> userSelectNode = FindUserSelectAllNode(newSelectionParent);
-  if (userSelectNode) {
-    // The drop is happening over a "-moz-user-select: all"
-    // subtree so make sure the content we insert goes before
-    // the root of the subtree.
-    //
-    // XXX: Note that inserting before the subtree matches the
-    //      current behavior when dropping on top of an image.
-    //      The decision for dropping before or after the
-    //      subtree should really be done based on coordinates.
-
-    newSelectionParent = GetNodeLocation(userSelectNode, &newSelectionOffset);
-
-    NS_ENSURE_TRUE(newSelectionParent, NS_ERROR_FAILURE);
-  }
 
   // Check if mouse is in the selection
   // if so, jump through some hoops to determine if mouse is over selection (bail)
@@ -382,6 +364,13 @@ TextEditor::CanPaste(int32_t aSelectionType,
 {
   NS_ENSURE_ARG_POINTER(aCanPaste);
   *aCanPaste = false;
+
+  // Always enable the paste command when inside of a HTML or XHTML document.
+  nsCOMPtr<nsIDocument> doc = GetDocument();
+  if (doc && doc->IsHTMLOrXHTML()) {
+    *aCanPaste = true;
+    return NS_OK;
+  }
 
   // can't paste if readonly
   if (!IsModifiable()) {

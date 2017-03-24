@@ -71,6 +71,14 @@ set_config('MOZ_BUILD_ROOT', delayed_getattr(check_build_environment,
                                              'topobjdir'))
 set_config('DIST', delayed_getattr(check_build_environment, 'dist'))
 
+add_old_configure_assignment(
+    '_topsrcdir', delayed_getattr(check_build_environment, 'topsrcdir'))
+add_old_configure_assignment(
+    '_objdir', delayed_getattr(check_build_environment, 'topobjdir'))
+add_old_configure_assignment(
+    'MOZ_BUILD_ROOT', delayed_getattr(check_build_environment, 'topobjdir'))
+add_old_configure_assignment(
+    'DIST', delayed_getattr(check_build_environment, 'dist'))
 
 option(env='MOZ_AUTOMATION', help='Enable options for automated builds')
 set_config('MOZ_AUTOMATION', depends_if('MOZ_AUTOMATION')(lambda x: True))
@@ -81,15 +89,28 @@ option(env='OLD_CONFIGURE', nargs=1, help='Path to the old configure script')
 option(env='MOZ_CURRENT_PROJECT', nargs=1, help='Current build project')
 option(env='MOZCONFIG', nargs=1, help='Mozconfig location')
 
+option('--with-external-source-dir', env='EXTERNAL_SOURCE_DIR', nargs=1,
+       help='External directory containing additional build files')
+
+@depends('--with-external-source-dir')
+def external_source_dir(value):
+    if value:
+        return value[0]
+
+set_config('EXTERNAL_SOURCE_DIR', external_source_dir)
+add_old_configure_assignment('EXTERNAL_SOURCE_DIR', external_source_dir)
+
 # Read user mozconfig
 # ==============================================================
 # Note: the dependency on --help is only there to always read the mozconfig,
 # even when --help is passed. Without this dependency, the function wouldn't
 # be called when --help is passed, and the mozconfig wouldn't be read.
 @depends('MOZ_CURRENT_PROJECT', 'MOZCONFIG', 'OLD_CONFIGURE',
-         check_build_environment, '--help')
+         check_build_environment, '--with-external-source-dir',
+         '--help')
 @imports(_from='mozbuild.mozconfig', _import='MozconfigLoader')
-def mozconfig(current_project, mozconfig, old_configure, build_env, help):
+def mozconfig(current_project, mozconfig, old_configure, build_env,
+              external_source_dir, help):
     if not old_configure:
         die('The OLD_CONFIGURE environment variable must be set')
 
@@ -112,7 +133,10 @@ def mozconfig(current_project, mozconfig, old_configure, build_env, help):
     if os.path.dirname(os.path.abspath(old_configure[0])).endswith('/js/src'):
         return {'path': None}
 
-    loader = MozconfigLoader(build_env.topsrcdir)
+    topsrcdir = build_env.topsrcdir
+    if external_source_dir:
+        topsrcdir = external_source_dir[0]
+    loader = MozconfigLoader(topsrcdir)
     current_project = current_project[0] if current_project else None
     mozconfig = mozconfig[0] if mozconfig else None
     mozconfig = loader.find_mozconfig(env={'MOZCONFIG': mozconfig})
@@ -121,44 +145,6 @@ def mozconfig(current_project, mozconfig, old_configure, build_env, help):
     return mozconfig
 
 set_config('MOZCONFIG', depends(mozconfig)(lambda m: m['path']))
-
-
-# Hacks related to old-configure
-# ==============================
-
-@dependable
-def old_configure_assignments():
-    return []
-
-@dependable
-def extra_old_configure_args():
-    return []
-
-@template
-def add_old_configure_assignment(var, value):
-    var = dependable(var)
-    value = dependable(value)
-
-    @depends(old_configure_assignments, var, value)
-    @imports(_from='mozbuild.shellutil', _import='quote')
-    def add_assignment(assignments, var, value):
-        if var is None or value is None:
-            return
-        if value is True:
-            assignments.append('%s=1' % var)
-        elif value is False:
-            assignments.append('%s=' % var)
-        else:
-            if isinstance(value, (list, tuple)):
-                value = quote(*value)
-            assignments.append('%s=%s' % (var, quote(str(value))))
-
-@template
-def add_old_configure_arg(arg):
-    @depends(extra_old_configure_args, arg)
-    def add_arg(args, arg):
-        if arg:
-            args.append(arg)
 
 
 option(env='PYTHON', nargs=1, help='Python interpreter')
@@ -258,12 +244,20 @@ def early_options():
 
 early_options = early_options()
 
-@depends(mozconfig, '--help')
+@depends(mozconfig, 'MOZ_AUTOMATION', '--help')
 # This gives access to the sandbox. Don't copy this blindly.
 @imports('__sandbox__')
 @imports('os')
-def mozconfig_options(mozconfig, help):
+def mozconfig_options(mozconfig, automation, help):
     if mozconfig['path']:
+        if 'MOZ_AUTOMATION_MOZCONFIG' in mozconfig['env']['added']:
+            if not automation:
+                log.error('%s directly or indirectly includes an in-tree '
+                          'mozconfig.', mozconfig['path'])
+                log.error('In-tree mozconfigs make strong assumptions about '
+                          'and are only meant to be used by Mozilla '
+                          'automation.')
+                die("Please don't use them.")
         helper = __sandbox__._helper
         log.info('Adding configure options from %s' % mozconfig['path'])
         for arg in mozconfig['configure_args']:
@@ -418,6 +412,9 @@ def split_triplet(triplet):
     elif cpu.startswith('aarch64'):
         canonical_cpu = 'aarch64'
         endianness = 'little'
+    elif cpu == 'sh4':
+        canonical_cpu = 'sh4'
+        endianness = 'little'
     else:
         die('Unknown CPU type: %s' % cpu)
 
@@ -434,6 +431,23 @@ def split_triplet(triplet):
         # prefixes.
         toolchain='%s-%s' % (cpu, os),
     )
+
+
+# This defines a fake target/host namespace for when running with --help
+@depends('--help')
+def help_host_target(help):
+    if help:
+        return namespace(
+            alias='unknown-unknown-unknown',
+            cpu='unknown',
+            bitness='unknown',
+            kernel='unknown',
+            os='unknown',
+            endianness='unknown',
+            raw_cpu='unknown',
+            raw_os='unknown',
+            toolchain='unknown-unknown',
+        )
 
 
 @imports('subprocess')
@@ -456,6 +470,8 @@ def host(value, shell):
 
     return split_triplet(config_sub(shell, host))
 
+host = help_host_target | host
+
 
 @depends('--target', host, shell)
 @checking('for target system type', lambda t: t.alias)
@@ -463,6 +479,8 @@ def target(value, host, shell):
     if not value:
         return host
     return split_triplet(config_sub(shell, value[0]))
+
+target = help_host_target | target
 
 
 @depends(host, target)
@@ -492,8 +510,8 @@ def host_for_old_configure(host):
 
 add_old_configure_arg(host_for_old_configure)
 
-@depends(host, target)
-def target_for_old_configure(host, target):
+@depends(target)
+def target_for_old_configure(target):
     target_alias = target.alias
     # old-configure does plenty of tests against $target and $target_os
     # and expects darwin for iOS, so make it happy.
@@ -558,6 +576,7 @@ def host_variables(host):
         HOST_OS_ARCH=os_arch,
     )
 
+set_config('HOST_CPU_ARCH', delayed_getattr(host, 'cpu'))
 set_config('HOST_OS_ARCH', delayed_getattr(host_variables, 'HOST_OS_ARCH'))
 add_old_configure_assignment('HOST_OS_ARCH',
                              delayed_getattr(host_variables, 'HOST_OS_ARCH'))
@@ -629,9 +648,6 @@ def default_project(build_env, help):
 option('--enable-project', nargs=1, default=default_project,
        help='Project to build')
 
-option('--with-external-source-dir', env='EXTERNAL_SOURCE_DIR', nargs=1,
-       help='External directory containing additional build files')
-
 @depends('--enable-project', '--with-external-source-dir',
          check_build_environment, '--help')
 @imports(_from='os.path', _import='exists')
@@ -647,14 +663,6 @@ def include_project_configure(project, external_source_dir, build_env, help):
     if not exists(path):
         die('Cannot find project %s', project[0])
     return path
-
-@depends('--with-external-source-dir')
-def external_source_dir(value):
-    if value:
-        return value[0]
-
-set_config('EXTERNAL_SOURCE_DIR', external_source_dir)
-add_old_configure_assignment('EXTERNAL_SOURCE_DIR', external_source_dir)
 
 
 @depends(include_project_configure, check_build_environment, '--help')
@@ -759,10 +767,10 @@ def enabled_in_nightly(milestone, _):
 
 # Set the MOZ_CONFIGURE_OPTIONS variable with all the options that
 # were passed somehow (environment, command line, mozconfig)
-@depends(mozconfig_options)
+@dependable
 @imports(_from='mozbuild.shellutil', _import='quote')
 @imports('__sandbox__')
-def all_configure_options(_):
+def all_configure_options():
     result = []
     previous = None
     for option in __sandbox__._options.itervalues():

@@ -59,26 +59,18 @@ CanvasLayerComposite::GetLayer()
 }
 
 void
-CanvasLayerComposite::SetLayerManager(LayerManagerComposite* aManager)
+CanvasLayerComposite::SetLayerManager(HostLayerManager* aManager)
 {
   LayerComposite::SetLayerManager(aManager);
   mManager = aManager;
   if (mCompositableHost && mCompositor) {
-    mCompositableHost->SetCompositor(mCompositor);
+    mCompositableHost->SetTextureSourceProvider(mCompositor);
   }
-}
-
-LayerRenderState
-CanvasLayerComposite::GetRenderState()
-{
-  if (mDestroyed || !mCompositableHost || !mCompositableHost->IsAttached()) {
-    return LayerRenderState();
-  }
-  return mCompositableHost->GetRenderState();
 }
 
 void
-CanvasLayerComposite::RenderLayer(const IntRect& aClipRect)
+CanvasLayerComposite::RenderLayer(const IntRect& aClipRect,
+                                  const Maybe<gfx::Polygon>& aGeometry)
 {
   if (!mCompositableHost || !mCompositableHost->IsAttached()) {
     return;
@@ -97,7 +89,7 @@ CanvasLayerComposite::RenderLayer(const IntRect& aClipRect)
 
   RenderWithAllMasks(this, mCompositor, aClipRect,
                      [&](EffectChain& effectChain, const IntRect& clipRect) {
-    mCompositableHost->Composite(this, effectChain,
+    mCompositableHost->Composite(mCompositor, this, effectChain,
                           GetEffectiveOpacity(),
                           GetEffectiveTransform(),
                           GetSamplingFilter(),

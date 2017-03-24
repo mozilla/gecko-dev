@@ -18,13 +18,11 @@ using namespace js;
 BEGIN_TEST(testGCExactRooting)
 {
     JS::RootedObject rootCx(cx, JS_NewPlainObject(cx));
-    JS::RootedObject rootRootingCx(JS::RootingContext::get(cx), JS_NewPlainObject(cx));
 
     JS_GC(cx);
 
     /* Use the objects we just created to ensure that they are still alive. */
     JS_DefineProperty(cx, rootCx, "foo", JS::UndefinedHandleValue, 0);
-    JS_DefineProperty(cx, rootRootingCx, "foo", JS::UndefinedHandleValue, 0);
 
     return true;
 }
@@ -57,19 +55,10 @@ struct MyContainer
 };
 
 namespace js {
-template <>
-struct RootedBase<MyContainer> {
-    HeapPtr<JSObject*>& obj() { return static_cast<Rooted<MyContainer>*>(this)->get().obj; }
-    HeapPtr<JSString*>& str() { return static_cast<Rooted<MyContainer>*>(this)->get().str; }
-};
-template <>
-struct PersistentRootedBase<MyContainer> {
-    HeapPtr<JSObject*>& obj() {
-        return static_cast<PersistentRooted<MyContainer>*>(this)->get().obj;
-    }
-    HeapPtr<JSString*>& str() {
-        return static_cast<PersistentRooted<MyContainer>*>(this)->get().str;
-    }
+template <typename Wrapper>
+struct MutableWrappedPtrOperations<MyContainer, Wrapper> {
+    HeapPtr<JSObject*>& obj() { return static_cast<Wrapper*>(this)->get().obj; }
+    HeapPtr<JSString*>& str() { return static_cast<Wrapper*>(this)->get().str; }
 };
 } // namespace js
 

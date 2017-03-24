@@ -5,7 +5,7 @@
 "use strict";
 
 const { AddonManager } = require("resource://gre/modules/AddonManager.jsm");
-const { createFactory, createClass, DOM: dom } =
+const { createFactory, createClass, DOM: dom, PropTypes } =
   require("devtools/client/shared/vendor/react");
 const Services = require("Services");
 
@@ -13,6 +13,9 @@ const AddonsControls = createFactory(require("./controls"));
 const AddonTarget = createFactory(require("./target"));
 const PanelHeader = createFactory(require("../panel-header"));
 const TargetList = createFactory(require("../target-list"));
+
+loader.lazyRequireGetter(this, "DebuggerClient",
+  "devtools/shared/client/main", true);
 
 const Strings = Services.strings.createBundle(
   "chrome://devtools/locale/aboutdebugging.properties");
@@ -23,6 +26,11 @@ const REMOTE_ENABLED_PREF = "devtools.debugger.remote-enabled";
 
 module.exports = createClass({
   displayName: "AddonsPanel",
+
+  propTypes: {
+    client: PropTypes.instanceOf(DebuggerClient).isRequired,
+    id: PropTypes.string.isRequired
+  },
 
   getInitialState() {
     return {
@@ -109,8 +117,12 @@ module.exports = createClass({
   render() {
     let { client, id } = this.props;
     let { debugDisabled, extensions: targets } = this.state;
-    let name = Strings.GetStringFromName("extensions");
+    let installedName = Strings.GetStringFromName("extensions");
+    let temporaryName = Strings.GetStringFromName("temporaryExtensions");
     let targetClass = AddonTarget;
+
+    const installedTargets = targets.filter((target) => !target.temporarilyInstalled);
+    const temporaryTargets = targets.filter((target) => target.temporarilyInstalled);
 
     return dom.div({
       id: id + "-panel",
@@ -123,10 +135,21 @@ module.exports = createClass({
       name: Strings.GetStringFromName("addons")
     }),
     AddonsControls({ debugDisabled }),
+    dom.div({ id: "temporary-addons" },
+      TargetList({
+        id: "temporary-extensions",
+        name: temporaryName,
+        targets: temporaryTargets,
+        client,
+        debugDisabled,
+        targetClass,
+        sort: true
+      })),
     dom.div({ id: "addons" },
       TargetList({
-        name,
-        targets,
+        id: "extensions",
+        name: installedName,
+        targets: installedTargets,
         client,
         debugDisabled,
         targetClass,

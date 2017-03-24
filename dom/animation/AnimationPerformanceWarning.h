@@ -9,6 +9,9 @@
 
 #include <initializer_list>
 
+#include "mozilla/Maybe.h"
+#include "nsTArray.h"
+
 class nsXPIDLString;
 
 namespace mozilla {
@@ -17,12 +20,12 @@ namespace mozilla {
 struct AnimationPerformanceWarning
 {
   enum class Type : uint8_t {
-    ContentTooSmall,
     ContentTooLarge,
     TransformBackfaceVisibilityHidden,
     TransformPreserve3D,
     TransformSVG,
     TransformWithGeometricProperties,
+    TransformWithSyncGeometricAnimations,
     TransformFrameInactive,
     OpacityFrameInactive,
     HasRenderingObserver,

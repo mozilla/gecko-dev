@@ -40,7 +40,8 @@ public:
 
   ~OverflowChangedTracker()
   {
-    NS_ASSERTION(mEntryList.empty(), "Need to flush before destroying!");
+    // XXXheycam Temporarily downgrade this assertion (bug 1324647).
+    NS_ASSERTION_STYLO_WARNING(mEntryList.empty(), "Need to flush before destroying!");
   }
 
   /**
@@ -139,6 +140,14 @@ public:
       // children.
       if (overflowChanged) {
         nsIFrame *parent = frame->GetParent();
+        while (parent &&
+               parent != mSubtreeRoot &&
+               parent->Combines3DTransformWithAncestors()) {
+          // Passing frames in between the frame and the establisher of
+          // 3D rendering context.
+          parent = parent->GetParent();
+          MOZ_ASSERT(parent, "Root frame should never return true for Combines3DTransformWithAncestors");
+        }
         if (parent && parent != mSubtreeRoot) {
           Entry* parentEntry = mEntryList.find(Entry(parent, entry->mDepth - 1));
           if (parentEntry) {

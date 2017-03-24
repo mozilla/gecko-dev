@@ -78,9 +78,6 @@ check_and_add_gcc_warning('-Werror=non-literal-null-conversion',
 # catches string literals used in boolean expressions
 check_and_add_gcc_warning('-Wstring-conversion')
 
-# catches inconsistent use of mutexes
-check_and_add_gcc_warning('-Wthread-safety')
-
 # we inline 'new' and 'delete' in mozalloc
 check_and_add_gcc_warning('-Wno-inline-new-delete', cxx_compiler)
 
@@ -101,10 +98,16 @@ check_and_add_gcc_warning('-Wno-error=coverage-mismatch', when='MOZ_PGO')
 # false positives during PGO
 check_and_add_gcc_warning('-Wno-error=free-nonheap-object', when='MOZ_PGO')
 
+# catches format/argument mismatches with printf
+check_and_add_gcc_warning('-Wformat')
+
 # We use mix of both POSIX and Win32 printf format across the tree, so format
 # warnings are useless on mingw.
 check_and_add_gcc_warning('-Wno-format',
                           when=depends(target)(lambda t: t.kernel == 'WINNT'))
+
+# We hit this all over the place with the gtest INSTANTIATE_TEST_CASE_P macro
+check_and_add_gcc_warning('-Wno-gnu-zero-variadic-macro-arguments')
 
 # Please keep these last in this file
 add_old_configure_assignment('_WARNINGS_CFLAGS', warnings_cflags)

@@ -15,11 +15,11 @@
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/DOMPoint.h"
 #include "mozilla/dom/DOMRect.h"
+#include "mozilla/dom/Pose.h"
 
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "nsWrapperCache.h"
 
 #include "gfxVR.h"
 
@@ -95,54 +95,41 @@ protected:
   gfx::VRDisplayCapabilityFlags mFlags;
 };
 
-class VRPose final : public nsWrapperCache
+class VRPose final : public Pose
 {
 
 public:
   VRPose(nsISupports* aParent, const gfx::VRHMDSensorState& aState);
   explicit VRPose(nsISupports* aParent);
 
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(VRPose)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(VRPose)
-
   uint32_t FrameID() const { return mFrameId; }
 
-  void GetPosition(JSContext* aCx,
-                   JS::MutableHandle<JSObject*> aRetval,
-                   ErrorResult& aRv);
-  void GetLinearVelocity(JSContext* aCx,
-                         JS::MutableHandle<JSObject*> aRetval,
-                         ErrorResult& aRv);
-  void GetLinearAcceleration(JSContext* aCx,
-                             JS::MutableHandle<JSObject*> aRetval,
-                             ErrorResult& aRv);
-  void GetOrientation(JSContext* aCx,
-                      JS::MutableHandle<JSObject*> aRetval,
-                      ErrorResult& aRv);
-  void GetAngularVelocity(JSContext* aCx,
-                          JS::MutableHandle<JSObject*> aRetval,
-                          ErrorResult& aRv);
-  void GetAngularAcceleration(JSContext* aCx,
+  virtual void GetPosition(JSContext* aCx,
+                           JS::MutableHandle<JSObject*> aRetval,
+                           ErrorResult& aRv) override;
+  virtual void GetLinearVelocity(JSContext* aCx,
+                                 JS::MutableHandle<JSObject*> aRetval,
+                                 ErrorResult& aRv) override;
+  virtual void GetLinearAcceleration(JSContext* aCx,
+                                     JS::MutableHandle<JSObject*> aRetval,
+                                     ErrorResult& aRv) override;
+  virtual void GetOrientation(JSContext* aCx,
                               JS::MutableHandle<JSObject*> aRetval,
-                              ErrorResult& aRv);
+                              ErrorResult& aRv) override;
+  virtual void GetAngularVelocity(JSContext* aCx,
+                                  JS::MutableHandle<JSObject*> aRetval,
+                                  ErrorResult& aRv) override;
+  virtual void GetAngularAcceleration(JSContext* aCx,
+                                      JS::MutableHandle<JSObject*> aRetval,
+                                      ErrorResult& aRv) override;
 
-  nsISupports* GetParentObject() const { return mParent; }
   virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
 protected:
   ~VRPose();
-  nsCOMPtr<nsISupports> mParent;
 
   uint32_t mFrameId;
   gfx::VRHMDSensorState mVRState;
-
-  JS::Heap<JSObject*> mPosition;
-  JS::Heap<JSObject*> mLinearVelocity;
-  JS::Heap<JSObject*> mLinearAcceleration;
-  JS::Heap<JSObject*> mOrientation;
-  JS::Heap<JSObject*> mAngularVelocity;
-  JS::Heap<JSObject*> mAngularAcceleration;
-
 };
 
 struct VRFrameInfo
@@ -163,6 +150,13 @@ struct VRFrameInfo
   gfx::Matrix4x4 mRightProjection;
   gfx::Matrix4x4 mRightView;
 
+  /**
+   * In order to avoid leaking information related to the duration of
+   * the user's VR session, we re-base timestamps.
+   * mTimeStampOffset is added to the actual timestamp returned by the
+   * underlying VR platform API when returned through WebVR API's.
+   */
+  double mTimeStampOffset;
 };
 
 class VRFrameData final : public nsWrapperCache
@@ -287,6 +281,7 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   bool IsPresenting() const;
+  bool IsAnyPresenting() const;
   bool IsConnected() const;
 
   VRDisplayCapabilities* Capabilities();
@@ -295,7 +290,7 @@ public:
   uint32_t DisplayId() const { return mDisplayId; }
   void GetDisplayName(nsAString& aDisplayName) const { aDisplayName = mDisplayName; }
 
-  static bool RefreshVRDisplays(dom::Navigator* aNavigator);
+  static bool RefreshVRDisplays(uint64_t aWindowId);
   static void UpdateVRDisplays(nsTArray<RefPtr<VRDisplay> >& aDisplays,
                                nsPIDOMWindowInner* aWindow);
 
@@ -329,7 +324,9 @@ public:
     mDepthFar = aDepthFar;
   }
 
-  already_AddRefed<Promise> RequestPresent(const nsTArray<VRLayer>& aLayers, ErrorResult& aRv);
+  already_AddRefed<Promise> RequestPresent(const nsTArray<VRLayer>& aLayers,
+                                           CallerType aCallerType,
+                                           ErrorResult& aRv);
   already_AddRefed<Promise> ExitPresent(ErrorResult& aRv);
   void GetLayers(nsTArray<VRLayer>& result);
   void SubmitFrame();

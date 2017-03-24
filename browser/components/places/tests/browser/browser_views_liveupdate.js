@@ -33,10 +33,9 @@ function openBookmarksSidebar() {
   // Open bookmarks sidebar.
   var sidebar = document.getElementById("sidebar");
   sidebar.addEventListener("load", function() {
-    sidebar.removeEventListener("load", arguments.callee, true);
     // Need to executeSoon since the tree is initialized on sidebar load.
     executeSoon(startTest);
-  }, true);
+  }, {capture: true, once: true});
   SidebarUI.show("viewBookmarksSidebar");
 }
 
@@ -152,7 +151,7 @@ function startTest() {
   bs.moveItem(id, bs.unfiledBookmarksFolder, 0);
 
   // Remove all added bookmarks.
-  addedBookmarks.forEach(function (aItem) {
+  addedBookmarks.forEach(function(aItem) {
     // If we remove an item after its containing folder has been removed,
     // this will throw, but we can ignore that.
     try {
@@ -192,10 +191,10 @@ var bookmarksObserver = {
   ]),
 
   // nsIAnnotationObserver
-  onItemAnnotationSet: function() {},
-  onItemAnnotationRemoved: function() {},
-  onPageAnnotationSet: function() {},
-  onPageAnnotationRemoved: function() {},
+  onItemAnnotationSet() {},
+  onItemAnnotationRemoved() {},
+  onPageAnnotationSet() {},
+  onPageAnnotationRemoved() {},
 
   // nsINavBookmarkObserver
   onItemAdded: function PSB_onItemAdded(aItemId, aFolderId, aIndex,
@@ -223,7 +222,7 @@ var bookmarksObserver = {
     }
   },
 
-  onItemMoved: function(aItemId,
+  onItemMoved(aItemId,
                         aOldFolderId, aOldIndex,
                         aNewFolderId, aNewIndex,
                         aItemType) {
@@ -242,7 +241,7 @@ var bookmarksObserver = {
 
   onBeginUpdateBatch: function PSB_onBeginUpdateBatch() {},
   onEndUpdateBatch: function PSB_onEndUpdateBatch() {},
-  onItemVisited: function() {},
+  onItemVisited() {},
 
   onItemChanged: function PSB_onItemChanged(aItemId, aProperty,
                                             aIsAnnotationProperty, aNewValue,
@@ -312,7 +311,7 @@ function searchItemInView(aItemId, aView, aValidator) {
  * @returns [node, index] or [null, null] if not found.
  */
 function getNodeForToolbarItem(aItemId, aValidator) {
-  var toolbar = document.getElementById("PlacesToolbarItems");
+  var placesToolbarItems = document.getElementById("PlacesToolbarItems");
 
   function findNode(aContainer) {
     var children = aContainer.childNodes;
@@ -344,7 +343,7 @@ function getNodeForToolbarItem(aItemId, aValidator) {
     return [null, null];
   }
 
-  return findNode(toolbar);
+  return findNode(placesToolbarItems);
 }
 
 /**

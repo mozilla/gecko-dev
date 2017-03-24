@@ -6,6 +6,7 @@
 #define MOCK_MEDIA_DECODER_OWNER_H_
 
 #include "MediaDecoderOwner.h"
+#include "mozilla/AbstractThread.h"
 #include "nsAutoPtr.h"
 
 namespace mozilla
@@ -48,6 +49,15 @@ public:
   }
   void SetAudibleState(bool aAudible) override {}
   void NotifyXPCOMShutdown() override {}
+  AbstractThread* AbstractMainThread() const override
+  {
+    // Non-DocGroup version for Mock.
+    return AbstractThread::MainThread();
+  }
+  nsIDocument* GetDocument() const { return nullptr; }
+  void ConstructMediaTracks(const MediaInfo* aInfo) {}
+  void RemoveMediaTracks() {}
+  already_AddRefed<GMPCrashHelper> CreateGMPCrashHelper() { return nullptr; }
 };
 }
 

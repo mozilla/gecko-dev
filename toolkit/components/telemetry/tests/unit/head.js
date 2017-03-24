@@ -6,7 +6,6 @@ var { classes: Cc, utils: Cu, interfaces: Ci, results: Cr } = Components;
 Cu.import("resource://gre/modules/TelemetryController.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/PromiseUtils.jsm", this);
-Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/FileUtils.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://testing-common/httpd.js", this);
@@ -16,6 +15,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonTestUtils",
                                   "resource://testing-common/AddonTestUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetrySend",
+                                  "resource://gre/modules/TelemetrySend.jsm");
 
 const gIsWindows = AppConstants.platform == "win";
 const gIsMac = AppConstants.platform == "macosx";
@@ -49,12 +50,12 @@ const PingServer = {
     return this._started;
   },
 
-  registerPingHandler: function(handler) {
+  registerPingHandler(handler) {
     const wrapped = wrapWithExceptionHandler(handler);
     this._httpServer.registerPrefixHandler("/submit/telemetry/", wrapped);
   },
 
-  resetPingHandler: function() {
+  resetPingHandler() {
     this.registerPingHandler((request, response) => {
       let deferred = this._defers[this._defers.length - 1];
       this._defers.push(PromiseUtils.defer());
@@ -62,7 +63,7 @@ const PingServer = {
     });
   },
 
-  start: function() {
+  start() {
     this._httpServer = new HttpServer();
     this._httpServer.start(-1);
     this._started = true;
@@ -70,19 +71,19 @@ const PingServer = {
     this.resetPingHandler();
   },
 
-  stop: function() {
+  stop() {
     return new Promise(resolve => {
       this._httpServer.stop(resolve);
       this._started = false;
     });
   },
 
-  clearRequests: function() {
+  clearRequests() {
     this._defers = [ PromiseUtils.defer() ];
     this._currentDeferred = 0;
   },
 
-  promiseNextRequest: function() {
+  promiseNextRequest() {
     const deferred = this._defers[this._currentDeferred++];
     // Send the ping to the consumer on the next tick, so that the completion gets
     // signaled to Telemetry.
@@ -90,20 +91,20 @@ const PingServer = {
                                                                Ci.nsIThread.DISPATCH_NORMAL));
   },
 
-  promiseNextPing: function() {
+  promiseNextPing() {
     return this.promiseNextRequest().then(request => decodeRequestPayload(request));
   },
 
-  promiseNextRequests: Task.async(function*(count) {
+  async promiseNextRequests(count) {
     let results = [];
-    for (let i=0; i<count; ++i) {
-      results.push(yield this.promiseNextRequest());
+    for (let i = 0; i < count; ++i) {
+      results.push(await this.promiseNextRequest());
     }
 
     return results;
-  }),
+  },
 
-  promiseNextPings: function(count) {
+  promiseNextPings(count) {
     return this.promiseNextRequests(count).then(requests => {
       return Array.from(requests, decodeRequestPayload);
     });
@@ -120,10 +121,11 @@ function decodeRequestPayload(request) {
   let payload = null;
   let decoder = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON)
 
-  if (request.getHeader("content-encoding") == "gzip") {
+  if (request.hasHeader("content-encoding") &&
+      request.getHeader("content-encoding") == "gzip") {
     let observer = {
       buffer: "",
-      onStreamComplete: function(loader, context, status, length, result) {
+      onStreamComplete(loader, context, status, length, result) {
         this.buffer = String.fromCharCode.apply(this, result);
       }
     };
@@ -156,7 +158,7 @@ function wrapWithExceptionHandler(f) {
     try {
       f(...args);
     } catch (ex) {
-      if (typeof(ex) != 'object') {
+      if (typeof(ex) != "object") {
         throw ex;
       }
       dump("Caught exception: " + ex.message + "\n");
@@ -181,18 +183,22 @@ function loadAddonManager(...args) {
 
 var gAppInfo = null;
 
-function createAppInfo(ID="xpcshell@tests.mozilla.org", name="XPCShell",
-                       version="1.0", platformVersion="1.0") {
+function createAppInfo(ID = "xpcshell@tests.mozilla.org", name = "XPCShell",
+                       version = "1.0", platformVersion = "1.0") {
   AddonTestUtils.createAppInfo(ID, name, version, platformVersion);
   gAppInfo = AddonTestUtils.appInfo;
 }
 
 // Fake the timeout functions for the TelemetryScheduler.
 function fakeSchedulerTimer(set, clear) {
-  let session = Cu.import("resource://gre/modules/TelemetrySession.jsm");
+  let session = Cu.import("resource://gre/modules/TelemetrySession.jsm", {});
   session.Policy.setSchedulerTickTimeout = set;
   session.Policy.clearSchedulerTickTimeout = clear;
 }
+
+/* global TelemetrySession:false, TelemetryEnvironment:false, TelemetryController:false,
+          TelemetryStorage:false, TelemetrySend:false, TelemetryReportingPolicy:false
+ */
 
 /**
  * Fake the current date.
@@ -220,31 +226,31 @@ function fakeNow(...args) {
 }
 
 function fakeMonotonicNow(ms) {
-  const m = Cu.import("resource://gre/modules/TelemetrySession.jsm");
+  const m = Cu.import("resource://gre/modules/TelemetrySession.jsm", {});
   m.Policy.monotonicNow = () => ms;
   return ms;
 }
 
 // Fake the timeout functions for TelemetryController sending.
 function fakePingSendTimer(set, clear) {
-  let module = Cu.import("resource://gre/modules/TelemetrySend.jsm");
-  let obj = Cu.cloneInto({set, clear}, module, {cloneFunctions:true});
+  let module = Cu.import("resource://gre/modules/TelemetrySend.jsm", {});
+  let obj = Cu.cloneInto({set, clear}, module, {cloneFunctions: true});
   module.Policy.setSchedulerTickTimeout = obj.set;
   module.Policy.clearSchedulerTickTimeout = obj.clear;
 }
 
 function fakeMidnightPingFuzzingDelay(delayMs) {
-  let module = Cu.import("resource://gre/modules/TelemetrySend.jsm");
+  let module = Cu.import("resource://gre/modules/TelemetrySend.jsm", {});
   module.Policy.midnightPingFuzzingDelay = () => delayMs;
 }
 
 function fakeGeneratePingId(func) {
-  let module = Cu.import("resource://gre/modules/TelemetryController.jsm");
+  let module = Cu.import("resource://gre/modules/TelemetryController.jsm", {});
   module.Policy.generatePingId = func;
 }
 
 function fakeCachedClientId(uuid) {
-  let module = Cu.import("resource://gre/modules/TelemetryController.jsm");
+  let module = Cu.import("resource://gre/modules/TelemetryController.jsm", {});
   module.Policy.getCachedClientID = () => uuid;
 }
 
@@ -290,6 +296,7 @@ function setEmptyPrefWatchlist() {
     Cu.import("resource://gre/modules/TelemetryEnvironment.jsm").TelemetryEnvironment;
   return TelemetryEnvironment.onInitialized().then(() => {
     TelemetryEnvironment.testWatchPreferences(new Map());
+
   });
 }
 
@@ -308,6 +315,8 @@ if (runningInParent) {
   },
   () => {});
 
+  // This gets imported via fakeNow();
+  /* global TelemetrySend */
   do_register_cleanup(() => TelemetrySend.shutdown());
 }
 

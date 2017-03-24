@@ -298,6 +298,21 @@ typedef struct SSLPreliminaryChannelInfoStr {
     /* Cipher suite: test (valuesSet & ssl_preinfo_cipher_suite) */
     PRUint16 cipherSuite;
 
+    /* The following fields were added in NSS 3.29. */
+    /* |canSendEarlyData| is true when a 0-RTT is enabled. This can only be
+     * true after sending the ClientHello and before the handshake completes.
+     */
+    PRBool canSendEarlyData;
+
+    /* The following fields were added in NSS 3.31. */
+    /* The number of early data octets that a client is permitted to send on
+     * this connection.  The value will be zero if the connection was not
+     * resumed or early data is not permitted.  For a client, this value only
+     * has meaning if |canSendEarlyData| is true.  For a server, this indicates
+     * the value that was advertised in the session ticket that was used to
+     * resume this session. */
+    PRUint32 maxEarlyDataSize;
+
     /* When adding new fields to this structure, please document the
      * NSS version in which they were added. */
 } SSLPreliminaryChannelInfo;
@@ -385,13 +400,12 @@ typedef enum {
     ssl_tls13_early_data_xtn = 42,
     ssl_tls13_supported_versions_xtn = 43,
     ssl_tls13_cookie_xtn = 44,
+    ssl_tls13_psk_key_exchange_modes_xtn = 45,
+    ssl_tls13_ticket_early_data_info_xtn = 46,
     ssl_next_proto_nego_xtn = 13172,
-    ssl_renegotiation_info_xtn = 0xff01
+    ssl_renegotiation_info_xtn = 0xff01,
+    ssl_tls13_short_header_xtn = 0xff03
 } SSLExtensionType;
-
-typedef enum {
-    ssl_tls13_ticket_early_data_info_xtn = 1
-} TLS13TicketExtensionType;
 
 /* This is the old name for the supported_groups extensions. */
 #define ssl_elliptic_curves_xtn ssl_supported_groups_xtn
@@ -400,7 +414,7 @@ typedef enum {
  * number of extensions that are supported for any single message type.  That
  * is, a ClientHello; ServerHello and TLS 1.3 NewSessionTicket and
  * HelloRetryRequest extensions are smaller. */
-#define SSL_MAX_EXTENSIONS 17
+#define SSL_MAX_EXTENSIONS 19
 
 /* Deprecated */
 typedef enum {

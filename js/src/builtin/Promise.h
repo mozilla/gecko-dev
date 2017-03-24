@@ -16,6 +16,7 @@ enum PromiseSlots {
     PromiseSlot_Flags = 0,
     PromiseSlot_ReactionsOrResult,
     PromiseSlot_RejectFunction,
+    PromiseSlot_AwaitGenerator = PromiseSlot_RejectFunction,
     PromiseSlot_AllocationSite,
     PromiseSlot_ResolutionSite,
     PromiseSlot_AllocationTime,
@@ -30,6 +31,7 @@ enum PromiseSlots {
 #define PROMISE_FLAG_REPORTED  0x8
 #define PROMISE_FLAG_DEFAULT_RESOLVE_FUNCTION 0x10
 #define PROMISE_FLAG_DEFAULT_REJECT_FUNCTION  0x20
+#define PROMISE_FLAG_ASYNC    0x40
 
 class AutoSetNewObjectMetadata;
 
@@ -41,6 +43,8 @@ class PromiseObject : public NativeObject
     static const Class protoClass_;
     static PromiseObject* create(JSContext* cx, HandleObject executor,
                                  HandleObject proto = nullptr, bool needsWrapping = false);
+
+    static PromiseObject* createSkippingExecutor(JSContext* cx);
 
     static JSObject* unforgeableResolve(JSContext* cx, HandleValue value);
     static JSObject* unforgeableReject(JSContext* cx, HandleValue value);
@@ -64,10 +68,12 @@ class PromiseObject : public NativeObject
         return getFixedSlot(PromiseSlot_ReactionsOrResult);
     }
 
-    MOZ_MUST_USE bool resolve(JSContext* cx, HandleValue resolutionValue);
-    MOZ_MUST_USE bool reject(JSContext* cx, HandleValue rejectionValue);
+    static MOZ_MUST_USE bool resolve(JSContext* cx, Handle<PromiseObject*> promise,
+                                     HandleValue resolutionValue);
+    static MOZ_MUST_USE bool reject(JSContext* cx, Handle<PromiseObject*> promise,
+                                    HandleValue rejectionValue);
 
-    void onSettled(JSContext* cx);
+    static void onSettled(JSContext* cx, Handle<PromiseObject*> promise);
 
     double allocationTime() { return getFixedSlot(PromiseSlot_AllocationTime).toNumber(); }
     double resolutionTime() { return getFixedSlot(PromiseSlot_ResolutionTime).toNumber(); }
@@ -117,6 +123,18 @@ MOZ_MUST_USE JSObject*
 OriginalPromiseThen(JSContext* cx, Handle<PromiseObject*> promise, HandleValue onFulfilled,
                     HandleValue onRejected);
 
+MOZ_MUST_USE PromiseObject*
+CreatePromiseObjectForAsync(JSContext* cx, HandleValue generatorVal);
+
+MOZ_MUST_USE bool
+AsyncFunctionReturned(JSContext* cx, Handle<PromiseObject*> resultPromise, HandleValue value);
+
+MOZ_MUST_USE bool
+AsyncFunctionThrown(JSContext* cx, Handle<PromiseObject*> resultPromise);
+
+MOZ_MUST_USE bool
+AsyncFunctionAwait(JSContext* cx, Handle<PromiseObject*> resultPromise, HandleValue value);
+
 /**
  * A PromiseTask represents a task that can be dispatched to a helper thread
  * (via StartPromiseTask), executed (by implementing PromiseTask::execute()),
@@ -151,6 +169,10 @@ class PromiseTask : public JS::AsyncTask
     // the task will be enqueued for deletion at some future point without ever
     // calling finishPromise().
     virtual void execute() = 0;
+
+    // May be called in the absence of helper threads to synchronously execute
+    // and finish a PromiseTask.
+    bool executeAndFinish(JSContext* cx);
 };
 
 bool

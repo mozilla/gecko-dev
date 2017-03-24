@@ -65,10 +65,16 @@ static nsITimer* gFlushTimer = nullptr;
 
 nsHtml5TreeOpExecutor::nsHtml5TreeOpExecutor()
   : nsHtml5DocumentBuilder(false)
+  , mSuppressEOF(false)
+  , mReadingFromStage(false)
+  , mStreamParser(nullptr)
   , mPreloadedURLs(23)  // Mean # of preloadable resources per page on dmoz
-  , mSpeculationReferrerPolicy(mozilla::net::RP_Default)
+  , mSpeculationReferrerPolicy(mozilla::net::RP_Unset)
+  , mStarted(false)
+  , mRunFlushLoopOnStack(false)
+  , mCallContinueInterruptedParsingIfEnabled(false)
+  , mAlreadyComplainedAboutCharset(false)
 {
-  // zeroing operator new for everything else
 }
 
 nsHtml5TreeOpExecutor::~nsHtml5TreeOpExecutor()
@@ -207,9 +213,9 @@ nsHtml5TreeOpExecutor::SetParser(nsParserBase* aParser)
 }
 
 void
-nsHtml5TreeOpExecutor::FlushPendingNotifications(mozFlushType aType)
+nsHtml5TreeOpExecutor::FlushPendingNotifications(FlushType aType)
 {
-  if (aType >= Flush_InterruptibleLayout) {
+  if (aType >= FlushType::InterruptibleLayout) {
     // Bug 577508 / 253951
     nsContentSink::StartLayout(true);
   }
@@ -259,7 +265,9 @@ nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync()
 {
   if (!mDocument || !mDocument->IsInBackgroundWindow()) {
     nsCOMPtr<nsIRunnable> flusher = new nsHtml5ExecutorReflusher(this);  
-    if (NS_FAILED(NS_DispatchToMainThread(flusher))) {
+    if (NS_FAILED(mDocument->Dispatch("nsHtml5ExecutorReflusher",
+                                      TaskCategory::Other,
+                                      flusher.forget()))) {
       NS_WARNING("failed to dispatch executor flush event");
     }
   } else {
@@ -432,6 +440,7 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
     mFlushState = eInFlush;
 
     nsIContent* scriptElement = nullptr;
+    bool interrupted = false;
     
     BeginDocUpdate();
 
@@ -446,7 +455,7 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
       }
       NS_ASSERTION(mFlushState == eInDocUpdate, 
         "Tried to perform tree op outside update batch.");
-      nsresult rv = iter->Perform(this, &scriptElement);
+      nsresult rv = iter->Perform(this, &scriptElement, &interrupted);
       if (NS_FAILED(rv)) {
         MarkAsBroken(rv);
         break;
@@ -455,8 +464,9 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
       // Be sure not to check the deadline if the last op was just performed.
       if (MOZ_UNLIKELY(iter == last)) {
         break;
-      } else if (MOZ_UNLIKELY(nsContentSink::DidProcessATokenImpl() == 
-                 NS_ERROR_HTMLPARSER_INTERRUPTED)) {
+      } else if (MOZ_UNLIKELY(interrupted) ||
+                 MOZ_UNLIKELY(nsContentSink::DidProcessATokenImpl() ==
+                              NS_ERROR_HTMLPARSER_INTERRUPTED)) {
         mOpQueue.RemoveElementsAt(0, (iter - first) + 1);
         
         EndDocUpdate();
@@ -538,6 +548,7 @@ nsHtml5TreeOpExecutor::FlushDocumentWrite()
 #endif
   
   nsIContent* scriptElement = nullptr;
+  bool interrupted = false;
   
   BeginDocUpdate();
 
@@ -554,7 +565,7 @@ nsHtml5TreeOpExecutor::FlushDocumentWrite()
     }
     NS_ASSERTION(mFlushState == eInDocUpdate, 
       "Tried to perform tree op outside update batch.");
-    rv = iter->Perform(this, &scriptElement);
+    rv = iter->Perform(this, &scriptElement, &interrupted);
     if (NS_FAILED(rv)) {
       MarkAsBroken(rv);
       break;
@@ -599,7 +610,7 @@ nsHtml5TreeOpExecutor::IsScriptEnabled()
 }
 
 void
-nsHtml5TreeOpExecutor::StartLayout() {
+nsHtml5TreeOpExecutor::StartLayout(bool* aInterrupted) {
   if (mLayoutStarted || !mDocument) {
     return;
   }
@@ -613,7 +624,24 @@ nsHtml5TreeOpExecutor::StartLayout() {
 
   nsContentSink::StartLayout(false);
 
-  BeginDocUpdate();
+  if (mParser) {
+    *aInterrupted = !GetParser()->IsParserEnabled();
+
+    BeginDocUpdate();
+  }
+}
+
+void
+nsHtml5TreeOpExecutor::PauseDocUpdate(bool* aInterrupted) {
+  // Pausing the document update allows JS to run, and potentially block
+  // further parsing.
+  EndDocUpdate();
+
+  if (MOZ_LIKELY(mParser)) {
+    *aInterrupted = !GetParser()->IsParserEnabled();
+
+    BeginDocUpdate();
+  }
 }
 
 /**
@@ -639,6 +667,10 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
 
   NS_ASSERTION(aScriptElement, "No script to run");
   nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aScriptElement);
+  if (!sele) {
+    MOZ_ASSERT(nsNameSpaceManager::GetInstance()->mSVGDisabled, "Node didn't QI to script, but SVG wasn't disabled.");
+    return;
+  }
   
   if (!mParser) {
     NS_ASSERTION(sele->IsMalformed(), "Script wasn't marked as malformed.");
@@ -1056,7 +1088,7 @@ nsHtml5TreeOpExecutor::AddSpeculationCSP(const nsAString& aCSP)
 
   // Record "speculated" referrer policy for preloads
   bool hasReferrerPolicy = false;
-  uint32_t referrerPolicy = mozilla::net::RP_Default;
+  uint32_t referrerPolicy = mozilla::net::RP_Unset;
   rv = preloadCsp->GetReferrerPolicy(&referrerPolicy, &hasReferrerPolicy);
   NS_ENSURE_SUCCESS_VOID(rv);
   if (hasReferrerPolicy) {

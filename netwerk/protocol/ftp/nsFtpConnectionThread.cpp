@@ -41,7 +41,7 @@
 #include "nsISocketTransportService.h"
 #include "nsIURI.h"
 #include "nsILoadInfo.h"
-#include "nsNullPrincipal.h"
+#include "NullPrincipal.h"
 #include "nsIAuthPrompt2.h"
 #include "nsIFTPChannelParentInternal.h"
 
@@ -97,7 +97,7 @@ nsFtpState::nsFtpState()
     , mControlStatus(NS_OK)
     , mDeferredCallbackPending(false)
 {
-    LOG_INFO(("FTP:(%x) nsFtpState created", this));
+    LOG_INFO(("FTP:(%p) nsFtpState created", this));
 
     // make sure handler stays around
     NS_ADDREF(gFtpHandler);
@@ -105,7 +105,7 @@ nsFtpState::nsFtpState()
 
 nsFtpState::~nsFtpState() 
 {
-    LOG_INFO(("FTP:(%x) nsFtpState destroyed", this));
+    LOG_INFO(("FTP:(%p) nsFtpState destroyed", this));
 
     if (mProxyRequest)
         mProxyRequest->Cancel(NS_ERROR_FAILURE);
@@ -235,8 +235,9 @@ nsFtpState::OnControlError(nsresult status)
 {
     NS_ASSERTION(NS_FAILED(status), "expecting error condition");
 
-    LOG(("FTP:(%p) CC(%p) error [%x was-cached=%u]\n",
-         this, mControlConnection.get(), status, mTryingCachedControl));
+    LOG(("FTP:(%p) CC(%p) error [%" PRIx32 " was-cached=%u]\n",
+         this, mControlConnection.get(), static_cast<uint32_t>(status),
+         mTryingCachedControl));
 
     mControlStatus = status;
     if (mReconnectAndLoginAgain && NS_SUCCEEDED(mInternalError)) {
@@ -259,7 +260,7 @@ nsFtpState::EstablishControlConnection()
             
     nsresult rv;
 
-    LOG(("FTP:(%x) trying cached control\n", this));
+    LOG(("FTP:(%p) trying cached control\n", this));
         
     // Look to see if we can use a cached control connection:
     RefPtr<nsFtpControlConnection> connection;
@@ -319,8 +320,8 @@ nsFtpState::EstablishControlConnection()
 
     rv = mControlConnection->Connect(mChannel->ProxyInfo(), this);
     if (NS_FAILED(rv)) {
-        LOG(("FTP:(%p) CC(%p) failed to connect [rv=%x]\n", this,
-            mControlConnection.get(), rv));
+        LOG(("FTP:(%p) CC(%p) failed to connect [rv=%" PRIx32 "]\n", this,
+             mControlConnection.get(), static_cast<uint32_t>(rv)));
         mControlConnection = nullptr;
         return rv;
     }
@@ -333,7 +334,7 @@ nsFtpState::MoveToNextState(FTP_STATE nextState)
 {
     if (NS_FAILED(mInternalError)) {
         mState = FTP_ERROR;
-        LOG(("FTP:(%x) FAILED (%x)\n", this, mInternalError));
+        LOG(("FTP:(%p) FAILED (%" PRIx32 ")\n", this, static_cast<uint32_t>(mInternalError)));
     } else {
         mState = FTP_READ_BUF;
         mNextState = nextState;
@@ -389,7 +390,7 @@ nsFtpState::Process()
                 mAnonymous = false;
                 mState = FTP_COMMAND_CONNECT;
             } else {
-                LOG(("FTP:(%x) FTP_ERROR - calling StopProcessing\n", this));
+                LOG(("FTP:(%p) FTP_ERROR - calling StopProcessing\n", this));
                 rv = StopProcessing();
                 NS_ASSERTION(NS_SUCCEEDED(rv), "StopProcessing failed.");
                 processingRead = false;
@@ -397,7 +398,7 @@ nsFtpState::Process()
             break;
           
           case FTP_COMPLETE:
-            LOG(("FTP:(%x) COMPLETE\n", this));
+            LOG(("FTP:(%p) COMPLETE\n", this));
             rv = StopProcessing();
             NS_ASSERTION(NS_SUCCEEDED(rv), "StopProcessing failed.");
             processingRead = false;
@@ -945,10 +946,9 @@ nsFtpState::R_syst() {
             
             char16_t* ucs2Response = ToNewUnicode(mResponseMsg);
             const char16_t *formatStrings[1] = { ucs2Response };
-            NS_NAMED_LITERAL_STRING(name, "UnsupportedFTPServer");
 
             nsXPIDLString formattedString;
-            rv = bundle->FormatStringFromName(name.get(), formatStrings, 1,
+            rv = bundle->FormatStringFromName(u"UnsupportedFTPServer", formatStrings, 1,
                                               getter_Copies(formattedString));
             free(ucs2Response);
             if (NS_FAILED(rv))
@@ -1311,7 +1311,7 @@ nsFtpState::R_stor() {
     }
 
     if (mResponseCode/100 == 1) {
-        LOG(("FTP:(%x) writing on DT\n", this));
+        LOG(("FTP:(%p) writing on DT\n", this));
         return FTP_READ_BUF;
     }
 
@@ -1412,7 +1412,7 @@ nsFtpState::R_pasv() {
         //  xxx,xxx,xxx,xxx,ppp,ppp (without parens)
         int32_t h0, h1, h2, h3, p0, p1;
 
-        uint32_t fields = 0;
+        int32_t fields = 0;
         // First try with parens
         while (*ptr && *ptr != '(')
             ++ptr;
@@ -1505,7 +1505,7 @@ nsFtpState::R_pasv() {
 
         strans->SetQoSBits(gFtpHandler->GetDataQoSBits());
         
-        LOG(("FTP:(%x) created DT (%s:%x)\n", this, host.get(), port));
+        LOG(("FTP:(%p) created DT (%s:%x)\n", this, host.get(), port));
         
         // hook ourself up as a proxy for status notifications
         rv = mDataTransport->SetEventSink(this, NS_GetCurrentThread());
@@ -1615,9 +1615,6 @@ nsFtpState::Init(nsFtpChannel *channel)
     NS_ASSERTION(channel, "FTP: needs a channel");
 
     mChannel = channel; // a straight ref ptr to the channel
-
-    // initialize counter for network metering
-    mCountRecv = 0;
 
 #ifdef MOZ_WIDGET_GONK
     nsCOMPtr<nsINetworkInfo> activeNetworkInfo;
@@ -1737,7 +1734,7 @@ nsFtpState::Connect()
 
     // check for errors.
     if (NS_FAILED(rv)) {
-        LOG(("FTP:Process() failed: %x\n", rv));
+        LOG(("FTP:Process() failed: %" PRIx32 "\n", static_cast<uint32_t>(rv)));
         mInternalError = NS_ERROR_FAILURE;
         mState = FTP_ERROR;
         CloseWithStatus(mInternalError);
@@ -1797,12 +1794,10 @@ public:
         : mPrompter(aPrompter)
         , mResponseMsg(aResponseMsg)
     {
-        MOZ_COUNT_CTOR(nsFtpAsyncAlert);
     }
 protected:
     virtual ~nsFtpAsyncAlert()
     {
-        MOZ_COUNT_DTOR(nsFtpAsyncAlert);
     }
 public:
     NS_IMETHOD Run() override
@@ -1826,7 +1821,7 @@ nsFtpState::StopProcessing()
         return NS_OK;
     mKeepRunning = false;
 
-    LOG_INFO(("FTP:(%x) nsFtpState stopping", this));
+    LOG_INFO(("FTP:(%p) nsFtpState stopping", this));
 
     if (NS_FAILED(mInternalError) && !mResponseMsg.IsEmpty()) {
         // check to see if the control status is bad.
@@ -1880,7 +1875,7 @@ nsFtpState::SendFTPCommand(const nsCSubstring& command)
     if (StringBeginsWith(command, NS_LITERAL_CSTRING("PASS "))) 
         logcmd = "PASS xxxxx";
     
-    LOG(("FTP:(%x) writing \"%s\"\n", this, logcmd.get()));
+    LOG(("FTP:(%p) writing \"%s\"\n", this, logcmd.get()));
 
     nsCOMPtr<nsIFTPEventSink> ftpSink;
     mChannel->GetFTPEventSink(ftpSink);
@@ -1909,8 +1904,8 @@ nsFtpState::ConvertFilespecToVMS(nsCString& fileString)
     if (t)
         while (nsCRT::strtok(nextToken, "/", &nextToken))
             ntok++; // count number of terms (tokens)
-    LOG(("FTP:(%x) ConvertFilespecToVMS ntok: %d\n", this, ntok));
-    LOG(("FTP:(%x) ConvertFilespecToVMS from: \"%s\"\n", this, fileString.get()));
+    LOG(("FTP:(%p) ConvertFilespecToVMS ntok: %d\n", this, ntok));
+    LOG(("FTP:(%p) ConvertFilespecToVMS from: \"%s\"\n", this, fileString.get()));
 
     if (fileString.First() == '/') {
         // absolute filespec
@@ -1974,7 +1969,7 @@ nsFtpState::ConvertFilespecToVMS(nsCString& fileString)
             fileString.Append(nsCRT::strtok(nextToken, "/", &nextToken));
         }
     }
-    LOG(("FTP:(%x) ConvertFilespecToVMS   to: \"%s\"\n", this, fileString.get()));
+    LOG(("FTP:(%p) ConvertFilespecToVMS   to: \"%s\"\n", this, fileString.get()));
 }
 
 // Convert a unix-style dirspec to VMS format
@@ -1985,7 +1980,7 @@ nsFtpState::ConvertFilespecToVMS(nsCString& fileString)
 void
 nsFtpState::ConvertDirspecToVMS(nsCString& dirSpec)
 {
-    LOG(("FTP:(%x) ConvertDirspecToVMS from: \"%s\"\n", this, dirSpec.get()));
+    LOG(("FTP:(%p) ConvertDirspecToVMS from: \"%s\"\n", this, dirSpec.get()));
     if (!dirSpec.IsEmpty()) {
         if (dirSpec.Last() != '/')
             dirSpec.Append('/');
@@ -1994,14 +1989,14 @@ nsFtpState::ConvertDirspecToVMS(nsCString& dirSpec)
         ConvertFilespecToVMS(dirSpec);
         dirSpec.Truncate(dirSpec.Length()-1);
     }
-    LOG(("FTP:(%x) ConvertDirspecToVMS   to: \"%s\"\n", this, dirSpec.get()));
+    LOG(("FTP:(%p) ConvertDirspecToVMS   to: \"%s\"\n", this, dirSpec.get()));
 }
 
 // Convert an absolute VMS style dirspec to UNIX format
 void
 nsFtpState::ConvertDirspecFromVMS(nsCString& dirSpec)
 {
-    LOG(("FTP:(%x) ConvertDirspecFromVMS from: \"%s\"\n", this, dirSpec.get()));
+    LOG(("FTP:(%p) ConvertDirspecFromVMS from: \"%s\"\n", this, dirSpec.get()));
     if (dirSpec.IsEmpty()) {
         dirSpec.Insert('.', 0);
     } else {
@@ -2010,7 +2005,7 @@ nsFtpState::ConvertDirspecFromVMS(nsCString& dirSpec)
         dirSpec.ReplaceChar('.', '/');
         dirSpec.ReplaceChar(']', '/');
     }
-    LOG(("FTP:(%x) ConvertDirspecFromVMS   to: \"%s\"\n", this, dirSpec.get()));
+    LOG(("FTP:(%p) ConvertDirspecFromVMS   to: \"%s\"\n", this, dirSpec.get()));
 }
 
 //-----------------------------------------------------------------------------
@@ -2090,61 +2085,16 @@ nsFtpState::ReadSegments(nsWriteSegmentFun writer, void *closure,
         nsresult rv;
         rv = mDataStream->ReadSegments(NS_WriteSegmentThunk, &thunk, count,
                                        result);
-        if (NS_SUCCEEDED(rv)) {
-            CountRecvBytes(*result);
-        }
         return rv;
     }
 
     return nsBaseContentStream::ReadSegments(writer, closure, count, result);
 }
 
-nsresult
-nsFtpState::SaveNetworkStats(bool enforce)
-{
-#ifdef MOZ_WIDGET_GONK
-    // Obtain app id
-    uint32_t appId;
-    bool isInBrowser;
-    NS_GetAppInfo(mChannel, &appId, &isInBrowser);
-
-    // Check if active network and appid are valid.
-    if (!mActiveNetworkInfo || appId == NECKO_NO_APP_ID) {
-        return NS_OK;
-    }
-
-    if (mCountRecv <= 0) {
-        // There is no traffic, no need to save.
-        return NS_OK;
-    }
-
-    // If |enforce| is false, the traffic amount is saved
-    // only when the total amount exceeds the predefined
-    // threshold.
-    if (!enforce && mCountRecv < NETWORK_STATS_THRESHOLD) {
-        return NS_OK;
-    }
-
-    // Create the event to save the network statistics.
-    // the event is then dispathed to the main thread.
-    RefPtr<Runnable> event =
-        new SaveNetworkStatsEvent(appId, isInBrowser, mActiveNetworkInfo,
-                                  mCountRecv, 0, false);
-    NS_DispatchToMainThread(event);
-
-    // Reset the counters after saving.
-    mCountRecv = 0;
-
-    return NS_OK;
-#else
-    return NS_ERROR_NOT_IMPLEMENTED;
-#endif
-}
-
 NS_IMETHODIMP
 nsFtpState::CloseWithStatus(nsresult status)
 {
-    LOG(("FTP:(%p) close [%x]\n", this, status));
+    LOG(("FTP:(%p) close [%" PRIx32 "]\n", this, static_cast<uint32_t>(status)));
 
     // Shutdown the control connection processing if we are being closed with an
     // error.  Note: This method may be called several times.
@@ -2160,9 +2110,6 @@ nsFtpState::CloseWithStatus(nsresult status)
     }
 
     if (mDataTransport) {
-        // Save the network stats before data transport is closing.
-        SaveNetworkStats(true);
-
         // Shutdown the data transport.
         mDataTransport->Close(NS_ERROR_ABORT);
         mDataTransport = nullptr;

@@ -8,9 +8,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 this.EXPORTED_SYMBOLS = ["RuntimePermissions"];
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "Messaging", "resource://gre/modules/Messaging.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 // See: http://developer.android.com/reference/android/Manifest.permission.html
 const CAMERA = "android.permission.CAMERA";
@@ -36,6 +34,7 @@ var RuntimePermissions = {
       permissions: permissions
     };
 
-    return Messaging.sendRequestForResult(msg);
+    let window = Services.wm.getMostRecentWindow("navigator:browser");
+    return window.WindowEventDispatcher.sendRequestForResult(msg);
   }
 };

@@ -26,6 +26,7 @@
 #include "nsAutoPtr.h"
 
 #include "nsWindowsDllInterceptor.h"
+#include "mozilla/Sprintf.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WindowsVersion.h"
 #include "nsWindowsHelpers.h"
@@ -67,12 +68,11 @@ struct DllBlockInfo {
   enum {
     FLAGS_DEFAULT = 0,
     BLOCK_WIN8PLUS_ONLY = 1,
-    BLOCK_XP_ONLY = 2,
     USE_TIMESTAMP = 4,
   } flags;
 };
 
-static DllBlockInfo sWindowsDllBlocklist[] = {
+static const DllBlockInfo sWindowsDllBlocklist[] = {
   // EXAMPLE:
   // { "uxtheme.dll", ALL_VERSIONS },
   // { "uxtheme.dll", 0x0000123400000000ULL },
@@ -156,9 +156,6 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   // Topcrash with Conduit SearchProtect, bug 944542
   { "spvc32.dll", ALL_VERSIONS },
 
-  // XP topcrash with F-Secure, bug 970362
-  { "fs_ccf_ni_umh32.dll", MAKE_VERSION(1, 42, 101, 0), DllBlockInfo::BLOCK_XP_ONLY },
-
   // Topcrash with V-bates, bug 1002748 and bug 1023239
   { "libinject.dll", UNVERSIONED },
   { "libinject2.dll", 0x537DDC93, DllBlockInfo::USE_TIMESTAMP },
@@ -225,6 +222,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   // AhnLab Internet Security, bug 1311969
   { "nzbrcom.dll", ALL_VERSIONS },
 
+  // K7TotalSecurity, bug 1339083.
+  { "k7pswsen.dll", MAKE_VERSION(15, 2, 2, 95) },
+
   { nullptr, 0 }
 };
 
@@ -247,7 +247,6 @@ static const char kUser32BeforeBlocklistParameter[] = "User32BeforeBlocklist=1\n
 static const int kUser32BeforeBlocklistParameterLen =
   sizeof(kUser32BeforeBlocklistParameter) - 1;
 
-static DWORD sThreadLoadingXPCOMModule;
 static bool sBlocklistInitAttempted;
 static bool sBlocklistInitFailed;
 static bool sUser32BeforeBlocklist;
@@ -260,8 +259,7 @@ printf_stderr(const char *fmt, ...)
     char buf[2048];
     va_list args;
     va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
-    buf[sizeof(buf) - 1] = '\0';
+    VsprintfLiteral(buf, fmt, args);
     va_end(args);
     OutputDebugStringA(buf);
   }
@@ -312,41 +310,6 @@ private:
   const T* mMappedView;
   void* mRealView;
 };
-
-bool
-CheckASLR(const wchar_t* path)
-{
-  bool retval = false;
-
-  HANDLE file = ::CreateFileW(path, GENERIC_READ, FILE_SHARE_READ,
-                              nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
-                              nullptr);
-  if (file != INVALID_HANDLE_VALUE) {
-    HANDLE map = ::CreateFileMappingW(file, nullptr, PAGE_READONLY, 0, 0,
-                                      nullptr);
-    if (map) {
-      RVAMap<IMAGE_DOS_HEADER> peHeader(map, 0);
-      if (peHeader) {
-        RVAMap<IMAGE_NT_HEADERS> ntHeader(map, peHeader->e_lfanew);
-        if (ntHeader) {
-          // If the DLL has no code, permit it regardless of ASLR status.
-          if (ntHeader->OptionalHeader.SizeOfCode == 0) {
-            retval = true;
-          }
-          // Check to see if the DLL supports ASLR
-          else if ((ntHeader->OptionalHeader.DllCharacteristics &
-                    IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE) != 0) {
-            retval = true;
-          }
-        }
-      }
-      ::CloseHandle(map);
-    }
-    ::CloseHandle(file);
-  }
-
-  return retval;
-}
 
 DWORD
 GetTimestamp(const wchar_t* path)
@@ -567,7 +530,6 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
   char dllName[DLLNAME_MAX+1];
   wchar_t *dll_part;
   char *dot;
-  DllBlockInfo *info;
 
   int len = moduleFileName->Length / 2;
   wchar_t *fname = moduleFileName->Buffer;
@@ -653,7 +615,7 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
   }
 
   // then compare to everything on the blocklist
-  info = &sWindowsDllBlocklist[0];
+  const DllBlockInfo* info = &sWindowsDllBlocklist[0];
   while (info->name) {
     if (strcmp(info->name, dllName) == 0)
       break;
@@ -670,11 +632,6 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
 
     if ((info->flags == DllBlockInfo::BLOCK_WIN8PLUS_ONLY) &&
         !IsWin8OrLater()) {
-      goto continue_loading;
-    }
-
-    if ((info->flags == DllBlockInfo::BLOCK_XP_ONLY) &&
-        IsWin2003OrLater()) {
       goto continue_loading;
     }
 
@@ -737,21 +694,6 @@ continue_loading:
   printf_stderr("LdrLoadDll: continuing load... ('%S')\n", moduleFileName->Buffer);
 #endif
 
-  if (GetCurrentThreadId() == sThreadLoadingXPCOMModule) {
-    // Check to ensure that the DLL has ASLR.
-    full_fname = getFullPath(filePath, fname);
-    if (!full_fname) {
-      // uh, we couldn't find the DLL at all, so...
-      printf_stderr("LdrLoadDll: Blocking load of '%s' (SearchPathW didn't find it?)\n", dllName);
-      return STATUS_DLL_NOT_FOUND;
-    }
-
-    if (IsVistaOrLater() && !CheckASLR(full_fname.get())) {
-      printf_stderr("LdrLoadDll: Blocking load of '%s'.  XPCOM components must support ASLR.\n", dllName);
-      return STATUS_DLL_NOT_FOUND;
-    }
-  }
-
   return stub_LdrLoadDll(filePath, flags, moduleFileName, handle);
 }
 
@@ -767,8 +709,13 @@ DllBlocklist_Initialize()
   }
   sBlocklistInitAttempted = true;
 
+  // In order to be effective against AppInit DLLs, the blocklist must be
+  // initialized before user32.dll is loaded into the process (bug 932100).
   if (GetModuleHandleA("user32.dll")) {
     sUser32BeforeBlocklist = true;
+#ifdef DEBUG
+    printf_stderr("DLL blocklist was unable to intercept AppInit DLLs.\n");
+#endif
   }
 
   NtDllIntercept.Init("ntdll.dll");
@@ -783,19 +730,8 @@ DllBlocklist_Initialize()
   if (!ok) {
     sBlocklistInitFailed = true;
 #ifdef DEBUG
-    printf_stderr ("LdrLoadDll hook failed, no dll blocklisting active\n");
+    printf_stderr("LdrLoadDll hook failed, no dll blocklisting active\n");
 #endif
-  }
-}
-
-MFBT_API void
-DllBlocklist_SetInXPCOMLoadOnMainThread(bool inXPCOMLoadOnMainThread)
-{
-  if (inXPCOMLoadOnMainThread) {
-    MOZ_ASSERT(sThreadLoadingXPCOMModule == 0, "Only one thread should be doing this");
-    sThreadLoadingXPCOMModule = GetCurrentThreadId();
-  } else {
-    sThreadLoadingXPCOMModule = 0;
   }
 }
 

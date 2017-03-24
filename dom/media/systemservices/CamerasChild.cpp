@@ -6,7 +6,6 @@
 
 #include "CamerasChild.h"
 
-#include "webrtc/video_engine/include/vie_capture.h"
 #undef FF
 
 #include "mozilla/Assertions.h"
@@ -165,7 +164,7 @@ int CamerasChild::AddDeviceChangeCallback(DeviceChangeCallback* aCallback)
   return DeviceChangeCallback::AddDeviceChangeCallback(aCallback);
 }
 
-bool
+mozilla::ipc::IPCResult
 CamerasChild::RecvReplyFailure(void)
 {
   LOG((__PRETTY_FUNCTION__));
@@ -173,10 +172,10 @@ CamerasChild::RecvReplyFailure(void)
   mReceivedReply = true;
   mReplySuccess = false;
   monitor.Notify();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CamerasChild::RecvReplySuccess(void)
 {
   LOG((__PRETTY_FUNCTION__));
@@ -184,10 +183,10 @@ CamerasChild::RecvReplySuccess(void)
   mReceivedReply = true;
   mReplySuccess = true;
   monitor.Notify();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CamerasChild::RecvReplyNumberOfCapabilities(const int& numdev)
 {
   LOG((__PRETTY_FUNCTION__));
@@ -196,7 +195,7 @@ CamerasChild::RecvReplyNumberOfCapabilities(const int& numdev)
   mReplySuccess = true;
   mReplyInteger = numdev;
   monitor.Notify();
-  return true;
+  return IPC_OK();
 }
 
 // Helper function to dispatch calls to the IPC Thread and
@@ -222,7 +221,7 @@ public:
     Dispatch();
   }
 
-  const T& ReturnValue() const {
+  T ReturnValue() const {
     if (mSuccess) {
       return mSuccessValue;
     } else {
@@ -286,12 +285,8 @@ CamerasChild::NumberOfCapabilities(CaptureEngine aCapEngine,
   LOG(("NumberOfCapabilities for %s", deviceUniqueIdUTF8));
   nsCString unique_id(deviceUniqueIdUTF8);
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, unique_id]() -> nsresult {
-      if (this->SendNumberOfCapabilities(aCapEngine, unique_id)) {
-        return NS_OK;
-      }
-      return NS_ERROR_FAILURE;
-    });
+    mozilla::NewNonOwningRunnableMethod<CaptureEngine, nsCString>
+    (this, &CamerasChild::SendNumberOfCapabilities, aCapEngine, unique_id);
   LockAndDispatch<> dispatcher(this, __func__, runnable, 0, mReplyInteger);
   LOG(("Capture capability count: %d", dispatcher.ReturnValue()));
   return dispatcher.ReturnValue();
@@ -302,18 +297,14 @@ CamerasChild::NumberOfCaptureDevices(CaptureEngine aCapEngine)
 {
   LOG((__PRETTY_FUNCTION__));
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine]() -> nsresult {
-      if (this->SendNumberOfCaptureDevices(aCapEngine)) {
-        return NS_OK;
-      }
-      return NS_ERROR_FAILURE;
-    });
+    mozilla::NewNonOwningRunnableMethod<CaptureEngine>
+    (this, &CamerasChild::SendNumberOfCaptureDevices, aCapEngine);
   LockAndDispatch<> dispatcher(this, __func__, runnable, 0, mReplyInteger);
   LOG(("Capture Devices: %d", dispatcher.ReturnValue()));
   return dispatcher.ReturnValue();
 }
 
-bool
+mozilla::ipc::IPCResult
 CamerasChild::RecvReplyNumberOfCaptureDevices(const int& numdev)
 {
   LOG((__PRETTY_FUNCTION__));
@@ -322,7 +313,7 @@ CamerasChild::RecvReplyNumberOfCaptureDevices(const int& numdev)
   mReplySuccess = true;
   mReplyInteger = numdev;
   monitor.Notify();
-  return true;
+  return IPC_OK();
 }
 
 int
@@ -330,12 +321,8 @@ CamerasChild::EnsureInitialized(CaptureEngine aCapEngine)
 {
   LOG((__PRETTY_FUNCTION__));
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine]() -> nsresult {
-      if (this->SendEnsureInitialized(aCapEngine)) {
-        return NS_OK;
-      }
-      return NS_ERROR_FAILURE;
-    });
+    mozilla::NewNonOwningRunnableMethod<CaptureEngine>
+    (this, &CamerasChild::SendEnsureInitialized, aCapEngine);
   LockAndDispatch<> dispatcher(this, __func__, runnable, 0, mReplyInteger);
   LOG(("Capture Devices: %d", dispatcher.ReturnValue()));
   return dispatcher.ReturnValue();
@@ -345,17 +332,13 @@ int
 CamerasChild::GetCaptureCapability(CaptureEngine aCapEngine,
                                    const char* unique_idUTF8,
                                    const unsigned int capability_number,
-                                   webrtc::CaptureCapability& capability)
+                                   webrtc::VideoCaptureCapability& capability)
 {
   LOG(("GetCaptureCapability: %s %d", unique_idUTF8, capability_number));
   nsCString unique_id(unique_idUTF8);
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, unique_id, capability_number]() -> nsresult {
-      if (this->SendGetCaptureCapability(aCapEngine, unique_id, capability_number)) {
-        return NS_OK;
-      }
-      return NS_ERROR_FAILURE;
-    });
+    mozilla::NewNonOwningRunnableMethod<CaptureEngine, nsCString, unsigned int>
+    (this, &CamerasChild::SendGetCaptureCapability, aCapEngine, unique_id, capability_number);
   LockAndDispatch<> dispatcher(this, __func__, runnable);
   if (dispatcher.Success()) {
     capability = mReplyCapability;
@@ -363,8 +346,8 @@ CamerasChild::GetCaptureCapability(CaptureEngine aCapEngine,
   return dispatcher.ReturnValue();
 }
 
-bool
-CamerasChild::RecvReplyGetCaptureCapability(const CaptureCapability& ipcCapability)
+mozilla::ipc::IPCResult
+CamerasChild::RecvReplyGetCaptureCapability(const VideoCaptureCapability& ipcCapability)
 {
   LOG((__PRETTY_FUNCTION__));
   MonitorAutoLock monitor(mReplyMonitor);
@@ -378,7 +361,7 @@ CamerasChild::RecvReplyGetCaptureCapability(const CaptureCapability& ipcCapabili
   mReplyCapability.codecType = static_cast<webrtc::VideoCodecType>(ipcCapability.codecType());
   mReplyCapability.interlaced = ipcCapability.interlaced();
   monitor.Notify();
-  return true;
+  return IPC_OK();
 }
 
 int
@@ -391,12 +374,8 @@ CamerasChild::GetCaptureDevice(CaptureEngine aCapEngine,
 {
   LOG((__PRETTY_FUNCTION__));
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, list_number]() -> nsresult {
-      if (this->SendGetCaptureDevice(aCapEngine, list_number)) {
-        return NS_OK;
-      }
-      return NS_ERROR_FAILURE;
-    });
+    mozilla::NewNonOwningRunnableMethod<CaptureEngine, unsigned int>
+    (this, &CamerasChild::SendGetCaptureDevice, aCapEngine, list_number);
   LockAndDispatch<> dispatcher(this, __func__, runnable);
   if (dispatcher.Success()) {
     base::strlcpy(device_nameUTF8, mReplyDeviceName.get(), device_nameUTF8Length);
@@ -409,7 +388,7 @@ CamerasChild::GetCaptureDevice(CaptureEngine aCapEngine,
   return dispatcher.ReturnValue();
 }
 
-bool
+mozilla::ipc::IPCResult
 CamerasChild::RecvReplyGetCaptureDevice(const nsCString& device_name,
                                         const nsCString& device_id,
                                         const bool& scary)
@@ -422,36 +401,31 @@ CamerasChild::RecvReplyGetCaptureDevice(const nsCString& device_name,
   mReplyDeviceID = device_id;
   mReplyScary = scary;
   monitor.Notify();
-  return true;
+  return IPC_OK();
 }
 
 int
 CamerasChild::AllocateCaptureDevice(CaptureEngine aCapEngine,
                                     const char* unique_idUTF8,
                                     const unsigned int unique_idUTF8Length,
-                                    int& capture_id,
-                                    const nsACString& aOrigin)
+                                    int& aStreamId,
+                                    const mozilla::ipc::PrincipalInfo& aPrincipalInfo)
 {
   LOG((__PRETTY_FUNCTION__));
   nsCString unique_id(unique_idUTF8);
-  nsCString origin(aOrigin);
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, unique_id, origin]() -> nsresult {
-      if (this->SendAllocateCaptureDevice(aCapEngine, unique_id, origin)) {
-        return NS_OK;
-      }
-      return NS_ERROR_FAILURE;
-    });
+    mozilla::NewNonOwningRunnableMethod<CaptureEngine, nsCString, const mozilla::ipc::PrincipalInfo&>
+    (this, &CamerasChild::SendAllocateCaptureDevice, aCapEngine, unique_id, aPrincipalInfo);
   LockAndDispatch<> dispatcher(this, __func__, runnable);
   if (dispatcher.Success()) {
     LOG(("Capture Device allocated: %d", mReplyInteger));
-    capture_id = mReplyInteger;
+    aStreamId = mReplyInteger;
   }
   return dispatcher.ReturnValue();
 }
 
 
-bool
+mozilla::ipc::IPCResult
 CamerasChild::RecvReplyAllocateCaptureDevice(const int& numdev)
 {
   LOG((__PRETTY_FUNCTION__));
@@ -460,7 +434,7 @@ CamerasChild::RecvReplyAllocateCaptureDevice(const int& numdev)
   mReplySuccess = true;
   mReplyInteger = numdev;
   monitor.Notify();
-  return true;
+  return IPC_OK();
 }
 
 int
@@ -469,19 +443,15 @@ CamerasChild::ReleaseCaptureDevice(CaptureEngine aCapEngine,
 {
   LOG((__PRETTY_FUNCTION__));
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, capture_id]() -> nsresult {
-      if (this->SendReleaseCaptureDevice(aCapEngine, capture_id)) {
-        return NS_OK;
-      }
-      return NS_ERROR_FAILURE;
-    });
+    mozilla::NewNonOwningRunnableMethod<CaptureEngine, int>
+    (this, &CamerasChild::SendReleaseCaptureDevice, aCapEngine, capture_id);
   LockAndDispatch<> dispatcher(this, __func__, runnable);
   return dispatcher.ReturnValue();
 }
 
 void
 CamerasChild::AddCallback(const CaptureEngine aCapEngine, const int capture_id,
-                          webrtc::ExternalRenderer* render)
+                          FrameRelay* render)
 {
   MutexAutoLock lock(mCallbackMutex);
   CapturerElement ce;
@@ -507,12 +477,12 @@ CamerasChild::RemoveCallback(const CaptureEngine aCapEngine, const int capture_i
 int
 CamerasChild::StartCapture(CaptureEngine aCapEngine,
                            const int capture_id,
-                           webrtc::CaptureCapability& webrtcCaps,
-                           webrtc::ExternalRenderer* cb)
+                           webrtc::VideoCaptureCapability& webrtcCaps,
+                           FrameRelay* cb)
 {
   LOG((__PRETTY_FUNCTION__));
   AddCallback(aCapEngine, capture_id, cb);
-  CaptureCapability capCap(webrtcCaps.width,
+  VideoCaptureCapability capCap(webrtcCaps.width,
                            webrtcCaps.height,
                            webrtcCaps.maxFPS,
                            webrtcCaps.expectedCaptureDelay,
@@ -520,12 +490,8 @@ CamerasChild::StartCapture(CaptureEngine aCapEngine,
                            webrtcCaps.codecType,
                            webrtcCaps.interlaced);
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, capture_id, capCap]() -> nsresult {
-      if (this->SendStartCapture(aCapEngine, capture_id, capCap)) {
-        return NS_OK;
-      }
-      return NS_ERROR_FAILURE;
-    });
+    mozilla::NewNonOwningRunnableMethod<CaptureEngine, int, VideoCaptureCapability>
+    (this, &CamerasChild::SendStartCapture, aCapEngine, capture_id, capCap);
   LockAndDispatch<> dispatcher(this, __func__, runnable);
   return dispatcher.ReturnValue();
 }
@@ -535,12 +501,8 @@ CamerasChild::StopCapture(CaptureEngine aCapEngine, const int capture_id)
 {
   LOG((__PRETTY_FUNCTION__));
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, capture_id]() -> nsresult {
-      if (this->SendStopCapture(aCapEngine, capture_id)) {
-        return NS_OK;
-      }
-      return NS_ERROR_FAILURE;
-    });
+    mozilla::NewNonOwningRunnableMethod<CaptureEngine, int>
+    (this, &CamerasChild::SendStopCapture, aCapEngine, capture_id);
   LockAndDispatch<> dispatcher(this, __func__, runnable);
   if (dispatcher.Success()) {
     RemoveCallback(aCapEngine, capture_id);
@@ -601,13 +563,10 @@ CamerasChild::ShutdownParent()
   if (CamerasSingleton::Thread()) {
     LOG(("Dispatching actor deletion"));
     // Delete the parent actor.
-    RefPtr<Runnable> deleteRunnable =
-      // CamerasChild (this) will remain alive and is only deleted by the
-      // IPC layer when SendAllDone returns.
-      media::NewRunnableFrom([this]() -> nsresult {
-        Unused << this->SendAllDone();
-        return NS_OK;
-      });
+    // CamerasChild (this) will remain alive and is only deleted by the
+    // IPC layer when SendAllDone returns.
+    nsCOMPtr<nsIRunnable> deleteRunnable =
+      mozilla::NewNonOwningRunnableMethod(this, &CamerasChild::SendAllDone);
     CamerasSingleton::Thread()->Dispatch(deleteRunnable, NS_DISPATCH_NORMAL);
   } else {
     LOG(("ShutdownParent called without PBackground thread"));
@@ -642,34 +601,28 @@ CamerasChild::ShutdownChild()
   CamerasSingleton::FakeDeviceChangeEventThread() = nullptr;
 }
 
-bool
+mozilla::ipc::IPCResult
 CamerasChild::RecvDeliverFrame(const CaptureEngine& capEngine,
                                const int& capId,
                                mozilla::ipc::Shmem&& shmem,
-                               const size_t& size,
-                               const uint32_t& time_stamp,
-                               const int64_t& ntp_time,
-                               const int64_t& render_time)
+                               const VideoFrameProperties & prop)
 {
   MutexAutoLock lock(mCallbackMutex);
   if (Callback(capEngine, capId)) {
     unsigned char* image = shmem.get<unsigned char>();
-    Callback(capEngine, capId)->DeliverFrame(image, size,
-                                             time_stamp,
-                                             ntp_time, render_time,
-                                             nullptr);
+    Callback(capEngine, capId)->DeliverFrame(image, prop);
   } else {
     LOG(("DeliverFrame called with dead callback"));
   }
   SendReleaseFrame(shmem);
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CamerasChild::RecvDeviceChange()
 {
   this->OnDeviceChange();
-  return true;
+  return IPC_OK();
 }
 
 int
@@ -694,7 +647,7 @@ CamerasChild::SetFakeDeviceChangeEvents()
   return 0;
 }
 
-bool
+mozilla::ipc::IPCResult
 CamerasChild::RecvFrameSizeChange(const CaptureEngine& capEngine,
                                   const int& capId,
                                   const int& w, const int& h)
@@ -702,11 +655,11 @@ CamerasChild::RecvFrameSizeChange(const CaptureEngine& capEngine,
   LOG((__PRETTY_FUNCTION__));
   MutexAutoLock lock(mCallbackMutex);
   if (Callback(capEngine, capId)) {
-    Callback(capEngine, capId)->FrameSizeChange(w, h, 0);
+    Callback(capEngine, capId)->FrameSizeChange(w, h);
   } else {
     LOG(("Frame size change with dead callback"));
   }
-  return true;
+  return IPC_OK();
 }
 
 void
@@ -746,7 +699,7 @@ CamerasChild::~CamerasChild()
   MOZ_COUNT_DTOR(CamerasChild);
 }
 
-webrtc::ExternalRenderer* CamerasChild::Callback(CaptureEngine aCapEngine,
+FrameRelay* CamerasChild::Callback(CaptureEngine aCapEngine,
                                                  int capture_id)
 {
   for (unsigned int i = 0; i < mCallbacks.Length(); i++) {

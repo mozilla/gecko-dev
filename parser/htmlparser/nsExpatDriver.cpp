@@ -15,7 +15,6 @@
 #include "nsIUnicharInputStream.h"
 #include "nsIProtocolHandler.h"
 #include "nsNetUtil.h"
-#include "prprf.h"
 #include "prmem.h"
 #include "nsTextFormatter.h"
 #include "nsDirectoryServiceDefs.h"
@@ -28,9 +27,10 @@
 #include "nsXPCOMCIDInternal.h"
 #include "nsUnicharInputStream.h"
 #include "nsContentUtils.h"
-#include "nsNullPrincipal.h"
+#include "NullPrincipal.h"
 
 #include "mozilla/Logging.h"
+#include "mozilla/SizePrintfMacros.h"
 
 using mozilla::fallible;
 using mozilla::LogLevel;
@@ -793,7 +793,7 @@ nsExpatDriver::OpenInputStreamFromExternalDTD(const char16_t* aFPIStr,
       }
     }
     if (!loadingPrincipal) {
-      loadingPrincipal = nsNullPrincipal::Create();
+      loadingPrincipal = NullPrincipal::Create();
     }
     rv = NS_NewChannel(getter_AddRefs(channel),
                        uri,
@@ -1059,7 +1059,7 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens)
   aScanner.EndReading(end);
 
   MOZ_LOG(gExpatDriverLog, LogLevel::Debug,
-         ("Remaining in expat's buffer: %i, remaining in scanner: %i.",
+         ("Remaining in expat's buffer: %i, remaining in scanner: %" PRIuSIZE ".",
           mExpatBuffered, Distance(start, end)));
 
   // We want to call Expat if we have more buffers, or if we know there won't
@@ -1207,10 +1207,10 @@ nsExpatDriver::ConsumeToken(nsScanner& aScanner, bool& aFlushTokens)
   aScanner.Mark();
 
   MOZ_LOG(gExpatDriverLog, LogLevel::Debug,
-         ("Remaining in expat's buffer: %i, remaining in scanner: %i.",
+         ("Remaining in expat's buffer: %i, remaining in scanner: %" PRIuSIZE ".",
           mExpatBuffered, Distance(currentExpatPosition, end)));
 
-  return NS_SUCCEEDED(mInternalState) ? kEOF : NS_OK;
+  return NS_SUCCEEDED(mInternalState) ? NS_ERROR_HTMLPARSER_EOF : NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1305,9 +1305,6 @@ nsExpatDriver::WillBuildModel(const CParserContext& aParserContext,
 
   // Set up the user data.
   XML_SetUserData(mExpatParser, this);
-
-  // XML must detect invalid character convertion
-  aParserContext.mScanner->OverrideReplacementCharacter(0xffff);
 
   return mInternalState;
 }

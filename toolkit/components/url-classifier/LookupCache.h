@@ -16,6 +16,7 @@
 #include "nsUrlClassifierPrefixSet.h"
 #include "VariableLengthPrefixSet.h"
 #include "mozilla/Logging.h"
+#include "mozilla/TypedEnumBits.h"
 
 namespace mozilla {
 namespace safebrowsing {
@@ -23,30 +24,60 @@ namespace safebrowsing {
 #define MAX_HOST_COMPONENTS 5
 #define MAX_PATH_COMPONENTS 4
 
+enum class MatchResult : uint8_t
+{
+  eNoMatch           = 0x00,
+  eV2Prefix          = 0x01,
+  eV4Prefix          = 0x02,
+  eV2Completion      = 0x04,
+  eV4Completion      = 0x08,
+  eTelemetryDisabled = 0x10,
+
+  eBothPrefix      = eV2Prefix     | eV4Prefix,
+  eBothCompletion  = eV2Completion | eV4Completion,
+  eV2PreAndCom     = eV2Prefix     | eV2Completion,
+  eV4PreAndCom     = eV4Prefix     | eV4Completion,
+  eBothPreAndV2Com = eBothPrefix   | eV2Completion,
+  eBothPreAndV4Com = eBothPrefix   | eV4Completion,
+  eAll             = eBothPrefix   | eBothCompletion,
+};
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(MatchResult)
+
 class LookupResult {
 public:
-  LookupResult() : mComplete(false), mNoise(false),
-                   mFresh(false), mProtocolConfirmed(false) {}
+  LookupResult() : mNoise(false), mProtocolConfirmed(false),
+                   mPartialHashLength(0), mConfirmed(false),
+                   mProtocolV2(true),
+                   mMatchResult(MatchResult::eTelemetryDisabled) {}
 
   // The fragment that matched in the LookupCache
   union {
-    Prefix prefix;
+    Prefix fixedLengthPrefix;
     Completion complete;
   } hash;
 
-  const Prefix &PrefixHash() {
-    return hash.prefix;
-  }
   const Completion &CompleteHash() {
     MOZ_ASSERT(!mNoise);
     return hash.complete;
   }
 
-  bool Confirmed() const { return (mComplete && mFresh) || mProtocolConfirmed; }
-  bool Complete() const { return mComplete; }
+  nsCString PartialHash() {
+    MOZ_ASSERT(mPartialHashLength <= COMPLETE_SIZE);
+    return nsCString(reinterpret_cast<char*>(hash.complete.buf), mPartialHashLength);
+  }
+
+  nsCString PartialHashHex() {
+    nsAutoCString hex;
+    for (size_t i = 0; i < mPartialHashLength; i++) {
+      hex.AppendPrintf("%.2X", hash.complete.buf[i]);
+    }
+    return hex;
+  }
+
+  bool Confirmed() const { return mConfirmed || mProtocolConfirmed; }
 
   // True if we have a complete match for this hash in the table.
-  bool mComplete;
+  bool Complete() const { return mPartialHashLength == COMPLETE_SIZE; }
 
   // True if this is a noise entry, i.e. an extra entry
   // that is inserted to mask the true URL we are requesting.
@@ -55,12 +86,19 @@ public:
   // don't know the corresponding full URL.
   bool mNoise;
 
-  // True if we've updated this table recently-enough.
-  bool mFresh;
-
   bool mProtocolConfirmed;
 
   nsCString mTableName;
+
+  uint32_t mPartialHashLength;
+
+  // True as long as this lookup is complete and hasn't expired.
+  bool mConfirmed;
+
+  bool mProtocolV2;
+
+  // This is only used by telemetry to record the match result.
+  MatchResult mMatchResult;
 };
 
 typedef nsTArray<LookupResult> LookupResultArray;
@@ -96,7 +134,9 @@ public:
   static nsresult GetHostKeys(const nsACString& aSpec,
                               nsTArray<nsCString>* aHostKeys);
 
-  LookupCache(const nsACString& aTableName, nsIFile* aStoreFile);
+  LookupCache(const nsACString& aTableName,
+              const nsACString& aProvider,
+              nsIFile* aStoreFile);
   virtual ~LookupCache() {}
 
   const nsCString &TableName() const { return mTableName; }
@@ -124,7 +164,15 @@ public:
   virtual nsresult Init() = 0;
   virtual nsresult ClearPrefixes() = 0;
   virtual nsresult Has(const Completion& aCompletion,
-                       bool* aHas, bool* aComplete) = 0;
+                       bool* aHas, uint32_t* aMatchLength,
+                       bool* aFromCache) = 0;
+
+  virtual void IsHashEntryConfirmed(const Completion& aEntry,
+                                    const TableFreshnessMap& aTableFreshness,
+                                    uint32_t aFreshnessGuarantee,
+                                    bool* aConfirmed) = 0;
+
+  virtual bool IsEmpty() = 0;
 
   virtual void ClearAll();
 
@@ -146,6 +194,7 @@ private:
 protected:
   bool mPrimed;
   nsCString mTableName;
+  nsCString mProvider;
   nsCOMPtr<nsIFile> mRootStoreDirectory;
   nsCOMPtr<nsIFile> mStoreDirectory;
 
@@ -159,15 +208,25 @@ protected:
 class LookupCacheV2 final : public LookupCache
 {
 public:
-  explicit LookupCacheV2(const nsACString& aTableName, nsIFile* aStoreFile)
-    : LookupCache(aTableName, aStoreFile) {}
+  explicit LookupCacheV2(const nsACString& aTableName,
+                         const nsACString& aProvider,
+                         nsIFile* aStoreFile)
+    : LookupCache(aTableName, aProvider, aStoreFile) {}
   ~LookupCacheV2() {}
 
   virtual nsresult Init() override;
   virtual nsresult Open() override;
   virtual void ClearAll() override;
   virtual nsresult Has(const Completion& aCompletion,
-                       bool* aHas, bool* aComplete) override;
+                       bool* aHas, uint32_t* aMatchLength,
+                       bool* aFromCache) override;
+
+  virtual void IsHashEntryConfirmed(const Completion& aEntry,
+                                    const TableFreshnessMap& aTableFreshness,
+                                    uint32_t aFreshnessGuarantee,
+                                    bool* aConfirmed) override;
+
+  virtual bool IsEmpty() override;
 
   nsresult Build(AddPrefixArray& aAddPrefixes,
                  AddCompleteArray& aAddCompletes);

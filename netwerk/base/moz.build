@@ -32,11 +32,9 @@ XPIDL_SOURCES += [
     'nsIChannelEventSink.idl',
     'nsIChannelWithDivertableParentListener.idl',
     'nsIChildChannel.idl',
+    'nsIClassifiedChannel.idl',
     'nsIClassOfService.idl',
     'nsIContentSniffer.idl',
-    'nsICryptoFIPSInfo.idl',
-    'nsICryptoHash.idl',
-    'nsICryptoHMAC.idl',
     'nsIDashboard.idl',
     'nsIDashboardEventNotifier.idl',
     'nsIDeprecationWarner.idl',
@@ -71,7 +69,6 @@ XPIDL_SOURCES += [
     'nsINetworkPredictor.idl',
     'nsINetworkPredictorVerifier.idl',
     'nsINetworkProperties.idl',
-    'nsINSSErrorsService.idl',
     'nsINullChannel.idl',
     'nsIParentChannel.idl',
     'nsIParentRedirectingChannel.idl',
@@ -120,6 +117,7 @@ XPIDL_SOURCES += [
     'nsIThreadRetargetableRequest.idl',
     'nsIThreadRetargetableStreamListener.idl',
     'nsIThrottledInputChannel.idl',
+    'nsIThrottlingService.idl',
     'nsITimedChannel.idl',
     'nsITLSServerSocket.idl',
     'nsITraceableChannel.idl',
@@ -153,7 +151,6 @@ EXPORTS += [
     'nsInputStreamPump.h',
     'nsMIMEInputStream.h',
     'nsNetUtil.h',
-    'nsNetUtilInlines.h',
     'nsReadLine.h',
     'nsSerializationHelper.h',
     'nsSimpleNestedURI.h',
@@ -254,9 +251,14 @@ UNIFIED_SOURCES += [
     'SimpleBuffer.cpp',
     'StreamingProtocolService.cpp',
     'ThrottleQueue.cpp',
+    'ThrottlingService.cpp',
     'Tickler.cpp',
     'TLSServerSocket.cpp',
 ]
+
+if CONFIG['MOZ_RUST'] and CONFIG['MOZ_RUST_URLPARSE']:
+    EXPORTS.mozilla.net += [ 'RustURL.h' ]
+    UNIFIED_SOURCES += [ 'RustURL.cpp' ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     SOURCES += [

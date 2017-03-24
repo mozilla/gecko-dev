@@ -8,7 +8,7 @@
 
 <body>
 <input id="entries" type="file"></input>
-<script type="application/javascript;version=1.7">
+<script type="application/javascript">
 
 var fileEntry;
 var directoryEntry;
@@ -16,6 +16,7 @@ var script;
 
 function setup_tests() {
   SpecialPowers.pushPrefEnv({"set": [["dom.webkitBlink.dirPicker.enabled", true],
+                                     ["dom.filesystem.pathcheck.disabled", true],
                                      ["dom.webkitBlink.filesystem.enabled", true]]}, next);
 }
 
@@ -408,6 +409,25 @@ function test_getParent(entry, parentEntry, nested) {
   });
 }
 
+function test_webkitRelativePath() {
+  fileEntry.file(function(file1) {
+    ok(file1, "We have a file here!");
+    ok(!file1.webkitRelativePath, "webkitRelativePath is an empty string");
+
+    fileEntry.file(function(file2) {
+      ok(file2, "We have a file here!");
+      ok(!file2.webkitRelativePath, "webkitRelativePath is an empty string");
+      isnot(file1, file2, "The 2 files are not the same");
+
+      next();
+    }, function() {
+      ok(false, "Something when wrong!");
+    });
+  }, function() {
+    ok(false, "Something when wrong!");
+  });
+}
+
 var tests = [
   setup_tests,
   populate_entries,
@@ -451,6 +471,8 @@ var tests = [
   test_root_getDirectory_nonExistingPath,
   test_root_getDirectory_simple,
   test_root_getDirectory_deep,
+
+  test_webkitRelativePath,
 
   cleanUpTestingFiles,
 ];

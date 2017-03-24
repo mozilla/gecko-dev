@@ -19,16 +19,21 @@
 #include "nsTArray.h"
 
 class nsCSSPropertyIDSet;
+class nsIAtom;
 class nsIFrame;
 class nsIStyleRule;
 class nsPresContext;
 class nsStyleContext;
+struct RawServoAnimationValueMap;
+typedef RawServoAnimationValueMap const* RawServoAnimationValueMapBorrowed;
 
 namespace mozilla {
 
 class EffectSet;
 class RestyleTracker;
+class StyleAnimationValue;
 struct AnimationPerformanceWarning;
+struct AnimationProperty;
 struct NonOwningAnimationTarget;
 
 namespace dom {
@@ -57,12 +62,12 @@ public:
   }
 
   // Animations can be applied at two different levels in the CSS cascade:
-  enum class CascadeLevel {
+  enum class CascadeLevel : uint32_t {
     // The animations sheet (CSS animations, script-generated animations,
     // and CSS transitions that are no longer tied to CSS markup)
-    Animations,
+    Animations = 0,
     // The transitions sheet (CSS transitions that are tied to CSS markup)
-    Transitions
+    Transitions = 1
   };
   // We don't define this as part of CascadeLevel as then we'd have to add
   // explicit checks for the Count enum value everywhere CascadeLevel is used.
@@ -148,6 +153,17 @@ public:
                                  CascadeLevel aCascadeLevel,
                                  nsStyleContext* aStyleContext);
 
+  // Get animation rule for stylo. This is an equivalent of GetAnimationRule
+  // and will be called from servo side.
+  // The animation rule is stored in |RawServoAnimationValueMapBorrowed|.
+  // We need to be careful while doing any modification because it may cause
+  // some thread-safe issues.
+  bool GetServoAnimationRule(
+    const dom::Element* aElement,
+    CSSPseudoElementType aPseudoType,
+    CascadeLevel aCascadeLevel,
+    RawServoAnimationValueMapBorrowed aAnimationValues);
+
   bool HasPendingStyleUpdates() const;
   bool HasThrottledStyleUpdates() const;
 
@@ -185,6 +201,14 @@ public:
                             CSSPseudoElementType aPseudoType,
                             nsStyleContext* aStyleContext);
 
+  // Variant of MaybeUpdateCascadeResults for the Servo backend.
+  // The Servo backend doesn't use an nsStyleContext to get the rule node
+  // to traverse the style tree to find !important rules and instead
+  // gets the rule node from |aElement|.
+  static void
+  MaybeUpdateCascadeResults(dom::Element* aElement,
+                            CSSPseudoElementType aPseudoType);
+
   // Update the mPropertiesWithImportantRules and
   // mPropertiesForAnimationsLevel members of the corresponding EffectSet.
   //
@@ -215,6 +239,15 @@ public:
     nsCSSPropertyID aProperty,
     const AnimationPerformanceWarning& aWarning);
 
+  // Do a bunch of stuff that we should avoid doing during the parallel
+  // traversal (e.g. changing member variables) for all elements that we expect
+  // to restyle on the next traversal.
+  // Returns true if there are elements needing a restyle for animation.
+  bool PreTraverse();
+
+  // Similar to the above but only for the (pseudo-)element.
+  bool PreTraverse(dom::Element* aElement, nsIAtom* aPseudoTagOrNull);
+
 private:
   ~EffectCompositor() = default;
 
@@ -222,8 +255,7 @@ private:
   // EffectSet associated with the specified (pseudo-)element.
   static void ComposeAnimationRule(dom::Element* aElement,
                                    CSSPseudoElementType aPseudoType,
-                                   CascadeLevel aCascadeLevel,
-                                   TimeStamp aRefreshTime);
+                                   CascadeLevel aCascadeLevel);
 
   static dom::Element* GetElementToRestyle(dom::Element* aElement,
                                            CSSPseudoElementType

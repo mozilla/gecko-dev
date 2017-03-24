@@ -19,7 +19,7 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsNetUtil.h"
 #include "nsComponentManagerUtils.h"
-#include "nsNullPrincipal.h"
+#include "NullPrincipal.h"
 #include "nsContentUtils.h"
 #include "nsIParserUtils.h"
 #include "nsIDocument.h"
@@ -1067,8 +1067,8 @@ bool
 nsTreeSanitizer::SanitizeStyleDeclaration(mozilla::css::Declaration* aDeclaration,
                                           nsAutoString& aRuleText)
 {
-  bool didSanitize = aDeclaration->HasProperty(eCSSProperty_binding);
-  aDeclaration->RemovePropertyByID(eCSSProperty_binding);
+  bool didSanitize = aDeclaration->HasProperty(eCSSProperty__moz_binding);
+  aDeclaration->RemovePropertyByID(eCSSProperty__moz_binding);
   aDeclaration->ToString(aRuleText);
   return didSanitize;
 }
@@ -1281,6 +1281,10 @@ nsTreeSanitizer::SanitizeURL(mozilla::dom::Element* aElement,
   static const char* kWhitespace = "\n\r\t\b";
   const nsAString& v =
     nsContentUtils::TrimCharsInSet(kWhitespace, value);
+  // Fragment-only url cannot be harmful.
+  if (!v.IsEmpty() && v.First() == u'#') {
+    return false;
+  }
 
   nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
   uint32_t flags = nsIScriptSecurityManager::DISALLOW_INHERIT_PRINCIPAL;
@@ -1518,7 +1522,7 @@ nsTreeSanitizer::InitializeStatics()
     sAttributesMathML->PutEntry(*kAttributesMathML[i]);
   }
 
-  nsCOMPtr<nsIPrincipal> principal = nsNullPrincipal::Create();
+  nsCOMPtr<nsIPrincipal> principal = NullPrincipal::Create();
   principal.forget(&sNullPrincipal);
 }
 

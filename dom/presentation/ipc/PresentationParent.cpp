@@ -93,12 +93,10 @@ NS_IMPL_ISUPPORTS(PresentationParent,
 
 PresentationParent::PresentationParent()
 {
-  MOZ_COUNT_CTOR(PresentationParent);
 }
 
 /* virtual */ PresentationParent::~PresentationParent()
 {
-  MOZ_COUNT_DTOR(PresentationParent);
 }
 
 bool
@@ -134,11 +132,13 @@ PresentationParent::ActorDestroy(ActorDestroyReason aWhy)
   }
   mWindowIds.Clear();
 
-  mService->UnregisterAvailabilityListener(this);
+  if (!mContentAvailabilityUrls.IsEmpty()) {
+    mService->UnregisterAvailabilityListener(mContentAvailabilityUrls, this);
+  }
   mService = nullptr;
 }
 
-bool
+mozilla::ipc::IPCResult
 PresentationParent::RecvPPresentationRequestConstructor(
   PPresentationRequestParent* aActor,
   const PresentationIPCRequest& aRequest)
@@ -169,7 +169,10 @@ PresentationParent::RecvPPresentationRequestConstructor(
       MOZ_CRASH("Unknown PresentationIPCRequest type");
   }
 
-  return NS_WARN_IF(NS_FAILED(rv)) ? false : true;
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IPC_FAIL_NO_REASON(this);
+  }
+  return IPC_OK();
 }
 
 PPresentationRequestParent*
@@ -205,29 +208,41 @@ PresentationParent::DeallocPPresentationBuilderParent(
   return true;
 }
 
-bool
+mozilla::ipc::IPCResult
 PresentationParent::Recv__delete__()
 {
-  return true;
+  return IPC_OK();
 }
 
-bool
-PresentationParent::RecvRegisterAvailabilityHandler()
+mozilla::ipc::IPCResult
+PresentationParent::RecvRegisterAvailabilityHandler(
+                                       nsTArray<nsString>&& aAvailabilityUrls)
 {
   MOZ_ASSERT(mService);
-  Unused << NS_WARN_IF(NS_FAILED(mService->RegisterAvailabilityListener(this)));
-  return true;
+
+  Unused << NS_WARN_IF(NS_FAILED(mService->RegisterAvailabilityListener(
+                                                             aAvailabilityUrls,
+                                                             this)));
+  mContentAvailabilityUrls.AppendElements(aAvailabilityUrls);
+  return IPC_OK();
 }
 
-bool
-PresentationParent::RecvUnregisterAvailabilityHandler()
+mozilla::ipc::IPCResult
+PresentationParent::RecvUnregisterAvailabilityHandler(
+                                        nsTArray<nsString>&& aAvailabilityUrls)
 {
   MOZ_ASSERT(mService);
-  Unused << NS_WARN_IF(NS_FAILED(mService->UnregisterAvailabilityListener(this)));
-  return true;
+
+  Unused << NS_WARN_IF(NS_FAILED(mService->UnregisterAvailabilityListener(
+                                                             aAvailabilityUrls,
+                                                             this)));
+  for (const auto& url : aAvailabilityUrls) {
+    mContentAvailabilityUrls.RemoveElement(url);
+  }
+  return IPC_OK();
 }
 
-/* virtual */ bool
+/* virtual */ mozilla::ipc::IPCResult
 PresentationParent::RecvRegisterSessionHandler(const nsString& aSessionId,
                                                const uint8_t& aRole)
 {
@@ -237,7 +252,7 @@ PresentationParent::RecvRegisterSessionHandler(const nsString& aSessionId,
   // compromised child process can't fake the ID.
   if (NS_WARN_IF(!static_cast<PresentationService*>(mService.get())->
                   IsSessionAccessible(aSessionId, aRole, OtherPid()))) {
-    return true;
+    return IPC_OK();
   }
 
   if (nsIPresentationService::ROLE_CONTROLLER == aRole) {
@@ -246,10 +261,10 @@ PresentationParent::RecvRegisterSessionHandler(const nsString& aSessionId,
     mSessionIdsAtReceiver.AppendElement(aSessionId);
   }
   Unused << NS_WARN_IF(NS_FAILED(mService->RegisterSessionListener(aSessionId, aRole, this)));
-  return true;
+  return IPC_OK();
 }
 
-/* virtual */ bool
+/* virtual */ mozilla::ipc::IPCResult
 PresentationParent::RecvUnregisterSessionHandler(const nsString& aSessionId,
                                                  const uint8_t& aRole)
 {
@@ -260,32 +275,35 @@ PresentationParent::RecvUnregisterSessionHandler(const nsString& aSessionId,
     mSessionIdsAtReceiver.RemoveElement(aSessionId);
   }
   Unused << NS_WARN_IF(NS_FAILED(mService->UnregisterSessionListener(aSessionId, aRole)));
-  return true;
+  return IPC_OK();
 }
 
-/* virtual */ bool
+/* virtual */ mozilla::ipc::IPCResult
 PresentationParent::RecvRegisterRespondingHandler(const uint64_t& aWindowId)
 {
   MOZ_ASSERT(mService);
 
   mWindowIds.AppendElement(aWindowId);
   Unused << NS_WARN_IF(NS_FAILED(mService->RegisterRespondingListener(aWindowId, this)));
-  return true;
+  return IPC_OK();
 }
 
-/* virtual */ bool
+/* virtual */ mozilla::ipc::IPCResult
 PresentationParent::RecvUnregisterRespondingHandler(const uint64_t& aWindowId)
 {
   MOZ_ASSERT(mService);
   mWindowIds.RemoveElement(aWindowId);
   Unused << NS_WARN_IF(NS_FAILED(mService->UnregisterRespondingListener(aWindowId)));
-  return true;
+  return IPC_OK();
 }
 
 NS_IMETHODIMP
-PresentationParent::NotifyAvailableChange(bool aAvailable)
+PresentationParent::NotifyAvailableChange(const nsTArray<nsString>& aAvailabilityUrls,
+                                          bool aAvailable)
 {
-  if (NS_WARN_IF(mActorDestroyed || !SendNotifyAvailableChange(aAvailable))) {
+  if (NS_WARN_IF(mActorDestroyed ||
+                 !SendNotifyAvailableChange(aAvailabilityUrls,
+                                            aAvailable))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -330,7 +348,7 @@ PresentationParent::NotifySessionConnect(uint64_t aWindowId,
   return NS_OK;
 }
 
-bool
+mozilla::ipc::IPCResult
 PresentationParent::RecvNotifyReceiverReady(const nsString& aSessionId,
                                             const uint64_t& aWindowId,
                                             const bool& aIsLoading)
@@ -343,10 +361,10 @@ PresentationParent::RecvNotifyReceiverReady(const nsString& aSessionId,
                                                                aWindowId,
                                                                aIsLoading,
                                                                constructor)));
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 PresentationParent::RecvNotifyTransportClosed(const nsString& aSessionId,
                                               const uint8_t& aRole,
                                               const nsresult& aReason)
@@ -354,7 +372,7 @@ PresentationParent::RecvNotifyTransportClosed(const nsString& aSessionId,
   MOZ_ASSERT(mService);
 
   Unused << NS_WARN_IF(NS_FAILED(mService->NotifyTransportClosed(aSessionId, aRole, aReason)));
-  return true;
+  return IPC_OK();
 }
 
 /*
@@ -368,12 +386,10 @@ PresentationRequestParent::PresentationRequestParent(nsIPresentationService* aSe
   : mService(aService)
   , mChildId(aContentParentId)
 {
-  MOZ_COUNT_CTOR(PresentationRequestParent);
 }
 
 PresentationRequestParent::~PresentationRequestParent()
 {
-  MOZ_COUNT_DTOR(PresentationRequestParent);
 }
 
 void

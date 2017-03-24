@@ -8,21 +8,19 @@ package org.mozilla.gecko;
 
 import java.util.Set;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.mozilla.gecko.annotation.ReflectionTarget;
 import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.mozglue.JNIObject;
+import org.mozilla.gecko.NativeQueue.StateHolder;
+import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.EventCallback;
-import org.mozilla.gecko.util.GeckoEventListener;
-import org.mozilla.gecko.util.NativeEventListener;
-import org.mozilla.gecko.util.NativeJSObject;
-import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.util.GeckoBundle;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -38,90 +36,73 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 
 public class GeckoView extends LayerView
-    implements ContextGetter, GeckoEventListener, NativeEventListener {
+    implements ContextGetter {
 
     private static final String DEFAULT_SHARED_PREFERENCES_FILE = "GeckoView";
     private static final String LOGTAG = "GeckoView";
 
-    private ChromeDelegate mChromeDelegate;
-    private ContentDelegate mContentDelegate;
+    private static final boolean DEBUG = false;
 
-    private InputConnectionListener mInputConnectionListener;
+    /* package */ enum State implements NativeQueue.State {
+        @WrapForJNI INITIAL(0),
+        @WrapForJNI READY(1);
 
-    protected boolean onAttachedToWindowCalled;
-    protected String chromeURI = getGeckoInterface().getDefaultChromeURI();
-    protected int screenId = 0; // default to the primary screen
+        private int rank;
 
-    @Override
-    public void handleMessage(final String event, final JSONObject message) {
-        ThreadUtils.postToUiThread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (event.equals("Gecko:Ready")) {
-                        handleReady(message);
-                    } else if (event.equals("Content:StateChange")) {
-                        handleStateChange(message);
-                    } else if (event.equals("Content:LoadError")) {
-                        handleLoadError(message);
-                    } else if (event.equals("Content:PageShow")) {
-                        handlePageShow(message);
-                    } else if (event.equals("DOMTitleChanged")) {
-                        handleTitleChanged(message);
-                    } else if (event.equals("Link:Favicon")) {
-                        handleLinkFavicon(message);
-                    } else if (event.equals("Prompt:Show") || event.equals("Prompt:ShowTop")) {
-                        handlePrompt(message);
-                    } else if (event.equals("Accessibility:Event")) {
-                        int mode = getImportantForAccessibility();
-                        if (mode == View.IMPORTANT_FOR_ACCESSIBILITY_YES ||
-                                mode == View.IMPORTANT_FOR_ACCESSIBILITY_AUTO) {
-                            GeckoAccessibility.sendAccessibilityEvent(message);
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.e(LOGTAG, "handleMessage threw for " + event, e);
-                }
+        private State(int rank) {
+            this.rank = rank;
+        }
+
+        @Override
+        public boolean is(final NativeQueue.State other) {
+            return this == other;
+        }
+
+        @Override
+        public boolean isAtLeast(final NativeQueue.State other) {
+            if (other instanceof State) {
+                return this.rank >= ((State) other).rank;
             }
-        });
-    }
-
-    @Override
-    public void handleMessage(final String event, final NativeJSObject message, final EventCallback callback) {
-        try {
-            if ("Accessibility:Ready".equals(event)) {
-                GeckoAccessibility.updateAccessibilitySettings(getContext());
-            } else if ("GeckoView:Message".equals(event)) {
-                // We need to pull out the bundle while on the Gecko thread.
-                NativeJSObject json = message.optObject("data", null);
-                if (json == null) {
-                    // Must have payload to call the message handler.
-                    return;
-                }
-                final Bundle data = json.toBundle();
-                ThreadUtils.postToUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        handleScriptMessage(data, callback);
-                    }
-                });
-            }
-        } catch (Exception e) {
-            Log.w(LOGTAG, "handleMessage threw for " + event, e);
+            return false;
         }
     }
+
+    private final StateHolder mStateHolder =
+        new StateHolder(State.INITIAL, State.READY);
+
+    @WrapForJNI(calledFrom = "gecko")
+    private void setState(final State newState) {
+        mStateHolder.setState(newState);
+    }
+
+    private final EventDispatcher mEventDispatcher =
+        new EventDispatcher(mStateHolder);
+
+    private ChromeDelegate mChromeDelegate;
+    /* package */ ContentListener mContentListener;
+    /* package */ NavigationListener mNavigationListener;
+    /* package */ ProgressListener mProgressListener;
+    private InputConnectionListener mInputConnectionListener;
+
+    private GeckoViewSettings mSettings;
+
+    protected boolean mOnAttachedToWindowCalled;
+    protected String mChromeUri;
+    protected int mScreenId = 0; // default to the primary screen
 
     @WrapForJNI(dispatchTo = "proxy")
     protected static final class Window extends JNIObject {
         @WrapForJNI(skip = true)
         /* package */ Window() {}
 
-        static native void open(Window instance, GeckoView view, Object compositor,
-                                String chromeURI, int screenId);
+        static native void open(Window instance, GeckoView view,
+                                Object compositor, EventDispatcher dispatcher,
+                                String chromeUri, GeckoBundle settings,
+                                int screenId);
 
         @Override protected native void disposeNative();
         native void close();
-        native void reattach(GeckoView view, Object compositor);
+        native void reattach(GeckoView view, Object compositor, EventDispatcher dispatcher);
         native void loadUri(String uri, int flags);
     }
 
@@ -169,8 +150,56 @@ public class GeckoView extends LayerView
             };
     }
 
+    private class Listener implements BundleEventListener {
+        /* package */ void registerListeners() {
+            getEventDispatcher().registerUiThreadListener(this,
+                "GeckoView:DOMTitleChanged",
+                "GeckoView:LocationChange",
+                "GeckoView:PageStart",
+                "GeckoView:PageStop",
+                "GeckoView:SecurityChanged",
+                null);
+        }
+
+        @Override
+        public void handleMessage(final String event, final GeckoBundle message,
+                                  final EventCallback callback) {
+            if (DEBUG) {
+                Log.d(LOGTAG, "handleMessage: event = " + event);
+            }
+
+            if ("GeckoView:DOMTitleChanged".equals(event)) {
+                if (mContentListener != null) {
+                    mContentListener.onTitleChanged(GeckoView.this, message.getString("title"));
+                }
+            } else if ("GeckoView:LocationChange".equals(event)) {
+                if (mNavigationListener == null) {
+                    // We shouldn't be getting this event.
+                    mEventDispatcher.dispatch("GeckoViewNavigation:Inactive", null);
+                } else {
+                    mNavigationListener.onLocationChange(GeckoView.this, message.getString("uri"));
+                    mNavigationListener.onCanGoBack(GeckoView.this, message.getBoolean("canGoBack"));
+                    mNavigationListener.onCanGoForward(GeckoView.this, message.getBoolean("canGoForward"));
+                }
+            } else if ("GeckoView:PageStart".equals(event)) {
+                if (mProgressListener != null) {
+                    mProgressListener.onPageStart(GeckoView.this, message.getString("uri"));
+                }
+            } else if ("GeckoView:PageStop".equals(event)) {
+                if (mProgressListener != null) {
+                    mProgressListener.onPageStop(GeckoView.this, message.getBoolean("success"));
+                }
+            } else if ("GeckoView:SecurityChanged".equals(event)) {
+                if (mProgressListener != null) {
+                    mProgressListener.onSecurityChanged(GeckoView.this, message.getInt("status"));
+                }
+            }
+        }
+    }
+
     protected Window window;
     private boolean stateSaved;
+    private final Listener listener = new Listener();
 
     public GeckoView(Context context) {
         super(context);
@@ -197,20 +226,21 @@ public class GeckoView extends LayerView
         // Perform common initialization for Fennec/GeckoView.
         GeckoAppShell.setLayerView(this);
 
-        initializeView(EventDispatcher.getInstance());
+        initializeView();
+        listener.registerListeners();
+
+        mSettings = new GeckoViewSettings(getEventDispatcher());
     }
 
     @Override
-    protected Parcelable onSaveInstanceState()
-    {
+    protected Parcelable onSaveInstanceState() {
         final Parcelable superState = super.onSaveInstanceState();
         stateSaved = true;
         return new StateBinder(superState, this.window);
     }
 
     @Override
-    protected void onRestoreInstanceState(final Parcelable state)
-    {
+    protected void onRestoreInstanceState(final Parcelable state) {
         final StateBinder stateBinder = (StateBinder) state;
 
         if (stateBinder.window != null) {
@@ -218,7 +248,7 @@ public class GeckoView extends LayerView
         }
         stateSaved = false;
 
-        if (onAttachedToWindowCalled) {
+        if (mOnAttachedToWindowCalled) {
             reattachWindow();
         }
 
@@ -228,29 +258,38 @@ public class GeckoView extends LayerView
     }
 
     protected void openWindow() {
+        if (mChromeUri == null) {
+            mChromeUri = getGeckoInterface().getDefaultChromeURI();
+        }
 
         if (GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
-            Window.open(window, this, getCompositor(),
-                        chromeURI, screenId);
+            Window.open(window, this, getCompositor(), mEventDispatcher,
+                        mChromeUri, mSettings.asBundle(), mScreenId);
         } else {
-            GeckoThread.queueNativeCallUntil(GeckoThread.State.PROFILE_READY, Window.class,
-                    "open", window, GeckoView.class, this, Object.class, getCompositor(),
-                    String.class, chromeURI, screenId);
+            GeckoThread.queueNativeCallUntil(
+                GeckoThread.State.PROFILE_READY,
+                Window.class, "open", window,
+                GeckoView.class, this,
+                Object.class, getCompositor(),
+                EventDispatcher.class, mEventDispatcher,
+                String.class, mChromeUri,
+                GeckoBundle.class, mSettings.asBundle(),
+                mScreenId);
         }
     }
 
     protected void reattachWindow() {
         if (GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
-            window.reattach(this, getCompositor());
+            window.reattach(this, getCompositor(), mEventDispatcher);
         } else {
             GeckoThread.queueNativeCallUntil(GeckoThread.State.PROFILE_READY,
-                    window, "reattach", GeckoView.class, this, Object.class, getCompositor());
+                    window, "reattach", GeckoView.class, this,
+                    Object.class, getCompositor(), EventDispatcher.class, mEventDispatcher);
         }
     }
 
     @Override
-    public void onAttachedToWindow()
-    {
+    public void onAttachedToWindow() {
         final DisplayMetrics metrics = getContext().getResources().getDisplayMetrics();
 
         if (window == null) {
@@ -263,12 +302,11 @@ public class GeckoView extends LayerView
 
         super.onAttachedToWindow();
 
-        onAttachedToWindowCalled = true;
+        mOnAttachedToWindowCalled = true;
     }
 
     @Override
-    public void onDetachedFromWindow()
-    {
+    public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         super.destroy();
 
@@ -287,28 +325,76 @@ public class GeckoView extends LayerView
                     window, "disposeNative");
         }
 
-        onAttachedToWindowCalled = false;
+        mOnAttachedToWindowCalled = false;
     }
 
     @WrapForJNI public static final int LOAD_DEFAULT = 0;
     @WrapForJNI public static final int LOAD_NEW_TAB = 1;
     @WrapForJNI public static final int LOAD_SWITCH_TAB = 2;
 
+    /**
+    * Load the given URI.
+    * Note: Only for Fennec support.
+    * @param uri The URI of the resource to load.
+    * @param flags The load flags (TODO).
+    */
     public void loadUri(String uri, int flags) {
         if (window == null) {
             throw new IllegalStateException("Not attached to window");
         }
 
-        if (GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
+        if (GeckoThread.isRunning()) {
             window.loadUri(uri, flags);
         }  else {
-            GeckoThread.queueNativeCallUntil(GeckoThread.State.PROFILE_READY,
-                    window, "loadUri", String.class, uri, flags);
+            GeckoThread.queueNativeCall(window, "loadUri", String.class, uri, flags);
         }
+    }
+
+    /**
+    * Load the given URI.
+    * @param uri The URI of the resource to load.
+    */
+    public void loadUri(String uri) {
+        final GeckoBundle msg = new GeckoBundle();
+        msg.putString("uri", uri);
+        mEventDispatcher.dispatch("GeckoView:LoadUri", msg);
+    }
+
+    /**
+    * Load the given URI.
+    * @param uri The URI of the resource to load.
+    */
+    public void loadUri(Uri uri) {
+        loadUri(uri.toString());
+    }
+
+    /**
+    * Reload the current URI.
+    */
+    public void reload() {
+        mEventDispatcher.dispatch("GeckoView:Reload", null);
     }
 
     /* package */ void setInputConnectionListener(final InputConnectionListener icl) {
         mInputConnectionListener = icl;
+    }
+
+    /**
+    * Go back in history.
+    */
+    public void goBack() {
+        mEventDispatcher.dispatch("GeckoView:GoBack", null);
+    }
+
+    /**
+    * Go forward in history.
+    */
+    public void goForward() {
+        mEventDispatcher.dispatch("GeckoView:GoForward", null);
+    }
+
+    public GeckoViewSettings getSettings() {
+        return mSettings;
     }
 
     @Override
@@ -379,91 +465,13 @@ public class GeckoView extends LayerView
 
     public void importScript(final String url) {
         if (url.startsWith("resource://android/assets/")) {
-            GeckoAppShell.notifyObservers("GeckoView:ImportScript", url);
+            final GeckoBundle data = new GeckoBundle(1);
+            data.putString("scriptURL", url);
+            getEventDispatcher().dispatch("GeckoView:ImportScript", data);
             return;
         }
 
         throw new IllegalArgumentException("Must import script from 'resources://android/assets/' location.");
-    }
-
-    private void handleReady(final JSONObject message) {
-        if (mChromeDelegate != null) {
-            mChromeDelegate.onReady(this);
-        }
-    }
-
-    private void handleStateChange(final JSONObject message) throws JSONException {
-        int state = message.getInt("state");
-        if ((state & GeckoAppShell.WPL_STATE_IS_NETWORK) != 0) {
-            if ((state & GeckoAppShell.WPL_STATE_START) != 0) {
-                if (mContentDelegate != null) {
-                    int id = message.getInt("tabID");
-                    mContentDelegate.onPageStart(this, new Browser(id), message.getString("uri"));
-                }
-            } else if ((state & GeckoAppShell.WPL_STATE_STOP) != 0) {
-                if (mContentDelegate != null) {
-                    int id = message.getInt("tabID");
-                    mContentDelegate.onPageStop(this, new Browser(id), message.getBoolean("success"));
-                }
-            }
-        }
-    }
-
-    private void handleLoadError(final JSONObject message) throws JSONException {
-        if (mContentDelegate != null) {
-            int id = message.getInt("tabID");
-            mContentDelegate.onPageStop(GeckoView.this, new Browser(id), false);
-        }
-    }
-
-    private void handlePageShow(final JSONObject message) throws JSONException {
-        if (mContentDelegate != null) {
-            int id = message.getInt("tabID");
-            mContentDelegate.onPageShow(GeckoView.this, new Browser(id));
-        }
-    }
-
-    private void handleTitleChanged(final JSONObject message) throws JSONException {
-        if (mContentDelegate != null) {
-            int id = message.getInt("tabID");
-            mContentDelegate.onReceivedTitle(GeckoView.this, new Browser(id), message.getString("title"));
-        }
-    }
-
-    private void handleLinkFavicon(final JSONObject message) throws JSONException {
-        if (mContentDelegate != null) {
-            int id = message.getInt("tabID");
-            mContentDelegate.onReceivedFavicon(GeckoView.this, new Browser(id), message.getString("href"), message.getInt("size"));
-        }
-    }
-
-    private void handlePrompt(final JSONObject message) throws JSONException {
-        if (mChromeDelegate != null) {
-            String hint = message.optString("hint");
-            if ("alert".equals(hint)) {
-                String text = message.optString("text");
-                mChromeDelegate.onAlert(GeckoView.this, null, text, new PromptResult(message));
-            } else if ("confirm".equals(hint)) {
-                String text = message.optString("text");
-                mChromeDelegate.onConfirm(GeckoView.this, null, text, new PromptResult(message));
-            } else if ("prompt".equals(hint)) {
-                String text = message.optString("text");
-                String defaultValue = message.optString("textbox0");
-                mChromeDelegate.onPrompt(GeckoView.this, null, text, defaultValue, new PromptResult(message));
-            } else if ("remotedebug".equals(hint)) {
-                mChromeDelegate.onDebugRequest(GeckoView.this, new PromptResult(message));
-            }
-        }
-    }
-
-    private void handleScriptMessage(final Bundle data, final EventCallback callback) {
-        if (mChromeDelegate != null) {
-            MessageResult result = null;
-            if (callback != null) {
-                result = new MessageResult(callback);
-            }
-            mChromeDelegate.onScriptMessage(GeckoView.this, data, result);
-        }
     }
 
     /**
@@ -478,10 +486,61 @@ public class GeckoView extends LayerView
     /**
     * Set the content callback handler.
     * This will replace the current handler.
-    * @param content An implementation of ContentDelegate.
+    * @param content An implementation of ContentListener.
     */
-    public void setContentDelegate(ContentDelegate content) {
-        mContentDelegate = content;
+    public void setContentListener(ContentListener content) {
+        mContentListener = content;
+    }
+
+    /**
+    * Get the content callback handler.
+    * @return The current content callback handler.
+    */
+    public ContentListener getContentListener() {
+        return mContentListener;
+    }
+
+    /**
+    * Set the progress callback handler.
+    * This will replace the current handler.
+    * @param progress An implementation of ProgressListener.
+    */
+    public void setProgressListener(ProgressListener progress) {
+        mProgressListener = progress;
+    }
+
+    /**
+    * Get the progress callback handler.
+    * @return The current progress callback handler.
+    */
+    public ProgressListener getProgressListener() {
+        return mProgressListener;
+    }
+
+    /**
+    * Set the navigation callback handler.
+    * This will replace the current handler.
+    * @param navigation An implementation of NavigationListener.
+    */
+    public void setNavigationDelegate(NavigationListener listener) {
+        if (mNavigationListener == listener) {
+            return;
+        }
+        if (listener == null) {
+            mEventDispatcher.dispatch("GeckoViewNavigation:Inactive", null);
+        } else if (mNavigationListener == null) {
+            mEventDispatcher.dispatch("GeckoViewNavigation:Active", null);
+        }
+
+        mNavigationListener = listener;
+    }
+
+    /**
+    * Get the navigation callback handler.
+    * @return The current navigation callback handler.
+    */
+    public NavigationListener getNavigationListener() {
+        return mNavigationListener;
     }
 
     public static void setGeckoInterface(final BaseGeckoInterface geckoInterface) {
@@ -501,41 +560,8 @@ public class GeckoView extends LayerView
         return getContext().getSharedPreferences(getSharedPreferencesFile(), 0);
     }
 
-    /**
-    * Wrapper for a browser in the GeckoView container. Associated with a browser
-    * element in the Gecko system.
-    */
-    public class Browser {
-        private final int mId;
-        private Browser(int Id) {
-            mId = Id;
-        }
-
-        /**
-        * Get the ID of the Browser. This is the same ID used by Gecko for it's underlying
-        * browser element.
-        * @return The integer ID of the Browser.
-        */
-        private int getId() {
-            return mId;
-        }
-
-        /**
-        * Load a URL resource into the Browser.
-        * @param url The URL string.
-        */
-        public void loadUrl(String url) {
-            JSONObject args = new JSONObject();
-            try {
-                args.put("url", url);
-                args.put("parentId", -1);
-                args.put("newTab", false);
-                args.put("tabID", mId);
-            } catch (Exception e) {
-                Log.w(LOGTAG, "Error building JSON arguments for loadUrl.", e);
-            }
-            GeckoAppShell.notifyObservers("Tab:Load", args.toString());
-        }
+    public EventDispatcher getEventDispatcher() {
+        return mEventDispatcher;
     }
 
     /* Provides a means for the client to indicate whether a JavaScript
@@ -543,29 +569,13 @@ public class GeckoView extends LayerView
      * various GeckoViewChrome callback actions.
      */
     public class PromptResult {
-        private final int RESULT_OK = 0;
-        private final int RESULT_CANCEL = 1;
-
-        private final JSONObject mMessage;
-
-        public PromptResult(JSONObject message) {
-            mMessage = message;
-        }
-
-        private JSONObject makeResult(int resultCode) {
-            JSONObject result = new JSONObject();
-            try {
-                result.put("button", resultCode);
-            } catch (JSONException ex) { }
-            return result;
+        public PromptResult() {
         }
 
         /**
         * Handle a confirmation response from the user.
         */
         public void confirm() {
-            JSONObject result = makeResult(RESULT_OK);
-            EventDispatcher.sendResponse(mMessage, result);
         }
 
         /**
@@ -573,104 +583,43 @@ public class GeckoView extends LayerView
         * @param value String value to return to the browser context.
         */
         public void confirmWithValue(String value) {
-            JSONObject result = makeResult(RESULT_OK);
-            try {
-                result.put("textbox0", value);
-            } catch (JSONException ex) { }
-            EventDispatcher.sendResponse(mMessage, result);
         }
 
         /**
         * Handle a cancellation response from the user.
         */
         public void cancel() {
-            JSONObject result = makeResult(RESULT_CANCEL);
-            EventDispatcher.sendResponse(mMessage, result);
-        }
-    }
-
-    /* Provides a means for the client to respond to a script message with some data.
-     * An instance of this class is passed to GeckoViewChrome.onScriptMessage.
-     */
-    public class MessageResult {
-        private final EventCallback mCallback;
-
-        public MessageResult(EventCallback callback) {
-            if (callback == null) {
-                throw new IllegalArgumentException("EventCallback should not be null.");
-            }
-            mCallback = callback;
-        }
-
-        private JSONObject bundleToJSON(Bundle data) {
-            JSONObject result = new JSONObject();
-            if (data == null) {
-                return result;
-            }
-
-            final Set<String> keys = data.keySet();
-            for (String key : keys) {
-                try {
-                    result.put(key, data.get(key));
-                } catch (JSONException e) {
-                }
-            }
-            return result;
-        }
-
-        /**
-        * Handle a successful response to a script message.
-        * @param value Bundle value to return to the script context.
-        */
-        public void success(Bundle data) {
-            mCallback.sendSuccess(bundleToJSON(data));
-        }
-
-        /**
-        * Handle a failure response to a script message.
-        */
-        public void failure(Bundle data) {
-            mCallback.sendError(bundleToJSON(data));
         }
     }
 
     public interface ChromeDelegate {
         /**
-        * Tell the host application that Gecko is ready to handle requests.
-        * @param view The GeckoView that initiated the callback.
-        */
-        public void onReady(GeckoView view);
-
-        /**
         * Tell the host application to display an alert dialog.
         * @param view The GeckoView that initiated the callback.
-        * @param browser The Browser that is loading the content.
         * @param message The string to display in the dialog.
         * @param result A PromptResult used to send back the result without blocking.
         * Defaults to cancel requests.
         */
-        public void onAlert(GeckoView view, GeckoView.Browser browser, String message, GeckoView.PromptResult result);
+        public void onAlert(GeckoView view, String message, GeckoView.PromptResult result);
 
         /**
         * Tell the host application to display a confirmation dialog.
         * @param view The GeckoView that initiated the callback.
-        * @param browser The Browser that is loading the content.
         * @param message The string to display in the dialog.
         * @param result A PromptResult used to send back the result without blocking.
         * Defaults to cancel requests.
         */
-        public void onConfirm(GeckoView view, GeckoView.Browser browser, String message, GeckoView.PromptResult result);
+        public void onConfirm(GeckoView view, String message, GeckoView.PromptResult result);
 
         /**
         * Tell the host application to display an input prompt dialog.
         * @param view The GeckoView that initiated the callback.
-        * @param browser The Browser that is loading the content.
         * @param message The string to display in the dialog.
         * @param defaultValue The string to use as default input.
         * @param result A PromptResult used to send back the result without blocking.
         * Defaults to cancel requests.
         */
-        public void onPrompt(GeckoView view, GeckoView.Browser browser, String message, String defaultValue, GeckoView.PromptResult result);
+        public void onPrompt(GeckoView view, String message, String defaultValue, GeckoView.PromptResult result);
 
         /**
         * Tell the host application to display a remote debugging request dialog.
@@ -679,59 +628,65 @@ public class GeckoView extends LayerView
         * Defaults to cancel requests.
         */
         public void onDebugRequest(GeckoView view, GeckoView.PromptResult result);
-
-        /**
-        * Receive a message from an imported script.
-        * @param view The GeckoView that initiated the callback.
-        * @param data Bundle of data sent with the message. Never null.
-        * @param result A MessageResult used to send back a response without blocking. Can be null.
-        * Defaults to do nothing.
-        */
-        public void onScriptMessage(GeckoView view, Bundle data, GeckoView.MessageResult result);
     }
 
-    public interface ContentDelegate {
+    public interface ProgressListener {
+        static final int STATE_IS_BROKEN = 1;
+        static final int STATE_IS_SECURE = 2;
+        static final int STATE_IS_INSECURE = 4;
+
         /**
-        * A Browser has started loading content from the network.
+        * A View has started loading content from the network.
         * @param view The GeckoView that initiated the callback.
-        * @param browser The Browser that is loading the content.
         * @param url The resource being loaded.
         */
-        public void onPageStart(GeckoView view, GeckoView.Browser browser, String url);
+        public void onPageStart(GeckoView view, String url);
 
         /**
-        * A Browser has finished loading content from the network.
+        * A View has finished loading content from the network.
         * @param view The GeckoView that initiated the callback.
-        * @param browser The Browser that was loading the content.
         * @param success Whether the page loaded successfully or an error occurred.
         */
-        public void onPageStop(GeckoView view, GeckoView.Browser browser, boolean success);
+        public void onPageStop(GeckoView view, boolean success);
 
         /**
-        * A Browser is displaying content. This page could have been loaded via
-        * network or from the session history.
+        * The security status has been updated.
         * @param view The GeckoView that initiated the callback.
-        * @param browser The Browser that is showing the content.
+        * @param status The new security status.
         */
-        public void onPageShow(GeckoView view, GeckoView.Browser browser);
+        public void onSecurityChanged(GeckoView view, int status);
+    }
 
+    public interface ContentListener {
         /**
         * A page title was discovered in the content or updated after the content
         * loaded.
         * @param view The GeckoView that initiated the callback.
-        * @param browser The Browser that is showing the content.
         * @param title The title sent from the content.
         */
-        public void onReceivedTitle(GeckoView view, GeckoView.Browser browser, String title);
+        public void onTitleChanged(GeckoView view, String title);
+    }
+
+    public interface NavigationListener {
+        /**
+        * A view has started loading content from the network.
+        * @param view The GeckoView that initiated the callback.
+        * @param url The resource being loaded.
+        */
+        public void onLocationChange(GeckoView view, String url);
 
         /**
-        * A link element was discovered in the content or updated after the content
-        * loaded that specifies a favicon.
+        * The view's ability to go back has changed.
         * @param view The GeckoView that initiated the callback.
-        * @param browser The Browser that is showing the content.
-        * @param url The href of the link element specifying the favicon.
-        * @param size The maximum size specified for the favicon, or -1 for any size.
+        * @param canGoBack The new value for the ability.
         */
-        public void onReceivedFavicon(GeckoView view, GeckoView.Browser browser, String url, int size);
+        public void onCanGoBack(GeckoView view, boolean canGoBack);
+
+        /**
+        * The view's ability to go forward has changed.
+        * @param view The GeckoView that initiated the callback.
+        * @param canGoForward The new value for the ability.
+        */
+        public void onCanGoForward(GeckoView view, boolean canGoForward);
     }
 }

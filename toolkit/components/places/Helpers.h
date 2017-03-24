@@ -137,7 +137,7 @@ void ReverseString(const nsString& aInput, nsString& aReversed);
  *
  * @note This guid uses the characters a-z, A-Z, 0-9, '-', and '_'.
  */
-nsresult GenerateGUID(nsCString& _guid);
+nsresult GenerateGUID(nsACString& _guid);
 
 /**
  * Determines if the string is a valid guid or not.
@@ -276,7 +276,7 @@ private:
 class AsyncStatementTelemetryTimer : public AsyncStatementCallback
 {
 public:
-  explicit AsyncStatementTelemetryTimer(Telemetry::ID aHistogramId,
+  explicit AsyncStatementTelemetryTimer(Telemetry::HistogramID aHistogramId,
                                         TimeStamp aStart = TimeStamp::Now())
     : mHistogramId(aHistogramId)
     , mStart(aStart)
@@ -286,7 +286,7 @@ public:
   NS_IMETHOD HandleCompletion(uint16_t aReason);
 
 private:
-  const Telemetry::ID mHistogramId;
+  const Telemetry::HistogramID mHistogramId;
   const TimeStamp mStart;
 };
 

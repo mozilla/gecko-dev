@@ -23,19 +23,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs",
 XPCOMUtils.defineLazyModuleGetter(this, "BinarySearch",
   "resource://gre/modules/BinarySearch.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "gPrincipal", function () {
-  let uri = Services.io.newURI("about:newtab", null, null);
-  return Services.scriptSecurityManager.createCodebasePrincipal(uri, {});
-});
-
-XPCOMUtils.defineLazyGetter(this, "gCryptoHash", function () {
+XPCOMUtils.defineLazyGetter(this, "gCryptoHash", function() {
   return Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
 });
 
-XPCOMUtils.defineLazyGetter(this, "gUnicodeConverter", function () {
+XPCOMUtils.defineLazyGetter(this, "gUnicodeConverter", function() {
   let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
                     .createInstance(Ci.nsIScriptableUnicodeConverter);
-  converter.charset = 'utf8';
+  converter.charset = "utf8";
   return converter;
 });
 
@@ -89,8 +84,7 @@ function LinksStorage() {
         throw new Error("Unsupported newTab storage version");
       }
       // Add further migration steps here.
-    }
-    else {
+    } else {
       // This is a downgrade.  Since we cannot predict future, upgrades should
       // be backwards compatible.  We will set the version to the old value
       // regardless, so, on next upgrade, the migration steps will run again.
@@ -101,7 +95,7 @@ function LinksStorage() {
     // Something went wrong in the update process, we can't recover from here,
     // so just clear the storage and start from scratch (dataloss!).
     Components.utils.reportError(
-      "Unable to migrate the newTab storage to the current version. "+
+      "Unable to migrate the newTab storage to the current version. " +
       "Restarting from scratch.\n" + ex);
     this.clear();
   }
@@ -124,18 +118,14 @@ LinksStorage.prototype = {
 
   get _storedVersion() {
     if (this.__storedVersion === undefined) {
-      try {
-        this.__storedVersion =
-          Services.prefs.getIntPref("browser.newtabpage.storageVersion");
-      } catch (ex) {
-        // The storage version is unknown, so either:
-        // - it's a new profile
-        // - it's a profile where versioning information got lost
-        // In this case we still run through all of the valid migrations,
-        // starting from 1, as if it was a downgrade.  As previously stated the
-        // migrations should already support running on an updated store.
-        this.__storedVersion = 1;
-      }
+      // When the pref is not set, the storage version is unknown, so either:
+      // - it's a new profile
+      // - it's a profile where versioning information got lost
+      // In this case we still run through all of the valid migrations,
+      // starting from 1, as if it was a downgrade.  As previously stated the
+      // migrations should already support running on an updated store.
+      this.__storedVersion =
+        Services.prefs.getIntPref("browser.newtabpage.storageVersion", 1);
     }
     return this.__storedVersion;
   },
@@ -154,8 +144,7 @@ LinksStorage.prototype = {
   get: function Storage_get(aKey, aDefault) {
     let value;
     try {
-      let prefValue = Services.prefs.getComplexValue(this._prefs[aKey],
-                                                     Ci.nsISupportsString).data;
+      let prefValue = Services.prefs.getStringPref(this._prefs[aKey]);
       value = JSON.parse(prefValue);
     } catch (e) {}
     return value || aDefault;
@@ -168,11 +157,7 @@ LinksStorage.prototype = {
    */
   set: function Storage_set(aKey, aValue) {
     // Page titles may contain unicode, thus use complex values.
-    let string = Cc["@mozilla.org/supports-string;1"]
-                   .createInstance(Ci.nsISupportsString);
-    string.data = JSON.stringify(aValue);
-    Services.prefs.setComplexValue(this._prefs[aKey], Ci.nsISupportsString,
-                                   string);
+    Services.prefs.setStringPref(this._prefs[aKey], JSON.stringify(aValue));
   },
 
   /**
@@ -306,7 +291,7 @@ var AllPages = {
       }
     }
     // and all notifications get forwarded to each page.
-    this._pages.forEach(function (aPage) {
+    this._pages.forEach(function(aPage) {
       aPage.observe(aSubject, aTopic, aData);
     }, this);
   },
@@ -319,7 +304,7 @@ var AllPages = {
     Services.prefs.addObserver(PREF_NEWTAB_ENABLED, this, true);
     Services.prefs.addObserver(PREF_NEWTAB_ENHANCED, this, true);
     Services.obs.addObserver(this, "page-thumbnail:create", true);
-    this._addObserver = function () {};
+    this._addObserver = function() {};
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
@@ -428,10 +413,10 @@ var PinnedLinks = {
     let links = this.links;
     links[index] = null;
     // trim trailing nulls
-    let i=links.length-1;
+    let i = links.length - 1;
     while (i >= 0 && links[i] == null)
       i--;
-    links.splice(i +1);
+    links.splice(i + 1);
     this.save();
   },
 
@@ -522,7 +507,7 @@ var BlockedLinks = {
   /**
    * Registers an object that will be notified when the blocked links change.
    */
-  addObserver: function (aObserver) {
+  addObserver(aObserver) {
     this._observers.push(aObserver);
   },
 
@@ -648,7 +633,7 @@ var PlacesProvider = {
     let links = [];
 
     let callback = {
-      handleResult: function (aResultSet) {
+      handleResult(aResultSet) {
         let row;
 
         while ((row = aResultSet.getNextRow())) {
@@ -658,22 +643,22 @@ var PlacesProvider = {
             let frecency = row.getResultByIndex(12);
             let lastVisitDate = row.getResultByIndex(5);
             links.push({
-              url: url,
-              title: title,
-              frecency: frecency,
-              lastVisitDate: lastVisitDate,
+              url,
+              title,
+              frecency,
+              lastVisitDate,
               type: "history",
             });
           }
         }
       },
 
-      handleError: function (aError) {
+      handleError(aError) {
         // Should we somehow handle this error?
         aCallback([]);
       },
 
-      handleCompletion: function (aReason) {
+      handleCompletion(aReason) {
         // The Places query breaks ties in frecency by place ID descending, but
         // that's different from how Links.compareLinks breaks ties, because
         // compareLinks doesn't have access to place IDs.  It's very important
@@ -728,15 +713,23 @@ var PlacesProvider = {
   /**
    * Called by the history service.
    */
-  onBeginUpdateBatch: function() {
+  onBeginUpdateBatch() {
     this._batchProcessingDepth += 1;
   },
 
-  onEndUpdateBatch: function() {
+  onEndUpdateBatch() {
     this._batchProcessingDepth -= 1;
     if (this._batchProcessingDepth == 0 && this._batchCalledFrecencyChanged) {
       this.onManyFrecenciesChanged();
       this._batchCalledFrecencyChanged = false;
+    }
+  },
+
+  onVisit(aURI, aVisitId, aTime, aSessionId, aReferrerVisitId, aTransitionType,
+          aGuid, aHidden, aVisitCount, aTyped, aLastKnownTitle) {
+    // For new visits, if we're not batch processing, notify for a title // update
+    if (!this._batchProcessingDepth && aVisitCount == 1 && aLastKnownTitle) {
+      this.onTitleChanged(aURI, aLastKnownTitle, aGuid);
     }
   },
 
@@ -747,7 +740,7 @@ var PlacesProvider = {
     });
   },
 
-  onClearHistory: function() {
+  onClearHistory() {
     this._callObservers("onClearHistory")
   },
 
@@ -857,7 +850,7 @@ var Links = {
   /**
    * Registers an object that will be notified when links updates.
    */
-  addObserver: function (aObserver) {
+  addObserver(aObserver) {
     this._observers.push(aObserver);
   },
 
@@ -909,7 +902,7 @@ var Links = {
     }
 
     let numProvidersRemaining = this._providers.size;
-    for (let [provider, links] of this._providers) {
+    for (let [provider /* , links */] of this._providers) {
       this._populateProviderCache(provider, () => {
         if (--numProvidersRemaining == 0)
           executeCallbacks();
@@ -934,7 +927,7 @@ var Links = {
     }
 
     // Filter blocked and pinned links and duplicate base domains.
-    links = links.filter(function (link) {
+    links = links.filter(function(link) {
       let site = NewTabUtils.extractSite(link.url);
       if (site == null || sites.has(site))
         return false;
@@ -989,7 +982,7 @@ var Links = {
            aLink1.url.localeCompare(aLink2.url);
   },
 
-  _incrementSiteMap: function(map, link) {
+  _incrementSiteMap(map, link) {
     if (NewTabUtils.blockedLinks.isBlocked(link)) {
       // Don't count blocked URLs.
       return;
@@ -998,7 +991,7 @@ var Links = {
     map.set(site, (map.get(site) || 0) + 1);
   },
 
-  _decrementSiteMap: function(map, link) {
+  _decrementSiteMap(map, link) {
     if (NewTabUtils.blockedLinks.isBlocked(link)) {
       // Blocked URLs are not included in map.
       return;
@@ -1021,8 +1014,8 @@ var Links = {
     * @param aLink The link that will affect siteMap
     * @param increment A boolean for whether to increment or decrement siteMap
     */
-  _adjustSiteMapAndNotify: function(aLink, increment=true) {
-    for (let [provider, cache] of this._providers) {
+  _adjustSiteMapAndNotify(aLink, increment = true) {
+    for (let [/* provider */, cache] of this._providers) {
       // We only update siteMap if aLink is already stored in linkMap.
       if (cache.linkMap.get(aLink.url)) {
         if (increment) {
@@ -1035,15 +1028,15 @@ var Links = {
     this._callObservers("onLinkChanged", aLink);
   },
 
-  onLinkBlocked: function(aLink) {
+  onLinkBlocked(aLink) {
     this._adjustSiteMapAndNotify(aLink, false);
   },
 
-  onLinkUnblocked: function(aLink) {
+  onLinkUnblocked(aLink) {
     this._adjustSiteMapAndNotify(aLink);
   },
 
-  populateProviderCache: function(provider, callback) {
+  populateProviderCache(provider, callback) {
     if (!this._providers.has(provider)) {
       throw new Error("Can only populate provider cache for existing provider.");
     }
@@ -1058,7 +1051,7 @@ var Links = {
    * @param aForce When true, populates the provider's cache even when it's
    *               already filled.
    */
-  _populateProviderCache: function (aProvider, aCallback, aForce) {
+  _populateProviderCache(aProvider, aCallback, aForce) {
     let cache = this._providers.get(aProvider);
     let createCache = !cache;
     if (createCache) {
@@ -1144,7 +1137,7 @@ var Links = {
                    cache in _providers. Defaults to -1 if the provider doesn't know the index
    * @param aDeleted Boolean indicating if the provider has deleted the link.
    */
-  onLinkChanged: function Links_onLinkChanged(aProvider, aLink, aIndex=-1, aDeleted=false) {
+  onLinkChanged: function Links_onLinkChanged(aProvider, aLink, aIndex = -1, aDeleted = false) {
     if (!("url" in aLink))
       throw new Error("Changed links must have a url property");
 
@@ -1193,8 +1186,7 @@ var Links = {
         existingLink.title = aLink.title;
         updatePages = true;
       }
-    }
-    else if (this._sortProperties.every(prop => prop in aLink)) {
+    } else if (this._sortProperties.every(prop => prop in aLink)) {
       // Before doing the O(lg n) insertion below, do an O(1) check for the
       // common case where the new link is too low-ranked to be in the list.
       if (sortedLinks.length && sortedLinks.length == aProvider.maxNumLinks) {
@@ -1258,7 +1250,7 @@ var Links = {
     // Make sure to update open about:newtab instances. If there are no opened
     // pages we can just wait for the next new tab to populate the cache again.
     if (AllPages.length && AllPages.enabled)
-      this.populateCache(function () { AllPages.update() }, true);
+      this.populateCache(function() { AllPages.update() }, true);
     else
       this.resetCache();
   },
@@ -1281,7 +1273,7 @@ var Links = {
    */
   _addObserver: function Links_addObserver() {
     Services.obs.addObserver(this, "browser:purge-session-history", true);
-    this._addObserver = function () {};
+    this._addObserver = function() {};
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
@@ -1353,8 +1345,12 @@ var LinkChecker = {
 
   _doCheckLoadURI: function Links_doCheckLoadURI(aURI) {
     try {
+      // about:newtab is currently privileged. In any case, it should be
+      // possible for tiles to point to pretty much everything - but not
+      // to stuff that inherits the system principal, so we check:
+      let systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
       Services.scriptSecurityManager.
-        checkLoadURIStrWithPrincipal(gPrincipal, aURI, this.flags);
+        checkLoadURIStrWithPrincipal(systemPrincipal, aURI, this.flags);
       return true;
     } catch (e) {
       // We got a weird URI or one that would inherit the caller's principal.
@@ -1375,7 +1371,7 @@ var ExpirationFilter = {
       return;
     }
 
-    Links.populateCache(function () {
+    Links.populateCache(function() {
       let urls = [];
 
       // Add all URLs to the list that we want to keep thumbnails for.
@@ -1406,7 +1402,7 @@ this.NewTabUtils = {
     try {
       // Note that nsIURI.asciiHost throws NS_ERROR_FAILURE for some types of
       // URIs, including jar and moz-icon URIs.
-      host = Services.io.newURI(url, null, null).asciiHost;
+      host = Services.io.newURI(url).asciiHost;
     } catch (ex) {
       return null;
     }
@@ -1433,7 +1429,7 @@ this.NewTabUtils = {
     return false;
   },
 
-  getProviderLinks: function(aProvider) {
+  getProviderLinks(aProvider) {
     let cache = Links._providers.get(aProvider);
     if (cache && cache.sortedLinks) {
       return cache.sortedLinks;
@@ -1441,7 +1437,7 @@ this.NewTabUtils = {
     return [];
   },
 
-  isTopSiteGivenProvider: function(aSite, aProvider) {
+  isTopSiteGivenProvider(aSite, aProvider) {
     let cache = Links._providers.get(aProvider);
     if (cache && cache.siteMap) {
       return cache.siteMap.has(aSite);
@@ -1449,7 +1445,7 @@ this.NewTabUtils = {
     return false;
   },
 
-  isTopPlacesSite: function(aSite) {
+  isTopPlacesSite(aSite) {
     return this.isTopSiteGivenProvider(aSite, PlacesProvider);
   },
 
@@ -1462,7 +1458,7 @@ this.NewTabUtils = {
     PinnedLinks.resetCache();
     BlockedLinks.resetCache();
 
-    Links.populateCache(function () {
+    Links.populateCache(function() {
       AllPages.update();
     }, true);
   },

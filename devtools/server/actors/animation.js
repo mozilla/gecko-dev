@@ -27,9 +27,8 @@
 
 const {Cu} = require("chrome");
 const promise = require("promise");
-const {Task} = require("devtools/shared/task");
 const protocol = require("devtools/shared/protocol");
-const {Actor, ActorClassWithSpec} = protocol;
+const {Actor} = protocol;
 const {animationPlayerSpec, animationsSpec} = require("devtools/shared/specs/animation");
 const events = require("sdk/event/core");
 
@@ -123,6 +122,8 @@ var AnimationPlayerActor = protocol.ActorClassWithSpec(animationPlayerSpec, {
   },
 
   get window() {
+    // ownerGlobal doesn't exist in content privileged windows.
+    // eslint-disable-next-line mozilla/use-ownerGlobal
     return this.node.ownerDocument.defaultView;
   },
 
@@ -474,8 +475,8 @@ exports.AnimationPlayerActor = AnimationPlayerActor;
 /**
  * The Animations actor lists animation players for a given node.
  */
-var AnimationsActor = exports.AnimationsActor = protocol.ActorClassWithSpec(animationsSpec, {
-  initialize: function(conn, tabActor) {
+exports.AnimationsActor = protocol.ActorClassWithSpec(animationsSpec, {
+  initialize: function (conn, tabActor) {
     Actor.prototype.initialize.call(this, conn);
     this.tabActor = tabActor;
 
@@ -495,14 +496,6 @@ var AnimationsActor = exports.AnimationsActor = protocol.ActorClassWithSpec(anim
 
     this.stopAnimationPlayerUpdates();
     this.tabActor = this.observer = this.actors = this.walker = null;
-  },
-
-  /**
-   * Since AnimationsActor doesn't have a protocol.js parent actor that takes
-   * care of its lifetime, implementing disconnect is required to cleanup.
-   */
-  disconnect: function () {
-    this.destroy();
   },
 
   /**
@@ -546,6 +539,8 @@ var AnimationsActor = exports.AnimationsActor = protocol.ActorClassWithSpec(anim
     // either getAnimationPlayersForNode is called again or
     // stopAnimationPlayerUpdates is called.
     this.stopAnimationPlayerUpdates();
+    // ownerGlobal doesn't exist in content privileged windows.
+    // eslint-disable-next-line mozilla/use-ownerGlobal
     let win = nodeActor.rawNode.ownerDocument.defaultView;
     this.observer = new win.MutationObserver(this.onAnimationMutation);
     this.observer.observe(nodeActor.rawNode, {

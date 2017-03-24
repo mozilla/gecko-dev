@@ -1,20 +1,62 @@
 pub type fflags_t = u32;
 pub type clock_t = i32;
 pub type ino_t = u32;
+pub type lwpid_t = i32;
 pub type nlink_t = u16;
 pub type blksize_t = u32;
 pub type clockid_t = ::c_int;
+pub type sem_t = _sem;
 
 pub type fsblkcnt_t = ::uint64_t;
 pub type fsfilcnt_t = ::uint64_t;
+pub type idtype_t = ::c_uint;
 
 s! {
+    pub struct utmpx {
+        pub ut_type: ::c_short,
+        pub ut_tv: ::timeval,
+        pub ut_id: [::c_char; 8],
+        pub ut_pid: ::pid_t,
+        pub ut_user: [::c_char; 32],
+        pub ut_line: [::c_char; 16],
+        pub ut_host: [::c_char; 128],
+        pub __ut_spare: [::c_char; 64],
+    }
+
+    pub struct aiocb {
+        pub aio_fildes: ::c_int,
+        pub aio_offset: ::off_t,
+        pub aio_buf: *mut ::c_void,
+        pub aio_nbytes: ::size_t,
+        __unused1: [::c_int; 2],
+        __unused2: *mut ::c_void,
+        pub aio_lio_opcode: ::c_int,
+        pub aio_reqprio: ::c_int,
+        // unused 3 through 5 are the __aiocb_private structure
+        __unused3: ::c_long,
+        __unused4: ::c_long,
+        __unused5: *mut ::c_void,
+        pub aio_sigevent: sigevent
+    }
+
     pub struct dirent {
         pub d_fileno: u32,
         pub d_reclen: u16,
         pub d_type: u8,
         pub d_namlen: u8,
         pub d_name: [::c_char; 256],
+    }
+
+    pub struct sigevent {
+        pub sigev_notify: ::c_int,
+        pub sigev_signo: ::c_int,
+        pub sigev_value: ::sigval,
+        //The rest of the structure is actually a union.  We expose only
+        //sigev_notify_thread_id because it's the most useful union member.
+        pub sigev_notify_thread_id: ::lwpid_t,
+        #[cfg(target_pointer_width = "64")]
+        __unused1: ::c_int,
+        __unused2: [::c_long; 7]
     }
 
     pub struct statvfs {
@@ -30,10 +72,18 @@ s! {
         pub f_fsid: ::c_ulong,
         pub f_namemax: ::c_ulong,
     }
+
+    // internal structure has changed over time
+    pub struct _sem {
+        data: [u32; 4],
+    }
 }
+
+pub const SIGEV_THREAD_ID: ::c_int = 4;
 
 pub const RAND_MAX: ::c_int = 0x7fff_fffd;
 pub const PTHREAD_STACK_MIN: ::size_t = 2048;
+pub const PTHREAD_MUTEX_ADAPTIVE_NP: ::c_int = 4;
 pub const SIGSTKSZ: ::size_t = 34816;
 pub const SF_NODISKIO: ::c_int = 0x00000001;
 pub const SF_MNOWAIT: ::c_int = 0x00000002;
@@ -138,7 +188,6 @@ pub const CTL_HW: ::c_int = 6;
 pub const CTL_MACHDEP: ::c_int = 7;
 pub const CTL_USER: ::c_int = 8;
 pub const CTL_P1003_1B: ::c_int = 9;
-pub const CTL_MAXID: ::c_int = 10;
 pub const KERN_OSTYPE: ::c_int = 1;
 pub const KERN_OSRELEASE: ::c_int = 2;
 pub const KERN_OSREV: ::c_int = 3;
@@ -176,7 +225,6 @@ pub const KERN_LOGSIGEXIT: ::c_int = 34;
 pub const KERN_IOV_MAX: ::c_int = 35;
 pub const KERN_HOSTUUID: ::c_int = 36;
 pub const KERN_ARND: ::c_int = 37;
-pub const KERN_MAXID: ::c_int = 38;
 pub const KERN_PROC_ALL: ::c_int = 0;
 pub const KERN_PROC_PID: ::c_int = 1;
 pub const KERN_PROC_PGRP: ::c_int = 2;
@@ -223,7 +271,6 @@ pub const HW_DISKSTATS: ::c_int = 9;
 pub const HW_FLOATINGPT: ::c_int = 10;
 pub const HW_MACHINE_ARCH: ::c_int = 11;
 pub const HW_REALMEM: ::c_int = 12;
-pub const HW_MAXID: ::c_int = 13;
 pub const USER_CS_PATH: ::c_int = 1;
 pub const USER_BC_BASE_MAX: ::c_int = 2;
 pub const USER_BC_DIM_MAX: ::c_int = 3;
@@ -244,7 +291,6 @@ pub const USER_POSIX2_SW_DEV: ::c_int = 17;
 pub const USER_POSIX2_UPE: ::c_int = 18;
 pub const USER_STREAM_MAX: ::c_int = 19;
 pub const USER_TZNAME_MAX: ::c_int = 20;
-pub const USER_MAXID: ::c_int = 21;
 pub const CTL_P1003_1B_ASYNCHRONOUS_IO: ::c_int = 1;
 pub const CTL_P1003_1B_MAPPED_FILES: ::c_int = 2;
 pub const CTL_P1003_1B_MEMLOCK: ::c_int = 3;
@@ -270,7 +316,64 @@ pub const CTL_P1003_1B_SEM_NSEMS_MAX: ::c_int = 22;
 pub const CTL_P1003_1B_SEM_VALUE_MAX: ::c_int = 23;
 pub const CTL_P1003_1B_SIGQUEUE_MAX: ::c_int = 24;
 pub const CTL_P1003_1B_TIMER_MAX: ::c_int = 25;
+pub const TIOCGPTN: ::c_uint = 0x4004740f;
+pub const TIOCPTMASTER: ::c_uint = 0x2000741c;
+pub const TIOCSIG: ::c_uint = 0x2004745f;
+pub const TIOCM_DCD: ::c_int = 0x40;
+pub const H4DISC: ::c_int = 0x7;
+
+// The *_MAXID constants never should've been used outside of the
+// FreeBSD base system.  And with the exception of CTL_P1003_1B_MAXID,
+// they were all removed in svn r262489.  They remain here for backwards
+// compatibility only, and are scheduled to be removed in libc 1.0.0.
+#[doc(hidden)]
+pub const CTL_MAXID: ::c_int = 10;
+#[doc(hidden)]
+pub const KERN_MAXID: ::c_int = 38;
+#[doc(hidden)]
+pub const HW_MAXID: ::c_int = 13;
+#[doc(hidden)]
+pub const USER_MAXID: ::c_int = 21;
+#[doc(hidden)]
 pub const CTL_P1003_1B_MAXID: ::c_int = 26;
+
+pub const MSG_PEEK: ::c_int = 0x2;
+pub const MSG_NOSIGNAL: ::c_int = 0x20000;
+
+pub const EMPTY: ::c_short = 0;
+pub const BOOT_TIME: ::c_short = 1;
+pub const OLD_TIME: ::c_short = 2;
+pub const NEW_TIME: ::c_short = 3;
+pub const USER_PROCESS: ::c_short = 4;
+pub const INIT_PROCESS: ::c_short = 5;
+pub const LOGIN_PROCESS: ::c_short = 6;
+pub const DEAD_PROCESS: ::c_short = 7;
+pub const SHUTDOWN_TIME: ::c_short = 8;
+
+pub const LC_COLLATE_MASK: ::c_int = (1 << 0);
+pub const LC_CTYPE_MASK: ::c_int = (1 << 1);
+pub const LC_MESSAGES_MASK: ::c_int = (1 << 2);
+pub const LC_MONETARY_MASK: ::c_int = (1 << 3);
+pub const LC_NUMERIC_MASK: ::c_int = (1 << 4);
+pub const LC_TIME_MASK: ::c_int = (1 << 5);
+pub const LC_ALL_MASK: ::c_int = LC_COLLATE_MASK
+                               | LC_CTYPE_MASK
+                               | LC_MESSAGES_MASK
+                               | LC_MONETARY_MASK
+                               | LC_NUMERIC_MASK
+                               | LC_TIME_MASK;
+
+pub const WSTOPPED: ::c_int = 2; // same as WUNTRACED
+pub const WCONTINUED: ::c_int = 4;
+pub const WNOWAIT: ::c_int = 8;
+pub const WEXITED: ::c_int = 16;
+pub const WTRAPPED: ::c_int = 32;
+
+// FreeBSD defines a great many more of these, we only expose the
+// standardized ones.
+pub const P_PID: idtype_t = 0;
+pub const P_PGID: idtype_t = 2;
+pub const P_ALL: idtype_t = 7;
 
 extern {
     pub fn __error() -> *mut ::c_int;
@@ -280,6 +383,7 @@ extern {
 
     pub fn clock_getres(clk_id: clockid_t, tp: *mut ::timespec) -> ::c_int;
     pub fn clock_gettime(clk_id: clockid_t, tp: *mut ::timespec) -> ::c_int;
+    pub fn clock_settime(clk_id: clockid_t, tp: *const ::timespec) -> ::c_int;
 
     pub fn posix_fallocate(fd: ::c_int, offset: ::off_t,
                            len: ::off_t) -> ::c_int;
@@ -289,6 +393,16 @@ extern {
     pub fn mkostemps(template: *mut ::c_char,
                      suffixlen: ::c_int,
                      flags: ::c_int) -> ::c_int;
+
+    pub fn getutxuser(user: *const ::c_char) -> *mut utmpx;
+    pub fn setutxdb(_type: ::c_int, file: *const ::c_char) -> ::c_int;
+
+    pub fn aio_waitcomplete(iocbp: *mut *mut aiocb,
+                            timeout: *mut ::timespec) -> ::ssize_t;
+
+    pub fn freelocale(loc: ::locale_t) -> ::c_int;
+    pub fn waitid(idtype: idtype_t, id: ::id_t, infop: *mut ::siginfo_t,
+                  options: ::c_int) -> ::c_int;
 }
 
 cfg_if! {

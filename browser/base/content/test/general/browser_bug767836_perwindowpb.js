@@ -29,7 +29,7 @@ function test() {
 
       // Check the new tab opened while in normal/private mode
       is(aWindow.gBrowser.selectedBrowser.currentURI.spec, newTabURL,
-        "URL of NewTab should be " + newTabURL + " in " + mode +  " mode");
+        "URL of NewTab should be " + newTabURL + " in " + mode + " mode");
       // Set the custom newtab url
       aboutNewTabService.newTabURL = testURL;
       is(aboutNewTabService.newTabURL, testURL, "Custom newtab url is set");
@@ -83,8 +83,7 @@ function openNewTab(aWindow, aCallback) {
     return;
   }
 
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
+  browser.addEventListener("load", function() {
     executeSoon(aCallback);
-  }, true);
+  }, {capture: true, once: true});
 }

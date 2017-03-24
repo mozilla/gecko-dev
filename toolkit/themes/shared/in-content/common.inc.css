@@ -74,11 +74,16 @@ xul|caption {
   margin: 0;
 }
 
+html|h2,
 xul|caption > xul|checkbox,
 xul|caption > xul|label {
   font-size: 1.3rem;
   font-weight: bold;
   line-height: 22px;
+}
+
+xul|caption > xul|checkbox,
+xul|caption > xul|label {
   margin: 0 !important;
 }
 
@@ -105,7 +110,7 @@ xul|groupbox {
   font-size: 1.25rem;
 }
 
-xul|groupbox xul|label:not(.menu-accel):not(.menu-text):not(.indent),
+xul|groupbox xul|label:not(.menu-accel):not(.menu-text):not(.indent):not(.learnMore),
 xul|groupbox xul|description {
   /* !important needed to override toolkit !important rule */
   margin-inline-start: 0 !important;
@@ -429,6 +434,8 @@ xul|button[type="menu"] > xul|menupopup xul|menuseparator {
 
 /* textboxes */
 
+html|input[type="email"],
+html|input[type="tel"],
 html|input[type="text"],
 html|textarea,
 xul|textbox {
@@ -457,6 +464,8 @@ xul|textbox.tree-input {
   padding-left: unset;
 }
 
+html|input[type="email"],
+html|input[type="tel"],
 html|input[type="text"],
 html|textarea {
   font-family: inherit;
@@ -464,12 +473,16 @@ html|textarea {
   padding: 5px 10px;
 }
 
+html|input[type="email"]:focus,
+html|input[type="tel"]:focus,
 html|input[type="text"]:focus,
 html|textarea:focus,
 xul|textbox[focused] {
   border-color: var(--in-content-border-focus);
 }
 
+html|input[type="email"]:disabled,
+html|input[type="tel"]:disabled,
 html|input[type="text"]:disabled,
 html|textarea:disabled,
 xul|textbox[disabled="true"] {
@@ -502,36 +515,18 @@ html|a:hover:active,
 
 /* Checkboxes and radio buttons */
 
-/* Hide the actual checkbox */
-html|input[type="checkbox"] {
-  opacity: 0;
-  width: 0;
-  pointer-events: none;
-  position: absolute;
-}
-
-/* Create a box to style as the checkbox */
-html|input[type="checkbox"] + html|label:before {
-  display: inline-block;
-  content: "";
-  vertical-align: middle;
-}
-
-html|input[type="checkbox"] + html|label {
-  line-height: 0px;
-}
-
 xul|checkbox {
   margin-inline-start: 0;
 }
 
 xul|*.checkbox-check,
-html|input[type="checkbox"] + html|label:before {
+html|input[type="checkbox"] {
   -moz-appearance: none;
   width: 23px;
   height: 23px;
-  border-radius: 2px;
   border: 1px solid var(--in-content-box-border-color);
+  border-radius: 2px;
+  margin: 0;
   margin-inline-end: 10px;
   background-color: #f1f1f1;
   /* !important needed to override toolkit checked !important rule */
@@ -542,7 +537,7 @@ html|input[type="checkbox"] + html|label:before {
 }
 
 xul|checkbox:not([disabled="true"]):hover > xul|*.checkbox-check,
-html|input[type="checkbox"]:not(:disabled) + html|label:hover:before {
+html|input[type="checkbox"]:not(:disabled):hover {
   border-color: var(--in-content-border-focus);
 }
 
@@ -550,22 +545,22 @@ xul|*.checkbox-check[checked] {
   list-style-image: url("chrome://global/skin/in-content/check.svg#check");
 }
 
-html|input[type="checkbox"]:checked + html|label:before {
+html|input[type="checkbox"]:checked {
   background-image: url("chrome://global/skin/in-content/check.svg#check"), linear-gradient(#fff, rgba(255,255,255,0.8)) !important;
 }
 
 xul|checkbox[disabled="true"] > xul|*.checkbox-check,
-html|input[type="checkbox"]:disabled + html|label {
+html|input[type="checkbox"]:disabled {
   opacity: 0.5;
-}
-
-xul|*.checkbox-label-box {
-  margin-inline-start: -1px; /* negative margin for the transparent border */
-  padding-inline-start: 0;
 }
 
 xul|richlistitem > xul|*.checkbox-check {
   margin: 3px 6px;
+}
+
+html|*.toggle-container-with-text {
+  display: flex;
+  align-items: center;
 }
 
 xul|radio {

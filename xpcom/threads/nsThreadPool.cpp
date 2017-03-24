@@ -104,8 +104,9 @@ nsThreadPool::PutEvent(already_AddRefed<nsIRunnable> aEvent, uint32_t aFlags)
   }
 
   nsCOMPtr<nsIThread> thread;
-  nsThreadManager::get().NewThread(0, stackSize, getter_AddRefs(thread));
-  if (NS_WARN_IF(!thread)) {
+  nsresult rv = NS_NewNamedThread(mThreadNaming.GetNextThreadName(mName),
+                                  getter_AddRefs(thread), nullptr, stackSize);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -145,15 +146,13 @@ nsThreadPool::ShutdownThread(nsIThread* aThread)
   // shutdown requires this thread have an event loop (and it may not, see bug
   // 10204784).  The simplest way to cover all cases is to asynchronously
   // shutdown aThread from the main thread.
-  NS_DispatchToMainThread(NewRunnableMethod(aThread,
+  NS_DispatchToMainThread(NewRunnableMethod("nsIThread::AsyncShutdown", aThread,
                                             &nsIThread::AsyncShutdown));
 }
 
 NS_IMETHODIMP
 nsThreadPool::Run()
 {
-  mThreadNaming.SetThreadPoolName(mName);
-
   LOG(("THRD-P(%p) enter %s\n", this, mName.BeginReading()));
 
   nsCOMPtr<nsIThread> current;

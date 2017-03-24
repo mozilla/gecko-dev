@@ -22,6 +22,7 @@
 #include "nspr.h"
 #include <algorithm>
 
+#include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Logging.h"
 
 using mozilla::LogLevel;
@@ -126,7 +127,8 @@ nsAutoConfig::OnStopRequest(nsIRequest *request, nsISupports *context,
 
     // If the request is failed, go read the failover.jsc file
     if (NS_FAILED(aStatus)) {
-        MOZ_LOG(MCD, LogLevel::Debug, ("mcd request failed with status %x\n", aStatus));
+        MOZ_LOG(MCD, LogLevel::Debug, ("mcd request failed with status %" PRIx32 "\n",
+                                       static_cast<uint32_t>(aStatus)));
         return readOfflineFile();
     }
 
@@ -134,8 +136,8 @@ nsAutoConfig::OnStopRequest(nsIRequest *request, nsISupports *context,
     nsCOMPtr<nsIHttpChannel> pHTTPCon(do_QueryInterface(request));
     if (pHTTPCon) {
         uint32_t httpStatus;
-        pHTTPCon->GetResponseStatus(&httpStatus);
-        if (httpStatus != 200) 
+        rv = pHTTPCon->GetResponseStatus(&httpStatus);
+        if (NS_FAILED(rv) || httpStatus != 200)
         {
             MOZ_LOG(MCD, LogLevel::Debug, ("mcd http request failed with status %x\n", httpStatus));
             return readOfflineFile();

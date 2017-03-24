@@ -15,13 +15,17 @@ import copy
 import logging
 import os
 
-from taskgraph.transforms.base import validate_schema, TransformSequence
+from taskgraph.transforms.base import TransformSequence
+from taskgraph.util.schema import (
+    validate_schema,
+    Schema,
+)
 from taskgraph.transforms.task import task_description_schema
 from voluptuous import (
+    Any,
+    Extra,
     Optional,
     Required,
-    Schema,
-    Extra,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,14 +51,24 @@ job_description_schema = Schema({
     Optional('expires-after'): task_description_schema['expires-after'],
     Optional('routes'): task_description_schema['routes'],
     Optional('scopes'): task_description_schema['scopes'],
+    Optional('tags'): task_description_schema['tags'],
     Optional('extra'): task_description_schema['extra'],
     Optional('treeherder'): task_description_schema['treeherder'],
     Optional('index'): task_description_schema['index'],
     Optional('run-on-projects'): task_description_schema['run-on-projects'],
     Optional('coalesce-name'): task_description_schema['coalesce-name'],
-    Optional('worker-type'): task_description_schema['worker-type'],
-    Required('worker'): task_description_schema['worker'],
-    Optional('when'): task_description_schema['when'],
+    Optional('optimizations'): task_description_schema['optimizations'],
+    Optional('needs-sccache'): task_description_schema['needs-sccache'],
+
+    # The "when" section contains descriptions of the circumstances
+    # under which this task should be included in the task graph.  This
+    # will be converted into an element in the `optimizations` list.
+    Optional('when'): Any({
+        # This task only needs to be run if a file matching one of the given
+        # patterns has changed in the push.  The patterns use the mozpack
+        # match function (python/mozbuild/mozpack/path.py).
+        Optional('files-changed'): [basestring],
+    }),
 
     # A description of how to run this job.
     'run': {
@@ -65,6 +79,15 @@ job_description_schema = Schema({
         # own schema.
         Extra: object,
     },
+
+    Required('worker-type'): Any(
+        task_description_schema['worker-type'],
+        {'by-platform': {basestring: task_description_schema['worker-type']}},
+    ),
+    Required('worker'): Any(
+        task_description_schema['worker'],
+        {'by-platform': {basestring: task_description_schema['worker']}},
+    ),
 })
 
 transforms = TransformSequence()
@@ -75,6 +98,30 @@ def validate(config, jobs):
     for job in jobs:
         yield validate_schema(job_description_schema, job,
                               "In job {!r}:".format(job['name']))
+
+
+@transforms.add
+def rewrite_when_to_optimization(config, jobs):
+    for job in jobs:
+        when = job.pop('when', {})
+        files_changed = when.get('files-changed')
+        if not files_changed:
+            yield job
+            continue
+
+        # add some common files
+        files_changed.extend([
+            '{}/**'.format(config.path),
+            'taskcluster/taskgraph/**',
+        ])
+        if 'in-tree' in job['worker'].get('docker-image', {}):
+            files_changed.append('taskcluster/docker/{}/**'.format(
+                job['worker']['docker-image']['in-tree']))
+
+        job.setdefault('optimizations', []).append(['files-changed', files_changed])
+
+        assert 'when' not in job
+        yield job
 
 
 @transforms.add
@@ -89,7 +136,6 @@ def make_task_description(config, jobs):
             job['label'] = '{}-{}'.format(config.kind, job['name'])
         if job['name']:
             del job['name']
-
         taskdesc = copy.deepcopy(job)
 
         # fill in some empty defaults to make run implementations easier

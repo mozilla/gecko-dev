@@ -105,11 +105,13 @@ public:
     virtual void OnEntryInfo(const nsACString & aURISpec, const nsACString & aIdEnhance,
                              int64_t aDataSize, int32_t aFetchCount,
                              uint32_t aLastModifiedTime, uint32_t aExpirationTime,
-                             bool aPinned) = 0;
+                             bool aPinned, nsILoadContextInfo* aInfo) = 0;
   };
 
   // Invokes OnEntryInfo for the given aEntry, synchronously.
   static void GetCacheEntryInfo(CacheEntry* aEntry, EntryInfoCallback *aVisitor);
+
+  static uint32_t CacheQueueSize(bool highPriority);
 
   // Memory reporting
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;

@@ -63,7 +63,14 @@ public:
   NS_IMETHOD
   Run() override
   {
-    MOZ_ASSERT(mPort);
+    NS_ASSERT_OWNINGTHREAD(Runnable);
+
+    // The port can be cycle collected while this runnable is pending in
+    // the event queue.
+    if (!mPort) {
+      return NS_OK;
+    }
+
     MOZ_ASSERT(mPort->mPostMessageRunnable == this);
 
     nsresult rv = DispatchMessage();
@@ -81,6 +88,8 @@ public:
   nsresult
   Cancel() override
   {
+    NS_ASSERT_OWNINGTHREAD(Runnable);
+
     mPort = nullptr;
     mData = nullptr;
     return NS_OK;
@@ -90,6 +99,8 @@ private:
   nsresult
   DispatchMessage() const
   {
+    NS_ASSERT_OWNINGTHREAD(Runnable);
+
     nsCOMPtr<nsIGlobalObject> globalObject = mPort->GetParentObject();
 
     AutoJSAPI jsapi;
@@ -114,7 +125,7 @@ private:
         MarkerTracingType::START);
     }
 
-    mData->Read(mPort->GetParentObject(), cx, &value, rv);
+    mData->Read(cx, &value, rv);
 
     if (isTimelineRecording) {
       end = MakeUnique<MessagePortTimelineMarker>(
@@ -139,13 +150,10 @@ private:
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    Nullable<WindowProxyOrMessagePort> source;
-    source.SetValue().SetAsMessagePort() = mPort;
-
     event->InitMessageEvent(nullptr, NS_LITERAL_STRING("message"),
                             false /* non-bubbling */,
                             false /* cancelable */, value, EmptyString(),
-                            EmptyString(), source, ports);
+                            EmptyString(), nullptr, ports);
     event->SetTrusted(true);
 
     bool dummy;
@@ -385,49 +393,34 @@ MessagePort::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 
 void
 MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-                         const Optional<Sequence<JS::Value>>& aTransferable,
+                         const Sequence<JSObject*>& aTransferable,
                          ErrorResult& aRv)
 {
   // We *must* clone the data here, or the JS::Value could be modified
   // by script
 
-  JS::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
-  if (aTransferable.WasPassed()) {
-    const Sequence<JS::Value>& realTransferable = aTransferable.Value();
-
-    // Here we want to check if the transerable object list contains
-    // this port. No other checks are done.
-    for (const JS::Value& value : realTransferable) {
-      if (!value.isObject()) {
-        continue;
-      }
-
-      MessagePort* port = nullptr;
-      nsresult rv = UNWRAP_OBJECT(MessagePort, &value.toObject(), port);
-      if (NS_FAILED(rv)) {
-        continue;
-      }
-
-      if (port == this) {
-        aRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
-        return;
-      }
+  // Here we want to check if the transerable object list contains
+  // this port.
+  for (uint32_t i = 0; i < aTransferable.Length(); ++i) {
+    JSObject* object = aTransferable[i];
+    if (!object) {
+      continue;
     }
 
-    // The input sequence only comes from the generated bindings code, which
-    // ensures it is rooted.
-    JS::HandleValueArray elements =
-      JS::HandleValueArray::fromMarkedLocation(realTransferable.Length(),
-                                               realTransferable.Elements());
-
-    JSObject* array =
-      JS_NewArrayObject(aCx, elements);
-    if (!array) {
-      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+    MessagePort* port = nullptr;
+    nsresult rv = UNWRAP_OBJECT(MessagePort, object, port);
+    if (NS_SUCCEEDED(rv) && port == this) {
+      aRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
       return;
     }
+  }
 
-    transferable.setObject(*array);
+  JS::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
+
+  aRv = nsContentUtils::CreateJSValueFromSequenceOfObject(aCx, aTransferable,
+                                                          &transferable);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
   }
 
   RefPtr<SharedMessagePortMessage> data = new SharedMessagePortMessage();
@@ -443,8 +436,7 @@ MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
       MarkerTracingType::START);
   }
 
-  data->Write(aCx, aMessage, transferable,
-              JS::CloneDataPolicy().denySharedArrayBuffer(), aRv);
+  data->Write(aCx, aMessage, transferable, aRv);
 
   if (isTimelineRecording) {
     end = MakeUnique<MessagePortTimelineMarker>(
@@ -491,7 +483,10 @@ MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   AutoTArray<RefPtr<SharedMessagePortMessage>, 1> array;
   array.AppendElement(data);
 
-  AutoTArray<MessagePortMessage, 1> messages;
+  AutoTArray<ClonedMessageData, 1> messages;
+  // note: `messages` will borrow the underlying buffer, but this is okay
+  // because reverse destruction order means `messages` will be destroyed prior
+  // to `array`/`data`.
   SharedMessagePortMessage::FromSharedToMessagesChild(mActor, array, messages);
   mActor->SendPostMessages(messages);
 }
@@ -563,6 +558,12 @@ MessagePort::Dispatch()
   mMessages.RemoveElementAt(0);
 
   mPostMessageRunnable = new PostMessageRunnable(this, data);
+
+  nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal();
+  if (NS_IsMainThread() && global) {
+    MOZ_ALWAYS_SUCCEEDS(global->Dispatch("MessagePortMessage", TaskCategory::Other, do_AddRef(mPostMessageRunnable)));
+    return;
+  }
 
   MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(mPostMessageRunnable));
 }
@@ -665,7 +666,7 @@ MessagePort::SetOnmessage(EventHandlerNonNull* aCallback)
 // we were waiting for this entangling step in order to disentangle the port or
 // to close it.
 void
-MessagePort::Entangled(nsTArray<MessagePortMessage>& aMessages)
+MessagePort::Entangled(nsTArray<ClonedMessageData>& aMessages)
 {
   MOZ_ASSERT(mState == eStateEntangling ||
              mState == eStateEntanglingForDisentangle ||
@@ -676,12 +677,16 @@ MessagePort::Entangled(nsTArray<MessagePortMessage>& aMessages)
 
   // If we have pending messages, these have to be sent.
   if (!mMessagesForTheOtherPort.IsEmpty()) {
-    nsTArray<MessagePortMessage> messages;
-    SharedMessagePortMessage::FromSharedToMessagesChild(mActor,
-                                                        mMessagesForTheOtherPort,
-                                                        messages);
+    {
+      nsTArray<ClonedMessageData> messages;
+      SharedMessagePortMessage::FromSharedToMessagesChild(mActor,
+                                                          mMessagesForTheOtherPort,
+                                                          messages);
+      mActor->SendPostMessages(messages);
+    }
+    // Because `messages` borrow the underlying JSStructuredCloneData buffers,
+    // only clear after `messages` have gone out of scope.
     mMessagesForTheOtherPort.Clear();
-    mActor->SendPostMessages(messages);
   }
 
   // We must convert the messages into SharedMessagePortMessages to avoid leaks.
@@ -727,7 +732,7 @@ MessagePort::StartDisentangling()
 }
 
 void
-MessagePort::MessagesReceived(nsTArray<MessagePortMessage>& aMessages)
+MessagePort::MessagesReceived(nsTArray<ClonedMessageData>& aMessages)
 {
   MOZ_ASSERT(mState == eStateEntangled ||
              mState == eStateDisentangling ||
@@ -770,11 +775,15 @@ MessagePort::Disentangle()
 
   mState = eStateDisentangled;
 
-  nsTArray<MessagePortMessage> messages;
-  SharedMessagePortMessage::FromSharedToMessagesChild(mActor, mMessages,
-                                                      messages);
+  {
+    nsTArray<ClonedMessageData> messages;
+    SharedMessagePortMessage::FromSharedToMessagesChild(mActor, mMessages,
+                                                        messages);
+    mActor->SendDisentangle(messages);
+  }
+  // Only clear mMessages after the ClonedMessageData instances have gone out of
+  // scope because they borrow mMessages' underlying JSStructuredCloneDatas.
   mMessages.Clear();
-  mActor->SendDisentangle(messages);
 
   mActor->SetPort(nullptr);
   mActor = nullptr;

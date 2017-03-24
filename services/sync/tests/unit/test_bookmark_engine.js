@@ -11,34 +11,113 @@ Cu.import("resource://services-sync/engines/bookmarks.js");
 Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://testing-common/services/sync/utils.js");
-Cu.import("resource://gre/modules/Promise.jsm");
 
 initTestLogging("Trace");
 
 Service.engineManager.register(BookmarksEngine);
 
-function* assertChildGuids(folderGuid, expectedChildGuids, message) {
-  let tree = yield PlacesUtils.promiseBookmarksTree(folderGuid);
+async function assertChildGuids(folderGuid, expectedChildGuids, message) {
+  let tree = await PlacesUtils.promiseBookmarksTree(folderGuid);
   let childGuids = tree.children.map(child => child.guid);
   deepEqual(childGuids, expectedChildGuids, message);
 }
 
-add_task(function* test_change_during_sync() {
+async function fetchAllSyncIds() {
+  let db = await PlacesUtils.promiseDBConnection();
+  let rows = await db.executeCached(`
+    WITH RECURSIVE
+    syncedItems(id, guid) AS (
+      SELECT b.id, b.guid FROM moz_bookmarks b
+      WHERE b.guid IN ('menu________', 'toolbar_____', 'unfiled_____',
+                       'mobile______')
+      UNION ALL
+      SELECT b.id, b.guid FROM moz_bookmarks b
+      JOIN syncedItems s ON b.parent = s.id
+    )
+    SELECT guid FROM syncedItems`);
+  let syncIds = new Set();
+  for (let row of rows) {
+    let syncId = PlacesSyncUtils.bookmarks.guidToSyncId(
+      row.getResultByName("guid"));
+    syncIds.add(syncId);
+  }
+  return syncIds;
+}
+
+add_task(async function test_delete_invalid_roots_from_server() {
+  _("Ensure that we delete the Places and Reading List roots from the server.");
+
+  let engine  = new BookmarksEngine(Service);
+  let store   = engine._store;
+  let server = serverForFoo(engine);
+  await SyncTestingInfrastructure(server);
+
+  let collection = server.user("foo").collection("bookmarks");
+
+  Svc.Obs.notify("weave:engine:start-tracking");
+
+  try {
+    collection.insert("places", encryptPayload(store.createRecord("places").cleartext));
+
+    let listBmk = new Bookmark("bookmarks", Utils.makeGUID());
+    listBmk.bmkUri = "https://example.com";
+    listBmk.title = "Example reading list entry";
+    listBmk.parentName = "Reading List";
+    listBmk.parentid = "readinglist";
+    collection.insert(listBmk.id, encryptPayload(listBmk.cleartext));
+
+    let readingList = new BookmarkFolder("bookmarks", "readinglist");
+    readingList.title = "Reading List";
+    readingList.children = [listBmk.id];
+    readingList.parentName = "";
+    readingList.parentid = "places";
+    collection.insert("readinglist", encryptPayload(readingList.cleartext));
+
+    let newBmk = new Bookmark("bookmarks", Utils.makeGUID());
+    newBmk.bmkUri = "http://getfirefox.com";
+    newBmk.title = "Get Firefox!";
+    newBmk.parentName = "Bookmarks Toolbar";
+    newBmk.parentid = "toolbar";
+    collection.insert(newBmk.id, encryptPayload(newBmk.cleartext));
+
+    deepEqual(collection.keys().sort(), ["places", "readinglist", listBmk.id, newBmk.id].sort(),
+      "Should store Places root, reading list items, and new bookmark on server");
+
+    await sync_engine_and_validate_telem(engine, false);
+
+    ok(!store.itemExists("readinglist"), "Should not apply Reading List root");
+    ok(!store.itemExists(listBmk.id), "Should not apply items in Reading List");
+    ok(store.itemExists(newBmk.id), "Should apply new bookmark");
+
+    deepEqual(collection.keys().sort(), ["menu", "mobile", "toolbar", "unfiled", newBmk.id].sort(),
+      "Should remove Places root and reading list items from server; upload local roots");
+  } finally {
+    store.wipe();
+    Svc.Prefs.resetBranch("");
+    Service.recordManager.clearCache();
+    await promiseStopServer(server);
+    Svc.Obs.notify("weave:engine:stop-tracking");
+  }
+});
+
+add_task(async function test_change_during_sync() {
   _("Ensure that we track changes made during a sync.");
 
   let engine  = new BookmarksEngine(Service);
   let store   = engine._store;
-  let tracker = engine._tracker;
   let server = serverForFoo(engine);
-  new SyncTestingInfrastructure(server.server);
+  await SyncTestingInfrastructure(server);
 
   let collection = server.user("foo").collection("bookmarks");
 
   let bz_id = PlacesUtils.bookmarks.insertBookmark(
     PlacesUtils.bookmarksMenuFolderId, Utils.makeURI("https://bugzilla.mozilla.org/"),
     PlacesUtils.bookmarks.DEFAULT_INDEX, "Bugzilla");
-  let bz_guid = yield PlacesUtils.promiseItemGuid(bz_id);
+  let bz_guid = await PlacesUtils.promiseItemGuid(bz_id);
     _(`Bugzilla GUID: ${bz_guid}`);
+
+  await PlacesTestUtils.markBookmarksAsSynced();
+  enableValidationPrefs();
 
   Svc.Obs.notify("weave:engine:start-tracking");
 
@@ -119,14 +198,14 @@ add_task(function* test_change_during_sync() {
       collection.insert(bmk4_guid, encryptPayload(localTaggedBmk.cleartext));
     }
 
-    yield* assertChildGuids(folder1_guid, [bmk1_guid], "Folder should have 1 child before first sync");
+    await assertChildGuids(folder1_guid, [bmk1_guid], "Folder should have 1 child before first sync");
 
     _("Perform first sync");
     {
       let changes = engine.pullNewChanges();
-      deepEqual(changes.ids().sort(), [folder1_guid, bmk1_guid, "toolbar"].sort(),
+      deepEqual(Object.keys(changes).sort(), [folder1_guid, bmk1_guid, "toolbar"].sort(),
         "Should track bookmark and folder created before first sync");
-      yield sync_engine_and_validate_telem(engine, false);
+      await sync_engine_and_validate_telem(engine, false);
     }
 
     let bmk2_id = store.idForGUID(bmk2_guid);
@@ -140,9 +219,9 @@ add_task(function* test_change_during_sync() {
       ok(!collection.wbo(bmk3_guid),
         "Bookmark created during first sync shouldn't be uploaded yet");
 
-      yield* assertChildGuids(folder1_guid, [bmk1_guid, bmk3_guid, bmk2_guid],
+      await assertChildGuids(folder1_guid, [bmk1_guid, bmk3_guid, bmk2_guid],
         "Folder 1 should have 3 children after first sync");
-      yield* assertChildGuids(folder2_guid, [bmk4_guid, tagQuery_guid],
+      await assertChildGuids(folder2_guid, [bmk4_guid, tagQuery_guid],
         "Folder 2 should have 2 children after first sync");
       let taggedURIs = PlacesUtils.tagging.getURIsForTag("taggy");
       equal(taggedURIs.length, 1, "Should have 1 tagged URI");
@@ -153,35 +232,33 @@ add_task(function* test_change_during_sync() {
     _("Perform second sync");
     {
       let changes = engine.pullNewChanges();
-      deepEqual(changes.ids().sort(), [bmk3_guid, folder1_guid].sort(),
+      deepEqual(Object.keys(changes).sort(), [bmk3_guid, folder1_guid].sort(),
         "Should track bookmark added during last sync and its parent");
-      yield sync_engine_and_validate_telem(engine, false);
+      await sync_engine_and_validate_telem(engine, false);
 
       ok(collection.wbo(bmk3_guid),
         "Bookmark created during first sync should be uploaded during second sync");
 
-      yield* assertChildGuids(folder1_guid, [bmk1_guid, bmk3_guid, bmk2_guid],
+      await assertChildGuids(folder1_guid, [bmk1_guid, bmk3_guid, bmk2_guid],
         "Folder 1 should have same children after second sync");
-      yield* assertChildGuids(folder2_guid, [bmk4_guid, tagQuery_guid],
+      await assertChildGuids(folder2_guid, [bmk4_guid, tagQuery_guid],
         "Folder 2 should have same children after second sync");
     }
   } finally {
     store.wipe();
     Svc.Prefs.resetBranch("");
     Service.recordManager.clearCache();
-    yield new Promise(resolve => server.stop(resolve));
+    await promiseStopServer(server);
     Svc.Obs.notify("weave:engine:stop-tracking");
   }
 });
 
-add_task(function* bad_record_allIDs() {
+add_task(async function bad_record_allIDs() {
   let server = new SyncServer();
   server.start();
-  let syncTesting = new SyncTestingInfrastructure(server.server);
+  await SyncTestingInfrastructure(server);
 
   _("Ensure that bad Places queries don't cause an error in getAllIDs.");
-  let engine = new BookmarksEngine(Service);
-  let store = engine._store;
   let badRecordID = PlacesUtils.bookmarks.insertBookmark(
       PlacesUtils.bookmarks.toolbarFolder,
       Utils.makeURI("place:folder=1138"),
@@ -193,18 +270,25 @@ add_task(function* bad_record_allIDs() {
   _("Type: " + PlacesUtils.bookmarks.getItemType(badRecordID));
 
   _("Fetching all IDs.");
-  let all = store.getAllIDs();
+  let all = await fetchAllSyncIds();
 
-  _("All IDs: " + JSON.stringify(all));
-  do_check_true("menu" in all);
-  do_check_true("toolbar" in all);
+  _("All IDs: " + JSON.stringify([...all]));
+  do_check_true(all.has("menu"));
+  do_check_true(all.has("toolbar"));
 
   _("Clean up.");
   PlacesUtils.bookmarks.removeItem(badRecordID);
-  yield new Promise(r => server.stop(r));
+  await PlacesSyncUtils.bookmarks.reset();
+  await promiseStopServer(server);
 });
 
 function serverForFoo(engine) {
+  // The bookmarks engine *always* tracks changes, meaning we might try
+  // and sync due to the bookmarks we ourselves create! Worse, because we
+  // do an engine sync only, there's no locking - so we end up with multiple
+  // syncs running. Neuter that by making the threshold very large.
+  Service.scheduler.syncThreshold = 10000000;
+
   return serverForUsers({"foo": "password"}, {
     meta: {global: {engines: {bookmarks: {version: engine.version,
                                           syncID: engine.syncID}}}},
@@ -212,13 +296,13 @@ function serverForFoo(engine) {
   });
 }
 
-add_task(function* test_processIncoming_error_orderChildren() {
+add_task(async function test_processIncoming_error_orderChildren() {
   _("Ensure that _orderChildren() is called even when _processIncoming() throws an error.");
 
   let engine = new BookmarksEngine(Service);
   let store  = engine._store;
   let server = serverForFoo(engine);
-  new SyncTestingInfrastructure(server.server);
+  await SyncTestingInfrastructure(server);
 
   let collection = server.user("foo").collection("bookmarks");
 
@@ -233,10 +317,8 @@ add_task(function* test_processIncoming_error_orderChildren() {
 
     let bmk1_id = PlacesUtils.bookmarks.insertBookmark(
       folder1_id, fxuri, PlacesUtils.bookmarks.DEFAULT_INDEX, "Get Firefox!");
-    let bmk1_guid = store.GUIDForId(bmk1_id);
     let bmk2_id = PlacesUtils.bookmarks.insertBookmark(
       folder1_id, tburi, PlacesUtils.bookmarks.DEFAULT_INDEX, "Get Thunderbird!");
-    let bmk2_guid = store.GUIDForId(bmk2_id);
 
     // Create a server record for folder1 where we flip the order of
     // the children.
@@ -259,8 +341,8 @@ add_task(function* test_processIncoming_error_orderChildren() {
 
     let error;
     try {
-      yield sync_engine_and_validate_telem(engine, true)
-    } catch(ex) {
+      await sync_engine_and_validate_telem(engine, true)
+    } catch (ex) {
       error = ex;
     }
     ok(!!error);
@@ -278,16 +360,17 @@ add_task(function* test_processIncoming_error_orderChildren() {
     store.wipe();
     Svc.Prefs.resetBranch("");
     Service.recordManager.clearCache();
-    yield new Promise(resolve => server.stop(resolve));
+    await PlacesSyncUtils.bookmarks.reset();
+    await promiseStopServer(server);
   }
 });
 
-add_task(function* test_restorePromptsReupload() {
+add_task(async function test_restorePromptsReupload() {
   _("Ensure that restoring from a backup will reupload all records.");
   let engine = new BookmarksEngine(Service);
   let store  = engine._store;
   let server = serverForFoo(engine);
-  new SyncTestingInfrastructure(server.server);
+  await SyncTestingInfrastructure(server);
 
   let collection = server.user("foo").collection("bookmarks");
 
@@ -319,7 +402,7 @@ add_task(function* test_restorePromptsReupload() {
     backupFile.append("t_b_e_" + Date.now() + ".json");
 
     _("Backing up to file " + backupFile.path);
-    yield BookmarkJSONUtils.exportToFile(backupFile.path);
+    await BookmarkJSONUtils.exportToFile(backupFile.path);
 
     _("Create a different record and sync.");
     let bmk2_id = PlacesUtils.bookmarks.insertBookmark(
@@ -331,8 +414,8 @@ add_task(function* test_restorePromptsReupload() {
 
     let error;
     try {
-      yield sync_engine_and_validate_telem(engine, false);
-    } catch(ex) {
+      await sync_engine_and_validate_telem(engine, false);
+    } catch (ex) {
       error = ex;
       _("Got error: " + Log.exceptionStr(ex));
     }
@@ -340,22 +423,22 @@ add_task(function* test_restorePromptsReupload() {
 
     _("Verify that there's only one bookmark on the server, and it's Thunderbird.");
     // Of course, there's also the Bookmarks Toolbar and Bookmarks Menu...
-    let wbos = collection.keys(function (id) {
+    let wbos = collection.keys(function(id) {
       return ["menu", "toolbar", "mobile", "unfiled", folder1_guid].indexOf(id) == -1;
     });
     do_check_eq(wbos.length, 1);
     do_check_eq(wbos[0], bmk2_guid);
 
     _("Now restore from a backup.");
-    yield BookmarkJSONUtils.importFromFile(backupFile, true);
+    await BookmarkJSONUtils.importFromFile(backupFile, true);
 
     _("Ensure we have the bookmarks we expect locally.");
-    let guids = store.getAllIDs();
-    _("GUIDs: " + JSON.stringify(guids));
+    let guids = await fetchAllSyncIds();
+    _("GUIDs: " + JSON.stringify([...guids]));
     let found = false;
     let count = 0;
     let newFX;
-    for (let guid in guids) {
+    for (let guid of guids) {
       count++;
       let id = store.idForGUID(guid, true);
       // Only one bookmark, so _all_ should be Firefox!
@@ -375,8 +458,8 @@ add_task(function* test_restorePromptsReupload() {
 
     _("Sync again. This'll wipe bookmarks from the server.");
     try {
-      yield sync_engine_and_validate_telem(engine, false);
-    } catch(ex) {
+      await sync_engine_and_validate_telem(engine, false);
+    } catch (ex) {
       error = ex;
       _("Got error: " + Log.exceptionStr(ex));
     }
@@ -385,15 +468,15 @@ add_task(function* test_restorePromptsReupload() {
     _("Verify that there's only one bookmark on the server, and it's Firefox.");
     // Of course, there's also the Bookmarks Toolbar and Bookmarks Menu...
     let payloads     = server.user("foo").collection("bookmarks").payloads();
-    let bookmarkWBOs = payloads.filter(function (wbo) {
+    let bookmarkWBOs = payloads.filter(function(wbo) {
                          return wbo.type == "bookmark";
                        });
-    let folderWBOs   = payloads.filter(function (wbo) {
+    let folderWBOs   = payloads.filter(function(wbo) {
                          return ((wbo.type == "folder") &&
-                                 (wbo.id   != "menu") &&
-                                 (wbo.id   != "toolbar") &&
-                                 (wbo.id   != "unfiled") &&
-                                 (wbo.id   != "mobile"));
+                                 (wbo.id != "menu") &&
+                                 (wbo.id != "toolbar") &&
+                                 (wbo.id != "unfiled") &&
+                                 (wbo.id != "mobile"));
                        });
 
     do_check_eq(bookmarkWBOs.length, 1);
@@ -409,9 +492,8 @@ add_task(function* test_restorePromptsReupload() {
     store.wipe();
     Svc.Prefs.resetBranch("");
     Service.recordManager.clearCache();
-    let deferred = Promise.defer();
-    server.stop(deferred.resolve);
-    yield deferred.promise;
+    await PlacesSyncUtils.bookmarks.reset();
+    await promiseStopServer(server);
   }
 });
 
@@ -425,7 +507,7 @@ function FakeRecord(constructor, r) {
 }
 
 // Bug 632287.
-add_task(function* test_mismatched_types() {
+add_task(async function test_mismatched_types() {
   _("Ensure that handling a record that changes type causes deletion " +
     "then re-adding.");
 
@@ -458,7 +540,7 @@ add_task(function* test_mismatched_types() {
   let engine = new BookmarksEngine(Service);
   let store  = engine._store;
   let server = serverForFoo(engine);
-  new SyncTestingInfrastructure(server.server);
+  await SyncTestingInfrastructure(server);
 
   _("GUID: " + store.GUIDForId(6, true));
 
@@ -490,11 +572,12 @@ add_task(function* test_mismatched_types() {
     store.wipe();
     Svc.Prefs.resetBranch("");
     Service.recordManager.clearCache();
-    yield new Promise(r => server.stop(r));
+    await PlacesSyncUtils.bookmarks.reset();
+    await promiseStopServer(server);
   }
 });
 
-add_task(function* test_bookmark_guidMap_fail() {
+add_task(async function test_bookmark_guidMap_fail() {
   _("Ensure that failures building the GUID map cause early death.");
 
   let engine = new BookmarksEngine(Service);
@@ -502,7 +585,7 @@ add_task(function* test_bookmark_guidMap_fail() {
 
   let server = serverForFoo(engine);
   let coll   = server.user("foo").collection("bookmarks");
-  new SyncTestingInfrastructure(server.server);
+  await SyncTestingInfrastructure(server);
 
   // Add one item to the server.
   let itemID = PlacesUtils.bookmarks.createFolder(
@@ -543,10 +626,11 @@ add_task(function* test_bookmark_guidMap_fail() {
   do_check_eq(err, "Nooo");
 
   PlacesUtils.promiseBookmarksTree = pbt;
-  yield new Promise(r => server.stop(r));
+  await PlacesSyncUtils.bookmarks.reset();
+  await promiseStopServer(server);
 });
 
-add_task(function* test_bookmark_tag_but_no_uri() {
+add_task(async function test_bookmark_tag_but_no_uri() {
   _("Ensure that a bookmark record with tags, but no URI, doesn't throw an exception.");
 
   let engine = new BookmarksEngine(Service);
@@ -555,21 +639,21 @@ add_task(function* test_bookmark_tag_but_no_uri() {
   // We're simply checking that no exception is thrown, so
   // no actual checks in this test.
 
-  yield PlacesSyncUtils.bookmarks.insert({
+  await PlacesSyncUtils.bookmarks.insert({
     kind: PlacesSyncUtils.bookmarks.KINDS.BOOKMARK,
     syncId: Utils.makeGUID(),
     parentSyncId: "toolbar",
     url: "http://example.com",
     tags: ["foo"],
   });
-  yield PlacesSyncUtils.bookmarks.insert({
+  await PlacesSyncUtils.bookmarks.insert({
     kind: PlacesSyncUtils.bookmarks.KINDS.BOOKMARK,
     syncId: Utils.makeGUID(),
     parentSyncId: "toolbar",
     url: "http://example.org",
     tags: null,
   });
-  yield PlacesSyncUtils.bookmarks.insert({
+  await PlacesSyncUtils.bookmarks.insert({
     kind: PlacesSyncUtils.bookmarks.KINDS.BOOKMARK,
     syncId: Utils.makeGUID(),
     url: "about:fake",
@@ -591,7 +675,7 @@ add_task(function* test_bookmark_tag_but_no_uri() {
   store.update(record);
 });
 
-add_task(function* test_misreconciled_root() {
+add_task(async function test_misreconciled_root() {
   _("Ensure that we don't reconcile an arbitrary record with a root.");
 
   let engine = new BookmarksEngine(Service);
@@ -628,7 +712,7 @@ add_task(function* test_misreconciled_root() {
 
   let rec = new FakeRecord(BookmarkFolder, to_apply);
   let encrypted = encryptPayload(rec.cleartext);
-  encrypted.decrypt = function () {
+  encrypted.decrypt = function() {
     for (let x in rec) {
       encrypted[x] = rec[x];
     }
@@ -639,7 +723,7 @@ add_task(function* test_misreconciled_root() {
     getBatched() {
       return this.get();
     },
-    get: function () {
+    get() {
       this.recordHandler(encrypted);
       return {success: true}
     },
@@ -655,7 +739,167 @@ add_task(function* test_misreconciled_root() {
   do_check_eq(parentGUIDBefore, parentGUIDAfter);
   do_check_eq(parentIDBefore, parentIDAfter);
 
-  yield new Promise(r => server.stop(r));
+  await PlacesSyncUtils.bookmarks.reset();
+  await promiseStopServer(server);
+});
+
+add_task(async function test_sync_dateAdded() {
+  await Service.recordManager.clearCache();
+  await PlacesSyncUtils.bookmarks.reset();
+  let engine = new BookmarksEngine(Service);
+  let store  = engine._store;
+  let server = serverForFoo(engine);
+  await SyncTestingInfrastructure(server);
+
+  let collection = server.user("foo").collection("bookmarks");
+
+  Svc.Obs.notify("weave:engine:start-tracking");   // We skip usual startup...
+
+  // Just matters that it's in the past, not how far.
+  let now = Date.now();
+  let oneYearMS = 365 * 24 * 60 * 60 * 1000;
+
+  try {
+    let item1GUID = "abcdefabcdef";
+    let item1 = new Bookmark("bookmarks", item1GUID);
+    item1.bmkUri = "https://example.com";
+    item1.title = "asdf";
+    item1.parentName = "Bookmarks Toolbar";
+    item1.parentid = "toolbar";
+    item1.dateAdded = now - oneYearMS;
+    collection.insert(item1GUID, encryptPayload(item1.cleartext));
+
+    let item2GUID = "aaaaaaaaaaaa";
+    let item2 = new Bookmark("bookmarks", item2GUID);
+    item2.bmkUri = "https://example.com/2";
+    item2.title = "asdf2";
+    item2.parentName = "Bookmarks Toolbar";
+    item2.parentid = "toolbar";
+    item2.dateAdded = now + oneYearMS;
+    const item2LastModified = now / 1000 - 100;
+    collection.insert(item2GUID, encryptPayload(item2.cleartext), item2LastModified);
+
+    let item3GUID = "bbbbbbbbbbbb";
+    let item3 = new Bookmark("bookmarks", item3GUID);
+    item3.bmkUri = "https://example.com/3";
+    item3.title = "asdf3";
+    item3.parentName = "Bookmarks Toolbar";
+    item3.parentid = "toolbar";
+    // no dateAdded
+    collection.insert(item3GUID, encryptPayload(item3.cleartext));
+
+    let item4GUID = "cccccccccccc";
+    let item4 = new Bookmark("bookmarks", item4GUID);
+    item4.bmkUri = "https://example.com/4";
+    item4.title = "asdf4";
+    item4.parentName = "Bookmarks Toolbar";
+    item4.parentid = "toolbar";
+    // no dateAdded, but lastModified in past
+    const item4LastModified = (now - oneYearMS) / 1000;
+    collection.insert(item4GUID, encryptPayload(item4.cleartext), item4LastModified);
+
+    let item5GUID = "dddddddddddd";
+    let item5 = new Bookmark("bookmarks", item5GUID);
+    item5.bmkUri = "https://example.com/5";
+    item5.title = "asdf5";
+    item5.parentName = "Bookmarks Toolbar";
+    item5.parentid = "toolbar";
+    // no dateAdded, lastModified in (near) future.
+    const item5LastModified = (now + 60000) / 1000;
+    collection.insert(item5GUID, encryptPayload(item5.cleartext), item5LastModified);
+
+    let item6GUID = "eeeeeeeeeeee";
+    let item6 = new Bookmark("bookmarks", item6GUID);
+    item6.bmkUri = "https://example.com/6";
+    item6.title = "asdf6";
+    item6.parentName = "Bookmarks Toolbar";
+    item6.parentid = "toolbar";
+    const item6LastModified = (now - oneYearMS) / 1000;
+    collection.insert(item6GUID, encryptPayload(item6.cleartext), item6LastModified);
+
+    let origBuildWeakReuploadMap = engine.buildWeakReuploadMap;
+    engine.buildWeakReuploadMap = set => {
+      let fullMap = origBuildWeakReuploadMap.call(engine, set);
+      fullMap.delete(item6GUID);
+      return fullMap;
+    };
+
+    await sync_engine_and_validate_telem(engine, false);
+
+    let record1 = await store.createRecord(item1GUID);
+    let record2 = await store.createRecord(item2GUID);
+
+    equal(item1.dateAdded, record1.dateAdded, "dateAdded in past should be synced");
+    equal(record2.dateAdded, item2LastModified * 1000, "dateAdded in future should be ignored in favor of last modified");
+
+    let record3 = await store.createRecord(item3GUID);
+
+    ok(record3.dateAdded);
+    // Make sure it's within 24 hours of the right timestamp... This is a little
+    // dodgey but we only really care that it's basically accurate and has the
+    // right day.
+    ok(Math.abs(Date.now() - record3.dateAdded) < 24 * 60 * 60 * 1000);
+
+    let record4 = await store.createRecord(item4GUID);
+    equal(record4.dateAdded, item4LastModified * 1000,
+          "If no dateAdded is provided, lastModified should be used");
+
+    let record5 = await store.createRecord(item5GUID);
+    equal(record5.dateAdded, item5LastModified * 1000,
+          "If no dateAdded is provided, lastModified should be used (even if it's in the future)");
+
+    let item6WBO = JSON.parse(JSON.parse(collection._wbos[item6GUID].payload).ciphertext);
+    ok(!item6WBO.dateAdded,
+       "If we think an item has been modified locally, we don't upload it to the server");
+
+    let record6 = await store.createRecord(item6GUID);
+    equal(record6.dateAdded, item6LastModified * 1000,
+       "We still remember the more accurate dateAdded if we don't upload a record due to local changes");
+    engine.buildWeakReuploadMap = origBuildWeakReuploadMap;
+
+    // Update item2 and try resyncing it.
+    item2.dateAdded = now - 100000;
+    collection.insert(item2GUID, encryptPayload(item2.cleartext), now / 1000 - 50);
+
+
+    // Also, add a local bookmark and make sure it's date added makes it up to the server
+    let bzid = PlacesUtils.bookmarks.insertBookmark(
+      PlacesUtils.bookmarksMenuFolderId, Utils.makeURI("https://bugzilla.mozilla.org/"),
+      PlacesUtils.bookmarks.DEFAULT_INDEX, "Bugzilla");
+
+    let bzguid = await PlacesUtils.promiseItemGuid(bzid);
+
+
+    await sync_engine_and_validate_telem(engine, false);
+
+    let newRecord2 = await store.createRecord(item2GUID);
+    equal(newRecord2.dateAdded, item2.dateAdded, "dateAdded update should work for earlier date");
+
+    let bzWBO = JSON.parse(JSON.parse(collection._wbos[bzguid].payload).ciphertext);
+    ok(bzWBO.dateAdded, "Locally added dateAdded lost");
+
+    let localRecord = await store.createRecord(bzguid);
+    equal(bzWBO.dateAdded, localRecord.dateAdded, "dateAdded should not change during upload");
+
+    item2.dateAdded += 10000;
+    collection.insert(item2GUID, encryptPayload(item2.cleartext), now / 1000 - 10);
+    engine.lastSync = now / 1000 - 20;
+
+    await sync_engine_and_validate_telem(engine, false);
+
+    let newerRecord2 = await store.createRecord(item2GUID);
+    equal(newerRecord2.dateAdded, newRecord2.dateAdded,
+      "dateAdded update should be ignored for later date if we know an earlier one ");
+
+
+
+  } finally {
+    store.wipe();
+    Svc.Prefs.resetBranch("");
+    Service.recordManager.clearCache();
+    await PlacesSyncUtils.bookmarks.reset();
+    await promiseStopServer(server);
+  }
 });
 
 function run_test() {

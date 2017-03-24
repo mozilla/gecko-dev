@@ -49,11 +49,11 @@ XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "gTextDecoder", function () {
+XPCOMUtils.defineLazyGetter(this, "gTextDecoder", function() {
   return new TextDecoder();
 });
 
-XPCOMUtils.defineLazyGetter(this, "gTextEncoder", function () {
+XPCOMUtils.defineLazyGetter(this, "gTextEncoder", function() {
   return new TextEncoder();
 });
 
@@ -81,6 +81,15 @@ const kSaveDelayMs = 1500;
  *        - saveDelayMs: Number indicating the delay (in milliseconds) between a
  *                       change to the data and the related save operation. The
  *                       default value will be applied if omitted.
+ *        - beforeSave: Promise-returning function triggered just before the
+ *                      data is written to disk. This can be used to create any
+ *                      intermediate directories before saving. The file will
+ *                      not be saved if the promise rejects or the function
+ *                      throws an exception.
+ *        - finalizeAt: An `AsyncShutdown` phase or barrier client that should
+ *                      automatically finalize the file when triggered. Defaults
+ *                      to `profileBeforeChange`; exposed as an option for
+ *                      testing.
  */
 function JSONFile(config) {
   this.path = config.path;
@@ -88,14 +97,19 @@ function JSONFile(config) {
   if (typeof config.dataPostProcessor === "function") {
     this._dataPostProcessor = config.dataPostProcessor;
   }
+  if (typeof config.beforeSave === "function") {
+    this._beforeSave = config.beforeSave;
+  }
 
   if (config.saveDelayMs === undefined) {
     config.saveDelayMs = kSaveDelayMs;
   }
   this._saver = new DeferredTask(() => this._save(), config.saveDelayMs);
 
-  AsyncShutdown.profileBeforeChange.addBlocker("JSON store: writing data",
-                                               () => this._saver.finalize());
+  this._finalizeAt = config.finalizeAt || AsyncShutdown.profileBeforeChange;
+  this._finalizeInternalBound = this._finalizeInternal.bind(this);
+  this._finalizeAt.addBlocker("JSON store: writing data",
+                              this._finalizeInternalBound);
 }
 
 JSONFile.prototype = {
@@ -120,6 +134,13 @@ JSONFile.prototype = {
   _data: null,
 
   /**
+   * Internal fields used during finalization.
+   */
+  _finalizeAt: null,
+  _finalizePromise: null,
+  _finalizeInternalBound: null,
+
+  /**
    * Serializable object containing the data. This is populated directly with
    * the data loaded from the file, and is saved without modifications.
    *
@@ -132,6 +153,15 @@ JSONFile.prototype = {
       throw new Error("Data is not ready.");
     }
     return this._data;
+  },
+
+  /**
+   * Sets the loaded data to a new object. This will overwrite any persisted
+   * data on the next save.
+   */
+  set data(data) {
+    this._data = data;
+    this.dataReady = true;
   },
 
   /**
@@ -252,6 +282,9 @@ JSONFile.prototype = {
   _save: Task.async(function* () {
     // Create or overwrite the file.
     let bytes = gTextEncoder.encode(JSON.stringify(this._data));
+    if (this._beforeSave) {
+      yield Promise.resolve(this._beforeSave());
+    }
     yield OS.File.writeAtomic(this.path, bytes,
                               { tmpPath: this.path + ".tmp" });
   }),
@@ -260,7 +293,45 @@ JSONFile.prototype = {
    * Synchronously work on the data just loaded into memory.
    */
   _processLoadedData(data) {
-    this._data = this._dataPostProcessor ? this._dataPostProcessor(data) : data;
-    this.dataReady = true;
+    if (this._finalizePromise) {
+      // It's possible for `load` to race with `finalize`. In that case, don't
+      // process or set the loaded data.
+      return;
+    }
+    this.data = this._dataPostProcessor ? this._dataPostProcessor(data) : data;
   },
+
+  /**
+   * Finishes persisting data to disk and resets all state for this file.
+   *
+   * @return {Promise}
+   * @resolves When the object is finalized.
+   */
+  _finalizeInternal() {
+    if (this._finalizePromise) {
+      // Finalization already in progress; return the pending promise. This is
+      // possible if `finalize` is called concurrently with shutdown.
+      return this._finalizePromise;
+    }
+    this._finalizePromise = Task.spawn(function* () {
+      yield this._saver.finalize();
+      this._data = null;
+      this.dataReady = false;
+    }.bind(this));
+    return this._finalizePromise;
+  },
+
+  /**
+   * Ensures that all data is persisted to disk, and prevents future calls to
+   * `saveSoon`. This is called automatically on shutdown, but can also be
+   * called explicitly when the file is no longer needed.
+   */
+  finalize: Task.async(function* () {
+    if (this._finalizePromise) {
+      throw new Error(`The file ${this.path} has already been finalized`);
+    }
+    // Wait for finalization before removing the shutdown blocker.
+    yield this._finalizeInternal();
+    this._finalizeAt.removeBlocker(this._finalizeInternalBound);
+  }),
 };

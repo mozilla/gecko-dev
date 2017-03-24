@@ -61,11 +61,17 @@ def Library(name):
 
 
 @template
-def RustLibrary(name):
+def RustLibrary(name, features=None, target_dir=None):
     '''Template for Rust libraries.'''
     Library(name)
 
     IS_RUST_LIBRARY = True
+
+    if features:
+        RUST_LIBRARY_FEATURES = features
+
+    if target_dir:
+        RUST_LIBRARY_TARGET_DIR = target_dir
 
 
 @template
@@ -125,6 +131,16 @@ def HostSimplePrograms(names, ext='.cpp'):
 def HostLibrary(name):
     '''Template for build tools libraries.'''
     HOST_LIBRARY_NAME = name
+
+@template
+def HostRustLibrary(name, features=None):
+    '''Template for host Rust libraries.'''
+    HostLibrary(name)
+
+    IS_RUST_LIBRARY = True
+
+    if features:
+        HOST_RUST_LIBRARY_FEATURES = features
 
 
 include('gecko_templates.mozbuild')

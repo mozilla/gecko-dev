@@ -224,7 +224,8 @@ nsNativeTheme::IsButtonTypeMenu(nsIFrame* aFrame)
     return false;
 
   nsIContent* content = aFrame->GetContent();
-  return content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+  return content->IsXULElement(nsGkAtoms::button) &&
+         content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                               NS_LITERAL_STRING("menu"), eCaseMatters);
 }
 
@@ -286,7 +287,7 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
       parentFrame = parentFrame->GetParent();
       if (parentFrame) {
         return IsWidgetStyled(aPresContext, parentFrame,
-                              parentFrame->StyleDisplay()->mAppearance);
+                              parentFrame->StyleDisplay()->UsedAppearance());
       }
     }
   }
@@ -697,7 +698,7 @@ nsNativeTheme::GetAdjacentSiblingFrameWithSameAppearance(nsIFrame* aFrame,
 
   // Check same appearance and adjacency.
   if (!sibling ||
-      sibling->StyleDisplay()->mAppearance != aFrame->StyleDisplay()->mAppearance ||
+      sibling->StyleDisplay()->UsedAppearance() != aFrame->StyleDisplay()->UsedAppearance() ||
       (sibling->GetRect().XMost() != aFrame->GetRect().x &&
        aFrame->GetRect().XMost() != sibling->GetRect().x))
     return nullptr;
@@ -759,12 +760,12 @@ nsNativeTheme::IsDarkBackground(nsIFrame* aFrame)
   }
   nsStyleContext* bgSC = nullptr;
   if (!nsCSSRendering::FindBackground(frame, &bgSC) ||
-      bgSC->StyleBackground()->IsTransparent()) {
+      bgSC->StyleBackground()->IsTransparent(bgSC)) {
     nsIFrame* backgroundFrame = nsCSSRendering::FindNonTransparentBackgroundFrame(frame, true);
     nsCSSRendering::FindBackground(backgroundFrame, &bgSC);
   }
   if (bgSC) {
-    nscolor bgColor = bgSC->StyleBackground()->mBackgroundColor;
+    nscolor bgColor = bgSC->StyleBackground()->BackgroundColor(bgSC);
     // Consider the background color dark if the sum of the r, g and b values is
     // less than 384 in a semi-transparent document.  This heuristic matches what
     // WebKit does, and we can improve it later if needed.

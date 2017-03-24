@@ -122,9 +122,11 @@ WindowSurfaceProvider::StartRemoteDrawingInRegion(LayoutDeviceIntRegion& aInvali
 
   *aBufferMode = BufferMode::BUFFER_NONE;
   RefPtr<DrawTarget> dt = nullptr;
-  if (!(dt = mWindowSurface->Lock(aInvalidRegion)) && mIsX11Display) {
+  if (!(dt = mWindowSurface->Lock(aInvalidRegion)) && mIsX11Display &&
+      !mWindowSurface->IsFallback()) {
     gfxWarningOnce() << "Failed to lock WindowSurface, falling back to XPutImage backend.";
     mWindowSurface = MakeUnique<WindowSurfaceX11Image>(mXDisplay, mXWindow, mXVisual, mXDepth);
+    dt = mWindowSurface->Lock(aInvalidRegion);
   }
   return dt.forget();
 }

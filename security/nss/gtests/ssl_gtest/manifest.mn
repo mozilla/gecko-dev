@@ -12,6 +12,8 @@ CSRCS = \
       $(NULL)
 
 CPPSRCS = \
+      $(CORE_DEPTH)/cpputil/dummy_io.cc \
+      $(CORE_DEPTH)/cpputil/dummy_io_fwd.cc \
       ssl_0rtt_unittest.cc \
       ssl_agent_unittest.cc \
       ssl_auth_unittest.cc \
@@ -22,8 +24,11 @@ CPPSRCS = \
       ssl_drop_unittest.cc \
       ssl_ecdh_unittest.cc \
       ssl_ems_unittest.cc \
+      ssl_exporter_unittest.cc \
       ssl_extension_unittest.cc \
+      ssl_fragment_unittest.cc \
       ssl_fuzz_unittest.cc \
+      ssl_gather_unittest.cc \
       ssl_gtest.cc \
       ssl_hrr_unittest.cc \
       ssl_loopback_unittest.cc \
@@ -39,15 +44,16 @@ CPPSRCS = \
       tls_hkdf_unittest.cc \
       tls_filter.cc \
       tls_parser.cc \
+      tls_protect.cc \
       $(NULL)
 
 INCLUDES += -I$(CORE_DEPTH)/gtests/google_test/gtest/include \
-            -I$(CORE_DEPTH)/gtests/common
+            -I$(CORE_DEPTH)/gtests/common \
+            -I$(CORE_DEPTH)/cpputil
 
 REQUIRES = nspr nss libdbm gtest
 
 PROGRAM = ssl_gtest
-EXTRA_LIBS = $(DIST)/lib/$(LIB_PREFIX)gtest.$(LIB_SUFFIX) \
-             $(DIST)/lib/$(LIB_PREFIX)softokn.$(LIB_SUFFIX)
+EXTRA_LIBS = $(DIST)/lib/$(LIB_PREFIX)gtest.$(LIB_SUFFIX)
 
 USE_STATIC_LIBS = 1

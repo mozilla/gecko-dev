@@ -60,13 +60,13 @@ ExternalHelperAppChild::OnDataAvailable(nsIRequest *request,
 NS_IMETHODIMP
 ExternalHelperAppChild::OnStartRequest(nsIRequest *request, nsISupports *ctx)
 {
+  nsresult rv = mHandler->OnStartRequest(request, ctx);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_UNEXPECTED);
+
   nsCOMPtr<nsIDivertableChannel> divertable = do_QueryInterface(request);
   if (divertable) {
     return DivertToParent(divertable, request);
   }
-
-  nsresult rv = mHandler->OnStartRequest(request, ctx);
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_UNEXPECTED);
 
   nsCString entityID;
   nsCOMPtr<nsIResumableChannel> resumable(do_QueryInterface(request));
@@ -116,11 +116,11 @@ ExternalHelperAppChild::DivertToParent(nsIDivertableChannel *divertable,
   return NS_ERROR_FAILURE;
 }
 
-bool
+mozilla::ipc::IPCResult
 ExternalHelperAppChild::RecvCancel(const nsresult& aStatus)
 {
   mStatus = aStatus;
-  return true;
+  return IPC_OK();
 }
 
 } // namespace dom

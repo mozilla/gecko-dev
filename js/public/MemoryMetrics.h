@@ -507,11 +507,13 @@ struct RuntimeSizes
 #define FOR_EACH_SIZE(macro) \
     macro(_, MallocHeap, object) \
     macro(_, MallocHeap, atomsTable) \
+    macro(_, MallocHeap, atomsMarkBitmaps) \
     macro(_, MallocHeap, contexts) \
     macro(_, MallocHeap, temporary) \
     macro(_, MallocHeap, interpreterStack) \
     macro(_, MallocHeap, mathCache) \
     macro(_, MallocHeap, sharedImmutableStringsCache) \
+    macro(_, MallocHeap, sharedIntlData) \
     macro(_, MallocHeap, uncompressedSourceCache) \
     macro(_, MallocHeap, scriptData)
 
@@ -765,6 +767,7 @@ struct CompartmentStats
     macro(Other,   MallocHeap, savedStacksSet) \
     macro(Other,   MallocHeap, varNamesSet) \
     macro(Other,   MallocHeap, nonSyntacticLexicalScopesTable) \
+    macro(Other,   MallocHeap, templateLiteralMap) \
     macro(Other,   MallocHeap, jitCompartment) \
     macro(Other,   MallocHeap, privateData)
 

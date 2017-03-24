@@ -45,17 +45,6 @@ namespace X86Encoding {
 
 class BaseAssembler;
 
-class AutoUnprotectAssemblerBufferRegion
-{
-    BaseAssembler* assembler;
-    size_t firstByteOffset;
-    size_t lastByteOffset;
-
-  public:
-    AutoUnprotectAssemblerBufferRegion(BaseAssembler& holder, int32_t offset, size_t size);
-    ~AutoUnprotectAssemblerBufferRegion();
-};
-
 class BaseAssembler : public GenericAssembler {
 public:
     BaseAssembler()
@@ -68,6 +57,21 @@ public:
     const unsigned char* buffer() const { return m_formatter.buffer(); }
     unsigned char* data() { return m_formatter.data(); }
     bool oom() const { return m_formatter.oom(); }
+
+    void disableProtection() { m_formatter.disableProtection(); }
+    void enableProtection() { m_formatter.enableProtection(); }
+    void setLowerBoundForProtection(size_t size)
+    {
+        m_formatter.setLowerBoundForProtection(size);
+    }
+    void unprotectRegion(unsigned char* first, size_t size)
+    {
+        m_formatter.unprotectRegion(first, size);
+    }
+    void reprotectRegion(unsigned char* first, size_t size)
+    {
+        m_formatter.reprotectRegion(first, size);
+    }
 
     void nop()
     {
@@ -108,6 +112,40 @@ public:
         MOZ_RELEASE_ASSERT(jump[0] == OP_JMP_rel8);
         jump[0] = PRE_OPERAND_SIZE;
         jump[1] = OP_NOP;
+    }
+
+    static void patchFiveByteNopToCall(uint8_t* callsite, uint8_t* target)
+    {
+        // Note: the offset is relative to the address of the instruction after
+        // the call which is five bytes.
+        uint8_t* inst = callsite - sizeof(int32_t) - 1;
+        // The nop can be already patched as call, overriding the call.
+        // See also nop_five.
+        MOZ_ASSERT(inst[0] == OP_NOP_0F || inst[0] == OP_CALL_rel32);
+        MOZ_ASSERT_IF(inst[0] == OP_NOP_0F, inst[1] == OP_NOP_1F ||
+                                            inst[2] == OP_NOP_44 ||
+                                            inst[3] == OP_NOP_00 ||
+                                            inst[4] == OP_NOP_00);
+        inst[0] = OP_CALL_rel32;
+        SetRel32(callsite, target);
+    }
+
+    static void patchCallToFiveByteNop(uint8_t* callsite)
+    {
+        // See also patchFiveByteNopToCall and nop_five.
+        uint8_t* inst = callsite - sizeof(int32_t) - 1;
+        // The call can be already patched as nop.
+        if (inst[0] == OP_NOP_0F) {
+            MOZ_ASSERT(inst[1] == OP_NOP_1F || inst[2] == OP_NOP_44 ||
+                       inst[3] == OP_NOP_00 || inst[4] == OP_NOP_00);
+            return;
+        }
+        MOZ_ASSERT(inst[0] == OP_CALL_rel32);
+        inst[0] = OP_NOP_0F;
+        inst[1] = OP_NOP_1F;
+        inst[2] = OP_NOP_44;
+        inst[3] = OP_NOP_00;
+        inst[4] = OP_NOP_00;
     }
 
     /*
@@ -3819,7 +3857,6 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_3A, imm, off
         MOZ_RELEASE_ASSERT(to.offset() == -1 || size_t(to.offset()) <= size());
 
         unsigned char* code = m_formatter.data();
-        AutoUnprotectAssemblerBufferRegion unprotect(*this, from.offset() - 4, 4);
         SetInt32(code + from.offset(), to.offset());
     }
 
@@ -3838,24 +3875,19 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_3A, imm, off
 
         spew(".set .Lfrom%d, .Llabel%d", from.offset(), to.offset());
         unsigned char* code = m_formatter.data();
-        AutoUnprotectAssemblerBufferRegion unprotect(*this, from.offset() - 4, 4);
         SetRel32(code + from.offset(), code + to.offset());
     }
 
-    void executableCopy(void* buffer)
+    void executableCopy(void* dst)
     {
-        memcpy(buffer, m_formatter.buffer(), size());
+        const unsigned char* src = m_formatter.buffer();
+        memcpy(dst, src, size());
     }
     MOZ_MUST_USE bool appendBuffer(const BaseAssembler& other)
     {
-        return m_formatter.append(other.m_formatter.buffer(), other.size());
-    }
-
-    void unprotectDataRegion(size_t firstByteOffset, size_t lastByteOffset) {
-        m_formatter.unprotectDataRegion(firstByteOffset, lastByteOffset);
-    }
-    void reprotectDataRegion(size_t firstByteOffset, size_t lastByteOffset) {
-        m_formatter.reprotectDataRegion(firstByteOffset, lastByteOffset);
+        const unsigned char* buf = other.m_formatter.buffer();
+        bool ret = m_formatter.append(buf, other.size());
+        return ret;
     }
 
   protected:
@@ -5120,20 +5152,28 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_3A, imm, off
 
         size_t size() const { return m_buffer.size(); }
         const unsigned char* buffer() const { return m_buffer.buffer(); }
+        unsigned char* data() { return m_buffer.data(); }
         bool oom() const { return m_buffer.oom(); }
         bool isAligned(int alignment) const { return m_buffer.isAligned(alignment); }
-        unsigned char* data() { return m_buffer.data(); }
+
+        void disableProtection() { m_buffer.disableProtection(); }
+        void enableProtection() { m_buffer.enableProtection(); }
+        void setLowerBoundForProtection(size_t size)
+        {
+            m_buffer.setLowerBoundForProtection(size);
+        }
+        void unprotectRegion(unsigned char* first, size_t size)
+        {
+            m_buffer.unprotectRegion(first, size);
+        }
+        void reprotectRegion(unsigned char* first, size_t size)
+        {
+            m_buffer.reprotectRegion(first, size);
+        }
 
         MOZ_MUST_USE bool append(const unsigned char* values, size_t size)
         {
             return m_buffer.append(values, size);
-        }
-
-        void unprotectDataRegion(size_t firstByteOffset, size_t lastByteOffset) {
-            m_buffer.unprotectDataRegion(firstByteOffset, lastByteOffset);
-        }
-        void reprotectDataRegion(size_t firstByteOffset, size_t lastByteOffset) {
-            m_buffer.reprotectDataRegion(firstByteOffset, lastByteOffset);
         }
 
     private:
@@ -5367,23 +5407,6 @@ threeByteOpImmSimd("vblendps", VEX_PD, OP3_BLENDPS_VpsWpsIb, ESCAPE_3A, imm, off
 
     bool useVEX_;
 };
-
-MOZ_ALWAYS_INLINE
-AutoUnprotectAssemblerBufferRegion::AutoUnprotectAssemblerBufferRegion(BaseAssembler& holder,
-                                                                       int32_t offset, size_t size)
-{
-    assembler = &holder;
-    MOZ_ASSERT(offset >= 0);
-    firstByteOffset = size_t(offset);
-    lastByteOffset = firstByteOffset + (size - 1);
-    assembler->unprotectDataRegion(firstByteOffset, lastByteOffset);
-}
-
-MOZ_ALWAYS_INLINE
-AutoUnprotectAssemblerBufferRegion::~AutoUnprotectAssemblerBufferRegion()
-{
-    assembler->reprotectDataRegion(firstByteOffset, lastByteOffset);
-}
 
 } // namespace X86Encoding
 

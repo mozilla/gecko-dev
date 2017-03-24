@@ -21,6 +21,7 @@
 #include "GMPUtils.h"
 #include "nsPrintfCString.h"
 #include "psshparser/PsshParser.h"
+#include <ctime>
 
 namespace mozilla {
 namespace dom {
@@ -99,12 +100,6 @@ MediaKeySession::GetError() const
 }
 
 void
-MediaKeySession::GetKeySystem(nsString& aOutKeySystem) const
-{
-  aOutKeySystem.Assign(mKeySystem);
-}
-
-void
 MediaKeySession::GetSessionId(nsString& aSessionId) const
 {
   aSessionId = GetSessionId();
@@ -156,11 +151,12 @@ MediaKeySession::UpdateKeyStatusMap()
                       this, NS_ConvertUTF16toUTF8(mSessionId).get()));
     using IntegerType = typename std::underlying_type<MediaKeyStatus>::type;
     for (const CDMCaps::KeyStatus& status : keyStatuses) {
-      message.Append(nsPrintfCString(" (%s,%s)", ToBase64(status.mId).get(),
+      message.Append(nsPrintfCString(" (%s,%s)", ToHexString(status.mId).get(),
         MediaKeyStatusValues::strings[static_cast<IntegerType>(status.mStatus)].value));
     }
     message.Append(" }");
-    EME_LOG(message.get());
+    // Use %s so we aren't exposing random strings to printf interpolation.
+    EME_LOG("%s", message.get());
   }
 }
 
@@ -315,13 +311,10 @@ MediaKeySession::GenerateRequest(const nsAString& aInitDataType,
 
   // Note: Remaining steps of generateRequest method continue in CDM.
 
-  Telemetry::Accumulate(Telemetry::VIDEO_CDM_GENERATE_REQUEST_CALLED,
-                        ToCDMTypeTelemetryEnum(mKeySystem));
-
-  // Convert initData to base64 for easier logging.
+  // Convert initData to hex for easier logging.
   // Note: CreateSession() Move()s the data out of the array, so we have
   // to copy it here.
-  nsAutoCString base64InitData(ToBase64(data));
+  nsAutoCString hexInitData(ToHexString(data));
   PromiseId pid = mKeys->StorePromise(promise);
   mKeys->ConnectPendingPromiseIdWithToken(pid, Token());
   mKeys->GetCDMProxy()->CreateSession(Token(),
@@ -330,11 +323,11 @@ MediaKeySession::GenerateRequest(const nsAString& aInitDataType,
                                       aInitDataType, data);
 
   EME_LOG("MediaKeySession[%p,'%s'] GenerateRequest() sent, "
-          "promiseId=%d initData(base64)='%s' initDataType='%s'",
+          "promiseId=%d initData='%s' initDataType='%s'",
           this,
           NS_ConvertUTF16toUTF8(mSessionId).get(),
           pid,
-          base64InitData.get(),
+          hexInitData.get(),
           NS_ConvertUTF16toUTF8(aInitDataType).get());
 
   return promise.forget();
@@ -403,7 +396,7 @@ MediaKeySession::Load(const nsAString& aSessionId, ErrorResult& aRv)
   SetSessionId(aSessionId);
 
   PromiseId pid = mKeys->StorePromise(promise);
-  mKeys->GetCDMProxy()->LoadSession(pid, aSessionId);
+  mKeys->GetCDMProxy()->LoadSession(pid, mSessionType, aSessionId);
 
   EME_LOG("MediaKeySession[%p,'%s'] Load() sent to CDM, promiseId=%d",
     this, NS_ConvertUTF16toUTF8(mSessionId).get(), pid);
@@ -447,10 +440,10 @@ MediaKeySession::Update(const ArrayBufferViewOrArrayBuffer& aResponse, ErrorResu
   }
 
 
-  // Convert response to base64 for easier logging.
+  // Convert response to hex for easier logging.
   // Note: UpdateSession() Move()s the data out of the array, so we have
   // to copy it here.
-  nsAutoCString base64Response(ToBase64(data));
+  nsAutoCString hexResponse(ToHexString(data));
 
   PromiseId pid = mKeys->StorePromise(promise);
   mKeys->GetCDMProxy()->UpdateSession(mSessionId,
@@ -458,11 +451,11 @@ MediaKeySession::Update(const ArrayBufferViewOrArrayBuffer& aResponse, ErrorResu
                                       data);
 
   EME_LOG("MediaKeySession[%p,'%s'] Update() sent to CDM, "
-          "promiseId=%d Response(base64)='%s'",
+          "promiseId=%d Response='%s'",
            this,
            NS_ConvertUTF16toUTF8(mSessionId).get(),
            pid,
-           base64Response.get());
+           hexResponse.get());
 
   return promise.forget();
 }
@@ -579,10 +572,10 @@ MediaKeySession::DispatchKeyMessage(MediaKeyMessageType aMessageType,
                                     const nsTArray<uint8_t>& aMessage)
 {
   if (EME_LOG_ENABLED()) {
-    EME_LOG("MediaKeySession[%p,'%s'] DispatchKeyMessage() type=%s message(base64)='%s'",
+    EME_LOG("MediaKeySession[%p,'%s'] DispatchKeyMessage() type=%s message='%s'",
             this, NS_ConvertUTF16toUTF8(mSessionId).get(),
             MediaKeyMessageTypeValues::strings[uint32_t(aMessageType)].value,
-            ToBase64(aMessage).get());
+            ToHexString(aMessage).get());
   }
 
   RefPtr<MediaKeyMessageEvent> event(
@@ -639,10 +632,11 @@ MediaKeySession::MakePromise(ErrorResult& aRv, const nsACString& aName)
 void
 MediaKeySession::SetExpiration(double aExpiration)
 {
-  EME_LOG("MediaKeySession[%p,'%s'] SetExpiry(%lf)",
+  EME_LOG("MediaKeySession[%p,'%s'] SetExpiry(%.12lf) (%.2lf hours from now)",
           this,
           NS_ConvertUTF16toUTF8(mSessionId).get(),
-          aExpiration);
+          aExpiration,
+          (aExpiration - 1000.0 * double(time(0))) / (1000.0 * 60 * 60));
   mExpiration = aExpiration;
 }
 
@@ -668,6 +662,20 @@ void
 MediaKeySession::SetOnmessage(EventHandlerNonNull* aCallback)
 {
   SetEventHandler(nsGkAtoms::onmessage, EmptyString(), aCallback);
+}
+
+nsCString
+ToCString(MediaKeySessionType aType)
+{
+  using IntegerType = typename std::underlying_type<MediaKeySessionType>::type;
+  auto idx = static_cast<IntegerType>(aType);
+  return nsDependentCString(MediaKeySessionTypeValues::strings[idx].value);
+}
+
+nsString
+ToString(MediaKeySessionType aType)
+{
+  return NS_ConvertUTF8toUTF16(ToCString(aType));
 }
 
 } // namespace dom

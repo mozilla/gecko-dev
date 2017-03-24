@@ -17,7 +17,7 @@ loader.lazyServiceGetter(this, "clipboardHelper",
                          "@mozilla.org/widget/clipboardhelper;1",
                          "nsIClipboardHelper");
 loader.lazyRequireGetter(this, "EventEmitter", "devtools/shared/event-emitter");
-loader.lazyRequireGetter(this, "AutocompletePopup", "devtools/client/shared/autocomplete-popup", true);
+loader.lazyRequireGetter(this, "AutocompletePopup", "devtools/client/shared/autocomplete-popup");
 loader.lazyRequireGetter(this, "ToolSidebar", "devtools/client/framework/sidebar", true);
 loader.lazyRequireGetter(this, "Messages", "devtools/client/webconsole/console-output", true);
 loader.lazyRequireGetter(this, "asyncStorage", "devtools/shared/async-storage");
@@ -271,15 +271,15 @@ JSTerm.prototype = {
       this._onPaste = WebConsoleUtils.pasteHandlerGen(
         this.inputNode, doc.getElementById("webconsole-notificationbox"),
         msg, okstring);
-      this.inputNode.addEventListener("keypress", this._keyPress, false);
+      this.inputNode.addEventListener("keypress", this._keyPress);
       this.inputNode.addEventListener("paste", this._onPaste);
       this.inputNode.addEventListener("drop", this._onPaste);
-      this.inputNode.addEventListener("input", this._inputEventHandler, false);
-      this.inputNode.addEventListener("keyup", this._inputEventHandler, false);
-      this.inputNode.addEventListener("focus", this._focusEventHandler, false);
+      this.inputNode.addEventListener("input", this._inputEventHandler);
+      this.inputNode.addEventListener("keyup", this._inputEventHandler);
+      this.inputNode.addEventListener("focus", this._focusEventHandler);
     }
 
-    this.hud.window.addEventListener("blur", this._blurEventHandler, false);
+    this.hud.window.addEventListener("blur", this._blurEventHandler);
     this.lastInputValue && this.setInputValue(this.lastInputValue);
   },
 
@@ -612,11 +612,10 @@ JSTerm.prototype = {
       let document = options.targetElement.ownerDocument;
       let iframe = document.createElementNS(XHTML_NS, "iframe");
 
-      iframe.addEventListener("load", function onIframeLoad() {
-        iframe.removeEventListener("load", onIframeLoad, true);
+      iframe.addEventListener("load", function () {
         iframe.style.visibility = "visible";
         deferred.resolve(iframe.contentWindow);
-      }, true);
+      }, {capture: true, once: true});
 
       iframe.flex = 1;
       iframe.style.visibility = "hidden";
@@ -1638,6 +1637,12 @@ JSTerm.prototype = {
     this.lastCompletion = { value: null };
     this.updateCompleteNode("");
     if (this.autocompletePopup.isOpen) {
+      // Trigger a blur/focus of the JSTerm input to force screen readers to read the
+      // value again.
+      this.inputNode.blur();
+      this.autocompletePopup.once("popup-closed", () => {
+        this.inputNode.focus();
+      });
       this.autocompletePopup.hidePopup();
       this._autocompletePopupNavigated = false;
     }
@@ -1715,16 +1720,16 @@ JSTerm.prototype = {
     this.autocompletePopup = null;
 
     if (this._onPaste) {
-      this.inputNode.removeEventListener("paste", this._onPaste, false);
-      this.inputNode.removeEventListener("drop", this._onPaste, false);
+      this.inputNode.removeEventListener("paste", this._onPaste);
+      this.inputNode.removeEventListener("drop", this._onPaste);
       this._onPaste = null;
     }
 
-    this.inputNode.removeEventListener("keypress", this._keyPress, false);
-    this.inputNode.removeEventListener("input", this._inputEventHandler, false);
-    this.inputNode.removeEventListener("keyup", this._inputEventHandler, false);
-    this.inputNode.removeEventListener("focus", this._focusEventHandler, false);
-    this.hud.window.removeEventListener("blur", this._blurEventHandler, false);
+    this.inputNode.removeEventListener("keypress", this._keyPress);
+    this.inputNode.removeEventListener("input", this._inputEventHandler);
+    this.inputNode.removeEventListener("keyup", this._inputEventHandler);
+    this.inputNode.removeEventListener("focus", this._focusEventHandler);
+    this.hud.window.removeEventListener("blur", this._blurEventHandler);
 
     this.hud = null;
   },

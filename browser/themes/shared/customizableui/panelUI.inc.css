@@ -155,6 +155,11 @@
   filter: none;
 }
 
+#PanelUI-menu-button[badge-status="addon-alert"] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
+  height: 13px;
+  background: #FFBF00 url(chrome://browser/skin/update-badge-failed.svg) no-repeat center;
+}
+
 .panel-subviews {
   padding: 4px;
   background-clip: padding-box;
@@ -561,7 +566,8 @@ toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
   top: 25%;
 }
 
-#PanelUI-update-status[update-status]::after {
+#PanelUI-update-status[update-status]::after,
+#PanelUI-footer-addons > toolbarbutton::after {
   content: "";
   width: 14px;
   height: 14px;
@@ -580,6 +586,34 @@ toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
 #PanelUI-update-status[update-status="failed"]::after {
   background-image: url(chrome://browser/skin/update-badge-failed.svg);
   background-color: #D90000;
+}
+
+#PanelUI-footer-addons > toolbarbutton {
+  background-color: #FFEFBF;
+  /* Force border to override `#PanelUI-footer-addons > toolbarbutton` selector below */
+  border-top: 1px solid hsl(45, 100%, 77%) !important;
+  display: flex;
+  flex: 1 1 0%;
+  width: calc(@menuPanelWidth@ + 30px);
+  padding-inline-start: 15px;
+  border-inline-start-style: none;
+}
+
+#PanelUI-footer-addons > toolbarbutton:hover {
+  background-color: #FFE8A2;
+}
+
+#PanelUI-footer-addons > toolbarbutton:active {
+  background-color: #FFE38F;
+}
+
+#PanelUI-footer-addons > toolbarbutton > .toolbarbutton-icon {
+  width: 14px;
+  height: 14px;
+}
+
+#PanelUI-footer-addons > toolbarbutton::after {
+  background: #FFBF00 url(chrome://browser/skin/update-badge-failed.svg) no-repeat center;
 }
 
 #PanelUI-fxa-status {
@@ -616,6 +650,7 @@ toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
 #PanelUI-help,
 #PanelUI-fxa-label,
 #PanelUI-fxa-icon,
+#PanelUI-footer-addons > toolbarbutton,
 #PanelUI-customize,
 #PanelUI-quit {
   margin: 0;
@@ -650,6 +685,7 @@ toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
 
 #PanelUI-update-status > .toolbarbutton-text,
 #PanelUI-fxa-label > .toolbarbutton-text,
+#PanelUI-footer-addons > toolbarbutton > .toolbarbutton-text,
 #PanelUI-customize > .toolbarbutton-text {
   margin: 0;
   padding: 0 6px;
@@ -677,6 +713,7 @@ toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
 }
 
 #PanelUI-fxa-label,
+#PanelUI-footer-addons > toolbarbutton,
 #PanelUI-customize {
   flex: 1;
   padding-inline-start: 15px;
@@ -766,9 +803,13 @@ toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
   margin-left: 28px;
 }
 
+#PanelUI-remotetabs[mainview] .PanelUI-remotetabs-notabsforclient-label {
+  margin-left: 32px;
+}
+
 .fxaSyncIllustration {
+  width: 180px;
   height: var(--panel-ui-sync-illustration-height);
-  list-style-image: url(chrome://browser/skin/fxa/sync-illustration.svg);
 }
 
 .PanelUI-remotetabs-prefs-button > .toolbarbutton-text {
@@ -816,12 +857,6 @@ toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
   list-style-image: url(chrome://browser/skin/syncProgress-horizontalbar.png);
 }
 
-#PanelUI-footer-fxa[fxastatus="migrate-signup"] > #PanelUI-fxa-status > #PanelUI-fxa-label,
-#PanelUI-footer-fxa[fxastatus="migrate-verify"] > #PanelUI-fxa-status > #PanelUI-fxa-label {
-  list-style-image: url(chrome://browser/skin/warning.svg);
-  -moz-image-region: auto;
-}
-
 #PanelUI-customize {
   list-style-image: url(chrome://browser/skin/menuPanel-customize.png);
 }
@@ -841,6 +876,7 @@ toolbarpaletteitem[place="palette"] > toolbaritem > toolbarbutton {
 
 #PanelUI-fxa-label,
 #PanelUI-fxa-icon,
+#PanelUI-footer-addons > toolbarbutton,
 #PanelUI-customize,
 #PanelUI-help,
 #PanelUI-quit {
@@ -1168,7 +1204,8 @@ menuitem.panel-subview-footer@menuStateActive@,
 #BMB_bookmarksPopup menupopup[placespopup=true][singleitempopup=true] > hbox > .popup-internal-box > .arrowscrollbox-scrollbox > .scrollbox-innerbox,
 /* These popups never have a footer */
 #BMB_bookmarksToolbarPopup > hbox > .popup-internal-box > .arrowscrollbox-scrollbox > .scrollbox-innerbox,
-#BMB_unsortedBookmarksPopup > hbox > .popup-internal-box > .arrowscrollbox-scrollbox > .scrollbox-innerbox {
+#BMB_unsortedBookmarksPopup > hbox > .popup-internal-box > .arrowscrollbox-scrollbox > .scrollbox-innerbox,
+#BMB_mobileBookmarksPopup > hbox > .popup-internal-box > .arrowscrollbox-scrollbox > .scrollbox-innerbox {
   /* And so they need some bottom padding: */
   padding-bottom: 4px;
 }
@@ -1213,19 +1250,19 @@ menuitem.panel-subview-footer@menuStateActive@,
   color: GrayText;
 }
 
-#PanelUI-remotetabs-tabslist > toolbarbutton,
+#PanelUI-remotetabs-tabslist > toolbarbutton[itemtype="tab"],
 #PanelUI-historyItems > toolbarbutton {
   list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.png");
 }
 
 @media (min-resolution: 1.1dppx) {
-  #PanelUI-remotetabs-tabslist > toolbarbutton,
+  #PanelUI-remotetabs-tabslist > toolbarbutton[itemtype="tab"],
   #PanelUI-historyItems > toolbarbutton {
     list-style-image: url("chrome://mozapps/skin/places/defaultFavicon@2x.png");
   }
 }
 
-#PanelUI-remotetabs-tabslist > toolbarbutton > .toolbarbutton-icon,
+#PanelUI-remotetabs-tabslist > toolbarbutton[itemtype="tab"] > .toolbarbutton-icon,
 #PanelUI-recentlyClosedWindows > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-recentlyClosedTabs > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-historyItems > toolbarbutton > .toolbarbutton-icon {

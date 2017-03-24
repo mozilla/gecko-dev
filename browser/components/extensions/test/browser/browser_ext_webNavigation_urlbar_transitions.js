@@ -10,6 +10,17 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
 const SUGGEST_URLBAR_PREF = "browser.urlbar.suggest.searches";
 const TEST_ENGINE_BASENAME = "searchSuggestionEngine.xml";
 
+function* promiseAutocompleteResultPopup(inputText) {
+  gURLBar.focus();
+  gURLBar.value = inputText;
+  gURLBar.controller.startSearch(inputText);
+  yield promisePopupShown(gURLBar.popup);
+  yield BrowserTestUtils.waitForCondition(() => {
+    return gURLBar.controller.searchStatus >=
+      Ci.nsIAutoCompleteController.STATUS_COMPLETE_NO_MATCH;
+  });
+}
+
 function* addBookmark(bookmark) {
   if (bookmark.keyword) {
     yield PlacesUtils.keywords.insert({
@@ -94,6 +105,7 @@ add_task(function* test_webnavigation_urlbar_typed_transitions() {
   });
 
   yield extension.startup();
+  yield SimpleTest.promiseFocus(window);
 
   yield extension.awaitMessage("ready");
 
@@ -139,20 +151,13 @@ add_task(function* test_webnavigation_urlbar_bookmark_transitions() {
   });
 
   yield extension.startup();
+  yield SimpleTest.promiseFocus(window);
 
   yield extension.awaitMessage("ready");
 
-  gURLBar.focus();
-  gURLBar.value = "Bookmark To Click";
-  gURLBar.controller.startSearch("Bookmark To Click");
+  yield promiseAutocompleteResultPopup("Bookmark To Click");
 
-  let item;
-
-  yield BrowserTestUtils.waitForCondition(() => {
-    item = gURLBar.popup.richlistbox.getItemAtIndex(1);
-    return item;
-  });
-
+  let item = gURLBar.popup.richlistbox.getItemAtIndex(1);
   item.click();
   yield extension.awaitFinish("webNavigation.from_address_bar.auto_bookmark");
 
@@ -192,16 +197,11 @@ add_task(function* test_webnavigation_urlbar_keyword_transition() {
   });
 
   yield extension.startup();
+  yield SimpleTest.promiseFocus(window);
 
   yield extension.awaitMessage("ready");
 
-  gURLBar.focus();
-  gURLBar.value = "testkw search";
-  gURLBar.controller.startSearch("testkw search");
-
-  yield BrowserTestUtils.waitForCondition(() => {
-    return gURLBar.popup.input.controller.matchCount;
-  });
+  yield promiseAutocompleteResultPopup("testkw search");
 
   let item = gURLBar.popup.richlistbox.getItemAtIndex(0);
   item.click();
@@ -238,18 +238,12 @@ add_task(function* test_webnavigation_urlbar_search_transitions() {
   });
 
   yield extension.startup();
+  yield SimpleTest.promiseFocus(window);
 
   yield extension.awaitMessage("ready");
 
   yield prepareSearchEngine();
-
-  gURLBar.focus();
-  gURLBar.value = "foo";
-  gURLBar.controller.startSearch("foo");
-
-  yield BrowserTestUtils.waitForCondition(() => {
-    return gURLBar.popup.input.controller.matchCount;
-  });
+  yield promiseAutocompleteResultPopup("foo");
 
   let item = gURLBar.popup.richlistbox.getItemAtIndex(0);
   item.click();

@@ -21,10 +21,12 @@
 #include "nsStubMutationObserver.h"
 #include "nsWrapperCache.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/GuardObjects.h"
 
 namespace mozilla {
 class ErrorResult;
 namespace dom {
+struct ClientRectsAndTexts;
 class DocumentFragment;
 class DOMRect;
 class DOMRectList;
@@ -199,6 +201,30 @@ public:
   void InsertNode(nsINode& aNode, ErrorResult& aErr);
   bool IntersectsNode(nsINode& aNode, ErrorResult& aRv);
   bool IsPointInRange(nsINode& aParent, uint32_t aOffset, ErrorResult& aErr);
+
+  // *JS() methods are mapped to Range.*() of DOM.
+  // They may move focus only when the range represents normal selection.
+  // These methods shouldn't be used from internal.
+  void CollapseJS(bool aToStart);
+  void SelectNodeJS(nsINode& aNode, ErrorResult& aErr);
+  void SelectNodeContentsJS(nsINode& aNode, ErrorResult& aErr);
+  void SetEndJS(nsINode& aNode, uint32_t aOffset, ErrorResult& aErr);
+  void SetEndAfterJS(nsINode& aNode, ErrorResult& aErr);
+  void SetEndBeforeJS(nsINode& aNode, ErrorResult& aErr);
+  void SetStartJS(nsINode& aNode, uint32_t aOffset, ErrorResult& aErr);
+  void SetStartAfterJS(nsINode& aNode, ErrorResult& aErr);
+  void SetStartBeforeJS(nsINode& aNode, ErrorResult& aErr);
+
+  void SurroundContents(nsINode& aNode, ErrorResult& aErr);
+  already_AddRefed<DOMRect> GetBoundingClientRect(bool aClampToEdge = true,
+                                                  bool aFlushLayout = true);
+  already_AddRefed<DOMRectList> GetClientRects(bool aClampToEdge = true,
+                                               bool aFlushLayout = true);
+  void GetClientRectsAndTexts(
+    mozilla::dom::ClientRectsAndTexts& aResult,
+    ErrorResult& aErr);
+
+  // Following methods should be used for internal use instead of *JS().
   void SelectNode(nsINode& aNode, ErrorResult& aErr);
   void SelectNodeContents(nsINode& aNode, ErrorResult& aErr);
   void SetEnd(nsINode& aNode, uint32_t aOffset, ErrorResult& aErr);
@@ -207,11 +233,7 @@ public:
   void SetStart(nsINode& aNode, uint32_t aOffset, ErrorResult& aErr);
   void SetStartAfter(nsINode& aNode, ErrorResult& aErr);
   void SetStartBefore(nsINode& aNode, ErrorResult& aErr);
-  void SurroundContents(nsINode& aNode, ErrorResult& aErr);
-  already_AddRefed<DOMRect> GetBoundingClientRect(bool aClampToEdge = true,
-                                                  bool aFlushLayout = true);
-  already_AddRefed<DOMRectList> GetClientRects(bool aClampToEdge = true,
-                                               bool aFlushLayout = true);
+
   static void GetInnerTextNoFlush(mozilla::dom::DOMString& aValue,
                                   mozilla::ErrorResult& aError,
                                   nsIContent* aStartParent,
@@ -263,11 +285,16 @@ public:
   static bool IsNodeSelected(nsINode* aNode, uint32_t aStartOffset,
                              uint32_t aEndOffset);
 
-  static void CollectClientRects(nsLayoutUtils::RectCallback* aCollector,
-                                 nsRange* aRange,
-                                 nsINode* aStartParent, int32_t aStartOffset,
-                                 nsINode* aEndParent, int32_t aEndOffset,
-                                 bool aClampToEdge, bool aFlushLayout);
+  /**
+   * This helper function gets rects and correlated text for the given range.
+   * @param aTextList optional where nullptr = don't retrieve text
+   */
+  static void CollectClientRectsAndText(nsLayoutUtils::RectCallback* aCollector,
+                                        mozilla::dom::Sequence<nsString>* aTextList,
+                                        nsRange* aRange,
+                                        nsINode* aStartParent, int32_t aStartOffset,
+                                        nsINode* aEndParent, int32_t aEndOffset,
+                                        bool aClampToEdge, bool aFlushLayout);
 
   /**
    * Scan this range for -moz-user-select:none nodes and split it up into
@@ -314,6 +341,31 @@ protected:
                                    size_t aRangeStart,
                                    size_t aRangeEnd);
 
+  // Assume that this is guaranteed that this is held by the caller when
+  // this is used.  (Note that we cannot use AutoRestore for mCalledByJS
+  // due to a bit field.)
+  class MOZ_RAII AutoCalledByJSRestore final
+  {
+  private:
+    nsRange& mRange;
+    bool mOldValue;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+  public:
+    explicit AutoCalledByJSRestore(nsRange& aRange
+                                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : mRange(aRange)
+      , mOldValue(aRange.mCalledByJS)
+    {
+      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+    ~AutoCalledByJSRestore()
+    {
+      mRange.mCalledByJS = mOldValue;
+    }
+    bool SavedValue() const { return mOldValue; }
+  };
+
   struct MOZ_STACK_CLASS AutoInvalidateSelection
   {
     explicit AutoInvalidateSelection(nsRange* aRange) : mRange(aRange)
@@ -350,6 +402,7 @@ protected:
   bool mStartOffsetWasIncremented : 1;
   bool mEndOffsetWasIncremented : 1;
   bool mEnableGravitationOnElementRemoval : 1;
+  bool mCalledByJS : 1;
 #ifdef DEBUG
   int32_t  mAssertNextInsertOrAppendIndex;
   nsINode* mAssertNextInsertOrAppendNode;

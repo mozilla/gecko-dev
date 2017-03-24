@@ -93,11 +93,11 @@ function* testContainer1(browser, accDoc) {
 
   /* ================ Append element ======================================== */
   onReorder = waitForEvent(EVENT_REORDER, id);
-  yield ContentTask.spawn(browser, id, id => {
+  yield ContentTask.spawn(browser, id, contentId => {
     let div = content.document.createElement('div');
     div.setAttribute('id', 't1_child3');
     div.setAttribute('role', 'radio');
-    content.document.getElementById(id).appendChild(div);
+    content.document.getElementById(contentId).appendChild(div);
   });
   yield onReorder;
 
@@ -117,8 +117,7 @@ function* testContainer1(browser, accDoc) {
   /* ================ Remove element ======================================== */
   onReorder = waitForEvent(EVENT_REORDER, id);
   yield ContentTask.spawn(browser, {}, () =>
-    content.document.getElementById('t1_span').parentNode.removeChild(
-      content.document.getElementById('t1_span')));
+    content.document.getElementById('t1_span').remove());
   yield onReorder;
 
   // subdiv should go away
@@ -294,9 +293,10 @@ function* removeNotARIAOwnedEl(browser, accDoc) {
   testAccessibleTree(acc, tree);
 
   let onReorder = waitForEvent(EVENT_REORDER, id);
-  yield ContentTask.spawn(browser, id, id =>
-    content.document.getElementById(id).removeChild(
-      content.document.getElementById('t6_span')));
+  yield ContentTask.spawn(browser, id, contentId => {
+    content.document.getElementById(contentId).removeChild(
+      content.document.getElementById('t6_span'));
+  });
   yield onReorder;
 
   tree = {

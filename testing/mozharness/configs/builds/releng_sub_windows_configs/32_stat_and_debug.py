@@ -21,6 +21,7 @@ config = {
 clang.manifest",
     'platform_supports_post_upload_to_latest': False,
     'objdir': MOZ_OBJDIR,
+    'perfherder_extra_options': ['static-analysis'],
     #### 32 bit build specific #####
     'env': {
         'BINSCOPE': 'C:/Program Files (x86)/Microsoft/SDL BinScope/BinScope.exe',
@@ -35,7 +36,7 @@ clang.manifest",
         'PROPERTIES_FILE': os.path.join(os.getcwd(), 'buildprops.json'),
         'TINDERBOX_OUTPUT': '1',
         'XPCOM_DEBUG_BREAK': 'stack-and-abort',
-        'TOOLTOOL_CACHE': '/c/builds/tooltool_cache',
+        'TOOLTOOL_CACHE': 'c:/builds/tooltool_cache',
         'TOOLTOOL_HOME': '/c/builds',
     },
     'src_mozconfig': 'browser/config/mozconfigs/win32/debug-static-analysis',

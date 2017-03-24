@@ -9,9 +9,14 @@
 #include "nsIURI.h"
 #include "MainThreadUtils.h"
 #include "nsNetUtil.h"
+#include "mozilla/HashFunctions.h"
+#include "nsHashKeys.h"
+#include "nsProxyRelease.h"
 
 namespace mozilla {
 namespace image {
+
+class ImageCacheKey;
 
 /** ImageURL
  *
@@ -29,6 +34,7 @@ class ImageURL
 {
 public:
   explicit ImageURL(nsIURI* aURI, nsresult& aRv)
+    : mURI(new nsMainThreadPtrHolder<nsIURI>(aURI))
   {
     MOZ_ASSERT(NS_IsMainThread(), "Cannot use nsIURI off main thread!");
 
@@ -93,10 +99,7 @@ public:
 
   already_AddRefed<nsIURI> ToIURI()
   {
-    MOZ_ASSERT(NS_IsMainThread(),
-               "Convert to nsIURI on main thread only; it is not threadsafe.");
-    nsCOMPtr<nsIURI> newURI;
-    NS_NewURI(getter_AddRefs(newURI), mSpec);
+    nsCOMPtr<nsIURI> newURI = mURI.get();
     return newURI.forget();
   }
 
@@ -113,6 +116,24 @@ public:
   }
 
 private:
+  friend class ImageCacheKey;
+
+  uint32_t ComputeHash(const Maybe<uint64_t>& aBlobSerial) const
+  {
+    if (aBlobSerial) {
+      // For blob URIs, we hash the serial number of the underlying blob, so that
+      // different blob URIs which point to the same blob share a cache entry. We
+      // also include the ref portion of the URI to support media fragments which
+      // requires us to create different Image objects even if the source data is
+      // the same.
+      return HashGeneric(*aBlobSerial, HashString(mRef));
+    }
+    // For non-blob URIs, we hash the URI spec.
+    return HashString(mSpec);
+  }
+
+  nsMainThreadPtrHandle<nsIURI> mURI;
+
   // Since this is a basic storage class, no duplication of spec parsing is
   // included in the functionality. Instead, the class depends upon the
   // parsing implementation in the nsIURI class used in object construction.

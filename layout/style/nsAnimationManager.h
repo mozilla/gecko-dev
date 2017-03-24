@@ -15,6 +15,8 @@
 
 class nsIGlobalObject;
 class nsStyleContext;
+struct nsStyleDisplay;
+struct ServoComputedValues;
 
 namespace mozilla {
 namespace css {
@@ -26,6 +28,7 @@ class Promise;
 } /* namespace dom */
 
 enum class CSSPseudoElementType : uint8_t;
+struct NonOwningAnimationTarget;
 
 struct AnimationEventInfo {
   RefPtr<dom::Element> mElement;
@@ -76,7 +79,8 @@ public:
     , mIsStylePaused(false)
     , mPauseShouldStick(false)
     , mNeedsNewAnimationIndexWhenRun(false)
-    , mPreviousPhaseOrIteration(PREVIOUS_PHASE_BEFORE)
+    , mPreviousPhase(ComputedTiming::AnimationPhase::Idle)
+    , mPreviousIteration(0)
   {
     // We might need to drop this assertion once we add a script-accessible
     // constructor but for animations generated from CSS markup the
@@ -109,8 +113,6 @@ public:
   void PauseFromStyle();
   void CancelFromStyle() override
   {
-    mOwningElement = OwningElementRef();
-
     // When an animation is disassociated with style it enters an odd state
     // where its composite order is undefined until it first transitions
     // out of the idle state.
@@ -125,10 +127,15 @@ public:
     mNeedsNewAnimationIndexWhenRun = true;
 
     Animation::CancelFromStyle();
+
+    // We need to do this *after* calling CancelFromStyle() since
+    // CancelFromStyle might synchronously trigger a cancel event for which
+    // we need an owning element to target the event at.
+    mOwningElement = OwningElementRef();
   }
 
   void Tick() override;
-  void QueueEvents();
+  void QueueEvents(StickyTimeDuration aActiveTime = StickyTimeDuration());
 
   bool IsStylePaused() const { return mIsStylePaused; }
 
@@ -156,6 +163,10 @@ public:
   // True for animations that are generated from CSS markup and continue to
   // reflect changes to that markup.
   bool IsTiedToMarkup() const { return mOwningElement.IsSet(); }
+
+  void MaybeQueueCancelEvent(StickyTimeDuration aActiveTime) override {
+    QueueEvents(aActiveTime);
+  }
 
 protected:
   virtual ~CSSAnimation()
@@ -257,13 +268,10 @@ protected:
   // its animation index should be updated.
   bool mNeedsNewAnimationIndexWhenRun;
 
-  enum {
-    PREVIOUS_PHASE_BEFORE = uint64_t(-1),
-    PREVIOUS_PHASE_AFTER = uint64_t(-2)
-  };
-  // One of the PREVIOUS_PHASE_* constants, or an integer for the iteration
-  // whose start we last notified on.
-  uint64_t mPreviousPhaseOrIteration;
+  // Phase and current iteration from the previous time we queued events.
+  // This is used to determine what new events to dispatch.
+  ComputedTiming::AnimationPhase mPreviousPhase;
+  uint64_t mPreviousIteration;
 };
 
 } /* namespace dom */
@@ -316,6 +324,16 @@ public:
                         mozilla::dom::Element* aElement);
 
   /**
+   * This function does the same thing as the above UpdateAnimations()
+   * but with servo's computed values.
+   */
+  void UpdateAnimations(
+    mozilla::dom::Element* aElement,
+    nsIAtom* aPseudoTagOrNull,
+    const ServoComputedValues* aComputedValues,
+    const ServoComputedValues* aParentComputedValus);
+
+  /**
    * Add a pending event.
    */
   void QueueEvent(mozilla::AnimationEventInfo&& aEventInfo)
@@ -339,21 +357,15 @@ public:
   void SortEvents()      { mEventDispatcher.SortEvents(); }
   void ClearEventQueue() { mEventDispatcher.ClearEventQueue(); }
 
-  // Stop animations on the element. This method takes the real element
-  // rather than the element for the generated content for animations on
-  // ::before and ::after.
-  void StopAnimationsForElement(mozilla::dom::Element* aElement,
-                                mozilla::CSSPseudoElementType aPseudoType);
-
 protected:
   ~nsAnimationManager() override = default;
 
 private:
-
-  void BuildAnimations(nsStyleContext* aStyleContext,
-                       mozilla::dom::Element* aTarget,
-                       CSSAnimationCollection* aCollection,
-                       OwningCSSAnimationPtrArray& aAnimations);
+  template<class BuilderType>
+  void DoUpdateAnimations(
+    const mozilla::NonOwningAnimationTarget& aTarget,
+    const nsStyleDisplay& aStyleDisplay,
+    BuilderType& aBuilder);
 
   mozilla::DelayedEventDispatcher<mozilla::AnimationEventInfo> mEventDispatcher;
 };

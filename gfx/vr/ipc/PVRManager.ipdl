@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include LayersSurfaces;
-include protocol PLayer;
 include protocol PTexture;
 include protocol PVRLayer;
 include LayersMessages;
@@ -46,23 +45,30 @@ parent:
   // asynchronously to children via UpdateDisplayInfo.
   async RefreshDisplays();
 
-  // GetDisplays synchronously returns the VR displays that have already been
-  // enumerated by RefreshDisplays() but does not enumerate new ones.
-  sync GetDisplays() returns(VRDisplayInfo[] aDisplayInfo);
-
   // Reset the sensor of the display identified by aDisplayID so that the current
   // sensor state is the "Zero" position.
   async ResetSensor(uint32_t aDisplayID);
 
   sync GetSensorState(uint32_t aDisplayID) returns(VRHMDSensorState aState);
-  sync GetImmediateSensorState(uint32_t aDisplayID) returns(VRHMDSensorState aState);
-  sync SetHaveEventListener(bool aHaveEventListener);
+  async SetHaveEventListener(bool aHaveEventListener);
 
   async ControllerListenerAdded();
   async ControllerListenerRemoved();
-  // GetControllers synchronously returns the VR controllers that have already been
-  // enumerated by RefreshVRControllers() but does not enumerate new ones.
-  sync GetControllers() returns(VRControllerInfo[] aControllerInfo);
+  async VibrateHaptic(uint32_t aControllerIdx, uint32_t aHapticIndex,
+                      double aIntensity, double aDuration, uint32_t aPromiseID);
+  async StopVibrateHaptic(uint32_t aControllerIdx);
+
+  async CreateVRTestSystem();
+  async CreateVRServiceTestDisplay(nsCString aID, uint32_t aPromiseID);
+  async CreateVRServiceTestController(nsCString aID, uint32_t aPromiseID);
+  async SetDisplayInfoToMockDisplay(uint32_t aDeviceID, VRDisplayInfo aDisplayInfo);
+  async SetSensorStateToMockDisplay(uint32_t aDeviceID, VRHMDSensorState aSensorState);
+
+  async NewButtonEventToMockController(uint32_t aDeviceID, long aButton,
+                                       bool aPressed);
+  async NewAxisMoveEventToMockController(uint32_t aDeviceID, long aAxis,
+                                         double aValue);
+  async NewPoseMoveToMockController(uint32_t aDeviceID, GamepadPoseState aPose);
 
 child:
 
@@ -77,6 +83,12 @@ child:
   async NotifyVSync();
   async NotifyVRVSync(uint32_t aDisplayID);
   async GamepadUpdate(GamepadChangeEvent aGamepadEvent);
+  async ReplyGamepadVibrateHaptic(uint32_t aPromiseID);
+
+  async ReplyCreateVRServiceTestDisplay(nsCString aID, uint32_t aPromiseID,
+                                        uint32_t aDeviceID);
+  async ReplyCreateVRServiceTestController(nsCString aID, uint32_t aPromiseID,
+                                           uint32_t aDeviceID);
 
   async __delete__();
 

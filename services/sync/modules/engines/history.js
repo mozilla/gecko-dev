@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-this.EXPORTED_SYMBOLS = ['HistoryEngine', 'HistoryRec'];
+this.EXPORTED_SYMBOLS = ["HistoryEngine", "HistoryRec"];
 
 var Cc = Components.classes;
 var Ci = Components.interfaces;
@@ -42,11 +42,10 @@ HistoryEngine.prototype = {
   _trackerObj: HistoryTracker,
   downloadLimit: MAX_HISTORY_DOWNLOAD,
   applyIncomingBatchSize: HISTORY_STORE_BATCH_SIZE,
-  allowSkippedRecord: true,
 
   syncPriority: 7,
 
-  _processIncoming: function (newitems) {
+  _processIncoming(newitems) {
     // We want to notify history observers that a batch operation is underway
     // so they don't do lots of work for each incoming record.
     let observers = PlacesUtils.history.getObservers();
@@ -64,6 +63,50 @@ HistoryEngine.prototype = {
       notifyHistoryObservers("onEndUpdateBatch");
     }
   },
+
+  pullNewChanges() {
+    let modifiedGUIDs = Object.keys(this._tracker.changedIDs);
+    if (!modifiedGUIDs.length) {
+      return {};
+    }
+
+    let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                        .DBConnection;
+
+    // Filter out hidden pages and `TRANSITION_FRAMED_LINK` visits. These are
+    // excluded when rendering the history menu, so we use the same constraints
+    // for Sync. We also don't want to sync `TRANSITION_EMBED` visits, but those
+    // aren't stored in the database.
+    for (let startIndex = 0;
+         startIndex < modifiedGUIDs.length;
+         startIndex += SQLITE_MAX_VARIABLE_NUMBER) {
+
+      let chunkLength = Math.min(SQLITE_MAX_VARIABLE_NUMBER,
+                                 modifiedGUIDs.length - startIndex);
+
+      let query = `
+        SELECT DISTINCT p.guid FROM moz_places p
+        JOIN moz_historyvisits v ON p.id = v.place_id
+        WHERE p.guid IN (${new Array(chunkLength).fill("?").join(",")}) AND
+              (p.hidden = 1 OR v.visit_type IN (0,
+                ${PlacesUtils.history.TRANSITION_FRAMED_LINK}))
+      `;
+
+      let statement = db.createAsyncStatement(query);
+      try {
+        for (let i = 0; i < chunkLength; i++) {
+          statement.bindByIndex(i, modifiedGUIDs[startIndex + i]);
+        }
+        let results = Async.querySpinningly(statement, ["guid"]);
+        let guids = results.map(result => result.guid);
+        this._tracker.removeChangedID(...guids);
+      } finally {
+        statement.finalize();
+      }
+    }
+
+    return this._tracker.changedIDs;
+  },
 };
 
 function HistoryStore(name, engine) {
@@ -72,7 +115,7 @@ function HistoryStore(name, engine) {
   // Explicitly nullify our references to our cached services so we don't leak
   Svc.Obs.add("places-shutdown", function() {
     for (let query in this._stmts) {
-      let stmt = this._stmts;
+      let stmt = this._stmts[query];
       stmt.finalize();
     }
     this._stmts = {};
@@ -91,7 +134,7 @@ HistoryStore.prototype = {
   },
 
   _stmts: {},
-  _getStmt: function(query) {
+  _getStmt(query) {
     if (query in this._stmts) {
       return this._stmts[query];
     }
@@ -165,12 +208,18 @@ HistoryStore.prototype = {
   _urlCols: ["url", "title", "frecency"],
 
   get _allUrlStm() {
-    return this._getStmt(
-      "SELECT url " +
-      "FROM moz_places " +
-      "WHERE last_visit_date > :cutoff_date " +
-      "ORDER BY frecency DESC " +
-      "LIMIT :max_results");
+    // Filter out hidden pages and framed link visits. See `pullNewChanges`
+    // for more info.
+    return this._getStmt(`
+      SELECT DISTINCT p.url
+      FROM moz_places p
+      JOIN moz_historyvisits v ON p.id = v.place_id
+      WHERE p.last_visit_date > :cutoff_date AND
+            p.hidden = 0 AND
+            v.visit_type NOT IN (0,
+              ${PlacesUtils.history.TRANSITION_FRAMED_LINK})
+      ORDER BY frecency DESC
+      LIMIT :max_results`);
   },
   _allUrlCols: ["url"],
 
@@ -206,6 +255,7 @@ HistoryStore.prototype = {
 
   applyIncomingBatch: function applyIncomingBatch(records) {
     let failed = [];
+    let blockers = [];
 
     // Convert incoming records to mozIPlaceInfo objects. Some records can be
     // ignored or handled directly, so we're rewriting the array in-place.
@@ -214,11 +264,12 @@ HistoryStore.prototype = {
       let record = records[k] = records[i];
       let shouldApply;
 
-      // This is still synchronous I/O for now.
       try {
         if (record.deleted) {
-          // Consider using nsIBrowserHistory::removePages() here.
-          this.remove(record);
+          let promise = this.remove(record);
+          promise = promise.then(null, ex => failed.push(record.id));
+          blockers.push(promise);
+
           // No further processing needed. Remove it from the list.
           shouldApply = false;
         } else {
@@ -238,26 +289,40 @@ HistoryStore.prototype = {
     }
     records.length = k; // truncate array
 
-    // Nothing to do.
-    if (!records.length) {
-      return failed;
+    let handleAsyncOperationsComplete = Async.makeSyncCallback();
+
+    if (records.length) {
+      blockers.push(new Promise(resolve => {
+        let updatePlacesCallback = {
+          handleResult: function handleResult() {},
+          handleError: function handleError(resultCode, placeInfo) {
+            failed.push(placeInfo.guid);
+          },
+          handleCompletion: resolve,
+        };
+        this._asyncHistory.updatePlaces(records, updatePlacesCallback);
+      }));
     }
 
-    let updatePlacesCallback = { 
-      handleResult: function handleResult() {},
-      handleError: function handleError(resultCode, placeInfo) {
-        failed.push(placeInfo.guid);
-      },
-      handleCompletion: Async.makeSyncCallback()
-    };
-    this._asyncHistory.updatePlaces(records, updatePlacesCallback);
-    Async.waitForSyncCallback(updatePlacesCallback.handleCompletion);
-    return failed;
+    // Since `failed` is updated asynchronously and this function is
+    // synchronous, we need to spin-wait until we are sure that all
+    // updates to `fail` have completed.
+    Promise.all(blockers).then(
+      handleAsyncOperationsComplete,
+      ex => {
+        // In case of error, terminate wait, but make sure that the
+        // error is reported nevertheless and still causes test
+        // failures.
+        handleAsyncOperationsComplete();
+        throw ex;
+      });
+    Async.waitForSyncCallback(handleAsyncOperationsComplete);
+      return failed;
   },
 
   /**
    * Converts a Sync history record to a mozIPlaceInfo.
-   * 
+   *
    * Throws if an invalid record is encountered (invalid URI, etc.),
    * returns true if the record is to be applied, false otherwise
    * (no visits to add, etc.),
@@ -339,15 +404,15 @@ HistoryStore.prototype = {
   },
 
   remove: function HistStore_remove(record) {
-    let page = this._findURLByGUID(record.id);
-    if (page == null) {
-      this._log.debug("Page already removed: " + record.id);
-      return;
-    }
-
-    let uri = Utils.makeURI(page.url);
-    PlacesUtils.history.removePage(uri);
-    this._log.trace("Removed page: " + [record.id, page.url, page.title]);
+    return PlacesUtils.history.remove(record.id).then(
+      (removed) => {
+        if (removed) {
+          this._log.trace("Removed page: " + record.id);
+        } else {
+          this._log.debug("Page already removed: " + record.id);
+        }
+    });
+    this._log.trace("Removing page: " + record.id);
   },
 
   itemExists: function HistStore_itemExists(id) {
@@ -371,7 +436,7 @@ HistoryStore.prototype = {
 
   wipe: function HistStore_wipe() {
     let cb = Async.makeSyncCallback();
-    PlacesUtils.history.clear().then(result => {cb(null, result)}, err => {cb(err)});
+    PlacesUtils.history.clear().then(result => { cb(null, result) }, err => { cb(err) });
     return Async.waitForSyncCallback(cb);
   }
 };
@@ -382,12 +447,12 @@ function HistoryTracker(name, engine) {
 HistoryTracker.prototype = {
   __proto__: Tracker.prototype,
 
-  startTracking: function() {
+  startTracking() {
     this._log.info("Adding Places observer.");
     PlacesUtils.history.addObserver(this, true);
   },
 
-  stopTracking: function() {
+  stopTracking() {
     this._log.info("Removing Places observer.");
     PlacesUtils.history.removeObserver(this);
   },
@@ -397,7 +462,7 @@ HistoryTracker.prototype = {
     Ci.nsISupportsWeakReference
   ]),
 
-  onDeleteAffectsGUID: function (uri, guid, reason, source, increment) {
+  onDeleteAffectsGUID(uri, guid, reason, source, increment) {
     if (this.ignoreAll || reason == Ci.nsINavHistoryObserver.REASON_EXPIRED) {
       return;
     }
@@ -407,15 +472,15 @@ HistoryTracker.prototype = {
     }
   },
 
-  onDeleteVisits: function (uri, visitTime, guid, reason) {
+  onDeleteVisits(uri, visitTime, guid, reason) {
     this.onDeleteAffectsGUID(uri, guid, reason, "onDeleteVisits", SCORE_INCREMENT_SMALL);
   },
 
-  onDeleteURI: function (uri, guid, reason) {
+  onDeleteURI(uri, guid, reason) {
     this.onDeleteAffectsGUID(uri, guid, reason, "onDeleteURI", SCORE_INCREMENT_XLARGE);
   },
 
-  onVisit: function (uri, vid, time, session, referrer, trans, guid) {
+  onVisit(uri, vid, time, session, referrer, trans, guid) {
     if (this.ignoreAll) {
       this._log.trace("ignoreAll: ignoring visit for " + guid);
       return;
@@ -427,7 +492,7 @@ HistoryTracker.prototype = {
     }
   },
 
-  onClearHistory: function () {
+  onClearHistory() {
     this._log.trace("onClearHistory");
     // Note that we're going to trigger a sync, but none of the cleared
     // pages are tracked, so the deletions will not be propagated.
@@ -435,9 +500,9 @@ HistoryTracker.prototype = {
     this.score += SCORE_INCREMENT_XLARGE;
   },
 
-  onBeginUpdateBatch: function () {},
-  onEndUpdateBatch: function () {},
-  onPageChanged: function () {},
-  onTitleChanged: function () {},
-  onBeforeDeleteURI: function () {},
+  onBeginUpdateBatch() {},
+  onEndUpdateBatch() {},
+  onPageChanged() {},
+  onTitleChanged() {},
+  onBeforeDeleteURI() {},
 };

@@ -16,7 +16,7 @@ const NS_XHTML = "http://www.w3.org/1999/xhtml";
 const SCROLL_REPEAT_MS = 100;
 
 const EventEmitter = require("devtools/shared/event-emitter");
-const {KeyShortcuts} = require("devtools/client/shared/key-shortcuts");
+const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 
 // Some margin may be required for visible element detection.
 const SCROLL_MARGIN = 1;
@@ -58,15 +58,15 @@ ArrowScrollBox.prototype = {
     this.onUnderflow = this.onUnderflow.bind(this);
     this.onOverflow = this.onOverflow.bind(this);
 
-    this.inner.addEventListener("scroll", this.onScroll, false);
-    this.startBtn.addEventListener("mousedown", this.onStartBtnClick, false);
-    this.endBtn.addEventListener("mousedown", this.onEndBtnClick, false);
-    this.startBtn.addEventListener("dblclick", this.onStartBtnDblClick, false);
-    this.endBtn.addEventListener("dblclick", this.onEndBtnDblClick, false);
+    this.inner.addEventListener("scroll", this.onScroll);
+    this.startBtn.addEventListener("mousedown", this.onStartBtnClick);
+    this.endBtn.addEventListener("mousedown", this.onEndBtnClick);
+    this.startBtn.addEventListener("dblclick", this.onStartBtnDblClick);
+    this.endBtn.addEventListener("dblclick", this.onEndBtnDblClick);
 
     // Overflow and underflow are moz specific events
-    this.inner.addEventListener("underflow", this.onUnderflow, false);
-    this.inner.addEventListener("overflow", this.onOverflow, false);
+    this.inner.addEventListener("underflow", this.onUnderflow);
+    this.inner.addEventListener("overflow", this.onOverflow);
   },
 
   /**
@@ -102,8 +102,8 @@ ArrowScrollBox.prototype = {
     let window = this.win;
     function cancelHold() {
       window.clearTimeout(timer);
-      container.removeEventListener("mouseout", cancelHold, false);
-      container.removeEventListener("mouseup", handleClick, false);
+      container.removeEventListener("mouseout", cancelHold);
+      container.removeEventListener("mouseup", handleClick);
     }
 
     function repeated() {
@@ -111,8 +111,8 @@ ArrowScrollBox.prototype = {
       timer = window.setTimeout(repeated, SCROLL_REPEAT_MS);
     }
 
-    container.addEventListener("mouseout", cancelHold, false);
-    container.addEventListener("mouseup", handleClick, false);
+    container.addEventListener("mouseout", cancelHold);
+    container.addEventListener("mouseup", handleClick);
     timer = window.setTimeout(repeated, SCROLL_REPEAT_MS);
   },
 
@@ -328,18 +328,18 @@ ArrowScrollBox.prototype = {
    * Remove event handlers and clean up
    */
   destroy: function () {
-    this.inner.removeEventListener("scroll", this.onScroll, false);
+    this.inner.removeEventListener("scroll", this.onScroll);
     this.startBtn.removeEventListener("mousedown",
-                                      this.onStartBtnClick, false);
-    this.endBtn.removeEventListener("mousedown", this.onEndBtnClick, false);
+                                      this.onStartBtnClick);
+    this.endBtn.removeEventListener("mousedown", this.onEndBtnClick);
     this.startBtn.removeEventListener("dblclick",
-                                      this.onStartBtnDblClick, false);
+                                      this.onStartBtnDblClick);
     this.endBtn.removeEventListener("dblclick",
-                                    this.onRightBtnDblClick, false);
+                                    this.onRightBtnDblClick);
 
     // Overflow and underflow are moz specific events
-    this.inner.removeEventListener("underflow", this.onUnderflow, false);
-    this.inner.removeEventListener("overflow", this.onOverflow, false);
+    this.inner.removeEventListener("underflow", this.onUnderflow);
+    this.inner.removeEventListener("overflow", this.onOverflow);
   },
 };
 
@@ -379,16 +379,6 @@ HTMLBreadcrumbs.prototype = {
     this.container = this.arrowScrollBox.inner;
     this.scroll = this.scroll.bind(this);
     this.arrowScrollBox.on("overflow", this.scroll);
-
-    // These separators are used for CSS purposes only, and are positioned
-    // off screen, but displayed with -moz-element.
-    this.separators = this.doc.createElementNS(NS_XHTML, "div");
-    this.separators.className = "breadcrumb-separator-container";
-    this.separators.innerHTML =
-                      "<div id='breadcrumb-separator-before'></div>" +
-                      "<div id='breadcrumb-separator-after'></div>" +
-                      "<div id='breadcrumb-separator-normal'></div>";
-    this.container.parentNode.appendChild(this.separators);
 
     this.outer.addEventListener("click", this, true);
     this.outer.addEventListener("mouseover", this, true);
@@ -627,14 +617,12 @@ HTMLBreadcrumbs.prototype = {
     this.shortcuts.destroy();
 
     this.empty();
-    this.separators.remove();
 
     this.arrowScrollBox.off("overflow", this.scroll);
     this.arrowScrollBox.destroy();
     this.arrowScrollBox = null;
     this.outer = null;
     this.container = null;
-    this.separators = null;
     this.nodeHierarchy = null;
 
     this.isDestroyed = true;

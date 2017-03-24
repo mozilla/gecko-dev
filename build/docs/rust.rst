@@ -9,20 +9,12 @@ Rust code is built using ``cargo`` in the typical way, so it is
 straightforward to take an existing Rust crate and integrate it
 into Firefox.
 
-.. important::
-
-   Rust code is not currently enabled by default in Firefox builds.
-   This should change soon (`bug 1283898 <https://bugzilla.mozilla.org/show_bug.cgi?id=1283898>`_),
-   but the option to build without Rust code will likely last a little longer
-   (`bug 1284816 <https://bugzilla.mozilla.org/show_bug.cgi?id=1284816>`_),
-   so Rust code cannot currently be used for required components.
-
-
 Linking Rust Crates into libxul
 ===============================
 
 Rust crates that you want to link into libxul should be listed in the
 ``dependencies`` section of `toolkit/library/rust/shared/Cargo.toml <https://dxr.mozilla.org/mozilla-central/source/toolkit/library/rust/shared/Cargo.toml>`_.
+You'll also need to add an ``extern crate`` reference to `toolkit/library/rust/shared/lib.rs <https://dxr.mozilla.org/mozilla-central/source/toolkit/library/rust/shared/lib.rs>`_.
 This ensures that the Rust code will be linked properly into libxul as well
 as the copy of libxul used for gtests.
 

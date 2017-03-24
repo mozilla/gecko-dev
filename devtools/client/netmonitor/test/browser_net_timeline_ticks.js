@@ -8,7 +8,7 @@
  */
 
 add_task(function* () {
-  let { L10N } = require("devtools/client/netmonitor/l10n");
+  let { L10N } = require("devtools/client/netmonitor/utils/l10n");
 
   let { tab, monitor } = yield initNetMonitor(SIMPLE_URL);
   info("Starting test... ");
@@ -19,14 +19,14 @@ add_task(function* () {
   // Disable transferred size column support for this test.
   // Without this, the waterfall only has enough room for one division, which
   // would remove most of the value of this test.
-  $("#requests-menu-transferred-header-box").hidden = true;
-  $("#requests-menu-item-template .requests-menu-transferred").hidden = true;
+  // $("#requests-list-transferred-header-box").hidden = true;
+  // $("#requests-list-item-template .requests-list-transferred").hidden = true;
 
   RequestsMenu.lazyUpdate = false;
 
-  ok($("#requests-menu-waterfall-label"),
+  ok($("#requests-list-waterfall-label"),
     "An timeline label should be displayed when the frontend is opened.");
-  ok($all(".requests-menu-timings-division").length == 0,
+  ok($all(".requests-list-timings-division").length == 0,
     "No tick labels should be displayed when the frontend is opened.");
 
   ok(!RequestsMenu._canvas, "No canvas should be created when the frontend is opened.");
@@ -41,27 +41,22 @@ add_task(function* () {
   NetMonitorController.NetworkEventsHandler.clearMarkers();
   RequestsMenu._flushWaterfallViews(true);
 
-  ok(!$("#requests-menu-waterfall-label"),
+  ok(!$("#requests-list-waterfall-label"),
     "The timeline label should be hidden after the first request.");
-  ok($all(".requests-menu-timings-division").length >= 3,
+  ok($all(".requests-list-timings-division").length >= 3,
     "There should be at least 3 tick labels in the network requests header.");
 
-  is($all(".requests-menu-timings-division")[0].getAttribute("value"),
-    L10N.getFormatStr("networkMenu.millisecond", 0),
-    "The first tick label has an incorrect value");
-  is($all(".requests-menu-timings-division")[1].getAttribute("value"),
-    L10N.getFormatStr("networkMenu.millisecond", 80),
-    "The second tick label has an incorrect value");
-  is($all(".requests-menu-timings-division")[2].getAttribute("value"),
-    L10N.getFormatStr("networkMenu.millisecond", 160),
-    "The third tick label has an incorrect value");
+  let timingDivisionEls = $all(".requests-list-timings-division");
+  is(timingDivisionEls[0].textContent, L10N.getFormatStr("networkMenu.millisecond", 0),
+    "The first tick label has correct value");
+  is(timingDivisionEls[1].textContent, L10N.getFormatStr("networkMenu.millisecond", 80),
+    "The second tick label has correct value");
+  is(timingDivisionEls[2].textContent, L10N.getFormatStr("networkMenu.millisecond", 160),
+    "The third tick label has correct value");
 
-  is($all(".requests-menu-timings-division")[0].style.transform, "translateX(0px)",
-    "The first tick label has an incorrect translation");
-  is($all(".requests-menu-timings-division")[1].style.transform, "translateX(80px)",
-    "The second tick label has an incorrect translation");
-  is($all(".requests-menu-timings-division")[2].style.transform, "translateX(160px)",
-    "The third tick label has an incorrect translation");
+  is(timingDivisionEls[0].style.width, "78px", "The first tick label has correct width");
+  is(timingDivisionEls[1].style.width, "80px", "The second tick label has correct width");
+  is(timingDivisionEls[2].style.width, "80px", "The third tick label has correct width");
 
   ok(RequestsMenu._canvas, "A canvas should be created after the first request.");
   ok(RequestsMenu._ctx, "A 2d context should be created after the first request.");

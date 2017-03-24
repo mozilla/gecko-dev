@@ -51,7 +51,7 @@ AltSvcMapping::ProcessHeader(const nsCString &buf, const nsCString &originScheme
                              const nsCString &originHost, int32_t originPort,
                              const nsACString &username, bool privateBrowsing,
                              nsIInterfaceRequestor *callbacks, nsProxyInfo *proxyInfo,
-                             uint32_t caps, const NeckoOriginAttributes &originAttributes)
+                             uint32_t caps, const OriginAttributes &originAttributes)
 {
   MOZ_ASSERT(NS_IsMainThread());
   LOG(("AltSvcMapping::ProcessHeader: %s\n", buf.get()));
@@ -116,8 +116,11 @@ AltSvcMapping::ProcessHeader(const nsCString &buf, const nsCString &originScheme
     }
 
     if (clearEntry) {
-      LOG(("Alt Svc clearing mapping for %s:%d", originHost.get(), originPort));
-      gHttpHandler->ConnMgr()->ClearHostMapping(originHost, originPort);
+      nsCString suffix;
+      originAttributes.CreateSuffix(suffix);
+      LOG(("Alt Svc clearing mapping for %s:%d:%s", originHost.get(),
+           originPort, suffix.get()));
+      gHttpHandler->ConnMgr()->ClearHostMapping(originHost, originPort, originAttributes);
       continue;
     }
 
@@ -140,13 +143,14 @@ AltSvcMapping::ProcessHeader(const nsCString &buf, const nsCString &originScheme
                                                       originHost, originPort,
                                                       username, privateBrowsing,
                                                       NowInSeconds() + maxage,
-                                                      hostname, portno, npnToken);
+                                                      hostname, portno, npnToken,
+                                                      originAttributes);
     if (mapping->TTL() <= 0) {
       LOG(("Alt Svc invalid map"));
       mapping = nullptr;
       // since this isn't a parse error, let's clear any existing mapping
       // as that would have happened if we had accepted the parameters.
-      gHttpHandler->ConnMgr()->ClearHostMapping(originHost, originPort);
+      gHttpHandler->ConnMgr()->ClearHostMapping(originHost, originPort, originAttributes);
     } else {
       gHttpHandler->UpdateAltServiceMapping(mapping, proxyInfo, callbacks, caps,
                                             originAttributes);
@@ -163,7 +167,8 @@ AltSvcMapping::AltSvcMapping(DataStorage *storage, int32_t epoch,
                              uint32_t expiresAt,
                              const nsACString &alternateHost,
                              int32_t alternatePort,
-                             const nsACString &npnToken)
+                             const nsACString &npnToken,
+                             const OriginAttributes &originAttributes)
   : mStorage(storage)
   , mStorageEpoch(epoch)
   , mAlternateHost(alternateHost)
@@ -176,6 +181,7 @@ AltSvcMapping::AltSvcMapping(DataStorage *storage, int32_t epoch,
   , mValidated(false)
   , mMixedScheme(false)
   , mNPNToken(npnToken)
+  , mOriginAttributes(originAttributes)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -206,7 +212,8 @@ AltSvcMapping::AltSvcMapping(DataStorage *storage, int32_t epoch,
   }
 
   if (mExpiresAt) {
-    MakeHashKey(mHashKey, originScheme, mOriginHost, mOriginPort, mPrivate);
+    MakeHashKey(mHashKey, originScheme, mOriginHost, mOriginPort, mPrivate,
+                mOriginAttributes);
   }
 }
 
@@ -215,7 +222,8 @@ AltSvcMapping::MakeHashKey(nsCString &outKey,
                            const nsACString &originScheme,
                            const nsACString &originHost,
                            int32_t originPort,
-                           bool privateBrowsing)
+                           bool privateBrowsing,
+                           const OriginAttributes &originAttributes)
 {
   outKey.Truncate();
 
@@ -231,6 +239,10 @@ AltSvcMapping::MakeHashKey(nsCString &outKey,
   outKey.AppendInt(originPort);
   outKey.Append(':');
   outKey.Append(privateBrowsing ? 'P' : '.');
+  outKey.Append(':');
+  nsAutoCString suffix;
+  originAttributes.CreateSuffix(suffix);
+  outKey.Append(suffix);
 }
 
 int32_t
@@ -240,7 +252,7 @@ AltSvcMapping::TTL()
 }
 
 void
-AltSvcMapping::SyncString(nsCString str)
+AltSvcMapping::SyncString(const nsCString& str)
 {
   MOZ_ASSERT(NS_IsMainThread());
   mStorage->Put(HashKey(), str,
@@ -311,7 +323,7 @@ AltSvcMapping::RouteEquals(AltSvcMapping *map)
 void
 AltSvcMapping::GetConnectionInfo(nsHttpConnectionInfo **outCI,
                                  nsProxyInfo *pi,
-                                 const NeckoOriginAttributes &originAttributes)
+                                 const OriginAttributes &originAttributes)
 {
   RefPtr<nsHttpConnectionInfo> ci =
     new nsHttpConnectionInfo(mOriginHost, mOriginPort, mNPNToken,
@@ -352,6 +364,10 @@ AltSvcMapping::Serialize(nsCString &out)
   out.AppendInt(mStorageEpoch);
   out.Append(':');
   out.Append(mMixedScheme ? 'y' : 'n');
+  out.Append(':');
+  nsAutoCString suffix;
+  mOriginAttributes.CreateSuffix(suffix);
+  out.Append(suffix);
   out.Append(':');
 }
 
@@ -394,10 +410,12 @@ COMPILER ERROR
     mStorageEpoch = nsCString(Substring(str, start, idx - start)).ToInteger(&code);
     _NS_NEXT_TOKEN;
     mMixedScheme = Substring(str, start, idx - start).Equals(NS_LITERAL_CSTRING("y"));
+    _NS_NEXT_TOKEN;
+    Unused << mOriginAttributes.PopulateFromSuffix(Substring(str, start, idx - start));
     #undef _NS_NEXT_TOKEN
 
     MakeHashKey(mHashKey, mHttps ? NS_LITERAL_CSTRING("https") : NS_LITERAL_CSTRING("http"),
-                mOriginHost, mOriginPort, mPrivate);
+                mOriginHost, mOriginPort, mPrivate, mOriginAttributes);
   } while (false);
 }
 
@@ -451,8 +469,8 @@ private:
     }
     mTriedToValidate = true;
 
-    LOG(("AltSvcTransaction::MaybeValidate() %p reason=%x running=%d conn=%p write=%d",
-         this, reason, mRunning, mConnection.get(), mTriedToWrite));
+    LOG(("AltSvcTransaction::MaybeValidate() %p reason=%" PRIx32 " running=%d conn=%p write=%d",
+         this, static_cast<uint32_t>(reason), mRunning, mConnection.get(), mTriedToWrite));
 
     if (mTriedToWrite && reason == NS_BASE_STREAM_CLOSED) {
       // The normal course of events is to cause the transaction to fail with CLOSED
@@ -494,8 +512,8 @@ private:
 public:
   void Close(nsresult reason) override
   {
-    LOG(("AltSvcTransaction::Close() %p reason=%x running %d",
-         this, reason, mRunning));
+    LOG(("AltSvcTransaction::Close() %p reason=%" PRIx32 " running %d",
+         this, static_cast<uint32_t>(reason), mRunning));
 
     MaybeValidate(reason);
     if (!mMapping->Validated() && mConnection) {
@@ -507,7 +525,7 @@ public:
   nsresult ReadSegments(nsAHttpSegmentReader *reader,
                         uint32_t count, uint32_t *countRead) override
   {
-    LOG(("AltSvcTransaction::ReadSegements() %p\n"));
+    LOG(("AltSvcTransaction::ReadSegements() %p\n", this));
     mTriedToWrite = true;
     return NullHttpTransaction::ReadSegments(reader, count, countRead);
   }
@@ -542,6 +560,7 @@ public:
                                                   nullptr, nullptr,
                                                   nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                   nsIContentPolicy::TYPE_OTHER);
+    loadInfo->SetOriginAttributes(mCI->GetOriginAttributes());
 
     RefPtr<nsHttpChannel> chan = new nsHttpChannel();
     nsresult rv;
@@ -602,9 +621,9 @@ public:
           bool validWK = false;
           bool mixedScheme = false;
           int32_t lifetime = 0;
-          uu->GetValid(&validWK);
-          uu->GetLifetime(&lifetime);
-          uu->GetMixed(&mixedScheme);
+          Unused << uu->GetValid(&validWK);
+          Unused << uu->GetLifetime(&lifetime);
+          Unused << uu->GetMixed(&mixedScheme);
           if (!validWK) {
             LOG(("WellKnownChecker::Done %p json parser declares invalid\n%s\n", this, mTransactionAlternate->mWKResponse.get()));
             accepted = false;
@@ -706,8 +725,8 @@ TransactionObserver::Complete(nsHttpTransaction *aTrans, nsresult reason)
   mRanOnce = true;
 
   RefPtr<nsAHttpConnection> conn = aTrans->GetConnectionReference();
-  LOG(("TransactionObserver::Complete %p aTrans %p reason %x conn %p\n",
-       this, aTrans, reason, conn.get()));
+  LOG(("TransactionObserver::Complete %p aTrans %p reason %" PRIx32 " conn %p\n",
+       this, aTrans, static_cast<uint32_t>(reason), conn.get()));
   if (!conn) {
     return;
   }
@@ -765,7 +784,8 @@ NS_IMETHODIMP
 TransactionObserver::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext, nsresult code)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  LOG(("TransactionObserver onStopRequest %p code %x\n", this, code));
+  LOG(("TransactionObserver onStopRequest %p code %" PRIx32 "\n",
+       this, static_cast<uint32_t>(code)));
   if (NS_SUCCEEDED(code)) {
     nsHttpResponseHead *hdrs = mChannel->GetResponseHead();
     LOG(("TransactionObserver onStopRequest %p http resp %d\n",
@@ -819,7 +839,7 @@ void
 AltSvcCache::UpdateAltServiceMapping(AltSvcMapping *map, nsProxyInfo *pi,
                                      nsIInterfaceRequestor *aCallbacks,
                                      uint32_t caps,
-                                     const NeckoOriginAttributes &originAttributes)
+                                     const OriginAttributes &originAttributes)
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (!mStorage) {
@@ -883,7 +903,12 @@ AltSvcCache::UpdateAltServiceMapping(AltSvcMapping *map, nsProxyInfo *pi,
     nsCOMPtr<nsIInterfaceRequestor> callbacks = new AltSvcOverride(aCallbacks);
     RefPtr<AltSvcTransaction> nullTransaction =
       new AltSvcTransaction(map, ci, aCallbacks, caps);
-    gHttpHandler->ConnMgr()->SpeculativeConnect(ci, callbacks, caps, nullTransaction);
+    nsresult rv = gHttpHandler->ConnMgr()->SpeculativeConnect(ci, callbacks, caps, nullTransaction);
+    if (NS_FAILED(rv)) {
+      LOG(("AltSvcCache::UpdateAltServiceMapping %p "
+           "speculative connect failed with code %08x\n", this,
+           static_cast<uint32_t>(rv)));
+    }
   } else {
     // for http:// resources we fetch .well-known too
     nsAutoCString origin (NS_LITERAL_CSTRING("http://") + map->OriginHost());
@@ -912,7 +937,8 @@ AltSvcCache::UpdateAltServiceMapping(AltSvcMapping *map, nsProxyInfo *pi,
 
 already_AddRefed<AltSvcMapping>
 AltSvcCache::GetAltServiceMapping(const nsACString &scheme, const nsACString &host,
-                                  int32_t port, bool privateBrowsing)
+                                  int32_t port, bool privateBrowsing,
+                                  const OriginAttributes &originAttributes)
 {
   bool isHTTPS;
   MOZ_ASSERT(NS_IsMainThread());
@@ -944,7 +970,7 @@ AltSvcCache::GetAltServiceMapping(const nsACString &scheme, const nsACString &ho
   }
 
   nsAutoCString key;
-  AltSvcMapping::MakeHashKey(key, scheme, host, port, privateBrowsing);
+  AltSvcMapping::MakeHashKey(key, scheme, host, port, privateBrowsing, originAttributes);
   RefPtr<AltSvcMapping> existing = LookupMapping(key, privateBrowsing);
   LOG(("AltSvcCache::GetAltServiceMapping %p key=%s "
        "existing=%p validated=%d ttl=%d",
@@ -958,52 +984,60 @@ AltSvcCache::GetAltServiceMapping(const nsACString &scheme, const nsACString &ho
 
 class ProxyClearHostMapping : public Runnable {
 public:
-  explicit ProxyClearHostMapping(const nsACString &host, int32_t port)
+  explicit ProxyClearHostMapping(const nsACString &host, int32_t port,
+                                 const OriginAttributes &originAttributes)
     : mHost(host)
     , mPort(port)
+    , mOriginAttributes(originAttributes)
     {}
 
     NS_IMETHOD Run() override
     {
       MOZ_ASSERT(NS_IsMainThread());
-      gHttpHandler->ConnMgr()->ClearHostMapping(mHost, mPort);
+      gHttpHandler->ConnMgr()->ClearHostMapping(mHost, mPort, mOriginAttributes);
       return NS_OK;
     }
 private:
     nsCString mHost;
     int32_t mPort;
+    OriginAttributes mOriginAttributes;
 };
 
 void
-AltSvcCache::ClearHostMapping(const nsACString &host, int32_t port)
+AltSvcCache::ClearHostMapping(const nsACString &host, int32_t port,
+                              const OriginAttributes &originAttributes)
 {
   if (!NS_IsMainThread()) {
-    nsCOMPtr<nsIRunnable> event = new ProxyClearHostMapping(host, port);
+    nsCOMPtr<nsIRunnable> event = new ProxyClearHostMapping(host, port, originAttributes);
     if (event) {
       NS_DispatchToMainThread(event);
     }
     return;
   }
   nsAutoCString key;
-  AltSvcMapping::MakeHashKey(key, NS_LITERAL_CSTRING("http"), host, port, true);
+  AltSvcMapping::MakeHashKey(key, NS_LITERAL_CSTRING("http"), host, port, true,
+                             originAttributes);
   RefPtr<AltSvcMapping> existing = LookupMapping(key, true);
   if (existing) {
     existing->SetExpired();
   }
 
-  AltSvcMapping::MakeHashKey(key, NS_LITERAL_CSTRING("https"), host, port, true);
+  AltSvcMapping::MakeHashKey(key, NS_LITERAL_CSTRING("https"), host, port, true,
+                             originAttributes);
   existing = LookupMapping(key, true);
   if (existing) {
     existing->SetExpired();
   }
 
-  AltSvcMapping::MakeHashKey(key, NS_LITERAL_CSTRING("http"), host, port, false);
+  AltSvcMapping::MakeHashKey(key, NS_LITERAL_CSTRING("http"), host, port, false,
+                             originAttributes);
   existing = LookupMapping(key, false);
   if (existing) {
     existing->SetExpired();
   }
 
-  AltSvcMapping::MakeHashKey(key, NS_LITERAL_CSTRING("https"), host, port, false);
+  AltSvcMapping::MakeHashKey(key, NS_LITERAL_CSTRING("https"), host, port, false,
+                             originAttributes);
   existing = LookupMapping(key, false);
   if (existing) {
     existing->SetExpired();
@@ -1014,7 +1048,7 @@ void
 AltSvcCache::ClearHostMapping(nsHttpConnectionInfo *ci)
 {
   if (!ci->GetOrigin().IsEmpty()) {
-    ClearHostMapping(ci->GetOrigin(), ci->OriginPort());
+    ClearHostMapping(ci->GetOrigin(), ci->OriginPort(), ci->GetOriginAttributes());
   }
 }
 

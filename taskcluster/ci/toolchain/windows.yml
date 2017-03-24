@@ -6,8 +6,8 @@ win32-clang-cl/opt:
     description: "Clang-cl toolchain build"
     treeherder:
         kind: build
-        platform: windows-2012-32/opt
-        symbol: Cc(ClangCL)
+        platform: toolchains/opt
+        symbol: TW32(clang-cl)
         tier: 2
     worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
     worker:
@@ -15,9 +15,63 @@ win32-clang-cl/opt:
         max-run-time: 36000
     run:
         using: toolchain-script
-        script: build-clang-windows.sh
-    when:
-        files-changed:
+        script: build-clang32-windows.sh
+        resources:
             - 'build/build-clang/**'
-            - 'taskcluster/scripts/misc/build-clang-windows.sh'
-            - 'taskcluster/taskgraph/transforms/job/toolchain.py'
+
+win64-clang-cl/opt:
+    description: "Clang-cl toolchain build"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TW64(clang-cl)
+        tier: 2
+    worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
+    worker:
+        implementation: generic-worker
+        max-run-time: 36000
+    run:
+        using: toolchain-script
+        script: build-clang64-windows.sh
+        resources:
+            - 'build/build-clang/**'
+
+win32-clang-tidy/opt:
+    description: "Clang-tidy toolchain build"
+    index:
+        product: static-analysis
+        job-name: win32-clang-tidy
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TW32(clang-tidy)
+        tier: 2
+    worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
+    worker:
+        implementation: generic-worker
+        max-run-time: 36000
+    run:
+        using: toolchain-script
+        script: build-clang-tidy32-windows.sh
+        resources:
+            - 'build/build-clang/**'
+
+win64-clang-tidy/opt:
+    description: "Clang-tidy toolchain build"
+    index:
+        product: static-analysis
+        job-name: win64-clang-tidy
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TW64(clang-tidy)
+        tier: 2
+    worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
+    worker:
+        implementation: generic-worker
+        max-run-time: 36000
+    run:
+        using: toolchain-script
+        script: build-clang-tidy64-windows.sh
+        resources:
+            - 'build/build-clang/**'

@@ -6,7 +6,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 <head>
   <title>Time Picker</title>
-  <link rel="stylesheet" href="chrome://global/skin/timepicker.css"/>
+  <link rel="stylesheet" href="chrome://global/skin/datetimeinputpickers.css"/>
   <script type="application/javascript" src="chrome://global/content/bindings/timekeeper.js"></script>
   <script type="application/javascript" src="chrome://global/content/bindings/spinner.js"></script>
   <script type="application/javascript" src="chrome://global/content/bindings/timepicker.js"></script>
@@ -15,14 +15,13 @@
   <div id="time-picker"></div>
   <template id="spinner-template">
     <div class="spinner-container">
-      <button class="up">▲</button>
-      <div class="stack">
-        <div class="spinner"></div>
-      </div>
-      <button class="down">▼</button>
+      <button class="up"/>
+      <div class="spinner"></div>
+      <button class="down"/>
     </div>
   </template>
   <script type="application/javascript">
+  /* import-globals-from widgets/timepicker.js */
   // We need to hide the scroll bar but maintain its scrolling
   // capability, so using |overflow: hidden| is not an option.
   // Instead, we are inserting a user agent stylesheet that is

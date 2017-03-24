@@ -1,11 +1,12 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from collections import namedtuple
 from time import clock, sleep
 
-from marionette import Marionette
 from marionette_driver import By, expected, Wait
+from marionette_harness import Marionette
 
 from external_media_tests.utils import verbose_until
 
@@ -59,7 +60,7 @@ class VideoPuppeteer(object):
 
     _video_var_script = (
         'var video = arguments[0];'
-        'var baseURI = arguments[0].baseURI;'
+        'var baseURI = video.baseURI;'
         'var currentTime = video.wrappedJSObject.currentTime;'
         'var duration = video.wrappedJSObject.duration;'
         'var buffered = video.wrappedJSObject.buffered;'
@@ -204,7 +205,7 @@ class VideoPuppeteer(object):
         if (self.stall_wait_time and
                 self._last_seen_video_state.lag > self.stall_wait_time):
             raise VideoException('Video {} stalled.\n{}'
-                                 .format(self._last_seen_video_state.video_uri,
+                                 .format(self._last_seen_video_state.base_uri,
                                          self))
 
         # We are cruising, so we are not done.
@@ -244,6 +245,22 @@ class VideoPuppeteer(object):
             self.expected_duration = self._set_duration
         else:
             self.expected_duration = remaining_video
+
+    def _calculate_remaining_time(self, played_ranges):
+        """
+        Calculate the remaining time expected for this puppeteer. Note that
+        this method accepts a played range rather than reading from the last
+        seen state. This is so when building a new state we are not forced to
+        read from the last one, and can use the played ranges associated with
+        that new state to calculate the remaining time.
+
+        :param played_ranges: A TimeRanges object containing played ranges.
+        For video_puppeteer we expect a single played range, but overrides may
+        expect different behaviour.
+        :return: The remaining time expected for this puppeteer.
+        """
+        played_duration = played_ranges.end(0) - played_ranges.start(0)
+        return self.expected_duration - played_duration
 
     @staticmethod
     def _video_state_named_tuple():
@@ -321,11 +338,10 @@ class VideoPuppeteer(object):
         video_state_info_kwargs['lag'] = (
             elapsed_wall_time - elapsed_current_time)
         # Calculate remaining time
-        if video_state_info_kwargs['played'].length > 0:
-            played_duration = (video_state_info_kwargs['played'].end(0) -
-                               video_state_info_kwargs['played'].start(0))
+        played_ranages = video_state_info_kwargs['played']
+        if played_ranages.length > 0:
             video_state_info_kwargs['remaining_time'] = (
-                self.expected_duration - played_duration)
+                self._calculate_remaining_time(played_ranages))
         else:
             # No playback has happened yet, remaining time is duration
             video_state_info_kwargs['remaining_time'] = self.expected_duration

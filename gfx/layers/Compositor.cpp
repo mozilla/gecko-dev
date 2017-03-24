@@ -48,7 +48,7 @@ Compositor::~Compositor()
 void
 Compositor::Destroy()
 {
-  ReadUnlockTextures();
+  TextureSourceProvider::Destroy();
   FlushPendingNotifyNotUsed();
   mIsDestroyed = true;
 }
@@ -58,50 +58,6 @@ Compositor::EndFrame()
 {
   ReadUnlockTextures();
   mLastCompositionEndTime = TimeStamp::Now();
-}
-
-void
-Compositor::ReadUnlockTextures()
-{
-  for (auto& texture : mUnlockAfterComposition) {
-    texture->ReadUnlock();
-  }
-  mUnlockAfterComposition.Clear();
-}
-
-void
-Compositor::UnlockAfterComposition(TextureHost* aTexture)
-{
-  mUnlockAfterComposition.AppendElement(aTexture);
-}
-
-void
-Compositor::NotifyNotUsedAfterComposition(TextureHost* aTextureHost)
-{
-  MOZ_ASSERT(!mIsDestroyed);
-
-  mNotifyNotUsedAfterComposition.AppendElement(aTextureHost);
-
-  // If Compositor holds many TextureHosts without compositing,
-  // the TextureHosts should be flushed to reduce memory consumption.
-  const int thresholdCount = 5;
-  const double thresholdSec = 2.0f;
-  if (mNotifyNotUsedAfterComposition.Length() > thresholdCount) {
-    TimeDuration duration = mLastCompositionEndTime ? TimeStamp::Now() - mLastCompositionEndTime : TimeDuration();
-    // Check if we could flush
-    if (duration.ToSeconds() > thresholdSec) {
-      FlushPendingNotifyNotUsed();
-    }
-  }
-}
-
-void
-Compositor::FlushPendingNotifyNotUsed()
-{
-  for (auto& textureHost : mNotifyNotUsedAfterComposition) {
-    textureHost->CallNotifyNotUsed();
-  }
-  mNotifyNotUsedAfterComposition.Clear();
 }
 
 /* static */ void
@@ -173,9 +129,7 @@ Compositor::DrawDiagnosticsInternal(DiagnosticFlags aFlags,
                                     const gfx::Matrix4x4& aTransform,
                                     uint32_t aFlashCounter)
 {
-#ifdef MOZ_B2G
-  int lWidth = 4;
-#elif defined(ANDROID)
+#ifdef ANDROID
   int lWidth = 10;
 #else
   int lWidth = 2;
@@ -229,7 +183,7 @@ static void
 UpdateTextureCoordinates(gfx::TexturedTriangle& aTriangle,
                          const gfx::Rect& aRect,
                          const gfx::Rect& aIntersection,
-                         gfx::Rect aTextureCoords)
+                         const gfx::Rect& aTextureCoords)
 {
   // Calculate the relative offset of the intersection within the layer.
   float dx = (aIntersection.x - aRect.x) / aRect.width;
@@ -243,10 +197,8 @@ UpdateTextureCoordinates(gfx::TexturedTriangle& aTriangle,
   float w = aTextureCoords.width * aIntersection.width / aRect.width;
   float h = aTextureCoords.height * aIntersection.height / aRect.height;
 
-  static const auto ValidateAndClamp = [](float& f) {
-    // Allow some numerical inaccuracy.
-    MOZ_ASSERT(f >= -0.0001f && f <= 1.0001f);
-
+  static const auto Clamp = [](float& f)
+  {
     if (f >= 1.0f) f = 1.0f;
     if (f <= 0.0f) f = 0.0f;
   };
@@ -256,8 +208,8 @@ UpdateTextureCoordinates(gfx::TexturedTriangle& aTriangle,
     t.x = x + (p.x - aIntersection.x) / aIntersection.width * w;
     t.y = y + (p.y - aIntersection.y) / aIntersection.height * h;
 
-    ValidateAndClamp(t.x);
-    ValidateAndClamp(t.y);
+    Clamp(t.x);
+    Clamp(t.y);
   };
 
   UpdatePoint(aTriangle.p1, aTriangle.textureCoords.p1);
@@ -272,50 +224,123 @@ Compositor::DrawGeometry(const gfx::Rect& aRect,
                          gfx::Float aOpacity,
                          const gfx::Matrix4x4& aTransform,
                          const gfx::Rect& aVisibleRect,
-                         const Maybe<gfx::Polygon3D>& aGeometry)
+                         const Maybe<gfx::Polygon>& aGeometry)
 {
-  if (!aGeometry) {
+  if (aRect.IsEmpty()) {
+    return;
+  }
+
+  if (!aGeometry || !SupportsLayerGeometry()) {
     DrawQuad(aRect, aClipRect, aEffectChain,
              aOpacity, aTransform, aVisibleRect);
     return;
   }
 
-  // Cull invisible polygons.
+  // Cull completely invisible polygons.
   if (aRect.Intersect(aGeometry->BoundingBox()).IsEmpty()) {
     return;
   }
 
-  gfx::Polygon3D clipped = aGeometry->ClipPolygon(aRect);
-  nsTArray<gfx::Triangle> triangles = clipped.ToTriangles();
+  const gfx::Polygon clipped = aGeometry->ClipPolygon(aRect);
 
-  for (gfx::Triangle& geometry : triangles) {
-    const gfx::Rect intersection = aRect.Intersect(geometry.BoundingBox());
+  // Cull polygons with no area.
+  if (clipped.IsEmpty()) {
+    return;
+  }
 
-    // Cull invisible triangles.
-    if (intersection.IsEmpty()) {
-      continue;
-    }
+  DrawPolygon(clipped, aRect, aClipRect, aEffectChain,
+              aOpacity, aTransform, aVisibleRect);
+}
 
-    MOZ_ASSERT(aRect.width > 0.0f && aRect.height > 0.0f);
-    MOZ_ASSERT(intersection.width > 0.0f && intersection.height > 0.0f);
-
-    gfx::TexturedTriangle triangle(Move(geometry));
-    triangle.width = aRect.width;
-    triangle.height = aRect.height;
-
-    // Since the texture was created for non-split geometry, we need to
-    // update the texture coordinates to account for the split.
-    if (aEffectChain.mPrimaryEffect->mType == EffectTypes::RGB) {
-      TexturedEffect* texturedEffect =
-        static_cast<TexturedEffect*>(aEffectChain.mPrimaryEffect.get());
-
-      UpdateTextureCoordinates(triangle, aRect, intersection,
-                               texturedEffect->mTextureCoords);
-    }
-
+void
+Compositor::DrawTriangles(const nsTArray<gfx::TexturedTriangle>& aTriangles,
+                          const gfx::Rect& aRect,
+                          const gfx::IntRect& aClipRect,
+                          const EffectChain& aEffectChain,
+                          gfx::Float aOpacity,
+                          const gfx::Matrix4x4& aTransform,
+                          const gfx::Rect& aVisibleRect)
+{
+  for (const gfx::TexturedTriangle& triangle : aTriangles) {
     DrawTriangle(triangle, aClipRect, aEffectChain,
                  aOpacity, aTransform, aVisibleRect);
   }
+}
+
+static nsTArray<gfx::TexturedTriangle>
+GenerateTexturedTriangles(const gfx::Polygon& aPolygon,
+                          const gfx::Rect& aRect,
+                          const gfx::Rect& aTexRect)
+{
+  nsTArray<gfx::TexturedTriangle> texturedTriangles;
+
+  gfx::Rect layerRects[4];
+  gfx::Rect textureRects[4];
+  size_t rects = DecomposeIntoNoRepeatRects(aRect, aTexRect,
+                                            &layerRects, &textureRects);
+  for (size_t i = 0; i < rects; ++i) {
+    const gfx::Rect& rect = layerRects[i];
+    const gfx::Rect& texRect = textureRects[i];
+    const gfx::Polygon clipped = aPolygon.ClipPolygon(rect);
+
+    if (clipped.IsEmpty()) {
+      continue;
+    }
+
+    for (const gfx::Triangle& triangle : clipped.ToTriangles()) {
+      const gfx::Rect intersection = rect.Intersect(triangle.BoundingBox());
+
+      // Cull completely invisible triangles.
+      if (intersection.IsEmpty()) {
+        continue;
+      }
+
+      MOZ_ASSERT(rect.width > 0.0f && rect.height > 0.0f);
+      MOZ_ASSERT(intersection.width > 0.0f && intersection.height > 0.0f);
+
+      // Since the texture was created for non-split geometry, we need to
+      // update the texture coordinates to account for the split.
+      gfx::TexturedTriangle t(triangle);
+      t.width = rect.width;
+      t.height = rect.height;
+      UpdateTextureCoordinates(t, rect, intersection, texRect);
+      texturedTriangles.AppendElement(Move(t));
+    }
+  }
+
+  return texturedTriangles;
+}
+
+void
+Compositor::DrawPolygon(const gfx::Polygon& aPolygon,
+                        const gfx::Rect& aRect,
+                        const gfx::IntRect& aClipRect,
+                        const EffectChain& aEffectChain,
+                        gfx::Float aOpacity,
+                        const gfx::Matrix4x4& aTransform,
+                        const gfx::Rect& aVisibleRect)
+{
+  nsTArray<gfx::TexturedTriangle> texturedTriangles;
+
+  TexturedEffect* texturedEffect =
+    aEffectChain.mPrimaryEffect->AsTexturedEffect();
+
+  if (texturedEffect) {
+    texturedTriangles =
+      GenerateTexturedTriangles(aPolygon, aRect, texturedEffect->mTextureCoords);
+  } else {
+    for (const gfx::Triangle& triangle : aPolygon.ToTriangles()) {
+      texturedTriangles.AppendElement(gfx::TexturedTriangle(triangle));
+    }
+  }
+
+  if (texturedTriangles.IsEmpty()) {
+    // Nothing to render.
+    return;
+  }
+
+  DrawTriangles(texturedTriangles, aRect, aClipRect, aEffectChain,
+                aOpacity, aTransform, aVisibleRect);
 }
 
 void
@@ -603,6 +628,15 @@ Compositor::IsValid() const
 void
 Compositor::SetDispAcquireFence(Layer* aLayer)
 {
+}
+
+bool
+Compositor::NotifyNotUsedAfterComposition(TextureHost* aTextureHost)
+{
+  if (IsDestroyed() || AsBasicCompositor()) {
+    return false;
+  }
+  return TextureSourceProvider::NotifyNotUsedAfterComposition(aTextureHost);
 }
 
 } // namespace layers

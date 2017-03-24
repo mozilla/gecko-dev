@@ -11,6 +11,10 @@ users or automated tests.  This is more restrictive than most definitions of
 "build" in a Mozilla context: it does not include tasks that run build-like
 actions for static analysis or to produce instrumented artifacts.
 
+build-signing
+--------------
+
+
 artifact-build
 --------------
 
@@ -28,15 +32,31 @@ hazardous behaviors.
 l10n
 ----
 
-TBD (Callek)
+The l10n kind takes the last published nightly build, and generates localized builds
+from it. You can read more about how to trigger these on the `wiki
+<https://wiki.mozilla.org/ReleaseEngineering/TryServer#Desktop_l10n_jobs_.28on_Taskcluster.29>`_.
 
-source-check
+nightly-l10n
 ------------
 
-Source-checks are tasks that look at the Gecko source directly to check
-correctness.  This can include linting, Python unit tests, source-code
-analysis, or measurement work -- basically anything that does not require a
-build.
+The nightly l10n kind repacks a specific nightly build (from the same source code)
+in order to provide localized versions of the same source.
+
+nightly-l10n-signing
+--------------------
+
+The nightly l10n signing kind takes artifacts from the nightly-l10n kind and
+passes them to signing servers to have their contents signed appropriately, based
+on an appropriate signing format. One signing job is created for each nightly-l10n
+job (usually chunked).
+
+source-test
+------------
+
+Source-tests are tasks that run directly from the Gecko source. This can include linting,
+unit tests, source-code analysis, or measurement work. While source-test tasks run from
+a source checkout, it is still possible for them to depend on a build artifact, though
+often they do not.
 
 upload-symbols
 --------------
@@ -70,11 +90,6 @@ spidermonkey
 Spidermonkey tasks check out the full gecko source tree, then compile only the
 spidermonkey portion.  Each task runs specific tests after the build.
 
-marionette-harness
-------------------
-
-TBD (Maja)
-
 Tests
 -----
 
@@ -84,12 +99,13 @@ files named in ``kind.yml``:
 
  * For each build task, determine the related test platforms based on the build
    platform.  For example, a Windows 2010 build might be tested on Windows 7
-   and Windows 10.  Each test platform specifies a "test set" indicating which
+   and Windows 10.  Each test platform specifies "test sets" indicating which
    tests to run.  This is configured in the file named
    ``test-platforms.yml``.
 
  * Each test set is expanded to a list of tests to run.  This is configured in
-   the file named by ``test-sets.yml``.
+   the file named by ``test-sets.yml``. A platform may specify several test
+   sets, in which case the union of those sets is used.
 
  * Each named test is looked up in the file named by ``tests.yml`` to find a
    test description.  This test description indicates what the test does, how
@@ -109,21 +125,14 @@ files named in ``kind.yml``:
     It is up to a later stage of the task-graph generation (the target set) to
     select the tests that will actually be performed.
 
-desktop-test
-............
+test
+....
 
-The ``desktop-test`` kind defines tests for Desktop builds.  Its ``tests.yml``
-defines the full suite of desktop tests and their particulars, leaving it to
-the transforms to determine how those particulars apply to Linux, OS X, and
-Windows.
+The ``desktop-test`` kind defines tests for builds.  Its ``tests.yml`` defines
+the full suite of desktop tests and their particulars, leaving it to the
+transforms to determine how those particulars apply to the various platforms.
 
-android-test
-............
-
-The ``android-test`` kind defines tests for Android builds.
-
-It is very similar to ``desktop-test``, but the details of running the tests
-differ substantially, so they are defined separately.
+This kind includes both unit tests and talos.
 
 docker-image
 ------------
@@ -134,7 +143,7 @@ Docker tasks run.
 The tasks to generate each docker image have predictable labels:
 ``build-docker-image-<name>``.
 
-Docker images are built from subdirectories of ``testing/docker``, using
+Docker images are built from subdirectories of ``taskcluster/docker``, using
 ``docker build``.  There is currently no capability for one Docker image to
 depend on another in-tree docker image, without uploading the latter to a
 Docker repository
@@ -142,3 +151,47 @@ Docker repository
 The task definition used to create the image-building tasks is given in
 ``image.yml`` in the kind directory, and is interpreted as a :doc:`YAML
 Template <yaml-templates>`.
+
+android-stuff
+--------------
+
+balrog
+------
+
+Balrog is the Mozilla Update Server. Jobs of this kind are submitting information
+which assists in telling Firefox that an update is available for the related job.
+
+balrog-l10n
+-----------
+
+Balrog is the Mozilla Update Server. Jobs of this kind are submitting information
+which assists in telling Firefox that an update is available for the localized
+job involved.
+
+beetmover
+---------
+
+Beetmover, takes specific artifacts, "Beets", and pushes them to a location outside
+of Taskcluster's task artifacts, (archive.mozilla.org as one place) and in the
+process determines the final location and a "pretty" name (versioned product name)
+
+beetmover-l10n
+--------------
+
+Beetmover L10n, takes specific artifacts, "Beets", and pushes them to a location outside
+of Taskcluster's task artifacts, (archive.mozilla.org as one place) and in the
+process determines the final location and a "pretty" name (versioned product name)
+This separate kind uses logic specific to localized artifacts, such as including
+the language in the final artifact names.
+
+checksums-signing
+----------------
+Checksums-signing take as input the checksums file generated by beetmover tasks
+and sign it via the signing scriptworkers. Returns the same file signed and
+additional detached signature.
+
+beetmover-checksums
+-------------------
+Beetmover, takes specific artifact checksums and pushes it to a location outside
+of Taskcluster's task artifacts (archive.mozilla.org as one place) and in the
+process determines the final location and "pretty" names it (version product name)

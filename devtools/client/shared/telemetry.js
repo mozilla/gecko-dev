@@ -30,7 +30,17 @@
  * 6. When your tool is closed call:
  *      this._telemetry.toolClosed("mytoolname");
  *
- * Note:
+ * Note 1:
+ * Most of the top level panels already have toolOpened called for them by
+ * the toolbox tab code. If you add a new tool, you probably won't need to
+ * follow steps 3 to 6 as they're done for you already (look at onClick
+ * handler in devtools/client/framework/components/toolbox-tab.js).
+ *
+ * You will still need to call toolOpened for "subpanels" such as the rules,
+ * computed, and animations inspectors inside the HTML inspector tool, as these
+ * are not called automatically by the code that renders their tabs.
+ *
+ * Note 2:
  * You can view telemetry stats for your local Firefox instance via
  * about:telemetry.
  *
@@ -87,6 +97,10 @@ Telemetry.prototype = {
       histogram: "DEVTOOLS_COMPUTEDVIEW_OPENED_COUNT",
       timerHistogram: "DEVTOOLS_COMPUTEDVIEW_TIME_ACTIVE_SECONDS"
     },
+    layoutview: {
+      histogram: "DEVTOOLS_LAYOUTVIEW_OPENED_COUNT",
+      timerHistogram: "DEVTOOLS_LAYOUTVIEW_TIME_ACTIVE_SECONDS"
+    },
     fontinspector: {
       histogram: "DEVTOOLS_FONTINSPECTOR_OPENED_COUNT",
       timerHistogram: "DEVTOOLS_FONTINSPECTOR_TIME_ACTIVE_SECONDS"
@@ -135,6 +149,10 @@ Telemetry.prototype = {
       histogram: "DEVTOOLS_STORAGE_OPENED_COUNT",
       timerHistogram: "DEVTOOLS_STORAGE_TIME_ACTIVE_SECONDS"
     },
+    dom: {
+      histogram: "DEVTOOLS_DOM_OPENED_COUNT",
+      timerHistogram: "DEVTOOLS_DOM_TIME_ACTIVE_SECONDS"
+    },
     paintflashing: {
       histogram: "DEVTOOLS_PAINTFLASHING_OPENED_COUNT",
       timerHistogram: "DEVTOOLS_PAINTFLASHING_TIME_ACTIVE_SECONDS"
@@ -145,7 +163,6 @@ Telemetry.prototype = {
     },
     "scratchpad-window": {
       histogram: "DEVTOOLS_SCRATCHPAD_WINDOW_OPENED_COUNT",
-      timerHistogram: "DEVTOOLS_SCRATCHPAD_WINDOW_TIME_ACTIVE_SECONDS"
     },
     responsive: {
       histogram: "DEVTOOLS_RESPONSIVE_OPENED_COUNT",
@@ -162,6 +179,12 @@ Telemetry.prototype = {
     },
     toolbareyedropper: {
       histogram: "DEVTOOLS_TOOLBAR_EYEDROPPER_OPENED_COUNT",
+    },
+    copyuniquecssselector: {
+      histogram: "DEVTOOLS_COPY_UNIQUE_CSS_SELECTOR_OPENED_COUNT",
+    },
+    copyfullcssselector: {
+      histogram: "DEVTOOLS_COPY_FULL_CSS_SELECTOR_OPENED_COUNT",
     },
     developertoolbar: {
       histogram: "DEVTOOLS_DEVELOPERTOOLBAR_OPENED_COUNT",
@@ -339,3 +362,4 @@ Telemetry.prototype = {
     }
   }
 };
+

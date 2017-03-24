@@ -61,8 +61,13 @@ import urlparse
 import zipfile
 
 import pylru
-import taskcluster
+from taskgraph.util.taskcluster import (
+    find_task_id,
+    get_artifact_url,
+    list_artifacts,
+)
 
+from mozbuild.action.test_archive import OBJDIR_TEST_FILES
 from mozbuild.util import (
     ensureParentDir,
     FileAvoidWrite,
@@ -78,10 +83,8 @@ from mozpack.mozjar import (
 )
 from mozpack.packager.unpack import UnpackFinder
 import mozpack.path as mozpath
-from mozregression.download_manager import (
+from dlmanager import (
     DownloadManager,
-)
-from mozregression.persist_limit import (
     PersistLimit,
 )
 
@@ -127,19 +130,22 @@ class ArtifactJob(object):
         ('bin/pk12util', ('bin', 'bin')),
         ('bin/ssltunnel', ('bin', 'bin')),
         ('bin/xpcshell', ('bin', 'bin')),
-        ('bin/plugins/*', ('bin/plugins', 'plugins'))
+        ('bin/plugins/gmp-*/*/*', ('bin/plugins', 'bin')),
+        ('bin/plugins/*', ('bin/plugins', 'plugins')),
+        ('bin/components/*', ('bin/components', 'bin/components')),
     }
 
     # We can tell our input is a test archive by this suffix, which happens to
     # be the same across platforms.
     _test_archive_suffix = '.common.tests.zip'
 
-    def __init__(self, package_re, tests_re, log=None, download_symbols=False):
+    def __init__(self, package_re, tests_re, log=None, download_symbols=False, substs=None):
         self._package_re = re.compile(package_re)
         self._tests_re = None
         if tests_re:
             self._tests_re = re.compile(tests_re)
         self._log = log
+        self._substs = substs
         self._symbols_archive_suffix = None
         if download_symbols:
             self._symbols_archive_suffix = 'crashreporter-symbols.zip'
@@ -195,6 +201,18 @@ class ArtifactJob(object):
                     mode = entry['external_attr'] >> 16
                     writer.add(destpath.encode('utf-8'), reader[filename], mode=mode)
                     added_entry = True
+                    break
+                for files_entry in OBJDIR_TEST_FILES.values():
+                    origin_pattern = files_entry['pattern']
+                    leaf_filename = filename
+                    if 'dest' in files_entry:
+                        dest = files_entry['dest']
+                        origin_pattern = mozpath.join(dest, origin_pattern)
+                        leaf_filename = filename[len(dest) + 1:]
+                    if mozpath.match(filename, origin_pattern):
+                        destpath = mozpath.join('..', files_entry['base'], leaf_filename)
+                        mode = entry['external_attr'] >> 16
+                        writer.add(destpath.encode('utf-8'), reader[filename], mode=mode)
 
         if not added_entry:
             raise ValueError('Archive format changed! No pattern from "{patterns}"'
@@ -222,7 +240,7 @@ class AndroidArtifactJob(ArtifactJob):
         '**/interfaces.xpt',
     }
 
-    def process_artifact(self, filename, processed_filename):
+    def process_package_artifact(self, filename, processed_filename):
         # Extract all .so files into the root, which will get copied into dist/bin.
         with JarWriter(file=processed_filename, optimize=False, compress_level=5) as writer:
             for p, f in UnpackFinder(JarFinder(filename, JarReader(filename))):
@@ -251,6 +269,8 @@ class LinuxArtifactJob(ArtifactJob):
         'firefox/dependentlibs.list',
         'firefox/firefox',
         'firefox/firefox-bin',
+        'firefox/minidump-analyzer',
+        'firefox/pingsender',
         'firefox/platform.ini',
         'firefox/plugin-container',
         'firefox/updater',
@@ -289,28 +309,28 @@ class MacArtifactJob(ArtifactJob):
 
     def process_package_artifact(self, filename, processed_filename):
         tempdir = tempfile.mkdtemp()
+        oldcwd = os.getcwd()
         try:
             self.log(logging.INFO, 'artifact',
                 {'tempdir': tempdir},
                 'Unpacking DMG into {tempdir}')
-            mozinstall.install(filename, tempdir) # Doesn't handle already mounted DMG files nicely:
-
-            # InstallError: Failed to install "/Users/nalexander/.mozbuild/package-frontend/b38eeeb54cdcf744-firefox-44.0a1.en-US.mac.dmg (local variable 'appDir' referenced before assignment)"
-
-            #   File "/Users/nalexander/Mozilla/gecko/mobile/android/mach_commands.py", line 250, in artifact_install
-            #     return artifacts.install_from(source, self.distdir)
-            #   File "/Users/nalexander/Mozilla/gecko/python/mozbuild/mozbuild/artifacts.py", line 457, in install_from
-            #     return self.install_from_hg(source, distdir)
-            #   File "/Users/nalexander/Mozilla/gecko/python/mozbuild/mozbuild/artifacts.py", line 445, in install_from_hg
-            #     return self.install_from_url(url, distdir)
-            #   File "/Users/nalexander/Mozilla/gecko/python/mozbuild/mozbuild/artifacts.py", line 418, in install_from_url
-            #     return self.install_from_file(filename, distdir)
-            #   File "/Users/nalexander/Mozilla/gecko/python/mozbuild/mozbuild/artifacts.py", line 336, in install_from_file
-            #     mozinstall.install(filename, tempdir)
-            #   File "/Users/nalexander/Mozilla/gecko/objdir-dce/_virtualenv/lib/python2.7/site-packages/mozinstall/mozinstall.py", line 117, in install
-            #     install_dir = _install_dmg(src, dest)
-            #   File "/Users/nalexander/Mozilla/gecko/objdir-dce/_virtualenv/lib/python2.7/site-packages/mozinstall/mozinstall.py", line 261, in _install_dmg
-            #     subprocess.call('hdiutil detach %s -quiet' % appDir,
+            if self._substs['HOST_OS_ARCH'] == 'Linux':
+                # This is a cross build, use hfsplus and dmg tools to extract the dmg.
+                os.chdir(tempdir)
+                with open(os.devnull, 'wb') as devnull:
+                    subprocess.check_call([
+                        self._substs['DMG_TOOL'],
+                        'extract',
+                        filename,
+                        'extracted_img',
+                    ], stdout=devnull)
+                    subprocess.check_call([
+                        self._substs['HFS_TOOL'],
+                        'extracted_img',
+                        'extractall'
+                    ], stdout=devnull)
+            else:
+                mozinstall.install(filename, tempdir)
 
             bundle_dirs = glob.glob(mozpath.join(tempdir, '*.app'))
             if len(bundle_dirs) != 1:
@@ -320,6 +340,7 @@ class MacArtifactJob(ArtifactJob):
             # These get copied into dist/bin without the path, so "root/a/b/c" -> "dist/bin/c".
             paths_no_keep_path = ('Contents/MacOS', [
                 'crashreporter.app/Contents/MacOS/crashreporter',
+                'crashreporter.app/Contents/MacOS/minidump-analyzer',
                 'firefox',
                 'firefox-bin',
                 'libfreebl3.dylib',
@@ -335,6 +356,7 @@ class MacArtifactJob(ArtifactJob):
                 'libmozavutil.dylib',
                 'libmozavcodec.dylib',
                 'libsoftokn3.dylib',
+                'pingsender',
                 'plugin-container.app/Contents/MacOS/plugin-container',
                 'updater.app/Contents/MacOS/org.mozilla.updater',
                 # 'xpcshell',
@@ -374,6 +396,7 @@ class MacArtifactJob(ArtifactJob):
                         writer.add(destpath.encode('utf-8'), f.open(), mode=f.mode)
 
         finally:
+            os.chdir(oldcwd)
             try:
                 shutil.rmtree(tempdir)
             except (OSError, IOError):
@@ -405,7 +428,9 @@ class WinArtifactJob(ArtifactJob):
         ('bin/pk12util.exe', ('bin', 'bin')),
         ('bin/ssltunnel.exe', ('bin', 'bin')),
         ('bin/xpcshell.exe', ('bin', 'bin')),
-        ('bin/plugins/*', ('bin/plugins', 'plugins'))
+        ('bin/plugins/gmp-*/*/*', ('bin/plugins', 'bin')),
+        ('bin/plugins/*', ('bin/plugins', 'plugins')),
+        ('bin/components/*', ('bin/components', 'bin/components')),
     }
 
     def process_package_artifact(self, filename, processed_filename):
@@ -434,39 +459,40 @@ class WinArtifactJob(ArtifactJob):
 # https://tools.taskcluster.net/index/artifacts/#gecko.v2.mozilla-central.latest/gecko.v2.mozilla-central.latest
 # The values correpsond to a pair of (<package regex>, <test archive regex>).
 JOB_DETAILS = {
-    'android-api-15-opt': (AndroidArtifactJob, ('public/build/target.apk',
-                                                None)),
-    'android-api-15-debug': (AndroidArtifactJob, ('public/build/target.apk',
-                                                  None)),
-    'android-x86-opt': (AndroidArtifactJob, ('public/build/target.apk',
-                                         None)),
-    'linux-opt': (LinuxArtifactJob, ('public/build/firefox-(.*)\.linux-i686\.tar\.bz2',
-                                     'public/build/firefox-(.*)\.common\.tests\.zip')),
-    'linux-debug': (LinuxArtifactJob, ('public/build/firefox-(.*)\.linux-i686\.tar\.bz2',
-                                 'public/build/firefox-(.*)\.common\.tests\.zip')),
-    'linux64-opt': (LinuxArtifactJob, ('public/build/firefox-(.*)\.linux-x86_64\.tar\.bz2',
-                                       'public/build/firefox-(.*)\.common\.tests\.zip')),
-    'linux64-debug': (LinuxArtifactJob, ('public/build/target\.tar\.bz2',
-                                         'public/build/target\.common\.tests\.zip')),
-    'macosx64-opt': (MacArtifactJob, ('public/build/firefox-(.*)\.mac\.dmg',
-                                      'public/build/firefox-(.*)\.common\.tests\.zip')),
-    'macosx64-debug': (MacArtifactJob, ('public/build/firefox-(.*)\.mac64\.dmg',
-                                  'public/build/firefox-(.*)\.common\.tests\.zip')),
-    'win32-opt': (WinArtifactJob, ('public/build/firefox-(.*)\.win32.zip',
-                                   'public/build/firefox-(.*)\.common\.tests\.zip')),
-    'win32-debug': (WinArtifactJob, ('public/build/firefox-(.*)\.win32.zip',
-                               'public/build/firefox-(.*)\.common\.tests\.zip')),
-    'win64-opt': (WinArtifactJob, ('public/build/firefox-(.*)\.win64.zip',
-                                   'public/build/firefox-(.*)\.common\.tests\.zip')),
-    'win64-debug': (WinArtifactJob, ('public/build/firefox-(.*)\.win64.zip',
-                               'public/build/firefox-(.*)\.common\.tests\.zip')),
+    'android-api-15-opt': (AndroidArtifactJob, (r'(public/build/fennec-(.*)\.android-arm.apk|public/build/target\.apk)',
+                                                r'public/build/fennec-(.*)\.common\.tests\.zip|public/build/target\.common\.tests\.zip')),
+    'android-api-15-debug': (AndroidArtifactJob, (r'public/build/target\.apk',
+                                                  r'public/build/target\.common\.tests\.zip')),
+    'android-x86-opt': (AndroidArtifactJob, (r'public/build/target\.apk',
+                                             r'public/build/target\.common\.tests\.zip')),
+    'linux-opt': (LinuxArtifactJob, (r'public/build/target\.tar\.bz2',
+                                     r'public/build/target\.common\.tests\.zip')),
+    'linux-debug': (LinuxArtifactJob, (r'public/build/target\.tar\.bz2',
+                                       r'public/build/target\.common\.tests\.zip')),
+    'linux64-opt': (LinuxArtifactJob, (r'public/build/target\.tar\.bz2',
+                                       r'public/build/target\.common\.tests\.zip')),
+    'linux64-debug': (LinuxArtifactJob, (r'public/build/target\.tar\.bz2',
+                                         r'public/build/target\.common\.tests\.zip')),
+    'macosx64-opt': (MacArtifactJob, (r'public/build/firefox-(.*)\.mac\.dmg',
+                                      r'public/build/firefox-(.*)\.common\.tests\.zip')),
+    'macosx64-debug': (MacArtifactJob, (r'public/build/firefox-(.*)\.mac\.dmg',
+                                        r'public/build/firefox-(.*)\.common\.tests\.zip')),
+    'win32-opt': (WinArtifactJob, (r'public/build/firefox-(.*)\.win32.zip',
+                                   r'public/build/firefox-(.*)\.common\.tests\.zip')),
+    'win32-debug': (WinArtifactJob, (r'public/build/firefox-(.*)\.win32.zip',
+                                     r'public/build/firefox-(.*)\.common\.tests\.zip')),
+    'win64-opt': (WinArtifactJob, (r'public/build/firefox-(.*)\.win64.zip',
+                                   r'public/build/firefox-(.*)\.common\.tests\.zip')),
+    'win64-debug': (WinArtifactJob, (r'public/build/firefox-(.*)\.win64.zip',
+                                     r'public/build/firefox-(.*)\.common\.tests\.zip')),
 }
 
 
 
-def get_job_details(job, log=None, download_symbols=False):
+def get_job_details(job, log=None, download_symbols=False, substs=None):
     cls, (package_re, tests_re) = JOB_DETAILS[job]
-    return cls(package_re, tests_re, log=log, download_symbols=download_symbols)
+    return cls(package_re, tests_re, log=log, download_symbols=download_symbols,
+               substs=substs)
 
 def cachedmethod(cachefunc):
     '''Decorator to wrap a class or instance method with a memoizing callable that
@@ -615,8 +641,6 @@ class TaskCache(CacheManager):
 
     def __init__(self, cache_dir, log=None, skip_cache=False):
         CacheManager.__init__(self, cache_dir, 'artifact_url', MAX_CACHED_TASKS, log=log, skip_cache=skip_cache)
-        self._index = taskcluster.Index()
-        self._queue = taskcluster.Queue()
 
     @cachedmethod(operator.attrgetter('_cache'))
     def artifact_urls(self, tree, job, rev, download_symbols):
@@ -643,14 +667,13 @@ class TaskCache(CacheManager):
                  {'namespace': namespace},
                  'Searching Taskcluster index with namespace: {namespace}')
         try:
-            task = self._index.findTask(namespace)
+            taskId = find_task_id(namespace)
         except Exception:
             # Not all revisions correspond to pushes that produce the job we
             # care about; and even those that do may not have completed yet.
             raise ValueError('Task for {namespace} does not exist (yet)!'.format(namespace=namespace))
-        taskId = task['taskId']
 
-        artifacts = self._queue.listLatestArtifacts(taskId)['artifacts']
+        artifacts = list_artifacts(taskId)
 
         urls = []
         for artifact_name in artifact_job.find_candidate_artifacts(artifacts):
@@ -658,7 +681,7 @@ class TaskCache(CacheManager):
             # extract the build ID; we use the .ini files embedded in the
             # downloaded artifact for this.  We could also use the uploaded
             # public/build/buildprops.json for this purpose.
-            url = self._queue.buildUrl('getLatestArtifact', taskId, artifact_name)
+            url = get_artifact_url(taskId, artifact_name)
             urls.append(url)
         if not urls:
             raise ValueError('Task for {namespace} existed, but no artifacts found!'.format(namespace=namespace))
@@ -780,7 +803,9 @@ class Artifacts(object):
         self._topsrcdir = topsrcdir
 
         try:
-            self._artifact_job = get_job_details(self._job, log=self._log, download_symbols=self._download_symbols)
+            self._artifact_job = get_job_details(self._job, log=self._log,
+                                                 download_symbols=self._download_symbols,
+                                                 substs=self._substs)
         except KeyError:
             self.log(logging.INFO, 'artifact',
                 {'job': self._job},
@@ -1042,7 +1067,8 @@ class Artifacts(object):
                   'revision': revision},
                  'Will only accept artifacts from a pushhead at {revision} '
                  '(matched revset "{revset}").')
-        pushheads = [(list(CANDIDATE_TREES), revision)]
+        # Include try in our search to allow pulling from a specific push.
+        pushheads = [(list(CANDIDATE_TREES) + ['try'], revision)]
         return self._install_from_hg_pushheads(pushheads, distdir)
 
     def install_from(self, source, distdir):

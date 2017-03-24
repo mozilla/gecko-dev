@@ -13,10 +13,6 @@ Cu.import("resource://gre/modules/Services.jsm");
 const kEntities = {
   "contacts": "contacts",
   "desktop-notification": "desktopNotification2",
-  "device-storage:music": "deviceStorageMusic",
-  "device-storage:pictures": "deviceStoragePictures",
-  "device-storage:sdcard": "deviceStorageSdcard",
-  "device-storage:videos": "deviceStorageVideos",
   "geolocation": "geolocation",
   "flyweb-publish-server": "flyWebPublishServer",
 };
@@ -71,7 +67,7 @@ ContentPermissionPrompt.prototype = {
       let requestingWindow = request.window.top;
       return this.getChromeWindow(requestingWindow).wrappedJSObject;
     }
-    return request.element.ownerDocument.defaultView;
+    return request.element.ownerGlobal;
   },
 
   prompt: function(request) {

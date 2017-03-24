@@ -12,9 +12,6 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import org.mozilla.gecko.Actions;
 import org.mozilla.gecko.Element;
 import org.mozilla.gecko.GeckoAppShell;
@@ -24,6 +21,7 @@ import org.mozilla.gecko.R;
 import org.mozilla.gecko.RobocopUtils;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
+import org.mozilla.gecko.util.GeckoBundle;
 
 import android.content.ContentValues;
 import android.content.res.AssetManager;
@@ -68,7 +66,8 @@ abstract class BaseTest extends BaseRobocopTest {
 
     protected void blockForDelayedStartup() {
         try {
-            Actions.EventExpecter delayedStartupExpector = mActions.expectGeckoEvent("Gecko:DelayedStartup");
+            Actions.EventExpecter delayedStartupExpector =
+                    mActions.expectGlobalEvent(Actions.EventType.UI, "Gecko:DelayedStartup");
             delayedStartupExpector.blockForEvent(GECKO_READY_WAIT_MS, true);
             delayedStartupExpector.unregisterListener();
         } catch (Exception e) {
@@ -78,7 +77,8 @@ abstract class BaseTest extends BaseRobocopTest {
 
     protected void blockForGeckoReady() {
         try {
-            Actions.EventExpecter geckoReadyExpector = mActions.expectGeckoEvent("Gecko:Ready");
+            Actions.EventExpecter geckoReadyExpector =
+                    mActions.expectGlobalEvent(Actions.EventType.GECKO, "Gecko:Ready");
             if (!GeckoThread.isRunning()) {
                 geckoReadyExpector.blockForEvent(GECKO_READY_WAIT_MS, true);
             }
@@ -153,7 +153,8 @@ abstract class BaseTest extends BaseRobocopTest {
     }
 
     protected final void hitEnterAndWait() {
-        Actions.EventExpecter contentEventExpecter = mActions.expectGeckoEvent("DOMContentLoaded");
+        Actions.EventExpecter contentEventExpecter =
+                mActions.expectGlobalEvent(Actions.EventType.GECKO, "Content:DOMContentLoaded");
         mActions.sendSpecialKey(Actions.SpecialKey.ENTER);
         // wait for screen to load
         contentEventExpecter.blockForEvent();
@@ -196,7 +197,8 @@ abstract class BaseTest extends BaseRobocopTest {
      * <code>org.mozilla.gecko.Tabs</code> API and wait for DOMContentLoaded.
      */
     protected final void loadUrlAndWait(final String url) {
-        Actions.EventExpecter contentEventExpecter = mActions.expectGeckoEvent("DOMContentLoaded");
+        Actions.EventExpecter contentEventExpecter =
+                mActions.expectGlobalEvent(Actions.EventType.GECKO, "Content:DOMContentLoaded");
         loadUrl(url);
         contentEventExpecter.blockForEvent();
         contentEventExpecter.unregisterListener();
@@ -575,25 +577,22 @@ abstract class BaseTest extends BaseRobocopTest {
             }
         }, MAX_WAIT_MS);
         mAsserter.ok(success, "waiting for add tab view", "add tab view available");
-        final Actions.RepeatedEventExpecter pageShowExpecter = mActions.expectGeckoEvent("Content:PageShow");
+        final Actions.RepeatedEventExpecter pageShowExpecter =
+                mActions.expectGlobalEvent(Actions.EventType.UI, "Content:PageShow");
         mSolo.clickOnView(mSolo.getView(R.id.add_tab));
         waitForAnimationsToFinish();
 
         // Wait until we get a PageShow event for a new tab ID
         for(;;) {
-            try {
-                JSONObject data = new JSONObject(pageShowExpecter.blockForEventData());
-                int tabID = data.getInt("tabID");
-                if (tabID == 0) {
-                    mAsserter.dumpLog("addTab ignoring PageShow for tab 0");
-                    continue;
-                }
-                if (!mKnownTabIDs.contains(tabID)) {
-                    mKnownTabIDs.add(tabID);
-                    break;
-                }
-            } catch(JSONException e) {
-                mAsserter.ok(false, "Exception in addTab", getStackTraceString(e));
+            final GeckoBundle data = pageShowExpecter.blockForBundle();
+            final int tabID = data.getInt("tabID");
+            if (tabID == 0) {
+                mAsserter.dumpLog("addTab ignoring PageShow for tab 0");
+                continue;
+            }
+            if (!mKnownTabIDs.contains(tabID)) {
+                mKnownTabIDs.add(tabID);
+                break;
             }
         }
         pageShowExpecter.unregisterListener();
@@ -610,105 +609,6 @@ abstract class BaseTest extends BaseRobocopTest {
         for(int tabID : mKnownTabIDs) {
             closeTab(tabID);
         }
-    }
-
-    // A temporary tabs list/grid holder while the list and grid views are being transitioned to
-    // RecyclerViews (bug 1116415 and bug 1310081).
-    private static class TabsView {
-        private AdapterView<ListAdapter> gridView;
-        private RecyclerView listView;
-
-        public TabsView(View view) {
-            if (view instanceof RecyclerView) {
-                listView = (RecyclerView) view;
-            } else {
-                gridView = (AdapterView<ListAdapter>) view;
-            }
-        }
-
-        public void bringPositionIntoView(int index) {
-            if (gridView != null) {
-                gridView.setSelection(index);
-            } else {
-                listView.scrollToPosition(index);
-            }
-        }
-
-        public View getViewAtIndex(int index) {
-            if (gridView != null) {
-                return gridView.getChildAt(index - gridView.getFirstVisiblePosition());
-            } else {
-                final RecyclerView.ViewHolder itemViewHolder = listView.findViewHolderForLayoutPosition(index);
-                return itemViewHolder == null ? null : itemViewHolder.itemView;
-            }
-        }
-
-        public void post(Runnable runnable) {
-            if (gridView != null) {
-                gridView.post(runnable);
-            } else {
-                listView.post(runnable);
-            }
-        }
-    }
-    /**
-     * Gets the AdapterView of the tabs list.
-     *
-     * @return List view in the tabs panel
-     */
-    private final TabsView getTabsLayout() {
-        Element tabs = mDriver.findElement(getActivity(), R.id.tabs);
-        tabs.click();
-        return new TabsView(getActivity().findViewById(R.id.normal_tabs));
-    }
-
-    /**
-     * Gets the view in the tabs panel at the specified index.
-     *
-     * @return View at index
-     */
-    private View getTabViewAt(final int index) {
-        final View[] childView = { null };
-
-        final TabsView view = getTabsLayout();
-
-        runOnUiThreadSync(new Runnable() {
-            @Override
-            public void run() {
-                view.bringPositionIntoView(index);
-
-                // The selection isn't updated synchronously; posting a
-                // runnable to the view's queue guarantees we'll run after the
-                // layout pass.
-                view.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Index is relative to all views in the list.
-                        childView[0] = view.getViewAtIndex(index);
-                    }
-                });
-            }
-        });
-
-        boolean result = waitForCondition(new Condition() {
-            @Override
-            public boolean isSatisfied() {
-                return childView[0] != null;
-            }
-        }, MAX_WAIT_MS);
-
-        mAsserter.ok(result, "list item at index " + index + " exists", null);
-
-        return childView[0];
-    }
-
-    /**
-     * Selects the tab at the specified index.
-     *
-     * @param index Index of tab to select
-     */
-    public void selectTabAt(final int index) {
-        mSolo.clickOnView(getTabViewAt(index));
     }
 
     public final void runOnUiThreadSync(Runnable runnable) {
@@ -796,7 +696,8 @@ abstract class BaseTest extends BaseRobocopTest {
         }
 
         public void back() {
-            Actions.EventExpecter pageShowExpecter = mActions.expectGeckoEvent("Content:PageShow");
+            final Actions.EventExpecter pageShowExpecter =
+                    mActions.expectGlobalEvent(Actions.EventType.UI, "Content:PageShow");
 
             if (devType.equals("tablet")) {
                 Element backBtn = mDriver.findElement(getActivity(), R.id.back);
@@ -810,7 +711,8 @@ abstract class BaseTest extends BaseRobocopTest {
         }
 
         public void forward() {
-            Actions.EventExpecter pageShowExpecter = mActions.expectGeckoEvent("Content:PageShow");
+            final Actions.EventExpecter pageShowExpecter =
+                    mActions.expectGlobalEvent(Actions.EventType.UI, "Content:PageShow");
 
             if (devType.equals("tablet")) {
                 mSolo.waitForView(R.id.forward);

@@ -24,7 +24,7 @@ var InputWidgetHelper = {
   show: function(aElement) {
     let type = aElement.getAttribute('type');
     let p = new Prompt({
-      window: aElement.ownerDocument.defaultView,
+      window: aElement.ownerGlobal,
       title: Strings.browser.GetStringFromName("inputWidgetHelper." + aElement.getAttribute('type')),
       buttons: [
         Strings.browser.GetStringFromName("inputWidgetHelper.set"),
@@ -63,7 +63,7 @@ var InputWidgetHelper = {
   },
 
   hasInputWidget: function(aElement) {
-    if (!aElement instanceof HTMLInputElement)
+    if (!(aElement instanceof HTMLInputElement))
       return false;
 
     let type = aElement.getAttribute('type');

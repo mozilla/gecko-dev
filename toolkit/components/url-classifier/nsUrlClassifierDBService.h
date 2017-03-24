@@ -25,6 +25,13 @@
 #include "Entries.h"
 #include "LookupCache.h"
 
+// GCC < 6.1 workaround, see bug 1329593
+#if defined(XP_WIN) && defined(__MINGW32__)
+#define GCC_MANGLING_WORKAROUND __stdcall
+#else
+#define GCC_MANGLING_WORKAROUND
+#endif
+
 // The hash length for a domain key.
 #define DOMAIN_LENGTH 4
 
@@ -80,6 +87,8 @@ public:
 
   static nsIThread* BackgroundThread();
 
+  static bool ShutdownHasStarted();
+
 private:
   // No subclassing
   ~nsUrlClassifierDBService();
@@ -117,10 +126,6 @@ private:
   // TRUE if the nsURIClassifier implementation should check for phishing
   // uris on document loads.
   bool mCheckPhishing;
-
-  // TRUE if the nsURIClassifier implementation should check for tracking
-  // uris on document loads.
-  bool mCheckTracking;
 
   // TRUE if the nsURIClassifier implementation should check for blocked
   // uris on document loads.
@@ -169,10 +174,10 @@ public:
                          LookupResultArray* results);
 
   // Open the DB connection
-  nsresult OpenDb();
+  nsresult GCC_MANGLING_WORKAROUND OpenDb();
 
   // Provide a way to forcibly close the db connection.
-  nsresult CloseDb();
+  nsresult GCC_MANGLING_WORKAROUND CloseDb();
 
   nsresult CacheCompletions(CacheResultArray * aEntries);
   nsresult CacheMisses(PrefixArray * aEntries);
@@ -184,8 +189,14 @@ private:
   // Disallow copy constructor
   nsUrlClassifierDBServiceWorker(nsUrlClassifierDBServiceWorker&);
 
-  // Applies the current transaction and resets the update/working times.
-  nsresult ApplyUpdate();
+  // Perform update in the background. Can be run on/off the worker thread.
+  nsresult ApplyUpdatesBackground(nsACString& aFailedTableName);
+
+  // Perform update for the foreground part. MUST be run on the worker thread.
+  nsresult ApplyUpdatesForeground(nsresult aBackgroundRv,
+                                 const nsACString& aFailedTableName);
+
+  nsresult NotifyUpdateObserver(nsresult aUpdateStatus);
 
   // Reset the in-progress update stream
   void ResetStream();
@@ -249,6 +260,11 @@ private:
 
   // list of pending lookups
   nsTArray<PendingLookup> mPendingLookups;
+
+#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
+  // The raw update response for debugging.
+  nsCString mRawTableUpdates;
+#endif
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService, NS_URLCLASSIFIERDBSERVICE_CID)

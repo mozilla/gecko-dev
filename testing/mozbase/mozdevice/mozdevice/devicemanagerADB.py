@@ -5,14 +5,16 @@
 import logging
 import re
 import os
-import shutil
 import tempfile
 import time
 import traceback
 
+from distutils import dir_util
+
 from devicemanager import DeviceManager, DMError
 from mozprocess import ProcessHandler
 import mozfile
+import version_codes
 
 
 class DeviceManagerADB(DeviceManager):
@@ -32,6 +34,8 @@ class DeviceManagerADB(DeviceManager):
     _pollingInterval = 0.01
     _packageName = None
     _tempDir = None
+    _adb_version = None
+    _sdk_version = None
     connected = False
 
     def __init__(self, host=None, port=5555, retryLimit=5, packageName='fennec',
@@ -80,6 +84,15 @@ class DeviceManagerADB(DeviceManager):
 
             # verify that we can connect to the device. can't continue
             self._verifyDevice()
+
+            # Note SDK version
+            try:
+                proc = self._runCmd(["shell", "getprop", "ro.build.version.sdk"],
+                                    timeout=self.short_timeout)
+                self._sdk_version = int(proc.output[0])
+            except (OSError, ValueError):
+                self._sdk_version = 0
+            self._logger.info("Detected Android sdk %d" % self._sdk_version)
 
             # Some commands require root to work properly, even with ADB (e.g.
             # grabbing APKs out of /data). For these cases, we check whether
@@ -220,9 +233,7 @@ class DeviceManagerADB(DeviceManager):
 
     def pushFile(self, localname, destname, retryLimit=None, createDir=True):
         # you might expect us to put the file *in* the directory in this case,
-        # but that would be different behaviour from devicemanagerSUT. Throw
-        # an exception so we have the same behaviour between the two
-        # implementations
+        # but that would be inconsistent with historical behavior.
         retryLimit = retryLimit or self.retryLimit
         if self.dirExists(destname):
             raise DMError("Attempted to push a file (%s) to a directory (%s)!" %
@@ -271,18 +282,30 @@ class DeviceManagerADB(DeviceManager):
                 self._useZip = False
                 self.pushDir(localDir, remoteDir, retryLimit=retryLimit, timeout=timeout)
         else:
-            # If the remote directory exists, newer implementations of
-            # "adb push" will create a sub-directory, while older versions
-            # will not! Bug 1285040
-            self.mkDirs(remoteDir + "/x")
-            self.removeDir(remoteDir)
-            tmpDir = tempfile.mkdtemp()
-            # copytree's target dir must not already exist, so create a subdir
-            tmpDirTarget = os.path.join(tmpDir, "tmp")
-            shutil.copytree(localDir, tmpDirTarget)
-            self._checkCmd(["push", tmpDirTarget, remoteDir],
-                           retryLimit=retryLimit, timeout=timeout)
-            mozfile.remove(tmpDir)
+            localDir = os.path.normpath(localDir)
+            remoteDir = os.path.normpath(remoteDir)
+            tempParent = tempfile.mkdtemp()
+            remoteName = os.path.basename(remoteDir)
+            newLocal = os.path.join(tempParent, remoteName)
+            dir_util.copy_tree(localDir, newLocal)
+            # See do_sync_push in
+            # https://android.googlesource.com/platform/system/core/+/master/adb/file_sync_client.cpp
+            # Work around change in behavior in adb 1.0.36 where if
+            # the remote destination directory exists, adb push will
+            # copy the source directory *into* the destination
+            # directory otherwise it will copy the source directory
+            # *onto* the destination directory.
+            if self._adb_version >= '1.0.36':
+                remoteDir = '/'.join(remoteDir.rstrip('/').split('/')[:-1])
+            try:
+                if self._checkCmd(["push", newLocal, remoteDir],
+                                  retryLimit=retryLimit, timeout=timeout):
+                    raise DMError("failed to push %s (copy of %s) to %s" %
+                                  (newLocal, localDir, remoteDir))
+            except:
+                raise
+            finally:
+                mozfile.remove(tempParent)
 
     def dirExists(self, remotePath):
         self._detectLsModifier()
@@ -388,7 +411,6 @@ class DeviceManagerADB(DeviceManager):
         acmd = ["-W"]
         cmd = ' '.join(cmd).strip()
         i = cmd.find(" ")
-        # SUT identifies the URL by looking for :\\ -- another strategy to consider
         re_url = re.compile('^[http|file|chrome|about].*')
         last = cmd.rfind(" ")
         uri = ""
@@ -422,15 +444,31 @@ class DeviceManagerADB(DeviceManager):
         return outputFile
 
     def killProcess(self, appname, sig=None):
+        shell_args = ["shell"]
+        if self._sdk_version >= version_codes.N:
+            # Bug 1334613 - force use of root
+            if self._haveRootShell is None and self._haveSu is None:
+                self._checkForRoot()
+            if not self._haveRootShell and not self._haveSu:
+                raise DMError(
+                    "killProcess '%s' requested to run as root but root "
+                    "is not available on this device. Root your device or "
+                    "refactor the test/harness to not require root." %
+                    appname)
+            if not self._haveRootShell:
+                shell_args.extend(["su", self._suModifier])
+
         procs = self.getProcessList()
         for (pid, name, user) in procs:
             if name == appname:
-                args = ["shell", "kill"]
+                args = list(shell_args)
+                args.append("kill")
                 if sig:
                     args.append("-%d" % sig)
                 args.append(str(pid))
                 p = self._runCmd(args, timeout=self.short_timeout)
-                if p.returncode != 0:
+                if p.returncode != 0 and len(p.output) > 0 and \
+                   'No such process' not in p.output[0]:
                     raise DMError("Error killing process "
                                   "'%s': %s" % (appname, p.output))
 
@@ -464,7 +502,37 @@ class DeviceManagerADB(DeviceManager):
         self._runPull(remoteFile, localFile)
 
     def getDirectory(self, remoteDir, localDir, checkDir=True):
+        localDir = os.path.normpath(localDir)
+        remoteDir = os.path.normpath(remoteDir)
+        copyRequired = False
+        originalLocal = localDir
+        if self._adb_version >= '1.0.36' and \
+           os.path.isdir(localDir) and self.dirExists(remoteDir):
+            # See do_sync_pull in
+            # https://android.googlesource.com/platform/system/core/+/master/adb/file_sync_client.cpp
+            # Work around change in behavior in adb 1.0.36 where if
+            # the local destination directory exists, adb pull will
+            # copy the source directory *into* the destination
+            # directory otherwise it will copy the source directory
+            # *onto* the destination directory.
+            #
+            # If the destination directory does exist, pull to its
+            # parent directory. If the source and destination leaf
+            # directory names are different, pull the source directory
+            # into a temporary directory and then copy the temporary
+            # directory onto the destination.
+            localName = os.path.basename(localDir)
+            remoteName = os.path.basename(remoteDir)
+            if localName != remoteName:
+                copyRequired = True
+                tempParent = tempfile.mkdtemp()
+                localDir = os.path.join(tempParent, remoteName)
+            else:
+                localDir = '/'.join(localDir.rstrip('/').split('/')[:-1])
         self._runCmd(["pull", remoteDir, localDir]).wait()
+        if copyRequired:
+            dir_util.copy_tree(localDir, originalLocal)
+            mozfile.remove(tempParent)
 
     def validateFile(self, remoteFile, localFile):
         md5Remote = self._getRemoteHash(remoteFile)
@@ -682,7 +750,10 @@ class DeviceManagerADB(DeviceManager):
                 raise DMError("invalid adb path, or adb not executable: %s" % self._adbPath)
 
         try:
-            self._checkCmd(["version"], timeout=self.short_timeout)
+            re_version = re.compile(r'Android Debug Bridge version (.*)')
+            proc = self._runCmd(["version"], timeout=self.short_timeout)
+            self._adb_version = re_version.match(proc.output[0]).group(1)
+            self._logger.info("Detected adb %s" % self._adb_version)
         except os.error as err:
             raise DMError(
                 "unable to execute ADB (%s): ensure Android SDK is installed "

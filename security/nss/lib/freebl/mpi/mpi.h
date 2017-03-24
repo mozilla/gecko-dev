@@ -12,6 +12,9 @@
 
 #include "mpi-config.h"
 
+#include "seccomon.h"
+SEC_BEGIN_PROTOS
+
 #if MP_DEBUG
 #undef MP_IOFUNC
 #define MP_IOFUNC 1
@@ -222,13 +225,11 @@ int mp_isodd(const mp_int *a);
 int mp_iseven(const mp_int *a);
 
 /* Number theoretic        */
-#if MP_NUMTH
 mp_err mp_gcd(mp_int *a, mp_int *b, mp_int *c);
 mp_err mp_lcm(mp_int *a, mp_int *b, mp_int *c);
 mp_err mp_xgcd(const mp_int *a, const mp_int *b, mp_int *g, mp_int *x, mp_int *y);
 mp_err mp_invmod(const mp_int *a, const mp_int *m, mp_int *c);
 mp_err mp_invmod_xgcd(const mp_int *a, const mp_int *m, mp_int *c);
-#endif /* end MP_NUMTH */
 
 /* Input and output        */
 #if MP_IOFUNC
@@ -273,7 +274,6 @@ void freebl_cpuid(unsigned long op, unsigned long *eax,
     if (MP_OKAY > (res = (x))) \
     goto CLEANUP
 
-#if defined(MP_API_COMPATIBLE)
 #define NEG MP_NEG
 #define ZPOS MP_ZPOS
 #define DIGIT_MAX MP_DIGIT_MAX
@@ -300,6 +300,12 @@ void freebl_cpuid(unsigned long op, unsigned long *eax,
 #else
 #define ARGCHK(X, Y) /*  */
 #endif
-#endif /* defined MP_API_COMPATIBLE */
+
+#ifdef CT_VERIF
+void mp_taint(mp_int *mp);
+void mp_untaint(mp_int *mp);
+#endif
+
+SEC_END_PROTOS
 
 #endif /* end _H_MPI_ */

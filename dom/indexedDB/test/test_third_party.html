@@ -9,7 +9,7 @@
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 
-  <script type="text/javascript;version=1.7">
+  <script type="text/javascript">
     const BEHAVIOR_ACCEPT = 0;
     const BEHAVIOR_REJECTFOREIGN = 1;
     const BEHAVIOR_REJECT = 2;
@@ -59,7 +59,7 @@
 
       if (!testRunning) {
         testRunning = true;
-        iframe.addEventListener("load", iframeLoaded, false);
+        iframe.addEventListener("load", iframeLoaded);
       }
       SpecialPowers.pushPrefEnv({
         'set': [["network.cookie.cookieBehavior", testData[testIndex].cookieBehavior]]
@@ -89,7 +89,7 @@
 
       SpecialPowers.addPermission("indexedDB", true, document);
 
-      window.addEventListener("message", messageListener, false);
+      window.addEventListener("message", messageListener);
       setiframe();
     }
   </script>

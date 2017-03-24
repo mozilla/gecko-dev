@@ -642,8 +642,6 @@ NotificationPermissionRequest::ResolvePromise()
     mCallback->Call(mPermission, error);
     rv = error.StealNSResult();
   }
-  Telemetry::Accumulate(
-    Telemetry::WEB_NOTIFICATION_REQUEST_PERMISSION_CALLBACK, !!mCallback);
   mPromise->MaybeResolve(mPermission);
   return rv;
 }
@@ -685,6 +683,11 @@ NotificationTelemetryService::GetInstance()
 nsresult
 NotificationTelemetryService::Init()
 {
+  // Only perform permissions telemetry collection in the parent process.
+  if (!XRE_IsParentProcess()) {
+    return NS_OK;
+  }
+
   nsresult rv = AddPermissionChangeObserver();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -706,6 +709,9 @@ NotificationTelemetryService::RemovePermissionChangeObserver()
 nsresult
 NotificationTelemetryService::AddPermissionChangeObserver()
 {
+  MOZ_ASSERT(XRE_IsParentProcess(),
+             "AddPermissionChangeObserver may only be called in the parent process");
+
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (!obs) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -716,6 +722,9 @@ NotificationTelemetryService::AddPermissionChangeObserver()
 void
 NotificationTelemetryService::RecordPermissions()
 {
+  MOZ_ASSERT(XRE_IsParentProcess(),
+             "RecordPermissions may only be called in the parent process");
+
   if (!Telemetry::CanRecordBase() || !Telemetry::CanRecordExtended()) {
     return;
   }
@@ -1881,7 +1890,7 @@ Notification::GetPermission(nsIGlobalObject* aGlobal, ErrorResult& aRv)
     MOZ_ASSERT(worker);
     RefPtr<GetPermissionRunnable> r =
       new GetPermissionRunnable(worker);
-    r->Dispatch(aRv);
+    r->Dispatch(Terminating, aRv);
     if (aRv.Failed()) {
       return NotificationPermission::Denied;
     }
@@ -2484,7 +2493,7 @@ NotificationWorkerHolder::Notify(Status aStatus)
     RefPtr<CloseNotificationRunnable> r =
       new CloseNotificationRunnable(kungFuDeathGrip);
     ErrorResult rv;
-    r->Dispatch(rv);
+    r->Dispatch(Killing, rv);
     // XXXbz I'm told throwing and returning false from here is pointless (and
     // also that doing sync stuff from here is really weird), so I guess we just
     // suppress the exception on rv, if any.
@@ -2558,6 +2567,12 @@ public:
     }
 
     RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+    if (!swm) {
+      // browser shutdown began
+      mRv = NS_ERROR_FAILURE;
+      return true;
+    }
+
     RefPtr<ServiceWorkerRegistrationInfo> registration =
       swm->GetRegistration(principal, mScope);
 
@@ -2621,7 +2636,7 @@ Notification::ShowPersistentNotification(JSContext* aCx,
     worker->AssertIsOnWorkerThread();
     RefPtr<CheckLoadRunnable> loadChecker =
       new CheckLoadRunnable(worker, NS_ConvertUTF16toUTF8(aScope));
-    loadChecker->Dispatch(aRv);
+    loadChecker->Dispatch(Terminating, aRv);
     if (aRv.Failed()) {
       return nullptr;
     }
@@ -2760,4 +2775,3 @@ Notification::Observe(nsISupports* aSubject, const char* aTopic,
 
 } // namespace dom
 } // namespace mozilla
-

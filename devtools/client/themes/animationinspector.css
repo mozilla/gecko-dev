@@ -188,7 +188,7 @@ body {
 }
 
 #timeline-rate select.devtools-button {
-  -moz-appearance: none;
+  -moz-appearance: none; appearance: none;
   text-align: center;
   font-family: inherit;
   color: var(--theme-body-color);
@@ -375,7 +375,7 @@ body {
 
 .animation-timeline .animation .name {
   position: absolute;
-  color: var(--theme-selection-color3);
+  color: var(--theme-content-color3);
   top: 0px;
   left: 0px;
   height: 100%;
@@ -395,10 +395,6 @@ body {
   text-overflow: ellipsis;
   background-color: rgba(255, 255, 255, 0.7);
   max-width: 50%;
-}
-
-.animation-timeline .fast-track .name div {
-  width: calc(100% - var(--fast-track-icon-width));
 }
 
 .animation-timeline .fast-track .name::after {

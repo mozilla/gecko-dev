@@ -20,11 +20,11 @@ public:
 
   virtual void DeallocateDeviceData() override {}
 
-  virtual void SetCompositor(Compositor* aCompositor) override;
-
-  virtual Compositor* GetCompositor() override;
+  virtual void SetTextureSourceProvider(TextureSourceProvider* aProvider) override;
 
   virtual bool Lock() override;
+
+  virtual void Unlock() override;
 
   virtual gfx::SurfaceFormat GetFormat() const override;
 

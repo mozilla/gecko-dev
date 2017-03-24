@@ -80,9 +80,11 @@ LookupCacheV4::Init()
 
 nsresult
 LookupCacheV4::Has(const Completion& aCompletion,
-                   bool* aHas, bool* aComplete)
+                   bool* aHas, uint32_t* aMatchLength,
+                   bool* aFromCache)
 {
-  *aHas = false;
+  *aHas = *aFromCache = false;
+  *aMatchLength = 0;
 
   uint32_t length = 0;
   nsDependentCSubstring fullhash;
@@ -92,20 +94,42 @@ LookupCacheV4::Has(const Completion& aCompletion,
   NS_ENSURE_SUCCESS(rv, rv);
 
   *aHas = length >= PREFIX_SIZE;
-  *aComplete = length == COMPLETE_SIZE;
+  *aMatchLength = length;
 
   if (LOG_ENABLED()) {
     uint32_t prefix = aCompletion.ToUint32();
     LOG(("Probe in V4 %s: %X, found %d, complete %d", mTableName.get(),
-          prefix, *aHas, *aComplete));
+          prefix, *aHas, length == COMPLETE_SIZE));
   }
 
+  // TODO : Bug 1311935 - Implement v4 caching
+
   return NS_OK;
+}
+
+void
+LookupCacheV4::IsHashEntryConfirmed(const Completion& aEntry,
+                                    const TableFreshnessMap& aTableFreshness,
+                                    uint32_t aFreshnessGuarantee,
+                                    bool* aConfirmed)
+{
+  // TODO : Bug 1311935 - Implement v4 caching
+  *aConfirmed = true;
+}
+
+bool
+LookupCacheV4::IsEmpty()
+{
+  bool isEmpty;
+  mVLPrefixSet->IsEmpty(&isEmpty);
+  return isEmpty;
 }
 
 nsresult
 LookupCacheV4::Build(PrefixStringMap& aPrefixMap)
 {
+  Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_VLPS_CONSTRUCT_TIME> timer;
+
   return mVLPrefixSet->SetPrefixes(aPrefixMap);
 }
 
@@ -113,6 +137,12 @@ nsresult
 LookupCacheV4::GetPrefixes(PrefixStringMap& aPrefixMap)
 {
   return mVLPrefixSet->GetPrefixes(aPrefixMap);
+}
+
+nsresult
+LookupCacheV4::GetFixedLengthPrefixes(FallibleTArray<uint32_t>& aPrefixes)
+{
+  return mVLPrefixSet->GetFixedLengthPrefixes(aPrefixes);
 }
 
 nsresult
@@ -231,9 +261,7 @@ LookupCacheV4::ApplyUpdate(TableUpdateV4* aTableUpdate,
     if (!isOldMapEmpty && !isAddMapEmpty) {
       if (smallestOldPrefix == smallestAddPrefix) {
         LOG(("Add prefix should not exist in the original prefix set."));
-        Telemetry::Accumulate(Telemetry::URLCLASSIFIER_UPDATE_ERROR_TYPE,
-                              DUPLICATE_PREFIX);
-        return NS_ERROR_FAILURE;
+        return NS_ERROR_UC_UPDATE_DUPLICATE_PREFIX;
       }
 
       // Compare the smallest string in old prefix set and add prefix set,
@@ -274,35 +302,28 @@ LookupCacheV4::ApplyUpdate(TableUpdateV4* aTableUpdate,
   // the number of original prefix plus add prefix.
   if (index <= 0) {
     LOG(("There are still prefixes remaining after reaching maximum runs."));
-    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_UPDATE_ERROR_TYPE,
-                          INFINITE_LOOP);
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_UC_UPDATE_INFINITE_LOOP;
   }
 
   if (removalIndex < removalArray.Length()) {
     LOG(("There are still prefixes to remove after exhausting the old PrefixSet."));
-    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_UPDATE_ERROR_TYPE,
-                          WRONG_REMOVAL_INDICES);
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_UC_UPDATE_WRONG_REMOVAL_INDICES;
   }
 
   nsAutoCString checksum;
   crypto->Finish(false, checksum);
   if (aTableUpdate->Checksum().IsEmpty()) {
     LOG(("Update checksum missing."));
-    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_UPDATE_ERROR_TYPE,
-                          MISSING_CHECKSUM);
+    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_UPDATE_ERROR, mProvider,
+        NS_ERROR_GET_CODE(NS_ERROR_UC_UPDATE_MISSING_CHECKSUM));
 
     // Generate our own checksum to tableUpdate to ensure there is always
     // checksum in .metadata
     std::string stdChecksum(checksum.BeginReading(), checksum.Length());
     aTableUpdate->NewChecksum(stdChecksum);
-
   } else if (aTableUpdate->Checksum() != checksum){
     LOG(("Checksum mismatch after applying partial update"));
-    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_UPDATE_ERROR_TYPE,
-                          CHECKSUM_MISMATCH);
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_UC_UPDATE_CHECKSUM_MISMATCH;
   }
 
   return NS_OK;
@@ -447,6 +468,9 @@ nsresult
 LookupCacheV4::WriteMetadata(TableUpdateV4* aTableUpdate)
 {
   NS_ENSURE_ARG_POINTER(aTableUpdate);
+  if (nsUrlClassifierDBService::ShutdownHasStarted()) {
+    return NS_ERROR_ABORT;
+  }
 
   nsCOMPtr<nsIFile> metaFile;
   nsresult rv = mStoreDirectory->Clone(getter_AddRefs(metaFile));

@@ -9,6 +9,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Sprintf.h"
+#include "mozilla/ThreadLocal.h"
 
 #include "nsCache.h"
 #include "nsDiskCache.h"
@@ -53,7 +54,7 @@
 
 using namespace mozilla;
 using namespace mozilla::storage;
-using mozilla::NeckoOriginAttributes;
+using mozilla::OriginAttributes;
 
 static const char OFFLINE_CACHE_DEVICE_ID[] = { "offline" };
 
@@ -115,13 +116,13 @@ class EvictionObserver
                    nsOfflineCacheEvictionFunction *evictionFunction)
     : mDB(db), mEvictionFunction(evictionFunction)
     {
+      mEvictionFunction->Init();
       mDB->ExecuteSimpleSQL(
           NS_LITERAL_CSTRING("CREATE TEMP TRIGGER cache_on_delete BEFORE DELETE"
                              " ON moz_cache FOR EACH ROW BEGIN SELECT"
                              " cache_eviction_observer("
                              "  OLD.ClientID, OLD.key, OLD.generation);"
                              " END;"));
-      mEvictionFunction->Reset();
     }
 
     ~EvictionObserver()
@@ -187,6 +188,13 @@ GetCacheDataFile(nsIFile *cacheDir, const char *key,
   return file->AppendNative(nsDependentCString(leaf));
 }
 
+namespace appcachedetail {
+
+typedef nsCOMArray<nsIFile> FileArray;
+static MOZ_THREAD_LOCAL(FileArray*) tlsEvictionItems;
+
+} // appcachedetail
+
 NS_IMETHODIMP
 nsOfflineCacheEvictionFunction::OnFunctionCall(mozIStorageValueArray *values, nsIVariant **_retval)
 {
@@ -218,14 +226,46 @@ nsOfflineCacheEvictionFunction::OnFunctionCall(mozIStorageValueArray *values, ns
                         generation, file);
   if (NS_FAILED(rv))
   {
-    LOG(("GetCacheDataFile [key=%s generation=%d] failed [rv=%x]!\n",
-         key, generation, rv));
+    LOG(("GetCacheDataFile [key=%s generation=%d] failed [rv=%" PRIx32 "]!\n",
+         key, generation, static_cast<uint32_t>(rv)));
     return rv;
   }
 
-  mItems.AppendObject(file);
+  appcachedetail::FileArray* items = appcachedetail::tlsEvictionItems.get();
+  MOZ_ASSERT(items);
+  if (items) {
+    items->AppendObject(file);
+  }
 
   return NS_OK;
+}
+
+nsOfflineCacheEvictionFunction::nsOfflineCacheEvictionFunction(nsOfflineCacheDevice * device)
+  : mDevice(device)
+{
+  mTLSInited = appcachedetail::tlsEvictionItems.init();
+}
+
+void nsOfflineCacheEvictionFunction::Init()
+{
+  if (mTLSInited) {
+    appcachedetail::tlsEvictionItems.set(new appcachedetail::FileArray());
+  }
+}
+
+void nsOfflineCacheEvictionFunction::Reset()
+{
+  if (!mTLSInited) {
+    return;
+  }
+
+  appcachedetail::FileArray* items = appcachedetail::tlsEvictionItems.get();
+  if (!items) {
+    return;
+  }
+
+  appcachedetail::tlsEvictionItems.set(nullptr);
+  delete items;
 }
 
 void
@@ -233,17 +273,27 @@ nsOfflineCacheEvictionFunction::Apply()
 {
   LOG(("nsOfflineCacheEvictionFunction::Apply\n"));
 
-  for (int32_t i = 0; i < mItems.Count(); i++) {
+  if (!mTLSInited) {
+    return;
+  }
+
+  appcachedetail::FileArray* pitems = appcachedetail::tlsEvictionItems.get();
+  if (!pitems) {
+    return;
+  }
+
+  appcachedetail::FileArray items;
+  items.SwapElements(*pitems);
+
+  for (int32_t i = 0; i < items.Count(); i++) {
     if (MOZ_LOG_TEST(gCacheLog, LogLevel::Debug)) {
       nsAutoCString path;
-      mItems[i]->GetNativePath(path);
+      items[i]->GetNativePath(path);
       LOG(("  removing %s\n", path.get()));
     }
 
-    mItems[i]->Remove(false);
+    items[i]->Remove(false);
   }
-
-  Reset();
 }
 
 class nsOfflineCacheDiscardCache : public Runnable
@@ -1413,7 +1463,7 @@ nsOfflineCacheDevice::Shutdown()
   if (NS_FAILED(rv))
     NS_WARNING("Failed to clean up namespaces.");
 
-  mEvictionFunction = 0;
+  mEvictionFunction = nullptr;
 
   mStatement_CacheSize = nullptr;
   mStatement_ApplicationCacheSize = nullptr;
@@ -1506,7 +1556,7 @@ nsOfflineCacheDevice::FindEntry(nsCString *fullKey, bool *collision)
   rec.lastModified   = statement->AsInt64(5);
   rec.expirationTime = statement->AsInt64(6);
 
-  LOG(("entry: [%u %d %d %d %lld %lld %lld]\n",
+  LOG(("entry: [%u %d %d %d %" PRId64 " %" PRId64 " %" PRId64 "]\n",
         rec.metaDataLen,
         rec.generation,
         rec.dataSize,
@@ -2327,7 +2377,7 @@ nsOfflineCacheDevice::CreateApplicationCache(const nsACString &group,
 
   // Include the timestamp to guarantee uniqueness across runs, and
   // the gNextTemporaryClientID for uniqueness within a second.
-  clientID.Append(nsPrintfCString("|%016lld|%d",
+  clientID.Append(nsPrintfCString("|%016" PRId64 "|%d",
                                   now / PR_USEC_PER_SEC,
                                   gNextTemporaryClientID++));
 
@@ -2444,7 +2494,7 @@ nsOfflineCacheDevice::Evict(nsILoadContextInfo *aInfo)
 
   mozilla::OriginAttributes const *oa = aInfo->OriginAttributesPtr();
 
-  if (oa->mAppId == NECKO_NO_APP_ID && oa->mInIsolatedMozBrowser == false) {
+  if (oa->mInIsolatedMozBrowser == false) {
     nsCOMPtr<nsICacheService> serv = do_GetService(kCacheServiceCID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2523,7 +2573,7 @@ OriginMatch::OnFunctionCall(mozIStorageValueArray* aFunctionArguments, nsIVarian
 
   nsDependentCSubstring suffix(groupId.BeginReading() + hash, groupId.Length() - hash);
 
-  mozilla::NeckoOriginAttributes oa;
+  mozilla::OriginAttributes oa;
   bool ok = oa.PopulateFromSuffix(suffix);
   NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
 

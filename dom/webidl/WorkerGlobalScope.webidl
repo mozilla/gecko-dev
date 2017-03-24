@@ -16,29 +16,17 @@
 interface WorkerGlobalScope : EventTarget {
   [Constant, Cached]
   readonly attribute WorkerGlobalScope self;
-
   readonly attribute WorkerLocation location;
+  readonly attribute WorkerNavigator navigator;
 
   [Throws]
-  void close();
+  void importScripts(DOMString... urls);
+
   attribute OnErrorEventHandler onerror;
 
   attribute EventHandler onoffline;
   attribute EventHandler ononline;
   // also has additional members in a partial interface
-};
-
-partial interface WorkerGlobalScope {
-  [Throws]
-  void importScripts(DOMString... urls);
-
-  readonly attribute WorkerNavigator navigator;
-};
-
-// https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#self-caches
-partial interface WorkerGlobalScope {
-[Throws, Func="mozilla::dom::cache::CacheStorage::PrefEnabled", SameObject]
-readonly attribute CacheStorage caches;
 };
 
 WorkerGlobalScope implements GlobalCrypto;

@@ -9,7 +9,7 @@ Cu.import("resource://gre/modules/Promise.jsm");
  */
 function isSubObjectOf(expectedObj, actualObj, name) {
   for (let prop in expectedObj) {
-    if (typeof expectedObj[prop] == 'function')
+    if (typeof expectedObj[prop] == "function")
       continue;
     if (expectedObj[prop] instanceof Object) {
       is(actualObj[prop].length, expectedObj[prop].length, name + "[" + prop + "]");
@@ -51,6 +51,20 @@ function promiseEvent(aTarget, aEventName, aPreventDefault) {
   return BrowserTestUtils.waitForEvent(aTarget, aEventName, false, cancelEvent);
 }
 
+/**
+ * Adds a new search engine to the search service and confirms it completes.
+ *
+ * @param {String} basename  The file to load that contains the search engine
+ *                           details.
+ * @param {Object} [options] Options for the test:
+ *   - {String} [iconURL]       The icon to use for the search engine.
+ *   - {Boolean} [setAsCurrent] Whether to set the new engine to be the
+ *                              current engine or not.
+ *   - {String} [testPath]      Used to override the current test path if this
+ *                              file is used from a different directory.
+ * @returns {Promise} The promise is resolved once the engine is added, or
+ *                    rejected if the addition failed.
+ */
 function promiseNewEngine(basename, options = {}) {
   return new Promise((resolve, reject) => {
     // Default the setAsCurrent option to true.
@@ -58,11 +72,11 @@ function promiseNewEngine(basename, options = {}) {
       options.setAsCurrent == undefined ? true : options.setAsCurrent;
     info("Waiting for engine to be added: " + basename);
     Services.search.init({
-      onInitComplete: function() {
-        let url = getRootDirectory(gTestPath) + basename;
+      onInitComplete() {
+        let url = getRootDirectory(options.testPath || gTestPath) + basename;
         let current = Services.search.currentEngine;
         Services.search.addEngine(url, null, options.iconURL || "", false, {
-          onSuccess: function (engine) {
+          onSuccess(engine) {
             info("Search engine added: " + basename);
             if (setAsCurrent) {
               Services.search.currentEngine = engine;
@@ -76,7 +90,7 @@ function promiseNewEngine(basename, options = {}) {
             });
             resolve(engine);
           },
-          onError: function (errCode) {
+          onError(errCode) {
             ok(false, "addEngine failed with error code " + errCode);
             reject();
           }
@@ -98,8 +112,7 @@ function promiseNewEngine(basename, options = {}) {
  * @resolves to the received event
  * @rejects if a valid load event is not received within a meaningful interval
  */
-function promiseTabLoadEvent(tab, url)
-{
+function promiseTabLoadEvent(tab, url) {
   info("Wait tab event: load");
 
   function handle(loadedUrl) {
@@ -112,8 +125,6 @@ function promiseTabLoadEvent(tab, url)
     return true;
   }
 
-  // Create two promises: one resolved from the content process when the page
-  // loads and one that is rejected if we take too long to load the url.
   let loaded = BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, handle);
 
   if (url)

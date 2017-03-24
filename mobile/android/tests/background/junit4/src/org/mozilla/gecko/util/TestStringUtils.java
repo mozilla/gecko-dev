@@ -58,6 +58,21 @@ public class TestStringUtils {
     }
 
     @Test
+    public void testStripScheme() {
+        assertEquals("mozilla.org", StringUtils.stripScheme("http://mozilla.org"));
+        assertEquals("mozilla.org", StringUtils.stripScheme("http://mozilla.org/"));
+        assertEquals("https://mozilla.org", StringUtils.stripScheme("https://mozilla.org"));
+        assertEquals("https://mozilla.org", StringUtils.stripScheme("https://mozilla.org/"));
+        assertEquals("mozilla.org", StringUtils.stripScheme("https://mozilla.org/", StringUtils.UrlFlags.STRIP_HTTPS));
+        assertEquals("mozilla.org", StringUtils.stripScheme("https://mozilla.org", StringUtils.UrlFlags.STRIP_HTTPS));
+        assertEquals("", StringUtils.stripScheme("http://"));
+        assertEquals("", StringUtils.stripScheme("https://", StringUtils.UrlFlags.STRIP_HTTPS));
+        // This edge case is not handled properly yet
+//        assertEquals(StringUtils.stripScheme("https://"), "");
+        assertEquals(null, StringUtils.stripScheme(null));
+    }
+
+    @Test
     public void testIsRTL() {
         assertFalse(StringUtils.isRTL("mozilla.org"));
         assertFalse(StringUtils.isRTL("something.عربي"));
@@ -103,5 +118,43 @@ public class TestStringUtils {
         assertEquals("hello world", StringUtils.join(" ", Arrays.asList("hello", "world")));
 
         assertEquals("m::o::z::i::l::l::a", StringUtils.join("::", Arrays.asList("m", "o", "z", "i", "l", "l", "a")));
+    }
+
+    @Test
+    public void testIsSearchQuery(){
+        boolean any = true;
+        // test trim
+        assertFalse(StringUtils.isSearchQuery("",false));
+        assertTrue(StringUtils.isSearchQuery("",true));
+
+        // test space
+        assertTrue(StringUtils.isSearchQuery(" apple pen ",any));
+        assertTrue(StringUtils.isSearchQuery("pineapple pen",any));
+        assertTrue(StringUtils.isSearchQuery(": :",any));
+        assertTrue(StringUtils.isSearchQuery(". .",any));
+        assertTrue(StringUtils.isSearchQuery("gcm site:stackoverflow.com",any));
+        assertTrue(StringUtils.isSearchQuery("/mnt/etc/resolv.conf does not exist",true));
+
+        // test colon
+        assertFalse(StringUtils.isSearchQuery(":",any));
+        assertFalse(StringUtils.isSearchQuery("site:stackoverflow.com",any));
+        assertFalse(StringUtils.isSearchQuery("http:mozilla.com",any));
+        assertFalse(StringUtils.isSearchQuery("http://mozilla.com",any));
+        assertFalse(StringUtils.isSearchQuery("http:/mozilla.com",any));
+
+        // test dot
+        assertFalse(StringUtils.isSearchQuery(".",any));
+        assertFalse(StringUtils.isSearchQuery("cd..",any));
+        assertFalse(StringUtils.isSearchQuery("cd...",any));
+        assertFalse(StringUtils.isSearchQuery("mozilla.com",any));
+
+
+        // test ambiguous
+        String ambiguous = "~!@#$%^&*()_+`34567890-=qwertyuiop[]\\QWERTYUIOP{}|asdfghjkl;'ASDFGHJKL:\"ZXCVBNM<>?zxcvbnm,./";
+        ambiguous = ambiguous.replace(" ","").replace(".","").replace(":","");
+        assertTrue(StringUtils.isSearchQuery(ambiguous,true));
+        assertFalse(StringUtils.isSearchQuery(ambiguous,false));
+
+
     }
 }

@@ -10,22 +10,26 @@ add_task(function* () {
   requestLongerTimeout(2);
 
   let { monitor } = yield initNetMonitor(INFINITE_GET_URL);
-  let win = monitor.panelWin;
-  let topNode = win.document.getElementById("requests-menu-contents");
-  let requestsContainer = topNode.getElementsByTagName("scrollbox")[0];
-  ok(!!requestsContainer, "Container element exists as expected.");
+  let { document, gStore, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/actions/index");
+
+  // Wait until the first request makes the empty notice disappear
+  yield waitForRequestListToAppear();
+
+  let requestsContainer = document.querySelector(".requests-list-contents");
+  ok(requestsContainer, "Container element exists as expected.");
 
   // (1) Check that the scroll position is maintained at the bottom
   // when the requests overflow the vertical size of the container.
   yield waitForRequestsToOverflowContainer();
   yield waitForScroll();
-  ok(scrolledToBottom(requestsContainer), "Scrolled to bottom on overflow.");
+  ok(true, "Scrolled to bottom on overflow.");
 
-  // (2) Now set the scroll position somewhere in the middle and check
+  // (2) Now set the scroll position to the first item and check
   // that additional requests do not change the scroll position.
-  let children = requestsContainer.childNodes;
-  let middleNode = children.item(children.length / 2);
-  middleNode.scrollIntoView();
+  let firstNode = requestsContainer.firstChild;
+  firstNode.scrollIntoView();
+  yield waitSomeTime();
   ok(!scrolledToBottom(requestsContainer), "Not scrolled to bottom.");
   // save for comparison later
   let scrollTop = requestsContainer.scrollTop;
@@ -39,22 +43,32 @@ add_task(function* () {
   ok(scrolledToBottom(requestsContainer), "Set scroll position to bottom.");
   yield waitForNetworkEvents(monitor, 8);
   yield waitForScroll();
-  ok(scrolledToBottom(requestsContainer), "Still scrolled to bottom.");
+  ok(true, "Still scrolled to bottom.");
 
   // (4) Now select an item in the list and check that additional requests
   // do not change the scroll position.
-  monitor.panelWin.NetMonitorView.RequestsMenu.selectedIndex = 0;
+  gStore.dispatch(Actions.selectRequestByIndex(0));
   yield waitForNetworkEvents(monitor, 8);
   yield waitSomeTime();
   is(requestsContainer.scrollTop, 0, "Did not scroll.");
 
   // Done: clean up.
-  yield teardown(monitor);
+  return teardown(monitor);
+
+  function waitForRequestListToAppear() {
+    info("Waiting until the empty notice disappears and is replaced with the list");
+    return waitUntil(() => !!document.querySelector(".requests-list-contents"));
+  }
 
   function* waitForRequestsToOverflowContainer() {
+    info("Waiting for enough requests to overflow the container");
     while (true) {
+      info("Waiting for one network request");
       yield waitForNetworkEvents(monitor, 1);
+      console.log(requestsContainer.scrollHeight);
+      console.log(requestsContainer.clientHeight);
       if (requestsContainer.scrollHeight > requestsContainer.clientHeight) {
+        info("The list is long enough, returning");
         return;
       }
     }
@@ -70,6 +84,7 @@ add_task(function* () {
   }
 
   function waitForScroll() {
-    return monitor._view.RequestsMenu.widget.once("scroll-to-bottom");
+    info("Waiting for the list to scroll to bottom");
+    return waitUntil(() => scrolledToBottom(requestsContainer));
   }
 });

@@ -11,7 +11,6 @@
 
 #include "plarena.h"
 #include "prio.h"
-#include "prprf.h"
 #include "prlock.h"
 #include "nsCOMPtr.h"
 #include "nsTHashtable.h"
@@ -113,8 +112,7 @@ BaseStringEnumerator::GetNext(nsISupports** aResult)
     return NS_ERROR_FAILURE;
   }
 
-  nsSupportsDependentCString* str =
-    new nsSupportsDependentCString(mArray[mSimpleCurItem++]);
+  auto* str = new nsSupportsDependentCString(mArray[mSimpleCurItem++]);
   if (!str) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -173,7 +171,7 @@ public:
 EntryEnumerator*
 EntryEnumerator::Create(nsTHashtable<CategoryLeaf>& aTable)
 {
-  EntryEnumerator* enumObj = new EntryEnumerator();
+  auto* enumObj = new EntryEnumerator();
   if (!enumObj) {
     return nullptr;
   }
@@ -207,9 +205,7 @@ CategoryNode::Create(PLArenaPool* aArena)
   return new (aArena) CategoryNode();
 }
 
-CategoryNode::~CategoryNode()
-{
-}
+CategoryNode::~CategoryNode() = default;
 
 void*
 CategoryNode::operator new(size_t aSize, PLArenaPool* aArena)
@@ -337,7 +333,7 @@ CategoryEnumerator*
 CategoryEnumerator::Create(nsClassHashtable<nsDepCharHashKey, CategoryNode>&
                            aTable)
 {
-  CategoryEnumerator* enumObj = new CategoryEnumerator();
+  auto* enumObj = new CategoryEnumerator();
   if (!enumObj) {
     return nullptr;
   }
@@ -485,7 +481,8 @@ public:
   CategoryNotificationRunnable(nsISupports* aSubject,
                                const char* aTopic,
                                const char* aData)
-    : mSubject(aSubject)
+    : Runnable("CategoryNotificationRunnable")
+    , mSubject(aSubject)
     , mTopic(aTopic)
     , mData(aData)
   {

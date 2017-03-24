@@ -312,9 +312,9 @@ Wrapper::New(JSContext* cx, JSObject* obj, const Wrapper* handler,
 }
 
 JSObject*
-Wrapper::Renew(JSContext* cx, JSObject* existing, JSObject* obj, const Wrapper* handler)
+Wrapper::Renew(JSObject* existing, JSObject* obj, const Wrapper* handler)
 {
-    existing->as<ProxyObject>().renew(cx, handler, ObjectValue(*obj));
+    existing->as<ProxyObject>().renew(handler, ObjectValue(*obj));
     return existing;
 }
 
@@ -327,6 +327,14 @@ Wrapper::wrapperHandler(JSObject* wrapper)
 
 JSObject*
 Wrapper::wrappedObject(JSObject* wrapper)
+{
+    JSObject* target = wrappedObjectMaybeGray(wrapper);
+    MOZ_ASSERT(JS::ObjectIsNotGray(target));
+    return target;
+}
+
+JSObject*
+Wrapper::wrappedObjectMaybeGray(JSObject* wrapper)
 {
     MOZ_ASSERT(wrapper->is<WrapperObject>());
     return wrapper->as<ProxyObject>().target();
@@ -343,7 +351,7 @@ js::UncheckedUnwrap(JSObject* wrapped, bool stopAtWindowProxy, unsigned* flagsp)
             break;
         }
         flags |= Wrapper::wrapperHandler(wrapped)->flags();
-        wrapped = wrapped->as<ProxyObject>().private_().toObjectOrNull();
+        wrapped = wrapped->as<ProxyObject>().target();
 
         // This can be called from Wrapper::weakmapKeyDelegate() on a wrapper
         // whose referent has been moved while it is still unmarked.
@@ -379,6 +387,12 @@ js::UnwrapOneChecked(JSObject* obj, bool stopAtWindowProxy)
     return handler->hasSecurityPolicy() ? nullptr : Wrapper::wrappedObject(obj);
 }
 
+void
+js::ReportAccessDenied(JSContext* cx)
+{
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_OBJECT_ACCESS_DENIED);
+}
+
 const char Wrapper::family = 0;
 const Wrapper Wrapper::singleton((unsigned)0);
 const Wrapper Wrapper::singletonWithPrototype((unsigned)0, true);
@@ -396,7 +410,7 @@ js::TransparentObjectWrapper(JSContext* cx, HandleObject existing, HandleObject 
 
 ErrorCopier::~ErrorCopier()
 {
-    JSContext* cx = ac->context()->asJSContext();
+    JSContext* cx = ac->context();
 
     // The provenance of Debugger.DebuggeeWouldRun is the topmost locking
     // debugger compartment; it should not be copied around.

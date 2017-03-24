@@ -22,6 +22,7 @@ namespace dom {
 class Promise;
 class WorkletGlobalScope;
 class WorkletFetchHandler;
+enum class CallerType : uint32_t;
 
 class Worklet final : public nsISupports
                     , public nsWrapperCache
@@ -30,7 +31,13 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Worklet)
 
-  Worklet(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal);
+  enum WorkletType {
+    eAudioWorklet,
+    ePaintWorklet,
+  };
+
+  Worklet(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal,
+          WorkletType aWorkletType);
 
   nsPIDOMWindowInner* GetParentObject() const
   {
@@ -41,7 +48,8 @@ public:
   WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   already_AddRefed<Promise>
-  Import(const nsAString& aModuleURL, ErrorResult& aRv);
+  Import(const nsAString& aModuleURL, CallerType aCallerType,
+         ErrorResult& aRv);
 
   WorkletGlobalScope*
   GetOrCreateGlobalScope(JSContext* aCx);
@@ -57,6 +65,8 @@ private:
 
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
   nsCOMPtr<nsIPrincipal> mPrincipal;
+
+  WorkletType mWorkletType;
 
   RefPtr<WorkletGlobalScope> mScope;
   nsRefPtrHashtable<nsCStringHashKey, WorkletFetchHandler> mImportHandlers;

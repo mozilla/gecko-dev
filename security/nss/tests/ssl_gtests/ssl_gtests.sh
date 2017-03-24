@@ -50,13 +50,14 @@ make_cert() {
     p384) type_args='-q secp384r1';type=ec ;;
     p521) type_args='-q secp521r1';type=ec ;;
     rsa_ca) type_args='-g 1024';trust='CT,CT,CT';ca=y;type=rsa ;;
+    rsa_chain) type_args='-g 1024';sign='-c rsa_ca';type=rsa;;
     ecdh_rsa) type_args='-q nistp256';sign='-c rsa_ca';type=ec ;;
   esac
   shift 2
   counter=$(($counter + 1))
   certscript $@ | ${BINDIR}/certutil -S \
     -z ${R_NOISE_FILE} -d "${PROFILEDIR}" \
-    -n $name -s "CN=$name" -t ${trust:-C,C,C} ${sign:--x} -m $counter \
+    -n $name -s "CN=$name" -t ${trust:-,,} ${sign:--x} -m $counter \
     -w -2 -v 120 -k $type $type_args -Z SHA256 -1 -2
   html_msg $? 0 "create certificate: $@"
 }
@@ -85,6 +86,7 @@ ssl_gtest_certs() {
   make_cert ecdsa521 p521 sign
   make_cert ecdh_ecdsa p256 kex
   make_cert rsa_ca rsa_ca ca
+  make_cert rsa_chain rsa_chain sign
   make_cert ecdh_rsa ecdh_rsa kex
   make_cert dsa dsa sign
 }
@@ -125,23 +127,98 @@ ssl_gtest_start()
   fi
 
   SSLGTESTREPORT="${SSLGTESTDIR}/report.xml"
-  PARSED_REPORT="${SSLGTESTDIR}/report.parsed"
-  echo "executing ssl_gtest"
-  ${BINDIR}/ssl_gtest -d "${SSLGTESTDIR}" --gtest_output=xml:"${SSLGTESTREPORT}" \
-                                          --gtest_filter="${GTESTFILTER-*}"
-  html_msg $? 0 "ssl_gtest run successfully"
-  echo "executing sed to parse the xml report"
-  sed -f ${COMMON}/parsegtestreport.sed "${SSLGTESTREPORT}" > "${PARSED_REPORT}"
-  echo "processing the parsed report"
-  cat "${PARSED_REPORT}" | while read result name; do
-    if [ "$result" = "notrun" ]; then
-      echo "$name" SKIPPED
-    elif [ "$result" = "run" ]; then
-      html_passed_ignore_core "$name"
-    else
+
+  local nshards=1
+  local prefix=""
+  local postfix=""
+
+  export -f parallel_fallback
+
+  # Determine the number of chunks.
+  if [ -n "$GTESTFILTER" ]; then
+    echo "DEBUG: Not parallelizing ssl_gtests because \$GTESTFILTER is set"
+  elif type parallel 2>/dev/null; then
+    nshards=$(parallel --number-of-cores || 1)
+  fi
+
+  if [ "$nshards" != 1 ]; then
+    local indices=$(for ((i=0; i<$nshards; i++)); do echo $i; done)
+    prefix="parallel -j$nshards --line-buffer --halt soon,fail=1"
+    postfix="\&\& exit 0 \|\| exit 1 ::: $indices"
+  fi
+
+  echo "DEBUG: ssl_gtests will be divided into $nshards chunk(s)"
+
+  # Run tests.
+  ${prefix:-parallel_fallback} \
+    GTEST_SHARD_INDEX={} \
+      GTEST_TOTAL_SHARDS=$nshards \
+        DYLD_LIBRARY_PATH="${DIST}/${OBJDIR}/lib" \
+          ${BINDIR}/ssl_gtest -d "${SSLGTESTDIR}" \
+            --gtest_output=xml:"${SSLGTESTREPORT}.{}" \
+            --gtest_filter="${GTESTFILTER-*}" \
+            $postfix
+
+  html_msg $? 0 "ssl_gtests ran successfully"
+
+  # Parse XML report(s).
+  if type xmllint &>/dev/null; then
+    echo "DEBUG: Using xmllint to parse GTest XML report(s)"
+    parse_report
+  else
+    echo "DEBUG: Falling back to legacy XML report parsing using only sed"
+    parse_report_legacy
+  fi
+}
+
+# Helper function used when 'parallel' isn't available.
+parallel_fallback()
+{
+  eval "${@//\{\}/0}"
+}
+
+parse_report()
+{
+  # Check XML reports for normal test runs and failures.
+  local successes=$(parse_report_xpath "//testcase[@status='run'][count(*)=0]")
+  local failures=$(parse_report_xpath "//failure/..")
+
+  # Print all tests that succeeded.
+  while read result name; do
+    html_passed_ignore_core "$name"
+  done <<< "$successes"
+
+  # Print failing tests.
+  if [ -n "$failures" ]; then
+    printf "\nFAILURES:\n=========\n"
+
+    while read result name; do
       html_failed_ignore_core "$name"
+    done <<< "$failures"
+
+    printf "\n"
+  fi
+}
+
+parse_report_xpath()
+{
+  # Query the XML report with the given XPath pattern.
+  xmllint --xpath "$1" "${SSLGTESTREPORT}".* 2>/dev/null | \
+    # Insert newlines to help sed.
+    sed $'s/<testcase/\\\n<testcase/g' | \
+    # Use sed to parse the report.
+    sed -f "${COMMON}/parsegtestreport.sed"
+}
+
+# This legacy report parser can't actually detect failures. It always relied
+# on the binary's exit code. Print the tests we ran to keep the old behavior.
+parse_report_legacy()
+{
+  while read result name && [ -n "$name" ]; do
+    if [ "$result" = "run" ]; then
+      html_passed_ignore_core "$name"
     fi
-  done
+  done <<< "$(sed -f "${COMMON}/parsegtestreport.sed" "${SSLGTESTREPORT}".*)"
 }
 
 ssl_gtest_cleanup()

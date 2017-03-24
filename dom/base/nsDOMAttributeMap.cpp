@@ -65,14 +65,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDOMAttributeMap)
   for (auto iter = tmp->mAttributeCache.Iter(); !iter.Done(); iter.Next()) {
     cb.NoteXPCOMChild(static_cast<nsINode*>(iter.Data().get()));
   }
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContent)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(nsDOMAttributeMap)
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsDOMAttributeMap)
-  if (tmp->IsBlack()) {
+  if (tmp->HasKnownLiveWrapper()) {
     if (tmp->mContent) {
       // The map owns the element so we can mark it when the
       // map itself is certainly alive.
@@ -87,11 +86,11 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsDOMAttributeMap)
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsDOMAttributeMap)
-  return tmp->IsBlackAndDoesNotNeedTracing(tmp);
+  return tmp->HasKnownLiveWrapperAndDoesNotNeedTracing(tmp);
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsDOMAttributeMap)
-  return tmp->IsBlack();
+  return tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 // QueryInterface implementation for nsDOMAttributeMap
@@ -320,8 +319,9 @@ nsDOMAttributeMap::SetNamedItemNS(Attr& aAttr, ErrorResult& aError)
   rv = mContent->SetAttr(ni->NamespaceID(), ni->NameAtom(),
                          ni->GetPrefixAtom(), value, true);
   if (NS_FAILED(rv)) {
-    aError.Throw(rv);
     DropAttribute(ni->NamespaceID(), ni->NameAtom());
+    aError.Throw(rv);
+    return nullptr;
   }
 
   return oldAttr.forget();

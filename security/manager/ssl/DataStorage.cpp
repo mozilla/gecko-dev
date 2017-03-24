@@ -6,6 +6,7 @@
 
 #include "DataStorage.h"
 
+#include "mozilla/Assertions.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/PContent.h"
 #include "mozilla/dom/ContentChild.h"
@@ -16,12 +17,13 @@
 #include "mozilla/Unused.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
+#include "nsIMemoryReporter.h"
 #include "nsIObserverService.h"
 #include "nsITimer.h"
 #include "nsNetUtil.h"
+#include "nsPrintfCString.h"
 #include "nsStreamUtils.h"
 #include "nsThreadUtils.h"
-#include "prprf.h"
 
 // NB: Read DataStorage.h first.
 
@@ -36,8 +38,36 @@ static const int64_t sOneDayInMicroseconds = int64_t(24 * 60 * 60) *
 
 namespace mozilla {
 
-NS_IMPL_ISUPPORTS(DataStorage,
-                  nsIObserver)
+class DataStorageMemoryReporter final : public nsIMemoryReporter
+{
+  MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf)
+  ~DataStorageMemoryReporter() = default;
+
+public:
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
+                            nsISupports* aData, bool aAnonymize) final
+  {
+    nsTArray<nsString> fileNames;
+    DataStorage::GetAllFileNames(fileNames);
+    for (const auto& file: fileNames) {
+      RefPtr<DataStorage> ds = DataStorage::Get(file);
+      size_t amount = ds->SizeOfIncludingThis(MallocSizeOf);
+      nsPrintfCString path("explicit/data-storage/%s",
+                           NS_ConvertUTF16toUTF8(file).get());
+      Unused << aHandleReport->Callback(EmptyCString(), path, KIND_HEAP,
+        UNITS_BYTES, amount,
+        NS_LITERAL_CSTRING("Memory used by PSM data storage cache."),
+        aData);
+    }
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS(DataStorageMemoryReporter, nsIMemoryReporter)
+
+NS_IMPL_ISUPPORTS(DataStorage, nsIObserver)
 
 StaticAutoPtr<DataStorage::DataStorages> DataStorage::sDataStorages;
 
@@ -86,12 +116,51 @@ DataStorage::GetIfExists(const nsString& aFilename)
   return storage.forget();
 }
 
+// static
+void
+DataStorage::GetAllFileNames(nsTArray<nsString>& aItems)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!sDataStorages) {
+    return;
+  }
+  for (auto iter = sDataStorages->Iter(); !iter.Done(); iter.Next()) {
+    aItems.AppendElement(iter.Key());
+  }
+}
+
+// static
+void
+DataStorage::SetCachedStorageEntries(
+  const InfallibleTArray<mozilla::dom::DataStorageEntry>& aEntries)
+{
+  MOZ_ASSERT(XRE_IsContentProcess());
+
+  for (auto& entry : aEntries) {
+    RefPtr<DataStorage> storage = DataStorage::Get(entry.filename());
+    bool dataWillPersist = false;
+    storage->Init(dataWillPersist, &entry.items());
+  }
+}
+
+size_t
+DataStorage::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+  size_t sizeOfExcludingThis =
+    mPersistentDataTable.ShallowSizeOfExcludingThis(aMallocSizeOf) +
+    mTemporaryDataTable.ShallowSizeOfExcludingThis(aMallocSizeOf) +
+    mPrivateDataTable.ShallowSizeOfExcludingThis(aMallocSizeOf) +
+    mFilename.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+  return aMallocSizeOf(this) + sizeOfExcludingThis;
+}
+
 nsresult
-DataStorage::Init(bool& aDataWillPersist)
+DataStorage::Init(bool& aDataWillPersist,
+                  const InfallibleTArray<mozilla::dom::DataStorageItem>* aItems)
 {
   // Don't access the observer service or preferences off the main thread.
   if (!NS_IsMainThread()) {
-    NS_NOTREACHED("DataStorage::Init called off main thread");
+    MOZ_ASSERT_UNREACHABLE("DataStorage::Init called off main thread");
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
@@ -104,8 +173,20 @@ DataStorage::Init(bool& aDataWillPersist)
 
   mInitCalled = true;
 
+  static bool memoryReporterRegistered = false;
+  if (!memoryReporterRegistered) {
+    nsresult rv =
+      RegisterStrongMemoryReporter(new DataStorageMemoryReporter());
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+    memoryReporterRegistered = true;
+  }
+
   nsresult rv;
   if (XRE_IsParentProcess()) {
+    MOZ_ASSERT(!aItems);
+
     rv = NS_NewNamedThread("DataStorage", getter_AddRefs(mWorkerThread));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
@@ -116,13 +197,13 @@ DataStorage::Init(bool& aDataWillPersist)
       return rv;
     }
   } else {
-    // In the child process, we ask the parent process for the data.
+    // In the child process, we use the data passed to us by the parent process
+    // to initialize.
     MOZ_ASSERT(XRE_IsContentProcess());
+    MOZ_ASSERT(aItems);
+
     aDataWillPersist = false;
-    InfallibleTArray<DataStorageItem> items;
-    dom::ContentChild::GetSingleton()->
-        SendReadDataStorageArray(mFilename, &items);
-    for (auto& item : items) {
+    for (auto& item : *aItems) {
       Entry entry;
       entry.mValue = item.value();
       rv = PutInternal(item.key(), entry, item.type(), lock);
@@ -423,6 +504,8 @@ DataStorage::AsyncReadData(bool& aHaveProfileDir,
 void
 DataStorage::WaitForReady()
 {
+  MOZ_DIAGNOSTIC_ASSERT(mInitCalled, "Waiting before Init() has been called?");
+
   MonitorAutoLock readyLock(mReadyMonitor);
   while (!mReady) {
     nsresult rv = readyLock.Wait();
@@ -812,7 +895,7 @@ DataStorage::NotifyObservers(const char* aTopic)
 {
   // Don't access the observer service off the main thread.
   if (!NS_IsMainThread()) {
-    NS_NOTREACHED("DataStorage::NotifyObservers called off main thread");
+    MOZ_ASSERT_UNREACHABLE("DataStorage::NotifyObservers called off main thread");
     return;
   }
 
@@ -852,12 +935,12 @@ DataStorage::ShutdownTimer()
 //------------------------------------------------------------
 
 NS_IMETHODIMP
-DataStorage::Observe(nsISupports* aSubject, const char* aTopic,
-                     const char16_t* aData)
+DataStorage::Observe(nsISupports* /*aSubject*/, const char* aTopic,
+                     const char16_t* /*aData*/)
 {
   // Don't access preferences off the main thread.
   if (!NS_IsMainThread()) {
-    NS_NOTREACHED("DataStorage::Observe called off main thread");
+    MOZ_ASSERT_UNREACHABLE("DataStorage::Observe called off main thread");
     return NS_ERROR_NOT_SAME_THREAD;
   }
 

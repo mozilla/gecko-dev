@@ -69,10 +69,12 @@ enum class TextureFlags : uint32_t {
   // This flag is only used in the parent process.
   INVALID_COMPOSITOR = 1 << 12,
   // The texture was created by converting from YCBCR to RGB
-  RGB_FROM_YCBCR = 1 << 13,
+  RGB_FROM_YCBCR     = 1 << 13,
+  // The texture is used for snapshot.
+  SNAPSHOT           = 1 << 14,
 
   // OR union of all valid bits
-  ALL_BITS           = (1 << 14) - 1,
+  ALL_BITS           = (1 << 15) - 1,
   // the default flags
   DEFAULT = NO_FLAGS
 };
@@ -168,6 +170,7 @@ struct TextureFactoryIdentifier
   LayersBackend mParentBackend;
   GeckoProcessType mParentProcessType;
   int32_t mMaxTextureSize;
+  bool mCompositorUseANGLE;
   bool mSupportsTextureBlitting;
   bool mSupportsPartialUploads;
   bool mSupportsComponentAlpha;
@@ -176,6 +179,7 @@ struct TextureFactoryIdentifier
   explicit TextureFactoryIdentifier(LayersBackend aLayersBackend = LayersBackend::LAYERS_NONE,
                                     GeckoProcessType aParentProcessType = GeckoProcessType_Default,
                                     int32_t aMaxTextureSize = 4096,
+                                    bool aCompositorUseANGLE = false,
                                     bool aSupportsTextureBlitting = false,
                                     bool aSupportsPartialUploads = false,
                                     bool aSupportsComponentAlpha = true,
@@ -183,6 +187,7 @@ struct TextureFactoryIdentifier
     : mParentBackend(aLayersBackend)
     , mParentProcessType(aParentProcessType)
     , mMaxTextureSize(aMaxTextureSize)
+    , mCompositorUseANGLE(aCompositorUseANGLE)
     , mSupportsTextureBlitting(aSupportsTextureBlitting)
     , mSupportsPartialUploads(aSupportsPartialUploads)
     , mSupportsComponentAlpha(aSupportsComponentAlpha)

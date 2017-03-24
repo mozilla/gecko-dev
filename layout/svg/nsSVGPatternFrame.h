@@ -15,11 +15,11 @@
 
 class nsIFrame;
 class nsSVGLength2;
-class nsSVGPathGeometryFrame;
 class nsSVGViewBox;
 
 namespace mozilla {
 class SVGAnimatedPreserveAspectRatio;
+class SVGGeometryFrame;
 class nsSVGAnimatedTransformList;
 } // namespace mozilla
 
@@ -81,9 +81,7 @@ public:
 
 protected:
   // Internal methods for handling referenced patterns
-  class AutoPatternReferencer;
   nsSVGPatternFrame* GetReferencedPattern();
-  nsSVGPatternFrame* GetReferencedPatternIfNotInUse();
 
   // Accessors to lookup pattern attributes
   uint16_t GetEnumValue(uint32_t aIndex, nsIContent *aDefault);
@@ -142,7 +140,7 @@ private:
   // this is a *temporary* reference to the frame of the element currently
   // referencing our pattern.  This must be temporary because different
   // referencing frames will all reference this one frame
-  nsSVGPathGeometryFrame           *mSource;
+  mozilla::SVGGeometryFrame        *mSource;
   nsAutoPtr<gfxMatrix>              mCTM;
 
 protected:

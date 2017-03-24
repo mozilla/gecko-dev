@@ -109,6 +109,14 @@
 @BINPATH@/gtk2/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
 #endif
 
+; We don't have a complete view of which dlls to expect when doing an artifact
+; build because we haven't run all of configure, so we trust what's in
+; dist/bin, because everything there was extracted from our original build's
+; package.
+#if defined(MOZ_ARTIFACT_BUILDS) && defined(XP_WIN)
+@BINPATH@/*.dll
+#endif
+
 [browser]
 ; [Base Browser Files]
 #ifndef XP_UNIX
@@ -139,6 +147,13 @@
 #ifdef XP_UNIX
 #ifndef XP_MACOSX
 @RESPATH@/run-mozilla.sh
+#endif
+#endif
+#ifdef XP_WIN
+#ifdef _AMD64_
+@BINPATH@/@DLL_PREFIX@qipcap64@DLL_SUFFIX@
+#else
+@BINPATH@/@DLL_PREFIX@qipcap@DLL_SUFFIX@
 #endif
 #endif
 
@@ -177,12 +192,12 @@
 @RESPATH@/components/content_webrtc.xpt
 #endif
 @RESPATH@/components/content_xslt.xpt
-@RESPATH@/components/cookie.xpt
 @RESPATH@/components/directory.xpt
 @RESPATH@/components/docshell.xpt
 @RESPATH@/components/dom.xpt
-@RESPATH@/components/dom_apps.xpt
 @RESPATH@/components/dom_base.xpt
+@RESPATH@/components/dom_bindings.xpt
+@RESPATH@/components/dom_file.xpt
 @RESPATH@/components/dom_system.xpt
 @RESPATH@/components/dom_canvas.xpt
 @RESPATH@/components/dom_core.xpt
@@ -200,8 +215,6 @@
 @RESPATH@/components/dom_quota.xpt
 @RESPATH@/components/dom_range.xpt
 @RESPATH@/components/dom_security.xpt
-@RESPATH@/components/dom_settings.xpt
-@RESPATH@/components/dom_permissionsettings.xpt
 @RESPATH@/components/dom_sidebar.xpt
 @RESPATH@/components/dom_storage.xpt
 @RESPATH@/components/dom_stylesheets.xpt
@@ -217,7 +230,6 @@
 @RESPATH@/components/dom_presentation.xpt
 @RESPATH@/components/downloads.xpt
 @RESPATH@/components/editor.xpt
-@RESPATH@/components/embed_base.xpt
 @RESPATH@/components/extensions.xpt
 @RESPATH@/components/exthandler.xpt
 @RESPATH@/components/exthelper.xpt
@@ -226,11 +238,9 @@
 #ifdef MOZ_GTK
 @RESPATH@/components/filepicker.xpt
 #endif
-@RESPATH@/components/find.xpt
 @RESPATH@/components/gfx.xpt
 @RESPATH@/components/html5.xpt
 @RESPATH@/components/htmlparser.xpt
-@RESPATH@/components/identity.xpt
 @RESPATH@/components/imglib2.xpt
 @RESPATH@/components/inspector.xpt
 @RESPATH@/components/intl.xpt
@@ -246,7 +256,7 @@
 @RESPATH@/components/layout_xul.xpt
 @RESPATH@/components/locale.xpt
 @RESPATH@/components/lwbrk.xpt
-#ifdef MOZ_ENABLE_PROFILER_SPS
+#ifdef MOZ_GECKO_PROFILER
 @RESPATH@/components/memory_profiler.xpt
 #endif
 @RESPATH@/browser/components/migration.xpt
@@ -283,7 +293,7 @@
 @RESPATH@/components/plugin.xpt
 @RESPATH@/components/pref.xpt
 @RESPATH@/components/prefetch.xpt
-#ifdef MOZ_ENABLE_PROFILER_SPS
+#ifdef MOZ_GECKO_PROFILER
 @RESPATH@/components/profiler.xpt
 #endif
 @RESPATH@/components/rdf.xpt
@@ -321,6 +331,7 @@
 #ifdef XP_MACOSX
 @RESPATH@/components/widget_cocoa.xpt
 #endif
+@RESPATH@/components/windowcreator.xpt
 @RESPATH@/components/windowds.xpt
 @RESPATH@/components/windowwatcher.xpt
 @RESPATH@/components/xpcom_base.xpt
@@ -342,8 +353,6 @@
 @RESPATH@/components/ConsoleAPIStorage.js
 @RESPATH@/components/BrowserElementParent.manifest
 @RESPATH@/components/BrowserElementParent.js
-@RESPATH@/components/BrowserElementProxy.manifest
-@RESPATH@/components/BrowserElementProxy.js
 @RESPATH@/components/FeedProcessor.manifest
 @RESPATH@/components/FeedProcessor.js
 @RESPATH@/components/WellKnownOpportunisticUtils.js
@@ -402,11 +411,12 @@
 @RESPATH@/components/NetworkGeolocationProvider.manifest
 @RESPATH@/components/NetworkGeolocationProvider.js
 @RESPATH@/components/extensions.manifest
+@RESPATH@/components/EditorUtils.manifest
+@RESPATH@/components/EditorUtils.js
 @RESPATH@/components/addonManager.js
 @RESPATH@/components/amContentHandler.js
 @RESPATH@/components/amInstallTrigger.js
 @RESPATH@/components/amWebAPI.js
-@RESPATH@/components/amWebInstallListener.js
 @RESPATH@/components/nsBlocklistService.js
 @RESPATH@/components/nsBlocklistServiceContent.js
 #ifdef MOZ_UPDATER
@@ -441,26 +451,27 @@
 @RESPATH@/components/PlacesCategoriesStarter.js
 @RESPATH@/components/ColorAnalyzer.js
 @RESPATH@/components/PageThumbsProtocol.js
+@RESPATH@/components/mozProtocolHandler.js
+@RESPATH@/components/mozProtocolHandler.manifest
 @RESPATH@/components/nsDefaultCLH.manifest
 @RESPATH@/components/nsDefaultCLH.js
 @RESPATH@/components/nsContentPrefService.manifest
 @RESPATH@/components/nsContentPrefService.js
 @RESPATH@/components/nsContentDispatchChooser.manifest
 @RESPATH@/components/nsContentDispatchChooser.js
+@RESPATH@/components/nsHandlerService-json.manifest
+@RESPATH@/components/nsHandlerService-json.js
 @RESPATH@/components/nsHandlerService.manifest
 @RESPATH@/components/nsHandlerService.js
 @RESPATH@/components/nsWebHandlerApp.manifest
 @RESPATH@/components/nsWebHandlerApp.js
 @RESPATH@/components/satchel.manifest
 @RESPATH@/components/nsFormAutoComplete.js
-@RESPATH@/components/nsFormHistory.js
 @RESPATH@/components/FormHistoryStartup.js
 @RESPATH@/components/nsInputListAutoComplete.js
 @RESPATH@/components/formautofill.manifest
 @RESPATH@/components/FormAutofillContentService.js
 @RESPATH@/components/FormAutofillStartup.js
-@RESPATH@/components/CSSUnprefixingService.js
-@RESPATH@/components/CSSUnprefixingService.manifest
 @RESPATH@/components/contentAreaDropListener.manifest
 @RESPATH@/components/contentAreaDropListener.js
 @RESPATH@/browser/components/BrowserProfileMigrators.manifest
@@ -497,17 +508,11 @@
 @RESPATH@/components/XULStore.manifest
 @RESPATH@/components/messageWakeupService.js
 @RESPATH@/components/messageWakeupService.manifest
-@RESPATH@/components/SettingsManager.js
-@RESPATH@/components/SettingsManager.manifest
-@RESPATH@/components/AppsService.js
-@RESPATH@/components/AppsService.manifest
 @RESPATH@/components/recording-cmdline.js
 @RESPATH@/components/recording-cmdline.manifest
 @RESPATH@/components/htmlMenuBuilder.js
 @RESPATH@/components/htmlMenuBuilder.manifest
 
-@RESPATH@/components/PermissionSettings.js
-@RESPATH@/components/PermissionSettings.manifest
 @RESPATH@/components/NotificationStorage.js
 @RESPATH@/components/NotificationStorage.manifest
 @RESPATH@/components/Push.js
@@ -516,6 +521,9 @@
 
 @RESPATH@/components/remotebrowserutils.manifest
 @RESPATH@/components/RemoteWebNavigation.js
+
+@RESPATH@/components/ProcessSelector.js
+@RESPATH@/components/ProcessSelector.manifest
 
 @RESPATH@/components/SlowScriptDebug.manifest
 @RESPATH@/components/SlowScriptDebug.js
@@ -527,8 +535,8 @@
 
 @RESPATH@/chrome/marionette@JAREXT@
 @RESPATH@/chrome/marionette.manifest
-@RESPATH@/components/MarionetteComponents.manifest
-@RESPATH@/components/marionettecomponent.js
+@RESPATH@/components/marionette.manifest
+@RESPATH@/components/marionette.js
 
 #ifdef MOZ_WEBSPEECH
 @RESPATH@/components/dom_webspeechsynth.xpt
@@ -544,11 +552,12 @@
 @RESPATH@/components/PresentationDataChannelSessionTransport.js
 @RESPATH@/components/PresentationDataChannelSessionTransport.manifest
 
-; InputMethod API
-@RESPATH@/components/MozKeyboard.js
-@RESPATH@/components/InputMethod.manifest
+#ifdef ENABLE_INTL_API
+@RESPATH@/components/mozIntl.manifest
+@RESPATH@/components/mozIntl.js
+#endif
 
-#ifdef MOZ_DEBUG
+#if defined(ENABLE_TESTS) && defined(MOZ_DEBUG)
 @RESPATH@/components/TestInterfaceJS.js
 @RESPATH@/components/TestInterfaceJS.manifest
 @RESPATH@/components/TestInterfaceJSMaplike.js
@@ -586,10 +595,6 @@
 #ifdef MOZ_D3DCOMPILER_VISTA_DLL
 @BINPATH@/@MOZ_D3DCOMPILER_VISTA_DLL@
 #endif
-
-#ifdef MOZ_D3DCOMPILER_XP_DLL
-@BINPATH@/@MOZ_D3DCOMPILER_XP_DLL@
-#endif
 #endif # MOZ_ANGLE_RENDERER
 
 ; [Browser Chrome Files]
@@ -599,7 +604,6 @@
 @RESPATH@/browser/chrome/pdfjs.manifest
 @RESPATH@/browser/chrome/pdfjs/*
 @RESPATH@/browser/extensions/{972ce4c6-7e08-4474-a285-3208198ce6fd}/chrome.manifest
-@RESPATH@/browser/extensions/{972ce4c6-7e08-4474-a285-3208198ce6fd}/icon.png
 @RESPATH@/browser/extensions/{972ce4c6-7e08-4474-a285-3208198ce6fd}/install.rdf
 @RESPATH@/chrome/toolkit@JAREXT@
 @RESPATH@/chrome/toolkit.manifest
@@ -621,6 +625,7 @@
 @RESPATH@/browser/chrome/devtools@JAREXT@
 @RESPATH@/browser/chrome/devtools.manifest
 @RESPATH@/browser/@PREF_DIR@/devtools.js
+@RESPATH@/browser/@PREF_DIR@/debugger.js
 
 ; shell icons
 #ifdef XP_UNIX
@@ -641,6 +646,7 @@
 @RESPATH@/greprefs.js
 @RESPATH@/defaults/autoconfig/prefcalls.js
 @RESPATH@/browser/defaults/permissions
+@RESPATH@/browser/defaults/blocklists
 
 ; Warning: changing the path to channel-prefs.js can cause bugs (Bug 756325)
 ; Technically this is an app pref file, but we are keeping it in the original
@@ -728,16 +734,9 @@
 
 ; For process sandboxing
 #if defined(MOZ_SANDBOX)
-#if defined(XP_WIN)
-#if defined(WOW_HELPER)
-@BINPATH@/wow_helper.exe
-#endif
-#endif
-#endif
-
-#if defined(MOZ_SANDBOX)
 #if defined(XP_LINUX)
 @BINPATH@/@DLL_PREFIX@mozsandbox@DLL_SUFFIX@
+@RESPATH@/components/sandbox.xpt
 #endif
 #endif
 
@@ -776,6 +775,7 @@ bin/libfreebl_32int64_3.so
 #else
 @BINPATH@/crashreporter@BIN_SUFFIX@
 @RESPATH@/crashreporter.ini
+@BINPATH@/minidump-analyzer@BIN_SUFFIX@
 #ifdef XP_UNIX
 @RESPATH@/Throbber-small.gif
 #endif
@@ -785,6 +785,10 @@ bin/libfreebl_32int64_3.so
 @BINPATH@/breakpadinjector.dll
 #endif
 #endif
+
+; [ Ping Sender ]
+;
+@BINPATH@/pingsender@BIN_SUFFIX@
 
 @RESPATH@/components/dom_audiochannel.xpt
 
@@ -805,7 +809,7 @@ bin/libfreebl_32int64_3.so
 
 ; media
 @RESPATH@/gmp-clearkey/0.1/@DLL_PREFIX@clearkey@DLL_SUFFIX@
-@RESPATH@/gmp-clearkey/0.1/clearkey.info
+@RESPATH@/gmp-clearkey/0.1/manifest.json
 
 ; gfx
 #ifdef XP_WIN

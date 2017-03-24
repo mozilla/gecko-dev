@@ -20,6 +20,7 @@ namespace mozilla {
 namespace dom {
 
 class URLSearchParams;
+class USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString;
 
 class URLSearchParamsObserver : public nsISupports
 {
@@ -42,14 +43,6 @@ public:
   {
     DeleteAll();
   }
-
-  explicit URLParams(const URLParams& aOther)
-    : mParams(aOther.mParams)
-  {}
-
-  URLParams(const URLParams&& aOther)
-    : mParams(Move(aOther.mParams))
-  {}
 
   class ForEachIterator
   {
@@ -77,7 +70,7 @@ public:
 
   void Get(const nsAString& aName, nsString& aRetval);
 
-  void GetAll(const nsAString& aName, nsTArray<nsString >& aRetval);
+  void GetAll(const nsAString& aName, nsTArray<nsString>& aRetval);
 
   void Set(const nsAString& aName, const nsAString& aValue);
 
@@ -109,6 +102,8 @@ public:
     MOZ_ASSERT(aIndex < mParams.Length());
     return mParams[aIndex].mValue;
   }
+
+  nsresult Sort();
 
   bool
   ReadStructuredClone(JSStructuredCloneReader* aReader);
@@ -144,9 +139,6 @@ public:
   explicit URLSearchParams(nsISupports* aParent,
                            URLSearchParamsObserver* aObserver=nullptr);
 
-  URLSearchParams(nsISupports* aParent,
-                  const URLSearchParams& aOther);
-
   // WebIDL methods
   nsISupports* GetParentObject() const
   {
@@ -157,11 +149,8 @@ public:
   WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<URLSearchParams>
-  Constructor(const GlobalObject& aGlobal, const nsAString& aInit,
-              ErrorResult& aRv);
-
-  static already_AddRefed<URLSearchParams>
-  Constructor(const GlobalObject& aGlobal, URLSearchParams& aInit,
+  Constructor(const GlobalObject& aGlobal,
+              const USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString& aInit,
               ErrorResult& aRv);
 
   void ParseInput(const nsACString& aInput);
@@ -183,6 +172,8 @@ public:
   uint32_t GetIterableLength() const;
   const nsAString& GetKeyAtIndex(uint32_t aIndex) const;
   const nsAString& GetValueAtIndex(uint32_t aIndex) const;
+
+  void Sort(ErrorResult& aRv);
 
   void Stringify(nsString& aRetval) const
   {

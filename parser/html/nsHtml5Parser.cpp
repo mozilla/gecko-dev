@@ -35,15 +35,22 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsHtml5Parser)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 nsHtml5Parser::nsHtml5Parser()
-  : mFirstBuffer(new nsHtml5OwningUTF16Buffer((void*)nullptr))
+  : mLastWasCR(false)
+  , mDocWriteSpeculativeLastWasCR(false)
+  , mBlocked(0)
+  , mDocWriteSpeculatorActive(false)
+  , mInsertionPointPushLevel(0)
+  , mDocumentClosed(false)
+  , mInDocumentWrite(false)
+  , mFirstBuffer(new nsHtml5OwningUTF16Buffer((void*)nullptr))
   , mLastBuffer(mFirstBuffer)
   , mExecutor(new nsHtml5TreeOpExecutor())
   , mTreeBuilder(new nsHtml5TreeBuilder(mExecutor, nullptr))
   , mTokenizer(new nsHtml5Tokenizer(mTreeBuilder, false))
   , mRootContextLineNumber(1)
+  , mReturnToStreamParserPermitted(false)
 {
   mTokenizer->setInterner(&mAtomTable);
-  // There's a zeroing operator new for everything else
 }
 
 nsHtml5Parser::~nsHtml5Parser()
@@ -139,14 +146,19 @@ nsHtml5Parser::ContinueInterruptedParsing()
 NS_IMETHODIMP_(void)
 nsHtml5Parser::BlockParser()
 {
-  mBlocked = true;
+  mBlocked++;
 }
 
 NS_IMETHODIMP_(void)
 nsHtml5Parser::UnblockParser()
 {
-  mBlocked = false;
-  mExecutor->ContinueInterruptedParsingAsync();
+  MOZ_DIAGNOSTIC_ASSERT(mBlocked > 0);
+  if (MOZ_LIKELY(mBlocked > 0)) {
+    mBlocked--;
+  }
+  if (MOZ_LIKELY(mBlocked == 0)) {
+    mExecutor->ContinueInterruptedParsingAsync();
+  }
 }
 
 NS_IMETHODIMP_(void)

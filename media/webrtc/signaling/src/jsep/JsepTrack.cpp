@@ -52,7 +52,9 @@ JsepTrack::EnsureNoDuplicatePayloadTypes(
   for (JsepCodecDescription* codec : *codecs) {
     // We assume there are no dupes in negotiated codecs; unnegotiated codecs
     // need to change if there is a clash.
-    if (!codec->mEnabled) {
+    if (!codec->mEnabled ||
+        // We only support one datachannel per m-section
+        !codec->mName.compare("webrtc-datachannel")) {
       continue;
     }
 
@@ -261,6 +263,9 @@ JsepTrack::CreateEncodings(
     const std::vector<JsepCodecDescription*>& negotiatedCodecs,
     JsepTrackNegotiatedDetails* negotiatedDetails)
 {
+  negotiatedDetails->mTias = remote.GetBandwidth("TIAS");
+  // TODO add support for b=AS if TIAS is not set (bug 976521)
+
   std::vector<SdpRidAttributeList::Rid> rids;
   GetRids(remote, sdp::kRecv, &rids); // Get rids we will send
   NegotiateRids(rids, &mJsEncodeConstraints);
@@ -294,8 +299,6 @@ JsepTrack::CreateEncodings(
         encoding->mConstraints = jsConstraints.constraints;
       }
     }
-
-    encoding->UpdateMaxBitrate(remote);
   }
 }
 
@@ -387,7 +390,7 @@ JsepTrack::NegotiateCodecs(
       if (codec->mName != "red" && codec->mName != "ulpfec") {
         JsepVideoCodecDescription* videoCodec =
             static_cast<JsepVideoCodecDescription*>(codec);
-        videoCodec->EnableFec();
+        videoCodec->EnableFec(red->mDefaultPt, ulpfec->mDefaultPt);
       }
     }
   }

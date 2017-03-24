@@ -96,6 +96,15 @@
   color: var(--source-link-color);
 }
 
+.objectBox-failure {
+  color: var(--string-color);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 2px;
+  font-size: 0.8em;
+  padding: 0 2px;
+}
+
 /******************************************************************************/
 
 .objectLink-event,
@@ -171,4 +180,22 @@
 .theme-dark .caption,
 .theme-light .caption {
   font-weight: normal;
+}
+
+/******************************************************************************/
+/* Open DOMNode in inspector button */
+
+.open-inspector svg {
+  fill: rgb(215, 215, 215);
+  height: 16px;
+  width: 16px;
+  margin-left: .25em;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.objectBox-node:hover .open-inspector svg,
+.objectBox-textNode:hover .open-inspector svg,
+.open-inspector svg:hover {
+  fill: rgb(65, 175, 230);
 }

@@ -11,11 +11,13 @@ pub type ino64_t = u64;
 pub type off64_t = i64;
 pub type blkcnt64_t = i64;
 pub type rlim64_t = u64;
-pub type key_t = ::c_int;
 pub type shmatt_t = ::c_ulong;
 pub type mqd_t = ::c_int;
+pub type msgqnum_t = ::c_ulong;
+pub type msglen_t = ::c_ulong;
 pub type nfds_t = ::c_ulong;
 pub type nl_item = ::c_int;
+pub type idtype_t = ::c_uint;
 
 pub enum fpos64_t {} // TODO: fill this out with a struct
 
@@ -65,31 +67,33 @@ s! {
     }
 
     pub struct pthread_mutex_t {
-        #[cfg(any(target_arch = "mips", target_arch = "mipsel",
-                  target_arch = "arm", target_arch = "powerpc"))]
+        #[cfg(any(target_arch = "mips", target_arch = "arm",
+                  target_arch = "powerpc"))]
         __align: [::c_long; 0],
-        #[cfg(not(any(target_arch = "mips", target_arch = "mipsel",
-                      target_arch = "arm", target_arch = "powerpc")))]
+        #[cfg(not(any(target_arch = "mips", target_arch = "arm",
+                      target_arch = "powerpc")))]
         __align: [::c_longlong; 0],
         size: [u8; __SIZEOF_PTHREAD_MUTEX_T],
     }
 
     pub struct pthread_rwlock_t {
-        #[cfg(any(target_arch = "mips", target_arch = "mipsel",
-                  target_arch = "arm", target_arch = "powerpc"))]
+        #[cfg(any(target_arch = "mips", target_arch = "arm",
+                  target_arch = "powerpc"))]
         __align: [::c_long; 0],
-        #[cfg(not(any(target_arch = "mips", target_arch = "mipsel",
-                      target_arch = "arm", target_arch = "powerpc")))]
+        #[cfg(not(any(target_arch = "mips", target_arch = "arm",
+                      target_arch = "powerpc")))]
         __align: [::c_longlong; 0],
         size: [u8; __SIZEOF_PTHREAD_RWLOCK_T],
     }
 
     pub struct pthread_mutexattr_t {
         #[cfg(any(target_arch = "x86_64", target_arch = "powerpc64",
-                  target_arch = "mips64", target_arch = "s390x"))]
+                  target_arch = "mips64", target_arch = "s390x",
+                  target_arch = "sparc64"))]
         __align: [::c_int; 0],
         #[cfg(not(any(target_arch = "x86_64", target_arch = "powerpc64",
-                      target_arch = "mips64", target_arch = "s390x")))]
+                      target_arch = "mips64", target_arch = "s390x",
+                      target_arch = "sparc64")))]
         __align: [::c_long; 0],
         size: [u8; __SIZEOF_PTHREAD_MUTEXATTR_T],
     }
@@ -117,6 +121,18 @@ s! {
         pub pw_shell: *mut ::c_char,
     }
 
+    pub struct spwd {
+        pub sp_namp: *mut ::c_char,
+        pub sp_pwdp: *mut ::c_char,
+        pub sp_lstchg: ::c_long,
+        pub sp_min: ::c_long,
+        pub sp_max: ::c_long,
+        pub sp_warn: ::c_long,
+        pub sp_inact: ::c_long,
+        pub sp_expire: ::c_long,
+        pub sp_flag: ::c_ulong,
+    }
+
     pub struct statvfs {
         pub f_bsize: ::c_ulong,
         pub f_frsize: ::c_ulong,
@@ -126,9 +142,12 @@ s! {
         pub f_files: ::fsfilcnt_t,
         pub f_ffree: ::fsfilcnt_t,
         pub f_favail: ::fsfilcnt_t,
+        #[cfg(target_endian = "little")]
         pub f_fsid: ::c_ulong,
         #[cfg(target_pointer_width = "32")]
-        pub __f_unused: ::c_int,
+        __f_unused: ::c_int,
+        #[cfg(target_endian = "big")]
+        pub f_fsid: ::c_ulong,
         pub f_flag: ::c_ulong,
         pub f_namemax: ::c_ulong,
         __f_spare: [::c_int; 6],
@@ -190,6 +209,17 @@ s! {
         pub if_name: *mut ::c_char,
     }
 
+    // System V IPC
+    pub struct msginfo {
+        pub msgpool: ::c_int,
+        pub msgmap: ::c_int,
+        pub msgmax: ::c_int,
+        pub msgmnb: ::c_int,
+        pub msgmni: ::c_int,
+        pub msgssz: ::c_int,
+        pub msgtql: ::c_int,
+        pub msgseg: ::c_ushort,
+    }
 }
 
 pub const ABDAY_1: ::nl_item = 0x20000;
@@ -251,6 +281,9 @@ pub const ERA_T_FMT: ::nl_item = 0x20031;
 pub const CODESET: ::nl_item = 14;
 
 pub const CRNCYSTR: ::nl_item = 0x4000F;
+
+pub const RUSAGE_THREAD: ::c_int = 1;
+pub const RUSAGE_CHILDREN: ::c_int = -1;
 
 pub const RADIXCHAR: ::nl_item = 0x10000;
 pub const THOUSEP: ::nl_item = 0x10001;
@@ -430,6 +463,9 @@ pub const SCHED_RR: ::c_int = 2;
 pub const SCHED_BATCH: ::c_int = 3;
 pub const SCHED_IDLE: ::c_int = 5;
 
+// System V IPC
+pub const IPC_PRIVATE: ::key_t = 0;
+
 pub const IPC_CREAT: ::c_int = 0o1000;
 pub const IPC_EXCL: ::c_int = 0o2000;
 pub const IPC_NOWAIT: ::c_int = 0o4000;
@@ -438,6 +474,12 @@ pub const IPC_RMID: ::c_int = 0;
 pub const IPC_SET: ::c_int = 1;
 pub const IPC_STAT: ::c_int = 2;
 pub const IPC_INFO: ::c_int = 3;
+pub const MSG_STAT: ::c_int = 11;
+pub const MSG_INFO: ::c_int = 12;
+
+pub const MSG_NOERROR: ::c_int = 0o10000;
+pub const MSG_EXCEPT: ::c_int = 0o20000;
+pub const MSG_COPY: ::c_int = 0o40000;
 
 pub const SHM_R: ::c_int = 0o400;
 pub const SHM_W: ::c_int = 0o200;
@@ -459,13 +501,7 @@ pub const EPOLLONESHOT: ::c_int = 0x40000000;
 pub const QFMT_VFS_OLD: ::c_int = 1;
 pub const QFMT_VFS_V0: ::c_int = 2;
 
-pub const SFD_CLOEXEC: ::c_int = 0x080000;
-
 pub const EFD_SEMAPHORE: ::c_int = 0x1;
-
-pub const NCCS: usize = 32;
-
-pub const AF_NETLINK: ::c_int = 16;
 
 pub const LOG_NFACILITIES: ::c_int = 24;
 
@@ -479,9 +515,168 @@ pub const RB_POWER_OFF: ::c_int = 0x4321fedcu32 as i32;
 pub const RB_SW_SUSPEND: ::c_int = 0xd000fce2u32 as i32;
 pub const RB_KEXEC: ::c_int = 0x45584543u32 as i32;
 
+pub const AI_PASSIVE: ::c_int = 0x0001;
+pub const AI_CANONNAME: ::c_int = 0x0002;
+pub const AI_NUMERICHOST: ::c_int = 0x0004;
+pub const AI_V4MAPPED: ::c_int = 0x0008;
+pub const AI_ALL: ::c_int = 0x0010;
+pub const AI_ADDRCONFIG: ::c_int = 0x0020;
+
+pub const AI_NUMERICSERV: ::c_int = 0x0400;
+
+pub const EAI_BADFLAGS: ::c_int = -1;
+pub const EAI_NONAME: ::c_int = -2;
+pub const EAI_AGAIN: ::c_int = -3;
+pub const EAI_FAIL: ::c_int = -4;
+pub const EAI_FAMILY: ::c_int = -6;
+pub const EAI_SOCKTYPE: ::c_int = -7;
+pub const EAI_SERVICE: ::c_int = -8;
+pub const EAI_MEMORY: ::c_int = -10;
+pub const EAI_OVERFLOW: ::c_int = -12;
+
+pub const NI_NUMERICHOST: ::c_int = 1;
+pub const NI_NUMERICSERV: ::c_int = 2;
+pub const NI_NOFQDN: ::c_int = 4;
+pub const NI_NAMEREQD: ::c_int = 8;
+pub const NI_DGRAM: ::c_int = 16;
+
 pub const SYNC_FILE_RANGE_WAIT_BEFORE: ::c_uint = 1;
 pub const SYNC_FILE_RANGE_WRITE: ::c_uint = 2;
 pub const SYNC_FILE_RANGE_WAIT_AFTER: ::c_uint = 4;
+
+pub const EAI_SYSTEM: ::c_int = -11;
+
+pub const AIO_CANCELED: ::c_int = 0;
+pub const AIO_NOTCANCELED: ::c_int = 1;
+pub const AIO_ALLDONE: ::c_int = 2;
+pub const LIO_READ: ::c_int = 0;
+pub const LIO_WRITE: ::c_int = 1;
+pub const LIO_NOP: ::c_int = 2;
+pub const LIO_WAIT: ::c_int = 0;
+pub const LIO_NOWAIT: ::c_int = 1;
+
+pub const MREMAP_MAYMOVE: ::c_int = 1;
+pub const MREMAP_FIXED: ::c_int = 2;
+
+pub const PR_SET_PDEATHSIG: ::c_int = 1;
+pub const PR_GET_PDEATHSIG: ::c_int = 2;
+
+pub const PR_GET_DUMPABLE: ::c_int = 3;
+pub const PR_SET_DUMPABLE: ::c_int = 4;
+
+pub const PR_GET_UNALIGN: ::c_int = 5;
+pub const PR_SET_UNALIGN: ::c_int = 6;
+pub const PR_UNALIGN_NOPRINT: ::c_int = 1;
+pub const PR_UNALIGN_SIGBUS: ::c_int = 2;
+
+pub const PR_GET_KEEPCAPS: ::c_int = 7;
+pub const PR_SET_KEEPCAPS: ::c_int = 8;
+
+pub const PR_GET_FPEMU: ::c_int = 9;
+pub const PR_SET_FPEMU: ::c_int = 10;
+pub const PR_FPEMU_NOPRINT: ::c_int = 1;
+pub const PR_FPEMU_SIGFPE: ::c_int = 2;
+
+pub const PR_GET_FPEXC: ::c_int = 11;
+pub const PR_SET_FPEXC: ::c_int = 12;
+pub const PR_FP_EXC_SW_ENABLE: ::c_int = 0x80;
+pub const PR_FP_EXC_DIV: ::c_int = 0x010000;
+pub const PR_FP_EXC_OVF: ::c_int = 0x020000;
+pub const PR_FP_EXC_UND: ::c_int = 0x040000;
+pub const PR_FP_EXC_RES: ::c_int = 0x080000;
+pub const PR_FP_EXC_INV: ::c_int = 0x100000;
+pub const PR_FP_EXC_DISABLED: ::c_int = 0;
+pub const PR_FP_EXC_NONRECOV: ::c_int = 1;
+pub const PR_FP_EXC_ASYNC: ::c_int = 2;
+pub const PR_FP_EXC_PRECISE: ::c_int = 3;
+
+pub const PR_GET_TIMING: ::c_int = 13;
+pub const PR_SET_TIMING: ::c_int = 14;
+pub const PR_TIMING_STATISTICAL: ::c_int = 0;
+pub const PR_TIMING_TIMESTAMP: ::c_int = 1;
+
+pub const PR_SET_NAME: ::c_int = 15;
+pub const PR_GET_NAME: ::c_int = 16;
+
+pub const PR_GET_ENDIAN: ::c_int = 19;
+pub const PR_SET_ENDIAN: ::c_int = 20;
+pub const PR_ENDIAN_BIG: ::c_int = 0;
+pub const PR_ENDIAN_LITTLE: ::c_int = 1;
+pub const PR_ENDIAN_PPC_LITTLE: ::c_int = 2;
+
+pub const PR_GET_SECCOMP: ::c_int = 21;
+pub const PR_SET_SECCOMP: ::c_int = 22;
+
+pub const PR_CAPBSET_READ: ::c_int = 23;
+pub const PR_CAPBSET_DROP: ::c_int = 24;
+
+pub const PR_GET_TSC: ::c_int = 25;
+pub const PR_SET_TSC: ::c_int = 26;
+pub const PR_TSC_ENABLE: ::c_int = 1;
+pub const PR_TSC_SIGSEGV: ::c_int = 2;
+
+pub const PR_GET_SECUREBITS: ::c_int = 27;
+pub const PR_SET_SECUREBITS: ::c_int = 28;
+
+pub const PR_SET_TIMERSLACK: ::c_int = 29;
+pub const PR_GET_TIMERSLACK: ::c_int = 30;
+
+pub const PR_TASK_PERF_EVENTS_DISABLE: ::c_int = 31;
+pub const PR_TASK_PERF_EVENTS_ENABLE: ::c_int = 32;
+
+pub const PR_MCE_KILL: ::c_int = 33;
+pub const PR_MCE_KILL_CLEAR: ::c_int = 0;
+pub const PR_MCE_KILL_SET: ::c_int = 1;
+
+pub const PR_MCE_KILL_LATE: ::c_int = 0;
+pub const PR_MCE_KILL_EARLY: ::c_int = 1;
+pub const PR_MCE_KILL_DEFAULT: ::c_int = 2;
+
+pub const PR_MCE_KILL_GET: ::c_int = 34;
+
+pub const PR_SET_MM: ::c_int = 35;
+pub const PR_SET_MM_START_CODE: ::c_int = 1;
+pub const PR_SET_MM_END_CODE: ::c_int = 2;
+pub const PR_SET_MM_START_DATA: ::c_int = 3;
+pub const PR_SET_MM_END_DATA: ::c_int = 4;
+pub const PR_SET_MM_START_STACK: ::c_int = 5;
+pub const PR_SET_MM_START_BRK: ::c_int = 6;
+pub const PR_SET_MM_BRK: ::c_int = 7;
+pub const PR_SET_MM_ARG_START: ::c_int = 8;
+pub const PR_SET_MM_ARG_END: ::c_int = 9;
+pub const PR_SET_MM_ENV_START: ::c_int = 10;
+pub const PR_SET_MM_ENV_END: ::c_int = 11;
+pub const PR_SET_MM_AUXV: ::c_int = 12;
+pub const PR_SET_MM_EXE_FILE: ::c_int = 13;
+pub const PR_SET_MM_MAP: ::c_int = 14;
+pub const PR_SET_MM_MAP_SIZE: ::c_int = 15;
+
+pub const PR_SET_PTRACER: ::c_int = 0x59616d61;
+
+pub const PR_SET_CHILD_SUBREAPER: ::c_int = 36;
+pub const PR_GET_CHILD_SUBREAPER: ::c_int = 37;
+
+pub const PR_SET_NO_NEW_PRIVS: ::c_int = 38;
+pub const PR_GET_NO_NEW_PRIVS: ::c_int = 39;
+
+pub const PR_GET_TID_ADDRESS: ::c_int = 40;
+
+pub const PR_SET_THP_DISABLE: ::c_int = 41;
+pub const PR_GET_THP_DISABLE: ::c_int = 42;
+
+pub const PR_MPX_ENABLE_MANAGEMENT: ::c_int = 43;
+pub const PR_MPX_DISABLE_MANAGEMENT: ::c_int = 44;
+
+pub const PR_SET_FP_MODE: ::c_int = 45;
+pub const PR_GET_FP_MODE: ::c_int = 46;
+pub const PR_FP_MODE_FR: ::c_int = 1 << 0;
+pub const PR_FP_MODE_FRE: ::c_int = 1 << 1;
+
+pub const PR_CAP_AMBIENT: ::c_int = 47;
+pub const PR_CAP_AMBIENT_IS_SET: ::c_int = 1;
+pub const PR_CAP_AMBIENT_RAISE: ::c_int = 2;
+pub const PR_CAP_AMBIENT_LOWER: ::c_int = 3;
+pub const PR_CAP_AMBIENT_CLEAR_ALL: ::c_int = 4;
 
 f! {
     pub fn CPU_ZERO(cpuset: &mut cpu_set_t) -> () {
@@ -516,12 +711,30 @@ f! {
 }
 
 extern {
+    pub fn aio_read(aiocbp: *mut aiocb) -> ::c_int;
+    pub fn aio_write(aiocbp: *mut aiocb) -> ::c_int;
+    pub fn aio_fsync(op: ::c_int, aiocbp: *mut aiocb) -> ::c_int;
+    pub fn aio_error(aiocbp: *const aiocb) -> ::c_int;
+    pub fn aio_return(aiocbp: *mut aiocb) -> ::ssize_t;
+    pub fn aio_suspend(aiocb_list: *const *const aiocb, nitems: ::c_int,
+                       timeout: *const ::timespec) -> ::c_int;
+    pub fn aio_cancel(fd: ::c_int, aiocbp: *mut aiocb) -> ::c_int;
+    pub fn lio_listio(mode: ::c_int, aiocb_list: *const *mut aiocb,
+                      nitems: ::c_int, sevp: *mut ::sigevent) -> ::c_int;
+
     pub fn lutimes(file: *const ::c_char, times: *const ::timeval) -> ::c_int;
 
     pub fn setpwent();
     pub fn getpwent() -> *mut passwd;
+    pub fn setspent();
+    pub fn endspent();
+    pub fn getspent() -> *mut spwd;
+    pub fn getspnam(__name: *const ::c_char) -> *mut spwd;
+
     pub fn shm_open(name: *const c_char, oflag: ::c_int,
                     mode: mode_t) -> ::c_int;
+
+    // System V IPC
     pub fn shmget(key: ::key_t, size: ::size_t, shmflg: ::c_int) -> ::c_int;
     pub fn shmat(shmid: ::c_int,
                  shmaddr: *const ::c_void,
@@ -530,6 +743,14 @@ extern {
     pub fn shmctl(shmid: ::c_int,
                   cmd: ::c_int,
                   buf: *mut ::shmid_ds) -> ::c_int;
+    pub fn ftok(pathname: *const ::c_char, proj_id: ::c_int) -> ::key_t;
+    pub fn msgctl(msqid: ::c_int, cmd: ::c_int, buf: *mut msqid_ds) -> ::c_int;
+    pub fn msgget(key: ::key_t, msgflg: ::c_int) -> ::c_int;
+    pub fn msgrcv(msqid: ::c_int, msgp: *mut ::c_void, msgsz: ::size_t,
+                  msgtyp: ::c_long, msgflg: ::c_int) -> ::ssize_t;
+    pub fn msgsnd(msqid: ::c_int, msgp: *const ::c_void, msgsz: ::size_t,
+                  msgflg: ::c_int) -> ::c_int;
+
     pub fn mprotect(addr: *mut ::c_void, len: ::size_t, prot: ::c_int)
                     -> ::c_int;
     pub fn __errno_location() -> *mut ::c_int;
@@ -658,6 +879,10 @@ extern {
                              riovcnt: ::c_ulong,
                              flags: ::c_ulong) -> isize;
     pub fn reboot(how_to: ::c_int) -> ::c_int;
+    pub fn setfsgid(gid: ::gid_t) -> ::c_int;
+    pub fn setfsuid(uid: ::uid_t) -> ::c_int;
+    pub fn setresgid(rgid: ::gid_t, egid: ::gid_t, sgid: ::gid_t) -> ::c_int;
+    pub fn setresuid(ruid: ::uid_t, euid: ::uid_t, suid: ::uid_t) -> ::c_int;
 
     // Not available now on Android
     pub fn mkfifoat(dirfd: ::c_int, pathname: *const ::c_char,
@@ -666,22 +891,29 @@ extern {
     pub fn if_freenameindex(ptr: *mut if_nameindex);
     pub fn sync_file_range(fd: ::c_int, offset: ::off64_t,
                            nbytes: ::off64_t, flags: ::c_uint) -> ::c_int;
+    pub fn getifaddrs(ifap: *mut *mut ::ifaddrs) -> ::c_int;
+    pub fn freeifaddrs(ifa: *mut ::ifaddrs);
+
+    pub fn mremap(addr: *mut ::c_void,
+                  len: ::size_t,
+                  new_len: ::size_t,
+                  flags: ::c_int,
+                  ...) -> *mut ::c_void;
 }
 
 cfg_if! {
     if #[cfg(any(target_env = "musl",
+                 target_os = "fuchsia",
                  target_os = "emscripten"))] {
         mod musl;
         pub use self::musl::*;
-    } else if #[cfg(any(target_arch = "mips", target_arch = "mipsel"))] {
+    } else if #[cfg(any(target_arch = "mips",
+                        target_arch = "mips64"))] {
         mod mips;
         pub use self::mips::*;
     } else if #[cfg(any(target_arch = "s390x"))] {
         mod s390x;
         pub use self::s390x::*;
-    } else if #[cfg(any(target_arch = "mips64"))] {
-        mod mips64;
-        pub use self::mips64::*;
     } else {
         mod other;
         pub use self::other::*;

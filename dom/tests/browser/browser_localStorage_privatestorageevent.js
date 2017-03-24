@@ -1,18 +1,16 @@
 add_task(function *() {
   var privWin = OpenBrowserWindow({private: true});
   yield new privWin.Promise(resolve => {
-    privWin.addEventListener('load', function onLoad() {
-      privWin.removeEventListener('load', onLoad, false);
+    privWin.addEventListener('load', function() {
       resolve();
-    });
+    }, {once: true});
   });
 
   var pubWin = OpenBrowserWindow({private: false});
   yield new pubWin.Promise(resolve => {
-    pubWin.addEventListener('load', function onLoad() {
-      pubWin.removeEventListener('load', onLoad, false);
+    pubWin.addEventListener('load', function() {
       resolve();
-    });
+    }, {once: true});
   });
 
   var URL = "http://mochi.test:8888/browser/dom/tests/browser/page_privatestorageevent.html";

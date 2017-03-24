@@ -207,6 +207,21 @@ MacroAssembler::add64(Imm64 imm, Register64 dest)
     addPtr(ImmWord(imm.value), dest.reg);
 }
 
+CodeOffset
+MacroAssembler::add32ToPtrWithPatch(Register src, Register dest)
+{
+    if (src != dest)
+        movePtr(src, dest);
+    addqWithPatch(Imm32(0), dest);
+    return CodeOffset(currentOffset());
+}
+
+void
+MacroAssembler::patchAdd32ToPtr(CodeOffset offset, Imm32 imm)
+{
+    patchAddq(offset, imm.value);
+}
+
 void
 MacroAssembler::subPtr(Register src, Register dest)
 {
@@ -814,22 +829,6 @@ MacroAssembler::truncateDoubleToUInt64(Address src, Address dest, Register temp,
     storePtr(temp, dest);
 
     bind(&done);
-}
-
-// ========================================================================
-// wasm support
-
-template <class L>
-void
-MacroAssembler::wasmBoundsCheck(Condition cond, Register index, L label)
-{
-    MOZ_CRASH("x64 should never emit a bounds check");
-}
-
-void
-MacroAssembler::wasmPatchBoundsCheck(uint8_t* patchAt, uint32_t limit)
-{
-    MOZ_CRASH("x64 should never emit a bounds check");
 }
 
 //}}} check_macroassembler_style

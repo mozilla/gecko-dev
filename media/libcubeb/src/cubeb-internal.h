@@ -9,6 +9,7 @@
 
 #include "cubeb/cubeb.h"
 #include "cubeb_log.h"
+#include "cubeb_assert.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -28,12 +29,17 @@
 extern "C" {
 #endif
 
-/* Crash the caller.  */
-void cubeb_crash() CLANG_ANALYZER_NORETURN;
-
 #if defined(__cplusplus)
 }
 #endif
+
+typedef struct {
+  char const * name;
+  unsigned int const channels;
+  cubeb_channel_layout const layout;
+} cubeb_layout_map;
+
+extern cubeb_layout_map const CUBEB_CHANNEL_LAYOUT_MAPS[CUBEB_LAYOUT_MAX];
 
 struct cubeb_ops {
   int (* init)(cubeb ** context, char const * context_name);
@@ -43,6 +49,7 @@ struct cubeb_ops {
                           cubeb_stream_params params,
                           uint32_t * latency_ms);
   int (* get_preferred_sample_rate)(cubeb * context, uint32_t * rate);
+  int (* get_preferred_channel_layout)(cubeb * context, cubeb_channel_layout * layout);
   int (* enumerate_devices)(cubeb * context, cubeb_device_type type,
                             cubeb_device_collection ** collection);
   void (* destroy)(cubeb * context);
@@ -75,12 +82,5 @@ struct cubeb_ops {
                                              cubeb_device_collection_changed_callback callback,
                                              void * user_ptr);
 };
-
-#define XASSERT(expr) do {                                                     \
-    if (!(expr)) {                                                             \
-      fprintf(stderr, "%s:%d - fatal error: %s\n", __FILE__, __LINE__, #expr); \
-      cubeb_crash();                                                           \
-    }                                                                          \
-  } while (0)
 
 #endif /* CUBEB_INTERNAL_0eb56756_4e20_4404_a76d_42bf88cd15a5 */

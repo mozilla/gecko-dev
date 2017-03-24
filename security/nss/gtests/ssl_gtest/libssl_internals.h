@@ -11,6 +11,8 @@
 
 #include "prio.h"
 #include "seccomon.h"
+#include "ssl.h"
+#include "sslimpl.h"
 #include "sslt.h"
 
 SECStatus SSLInt_IncrementClientHandshakeVersion(PRFileDesc *fd);
@@ -22,6 +24,7 @@ SECStatus SSLInt_UpdateSSLv2ClientRandom(PRFileDesc *fd, uint8_t *rnd,
 PRBool SSLInt_ExtensionNegotiated(PRFileDesc *fd, PRUint16 ext);
 void SSLInt_ClearSessionTicketKey();
 PRInt32 SSLInt_CountTls13CipherSpecs(PRFileDesc *fd);
+void SSLInt_PrintTls13CipherSpecs(PRFileDesc *fd);
 void SSLInt_ForceTimerExpiry(PRFileDesc *fd);
 SECStatus SSLInt_SetMTU(PRFileDesc *fd, PRUint16 mtu);
 PRBool SSLInt_CheckSecretsDestroyed(PRFileDesc *fd);
@@ -36,5 +39,18 @@ SECStatus SSLInt_AdvanceWriteSeqNum(PRFileDesc *fd, PRUint64 to);
 SECStatus SSLInt_AdvanceReadSeqNum(PRFileDesc *fd, PRUint64 to);
 SECStatus SSLInt_AdvanceWriteSeqByAWindow(PRFileDesc *fd, PRInt32 extra);
 SSLKEAType SSLInt_GetKEAType(SSLNamedGroup group);
+
+SECStatus SSLInt_SetCipherSpecChangeFunc(PRFileDesc *fd,
+                                         sslCipherSpecChangedFunc func,
+                                         void *arg);
+PK11SymKey *SSLInt_CipherSpecToKey(PRBool isServer, ssl3CipherSpec *spec);
+SSLCipherAlgorithm SSLInt_CipherSpecToAlgorithm(PRBool isServer,
+                                                ssl3CipherSpec *spec);
+unsigned char *SSLInt_CipherSpecToIv(PRBool isServer, ssl3CipherSpec *spec);
+SECStatus SSLInt_EnableShortHeaders(PRFileDesc *fd);
+SECStatus SSLInt_UsingShortHeaders(PRFileDesc *fd, PRBool *result);
+void SSLInt_SetTicketLifetime(uint32_t lifetime);
+void SSLInt_SetMaxEarlyDataSize(uint32_t size);
+SECStatus SSLInt_SetSocketMaxEarlyDataSize(PRFileDesc *fd, uint32_t size);
 
 #endif  // ndef libssl_internals_h_

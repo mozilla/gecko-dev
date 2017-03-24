@@ -8,14 +8,14 @@
 function NavHistoryObserver() {
 }
 NavHistoryObserver.prototype = {
-  onBeginUpdateBatch: function() { },
-  onEndUpdateBatch: function() { },
-  onVisit: function() { },
-  onTitleChanged: function() { },
-  onDeleteURI: function() { },
-  onClearHistory: function() { },
-  onPageChanged: function() { },
-  onDeleteVisits: function() { },
+  onBeginUpdateBatch() { },
+  onEndUpdateBatch() { },
+  onVisit() { },
+  onTitleChanged() { },
+  onDeleteURI() { },
+  onClearHistory() { },
+  onPageChanged() { },
+  onDeleteVisits() { },
   QueryInterface: XPCOMUtils.generateQI([Ci.nsINavHistoryObserver])
 };
 
@@ -27,7 +27,7 @@ NavHistoryObserver.prototype = {
 function onNotify(callback) {
   return new Promise(resolve => {
     let obs = new NavHistoryObserver();
-    obs[callback.name] = function () {
+    obs[callback.name] = function() {
       PlacesUtils.history.removeObserver(this);
       callback.apply(this, arguments);
       resolve();
@@ -43,7 +43,7 @@ function* task_add_visit(uri, timestamp, transition) {
   uri = uri || NetUtil.newURI("http://firefox.com/");
   timestamp = timestamp || Date.now() * 1000;
   yield PlacesTestUtils.addVisits({
-    uri: uri,
+    uri,
     transition: transition || TRANSITION_TYPED,
     visitDate: timestamp
   });
@@ -151,7 +151,7 @@ add_task(function* test_onDeleteURI() {
   });
   let [testuri] = yield task_add_visit();
   let testguid = do_get_guid_for_uri(testuri);
-  PlacesUtils.bhistory.removePage(testuri);
+  yield PlacesUtils.history.remove(testuri);
   yield promiseNotify;
 });
 
@@ -172,7 +172,7 @@ add_task(function* test_onDeleteVisits() {
                                        PlacesUtils.bookmarks.DEFAULT_INDEX,
                                        "test");
   let testguid = do_get_guid_for_uri(testuri);
-  PlacesUtils.bhistory.removePage(testuri);
+  yield PlacesUtils.history.remove(testuri);
   yield promiseNotify;
 });
 
@@ -187,7 +187,7 @@ add_task(function* test_onTitleChanged() {
   let title = "test-title";
   yield PlacesTestUtils.addVisits({
     uri: testuri,
-    title: title
+    title
   });
   yield promiseNotify;
 });

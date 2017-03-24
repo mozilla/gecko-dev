@@ -22,10 +22,11 @@ class nsBaseWidget;
 
 
 namespace mozilla {
+class MemoryReportingProcess;
 namespace layers {
 class IAPZCTreeManager;
+class CompositorOptions;
 class CompositorSession;
-class ClientLayerManager;
 class CompositorUpdateObserver;
 class PCompositorBridgeChild;
 class PImageBridgeChild;
@@ -57,10 +58,11 @@ class GPUProcessManager final : public GPUProcessHost::Listener
 {
   friend class layers::RemoteCompositorSession;
 
-  typedef layers::ClientLayerManager ClientLayerManager;
+  typedef layers::CompositorOptions CompositorOptions;
   typedef layers::CompositorSession CompositorSession;
-  typedef layers::IAPZCTreeManager IAPZCTreeManager;
   typedef layers::CompositorUpdateObserver CompositorUpdateObserver;
+  typedef layers::IAPZCTreeManager IAPZCTreeManager;
+  typedef layers::LayerManager LayerManager;
   typedef layers::PCompositorBridgeChild PCompositorBridgeChild;
   typedef layers::PImageBridgeChild PImageBridgeChild;
   typedef layers::RemoteCompositorSession RemoteCompositorSession;
@@ -82,9 +84,9 @@ public:
 
   RefPtr<CompositorSession> CreateTopLevelCompositor(
     nsBaseWidget* aWidget,
-    ClientLayerManager* aLayerManager,
+    LayerManager* aLayerManager,
     CSSToLayoutDeviceScale aScale,
-    bool aUseAPZ,
+    const CompositorOptions& aOptions,
     bool aUseExternalSurfaceSize,
     const gfx::IntSize& aSurfaceSize);
 
@@ -92,9 +94,8 @@ public:
     base::ProcessId aOtherProcess,
     ipc::Endpoint<PCompositorBridgeChild>* aOutCompositor,
     ipc::Endpoint<PImageBridgeChild>* aOutImageBridge,
-    ipc::Endpoint<PVRManagerChild>* aOutVRBridge);
-  bool CreateContentVideoDecoderManager(base::ProcessId aOtherProcess,
-                                        ipc::Endpoint<dom::PVideoDecoderManagerChild>* aOutEndPoint);
+    ipc::Endpoint<PVRManagerChild>* aOutVRBridge,
+    ipc::Endpoint<dom::PVideoDecoderManagerChild>* aOutVideoManager);
 
   // This returns a reference to the APZCTreeManager to which
   // pan/zoom-related events can be sent.
@@ -121,6 +122,7 @@ public:
 
   void OnProcessLaunchComplete(GPUProcessHost* aHost) override;
   void OnProcessUnexpectedShutdown(GPUProcessHost* aHost) override;
+  void OnProcessDeviceReset(GPUProcessHost* aHost) override;
 
   // Notify the GPUProcessManager that a top-level PGPU protocol has been
   // terminated. This may be called from any thread.
@@ -139,6 +141,10 @@ public:
   // Returns -1 if there is no GPU process, or the platform pid for it.
   base::ProcessId GPUProcessPid();
 
+  // If a GPU process is present, create a MemoryReportingProcess object.
+  // Otherwise, return null.
+  RefPtr<MemoryReportingProcess> GetProcessMemoryReporter();
+
   // Returns access to the PGPU protocol if a GPU process is present.
   GPUChild* GetGPUChild() {
     return mGPUChild;
@@ -147,6 +153,14 @@ public:
   // Returns whether or not a GPU process was ever launched.
   bool AttemptedGPUProcess() const {
     return mNumProcessAttempts > 0;
+  }
+
+  // Returns the next compositor reset sequence number, a monotonic counter
+  // for when the compositing device resets. Since content processes are
+  // notified of resets through each individual tab, this allows content to
+  // only re-acquire devices once for each reset.
+  uint64_t GetNextDeviceResetSequenceNumber() {
+    return ++mNextResetSequenceNo;
   }
 
 private:
@@ -159,6 +173,8 @@ private:
                                 ipc::Endpoint<PImageBridgeChild>* aOutEndpoint);
   bool CreateContentVRManager(base::ProcessId aOtherProcess,
                               ipc::Endpoint<PVRManagerChild>* aOutEndpoint);
+  void CreateContentVideoDecoderManager(base::ProcessId aOtherProcess,
+                                        ipc::Endpoint<dom::PVideoDecoderManagerChild>* aOutEndPoint);
 
   // Called from RemoteCompositorSession. We track remote sessions so we can
   // notify their owning widgets that the session must be restarted.
@@ -175,18 +191,21 @@ private:
   void CleanShutdown();
   void DestroyProcess();
 
+  void HandleProcessLost();
+
   void EnsureVsyncIOThread();
   void ShutdownVsyncIOThread();
 
   void EnsureImageBridgeChild();
   void EnsureVRManager();
+  void EnsureUiCompositorController();
 
   RefPtr<CompositorSession> CreateRemoteSession(
     nsBaseWidget* aWidget,
-    ClientLayerManager* aLayerManager,
+    LayerManager* aLayerManager,
     const uint64_t& aRootLayerTreeId,
     CSSToLayoutDeviceScale aScale,
-    bool aUseAPZ,
+    const CompositorOptions& aOptions,
     bool aUseExternalSurfaceSize,
     const gfx::IntSize& aSurfaceSize);
 
@@ -210,10 +229,14 @@ private:
   ipc::TaskFactory<GPUProcessManager> mTaskFactory;
   RefPtr<VsyncIOThreadHolder> mVsyncIOThread;
   uint64_t mNextLayerTreeId;
+  uint64_t mNextResetSequenceNo;
   uint32_t mNumProcessAttempts;
 
   nsTArray<RefPtr<RemoteCompositorSession>> mRemoteSessions;
   nsTArray<GPUProcessListener*> mListeners;
+
+  uint32_t mDeviceResetCount;
+  TimeStamp mDeviceResetLastTime;
 
   // Fields that are associated with the current GPU process.
   GPUProcessHost* mProcess;

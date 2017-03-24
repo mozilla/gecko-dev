@@ -14,7 +14,6 @@ from .base import (Protocol,
                    RefTestImplementation,
                    TestharnessExecutor,
                    strip_server)
-from .. import webdriver
 from ..testrunner import Stop
 
 webdriver = None

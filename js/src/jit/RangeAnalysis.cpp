@@ -15,7 +15,7 @@
 #include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"
 #include "js/Conversions.h"
-#include "vm/TypedArrayCommon.h"
+#include "vm/TypedArrayObject.h"
 
 #include "jsopcodeinlines.h"
 
@@ -171,11 +171,8 @@ RangeAnalysis::addBetaNodes()
 
         MCompare* compare = test->getOperand(0)->toCompare();
 
-        if (compare->compareType() == MCompare::Compare_Unknown ||
-            compare->compareType() == MCompare::Compare_Bitwise)
-        {
+        if (!compare->isNumericComparison())
             continue;
-        }
 
         // TODO: support unsigned comparisons
         if (compare->compareType() == MCompare::Compare_UInt32)
@@ -1221,8 +1218,14 @@ Range*
 Range::NaNToZero(TempAllocator& alloc, const Range *op)
 {
     Range* copy = new(alloc) Range(*op);
-    if (copy->canBeNaN())
+    if (copy->canBeNaN()) {
         copy->max_exponent_ = Range::IncludesInfinity;
+        if (!copy->canBeZero()) {
+            Range zero;
+            zero.setDoubleSingleton(0);
+            copy->unionWith(&zero);
+        }
+    }
     copy->refineToExcludeNegativeZero();
     return copy;
 }
@@ -3540,8 +3543,7 @@ RangeAnalysis::prepareForUCE(bool* shouldRemoveDeadCode)
         if (!constant)
             return false;
 
-        if (DeadIfUnused(condition))
-            condition->setGuardRangeBailoutsUnchecked();
+        condition->setGuardRangeBailoutsUnchecked();
 
         test->block()->insertBefore(test, constant);
 
@@ -3577,13 +3579,14 @@ bool RangeAnalysis::tryRemovingGuards()
     for (size_t i = 0; i < guards.length(); i++) {
         MDefinition* guard = guards[i];
 
-#ifdef DEBUG
-        // There is no need to mark an instructions if there is
-        // already a more restrictive flag on it.
+        // If this ins is a guard even without guardRangeBailouts,
+        // there is no reason in trying to hoist the guardRangeBailouts check.
         guard->setNotGuardRangeBailouts();
-        MOZ_ASSERT(DeadIfUnused(guard));
+        if (!DeadIfUnused(guard)) {
+            guard->setGuardRangeBailouts();
+            continue;
+        }
         guard->setGuardRangeBailouts();
-#endif
 
         if (!guard->isPhi()) {
             if (!guard->range())
@@ -3613,11 +3616,6 @@ bool RangeAnalysis::tryRemovingGuards()
                 continue;
 
             MOZ_ASSERT(!operand->isGuardRangeBailouts());
-
-            // No need to mark as a guard, since it is has already an even more
-            // restrictive flag set.
-            if (!DeadIfUnused(operand))
-                continue;
 
             operand->setInWorklist();
             operand->setGuardRangeBailouts();

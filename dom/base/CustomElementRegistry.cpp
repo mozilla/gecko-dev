@@ -9,6 +9,7 @@
 #include "mozilla/dom/CustomElementRegistryBinding.h"
 #include "mozilla/dom/HTMLElementBinding.h"
 #include "mozilla/dom/WebComponentsBinding.h"
+#include "mozilla/dom/DocGroup.h"
 #include "nsIParserService.h"
 #include "jsapi.h"
 
@@ -103,6 +104,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(CustomElementRegistry)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(CustomElementRegistry)
   tmp->mCustomDefinitions.Clear();
+  tmp->mConstructors.clear();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWhenDefinedPromiseMap)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindow)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
@@ -136,9 +138,9 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(CustomElementRegistry)
       cb.NoteXPCOMChild(callbacks->mDetachedCallback.Value());
     }
   }
+
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWhenDefinedPromiseMap)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindow)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(CustomElementRegistry)
@@ -148,6 +150,12 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(CustomElementRegistry)
                      aClosure);
     aCallbacks.Trace(&iter.UserData()->mPrototype,
                      "mCustomDefinitions prototype",
+                     aClosure);
+  }
+
+  for (ConstructorMap::Enum iter(tmp->mConstructors); !iter.empty(); iter.popFront()) {
+    aCallbacks.Trace(&iter.front().mutableKey(),
+                     "mConstructors key",
                      aClosure);
   }
   NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
@@ -164,33 +172,8 @@ NS_INTERFACE_MAP_END
 /* static */ bool
 CustomElementRegistry::IsCustomElementEnabled(JSContext* aCx, JSObject* aObject)
 {
-  JS::Rooted<JSObject*> obj(aCx, aObject);
-  if (Preferences::GetBool("dom.webcomponents.customelements.enabled") ||
-      Preferences::GetBool("dom.webcomponents.enabled")) {
-    return true;
-  }
-
-  return false;
-}
-
-/* static */ already_AddRefed<CustomElementRegistry>
-CustomElementRegistry::Create(nsPIDOMWindowInner* aWindow)
-{
-  MOZ_ASSERT(aWindow);
-  MOZ_ASSERT(aWindow->IsInnerWindow());
-
-  if (!aWindow->GetDocShell()) {
-    return nullptr;
-  }
-
-  if (!Preferences::GetBool("dom.webcomponents.customelements.enabled") &&
-      !Preferences::GetBool("dom.webcomponents.enabled")) {
-    return nullptr;
-  }
-
-  RefPtr<CustomElementRegistry> customElementRegistry =
-    new CustomElementRegistry(aWindow);
-  return customElementRegistry.forget();
+  return Preferences::GetBool("dom.webcomponents.customelements.enabled") ||
+         nsContentUtils::IsWebComponentsEnabled();
 }
 
 /* static */ void
@@ -234,6 +217,10 @@ CustomElementRegistry::CustomElementRegistry(nsPIDOMWindowInner* aWindow)
  : mWindow(aWindow)
  , mIsCustomDefinitionRunning(false)
 {
+  MOZ_ASSERT(aWindow);
+  MOZ_ASSERT(aWindow->IsInnerWindow());
+  MOZ_ALWAYS_TRUE(mConstructors.init());
+
   mozilla::HoldJSObjects(this);
 
   if (!sProcessingStack) {
@@ -261,6 +248,23 @@ CustomElementRegistry::LookupCustomElementDefinition(const nsAString& aLocalName
   }
 
   return nullptr;
+}
+
+CustomElementDefinition*
+CustomElementRegistry::LookupCustomElementDefinition(JSContext* aCx,
+                                                     JSObject* aConstructor) const
+{
+  JS::Rooted<JSObject*> constructor(aCx, js::CheckedUnwrap(aConstructor));
+
+  const auto& ptr = mConstructors.lookup(constructor);
+  if (!ptr) {
+    return nullptr;
+  }
+
+  CustomElementDefinition* definition = mCustomDefinitions.Get(ptr->value());
+  MOZ_ASSERT(definition, "Definition must be found in mCustomDefinitions");
+
+  return definition;
 }
 
 void
@@ -464,46 +468,29 @@ CustomElementRegistry::GetCustomPrototype(nsIAtom* aAtom,
 void
 CustomElementRegistry::UpgradeCandidates(JSContext* aCx,
                                          nsIAtom* aKey,
-                                         CustomElementDefinition* aDefinition)
+                                         CustomElementDefinition* aDefinition,
+                                         ErrorResult& aRv)
 {
+  DocGroup* docGroup = mWindow->GetDocGroup();
+  if (!docGroup) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return;
+  }
+
   nsAutoPtr<nsTArray<nsWeakPtr>> candidates;
   mCandidatesMap.RemoveAndForget(aKey, candidates);
   if (candidates) {
+
+
+    CustomElementReactionsStack* reactionsStack =
+      docGroup->CustomElementReactionsStack();
     for (size_t i = 0; i < candidates->Length(); ++i) {
       nsCOMPtr<Element> elem = do_QueryReferent(candidates->ElementAt(i));
       if (!elem) {
         continue;
       }
 
-      elem->RemoveStates(NS_EVENT_STATE_UNRESOLVED);
-
-      // Make sure that the element name matches the name in the definition.
-      // (e.g. a definition for x-button extending button should match
-      // <button is="x-button"> but not <x-button>.
-      if (elem->NodeInfo()->NameAtom() != aDefinition->mLocalName) {
-        //Skip over this element because definition does not apply.
-        continue;
-      }
-
-      MOZ_ASSERT(elem->IsHTMLElement(aDefinition->mLocalName));
-      nsWrapperCache* cache;
-      CallQueryInterface(elem, &cache);
-      MOZ_ASSERT(cache, "Element doesn't support wrapper cache?");
-
-      // We want to set the custom prototype in the caller's comparment.
-      // In the case that element is in a different compartment,
-      // this will set the prototype on the element's wrapper and
-      // thus only visible in the wrapper's compartment.
-      JS::RootedObject wrapper(aCx);
-      JS::Rooted<JSObject*> prototype(aCx, aDefinition->mPrototype);
-      if ((wrapper = cache->GetWrapper()) && JS_WrapObject(aCx, &wrapper)) {
-        if (!JS_SetPrototype(aCx, wrapper, prototype)) {
-          continue;
-        }
-      }
-
-      nsContentUtils::EnqueueLifecycleCallback(
-        elem->OwnerDoc(), nsIDocument::eCreated, elem, nullptr, aDefinition);
+      reactionsStack->EnqueueUpgradeReaction(this, elem, aDefinition);
     }
   }
 }
@@ -563,6 +550,15 @@ CustomElementRegistry::Define(const nsAString& aName,
                               const ElementDefinitionOptions& aOptions,
                               ErrorResult& aRv)
 {
+  // We do this for [CEReaction] temporarily and it will be removed
+  // after webidl supports [CEReaction] annotation in bug 1309147.
+  DocGroup* docGroup = mWindow->GetDocGroup();
+  if (!docGroup) {
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return;
+  }
+
+  AutoCEReaction ceReaction(docGroup->CustomElementReactionsStack());
   aRv.MightThrowJSException();
 
   AutoJSAPI jsapi;
@@ -572,7 +568,7 @@ CustomElementRegistry::Define(const nsAString& aName,
   }
 
   JSContext *cx = jsapi.cx();
-  JS::Rooted<JSObject*> constructor(cx, aFunctionConstructor.Callable());
+  JS::Rooted<JSObject*> constructor(cx, aFunctionConstructor.CallableOrNull());
 
   /**
    * 1. If IsConstructor(constructor) is false, then throw a TypeError and abort
@@ -616,9 +612,13 @@ CustomElementRegistry::Define(const nsAString& aName,
    * 4. If this CustomElementRegistry contains an entry with constructor constructor,
    *    then throw a "NotSupportedError" DOMException and abort these steps.
    */
-  // TODO: Step 3 of HTMLConstructor also needs a way to look up definition by
-  // using constructor. So I plans to figure out a solution to support both of
-  // them in bug 1274159.
+  const auto& ptr = mConstructors.lookup(constructorUnwrapped);
+  if (ptr) {
+    MOZ_ASSERT(mCustomDefinitions.Get(ptr->value()),
+               "Definition must be found in mCustomDefinitions");
+    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return;
+  }
 
   /**
    * 5. Let localName be name.
@@ -763,6 +763,15 @@ CustomElementRegistry::Define(const nsAString& aName,
   // Associate the definition with the custom element.
   nsCOMPtr<nsIAtom> localNameAtom(NS_Atomize(localName));
   LifecycleCallbacks* callbacks = callbacksHolder.forget();
+
+  /**
+   * 12. Add definition to this CustomElementRegistry.
+   */
+  if (!mConstructors.put(constructorUnwrapped, nameAtom)) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+
   CustomElementDefinition* definition =
     new CustomElementDefinition(nameAtom,
                                 localNameAtom,
@@ -771,16 +780,16 @@ CustomElementRegistry::Define(const nsAString& aName,
                                 callbacks,
                                 0 /* TODO dependent on HTML imports. Bug 877072 */);
 
-  /**
-   * 12. Add definition to this CustomElementRegistry.
-   */
   mCustomDefinitions.Put(nameAtom, definition);
+
+  MOZ_ASSERT(mCustomDefinitions.Count() == mConstructors.count(),
+             "Number of entries should be the same");
 
   /**
    * 13. 14. 15. Upgrade candidates
    */
   // TODO: Bug 1299363 - Implement custom element v1 upgrade algorithm
-  UpgradeCandidates(cx, nameAtom, definition);
+  UpgradeCandidates(cx, nameAtom, definition, aRv);
 
   /**
    * 16. If this CustomElementRegistry's when-defined promise map contains an
@@ -844,6 +853,150 @@ CustomElementRegistry::WhenDefined(const nsAString& aName, ErrorResult& aRv)
   return promise.forget();
 }
 
+void
+CustomElementRegistry::Upgrade(Element* aElement,
+                               CustomElementDefinition* aDefinition)
+{
+  // TODO: This function will be replaced to v1 upgrade in bug 1299363
+  aElement->RemoveStates(NS_EVENT_STATE_UNRESOLVED);
+
+  // Make sure that the element name matches the name in the definition.
+  // (e.g. a definition for x-button extending button should match
+  // <button is="x-button"> but not <x-button>.
+  if (aElement->NodeInfo()->NameAtom() != aDefinition->mLocalName) {
+    //Skip over this element because definition does not apply.
+    return;
+  }
+
+  MOZ_ASSERT(aElement->IsHTMLElement(aDefinition->mLocalName));
+  nsWrapperCache* cache;
+  CallQueryInterface(aElement, &cache);
+  MOZ_ASSERT(cache, "Element doesn't support wrapper cache?");
+
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(mWindow))) {
+    return;
+  }
+
+  JSContext *cx = jsapi.cx();
+  // We want to set the custom prototype in the the compartment of define()'s caller.
+  // We store the prototype from define() directly,
+  // hence the prototype's compartment is the caller's compartment.
+  JS::RootedObject wrapper(cx);
+  JS::Rooted<JSObject*> prototype(cx, aDefinition->mPrototype);
+  { // Enter prototype's compartment.
+    JSAutoCompartment ac(cx, prototype);
+
+    if ((wrapper = cache->GetWrapper()) && JS_WrapObject(cx, &wrapper)) {
+      if (!JS_SetPrototype(cx, wrapper, prototype)) {
+        return;
+      }
+    }
+  } // Leave prototype's compartment.
+
+  // Enqueuing the created callback will set the CustomElementData on the
+  // element, causing prototype swizzling to occur in Element::WrapObject.
+  EnqueueLifecycleCallback(nsIDocument::eCreated, aElement, nullptr, aDefinition);
+}
+
+//-----------------------------------------------------
+// CustomElementReactionsStack
+
+void
+CustomElementReactionsStack::CreateAndPushElementQueue()
+{
+  // Push a new element queue onto the custom element reactions stack.
+  mReactionsStack.AppendElement();
+}
+
+void
+CustomElementReactionsStack::PopAndInvokeElementQueue()
+{
+  // Pop the element queue from the custom element reactions stack,
+  // and invoke custom element reactions in that queue.
+  MOZ_ASSERT(!mReactionsStack.IsEmpty(),
+             "Reaction stack shouldn't be empty");
+
+  ElementQueue& elementQueue = mReactionsStack.LastElement();
+  InvokeReactions(elementQueue);
+  DebugOnly<bool> isRemovedElement = mReactionsStack.RemoveElement(elementQueue);
+  MOZ_ASSERT(isRemovedElement,
+             "Reaction stack should have an element queue to remove");
+}
+
+void
+CustomElementReactionsStack::EnqueueUpgradeReaction(CustomElementRegistry* aRegistry,
+                                                    Element* aElement,
+                                                    CustomElementDefinition* aDefinition)
+{
+  Enqueue(aElement, new CustomElementUpgradeReaction(aRegistry, aDefinition));
+}
+
+void
+CustomElementReactionsStack::Enqueue(Element* aElement,
+                                     CustomElementReaction* aReaction)
+{
+  // Add element to the current element queue.
+  if (!mReactionsStack.IsEmpty()) {
+    mReactionsStack.LastElement().AppendElement(do_GetWeakReference(aElement));
+    ReactionQueue* reactionQueue =
+      mElementReactionQueueMap.LookupOrAdd(aElement);
+    reactionQueue->AppendElement(aReaction);
+
+    return;
+  }
+
+  // If the custom element reactions stack is empty, then:
+  // Add element to the backup element queue.
+  mBackupQueue.AppendElement(do_GetWeakReference(aElement));
+
+  ReactionQueue* reactionQueue =
+    mElementReactionQueueMap.LookupOrAdd(aElement);
+  reactionQueue->AppendElement(aReaction);
+
+  if (mIsBackupQueueProcessing) {
+    return;
+  }
+
+  CycleCollectedJSContext* context = CycleCollectedJSContext::Get();
+  RefPtr<ProcessBackupQueueRunnable> processBackupQueueRunnable =
+    new ProcessBackupQueueRunnable(this);
+  context->DispatchToMicroTask(processBackupQueueRunnable.forget());
+}
+
+void
+CustomElementReactionsStack::InvokeBackupQueue()
+{
+  InvokeReactions(mBackupQueue);
+}
+
+void
+CustomElementReactionsStack::InvokeReactions(ElementQueue& aElementQueue)
+{
+  for (uint32_t i = 0; i < aElementQueue.Length(); ++i) {
+    nsCOMPtr<Element> element = do_QueryReferent(aElementQueue[i]);
+
+    if (!element) {
+      continue;
+    }
+
+    nsAutoPtr<ReactionQueue> reactions;
+    mElementReactionQueueMap.RemoveAndForget(element, reactions);
+
+    MOZ_ASSERT(reactions,
+               "Associated ReactionQueue must be found in mElementReactionQueueMap");
+
+    for (uint32_t j = 0; j < reactions->Length(); ++j) {
+      nsAutoPtr<CustomElementReaction>& reaction = reactions->ElementAt(j);
+      reaction->Invoke(element);
+    }
+  }
+  aElementQueue.Clear();
+}
+
+//-----------------------------------------------------
+// CustomElementDefinition
+
 CustomElementDefinition::CustomElementDefinition(nsIAtom* aType,
                                                  nsIAtom* aLocalName,
                                                  JSObject* aConstructor,
@@ -857,6 +1010,16 @@ CustomElementDefinition::CustomElementDefinition(nsIAtom* aType,
     mCallbacks(aCallbacks),
     mDocOrder(aDocOrder)
 {
+}
+
+
+//-----------------------------------------------------
+// CustomElementUpgradeReaction
+
+/* virtual */ void
+CustomElementUpgradeReaction::Invoke(Element* aElement)
+{
+  mRegistry->Upgrade(aElement, mDefinition);
 }
 
 } // namespace dom

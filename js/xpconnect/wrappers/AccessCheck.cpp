@@ -7,12 +7,15 @@
 #include "AccessCheck.h"
 
 #include "nsJSPrincipals.h"
+#include "BasePrincipal.h"
 #include "nsGlobalWindow.h"
 
 #include "XPCWrapper.h"
 #include "XrayWrapper.h"
+#include "FilteringWrapper.h"
 
 #include "jsfriendapi.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/LocationBinding.h"
 #include "mozilla/dom/WindowBinding.h"
@@ -45,7 +48,7 @@ AccessCheck::subsumes(JSCompartment* a, JSCompartment* b)
 {
     nsIPrincipal* aprin = GetCompartmentPrincipal(a);
     nsIPrincipal* bprin = GetCompartmentPrincipal(b);
-    return aprin->Subsumes(bprin);
+    return BasePrincipal::Cast(aprin)->FastSubsumes(bprin);
 }
 
 bool
@@ -58,9 +61,20 @@ AccessCheck::subsumes(JSObject* a, JSObject* b)
 bool
 AccessCheck::subsumesConsideringDomain(JSCompartment* a, JSCompartment* b)
 {
+    MOZ_ASSERT(OriginAttributes::IsRestrictOpenerAccessForFPI());
     nsIPrincipal* aprin = GetCompartmentPrincipal(a);
     nsIPrincipal* bprin = GetCompartmentPrincipal(b);
-    return aprin->SubsumesConsideringDomain(bprin);
+    return BasePrincipal::Cast(aprin)->FastSubsumesConsideringDomain(bprin);
+}
+
+bool
+AccessCheck::subsumesConsideringDomainIgnoringFPD(JSCompartment* a,
+                                                  JSCompartment* b)
+{
+    MOZ_ASSERT(!OriginAttributes::IsRestrictOpenerAccessForFPI());
+    nsIPrincipal* aprin = GetCompartmentPrincipal(a);
+    nsIPrincipal* bprin = GetCompartmentPrincipal(b);
+    return BasePrincipal::Cast(aprin)->FastSubsumesConsideringDomainIgnoringFPD(bprin);
 }
 
 // Does the compartment of the wrapper subsumes the compartment of the wrappee?
@@ -76,9 +90,8 @@ AccessCheck::wrapperSubsumes(JSObject* wrapper)
 bool
 AccessCheck::isChrome(JSCompartment* compartment)
 {
-    bool privileged;
     nsIPrincipal* principal = GetCompartmentPrincipal(compartment);
-    return NS_SUCCEEDED(nsXPConnect::SecurityManager()->IsSystemPrincipal(principal, &privileged)) && privileged;
+    return nsXPConnect::SystemPrincipal() == principal;
 }
 
 bool
@@ -177,6 +190,12 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext* cx, HandleObject wrapper, H
     if (JSID_IS_STRING(id)) {
         if (IsPermitted(type, JSID_TO_FLAT_STRING(id), act == Wrapper::SET))
             return true;
+    } else if (type != CrossOriginOpaque &&
+               IsCrossOriginWhitelistedSymbol(cx, id)) {
+        // We always allow access to @@toStringTag, @@hasInstance, and
+        // @@isConcatSpreadable.  But then we nerf them to be a value descriptor
+        // with value undefined in CrossOriginXrayWrapper.
+        return true;
     }
 
     if (act != Wrapper::GET)
@@ -266,6 +285,42 @@ AccessCheck::checkPassToPrivilegedCode(JSContext* cx, HandleObject wrapper, cons
             return false;
     }
     return true;
+}
+
+void
+AccessCheck::reportCrossOriginDenial(JSContext* cx, JS::HandleId id,
+                                     const nsACString& accessType)
+{
+    // This function exists because we want to report DOM SecurityErrors, not JS
+    // Errors, when denying access on cross-origin DOM objects.  It's
+    // conceptually pretty similar to
+    // AutoEnterPolicy::reportErrorIfExceptionIsNotPending.
+    if (JS_IsExceptionPending(cx)) {
+        return;
+    }
+
+    nsAutoCString message;
+    if (JSID_IS_VOID(id)) {
+        message = NS_LITERAL_CSTRING("Permission denied to access object");
+    } else {
+        // We want to use JS_ValueToSource here, because that most closely
+        // matches what AutoEnterPolicy::reportErrorIfExceptionIsNotPending
+        // does.
+        JS::RootedValue idVal(cx, js::IdToValue(id));
+        nsAutoJSString propName;
+        JS::RootedString idStr(cx, JS_ValueToSource(cx, idVal));
+        if (!idStr || !propName.init(cx, idStr)) {
+            return;
+        }
+        message = NS_LITERAL_CSTRING("Permission denied to ") +
+                  accessType +
+                  NS_LITERAL_CSTRING(" property ") +
+                  NS_ConvertUTF16toUTF8(propName) +
+                  NS_LITERAL_CSTRING(" on cross-origin object");
+    }
+    ErrorResult rv;
+    rv.ThrowDOMException(NS_ERROR_DOM_SECURITY_ERR, message);
+    rv.MaybeSetPendingException(cx);
 }
 
 enum Access { READ = (1<<0), WRITE = (1<<1), NO_ACCESS = 0 };
@@ -434,13 +489,15 @@ ExposedPropertiesOnly::check(JSContext* cx, HandleObject wrapper, HandleId id, W
 }
 
 bool
-ExposedPropertiesOnly::deny(js::Wrapper::Action act, HandleId id)
+ExposedPropertiesOnly::deny(JSContext* cx, js::Wrapper::Action act, HandleId id,
+                            bool mayThrow)
 {
     // Fail silently for GET, ENUMERATE, and GET_PROPERTY_DESCRIPTOR.
     if (act == js::Wrapper::GET || act == js::Wrapper::ENUMERATE ||
         act == js::Wrapper::GET_PROPERTY_DESCRIPTOR)
     {
-        AutoJSContext cx;
+        // Note that ReportWrapperDenial doesn't do any _exception_ reporting,
+        // so we want to do this regardless of the value of mayThrow.
         return ReportWrapperDenial(cx, id, WrapperDenialForCOW,
                                    "Access to privileged JS object not permitted");
     }

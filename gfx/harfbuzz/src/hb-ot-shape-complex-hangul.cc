@@ -32,7 +32,7 @@
 
 /* Same order as the feature array below */
 enum {
-  NONE,
+  _JMO,
 
   LJMO,
   VJMO,
@@ -419,6 +419,7 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_hangul =
   NULL, /* decompose */
   NULL, /* compose */
   setup_masks_hangul,
+  NULL, /* disable_otl */
   HB_OT_SHAPE_ZERO_WIDTH_MARKS_NONE,
   false, /* fallback_position */
 };

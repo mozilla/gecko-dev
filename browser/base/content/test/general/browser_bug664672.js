@@ -3,17 +3,15 @@ function test() {
 
   var tab = gBrowser.addTab();
 
-  tab.addEventListener("TabClose", function () {
-    tab.removeEventListener("TabClose", arguments.callee, false);
-
+  tab.addEventListener("TabClose", function() {
     ok(tab.linkedBrowser, "linkedBrowser should still exist during the TabClose event");
 
-    executeSoon(function () {
+    executeSoon(function() {
       ok(!tab.linkedBrowser, "linkedBrowser should be gone after the TabClose event");
 
       finish();
     });
-  }, false);
+  }, {once: true});
 
   gBrowser.removeTab(tab);
 }

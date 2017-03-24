@@ -32,7 +32,8 @@ ASpdySession::~ASpdySession() = default;
 
 ASpdySession *
 ASpdySession::NewSpdySession(uint32_t version,
-                             nsISocketTransport *aTransport)
+                             nsISocketTransport *aTransport,
+                             bool attemptingEarlyData)
 {
   // This is a necko only interface, so we can enforce version
   // requests as a precondition
@@ -46,7 +47,7 @@ ASpdySession::NewSpdySession(uint32_t version,
 
   Telemetry::Accumulate(Telemetry::SPDY_VERSION2, version);
 
-  return new Http2Session(aTransport, version);
+  return new Http2Session(aTransport, version, attemptingEarlyData);
 }
 
 SpdyInformation::SpdyInformation()
@@ -97,7 +98,7 @@ SpdyPushCache::~SpdyPushCache()
 }
 
 bool
-SpdyPushCache::RegisterPushedStreamHttp2(nsCString key,
+SpdyPushCache::RegisterPushedStreamHttp2(const nsCString& key,
                                          Http2PushedStream *stream)
 {
   LOG3(("SpdyPushCache::RegisterPushedStreamHttp2 %s 0x%X\n",
@@ -112,7 +113,7 @@ SpdyPushCache::RegisterPushedStreamHttp2(nsCString key,
 }
 
 Http2PushedStream *
-SpdyPushCache::RemovePushedStreamHttp2(nsCString key)
+SpdyPushCache::RemovePushedStreamHttp2(const nsCString& key)
 {
   Http2PushedStream *rv = mHashHttp2.Get(key);
   LOG3(("SpdyPushCache::RemovePushedStreamHttp2 %s 0x%X\n",

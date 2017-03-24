@@ -24,8 +24,6 @@ const { INDENT_WIDTH } = require("devtools/client/webconsole/new-console-output/
 const { stubPreparedMessages } = require("devtools/client/webconsole/new-console-output/test/fixtures/stubs/index");
 const serviceContainer = require("devtools/client/webconsole/new-console-output/test/fixtures/serviceContainer");
 
-const tempfilePath = "http://example.com/browser/devtools/client/webconsole/new-console-output/test/fixtures/stub-generators/test-tempfile.js";
-
 describe("ConsoleAPICall component:", () => {
   describe("console.log", () => {
     it("renders string grips", () => {
@@ -34,12 +32,14 @@ describe("ConsoleAPICall component:", () => {
 
       expect(wrapper.find(".message-body").text()).toBe("foobar test");
       expect(wrapper.find(".objectBox-string").length).toBe(2);
-      expect(wrapper.find("div.message.cm-s-mozilla span span.message-flex-body span.message-body.devtools-monospace").length).toBe(1);
+      let selector = "div.message.cm-s-mozilla span span.message-flex-body " +
+        "span.message-body.devtools-monospace";
+      expect(wrapper.find(selector).length).toBe(1);
 
       // There should be the location
       const locationLink = wrapper.find(`.message-location`);
       expect(locationLink.length).toBe(1);
-      expect(locationLink.text()).toBe("test-tempfile.js:1:27");
+      expect(locationLink.text()).toBe("test-console-api.html:1:27");
     });
 
     it("renders string grips with custom style", () => {
@@ -75,7 +75,9 @@ describe("ConsoleAPICall component:", () => {
       expect(wrapper.find(".message-repeats").text()).toBe("107");
       expect(wrapper.find(".message-repeats").prop("title")).toBe("107 repeats");
 
-      expect(wrapper.find("span > span.message-flex-body > span.message-body.devtools-monospace + span.message-repeats").length).toBe(1);
+      let selector = "span > span.message-flex-body > " +
+        "span.message-body.devtools-monospace + span.message-repeats";
+      expect(wrapper.find(selector).length).toBe(1);
     });
 
     it("has the expected indent", () => {
@@ -88,6 +90,15 @@ describe("ConsoleAPICall component:", () => {
 
       wrapper = render(ConsoleApiCall({ message, serviceContainer}));
       expect(wrapper.find(".indent").prop("style").width).toBe(`0`);
+    });
+
+    it("renders a timestamp", () => {
+      const message = stubPreparedMessages.get("console.log('foobar', 'test')");
+      const wrapper = render(ConsoleApiCall({ message, serviceContainer }));
+      const L10n = require("devtools/client/webconsole/new-console-output/test/fixtures/L10n");
+      const { timestampString } = new L10n();
+
+      expect(wrapper.find(".timestamp").text()).toBe(timestampString(message.timeStamp));
     });
   });
 
@@ -102,10 +113,12 @@ describe("ConsoleAPICall component:", () => {
 
   describe("console.assert", () => {
     it("renders", () => {
-      const message = stubPreparedMessages.get("console.assert(false, {message: 'foobar'})");
+      const message = stubPreparedMessages.get(
+        "console.assert(false, {message: 'foobar'})");
       const wrapper = render(ConsoleApiCall({ message, serviceContainer }));
 
-      expect(wrapper.find(".message-body").text()).toBe("Assertion failed: Object { message: \"foobar\" }");
+      expect(wrapper.find(".message-body").text())
+        .toBe("Assertion failed: Object { message: \"foobar\" }");
     });
   });
 
@@ -132,23 +145,32 @@ describe("ConsoleAPICall component:", () => {
     it("renders", () => {
       const message = stubPreparedMessages.get("console.trace()");
       const wrapper = render(ConsoleApiCall({ message, serviceContainer, open: true }));
-      const filepath = `${tempfilePath}`;
+      const filepath = "http://example.com/browser/devtools/client/webconsole/" +
+                       "new-console-output/test/fixtures/stub-generators/" +
+                       "test-console-api.html";
 
       expect(wrapper.find(".message-body").text()).toBe("console.trace()");
 
-      const frameLinks = wrapper.find(`.stack-trace span.frame-link[data-url='${filepath}']`);
+      const frameLinks = wrapper.find(
+        `.stack-trace span.frame-link[data-url]`);
       expect(frameLinks.length).toBe(3);
 
-      expect(frameLinks.eq(0).find(".frame-link-function-display-name").text()).toBe("testStacktraceFiltering");
-      expect(frameLinks.eq(0).find(".frame-link-filename").text()).toBe(filepath);
+      expect(frameLinks.eq(0).find(".frame-link-function-display-name").text())
+        .toBe("testStacktraceFiltering");
+      expect(frameLinks.eq(0).find(".frame-link-filename").text())
+        .toBe(filepath);
 
-      expect(frameLinks.eq(1).find(".frame-link-function-display-name").text()).toBe("foo");
-      expect(frameLinks.eq(1).find(".frame-link-filename").text()).toBe(filepath);
+      expect(frameLinks.eq(1).find(".frame-link-function-display-name").text())
+        .toBe("foo");
+      expect(frameLinks.eq(1).find(".frame-link-filename").text())
+        .toBe(filepath);
 
-      expect(frameLinks.eq(2).find(".frame-link-function-display-name").text()).toBe("triggerPacket");
-      expect(frameLinks.eq(2).find(".frame-link-filename").text()).toBe(filepath);
+      expect(frameLinks.eq(2).find(".frame-link-function-display-name").text())
+        .toBe("triggerPacket");
+      expect(frameLinks.eq(2).find(".frame-link-filename").text())
+        .toBe(filepath);
 
-      //it should not be collapsible.
+      // it should not be collapsible.
       expect(wrapper.find(`.theme-twisty`).length).toBe(0);
     });
   });

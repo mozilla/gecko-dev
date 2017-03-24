@@ -110,10 +110,15 @@ public:
     return PrincipalChildList().FirstChild()->IsSVGTransformed();
   }
 
+  // Update the style on our anonymous box child.
+  void DoUpdateStyleOfOwnedAnonBoxes(mozilla::ServoStyleSet& aStyleSet,
+                                     nsStyleChangeList& aChangeList,
+                                     nsChangeHint aHintForThisFrame) override;
+
   // nsISVGSVGFrame interface:
   virtual void NotifyViewportOrTransformChanged(uint32_t aFlags) override;
 
-  // nsISVGChildFrame methods:
+  // nsSVGDisplayableFrame methods:
   virtual DrawResult PaintSVG(gfxContext& aContext,
                               const gfxMatrix& aTransform,
                               const nsIntRect* aDirtyRect = nullptr) override;

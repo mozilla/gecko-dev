@@ -5,12 +5,13 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 from argparse import ArgumentParser, SUPPRESS
 from distutils.util import strtobool
+from itertools import chain
 from urlparse import urlparse
 import json
 import os
 import tempfile
 
-from mozdevice import DroidADB, DroidSUT
+from mozdevice import DroidADB
 from mozprofile import DEFAULT_PORTS
 import mozinfo
 import mozlog
@@ -28,6 +29,62 @@ try:
 except ImportError:
     build_obj = None
     conditions = None
+
+
+# Maps test flavors to data needed to run them
+ALL_FLAVORS = {
+    'mochitest': {
+        'suite': 'plain',
+        'aliases': ('plain', 'mochitest'),
+        'enabled_apps': ('firefox', 'android'),
+        'extra_args': {
+            'flavor': 'plain',
+        },
+        'install_subdir': 'tests',
+    },
+    'chrome': {
+        'suite': 'chrome',
+        'aliases': ('chrome', 'mochitest-chrome'),
+        'enabled_apps': ('firefox', 'android'),
+        'extra_args': {
+            'flavor': 'chrome',
+        }
+    },
+    'browser-chrome': {
+        'suite': 'browser',
+        'aliases': ('browser', 'browser-chrome', 'mochitest-browser-chrome', 'bc'),
+        'enabled_apps': ('firefox',),
+        'extra_args': {
+            'flavor': 'browser',
+        }
+    },
+    'jetpack-package': {
+        'suite': 'jetpack-package',
+        'aliases': ('jetpack-package', 'mochitest-jetpack-package', 'jpp'),
+        'enabled_apps': ('firefox',),
+        'extra_args': {
+            'flavor': 'jetpack-package',
+        }
+    },
+    'jetpack-addon': {
+        'suite': 'jetpack-addon',
+        'aliases': ('jetpack-addon', 'mochitest-jetpack-addon', 'jpa'),
+        'enabled_apps': ('firefox',),
+        'extra_args': {
+            'flavor': 'jetpack-addon',
+        }
+    },
+    'a11y': {
+        'suite': 'a11y',
+        'aliases': ('a11y', 'mochitest-a11y', 'accessibility'),
+        'enabled_apps': ('firefox',),
+        'extra_args': {
+            'flavor': 'a11y',
+        }
+    },
+}
+SUPPORTED_FLAVORS = list(chain.from_iterable([f['aliases'] for f in ALL_FLAVORS.values()]))
+CANONICAL_FLAVORS = sorted([f['aliases'][0] for f in ALL_FLAVORS.values()])
 
 
 def get_default_valgrind_suppression_files():
@@ -85,8 +142,6 @@ class ArgumentContainer():
 
 class MochitestArguments(ArgumentContainer):
     """General mochitest arguments."""
-
-    FLAVORS = ('a11y', 'browser', 'chrome', 'jetpack-addon', 'jetpack-package', 'plain')
     LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "FATAL")
 
     args = [
@@ -98,10 +153,10 @@ class MochitestArguments(ArgumentContainer):
                   "(to run recursively). If omitted, the entire suite is run.",
           }],
         [["-f", "--flavor"],
-         {"default": "plain",
-          "choices": FLAVORS,
-          "help": "Mochitest flavor to run, one of {}. Defaults to 'plain'.".format(FLAVORS),
-          "suppress": build_obj is not None,
+         {"choices": SUPPORTED_FLAVORS,
+          "metavar": "{{{}}}".format(', '.join(CANONICAL_FLAVORS)),
+          "default": None,
+          "help": "Only run tests of this flavor.",
           }],
         [["--keep-open"],
          {"nargs": "?",
@@ -422,15 +477,10 @@ class MochitestArguments(ArgumentContainer):
          {"action": "store_true",
           "default": False,
           "dest": "dumpDMDAfterTest",
-          "help": "Dump a DMD log after each test in the directory specified "
-                  "by --dump-output-directory.",
-          }],
-        [["--slowscript"],
-         {"action": "store_true",
-          "default": False,
-          "help": "Do not set the JS_DISABLE_SLOW_SCRIPT_SIGNALS env variable; "
-                  "when not set, recoverable but misleading SIGSEGV instances "
-                  "may occur in Ion/Odin JIT code.",
+          "help": "Dump a DMD log (and an accompanying about:memory log) after each test. "
+                  "These will be dumped into your default temp directory, NOT the directory "
+                  "specified by --dump-output-directory. The logs are numbered by test, and "
+                  "each test will include output that indicates the DMD output filename.",
           }],
         [["--screenshot-on-fail"],
          {"action": "store_true",
@@ -540,6 +590,17 @@ class MochitestArguments(ArgumentContainer):
           "help": "Delete pending crash reports before running tests.",
           "suppress": True,
           }],
+        [["--websocket-process-bridge-port"],
+         {"default": "8191",
+          "dest": "websocket_process_bridge_port",
+          "help": "Port for websocket/process bridge. Default 8191.",
+          }],
+        [["--failure-pattern-file"],
+         {"default": None,
+          "dest": "failure_pattern_file",
+          "help": "File describes all failure patterns of the tests.",
+          "suppress": True,
+          }],
     ]
 
     defaults = {
@@ -582,6 +643,9 @@ class MochitestArguments(ArgumentContainer):
                 parser.error("Error: Path {} doesn't exist. Are you executing "
                              "$objdir/_tests/testing/mochitest/runtests.py?".format(
                                  options.app))
+
+        if options.flavor is None:
+            options.flavor = 'plain'
 
         if options.gmp_path is None and options.app and build_obj:
             # Need to fix the location of gmp_fake which might not be shipped in the binary
@@ -665,7 +729,6 @@ class MochitestArguments(ArgumentContainer):
                 "devtools.chrome.enabled=true",
                 "devtools.debugger.prompt-connection=false"
             ]
-            options.autorun = False
 
         if options.debugOnFailure and not options.jsdebugger:
             parser.error(
@@ -810,12 +873,6 @@ class AndroidArguments(ArgumentContainer):
           "help": "ip address of remote device to test",
           "default": None,
           }],
-        [["--dm_trans"],
-         {"choices": ["adb", "sut"],
-          "default": "adb",
-          "help": "The transport to use for communication with the device [default: adb].",
-          "suppress": True,
-          }],
         [["--adbpath"],
          {"dest": "adbPath",
           "default": None,
@@ -894,21 +951,13 @@ class AndroidArguments(ArgumentContainer):
             options.log_mach = '-'
 
         device_args = {'deviceRoot': options.remoteTestRoot}
-        if options.dm_trans == "adb":
-            device_args['adbPath'] = options.adbPath
-            if options.deviceIP:
-                device_args['host'] = options.deviceIP
-                device_args['port'] = options.devicePort
-            elif options.deviceSerial:
-                device_args['deviceSerial'] = options.deviceSerial
-            options.dm = DroidADB(**device_args)
-        elif options.dm_trans == 'sut':
-            if options.deviceIP is None:
-                parser.error(
-                    "If --dm_trans = sut, you must provide a device IP")
+        device_args['adbPath'] = options.adbPath
+        if options.deviceIP:
             device_args['host'] = options.deviceIP
             device_args['port'] = options.devicePort
-            options.dm = DroidSUT(**device_args)
+        elif options.deviceSerial:
+            device_args['deviceSerial'] = options.deviceSerial
+        options.dm = DroidADB(**device_args)
 
         if not options.remoteTestRoot:
             options.remoteTestRoot = options.dm.deviceRoot
@@ -963,9 +1012,15 @@ class AndroidArguments(ArgumentContainer):
             options.robocopIni = os.path.abspath(options.robocopIni)
 
             if not options.robocopApk and build_obj:
-                options.robocopApk = os.path.join(build_obj.topobjdir, 'mobile', 'android',
-                                                  'tests', 'browser',
-                                                  'robocop', 'robocop-debug.apk')
+                if build_obj.substs.get('MOZ_BUILD_MOBILE_ANDROID_WITH_GRADLE'):
+                    options.robocopApk = os.path.join(build_obj.topobjdir, 'gradle', 'build',
+                                                      'mobile', 'android', 'app', 'outputs', 'apk',
+                                                      'app-automation-debug-androidTest-'
+                                                      'unaligned.apk')
+                else:
+                    options.robocopApk = os.path.join(build_obj.topobjdir, 'mobile', 'android',
+                                                      'tests', 'browser',
+                                                      'robocop', 'robocop-debug.apk')
 
         if options.robocopApk != "":
             if not os.path.exists(options.robocopApk):

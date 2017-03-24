@@ -23,10 +23,10 @@ load 370967.html
 load 373586-1.xhtml
 load 375299.html
 load 378369.html
-asserts(4-10) load 378413-1.xhtml # bug 424225, bug 402850?
+load 378413-1.xhtml
 load 380116-1.xhtml
 load 382212-1.xhtml
-load 382610-1.html
+pref(layout.css.moz-appearance.enabled,true) load 382610-1.html
 load 383887-1.html
 load 386554-1.html
 load 388374-1.xhtml
@@ -57,12 +57,13 @@ load 682684.xhtml
 load 865602.html
 load 893332-1.html
 load 944198.html
-load 949891.xhtml
+skip-if(stylo) load 949891.xhtml # bug 1323693, bug 1341973
 load 959311.html
 load 960277-2.html
 load 997709-1.html
 load 1102791.html
-load 1140216.html
+pref(layout.css.moz-appearance.enabled,true) skip-if(stylo) load 1140216.html # bug 1323693, bug 1341973
 load 1182414.html
 load 1212688.html
 load 1228670.xhtml
+load 1279354.html

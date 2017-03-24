@@ -2,8 +2,6 @@
 // Turn off baseline and since it messes up the GC finalization assertions by
 // adding spurious edges to the GC graph.
 
-load(libdir + 'wasm.js');
-
 const Module = WebAssembly.Module;
 const Instance = WebAssembly.Instance;
 
@@ -25,13 +23,13 @@ assertEq(finalizeCount(), 0);
 i1.exports = null;
 f = null;
 gc();
-assertEq(finalizeCount(), 1);
+assertEq(finalizeCount(), 0);
 i2 = null;
 gc();
-assertEq(finalizeCount(), 1);
+assertEq(finalizeCount(), 0);
 i1 = null;
 gc();
-assertEq(finalizeCount(), 1);
+assertEq(finalizeCount(), 0);
 g = null;
 gc();
 assertEq(finalizeCount(), 4);
@@ -51,14 +49,14 @@ assertEq(finalizeCount(), 0);
 i2.exports = null;
 g = null;
 gc();
-assertEq(finalizeCount(), 1);
+assertEq(finalizeCount(), 0);
 i2 = null;
 gc();
 assertEq(finalizeCount(), 2);
 i1.exports = null;
 f = null;
 gc();
-assertEq(finalizeCount(), 3);
+assertEq(finalizeCount(), 2);
 i1 = null;
 gc();
 assertEq(finalizeCount(), 4);

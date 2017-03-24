@@ -5,9 +5,11 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "UDPSocketChild.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Unused.h"
-#include "mozilla/ipc/InputStreamUtils.h"
+#include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/net/NeckoChild.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -276,14 +278,13 @@ UDPSocketChild::SendBinaryStream(const nsACString& aHost,
 {
   NS_ENSURE_ARG(aStream);
 
-  OptionalInputStreamParams stream;
-  nsTArray<mozilla::ipc::FileDescriptor> fds;
-  SerializeInputStream(aStream, stream, fds);
-
-  MOZ_ASSERT(fds.IsEmpty());
+  mozilla::ipc::AutoIPCStream autoStream;
+  autoStream.Serialize(aStream,
+                       static_cast<mozilla::dom::ContentChild*>(gNeckoChild->Manager()));
 
   UDPSOCKET_LOG(("%s: %s:%u", __FUNCTION__, PromiseFlatCString(aHost).get(), aPort));
-  SendOutgoingData(UDPData(stream), UDPSocketAddr(UDPAddressInfo(nsCString(aHost), aPort)));
+  SendOutgoingData(UDPData(autoStream.TakeOptionalValue()),
+                   UDPSocketAddr(UDPAddressInfo(nsCString(aHost), aPort)));
 
   return NS_OK;
 }
@@ -339,7 +340,7 @@ UDPSocketChild::GetFilterName(nsACString& aFilterName)
 }
 
 // PUDPSocketChild Methods
-bool
+mozilla::ipc::IPCResult
 UDPSocketChild::RecvCallbackOpened(const UDPAddressInfo& aAddressInfo)
 {
   mLocalAddress = aAddressInfo.addr();
@@ -349,11 +350,11 @@ UDPSocketChild::RecvCallbackOpened(const UDPAddressInfo& aAddressInfo)
   nsresult rv = mSocket->CallListenerOpened();
   mozilla::Unused << NS_WARN_IF(NS_FAILED(rv));
 
-  return true;
+  return IPC_OK();
 }
 
 // PUDPSocketChild Methods
-bool
+mozilla::ipc::IPCResult
 UDPSocketChild::RecvCallbackConnected(const UDPAddressInfo& aAddressInfo)
 {
   mLocalAddress = aAddressInfo.addr();
@@ -363,32 +364,32 @@ UDPSocketChild::RecvCallbackConnected(const UDPAddressInfo& aAddressInfo)
   nsresult rv = mSocket->CallListenerConnected();
   mozilla::Unused << NS_WARN_IF(NS_FAILED(rv));
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 UDPSocketChild::RecvCallbackClosed()
 {
   nsresult rv = mSocket->CallListenerClosed();
   mozilla::Unused << NS_WARN_IF(NS_FAILED(rv));
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 UDPSocketChild::RecvCallbackReceivedData(const UDPAddressInfo& aAddressInfo,
                                          InfallibleTArray<uint8_t>&& aData)
 {
-  UDPSOCKET_LOG(("%s: %s:%u length %u", __FUNCTION__,
+  UDPSOCKET_LOG(("%s: %s:%u length %" PRIuSIZE, __FUNCTION__,
                  aAddressInfo.addr().get(), aAddressInfo.port(), aData.Length()));
   nsresult rv = mSocket->CallListenerReceivedData(aAddressInfo.addr(), aAddressInfo.port(),
                                                   aData.Elements(), aData.Length());
   mozilla::Unused << NS_WARN_IF(NS_FAILED(rv));
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 UDPSocketChild::RecvCallbackError(const nsCString& aMessage,
                                   const nsCString& aFilename,
                                   const uint32_t& aLineNumber)
@@ -397,7 +398,7 @@ UDPSocketChild::RecvCallbackError(const nsCString& aMessage,
   nsresult rv = mSocket->CallListenerError(aMessage, aFilename, aLineNumber);
   mozilla::Unused << NS_WARN_IF(NS_FAILED(rv));
 
-  return true;
+  return IPC_OK();
 }
 
 } // namespace dom

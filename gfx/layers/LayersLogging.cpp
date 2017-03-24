@@ -190,10 +190,10 @@ AppendToString(std::stringstream& aStream, const FrameMetrics& m,
     AppendToString(aStream, m.GetCumulativeResolution(), " cr=");
     AppendToString(aStream, m.GetZoom(), " z=");
     AppendToString(aStream, m.GetExtraResolution(), " er=");
-    aStream << nsPrintfCString(")] [u=(%d %d %lu)",
+    aStream << nsPrintfCString(")] [u=(%d %d %" PRIu32 ")",
             m.GetScrollUpdateType(), m.GetDoSmoothScroll(),
             m.GetScrollGeneration()).get();
-    aStream << nsPrintfCString("] [i=(%ld %lld %d)] }",
+    aStream << nsPrintfCString("] [i=(%" PRIu32 " %" PRIu64 " %d)] }",
             m.GetPresShellId(), m.GetScrollId(), m.IsRootContent()).get();
   }
   aStream << sfx;
@@ -348,6 +348,8 @@ AppendToString(std::stringstream& aStream, gfx::SurfaceType aType,
     aStream << "SurfaceType::RECORDING"; break;
   case SurfaceType::TILED:
     aStream << "SurfaceType::TILED"; break;
+  case SurfaceType::DATA_SHARED:
+    aStream << "SurfaceType::DATA_SHARED"; break;
   default:
     NS_ERROR("unknown surface type");
     aStream << "???";
@@ -364,8 +366,6 @@ AppendToString(std::stringstream& aStream, ImageFormat format,
   switch (format) {
   case ImageFormat::PLANAR_YCBCR:
     aStream << "ImageFormat::PLANAR_YCBCR"; break;
-  case ImageFormat::GRALLOC_PLANAR_YCBCR:
-    aStream << "ImageFormat::GRALLOC_PLANAR_YCBCR"; break;
   case ImageFormat::SHARED_RGB:
     aStream << "ImageFormat::SHARED_RGB"; break;
   case ImageFormat::CAIRO_SURFACE:

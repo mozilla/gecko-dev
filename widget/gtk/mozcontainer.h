@@ -10,10 +10,6 @@
 
 #include <gtk/gtk.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
 /*
  * MozContainer
  *
@@ -98,10 +94,5 @@ void       moz_container_move          (MozContainer *container,
 struct wl_surface * moz_container_get_wl_surface (MozContainer *container);
 gboolean            moz_container_map_wl_surface (MozContainer *container);
 struct wl_event_queue* moz_container_get_wl_queue();
-#endif
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
 
 #endif /* __MOZ_CONTAINER_H__ */

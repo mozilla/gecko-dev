@@ -11,8 +11,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "UserAutoCompleteResult",
-                                  "resource://gre/modules/LoginManagerContent.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AutoCompletePopup",
                                   "resource://gre/modules/AutoCompletePopup.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask",
@@ -38,7 +36,7 @@ var LoginManagerParent = {
    */
   _recipeManager: null,
 
-  init: function() {
+  init() {
     let mm = Cc["@mozilla.org/globalmessagemanager;1"]
                .getService(Ci.nsIMessageListenerManager);
     mm.addMessageListener("RemoteLogins:findLogins", this);
@@ -51,13 +49,13 @@ var LoginManagerParent = {
     XPCOMUtils.defineLazyGetter(this, "recipeParentPromise", () => {
       const { LoginRecipesParent } = Cu.import("resource://gre/modules/LoginRecipes.jsm", {});
       this._recipeManager = new LoginRecipesParent({
-        defaults: Services.prefs.getComplexValue("signon.recipes.path", Ci.nsISupportsString).data,
+        defaults: Services.prefs.getStringPref("signon.recipes.path"),
       });
       return this._recipeManager.initializationPromise;
     });
   },
 
-  receiveMessage: function (msg) {
+  receiveMessage(msg) {
     let data = msg.data;
     switch (msg.name) {
       case "RemoteLogins:findLogins": {
@@ -156,7 +154,7 @@ var LoginManagerParent = {
     if (!showMasterPassword && !Services.logins.isLoggedIn) {
       try {
         target.sendAsyncMessage("RemoteLogins:loginsFound", {
-          requestId: requestId,
+          requestId,
           logins: [],
           recipes,
         });
@@ -175,14 +173,14 @@ var LoginManagerParent = {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                                Ci.nsISupportsWeakReference]),
 
-        observe: function (subject, topic, data) {
+        observe(subject, topic, data) {
           log("Got deferred sendLoginDataToChild notification:", topic);
           // Only run observer once.
           Services.obs.removeObserver(this, "passwordmgr-crypto-login");
           Services.obs.removeObserver(this, "passwordmgr-crypto-loginCanceled");
           if (topic == "passwordmgr-crypto-loginCanceled") {
             target.sendAsyncMessage("RemoteLogins:loginsFound", {
-              requestId: requestId,
+              requestId,
               logins: [],
               recipes,
             });
@@ -219,15 +217,16 @@ var LoginManagerParent = {
     // doesn't support structured cloning.
     var jsLogins = LoginHelper.loginsToVanillaObjects(logins);
     target.sendAsyncMessage("RemoteLogins:loginsFound", {
-      requestId: requestId,
+      requestId,
       logins: jsLogins,
       recipes,
     });
   }),
 
-  doAutocompleteSearch: function({ formOrigin, actionOrigin,
-                                   searchString, previousResult,
-                                   rect, requestId, isSecure, remote }, target) {
+  doAutocompleteSearch({ formOrigin, actionOrigin,
+                         searchString, previousResult,
+                         rect, requestId, isSecure, isPasswordField,
+                       }, target) {
     // Note: previousResult is a regular object, not an
     // nsIAutoCompleteResult.
 
@@ -260,37 +259,31 @@ var LoginManagerParent = {
       let match = fullMatch.username;
 
       // Remove results that are too short, or have different prefix.
-      // Also don't offer empty usernames as possible results.
+      // Also don't offer empty usernames as possible results except
+      // for password field.
+      if (isPasswordField) {
+        return true;
+      }
       return match && match.toLowerCase().startsWith(searchStringLower);
     });
-
-    // XXX In the E10S case, we're responsible for showing our own
-    // autocomplete popup here because the autocomplete protocol hasn't
-    // been e10s-ized yet. In the non-e10s case, our caller is responsible
-    // for showing the autocomplete popup (via the regular
-    // nsAutoCompleteController).
-    if (remote) {
-      let results = new UserAutoCompleteResult(searchString, matchingLogins, {isSecure});
-      AutoCompletePopup.showPopupWithResults({ browser: target.ownerDocument.defaultView, rect, results });
-    }
 
     // Convert the array of nsILoginInfo to vanilla JS objects since nsILoginInfo
     // doesn't support structured cloning.
     var jsLogins = LoginHelper.loginsToVanillaObjects(matchingLogins);
     target.messageManager.sendAsyncMessage("RemoteLogins:loginsAutoCompleted", {
-      requestId: requestId,
+      requestId,
       logins: jsLogins,
     });
   },
 
-  onFormSubmit: function(hostname, formSubmitURL,
+  onFormSubmit(hostname, formSubmitURL,
                          usernameField, newPasswordField,
                          oldPasswordField, openerTopWindow,
                          target) {
     function getPrompter() {
       var prompterSvc = Cc["@mozilla.org/login-manager/prompter;1"].
                         createInstance(Ci.nsILoginManagerPrompter);
-      prompterSvc.init(target.ownerDocument.defaultView);
+      prompterSvc.init(target.ownerGlobal);
       prompterSvc.browser = target;
       prompterSvc.opener = openerTopWindow;
       return prompterSvc;
@@ -315,7 +308,7 @@ var LoginManagerParent = {
     formLogin.init(hostname, formSubmitURL, null,
                    (usernameField ? usernameField.value : ""),
                    newPasswordField.value,
-                   (usernameField ? usernameField.name  : ""),
+                   (usernameField ? usernameField.name : ""),
                    newPasswordField.name);
 
     let logins = LoginHelper.searchLoginsWithObject({
@@ -479,7 +472,7 @@ var LoginManagerParent = {
     state.hasInsecureLoginForms = hasInsecureLoginForms;
 
     // Report the insecure login form state immediately.
-    browser.dispatchEvent(new browser.ownerDocument.defaultView
+    browser.dispatchEvent(new browser.ownerGlobal
                                  .CustomEvent("InsecureLoginFormsStateChange"));
   },
 };

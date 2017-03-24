@@ -200,6 +200,18 @@ MacroAssembler::add64(Imm64 imm, Register64 dest)
     ma_daddu(dest.reg, ScratchRegister);
 }
 
+CodeOffset
+MacroAssembler::add32ToPtrWithPatch(Register src, Register dest)
+{
+    MOZ_CRASH("NYI - add32ToPtrWithPatch");
+}
+
+void
+MacroAssembler::patchAdd32ToPtr(CodeOffset offset, Imm32 imm)
+{
+    MOZ_CRASH("NYI - patchAdd32ToPtr");
+}
+
 void
 MacroAssembler::subPtr(Register src, Register dest)
 {
@@ -409,6 +421,8 @@ MacroAssembler::cmpPtrSet(Condition cond, T1 lhs, T2 rhs, Register dest)
 {
     ma_cmp_set(dest, lhs, rhs, cond);
 }
+
+// Also see below for specializations of cmpPtrSet.
 
 template <typename T1, typename T2>
 void
@@ -693,23 +707,55 @@ MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src, const BaseIndex& 
 
 template <class L>
 void
-MacroAssembler::wasmBoundsCheck(Condition cond, Register index, L label)
+MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Register boundsCheckLimit, L label)
 {
-    BufferOffset bo = ma_BoundsCheck(ScratchRegister);
-    append(wasm::BoundsCheck(bo.getOffset()));
+    MOZ_CRASH("NYI - patching is no longer available");
+    // BufferOffset bo = ma_BoundsCheck(ScratchRegister);
+    // append(wasm::BoundsCheck(bo.getOffset()));
 
-    ma_b(index, ScratchRegister, label, cond);
+    // ma_b(index, ScratchRegister, label, cond);
 }
 
+template <class L>
 void
-MacroAssembler::wasmPatchBoundsCheck(uint8_t* patchAt, uint32_t limit)
+MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Address boundsCheckLimit, L label)
 {
-    // Replace with new value
-    Assembler::UpdateLoad64Value((Instruction*) patchAt, limit);
+    MOZ_CRASH("NYI - patching is no longer available");
 }
 
 //}}} check_macroassembler_style
 // ===============================================================
+
+// The specializations for cmpPtrSet are outside the braces because check_macroassembler_style can't yet
+// deal with specializations.
+
+template<>
+inline void
+MacroAssembler::cmpPtrSet(Assembler::Condition cond, Address lhs, ImmPtr rhs,
+                          Register dest)
+{
+    loadPtr(lhs, ScratchRegister);
+    movePtr(rhs, SecondScratchReg);
+    cmpPtrSet(cond, ScratchRegister, SecondScratchReg, dest);
+}
+
+template<>
+inline void
+MacroAssembler::cmpPtrSet(Assembler::Condition cond, Register lhs, Address rhs,
+                          Register dest)
+{
+    loadPtr(rhs, ScratchRegister);
+    cmpPtrSet(cond, lhs, ScratchRegister, dest);
+}
+
+template<>
+inline void
+MacroAssembler::cmp32Set(Assembler::Condition cond, Register lhs, Address rhs,
+                         Register dest)
+{
+    load32(rhs, ScratchRegister);
+    cmp32Set(cond, lhs, ScratchRegister, dest);
+}
 
 void
 MacroAssemblerMIPS64Compat::incrementInt32Value(const Address& addr)

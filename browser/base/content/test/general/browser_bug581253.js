@@ -17,8 +17,6 @@ function test() {
 
   let tab = gBrowser.selectedTab = gBrowser.addTab();
   tab.linkedBrowser.addEventListener("load", (function(event) {
-    tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
-
     let uri = makeURI(testURL);
     let bmTxn =
       new PlacesCreateBookmarkTransaction(uri,
@@ -28,7 +26,7 @@ function test() {
 
     ok(PlacesUtils.bookmarks.isBookmarked(uri), "the test url is bookmarked");
     waitForStarChange(true, onStarred);
-  }), true);
+  }), {capture: true, once: true});
 
   content.location = testURL;
 }
@@ -53,18 +51,18 @@ function onStarred() {
   let tagTxn = new PlacesTagURITransaction(uri, [testTag]);
   PlacesUtils.transactionManager.doTransaction(tagTxn);
 
-  StarUI.panel.addEventListener("popupshown", onPanelShown, false);
+  StarUI.panel.addEventListener("popupshown", onPanelShown);
   BookmarkingUI.star.click();
 }
 
 function onPanelShown(aEvent) {
   if (aEvent.target == StarUI.panel) {
-    StarUI.panel.removeEventListener("popupshown", arguments.callee, false);
+    StarUI.panel.removeEventListener("popupshown", arguments.callee);
     let tagsField = document.getElementById("editBMPanel_tagsField");
     ok(tagsField.value == testTag, "tags field value was set");
     tagsField.focus();
 
-    StarUI.panel.addEventListener("popuphidden", onPanelHidden, false);
+    StarUI.panel.addEventListener("popuphidden", onPanelHidden);
     let removeButton = document.getElementById("editBookmarkPanelRemoveButton");
     removeButton.click();
   }
@@ -72,7 +70,7 @@ function onPanelShown(aEvent) {
 
 function onPanelHidden(aEvent) {
   if (aEvent.target == StarUI.panel) {
-    StarUI.panel.removeEventListener("popuphidden", arguments.callee, false);
+    StarUI.panel.removeEventListener("popuphidden", arguments.callee);
 
     executeSoon(function() {
       ok(!PlacesUtils.bookmarks.isBookmarked(makeURI(testURL)),

@@ -221,8 +221,8 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     }
 
     void writeDataRelocation(const Value& val) {
-        if (val.isMarkable()) {
-            gc::Cell* cell = val.toMarkablePointer();
+        if (val.isGCThing()) {
+            gc::Cell* cell = val.toGCThing();
             if (cell && gc::IsInsideNursery(cell))
                 embedsNurseryPointers_ = true;
             dataRelocations_.writeUnsigned(currentOffset());
@@ -409,12 +409,10 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void loadInt32OrDouble(const Address& src, FloatRegister dest);
     void loadInt32OrDouble(const BaseIndex& addr, FloatRegister dest);
     void loadConstantDouble(double dp, FloatRegister dest);
-    void loadConstantDouble(wasm::RawF64 d, FloatRegister dest);
 
     void boolValueToFloat32(const ValueOperand& operand, FloatRegister dest);
     void int32ValueToFloat32(const ValueOperand& operand, FloatRegister dest);
     void loadConstantFloat32(float f, FloatRegister dest);
-    void loadConstantFloat32(wasm::RawF32 f, FloatRegister dest);
 
     void testNullSet(Condition cond, const ValueOperand& value, Register dest);
 
@@ -498,7 +496,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void pushValue(ValueOperand val);
     void popValue(ValueOperand val);
     void pushValue(const Value& val) {
-        if (val.isMarkable()) {
+        if (val.isGCThing()) {
             writeDataRelocation(val);
             movWithPatch(ImmWord(val.asRawBits()), ScratchRegister);
             push(ScratchRegister);
@@ -881,12 +879,14 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void loadInt32x2(const BaseIndex& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void loadInt32x3(const Address& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void loadInt32x3(const BaseIndex& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
+    void loadInt32x4(const Address& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void storeInt32x1(FloatRegister src, const Address& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x1(FloatRegister src, const BaseIndex& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x2(FloatRegister src, const Address& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x2(FloatRegister src, const BaseIndex& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x3(FloatRegister src, const Address& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x3(FloatRegister src, const BaseIndex& dest) { MOZ_CRASH("NYI"); }
+    void storeInt32x4(FloatRegister src, const Address& dest) { MOZ_CRASH("NYI"); }
     void loadAlignedSimd128Int(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void storeAlignedSimd128Int(FloatRegister src, Address addr) { MOZ_CRASH("NYI"); }
     void loadUnalignedSimd128Int(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
@@ -896,6 +896,9 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
 
     void loadFloat32x3(const Address& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void loadFloat32x3(const BaseIndex& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
+    void loadFloat32x4(const Address& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
+    void storeFloat32x4(FloatRegister src, const Address& addr) { MOZ_CRASH("NYI"); }
+
     void loadAlignedSimd128Float(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void storeAlignedSimd128Float(FloatRegister src, Address addr) { MOZ_CRASH("NYI"); }
     void loadUnalignedSimd128Float(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
@@ -1007,12 +1010,6 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void abiret() {
         as_jr(ra);
         as_nop();
-    }
-
-    BufferOffset ma_BoundsCheck(Register bounded) {
-        BufferOffset bo = m_buffer.nextOffset();
-        ma_liPatchable(bounded, ImmWord(0));
-        return bo;
     }
 
     void moveFloat32(FloatRegister src, FloatRegister dest) {

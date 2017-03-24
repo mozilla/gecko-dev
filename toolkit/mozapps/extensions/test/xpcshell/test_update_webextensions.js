@@ -36,11 +36,14 @@ function serveManifest(request, response) {
   response.write(manifest.data);
 }
 
-
 function promiseInstallWebExtension(aData) {
   let addonFile = createTempWebExtensionFile(aData);
 
+  let startupPromise = promiseWebExtensionStartup();
+
   return promiseInstallAllFiles([addonFile]).then(() => {
+    return startupPromise;
+  }).then(() => {
     Services.obs.notifyObservers(addonFile, "flush-cache-entry", null);
     return promiseAddonByID(aData.id);
   });
@@ -175,7 +178,10 @@ add_task(function* checkUpdateToWebExt() {
 
   equal(update.addon.version, "1.0", "add-on version");
 
-  yield promiseCompleteAllInstalls([update.updateAvailable]);
+  yield Promise.all([
+    promiseCompleteAllInstalls([update.updateAvailable]),
+    promiseWebExtensionStartup(),
+  ]);
 
   let addon = yield promiseAddonByID(update.addon.id);
   equal(addon.version, "1.2", "new add-on version");
@@ -227,18 +233,15 @@ add_task(function* checkIllegalUpdateURL() {
 
   for (let url of URLS) {
     let { messages } = yield promiseConsoleOutput(() => {
-      return new Promise((resolve, reject) => {
-        let addonFile = createTempWebExtensionFile({
-          manifest: { applications: { gecko: { update_url: url } } },
-        });
+      let addonFile = createTempWebExtensionFile({
+        manifest: { applications: { gecko: { update_url: url } } },
+      });
 
-        AddonManager.getInstallForFile(addonFile, install => {
-          Services.obs.notifyObservers(addonFile, "flush-cache-entry", null);
+      return AddonManager.getInstallForFile(addonFile).then(install => {
+        Services.obs.notifyObservers(addonFile, "flush-cache-entry", null);
 
-          if (install && install.state == AddonManager.STATE_DOWNLOAD_FAILED)
-            resolve();
-          reject(new Error("Unexpected state: " + (install && install.state)))
-        });
+        if (!install || install.state != AddonManager.STATE_DOWNLOAD_FAILED)
+          throw new Error("Unexpected state: " + (install && install.state));
       });
     });
 

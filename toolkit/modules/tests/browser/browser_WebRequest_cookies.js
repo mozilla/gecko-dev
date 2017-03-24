@@ -10,8 +10,7 @@ const URL = BASE + "/WebRequest_dynamic.sjs";
 var countBefore = 0;
 var countAfter = 0;
 
-function onBeforeSendHeaders(details)
-{
+function onBeforeSendHeaders(details) {
   if (details.url != URL) {
     return undefined;
   }
@@ -36,8 +35,7 @@ function onBeforeSendHeaders(details)
   return {requestHeaders: headers};
 }
 
-function onResponseStarted(details)
-{
+function onResponseStarted(details) {
   if (details.url != URL) {
     return;
   }
@@ -81,9 +79,8 @@ add_task(function* filter_urls() {
 
 function waitForLoad(browser = gBrowser.selectedBrowser) {
   return new Promise(resolve => {
-    browser.addEventListener("load", function listener() {
-      browser.removeEventListener("load", listener, true);
+    browser.addEventListener("load", function() {
       resolve();
-    }, true);
+    }, {capture: true, once: true});
   });
 }

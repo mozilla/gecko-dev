@@ -156,12 +156,13 @@ nsFtpControlConnection::Disconnect(nsresult status)
     if (!mSocket)
         return NS_OK;  // already disconnected
     
-    LOG_INFO(("FTP:(%p) CC disconnecting (%x)", this, status));
+    LOG_INFO(("FTP:(%p) CC disconnecting (%" PRIx32 ")", this,
+              static_cast<uint32_t>(status)));
 
     if (NS_FAILED(status)) {
         // break cyclic reference!
         mSocket->Close(status);
-        mSocket = 0;
+        mSocket = nullptr;
         mSocketInput->AsyncWait(nullptr, 0, 0, nullptr);  // clear any observer
         mSocketInput = nullptr;
         mSocketOutput = nullptr;

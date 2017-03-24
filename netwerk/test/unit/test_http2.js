@@ -148,7 +148,9 @@ Http2HeaderListener.prototype.onDataAvailable = function(request, ctx, stream, o
   read_stream(stream, cnt);
 };
 
-var Http2PushListener = function() {};
+var Http2PushListener = function(shouldBePushed) {
+  this.shouldBePushed = shouldBePushed;
+};
 
 Http2PushListener.prototype = new Http2CheckListener();
 
@@ -158,7 +160,7 @@ Http2PushListener.prototype.onDataAvailable = function(request, ctx, stream, off
   if (request.originalURI.spec == "https://localhost:" + serverPort + "/push.js"  ||
       request.originalURI.spec == "https://localhost:" + serverPort + "/push2.js" ||
       request.originalURI.spec == "https://localhost:" + serverPort + "/push5.js") {
-    do_check_eq(request.getResponseHeader("pushed"), "yes");
+    do_check_eq(request.getResponseHeader("pushed"), this.shouldBePushed ? "yes" : "no");
   }
   read_stream(stream, cnt);
 };
@@ -386,8 +388,7 @@ function test_http2_xhr() {
   var req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
             .createInstance(Ci.nsIXMLHttpRequest);
   req.open("GET", "https://localhost:" + serverPort + "/", true);
-  req.addEventListener("readystatechange", function (evt) { checkXhr(req); },
-                       false);
+  req.addEventListener("readystatechange", function (evt) { checkXhr(req); });
   req.send(null);
 }
 
@@ -493,42 +494,42 @@ function test_http2_cookie_crumbling() {
 function test_http2_push1() {
   var chan = makeChan("https://localhost:" + serverPort + "/push");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push2() {
   var chan = makeChan("https://localhost:" + serverPort + "/push.js");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push3() {
   var chan = makeChan("https://localhost:" + serverPort + "/push2");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push4() {
   var chan = makeChan("https://localhost:" + serverPort + "/push2.js");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push5() {
   var chan = makeChan("https://localhost:" + serverPort + "/push5");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push6() {
   var chan = makeChan("https://localhost:" + serverPort + "/push5.js");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
@@ -900,6 +901,54 @@ function test_http2_empty_data() {
   chan.asyncOpen2(listener);
 }
 
+function test_http2_push_firstparty1() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { firstPartyDomain: "foo.com" };
+  var listener = new Http2PushListener(true);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_firstparty2() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push.js");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { firstPartyDomain: "bar.com" };
+  var listener = new Http2PushListener(false);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_firstparty3() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push.js");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { firstPartyDomain: "foo.com" };
+  var listener = new Http2PushListener(true);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_userContext1() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { userContextId: 1 };
+  var listener = new Http2PushListener(true);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_userContext2() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push.js");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { userContextId: 2 };
+  var listener = new Http2PushListener(false);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_userContext3() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push.js");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { userContextId: 1 };
+  var listener = new Http2PushListener(true);
+  chan.asyncOpen2(listener);
+}
+
 function test_complete() {
   resetPrefs();
   do_test_pending();
@@ -952,6 +1001,12 @@ var tests = [ test_http2_post_big
             , test_http2_h11required_session
             , test_http2_retry_rst
             , test_http2_wrongsuite
+            , test_http2_push_firstparty1
+            , test_http2_push_firstparty2
+            , test_http2_push_firstparty3
+            , test_http2_push_userContext1
+            , test_http2_push_userContext2
+            , test_http2_push_userContext3
 
             // cleanup
             , test_complete
@@ -1025,7 +1080,6 @@ var prefs;
 var spdypref;
 var spdypush;
 var http2pref;
-var tlspref;
 var altsvcpref1;
 var altsvcpref2;
 var loadGroup;
@@ -1037,7 +1091,6 @@ function resetPrefs() {
   prefs.setBoolPref("network.http.spdy.enabled", spdypref);
   prefs.setBoolPref("network.http.spdy.allow-push", spdypush);
   prefs.setBoolPref("network.http.spdy.enabled.http2", http2pref);
-  prefs.setBoolPref("network.http.spdy.enforce-tls-profile", tlspref);
   prefs.setBoolPref("network.http.altsvc.enabled", altsvcpref1);
   prefs.setBoolPref("network.http.altsvc.oe", altsvcpref2);
   prefs.clearUserPref("network.dns.localDomains");
@@ -1072,7 +1125,6 @@ function run_test() {
   spdypref = prefs.getBoolPref("network.http.spdy.enabled");
   spdypush = prefs.getBoolPref("network.http.spdy.allow-push");
   http2pref = prefs.getBoolPref("network.http.spdy.enabled.http2");
-  tlspref = prefs.getBoolPref("network.http.spdy.enforce-tls-profile");
   altsvcpref1 = prefs.getBoolPref("network.http.altsvc.enabled");
   altsvcpref2 = prefs.getBoolPref("network.http.altsvc.oe", true);
 
@@ -1080,7 +1132,6 @@ function run_test() {
   prefs.setBoolPref("network.http.spdy.enabled.v3-1", true);
   prefs.setBoolPref("network.http.spdy.allow-push", true);
   prefs.setBoolPref("network.http.spdy.enabled.http2", true);
-  prefs.setBoolPref("network.http.spdy.enforce-tls-profile", false);
   prefs.setBoolPref("network.http.altsvc.enabled", true);
   prefs.setBoolPref("network.http.altsvc.oe", true);
   prefs.setCharPref("network.dns.localDomains", "foo.example.com, bar.example.com");
@@ -1115,5 +1166,5 @@ function readFile(file) {
 function addCertFromFile(certdb, filename, trustString) {
   let certFile = do_get_file(filename, false);
   let der = readFile(certFile);
-  certdb.addCert(der, trustString, null);
+  certdb.addCert(der, trustString);
 }

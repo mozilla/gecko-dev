@@ -21,3 +21,12 @@ function waitForCondition(condition, nextTest, errorMsg) {
   }, 100);
   var moveOn = function() { clearInterval(interval); nextTest(); };
 }
+
+function getAnonElementWithinVideoByAttribute(video, aName, aValue) {
+  const domUtils = SpecialPowers.Cc["@mozilla.org/inspector/dom-utils;1"].
+    getService(SpecialPowers.Ci.inIDOMUtils);
+  const videoControl = domUtils.getChildrenForNode(video, true)[1];
+
+  return SpecialPowers.wrap(videoControl.ownerDocument)
+    .getAnonymousElementByAttribute(videoControl, aName, aValue);
+}

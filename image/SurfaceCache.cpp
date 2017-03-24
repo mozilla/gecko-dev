@@ -15,9 +15,9 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Likely.h"
 #include "mozilla/Move.h"
-#include "mozilla/Mutex.h"
 #include "mozilla/Pair.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Tuple.h"
 #include "nsIMemoryReporter.h"
@@ -54,6 +54,9 @@ class SurfaceCacheImpl;
 
 // The single surface cache instance.
 static StaticRefPtr<SurfaceCacheImpl> sInstance;
+
+// The mutex protecting the surface cache.
+static StaticMutex sInstanceMutex;
 
 ///////////////////////////////////////////////////////////////////////////////
 // SurfaceCache Implementation
@@ -194,10 +197,12 @@ public:
       // for surfaces with PlaybackType::eAnimated.)
       size_t heap = 0;
       size_t nonHeap = 0;
+      size_t handles = 0;
       aCachedSurface->mProvider
-        ->AddSizeOfExcludingThis(mMallocSizeOf, heap, nonHeap);
+        ->AddSizeOfExcludingThis(mMallocSizeOf, heap, nonHeap, handles);
       counter.Values().SetDecodedHeap(heap);
       counter.Values().SetDecodedNonHeap(nonHeap);
+      counter.Values().SetSharedHandles(handles);
 
       mCounters.AppendElement(counter);
     }
@@ -391,7 +396,6 @@ public:
                    uint32_t aSurfaceCacheSize)
     : mExpirationTracker(aSurfaceCacheExpirationTimeMS)
     , mMemoryPressureObserver(new MemoryPressureObserver)
-    , mMutex("SurfaceCache")
     , mDiscardFactor(aSurfaceCacheDiscardFactor)
     , mMaxCost(aSurfaceCacheSize)
     , mAvailableCost(aSurfaceCacheSize)
@@ -417,8 +421,6 @@ private:
 
 public:
   void InitMemoryReporter() { RegisterWeakMemoryReporter(this); }
-
-  Mutex& GetMutex() { return mMutex; }
 
   InsertOutcome Insert(NotNull<ISurfaceProvider*> aProvider,
                        bool                       aSetAvailable)
@@ -500,7 +502,7 @@ public:
 
     // If the surface was not a placeholder, tell its image that we discarded it.
     if (!aSurface->IsPlaceholder()) {
-      static_cast<Image*>(imageKey)->OnSurfaceDiscarded();
+      static_cast<Image*>(imageKey)->OnSurfaceDiscarded(aSurface->GetSurfaceKey());
     }
 
     StopTracking(aSurface);
@@ -696,7 +698,7 @@ public:
     }
 
     cache->SetLocked(false);
-    DoUnlockSurfaces(WrapNotNull(cache));
+    DoUnlockSurfaces(WrapNotNull(cache), /* aStaticOnly = */ false);
   }
 
   void UnlockEntries(const ImageKey aImageKey)
@@ -708,7 +710,8 @@ public:
 
     // (Note that we *don't* unlock the per-image cache here; that's the
     // difference between this and UnlockImage.)
-    DoUnlockSurfaces(WrapNotNull(cache));
+    DoUnlockSurfaces(WrapNotNull(cache),
+      /* aStaticOnly = */ !gfxPrefs::ImageMemAnimatedDiscardable());
   }
 
   void RemoveImage(const ImageKey aImageKey)
@@ -786,7 +789,7 @@ public:
                  nsISupports*             aData,
                  bool                     aAnonymize) override
   {
-    MutexAutoLock lock(mMutex);
+    StaticMutexAutoLock lock(sInstanceMutex);
 
     // We have explicit memory reporting for the surface cache which is more
     // accurate than the cost metrics we report here, but these metrics are
@@ -854,12 +857,15 @@ private:
     }
   }
 
-  void DoUnlockSurfaces(NotNull<ImageSurfaceCache*> aCache)
+  void DoUnlockSurfaces(NotNull<ImageSurfaceCache*> aCache, bool aStaticOnly)
   {
     // Unlock all the surfaces the per-image cache is holding.
     for (auto iter = aCache->ConstIter(); !iter.Done(); iter.Next()) {
       NotNull<CachedSurface*> surface = WrapNotNull(iter.UserData());
       if (surface->IsPlaceholder() || !surface->IsLocked()) {
+        continue;
+      }
+      if (aStaticOnly && surface->GetSurfaceKey().Playback() != PlaybackType::eStatic) {
         continue;
       }
       StopTracking(surface);
@@ -894,8 +900,8 @@ private:
   protected:
     virtual void NotifyExpired(CachedSurface* aSurface) override
     {
+      StaticMutexAutoLock lock(sInstanceMutex);
       if (sInstance) {
-        MutexAutoLock lock(sInstance->GetMutex());
         sInstance->Remove(WrapNotNull(aSurface));
       }
     }
@@ -909,8 +915,8 @@ private:
                        const char* aTopic,
                        const char16_t*) override
     {
+      StaticMutexAutoLock lock(sInstanceMutex);
       if (sInstance && strcmp(aTopic, "memory-pressure") == 0) {
-        MutexAutoLock lock(sInstance->GetMutex());
         sInstance->DiscardForMemoryPressure();
       }
       return NS_OK;
@@ -925,7 +931,6 @@ private:
     ImageSurfaceCache> mImageCaches;
   SurfaceTracker                          mExpirationTracker;
   RefPtr<MemoryPressureObserver>        mMemoryPressureObserver;
-  Mutex                                   mMutex;
   const uint32_t                          mDiscardFactor;
   const Cost                              mMaxCost;
   Cost                                    mAvailableCost;
@@ -999,6 +1004,7 @@ SurfaceCache::Initialize()
 /* static */ void
 SurfaceCache::Shutdown()
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(sInstance, "No singleton - was Shutdown() called twice?");
   sInstance = nullptr;
@@ -1008,11 +1014,11 @@ SurfaceCache::Shutdown()
 SurfaceCache::Lookup(const ImageKey         aImageKey,
                      const SurfaceKey&      aSurfaceKey)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return LookupResult(MatchType::NOT_FOUND);
   }
 
-  MutexAutoLock lock(sInstance->GetMutex());
   return sInstance->Lookup(aImageKey, aSurfaceKey);
 }
 
@@ -1020,28 +1026,29 @@ SurfaceCache::Lookup(const ImageKey         aImageKey,
 SurfaceCache::LookupBestMatch(const ImageKey         aImageKey,
                               const SurfaceKey&      aSurfaceKey)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return LookupResult(MatchType::NOT_FOUND);
   }
 
-  MutexAutoLock lock(sInstance->GetMutex());
   return sInstance->LookupBestMatch(aImageKey, aSurfaceKey);
 }
 
 /* static */ InsertOutcome
 SurfaceCache::Insert(NotNull<ISurfaceProvider*> aProvider)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return InsertOutcome::FAILURE;
   }
 
-  MutexAutoLock lock(sInstance->GetMutex());
   return sInstance->Insert(aProvider, /* aSetAvailable = */ false);
 }
 
 /* static */ bool
 SurfaceCache::CanHold(const IntSize& aSize, uint32_t aBytesPerPixel /* = 4 */)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return false;
   }
@@ -1053,6 +1060,7 @@ SurfaceCache::CanHold(const IntSize& aSize, uint32_t aBytesPerPixel /* = 4 */)
 /* static */ bool
 SurfaceCache::CanHold(size_t aSize)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return false;
   }
@@ -1063,19 +1071,19 @@ SurfaceCache::CanHold(size_t aSize)
 /* static */ void
 SurfaceCache::SurfaceAvailable(NotNull<ISurfaceProvider*> aProvider)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return;
   }
 
-  MutexAutoLock lock(sInstance->GetMutex());
   sInstance->SurfaceAvailable(aProvider);
 }
 
 /* static */ void
 SurfaceCache::LockImage(const ImageKey aImageKey)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (sInstance) {
-    MutexAutoLock lock(sInstance->GetMutex());
     return sInstance->LockImage(aImageKey);
   }
 }
@@ -1083,8 +1091,8 @@ SurfaceCache::LockImage(const ImageKey aImageKey)
 /* static */ void
 SurfaceCache::UnlockImage(const ImageKey aImageKey)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (sInstance) {
-    MutexAutoLock lock(sInstance->GetMutex());
     return sInstance->UnlockImage(aImageKey);
   }
 }
@@ -1092,8 +1100,8 @@ SurfaceCache::UnlockImage(const ImageKey aImageKey)
 /* static */ void
 SurfaceCache::UnlockEntries(const ImageKey aImageKey)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (sInstance) {
-    MutexAutoLock lock(sInstance->GetMutex());
     return sInstance->UnlockEntries(aImageKey);
   }
 }
@@ -1101,8 +1109,8 @@ SurfaceCache::UnlockEntries(const ImageKey aImageKey)
 /* static */ void
 SurfaceCache::RemoveImage(const ImageKey aImageKey)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (sInstance) {
-    MutexAutoLock lock(sInstance->GetMutex());
     sInstance->RemoveImage(aImageKey);
   }
 }
@@ -1110,8 +1118,8 @@ SurfaceCache::RemoveImage(const ImageKey aImageKey)
 /* static */ void
 SurfaceCache::DiscardAll()
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (sInstance) {
-    MutexAutoLock lock(sInstance->GetMutex());
     sInstance->DiscardAll();
   }
 }
@@ -1121,22 +1129,22 @@ SurfaceCache::CollectSizeOfSurfaces(const ImageKey                  aImageKey,
                                     nsTArray<SurfaceMemoryCounter>& aCounters,
                                     MallocSizeOf                    aMallocSizeOf)
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return;
   }
 
-  MutexAutoLock lock(sInstance->GetMutex());
   return sInstance->CollectSizeOfSurfaces(aImageKey, aCounters, aMallocSizeOf);
 }
 
 /* static */ size_t
 SurfaceCache::MaximumCapacity()
 {
+  StaticMutexAutoLock lock(sInstanceMutex);
   if (!sInstance) {
     return 0;
   }
 
-  MutexAutoLock lock(sInstance->GetMutex());
   return sInstance->MaximumCapacity();
 }
 

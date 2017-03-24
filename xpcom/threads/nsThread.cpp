@@ -22,6 +22,7 @@
 #include "nsQueryObject.h"
 #include "pratom.h"
 #include "mozilla/CycleCollectedJSContext.h"
+#include "mozilla/Dispatcher.h"
 #include "mozilla/Logging.h"
 #include "nsIObserverService.h"
 #include "mozilla/HangMonitor.h"
@@ -31,6 +32,7 @@
 #include "mozilla/Services.h"
 #include "nsXPCOMPrivate.h"
 #include "mozilla/ChaosMode.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -38,6 +40,7 @@
 #include "nsIIncrementalRunnable.h"
 #include "nsThreadSyncDispatch.h"
 #include "LeakRefPtr.h"
+#include "GeckoProfiler.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsServiceManagerUtils.h"
@@ -194,7 +197,8 @@ class nsThreadStartupEvent : public Runnable
 {
 public:
   nsThreadStartupEvent()
-    : mMon("nsThreadStartupEvent.mMon")
+    : Runnable("nsThreadStartupEvent")
+    , mMon("nsThreadStartupEvent.mMon")
     , mInitialized(false)
   {
   }
@@ -333,7 +337,8 @@ class nsThreadShutdownAckEvent : public CancelableRunnable
 {
 public:
   explicit nsThreadShutdownAckEvent(NotNull<nsThreadShutdownContext*> aCtx)
-    : mShutdownContext(aCtx)
+    : CancelableRunnable("nsThreadShutdownAckEvent")
+    , mShutdownContext(aCtx)
   {
   }
   NS_IMETHOD Run() override
@@ -357,7 +362,8 @@ class nsThreadShutdownEvent : public Runnable
 public:
   nsThreadShutdownEvent(NotNull<nsThread*> aThr,
                         NotNull<nsThreadShutdownContext*> aCtx)
-    : mThread(aThr)
+    : Runnable("nsThreadShutdownEvent")
+    , mThread(aThr)
     , mShutdownContext(aCtx)
   {
   }
@@ -432,19 +438,43 @@ SetupCurrentThreadForChaosMode()
   }
 }
 
+namespace {
+
+struct ThreadInitData {
+  nsThread* thread;
+  const nsACString& name;
+};
+
+}
+
 /*static*/ void
 nsThread::ThreadFunc(void* aArg)
 {
   using mozilla::ipc::BackgroundChild;
 
-  nsThread* self = static_cast<nsThread*>(aArg);  // strong reference
+  char stackTop;
+
+  ThreadInitData* initData = static_cast<ThreadInitData*>(aArg);
+  nsThread* self = initData->thread;  // strong reference
+
   self->mThread = PR_GetCurrentThread();
   SetupCurrentThreadForChaosMode();
+
+  if (!initData->name.IsEmpty()) {
+    PR_SetCurrentThreadName(initData->name.BeginReading());
+  }
 
   // Inform the ThreadManager
   nsThreadManager::get().RegisterCurrentThread(*self);
 
   mozilla::IOInterposer::RegisterCurrentThread();
+
+  // This must come after the call to nsThreadManager::RegisterCurrentThread(),
+  // because that call is needed to properly set up this thread as an nsThread,
+  // which profiler_register_thread() requires. See bug 1347007.
+  if (!initData->name.IsEmpty()) {
+    profiler_register_thread(initData->name.BeginReading(), &stackTop);
+  }
 
   // Wait for and process startup event
   nsCOMPtr<nsIRunnable> event;
@@ -455,6 +485,9 @@ nsThread::ThreadFunc(void* aArg)
       return;
     }
   }
+
+  initData = nullptr; // clear before unblocking nsThread::Init
+
   event->Run();  // unblocks nsThread::Init
   event = nullptr;
 
@@ -500,6 +533,8 @@ nsThread::ThreadFunc(void* aArg)
 
   // Inform the threadmanager that this thread is going away
   nsThreadManager::get().UnregisterCurrentThread(*self);
+
+  profiler_unregister_thread();
 
   // Dispatch shutdown ACK
   NotNull<nsThreadShutdownContext*> context =
@@ -628,7 +663,7 @@ nsThread::~nsThread()
 }
 
 nsresult
-nsThread::Init()
+nsThread::Init(const nsACString& aName)
 {
   // spawn thread and wait until it is fully setup
   RefPtr<nsThreadStartupEvent> startup = new nsThreadStartupEvent();
@@ -639,8 +674,10 @@ nsThread::Init()
 
   mShutdownRequired = true;
 
+  ThreadInitData initData = { this, aName };
+
   // ThreadFunc is responsible for setting mThread
-  if (!PR_CreateThread(PR_USER_THREAD, ThreadFunc, this,
+  if (!PR_CreateThread(PR_USER_THREAD, ThreadFunc, &initData,
                        PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
                        PR_JOINABLE_THREAD, mStackSize)) {
     NS_RELEASE_THIS();
@@ -1098,10 +1135,7 @@ nsThread::GetIdleEvent(nsIRunnable** aEvent, MutexAutoLock& aProofOfLock)
   MOZ_ASSERT(aEvent);
 
   TimeStamp idleDeadline;
-  {
-    MutexAutoUnlock unlock(mLock);
-    mIdlePeriod->GetIdlePeriodHint(&idleDeadline);
-  }
+  mIdlePeriod->GetIdlePeriodHint(&idleDeadline);
 
   if (!idleDeadline || idleDeadline < TimeStamp::Now()) {
     aEvent = nullptr;
@@ -1168,8 +1202,10 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
   // and repeat the nested event loop since its state change hasn't happened yet.
   bool reallyWait = aMayWait && (mNestedEventLoopDepth > 0 || !ShuttingDown());
 
+  Maybe<ValidatingDispatcher::AutoProcessEvent> ape;
   if (mIsMainThread == MAIN_THREAD) {
     DoMainThreadSpecificProcessing(reallyWait);
+    ape.emplace();
   }
 
   ++mNestedEventLoopDepth;
@@ -1210,8 +1246,25 @@ nsThread::ProcessNextEvent(bool aMayWait, bool* aResult)
 
     if (event) {
       LOG(("THRD(%p) running [%p]\n", this, event.get()));
+#ifndef RELEASE_OR_BETA
+      Maybe<Telemetry::AutoTimer<Telemetry::MAIN_THREAD_RUNNABLE_MS>> timer;
+#endif
       if (MAIN_THREAD == mIsMainThread) {
         HangMonitor::NotifyActivity();
+
+#ifndef RELEASE_OR_BETA
+        nsCString name;
+        if (nsCOMPtr<nsINamed> named = do_QueryInterface(event)) {
+          if (NS_FAILED(named->GetName(name))) {
+            name.AssignLiteral("GetName failed");
+          } else if (name.IsEmpty()) {
+            name.AssignLiteral("anonymous runnable");
+          }
+        } else {
+          name.AssignLiteral("non-nsINamed runnable");
+        }
+        timer.emplace(name);
+#endif
       }
       event->Run();
     } else if (aMayWait) {
@@ -1445,15 +1498,12 @@ nsThread::DoMainThreadSpecificProcessing(bool aReallyWait)
     if (mpPending != MemPressure_None) {
       nsCOMPtr<nsIObserverService> os = services::GetObserverService();
 
-      // Use no-forward to prevent the notifications from being transferred to
-      // the children of this process.
-      NS_NAMED_LITERAL_STRING(lowMem, "low-memory-no-forward");
-      NS_NAMED_LITERAL_STRING(lowMemOngoing, "low-memory-ongoing-no-forward");
-
       if (os) {
+        // Use no-forward to prevent the notifications from being transferred to
+        // the children of this process.
         os->NotifyObservers(nullptr, "memory-pressure",
-                            mpPending == MemPressure_New ? lowMem.get() :
-                            lowMemOngoing.get());
+                            mpPending == MemPressure_New ? u"low-memory-no-forward" :
+                            u"low-memory-ongoing-no-forward");
       } else {
         NS_WARNING("Can't get observer service!");
       }

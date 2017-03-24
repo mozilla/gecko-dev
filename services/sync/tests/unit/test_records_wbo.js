@@ -2,7 +2,6 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 Cu.import("resource://services-sync/record.js");
-Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
@@ -24,9 +23,9 @@ function test_toJSON() {
   do_check_false("ttl" in json);
 
   _("Set a TTL, make sure it's present in the JSON representation.");
-  wbo.ttl = 30*60;
+  wbo.ttl = 30 * 60;
   json = JSON.parse(JSON.stringify(wbo));
-  do_check_eq(json.ttl, 30*60);
+  do_check_eq(json.ttl, 30 * 60);
 }
 
 
@@ -79,7 +78,6 @@ function test_fetch() {
 
 function run_test() {
   initTestLogging("Trace");
-  ensureLegacyIdentityManager();
 
   test_toJSON();
   test_fetch();

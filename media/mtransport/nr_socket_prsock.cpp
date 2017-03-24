@@ -114,6 +114,7 @@ nrappkit copyright:
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsISocketFilter.h"
+#include "nsDebug.h"
 
 #ifdef XP_WIN
 #include "mozilla/WindowsVersion.h"
@@ -178,8 +179,9 @@ private:
   ~SingletonThreadHolder()
   {
     r_log(LOG_GENERIC,LOG_DEBUG,"Deleting SingletonThreadHolder");
-    MOZ_ASSERT(!mThread, "SingletonThreads should be Released and shut down before exit!");
     if (mThread) {
+      // Likely a connection is somehow being held in CC or GC
+      NS_WARNING("SingletonThreads should be Released and shut down before exit!");
       mThread->Shutdown();
       mThread = nullptr;
     }
@@ -205,25 +207,38 @@ public:
    * Keep track of how many instances are using a SingletonThreadHolder.
    * When no one is using it, shut it down
    */
-  MozExternalRefCountType AddUse()
+  void AddUse()
   {
-    MOZ_ASSERT(mParentThread == NS_GetCurrentThread());
+    RUN_ON_THREAD(mParentThread,
+                  mozilla::WrapRunnable(RefPtr<SingletonThreadHolder>(this),
+                                        &SingletonThreadHolder::AddUse_i),
+                  NS_DISPATCH_SYNC);
+  }
+
+  void AddUse_i()
+  {
     MOZ_ASSERT(int32_t(mUseCount) >= 0, "illegal refcnt");
     nsrefcnt count = ++mUseCount;
     if (count == 1) {
       // idle -> in-use
-      nsresult rv = NS_NewThread(getter_AddRefs(mThread));
+      nsresult rv = NS_NewNamedThread(mName, getter_AddRefs(mThread));
       MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv) && mThread,
                          "Should successfully create mtransport I/O thread");
-      NS_SetThreadName(mThread, mName);
       r_log(LOG_GENERIC,LOG_DEBUG,"Created wrapped SingletonThread %p",
             mThread.get());
     }
-    r_log(LOG_GENERIC,LOG_DEBUG,"AddUse: %lu", (unsigned long) count);
-    return count;
+    r_log(LOG_GENERIC,LOG_DEBUG,"AddUse_i: %lu", (unsigned long) count);
   }
 
-  MozExternalRefCountType ReleaseUse()
+  void ReleaseUse()
+  {
+    RUN_ON_THREAD(mParentThread,
+                  mozilla::WrapRunnable(RefPtr<SingletonThreadHolder>(this),
+                                        &SingletonThreadHolder::ReleaseUse_i),
+                  NS_DISPATCH_SYNC);
+  }
+
+  void ReleaseUse_i()
   {
     MOZ_ASSERT(mParentThread == NS_GetCurrentThread());
     nsrefcnt count = --mUseCount;
@@ -237,8 +252,7 @@ public:
       // It'd be nice to use a timer instead...  But be careful of
       // xpcom-shutdown-threads in that case
     }
-    r_log(LOG_GENERIC,LOG_DEBUG,"ReleaseUse: %lu", (unsigned long) count);
-    return count;
+    r_log(LOG_GENERIC,LOG_DEBUG,"ReleaseUse_i: %lu", (unsigned long) count);
   }
 
 private:
@@ -252,7 +266,7 @@ static StaticRefPtr<SingletonThreadHolder> sThread;
 
 static void ClearSingletonOnShutdown()
 {
-  ClearOnShutdown(&sThread);
+  ClearOnShutdown(&sThread, ShutdownPhase::ShutdownThreads);
 }
 #endif
 
@@ -648,6 +662,10 @@ int NrSocket::create(nr_transport_addr *addr) {
 #endif
       break;
     case IPPROTO_TCP:
+      // TODO: Add TLS layer with nsISocketProviderService?
+      if (my_addr_.tls_host[0] != '\0')
+        ABORT(R_INTERNAL);
+
       if (!(fd_ = PR_OpenTCPSocket(naddr.raw.family))) {
         r_log(LOG_GENERIC,LOG_CRIT,"Couldn't create TCP socket, "
               "family=%d, err=%d", naddr.raw.family, PR_GetError());
@@ -1132,9 +1150,11 @@ NrUdpSocketIpc::~NrUdpSocketIpc()
   // close(), but transfer the socket_child_ reference to die as well
   RUN_ON_THREAD(io_thread_,
                 mozilla::WrapRunnableNM(&NrUdpSocketIpc::release_child_i,
-                                        socket_child_.forget().take(),
-                                        sts_thread_),
+                                        socket_child_.forget().take()),
                 NS_DISPATCH_NORMAL);
+  // This may shut down the io_thread_, but it should spin the event loop so
+  // the above runnable happens.
+  sThread->ReleaseUse();
 #endif
 }
 
@@ -1618,21 +1638,12 @@ void NrUdpSocketIpc::close_i() {
 #if defined(MOZILLA_INTERNAL_API)
 // close(), but transfer the socket_child_ reference to die as well
 // static
-void NrUdpSocketIpc::release_child_i(nsIUDPSocketChild* aChild,
-                                     nsCOMPtr<nsIEventTarget> sts_thread) {
+void NrUdpSocketIpc::release_child_i(nsIUDPSocketChild* aChild) {
   RefPtr<nsIUDPSocketChild> socket_child_ref =
     already_AddRefed<nsIUDPSocketChild>(aChild);
   if (socket_child_ref) {
     socket_child_ref->Close();
   }
-  // Tell SingletonThreadHolder we're done with it
-  RUN_ON_THREAD(sts_thread,
-                mozilla::WrapRunnableNM(&NrUdpSocketIpc::release_use_s),
-                NS_DISPATCH_NORMAL);
-}
-
-void NrUdpSocketIpc::release_use_s() {
-  sThread->ReleaseUse();
 }
 #endif
 
@@ -1690,8 +1701,7 @@ NrTcpSocketIpc::~NrTcpSocketIpc()
   // close(), but transfer the socket_child_ reference to die as well
   RUN_ON_THREAD(io_thread_,
                 mozilla::WrapRunnableNM(&NrTcpSocketIpc::release_child_i,
-                                        socket_child_.forget().take(),
-                                        sts_thread_),
+                                        socket_child_.forget().take()),
                 NS_DISPATCH_NORMAL);
 }
 
@@ -1879,7 +1889,8 @@ int NrTcpSocketIpc::connect(nr_transport_addr *addr) {
                              remote_addr,
                              static_cast<uint16_t>(remote_port),
                              local_addr,
-                             static_cast<uint16_t>(local_port)),
+                             static_cast<uint16_t>(local_port),
+                             nsCString(my_addr_.tls_host)),
                 NS_DISPATCH_NORMAL);
 
   // Make caller wait for ready to write.
@@ -1955,7 +1966,8 @@ int NrTcpSocketIpc::accept(nr_transport_addr *addrp, nr_socket **sockp) {
 void NrTcpSocketIpc::connect_i(const nsACString &remote_addr,
                                uint16_t remote_port,
                                const nsACString &local_addr,
-                               uint16_t local_port) {
+                               uint16_t local_port,
+                               const nsACString &tls_host) {
   ASSERT_ON_THREAD(io_thread_);
   mirror_state_ = NR_CONNECTING;
 
@@ -1964,11 +1976,21 @@ void NrTcpSocketIpc::connect_i(const nsACString &remote_addr,
 
   // Bug 1285330: put filtering back in here
 
-  // XXX remove remote!
-  socket_child_->SendWindowlessOpenBind(this,
-                                        remote_addr, remote_port,
-                                        local_addr, local_port,
-                                        /* use ssl */ false);
+  if (tls_host.IsEmpty()) {
+    // XXX remove remote!
+    socket_child_->SendWindowlessOpenBind(this,
+                                          remote_addr, remote_port,
+                                          local_addr, local_port,
+                                          /* use ssl */ false,
+                                          /* reuse addr port */ true);
+  } else {
+    // XXX remove remote!
+    socket_child_->SendWindowlessOpenBind(this,
+                                          tls_host, remote_port,
+                                          local_addr, local_port,
+                                          /* use ssl */ true,
+                                          /* reuse addr port */ true);
+  }
 }
 
 void NrTcpSocketIpc::write_i(nsAutoPtr<InfallibleTArray<uint8_t>> arr,
@@ -1991,8 +2013,7 @@ void NrTcpSocketIpc::close_i() {
 
 // close(), but transfer the socket_child_ reference to die as well
 // static
-void NrTcpSocketIpc::release_child_i(dom::TCPSocketChild* aChild,
-                                     nsCOMPtr<nsIEventTarget> sts_thread) {
+void NrTcpSocketIpc::release_child_i(dom::TCPSocketChild* aChild) {
   RefPtr<dom::TCPSocketChild> socket_child_ref =
     already_AddRefed<dom::TCPSocketChild>(aChild);
   if (socket_child_ref) {

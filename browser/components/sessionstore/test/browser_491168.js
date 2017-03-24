@@ -16,13 +16,13 @@ add_task(function* () {
   yield promiseBrowserLoaded(browser);
 
   // Load a new URI with a specific referrer.
-  let referrerURI = Services.io.newURI(REFERRER1, null, null);
+  let referrerURI = Services.io.newURI(REFERRER1);
   browser.loadURI("http://example.org", referrerURI, null);
   yield promiseBrowserLoaded(browser);
 
   yield TabStateFlusher.flush(browser);
   let tabState = JSON.parse(ss.getTabState(tab));
-  is(tabState.entries[0].referrer,  REFERRER1,
+  is(tabState.entries[0].referrer, REFERRER1,
      "Referrer retrieved via getTabState matches referrer set via loadURI.");
 
   tabState.entries[0].referrer = REFERRER2;

@@ -134,10 +134,8 @@ ABIArgGenerator::hardNext(MIRType type)
         break;
       case MIRType::Float32:
         if (floatRegIndex_ == NumFloatArgRegs) {
-            static const uint32_t align = sizeof(double) - 1;
-            stackOffset_ = (stackOffset_ + align) & ~align;
             current_ = ABIArg(stackOffset_);
-            stackOffset_ += sizeof(uint64_t);
+            stackOffset_ += sizeof(uint32_t);
             break;
         }
         current_ = ABIArg(VFPRegister(floatRegIndex_, VFPRegister::Single));
@@ -171,6 +169,18 @@ ABIArgGenerator::next(MIRType type)
     if (useHardFp_)
         return hardNext(type);
     return softNext(type);
+}
+
+bool
+js::jit::IsUnaligned(const wasm::MemoryAccessDesc& access)
+{
+    if (!access.align())
+        return false;
+
+    if (access.type() == Scalar::Float64 && access.align() >= 4)
+        return false;
+
+    return access.align() < access.byteSize();
 }
 
 // Encode a standard register when it is being used as src1, the dest, and an
@@ -592,32 +602,22 @@ Operand2::toOp2Reg() const {
     return *(Op2Reg*)this;
 }
 
-O2RegImmShift
-Op2Reg::toO2RegImmShift() const {
-    return *(O2RegImmShift*)this;
-}
-
-O2RegRegShift
-Op2Reg::toO2RegRegShift() const {
-    return *(O2RegRegShift*)this;
-}
-
 Imm16::Imm16(Instruction& inst)
-  : lower(inst.encode() & 0xfff),
-    upper(inst.encode() >> 16),
-    invalid(0xfff)
+  : lower_(inst.encode() & 0xfff),
+    upper_(inst.encode() >> 16),
+    invalid_(0xfff)
 { }
 
 Imm16::Imm16(uint32_t imm)
-  : lower(imm & 0xfff), pad(0),
-    upper((imm >> 12) & 0xf),
-    invalid(0)
+  : lower_(imm & 0xfff), pad_(0),
+    upper_((imm >> 12) & 0xf),
+    invalid_(0)
 {
     MOZ_ASSERT(decode() == imm);
 }
 
 Imm16::Imm16()
-  : invalid(0xfff)
+  : invalid_(0xfff)
 { }
 
 void
@@ -671,11 +671,12 @@ Assembler::asmMergeWith(Assembler& other)
 }
 
 void
-Assembler::executableCopy(uint8_t* buffer)
+Assembler::executableCopy(uint8_t* buffer, bool flushICache)
 {
     MOZ_ASSERT(isFinished);
     m_buffer.executableCopy(buffer);
-    AutoFlushICache::setRange(uintptr_t(buffer), m_buffer.size());
+    if (flushICache)
+        AutoFlushICache::setRange(uintptr_t(buffer), m_buffer.size());
 }
 
 uint32_t
@@ -937,10 +938,10 @@ Assembler::trace(JSTracer* trc)
 {
     for (size_t i = 0; i < jumps_.length(); i++) {
         RelativePatch& rp = jumps_[i];
-        if (rp.kind == Relocation::JITCODE) {
-            JitCode* code = JitCode::FromExecutable((uint8_t*)rp.target);
+        if (rp.kind() == Relocation::JITCODE) {
+            JitCode* code = JitCode::FromExecutable((uint8_t*)rp.target());
             TraceManuallyBarrieredEdge(trc, &code, "masmrel32");
-            MOZ_ASSERT(code == JitCode::FromExecutable((uint8_t*)rp.target));
+            MOZ_ASSERT(code == JitCode::FromExecutable((uint8_t*)rp.target()));
         }
     }
 
@@ -1022,6 +1023,14 @@ Assembler::ConditionWithoutEqual(Condition cond)
         MOZ_CRASH("unexpected condition");
     }
 }
+
+Assembler::DoubleCondition
+Assembler::InvertCondition(DoubleCondition cond)
+{
+    const uint32_t ConditionInversionBit = 0x10000000;
+    return DoubleCondition(ConditionInversionBit ^ cond);
+}
+
 Imm8::TwoImm8mData
 Imm8::EncodeTwoImms(uint32_t imm)
 {
@@ -1295,14 +1304,14 @@ static js::jit::DoubleEncoder doubleEncoder;
 
 js::jit::VFPImm::VFPImm(uint32_t top)
 {
-    data = -1;
+    data_ = -1;
     datastore::Imm8VFPImmData tmp;
     if (doubleEncoder.lookup(top, &tmp))
-        data = tmp.encode();
+        data_ = tmp.encode();
 }
 
-BOffImm::BOffImm(Instruction& inst)
-  : data(inst.encode() & 0x00ffffff)
+BOffImm::BOffImm(const Instruction& inst)
+  : data_(inst.encode() & 0x00ffffff)
 {
 }
 
@@ -1312,7 +1321,7 @@ BOffImm::getDest(Instruction* src) const
     // TODO: It is probably worthwhile to verify that src is actually a branch.
     // NOTE: This does not explicitly shift the offset of the destination left by 2,
     // since it is indexing into an array of instruction sized objects.
-    return &src[(((int32_t)data << 8) >> 8) + 2];
+    return &src[((int32_t(data_) << 8) >> 8) + 2];
 }
 
 const js::jit::DoubleEncoder::DoubleEntry js::jit::DoubleEncoder::table[256] = {
@@ -1665,34 +1674,13 @@ Assembler::SpewNodes::remove(uint32_t key)
 
 #endif // JS_DISASM_ARM
 
-// Write a blob of binary into the instruction stream.
-BufferOffset
-Assembler::writeInst(uint32_t x)
-{
-    BufferOffset offs = m_buffer.putInt(x);
-#ifdef JS_DISASM_ARM
-    spew(m_buffer.getInstOrNull(offs));
-#endif
-    return offs;
-}
-
-BufferOffset
-Assembler::writeBranchInst(uint32_t x, Label* documentation)
-{
-    BufferOffset offs = m_buffer.putInt(x, /* markAsBranch = */ true);
-#ifdef JS_DISASM_ARM
-    spewBranch(m_buffer.getInstOrNull(offs), documentation);
-#endif
-    return offs;
-}
-
 // Allocate memory for a branch instruction, it will be overwritten
 // subsequently and should not be disassembled.
 
 BufferOffset
 Assembler::allocBranchInst()
 {
-    return m_buffer.putInt(Always | InstNOP::NopInst, /* markAsBranch = */ true);
+    return m_buffer.putInt(Always | InstNOP::NopInst);
 }
 
 void
@@ -1837,7 +1825,7 @@ Assembler::as_tst(Register src1, Operand2 op2, Condition c)
     return as_alu(InvalidReg, src1, op2, OpTst, SetCC, c);
 }
 
-static constexpr Register NoAddend = { Registers::pc };
+static constexpr Register NoAddend { Registers::pc };
 
 static const int SignExtend = 0x06000070;
 
@@ -2146,17 +2134,12 @@ Assembler::as_dtm(LoadStore ls, Register rn, uint32_t mask,
     return writeInst(0x08000000 | RN(rn) | ls | mode | mask | c | wb);
 }
 
-// Note, it's possible for markAsBranch and loadToPC to disagree,
-// because some loads to the PC are not necessarily encoding
-// instructions that should be marked as branches: only patchable
-// near branch instructions should be marked.
-
 BufferOffset
 Assembler::allocEntry(size_t numInst, unsigned numPoolEntries,
                       uint8_t* inst, uint8_t* data, ARMBuffer::PoolEntry* pe,
-                      bool markAsBranch, bool loadToPC)
+                      bool loadToPC)
 {
-    BufferOffset offs = m_buffer.allocEntry(numInst, numPoolEntries, inst, data, pe, markAsBranch);
+    BufferOffset offs = m_buffer.allocEntry(numInst, numPoolEntries, inst, data, pe);
     propagateOOM(offs.assigned());
 #ifdef JS_DISASM_ARM
     spewData(offs, numInst, loadToPC);
@@ -2172,8 +2155,7 @@ Assembler::as_Imm32Pool(Register dest, uint32_t value, Condition c)
 {
     PoolHintPun php;
     php.phd.init(0, c, PoolHintData::PoolDTR, dest);
-    BufferOffset offs = allocEntry(1, 1, (uint8_t*)&php.raw, (uint8_t*)&value, nullptr, false,
-                                   dest == pc);
+    BufferOffset offs = allocEntry(1, 1, (uint8_t*)&php.raw, (uint8_t*)&value, nullptr, dest == pc);
     return offs;
 }
 
@@ -2192,7 +2174,7 @@ Assembler::as_BranchPool(uint32_t value, RepatchLabel* label, ARMBuffer::PoolEnt
     PoolHintPun php;
     php.phd.init(0, c, PoolHintData::PoolBranch, pc);
     BufferOffset ret = allocEntry(1, 1, (uint8_t*)&php.raw, (uint8_t*)&value, pe,
-                                  /* markAsBranch = */ true, /* loadToPC = */ true);
+                                  /* loadToPC = */ true);
     // If this label is already bound, then immediately replace the stub load
     // with a correct branch.
     if (label->bound()) {
@@ -2214,17 +2196,16 @@ Assembler::as_BranchPool(uint32_t value, RepatchLabel* label, ARMBuffer::PoolEnt
 }
 
 BufferOffset
-Assembler::as_FImm64Pool(VFPRegister dest, wasm::RawF64 value, Condition c)
+Assembler::as_FImm64Pool(VFPRegister dest, double d, Condition c)
 {
     MOZ_ASSERT(dest.isDouble());
     PoolHintPun php;
     php.phd.init(0, c, PoolHintData::PoolVDTR, dest);
-    uint64_t d = value.bits();
     return allocEntry(1, 2, (uint8_t*)&php.raw, (uint8_t*)&d);
 }
 
 BufferOffset
-Assembler::as_FImm32Pool(VFPRegister dest, wasm::RawF32 value, Condition c)
+Assembler::as_FImm32Pool(VFPRegister dest, float f, Condition c)
 {
     // Insert floats into the double pool as they have the same limitations on
     // immediate offset. This wastes 4 bytes padding per float. An alternative
@@ -2232,7 +2213,6 @@ Assembler::as_FImm32Pool(VFPRegister dest, wasm::RawF32 value, Condition c)
     MOZ_ASSERT(dest.isSingle());
     PoolHintPun php;
     php.phd.init(0, c, PoolHintData::PoolVDTR, dest);
-    uint32_t f = value.bits();
     return allocEntry(1, 1, (uint8_t*)&php.raw, (uint8_t*)&f);
 }
 

@@ -6,6 +6,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
 #include "nsCSPParser.h"
@@ -42,8 +43,6 @@ static const char16_t UNDERLINE    = '_';
 static const char16_t TILDE        = '~';
 static const char16_t WILDCARD     = '*';
 static const char16_t SINGLEQUOTE  = '\'';
-static const char16_t OPEN_CURL    = '{';
-static const char16_t CLOSE_CURL   = '}';
 static const char16_t NUMBER_SIGN  = '#';
 static const char16_t QUESTIONMARK = '?';
 static const char16_t PERCENT_SIGN = '%';
@@ -123,6 +122,7 @@ nsCSPTokenizer::tokenizeCSPPolicy(const nsAString &aPolicyString,
 
 /* ===== nsCSPParser ==================== */
 bool nsCSPParser::sCSPExperimentalEnabled = false;
+bool nsCSPParser::sStrictDynamicEnabled = false;
 
 nsCSPParser::nsCSPParser(cspTokens& aTokens,
                          nsIURI* aSelfURI,
@@ -131,6 +131,7 @@ nsCSPParser::nsCSPParser(cspTokens& aTokens,
  : mCurChar(nullptr)
  , mEndChar(nullptr)
  , mHasHashOrNonce(false)
+ , mStrictDynamic(false)
  , mUnsafeInlineKeywordSrc(nullptr)
  , mChildSrc(nullptr)
  , mFrameSrc(nullptr)
@@ -144,6 +145,7 @@ nsCSPParser::nsCSPParser(cspTokens& aTokens,
   if (!initialized) {
     initialized = true;
     Preferences::AddBoolVarCache(&sCSPExperimentalEnabled, "security.csp.experimentalEnabled");
+    Preferences::AddBoolVarCache(&sStrictDynamicEnabled, "security.csp.enableStrictDynamic");
   }
   CSPPARSERLOG(("nsCSPParser::nsCSPParser"));
 }
@@ -172,6 +174,32 @@ isValidHexDig(char16_t aHexDig)
   return (isNumberToken(aHexDig) ||
           (aHexDig >= 'A' && aHexDig <= 'F') ||
           (aHexDig >= 'a' && aHexDig <= 'f'));
+}
+
+static bool
+isValidBase64Value(const char16_t* cur, const char16_t* end)
+{
+  // Using grammar at https://w3c.github.io/webappsec-csp/#grammardef-nonce-source
+
+  // May end with one or two =
+  if (end > cur && *(end-1) == EQUALS) end--;
+  if (end > cur && *(end-1) == EQUALS) end--;
+
+  // Must have at least one character aside from any =
+  if (end == cur) {
+    return false;
+  }
+
+  // Rest must all be A-Za-z0-9+/-_
+  for (; cur < end; ++cur) {
+    if (!(isCharacterToken(*cur) || isNumberToken(*cur) ||
+          *cur == PLUS || *cur == SLASH ||
+          *cur == DASH || *cur == UNDERLINE)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void
@@ -497,26 +525,6 @@ nsCSPParser::host()
   return new nsCSPHostSrc(mCurValue);
 }
 
-// apps use special hosts; "app://{app-host-is-uid}""
-nsCSPHostSrc*
-nsCSPParser::appHost()
-{
-  CSPPARSERLOG(("nsCSPParser::appHost, mCurToken: %s, mCurValue: %s",
-               NS_ConvertUTF16toUTF8(mCurToken).get(),
-               NS_ConvertUTF16toUTF8(mCurValue).get()));
-
-  while (hostChar()) { /* consume */ }
-
-  // appHosts have to end with "}", otherwise we have to report an error
-  if (!accept(CLOSE_CURL)) {
-    const char16_t* params[] = { mCurToken.get() };
-    logWarningErrorToConsole(nsIScriptError::warningFlag, "couldntParseInvalidSource",
-                             params, ArrayLength(params));
-    return nullptr;
-  }
-  return new nsCSPHostSrc(mCurValue);
-}
-
 // keyword-source = "'self'" / "'unsafe-inline'" / "'unsafe-eval'"
 nsCSPBaseSrc*
 nsCSPParser::keywordSource()
@@ -529,6 +537,22 @@ nsCSPParser::keywordSource()
   // but rather creates a nsCSPHostSrc using the selfURI
   if (CSP_IsKeyword(mCurToken, CSP_SELF)) {
     return CSP_CreateHostSrcFromURI(mSelfURI);
+  }
+
+  if (CSP_IsKeyword(mCurToken, CSP_STRICT_DYNAMIC)) {
+    // make sure strict dynamic is enabled
+    if (!sStrictDynamicEnabled) {
+      return nullptr;
+    }
+    if (!CSP_IsDirective(mCurDir[0], nsIContentSecurityPolicy::SCRIPT_SRC_DIRECTIVE)) {
+      // Todo: Enforce 'strict-dynamic' within default-src; see Bug 1313937
+      const char16_t* params[] = { u"strict-dynamic" };
+      logWarningErrorToConsole(nsIScriptError::warningFlag, "ignoringStrictDynamic",
+                               params, ArrayLength(params));
+      return nullptr;
+    }
+    mStrictDynamic = true;
+    return new nsCSPKeywordSrc(CSP_KeywordToEnum(mCurToken));
   }
 
   if (CSP_IsKeyword(mCurToken, CSP_UNSAFE_INLINE)) {
@@ -569,13 +593,6 @@ nsCSPParser::hostSource()
   CSPPARSERLOG(("nsCSPParser::hostSource, mCurToken: %s, mCurValue: %s",
                NS_ConvertUTF16toUTF8(mCurToken).get(),
                NS_ConvertUTF16toUTF8(mCurValue).get()));
-
-  // Special case handling for app specific hosts
-  if (accept(OPEN_CURL)) {
-    // If appHost() returns null, the error was handled in appHost().
-    // appHosts can not have a port, or path, we can return.
-    return appHost();
-  }
 
   nsCSPHostSrc* cspHost = host();
   if (!cspHost) {
@@ -661,6 +678,10 @@ nsCSPParser::nonceSource()
   if (dashIndex < 0) {
     return nullptr;
   }
+  if (!isValidBase64Value(expr.BeginReading() + dashIndex + 1, expr.EndReading())) {
+    return nullptr;
+  }
+
   // cache if encountering hash or nonce to invalidate unsafe-inline
   mHasHashOrNonce = true;
   return new nsCSPNonceSrc(Substring(expr,
@@ -687,6 +708,10 @@ nsCSPParser::hashSource()
 
   int32_t dashIndex = expr.FindChar(DASH);
   if (dashIndex < 0) {
+    return nullptr;
+  }
+
+  if (!isValidBase64Value(expr.BeginReading() + dashIndex + 1, expr.EndReading())) {
     return nullptr;
   }
 
@@ -852,7 +877,7 @@ nsCSPParser::referrerDirectiveValue(nsCSPDirective* aDir)
   CSPPARSERLOG(("nsCSPParser::referrerDirectiveValue"));
 
   if (mCurDir.Length() != 2) {
-    CSPPARSERLOG(("Incorrect number of tokens in referrer directive, got %d expected 1",
+    CSPPARSERLOG(("Incorrect number of tokens in referrer directive, got %" PRIuSIZE " expected 1",
                  mCurDir.Length() - 1));
     delete aDir;
     return;
@@ -871,6 +896,11 @@ nsCSPParser::referrerDirectiveValue(nsCSPDirective* aDir)
                              params, ArrayLength(params));
 
   // the referrer policy is valid, so go ahead and use it.
+  nsWeakPtr ctx = mCSPContext->GetLoadingContext();
+  nsCOMPtr<nsIDocument> doc = do_QueryReferent(ctx);
+  if (doc) {
+    doc->SetHasReferrerPolicyCSP(true);
+  }
   mPolicy->setReferrerPolicy(&mCurDir[1]);
   mPolicy->addDirective(aDir);
 }
@@ -1086,7 +1116,7 @@ nsCSPParser::directiveName()
 
   // if we have a frame-src, cache it so we can decide whether to use child-src
   if (CSP_IsDirective(mCurToken, nsIContentSecurityPolicy::FRAME_SRC_DIRECTIVE)) {
-    const char16_t* params[] = { mCurToken.get(), NS_LITERAL_STRING("child-src").get() };
+    const char16_t* params[] = { mCurToken.get(), u"child-src" };
     logWarningErrorToConsole(nsIScriptError::warningFlag, "deprecatedDirective",
                              params, ArrayLength(params));
     mFrameSrc = new nsCSPDirective(CSP_StringToCSPDirective(mCurToken));
@@ -1187,6 +1217,7 @@ nsCSPParser::directive()
   // make sure to reset cache variables when trying to invalidate unsafe-inline;
   // unsafe-inline might not only appear in script-src, but also in default-src
   mHasHashOrNonce = false;
+  mStrictDynamic = false;
   mUnsafeInlineKeywordSrc = nullptr;
 
   // Try to parse all the srcs by handing the array off to directiveValue
@@ -1200,12 +1231,44 @@ nsCSPParser::directive()
     srcs.AppendElement(keyword);
   }
 
-  // Ignore unsafe-inline within script-src or style-src if nonce
-  // or hash is specified, see:
-  // http://www.w3.org/TR/CSP2/#directive-script-src
-  if ((cspDir->equals(nsIContentSecurityPolicy::SCRIPT_SRC_DIRECTIVE) ||
-       cspDir->equals(nsIContentSecurityPolicy::STYLE_SRC_DIRECTIVE)) &&
-      mHasHashOrNonce && mUnsafeInlineKeywordSrc) {
+  // If policy contains 'strict-dynamic' invalidate all srcs within script-src.
+  if (mStrictDynamic) {
+    MOZ_ASSERT(cspDir->equals(nsIContentSecurityPolicy::SCRIPT_SRC_DIRECTIVE),
+               "strict-dynamic only allowed within script-src");
+    for (uint32_t i = 0; i < srcs.Length(); i++) {
+      // Please note that nsCSPNonceSrc as well as nsCSPHashSrc overwrite invalidate(),
+      // so it's fine to just call invalidate() on all srcs. Please also note that
+      // nsCSPKeywordSrc() can not be invalidated and always returns false unless the
+      // keyword is 'strict-dynamic' in which case we allow the load if the script is
+      // not parser created!
+      srcs[i]->invalidate();
+      // Log a message to the console that src will be ignored.
+      nsAutoString srcStr;
+      srcs[i]->toString(srcStr);
+      // Even though we invalidate all of the srcs internally, we don't want to log
+      // messages for the srcs: (1) strict-dynamic, (2) unsafe-inline,
+      // (3) nonces, and (4) hashes
+      if (!srcStr.EqualsASCII(CSP_EnumToKeyword(CSP_STRICT_DYNAMIC)) &&
+          !srcStr.EqualsASCII(CSP_EnumToKeyword(CSP_UNSAFE_EVAL)) &&
+          !StringBeginsWith(NS_ConvertUTF16toUTF8(srcStr), NS_LITERAL_CSTRING("'nonce-")) &&
+          !StringBeginsWith(NS_ConvertUTF16toUTF8(srcStr), NS_LITERAL_CSTRING("'sha")))
+      {
+        const char16_t* params[] = { srcStr.get() };
+        logWarningErrorToConsole(nsIScriptError::warningFlag, "ignoringSrcForStrictDynamic",
+                                 params, ArrayLength(params));
+      }
+    }
+    // Log a warning that all scripts might be blocked because the policy contains
+    // 'strict-dynamic' but no valid nonce or hash.
+    if (!mHasHashOrNonce) {
+      const char16_t* params[] = { mCurDir[0].get() };
+      logWarningErrorToConsole(nsIScriptError::warningFlag, "strictDynamicButNoHashOrNonce",
+                               params, ArrayLength(params));
+    }
+  }
+  else if (mHasHashOrNonce && mUnsafeInlineKeywordSrc &&
+           (cspDir->equals(nsIContentSecurityPolicy::SCRIPT_SRC_DIRECTIVE) ||
+            cspDir->equals(nsIContentSecurityPolicy::STYLE_SRC_DIRECTIVE))) {
     mUnsafeInlineKeywordSrc->invalidate();
     // log to the console that unsafe-inline will be ignored
     const char16_t* params[] = { u"'unsafe-inline'" };

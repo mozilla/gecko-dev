@@ -103,7 +103,7 @@ add_task(function* remove_bookmark_orphans() {
   // Bug 1306445 will eventually remove the mobile root anno.
   Assert.equal(annoAttrs.length, 1);
   Assert.equal(annoAttrs[0].getResultByName("name"), PlacesUtils.MOBILE_ROOT_ANNO);
-  let annos = rows = yield conn.execute(`SELECT item_id, anno_attribute_id FROM moz_items_annos`);
+  let annos = yield conn.execute(`SELECT item_id, anno_attribute_id FROM moz_items_annos`);
   Assert.equal(annos.length, 1);
   Assert.equal(annos[0].getResultByName("item_id"), PlacesUtils.mobileFolderId);
   Assert.equal(annos[0].getResultByName("anno_attribute_id"), annoAttrs[0].getResultByName("id"));
@@ -192,9 +192,9 @@ add_task(function* test_nested_content_fails_when_not_allowed() {
   let folder1 = yield PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.unfiledGuid,
                                                      type: PlacesUtils.bookmarks.TYPE_FOLDER,
                                                      title: "a folder" });
-  let folder2 = yield PlacesUtils.bookmarks.insert({ parentGuid: folder1.guid,
-                                                     type: PlacesUtils.bookmarks.TYPE_FOLDER,
-                                                     title: "a folder" });
+  yield PlacesUtils.bookmarks.insert({ parentGuid: folder1.guid,
+                                       type: PlacesUtils.bookmarks.TYPE_FOLDER,
+                                       title: "a folder" });
   yield Assert.rejects(PlacesUtils.bookmarks.remove(folder1, {preventRemovalOfNonEmptyFolders: true}),
                        /Cannot remove a non-empty folder./);
 });

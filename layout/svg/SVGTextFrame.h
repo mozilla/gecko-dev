@@ -195,6 +195,7 @@ class SVGTextFrame final : public nsSVGDisplayContainerFrame
 protected:
   explicit SVGTextFrame(nsStyleContext* aContext)
     : nsSVGDisplayContainerFrame(aContext)
+    , mTrailingUndisplayedCharacters(0)
     , mFontSizeScaleFactor(1.0f)
     , mLastContextScale(1.0f)
     , mLengthAdjustScaleFactor(1.0f)
@@ -251,7 +252,7 @@ public:
 
 
 
-  // nsISVGChildFrame interface:
+  // nsSVGDisplayableFrame interface:
   virtual void NotifySVGChanged(uint32_t aFlags) override;
   virtual DrawResult PaintSVG(gfxContext& aContext,
                               const gfxMatrix& aTransform,
@@ -369,6 +370,13 @@ public:
    */
   gfxRect TransformFrameRectFromTextChild(const nsRect& aRect,
                                           nsIFrame* aChildFrame);
+
+  /**
+   * Update the style of our ::-moz-svg-text anonymous box.
+   */
+  void DoUpdateStyleOfOwnedAnonBoxes(mozilla::ServoStyleSet& aStyleSet,
+                                     nsStyleChangeList& aChangeList,
+                                     nsChangeHint aHintForThisFrame) override;
 
 private:
   /**

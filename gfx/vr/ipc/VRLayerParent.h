@@ -16,12 +16,12 @@ namespace mozilla {
 namespace gfx {
 
 class VRLayerParent : public PVRLayerParent {
-  NS_INLINE_DECL_REFCOUNTING(VRLayerParent)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VRLayerParent)
 
 public:
   VRLayerParent(uint32_t aVRDisplayID, const Rect& aLeftEyeRect, const Rect& aRightEyeRect);
-  virtual bool RecvSubmitFrame(PTextureParent* texture) override;
-  virtual bool RecvDestroy() override;
+  virtual mozilla::ipc::IPCResult RecvSubmitFrame(PTextureParent* texture) override;
+  virtual mozilla::ipc::IPCResult RecvDestroy() override;
   uint32_t GetDisplayID() const { return mVRDisplayID; }
 protected:
   virtual void ActorDestroy(ActorDestroyReason aWhy) override;

@@ -2,8 +2,6 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-var {AppConstants} = Cu.import("resource://gre/modules/AppConstants.jsm");
-
 add_task(function* () {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
@@ -28,6 +26,11 @@ add_task(function* () {
             "android": "Ctrl+Shift+A",
           },
         },
+        "without-suggested-key": {
+          "description": "has no suggested_key",
+        },
+        "without-suggested-key-nor-description": {
+        },
       },
     },
 
@@ -35,7 +38,7 @@ add_task(function* () {
       browser.test.onMessage.addListener((message, additionalScope) => {
         browser.commands.getAll((commands) => {
           let errorMessage = "getAll should return an array of commands";
-          browser.test.assertEq(commands.length, 3, errorMessage);
+          browser.test.assertEq(commands.length, 5, errorMessage);
 
           let command = commands.find(c => c.name == "with-desciption");
 
@@ -65,6 +68,18 @@ add_task(function* () {
           let shortcut = `Ctrl+Shift+${platformKey}`;
           errorMessage = `The shortcut should match the one provided in the manifest for OS='${additionalScope.platform}'`;
           browser.test.assertEq(shortcut, command.shortcut, errorMessage);
+
+          command = commands.find(c => c.name == "without-suggested-key");
+
+          browser.test.assertEq("has no suggested_key", command.description, "The description should match what is provided in the manifest");
+
+          browser.test.assertEq(null, command.shortcut, "The shortcut should be empty if not provided");
+
+          command = commands.find(c => c.name == "without-suggested-key-nor-description");
+
+          browser.test.assertEq(null, command.description, "The description should be empty when it is not provided");
+
+          browser.test.assertEq(null, command.shortcut, "The shortcut should be empty if not provided");
 
           browser.test.notifyPass("commands");
         });

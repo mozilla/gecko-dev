@@ -108,123 +108,15 @@ const Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "ExtensionUtils",
+                                  "resource://gre/modules/ExtensionUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
                                   "resource://gre/modules/PromiseUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
-/**
- * Acts as a proxy for a message manager or message manager owner, and
- * tracks docShell swaps so that messages are always sent to the same
- * receiver, even if it is moved to a different <browser>.
- *
- * Currently only proxies message sending functions, and does not handle
- * transfering listeners in any way.
- *
- * @param {nsIMessageSender|Element} target
- *        The target message manager on which to send messages, or the
- *        <browser> element which owns it.
- */
-class MessageManagerProxy {
-  constructor(target) {
-    if (target instanceof Ci.nsIMessageSender) {
-      Object.defineProperty(this, "messageManager", {
-        value: target,
-        configurable: true,
-        writable: true,
-      });
-    } else {
-      this.addListeners(target);
-    }
-  }
 
-  /**
-   * Disposes of the proxy object, removes event listeners, and drops
-   * all references to the underlying message manager.
-   *
-   * Must be called before the last reference to the proxy is dropped,
-   * unless the underlying message manager or <browser> is also being
-   * destroyed.
-   */
-  dispose() {
-    if (this.eventTarget) {
-      this.removeListeners(this.eventTarget);
-      this.eventTarget = null;
-    } else {
-      this.messageManager = null;
-    }
-  }
-
-  /**
-   * Returns true if the given target is the same as, or owns, the given
-   * message manager.
-   *
-   * @param {nsIMessageSender|MessageManagerProxy|Element} target
-   *        The message manager, MessageManagerProxy, or <browser>
-   *        element agaisnt which to match.
-   * @param {nsIMessageSender} messageManager
-   *        The message manager against which to match `target`.
-   *
-   * @returns {boolean}
-   *        True if `messageManager` is the same object as `target`, or
-   *        `target` is a MessageManagerProxy or <browser> element that
-   *        is tied to it.
-   */
-  static matches(target, messageManager) {
-    return target === messageManager || target.messageManager === messageManager;
-  }
-
-  /**
-   * @property {nsIMessageSender|null} messageManager
-   *        The message manager that is currently being proxied. This
-   *        may change during the life of the proxy object, so should
-   *        not be stored elsewhere.
-   */
-  get messageManager() {
-    return this.eventTarget && this.eventTarget.messageManager;
-  }
-
-  /**
-   * Sends a message on the proxied message manager.
-   *
-   * @param {array} args
-   *        Arguments to be passed verbatim to the underlying
-   *        sendAsyncMessage method.
-   * @returns {undefined}
-   */
-  sendAsyncMessage(...args) {
-    return this.messageManager.sendAsyncMessage(...args);
-  }
-
-  /**
-   * @private
-   * Adds docShell swap listeners to the message manager owner.
-   *
-   * @param {Element} target
-   *        The target element.
-   */
-  addListeners(target) {
-    target.addEventListener("SwapDocShells", this);
-    this.eventTarget = target;
-  }
-
-  /**
-   * @private
-   * Removes docShell swap listeners to the message manager owner.
-   *
-   * @param {Element} target
-   *        The target element.
-   */
-  removeListeners(target) {
-    target.removeEventListener("SwapDocShells", this);
-  }
-
-  handleEvent(event) {
-    if (event.type == "SwapDocShells") {
-      this.removeListeners(this.eventTarget);
-      this.addListeners(event.detail);
-    }
-  }
-}
+XPCOMUtils.defineLazyGetter(this, "MessageManagerProxy",
+                            () => ExtensionUtils.MessageManagerProxy);
 
 /**
  * Handles the mapping and dispatching of messages to their registered
@@ -267,7 +159,7 @@ class FilteringMessageManager {
    * passes the result to our message callback.
    */
   receiveMessage({data, target}) {
-    let handlers = Array.from(this.getHandlers(data.messageName, data.sender, data.recipient));
+    let handlers = Array.from(this.getHandlers(data.messageName, data.sender || null, data.recipient));
 
     data.target = target;
     this.callback(handlers, data);
@@ -386,8 +278,6 @@ class FilteringMessageManagerMap extends Map {
 const MESSAGE_MESSAGE = "MessageChannel:Message";
 const MESSAGE_RESPONSE = "MessageChannel:Response";
 
-let gChannelId = 0;
-
 this.MessageChannel = {
   init() {
     Services.obs.addObserver(this, "message-manager-close", false);
@@ -404,6 +294,12 @@ this.MessageChannel = {
      * received or waiting to be sent. @see _addPendingResponse
      */
     this.pendingResponses = new Set();
+
+    /**
+     * Contains the message name of a limited number of aborted response
+     * handlers, the responses for which will be ignored.
+     */
+    this.abortedResponses = new ExtensionUtils.LimitedSet(30);
   },
 
   RESULT_SUCCESS: 0,
@@ -414,7 +310,7 @@ this.MessageChannel = {
   RESULT_NO_RESPONSE: 5,
 
   REASON_DISCONNECTED: {
-    result: this.RESULT_DISCONNECTED,
+    result: 1, // this.RESULT_DISCONNECTED
     message: "Message manager disconnected",
   },
 
@@ -483,7 +379,7 @@ this.MessageChannel = {
    *    The filter object to match against.
    * @param {object} data
    *    The data object being matched.
-   * @param {boolean} [strict=false]
+   * @param {boolean} [strict=true]
    *    If true, all properties in the `filter` object have a
    *    corresponding property in `data` with the same value. If
    *    false, properties present in both objects must have the same
@@ -622,7 +518,7 @@ this.MessageChannel = {
     let recipient = options.recipient || {};
     let responseType = options.responseType || this.RESPONSE_SINGLE;
 
-    let channelId = `${gChannelId++}-${Services.appinfo.uniqueProcessID}`;
+    let channelId = ExtensionUtils.getUniqueId();
     let message = {messageName, channelId, sender, recipient, data, responseType};
 
     if (responseType == this.RESPONSE_NONE) {
@@ -757,6 +653,16 @@ this.MessageChannel = {
         target.sendAsyncMessage(MESSAGE_RESPONSE, response);
       },
       error => {
+        if (target.isDisconnected) {
+          // Target is disconnected. We can't send an error response, so
+          // don't even try.
+          if (error.result !== this.RESULT_DISCONNECTED &&
+              error.result !== this.RESULT_NO_RESPONSE) {
+            Cu.reportError(Cu.getClassName(error, false) === "Object" ? error.message : error);
+          }
+          return;
+        }
+
         let response = {
           result: this.RESULT_ERROR,
           messageName: data.channelId,
@@ -802,7 +708,12 @@ this.MessageChannel = {
     // If we have an error at this point, we have handler to report it to,
     // so just log it.
     if (handlers.length == 0) {
-      Cu.reportError(`No matching message response handler for ${data.messageName}`);
+      if (this.abortedResponses.has(data.messageName)) {
+        this.abortedResponses.delete(data.messageName);
+        Services.console.logStringMessage(`Ignoring response to aborted listener for ${data.messageName}`);
+      } else {
+        Cu.reportError(`No matching message response handler for ${data.messageName}`);
+      }
     } else if (handlers.length > 1) {
       Cu.reportError(`Multiple matching response handlers for ${data.messageName}`);
     } else if (data.result === this.RESULT_SUCCESS) {
@@ -863,6 +774,7 @@ this.MessageChannel = {
   abortResponses(sender, reason = this.REASON_DISCONNECTED) {
     for (let response of this.pendingResponses) {
       if (this.matchesFilter(sender, response.sender)) {
+        this.abortedResponses.add(response.channelId);
         response.reject(reason);
       }
     }
@@ -882,6 +794,7 @@ this.MessageChannel = {
   abortMessageManager(target, reason) {
     for (let response of this.pendingResponses) {
       if (MessageManagerProxy.matches(response.messageManager, target)) {
+        this.abortedResponses.add(response.channelId);
         response.reject(reason);
       }
     }

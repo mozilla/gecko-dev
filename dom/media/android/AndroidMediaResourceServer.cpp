@@ -324,7 +324,7 @@ ServeResourceEvent::Shutdown()
   // To shutdown the current thread we need to first exit this event.
   // The Shutdown event below is posted to the main thread to do this.
   nsCOMPtr<nsIRunnable> event = new ShutdownThreadEvent(NS_GetCurrentThread());
-  NS_DispatchToMainThread(event);
+  SystemGroup::Dispatch("ServeResourceEvent::Shutdown", TaskCategory::Other, event.forget());
 }
 
 /*
@@ -375,7 +375,7 @@ ResourceSocketListener::OnSocketAccepted(nsIServerSocket* aServ,
   if (NS_FAILED(rv)) return rv;
 
   nsCOMPtr<nsIThread> thread;
-  rv = NS_NewThread(getter_AddRefs(thread));
+  rv = NS_NewNamedThread("ServeResource", getter_AddRefs(thread));
   if (NS_FAILED(rv)) return rv;
 
   nsCOMPtr<nsIRunnable> event = new ServeResourceEvent(input.get(), output.get(), mServer);

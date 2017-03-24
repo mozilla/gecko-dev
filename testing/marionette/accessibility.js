@@ -105,7 +105,7 @@ accessibility.ActionableRoles = new Set([
  * Factory function that constructs a new {@code accessibility.Checks}
  * object with enforced strictness or not.
  */
-accessibility.get = function(strict = false) {
+accessibility.get = function (strict = false) {
   return new accessibility.Checks(!!strict);
 };
 
@@ -329,7 +329,7 @@ accessibility.Checks = class {
       return;
     }
 
-    let win = element.ownerDocument.defaultView;
+    let win = element.ownerGlobal;
     let disabledAccessibility = this.matchState(
         accessible, accessibility.State.Unavailable);
     let explorable = win.getComputedStyle(element)

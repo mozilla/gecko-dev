@@ -55,8 +55,8 @@ BrowserElementAudioChannel::Create(nsPIDOMWindowInner* aWindow,
   }
 
   MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
-         ("BrowserElementAudioChannel, Create, channel = %p, type = %d\n",
-          ac.get(), aAudioChannel));
+         ("BrowserElementAudioChannel, Create, channel = %p, type = %" PRIu32 "\n",
+          ac.get(), static_cast<uint32_t>(aAudioChannel)));
 
   return ac.forget();
 }
@@ -209,7 +209,7 @@ public:
   {}
 
 protected:
-  virtual void DoWork(AudioChannelService* aService, JSContext* aCx) override
+  void DoWork(AudioChannelService* aService, JSContext* aCx) override
   {
     float volume = aService->GetAudioChannelVolume(mFrameWindow, mAudioChannel);
 
@@ -233,7 +233,7 @@ public:
   {}
 
 protected:
-  virtual void DoWork(AudioChannelService* aService, JSContext* aCx) override
+  void DoWork(AudioChannelService* aService, JSContext* aCx) override
   {
     bool muted = aService->GetAudioChannelMuted(mFrameWindow, mAudioChannel);
 
@@ -271,7 +271,7 @@ public:
   {}
 
 protected:
-  virtual void DoWork(AudioChannelService* aService, JSContext* aCx) override
+  void DoWork(AudioChannelService* aService, JSContext* aCx) override
   {
     if (!mValueKnown) {
       mActive = aService->IsAudioChannelActive(mFrameWindow, mAudioChannel);
@@ -297,7 +297,7 @@ public:
   {}
 
 protected:
-  virtual void DoWork(AudioChannelService* aService, JSContext* aCx) override
+  void DoWork(AudioChannelService* aService, JSContext* aCx) override
   {
     JS::Rooted<JS::Value> value(aCx);
     mRequest->FireSuccess(value);
@@ -514,7 +514,7 @@ BrowserElementAudioChannel::ProcessStateChanged(const char16_t* aData)
 {
   MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
          ("BrowserElementAudioChannel, ProcessStateChanged, this = %p, "
-          "type = %d\n", this, mAudioChannel));
+          "type = %" PRIu32 "\n", this, static_cast<uint32_t>(mAudioChannel)));
 
   nsAutoString value(aData);
   mState = value.EqualsASCII("active") ? eStateActive : eStateInactive;

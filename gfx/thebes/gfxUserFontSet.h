@@ -206,7 +206,7 @@ public:
     // weight - [100, 900] (multiples of 100)
     // stretch = [NS_FONT_STRETCH_ULTRA_CONDENSED, NS_FONT_STRETCH_ULTRA_EXPANDED]
     // italic style = constants in gfxFontConstants.h, e.g. NS_FONT_STYLE_NORMAL
-    // language override = result of calling gfxFontStyle::ParseFontLanguageOverride
+    // language override = result of calling nsRuleNode::ParseFontLanguageOverride
     // TODO: support for unicode ranges not yet implemented
     virtual already_AddRefed<gfxUserFontEntry> CreateUserFontEntry(
                               const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
@@ -247,14 +247,6 @@ public:
 
     // Look up names in a fontlist and return true if any are in the set
     bool ContainsUserFontSetFonts(const mozilla::FontFamilyList& aFontList) const;
-
-    // Lookup a font entry for a given style, returns null if not loaded.
-    // aFamily must be a family returned by our LookupFamily method.
-    // (only used by gfxPangoFontGroup for now)
-    gfxUserFontEntry* FindUserFontEntryAndLoad(gfxFontFamily* aFamily,
-                                               const gfxFontStyle& aFontStyle,
-                                               bool& aNeedsBold,
-                                               bool& aWaitForUserFont);
 
     // check whether the given source is allowed to be loaded;
     // returns the Principal (for use in the key when caching the loaded font),

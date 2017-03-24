@@ -93,7 +93,7 @@ protected:
   nsCOMPtr<nsIThread> mIOThread;
 
   public: // construction, destruction
-    nsDataObj(nsIURI *uri = nullptr);
+    explicit nsDataObj(nsIURI *uri = nullptr);
     virtual ~nsDataObj();
 
 	public: // IUnknown methods - see iunknown.h for documentation
@@ -289,7 +289,6 @@ protected:
 
     bool LookupArbitraryFormat(FORMATETC *aFormat, LPDATAENTRY *aDataEntry, BOOL aAddorUpdate);
     bool CopyMediumData(STGMEDIUM *aMediumDst, STGMEDIUM *aMediumSrc, LPFORMATETC aFormat, BOOL aSetData);
-    static void RemoveTempFile(nsITimer* aTimer, void* aClosure);
 };
 
 

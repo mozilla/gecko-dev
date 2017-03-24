@@ -43,15 +43,17 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMIntersectionObserver)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+  tmp->Disconnect();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOwner)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mRoot)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mQueuedEntries)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(DOMIntersectionObserver)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRoot)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mQueuedEntries)
@@ -123,8 +125,8 @@ DOMIntersectionObserver::SetRootMargin(const nsAString& aString)
 
   mRootMargin = value.GetRectValue();
 
-  for (uint32_t i = 0; i < ArrayLength(nsCSSRect::sides); ++i) {
-    nsCSSValue value = mRootMargin.*nsCSSRect::sides[i];
+  for (auto side : nsCSSRect::sides) {
+    nsCSSValue& value = mRootMargin.*side;
     if (!(value.IsPixelLengthUnit() || value.IsPercentLengthUnit())) {
       return false;
     }
@@ -159,15 +161,26 @@ DOMIntersectionObserver::Observe(Element& aTarget)
 void
 DOMIntersectionObserver::Unobserve(Element& aTarget)
 {
-  if (!mObservationTargets.Contains(&aTarget)) {
-    return;
-  }
   if (mObservationTargets.Count() == 1) {
     Disconnect();
     return;
   }
-  aTarget.UnregisterIntersectionObserver(this);
+
   mObservationTargets.RemoveEntry(&aTarget);
+  aTarget.UnregisterIntersectionObserver(this);
+}
+
+void
+DOMIntersectionObserver::UnlinkTarget(Element& aTarget)
+{
+    if (!mObservationTargets.Contains(&aTarget)) {
+        return;
+    }
+
+    mObservationTargets.RemoveEntry(&aTarget);
+    if (mObservationTargets.Count() == 0) {
+        Disconnect();
+    }
 }
 
 void
@@ -176,9 +189,11 @@ DOMIntersectionObserver::Connect()
   if (mConnected) {
     return;
   }
-  nsIDocument* document = mOwner->GetExtantDoc();
-  document->AddIntersectionObserver(this);
+
   mConnected = true;
+  if (mDocument) {
+    mDocument->AddIntersectionObserver(this);
+  }
 }
 
 void
@@ -187,14 +202,16 @@ DOMIntersectionObserver::Disconnect()
   if (!mConnected) {
     return;
   }
+
+  mConnected = false;
   for (auto iter = mObservationTargets.Iter(); !iter.Done(); iter.Next()) {
     Element* target = iter.Get()->GetKey();
     target->UnregisterIntersectionObserver(this);
   }
   mObservationTargets.Clear();
-  nsIDocument* document = mOwner->GetExtantDoc();
-  document->RemoveIntersectionObserver(this);
-  mConnected = false;
+  if (mDocument) {
+    mDocument->RemoveIntersectionObserver(this);
+  }
 }
 
 void
@@ -268,7 +285,10 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
       if (rootFrame) {
         nsPresContext* presContext = rootFrame->PresContext();
         while (!presContext->IsRootContentDocument()) {
-          presContext = rootFrame->PresContext()->GetParentPresContext();
+          presContext = presContext->GetParentPresContext();
+          if (!presContext) {
+            break;
+          }
           rootFrame = presContext->PresShell()->GetRootScrollFrame();
         }
         root = rootFrame->GetContent()->AsElement();
@@ -280,7 +300,7 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
 
   nsMargin rootMargin;
   NS_FOR_CSS_SIDES(side) {
-    nscoord basis = side == NS_SIDE_TOP || side == NS_SIDE_BOTTOM ?
+    nscoord basis = side == eSideTop || side == eSideBottom ?
       rootRect.height : rootRect.width;
     nsCSSValue value = mRootMargin.*nsCSSRect::sides[side];
     nsStyleCoord coord;
@@ -435,6 +455,7 @@ DOMIntersectionObserver::QueueIntersectionObserverEntry(Element* aTarget,
     rootBounds.forget(),
     boundingClientRect.forget(),
     intersectionRect.forget(),
+    aIntersectionRect.isSome(),
     aTarget, aIntersectionRatio);
   mQueuedEntries.AppendElement(entry.forget());
 }

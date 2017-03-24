@@ -17,10 +17,10 @@ DIRS += [
     'alerts',
     'apppicker',
     'asyncshutdown',
+    'browser',
     'commandlines',
     'contentprefs',
     'contextualidentity',
-    'cookie',
     'crashmonitor',
     'diskspacewatcher',
     'downloads',
@@ -30,11 +30,11 @@ DIRS += [
     'finalizationwitness',
     'formautofill',
     'find',
-    'gfx',
     'jsdownloads',
     'lz4',
     'mediasniffer',
     'microformats',
+    'mozprotocol',
     'osfile',
     'parentalcontrols',
     'passwordmgr',
@@ -50,7 +50,6 @@ DIRS += [
     'remotebrowserutils',
     'reflect',
     'securityreporter',
-    'sqlite',
     'startup',
     'statusfilter',
     'telemetry',
@@ -62,6 +61,8 @@ DIRS += [
     'url-classifier',
     'urlformatter',
     'viewconfig',
+    'windowcreator',
+    'windowwatcher',
     'workerloader',
     'xulstore'
 ]
@@ -85,7 +86,7 @@ if CONFIG['MOZ_FEEDS']:
     DIRS += ['feeds']
 
 if CONFIG['MOZ_XUL']:
-    DIRS += ['autocomplete', 'satchel']
+    DIRS += ['autocomplete', 'printingui', 'satchel']
 
 if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     DIRS += ['filepicker']
@@ -99,6 +100,9 @@ if CONFIG['OS_TARGET'] != 'Android':
     DIRS += ['terminator']
 
 DIRS += ['build']
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    DIRS += ['gfx']
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
     EXTRA_COMPONENTS += [

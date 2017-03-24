@@ -48,18 +48,15 @@ const TEST_DATA = [
   }
 ];
 
-function run_test()
-{
+function run_test() {
   run_next_test();
 }
 
-add_task(function* test_initalize()
-{
+add_task(function* test_initalize() {
   yield task_populateDB(VISITS);
 });
 
-add_task(function* test_searchTerms_includeHidden()
-{
+add_task(function* test_searchTerms_includeHidden() {
   for (let data of TEST_DATA) {
     let query = PlacesUtils.history.getNewQuery();
     query.searchTerms = data.searchTerms;
@@ -79,6 +76,6 @@ add_task(function* test_searchTerms_includeHidden()
     do_check_eq(cc, data.expectedResults);
     do_check_eq(cc_update, data.expectedResults + (data.includeHidden ? 1 : 0));
 
-    PlacesUtils.bhistory.removePage(uri("http://hidden.example.com/"));
+    yield PlacesUtils.history.remove("http://hidden.example.com/");
   }
 });

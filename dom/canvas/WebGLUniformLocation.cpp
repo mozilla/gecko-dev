@@ -6,6 +6,7 @@
 #include "WebGLUniformLocation.h"
 
 #include "GLContext.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "WebGLActiveInfo.h"
@@ -29,7 +30,8 @@ WebGLUniformLocation::~WebGLUniformLocation()
 { }
 
 bool
-WebGLUniformLocation::ValidateForProgram(WebGLProgram* prog, const char* funcName) const
+WebGLUniformLocation::ValidateForProgram(const WebGLProgram* prog,
+                                         const char* funcName) const
 {
     // Check the weak-pointer.
     if (!mLinkInfo) {
@@ -151,7 +153,7 @@ WebGLUniformLocation::ValidateArrayLength(uint8_t setterElemSize, size_t setterA
         setterArraySize % setterElemSize)
     {
         mContext->ErrorInvalidValue("%s: Expected an array of length a multiple of %d,"
-                                    " got an array of length %d.",
+                                    " got an array of length %" PRIuSIZE ".",
                                     funcName, setterElemSize, setterArraySize);
         return false;
     }
@@ -168,7 +170,7 @@ WebGLUniformLocation::ValidateArrayLength(uint8_t setterElemSize, size_t setterA
     {
         mContext->ErrorInvalidOperation("%s: Expected an array of length exactly %d"
                                         " (since this uniform is not an array uniform),"
-                                        " got an array of length %d.",
+                                        " got an array of length %" PRIuSIZE ".",
                                         funcName, setterElemSize, setterArraySize);
         return false;
     }

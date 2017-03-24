@@ -12,7 +12,7 @@ function clickClearReports(browser) {
     return Promise.resolve();
   }
 
-  let style = doc.defaultView.getComputedStyle(button, "");
+  let style = doc.defaultView.getComputedStyle(button);
 
   Assert.notEqual(style.display, "none", "Clear reports button visible");
 
@@ -43,13 +43,13 @@ var promptShown = false;
 
 var oldPrompt = Services.prompt;
 Services.prompt = {
-  confirm: function() {
+  confirm() {
     promptShown = true;
     return true;
   },
 };
 
-registerCleanupFunction(function () {
+registerCleanupFunction(function() {
   Services.prompt = oldPrompt;
 });
 
@@ -93,7 +93,7 @@ add_task(function* test() {
   report4.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0o666);
   report4.lastModifiedTime = Date.now() - 63172000000;
 
-  registerCleanupFunction(function () {
+  registerCleanupFunction(function() {
     cleanup_fake_appdir();
   });
 

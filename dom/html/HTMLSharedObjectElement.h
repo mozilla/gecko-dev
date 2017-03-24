@@ -200,6 +200,11 @@ public:
    * Calls LoadObject with the correct arguments to start the plugin load.
    */
   void StartObjectLoad(bool aNotify, bool aForceLoad);
+
+protected:
+  // Override for nsImageLoadingContent.
+  nsIContent* AsContent() override { return this; }
+
 private:
   virtual ~HTMLSharedObjectElement();
 
@@ -219,22 +224,7 @@ private:
   virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                    nsRuleData* aData);
-
-  /**
-   * Decides whether we should load embed node content.
-   *
-   * If this is an embed node there are cases in which we should not try to load
-   * the content:
-   *
-   * - If the embed node is the child of a media element
-   * - If the embed node is the child of an object node that already has
-   *   content being loaded.
-   *
-   * In these cases, this function will return false, which will cause
-   * us to skip calling LoadObject.
-   */
-  bool BlockEmbedContentLoading();
+                                    GenericSpecifiedValues* aGenericData);
 };
 
 } // namespace dom

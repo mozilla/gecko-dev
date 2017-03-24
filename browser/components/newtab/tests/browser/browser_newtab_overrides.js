@@ -23,7 +23,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "aboutNewTabService",
                                    "nsIAboutNewTabService");
 
 registerCleanupFunction(function() {
-  Services.prefs.setBoolPref("browser.newtabpage.remote", false);
+  Services.prefs.setBoolPref("browser.newtabpage.activity-stream.enabled", false);
   aboutNewTabService.resetNewTabURL();
 });
 
@@ -135,5 +135,5 @@ function nextChangeNotificationPromise(aNewURL, testMessage) {
   return TestUtils.topicObserved("newtab-url-changed", function observer(aSubject, aData) {  // jshint unused:false
       Assert.equal(aData, aNewURL, testMessage);
       return true;
-  }.bind(this));
+  });
 }

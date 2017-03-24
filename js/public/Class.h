@@ -248,7 +248,118 @@ class ObjectOpResult
     }
 };
 
+class PropertyResult
+{
+    union {
+        js::Shape* shape_;
+        uintptr_t bits_;
+    };
+
+    static const uintptr_t NotFound = 0;
+    static const uintptr_t NonNativeProperty = 1;
+    static const uintptr_t DenseOrTypedArrayElement = 1;
+
+  public:
+    PropertyResult() : bits_(NotFound) {}
+
+    explicit PropertyResult(js::Shape* propertyShape)
+      : shape_(propertyShape)
+    {
+        MOZ_ASSERT(!isFound() || isNativeProperty());
+    }
+
+    explicit operator bool() const {
+        return isFound();
+    }
+
+    bool isFound() const {
+        return bits_ != NotFound;
+    }
+
+    bool isNonNativeProperty() const {
+        return bits_ == NonNativeProperty;
+    }
+
+    bool isDenseOrTypedArrayElement() const {
+        return bits_ == DenseOrTypedArrayElement;
+    }
+
+    bool isNativeProperty() const {
+        return isFound() && !isNonNativeProperty();
+    }
+
+    js::Shape* maybeShape() const {
+        MOZ_ASSERT(!isNonNativeProperty());
+        return isFound() ? shape_ : nullptr;
+    }
+
+    js::Shape* shape() const {
+        MOZ_ASSERT(isNativeProperty());
+        return shape_;
+    }
+
+    void setNotFound() {
+        bits_ = NotFound;
+    }
+
+    void setNativeProperty(js::Shape* propertyShape) {
+        shape_ = propertyShape;
+        MOZ_ASSERT(isNativeProperty());
+    }
+
+    void setNonNativeProperty() {
+        bits_ = NonNativeProperty;
+    }
+
+    void setDenseOrTypedArrayElement() {
+        bits_ = DenseOrTypedArrayElement;
+    }
+
+    void trace(JSTracer* trc);
+};
+
 } // namespace JS
+
+namespace js {
+
+template <class Wrapper>
+class WrappedPtrOperations<JS::PropertyResult, Wrapper>
+{
+    const JS::PropertyResult& value() const { return static_cast<const Wrapper*>(this)->get(); }
+
+  public:
+    bool isFound() const { return value().isFound(); }
+    explicit operator bool() const { return bool(value()); }
+    js::Shape* maybeShape() const { return value().maybeShape(); }
+    js::Shape* shape() const { return value().shape(); }
+    bool isNativeProperty() const { return value().isNativeProperty(); }
+    bool isNonNativeProperty() const { return value().isNonNativeProperty(); }
+    bool isDenseOrTypedArrayElement() const { return value().isDenseOrTypedArrayElement(); }
+    js::Shape* asTaggedShape() const { return value().asTaggedShape(); }
+};
+
+template <class Wrapper>
+class MutableWrappedPtrOperations<JS::PropertyResult, Wrapper>
+  : public WrappedPtrOperations<JS::PropertyResult, Wrapper>
+{
+    JS::PropertyResult& value() { return static_cast<Wrapper*>(this)->get(); }
+
+  public:
+    void setNotFound() {
+        value().setNotFound();
+    }
+    void setNativeProperty(js::Shape* shape) {
+        value().setNativeProperty(shape);
+    }
+    void setNonNativeProperty() {
+        value().setNonNativeProperty();
+    }
+    void setDenseOrTypedArrayElement() {
+        value().setDenseOrTypedArrayElement();
+    }
+};
+
+} // namespace js
 
 // JSClass operation signatures.
 
@@ -364,7 +475,7 @@ typedef void
 
 /** Finalizes external strings created by JS_NewExternalString. */
 struct JSStringFinalizer {
-    void (*finalize)(const JSStringFinalizer* fin, char16_t* chars);
+    void (*finalize)(JS::Zone* zone, const JSStringFinalizer* fin, char16_t* chars);
 };
 
 /**
@@ -405,7 +516,7 @@ namespace js {
 
 typedef bool
 (* LookupPropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
-                     JS::MutableHandleObject objp, JS::MutableHandle<Shape*> propp);
+                     JS::MutableHandleObject objp, JS::MutableHandle<JS::PropertyResult> propp);
 typedef bool
 (* DefinePropertyOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                      JS::Handle<JS::PropertyDescriptor> desc,
@@ -516,7 +627,12 @@ typedef void
         cOps->trace(trc, obj); \
     }
 
-struct ClassOps
+// XXX: MOZ_NONHEAP_CLASS allows objects to be created statically or on the
+// stack. We actually want to ban stack objects too, but that's currently not
+// possible. So we define JS_STATIC_CLASS to make the intention clearer.
+#define JS_STATIC_CLASS MOZ_NONHEAP_CLASS
+
+struct JS_STATIC_CLASS ClassOps
 {
     /* Function pointer members (may be null). */
     JSAddPropertyOp     addProperty;
@@ -542,88 +658,43 @@ typedef bool (*FinishClassInitOp)(JSContext* cx, JS::HandleObject ctor,
 
 const size_t JSCLASS_CACHED_PROTO_WIDTH = 6;
 
-struct ClassSpec
+struct JS_STATIC_CLASS ClassSpec
 {
-    // All properties except flags should be accessed through accessor.
-    ClassObjectCreationOp createConstructor_;
-    ClassObjectCreationOp createPrototype_;
-    const JSFunctionSpec* constructorFunctions_;
-    const JSPropertySpec* constructorProperties_;
-    const JSFunctionSpec* prototypeFunctions_;
-    const JSPropertySpec* prototypeProperties_;
-    FinishClassInitOp finishInit_;
+    ClassObjectCreationOp createConstructor;
+    ClassObjectCreationOp createPrototype;
+    const JSFunctionSpec* constructorFunctions;
+    const JSPropertySpec* constructorProperties;
+    const JSFunctionSpec* prototypeFunctions;
+    const JSPropertySpec* prototypeProperties;
+    FinishClassInitOp finishInit;
     uintptr_t flags;
 
-    static const size_t ParentKeyWidth = JSCLASS_CACHED_PROTO_WIDTH;
+    static const size_t ProtoKeyWidth = JSCLASS_CACHED_PROTO_WIDTH;
 
-    static const uintptr_t ParentKeyMask = (1 << ParentKeyWidth) - 1;
-    static const uintptr_t DontDefineConstructor = 1 << ParentKeyWidth;
-    static const uintptr_t IsDelegated = 1 << (ParentKeyWidth + 1);
+    static const uintptr_t ProtoKeyMask = (1 << ProtoKeyWidth) - 1;
+    static const uintptr_t DontDefineConstructor = 1 << ProtoKeyWidth;
 
-    bool defined() const { return !!createConstructor_; }
+    bool defined() const { return !!createConstructor; }
 
-    bool delegated() const {
-        return (flags & IsDelegated);
-    }
-
-    bool dependent() const {
+    // The ProtoKey this class inherits from.
+    JSProtoKey inheritanceProtoKey() const {
         MOZ_ASSERT(defined());
-        return (flags & ParentKeyMask);
-    }
-
-    JSProtoKey parentKey() const {
         static_assert(JSProto_Null == 0, "zeroed key must be null");
-        return JSProtoKey(flags & ParentKeyMask);
+
+        // Default: Inherit from Object.
+        if (!(flags & ProtoKeyMask))
+            return JSProto_Object;
+
+        return JSProtoKey(flags & ProtoKeyMask);
     }
 
     bool shouldDefineConstructor() const {
         MOZ_ASSERT(defined());
         return !(flags & DontDefineConstructor);
     }
-
-    const ClassSpec* delegatedClassSpec() const {
-        MOZ_ASSERT(delegated());
-        return reinterpret_cast<ClassSpec*>(createConstructor_);
-    }
-
-    ClassObjectCreationOp createConstructorHook() const {
-        if (delegated())
-            return delegatedClassSpec()->createConstructorHook();
-        return createConstructor_;
-    }
-    ClassObjectCreationOp createPrototypeHook() const {
-        if (delegated())
-            return delegatedClassSpec()->createPrototypeHook();
-        return createPrototype_;
-    }
-    const JSFunctionSpec* constructorFunctions() const {
-        if (delegated())
-            return delegatedClassSpec()->constructorFunctions();
-        return constructorFunctions_;
-    }
-    const JSPropertySpec* constructorProperties() const {
-        if (delegated())
-            return delegatedClassSpec()->constructorProperties();
-        return constructorProperties_;
-    }
-    const JSFunctionSpec* prototypeFunctions() const {
-        if (delegated())
-            return delegatedClassSpec()->prototypeFunctions();
-        return prototypeFunctions_;
-    }
-    const JSPropertySpec* prototypeProperties() const {
-        if (delegated())
-            return delegatedClassSpec()->prototypeProperties();
-        return prototypeProperties_;
-    }
-    FinishClassInitOp finishInitHook() const {
-        if (delegated())
-            return delegatedClassSpec()->finishInitHook();
-        return finishInit_;
-    }
 };
 
-struct ClassExtension
+struct JS_STATIC_CLASS ClassExtension
 {
     /**
      * If an object is used as a key in a weakmap, it may be desirable for the
@@ -652,14 +723,10 @@ struct ClassExtension
     JSObjectMovedOp objectMovedOp;
 };
 
-inline ClassObjectCreationOp DELEGATED_CLASSSPEC(const ClassSpec* spec) {
-    return reinterpret_cast<ClassObjectCreationOp>(const_cast<ClassSpec*>(spec));
-}
-
 #define JS_NULL_CLASS_SPEC  nullptr
 #define JS_NULL_CLASS_EXT   nullptr
 
-struct ObjectOps
+struct JS_STATIC_CLASS ObjectOps
 {
     LookupPropertyOp lookupProperty;
     DefinePropertyOp defineProperty;
@@ -683,7 +750,7 @@ struct ObjectOps
 
 typedef void (*JSClassInternal)();
 
-struct JSClassOps
+struct JS_STATIC_CLASS JSClassOps
 {
     /* Function pointer members (may be null). */
     JSAddPropertyOp     addProperty;
@@ -785,7 +852,7 @@ struct JSClass {
 // application.
 #define JSCLASS_GLOBAL_APPLICATION_SLOTS 5
 #define JSCLASS_GLOBAL_SLOT_COUNT                                             \
-    (JSCLASS_GLOBAL_APPLICATION_SLOTS + JSProto_LIMIT * 2 + 39)
+    (JSCLASS_GLOBAL_APPLICATION_SLOTS + JSProto_LIMIT * 2 + 41)
 #define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                                    \
     (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))
 #define JSCLASS_GLOBAL_FLAGS                                                  \
@@ -809,7 +876,7 @@ struct JSClass {
 
 namespace js {
 
-struct Class
+struct JS_STATIC_CLASS Class
 {
     JS_CLASS_MEMBERS(js::ClassOps, FreeOp);
     const ClassSpec* spec;
@@ -865,24 +932,24 @@ struct Class
     static size_t offsetOfFlags() { return offsetof(Class, flags); }
 
     bool specDefined()         const { return spec ? spec->defined()   : false; }
-    bool specDependent()       const { return spec ? spec->dependent() : false; }
-    JSProtoKey specParentKey() const { return spec ? spec->parentKey() : JSProto_Null; }
+    JSProtoKey specInheritanceProtoKey()
+                               const { return spec ? spec->inheritanceProtoKey() : JSProto_Null; }
     bool specShouldDefineConstructor()
                                const { return spec ? spec->shouldDefineConstructor() : true; }
     ClassObjectCreationOp specCreateConstructorHook()
-                               const { return spec ? spec->createConstructorHook()   : nullptr; }
+                               const { return spec ? spec->createConstructor        : nullptr; }
     ClassObjectCreationOp specCreatePrototypeHook()
-                               const { return spec ? spec->createPrototypeHook()     : nullptr; }
+                               const { return spec ? spec->createPrototype          : nullptr; }
     const JSFunctionSpec* specConstructorFunctions()
-                               const { return spec ? spec->constructorFunctions()    : nullptr; }
+                               const { return spec ? spec->constructorFunctions     : nullptr; }
     const JSPropertySpec* specConstructorProperties()
-                               const { return spec ? spec->constructorProperties()   : nullptr; }
+                               const { return spec ? spec->constructorProperties    : nullptr; }
     const JSFunctionSpec* specPrototypeFunctions()
-                               const { return spec ? spec->prototypeFunctions()      : nullptr; }
+                               const { return spec ? spec->prototypeFunctions       : nullptr; }
     const JSPropertySpec* specPrototypeProperties()
-                               const { return spec ? spec->prototypeProperties()     : nullptr; }
+                               const { return spec ? spec->prototypeProperties      : nullptr; }
     FinishClassInitOp specFinishInitHook()
-                               const { return spec ? spec->finishInitHook()          : nullptr; }
+                               const { return spec ? spec->finishInit               : nullptr; }
 
     JSWeakmapKeyDelegateOp extWeakmapKeyDelegateOp()
                                const { return ext ? ext->weakmapKeyDelegateOp        : nullptr; }

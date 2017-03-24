@@ -10,7 +10,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.text.TextUtils;
 
-import com.keepsafe.switchboard.SwitchBoard;
+import org.mozilla.gecko.switchboard.SwitchBoard;
 
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.Experiments;

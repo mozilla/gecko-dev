@@ -8,12 +8,12 @@ const { classes: Cc, Constructor: CC, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
-Cu.importGlobalProperties(['fetch']);
+Cu.importGlobalProperties(["fetch"]);
 const BlocklistClients = Cu.import("resource://services-common/blocklist-clients.js", {});
 
 const PREF_SETTINGS_SERVER              = "services.settings.server";
+const PREF_SETTINGS_SERVER_BACKOFF      = "services.settings.server.backoff";
 const PREF_BLOCKLIST_CHANGES_PATH       = "services.blocklist.changes.path";
-const PREF_BLOCKLIST_BUCKET             = "services.blocklist.bucket";
 const PREF_BLOCKLIST_LAST_UPDATE        = "services.blocklist.last_update_seconds";
 const PREF_BLOCKLIST_LAST_ETAG          = "services.blocklist.last_etag";
 const PREF_BLOCKLIST_CLOCK_SKEW_SECONDS = "services.blocklist.clock_skew_seconds";
@@ -23,16 +23,30 @@ const gBlocklistClients = {
   [BlocklistClients.OneCRLBlocklistClient.collectionName]: BlocklistClients.OneCRLBlocklistClient,
   [BlocklistClients.AddonBlocklistClient.collectionName]: BlocklistClients.AddonBlocklistClient,
   [BlocklistClients.GfxBlocklistClient.collectionName]: BlocklistClients.GfxBlocklistClient,
-  [BlocklistClients.PluginBlocklistClient.collectionName]: BlocklistClients.PluginBlocklistClient
+  [BlocklistClients.PluginBlocklistClient.collectionName]: BlocklistClients.PluginBlocklistClient,
+  [BlocklistClients.PinningPreloadClient.collectionName]: BlocklistClients.PinningPreloadClient
 };
 
 // Add a blocklist client for testing purposes. Do not use for any other purpose
 this.addTestBlocklistClient = (name, client) => { gBlocklistClients[name] = client; }
 
+
 // This is called by the ping mechanism.
 // returns a promise that rejects if something goes wrong
 this.checkVersions = function() {
   return Task.spawn(function* syncClients() {
+
+    // Check if the server backoff time is elapsed.
+    if (Services.prefs.prefHasUserValue(PREF_SETTINGS_SERVER_BACKOFF)) {
+      const backoffReleaseTime = Services.prefs.getCharPref(PREF_SETTINGS_SERVER_BACKOFF);
+      const remainingMilliseconds = parseInt(backoffReleaseTime, 10) - Date.now();
+      if (remainingMilliseconds > 0) {
+        throw new Error(`Server is asking clients to back off; retry in ${Math.ceil(remainingMilliseconds / 1000)}s.`);
+      } else {
+        Services.prefs.clearUserPref(PREF_SETTINGS_SERVER_BACKOFF);
+      }
+    }
+
     // Fetch a versionInfo object that looks like:
     // {"data":[
     //   {
@@ -42,9 +56,8 @@ this.checkVersions = function() {
     //     "collection":"certificates"
     //    }]}
     // Right now, we only use the collection name and the last modified info
-    let kintoBase = Services.prefs.getCharPref(PREF_SETTINGS_SERVER);
-    let changesEndpoint = kintoBase + Services.prefs.getCharPref(PREF_BLOCKLIST_CHANGES_PATH);
-    let blocklistsBucket = Services.prefs.getCharPref(PREF_BLOCKLIST_BUCKET);
+    const kintoBase = Services.prefs.getCharPref(PREF_SETTINGS_SERVER);
+    const changesEndpoint = kintoBase + Services.prefs.getCharPref(PREF_BLOCKLIST_CHANGES_PATH);
 
     // Use ETag to obtain a `304 Not modified` when no change occurred.
     const headers = {};
@@ -55,7 +68,16 @@ this.checkVersions = function() {
       }
     }
 
-    let response = yield fetch(changesEndpoint, {headers});
+    const response = yield fetch(changesEndpoint, {headers});
+
+    // Check if the server asked the clients to back off.
+    if (response.headers.has("Backoff")) {
+      const backoffSeconds = parseInt(response.headers.get("Backoff"), 10);
+      if (!isNaN(backoffSeconds)) {
+        const backoffReleaseTime = Date.now() + backoffSeconds * 1000;
+        Services.prefs.setCharPref(PREF_SETTINGS_SERVER_BACKOFF, backoffReleaseTime);
+      }
+    }
 
     let versionInfo;
     // No changes since last time. Go on with empty list of changes.
@@ -72,28 +94,19 @@ this.checkVersions = function() {
     }
 
     // Record new update time and the difference between local and server time
-    let serverTimeMillis = Date.parse(response.headers.get("Date"));
+    const serverTimeMillis = Date.parse(response.headers.get("Date"));
 
     // negative clockDifference means local time is behind server time
     // by the absolute of that value in seconds (positive means it's ahead)
-    let clockDifference = Math.floor((Date.now() - serverTimeMillis) / 1000);
+    const clockDifference = Math.floor((Date.now() - serverTimeMillis) / 1000);
     Services.prefs.setIntPref(PREF_BLOCKLIST_CLOCK_SKEW_SECONDS, clockDifference);
     Services.prefs.setIntPref(PREF_BLOCKLIST_LAST_UPDATE, serverTimeMillis / 1000);
 
     let firstError;
     for (let collectionInfo of versionInfo.data) {
-      // Skip changes that don't concern configured blocklist bucket.
-      if (collectionInfo.bucket != blocklistsBucket) {
-        continue;
-      }
-
-      let collection = collectionInfo.collection;
-      let client = gBlocklistClients[collection];
-      if (client && client.maybeSync) {
-        let lastModified = 0;
-        if (collectionInfo.last_modified) {
-          lastModified = collectionInfo.last_modified;
-        }
+      const {bucket, collection, last_modified: lastModified} = collectionInfo;
+      const client = gBlocklistClients[collection];
+      if (client && client.bucketName == bucket) {
         try {
           yield client.maybeSync(lastModified, serverTimeMillis);
         } catch (e) {

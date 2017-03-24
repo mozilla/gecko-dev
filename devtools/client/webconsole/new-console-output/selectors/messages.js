@@ -29,6 +29,7 @@ function getAllMessages(state) {
           isUnfilterable(message)
           || (
             matchLevelFilters(message, filters)
+            && matchCssFilters(message, filters)
             && matchNetworkFilters(message, filters)
             && matchSearchFilters(message, filters)
           )
@@ -96,6 +97,13 @@ function matchNetworkFilters(message, filters) {
   );
 }
 
+function matchCssFilters(message, filters) {
+  return (
+    message.source != MESSAGE_SOURCE.CSS
+    || filters.get("css") === true
+  );
+}
+
 function matchSearchFilters(message, filters) {
   let text = filters.text || "";
   return (
@@ -126,6 +134,15 @@ function matchSearchFilters(message, filters) {
     || (message.parameters !== null
         && message.parameters.join("").toLocaleLowerCase()
             .includes(text.toLocaleLowerCase()))
+    // Look for a match in notes.
+    || (Array.isArray(message.notes) && message.notes.some(note =>
+          // Look for a match in location.
+          isTextInFrame(text, note.frame)
+          // Look for a match in messageBody.
+          || (note.messageBody !== null
+                && note.messageBody.toLocaleLowerCase()
+                     .includes(text.toLocaleLowerCase()))
+        ))
   );
 }
 

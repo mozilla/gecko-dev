@@ -45,6 +45,9 @@ skip-if(Android) fuzzy-if(winWidget,1,32) == grid-placement-auto-implicit-001.ht
 == vrl-grid-placement-auto-row-sparse-001.html vrl-grid-placement-auto-row-sparse-001-ref.html
 == grid-relpos-items-001.html grid-relpos-items-001-ref.html
 == grid-item-sizing-percent-001.html grid-item-sizing-percent-001-ref.html
+== grid-item-sizing-percent-002.html grid-item-sizing-percent-002-ref.html
+== grid-item-sizing-percent-003.html grid-item-sizing-percent-003-ref.html
+== grid-item-sizing-percent-004.html grid-item-sizing-percent-004-ref.html
 == grid-item-sizing-px-001.html grid-item-sizing-percent-001-ref.html
 == grid-item-dir-001.html grid-item-dir-001-ref.html
 fuzzy-if(winWidget,70,130) fuzzy-if(cocoaWidget,85,180) == grid-col-max-sizing-max-content-001.html grid-col-max-sizing-max-content-001-ref.html
@@ -97,6 +100,15 @@ skip-if(Android) == grid-auto-min-sizing-percent-001.html grid-auto-min-sizing-p
 == grid-item-intrinsic-ratio-stretch-003.html grid-item-intrinsic-ratio-stretch-003-ref.html
 == grid-item-intrinsic-ratio-stretch-004.html grid-item-intrinsic-ratio-stretch-004-ref.html
 == grid-item-intrinsic-ratio-stretch-005.html grid-item-intrinsic-ratio-stretch-005-ref.html
+== grid-item-intrinsic-ratio-stretch-006.html grid-item-intrinsic-ratio-stretch-006-ref.html
+== grid-item-intrinsic-ratio-stretch-007.html grid-item-intrinsic-ratio-stretch-007-ref.html
+== grid-item-intrinsic-ratio-normal-001.html grid-item-intrinsic-ratio-normal-001-ref.html
+== grid-item-intrinsic-ratio-normal-002.html grid-item-intrinsic-ratio-normal-002-ref.html
+== grid-item-intrinsic-ratio-normal-003.html grid-item-intrinsic-ratio-normal-003-ref.html
+== grid-item-intrinsic-ratio-normal-004.html grid-item-intrinsic-ratio-normal-004-ref.html
+== grid-item-intrinsic-ratio-normal-005.html grid-item-intrinsic-ratio-normal-005-ref.html
+== grid-item-intrinsic-size-normal-001.html grid-item-intrinsic-size-normal-001-ref.html
+== grid-item-intrinsic-size-normal-002.html grid-item-intrinsic-size-normal-002-ref.html
 == grid-item-auto-min-size-clamp-001.html grid-item-auto-min-size-clamp-001-ref.html
 == grid-item-auto-min-size-clamp-002.html grid-item-auto-min-size-clamp-002-ref.html
 == grid-item-auto-min-size-clamp-003.html grid-item-auto-min-size-clamp-003-ref.html
@@ -106,6 +118,14 @@ skip-if(Android) == grid-auto-min-sizing-percent-001.html grid-auto-min-sizing-p
 == grid-item-auto-min-size-clamp-007.html grid-item-auto-min-size-clamp-007-ref.html
 == grid-item-canvas-001.html grid-item-canvas-001-ref.html
 skip-if(Android) == grid-item-button-001.html grid-item-button-001-ref.html
+== grid-item-table-stretch-001.html grid-item-table-stretch-001-ref.html
+== grid-item-table-stretch-002.html grid-item-table-stretch-002-ref.html
+== grid-item-table-stretch-003.html grid-item-table-stretch-003-ref.html
+== grid-item-table-stretch-004.html grid-item-table-stretch-004-ref.html
+== grid-item-fieldset-stretch-001.html grid-item-fieldset-stretch-001-ref.html
+skip-if(Android) == grid-item-video-stretch-001.html grid-item-video-stretch-001-ref.html # Huh, Android doesn't have webm support?
+skip-if(Android) == grid-item-video-stretch-002.html grid-item-video-stretch-002-ref.html # Huh, Android doesn't have webm support?
+== grid-item-input-stretch-001.html grid-item-input-stretch-001-ref.html
 == grid-item-self-baseline-001.html grid-item-self-baseline-001-ref.html
 random-if(http.oscpu!="Linux\u0020i686") == grid-item-content-baseline-001.html grid-item-content-baseline-001-ref.html # depends on exact Ahem baseline font metrics which seems to differ between platforms: bug 1310792
 random-if(http.oscpu!="Linux\u0020i686") == grid-item-content-baseline-002.html grid-item-content-baseline-002-ref.html # ditto
@@ -121,6 +141,7 @@ skip-if(!gtkWidget) == grid-container-baselines-001.html grid-container-baseline
 skip-if(!gtkWidget) == grid-container-baselines-002.html grid-container-baselines-002-ref.html
 skip-if(!gtkWidget) == grid-container-baselines-003.html grid-container-baselines-003-ref.html
 == grid-container-baselines-004.html grid-container-baselines-004-ref.html
+== grid-container-synthesized-baseline-001-ref.html grid-container-synthesized-baseline-001-ref.html
 skip-if(Android&&isDebugBuild) == grid-column-gap-001.html grid-column-gap-001-ref.html # Bug 1245884 - slow
 == grid-column-gap-002.html grid-column-gap-002-ref.html
 == grid-column-gap-003.html grid-column-gap-003-ref.html
@@ -254,4 +275,3 @@ asserts(1-10) == grid-fragmentation-dyn4-021.html grid-fragmentation-021-ref.htm
 == grid-fragmentation-dyn2-031.html grid-fragmentation-031-ref.html
 == bug1306106.html bug1306106-ref.html
 == grid-percent-intrinsic-sizing-001.html grid-percent-intrinsic-sizing-001-ref.html
-== grid-percent-intrinsic-sizing-002.html grid-percent-intrinsic-sizing-002-ref.html

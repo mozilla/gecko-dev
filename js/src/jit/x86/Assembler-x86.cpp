@@ -21,11 +21,11 @@ ABIArgGenerator::next(MIRType type)
 {
     switch (type) {
       case MIRType::Int32:
+      case MIRType::Float32:
       case MIRType::Pointer:
         current_ = ABIArg(stackOffset_);
         stackOffset_ += sizeof(uint32_t);
         break;
-      case MIRType::Float32: // Float32 moves are actually double moves
       case MIRType::Double:
         current_ = ABIArg(stackOffset_);
         stackOffset_ += sizeof(uint64_t);
@@ -55,7 +55,7 @@ ABIArgGenerator::next(MIRType type)
 }
 
 void
-Assembler::executableCopy(uint8_t* buffer)
+Assembler::executableCopy(uint8_t* buffer, bool flushICache)
 {
     AssemblerX86Shared::executableCopy(buffer);
 
@@ -71,7 +71,7 @@ class RelocationIterator
     uint32_t offset_;
 
   public:
-    RelocationIterator(CompactBufferReader& reader)
+    explicit RelocationIterator(CompactBufferReader& reader)
       : reader_(reader)
     { }
 

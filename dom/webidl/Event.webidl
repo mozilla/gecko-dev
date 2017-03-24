@@ -34,8 +34,9 @@ interface Event {
   readonly attribute boolean bubbles;
   [Pure]
   readonly attribute boolean cancelable;
+  [NeedsCallerType]
   void preventDefault();
-  [Pure]
+  [Pure, NeedsCallerType]
   readonly attribute boolean defaultPrevented;
   [ChromeOnly, Pure]
   readonly attribute boolean defaultPreventedByChrome;
@@ -50,6 +51,7 @@ interface Event {
   readonly attribute DOMHighResTimeStamp timeStamp;
 
   void initEvent(DOMString type, boolean bubbles, boolean cancelable);
+  attribute boolean cancelBubble;
 };
 
 // Mozilla specific legacy stuff.
@@ -64,7 +66,6 @@ partial interface Event {
   [ChromeOnly] readonly attribute EventTarget? composedTarget;
   [ChromeOnly] readonly attribute boolean multipleActionsPrevented;
   [ChromeOnly] readonly attribute boolean isSynthesized;
-
   boolean getPreventDefault();
 };
 

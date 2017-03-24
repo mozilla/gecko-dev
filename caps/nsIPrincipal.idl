@@ -11,6 +11,29 @@
 struct JSPrincipals;
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
+#include "mozilla/DebugOnly.h"
+namespace mozilla {
+class OriginAttributes;
+}
+
+/**
+ * Some methods have a fast path for the case when we're comparing a principal
+ * to itself. The situation may happen for example with about:blank documents.
+ */
+
+#define DECL_FAST_INLINE_HELPER(method_)                       \
+  inline bool method_(nsIPrincipal* aOther)                    \
+  {                                                            \
+    mozilla::DebugOnly<bool> val = false;                      \
+    MOZ_ASSERT_IF(this == aOther,                              \
+                  NS_SUCCEEDED(method_(aOther, &val)) && val); \
+                                                               \
+    bool retVal = false;                                       \
+    return                                                     \
+      this == aOther ||                                        \
+      (NS_SUCCEEDED(method_(aOther, &retVal)) && retVal);      \
+  }
+
 %}
 
 interface nsIURI;
@@ -20,8 +43,9 @@ interface nsIDOMDocument;
 [ptr] native JSContext(JSContext);
 [ptr] native JSPrincipals(JSPrincipals);
 [ptr] native PrincipalArray(nsTArray<nsCOMPtr<nsIPrincipal> >);
+[ref] native const_OriginAttributes(const mozilla::OriginAttributes);
 
-[scriptable, builtinclass, uuid(3da7b133-f1a0-4de9-a2bc-5c49014c1077)]
+[scriptable, builtinclass, uuid(f75f502d-79fd-48be-a079-e5a7b8f80c8b)]
 interface nsIPrincipal : nsISerializable
 {
     /**
@@ -37,15 +61,8 @@ interface nsIPrincipal : nsISerializable
     boolean equalsConsideringDomain(in nsIPrincipal other);
 
     %{C++
-    inline bool Equals(nsIPrincipal* aOther) {
-      bool equal = false;
-      return NS_SUCCEEDED(Equals(aOther, &equal)) && equal;
-    }
-
-    inline bool EqualsConsideringDomain(nsIPrincipal* aOther) {
-      bool equal = false;
-      return NS_SUCCEEDED(EqualsConsideringDomain(aOther, &equal)) && equal;
-    }
+      DECL_FAST_INLINE_HELPER(Equals)
+      DECL_FAST_INLINE_HELPER(EqualsConsideringDomain)
     %}
 
     /**
@@ -90,16 +107,17 @@ interface nsIPrincipal : nsISerializable
      */
     boolean subsumesConsideringDomain(in nsIPrincipal other);
 
-    %{C++
-    inline bool Subsumes(nsIPrincipal* aOther) {
-      bool subsumes = false;
-      return NS_SUCCEEDED(Subsumes(aOther, &subsumes)) && subsumes;
-    }
+    /**
+     * Same as the subsumesConsideringDomain(), but ignores the first party
+     * domain in its originAttributes.
+     */
+    boolean subsumesConsideringDomainIgnoringFPD(in nsIPrincipal other);
 
-    inline bool SubsumesConsideringDomain(nsIPrincipal* aOther) {
-      bool subsumes = false;
-      return NS_SUCCEEDED(SubsumesConsideringDomain(aOther, &subsumes)) && subsumes;
-    }
+    %{C++
+      DECL_FAST_INLINE_HELPER(Subsumes)
+      DECL_FAST_INLINE_HELPER(SubsumesConsideringDomain)
+      DECL_FAST_INLINE_HELPER(SubsumesConsideringDomainIgnoringFPD)
+#undef DECL_FAST_INLINE_HELPER
     %}
 
     /**
@@ -133,10 +151,11 @@ interface nsIPrincipal : nsISerializable
 
     /**
      * A Content Security Policy associated with this principal.
-     *
      * Use this function to query the associated CSP with this principal.
+     * Please *only* use this function to *set* a CSP when you know exactly what you are doing.
+     * Most likely you want to call ensureCSP instead of setCSP.
      */
-    [noscript] readonly attribute nsIContentSecurityPolicy csp;
+    [noscript] attribute nsIContentSecurityPolicy csp;
 
     /*
      * Use this function to query a CSP associated with this principal.
@@ -192,6 +211,9 @@ interface nsIPrincipal : nsISerializable
      */
     [implicit_jscontext]
     readonly attribute jsval originAttributes;
+
+    [noscript, notxpcom, nostdcall, binaryname(OriginAttributesRef)]
+    const_OriginAttributes OriginAttributesRef();
 
     /**
      * A canonical representation of the origin for this principal. This
@@ -298,10 +320,10 @@ interface nsIPrincipal : nsISerializable
 
     /**
      * Returns true iff the principal is inside an isolated mozbrowser element.
-     * <iframe mozbrowser mozapp> and <xul:browser> are not considered to be
-     * mozbrowser elements.  <iframe mozbrowser noisolation> does not count as
-     * isolated since isolation is disabled.  Isolation can only be disabled if
-     * the containing document is chrome.
+     * <xul:browser> is not considered to be a mozbrowser element.
+     * <iframe mozbrowser noisolation> does not count as isolated since
+     * isolation is disabled.  Isolation can only be disabled if the
+     * containing document is chrome.
      */
     [infallible] readonly attribute boolean isInIsolatedMozBrowserElement;
 
@@ -332,24 +354,15 @@ interface nsIPrincipal : nsISerializable
      * Returns true iff this is the system principal.
      */
     [infallible] readonly attribute boolean isSystemPrincipal;
-
-    /**
-     * Returns true if this principal's origin is recognized as being on the
-     * whitelist of sites that can use the CSS Unprefixing Service.
-     *
-     * (This interface provides a trivial implementation, just returning false;
-     * subclasses can implement something more complex as-needed.)
-     */
-    [noscript,notxpcom,nostdcall] bool IsOnCSSUnprefixingWhitelist();
 };
 
 /**
- * If nsSystemPrincipal is too risky to use, but we want a principal to access
- * more than one origin, nsExpandedPrincipals letting us define an array of
- * principals it subsumes. So script with an nsExpandedPrincipals will gain
+ * If SystemPrincipal is too risky to use, but we want a principal to access
+ * more than one origin, ExpandedPrincipals letting us define an array of
+ * principals it subsumes. So script with an ExpandedPrincipals will gain
  * same origin access when at least one of its principals it contains gained
- * sameorigin acccess. An nsExpandedPrincipal will be subsumed by the system
- * principal, and by another nsExpandedPrincipal that has all its principals.
+ * sameorigin acccess. An ExpandedPrincipal will be subsumed by the system
+ * principal, and by another ExpandedPrincipal that has all its principals.
  * It is added for jetpack content-scripts to let them interact with the
  * content and a well defined set of other domains, without the risk of
  * leaking out a system principal to the content. See: Bug 734891

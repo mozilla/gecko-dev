@@ -89,11 +89,10 @@ function removeTab(aTab, aWindow) {
   let targetBrowser = targetWindow.gBrowser;
   let tabContainer = targetBrowser.tabContainer;
 
-  tabContainer.addEventListener("TabClose", function onClose(aEvent) {
-    tabContainer.removeEventListener("TabClose", onClose, false);
+  tabContainer.addEventListener("TabClose", function (aEvent) {
     info("Tab removed and finished closing.");
     deferred.resolve();
-  }, false);
+  }, {once: true});
 
   targetBrowser.removeTab(aTab);
   return deferred.promise;

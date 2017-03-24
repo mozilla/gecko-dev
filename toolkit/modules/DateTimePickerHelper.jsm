@@ -21,6 +21,7 @@ this.EXPORTED_SYMBOLS = [
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 /*
  * DateTimePickerHelper receives message from content side (input box) and
@@ -38,20 +39,20 @@ this.DateTimePickerHelper = {
     "FormDateTime:UpdatePicker"
   ],
 
-  init: function() {
+  init() {
     for (let msg of this.MESSAGES) {
       Services.mm.addMessageListener(msg, this);
     }
   },
 
-  uninit: function() {
+  uninit() {
     for (let msg of this.MESSAGES) {
       Services.mm.removeMessageListener(msg, this);
     }
   },
 
   // nsIMessageListener
-  receiveMessage: function(aMessage) {
+  receiveMessage(aMessage) {
     debug("receiveMessage: " + aMessage.name);
     switch (aMessage.name) {
       case "FormDateTime:OpenPicker": {
@@ -75,7 +76,7 @@ this.DateTimePickerHelper = {
   },
 
   // nsIDOMEventListener
-  handleEvent: function(aEvent) {
+  handleEvent(aEvent) {
     debug("handleEvent: " + aEvent.type);
     switch (aEvent.type) {
       case "DateTimePickerValueChanged": {
@@ -96,21 +97,17 @@ this.DateTimePickerHelper = {
   },
 
   // Called when picker value has changed, notify input box about it.
-  updateInputBoxValue: function(aEvent) {
-    // TODO: parse data based on input type.
-    const { hour, minute } = aEvent.detail;
-    debug("hour: " + hour + ", minute: " + minute);
+  updateInputBoxValue(aEvent) {
     let browser = this.weakBrowser ? this.weakBrowser.get() : null;
     if (browser) {
       browser.messageManager.sendAsyncMessage(
-        "FormDateTime:PickerValueChanged", { hour, minute });
+        "FormDateTime:PickerValueChanged", aEvent.detail);
     }
   },
 
   // Get picker from browser and show it anchored to the input box.
-  showPicker: function(aBrowser, aData) {
+  showPicker: Task.async(function* (aBrowser, aData) {
     let rect = aData.rect;
-    let dir = aData.dir;
     let type = aData.type;
     let detail = aData.detail;
 
@@ -123,7 +120,7 @@ this.DateTimePickerHelper = {
 
     debug("Opening picker with details: " + JSON.stringify(detail));
 
-    let window = aBrowser.ownerDocument.defaultView;
+    let window = aBrowser.ownerGlobal;
     let tabbrowser = window.gBrowser;
     if (Services.focus.activeWindow != window ||
         tabbrowser.selectedBrowser != aBrowser) {
@@ -138,16 +135,27 @@ this.DateTimePickerHelper = {
       debug("aBrowser.dateTimePicker not found, exiting now.");
       return;
     }
+    // The datetimepopup binding is only attached when it is needed.
+    // Check if loadPicker method is present to determine if binding has
+    // been attached. If not, attach the binding first before calling it.
+    if (!this.picker.loadPicker) {
+      let bindingPromise = new Promise(resolve => {
+        this.picker.addEventListener("DateTimePickerBindingReady",
+                                     resolve, {once: true});
+      });
+      this.picker.setAttribute("active", true);
+      yield bindingPromise;
+    }
     this.picker.loadPicker(type, detail);
     // The arrow panel needs an anchor to work. The popupAnchor (this._anchor)
     // is a transparent div that the arrow can point to.
-    this.picker.openPopup(this._anchor, "after_start", rect.left, rect.top);
+    this.picker.openPopup(this._anchor, "after_start", 0, 0);
 
     this.addPickerListeners();
-  },
+  }),
 
   // Picker is closed, do some cleanup.
-  close: function() {
+  close() {
     this.removePickerListeners();
     this.picker = null;
     this.weakBrowser = null;
@@ -155,7 +163,7 @@ this.DateTimePickerHelper = {
   },
 
   // Listen to picker's event.
-  addPickerListeners: function() {
+  addPickerListeners() {
     if (!this.picker) {
       return;
     }
@@ -164,7 +172,7 @@ this.DateTimePickerHelper = {
   },
 
   // Stop listening to picker's event.
-  removePickerListeners: function() {
+  removePickerListeners() {
     if (!this.picker) {
       return;
     }

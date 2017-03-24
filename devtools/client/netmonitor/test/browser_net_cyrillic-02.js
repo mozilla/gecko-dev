@@ -12,33 +12,42 @@ add_task(function* () {
   let { tab, monitor } = yield initNetMonitor(CYRILLIC_URL);
   info("Starting test... ");
 
-  let { document, EVENTS, Editor, NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
-
-  RequestsMenu.lazyUpdate = false;
+  let { document, gStore, windowRequire } = monitor.panelWin;
+  let {
+    getDisplayedRequests,
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/selectors/index");
 
   let wait = waitForNetworkEvents(monitor, 1);
   tab.linkedBrowser.reload();
   yield wait;
 
-  verifyRequestItemTarget(RequestsMenu.getItemAtIndex(0),
-    "GET", CYRILLIC_URL, {
+  verifyRequestItemTarget(
+    document,
+    getDisplayedRequests(gStore.getState()),
+    getSortedRequests(gStore.getState()).get(0),
+    "GET",
+    CYRILLIC_URL,
+    {
       status: 200,
       statusText: "OK"
     });
 
+  wait = waitForDOM(document, "#headers-panel");
   EventUtils.sendMouseEvent({ type: "mousedown" },
-    document.getElementById("details-pane-toggle"));
-  EventUtils.sendMouseEvent({ type: "mousedown" },
-    document.querySelectorAll("#details-pane tab")[3]);
+    document.querySelectorAll(".request-list-item")[0]);
+  yield wait;
+  wait = waitForDOM(document, "#response-panel .editor-mount iframe");
+  EventUtils.sendMouseEvent({ type: "click" },
+    document.querySelector("#response-tab"));
+  let [editor] = yield wait;
+  yield once(editor, "DOMContentLoaded");
+  yield waitForDOM(editor.contentDocument, ".CodeMirror-code");
+  let text = editor.contentDocument
+          .querySelector(".CodeMirror-code").textContent;
 
-  yield monitor.panelWin.once(EVENTS.RESPONSE_BODY_DISPLAYED);
-  let editor = yield NetMonitorView.editor("#response-content-textarea");
-  // u044F = я
-  is(editor.getText().indexOf("\u044F"), 486,
+  ok(text.includes("\u0411\u0440\u0430\u0442\u0430\u043d"),
     "The text shown in the source editor is correct.");
-  is(editor.getMode(), Editor.modes.html,
-    "The mode active in the source editor is correct.");
 
   return teardown(monitor);
 });

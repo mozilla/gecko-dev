@@ -8,6 +8,7 @@
 #define jit_Ion_h
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Result.h"
 
 #include "jscntxt.h"
 #include "jscompartment.h"
@@ -28,13 +29,24 @@ enum MethodStatus
     Method_Compiled
 };
 
-enum AbortReason {
-    AbortReason_Alloc,
-    AbortReason_PreliminaryObjects,
-    AbortReason_Disable,
-    AbortReason_Error,
-    AbortReason_NoAbort
+enum class AbortReason : uint8_t {
+    Alloc,
+    Inlining,
+    PreliminaryObjects,
+    Disable,
+    Error,
+    NoAbort
 };
+
+template <typename V>
+using AbortReasonOr = mozilla::Result<V, AbortReason>;
+using mozilla::Err;
+using mozilla::Ok;
+
+static_assert(sizeof(AbortReasonOr<Ok>) <= sizeof(uintptr_t),
+    "Unexpected size of AbortReasonOr<Ok>");
+static_assert(sizeof(AbortReasonOr<bool>) <= sizeof(uintptr_t),
+    "Unexpected size of AbortReasonOr<bool>");
 
 // A JIT context is needed to enter into either an JIT method or an instance
 // of a JIT compiler. It points to a temporary allocator and the active
@@ -45,7 +57,6 @@ class JitContext
 {
   public:
     JitContext(JSContext* cx, TempAllocator* temp);
-    JitContext(ExclusiveContext* cx, TempAllocator* temp);
     JitContext(CompileRuntime* rt, CompileCompartment* comp, TempAllocator* temp);
     JitContext(CompileRuntime* rt, TempAllocator* temp);
     explicit JitContext(CompileRuntime* rt);
@@ -53,7 +64,7 @@ class JitContext
     JitContext();
     ~JitContext();
 
-    // Running context when executing on the main thread. Not available during
+    // Running context when executing on the active thread. Not available during
     // compilation.
     JSContext* cx;
 
@@ -65,9 +76,6 @@ class JitContext
     CompileRuntime* runtime;
     CompileCompartment* compartment;
 
-    bool onMainThread() const {
-        return runtime && runtime->onMainThread();
-    }
     bool hasProfilingScripts() const {
         return runtime && !!runtime->profilingScripts();
     }
@@ -156,7 +164,7 @@ void FinishOffThreadBuilder(JSRuntime* runtime, IonBuilder* builder,
                             const AutoLockHelperThreadState& lock);
 
 void LinkIonScript(JSContext* cx, HandleScript calleescript);
-uint8_t* LazyLinkTopActivation(JSContext* cx);
+uint8_t* LazyLinkTopActivation();
 
 static inline bool
 IsIonEnabled(JSContext* cx)

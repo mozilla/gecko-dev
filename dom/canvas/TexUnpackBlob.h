@@ -50,7 +50,8 @@ public:
     const uint32_t mWidth;
     const uint32_t mHeight;
     const uint32_t mDepth;
-    const bool mIsSrcPremult;
+
+    const bool mSrcIsPremult;
 
     bool mNeedsExactUpload;
 
@@ -63,10 +64,12 @@ public:
 
 protected:
     bool ConvertIfNeeded(WebGLContext* webgl, const char* funcName,
-                         const uint8_t* srcBytes, uint32_t srcStride, uint8_t srcBPP,
+                         const uint32_t rowLength, const uint32_t rowCount,
                          WebGLTexelFormat srcFormat,
-                         const webgl::DriverUnpackInfo* dstDUI,
-                         const uint8_t** const out_bytes,
+                         const uint8_t* const srcBegin, const ptrdiff_t srcStride,
+                         WebGLTexelFormat dstFormat, const ptrdiff_t dstStride,
+
+                         const uint8_t** const out_begin,
                          UniqueBuffer* const out_anchoredBuffer) const;
 
 public:
@@ -74,6 +77,10 @@ public:
 
     virtual bool Validate(WebGLContext* webgl, const char* funcName,
                           const webgl::PackingInfo& pi) = 0;
+
+    // Returns false when we've generated a WebGL error.
+    // Returns true but with a non-zero *out_error if we still need to generate a WebGL
+    // error.
     virtual bool TexOrSubImage(bool isSubImage, bool needsRespec, const char* funcName,
                                WebGLTexture* tex, TexImageTarget target, GLint level,
                                const webgl::DriverUnpackInfo* dui, GLint xOffset,

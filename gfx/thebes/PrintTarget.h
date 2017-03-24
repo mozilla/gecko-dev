@@ -30,7 +30,9 @@ public:
 
   /// Must be matched 1:1 by an EndPrinting/AbortPrinting call.
   virtual nsresult BeginPrinting(const nsAString& aTitle,
-                                 const nsAString& aPrintToFileName) {
+                                 const nsAString& aPrintToFileName,
+                                 int32_t aStartPage,
+                                 int32_t aEndPage) {
     return NS_OK;
   }
   virtual nsresult EndPrinting() {
@@ -131,7 +133,7 @@ public:
    * returned DrawTarget it is still valid to use after EndPage() has been
    * called.
    */
-  virtual already_AddRefed<DrawTarget> GetReferenceDrawTarget();
+  virtual already_AddRefed<DrawTarget> GetReferenceDrawTarget(DrawEventRecorder* aRecorder);
 
 protected:
 

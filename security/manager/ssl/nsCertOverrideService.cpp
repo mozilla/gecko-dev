@@ -9,6 +9,7 @@
 #include "NSSCertDBTrustDomain.h"
 #include "ScopedNSSTypes.h"
 #include "SharedSSLState.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Telemetry.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsCRT.h"
@@ -22,7 +23,6 @@
 #include "nsNSSCertificate.h"
 #include "nsNSSComponent.h"
 #include "nsNetUtil.h"
-#include "nsPromiseFlatString.h"
 #include "nsStreamUtils.h"
 #include "nsStringBuffer.h"
 #include "nsThreadUtils.h"
@@ -34,45 +34,44 @@ using namespace mozilla::psm;
 #define CERT_OVERRIDE_FILE_NAME "cert_override.txt"
 
 void
-nsCertOverride::convertBitsToString(OverrideBits ob, nsACString &str)
+nsCertOverride::convertBitsToString(OverrideBits ob, /*out*/ nsACString& str)
 {
   str.Truncate();
 
-  if (ob & ob_Mismatch)
+  if (ob & OverrideBits::Mismatch) {
     str.Append('M');
+  }
 
-  if (ob & ob_Untrusted)
+  if (ob & OverrideBits::Untrusted) {
     str.Append('U');
+  }
 
-  if (ob & ob_Time_error)
+  if (ob & OverrideBits::Time) {
     str.Append('T');
+  }
 }
 
 void
-nsCertOverride::convertStringToBits(const nsACString &str, OverrideBits &ob)
+nsCertOverride::convertStringToBits(const nsACString& str,
+                            /*out*/ OverrideBits& ob)
 {
-  const nsPromiseFlatCString &flat = PromiseFlatCString(str);
-  const char *walk = flat.get();
+  ob = OverrideBits::None;
 
-  ob = ob_None;
-
-  for ( ; *walk; ++walk)
-  {
-    switch (*walk)
-    {
+  for (uint32_t i = 0; i < str.Length(); i++) {
+    switch (str.CharAt(i)) {
       case 'm':
       case 'M':
-        ob = (OverrideBits)(ob | ob_Mismatch);
+        ob |= OverrideBits::Mismatch;
         break;
 
       case 'u':
       case 'U':
-        ob = (OverrideBits)(ob | ob_Untrusted);
+        ob |= OverrideBits::Untrusted;
         break;
 
       case 't':
       case 'T':
-        ob = (OverrideBits)(ob | ob_Time_error);
+        ob |= OverrideBits::Time;
         break;
 
       default:
@@ -99,7 +98,7 @@ nsresult
 nsCertOverrideService::Init()
 {
   if (!NS_IsMainThread()) {
-    NS_NOTREACHED("nsCertOverrideService initialized off main thread");
+    MOZ_ASSERT_UNREACHABLE("nsCertOverrideService initialized off main thread");
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
@@ -332,7 +331,7 @@ nsCertOverrideService::Write()
   // All went ok. Maybe except for problems in Write(), but the stream detects
   // that for us
   nsCOMPtr<nsISafeOutputStream> safeStream = do_QueryInterface(bufferedOutputStream);
-  NS_ASSERTION(safeStream, "expected a safe output stream!");
+  MOZ_ASSERT(safeStream, "Expected a safe output stream!");
   if (safeStream) {
     rv = safeStream->Finish();
     if (NS_FAILED(rv)) {
@@ -458,7 +457,7 @@ nsCertOverrideService::HasMatchingOverride(const nsACString & aHostName, int32_t
   NS_ENSURE_ARG_POINTER(aIsTemporary);
   NS_ENSURE_ARG_POINTER(_retval);
   *_retval = false;
-  *aOverrideBits = nsCertOverride::ob_None;
+  *aOverrideBits = static_cast<uint32_t>(nsCertOverride::OverrideBits::None);
 
   nsAutoCString hostPort;
   GetHostWithPort(aHostName, aPort, hostPort);
@@ -474,7 +473,7 @@ nsCertOverrideService::HasMatchingOverride(const nsACString & aHostName, int32_t
     settings = entry->mSettings; // copy
   }
 
-  *aOverrideBits = settings.mOverrideBits;
+  *aOverrideBits = static_cast<uint32_t>(settings.mOverrideBits);
   *aIsTemporary = settings.mIsTemporary;
 
   nsAutoCString fpStr;
@@ -508,7 +507,7 @@ nsCertOverrideService::GetValidityOverride(const nsACString & aHostName, int32_t
   NS_ENSURE_ARG_POINTER(aIsTemporary);
   NS_ENSURE_ARG_POINTER(aOverrideBits);
   *_found = false;
-  *aOverrideBits = nsCertOverride::ob_None;
+  *aOverrideBits = static_cast<uint32_t>(nsCertOverride::OverrideBits::None);
 
   nsAutoCString hostPort;
   GetHostWithPort(aHostName, aPort, hostPort);
@@ -525,7 +524,7 @@ nsCertOverrideService::GetValidityOverride(const nsACString & aHostName, int32_t
   }
 
   if (*_found) {
-    *aOverrideBits = settings.mOverrideBits;
+    *aOverrideBits = static_cast<uint32_t>(settings.mOverrideBits);
     *aIsTemporary = settings.mIsTemporary;
     aFingerprint = settings.mFingerprint;
     aHashAlg = settings.mFingerprintAlgOID;
@@ -576,8 +575,11 @@ nsCertOverrideService::AddEntryToList(const nsACString &aHostName, int32_t aPort
 NS_IMETHODIMP
 nsCertOverrideService::ClearValidityOverride(const nsACString & aHostName, int32_t aPort)
 {
-  if (aPort == 0 &&
-      aHostName.EqualsLiteral("all:temporary-certificates")) {
+  if (!NS_IsMainThread()) {
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
+
+  if (aPort == 0 && aHostName.EqualsLiteral("all:temporary-certificates")) {
     RemoveAllTemporaryOverrides();
     return NS_OK;
   }
@@ -589,7 +591,8 @@ nsCertOverrideService::ClearValidityOverride(const nsACString & aHostName, int32
     Write();
   }
 
-  if (EnsureNSSInitialized(nssEnsure)) {
+  nsCOMPtr<nsINSSComponent> nss(do_GetService(PSM_COMPONENT_CONTRACTID));
+  if (nss) {
     SSL_ClearSessionCache();
   } else {
     return NS_ERROR_NOT_AVAILABLE;

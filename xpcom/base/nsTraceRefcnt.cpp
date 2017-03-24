@@ -233,8 +233,6 @@ static const PLHashAllocOps typesToLogHashAllocOps = {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef MOZ_STACKWALKING
-
 class CodeAddressServiceStringTable final
 {
 public:
@@ -276,8 +274,6 @@ typedef mozilla::CodeAddressService<CodeAddressServiceStringTable,
                                     CodeAddressServiceLock> WalkTheStackCodeAddressService;
 
 mozilla::StaticAutoPtr<WalkTheStackCodeAddressService> gCodeAddressService;
-
-#endif // MOZ_STACKWALKING
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -464,7 +460,6 @@ DumpSerialNumbers(PLHashEntry* aHashEntry, int aIndex, void* aClosure)
           aHashEntry->key,
           record->refCount);
 #endif
-#ifdef MOZ_STACKWALKING
   if (!record->allocationStack.empty()) {
     static const size_t bufLen = 1024;
     char buf[bufLen];
@@ -477,7 +472,6 @@ DumpSerialNumbers(PLHashEntry* aHashEntry, int aIndex, void* aClosure)
       fprintf(outputFile, "%s\n", buf);
     }
   }
-#endif
   return HT_ENUMERATE_NEXT;
 }
 
@@ -574,8 +568,6 @@ HashNumber(const void* aKey)
   return PLHashNumber(NS_PTR_TO_INT32(aKey));
 }
 
-// This method uses MOZ_RELEASE_ASSERT in the unlikely event that
-// somebody uses this in a non-debug build.
 static intptr_t
 GetSerialNumber(void* aPtr, bool aCreate)
 {
@@ -587,7 +579,9 @@ GetSerialNumber(void* aPtr, bool aCreate)
     return static_cast<SerialNumberRecord*>((*hep)->value)->serialNumber;
   }
 
-  MOZ_RELEASE_ASSERT(aCreate, "If an object does not have a serial number, we should be creating it.");
+  if (!aCreate) {
+    return 0;
+  }
 
   SerialNumberRecord* record = new SerialNumberRecord();
   WalkTheStackSavingLocations(record->allocationStack);
@@ -677,10 +671,10 @@ InitLog(const char* aEnvVar, const char* aMsg, FILE** aResult)
       if (stream) {
         MozillaRegisterDebugFD(fileno(stream));
         *aResult = stream;
-        fprintf(stdout, "### %s defined -- logging %s to %s\n",
+        fprintf(stderr, "### %s defined -- logging %s to %s\n",
                 aEnvVar, aMsg, fname.get());
       } else {
-        fprintf(stdout, "### %s defined -- unable to log %s to %s\n",
+        fprintf(stderr, "### %s defined -- unable to log %s to %s\n",
                 aEnvVar, aMsg, fname.get());
         MOZ_ASSERT(false, "Tried and failed to create an XPCOM log");
       }
@@ -848,7 +842,6 @@ InitTraceLog()
 
 extern "C" {
 
-#ifdef MOZ_STACKWALKING
 static void
 PrintStackFrame(uint32_t aFrameNumber, void* aPC, void* aSP, void* aClosure)
 {
@@ -881,17 +874,14 @@ RecordStackFrame(uint32_t /*aFrameNumber*/, void* aPC, void* /*aSP*/,
   auto locations = static_cast<std::vector<void*>*>(aClosure);
   locations->push_back(aPC);
 }
-#endif // MOZ_STACKWALKING
 
 }
 
 void
 nsTraceRefcnt::WalkTheStack(FILE* aStream)
 {
-#ifdef MOZ_STACKWALKING
   MozStackWalk(PrintStackFrame, /* skipFrames */ 2, /* maxFrames */ 0, aStream,
                0, nullptr);
-#endif
 }
 
 /**
@@ -905,19 +895,16 @@ nsTraceRefcnt::WalkTheStack(FILE* aStream)
 static void
 WalkTheStackCached(FILE* aStream)
 {
-#ifdef MOZ_STACKWALKING
   if (!gCodeAddressService) {
     gCodeAddressService = new WalkTheStackCodeAddressService();
   }
   MozStackWalk(PrintStackFrameCached, /* skipFrames */ 2, /* maxFrames */ 0,
                aStream, 0, nullptr);
-#endif
 }
 
 static void
 WalkTheStackSavingLocations(std::vector<void*>& aLocations)
 {
-#ifdef MOZ_STACKWALKING
   if (!gCodeAddressService) {
     gCodeAddressService = new WalkTheStackCodeAddressService();
   }
@@ -927,7 +914,6 @@ WalkTheStackSavingLocations(std::vector<void*>& aLocations)
     1;                          // NS_LogCtor
   MozStackWalk(RecordStackFrame, kFramesToSkip, /* maxFrames */ 0,
                &aLocations, 0, nullptr);
-#endif
 }
 
 //----------------------------------------------------------------------
@@ -938,9 +924,7 @@ NS_LogInit()
   NS_SetMainThread();
 
   // FIXME: This is called multiple times, we should probably not allow that.
-#ifdef MOZ_STACKWALKING
   StackWalkInitCriticalAddress();
-#endif
   if (++gInitCount) {
     nsTraceRefcnt::SetActivityIsLegal(true);
   }
@@ -1053,9 +1037,9 @@ NS_LogAddRef(void* aPtr, nsrefcnt aRefcnt,
     intptr_t serialno = 0;
     if (gSerialNumbers && loggingThisType) {
       serialno = GetSerialNumber(aPtr, aRefcnt == 1);
-      NS_ASSERTION(serialno != 0,
-                   "Serial number requested for unrecognized pointer!  "
-                   "Are you memmoving a refcounted object?");
+      MOZ_ASSERT(serialno != 0,
+                 "Serial number requested for unrecognized pointer!  "
+                 "Are you memmoving a refcounted object?");
       int32_t* count = GetRefCount(aPtr);
       if (count) {
         (*count)++;
@@ -1103,9 +1087,9 @@ NS_LogRelease(void* aPtr, nsrefcnt aRefcnt, const char* aClass)
     intptr_t serialno = 0;
     if (gSerialNumbers && loggingThisType) {
       serialno = GetSerialNumber(aPtr, false);
-      NS_ASSERTION(serialno != 0,
-                   "Serial number requested for unrecognized pointer!  "
-                   "Are you memmoving a refcounted object?");
+      MOZ_ASSERT(serialno != 0,
+                 "Serial number requested for unrecognized pointer!  "
+                 "Are you memmoving a refcounted object?");
       int32_t* count = GetRefCount(aPtr);
       if (count) {
         (*count)--;
@@ -1162,6 +1146,7 @@ NS_LogCtor(void* aPtr, const char* aType, uint32_t aInstanceSize)
   intptr_t serialno = 0;
   if (gSerialNumbers && loggingThisType) {
     serialno = GetSerialNumber(aPtr, true);
+    MOZ_ASSERT(serialno != 0, "GetSerialNumber should never return 0 when passed true");
   }
 
   bool loggingThisObject = (!gObjectsToLog || LogThisObj(serialno));
@@ -1198,6 +1183,9 @@ NS_LogDtor(void* aPtr, const char* aType, uint32_t aInstanceSize)
   intptr_t serialno = 0;
   if (gSerialNumbers && loggingThisType) {
     serialno = GetSerialNumber(aPtr, false);
+    MOZ_ASSERT(serialno != 0,
+               "Serial number requested for unrecognized pointer!  "
+               "Are you memmoving a MOZ_COUNT_CTOR-tracked object?");
     RecycleSerialNumberPtr(aPtr);
   }
 
@@ -1297,9 +1285,7 @@ NS_LogCOMPtrRelease(void* aCOMPtr, nsISupports* aObject)
 void
 nsTraceRefcnt::Shutdown()
 {
-#ifdef MOZ_STACKWALKING
   gCodeAddressService = nullptr;
-#endif
   if (gBloatView) {
     PL_HashTableDestroy(gBloatView);
     gBloatView = nullptr;

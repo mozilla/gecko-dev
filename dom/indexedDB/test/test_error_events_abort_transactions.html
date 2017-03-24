@@ -9,7 +9,7 @@
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 
-  <script type="text/javascript;version=1.7">
+  <script type="text/javascript">
     function runTest() {
       SimpleTest.waitForExplicitFinish();
 
@@ -17,7 +17,7 @@
         eval(event.data);
       }
 
-      window.addEventListener("message", messageListener, false);
+      window.addEventListener("message", messageListener);
     }
   </script>
 

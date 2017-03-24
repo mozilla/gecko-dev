@@ -116,7 +116,8 @@ interface VRStageParameters {
 
 [Pref="dom.vr.enabled",
  HeaderFile="mozilla/dom/VRDisplay.h"]
-interface VRPose {
+interface VRPose
+{
   /**
    * position, linearVelocity, and linearAcceleration are 3-component vectors.
    * position is relative to a sitting space. Transforming this point with
@@ -263,7 +264,7 @@ interface VRDisplay : EventTarget {
    * Begin presenting to the VRDisplay. Must be called in response to a user gesture.
    * Repeat calls while already presenting will update the VRLayers being displayed.
    */
-  [Throws] Promise<void> requestPresent(sequence<VRLayer> layers);
+  [Throws, NeedsCallerType] Promise<void> requestPresent(sequence<VRLayer> layers);
 
   /**
    * Stops presenting to the VRDisplay.

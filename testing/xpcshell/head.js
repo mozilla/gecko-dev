@@ -23,6 +23,7 @@ _register_modules_protocol_handler();
 
 var _Promise = Components.utils.import("resource://gre/modules/Promise.jsm", {}).Promise;
 var _PromiseTestUtils = Components.utils.import("resource://testing-common/PromiseTestUtils.jsm", {}).PromiseTestUtils;
+var _Task = Components.utils.import("resource://gre/modules/Task.jsm", {}).Task;
 Components.utils.importGlobalProperties(["XMLHttpRequest"]);
 
 // Support a common assertion library, Assert.jsm.
@@ -551,9 +552,6 @@ function _execute_test() {
     // has already been logged so there is no need to log it again. It's
     // possible that this will mask an NS_ERROR_ABORT that happens after a
     // do_check failure though.
-    if (coverageCollector != null) {
-      coverageCollector.recordTestCoverage(_TEST_FILE[0]);
-    }
 
     if (!_quit || e != Components.results.NS_ERROR_ABORT) {
       let extra = {};
@@ -571,14 +569,11 @@ function _execute_test() {
       }
       _testLogger.error(message, extra);
     }
+  } finally {
+    if (coverageCollector != null) {
+      coverageCollector.finalize();
+    }
   }
-
-  if (coverageCollector != null) {
-    coverageCollector.finalize();
-  }
-
-  // _TAIL_FILES is dynamically defined by <runxpcshelltests.py>.
-  _load_files(_TAIL_FILES);
 
   // Execute all of our cleanup functions.
   let reportCleanupError = function(ex) {
@@ -600,27 +595,22 @@ function _execute_test() {
                       });
   };
 
-  let func;
-  while ((func = _cleanupFunctions.pop())) {
-    let result;
-    try {
-      result = func();
-    } catch (ex) {
-      reportCleanupError(ex);
-      continue;
-    }
-    if (result && typeof result == "object"
-        && "then" in result && typeof result.then == "function") {
-      // This is a promise, wait until it is satisfied before proceeding
-      let complete = false;
-      let promise = result.then(null, reportCleanupError);
-      promise = promise.then(() => complete = true);
-      let thr = Components.classes["@mozilla.org/thread-manager;1"]
-                  .getService().currentThread;
-      while (!complete) {
-        thr.processNextEvent(true);
+  let complete = _cleanupFunctions.length == 0;
+  _Task.spawn(function*() {
+    for (let func of _cleanupFunctions.reverse()) {
+      try {
+        yield func();
+      } catch (ex) {
+        reportCleanupError(ex);
       }
     }
+    _cleanupFunctions = [];
+  }.bind(this)).catch(reportCleanupError)
+               .then(() => complete = true);
+  let thr = Components.classes["@mozilla.org/thread-manager;1"]
+                      .getService().currentThread;
+  while (!complete) {
+    thr.processNextEvent(true);
   }
 
   // Restore idle service to avoid leaks.
@@ -1264,7 +1254,6 @@ function do_load_child_test_harness()
         "const _HEAD_JS_PATH=" + uneval(_HEAD_JS_PATH) + "; "
       + "const _HEAD_FILES=" + uneval(_HEAD_FILES) + "; "
       + "const _MOZINFO_JS_PATH=" + uneval(_MOZINFO_JS_PATH) + "; "
-      + "const _TAIL_FILES=" + uneval(_TAIL_FILES) + "; "
       + "const _TEST_NAME=" + uneval(_TEST_NAME) + "; "
       // We'll need more magic to get the debugger working in the child
       + "const _JSDEBUGGER_PORT=0; "
@@ -1519,7 +1508,6 @@ function add_task(funcOrProperties, func) {
 add_task.only = _add_only.bind(undefined, add_task);
 add_task.skip = _add_skip.bind(undefined, add_task);
 
-var _Task = Components.utils.import("resource://gre/modules/Task.jsm", {}).Task;
 _Task.Debugging.maintainStack = true;
 
 
@@ -1608,7 +1596,6 @@ try {
     prefs.setBoolPref("geo.provider.testing", true);
   }
 } catch (e) { }
-
 // We need to avoid hitting the network with certain components.
 try {
   if (runningInParent) {
@@ -1619,6 +1606,8 @@ try {
     prefs.setCharPref("media.gmp-manager.updateEnabled", false);
     prefs.setCharPref("extensions.systemAddon.update.url", "http://%(server)s/dummy-system-addons.xml");
     prefs.setCharPref("browser.selfsupport.url", "https://%(server)s/selfsupport-dummy/");
+    prefs.setCharPref("extensions.shield-recipe-client.api_url",
+                      "https://%(server)s/selfsupport-dummy/");
     prefs.setCharPref("toolkit.telemetry.server", "https://%(server)s/telemetry-dummy");
     prefs.setCharPref("browser.search.geoip.url", "https://%(server)s/geoip-dummy");
   }

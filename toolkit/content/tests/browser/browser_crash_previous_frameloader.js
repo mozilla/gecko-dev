@@ -1,29 +1,37 @@
 "use strict";
 
 /**
- * Cleans up the .dmp and .extra file from a crash.
+ * Returns the id of the crash minidump.
  *
  * @param subject (nsISupports)
  *        The subject passed through the ipc:content-shutdown
  *        observer notification when a content process crash has
  *        occurred.
+ * @returns {String} The crash dump id.
  */
-function cleanUpMinidump(subject) {
+function getCrashDumpId(subject) {
   Assert.ok(subject instanceof Ci.nsIPropertyBag2,
             "Subject needs to be a nsIPropertyBag2 to clean up properly");
-  let dumpID = subject.getPropertyAsAString("dumpID");
 
-  Assert.ok(dumpID, "There should be a dumpID");
-  if (dumpID) {
+  return subject.getPropertyAsAString("dumpID");
+}
+
+/**
+ * Cleans up the .dmp and .extra file from a crash.
+ *
+ * @param id {String} The crash dump id.
+ */
+function cleanUpMinidump(id) {
+  if (id) {
     let dir = Services.dirsvc.get("ProfD", Ci.nsIFile);
     dir.append("minidumps");
 
     let file = dir.clone();
-    file.append(dumpID + ".dmp");
+    file.append(id + ".dmp");
     file.remove(true);
 
     file = dir.clone();
-    file.append(dumpID + ".extra");
+    file.append(id + ".extra");
     file.remove(true);
   }
 }
@@ -83,28 +91,28 @@ add_task(function* test_crash_in_previous_frameloader() {
         badptr.contents
       };
 
-      // Use a timeout to give the parent a little extra time
-      // to flip the remoteness of the browser. This has the
-      // potential to be a bit race-y, since in theory, the
-      // setTimeout could complete before the parent finishes
-      // the remoteness flip, which would mean we'd get the
-      // oop-browser-crashed event, and we'll fail here.
-      // Unfortunately, I can't find a way around that right
-      // now, since you cannot send a frameloader a message
-      // once its been replaced.
-      setTimeout(() => {
+      // When the parent flips the remoteness of the browser, the
+      // page should receive the pagehide event, which we'll then
+      // use to crash the frameloader.
+      addEventListener("pagehide", function() {
         dump("\nEt tu, Brute?\n");
         dies();
-      }, 0);
+      });
     });
 
     gBrowser.updateBrowserRemoteness(browser, false);
     info("Waiting for content process to go away.");
-    let [subject, data] = yield contentProcessGone;
+    let [subject /* , data */] = yield contentProcessGone;
 
     // If we don't clean up the minidump, the harness will
     // complain.
-    cleanUpMinidump(subject);
+    let dumpID = getCrashDumpId(subject);
+
+    Assert.ok(dumpID, "There should be a dumpID");
+    if (dumpID) {
+      yield Services.crashmanager.ensureCrashIsPresent(dumpID);
+      cleanUpMinidump(dumpID);
+    }
 
     info("Content process is gone!");
     Assert.ok(!sawTabCrashed,

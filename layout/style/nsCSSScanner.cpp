@@ -14,6 +14,8 @@
 #include "mozilla/Likely.h"
 #include <algorithm>
 
+using namespace mozilla;
+
 /* Character class tables and related helper functions. */
 
 static const uint8_t IS_HEX_DIGIT  = 0x01;
@@ -350,7 +352,6 @@ nsCSSScanner::nsCSSScanner(const nsAString& aBuffer, uint32_t aLineNumber)
   , mRecordStartOffset(0)
   , mEOFCharacters(eEOFCharacters_None)
   , mReporter(nullptr)
-  , mSVGMode(false)
   , mRecording(false)
   , mSeenBadToken(false)
   , mSeenVariableReference(false)
@@ -1231,7 +1232,7 @@ nsCSSScanner::Next(nsCSSToken& aToken, nsCSSScannerExclude aSkip)
       }
       continue; // start again at the beginning
     }
-    if (ch == '/' && !IsSVGMode() && Peek(1) == '*') {
+    if (ch == '/' && Peek(1) == '*') {
       SkipComment();
       if (aSkip == eCSSScannerExclude_None) {
         aToken.mType = eCSSToken_Comment;

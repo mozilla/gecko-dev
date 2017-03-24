@@ -9,13 +9,13 @@
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 
-  <script type="text/javascript;version=1.7">
+  <script type="text/javascript">
   /**
    * Create an IndexedDB-backed Blob, send it to the worker, try and read the
    * contents of the Blob from the worker using an XHR.  Ideally, we don't
    * deadlock the main thread.
    */
-  function testSteps()
+  function* testSteps()
   {
     const BLOB_DATA = ["Green"];
     const BLOB_TYPE = "text/plain";
@@ -102,10 +102,9 @@
     URL.revokeObjectURL(workerScriptUrl);
 
     finishTest();
-    yield undefined;
   }
   </script>
-  <script type="text/javascript;version=1.7" src="helpers.js"></script>
+  <script type="text/javascript" src="helpers.js"></script>
 
 </head>
 

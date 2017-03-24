@@ -20,18 +20,26 @@
 class nsIDocument;
 class nsINode;
 class nsIPrincipal;
-class nsMediaList;
+class nsCSSRuleProcessor;
 
 namespace mozilla {
 
 class CSSStyleSheet;
 class ServoStyleSheet;
 struct StyleSheetInfo;
+struct CSSStyleSheetInner;
 
 namespace dom {
 class CSSRuleList;
+class MediaList;
 class SRIMetadata;
 } // namespace dom
+
+namespace css {
+class GroupRule;
+class ImportRule;
+class Rule;
+}
 
 /**
  * Superclass for data common to CSSStyleSheet and ServoStyleSheet.
@@ -44,7 +52,7 @@ protected:
   StyleSheet(const StyleSheet& aCopy,
              nsIDocument* aDocumentToUse,
              nsINode* aOwningNodeToUse);
-  virtual ~StyleSheet() {}
+  virtual ~StyleSheet();
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -58,14 +66,22 @@ public:
   css::SheetParsingMode ParsingMode() { return mParsingMode; }
   mozilla::dom::CSSStyleSheetParsingMode ParsingModeDOM();
 
-  // The document this style sheet is associated with.  May be null
-  nsIDocument* GetDocument() const { return mDocument; }
-
   /**
    * Whether the sheet is complete.
    */
   bool IsComplete() const;
   void SetComplete();
+
+  /**
+   * Set the stylesheet to be enabled.  This may or may not make it
+   * applicable.  Note that this WILL inform the sheet's document of
+   * its new applicable state if the state changes but WILL NOT call
+   * BeginUpdate() or EndUpdate() on the document -- calling those is
+   * the caller's responsibility.  This allows use of SetEnabled when
+   * batched updates are desired.  If you want updates handled for
+   * you, see nsIDOMStyleSheet::SetDisabled().
+   */
+  void SetEnabled(bool aEnabled);
 
   MOZ_DECL_STYLO_METHODS(CSSStyleSheet, ServoStyleSheet)
 
@@ -94,13 +110,36 @@ public:
   inline bool IsApplicable() const;
   inline bool HasRules() const;
 
-  // style sheet owner info
-  nsIDocument* GetOwningDocument() const { return mDocument; }
-  inline void SetOwningDocument(nsIDocument* aDocument);
-  nsINode* GetOwnerNode() const { return mOwningNode; }
-  inline StyleSheet* GetParentSheet() const;
+  virtual already_AddRefed<StyleSheet> Clone(StyleSheet* aCloneParent,
+                                             css::ImportRule* aCloneOwnerRule,
+                                             nsIDocument* aCloneDocument,
+                                             nsINode* aCloneOwningNode) const = 0;
 
-  inline void AppendStyleSheet(StyleSheet* aSheet);
+  virtual bool IsModified() const = 0;
+
+  // style sheet owner info
+  enum DocumentAssociationMode {
+    // OwnedByDocument means mDocument owns us (possibly via a chain of other
+    // stylesheets).
+    OwnedByDocument,
+    // NotOwnedByDocument means we're owned by something that might have a
+    // different lifetime than mDocument.
+    NotOwnedByDocument
+  };
+  nsIDocument* GetAssociatedDocument() const { return mDocument; }
+  bool IsOwnedByDocument() const {
+    return mDocumentAssociationMode == OwnedByDocument;
+  }
+  // aDocument must not be null.
+  void SetAssociatedDocument(nsIDocument* aDocument,
+                             DocumentAssociationMode aMode);
+  void ClearAssociatedDocument();
+  nsINode* GetOwnerNode() const { return mOwningNode; }
+  inline StyleSheet* GetParentSheet() const { return mParent; }
+
+  void AppendStyleSheet(StyleSheet* aSheet);
+
+  StyleSheet* GetFirstChild() const;
 
   // Principal() never returns a null pointer.
   inline nsIPrincipal* Principal() const;
@@ -111,6 +150,9 @@ public:
    */
   inline void SetPrincipal(nsIPrincipal* aPrincipal);
 
+  void SetTitle(const nsAString& aTitle) { mTitle = aTitle; }
+  void SetMedia(dom::MediaList* aMedia);
+
   // Get this style sheet's CORS mode
   inline CORSMode GetCORSMode() const;
   // Get this style sheet's Referrer Policy
@@ -118,9 +160,9 @@ public:
   // Get this style sheet's integrity metadata
   inline void GetIntegrity(dom::SRIMetadata& aResult) const;
 
-  inline size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
+  virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 #ifdef DEBUG
-  inline void List(FILE* aOut = stdout, int32_t aIndex = 0) const;
+  virtual void List(FILE* aOut = stdout, int32_t aIndex = 0) const;
 #endif
 
   // WebIDL StyleSheet API
@@ -129,12 +171,12 @@ public:
   // GetOwnerNode is defined above.
   inline StyleSheet* GetParentStyleSheet() const;
   // The XPCOM GetTitle is fine for WebIDL.
-  virtual nsMediaList* Media() = 0;
+  dom::MediaList* Media();
   bool Disabled() const { return mDisabled; }
   // The XPCOM SetDisabled is fine for WebIDL.
 
   // WebIDL CSSStyleSheet API
-  virtual nsIDOMCSSRule* GetDOMOwnerRule() const = 0;
+  virtual css::Rule* GetDOMOwnerRule() const = 0;
   dom::CSSRuleList* GetCssRules(nsIPrincipal& aSubjectPrincipal,
                                 ErrorResult& aRv);
   uint32_t InsertRule(const nsAString& aRule, uint32_t aIndex,
@@ -171,6 +213,10 @@ public:
   inline void WillDirty();
   inline void DidDirty();
 
+  nsresult DeleteRuleFromGroup(css::GroupRule* aGroup, uint32_t aIndex);
+  nsresult InsertRuleIntoGroup(const nsAString& aRule,
+                               css::GroupRule* aGroup, uint32_t aIndex);
+
 private:
   // Get a handle to the various stylesheet bits which live on the 'inner' for
   // gecko stylesheets and live on the StyleSheet for Servo stylesheets.
@@ -185,6 +231,18 @@ private:
                          ErrorResult& aRv);
 
 protected:
+  struct ChildSheetListBuilder {
+    RefPtr<StyleSheet>* sheetSlot;
+    StyleSheet* parent;
+
+    void SetParentLinks(StyleSheet* aSheet);
+
+    static void ReparentChildList(StyleSheet* aPrimarySheet,
+                                  StyleSheet* aFirstChild);
+  };
+
+  void UnparentChildren();
+
   // Return success if the subject principal subsumes the principal of our
   // inner, error otherwise.  This will also succeed if the subject has
   // UniversalXPConnect or if access is allowed by CORS.  In the latter case,
@@ -192,9 +250,26 @@ protected:
   void SubjectSubsumesInnerPrincipal(nsIPrincipal& aSubjectPrincipal,
                                      ErrorResult& aRv);
 
+  // Drop our reference to mMedia
+  void DropMedia();
+
+  // Called from SetEnabled when the enabled state changed.
+  void EnabledStateChanged();
+
+  // Unlink our inner, if needed, for cycle collection
+  virtual void UnlinkInner();
+  // Traverse our inner, if needed, for cycle collection
+  virtual void TraverseInner(nsCycleCollectionTraversalCallback &);
+
+  StyleSheet*           mParent;    // weak ref
+
   nsString              mTitle;
   nsIDocument*          mDocument; // weak ref; parents maintain this for their children
   nsINode*              mOwningNode; // weak ref
+
+  RefPtr<dom::MediaList> mMedia;
+
+  RefPtr<StyleSheet> mNext;
 
   // mParsingMode controls access to nonstandard style constructs that
   // are not safe for use on the public Web but necessary in UA sheets
@@ -203,6 +278,28 @@ protected:
 
   const StyleBackendType mType;
   bool                  mDisabled;
+
+  // mDocumentAssociationMode determines whether mDocument directly owns us (in
+  // the sense that if it's known-live then we're known-live).  Always
+  // NotOwnedByDocument when mDocument is null.
+  DocumentAssociationMode mDocumentAssociationMode;
+
+  // Core information we get from parsed sheets, which are shared amongst
+  // StyleSheet clones.
+  StyleSheetInfo* mInner;
+
+  friend class ::nsCSSRuleProcessor;
+
+  // Make CSSStyleSheet and ServoStyleSheet friends so they can access
+  // protected members of other StyleSheet objects (useful for iterating
+  // through children).
+  friend class mozilla::CSSStyleSheet;
+  friend class mozilla::ServoStyleSheet;
+
+  // Make StyleSheetInfo and subclasses into friends so they can use
+  // ChildSheetListBuilder.
+  friend struct mozilla::StyleSheetInfo;
+  friend struct mozilla::CSSStyleSheetInner;
 };
 
 } // namespace mozilla

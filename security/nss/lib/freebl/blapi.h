@@ -1469,6 +1469,12 @@ FIPS186Change_ReduceModQForDSA(const unsigned char *w,
                                const unsigned char *q,
                                unsigned char *xj);
 
+/* To allow NIST KAT tests */
+extern SECStatus
+PRNGTEST_Instantiate_Kat(const PRUint8 *entropy, unsigned int entropy_len,
+                         const PRUint8 *nonce, unsigned int nonce_len,
+                         const PRUint8 *personal_string, unsigned int ps_len);
+
 /*
  * The following functions are for FIPS poweron self test and FIPS algorithm
  * testing.
@@ -1599,7 +1605,6 @@ extern const SECHashObject *HASH_GetRawHashObject(HASH_HashType hashType);
 
 extern void BL_SetForkState(PRBool forked);
 
-#ifndef NSS_DISABLE_ECC
 /*
 ** pepare an ECParam structure from DEREncoded params
  */
@@ -1609,7 +1614,11 @@ extern SECStatus EC_DecodeParams(const SECItem *encodedParams,
                                  ECParams **ecparams);
 extern SECStatus EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
                                const ECParams *srcParams);
-#endif
+
+/*
+ * use the internal table to get the size in bytes of a single EC point
+ */
+extern int EC_GetPointSize(const ECParams *params);
 
 SEC_END_PROTOS
 

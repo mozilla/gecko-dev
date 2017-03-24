@@ -21,6 +21,8 @@ class HeapSnapshot;
 namespace dom {
 
 class ArrayBufferViewOrArrayBuffer;
+class PrecompiledScript;
+class Promise;
 
 class ThreadSafeChromeUtils
 {
@@ -89,8 +91,25 @@ public:
                           const dom::OriginAttributesDictionary& aB);
 
   static bool
-  IsOriginAttributesEqualIgnoringAddonId(const dom::OriginAttributesDictionary& aA,
-                                         const dom::OriginAttributesDictionary& aB);
+  IsOriginAttributesEqual(const dom::OriginAttributesDictionary& aA,
+                          const dom::OriginAttributesDictionary& aB);
+
+  static bool
+  IsOriginAttributesEqualIgnoringFPD(const dom::OriginAttributesDictionary& aA,
+                                     const dom::OriginAttributesDictionary& aB)
+  {
+    return aA.mAppId == aB.mAppId &&
+           aA.mInIsolatedMozBrowser == aB.mInIsolatedMozBrowser &&
+           aA.mUserContextId == aB.mUserContextId &&
+           aA.mPrivateBrowsingId == aB.mPrivateBrowsingId;
+  }
+
+  // Implemented in js/xpconnect/loader/ChromeScriptLoader.cpp
+  static already_AddRefed<Promise>
+  CompileScript(GlobalObject& aGlobal,
+                const nsAString& aUrl,
+                const dom::CompileScriptOptionsDictionary& aOptions,
+                ErrorResult& aRv);
 };
 
 } // namespace dom

@@ -26,13 +26,14 @@
 #include "mozilla/layers/TransactionIdAllocator.h"
 #include "nsIWidget.h"                  // For plugin window configuration information structs
 
+class nsDisplayListBuilder;
+
 namespace mozilla {
 namespace layers {
 
 class ClientPaintedLayer;
 class CompositorBridgeChild;
 class ImageLayer;
-class PLayerChild;
 class FrameUniformityData;
 
 class ClientLayerManager final : public LayerManager
@@ -49,6 +50,11 @@ protected:
 
 public:
   virtual ShadowLayerForwarder* AsShadowForwarder() override
+  {
+    return mForwarder;
+  }
+
+  virtual KnowsCompositor* AsKnowsCompositor() override
   {
     return mForwarder;
   }
@@ -79,6 +85,7 @@ public:
   virtual void SetRoot(Layer* aLayer) override;
 
   virtual void Mutated(Layer* aLayer) override;
+  virtual void MutatedSimple(Layer* aLayer) override;
 
   virtual already_AddRefed<PaintedLayer> CreatePaintedLayer() override;
   virtual already_AddRefed<PaintedLayer> CreatePaintedLayerWithHint(PaintedLayerCreationHint aHint) override;
@@ -87,10 +94,13 @@ public:
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer() override;
   virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer() override;
   virtual already_AddRefed<ColorLayer> CreateColorLayer() override;
+  virtual already_AddRefed<TextLayer> CreateTextLayer() override;
+  virtual already_AddRefed<BorderLayer> CreateBorderLayer() override;
   virtual already_AddRefed<RefLayer> CreateRefLayer() override;
 
-  void UpdateTextureFactoryIdentifier(const TextureFactoryIdentifier& aNewIdentifier);
-  TextureFactoryIdentifier GetTextureFactoryIdentifier()
+  virtual void UpdateTextureFactoryIdentifier(const TextureFactoryIdentifier& aNewIdentifier,
+											  uint64_t aDeviceResetSeqNo) override;
+  virtual TextureFactoryIdentifier GetTextureFactoryIdentifier() override
   {
     return AsShadowForwarder()->GetTextureFactoryIdentifier();
   }
@@ -150,7 +160,7 @@ public:
 
   CompositorBridgeChild* GetRemoteRenderer();
 
-  CompositorBridgeChild* GetCompositorBridgeChild();
+  virtual CompositorBridgeChild* GetCompositorBridgeChild() override;
 
   // Disable component alpha layers with the software compositor.
   virtual bool ShouldAvoidComponentAlphaLayers() override { return !IsCompositingCheap(); }
@@ -170,12 +180,10 @@ public:
 
   virtual void Composite() override;
   virtual void GetFrameUniformity(FrameUniformityData* aFrameUniformityData) override;
-  virtual bool RequestOverfill(mozilla::dom::OverfillCallback* aCallback) override;
-  virtual void RunOverfillCallback(const uint32_t aOverfill) override;
 
-  void DidComposite(uint64_t aTransactionId,
-                    const mozilla::TimeStamp& aCompositeStart,
-                    const mozilla::TimeStamp& aCompositeEnd);
+  virtual void DidComposite(uint64_t aTransactionId,
+                            const mozilla::TimeStamp& aCompositeStart,
+                            const mozilla::TimeStamp& aCompositeEnd) override;
 
   virtual bool AreComponentAlphaLayersEnabled() override;
 
@@ -214,7 +222,9 @@ public:
   // Get a copy of the compositor-side APZ test data for our layers ID.
   void GetCompositorSideAPZTestData(APZTestData* aData) const;
 
-  void SetTransactionIdAllocator(TransactionIdAllocator* aAllocator) { mTransactionIdAllocator = aAllocator; }
+  virtual void SetTransactionIdAllocator(TransactionIdAllocator* aAllocator) override;
+
+  virtual uint64_t GetLastTransactionId() override { return mLatestTransactionId; }
 
   float RequestProperty(const nsAString& aProperty) override;
 
@@ -222,15 +232,10 @@ public:
 
   void SetNextPaintSyncId(int32_t aSyncId);
 
-  void SetLayerObserverEpoch(uint64_t aLayerObserverEpoch);
+  virtual void SetLayerObserverEpoch(uint64_t aLayerObserverEpoch) override;
 
-  class DidCompositeObserver {
-  public:
-    virtual void DidComposite() = 0;
-  };
-
-  void AddDidCompositeObserver(DidCompositeObserver* aObserver);
-  void RemoveDidCompositeObserver(DidCompositeObserver* aObserver);
+  virtual void AddDidCompositeObserver(DidCompositeObserver* aObserver) override;
+  virtual void RemoveDidCompositeObserver(DidCompositeObserver* aObserver) override;
 
   virtual already_AddRefed<PersistentBufferProvider>
   CreatePersistentBufferProvider(const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat) override;
@@ -284,8 +289,6 @@ private:
                               void* aCallbackData,
                               EndTransactionFlags);
 
-  bool DependsOnStaleDevice() const;
-
   LayerRefArray mKeepAlive;
 
   nsIWidget* mWidget;
@@ -327,16 +330,18 @@ private:
   // Incremented in BeginTransaction(), but not for repeat transactions.
   uint32_t mPaintSequenceNumber;
 
+  // A sequence number for checking whether we have not yet acknowledged
+  // a device reset.
+  uint64_t mDeviceResetSequenceNumber;
+
   APZTestData mApzTestData;
 
   RefPtr<ShadowLayerForwarder> mForwarder;
-  AutoTArray<dom::OverfillCallback*,0> mOverfillCallbacks;
   mozilla::TimeStamp mTransactionStart;
 
   nsTArray<DidCompositeObserver*> mDidCompositeObservers;
 
   RefPtr<MemoryPressureObserver> mMemoryPressureObserver;
-  uint64_t mDeviceCounter;
 };
 
 class ClientLayer : public ShadowableLayer
@@ -348,24 +353,6 @@ public:
   }
 
   ~ClientLayer();
-
-  void SetShadow(PLayerChild* aShadow)
-  {
-    MOZ_ASSERT(!mShadow, "can't have two shadows (yet)");
-    mShadow = aShadow;
-  }
-
-  virtual void Disconnect()
-  {
-    // This is an "emergency Disconnect()", called when the compositing
-    // process has died.  |mShadow| and our Shmem buffers are
-    // automatically managed by IPDL, so we don't need to explicitly
-    // free them here (it's hard to get that right on emergency
-    // shutdown anyway).
-    mShadow = nullptr;
-  }
-
-  virtual void ClearCachedResources() { }
 
   // Shrink memory usage.
   // Called when "memory-pressure" is observed.
@@ -393,20 +380,20 @@ public:
   }
 };
 
-// Create a shadow layer (PLayerChild) for aLayer, if we're forwarding
-// our layer tree to a parent process.  Record the new layer creation
-// in the current open transaction as a side effect.
+// Create a LayerHandle for aLayer, if we're forwarding our layer tree
+// to a parent process.  Record the new layer creation in the current
+// open transaction as a side effect.
 template<typename CreatedMethod> void
 CreateShadowFor(ClientLayer* aLayer,
                 ClientLayerManager* aMgr,
                 CreatedMethod aMethod)
 {
-  PLayerChild* shadow = aMgr->AsShadowForwarder()->ConstructShadowFor(aLayer);
+  LayerHandle shadow = aMgr->AsShadowForwarder()->ConstructShadowFor(aLayer);
   if (!shadow) {
     return;
   }
 
-  aLayer->SetShadow(shadow);
+  aLayer->SetShadow(aMgr->AsShadowForwarder(), shadow);
   (aMgr->AsShadowForwarder()->*aMethod)(aLayer);
   aMgr->Hold(aLayer->AsLayer());
 }

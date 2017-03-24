@@ -873,9 +873,6 @@ Quickdraw.h
 QuickDraw.h
 QuickTimeComponents.h
 quipu/attr.h
-rasdlg.h
-raserror.h
-ras.h
 regex.h
 Region.h
 resolv.h
@@ -1056,6 +1053,7 @@ sys/statvfs.h
 sys/syscall.h
 sys/sysctl.h
 sys/sysinfo.h
+sys/sysmacros.h
 sys/sysmp.h
 sys/syssgi.h
 sys/system_properties.h
@@ -1230,6 +1228,7 @@ X11/extensions/Xrender.h
 X11/extensions/Xfixes.h
 X11/extensions/Xdamage.h
 X11/extensions/Xcomposite.h
+X11/ImUtil.h
 X11/Intrinsic.h
 X11/keysymdef.h
 X11/keysym.h
@@ -1318,6 +1317,7 @@ xlocale.h
 #ifdef MOZ_SYSTEM_ICU
 unicode/locid.h
 unicode/numsys.h
+unicode/plurrule.h
 unicode/timezone.h
 unicode/ucal.h
 unicode/uchar.h
@@ -1328,6 +1328,7 @@ unicode/udatpg.h
 unicode/uenum.h
 unicode/unorm.h
 unicode/unum.h
+unicode/upluralrules.h
 unicode/ustring.h
 unicode/utypes.h
 #endif

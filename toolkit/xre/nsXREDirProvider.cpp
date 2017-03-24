@@ -46,9 +46,9 @@
 #include <stdlib.h>
 
 #ifdef XP_WIN
+#include "city.h"
 #include <windows.h>
 #include <shlobj.h>
-#include "mozilla/WindowsVersion.h"
 #endif
 #ifdef XP_MACOSX
 #include "nsILocalFileMac.h"
@@ -765,10 +765,7 @@ IsContentSandboxDisabled()
   if (!BrowserTabsRemoteAutostart()) {
     return false;
   }
-#if defined(XP_WIN)
-  const bool isSandboxDisabled = !mozilla::IsVistaOrLater() ||
-    (Preferences::GetInt("security.sandbox.content.level") < 1);
-#elif defined(XP_MACOSX)
+#if defined(XP_WIN) || defined(XP_MACOSX)
   const bool isSandboxDisabled =
     Preferences::GetInt("security.sandbox.content.level") < 1;
 #endif
@@ -1292,9 +1289,9 @@ static nsresult
 GetRegWindowsAppDataFolder(bool aLocal, nsAString& _retval)
 {
   HKEY key;
-  NS_NAMED_LITERAL_STRING(keyName,
-  "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders");
-  DWORD res = ::RegOpenKeyExW(HKEY_CURRENT_USER, keyName.get(), 0, KEY_READ,
+  LPCWSTR keyName =
+    L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
+  DWORD res = ::RegOpenKeyExW(HKEY_CURRENT_USER, keyName, 0, KEY_READ,
                               &key);
   if (res != ERROR_SUCCESS) {
     _retval.SetLength(0);
@@ -1443,12 +1440,26 @@ nsXREDirProvider::GetUpdateRootDir(nsIFile* *aResult)
     }
   }
 
-  // Get the local app data directory and if a vendor name exists append it.
-  // If only a product name exists, append it.  If neither exist fallback to
-  // old handling.  We don't use the product name on purpose because we want a
-  // shared update directory for different apps run from the same path.
+  if (!pathHashResult) {
+    // This should only happen when the installer isn't used (e.g. zip builds).
+    uint64_t hash = CityHash64(static_cast<const char *>(appDirPath.get()),
+                               appDirPath.Length() * sizeof(nsAutoString::char_type));
+    pathHash.AppendInt((int)(hash >> 32), 16);
+    pathHash.AppendInt((int)hash, 16);
+    // The installer implementation writes the registry values that were checked
+    // in the previous block for this value in uppercase and since it is an
+    // option to have a case sensitive file system on Windows this value must
+    // also be in uppercase.
+    ToUpperCase(pathHash);
+  }
+
+  // As a last ditch effort, get the local app data directory and if a vendor
+  // name exists append it. If only a product name exists, append it. If neither
+  // exist fallback to old handling. We don't use the product name on purpose
+  // because we want a shared update directory for different apps run from the
+  // same path.
   nsCOMPtr<nsIFile> localDir;
-  if (pathHashResult && (hasVendor || gAppData->name) &&
+  if ((hasVendor || gAppData->name) &&
       NS_SUCCEEDED(GetUserDataDirectoryHome(getter_AddRefs(localDir), true)) &&
       NS_SUCCEEDED(localDir->AppendNative(nsDependentCString(hasVendor ?
                                           gAppData->vendor : gAppData->name))) &&

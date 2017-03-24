@@ -26,6 +26,7 @@ EXPORTS += [
 
 EXPORTS.mozilla.widget += [
     'AndroidCompositorWidget.h',
+    'AndroidUiThread.h',
 ]
 
 UNIFIED_SOURCES += [
@@ -36,10 +37,12 @@ UNIFIED_SOURCES += [
     'AndroidJavaWrappers.cpp',
     'AndroidJNI.cpp',
     'AndroidJNIWrapper.cpp',
+    'AndroidUiThread.cpp',
     'ANRReporter.cpp',
+    'EventDispatcher.cpp',
+    'GeckoEditableSupport.cpp',
     'GeneratedJNIWrappers.cpp',
     'GfxInfo.cpp',
-    'NativeJSContainer.cpp',
     'nsAndroidProtocolHandler.cpp',
     'nsAppShell.cpp',
     'nsClipboard.cpp',
@@ -63,6 +66,7 @@ LOCAL_INCLUDES += [
     '/netwerk/base',
     '/netwerk/cache',
     '/widget',
+    '/xpcom/threads',
 ]
 
 CXXFLAGS += ['-Wno-error=shadow']

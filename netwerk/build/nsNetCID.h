@@ -113,6 +113,18 @@
     {0x93, 0x99, 0x00, 0x10, 0x4b, 0xa0, 0xfd, 0x40} \
 }
 
+// compoenent implementing nsIStandardURL, nsIURI, nsIURL
+// future replacement for nsStandardURL
+#define NS_RUSTURL_CONTRACTID \
+    "@mozilla.org/network/rust-url;1"
+#define NS_RUSTURL_CID                               \
+{ /* fd2d9f76-b34a-459e-b80e-447b03a1283a */         \
+    0xfd2d9f76,                                      \
+    0xb34a,                                          \
+    0x459e,                                          \
+    {0xb8, 0x0e, 0x44, 0x7b, 0x03, 0xa1, 0x28, 0x3a} \
+}
+
 // service implementing nsIURLParser that assumes the URL will NOT contain an
 // authority section.
 #define NS_NOAUTHURLPARSER_CONTRACTID \
@@ -379,16 +391,6 @@
     {0x8c, 0xda, 0x00, 0x60, 0xb0, 0xfc, 0x14, 0xa3} \
 }
 
-#define NS_PARTIALLOCALFILEINPUTSTREAM_CONTRACTID \
-    "@mozilla.org/network/partial-file-input-stream;1"
-#define NS_PARTIALLOCALFILEINPUTSTREAM_CID           \
-{ /* 8738afd6-162a-418d-a99b-75b3a6b10a56 */         \
-    0x8738afd6,                                      \
-    0x162a,                                          \
-    0x418d,                                          \
-    {0xa9, 0x9b, 0x75, 0xb3, 0xa6, 0xb1, 0x0a, 0x56} \
-}
-
 #define NS_BUFFEREDINPUTSTREAM_CONTRACTID \
     "@mozilla.org/network/buffered-input-stream;1"
 #define NS_BUFFEREDINPUTSTREAM_CID                   \
@@ -490,6 +492,17 @@
     0x7ba8, \
     0x49ff, \
     {0x93, 0x30, 0x18, 0x58, 0xb9, 0x9a, 0xce, 0x69} \
+}
+
+// service implementing nsIThrottlingService
+#define NS_THROTTLINGSERVICE_CONTRACTID \
+    "@mozilla.org/network/throttling-service;1"
+#define NS_THROTTLINGSERVICE_CID \
+{ /* c1c48f2b-cb9c-415e-b4f9-5e4c3476ca86 */ \
+    0xc1c48f2b, \
+    0xcb9c, \
+    0x415e, \
+    {0xb4, 0xf9, 0x5e, 0x4c, 0x34, 0x76, 0xca, 0x86} \
 }
 
 /******************************************************************************

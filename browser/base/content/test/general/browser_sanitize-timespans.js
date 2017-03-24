@@ -21,7 +21,7 @@ var Downloads = (Components.utils.import("resource://gre/modules/Downloads.jsm",
 function promiseFormHistoryRemoved() {
   let deferred = Promise.defer();
   Services.obs.addObserver(function onfh() {
-    Services.obs.removeObserver(onfh, "satchel-storage-changed", false);
+    Services.obs.removeObserver(onfh, "satchel-storage-changed");
     deferred.resolve();
   }, "satchel-storage-changed", false);
   return deferred.promise;
@@ -31,7 +31,7 @@ function promiseDownloadRemoved(list) {
   let deferred = Promise.defer();
 
   let view = {
-    onDownloadRemoved: function(download) {
+    onDownloadRemoved(download) {
       list.removeView(view);
       deferred.resolve();
     }
@@ -58,11 +58,11 @@ function countEntries(name, message, check) {
 
   let count;
   FormHistory.count(obj, { handleResult: result => count = result,
-                           handleError: function (error) {
+                           handleError(error) {
                              deferred.reject(error)
                              throw new Error("Error occurred searching form history: " + error);
                            },
-                           handleCompletion: function (reason) {
+                           handleCompletion(reason) {
                              if (!reason) {
                                check(count, message);
                                deferred.resolve();
@@ -99,7 +99,7 @@ function* onHistoryReady() {
   let formHistoryPromise = promiseFormHistoryRemoved();
 
   // Clear 10 minutes ago
-  s.range = [now_uSec - 10*60*1000000, now_uSec];
+  s.range = [now_uSec - 10 * 60 * 1000000, now_uSec];
   yield s.sanitize();
   s.range = null;
 
@@ -207,7 +207,7 @@ function* onHistoryReady() {
   formHistoryPromise = promiseFormHistoryRemoved();
 
   // Clear 1 hour 10 minutes
-  s.range = [now_uSec - 70*60*1000000, now_uSec];
+  s.range = [now_uSec - 70 * 60 * 1000000, now_uSec];
   yield s.sanitize();
   s.range = null;
 
@@ -294,7 +294,7 @@ function* onHistoryReady() {
   formHistoryPromise = promiseFormHistoryRemoved();
 
   // Clear 2 hours 10 minutes
-  s.range = [now_uSec - 130*60*1000000, now_uSec];
+  s.range = [now_uSec - 130 * 60 * 1000000, now_uSec];
   yield s.sanitize();
   s.range = null;
 
@@ -365,7 +365,7 @@ function* onHistoryReady() {
   formHistoryPromise = promiseFormHistoryRemoved();
 
   // Clear 4 hours 10 minutes
-  s.range = [now_uSec - 250*60*1000000, now_uSec];
+  s.range = [now_uSec - 250 * 60 * 1000000, now_uSec];
   yield s.sanitize();
   s.range = null;
 
@@ -493,23 +493,22 @@ function* setupFormHistory() {
 
     let results = [];
     FormHistory.search(terms, params, { handleResult: result => results.push(result),
-                                        handleError: function (error) {
+                                        handleError(error) {
                                           deferred.reject(error);
                                           throw new Error("Error occurred searching form history: " + error);
                                         },
-                                        handleCompletion: function (reason) { deferred.resolve(results); }
+                                        handleCompletion(reason) { deferred.resolve(results); }
                                       });
     return deferred.promise;
   }
 
-  function update(changes)
-  {
+  function update(changes) {
     let deferred = Promise.defer();
-    FormHistory.update(changes, { handleError: function (error) {
+    FormHistory.update(changes, { handleError(error) {
                                     deferred.reject(error);
                                     throw new Error("Error occurred searching form history: " + error);
                                   },
-                                  handleCompletion: function (reason) { deferred.resolve(); }
+                                  handleCompletion(reason) { deferred.resolve(); }
                                 });
     return deferred.promise;
   }
@@ -520,41 +519,41 @@ function* setupFormHistory() {
         op: "remove"
      },
      {
-        op : "add",
-        fieldname : "10minutes",
-        value : "10m"
+        op: "add",
+        fieldname: "10minutes",
+        value: "10m"
       }, {
-        op : "add",
-        fieldname : "1hour",
-        value : "1h"
+        op: "add",
+        fieldname: "1hour",
+        value: "1h"
       }, {
-        op : "add",
-        fieldname : "1hour10minutes",
-        value : "1h10m"
+        op: "add",
+        fieldname: "1hour10minutes",
+        value: "1h10m"
       }, {
-        op : "add",
-        fieldname : "2hour",
-        value : "2h"
+        op: "add",
+        fieldname: "2hour",
+        value: "2h"
       }, {
-        op : "add",
-        fieldname : "2hour10minutes",
-        value : "2h10m"
+        op: "add",
+        fieldname: "2hour10minutes",
+        value: "2h10m"
       }, {
-        op : "add",
-        fieldname : "4hour",
-        value : "4h"
+        op: "add",
+        fieldname: "4hour",
+        value: "4h"
       }, {
-        op : "add",
-        fieldname : "4hour10minutes",
-        value : "4h10m"
+        op: "add",
+        fieldname: "4hour10minutes",
+        value: "4h10m"
       }, {
-        op : "add",
-        fieldname : "today",
-        value : "1d"
+        op: "add",
+        fieldname: "today",
+        value: "1d"
       }, {
-        op : "add",
-        fieldname : "b4today",
-        value : "1y"
+        op: "add",
+        fieldname: "b4today",
+        value: "1y"
       }]);
 
   // Artifically age the entries to the proper vintage.

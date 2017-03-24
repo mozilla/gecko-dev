@@ -35,9 +35,7 @@ this.SyncScheduler = function SyncScheduler(service) {
 SyncScheduler.prototype = {
   _log: Log.repository.getLogger("Sync.SyncScheduler"),
 
-  _fatalLoginStatus: [LOGIN_FAILED_NO_USERNAME,
-                      LOGIN_FAILED_NO_PASSWORD,
-                      LOGIN_FAILED_NO_PASSPHRASE,
+  _fatalLoginStatus: [LOGIN_FAILED_NO_PASSPHRASE,
                       LOGIN_FAILED_INVALID_PASSPHRASE,
                       LOGIN_FAILED_LOGIN_REJECTED],
 
@@ -49,14 +47,7 @@ SyncScheduler.prototype = {
   setDefaults: function setDefaults() {
     this._log.trace("Setting SyncScheduler policy values to defaults.");
 
-    let service = Cc["@mozilla.org/weave/service;1"]
-                    .getService(Ci.nsISupports)
-                    .wrappedJSObject;
-
-    let part = service.fxAccountsEnabled ? "fxa" : "sync11";
-    let prefSDInterval = "scheduler." + part + ".singleDeviceInterval";
-    this.singleDeviceInterval = getThrottledIntervalPreference(prefSDInterval);
-
+    this.singleDeviceInterval = getThrottledIntervalPreference("scheduler.fxa.singleDeviceInterval");
     this.idleInterval         = getThrottledIntervalPreference("scheduler.idleInterval");
     this.activeInterval       = getThrottledIntervalPreference("scheduler.activeInterval");
     this.immediateInterval    = getThrottledIntervalPreference("scheduler.immediateInterval");
@@ -66,6 +57,11 @@ SyncScheduler.prototype = {
     this.idle = false;
 
     this.hasIncomingItems = false;
+    // This is the last number of clients we saw when previously updating the
+    // client mode. If this != currentNumClients (obtained from prefs written
+    // by the clients engine) then we need to transition to and from
+    // single and multi-device mode.
+    this.numClientsLastSync = 0;
 
     this.clearSyncTriggers();
   },
@@ -99,11 +95,15 @@ SyncScheduler.prototype = {
     Svc.Prefs.set("globalScore", value);
   },
 
+  // The number of clients we have is maintained in preferences via the
+  // clients engine, and only updated after a successsful sync.
   get numClients() {
-    return Svc.Prefs.get("numClients", 0);
+    return Svc.Prefs.get("clients.devices.desktop", 0) +
+           Svc.Prefs.get("clients.devices.mobile", 0);
+
   },
   set numClients(value) {
-    Svc.Prefs.set("numClients", value);
+    throw new Error("Don't set numClients - the clients engine manages it.")
   },
 
   init: function init() {
@@ -133,7 +133,7 @@ SyncScheduler.prototype = {
 
   observe: function observe(subject, topic, data) {
     this._log.trace("Handling " + topic);
-    switch(topic) {
+    switch (topic) {
       case "weave:engine:score:updated":
         if (Status.login == LOGIN_SUCCEEDED) {
           Utils.namedTimer(this.calculateScore, SCORE_UPDATE_DELAY, this,
@@ -340,16 +340,16 @@ SyncScheduler.prototype = {
   },
 
   /**
-   * Process the locally stored clients list to figure out what mode to be in
+   * Query the number of known clients to figure out what mode to be in
    */
   updateClientMode: function updateClientMode() {
     // Nothing to do if it's the same amount
-    let numClients = this.service.clientsEngine.stats.numClients;
-    if (this.numClients == numClients)
+    let numClients = this.numClients;
+    if (numClients == this.numClientsLastSync)
       return;
 
-    this._log.debug("Client count: " + this.numClients + " -> " + numClients);
-    this.numClients = numClients;
+    this._log.debug(`Client count: ${this.numClientsLastSync} -> ${numClients}`);
+    this.numClientsLastSync = numClients;
 
     if (numClients <= 1) {
       this._log.trace("Adjusting syncThreshold to SINGLE_USER_THRESHOLD");
@@ -401,6 +401,10 @@ SyncScheduler.prototype = {
       return;
     }
 
+    if (!Async.isAppReady()) {
+      this._log.debug("Not initiating sync: app is shutting down");
+      return;
+    }
     Utils.nextTick(this.service.sync, this.service);
   },
 
@@ -580,7 +584,7 @@ ErrorHandler.prototype = {
 
   observe: function observe(subject, topic, data) {
     this._log.trace("Handling " + topic);
-    switch(topic) {
+    switch (topic) {
       case "weave:engine:sync:applied":
         if (subject.newFailed) {
           // An engine isn't able to apply one or more incoming records.
@@ -652,7 +656,7 @@ ErrorHandler.prototype = {
         // engine, Status.service will be SYNC_FAILED_PARTIAL despite
         // Status.sync being SYNC_SUCCEEDED.
         // *facepalm*
-        if (Status.sync    == SYNC_SUCCEEDED &&
+        if (Status.sync == SYNC_SUCCEEDED &&
             Status.service == STATUS_OK) {
           // Great. Let's clear our mid-sync 401 note.
           this._log.trace("Clearing lastSyncReassigned.");
@@ -699,14 +703,12 @@ ErrorHandler.prototype = {
   _dumpAddons: function _dumpAddons() {
     // Just dump the items that sync may be concerned with. Specifically,
     // active extensions that are not hidden.
-    let addonPromise = new Promise(resolve => {
-      try {
-        AddonManager.getAddonsByTypes(["extension"], resolve);
-      } catch (e) {
-        this._log.warn("Failed to dump addons", e)
-        resolve([])
-      }
-    });
+    let addonPromise = Promise.resolve([]);
+    try {
+      addonPromise = AddonManager.getAddonsByTypes(["extension"]);
+    } catch (e) {
+      this._log.warn("Failed to dump addons", e)
+    }
 
     return addonPromise.then(addons => {
       let relevantAddons = addons.filter(x => x.isActive && !x.hidden);
@@ -841,7 +843,7 @@ ErrorHandler.prototype = {
     return Svc.Prefs.set("errorhandler.alert.earliestNext", msec / 1000);
   },
 
-  clearServerAlerts: function () {
+  clearServerAlerts() {
     // If we have any outstanding alerts, apparently they're no longer relevant.
     Svc.Prefs.resetBranch("errorhandler.alert");
   },
@@ -855,7 +857,7 @@ ErrorHandler.prototype = {
    *    "message": // Logged in Sync logs.
    *   }
    */
-  handleServerAlert: function (xwa) {
+  handleServerAlert(xwa) {
     if (!xwa.code) {
       this._log.warn("Got structured X-Weave-Alert, but no alert code.");
       return;
@@ -893,12 +895,12 @@ ErrorHandler.prototype = {
    *
    * This method also looks for "side-channel" warnings.
    */
-  checkServerError: function (resp) {
+  checkServerError(resp) {
     switch (resp.status) {
       case 200:
       case 404:
       case 513:
-        let xwa = resp.headers['x-weave-alert'];
+        let xwa = resp.headers["x-weave-alert"];
 
         // Only process machine-readable alerts.
         if (!xwa || !xwa.startsWith("{")) {

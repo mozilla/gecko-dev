@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
+
 with Files('**'):
     BUG_COMPONENT = ('Core', 'Security: Process Sandboxing')
 
@@ -17,16 +19,14 @@ elif CONFIG['OS_ARCH'] == 'WINNT':
 
     DIRS += [
         'win/src/sandboxbroker',
+        'win/src/sandboxpermissions',
         'win/src/sandboxtarget',
     ]
-
-    if (CONFIG['CPU_ARCH'] == 'x86' and CONFIG['_MSC_VER'] and not
-            CONFIG['CLANG_CL']):
-        DIRS += ['win/wow_helper']
 
     EXPORTS.mozilla.sandboxing += [
         'chromium-shim/sandbox/win/loggingCallbacks.h',
         'chromium-shim/sandbox/win/loggingTypes.h',
+        'chromium-shim/sandbox/win/permissionsService.h',
         'chromium-shim/sandbox/win/sandboxLogging.h',
         'win/SandboxInitialization.h',
     ]
@@ -34,6 +34,7 @@ elif CONFIG['OS_ARCH'] == 'WINNT':
     SOURCES += [
         'chromium-shim/base/files/file_path.cpp',
         'chromium-shim/base/logging.cpp',
+        'chromium-shim/sandbox/win/permissionsService.cpp',
         'chromium-shim/sandbox/win/sandboxLogging.cpp',
         'chromium/base/at_exit.cc',
         'chromium/base/base_switches.cc',

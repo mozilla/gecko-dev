@@ -6,7 +6,7 @@ SimpleTest.requestCompleteLog();
 
 add_task(function* testWindowsEvents() {
   function background() {
-    browser.windows.onCreated.addListener(function listener(window) {
+    browser.windows.onCreated.addListener(window => {
       browser.test.log(`onCreated: windowId=${window.id}`);
 
       browser.test.assertTrue(Number.isInteger(window.id),
@@ -17,7 +17,7 @@ add_task(function* testWindowsEvents() {
     });
 
     let lastWindowId, os;
-    browser.windows.onFocusChanged.addListener(function listener(windowId) {
+    browser.windows.onFocusChanged.addListener(async windowId => {
       browser.test.log(`onFocusChange: windowId=${windowId} lastWindowId=${lastWindowId}`);
 
       if (windowId === browser.windows.WINDOW_ID_NONE && os === "linux") {
@@ -32,14 +32,14 @@ add_task(function* testWindowsEvents() {
       browser.test.assertTrue(Number.isInteger(windowId),
                               "windowId is an integer");
 
-      browser.windows.getLastFocused().then(window => {
-        browser.test.assertEq(windowId, window.id,
-                              "Last focused window has the correct id");
-        browser.test.sendMessage(`window-focus-changed`, window.id);
-      });
+      let window = await browser.windows.getLastFocused();
+
+      browser.test.assertEq(windowId, window.id,
+                            "Last focused window has the correct id");
+      browser.test.sendMessage(`window-focus-changed`, window.id);
     });
 
-    browser.windows.onRemoved.addListener(function listener(windowId) {
+    browser.windows.onRemoved.addListener(windowId => {
       browser.test.log(`onRemoved: windowId=${windowId}`);
 
       browser.test.assertTrue(Number.isInteger(windowId),
@@ -61,10 +61,10 @@ add_task(function* testWindowsEvents() {
   yield extension.startup();
   yield extension.awaitMessage("ready");
 
-  let {Management: {global: {WindowManager}}} = Cu.import("resource://gre/modules/Extension.jsm", {});
+  let {Management: {global: {windowTracker}}} = Cu.import("resource://gre/modules/Extension.jsm", {});
 
   let currentWindow = window;
-  let currentWindowId = WindowManager.getId(currentWindow);
+  let currentWindowId = windowTracker.getId(currentWindow);
   info(`Current window ID: ${currentWindowId}`);
 
   info(`Create browser window 1`);
@@ -84,6 +84,8 @@ add_task(function* testWindowsEvents() {
   let win2Id = yield extension.awaitMessage("window-created");
   info(`Window 2 ID: ${win2Id}`);
 
+  win2.focus();
+
   winId = yield extension.awaitMessage(`window-focus-changed`);
   is(winId, win2Id, "Got focus change event for the correct window ID.");
 
@@ -101,6 +103,8 @@ add_task(function* testWindowsEvents() {
 
   info(`Close browser window 1`);
   yield BrowserTestUtils.closeWindow(win1);
+
+  currentWindow.focus();
 
   winId = yield extension.awaitMessage(`window-removed`);
   is(winId, win1Id, "Got removed event for the correct window ID.");

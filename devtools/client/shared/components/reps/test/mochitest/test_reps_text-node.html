@@ -1,0 +1,209 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!DOCTYPE HTML>
+<html>
+<!--
+Test text-node rep
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Rep test - text-node</title>
+  <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css">
+</head>
+<body>
+<pre id="test">
+<script src="head.js" type="application/javascript;version=1.8"></script>
+<script type="application/javascript;version=1.8">
+"use strict";
+
+window.onload = Task.async(function* () {
+  const {
+    REPS,
+    MODE,
+    getSelectableInInspectorGrips,
+  } = browserRequire("devtools/client/shared/components/reps/reps");
+  let { Rep, TextNode } = REPS;
+
+  let gripStubs = new Map();
+  gripStubs.set("testRendering", {
+    "class": "Text",
+    "actor": "server1.conn1.child1/obj50",
+    "preview": {
+      "kind": "DOMNode",
+      "nodeType": 3,
+      "nodeName": "#text",
+      "textContent": "hello world"
+    }
+  });
+  gripStubs.set("testRenderingWithEOL", {
+    "class": "Text",
+    "actor": "server1.conn1.child1/obj50",
+    "preview": {
+      "kind": "DOMNode",
+      "nodeType": 3,
+      "nodeName": "#text",
+      "textContent": "hello\nworld"
+    }
+  });
+
+  try {
+    // Test that correct rep is chosen
+    const renderedRep = shallowRenderComponent(Rep, {
+      object: gripStubs.get("testRendering")
+    });
+
+    is(renderedRep.type, TextNode.rep,
+      `Rep correctly selects ${TextNode.rep.displayName}`);
+
+    yield testRendering();
+    yield testRenderingWithEOL();
+
+    yield testOnMouseOver();
+    yield testOnMouseOut();
+    yield testOnInspectIconClick();
+  } catch (e) {
+    ok(false, "Got an error: " + DevToolsUtils.safeErrorString(e));
+  } finally {
+    SimpleTest.finish();
+  }
+
+  function testRendering() {
+    const stub = gripStubs.get("testRendering");
+    const defaultOutput = `#text "hello world"`;
+
+    const modeTests = [
+      {
+        mode: undefined,
+        expectedOutput: defaultOutput,
+      },
+      {
+        mode: MODE.TINY,
+        expectedOutput: "#text",
+      },
+      {
+        mode: MODE.SHORT,
+        expectedOutput: defaultOutput,
+      },
+      {
+        mode: MODE.LONG,
+        expectedOutput: defaultOutput,
+      }
+    ];
+
+    testRepRenderModes(modeTests, "testRendering", TextNode, stub);
+  }
+
+  function testRenderingWithEOL() {
+    const stub = gripStubs.get("testRenderingWithEOL");
+    const defaultOutput = `#text "hello\nworld"`;
+
+    const modeTests = [
+      {
+        mode: undefined,
+        expectedOutput: defaultOutput,
+      },
+      {
+        mode: MODE.TINY,
+        expectedOutput: "#text",
+      },
+      {
+        mode: MODE.SHORT,
+        expectedOutput: defaultOutput,
+      },
+      {
+        mode: MODE.LONG,
+        expectedOutput: defaultOutput,
+      }
+    ];
+
+    testRepRenderModes(modeTests, "testRenderingWithEOL", TextNode, stub);
+  }
+
+  function testOnMouseOver() {
+    const stub = gripStubs.get("testRendering");
+
+    const grips = getSelectableInInspectorGrips(stub);
+    is(grips.length, 1, "the stub has one text node grip");
+    const attachedActorIds = getStubAttachedActorIds(grips);
+
+    let mouseOverValue;
+    let onDOMNodeMouseOver = (object) => {
+      mouseOverValue = object;
+    };
+    const renderedComponent = renderComponent(TextNode.rep, {
+      object: stub,
+      onDOMNodeMouseOver,
+      attachedActorIds,
+    });
+
+    TestUtils.Simulate.mouseOver(renderedComponent);
+    is(mouseOverValue, grips[0], "onDOMNodeMouseOver is called " +
+      "with the expected argument when mouseover is fired on the Rep");
+  }
+
+  function testOnMouseOut() {
+    const stub = gripStubs.get("testRendering");
+
+    const grips = getSelectableInInspectorGrips(stub);
+    is(grips.length, 1, "the stub has one text node grip");
+    const attachedActorIds = getStubAttachedActorIds(grips);
+
+    let called = false;
+    let onDOMNodeMouseOut = (object) => {
+      called = true;
+    };
+    const renderedComponent = renderComponent(TextNode.rep, {
+      object: stub,
+      onDOMNodeMouseOut,
+      attachedActorIds,
+    });
+
+    TestUtils.Simulate.mouseOut(renderedComponent);
+    is(called, true, "onDOMNodeMouseOut is called when mouseout is fired on the Rep");
+  }
+
+  function testOnInspectIconClick() {
+    const stub = gripStubs.get("testRendering");
+
+    const grips = getSelectableInInspectorGrips(stub);
+    is(grips.length, 1, "the stub has one text node grip");
+    const attachedActorIds = getStubAttachedActorIds(grips);
+
+    let inspectIconClickedValue = null;
+    let inspectIconClickedEvent = null;
+
+    let onInspectIconClick = (object, event) => {
+      inspectIconClickedValue = object;
+      inspectIconClickedEvent = event;
+    };
+
+    const renderedComponentWithoutInspectIcon = renderComponent(TextNode.rep, {
+      object: stub,
+      onInspectIconClick,
+      attachedActorIds: ["someOtherId"]
+    });
+    is(renderedComponentWithoutInspectIcon.querySelector(".open-inspector"), null,
+      "There isn't an inspect icon when the actor is not in attachedActorIds");
+
+    const renderedComponent = renderComponent(TextNode.rep, {
+      object: stub,
+      onInspectIconClick,
+      attachedActorIds,
+    });
+
+    const inspectIconNode = renderedComponent.querySelector(".open-inspector");
+    ok(inspectIconNode !== null, "There is an inspect icon as expected");
+    TestUtils.Simulate.click(inspectIconNode);
+
+    is(inspectIconClickedValue, grips[0],
+      "onInspectIconClick is called with expected value when inspect icon is clicked");
+    ok(inspectIconClickedEvent !== null && inspectIconClickedEvent.type === "click",
+      "onInspectIconClick forwarded the original event to the callback");
+  }
+});
+</script>
+</pre>
+</body>
+</html>

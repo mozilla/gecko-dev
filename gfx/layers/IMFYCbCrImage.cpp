@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "IMFYCbCrImage.h"
-#include "DeviceManagerD3D9.h"
 #include "mozilla/layers/TextureD3D11.h"
 #include "mozilla/layers/CompositableClient.h"
 #include "mozilla/layers/CompositableForwarder.h"
@@ -34,7 +33,7 @@ IMFYCbCrImage::~IMFYCbCrImage()
 
 struct AutoLockTexture
 {
-  AutoLockTexture(ID3D11Texture2D* aTexture)
+  explicit AutoLockTexture(ID3D11Texture2D* aTexture)
   {
     aTexture->QueryInterface((IDXGIKeyedMutex**)getter_AddRefs(mMutex));
     if (!mMutex) {
@@ -133,91 +132,112 @@ FinishTextures(IDirect3DDevice9* aDevice,
   return true;
 }
 
-static bool UploadData(IDirect3DDevice9* aDevice,
-                       RefPtr<IDirect3DTexture9>& aTexture,
-                       HANDLE& aHandle,
-                       uint8_t* aSrc,
-                       const gfx::IntSize& aSrcSize,
-                       int32_t aSrcStride)
+DXGIYCbCrTextureData*
+IMFYCbCrImage::GetD3D11TextureData(Data aData, gfx::IntSize aSize)
 {
-  RefPtr<IDirect3DSurface9> surf;
-  D3DLOCKED_RECT rect;
-  aTexture = InitTextures(aDevice, aSrcSize, D3DFMT_A8, surf, aHandle, rect);
-  if (!aTexture) {
-    return false;
+  HRESULT hr;
+  RefPtr<ID3D10Multithread> mt;
+
+  RefPtr<ID3D11Device> device =
+    gfx::DeviceManagerDx::Get()->GetContentDevice();
+
+  if (!device) {
+    device =
+      gfx::DeviceManagerDx::Get()->GetCompositorDevice();
   }
 
-  if (aSrcStride == rect.Pitch) {
-    memcpy(rect.pBits, aSrc, rect.Pitch * aSrcSize.height);
+  hr = device->QueryInterface((ID3D10Multithread**)getter_AddRefs(mt));
+
+  if (FAILED(hr)) {
+    return nullptr;
+  }
+
+  if (!mt->GetMultithreadProtected()) {
+    return nullptr;
+  }
+
+  if (!gfx::DeviceManagerDx::Get()->CanInitializeKeyedMutexTextures()) {
+    return nullptr;
+  }
+
+  if (aData.mYStride < 0 || aData.mCbCrStride < 0) {
+    // D3D11 only supports unsigned stride values.
+    return nullptr;
+  }
+
+  CD3D11_TEXTURE2D_DESC newDesc(DXGI_FORMAT_R8_UNORM,
+                                aData.mYSize.width, aData.mYSize.height, 1, 1);
+
+  if (device == gfx::DeviceManagerDx::Get()->GetCompositorDevice()) {
+    newDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
   } else {
-    for (int i = 0; i < aSrcSize.height; i++) {
-      memcpy((uint8_t*)rect.pBits + i * rect.Pitch,
-             aSrc + i * aSrcStride,
-             aSrcSize.width);
-    }
+    newDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
   }
 
-  return FinishTextures(aDevice, aTexture, surf);
+  RefPtr<ID3D11Texture2D> textureY;
+  hr = device->CreateTexture2D(&newDesc, nullptr, getter_AddRefs(textureY));
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
+
+  newDesc.Width = aData.mCbCrSize.width;
+  newDesc.Height = aData.mCbCrSize.height;
+
+  RefPtr<ID3D11Texture2D> textureCb;
+  hr = device->CreateTexture2D(&newDesc, nullptr, getter_AddRefs(textureCb));
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
+
+
+  RefPtr<ID3D11Texture2D> textureCr;
+  hr = device->CreateTexture2D(&newDesc, nullptr, getter_AddRefs(textureCr));
+  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
+
+  // The documentation here seems to suggest using the immediate mode context
+  // on more than one thread is not allowed:
+  // https://msdn.microsoft.com/en-us/library/windows/desktop/ff476891(v=vs.85).aspx
+  // The Debug Layer seems to imply it is though. When the ID3D10Multithread
+  // layer is on. The Enter/Leave of the critical section shouldn't even be
+  // required but were added for extra security.
+
+  {
+    AutoLockTexture lockY(textureY);
+    AutoLockTexture lockCr(textureCr);
+    AutoLockTexture lockCb(textureCb);
+
+    mt->Enter();
+
+    RefPtr<ID3D11DeviceContext> ctx;
+    device->GetImmediateContext((ID3D11DeviceContext**)getter_AddRefs(ctx));
+
+    D3D11_BOX box;
+    box.front = box.top = box.left = 0;
+    box.back = 1;
+    box.right = aData.mYSize.width;
+    box.bottom = aData.mYSize.height;
+    ctx->UpdateSubresource(textureY, 0, &box, aData.mYChannel, aData.mYStride, 0);
+
+    box.right = aData.mCbCrSize.width;
+    box.bottom = aData.mCbCrSize.height;
+    ctx->UpdateSubresource(textureCb, 0, &box, aData.mCbChannel, aData.mCbCrStride, 0);
+    ctx->UpdateSubresource(textureCr, 0, &box, aData.mCrChannel, aData.mCbCrStride, 0);
+
+    mt->Leave();
+  }
+
+  return DXGIYCbCrTextureData::Create(TextureFlags::DEFAULT, textureY,
+                                      textureCb, textureCr, aSize, aData.mYSize,
+                                      aData.mCbCrSize);
 }
 
 TextureClient*
-IMFYCbCrImage::GetD3D9TextureClient(KnowsCompositor* aForwarder)
+IMFYCbCrImage::GetD3D11TextureClient(KnowsCompositor* aForwarder)
 {
-  RefPtr<IDirect3DDevice9> device = DeviceManagerD3D9::GetDevice();
-  if (!device) {
-    return nullptr;
-  }
+  DXGIYCbCrTextureData* textureData = GetD3D11TextureData(mData, GetSize());
 
-  RefPtr<IDirect3DTexture9> textureY;
-  HANDLE shareHandleY = 0;
-  if (!UploadData(device, textureY, shareHandleY,
-                  mData.mYChannel, mData.mYSize, mData.mYStride)) {
-    return nullptr;
-  }
-
-  RefPtr<IDirect3DTexture9> textureCb;
-  HANDLE shareHandleCb = 0;
-  if (!UploadData(device, textureCb, shareHandleCb,
-                  mData.mCbChannel, mData.mCbCrSize, mData.mCbCrStride)) {
-    return nullptr;
-  }
-
-  RefPtr<IDirect3DTexture9> textureCr;
-  HANDLE shareHandleCr = 0;
-  if (!UploadData(device, textureCr, shareHandleCr,
-                  mData.mCrChannel, mData.mCbCrSize, mData.mCbCrStride)) {
-    return nullptr;
-  }
-
-  RefPtr<IDirect3DQuery9> query;
-  HRESULT hr = device->CreateQuery(D3DQUERYTYPE_EVENT, getter_AddRefs(query));
-  hr = query->Issue(D3DISSUE_END);
-
-  int iterations = 0;
-  bool valid = false;
-  while (iterations < 10) {
-    HRESULT hr = query->GetData(nullptr, 0, D3DGETDATA_FLUSH);
-    if (hr == S_FALSE) {
-      Sleep(1);
-      iterations++;
-      continue;
-    }
-    if (hr == S_OK) {
-      valid = true;
-    }
-    break;
-  }
-
-  if (!valid) {
+  if (textureData == nullptr) {
     return nullptr;
   }
 
   mTextureClient = TextureClient::CreateWithData(
-    DXGIYCbCrTextureData::Create(TextureFlags::DEFAULT,
-                                 textureY, textureCb, textureCr,
-                                 shareHandleY, shareHandleCb, shareHandleCr,
-                                 GetSize(), mData.mYSize, mData.mCbCrSize),
-    TextureFlags::DEFAULT,
+    textureData, TextureFlags::DEFAULT,
     aForwarder->GetTextureForwarder()
   );
 
@@ -240,66 +260,9 @@ IMFYCbCrImage::GetTextureClient(KnowsCompositor* aForwarder)
 
   LayersBackend backend = aForwarder->GetCompositorBackendType();
   if (!device || backend != LayersBackend::LAYERS_D3D11) {
-    if (backend == LayersBackend::LAYERS_D3D9 ||
-        backend == LayersBackend::LAYERS_D3D11) {
-      return GetD3D9TextureClient(aForwarder);
-    }
     return nullptr;
   }
-
-  if (!gfx::DeviceManagerDx::Get()->CanInitializeKeyedMutexTextures()) {
-    return nullptr;
-  }
-
-  if (mData.mYStride < 0 || mData.mCbCrStride < 0) {
-    // D3D11 only supports unsigned stride values.
-    return nullptr;
-  }
-
-  CD3D11_TEXTURE2D_DESC newDesc(DXGI_FORMAT_R8_UNORM,
-                                mData.mYSize.width, mData.mYSize.height, 1, 1);
-
-  if (device == gfx::DeviceManagerDx::Get()->GetCompositorDevice()) {
-    newDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
-  } else {
-    newDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
-  }
-
-  RefPtr<ID3D11Texture2D> textureY;
-  D3D11_SUBRESOURCE_DATA yData = { mData.mYChannel, (UINT)mData.mYStride, 0 };
-  HRESULT hr = device->CreateTexture2D(&newDesc, &yData, getter_AddRefs(textureY));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
-
-  newDesc.Width = mData.mCbCrSize.width;
-  newDesc.Height = mData.mCbCrSize.height;
-
-  RefPtr<ID3D11Texture2D> textureCb;
-  D3D11_SUBRESOURCE_DATA cbData = { mData.mCbChannel, (UINT)mData.mCbCrStride, 0 };
-  hr = device->CreateTexture2D(&newDesc, &cbData, getter_AddRefs(textureCb));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
-
-  RefPtr<ID3D11Texture2D> textureCr;
-  D3D11_SUBRESOURCE_DATA crData = { mData.mCrChannel, (UINT)mData.mCbCrStride, 0 };
-  hr = device->CreateTexture2D(&newDesc, &crData, getter_AddRefs(textureCr));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
-
-  // Even though the textures we created are meant to be protected by a keyed mutex,
-  // it appears that D3D doesn't include the initial memory upload within this
-  // synchronization. Add an empty lock/unlock pair since that appears to
-  // be sufficient to make sure we synchronize.
-  {
-    AutoLockTexture lockCr(textureCr);
-  }
-
-  mTextureClient = TextureClient::CreateWithData(
-    DXGIYCbCrTextureData::Create(TextureFlags::DEFAULT,
-                                 textureY, textureCb, textureCr,
-                                 GetSize(), mData.mYSize, mData.mCbCrSize),
-    TextureFlags::DEFAULT,
-    aForwarder->GetTextureForwarder()
-  );
-
-  return mTextureClient;
+  return GetD3D11TextureClient(aForwarder);
 }
 
 } // namespace layers

@@ -10,9 +10,8 @@ var LightweightThemeManager = tempScope.LightweightThemeManager;
 
 function wait_for_notification(aCallback) {
   PopupNotifications.panel.addEventListener("popupshown", function() {
-    PopupNotifications.panel.removeEventListener("popupshown", arguments.callee, false);
     aCallback(PopupNotifications.panel);
-  }, false);
+  }, {once: true});
 }
 
 var TESTS = [
@@ -27,7 +26,7 @@ function test_install_http() {
     if (gBrowser.contentDocument.location.href == "about:blank")
       return;
 
-    gBrowser.selectedBrowser.removeEventListener("pageshow", arguments.callee, false);
+    gBrowser.selectedBrowser.removeEventListener("pageshow", arguments.callee);
 
     executeSoon(function() {
       BrowserTestUtils.synthesizeMouse("#theme-install", 2, 2, {}, gBrowser.selectedBrowser);
@@ -40,7 +39,7 @@ function test_install_http() {
 
       runNextTest();
     });
-  }, false);
+  });
 },
 
 function test_install_lwtheme() {
@@ -54,7 +53,7 @@ function test_install_lwtheme() {
     if (gBrowser.contentDocument.location.href == "about:blank")
       return;
 
-    gBrowser.selectedBrowser.removeEventListener("pageshow", arguments.callee, false);
+    gBrowser.selectedBrowser.removeEventListener("pageshow", arguments.callee);
 
     BrowserTestUtils.synthesizeMouse("#theme-install", 2, 2, {}, gBrowser.selectedBrowser);
     let notificationBox = gBrowser.getNotificationBox(gBrowser.selectedBrowser);
@@ -70,48 +69,6 @@ function test_install_lwtheme() {
         runNextTest();
       }
     );
-  }, false);
-},
-
-function test_lwtheme_switch_theme() {
-  is(LightweightThemeManager.currentTheme, null, "Should be no lightweight theme selected");
-
-  AddonManager.getAddonByID("theme-xpi@tests.mozilla.org", function(aAddon) {
-    aAddon.userDisabled = false;
-    ok(aAddon.isActive, "Theme should have immediately enabled");
-    Services.prefs.setBoolPref("extensions.dss.enabled", false);
-
-    var pm = Services.perms;
-    pm.add(makeURI("https://example.com/"), "install", pm.ALLOW_ACTION);
-
-    gBrowser.selectedTab = gBrowser.addTab("https://example.com/browser/browser/base/content/test/general/bug592338.html");
-    gBrowser.selectedBrowser.addEventListener("pageshow", function() {
-      if (gBrowser.contentDocument.location.href == "about:blank")
-        return;
-
-      gBrowser.selectedBrowser.removeEventListener("pageshow", arguments.callee, false);
-
-      executeSoon(function() {
-        wait_for_notification(function(aPanel) {
-          is(LightweightThemeManager.currentTheme, null, "Should not have installed the test lwtheme");
-          ok(aAddon.isActive, "Test theme should still be active");
-
-          let notification = aPanel.childNodes[0];
-          is(notification.button.label, "Restart Now", "Should have seen the right button");
-
-          ok(aAddon.userDisabled, "Should be waiting to disable the test theme");
-          aAddon.userDisabled = false;
-          Services.prefs.setBoolPref("extensions.dss.enabled", true);
-
-          gBrowser.removeTab(gBrowser.selectedTab);
-
-          Services.perms.remove(makeURI("http://example.com"), "install");
-
-          runNextTest();
-        });
-        BrowserTestUtils.synthesizeMouse("#theme-install", 2, 2, {}, gBrowser.selectedBrowser);
-      });
-    }, false);
   });
 }
 ];
@@ -125,7 +82,6 @@ function runNextTest() {
         aAddon.uninstall();
 
         Services.prefs.setBoolPref("extensions.logging.enabled", false);
-        Services.prefs.setBoolPref("extensions.dss.enabled", false);
 
         finish();
       });
@@ -144,14 +100,9 @@ function test() {
 
   AddonManager.getInstallForURL(TESTROOT + "theme.xpi", function(aInstall) {
     aInstall.addListener({
-      onInstallEnded: function() {
+      onInstallEnded() {
         AddonManager.getAddonByID("theme-xpi@tests.mozilla.org", function(aAddon) {
           isnot(aAddon, null, "Should have installed the test theme.");
-
-          // In order to switch themes while the test is running we turn on dynamic
-          // theme switching. This means the test isn't exactly correct but should
-          // do some good
-          Services.prefs.setBoolPref("extensions.dss.enabled", true);
 
           runNextTest();
         });

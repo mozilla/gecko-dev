@@ -755,6 +755,7 @@ protected:
 
   // helpers for |ComputeFontData| that need access to |mNoneBits|:
   static void SetFontSize(nsPresContext* aPresContext,
+                          nsStyleContext* aContext,
                           const nsRuleData* aRuleData,
                           const nsStyleFont* aFont,
                           const nsStyleFont* aParentFont,
@@ -1021,8 +1022,11 @@ public:
     return !!mStyleData.GetStyleData(aSID);
   }
 
-  static void ComputeFontFeatures(const nsCSSValuePairList *aFeaturesList,
+  static void ComputeFontFeatures(const nsCSSValuePairList* aFeaturesList,
                                   nsTArray<gfxFontFeature>& aFeatureSettings);
+
+  static void ComputeFontVariations(const nsCSSValuePairList* aVariationsList,
+                                    nsTArray<gfxFontVariation>& aVariationSettings);
 
   static nscoord CalcFontPointSize(int32_t aHTMLSize, int32_t aBasePointSize,
                                    nsPresContext* aPresContext,
@@ -1035,6 +1039,8 @@ public:
   static nscoord FindNextLargerFontSize(nscoord aFontSize, int32_t aBasePointSize,
                                         nsPresContext* aPresContext,
                                         nsFontSizeType aFontSizeType = eFontSize_HTML);
+
+  static uint32_t ParseFontLanguageOverride(const nsAString& aLangTag);
 
   /**
    * @param aValue The color value, returned from nsCSSParser::ParseColorString
@@ -1079,6 +1085,32 @@ private:
   static void StoreStyleOnContext(nsStyleContext* aContext,
                                   nsStyleStructID aSID,
                                   void* aStruct);
+};
+
+/**
+ * We allocate arrays of CSS values with alloca.  (These arrays are a
+ * fixed size per style struct, but we don't want to waste the
+ * allocation and construction/destruction costs of the big structs when
+ * we're handling much smaller ones.)  Since the lifetime of an alloca
+ * allocation is the life of the calling function, the caller must call
+ * alloca.  However, to ensure that constructors and destructors are
+ * balanced, we do the constructor and destructor calling from this RAII
+ * class, AutoCSSValueArray.
+ */
+struct AutoCSSValueArray
+{
+  /**
+   * aStorage must be the result of alloca(aCount * sizeof(nsCSSValue))
+   */
+  AutoCSSValueArray(void* aStorage, size_t aCount);
+
+  ~AutoCSSValueArray();
+
+  nsCSSValue* get() { return mArray; }
+
+private:
+  nsCSSValue *mArray;
+  size_t mCount;
 };
 
 #endif

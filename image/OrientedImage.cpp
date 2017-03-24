@@ -46,6 +46,22 @@ OrientedImage::GetHeight(int32_t* aHeight)
   }
 }
 
+nsresult
+OrientedImage::GetNativeSizes(nsTArray<IntSize>& aNativeSizes) const
+{
+  nsresult rv = InnerImage()->GetNativeSizes(aNativeSizes);
+
+  if (mOrientation.SwapsWidthAndHeight()) {
+    auto i = aNativeSizes.Length();
+    while (i > 0) {
+      --i;
+      swap(aNativeSizes[i].width, aNativeSizes[i].height);
+    }
+  }
+
+  return rv;
+}
+
 NS_IMETHODIMP
 OrientedImage::GetIntrinsicSize(nsSize* aSize)
 {
@@ -263,12 +279,13 @@ OrientedImage::Draw(gfxContext* aContext,
                     uint32_t aWhichFrame,
                     SamplingFilter aSamplingFilter,
                     const Maybe<SVGImageContext>& aSVGContext,
-                    uint32_t aFlags)
+                    uint32_t aFlags,
+                    float aOpacity)
 {
   if (mOrientation.IsIdentity()) {
     return InnerImage()->Draw(aContext, aSize, aRegion,
                               aWhichFrame, aSamplingFilter,
-                              aSVGContext, aFlags);
+                              aSVGContext, aFlags, aOpacity);
   }
 
   // Update the image size to match the image's coordinate system. (This could
@@ -292,16 +309,20 @@ OrientedImage::Draw(gfxContext* aContext,
   region.TransformBoundsBy(inverseMatrix);
 
   auto orientViewport = [&](const SVGImageContext& aOldContext) {
-    CSSIntSize viewportSize(aOldContext.GetViewportSize());
-    if (mOrientation.SwapsWidthAndHeight()) {
-      swap(viewportSize.width, viewportSize.height);
+    SVGImageContext context(aOldContext);
+    auto oldViewport = aOldContext.GetViewportSize();
+    if (oldViewport && mOrientation.SwapsWidthAndHeight()) {
+      // Swap width and height:
+      CSSIntSize newViewport(oldViewport->height, oldViewport->width);
+      context.SetViewportSize(Some(newViewport));
     }
-    return SVGImageContext(viewportSize,
-                           aOldContext.GetPreserveAspectRatio());
+    return context;
   };
 
-  return InnerImage()->Draw(aContext, size, region, aWhichFrame, aSamplingFilter,
-                            aSVGContext.map(orientViewport), aFlags);
+  return InnerImage()->Draw(aContext, size, region, aWhichFrame,
+                            aSamplingFilter,
+                            aSVGContext.map(orientViewport), aFlags,
+                            aOpacity);
 }
 
 nsIntSize

@@ -6,18 +6,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 from taskgraph import try_option_syntax
-
-INTEGRATION_PROJECTS = set([
-    'mozilla-inbound',
-    'autoland',
-])
-
-RELEASE_PROJECTS = set([
-    'mozilla-central',
-    'mozilla-aurora',
-    'mozilla-beta',
-    'mozilla-release',
-])
+from taskgraph.util.attributes import match_run_on_projects
 
 _target_task_methods = {}
 
@@ -34,6 +23,14 @@ def get_method(method):
     return _target_task_methods[method]
 
 
+def filter_for_project(task, parameters):
+    """Filter tasks by project.  Optionally enable nightlies."""
+    if task.attributes.get('nightly') and not parameters.get('include_nightly'):
+        return False
+    run_on_projects = set(task.attributes.get('run_on_projects', []))
+    return match_run_on_projects(parameters['project'], run_on_projects)
+
+
 @_target_task('try_option_syntax')
 def target_tasks_try_option_syntax(full_task_graph, parameters):
     """Generate a list of target tasks based on try syntax in
@@ -42,12 +39,32 @@ def target_tasks_try_option_syntax(full_task_graph, parameters):
     target_tasks_labels = [t.label for t in full_task_graph.tasks.itervalues()
                            if options.task_matches(t.attributes)]
 
-    # If the developer wants test jobs to be rebuilt N times we add that value here
-    if int(options.trigger_tests) > 1:
-        for l in target_tasks_labels:
-            task = full_task_graph[l]
-            if 'unittest_suite' in task.attributes:
-                task.attributes['task_duplicates'] = options.trigger_tests
+    attributes = {
+        k: getattr(options, k) for k in [
+            'env',
+            'no_retry',
+            'tag',
+        ]
+    }
+
+    for l in target_tasks_labels:
+        task = full_task_graph[l]
+        if 'unittest_suite' in task.attributes:
+            task.attributes['task_duplicates'] = options.trigger_tests
+
+    for l in target_tasks_labels:
+        task = full_task_graph[l]
+        # If the developer wants test jobs to be rebuilt N times we add that value here
+        if options.trigger_tests > 1 and 'unittest_suite' in task.attributes:
+            task.attributes['task_duplicates'] = options.trigger_tests
+            task.attributes['profile'] = False
+
+        # If the developer wants test talos jobs to be rebuilt N times we add that value here
+        if options.talos_trigger_tests > 1 and 'talos_suite' in task.attributes:
+            task.attributes['task_duplicates'] = options.talos_trigger_tests
+            task.attributes['profile'] = options.profile
+
+        task.attributes.update(attributes)
 
     # Add notifications here as well
     if options.notifications:
@@ -67,19 +84,9 @@ def target_tasks_try_option_syntax(full_task_graph, parameters):
 def target_tasks_default(full_task_graph, parameters):
     """Target the tasks which have indicated they should be run on this project
     via the `run_on_projects` attributes."""
-    def filter(task):
-        run_on_projects = set(t.attributes.get('run_on_projects', []))
-        if 'all' in run_on_projects:
-            return True
-        project = parameters['project']
-        if 'integration' in run_on_projects:
-            if project in INTEGRATION_PROJECTS:
-                return True
-        if 'release' in run_on_projects:
-            if project in RELEASE_PROJECTS:
-                return True
-        return project in run_on_projects
-    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+    return [l for l, t in full_task_graph.tasks.iteritems()
+            if filter_for_project(t, parameters)]
 
 
 @_target_task('ash_tasks')
@@ -87,18 +94,90 @@ def target_tasks_ash(full_task_graph, parameters):
     """Target tasks that only run on the ash branch."""
     def filter(task):
         platform = task.attributes.get('build_platform')
-        # only select platforms
-        if platform not in ('linux64', 'linux64-asan', 'linux64-pgo'):
+        # Early return if platform is None
+        if not platform:
             return False
+        # Only on Linux platforms
+        if 'linux' not in platform:
+            return False
+        # No random non-build jobs either. This is being purposely done as a
+        # blacklist so newly-added jobs aren't missed by default.
+        for p in ('nightly', 'haz', 'artifact', 'cov', 'add-on'):
+            if p in platform:
+                return False
+        for k in ('toolchain', 'l10n', 'static-analysis'):
+            if k in task.attributes['kind']:
+                return False
         # and none of this linux64-asan/debug stuff
         if platform == 'linux64-asan' and task.attributes['build_type'] == 'debug':
             return False
-        # no non-et10s tests
-        if task.attributes.get('unittest_suite') or task.attributes.get('talos_siute'):
+        # no non-e10s tests
+        if task.attributes.get('unittest_suite'):
             if not task.attributes.get('e10s'):
+                return False
+            # don't run talos on ash
+            if task.attributes.get('unittest_suite') == 'talos':
                 return False
         # don't upload symbols
         if task.attributes['kind'] == 'upload-symbols':
+            return False
+        return True
+    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+
+@_target_task('cedar_tasks')
+def target_tasks_cedar(full_task_graph, parameters):
+    """Target tasks that only run on the cedar branch."""
+    def filter(task):
+        platform = task.attributes.get('build_platform')
+        # only select platforms
+        if platform not in ['linux64']:
+            return False
+        if task.attributes.get('unittest_suite'):
+            if not (task.attributes['unittest_suite'].startswith('mochitest')
+                    or 'xpcshell' in task.attributes['unittest_suite']):
+                return False
+        return True
+    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+
+@_target_task('graphics_tasks')
+def target_tasks_graphics(full_task_graph, parameters):
+    """In addition to doing the filtering by project that the 'default'
+       filter does, also remove artifact builds because we have csets on
+       the graphics branch that aren't on the candidate branches of artifact
+       builds"""
+    filtered_for_project = target_tasks_default(full_task_graph, parameters)
+
+    def filter(task):
+        if task.attributes['kind'] == 'artifact-build':
+            return False
+        return True
+    return [l for l in filtered_for_project if filter(full_task_graph[l])]
+
+
+@_target_task('mochitest_valgrind')
+def target_tasks_valgrind(full_task_graph, parameters):
+    """Target tasks that only run on the cedar branch."""
+    def filter(task):
+        platform = task.attributes.get('test_platform')
+        if platform not in ['linux64']:
+            return False
+
+        if task.attributes.get('unittest_suite', '').startswith('mochitest') and \
+           task.attributes.get('unittest_flavor', '').startswith('valgrind-plain'):
+            return True
+        return False
+
+    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+
+@_target_task('nightly_code_coverage')
+def target_tasks_code_coverage(full_task_graph, parameters):
+    """Target tasks that generate coverage data."""
+    def filter(task):
+        platform = task.attributes.get('test_platform')
+        if platform not in ('linux64-ccov', 'linux64-jsdcov'):
             return False
         return True
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
@@ -110,5 +189,93 @@ def target_tasks_nightly(full_task_graph, parameters):
     nightly build process involves a pipeline of builds, signing,
     and, eventually, uploading the tasks to balrog."""
     def filter(task):
-        return task.attributes.get('nightly', False)
+        platform = task.attributes.get('build_platform')
+        if platform in ('android-api-15-nightly', 'android-x86-nightly'):
+            return task.attributes.get('nightly', False)
+    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+
+@_target_task('nightly_linux')
+def target_tasks_nightly_linux(full_task_graph, parameters):
+    """Select the set of tasks required for a nightly build of linux. The
+    nightly build process involves a pipeline of builds, signing,
+    and, eventually, uploading the tasks to balrog."""
+    def filter(task):
+        platform = task.attributes.get('build_platform')
+        if platform in ('linux64-nightly', 'linux-nightly'):
+            return task.attributes.get('nightly', False)
+    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+
+@_target_task('mozilla_beta_tasks')
+def target_tasks_mozilla_beta(full_task_graph, parameters):
+    """Select the set of tasks required for a promotable beta or release build
+    of linux, plus android CI. The candidates build process involves a pipeline
+    of builds and signing, but does not include beetmover or balrog jobs."""
+
+    def filter(task):
+        if not filter_for_project(task, parameters):
+            return False
+        platform = task.attributes.get('build_platform')
+        if platform in ('linux64-pgo', 'linux-pgo', 'win32-pgo', 'win64-pgo',
+                        'android-api-15-nightly', 'android-x86-nightly',
+                        'win32', 'win64', 'macosx64'):
+            return False
+        if platform in ('linux64', 'linux'):
+            if task.attributes['build_type'] == 'opt':
+                return False
+        # skip l10n, beetmover, balrog
+        if task.kind in [
+            'balrog', 'beetmover', 'beetmover-checksums', 'beetmover-l10n',
+            'checksums-signing', 'nightly-l10n', 'nightly-l10n-signing',
+        ]:
+            return False
+        return True
+
+    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+
+@_target_task('mozilla_release_tasks')
+def target_tasks_mozilla_release(full_task_graph, parameters):
+    """Select the set of tasks required for a promotable beta or release build
+    of linux, plus android CI. The candidates build process involves a pipeline
+    of builds and signing, but does not include beetmover or balrog jobs."""
+    return target_tasks_mozilla_beta(full_task_graph, parameters)
+
+
+@_target_task('candidates_fennec')
+def target_tasks_candidates_fennec(full_task_graph, parameters):
+    """Select the set of tasks required for a candidates build of fennec. The
+    nightly build process involves a pipeline of builds, signing,
+    and, eventually, uploading the tasks to balrog."""
+    filtered_for_project = target_tasks_nightly(full_task_graph, parameters)
+
+    def filter(task):
+        if task.kind not in ['balrog']:
+            return task.attributes.get('nightly', False)
+
+    return [l for l in filtered_for_project if filter(full_task_graph[l])]
+
+
+@_target_task('pine_tasks')
+def target_tasks_pine(full_task_graph, parameters):
+    """Bug 1339179 - no mobile automation needed on pine"""
+    def filter(task):
+        platform = task.attributes.get('build_platform')
+        # disable mobile jobs
+        if str(platform).startswith('android'):
+            return False
+        return True
+    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
+
+
+@_target_task('stylo_tasks')
+def target_tasks_stylo(full_task_graph, parameters):
+    """Target stylotasks that only run on the m-c branch."""
+    def filter(task):
+        platform = task.attributes.get('build_platform')
+        # only select platforms
+        if platform not in ('linux64-stylo'):
+            return False
+        return True
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]

@@ -35,7 +35,7 @@ let removeAllButton;
 let signonsTree;
 
 let signonReloadDisplay = {
-  observe: function(subject, topic, data) {
+  observe(subject, topic, data) {
     if (topic == "passwordmgr-storage-changed") {
       switch (data) {
         case "addLogin":
@@ -80,6 +80,8 @@ function Startup() {
   togglePasswordsButton.label = kSignonBundle.getString("showPasswords");
   togglePasswordsButton.accessKey = kSignonBundle.getString("showPasswordsAccessKey");
   signonsIntro.textContent = kSignonBundle.getString("loginsDescriptionAll");
+  removeAllButton.setAttribute("label", kSignonBundle.getString("removeAll.label"));
+  removeAllButton.setAttribute("accesskey", kSignonBundle.getString("removeAll.accesskey"));
   document.getElementsByTagName("treecols")[0].addEventListener("click", (event) => {
     let { target, button } = event;
     let sortField = target.getAttribute("data-field-name");
@@ -135,7 +137,7 @@ let signonsTreeView = {
       return "";
     }
 
-    const signon = this._filterSet.length ? this._filterSet[row] : signons[row];
+    const signon = GetVisibleLogins()[row];
 
     // We already have the favicon URL or we started to fetch (value is null).
     if (this._faviconMap.has(signon.hostname)) {
@@ -158,7 +160,7 @@ let signonsTreeView = {
   getCellValue(row, column) {},
   getCellText(row, column) {
     let time;
-    let signon = this._filterSet.length ? this._filterSet[row] : signons[row];
+    let signon = GetVisibleLogins()[row];
     switch (column.id) {
       case "siteCol":
         return signon.httpRealm ?
@@ -202,8 +204,7 @@ let signonsTreeView = {
     return "";
   },
   setCellText(row, col, value) {
-    // If there is a filter, _filterSet needs to be used, otherwise signons is used.
-    let table = signonsTreeView._filterSet.length ? signonsTreeView._filterSet : signons;
+    let table = GetVisibleLogins();
     function _editLogin(field) {
       if (value == table[row][field]) {
         return;
@@ -228,7 +229,7 @@ let signonsTreeView = {
 };
 
 function SortTree(column, ascending) {
-  let table = signonsTreeView._filterSet.length ? signonsTreeView._filterSet : signons;
+  let table = GetVisibleLogins();
   // remember which item was selected so we can restore it after the sort
   let selections = GetTreeSelections();
   let selectedNumber = selections.length ? table[selections[0]].number : -1;
@@ -321,6 +322,10 @@ function LoadSignons() {
   return true;
 }
 
+function GetVisibleLogins() {
+  return signonsTreeView._filterSet.length ? signonsTreeView._filterSet : signons;
+}
+
 function GetTreeSelections() {
   let selections = [];
   let select = signonsTree.view.selection;
@@ -350,11 +355,10 @@ function SignonSelected() {
 }
 
 function DeleteSignon() {
-  let filterSet = signonsTreeView._filterSet;
-  let syncNeeded = (filterSet.length != 0);
+  let syncNeeded = (signonsTreeView._filterSet.length != 0);
   let tree = signonsTree;
   let view = signonsTreeView;
-  let table = filterSet.length ? filterSet : signons;
+  let table = GetVisibleLogins();
 
   // Turn off tree selection notifications during the deletion
   tree.view.selection.selectEventsSuppressed = true;
@@ -408,10 +412,9 @@ function DeleteAllSignons() {
                          null, null, null, null, dummy) == 1) // 1 == "No" button
     return;
 
-  let filterSet = signonsTreeView._filterSet;
-  let syncNeeded = (filterSet.length != 0);
+  let syncNeeded = signonsTreeView._filterSet.length != 0;
   let view = signonsTreeView;
-  let table = filterSet.length ? filterSet : signons;
+  let table = GetVisibleLogins();
 
   // remove all items from table and place in deleted table
   for (let i = 0; i < table.length; i++) {
@@ -555,6 +558,8 @@ function SignonClearFilter() {
   signonsTreeView._lastSelectedRanges = [];
 
   signonsIntro.textContent = kSignonBundle.getString("loginsDescriptionAll");
+  removeAllButton.setAttribute("label", kSignonBundle.getString("removeAll.label"));
+  removeAllButton.setAttribute("accesskey", kSignonBundle.getString("removeAll.accesskey"));
 }
 
 function FocusFilterBox() {
@@ -623,6 +628,8 @@ function FilterPasswords() {
     signonsTreeView.selection.select(0);
 
   signonsIntro.textContent = kSignonBundle.getString("loginsDescriptionFiltered");
+  removeAllButton.setAttribute("label", kSignonBundle.getString("removeAllShown.label"));
+  removeAllButton.setAttribute("accesskey", kSignonBundle.getString("removeAllShown.accesskey"));
 }
 
 function CopyPassword() {
@@ -634,7 +641,7 @@ function CopyPassword() {
   let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
                   getService(Ci.nsIClipboardHelper);
   let row = signonsTree.currentIndex;
-  let password = signonsTreeView.getCellText(row, {id : "passwordCol" });
+  let password = signonsTreeView.getCellText(row, {id: "passwordCol" });
   clipboard.copyString(password);
   Services.telemetry.getHistogramById("PWMGR_MANAGE_COPIED_PASSWORD").add(1);
 }
@@ -644,7 +651,7 @@ function CopyUsername() {
   let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
                   getService(Ci.nsIClipboardHelper);
   let row = signonsTree.currentIndex;
-  let username = signonsTreeView.getCellText(row, {id : "userCol" });
+  let username = signonsTreeView.getCellText(row, {id: "userCol" });
   clipboard.copyString(username);
   Services.telemetry.getHistogramById("PWMGR_MANAGE_COPIED_USERNAME").add(1);
 }

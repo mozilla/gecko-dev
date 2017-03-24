@@ -81,7 +81,7 @@ this.SplitView = function SplitView(aRoot)
       }
       return false;
     }
-  }, false);
+  });
 };
 
 SplitView.prototype = {
@@ -212,7 +212,7 @@ SplitView.prototype = {
     aSummary.addEventListener("click", (aEvent) => {
       aEvent.stopPropagation();
       this.activeSummary = aSummary;
-    }, false);
+    });
 
     this._side.appendChild(aDetails);
 
@@ -268,8 +268,8 @@ SplitView.prototype = {
     }
 
     let binding = bindings.get(aSummary);
-    aSummary.parentNode.removeChild(aSummary);
-    binding._details.parentNode.removeChild(binding._details);
+    aSummary.remove();
+    binding._details.remove();
 
     if (binding.onDestroy) {
       binding.onDestroy(aSummary, binding._details, binding.data);

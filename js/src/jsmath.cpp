@@ -56,6 +56,40 @@
 # define HAVE_ARC4RANDOM
 #endif
 
+#if defined(__linux__)
+# include <linux/random.h> // For GRND_NONBLOCK.
+# include <sys/syscall.h> // For SYS_getrandom.
+
+// Older glibc versions don't define SYS_getrandom, so we define it here if
+// it's not available. See bug 995069.
+# if defined(__x86_64__)
+#  define GETRANDOM_NR 318
+# elif defined(__i386__)
+#  define GETRANDOM_NR 355
+# elif defined(__arm__)
+#  define GETRANDOM_NR 384
+# endif
+
+# if defined(SYS_getrandom)
+// We have SYS_getrandom. Use it to check GETRANDOM_NR. Only do this if we set
+// GETRANDOM_NR so tier 3 platforms with recent glibc are not forced to define
+// it for no good reason.
+#  if defined(GETRANDOM_NR)
+static_assert(GETRANDOM_NR == SYS_getrandom,
+              "GETRANDOM_NR should match the actual SYS_getrandom value");
+#  endif
+# else
+#  define SYS_getrandom GETRANDOM_NR
+# endif
+
+# if defined(GRND_NONBLOCK)
+static_assert(GRND_NONBLOCK == 1, "If GRND_NONBLOCK is not 1 the #define below is wrong");
+# else
+#  define GRND_NONBLOCK 1
+# endif
+
+#endif // defined(__linux__)
+
 using namespace js;
 
 using mozilla::Abs;
@@ -157,7 +191,7 @@ js::math_acos(JSContext* cx, unsigned argc, Value* vp)
     if (!ToNumber(cx, args[0], &x))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
 
@@ -192,7 +226,7 @@ js::math_asin(JSContext* cx, unsigned argc, Value* vp)
     if (!ToNumber(cx, args[0], &x))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
 
@@ -227,7 +261,7 @@ js::math_atan(JSContext* cx, unsigned argc, Value* vp)
     if (!ToNumber(cx, args[0], &x))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
 
@@ -346,7 +380,7 @@ js::math_cos(JSContext* cx, unsigned argc, Value* vp)
     if (!ToNumber(cx, args[0], &x))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
 
@@ -381,7 +415,7 @@ js::math_exp(JSContext* cx, unsigned argc, Value* vp)
     if (!ToNumber(cx, args[0], &x))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
 
@@ -499,7 +533,7 @@ js::math_log_handle(JSContext* cx, HandleValue val, MutableHandleValue res)
     if (!ToNumber(cx, val, &in))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
 
@@ -676,8 +710,8 @@ js::math_pow(JSContext* cx, unsigned argc, Value* vp)
     return math_pow_handle(cx, args.get(0), args.get(1), args.rval());
 }
 
-static uint64_t
-GenerateSeed()
+uint64_t
+js::GenerateRandomSeed()
 {
     uint64_t seed = 0;
 
@@ -686,17 +720,28 @@ GenerateSeed()
 #elif defined(HAVE_ARC4RANDOM)
     seed = (static_cast<uint64_t>(arc4random()) << 32) | arc4random();
 #elif defined(XP_UNIX)
-    int fd = open("/dev/urandom", O_RDONLY);
-    if (fd >= 0) {
-        mozilla::Unused << read(fd, static_cast<void*>(&seed), sizeof(seed));
-        close(fd);
+    bool done = false;
+# if defined(__linux__)
+    // Try the relatively new getrandom syscall first. It's the preferred way
+    // on Linux as /dev/urandom may not work inside chroots and is harder to
+    // sandbox (see bug 995069).
+    int ret = syscall(SYS_getrandom, &seed, sizeof(seed), GRND_NONBLOCK);
+    done = (ret == sizeof(seed));
+# endif
+    if (!done) {
+        int fd = open("/dev/urandom", O_RDONLY);
+        if (fd >= 0) {
+            mozilla::Unused << read(fd, static_cast<void*>(&seed), sizeof(seed));
+            close(fd);
+        }
     }
 #else
-# error "Platform needs to implement GenerateSeed()"
+# error "Platform needs to implement GenerateRandomSeed()"
 #endif
 
     // Also mix in PRMJ_Now() in case we couldn't read random bits from the OS.
-    return seed ^ PRMJ_Now();
+    uint64_t timestamp = PRMJ_Now();
+    return seed ^ timestamp ^ (timestamp << 32);
 }
 
 void
@@ -704,8 +749,8 @@ js::GenerateXorShift128PlusSeed(mozilla::Array<uint64_t, 2>& seed)
 {
     // XorShift128PlusRNG must be initialized with a non-zero seed.
     do {
-        seed[0] = GenerateSeed();
-        seed[1] = GenerateSeed();
+        seed[0] = GenerateRandomSeed();
+        seed[1] = GenerateRandomSeed();
     } while (seed[0] == 0 && seed[1] == 0);
 }
 
@@ -830,7 +875,7 @@ js::math_sin_handle(JSContext* cx, HandleValue val, MutableHandleValue res)
     if (!ToNumber(cx, val, &in))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
 
@@ -855,9 +900,9 @@ js::math_sin(JSContext* cx, unsigned argc, Value* vp)
 void
 js::math_sincos_uncached(double x, double *sin, double *cos)
 {
-#if defined(__GLIBC__)
+#if defined(HAVE_SINCOS)
     sincos(x, sin, cos);
-#elif defined(HAVE_SINCOS)
+#elif defined(HAVE___SINCOS)
     __sincos(x, sin, cos);
 #else
     *sin = js::math_sin_uncached(x);
@@ -893,7 +938,7 @@ js::math_sqrt_handle(JSContext* cx, HandleValue number, MutableHandleValue resul
     if (!ToNumber(cx, number, &x))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
 
@@ -941,7 +986,7 @@ js::math_tan(JSContext* cx, unsigned argc, Value* vp)
     if (!ToNumber(cx, args[0], &x))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
 
@@ -965,7 +1010,7 @@ static bool math_function(JSContext* cx, unsigned argc, Value* vp)
     if (!ToNumber(cx, args[0], &x))
         return false;
 
-    MathCache* mathCache = cx->caches.getMathCache(cx);
+    MathCache* mathCache = cx->caches().getMathCache(cx);
     if (!mathCache)
         return false;
     double z = F(mathCache, x);
@@ -1372,7 +1417,8 @@ static const JSFunctionSpec math_static_methods[] = {
 JSObject*
 js::InitMathClass(JSContext* cx, HandleObject obj)
 {
-    RootedObject proto(cx, obj->as<GlobalObject>().getOrCreateObjectPrototype(cx));
+    Handle<GlobalObject*> global = obj.as<GlobalObject>();
+    RootedObject proto(cx, GlobalObject::getOrCreateObjectPrototype(cx, global));
     if (!proto)
         return nullptr;
     RootedObject Math(cx, NewObjectWithGivenProto(cx, &MathClass, proto, SingletonObject));

@@ -6,6 +6,7 @@
 #ifndef NSSVGINTEGRATIONUTILS_H_
 #define NSSVGINTEGRATIONUTILS_H_
 
+#include "DrawResult.h"
 #include "gfxMatrix.h"
 #include "gfxRect.h"
 #include "nsRegionFwd.h"
@@ -161,19 +162,23 @@ public:
   PaintMaskAndClipPath(const PaintFramesParams& aParams);
 
   /**
+   * Paint mask of non-SVG frame onto a given context, aParams.ctx.
+   * aParams.ctx must contain an A8 surface.
+   */
+  static DrawResult
+  PaintMask(const PaintFramesParams& aParams);
+
+  /**
+   * Return true if all the mask resource of aFrame are ready.
+   */
+  static bool
+  IsMaskResourceReady(nsIFrame* aFrame);
+
+  /**
    * Paint non-SVG frame with filter and opacity effect.
    */
   static DrawResult
   PaintFilter(const PaintFramesParams& aParams);
-
-  /**
-   * SVG frames expect to paint in SVG user units, which are equal to CSS px
-   * units. This method provides a transform matrix to multiply onto a
-   * gfxContext's current transform to convert the context's current units from
-   * its usual dev pixels to SVG user units/CSS px to keep the SVG code happy.
-   */
-  static gfxMatrix
-  GetCSSPxToDevPxMatrix(nsIFrame* aNonSVGFrame);
 
   /**
    * @param aRenderingContext the target rendering context in which the paint

@@ -7,8 +7,6 @@
 
 const URI_EXTENSION_UPDATE_DIALOG = "chrome://mozapps/content/extensions/update.xul";
 
-const PREF_GETADDONS_BYIDS            = "extensions.getAddons.get.url";
-const PREF_MIN_PLATFORM_COMPAT        = "extensions.minCompatiblePlatformVersion";
 const PREF_METADATA_LASTUPDATE        = "extensions.getAddons.cache.lastUpdate";
 
 Components.utils.import("resource://gre/modules/Promise.jsm");
@@ -19,8 +17,8 @@ var ARContext = Components.utils.import("resource://gre/modules/addons/AddonRepo
 // Mock out the XMLHttpRequest factory for AddonRepository so
 // we can reply with a timeout
 var pXHRStarted = Promise.defer();
-var oldXHRConstructor = ARContext.XHRequest;
-ARContext.XHRequest = function() {
+var oldXHRConstructor = ARContext.ServiceRequest;
+ARContext.ServiceRequest = function() {
   this._handlers = new Map();
   this.mozBackgroundRequest = false;
   this.timeout = undefined;
@@ -69,28 +67,26 @@ function promise_open_compatibility_window(aInactiveAddonIds) {
         info("Page " + aEvent.target.pageid + " shown");
     }
 
-    win.removeEventListener("load", arguments.callee, false);
+    win.removeEventListener("load", arguments.callee);
 
     info("Compatibility dialog opened");
 
-    win.addEventListener("pageshow", page_shown, false);
+    win.addEventListener("pageshow", page_shown);
     win.addEventListener("unload", function() {
-      win.removeEventListener("unload", arguments.callee, false);
-      win.removeEventListener("pageshow", page_shown, false);
+      win.removeEventListener("pageshow", page_shown);
       dump("Compatibility dialog closed\n");
-    }, false);
+    }, {once: true});
 
     deferred.resolve(win);
-  }, false);
+  });
   return deferred.promise;
 }
 
 function promise_window_close(aWindow) {
   let deferred = Promise.defer();
   aWindow.addEventListener("unload", function() {
-    aWindow.removeEventListener("unload", arguments.callee, false);
     deferred.resolve(aWindow);
-  }, false);
+  }, {once: true});
   return deferred.promise;
 }
 
@@ -108,7 +104,7 @@ add_task(function* amo_ping_timeout() {
   xhr._handlers.get("timeout")();
 
   // Put the old XHR constructor back
-  ARContext.XHRequest = oldXHRConstructor;
+  ARContext.ServiceRequest = oldXHRConstructor;
   // The window should close without further interaction
   yield promise_window_close(compatWindow);
 });

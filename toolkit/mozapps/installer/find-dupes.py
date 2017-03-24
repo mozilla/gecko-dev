@@ -5,10 +5,14 @@
 import sys
 import hashlib
 import re
+from mozbuild.preprocessor import Preprocessor
+from mozbuild.util import DefinesAction
 from mozpack.packager.unpack import UnpackFinder
 from mozpack.files import DeflatedFile
 from collections import OrderedDict
+from StringIO import StringIO
 import argparse
+import buildconfig
 
 '''
 Find files duplicated in a given packaged directory, independently of its
@@ -38,11 +42,13 @@ def normalize_l10n_path(p):
     >>> normalize_l10n_path('chrome/fr/locale/fr/browser/aboutHome.dtd')
     'chrome/en-US/locale/en-US/browser/aboutHome.dtd'
     '''
-    p = re.sub(r'chrome/(\S+)/locale/\1',
-               'chrome/en-US/locale/en-US',
+    # Keep a trailing slash here! e.g. locales like 'br' can transform
+    # 'chrome/br/locale/branding/' into 'chrome/en-US/locale/en-USanding/'
+    p = re.sub(r'chrome/(\S+)/locale/\1/',
+               'chrome/en-US/locale/en-US/',
                p)
-    p = re.sub(r'chrome/(\S+)/locale',
-               'chrome/en-US/locale',
+    p = re.sub(r'chrome/(\S+)/locale/',
+               'chrome/en-US/locale/',
                p)
     return p
 
@@ -101,6 +107,8 @@ def main():
                         help='Only warn about duplicates, do not exit with an error')
     parser.add_argument('--file', '-f', action='append', dest='dupes_files', default=[],
                         help='Add exceptions to the duplicate list from this file')
+    parser.add_argument('-D', action=DefinesAction)
+    parser.add_argument('-U', action='append', default=[])
     parser.add_argument('directory',
                         help='The directory to check for duplicates in')
 
@@ -108,8 +116,18 @@ def main():
 
     allowed_dupes = []
     for filename in args.dupes_files:
-        with open(filename) as dupes_file:
-            allowed_dupes.extend([line.partition('#')[0].rstrip() for line in dupes_file])
+        pp = Preprocessor()
+        pp.context.update(buildconfig.defines)
+        if args.D:
+            pp.context.update(args.D)
+        for undefine in args.U:
+            if undefine in pp.context:
+                del pp.context[undefine]
+        pp.out = StringIO()
+        pp.do_filter('substitution')
+        pp.do_include(filename)
+        allowed_dupes.extend([line.partition('#')[0].rstrip()
+                              for line in pp.out.getvalue().splitlines()])
 
     find_dupes(args.directory, bail=not args.warning, allowed_dupes=allowed_dupes)
 

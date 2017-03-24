@@ -13,7 +13,7 @@
 #include "xpcpublic.h"
 
 bool
-nsILoadContext::GetOriginAttributes(mozilla::DocShellOriginAttributes& aAttrs)
+nsILoadContext::GetOriginAttributes(mozilla::OriginAttributes& aAttrs)
 {
   mozilla::dom::AutoJSAPI jsapi;
   bool ok = jsapi.Init(xpc::PrivilegedJunkScope());
@@ -29,7 +29,7 @@ nsILoadContext::GetOriginAttributes(mozilla::DocShellOriginAttributes& aAttrs)
   MOZ_ASSERT(nsContentUtils::IsSystemPrincipal(nsContentUtils::ObjectPrincipal(obj)));
   JSAutoCompartment ac(jsapi.cx(), obj);
 
-  mozilla::DocShellOriginAttributes attrs;
+  mozilla::OriginAttributes attrs;
   ok = attrs.Init(jsapi.cx(), v);
   NS_ENSURE_TRUE(ok, false);
   aAttrs = attrs;
@@ -46,18 +46,19 @@ LoadContext::LoadContext(nsIPrincipal* aPrincipal,
   , mNestedFrameId(0)
   , mIsContent(true)
   , mUseRemoteTabs(false)
+  , mUseTrackingProtection(false)
 #ifdef DEBUG
   , mIsNotNull(true)
 #endif
 {
-  PrincipalOriginAttributes poa = BasePrincipal::Cast(aPrincipal)->OriginAttributesRef();
-  mOriginAttributes.InheritFromDocToChildDocShell(poa);
+  mOriginAttributes = aPrincipal->OriginAttributesRef();
   if (!aOptionalBase) {
     return;
   }
 
   MOZ_ALWAYS_SUCCEEDS(aOptionalBase->GetIsContent(&mIsContent));
   MOZ_ALWAYS_SUCCEEDS(aOptionalBase->GetUseRemoteTabs(&mUseRemoteTabs));
+  MOZ_ALWAYS_SUCCEEDS(aOptionalBase->GetUseTrackingProtection(&mUseTrackingProtection));
 }
 
 //-----------------------------------------------------------------------------
@@ -170,17 +171,6 @@ LoadContext::GetIsInIsolatedMozBrowserElement(bool* aIsInIsolatedMozBrowserEleme
 }
 
 NS_IMETHODIMP
-LoadContext::GetAppId(uint32_t* aAppId)
-{
-  MOZ_ASSERT(mIsNotNull);
-
-  NS_ENSURE_ARG_POINTER(aAppId);
-
-  *aAppId = mOriginAttributes.mAppId;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 LoadContext::GetOriginAttributes(JS::MutableHandleValue aAttrs)
 {
   JSContext* cx = nsContentUtils::GetCurrentJSContext();
@@ -192,20 +182,22 @@ LoadContext::GetOriginAttributes(JS::MutableHandleValue aAttrs)
 }
 
 NS_IMETHODIMP
-LoadContext::IsTrackingProtectionOn(bool* aIsTrackingProtectionOn)
+LoadContext::GetUseTrackingProtection(bool* aUseTrackingProtection)
 {
   MOZ_ASSERT(mIsNotNull);
 
-  if (Preferences::GetBool("privacy.trackingprotection.enabled", false)) {
-    *aIsTrackingProtectionOn = true;
-  } else if ((mOriginAttributes.mPrivateBrowsingId > 0) &&
-             Preferences::GetBool("privacy.trackingprotection.pbmode.enabled", false)) {
-    *aIsTrackingProtectionOn = true;
-  } else {
-    *aIsTrackingProtectionOn = false;
-  }
+  NS_ENSURE_ARG_POINTER(aUseTrackingProtection);
 
+  *aUseTrackingProtection = mUseTrackingProtection;
   return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadContext::SetUseTrackingProtection(bool aUseTrackingProtection)
+{
+  MOZ_ASSERT_UNREACHABLE("Should only be set through nsDocShell");
+
+  return NS_ERROR_UNEXPECTED;
 }
 
 //-----------------------------------------------------------------------------

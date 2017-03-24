@@ -16,8 +16,7 @@ createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
 add_task(function*() {
   startupManager();
 
-  let install = yield new Promise(resolve => AddonManager.getInstallForFile(do_get_addon("test_bootstrap1_1"), resolve));
-  yield promiseCompleteAllInstalls([install]);
+  yield promiseInstallFile(do_get_addon("test_bootstrap1_1"));
 
   let addon = yield promiseAddonByID(ID);
   do_check_neq(addon, null);
@@ -32,10 +31,10 @@ add_task(function*() {
 
   let jData = loadJSON(gExtensionsJSON);
 
-  for (let addon of jData.addons) {
-    if (addon.id == ID) {
+  for (let addonInstance of jData.addons) {
+    if (addonInstance.id == ID) {
       // Set to something that would be an invalid descriptor for this platform
-      addon.descriptor = AppConstants.platform == "win" ? "/foo/bar" : "C:\\foo\\bar";
+      addonInstance.descriptor = AppConstants.platform == "win" ? "/foo/bar" : "C:\\foo\\bar";
     }
   }
 

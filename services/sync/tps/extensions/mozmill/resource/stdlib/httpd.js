@@ -1748,7 +1748,7 @@ RequestReader.prototype =
       {
         var uri = Cc["@mozilla.org/network/io-service;1"]
                     .getService(Ci.nsIIOService)
-                    .newURI(fullPath, null, null);
+                    .newURI(fullPath);
         fullPath = uri.path;
         scheme = uri.scheme;
         host = metadata._host = uri.asciiHost;
@@ -4966,7 +4966,7 @@ nsHttpHeaders.prototype =
 
     // The following three headers are stored as arrays because their real-world
     // syntax prevents joining individual headers into a single header using 
-    // ",".  See also <http://hg.mozilla.org/mozilla-central/diff/9b2a99adc05e/netwerk/protocol/http/src/nsHttpHeaderArray.cpp#l77>
+    // ",".  See also <https://hg.mozilla.org/mozilla-central/diff/9b2a99adc05e/netwerk/protocol/http/src/nsHttpHeaderArray.cpp#l77>
     if (merge && name in this._headers)
     {
       if (name === "www-authenticate" ||

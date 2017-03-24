@@ -31,8 +31,9 @@
 #include "nsGlobalWindow.h"
 #include "mozilla/Likely.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsNullPrincipal.h"
+#include "NullPrincipal.h"
 #include "ScriptSettings.h"
+#include "mozilla/Unused.h"
 #include "mozilla/dom/LocationBinding.h"
 
 namespace mozilla {
@@ -79,7 +80,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Location)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mInnerWindow)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(Location)
@@ -110,7 +110,7 @@ Location::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
 
   nsCOMPtr<nsIPrincipal> triggeringPrincipal;
   nsCOMPtr<nsIURI> sourceURI;
-  net::ReferrerPolicy referrerPolicy = net::RP_Default;
+  net::ReferrerPolicy referrerPolicy = net::RP_Unset;
 
   if (JSContext *cx = nsContentUtils::GetCurrentJSContext()) {
     // No cx means that there's no JS running, or at least no JS that
@@ -164,7 +164,7 @@ Location::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
         sourceURI = docCurrentURI;
       }
       else {
-        // Use principalURI as long as it is not an nsNullPrincipalURI.  We
+        // Use principalURI as long as it is not an NullPrincipalURI.  We
         // could add a method such as GetReferrerURI to principals to make this
         // cleaner, but given that we need to start using Source Browsing
         // Context for referrer (see Bug 960639) this may be wasted effort at
@@ -308,35 +308,9 @@ Location::GetHash(nsAString& aHash)
 
   rv = uri->GetRef(ref);
 
-  if (nsContentUtils::GettersDecodeURLHash()) {
-    if (NS_SUCCEEDED(rv)) {
-      nsCOMPtr<nsITextToSubURI> textToSubURI(
-          do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv));
-
-      if (NS_SUCCEEDED(rv)) {
-        nsAutoCString charset;
-        uri->GetOriginCharset(charset);
-
-        rv = textToSubURI->UnEscapeURIForUI(charset, ref, unicodeRef);
-      }
-
-      if (NS_FAILED(rv)) {
-        // Oh, well.  No intl here!
-        NS_UnescapeURL(ref);
-        CopyASCIItoUTF16(ref, unicodeRef);
-        rv = NS_OK;
-      }
-    }
-
-    if (NS_SUCCEEDED(rv) && !unicodeRef.IsEmpty()) {
-      aHash.Assign(char16_t('#'));
-      aHash.Append(unicodeRef);
-    }
-  } else { // URL Hash should simply return the value of the Ref segment
-    if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
-      aHash.Assign(char16_t('#'));
-      AppendUTF8toUTF16(ref, aHash);
-    }
+  if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
+    aHash.Assign(char16_t('#'));
+    AppendUTF8toUTF16(ref, aHash);
   }
 
   if (aHash == mCachedHash) {
@@ -577,19 +551,17 @@ Location::GetPathname(nsAString& aPathname)
   aPathname.Truncate();
 
   nsCOMPtr<nsIURI> uri;
-  nsresult result = NS_OK;
+  nsresult result = GetURI(getter_AddRefs(uri));
+  if (NS_FAILED(result) || !uri) {
+    return result;
+  }
 
-  result = GetURI(getter_AddRefs(uri));
+  nsAutoCString file;
 
-  nsCOMPtr<nsIURL> url(do_QueryInterface(uri));
-  if (url) {
-    nsAutoCString file;
+  result = uri->GetFilePath(file);
 
-    result = url->GetFilePath(file);
-
-    if (NS_SUCCEEDED(result)) {
-      AppendUTF8toUTF16(file, aPathname);
-    }
+  if (NS_SUCCEEDED(result)) {
+    AppendUTF8toUTF16(file, aPathname);
   }
 
   return result;
@@ -604,12 +576,11 @@ Location::SetPathname(const nsAString& aPathname)
     return rv;
   }
 
-  rv = uri->SetPath(NS_ConvertUTF16toUTF8(aPathname));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+  if (NS_SUCCEEDED(uri->SetFilePath(NS_ConvertUTF16toUTF8(aPathname)))) {
+    return SetURI(uri);
   }
 
-  return SetURI(uri);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -703,9 +674,17 @@ Location::SetProtocol(const nsAString& aProtocol)
     return rv;
   }
 
-  rv = uri->SetScheme(NS_ConvertUTF16toUTF8(aProtocol));
+  nsAString::const_iterator start, end;
+  aProtocol.BeginReading(start);
+  aProtocol.EndReading(end);
+  nsAString::const_iterator iter(start);
+  Unused << FindCharInReadable(':', iter, end);
+
+  rv = uri->SetScheme(NS_ConvertUTF16toUTF8(Substring(start, iter)));
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+    // Oh, I wish nsStandardURL returned NS_ERROR_MALFORMED_URI for _all_ the
+    // malformed cases, not just some of them!
+    return NS_ERROR_DOM_SYNTAX_ERR;
   }
   nsAutoCString newSpec;
   rv = uri->GetSpec(newSpec);
@@ -715,7 +694,27 @@ Location::SetProtocol(const nsAString& aProtocol)
   // We may want a new URI class for the new URI, so recreate it:
   rv = NS_NewURI(getter_AddRefs(uri), newSpec);
   if (NS_FAILED(rv)) {
+    if (rv == NS_ERROR_MALFORMED_URI) {
+      rv = NS_ERROR_DOM_SYNTAX_ERR;
+    }
     return rv;
+  }
+
+  bool isHttp;
+  rv = uri->SchemeIs("http", &isHttp);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  bool isHttps;
+  rv = uri->SchemeIs("https", &isHttps);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (!isHttp && !isHttps) {
+    // No-op, per spec.
+    return NS_OK;
   }
 
   return SetURI(uri);

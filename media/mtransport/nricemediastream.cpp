@@ -91,7 +91,11 @@ static bool ToNrIceAddr(nr_transport_addr &addr,
 
   switch (addr.protocol) {
     case IPPROTO_TCP:
-      out->transport = kNrIceTransportTcp;
+      if (addr.tls_host[0] != '\0') {
+        out->transport = kNrIceTransportTls;
+      } else {
+        out->transport = kNrIceTransportTcp;
+      }
       break;
     case IPPROTO_UDP:
       out->transport = kNrIceTransportUdp;
@@ -224,8 +228,8 @@ nsresult NrIceMediaStream::ParseAttributes(std::vector<std::string>&
 
   std::vector<char *> attributes_in;
 
-  for (size_t i=0; i<attributes.size(); ++i) {
-    attributes_in.push_back(const_cast<char *>(attributes[i].c_str()));
+  for (auto& attribute : attributes) {
+    attributes_in.push_back(const_cast<char *>(attribute.c_str()));
   }
 
   // Still need to call nr_ice_ctx_parse_stream_attributes.

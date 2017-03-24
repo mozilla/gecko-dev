@@ -13,6 +13,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/AsyncEventDispatcher.h" // For AsyncEventDispatcher
 #include "mozilla/Maybe.h" // For Maybe
+#include "mozilla/TypeTraits.h" // For Forward<>
 #include "nsAnimationManager.h" // For CSSAnimation
 #include "nsDOMMutationObserver.h" // For nsAutoAnimationMutationBatch
 #include "nsIDocument.h" // For nsIDocument
@@ -230,6 +231,10 @@ Animation::SetTimelineNoUpdate(AnimationTimeline* aTimeline)
     return;
   }
 
+  StickyTimeDuration activeTime = mEffect
+                                  ? mEffect->GetComputedTiming().mActiveTime
+                                  : StickyTimeDuration();
+
   RefPtr<AnimationTimeline> oldTimeline = mTimeline;
   if (oldTimeline) {
     oldTimeline->RemoveAnimation(this);
@@ -240,6 +245,9 @@ Animation::SetTimelineNoUpdate(AnimationTimeline* aTimeline)
     mHoldTime.SetNull();
   }
 
+  if (!aTimeline) {
+    MaybeQueueCancelEvent(activeTime);
+  }
   UpdateTiming(SeekFlag::NoSeek, SyncNotifyFlag::Async);
 }
 
@@ -408,7 +416,9 @@ Animation::GetReady(ErrorResult& aRv)
   }
   if (!mReady) {
     aRv.Throw(NS_ERROR_FAILURE);
-  } else if (PlayState() != AnimationPlayState::Pending) {
+    return nullptr;
+  }
+  if (PlayState() != AnimationPlayState::Pending) {
     mReady->MaybeResolve(this);
   }
   return mReady;
@@ -423,7 +433,9 @@ Animation::GetFinished(ErrorResult& aRv)
   }
   if (!mFinished) {
     aRv.Throw(NS_ERROR_FAILURE);
-  } else if (mFinishedIsResolved) {
+    return nullptr;
+  }
+  if (mFinishedIsResolved) {
     MaybeResolveFinishedPromise();
   }
   return mFinished;
@@ -722,10 +734,11 @@ TimeStamp
 Animation::ElapsedTimeToTimeStamp(
   const StickyTimeDuration& aElapsedTime) const
 {
-  return AnimationTimeToTimeStamp(aElapsedTime +
-                                  mEffect->SpecifiedTiming().mDelay);
+  TimeDuration delay = mEffect
+                       ? mEffect->SpecifiedTiming().mDelay
+                       : TimeDuration();
+  return AnimationTimeToTimeStamp(aElapsedTime + delay);
 }
-
 
 // https://w3c.github.io/web-animations/#silently-set-the-current-time
 void
@@ -771,14 +784,66 @@ Animation::CancelNoUpdate()
 
   DispatchPlaybackEvent(NS_LITERAL_STRING("cancel"));
 
+  StickyTimeDuration activeTime = mEffect
+                                  ? mEffect->GetComputedTiming().mActiveTime
+                                  : StickyTimeDuration();
+
   mHoldTime.SetNull();
   mStartTime.SetNull();
-
-  UpdateTiming(SeekFlag::NoSeek, SyncNotifyFlag::Async);
 
   if (mTimeline) {
     mTimeline->RemoveAnimation(this);
   }
+  MaybeQueueCancelEvent(activeTime);
+
+  // When an animation is cancelled it no longer needs further ticks from the
+  // timeline. However, if we queued a cancel event and this was the last
+  // animation attached to the timeline, the timeline will stop observing the
+  // refresh driver and there may be no subsequent refresh driver tick for
+  // dispatching the queued event.
+  //
+  // By calling UpdateTiming *after* removing ourselves from our timeline, we
+  // ensure the timeline will register with the refresh driver for at least one
+  // more tick.
+  UpdateTiming(SeekFlag::NoSeek, SyncNotifyFlag::Async);
+}
+
+bool
+Animation::ShouldBeSynchronizedWithMainThread(
+  nsCSSPropertyID aProperty,
+  const nsIFrame* aFrame,
+  AnimationPerformanceWarning::Type& aPerformanceWarning) const
+{
+  // Only synchronize playing animations
+  if (!IsPlaying()) {
+    return false;
+  }
+
+  // Currently only transform animations need to be synchronized
+  if (aProperty != eCSSProperty_transform) {
+    return false;
+  }
+
+  KeyframeEffectReadOnly* keyframeEffect = mEffect
+                                           ? mEffect->AsKeyframeEffect()
+                                           : nullptr;
+  if (!keyframeEffect) {
+    return false;
+  }
+
+  // Are we starting at the same time as other geometric animations?
+  // We check this before calling ShouldBlockAsyncTransformAnimations, partly
+  // because it's cheaper, but also because it's often the most useful thing
+  // to know when you're debugging performance.
+  if (mSyncWithGeometricAnimations &&
+      keyframeEffect->HasAnimationOfProperty(eCSSProperty_transform)) {
+    aPerformanceWarning = AnimationPerformanceWarning::Type::
+                          TransformWithSyncGeometricAnimations;
+    return true;
+  }
+
+  return keyframeEffect->
+           ShouldBlockAsyncTransformAnimations(aFrame, aPerformanceWarning);
 }
 
 void
@@ -819,6 +884,17 @@ Animation::HasLowerCompositeOrderThan(const Animation& aOther) const
       return thisTransition->HasLowerCompositeOrderThan(*otherTransition);
     }
     if (thisTransition || otherTransition) {
+      // Cancelled transitions no longer have an owning element. To be strictly
+      // correct we should store a strong reference to the owning element
+      // so that if we arrive here while sorting cancel events, we can sort
+      // them in the correct order.
+      //
+      // However, given that cancel events are almost always queued
+      // synchronously in some deterministic manner, we can be fairly sure
+      // that cancel events will be dispatched in a deterministic order
+      // (which is our only hard requirement until specs say otherwise).
+      // Furthermore, we only reach here when we have events with equal
+      // timestamps so this is an edge case we can probably ignore for now.
       return thisTransition;
     }
   }
@@ -854,14 +930,24 @@ Animation::HasLowerCompositeOrderThan(const Animation& aOther) const
 }
 
 void
-Animation::ComposeStyle(RefPtr<AnimValuesStyleRule>& aStyleRule,
+Animation::WillComposeStyle()
+{
+  mFinishedAtLastComposeStyle = (PlayState() == AnimationPlayState::Finished);
+
+  MOZ_ASSERT(mEffect);
+
+  KeyframeEffectReadOnly* keyframeEffect = mEffect->AsKeyframeEffect();
+  if (keyframeEffect) {
+    keyframeEffect->WillComposeStyle();
+  }
+}
+
+template<typename ComposeAnimationResult>
+void
+Animation::ComposeStyle(ComposeAnimationResult&& aComposeResult,
                         const nsCSSPropertyIDSet& aPropertiesToSkip)
 {
   if (!mEffect) {
-    return;
-  }
-
-  if (!IsInEffect()) {
     return;
   }
 
@@ -920,13 +1006,13 @@ Animation::ComposeStyle(RefPtr<AnimValuesStyleRule>& aStyleRule,
 
     KeyframeEffectReadOnly* keyframeEffect = mEffect->AsKeyframeEffect();
     if (keyframeEffect) {
-      keyframeEffect->ComposeStyle(aStyleRule, aPropertiesToSkip);
+      keyframeEffect->ComposeStyle(Forward<ComposeAnimationResult>(aComposeResult),
+                                   aPropertiesToSkip);
     }
   }
 
   MOZ_ASSERT(playState == PlayState(),
              "Play state should not change during the course of compositing");
-  mFinishedAtLastComposeStyle = (playState == AnimationPlayState::Finished);
 }
 
 void
@@ -937,6 +1023,16 @@ Animation::NotifyEffectTimingUpdated()
              "effect");
   UpdateTiming(Animation::SeekFlag::NoSeek,
                Animation::SyncNotifyFlag::Async);
+}
+
+void
+Animation::NotifyGeometricAnimationsStartingThisFrame()
+{
+  if (!IsNewlyStarted() || !mEffect) {
+    return;
+  }
+
+  mSyncWithGeometricAnimations = true;
 }
 
 // https://w3c.github.io/web-animations/#play-an-animation
@@ -1003,6 +1099,11 @@ Animation::PlayNoUpdate(ErrorResult& aRv, LimitBehavior aLimitBehavior)
   }
 
   mPendingState = PendingState::PlayPending;
+
+  // Clear flag that causes us to sync transform animations with the main
+  // thread for now. We'll set this when we go to set up compositor
+  // animations if it applies.
+  mSyncWithGeometricAnimations = false;
 
   nsIDocument* doc = GetRenderedDocument();
   if (doc) {
@@ -1204,7 +1305,7 @@ Animation::FlushStyle() const
 {
   nsIDocument* doc = GetRenderedDocument();
   if (doc) {
-    doc->FlushPendingNotifications(Flush_Style);
+    doc->FlushPendingNotifications(FlushType::Style);
   }
 }
 
@@ -1219,22 +1320,7 @@ Animation::PostUpdate()
   if (!keyframeEffect) {
     return;
   }
-
-  Maybe<NonOwningAnimationTarget> target = keyframeEffect->GetTarget();
-  if (!target) {
-    return;
-  }
-
-  nsPresContext* presContext = keyframeEffect->GetPresContext();
-  if (!presContext) {
-    return;
-  }
-
-  presContext->EffectCompositor()
-             ->RequestRestyle(target->mElement,
-                              target->mPseudoType,
-                              EffectCompositor::RestyleType::Layer,
-                              CascadeLevel());
+  keyframeEffect->RequestRestyle(EffectCompositor::RestyleType::Layer);
 }
 
 void
@@ -1421,6 +1507,18 @@ Animation::IsRunningOnCompositor() const
          mEffect->AsKeyframeEffect() &&
          mEffect->AsKeyframeEffect()->IsRunningOnCompositor();
 }
+
+template
+void
+Animation::ComposeStyle<RefPtr<AnimValuesStyleRule>&>(
+  RefPtr<AnimValuesStyleRule>& aAnimationRule,
+  const nsCSSPropertyIDSet& aPropertiesToSkip);
+
+template
+void
+Animation::ComposeStyle<const RawServoAnimationValueMap&>(
+  const RawServoAnimationValueMap& aAnimationValues,
+  const nsCSSPropertyIDSet& aPropertiesToSkip);
 
 } // namespace dom
 } // namespace mozilla

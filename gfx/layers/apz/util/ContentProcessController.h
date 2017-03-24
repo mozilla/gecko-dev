@@ -36,13 +36,7 @@ class ContentProcessController final
       : public GeckoContentController
 {
 public:
-  ~ContentProcessController();
-
-  static APZChild* Create(const dom::TabId& aTabId);
-
-  // ContentProcessController
-
-  void SetBrowser(dom::TabChild* aBrowser);
+  explicit ContentProcessController(const RefPtr<dom::TabChild>& aBrowser);
 
   // GeckoContentController
 
@@ -68,6 +62,8 @@ public:
 
   void NotifyFlushComplete() override;
 
+  void NotifyAsyncScrollbarDragRejected(const FrameMetrics::ViewID& aScrollId) override;
+
   void PostDelayedTask(already_AddRefed<Runnable> aRunnable, int aDelayMs) override;
 
   bool IsRepaintThread() override;
@@ -75,12 +71,7 @@ public:
   void DispatchToRepaintThread(already_AddRefed<Runnable> aTask) override;
 
 private:
-  ContentProcessController();
-
-  void SetObserver(nsIObserver* aObserver);
-
   RefPtr<dom::TabChild> mBrowser;
-  RefPtr<nsIObserver> mObserver;
 };
 
 } // namespace layers

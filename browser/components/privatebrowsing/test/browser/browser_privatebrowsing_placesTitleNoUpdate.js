@@ -11,30 +11,30 @@ Cu.import("resource://gre/modules/PlacesUtils.jsm");
 
 add_task(function* test() {
   const TEST_URL = "http://mochi.test:8888/browser/browser/components/privatebrowsing/test/browser/browser_privatebrowsing_placesTitleNoUpdate.html"
-  const TEST_URI = Services.io.newURI(TEST_URL, null, null);
+  const TEST_URI = Services.io.newURI(TEST_URL);
   const TITLE_1 = "Title 1";
   const TITLE_2 = "Title 2";
 
   function waitForTitleChanged() {
     return new Promise(resolve => {
       let historyObserver = {
-        onTitleChanged: function(uri, pageTitle) {
+        onTitleChanged(uri, pageTitle) {
           PlacesUtils.history.removeObserver(historyObserver, false);
-          resolve({uri: uri, pageTitle: pageTitle});
+          resolve({uri, pageTitle});
         },
-        onBeginUpdateBatch: function () {},
-        onEndUpdateBatch: function () {},
-        onVisit: function () {},
-        onDeleteURI: function () {},
-        onClearHistory: function () {},
-        onPageChanged: function () {},
-        onDeleteVisits: function() {},
+        onBeginUpdateBatch() {},
+        onEndUpdateBatch() {},
+        onVisit() {},
+        onDeleteURI() {},
+        onClearHistory() {},
+        onPageChanged() {},
+        onDeleteVisits() {},
         QueryInterface: XPCOMUtils.generateQI([Ci.nsINavHistoryObserver])
       };
 
       PlacesUtils.history.addObserver(historyObserver, false);
     });
-  };
+  }
 
   yield PlacesTestUtils.clearHistory();
 
@@ -52,14 +52,14 @@ add_task(function* test() {
   };
   PlacesUtils.asyncHistory.updatePlaces(place, {
     handleError: () => ok(false, "Unexpected error in adding visit."),
-    handleResult: function () { },
-    handleCompletion: function () {}
+    handleResult() { },
+    handleCompletion() {}
   });
 
   yield waitForTitleChanged();
   is(PlacesUtils.history.getPageTitle(TEST_URI), TITLE_2, "The title matches the updated title after updating visit");
 
-  let privateWin = yield BrowserTestUtils.openNewBrowserWindow({private:true});
+  let privateWin = yield BrowserTestUtils.openNewBrowserWindow({private: true});
   yield BrowserTestUtils.browserLoaded(privateWin.gBrowser.addTab(TEST_URL).linkedBrowser);
 
   is(PlacesUtils.history.getPageTitle(TEST_URI), TITLE_2, "The title remains the same after visiting in private window");

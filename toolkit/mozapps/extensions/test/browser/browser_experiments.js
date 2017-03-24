@@ -26,22 +26,6 @@ function getExperimentAddons() {
   return deferred.promise;
 }
 
-function getInstallItem() {
-  let doc = gManagerWindow.document;
-  let view = get_current_view(gManagerWindow);
-  let list = doc.getElementById("addon-list");
-
-  let node = list.firstChild;
-  while (node) {
-    if (node.getAttribute("status") == "installing") {
-      return node;
-    }
-    node = node.nextSibling;
-  }
-
-  return null;
-}
-
 function patchPolicy(policy, data) {
   for (let key of Object.keys(data)) {
     Object.defineProperty(policy, key, {
@@ -112,8 +96,7 @@ add_task(function* initializeState() {
     }
   });
 
-  let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry);
-  gIsEnUsLocale = chrome.getSelectedLocale("global") == "en-US";
+  gIsEnUsLocale = Services.locale.getAppLocaleAsLangTag() == "en-US";
 
   // The Experiments Manager will interfere with us by preventing installs
   // of experiments it doesn't know about. We remove it from the equation
@@ -179,7 +162,7 @@ add_task(function* testExperimentLearnMore() {
   let deferred = Promise.defer();
   window.addEventListener("DOMContentLoaded", function onLoad(event) {
     info("Telemetry privacy policy window opened.");
-    window.removeEventListener("DOMContentLoaded", onLoad, false);
+    window.removeEventListener("DOMContentLoaded", onLoad);
 
     let browser = gBrowser.selectedBrowser;
     let expected = Services.prefs.getCharPref("toolkit.telemetry.infoURL");
@@ -189,7 +172,7 @@ add_task(function* testExperimentLearnMore() {
     Services.prefs.clearUserPref("toolkit.telemetry.infoURL");
 
     deferred.resolve();
-  }, false);
+  });
 
   info("Opening telemetry privacy policy.");
   EventUtils.synthesizeMouseAtCenter(btn, {}, gManagerWindow);

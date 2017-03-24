@@ -10,10 +10,6 @@ var GCSuppressionTypes = [];
 var ignoreIndirectCalls = {
     "mallocSizeOf" : true,
     "aMallocSizeOf" : true,
-    "_malloc_message" : true,
-    "je_malloc_message" : true,
-    "chunk_dalloc" : true,
-    "chunk_alloc" : true,
     "__conv" : true,
     "__convf" : true,
     "prerrortable.c:callback_newtable" : true,
@@ -63,7 +59,6 @@ var ignoreClasses = {
     "JSLocaleCallbacks" : true,
     "JSC::ExecutableAllocator" : true,
     "PRIOMethods": true,
-    "XPCOMFunctions" : true, // I'm a little unsure of this one
     "_MD_IOVector" : true,
     "malloc_table_t": true, // replace_malloc
     "malloc_hook_table_t": true, // replace_malloc
@@ -161,6 +156,7 @@ function isSuppressedVirtualMethod(csu, method)
 var ignoreFunctions = {
     "ptio.c:pt_MapError" : true,
     "je_malloc_printf" : true,
+    "malloc_usable_size" : true,
     "vprintf_stderr" : true,
     "PR_ExplodeTime" : true,
     "PR_ErrorInstallTable" : true,
@@ -174,6 +170,12 @@ var ignoreFunctions = {
 
     // Bug 1056410 - devirtualization prevents the standard nsISupports::Release heuristic from working
     "uint32 nsXPConnect::Release()" : true,
+
+    // Allocation API
+    "malloc": true,
+    "calloc": true,
+    "realloc": true,
+    "free": true,
 
     // FIXME!
     "NS_LogInit": true,
@@ -196,8 +198,7 @@ var ignoreFunctions = {
     // The nsScriptNameSpaceManager functions can't actually GC.  They
     // just use a PLDHashTable which has function pointers, which makes the
     // analysis think maybe they can.
-    "nsGlobalNameStruct* nsScriptNameSpaceManager::LookupNavigatorName(nsAString_internal*)": true,
-    "nsGlobalNameStruct* nsScriptNameSpaceManager::LookupName(nsAString_internal*, uint16**)": true,
+    "nsGlobalNameStruct* nsScriptNameSpaceManager::LookupName(nsAString*, uint16**)": true,
 
     // Similar to heap snapshot mock classes, and GTests below. This posts a
     // synchronous runnable when a GTest fails, and we are pretty sure that the
@@ -223,10 +224,18 @@ var ignoreFunctions = {
     "EntryType* nsTHashtable<EntryType>::PutEntry(nsTHashtable<EntryType>::KeyType) [with EntryType = nsBaseHashtableET<nsPtrHashKey<const mozilla::BlockingResourceBase>, nsAutoPtr<mozilla::DeadlockDetector<mozilla::BlockingResourceBase>::OrderingEntry> >; nsTHashtable<EntryType>::KeyType = const mozilla::BlockingResourceBase*]" : true,
     "EntryType* nsTHashtable<EntryType>::GetEntry(nsTHashtable<EntryType>::KeyType) const [with EntryType = nsBaseHashtableET<nsPtrHashKey<const mozilla::BlockingResourceBase>, nsAutoPtr<mozilla::DeadlockDetector<mozilla::BlockingResourceBase>::OrderingEntry> >; nsTHashtable<EntryType>::KeyType = const mozilla::BlockingResourceBase*]" : true,
 
+    // VTune internals that lazy-load a shared library and make IndirectCalls.
+    "iJIT_IsProfilingActive" : true,
+    "iJIT_NotifyEvent": true,
+
     // The big hammers.
     "PR_GetCurrentThread" : true,
     "calloc" : true,
 };
+
+function extraGCFunctions() {
+    return ["ffi_call"];
+}
 
 function isProtobuf(name)
 {

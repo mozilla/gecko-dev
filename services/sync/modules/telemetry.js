@@ -45,13 +45,17 @@ const TOPICS = [
   "weave:engine:sync:uploaded",
   "weave:engine:validate:finish",
   "weave:engine:validate:error",
+
+  "weave:telemetry:event",
 ];
 
 const PING_FORMAT_VERSION = 1;
 
+const EMPTY_UID = "0".repeat(32);
+
 // The set of engines we record telemetry for - any other engines are ignored.
 const ENGINES = new Set(["addons", "bookmarks", "clients", "forms", "history",
-                         "passwords", "prefs", "tabs"]);
+                         "passwords", "prefs", "tabs", "extension-storage"]);
 
 // A regex we can use to replace the profile dir in error messages. We use a
 // regexp so we can simply replace all case-insensitive occurences.
@@ -60,53 +64,6 @@ const ENGINES = new Set(["addons", "bookmarks", "clients", "forms", "history",
 const reProfileDir = new RegExp(
         OS.Constants.Path.profileDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
         "gi");
-
-function transformError(error, engineName) {
-  if (Async.isShutdownException(error)) {
-    return { name: "shutdownerror" };
-  }
-
-  if (typeof error === "string") {
-    if (error.startsWith("error.")) {
-      // This is hacky, but I can't imagine that it's not also accurate.
-      return { name: "othererror", error };
-    }
-    // There's a chance the profiledir is in the error string which is PII we
-    // want to avoid including in the ping.
-    error = error.replace(reProfileDir, "[profileDir]");
-    return { name: "unexpectederror", error };
-  }
-
-  if (error.failureCode) {
-    return { name: "othererror", error: error.failureCode };
-  }
-
-  if (error instanceof AuthenticationError) {
-    return { name: "autherror", from: error.source };
-  }
-
-  if (error instanceof Ci.mozIStorageError) {
-    return { name: "sqlerror", code: error.result };
-  }
-
-  let httpCode = error.status ||
-    (error.response && error.response.status) ||
-    error.code;
-
-  if (httpCode) {
-    return { name: "httperror", code: httpCode };
-  }
-
-  if (error.result) {
-    return { name: "nserror", code: error.result };
-  }
-
-  return {
-    name: "unexpectederror",
-    // as above, remove the profile dir value.
-    error: String(error).replace(reProfileDir, "[profileDir]")
-  }
-}
 
 function tryGetMonotonicTimestamp() {
   try {
@@ -123,6 +80,44 @@ function timeDeltaFrom(monotonicStartTime) {
     return Math.round(now - monotonicStartTime);
   }
   return -1;
+}
+
+// This function validates the payload of a telemetry "event" - this can be
+// removed once there are APIs available for the telemetry modules to collect
+// these events (bug 1329530) - but for now we simulate that planned API as
+// best we can.
+function validateTelemetryEvent(eventDetails) {
+  let { object, method, value, extra } = eventDetails;
+  // Do do basic validation of the params - everything except "extra" must
+  // be a string. method and object are required.
+  if (typeof method != "string" || typeof object != "string" ||
+      (value && typeof value != "string") ||
+      (extra && typeof extra != "object")) {
+    log.warn("Invalid event parameters - wrong types", eventDetails);
+    return false;
+  }
+  // length checks.
+  if (method.length > 20 || object.length > 20 ||
+      (value && value.length > 80)) {
+    log.warn("Invalid event parameters - wrong lengths", eventDetails);
+    return false;
+  }
+
+  // extra can be falsey, or an object with string names and values.
+  if (extra) {
+    if (Object.keys(extra).length > 10) {
+      log.warn("Invalid event parameters - too many extra keys", eventDetails);
+      return false;
+    }
+    for (let [ename, evalue] of Object.entries(extra)) {
+      if (typeof ename != "string" || ename.length > 15 ||
+          typeof evalue != "string" || evalue.length > 85) {
+        log.warn(`Invalid event parameters: extra item "${ename} is invalid`, eventDetails);
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 class EngineRecord {
@@ -145,7 +140,7 @@ class EngineRecord {
       this.took = took;
     }
     if (error) {
-      this.failureReason = transformError(error, this.name);
+      this.failureReason = SyncTelemetry.transformError(error);
     }
   }
 
@@ -199,7 +194,7 @@ class EngineRecord {
     }
 
     this.validation = {
-      failureReason: transformError(e)
+      failureReason: SyncTelemetry.transformError(e)
     };
   }
 
@@ -237,11 +232,9 @@ class TelemetryRecord {
   toJSON() {
     let result = {
       when: this.when,
-      uid: this.uid,
       took: this.took,
       failureReason: this.failureReason,
       status: this.status,
-      deviceID: this.deviceID,
       devices: this.devices,
     };
     let engines = [];
@@ -262,25 +255,22 @@ class TelemetryRecord {
       this.onEngineStop(this.currentEngine.name);
     }
     if (error) {
-      this.failureReason = transformError(error);
+      this.failureReason = SyncTelemetry.transformError(error);
     }
 
     // We don't bother including the "devices" field if we can't come up with a
     // UID or device ID for *this* device -- If that's the case, any data we'd
     // put there would be likely to be full of garbage anyway.
+    // Note that we currently use the "sync device GUID" rather than the "FxA
+    // device ID" as the latter isn't stable enough for our purposes - see bug
+    // 1316535.
     let includeDeviceInfo = false;
     try {
       this.uid = Weave.Service.identity.hashedUID();
-      let deviceID = Weave.Service.identity.deviceID();
-      if (deviceID) {
-        // Combine the raw device id with the metrics uid to create a stable
-        // unique identifier that can't be mapped back to the user's FxA
-        // identity without knowing the metrics HMAC key.
-        this.deviceID = Utils.sha256(deviceID + this.uid);
-        includeDeviceInfo = true;
-      }
+      this.deviceID = Weave.Service.identity.hashedDeviceID(Weave.Service.clientsEngine.localID);
+      includeDeviceInfo = true;
     } catch (e) {
-      this.uid = "0".repeat(32);
+      this.uid = EMPTY_UID;
       this.deviceID = undefined;
     }
 
@@ -290,7 +280,7 @@ class TelemetryRecord {
         return {
           os: device.os,
           version: device.version,
-          id: Utils.sha256(device.id + this.uid)
+          id: Weave.Service.identity.hashedDeviceID(device.id),
         };
       });
     }
@@ -419,9 +409,13 @@ class SyncTelemetryImpl {
 
     this.payloads = [];
     this.discarded = 0;
+    this.events = [];
+    this.maxEventsCount = Svc.Prefs.get("telemetry.maxEventsCount", 1000);
     this.maxPayloadCount = Svc.Prefs.get("telemetry.maxPayloadCount");
     this.submissionInterval = Svc.Prefs.get("telemetry.submissionInterval") * 1000;
     this.lastSubmissionTime = Telemetry.msSinceProcessStart();
+    this.lastUID = EMPTY_UID;
+    this.lastDeviceID = undefined;
   }
 
   getPingJSON(reason) {
@@ -430,6 +424,9 @@ class SyncTelemetryImpl {
       discarded: this.discarded || undefined,
       version: PING_FORMAT_VERSION,
       syncs: this.payloads.slice(),
+      uid: this.lastUID,
+      deviceID: this.lastDeviceID,
+      events: this.events.length == 0 ? undefined : this.events,
     };
   }
 
@@ -439,6 +436,7 @@ class SyncTelemetryImpl {
     let result = this.getPingJSON(reason);
     this.payloads = [];
     this.discarded = 0;
+    this.events = [];
     this.submit(result);
   }
 
@@ -456,12 +454,18 @@ class SyncTelemetryImpl {
   }
 
   submit(record) {
+    if (Services.prefs.prefHasUserValue("identity.sync.tokenserver.uri")) {
+      log.trace(`Not sending telemetry ping for self-hosted Sync user`);
+      return false;
+    }
     // We still call submit() with possibly illegal payloads so that tests can
     // know that the ping was built. We don't end up submitting them, however.
     if (record.syncs.length) {
       log.trace(`submitting ${record.syncs.length} sync record(s) to telemetry`);
       TelemetryController.submitExternalPing("sync", record);
+      return true;
     }
+    return false;
   }
 
 
@@ -482,12 +486,41 @@ class SyncTelemetryImpl {
     return true;
   }
 
+  shouldSubmitForIDChange(newUID, newDeviceID) {
+    if (newUID != EMPTY_UID && this.lastUID != EMPTY_UID) {
+      // Both are "real" uids, so we care if they've changed.
+      return newUID != this.lastUID;
+    }
+    if (newDeviceID && this.lastDeviceID) {
+      // Both are "real" device IDs, so we care if they've changed.
+      return newDeviceID != this.lastDeviceID;
+    }
+    // We've gone from knowing one of the ids to not knowing it (which we
+    // ignore) or we've gone from not knowing it to knowing it (which is fine),
+    // so we shouldn't submit.
+    return false;
+  }
+
   onSyncFinished(error) {
     if (!this.current) {
       log.warn("onSyncFinished but we aren't recording");
       return;
     }
     this.current.finished(error);
+    if (this.payloads.length) {
+      if (this.shouldSubmitForIDChange(this.current.uid, this.current.deviceID)) {
+        log.info("Early submission of sync telemetry due to changed IDs");
+        this.finish("idchange");
+        this.lastSubmissionTime = Telemetry.msSinceProcessStart();
+      }
+    }
+    // Only update the last UIDs or device IDs if we actually know them.
+    if (this.current.uid !== EMPTY_UID) {
+      this.lastUID = this.current.uid;
+    }
+    if (this.current.deviceID) {
+      this.lastDeviceID = this.current.deviceID;
+    }
     if (this.payloads.length < this.maxPayloadCount) {
       this.payloads.push(this.current.toJSON());
     } else {
@@ -498,6 +531,37 @@ class SyncTelemetryImpl {
       this.finish("schedule");
       this.lastSubmissionTime = Telemetry.msSinceProcessStart();
     }
+  }
+
+  _recordEvent(eventDetails) {
+    if (this.events.length >= this.maxEventsCount) {
+      log.warn("discarding event - already queued our maximum", eventDetails);
+      return;
+    }
+
+    if (!validateTelemetryEvent(eventDetails)) {
+      // we've already logged what the problem is...
+      return;
+    }
+    log.debug("recording event", eventDetails);
+
+    let { object, method, value, extra } = eventDetails;
+    let category = "sync";
+    let ts = Math.floor(tryGetMonotonicTimestamp());
+
+    // An event record is a simple array with at least 4 items.
+    let event = [ts, category, method, object];
+    // It may have up to 6 elements if |extra| is defined
+    if (value) {
+      event.push(value);
+      if (extra) {
+        event.push(extra);
+      }
+    } else if (extra) {
+        event.push(null); // a null for the empty value.
+        event.push(extra);
+      }
+    this.events.push(event);
   }
 
   observe(subject, topic, data) {
@@ -568,11 +632,67 @@ class SyncTelemetryImpl {
         }
         break;
 
+      case "weave:telemetry:event":
+        this._recordEvent(subject);
+        break;
+
       default:
         log.warn(`unexpected observer topic ${topic}`);
         break;
     }
   }
+
+  // Transform an exception into a standard description. Exposed here for when
+  // this module isn't directly responsible for knowing the transform should
+  // happen (for example, when including an error in the |extra| field of
+  // event telemetry)
+  transformError(error) {
+    if (Async.isShutdownException(error)) {
+      return { name: "shutdownerror" };
+    }
+
+    if (typeof error === "string") {
+      if (error.startsWith("error.")) {
+        // This is hacky, but I can't imagine that it's not also accurate.
+        return { name: "othererror", error };
+      }
+      // There's a chance the profiledir is in the error string which is PII we
+      // want to avoid including in the ping.
+      error = error.replace(reProfileDir, "[profileDir]");
+      return { name: "unexpectederror", error };
+    }
+
+    if (error.failureCode) {
+      return { name: "othererror", error: error.failureCode };
+    }
+
+    if (error instanceof AuthenticationError) {
+      return { name: "autherror", from: error.source };
+    }
+
+    if (error instanceof Ci.mozIStorageError) {
+      return { name: "sqlerror", code: error.result };
+    }
+
+    let httpCode = error.status ||
+      (error.response && error.response.status) ||
+      error.code;
+
+    if (httpCode) {
+      return { name: "httperror", code: httpCode };
+    }
+
+    if (error.result) {
+      return { name: "nserror", code: error.result };
+    }
+
+    return {
+      name: "unexpectederror",
+      // as above, remove the profile dir value.
+      error: String(error).replace(reProfileDir, "[profileDir]")
+    }
+  }
+
 }
 
 this.SyncTelemetry = new SyncTelemetryImpl(ENGINES);

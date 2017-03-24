@@ -39,6 +39,11 @@ std::string WideToUTF8(const std::wstring& wide, bool* success = 0);
 
 #define UI_CRASH_REPORTER_FILENAME "crashreporter"
 #define UI_MINIDUMP_ANALYZER_FILENAME "minidump-analyzer"
+#ifndef XP_MACOSX
+#define UI_PING_SENDER_FILENAME "pingsender"
+#else
+#define UI_PING_SENDER_FILENAME "../../../pingsender"
+#endif
 
 typedef std::map<std::string, std::string> StringTable;
 
@@ -79,7 +84,7 @@ typedef std::map<std::string, std::string> StringTable;
 #define ST_ERROR_ENDOFLIFE           "ErrorEndOfLife"
 
 //=============================================================================
-// implemented in crashreporter.cpp
+// implemented in crashreporter.cpp and ping.cpp
 //=============================================================================
 
 namespace CrashReporter {
@@ -112,6 +117,10 @@ namespace CrashReporter {
   void DeleteDump();
   bool ShouldEnableSending();
 
+  // Telemetry ping
+  bool SendCrashPing(StringTable& strings, const std::string& hash,
+                     std::string& pingUuid);
+
   static const unsigned int kSaveCount = 10;
 }
 
@@ -143,13 +152,21 @@ bool UIEnsurePathExists(const std::string& path);
 bool UIFileExists(const std::string& path);
 bool UIMoveFile(const std::string& oldfile, const std::string& newfile);
 bool UIDeleteFile(const std::string& oldfile);
-std::ifstream* UIOpenRead(const std::string& filename);
+std::ifstream* UIOpenRead(const std::string& filename, bool binary = false);
 std::ofstream* UIOpenWrite(const std::string& filename,
                            bool append=false,
                            bool binary=false);
 void UIPruneSavedDumps(const std::string& directory);
-void UIRunMinidumpAnalyzer(const std::string& exename,
-                           const std::string& filename);
+
+// Run the program specified by exename, passing it the parameter in arg and
+// then sending it the contents of data (if any) via a pipe tied to its stdin.
+// If wait is true, wait for the program to terminate execution before
+// returning. Returns true if the program was launched correctly, false
+// otherwise.
+bool UIRunProgram(const std::string& exename,
+                  const std::string& arg,
+                  const std::string& data,
+                  bool wait = false);
 
 #ifdef _MSC_VER
 # pragma warning( pop )

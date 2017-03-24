@@ -6,10 +6,10 @@ function run_test() {
   let obj = {
     notify: Utils.notify("foo:"),
     _log: {
-      trace: function() {}
+      trace() {}
     },
 
-    func: function() {
+    func() {
       return this.notify("bar", "baz", function() {
         rightThis = this == obj;
         didCall = true;
@@ -17,7 +17,7 @@ function run_test() {
       })();
     },
 
-    throwy: function() {
+    throwy() {
       return this.notify("bad", "one", function() {
         rightThis = this == obj;
         didCall = true;
@@ -28,17 +28,17 @@ function run_test() {
 
   let state = 0;
   let makeObs = function(topic) {
-    let obj = {
-      observe: function(subject, topic, data) {
+    let obj2 = {
+      observe(subject, obsTopic, data) {
         this.state = ++state;
         this.subject = subject;
-        this.topic = topic;
+        this.topic = obsTopic;
         this.data = data;
       }
     };
 
-    Svc.Obs.add(topic, obj);
-    return obj;
+    Svc.Obs.add(topic, obj2);
+    return obj2;
   };
 
   _("Make sure a normal call will call and return with notifications");
@@ -75,8 +75,7 @@ function run_test() {
   try {
     ret = obj.throwy();
     do_throw("throwy should have thrown!");
-  }
-  catch(ex) {
+  } catch (ex) {
     do_check_eq(ex, 10);
   }
   do_check_eq(ret, null);

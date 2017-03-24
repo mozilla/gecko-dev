@@ -8,10 +8,13 @@
  * stylesheet
  */
 
+#include "mozilla/css/Declaration.h"
+
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/ServoStyleSet.h"
 
-#include "mozilla/css/Declaration.h"
+#include "mozilla/css/Rule.h"
 #include "nsPrintfCString.h"
 #include "gfxFontConstants.h"
 #include "nsStyleUtil.h"
@@ -250,7 +253,8 @@ Declaration::HasProperty(nsCSSPropertyID aProperty) const
 bool
 Declaration::AppendValueToString(nsCSSPropertyID aProperty,
                                  nsAString& aResult,
-                                 nsCSSValue::Serialization aSerialization) const
+                                 nsCSSValue::Serialization aSerialization,
+                                 bool* aIsTokenStream) const
 {
   MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
              "property ID out of range");
@@ -262,6 +266,9 @@ Declaration::AppendValueToString(nsCSSPropertyID aProperty,
     return false;
   }
 
+  if (aIsTokenStream) {
+    *aIsTokenStream = val->GetUnit() == eCSSUnit_TokenStream;
+  }
   val->AppendToString(aProperty, aResult, aSerialization);
   return true;
 }
@@ -395,28 +402,23 @@ Declaration::GetImageLayerValue(
                origin->mValue.GetUnit() == eCSSUnit_Enumerated,
                "should not have inherit/initial within list");
 
-    int32_t originDefaultValue =
+    StyleGeometryBox originDefaultValue =
       (aTable == nsStyleImageLayers::kBackgroundLayerTable)
-      ? NS_STYLE_IMAGELAYER_ORIGIN_PADDING : NS_STYLE_IMAGELAYER_ORIGIN_BORDER;
-    if (clip->mValue.GetIntValue() != NS_STYLE_IMAGELAYER_CLIP_BORDER ||
-        origin->mValue.GetIntValue() != originDefaultValue) {
+      ? StyleGeometryBox::PaddingBox : StyleGeometryBox::BorderBox;
+    if (static_cast<StyleGeometryBox>(clip->mValue.GetIntValue()) !=
+        StyleGeometryBox::BorderBox ||
+        static_cast<StyleGeometryBox>(origin->mValue.GetIntValue()) !=
+        originDefaultValue) {
 #ifdef DEBUG
-      for (size_t i = 0; nsCSSProps::kImageLayerOriginKTable[i].mValue != -1; i++) {
+      const nsCSSProps::KTableEntry* originTable = nsCSSProps::kKeywordTableTable[aTable[nsStyleImageLayers::origin]];
+      const nsCSSProps::KTableEntry* clipTable = nsCSSProps::kKeywordTableTable[aTable[nsStyleImageLayers::clip]];
+      for (size_t i = 0; originTable[i].mValue != -1; i++) {
         // For each keyword & value in kOriginKTable, ensure that
         // kBackgroundKTable has a matching entry at the same position.
-        MOZ_ASSERT(nsCSSProps::kImageLayerOriginKTable[i].mKeyword ==
-                   nsCSSProps::kBackgroundClipKTable[i].mKeyword);
-        MOZ_ASSERT(nsCSSProps::kImageLayerOriginKTable[i].mValue ==
-                   nsCSSProps::kBackgroundClipKTable[i].mValue);
+        MOZ_ASSERT(originTable[i].mKeyword == clipTable[i].mKeyword);
+        MOZ_ASSERT(originTable[i].mValue == clipTable[i].mValue);
       }
 #endif
-      static_assert(NS_STYLE_IMAGELAYER_CLIP_BORDER ==
-                    NS_STYLE_IMAGELAYER_ORIGIN_BORDER &&
-                    NS_STYLE_IMAGELAYER_CLIP_PADDING ==
-                    NS_STYLE_IMAGELAYER_ORIGIN_PADDING &&
-                    NS_STYLE_IMAGELAYER_CLIP_CONTENT ==
-                    NS_STYLE_IMAGELAYER_ORIGIN_CONTENT,
-                    "mask-clip and mask-origin style constants must agree");
       aValue.Append(char16_t(' '));
       origin->mValue.AppendToString(aTable[nsStyleImageLayers::origin], aValue,
                                     aSerialization);
@@ -540,13 +542,16 @@ Declaration::GetImageLayerPositionValue(
 void
 Declaration::GetPropertyValueInternal(
     nsCSSPropertyID aProperty, nsAString& aValue,
-    nsCSSValue::Serialization aSerialization) const
+    nsCSSValue::Serialization aSerialization, bool* aIsTokenStream) const
 {
   aValue.Truncate(0);
+  if (aIsTokenStream) {
+    *aIsTokenStream = false;
+  }
 
   // simple properties are easy.
   if (!nsCSSProps::IsShorthand(aProperty)) {
-    AppendValueToString(aProperty, aValue, aSerialization);
+    AppendValueToString(aProperty, aValue, aSerialization, aIsTokenStream);
     return;
   }
 
@@ -644,6 +649,9 @@ Declaration::GetPropertyValueInternal(
     if (matchingTokenStreamCount == totalCount) {
       // Shorthand was specified using variable references and all of its
       // longhand components were set by the shorthand.
+      if (aIsTokenStream) {
+        *aIsTokenStream = true;
+      }
       aValue.Append(tokenStream->GetTokenStreamValue()->mTokenStream);
     } else {
       // In all other cases, serialize to the empty string.
@@ -741,13 +749,13 @@ Declaration::GetPropertyValueInternal(
           !data->HasDefaultBorderImageWidth() ||
           !data->HasDefaultBorderImageOutset() ||
           !data->HasDefaultBorderImageRepeat() ||
-          data->ValueFor(eCSSProperty_border_top_colors)->GetUnit() !=
+          data->ValueFor(eCSSProperty__moz_border_top_colors)->GetUnit() !=
             eCSSUnit_None ||
-          data->ValueFor(eCSSProperty_border_right_colors)->GetUnit() !=
+          data->ValueFor(eCSSProperty__moz_border_right_colors)->GetUnit() !=
             eCSSUnit_None ||
-          data->ValueFor(eCSSProperty_border_bottom_colors)->GetUnit() !=
+          data->ValueFor(eCSSProperty__moz_border_bottom_colors)->GetUnit() !=
             eCSSUnit_None ||
-          data->ValueFor(eCSSProperty_border_left_colors)->GetUnit() !=
+          data->ValueFor(eCSSProperty__moz_border_left_colors)->GetUnit() !=
             eCSSUnit_None) {
         break;
       }
@@ -855,8 +863,6 @@ Declaration::GetPropertyValueInternal(
         data->ValueFor(eCSSProperty_font_language_override);
       const nsCSSValue *fontKerning =
         data->ValueFor(eCSSProperty_font_kerning);
-      const nsCSSValue *fontSynthesis =
-        data->ValueFor(eCSSProperty_font_synthesis);
       const nsCSSValue *fontVariantAlternates =
         data->ValueFor(eCSSProperty_font_variant_alternates);
       const nsCSSValue *fontVariantCaps =
@@ -883,7 +889,6 @@ Declaration::GetPropertyValueInternal(
             featureSettings->GetUnit() != eCSSUnit_System_Font ||
             languageOverride->GetUnit() != eCSSUnit_System_Font ||
             fontKerning->GetUnit() != eCSSUnit_System_Font ||
-            fontSynthesis->GetUnit() != eCSSUnit_System_Font ||
             fontVariantAlternates->GetUnit() != eCSSUnit_System_Font ||
             fontVariantCaps->GetUnit() != eCSSUnit_System_Font ||
             fontVariantEastAsian->GetUnit() != eCSSUnit_System_Font ||
@@ -902,9 +907,6 @@ Declaration::GetPropertyValueInternal(
             featureSettings->GetUnit() != eCSSUnit_Normal ||
             languageOverride->GetUnit() != eCSSUnit_Normal ||
             fontKerning->GetIntValue() != NS_FONT_KERNING_AUTO ||
-            fontSynthesis->GetUnit() != eCSSUnit_Enumerated ||
-            fontSynthesis->GetIntValue() !=
-              (NS_FONT_SYNTHESIS_WEIGHT | NS_FONT_SYNTHESIS_STYLE) ||
             fontVariantAlternates->GetUnit() != eCSSUnit_Normal ||
             fontVariantEastAsian->GetUnit() != eCSSUnit_Normal ||
             fontVariantLigatures->GetUnit() != eCSSUnit_Normal ||
@@ -1454,6 +1456,39 @@ Declaration::GetPropertyValueInternal(
       }
       break;
     }
+    case eCSSProperty_place_content:
+    case eCSSProperty_place_items:
+    case eCSSProperty_place_self: {
+      const nsCSSPropertyID* subprops =
+        nsCSSProps::SubpropertyEntryFor(aProperty);
+      MOZ_ASSERT(subprops[2] == eCSSProperty_UNKNOWN,
+                 "must have exactly two subproperties");
+      auto IsSingleValue = [] (const nsCSSValue& aValue) {
+        switch (aValue.GetUnit()) {
+          case eCSSUnit_Auto:
+          case eCSSUnit_Inherit:
+          case eCSSUnit_Initial:
+          case eCSSUnit_Unset:
+            return true;
+          case eCSSUnit_Enumerated:
+            // return false if there is a fallback value or <overflow-position>
+            return aValue.GetIntValue() <= NS_STYLE_JUSTIFY_SPACE_EVENLY;
+          default:
+            MOZ_ASSERT_UNREACHABLE("Unexpected unit for CSS Align property val");
+            return false;
+        }
+      };
+      // Each value must be a single value (i.e. no fallback value and no
+      // <overflow-position>), otherwise it can't be represented as a shorthand
+      // value. ('first|last baseline' counts as a single value)
+      const nsCSSValue* align = data->ValueFor(subprops[0]);
+      const nsCSSValue* justify = data->ValueFor(subprops[1]);
+      if (!align || !IsSingleValue(*align) ||
+          !justify || !IsSingleValue(*justify)) {
+        return; // Not serializable, bail.
+      }
+      MOZ_FALLTHROUGH;
+    }
     case eCSSProperty_grid_gap: {
       const nsCSSPropertyID* subprops =
         nsCSSProps::SubpropertyEntryFor(aProperty);
@@ -1576,21 +1611,29 @@ Declaration::GetPropertyIsImportantByID(nsCSSPropertyID aProperty) const
 
 void
 Declaration::AppendPropertyAndValueToString(nsCSSPropertyID aProperty,
+                                            nsAString& aResult,
                                             nsAutoString& aValue,
-                                            nsAString& aResult) const
+                                            bool aValueIsTokenStream) const
 {
   MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
              "property enum out of range");
   MOZ_ASSERT((aProperty < eCSSProperty_COUNT_no_shorthands) == aValue.IsEmpty(),
              "aValue should be given for shorthands but not longhands");
   AppendASCIItoUTF16(nsCSSProps::GetStringValue(aProperty), aResult);
-  aResult.AppendLiteral(": ");
-  if (aValue.IsEmpty())
-    AppendValueToString(aProperty, aResult, nsCSSValue::eNormalized);
-  else
-    aResult.Append(aValue);
+  if (aValue.IsEmpty()) {
+    AppendValueToString(aProperty, aValue,
+                        nsCSSValue::eNormalized, &aValueIsTokenStream);
+  }
+  aResult.Append(':');
+  if (!aValueIsTokenStream) {
+    aResult.Append(' ');
+  }
+  aResult.Append(aValue);
   if (GetPropertyIsImportantByID(aProperty)) {
-    aResult.AppendLiteral(" ! important");
+    if (!aValueIsTokenStream) {
+      aResult.Append(' ');
+    }
+    aResult.AppendLiteral("!important");
   }
   aResult.AppendLiteral("; ");
 }
@@ -1616,14 +1659,14 @@ Declaration::AppendVariableAndValueToString(const nsAString& aName,
     important = false;
   }
 
+  bool isTokenStream = type == CSSVariableDeclarations::eTokenStream;
+  aResult.Append(':');
+  if (!isTokenStream) {
+    aResult.Append(' ');
+  }
   switch (type) {
     case CSSVariableDeclarations::eTokenStream:
-      if (value.IsEmpty()) {
-        aResult.Append(':');
-      } else {
-        aResult.AppendLiteral(": ");
-        aResult.Append(value);
-      }
+      aResult.Append(value);
       break;
 
     case CSSVariableDeclarations::eInitial:
@@ -1643,7 +1686,10 @@ Declaration::AppendVariableAndValueToString(const nsAString& aName,
   }
 
   if (important) {
-    aResult.AppendLiteral("! important");
+    if (!isTokenStream) {
+      aResult.Append(' ');
+    }
+    aResult.AppendLiteral("!important");
   }
   aResult.AppendLiteral("; ");
 }
@@ -1651,9 +1697,9 @@ Declaration::AppendVariableAndValueToString(const nsAString& aName,
 void
 Declaration::ToString(nsAString& aString) const
 {
-  // Someone cares about this declaration's contents, so don't let it
-  // change from under them.  See e.g. bug 338679.
-  SetImmutable();
+  // Tell the static analysis not to worry about thread-unsafe things here
+  // because because this function isn't reached during parallel style traversal.
+  MOZ_ASSERT(!ServoStyleSet::IsInServoTraversal());
 
   nsCSSCompressedDataBlock *systemFontData =
     GetPropertyIsImportantByID(eCSSProperty__x_system_font) ? mImportantData
@@ -1706,7 +1752,9 @@ Declaration::ToString(nsAString& aString) const
       // least, which is exactly the order we want to test them.
       nsCSSPropertyID shorthand = *shorthands;
 
-      GetPropertyValueByID(shorthand, value);
+      bool isTokenStream;
+      GetPropertyValueInternal(shorthand, value,
+                               nsCSSValue::eNormalized, &isTokenStream);
 
       // in the system font case, skip over font-variant shorthand, since all
       // subproperties are already dealt with via the font shorthand
@@ -1715,10 +1763,11 @@ Declaration::ToString(nsAString& aString) const
         continue;
       }
 
-      // If GetPropertyValueByID gives us a non-empty string back, we can
+      // If GetPropertyValueInternal gives us a non-empty string back, we can
       // use that value; otherwise it's not possible to use this shorthand.
       if (!value.IsEmpty()) {
-        AppendPropertyAndValueToString(shorthand, value, aString);
+        AppendPropertyAndValueToString(shorthand, aString,
+                                       value, isTokenStream);
         shorthandsUsed.AppendElement(shorthand);
         doneProperty = true;
         break;
@@ -1731,7 +1780,9 @@ Declaration::ToString(nsAString& aString) const
           // |shorthandsUsed|, since we will have to override it.
           systemFont->AppendToString(eCSSProperty__x_system_font, value,
                                      nsCSSValue::eNormalized);
-          AppendPropertyAndValueToString(eCSSProperty_font, value, aString);
+          isTokenStream = systemFont->GetUnit() == eCSSUnit_TokenStream;
+          AppendPropertyAndValueToString(eCSSProperty_font, aString,
+                                         value, isTokenStream);
           value.Truncate();
           didSystemFont = true;
         }
@@ -1754,7 +1805,7 @@ Declaration::ToString(nsAString& aString) const
       continue;
 
     MOZ_ASSERT(value.IsEmpty(), "value should be empty now");
-    AppendPropertyAndValueToString(property, value, aString);
+    AppendPropertyAndValueToString(property, aString, value, false);
   }
   if (! aString.IsEmpty()) {
     // if the string is not empty, we have trailing whitespace we

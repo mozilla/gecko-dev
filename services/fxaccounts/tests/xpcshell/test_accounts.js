@@ -4,7 +4,6 @@
 "use strict";
 
 Cu.import("resource://services-common/utils.js");
-Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/FxAccountsClient.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
@@ -22,14 +21,15 @@ const TWO_MINUTES_MS = 1000 * 60 * 2;
 initTestLogging("Trace");
 
 // XXX until bug 937114 is fixed
-Cu.importGlobalProperties(['atob']);
+Cu.importGlobalProperties(["atob"]);
 
 var log = Log.repository.getLogger("Services.FxAccounts.test");
 log.level = Log.Level.Debug;
 
-// See verbose logging from FxAccounts.jsm
+// See verbose logging from FxAccounts.jsm and jwcrypto.jsm.
 Services.prefs.setCharPref("identity.fxaccounts.loglevel", "Trace");
 Log.repository.getLogger("FirefoxAccounts").level = Log.Level.Trace;
+Services.prefs.setCharPref("services.crypto.jwcrypto.log.level", "Debug");
 
 // The oauth server is mocked, but set these prefs to pass param checks
 Services.prefs.setCharPref("identity.fxaccounts.remote.oauth.uri", "https://example.com/v1");
@@ -70,6 +70,9 @@ MockStorageManager.prototype = {
   },
 
   updateAccountData(updatedFields) {
+    if (!this.accountData) {
+      return Promise.resolve();
+    }
     for (let [name, value] of Object.entries(updatedFields)) {
       if (value == null) {
         delete this.accountData[name];
@@ -93,7 +96,7 @@ function MockFxAccountsClient() {
 
   // mock calls up to the auth server to determine whether the
   // user account has been verified
-  this.recoveryEmailStatus = function (sessionToken) {
+  this.recoveryEmailStatus = function(sessionToken) {
     // simulate a call to /recovery_email/status
     return Promise.resolve({
       email: this._email,
@@ -107,7 +110,7 @@ function MockFxAccountsClient() {
     return deferred.promise;
   };
 
-  this.accountKeys = function (keyFetchToken) {
+  this.accountKeys = function(keyFetchToken) {
     let deferred = Promise.defer();
 
     do_timeout(50, () => {
@@ -149,7 +152,7 @@ function MockFxAccounts() {
     _getCertificateSigned_calls: [],
     _d_signCertificate: Promise.defer(),
     _now_is: new Date(),
-    now: function () {
+    now() {
       return this._now_is;
     },
     newAccountState(credentials) {
@@ -158,7 +161,7 @@ function MockFxAccounts() {
       storage.initialize(credentials);
       return new AccountState(storage);
     },
-    getCertificateSigned: function (sessionToken, serializedPublicKey) {
+    getCertificateSigned(sessionToken, serializedPublicKey) {
       _("mock getCertificateSigned\n");
       this._getCertificateSigned_calls.push([sessionToken, serializedPublicKey]);
       return this._d_signCertificate.promise;
@@ -210,7 +213,7 @@ add_task(function* test_non_https_remote_server_uri() {
   Services.prefs.setCharPref(
     "identity.fxaccounts.remote.signup.uri",
     "http://example.com/browser/browser/base/content/test/general/accounts_testRemoteCommands.html");
-  rejects(fxAccounts.promiseAccountsSignUpURI(), null, "Firefox Accounts server must use HTTPS");
+  Assert.rejects(fxAccounts.promiseAccountsSignUpURI(), null, "Firefox Accounts server must use HTTPS");
   Services.prefs.clearUserPref("identity.fxaccounts.remote.signup.uri");
 });
 
@@ -254,6 +257,30 @@ add_task(function* test_get_signed_in_user_initially_unset() {
   // user should be undefined after sign out
   result = yield account.getSignedInUser();
   do_check_eq(result, null);
+});
+
+add_task(function* test_set_signed_in_user_deletes_previous_device() {
+  _("Check setSignedInUser tries to delete a previous registered device");
+  let account = MakeFxAccounts();
+  let deleteDeviceRegistrationCalled = false;
+  let credentials = {
+    email: "foo@example.com",
+    uid: "1234@lcip.org",
+    assertion: "foobar",
+    sessionToken: "dead",
+    kA: "beef",
+    kB: "cafe",
+    verified: true
+  };
+  yield account.setSignedInUser(credentials);
+
+  account.internal.deleteDeviceRegistration = () => {
+    deleteDeviceRegistrationCalled = true;
+    return Promise.resolve(true);
+  }
+
+  yield account.setSignedInUser(credentials);
+  do_check_true(deleteDeviceRegistrationCalled);
 });
 
 add_task(function* test_update_account_data() {
@@ -334,7 +361,7 @@ add_task(function* test_getCertificateOffline() {
       do_check_eq(err, "Error: OFFLINE");
     }
   );
-  yield fxa.signOut(/*localOnly = */true);
+  yield fxa.signOut(/* localOnly = */true);
 });
 
 add_task(function* test_getCertificateCached() {
@@ -361,7 +388,7 @@ add_task(function* test_getCertificateCached() {
   // should have the same keypair and cert.
   do_check_eq(keyPair, credentials.keyPair.rawKeyPair);
   do_check_eq(certificate, credentials.cert.rawCert);
-  yield fxa.signOut(/*localOnly = */true);
+  yield fxa.signOut(/* localOnly = */true);
 });
 
 add_task(function* test_getCertificateExpiredCert() {
@@ -392,7 +419,7 @@ add_task(function* test_getCertificateExpiredCert() {
   // should have the same keypair but a new cert.
   do_check_eq(keyPair, credentials.keyPair.rawKeyPair);
   do_check_neq(certificate, credentials.cert.rawCert);
-  yield fxa.signOut(/*localOnly = */true);
+  yield fxa.signOut(/* localOnly = */true);
 });
 
 add_task(function* test_getCertificateExpiredKeypair() {
@@ -425,7 +452,7 @@ add_task(function* test_getCertificateExpiredKeypair() {
   // should have fetched both.
   do_check_neq(keyPair, credentials.keyPair.rawKeyPair);
   do_check_neq(certificate, credentials.cert.rawCert);
-  yield fxa.signOut(/*localOnly = */true);
+  yield fxa.signOut(/* localOnly = */true);
 });
 
 // Sanity-check that our mocked client is working correctly
@@ -523,23 +550,23 @@ add_test(function test_getKeys() {
   user.verified = true;
 
   fxa.setSignedInUser(user).then(() => {
-    fxa.getSignedInUser().then((user) => {
+    fxa.getSignedInUser().then((user2) => {
       // Before getKeys, we have no keys
-      do_check_eq(!!user.kA, false);
-      do_check_eq(!!user.kB, false);
+      do_check_eq(!!user2.kA, false);
+      do_check_eq(!!user2.kB, false);
       // And we still have a key-fetch token and unwrapBKey to use
-      do_check_eq(!!user.keyFetchToken, true);
-      do_check_eq(!!user.unwrapBKey, true);
+      do_check_eq(!!user2.keyFetchToken, true);
+      do_check_eq(!!user2.unwrapBKey, true);
 
       fxa.internal.getKeys().then(() => {
-        fxa.getSignedInUser().then((user) => {
+        fxa.getSignedInUser().then((user3) => {
           // Now we should have keys
-          do_check_eq(fxa.internal.isUserEmailVerified(user), true);
-          do_check_eq(!!user.verified, true);
-          do_check_eq(user.kA, expandHex("11"));
-          do_check_eq(user.kB, expandHex("66"));
-          do_check_eq(user.keyFetchToken, undefined);
-          do_check_eq(user.unwrapBKey, undefined);
+          do_check_eq(fxa.internal.isUserEmailVerified(user3), true);
+          do_check_eq(!!user3.verified, true);
+          do_check_eq(user3.kA, expandHex("11"));
+          do_check_eq(user3.kB, expandHex("66"));
+          do_check_eq(user3.keyFetchToken, undefined);
+          do_check_eq(user3.unwrapBKey, undefined);
           run_next_test();
         });
       });
@@ -620,13 +647,13 @@ add_test(function test_fetchAndUnwrapKeys_no_token() {
 
   makeObserver(ONLOGOUT_NOTIFICATION, function() {
     log.debug("test_fetchAndUnwrapKeys_no_token observed logout");
-    fxa.internal.getUserAccountData().then(user => {
+    fxa.internal.getUserAccountData().then(user2 => {
       run_next_test();
     });
   });
 
   fxa.setSignedInUser(user).then(
-    user => {
+    user2 => {
       return fxa.internal.fetchAndUnwrapKeys();
     }
   ).then(
@@ -834,7 +861,7 @@ add_task(function* test_resend_email_not_signed_in() {
 
   try {
     yield fxa.resendVerificationEmail();
-  } catch(err) {
+  } catch (err) {
     do_check_eq(err.message,
       "Cannot resend verification email; no signed-in user");
     return;
@@ -861,8 +888,8 @@ add_test(function test_accountStatus() {
                do_check_true(result);
                fxa.internal.fxAccountsClient._deletedOnServer = true;
                fxa.accountStatus().then(
-                 (result) => {
-                   do_check_false(result);
+                 (result2) => {
+                   do_check_false(result2);
                    fxa.internal.fxAccountsClient._deletedOnServer = false;
                    fxa.signOut().then(run_next_test);
                  }
@@ -961,16 +988,16 @@ add_task(function* test_sign_out_with_device() {
 
   const spy = {
     signOut: { count: 0 },
-    signOutAndDeviceDestroy: { count: 0, args: [] }
+    deleteDeviceRegistration: { count: 0, args: [] }
   };
   const client = fxa.internal.fxAccountsClient;
-  client.signOut = function () {
+  client.signOut = function() {
     spy.signOut.count += 1;
     return Promise.resolve();
   };
-  client.signOutAndDestroyDevice = function () {
-    spy.signOutAndDeviceDestroy.count += 1;
-    spy.signOutAndDeviceDestroy.args.push(arguments);
+  fxa.internal.deleteDeviceRegistration = function() {
+    spy.deleteDeviceRegistration.count += 1;
+    spy.deleteDeviceRegistration.args.push(arguments);
     return Promise.resolve();
   };
 
@@ -981,12 +1008,10 @@ add_task(function* test_sign_out_with_device() {
       fxa.internal.getUserAccountData().then(user2 => {
         do_check_eq(user2, null);
         do_check_eq(spy.signOut.count, 0);
-        do_check_eq(spy.signOutAndDeviceDestroy.count, 1);
-        do_check_eq(spy.signOutAndDeviceDestroy.args[0].length, 3);
-        do_check_eq(spy.signOutAndDeviceDestroy.args[0][0], credentials.sessionToken);
-        do_check_eq(spy.signOutAndDeviceDestroy.args[0][1], credentials.deviceId);
-        do_check_true(spy.signOutAndDeviceDestroy.args[0][2]);
-        do_check_eq(spy.signOutAndDeviceDestroy.args[0][2].service, "sync");
+        do_check_eq(spy.deleteDeviceRegistration.count, 1);
+        do_check_eq(spy.deleteDeviceRegistration.args[0].length, 2);
+        do_check_eq(spy.deleteDeviceRegistration.args[0][0], credentials.sessionToken);
+        do_check_eq(spy.deleteDeviceRegistration.args[0][1], credentials.deviceId);
         resolve();
       });
     });
@@ -1004,20 +1029,20 @@ add_task(function* test_sign_out_without_device() {
   delete credentials.deviceId;
   yield fxa.internal.setSignedInUser(credentials);
 
-  const user = yield fxa.internal.getUserAccountData();
+  yield fxa.internal.getUserAccountData();
 
   const spy = {
     signOut: { count: 0, args: [] },
-    signOutAndDeviceDestroy: { count: 0 }
+    deleteDeviceRegistration: { count: 0 }
   };
   const client = fxa.internal.fxAccountsClient;
-  client.signOut = function () {
+  client.signOut = function() {
     spy.signOut.count += 1;
     spy.signOut.args.push(arguments);
     return Promise.resolve();
   };
-  client.signOutAndDestroyDevice = function () {
-    spy.signOutAndDeviceDestroy.count += 1;
+  fxa.internal.deleteDeviceRegistration = function() {
+    spy.deleteDeviceRegistration.count += 1;
     return Promise.resolve();
   };
 
@@ -1032,7 +1057,7 @@ add_task(function* test_sign_out_without_device() {
         do_check_eq(spy.signOut.args[0][0], credentials.sessionToken);
         do_check_true(spy.signOut.args[0][1]);
         do_check_eq(spy.signOut.args[0][1].service, "sync");
-        do_check_eq(spy.signOutAndDeviceDestroy.count, 0);
+        do_check_eq(spy.deleteDeviceRegistration.count, 0);
         resolve();
       });
     });
@@ -1045,10 +1070,9 @@ add_task(function* test_sign_out_without_device() {
 
 add_task(function* test_sign_out_with_remote_error() {
   let fxa = new MockFxAccounts();
-  let client = fxa.internal.fxAccountsClient;
   let remoteSignOutCalled = false;
   // Force remote sign out to trigger an error
-  client.signOutAndDestroyDevice = function() { remoteSignOutCalled = true; throw "Remote sign out error"; };
+  fxa.internal.deleteDeviceRegistration = function() { remoteSignOutCalled = true; throw "Remote sign out error"; };
   let promiseLogout = new Promise(resolve => {
     makeObserver(ONLOGOUT_NOTIFICATION, function() {
       log.debug("test_sign_out_with_remote_error observed onlogout");
@@ -1079,14 +1103,14 @@ add_test(function test_getOAuthToken() {
     serverURL: "http://example.com/v1",
     client_id: "abc123"
   });
-  client.getTokenFromAssertion = function () {
+  client.getTokenFromAssertion = function() {
     getTokenFromAssertionCalled = true;
     return Promise.resolve({ access_token: "token" });
   };
 
   fxa.setSignedInUser(alice).then(
     () => {
-      fxa.getOAuthToken({ scope: "profile", client: client }).then(
+      fxa.getOAuthToken({ scope: "profile", client }).then(
         (result) => {
            do_check_true(getTokenFromAssertionCalled);
            do_check_eq(result, "token");
@@ -1111,7 +1135,7 @@ add_test(function test_getOAuthTokenScoped() {
     serverURL: "http://example.com/v1",
     client_id: "abc123"
   });
-  client.getTokenFromAssertion = function (assertion, scopeString) {
+  client.getTokenFromAssertion = function(assertion, scopeString) {
     equal(scopeString, "foo bar");
     getTokenFromAssertionCalled = true;
     return Promise.resolve({ access_token: "token" });
@@ -1119,7 +1143,7 @@ add_test(function test_getOAuthTokenScoped() {
 
   fxa.setSignedInUser(alice).then(
     () => {
-      fxa.getOAuthToken({ scope: ["foo", "bar"], client: client }).then(
+      fxa.getOAuthToken({ scope: ["foo", "bar"], client }).then(
         (result) => {
            do_check_true(getTokenFromAssertionCalled);
            do_check_eq(result, "token");
@@ -1144,22 +1168,22 @@ add_task(function* test_getOAuthTokenCached() {
     serverURL: "http://example.com/v1",
     client_id: "abc123"
   });
-  client.getTokenFromAssertion = function () {
+  client.getTokenFromAssertion = function() {
     numTokenFromAssertionCalls += 1;
     return Promise.resolve({ access_token: "token" });
   };
 
   yield fxa.setSignedInUser(alice);
-  let result = yield fxa.getOAuthToken({ scope: "profile", client: client, service: "test-service" });
+  let result = yield fxa.getOAuthToken({ scope: "profile", client, service: "test-service" });
   do_check_eq(numTokenFromAssertionCalls, 1);
   do_check_eq(result, "token");
 
   // requesting it again should not re-fetch the token.
-  result = yield fxa.getOAuthToken({ scope: "profile", client: client, service: "test-service" });
+  result = yield fxa.getOAuthToken({ scope: "profile", client, service: "test-service" });
   do_check_eq(numTokenFromAssertionCalls, 1);
   do_check_eq(result, "token");
   // But requesting the same service and a different scope *will* get a new one.
-  result = yield fxa.getOAuthToken({ scope: "something-else", client: client, service: "test-service" });
+  result = yield fxa.getOAuthToken({ scope: "something-else", client, service: "test-service" });
   do_check_eq(numTokenFromAssertionCalls, 2);
   do_check_eq(result, "token");
 });
@@ -1177,26 +1201,26 @@ add_task(function* test_getOAuthTokenCachedScopeNormalization() {
     serverURL: "http://example.com/v1",
     client_id: "abc123"
   });
-  client.getTokenFromAssertion = function () {
+  client.getTokenFromAssertion = function() {
     numTokenFromAssertionCalls += 1;
     return Promise.resolve({ access_token: "token" });
   };
 
   yield fxa.setSignedInUser(alice);
-  let result = yield fxa.getOAuthToken({ scope: ["foo", "bar"], client: client, service: "test-service" });
+  let result = yield fxa.getOAuthToken({ scope: ["foo", "bar"], client, service: "test-service" });
   do_check_eq(numTokenFromAssertionCalls, 1);
   do_check_eq(result, "token");
 
   // requesting it again with the scope array in a different order not re-fetch the token.
-  result = yield fxa.getOAuthToken({ scope: ["bar", "foo"], client: client, service: "test-service" });
+  result = yield fxa.getOAuthToken({ scope: ["bar", "foo"], client, service: "test-service" });
   do_check_eq(numTokenFromAssertionCalls, 1);
   do_check_eq(result, "token");
   // requesting it again with the scope array in different case not re-fetch the token.
-  result = yield fxa.getOAuthToken({ scope: ["Bar", "Foo"], client: client, service: "test-service" });
+  result = yield fxa.getOAuthToken({ scope: ["Bar", "Foo"], client, service: "test-service" });
   do_check_eq(numTokenFromAssertionCalls, 1);
   do_check_eq(result, "token");
   // But requesting with a new entry in the array does fetch one.
-  result = yield fxa.getOAuthToken({ scope: ["foo", "bar", "etc"], client: client, service: "test-service" });
+  result = yield fxa.getOAuthToken({ scope: ["foo", "bar", "etc"], client, service: "test-service" });
   do_check_eq(numTokenFromAssertionCalls, 2);
   do_check_eq(result, "token");
 });
@@ -1239,7 +1263,7 @@ add_test(function test_getOAuthToken_misconfigure_oauth_uri() {
 add_test(function test_getOAuthToken_no_account() {
   let fxa = new MockFxAccounts();
 
-  fxa.internal.currentAccountState.getUserAccountData = function () {
+  fxa.internal.currentAccountState.getUserAccountData = function() {
     return Promise.resolve(null);
   };
 
@@ -1275,7 +1299,7 @@ add_test(function test_getOAuthToken_network_error() {
     serverURL: "http://example.com/v1",
     client_id: "abc123"
   });
-  client.getTokenFromAssertion = function () {
+  client.getTokenFromAssertion = function() {
     return Promise.reject(new FxAccountsOAuthGrantClientError({
       error: ERROR_NETWORK,
       errno: ERRNO_NETWORK
@@ -1283,7 +1307,7 @@ add_test(function test_getOAuthToken_network_error() {
   };
 
   fxa.setSignedInUser(alice).then(() => {
-    fxa.getOAuthToken({ scope: "profile", client: client })
+    fxa.getOAuthToken({ scope: "profile", client })
       .then(null, err => {
          do_check_eq(err.message, "NETWORK_ERROR");
          do_check_eq(err.details.errno, ERRNO_NETWORK);
@@ -1304,7 +1328,7 @@ add_test(function test_getOAuthToken_auth_error() {
     serverURL: "http://example.com/v1",
     client_id: "abc123"
   });
-  client.getTokenFromAssertion = function () {
+  client.getTokenFromAssertion = function() {
     return Promise.reject(new FxAccountsOAuthGrantClientError({
       error: ERROR_INVALID_FXA_ASSERTION,
       errno: ERRNO_INVALID_FXA_ASSERTION
@@ -1312,7 +1336,7 @@ add_test(function test_getOAuthToken_auth_error() {
   };
 
   fxa.setSignedInUser(alice).then(() => {
-    fxa.getOAuthToken({ scope: "profile", client: client })
+    fxa.getOAuthToken({ scope: "profile", client })
       .then(null, err => {
          do_check_eq(err.message, "AUTH_ERROR");
          do_check_eq(err.details.errno, ERRNO_INVALID_FXA_ASSERTION);
@@ -1333,12 +1357,12 @@ add_test(function test_getOAuthToken_unknown_error() {
     serverURL: "http://example.com/v1",
     client_id: "abc123"
   });
-  client.getTokenFromAssertion = function () {
+  client.getTokenFromAssertion = function() {
     return Promise.reject("boom");
   };
 
   fxa.setSignedInUser(alice).then(() => {
-    fxa.getOAuthToken({ scope: "profile", client: client })
+    fxa.getOAuthToken({ scope: "profile", client })
       .then(null, err => {
          do_check_eq(err.message, "UNKNOWN_ERROR");
          run_next_test();
@@ -1351,10 +1375,10 @@ add_test(function test_getSignedInUserProfile() {
   alice.verified = true;
 
   let mockProfile = {
-    getProfile: function () {
+    getProfile() {
       return Promise.resolve({ avatar: "image" });
     },
-    tearDown: function() {},
+    tearDown() {},
   };
   let fxa = new FxAccounts({
     _signOutServer() { return Promise.resolve(); },
@@ -1377,17 +1401,17 @@ add_test(function test_getSignedInUserProfile_error_uses_account_data() {
   let alice = getTestUser("alice");
   alice.verified = true;
 
-  fxa.internal.getSignedInUser = function () {
+  fxa.internal.getSignedInUser = function() {
     return Promise.resolve({ email: "foo@bar.com" });
   };
 
   let teardownCalled = false;
   fxa.setSignedInUser(alice).then(() => {
     fxa.internal._profile = {
-      getProfile: function () {
+      getProfile() {
         return Promise.reject("boom");
       },
-      tearDown: function() {
+      tearDown() {
         teardownCalled = true;
       }
     };
@@ -1420,7 +1444,7 @@ add_test(function test_getSignedInUserProfile_unverified_account() {
 add_test(function test_getSignedInUserProfile_no_account_data() {
   let fxa = new MockFxAccounts();
 
-  fxa.internal.getSignedInUser = function () {
+  fxa.internal.getSignedInUser = function() {
     return Promise.resolve(null);
   };
 
@@ -1469,11 +1493,11 @@ function expandHex(two_hex) {
   let eight_hex = two_hex + two_hex + two_hex + two_hex;
   let thirtytwo_hex = eight_hex + eight_hex + eight_hex + eight_hex;
   return thirtytwo_hex + thirtytwo_hex;
-};
+}
 
 function expandBytes(two_hex) {
   return CommonUtils.hexToBytes(expandHex(two_hex));
-};
+}
 
 function getTestUser(name) {
   return {
@@ -1493,7 +1517,7 @@ function makeObserver(aObserveTopic, aObserveFunc) {
     // nsIObserver is to be an observer
     QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports, Ci.nsIObserver]),
 
-    observe: function (aSubject, aTopic, aData) {
+    observe(aSubject, aTopic, aData) {
       log.debug("observed " + aTopic + " " + aData);
       if (aTopic == aObserveTopic) {
         removeMe();
@@ -1511,8 +1535,7 @@ function makeObserver(aObserveTopic, aObserveFunc) {
   return removeMe;
 }
 
-function do_check_throws(func, result, stack)
-{
+function do_check_throws(func, result, stack) {
   if (!stack)
     stack = Components.stack.caller;
 

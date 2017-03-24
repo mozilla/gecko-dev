@@ -10,19 +10,22 @@ Cu.import("chrome://marionette/content/action.js");
 Cu.import("chrome://marionette/content/element.js");
 Cu.import("chrome://marionette/content/error.js");
 
+action.inputStateMap = new Map();
+
 add_test(function test_createAction() {
   Assert.throws(() => new action.Action(), InvalidArgumentError,
       "Missing Action constructor args");
-  Assert.throws(() => new action.Action(1,2), InvalidArgumentError,
+  Assert.throws(() => new action.Action(1, 2), InvalidArgumentError,
       "Missing Action constructor args");
   Assert.throws(
       () => new action.Action(1, 2, "sometype"), /Expected string/, "Non-string arguments.");
   ok(new action.Action("id", "sometype", "sometype"));
+
   run_next_test();
 });
 
 add_test(function test_defaultPointerParameters() {
-  let defaultParameters = {pointerType: action.PointerType.Mouse, primary: true};
+  let defaultParameters = {pointerType: action.PointerType.Mouse};
   deepEqual(action.PointerParameters.fromJson(), defaultParameters);
 
   run_next_test();
@@ -31,17 +34,15 @@ add_test(function test_defaultPointerParameters() {
 add_test(function test_processPointerParameters() {
   let check = (regex, message, arg) => checkErrors(
       regex, action.PointerParameters.fromJson, [arg], message);
-  let parametersData = {pointerType: "foo"};
-  let message = `parametersData: [pointerType: ${parametersData.pointerType}, ` +
-      `primary: ${parametersData.primary}]`;
-  check(/Unknown pointerType/, message, parametersData);
-  parametersData.pointerType = "pen";
-  parametersData.primary = "a";
-  check(/Expected boolean \(primary\)/, message, parametersData);
-
-  parametersData.primary = false;
+  let parametersData;
+  for (let d of ["foo", "", "get", "Get"]) {
+    parametersData = {pointerType: d};
+    let message = `parametersData: [pointerType: ${parametersData.pointerType}]`;
+    check(/Unknown pointerType/, message, parametersData);
+  }
+  parametersData.pointerType = "mouse"; //TODO "pen";
   deepEqual(action.PointerParameters.fromJson(parametersData),
-      {pointerType: action.PointerType.Pen, primary: false});
+      {pointerType: "mouse"}); //TODO action.PointerType.Pen});
 
   run_next_test();
 });
@@ -52,7 +53,7 @@ add_test(function test_processPointerUpDownAction() {
   for (let d of [-1, "a"]) {
     actionItem.button = d;
     checkErrors(
-        /integer >= 0/, action.Action.fromJson, [actionSequence, actionItem],
+        /Expected 'button' \(.*\) to be >= 0/, action.Action.fromJson, [actionSequence, actionItem],
         `button: ${actionItem.button}`);
   }
   actionItem.button = 5;
@@ -65,11 +66,11 @@ add_test(function test_processPointerUpDownAction() {
 add_test(function test_validateActionDurationAndCoordinates() {
   let actionItem = {};
   let actionSequence = {id: "some_id"};
-  let check = function(type, subtype, message = undefined) {
+  let check = function (type, subtype, message = undefined) {
     message = message || `duration: ${actionItem.duration}, subtype: ${subtype}`;
     actionItem.type = subtype;
     actionSequence.type = type;
-    checkErrors(/integer >= 0/,
+    checkErrors(/Expected '.*' \(.*\) to be >= 0/,
         action.Action.fromJson, [actionSequence, actionItem], message);
   };
   for (let d of [-1, "a"]) {
@@ -77,30 +78,62 @@ add_test(function test_validateActionDurationAndCoordinates() {
     check("none", "pause");
     check("pointer", "pointerMove");
   }
-  actionItem.duration = 5;
-  for (let d of [-1, "a"]) {
-    for (let name of ["x", "y"]) {
-      actionItem[name] = d;
-      check("pointer", "pointerMove", `${name}: ${actionItem[name]}`);
-    }
+  actionItem.duration = 5000;
+  for (let name of ["x", "y"]) {
+    actionItem[name] = "a";
+    actionItem.type = "pointerMove";
+    actionSequence.type = "pointer";
+    checkErrors(/Expected '.*' \(.*\) to be an Integer/,
+        action.Action.fromJson, [actionSequence, actionItem],
+        `duration: ${actionItem.duration}, subtype: pointerMove`);
   }
   run_next_test();
 });
 
-add_test(function test_processPointerMoveActionElementValidation() {
+add_test(function test_processPointerMoveActionOriginValidation() {
   let actionSequence = {type: "pointer", id: "some_id"};
-  let actionItem = {duration: 5, type: "pointerMove"};
-  for (let d of [-1, "a", {a: "blah"}]) {
-    actionItem.element = d;
-    checkErrors(/Expected 'actionItem.element' to be a web element reference/,
+  let actionItem = {duration: 5000, type: "pointerMove"};
+  for (let d of [-1, {a: "blah"}, []]) {
+    actionItem.origin = d;
+
+    checkErrors(/Expected \'origin\' to be a string or a web element reference/,
         action.Action.fromJson,
         [actionSequence, actionItem],
-        `actionItem.element: (${getTypeString(d)})`);
+        `actionItem.origin: (${getTypeString(d)})`);
   }
-  actionItem.element = {[element.Key]:"something"};
-  let a = action.Action.fromJson(actionSequence, actionItem);
-  deepEqual(a.element, actionItem.element);
 
+  run_next_test();
+});
+
+add_test(function test_processPointerMoveActionOriginStringValidation() {
+  let actionSequence = {type: "pointer", id: "some_id"};
+  let actionItem = {duration: 5000, type: "pointerMove"};
+  for (let d of ["a", "", "get", "Get"]) {
+    actionItem.origin = d;
+    checkErrors(/Unknown pointer-move origin/,
+        action.Action.fromJson,
+        [actionSequence, actionItem],
+        `actionItem.origin: ${d}`);
+  }
+
+  run_next_test();
+});
+
+add_test(function test_processPointerMoveActionElementOrigin() {
+  let actionSequence = {type: "pointer", id: "some_id"};
+  let actionItem = {duration: 5000, type: "pointerMove"};
+  actionItem.origin = {[element.Key]: "something"};
+  let a = action.Action.fromJson(actionSequence, actionItem);
+  deepEqual(a.origin, actionItem.origin);
+  run_next_test();
+});
+
+add_test(function test_processPointerMoveActionDefaultOrigin() {
+  let actionSequence = {type: "pointer", id: "some_id"};
+  // origin left undefined
+  let actionItem = {duration: 5000, type: "pointerMove"};
+  let a = action.Action.fromJson(actionSequence, actionItem);
+  deepEqual(a.origin, action.PointerOrigin.Viewport);
   run_next_test();
 });
 
@@ -108,42 +141,97 @@ add_test(function test_processPointerMoveAction() {
   let actionSequence = {id: "some_id", type: "pointer"};
   let actionItems = [
     {
-      duration: 5,
+      duration: 5000,
       type: "pointerMove",
-      element: undefined,
+      origin: undefined,
       x: undefined,
       y: undefined,
     },
     {
       duration: undefined,
       type: "pointerMove",
-      element: {[element.Key]: "id", [element.LegacyKey]: "id"},
+      origin: {[element.Key]: "id", [element.LegacyKey]: "id"},
       x: undefined,
       y: undefined,
     },
     {
-      duration: 5,
+      duration: 5000,
       type: "pointerMove",
       x: 0,
       y: undefined,
-      element: undefined,
+      origin: undefined,
     },
     {
-      duration: 5,
+      duration: 5000,
       type: "pointerMove",
       x: 1,
       y: 2,
-      element: undefined,
+      origin: undefined,
     },
   ];
   for (let expected of actionItems) {
     let actual = action.Action.fromJson(actionSequence, expected);
     ok(actual instanceof action.Action);
     equal(actual.duration, expected.duration);
-    equal(actual.element, expected.element);
     equal(actual.x, expected.x);
     equal(actual.y, expected.y);
+
+    let origin = expected.origin;
+    if (typeof origin == "undefined") {
+      origin = action.PointerOrigin.Viewport;
+    }
+    deepEqual(actual.origin, origin);
+
   }
+  run_next_test();
+});
+
+add_test(function test_computePointerDestinationViewport() {
+  let act = { type: "pointerMove", x: 100, y: 200, origin: "viewport"};
+  let inputState = new action.InputState.Pointer(action.PointerType.Mouse);
+  // these values should not affect the outcome
+  inputState.x = "99";
+  inputState.y = "10";
+  let target = action.computePointerDestination(act, inputState);
+  equal(act.x, target.x);
+  equal(act.y, target.y);
+
+  run_next_test();
+});
+
+add_test(function test_computePointerDestinationPointer() {
+  let act = { type: "pointerMove", x: 100, y: 200, origin: "pointer"};
+  let inputState = new action.InputState.Pointer(action.PointerType.Mouse);
+  inputState.x = 10;
+  inputState.y = 99;
+  let target = action.computePointerDestination(act, inputState);
+  equal(act.x + inputState.x, target.x);
+  equal(act.y + inputState.y, target.y);
+
+
+  run_next_test();
+});
+
+add_test(function test_computePointerDestinationElement() {
+  // origin represents a web element
+  // using an object literal instead to test default case in computePointerDestination
+  let act = {type: "pointerMove", x: 100, y: 200, origin: {}};
+  let inputState = new action.InputState.Pointer(action.PointerType.Mouse);
+  let elementCenter = {x: 10, y: 99};
+  let target = action.computePointerDestination(act, inputState, elementCenter);
+  equal(act.x + elementCenter.x, target.x);
+  equal(act.y + elementCenter.y, target.y);
+
+  Assert.throws(
+      () => action.computePointerDestination(act, inputState, {a: 1}),
+      InvalidArgumentError,
+      "Invalid element center coordinates.");
+
+  Assert.throws(
+      () => action.computePointerDestination(act, inputState, undefined),
+      InvalidArgumentError,
+      "Undefined element center coordinates.");
+
   run_next_test();
 });
 
@@ -152,18 +240,17 @@ add_test(function test_processPointerAction() {
     type: "pointer",
     id: "some_id",
     parameters: {
-      pointerType: "touch",
-      primary: false,
+      pointerType: "mouse" //TODO "touch"
     },
-  }
+  };
   let actionItems = [
     {
-      duration: 2,
+      duration: 2000,
       type: "pause",
     },
     {
       type: "pointerMove",
-      duration: 2,
+      duration: 2000,
     },
     {
       type: "pointerUp",
@@ -181,7 +268,6 @@ add_test(function test_processPointerAction() {
       equal(actual.duration, expected.duration);
     }
     if (expected.type !== "pause") {
-      equal(actual.primary, actionSequence.parameters.primary);
       equal(actual.pointerType, actionSequence.parameters.pointerType);
     }
   }
@@ -190,7 +276,7 @@ add_test(function test_processPointerAction() {
 });
 
 add_test(function test_processPauseAction() {
-  let actionItem = {type: "pause", duration: 5};
+  let actionItem = {type: "pause", duration: 5000};
   let actionSequence = {id: "some_id"};
   for (let type of ["none", "key", "pointer"]) {
     actionSequence.type = type;
@@ -211,7 +297,7 @@ add_test(function test_processPauseAction() {
 add_test(function test_processActionSubtypeValidation() {
   let actionItem = {type: "dancing"};
   let actionSequence = {id: "some_id"};
-  let check = function(regex) {
+  let check = function (regex) {
     let message = `type: ${actionSequence.type}, subtype: ${actionItem.type}`;
     checkErrors(regex, action.Action.fromJson, [actionSequence, actionItem], message);
   };
@@ -226,16 +312,16 @@ add_test(function test_processKeyActionUpDown() {
   let actionSequence = {type: "key", id: "some_id"};
   let actionItem = {type: "keyDown"};
 
-  for (let v of [-1, "bad", undefined, [], ["a"], {length: 1}, null]) {
+  for (let v of [-1, undefined, [], ["a"], {length: 1}, null]) {
     actionItem.value = v;
     let message = `actionItem.value: (${getTypeString(v)})`;
     Assert.throws(() => action.Action.fromJson(actionSequence, actionItem),
         InvalidArgumentError, message);
     Assert.throws(() => action.Action.fromJson(actionSequence, actionItem),
-        /Expected 'key' to be a single-character string/, message);
+        /Expected 'value' to be a string that represents single code point/, message);
   }
 
-  actionItem.value = "a";
+  actionItem.value = "\uE004";
   let act = action.Action.fromJson(actionSequence, actionItem);
   ok(act instanceof action.Action);
   equal(act.type, actionSequence.type);
@@ -251,16 +337,24 @@ add_test(function test_processInputSourceActionSequenceValidation() {
   let check = (message, regex) => checkErrors(
       regex, action.Sequence.fromJson, [actionSequence], message);
   check(`actionSequence.type: ${actionSequence.type}`, /Unknown action type/);
+  action.inputStateMap.clear();
 
   actionSequence.type = "none";
   actionSequence.id = -1;
   check(`actionSequence.id: ${getTypeString(actionSequence.id)}`,
       /Expected 'id' to be a string/);
+  action.inputStateMap.clear();
+
+  actionSequence.id = undefined;
+  check(`actionSequence.id: ${getTypeString(actionSequence.id)}`,
+      /Expected 'id' to be defined/);
+  action.inputStateMap.clear();
 
   actionSequence.id = "some_id";
   actionSequence.actions = -1;
   check(`actionSequence.actions: ${getTypeString(actionSequence.actions)}`,
       /Expected 'actionSequence.actions' to be an Array/);
+  action.inputStateMap.clear();
 
   run_next_test();
 });
@@ -277,6 +371,7 @@ add_test(function test_processInputSourceActionSequence() {
   let actions = action.Sequence.fromJson(actionSequence);
   equal(actions.length, 1);
   deepEqual(actions[0], expectedAction);
+  action.inputStateMap.clear();
   run_next_test();
 });
 
@@ -287,18 +382,17 @@ add_test(function test_processInputSourceActionSequencePointer() {
     id: "9",
     actions: [actionItem],
     parameters: {
-      pointerType: "pen",
-      primary: false,
+      pointerType: "mouse" // TODO "pen"
     },
   };
   let expectedAction = new action.Action(
       actionSequence.id, actionSequence.type, actionItem.type);
   expectedAction.pointerType = actionSequence.parameters.pointerType;
-  expectedAction.primary = actionSequence.parameters.primary;
   expectedAction.button = actionItem.button;
   let actions = action.Sequence.fromJson(actionSequence);
   equal(actions.length, 1);
   deepEqual(actions[0], expectedAction);
+  action.inputStateMap.clear();
   run_next_test();
 });
 
@@ -315,29 +409,14 @@ add_test(function test_processInputSourceActionSequenceKey() {
   let actions = action.Sequence.fromJson(actionSequence);
   equal(actions.length, 1);
   deepEqual(actions[0], expectedAction);
+  action.inputStateMap.clear();
   run_next_test();
 });
 
-add_test(function test_processInputSourceActionSequenceGenerateID() {
-  let actionItems = [
-    {
-      type: "pause",
-      duration: 5,
-    },
-  ];
-  let actionSequence = {
-    type: "key",
-    actions: actionItems,
-  };
-  let actions = action.Sequence.fromJson(actionSequence);
-  equal(typeof actions[0].id, "string");
-  ok(actions[0].id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));
-  run_next_test();
-});
 
 add_test(function test_processInputSourceActionSequenceInputStateMap() {
   let id = "1";
-  let actionItem = {type: "pause", duration: 5};
+  let actionItem = {type: "pause", duration: 5000};
   let actionSequence = {
     type: "key",
     id: id,
@@ -359,26 +438,57 @@ add_test(function test_processInputSourceActionSequenceInputStateMap() {
 add_test(function test_processPointerActionInputStateMap() {
   let actionItem = {type: "pointerDown"};
   let id = "1";
-  let parameters = {pointerType: "mouse", primary: false};
+  let parameters = {pointerType: "mouse"};
   let a = new action.Action(id, "pointer", actionItem.type);
-  let wrongInputState = new action.InputState.Pointer("pause", true);
-  action.inputStateMap.set(id, wrongInputState)
+  let wrongInputState = new action.InputState.Key();
+  action.inputStateMap.set(id, wrongInputState);
   checkErrors(
-      /to be mapped to InputState whose subtype is/, action.processPointerAction,
+      /to be mapped to InputState whose type is/, action.processPointerAction,
       [id, parameters, a],
-      `$subtype ${actionItem.type} with ${wrongInputState.subtype} in inputState`);
+      `type "pointer" with ${wrongInputState.type} in inputState`);
   action.inputStateMap.clear();
-  let rightInputState = new action.InputState.Pointer("pointerDown", false);
+
+  // TODO - uncomment once pen is supported
+  //wrongInputState = new action.InputState.Pointer("pen");
+  //action.inputStateMap.set(id, wrongInputState);
+  //checkErrors(
+  //    /to be mapped to InputState whose subtype is/, action.processPointerAction,
+  //    [id, parameters, a],
+  //    `subtype ${parameters.pointerType} with ${wrongInputState.subtype} in inputState`);
+  //action.inputStateMap.clear();
+
+  let rightInputState = new action.InputState.Pointer("mouse");
   action.inputStateMap.set(id, rightInputState);
   action.processPointerAction(id, parameters, a);
-  equal(a.primary, parameters.primary);
   action.inputStateMap.clear();
+  run_next_test();
+});
+
+add_test(function test_createInputState() {
+  for (let kind in action.InputState) {
+    let state;
+    if (kind == "Pointer") {
+      state = new action.InputState[kind]("mouse");
+    } else {
+      state = new action.InputState[kind]();
+    }
+    ok(state);
+    if (kind === "Null") {
+      equal(state.type, "none");
+    } else {
+      equal(state.type, kind.toLowerCase());
+    }
+  }
+  Assert.throws(() => new action.InputState.Pointer(), InvalidArgumentError,
+      "Missing InputState.Pointer constructor arg");
+  Assert.throws(() => new action.InputState.Pointer("foo"), InvalidArgumentError,
+      "Invalid InputState.Pointer constructor arg");
   run_next_test();
 });
 
 add_test(function test_extractActionChainValidation() {
   for (let actions of [-1, "a", undefined, null]) {
-    let message = `actions: ${getTypeString(actions)}`
+    let message = `actions: ${getTypeString(actions)}`;
     Assert.throws(() => action.Chain.fromJson(actions),
         InvalidArgumentError, message);
     Assert.throws(() => action.Chain.fromJson(actions),
@@ -393,7 +503,7 @@ add_test(function test_extractActionChainEmpty() {
 });
 
 add_test(function test_extractActionChain_oneTickOneInput() {
-  let actionItem = {type: "pause", duration: 5};
+  let actionItem = {type: "pause", duration: 5000};
   let actionSequence = {
     type: "none",
     id: "some id",
@@ -405,6 +515,7 @@ add_test(function test_extractActionChain_oneTickOneInput() {
   equal(1, actionsByTick.length);
   equal(1, actionsByTick[0].length);
   deepEqual(actionsByTick, [[expectedAction]]);
+  action.inputStateMap.clear();
   run_next_test();
 });
 
@@ -424,8 +535,7 @@ add_test(function test_extractActionChain_twoAndThreeTicks() {
     id: "7",
     actions: mouseActionItems,
     parameters: {
-      pointerType: "touch",
-      primary: false,
+      pointerType: "mouse" //TODO "touch"
     },
   };
   let keyActionItems = [
@@ -456,13 +566,52 @@ add_test(function test_extractActionChain_twoAndThreeTicks() {
   let expectedAction = new action.Action(keyActionSequence.id, "key", keyActionItems[2].type);
   expectedAction.value = keyActionItems[2].value;
   deepEqual(actionsByTick[2][0], expectedAction);
+  action.inputStateMap.clear();
 
   // one empty action sequence
-  actionsByTick = action.Chain.fromJson([keyActionSequence, {type: "none", actions: []}]);
+  actionsByTick = action.Chain.fromJson(
+      [keyActionSequence, {type: "none", id: "some", actions: []}]);
   equal(keyActionItems.length, actionsByTick.length);
   equal(1, actionsByTick[0].length);
+  action.inputStateMap.clear();
   run_next_test();
 });
+
+add_test(function test_computeTickDuration() {
+  let expected = 8000;
+  let tickActions = [
+    {type: "none", subtype: "pause", duration: 5000},
+    {type: "key", subtype: "pause", duration: 1000},
+    {type: "pointer", subtype: "pointerMove", duration: 6000},
+    // invalid because keyDown should not have duration, so duration should be ignored.
+    {type: "key", subtype: "keyDown", duration: 100000},
+    {type: "pointer", subtype: "pause", duration: expected},
+    {type: "pointer", subtype: "pointerUp"},
+  ];
+  equal(expected, action.computeTickDuration(tickActions));
+  run_next_test();
+});
+
+add_test(function test_computeTickDuration_empty() {
+  equal(0, action.computeTickDuration([]));
+  run_next_test();
+});
+
+add_test(function test_computeTickDuration_noDurations() {
+  let tickActions = [
+    // invalid because keyDown should not have duration, so duration should be ignored.
+    {type: "key", subtype: "keyDown", duration: 100000},
+    // undefined duration permitted
+    {type: "none", subtype: "pause"},
+    {type: "pointer", subtype: "pointerMove"},
+    {type: "pointer", subtype: "pointerDown"},
+    {type: "key", subtype: "keyUp"},
+  ];
+
+  equal(0, action.computeTickDuration(tickActions));
+  run_next_test();
+});
+
 
 // helpers
 function getTypeString(obj) {

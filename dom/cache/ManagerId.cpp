@@ -30,8 +30,7 @@ ManagerId::Create(nsIPrincipal* aPrincipal, ManagerId** aManagerIdOut)
   nsresult rv = QuotaManager::GetInfoFromPrincipal(aPrincipal,
                                                    nullptr,   // suffix
                                                    nullptr,   // group
-                                                   &quotaOrigin,
-                                                   nullptr);  // is app
+                                                   &quotaOrigin);
   if (NS_WARN_IF(NS_FAILED(rv))) { return rv; }
 
   RefPtr<ManagerId> ref = new ManagerId(aPrincipal, quotaOrigin);
@@ -52,7 +51,7 @@ ManagerId::ManagerId(nsIPrincipal* aPrincipal, const nsACString& aQuotaOrigin)
     : mPrincipal(aPrincipal)
     , mQuotaOrigin(aQuotaOrigin)
 {
-  MOZ_ASSERT(mPrincipal);
+  MOZ_DIAGNOSTIC_ASSERT(mPrincipal);
 }
 
 ManagerId::~ManagerId()

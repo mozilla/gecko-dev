@@ -3,17 +3,18 @@ Cu.import("resource://testing-common/httpd.js");
 var server;
 
 const PREF_SETTINGS_SERVER = "services.settings.server";
+const PREF_SETTINGS_SERVER_BACKOFF = "services.settings.server.backoff";
 const PREF_LAST_UPDATE = "services.blocklist.last_update_seconds";
 const PREF_LAST_ETAG = "services.blocklist.last_etag";
 const PREF_CLOCK_SKEW_SECONDS = "services.blocklist.clock_skew_seconds";
 
 // Check to ensure maybeSync is called with correct values when a changes
 // document contains information on when a collection was last modified
-add_task(function* test_check_maybeSync(){
+add_task(function* test_check_maybeSync() {
   const changesPath = "/v1/buckets/monitor/collections/changes/records";
 
   // register a handler
-  function handleResponse (serverTimeMillis, request, response) {
+  function handleResponse(serverTimeMillis, request, response) {
     try {
       const sampled = getSampleResponse(request, server.identity.primaryPort);
       if (!sampled) {
@@ -24,7 +25,7 @@ add_task(function* test_check_maybeSync(){
                              sampled.status.statusText);
       // send the headers
       for (let headerLine of sampled.sampleHeaders) {
-        let headerElements = headerLine.split(':');
+        let headerElements = headerLine.split(":");
         response.setHeader(headerElements[0], headerElements[1].trimLeft());
       }
 
@@ -51,12 +52,13 @@ add_task(function* test_check_maybeSync(){
 
   let startTime = Date.now();
 
-  let updater = Cu.import("resource://services-common/blocklist-updater.js");
+  let updater = Cu.import("resource://services-common/blocklist-updater.js", {});
 
   let syncPromise = new Promise(function(resolve, reject) {
     // add a test kinto client that will respond to lastModified information
     // for a collection called 'test-collection'
     updater.addTestBlocklistClient("test-collection", {
+      bucketName: "blocklists",
       maybeSync(lastModified, serverTime) {
         do_check_eq(lastModified, 1000);
         do_check_eq(serverTime, 2000);
@@ -86,7 +88,7 @@ add_task(function* test_check_maybeSync(){
   Services.prefs.setIntPref(PREF_LAST_UPDATE, 0);
   // If server has no change, a 304 is received, maybeSync() is not called.
   updater.addTestBlocklistClient("test-collection", {
-    maybeSync: () => {throw new Error("Should not be called");}
+    maybeSync: () => { throw new Error("Should not be called"); }
   });
   yield updater.checkVersions();
   // Last update is overwritten
@@ -94,7 +96,7 @@ add_task(function* test_check_maybeSync(){
 
 
   // Simulate a server error.
-  function simulateErrorResponse (request, response) {
+  function simulateErrorResponse(request, response) {
     response.setHeader("Date", (new Date(3000)).toUTCString());
     response.setHeader("Content-Type", "application/json; charset=UTF-8");
     response.write(JSON.stringify({
@@ -126,6 +128,33 @@ add_task(function* test_check_maybeSync(){
   clockDifference = Services.prefs.getIntPref(PREF_CLOCK_SKEW_SECONDS);
   // we previously set the serverTime to Date.now() + 10000 ms past epoch
   do_check_true(clockDifference <= 0 && clockDifference >= -10);
+
+  //
+  // Backoff
+  //
+  function simulateBackoffResponse(request, response) {
+    response.setHeader("Content-Type", "application/json; charset=UTF-8");
+    response.setHeader("Backoff", "10");
+    response.write(JSON.stringify({data: []}));
+    response.setStatusLine(null, 200, "OK");
+  }
+  server.registerPathHandler(changesPath, simulateBackoffResponse);
+  // First will work.
+  yield updater.checkVersions();
+  // Second will fail because we haven't waited.
+  try {
+    yield updater.checkVersions();
+    // The previous line should have thrown an error.
+    do_check_true(false);
+  } catch (e) {
+    do_check_true(/Server is asking clients to back off; retry in \d+s./.test(e.message));
+  }
+  // Once backoff time has expired, polling for changes can start again.
+  server.registerPathHandler(changesPath, handleResponse.bind(null, 2000));
+  Services.prefs.setCharPref(PREF_SETTINGS_SERVER_BACKOFF, `${Date.now() - 1000}`);
+  yield updater.checkVersions();
+  // Backoff tracking preference was cleared.
+  do_check_false(Services.prefs.prefHasUserValue(PREF_SETTINGS_SERVER_BACKOFF));
 });
 
 function run_test() {

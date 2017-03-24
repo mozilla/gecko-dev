@@ -177,6 +177,9 @@ sec_pkcs12_decoder_get_decrypt_key(void *arg, SECAlgorithmID *algid)
     SEC_PKCS12DecoderContext *p12dcx = (SEC_PKCS12DecoderContext *)arg;
     PK11SlotInfo *slot;
     PK11SymKey *bulkKey;
+    SECItem *pwitem;
+    SECItem decodedPwitem = { 0 };
+    SECOidTag algorithm;
 
     if (!p12dcx) {
         return NULL;
@@ -189,7 +192,24 @@ sec_pkcs12_decoder_get_decrypt_key(void *arg, SECAlgorithmID *algid)
         slot = PK11_GetInternalKeySlot();
     }
 
-    bulkKey = PK11_PBEKeyGen(slot, algid, p12dcx->pwitem,
+    algorithm = SECOID_GetAlgorithmTag(algid);
+    pwitem = p12dcx->pwitem;
+
+    /* here we assume that the password is already encoded into
+     * BMPString by the caller.  if the encryption scheme is not the
+     * one defined in PKCS #12, decode the password back into
+     * UTF-8. */
+    if (!sec_pkcs12_is_pkcs12_pbe_algorithm(algorithm)) {
+        if (!sec_pkcs12_convert_item_to_unicode(NULL, &decodedPwitem,
+                                                p12dcx->pwitem,
+                                                PR_TRUE, PR_FALSE, PR_FALSE)) {
+            PORT_SetError(SEC_ERROR_NO_MEMORY);
+            return NULL;
+        }
+        pwitem = &decodedPwitem;
+    }
+
+    bulkKey = PK11_PBEKeyGen(slot, algid, pwitem,
                              PR_FALSE, p12dcx->wincx);
     /* some tokens can't generate PBE keys on their own, generate the
      * key in the internal slot, and let the Import code deal with it,
@@ -198,7 +218,7 @@ sec_pkcs12_decoder_get_decrypt_key(void *arg, SECAlgorithmID *algid)
     if (!bulkKey && !PK11_IsInternal(slot)) {
         PK11_FreeSlot(slot);
         slot = PK11_GetInternalKeySlot();
-        bulkKey = PK11_PBEKeyGen(slot, algid, p12dcx->pwitem,
+        bulkKey = PK11_PBEKeyGen(slot, algid, pwitem,
                                  PR_FALSE, p12dcx->wincx);
     }
     PK11_FreeSlot(slot);
@@ -206,6 +226,10 @@ sec_pkcs12_decoder_get_decrypt_key(void *arg, SECAlgorithmID *algid)
     /* set the password data on the key */
     if (bulkKey) {
         PK11_SetSymKeyUserData(bulkKey, p12dcx->pwitem, NULL);
+    }
+
+    if (decodedPwitem.data) {
+        SECITEM_ZfreeItem(&decodedPwitem, PR_FALSE);
     }
 
     return bulkKey;
@@ -1335,11 +1359,23 @@ sec_pkcs12_decoder_verify_mac(SEC_PKCS12DecoderContext *p12dcx)
         case SEC_OID_MD2:
             integrityMech = CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN;
             break;
+        case SEC_OID_SHA224:
+            integrityMech = CKM_NSS_PKCS12_PBE_SHA224_HMAC_KEY_GEN;
+            break;
+        case SEC_OID_SHA256:
+            integrityMech = CKM_NSS_PKCS12_PBE_SHA256_HMAC_KEY_GEN;
+            break;
+        case SEC_OID_SHA384:
+            integrityMech = CKM_NSS_PKCS12_PBE_SHA384_HMAC_KEY_GEN;
+            break;
+        case SEC_OID_SHA512:
+            integrityMech = CKM_NSS_PKCS12_PBE_SHA512_HMAC_KEY_GEN;
+            break;
         default:
             goto loser;
     }
 
-    symKey = PK11_KeyGen(NULL, integrityMech, params, 20, NULL);
+    symKey = PK11_KeyGen(NULL, integrityMech, params, 0, NULL);
     PK11_DestroyPBEParams(params);
     params = NULL;
     if (!symKey)

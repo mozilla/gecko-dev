@@ -34,8 +34,8 @@
 #define HB_DEBUG_DIRECTWRITE (HB_DEBUG+0)
 #endif
 
-HB_SHAPER_DATA_ENSURE_DECLARE(directwrite, face)
-HB_SHAPER_DATA_ENSURE_DECLARE(directwrite, font)
+HB_SHAPER_DATA_ENSURE_DEFINE(directwrite, face)
+HB_SHAPER_DATA_ENSURE_DEFINE(directwrite, font)
 
 
 /*
@@ -209,8 +209,8 @@ _hb_directwrite_shaper_face_data_destroy(hb_directwrite_shaper_face_data_t *data
     data->fontFile->Release ();
   if (data->dwriteFactory) {
     if (data->fontFileLoader)
-      data->dwriteFactory->UnregisterFontFileLoader(data->fontFileLoader);
-    data->dwriteFactory->Release();
+      data->dwriteFactory->UnregisterFontFileLoader (data->fontFileLoader);
+    data->dwriteFactory->Release ();
   }
   if (data->fontFileLoader)
     delete data->fontFileLoader;
@@ -258,8 +258,10 @@ struct hb_directwrite_shaper_shape_plan_data_t {};
 
 hb_directwrite_shaper_shape_plan_data_t *
 _hb_directwrite_shaper_shape_plan_data_create (hb_shape_plan_t    *shape_plan HB_UNUSED,
-               const hb_feature_t *user_features HB_UNUSED,
-               unsigned int        num_user_features HB_UNUSED)
+					       const hb_feature_t *user_features HB_UNUSED,
+					       unsigned int        num_user_features HB_UNUSED,
+					       const int          *coords HB_UNUSED,
+					       unsigned int        num_coords HB_UNUSED)
 {
   return (hb_directwrite_shaper_shape_plan_data_t *) HB_SHAPER_DATA_SUCCEEDED;
 }
@@ -540,12 +542,13 @@ static inline uint32_t hb_uint32_swap (const uint32_t v)
  * shaper
  */
 
-hb_bool_t
-_hb_directwrite_shape(hb_shape_plan_t    *shape_plan,
+static hb_bool_t
+_hb_directwrite_shape_full(hb_shape_plan_t    *shape_plan,
   hb_font_t          *font,
   hb_buffer_t        *buffer,
   const hb_feature_t *features,
-  unsigned int        num_features)
+  unsigned int        num_features,
+  float               lineWidth)
 {
   hb_face_t *face = font->face;
   hb_directwrite_shaper_face_data_t *face_data = HB_SHAPER_DATA_GET (face);
@@ -668,7 +671,7 @@ retry_getglyphs:
   DWRITE_SHAPING_GLYPH_PROPERTIES* glyphProperties = (DWRITE_SHAPING_GLYPH_PROPERTIES*)
     malloc (maxGlyphCount * sizeof (DWRITE_SHAPING_GLYPH_PROPERTIES));
 
-  hr = analyzer->GetGlyphs (textString, textLength, fontFace, FALSE,
+  hr = analyzer->GetGlyphs (textString, textLength, fontFace, false,
     isRightToLeft, &runHead->mScript, localeName, NULL, &dwFeatures,
     featureRangeLengths, 1, maxGlyphCount, clusterMap, textProperties, glyphIndices,
     glyphProperties, &glyphCount);
@@ -716,7 +719,7 @@ retry_getglyphs:
   hr = analyzer->GetGlyphPlacements (textString,
     clusterMap, textProperties, textLength, glyphIndices,
     glyphProperties, glyphCount, fontFace, fontEmSize,
-    FALSE, isRightToLeft, &runHead->mScript, localeName,
+    false, isRightToLeft, &runHead->mScript, localeName,
     &dwFeatures, featureRangeLengths, 1,
     glyphAdvances, glyphOffsets);
 
@@ -725,9 +728,6 @@ retry_getglyphs:
     FAIL ("Analyzer failed to get glyph placements.");
     return false;
   }
-
-  // TODO: get lineWith from somewhere
-  float lineWidth = 0;
 
   IDWriteTextAnalyzer1* analyzer1;
   analyzer->QueryInterface (&analyzer1);
@@ -897,4 +897,38 @@ retry_getglyphs:
 
   /* Wow, done! */
   return true;
+}
+
+hb_bool_t
+_hb_directwrite_shape(hb_shape_plan_t    *shape_plan,
+  hb_font_t          *font,
+  hb_buffer_t        *buffer,
+  const hb_feature_t *features,
+  unsigned int        num_features)
+{
+  return _hb_directwrite_shape_full(shape_plan, font, buffer,
+    features, num_features, 0);
+}
+
+/*
+ * Public [experimental] API
+ */
+
+hb_bool_t
+hb_directwrite_shape_experimental_width(hb_font_t          *font,
+  hb_buffer_t        *buffer,
+  const hb_feature_t *features,
+  unsigned int        num_features,
+  float               width)
+{
+  static char *shapers = "directwrite";
+  hb_shape_plan_t *shape_plan = hb_shape_plan_create_cached (font->face,
+    &buffer->props, features, num_features, &shapers);
+  hb_bool_t res = _hb_directwrite_shape_full (shape_plan, font, buffer,
+    features, num_features, width);
+
+  if (res)
+    buffer->content_type = HB_BUFFER_CONTENT_TYPE_GLYPHS;
+
+  return res;
 }

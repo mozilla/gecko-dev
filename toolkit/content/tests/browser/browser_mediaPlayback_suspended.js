@@ -1,10 +1,10 @@
 const PAGE = "https://example.com/browser/toolkit/content/tests/browser/file_mediaPlayback2.html";
 
 var SuspendedType = {
-  NONE_SUSPENDED             : 0,
-  SUSPENDED_PAUSE            : 1,
-  SUSPENDED_BLOCK            : 2,
-  SUSPENDED_PAUSE_DISPOSABLE : 3
+  NONE_SUSPENDED: 0,
+  SUSPENDED_PAUSE: 1,
+  SUSPENDED_BLOCK: 2,
+  SUSPENDED_PAUSE_DISPOSABLE: 3
 };
 
 function wait_for_event(browser, event) {
@@ -15,7 +15,7 @@ function wait_for_event(browser, event) {
 }
 
 function check_audio_onplay() {
-  var list = content.document.getElementsByTagName('audio');
+  var list = content.document.getElementsByTagName("audio");
   if (list.length != 1) {
     ok(false, "There should be only one audio element in page!")
   }
@@ -23,7 +23,7 @@ function check_audio_onplay() {
   var audio = list[0];
   return new Promise((resolve, reject) => {
     audio.onplay = () => {
-      ok(needToReceiveOnPlay, "Should not receive play event!");
+      ok(false, "Should not receive play event!");
       this.onplay = null;
       reject();
     };
@@ -40,7 +40,7 @@ function check_audio_onplay() {
 }
 
 function check_audio_suspended(suspendedType) {
-  var list = content.document.getElementsByTagName('audio');
+  var list = content.document.getElementsByTagName("audio");
   if (list.length != 1) {
     ok(false, "There should be only one audio element in page!")
   }
@@ -51,7 +51,7 @@ function check_audio_suspended(suspendedType) {
 }
 
 function check_audio_pause_state(expectedPauseState) {
-  var list = content.document.getElementsByTagName('audio');
+  var list = content.document.getElementsByTagName("audio");
   if (list.length != 1) {
     ok(false, "There should be only one audio element in page!")
   }
@@ -155,11 +155,9 @@ function* suspended_block(url, browser) {
 }
 
 add_task(function* setup_test_preference() {
-  yield new Promise(resolve => {
-    SpecialPowers.pushPrefEnv({"set": [
-      ["media.useAudioChannelService.testing", true]
-    ]}, resolve);
-  });
+  yield SpecialPowers.pushPrefEnv({"set": [
+    ["media.useAudioChannelService.testing", true]
+  ]});
 });
 
 add_task(function* test_suspended_pause() {

@@ -18,6 +18,8 @@
 #include "secerr.h"
 #include "hasht.h"
 
+static ECPointEncoding pk11_ECGetPubkeyEncoding(const SECKEYPublicKey *pubKey);
+
 static void
 pk11_EnterKeyMonitor(PK11SymKey *symKey)
 {
@@ -2005,7 +2007,7 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
 
             /* old PKCS #11 spec was ambiguous on what needed to be passed,
              * try this again with and encoded public key */
-            if (crv != CKR_OK) {
+            if (crv != CKR_OK && pk11_ECGetPubkeyEncoding(pubKey) != ECPoint_XOnly) {
                 SECItem *pubValue = SEC_ASN1EncodeItem(NULL, NULL,
                                                        &pubKey->u.ec.publicValue,
                                                        SEC_ASN1_GET(SEC_OctetStringTemplate));
@@ -2037,6 +2039,40 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
     return NULL;
 }
 
+/* Test for curves that are known to use a special encoding.
+ * Extend this function when additional curves are added. */
+static ECPointEncoding
+pk11_ECGetPubkeyEncoding(const SECKEYPublicKey *pubKey)
+{
+    SECItem oid;
+    SECStatus rv;
+    PORTCheapArenaPool tmpArena;
+    ECPointEncoding encoding = ECPoint_Undefined;
+
+    PORT_InitCheapArena(&tmpArena, DER_DEFAULT_CHUNKSIZE);
+
+    /* decode the OID tag */
+    rv = SEC_QuickDERDecodeItem(&tmpArena.arena, &oid,
+                                SEC_ASN1_GET(SEC_ObjectIDTemplate),
+                                &pubKey->u.ec.DEREncodedParams);
+    if (rv == SECSuccess) {
+        SECOidTag tag = SECOID_FindOIDTag(&oid);
+        switch (tag) {
+            case SEC_OID_CURVE25519:
+                encoding = ECPoint_XOnly;
+                break;
+            case SEC_OID_SECG_EC_SECP256R1:
+            case SEC_OID_SECG_EC_SECP384R1:
+            case SEC_OID_SECG_EC_SECP521R1:
+            default:
+                /* unknown curve, default to uncompressed */
+                encoding = ECPoint_Uncompressed;
+        }
+    }
+    PORT_DestroyCheapArena(&tmpArena);
+    return encoding;
+}
+
 /* Returns the size of the public key, or 0 if there
  * is an error. */
 static CK_ULONG
@@ -2044,10 +2080,11 @@ pk11_ECPubKeySize(SECKEYPublicKey *pubKey)
 {
     SECItem *publicValue = &pubKey->u.ec.publicValue;
 
-    if (pubKey->u.ec.encoding == ECPoint_XOnly) {
+    ECPointEncoding encoding = pk11_ECGetPubkeyEncoding(pubKey);
+    if (encoding == ECPoint_XOnly) {
         return publicValue->len;
     }
-    if (publicValue->data[0] == 0x04) {
+    if (encoding == ECPoint_Uncompressed) {
         /* key encoded in uncompressed form */
         return ((publicValue->len - 1) / 2);
     }
@@ -2176,6 +2213,11 @@ pk11_PubDeriveECKeyWithKDF(
     /* old PKCS #11 spec was ambiguous on what needed to be passed,
      * try this again with an encoded public key */
     if (crv != CKR_OK) {
+        /* For curves that only use X as public value and no encoding we don't
+         * have to try again. (Currently only Curve25519) */
+        if (pk11_ECGetPubkeyEncoding(pubKey) == ECPoint_XOnly) {
+            goto loser;
+        }
         SECItem *pubValue = SEC_ASN1EncodeItem(NULL, NULL,
                                                &pubKey->u.ec.publicValue,
                                                SEC_ASN1_GET(SEC_OctetStringTemplate));

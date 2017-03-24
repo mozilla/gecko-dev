@@ -13,7 +13,6 @@
 <?xml-stylesheet href="chrome://browser/skin/controlcenter/panel.css" type="text/css"?>
 <?xml-stylesheet href="chrome://browser/skin/customizableui/panelUI.css" type="text/css"?>
 <?xml-stylesheet href="chrome://browser/skin/" type="text/css"?>
-<?xml-stylesheet href="chrome://browser/skin/browser-lightweightTheme.css" type="text/css"?>
 
 <?xul-overlay href="chrome://global/content/editMenuOverlay.xul"?>
 <?xul-overlay href="chrome://browser/content/baseMenuOverlay.xul"?>
@@ -53,7 +52,6 @@
 #endif
         titlemenuseparator="&mainWindow.titlemodifiermenuseparator;"
         lightweightthemes="true"
-        lightweightthemesfooter="browser-bottombox"
         windowtype="navigator:browser"
         macanimationtype="document"
         screenX="4" screenY="4"
@@ -146,6 +144,7 @@
            id="PopupAutoComplete"
            noautofocus="true"
            hidden="true"
+           overflowpadding="4"
            norolluponanchor="true" />
 
     <!-- for search with one-off buttons -->
@@ -166,7 +165,8 @@
            orient="vertical"
            noautofocus="true"
            consumeoutsideclicks="false"
-           level="parent">
+           level="parent"
+           tabspecific="true">
       <iframe id="dateTimePopupFrame"/>
     </panel>
 
@@ -177,8 +177,9 @@
     <menulist popuponly="true" id="ContentSelectDropdown" hidden="true">
       <menupopup rolluponmousewheel="true"
                  activateontab="true" position="after_start"
+                 level="parent"
 #ifdef XP_WIN
-                 consumeoutsideclicks="false" ignorekeys="handled"
+                 consumeoutsideclicks="false" ignorekeys="shortcuts"
 #endif
         />
     </menulist>
@@ -474,6 +475,13 @@
                 accesskey="&syncedTabs.context.copy.accesskey;"
                 id="syncedTabsCopySelected"/>
       <menuseparator/>
+      <menuitem label="&syncedTabs.context.openAllInTabs.label;"
+                accesskey="&syncedTabs.context.openAllInTabs.accesskey;"
+                id="syncedTabsOpenAllInTabs"/>
+      <menuitem label="&syncedTabs.context.managedevices.label;"
+                accesskey="&syncedTabs.context.managedevices.accesskey;"
+                id="syncedTabsManageDevices"
+                oncommand="gFxAccounts.openDevicesManagementPage('syncedtabs-sidebar');"/>
       <menuitem label="&syncSyncNowItem.label;"
                 accesskey="&syncSyncNowItem.accesskey;"
                 id="syncedTabsRefresh"/>
@@ -545,9 +553,7 @@
 #ifdef MENUBAR_CAN_AUTOHIDE
              toolbarname="&menubarCmd.label;"
              accesskey="&menubarCmd.accesskey;"
-#if defined(MOZ_WIDGET_GTK)
              autohide="true"
-#endif
 #endif
              context="toolbar-context-menu">
       <toolbaritem id="menubar-items" align="center">
@@ -611,7 +617,6 @@
         <menupopup id="alltabs-popup"
                    position="after_end">
           <menuitem id="alltabs_undoCloseTab"
-                    class="menuitem-iconic"
                     key="key_undoCloseTab"
                     label="&undoCloseTab.label;"
                     observes="History:UndoCloseTab"/>
@@ -687,13 +692,9 @@
                      newlines="stripsurroundingwhitespace"
                      ontextentered="this.handleCommand(param);"
                      ontextreverted="return this.handleRevert();"
-                     pageproxystate="invalid"
-                     onfocus="document.getElementById('identity-box').style.MozUserFocus= 'normal'"
-                     onblur="setTimeout(() => { document.getElementById('identity-box').style.MozUserFocus = ''; }, 0);">
+                     pageproxystate="invalid">
               <!-- Use onclick instead of normal popup= syntax since the popup
-                   code fires onmousedown, and hence eats our favicon drag events.
-                   We only add the identity-box button to the tab order when the location bar
-                   has focus, otherwise pressing F6 focuses it instead of the location bar -->
+                   code fires onmousedown, and hence eats our favicon drag events. -->
               <box id="identity-box" role="button"
                    align="center"
                    aria-label="&urlbar.viewSiteInfo.label;"
@@ -704,6 +705,7 @@
                        consumeanchor="identity-box"
                        onclick="PageProxyClickHandler(event);"/>
                 <image id="sharing-icon" mousethrough="always"/>
+                <image id="tracking-protection-icon"/>
                 <box id="blocked-permissions-container" align="center">
                   <image data-permission-id="geo" class="blocked-permission-icon geo-icon" role="button"
                          tooltiptext="&urlbar.geolocationBlocked.tooltip;"/>
@@ -752,7 +754,6 @@
                   <image id="eme-notification-icon" class="notification-anchor-icon drm-icon" role="button"
                          tooltiptext="&urlbar.emeNotificationAnchor.tooltip;"/>
                 </box>
-                <image id="tracking-protection-icon"/>
                 <image id="connection-icon"/>
                 <hbox id="identity-icon-labels">
                   <label id="identity-icon-label" class="plain" flex="1"/>
@@ -760,7 +761,8 @@
                 </hbox>
               </box>
               <box id="urlbar-display-box" align="center">
-                <label class="urlbar-display urlbar-display-switchtab" value="&urlbar.switchToTab.label;"/>
+                <label id="switchtab" class="urlbar-display urlbar-display-switchtab" value="&urlbar.switchToTab.label;"/>
+                <label id="extension" class="urlbar-display urlbar-display-extension" value="&urlbar.extension.label;"/>
               </box>
               <hbox id="urlbar-icons">
                 <image id="page-report-button"
@@ -774,7 +776,7 @@
                        onclick="ReaderParent.buttonClick(event);"/>
                 <toolbarbutton id="urlbar-zoom-button"
                        onclick="FullZoom.reset();"
-                       tooltiptext="&urlbar.zoomReset.tooltip;"
+                       tooltip="dynamic-shortcut-tooltip"
                        hidden="true"/>
               </hbox>
               <hbox id="userContext-icons" hidden="true">
@@ -789,11 +791,11 @@
                              class="chromeclass-toolbar-additional"
                              command="Browser:ReloadOrDuplicate"
                              onclick="checkForMiddleClick(this, event);"
-                             tooltiptext="&reloadButton.tooltip;"/>
+                             tooltip="dynamic-shortcut-tooltip"/>
               <toolbarbutton id="urlbar-stop-button"
                              class="chromeclass-toolbar-additional"
                              command="Browser:Stop"
-                             tooltiptext="&stopButton.tooltip;"/>
+                             tooltip="dynamic-shortcut-tooltip"/>
             </textbox>
           </hbox>
         </toolbaritem>
@@ -880,6 +882,19 @@
                                            new PlacesMenu(event, 'place:folder=UNFILED_BOOKMARKS',
                                                           PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);"/>
             </menu>
+            <menu id="BMB_mobileBookmarks"
+                  class="menu-iconic bookmark-item subviewbutton"
+                  label="&bookmarksMenuButton.mobile.label;"
+                  hidden="true"
+                  container="true">
+              <menupopup id="BMB_mobileBookmarksPopup"
+                         placespopup="true"
+                         context="placesContext"
+                         onpopupshowing="if (!this.parentNode._placesView)
+                                           new PlacesMenu(event, 'place:folder=MOBILE_BOOKMARKS',
+                                                          PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);"/>
+            </menu>
+
             <menuseparator/>
             <!-- Bookmarks menu items will go here -->
             <menuitem id="BMB_bookmarksShowAll"

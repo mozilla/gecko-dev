@@ -23,8 +23,7 @@ function checkService(service, interface) {
 
 // Tests
 
-function run_test()
-{
+function run_test() {
   do_get_profile();
 
   checkService("appShell", Ci.nsIAppShellService);
@@ -46,7 +45,7 @@ function run_test()
   checkService("focus", Ci.nsIFocusManager);
   checkService("io", Ci.nsIIOService);
   checkService("io", Ci.nsIIOService2);
-  checkService("locale", Ci.nsILocaleService);
+  checkService("locale", Ci.mozILocaleService);
   checkService("logins", Ci.nsILoginManager);
   checkService("obs", Ci.nsIObserverService);
   checkService("perms", Ci.nsIPermissionManager);

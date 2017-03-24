@@ -19,6 +19,7 @@ namespace mp4_demuxer
 {
 
 class Index;
+class IndiceWrapper;
 
 typedef int64_t Microseconds;
 
@@ -32,6 +33,9 @@ public:
 
 private:
   Sample* Get();
+
+  CencSampleEncryptionInfoEntry* GetSampleEncryptionEntry();
+
   void Next();
   RefPtr<Index> mIndex;
   size_t mCurrentMoof;
@@ -89,7 +93,7 @@ public:
     Interval<Microseconds> mTime;
   };
 
-  Index(const nsTArray<Indice>& aIndex,
+  Index(const IndiceWrapper& aIndices,
         Stream* aSource,
         uint32_t aTrackId,
         bool aIsAudio);

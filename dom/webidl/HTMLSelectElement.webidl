@@ -7,6 +7,7 @@
  * http://www.whatwg.org/html/#the-select-element
  */
 
+[HTMLConstructor]
 interface HTMLSelectElement : HTMLElement {
   [SetterThrows, Pure]
            attribute boolean autofocus;
@@ -59,7 +60,11 @@ interface HTMLSelectElement : HTMLElement {
   void remove();
 };
 
+// Chrome only interface
+
 partial interface HTMLSelectElement {
   [ChromeOnly]
   attribute boolean openInParentProcess;
+  [ChromeOnly]
+  AutocompleteInfo getAutocompleteInfo();
 };

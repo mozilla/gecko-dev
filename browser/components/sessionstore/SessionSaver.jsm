@@ -31,7 +31,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 // Minimal interval between two save operations (in milliseconds).
-XPCOMUtils.defineLazyGetter(this, "gInterval", function () {
+XPCOMUtils.defineLazyGetter(this, "gInterval", function() {
   const PREF = "browser.sessionstore.interval";
 
   // Observer that updates the cached value when the preference changes.
@@ -54,7 +54,7 @@ function notify(subject, topic) {
 
 // TelemetryStopwatch helper functions.
 function stopWatch(method) {
-  return function (...histograms) {
+  return function(...histograms) {
     for (let hist of histograms) {
       TelemetryStopwatch[method]("FX_SESSION_RESTORE_" + hist);
     }
@@ -72,7 +72,7 @@ this.SessionSaver = Object.freeze({
   /**
    * Immediately saves the current session to disk.
    */
-  run: function () {
+  run() {
     return SessionSaverInternal.run();
   },
 
@@ -81,7 +81,7 @@ this.SessionSaver = Object.freeze({
    * another delayed run be scheduled already, we will ignore the given delay
    * and state saving may occur a little earlier.
    */
-  runDelayed: function () {
+  runDelayed() {
     SessionSaverInternal.runDelayed();
   },
 
@@ -89,14 +89,14 @@ this.SessionSaver = Object.freeze({
    * Sets the last save time to the current time. This will cause us to wait for
    * at least the configured interval when runDelayed() is called next.
    */
-  updateLastSaveTime: function () {
+  updateLastSaveTime() {
     SessionSaverInternal.updateLastSaveTime();
   },
 
   /**
    * Cancels all pending session saves.
    */
-  cancel: function () {
+  cancel() {
     SessionSaverInternal.cancel();
   }
 });
@@ -121,7 +121,7 @@ var SessionSaverInternal = {
   /**
    * Immediately saves the current session to disk.
    */
-  run: function () {
+  run() {
     return this._saveState(true /* force-update all windows */);
   },
 
@@ -134,7 +134,7 @@ var SessionSaverInternal = {
    *        The minimum delay in milliseconds to wait for until we collect and
    *        save the current session.
    */
-  runDelayed: function (delay = 2000) {
+  runDelayed(delay = 2000) {
     // Bail out if there's a pending run.
     if (this._timeoutID) {
       return;
@@ -151,14 +151,14 @@ var SessionSaverInternal = {
    * Sets the last save time to the current time. This will cause us to wait for
    * at least the configured interval when runDelayed() is called next.
    */
-  updateLastSaveTime: function () {
+  updateLastSaveTime() {
     this._lastSaveTime = Date.now();
   },
 
   /**
    * Cancels all pending session saves.
    */
-  cancel: function () {
+  cancel() {
     clearTimeout(this._timeoutID);
     this._timeoutID = null;
   },
@@ -170,7 +170,7 @@ var SessionSaverInternal = {
    *        Forces us to recollect data for all windows and will bypass and
    *        update the corresponding caches.
    */
-  _saveState: function (forceUpdateAllWindows = false) {
+  _saveState(forceUpdateAllWindows = false) {
     // Cancel any pending timeouts.
     this.cancel();
 
@@ -185,6 +185,9 @@ var SessionSaverInternal = {
     stopWatchStart("COLLECT_DATA_MS", "COLLECT_DATA_LONGEST_OP_MS");
     let state = SessionStore.getCurrentState(forceUpdateAllWindows);
     PrivacyFilter.filterPrivateWindowsAndTabs(state);
+
+    // Make sure we only write worth saving tabs to disk.
+    SessionStore.keepOnlyWorthSavingTabs(state);
 
     // Make sure that we keep the previous session if we started with a single
     // private window and no non-private windows have been opened, yet.
@@ -211,17 +214,20 @@ var SessionSaverInternal = {
       }
     }
 
-    // Clear all cookies on clean shutdown according to user preferences
+    // Clear all cookies and storage on clean shutdown according to user preferences
     if (RunState.isClosing) {
       let expireCookies = Services.prefs.getIntPref("network.cookie.lifetimePolicy") ==
                           Services.cookies.QueryInterface(Ci.nsICookieService).ACCEPT_SESSION;
       let sanitizeCookies = Services.prefs.getBoolPref("privacy.sanitize.sanitizeOnShutdown") &&
                             Services.prefs.getBoolPref("privacy.clearOnShutdown.cookies");
       let restart = Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
-      // Don't clear cookies when restarting
+      // Don't clear when restarting
       if ((expireCookies || sanitizeCookies) && !restart) {
         for (let window of state.windows) {
           delete window.cookies;
+          for (let tab of window.tabs) {
+            delete tab.storage;
+          }
         }
       }
     }
@@ -235,7 +241,7 @@ var SessionSaverInternal = {
    * _saveState() to collect data again (with a cache hit rate of hopefully
    * 100%) and write to disk afterwards.
    */
-  _saveStateAsync: function () {
+  _saveStateAsync() {
     // Allow scheduling delayed saves again.
     this._timeoutID = null;
 
@@ -246,7 +252,7 @@ var SessionSaverInternal = {
   /**
    * Write the given state object to disk.
    */
-  _writeState: function (state) {
+  _writeState(state) {
     // We update the time stamp before writing so that we don't write again
     // too soon, if saving is requested before the write completes. Without
     // this update we may save repeatedly if actions cause a runDelayed

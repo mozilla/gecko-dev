@@ -1,6 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* global XPCNativeWrapper */
+
 "use strict";
 
 const { Ci, Cu } = require("chrome");
@@ -9,28 +12,17 @@ const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 var systemAppOrigin = (function () {
   let systemOrigin = "_";
   try {
-    systemOrigin = Services.io.newURI(
-      Services.prefs.getCharPref("b2g.system_manifest_url"), null, null)
-      .prePath;
+    systemOrigin =
+      Services.io.newURI(Services.prefs.getCharPref("b2g.system_manifest_url"))
+                 .prePath;
   } catch (e) {
     // Fall back to default value
   }
   return systemOrigin;
 })();
 
-var threshold = 25;
-try {
-  threshold = Services.prefs.getIntPref("ui.dragThresholdX");
-} catch (e) {
-  // Fall back to default value
-}
-
-var delay = 500;
-try {
-  delay = Services.prefs.getIntPref("ui.click_hold_context_menus.delay");
-} catch (e) {
-  // Fall back to default value
-}
+var threshold = Services.prefs.getIntPref("ui.dragThresholdX", 25);
+var delay = Services.prefs.getIntPref("ui.click_hold_context_menus.delay", 500);
 
 function SimulatorCore(simulatorTarget) {
   this.simulatorTarget = simulatorTarget;
@@ -339,10 +331,10 @@ SimulatorCore.prototype = {
     let utils = content.QueryInterface(Ci.nsIInterfaceRequestor)
                        .getInterface(Ci.nsIDOMWindowUtils);
 
-    let allowZoom = {},
-        minZoom = {},
-        maxZoom = {},
-        autoSize = {};
+    let allowZoom = {};
+    let minZoom = {};
+    let maxZoom = {};
+    let autoSize = {};
 
     utils.getViewportInfo(content.innerWidth, content.innerHeight, {},
                           allowZoom, minZoom, maxZoom, {}, {}, autoSize);
@@ -357,9 +349,8 @@ SimulatorCore.prototype = {
         autoSize.value                        // width = device-width
     ) {
       return 0;
-    } else {
-      return 300;
     }
+    return 300;
   }
 };
 

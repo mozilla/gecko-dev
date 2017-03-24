@@ -34,11 +34,13 @@ NS_IMPL_ISUPPORTS_INHERITED(ExternalHelperAppParent,
                             nsIMultiPartChannel,
                             nsIPrivateBrowsingChannel,
                             nsIResumableChannel,
-                            nsIStreamListener)
+                            nsIStreamListener,
+                            nsIExternalHelperAppParent)
 
 ExternalHelperAppParent::ExternalHelperAppParent(
     const OptionalURIParams& uri,
-    const int64_t& aContentLength)
+    const int64_t& aContentLength,
+    const bool& aWasFileChannel)
   : mURI(DeserializeURI(uri))
   , mPending(false)
 #ifdef DEBUG
@@ -48,6 +50,7 @@ ExternalHelperAppParent::ExternalHelperAppParent(
   , mLoadFlags(0)
   , mStatus(NS_OK)
   , mContentLength(aContentLength)
+  , mWasFileChannel(aWasFileChannel)
 {
 }
 
@@ -113,7 +116,7 @@ ExternalHelperAppParent::Delete()
   }
 }
 
-bool
+mozilla::ipc::IPCResult
 ExternalHelperAppParent::RecvOnStartRequest(const nsCString& entityID)
 {
   MOZ_ASSERT(!mDiverted, "child forwarding callbacks after request was diverted");
@@ -121,16 +124,16 @@ ExternalHelperAppParent::RecvOnStartRequest(const nsCString& entityID)
   mEntityID = entityID;
   mPending = true;
   mStatus = mListener->OnStartRequest(this, nullptr);
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 ExternalHelperAppParent::RecvOnDataAvailable(const nsCString& data,
                                              const uint64_t& offset,
                                              const uint32_t& count)
 {
   if (NS_FAILED(mStatus))
-    return true;
+    return IPC_OK();
 
   MOZ_ASSERT(!mDiverted, "child forwarding callbacks after request was diverted");
   MOZ_ASSERT(mPending, "must be pending!");
@@ -140,10 +143,10 @@ ExternalHelperAppParent::RecvOnDataAvailable(const nsCString& data,
   NS_ASSERTION(NS_SUCCEEDED(rv), "failed to create dependent string!");
   mStatus = mListener->OnDataAvailable(this, nullptr, stringStream, offset, count);
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 ExternalHelperAppParent::RecvOnStopRequest(const nsresult& code)
 {
   MOZ_ASSERT(!mDiverted, "child forwarding callbacks after request was diverted");
@@ -152,10 +155,10 @@ ExternalHelperAppParent::RecvOnStopRequest(const nsresult& code)
   mListener->OnStopRequest(this, nullptr,
                            (NS_SUCCEEDED(code) && NS_FAILED(mStatus)) ? mStatus : code);
   Delete();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 ExternalHelperAppParent::RecvDivertToParentUsing(PChannelDiverterParent* diverter)
 {
   MOZ_ASSERT(diverter);
@@ -165,7 +168,7 @@ ExternalHelperAppParent::RecvDivertToParentUsing(PChannelDiverterParent* diverte
   mDiverted = true;
 #endif
   Unused << p->Send__delete__(p);
-  return true;
+  return IPC_OK();
 }
 
 //

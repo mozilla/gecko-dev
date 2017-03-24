@@ -2,10 +2,13 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
+XPCOMUtils.defineLazyModuleGetter(this, "PanelPopup",
+                                  "resource:///modules/ExtensionPopups.jsm");
+
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/ExtensionUtils.jsm");
 var {
-  EventManager,
+  SingletonEventManager,
   IconDetails,
 } = ExtensionUtils;
 
@@ -18,7 +21,7 @@ function PageAction(options, extension) {
   this.extension = extension;
   this.id = makeWidgetId(extension.id) + "-page-action";
 
-  this.tabManager = TabManager.for(extension);
+  this.tabManager = extension.tabManager;
 
   this.defaults = {
     show: false,
@@ -119,11 +122,8 @@ PageAction.prototype = {
     button.id = this.id;
     button.setAttribute("class", "urlbar-icon");
 
-    button.addEventListener("click", event => { // eslint-disable-line mozilla/balanced-listeners
-      if (event.button == 0) {
-        this.handleClick(window);
-      }
-    });
+    button.addEventListener("click", this); // eslint-disable-line mozilla/balanced-listeners
+    document.addEventListener("popupshowing", this);
 
     document.getElementById("urlbar-icons").appendChild(button);
 
@@ -153,6 +153,31 @@ PageAction.prototype = {
     let pageAction = pageActionMap.get(this.extension);
     if (pageAction.getProperty(window.gBrowser.selectedTab, "show")) {
       pageAction.handleClick(window);
+    }
+  },
+
+  handleEvent(event) {
+    const window = event.target.ownerGlobal;
+
+    switch (event.type) {
+      case "click":
+        if (event.button === 0) {
+          this.handleClick(window);
+        }
+        break;
+
+      case "popupshowing":
+        const menu = event.target;
+        const trigger = menu.triggerNode;
+
+        if (menu.id === "toolbar-context-menu" && trigger && trigger.id === this.id) {
+          global.actionContextMenu({
+            extension: this.extension,
+            onPageAction: true,
+            menu: menu,
+          });
+        }
+        break;
     }
   },
 
@@ -189,9 +214,10 @@ PageAction.prototype = {
   shutdown() {
     this.tabContext.shutdown();
 
-    for (let window of WindowListManager.browserWindows()) {
+    for (let window of windowTracker.browserWindows()) {
       if (this.buttons.has(window)) {
         this.buttons.get(window).remove();
+        window.removeEventListener("popupshowing", this);
       }
     }
   },
@@ -219,11 +245,14 @@ global.pageActionFor = PageAction.for;
 
 extensions.registerSchemaAPI("pageAction", "addon_parent", context => {
   let {extension} = context;
+
+  const {tabManager} = extension;
+
   return {
     pageAction: {
-      onClicked: new EventManager(context, "pageAction.onClicked", fire => {
+      onClicked: new SingletonEventManager(context, "pageAction.onClicked", fire => {
         let listener = (evt, tab) => {
-          fire(TabManager.convert(extension, tab));
+          fire.async(tabManager.convert(tab));
         };
         let pageAction = PageAction.for(extension);
 
@@ -234,38 +263,38 @@ extensions.registerSchemaAPI("pageAction", "addon_parent", context => {
       }).api(),
 
       show(tabId) {
-        let tab = TabManager.getTab(tabId, context);
+        let tab = tabTracker.getTab(tabId);
         PageAction.for(extension).setProperty(tab, "show", true);
       },
 
       hide(tabId) {
-        let tab = TabManager.getTab(tabId, context);
+        let tab = tabTracker.getTab(tabId);
         PageAction.for(extension).setProperty(tab, "show", false);
       },
 
       setTitle(details) {
-        let tab = TabManager.getTab(details.tabId, context);
+        let tab = tabTracker.getTab(details.tabId);
 
         // Clear the tab-specific title when given a null string.
         PageAction.for(extension).setProperty(tab, "title", details.title || null);
       },
 
       getTitle(details) {
-        let tab = TabManager.getTab(details.tabId, context);
+        let tab = tabTracker.getTab(details.tabId);
 
         let title = PageAction.for(extension).getProperty(tab, "title");
         return Promise.resolve(title);
       },
 
       setIcon(details) {
-        let tab = TabManager.getTab(details.tabId, context);
+        let tab = tabTracker.getTab(details.tabId);
 
         let icon = IconDetails.normalize(details, extension, context);
         PageAction.for(extension).setProperty(tab, "icon", icon);
       },
 
       setPopup(details) {
-        let tab = TabManager.getTab(details.tabId, context);
+        let tab = tabTracker.getTab(details.tabId);
 
         // Note: Chrome resolves arguments to setIcon relative to the calling
         // context, but resolves arguments to setPopup relative to the extension
@@ -277,7 +306,7 @@ extensions.registerSchemaAPI("pageAction", "addon_parent", context => {
       },
 
       getPopup(details) {
-        let tab = TabManager.getTab(details.tabId, context);
+        let tab = tabTracker.getTab(details.tabId);
 
         let popup = PageAction.for(extension).getProperty(tab, "popup");
         return Promise.resolve(popup);

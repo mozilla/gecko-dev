@@ -4,10 +4,10 @@
  */
 "use strict";
 
-const TEST_URI = "http://example.com/" +
+const TEST_URI = "https://example.com/" +
                  "browser/dom/tests/browser/position.html";
 
-add_task(function testDismissHanger() {
+add_task(function* testDismissHanger() {
   info("Check that location is not shared when dismissing the geolocation hanger");
 
   let promisePanelShown = BrowserTestUtils.waitForEvent(PopupNotifications.panel, "popupshown", true);

@@ -39,10 +39,9 @@ function openClientAuthDialog(cert) {
                               "", TEST_HOSTNAME, TEST_ORG, TEST_ISSUER_ORG,
                               TEST_PORT, certList, returnVals);
   return new Promise((resolve, reject) => {
-    win.addEventListener("load", function onLoad() {
-      win.removeEventListener("load", onLoad);
+    win.addEventListener("load", function() {
       resolve([win, returnVals]);
-    });
+    }, {once: true});
   });
 }
 
@@ -70,7 +69,7 @@ function checkDialogContents(win, notBefore, notAfter) {
                "Actual and expected issuer organization should be equal");
 
   Assert.equal(win.document.getElementById("nicknames").label,
-               "test client certificate [03]",
+               "Mochitest client [03]",
                "Actual and expected selected cert nickname and serial should " +
                "be equal");
 
@@ -90,15 +89,26 @@ function checkDialogContents(win, notBefore, notAfter) {
                "Actual and expected token name should be equal");
 }
 
+function findCertByCommonName(commonName) {
+  let certEnumerator = certDB.getCerts().getEnumerator();
+  while (certEnumerator.hasMoreElements()) {
+    let cert = certEnumerator.getNext().QueryInterface(Ci.nsIX509Cert);
+    if (cert.commonName == commonName) {
+      return cert;
+    }
+  }
+  return null;
+}
+
 add_task(function* setup() {
-  cert = certDB.findCertByNickname("test client certificate");
+  cert = findCertByCommonName("Mochitest client");
   Assert.notEqual(cert, null, "Should be able to find the test client cert");
 });
 
 // Test that the contents of the dialog correspond to the details of the
 // provided cert.
 add_task(function* testContents() {
-  let [win, retVals] = yield openClientAuthDialog(cert);
+  let [win] = yield openClientAuthDialog(cert);
   checkDialogContents(win, cert.validity.notBeforeLocalTime,
                       cert.validity.notAfterLocalTime);
   yield BrowserTestUtils.closeWindow(win);

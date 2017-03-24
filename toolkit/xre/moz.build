@@ -21,7 +21,12 @@ if CONFIG['OS_ARCH'] == 'WINNT':
 
 XPIDL_MODULE = 'xulapp'
 
-EXPORTS += ['nsAppRunner.h']
+EXPORTS += [
+    'nsAppRunner.h',
+    'nsIAppStartupNotifier.h',
+]
+
+EXPORTS.mozilla += ['Bootstrap.h']
 
 if CONFIG['MOZ_INSTRUMENT_EVENT_LOOP']:
     EXPORTS += ['EventTracer.h']
@@ -29,6 +34,11 @@ if CONFIG['MOZ_INSTRUMENT_EVENT_LOOP']:
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     UNIFIED_SOURCES += [
         'nsNativeAppSupportWin.cpp',
+    ]
+    DEFINES['PROXY_PRINTING'] = 1
+    LOCAL_INCLUDES += [
+        '../../other-licenses/nsis/Contrib/CityHash/cityhash',
+        '../components/printingui/win',
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     UNIFIED_SOURCES += [
@@ -38,6 +48,10 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
         'nsCommandLineServiceMac.cpp',
         'nsNativeAppSupportCocoa.mm',
         'updaterfileutils_osx.mm',
+    ]
+    DEFINES['PROXY_PRINTING'] = 1
+    LOCAL_INCLUDES += [
+        '../components/printingui/mac',
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'uikit':
     UNIFIED_SOURCES += [
@@ -59,6 +73,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gtk3':
     ]
 
 if CONFIG['MOZ_X11']:
+    EXPORTS += ['nsX11ErrorHandler.h']
     UNIFIED_SOURCES += [
         'nsX11ErrorHandler.cpp',
     ]
@@ -69,8 +84,11 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     ]
 
 UNIFIED_SOURCES += [
+    'Bootstrap.cpp',
     'CreateAppData.cpp',
+    'nsAppStartupNotifier.cpp',
     'nsConsoleWriter.cpp',
+    'nsEmbeddingModule.cpp',
     'nsNativeAppSupportBase.cpp',
     'nsSigHandlers.cpp',
     'nsXREDirProvider.cpp',
@@ -100,6 +118,12 @@ if CONFIG['MOZ_UPDATER']:
         UNIFIED_SOURCES += [
             'nsUpdateDriver.cpp',
         ]
+
+if CONFIG['MOZ_PDF_PRINTING']:
+    DEFINES['PROXY_PRINTING'] = 1
+    LOCAL_INCLUDES += [
+        '../components/printingui/unixshared',
+    ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -139,10 +163,15 @@ if CONFIG['MOZ_BUILD_APP'] == 'browser':
     DEFINES['MOZ_BUILD_APP_IS_BROWSER'] = True
 
 LOCAL_INCLUDES += [
+    '../components/find',
+    '../components/printingui/ipc',
+    '../components/windowwatcher',
     '../profile',
     '/config',
     '/dom/base',
+    '/dom/commandhandler',
     '/dom/ipc',
+    '/dom/webbrowserpersist',
     '/testing/gtest/mozilla',
     '/toolkit/crashreporter',
     '/xpcom/build',
@@ -152,6 +181,11 @@ if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'WINNT':
     LOCAL_INCLUDES += [
         '/security/sandbox/chromium',
         '/security/sandbox/chromium-shim',
+    ]
+
+if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'Linux':
+    USE_LIBS += [
+        'mozsandbox',
     ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':

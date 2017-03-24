@@ -12,6 +12,7 @@
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/UniquePtr.h"
 #include "nsCycleCollectionParticipant.h"
 
 struct JSContext;
@@ -51,7 +52,7 @@ class File;
 class HTMLCanvasElement;
 class HTMLImageElement;
 class HTMLVideoElement;
-enum class ImageBitmapFormat : uint32_t;
+enum class ImageBitmapFormat : uint8_t;
 class ImageData;
 class ImageUtils;
 template<typename T> class MapDataIntoBufferSource;
@@ -115,8 +116,8 @@ public:
   already_AddRefed<layers::Image>
   TransferAsImage();
 
-  ImageBitmapCloneData*
-  ToCloneData();
+  UniquePtr<ImageBitmapCloneData>
+  ToCloneData() const;
 
   static already_AddRefed<ImageBitmap>
   CreateFromCloneData(nsIGlobalObject* aGlobal, ImageBitmapCloneData* aData);
@@ -151,7 +152,10 @@ public:
                        ImageBitmap* aImageBitmap);
 
   // Mozilla Extensions
-  static bool ExtensionsEnabled(JSContext* aCx, JSObject* aObj);
+  // aObj is an optional argument that isn't used by ExtensionsEnabled() and
+  // only exists because the bindings layer insists on passing it to us.  All
+  // other consumers of this function should only call it passing one argument.
+  static bool ExtensionsEnabled(JSContext* aCx, JSObject* aObj = nullptr);
 
   friend CreateImageBitmapFromBlob;
   friend CreateImageBitmapFromBlobTask;

@@ -19,8 +19,10 @@ namespace widget {
 
 using namespace mozilla::gfx;
 
-WinCompositorWidget::WinCompositorWidget(const CompositorWidgetInitData& aInitData)
- : mWidgetKey(aInitData.widgetKey()),
+WinCompositorWidget::WinCompositorWidget(const CompositorWidgetInitData& aInitData,
+                                         const layers::CompositorOptions& aOptions)
+ : CompositorWidget(aOptions)
+ , mWidgetKey(aInitData.widgetKey()),
    mWnd(reinterpret_cast<HWND>(aInitData.hWnd())),
    mTransparencyMode(static_cast<nsTransparencyMode>(aInitData.transparencyMode())),
    mMemoryDC(nullptr),
@@ -278,8 +280,11 @@ WinCompositorWidget::ClearTransparentWindow()
 
   IntSize size = mTransparentSurface->GetSize();
   if (!size.IsEmpty()) {
-    RefPtr<DrawTarget> drawTarget = gfxPlatform::GetPlatform()->
-      CreateDrawTargetForSurface(mTransparentSurface, size);
+    RefPtr<DrawTarget> drawTarget =
+      gfxPlatform::CreateDrawTargetForSurface(mTransparentSurface, size);
+    if (!drawTarget) {
+      return;
+    }
     drawTarget->ClearRect(Rect(0, 0, size.width, size.height));
     RedrawTransparentWindow();
   }

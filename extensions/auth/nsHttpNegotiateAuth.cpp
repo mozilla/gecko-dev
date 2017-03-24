@@ -32,8 +32,11 @@
 #include "nsNetCID.h"
 #include "plbase64.h"
 #include "plstr.h"
-#include "prprf.h"
+#include "mozilla/Base64.h"
 #include "mozilla/Logging.h"
+#include "mozilla/Tokenizer.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/Unused.h"
 #include "prmem.h"
 #include "prnetdb.h"
 #include "mozilla/Likely.h"
@@ -44,6 +47,10 @@
 #include "nsIHttpAuthenticatorCallback.h"
 #include "mozilla/Mutex.h"
 #include "nsICancelable.h"
+#include "nsUnicharUtils.h"
+#include "mozilla/net/HttpAuthUtils.h"
+
+using mozilla::Base64Decode;
 
 //-----------------------------------------------------------------------------
 
@@ -53,6 +60,7 @@ static const char kNegotiateAuthDelegationURIs[] = "network.negotiate-auth.deleg
 static const char kNegotiateAuthAllowProxies[] = "network.negotiate-auth.allow-proxies";
 static const char kNegotiateAuthAllowNonFqdn[] = "network.negotiate-auth.allow-non-fqdn";
 static const char kNegotiateAuthSSPI[] = "network.auth.use-sspi";
+static const char kSSOinPBmode[] = "network.auth.private-browsing-sso";
 
 #define kNegotiateLen  (sizeof(kNegotiate)-1)
 #define DEFAULT_THREAD_TIMEOUT_MS 30000
@@ -61,8 +69,14 @@ static const char kNegotiateAuthSSPI[] = "network.auth.use-sspi";
 
 // Return false when the channel comes from a Private browsing window.
 static bool
-TestNotInPBMode(nsIHttpAuthenticableChannel *authChannel)
+TestNotInPBMode(nsIHttpAuthenticableChannel *authChannel, bool proxyAuth)
 {
+    // Proxy should go all the time, it's not considered a privacy leak
+    // to send default credentials to a proxy.
+    if (proxyAuth) {
+        return true;
+    }
+
     nsCOMPtr<nsIChannel> bareChannel = do_QueryInterface(authChannel);
     MOZ_ASSERT(bareChannel);
 
@@ -71,18 +85,21 @@ TestNotInPBMode(nsIHttpAuthenticableChannel *authChannel)
     }
 
     nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (!prefs) {
-        return true;
-    }
+    if (prefs) {
+        bool ssoInPb;
+        if (NS_SUCCEEDED(prefs->GetBoolPref(kSSOinPBmode, &ssoInPb)) && ssoInPb) {
+            return true;
+        }
 
-    // When the "Never remember history" option is set, all channels are
-    // set PB mode flag, but here we want to make an exception, users
-    // want their credentials go out.
-    bool dontRememberHistory;
-    if (NS_SUCCEEDED(prefs->GetBoolPref("browser.privatebrowsing.autostart",
-                                        &dontRememberHistory)) &&
-        dontRememberHistory) {
-        return true;
+        // When the "Never remember history" option is set, all channels are
+        // set PB mode flag, but here we want to make an exception, users
+        // want their credentials go out.
+        bool dontRememberHistory;
+        if (NS_SUCCEEDED(prefs->GetBoolPref("browser.privatebrowsing.autostart",
+                                            &dontRememberHistory)) &&
+            dontRememberHistory) {
+            return true;
+        }
     }
 
     return false;
@@ -149,15 +166,15 @@ nsHttpNegotiateAuth::ChallengeReceived(nsIHttpAuthenticableChannel *authChannel,
         proxyInfo->GetHost(service);
     }
     else {
-        bool allowed = TestNotInPBMode(authChannel) &&
+        bool allowed = TestNotInPBMode(authChannel, isProxyAuth) &&
                        (TestNonFqdn(uri) ||
-                       TestPref(uri, kNegotiateAuthTrustedURIs));
+                       mozilla::net::auth::URIMatchesPrefPattern(uri, kNegotiateAuthTrustedURIs));
         if (!allowed) {
             LOG(("nsHttpNegotiateAuth::ChallengeReceived URI blocked\n"));
             return NS_ERROR_ABORT;
         }
 
-        bool delegation = TestPref(uri, kNegotiateAuthDelegationURIs);
+        bool delegation = mozilla::net::auth::URIMatchesPrefPattern(uri, kNegotiateAuthDelegationURIs);
         if (delegation) {
             LOG(("  using REQ_DELEGATE\n"));
             req_flags |= nsIAuthModule::REQ_DELEGATE;
@@ -311,7 +328,7 @@ NS_IMPL_ISUPPORTS(GetNextTokenCompleteEvent, nsIRunnable, nsICancelable)
 //
 class GetNextTokenRunnable final : public mozilla::Runnable
 {
-    virtual ~GetNextTokenRunnable() {}
+    ~GetNextTokenRunnable() override = default;
     public:
         GetNextTokenRunnable(nsIHttpAuthenticableChannel *authChannel,
                              const char *challenge,
@@ -521,17 +538,14 @@ nsHttpNegotiateAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChanne
         while (challenge[len - 1] == '=')
             len--;
 
-        inTokenLen = (len * 3)/4;
-        inToken = malloc(inTokenLen);
-        if (!inToken)
-            return (NS_ERROR_OUT_OF_MEMORY);
-
         //
         // Decode the response that followed the "Negotiate" token
         //
-        if (PL_Base64Decode(challenge, len, (char *) inToken) == nullptr) {
-            free(inToken);
-            return(NS_ERROR_UNEXPECTED);
+        nsresult rv =
+            Base64Decode(challenge, len, (char**)&inToken, &inTokenLen);
+
+        if (NS_FAILED(rv)) {
+            return rv;
         }
     }
     else {
@@ -608,114 +622,4 @@ nsHttpNegotiateAuth::TestNonFqdn(nsIURI *uri)
     // return true if host does not contain a dot and is not an ip address
     return !host.IsEmpty() && !host.Contains('.') &&
            PR_StringToNetAddr(host.BeginReading(), &addr) != PR_SUCCESS;
-}
-
-bool
-nsHttpNegotiateAuth::TestPref(nsIURI *uri, const char *pref)
-{
-    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (!prefs)
-        return false;
-
-    nsAutoCString scheme, host;
-    int32_t port;
-
-    if (NS_FAILED(uri->GetScheme(scheme)))
-        return false;
-    if (NS_FAILED(uri->GetAsciiHost(host)))
-        return false;
-    if (NS_FAILED(uri->GetPort(&port)))
-        return false;
-
-    char *hostList;
-    if (NS_FAILED(prefs->GetCharPref(pref, &hostList)) || !hostList)
-        return false;
-
-    // pseudo-BNF
-    // ----------
-    //
-    // url-list       base-url ( base-url "," LWS )*
-    // base-url       ( scheme-part | host-part | scheme-part host-part )
-    // scheme-part    scheme "://"
-    // host-part      host [":" port]
-    //
-    // for example:
-    //   "https://, http://office.foo.com"
-    //
-
-    char *start = hostList, *end;
-    for (;;) {
-        // skip past any whitespace
-        while (*start == ' ' || *start == '\t')
-            ++start;
-        end = strchr(start, ',');
-        if (!end)
-            end = start + strlen(start);
-        if (start == end)
-            break;
-        if (MatchesBaseURI(scheme, host, port, start, end))
-            return true;
-        if (*end == '\0')
-            break;
-        start = end + 1;
-    }
-    
-    free(hostList);
-    return false;
-}
-
-bool
-nsHttpNegotiateAuth::MatchesBaseURI(const nsCSubstring &matchScheme,
-                                    const nsCSubstring &matchHost,
-                                    int32_t             matchPort,
-                                    const char         *baseStart,
-                                    const char         *baseEnd)
-{
-    // check if scheme://host:port matches baseURI
-
-    // parse the base URI
-    const char *hostStart, *schemeEnd = strstr(baseStart, "://");
-    if (schemeEnd) {
-        // the given scheme must match the parsed scheme exactly
-        if (!matchScheme.Equals(Substring(baseStart, schemeEnd)))
-            return false;
-        hostStart = schemeEnd + 3;
-    }
-    else
-        hostStart = baseStart;
-
-    // XXX this does not work for IPv6-literals
-    const char *hostEnd = strchr(hostStart, ':');
-    if (hostEnd && hostEnd < baseEnd) {
-        // the given port must match the parsed port exactly
-        int port = atoi(hostEnd + 1);
-        if (matchPort != (int32_t) port)
-            return false;
-    }
-    else
-        hostEnd = baseEnd;
-
-
-    // if we didn't parse out a host, then assume we got a match.
-    if (hostStart == hostEnd)
-        return true;
-
-    uint32_t hostLen = hostEnd - hostStart;
-
-    // matchHost must either equal host or be a subdomain of host
-    if (matchHost.Length() < hostLen)
-        return false;
-
-    const char *end = matchHost.EndReading();
-    if (PL_strncasecmp(end - hostLen, hostStart, hostLen) == 0) {
-        // if matchHost ends with host from the base URI, then make sure it is
-        // either an exact match, or prefixed with a dot.  we don't want
-        // "foobar.com" to match "bar.com"
-        if (matchHost.Length() == hostLen ||
-            *(end - hostLen) == '.' ||
-            *(end - hostLen - 1) == '.')
-            return true;
-    }
-
-    return false;
 }

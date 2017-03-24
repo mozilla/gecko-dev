@@ -293,8 +293,8 @@ struct range_record_t {
   unsigned int index_last;  /* == end - 1 */
 };
 
-HB_SHAPER_DATA_ENSURE_DECLARE(uniscribe, face)
-HB_SHAPER_DATA_ENSURE_DECLARE(uniscribe, font)
+HB_SHAPER_DATA_ENSURE_DEFINE(uniscribe, face)
+HB_SHAPER_DATA_ENSURE_DEFINE(uniscribe, font)
 
 
 /*
@@ -587,7 +587,9 @@ struct hb_uniscribe_shaper_shape_plan_data_t {};
 hb_uniscribe_shaper_shape_plan_data_t *
 _hb_uniscribe_shaper_shape_plan_data_create (hb_shape_plan_t    *shape_plan HB_UNUSED,
 					     const hb_feature_t *user_features HB_UNUSED,
-					     unsigned int        num_user_features HB_UNUSED)
+					     unsigned int        num_user_features HB_UNUSED,
+					     const int          *coords HB_UNUSED,
+					     unsigned int        num_coords HB_UNUSED)
 {
   return (hb_uniscribe_shaper_shape_plan_data_t *) HB_SHAPER_DATA_SUCCEEDED;
 }

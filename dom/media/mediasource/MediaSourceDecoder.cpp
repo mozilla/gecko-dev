@@ -8,6 +8,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "MediaDecoderStateMachine.h"
+#include "MediaShutdownManager.h"
 #include "MediaSource.h"
 #include "MediaSourceResource.h"
 #include "MediaSourceUtils.h"
@@ -44,7 +45,7 @@ MediaDecoderStateMachine*
 MediaSourceDecoder::CreateStateMachine()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  mDemuxer = new MediaSourceDemuxer();
+  mDemuxer = new MediaSourceDemuxer(AbstractMainThread());
   mReader = new MediaFormatReader(this, mDemuxer, GetVideoFrameContainer());
   return new MediaDecoderStateMachine(this, mReader);
 }
@@ -54,13 +55,19 @@ MediaSourceDecoder::Load(nsIStreamListener**)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!GetStateMachine());
+
+  nsresult rv = MediaShutdownManager::Instance().Register(this);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
   SetStateMachine(CreateStateMachine());
   if (!GetStateMachine()) {
     NS_WARNING("Failed to create state machine!");
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = GetStateMachine()->Init(this);
+  rv = GetStateMachine()->Init(this);
   NS_ENSURE_SUCCESS(rv, rv);
 
   SetStateMachineParameters();
@@ -249,7 +256,7 @@ MediaSourceDecoder::SetMediaSourceDuration(double aDuration)
 }
 
 void
-MediaSourceDecoder::GetMozDebugReaderData(nsAString& aString)
+MediaSourceDecoder::GetMozDebugReaderData(nsACString& aString)
 {
   if (mReader && mDemuxer) {
     mReader->GetMozDebugReaderData(aString);
@@ -269,8 +276,8 @@ MediaSourceDecoder::NextFrameBufferedStatus()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!mMediaSource ||
-      mMediaSource->ReadyState() == dom::MediaSourceReadyState::Closed) {
+  if (!mMediaSource
+      || mMediaSource->ReadyState() == dom::MediaSourceReadyState::Closed) {
     return MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE;
   }
 
@@ -284,8 +291,8 @@ MediaSourceDecoder::NextFrameBufferedStatus()
     currentPosition
     + media::TimeUnit::FromMicroseconds(DEFAULT_NEXT_FRAME_AVAILABLE_BUFFERED));
   return buffered.ContainsStrict(ClampIntervalToEnd(interval))
-    ? MediaDecoderOwner::NEXT_FRAME_AVAILABLE
-    : MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE;
+         ? MediaDecoderOwner::NEXT_FRAME_AVAILABLE
+         : MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE;
 }
 
 bool
@@ -304,7 +311,8 @@ MediaSourceDecoder::CanPlayThrough()
   TimeUnit duration = TimeUnit::FromSeconds(mMediaSource->Duration());
   TimeUnit currentPosition = TimeUnit::FromMicroseconds(CurrentPosition());
   if (duration.IsInfinite()) {
-    // We can't make an informed decision and just assume that it's a live stream
+    // We can't make an informed decision and just assume that it's a live
+    // stream
     return true;
   } else if (duration <= currentPosition) {
     return true;

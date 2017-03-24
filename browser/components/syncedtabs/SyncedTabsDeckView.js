@@ -23,7 +23,7 @@ this.EXPORTED_SYMBOLS = [
  * rerender unless the state flags `isUpdatable`, which helps
  * make small changes without the overhead of a full rerender.
  */
-const SyncedTabsDeckView = function (window, tabListComponent, props) {
+const SyncedTabsDeckView = function(window, tabListComponent, props) {
   this.props = props;
 
   this._window = window;
@@ -100,7 +100,7 @@ SyncedTabsDeckView.prototype = {
 
   _clearChilden() {
     while (this.container.firstChild) {
-      this.container.removeChild(this.container.firstChild);
+      this.container.firstChild.remove();
     }
   },
 

@@ -235,8 +235,9 @@ nsMIMEInfoWin::LoadUriInternal(nsIURI * aURL)
     nsCOMPtr<nsITextToSubURI> textToSubURI = do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = textToSubURI->UnEscapeNonAsciiURI(urlCharset, urlSpec, utf16Spec);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(textToSubURI->UnEscapeNonAsciiURI(urlCharset, urlSpec, utf16Spec))) {
+      CopyASCIItoUTF16(urlSpec, utf16Spec);
+    }
 
     static const wchar_t cmdVerb[] = L"open";
     SHELLEXECUTEINFOW sinfo;
@@ -611,8 +612,9 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
   }
 
   nsAutoString fileExtToUse;
-  if (fileExt.First() != '.')
+  if (!fileExt.IsEmpty() && fileExt.First() != '.') {
     fileExtToUse = char16_t('.');
+  }
   fileExtToUse.Append(NS_ConvertUTF8toUTF16(fileExt));
 
   // Note, the order in which these occur has an effect on the 

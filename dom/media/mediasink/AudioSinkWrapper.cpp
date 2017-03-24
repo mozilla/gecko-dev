@@ -190,13 +190,14 @@ AudioSinkWrapper::Start(int64_t aStartTime, const MediaInfo& aInfo)
   mAudioEnded = !aInfo.HasAudio();
 
   if (aInfo.HasAudio()) {
-    mAudioSink = mCreator->Create();
+    mAudioSink.reset(mCreator->Create());
     mEndPromise = mAudioSink->Init(mParams);
 
-    mAudioSinkPromise.Begin(mEndPromise->Then(
+    mEndPromise->Then(
       mOwnerThread.get(), __func__, this,
       &AudioSinkWrapper::OnAudioEnded,
-      &AudioSinkWrapper::OnAudioEnded));
+      &AudioSinkWrapper::OnAudioEnded
+    )->Track(mAudioSinkPromise);
   }
 }
 

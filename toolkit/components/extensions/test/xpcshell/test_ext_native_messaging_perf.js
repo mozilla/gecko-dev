@@ -9,7 +9,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "OS",
 
 Cu.import("resource://gre/modules/Subprocess.jsm");
 
-const MAX_ROUND_TRIP_TIME_MS = AppConstants.DEBUG || AppConstants.ASAN ? 36 : 18;
+const MAX_ROUND_TRIP_TIME_MS = AppConstants.DEBUG || AppConstants.ASAN ? 60 : 30;
 const MAX_RETRIES = 5;
 
 
@@ -90,7 +90,7 @@ add_task(function* test_round_trip_perf() {
         }
 
         let count = 0;
-        port.onMessage.addListener(msg => {
+        port.onMessage.addListener(() => {
           if (count == 0) {
             // Skip the first round, since it includes the time it takes
             // the app to start up.

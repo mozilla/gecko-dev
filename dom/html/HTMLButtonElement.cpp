@@ -207,7 +207,7 @@ HTMLButtonElement::IsDisabledForEvents(EventMessage aMessage)
 }
 
 nsresult
-HTMLButtonElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
+HTMLButtonElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = false;
   if (IsDisabledForEvents(aVisitor.mEvent->mMessage)) {
@@ -235,7 +235,7 @@ HTMLButtonElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
     }
   }
 
-  return nsGenericHTMLElement::PreHandleEvent(aVisitor);
+  return nsGenericHTMLElement::GetEventTargetParent(aVisitor);
 }
 
 nsresult
@@ -295,69 +295,6 @@ HTMLButtonElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
                                    aVisitor.mPresContext);
             aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
           }
-        }
-        break;
-
-      case eMouseDown:
-        {
-          WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
-          if (mouseEvent->button == WidgetMouseEvent::eLeftButton) {
-            if (mouseEvent->IsTrusted()) {
-              EventStateManager* esm =
-                aVisitor.mPresContext->EventStateManager();
-              EventStateManager::SetActiveManager(
-                static_cast<EventStateManager*>(esm), this);
-            }
-            nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-            if (fm) {
-              uint32_t flags = nsIFocusManager::FLAG_BYMOUSE |
-                               nsIFocusManager::FLAG_NOSCROLL;
-              // If this was a touch-generated event, pass that information:
-              if (mouseEvent->inputSource == nsIDOMMouseEvent::MOZ_SOURCE_TOUCH) {
-                flags |= nsIFocusManager::FLAG_BYTOUCH;
-              }
-              fm->SetFocus(this, flags);
-            }
-            mouseEvent->mFlags.mMultipleActionsPrevented = true;
-          } else if (mouseEvent->button == WidgetMouseEvent::eMiddleButton ||
-                     mouseEvent->button == WidgetMouseEvent::eRightButton) {
-            // cancel all of these events for buttons
-            //XXXsmaug What to do with these events? Why these should be cancelled?
-            if (aVisitor.mDOMEvent) {
-              aVisitor.mDOMEvent->StopPropagation();
-            }
-          }
-        }
-        break;
-
-      // cancel all of these events for buttons
-      //XXXsmaug What to do with these events? Why these should be cancelled?
-      case eMouseUp:
-      case eMouseDoubleClick:
-        {
-          WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
-          if (aVisitor.mDOMEvent &&
-              (mouseEvent->button == WidgetMouseEvent::eMiddleButton ||
-               mouseEvent->button == WidgetMouseEvent::eRightButton)) {
-            aVisitor.mDOMEvent->StopPropagation();
-          }
-        }
-        break;
-
-      case eMouseOver:
-        {
-          aVisitor.mPresContext->EventStateManager()->
-            SetContentState(this, NS_EVENT_STATE_HOVER);
-          aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
-        }
-        break;
-
-        // XXX this doesn't seem to do anything yet
-      case eMouseOut:
-        {
-          aVisitor.mPresContext->EventStateManager()->
-            SetContentState(nullptr, NS_EVENT_STATE_HOVER);
-          aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
         }
         break;
 
@@ -486,7 +423,7 @@ HTMLButtonElement::DoneCreatingElement()
 
 nsresult
 HTMLButtonElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                 nsAttrValueOrString* aValue,
+                                 const nsAttrValueOrString* aValue,
                                  bool aNotify)
 {
   if (aNotify && aName == nsGkAtoms::disabled &&
@@ -511,7 +448,6 @@ HTMLButtonElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 
     if (aName == nsGkAtoms::type || aName == nsGkAtoms::disabled) {
       UpdateBarredFromConstraintValidation();
-      UpdateState(aNotify); 
     }
   }
 
@@ -539,8 +475,8 @@ HTMLButtonElement::SaveState()
 bool
 HTMLButtonElement::RestoreState(nsPresState* aState)
 {
-  if (aState && aState->IsDisabledSet()) {
-    SetDisabled(aState->GetDisabled());
+  if (aState && aState->IsDisabledSet() && !aState->GetDisabled()) {
+    SetDisabled(false);
   }
 
   return false;

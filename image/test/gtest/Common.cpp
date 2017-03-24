@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 
+#include "gfxPrefs.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIDirectoryService.h"
 #include "nsIFile.h"
@@ -376,10 +377,10 @@ CheckGeneratedPalettedImage(Decoder* aDecoder, const IntRect& aRect)
 void
 CheckWritePixels(Decoder* aDecoder,
                  SurfaceFilter* aFilter,
-                 Maybe<IntRect> aOutputRect /* = Nothing() */,
-                 Maybe<IntRect> aInputRect /* = Nothing() */,
-                 Maybe<IntRect> aInputWriteRect /* = Nothing() */,
-                 Maybe<IntRect> aOutputWriteRect /* = Nothing() */,
+                 const Maybe<IntRect>& aOutputRect /* = Nothing() */,
+                 const Maybe<IntRect>& aInputRect /* = Nothing() */,
+                 const Maybe<IntRect>& aInputWriteRect /* = Nothing() */,
+                 const Maybe<IntRect>& aOutputWriteRect /* = Nothing() */,
                  uint8_t aFuzz /* = 0 */)
 {
   IntRect outputRect = aOutputRect.valueOr(IntRect(0, 0, 100, 100));
@@ -423,10 +424,10 @@ CheckWritePixels(Decoder* aDecoder,
 void
 CheckPalettedWritePixels(Decoder* aDecoder,
                          SurfaceFilter* aFilter,
-                         Maybe<IntRect> aOutputRect /* = Nothing() */,
-                         Maybe<IntRect> aInputRect /* = Nothing() */,
-                         Maybe<IntRect> aInputWriteRect /* = Nothing() */,
-                         Maybe<IntRect> aOutputWriteRect /* = Nothing() */,
+                         const Maybe<IntRect>& aOutputRect /* = Nothing() */,
+                         const Maybe<IntRect>& aInputRect /* = Nothing() */,
+                         const Maybe<IntRect>& aInputWriteRect /* = Nothing() */,
+                         const Maybe<IntRect>& aOutputWriteRect /* = Nothing() */,
                          uint8_t aFuzz /* = 0 */)
 {
   IntRect outputRect = aOutputRect.valueOr(IntRect(0, 0, 100, 100));
@@ -558,6 +559,15 @@ ImageTestCase CorruptICOWithBadBMPHeightTestCase()
                        IntSize(100, 100), TEST_CASE_HAS_ERROR);
 }
 
+ImageTestCase CorruptICOWithBadBppTestCase()
+{
+  // This test case is an ICO with a BPP (15) in the ICO header which differs
+  // from that in the BMP header itself (1). It should ignore the ICO BPP when
+  // the BMP BPP is available and thus correctly decode the image.
+  return ImageTestCase("corrupt-with-bad-ico-bpp.ico", "image/x-icon",
+                       IntSize(100, 100), TEST_CASE_IS_TRANSPARENT);
+}
+
 ImageTestCase TransparentPNGTestCase()
 {
   return ImageTestCase("transparent.png", "image/png", IntSize(32, 32),
@@ -667,6 +677,12 @@ ImageTestCase DownscaledTransparentICOWithANDMaskTestCase()
 ImageTestCase TruncatedSmallGIFTestCase()
 {
   return ImageTestCase("green-1x1-truncated.gif", "image/gif", IntSize(1, 1));
+}
+
+ImageTestCase GreenMultipleSizesICOTestCase()
+{
+  return ImageTestCase("green-multiple-sizes.ico", "image/x-icon",
+                       IntSize(256, 256));
 }
 
 } // namespace image

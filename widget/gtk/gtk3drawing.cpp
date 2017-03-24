@@ -36,6 +36,21 @@ static gboolean is_initialized;
 static gint
 moz_gtk_get_tab_thickness(GtkStyleContext *style);
 
+static gint
+moz_gtk_menu_item_paint(WidgetNodeType widget, cairo_t *cr, GdkRectangle* rect,
+                        GtkWidgetState* state, GtkTextDirection direction);
+
+// GetStateFlagsFromGtkWidgetState() can be safely used for the specific
+// GtkWidgets that set both prelight and active flags.  For other widgets,
+// either the GtkStateFlags or Gecko's GtkWidgetState need to be carefully
+// adjusted to match GTK behavior.  Although GTK sets insensitive and focus
+// flags in the generic GtkWidget base class, GTK adds prelight and active
+// flags only to widgets that are expected to demonstrate prelight or active
+// states.  This contrasts with HTML where any element may have :active and
+// :hover states, and so Gecko's GtkStateFlags do not necessarily map to GTK
+// flags.  Failure to restrict the flags in the same way as GTK can cause
+// generic CSS selectors from some themes to unintentionally match elements
+// that are not expected to change appearance on hover or mouse-down.
 static GtkStateFlags
 GetStateFlagsFromGtkWidgetState(GtkWidgetState* state)
 {
@@ -145,20 +160,21 @@ moz_gtk_get_focus_outline_size(gint* focus_h_width, gint* focus_v_width)
 gint
 moz_gtk_menuitem_get_horizontal_padding(gint* horizontal_padding)
 {
-    gtk_widget_style_get(GetWidget(MOZ_GTK_MENUITEM),
-                         "horizontal-padding", horizontal_padding,
-                         nullptr);
-
+    GtkStyleContext *style = ClaimStyleContext(MOZ_GTK_MENUITEM);
+    gtk_style_context_get_style(style,
+                                "horizontal-padding", horizontal_padding,
+                                nullptr);
+    ReleaseStyleContext(style);
     return MOZ_GTK_SUCCESS;
 }
 
 gint
 moz_gtk_checkmenuitem_get_horizontal_padding(gint* horizontal_padding)
 {
-    GtkStyleContext *style = ClaimStyleContext(MOZ_GTK_CHECKMENUITEM_CONTAINER);
+    GtkStyleContext *style = ClaimStyleContext(MOZ_GTK_CHECKMENUITEM);
     gtk_style_context_get_style(style,
                                 "horizontal-padding", horizontal_padding,
-                                NULL);
+                                nullptr);
     ReleaseStyleContext(style);
     return MOZ_GTK_SUCCESS;
 }
@@ -450,20 +466,39 @@ moz_gtk_get_widget_min_size(WidgetNodeType aGtkWidgetType, int* width,
              padding.top + padding.bottom;
 }
 
-/* Subtracting margin is used to inset drawing of element which can have margins,
- * like scrollbar, scrollbar's trough, thumb and scrollbar's button */
 static void
-moz_gtk_subtract_margin(GtkStyleContext* style, GdkRectangle* rect)
+Inset(GdkRectangle* rect, GtkBorder& aBorder)
+{
+    MOZ_ASSERT(rect);
+    rect->x += aBorder.left;
+    rect->y += aBorder.top;
+    rect->width -= aBorder.left + aBorder.right;
+    rect->height -= aBorder.top + aBorder.bottom;
+}
+
+// Inset a rectangle by the margins specified in a style context.
+static void
+InsetByMargin(GdkRectangle* rect, GtkStyleContext* style)
 {
     MOZ_ASSERT(rect);
     GtkBorder margin;
 
     gtk_style_context_get_margin(style, gtk_style_context_get_state(style),
                                  &margin);
-    rect->x += margin.left;
-    rect->y += margin.top;
-    rect->width -= margin.right + margin.left;
-    rect->height -= margin.top + margin.bottom;
+    Inset(rect, margin);
+}
+
+// Inset a rectangle by the border and padding specified in a style context.
+static void
+InsetByBorderPadding(GdkRectangle* rect, GtkStyleContext* style)
+{
+    GtkStateFlags state = gtk_style_context_get_state(style);
+    GtkBorder padding, border;
+
+    gtk_style_context_get_padding(style, state, &padding);
+    Inset(rect, padding);
+    gtk_style_context_get_border(style, state, &border);
+    Inset(rect, border);
 }
 
 static gint
@@ -509,7 +544,7 @@ moz_gtk_scrollbar_button_paint(cairo_t *cr, const GdkRectangle* aRect,
     if (gtk_check_version(3,20,0) == nullptr) {
       // The "trough-border" is not used since GTK 3.20.  The stepper margin
       // box occupies the full width of the "contents" gadget content box.
-      moz_gtk_subtract_margin(style, &rect);
+      InsetByMargin(&rect, style);
     } else {
       // Scrollbar button has to be inset by trough_border because its DOM
       // element is filling width of vertical scrollbar's track (or height
@@ -582,7 +617,7 @@ moz_gtk_draw_styled_frame(GtkStyleContext* style, cairo_t *cr,
 {
     GdkRectangle rect = *aRect;
     if (gtk_check_version(3, 6, 0) == nullptr) {
-        moz_gtk_subtract_margin(style, &rect);
+        InsetByMargin(&rect, style);
     }
     gtk_render_background(style, cr, rect.x, rect.y, rect.width, rect.height);
     gtk_render_frame(style, cr, rect.x, rect.y, rect.width, rect.height);
@@ -596,16 +631,8 @@ static gint
 moz_gtk_scrollbar_trough_paint(WidgetNodeType widget,
                                cairo_t *cr, const GdkRectangle* rect,
                                GtkWidgetState* state,
-                               GtkScrollbarTrackFlags flags,
                                GtkTextDirection direction)
 {
-    if (flags & MOZ_GTK_TRACK_OPAQUE) {
-        GtkStyleContext* style = ClaimStyleContext(MOZ_GTK_WINDOW, direction);
-        gtk_render_background(style, cr,
-                              rect->x, rect->y, rect->width, rect->height);
-        ReleaseStyleContext(style);
-    }
-
     GtkStyleContext* style = ClaimStyleContext(widget, direction);
     moz_gtk_draw_styled_frame(style, cr, rect, state->focused);
     ReleaseStyleContext(style);
@@ -645,7 +672,7 @@ moz_gtk_scrollbar_thumb_paint(WidgetNodeType widget,
 
     GdkRectangle rect = *aRect;
     GtkStyleContext* style = ClaimStyleContext(widget, direction, state_flags);
-    moz_gtk_subtract_margin(style, &rect);
+    InsetByMargin(&rect, style);
 
     gtk_render_slider(style, cr,
                       rect.x,
@@ -846,32 +873,41 @@ moz_gtk_entry_paint(cairo_t *cr, GdkRectangle* rect,
 }
 
 static gint
-moz_gtk_text_view_paint(cairo_t *cr, GdkRectangle* rect,
+moz_gtk_text_view_paint(cairo_t *cr, GdkRectangle* aRect,
                         GtkWidgetState* state,
                         GtkTextDirection direction)
 {
-    GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
+    // GtkTextView and GtkScrolledWindow do not set active and prelight flags.
+    // The use of focus with MOZ_GTK_SCROLLED_WINDOW here is questionable
+    // because a parent widget will not have focus when its child GtkTextView
+    // has focus, but perhaps this may help identify a focused textarea with
+    // some themes as GtkTextView backgrounds do not typically render
+    // differently with focus.
+    GtkStateFlags state_flags =
+        state->disabled ? GTK_STATE_FLAG_INSENSITIVE :
+        state->focused ? GTK_STATE_FLAG_FOCUSED :
+        GTK_STATE_FLAG_NORMAL;
 
     GtkStyleContext* style_frame =
         ClaimStyleContext(MOZ_GTK_SCROLLED_WINDOW, direction, state_flags);
-    gtk_render_frame(style_frame, cr, rect->x, rect->y, rect->width, rect->height);
+    gtk_render_frame(style_frame, cr,
+                     aRect->x, aRect->y, aRect->width, aRect->height);
 
-    GtkBorder border, padding;
-    gtk_style_context_get_border(style_frame, state_flags, &border);
-    gtk_style_context_get_padding(style_frame, state_flags, &padding);
+    GdkRectangle rect = *aRect;
+    InsetByBorderPadding(&rect, style_frame);
+
     ReleaseStyleContext(style_frame);
 
     GtkStyleContext* style =
         ClaimStyleContext(MOZ_GTK_TEXT_VIEW, direction, state_flags);
-
-    gint xthickness = border.left + padding.left;
-    gint ythickness = border.top + padding.top;
-
-    gtk_render_background(style, cr,
-                          rect->x + xthickness, rect->y + ythickness,
-                          rect->width - 2 * xthickness,
-                          rect->height - 2 * ythickness);
-
+    gtk_render_background(style, cr, rect.x, rect.y, rect.width, rect.height);
+    ReleaseStyleContext(style);
+    // There is a separate "text" window, which usually provides the
+    // background behind the text.  However, this is transparent in Ambiance
+    // for GTK 3.20, in which case the MOZ_GTK_TEXT_VIEW background is
+    // visible.
+    style = ClaimStyleContext(MOZ_GTK_TEXT_VIEW_TEXT, direction, state_flags);
+    gtk_render_background(style, cr, rect.x, rect.y, rect.width, rect.height);
     ReleaseStyleContext(style);
 
     return MOZ_GTK_SUCCESS;
@@ -1247,13 +1283,52 @@ moz_gtk_toolbar_separator_paint(cairo_t *cr, GdkRectangle* rect,
 }
 
 static gint
-moz_gtk_tooltip_paint(cairo_t *cr, GdkRectangle* rect,
+moz_gtk_tooltip_paint(cairo_t *cr, const GdkRectangle* aRect,
                       GtkTextDirection direction)
 {
+    // Tooltip widget is made in GTK3 as following tree:
+    // Tooltip window
+    //   Horizontal Box
+    //     Icon (not supported by Firefox)
+    //     Label
+    // Each element can be fully styled by CSS of GTK theme.
+    // We have to draw all elements with appropriate offset and right dimensions.
+
+    // Tooltip drawing
     GtkStyleContext* style = ClaimStyleContext(MOZ_GTK_TOOLTIP, direction);
-    gtk_render_background(style, cr, rect->x, rect->y, rect->width, rect->height);
-    gtk_render_frame(style, cr, rect->x, rect->y, rect->width, rect->height);
+    GdkRectangle rect = *aRect;
+    gtk_render_background(style, cr, rect.x, rect.y, rect.width, rect.height);
+    gtk_render_frame(style, cr, rect.x, rect.y, rect.width, rect.height);
     ReleaseStyleContext(style);
+
+    // Horizontal Box drawing
+    //
+    // The box element has hard-coded 6px margin-* GtkWidget properties, which
+    // are added between the window dimensions and the CSS margin box of the
+    // horizontal box.  The frame of the tooltip window is drawn in the
+    // 6px margin.
+    // For drawing Horizontal Box we have to inset drawing area by that 6px
+    // plus its CSS margin.
+    GtkStyleContext* boxStyle = ClaimStyleContext(MOZ_GTK_TOOLTIP_BOX, direction);
+
+    rect.x += 6;
+    rect.y += 6;
+    rect.width -= 12;
+    rect.height -= 12;
+
+    InsetByMargin(&rect, boxStyle);
+    gtk_render_background(boxStyle, cr, rect.x, rect.y, rect.width, rect.height);
+    gtk_render_frame(boxStyle, cr, rect.x, rect.y, rect.width, rect.height);
+
+    // Label drawing
+    InsetByBorderPadding(&rect, boxStyle);
+    ReleaseStyleContext(boxStyle);
+
+    GtkStyleContext* labelStyle =
+        ClaimStyleContext(MOZ_GTK_TOOLTIP_BOX_LABEL, direction);
+    moz_gtk_draw_styled_frame(labelStyle, cr, &rect, false);
+    ReleaseStyleContext(labelStyle);
+
     return MOZ_GTK_SUCCESS;
 }
 
@@ -1262,17 +1337,9 @@ moz_gtk_resizer_paint(cairo_t *cr, GdkRectangle* rect,
                       GtkWidgetState* state,
                       GtkTextDirection direction)
 {
-    GtkStyleContext* style;
-
-    // gtk_render_handle() draws a background, so use GtkTextView and its
-    // GTK_STYLE_CLASS_VIEW to match the background with textarea elements.
-    // The resizer is drawn with shaded variants of the background color, and
-    // so a transparent background would lead to a transparent resizer.
-    style = ClaimStyleContext(MOZ_GTK_TEXT_VIEW, GTK_TEXT_DIR_LTR,
-                              GetStateFlagsFromGtkWidgetState(state));
-    // TODO - we need to save/restore style when gtk 3.20 CSS node path
-    // is used
-    gtk_style_context_add_class(style, GTK_STYLE_CLASS_GRIP);
+    GtkStyleContext* style =
+        ClaimStyleContext(MOZ_GTK_RESIZER, GTK_TEXT_DIR_LTR,
+                          GetStateFlagsFromGtkWidgetState(state));
 
     // Workaround unico not respecting the text direction for resizers.
     // See bug 1174248.
@@ -1319,17 +1386,8 @@ moz_gtk_progress_chunk_paint(cairo_t *cr, GdkRectangle* rect,
                              GtkTextDirection direction,
                              WidgetNodeType widget)
 {
-    GtkStyleContext* style;
-
-    if (gtk_check_version(3, 20, 0) != nullptr) {
-      /* Ask for MOZ_GTK_PROGRESS_TROUGH instead of MOZ_GTK_PROGRESSBAR
-       * because ClaimStyleContext() saves/restores that style */
-      style = ClaimStyleContext(MOZ_GTK_PROGRESS_TROUGH, direction);
-      gtk_style_context_remove_class(style, GTK_STYLE_CLASS_TROUGH);
-      gtk_style_context_add_class(style, GTK_STYLE_CLASS_PROGRESSBAR);
-    } else {
-      style = ClaimStyleContext(MOZ_GTK_PROGRESS_CHUNK, direction);
-    }
+    GtkStyleContext* style =
+        ClaimStyleContext(MOZ_GTK_PROGRESS_CHUNK, direction);
 
     if (widget == MOZ_GTK_PROGRESS_CHUNK_INDETERMINATE ||
         widget == MOZ_GTK_PROGRESS_CHUNK_VERTICAL_INDETERMINATE) {
@@ -1713,22 +1771,25 @@ static gint
 moz_gtk_menu_separator_paint(cairo_t *cr, GdkRectangle* rect,
                              GtkTextDirection direction)
 {
+    GtkWidgetState defaultState = { 0 };
+    moz_gtk_menu_item_paint(MOZ_GTK_MENUSEPARATOR, cr, rect,
+                            &defaultState, direction);
+
+    if (gtk_get_minor_version() >= 20)
+        return MOZ_GTK_SUCCESS;
+
     GtkStyleContext* style;
     gboolean wide_separators;
     gint separator_height;
-    guint border_width;
     gint x, y, w;
     GtkBorder padding;
 
-    border_width =
-        gtk_container_get_border_width(GTK_CONTAINER(
-                                       GetWidget(MOZ_GTK_MENUSEPARATOR)));
     style = ClaimStyleContext(MOZ_GTK_MENUSEPARATOR, direction);
     gtk_style_context_get_padding(style, GTK_STATE_FLAG_NORMAL, &padding);
 
-    x = rect->x + border_width;
-    y = rect->y + border_width;
-    w = rect->width - border_width * 2;
+    x = rect->x;
+    y = rect->y;
+    w = rect->width;
 
     gtk_style_context_save(style);
     gtk_style_context_add_class(style, GTK_STYLE_CLASS_SEPARATOR);
@@ -1764,38 +1825,39 @@ moz_gtk_menu_item_paint(WidgetNodeType widget, cairo_t *cr, GdkRectangle* rect,
                         GtkWidgetState* state, GtkTextDirection direction)
 {
     gint x, y, w, h;
+    guint minorVersion = gtk_get_minor_version();
+    GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
 
-    if (state->inHover && !state->disabled) {   
-        guint border_width =
-            gtk_container_get_border_width(GTK_CONTAINER(GetWidget(widget)));
-        GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
-        GtkStyleContext* style =
-            ClaimStyleContext(widget, direction, state_flags);
+    // GTK versions prior to 3.8 render the background and frame only when not
+    // a separator and in hover prelight.
+    if (minorVersion < 8 && (widget == MOZ_GTK_MENUSEPARATOR ||
+                             !(state_flags & GTK_STATE_FLAG_PRELIGHT)))
+        return MOZ_GTK_SUCCESS;
 
-        bool pre_3_6 = gtk_check_version(3, 6, 0) != nullptr;
-        if (pre_3_6) {
-            // GTK+ 3.4 saves the style context and adds the menubar class to
-            // menubar children, but does each of these only when drawing, not
-            // during layout.
-            gtk_style_context_save(style);
-            if (widget == MOZ_GTK_MENUBARITEM) {
-                gtk_style_context_add_class(style, GTK_STYLE_CLASS_MENUBAR);
-            }
+    GtkStyleContext* style = ClaimStyleContext(widget, direction, state_flags);
+
+    if (minorVersion < 6) {
+        // GTK+ 3.4 saves the style context and adds the menubar class to
+        // menubar children, but does each of these only when drawing, not
+        // during layout.
+        gtk_style_context_save(style);
+        if (widget == MOZ_GTK_MENUBARITEM) {
+            gtk_style_context_add_class(style, GTK_STYLE_CLASS_MENUBAR);
         }
-
-        x = rect->x + border_width;
-        y = rect->y + border_width;
-        w = rect->width - border_width * 2;
-        h = rect->height - border_width * 2;
-
-        gtk_render_background(style, cr, x, y, w, h);
-        gtk_render_frame(style, cr, x, y, w, h);
-
-        if (pre_3_6) {
-            gtk_style_context_restore(style);
-        }
-        ReleaseStyleContext(style);
     }
+
+    x = rect->x;
+    y = rect->y;
+    w = rect->width;
+    h = rect->height;
+
+    gtk_render_background(style, cr, x, y, w, h);
+    gtk_render_frame(style, cr, x, y, w, h);
+
+    if (minorVersion < 6) {
+        gtk_style_context_restore(style);
+    }
+    ReleaseStyleContext(style);
 
     return MOZ_GTK_SUCCESS;
 }
@@ -1815,17 +1877,16 @@ moz_gtk_menu_arrow_paint(cairo_t *cr, GdkRectangle* rect,
     return MOZ_GTK_SUCCESS;
 }
 
-// See gtk_real_check_menu_item_draw_indicator() for reference.
+// For reference, see gtk_check_menu_item_size_allocate() in GTK versions after
+// 3.20 and gtk_real_check_menu_item_draw_indicator() in earlier versions.
 static gint
-moz_gtk_check_menu_item_paint(cairo_t *cr, GdkRectangle* rect,
+moz_gtk_check_menu_item_paint(WidgetNodeType widgetType,
+                              cairo_t *cr, GdkRectangle* rect,
                               GtkWidgetState* state,
-                              gboolean checked, gboolean isradio,
-                              GtkTextDirection direction)
+                              gboolean checked, GtkTextDirection direction)
 {
     GtkStateFlags state_flags = GetStateFlagsFromGtkWidgetState(state);
     GtkStyleContext* style;
-    GtkBorder padding;
-    gint offset;
     gint indicator_size, horizontal_padding;
     gint x, y;
 
@@ -1835,37 +1896,44 @@ moz_gtk_check_menu_item_paint(cairo_t *cr, GdkRectangle* rect,
       state_flags = static_cast<GtkStateFlags>(state_flags|checkbox_check_state);
     }
 
-    style = ClaimStyleContext(isradio ? MOZ_GTK_RADIOMENUITEM_CONTAINER :
-                                        MOZ_GTK_CHECKMENUITEM_CONTAINER,
-                              direction);
+    bool pre_3_20 = gtk_get_minor_version() < 20;
+    gint offset;
+    style = ClaimStyleContext(widgetType, direction);
     gtk_style_context_get_style(style,
                                 "indicator-size", &indicator_size,
                                 "horizontal-padding", &horizontal_padding,
                                 NULL);
+    if (pre_3_20) {
+        GtkBorder padding;
+        gtk_style_context_get_padding(style, state_flags, &padding);
+        offset = horizontal_padding + padding.left + 2;
+    } else {
+        GdkRectangle r = { 0 };
+        InsetByMargin(&r, style);
+        InsetByBorderPadding(&r, style);
+        offset = r.x;
+    }
     ReleaseStyleContext(style);
 
-    style = ClaimStyleContext(isradio ? MOZ_GTK_RADIOMENUITEM :
-                                        MOZ_GTK_CHECKMENUITEM,
-                              direction, state_flags);
-    gtk_style_context_get_padding(style, state_flags, &padding);
-    offset = gtk_container_get_border_width(GTK_CONTAINER(
-                                            GetWidget(MOZ_GTK_CHECKMENUITEM_CONTAINER)));
-    offset += padding.left + 2;
+    bool isRadio = (widgetType == MOZ_GTK_RADIOMENUITEM);
+    WidgetNodeType indicatorType = isRadio ? MOZ_GTK_RADIOMENUITEM_INDICATOR
+                                           : MOZ_GTK_CHECKMENUITEM_INDICATOR;
+    style = ClaimStyleContext(indicatorType, direction, state_flags);
 
     if (direction == GTK_TEXT_DIR_RTL) {
-        x = rect->width - indicator_size - offset - horizontal_padding;
+        x = rect->width - indicator_size - offset;
     }
     else {
-        x = rect->x + offset + horizontal_padding;
+        x = rect->x + offset;
     }
     y = rect->y + (rect->height - indicator_size) / 2;
 
-    if (gtk_check_version(3, 20, 0) == nullptr) {
+    if (!pre_3_20) {
         gtk_render_background(style, cr, x, y, indicator_size, indicator_size);
         gtk_render_frame(style, cr, x, y, indicator_size, indicator_size);
     }
 
-    if (isradio) {
+    if (isRadio) {
       gtk_render_option(style, cr, x, y, indicator_size, indicator_size);
     } else {
       gtk_render_check(style, cr, x, y, indicator_size, indicator_size);
@@ -1969,9 +2037,6 @@ moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
             if (widget == MOZ_GTK_TOOLBAR_BUTTON)
                 gtk_style_context_restore(style);
 
-            // XXX: Subtract 1 pixel from the border to account for the added
-            // -moz-focus-inner border (Bug 1228281).
-            *left -= 1; *top -= 1; *right -= 1; *bottom -= 1;
             moz_gtk_add_style_border(style, left, top, right, bottom);
 
             ReleaseStyleContext(style);
@@ -2108,16 +2173,18 @@ moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
     case MOZ_GTK_CHECKMENUITEM:
     case MOZ_GTK_RADIOMENUITEM:
         {
-            if (widget == MOZ_GTK_MENUBARITEM || widget == MOZ_GTK_MENUITEM) {
-                // Bug 1274143 for MOZ_GTK_MENUBARITEM
-                w = GetWidget(MOZ_GTK_MENUITEM);
-            } else {
-                w = GetWidget(MOZ_GTK_CHECKMENUITEM_CONTAINER);
-            }
+            // Bug 1274143 for MOZ_GTK_MENUBARITEM
+            WidgetNodeType type =
+                widget == MOZ_GTK_MENUBARITEM ? MOZ_GTK_MENUITEM : widget;
+            style = ClaimStyleContext(type);
 
-            *left = *top = *right = *bottom = gtk_container_get_border_width(GTK_CONTAINER(w));
-            moz_gtk_add_style_padding(gtk_widget_get_style_context(w),
-                                      left, top, right, bottom);
+            if (gtk_get_minor_version() < 20) {
+                moz_gtk_add_style_padding(style, left, top, right, bottom);
+            } else {
+                moz_gtk_add_margin_border_padding(style,
+                                                  left, top, right, bottom);
+            }
+            ReleaseStyleContext(style);
             return MOZ_GTK_SUCCESS;
         }
     case MOZ_GTK_INFO_BAR:
@@ -2125,10 +2192,24 @@ moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
         break;
     case MOZ_GTK_TOOLTIP:
         {
-            style = ClaimStyleContext(MOZ_GTK_TOOLTIP);
-            moz_gtk_add_style_border(style, left, top, right, bottom);
-            moz_gtk_add_style_padding(style, left, top, right, bottom);
-            ReleaseStyleContext(style);
+            // In GTK 3 there are 6 pixels of additional margin around the box.
+            // See details there:
+            // https://github.com/GNOME/gtk/blob/5ea69a136bd7e4970b3a800390e20314665aaed2/gtk/ui/gtktooltipwindow.ui#L11
+            *left = *right = *top = *bottom = 6;
+
+            // We also need to add margin/padding/borders from Tooltip content.
+            // Tooltip contains horizontal box, where icon and label is put.
+            // We ignore icon as long as we don't have support for it.
+            GtkStyleContext* boxStyle = ClaimStyleContext(MOZ_GTK_TOOLTIP_BOX);
+            moz_gtk_add_margin_border_padding(boxStyle,
+                                              left, top, right, bottom);
+            ReleaseStyleContext(boxStyle);
+
+            GtkStyleContext* labelStyle = ClaimStyleContext(MOZ_GTK_TOOLTIP_BOX_LABEL);
+            moz_gtk_add_margin_border_padding(labelStyle,
+                                              left, top, right, bottom);
+            ReleaseStyleContext(labelStyle);
+
             return MOZ_GTK_SUCCESS;
         }
     case MOZ_GTK_SCROLLBAR_VERTICAL:
@@ -2372,14 +2453,7 @@ moz_gtk_get_menu_separator_height(gint *size)
     gboolean  wide_separators;
     gint      separator_height;
     GtkBorder padding;
-    GtkStyleContext* style;
-    guint border_width;
-
-    border_width =
-        gtk_container_get_border_width(GTK_CONTAINER(
-                                       GetWidget(MOZ_GTK_MENUSEPARATOR)));
-
-    style = ClaimStyleContext(MOZ_GTK_MENUSEPARATOR);
+    GtkStyleContext* style = ClaimStyleContext(MOZ_GTK_MENUSEPARATOR);
     gtk_style_context_get_padding(style, GTK_STATE_FLAG_NORMAL, &padding);
 
     gtk_style_context_save(style);
@@ -2393,7 +2467,7 @@ moz_gtk_get_menu_separator_height(gint *size)
     gtk_style_context_restore(style);
     ReleaseStyleContext(style);
 
-    *size = padding.top + padding.bottom + border_width*2;
+    *size = padding.top + padding.bottom;
     *size += (wide_separators) ? separator_height : 1;
 
     return MOZ_GTK_SUCCESS;
@@ -2424,11 +2498,11 @@ void
 moz_gtk_get_scale_metrics(GtkOrientation orient, gint* scale_width,
                           gint* scale_height)
 {
-  WidgetNodeType widget = (orient == GTK_ORIENTATION_HORIZONTAL) ?
-                           MOZ_GTK_SCALE_HORIZONTAL :
-                           MOZ_GTK_SCALE_VERTICAL;
-
   if (gtk_check_version(3, 20, 0) != nullptr) {
+      WidgetNodeType widget = (orient == GTK_ORIENTATION_HORIZONTAL) ?
+                               MOZ_GTK_SCALE_HORIZONTAL :
+                               MOZ_GTK_SCALE_VERTICAL;
+
       gint thumb_length, thumb_height, trough_border;
       moz_gtk_get_scalethumb_metrics(orient, &thumb_length, &thumb_height);
 
@@ -2444,12 +2518,10 @@ moz_gtk_get_scale_metrics(GtkOrientation orient, gint* scale_width,
       }
       ReleaseStyleContext(style);
   } else {
-      GtkStyleContext* style = ClaimStyleContext(widget);
-      gtk_style_context_get(style, gtk_style_context_get_state(style),
-                            "min-width", scale_width,
-                            "min-height", scale_height,
-                            nullptr);
-      ReleaseStyleContext(style);
+      WidgetNodeType widget = (orient == GTK_ORIENTATION_HORIZONTAL) ?
+                               MOZ_GTK_SCALE_TROUGH_HORIZONTAL :
+                               MOZ_GTK_SCALE_TROUGH_VERTICAL;
+      moz_gtk_get_widget_min_size(widget, scale_width, scale_height);
   }
 }
 
@@ -2472,10 +2544,28 @@ moz_gtk_get_scalethumb_metrics(GtkOrientation orient, gint* thumb_length, gint* 
                                MOZ_GTK_SCALE_THUMB_HORIZONTAL:
                                MOZ_GTK_SCALE_THUMB_VERTICAL;
       GtkStyleContext* style = ClaimStyleContext(widget);
-      gtk_style_context_get(style, gtk_style_context_get_state(style),
-                            "min-width", thumb_length,
-                            "min-height", thumb_height,
+
+      gint min_width, min_height;
+      GtkStateFlags state = gtk_style_context_get_state(style);
+      gtk_style_context_get(style, state,
+                            "min-width", &min_width,
+                            "min-height", &min_height,
                              nullptr);
+      GtkBorder margin;
+      gtk_style_context_get_margin(style, state, &margin);
+      gint margin_width = margin.left + margin.right;
+      gint margin_height = margin.top + margin.bottom;
+
+      // Negative margin of slider element also determines its minimal size
+      // so use bigger of those two values.
+      if (min_width < -margin_width)
+          min_width = -margin_width;
+      if (min_height < -margin_height)
+          min_height = -margin_height;
+
+      *thumb_length = min_width;
+      *thumb_height = min_height;
+
       ReleaseStyleContext(style);
   }
 
@@ -2541,24 +2631,27 @@ moz_gtk_widget_paint(WidgetNodeType widget, cairo_t *cr,
         break;
     case MOZ_GTK_SCROLLBAR_HORIZONTAL:
     case MOZ_GTK_SCROLLBAR_VERTICAL:
+        if (flags & MOZ_GTK_TRACK_OPAQUE) {
+            GtkStyleContext* style =
+                ClaimStyleContext(MOZ_GTK_WINDOW, direction);
+            gtk_render_background(style, cr,
+                                  rect->x, rect->y, rect->width, rect->height);
+            ReleaseStyleContext(style);
+        }
         if (gtk_check_version(3,20,0) == nullptr) {
           return moz_gtk_scrollbar_paint(widget, cr, rect, state, direction);
         } else {
           WidgetNodeType trough_widget = (widget == MOZ_GTK_SCROLLBAR_HORIZONTAL) ?
               MOZ_GTK_SCROLLBAR_TROUGH_HORIZONTAL : MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL;
           return moz_gtk_scrollbar_trough_paint(trough_widget, cr, rect,
-                                                state,
-                                                (GtkScrollbarTrackFlags) flags,
-                                                direction);
+                                                state, direction);
         }
         break;
     case MOZ_GTK_SCROLLBAR_TROUGH_HORIZONTAL:
     case MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL:
         if (gtk_check_version(3,20,0) == nullptr) {
           return moz_gtk_scrollbar_trough_paint(widget, cr, rect,
-                                                state,
-                                                (GtkScrollbarTrackFlags) flags,
-                                                direction);
+                                                state, direction);
         }
         break;
     case MOZ_GTK_SCROLLBAR_THUMB_HORIZONTAL:
@@ -2715,10 +2808,8 @@ moz_gtk_widget_paint(WidgetNodeType widget, cairo_t *cr,
         break;
     case MOZ_GTK_CHECKMENUITEM:
     case MOZ_GTK_RADIOMENUITEM:
-        return moz_gtk_check_menu_item_paint(cr, rect, state,
-                                             (gboolean) flags,
-                                             (widget == MOZ_GTK_RADIOMENUITEM),
-                                             direction);
+        return moz_gtk_check_menu_item_paint(widget, cr, rect, state,
+                                             (gboolean) flags, direction);
         break;
     case MOZ_GTK_SPLITTER_HORIZONTAL:
         return moz_gtk_vpaned_paint(cr, rect, state);

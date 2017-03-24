@@ -111,7 +111,7 @@ var Prefs = {
   get enabled() { this.ensureInitialized(); return this._enabled; },
   get expireDays() { this.ensureInitialized(); return this._expireDays; },
 
-  ensureInitialized: function() {
+  ensureInitialized() {
     if (this.initialized)
       return;
 
@@ -135,14 +135,12 @@ function sendNotification(aType, aData) {
                      createInstance(Ci.nsISupportsString);
     strWrapper.data = aData;
     aData = strWrapper;
-  }
-  else if (typeof aData == "number") {
+  } else if (typeof aData == "number") {
     let intWrapper = Cc["@mozilla.org/supports-PRInt64;1"].
                      createInstance(Ci.nsISupportsPRInt64);
     intWrapper.data = aData;
     aData = intWrapper;
-  }
-  else if (aData) {
+  } else if (aData) {
     throw Components.Exception("Invalid type " + (typeof aType) + " passed to sendNotification",
                                Cr.NS_ERROR_ILLEGAL_VALUE);
   }
@@ -155,34 +153,34 @@ function sendNotification(aType, aData) {
  */
 
 const dbSchema = {
-  tables : {
-    moz_formhistory : {
-      "id"        : "INTEGER PRIMARY KEY",
-      "fieldname" : "TEXT NOT NULL",
-      "value"     : "TEXT NOT NULL",
-      "timesUsed" : "INTEGER",
-      "firstUsed" : "INTEGER",
-      "lastUsed"  : "INTEGER",
-      "guid"      : "TEXT",
+  tables: {
+    moz_formhistory: {
+      "id": "INTEGER PRIMARY KEY",
+      "fieldname": "TEXT NOT NULL",
+      "value": "TEXT NOT NULL",
+      "timesUsed": "INTEGER",
+      "firstUsed": "INTEGER",
+      "lastUsed": "INTEGER",
+      "guid": "TEXT",
     },
     moz_deleted_formhistory: {
-        "id"          : "INTEGER PRIMARY KEY",
-        "timeDeleted" : "INTEGER",
-        "guid"        : "TEXT"
+        "id": "INTEGER PRIMARY KEY",
+        "timeDeleted": "INTEGER",
+        "guid": "TEXT"
     }
   },
-  indices : {
-    moz_formhistory_index : {
-      table   : "moz_formhistory",
-      columns : [ "fieldname" ]
+  indices: {
+    moz_formhistory_index: {
+      table: "moz_formhistory",
+      columns: [ "fieldname" ]
     },
-    moz_formhistory_lastused_index : {
-      table   : "moz_formhistory",
-      columns : [ "lastUsed" ]
+    moz_formhistory_lastused_index: {
+      table: "moz_formhistory",
+      columns: [ "lastUsed" ]
     },
-    moz_formhistory_guid_index : {
-      table   : "moz_formhistory",
-      columns : [ "guid" ]
+    moz_formhistory_guid_index: {
+      table: "moz_formhistory",
+      columns: [ "guid" ]
     },
   }
 };
@@ -234,7 +232,7 @@ function validateSearchData(aData, aDataType) {
   }
 }
 
-function makeQueryPredicates(aQueryData, delimiter = ' AND ') {
+function makeQueryPredicates(aQueryData, delimiter = " AND ") {
   return Object.keys(aQueryData).map(function(field) {
     if (field == "firstUsedStart") {
       return "firstUsed >= :" + field;
@@ -285,8 +283,8 @@ function makeAddStatement(aNewData, aNow, aBindingArrays) {
 function makeBumpStatement(aGuid, aNow, aBindingArrays) {
   let query = "UPDATE moz_formhistory SET timesUsed = timesUsed + 1, lastUsed = :lastUsed WHERE guid = :guid";
   let queryParams = {
-    lastUsed : aNow,
-    guid : aGuid,
+    lastUsed: aNow,
+    guid: aGuid,
   };
 
   return dbCreateAsyncStatement(query, queryParams, aBindingArrays);
@@ -310,7 +308,7 @@ function makeRemoveStatement(aSearchData, aBindingArrays) {
 
 function makeUpdateStatement(aGuid, aNewData, aBindingArrays) {
   let query = "UPDATE moz_formhistory SET ";
-  let queryTerms = makeQueryPredicates(aNewData, ', ');
+  let queryTerms = makeQueryPredicates(aNewData, ", ");
 
   if (!queryTerms) {
     throw Components.Exception("Update query must define fields to modify.",
@@ -352,7 +350,7 @@ function generateGUID() {
   let uuid = uuidService.generateUUID().toString();
   let raw = ""; // A string with the low bytes set to random values
   let bytes = 0;
-  for (let i = 1; bytes < 12 ; i+= 2) {
+  for (let i = 1; bytes < 12 ; i += 2) {
     // Skip dashes
     if (uuid[i] == "-")
       i++;
@@ -509,7 +507,7 @@ function dbMigrate(oldVersion) {
       Migrators["dbMigrateToVersion" + v]();
     }
   } catch (e) {
-    this.log("Migration failed: "  + e);
+    this.log("Migration failed: " + e);
     this.dbConnection.rollbackTransaction();
     throw e;
   }
@@ -689,7 +687,7 @@ function updateFormHistoryWrite(aChanges, aCallbacks) {
   }
 
   let handlers = {
-    handleCompletion : function(aReason) {
+    handleCompletion(aReason) {
       if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
         for (let [notification, param] of notifications) {
           // We're either sending a GUID or nothing at all.
@@ -701,12 +699,12 @@ function updateFormHistoryWrite(aChanges, aCallbacks) {
         aCallbacks.handleCompletion(aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED ? 0 : 1);
       }
     },
-    handleError : function(aError) {
+    handleError(aError) {
       if (aCallbacks && aCallbacks.handleError) {
         aCallbacks.handleError(aError);
       }
     },
-    handleResult : NOOP
+    handleResult: NOOP
   };
 
   dbConnection.executeAsync(stmts, stmts.length, handlers);
@@ -728,12 +726,12 @@ function expireOldEntriesDeletion(aExpireTime, aBeginningCount) {
   FormHistory.update([
     {
       op: "remove",
-      lastUsedEnd : aExpireTime,
+      lastUsedEnd: aExpireTime,
     }], {
-      handleCompletion: function() {
+      handleCompletion() {
         expireOldEntriesVacuum(aExpireTime, aBeginningCount);
       },
-      handleError: function(aError) {
+      handleError(aError) {
         log("expireOldEntriesDeletionFailure");
       }
   });
@@ -746,23 +744,23 @@ function expireOldEntriesDeletion(aExpireTime, aBeginningCount) {
  */
 function expireOldEntriesVacuum(aExpireTime, aBeginningCount) {
   FormHistory.count({}, {
-    handleResult: function(aEndingCount) {
+    handleResult(aEndingCount) {
       if (aBeginningCount - aEndingCount > 500) {
         log("expireOldEntriesVacuum");
 
         let stmt = dbCreateAsyncStatement("VACUUM");
         stmt.executeAsync({
-          handleResult : NOOP,
-          handleError : function(aError) {
+          handleResult: NOOP,
+          handleError(aError) {
             log("expireVacuumError");
           },
-          handleCompletion : NOOP
+          handleCompletion: NOOP
         });
       }
 
       sendNotification("formhistory-expireoldentries", aExpireTime);
     },
-    handleError: function(aError) {
+    handleError(aError) {
       log("expireEndCountFailure");
     }
   });
@@ -773,16 +771,15 @@ this.FormHistory = {
     return Prefs.enabled;
   },
 
-  search : function formHistorySearch(aSelectTerms, aSearchData, aCallbacks) {
+  search: function formHistorySearch(aSelectTerms, aSearchData, aCallbacks) {
     // if no terms selected, select everything
-    aSelectTerms = (aSelectTerms) ?  aSelectTerms : validFields;
+    aSelectTerms = (aSelectTerms) ? aSelectTerms : validFields;
     validateSearchData(aSearchData, "Search");
 
     let stmt = makeSearchStatement(aSearchData, aSelectTerms);
 
     let handlers = {
-      handleResult : function(aResultSet) {
-        let formHistoryFields = dbSchema.tables.moz_formhistory;
+      handleResult(aResultSet) {
         for (let row = aResultSet.getNextRow(); row; row = aResultSet.getNextRow()) {
           let result = {};
           for (let field of aSelectTerms) {
@@ -795,13 +792,13 @@ this.FormHistory = {
         }
       },
 
-      handleError : function(aError) {
+      handleError(aError) {
         if (aCallbacks && aCallbacks.handleError) {
           aCallbacks.handleError(aError);
         }
       },
 
-      handleCompletion : function searchCompletionHandler(aReason) {
+      handleCompletion: function searchCompletionHandler(aReason) {
         if (aCallbacks && aCallbacks.handleCompletion) {
           aCallbacks.handleCompletion(aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED ? 0 : 1);
         }
@@ -811,11 +808,11 @@ this.FormHistory = {
     stmt.executeAsync(handlers);
   },
 
-  count : function formHistoryCount(aSearchData, aCallbacks) {
+  count: function formHistoryCount(aSearchData, aCallbacks) {
     validateSearchData(aSearchData, "Count");
     let stmt = makeCountStatement(aSearchData);
     let handlers = {
-      handleResult : function countResultHandler(aResultSet) {
+      handleResult: function countResultHandler(aResultSet) {
         let row = aResultSet.getNextRow();
         let count = row.getResultByName("numEntries");
         if (aCallbacks && aCallbacks.handleResult) {
@@ -823,13 +820,13 @@ this.FormHistory = {
         }
       },
 
-      handleError : function(aError) {
+      handleError(aError) {
         if (aCallbacks && aCallbacks.handleError) {
           aCallbacks.handleError(aError);
         }
       },
 
-      handleCompletion : function searchCompletionHandler(aReason) {
+      handleCompletion: function searchCompletionHandler(aReason) {
         if (aCallbacks && aCallbacks.handleCompletion) {
           aCallbacks.handleCompletion(aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED ? 0 : 1);
         }
@@ -839,7 +836,7 @@ this.FormHistory = {
     stmt.executeAsync(handlers);
   },
 
-  update : function formHistoryUpdate(aChanges, aCallbacks) {
+  update: function formHistoryUpdate(aChanges, aCallbacks) {
     // Used to keep track of how many searches have been started. When that number
     // are finished, updateFormHistoryWrite can be called.
     let numSearches = 0;
@@ -918,18 +915,18 @@ this.FormHistory = {
       FormHistory.search(
         [ "guid" ],
         {
-          fieldname : change.fieldname,
-          value : change.value
+          fieldname: change.fieldname,
+          value: change.value
         }, {
-          foundResult : false,
-          handleResult : function(aResult) {
+          foundResult: false,
+          handleResult(aResult) {
             if (this.foundResult) {
               log("Database contains multiple entries with the same fieldname/value pair.");
               if (aCallbacks && aCallbacks.handleError) {
                 aCallbacks.handleError({
-                  message :
+                  message:
                     "Database contains multiple entries with the same fieldname/value pair.",
-                  result : 19 // Constraint violation
+                  result: 19 // Constraint violation
                 });
               }
 
@@ -941,19 +938,18 @@ this.FormHistory = {
             changeToUpdate.guid = aResult["guid"];
           },
 
-          handleError : function(aError) {
+          handleError(aError) {
             if (aCallbacks && aCallbacks.handleError) {
               aCallbacks.handleError(aError);
             }
           },
 
-          handleCompletion : function(aReason) {
+          handleCompletion(aReason) {
             completedSearches++;
             if (completedSearches == numSearches) {
               if (!aReason && !searchFailed) {
                 updateFormHistoryWrite(aChanges, aCallbacks);
-              }
-              else if (aCallbacks && aCallbacks.handleCompletion) {
+              } else if (aCallbacks && aCallbacks.handleCompletion) {
                 aCallbacks.handleCompletion(1);
               }
             }
@@ -1017,9 +1013,9 @@ this.FormHistory = {
                 "SELECT value, " +
                 "ROUND( " +
                     "timesUsed / MAX(1.0, (lastUsed - firstUsed) / :timeGroupingSize) * " +
-                    "MAX(1.0, :maxTimeGroupings - (:now - lastUsed) / :timeGroupingSize) * "+
+                    "MAX(1.0, :maxTimeGroupings - (:now - lastUsed) / :timeGroupingSize) * " +
                     "MAX(1.0, :agedWeight * (firstUsed < :expiryDate)) / " +
-                    ":bucketSize "+
+                    ":bucketSize " +
                 ", 3) AS frecency, " +
                 boundaryCalc + " AS boundaryBonuses " +
                 "FROM moz_formhistory " +
@@ -1046,15 +1042,15 @@ this.FormHistory = {
     }
 
     let pending = stmt.executeAsync({
-      handleResult : function (aResultSet) {
+      handleResult(aResultSet) {
         for (let row = aResultSet.getNextRow(); row; row = aResultSet.getNextRow()) {
           let value = row.getResultByName("value");
           let frecency = row.getResultByName("frecency");
           let entry = {
-            text :          value,
-            textLowerCase : value.toLowerCase(),
-            frecency :      frecency,
-            totalScore :    Math.round(frecency * row.getResultByName("boundaryBonuses"))
+            text:          value,
+            textLowerCase: value.toLowerCase(),
+            frecency,
+            totalScore:    Math.round(frecency * row.getResultByName("boundaryBonuses"))
           };
           if (aCallbacks && aCallbacks.handleResult) {
             aCallbacks.handleResult(entry);
@@ -1062,13 +1058,13 @@ this.FormHistory = {
         }
       },
 
-      handleError : function (aError) {
+      handleError(aError) {
         if (aCallbacks && aCallbacks.handleError) {
           aCallbacks.handleError(aError);
         }
       },
 
-      handleCompletion : function (aReason) {
+      handleCompletion(aReason) {
         if (aCallbacks && aCallbacks.handleCompletion) {
           aCallbacks.handleCompletion(aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED ? 0 : 1);
         }
@@ -1104,10 +1100,10 @@ this.FormHistory = {
     sendNotification("formhistory-beforeexpireoldentries", expireTime);
 
     FormHistory.count({}, {
-      handleResult: function(aBeginningCount) {
+      handleResult(aBeginningCount) {
         expireOldEntriesDeletion(expireTime, aBeginningCount);
       },
-      handleError: function(aError) {
+      handleError(aError) {
         log("expireStartCountFailure");
       }
     });

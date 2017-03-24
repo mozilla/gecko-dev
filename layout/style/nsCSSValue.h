@@ -8,8 +8,6 @@
 #ifndef nsCSSValue_h___
 #define nsCSSValue_h___
 
-#include <type_traits>
-
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/SheetType.h"
@@ -30,9 +28,13 @@
 #include "nsStringBuffer.h"
 #include "nsTArray.h"
 #include "nsStyleConsts.h"
+#include "nsStyleCoord.h"
 #include "gfxFontFamilyList.h"
 
+#include <type_traits>
+
 class imgRequestProxy;
+class nsIAtom;
 class nsIContent;
 class nsIDocument;
 class nsIPrincipal;
@@ -136,6 +138,8 @@ public:
   nsIURI* GetURI() const;
 
   bool IsLocalRef() const { return mIsLocalRef; }
+
+  bool HasRef() const;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(URLValueData)
 
@@ -298,35 +302,25 @@ class FontFamilyListRefCnt final : public FontFamilyList {
 public:
     FontFamilyListRefCnt()
         : FontFamilyList()
-    {
-        MOZ_COUNT_CTOR(FontFamilyListRefCnt);
-    }
+    {}
 
     explicit FontFamilyListRefCnt(FontFamilyType aGenericType)
         : FontFamilyList(aGenericType)
-    {
-        MOZ_COUNT_CTOR(FontFamilyListRefCnt);
-    }
+    {}
 
     FontFamilyListRefCnt(const nsAString& aFamilyName,
                          QuotedName aQuoted)
         : FontFamilyList(aFamilyName, aQuoted)
-    {
-        MOZ_COUNT_CTOR(FontFamilyListRefCnt);
-    }
+    {}
 
     FontFamilyListRefCnt(const FontFamilyListRefCnt& aOther)
         : FontFamilyList(aOther)
-    {
-        MOZ_COUNT_CTOR(FontFamilyListRefCnt);
-    }
+    {}
 
     NS_INLINE_DECL_REFCOUNTING(FontFamilyListRefCnt);
 
 private:
-    ~FontFamilyListRefCnt() {
-        MOZ_COUNT_DTOR(FontFamilyListRefCnt);
-    }
+    ~FontFamilyListRefCnt() {}
 };
 
 struct RGBAColorData
@@ -449,9 +443,9 @@ enum nsCSSUnit {
   eCSSUnit_Font_Format  = 16,     // (char16_t*) a font format name
   eCSSUnit_Element      = 17,     // (char16_t*) an element id
 
-  eCSSUnit_Array        = 20,     // (nsCSSValue::Array*) a list of values
-  eCSSUnit_Counter      = 21,     // (nsCSSValue::Array*) a counter(string,[string]) value
-  eCSSUnit_Counters     = 22,     // (nsCSSValue::Array*) a counters(string,string[,string]) value
+  eCSSUnit_Counter      = 20,     // (nsCSSValue::ThreadSafeArray*) a counter(string,[string]) value
+  eCSSUnit_Counters     = 21,     // (nsCSSValue::ThreadSafeArray*) a counters(string,string[,string]) value
+  eCSSUnit_Array        = 22,     // (nsCSSValue::Array*) a list of values
   eCSSUnit_Cubic_Bezier = 23,     // (nsCSSValue::Array*) a list of float values
   eCSSUnit_Steps        = 24,     // (nsCSSValue::Array*) a list of (integer, enumerated)
   eCSSUnit_Symbols      = 25,     // (nsCSSValue::Array*) a symbols(enumerated, symbols) value
@@ -497,6 +491,9 @@ enum nsCSSUnit {
                                   //   but does not own the list
 
   eCSSUnit_FontFamilyList = 58,   // (FontFamilyList*) value
+
+  // Atom units
+  eCSSUnit_AtomIdent    = 60,     // (nsIAtom*) for its string as an identifier
 
   eCSSUnit_Integer      = 70,     // (int) simple value
   eCSSUnit_Enumerated   = 71,     // (int) value has enumerated meaning
@@ -585,6 +582,8 @@ class nsCSSValue {
 public:
   struct Array;
   friend struct Array;
+  struct ThreadSafeArray;
+  friend struct ThreadSafeArray;
 
   friend struct mozilla::css::URLValueData;
 
@@ -682,6 +681,8 @@ public:
 
   bool      UnitHasStringValue() const
     { return eCSSUnit_String <= mUnit && mUnit <= eCSSUnit_Element; }
+  bool      UnitHasThreadSafeArrayValue() const
+    { return eCSSUnit_Counter <= mUnit && mUnit <= eCSSUnit_Counters; }
   bool      UnitHasArrayValue() const
     { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Divided; }
 
@@ -786,6 +787,12 @@ public:
     return mValue.mArray;
   }
 
+  ThreadSafeArray* GetThreadSafeArrayValue() const
+  {
+    MOZ_ASSERT(UnitHasThreadSafeArrayValue(), "not a threadsafe array value");
+    return mValue.mThreadSafeArray;
+  }
+
   nsIURI* GetURLValue() const
   {
     MOZ_ASSERT(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
@@ -887,6 +894,11 @@ public:
     return mValue.mFloatColor;
   }
 
+  nsIAtom* GetAtomValue() const {
+    MOZ_ASSERT(mUnit == eCSSUnit_AtomIdent);
+    return mValue.mAtom;
+  }
+
   void Reset()  // sets to null
   {
     if (mUnit != eCSSUnit_Null)
@@ -899,17 +911,19 @@ public:
   void SetIntValue(int32_t aValue, nsCSSUnit aUnit);
   template<typename T,
            typename = typename std::enable_if<std::is_enum<T>::value>::type>
-  void SetIntValue(T aValue, nsCSSUnit aUnit)
+  void SetEnumValue(T aValue)
   {
     static_assert(mozilla::EnumTypeFitsWithin<T, int32_t>::value,
                   "aValue must be an enum that fits within mValue.mInt");
-    SetIntValue(static_cast<int32_t>(aValue), aUnit);
+    SetIntValue(static_cast<int32_t>(aValue), eCSSUnit_Enumerated);
   }
   void SetPercentValue(float aValue);
   void SetFloatValue(float aValue, nsCSSUnit aUnit);
   void SetStringValue(const nsString& aValue, nsCSSUnit aUnit);
   void SetColorValue(nscolor aValue);
   void SetIntegerColorValue(nscolor aValue, nsCSSUnit aUnit);
+  // converts the nscoord to pixels
+  void SetIntegerCoordValue(nscoord aCoord);
   void SetFloatColorValue(float aComponent1,
                           float aComponent2,
                           float aComponent3,
@@ -918,6 +932,7 @@ public:
   void SetComplexColorValue(
     already_AddRefed<mozilla::css::ComplexColorValue> aValue);
   void SetArrayValue(nsCSSValue::Array* aArray, nsCSSUnit aUnit);
+  void SetThreadSafeArrayValue(nsCSSValue::ThreadSafeArray* aArray, nsCSSUnit aUnit);
   void SetURLValue(mozilla::css::URLValue* aURI);
   void SetImageValue(mozilla::css::ImageValue* aImage);
   void SetGradientValue(nsCSSValueGradient* aGradient);
@@ -942,6 +957,11 @@ public:
   void SetDummyValue();
   void SetDummyInheritValue();
 
+  // Converts an nsStyleCoord::CalcValue back into a CSSValue
+  void SetCalcValue(const nsStyleCoord::CalcValue* aCalc);
+
+  nsStyleCoord::CalcValue GetCalcValue() const;
+
   // These are a little different - they allocate storage for you and
   // return a handle.
   nsCSSRect& SetRectValue();
@@ -963,6 +983,9 @@ public:
   // (Will abort on allocation failure.)
   static already_AddRefed<nsStringBuffer>
     BufferFromString(const nsString& aValue);
+
+  // Convert the given Ident value into AtomIdent.
+  void AtomizeIdentValue();
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -1008,7 +1031,9 @@ protected:
     // If we're of a string type, mString is not null.
     nsStringBuffer* MOZ_OWNING_REF mString;
     nscolor    mColor;
+    nsIAtom* MOZ_OWNING_REF mAtom;
     Array* MOZ_OWNING_REF mArray;
+    ThreadSafeArray* MOZ_OWNING_REF mThreadSafeArray;
     mozilla::css::URLValue* MOZ_OWNING_REF mURL;
     mozilla::css::ImageValue* MOZ_OWNING_REF mImage;
     mozilla::css::GridTemplateAreasValue* MOZ_OWNING_REF mGridTemplateAreas;
@@ -1028,114 +1053,103 @@ protected:
   } mValue;
 };
 
-struct nsCSSValue::Array final {
-
-  // return |Array| with reference count of zero
-  static Array* Create(size_t aItemCount) {
-    return new (aItemCount) Array(aItemCount);
-  }
-
-  nsCSSValue& operator[](size_t aIndex) {
-    MOZ_ASSERT(aIndex < mCount, "out of range");
-    return mArray[aIndex];
-  }
-
-  const nsCSSValue& operator[](size_t aIndex) const {
-    MOZ_ASSERT(aIndex < mCount, "out of range");
-    return mArray[aIndex];
-  }
-
-  nsCSSValue& Item(size_t aIndex) { return (*this)[aIndex]; }
-  const nsCSSValue& Item(size_t aIndex) const { return (*this)[aIndex]; }
-
-  size_t Count() const { return mCount; }
-
-  // callers depend on the items being contiguous
-  nsCSSValue* ItemStorage() {
-    return this->First();
-  }
-
-  bool operator==(const Array& aOther) const
-  {
-    if (mCount != aOther.mCount)
-      return false;
-    for (size_t i = 0; i < mCount; ++i)
-      if ((*this)[i] != aOther[i])
-        return false;
-    return true;
-  }
-
-  // XXXdholbert This uses a size_t ref count. Should we use a variant
-  // of NS_INLINE_DECL_REFCOUNTING that takes a type as an argument?
-  void AddRef() {
-    if (mRefCnt == size_t(-1)) { // really want SIZE_MAX
-      NS_WARNING("refcount overflow, leaking nsCSSValue::Array");
-      return;
-    }
-    ++mRefCnt;
-    NS_LOG_ADDREF(this, mRefCnt, "nsCSSValue::Array", sizeof(*this));
-  }
-  void Release() {
-    if (mRefCnt == size_t(-1)) { // really want SIZE_MAX
-      NS_WARNING("refcount overflow, leaking nsCSSValue::Array");
-      return;
-    }
-    --mRefCnt;
-    NS_LOG_RELEASE(this, mRefCnt, "nsCSSValue::Array");
-    if (mRefCnt == 0)
-      delete this;
-  }
-
-private:
-
-  size_t mRefCnt;
-  const size_t mCount;
-  // This must be the last sub-object, since we extend this array to
-  // be of size mCount; it needs to be a sub-object so it gets proper
-  // alignment.
-  nsCSSValue mArray[1];
-
-  void* operator new(size_t aSelfSize, size_t aItemCount) CPP_THROW_NEW {
-    MOZ_ASSERT(aItemCount > 0, "cannot have a 0 item count");
-    return ::operator new(aSelfSize + sizeof(nsCSSValue) * (aItemCount - 1));
-  }
-
-  void operator delete(void* aPtr) { ::operator delete(aPtr); }
-
-  nsCSSValue* First() { return mArray; }
-
-  const nsCSSValue* First() const { return mArray; }
-
-#define CSSVALUE_LIST_FOR_EXTRA_VALUES(var)                                   \
-  for (nsCSSValue *var = First() + 1, *var##_end = First() + mCount;          \
-       var != var##_end; ++var)
-
-  explicit Array(size_t aItemCount)
-    : mRefCnt(0)
-    , mCount(aItemCount)
-  {
-    MOZ_COUNT_CTOR(nsCSSValue::Array);
-    CSSVALUE_LIST_FOR_EXTRA_VALUES(val) {
-      new (val) nsCSSValue();
-    }
-  }
-
-  ~Array()
-  {
-    MOZ_COUNT_DTOR(nsCSSValue::Array);
-    CSSVALUE_LIST_FOR_EXTRA_VALUES(val) {
-      val->~nsCSSValue();
-    }
-  }
-
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
-
-#undef CSSVALUE_LIST_FOR_EXTRA_VALUES
-
-private:
-  Array(const Array& aOther) = delete;
-  Array& operator=(const Array& aOther) = delete;
+// We use this macro to declare equivalent logic for Array and ThreadSafeArray.
+// It would be much nicer to use a superclass, but the dynamically-sized nature
+// of the interesting part of the class makes that tricky.
+#define DECLARE_CSS_ARRAY(className, refcntMacro)                             \
+struct nsCSSValue::className final {                                          \
+                                                                              \
+  /* return this class with reference count of zero */                        \
+  static className* Create(size_t aItemCount) {                               \
+    return new (aItemCount) className(aItemCount);                            \
+  }                                                                           \
+                                                                              \
+  nsCSSValue& operator[](size_t aIndex) {                                     \
+    MOZ_ASSERT(aIndex < mCount, "out of range");                              \
+    return mArray[aIndex];                                                    \
+  }                                                                           \
+                                                                              \
+  const nsCSSValue& operator[](size_t aIndex) const {                         \
+    MOZ_ASSERT(aIndex < mCount, "out of range");                              \
+    return mArray[aIndex];                                                    \
+  }                                                                           \
+                                                                              \
+  nsCSSValue& Item(size_t aIndex) { return (*this)[aIndex]; }                 \
+  const nsCSSValue& Item(size_t aIndex) const { return (*this)[aIndex]; }     \
+                                                                              \
+  size_t Count() const { return mCount; }                                     \
+                                                                              \
+  /* callers depend on the items being contiguous */                          \
+  nsCSSValue* ItemStorage() {                                                 \
+    return this->First();                                                     \
+  }                                                                           \
+                                                                              \
+  bool operator==(const className& aOther) const                              \
+  {                                                                           \
+    if (mCount != aOther.mCount)                                              \
+      return false;                                                           \
+    for (size_t i = 0; i < mCount; ++i)                                       \
+      if ((*this)[i] != aOther[i])                                            \
+        return false;                                                         \
+    return true;                                                              \
+  }                                                                           \
+                                                                              \
+  refcntMacro(className);                                                     \
+private:                                                                      \
+                                                                              \
+  const size_t mCount;                                                        \
+  /* This must be the last sub-object, since we extend this array to  */      \
+  /* be of size mCount; it needs to be a sub-object so it gets proper */      \
+  /* alignment. */                                                            \
+  nsCSSValue mArray[1];                                                       \
+                                                                              \
+  void* operator new(size_t aSelfSize, size_t aItemCount) CPP_THROW_NEW {     \
+    MOZ_ASSERT(aItemCount > 0, "cannot have a 0 item count");                 \
+    return ::operator new(aSelfSize + sizeof(nsCSSValue) * (aItemCount - 1)); \
+  }                                                                           \
+                                                                              \
+  void operator delete(void* aPtr) { ::operator delete(aPtr); }               \
+                                                                              \
+  nsCSSValue* First() { return mArray; }                                      \
+                                                                              \
+  const nsCSSValue* First() const { return mArray; }                          \
+                                                                              \
+  explicit className(size_t aItemCount)                                       \
+    : mCount(aItemCount)                                                      \
+  {                                                                           \
+    for (nsCSSValue *val = First() + 1, *val_end = First() + mCount;          \
+         val != val_end; ++val)                                               \
+    {                                                                         \
+      new (val) nsCSSValue();                                                 \
+    }                                                                         \
+  }                                                                           \
+                                                                              \
+  ~className()                                                                \
+  {                                                                           \
+    for (nsCSSValue *val = First() + 1, *val_end = First() + mCount;          \
+         val != val_end; ++val)                                               \
+    {                                                                         \
+      val->~nsCSSValue();                                                     \
+    }                                                                         \
+  }                                                                           \
+                                                                              \
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const       \
+  {                                                                           \
+    size_t n = aMallocSizeOf(this);                                           \
+    for (size_t i = 0; i < mCount; i++) {                                     \
+      n += mArray[i].SizeOfExcludingThis(aMallocSizeOf);                      \
+    }                                                                         \
+    return n;                                                                 \
+  }                                                                           \
+                                                                              \
+private:                                                                      \
+  className(const className& aOther) = delete;                                \
+  className& operator=(const className& aOther) = delete;                     \
 };
+
+DECLARE_CSS_ARRAY(Array, NS_INLINE_DECL_REFCOUNTING)
+DECLARE_CSS_ARRAY(ThreadSafeArray, NS_INLINE_DECL_THREADSAFE_REFCOUNTING)
+#undef DECLARE_CSS_ARRAY
 
 // Prefer nsCSSValue::Array for lists of fixed size.
 struct nsCSSValueList {
@@ -1192,14 +1206,12 @@ struct nsCSSValueSharedList final {
   nsCSSValueSharedList()
     : mHead(nullptr)
   {
-    MOZ_COUNT_CTOR(nsCSSValueSharedList);
   }
 
   // Takes ownership of aList.
   explicit nsCSSValueSharedList(nsCSSValueList* aList)
     : mHead(aList)
   {
-    MOZ_COUNT_CTOR(nsCSSValueSharedList);
   }
 
 private:
@@ -1207,7 +1219,7 @@ private:
   ~nsCSSValueSharedList();
 
 public:
-  NS_INLINE_DECL_REFCOUNTING(nsCSSValueSharedList)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsCSSValueSharedList)
 
   void AppendToString(nsCSSPropertyID aProperty, nsAString& aResult,
                       nsCSSValue::Serialization aValueSerialization) const;
@@ -1836,16 +1848,12 @@ public:
     , mComponent2(aComponent2)
     , mComponent3(aComponent3)
     , mAlpha(aAlpha)
-  {
-    MOZ_COUNT_CTOR(nsCSSValueFloatColor);
-  }
+  {}
 
 private:
   // Private destructor, to discourage deletion outside of Release():
   ~nsCSSValueFloatColor()
-  {
-    MOZ_COUNT_DTOR(nsCSSValueFloatColor);
-  }
+  {}
 
 public:
   bool operator==(nsCSSValueFloatColor& aOther) const;

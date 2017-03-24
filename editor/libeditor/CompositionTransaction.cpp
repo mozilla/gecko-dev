@@ -6,6 +6,7 @@
 #include "CompositionTransaction.h"
 
 #include "mozilla/EditorBase.h"         // mEditorBase
+#include "mozilla/SelectionState.h"     // RangeUpdater
 #include "mozilla/dom/Selection.h"      // local var
 #include "mozilla/dom/Text.h"           // mTextNode
 #include "nsAString.h"                  // params
@@ -25,15 +26,18 @@ CompositionTransaction::CompositionTransaction(
                           uint32_t aReplaceLength,
                           TextRangeArray* aTextRangeArray,
                           const nsAString& aStringToInsert,
-                          EditorBase& aEditorBase)
+                          EditorBase& aEditorBase,
+                          RangeUpdater* aRangeUpdater)
   : mTextNode(&aTextNode)
   , mOffset(aOffset)
   , mReplaceLength(aReplaceLength)
   , mRanges(aTextRangeArray)
   , mStringToInsert(aStringToInsert)
-  , mEditorBase(aEditorBase)
+  , mEditorBase(&aEditorBase)
+  , mRangeUpdater(aRangeUpdater)
   , mFixed(false)
 {
+  MOZ_ASSERT(mTextNode->TextLength() >= mOffset);
 }
 
 CompositionTransaction::~CompositionTransaction()
@@ -41,6 +45,7 @@ CompositionTransaction::~CompositionTransaction()
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(CompositionTransaction, EditTransactionBase,
+                                   mEditorBase,
                                    mTextNode)
 // mRangeList can't lead to cycles
 
@@ -56,9 +61,13 @@ NS_IMPL_RELEASE_INHERITED(CompositionTransaction, EditTransactionBase)
 NS_IMETHODIMP
 CompositionTransaction::DoTransaction()
 {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // Fail before making any changes if there's no selection controller
   nsCOMPtr<nsISelectionController> selCon;
-  mEditorBase.GetSelectionController(getter_AddRefs(selCon));
+  mEditorBase->GetSelectionController(getter_AddRefs(selCon));
   NS_ENSURE_TRUE(selCon, NS_ERROR_NOT_INITIALIZED);
 
   // Advance caret: This requires the presentation shell to get the selection.
@@ -67,11 +76,31 @@ CompositionTransaction::DoTransaction()
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
+    mRangeUpdater->SelAdjInsertText(*mTextNode, mOffset, mStringToInsert);
   } else {
+    uint32_t replaceableLength = mTextNode->TextLength() - mOffset;
     nsresult rv =
       mTextNode->ReplaceData(mOffset, mReplaceLength, mStringToInsert);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
+    }
+    mRangeUpdater->SelAdjDeleteText(mTextNode, mOffset, mReplaceLength);
+    mRangeUpdater->SelAdjInsertText(*mTextNode, mOffset, mStringToInsert);
+
+    // If IME text node is multiple node, ReplaceData doesn't remove all IME
+    // text.  So we need remove remained text into other text node.
+    if (replaceableLength < mReplaceLength) {
+      int32_t remainLength = mReplaceLength - replaceableLength;
+      nsCOMPtr<nsINode> node = mTextNode->GetNextSibling();
+      while (node && node->IsNodeOfType(nsINode::eTEXT) &&
+             remainLength > 0) {
+        Text* text = static_cast<Text*>(node.get());
+        uint32_t textLength = text->TextLength();
+        text->DeleteData(0, remainLength);
+        mRangeUpdater->SelAdjDeleteText(text, 0, remainLength);
+        remainLength -= textLength;
+        node = node->GetNextSibling();
+      }
     }
   }
 
@@ -84,9 +113,13 @@ CompositionTransaction::DoTransaction()
 NS_IMETHODIMP
 CompositionTransaction::UndoTransaction()
 {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // Get the selection first so we'll fail before making any changes if we
   // can't get it
-  RefPtr<Selection> selection = mEditorBase.GetSelection();
+  RefPtr<Selection> selection = mEditorBase->GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NOT_INITIALIZED);
 
   nsresult rv = mTextNode->DeleteData(mOffset, mStringToInsert.Length());
@@ -147,7 +180,10 @@ CompositionTransaction::GetTxnDescription(nsAString& aString)
 nsresult
 CompositionTransaction::SetSelectionForRanges()
 {
-  return SetIMESelection(mEditorBase, mTextNode, mOffset,
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  return SetIMESelection(*mEditorBase, mTextNode, mOffset,
                          mStringToInsert.Length(), mRanges);
 }
 

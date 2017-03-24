@@ -8,6 +8,7 @@
 
 #include "frontend/TokenStream.h"
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/IntegerTypeTraits.h"
 #include "mozilla/PodOperations.h"
 
@@ -23,80 +24,81 @@
 #include "jsnum.h"
 
 #include "frontend/BytecodeCompiler.h"
+#include "frontend/ReservedWords.h"
 #include "js/CharacterEncoding.h"
 #include "js/UniquePtr.h"
 #include "vm/HelperThreads.h"
-#include "vm/Keywords.h"
 #include "vm/StringBuffer.h"
 #include "vm/Unicode.h"
 
 using namespace js;
 using namespace js::frontend;
 
+using mozilla::ArrayLength;
 using mozilla::Maybe;
 using mozilla::PodAssign;
 using mozilla::PodCopy;
 using mozilla::PodZero;
 
-struct KeywordInfo {
-    const char* chars;         // C string with keyword text
+struct ReservedWordInfo {
+    const char* chars;         // C string with reserved word text
     TokenKind   tokentype;
 };
 
-static const KeywordInfo keywords[] = {
-#define KEYWORD_INFO(keyword, name, type) \
-    {js_##keyword##_str, type},
-    FOR_EACH_JAVASCRIPT_KEYWORD(KEYWORD_INFO)
-#undef KEYWORD_INFO
+static const ReservedWordInfo reservedWords[] = {
+#define RESERVED_WORD_INFO(word, name, type) \
+    {js_##word##_str, type},
+    FOR_EACH_JAVASCRIPT_RESERVED_WORD(RESERVED_WORD_INFO)
+#undef RESERVED_WORD_INFO
 };
 
-// Returns a KeywordInfo for the specified characters, or nullptr if the string
-// is not a keyword.
+// Returns a ReservedWordInfo for the specified characters, or nullptr if the
+// string is not a reserved word.
 template <typename CharT>
-static const KeywordInfo*
-FindKeyword(const CharT* s, size_t length)
+static const ReservedWordInfo*
+FindReservedWord(const CharT* s, size_t length)
 {
     MOZ_ASSERT(length != 0);
 
     size_t i;
-    const KeywordInfo* kw;
+    const ReservedWordInfo* rw;
     const char* chars;
 
-#define JSKW_LENGTH()           length
-#define JSKW_AT(column)         s[column]
-#define JSKW_GOT_MATCH(index)   i = (index); goto got_match;
-#define JSKW_TEST_GUESS(index)  i = (index); goto test_guess;
-#define JSKW_NO_MATCH()         goto no_match;
-#include "jsautokw.h"
-#undef JSKW_NO_MATCH
-#undef JSKW_TEST_GUESS
-#undef JSKW_GOT_MATCH
-#undef JSKW_AT
-#undef JSKW_LENGTH
+#define JSRW_LENGTH()           length
+#define JSRW_AT(column)         s[column]
+#define JSRW_GOT_MATCH(index)   i = (index); goto got_match;
+#define JSRW_TEST_GUESS(index)  i = (index); goto test_guess;
+#define JSRW_NO_MATCH()         goto no_match;
+#include "frontend/ReservedWordsGenerated.h"
+#undef JSRW_NO_MATCH
+#undef JSRW_TEST_GUESS
+#undef JSRW_GOT_MATCH
+#undef JSRW_AT
+#undef JSRW_LENGTH
 
   got_match:
-    return &keywords[i];
+    return &reservedWords[i];
 
   test_guess:
-    kw = &keywords[i];
-    chars = kw->chars;
+    rw = &reservedWords[i];
+    chars = rw->chars;
     do {
         if (*s++ != (unsigned char)(*chars++))
             goto no_match;
     } while (--length != 0);
-    return kw;
+    return rw;
 
   no_match:
     return nullptr;
 }
 
-static const KeywordInfo*
-FindKeyword(JSLinearString* str)
+static const ReservedWordInfo*
+FindReservedWord(JSLinearString* str)
 {
     JS::AutoCheckCannotGC nogc;
     return str->hasLatin1Chars()
-           ? FindKeyword(str->latin1Chars(nogc), str->length())
-           : FindKeyword(str->twoByteChars(nogc), str->length());
+           ? FindReservedWord(str->latin1Chars(nogc), str->length())
+           : FindReservedWord(str->twoByteChars(nogc), str->length());
 }
 
 template <typename CharT>
@@ -118,13 +120,63 @@ IsIdentifier(const CharT* chars, size_t length)
     return true;
 }
 
+static uint32_t
+GetSingleCodePoint(const char16_t** p, const char16_t* end)
+{
+    uint32_t codePoint;
+    if (MOZ_UNLIKELY(unicode::IsLeadSurrogate(**p)) && *p + 1 < end) {
+        char16_t lead = **p;
+        char16_t maybeTrail = *(*p + 1);
+        if (unicode::IsTrailSurrogate(maybeTrail)) {
+            *p += 2;
+            return unicode::UTF16Decode(lead, maybeTrail);
+        }
+    }
+
+    codePoint = **p;
+    (*p)++;
+    return codePoint;
+}
+
+static bool
+IsIdentifierMaybeNonBMP(const char16_t* chars, size_t length)
+{
+    if (IsIdentifier(chars, length))
+        return true;
+
+    if (length == 0)
+        return false;
+
+    const char16_t* p = chars;
+    const char16_t* end = chars + length;
+    uint32_t codePoint;
+
+    codePoint = GetSingleCodePoint(&p, end);
+    if (!unicode::IsIdentifierStart(codePoint))
+        return false;
+
+    while (p < end) {
+        codePoint = GetSingleCodePoint(&p, end);
+        if (!unicode::IsIdentifierPart(codePoint))
+            return false;
+    }
+
+    return true;
+}
+
 bool
 frontend::IsIdentifier(JSLinearString* str)
 {
     JS::AutoCheckCannotGC nogc;
     return str->hasLatin1Chars()
            ? ::IsIdentifier(str->latin1Chars(nogc), str->length())
-           : ::IsIdentifier(str->twoByteChars(nogc), str->length());
+           : ::IsIdentifierMaybeNonBMP(str->twoByteChars(nogc), str->length());
+}
+
+bool
+frontend::IsIdentifier(const char* chars, size_t length)
+{
+    return ::IsIdentifier(chars, length);
 }
 
 bool
@@ -136,10 +188,71 @@ frontend::IsIdentifier(const char16_t* chars, size_t length)
 bool
 frontend::IsKeyword(JSLinearString* str)
 {
-    return FindKeyword(str) != nullptr;
+    if (const ReservedWordInfo* rw = FindReservedWord(str))
+        return TokenKindIsKeyword(rw->tokentype);
+
+    return false;
 }
 
-TokenStream::SourceCoords::SourceCoords(ExclusiveContext* cx, uint32_t ln)
+bool
+frontend::IsFutureReservedWord(JSLinearString* str)
+{
+    if (const ReservedWordInfo* rw = FindReservedWord(str))
+        return TokenKindIsFutureReservedWord(rw->tokentype);
+
+    return false;
+}
+
+bool
+frontend::IsStrictReservedWord(JSLinearString* str)
+{
+    if (const ReservedWordInfo* rw = FindReservedWord(str))
+        return TokenKindIsStrictReservedWord(rw->tokentype);
+
+    return false;
+}
+
+bool
+frontend::IsReservedWordLiteral(JSLinearString* str)
+{
+    if (const ReservedWordInfo* rw = FindReservedWord(str))
+        return TokenKindIsReservedWordLiteral(rw->tokentype);
+
+    return false;
+}
+
+const char*
+frontend::ReservedWordToCharZ(PropertyName* str)
+{
+    const ReservedWordInfo* rw = FindReservedWord(str);
+    if (rw == nullptr)
+        return nullptr;
+
+    switch (rw->tokentype) {
+#define EMIT_CASE(word, name, type) case type: return js_##word##_str;
+      FOR_EACH_JAVASCRIPT_RESERVED_WORD(EMIT_CASE)
+#undef EMIT_CASE
+      default:
+        MOZ_ASSERT_UNREACHABLE("Not a reserved word PropertyName.");
+    }
+    return nullptr;
+}
+
+PropertyName*
+TokenStream::reservedWordToPropertyName(TokenKind tt) const
+{
+    MOZ_ASSERT(tt != TOK_NAME);
+    switch (tt) {
+#define EMIT_CASE(word, name, type) case type: return cx->names().name;
+      FOR_EACH_JAVASCRIPT_RESERVED_WORD(EMIT_CASE)
+#undef EMIT_CASE
+      default:
+        MOZ_ASSERT_UNREACHABLE("Not a reserved word TokenKind.");
+    }
+    return nullptr;
+}
+
+TokenStream::SourceCoords::SourceCoords(JSContext* cx, uint32_t ln)
   : lineStartOffsets_(cx), initialLineNum_(ln), lastLineIndex_(0)
 {
     // This is actually necessary!  Removing it causes compile errors on
@@ -173,8 +286,13 @@ TokenStream::SourceCoords::add(uint32_t lineNum, uint32_t lineStartOffset)
         // only if lineStartOffsets_.append succeeds, to keep sentinel.
         // Otherwise return false to tell TokenStream about OOM.
         uint32_t maxPtr = MAX_PTR;
-        if (!lineStartOffsets_.append(maxPtr))
+        if (!lineStartOffsets_.append(maxPtr)) {
+            static_assert(mozilla::IsSame<decltype(lineStartOffsets_.allocPolicy()),
+                                          TempAllocPolicy&>::value,
+                          "this function's caller depends on it reporting an "
+                          "error on failure, as TempAllocPolicy ensures");
             return false;
+        }
 
         lineStartOffsets_[lineIndex] = lineStartOffset;
     } else {
@@ -288,7 +406,7 @@ TokenStream::SourceCoords::lineNumAndColumnIndex(uint32_t offset, uint32_t* line
 #pragma warning(disable:4351)
 #endif
 
-TokenStream::TokenStream(ExclusiveContext* cx, const ReadOnlyCompileOptions& options,
+TokenStream::TokenStream(JSContext* cx, const ReadOnlyCompileOptions& options,
                          const char16_t* base, size_t length, StrictModeGetter* smg)
   : srcCoords(cx, options.lineno),
     options_(options),
@@ -352,14 +470,13 @@ TokenStream::~TokenStream()
 # define fast_getc getc
 #endif
 
-MOZ_ALWAYS_INLINE void
+MOZ_MUST_USE MOZ_ALWAYS_INLINE bool
 TokenStream::updateLineInfoForEOL()
 {
     prevLinebase = linebase;
     linebase = userbuf.offset();
     lineno++;
-    if (!srcCoords.add(lineno, linebase))
-        flags.hitOOM = true;
+    return srcCoords.add(lineno, linebase);
 }
 
 MOZ_ALWAYS_INLINE void
@@ -369,34 +486,42 @@ TokenStream::updateFlagsForEOL()
 }
 
 // This gets the next char, normalizing all EOL sequences to '\n' as it goes.
-int32_t
-TokenStream::getChar()
+bool
+TokenStream::getChar(int32_t* cp)
 {
-    int32_t c;
-    if (MOZ_LIKELY(userbuf.hasRawChars())) {
-        c = userbuf.getRawChar();
+    if (MOZ_UNLIKELY(!userbuf.hasRawChars())) {
+        flags.isEOF = true;
+        *cp = EOF;
+        return true;
+    }
 
+    int32_t c = userbuf.getRawChar();
+
+    do {
         // Normalize the char16_t if it was a newline.
         if (MOZ_UNLIKELY(c == '\n'))
-            goto eol;
+            break;
+
         if (MOZ_UNLIKELY(c == '\r')) {
             // If it's a \r\n sequence: treat as a single EOL, skip over the \n.
             if (MOZ_LIKELY(userbuf.hasRawChars()))
                 userbuf.matchRawChar('\n');
-            goto eol;
+
+            break;
         }
+
         if (MOZ_UNLIKELY(c == LINE_SEPARATOR || c == PARA_SEPARATOR))
-            goto eol;
+            break;
 
-        return c;
-    }
+        *cp = c;
+        return true;
+    } while (false);
 
-    flags.isEOF = true;
-    return EOF;
+    if (!updateLineInfoForEOL())
+        return false;
 
-  eol:
-    updateLineInfoForEOL();
-    return '\n';
+    *cp = '\n';
+    return true;
 }
 
 // This gets the next char. It does nothing special with EOL sequences, not
@@ -496,17 +621,16 @@ bool
 TokenStream::advance(size_t position)
 {
     const char16_t* end = userbuf.rawCharPtrAt(position);
-    while (userbuf.addressOfNextRawChar() < end)
-        getChar();
+    while (userbuf.addressOfNextRawChar() < end) {
+        int32_t c;
+        if (!getChar(&c))
+            return false;
+    }
 
     Token* cur = &tokens[cursor];
     cur->pos.begin = userbuf.offset();
     MOZ_MAKE_MEM_UNDEFINED(&cur->type, sizeof(cur->type));
     lookahead = 0;
-
-    if (flags.hitOOM)
-        return reportError(JSMSG_OUT_OF_MEMORY);
-
     return true;
 }
 
@@ -549,8 +673,8 @@ TokenStream::seek(const Position& pos, const TokenStream& other)
 }
 
 bool
-TokenStream::reportStrictModeErrorNumberVA(uint32_t offset, bool strictMode, unsigned errorNumber,
-                                           va_list args)
+TokenStream::reportStrictModeErrorNumberVA(UniquePtr<JSErrorNotes> notes, uint32_t offset,
+                                           bool strictMode, unsigned errorNumber, va_list args)
 {
     // In strict mode code, this is an error, not merely a warning.
     unsigned flags;
@@ -561,7 +685,7 @@ TokenStream::reportStrictModeErrorNumberVA(uint32_t offset, bool strictMode, uns
     else
         return true;
 
-    return reportCompileErrorNumberVA(offset, flags, errorNumber, args);
+    return reportCompileErrorNumberVA(Move(notes), offset, flags, errorNumber, args);
 }
 
 void
@@ -587,8 +711,8 @@ CompileError::throwError(JSContext* cx)
 }
 
 bool
-TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigned errorNumber,
-                                        va_list args)
+TokenStream::reportCompileErrorNumberVA(UniquePtr<JSErrorNotes> notes, uint32_t offset,
+                                        unsigned flags, unsigned errorNumber, va_list args)
 {
     bool warning = JSREPORT_IS_WARNING(flags);
 
@@ -597,14 +721,16 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
         warning = false;
     }
 
-    // On the main thread, report the error immediately. When compiling off
-    // thread, save the error so that the main thread can report it later.
+    // On the active thread, report the error immediately. When compiling off
+    // thread, save the error so that the thread finishing the parse can report
+    // it later.
     CompileError tempErr;
     CompileError* tempErrPtr = &tempErr;
-    if (!cx->isJSContext() && !cx->addPendingCompileError(&tempErrPtr))
+    if (cx->helperThread() && !cx->addPendingCompileError(&tempErrPtr))
         return false;
     CompileError& err = *tempErrPtr;
 
+    err.notes = Move(notes);
     err.flags = flags;
     err.errorNumber = errorNumber;
     err.filename = filename;
@@ -619,8 +745,8 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
 
     // If we have no location information, try to get one from the caller.
     bool callerFilename = false;
-    if (offset != NoOffset && !err.filename && cx->isJSContext()) {
-        NonBuiltinFrameIter iter(cx->asJSContext(),
+    if (offset != NoOffset && !err.filename && !cx->helperThread()) {
+        NonBuiltinFrameIter iter(cx,
                                  FrameIter::FOLLOW_DEBUGGER_EVAL_PREV_LINK,
                                  cx->compartment()->principals());
         if (!iter.done() && iter.filename()) {
@@ -685,8 +811,8 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
         err.initOwnedLinebuf(linebuf.release(), windowLength, offset - windowStart);
     }
 
-    if (cx->isJSContext())
-        err.throwError(cx->asJSContext());
+    if (!cx->helperThread())
+        err.throwError(cx);
 
     return warning;
 }
@@ -696,7 +822,7 @@ TokenStream::reportStrictModeError(unsigned errorNumber, ...)
 {
     va_list args;
     va_start(args, errorNumber);
-    bool result = reportStrictModeErrorNumberVA(currentToken().pos.begin, strictMode(),
+    bool result = reportStrictModeErrorNumberVA(nullptr, currentToken().pos.begin, strictMode(),
                                                 errorNumber, args);
     va_end(args);
     return result;
@@ -707,8 +833,8 @@ TokenStream::reportError(unsigned errorNumber, ...)
 {
     va_list args;
     va_start(args, errorNumber);
-    bool result = reportCompileErrorNumberVA(currentToken().pos.begin, JSREPORT_ERROR, errorNumber,
-                                             args);
+    bool result = reportCompileErrorNumberVA(nullptr, currentToken().pos.begin, JSREPORT_ERROR,
+                                             errorNumber, args);
     va_end(args);
     return result;
 }
@@ -718,30 +844,32 @@ TokenStream::reportErrorNoOffset(unsigned errorNumber, ...)
 {
     va_list args;
     va_start(args, errorNumber);
-    bool result = reportCompileErrorNumberVA(NoOffset, JSREPORT_ERROR, errorNumber,
-                                             args);
-    va_end(args);
-    return result;
-}
-
-bool
-TokenStream::reportWarning(unsigned errorNumber, ...)
-{
-    va_list args;
-    va_start(args, errorNumber);
-    bool result = reportCompileErrorNumberVA(currentToken().pos.begin, JSREPORT_WARNING,
+    bool result = reportCompileErrorNumberVA(nullptr, NoOffset, JSREPORT_ERROR,
                                              errorNumber, args);
     va_end(args);
     return result;
 }
 
 bool
-TokenStream::reportStrictWarningErrorNumberVA(uint32_t offset, unsigned errorNumber, va_list args)
+TokenStream::warning(unsigned errorNumber, ...)
+{
+    va_list args;
+    va_start(args, errorNumber);
+    bool result = reportCompileErrorNumberVA(nullptr, currentToken().pos.begin, JSREPORT_WARNING,
+                                             errorNumber, args);
+    va_end(args);
+    return result;
+}
+
+bool
+TokenStream::reportExtraWarningErrorNumberVA(UniquePtr<JSErrorNotes> notes, uint32_t offset,
+                                             unsigned errorNumber, va_list args)
 {
     if (!options().extraWarningsOption)
         return true;
 
-    return reportCompileErrorNumberVA(offset, JSREPORT_STRICT|JSREPORT_WARNING, errorNumber, args);
+    return reportCompileErrorNumberVA(Move(notes), offset, JSREPORT_STRICT|JSREPORT_WARNING,
+                                      errorNumber, args);
 }
 
 void
@@ -752,7 +880,34 @@ TokenStream::reportAsmJSError(uint32_t offset, unsigned errorNumber, ...)
     unsigned flags = options().throwOnAsmJSValidationFailureOption
                      ? JSREPORT_ERROR
                      : JSREPORT_WARNING;
-    reportCompileErrorNumberVA(offset, flags, errorNumber, args);
+    reportCompileErrorNumberVA(nullptr, offset, flags, errorNumber, args);
+    va_end(args);
+}
+
+void
+TokenStream::error(unsigned errorNumber, ...)
+{
+    va_list args;
+    va_start(args, errorNumber);
+#ifdef DEBUG
+    bool result =
+#endif
+        reportCompileErrorNumberVA(nullptr, currentToken().pos.begin, JSREPORT_ERROR,
+                                   errorNumber, args);
+    MOZ_ASSERT(!result, "reporting an error returned true?");
+    va_end(args);
+}
+
+void
+TokenStream::errorAt(uint32_t offset, unsigned errorNumber, ...)
+{
+    va_list args;
+    va_start(args, errorNumber);
+#ifdef DEBUG
+    bool result =
+#endif
+        reportCompileErrorNumberVA(nullptr, offset, JSREPORT_ERROR, errorNumber, args);
+    MOZ_ASSERT(!result, "reporting an error returned true?");
     va_end(args);
 }
 
@@ -884,34 +1039,49 @@ TokenStream::getDirectives(bool isMultiline, bool shouldWarnDeprecated)
 
 bool
 TokenStream::getDirective(bool isMultiline, bool shouldWarnDeprecated,
-                          const char* directive, int directiveLength,
+                          const char* directive, uint8_t directiveLength,
                           const char* errorMsgPragma,
                           UniqueTwoByteChars* destination)
 {
     MOZ_ASSERT(directiveLength <= 18);
     char16_t peeked[18];
-    int32_t c;
 
     if (peekChars(directiveLength, peeked) && CharsMatch(peeked, directive)) {
-        if (shouldWarnDeprecated &&
-            !reportWarning(JSMSG_DEPRECATED_PRAGMA, errorMsgPragma))
-            return false;
+        if (shouldWarnDeprecated) {
+            if (!warning(JSMSG_DEPRECATED_PRAGMA, errorMsgPragma))
+                return false;
+        }
 
         skipChars(directiveLength);
         tokenbuf.clear();
 
-        while ((c = peekChar()) && c != EOF && !unicode::IsSpaceOrBOM2(c)) {
-            getChar();
+        do {
+            int32_t c;
+            if (!peekChar(&c))
+                return false;
+
+            if (c == EOF || unicode::IsSpaceOrBOM2(c))
+                break;
+
+            consumeKnownChar(c);
+
             // Debugging directives can occur in both single- and multi-line
             // comments. If we're currently inside a multi-line comment, we also
             // need to recognize multi-line comment terminators.
-            if (isMultiline && c == '*' && peekChar() == '/') {
-                ungetChar('*');
-                break;
+            if (isMultiline && c == '*') {
+                int32_t c2;
+                if (!peekChar(&c2))
+                    return false;
+
+                if (c2 == '/') {
+                    ungetChar('*');
+                    break;
+                }
             }
+
             if (!tokenbuf.append(c))
                 return false;
-        }
+        } while (true);
 
         if (tokenbuf.empty()) {
             // The directive's URL was missing, but this is not quite an
@@ -943,7 +1113,10 @@ TokenStream::getDisplayURL(bool isMultiline, bool shouldWarnDeprecated)
     // developer would like to refer to the source as from the source's actual
     // URL.
 
-    return getDirective(isMultiline, shouldWarnDeprecated, " sourceURL=", 11,
+    static const char sourceURLDirective[] = " sourceURL=";
+    constexpr uint8_t sourceURLDirectiveLength = ArrayLength(sourceURLDirective) - 1;
+    return getDirective(isMultiline, shouldWarnDeprecated,
+                        sourceURLDirective, sourceURLDirectiveLength,
                         "sourceURL", &displayURL_);
 }
 
@@ -953,7 +1126,10 @@ TokenStream::getSourceMappingURL(bool isMultiline, bool shouldWarnDeprecated)
     // Match comments of the form "//# sourceMappingURL=<url>" or
     // "/\* //# sourceMappingURL=<url> *\/"
 
-    return getDirective(isMultiline, shouldWarnDeprecated, " sourceMappingURL=", 18,
+    static const char sourceMappingURLDirective[] = " sourceMappingURL=";
+    constexpr uint8_t sourceMappingURLDirectiveLength = ArrayLength(sourceMappingURLDirective) - 1;
+    return getDirective(isMultiline, shouldWarnDeprecated,
+                        sourceMappingURLDirective, sourceMappingURLDirectiveLength,
                         "sourceMappingURL", &sourceMapURL_);
 }
 
@@ -971,7 +1147,7 @@ TokenStream::newToken(ptrdiff_t adjust)
 }
 
 MOZ_ALWAYS_INLINE JSAtom*
-TokenStream::atomize(ExclusiveContext* cx, CharBuffer& cb)
+TokenStream::atomize(JSContext* cx, CharBuffer& cb)
 {
     return AtomizeChars(cx, cb.begin(), cb.length());
 }
@@ -993,6 +1169,21 @@ IsTokenSane(Token* tp)
 #endif
 
 bool
+TokenStream::matchTrailForLeadSurrogate(char16_t lead, char16_t* trail, uint32_t* codePoint)
+{
+    int32_t maybeTrail = getCharIgnoreEOL();
+    if (!unicode::IsTrailSurrogate(maybeTrail)) {
+        ungetCharIgnoreEOL(maybeTrail);
+        return false;
+    }
+
+    if (trail)
+        *trail = maybeTrail;
+    *codePoint = unicode::UTF16Decode(lead, maybeTrail);
+    return true;
+}
+
+bool
 TokenStream::putIdentInTokenbuf(const char16_t* identStart)
 {
     int32_t c;
@@ -1003,11 +1194,39 @@ TokenStream::putIdentInTokenbuf(const char16_t* identStart)
     tokenbuf.clear();
     for (;;) {
         c = getCharIgnoreEOL();
+
+        if (MOZ_UNLIKELY(unicode::IsLeadSurrogate(c))) {
+            char16_t trail;
+            uint32_t codePoint;
+            if (matchTrailForLeadSurrogate(c, &trail, &codePoint)) {
+                if (!unicode::IsIdentifierPart(codePoint))
+                    break;
+
+                if (!tokenbuf.append(c) || !tokenbuf.append(trail)) {
+                    userbuf.setAddressOfNextRawChar(tmp);
+                    return false;
+                }
+                continue;
+            }
+        }
+
         if (!unicode::IsIdentifierPart(char16_t(c))) {
             if (c != '\\' || !matchUnicodeEscapeIdent(&qc))
                 break;
+
+            if (MOZ_UNLIKELY(unicode::IsSupplementary(qc))) {
+                char16_t lead, trail;
+                unicode::UTF16Encode(qc, &lead, &trail);
+                if (!tokenbuf.append(lead) || !tokenbuf.append(trail)) {
+                    userbuf.setAddressOfNextRawChar(tmp);
+                    return false;
+                }
+                continue;
+            }
+
             c = qc;
         }
+
         if (!tokenbuf.append(c)) {
             userbuf.setAddressOfNextRawChar(tmp);
             return false;
@@ -1015,36 +1234,6 @@ TokenStream::putIdentInTokenbuf(const char16_t* identStart)
     }
     userbuf.setAddressOfNextRawChar(tmp);
     return true;
-}
-
-bool
-TokenStream::checkForKeyword(const KeywordInfo* kw, TokenKind* ttp)
-{
-    if (!awaitIsKeyword && kw->tokentype == TOK_AWAIT) {
-        if (ttp)
-            *ttp = TOK_NAME;
-        return true;
-    }
-
-    if (kw->tokentype == TOK_RESERVED)
-        return reportError(JSMSG_RESERVED_ID, kw->chars);
-
-    if (kw->tokentype == TOK_STRICT_RESERVED)
-        return reportStrictModeError(JSMSG_RESERVED_ID, kw->chars);
-
-    // Working keyword.
-    *ttp = kw->tokentype;
-    return true;
-}
-
-bool
-TokenStream::checkForKeyword(JSAtom* atom, TokenKind* ttp)
-{
-    const KeywordInfo* kw = FindKeyword(atom);
-    if (!kw)
-        return true;
-
-    return checkForKeyword(kw, ttp);
 }
 
 enum FirstCharKind {
@@ -1153,7 +1342,9 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
     if (MOZ_UNLIKELY(c >= 128)) {
         if (unicode::IsSpaceOrBOM2(c)) {
             if (c == LINE_SEPARATOR || c == PARA_SEPARATOR) {
-                updateLineInfoForEOL();
+                if (!updateLineInfoForEOL())
+                    goto error;
+
                 updateFlagsForEOL();
             }
 
@@ -1168,10 +1359,21 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
         static_assert('_' < 128,
                       "IdentifierStart contains '_', but as !IsUnicodeIDStart('_'), "
                       "ensure that '_' is never handled here");
-        if (unicode::IsUnicodeIDStart(c)) {
+        if (unicode::IsUnicodeIDStart(char16_t(c))) {
             identStart = userbuf.addressOfNextRawChar() - 1;
             hadUnicodeEscape = false;
             goto identifier;
+        }
+
+        if (MOZ_UNLIKELY(unicode::IsLeadSurrogate(c))) {
+            uint32_t codePoint;
+            if (matchTrailForLeadSurrogate(c, nullptr, &codePoint) &&
+                unicode::IsUnicodeIDStart(codePoint))
+            {
+                identStart = userbuf.addressOfNextRawChar() - 2;
+                hadUnicodeEscape = false;
+                goto identifier;
+            }
         }
 
         goto badchar;
@@ -1224,6 +1426,17 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
             c = getCharIgnoreEOL();
             if (c == EOF)
                 break;
+
+            if (MOZ_UNLIKELY(unicode::IsLeadSurrogate(c))) {
+                uint32_t codePoint;
+                if (matchTrailForLeadSurrogate(c, nullptr, &codePoint)) {
+                    if (!unicode::IsIdentifierPart(codePoint))
+                        break;
+
+                    continue;
+                }
+            }
+
             if (!unicode::IsIdentifierPart(char16_t(c))) {
                 if (c != '\\' || !matchUnicodeEscapeIdent(&qc))
                     break;
@@ -1248,30 +1461,11 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
             length = userbuf.addressOfNextRawChar() - identStart;
         }
 
-        // Represent keywords as keyword tokens unless told otherwise.
-        if (modifier != KeywordIsName) {
-            if (const KeywordInfo* kw = FindKeyword(chars, length)) {
-                // That said, keywords can't contain escapes.  (Contexts where
-                // keywords are treated as names, that also sometimes treat
-                // keywords as keywords, must manually check this requirement.)
-                // There are two exceptions
-                // 1) StrictReservedWords: These keywords need to be treated as
-                //    names in non-strict mode.
-                // 2) yield is also treated as a name if it contains an escape
-                //    sequence. The parser must handle this case separately.
-                if (hadUnicodeEscape && !(
-                        (kw->tokentype == TOK_STRICT_RESERVED && !strictMode()) ||
-                         kw->tokentype == TOK_YIELD))
-                {
-                    reportError(JSMSG_ESCAPED_KEYWORD);
-                    goto error;
-                }
-
-                tp->type = TOK_NAME;
-                if (!checkForKeyword(kw, &tp->type))
-                    goto error;
-                if (tp->type != TOK_NAME && !hadUnicodeEscape)
-                    goto out;
+        // Represent reserved words as reserved word tokens.
+        if (!hadUnicodeEscape) {
+            if (const ReservedWordInfo* rw = FindReservedWord(chars, length)) {
+                tp->type = rw->tokentype;
+                goto out;
             }
         }
 
@@ -1318,9 +1512,21 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
         }
         ungetCharIgnoreEOL(c);
 
-        if (c != EOF && unicode::IsIdentifierStart(char16_t(c))) {
-            reportError(JSMSG_IDSTART_AFTER_NUMBER);
-            goto error;
+        if (c != EOF) {
+            if (unicode::IsIdentifierStart(char16_t(c))) {
+                reportError(JSMSG_IDSTART_AFTER_NUMBER);
+                goto error;
+            }
+
+            if (MOZ_UNLIKELY(unicode::IsLeadSurrogate(c))) {
+                uint32_t codePoint;
+                if (matchTrailForLeadSurrogate(c, nullptr, &codePoint) &&
+                    unicode::IsIdentifierStart(codePoint))
+                {
+                    reportError(JSMSG_IDSTART_AFTER_NUMBER);
+                    goto error;
+                }
+            }
         }
 
         // Unlike identifiers and strings, numbers cannot contain escaped
@@ -1354,7 +1560,8 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
         // If it's a \r\n sequence: treat as a single EOL, skip over the \n.
         if (c == '\r' && userbuf.hasRawChars())
             userbuf.matchRawChar('\n');
-        updateLineInfoForEOL();
+        if (!updateLineInfoForEOL())
+            goto error;
         updateFlagsForEOL();
         goto retry;
     }
@@ -1411,10 +1618,11 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
                 // grammar. We might not always be so permissive, so we warn
                 // about it.
                 if (c >= '8') {
-                    if (!reportWarning(JSMSG_BAD_OCTAL, c == '8' ? "08" : "09")) {
+                    if (!warning(JSMSG_BAD_OCTAL, c == '8' ? "08" : "09"))
                         goto error;
-                    }
-                    goto decimal;   // use the decimal scanner for the rest of the number
+
+                    // Use the decimal scanner for the rest of the number.
+                    goto decimal;
                 }
                 c = getCharIgnoreEOL();
             }
@@ -1425,9 +1633,21 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
         }
         ungetCharIgnoreEOL(c);
 
-        if (c != EOF && unicode::IsIdentifierStart(char16_t(c))) {
-            reportError(JSMSG_IDSTART_AFTER_NUMBER);
-            goto error;
+        if (c != EOF) {
+            if (unicode::IsIdentifierStart(char16_t(c))) {
+                reportError(JSMSG_IDSTART_AFTER_NUMBER);
+                goto error;
+            }
+
+            if (MOZ_UNLIKELY(unicode::IsLeadSurrogate(c))) {
+                uint32_t codePoint;
+                if (matchTrailForLeadSurrogate(c, nullptr, &codePoint) &&
+                    unicode::IsIdentifierStart(codePoint))
+                {
+                    reportError(JSMSG_IDSTART_AFTER_NUMBER);
+                    goto error;
+                }
+            }
         }
 
         double dval;
@@ -1514,14 +1734,16 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
         goto out;
 
       case '<':
-        // NB: treat HTML begin-comment as comment-till-end-of-line.
-        if (matchChar('!')) {
-            if (matchChar('-')) {
-                if (matchChar('-'))
-                    goto skipline;
-                ungetChar('-');
+        if (options().allowHTMLComments) {
+            // Treat HTML begin-comment as comment-till-end-of-line.
+            if (matchChar('!')) {
+                if (matchChar('-')) {
+                    if (matchChar('-'))
+                        goto skipline;
+                    ungetChar('-');
+                }
+                ungetChar('!');
             }
-            ungetChar('!');
         }
         if (matchChar('<')) {
             tp->type = matchChar('=') ? TOK_LSHASSIGN : TOK_LSH;
@@ -1551,16 +1773,22 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
       case '/':
         // Look for a single-line comment.
         if (matchChar('/')) {
-            c = peekChar();
+            if (!peekChar(&c))
+                goto error;
             if (c == '@' || c == '#') {
-                bool shouldWarn = getChar() == '@';
+                consumeKnownChar(c);
+
+                bool shouldWarn = c == '@';
                 if (!getDirectives(false, shouldWarn))
                     goto error;
             }
 
         skipline:
-            while ((c = getChar()) != EOF && c != '\n')
-                continue;
+            do {
+                if (!getChar(&c))
+                    goto error;
+            } while (c != EOF && c != '\n');
+
             ungetChar(c);
             cursor = (cursor - 1) & ntokensMask;
             goto retry;
@@ -1569,18 +1797,26 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
         // Look for a multi-line comment.
         if (matchChar('*')) {
             unsigned linenoBefore = lineno;
-            while ((c = getChar()) != EOF &&
-                   !(c == '*' && matchChar('/'))) {
+
+            do {
+                if (!getChar(&c))
+                    return false;
+
+                if (c == EOF) {
+                    reportError(JSMSG_UNTERMINATED_COMMENT);
+                    goto error;
+                }
+
+                if (c == '*' && matchChar('/'))
+                    break;
+
                 if (c == '@' || c == '#') {
                     bool shouldWarn = c == '@';
                     if (!getDirectives(true, shouldWarn))
                         goto error;
                 }
-            }
-            if (c == EOF) {
-                reportError(JSMSG_UNTERMINATED_COMMENT);
-                goto error;
-            }
+            } while (true);
+
             if (linenoBefore != lineno)
                 updateFlagsForEOL();
             cursor = (cursor - 1) & ntokensMask;
@@ -1592,12 +1828,15 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
             tokenbuf.clear();
 
             bool inCharClass = false;
-            for (;;) {
-                c = getChar();
+            do {
+                if (!getChar(&c))
+                    goto error;
+
                 if (c == '\\') {
                     if (!tokenbuf.append(c))
                         goto error;
-                    c = getChar();
+                    if (!getChar(&c))
+                        goto error;
                 } else if (c == '[') {
                     inCharClass = true;
                 } else if (c == ']') {
@@ -1613,12 +1852,13 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
                 }
                 if (!tokenbuf.append(c))
                     goto error;
-            }
+            } while (true);
 
             RegExpFlag reflags = NoFlags;
             unsigned length = tokenbuf.length() + 1;
             while (true) {
-                c = peekChar();
+                if (!peekChar(&c))
+                    goto error;
                 if (c == 'g' && !(reflags & GlobalFlag))
                     reflags = RegExpFlag(reflags | GlobalFlag);
                 else if (c == 'i' && !(reflags & IgnoreCaseFlag))
@@ -1631,17 +1871,19 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
                     reflags = RegExpFlag(reflags | UnicodeFlag);
                 else
                     break;
-                getChar();
+                if (!getChar(&c))
+                    goto error;
                 length++;
             }
 
-            c = peekChar();
+            if (!peekChar(&c))
+                goto error;
             if (JS7_ISLET(c)) {
                 char buf[2] = { '\0', '\0' };
                 tp->pos.begin += length + 1;
                 buf[0] = char(c);
                 reportError(JSMSG_BAD_REGEXP_FLAG, buf);
-                (void) getChar();
+                consumeKnownChar(c);
                 goto error;
             }
             tp->type = TOK_REGEXP;
@@ -1658,8 +1900,15 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
 
       case '-':
         if (matchChar('-')) {
-            if (peekChar() == '>' && !flags.isDirtyLine)
-                goto skipline;
+            if (options().allowHTMLComments && !flags.isDirtyLine) {
+                int32_t c2;
+                if (!peekChar(&c2))
+                    goto error;
+
+                if (c2 == '>')
+                    goto skipline;
+            }
+
             tp->type = TOK_DEC;
         } else {
             tp->type = matchChar('=') ? TOK_SUBASSIGN : TOK_SUB;
@@ -1675,9 +1924,6 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
     MOZ_CRASH("should have jumped to |out| or |error|");
 
   out:
-    if (flags.hitOOM)
-        return reportError(JSMSG_OUT_OF_MEMORY);
-
     flags.isDirtyLine = true;
     tp->pos.end = userbuf.offset();
 #ifdef DEBUG
@@ -1692,9 +1938,6 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
     return true;
 
   error:
-    if (flags.hitOOM)
-        return reportError(JSMSG_OUT_OF_MEMORY);
-
     flags.isDirtyLine = true;
     tp->pos.end = userbuf.offset();
     MOZ_MAKE_MEM_UNDEFINED(&tp->type, sizeof(tp->type));
@@ -1708,37 +1951,6 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
 #endif
     MOZ_MAKE_MEM_UNDEFINED(ttp, sizeof(*ttp));
     return false;
-}
-
-bool
-TokenStream::getBracedUnicode(uint32_t* cp)
-{
-    consumeKnownChar('{');
-
-    bool first = true;
-    int32_t c;
-    uint32_t code = 0;
-    while (true) {
-        c = getCharIgnoreEOL();
-        if (c == EOF)
-            return false;
-        if (c == '}') {
-            if (first)
-                return false;
-            break;
-        }
-
-        if (!JS7_ISHEX(c))
-            return false;
-
-        code = (code << 4) | JS7_UNHEX(c);
-        if (code > unicode::NonBMPMax)
-            return false;
-        first = false;
-    }
-
-    *cp = code;
-    return true;
 }
 
 bool
@@ -1758,12 +1970,19 @@ TokenStream::getStringOrTemplateToken(int untilChar, Token** tp)
     while ((c = getCharIgnoreEOL()) != untilChar) {
         if (c == EOF) {
             ungetCharIgnoreEOL(c);
-            reportError(JSMSG_UNTERMINATED_STRING);
+            error(JSMSG_UNTERMINATED_STRING);
             return false;
         }
 
         if (c == '\\') {
-            switch (c = getChar()) {
+            // When parsing templates, we don't immediately report errors for
+            // invalid escapes; these are handled by the parser.
+            // In those cases we don't append to tokenbuf, since it won't be
+            // read.
+            if (!getChar(&c))
+                return false;
+
+            switch (c) {
               case 'b': c = '\b'; break;
               case 'f': c = '\f'; break;
               case 'n': c = '\n'; break;
@@ -1778,12 +1997,73 @@ TokenStream::getStringOrTemplateToken(int untilChar, Token** tp)
 
               // Unicode character specification.
               case 'u': {
-                if (peekChar() == '{') {
-                    uint32_t code;
-                    if (!getBracedUnicode(&code)) {
-                        reportError(JSMSG_MALFORMED_ESCAPE, "Unicode");
-                        return false;
-                    }
+                uint32_t code = 0;
+
+                int32_t c2;
+                if (!peekChar(&c2))
+                    return false;
+
+                uint32_t start = userbuf.offset() - 2;
+
+                if (c2 == '{') {
+                    consumeKnownChar('{');
+
+                    bool first = true;
+                    bool valid = true;
+                    do {
+                        int32_t c = getCharIgnoreEOL();
+                        if (c == EOF) {
+                            if (parsingTemplate) {
+                                setInvalidTemplateEscape(start, InvalidEscapeType::Unicode);
+                                valid = false;
+                                break;
+                            }
+                            reportInvalidEscapeError(start, InvalidEscapeType::Unicode);
+                            return false;
+                        }
+                        if (c == '}') {
+                            if (first) {
+                                if (parsingTemplate) {
+                                    setInvalidTemplateEscape(start, InvalidEscapeType::Unicode);
+                                    valid = false;
+                                    break;
+                                }
+                                reportInvalidEscapeError(start, InvalidEscapeType::Unicode);
+                                return false;
+                            }
+                            break;
+                        }
+
+                        if (!JS7_ISHEX(c)) {
+                            if (parsingTemplate) {
+                                // We put the character back so that we read
+                                // it on the next pass, which matters if it
+                                // was '`' or '\'.
+                                ungetCharIgnoreEOL(c);
+                                setInvalidTemplateEscape(start, InvalidEscapeType::Unicode);
+                                valid = false;
+                                break;
+                            }
+                            reportInvalidEscapeError(start, InvalidEscapeType::Unicode);
+                            return false;
+                        }
+
+                        code = (code << 4) | JS7_UNHEX(c);
+                        if (code > unicode::NonBMPMax) {
+                            if (parsingTemplate) {
+                                setInvalidTemplateEscape(start + 3, InvalidEscapeType::UnicodeOverflow);
+                                valid = false;
+                                break;
+                            }
+                            reportInvalidEscapeError(start + 3, InvalidEscapeType::UnicodeOverflow);
+                            return false;
+                        }
+
+                        first = false;
+                    } while (true);
+
+                    if (!valid)
+                        continue;
 
                     MOZ_ASSERT(code <= unicode::NonBMPMax);
                     if (code < unicode::NonBMPMin) {
@@ -1806,7 +2086,11 @@ TokenStream::getStringOrTemplateToken(int untilChar, Token** tp)
                     c = (c << 4) + JS7_UNHEX(cp[3]);
                     skipChars(4);
                 } else {
-                    reportError(JSMSG_MALFORMED_ESCAPE, "Unicode");
+                    if (parsingTemplate) {
+                        setInvalidTemplateEscape(start, InvalidEscapeType::Unicode);
+                        continue;
+                    }
+                    reportInvalidEscapeError(start, InvalidEscapeType::Unicode);
                     return false;
                 }
                 break;
@@ -1819,7 +2103,12 @@ TokenStream::getStringOrTemplateToken(int untilChar, Token** tp)
                     c = (JS7_UNHEX(cp[0]) << 4) + JS7_UNHEX(cp[1]);
                     skipChars(2);
                 } else {
-                    reportError(JSMSG_MALFORMED_ESCAPE, "hexadecimal");
+                    uint32_t start = userbuf.offset() - 2;
+                    if (parsingTemplate) {
+                        setInvalidTemplateEscape(start, InvalidEscapeType::Hexadecimal);
+                        continue;
+                    }
+                    reportInvalidEscapeError(start, InvalidEscapeType::Hexadecimal);
                     return false;
                 }
                 break;
@@ -1830,13 +2119,14 @@ TokenStream::getStringOrTemplateToken(int untilChar, Token** tp)
                 if (JS7_ISOCT(c)) {
                     int32_t val = JS7_UNOCT(c);
 
-                    c = peekChar();
+                    if (!peekChar(&c))
+                        return false;
 
                     // Strict mode code allows only \0, then a non-digit.
                     if (val != 0 || JS7_ISDEC(c)) {
                         if (parsingTemplate) {
-                            reportError(JSMSG_DEPRECATED_OCTAL);
-                            return false;
+                            setInvalidTemplateEscape(userbuf.offset() - 2, InvalidEscapeType::Octal);
+                            continue;
                         }
                         if (!reportStrictModeError(JSMSG_DEPRECATED_OCTAL))
                             return false;
@@ -1845,13 +2135,14 @@ TokenStream::getStringOrTemplateToken(int untilChar, Token** tp)
 
                     if (JS7_ISOCT(c)) {
                         val = 8 * val + JS7_UNOCT(c);
-                        getChar();
-                        c = peekChar();
+                        consumeKnownChar(c);
+                        if (!peekChar(&c))
+                            return false;
                         if (JS7_ISOCT(c)) {
                             int32_t save = val;
                             val = 8 * val + JS7_UNOCT(c);
                             if (val <= 0xFF)
-                                getChar();
+                                consumeKnownChar(c);
                             else
                                 val = save;
                         }
@@ -1864,7 +2155,7 @@ TokenStream::getStringOrTemplateToken(int untilChar, Token** tp)
         } else if (TokenBuf::isRawEOLChar(c)) {
             if (!parsingTemplate) {
                 ungetCharIgnoreEOL(c);
-                reportError(JSMSG_UNTERMINATED_STRING);
+                error(JSMSG_UNTERMINATED_STRING);
                 return false;
             }
             if (c == '\r') {
@@ -1872,7 +2163,10 @@ TokenStream::getStringOrTemplateToken(int untilChar, Token** tp)
                 if (userbuf.peekRawChar() == '\n')
                     skipCharsIgnoreEOL(1);
             }
-            updateLineInfoForEOL();
+
+            if (!updateLineInfoForEOL())
+                return false;
+
             updateFlagsForEOL();
         } else if (parsingTemplate && c == '$') {
             if ((nc = getCharIgnoreEOL()) == '{')

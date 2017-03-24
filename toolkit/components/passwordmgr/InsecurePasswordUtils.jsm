@@ -19,9 +19,24 @@ XPCOMUtils.defineLazyServiceGetter(this, "gScriptSecurityManager",
                                    "@mozilla.org/scriptsecuritymanager;1",
                                    "nsIScriptSecurityManager");
 XPCOMUtils.defineLazyGetter(this, "WebConsoleUtils", () => {
-  return this.devtools.require("devtools/server/actors/utils/webconsole-utils").Utils;
+  return this.devtools.require("devtools/server/actors/utils/webconsole-utils").WebConsoleUtils;
 });
 
+/*
+ * A module that provides utility functions for form security.
+ *
+ * Note:
+ *  This module uses isSecureContextIfOpenerIgnored instead of isSecureContext.
+ *
+ *  We don't want to expose JavaScript APIs in a non-Secure Context even if
+ *  the context is only insecure because the windows has an insecure opener.
+ *  Doing so prevents sites from implementing postMessage workarounds to enable
+ *  an insecure opener to gain access to Secure Context-only APIs. However,
+ *  in the case of form fields such as password fields we don't need to worry
+ *  about whether the opener is secure or not. In fact to flag a password
+ *  field as insecure in such circumstances would unnecessarily confuse our
+ *  users.
+ */
 this.InsecurePasswordUtils = {
   _formRootsWarned: new WeakMap(),
   _sendWebConsoleMessage(messageTag, domDoc) {
@@ -50,8 +65,7 @@ this.InsecurePasswordUtils = {
   _checkFormSecurity(aForm) {
     let isFormSubmitHTTP = false, isFormSubmitSecure = false;
     if (aForm.rootElement instanceof Ci.nsIDOMHTMLFormElement) {
-      let uri = Services.io.newURI(aForm.rootElement.action || aForm.rootElement.baseURI,
-                                   null, null);
+      let uri = Services.io.newURI(aForm.rootElement.action || aForm.rootElement.baseURI);
       let principal = gScriptSecurityManager.getCodebasePrincipal(uri);
 
       if (uri.schemeIs("http")) {
@@ -76,7 +90,10 @@ this.InsecurePasswordUtils = {
    * @return {boolean} whether the form is secure
    */
   isFormSecure(aForm) {
-    let isSafePage = aForm.ownerDocument.defaultView.isSecureContext;
+    // Ignores window.opener, see top level documentation.
+    // ownerGlobal doesn't exist in content privileged windows.
+    // eslint-disable-next-line mozilla/use-ownerGlobal
+    let isSafePage = aForm.ownerDocument.defaultView.isSecureContextIfOpenerIgnored;
     let { isFormSubmitSecure, isFormSubmitHTTP } = this._checkFormSecurity(aForm);
 
     return isSafePage && (isFormSubmitSecure || !isFormSubmitHTTP);
@@ -94,7 +111,8 @@ this.InsecurePasswordUtils = {
     }
 
     let domDoc = aForm.ownerDocument;
-    let isSafePage = domDoc.defaultView.isSecureContext;
+    // Ignores window.opener, see top level documentation.
+    let isSafePage = domDoc.defaultView.isSecureContextIfOpenerIgnored;
 
     let { isFormSubmitHTTP, isFormSubmitSecure } = this._checkFormSecurity(aForm);
 

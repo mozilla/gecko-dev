@@ -33,15 +33,15 @@
 #include "nsTArrayForwardDeclare.h"
 #include "nsTObserverArray.h"
 
-class mozIApplicationClearPrivateDataParams;
 class nsIConsoleReportCollector;
 
 namespace mozilla {
 
-class PrincipalOriginAttributes;
+class OriginAttributes;
 
 namespace dom {
 
+class ServiceWorkerRegistrar;
 class ServiceWorkerRegistrationListener;
 
 namespace workers {
@@ -151,7 +151,7 @@ public:
                                      nsIPrincipal* aPrincipal);
 
   void
-  DispatchFetchEvent(const PrincipalOriginAttributes& aOriginAttributes,
+  DispatchFetchEvent(const OriginAttributes& aOriginAttributes,
                      nsIDocument* aDoc,
                      const nsAString& aDocumentIdForTopLevelNavigation,
                      nsIInterceptedChannel* aChannel,
@@ -165,11 +165,11 @@ public:
          ServiceWorkerUpdateFinishCallback* aCallback);
 
   void
-  SoftUpdate(const PrincipalOriginAttributes& aOriginAttributes,
+  SoftUpdate(const OriginAttributes& aOriginAttributes,
              const nsACString& aScope);
 
   void
-  PropagateSoftUpdate(const PrincipalOriginAttributes& aOriginAttributes,
+  PropagateSoftUpdate(const OriginAttributes& aOriginAttributes,
                       const nsAString& aScope);
 
   void
@@ -187,8 +187,10 @@ public:
   already_AddRefed<ServiceWorkerRegistrationInfo>
   GetRegistration(nsIPrincipal* aPrincipal, const nsACString& aScope) const;
 
-  ServiceWorkerRegistrationInfo*
-  CreateNewRegistration(const nsCString& aScope, nsIPrincipal* aPrincipal);
+  already_AddRefed<ServiceWorkerRegistrationInfo>
+  CreateNewRegistration(const nsCString& aScope,
+                        nsIPrincipal* aPrincipal,
+                        nsLoadFlags aLoadFlags);
 
   void
   RemoveRegistration(ServiceWorkerRegistrationInfo* aRegistration);
@@ -270,6 +272,7 @@ public:
   void
   GetAllClients(nsIPrincipal* aPrincipal,
                 const nsCString& aScope,
+                uint64_t aServiceWorkerID,
                 bool aIncludeUncontrolled,
                 nsTArray<ServiceWorkerClientInfo>& aDocuments);
 
@@ -327,7 +330,10 @@ private:
   ~ServiceWorkerManager();
 
   void
-  Init();
+  Init(ServiceWorkerRegistrar* aRegistrar);
+
+  void
+  MaybeStartShutdown();
 
   already_AddRefed<ServiceWorkerJobQueue>
   GetOrCreateJobQueue(const nsACString& aOriginSuffix,
@@ -357,12 +363,15 @@ private:
                            nsISupports** aServiceWorker);
 
   ServiceWorkerInfo*
-  GetActiveWorkerInfoForScope(const PrincipalOriginAttributes& aOriginAttributes,
+  GetActiveWorkerInfoForScope(const OriginAttributes& aOriginAttributes,
                               const nsACString& aScope);
 
   ServiceWorkerInfo*
   GetActiveWorkerInfoForDocument(nsIDocument* aDocument);
 
+  void
+  TransitionServiceWorkerRegistrationWorker(ServiceWorkerRegistrationInfo* aRegistration,
+                                            WhichServiceWorker aWhichOne);
   void
   InvalidateServiceWorkerRegistrationWorker(ServiceWorkerRegistrationInfo* aRegistration,
                                             WhichServiceWorker aWhichOnes);

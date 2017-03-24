@@ -122,7 +122,7 @@ namespace mozilla {
 
 static const char pluginSandboxRules[] =
   "(version 1)\n"
-  "(deny default)\n"
+  "(deny default %s)\n"
   "(allow signal (target self))\n"
   "(allow sysctl-read)\n"
   "(allow iokit-open (iokit-user-client-class \"IOHIDParamUserClient\"))\n"
@@ -135,7 +135,6 @@ static const char pluginSandboxRules[] =
   "(allow file-read*\n"
   "    (regex #\"^/etc$\")\n"
   "    (regex #\"^/dev/u?random$\")\n"
-  "    (regex #\"^/(private/)?var($|/)\")\n"
   "    (literal \"/usr/share/icu/icudt51l.dat\")\n"
   "    (regex #\"^/System/Library/Displays/Overrides/*\")\n"
   "    (regex #\"^/System/Library/CoreServices/CoreTypes.bundle/*\")\n"
@@ -160,6 +159,7 @@ static const char contentSandboxRules[] =
   "(define hasProfileDir %d)\n"
   "(define profileDir \"%s\")\n"
   "(define home-path \"%s\")\n"
+  "(define hasFilePrivileges %d)\n"
   "\n"
   "; Allow read access to standard system paths.\n"
   "(allow file-read*\n"
@@ -196,7 +196,7 @@ static const char contentSandboxRules[] =
   "(allow sysctl-read)\n"
   "\n"
   "(begin\n"
-  "  (deny default)\n"
+  "  (deny default %s)\n"
   "  (debug deny)\n"
   "\n"
   "  (define resolving-literal literal)\n"
@@ -317,6 +317,7 @@ static const char contentSandboxRules[] =
   "      (home-subpath \"/Library/Keyboard Layouts\")\n"
   "      (home-subpath \"/Library/Input Methods\")\n"
   "      (home-subpath \"/Library/Spelling\")\n"
+  "      (home-subpath \"/Library/Application Support/Adobe/CoreSync/plugins/livetype\")\n"
   "\n"
   "      (subpath appdir-path)\n"
   "\n"
@@ -325,10 +326,9 @@ static const char contentSandboxRules[] =
   "\n"
   "  (allow-shared-list \"org.mozilla.plugincontainer\")\n"
   "\n"
-  "; the following 2 rules should be removed when microphone and camera access\n"
-  "; are brokered through the content process\n"
+  "; the following rule should be removed when microphone access\n"
+  "; is brokered through the content process\n"
   "  (allow device-microphone)\n"
-  "  (allow device-camera)\n"
   "\n"
   "  (allow file* (var-folders2-regex \"/com\\.apple\\.IntlDataCache\\.le$\"))\n"
   "  (allow file-read*\n"
@@ -353,19 +353,24 @@ static const char contentSandboxRules[] =
   "; level 2: global read access permitted, no global write access,\n"
   ";          no read/write access to ~/Library,\n"
   ";          no read/write access to $PROFILE,\n"
-  ";          read access permitted to $PROFILE/{extensions,weave}\n"
+  ";          read access permitted to $PROFILE/{extensions,weave,chrome}\n"
   "  (if (= sandbox-level 2)\n"
-  "    (if (not (zero? hasProfileDir))\n"
-  "      ; we have a profile dir\n"
-  "      (begin\n"
-  "        (allow file-read* (require-all\n"
+  "    (if (not (zero? hasFilePrivileges))\n"
+  "      ; This process has blanket file read privileges\n"
+  "      (allow file-read*)\n"
+  "      ; This process does not have blanket file read privileges\n"
+  "      (if (not (zero? hasProfileDir))\n"
+  "        ; we have a profile dir\n"
+  "        (begin\n"
+  "          (allow file-read* (require-all\n"
   "              (require-not (home-subpath \"/Library\"))\n"
   "              (require-not (subpath profileDir))))\n"
-  "        (allow file-read*\n"
+  "          (allow file-read*\n"
   "              (profile-subpath \"/extensions\")\n"
-  "              (profile-subpath \"/weave\")))\n"
-  "      ; we don't have a profile dir\n"
-  "      (allow file-read* (require-not (home-subpath \"/Library\")))))\n"
+  "              (profile-subpath \"/weave\")\n"
+  "              (profile-subpath \"/chrome\")))\n"
+  "        ; we don't have a profile dir\n"
+  "        (allow file-read* (require-not (home-subpath \"/Library\"))))))\n"
   "\n"
   "; accelerated graphics\n"
   "  (allow-shared-preferences-read \"com.apple.opengl\")\n"
@@ -397,6 +402,9 @@ static const char contentSandboxRules[] =
   "      (subpath appTempDir))\n"
   "  (allow file-write*\n"
   "      (subpath appTempDir))\n"
+  "\n"
+  "; bug 1324610\n"
+  "  (allow network-outbound (literal \"/private/var/run/cupsd\"))\n"
 #ifdef DEBUG
   "\n"
   "; bug 1303987\n"
@@ -404,11 +412,14 @@ static const char contentSandboxRules[] =
 #endif
   ")\n";
 
+static const char* NO_LOGGING_CMD = "(with no-log)";
+
 bool StartMacSandbox(MacSandboxInfo aInfo, std::string &aErrorMessage)
 {
   char *profile = NULL;
   if (aInfo.type == MacSandboxType_Plugin) {
     asprintf(&profile, pluginSandboxRules,
+             aInfo.shouldLog ? "" : NO_LOGGING_CMD,
              aInfo.pluginInfo.pluginBinaryPath.c_str(),
              aInfo.appPath.c_str(),
              aInfo.appBinaryPath.c_str());
@@ -433,7 +444,9 @@ bool StartMacSandbox(MacSandboxInfo aInfo, std::string &aErrorMessage)
                aInfo.appTempDir.c_str(),
                aInfo.hasSandboxedProfile ? 1 : 0,
                aInfo.profileDir.c_str(),
-               getenv("HOME"));
+               getenv("HOME"),
+               aInfo.hasFilePrivileges ? 1 : 0,
+               aInfo.shouldLog ? "" : NO_LOGGING_CMD);
     } else {
       fprintf(stderr,
         "Content sandbox disabled due to sandbox level setting\n");

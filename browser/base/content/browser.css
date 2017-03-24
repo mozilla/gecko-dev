@@ -11,6 +11,15 @@
   --panelui-subview-transition-duration: 150ms;
 }
 
+:root:-moz-lwtheme {
+  color: var(--lwt-text-color) !important;
+}
+
+:root:-moz-lwtheme:not([customization-lwtheme]) {
+  background-color: var(--lwt-accent-color) !important;
+  background-image: var(--lwt-header-image) !important;
+}
+
 #main-window:not([chromehidden~="toolbar"]) {
 %ifdef XP_MACOSX
   min-width: 335px;
@@ -95,10 +104,6 @@ panelview:not([mainview]):not([current]) {
   visibility: collapse;
 }
 
-browser[frameType="social"][remote="true"] {
-  -moz-binding: url("chrome://global/content/bindings/remote-browser.xml#remote-browser");
-}
-
 tabbrowser {
   -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser");
 }
@@ -117,6 +122,16 @@ tabbrowser {
 
 #tabbrowser-tabs:not([overflow="true"])[using-closing-tabs-spacer] ~ #alltabs-button {
   visibility: hidden; /* temporary space to keep a tab's close button under the cursor */
+}
+
+.tabs-newtab-button > .toolbarbutton-menu-dropmarker,
+#new-tab-button > .toolbarbutton-menu-dropmarker {
+  display: none;
+}
+
+/* override drop marker image padding */
+.tabs-newtab-button > .toolbarbutton-icon {
+  margin-inline-end: 0;
 }
 
 .tabbrowser-tab {
@@ -177,6 +192,7 @@ tabbrowser {
   transition: transform 200ms ease-out;
 }
 
+.new-tab-popup,
 #alltabs-popup {
   -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser-alltabs-popup");
 }
@@ -317,6 +333,10 @@ toolbarpaletteitem > toolbaritem[sdkstylewidget="true"][cui-areatype="toolbar"] 
   .webextension-page-action {
     list-style-image: var(--webextension-urlbar-image);
   }
+
+  .webextension-menuitem {
+    list-style-image: var(--webextension-menuitem-image);
+  }
 }
 
 @media (min-resolution: 1.1dppx) {
@@ -332,6 +352,15 @@ toolbarpaletteitem > toolbaritem[sdkstylewidget="true"][cui-areatype="toolbar"] 
   .webextension-page-action {
     list-style-image: var(--webextension-urlbar-image-2x);
   }
+
+  .webextension-menuitem {
+    list-style-image: var(--webextension-menuitem-image-2x);
+  }
+}
+
+toolbarbutton.webextension-menuitem > .toolbarbutton-icon {
+  width: 16px;
+  height: 16px;
 }
 
 toolbarpaletteitem[removable="false"] {
@@ -422,18 +451,14 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 }
 %endif
 
-#browser-bottombox[lwthemefooter="true"] {
+:root[lwthemefooter=true] #browser-bottombox:-moz-lwtheme {
   background-repeat: no-repeat;
   background-position: bottom left;
+  background-color: var(--lwt-accent-color);
+  background-image: var(--lwt-footer-image);
 }
 
-.menuitem-tooltip {
-  -moz-binding: url("chrome://browser/content/urlbarBindings.xml#menuitem-tooltip");
-}
-
-.menuitem-iconic-tooltip,
-.menuitem-tooltip[type="checkbox"],
-.menuitem-tooltip[type="radio"] {
+.menuitem-iconic-tooltip {
   -moz-binding: url("chrome://browser/content/urlbarBindings.xml#menuitem-iconic-tooltip");
 }
 
@@ -472,7 +497,15 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   list-style-image: none;
 }
 
-#urlbar:not([actiontype="switchtab"]) > #urlbar-display-box {
+#urlbar:not([actiontype="switchtab"]):not([actiontype="extension"]) > #urlbar-display-box {
+  display: none;
+}
+
+#urlbar:not([actiontype="switchtab"]) > #urlbar-display-box > #switchtab {
+  display: none;
+}
+
+#urlbar:not([actiontype="extension"]) > #urlbar-display-box > #extension {
   display: none;
 }
 
@@ -487,12 +520,10 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] {
   -moz-binding: url("chrome://global/content/bindings/autocomplete.xml#autocomplete-richlistitem-insecure-field");
   height: auto;
-  background-color: #F6F6F6;
 }
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] > .ac-site-icon {
   display: initial;
-  list-style-image: url(chrome://browser/skin/connection-mixed-active-loaded.svg#icon);
 }
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype="insecureWarning"] > .ac-title > .ac-text-overflow-container > .ac-title-text {
@@ -510,7 +541,8 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 
 /* Overlay a badge on top of the icon of additional open search providers
    in the search panel. */
-.addengine-item > .button-box > .button-icon {
+.addengine-item > .button-box > .button-icon,
+.addengine-item[type="menu"] > .button-box > .box-inherit > .button-icon {
   -moz-binding: url("chrome://browser/content/search/search.xml#addengine-icon");
   display: -moz-stack;
 }
@@ -540,7 +572,7 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   transition: none;
 }
 
-#DateTimePickerPanel {
+#DateTimePickerPanel[active="true"] {
   -moz-binding: url("chrome://global/content/bindings/datetimepopup.xml#datetime-popup");
 }
 
@@ -551,16 +583,19 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   visibility: collapse;
 }
 
+#urlbar[pageproxystate="invalid"] > #identity-box > #blocked-permissions-container,
+#urlbar[pageproxystate="invalid"] > #identity-box > #notification-popup-box,
 #urlbar[pageproxystate="invalid"] > #identity-box > #identity-icon-labels {
   visibility: collapse;
 }
 
-#urlbar[pageproxystate="invalid"] > #identity-box {
-  pointer-events: none;
+#identity-box {
+  -moz-user-focus: normal;
 }
 
-#urlbar[pageproxystate="invalid"] > #identity-box > #notification-popup-box {
-  pointer-events: auto;
+#urlbar[pageproxystate="invalid"] > #identity-box {
+  pointer-events: none;
+  -moz-user-focus: ignore;
 }
 
 #identity-icon-labels {
@@ -618,6 +653,12 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 }
 .unified-nav-current {
   font-weight: bold;
+}
+
+.bookmark-item > label {
+  /* ensure we use the direction of the bookmarks label instead of the
+   * browser locale */
+  unicode-bidi: plaintext;
 }
 
 toolbarbutton.bookmark-item {
@@ -793,7 +834,6 @@ html|*#fullscreen-exit-button {
 .popup-anchor {
   /* should occupy space but not be visible */
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
   -moz-stack-sizing: ignore;
 }
@@ -825,10 +865,9 @@ statuspanel {
   pointer-events: none;
 }
 
-statuspanel:-moz-locale-dir(ltr)[mirror],
-statuspanel:-moz-locale-dir(rtl):not([mirror]) {
-  left: auto;
-  right: 0;
+statuspanel[mirror] {
+  offset-inline-start: auto;
+  offset-inline-end: 0;
 }
 
 statuspanel[sizelimit] {
@@ -847,6 +886,9 @@ statuspanel[type=status] {
 
 statuspanel[type=overLink] {
   transition: opacity 120ms ease-out;
+}
+
+statuspanel[type=overLink] > .statuspanel-inner {
   direction: ltr;
 }
 
@@ -946,10 +988,14 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > #downloads-
   display: none;
 }
 
-#downloads-button:-moz-any([progress], [counter], [paused]) #downloads-indicator-icon,
-#downloads-button:not(:-moz-any([progress], [counter], [paused]))
-                                                   #downloads-indicator-progress-area
-{
+#downloads-button.withProgressBar:-moz-any([progress], [counter], [paused]) #downloads-indicator-icon,
+#downloads-button:not(:-moz-any([progress], [counter], [paused])) #downloads-indicator-progress-area {
+  visibility: hidden;
+}
+
+/* Hide elements for another type of progressmeter if it's not in use. */
+#downloads-button.withProgressBar #downloads-indicator-progress-icon,
+#downloads-button:not(.withProgressBar) #downloads-indicator-progress-area {
   visibility: hidden;
 }
 
@@ -1220,3 +1266,5 @@ toolbarpaletteitem[place="palette"][hidden] {
   opacity: 0.65;
   -moz-window-shadow: none;
 }
+
+%include theme-vars.inc.css

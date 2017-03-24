@@ -6,6 +6,7 @@ import merge from "./merge";
 import * as queue from "./queue";
 
 const LINUX_IMAGE = {name: "linux", path: "automation/taskcluster/docker"};
+const FUZZ_IMAGE = {name: "fuzz", path: "automation/taskcluster/docker-fuzz"};
 
 const WINDOWS_CHECKOUT_CMD =
   "bash -c \"hg clone -r $NSS_HEAD_REVISION $NSS_HEAD_REPOSITORY nss || " +
@@ -17,7 +18,7 @@ const WINDOWS_CHECKOUT_CMD =
 queue.filter(task => {
   if (task.group == "Builds") {
     // Remove extra builds on {A,UB}San and ARM.
-    if (task.collection == "asan" || task.collection == "arm-debug") {
+    if (task.collection == "asan" || task.platform == "aarch64") {
       return false;
     }
 
@@ -26,18 +27,29 @@ queue.filter(task => {
         (task.platform != "linux64" || task.collection != "debug")) {
       return false;
     }
+
+    // Make modular builds only on Linux x64.
+    if (task.symbol == "modular" && task.platform != "linux64") {
+      return false;
+    }
   }
 
-  if (task.tests == "bogo") {
-    // No BoGo tests on Windows.
+  if (task.tests == "bogo" || task.tests == "interop") {
+    // No windows
     if (task.platform == "windows2012-64") {
       return false;
     }
 
-    // No BoGo tests on ARM.
-    if (task.collection == "arm-debug") {
+    // No ARM; TODO: enable
+    if (task.platform == "aarch64") {
       return false;
     }
+  }
+
+  // GYP builds with -Ddisable_libpkix=1 by default.
+  if ((task.collection == "gyp" || task.collection == "asan"
+       || task.platform == "aarch64") && task.tests == "chains") {
+    return false;
   }
 
   return true;
@@ -49,23 +61,12 @@ queue.map(task => {
     if (task.tests == "crmf" || task.tests == "fips") {
       task.env.ASAN_OPTIONS = "detect_leaks=0";
     }
-
-    // SSL(standard) runs on ASan take some time.
-    if (task.tests == "ssl" && task.cycle == "standard") {
-      task.maxRunTime = 7200;
-    }
   }
 
-  if (task.collection == "arm-debug") {
-    // These tests take quite some time on our poor ARM devices.
-    if (task.tests == "chains" || (task.tests == "ssl" && task.cycle == "standard")) {
-      task.maxRunTime = 14400;
-    }
+  // Windows is slow.
+  if (task.platform == "windows2012-64" && task.tests == "chains") {
+    task.maxRunTime = 7200;
   }
-
-  // Enable TLS 1.3 for every task.
-  task.env = task.env || {};
-  task.env.NSS_ENABLE_TLS_1_3 = "1";
 
   return task;
 });
@@ -109,16 +110,18 @@ export default async function main() {
     image: LINUX_IMAGE
   });
 
-  await scheduleLinux("Linux 64 (ASan, debug)", {
+  await scheduleLinux("Linux 64 (GYP, ASan, debug)", {
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh -g -v --ubsan --asan"
+    ],
     env: {
       UBSAN_OPTIONS: "print_stacktrace=1",
       NSS_DISABLE_ARENA_FREE_LIST: "1",
       NSS_DISABLE_UNLOAD: "1",
       CC: "clang",
       CCC: "clang++",
-      USE_UBSAN: "1",
-      USE_ASAN: "1",
-      USE_64: "1"
     },
     platform: "linux64",
     collection: "asan",
@@ -135,17 +138,39 @@ export default async function main() {
 
   await scheduleFuzzing();
 
+  await scheduleTestBuilds();
+
   await scheduleTools();
 
-  await scheduleLinux("Linux 32 (ARM, debug)", {
-    image: "franziskus/nss-arm-ci",
+  let aarch64_base = {
+    image: "franziskus/nss-aarch64-ci",
     provisioner: "localprovisioner",
-    collection: "arm-debug",
-    workerType: "nss-rpi",
-    platform: "linux32",
-    maxRunTime: 7200,
-    tier: 3
-  });
+    workerType: "nss-aarch64",
+    platform: "aarch64",
+    maxRunTime: 7200
+  };
+
+  await scheduleLinux("Linux AArch64 (debug)",
+    merge({
+      command: [
+        "/bin/bash",
+        "-c",
+        "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh"
+      ],
+      collection: "debug",
+    }, aarch64_base)
+  );
+
+  await scheduleLinux("Linux AArch64 (opt)",
+    merge({
+      command: [
+        "/bin/bash",
+        "-c",
+        "bin/checkout.sh && nss/automation/taskcluster/scripts/build_gyp.sh --opt"
+      ],
+      collection: "opt",
+    }, aarch64_base)
+  );
 }
 
 /*****************************************************************************/
@@ -228,22 +253,48 @@ async function scheduleLinux(name, base) {
     symbol: "noLibpkix"
   }));
 
+  queue.scheduleTask(merge(extra_base, {
+    name: `${name} w/ modular builds`,
+    env: {NSS_BUILD_MODULAR: "1"},
+    symbol: "modular"
+  }));
+
   return queue.submit();
 }
 
 /*****************************************************************************/
+
+function scheduleFuzzingRun(base, name, target, max_len, symbol = null, corpus = null) {
+  const MAX_FUZZ_TIME = 300;
+
+  queue.scheduleTask(merge(base, {
+    name,
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/fuzz.sh " +
+        `${target} nss/fuzz/corpus/${corpus || target} ` +
+        `-max_total_time=${MAX_FUZZ_TIME} ` +
+        `-max_len=${max_len}`
+    ],
+    symbol: symbol || name
+  }));
+}
 
 async function scheduleFuzzing() {
   let base = {
     env: {
       ASAN_OPTIONS: "allocator_may_return_null=1",
       UBSAN_OPTIONS: "print_stacktrace=1",
+      NSS_DISABLE_ARENA_FREE_LIST: "1",
+      NSS_DISABLE_UNLOAD: "1",
       CC: "clang",
       CCC: "clang++"
     },
+    features: ["allowPtrace"],
     platform: "linux64",
     collection: "fuzz",
-    image: LINUX_IMAGE
+    image: FUZZ_IMAGE
   };
 
   // Build base definition.
@@ -270,9 +321,22 @@ async function scheduleFuzzing() {
     name: "Linux x64 (debug, fuzz)"
   }));
 
+  // The task that builds NSPR+NSS (TLS fuzzing mode).
+  let task_build_tls = queue.scheduleTask(merge(build_base, {
+    name: "Linux x64 (debug, TLS fuzz)",
+    symbol: "B",
+    group: "TLS",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && " +
+      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --fuzz=tls"
+    ],
+  }));
+
   // Schedule tests.
   queue.scheduleTask(merge(base, {
-    parent: task_build,
+    parent: task_build_tls,
     name: "Gtests",
     command: [
       "/bin/bash",
@@ -286,8 +350,86 @@ async function scheduleFuzzing() {
     kind: "test"
   }));
 
+  // Schedule fuzzing runs.
+  let run_base = merge(base, {parent: task_build, kind: "test"});
+  scheduleFuzzingRun(run_base, "CertDN", "certDN", 4096);
+  scheduleFuzzingRun(run_base, "QuickDER", "quickder", 10000);
+
+  // Schedule MPI fuzzing runs.
+  let mpi_base = merge(run_base, {group: "MPI"});
+  let mpi_names = ["add", "addmod", "div", "expmod", "mod", "mulmod", "sqr",
+                   "sqrmod", "sub", "submod"];
+  for (let name of mpi_names) {
+    scheduleFuzzingRun(mpi_base, `MPI (${name})`, `mpi-${name}`, 4096, name);
+  }
+  scheduleFuzzingRun(mpi_base, `MPI (invmod)`, `mpi-invmod`, 256, "invmod");
+
+  // Schedule TLS fuzzing runs (non-fuzzing mode).
+  let tls_base = merge(run_base, {group: "TLS"});
+  scheduleFuzzingRun(tls_base, "TLS Client", "tls-client", 20000, "client-nfm",
+                     "tls-client-no_fuzzer_mode");
+  scheduleFuzzingRun(tls_base, "TLS Server", "tls-server", 20000, "server-nfm",
+                     "tls-server-no_fuzzer_mode");
+
+  // Schedule TLS fuzzing runs (fuzzing mode).
+  let tls_fm_base = merge(tls_base, {parent: task_build_tls});
+  scheduleFuzzingRun(tls_fm_base, "TLS Client", "tls-client", 20000, "client");
+  scheduleFuzzingRun(tls_fm_base, "TLS Server", "tls-server", 20000, "server");
+
   return queue.submit();
 }
+
+/*****************************************************************************/
+
+async function scheduleTestBuilds() {
+  let base = {
+    platform: "linux64",
+    collection: "gyp",
+    group: "Test",
+    image: LINUX_IMAGE
+  };
+
+  // Build base definition.
+  let build = merge({
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && " +
+      "nss/automation/taskcluster/scripts/build_gyp.sh -g -v --test --ct-verif"
+    ],
+    artifacts: {
+      public: {
+        expires: 24 * 7,
+        type: "directory",
+        path: "/home/worker/artifacts"
+      }
+    },
+    kind: "build",
+    symbol: "B",
+    name: "Linux 64 (debug, gyp, test)"
+  }, base);
+
+  // The task that builds NSPR+NSS.
+  let task_build = queue.scheduleTask(build);
+
+  // Schedule tests.
+  queue.scheduleTask(merge(base, {
+    parent: task_build,
+    name: "mpi",
+    command: [
+      "/bin/bash",
+      "-c",
+      "bin/checkout.sh && nss/automation/taskcluster/scripts/run_tests.sh"
+    ],
+    tests: "mpi",
+    cycle: "standard",
+    symbol: "mpi",
+    kind: "test"
+  }));
+
+  return queue.submit();
+}
+
 
 /*****************************************************************************/
 
@@ -360,6 +502,9 @@ function scheduleTests(task_build, task_cert, test_base) {
   }));
   queue.scheduleTask(merge(no_cert_base, {
     name: "Bogo tests", symbol: "Bogo", tests: "bogo", cycle: "standard"
+  }));
+  queue.scheduleTask(merge(no_cert_base, {
+    name: "Interop tests", symbol: "Interop", tests: "interop", cycle: "standard"
   }));
   queue.scheduleTask(merge(no_cert_base, {
     name: "Chains tests", symbol: "Chains", tests: "chains"

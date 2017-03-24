@@ -31,7 +31,7 @@ add_task(function* test_downloads_api_namespace_and_permissions() {
 
 add_task(function* test_downloads_open_permission() {
   function backgroundScript() {
-    browser.test.assertFalse("open" in browser.downloads,
+    browser.test.assertEq(browser.downloads.open, undefined,
                              "`downloads.open` permission is required.");
     browser.test.notifyPass("downloads tests");
   }
@@ -50,16 +50,13 @@ add_task(function* test_downloads_open_permission() {
 });
 
 add_task(function* test_downloads_open() {
-  function backgroundScript() {
-    browser.downloads.open(10).then(() => {
-      browser.test.fail("Expected an error");
-      browser.test.notifyFail("downloads tests");
-    }, error => {
-      browser.test.assertEq(error.message, "Invalid download id 10",
-                            "The error is informative.");
+  async function backgroundScript() {
+    await browser.test.assertRejects(
+      browser.downloads.open(10),
+      "Invalid download id 10",
+      "The error is informative.");
 
-      browser.test.notifyPass("downloads tests");
-    });
+    browser.test.notifyPass("downloads tests");
 
     // TODO: Once downloads.{pause,cancel,resume} lands (bug 1245602) test that this gives a good
     // error when called with an incompleted download.

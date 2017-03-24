@@ -14,21 +14,22 @@ this.EXPORTED_SYMBOLS = ["TabAttributes"];
 // 'pending' is used internal by sessionstore and managed accordingly.
 // 'iconLoadingPrincipal' is same as 'image' that it should be handled by
 //                        using the gBrowser.getIcon()/setIcon() methods.
-const ATTRIBUTES_TO_SKIP = new Set(["image", "muted", "pending", "iconLoadingPrincipal"]);
+const ATTRIBUTES_TO_SKIP = new Set(["image", "muted", "pending", "iconLoadingPrincipal",
+                                    "skipbackgroundnotify"]);
 
 // A set of tab attributes to persist. We will read a given list of tab
 // attributes when collecting tab data and will re-set those attributes when
 // the given tab data is restored to a new tab.
 this.TabAttributes = Object.freeze({
-  persist: function (name) {
+  persist(name) {
     return TabAttributesInternal.persist(name);
   },
 
-  get: function (tab) {
+  get(tab) {
     return TabAttributesInternal.get(tab);
   },
 
-  set: function (tab, data = {}) {
+  set(tab, data = {}) {
     TabAttributesInternal.set(tab, data);
   }
 });
@@ -36,7 +37,7 @@ this.TabAttributes = Object.freeze({
 var TabAttributesInternal = {
   _attrs: new Set(),
 
-  persist: function (name) {
+  persist(name) {
     if (this._attrs.has(name) || ATTRIBUTES_TO_SKIP.has(name)) {
       return false;
     }
@@ -45,7 +46,7 @@ var TabAttributesInternal = {
     return true;
   },
 
-  get: function (tab) {
+  get(tab) {
     let data = {};
 
     for (let name of this._attrs) {
@@ -57,7 +58,7 @@ var TabAttributesInternal = {
     return data;
   },
 
-  set: function (tab, data = {}) {
+  set(tab, data = {}) {
     // Clear attributes.
     for (let name of this._attrs) {
       tab.removeAttribute(name);

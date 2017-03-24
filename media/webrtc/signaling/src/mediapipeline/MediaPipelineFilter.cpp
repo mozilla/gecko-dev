@@ -9,7 +9,7 @@
 
 #include "MediaPipelineFilter.h"
 
-#include "webrtc/modules/interface/module_common_types.h"
+#include "webrtc/common_types.h"
 
 namespace mozilla {
 
@@ -24,12 +24,11 @@ bool MediaPipelineFilter::Filter(const webrtc::RTPHeader& header,
     if (correlator == correlator_) {
       AddRemoteSSRC(header.ssrc);
       return true;
-    } else {
-      // Some other stream; it is possible that an SSRC has moved, so make sure
-      // we don't have that SSRC in our filter any more.
-      remote_ssrc_set_.erase(header.ssrc);
-      return false;
     }
+    // Some other stream; it is possible that an SSRC has moved, so make sure
+    // we don't have that SSRC in our filter any more.
+    remote_ssrc_set_.erase(header.ssrc);
+    return false;
   }
 
   if (remote_ssrc_set_.count(header.ssrc)) {

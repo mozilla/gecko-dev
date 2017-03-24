@@ -51,14 +51,14 @@ add_task(function* test_same_date_diff_hash() {
   let backupFolder = yield PlacesBackups.getBackupFolder();
   let tempPath = OS.Path.join(OS.Constants.Path.profileDir,
                               "bug10169583_bookmarks.json");
-  let {count, hash} = yield BookmarkJSONUtils.exportToFile(tempPath);
+  let {count} = yield BookmarkJSONUtils.exportToFile(tempPath);
   let dateObj = new Date();
   let filename = "bookmarks-" + PlacesBackups.toISODateString(dateObj) + "_" +
-                  count + "_" + "differentHash==" + ".json";
+                  count + "_differentHash==.json";
   let backupFile = OS.Path.join(backupFolder, filename);
   yield OS.File.move(tempPath, backupFile);
   yield PlacesBackups.create(); // Force compressed backup
-  mostRecentBackupFile = yield PlacesBackups.getMostRecentBackup();
+  let mostRecentBackupFile = yield PlacesBackups.getMostRecentBackup();
 
   // Decode lz4 compressed file to json and check if json is valid
   let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].

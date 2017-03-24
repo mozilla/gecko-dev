@@ -63,7 +63,7 @@ gTests.push({
   _itemId: null,
   _cleanShutdown: false,
 
-  setup: function(aCallback) {
+  setup(aCallback) {
     // Add a bookmark in unsorted bookmarks folder.
     this._itemId = add_bookmark(PlacesUtils._uri(TEST_URL));
     ok(this._itemId > 0, "Correctly added a bookmark");
@@ -75,29 +75,28 @@ gTests.push({
     aCallback();
   },
 
-  selectNode: function(tree) {
+  selectNode(tree) {
     tree.selectItems([PlacesUtils.unfiledBookmarksFolderId]);
     PlacesUtils.asContainer(tree.selectedNode).containerOpen = true;
     tree.selectItems([this._itemId]);
     is(tree.selectedNode.itemId, this._itemId, "Bookmark has been selected");
   },
 
-  run: function() {
+  run() {
     // open tags autocomplete and press enter
     var tagsField = this.window.document.getElementById("editBMPanel_tagsField");
     var self = this;
 
     this.window.addEventListener("unload", function(event) {
-      self.window.removeEventListener("unload", arguments.callee, true);
       tagsField.popup.removeEventListener("popuphidden", popupListener, true);
       ok(self._cleanShutdown, "Dialog window should not be closed by pressing Enter on the autocomplete popup");
-      executeSoon(function () {
+      executeSoon(function() {
         self.finish();
       });
-    }, true);
+    }, {capture: true, once: true});
 
     var popupListener = {
-      handleEvent: function(aEvent) {
+      handleEvent(aEvent) {
         switch (aEvent.type) {
           case "popuphidden":
             // Everything worked fine, we can stop observing the window.
@@ -121,7 +120,6 @@ gTests.push({
             break;
           default:
             ok(false, "unknown event: " + aEvent.type);
-            return;
         }
       }
     };
@@ -137,12 +135,12 @@ gTests.push({
                 });
   },
 
-  finish: function() {
+  finish() {
     SidebarUI.hide();
     runNextTest();
   },
 
-  cleanup: function() {
+  cleanup() {
     // Check tags have not changed.
     var tags = PlacesUtils.tagging.getTagsForURI(PlacesUtils._uri(TEST_URL));
     is(tags[0], "testTag", "Tag on node has not changed");
@@ -165,7 +163,7 @@ gTests.push({
   _itemId: null,
   _cleanShutdown: false,
 
-  setup: function(aCallback) {
+  setup(aCallback) {
     // Add a bookmark in unsorted bookmarks folder.
     this._itemId = add_bookmark(PlacesUtils._uri(TEST_URL));
     ok(this._itemId > 0, "Correctly added a bookmark");
@@ -177,29 +175,28 @@ gTests.push({
     aCallback();
   },
 
-  selectNode: function(tree) {
+  selectNode(tree) {
     tree.selectItems([PlacesUtils.unfiledBookmarksFolderId]);
     PlacesUtils.asContainer(tree.selectedNode).containerOpen = true;
     tree.selectItems([this._itemId]);
     is(tree.selectedNode.itemId, this._itemId, "Bookmark has been selected");
   },
 
-  run: function() {
+  run() {
     // open tags autocomplete and press enter
     var tagsField = this.window.document.getElementById("editBMPanel_tagsField");
     var self = this;
 
     this.window.addEventListener("unload", function(event) {
-      self.window.removeEventListener("unload", arguments.callee, true);
       tagsField.popup.removeEventListener("popuphidden", popupListener, true);
       ok(self._cleanShutdown, "Dialog window should not be closed by pressing Escape on the autocomplete popup");
-      executeSoon(function () {
+      executeSoon(function() {
         self.finish();
       });
-    }, true);
+    }, {capture: true, once: true});
 
     var popupListener = {
-      handleEvent: function(aEvent) {
+      handleEvent(aEvent) {
         switch (aEvent.type) {
           case "popuphidden":
             // Everything worked fine.
@@ -223,7 +220,6 @@ gTests.push({
             break;
           default:
             ok(false, "unknown event: " + aEvent.type);
-            return;
         }
       }
     };
@@ -237,12 +233,12 @@ gTests.push({
     EventUtils.synthesizeKey("t", {}, this.window);
   },
 
-  finish: function() {
+  finish() {
     SidebarUI.hide();
     runNextTest();
   },
 
-  cleanup: function() {
+  cleanup() {
     // Check tags have not changed.
     var tags = PlacesUtils.tagging.getTagsForURI(PlacesUtils._uri(TEST_URL));
     is(tags[0], "testTag", "Tag on node has not changed");
@@ -264,7 +260,7 @@ gTests.push({
   historyView: SIDEBAR_HISTORY_BYLASTVISITED_VIEW,
   window: null,
 
-  setup: function(aCallback) {
+  setup(aCallback) {
     // Add a visit.
     PlacesTestUtils.addVisits(
       {uri: PlacesUtils._uri(TEST_URL),
@@ -272,32 +268,31 @@ gTests.push({
       ).then(aCallback);
   },
 
-  selectNode: function(tree) {
+  selectNode(tree) {
     var visitNode = tree.view.nodeForTreeIndex(0);
     tree.selectNode(visitNode);
     is(tree.selectedNode.uri, TEST_URL, "The correct visit has been selected");
     is(tree.selectedNode.itemId, -1, "The selected node is not bookmarked");
   },
 
-  run: function() {
+  run() {
     // Open folder selector.
     var foldersExpander = this.window.document.getElementById("editBMPanel_foldersExpander");
     var folderTree = this.window.document.getElementById("editBMPanel_folderTree");
     var self = this;
 
     this.window.addEventListener("unload", function(event) {
-      self.window.removeEventListener("unload", arguments.callee, true);
       ok(self._cleanShutdown, "Dialog window should not be closed by pressing ESC in folder name textbox");
-      executeSoon(function () {
+      executeSoon(function() {
         self.finish();
       });
-    }, true);
+    }, {capture: true, once: true});
 
     folderTree.addEventListener("DOMAttrModified", function onDOMAttrModified(event) {
       if (event.attrName != "place")
         return;
-      folderTree.removeEventListener("DOMAttrModified", arguments.callee, false);
-      executeSoon(function () {
+      folderTree.removeEventListener("DOMAttrModified", arguments.callee);
+      executeSoon(function() {
         // Create a new folder.
         var newFolderButton = self.window.document.getElementById("editBMPanel_newFolderButton");
         newFolderButton.doCommand();
@@ -311,16 +306,16 @@ gTests.push({
         self._cleanShutdown = true;
         self.window.document.documentElement.cancelDialog();
       });
-    }, false);
+    });
     foldersExpander.doCommand();
   },
 
-  finish: function() {
+  finish() {
     SidebarUI.hide();
     runNextTest();
   },
 
-  cleanup: function() {
+  cleanup() {
     return PlacesTestUtils.clearHistory();
   }
 });
@@ -359,8 +354,7 @@ function runNextTest() {
     gCurrentTest.setup(function() {
       execute_test_in_sidebar();
     });
-  }
-  else {
+  } else {
     // Finished all tests.
     finish();
   }
@@ -373,10 +367,9 @@ function runNextTest() {
 function execute_test_in_sidebar() {
     var sidebar = document.getElementById("sidebar");
     sidebar.addEventListener("load", function() {
-      sidebar.removeEventListener("load", arguments.callee, true);
       // Need to executeSoon since the tree is initialized on sidebar load.
       executeSoon(open_properties_dialog);
-    }, true);
+    }, {capture: true, once: true});
     SidebarUI.show(gCurrentTest.sidebar);
 }
 
@@ -404,20 +397,20 @@ function open_properties_dialog() {
       if (aTopic != "domwindowopened")
         return;
       ww.unregisterNotification(windowObserver);
-      let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
+      let observerWindow = aSubject.QueryInterface(Ci.nsIDOMWindow);
       waitForFocus(() => {
         // Windows has been loaded, execute our test now.
-        executeSoon(function () {
+        executeSoon(function() {
           // Ensure overlay is loaded
-          ok(win.gEditItemOverlay.initialized, "EditItemOverlay is initialized");
-          gCurrentTest.window = win;
+          ok(observerWindow.gEditItemOverlay.initialized, "EditItemOverlay is initialized");
+          gCurrentTest.window = observerWindow;
           try {
             gCurrentTest.run();
           } catch (ex) {
             ok(false, "An error occured during test run: " + ex.message);
           }
         });
-      }, win);
+      }, observerWindow);
     }
     ww.registerNotification(windowObserver);
 
@@ -434,8 +427,7 @@ function open_properties_dialog() {
             command = "placesCmd_new:bookmark";
           else
             ok(false, "You didn't set a valid itemType for adding an item");
-        }
-        else
+        } else
           command = "placesCmd_createBookmark";
         break;
       default:

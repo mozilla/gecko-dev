@@ -1,6 +1,3 @@
-// |jit-test| test-also-wasm-baseline
-load(libdir + "wasm.js");
-
 // sanity check
 assertErrorMessage(() => wasmEvalText(''), SyntaxError, /parsing wasm text/);
 

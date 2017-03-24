@@ -196,13 +196,14 @@ LIRGeneratorX64::visitWasmUnsignedToFloat32(MWasmUnsignedToFloat32* ins)
 void
 LIRGeneratorX64::visitWasmLoad(MWasmLoad* ins)
 {
-    if (ins->type() != MIRType::Int64) {
-        lowerWasmLoad(ins);
-        return;
-    }
-
     MDefinition* base = ins->base();
     MOZ_ASSERT(base->type() == MIRType::Int32);
+
+    if (ins->type() != MIRType::Int64) {
+        auto* lir = new(alloc()) LWasmLoad(useRegisterOrZeroAtStart(base));
+        define(lir, ins);
+        return;
+    }
 
     auto* lir = new(alloc()) LWasmLoadI64(useRegisterOrZeroAtStart(base));
     defineInt64(lir, ins);
@@ -485,7 +486,8 @@ LIRGeneratorX64::visitInt64ToFloatingPoint(MInt64ToFloatingPoint* ins)
     MOZ_ASSERT(opd->type() == MIRType::Int64);
     MOZ_ASSERT(IsFloatingPointType(ins->type()));
 
-    define(new(alloc()) LInt64ToFloatingPoint(useInt64Register(opd), LDefinition::BogusTemp()), ins);
+    LDefinition maybeTemp = ins->isUnsigned() ? temp() : LDefinition::BogusTemp();
+    define(new(alloc()) LInt64ToFloatingPoint(useInt64Register(opd), maybeTemp), ins);
 }
 
 void

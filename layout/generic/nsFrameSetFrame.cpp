@@ -302,7 +302,8 @@ nsHTMLFramesetFrame::Init(nsIContent*       aContent,
       RefPtr<nsStyleContext> kidSC;
 
       kidSC = shell->StyleSet()->ResolveStyleFor(child->AsElement(),
-                                                 mStyleContext);
+                                                 mStyleContext,
+                                                 LazyComputeBehavior::Allow);
       if (child->IsHTMLElement(nsGkAtoms::frameset)) {
         frame = NS_NewHTMLFramesetFrame(shell, kidSC);
 
@@ -334,7 +335,7 @@ nsHTMLFramesetFrame::Init(nsIContent*       aContent,
   for (int blankX = mChildCount; blankX < numCells; blankX++) {
     RefPtr<nsStyleContext> pseudoStyleContext;
     pseudoStyleContext = shell->StyleSet()->
-      ResolveAnonymousBoxStyle(nsCSSAnonBoxes::framesetBlank, mStyleContext);
+      ResolveNonInheritingAnonymousBoxStyle(nsCSSAnonBoxes::framesetBlank);
 
     // XXX the blank frame is using the content of its parent - at some point it
     // should just have null content, if we support that
@@ -662,6 +663,7 @@ nsresult
 nsHTMLFramesetFrame::GetCursor(const nsPoint&    aPoint,
                                nsIFrame::Cursor& aCursor)
 {
+  aCursor.mLoading = false;
   if (mDragger) {
     aCursor.mCursor = (mDragger->mVertical) ? NS_STYLE_CURSOR_EW_RESIZE : NS_STYLE_CURSOR_NS_RESIZE;
   } else {
@@ -703,7 +705,7 @@ nsHTMLFramesetFrame::ReflowPlaceChild(nsIFrame*                aChild,
 
   ReflowChild(aChild, aPresContext, reflowOutput, reflowInput, aOffset.x,
               aOffset.y, 0, status);
-  NS_ASSERTION(NS_FRAME_IS_COMPLETE(status), "bad status");
+  NS_ASSERTION(status.IsComplete(), "bad status");
 
   // Place and size the child
   reflowOutput.Width() = aSize.width;
@@ -847,7 +849,7 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
   // If the number of cols or rows has changed, the frame for the frameset
   // will be re-created.
   if (mNumRows != rows || mNumCols != cols) {
-    aStatus = NS_FRAME_COMPLETE;
+    aStatus.Reset();
     mDrag.UnSet();
     NS_FRAME_SET_TRUNCATION(aStatus, aReflowInput, aDesiredSize);
     return;
@@ -909,8 +911,7 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
 
         RefPtr<nsStyleContext> pseudoStyleContext;
         pseudoStyleContext = styleSet->
-          ResolveAnonymousBoxStyle(nsCSSAnonBoxes::horizontalFramesetBorder,
-                                   mStyleContext);
+          ResolveNonInheritingAnonymousBoxStyle(nsCSSAnonBoxes::horizontalFramesetBorder);
 
         borderFrame = new (shell) nsHTMLFramesetBorderFrame(pseudoStyleContext,
                                                             borderWidth,
@@ -939,8 +940,7 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
 
             RefPtr<nsStyleContext> pseudoStyleContext;
             pseudoStyleContext = styleSet->
-              ResolveAnonymousBoxStyle(nsCSSAnonBoxes::verticalFramesetBorder,
-                                       mStyleContext);
+              ResolveNonInheritingAnonymousBoxStyle(nsCSSAnonBoxes::verticalFramesetBorder);
 
             borderFrame = new (shell) nsHTMLFramesetBorderFrame(pseudoStyleContext,
                                                                 borderWidth,
@@ -1082,7 +1082,7 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
     mChildBorderColors.reset();
   }
 
-  aStatus = NS_FRAME_COMPLETE;
+  aStatus.Reset();
   mDrag.UnSet();
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
@@ -1254,7 +1254,7 @@ nsHTMLFramesetFrame::MouseDrag(nsPresContext* aPresContext,
   }
 
   int32_t change; // measured positive from left-to-right or top-to-bottom
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   if (mDragger->mVertical) {
     change = aPresContext->DevPixelsToAppUnits(
                              aEvent->mRefPoint.x - mFirstDragPoint.x);
@@ -1392,7 +1392,7 @@ nsHTMLFramesetBorderFrame::Reflow(nsPresContext*           aPresContext,
   SizeToAvailSize(aReflowInput, aDesiredSize);
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
-  aStatus = NS_FRAME_COMPLETE;
+  aStatus.Reset();
 }
 
 class nsDisplayFramesetBorder : public nsDisplayItem {
@@ -1551,6 +1551,7 @@ nsresult
 nsHTMLFramesetBorderFrame::GetCursor(const nsPoint&    aPoint,
                                      nsIFrame::Cursor& aCursor)
 {
+  aCursor.mLoading = false;
   if (!mCanResize) {
     aCursor.mCursor = NS_STYLE_CURSOR_DEFAULT;
   } else {
@@ -1606,7 +1607,7 @@ nsHTMLFramesetBlankFrame::Reflow(nsPresContext*           aPresContext,
   SizeToAvailSize(aReflowInput, aDesiredSize);
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
-  aStatus = NS_FRAME_COMPLETE;
+  aStatus.Reset();
 }
 
 class nsDisplayFramesetBlank : public nsDisplayItem {

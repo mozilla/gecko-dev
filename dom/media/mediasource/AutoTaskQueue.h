@@ -17,7 +17,8 @@ namespace mozilla {
 class AutoTaskQueue : public AbstractThread
 {
 public:
-  explicit AutoTaskQueue(already_AddRefed<SharedThreadPool> aPool, bool aSupportsTailDispatch = false)
+  explicit AutoTaskQueue(already_AddRefed<SharedThreadPool> aPool,
+                         bool aSupportsTailDispatch = false)
   : AbstractThread(aSupportsTailDispatch)
   , mTaskQueue(new TaskQueue(Move(aPool), aSupportsTailDispatch))
   {}
@@ -49,7 +50,7 @@ private:
     RefPtr<TaskQueue> taskqueue = mTaskQueue;
     nsCOMPtr<nsIRunnable> task =
       NS_NewRunnableFunction([taskqueue]() { taskqueue->BeginShutdown(); });
-    AbstractThread::MainThread()->Dispatch(task.forget());
+    SystemGroup::Dispatch("~AutoTaskQueue", TaskCategory::Other, task.forget());
   }
   RefPtr<TaskQueue> mTaskQueue;
 };

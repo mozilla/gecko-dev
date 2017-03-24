@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Tools for all add-ons">
 
+<!ENTITY getThemes.description                "Looking to personalize your browser?">
+<!ENTITY getThemes.learnMore                  "Choose from thousands of themes.">
+
 <!ENTITY cmd.back.tooltip                     "Go back one page">
 <!ENTITY cmd.forward.tooltip                  "Go forward one page">
 
@@ -246,3 +249,6 @@
 <!ENTITY disabledUnsigned.devInfo.start "Developers interested in getting their add-ons verified can continue by reading our ">
 <!ENTITY disabledUnsigned.devInfo.linkToManual "manual">
 <!ENTITY disabledUnsigned.devInfo.end ".">
+
+<!ENTITY pluginDeprecation.description "Missing something? Some plugins are no longer supported by &brandShortName;.">
+<!ENTITY pluginDeprecation.learnMore "Learn More.">

@@ -27,10 +27,15 @@ add_task(function* () {
   // It seems that this test may be slow on Ubuntu builds running on ec2.
   requestLongerTimeout(2);
 
-  let { $, NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
+  let { document, gStore, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/actions/index");
+  let {
+    getDisplayedRequests,
+    getSelectedRequest,
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/selectors/index");
 
-  RequestsMenu.lazyUpdate = false;
+  gStore.dispatch(Actions.batchEnable(false));
 
   // The test assumes that the first HTML request here has a longer response
   // body than the other HTML requests performed later during the test.
@@ -44,25 +49,28 @@ add_task(function* () {
   yield performRequestsInContent(requests);
   yield wait;
 
-  EventUtils.sendMouseEvent({ type: "mousedown" }, $("#details-pane-toggle"));
+  EventUtils.sendMouseEvent({ type: "mousedown" },
+    document.querySelectorAll(".request-list-item")[0]);
 
-  isnot(RequestsMenu.selectedItem, null,
+  isnot(getSelectedRequest(gStore.getState()), null,
     "There should be a selected item in the requests menu.");
-  is(RequestsMenu.selectedIndex, 0,
+  is(getSelectedIndex(gStore.getState()), 0,
     "The first item should be selected in the requests menu.");
-  is(NetMonitorView.detailsPaneHidden, false,
-    "The details pane should not be hidden after toggle button was pressed.");
+  is(!!document.querySelector(".network-details-panel"), true,
+    "The network details panel should be visible after toggle button was pressed.");
 
   testFilterButtons(monitor, "all");
   testContents([0, 1, 2, 3, 4, 5, 6], 7, 0);
 
   info("Sorting by size, ascending.");
-  EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-size-button"));
+  EventUtils.sendMouseEvent({ type: "click" },
+    document.querySelector("#requests-list-size-button"));
   testFilterButtons(monitor, "all");
   testContents([6, 4, 5, 0, 1, 2, 3], 7, 6);
 
   info("Testing html filtering.");
-  EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-filter-html-button"));
+  EventUtils.sendMouseEvent({ type: "click" },
+    document.querySelector(".requests-list-filter-html-button"));
   testFilterButtons(monitor, "html");
   testContents([6, 4, 5, 0, 1, 2, 3], 1, 6);
 
@@ -89,97 +97,30 @@ add_task(function* () {
   yield teardown(monitor);
 
   function resetSorting() {
-    EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-waterfall-button"));
-    EventUtils.sendMouseEvent({ type: "click" }, $("#requests-menu-size-button"));
+    EventUtils.sendMouseEvent({ type: "click" },
+      document.querySelector("#requests-list-waterfall-button"));
+    EventUtils.sendMouseEvent({ type: "click" },
+      document.querySelector("#requests-list-size-button"));
+  }
+
+  function getSelectedIndex(state) {
+    if (!state.requests.selectedId) {
+      return -1;
+    }
+    return getSortedRequests(state).findIndex(r => r.id === state.requests.selectedId);
   }
 
   function testContents(order, visible, selection) {
-    isnot(RequestsMenu.selectedItem, null,
+    isnot(getSelectedRequest(gStore.getState()), null,
       "There should still be a selected item after filtering.");
-    is(RequestsMenu.selectedIndex, selection,
+    is(getSelectedIndex(gStore.getState()), selection,
       "The first item should be still selected after filtering.");
-    is(NetMonitorView.detailsPaneHidden, false,
-      "The details pane should still be visible after filtering.");
+    is(!!document.querySelector(".network-details-panel"), true,
+      "The network details panel should still be visible after filtering.");
 
-    is(RequestsMenu.items.length, order.length,
+    is(getSortedRequests(gStore.getState()).length, order.length,
       "There should be a specific amount of items in the requests menu.");
-    is(RequestsMenu.visibleItems.length, visible,
-      "There should be a specific amount of visbile items in the requests menu.");
-
-    for (let i = 0; i < order.length; i++) {
-      is(RequestsMenu.getItemAtIndex(i), RequestsMenu.items[i],
-        "The requests menu items aren't ordered correctly. Misplaced item " + i + ".");
-    }
-
-    for (let i = 0, len = order.length / 7; i < len; i++) {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(order[i]),
-        "GET", CONTENT_TYPE_SJS + "?fmt=html", {
-          fuzzyUrl: true,
-          status: 200,
-          statusText: "OK",
-          type: "html",
-          fullMimeType: "text/html; charset=utf-8"
-        });
-    }
-    for (let i = 0, len = order.length / 7; i < len; i++) {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(order[i + len]),
-        "GET", CONTENT_TYPE_SJS + "?fmt=css", {
-          fuzzyUrl: true,
-          status: 200,
-          statusText: "OK",
-          type: "css",
-          fullMimeType: "text/css; charset=utf-8"
-        });
-    }
-    for (let i = 0, len = order.length / 7; i < len; i++) {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(order[i + len * 2]),
-        "GET", CONTENT_TYPE_SJS + "?fmt=js", {
-          fuzzyUrl: true,
-          status: 200,
-          statusText: "OK",
-          type: "js",
-          fullMimeType: "application/javascript; charset=utf-8"
-        });
-    }
-    for (let i = 0, len = order.length / 7; i < len; i++) {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(order[i + len * 3]),
-        "GET", CONTENT_TYPE_SJS + "?fmt=font", {
-          fuzzyUrl: true,
-          status: 200,
-          statusText: "OK",
-          type: "woff",
-          fullMimeType: "font/woff"
-        });
-    }
-    for (let i = 0, len = order.length / 7; i < len; i++) {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(order[i + len * 4]),
-        "GET", CONTENT_TYPE_SJS + "?fmt=image", {
-          fuzzyUrl: true,
-          status: 200,
-          statusText: "OK",
-          type: "png",
-          fullMimeType: "image/png"
-        });
-    }
-    for (let i = 0, len = order.length / 7; i < len; i++) {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(order[i + len * 5]),
-        "GET", CONTENT_TYPE_SJS + "?fmt=audio", {
-          fuzzyUrl: true,
-          status: 200,
-          statusText: "OK",
-          type: "ogg",
-          fullMimeType: "audio/ogg"
-        });
-    }
-    for (let i = 0, len = order.length / 7; i < len; i++) {
-      verifyRequestItemTarget(RequestsMenu.getItemAtIndex(order[i + len * 6]),
-        "GET", CONTENT_TYPE_SJS + "?fmt=video", {
-          fuzzyUrl: true,
-          status: 200,
-          statusText: "OK",
-          type: "webm",
-          fullMimeType: "video/webm"
-        });
-    }
+    is(getDisplayedRequests(gStore.getState()).length, visible,
+      "There should be a specific amount of visible items in the requests menu.");
   }
 });

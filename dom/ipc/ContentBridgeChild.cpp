@@ -22,8 +22,7 @@ namespace dom {
 NS_IMPL_ISUPPORTS(ContentBridgeChild,
                   nsIContentChild)
 
-ContentBridgeChild::ContentBridgeChild(Transport* aTransport)
-  : mTransport(aTransport)
+ContentBridgeChild::ContentBridgeChild()
 {}
 
 ContentBridgeChild::~ContentBridgeChild()
@@ -36,17 +35,14 @@ ContentBridgeChild::ActorDestroy(ActorDestroyReason aWhy)
   MessageLoop::current()->PostTask(NewRunnableMethod(this, &ContentBridgeChild::DeferredDestroy));
 }
 
-/*static*/ ContentBridgeChild*
-ContentBridgeChild::Create(Transport* aTransport, ProcessId aOtherPid)
+/*static*/ void
+ContentBridgeChild::Create(Endpoint<PContentBridgeChild>&& aEndpoint)
 {
-  RefPtr<ContentBridgeChild> bridge =
-    new ContentBridgeChild(aTransport);
+  RefPtr<ContentBridgeChild> bridge = new ContentBridgeChild();
   bridge->mSelfRef = bridge;
 
-  DebugOnly<bool> ok = bridge->Open(aTransport, aOtherPid, XRE_GetIOMessageLoop());
+  DebugOnly<bool> ok = aEndpoint.Bind(bridge);
   MOZ_ASSERT(ok);
-
-  return bridge;
 }
 
 void
@@ -56,7 +52,7 @@ ContentBridgeChild::DeferredDestroy()
   // |this| was just destroyed, hands off
 }
 
-bool
+mozilla::ipc::IPCResult
 ContentBridgeChild::RecvAsyncMessage(const nsString& aMsg,
                                      InfallibleTArray<jsipc::CpowEntry>&& aCpows,
                                      const IPC::Principal& aPrincipal,
@@ -78,7 +74,6 @@ ContentBridgeChild::SendPBrowserConstructor(PBrowserChild* aActor,
                                             const IPCTabContext& aContext,
                                             const uint32_t& aChromeFlags,
                                             const ContentParentId& aCpID,
-                                            const bool& aIsForApp,
                                             const bool& aIsForBrowser)
 {
   return PContentBridgeChild::SendPBrowserConstructor(aActor,
@@ -86,7 +81,6 @@ ContentBridgeChild::SendPBrowserConstructor(PBrowserChild* aActor,
                                                       aContext,
                                                       aChromeFlags,
                                                       aCpID,
-                                                      aIsForApp,
                                                       aIsForBrowser);
 }
 
@@ -96,10 +90,10 @@ ContentBridgeChild::SendPFileDescriptorSetConstructor(const FileDescriptor& aFD)
   return PContentBridgeChild::SendPFileDescriptorSetConstructor(aFD);
 }
 
-PSendStreamChild*
-ContentBridgeChild::SendPSendStreamConstructor(PSendStreamChild* aActor)
+PChildToParentStreamChild*
+ContentBridgeChild::SendPChildToParentStreamConstructor(PChildToParentStreamChild* aActor)
 {
-  return PContentBridgeChild::SendPSendStreamConstructor(aActor);
+  return PContentBridgeChild::SendPChildToParentStreamConstructor(aActor);
 }
 
 // This implementation is identical to ContentChild::GetCPOWManager but we can't
@@ -131,14 +125,12 @@ ContentBridgeChild::AllocPBrowserChild(const TabId& aTabId,
                                        const IPCTabContext &aContext,
                                        const uint32_t& aChromeFlags,
                                        const ContentParentId& aCpID,
-                                       const bool& aIsForApp,
                                        const bool& aIsForBrowser)
 {
   return nsIContentChild::AllocPBrowserChild(aTabId,
                                              aContext,
                                              aChromeFlags,
                                              aCpID,
-                                             aIsForApp,
                                              aIsForBrowser);
 }
 
@@ -148,22 +140,20 @@ ContentBridgeChild::DeallocPBrowserChild(PBrowserChild* aChild)
   return nsIContentChild::DeallocPBrowserChild(aChild);
 }
 
-bool
+mozilla::ipc::IPCResult
 ContentBridgeChild::RecvPBrowserConstructor(PBrowserChild* aActor,
                                             const TabId& aTabId,
                                             const IPCTabContext& aContext,
                                             const uint32_t& aChromeFlags,
                                             const ContentParentId& aCpID,
-                                            const bool& aIsForApp,
                                             const bool& aIsForBrowser)
 {
-  return ContentChild::GetSingleton()->RecvPBrowserConstructor(aActor,
-                                                               aTabId,
-                                                               aContext,
-                                                               aChromeFlags,
-                                                               aCpID,
-                                                               aIsForApp,
-                                                               aIsForBrowser);
+  return nsIContentChild::RecvPBrowserConstructor(aActor,
+                                                  aTabId,
+                                                  aContext,
+                                                  aChromeFlags,
+                                                  aCpID,
+                                                  aIsForBrowser);
 }
 
 PBlobChild*
@@ -178,16 +168,28 @@ ContentBridgeChild::DeallocPBlobChild(PBlobChild* aActor)
   return nsIContentChild::DeallocPBlobChild(aActor);
 }
 
-PSendStreamChild*
-ContentBridgeChild::AllocPSendStreamChild()
+PChildToParentStreamChild*
+ContentBridgeChild::AllocPChildToParentStreamChild()
 {
-  return nsIContentChild::AllocPSendStreamChild();
+  return nsIContentChild::AllocPChildToParentStreamChild();
 }
 
 bool
-ContentBridgeChild::DeallocPSendStreamChild(PSendStreamChild* aActor)
+ContentBridgeChild::DeallocPChildToParentStreamChild(PChildToParentStreamChild* aActor)
 {
-  return nsIContentChild::DeallocPSendStreamChild(aActor);
+  return nsIContentChild::DeallocPChildToParentStreamChild(aActor);
+}
+
+PParentToChildStreamChild*
+ContentBridgeChild::AllocPParentToChildStreamChild()
+{
+  return nsIContentChild::AllocPParentToChildStreamChild();
+}
+
+bool
+ContentBridgeChild::DeallocPParentToChildStreamChild(PParentToChildStreamChild* aActor)
+{
+  return nsIContentChild::DeallocPParentToChildStreamChild(aActor);
 }
 
 PFileDescriptorSetChild*
@@ -200,6 +202,27 @@ bool
 ContentBridgeChild::DeallocPFileDescriptorSetChild(PFileDescriptorSetChild* aActor)
 {
   return nsIContentChild::DeallocPFileDescriptorSetChild(aActor);
+}
+
+mozilla::ipc::IPCResult
+ContentBridgeChild::RecvActivate(PBrowserChild* aTab)
+{
+  TabChild* tab = static_cast<TabChild*>(aTab);
+  return tab->RecvActivate();
+}
+
+mozilla::ipc::IPCResult
+ContentBridgeChild::RecvDeactivate(PBrowserChild* aTab)
+{
+  TabChild* tab = static_cast<TabChild*>(aTab);
+  return tab->RecvDeactivate();
+}
+
+mozilla::ipc::IPCResult
+ContentBridgeChild::RecvParentActivated(PBrowserChild* aTab, const bool& aActivated)
+{
+  TabChild* tab = static_cast<TabChild*>(aTab);
+  return tab->RecvParentActivated(aActivated);
 }
 
 } // namespace dom

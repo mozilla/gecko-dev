@@ -9,8 +9,8 @@ import android.content.Context;
 import android.util.Log;
 import android.text.TextUtils;
 
-import com.keepsafe.switchboard.Preferences;
-import com.keepsafe.switchboard.SwitchBoard;
+import org.mozilla.gecko.switchboard.Preferences;
+import org.mozilla.gecko.switchboard.SwitchBoard;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -58,6 +58,9 @@ public class Experiments {
 
     // Make new activity stream panel available (to replace top sites) (Bug 1313316)
     public static final String ACTIVITY_STREAM = "activity-stream";
+
+    // Tabs tray: Arrange tabs in two columns in portrait mode
+    public static final String COMPACT_TABS = "compact-tabs";
 
     /**
      * Returns if a user is in certain local experiment.

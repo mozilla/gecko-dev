@@ -4,143 +4,139 @@
 Components.utils.import("resource://services-sync/bookmark_validator.js");
 Components.utils.import("resource://services-sync/util.js");
 
-function inspectServerRecords(data) {
-  return new BookmarkValidator().inspectServerRecords(data);
+async function inspectServerRecords(data) {
+  let validator = new BookmarkValidator();
+  return validator.inspectServerRecords(data);
 }
 
-add_test(function test_isr_rootOnServer() {
-  let c = inspectServerRecords([{
-    id: 'places',
-    type: 'folder',
+async function compareServerWithClient(server, client) {
+  let validator = new BookmarkValidator();
+  return validator.compareServerWithClient(server, client);
+}
+
+add_task(async function test_isr_rootOnServer() {
+  let c = await inspectServerRecords([{
+    id: "places",
+    type: "folder",
     children: [],
   }]);
   ok(c.problemData.rootOnServer);
-  run_next_test();
 });
 
-add_test(function test_isr_empty() {
-  let c = inspectServerRecords([]);
+add_task(async function test_isr_empty() {
+  let c = await inspectServerRecords([]);
   ok(!c.problemData.rootOnServer);
   notEqual(c.root, null);
-  run_next_test();
 });
 
-add_test(function test_isr_cycles() {
-  let c = inspectServerRecords([
-    {id: 'C', type: 'folder', children: ['A', 'B'], parentid: 'places'},
-    {id: 'A', type: 'folder', children: ['B'], parentid: 'B'},
-    {id: 'B', type: 'folder', children: ['A'], parentid: 'A'},
-  ]).problemData;
+add_task(async function test_isr_cycles() {
+  let c = (await inspectServerRecords([
+    {id: "C", type: "folder", children: ["A", "B"], parentid: "places"},
+    {id: "A", type: "folder", children: ["B"], parentid: "B"},
+    {id: "B", type: "folder", children: ["A"], parentid: "A"},
+  ])).problemData;
 
   equal(c.cycles.length, 1);
-  ok(c.cycles[0].indexOf('A') >= 0);
-  ok(c.cycles[0].indexOf('B') >= 0);
-  run_next_test();
+  ok(c.cycles[0].indexOf("A") >= 0);
+  ok(c.cycles[0].indexOf("B") >= 0);
 });
 
-add_test(function test_isr_orphansMultiParents() {
-  let c = inspectServerRecords([
-    { id: 'A', type: 'bookmark', parentid: 'D' },
-    { id: 'B', type: 'folder', parentid: 'places', children: ['A']},
-    { id: 'C', type: 'folder', parentid: 'places', children: ['A']},
+add_task(async function test_isr_orphansMultiParents() {
+  let c = (await inspectServerRecords([
+    { id: "A", type: "bookmark", parentid: "D" },
+    { id: "B", type: "folder", parentid: "places", children: ["A"]},
+    { id: "C", type: "folder", parentid: "places", children: ["A"]},
 
-  ]).problemData;
+  ])).problemData;
   deepEqual(c.orphans, [{ id: "A", parent: "D" }]);
   equal(c.multipleParents.length, 1)
-  ok(c.multipleParents[0].parents.indexOf('B') >= 0);
-  ok(c.multipleParents[0].parents.indexOf('C') >= 0);
-  run_next_test();
+  ok(c.multipleParents[0].parents.indexOf("B") >= 0);
+  ok(c.multipleParents[0].parents.indexOf("C") >= 0);
 });
 
-add_test(function test_isr_orphansMultiParents2() {
-  let c = inspectServerRecords([
-    { id: 'A', type: 'bookmark', parentid: 'D' },
-    { id: 'B', type: 'folder', parentid: 'places', children: ['A']},
-  ]).problemData;
+add_task(async function test_isr_orphansMultiParents2() {
+  let c = (await inspectServerRecords([
+    { id: "A", type: "bookmark", parentid: "D" },
+    { id: "B", type: "folder", parentid: "places", children: ["A"]},
+  ])).problemData;
   equal(c.orphans.length, 1);
-  equal(c.orphans[0].id, 'A');
+  equal(c.orphans[0].id, "A");
   equal(c.multipleParents.length, 0);
-  run_next_test();
 });
 
-add_test(function test_isr_deletedParents() {
-  let c = inspectServerRecords([
-    { id: 'A', type: 'bookmark', parentid: 'B' },
-    { id: 'B', type: 'folder', parentid: 'places', children: ['A']},
-    { id: 'B', type: 'item', deleted: true},
-  ]).problemData;
-  deepEqual(c.deletedParents, ['A'])
-  run_next_test();
+add_task(async function test_isr_deletedParents() {
+  let c = (await inspectServerRecords([
+    { id: "A", type: "bookmark", parentid: "B" },
+    { id: "B", type: "folder", parentid: "places", children: ["A"]},
+    { id: "B", type: "item", deleted: true},
+  ])).problemData;
+  deepEqual(c.deletedParents, ["A"]);
 });
 
-add_test(function test_isr_badChildren() {
-  let c = inspectServerRecords([
-    { id: 'A', type: 'bookmark', parentid: 'places', children: ['B', 'C'] },
-    { id: 'C', type: 'bookmark', parentid: 'A' }
-  ]).problemData;
-  deepEqual(c.childrenOnNonFolder, ['A'])
-  deepEqual(c.missingChildren, [{parent: 'A', child: 'B'}]);
-  deepEqual(c.parentNotFolder, ['C']);
-  run_next_test();
+add_task(async function test_isr_badChildren() {
+  let c = (await inspectServerRecords([
+    { id: "A", type: "bookmark", parentid: "places", children: ["B", "C"] },
+    { id: "C", type: "bookmark", parentid: "A" }
+  ])).problemData;
+  deepEqual(c.childrenOnNonFolder, ["A"])
+  deepEqual(c.missingChildren, [{parent: "A", child: "B"}]);
+  deepEqual(c.parentNotFolder, ["C"]);
 });
 
 
-add_test(function test_isr_parentChildMismatches() {
-  let c = inspectServerRecords([
-    { id: 'A', type: 'folder', parentid: 'places', children: [] },
-    { id: 'B', type: 'bookmark', parentid: 'A' }
-  ]).problemData;
-  deepEqual(c.parentChildMismatches, [{parent: 'A', child: 'B'}]);
-  run_next_test();
+add_task(async function test_isr_parentChildMismatches() {
+  let c = (await inspectServerRecords([
+    { id: "A", type: "folder", parentid: "places", children: [] },
+    { id: "B", type: "bookmark", parentid: "A" }
+  ])).problemData;
+  deepEqual(c.parentChildMismatches, [{parent: "A", child: "B"}]);
 });
 
-add_test(function test_isr_duplicatesAndMissingIDs() {
-  let c = inspectServerRecords([
-    {id: 'A', type: 'folder', parentid: 'places', children: []},
-    {id: 'A', type: 'folder', parentid: 'places', children: []},
-    {type: 'folder', parentid: 'places', children: []}
-  ]).problemData;
+add_task(async function test_isr_duplicatesAndMissingIDs() {
+  let c = (await inspectServerRecords([
+    {id: "A", type: "folder", parentid: "places", children: []},
+    {id: "A", type: "folder", parentid: "places", children: []},
+    {type: "folder", parentid: "places", children: []}
+  ])).problemData;
   equal(c.missingIDs, 1);
-  deepEqual(c.duplicates, ['A']);
-  run_next_test();
+  deepEqual(c.duplicates, ["A"]);
 });
 
-add_test(function test_isr_duplicateChildren()  {
-  let c = inspectServerRecords([
-    {id: 'A', type: 'folder', parentid: 'places', children: ['B', 'B']},
-    {id: 'B', type: 'bookmark', parentid: 'A'},
-  ]).problemData;
-  deepEqual(c.duplicateChildren, ['A']);
-  run_next_test();
+add_task(async function test_isr_duplicateChildren() {
+  let c = (await inspectServerRecords([
+    {id: "A", type: "folder", parentid: "places", children: ["B", "B"]},
+    {id: "B", type: "bookmark", parentid: "A"},
+  ])).problemData;
+  deepEqual(c.duplicateChildren, ["A"]);
 });
 
-// Each compareServerWithClient test mutates these, so we can't just keep them
+// Each compareServerWithClient test mutates these, so we can"t just keep them
 // global
 function getDummyServerAndClient() {
   let server = [
     {
-      id: 'menu',
-      parentid: 'places',
-      type: 'folder',
-      parentName: '',
-      title: 'foo',
-      children: ['bbbbbbbbbbbb', 'cccccccccccc']
+      id: "menu",
+      parentid: "places",
+      type: "folder",
+      parentName: "",
+      title: "foo",
+      children: ["bbbbbbbbbbbb", "cccccccccccc"]
     },
     {
-      id: 'bbbbbbbbbbbb',
-      type: 'bookmark',
-      parentid: 'menu',
-      parentName: 'foo',
-      title: 'bar',
-      bmkUri: 'http://baz.com'
+      id: "bbbbbbbbbbbb",
+      type: "bookmark",
+      parentid: "menu",
+      parentName: "foo",
+      title: "bar",
+      bmkUri: "http://baz.com"
     },
     {
-      id: 'cccccccccccc',
-      parentid: 'menu',
-      parentName: 'foo',
-      title: '',
-      type: 'query',
-      bmkUri: 'place:type=6&sort=14&maxResults=10'
+      id: "cccccccccccc",
+      parentid: "menu",
+      parentName: "foo",
+      title: "",
+      type: "query",
+      bmkUri: "place:type=6&sort=14&maxResults=10"
     }
   ];
 
@@ -184,62 +180,96 @@ function getDummyServerAndClient() {
 }
 
 
-add_test(function test_cswc_valid() {
+add_task(async function test_cswc_valid() {
   let {server, client} = getDummyServerAndClient();
 
-  let c = new BookmarkValidator().compareServerWithClient(server, client).problemData;
+  let c = (await compareServerWithClient(server, client)).problemData;
   equal(c.clientMissing.length, 0);
   equal(c.serverMissing.length, 0);
   equal(c.differences.length, 0);
-  run_next_test();
 });
 
-add_test(function test_cswc_serverMissing() {
+add_task(async function test_cswc_serverMissing() {
   let {server, client} = getDummyServerAndClient();
   // remove c
   server.pop();
   server[0].children.pop();
 
-  let c = new BookmarkValidator().compareServerWithClient(server, client).problemData;
-  deepEqual(c.serverMissing, ['cccccccccccc']);
+  let c = (await compareServerWithClient(server, client)).problemData;
+  deepEqual(c.serverMissing, ["cccccccccccc"]);
   equal(c.clientMissing.length, 0);
-  deepEqual(c.structuralDifferences, [{id: 'menu', differences: ['childGUIDs']}]);
-  run_next_test();
+  deepEqual(c.structuralDifferences, [{id: "menu", differences: ["childGUIDs"]}]);
 });
 
-add_test(function test_cswc_clientMissing() {
+add_task(async function test_cswc_clientMissing() {
   let {server, client} = getDummyServerAndClient();
   client.children[0].children.pop();
 
-  let c = new BookmarkValidator().compareServerWithClient(server, client).problemData;
-  deepEqual(c.clientMissing, ['cccccccccccc']);
+  let c = (await compareServerWithClient(server, client)).problemData;
+  deepEqual(c.clientMissing, ["cccccccccccc"]);
   equal(c.serverMissing.length, 0);
-  deepEqual(c.structuralDifferences, [{id: 'menu', differences: ['childGUIDs']}]);
-  run_next_test();
+  deepEqual(c.structuralDifferences, [{id: "menu", differences: ["childGUIDs"]}]);
 });
 
-add_test(function test_cswc_differences() {
+add_task(async function test_cswc_differences() {
   {
     let {server, client} = getDummyServerAndClient();
-    client.children[0].children[0].title = 'asdf';
-    let c = new BookmarkValidator().compareServerWithClient(server, client).problemData;
+    client.children[0].children[0].title = "asdf";
+    let c = (await compareServerWithClient(server, client)).problemData;
     equal(c.clientMissing.length, 0);
     equal(c.serverMissing.length, 0);
-    deepEqual(c.differences, [{id: 'bbbbbbbbbbbb', differences: ['title']}]);
+    deepEqual(c.differences, [{id: "bbbbbbbbbbbb", differences: ["title"]}]);
   }
 
   {
     let {server, client} = getDummyServerAndClient();
-    server[2].type = 'bookmark';
-    let c = new BookmarkValidator().compareServerWithClient(server, client).problemData;
+    server[2].type = "bookmark";
+    let c = (await compareServerWithClient(server, client)).problemData;
     equal(c.clientMissing.length, 0);
     equal(c.serverMissing.length, 0);
-    deepEqual(c.differences, [{id: 'cccccccccccc', differences: ['type']}]);
+    deepEqual(c.differences, [{id: "cccccccccccc", differences: ["type"]}]);
   }
-  run_next_test();
 });
 
-add_test(function test_cswc_serverUnexpected() {
+add_task(async function test_cswc_differentURLs() {
+  let {server, client} = getDummyServerAndClient();
+  client.children[0].children.push({
+    guid: "dddddddddddd",
+    title: "Tag query",
+    "type": "text/x-moz-place",
+    "uri": "place:type=7&folder=80",
+  }, {
+    guid: "eeeeeeeeeeee",
+    title: "Firefox",
+    "type": "text/x-moz-place",
+    "uri": "http://getfirefox.com",
+  });
+  server.push({
+    id: "dddddddddddd",
+    parentid: "menu",
+    parentName: "foo",
+    title: "Tag query",
+    type: "query",
+    folderName: "taggy",
+    bmkUri: "place:type=7&folder=90",
+  }, {
+    id: "eeeeeeeeeeee",
+    parentid: "menu",
+    parentName: "foo",
+    title: "Firefox",
+    type: "bookmark",
+    bmkUri: "https://mozilla.org/firefox",
+  });
+
+  let c = (await compareServerWithClient(server, client)).problemData;
+  equal(c.differences.length, 1);
+  deepEqual(c.differences, [{
+    id: "eeeeeeeeeeee",
+    differences: ["bmkUri"],
+  }]);
+});
+
+add_task(async function test_cswc_serverUnexpected() {
   let {server, client} = getDummyServerAndClient();
   client.children.push({
     "guid": "dddddddddddd",
@@ -276,55 +306,55 @@ add_test(function test_cswc_serverUnexpected() {
     }]
   });
   server.push({
-    id: 'dddddddddddd',
-    parentid: 'places',
-    parentName: '',
-    title: '',
-    type: 'folder',
-    children: ['eeeeeeeeeeee']
+    id: "dddddddddddd",
+    parentid: "places",
+    parentName: "",
+    title: "",
+    type: "folder",
+    children: ["eeeeeeeeeeee"]
   }, {
-    id: 'eeeeeeeeeeee',
-    parentid: 'dddddddddddd',
-    parentName: '',
-    title: 'History',
-    type: 'query',
-    bmkUri: 'place:type=3&sort=4'
+    id: "eeeeeeeeeeee",
+    parentid: "dddddddddddd",
+    parentName: "",
+    title: "History",
+    type: "query",
+    bmkUri: "place:type=3&sort=4"
   });
 
-  let c = new BookmarkValidator().compareServerWithClient(server, client).problemData;
+  let c = (await compareServerWithClient(server, client)).problemData;
   equal(c.clientMissing.length, 0);
   equal(c.serverMissing.length, 0);
   equal(c.serverUnexpected.length, 2);
   deepEqual(c.serverUnexpected, ["dddddddddddd", "eeeeeeeeeeee"]);
-  run_next_test();
 });
 
-function validationPing(server, client, duration) {
-  return wait_for_ping(function() {
-    // fake this entirely
-    Svc.Obs.notify("weave:service:sync:start");
-    Svc.Obs.notify("weave:engine:sync:start", null, "bookmarks");
-    Svc.Obs.notify("weave:engine:sync:finish", null, "bookmarks");
-    let validator = new BookmarkValidator();
-    let data = {
-      // We fake duration and version just so that we can verify they're passed through.
-      duration,
-      version: validator.version,
-      recordCount: server.length,
-      problems: validator.compareServerWithClient(server, client).problemData,
-    };
-    Svc.Obs.notify("weave:engine:validate:finish", data, "bookmarks");
-    Svc.Obs.notify("weave:service:sync:finish");
-  }, true); // Allow "failing" pings, since having validation info indicates failure.
+async function validationPing(server, client, duration) {
+  let pingPromise = wait_for_ping(() => {}, true); // Allow "failing" pings, since having validation info indicates failure.
+  // fake this entirely
+  Svc.Obs.notify("weave:service:sync:start");
+  Svc.Obs.notify("weave:engine:sync:start", null, "bookmarks");
+  Svc.Obs.notify("weave:engine:sync:finish", null, "bookmarks");
+  let validator = new BookmarkValidator();
+  let {problemData} = await validator.compareServerWithClient(server, client);
+  let data = {
+    // We fake duration and version just so that we can verify they"re passed through.
+    duration,
+    version: validator.version,
+    recordCount: server.length,
+    problems: problemData,
+  };
+  Svc.Obs.notify("weave:engine:validate:finish", data, "bookmarks");
+  Svc.Obs.notify("weave:service:sync:finish");
+  return pingPromise;
 }
 
-add_task(function *test_telemetry_integration() {
+add_task(async function test_telemetry_integration() {
   let {server, client} = getDummyServerAndClient();
   // remove "c"
   server.pop();
   server[0].children.pop();
   const duration = 50;
-  let ping = yield validationPing(server, client, duration);
+  let ping = await validationPing(server, client, duration);
   ok(ping.engines);
   let bme = ping.engines.find(e => e.name === "bookmarks");
   ok(bme);
@@ -332,7 +362,7 @@ add_task(function *test_telemetry_integration() {
   ok(bme.validation.problems)
   equal(bme.validation.checked, server.length);
   equal(bme.validation.took, duration);
-  bme.validation.problems.sort((a, b) => String.localeCompare(a.name, b.name));
+  bme.validation.problems.sort((a, b) => String(a.name).localeCompare(b.name));
   equal(bme.validation.version, new BookmarkValidator().version);
   deepEqual(bme.validation.problems, [
     { name: "badClientRoots", count: 3 },
@@ -341,7 +371,3 @@ add_task(function *test_telemetry_integration() {
     { name: "structuralDifferences", count: 1 },
   ]);
 });
-
-function run_test() {
-  run_next_test();
-}

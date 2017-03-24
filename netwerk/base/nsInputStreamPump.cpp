@@ -196,8 +196,8 @@ nsInputStreamPump::Cancel(nsresult status)
 
     ReentrantMonitorAutoEnter mon(mMonitor);
 
-    LOG(("nsInputStreamPump::Cancel [this=%p status=%x]\n",
-        this, status));
+    LOG(("nsInputStreamPump::Cancel [this=%p status=%" PRIx32 "]\n",
+        this, static_cast<uint32_t>(status)));
 
     if (NS_FAILED(mStatus)) {
         LOG(("  already canceled\n"));
@@ -361,7 +361,7 @@ nsInputStreamPump::AsyncRead(nsIStreamListener *listener, nsISupports *ctxt)
 
     // release our reference to the original stream.  from this point forward,
     // we only reference the "stream" via mAsyncStream.
-    mStream = 0;
+    mStream = nullptr;
 
     // mStreamOffset now holds the number of bytes currently read.  we use this
     // to enforce the mStreamLength restriction.
@@ -551,7 +551,8 @@ nsInputStreamPump::OnStateTransfer()
 
     uint64_t avail;
     rv = mAsyncStream->Available(&avail);
-    LOG(("  Available returned [stream=%x rv=%x avail=%llu]\n", mAsyncStream.get(), rv, avail));
+    LOG(("  Available returned [stream=%p rv=%" PRIx32 " avail=%" PRIu64 "]\n", mAsyncStream.get(),
+         static_cast<uint32_t>(rv), avail));
 
     if (rv == NS_BASE_STREAM_CLOSED) {
         rv = NS_OK;
@@ -589,7 +590,7 @@ nsInputStreamPump::OnStateTransfer()
                 avail > UINT32_MAX ?
                 UINT32_MAX : uint32_t(avail);
 
-            LOG(("  calling OnDataAvailable [offset=%llu count=%llu(%u)]\n",
+            LOG(("  calling OnDataAvailable [offset=%" PRIu64 " count=%" PRIu64 "(%u)]\n",
                 mStreamOffset, avail, odaAvail));
 
             {
@@ -686,7 +687,7 @@ nsInputStreamPump::OnStateStop()
     PROFILER_LABEL("nsInputStreamPump", "OnStateStop",
         js::ProfileEntry::Category::NETWORK);
 
-    LOG(("  OnStateStop [this=%p status=%x]\n", this, mStatus));
+    LOG(("  OnStateStop [this=%p status=%" PRIx32 "]\n", this, static_cast<uint32_t>(mStatus)));
 
     // if an error occurred, we must be sure to pass the error onto the async
     // stream.  in some cases, this is redundant, but since close is idempotent,
@@ -703,8 +704,8 @@ nsInputStreamPump::OnStateStop()
     else if (mCloseWhenDone)
         mAsyncStream->Close();
 
-    mAsyncStream = 0;
-    mTargetThread = 0;
+    mAsyncStream = nullptr;
+    mTargetThread = nullptr;
     mIsPending = false;
     {
         // Note: Must exit monitor for call to OnStartRequest to avoid
@@ -714,8 +715,8 @@ nsInputStreamPump::OnStateStop()
         mListener->OnStopRequest(this, mListenerContext, mStatus);
         mMonitor.Enter();
     }
-    mListener = 0;
-    mListenerContext = 0;
+    mListener = nullptr;
+    mListenerContext = nullptr;
 
     if (mLoadGroup)
         mLoadGroup->RemoveRequest(this, nullptr, mStatus);
@@ -758,9 +759,9 @@ nsInputStreamPump::RetargetDeliveryTo(nsIEventTarget* aNewTarget)
             mRetargeting = true;
         }
     }
-    LOG(("nsInputStreamPump::RetargetDeliveryTo [this=%x aNewTarget=%p] "
-         "%s listener [%p] rv[%x]",
+    LOG(("nsInputStreamPump::RetargetDeliveryTo [this=%p aNewTarget=%p] "
+         "%s listener [%p] rv[%" PRIx32 "]",
          this, aNewTarget, (mTargetThread == aNewTarget ? "success" : "failure"),
-         (nsIStreamListener*)mListener, rv));
+         (nsIStreamListener*)mListener, static_cast<uint32_t>(rv)));
     return rv;
 }

@@ -46,7 +46,7 @@ NewDenseEmptyArray(JSContext* cx, HandleObject proto = nullptr,
  * contents. This is useful, e.g., when accepting length from the user.
  */
 extern ArrayObject * JS_FASTCALL
-NewDenseUnallocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = nullptr,
+NewDenseUnallocatedArray(JSContext* cx, uint32_t length, HandleObject proto = nullptr,
                          NewObjectKind newKind = GenericObject);
 
 /*
@@ -54,17 +54,17 @@ NewDenseUnallocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject pro
  * but with only |EagerAllocationMaxLength| elements allocated.
  */
 extern ArrayObject * JS_FASTCALL
-NewDensePartlyAllocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = nullptr,
+NewDensePartlyAllocatedArray(JSContext* cx, uint32_t length, HandleObject proto = nullptr,
                              NewObjectKind newKind = GenericObject);
 
 /* Create a dense array with length and capacity == 'length', initialized length set to 0. */
 extern ArrayObject * JS_FASTCALL
-NewDenseFullyAllocatedArray(ExclusiveContext* cx, uint32_t length, HandleObject proto = nullptr,
+NewDenseFullyAllocatedArray(JSContext* cx, uint32_t length, HandleObject proto = nullptr,
                             NewObjectKind newKind = GenericObject);
 
 /* Create a dense array from the given array values, which must be rooted */
 extern ArrayObject*
-NewDenseCopiedArray(ExclusiveContext* cx, uint32_t length, const Value* values,
+NewDenseCopiedArray(JSContext* cx, uint32_t length, const Value* values,
                     HandleObject proto = nullptr, NewObjectKind newKind = GenericObject);
 
 /* Create a dense array based on templateObject with the given length. */
@@ -78,18 +78,18 @@ NewDenseCopyOnWriteArray(JSContext* cx, HandleArrayObject templateObject, gc::In
 // The methods below can create either boxed or unboxed arrays.
 
 extern JSObject*
-NewFullyAllocatedArrayTryUseGroup(ExclusiveContext* cx, HandleObjectGroup group, size_t length,
+NewFullyAllocatedArrayTryUseGroup(JSContext* cx, HandleObjectGroup group, size_t length,
                                   NewObjectKind newKind = GenericObject);
 
 extern JSObject*
-NewPartlyAllocatedArrayTryUseGroup(ExclusiveContext* cx, HandleObjectGroup group, size_t length);
+NewPartlyAllocatedArrayTryUseGroup(JSContext* cx, HandleObjectGroup group, size_t length);
 
 extern JSObject*
-NewFullyAllocatedArrayTryReuseGroup(JSContext* cx, JSObject* obj, size_t length,
+NewFullyAllocatedArrayTryReuseGroup(JSContext* cx, HandleObject obj, size_t length,
                                     NewObjectKind newKind = GenericObject);
 
 extern JSObject*
-NewPartlyAllocatedArrayTryReuseGroup(JSContext* cx, JSObject* obj, size_t length);
+NewPartlyAllocatedArrayTryReuseGroup(JSContext* cx, HandleObject obj, size_t length);
 
 extern JSObject*
 NewFullyAllocatedArrayForCallingAllocationSite(JSContext* cx, size_t length,
@@ -105,11 +105,11 @@ enum class ShouldUpdateTypes
 };
 
 extern bool
-MaybeAnalyzeBeforeCreatingLargeArray(ExclusiveContext* cx, HandleObjectGroup group,
+MaybeAnalyzeBeforeCreatingLargeArray(JSContext* cx, HandleObjectGroup group,
                                      const Value* vp, size_t length);
 
 extern JSObject*
-NewCopiedArrayTryUseGroup(ExclusiveContext* cx, HandleObjectGroup group,
+NewCopiedArrayTryUseGroup(JSContext* cx, HandleObjectGroup group,
                           const Value* vp, size_t length,
                           NewObjectKind newKind = GenericObject,
                           ShouldUpdateTypes updateTypes = ShouldUpdateTypes::Update);
@@ -166,9 +166,6 @@ extern bool
 array_pop(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
-array_splice_impl(JSContext* cx, unsigned argc, js::Value* vp, bool pop);
-
-extern bool
 array_join(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern void
@@ -191,6 +188,8 @@ array_reverse(JSContext* cx, unsigned argc, js::Value* vp);
 
 extern bool
 array_splice(JSContext* cx, unsigned argc, js::Value* vp);
+
+extern const JSJitInfo array_splice_info;
 
 /*
  * Append the given (non-hole) value to the end of an array.  The array must be

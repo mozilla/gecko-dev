@@ -254,15 +254,15 @@ MacroAssemblerX86Shared::getConstant(const typename T::Pod& value, Map& map,
 }
 
 MacroAssemblerX86Shared::Float*
-MacroAssemblerX86Shared::getFloat(wasm::RawF32 f)
+MacroAssemblerX86Shared::getFloat(float f)
 {
-    return getConstant<Float, FloatMap>(f.bits(), floatMap_, floats_);
+    return getConstant<Float, FloatMap>(f, floatMap_, floats_);
 }
 
 MacroAssemblerX86Shared::Double*
-MacroAssemblerX86Shared::getDouble(wasm::RawF64 d)
+MacroAssemblerX86Shared::getDouble(double d)
 {
-    return getConstant<Double, DoubleMap>(d.bits(), doubleMap_, doubles_);
+    return getConstant<Double, DoubleMap>(d, doubleMap_, doubles_);
 }
 
 MacroAssemblerX86Shared::SimdData*
@@ -462,6 +462,44 @@ MacroAssembler::PushRegsInMask(LiveRegisterSet set)
 }
 
 void
+MacroAssembler::storeRegsInMask(LiveRegisterSet set, Address dest, Register)
+{
+    FloatRegisterSet fpuSet(set.fpus().reduceSetForPush());
+    unsigned numFpu = fpuSet.size();
+    int32_t diffF = fpuSet.getPushSizeInBytes();
+    int32_t diffG = set.gprs().size() * sizeof(intptr_t);
+
+    MOZ_ASSERT(dest.offset >= diffG + diffF);
+
+    for (GeneralRegisterBackwardIterator iter(set.gprs()); iter.more(); ++iter) {
+        diffG -= sizeof(intptr_t);
+        dest.offset -= sizeof(intptr_t);
+        storePtr(*iter, dest);
+    }
+    MOZ_ASSERT(diffG == 0);
+
+    for (FloatRegisterBackwardIterator iter(fpuSet); iter.more(); ++iter) {
+        FloatRegister reg = *iter;
+        diffF -= reg.size();
+        numFpu -= 1;
+        dest.offset -= reg.size();
+        if (reg.isDouble())
+            storeDouble(reg, dest);
+        else if (reg.isSingle())
+            storeFloat32(reg, dest);
+        else if (reg.isSimd128())
+            storeUnalignedSimd128Float(reg, dest);
+        else
+            MOZ_CRASH("Unknown register type.");
+    }
+    MOZ_ASSERT(numFpu == 0);
+    // x64 padding to keep the stack aligned on uintptr_t. Keep in sync with
+    // GetPushBytesInSize.
+    diffF -= diffF % sizeof(uintptr_t);
+    MOZ_ASSERT(diffF == 0);
+}
+
+void
 MacroAssembler::PopRegsInMaskIgnore(LiveRegisterSet set, LiveRegisterSet ignore)
 {
     FloatRegisterSet fpuSet(set.fpus().reduceSetForPush());
@@ -563,6 +601,13 @@ MacroAssembler::Push(FloatRegister t)
 }
 
 void
+MacroAssembler::PushFlags()
+{
+    pushFlags();
+    adjustFrame(sizeof(intptr_t));
+}
+
+void
 MacroAssembler::Pop(const Operand op)
 {
     pop(op);
@@ -588,6 +633,13 @@ MacroAssembler::Pop(const ValueOperand& val)
 {
     popValue(val);
     implicitPop(sizeof(Value));
+}
+
+void
+MacroAssembler::PopFlags()
+{
+    popFlags();
+    implicitPop(sizeof(intptr_t));
 }
 
 // ===============================================================
@@ -696,6 +748,28 @@ void
 MacroAssembler::patchNearJumpToNop(uint8_t* jump)
 {
     Assembler::patchJumpToTwoByteNop(jump);
+}
+
+CodeOffset
+MacroAssembler::nopPatchableToCall(const wasm::CallSiteDesc& desc)
+{
+    CodeOffset offset(currentOffset());
+    masm.nop_five();
+    append(desc, CodeOffset(currentOffset()));
+    MOZ_ASSERT_IF(!oom(), size() - offset.offset() == ToggledCallSize(nullptr));
+    return offset;
+}
+
+void
+MacroAssembler::patchNopToCall(uint8_t* callsite, uint8_t* target)
+{
+    Assembler::patchFiveByteNopToCall(callsite, target);
+}
+
+void
+MacroAssembler::patchCallToNop(uint8_t* callsite)
+{
+    Assembler::patchCallToFiveByteNop(callsite);
 }
 
 // ===============================================================

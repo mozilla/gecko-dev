@@ -46,9 +46,10 @@ const unsigned kButtonUsagePage = 0x9;
 // Therefore, we wait a bit after receiving one before looking for
 // device changes.
 const uint32_t kDevicesChangedStableDelay = 200;
-// XInput is a purely polling-driven API, so we need to
-// poll it periodically. 50ms is arbitrarily chosen.
-const uint32_t kXInputPollInterval = 50;
+// Both DirectInput and XInput are polling-driven here,
+// so we need to poll it periodically.
+// 50ms is arbitrarily chosen.
+const uint32_t kWindowsGamepadPollInterval = 50;
 
 const UINT kRawInputError = (UINT)-1;
 
@@ -191,7 +192,7 @@ public:
     }
   }
 
-  operator bool() {
+  explicit operator bool() {
     return module && mXInputGetState;
   }
 
@@ -305,7 +306,7 @@ public:
     }
   }
 
-  operator bool() {
+  explicit operator bool() {
     return mModule &&
       mHidD_GetProductString &&
       mHidP_GetCaps &&
@@ -328,11 +329,31 @@ private:
   HMODULE mModule;
 };
 
+HWND sHWnd = nullptr;
+
+static void
+DirectInputMessageLoopOnceCallback(nsITimer *aTimer, void* aClosure)
+{
+  MOZ_ASSERT(NS_GetCurrentThread() == gMonitorThread);
+  MSG msg;
+  while (PeekMessageW(&msg, sHWnd, 0, 0, PM_REMOVE) > 0) {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+  aTimer->Cancel();
+  if (!sIsShutdown) {
+    aTimer->InitWithFuncCallback(DirectInputMessageLoopOnceCallback,
+                                 nullptr, kWindowsGamepadPollInterval,
+                                 nsITimer::TYPE_ONE_SHOT);
+  }
+}
+
 class WindowsGamepadService
 {
  public:
   WindowsGamepadService()
   {
+    mDirectInputTimer = do_CreateInstance("@mozilla.org/timer;1");
     mXInputTimer = do_CreateInstance("@mozilla.org/timer;1");
     mDeviceChangeTimer = do_CreateInstance("@mozilla.org/timer;1");
   }
@@ -342,6 +363,15 @@ class WindowsGamepadService
   }
 
   void DevicesChanged(bool aIsStablizing);
+
+  void StartMessageLoop()
+  {
+    MOZ_ASSERT(mDirectInputTimer);
+    mDirectInputTimer->InitWithFuncCallback(DirectInputMessageLoopOnceCallback,
+                                            nullptr, kWindowsGamepadPollInterval,
+                                            nsITimer::TYPE_ONE_SHOT);
+  }
+
   void Startup();
   void Shutdown();
   // Parse gamepad input from a WM_INPUT message.
@@ -372,6 +402,7 @@ class WindowsGamepadService
   HIDLoader mHID;
   XInputLoader mXInput;
 
+  nsCOMPtr<nsITimer> mDirectInputTimer;
   nsCOMPtr<nsITimer> mXInputTimer;
   nsCOMPtr<nsITimer> mDeviceChangeTimer;
 };
@@ -414,7 +445,7 @@ WindowsGamepadService::XInputMessageLoopOnceCallback(nsITimer *aTimer,
   if (self->mIsXInputMonitoring) {
     aTimer->Cancel();
     aTimer->InitWithFuncCallback(XInputMessageLoopOnceCallback, self,
-                                 kXInputPollInterval, nsITimer::TYPE_ONE_SHOT);
+                                 kWindowsGamepadPollInterval, nsITimer::TYPE_ONE_SHOT);
   }
 }
 
@@ -472,8 +503,10 @@ WindowsGamepadService::ScanForXInputDevices()
     gamepad.state = state;
     gamepad.id = service->AddGamepad("xinput",
                                      GamepadMappingType::Standard,
+                                     GamepadHand::_empty,
                                      kStandardGamepadButtons,
-                                     kStandardGamepadAxes);
+                                     kStandardGamepadAxes,
+                                     0); // TODO: Bug 680289, implement gamepad haptics for Windows.
     mGamepads.AppendElement(gamepad);
   }
 
@@ -501,7 +534,7 @@ WindowsGamepadService::ScanForDevices()
     if (ScanForXInputDevices()) {
       mIsXInputMonitoring = true;
       mXInputTimer->InitWithFuncCallback(XInputMessageLoopOnceCallback, this,
-                                         kXInputPollInterval,
+                                         kWindowsGamepadPollInterval,
                                          nsITimer::TYPE_ONE_SHOT);
     } else {
       mIsXInputMonitoring = false;
@@ -755,8 +788,10 @@ WindowsGamepadService::GetRawGamepad(HANDLE handle)
 
   gamepad.id = service->AddGamepad(gamepad_id,
                                    GamepadMappingType::_empty,
+                                   GamepadHand::_empty,
                                    gamepad.numButtons,
-                                   gamepad.numAxes);
+                                   gamepad.numAxes,
+                                   0);
   mGamepads.AppendElement(gamepad);
   return true;
 }
@@ -891,6 +926,9 @@ void
 WindowsGamepadService::Cleanup()
 {
   mIsXInputMonitoring = false;
+  if (mDirectInputTimer) {
+    mDirectInputTimer->Cancel();
+  }
   if (mXInputTimer) {
     mXInputTimer->Cancel();
   }
@@ -912,8 +950,6 @@ WindowsGamepadService::DevicesChanged(bool aIsStablizing)
     ScanForDevices();
   }
 }
-
-HWND sHWnd = nullptr;
 
 bool
 RegisterRawInput(HWND hwnd, bool enable)
@@ -963,27 +999,6 @@ GamepadWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-class WindowGamepadMessageLoopOnceRunnable final : public Runnable
-{
-public:
-  WindowGamepadMessageLoopOnceRunnable() {}
-  NS_IMETHOD Run() override
-  {
-    MOZ_ASSERT(NS_GetCurrentThread() == gMonitorThread);
-    MSG msg;
-    while (PeekMessageW(&msg, sHWnd, 0, 0, PM_REMOVE) > 0) {
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);
-    }
-    if (!sIsShutdown) {
-      NS_DispatchToCurrentThread(new WindowGamepadMessageLoopOnceRunnable());
-    }
-    return NS_OK;
-  }
-private:
-  ~WindowGamepadMessageLoopOnceRunnable() {}
-};
-
 class StartWindowsGamepadServiceRunnable final : public Runnable
 {
 public:
@@ -1014,7 +1029,7 @@ public:
     }
 
     // Explicitly start the message loop
-    NS_DispatchToCurrentThread(new WindowGamepadMessageLoopOnceRunnable());
+    gService->StartMessageLoop();
 
     return NS_OK;
   }
@@ -1062,7 +1077,7 @@ StartGamepadMonitoring()
     return;
   }
   sIsShutdown = false;
-  NS_NewThread(getter_AddRefs(gMonitorThread));
+  NS_NewNamedThread("Gamepad", getter_AddRefs(gMonitorThread));
   gMonitorThread->Dispatch(new StartWindowsGamepadServiceRunnable(),
                            NS_DISPATCH_NORMAL);
 }

@@ -1,4 +1,3 @@
-/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
@@ -12,11 +11,14 @@ add_task(function* () {
   let { tab, monitor } = yield initNetMonitor(STATUS_CODES_URL, null, true);
   info("Starting test... ");
 
-  let { NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu, NetworkDetails } = NetMonitorView;
+  let { document, gStore, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/actions/index");
+  let {
+    getDisplayedRequests,
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/selectors/index");
 
-  RequestsMenu.lazyUpdate = false;
-  NetworkDetails._params.lazyEmpty = false;
+  gStore.dispatch(Actions.batchEnable(false));
 
   const REQUEST_DATA = [
     {
@@ -91,10 +93,15 @@ add_task(function* () {
 
   let index = 0;
   for (let request of REQUEST_DATA) {
-    let item = RequestsMenu.getItemAtIndex(index);
-
     info("Verifying request #" + index);
-    yield verifyRequestItemTarget(item, request.method, request.uri, request.details);
+    yield verifyRequestItemTarget(
+      document,
+      getDisplayedRequests(gStore.getState()),
+      getSortedRequests(gStore.getState()).get(index),
+      request.method,
+      request.uri,
+      request.details
+    );
 
     index++;
   }

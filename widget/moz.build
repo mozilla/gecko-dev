@@ -8,7 +8,7 @@ toolkit = CONFIG['MOZ_WIDGET_TOOLKIT']
 
 if toolkit in ('cocoa', 'android', 'gonk', 'uikit'):
     DIRS += [toolkit]
-if toolkit in ('android', 'gonk', 'gtk2', 'gtk3'):
+if toolkit in ('android', 'cocoa', 'gonk', 'gtk2', 'gtk3'):
     EXPORTS += ['nsIPrintDialogService.h']
 
 if toolkit == 'windows':
@@ -38,7 +38,6 @@ elif toolkit == 'cocoa':
     ]
     EXPORTS += [
         'nsINativeMenuService.h',
-        'nsIPrintDialogService.h',
     ]
 
 TEST_DIRS += ['tests']
@@ -65,7 +64,6 @@ XPIDL_SOURCES += [
     'nsIClipboardHelper.idl',
     'nsIClipboardOwner.idl',
     'nsIColorPicker.idl',
-    'nsIDatePicker.idl',
     'nsIDisplayInfo.idl',
     'nsIDragService.idl',
     'nsIDragSession.idl',
@@ -75,7 +73,7 @@ XPIDL_SOURCES += [
     'nsIGfxInfoDebug.idl',
     'nsIIdleService.idl',
     'nsIIdleServiceInternal.idl',
-    'nsIPrintOptions.idl',
+    'nsIPrinterEnumerator.idl',
     'nsIPrintSession.idl',
     'nsIPrintSettings.idl',
     'nsIPrintSettingsService.idl',
@@ -102,7 +100,6 @@ EXPORTS += [
     'nsIWidgetListener.h',
     'nsWidgetInitData.h',
     'nsWidgetsCID.h',
-    'PluginWidgetProxy.h',
     'PuppetWidget.h',
 ]
 
@@ -131,6 +128,7 @@ EXPORTS.mozilla.widget += [
     'CompositorWidget.h',
     'IMEData.h',
     'InProcessCompositorWidget.h',
+    'nsAutoRollup.h',
     'PuppetBidiKeyboard.h',
     'WidgetMessageUtils.h',
     'WindowSurface.h'
@@ -145,13 +143,13 @@ UNIFIED_SOURCES += [
     'GfxInfoWebGL.cpp',
     'InProcessCompositorWidget.cpp',
     'InputData.cpp',
+    'nsAutoRollup.cpp',
     'nsBaseAppShell.cpp',
     'nsBaseScreen.cpp',
     'nsClipboardHelper.cpp',
     'nsClipboardProxy.cpp',
     'nsColorPickerProxy.cpp',
     'nsContentProcessWidgetFactory.cpp',
-    'nsDatePickerProxy.cpp',
     'nsDragServiceProxy.cpp',
     'nsFilePickerProxy.cpp',
     'nsHTMLFormatConverter.cpp',
@@ -193,12 +191,9 @@ if CONFIG['MOZ_XUL'] and CONFIG['NS_PRINTING']:
 
 # nsBaseWidget.cpp needs to be built separately because of name clashes in the OS X headers
 # nsBaseDragService.cpp moved out of UNIFIED to fix xgill crash (bug 1259850) after moving widget/ContentHelper -> apz/util/TouchActionHelper
-# PluginWidgetProxy includes MacOS system headers which define a Point struct
-# that conflicts with mozilla::gfx::Point
 SOURCES += [
     'nsBaseDragService.cpp',
     'nsBaseWidget.cpp',
-    'PluginWidgetProxy.cpp',
 ]
 
 if CONFIG['MOZ_INSTRUMENT_EVENT_LOOP']:
@@ -216,6 +211,14 @@ if CONFIG['MOZ_X11']:
     SOURCES += [
         'nsShmImage.cpp',
         'WindowSurfaceX11SHM.cpp',
+    ]
+
+if toolkit == 'windows':
+    EXPORTS += [
+        'PluginWidgetProxy.h',
+    ]
+    SOURCES += [
+        'PluginWidgetProxy.cpp',
     ]
 
 if toolkit in ('cocoa', 'windows'):
@@ -249,6 +252,7 @@ LOCAL_INCLUDES += [
     '/layout/base',
     '/layout/forms',
     '/layout/generic',
+    '/layout/painting',
     '/layout/xul',
     '/view',
     '/widget',

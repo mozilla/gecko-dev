@@ -12,10 +12,16 @@
 
 [Constructor(DOMString typeArg, optional MouseEventInit mouseEventInitDict)]
 interface MouseEvent : UIEvent {
+  [NeedsCallerType]
   readonly attribute long           screenX;
+  [NeedsCallerType]
   readonly attribute long           screenY;
   readonly attribute long           clientX;
   readonly attribute long           clientY;
+  [BinaryName="clientX"]
+  readonly attribute long           x;
+  [BinaryName="clientY"]
+  readonly attribute long           y;
   readonly attribute long           offsetX;
   readonly attribute long           offsetY;
   readonly attribute boolean        ctrlKey;
@@ -71,11 +77,6 @@ dictionary MouseEventInit : EventModifierInit {
 // Mozilla extensions
 partial interface MouseEvent
 {
-  [BinaryName="movementX", Pref="pointer-lock-api.prefixed.enabled"]
-  readonly attribute long mozMovementX;
-  [BinaryName="movementY", Pref="pointer-lock-api.prefixed.enabled"]
-  readonly attribute long mozMovementY;
-
   // Finger or touch pressure event value
   // ranges between 0.0 and 1.0
   readonly attribute float mozPressure;

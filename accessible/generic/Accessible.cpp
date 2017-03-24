@@ -93,7 +93,13 @@ using namespace mozilla::a11y;
 ////////////////////////////////////////////////////////////////////////////////
 // Accessible: nsISupports and cycle collection
 
-NS_IMPL_CYCLE_COLLECTION(Accessible, mContent)
+NS_IMPL_CYCLE_COLLECTION_CLASS(Accessible)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Accessible)
+  tmp->Shutdown();
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Accessible)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContent, mDoc)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Accessible)
   if (aIID.Equals(NS_GET_IID(Accessible)))
@@ -109,7 +115,8 @@ Accessible::Accessible(nsIContent* aContent, DocAccessible* aDoc) :
   mContent(aContent), mDoc(aDoc),
   mParent(nullptr), mIndexInParent(-1),
   mRoleMapEntryIndex(aria::NO_ROLE_MAP_ENTRY_INDEX),
-  mStateFlags(0), mContextFlags(0), mType(0), mGenericTypes(0)
+  mStateFlags(0), mContextFlags(0), mType(0), mGenericTypes(0),
+  mReorderEventTarget(false), mShowEventTarget(false), mHideEventTarget(false)
 {
   mBits.groupInfo = nullptr;
   mInt.mIndexOfEmbeddedChild = -1;
@@ -1823,7 +1830,7 @@ Accessible::DispatchClickEvent(nsIContent *aContent, uint32_t aActionIndex)
                                    nsIPresShell::ScrollAxis(),
                                    nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
 
-  nsWeakFrame frame = aContent->GetPrimaryFrame();
+  AutoWeakFrame frame = aContent->GetPrimaryFrame();
   if (!frame)
     return;
 
@@ -2124,18 +2131,22 @@ Accessible::InsertChildAt(uint32_t aIndex, Accessible* aChild)
 bool
 Accessible::RemoveChild(Accessible* aChild)
 {
-  if (!aChild)
-    return false;
-
-  if (aChild->mParent != this || aChild->mIndexInParent == -1)
-    return false;
-
-  MOZ_ASSERT((mStateFlags & eKidsMutating) || aChild->IsDefunct() || aChild->IsDoc(),
-             "Illicit children change");
+  MOZ_DIAGNOSTIC_ASSERT(aChild, "No child was given");
+  MOZ_DIAGNOSTIC_ASSERT(aChild->mParent, "No parent");
+  MOZ_DIAGNOSTIC_ASSERT(aChild->mParent == this, "Wrong parent");
+  MOZ_DIAGNOSTIC_ASSERT(aChild->mIndexInParent != -1, "Unbound child was given");
+  MOZ_DIAGNOSTIC_ASSERT((mStateFlags & eKidsMutating) || aChild->IsDefunct() || aChild->IsDoc(),
+                        "Illicit children change");
 
   int32_t index = static_cast<uint32_t>(aChild->mIndexInParent);
-  MOZ_ASSERT(mChildren.SafeElementAt(index) == aChild,
-             "A wrong child index");
+  if (mChildren.SafeElementAt(index) != aChild) {
+    MOZ_ASSERT_UNREACHABLE("A wrong child index");
+    index = mChildren.IndexOf(aChild);
+    if (index == -1) {
+      MOZ_ASSERT_UNREACHABLE("No child was found");
+      return false;
+    }
+  }
 
   aChild->UnbindFromParent();
   mChildren.RemoveElementAt(index);
@@ -2150,16 +2161,17 @@ Accessible::RemoveChild(Accessible* aChild)
 void
 Accessible::MoveChild(uint32_t aNewIndex, Accessible* aChild)
 {
-  MOZ_ASSERT(aChild, "No child was given");
-  MOZ_ASSERT(aChild->mParent == this, "A child from different subtree was given");
-  MOZ_ASSERT(aChild->mIndexInParent != -1, "Unbound child was given");
-  MOZ_ASSERT(static_cast<uint32_t>(aChild->mIndexInParent) != aNewIndex,
+  MOZ_DIAGNOSTIC_ASSERT(aChild, "No child was given");
+  MOZ_DIAGNOSTIC_ASSERT(aChild->mParent == this, "A child from different subtree was given");
+  MOZ_DIAGNOSTIC_ASSERT(aChild->mIndexInParent != -1, "Unbound child was given");
+  MOZ_DIAGNOSTIC_ASSERT(aChild->mParent->GetChildAt(aChild->mIndexInParent) == aChild, "Wrong index in parent");
+  MOZ_DIAGNOSTIC_ASSERT(static_cast<uint32_t>(aChild->mIndexInParent) != aNewIndex,
              "No move, same index");
-  MOZ_ASSERT(aNewIndex <= mChildren.Length(), "Wrong new index was given");
+  MOZ_DIAGNOSTIC_ASSERT(aNewIndex <= mChildren.Length(), "Wrong new index was given");
 
-  EventTree* eventTree = mDoc->Controller()->QueueMutation(this);
-  if (eventTree) {
-    eventTree->Hidden(aChild, false);
+  RefPtr<AccHideEvent> hideEvent = new AccHideEvent(aChild, false);
+  if (mDoc->Controller()->QueueMutationEvent(hideEvent)) {
+    aChild->SetHideEventTarget(true);
   }
 
   mEmbeddedObjCollector = nullptr;
@@ -2191,10 +2203,10 @@ Accessible::MoveChild(uint32_t aNewIndex, Accessible* aChild)
     mChildren[idx]->mInt.mIndexOfEmbeddedChild = -1;
   }
 
-  if (eventTree) {
-    eventTree->Shown(aChild);
-    mDoc->Controller()->QueueNameChange(aChild);
-  }
+  RefPtr<AccShowEvent> showEvent = new AccShowEvent(aChild);
+  DebugOnly<bool> added = mDoc->Controller()->QueueMutationEvent(showEvent);
+  MOZ_ASSERT(added);
+  aChild->SetShowEventTarget(true);
 }
 
 Accessible*

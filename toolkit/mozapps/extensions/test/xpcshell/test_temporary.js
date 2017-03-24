@@ -99,6 +99,9 @@ add_task(function*() {
   equal(install.reason, BOOTSTRAP_REASONS.ADDON_INSTALL);
   BootstrapMonitor.checkAddonStarted(ID, "1.0");
 
+  let info = BootstrapMonitor.started.get(ID);
+  do_check_eq(info.reason, BOOTSTRAP_REASONS.ADDON_INSTALL);
+
   let addon = yield promiseAddonByID(ID);
 
   do_check_neq(addon, null);
@@ -304,7 +307,39 @@ add_task(function*() {
     do_check_false(addon.appDisabled);
     do_check_true(addon.isActive);
     do_check_eq(addon.type, "extension");
+    do_check_true(addon.isWebExtension);
     do_check_eq(addon.signedState, mozinfo.addon_signing ? AddonManager.SIGNEDSTATE_SIGNED : AddonManager.SIGNEDSTATE_NOT_REQUIRED);
+
+    // test reloading a webextension with the same name, but a different type.
+    webext.remove(false);
+    webext = createTempWebExtensionFile({
+      manifest: {
+        version: "6.0",
+        name: "Test WebExtension 1 (temporary)",
+        applications: {
+          gecko: {
+            id: ID
+          }
+        },
+        theme: { images: { headerURL: "https://example.com/example.png" } }
+      }
+    });
+
+    yield Promise.all([
+      AddonManager.installTemporaryAddon(webext),
+      promiseAddonStartup(),
+    ]);
+    addon = yield promiseAddonByID(ID);
+
+    do_check_neq(addon, null);
+    do_check_eq(addon.version, "6.0");
+    do_check_eq(addon.name, "Test WebExtension 1 (temporary)");
+    do_check_true(addon.isCompatible);
+    do_check_false(addon.appDisabled);
+    do_check_true(addon.isActive);
+    // This is what we're really interested in:
+    do_check_eq(addon.type, "theme");
+    do_check_true(addon.isWebExtension);
 
     restartManager();
 
@@ -455,9 +490,15 @@ add_task(function*() {
     version: "2.0"
   }), tempdir, "bootstrap1@tests.mozilla.org");
 
+  const onShutdown = waitForBootstrapEvent("shutdown", ID);
   const onUninstall = waitForBootstrapEvent("uninstall", ID);
   const onInstall = waitForBootstrapEvent("install", ID);
+  const onStartup = waitForBootstrapEvent("startup", ID);
   yield AddonManager.installTemporaryAddon(unpackedAddon);
+
+  const shutdown = yield onShutdown;
+  equal(shutdown.data.version, "1.0");
+  equal(shutdown.reason, BOOTSTRAP_REASONS.ADDON_UPGRADE);
 
   const uninstall = yield onUninstall;
   equal(uninstall.data.version, "1.0");
@@ -466,6 +507,12 @@ add_task(function*() {
   const install = yield onInstall;
   equal(install.data.version, "2.0");
   equal(install.reason, BOOTSTRAP_REASONS.ADDON_UPGRADE);
+  equal(install.data.oldVersion, "1.0");
+
+  const startup = yield onStartup;
+  equal(startup.data.version, "2.0");
+  equal(startup.reason, BOOTSTRAP_REASONS.ADDON_UPGRADE);
+  equal(startup.data.oldVersion, "1.0");
 
   const addon = yield promiseAddonByID(ID);
   addon.uninstall();
@@ -495,9 +542,15 @@ add_task(function*() {
     version: "0.8"
   }), tempdir, "bootstrap1@tests.mozilla.org");
 
+  const onShutdown = waitForBootstrapEvent("shutdown", ID);
   const onUninstall = waitForBootstrapEvent("uninstall", ID);
   const onInstall = waitForBootstrapEvent("install", ID);
+  const onStartup = waitForBootstrapEvent("startup", ID);
   yield AddonManager.installTemporaryAddon(unpackedAddon);
+
+  const shutdown = yield onShutdown;
+  equal(shutdown.data.version, "1.0");
+  equal(shutdown.reason, BOOTSTRAP_REASONS.ADDON_DOWNGRADE);
 
   const uninstall = yield onUninstall;
   equal(uninstall.data.version, "1.0");
@@ -506,6 +559,10 @@ add_task(function*() {
   const install = yield onInstall;
   equal(install.data.version, "0.8");
   equal(install.reason, BOOTSTRAP_REASONS.ADDON_DOWNGRADE);
+
+  const startup = yield onStartup;
+  equal(startup.data.version, "0.8");
+  equal(startup.reason, BOOTSTRAP_REASONS.ADDON_DOWNGRADE);
 
   const addon = yield promiseAddonByID(ID);
   addon.uninstall();
@@ -528,16 +585,30 @@ add_task(function*() {
     .copyTo(unpackedAddon, "bootstrap.js");
 
   const onInitialInstall = waitForBootstrapEvent("install", ID);
+  const onInitialStartup = waitForBootstrapEvent("startup", ID);
   yield AddonManager.installTemporaryAddon(unpackedAddon);
 
   const initialInstall = yield onInitialInstall;
   equal(initialInstall.data.version, "1.0");
   equal(initialInstall.reason, BOOTSTRAP_REASONS.ADDON_INSTALL);
 
+  const initialStartup = yield onInitialStartup;
+  equal(initialStartup.data.version, "1.0");
+  equal(initialStartup.reason, BOOTSTRAP_REASONS.ADDON_INSTALL);
+
+  let info = BootstrapMonitor.started.get(ID);
+  do_check_eq(info.reason, BOOTSTRAP_REASONS.ADDON_INSTALL);
+
   // Install it again.
+  const onShutdown = waitForBootstrapEvent("shutdown", ID);
   const onUninstall = waitForBootstrapEvent("uninstall", ID);
   const onInstall = waitForBootstrapEvent("install", ID);
+  const onStartup = waitForBootstrapEvent("startup", ID);
   yield AddonManager.installTemporaryAddon(unpackedAddon);
+
+  const shutdown = yield onShutdown;
+  equal(shutdown.data.version, "1.0");
+  equal(shutdown.reason, BOOTSTRAP_REASONS.ADDON_UPGRADE);
 
   const uninstall = yield onUninstall;
   equal(uninstall.data.version, "1.0");
@@ -546,6 +617,10 @@ add_task(function*() {
   const reInstall = yield onInstall;
   equal(reInstall.data.version, "1.0");
   equal(reInstall.reason, BOOTSTRAP_REASONS.ADDON_UPGRADE);
+
+  const startup = yield onStartup;
+  equal(startup.data.version, "1.0");
+  equal(startup.reason, BOOTSTRAP_REASONS.ADDON_UPGRADE);
 
   const addon = yield promiseAddonByID(ID);
   addon.uninstall();

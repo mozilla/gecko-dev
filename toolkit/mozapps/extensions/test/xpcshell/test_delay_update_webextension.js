@@ -11,7 +11,6 @@ Services.prefs.setBoolPref(PREF_EM_CHECK_UPDATE_SECURITY, false);
 
 const profileDir = gProfD.clone();
 profileDir.append("extensions");
-const tempdir = gTmpD.clone();
 const stageDir = profileDir.clone();
 stageDir.append("staged");
 
@@ -30,19 +29,6 @@ mapFile("/data/test_no_update.json", testserver);
 testserver.registerDirectory("/addons/", do_get_file("addons"));
 
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "42");
-
-const { Management } = Components.utils.import("resource://gre/modules/Extension.jsm", {});
-
-function promiseWebExtensionStartup() {
-  return new Promise(resolve => {
-    let listener = (event, extension) => {
-      Management.off("startup", listener);
-      resolve(extension);
-    };
-
-    Management.on("startup", listener);
-  });
-}
 
 // add-on registers upgrade listener, and ignores update.
 add_task(function* delay_updates_ignore() {
@@ -106,11 +92,10 @@ add_task(function* delay_updates_ignore() {
   yield extension.awaitFinish("delay");
 
   // restarting allows upgrade to proceed
-  yield extension.markUnloaded();
   yield promiseRestartManager();
 
   let addon_upgraded = yield promiseAddonByID(IGNORE_ID);
-  yield promiseWebExtensionStartup();
+  yield extension.awaitStartup();
 
   do_check_neq(addon_upgraded, null);
   do_check_eq(addon_upgraded.version, "2.0");
@@ -120,7 +105,7 @@ add_task(function* delay_updates_ignore() {
   do_check_true(addon_upgraded.isActive);
   do_check_eq(addon_upgraded.type, "extension");
 
-  yield addon_upgraded.uninstall();
+  yield extension.unload();
   yield promiseShutdownManager();
 });
 
@@ -169,7 +154,7 @@ add_task(function* delay_updates_complete() {
 
   // addon upgrade has been allowed
   let [addon_allowed] = yield promiseInstalled;
-  yield promiseWebExtensionStartup();
+  yield extension.awaitStartup();
 
   do_check_neq(addon_allowed, null);
   do_check_eq(addon_allowed.version, "2.0");
@@ -183,8 +168,7 @@ add_task(function* delay_updates_complete() {
     do_throw("Staging directory should not exist for formerly-postponed extension");
   }
 
-  yield extension.markUnloaded();
-  yield addon_allowed.uninstall();
+  yield extension.unload();
   yield promiseShutdownManager();
 });
 
@@ -256,7 +240,7 @@ add_task(function* delay_updates_defer() {
 
   // addon upgrade has been allowed
   let [addon_allowed] = yield promiseInstalled;
-  yield promiseWebExtensionStartup();
+  yield extension.awaitStartup();
 
   do_check_neq(addon_allowed, null);
   do_check_eq(addon_allowed.version, "2.0");
@@ -266,12 +250,11 @@ add_task(function* delay_updates_defer() {
   do_check_true(addon_allowed.isActive);
   do_check_eq(addon_allowed.type, "extension");
 
-  yield extension.markUnloaded();
   yield promiseRestartManager();
 
   // restart changes nothing
   addon_allowed = yield promiseAddonByID(DEFER_ID);
-  yield promiseWebExtensionStartup();
+  yield extension.awaitStartup();
 
   do_check_neq(addon_allowed, null);
   do_check_eq(addon_allowed.version, "2.0");
@@ -281,7 +264,7 @@ add_task(function* delay_updates_defer() {
   do_check_true(addon_allowed.isActive);
   do_check_eq(addon_allowed.type, "extension");
 
-  yield addon_allowed.uninstall();
+  yield extension.unload();
   yield promiseShutdownManager();
 });
 
@@ -327,7 +310,7 @@ add_task(function* runtime_reload() {
 
   extension.sendMessage("reload");
   // Wait for extension to restart, to make sure reload works.
-  yield promiseWebExtensionStartup();
+  yield extension.awaitStartup();
 
   addon = yield promiseAddonByID(NOUPDATE_ID);
   do_check_neq(addon, null);
@@ -338,7 +321,6 @@ add_task(function* runtime_reload() {
   do_check_true(addon.isActive);
   do_check_eq(addon.type, "extension");
 
-  yield extension.markUnloaded();
-  yield addon.uninstall();
+  yield extension.unload();
   yield promiseShutdownManager();
 });

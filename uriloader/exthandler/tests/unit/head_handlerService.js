@@ -33,7 +33,7 @@ var HandlerServiceTest = {
 
   //**************************************************************************//
   // nsISupports
-  
+
   interfaces: [Ci.nsIDirectoryServiceProvider, Ci.nsISupports],
 
   QueryInterface: function HandlerServiceTest_QueryInterface(iid) {
@@ -45,13 +45,14 @@ var HandlerServiceTest = {
 
   //**************************************************************************//
   // Initialization & Destruction
-  
+
   init: function HandlerServiceTest_init() {
     // Register ourselves as a directory provider for the datasource file
     // if there isn't one registered already.
     try {
       this._dirSvc.get("UMimTyp", Ci.nsIFile);
     } catch (ex) {
+      do_get_profile();
       this._dirSvc.registerProvider(this);
       this._providerRegistered = true;
     }
@@ -86,7 +87,7 @@ var HandlerServiceTest = {
     persistent.value = true;
 
     if (property == "UMimTyp") {
-      var datasourceFile = this._dirSvc.get("CurProcD", Ci.nsIFile);
+      var datasourceFile = this._dirSvc.get("ProfD", Ci.nsIFile);
       datasourceFile.append("mimeTypes.rdf");
       return datasourceFile;
     }
@@ -161,3 +162,7 @@ var HandlerServiceTest = {
 };
 
 HandlerServiceTest.init();
+
+do_register_cleanup(function() {
+  HandlerServiceTest.destroy();
+});

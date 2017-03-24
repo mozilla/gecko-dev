@@ -13,7 +13,7 @@
 
 "use strict";
 
-const { interfaces: Ci, utils: Cu } = Components;
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 const kDebuggerPrefs = [
   "devtools.debugger.remote-enabled",
   "devtools.chrome.enabled"
@@ -104,12 +104,14 @@ DevToolsStartup.prototype = {
         return Services.prefs.getBoolPref(pref);
       });
     } catch (ex) {
+      let { console } = Cu.import("resource://gre/modules/Console.jsm", {});
       console.error(ex);
       return false;
     }
     if (!remoteDebuggingEnabled) {
       let errorMsg = "Could not run chrome debugger! You need the following " +
                      "prefs to be set to true: " + kDebuggerPrefs.join(", ");
+      let { console } = Cu.import("resource://gre/modules/Console.jsm", {});
       console.error(new Error(errorMsg));
       // Dump as well, as we're doing this from a commandline, make sure people
       // don't miss it:
@@ -122,8 +124,27 @@ DevToolsStartup.prototype = {
     if (!this._isRemoteDebuggingEnabled()) {
       return;
     }
+
+    let devtoolsThreadResumed = false;
+    let pauseOnStartup = cmdLine.handleFlag("wait-for-jsdebugger", false);
+    if (pauseOnStartup) {
+      let observe = function (subject, topic, data) {
+        devtoolsThreadResumed = true;
+        Services.obs.removeObserver(observe, "devtools-thread-resumed");
+      };
+      Services.obs.addObserver(observe, "devtools-thread-resumed", false);
+    }
+
     const { BrowserToolboxProcess } = Cu.import("resource://devtools/client/framework/ToolboxProcess.jsm", {});
     BrowserToolboxProcess.init();
+
+    if (pauseOnStartup) {
+      // Spin the event loop until the debugger connects.
+      let thread = Cc["@mozilla.org/thread-manager;1"].getService().currentThread;
+      while (!devtoolsThreadResumed) {
+        thread.processNextEvent(true);
+      }
+    }
 
     if (cmdLine.state == Ci.nsICommandLine.STATE_REMOTE_AUTO) {
       cmdLine.preventDefault = true;
@@ -201,6 +222,9 @@ DevToolsStartup.prototype = {
   /* eslint-disable max-len */
   helpInfo: "  --jsconsole        Open the Browser Console.\n" +
             "  --jsdebugger       Open the Browser Toolbox.\n" +
+            "  --wait-for-jsdebugger Spin event loop until JS debugger connects.\n" +
+            "                     Enables debugging (some) application startup code paths.\n" +
+            "                     Only has an effect when `--jsdebugger` is also supplied.\n" +
             "  --devtools         Open DevTools on initial load.\n" +
             "  --start-debugger-server [ws:][ <port> | <path> ] Start the debugger server on\n" +
             "                     a TCP port or Unix domain socket path. Defaults to TCP port\n" +

@@ -41,21 +41,10 @@ ifndef _RESPATH
 # Resource path for the precomplete file
 _RESPATH = /$(_APPNAME)/Contents/Resources
 endif
-ifdef UNIVERSAL_BINARY
-STAGEPATH = universal/
-endif
 endif
 
 PACKAGE_BASE_DIR = $(ABS_DIST)
 PACKAGE       = $(PKG_PATH)$(PKG_BASENAME)$(PKG_SUFFIX)
-
-# By default, the SDK uses the same packaging type as the main bundle,
-# but on mac it is a .tar.bz2
-SDK_SUFFIX    = $(PKG_SUFFIX)
-SDK           = $(SDK_PATH)$(PKG_BASENAME).sdk$(SDK_SUFFIX)
-ifdef UNIVERSAL_BINARY
-SDK           = $(SDK_PATH)$(PKG_BASENAME)-$(TARGET_CPU).sdk$(SDK_SUFFIX)
-endif
 
 # JavaScript Shell packaging
 JSSHELL_BINS  = \
@@ -87,7 +76,7 @@ ifdef WIN_UCRT_REDIST_DIR
   JSSHELL_BINS += ucrtbase.dll
 endif
 
-MAKE_JSSHELL  = $(call py_action,zip,-C $(DIST)/bin $(abspath $(PKG_JSSHELL)) $(JSSHELL_BINS))
+MAKE_JSSHELL  = $(call py_action,zip,-C $(DIST)/bin --strip $(abspath $(PKG_JSSHELL)) $(JSSHELL_BINS))
 
 JARLOG_DIR = $(topobjdir)/jarlog/
 JARLOG_FILE_AB_CD = $(JARLOG_DIR)/$(AB_CD).log
@@ -101,25 +90,22 @@ ifeq ($(MOZ_PKG_FORMAT),TAR)
   PKG_SUFFIX	= .tar
   INNER_MAKE_PACKAGE 	= $(CREATE_FINAL_TAR) - $(MOZ_PKG_DIR) > $(PACKAGE)
   INNER_UNMAKE_PACKAGE	= $(UNPACK_TAR) < $(UNPACKAGE)
-  MAKE_SDK = $(CREATE_FINAL_TAR) - $(MOZ_APP_NAME)-sdk > '$(SDK)'
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),TGZ)
   PKG_SUFFIX	= .tar.gz
   INNER_MAKE_PACKAGE 	= $(CREATE_FINAL_TAR) - $(MOZ_PKG_DIR) | gzip -vf9 > $(PACKAGE)
   INNER_UNMAKE_PACKAGE	= gunzip -c $(UNPACKAGE) | $(UNPACK_TAR)
-  MAKE_SDK = $(CREATE_FINAL_TAR) - $(MOZ_APP_NAME)-sdk | gzip -vf9 > '$(SDK)'
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),BZ2)
   PKG_SUFFIX	= .tar.bz2
   ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-    INNER_MAKE_PACKAGE 	= $(CREATE_FINAL_TAR) - -C $(STAGEPATH)$(MOZ_PKG_DIR) $(_APPNAME) | bzip2 -vf > $(PACKAGE)
+    INNER_MAKE_PACKAGE 	= $(CREATE_FINAL_TAR) - -C $(MOZ_PKG_DIR) $(_APPNAME) | bzip2 -vf > $(PACKAGE)
   else
     INNER_MAKE_PACKAGE 	= $(CREATE_FINAL_TAR) - $(MOZ_PKG_DIR) | bzip2 -vf > $(PACKAGE)
   endif
   INNER_UNMAKE_PACKAGE	= bunzip2 -c $(UNPACKAGE) | $(UNPACK_TAR)
-  MAKE_SDK = $(CREATE_FINAL_TAR) - $(MOZ_APP_NAME)-sdk | bzip2 -vf > '$(SDK)'
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),ZIP)
@@ -128,23 +114,14 @@ ifeq ($(MOZ_PKG_FORMAT),ZIP)
     MOZ_EXTERNAL_SIGNING_FORMAT := $(filter-out sha2signcode,$(MOZ_EXTERNAL_SIGNING_FORMAT))
   endif
   PKG_SUFFIX	= .zip
-  INNER_MAKE_PACKAGE	= $(ZIP) -r9D $(PACKAGE) $(MOZ_PKG_DIR) \
-    -x \*/.mkdir.done
-  INNER_UNMAKE_PACKAGE	= $(UNZIP) $(UNPACKAGE)
-  MAKE_SDK = $(call py_action,zip,'$(SDK)' $(MOZ_APP_NAME)-sdk)
+  INNER_MAKE_PACKAGE = $(call py_action,make_zip,'$(MOZ_PKG_DIR)' '$(PACKAGE)')
+  INNER_UNMAKE_PACKAGE = $(call py_action,make_unzip,'$(UNPACKAGE)')
 endif
 
 ifeq ($(MOZ_PKG_FORMAT),SFX7Z)
   PKG_SUFFIX	= .exe
-  INNER_MAKE_PACKAGE	= rm -f app.7z && \
-    mv $(MOZ_PKG_DIR) core && \
-    $(CYGWIN_WRAPPER) 7z a -r -t7z app.7z -mx -m0=BCJ2 -m1=LZMA:d25 \
-      -m2=LZMA:d19 -m3=LZMA:d19 -mb0:1 -mb0s1:2 -mb0s2:3 && \
-    mv core $(MOZ_PKG_DIR) && \
-    cat $(SFX_HEADER) app.7z > $(PACKAGE) && \
-    chmod 0755 $(PACKAGE)
-  INNER_UNMAKE_PACKAGE	= $(CYGWIN_WRAPPER) 7z x $(UNPACKAGE) core && \
-    mv core $(MOZ_PKG_DIR)
+  INNER_MAKE_PACKAGE = $(call py_action,7z_exe_archive,'$(MOZ_PKG_DIR)' '$(MOZ_INSTALLER_PATH)/app.tag' '$(MOZ_SFX_PACKAGE)' '$(PACKAGE)')
+  INNER_UNMAKE_PACKAGE = $(call py_action,7z_exe_extract,'$(UNPACKAGE)' '$(MOZ_PKG_DIR)')
 endif
 
 #Create an RPM file
@@ -202,15 +179,7 @@ ifeq ($(MOZ_PKG_FORMAT),RPM)
       --define '_testsinstalldir $(shell basename $(installdir))'
   endif
 
-  ifdef INSTALL_SDK
-    RPM_CMD += \
-      --define 'createdevel yes' \
-      --define '_idldir $(idldir)' \
-      --define '_sdkdir $(sdkdir)' \
-      --define '_includedir $(includedir)'
-  endif
-
-  #For each of the main, tests, sdk rpms we want to make sure that
+  #For each of the main/tests rpms we want to make sure that
   #if they exist that they are in objdir/dist/ and that they get
   #uploaded and that they are beside the other build artifacts
   MAIN_RPM= $(MOZ_APP_NAME)-$(MOZ_NUMERIC_APP_VERSION)-$(MOZ_RPM_RELEASE).$(BUILDID).$(TARGET_CPU)$(PKG_SUFFIX)
@@ -221,12 +190,6 @@ ifeq ($(MOZ_PKG_FORMAT),RPM)
     TESTS_RPM=$(MOZ_APP_NAME)-tests-$(MOZ_NUMERIC_APP_VERSION)-$(MOZ_RPM_RELEASE).$(BUILDID).$(TARGET_CPU)$(PKG_SUFFIX)
     UPLOAD_EXTRA_FILES += $(TESTS_RPM)
     RPM_CMD += && mv $(TARGET_CPU)/$(TESTS_RPM) $(ABS_DIST)/
-  endif
-
-  ifdef INSTALL_SDK
-    SDK_RPM=$(MOZ_APP_NAME)-devel-$(MOZ_NUMERIC_APP_VERSION)-$(MOZ_RPM_RELEASE).$(BUILDID).$(TARGET_CPU)$(PKG_SUFFIX)
-    UPLOAD_EXTRA_FILES += $(SDK_RPM)
-    RPM_CMD += && mv $(TARGET_CPU)/$(SDK_RPM) $(ABS_DIST)/
   endif
 
   INNER_MAKE_PACKAGE = $(RPM_CMD)
@@ -244,7 +207,7 @@ ifeq ($(MOZ_PKG_FORMAT),DMG)
   PKG_SUFFIX	= .dmg
 
   _ABS_MOZSRCDIR = $(shell cd $(MOZILLA_DIR) && pwd)
-  PKG_DMG_SOURCE = $(STAGEPATH)$(MOZ_PKG_DIR)
+  PKG_DMG_SOURCE = $(MOZ_PKG_DIR)
   INNER_MAKE_PACKAGE	= $(call py_action,make_dmg,'$(PKG_DMG_SOURCE)' '$(PACKAGE)')
   INNER_UNMAKE_PACKAGE	= \
     set -ex; \
@@ -252,12 +215,18 @@ ifeq ($(MOZ_PKG_FORMAT),DMG)
     mkdir -p $(ABS_DIST)/unpack.tmp; \
     $(_ABS_MOZSRCDIR)/build/package/mac_osx/unpack-diskimage $(UNPACKAGE) /tmp/$(MOZ_PKG_APPNAME)-unpack $(ABS_DIST)/unpack.tmp; \
     rsync -a '$(ABS_DIST)/unpack.tmp/$(_APPNAME)' $(MOZ_PKG_DIR); \
-    test -n '$(MOZ_PKG_MAC_DSSTORE)' && \
+    if test -n '$(MOZ_PKG_MAC_DSSTORE)' ; then \
+      mkdir -p '$(dir $(MOZ_PKG_MAC_DSSTORE))'; \
       rsync -a '$(ABS_DIST)/unpack.tmp/.DS_Store' '$(MOZ_PKG_MAC_DSSTORE)'; \
-    test -n '$(MOZ_PKG_MAC_BACKGROUND)' && \
+    fi; \
+    if test -n '$(MOZ_PKG_MAC_BACKGROUND)' ; then \
+      mkdir -p '$(dir $(MOZ_PKG_MAC_BACKGROUND))'; \
       rsync -a '$(ABS_DIST)/unpack.tmp/.background/$(notdir $(MOZ_PKG_MAC_BACKGROUND))' '$(MOZ_PKG_MAC_BACKGROUND)'; \
-    test -n '$(MOZ_PKG_MAC_ICON)' && \
+    fi; \
+    if test -n '$(MOZ_PKG_MAC_ICON)' ; then \
+      mkdir -p '$(dir $(MOZ_PKG_MAC_ICON))'; \
       rsync -a '$(ABS_DIST)/unpack.tmp/.VolumeIcon.icns' '$(MOZ_PKG_MAC_ICON)'; \
+    fi; \
     rm -rf $(ABS_DIST)/unpack.tmp; \
     if test -n '$(MOZ_PKG_MAC_RSRC)' ; then \
       cp $(UNPACKAGE) $(MOZ_PKG_APPNAME).tmp.dmg && \
@@ -265,10 +234,6 @@ ifeq ($(MOZ_PKG_FORMAT),DMG)
       { /Developer/Tools/DeRez -skip plst -skip blkx $(MOZ_PKG_APPNAME).tmp.dmg > '$(MOZ_PKG_MAC_RSRC)' || { rm -f $(MOZ_PKG_APPNAME).tmp.dmg && false; }; } && \
       rm -f $(MOZ_PKG_APPNAME).tmp.dmg; \
     fi
-  # The plst and blkx resources are skipped because they belong to each
-  # individual dmg and are created by hdiutil.
-  SDK_SUFFIX = .tar.bz2
-  MAKE_SDK = $(CREATE_FINAL_TAR) - $(MOZ_APP_NAME)-sdk | bzip2 -vf > '$(SDK)'
 endif
 
 ifdef MOZ_INTERNAL_SIGNING_FORMAT
@@ -285,27 +250,23 @@ endif
 
 ifdef MOZ_SIGN_PREPARED_PACKAGE_CMD
   ifeq (Darwin, $(OS_ARCH))
-    MAKE_PACKAGE    = $(or $(call MAKE_SIGN_EME_VOUCHER,$(STAGEPATH)$(MOZ_PKG_DIR)$(_BINPATH)/$(MOZ_CHILD_PROCESS_NAME).app/Contents/MacOS,$(STAGEPATH)$(MOZ_PKG_DIR)$(_RESPATH)),true) \
-                      && (cd $(STAGEPATH)$(MOZ_PKG_DIR)$(_RESPATH) && $(CREATE_PRECOMPLETE_CMD)) \
+    MAKE_PACKAGE    = $(or $(call MAKE_SIGN_EME_VOUCHER,$(MOZ_PKG_DIR)$(_BINPATH)/$(MOZ_CHILD_PROCESS_NAME).app/Contents/MacOS,$(MOZ_PKG_DIR)$(_RESPATH)),true) \
+                      && (cd $(MOZ_PKG_DIR)$(_RESPATH) && $(CREATE_PRECOMPLETE_CMD)) \
                       && cd ./$(PKG_DMG_SOURCE) && $(MOZ_SIGN_PREPARED_PACKAGE_CMD) $(MOZ_MACBUNDLE_NAME) \
                       && cd $(PACKAGE_BASE_DIR) && $(INNER_MAKE_PACKAGE)
   else
     MAKE_PACKAGE    = $(MOZ_SIGN_PREPARED_PACKAGE_CMD) $(MOZ_PKG_DIR) \
-                      && $(or $(call MAKE_SIGN_EME_VOUCHER,$(STAGEPATH)$(MOZ_PKG_DIR)),true) \
-                      && (cd $(STAGEPATH)$(MOZ_PKG_DIR)$(_RESPATH) && $(CREATE_PRECOMPLETE_CMD)) \
+                      && $(or $(call MAKE_SIGN_EME_VOUCHER,$(MOZ_PKG_DIR)),true) \
+                      && (cd $(MOZ_PKG_DIR)$(_RESPATH) && $(CREATE_PRECOMPLETE_CMD)) \
                       && $(INNER_MAKE_PACKAGE)
   endif #Darwin
 
 else
-  MAKE_PACKAGE    = (cd $(STAGEPATH)$(MOZ_PKG_DIR)$(_RESPATH) && $(CREATE_PRECOMPLETE_CMD)) && $(INNER_MAKE_PACKAGE)
+  MAKE_PACKAGE    = (cd $(MOZ_PKG_DIR)$(_RESPATH) && $(CREATE_PRECOMPLETE_CMD)) && $(INNER_MAKE_PACKAGE)
 endif
 
 ifdef MOZ_SIGN_PACKAGE_CMD
   MAKE_PACKAGE    += && $(MOZ_SIGN_PACKAGE_CMD) '$(PACKAGE)'
-endif
-
-ifdef MOZ_SIGN_CMD
-  MAKE_SDK           += && $(MOZ_SIGN_CMD) -f gpg '$(SDK)'
 endif
 
 NO_PKG_FILES += \
@@ -389,11 +350,6 @@ endif
 
 ifneq (android,$(MOZ_WIDGET_TOOLKIT))
   OPTIMIZEJARS = 1
-  ifneq (gonk,$(MOZ_WIDGET_TOOLKIT))
-    ifdef NIGHTLY_BUILD
-      DISABLE_JAR_COMPRESSION = 1
-    endif
-  endif
 endif
 
 # A js binary is needed to perform verification of JavaScript minification.
@@ -450,12 +406,11 @@ UPLOAD_FILES= \
   $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(XPC_TEST_PACKAGE)) \
   $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(MOCHITEST_PACKAGE)) \
   $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(TALOS_PACKAGE)) \
+  $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(AWSY_PACKAGE)) \
   $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(REFTEST_PACKAGE)) \
   $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(WP_TEST_PACKAGE)) \
   $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(GTEST_PACKAGE)) \
   $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(SYMBOL_ARCHIVE_BASENAME).zip) \
-  $(call QUOTED_WILDCARD,$(DIST)/$(SDK)) \
-  $(call QUOTED_WILDCARD,$(DIST)/$(SDK).asc) \
   $(call QUOTED_WILDCARD,$(MOZ_SOURCESTAMP_FILE)) \
   $(call QUOTED_WILDCARD,$(MOZ_BUILDINFO_FILE)) \
   $(call QUOTED_WILDCARD,$(MOZ_BUILDID_INFO_TXT_FILE)) \
@@ -468,13 +423,6 @@ UPLOAD_FILES= \
 ifdef MOZ_CODE_COVERAGE
   UPLOAD_FILES += \
     $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(CODE_COVERAGE_ARCHIVE_BASENAME).zip)
-endif
-
-ifdef UNIFY_DIST
-  UNIFY_ARCH := $(notdir $(patsubst %/,%,$(dir $(UNIFY_DIST))))
-  UPLOAD_FILES += \
-    $(call QUOTED_WILDCARD,$(UNIFY_DIST)/$(SDK_PATH)$(PKG_BASENAME)-$(UNIFY_ARCH).sdk$(SDK_SUFFIX)) \
-    $(call QUOTED_WILDCARD,$(UNIFY_DIST)/$(SDK_PATH)$(PKG_BASENAME)-$(UNIFY_ARCH).sdk$(SDK_SUFFIX).asc)
 endif
 
 SIGN_CHECKSUM_CMD=

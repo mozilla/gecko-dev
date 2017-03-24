@@ -90,6 +90,15 @@
             );
         } else {
           SimpleTest.ok(true, "Testing Firefox tabbrowser UI.");
+          let newTabChildren = [];
+          if (SpecialPowers.getBoolPref("privacy.userContext.enabled")) {
+            newTabChildren = [
+              {
+                role: ROLE_MENUPOPUP,
+                children: []
+              }
+            ];
+          }
 
           // NB: The (3) buttons are not visible, unless manually hovered,
           //     probably due to size reduction in this test.
@@ -98,6 +107,11 @@
               // xul:tab ("about:")
               role: ROLE_PAGETAB,
               children: [
+                {
+                  // xul:text, i.e. the tab label text
+                  role: ROLE_TEXT_LEAF,
+                  children: []
+                },
                 {
                   // xul:toolbarbutton ("Close Tab")
                   role: ROLE_PUSHBUTTON,
@@ -110,6 +124,11 @@
               role: ROLE_PAGETAB,
               children: [
                 {
+                  // xul:text, i.e. the tab label text
+                  role: ROLE_TEXT_LEAF,
+                  children: []
+                },
+                {
                   // xul:toolbarbutton ("Close Tab")
                   role: ROLE_PUSHBUTTON,
                   children: []
@@ -119,7 +138,7 @@
             {
               // xul:toolbarbutton ("Open a new tab")
               role: ROLE_PUSHBUTTON,
-              children: []
+              children: newTabChildren
             }
             // "List all tabs" dropdown
             // XXX: This child(?) is not present in this test.

@@ -4,13 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "CTVerifyResult.h"
 #include "mozilla/Casting.h"
 #include "nsSSLStatus.h"
-#include "plstr.h"
 #include "nsIClassInfoImpl.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIObjectInputStream.h"
-#include "SignedCertificateTimestamp.h"
+#include "nsNSSCertificate.h"
 #include "ssl.h"
 
 NS_IMETHODIMP
@@ -317,74 +317,44 @@ nsSSLStatus::~nsSSLStatus()
 }
 
 void
-nsSSLStatus::SetServerCert(nsNSSCertificate* aServerCert,
-                           nsNSSCertificate::EVStatus aEVStatus)
+nsSSLStatus::SetServerCert(nsNSSCertificate* aServerCert, EVStatus aEVStatus)
 {
+  MOZ_ASSERT(aServerCert);
+
   mServerCert = aServerCert;
-
-  if (aEVStatus != nsNSSCertificate::ev_status_unknown) {
-    mIsEV = (aEVStatus == nsNSSCertificate::ev_status_valid);
-    mHasIsEVStatus = true;
-    return;
-  }
-
-  if (aServerCert) {
-    nsresult rv = aServerCert->GetIsExtendedValidation(&mIsEV);
-    if (NS_FAILED(rv)) {
-      return;
-    }
-    mHasIsEVStatus = true;
-  }
+  mIsEV = (aEVStatus == EVStatus::EV);
+  mHasIsEVStatus = true;
 }
 
 void
 nsSSLStatus::SetCertificateTransparencyInfo(
   const mozilla::psm::CertificateTransparencyInfo& info)
 {
-  using mozilla::ct::SignedCertificateTimestamp;
+  using mozilla::ct::CTPolicyCompliance;
+
+  mCertificateTransparencyStatus =
+    nsISSLStatus::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE;
 
   if (!info.enabled) {
     // CT disabled.
-    mCertificateTransparencyStatus =
-      nsISSLStatus::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE;
     return;
   }
 
-  if (!info.processedSCTs) {
-    // No SCTs processed on the connection.
-    mCertificateTransparencyStatus =
-      nsISSLStatus::CERTIFICATE_TRANSPARENCY_NONE;
-    return;
-  }
-
-  bool hasOKSCTs = false;
-  bool hasUnknownLogSCTs = false;
-  bool hasInvalidSCTs = false;
-  for (const SignedCertificateTimestamp& sct : info.verifyResult.scts) {
-    switch (sct.verificationStatus) {
-      case SignedCertificateTimestamp::VerificationStatus::OK:
-        hasOKSCTs = true;
-        break;
-      case SignedCertificateTimestamp::VerificationStatus::UnknownLog:
-        hasUnknownLogSCTs = true;
-        break;
-      case SignedCertificateTimestamp::VerificationStatus::InvalidSignature:
-      case SignedCertificateTimestamp::VerificationStatus::InvalidTimestamp:
-        hasInvalidSCTs = true;
-        break;
-      default:
-        MOZ_ASSERT_UNREACHABLE("Unexpected SCT::VerificationStatus type");
-    }
-  }
-
-  if (hasOKSCTs) {
-    mCertificateTransparencyStatus =
-      nsISSLStatus::CERTIFICATE_TRANSPARENCY_OK;
-  } else if (hasUnknownLogSCTs) {
-    mCertificateTransparencyStatus =
-      nsISSLStatus::CERTIFICATE_TRANSPARENCY_UNKNOWN_LOG;
-  } else if (hasInvalidSCTs) {
-    mCertificateTransparencyStatus =
-      nsISSLStatus::CERTIFICATE_TRANSPARENCY_INVALID;
+  switch (info.policyCompliance) {
+    case CTPolicyCompliance::Compliant:
+      mCertificateTransparencyStatus =
+        nsISSLStatus::CERTIFICATE_TRANSPARENCY_POLICY_COMPLIANT;
+      break;
+    case CTPolicyCompliance::NotEnoughScts:
+      mCertificateTransparencyStatus =
+        nsISSLStatus::CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS;
+      break;
+    case CTPolicyCompliance::NotDiverseScts:
+      mCertificateTransparencyStatus =
+        nsISSLStatus::CERTIFICATE_TRANSPARENCY_POLICY_NOT_DIVERSE_SCTS;
+      break;
+    case CTPolicyCompliance::Unknown:
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected CTPolicyCompliance type");
   }
 }

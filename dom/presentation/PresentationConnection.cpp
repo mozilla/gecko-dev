@@ -15,6 +15,7 @@
 #include "mozilla/dom/PresentationConnectionCloseEvent.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIPresentationService.h"
@@ -354,9 +355,10 @@ PresentationConnection::NotifyStateChange(const nsAString& aSessionId,
                                           uint16_t aState,
                                           nsresult aReason)
 {
-  PRES_DEBUG("connection state change:id[%s], state[%x], reason[%x], role[%d]\n",
+  PRES_DEBUG("connection state change:id[%s], state[%" PRIx32
+             "], reason[%" PRIx32 "], role[%d]\n",
              NS_ConvertUTF16toUTF8(aSessionId).get(), aState,
-             aReason, mRole);
+             static_cast<uint32_t>(aReason), mRole);
 
   if (!aSessionId.Equals(mId)) {
     return NS_ERROR_INVALID_ARG;
@@ -733,18 +735,19 @@ PresentationConnection::AsyncCloseConnectionWithErrorMsg(const nsAString& aMessa
   }
 
   nsString message = nsString(aMessage);
+  RefPtr<PresentationConnection> self = this;
   nsCOMPtr<nsIRunnable> r =
-    NS_NewRunnableFunction([this, message]() -> void {
+    NS_NewRunnableFunction([self, message]() -> void {
       // Set |mState| to |PresentationConnectionState::Closed| here to avoid
       // calling |ProcessStateChanged|.
-      mState = PresentationConnectionState::Closed;
+      self->mState = PresentationConnectionState::Closed;
 
       // Make sure dispatching the event and closing the connection are invoked
       // at the same time by setting |aDispatchNow| to true.
       Unused << NS_WARN_IF(NS_FAILED(
-        DispatchConnectionCloseEvent(PresentationConnectionClosedReason::Error,
-                                      message,
-                                      true)));
+        self->DispatchConnectionCloseEvent(PresentationConnectionClosedReason::Error,
+                                           message,
+                                           true)));
 
       nsCOMPtr<nsIPresentationService> service =
         do_GetService(PRESENTATION_SERVICE_CONTRACTID);
@@ -753,8 +756,8 @@ PresentationConnection::AsyncCloseConnectionWithErrorMsg(const nsAString& aMessa
       }
 
       Unused << NS_WARN_IF(NS_FAILED(
-        service->CloseSession(mId,
-                              mRole,
+        service->CloseSession(self->mId,
+                              self->mRole,
                               nsIPresentationService::CLOSED_REASON_ERROR)));
     });
 

@@ -10,28 +10,28 @@ const Telemetry = Services.telemetry;
 
 var MetricsChecker = {
   HISTOGRAMS: {
-    OPPORTUNITIES         : Services.telemetry.getHistogramById("TRANSLATION_OPPORTUNITIES"),
-    OPPORTUNITIES_BY_LANG : Services.telemetry.getKeyedHistogramById("TRANSLATION_OPPORTUNITIES_BY_LANGUAGE"),
-    PAGES                 : Services.telemetry.getHistogramById("TRANSLATED_PAGES"),
-    PAGES_BY_LANG         : Services.telemetry.getKeyedHistogramById("TRANSLATED_PAGES_BY_LANGUAGE"),
-    CHARACTERS            : Services.telemetry.getHistogramById("TRANSLATED_CHARACTERS"),
-    DENIED                : Services.telemetry.getHistogramById("DENIED_TRANSLATION_OFFERS"),
-    AUTO_REJECTED         : Services.telemetry.getHistogramById("AUTO_REJECTED_TRANSLATION_OFFERS"),
-    SHOW_ORIGINAL         : Services.telemetry.getHistogramById("REQUESTS_OF_ORIGINAL_CONTENT"),
-    TARGET_CHANGES        : Services.telemetry.getHistogramById("CHANGES_OF_TARGET_LANGUAGE"),
-    DETECTION_CHANGES     : Services.telemetry.getHistogramById("CHANGES_OF_DETECTED_LANGUAGE"),
-    SHOW_UI               : Services.telemetry.getHistogramById("SHOULD_TRANSLATION_UI_APPEAR"),
-    DETECT_LANG           : Services.telemetry.getHistogramById("SHOULD_AUTO_DETECT_LANGUAGE"),
+    OPPORTUNITIES: Services.telemetry.getHistogramById("TRANSLATION_OPPORTUNITIES"),
+    OPPORTUNITIES_BY_LANG: Services.telemetry.getKeyedHistogramById("TRANSLATION_OPPORTUNITIES_BY_LANGUAGE"),
+    PAGES: Services.telemetry.getHistogramById("TRANSLATED_PAGES"),
+    PAGES_BY_LANG: Services.telemetry.getKeyedHistogramById("TRANSLATED_PAGES_BY_LANGUAGE"),
+    CHARACTERS: Services.telemetry.getHistogramById("TRANSLATED_CHARACTERS"),
+    DENIED: Services.telemetry.getHistogramById("DENIED_TRANSLATION_OFFERS"),
+    AUTO_REJECTED: Services.telemetry.getHistogramById("AUTO_REJECTED_TRANSLATION_OFFERS"),
+    SHOW_ORIGINAL: Services.telemetry.getHistogramById("REQUESTS_OF_ORIGINAL_CONTENT"),
+    TARGET_CHANGES: Services.telemetry.getHistogramById("CHANGES_OF_TARGET_LANGUAGE"),
+    DETECTION_CHANGES: Services.telemetry.getHistogramById("CHANGES_OF_DETECTED_LANGUAGE"),
+    SHOW_UI: Services.telemetry.getHistogramById("SHOULD_TRANSLATION_UI_APPEAR"),
+    DETECT_LANG: Services.telemetry.getHistogramById("SHOULD_AUTO_DETECT_LANGUAGE"),
   },
 
-  reset: function() {
+  reset() {
     for (let i of Object.keys(this.HISTOGRAMS)) {
       this.HISTOGRAMS[i].clear();
     }
     this.updateMetrics();
   },
 
-  updateMetrics: function () {
+  updateMetrics() {
     this._metrics = {
       opportunitiesCount: this.HISTOGRAMS.OPPORTUNITIES.snapshot().sum || 0,
       pageCount: this.HISTOGRAMS.PAGES.snapshot().sum || 0,
@@ -65,11 +65,11 @@ var MetricsChecker = {
   /**
    * A recurrent loop for making assertions about collected metrics.
    */
-  _assertionLoop: function (prevMetrics, metrics, additions) {
+  _assertionLoop(prevMetrics, metrics, additions) {
     for (let metric of Object.keys(additions)) {
       let addition = additions[metric];
       // Allows nesting metrics. Useful for keyed histograms.
-      if (typeof addition === 'object') {
+      if (typeof addition === "object") {
         this._assertionLoop(prevMetrics[metric], metrics[metric], addition);
         continue;
       }
@@ -77,7 +77,7 @@ var MetricsChecker = {
     }
   },
 
-  checkAdditions: function (additions) {
+  checkAdditions(additions) {
     let prevMetrics = this._metrics;
     this.updateMetrics();
     this._assertionLoop(prevMetrics, this._metrics, additions);
@@ -180,9 +180,9 @@ add_task(function* test_telemetry() {
   yield translate("<h1>Hallo Welt!</h1><h1>Bratwurst!</h1>", "de");
   yield MetricsChecker.checkAdditions({
     opportunitiesCount: 2,
-    opportunitiesCountByLang: { "ru" : 1, "de" : 1 },
+    opportunitiesCountByLang: { "ru": 1, "de": 1 },
     pageCount: 1,
-    pageCountByLang: { "de -> en" : 1 },
+    pageCountByLang: { "de -> en": 1 },
     charCount: 21,
     deniedOffers: 0
   });
@@ -276,11 +276,11 @@ add_task(function* test_never_offer_translation() {
 add_task(function* test_translation_preferences() {
 
   let preferenceChecks = {
-    "browser.translation.ui.show" : [
+    "browser.translation.ui.show": [
       {value: false, expected: {showUI: 0}},
       {value: true, expected: {showUI: 1}}
     ],
-    "browser.translation.detectLanguage" : [
+    "browser.translation.detectLanguage": [
       {value: false, expected: {detectLang: 0}},
       {value: true, expected: {detectLang: 1}}
     ],

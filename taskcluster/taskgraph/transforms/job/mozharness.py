@@ -10,7 +10,8 @@ way, and certainly anything using mozharness should use this approach.
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-from voluptuous import Schema, Required, Optional, Any
+from taskgraph.util.schema import Schema
+from voluptuous import Required, Optional, Any
 
 from taskgraph.transforms.job import run_job_using
 from taskgraph.transforms.job.common import (
@@ -18,7 +19,7 @@ from taskgraph.transforms.job.common import (
     docker_worker_add_gecko_vcs_env_vars,
     docker_worker_setup_secrets,
     docker_worker_add_public_artifacts,
-    docker_worker_support_vcs_checkout,
+    support_vcs_checkout,
 )
 
 COALESCE_KEY = 'builds.{project}.{name}'
@@ -91,7 +92,7 @@ def mozharness_on_docker_worker_setup(config, job, taskdesc):
 
     docker_worker_add_public_artifacts(config, job, taskdesc)
     docker_worker_add_workspace_cache(config, job, taskdesc)
-    docker_worker_support_vcs_checkout(config, job, taskdesc)
+    support_vcs_checkout(config, job, taskdesc)
 
     env = worker.setdefault('env', {})
     env.update({
@@ -142,8 +143,6 @@ def mozharness_on_docker_worker_setup(config, job, taskdesc):
             taskdesc['scopes'].append(
                 'docker-worker:relengapi-proxy:tooltool.download.internal')
         env['TOOLTOOL_CACHE'] = '/home/worker/tooltool-cache'
-        env['TOOLTOOL_REPO'] = 'https://github.com/mozilla/build-tooltool'
-        env['TOOLTOOL_REV'] = 'master'
 
     # Retry if mozharness returns TBPL_RETRY
     worker['retry-exit-status'] = 4
@@ -198,8 +197,6 @@ def mozharness_on_windows(config, job, taskdesc):
     env.update({
         'MOZ_BUILD_DATE': config.params['moz_build_date'],
         'MOZ_SCM_LEVEL': config.params['level'],
-        'TOOLTOOL_REPO': 'https://github.com/mozilla/build-tooltool',
-        'TOOLTOOL_REV': 'master',
     })
 
     mh_command = [r'c:\mozilla-build\python\python.exe']
@@ -220,7 +217,20 @@ def mozharness_on_windows(config, job, taskdesc):
     hg_command.append(env['GECKO_HEAD_REPOSITORY'])
     hg_command.append('.\\build\\src')
 
-    worker['command'] = [
+    worker['command'] = []
+    # sccache currently uses the full compiler commandline as input to the
+    # cache hash key, so create a symlink to the task dir and build from
+    # the symlink dir to get consistent paths.
+    if taskdesc.get('needs-sccache'):
+        worker['command'].extend([
+            r'if exist z:\build rmdir z:\build',
+            r'mklink /d z:\build %cd%',
+            # Grant delete permission on the link to everyone.
+            r'icacls z:\build /grant *S-1-1-0:D /L',
+            r'cd /d z:\build',
+        ])
+
+    worker['command'].extend([
         ' '.join(hg_command),
         ' '.join(mh_command)
-    ]
+    ])

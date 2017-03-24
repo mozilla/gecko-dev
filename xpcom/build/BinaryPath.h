@@ -16,6 +16,12 @@
 #include <sys/stat.h>
 #include <string.h>
 #endif
+#include "mozilla/UniquePtr.h"
+#include "mozilla/UniquePtrExtensions.h"
+
+#ifdef MOZILLA_INTERNAL_API
+#include "nsString.h"
+#endif
 
 namespace mozilla {
 
@@ -155,6 +161,18 @@ private:
 #endif
 
 public:
+  static UniqueFreePtr<char> Get(const char *aArgv0)
+  {
+    char path[MAXPATHLEN];
+    if (NS_FAILED(Get(aArgv0, path))) {
+      return nullptr;
+    }
+    UniqueFreePtr<char> result;
+    result.reset(strdup(path));
+    return result;
+  }
+
+#ifdef MOZILLA_INTERNAL_API
   static nsresult GetFile(const char* aArgv0, nsIFile** aResult)
   {
     nsCOMPtr<nsIFile> lf;
@@ -181,6 +199,7 @@ public:
     NS_ADDREF(*aResult = lf);
     return NS_OK;
   }
+#endif
 };
 
 } // namespace mozilla

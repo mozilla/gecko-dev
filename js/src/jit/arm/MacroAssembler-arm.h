@@ -130,6 +130,8 @@ class MacroAssemblerARM : public Assembler
     static void ma_mov_patch(ImmPtr imm, Register dest, Assembler::Condition c,
                              RelocStyle rs, Instruction* i);
 
+    Instruction* offsetToInstruction(CodeOffset offs);
+
     // ALU based ops
     // mov
     void ma_mov(Register src, Register dest, SBit s = LeaveCC, Condition c = Always);
@@ -374,8 +376,8 @@ class MacroAssemblerARM : public Assembler
     void ma_vsqrt(FloatRegister src, FloatRegister dest, Condition cc = Always);
     void ma_vsqrt_f32(FloatRegister src, FloatRegister dest, Condition cc = Always);
 
-    void ma_vimm(wasm::RawF64 value, FloatRegister dest, Condition cc = Always);
-    void ma_vimm_f32(wasm::RawF32 value, FloatRegister dest, Condition cc = Always);
+    void ma_vimm(double value, FloatRegister dest, Condition cc = Always);
+    void ma_vimm_f32(float value, FloatRegister dest, Condition cc = Always);
 
     void ma_vcmp(FloatRegister src1, FloatRegister src2, Condition cc = Always);
     void ma_vcmp_f32(FloatRegister src1, FloatRegister src2, Condition cc = Always);
@@ -453,6 +455,28 @@ class MacroAssemblerARM : public Assembler
         MOZ_CRASH("Invalid data transfer addressing mode");
     }
 
+    // `outAny` is valid if and only if `out64` == Register64::Invalid().
+    void wasmLoadImpl(const wasm::MemoryAccessDesc& access, Register memoryBase, Register ptr,
+                      Register ptrScratch, AnyRegister outAny, Register64 out64);
+
+    // `valAny` is valid if and only if `val64` == Register64::Invalid().
+    void wasmStoreImpl(const wasm::MemoryAccessDesc& access, AnyRegister valAny, Register64 val64,
+                       Register memoryBase, Register ptr, Register ptrScratch);
+
+  protected:
+    // `outAny` is valid if and only if `out64` == Register64::Invalid().
+    void wasmUnalignedLoadImpl(const wasm::MemoryAccessDesc& access, Register memoryBase,
+                               Register ptr, Register ptrScratch, AnyRegister outAny,
+                               Register64 out64, Register tmp1, Register tmp2, Register tmp3);
+
+    // The value to be stored is in `floatValue` (if not invalid), `val64` (if not invalid),
+    // or in `valOrTmp` (if `floatValue` and `val64` are both invalid).  Note `valOrTmp` must
+    // always be valid.
+    void wasmUnalignedStoreImpl(const wasm::MemoryAccessDesc& access, FloatRegister floatValue,
+                                Register64 val64, Register memoryBase, Register ptr,
+                                Register ptrScratch, Register valOrTmp);
+
+  private:
     // Loads `byteSize` bytes, byte by byte, by reading from ptr[offset],
     // applying the indicated signedness (defined by isSigned).
     // - all three registers must be different.
@@ -467,7 +491,6 @@ class MacroAssemblerARM : public Assembler
     // - byteSize can be up to 4 bytes and no more (GPR are 32 bits on ARM).
     void emitUnalignedStore(unsigned byteSize, Register ptr, Register val, unsigned offset = 0);
 
-private:
     // Implementation for transferMultipleByRuns so we can use different
     // iterators for forward/backward traversals. The sign argument should be 1
     // if we traverse forwards, -1 if we traverse backwards.
@@ -534,12 +557,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
     void mov(ImmPtr imm, Register dest) {
         mov(ImmWord(uintptr_t(imm.value)), dest);
-    }
-    void mov(Register src, Address dest) {
-        MOZ_CRASH("NYI-IC");
-    }
-    void mov(Address src, Register dest) {
-        MOZ_CRASH("NYI-IC");
     }
 
     void branch(JitCode* c) {
@@ -791,7 +808,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void loadInt32OrDouble(Register base, Register index,
                            FloatRegister dest, int32_t shift = defaultShift);
     void loadConstantDouble(double dp, FloatRegister dest);
-    void loadConstantDouble(wasm::RawF64 dp, FloatRegister dest);
 
     // Treat the value as a boolean, and set condition codes accordingly.
     Condition testInt32Truthy(bool truthy, const ValueOperand& operand);
@@ -802,7 +818,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void boolValueToFloat32(const ValueOperand& operand, FloatRegister dest);
     void int32ValueToFloat32(const ValueOperand& operand, FloatRegister dest);
     void loadConstantFloat32(float f, FloatRegister dest);
-    void loadConstantFloat32(wasm::RawF32 f, FloatRegister dest);
 
     void moveValue(const Value& val, Register type, Register data);
 
@@ -915,8 +930,8 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
         ma_mov(Imm32(val.toNunboxTag()), scratch);
         ma_str(scratch, ToType(dest), scratch2);
-        if (val.isMarkable())
-            ma_mov(ImmGCPtr(val.toMarkablePointer()), scratch);
+        if (val.isGCThing())
+            ma_mov(ImmGCPtr(val.toGCThing()), scratch);
         else
             ma_mov(Imm32(val.toNunboxPayload()), scratch);
         ma_str(scratch, ToPayload(dest), scratch2);
@@ -944,15 +959,15 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
         // Store the payload, marking if necessary.
         if (payloadoffset < 4096 && payloadoffset > -4096) {
-            if (val.isMarkable())
-                ma_mov(ImmGCPtr(val.toMarkablePointer()), scratch2);
+            if (val.isGCThing())
+                ma_mov(ImmGCPtr(val.toGCThing()), scratch2);
             else
                 ma_mov(Imm32(val.toNunboxPayload()), scratch2);
             ma_str(scratch2, DTRAddr(scratch, DtrOffImm(payloadoffset)));
         } else {
             ma_add(Imm32(payloadoffset), scratch, scratch2);
-            if (val.isMarkable())
-                ma_mov(ImmGCPtr(val.toMarkablePointer()), scratch2);
+            if (val.isGCThing())
+                ma_mov(ImmGCPtr(val.toGCThing()), scratch2);
             else
                 ma_mov(Imm32(val.toNunboxPayload()), scratch2);
             ma_str(scratch2, DTRAddr(scratch, DtrOffImm(0)));
@@ -977,8 +992,8 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void popValue(ValueOperand val);
     void pushValue(const Value& val) {
         push(Imm32(val.toNunboxTag()));
-        if (val.isMarkable())
-            push(ImmGCPtr(val.toMarkablePointer()));
+        if (val.isGCThing())
+            push(ImmGCPtr(val.toGCThing()));
         else
             push(Imm32(val.toNunboxPayload()));
     }
@@ -1046,12 +1061,14 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void loadInt32x2(const BaseIndex& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void loadInt32x3(const Address& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void loadInt32x3(const BaseIndex& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
+    void loadInt32x4(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void storeInt32x1(FloatRegister src, const Address& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x1(FloatRegister src, const BaseIndex& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x2(FloatRegister src, const Address& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x2(FloatRegister src, const BaseIndex& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x3(FloatRegister src, const Address& dest) { MOZ_CRASH("NYI"); }
     void storeInt32x3(FloatRegister src, const BaseIndex& dest) { MOZ_CRASH("NYI"); }
+    void storeInt32x4(FloatRegister src, const Address& addr) { MOZ_CRASH("NYI"); }
     void loadAlignedSimd128Int(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void storeAlignedSimd128Int(FloatRegister src, Address addr) { MOZ_CRASH("NYI"); }
     void loadUnalignedSimd128Int(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
@@ -1061,6 +1078,9 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     void loadFloat32x3(const Address& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void loadFloat32x3(const BaseIndex& src, FloatRegister dest) { MOZ_CRASH("NYI"); }
+    void loadFloat32x4(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
+    void storeFloat32x4(FloatRegister src, const Address& addr) { MOZ_CRASH("NYI"); }
+
     void loadAlignedSimd128Float(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
     void storeAlignedSimd128Float(FloatRegister src, Address addr) { MOZ_CRASH("NYI"); }
     void loadUnalignedSimd128Float(const Address& addr, FloatRegister dest) { MOZ_CRASH("NYI"); }
@@ -1104,12 +1124,16 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         store32(imm.hi(), Address(address.base, address.offset + INT64HIGH_OFFSET));
     }
 
-    template <typename T> void storePtr(ImmWord imm, T address);
-    template <typename T> void storePtr(ImmPtr imm, T address);
-    template <typename T> void storePtr(ImmGCPtr imm, T address);
+    void storePtr(ImmWord imm, const Address& address);
+    void storePtr(ImmWord imm, const BaseIndex& address);
+    void storePtr(ImmPtr imm, const Address& address);
+    void storePtr(ImmPtr imm, const BaseIndex& address);
+    void storePtr(ImmGCPtr imm, const Address& address);
+    void storePtr(ImmGCPtr imm, const BaseIndex& address);
     void storePtr(Register src, const Address& address);
     void storePtr(Register src, const BaseIndex& address);
     void storePtr(Register src, AbsoluteAddress dest);
+
     void moveDouble(FloatRegister src, FloatRegister dest, Condition cc = Always) {
         ma_vmov(src, dest, cc);
     }
@@ -1524,13 +1548,11 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
 
     void loadWasmGlobalPtr(uint32_t globalDataOffset, Register dest) {
-        loadPtr(Address(GlobalReg, globalDataOffset - WasmGlobalRegBias), dest);
+        loadPtr(Address(WasmTlsReg, offsetof(wasm::TlsData, globalArea) + globalDataOffset), dest);
     }
     void loadWasmPinnedRegsFromTls() {
         ScratchRegisterScope scratch(asMasm());
         ma_ldr(Address(WasmTlsReg, offsetof(wasm::TlsData, memoryBase)), HeapReg, scratch);
-        ma_ldr(Address(WasmTlsReg, offsetof(wasm::TlsData, globalData)), GlobalReg, scratch);
-        ma_add(Imm32(WasmGlobalRegBias), GlobalReg, scratch);
     }
 
     // Instrumentation for entering and leaving the profiler.

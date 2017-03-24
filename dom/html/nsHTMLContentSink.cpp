@@ -96,14 +96,12 @@ NS_NewHTMLNOTUSEDElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
   return nullptr;
 }
 
-#define HTML_TAG(_tag, _classname) NS_NewHTML##_classname##Element,
-#define HTML_HTMLELEMENT_TAG(_tag) NS_NewHTMLElement,
+#define HTML_TAG(_tag, _classname, _interfacename) NS_NewHTML##_classname##Element,
 #define HTML_OTHER(_tag) NS_NewHTMLNOTUSEDElement,
 static const contentCreatorCallback sContentCreatorCallbacks[] = {
   NS_NewHTMLUnknownElement,
 #include "nsHTMLTagList.h"
 #undef HTML_TAG
-#undef HTML_HTMLELEMENT_TAG
 #undef HTML_OTHER
   NS_NewHTMLUnknownElement
 };
@@ -123,8 +121,6 @@ public:
 
   HTMLContentSink();
 
-  NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
-
   nsresult Init(nsIDocument* aDoc, nsIURI* aURI, nsISupports* aContainer,
                 nsIChannel* aChannel);
 
@@ -139,7 +135,7 @@ public:
   NS_IMETHOD WillInterrupt(void) override;
   NS_IMETHOD WillResume(void) override;
   NS_IMETHOD SetParser(nsParserBase* aParser) override;
-  virtual void FlushPendingNotifications(mozFlushType aType) override;
+  virtual void FlushPendingNotifications(FlushType aType) override;
   NS_IMETHOD SetDocumentCharset(nsACString& aCharset) override;
   virtual nsISupports *GetTarget() override;
   virtual bool IsScriptExecuting() override;
@@ -251,25 +247,27 @@ NS_NewHTMLElement(Element** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& 
   NS_ASSERTION(nodeInfo->NamespaceEquals(kNameSpaceID_XHTML),
                "Trying to HTML elements that don't have the XHTML namespace");
 
+  int32_t tag = parserService->HTMLCaseSensitiveAtomTagToId(name);
+
   // Per the Custom Element specification, unknown tags that are valid custom
   // element names should be HTMLElement instead of HTMLUnknownElement.
-  int32_t tag = parserService->HTMLCaseSensitiveAtomTagToId(name);
-  if ((tag == eHTMLTag_userdefined &&
-      nsContentUtils::IsCustomElementName(name)) ||
-      aIs) {
+  bool isCustomElementName = (tag == eHTMLTag_userdefined &&
+                              nsContentUtils::IsCustomElementName(name));
+  if (isCustomElementName) {
     NS_IF_ADDREF(*aResult = NS_NewHTMLElement(nodeInfo.forget(), aFromParser));
-    if (!*aResult) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    nsContentUtils::SetupCustomElement(*aResult, aIs);
-
-    return NS_OK;
+  } else {
+    *aResult = CreateHTMLElement(tag, nodeInfo.forget(), aFromParser).take();
   }
 
-  *aResult = CreateHTMLElement(tag,
-                               nodeInfo.forget(), aFromParser).take();
-  return *aResult ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+  if (!*aResult) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  if (isCustomElementName || aIs) {
+    nsContentUtils::SetupCustomElement(*aResult, aIs);
+  }
+
+  return NS_OK;
 }
 
 already_AddRefed<nsGenericHTMLElement>
@@ -633,8 +631,12 @@ NS_NewHTMLContentSink(nsIHTMLContentSink** aResult,
 }
 
 HTMLContentSink::HTMLContentSink()
+  : mMaxTextRun(0)
+  , mCurrentContext(nullptr)
+  , mHeadContext(nullptr)
+  , mHaveSeenHead(false)
+  , mNotifiedRootInsertion(false)
 {
-  // Note: operator new zeros our memory
 }
 
 HTMLContentSink::~HTMLContentSink()
@@ -1053,7 +1055,7 @@ HTMLContentSink::UpdateChildCounts()
 }
 
 void
-HTMLContentSink::FlushPendingNotifications(mozFlushType aType)
+HTMLContentSink::FlushPendingNotifications(FlushType aType)
 {
   // Only flush tags if we're not doing the notification ourselves
   // (since we aren't reentrant)
@@ -1061,11 +1063,11 @@ HTMLContentSink::FlushPendingNotifications(mozFlushType aType)
     // Only flush if we're still a document observer (so that our child counts
     // should be correct).
     if (mIsDocumentObserver) {
-      if (aType >= Flush_ContentAndNotify) {
+      if (aType >= FlushType::ContentAndNotify) {
         FlushTags();
       }
     }
-    if (aType >= Flush_InterruptibleLayout) {
+    if (aType >= FlushType::InterruptibleLayout) {
       // Make sure that layout has started so that the reflow flush
       // will actually happen.
       StartLayout(true);

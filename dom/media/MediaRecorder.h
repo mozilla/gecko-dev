@@ -16,6 +16,7 @@
 #define MAX_ALLOW_MEMORY_BUFFER 1024000
 namespace mozilla {
 
+class AbstractThread;
 class AudioNodeStream;
 class DOMMediaStream;
 class ErrorResult;
@@ -148,12 +149,17 @@ protected:
   // Hold the sessions reference and clean it when the DestroyRunnable for a
   // session is running.
   nsTArray<RefPtr<Session> > mSessions;
+
+  nsCOMPtr<nsIDocument> mDocument;
+
   // It specifies the container format as well as the audio and video capture formats.
   nsString mMimeType;
 
   uint32_t mAudioBitsPerSecond;
   uint32_t mVideoBitsPerSecond;
   uint32_t mBitsPerSecond;
+
+  const RefPtr<AbstractThread> mAbstractMainThread;
 private:
   // Register MediaRecorder into Document to listen the activity changes.
   void RegisterActivityObserver();

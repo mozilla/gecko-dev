@@ -9,11 +9,8 @@ browser.jar:
   skin/classic/browser/aboutSessionRestore-window-icon.png
   skin/classic/browser/aboutSyncTabs.css
 * skin/classic/browser/syncedtabs/sidebar.css          (syncedtabs/sidebar.css)
-  skin/classic/browser/actionicon-tab.png
-  skin/classic/browser/actionicon-tab@2x.png
 * skin/classic/browser/browser.css
-* skin/classic/browser/devedition.css
-* skin/classic/browser/browser-lightweightTheme.css
+* skin/classic/browser/compacttheme.css
   skin/classic/browser/click-to-play-warning-stripes.png
   skin/classic/browser/Info.png
   skin/classic/browser/keyhole-circle.png
@@ -48,6 +45,7 @@ browser.jar:
   skin/classic/browser/Toolbar-inverted.png
   skin/classic/browser/Toolbar-inverted@2x.png
   skin/classic/browser/toolbarbutton-dropmarker.png
+  skin/classic/browser/toolbarbutton-dropmarker@2x.png
   skin/classic/browser/urlbar-history-dropmarker.png
   skin/classic/browser/urlbar-history-dropmarker@2x.png
   skin/classic/browser/urlbar-popup-blocked.png
@@ -76,7 +74,6 @@ browser.jar:
   skin/classic/browser/downloads/download-notification-start@2x.png  (downloads/download-notification-start@2x.png)
 * skin/classic/browser/downloads/downloads.css              (downloads/downloads.css)
   skin/classic/browser/feeds/subscribe.css                  (feeds/subscribe.css)
-  skin/classic/browser/feeds/subscribe-ui.css               (feeds/subscribe-ui.css)
   skin/classic/browser/feeds/feedIcon.png                   (feeds/feedIcon.png)
   skin/classic/browser/feeds/feedIcon16.png                 (feeds/feedIcon16.png)
 * skin/classic/browser/newtab/newTab.css                    (newtab/newTab.css)
@@ -84,8 +81,6 @@ browser.jar:
   skin/classic/browser/monitor.png
   skin/classic/browser/monitor_16-10.png
   skin/classic/browser/places/allBookmarks.png              (places/allBookmarks.png)
-  skin/classic/browser/places/autocomplete-star.png         (places/autocomplete-star.png)
-  skin/classic/browser/places/autocomplete-star@2x.png      (places/autocomplete-star@2x.png)
 * skin/classic/browser/places/places.css                    (places/places.css)
   skin/classic/browser/places/organizer.css                 (places/organizer.css)
   skin/classic/browser/places/query.png                     (places/query.png)
@@ -104,10 +99,6 @@ browser.jar:
   skin/classic/browser/places/folderDropArrow.png           (places/folderDropArrow.png)
   skin/classic/browser/places/folderDropArrow@2x.png        (places/folderDropArrow@2x.png)
   skin/classic/browser/places/editBookmarkOverlay.css       (places/editBookmarkOverlay.css)
-  skin/classic/browser/places/minus.png                     (places/minus.png)
-  skin/classic/browser/places/minus-active.png              (places/minus-active.png)
-  skin/classic/browser/places/plus.png                      (places/plus.png)
-  skin/classic/browser/places/plus-active.png               (places/plus-active.png)
   skin/classic/browser/places/starred48.png                 (places/starred48.png)
   skin/classic/browser/places/starred48@2x.png              (places/starred48@2x.png)
   skin/classic/browser/places/unstarred48.png               (places/unstarred48.png)
@@ -129,6 +120,7 @@ browser.jar:
   skin/classic/browser/social/services-64.png               (social/services-64.png)
   skin/classic/browser/social/services-64@2x.png            (social/services-64@2x.png)
   skin/classic/browser/tabbrowser/alltabs-box-bkgnd-icon.png             (tabbrowser/alltabs-box-bkgnd-icon.png)
+  skin/classic/browser/tabbrowser/alltabs-box-bkgnd-icon@2x.png          (tabbrowser/alltabs-box-bkgnd-icon@2x.png)
   skin/classic/browser/tabbrowser/alltabs-box-bkgnd-icon-inverted.png    (tabbrowser/alltabs-box-bkgnd-icon-inverted.png)
   skin/classic/browser/tabbrowser/alltabs-box-bkgnd-icon-inverted@2x.png (tabbrowser/alltabs-box-bkgnd-icon-inverted@2x.png)
   skin/classic/browser/tabbrowser/newtab.png                             (tabbrowser/newtab.png)
@@ -166,29 +158,13 @@ browser.jar:
   skin/classic/browser/sync-16.png
   skin/classic/browser/sync-32.png
   skin/classic/browser/sync-bg.png
-  skin/classic/browser/sync-128.png
   skin/classic/browser/sync-desktopIcon.svg  (../shared/sync-desktopIcon.svg)
   skin/classic/browser/sync-horizontalbar.png
   skin/classic/browser/sync-horizontalbar@2x.png
   skin/classic/browser/sync-mobileIcon.svg  (../shared/sync-mobileIcon.svg)
-  skin/classic/browser/sync-notification-24.png
-  skin/classic/browser/syncSetup.css
-  skin/classic/browser/syncCommon.css
-  skin/classic/browser/syncQuota.css
   skin/classic/browser/syncProgress-horizontalbar.png
   skin/classic/browser/syncProgress-horizontalbar@2x.png
-  skin/classic/browser/syncProgress-menuPanel.png
-  skin/classic/browser/syncProgress-menuPanel@2x.png
-  skin/classic/browser/syncProgress-toolbar.png
-  skin/classic/browser/syncProgress-toolbar@2x.png
-  skin/classic/browser/syncProgress-toolbar-inverted.png
-  skin/classic/browser/syncProgress-toolbar-inverted@2x.png
   skin/classic/browser/Toolbar-background-noise.png         (Toolbar-background-noise.png)
-  skin/classic/browser/lion/toolbarbutton-dropmarker.png    (toolbarbutton-dropmarker-lion.png)
-  skin/classic/browser/toolbarbutton-dropmarker@2x.png      (toolbarbutton-dropmarker-lion@2x.png)
-  skin/classic/browser/lion/tabbrowser/alltabs-box-bkgnd-icon.png      (tabbrowser/alltabs-box-bkgnd-icon-lion.png)
-  skin/classic/browser/tabbrowser/alltabs-box-bkgnd-icon@2x.png        (tabbrowser/alltabs-box-bkgnd-icon-lion@2x.png)
-  skin/classic/browser/lion/places/toolbar.png                         (places/toolbar-lion.png)
   skin/classic/browser/yosemite/Toolbar.png                            (Toolbar-yosemite.png)
   skin/classic/browser/yosemite/Toolbar@2x.png                         (Toolbar-yosemite@2x.png)
   skin/classic/browser/yosemite/menuPanel-customize.png                (menuPanel-customize-yosemite.png)
@@ -218,9 +194,6 @@ browser.jar:
 % override chrome://browser/skin/feeds/audioFeedIcon16.png                 chrome://browser/skin/feeds/feedIcon16.png
 % override chrome://browser/skin/feeds/videoFeedIcon.png                   chrome://browser/skin/feeds/feedIcon.png
 % override chrome://browser/skin/feeds/videoFeedIcon16.png                 chrome://browser/skin/feeds/feedIcon16.png
-% override chrome://browser/skin/toolbarbutton-dropmarker.png              chrome://browser/skin/lion/toolbarbutton-dropmarker.png                 os=Darwin osversion>=10.7
-% override chrome://browser/skin/tabbrowser/alltabs-box-bkgnd-icon.png     chrome://browser/skin/lion/tabbrowser/alltabs-box-bkgnd-icon.png        os=Darwin osversion>=10.7
-% override chrome://browser/skin/places/toolbar.png                        chrome://browser/skin/lion/places/toolbar.png                           os=Darwin osversion>=10.7
 % override chrome://browser/skin/Toolbar.png                               chrome://browser/skin/yosemite/Toolbar.png                              os=Darwin osversion>=10.10
 % override chrome://browser/skin/Toolbar@2x.png                            chrome://browser/skin/yosemite/Toolbar@2x.png                           os=Darwin osversion>=10.10
 % override chrome://browser/skin/menuPanel-customize.png                   chrome://browser/skin/yosemite/menuPanel-customize.png                  os=Darwin osversion>=10.10

@@ -28,6 +28,7 @@ file_footer = """\
 #endif // mozilla_TelemetryScalarData_h
 """
 
+
 def write_scalar_info(scalar, output, name_index, expiration_index):
     """Writes a scalar entry to the output file.
 
@@ -40,16 +41,18 @@ def write_scalar_info(scalar, output, name_index, expiration_index):
     if cpp_guard:
         print("#if defined(%s)" % cpp_guard, file=output)
 
-    print("  {{ {}, {}, {}, {}, {} }},"\
+    print("  {{ {}, {}, {}, {}, {}, {} }},"
           .format(scalar.nsITelemetry_kind,
                   name_index,
                   expiration_index,
                   scalar.dataset,
+                  " | ".join(scalar.record_in_processes_enum),
                   "true" if scalar.keyed else "false"),
           file=output)
 
     if cpp_guard:
         print("#endif", file=output)
+
 
 def write_scalar_tables(scalars, output):
     """Writes the scalar and strings tables to an header file.
@@ -73,6 +76,7 @@ def write_scalar_tables(scalars, output):
     string_table.writeDefinition(output, string_table_name)
     static_assert(output, "sizeof(%s) <= UINT32_MAX" % string_table_name,
                   "index overflow")
+
 
 def main(output, *filenames):
     # Load the scalars first.

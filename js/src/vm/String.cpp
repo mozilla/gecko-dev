@@ -15,8 +15,9 @@
 #include "mozilla/Unused.h"
 
 #include "gc/Marking.h"
+#include "js/GCAPI.h"
 #include "js/UbiNode.h"
-#include "vm/SPSProfiler.h"
+#include "vm/GeckoProfiler.h"
 
 #include "jscntxtinlines.h"
 #include "jscompartmentinlines.h"
@@ -43,6 +44,17 @@ JSString::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
     if (isDependent())
         return 0;
 
+    // JSExternalString: Ask the embedding to tell us what's going on.  If it
+    // doesn't want to say, don't count, the chars could be stored anywhere.
+    if (isExternal()) {
+        if (auto* cb = runtimeFromActiveCooperatingThread()->externalStringSizeofCallback.ref()) {
+            // Our callback isn't supposed to cause GC.
+            JS::AutoSuppressGCAnalysis nogc;
+            return cb(this, mallocSizeOf);
+        }
+        return 0;
+    }
+
     MOZ_ASSERT(isFlat());
 
     // JSExtensibleString: count the full capacity, not just the used space.
@@ -52,10 +64,6 @@ JSString::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
                ? mallocSizeOf(extensible.rawLatin1Chars())
                : mallocSizeOf(extensible.rawTwoByteChars());
     }
-
-    // JSExternalString: don't count, the chars could be stored anywhere.
-    if (isExternal())
-        return 0;
 
     // JSInlineString, JSFatInlineString [JSInlineAtom, JSFatInlineAtom]: the chars are inline.
     if (isInline())
@@ -73,8 +81,12 @@ JSString::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
 JS::ubi::Node::Size
 JS::ubi::Concrete<JSString>::size(mozilla::MallocSizeOf mallocSizeOf) const
 {
-    JSString &str = get();
-    size_t size = str.isFatInline() ? sizeof(JSFatInlineString) : sizeof(JSString);
+    JSString& str = get();
+    size_t size;
+    if (str.isAtom())
+        size = str.isFatInline() ? sizeof(js::FatInlineAtom) : sizeof(js::NormalAtom);
+    else
+        size = str.isFatInline() ? sizeof(JSFatInlineString) : sizeof(JSString);
 
     // We can't use mallocSizeof on things in the nursery. At the moment,
     // strings are never in the nursery, but that may change.
@@ -252,32 +264,32 @@ AllocChars(JSString* str, size_t length, CharT** chars, size_t* capacity)
 }
 
 bool
-JSRope::copyLatin1CharsZ(ExclusiveContext* cx, ScopedJSFreePtr<Latin1Char>& out) const
+JSRope::copyLatin1CharsZ(JSContext* cx, ScopedJSFreePtr<Latin1Char>& out) const
 {
     return copyCharsInternal<Latin1Char>(cx, out, true);
 }
 
 bool
-JSRope::copyTwoByteCharsZ(ExclusiveContext* cx, ScopedJSFreePtr<char16_t>& out) const
+JSRope::copyTwoByteCharsZ(JSContext* cx, ScopedJSFreePtr<char16_t>& out) const
 {
     return copyCharsInternal<char16_t>(cx, out, true);
 }
 
 bool
-JSRope::copyLatin1Chars(ExclusiveContext* cx, ScopedJSFreePtr<Latin1Char>& out) const
+JSRope::copyLatin1Chars(JSContext* cx, ScopedJSFreePtr<Latin1Char>& out) const
 {
     return copyCharsInternal<Latin1Char>(cx, out, false);
 }
 
 bool
-JSRope::copyTwoByteChars(ExclusiveContext* cx, ScopedJSFreePtr<char16_t>& out) const
+JSRope::copyTwoByteChars(JSContext* cx, ScopedJSFreePtr<char16_t>& out) const
 {
     return copyCharsInternal<char16_t>(cx, out, false);
 }
 
 template <typename CharT>
 bool
-JSRope::copyCharsInternal(ExclusiveContext* cx, ScopedJSFreePtr<CharT>& out,
+JSRope::copyCharsInternal(JSContext* cx, ScopedJSFreePtr<CharT>& out,
                           bool nullTerminate) const
 {
     /*
@@ -376,7 +388,7 @@ CopyChars(Latin1Char* dest, const JSLinearString& str)
 
 template<JSRope::UsingBarrier b, typename CharT>
 JSFlatString*
-JSRope::flattenInternal(ExclusiveContext* maybecx)
+JSRope::flattenInternal(JSContext* maybecx)
 {
     /*
      * Consider the DAG of JSRopes rooted at this JSRope, with non-JSRopes as
@@ -558,7 +570,7 @@ JSRope::flattenInternal(ExclusiveContext* maybecx)
 
 template<JSRope::UsingBarrier b>
 JSFlatString*
-JSRope::flattenInternal(ExclusiveContext* maybecx)
+JSRope::flattenInternal(JSContext* maybecx)
 {
     if (hasTwoByteChars())
         return flattenInternal<b, char16_t>(maybecx);
@@ -566,11 +578,11 @@ JSRope::flattenInternal(ExclusiveContext* maybecx)
 }
 
 JSFlatString*
-JSRope::flatten(ExclusiveContext* maybecx)
+JSRope::flatten(JSContext* maybecx)
 {
-    mozilla::Maybe<AutoSPSEntry> sps;
-    if (maybecx && maybecx->isJSContext())
-        sps.emplace(maybecx->asJSContext()->runtime(), "JSRope::flatten");
+    mozilla::Maybe<AutoGeckoProfilerEntry> entry;
+    if (maybecx && !maybecx->helperThread())
+        entry.emplace(maybecx->runtime(), "JSRope::flatten");
 
     if (zone()->needsIncrementalBarrier())
         return flattenInternal<WithIncrementalBarrier>(maybecx);
@@ -579,7 +591,7 @@ JSRope::flatten(ExclusiveContext* maybecx)
 
 template <AllowGC allowGC>
 static JSLinearString*
-EnsureLinear(ExclusiveContext* cx, typename MaybeRooted<JSString*, allowGC>::HandleType string)
+EnsureLinear(JSContext* cx, typename MaybeRooted<JSString*, allowGC>::HandleType string)
 {
     JSLinearString* linear = string->ensureLinear(cx);
     // Don't report an exception if GC is not allowed, just return nullptr.
@@ -590,7 +602,7 @@ EnsureLinear(ExclusiveContext* cx, typename MaybeRooted<JSString*, allowGC>::Han
 
 template <AllowGC allowGC>
 JSString*
-js::ConcatStrings(ExclusiveContext* cx,
+js::ConcatStrings(JSContext* cx,
                   typename MaybeRooted<JSString*, allowGC>::HandleType left,
                   typename MaybeRooted<JSString*, allowGC>::HandleType right)
 {
@@ -617,7 +629,7 @@ js::ConcatStrings(ExclusiveContext* cx,
     bool canUseInline = isLatin1
                         ? JSInlineString::lengthFits<Latin1Char>(wholeLength)
                         : JSInlineString::lengthFits<char16_t>(wholeLength);
-    if (canUseInline && cx->isJSContext()) {
+    if (canUseInline && !cx->helperThread()) {
         Latin1Char* latin1Buf = nullptr;  // initialize to silence GCC warning
         char16_t* twoByteBuf = nullptr;  // initialize to silence GCC warning
         JSInlineString* str = isLatin1
@@ -657,14 +669,14 @@ js::ConcatStrings(ExclusiveContext* cx,
 }
 
 template JSString*
-js::ConcatStrings<CanGC>(ExclusiveContext* cx, HandleString left, HandleString right);
+js::ConcatStrings<CanGC>(JSContext* cx, HandleString left, HandleString right);
 
 template JSString*
-js::ConcatStrings<NoGC>(ExclusiveContext* cx, JSString* const& left, JSString* const& right);
+js::ConcatStrings<NoGC>(JSContext* cx, JSString* const& left, JSString* const& right);
 
 template <typename CharT>
 JSFlatString*
-JSDependentString::undependInternal(ExclusiveContext* cx)
+JSDependentString::undependInternal(JSContext* cx)
 {
     size_t n = length();
     CharT* s = cx->pod_malloc<CharT>(n + 1);
@@ -689,7 +701,7 @@ JSDependentString::undependInternal(ExclusiveContext* cx)
 }
 
 JSFlatString*
-JSDependentString::undepend(ExclusiveContext* cx)
+JSDependentString::undepend(JSContext* cx)
 {
     MOZ_ASSERT(JSString::isDependent());
     return hasLatin1Chars()
@@ -807,7 +819,7 @@ bool
 StaticStrings::init(JSContext* cx)
 {
     AutoLockForExclusiveAccess lock(cx);
-    AutoCompartment ac(cx, cx->runtime()->atomsCompartment(lock), &lock);
+    AutoAtomsCompartment ac(cx, lock);
 
     static_assert(UNIT_STATIC_LIMIT - 1 <= JSString::MAX_LATIN1_CHAR,
                   "Unit strings must fit in Latin1Char.");
@@ -819,7 +831,8 @@ StaticStrings::init(JSContext* cx)
         JSFlatString* s = NewInlineString<NoGC>(cx, Latin1Range(buffer, 1));
         if (!s)
             return false;
-        unitStaticTable[i] = s->morphAtomizedStringIntoPermanentAtom();
+        HashNumber hash = mozilla::HashString(buffer, 1);
+        unitStaticTable[i] = s->morphAtomizedStringIntoPermanentAtom(hash);
     }
 
     for (uint32_t i = 0; i < NUM_SMALL_CHARS * NUM_SMALL_CHARS; i++) {
@@ -827,7 +840,8 @@ StaticStrings::init(JSContext* cx)
         JSFlatString* s = NewInlineString<NoGC>(cx, Latin1Range(buffer, 2));
         if (!s)
             return false;
-        length2StaticTable[i] = s->morphAtomizedStringIntoPermanentAtom();
+        HashNumber hash = mozilla::HashString(buffer, 2);
+        length2StaticTable[i] = s->morphAtomizedStringIntoPermanentAtom(hash);
     }
 
     for (uint32_t i = 0; i < INT_STATIC_LIMIT; i++) {
@@ -845,7 +859,8 @@ StaticStrings::init(JSContext* cx)
             JSFlatString* s = NewInlineString<NoGC>(cx, Latin1Range(buffer, 3));
             if (!s)
                 return false;
-            intStaticTable[i] = s->morphAtomizedStringIntoPermanentAtom();
+            HashNumber hash = mozilla::HashString(buffer, 3);
+            intStaticTable[i] = s->morphAtomizedStringIntoPermanentAtom(hash);
         }
     }
 
@@ -913,6 +928,9 @@ AutoStableStringChars::init(JSContext* cx, JSString* s)
 
     MOZ_ASSERT(state_ == Uninitialized);
 
+    if (linearString->isExternal() && !linearString->ensureFlat(cx))
+        return false;
+
     // If the chars are inline then we need to copy them since they may be moved
     // by a compacting GC.
     if (baseIsInline(linearString)) {
@@ -943,6 +961,9 @@ AutoStableStringChars::initTwoByte(JSContext* cx, JSString* s)
 
     if (linearString->hasLatin1Chars())
         return copyAndInflateLatin1Chars(cx, linearString);
+
+    if (linearString->isExternal() && !linearString->ensureFlat(cx))
+        return false;
 
     // If the chars are inline then we need to copy them since they may be moved
     // by a compacting GC.
@@ -1037,6 +1058,45 @@ AutoStableStringChars::copyTwoByteChars(JSContext* cx, HandleLinearString linear
     return true;
 }
 
+JSFlatString*
+JSString::ensureFlat(JSContext* cx)
+{
+    if (isFlat())
+        return &asFlat();
+    if (isDependent())
+        return asDependent().undepend(cx);
+    if (isRope())
+        return asRope().flatten(cx);
+    return asExternal().ensureFlat(cx);
+}
+
+JSFlatString*
+JSExternalString::ensureFlat(JSContext* cx)
+{
+    MOZ_ASSERT(hasTwoByteChars());
+
+    size_t n = length();
+    char16_t* s = cx->pod_malloc<char16_t>(n + 1);
+    if (!s)
+        return nullptr;
+
+    // Copy the chars before finalizing the string.
+    {
+        AutoCheckCannotGC nogc;
+        PodCopy(s, nonInlineChars<char16_t>(nogc), n);
+        s[n] = '\0';
+    }
+
+    // Release the external chars.
+    finalize(cx->runtime()->defaultFreeOp());
+
+    // Transform the string into a non-external, flat string.
+    setNonInlineChars<char16_t>(s);
+    d.u1.flags = FLAT_BIT;
+
+    return &this->asFlat();
+}
+
 #ifdef DEBUG
 void
 JSAtom::dump(FILE* fp)
@@ -1058,8 +1118,7 @@ JSExternalString::dumpRepresentation(FILE* fp, int indent) const
     indent += 2;
 
     fprintf(fp, "%*sfinalizer: ((JSStringFinalizer*) %p)\n", indent, "", externalFinalizer());
-    fprintf(fp, "%*sbase: ", indent, "");
-    base()->dumpRepresentation(fp, indent);
+    dumpRepresentationChars(fp, indent);
 }
 #endif /* DEBUG */
 
@@ -1110,7 +1169,7 @@ CanStoreCharsAsLatin1(const Latin1Char* s, size_t length)
 
 template <AllowGC allowGC>
 static MOZ_ALWAYS_INLINE JSInlineString*
-NewInlineStringDeflated(ExclusiveContext* cx, mozilla::Range<const char16_t> chars)
+NewInlineStringDeflated(JSContext* cx, mozilla::Range<const char16_t> chars)
 {
     size_t len = chars.length();
     Latin1Char* storage;
@@ -1128,7 +1187,7 @@ NewInlineStringDeflated(ExclusiveContext* cx, mozilla::Range<const char16_t> cha
 
 template <typename CharT>
 static MOZ_ALWAYS_INLINE JSFlatString*
-TryEmptyOrStaticString(ExclusiveContext* cx, const CharT* chars, size_t n)
+TryEmptyOrStaticString(JSContext* cx, const CharT* chars, size_t n)
 {
     // Measurements on popular websites indicate empty strings are pretty common
     // and most strings with length 1 or 2 are in the StaticStrings table. For
@@ -1146,7 +1205,7 @@ TryEmptyOrStaticString(ExclusiveContext* cx, const CharT* chars, size_t n)
 
 template <AllowGC allowGC>
 static JSFlatString*
-NewStringDeflated(ExclusiveContext* cx, const char16_t* s, size_t n)
+NewStringDeflated(JSContext* cx, const char16_t* s, size_t n)
 {
     if (JSFlatString* str = TryEmptyOrStaticString(cx, s, n))
         return str;
@@ -1174,14 +1233,14 @@ NewStringDeflated(ExclusiveContext* cx, const char16_t* s, size_t n)
 
 template <AllowGC allowGC>
 static JSFlatString*
-NewStringDeflated(ExclusiveContext* cx, const Latin1Char* s, size_t n)
+NewStringDeflated(JSContext* cx, const Latin1Char* s, size_t n)
 {
     MOZ_CRASH("Shouldn't be called for Latin1 chars");
 }
 
 template <AllowGC allowGC, typename CharT>
 JSFlatString*
-js::NewStringDontDeflate(ExclusiveContext* cx, CharT* chars, size_t length)
+js::NewStringDontDeflate(JSContext* cx, CharT* chars, size_t length)
 {
     if (JSFlatString* str = TryEmptyOrStaticString(cx, chars, length)) {
         // Free |chars| because we're taking possession of it, but it's no
@@ -1204,20 +1263,20 @@ js::NewStringDontDeflate(ExclusiveContext* cx, CharT* chars, size_t length)
 }
 
 template JSFlatString*
-js::NewStringDontDeflate<CanGC>(ExclusiveContext* cx, char16_t* chars, size_t length);
+js::NewStringDontDeflate<CanGC>(JSContext* cx, char16_t* chars, size_t length);
 
 template JSFlatString*
-js::NewStringDontDeflate<NoGC>(ExclusiveContext* cx, char16_t* chars, size_t length);
+js::NewStringDontDeflate<NoGC>(JSContext* cx, char16_t* chars, size_t length);
 
 template JSFlatString*
-js::NewStringDontDeflate<CanGC>(ExclusiveContext* cx, Latin1Char* chars, size_t length);
+js::NewStringDontDeflate<CanGC>(JSContext* cx, Latin1Char* chars, size_t length);
 
 template JSFlatString*
-js::NewStringDontDeflate<NoGC>(ExclusiveContext* cx, Latin1Char* chars, size_t length);
+js::NewStringDontDeflate<NoGC>(JSContext* cx, Latin1Char* chars, size_t length);
 
 template <AllowGC allowGC, typename CharT>
 JSFlatString*
-js::NewString(ExclusiveContext* cx, CharT* chars, size_t length)
+js::NewString(JSContext* cx, CharT* chars, size_t length)
 {
     if (IsSame<CharT, char16_t>::value && CanStoreCharsAsLatin1(chars, length)) {
         JSFlatString* s = NewStringDeflated<allowGC>(cx, chars, length);
@@ -1233,22 +1292,22 @@ js::NewString(ExclusiveContext* cx, CharT* chars, size_t length)
 }
 
 template JSFlatString*
-js::NewString<CanGC>(ExclusiveContext* cx, char16_t* chars, size_t length);
+js::NewString<CanGC>(JSContext* cx, char16_t* chars, size_t length);
 
 template JSFlatString*
-js::NewString<NoGC>(ExclusiveContext* cx, char16_t* chars, size_t length);
+js::NewString<NoGC>(JSContext* cx, char16_t* chars, size_t length);
 
 template JSFlatString*
-js::NewString<CanGC>(ExclusiveContext* cx, Latin1Char* chars, size_t length);
+js::NewString<CanGC>(JSContext* cx, Latin1Char* chars, size_t length);
 
 template JSFlatString*
-js::NewString<NoGC>(ExclusiveContext* cx, Latin1Char* chars, size_t length);
+js::NewString<NoGC>(JSContext* cx, Latin1Char* chars, size_t length);
 
 namespace js {
 
 template <AllowGC allowGC, typename CharT>
 JSFlatString*
-NewStringCopyNDontDeflate(ExclusiveContext* cx, const CharT* s, size_t n)
+NewStringCopyNDontDeflate(JSContext* cx, const CharT* s, size_t n)
 {
     if (JSFlatString* str = TryEmptyOrStaticString(cx, s, n))
         return str;
@@ -1275,19 +1334,19 @@ NewStringCopyNDontDeflate(ExclusiveContext* cx, const CharT* s, size_t n)
 }
 
 template JSFlatString*
-NewStringCopyNDontDeflate<CanGC>(ExclusiveContext* cx, const char16_t* s, size_t n);
+NewStringCopyNDontDeflate<CanGC>(JSContext* cx, const char16_t* s, size_t n);
 
 template JSFlatString*
-NewStringCopyNDontDeflate<NoGC>(ExclusiveContext* cx, const char16_t* s, size_t n);
+NewStringCopyNDontDeflate<NoGC>(JSContext* cx, const char16_t* s, size_t n);
 
 template JSFlatString*
-NewStringCopyNDontDeflate<CanGC>(ExclusiveContext* cx, const Latin1Char* s, size_t n);
+NewStringCopyNDontDeflate<CanGC>(JSContext* cx, const Latin1Char* s, size_t n);
 
 template JSFlatString*
-NewStringCopyNDontDeflate<NoGC>(ExclusiveContext* cx, const Latin1Char* s, size_t n);
+NewStringCopyNDontDeflate<NoGC>(JSContext* cx, const Latin1Char* s, size_t n);
 
 JSFlatString*
-NewLatin1StringZ(ExclusiveContext* cx, UniqueChars chars)
+NewLatin1StringZ(JSContext* cx, UniqueChars chars)
 {
     JSFlatString* str = NewString<CanGC>(cx, (Latin1Char*)chars.get(), strlen(chars.get()));
     if (!str)
@@ -1299,7 +1358,7 @@ NewLatin1StringZ(ExclusiveContext* cx, UniqueChars chars)
 
 template <AllowGC allowGC, typename CharT>
 JSFlatString*
-NewStringCopyN(ExclusiveContext* cx, const CharT* s, size_t n)
+NewStringCopyN(JSContext* cx, const CharT* s, size_t n)
 {
     if (IsSame<CharT, char16_t>::value && CanStoreCharsAsLatin1(s, n))
         return NewStringDeflated<allowGC>(cx, s, n);
@@ -1308,17 +1367,16 @@ NewStringCopyN(ExclusiveContext* cx, const CharT* s, size_t n)
 }
 
 template JSFlatString*
-NewStringCopyN<CanGC>(ExclusiveContext* cx, const char16_t* s, size_t n);
+NewStringCopyN<CanGC>(JSContext* cx, const char16_t* s, size_t n);
 
 template JSFlatString*
-NewStringCopyN<NoGC>(ExclusiveContext* cx, const char16_t* s, size_t n);
+NewStringCopyN<NoGC>(JSContext* cx, const char16_t* s, size_t n);
 
 template JSFlatString*
-NewStringCopyN<CanGC>(ExclusiveContext* cx, const Latin1Char* s, size_t n);
+NewStringCopyN<CanGC>(JSContext* cx, const Latin1Char* s, size_t n);
 
 template JSFlatString*
-NewStringCopyN<NoGC>(ExclusiveContext* cx, const Latin1Char* s, size_t n);
-
+NewStringCopyN<NoGC>(JSContext* cx, const Latin1Char* s, size_t n);
 
 template <js::AllowGC allowGC>
 JSFlatString*
@@ -1387,3 +1445,174 @@ JSFlatString::dumpRepresentation(FILE* fp, int indent) const
     dumpRepresentationChars(fp, indent);
 }
 #endif
+
+static void
+FinalizeRepresentativeExternalString(Zone* zone, const JSStringFinalizer* fin, char16_t* chars);
+
+static const JSStringFinalizer RepresentativeExternalStringFinalizer =
+    { FinalizeRepresentativeExternalString };
+
+static void
+FinalizeRepresentativeExternalString(Zone* zone, const JSStringFinalizer* fin, char16_t* chars)
+{
+    // Constant chars, nothing to free.
+    MOZ_ASSERT(fin == &RepresentativeExternalStringFinalizer);
+}
+
+template <typename CheckString, typename CharT>
+static bool
+FillWithRepresentatives(JSContext* cx, HandleArrayObject array, uint32_t* index,
+                        const CharT* chars, size_t len,
+                        size_t fatInlineMaxLength,
+                        const CheckString& check)
+{
+    auto AppendString =
+        [&check](JSContext* cx, HandleArrayObject array, uint32_t* index, HandleString s)
+    {
+        MOZ_ASSERT(check(s));
+        RootedValue val(cx, StringValue(s));
+        return JS_DefineElement(cx, array, (*index)++, val, 0);
+    };
+
+    MOZ_ASSERT(len > fatInlineMaxLength);
+
+    // Normal atom.
+    RootedString atom1(cx, AtomizeChars(cx, chars, len));
+    if (!atom1 || !AppendString(cx, array, index, atom1))
+        return false;
+    MOZ_ASSERT(atom1->isAtom());
+
+    // Inline atom.
+    RootedString atom2(cx, AtomizeChars(cx, chars, 2));
+    if (!atom2 || !AppendString(cx, array, index, atom2))
+        return false;
+    MOZ_ASSERT(atom2->isAtom());
+    MOZ_ASSERT(atom2->isInline());
+
+    // Fat inline atom.
+    RootedString atom3(cx, AtomizeChars(cx, chars, fatInlineMaxLength));
+    if (!atom3 || !AppendString(cx, array, index, atom3))
+        return false;
+    MOZ_ASSERT(atom3->isAtom());
+    MOZ_ASSERT(atom3->isFatInline());
+
+    // Normal flat string.
+    RootedString flat1(cx, NewStringCopyN<CanGC>(cx, chars, len));
+    if (!flat1 || !AppendString(cx, array, index, flat1))
+        return false;
+    MOZ_ASSERT(flat1->isFlat());
+
+    // Inline string.
+    RootedString flat2(cx, NewStringCopyN<CanGC>(cx, chars, 3));
+    if (!flat2 || !AppendString(cx, array, index, flat2))
+        return false;
+    MOZ_ASSERT(flat2->isFlat());
+    MOZ_ASSERT(flat2->isInline());
+
+    // Fat inline string.
+    RootedString flat3(cx, NewStringCopyN<CanGC>(cx, chars, fatInlineMaxLength));
+    if (!flat3 || !AppendString(cx, array, index, flat3))
+        return false;
+    MOZ_ASSERT(flat3->isFlat());
+    MOZ_ASSERT(flat3->isFatInline());
+
+    // Rope.
+    RootedString rope(cx, ConcatStrings<CanGC>(cx, atom1, atom3));
+    if (!rope || !AppendString(cx, array, index, rope))
+        return false;
+    MOZ_ASSERT(rope->isRope());
+
+    // Dependent.
+    RootedString dep(cx, NewDependentString(cx, atom1, 0, len - 2));
+    if (!dep || !AppendString(cx, array, index, dep))
+        return false;
+    MOZ_ASSERT(dep->isDependent());
+
+    // Undepended.
+    RootedString undep(cx, NewDependentString(cx, atom1, 0, len - 3));
+    if (!undep || !undep->ensureFlat(cx) || !AppendString(cx, array, index, undep))
+        return false;
+    MOZ_ASSERT(undep->isUndepended());
+
+    // Extensible.
+    RootedString temp1(cx, NewStringCopyN<CanGC>(cx, chars, len));
+    if (!temp1)
+        return false;
+    RootedString extensible(cx, ConcatStrings<CanGC>(cx, temp1, atom3));
+    if (!extensible || !extensible->ensureLinear(cx))
+        return false;
+    if (!AppendString(cx, array, index, extensible))
+        return false;
+    MOZ_ASSERT(extensible->isExtensible());
+
+    // External. Note that we currently only support TwoByte external strings.
+    RootedString external1(cx), external2(cx);
+    if (IsSame<CharT, char16_t>::value) {
+        external1 = JS_NewExternalString(cx, (const char16_t*)chars, len,
+                                         &RepresentativeExternalStringFinalizer);
+        if (!external1 || !AppendString(cx, array, index, external1))
+            return false;
+        MOZ_ASSERT(external1->isExternal());
+
+        external2 = JS_NewExternalString(cx, (const char16_t*)chars, 2,
+                                         &RepresentativeExternalStringFinalizer);
+        if (!external2 || !AppendString(cx, array, index, external2))
+            return false;
+        MOZ_ASSERT(external2->isExternal());
+    }
+
+    // Assert the strings still have the types we expect after creating the
+    // other strings.
+
+    MOZ_ASSERT(atom1->isAtom());
+    MOZ_ASSERT(atom2->isAtom());
+    MOZ_ASSERT(atom3->isAtom());
+    MOZ_ASSERT(atom2->isInline());
+    MOZ_ASSERT(atom3->isFatInline());
+
+    MOZ_ASSERT(flat1->isFlat());
+    MOZ_ASSERT(flat2->isFlat());
+    MOZ_ASSERT(flat3->isFlat());
+    MOZ_ASSERT(flat2->isInline());
+    MOZ_ASSERT(flat3->isFatInline());
+
+    MOZ_ASSERT(rope->isRope());
+    MOZ_ASSERT(dep->isDependent());
+    MOZ_ASSERT(undep->isUndepended());
+    MOZ_ASSERT(extensible->isExtensible());
+    MOZ_ASSERT_IF(external1, external1->isExternal());
+    MOZ_ASSERT_IF(external2, external2->isExternal());
+    return true;
+}
+
+/* static */ bool
+JSString::fillWithRepresentatives(JSContext* cx, HandleArrayObject array)
+{
+    uint32_t index = 0;
+
+    auto CheckTwoByte = [](JSString* str) { return str->hasTwoByteChars(); };
+    auto CheckLatin1 = [](JSString* str) { return str->hasLatin1Chars(); };
+
+    // Append TwoByte strings.
+    static const char16_t twoByteChars[] = u"\u1234abc\0def\u5678ghijklmasdfa\0xyz0123456789";
+    if (!FillWithRepresentatives(cx, array, &index,
+                                 twoByteChars, mozilla::ArrayLength(twoByteChars) - 1,
+                                 JSFatInlineString::MAX_LENGTH_TWO_BYTE,
+                                 CheckTwoByte))
+    {
+        return false;
+    }
+
+    // Append Latin1 strings.
+    static const Latin1Char latin1Chars[] = "abc\0defghijklmasdfa\0xyz0123456789";
+    if (!FillWithRepresentatives(cx, array, &index,
+                                 latin1Chars, mozilla::ArrayLength(latin1Chars) - 1,
+                                 JSFatInlineString::MAX_LENGTH_LATIN1,
+                                 CheckLatin1))
+    {
+        return false;
+    }
+
+    MOZ_ASSERT(index == 22);
+    return true;
+}

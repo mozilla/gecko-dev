@@ -20,7 +20,7 @@
 #include <set>
 #include <algorithm>
 #include "resource.h"
-#include "client/windows/sender/crash_report_sender.h"
+#include "windows/sender/crash_report_sender.h"
 #include "common/windows/string_utils-inl.h"
 
 #define CRASH_REPORTER_VALUE L"Enabled"
@@ -1463,16 +1463,21 @@ bool UIDeleteFile(const string& oldfile)
   return DeleteFile(UTF8ToWide(oldfile).c_str()) == TRUE;
 }
 
-ifstream* UIOpenRead(const string& filename)
+ifstream* UIOpenRead(const string& filename, bool binary)
 {
   // adapted from breakpad's src/common/windows/http_upload.cc
+  std::ios_base::openmode mode = ios::in;
+
+  if (binary) {
+    mode = mode | ios::binary;
+  }
 
 #if defined(_MSC_VER)
   ifstream* file = new ifstream();
-  file->open(UTF8ToWide(filename).c_str(), ios::in);
+  file->open(UTF8ToWide(filename).c_str(), mode);
 #else   // GCC
   ifstream* file = new ifstream(WideToMBCP(UTF8ToWide(filename), CP_ACP).c_str(),
-                                ios::in);
+                                mode);
 #endif  // _MSC_VER
 
   return file;
@@ -1545,24 +1550,81 @@ void UIPruneSavedDumps(const std::string& directory)
   }
 }
 
-void UIRunMinidumpAnalyzer(const string& exename, const string& filename)
+bool UIRunProgram(const string& exename, const string& arg,
+                  const string& data, bool wait)
 {
-  wstring cmdLine;
+  bool usePipes = !data.empty();
+  HANDLE childStdinPipeRead = nullptr;
+  HANDLE childStdinPipeWrite = nullptr;
 
-  cmdLine += L"\"" + UTF8ToWide(exename) + L"\" ";
-  cmdLine += L"\"" + UTF8ToWide(filename) + L"\" ";
+  if (usePipes) {
+    // Set up the pipes
+    SECURITY_ATTRIBUTES sa = {};
+    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sa.lpSecurityDescriptor = nullptr;
+    sa.bInheritHandle = true;
+
+    // Create a pipe for the child process's stdin and ensure its writable end is
+    // not inherited by the child process.
+    if (!CreatePipe(&childStdinPipeRead, &childStdinPipeWrite, &sa, 0)) {
+      return false;
+    }
+
+    if (!SetHandleInformation(childStdinPipeWrite, HANDLE_FLAG_INHERIT, 0)) {
+      return false;
+    }
+  }
+
+  wstring cmdLine = L"\"" + UTF8ToWide(exename) + L"\" " +
+                    L"\"" + UTF8ToWide(arg) + L"\" ";
 
   STARTUPINFO si = {};
+  si.cb = sizeof(si);
+
+  if (usePipes) {
+    si.dwFlags |= STARTF_USESTDHANDLES;
+    si.hStdInput = childStdinPipeRead;
+    si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+  }
+
   PROCESS_INFORMATION pi = {};
 
-  si.cb = sizeof(si);
-  si.dwFlags = STARTF_USESHOWWINDOW;
-  si.wShowWindow = SW_SHOWNORMAL;
-
-  if (CreateProcess(nullptr, (LPWSTR)cmdLine.c_str(), nullptr, nullptr, FALSE,
-                    0, nullptr, nullptr, &si, &pi)) {
-    WaitForSingleObject(pi.hProcess, INFINITE);
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
+  if (!CreateProcess(/* lpApplicationName */ nullptr,
+                     (LPWSTR)cmdLine.c_str(),
+                     /* lpProcessAttributes */ nullptr,
+                     /* lpThreadAttributes */ nullptr,
+                     usePipes,
+                     NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW,
+                     /* lpEnvironment */ nullptr,
+                     /* lpCurrentDirectory */ nullptr,
+                     &si, &pi)) {
+    return false;
   }
+
+  if (usePipes) {
+    size_t offset = 0;
+    size_t size = data.size();
+    while (size > 0) {
+      DWORD written = 0;
+      bool success = WriteFile(childStdinPipeWrite, data.data() + offset, size,
+                               &written, nullptr);
+      if (!success) {
+        break;
+      } else {
+        size -= written;
+        offset += written;
+      }
+    }
+
+    CloseHandle(childStdinPipeWrite);
+  }
+
+  if (wait) {
+    WaitForSingleObject(pi.hProcess, INFINITE);
+  }
+
+  CloseHandle(pi.hProcess);
+  CloseHandle(pi.hThread);
+  return true;
 }

@@ -46,7 +46,7 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 # (7) Execute "local" rules. (OPTIONAL).                              #
 #######################################################################
 
-nss_build_all: build_nspr all
+nss_build_all: build_nspr all latest
 
 nss_clean_all: clobber_nspr clobber
 
@@ -95,15 +95,6 @@ endif
 NSPR_CONFIGURE_ENV := $(filter-out -arch x86_64,$(NSPR_CONFIGURE_ENV))
 NSPR_CONFIGURE_ENV := $(filter-out -arch i386,$(NSPR_CONFIGURE_ENV))
 NSPR_CONFIGURE_ENV := $(filter-out -arch ppc,$(NSPR_CONFIGURE_ENV))
-
-ifdef SANITIZER_CFLAGS
-ifdef BUILD_OPT
-NSPR_CONFIGURE_OPTS += --enable-debug-symbols
-endif
-NSPR_CONFIGURE_ENV += CFLAGS='$(SANITIZER_CFLAGS)' \
-                      CXXFLAGS='$(SANITIZER_CFLAGS)' \
-                      LDFLAGS='$(SANITIZER_LDFLAGS)'
-endif
 
 #
 # Some pwd commands on Windows (for example, the pwd
@@ -162,4 +153,7 @@ nss_RelEng_bld: import all
 
 package:
 	$(MAKE) -C pkg publish
+
+latest:
+	echo $(OBJDIR_NAME) > $(CORE_DEPTH)/../dist/latest
 

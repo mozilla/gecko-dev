@@ -9,7 +9,6 @@ include protocol PBlob;
 include protocol PColorPicker;
 include protocol PContent;
 include protocol PContentBridge;
-include protocol PDatePicker;
 include protocol PDocAccessible;
 include protocol PDocumentRenderer;
 include protocol PFilePicker;
@@ -76,6 +75,7 @@ using nsSizeMode from "nsIWidgetListener.h";
 using mozilla::widget::CandidateWindowPosition from "ipc/nsGUIEventIPC.h";
 using class mozilla::NativeEventData from "ipc/nsGUIEventIPC.h";
 using mozilla::FontRange from "ipc/nsGUIEventIPC.h";
+using mozilla::a11y::IAccessibleHolder from "mozilla/a11y/IPCTypes.h";
 
 namespace mozilla {
 namespace dom {
@@ -116,7 +116,6 @@ nested(upto inside_cpow) sync protocol PBrowser
     manager PContent or PContentBridge;
 
     manages PColorPicker;
-    manages PDatePicker;
     manages PDocAccessible;
     manages PDocumentRenderer;
     manages PFilePicker;
@@ -140,10 +139,11 @@ parent:
      * aParentDoc is the accessible document it was created in if any, and
      * aParentAcc is the id of the accessible in that document the new document
      * is a child of. aMsaaID is the MSAA id for this content process, and
-     * is only valid on Windows. Set to 0 on other platforms.
+     * is only valid on Windows. Set to 0 on other platforms. aDocCOMProxy
+     * is also Windows-specific and should be set to 0 on other platforms.
      */
     async PDocAccessible(nullable PDocAccessible aParentDoc, uint64_t aParentAcc,
-                         uint32_t aMsaaID);
+                         uint32_t aMsaaID, IAccessibleHolder aDocCOMProxy);
 
     /*
      * Creates a new remoted nsIWidget connection for windowed plugins
@@ -441,12 +441,6 @@ parent:
      */
     async PColorPicker(nsString title, nsString initialColor);
 
-    /**
-     * Create an asynchronous date picker on the parent side,
-     * but don't open it yet.
-     */
-    async PDatePicker(nsString title, nsString initialDate);
-
     async PFilePicker(nsString aTitle, int16_t aMode);
 
     /**
@@ -508,8 +502,6 @@ parent:
     async __delete__();
 
     async ReplyKeyEvent(WidgetKeyboardEvent event);
-
-    async DispatchAfterKeyboardEvent(WidgetKeyboardEvent event);
 
     sync RequestNativeKeyBindings(WidgetKeyboardEvent event)
         returns (MaybeNativeKeyBinding bindings);
@@ -601,12 +593,14 @@ parent:
     sync EnsureLayersConnected();
 
     /**
-     * Notify parent that one or more entries have been added / removed from
-     * the child session history.
+     * Notify the parent that the session history state has been updated.
      *
-     * @param aCount the updated number of entries in child session history
+     * @param aCount
+     *        The updated number of entries in child session history
+     * @param aLocalIndex
+     *        The local session history index which is loaded.
      */
-    async NotifySessionHistoryChange(uint32_t aCount);
+    async SHistoryUpdate(uint32_t aCount, uint32_t aLocalIndex, bool aTruncate);
 
     /**
      * When the session history is across multiple root docshells, this function
@@ -629,11 +623,12 @@ child:
      */
     async Show(ScreenIntSize size,
                ShowInfo info,
-               TextureFactoryIdentifier textureFactoryIdentifier,
-               uint64_t layersId,
-               nullable PRenderFrame renderFrame,
                bool parentIsActive,
                nsSizeMode sizeMode);
+
+    async InitRendering(TextureFactoryIdentifier textureFactoryIdentifier,
+                        uint64_t layersId,
+                        nullable PRenderFrame renderFrame);
 
     async LoadURL(nsCString uri, ShowInfo info);
 
@@ -643,15 +638,6 @@ child:
                            LayoutDeviceIntPoint chromeDisp) compressall;
 
     async SizeModeChanged(nsSizeMode sizeMode);
-
-    /**
-     * Sending an activate message moves focus to the child.
-     */
-    async Activate();
-
-    async Deactivate();
-
-    async ParentActivated(bool aActivated);
 
     async SetKeyboardIndicators(UIStateChangeType showAccelerators,
                                 UIStateChangeType showFocusRings);
@@ -882,7 +868,7 @@ child:
      * @param aOffset           The number of entries in the grouped session
      *                          history before this session history object.
      */
-    async NotifyAttachGroupedSessionHistory(uint32_t aOffset);
+    async NotifyAttachGroupedSHistory(uint32_t aOffset);
 
     /**
      * Notify that the session history associated to this PBrowser has become
@@ -892,20 +878,20 @@ child:
      *                           session history.
      * @param aTargetLocalIndex  The target local index to navigate to.
      */
-    async NotifyPartialSessionHistoryActive(uint32_t aGlobalLength,
-                                            uint32_t aTargetLocalIndex);
+    async NotifyPartialSHistoryActive(uint32_t aGlobalLength,
+                                      uint32_t aTargetLocalIndex);
 
     /**
      * Notify that the session history asssociates to this PBrowser has become
      * an inactive history in the grouped session history.
      */
-    async NotifyPartialSessionHistoryDeactive();
+    async NotifyPartialSHistoryDeactive();
 
     /**
-     * Tell the child that it is a fresh process created for a Large-Allocation
-     * load.
+     * Tell the TabChild that it should expect a Large-Allocation load to occur.
+     * Loads which occur until this flag is cleared will not leave the process.
      */
-    async SetFreshProcess();
+    async AwaitLargeAlloc();
 
 /*
  * FIXME: write protocol!

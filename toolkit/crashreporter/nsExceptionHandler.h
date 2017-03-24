@@ -6,6 +6,8 @@
 #ifndef nsExceptionHandler_h__
 #define nsExceptionHandler_h__
 
+#include "mozilla/Assertions.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include "nsError.h"
@@ -73,9 +75,6 @@ nsresult AnnotateCrashReport(const nsACString& key, const nsACString& data);
 nsresult RemoveCrashReportAnnotation(const nsACString& key);
 nsresult AppendAppNotesToCrashReport(const nsACString& data);
 
-// NOTE: If you change this definition, also change the definition in Assertions.h
-// as it is intended to be defining this same function.
-void AnnotateMozCrashReason(const char* aReason);
 void AnnotateOOMAllocationSize(size_t size);
 void AnnotateTexturesSize(size_t size);
 void AnnotatePendingIPC(size_t aNumOfPendingIPC,
@@ -104,6 +103,7 @@ bool GetExtraFileForID(const nsAString& id, nsIFile** extraFile);
 bool GetExtraFileForMinidump(nsIFile* minidump, nsIFile** extraFile);
 bool AppendExtraData(const nsAString& id, const AnnotationTable& data);
 bool AppendExtraData(nsIFile* extraFile, const AnnotationTable& data);
+void RunMinidumpAnalyzer(const nsAString& id);
 
 /*
  * Renames the stand alone dump file aDumpFile to:
@@ -264,6 +264,10 @@ bool SetRemoteExceptionHandler();
 bool UnsetRemoteExceptionHandler();
 
 #if defined(MOZ_WIDGET_ANDROID)
+// Android creates child process as services so we must explicitly set
+// the handle for the pipe since it can't get remapped to a default value.
+void SetNotificationPipeForChild(int childCrashFd);
+
 // Android builds use a custom library loader, so /proc/<pid>/maps
 // will just show anonymous mappings for all the non-system
 // shared libraries. This API is to work around that by providing

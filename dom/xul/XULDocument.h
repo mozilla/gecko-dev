@@ -153,7 +153,6 @@ public:
     using nsDocument::SetTitle;
     using nsDocument::GetLastStyleSheetSet;
     using nsDocument::MozSetImageElement;
-    using nsDocument::GetMozFullScreenElement;
     using nsIDocument::GetLocation;
 
     // nsDocument interface overrides
@@ -180,7 +179,7 @@ public:
     NS_IMETHOD OnScriptCompileComplete(JSScript* aScript, nsresult aStatus) override;
 
     static bool
-    MatchAttribute(nsIContent* aContent,
+    MatchAttribute(Element* aContent,
                    int32_t aNameSpaceID,
                    nsIAtom* aAttrName,
                    void* aData);

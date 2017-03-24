@@ -15,6 +15,7 @@
 #include "SerializedLoadContext.h"
 #include "nsIContentPolicy.h"
 #include "mozilla/ipc/BackgroundUtils.h"
+#include "mozilla/dom/ContentParent.h"
 
 using namespace mozilla::ipc;
 
@@ -55,7 +56,7 @@ NS_IMPL_ISUPPORTS(WyciwygChannelParent,
 // WyciwygChannelParent::PWyciwygChannelParent
 //-----------------------------------------------------------------------------
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelParent::RecvInit(const URIParams&          aURI,
                                const ipc::PrincipalInfo& aRequestingPrincipalInfo,
                                const ipc::PrincipalInfo& aTriggeringPrincipalInfo,
@@ -67,31 +68,44 @@ WyciwygChannelParent::RecvInit(const URIParams&          aURI,
 
   nsCOMPtr<nsIURI> uri = DeserializeURI(aURI);
   if (!uri)
-    return false;
+    return IPC_FAIL_NO_REASON(this);
 
   LOG(("WyciwygChannelParent RecvInit [this=%p uri=%s]\n",
        this, uri->GetSpecOrDefault().get()));
 
   nsCOMPtr<nsIIOService> ios(do_GetIOService(&rv));
-  if (NS_FAILED(rv))
-    return SendCancelEarly(rv);
+  if (NS_FAILED(rv)) {
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
+  }
 
   nsCOMPtr<nsIPrincipal> requestingPrincipal =
     mozilla::ipc::PrincipalInfoToPrincipal(aRequestingPrincipalInfo, &rv);
   if (NS_FAILED(rv)) {
-    return SendCancelEarly(rv);
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   nsCOMPtr<nsIPrincipal> triggeringPrincipal =
     mozilla::ipc::PrincipalInfoToPrincipal(aTriggeringPrincipalInfo, &rv);
   if (NS_FAILED(rv)) {
-    return SendCancelEarly(rv);
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   nsCOMPtr<nsIPrincipal> principalToInherit =
     mozilla::ipc::PrincipalInfoToPrincipal(aPrincipalToInheritInfo, &rv);
   if (NS_FAILED(rv)) {
-    return SendCancelEarly(rv);
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   nsCOMPtr<nsIChannel> chan;
@@ -106,33 +120,46 @@ WyciwygChannelParent::RecvInit(const URIParams&          aURI,
                                            nsIRequest::LOAD_NORMAL,
                                            ios);
 
-  if (NS_FAILED(rv))
-    return SendCancelEarly(rv);
+  if (NS_FAILED(rv)) {
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
+  }
 
   nsCOMPtr<nsILoadInfo> loadInfo = chan->GetLoadInfo();
-  rv = loadInfo->SetPrincipalToInherit(principalToInherit);
+  if (loadInfo) {
+    rv = loadInfo->SetPrincipalToInherit(principalToInherit);
+  }
   if (NS_FAILED(rv)) {
-    return SendCancelEarly(rv);
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   mChannel = do_QueryInterface(chan, &rv);
-  if (NS_FAILED(rv))
-    return SendCancelEarly(rv);
+  if (NS_FAILED(rv)) {
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
+  }
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelParent::RecvAppData(const IPC::SerializedLoadContext& loadContext,
                                   const PBrowserOrId &parent)
 {
   LOG(("WyciwygChannelParent RecvAppData [this=%p]\n", this));
 
   if (!SetupAppData(loadContext, parent))
-    return false;
+    return IPC_FAIL_NO_REASON(this);
 
   mChannel->SetNotificationCallbacks(this);
-  return true;
+  return IPC_OK();
 }
 
 bool
@@ -163,7 +190,7 @@ WyciwygChannelParent::SetupAppData(const IPC::SerializedLoadContext& loadContext
   return true;
 }
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelParent::RecvAsyncOpen(const URIParams& aOriginal,
                                     const uint32_t& aLoadFlags,
                                     const IPC::SerializedLoadContext& loadContext,
@@ -171,30 +198,42 @@ WyciwygChannelParent::RecvAsyncOpen(const URIParams& aOriginal,
 {
   nsCOMPtr<nsIURI> original = DeserializeURI(aOriginal);
   if (!original)
-    return false;
+    return IPC_FAIL_NO_REASON(this);
 
   LOG(("WyciwygChannelParent RecvAsyncOpen [this=%p]\n", this));
 
   if (!mChannel)
-    return true;
+    return IPC_OK();
 
   nsresult rv;
 
   rv = mChannel->SetOriginalURI(original);
-  if (NS_FAILED(rv))
-    return SendCancelEarly(rv);
+  if (NS_FAILED(rv)) {
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
+  }
 
   rv = mChannel->SetLoadFlags(aLoadFlags);
-  if (NS_FAILED(rv))
-    return SendCancelEarly(rv);
+  if (NS_FAILED(rv)) {
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
+  }
 
   if (!mReceivedAppData && !SetupAppData(loadContext, aParent)) {
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
 
   rv = mChannel->SetNotificationCallbacks(this);
-  if (NS_FAILED(rv))
-    return SendCancelEarly(rv);
+  if (NS_FAILED(rv)) {
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
+  }
 
   nsCOMPtr<nsILoadInfo> loadInfo = mChannel->GetLoadInfo();
   if (loadInfo && loadInfo->GetEnforceSecurity()) {
@@ -204,47 +243,51 @@ WyciwygChannelParent::RecvAsyncOpen(const URIParams& aOriginal,
     rv = mChannel->AsyncOpen(this, nullptr);
   }
 
-  if (NS_FAILED(rv))
-    return SendCancelEarly(rv);
+  if (NS_FAILED(rv)) {
+    if (!SendCancelEarly(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
+  }
 
-  return true;
+  return IPC_OK();
 }
 
-bool
-WyciwygChannelParent::RecvWriteToCacheEntry(const nsString& data)
+mozilla::ipc::IPCResult
+WyciwygChannelParent::RecvWriteToCacheEntry(const nsDependentSubstring& data)
 {
   if (!mReceivedAppData) {
     printf_stderr("WyciwygChannelParent::RecvWriteToCacheEntry: FATAL ERROR: didn't receive app data\n");
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
 
   if (mChannel)
     mChannel->WriteToCacheEntry(data);
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelParent::RecvCloseCacheEntry(const nsresult& reason)
 {
   if (mChannel) {
     mChannel->CloseCacheEntry(reason);
   }
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelParent::RecvSetCharsetAndSource(const int32_t& aCharsetSource,
                                               const nsCString& aCharset)
 {
   if (mChannel)
     mChannel->SetCharsetAndSource(aCharsetSource, aCharset);
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelParent::RecvSetSecurityInfo(const nsCString& aSecurityInfo)
 {
   if (mChannel) {
@@ -253,15 +296,15 @@ WyciwygChannelParent::RecvSetSecurityInfo(const nsCString& aSecurityInfo)
     mChannel->SetSecurityInfo(securityInfo);
   }
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelParent::RecvCancel(const nsresult& aStatusCode)
 {
   if (mChannel)
     mChannel->Cancel(aStatusCode);
-  return true;
+  return IPC_OK();
 }
 
 //-----------------------------------------------------------------------------
@@ -277,6 +320,12 @@ WyciwygChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext
 
   nsCOMPtr<nsIWyciwygChannel> chan = do_QueryInterface(aRequest, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  // Send down any permissions which are relevant to this URL if we are
+  // performing a document load.
+  PContentParent* pcp = Manager()->Manager();
+  rv = static_cast<ContentParent*>(pcp)->TransmitPermissionsFor(chan);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   nsresult status;
   chan->GetStatus(&status);
@@ -314,8 +363,8 @@ WyciwygChannelParent::OnStopRequest(nsIRequest *aRequest,
                                     nsISupports *aContext,
                                     nsresult aStatusCode)
 {
-  LOG(("WyciwygChannelParent::OnStopRequest: [this=%p status=%ul]\n",
-       this, aStatusCode));
+  LOG(("WyciwygChannelParent::OnStopRequest: [this=%p status=%" PRIu32 "]\n",
+       this, static_cast<uint32_t>(aStatusCode)));
 
   if (mIPCClosed || !SendOnStopRequest(aStatusCode)) {
     return NS_ERROR_UNEXPECTED;

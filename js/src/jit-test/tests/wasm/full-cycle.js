@@ -1,6 +1,3 @@
-// |jit-test| test-also-wasm-baseline
-load(libdir + "wasm.js");
-
 wasmFullPass(`(module
     (func $test (result i32) (param i32) (param i32) (i32.add (get_local 0) (get_local 1)))
     (func $run (result i32) (call $test (i32.const 1) (i32.const ${Math.pow(2, 31) - 1})))
@@ -17,10 +14,17 @@ wasmFullPass(`(module
         i32.const 0
         call 3
         i32.const 42
-        f32.add
+        i32.add
     )
     (func) (func) (func)
 (export "run" 0))`, 43);
+
+wasmFullPass(`
+(module
+  (import "env" "a" (global $a i32))
+  (import "env" "b" (func $b (param i32) (result i32)))
+  (func (export "run") (param $0 i32) (result i32) get_local 0 call $b)
+)`, 43, { env: { a: 1337, b: x => x+1 } }, 42);
 
 // Global section.
 wasmFullPass(`(module
@@ -110,3 +114,35 @@ wasmFullPass(`(module
         get_global $g
     )
 )`, 1);
+
+// Branch table.
+for (let [p, result] of [
+    [0, 7],
+    [1, 6],
+    [2, 4],
+    [42, 4]
+]) {
+    wasmFullPass(`(module
+        (func (export "run") (result i32) (param $p i32) (local $n i32)
+            i32.const 0
+            set_local $n
+            block $c block $b block $a
+                get_local $p
+                br_table $a $b $c
+            end $a
+                get_local $n
+                i32.const 1
+                i32.add
+                set_local $n
+            end $b
+                get_local $n
+                i32.const 2
+                i32.add
+                set_local $n
+            end $c
+            get_local $n
+            i32.const 4
+            i32.add
+        )
+    )`, result, {}, p);
+}

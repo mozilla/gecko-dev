@@ -18,7 +18,7 @@
 #include "nsMathUtils.h"                // for NS_round
 #include "nsRenderingContext.h"         // for nsRenderingContext
 #include "nsString.h"                   // for nsString
-#include "nsStyleConsts.h"              // for NS_STYLE_HYPHENS_NONE
+#include "nsStyleConsts.h"              // for StyleHyphens::None
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT
 #include "mozilla/UniquePtr.h"          // for UniquePtr
 
@@ -81,29 +81,29 @@ private:
     RefPtr<gfxTextRun> mTextRun;
 };
 
-class StubPropertyProvider : public gfxTextRun::PropertyProvider {
+class StubPropertyProvider final : public gfxTextRun::PropertyProvider {
 public:
-    virtual void GetHyphenationBreaks(gfxTextRun::Range aRange,
-                                      bool* aBreakBefore) {
+    void GetHyphenationBreaks(gfxTextRun::Range aRange,
+                              gfxTextRun::HyphenType* aBreakBefore) const {
         NS_ERROR("This shouldn't be called because we never call BreakAndMeasureText");
     }
-    virtual int8_t GetHyphensOption() {
+    mozilla::StyleHyphens GetHyphensOption() const {
         NS_ERROR("This shouldn't be called because we never call BreakAndMeasureText");
-        return NS_STYLE_HYPHENS_NONE;
+        return mozilla::StyleHyphens::None;
     }
-    virtual gfxFloat GetHyphenWidth() {
+    gfxFloat GetHyphenWidth() const {
         NS_ERROR("This shouldn't be called because we never enable hyphens");
         return 0;
     }
-    virtual already_AddRefed<mozilla::gfx::DrawTarget> GetDrawTarget() {
+    already_AddRefed<mozilla::gfx::DrawTarget> GetDrawTarget() const {
         NS_ERROR("This shouldn't be called because we never enable hyphens");
         return nullptr;
     }
-    virtual uint32_t GetAppUnitsPerDevUnit() {
+    uint32_t GetAppUnitsPerDevUnit() const {
         NS_ERROR("This shouldn't be called because we never enable hyphens");
         return 60;
     }
-    virtual void GetSpacing(gfxTextRun::Range aRange, Spacing* aSpacing) {
+    void GetSpacing(gfxTextRun::Range aRange, Spacing* aSpacing) const {
         NS_ERROR("This shouldn't be called because we never enable spacing");
     }
 };
@@ -135,6 +135,7 @@ nsFontMetrics::nsFontMetrics(const nsFont& aFont, const Params& aParams,
                        aFont.languageOverride);
 
     aFont.AddFontFeaturesToStyle(&style);
+    aFont.AddFontVariationsToStyle(&style);
 
     gfxFloat devToCssSize = gfxFloat(mP2A) /
         gfxFloat(mDeviceContext->AppUnitsPerCSSPixel());

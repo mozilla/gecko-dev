@@ -11,6 +11,26 @@ pub type fsfilcnt_t = ::c_ulonglong;
 pub type rlim_t = ::c_ulonglong;
 
 s! {
+    pub struct aiocb {
+        pub aio_fildes: ::c_int,
+        pub aio_lio_opcode: ::c_int,
+        pub aio_reqprio: ::c_int,
+        pub aio_buf: *mut ::c_void,
+        pub aio_nbytes: ::size_t,
+        pub aio_sigevent: ::sigevent,
+        __td: *mut ::c_void,
+        __lock: [::c_int; 2],
+        __err: ::c_int,
+        __ret: ::ssize_t,
+        pub aio_offset: off_t,
+        __next: *mut ::c_void,
+        __prev: *mut ::c_void,
+        #[cfg(target_pointer_width = "32")]
+        __dummy4: [::c_char; 24],
+        #[cfg(target_pointer_width = "64")]
+        __dummy4: [::c_char; 16],
+    }
+
     pub struct sigaction {
         pub sa_sigaction: ::sighandler_t,
         pub sa_mask: ::sigset_t,
@@ -67,6 +87,40 @@ s! {
     }
 }
 
+pub const CLONE_NEWCGROUP: ::c_int = 0x02000000;
+
+pub const SFD_CLOEXEC: ::c_int = 0x080000;
+
+pub const NCCS: usize = 32;
+
+pub const O_TRUNC: ::c_int = 512;
+
+pub const O_CLOEXEC: ::c_int = 0x80000;
+
+pub const EBFONT: ::c_int = 59;
+pub const ENOSTR: ::c_int = 60;
+pub const ENODATA: ::c_int = 61;
+pub const ETIME: ::c_int = 62;
+pub const ENOSR: ::c_int = 63;
+pub const ENONET: ::c_int = 64;
+pub const ENOPKG: ::c_int = 65;
+pub const EREMOTE: ::c_int = 66;
+pub const ENOLINK: ::c_int = 67;
+pub const EADV: ::c_int = 68;
+pub const ESRMNT: ::c_int = 69;
+pub const ECOMM: ::c_int = 70;
+pub const EPROTO: ::c_int = 71;
+pub const EDOTDOT: ::c_int = 73;
+
+pub const SA_NODEFER: ::c_int = 0x40000000;
+pub const SA_RESETHAND: ::c_int = 0x80000000;
+pub const SA_RESTART: ::c_int = 0x10000000;
+pub const SA_NOCLDSTOP: ::c_int = 0x00000001;
+
+pub const EPOLL_CLOEXEC: ::c_int = 0x80000;
+
+pub const EFD_CLOEXEC: ::c_int = 0x80000;
+
 pub const BUFSIZ: ::c_uint = 1024;
 pub const TMP_MAX: ::c_uint = 10000;
 pub const FOPEN_MAX: ::c_uint = 1000;
@@ -76,6 +130,8 @@ pub const NI_MAXHOST: ::socklen_t = 255;
 pub const PTHREAD_STACK_MIN: ::size_t = 2048;
 pub const POSIX_FADV_DONTNEED: ::c_int = 4;
 pub const POSIX_FADV_NOREUSE: ::c_int = 5;
+
+pub const POSIX_MADV_DONTNEED: ::c_int = 4;
 
 pub const RLIM_INFINITY: ::rlim_t = !0;
 pub const RLIMIT_RTTIME: ::c_int = 15;
@@ -229,7 +285,7 @@ extern {
 }
 
 cfg_if! {
-    if #[cfg(any(target_arch = "x86_64"))] {
+    if #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))] {
         mod b64;
         pub use self::b64::*;
     } else if #[cfg(any(target_arch = "x86",

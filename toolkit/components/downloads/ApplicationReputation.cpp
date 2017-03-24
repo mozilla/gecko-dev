@@ -27,17 +27,20 @@
 #include "nsIX509CertDB.h"
 #include "nsIX509CertList.h"
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/LoadContext.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
+#include "nsDependentSubstring.h"
 #include "nsError.h"
 #include "nsNetCID.h"
 #include "nsReadableUtils.h"
@@ -45,15 +48,17 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
-#include "nsXPCOMStrings.h"
 
 #include "nsIContentPolicy.h"
 #include "nsILoadInfo.h"
 #include "nsContentUtils.h"
+#include "nsWeakReference.h"
+#include "nsCharSeparatedTokenizer.h"
 
+using namespace mozilla::downloads;
+using mozilla::ArrayLength;
 using mozilla::BasePrincipal;
-using mozilla::DocShellOriginAttributes;
-using mozilla::PrincipalOriginAttributes;
+using mozilla::OriginAttributes;
 using mozilla::Preferences;
 using mozilla::TimeStamp;
 using mozilla::Telemetry::Accumulate;
@@ -83,6 +88,98 @@ mozilla::LazyLogModule ApplicationReputationService::prlog("ApplicationReputatio
 #define LOG(args) MOZ_LOG(ApplicationReputationService::prlog, mozilla::LogLevel::Debug, args)
 #define LOG_ENABLED() MOZ_LOG_TEST(ApplicationReputationService::prlog, mozilla::LogLevel::Debug)
 
+namespace mozilla {
+namespace downloads {
+
+enum class TelemetryMatchInfo : uint8_t
+{
+  eNoMatch   = 0x00,
+  eV2Match   = 0x01,
+  eV4Match   = 0x02,
+  eBothMatch = eV2Match | eV4Match,
+};
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(TelemetryMatchInfo)
+
+// Given a comma-separated list of tables which matched a URL, check to see if
+// at least one of these tables is present in the given pref.
+bool
+LookupTablesInPrefs(const nsACString& tables, const char* aPref)
+{
+  nsAutoCString prefList;
+  Preferences::GetCString(aPref, &prefList);
+  if (prefList.IsEmpty()) {
+    return false;
+  }
+
+  // Check if V2 and V4 are enabled in preference
+  // If V2 and V4 are both enabled, then we should do a telemetry record
+  // Both V2 and V4 begin with "goog" but V4 ends with "-proto"
+  nsCCharSeparatedTokenizer prefTokens(prefList, ',');
+  nsCString prefToken;
+  bool isV4Enabled = false;
+  bool isV2Enabled = false;
+
+  while (prefTokens.hasMoreTokens()) {
+    prefToken = prefTokens.nextToken();
+    if (StringBeginsWith(prefToken, NS_LITERAL_CSTRING("goog"))) {
+      if (StringEndsWith(prefToken, NS_LITERAL_CSTRING("-proto"))) {
+        isV4Enabled = true;
+      } else {
+        isV2Enabled = true;
+      }
+    }
+  }
+
+  bool shouldRecordTelemetry = isV2Enabled && isV4Enabled;
+  TelemetryMatchInfo telemetryInfo = TelemetryMatchInfo::eNoMatch;
+
+  // Parsed tables separated by "," into tokens then lookup each token
+  // in preference list
+  nsCCharSeparatedTokenizer tokens(tables, ',');
+  nsCString table;
+  bool found = false;
+
+  while (tokens.hasMoreTokens()) {
+    table = tokens.nextToken();
+    if (table.IsEmpty()) {
+      continue;
+    }
+
+    if (!FindInReadable(table, prefList)) {
+      continue;
+    }
+    found = true;
+
+    if (!shouldRecordTelemetry) {
+      return found;
+    }
+
+    // We are checking if the table found is V2 or V4 to record telemetry
+    // Both V2 and V4 begin with "goog" but V4 ends with "-proto"
+    if (StringBeginsWith(prefToken, NS_LITERAL_CSTRING("goog"))) {
+      if (StringEndsWith(prefToken, NS_LITERAL_CSTRING("-proto"))) {
+        telemetryInfo |= TelemetryMatchInfo::eV4Match;
+      } else {
+        telemetryInfo |= TelemetryMatchInfo::eV2Match;
+      }
+    }
+  }
+
+  // Record telemetry for matching allow list and block list
+  if (!strcmp(aPref, PREF_DOWNLOAD_BLOCK_TABLE)) {
+    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_BLOCKLIST_MATCH,
+               static_cast<uint8_t>(telemetryInfo));
+  } else if (!strcmp(aPref, PREF_DOWNLOAD_ALLOW_TABLE)) {
+    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_ALLOWLIST_MATCH,
+               static_cast<uint8_t>(telemetryInfo));
+  }
+
+  return found;
+}
+} // namespace downloads
+} // namespace mozilla
+
 class PendingDBLookup;
 
 // A single use class private to ApplicationReputationService encapsulating an
@@ -90,13 +187,16 @@ class PendingDBLookup;
 // created by ApplicationReputationService, it is guaranteed to call mCallback.
 // This class is private to ApplicationReputationService.
 class PendingLookup final : public nsIStreamListener,
-                            public nsITimerCallback
+                            public nsITimerCallback,
+                            public nsIObserver,
+                            public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSIOBSERVER
 
   // Constructor and destructor.
   PendingLookup(nsIApplicationReputationQuery* aQuery,
@@ -305,7 +405,7 @@ PendingDBLookup::LookupSpecInternal(const nsACString& aSpec)
   rv = ios->NewURI(aSpec, nullptr, nullptr, getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PrincipalOriginAttributes attrs;
+  OriginAttributes attrs;
   nsCOMPtr<nsIPrincipal> principal =
     BasePrincipal::CreateCodebasePrincipal(uri, attrs);
   if (!principal) {
@@ -341,9 +441,7 @@ PendingDBLookup::HandleEvent(const nsACString& tables)
   // 1) PendingLookup::OnComplete if the URL matches the blocklist, or
   // 2) PendingLookup::LookupNext if the URL does not match the blocklist.
   // Blocklisting trumps allowlisting.
-  nsAutoCString blockList;
-  Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &blockList);
-  if (!mAllowlistOnly && FindInReadable(blockList, tables)) {
+  if (!mAllowlistOnly && LookupTablesInPrefs(tables, PREF_DOWNLOAD_BLOCK_TABLE)) {
     mPendingLookup->mBlocklistCount++;
     Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, BLOCK_LIST);
     LOG(("Found principal %s on blocklist [this = %p]", mSpec.get(), this));
@@ -351,9 +449,7 @@ PendingDBLookup::HandleEvent(const nsACString& tables)
       nsIApplicationReputationService::VERDICT_DANGEROUS);
   }
 
-  nsAutoCString allowList;
-  Preferences::GetCString(PREF_DOWNLOAD_ALLOW_TABLE, &allowList);
-  if (FindInReadable(allowList, tables)) {
+  if (LookupTablesInPrefs(tables, PREF_DOWNLOAD_ALLOW_TABLE)) {
     mPendingLookup->mAllowlistCount++;
     Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, ALLOW_LIST);
     LOG(("Found principal %s on allowlist [this = %p]", mSpec.get(), this));
@@ -368,7 +464,9 @@ PendingDBLookup::HandleEvent(const nsACString& tables)
 
 NS_IMPL_ISUPPORTS(PendingLookup,
                   nsIStreamListener,
-                  nsIRequestObserver)
+                  nsIRequestObserver,
+                  nsIObserver,
+                  nsISupportsWeakReference)
 
 PendingLookup::PendingLookup(nsIApplicationReputationQuery* aQuery,
                              nsIApplicationReputationCallback* aCallback) :
@@ -385,6 +483,292 @@ PendingLookup::~PendingLookup()
   LOG(("Destroying pending lookup [this = %p]", this));
 }
 
+static const char16_t* const kBinaryFileExtensions[] = {
+    // Extracted from the "File Type Policies" Chrome extension
+    //u".001",
+    //u".7z",
+    //u".ace",
+    //u".action", // Mac script
+    //u".ad", // Windows
+    u".ade", // MS Access
+    u".adp", // MS Access
+    u".apk", // Android package
+    u".app", // Executable application
+    u".application", // MS ClickOnce
+    u".appref-ms", // MS ClickOnce
+    //u".arc",
+    //u".arj",
+    u".as", // Mac archive
+    u".asp", // Windows Server script
+    u".asx", // Windows Media Player
+    //u".b64",
+    //u".balz",
+    u".bas", // Basic script
+    u".bash", // Linux shell
+    u".bat", // Windows shell
+    //u".bhx",
+    //u".bin",
+    u".bz", // Linux archive (bzip)
+    u".bz2", // Linux archive (bzip2)
+    u".bzip2", // Linux archive (bzip2)
+    u".cab", // Windows archive
+    u".cdr", // Mac disk image
+    u".cfg", // Windows
+    u".chi", // Windows Help
+    u".chm", // Windows Help
+    u".class", // Java
+    u".cmd", // Windows executable
+    u".com", // Windows executable
+    u".command", // Mac script
+    u".cpgz", // Mac archive
+    //u".cpio",
+    u".cpl", // Windows executable
+    u".crt", // Windows signed certificate
+    u".crx", // Chrome extensions
+    u".csh", // Linux shell
+    u".dart", // Mac disk image
+    u".dc42", // Apple DiskCopy Image
+    u".deb", // Linux package
+    u".dex", // Android
+    u".diskcopy42", // Apple DiskCopy Image
+    u".dll", // Windows executable
+    u".dmg", // Mac disk image
+    u".dmgpart", // Mac disk image
+    //u".docb", // MS Office
+    //u".docm", // MS Word
+    //u".docx", // MS Word
+    //u".dotm", // MS Word
+    //u".dott", // MS Office
+    u".drv", // Windows driver
+    u".dvdr", // Mac Disk image
+    u".efi", // Firmware
+    u".eml", // MS Outlook
+    u".exe", // Windows executable
+    //u".fat",
+    u".fon", // Windows font
+    u".fxp", // MS FoxPro
+    u".gadget", // Windows
+    u".grp", // Windows
+    u".gz", // Linux archive (gzip)
+    u".gzip", // Linux archive (gzip)
+    u".hfs", // Mac disk image
+    u".hlp", // Windows Help
+    u".hqx", // Mac archive
+    u".hta", // HTML trusted application
+    u".htt", // MS HTML template
+    u".img", // Mac disk image
+    u".imgpart", // Mac disk image
+    u".inf", // Windows installer
+    u".ini", // Generic config file
+    u".ins", // IIS config
+    //u".inx", // InstallShield
+    u".iso", // CD image
+    u".isp", // IIS config
+    //u".isu", // InstallShield
+    u".jar", // Java
+    u".jnlp", // Java
+    //u".job", // Windows
+    u".js", // JavaScript script
+    u".jse", // JScript
+    u".ksh", // Linux shell
+    //u".lha",
+    u".lnk", // Windows
+    u".local", // Windows
+    //u".lpaq1",
+    //u".lpaq5",
+    //u".lpaq8",
+    //u".lzh",
+    //u".lzma",
+    u".mad", // MS Access
+    u".maf", // MS Access
+    u".mag", // MS Access
+    u".mam", // MS Access
+    u".manifest", // Windows
+    u".maq", // MS Access
+    u".mar", // MS Access
+    u".mas", // MS Access
+    u".mat", // MS Access
+    u".mau", // Media attachment
+    u".mav", // MS Access
+    u".maw", // MS Access
+    u".mda", // MS Access
+    u".mdb", // MS Access
+    u".mde", // MS Access
+    u".mdt", // MS Access
+    u".mdw", // MS Access
+    u".mdz", // MS Access
+    u".mht", // MS HTML
+    u".mhtml", // MS HTML
+    u".mim", // MS Mail
+    u".mmc", // MS Office
+    u".mof", // Windows
+    u".mpkg", // Mac installer
+    u".msc", // Windows executable
+    u".msg", // MS Outlook
+    u".msh", // Windows shell
+    u".msh1", // Windows shell
+    u".msh1xml", // Windows shell
+    u".msh2", // Windows shell
+    u".msh2xml", // Windows shell
+    u".mshxml", // Windows
+    u".msi", // Windows installer
+    u".msp", // Windows installer
+    u".mst", // Windows installer
+    u".ndif", // Mac disk image
+    //u".ntfs", // 7z
+    u".ocx", // ActiveX
+    u".ops", // MS Office
+    //u".out", // Linux binary
+    //u".paf", // PortableApps package
+    //u".paq8f",
+    //u".paq8jd",
+    //u".paq8l",
+    //u".paq8o",
+    u".partial", // Downloads
+    u".pax", // Mac archive
+    u".pcd", // Microsoft Visual Test
+    u".pdf", // Adobe Acrobat
+    //u".pea",
+    u".pet", // Linux package
+    u".pif", // Windows
+    u".pkg", // Mac installer
+    u".pl", // Perl script
+    u".plg", // MS Visual Studio
+    //u".potx", // MS PowerPoint
+    //u".ppam", // MS PowerPoint
+    //u".ppsx", // MS PowerPoint
+    //u".pptm", // MS PowerPoint
+    //u".pptx", // MS PowerPoint
+    u".prf", // MS Outlook
+    u".prg", // Windows
+    u".ps1", // Windows shell
+    u".ps1xml", // Windows shell
+    u".ps2", // Windows shell
+    u".ps2xml", // Windows shell
+    u".psc1", // Windows shell
+    u".psc2", // Windows shell
+    u".pst", // MS Outlook
+    u".pup", // Linux package
+    u".py", // Python script
+    u".pyc", // Python binary
+    u".pyw", // Python GUI
+    //u".quad",
+    //u".r00",
+    //u".r01",
+    //u".r02",
+    //u".r03",
+    //u".r04",
+    //u".r05",
+    //u".r06",
+    //u".r07",
+    //u".r08",
+    //u".r09",
+    //u".r10",
+    //u".r11",
+    //u".r12",
+    //u".r13",
+    //u".r14",
+    //u".r15",
+    //u".r16",
+    //u".r17",
+    //u".r18",
+    //u".r19",
+    //u".r20",
+    //u".r21",
+    //u".r22",
+    //u".r23",
+    //u".r24",
+    //u".r25",
+    //u".r26",
+    //u".r27",
+    //u".r28",
+    //u".r29",
+    //u".rar",
+    u".rb", // Ruby script
+    u".reg", // Windows Registry
+    u".rels", // MS Office
+    //u".rgs", // Windows Registry
+    u".rpm", // Linux package
+    //u".rtf", // MS Office
+    //u".run", // Linux shell
+    u".scf", // Windows shell
+    u".scr", // Windows
+    u".sct", // Windows shell
+    u".search-ms", // Windows
+    u".sh", // Linux shell
+    u".shar", // Linux shell
+    u".shb", // Windows
+    u".shs", // Windows shell
+    //u".sldm", // MS PowerPoint
+    //u".sldx", // MS PowerPoint
+    u".slp", // Linux package
+    u".smi", // Mac disk image
+    u".sparsebundle", // Mac disk image
+    u".sparseimage", // Mac disk image
+    u".spl", // Adobe Flash
+    //u".squashfs",
+    u".svg",
+    u".swf", // Adobe Flash
+    u".swm", // Windows Imaging
+    u".sys", // Windows
+    u".tar", // Linux archive
+    u".taz", // Linux archive (bzip2)
+    u".tbz", // Linux archive (bzip2)
+    u".tbz2", // Linux archive (bzip2)
+    u".tcsh", // Linux shell
+    u".tgz", // Linux archive (gzip)
+    //u".toast", // Roxio disk image
+    //u".torrent", // Bittorrent
+    u".tpz", // Linux archive (gzip)
+    u".txz", // Linux archive (xz)
+    u".tz", // Linux archive (gzip)
+    //u".u3p", // U3 Smart Apps
+    u".udf", // MS Excel
+    u".udif", // Mac disk image
+    u".url", // Windows
+    //u".uu",
+    //u".uue",
+    u".vb", // Visual Basic script
+    u".vbe", // Visual Basic script
+    u".vbs", // Visual Basic script
+    //u".vbscript", // Visual Basic script
+    u".vhd", // Windows virtual hard drive
+    u".vhdx", // Windows virtual hard drive
+    u".vmdk", // VMware virtual disk
+    u".vsd", // MS Visio
+    u".vsmacros", // MS Visual Studio
+    u".vss", // MS Visio
+    u".vst", // MS Visio
+    u".vsw", // MS Visio
+    u".website",  // Windows
+    u".wim", // Windows Imaging
+    //u".workflow", // Mac Automator
+    //u".wrc", // FreeArc archive
+    u".ws", // Windows script
+    u".wsc", // Windows script
+    u".wsf", // Windows script
+    u".wsh", // Windows script
+    u".xar", // MS Excel
+    u".xbap", // XAML Browser Application
+    u".xip", // Mac archive
+    //u".xlsm", // MS Excel
+    //u".xlsx", // MS Excel
+    //u".xltm", // MS Excel
+    //u".xltx", // MS Excel
+    u".xml",
+    u".xnk", // MS Exchange
+    u".xrm-ms", // Windows
+    u".xsl", // XML Stylesheet
+    //u".xxe",
+    u".xz", // Linux archive (xz)
+    u".z", // InstallShield
+#ifdef XP_WIN // disable on Mac/Linux, see 1167493
+    u".zip", // Generic archive
+#endif
+    u".zipx", // WinZip
+    //u".zpaq",
+};
+
 bool
 PendingLookup::IsBinaryFile()
 {
@@ -396,290 +780,14 @@ PendingLookup::IsBinaryFile()
   }
   LOG(("Suggested filename: %s [this = %p]",
        NS_ConvertUTF16toUTF8(fileName).get(), this));
-  return
-    // Extracted from the "File Type Policies" Chrome extension
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".001")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".7z")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".ace")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".action")) || // Mac script
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".ad")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ade")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".adp")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".apk")) || // Android package
-    StringEndsWith(fileName, NS_LITERAL_STRING(".app")) || // Executable application
-    StringEndsWith(fileName, NS_LITERAL_STRING(".application")) || // MS ClickOnce
-    StringEndsWith(fileName, NS_LITERAL_STRING(".appref-ms")) || // MS ClickOnce
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".arc")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".arj")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".as")) || // Mac archive
-    StringEndsWith(fileName, NS_LITERAL_STRING(".asp")) || // Windows Server script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".asx")) || // Windows Media Player
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".b64")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".balz")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".bas")) || // Basic script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".bash")) || // Linux shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".bat")) || // Windows shell
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".bhx")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".bin")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".bz")) || // Linux archive (bzip)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".bz2")) || // Linux archive (bzip2)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".bzip2")) || // Linux archive (bzip2)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".cab")) || // Windows archive
-    StringEndsWith(fileName, NS_LITERAL_STRING(".cdr")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".cfg")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".chi")) || // Windows Help
-    StringEndsWith(fileName, NS_LITERAL_STRING(".chm")) || // Windows Help
-    StringEndsWith(fileName, NS_LITERAL_STRING(".class")) || // Java
-    StringEndsWith(fileName, NS_LITERAL_STRING(".cmd")) || // Windows executable
-    StringEndsWith(fileName, NS_LITERAL_STRING(".com")) || // Windows executable
-    StringEndsWith(fileName, NS_LITERAL_STRING(".command")) || // Mac script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".cpgz")) || // Mac archive
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".cpio")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".cpl")) || // Windows executable
-    StringEndsWith(fileName, NS_LITERAL_STRING(".crt")) || // Windows signed certificate
-    StringEndsWith(fileName, NS_LITERAL_STRING(".crx")) || // Chrome extensions
-    StringEndsWith(fileName, NS_LITERAL_STRING(".csh")) || // Linux shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".dart")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".dc42")) || // Apple DiskCopy Image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".deb")) || // Linux package
-    StringEndsWith(fileName, NS_LITERAL_STRING(".dex")) || // Android
-    StringEndsWith(fileName, NS_LITERAL_STRING(".diskcopy42")) || // Apple DiskCopy Image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".dll")) || // Windows executable
-    StringEndsWith(fileName, NS_LITERAL_STRING(".dmg")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".dmgpart")) || // Mac disk image
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".docb")) || // MS Office
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".docm")) || // MS Word
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".docx")) || // MS Word
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".dotm")) || // MS Word
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".dott")) || // MS Office
-    StringEndsWith(fileName, NS_LITERAL_STRING(".drv")) || // Windows driver
-    StringEndsWith(fileName, NS_LITERAL_STRING(".dvdr")) || // Mac Disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".efi")) || // Firmware
-    StringEndsWith(fileName, NS_LITERAL_STRING(".eml")) || // MS Outlook
-    StringEndsWith(fileName, NS_LITERAL_STRING(".exe")) || // Windows executable
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".fat")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".fon")) || // Windows font
-    StringEndsWith(fileName, NS_LITERAL_STRING(".fxp")) || // MS FoxPro
-    StringEndsWith(fileName, NS_LITERAL_STRING(".gadget")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".grp")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".gz")) || // Linux archive (gzip)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".gzip")) || // Linux archive (gzip)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".hfs")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".hlp")) || // Windows Help
-    StringEndsWith(fileName, NS_LITERAL_STRING(".hqx")) || // Mac archive
-    StringEndsWith(fileName, NS_LITERAL_STRING(".hta")) || // HTML trusted application
-    StringEndsWith(fileName, NS_LITERAL_STRING(".htt")) || // MS HTML template
-    StringEndsWith(fileName, NS_LITERAL_STRING(".img")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".imgpart")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".inf")) || // Windows installer
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ini")) || // Generic config file
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ins")) || // IIS config
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".inx")) || // InstallShield
-    StringEndsWith(fileName, NS_LITERAL_STRING(".iso")) || // CD image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".isp")) || // IIS config
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".isu")) || // InstallShield
-    StringEndsWith(fileName, NS_LITERAL_STRING(".jar")) || // Java
-    StringEndsWith(fileName, NS_LITERAL_STRING(".jnlp")) || // Java
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".job")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".js")) || // JavaScript script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".jse")) || // JScript
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ksh")) || // Linux shell
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".lha")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".lnk")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".local")) || // Windows
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".lpaq1")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".lpaq5")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".lpaq8")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".lzh")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".lzma")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mad")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".maf")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mag")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mam")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".manifest")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".maq")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mar")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mas")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mat")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mau")) || // Media attachment
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mav")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".maw")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mda")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mdb")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mde")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mdt")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mdw")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mdz")) || // MS Access
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mht")) || // MS HTML
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mhtml")) || // MS HTML
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mim")) || // MS Mail
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mmc")) || // MS Office
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mof")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mpkg")) || // Mac installer
-    StringEndsWith(fileName, NS_LITERAL_STRING(".msc")) || // Windows executable
-    StringEndsWith(fileName, NS_LITERAL_STRING(".msg")) || // MS Outlook
-    StringEndsWith(fileName, NS_LITERAL_STRING(".msh")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".msh1")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".msh1xml")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".msh2")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".msh2xml")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mshxml")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".msi")) || // Windows installer
-    StringEndsWith(fileName, NS_LITERAL_STRING(".msp")) || // Windows installer
-    StringEndsWith(fileName, NS_LITERAL_STRING(".mst")) || // Windows installer
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ndif")) || // Mac disk image
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".ntfs")) || // 7z
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ocx")) || // ActiveX
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ops")) || // MS Office
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".out")) || // Linux binary
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".paf")) || // PortableApps package
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".paq8f")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".paq8jd")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".paq8l")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".paq8o")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".partial")) || // Downloads
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pax")) || // Mac archive
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pcd")) || // Microsoft Visual Test
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pdf")) || // Adobe Acrobat
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".pea")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pet")) || // Linux package
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pif")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pkg")) || // Mac installer
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pl")) || // Perl script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".plg")) || // MS Visual Studio
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".potx")) || // MS PowerPoint
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".ppam")) || // MS PowerPoint
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".ppsx")) || // MS PowerPoint
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".pptm")) || // MS PowerPoint
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".pptx")) || // MS PowerPoint
-    StringEndsWith(fileName, NS_LITERAL_STRING(".prf")) || // MS Outlook
-    StringEndsWith(fileName, NS_LITERAL_STRING(".prg")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ps1")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ps1xml")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ps2")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ps2xml")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".psc1")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".psc2")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pst")) || // MS Outlook
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pup")) || // Linux package
-    StringEndsWith(fileName, NS_LITERAL_STRING(".py")) || // Python script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pyc")) || // Python binary
-    StringEndsWith(fileName, NS_LITERAL_STRING(".pyw")) || // Python GUI
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".quad")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r00")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r01")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r02")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r03")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r04")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r05")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r06")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r07")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r08")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r09")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r10")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r11")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r12")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r13")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r14")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r15")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r16")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r17")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r18")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r19")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r20")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r21")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r22")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r23")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r24")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r25")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r26")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r27")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r28")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".r29")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".rar")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".rb")) || // Ruby script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".reg")) || // Windows Registry
-    StringEndsWith(fileName, NS_LITERAL_STRING(".rels")) || // MS Office
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".rgs")) || // Windows Registry
-    StringEndsWith(fileName, NS_LITERAL_STRING(".rpm")) || // Linux package
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".rtf")) || // MS Office
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".run")) || // Linux shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".scf")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".scr")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".sct")) || // Windows shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".search-ms")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".sh")) || // Linux shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".shar")) || // Linux shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".shb")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".shs")) || // Windows shell
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".sldm")) || // MS PowerPoint
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".sldx")) || // MS PowerPoint
-    StringEndsWith(fileName, NS_LITERAL_STRING(".slp")) || // Linux package
-    StringEndsWith(fileName, NS_LITERAL_STRING(".smi")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".sparsebundle")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".sparseimage")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".spl")) || // Adobe Flash
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".squashfs")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".svg")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".swf")) || // Adobe Flash
-    StringEndsWith(fileName, NS_LITERAL_STRING(".swm")) || // Windows Imaging
-    StringEndsWith(fileName, NS_LITERAL_STRING(".sys")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".tar")) || // Linux archive
-    StringEndsWith(fileName, NS_LITERAL_STRING(".taz")) || // Linux archive (bzip2)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".tbz")) || // Linux archive (bzip2)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".tbz2")) || // Linux archive (bzip2)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".tcsh")) || // Linux shell
-    StringEndsWith(fileName, NS_LITERAL_STRING(".tgz")) || // Linux archive (gzip)
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".toast")) || // Roxio disk image
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".torrent")) || // Bittorrent
-    StringEndsWith(fileName, NS_LITERAL_STRING(".tpz")) || // Linux archive (gzip)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".txz")) || // Linux archive (xz)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".tz")) || // Linux archive (gzip)
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".u3p")) || // U3 Smart Apps
-    StringEndsWith(fileName, NS_LITERAL_STRING(".udf")) || // MS Excel
-    StringEndsWith(fileName, NS_LITERAL_STRING(".udif")) || // Mac disk image
-    StringEndsWith(fileName, NS_LITERAL_STRING(".url")) || // Windows
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".uu")) ||
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".uue")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vb")) || // Visual Basic script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vbe")) || // Visual Basic script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vbs")) || // Visual Basic script
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".vbscript")) || // Visual Basic script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vhd")) || // Windows virtual hard drive
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vhdx")) || // Windows virtual hard drive
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vmdk")) || // VMware virtual disk
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vsd")) || // MS Visio
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vsmacros")) || // MS Visual Studio
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vss")) || // MS Visio
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vst")) || // MS Visio
-    StringEndsWith(fileName, NS_LITERAL_STRING(".vsw")) || // MS Visio
-    StringEndsWith(fileName, NS_LITERAL_STRING(".website")) ||  // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".wim")) || // Windows Imaging
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".workflow")) || // Mac Automator
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".wrc")) || // FreeArc archive
-    StringEndsWith(fileName, NS_LITERAL_STRING(".ws")) || // Windows script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".wsc")) || // Windows script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".wsf")) || // Windows script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".wsh")) || // Windows script
-    StringEndsWith(fileName, NS_LITERAL_STRING(".xar")) || // MS Excel
-    StringEndsWith(fileName, NS_LITERAL_STRING(".xbap")) || // XAML Browser Application
-    StringEndsWith(fileName, NS_LITERAL_STRING(".xip")) || // Mac archive
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".xlsm")) || // MS Excel
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".xlsx")) || // MS Excel
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".xltm")) || // MS Excel
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".xltx")) || // MS Excel
-    StringEndsWith(fileName, NS_LITERAL_STRING(".xml")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".xnk")) || // MS Exchange
-    StringEndsWith(fileName, NS_LITERAL_STRING(".xrm-ms")) || // Windows
-    StringEndsWith(fileName, NS_LITERAL_STRING(".xsl")) || // XML Stylesheet
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".xxe")) ||
-    StringEndsWith(fileName, NS_LITERAL_STRING(".xz")) || // Linux archive (xz)
-    StringEndsWith(fileName, NS_LITERAL_STRING(".z")) || // InstallShield
-#ifdef XP_WIN // disable on Mac/Linux, see 1167493
-    StringEndsWith(fileName, NS_LITERAL_STRING(".zip")) || // Generic archive
-#endif
-    StringEndsWith(fileName, NS_LITERAL_STRING(".zipx")); // WinZip
-    //StringEndsWith(fileName, NS_LITERAL_STRING(".zpaq"));
+
+  for (size_t i = 0; i < ArrayLength(kBinaryFileExtensions); ++i) {
+    if (StringEndsWith(fileName, nsDependentString(kBinaryFileExtensions[i]))) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 ClientDownloadRequest::DownloadType
@@ -756,7 +864,7 @@ PendingLookup::LookupNext()
   // There are no more URIs to check against local list. If the file is
   // not eligible for remote lookup, bail.
   if (!IsBinaryFile()) {
-    LOG(("Not eligible for remote lookups [this=%x]", this));
+    LOG(("Not eligible for remote lookups [this=%p]", this));
     return OnComplete(false, NS_OK);
   }
   nsresult rv = SendRemoteQuery();
@@ -868,17 +976,19 @@ PendingLookup::GenerateWhitelistStringsForChain(
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIX509Cert> signer;
-  rv = certDB->ConstructX509(
+  nsDependentCSubstring signerDER(
     const_cast<char *>(aChain.element(0).certificate().data()),
-    aChain.element(0).certificate().size(), getter_AddRefs(signer));
+    aChain.element(0).certificate().size());
+  rv = certDB->ConstructX509(signerDER, getter_AddRefs(signer));
   NS_ENSURE_SUCCESS(rv, rv);
 
   for (int i = 1; i < aChain.element_size(); ++i) {
     // Get the issuer.
     nsCOMPtr<nsIX509Cert> issuer;
-    rv = certDB->ConstructX509(
+    nsDependentCSubstring issuerDER(
       const_cast<char *>(aChain.element(i).certificate().data()),
-      aChain.element(i).certificate().size(), getter_AddRefs(issuer));
+      aChain.element(i).certificate().size());
+    rv = certDB->ConstructX509(issuerDER, getter_AddRefs(issuer));
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = GenerateWhitelistStringsForPair(signer, issuer);
@@ -1057,7 +1167,7 @@ PendingLookup::OnComplete(bool shouldBlock, nsresult rv, uint32_t verdict)
   Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_SHOULD_BLOCK,
     shouldBlock);
   double t = (TimeStamp::Now() - mStartTime).ToMilliseconds();
-  LOG(("Application Reputation verdict is %lu, obtained in %f ms [this = %p]",
+  LOG(("Application Reputation verdict is %u, obtained in %f ms [this = %p]",
        verdict, t, this));
   if (shouldBlock) {
     LOG(("Application Reputation check failed, blocking bad binary [this = %p]",
@@ -1237,7 +1347,7 @@ PendingLookup::SendRemoteQueryInternal()
   if (!mRequest.SerializeToString(&serialized)) {
     return NS_ERROR_UNEXPECTED;
   }
-  LOG(("Serialized protocol buffer [this = %p]: (length=%d) %s", this,
+  LOG(("Serialized protocol buffer [this = %p]: (length=%" PRIuSIZE ") %s", this,
        serialized.length(), serialized.c_str()));
 
   // Set the input stream to the serialized protocol buffer
@@ -1263,8 +1373,9 @@ PendingLookup::SendRemoteQueryInternal()
 
   nsCOMPtr<nsILoadInfo> loadInfo = mChannel->GetLoadInfo();
   if (loadInfo) {
-    loadInfo->SetOriginAttributes(
-      mozilla::NeckoOriginAttributes(NECKO_SAFEBROWSING_APP_ID, false));
+    mozilla::OriginAttributes attrs;
+    attrs.mFirstPartyDomain.AssignLiteral(NECKO_SAFEBROWSING_FIRST_PARTY_DOMAIN);
+    loadInfo->SetOriginAttributes(attrs);
   }
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel, &rv));
@@ -1278,14 +1389,6 @@ PendingLookup::SendRemoteQueryInternal()
   rv = uploadChannel->ExplicitSetUploadStream(sstream,
     NS_LITERAL_CSTRING("application/octet-stream"), serialized.size(),
     NS_LITERAL_CSTRING("POST"), false);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Set the Safebrowsing cookie jar, so that the regular Google cookie is not
-  // sent with this request. See bug 897516.
-  DocShellOriginAttributes attrs;
-  attrs.mAppId = NECKO_SAFEBROWSING_APP_ID;
-  nsCOMPtr<nsIInterfaceRequestor> loadContext = new mozilla::LoadContext(attrs);
-  rv = mChannel->SetNotificationCallbacks(loadContext);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t timeoutMs = Preferences::GetUint(PREF_SB_DOWNLOADS_REMOTE_TIMEOUT, 10000);
@@ -1307,6 +1410,24 @@ PendingLookup::Notify(nsITimer* aTimer)
     true);
   mChannel->Cancel(NS_ERROR_NET_TIMEOUT);
   mTimeoutTimer->Cancel();
+  return NS_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// nsIObserver implementation
+NS_IMETHODIMP
+PendingLookup::Observe(nsISupports *aSubject, const char *aTopic,
+                       const char16_t *aData)
+{
+  if (!strcmp(aTopic, "quit-application")) {
+    if (mTimeoutTimer) {
+      mTimeoutTimer->Cancel();
+      mTimeoutTimer = nullptr;
+    }
+    if (mChannel) {
+      mChannel->Cancel(NS_ERROR_ABORT);
+    }
+  }
   return NS_OK;
 }
 
@@ -1507,5 +1628,13 @@ nsresult ApplicationReputationService::QueryReputationInternal(
   RefPtr<PendingLookup> lookup(new PendingLookup(aQuery, aCallback));
   NS_ENSURE_STATE(lookup);
 
+  // Add an observer for shutdown
+  nsCOMPtr<nsIObserverService> observerService =
+    mozilla::services::GetObserverService();
+  if (!observerService) {
+    return NS_ERROR_FAILURE;
+  }
+
+  observerService->AddObserver(lookup, "quit-application", true);
   return lookup->StartLookup();
 }

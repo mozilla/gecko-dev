@@ -6,7 +6,6 @@ Cu.import("resource://gre/modules/AddonManager.jsm");
 Cu.import("resource://testing-common/AddonTestUtils.jsm");
 Cu.import("resource://testing-common/MockRegistrar.jsm");
 
-const {promiseAddonByID} = AddonTestUtils;
 const id = "uninstall_self_test@tests.mozilla.com";
 
 const manifest = {
@@ -64,11 +63,10 @@ add_task(function* test_management_uninstall_no_prompt() {
   });
 
   yield extension.startup();
-  let addon = yield promiseAddonByID(id);
+  let addon = yield AddonManager.getAddonByID(id);
   notEqual(addon, null, "Add-on is installed");
   extension.sendMessage("uninstall");
   yield waitForUninstalled();
-  yield extension.markUnloaded();
   Services.obs.notifyObservers(extension.extension.file, "flush-cache-entry", null);
 });
 
@@ -88,11 +86,10 @@ add_task(function* test_management_uninstall_prompt_uninstall() {
   });
 
   yield extension.startup();
-  let addon = yield promiseAddonByID(id);
+  let addon = yield AddonManager.getAddonByID(id);
   notEqual(addon, null, "Add-on is installed");
   extension.sendMessage("uninstall");
   yield waitForUninstalled();
-  yield extension.markUnloaded();
 
   // Test localization strings
   equal(promptService._confirmExArgs[1], `Uninstall ${manifest.name}`);
@@ -107,15 +104,13 @@ add_task(function* test_management_uninstall_prompt_keep() {
   promptService._response = 1;
 
   function background() {
-    browser.test.onMessage.addListener(msg => {
-      browser.management.uninstallSelf({showConfirmDialog: true}).then(() => {
-        browser.test.fail("uninstallSelf rejects when user declines uninstall");
-      }, error => {
-        browser.test.assertEq("User cancelled uninstall of extension",
-                              error.message,
-                              "Expected rejection when user declines uninstall");
-        browser.test.sendMessage("uninstall-rejected");
-      });
+    browser.test.onMessage.addListener(async msg => {
+      await browser.test.assertRejects(
+        browser.management.uninstallSelf({showConfirmDialog: true}),
+        "User cancelled uninstall of extension",
+        "Expected rejection when user declines uninstall");
+
+      browser.test.sendMessage("uninstall-rejected");
     });
   }
 
@@ -126,12 +121,15 @@ add_task(function* test_management_uninstall_prompt_keep() {
   });
 
   yield extension.startup();
-  let addon = yield promiseAddonByID(id);
+
+  let addon = yield AddonManager.getAddonByID(id);
   notEqual(addon, null, "Add-on is installed");
+
   extension.sendMessage("uninstall");
   yield extension.awaitMessage("uninstall-rejected");
-  addon = yield promiseAddonByID(id);
+
+  addon = yield AddonManager.getAddonByID(id);
   notEqual(addon, null, "Add-on remains installed");
+
   yield extension.unload();
-  Services.obs.notifyObservers(extension.extension.file, "flush-cache-entry", null);
 });

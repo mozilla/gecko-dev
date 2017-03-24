@@ -8,6 +8,7 @@
 #include "mozilla/embedding/PPrinting.h"
 #include "mozilla/layout/RemotePrintJobChild.h"
 #include "mozilla/RefPtr.h"
+#include "nsIPrinterEnumerator.h"
 #include "nsPrintingProxy.h"
 #include "nsReadableUtils.h"
 #include "nsPrintSettingsImpl.h"
@@ -20,7 +21,6 @@
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIWindowWatcher.h"
-#include "prprf.h"
 
 #include "nsIStringEnumerator.h"
 #include "nsISupportsPrimitives.h"
@@ -34,7 +34,7 @@ using namespace mozilla::embedding;
 
 typedef mozilla::layout::RemotePrintJobChild RemotePrintJobChild;
 
-NS_IMPL_ISUPPORTS(nsPrintOptions, nsIPrintOptions, nsIPrintSettingsService)
+NS_IMPL_ISUPPORTS(nsPrintOptions, nsIPrintSettingsService)
 
 // Pref Constants
 static const char kMarginTop[]       = "print_margin_top";
@@ -1029,6 +1029,12 @@ NS_IMETHODIMP
 nsPrintOptions::InitPrintSettingsFromPrinter(const char16_t *aPrinterName,
                                              nsIPrintSettings *aPrintSettings)
 {
+  // Don't get print settings from the printer in the child when printing via
+  // parent, these will be retrieved in the parent later in the print process.
+  if (XRE_IsContentProcess() && Preferences::GetBool("print.print_via_parent")) {
+    return NS_OK;
+  }
+
   NS_ENSURE_ARG_POINTER(aPrintSettings);
   NS_ENSURE_ARG_POINTER(aPrinterName);
 

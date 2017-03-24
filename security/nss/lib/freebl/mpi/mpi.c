@@ -37,6 +37,10 @@
 #include "logtab.h"
 #endif
 
+#ifdef CT_VERIF
+#include <valgrind/memcheck.h>
+#endif
+
 /* {{{ Constant strings */
 
 /* Constant strings returned by mp_strerror() */
@@ -81,6 +85,26 @@ mp_set_prec(mp_size prec)
 } /* end mp_set_prec() */
 
 /* }}} */
+
+#ifdef CT_VERIF
+void
+mp_taint(mp_int *mp)
+{
+    size_t i;
+    for (i = 0; i < mp->used; ++i) {
+        VALGRIND_MAKE_MEM_UNDEFINED(&(mp->dp[i]), sizeof(mp_digit));
+    }
+}
+
+void
+mp_untaint(mp_int *mp)
+{
+    size_t i;
+    for (i = 0; i < mp->used; ++i) {
+        VALGRIND_MAKE_MEM_DEFINED(&(mp->dp[i]), sizeof(mp_digit));
+    }
+}
+#endif
 
 /*------------------------------------------------------------------------*/
 /* {{{ mp_init(mp) */
@@ -1671,7 +1695,6 @@ mp_iseven(const mp_int *a)
 /*------------------------------------------------------------------------*/
 /* {{{ Number theoretic functions */
 
-#if MP_NUMTH
 /* {{{ mp_gcd(a, b, c) */
 
 /*
@@ -2352,7 +2375,6 @@ mp_invmod(const mp_int *a, const mp_int *m, mp_int *c)
 } /* end mp_invmod() */
 
 /* }}} */
-#endif /* if MP_NUMTH */
 
 /* }}} */
 

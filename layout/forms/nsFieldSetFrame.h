@@ -7,7 +7,7 @@
 #define nsFieldSetFrame_h___
 
 #include "mozilla/Attributes.h"
-#include "imgIContainer.h"
+#include "DrawResult.h"
 #include "nsContainerFrame.h"
 
 class nsFieldSetFrame final : public nsContainerFrame
@@ -24,16 +24,6 @@ public:
                       nsLayoutUtils::IntrinsicISizeType);
   virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
   virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext) override;
-  virtual mozilla::LogicalSize
-  ComputeSize(nsRenderingContext *aRenderingContext,
-              mozilla::WritingMode aWritingMode,
-              const mozilla::LogicalSize& aCBSize,
-              nscoord aAvailableISize,
-              const mozilla::LogicalSize& aMargin,
-              const mozilla::LogicalSize& aBorder,
-              const mozilla::LogicalSize& aPadding,
-              ComputeSizeFlags aFlags) override;
-  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const override;
 
   /**
    * The area to paint box-shadows around.  It's the border rect except
@@ -46,6 +36,13 @@ public:
                       const ReflowInput& aReflowInput,
                       nsReflowStatus&          aStatus) override;
                                
+  nscoord GetLogicalBaseline(mozilla::WritingMode aWM) const override;
+  bool GetVerticalAlignBaseline(mozilla::WritingMode aWM,
+                                nscoord* aBaseline) const override;
+  bool GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
+                                 BaselineSharingGroup aBaselineGroup,
+                                 nscoord* aBaseline) const override;
+
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override;
@@ -77,6 +74,12 @@ public:
     return do_QueryFrame(GetInner());
   }
 
+  // Update the style on the block wrappers around our kids.
+  virtual void DoUpdateStyleOfOwnedAnonBoxes(
+    mozilla::ServoStyleSet& aStyleSet,
+    nsStyleChangeList& aChangeList,
+    nsChangeHint aHintForThisFrame) override;
+
 #ifdef ACCESSIBILITY  
   virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
@@ -91,7 +94,8 @@ public:
    * Return the anonymous frame that contains all descendants except
    * the legend frame.  This is currently always a block frame with
    * pseudo nsCSSAnonBoxes::fieldsetContent -- this may change in the
-   * future when we add support for CSS overflow for <fieldset>.
+   * future when we add support for CSS overflow for <fieldset>.  This really
+   * can't return null, though callers seem to feel that it can.
    */
   nsIFrame* GetInner() const;
 

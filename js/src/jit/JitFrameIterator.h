@@ -27,17 +27,16 @@ typedef void * CalleeToken;
 
 enum FrameType
 {
-    // A JS frame is analagous to a js::InterpreterFrame, representing one scripted
-    // functon activation. IonJS frames are used by the optimizing compiler.
+    // A JS frame is analogous to a js::InterpreterFrame, representing one scripted
+    // function activation. IonJS frames are used by the optimizing compiler.
     JitFrame_IonJS,
 
     // JS frame used by the baseline JIT.
     JitFrame_BaselineJS,
 
-    // Frame pushed for JIT stubs that make non-tail calls, so that the
+    // Frame pushed by Baseline stubs that make non-tail calls, so that the
     // return address -> ICEntry mapping works.
     JitFrame_BaselineStub,
-    JitFrame_IonStub,
 
     // The entry frame is the initial prologue block transitioning from the VM
     // into the Ion world.
@@ -47,8 +46,8 @@ enum FrameType
     // mismatches in calls.
     JitFrame_Rectifier,
 
-    // Ion IC calling a scripted getter/setter.
-    JitFrame_IonAccessorIC,
+    // Ion IC calling a scripted getter/setter or a VMFunction.
+    JitFrame_IonICCall,
 
     // An exit frame is necessary for transitioning from a JS frame into C++.
     // From within C++, an exit frame is always the last frame in any
@@ -148,11 +147,8 @@ class JitFrameIterator
     bool isIonJS() const {
         return type_ == JitFrame_IonJS;
     }
-    bool isIonStub() const {
-        return type_ == JitFrame_IonStub;
-    }
-    bool isIonAccessorIC() const {
-        return type_ == JitFrame_IonAccessorIC;
+    bool isIonICCall() const {
+        return type_ == JitFrame_IonICCall;
     }
     bool isBailoutJS() const {
         return type_ == JitFrame_Bailout;
@@ -284,7 +280,7 @@ class JitProfilingFrameIterator
     void moveToNextFrame(CommonFrameLayout* frame);
 
   public:
-    JitProfilingFrameIterator(JSRuntime* rt,
+    JitProfilingFrameIterator(JSContext* cx,
                               const JS::ProfilingFrameIterator::RegisterState& state);
     explicit JitProfilingFrameIterator(void* exitFrame);
 
@@ -656,7 +652,6 @@ class InlineFrameIterator
 
   public:
     InlineFrameIterator(JSContext* cx, const JitFrameIterator* iter);
-    InlineFrameIterator(JSRuntime* rt, const JitFrameIterator* iter);
     InlineFrameIterator(JSContext* cx, const InlineFrameIterator* iter);
 
     bool more() const {
@@ -805,6 +800,7 @@ class InlineFrameIterator
         return si_;
     }
     bool isFunctionFrame() const;
+    bool isModuleFrame() const;
     bool isConstructing() const;
 
     JSObject* environmentChain(MaybeReadFallback& fallback) const {

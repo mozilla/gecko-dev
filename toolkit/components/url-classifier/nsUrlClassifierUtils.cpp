@@ -12,6 +12,7 @@
 #include "nsPrintfCString.h"
 #include "safebrowsing.pb.h"
 #include "mozilla/Sprintf.h"
+#include "mozilla/Mutex.h"
 
 #define DEFAULT_PROTOCOL_VERSION "2.2"
 
@@ -145,22 +146,38 @@ CreateClientInfo()
 } // end of namespace safebrowsing.
 } // end of namespace mozilla.
 
-nsUrlClassifierUtils::nsUrlClassifierUtils() : mEscapeCharmap(nullptr)
+nsUrlClassifierUtils::nsUrlClassifierUtils()
+  : mProviderDictLock("nsUrlClassifierUtils.mProviderDictLock")
 {
 }
 
 nsresult
 nsUrlClassifierUtils::Init()
 {
-  // Everything but alpha numerics, - and .
-  mEscapeCharmap = new Charmap(0xffffffff, 0xfc009fff, 0xf8000001, 0xf8000001,
-                               0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
-  if (!mEscapeCharmap)
-    return NS_ERROR_OUT_OF_MEMORY;
+  // nsIUrlClassifierUtils is a thread-safe service so it's
+  // allowed to use on non-main threads. However, building
+  // the provider dictionary must be on the main thread.
+  // We forcefully load nsUrlClassifierUtils in
+  // nsUrlClassifierDBService::Init() to ensure we must
+  // now be on the main thread.
+  nsresult rv = ReadProvidersFromPrefs(mProviderDict);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Add an observer for shutdown
+  nsCOMPtr<nsIObserverService> observerService =
+      mozilla::services::GetObserverService();
+  if (!observerService)
+    return NS_ERROR_FAILURE;
+
+  observerService->AddObserver(this, "xpcom-shutdown-threads", false);
+  Preferences::AddStrongObserver(this, "browser.safebrowsing");
+
   return NS_OK;
 }
 
-NS_IMPL_ISUPPORTS(nsUrlClassifierUtils, nsIUrlClassifierUtils)
+NS_IMPL_ISUPPORTS(nsUrlClassifierUtils,
+                  nsIUrlClassifierUtils,
+                  nsIObserver)
 
 /////////////////////////////////////////////////////////////////////////////
 // nsIUrlClassifierUtils
@@ -214,6 +231,10 @@ static const struct {
   { "goog-unwanted-proto", UNWANTED_SOFTWARE},         // 3
   { "goog-phish-proto", SOCIAL_ENGINEERING},           // 5
 
+  // For application reputation
+  { "goog-badbinurl-proto", MALICIOUS_BINARY},         // 7
+  { "goog-downloadwhite-proto", CSD_DOWNLOAD_WHITELIST},  // 9
+
   // For testing purpose.
   { "test-phish-proto",    SOCIAL_ENGINEERING_PUBLIC}, // 2
   { "test-unwanted-proto", UNWANTED_SOFTWARE}, // 3
@@ -247,6 +268,39 @@ nsUrlClassifierUtils::ConvertListNameToThreatType(const nsACString& aListName,
   }
 
   return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::GetProvider(const nsACString& aTableName,
+                                  nsACString& aProvider)
+{
+  MutexAutoLock lock(mProviderDictLock);
+  nsCString* provider = nullptr;
+  if (StringBeginsWith(aTableName, NS_LITERAL_CSTRING("test"))) {
+    aProvider = NS_LITERAL_CSTRING(TESTING_TABLE_PROVIDER_NAME);
+  } else if (mProviderDict.Get(aTableName, &provider)) {
+    aProvider = provider ? *provider : EmptyCString();
+  } else {
+    aProvider = EmptyCString();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::GetTelemetryProvider(const nsACString& aTableName,
+                                  nsACString& aProvider)
+{
+  GetProvider(aTableName, aProvider);
+  // Filter out build-in providers: mozilla, google, google4
+  // Empty provider is filtered as "other"
+  if (!NS_LITERAL_CSTRING("mozilla").Equals(aProvider) &&
+      !NS_LITERAL_CSTRING("google").Equals(aProvider) &&
+      !NS_LITERAL_CSTRING("google4").Equals(aProvider) &&
+      !NS_LITERAL_CSTRING(TESTING_TABLE_PROVIDER_NAME).Equals(aProvider)) {
+    aProvider.Assign(NS_LITERAL_CSTRING("other"));
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -306,8 +360,211 @@ nsUrlClassifierUtils::MakeUpdateRequestV4(const char** aListNames,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsUrlClassifierUtils::MakeFindFullHashRequestV4(const char** aListNames,
+                                                const char** aListStatesBase64,
+                                                const char** aPrefixesBase64,
+                                                uint32_t aListCount,
+                                                uint32_t aPrefixCount,
+                                                nsACString &aRequest)
+{
+  FindFullHashesRequest r;
+  r.set_allocated_client(CreateClientInfo());
+
+  nsresult rv;
+
+  // Set up FindFullHashesRequest.client_states.
+  for (uint32_t i = 0; i < aListCount; i++) {
+    nsCString stateBinary;
+    rv = Base64Decode(nsCString(aListStatesBase64[i]), stateBinary);
+    NS_ENSURE_SUCCESS(rv, rv);
+    r.add_client_states(stateBinary.get(), stateBinary.Length());
+  }
+
+  //-------------------------------------------------------------------
+  // Set up FindFullHashesRequest.threat_info.
+  auto threatInfo = r.mutable_threat_info();
+
+  // 1) Set threat types.
+  for (uint32_t i = 0; i < aListCount; i++) {
+    uint32_t threatType;
+    rv = ConvertListNameToThreatType(nsCString(aListNames[i]), &threatType);
+    NS_ENSURE_SUCCESS(rv, rv);
+    threatInfo->add_threat_types((ThreatType)threatType);
+  }
+
+  // 2) Set platform type.
+  threatInfo->add_platform_types(GetPlatformType());
+
+  // 3) Set threat entry type.
+  threatInfo->add_threat_entry_types(URL);
+
+  // 4) Set threat entries.
+  for (uint32_t i = 0; i < aPrefixCount; i++) {
+    nsCString prefixBinary;
+    rv = Base64Decode(nsCString(aPrefixesBase64[i]), prefixBinary);
+    threatInfo->add_threat_entries()->set_hash(prefixBinary.get(),
+                                               prefixBinary.Length());
+  }
+  //-------------------------------------------------------------------
+
+  // Then serialize.
+  std::string s;
+  r.SerializeToString(&s);
+
+  nsCString out;
+  rv = Base64URLEncode(s.size(),
+                       (const uint8_t*)s.c_str(),
+                       Base64URLEncodePaddingPolicy::Include,
+                       out);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aRequest = out;
+
+  return NS_OK;
+}
+
+static uint32_t
+DurationToMs(const Duration& aDuration)
+{
+  // Seconds precision is good enough. Ignore nanoseconds like Chrome does.
+  return aDuration.seconds() * 1000;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::ParseFindFullHashResponseV4(const nsACString& aResponse,
+                                                  nsIUrlClassifierParseFindFullHashCallback *aCallback)
+{
+  enum CompletionErrorType {
+    SUCCESS = 0,
+    PARSING_FAILURE = 1,
+    UNKNOWN_THREAT_TYPE = 2,
+  };
+
+  FindFullHashesResponse r;
+  if (!r.ParseFromArray(aResponse.BeginReading(), aResponse.Length())) {
+    NS_WARNING("Invalid response");
+    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_COMPLETION_ERROR,
+                          PARSING_FAILURE);
+    return NS_ERROR_FAILURE;
+  }
+
+  bool hasUnknownThreatType = false;
+
+  for (auto& m : r.matches()) {
+    nsCString tableNames;
+    nsresult rv = ConvertThreatTypeToListNames(m.threat_type(), tableNames);
+    if (NS_FAILED(rv)) {
+      hasUnknownThreatType = true;
+      continue; // Ignore un-convertable threat type.
+    }
+    auto& hash = m.threat().hash();
+    auto cacheDuration = DurationToMs(m.cache_duration());
+    aCallback->OnCompleteHashFound(nsCString(hash.c_str(), hash.length()),
+                                   tableNames, cacheDuration);
+
+    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_POSITIVE_CACHE_DURATION,
+                          cacheDuration);
+  }
+
+  auto minWaitDuration = DurationToMs(r.minimum_wait_duration());
+  auto negCacheDuration = DurationToMs(r.negative_cache_duration());
+
+  aCallback->OnResponseParsed(minWaitDuration, negCacheDuration);
+
+  Telemetry::Accumulate(Telemetry::URLCLASSIFIER_COMPLETION_ERROR,
+                        hasUnknownThreatType ? UNKNOWN_THREAT_TYPE : SUCCESS);
+
+  Telemetry::Accumulate(Telemetry::URLCLASSIFIER_NEGATIVE_CACHE_DURATION,
+                        negCacheDuration);
+
+  return NS_OK;
+}
+
+//////////////////////////////////////////////////////////
+// nsIObserver
+
+NS_IMETHODIMP
+nsUrlClassifierUtils::Observe(nsISupports *aSubject, const char *aTopic,
+                              const char16_t *aData)
+{
+  if (0 == strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
+    MutexAutoLock lock(mProviderDictLock);
+    return ReadProvidersFromPrefs(mProviderDict);
+  }
+
+  if (0 == strcmp(aTopic, "xpcom-shutdown-threads")) {
+    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    NS_ENSURE_TRUE(prefs, NS_ERROR_FAILURE);
+    return prefs->RemoveObserver("browser.safebrowsing", this);
+  }
+
+  return NS_ERROR_UNEXPECTED;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // non-interface methods
+
+nsresult
+nsUrlClassifierUtils::ReadProvidersFromPrefs(ProviderDictType& aDict)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "ReadProvidersFromPrefs must be on main thread");
+
+  nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(prefs, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIPrefBranch> prefBranch;
+  nsresult rv = prefs->GetBranch("browser.safebrowsing.provider.",
+                                  getter_AddRefs(prefBranch));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // We've got a pref branch for "browser.safebrowsing.provider.".
+  // Enumerate all children prefs and parse providers.
+  uint32_t childCount;
+  char** childArray;
+  rv = prefBranch->GetChildList("", &childCount, &childArray);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Collect providers from childArray.
+  nsTHashtable<nsCStringHashKey> providers;
+  for (uint32_t i = 0; i < childCount; i++) {
+    nsCString child(childArray[i]);
+    auto dotPos = child.FindChar('.');
+    if (dotPos < 0) {
+      continue;
+    }
+
+    nsDependentCSubstring provider = Substring(child, 0, dotPos);
+
+    providers.PutEntry(provider);
+  }
+  NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(childCount, childArray);
+
+  // Now we have all providers. Check which one owns |aTableName|.
+  // e.g. The owning lists of provider "google" is defined in
+  // "browser.safebrowsing.provider.google.lists".
+  for (auto itr = providers.Iter(); !itr.Done(); itr.Next()) {
+    auto entry = itr.Get();
+    nsCString provider(entry->GetKey());
+    nsPrintfCString owninListsPref("%s.lists", provider.get());
+
+    nsXPIDLCString owningLists;
+    nsresult rv = prefBranch->GetCharPref(owninListsPref.get(),
+                                          getter_Copies(owningLists));
+    if (NS_FAILED(rv)) {
+      continue;
+    }
+
+    // We've got the owning lists (represented as string) of |provider|.
+    // Build the dictionary for the owning list and the current provider.
+    nsTArray<nsCString> tables;
+    Classifier::SplitTables(owningLists, tables);
+    for (auto tableName : tables) {
+      aDict.Put(tableName, new nsCString(provider));
+    }
+  }
+
+  return NS_OK;
+}
 
 nsresult
 nsUrlClassifierUtils::CanonicalizeHostname(const nsACString & hostname,

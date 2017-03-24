@@ -6,16 +6,17 @@
 
 "use strict";
 
-const {Cu, Cc, Ci, components} = require("chrome");
+const {Cc, Ci, Cu, Cm, Cr, components} = require("chrome");
+const registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
+const { XPCOMUtils } = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
 const Services = require("Services");
-const {Class} = require("sdk/core/heritage");
-const {Unknown} = require("sdk/platform/xpcom");
-const xpcom = require("sdk/platform/xpcom");
-const Events = require("sdk/dom/events");
-const Clipboard = require("sdk/clipboard");
 
 loader.lazyRequireGetter(this, "NetworkHelper",
                                "devtools/shared/webconsole/network-helper");
+loader.lazyRequireGetter(this, "Events",
+                               "sdk/dom/events");
+loader.lazyRequireGetter(this, "Clipboard",
+                               "sdk/clipboard");
 loader.lazyRequireGetter(this, "JsonViewUtils",
                                "devtools/client/jsonview/utils");
 
@@ -30,11 +31,14 @@ const SEGMENT_SIZE = Math.pow(2, 17);
 const JSON_VIEW_MIME_TYPE = "application/vnd.mozilla.json.view";
 const CONTRACT_ID = "@mozilla.org/streamconv;1?from=" +
   JSON_VIEW_MIME_TYPE + "&to=*/*";
-const CLASS_ID = "{d8c9acee-dec5-11e4-8c75-1681e6b88ec1}";
+const CLASS_ID = components.ID("{d8c9acee-dec5-11e4-8c75-1681e6b88ec1}");
+const CLASS_DESCRIPTION = "JSONView converter";
 
 // Localization
-let jsonViewStrings = Services.strings.createBundle(
-  "chrome://devtools/locale/jsonview.properties");
+loader.lazyGetter(this, "jsonViewStrings", () => {
+  return Services.strings.createBundle(
+    "chrome://devtools/locale/jsonview.properties");
+});
 
 /**
  * This object detects 'application/vnd.mozilla.json.view' content type
@@ -43,14 +47,14 @@ let jsonViewStrings = Services.strings.createBundle(
  *
  * Inspired by JSON View: https://github.com/bhollis/jsonview/
  */
-let Converter = Class({
-  extends: Unknown,
+function Converter() {}
 
-  interfaces: [
-    "nsIStreamConverter",
-    "nsIStreamListener",
-    "nsIRequestObserver"
-  ],
+Converter.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIStreamConverter,
+    Ci.nsIStreamListener,
+    Ci.nsIRequestObserver
+  ]),
 
   get wrappedJSObject() {
     return this;
@@ -106,6 +110,10 @@ let Converter = Class({
     this.channel = request;
     this.channel.contentType = "text/html";
     this.channel.contentCharset = "UTF-8";
+    // Because content might still have a reference to this window,
+    // force setting it to a null principal to avoid it being same-
+    // origin with (other) content.
+    this.channel.loadInfo.resetPrincipalsToNullPrincipal();
 
     this.listener.onStartRequest(this.channel, context);
   },
@@ -140,9 +148,8 @@ let Converter = Class({
     JsonViewUtils.exportIntoContentScope(win, Locale, "Locale");
 
     Events.once(win, "DOMContentLoaded", event => {
-      Cu.exportFunction(this.postChromeMessage.bind(this), win, {
-        defineAs: "postChromeMessage"
-      });
+      win.addEventListener("contentMessage",
+        this.onContentMessage.bind(this), false, true);
     });
 
     // The request doesn't have to be always nsIHttpChannel
@@ -211,6 +218,7 @@ let Converter = Class({
     let baseUrl = clientBaseUrl + "jsonview/";
     let themeVarsUrl = clientBaseUrl + "themes/variables.css";
     let commonUrl = clientBaseUrl + "themes/common.css";
+    let toolbarsUrl = clientBaseUrl + "themes/toolbars.css";
 
     let os;
     let platform = Services.appinfo.OS;
@@ -222,14 +230,21 @@ let Converter = Class({
       os = "linux";
     }
 
+    let chromeReg = Cc["@mozilla.org/chrome/chrome-registry;1"]
+                        .getService(Ci.nsIXULChromeRegistry);
+    let dir = chromeReg.isLocaleRTL("global") ? "rtl" : "ltr";
+
     return "<!DOCTYPE html>\n" +
-      "<html platform=\"" + os + "\" class=\"" + themeClassName + "\">" +
+      "<html platform=\"" + os + "\" class=\"" + themeClassName +
+        "\" dir=\"" + dir + "\">" +
       "<head><title>" + this.htmlEncode(title) + "</title>" +
       "<base href=\"" + this.htmlEncode(baseUrl) + "\">" +
       "<link rel=\"stylesheet\" type=\"text/css\" href=\"" +
         themeVarsUrl + "\">" +
       "<link rel=\"stylesheet\" type=\"text/css\" href=\"" +
         commonUrl + "\">" +
+      "<link rel=\"stylesheet\" type=\"text/css\" href=\"" +
+        toolbarsUrl + "\">" +
       "<link rel=\"stylesheet\" type=\"text/css\" href=\"css/main.css\">" +
       "<script data-main=\"viewer-config\" src=\"lib/require.js\"></script>" +
       "</head><body>" +
@@ -253,20 +268,29 @@ let Converter = Class({
     output += "</div><div id=\"json\">" + this.highlightError(data,
       errorInfo.line, errorInfo.column) + "</div>";
 
+    let chromeReg = Cc["@mozilla.org/chrome/chrome-registry;1"]
+                        .getService(Ci.nsIXULChromeRegistry);
+    let dir = chromeReg.isLocaleRTL("global") ? "rtl" : "ltr";
+
     return "<!DOCTYPE html>\n" +
       "<html><head><title>" + this.htmlEncode(uri + " - Error") + "</title>" +
       "<base href=\"" + this.htmlEncode(this.data.url()) + "\">" +
-      "</head><body>" +
+      "</head><body dir=\"" + dir + "\">" +
       output +
       "</body></html>";
   },
 
   // Chrome <-> Content communication
 
-  postChromeMessage: function (type, args, objects) {
-    let value = args;
+  onContentMessage: function (e) {
+    // Do not handle events from different documents.
+    let win = NetworkHelper.getWindowForRequest(this.channel);
+    if (win != e.target) {
+      return;
+    }
 
-    switch (type) {
+    let value = e.detail.value;
+    switch (e.detail.type) {
       case "copy":
         Clipboard.set(value, "text");
         break;
@@ -301,28 +325,32 @@ let Converter = Class({
 
     Clipboard.set(value, "text");
   }
-});
+};
 
-// Stream converter component definition
-let service = xpcom.Service({
-  id: components.ID(CLASS_ID),
-  contract: CONTRACT_ID,
-  Component: Converter,
-  register: false,
-  unregister: false
-});
+const Factory = {
+  createInstance: function (outer, iid) {
+    if (outer) {
+      throw Cr.NS_ERROR_NO_AGGREGATION;
+    }
+    return new Converter();
+  }
+};
 
 function register() {
-  if (!xpcom.isRegistered(service)) {
-    xpcom.register(service);
+  if (!registrar.isCIDRegistered(CLASS_ID)) {
+    registrar.registerFactory(CLASS_ID,
+      CLASS_DESCRIPTION,
+      CONTRACT_ID,
+      Factory);
     return true;
   }
+
   return false;
 }
 
 function unregister() {
-  if (xpcom.isRegistered(service)) {
-    xpcom.unregister(service);
+  if (registrar.isCIDRegistered(CLASS_ID)) {
+    registrar.unregisterFactory(CLASS_ID, Factory);
     return true;
   }
   return false;

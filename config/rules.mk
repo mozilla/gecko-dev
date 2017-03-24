@@ -80,18 +80,12 @@ endif
 run-cppunittests::
 	@$(PYTHON) $(MOZILLA_DIR)/testing/runcppunittests.py --xre-path=$(DIST)/bin --symbols-path=$(DIST)/crashreporter-symbols $(CPP_UNIT_TESTS)
 
-cppunittests-remote: DM_TRANS?=adb
 cppunittests-remote:
-	@if [ '${TEST_DEVICE}' != '' -o '$(DM_TRANS)' = 'adb' ]; then \
-		$(PYTHON) -u $(MOZILLA_DIR)/testing/remotecppunittests.py \
-			--xre-path=$(DEPTH)/dist/bin \
-			--localLib=$(DEPTH)/dist/$(MOZ_APP_NAME) \
-			--dm_trans=$(DM_TRANS) \
-			--deviceIP=${TEST_DEVICE} \
-			$(CPP_UNIT_TESTS) $(EXTRA_TEST_ARGS); \
-	else \
-		echo 'please prepare your host with environment variables for TEST_DEVICE'; \
-	fi
+	$(PYTHON) -u $(MOZILLA_DIR)/testing/remotecppunittests.py \
+		--xre-path=$(DEPTH)/dist/bin \
+		--localLib=$(DEPTH)/dist/$(MOZ_APP_NAME) \
+		--deviceIP=${TEST_DEVICE} \
+		$(CPP_UNIT_TESTS) $(EXTRA_TEST_ARGS); \
 
 endif # COMPILE_ENVIRONMENT
 endif # CPP_UNIT_TESTS
@@ -116,8 +110,8 @@ else
 LIBRARY			:= $(REAL_LIBRARY).$(LIBS_DESC_SUFFIX)
 endif
 else
-# Only build actual library if it is installed in DIST/lib or SDK
-ifeq (,$(SDK_LIBRARY)$(DIST_INSTALL)$(NO_EXPAND_LIBS))
+# Only build actual library if it is installed in DIST/lib
+ifeq (,$(DIST_INSTALL)$(NO_EXPAND_LIBS))
 LIBRARY			:= $(REAL_LIBRARY).$(LIBS_DESC_SUFFIX)
 else
 ifdef NO_EXPAND_LIBS
@@ -167,7 +161,7 @@ ifndef GNU_CC
 ifdef SIMPLE_PROGRAMS
 COMPILE_PDB_FLAG ?= -Fd$(basename $(@F)).pdb
 else
-COMPILE_PDB_FLAG ?= -Fdgenerated.pdb
+COMPILE_PDB_FLAG ?= -Fdgenerated.pdb -FS
 endif
 COMPILE_CFLAGS += $(COMPILE_PDB_FLAG)
 COMPILE_CXXFLAGS += $(COMPILE_PDB_FLAG)
@@ -206,8 +200,11 @@ HOST_CFLAGS += $(HOST_PDB_FLAG)
 HOST_CXXFLAGS += $(HOST_PDB_FLAG)
 endif
 
-# Don't build SIMPLE_PROGRAMS during the MOZ_PROFILE_GENERATE pass
+# Don't build SIMPLE_PROGRAMS during the MOZ_PROFILE_GENERATE pass, and do not
+# attempt to install them
 ifdef MOZ_PROFILE_GENERATE
+$(foreach category,$(INSTALL_TARGETS),\
+  $(eval $(category)_FILES := $(foreach file,$($(category)_FILES),$(if $(filter $(SIMPLE_PROGRAMS),$(notdir $(file))),,$(file)))))
 SIMPLE_PROGRAMS :=
 endif
 
@@ -249,7 +246,6 @@ SIMPLE_PROGRAMS :=
 HOST_LIBRARY :=
 HOST_PROGRAM :=
 HOST_SIMPLE_PROGRAMS :=
-SDK_LIBRARY :=
 endif
 
 ALL_TRASH = \
@@ -547,9 +543,9 @@ OBJ_TARGETS = $(OBJS) $(PROGOBJS) $(HOST_OBJS) $(HOST_PROGOBJS)
 
 compile:: host target
 
-host:: $(HOST_LIBRARY) $(HOST_PROGRAM) $(HOST_SIMPLE_PROGRAMS)
+host:: $(HOST_LIBRARY) $(HOST_PROGRAM) $(HOST_SIMPLE_PROGRAMS) $(HOST_RUST_PROGRAMS) $(HOST_RUST_LIBRARY_FILE)
 
-target:: $(LIBRARY) $(SHARED_LIBRARY) $(PROGRAM) $(SIMPLE_PROGRAMS) $(RUST_LIBRARY_FILE)
+target:: $(LIBRARY) $(SHARED_LIBRARY) $(PROGRAM) $(SIMPLE_PROGRAMS) $(RUST_LIBRARY_FILE) $(RUST_PROGRAMS)
 
 include $(MOZILLA_DIR)/config/makefiles/target_binaries.mk
 endif
@@ -599,10 +595,12 @@ endif
 endif
 
 ifneq (,$(MOZ_PROFILE_GENERATE)$(MOZ_PROFILE_USE))
+ifneq (,$(filter target,$(MAKECMDGOALS)))
 ifdef GNU_CC
 # Force rebuilding libraries and programs in both passes because each
 # pass uses different object files.
 $(PROGRAM) $(SHARED_LIBRARY) $(LIBRARY): FORCE
+endif
 endif
 endif
 
@@ -640,7 +638,7 @@ $(PROGRAM): $(PROGOBJS) $(STATIC_LIBS_DEPS) $(EXTRA_DEPS) $(EXE_DEF_FILE) $(RESF
 	$(REPORT_BUILD)
 	@$(RM) $@.manifest
 ifeq (_WINNT,$(GNU_CC)_$(OS_ARCH))
-	$(EXPAND_LD) -NOLOGO -OUT:$@ -PDB:$(LINK_PDBFILE) $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(MOZ_PROGRAM_LDFLAGS) $(PROGOBJS) $(RESFILE) $(STATIC_LIBS) $(SHARED_LIBS) $(EXTRA_LIBS) $(OS_LIBS)
+	$(EXPAND_LINK) -NOLOGO -OUT:$@ -PDB:$(LINK_PDBFILE) $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(MOZ_PROGRAM_LDFLAGS) $(PROGOBJS) $(RESFILE) $(STATIC_LIBS) $(SHARED_LIBS) $(EXTRA_LIBS) $(OS_LIBS)
 ifdef MSMANIFEST_TOOL
 	@if test -f $@.manifest; then \
 		if test -f '$(srcdir)/$@.manifest'; then \
@@ -675,7 +673,7 @@ endif
 $(HOST_PROGRAM): $(HOST_PROGOBJS) $(HOST_LIBS) $(HOST_EXTRA_DEPS) $(GLOBAL_DEPS)
 	$(REPORT_BUILD)
 ifeq (_WINNT,$(GNU_CC)_$(HOST_OS_ARCH))
-	$(EXPAND_LIBS_EXEC) -- $(HOST_LD) -NOLOGO -OUT:$@ -PDB:$(HOST_PDBFILE) $(HOST_OBJS) $(WIN32_EXE_LDFLAGS) $(HOST_LDFLAGS) $(HOST_LIBS) $(HOST_EXTRA_LIBS)
+	$(EXPAND_LIBS_EXEC) -- $(LINK) -NOLOGO -OUT:$@ -PDB:$(HOST_PDBFILE) $(HOST_OBJS) $(WIN32_EXE_LDFLAGS) $(HOST_LDFLAGS) $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 ifdef MSMANIFEST_TOOL
 	@if test -f $@.manifest; then \
 		if test -f '$(srcdir)/$@.manifest'; then \
@@ -712,7 +710,7 @@ endif
 $(SIMPLE_PROGRAMS): %$(BIN_SUFFIX): %.$(OBJ_SUFFIX) $(STATIC_LIBS_DEPS) $(EXTRA_DEPS) $(GLOBAL_DEPS)
 	$(REPORT_BUILD)
 ifeq (_WINNT,$(GNU_CC)_$(OS_ARCH))
-	$(EXPAND_LD) -nologo -out:$@ -pdb:$(LINK_PDBFILE) $< $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(MOZ_PROGRAM_LDFLAGS) $(STATIC_LIBS) $(SHARED_LIBS) $(EXTRA_LIBS) $(OS_LIBS)
+	$(EXPAND_LINK) -nologo -out:$@ -pdb:$(LINK_PDBFILE) $< $(WIN32_EXE_LDFLAGS) $(LDFLAGS) $(MOZ_PROGRAM_LDFLAGS) $(STATIC_LIBS) $(SHARED_LIBS) $(EXTRA_LIBS) $(OS_LIBS)
 ifdef MSMANIFEST_TOOL
 	@if test -f $@.manifest; then \
 		$(MT) -NOLOGO -MANIFEST $@.manifest -OUTPUTRESOURCE:$@\;1; \
@@ -734,7 +732,7 @@ endif
 $(HOST_SIMPLE_PROGRAMS): host_%$(HOST_BIN_SUFFIX): host_%.$(OBJ_SUFFIX) $(HOST_LIBS) $(HOST_EXTRA_DEPS) $(GLOBAL_DEPS)
 	$(REPORT_BUILD)
 ifeq (WINNT_,$(HOST_OS_ARCH)_$(GNU_CC))
-	$(EXPAND_LIBS_EXEC) -- $(HOST_LD) -NOLOGO -OUT:$@ -PDB:$(HOST_PDBFILE) $< $(WIN32_EXE_LDFLAGS) $(HOST_LIBS) $(HOST_EXTRA_LIBS)
+	$(EXPAND_LIBS_EXEC) -- $(LINK) -NOLOGO -OUT:$@ -PDB:$(HOST_PDBFILE) $< $(WIN32_EXE_LDFLAGS) $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 else
 ifneq (,$(HOST_CPPSRCS)$(USE_HOST_CXX))
 	$(EXPAND_LIBS_EXEC) -- $(HOST_CXX) $(HOST_OUTOPTION)$@ $(HOST_CXXFLAGS) $(INCLUDES) $< $(HOST_LIBS) $(HOST_EXTRA_LIBS)
@@ -906,32 +904,103 @@ $(ASOBJS):
 endif
 
 ifdef MOZ_RUST
-ifdef RUST_LIBRARY_FILE
+cargo_host_flag := --target=$(RUST_HOST_TARGET)
+cargo_target_flag := --target=$(RUST_TARGET)
 
 # Permit users to pass flags to cargo from their mozconfigs (e.g. --color=always).
 cargo_build_flags = $(CARGOFLAGS)
 ifndef MOZ_DEBUG
-cargo_build_flags = --release
+cargo_build_flags += --release
 endif
-ifdef MOZ_CARGO_SUPPORTS_FROZEN
 cargo_build_flags += --frozen
-endif
 
 cargo_build_flags += --manifest-path $(CARGO_FILE)
-cargo_build_flags += --target=$(RUST_TARGET)
+ifdef BUILD_VERBOSE_LOG
 cargo_build_flags += --verbose
+endif
+
+# Enable color output if original stdout was a TTY and color settings
+# aren't already present. This essentially restores the default behavior
+# of cargo when running via `mach`.
+ifdef MACH_STDOUT_ISATTY
+ifeq (,$(findstring --color,$(cargo_build_flags)))
+cargo_build_flags += --color=always
+endif
+endif
+
+# Cargo currently supports only two interesting profiles for building:
+# development and release.  Those map (roughly) to --enable-debug and
+# --disable-debug in Gecko, respectively, but there's another axis that we'd
+# like to support: --{disable,enable}-optimize.  Since that would be four
+# choices, and Cargo only supports two, we choose to enable various
+# optimization levels in our Cargo.toml files all the time, and override the
+# optimization level here, if necessary.  (The Cargo.toml files already
+# specify debug-assertions appropriately for --{disable,enable}-debug.)
+ifndef MOZ_OPTIMIZE
+rustflags = -C opt-level=0
+# Unfortunately, -C opt-level=0 implies -C debug-assertions, so we need
+# to explicitly disable them when MOZ_DEBUG is not set.
+ifndef MOZ_DEBUG
+rustflags += -C debug-assertions=no
+endif
+rustflags_override = RUSTFLAGS='$(rustflags)'
+endif
+
+CARGO_BUILD = env $(rustflags_override) \
+	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) \
+	RUSTC=$(RUSTC) \
+	MOZ_DIST=$(ABS_DIST) \
+	LIBCLANG_PATH=$(MOZ_LIBCLANG_PATH) \
+	CLANG_PATH=$(MOZ_CLANG_PATH) \
+	PKG_CONFIG_ALLOW_CROSS=1 \
+	RUST_BACKTRACE=1 \
+	$(CARGO) build $(cargo_build_flags)
+
+ifdef RUST_LIBRARY_FILE
+
+ifdef RUST_LIBRARY_FEATURES
+rust_features_flag := --features "$(RUST_LIBRARY_FEATURES)"
+endif
 
 # Assume any system libraries rustc links against are already in the target's LIBS.
 #
 # We need to run cargo unconditionally, because cargo is the only thing that
 # has full visibility into how changes in Rust sources might affect the final
 # build.
-force-cargo-build:
+force-cargo-library-build:
 	$(REPORT_BUILD)
-	env CARGO_TARGET_DIR=. RUSTC=$(RUSTC) $(CARGO) build $(cargo_build_flags) --
+	$(CARGO_BUILD) --lib $(cargo_target_flag) $(rust_features_flag)
 
-$(RUST_LIBRARY_FILE): force-cargo-build
-endif # CARGO_FILE
+$(RUST_LIBRARY_FILE): force-cargo-library-build
+endif # RUST_LIBRARY_FILE
+
+ifdef HOST_RUST_LIBRARY_FILE
+
+ifdef HOST_RUST_LIBRARY_FEATURES
+host_rust_features_flag := --features "$(HOST_RUST_LIBRARY_FEATURES)"
+endif
+
+force-cargo-host-library-build:
+	$(REPORT_BUILD)
+	$(CARGO_BUILD) --lib $(cargo_host_flag) $(host_rust_features_flag)
+
+$(HOST_RUST_LIBRARY_FILE): force-cargo-host-library-build
+endif # HOST_RUST_LIBRARY_FILE
+
+ifdef RUST_PROGRAMS
+force-cargo-program-build:
+	$(REPORT_BUILD)
+	$(CARGO_BUILD) $(addprefix --bin ,$(RUST_CARGO_PROGRAMS)) $(cargo_target_flag)
+
+$(RUST_PROGRAMS): force-cargo-program-build
+endif # RUST_PROGRAMS
+ifdef HOST_RUST_PROGRAMS
+force-cargo-host-program-build:
+	$(REPORT_BUILD)
+	$(CARGO_BUILD) $(addprefix --bin ,$(HOST_RUST_CARGO_PROGRAMS)) $(cargo_host_flag)
+
+$(HOST_RUST_PROGRAMS): force-cargo-host-program-build
+endif # HOST_RUST_PROGRAMS
 endif # MOZ_RUST
 
 $(SOBJS):
@@ -1132,18 +1201,6 @@ PREF_DIR = defaults/pref
 ifneq (,$(DIST_SUBDIR)$(XPI_NAME))
 PREF_DIR = defaults/preferences
 endif
-
-################################################################################
-# SDK
-
-ifneq (,$(SDK_LIBRARY))
-ifndef NO_DIST_INSTALL
-SDK_LIBRARY_FILES := $(SDK_LIBRARY)
-SDK_LIBRARY_DEST := $(SDK_LIB_DIR)
-SDK_LIBRARY_TARGET := target
-INSTALL_TARGETS += SDK_LIBRARY
-endif
-endif # SDK_LIBRARY
 
 ################################################################################
 # CHROME PACKAGING
@@ -1488,12 +1545,6 @@ endif #}
 documentation:
 	@cd $(DEPTH)
 	$(DOXYGEN) $(DEPTH)/config/doxygen.cfg
-
-ifdef ENABLE_TESTS
-check::
-	$(LOOP_OVER_DIRS)
-endif
-
 
 FREEZE_VARIABLES = \
   CSRCS \

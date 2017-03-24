@@ -9,6 +9,7 @@ EXPORTS += [
     'mozmemory_wrap.h',
 ]
 
+LIBRARY_DEFINES['MOZ_HAS_MOZGLUE'] = True
 DEFINES['MOZ_MEMORY_IMPL'] = True
 
 if CONFIG['MOZ_REPLACE_MALLOC']:
@@ -38,20 +39,15 @@ if CONFIG['MOZ_REPLACE_MALLOC']:
         'replace_malloc.c',
     ]
 
-Library('memory')
-
-if CONFIG['MOZ_JEMALLOC4']:
-    if not CONFIG['MOZ_SYSTEM_JEMALLOC']:
-        USE_LIBS += [
-            'jemalloc',
-        ]
-else:
-    USE_LIBS += [
-        'mozjemalloc',
+if CONFIG['OS_TARGET'] == 'Darwin' and (CONFIG['MOZ_REPLACE_MALLOC'] or
+        CONFIG['MOZ_MEMORY'] and not CONFIG['MOZ_JEMALLOC4']):
+    SOURCES += [
+        'zone.c',
     ]
 
+Library('memory')
+
 if CONFIG['MOZ_GLUE_IN_PROGRAM']:
-    SDK_LIBRARY = True
     DIST_INSTALL = True
 
 # Keep jemalloc separated when mozglue is statically linked

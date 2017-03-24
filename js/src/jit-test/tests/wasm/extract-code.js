@@ -1,6 +1,3 @@
-// |jit-test| test-also-wasm-baseline
-load(libdir + "wasm.js");
-
 var module = new WebAssembly.Module(wasmTextToBinary(`(module (func (nop)))`));
 var exp = wasmExtractCode(module);
 assertEq(exp.code instanceof Uint8Array, true);

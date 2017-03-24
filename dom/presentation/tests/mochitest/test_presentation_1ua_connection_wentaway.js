@@ -37,10 +37,9 @@ function setup() {
     receiverIframe.setAttribute("remote", oop);
 
     receiverIframe.setAttribute('src', receiverUrl);
-    receiverIframe.addEventListener("mozbrowserloadend", function mozbrowserloadendHander() {
-      receiverIframe.removeEventListener("mozbrowserloadend", mozbrowserloadendHander);
+    receiverIframe.addEventListener("mozbrowserloadend", function() {
       info("Receiver loaded.");
-    });
+    }, {once: true});
 
     // This event is triggered when the iframe calls "alert".
     receiverIframe.addEventListener("mozbrowsershowmodalprompt", function receiverListener(evt) {
@@ -59,7 +58,7 @@ function setup() {
                                             receiverListener);
         teardown();
       }
-    }, false);
+    });
 
     var promise = new Promise(function(aResolve, aReject) {
       document.body.appendChild(receiverIframe);
@@ -169,6 +168,7 @@ SpecialPowers.pushPermissions([
                                       ["dom.presentation.test.enabled", true],
                                       ["dom.mozBrowserFramesEnabled", true],
                                       ["dom.ipc.tabs.disabled", false],
+                                      ["network.disable.ipc.security", true],
                                       ["dom.presentation.test.stage", 0]]},
                             runTests);
 });

@@ -18,19 +18,13 @@ MOZ_DEFINE_STYLO_METHODS(StyleSheet, CSSStyleSheet, ServoStyleSheet)
 StyleSheetInfo&
 StyleSheet::SheetInfo()
 {
-  if (IsServo()) {
-    return AsServo()->mSheetInfo;
-  }
-  return *AsGecko()->mInner;
+  return *mInner;
 }
 
 const StyleSheetInfo&
 StyleSheet::SheetInfo() const
 {
-  if (IsServo()) {
-    return AsServo()->mSheetInfo;
-  }
-  return *AsGecko()->mInner;
+  return *mInner;
 }
 
 bool
@@ -82,18 +76,6 @@ StyleSheet::HasRules() const
   MOZ_STYLO_FORWARD(HasRules, ())
 }
 
-void
-StyleSheet::SetOwningDocument(nsIDocument* aDocument)
-{
-  MOZ_STYLO_FORWARD(SetOwningDocument, (aDocument))
-}
-
-StyleSheet*
-StyleSheet::GetParentSheet() const
-{
-  MOZ_STYLO_FORWARD(GetParentSheet, ())
-}
-
 StyleSheet*
 StyleSheet::GetParentStyleSheet() const
 {
@@ -107,13 +89,6 @@ StyleSheet::GetParentObject() const
     return dom::ParentObject(mOwningNode);
   }
   return dom::ParentObject(GetParentSheet());
-}
-
-void
-StyleSheet::AppendStyleSheet(StyleSheet* aSheet)
-{
-  MOZ_STYLO_FORWARD_CONCRETE(AppendStyleSheet,
-                             (aSheet->AsGecko()), (aSheet->AsServo()))
 }
 
 nsIPrincipal*
@@ -152,20 +127,6 @@ StyleSheet::GetIntegrity(dom::SRIMetadata& aResult) const
 {
   aResult = SheetInfo().mIntegrity;
 }
-
-size_t
-StyleSheet::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
-{
-  MOZ_STYLO_FORWARD(SizeOfIncludingThis, (aMallocSizeOf))
-}
-
-#ifdef DEBUG
-void
-StyleSheet::List(FILE* aOut, int32_t aIndex) const
-{
-  MOZ_STYLO_FORWARD(List, (aOut, aIndex))
-}
-#endif
 
 void StyleSheet::WillDirty() { MOZ_STYLO_FORWARD(WillDirty, ()) }
 void StyleSheet::DidDirty() { MOZ_STYLO_FORWARD(DidDirty, ()) }

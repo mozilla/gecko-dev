@@ -16,6 +16,8 @@
 #include "nsThreadUtils.h"
 #include "runnable_utils.h"
 #include "GMPUtils.h"
+#include "mozilla/SystemGroup.h"
+#include "GMPCrashHelper.h"
 
 namespace mozilla {
 
@@ -257,10 +259,9 @@ GMPVideoEncoderParent::ActorDestroy(ActorDestroyReason aWhy)
   // Must be shut down before VideoEncoderDestroyed(), since this can recurse
   // the GMPThread event loop.  See bug 1049501
   if (mEncodedThread) {
-    // Can't get it to allow me to use WrapRunnable with a nsCOMPtr<nsIThread>()
-    NS_DispatchToMainThread(
-      WrapRunnableNM<decltype(&ShutdownEncodedThread),
-                     nsCOMPtr<nsIThread> >(&ShutdownEncodedThread, mEncodedThread));
+    nsCOMPtr<nsIRunnable> r = WrapRunnableNM(
+      &ShutdownEncodedThread, nsCOMPtr<nsIThread>(mEncodedThread));
+    SystemGroup::Dispatch("ShutdownEncodedThread", TaskCategory::Other, r.forget());
     mEncodedThread = nullptr;
   }
   if (mPlugin) {
@@ -287,12 +288,12 @@ EncodedCallback(GMPVideoEncoderCallbackProxy* aCallback,
                    NS_DISPATCH_NORMAL);
 }
 
-bool
+mozilla::ipc::IPCResult
 GMPVideoEncoderParent::RecvEncoded(const GMPVideoEncodedFrameData& aEncodedFrame,
                                    InfallibleTArray<uint8_t>&& aCodecSpecificInfo)
 {
   if (!mCallback) {
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
 
   auto f = new GMPVideoEncodedFrameImpl(aEncodedFrame, &mVideoHost);
@@ -304,30 +305,30 @@ GMPVideoEncoderParent::RecvEncoded(const GMPVideoEncodedFrameData& aEncodedFrame
                                           mCallback, f, codecSpecificInfo, thread),
                            NS_DISPATCH_NORMAL);
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 GMPVideoEncoderParent::RecvError(const GMPErr& aError)
 {
   if (!mCallback) {
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
 
   // Ignore any return code. It is OK for this to fail without killing the process.
   mCallback->Error(aError);
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 GMPVideoEncoderParent::RecvShutdown()
 {
   Shutdown();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 GMPVideoEncoderParent::RecvParentShmemForPool(Shmem&& aFrameBuffer)
 {
   if (aFrameBuffer.IsWritable()) {
@@ -341,10 +342,10 @@ GMPVideoEncoderParent::RecvParentShmemForPool(Shmem&& aFrameBuffer)
       DeallocShmem(aFrameBuffer);
     }
   }
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 GMPVideoEncoderParent::AnswerNeedShmem(const uint32_t& aEncodedBufferSize,
                                        Shmem* aMem)
 {
@@ -359,14 +360,14 @@ GMPVideoEncoderParent::AnswerNeedShmem(const uint32_t& aEncodedBufferSize,
   {
     LOG(LogLevel::Error, ("%s::%s: Failed to get a shared mem buffer for Child! size %u",
                        __CLASS__, __FUNCTION__, aEncodedBufferSize));
-    return false;
+    return IPC_FAIL_NO_REASON(this);
   }
   *aMem = mem;
   mem = ipc::Shmem();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 GMPVideoEncoderParent::Recv__delete__()
 {
   if (mPlugin) {
@@ -375,7 +376,7 @@ GMPVideoEncoderParent::Recv__delete__()
     mPlugin = nullptr;
   }
 
-  return true;
+  return IPC_OK();
 }
 
 } // namespace gmp

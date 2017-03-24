@@ -24,7 +24,7 @@ var SidebarUtils = {
       // respectively.)  Therefore, we make sure to exclude the blank area
       // before the tree item icon (that is, to the left or right of it in
       // LTR and RTL modes, respectively) from the click target area.
-      var isRTL = window.getComputedStyle(aTree, null).direction == "rtl";
+      var isRTL = window.getComputedStyle(aTree).direction == "rtl";
       if (isRTL)
         mouseInGutter = aEvent.clientX > rect.x;
       else
@@ -42,14 +42,11 @@ var SidebarUtils = {
 
     if (aEvent.button == 0 && isContainer && !openInTabs) {
       tbo.view.toggleOpenState(cell.row);
-      return;
-    }
-    else if (!mouseInGutter && openInTabs &&
+    } else if (!mouseInGutter && openInTabs &&
             aEvent.originalTarget.localName == "treechildren") {
       tbo.view.selection.select(cell.row);
       PlacesUIUtils.openContainerNodeInTabs(aTree.selectedNode, aEvent, aTree);
-    }
-    else if (!mouseInGutter && !isContainer &&
+    } else if (!mouseInGutter && !isContainer &&
              aEvent.originalTarget.localName == "treechildren") {
       // Clear all other selection since we're loading a link now. We must
       // do this *before* attempting to load the link since openURL uses
@@ -90,8 +87,7 @@ var SidebarUtils = {
         this.setMouseoverURL(node.uri);
       else
         this.setMouseoverURL("");
-    }
-    else
+    } else
       this.setMouseoverURL("");
   },
 

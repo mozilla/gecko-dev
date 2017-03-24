@@ -14,19 +14,20 @@ add_task(function* () {
   // It seems that this test may be slow on Ubuntu builds running on ec2.
   requestLongerTimeout(2);
 
-  let { NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
+  let { document, gStore, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/actions/index");
 
-  RequestsMenu.lazyUpdate = false;
+  gStore.dispatch(Actions.batchEnable(false));
 
   let count = 0;
-  function check(selectedIndex, paneVisibility) {
+  function check(selectedIndex, panelVisibility) {
     info("Performing check " + (count++) + ".");
 
-    is(RequestsMenu.selectedIndex, selectedIndex,
+    let requestItems = Array.from(document.querySelectorAll(".request-list-item"));
+    is(requestItems.findIndex((item) => item.matches(".selected")), selectedIndex,
       "The selected item in the requests menu was incorrect.");
-    is(NetMonitorView.detailsPaneHidden, !paneVisibility,
-      "The network requests details pane visibility state was incorrect.");
+    is(!!document.querySelector(".network-details-panel"), panelVisibility,
+      "The network details panel should render correctly.");
   }
 
   let wait = waitForNetworkEvents(monitor, 2);
@@ -37,24 +38,19 @@ add_task(function* () {
 
   check(-1, false);
 
-  RequestsMenu.focusLastVisibleItem();
+  gStore.dispatch(Actions.selectDelta(+Infinity));
   check(1, true);
-  RequestsMenu.focusFirstVisibleItem();
+  gStore.dispatch(Actions.selectDelta(-Infinity));
   check(0, true);
 
-  RequestsMenu.focusNextItem();
+  gStore.dispatch(Actions.selectDelta(+1));
   check(1, true);
-  RequestsMenu.focusPrevItem();
+  gStore.dispatch(Actions.selectDelta(-1));
   check(0, true);
 
-  RequestsMenu.focusItemAtDelta(+1);
+  gStore.dispatch(Actions.selectDelta(+10));
   check(1, true);
-  RequestsMenu.focusItemAtDelta(-1);
-  check(0, true);
-
-  RequestsMenu.focusItemAtDelta(+10);
-  check(1, true);
-  RequestsMenu.focusItemAtDelta(-10);
+  gStore.dispatch(Actions.selectDelta(-10));
   check(0, true);
 
   wait = waitForNetworkEvents(monitor, 18);
@@ -63,25 +59,25 @@ add_task(function* () {
   });
   yield wait;
 
-  RequestsMenu.focusLastVisibleItem();
+  gStore.dispatch(Actions.selectDelta(+Infinity));
   check(19, true);
-  RequestsMenu.focusFirstVisibleItem();
+  gStore.dispatch(Actions.selectDelta(-Infinity));
   check(0, true);
 
-  RequestsMenu.focusNextItem();
+  gStore.dispatch(Actions.selectDelta(+1));
   check(1, true);
-  RequestsMenu.focusPrevItem();
+  gStore.dispatch(Actions.selectDelta(-1));
   check(0, true);
 
-  RequestsMenu.focusItemAtDelta(+10);
+  gStore.dispatch(Actions.selectDelta(+10));
   check(10, true);
-  RequestsMenu.focusItemAtDelta(-10);
+  gStore.dispatch(Actions.selectDelta(-10));
   check(0, true);
 
-  RequestsMenu.focusItemAtDelta(+100);
+  gStore.dispatch(Actions.selectDelta(+100));
   check(19, true);
-  RequestsMenu.focusItemAtDelta(-100);
+  gStore.dispatch(Actions.selectDelta(-100));
   check(0, true);
 
-  yield teardown(monitor);
+  return teardown(monitor);
 });

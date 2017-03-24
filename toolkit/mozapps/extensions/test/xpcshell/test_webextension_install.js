@@ -32,7 +32,10 @@ add_task(function* test_implicit_id() {
   equal(addon, null, "Add-on is not installed");
 
   let xpifile = do_get_file(IMPLICIT_ID_XPI);
-  yield promiseInstallAllFiles([xpifile]);
+  yield Promise.all([
+    promiseInstallAllFiles([xpifile]),
+    promiseWebExtensionStartup(),
+  ]);
 
   addon = yield promiseAddonByID(IMPLICIT_ID_ID);
   notEqual(addon, null, "Add-on is installed");
@@ -52,7 +55,10 @@ add_task(function* test_implicit_id_temp() {
   equal(addon, null, "Add-on is not installed");
 
   let xpifile = do_get_file(IMPLICIT_ID_XPI);
-  yield AddonManager.installTemporaryAddon(xpifile);
+  yield Promise.all([
+    AddonManager.installTemporaryAddon(xpifile),
+    promiseWebExtensionStartup(),
+  ]);
 
   addon = yield promiseAddonByID(IMPLICIT_ID_ID);
   notEqual(addon, null, "Add-on is installed");
@@ -79,8 +85,15 @@ add_task(function* test_unsigned_no_id_temp_install() {
 
   const addonDir = yield promiseWriteWebManifestForExtension(manifest, gTmpD,
                                                 "the-addon-sub-dir");
-  const addon = yield AddonManager.installTemporaryAddon(addonDir);
+  const testDate = new Date();
+  const [addon] = yield Promise.all([
+    AddonManager.installTemporaryAddon(addonDir),
+    promiseWebExtensionStartup(),
+  ]);
+
   ok(addon.id, "ID should have been auto-generated");
+  ok(Math.abs(addon.installDate - testDate) < 10000, "addon has an expected installDate");
+  ok(Math.abs(addon.updateDate - testDate) < 10000, "addon has an expected updateDate");
 
   // The sourceURI of a temporary installed addon should be equal to the
   // file url of the installed source dir.
@@ -89,7 +102,10 @@ add_task(function* test_unsigned_no_id_temp_install() {
         "SourceURI of the add-on has the expected value");
 
   // Install the same directory again, as if re-installing or reloading.
-  const secondAddon = yield AddonManager.installTemporaryAddon(addonDir);
+  const [secondAddon] = yield Promise.all([
+    AddonManager.installTemporaryAddon(addonDir),
+    promiseWebExtensionStartup(),
+  ]);
   // The IDs should be the same.
   equal(secondAddon.id, addon.id, "Reinstalled add-on has the expected ID");
 
@@ -111,20 +127,19 @@ add_task(function* test_multiple_no_id_extensions() {
   };
 
   let extension1 = ExtensionTestUtils.loadExtension({
-    manifest: manifest,
+    manifest,
     useAddonManager: "temporary",
   });
 
   let extension2 = ExtensionTestUtils.loadExtension({
-    manifest: manifest,
+    manifest,
     useAddonManager: "temporary",
   });
 
   yield Promise.all([extension1.startup(), extension2.startup()]);
 
-  const allAddons = yield new Promise(resolve => {
-    AddonManager.getAllAddons(addons => resolve(addons));
-  });
+  const allAddons = yield AddonManager.getAllAddons();
+
   do_print(`Found these add-ons: ${allAddons.map(a => a.name).join(", ")}`);
   const filtered = allAddons.filter(addon => addon.name === manifest.name);
   // Make sure we have two add-ons by the same name.
@@ -156,7 +171,7 @@ add_task(function* test_bss_id() {
   equal(addon, null, "Add-on is not installed");
 
   let extension = ExtensionTestUtils.loadExtension({
-    manifest: manifest,
+    manifest,
     useAddonManager: "temporary",
   });
   yield extension.startup();
@@ -193,7 +208,7 @@ add_task(function* test_two_ids() {
   }
 
   let extension = ExtensionTestUtils.loadExtension({
-    manifest: manifest,
+    manifest,
     useAddonManager: "temporary",
   });
   yield extension.startup();
@@ -423,7 +438,7 @@ add_task(function* test_strict_min_max() {
   // * in min will throw an error
   for (let version of ["0.*", "0.*.0"]) {
     newId = "strict_min_star@tests.mozilla.org";
-    let apps = {
+    let minStarApps = {
       applications: {
         gecko: {
           id: newId,
@@ -432,20 +447,20 @@ add_task(function* test_strict_min_max() {
       },
     }
 
-    let testManifest = Object.assign(apps, MANIFEST);
+    let minStarTestManifest = Object.assign(minStarApps, MANIFEST);
 
-    let extension = ExtensionTestUtils.loadExtension({
-      manifest: testManifest,
+    let minStarExtension = ExtensionTestUtils.loadExtension({
+      manifest: minStarTestManifest,
       useAddonManager: "temporary",
     });
 
     yield Assert.rejects(
-      extension.startup(),
+      minStarExtension.startup(),
       /The use of '\*' in strict_min_version is invalid/,
       "loading an extension with a * in strict_min_version throws an exception");
 
-    let addon = yield promiseAddonByID(newId);
-    equal(addon, null, "Add-on is not installed");
+    let minStarAddon = yield promiseAddonByID(newId);
+    equal(minStarAddon, null, "Add-on is not installed");
   }
 
   // incompatible extension but with compatibility checking off
@@ -475,4 +490,73 @@ add_task(function* test_strict_min_max() {
 
   yield extension.unload();
   AddonManager.checkCompatibility = savedCheckCompatibilityValue;
+});
+
+// Check permissions prompt
+add_task(function* test_permissions_prompt() {
+  const manifest = {
+    name: "permissions test",
+    description: "permissions test",
+    manifest_version: 2,
+    version: "1.0",
+
+    permissions: ["tabs", "storage", "https://*.example.com/*", "<all_urls>", "experiments.test"],
+  };
+
+  let xpi = ExtensionTestCommon.generateXPI({manifest});
+
+  let install = yield AddonManager.getInstallForFile(xpi);
+
+  let perminfo;
+  install.promptHandler = info => {
+    perminfo = info;
+    return Promise.resolve();
+  };
+
+  yield promiseCompleteInstall(install);
+
+  notEqual(perminfo, undefined, "Permission handler was invoked");
+  equal(perminfo.existingAddon, null, "Permission info does not include an existing addon");
+  notEqual(perminfo.addon, null, "Permission info includes the new addon");
+  let perms = perminfo.addon.userPermissions;
+  deepEqual(perms.permissions, ["tabs", "storage"], "API permissions are correct");
+  deepEqual(perms.hosts, ["https://*.example.com/*", "<all_urls>"], "Host permissions are correct");
+  deepEqual(perms.apis, ["test"], "Experiments permissions are correct");
+
+  let addon = yield promiseAddonByID(perminfo.addon.id);
+  notEqual(addon, null, "Extension was installed");
+
+  addon.uninstall();
+  yield OS.File.remove(xpi.path);
+});
+
+// Check permissions prompt cancellation
+add_task(function* test_permissions_prompt_cancel() {
+  const manifest = {
+    name: "permissions test",
+    description: "permissions test",
+    manifest_version: 2,
+    version: "1.0",
+
+    permissions: ["webRequestBlocking"],
+  };
+
+  let xpi = ExtensionTestCommon.generateXPI({manifest});
+
+  let install = yield AddonManager.getInstallForFile(xpi);
+
+  let perminfo;
+  install.promptHandler = info => {
+    perminfo = info;
+    return Promise.reject();
+  };
+
+  yield promiseCompleteInstall(install);
+
+  notEqual(perminfo, undefined, "Permission handler was invoked");
+
+  let addon = yield promiseAddonByID(perminfo.addon.id);
+  equal(addon, null, "Extension was not installed");
+
+  yield OS.File.remove(xpi.path);
 });

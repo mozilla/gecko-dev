@@ -69,8 +69,8 @@ hb_coretext_face_create (CGFontRef cg_font)
 }
 
 
-HB_SHAPER_DATA_ENSURE_DECLARE(coretext, face)
-HB_SHAPER_DATA_ENSURE_DECLARE(coretext, font)
+HB_SHAPER_DATA_ENSURE_DEFINE(coretext, face)
+HB_SHAPER_DATA_ENSURE_DEFINE(coretext, font)
 
 
 /*
@@ -288,7 +288,9 @@ struct hb_coretext_shaper_shape_plan_data_t {};
 hb_coretext_shaper_shape_plan_data_t *
 _hb_coretext_shaper_shape_plan_data_create (hb_shape_plan_t    *shape_plan HB_UNUSED,
 					     const hb_feature_t *user_features HB_UNUSED,
-					     unsigned int        num_user_features HB_UNUSED)
+					     unsigned int        num_user_features HB_UNUSED,
+					     const int          *coords HB_UNUSED,
+					     unsigned int        num_coords HB_UNUSED)
 {
   return (hb_coretext_shaper_shape_plan_data_t *) HB_SHAPER_DATA_SUCCEEDED;
 }
@@ -1220,6 +1222,9 @@ fail:
  * AAT shaper
  */
 
+HB_SHAPER_DATA_ENSURE_DEFINE(coretext_aat, face)
+HB_SHAPER_DATA_ENSURE_DEFINE(coretext_aat, font)
+
 /*
  * shaper face data
  */
@@ -1280,7 +1285,9 @@ struct hb_coretext_aat_shaper_shape_plan_data_t {};
 hb_coretext_aat_shaper_shape_plan_data_t *
 _hb_coretext_aat_shaper_shape_plan_data_create (hb_shape_plan_t    *shape_plan HB_UNUSED,
 					     const hb_feature_t *user_features HB_UNUSED,
-					     unsigned int        num_user_features HB_UNUSED)
+					     unsigned int        num_user_features HB_UNUSED,
+					     const int          *coords HB_UNUSED,
+					     unsigned int        num_coords HB_UNUSED)
 {
   return (hb_coretext_aat_shaper_shape_plan_data_t *) HB_SHAPER_DATA_SUCCEEDED;
 }

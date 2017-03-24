@@ -16,7 +16,8 @@ import mozprocess
 
 
 __all__ = ["SeleniumServer", "ChromeDriverServer",
-           "GeckoDriverServer", "WebDriverServer"]
+           "GeckoDriverServer", "ServoDriverServer",
+           "WebDriverServer"]
 
 
 class WebDriverServer(object):
@@ -27,6 +28,10 @@ class WebDriverServer(object):
 
     def __init__(self, logger, binary, host="127.0.0.1", port=None,
                  base_path="", env=None):
+        if binary is None:
+            raise ValueError("WebDriver server binary must be given "
+                             "to --webdriver-binary argument")
+
         self.logger = logger
         self.binary = binary
         self.host = host
@@ -44,7 +49,7 @@ class WebDriverServer(object):
     def make_command(self):
         """Returns the full command for starting the server process as a list."""
 
-    def start(self, block=True):
+    def start(self, block=False):
         try:
             self._run(block)
         except KeyboardInterrupt:
@@ -74,24 +79,19 @@ class WebDriverServer(object):
             self.logger.error(
                 "WebDriver HTTP server was not accessible "
                 "within the timeout:\n%s" % traceback.format_exc())
-            if self._proc.poll():
-                self.logger.error("Webdriver server process exited with code %i" %
-                                  self._proc.returncode)
             raise
 
         if block:
             self._proc.wait()
 
-    def stop(self):
+    def stop(self, force=False):
         if self.is_alive:
             return self._proc.kill()
         return not self.is_alive
 
     @property
     def is_alive(self):
-        return (self._proc is not None and
-                self._proc.proc is not None and
-                self._proc.poll() is None)
+        return hasattr(self._proc, "proc") and self._proc.poll() is None
 
     def on_output(self, line):
         self.logger.process_output(self.pid,
@@ -141,8 +141,19 @@ class ChromeDriverServer(WebDriverServer):
                 cmd_arg("url-base", self.base_path) if self.base_path else ""]
 
 
+class EdgeDriverServer(WebDriverServer):
+    def __init__(self, logger, binary="MicrosoftWebDriver.exe", port=None,
+                 base_path="", host="localhost"):
+        WebDriverServer.__init__(
+            self, logger, binary, host=host, port=port)
+
+    def make_command(self):
+        return [self.binary,
+                "--port=%s" % str(self.port)]
+
+
 class GeckoDriverServer(WebDriverServer):
-    def __init__(self, logger, marionette_port=2828, binary="wires",
+    def __init__(self, logger, marionette_port=2828, binary="geckodriver",
                  host="127.0.0.1", port=None):
         env = os.environ.copy()
         env["RUST_BACKTRACE"] = "1"
@@ -151,10 +162,26 @@ class GeckoDriverServer(WebDriverServer):
 
     def make_command(self):
         return [self.binary,
-                "--connect-existing",
                 "--marionette-port", str(self.marionette_port),
                 "--host", self.host,
                 "--port", str(self.port)]
+
+
+class ServoDriverServer(WebDriverServer):
+    def __init__(self, logger, binary="servo", binary_args=None, host="127.0.0.1", port=None):
+        env = os.environ.copy()
+        env["RUST_BACKTRACE"] = "1"
+        WebDriverServer.__init__(self, logger, binary, host=host, port=port, env=env)
+        self.binary_args = binary_args
+
+    def make_command(self):
+        command = [self.binary,
+                   "--webdriver", str(self.port),
+                   "--hard-fail",
+                   "--headless"]
+        if self.binary_args:
+            command += self.binary_args
+        return command
 
 
 def cmd_arg(name, value=None):

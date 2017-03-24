@@ -5,13 +5,13 @@
 // Output: we have no referrer.
 
 function getReferrerTest(aTestNumber) {
-  let test = _referrerTests[aTestNumber];
-  if (test) {
+  let testCase = _referrerTests[aTestNumber];
+  if (testCase) {
     // We want all the referrer tests to fail!
-    test.result = "";
+    testCase.result = "";
   }
 
-  return test;
+  return testCase;
 }
 
 function startNewTabTestCase(aTestNumber) {
@@ -28,9 +28,7 @@ function startNewTabTestCase(aTestNumber) {
     let menu = gTestWindow.document.getElementById("context-openlinkinusercontext-menu");
 
     let menupopup = menu.menupopup;
-    menu.addEventListener("popupshown", function onPopupShown() {
-      menu.removeEventListener("popupshown", onPopupShown);
-
+    menu.addEventListener("popupshown", function() {
       is(menupopup.nodeType, Node.ELEMENT_NODE, "We have a menupopup.");
       ok(menupopup.firstChild, "We have a first container entry.");
 
@@ -39,13 +37,12 @@ function startNewTabTestCase(aTestNumber) {
       ok(firstContext.hasAttribute("data-usercontextid"), "We have a usercontextid value.");
       is("0", firstContext.getAttribute("data-usercontextid"), "We have the right usercontextid value.");
 
-      aContextMenu.addEventListener("popuphidden", function onPopupHidden() {
-        aContextMenu.removeEventListener("popuphidden", onPopupHidden);
+      aContextMenu.addEventListener("popuphidden", function() {
         firstContext.doCommand();
-      });
+      }, {once: true});
 
       aContextMenu.hidePopup();
-    });
+    }, {once: true});
 
     menupopup.showPopup();
   });

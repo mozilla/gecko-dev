@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // create namespace
-if (typeof Mozilla == 'undefined') {
+if (typeof Mozilla == "undefined") {
   var Mozilla = {};
 }
 
 (function($) {
-  'use strict';
+  "use strict";
 
   // create namespace
-  if (typeof Mozilla.UITour == 'undefined') {
+  if (typeof Mozilla.UITour == "undefined") {
     Mozilla.UITour = {};
   }
 
@@ -24,10 +24,10 @@ if (typeof Mozilla == 'undefined') {
   }
 
   function _sendEvent(action, data) {
-    var event = new CustomEvent('mozUITour', {
+    var event = new CustomEvent("mozUITour", {
       bubbles: true,
       detail: {
-	action: action,
+	action,
 	data: data || {}
       }
     });
@@ -36,31 +36,31 @@ if (typeof Mozilla == 'undefined') {
   }
 
   function _generateCallbackID() {
-    return Math.random().toString(36).replace(/[^a-z]+/g, '');
+    return Math.random().toString(36).replace(/[^a-z]+/g, "");
   }
 
   function _waitForCallback(callback) {
     var id = _generateCallbackID();
 
     function listener(event) {
-      if (typeof event.detail != 'object')
+      if (typeof event.detail != "object")
 	return;
       if (event.detail.callbackID != id)
 	return;
 
-      document.removeEventListener('mozUITourResponse', listener);
+      document.removeEventListener("mozUITourResponse", listener);
       callback(event.detail.data);
     }
-    document.addEventListener('mozUITourResponse', listener);
+    document.addEventListener("mozUITourResponse", listener);
 
     return id;
   }
 
   var notificationListener = null;
   function _notificationListener(event) {
-    if (typeof event.detail != 'object')
+    if (typeof event.detail != "object")
       return;
-    if (typeof notificationListener != 'function')
+    if (typeof notificationListener != "function")
       return;
 
     notificationListener(event.detail.event, event.detail.params);
@@ -68,45 +68,45 @@ if (typeof Mozilla == 'undefined') {
 
   Mozilla.UITour.DEFAULT_THEME_CYCLE_DELAY = 10 * 1000;
 
-  Mozilla.UITour.CONFIGNAME_SYNC = 'sync';
-  Mozilla.UITour.CONFIGNAME_AVAILABLETARGETS = 'availableTargets';
+  Mozilla.UITour.CONFIGNAME_SYNC = "sync";
+  Mozilla.UITour.CONFIGNAME_AVAILABLETARGETS = "availableTargets";
 
   Mozilla.UITour.ping = function(callback) {
     var data = {};
     if (callback) {
       data.callbackID = _waitForCallback(callback);
     }
-    _sendEvent('ping', data);
+    _sendEvent("ping", data);
   };
 
   Mozilla.UITour.observe = function(listener, callback) {
     notificationListener = listener;
 
     if (listener) {
-      document.addEventListener('mozUITourNotification',
+      document.addEventListener("mozUITourNotification",
                                 _notificationListener);
       Mozilla.UITour.ping(callback);
     } else {
-      document.removeEventListener('mozUITourNotification',
+      document.removeEventListener("mozUITourNotification",
                                    _notificationListener);
     }
   };
 
   Mozilla.UITour.registerPageID = function(pageID) {
-    _sendEvent('registerPageID', {
-      pageID: pageID
+    _sendEvent("registerPageID", {
+      pageID
     });
   };
 
   Mozilla.UITour.showHeartbeat = function(message, thankyouMessage, flowId, engagementURL,
 					  learnMoreLabel, learnMoreURL, options) {
     var args = {
-      message: message,
-      thankyouMessage: thankyouMessage,
-      flowId: flowId,
-      engagementURL: engagementURL,
-      learnMoreLabel: learnMoreLabel,
-      learnMoreURL: learnMoreURL,
+      message,
+      thankyouMessage,
+      flowId,
+      engagementURL,
+      learnMoreLabel,
+      learnMoreURL,
     };
 
     if (options) {
@@ -118,18 +118,18 @@ if (typeof Mozilla == 'undefined') {
       }
     }
 
-    _sendEvent('showHeartbeat', args);
+    _sendEvent("showHeartbeat", args);
   };
 
   Mozilla.UITour.showHighlight = function(target, effect) {
-    _sendEvent('showHighlight', {
-      target: target,
-      effect: effect
+    _sendEvent("showHighlight", {
+      target,
+      effect
     });
   };
 
   Mozilla.UITour.hideHighlight = function() {
-    _sendEvent('hideHighlight');
+    _sendEvent("hideHighlight");
   };
 
   Mozilla.UITour.showInfo = function(target, title, text, icon, buttons, options) {
@@ -151,25 +151,25 @@ if (typeof Mozilla == 'undefined') {
     if (options && options.targetCallback)
       targetCallbackID = _waitForCallback(options.targetCallback);
 
-    _sendEvent('showInfo', {
-      target: target,
-      title: title,
-      text: text,
-      icon: icon,
+    _sendEvent("showInfo", {
+      target,
+      title,
+      text,
+      icon,
       buttons: buttonData,
-      closeButtonCallbackID: closeButtonCallbackID,
-      targetCallbackID: targetCallbackID
+      closeButtonCallbackID,
+      targetCallbackID
     });
   };
 
   Mozilla.UITour.hideInfo = function() {
-    _sendEvent('hideInfo');
+    _sendEvent("hideInfo");
   };
 
   Mozilla.UITour.previewTheme = function(theme) {
     _stopCyclingThemes();
 
-    _sendEvent('previewTheme', {
+    _sendEvent("previewTheme", {
       theme: JSON.stringify(theme)
     });
   };
@@ -177,7 +177,7 @@ if (typeof Mozilla == 'undefined') {
   Mozilla.UITour.resetTheme = function() {
     _stopCyclingThemes();
 
-    _sendEvent('resetTheme');
+    _sendEvent("resetTheme");
   };
 
   Mozilla.UITour.cycleThemes = function(themes, delay, callback) {
@@ -191,7 +191,7 @@ if (typeof Mozilla == 'undefined') {
       var theme = themes.shift();
       themes.push(theme);
 
-      _sendEvent('previewTheme', {
+      _sendEvent("previewTheme", {
 	theme: JSON.stringify(theme),
 	state: true
       });
@@ -208,27 +208,31 @@ if (typeof Mozilla == 'undefined') {
     if (callback)
       showCallbackID = _waitForCallback(callback);
 
-    _sendEvent('showMenu', {
-      name: name,
-      showCallbackID: showCallbackID,
+    _sendEvent("showMenu", {
+      name,
+      showCallbackID,
     });
   };
 
   Mozilla.UITour.hideMenu = function(name) {
-    _sendEvent('hideMenu', {
-      name: name
+    _sendEvent("hideMenu", {
+      name
     });
   };
 
+  Mozilla.UITour.showNewTab = function() {
+    _sendEvent("showNewTab");
+  };
+
   Mozilla.UITour.getConfiguration = function(configName, callback) {
-    _sendEvent('getConfiguration', {
+    _sendEvent("getConfiguration", {
       callbackID: _waitForCallback(callback),
       configuration: configName,
     });
   };
 
   Mozilla.UITour.setConfiguration = function(configName, configValue) {
-    _sendEvent('setConfiguration', {
+    _sendEvent("setConfiguration", {
       configuration: configName,
       value: configValue,
     });
@@ -245,65 +249,65 @@ if (typeof Mozilla == 'undefined') {
    * automatically be encoded.
    */
   Mozilla.UITour.showFirefoxAccounts = function(extraURLCampaignParams) {
-    _sendEvent('showFirefoxAccounts', {
+    _sendEvent("showFirefoxAccounts", {
       extraURLCampaignParams: JSON.stringify(extraURLCampaignParams),
     });
   };
 
   Mozilla.UITour.resetFirefox = function() {
-    _sendEvent('resetFirefox');
+    _sendEvent("resetFirefox");
   };
 
-  Mozilla.UITour.addNavBarWidget= function(name, callback) {
-    _sendEvent('addNavBarWidget', {
-      name: name,
+  Mozilla.UITour.addNavBarWidget = function(name, callback) {
+    _sendEvent("addNavBarWidget", {
+      name,
       callbackID: _waitForCallback(callback),
     });
   };
 
   Mozilla.UITour.setDefaultSearchEngine = function(identifier) {
-    _sendEvent('setDefaultSearchEngine', {
-      identifier: identifier,
+    _sendEvent("setDefaultSearchEngine", {
+      identifier,
     });
   };
 
   Mozilla.UITour.setTreatmentTag = function(name, value) {
-    _sendEvent('setTreatmentTag', {
-      name: name,
-      value: value
+    _sendEvent("setTreatmentTag", {
+      name,
+      value
     });
   };
 
   Mozilla.UITour.getTreatmentTag = function(name, callback) {
-    _sendEvent('getTreatmentTag', {
-      name: name,
+    _sendEvent("getTreatmentTag", {
+      name,
       callbackID: _waitForCallback(callback)
     });
   };
 
   Mozilla.UITour.setSearchTerm = function(term) {
-    _sendEvent('setSearchTerm', {
-      term: term
+    _sendEvent("setSearchTerm", {
+      term
     });
   };
 
   Mozilla.UITour.openSearchPanel = function(callback) {
-    _sendEvent('openSearchPanel', {
+    _sendEvent("openSearchPanel", {
       callbackID: _waitForCallback(callback)
     });
   };
 
   Mozilla.UITour.forceShowReaderIcon = function() {
-    _sendEvent('forceShowReaderIcon');
+    _sendEvent("forceShowReaderIcon");
   };
 
   Mozilla.UITour.toggleReaderMode = function() {
-    _sendEvent('toggleReaderMode');
+    _sendEvent("toggleReaderMode");
   };
 
   Mozilla.UITour.openPreferences = function(pane) {
-    _sendEvent('openPreferences', {
-      pane: pane
+    _sendEvent("openPreferences", {
+      pane
     });
   };
 
@@ -317,11 +321,12 @@ if (typeof Mozilla == 'undefined') {
    * displaying a goodbye message or a button to restart the tour.
    */
   Mozilla.UITour.closeTab = function() {
-    _sendEvent('closeTab');
+    _sendEvent("closeTab");
   };
 })();
 
 // Make this library Require-able.
-if (typeof module !== 'undefined' && module.exports) {
+/* eslint-env commonjs */
+if (typeof module !== "undefined" && module.exports) {
   module.exports = Mozilla.UITour;
 }

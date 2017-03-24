@@ -36,9 +36,10 @@ NS_IMPL_ISUPPORTS(HttpServer,
                   nsIServerSocketListener,
                   nsILocalCertGetCallback)
 
-HttpServer::HttpServer()
+HttpServer::HttpServer(AbstractThread* aMainThread)
   : mPort()
   , mHttps()
+  , mAbstractMainThread(aMainThread)
 {
 }
 
@@ -152,7 +153,8 @@ HttpServer::OnStopListening(nsIServerSocket* aServ,
 {
   MOZ_ASSERT(aServ == mServerSocket || !mServerSocket);
 
-  LOG_I("HttpServer::OnStopListening(%p) - status 0x%lx", this, aStatus);
+  LOG_I("HttpServer::OnStopListening(%p) - status 0x%" PRIx32,
+        this, static_cast<uint32_t>(aStatus));
 
   Close();
 
@@ -190,9 +192,8 @@ HttpServer::AcceptWebSocket(InternalRequest* aConnectRequest,
     return provider.forget();
   }
 
-  aRv.Throw(NS_ERROR_UNEXPECTED);
   MOZ_ASSERT(false, "Unknown request");
-
+  aRv.Throw(NS_ERROR_UNEXPECTED);
   return nullptr;
 }
 
@@ -289,7 +290,9 @@ HttpServer::TransportProvider::MaybeNotify()
     RefPtr<TransportProvider> self = this;
     nsCOMPtr<nsIRunnable> event = NS_NewRunnableFunction([self, this] ()
     {
-      mListener->OnTransportAvailable(mTransport, mInput, mOutput);
+      DebugOnly<nsresult> rv = mListener->OnTransportAvailable(mTransport,
+                                                               mInput, mOutput);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
     });
     NS_DispatchToCurrentThread(event);
   }
@@ -585,16 +588,13 @@ HttpServer::Connection::ConsumeLine(const char* aBuffer,
     NS_ENSURE_TRUE(tokens.hasMoreTokens(), NS_ERROR_UNEXPECTED);
     nsDependentCSubstring method = tokens.nextToken();
     NS_ENSURE_TRUE(NS_IsValidHTTPToken(method), NS_ERROR_UNEXPECTED);
-
     NS_ENSURE_TRUE(tokens.hasMoreTokens(), NS_ERROR_UNEXPECTED);
     nsDependentCSubstring url = tokens.nextToken();
     // Seems like it's also allowed to pass full urls with scheme+host+port.
     // May need to support that.
     NS_ENSURE_TRUE(url.First() == '/', NS_ERROR_UNEXPECTED);
-
-    mPendingReq = new InternalRequest(url);
+    mPendingReq = new InternalRequest(url, /* aURLFragment */ EmptyCString());
     mPendingReq->SetMethod(method);
-
     NS_ENSURE_TRUE(tokens.hasMoreTokens(), NS_ERROR_UNEXPECTED);
     nsDependentCSubstring version = tokens.nextToken();
     NS_ENSURE_TRUE(StringBeginsWith(version, NS_LITERAL_CSTRING("HTTP/1.")),
@@ -1256,13 +1256,13 @@ HttpServer::Connection::OnOutputStreamReady(nsIAsyncOutputStream* aStream)
       RefPtr<Connection> self = this;
 
       mOutputCopy->
-        Then(AbstractThread::MainThread(),
+        Then(mServer->mAbstractMainThread,
              __func__,
              [self, this] (nsresult aStatus) {
                MOZ_ASSERT(mOutputBuffers[0].mStream);
                LOG_V("HttpServer::Connection::OnOutputStreamReady(%p) - "
-                     "Sent body. Status 0x%lx",
-                     this, aStatus);
+                     "Sent body. Status 0x%" PRIx32,
+                     this, static_cast<uint32_t>(aStatus));
 
                mOutputBuffers.RemoveElementAt(0);
                mOutputCopy = nullptr;

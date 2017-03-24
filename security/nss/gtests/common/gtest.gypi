@@ -2,10 +2,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 {
-  'includes': [
-    '../../coreconf/config.gypi'
-  ],
   'target_defaults': {
+    'include_dirs': [
+      '<(DEPTH)/gtests/google_test/gtest/include',
+      '<(DEPTH)/gtests/common',
+      '<(DEPTH)/cpputil',
+    ],
+    'cflags': [
+      '-Wsign-compare',
+    ],
+    'xcode_settings': {
+      'OTHER_CFLAGS': [
+        '-Wsign-compare',
+      ],
+    },
     'conditions': [
       ['OS=="win"', {
         'libraries': [
@@ -17,7 +27,7 @@
           '-lstdc++',
         ],
       }],
-      [ 'fuzz==1', {
+      [ 'fuzz_tls==1', {
         'defines': [
           'UNSAFE_FUZZER_MODE',
         ],

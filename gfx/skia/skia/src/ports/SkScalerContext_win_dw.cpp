@@ -219,7 +219,13 @@ SkScalerContext_DW::SkScalerContext_DW(DWriteFontTypeface* typeface,
     fIsColorFont = fFactory2.get() && fontFace2.get() && fontFace2->IsColorFont();
 #endif
 
-    // In general, all glyphs should use CLEARTYPE_NATURAL_SYMMETRIC
+    IDWriteFactory* factory = sk_get_dwrite_factory();
+    if (factory != nullptr) {
+        HRVM(factory->CreateRenderingParams(&fDefaultRenderingParams),
+        "Could not create default rendering params");
+    }
+
+    // In general, all glyphs should DWriteFontFace::GetRecommendedRenderingMode
     // except when bi-level rendering is requested or there are embedded
     // bi-level bitmaps (and the embedded bitmap flag is set and no rotation).
     //
@@ -288,7 +294,7 @@ SkScalerContext_DW::SkScalerContext_DW(DWriteFontTypeface* typeface,
 
     // If we can use a bitmap, use gdi classic rendering and measurement.
     // This will not always provide a bitmap, but matches expected behavior.
-    } else if (treatLikeBitmap && axisAlignedBitmap) {
+    } else if ((treatLikeBitmap && axisAlignedBitmap) || typeface->ForceGDI()) {
         fTextSizeRender = gdiTextSize;
         fRenderingMode = DWRITE_RENDERING_MODE_CLEARTYPE_GDI_CLASSIC;
         fTextureType = DWRITE_TEXTURE_CLEARTYPE_3x1;
@@ -315,13 +321,26 @@ SkScalerContext_DW::SkScalerContext_DW(DWriteFontTypeface* typeface,
         fTextSizeMeasure = realTextSize;
         fMeasuringMode = DWRITE_MEASURING_MODE_NATURAL;
 
-    // The normal case is to use natural symmetric rendering and linear metrics.
+    // The normal case is to use the recommended rendering mode
     } else {
         fTextSizeRender = realTextSize;
-        fRenderingMode = DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL_SYMMETRIC;
         fTextureType = DWRITE_TEXTURE_CLEARTYPE_3x1;
         fTextSizeMeasure = realTextSize;
         fMeasuringMode = DWRITE_MEASURING_MODE_NATURAL;
+
+        if (!SUCCEEDED(fTypeface->fDWriteFontFace->GetRecommendedRenderingMode(
+                fTextSizeRender,
+                1.0f,
+                fMeasuringMode,
+                fDefaultRenderingParams.get(),
+                &fRenderingMode))) {
+            fRenderingMode = DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL_SYMMETRIC;
+        }
+
+        // We don't support outline mode right now.
+        if (fRenderingMode == DWRITE_RENDERING_MODE_OUTLINE) {
+            fRenderingMode = DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL_SYMMETRIC;
+        }
     }
 
     if (this->isSubpixel()) {
@@ -663,10 +682,13 @@ static void rgb_to_a8(const uint8_t* SK_RESTRICT src, const SkGlyph& glyph, cons
 
     for (U16CPU y = 0; y < glyph.fHeight; y++) {
         for (U16CPU i = 0; i < width; i++) {
-            U8CPU r = *(src++);
-            U8CPU g = *(src++);
-            U8CPU b = *(src++);
-            dst[i] = sk_apply_lut_if<APPLY_PREBLEND>((r + g + b) / 3, table8);
+            U8CPU g = src[1];
+            src += 3;
+
+            // Ignore the R, B channels. It looks the closest to what
+            // D2D with grayscale AA has. But there's no way
+            // to just get a grayscale AA alpha texture from a glyph run.
+            dst[i] = sk_apply_lut_if<APPLY_PREBLEND>(g, table8);
         }
         dst = (uint8_t*)((char*)dst + dstRB);
     }

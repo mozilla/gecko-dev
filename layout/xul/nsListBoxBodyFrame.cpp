@@ -332,7 +332,7 @@ nsListBoxBodyFrame::ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirectio
   // CSS Scroll Snapping is not enabled for XUL, aSnap is ignored
   MOZ_ASSERT(aScrollbar != nullptr);
   aScrollbar->SetIncrementToPage(aDirection);
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   int32_t newPos = aScrollbar->MoveToNewPosition();
   if (!weakFrame.IsAlive()) {
     return;
@@ -347,7 +347,7 @@ nsListBoxBodyFrame::ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirecti
   // CSS Scroll Snapping is not enabled for XUL, aSnap is ignored
   MOZ_ASSERT(aScrollbar != nullptr);
   aScrollbar->SetIncrementToWhole(aDirection);
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   int32_t newPos = aScrollbar->MoveToNewPosition();
   if (!weakFrame.IsAlive()) {
     return;
@@ -362,7 +362,7 @@ nsListBoxBodyFrame::ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirectio
   // CSS Scroll Snapping is not enabled for XUL, aSnap is ignored
   MOZ_ASSERT(aScrollbar != nullptr);
   aScrollbar->SetIncrementToLine(aDirection);
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   int32_t newPos = aScrollbar->MoveToNewPosition();
   if (!weakFrame.IsAlive()) {
     return;
@@ -373,7 +373,7 @@ nsListBoxBodyFrame::ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirectio
 void
 nsListBoxBodyFrame::RepeatButtonScroll(nsScrollbarFrame* aScrollbar)
 {
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   int32_t newPos = aScrollbar->MoveToNewPosition();
   if (!weakFrame.IsAlive()) {
     return;
@@ -702,7 +702,8 @@ nsListBoxBodyFrame::ComputeIntrinsicISize(nsBoxLayoutState& aBoxLayoutState)
     RefPtr<nsStyleContext> styleContext;
     nsPresContext *presContext = aBoxLayoutState.PresContext();
     styleContext = presContext->StyleSet()->
-      ResolveStyleFor(firstRowContent->AsElement(), nullptr);
+      ResolveStyleFor(firstRowContent->AsElement(), nullptr,
+                      LazyComputeBehavior::Allow);
 
     nscoord width = 0;
     nsMargin margin(0,0,0,0);
@@ -789,7 +790,7 @@ nsListBoxBodyFrame::ScrollToIndex(int32_t aRowIndex)
 
   mCurrentIndex = newIndex;
 
-  nsWeakFrame weak(this);
+  AutoWeakFrame weak(this);
 
   // Since we're going to flush anyway, we need to not do this off an event
   DoInternalPositionChangedSync(up, delta);
@@ -801,7 +802,7 @@ nsListBoxBodyFrame::ScrollToIndex(int32_t aRowIndex)
   // This change has to happen immediately.
   // Flush any pending reflow commands.
   // XXXbz why, exactly?
-  mContent->GetComposedDoc()->FlushPendingNotifications(Flush_Layout);
+  mContent->GetComposedDoc()->FlushPendingNotifications(FlushType::Layout);
 
   return NS_OK;
 }
@@ -842,7 +843,7 @@ nsListBoxBodyFrame::InternalPositionChanged(bool aUp, int32_t aDelta)
 nsresult
 nsListBoxBodyFrame::DoInternalPositionChangedSync(bool aUp, int32_t aDelta)
 {
-  nsWeakFrame weak(this);
+  AutoWeakFrame weak(this);
   
   // Process all the pending position changes first
   nsTArray< RefPtr<nsPositionChangedEvent> > temp;
@@ -873,8 +874,8 @@ nsListBoxBodyFrame::DoInternalPositionChanged(bool aUp, int32_t aDelta)
   // begin timing how long it takes to scroll a row
   PRTime start = PR_Now();
 
-  nsWeakFrame weakThis(this);
-  mContent->GetComposedDoc()->FlushPendingNotifications(Flush_Layout);
+  AutoWeakFrame weakThis(this);
+  mContent->GetComposedDoc()->FlushPendingNotifications(FlushType::Layout);
   if (!weakThis.IsAlive()) {
     return NS_OK;
   }
@@ -927,7 +928,7 @@ nsListBoxBodyFrame::DoInternalPositionChanged(bool aUp, int32_t aDelta)
   }
   // Flush calls CreateRows
   // XXXbz there has to be a better way to do this than flushing!
-  presContext->PresShell()->FlushPendingNotifications(Flush_Layout);
+  presContext->PresShell()->FlushPendingNotifications(FlushType::Layout);
   if (!weakThis.IsAlive()) {
     return NS_OK;
   }
@@ -969,7 +970,7 @@ nsListBoxBodyFrame::VerticalScroll(int32_t aPosition)
 
   nsPoint scrollPosition = scrollFrame->GetScrollPosition();
  
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   scrollFrame->ScrollTo(nsPoint(scrollPosition.x, aPosition),
                         nsIScrollableFrame::INSTANT);
   if (!weakFrame.IsAlive()) {
@@ -1129,7 +1130,7 @@ nsListBoxBodyFrame::GetFirstItemBox(int32_t aOffset, bool* aCreated)
   mBottomFrame = mTopFrame;
 
   if (mTopFrame) {
-    return mTopFrame->IsXULBoxFrame() ? mTopFrame : nullptr;
+    return mTopFrame->IsXULBoxFrame() ? mTopFrame.GetFrame() : nullptr;
   }
 
   // top frame was cleared out
@@ -1137,7 +1138,7 @@ nsListBoxBodyFrame::GetFirstItemBox(int32_t aOffset, bool* aCreated)
   mBottomFrame = mTopFrame;
 
   if (mTopFrame && mRowsToPrepend <= 0) {
-    return mTopFrame->IsXULBoxFrame() ? mTopFrame : nullptr;
+    return mTopFrame->IsXULBoxFrame() ? mTopFrame.GetFrame() : nullptr;
   }
 
   // At this point, we either have no frames at all, 
@@ -1186,7 +1187,7 @@ nsListBoxBodyFrame::GetFirstItemBox(int32_t aOffset, bool* aCreated)
 
       mBottomFrame = mTopFrame;
 
-      return mTopFrame->IsXULBoxFrame() ? mTopFrame : nullptr;
+      return mTopFrame->IsXULBoxFrame() ? mTopFrame.GetFrame() : nullptr;
     } else
       return GetFirstItemBox(++aOffset, 0);
   }
@@ -1406,7 +1407,7 @@ nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
         NS_PRECONDITION(mCurrentIndex > 0, "mCurrentIndex > 0");
         --mCurrentIndex;
         mYPosition = mCurrentIndex*mRowHeight;
-        nsWeakFrame weakChildFrame(aChildFrame);
+        AutoWeakFrame weakChildFrame(aChildFrame);
         VerticalScroll(mYPosition);
         if (!weakChildFrame.IsAlive()) {
           return;
@@ -1434,7 +1435,7 @@ nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
           mRowsToPrepend = 1;
           --mCurrentIndex;
           mYPosition = mCurrentIndex*mRowHeight;
-          nsWeakFrame weakChildFrame(aChildFrame);
+          AutoWeakFrame weakChildFrame(aChildFrame);
           VerticalScroll(mYPosition);
           if (!weakChildFrame.IsAlive()) {
             return;

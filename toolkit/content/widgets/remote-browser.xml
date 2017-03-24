@@ -190,7 +190,9 @@
           let changed = val.toFixed(2) != this._fullZoom.toFixed(2);
 
           this._fullZoom = val;
-          this.messageManager.sendAsyncMessage("FullZoom", {value: val});
+          try {
+            this.messageManager.sendAsyncMessage("FullZoom", {value: val});
+          } catch (ex) {}
 
           if (changed) {
             let event = new Event("FullZoomChange", {bubbles: true});
@@ -208,7 +210,9 @@
           let changed = val.toFixed(2) != this._textZoom.toFixed(2);
 
           this._textZoom = val;
-          this.messageManager.sendAsyncMessage("TextZoom", {value: val});
+          try {
+            this.messageManager.sendAsyncMessage("TextZoom", {value: val});
+          } catch (ex) {}
 
           if (changed) {
             let event = new Event("TextZoomChange", {bubbles: true});
@@ -371,7 +375,7 @@
 
           // Initialize contentPrincipal to the about:blank principal for this loadcontext
           let {Services} = Components.utils.import("resource://gre/modules/Services.jsm", {});
-          let aboutBlank = Services.io.newURI("about:blank", null, null);
+          let aboutBlank = Services.io.newURI("about:blank");
           let ssm = Services.scriptSecurityManager;
           this._contentPrincipal = ssm.getLoadContextCodebasePrincipal(aboutBlank, this.loadContext);
 
@@ -389,7 +393,6 @@
           if (this.hasAttribute("selectmenulist")) {
             this.messageManager.addMessageListener("Forms:ShowDropDown", this);
             this.messageManager.addMessageListener("Forms:HideDropDown", this);
-            this.messageManager.loadFrameScript("chrome://global/content/select-child.js", true);
           }
 
           if (!this.hasAttribute("disablehistory")) {
@@ -469,7 +472,13 @@
 
               let menulist = document.getElementById(this.getAttribute("selectmenulist"));
               menulist.menupopup.style.direction = data.direction;
-              this._selectParentHelper.populate(menulist, data.options, data.selectedIndex, this._fullZoom);
+
+              let zoom = Services.prefs.getBoolPref("browser.zoom.full") ||
+                         this.isSyntheticDocument ? this._fullZoom : this._textZoom;
+              this._selectParentHelper.populate(menulist, data.options, data.selectedIndex,
+                                                zoom, data.uaBackgroundColor, data.uaColor,
+                                                data.uaSelectBackgroundColor, data.uaSelectColor,
+                                                data.selectBackgroundColor, data.selectColor);
               this._selectParentHelper.open(this, menulist, data.rect, data.isOpenedViaTouch);
               break;
             }
@@ -494,14 +503,6 @@
               let event = document.createEvent("Events");
               event.initEvent("ZoomChangeUsingMouseWheel", true, false);
               this.dispatchEvent(event);
-              break;
-            }
-
-            case "Forms:HideDropDown": {
-              if (this._selectParentHelper) {
-                let menulist = document.getElementById(this.getAttribute("selectmenulist"));
-                this._selectParentHelper.hide(menulist, this);
-              }
               break;
             }
 
@@ -567,6 +568,14 @@
         <parameter name="aPrincipal"/>
         <body>
           <![CDATA[
+            // Ensure that the content process has the permissions which are
+            // needed to create a document with the given principal.
+            let permissionPrincipal =
+              BrowserUtils.principalWithMatchingOA(aPrincipal, this.contentPrincipal);
+            let {frameLoader} = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
+            frameLoader.tabParent.transmitPermissionsForPrincipal(permissionPrincipal);
+
+            // Create the about blank content viewer in the content process
             this.messageManager.sendAsyncMessage("Browser:CreateAboutBlank", aPrincipal);
           ]]>
         </body>

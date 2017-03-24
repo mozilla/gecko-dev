@@ -431,7 +431,7 @@ WrapperOwner::DOMQI(JSContext* cx, JS::HandleObject proxy, JS::CallArgs& args)
         RootedObject idobj(cx, &id.toObject());
         nsCOMPtr<nsIJSID> jsid;
 
-        nsresult rv = UnwrapArg<nsIJSID>(idobj, getter_AddRefs(jsid));
+        nsresult rv = UnwrapArg<nsIJSID>(cx, idobj, getter_AddRefs(jsid));
         if (NS_SUCCEEDED(rv)) {
             MOZ_ASSERT(jsid, "bad wrapJS");
             const nsID* idptr = jsid->GetID();
@@ -717,7 +717,6 @@ WrapperOwner::hasInstance(JSContext* cx, HandleObject proxy, MutableHandleValue 
         return false;
 
     ReturnStatus status;
-    JSVariant result;
     if (!SendHasInstance(objId, vVar, &status, bp))
         return ipcfail(cx);
 

@@ -173,7 +173,7 @@ MemoryDIBTextureData::Serialize(SurfaceDescriptor& aOutDescriptor)
   // The host will release this ref when it receives the surface descriptor.
   // We AddRef in case we die before the host receives the pointer.
   aOutDescriptor = SurfaceDescriptorDIB(reinterpret_cast<uintptr_t>(mSurface.get()));
-  mSurface->AddRef();
+  mSurface.get()->AddRef();
   return true;
 }
 
@@ -379,9 +379,9 @@ TextureHostDirectUpload::Unlock()
 }
 
 void
-TextureHostDirectUpload::SetCompositor(Compositor* aCompositor)
+TextureHostDirectUpload::SetTextureSourceProvider(TextureSourceProvider* aProvider)
 {
-  mCompositor = aCompositor;
+  mProvider = aProvider;
 }
 
 void
@@ -419,14 +419,14 @@ DIBTextureHost::DIBTextureHost(TextureFlags aFlags,
 void
 DIBTextureHost::UpdatedInternal(const nsIntRegion* aRegion)
 {
-  if (!mCompositor) {
+  if (!mProvider) {
     // This can happen if we send textures to a compositable that isn't yet
     // attached to a layer.
     return;
   }
 
   if (!mTextureSource) {
-    mTextureSource = mCompositor->CreateDataTextureSource(mFlags);
+    mTextureSource = mProvider->CreateDataTextureSource(mFlags);
   }
 
   if (mSurface->CairoStatus()) {
@@ -468,14 +468,14 @@ static void UnmapFileData(void* aData)
 void
 TextureHostFileMapping::UpdatedInternal(const nsIntRegion* aRegion)
 {
-  if (!mCompositor) {
+  if (!mProvider) {
     // This can happen if we send textures to a compositable that isn't yet
     // attached to a layer.
     return;
   }
 
   if (!mTextureSource) {
-    mTextureSource = mCompositor->CreateDataTextureSource(mFlags);
+    mTextureSource = mProvider->CreateDataTextureSource(mFlags);
   }
 
   uint8_t* data = nullptr;

@@ -147,7 +147,7 @@ public:
   nsresult SyncReadMetadata(nsIFile *aFile);
 
   bool     IsAnonymous() const { return mAnonymous; }
-  mozilla::NeckoOriginAttributes const & OriginAttributes() const { return mOriginAttributes; }
+  mozilla::OriginAttributes const & OriginAttributes() const { return mOriginAttributes; }
   bool     Pinned() const      { return !!(mMetaHdr.mFlags & kCacheEntryIsPinned); }
 
   const char * GetElement(const char *aKey);
@@ -156,6 +156,7 @@ public:
 
   CacheHash::Hash16_t GetHash(uint32_t aIndex);
   nsresult            SetHash(uint32_t aIndex, CacheHash::Hash16_t aHash);
+  nsresult            RemoveHash(uint32_t aIndex);
 
   nsresult AddFlags(uint32_t aFlags);
   nsresult RemoveFlags(uint32_t aFlags);
@@ -215,7 +216,7 @@ private:
   bool                                mAnonymous      : 1;
   bool                                mAllocExactSize : 1;
   bool                                mFirstRead      : 1;
-  mozilla::NeckoOriginAttributes      mOriginAttributes;
+  mozilla::OriginAttributes           mOriginAttributes;
   mozilla::TimeStamp                  mReadStart;
   nsCOMPtr<CacheFileMetadataListener> mListener;
 };

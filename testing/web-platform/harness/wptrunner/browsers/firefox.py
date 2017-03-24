@@ -4,6 +4,7 @@
 
 import os
 import platform
+import signal
 import subprocess
 import sys
 
@@ -58,14 +59,15 @@ def browser_kwargs(**kwargs):
             "certutil_binary": kwargs["certutil_binary"],
             "ca_certificate_path": kwargs["ssl_env"].ca_cert_path(),
             "e10s": kwargs["gecko_e10s"],
-            "stackfix_dir": kwargs["stackfix_dir"]}
+            "stackfix_dir": kwargs["stackfix_dir"],
+            "binary_args": kwargs["binary_args"]}
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, **kwargs)
-    executor_kwargs["close_after_done"] = True
+    executor_kwargs["close_after_done"] = test_type != "reftest"
     if kwargs["timeout_multiplier"] is None:
         if test_type == "reftest":
             if run_info_data["debug"] or run_info_data.get("asan"):
@@ -76,6 +78,16 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
             executor_kwargs["timeout_multiplier"] = 3
     if test_type == "wdspec":
         executor_kwargs["webdriver_binary"] = kwargs.get("webdriver_binary")
+        fxOptions = {}
+        if kwargs["binary"]:
+            fxOptions["binary"] = kwargs["binary"]
+        if kwargs["binary_args"]:
+            fxOptions["args"] = kwargs["binary_args"]
+        fxOptions["prefs"] = {
+            "network.dns.localDomains": ",".join(hostnames)
+        }
+        capabilities = {"moz:firefoxOptions": fxOptions}
+        executor_kwargs["capabilities"] = capabilities
     return executor_kwargs
 
 
@@ -98,10 +110,12 @@ def update_properties():
 class FirefoxBrowser(Browser):
     used_ports = set()
     init_timeout = 60
+    shutdown_timeout = 60
 
     def __init__(self, logger, binary, prefs_root, debug_info=None,
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
-                 ca_certificate_path=None, e10s=False, stackfix_dir=None):
+                 ca_certificate_path=None, e10s=False, stackfix_dir=None,
+                 binary_args=None):
         Browser.__init__(self, logger)
         self.binary = binary
         self.prefs_root = prefs_root
@@ -114,6 +128,7 @@ class FirefoxBrowser(Browser):
         self.ca_certificate_path = ca_certificate_path
         self.certutil_binary = certutil_binary
         self.e10s = e10s
+        self.binary_args = binary_args
         if self.symbols_path and stackfix_dir:
             self.stack_fixer = get_stack_fixer_function(stackfix_dir,
                                                         self.symbols_path)
@@ -150,7 +165,9 @@ class FirefoxBrowser(Browser):
         if self.ca_certificate_path is not None:
             self.setup_ssl()
 
-        debug_args, cmd = browser_command(self.binary, [cmd_arg("marionette"), "about:blank"],
+        debug_args, cmd = browser_command(self.binary,
+                                          self.binary_args if self.binary_args else [] +
+                                          [cmd_arg("marionette"), "about:blank"],
                                           self.debug_info)
 
         self.runner = FirefoxRunner(profile=self.profile,
@@ -175,11 +192,19 @@ class FirefoxBrowser(Browser):
 
         return preferences
 
-    def stop(self):
-        self.logger.debug("Stopping browser")
-        if self.runner is not None:
+    def stop(self, force=False):
+        if self.runner is not None and self.runner.is_running():
             try:
-                self.runner.stop()
+                # For Firefox we assume that stopping the runner prompts the
+                # browser to shut down. This allows the leak log to be written
+                for clean, stop_f in [(True, lambda: self.runner.wait(self.shutdown_timeout)),
+                                      (False, lambda: self.runner.stop(signal.SIGTERM)),
+                                      (False, lambda: self.runner.stop(signal.SIGKILL))]:
+                    if not force or not clean:
+                        retcode = stop_f()
+                        if retcode is not None:
+                            self.logger.info("Browser exited with return code %s" % retcode)
+                            break
             except OSError:
                 # This can happen on Windows if the process is already dead
                 pass

@@ -210,6 +210,8 @@ class BuildOutputManager(LoggingMixin):
         # TODO convert terminal footer to config file setting.
         if not terminal or os.environ.get('MACH_NO_TERMINAL_FOOTER', None):
             return
+        if os.environ.get('INSIDE_EMACS', None):
+            return
 
         self.t = terminal
         self.footer = BuildProgressFooter(terminal, monitor)
@@ -509,7 +511,7 @@ class Build(MachCommandBase):
             # to avoid accidentally disclosing PII.
             telemetry_data['substs'] = {}
             try:
-                for key in ['MOZ_ARTIFACT_BUILDS', 'MOZ_USING_CCACHE']:
+                for key in ['MOZ_ARTIFACT_BUILDS', 'MOZ_USING_CCACHE', 'MOZ_USING_SCCACHE']:
                     value = self.substs.get(key, False)
                     telemetry_data['substs'][key] = value
             except BuildEnvironmentNotFoundException:
@@ -695,9 +697,9 @@ class Clobber(MachCommandBase):
                 raise
 
         if 'python' in what:
-            if os.path.isdir(mozpath.join(self.topsrcdir, '.hg')):
+            if conditions.is_hg(self):
                 cmd = ['hg', 'purge', '--all', '-I', 'glob:**.py[co]']
-            elif os.path.isdir(mozpath.join(self.topsrcdir, '.git')):
+            elif conditions.is_git(self):
                 cmd = ['git', 'clean', '-f', '-x', '*.py[co]']
             else:
                 cmd = ['find', '.', '-type', 'f', '-name', '*.py[co]', '-delete']
@@ -1111,6 +1113,8 @@ class RunProgram(MachCommandBase):
         help='Do not pass the --profile argument by default.')
     @CommandArgument('--disable-e10s', action='store_true', group=prog_group,
         help='Run the program with electrolysis disabled.')
+    @CommandArgument('--enable-crash-reporter', action='store_true', group=prog_group,
+        help='Run the program with the crash reporter enabled.')
 
     @CommandArgumentGroup('debugging')
     @CommandArgument('--debug', action='store_true', group='debugging',
@@ -1120,13 +1124,6 @@ class RunProgram(MachCommandBase):
     @CommandArgument('--debugparams', default=None, metavar='params', type=str,
         group='debugging',
         help='Command-line arguments to pass to the debugger itself; split as the Bourne shell would.')
-    # Bug 933807 introduced JS_DISABLE_SLOW_SCRIPT_SIGNALS to avoid clever
-    # segfaults induced by the slow-script-detecting logic for Ion/Odin JITted
-    # code.  If we don't pass this, the user will need to periodically type
-    # "continue" to (safely) resume execution.  There are ways to implement
-    # automatic resuming; see the bug.
-    @CommandArgument('--slowscript', action='store_true', group='debugging',
-        help='Do not set the JS_DISABLE_SLOW_SCRIPT_SIGNALS env variable; when not set, recoverable but misleading SIGSEGV instances may occur in Ion/Odin JIT code.')
 
     @CommandArgumentGroup('DMD')
     @CommandArgument('--dmd', action='store_true', group='DMD',
@@ -1137,8 +1134,9 @@ class RunProgram(MachCommandBase):
         help='Allocation stack trace coverage. The default is \'partial\'.')
     @CommandArgument('--show-dump-stats', action='store_true', group='DMD',
         help='Show stats when doing dumps.')
-    def run(self, params, remote, background, noprofile, disable_e10s, debug,
-        debugger, debugparams, slowscript, dmd, mode, stacks, show_dump_stats):
+    def run(self, params, remote, background, noprofile, disable_e10s,
+        enable_crash_reporter, debug, debugger, debugparams,
+        dmd, mode, stacks, show_dump_stats):
 
         if conditions.is_android(self):
             # Running Firefox for Android is completely different
@@ -1182,7 +1180,11 @@ class RunProgram(MachCommandBase):
                 args.append('-profile')
                 args.append(path)
 
-        extra_env = {'MOZ_CRASHREPORTER_DISABLE': '1'}
+        extra_env = {}
+
+        if not enable_crash_reporter:
+            extra_env['MOZ_CRASHREPORTER_DISABLE'] = '1'
+
         if disable_e10s:
             extra_env['MOZ_FORCE_DISABLE_E10S'] = '1'
 
@@ -1212,9 +1214,6 @@ class RunProgram(MachCommandBase):
                     print("The --debugparams you passed require a real shell to parse them.")
                     print("(We can't handle the %r character.)" % e.char)
                     return 1
-
-            if not slowscript:
-                extra_env['JS_DISABLE_SLOW_SCRIPT_SIGNALS'] = '1'
 
             # Prepend the debugger args.
             args = [self.debuggerInfo.path] + self.debuggerInfo.args + args
@@ -1480,32 +1479,7 @@ class PackageFrontend(MachCommandBase):
     def _set_log_level(self, verbose):
         self.log_manager.terminal_handler.setLevel(logging.INFO if not verbose else logging.DEBUG)
 
-    def _install_pip_package(self, package):
-        if os.environ.get('MOZ_AUTOMATION'):
-            self.virtualenv_manager._run_pip([
-                'install',
-                package,
-                '--no-index',
-                '--find-links',
-                'http://pypi.pub.build.mozilla.org/pub',
-                '--trusted-host',
-                'pypi.pub.build.mozilla.org',
-            ])
-            return
-        self.virtualenv_manager.install_pip_package(package)
-
     def _make_artifacts(self, tree=None, job=None, skip_cache=False):
-        # Undo PATH munging that will be done by activating the virtualenv,
-        # so that invoked subprocesses expecting to find system python
-        # (git cinnabar, in particular), will not find virtualenv python.
-        original_path = os.environ.get('PATH', '')
-        self._activate_virtualenv()
-        os.environ['PATH'] = original_path
-
-        for package in ('taskcluster==0.0.32',
-                        'mozregression==1.0.2'):
-            self._install_pip_package(package)
-
         state_dir = self._mach_context.state_dir
         cache_dir = os.path.join(state_dir, 'package-frontend')
 
@@ -1534,7 +1508,6 @@ class PackageFrontend(MachCommandBase):
             else:
                 git = which.which('git')
 
-        # Absolutely must come after the virtualenv is populated!
         from mozbuild.artifacts import Artifacts
         artifacts = Artifacts(tree, self.substs, self.defines, job,
                               log=self.log, cache_dir=cache_dir,
@@ -1596,6 +1569,9 @@ class Vendor(MachCommandBase):
                 description='Vendor rust crates from crates.io into third_party/rust')
     @CommandArgument('--ignore-modified', action='store_true',
         help='Ignore modified files in current checkout',
+        default=False)
+    @CommandArgument('--build-peers-said-large-imports-were-ok', action='store_true',
+        help='Permit overly-large files to be added to the repository',
         default=False)
     def vendor_rust(self, **kwargs):
         from mozbuild.vendor_rust import VendorRust

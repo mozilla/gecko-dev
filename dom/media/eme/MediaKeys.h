@@ -83,8 +83,7 @@ public:
   already_AddRefed<MediaKeySession> GetPendingSession(uint32_t aToken);
 
   // Called once a Init() operation succeeds.
-  void OnCDMCreated(PromiseId aId,
-                    const nsACString& aNodeId, const uint32_t aPluginId);
+  void OnCDMCreated(PromiseId aId, const uint32_t aPluginId);
 
   // Called once the CDM generates a sessionId while servicing a
   // MediaKeySession.generateRequest() or MediaKeySession.load() call,
@@ -120,8 +119,6 @@ public:
   // Resolves promise with "undefined".
   void ResolvePromise(PromiseId aId);
 
-  const nsCString& GetNodeId() const;
-
   void Shutdown();
 
   // Called by CDMProxy when CDM crashes or shuts down. It is different from
@@ -131,11 +128,13 @@ public:
   // Returns true if this MediaKeys has been bound to a media element.
   bool IsBoundToMediaElement() const;
 
+  void GetSessionsInfo(nsString& sessionsInfo);
+
 private:
 
   // Instantiate CDMProxy instance.
   // It could be MediaDrmCDMProxy (Widevine on Fennec) or GMPCDMProxy (the rest).
-  already_AddRefed<CDMProxy> CreateCDMProxy();
+  already_AddRefed<CDMProxy> CreateCDMProxy(nsIEventTarget* aMainThread);
 
   // Removes promise from mPromises, and returns it.
   already_AddRefed<DetailedPromise> RetrievePromise(PromiseId aId);
@@ -148,7 +147,6 @@ private:
 
   nsCOMPtr<nsPIDOMWindowInner> mParent;
   const nsString mKeySystem;
-  nsCString mNodeId;
   KeySessionHashMap mKeySessions;
   PromiseHashMap mPromises;
   PendingKeySessionsHashMap mPendingSessions;

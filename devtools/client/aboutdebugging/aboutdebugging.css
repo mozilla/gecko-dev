@@ -43,13 +43,10 @@ button {
 
 .panel {
   max-width: 800px;
+  margin-bottom: 35px;
 }
 
 /* Targets */
-
-.targets {
-  margin-bottom: 35px;
-}
 
 .target-list {
   margin: 0;
@@ -66,7 +63,7 @@ button {
 
 .target-icon {
   height: 24px;
-  margin: 0 5px 0 0;
+  margin-inline-end: 5px;
 }
 
 .target-icon:not([src]) {
@@ -114,7 +111,7 @@ button {
 }
 
 .target-detail > :not(:first-child) {
-  margin-left: 8px;
+  margin-inline-start: 8px;
 }
 
 .target-status {
@@ -122,7 +119,8 @@ button {
   display: inline-block;
 
   min-width: 50px;
-  margin: 4px 5px 0 0;
+  margin-top: 4px;
+  margin-inline-end: 5px;
   padding: 2px;
 
   border-width: 1px;
@@ -153,27 +151,46 @@ button {
   flex-direction: row;
 }
 
-.addons-install-error {
-  background-color: #f3b0b0;
+.addons-install-error,
+.service-worker-multi-process {
   padding: 5px 10px;
-  margin: 5px 4px 5px 0px;
+  margin-top: 5px;
+  margin-inline-end: 4px;
 }
 
-.service-worker-disabled .warning,
-.addons-install-error .warning {
+.addons-install-error {
+  background-color: #f3b0b0;
+}
+
+.service-worker-multi-process {
+  background-color: #ffeebb;
+  line-height: 1.5em;
+}
+
+.service-worker-multi-process .update-button {
+  margin: 5px 0;
+}
+
+.warning {
   background-image: url(chrome://devtools/skin/images/alerticon-warning.png);
   background-size: 13px 12px;
-  margin-right: 10px;
   display: inline-block;
   width: 13px;
   height: 12px;
+  margin-inline-end: 10px;
 }
 
 @media (min-resolution: 1.1dppx) {
-  .service-worker-disabled .warning,
-  .addons-install-error .warning {
+  .warning {
     background-image: url(chrome://devtools/skin/images/alerticon-warning@2x.png);
   }
+}
+
+.addons-install-error .warning,
+.service-worker-multi-process .warning {
+  /* The warning icon can be hard to see on red / yellow backgrounds, this turns the icon
+  to a black icon. */
+  filter: brightness(0%);
 }
 
 .addons-options {
@@ -182,7 +199,7 @@ button {
 
 .addons-debugging-label {
   display: inline-block;
-  margin: 0 5px 5px 0;
+  margin-inline-end: 1ch;
 }
 
 .error-page {

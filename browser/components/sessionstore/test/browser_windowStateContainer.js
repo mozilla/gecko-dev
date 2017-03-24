@@ -1,3 +1,6 @@
+// This file spawns content tasks.
+/* eslint-env mozilla/frame-script */
+
 "use strict";
 
 requestLongerTimeout(2);
@@ -92,7 +95,7 @@ add_task(function* () {
 
   let win2 = yield BrowserTestUtils.openNewBrowserWindow();
 
-  let tab2 = win2.gBrowser.addTab("http://example.com/", { userContextId : 1 });
+  let tab2 = win2.gBrowser.addTab("http://example.com/", { userContextId: 1 });
   yield promiseBrowserLoaded(tab2.linkedBrowser);
   yield TabStateFlusher.flush(tab2.linkedBrowser);
 
@@ -119,4 +122,3 @@ add_task(function* () {
   yield BrowserTestUtils.closeWindow(win);
   yield BrowserTestUtils.closeWindow(win2);
 });
-

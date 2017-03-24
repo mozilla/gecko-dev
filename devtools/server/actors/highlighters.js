@@ -4,7 +4,7 @@
 
 "use strict";
 
-const { Ci } = require("chrome");
+const { Ci, Cu } = require("chrome");
 
 const { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
 const EventEmitter = require("devtools/shared/event-emitter");
@@ -82,7 +82,7 @@ exports.register = register;
 /**
  * The HighlighterActor class
  */
-var HighlighterActor = exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
+exports.HighlighterActor = protocol.ActorClassWithSpec(highlighterSpec, {
   initialize: function (inspector, autohide) {
     protocol.Actor.prototype.initialize.call(this, null);
 
@@ -255,7 +255,8 @@ var HighlighterActor = exports.HighlighterActor = protocol.ActorClassWithSpec(hi
       // If shift is pressed, this is only a preview click, send the event to
       // the client, but don't stop picking.
       if (event.shiftKey) {
-        events.emit(this._walker, "picker-node-previewed", this._findAndAttachElement(event));
+        events.emit(this._walker, "picker-node-previewed",
+          this._findAndAttachElement(event));
         return;
       }
 
@@ -351,8 +352,8 @@ var HighlighterActor = exports.HighlighterActor = protocol.ActorClassWithSpec(hi
             (!IS_OSX && event.ctrlKey && event.shiftKey)) {
             this.cancelPick();
             events.emit(this._walker, "picker-node-canceled");
-            return;
           }
+          return;
         default: return;
       }
 
@@ -370,7 +371,7 @@ var HighlighterActor = exports.HighlighterActor = protocol.ActorClassWithSpec(hi
   /**
    * This pick method also focuses the highlighter's target window.
    */
-  pickAndFocus: function() {
+  pickAndFocus: function () {
     // Go ahead and pass on the results to help future-proof this method.
     let pickResults = this.pick();
     this._highlighterEnv.window.focus();
@@ -398,6 +399,11 @@ var HighlighterActor = exports.HighlighterActor = protocol.ActorClassWithSpec(hi
 
   _stopPickerListeners: function () {
     let target = this._highlighterEnv.pageListenerTarget;
+
+    if (!target) {
+      return;
+    }
+
     target.removeEventListener("mousemove", this._onHovered, true);
     target.removeEventListener("click", this._onPick, true);
     target.removeEventListener("mousedown", this._preventContentEvent, true);
@@ -429,7 +435,7 @@ var HighlighterActor = exports.HighlighterActor = protocol.ActorClassWithSpec(hi
  * A generic highlighter actor class that instantiate a highlighter given its
  * type name and allows to show/hide it.
  */
-var CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClassWithSpec(customHighlighterSpec, {
+exports.CustomHighlighterActor = protocol.ActorClassWithSpec(customHighlighterSpec, {
   /**
    * Create a highlighter instance given its typename
    * The typename must be one of HIGHLIGHTER_CLASSES and the class must
@@ -480,9 +486,8 @@ var CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClas
    * NodeActor argument (NodeActor as in
    * devtools/server/actor/inspector).
    * Note however that some highlighters use this argument merely as a context
-   * node: the RectHighlighter for instance uses it to calculate the absolute
-   * position of the provided rect. The SelectHighlighter uses it as a base node
-   * to run the provided CSS selector on.
+   * node: The SelectHighlighter for instance uses it as a base node to run the
+   * provided CSS selector on.
    *
    * @param {NodeActor} The node to be highlighted
    * @param {Object} Options for the custom highlighter
@@ -526,8 +531,8 @@ var CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClas
 /**
  * The HighlighterEnvironment is an object that holds all the required data for
  * highlighters to work: the window, docShell, event listener target, ...
- * It also emits "will-navigate" and "navigate" events, similarly to the
- * TabActor.
+ * It also emits "will-navigate", "navigate" and "window-ready" events,
+ * similarly to the TabActor.
  *
  * It can be initialized either from a TabActor (which is the most frequent way
  * of using it, since highlighters are usually initialized by the
@@ -537,6 +542,7 @@ var CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClas
  * instance from a gcli command).
  */
 function HighlighterEnvironment() {
+  this.relayTabActorWindowReady = this.relayTabActorWindowReady.bind(this);
   this.relayTabActorNavigate = this.relayTabActorNavigate.bind(this);
   this.relayTabActorWillNavigate = this.relayTabActorWillNavigate.bind(this);
 
@@ -548,6 +554,7 @@ exports.HighlighterEnvironment = HighlighterEnvironment;
 HighlighterEnvironment.prototype = {
   initFromTabActor: function (tabActor) {
     this._tabActor = tabActor;
+    events.on(this._tabActor, "window-ready", this.relayTabActorWindowReady);
     events.on(this._tabActor, "navigate", this.relayTabActorNavigate);
     events.on(this._tabActor, "will-navigate", this.relayTabActorWillNavigate);
   },
@@ -611,21 +618,25 @@ HighlighterEnvironment.prototype = {
       throw new Error("Initialize HighlighterEnvironment with a tabActor " +
         "or window first");
     }
-    return this._tabActor ? this._tabActor.window : this._win;
+    let win = this._tabActor ? this._tabActor.window : this._win;
+
+    return Cu.isDeadWrapper(win) ? null : win;
   },
 
   get document() {
-    return this.window.document;
+    return this.window && this.window.document;
   },
 
   get docShell() {
-    return this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+    return this.window &&
+           this.window.QueryInterface(Ci.nsIInterfaceRequestor)
                       .getInterface(Ci.nsIWebNavigation)
                       .QueryInterface(Ci.nsIDocShell);
   },
 
   get webProgress() {
-    return this.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+    return this.docShell &&
+           this.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
                         .getInterface(Ci.nsIWebProgress);
   },
 
@@ -646,7 +657,11 @@ HighlighterEnvironment.prototype = {
     if (this._tabActor && this._tabActor.isRootActor) {
       return this.window;
     }
-    return this.docShell.chromeEventHandler;
+    return this.docShell && this.docShell.chromeEventHandler;
+  },
+
+  relayTabActorWindowReady: function (data) {
+    this.emit("window-ready", data);
   },
 
   relayTabActorNavigate: function (data) {
@@ -659,6 +674,7 @@ HighlighterEnvironment.prototype = {
 
   destroy: function () {
     if (this._tabActor) {
+      events.off(this._tabActor, "window-ready", this.relayTabActorWindowReady);
       events.off(this._tabActor, "navigate", this.relayTabActorNavigate);
       events.off(this._tabActor, "will-navigate", this.relayTabActorWillNavigate);
     }
@@ -693,10 +709,6 @@ exports.CssTransformHighlighter = CssTransformHighlighter;
 const { SelectorHighlighter } = require("./highlighters/selector");
 register(SelectorHighlighter);
 exports.SelectorHighlighter = SelectorHighlighter;
-
-const { RectHighlighter } = require("./highlighters/rect");
-register(RectHighlighter);
-exports.RectHighlighter = RectHighlighter;
 
 const { GeometryEditorHighlighter } = require("./highlighters/geometry-editor");
 register(GeometryEditorHighlighter);

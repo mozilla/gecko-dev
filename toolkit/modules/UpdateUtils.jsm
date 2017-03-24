@@ -31,20 +31,16 @@ this.UpdateUtils = {
    *        Whether or not to include the partner bits. Default: true.
    */
   getUpdateChannel(aIncludePartners = true) {
-    let channel = AppConstants.MOZ_UPDATE_CHANNEL;
     let defaults = Services.prefs.getDefaultBranch(null);
-    try {
-      channel = defaults.getCharPref("app.update.channel");
-    } catch (e) {
-      // use default value when pref not found
-    }
+    let channel = defaults.getCharPref("app.update.channel",
+                                       AppConstants.MOZ_UPDATE_CHANNEL);
 
     if (aIncludePartners) {
       try {
         let partners = Services.prefs.getChildList("app.partner.").sort();
         if (partners.length) {
           channel += "-cck";
-          partners.forEach(function (prefName) {
+          partners.forEach(function(prefName) {
             channel += "-" + Services.prefs.getCharPref(prefName);
           });
         }
@@ -111,15 +107,7 @@ this.UpdateUtils = {
 
 /* Get the distribution pref values, from defaults only */
 function getDistributionPrefValue(aPrefName) {
-  var prefValue = "default";
-
-  try {
-    prefValue = Services.prefs.getDefaultBranch(null).getCharPref(aPrefName);
-  } catch (e) {
-    // use default when pref not found
-  }
-
-  return prefValue;
+  return Services.prefs.getDefaultBranch(null).getCharPref(aPrefName, "default");
 }
 
 /**
@@ -131,7 +119,7 @@ function getDistributionPrefValue(aPrefName) {
 XPCOMUtils.defineLazyGetter(UpdateUtils, "Locale", function() {
   let channel;
   let locale;
-  for (let res of ['app', 'gre']) {
+  for (let res of ["app", "gre"]) {
     channel = NetUtil.newChannel({
       uri: "resource://" + res + "/" + FILE_UPDATE_LOCALE,
       contentPolicyType: Ci.nsIContentPolicy.TYPE_INTERNAL_XMLHTTPREQUEST,
@@ -208,7 +196,7 @@ XPCOMUtils.defineLazyGetter(this, "gWinCPUArch", function aus_gWinCPUArch() {
 
   // This structure is described at:
   // http://msdn.microsoft.com/en-us/library/ms724958%28v=vs.85%29.aspx
-  const SYSTEM_INFO = new ctypes.StructType('SYSTEM_INFO',
+  const SYSTEM_INFO = new ctypes.StructType("SYSTEM_INFO",
       [
       {wProcessorArchitecture: WORD},
       {wReserved: WORD},
@@ -267,8 +255,7 @@ XPCOMUtils.defineLazyGetter(UpdateUtils, "ABI", function() {
   let abi = null;
   try {
     abi = Services.appinfo.XPCOMABI;
-  }
-  catch (e) {
+  } catch (e) {
     Cu.reportError("XPCOM ABI unknown");
   }
 
@@ -293,8 +280,7 @@ XPCOMUtils.defineLazyGetter(UpdateUtils, "OSVersion", function() {
   try {
     osVersion = Services.sysinfo.getProperty("name") + " " +
                 Services.sysinfo.getProperty("version");
-  }
-  catch (e) {
+  } catch (e) {
     Cu.reportError("OS Version unknown.");
   }
 
@@ -309,7 +295,7 @@ XPCOMUtils.defineLazyGetter(UpdateUtils, "OSVersion", function() {
       // This structure is described at:
       // http://msdn.microsoft.com/en-us/library/ms724833%28v=vs.85%29.aspx
       const SZCSDVERSIONLENGTH = 128;
-      const OSVERSIONINFOEXW = new ctypes.StructType('OSVERSIONINFOEXW',
+      const OSVERSIONINFOEXW = new ctypes.StructType("OSVERSIONINFOEXW",
           [
           {dwOSVersionInfoSize: DWORD},
           {dwMajorVersion: DWORD},
@@ -322,23 +308,6 @@ XPCOMUtils.defineLazyGetter(UpdateUtils, "OSVersion", function() {
           {wSuiteMask: WORD},
           {wProductType: BYTE},
           {wReserved: BYTE}
-          ]);
-
-      // This structure is described at:
-      // http://msdn.microsoft.com/en-us/library/ms724958%28v=vs.85%29.aspx
-      const SYSTEM_INFO = new ctypes.StructType('SYSTEM_INFO',
-          [
-          {wProcessorArchitecture: WORD},
-          {wReserved: WORD},
-          {dwPageSize: DWORD},
-          {lpMinimumApplicationAddress: ctypes.voidptr_t},
-          {lpMaximumApplicationAddress: ctypes.voidptr_t},
-          {dwActiveProcessorMask: DWORD.ptr},
-          {dwNumberOfProcessors: DWORD},
-          {dwProcessorType: DWORD},
-          {dwAllocationGranularity: DWORD},
-          {wProcessorLevel: WORD},
-          {wProcessorRevision: WORD}
           ]);
 
       let kernel32 = false;
@@ -382,8 +351,7 @@ XPCOMUtils.defineLazyGetter(UpdateUtils, "OSVersion", function() {
 
     try {
       osVersion += " (" + Services.sysinfo.getProperty("secondaryLibrary") + ")";
-    }
-    catch (e) {
+    } catch (e) {
       // Not all platforms have a secondary widget library, so an error is nothing to worry about.
     }
     osVersion = encodeURIComponent(osVersion);

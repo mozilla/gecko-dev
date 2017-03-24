@@ -5,7 +5,7 @@
 Cu.import("resource://testing-common/MockRegistrar.jsm");
 
 const WindowWatcher = {
-  openWindow: function(aParent, aUrl, aName, aFeatures, aArgs) {
+  openWindow(aParent, aUrl, aName, aFeatures, aArgs) {
     check_showUpdateAvailable();
   },
 
@@ -13,7 +13,7 @@ const WindowWatcher = {
 };
 
 const WindowMediator = {
-  getMostRecentWindow: function(aWindowType) {
+  getMostRecentWindow(aWindowType) {
     return null;
   },
 
@@ -29,7 +29,7 @@ function run_test() {
             "shown (bug 843497)");
 
   start_httpserver();
-  setUpdateURLOverride(gURLData + gHTTPHandlerPath);
+  setUpdateURL(gURLData + gHTTPHandlerPath);
   standardInit();
 
   let windowWatcherCID =

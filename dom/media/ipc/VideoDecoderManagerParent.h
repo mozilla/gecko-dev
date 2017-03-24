@@ -24,16 +24,18 @@ public:
   static void StartupThreads();
   static void ShutdownThreads();
 
+  static void ShutdownVideoBridge();
+
   bool OnManagerThread();
 
 protected:
-  PVideoDecoderParent* AllocPVideoDecoderParent() override;
+  PVideoDecoderParent* AllocPVideoDecoderParent(const VideoInfo& aVideoInfo, const layers::TextureFactoryIdentifier& aIdentifier, bool* aSuccess) override;
   bool DeallocPVideoDecoderParent(PVideoDecoderParent* actor) override;
 
-  bool RecvReadback(const SurfaceDescriptorGPUVideo& aSD, SurfaceDescriptor* aResult) override;
-  bool RecvDeallocateSurfaceDescriptorGPUVideo(const SurfaceDescriptorGPUVideo& aSD) override;
+  mozilla::ipc::IPCResult RecvReadback(const SurfaceDescriptorGPUVideo& aSD, SurfaceDescriptor* aResult) override;
+  mozilla::ipc::IPCResult RecvDeallocateSurfaceDescriptorGPUVideo(const SurfaceDescriptorGPUVideo& aSD) override;
 
-  void ActorDestroy(mozilla::ipc::IProtocolManager<mozilla::ipc::IProtocol>::ActorDestroyReason) override {}
+  void ActorDestroy(mozilla::ipc::IProtocol::ActorDestroyReason) override {}
 
   void DeallocPVideoDecoderManagerParent() override;
 

@@ -18,6 +18,7 @@
 #include "mozilla/Attributes.h"
 #include "AlternateServices.h"
 #include "ARefBase.h"
+#include "nsWeakReference.h"
 
 #include "nsIObserver.h"
 #include "nsITimer.h"
@@ -29,6 +30,10 @@ namespace net {
 class EventTokenBucket;
 class NullHttpTransaction;
 struct HttpRetParams;
+
+// 8d411b53-54bc-4a99-8b78-ff125eab1564
+#define NS_HALFOPENSOCKET_IID \
+{ 0x8d411b53, 0x54bc, 0x4a99, {0x8b, 0x78, 0xff, 0x12, 0x5e, 0xab, 0x15, 0x64 }}
 
 //-----------------------------------------------------------------------------
 
@@ -45,12 +50,11 @@ public:
 
     // parameter names
     enum nsParamName {
+        MAX_URGENT_START_Q,
         MAX_CONNECTIONS,
         MAX_PERSISTENT_CONNECTIONS_PER_HOST,
         MAX_PERSISTENT_CONNECTIONS_PER_PROXY,
-        MAX_REQUEST_DELAY,
-        MAX_PIPELINED_REQUESTS,
-        MAX_OPTIMISTIC_PIPELINED_REQUESTS
+        MAX_REQUEST_DELAY
     };
 
     //-------------------------------------------------------------------------
@@ -59,13 +63,12 @@ public:
 
     nsHttpConnectionMgr();
 
-    nsresult Init(uint16_t maxConnections,
-                  uint16_t maxPersistentConnectionsPerHost,
-                  uint16_t maxPersistentConnectionsPerProxy,
-                  uint16_t maxRequestDelay,
-                  uint16_t maxPipelinedRequests,
-                  uint16_t maxOptimisticPipelinedRequests);
-    nsresult Shutdown();
+    MOZ_MUST_USE nsresult Init(uint16_t maxUrgentStartQ,
+                               uint16_t maxConnections,
+                               uint16_t maxPersistentConnectionsPerHost,
+                               uint16_t maxPersistentConnectionsPerProxy,
+                               uint16_t maxRequestDelay);
+    MOZ_MUST_USE nsresult Shutdown();
 
     //-------------------------------------------------------------------------
     // NOTE: functions below may be called on any thread.
@@ -84,36 +87,39 @@ public:
     void ConditionallyStopTimeoutTick();
 
     // adds a transaction to the list of managed transactions.
-    nsresult AddTransaction(nsHttpTransaction *, int32_t priority);
+    MOZ_MUST_USE nsresult AddTransaction(nsHttpTransaction *, int32_t priority);
 
     // called to reschedule the given transaction.  it must already have been
     // added to the connection manager via AddTransaction.
-    nsresult RescheduleTransaction(nsHttpTransaction *, int32_t priority);
+    MOZ_MUST_USE nsresult RescheduleTransaction(nsHttpTransaction *,
+                                                int32_t priority);
 
     // cancels a transaction w/ the given reason.
-    nsresult CancelTransaction(nsHttpTransaction *, nsresult reason);
-    nsresult CancelTransactions(nsHttpConnectionInfo *, nsresult reason);
+    MOZ_MUST_USE nsresult CancelTransaction(nsHttpTransaction *,
+                                            nsresult reason);
+    MOZ_MUST_USE nsresult CancelTransactions(nsHttpConnectionInfo *,
+                                             nsresult reason);
 
     // called to force the connection manager to prune its list of idle
     // connections.
-    nsresult PruneDeadConnections();
+    MOZ_MUST_USE nsresult PruneDeadConnections();
 
     // called to close active connections with no registered "traffic"
-    nsresult PruneNoTraffic();
+    MOZ_MUST_USE nsresult PruneNoTraffic();
 
     // "VerifyTraffic" means marking connections now, and then check again in
     // N seconds to see if there's been any traffic and if not, kill
     // that connection.
-    nsresult VerifyTraffic();
+    MOZ_MUST_USE nsresult VerifyTraffic();
 
     // Close all idle persistent connections and prevent any active connections
     // from being reused. Optional connection info resets CI specific
     // information such as Happy Eyeballs history.
-    nsresult DoShiftReloadConnectionCleanup(nsHttpConnectionInfo *);
+    MOZ_MUST_USE nsresult DoShiftReloadConnectionCleanup(nsHttpConnectionInfo *);
 
     // called to get a reference to the socket transport service.  the socket
     // transport service is not available when the connection manager is down.
-    nsresult GetSocketThreadTarget(nsIEventTarget **);
+    MOZ_MUST_USE nsresult GetSocketThreadTarget(nsIEventTarget **);
 
     // called to indicate a transaction for the connectionInfo is likely coming
     // soon. The connection manager may use this information to start a TCP
@@ -121,97 +127,34 @@ public:
     // ready when the transaction is submitted. No obligation is taken on by the
     // connection manager, nor is the submitter obligated to actually submit a
     // real transaction for this connectionInfo.
-    nsresult SpeculativeConnect(nsHttpConnectionInfo *,
-                                nsIInterfaceRequestor *,
-                                uint32_t caps = 0,
-                                NullHttpTransaction * = nullptr);
+    MOZ_MUST_USE nsresult SpeculativeConnect(nsHttpConnectionInfo *,
+                                             nsIInterfaceRequestor *,
+                                             uint32_t caps = 0,
+                                             NullHttpTransaction * = nullptr);
 
     // called when a connection is done processing a transaction.  if the
     // connection can be reused then it will be added to the idle list, else
     // it will be closed.
-    nsresult ReclaimConnection(nsHttpConnection *conn);
+    MOZ_MUST_USE nsresult ReclaimConnection(nsHttpConnection *conn);
 
     // called by the main thread to execute the taketransport() logic on the
     // socket thread after a 101 response has been received and the socket
     // needs to be transferred to an expectant upgrade listener such as
     // websockets.
-    nsresult CompleteUpgrade(nsAHttpConnection *aConn,
-                             nsIHttpUpgradeListener *aUpgradeListener);
+    MOZ_MUST_USE nsresult
+    CompleteUpgrade(nsAHttpConnection *aConn,
+                    nsIHttpUpgradeListener *aUpgradeListener);
 
     // called to update a parameter after the connection manager has already
     // been initialized.
-    nsresult UpdateParam(nsParamName name, uint16_t value);
+    MOZ_MUST_USE nsresult UpdateParam(nsParamName name, uint16_t value);
 
     // called from main thread to post a new request token bucket
     // to the socket thread
-    nsresult UpdateRequestTokenBucket(EventTokenBucket *aBucket);
+    MOZ_MUST_USE nsresult UpdateRequestTokenBucket(EventTokenBucket *aBucket);
 
     // clears the connection history mCT
-    nsresult ClearConnectionHistory();
-
-    // Pipielining Interfaces and Datatypes
-
-    const static uint32_t kPipelineInfoTypeMask = 0xffff0000;
-    const static uint32_t kPipelineInfoIDMask   = ~kPipelineInfoTypeMask;
-
-    const static uint32_t kPipelineInfoTypeRed     = 0x00010000;
-    const static uint32_t kPipelineInfoTypeBad     = 0x00020000;
-    const static uint32_t kPipelineInfoTypeNeutral = 0x00040000;
-    const static uint32_t kPipelineInfoTypeGood    = 0x00080000;
-
-    enum PipelineFeedbackInfoType
-    {
-        // Used when an HTTP response less than 1.1 is received
-        RedVersionTooLow = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0001,
-
-        // Used when a HTTP Server response header that is on the banned from
-        // pipelining list is received
-        RedBannedServer = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0002,
-
-        // Used when a response is terminated early, when it fails an
-        // integrity check such as assoc-req or when a 304 contained a Last-Modified
-        // differnet than the entry being validated.
-        RedCorruptedContent = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0004,
-
-        // Used when a pipeline is only partly satisfied - for instance if the
-        // server closed the connection after responding to the first
-        // request but left some requests unprocessed.
-        RedCanceledPipeline = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0005,
-
-        // Used when a connection that we expected to stay persistently open
-        // was closed by the server. Not used when simply timed out.
-        BadExplicitClose = kPipelineInfoTypeBad | 0x0003,
-
-        // Used when there is a gap of around 400 - 1200ms in between data being
-        // read from the server
-        BadSlowReadMinor = kPipelineInfoTypeBad | 0x0006,
-
-        // Used when there is a gap of > 1200ms in between data being
-        // read from the server
-        BadSlowReadMajor = kPipelineInfoTypeBad | 0x0007,
-
-        // Used when a response is received that is not framed with either chunked
-        // encoding or a complete content length.
-        BadInsufficientFraming = kPipelineInfoTypeBad | 0x0008,
-
-        // Used when a very large response is recevied in a potential pipelining
-        // context. Large responses cause head of line blocking.
-        BadUnexpectedLarge = kPipelineInfoTypeBad | 0x000B,
-
-        // Used when a response is received that has headers that appear to support
-        // pipelining.
-        NeutralExpectedOK = kPipelineInfoTypeNeutral | 0x0009,
-
-        // Used when a response is received successfully to a pipelined request.
-        GoodCompletedOK = kPipelineInfoTypeGood | 0x000A
-    };
-
-    // called to provide information relevant to the pipelining manager
-    // may be called from any thread
-    void     PipelineFeedbackInfo(nsHttpConnectionInfo *,
-                                  PipelineFeedbackInfoType info,
-                                  nsHttpConnection *,
-                                  uint32_t);
+    MOZ_MUST_USE nsresult ClearConnectionHistory();
 
     void ReportFailedToProcess(nsIURI *uri);
 
@@ -231,23 +174,21 @@ public:
 
     // called to force the transaction queue to be processed once more, giving
     // preference to the specified connection.
-    nsresult ProcessPendingQ(nsHttpConnectionInfo *);
-    bool     ProcessPendingQForEntry(nsHttpConnectionInfo *);
+    MOZ_MUST_USE nsresult ProcessPendingQ(nsHttpConnectionInfo *);
+    MOZ_MUST_USE bool     ProcessPendingQForEntry(nsHttpConnectionInfo *);
 
     // Try and process all pending transactions
-    nsresult ProcessPendingQ();
+    MOZ_MUST_USE nsresult ProcessPendingQ();
 
     // This is used to force an idle connection to be closed and removed from
     // the idle connection list. It is called when the idle connection detects
     // that the network peer has closed the transport.
-    nsresult CloseIdleConnection(nsHttpConnection *);
+    MOZ_MUST_USE nsresult CloseIdleConnection(nsHttpConnection *);
 
     // The connection manager needs to know when a normal HTTP connection has been
     // upgraded to SPDY because the dispatch and idle semantics are a little
     // bit different.
     void ReportSpdyConnection(nsHttpConnection *, bool usingSpdy);
-
-    bool     SupportsPipelining(nsHttpConnectionInfo *);
 
     bool GetConnectionData(nsTArray<HttpRetParams> *);
 
@@ -258,27 +199,13 @@ public:
     // public, so that the SPDY/http2 seesions can activate
     void ActivateTimeoutTick();
 
+    nsresult UpdateCurrentTopLevelOuterContentWindowId(uint64_t aWindowId);
+
 private:
     virtual ~nsHttpConnectionMgr();
 
-    enum PipeliningState {
-        // Host has proven itself pipeline capable through past experience and
-        // large pipeline depths are allowed on multiple connections.
-        PS_GREEN,
-
-        // Not enough information is available yet with this host to be certain
-        // of pipeline capability. Small pipelines on a single connection are
-        // allowed in order to decide whether or not to proceed to green.
-        PS_YELLOW,
-
-        // One or more bad events has happened that indicate that pipelining
-        // to this host (or a particular type of transaction with this host)
-        // is a bad idea. Pipelining is not currently allowed, but time and
-        // other positive experiences will eventually allow it to try again.
-        PS_RED
-    };
-
     class nsHalfOpenSocket;
+    class PendingTransactionInfo;
 
     // nsConnectionEntry
     //
@@ -293,7 +220,8 @@ private:
         ~nsConnectionEntry();
 
         RefPtr<nsHttpConnectionInfo> mConnInfo;
-        nsTArray<RefPtr<nsHttpTransaction> > mPendingQ;    // pending transaction queue
+        nsTArray<RefPtr<PendingTransactionInfo> > mUrgentStartQ;// the urgent start transaction queue
+        nsTArray<RefPtr<PendingTransactionInfo> > mPendingQ;    // pending transaction queue
         nsTArray<RefPtr<nsHttpConnection> >  mActiveConns; // active connections
         nsTArray<RefPtr<nsHttpConnection> >  mIdleConns;   // idle persistent connections
         nsTArray<nsHalfOpenSocket*>  mHalfOpens;   // half open connections
@@ -306,54 +234,6 @@ private:
 
         // Remove a particular half open socket from the mHalfOpens array
         void RemoveHalfOpen(nsHalfOpenSocket *);
-
-        // Pipeline depths for various states
-        const static uint32_t kPipelineUnlimited  = 1024; // fully open - extended green
-        const static uint32_t kPipelineOpen       = 6;    // 6 on each conn - normal green
-        const static uint32_t kPipelineRestricted = 2;    // 2 on just 1 conn in yellow
-
-        nsHttpConnectionMgr::PipeliningState PipelineState();
-        void OnPipelineFeedbackInfo(
-            nsHttpConnectionMgr::PipelineFeedbackInfoType info,
-            nsHttpConnection *, uint32_t);
-        bool SupportsPipelining();
-        uint32_t MaxPipelineDepth(nsAHttpTransaction::Classifier classification);
-        void CreditPenalty();
-
-        nsHttpConnectionMgr::PipeliningState mPipelineState;
-
-        void SetYellowConnection(nsHttpConnection *);
-        void OnYellowComplete();
-        uint32_t                  mYellowGoodEvents;
-        uint32_t                  mYellowBadEvents;
-        nsHttpConnection         *mYellowConnection;
-
-        // initialGreenDepth is the max depth of a pipeline when you first
-        // transition to green. Normally this is kPipelineOpen, but it can
-        // be kPipelineUnlimited in aggressive mode.
-        uint32_t                  mInitialGreenDepth;
-
-        // greenDepth is the current max allowed depth of a pipeline when
-        // in the green state. Normally this starts as kPipelineOpen and
-        // grows to kPipelineUnlimited after a pipeline of depth 3 has been
-        // successfully transacted.
-        uint32_t                  mGreenDepth;
-
-        // pipeliningPenalty is the current amount of penalty points this host
-        // entry has earned for participating in events that are not conducive
-        // to good pipelines - such as head of line blocking, canceled pipelines,
-        // etc.. penalties are paid back either through elapsed time or simply
-        // healthy transactions. Having penalty points means that this host is
-        // not currently eligible for pipelines.
-        int16_t                   mPipeliningPenalty;
-
-        // some penalty points only apply to particular classifications of
-        // transactions - this allows a server that perhaps has head of line
-        // blocking problems on CGI queries to still serve JS pipelined.
-        int16_t                   mPipeliningClassPenalty[nsAHttpTransaction::CLASS_MAX];
-
-        // for calculating penalty repair credits
-        TimeStamp        mLastCreditTime;
 
         // Spdy sometimes resolves the address in the socket manager in order
         // to re-coalesce sharded HTTP hosts. The dotted decimal address is
@@ -402,11 +282,13 @@ private:
     class nsHalfOpenSocket final : public nsIOutputStreamCallback,
                                    public nsITransportEventSink,
                                    public nsIInterfaceRequestor,
-                                   public nsITimerCallback
+                                   public nsITimerCallback,
+                                   public nsSupportsWeakReference
     {
         ~nsHalfOpenSocket();
 
     public:
+        NS_DECLARE_STATIC_IID_ACCESSOR(NS_HALFOPENSOCKET_IID)
         NS_DECL_THREADSAFE_ISUPPORTS
         NS_DECL_NSIOUTPUTSTREAMCALLBACK
         NS_DECL_NSITRANSPORTEVENTSINK
@@ -417,12 +299,12 @@ private:
                          nsAHttpTransaction *trans,
                          uint32_t caps);
 
-        nsresult SetupStreams(nsISocketTransport **,
-                              nsIAsyncInputStream **,
-                              nsIAsyncOutputStream **,
-                              bool isBackup);
-        nsresult SetupPrimaryStreams();
-        nsresult SetupBackupStreams();
+        MOZ_MUST_USE nsresult SetupStreams(nsISocketTransport **,
+                                           nsIAsyncInputStream **,
+                                           nsIAsyncOutputStream **,
+                                           bool isBackup);
+        MOZ_MUST_USE nsresult SetupPrimaryStreams();
+        MOZ_MUST_USE nsresult SetupBackupStreams();
         void     SetupBackupTimer();
         void     CancelBackupTimer();
         void     Abandon();
@@ -487,6 +369,35 @@ private:
     };
     friend class nsHalfOpenSocket;
 
+    class PendingTransactionInfo : public ARefBase
+    {
+    public:
+        explicit PendingTransactionInfo(nsHttpTransaction * trans)
+            : mTransaction(trans)
+        {}
+
+        NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PendingTransactionInfo)
+
+        void PrintDiagnostics(nsCString &log);
+    public: // meant to be public.
+        RefPtr<nsHttpTransaction> mTransaction;
+        nsWeakPtr mHalfOpen;
+        nsWeakPtr mActiveConn;
+
+    private:
+        virtual ~PendingTransactionInfo() {}
+    };
+    friend class PendingTransactionInfo;
+
+    class PendingComparator
+    {
+    public:
+        bool Equals(const PendingTransactionInfo *aPendingTrans,
+                    const nsAHttpTransaction *aTrans) const {
+            return aPendingTrans->mTransaction.get() == aTrans;
+        }
+    };
+
     //-------------------------------------------------------------------------
     // NOTE: these members may be accessed from any thread (use mReentrantMonitor)
     //-------------------------------------------------------------------------
@@ -495,57 +406,63 @@ private:
     nsCOMPtr<nsIEventTarget>     mSocketThreadTarget;
 
     // connection limits
+    uint16_t mMaxUrgentStartQ;
     uint16_t mMaxConns;
     uint16_t mMaxPersistConnsPerHost;
     uint16_t mMaxPersistConnsPerProxy;
     uint16_t mMaxRequestDelay; // in seconds
-    uint16_t mMaxPipelinedRequests;
-    uint16_t mMaxOptimisticPipelinedRequests;
     Atomic<bool, mozilla::Relaxed> mIsShuttingDown;
 
     //-------------------------------------------------------------------------
     // NOTE: these members are only accessed on the socket transport thread
     //-------------------------------------------------------------------------
 
-    bool     ProcessPendingQForEntry(nsConnectionEntry *, bool considerAll);
-    bool     IsUnderPressure(nsConnectionEntry *ent,
-                             nsHttpTransaction::Classifier classification);
+    MOZ_MUST_USE bool ProcessPendingQForEntry(nsConnectionEntry *,
+                                              bool considerAll);
+    void DispatchPendingQ(nsTArray<RefPtr<PendingTransactionInfo>> &pendingQ,
+                                   nsConnectionEntry *ent,
+                                   bool &dispatchedSuccessfully,
+                                   bool considerAll);
     bool     AtActiveConnectionLimit(nsConnectionEntry *, uint32_t caps);
-    nsresult TryDispatchTransaction(nsConnectionEntry *ent,
-                                    bool onlyReusedConnection,
-                                    nsHttpTransaction *trans);
-    nsresult DispatchTransaction(nsConnectionEntry *,
-                                 nsHttpTransaction *,
-                                 nsHttpConnection *);
-    nsresult DispatchAbstractTransaction(nsConnectionEntry *,
-                                         nsAHttpTransaction *,
-                                         uint32_t,
-                                         nsHttpConnection *,
-                                         int32_t);
-    nsresult BuildPipeline(nsConnectionEntry *,
-                           nsAHttpTransaction *,
-                           nsHttpPipeline **);
+    MOZ_MUST_USE nsresult TryDispatchTransaction(nsConnectionEntry *ent,
+                                                 bool onlyReusedConnection,
+                                                 PendingTransactionInfo *pendingTransInfo);
+    MOZ_MUST_USE nsresult DispatchTransaction(nsConnectionEntry *,
+                                              nsHttpTransaction *,
+                                              nsHttpConnection *);
+    MOZ_MUST_USE nsresult DispatchAbstractTransaction(nsConnectionEntry *,
+                                                      nsAHttpTransaction *,
+                                                      uint32_t,
+                                                      nsHttpConnection *,
+                                                      int32_t);
     bool     RestrictConnections(nsConnectionEntry *);
-    nsresult ProcessNewTransaction(nsHttpTransaction *);
-    nsresult EnsureSocketThreadTarget();
+    MOZ_MUST_USE nsresult ProcessNewTransaction(nsHttpTransaction *);
+    MOZ_MUST_USE nsresult EnsureSocketThreadTarget();
     void     ClosePersistentConnections(nsConnectionEntry *ent);
     void     ReportProxyTelemetry(nsConnectionEntry *ent);
-    nsresult CreateTransport(nsConnectionEntry *, nsAHttpTransaction *,
-                             uint32_t, bool, bool, bool);
+    MOZ_MUST_USE nsresult CreateTransport(nsConnectionEntry *,
+                                          nsAHttpTransaction *, uint32_t, bool,
+                                          bool, bool,
+                                          PendingTransactionInfo *pendingTransInfo);
     void     AddActiveConn(nsHttpConnection *, nsConnectionEntry *);
     void     DecrementActiveConnCount(nsHttpConnection *);
     void     StartedConnect();
     void     RecvdConnect();
 
+    // This function will unclaim the claimed connection or set a halfOpen
+    // socket to the speculative state if the transaction claiming them ends up
+    // using another connection.
+    void ReleaseClaimedSockets(nsConnectionEntry *ent,
+                               PendingTransactionInfo * pendingTransInfo);
+
+    void InsertTransactionSorted(nsTArray<RefPtr<PendingTransactionInfo> > &pendingQ,
+                                 PendingTransactionInfo *pendingTransInfo);
+
     nsConnectionEntry *GetOrCreateConnectionEntry(nsHttpConnectionInfo *,
                                                   bool allowWildCard);
 
-    nsresult MakeNewConnection(nsConnectionEntry *ent,
-                               nsHttpTransaction *trans);
-    bool     AddToShortestPipeline(nsConnectionEntry *ent,
-                                   nsHttpTransaction *trans,
-                                   nsHttpTransaction::Classifier classification,
-                                   uint16_t depthLimit);
+    MOZ_MUST_USE nsresult MakeNewConnection(nsConnectionEntry *ent,
+                                            PendingTransactionInfo *pendingTransInfo);
 
     // Manage the preferred spdy connection entry for this address
     nsConnectionEntry *GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry);
@@ -559,11 +476,13 @@ private:
                                              nsHttpTransaction *trans);
 
     void               ProcessSpdyPendingQ(nsConnectionEntry *ent);
-
+    void               DispatchSpdyPendingQ(nsTArray<RefPtr<PendingTransactionInfo>> &pendingQ,
+                                            nsConnectionEntry *ent,
+                                            nsHttpConnection *conn);
     // used to marshall events to the socket transport thread.
-    nsresult PostEvent(nsConnEventHandler  handler,
-                       int32_t             iparam = 0,
-                       ARefBase            *vparam = nullptr);
+    MOZ_MUST_USE nsresult PostEvent(nsConnEventHandler  handler,
+                                    int32_t             iparam = 0,
+                                    ARefBase            *vparam = nullptr);
 
     // message handlers
     void OnMsgShutdown             (int32_t, ARefBase *);
@@ -584,6 +503,7 @@ private:
     void OnMsgUpdateRequestTokenBucket (int32_t, ARefBase *);
     void OnMsgVerifyTraffic (int32_t, ARefBase *);
     void OnMsgPruneNoTraffic (int32_t, ARefBase *);
+    void OnMsgUpdateCurrentTopLevelOuterContentWindowId (int32_t, ARefBase *);
 
     // Total number of active connections in all of the ConnectionEntry objects
     // that are accessed from mCT connection table.
@@ -628,7 +548,10 @@ private:
     void OnMsgPrintDiagnostics(int32_t, ARefBase *);
 
     nsCString mLogData;
+    uint64_t mCurrentTopLevelOuterContentWindowId;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsHttpConnectionMgr::nsHalfOpenSocket, NS_HALFOPENSOCKET_IID)
 
 } // namespace net
 } // namespace mozilla

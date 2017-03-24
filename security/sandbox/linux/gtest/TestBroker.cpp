@@ -106,12 +106,12 @@ protected:
   void RunOnManyThreads() {
     static const int kNumThreads = 5;
     pthread_t threads[kNumThreads];
-    for (int i = 0; i < kNumThreads; ++i) {
-      StartThread<C, Main>(&threads[i]);
+    for (pthread_t & thread : threads) {
+      StartThread<C, Main>(&thread);
     }
-    for (int i = 0; i < kNumThreads; ++i) {
+    for (pthread_t thread : threads) {
       void* retval;
-      ASSERT_EQ(pthread_join(threads[i], &retval), 0);
+      ASSERT_EQ(pthread_join(thread, &retval), 0);
       ASSERT_EQ(retval, static_cast<void*>(nullptr));
     }
   }
@@ -321,6 +321,10 @@ TEST_F(SandboxBrokerTest, Mkdir)
   EXPECT_EQ(-EACCES, Mkdir("/tmp/nope", 0600))
     << "Creating dir without MAY_CREATE succeed.";
   EXPECT_EQ(0, rmdir("/tmp/blublu"));
+  EXPECT_EQ(-EEXIST, Mkdir("/proc/self", 0600))
+    << "Creating uncreatable dir that already exists didn't fail correctly.";
+  EXPECT_EQ(-EEXIST, Mkdir("/dev/zero", 0600))
+    << "Creating uncreatable dir over preexisting file didn't fail correctly.";
 
   PrePostTestCleanup();
 }

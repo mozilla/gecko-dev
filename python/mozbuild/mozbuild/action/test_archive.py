@@ -20,7 +20,9 @@ from manifestparser import TestManifest
 from reftest import ReftestManifest
 
 from mozbuild.util import ensureParentDir
-from mozpack.files import FileFinder
+from mozpack.copier import FileRegistry
+from mozpack.files import ExistingFile, FileFinder
+from mozpack.manifests import InstallManifest
 from mozpack.mozjar import JarWriter
 import mozpack.path as mozpath
 
@@ -51,7 +53,6 @@ TEST_HARNESS_DLLS = [
 ]
 
 TEST_PLUGIN_DLLS = [
-    'npctrltest',
     'npsecondtest',
     'npswftest',
     'nptest',
@@ -64,7 +65,6 @@ TEST_PLUGIN_DIRS = [
     'SecondTest.plugin/**',
     'Test.plugin/**',
     'ThirdTest.plugin/**',
-    'npctrltest.plugin/**',
     'npswftest.plugin/**',
 ]
 
@@ -73,6 +73,22 @@ GMP_TEST_PLUGIN_DIRS = [
     'gmp-fake/**',
     'gmp-fakeopenh264/**',
 ]
+
+# These entries will be used by artifact builds to re-construct an
+# objdir with the appropriate generated support files.
+OBJDIR_TEST_FILES = {
+    'xpcshell': {
+        'source': buildconfig.topobjdir,
+        'base': '_tests/xpcshell',
+        'pattern': '**',
+        'dest': 'xpcshell/tests',
+    },
+    'mochitest': {
+        'source': buildconfig.topobjdir,
+        'base': '_tests/testing',
+        'pattern': 'mochitest/**',
+    },
+}
 
 
 ARCHIVE_FILES = {
@@ -87,6 +103,7 @@ ARCHIVE_FILES = {
                 'mochitest/**',
                 'reftest/**',
                 'talos/**',
+                'awsy/**',
                 'web-platform/**',
                 'xpcshell/**',
             ],
@@ -101,28 +118,26 @@ ARCHIVE_FILES = {
             'base': 'testing/marionette',
             'patterns': [
                 'client/**',
+                'harness/**',
+                'puppeteer/**',
                 'mach_test_package_commands.py',
             ],
             'dest': 'marionette',
-        },
-        {
-            'source': buildconfig.topsrcdir,
-            'base': 'testing/marionette/harness',
-            'pattern': '**',
-            'dest': 'marionette',
             'ignore': [
-                'marionette/tests'
-            ]
+                'client/docs',
+                'harness/marionette_harness/tests',
+                'puppeteer/firefox/docs',
+            ],
         },
         {
             'source': buildconfig.topsrcdir,
             'base': '',
             'manifests': [
-                'testing/marionette/harness/marionette/tests/unit-tests.ini',
-                'testing/marionette/harness/marionette/tests/webapi-tests.ini',
+                'testing/marionette/harness/marionette_harness/tests/unit-tests.ini',
+                'testing/marionette/harness/marionette_harness/tests/webapi-tests.ini',
             ],
             # We also need the manifests and harness_unit tests
-            'pattern': 'testing/marionette/harness/marionette/tests/**',
+            'pattern': 'testing/marionette/harness/marionette_harness/tests/**',
             'dest': 'marionette/tests',
         },
         {
@@ -170,11 +185,6 @@ ARCHIVE_FILES = {
             'base': 'js/src',
             'pattern': 'jsapi.h',
             'dest': 'jit-test',
-        },
-        {
-            'source': buildconfig.topsrcdir,
-            'base': 'testing',
-            'pattern': 'puppeteer/**',
         },
         {
             'source': buildconfig.topsrcdir,
@@ -311,6 +321,7 @@ ARCHIVE_FILES = {
         },
     ],
     'mochitest': [
+        OBJDIR_TEST_FILES['mochitest'],
         {
             'source': buildconfig.topobjdir,
             'base': '_tests/testing',
@@ -364,6 +375,13 @@ ARCHIVE_FILES = {
             'pattern': 'talos/**',
         },
     ],
+    'awsy': [
+        {
+            'source': buildconfig.topsrcdir,
+            'base': 'testing',
+            'pattern': 'awsy/**',
+        },
+    ],
     'web-platform': [
         {
             'source': buildconfig.topsrcdir,
@@ -393,12 +411,7 @@ ARCHIVE_FILES = {
         },
     ],
     'xpcshell': [
-        {
-            'source': buildconfig.topobjdir,
-            'base': '_tests/xpcshell',
-            'pattern': '**',
-            'dest': 'xpcshell/tests',
-        },
+        OBJDIR_TEST_FILES['xpcshell'],
         {
             'source': buildconfig.topsrcdir,
             'base': 'testing/xpcshell',
@@ -452,8 +465,51 @@ for k, v in ARCHIVE_FILES.items():
         raise Exception('"common" ignore list probably should contain %s' % k)
 
 
+def find_generated_harness_files():
+    # TEST_HARNESS_FILES end up in an install manifest at
+    # $topsrcdir/_build_manifests/install/_tests.
+    manifest = InstallManifest(mozpath.join(buildconfig.topobjdir,
+                                            '_build_manifests',
+                                            'install',
+                                            '_tests'))
+    registry = FileRegistry()
+    manifest.populate_registry(registry)
+    # Conveniently, the generated files we care about will already
+    # exist in the objdir, so we can identify relevant files if
+    # they're an `ExistingFile` instance.
+    return [mozpath.join('_tests', p) for p in registry.paths()
+            if isinstance(registry[p], ExistingFile)]
+
+
 def find_files(archive):
-    for entry in ARCHIVE_FILES[archive]:
+    extra_entries = []
+    generated_harness_files = find_generated_harness_files()
+
+    if archive == 'common':
+        # Construct entries ensuring all our generated harness files are
+        # packaged in the common tests zip.
+        packaged_paths = set()
+        for entry in OBJDIR_TEST_FILES.values():
+            pat = mozpath.join(entry['base'], entry['pattern'])
+            del entry['pattern']
+            patterns = []
+            for path in generated_harness_files:
+                if mozpath.match(path, pat):
+                    patterns.append(path[len(entry['base']) + 1:])
+                    packaged_paths.add(path)
+            if patterns:
+                entry['patterns'] = patterns
+                extra_entries.append(entry)
+        entry = {
+            'source': buildconfig.topobjdir,
+            'base': '_tests',
+            'patterns': [],
+        }
+        for path in set(generated_harness_files) - packaged_paths:
+            entry['patterns'].append(path[len('_tests') + 1:])
+        extra_entries.append(entry)
+
+    for entry in ARCHIVE_FILES[archive] + extra_entries:
         source = entry['source']
         dest = entry.get('dest')
         base = entry.get('base', '')
@@ -478,8 +534,13 @@ def find_files(archive):
             '**/*.pyc',
         ])
 
+        if archive != 'common' and base.startswith('_tests'):
+            # We may have generated_harness_files to exclude from this entry.
+            for path in generated_harness_files:
+                if path.startswith(base):
+                    ignore.append(path[len(base) + 1:])
+
         common_kwargs = {
-            'find_executables': False,
             'find_dotfiles': True,
             'ignore': ignore,
         }

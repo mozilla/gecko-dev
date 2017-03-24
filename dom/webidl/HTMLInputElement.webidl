@@ -21,6 +21,7 @@ enum SelectionMode {
 
 interface nsIControllers;
 
+[HTMLConstructor]
 interface HTMLInputElement : HTMLElement {
   [Pure, SetterThrows]
            attribute DOMString accept;
@@ -88,7 +89,7 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString type;
   [Pure, SetterThrows]
            attribute DOMString defaultValue;
-  [Pure, TreatNullAs=EmptyString, Throws]
+  [Pure, TreatNullAs=EmptyString, SetterThrows, NeedsCallerType]
            attribute DOMString value;
   [Throws, Func="HTMLInputElement::ValueAsDateEnabled"]
            attribute Date? valueAsDate;
@@ -116,10 +117,9 @@ interface HTMLInputElement : HTMLElement {
   void select();
 
   [Throws]
-           // TODO: unsigned vs signed
-           attribute long? selectionStart;
+           attribute unsigned long? selectionStart;
   [Throws]
-           attribute long? selectionEnd;
+           attribute unsigned long? selectionEnd;
   [Throws]
            attribute DOMString? selectionDirection;
   [Throws]
@@ -127,6 +127,8 @@ interface HTMLInputElement : HTMLElement {
   [Throws]
   void setRangeText(DOMString replacement, unsigned long start,
     unsigned long end, optional SelectionMode selectionMode = "preserve");
+  [Throws]
+  void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 
   // also has obsolete members
 };
@@ -141,12 +143,10 @@ partial interface HTMLInputElement {
 // Mozilla extensions
 
 partial interface HTMLInputElement {
-  [Throws]
-  void setSelectionRange(long start, long end, optional DOMString direction);
-
   [GetterThrows, ChromeOnly]
   readonly attribute nsIControllers        controllers;
-  [GetterThrows]
+  // Binaryname because we have a FragmentOrElement function named "TextLength()".
+  [NeedsCallerType, BinaryName="inputTextLength"]
   readonly attribute long                  textLength;
 
   [Throws, ChromeOnly]
@@ -238,6 +238,9 @@ partial interface HTMLInputElement {
 dictionary DateTimeValue {
   long hour;
   long minute;
+  long year;
+  long month;
+  long day;
 };
 
 partial interface HTMLInputElement {

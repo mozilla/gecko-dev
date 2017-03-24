@@ -41,7 +41,7 @@
 #include "GeckoProfiler.h"
 
 #include "mozilla/Logging.h"
-#include "prprf.h"
+#include "mozilla/Printf.h"
 #include "nsProxyRelease.h"
 #include <algorithm>
 
@@ -221,7 +221,7 @@ int tracefunc (unsigned aReason, void *aClosure, void *aP, void *aX)
       sqlite_int64 time = *(static_cast<sqlite_int64*>(aX)) / 1000000;
       if (time > 0) {
         MOZ_LOG(gStorageLog, LogLevel::Debug,
-          ("TRACE_TIME on %p: %dms", aClosure, time));
+          ("TRACE_TIME on %p: %lldms", aClosure, time));
       }
       break;
     }
@@ -415,7 +415,7 @@ public:
     return NS_OK;
   }
 
-  ~AsyncCloseConnection() {
+  ~AsyncCloseConnection() override {
     NS_ReleaseOnMainThread(mConnection.forget());
     NS_ReleaseOnMainThread(mCallbackEvent.forget());
   }
@@ -446,7 +446,8 @@ public:
                        Connection* aClone,
                        const bool aReadOnly,
                        mozIStorageCompletionCallback* aCallback)
-    : mConnection(aConnection)
+    : Runnable("storage::AsyncInitializeClone")
+    , mConnection(aConnection)
     , mClone(aClone)
     , mReadOnly(aReadOnly)
     , mCallback(aCallback)
@@ -473,7 +474,7 @@ private:
     return mClone->threadOpenedOn->Dispatch(event, NS_DISPATCH_NORMAL);
   }
 
-  ~AsyncInitializeClone() {
+  ~AsyncInitializeClone() override {
     nsCOMPtr<nsIThread> thread;
     DebugOnly<nsresult> rv = NS_GetMainThread(getter_AddRefs(thread));
     MOZ_ASSERT(NS_SUCCEEDED(rv));
@@ -589,14 +590,13 @@ Connection::getAsyncExecutionTarget()
     return nullptr;
 
   if (!mAsyncExecutionThread) {
-    nsresult rv = ::NS_NewThread(getter_AddRefs(mAsyncExecutionThread));
+    static nsThreadPoolNaming naming;
+    nsresult rv = NS_NewNamedThread(naming.GetNextThreadName("mozStorage"),
+                                    getter_AddRefs(mAsyncExecutionThread));
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to create async thread.");
       return nullptr;
     }
-    static nsThreadPoolNaming naming;
-    naming.SetThreadPoolName(NS_LITERAL_CSTRING("mozStorage"),
-                             mAsyncExecutionThread);
   }
 
 #ifdef DEBUG
@@ -1001,16 +1001,16 @@ Connection::internalClose(sqlite3 *aNativeConnection)
     sqlite3_stmt *stmt = nullptr;
     while ((stmt = ::sqlite3_next_stmt(aNativeConnection, stmt))) {
       MOZ_LOG(gStorageLog, LogLevel::Debug,
-             ("Auto-finalizing SQL statement '%s' (%x)",
+             ("Auto-finalizing SQL statement '%s' (%p)",
               ::sqlite3_sql(stmt),
               stmt));
 
 #ifdef DEBUG
-      char *msg = ::PR_smprintf("SQL statement '%s' (%x) should have been finalized before closing the connection",
-                                ::sqlite3_sql(stmt),
-                                stmt);
+      char *msg = ::mozilla::Smprintf("SQL statement '%s' (%p) should have been finalized before closing the connection",
+                               ::sqlite3_sql(stmt),
+                               stmt);
       NS_WARNING(msg);
-      ::PR_smprintf_free(msg);
+      ::mozilla::SmprintfFree(msg);
       msg = nullptr;
 #endif // DEBUG
 
@@ -1018,11 +1018,11 @@ Connection::internalClose(sqlite3 *aNativeConnection)
 
 #ifdef DEBUG
       if (srv != SQLITE_OK) {
-        msg = ::PR_smprintf("Could not finalize SQL statement '%s' (%x)",
-                            ::sqlite3_sql(stmt),
-                            stmt);
+        msg = ::mozilla::Smprintf("Could not finalize SQL statement '%s' (%p)",
+                           ::sqlite3_sql(stmt),
+                           stmt);
         NS_WARNING(msg);
-        ::PR_smprintf_free(msg);
+        ::mozilla::SmprintfFree(msg);
         msg = nullptr;
       }
 #endif // DEBUG
@@ -1419,15 +1419,15 @@ Connection::initializeClone(Connection* aClone, bool aReadOnly)
     "wal_autocheckpoint",
     "busy_timeout"
   };
-  for (uint32_t i = 0; i < ArrayLength(pragmas); ++i) {
+  for (auto& pragma : pragmas) {
     // Read-only connections just need cache_size and temp_store pragmas.
-    if (aReadOnly && ::strcmp(pragmas[i], "cache_size") != 0 &&
-                     ::strcmp(pragmas[i], "temp_store") != 0) {
+    if (aReadOnly && ::strcmp(pragma, "cache_size") != 0 &&
+                     ::strcmp(pragma, "temp_store") != 0) {
       continue;
     }
 
     nsAutoCString pragmaQuery("PRAGMA ");
-    pragmaQuery.Append(pragmas[i]);
+    pragmaQuery.Append(pragma);
     nsCOMPtr<mozIStorageStatement> stmt;
     rv = CreateStatement(pragmaQuery, getter_AddRefs(stmt));
     MOZ_ASSERT(NS_SUCCEEDED(rv));
@@ -1816,12 +1816,12 @@ Connection::CreateTable(const char *aTableName,
 {
   if (!mDBConn) return NS_ERROR_NOT_INITIALIZED;
 
-  char *buf = ::PR_smprintf("CREATE TABLE %s (%s)", aTableName, aTableSchema);
+  char *buf = ::mozilla::Smprintf("CREATE TABLE %s (%s)", aTableName, aTableSchema);
   if (!buf)
     return NS_ERROR_OUT_OF_MEMORY;
 
   int srv = executeSql(mDBConn, buf);
-  ::PR_smprintf_free(buf);
+  ::mozilla::SmprintfFree(buf);
 
   return convertResultCode(srv);
 }
@@ -1981,8 +1981,8 @@ Connection::EnableModule(const nsACString& aModuleName)
 {
   if (!mDBConn) return NS_ERROR_NOT_INITIALIZED;
 
-  for (size_t i = 0; i < ArrayLength(gModules); i++) {
-    struct Module* m = &gModules[i];
+  for (auto& gModule : gModules) {
+    struct Module* m = &gModule;
     if (aModuleName.Equals(m->name)) {
       int srv = m->registerFunc(mDBConn, m->name);
       if (srv != SQLITE_OK)

@@ -4,12 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "mozilla/Preferences.h"
+#include "MediaContainerType.h"
 #include "MediaResource.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/Services.h"
 #include "AndroidMediaPluginHost.h"
 #include "nsAutoPtr.h"
-#include "nsXPCOMStrings.h"
 #include "nsISeekableStream.h"
 #include "nsIGfxInfo.h"
 #include "gfxCrashReporterUtils.h"
@@ -226,23 +226,33 @@ AndroidMediaPluginHost::~AndroidMediaPluginHost() {
   MOZ_COUNT_DTOR(AndroidMediaPluginHost);
 }
 
-bool AndroidMediaPluginHost::FindDecoder(const nsACString& aMimeType, const char* const** aCodecs)
+bool AndroidMediaPluginHost::FindDecoder(const MediaContainerType& aMimeType,
+                                         MediaCodecs* aCodecs)
 {
-  const char *chars;
-  size_t len = NS_CStringGetData(aMimeType, &chars, nullptr);
+  const char *chars = aMimeType.Type().AsString().BeginReading();
+  size_t len = aMimeType.Type().AsString().Length();
   for (size_t n = 0; n < mPlugins.Length(); ++n) {
     Manifest *plugin = mPlugins[n];
     const char* const *codecs;
     if (plugin->CanDecode(chars, len, &codecs)) {
-      if (aCodecs)
-        *aCodecs = codecs;
+      if (aCodecs) {
+        nsString codecsString;
+        for (const char* const* codec = codecs; *codec; ++codec) {
+          if (codecsString.IsEmpty()) {
+            codecsString += ',';
+          }
+          codecsString.AppendASCII(*codec);
+        }
+        *aCodecs = MediaCodecs(codecsString);
+      }
       return true;
     }
   }
   return false;
 }
 
-MPAPI::Decoder *AndroidMediaPluginHost::CreateDecoder(MediaResource *aResource, const nsACString& aMimeType)
+MPAPI::Decoder *AndroidMediaPluginHost::CreateDecoder(MediaResource *aResource,
+                                                      const MediaContainerType& aMimeType)
 {
   NS_ENSURE_TRUE(aResource, nullptr);
 
@@ -251,8 +261,8 @@ MPAPI::Decoder *AndroidMediaPluginHost::CreateDecoder(MediaResource *aResource, 
     return nullptr;
   }
 
-  const char *chars;
-  size_t len = NS_CStringGetData(aMimeType, &chars, nullptr);
+  const char *chars = aMimeType.Type().AsString().BeginReading();
+  size_t len = aMimeType.Type().AsString().Length();
   for (size_t n = 0; n < mPlugins.Length(); ++n) {
     Manifest *plugin = mPlugins[n];
     const char* const *codecs;

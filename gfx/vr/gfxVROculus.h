@@ -27,12 +27,17 @@ struct PixelShaderConstants;
 namespace gfx {
 namespace impl {
 
+enum class OculusControllerAxisType : uint16_t {
+  ThumbstickXAxis,
+  ThumbstickYAxis,
+  NumVRControllerAxisType
+};
+
 class VRDisplayOculus : public VRDisplayHost
 {
 public:
   virtual void NotifyVSync() override;
   virtual VRHMDSensorState GetSensorState() override;
-  virtual VRHMDSensorState GetImmediateSensorState() override;
   void ZeroSensor() override;
 
 protected:
@@ -43,6 +48,7 @@ protected:
                            const VRHMDSensorState& aSensorState,
                            const gfx::Rect& aLeftEyeRect,
                            const gfx::Rect& aRightEyeRect) override;
+  void UpdateStageParameters();
 
 public:
   explicit VRDisplayOculus(ovrSession aSession);
@@ -77,7 +83,8 @@ protected:
   RefPtr<ID3D11InputLayout> mInputLayout;
 
   bool mIsPresenting;
-  
+  float mEyeHeight;
+
   bool UpdateConstantBuffers();
 
   struct Vertex
@@ -86,23 +93,71 @@ protected:
   };
 };
 
-} // namespace impl
-
-class VRDisplayManagerOculus : public VRDisplayManager
+class VRControllerOculus : public VRControllerHost
 {
 public:
-  static already_AddRefed<VRDisplayManagerOculus> Create();
+  explicit VRControllerOculus(dom::GamepadHand aHand);
+  float GetAxisMove(uint32_t aAxis);
+  void SetAxisMove(uint32_t aAxis, float aValue);
+  float GetIndexTrigger();
+  void SetIndexTrigger(float aValue);
+  float GetHandTrigger();
+  void SetHandTrigger(float aValue);
+
+protected:
+  virtual ~VRControllerOculus();
+
+private:
+  float mAxisMove[static_cast<uint32_t>(
+                  OculusControllerAxisType::NumVRControllerAxisType)];
+  float mIndexTrigger;
+  float mHandTrigger;
+};
+
+} // namespace impl
+
+class VRSystemManagerOculus : public VRSystemManager
+{
+public:
+  static already_AddRefed<VRSystemManagerOculus> Create();
   virtual bool Init() override;
   virtual void Destroy() override;
   virtual void GetHMDs(nsTArray<RefPtr<VRDisplayHost> >& aHMDResult) override;
+  virtual bool GetIsPresenting() override;
+  virtual void HandleInput() override;
+  virtual void GetControllers(nsTArray<RefPtr<VRControllerHost>>&
+                              aControllerResult) override;
+  virtual void ScanForControllers() override;
+  virtual void RemoveControllers() override;
+  virtual void VibrateHaptic(uint32_t aControllerIdx, uint32_t aHapticIndex,
+                             double aIntensity, double aDuration, uint32_t aPromiseID) override;
+  virtual void StopVibrateHaptic(uint32_t aControllerIdx) override;
+
 protected:
-  VRDisplayManagerOculus()
-    : mOculusInitialized(false)
+  VRSystemManagerOculus()
+    : mSession(nullptr), mOculusInitialized(false)
   { }
 
+private:
+  void HandleButtonPress(uint32_t aControllerIdx,
+                         uint32_t aButton,
+                         uint64_t aButtonMask,
+                         uint64_t aButtonPressed);
+  void HandleAxisMove(uint32_t aControllerIdx, uint32_t aAxis,
+                      float aValue);
+  void HandlePoseTracking(uint32_t aControllerIdx,
+                          const dom::GamepadPoseState& aPose,
+                          VRControllerHost* aController);
+  void HandleTriggerPress(uint32_t aControllerIdx, uint32_t aButton,
+                          float aValue);
+  void HandleTouchEvent(uint32_t aControllerIdx, uint32_t aButton,
+                        uint64_t aTouchMask, uint64_t aTouched);
+
   RefPtr<impl::VRDisplayOculus> mHMDInfo;
-  bool mOculusInitialized;
+  nsTArray<RefPtr<impl::VRControllerOculus>> mOculusController;
   RefPtr<nsIThread> mOculusThread;
+  ovrSession mSession;
+  bool mOculusInitialized;
 };
 
 } // namespace gfx

@@ -27,7 +27,7 @@ add_task(function* test_hotkey_event_propagation() {
   for (let key of HOTKEYS) {
     is(findbar.hidden, true, "Findbar is hidden now.");
     gBrowser.selectedTab = tab;
-    yield promiseFocus();
+    yield SimpleTest.promiseFocus(gBrowser.selectedBrowser);
     yield BrowserTestUtils.sendChar(key, browser);
     is(findbar.hidden, false, "Findbar should not be hidden.");
     yield closeFindbarAndWait(findbar);
@@ -49,7 +49,7 @@ add_task(function* test_hotkey_event_propagation() {
   for (let key of HOTKEYS) {
     is(findbar.hidden, true, "Findbar is hidden now.");
     gBrowser.selectedTab = tab;
-    yield promiseFocus();
+    yield SimpleTest.promiseFocus(gBrowser.selectedBrowser);
     yield BrowserTestUtils.sendChar(key, browser);
     is(findbar.hidden, false, "Findbar should not be hidden.");
     yield closeFindbarAndWait(findbar);
@@ -237,24 +237,12 @@ function promiseFindFinished(searchText, highlightOn) {
   return deferred.promise;
 }
 
-/**
- * A promise-like wrapper for the waitForFocus helper.
- */
-function promiseFocus() {
-  return new Promise((resolve) => {
-    waitForFocus(function() {
-      resolve();
-    }, content);
-  });
-}
-
 function promiseRemotenessChange(tab, shouldBeRemote) {
   return new Promise((resolve) => {
     let browser = gBrowser.getBrowserForTab(tab);
-    tab.addEventListener("TabRemotenessChange", function listener() {
-      tab.removeEventListener("TabRemotenessChange", listener);
+    tab.addEventListener("TabRemotenessChange", function() {
       resolve();
-    });
+    }, {once: true});
     gBrowser.updateBrowserRemoteness(browser, shouldBeRemote);
   });
 }

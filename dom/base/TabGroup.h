@@ -7,15 +7,22 @@
 #ifndef TabGroup_h
 #define TabGroup_h
 
-#include "nsISupports.h"
 #include "nsISupportsImpl.h"
 #include "nsIPrincipal.h"
 #include "nsTHashtable.h"
 #include "nsString.h"
 
+#include "mozilla/Atomics.h"
+#include "mozilla/Dispatcher.h"
 #include "mozilla/RefPtr.h"
 
+class mozIDOMWindowProxy;
+class nsIDocShellTreeItem;
+class nsIDocument;
+class nsPIDOMWindowOuter;
+
 namespace mozilla {
+class AbstractThread;
 class ThrottledEventQueue;
 namespace dom {
 
@@ -36,7 +43,7 @@ namespace dom {
 
 class DocGroup;
 
-class TabGroup final : public nsISupports
+class TabGroup final : public ValidatingDispatcher
 {
 private:
   class HashEntry : public nsCStringHashKey
@@ -49,15 +56,24 @@ private:
   };
 
   typedef nsTHashtable<HashEntry> DocGroupMap;
+
 public:
   typedef DocGroupMap::Iterator Iterator;
 
   friend class DocGroup;
 
-  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TabGroup, override)
 
   static TabGroup*
   GetChromeTabGroup();
+
+  // Checks if the PBrowserChild associated with aWindow already has a TabGroup
+  // assigned to it in IPDL. Returns this TabGroup if it does. This could happen
+  // if the parent process created the PBrowser and we needed to assign a
+  // TabGroup immediately upon receiving the IPDL message. This method is main
+  // thread only.
+  static TabGroup*
+  GetFromWindowActor(mozIDOMWindowProxy* aWindow);
 
   explicit TabGroup(bool aIsChrome = false);
 
@@ -100,16 +116,28 @@ public:
 
   nsTArray<nsPIDOMWindowOuter*> GetTopLevelWindows();
 
-  // Get the event queue that associated windows can use to issue runnables to
-  // the main thread.  This may return nullptr during browser shutdown.
-  ThrottledEventQueue*
-  GetThrottledEventQueue() const;
+  // This method is always safe to call off the main thread. The nsIEventTarget
+  // can always be used off the main thread.
+  nsIEventTarget* EventTargetFor(TaskCategory aCategory) const override;
 
 private:
+  virtual AbstractThread*
+  AbstractMainThreadForImpl(TaskCategory aCategory) override;
+
+  TabGroup* AsTabGroup() override { return this; }
+
+  void EnsureThrottledEventQueues();
+
   ~TabGroup();
+
+  // Thread-safe members
+  Atomic<bool> mLastWindowLeft;
+  Atomic<bool> mThrottledQueuesInitialized;
+  const bool mIsChrome;
+
+  // Main thread only
   DocGroupMap mDocGroups;
   nsTArray<nsPIDOMWindowOuter*> mWindows;
-  RefPtr<ThrottledEventQueue> mThrottledEventQueue;
 };
 
 } // namespace dom

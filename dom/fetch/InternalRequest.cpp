@@ -19,18 +19,16 @@
 
 namespace mozilla {
 namespace dom {
-
 // The global is used to extract the principal.
 already_AddRefed<InternalRequest>
 InternalRequest::GetRequestConstructorCopy(nsIGlobalObject* aGlobal, ErrorResult& aRv) const
 {
   MOZ_RELEASE_ASSERT(!mURLList.IsEmpty(), "Internal Request's urlList should not be empty when copied from constructor.");
-
-  RefPtr<InternalRequest> copy = new InternalRequest(mURLList.LastElement());
+  RefPtr<InternalRequest> copy = new InternalRequest(mURLList.LastElement(),
+                                                     mFragment);
   copy->SetMethod(mMethod);
   copy->mHeaders = new InternalHeaders(*mHeaders);
   copy->SetUnsafeRequest();
-
   copy->mBodyStream = mBodyStream;
   copy->mForceOriginHeader = true;
   // The "client" is not stored in our implementation. Fetch API users should
@@ -75,17 +73,16 @@ InternalRequest::Clone()
   if (replacementBody) {
     mBodyStream.swap(replacementBody);
   }
-
   return clone.forget();
 }
-
-InternalRequest::InternalRequest(const nsACString& aURL)
+InternalRequest::InternalRequest(const nsACString& aURL,
+                                 const nsACString& aFragment)
   : mMethod("GET")
   , mHeaders(new InternalHeaders(HeadersGuardEnum::None))
   , mContentPolicyType(nsIContentPolicy::TYPE_FETCH)
   , mReferrer(NS_LITERAL_STRING(kFETCH_CLIENT_REFERRER_STR))
   , mReferrerPolicy(ReferrerPolicy::_empty)
-  , mEnvironmentReferrerPolicy(net::RP_Default)
+  , mEnvironmentReferrerPolicy(net::RP_Unset)
   , mMode(RequestMode::No_cors)
   , mCredentialsMode(RequestCredentials::Omit)
   , mResponseTainting(LoadTainting::Basic)
@@ -105,10 +102,10 @@ InternalRequest::InternalRequest(const nsACString& aURL)
   , mUseURLCredentials(false)
 {
   MOZ_ASSERT(!aURL.IsEmpty());
-  AddURL(aURL);
+  AddURL(aURL, aFragment);
 }
-
 InternalRequest::InternalRequest(const nsACString& aURL,
+                                 const nsACString& aFragment,
                                  const nsACString& aMethod,
                                  already_AddRefed<InternalHeaders> aHeaders,
                                  RequestCache aCacheMode,
@@ -124,7 +121,7 @@ InternalRequest::InternalRequest(const nsACString& aURL,
   , mContentPolicyType(aContentPolicyType)
   , mReferrer(aReferrer)
   , mReferrerPolicy(aReferrerPolicy)
-  , mEnvironmentReferrerPolicy(net::RP_Default)
+  , mEnvironmentReferrerPolicy(net::RP_Unset)
   , mMode(aMode)
   , mCredentialsMode(aRequestCredentials)
   , mResponseTainting(LoadTainting::Basic)
@@ -142,9 +139,8 @@ InternalRequest::InternalRequest(const nsACString& aURL,
   , mUseURLCredentials(false)
 {
   MOZ_ASSERT(!aURL.IsEmpty());
-  AddURL(aURL);
+  AddURL(aURL, aFragment);
 }
-
 InternalRequest::InternalRequest(const InternalRequest& aOther)
   : mMethod(aOther.mMethod)
   , mURLList(aOther.mURLList)
@@ -159,6 +155,7 @@ InternalRequest::InternalRequest(const InternalRequest& aOther)
   , mCacheMode(aOther.mCacheMode)
   , mRedirectMode(aOther.mRedirectMode)
   , mIntegrity(aOther.mIntegrity)
+  , mFragment(aOther.mFragment)
   , mAuthenticationFlag(aOther.mAuthenticationFlag)
   , mForceOriginHeader(aOther.mForceOriginHeader)
   , mPreserveContentCodings(aOther.mPreserveContentCodings)
@@ -237,6 +234,7 @@ InternalRequest::MapContentPolicyTypeToRequestContext(nsContentPolicyType aConte
   case nsIContentPolicy::TYPE_INTERNAL_SCRIPT:
   case nsIContentPolicy::TYPE_INTERNAL_SCRIPT_PRELOAD:
   case nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER:
+  case nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS:
     context = RequestContext::Script;
     break;
   case nsIContentPolicy::TYPE_INTERNAL_WORKER:
@@ -445,25 +443,7 @@ InternalRequest::MapChannelToRequestCredentials(nsIChannel* aChannel)
   nsCOMPtr<nsILoadInfo> loadInfo;
   MOZ_ALWAYS_SUCCEEDS(aChannel->GetLoadInfo(getter_AddRefs(loadInfo)));
 
-
-  // TODO: Remove following code after stylesheet and image support cookie policy
-  if (loadInfo->GetSecurityMode() == nsILoadInfo::SEC_NORMAL) {
-    uint32_t loadFlags;
-    aChannel->GetLoadFlags(&loadFlags);
-
-    if (loadFlags & nsIRequest::LOAD_ANONYMOUS) {
-      return RequestCredentials::Omit;
-    } else {
-      bool includeCrossOrigin;
-      nsCOMPtr<nsIHttpChannelInternal> internalChannel = do_QueryInterface(aChannel);
-
-      internalChannel->GetCorsIncludeCredentials(&includeCrossOrigin);
-      if (includeCrossOrigin) {
-        return RequestCredentials::Include;
-      }
-    }
-    return RequestCredentials::Same_origin;
-  }
+  MOZ_DIAGNOSTIC_ASSERT(loadInfo->GetSecurityMode() != nsILoadInfo::SEC_NORMAL);
 
   uint32_t cookiePolicy = loadInfo->GetCookiePolicy();
 

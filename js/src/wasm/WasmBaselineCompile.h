@@ -19,29 +19,58 @@
 #ifndef asmjs_wasm_baseline_compile_h
 #define asmjs_wasm_baseline_compile_h
 
-#include "wasm/WasmBinary.h"
-#include "wasm/WasmIonCompile.h"
+#include "wasm/WasmGenerator.h"
+#include "wasm/WasmTypes.h"
 
 namespace js {
 namespace wasm {
 
-class FunctionGenerator;
+class CompileTask;
+class FuncCompileUnit;
 
-// Return true if BaselineCompileFunction can generate code for the
-// function held in the FunctionGenerator.  If false is returned a
-// different compilation strategy must be chosen.
-//
-// This allows the baseline compiler to have different capabilities on
-// different platforms and defer to the full Ion compiler if
-// capabilities are missing.  The FunctionGenerator and other data
-// structures contain information about the capabilities that are
-// required to compile the function.
+// Return whether BaselineCompileFunction can generate code on the current device.
+// Note: asm.js is also currently not supported due to Atomics and SIMD.
 bool
-BaselineCanCompile(const FunctionGenerator* fg);
+BaselineCanCompile();
 
 // Generate adequate code quickly.
 bool
-BaselineCompileFunction(IonCompileTask* task);
+BaselineCompileFunction(CompileTask* task, FuncCompileUnit* unit, UniqueChars* error);
+
+class BaseLocalIter
+{
+  private:
+    using ConstValTypeRange = mozilla::Range<const ValType>;
+
+    const ValTypeVector&               locals_;
+    size_t                             argsLength_;
+    ConstValTypeRange                  argsRange_; // range struct cache for ABIArgIter
+    jit::ABIArgIter<ConstValTypeRange> argsIter_;
+    size_t                             index_;
+    int32_t                            localSize_;
+    int32_t                            reservedSize_;
+    int32_t                            frameOffset_;
+    jit::MIRType                       mirType_;
+    bool                               done_;
+
+    void settle();
+    int32_t pushLocal(size_t nbytes);
+
+  public:
+    BaseLocalIter(const ValTypeVector& locals, size_t argsLength, bool debugEnabled);
+    void operator++(int);
+    bool done() const { return done_; }
+
+    jit::MIRType mirType() const { MOZ_ASSERT(!done_); return mirType_; }
+    int32_t frameOffset() const { MOZ_ASSERT(!done_); return frameOffset_; }
+    size_t index() const { MOZ_ASSERT(!done_); return index_; }
+    int32_t currentLocalSize() const { return localSize_; }
+    int32_t reservedSize() const { return reservedSize_; }
+
+#ifdef DEBUG
+    bool isArg() const { MOZ_ASSERT(!done_); return !argsIter_.done(); }
+#endif
+};
 
 } // namespace wasm
 } // namespace js

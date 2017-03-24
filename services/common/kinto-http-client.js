@@ -17,10 +17,12 @@
  * This file is generated from kinto-http.js - do not modify directly.
  */
 
+const global = this;
+
 this.EXPORTED_SYMBOLS = ["KintoHttpClient"];
 
 /*
- * Version 2.0.0 - 61435f3
+ * Version 4.0.0 - d750ae1
  */
 
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.KintoHttpClient = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
@@ -76,7 +78,213 @@ if (typeof module === "object") {
   module.exports = KintoHttpClient;
 }
 
-},{"../src/base":2}],2:[function(require,module,exports){
+},{"../src/base":7}],2:[function(require,module,exports){
+var v1 = require('./v1');
+var v4 = require('./v4');
+
+var uuid = v4;
+uuid.v1 = v1;
+uuid.v4 = v4;
+
+module.exports = uuid;
+
+},{"./v1":5,"./v4":6}],3:[function(require,module,exports){
+/**
+ * Convert array of 16 byte values to UUID string format of the form:
+ * XXXXXXXX-XXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+ */
+var byteToHex = [];
+for (var i = 0; i < 256; ++i) {
+  byteToHex[i] = (i + 0x100).toString(16).substr(1);
+}
+
+function bytesToUuid(buf, offset) {
+  var i = offset || 0;
+  var bth = byteToHex;
+  return  bth[buf[i++]] + bth[buf[i++]] +
+          bth[buf[i++]] + bth[buf[i++]] + '-' +
+          bth[buf[i++]] + bth[buf[i++]] + '-' +
+          bth[buf[i++]] + bth[buf[i++]] + '-' +
+          bth[buf[i++]] + bth[buf[i++]] + '-' +
+          bth[buf[i++]] + bth[buf[i++]] +
+          bth[buf[i++]] + bth[buf[i++]] +
+          bth[buf[i++]] + bth[buf[i++]];
+}
+
+module.exports = bytesToUuid;
+
+},{}],4:[function(require,module,exports){
+// Unique ID creation requires a high quality random # generator.  In the
+// browser this is a little complicated due to unknown quality of Math.random()
+// and inconsistent support for the `crypto` API.  We do the best we can via
+// feature-detection
+var rng;
+
+var crypto = global.crypto || global.msCrypto; // for IE 11
+if (crypto && crypto.getRandomValues) {
+  // WHATWG crypto RNG - http://wiki.whatwg.org/wiki/Crypto
+  var rnds8 = new Uint8Array(16);
+  rng = function whatwgRNG() {
+    crypto.getRandomValues(rnds8);
+    return rnds8;
+  };
+}
+
+if (!rng) {
+  // Math.random()-based (RNG)
+  //
+  // If all else fails, use Math.random().  It's fast, but is of unspecified
+  // quality.
+  var  rnds = new Array(16);
+  rng = function() {
+    for (var i = 0, r; i < 16; i++) {
+      if ((i & 0x03) === 0) r = Math.random() * 0x100000000;
+      rnds[i] = r >>> ((i & 0x03) << 3) & 0xff;
+    }
+
+    return rnds;
+  };
+}
+
+module.exports = rng;
+
+},{}],5:[function(require,module,exports){
+// Unique ID creation requires a high quality random # generator.  We feature
+// detect to determine the best RNG source, normalizing to a function that
+// returns 128-bits of randomness, since that's what's usually required
+var rng = require('./lib/rng');
+var bytesToUuid = require('./lib/bytesToUuid');
+
+// **`v1()` - Generate time-based UUID**
+//
+// Inspired by https://github.com/LiosK/UUID.js
+// and http://docs.python.org/library/uuid.html
+
+// random #'s we need to init node and clockseq
+var _seedBytes = rng();
+
+// Per 4.5, create and 48-bit node id, (47 random bits + multicast bit = 1)
+var _nodeId = [
+  _seedBytes[0] | 0x01,
+  _seedBytes[1], _seedBytes[2], _seedBytes[3], _seedBytes[4], _seedBytes[5]
+];
+
+// Per 4.2.2, randomize (14 bit) clockseq
+var _clockseq = (_seedBytes[6] << 8 | _seedBytes[7]) & 0x3fff;
+
+// Previous uuid creation time
+var _lastMSecs = 0, _lastNSecs = 0;
+
+// See https://github.com/broofa/node-uuid for API details
+function v1(options, buf, offset) {
+  var i = buf && offset || 0;
+  var b = buf || [];
+
+  options = options || {};
+
+  var clockseq = options.clockseq !== undefined ? options.clockseq : _clockseq;
+
+  // UUID timestamps are 100 nano-second units since the Gregorian epoch,
+  // (1582-10-15 00:00).  JSNumbers aren't precise enough for this, so
+  // time is handled internally as 'msecs' (integer milliseconds) and 'nsecs'
+  // (100-nanoseconds offset from msecs) since unix epoch, 1970-01-01 00:00.
+  var msecs = options.msecs !== undefined ? options.msecs : new Date().getTime();
+
+  // Per 4.2.1.2, use count of uuid's generated during the current clock
+  // cycle to simulate higher resolution clock
+  var nsecs = options.nsecs !== undefined ? options.nsecs : _lastNSecs + 1;
+
+  // Time since last uuid creation (in msecs)
+  var dt = (msecs - _lastMSecs) + (nsecs - _lastNSecs)/10000;
+
+  // Per 4.2.1.2, Bump clockseq on clock regression
+  if (dt < 0 && options.clockseq === undefined) {
+    clockseq = clockseq + 1 & 0x3fff;
+  }
+
+  // Reset nsecs if clock regresses (new clockseq) or we've moved onto a new
+  // time interval
+  if ((dt < 0 || msecs > _lastMSecs) && options.nsecs === undefined) {
+    nsecs = 0;
+  }
+
+  // Per 4.2.1.2 Throw error if too many uuids are requested
+  if (nsecs >= 10000) {
+    throw new Error('uuid.v1(): Can\'t create more than 10M uuids/sec');
+  }
+
+  _lastMSecs = msecs;
+  _lastNSecs = nsecs;
+  _clockseq = clockseq;
+
+  // Per 4.1.4 - Convert from unix epoch to Gregorian epoch
+  msecs += 12219292800000;
+
+  // `time_low`
+  var tl = ((msecs & 0xfffffff) * 10000 + nsecs) % 0x100000000;
+  b[i++] = tl >>> 24 & 0xff;
+  b[i++] = tl >>> 16 & 0xff;
+  b[i++] = tl >>> 8 & 0xff;
+  b[i++] = tl & 0xff;
+
+  // `time_mid`
+  var tmh = (msecs / 0x100000000 * 10000) & 0xfffffff;
+  b[i++] = tmh >>> 8 & 0xff;
+  b[i++] = tmh & 0xff;
+
+  // `time_high_and_version`
+  b[i++] = tmh >>> 24 & 0xf | 0x10; // include version
+  b[i++] = tmh >>> 16 & 0xff;
+
+  // `clock_seq_hi_and_reserved` (Per 4.2.2 - include variant)
+  b[i++] = clockseq >>> 8 | 0x80;
+
+  // `clock_seq_low`
+  b[i++] = clockseq & 0xff;
+
+  // `node`
+  var node = options.node || _nodeId;
+  for (var n = 0; n < 6; ++n) {
+    b[i + n] = node[n];
+  }
+
+  return buf ? buf : bytesToUuid(b);
+}
+
+module.exports = v1;
+
+},{"./lib/bytesToUuid":3,"./lib/rng":4}],6:[function(require,module,exports){
+var rng = require('./lib/rng');
+var bytesToUuid = require('./lib/bytesToUuid');
+
+function v4(options, buf, offset) {
+  var i = buf && offset || 0;
+
+  if (typeof(options) == 'string') {
+    buf = options == 'binary' ? new Array(16) : null;
+    options = null;
+  }
+  options = options || {};
+
+  var rnds = options.random || (options.rng || rng)();
+
+  // Per 4.4, set bits for version and `clock_seq_hi_and_reserved`
+  rnds[6] = (rnds[6] & 0x0f) | 0x40;
+  rnds[8] = (rnds[8] & 0x3f) | 0x80;
+
+  // Copy bytes to buffer, if provided
+  if (buf) {
+    for (var ii = 0; ii < 16; ++ii) {
+      buf[i + ii] = rnds[ii];
+    }
+  }
+
+  return buf || bytesToUuid(rnds);
+}
+
+module.exports = v4;
+
+},{"./lib/bytesToUuid":3,"./lib/rng":4}],7:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -86,7 +294,7 @@ exports.default = exports.SUPPORTED_PROTOCOL_VERSION = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
-var _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _desc, _value, _class;
+var _dec, _dec2, _dec3, _dec4, _dec5, _dec6, _dec7, _desc, _value, _class;
 
 var _utils = require("./utils");
 
@@ -158,7 +366,7 @@ const SUPPORTED_PROTOCOL_VERSION = exports.SUPPORTED_PROTOCOL_VERSION = "v1";
  *   .then(console.log.bind(console))
  *   .catch(console.error.bind(console));
  */
-let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not supported within a batch operation."), _dec2 = (0, _utils.nobatch)("This operation is not supported within a batch operation."), _dec3 = (0, _utils.nobatch)("This operation is not supported within a batch operation."), _dec4 = (0, _utils.nobatch)("This operation is not supported within a batch operation."), _dec5 = (0, _utils.nobatch)("Can't use batch within a batch!"), _dec6 = (0, _utils.support)("1.4", "2.0"), (_class = class KintoClientBase {
+let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not supported within a batch operation."), _dec2 = (0, _utils.nobatch)("This operation is not supported within a batch operation."), _dec3 = (0, _utils.nobatch)("This operation is not supported within a batch operation."), _dec4 = (0, _utils.nobatch)("This operation is not supported within a batch operation."), _dec5 = (0, _utils.nobatch)("Can't use batch within a batch!"), _dec6 = (0, _utils.capable)(["permissions_endpoint"]), _dec7 = (0, _utils.support)("1.4", "2.0"), (_class = class KintoClientBase {
   /**
    * Constructor.
    *
@@ -167,9 +375,10 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
    * @param  {Boolean}      [options.safe=true]           Adds concurrency headers to every requests.
    * @param  {EventEmitter} [options.events=EventEmitter] The events handler instance.
    * @param  {Object}       [options.headers={}]          The key-value headers to pass to each request.
+   * @param  {Object}       [options.retry=0]             Number of retries when request fails (default: 0)
    * @param  {String}       [options.bucket="default"]    The default bucket to use.
    * @param  {String}       [options.requestMode="cors"]  The HTTP request mode (from ES6 fetch spec).
-   * @param  {Number}       [options.timeout=5000]        The requests timeout in ms.
+   * @param  {Number}       [options.timeout=null]        The request timeout in ms, if any.
    */
   constructor(remote, options = {}) {
     if (typeof remote !== "string" || !remote.length) {
@@ -188,6 +397,7 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
     this.defaultReqOptions = {
       bucket: options.bucket || "default",
       headers: options.headers || {},
+      retry: options.retry || 0,
       safe: !!options.safe
     };
 
@@ -245,7 +455,7 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
       throw new Error("The remote URL must contain the version: " + url);
     }
     if (version !== SUPPORTED_PROTOCOL_VERSION) {
-      throw new Error(`Unsupported protocol version: ${ version }`);
+      throw new Error(`Unsupported protocol version: ${version}`);
     }
     this._remote = url;
     this._version = version;
@@ -333,9 +543,8 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
     if (this.serverInfo) {
       return Promise.resolve(this.serverInfo);
     }
-    return this.http.request(this.remote + (0, _endpoint2.default)("root"), {
-      headers: _extends({}, this.defaultReqOptions.headers, options.headers)
-    }).then(({ json }) => {
+    const reqOptions = this._getRequestOptions(options);
+    return this.http.request(this.remote + (0, _endpoint2.default)("root"), reqOptions).then(({ json }) => {
       this.serverInfo = json;
       return this.serverInfo;
     });
@@ -396,7 +605,8 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
    * @return {Promise<Object, Error>}
    */
   _batchRequests(requests, options = {}) {
-    const headers = _extends({}, this.defaultReqOptions.headers, options.headers);
+    const reqOptions = this._getRequestOptions(options);
+    const { headers } = reqOptions;
     if (!requests.length) {
       return Promise.resolve([]);
     }
@@ -406,15 +616,14 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
         const chunks = (0, _utils.partition)(requests, maxRequests);
         return (0, _utils.pMap)(chunks, chunk => this._batchRequests(chunk, options));
       }
-      return this.execute({
+      return this.execute(_extends({}, reqOptions, {
         path: (0, _endpoint2.default)("batch"),
         method: "POST",
-        headers: headers,
         body: {
           defaults: { headers },
           requests: requests
         }
-      })
+      }))
       // we only care about the responses
       .then(({ responses }) => responses);
     });
@@ -430,6 +639,7 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
    * @param  {Object}   [options={}]              The options object.
    * @param  {Boolean}  [options.safe]            The safe option.
    * @param  {String}   [options.bucket]          The bucket name option.
+   * @param  {String}   [options.collection]      The collection name option.
    * @param  {Object}   [options.headers]         The headers object option.
    * @param  {Boolean}  [options.aggregate=false] Produces an aggregated result object.
    * @return {Promise<Object, Error>}
@@ -466,24 +676,106 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
    * @private
    * @param  {Object}  request             The request object.
    * @param  {Object}  [options={}]        The options object.
-   * @param  {Boolean} [options.raw=false] If true, resolve with full response object, including json body and headers instead of just json.
+   * @param  {Boolean} [options.raw=false] If true, resolve with full response
+   * @param  {Boolean} [options.stringify=true] If true, serialize body data to
+   * JSON.
    * @return {Promise<Object, Error>}
    */
-  execute(request, options = { raw: false }) {
+  execute(request, options = { raw: false, stringify: true }) {
+    const { raw, stringify } = options;
     // If we're within a batch, add the request to the stack to send at once.
     if (this._isBatch) {
       this._requests.push(request);
       // Resolve with a message in case people attempt at consuming the result
       // from within a batch operation.
       const msg = "This result is generated from within a batch " + "operation and should not be consumed.";
-      return Promise.resolve(options.raw ? { json: msg } : msg);
+      return Promise.resolve(raw ? { json: msg, headers: { get() {} } } : msg);
     }
     const promise = this.fetchServerSettings().then(_ => {
       return this.http.request(this.remote + request.path, _extends({}, request, {
-        body: JSON.stringify(request.body)
+        body: stringify ? JSON.stringify(request.body) : request.body
       }));
     });
-    return options.raw ? promise : promise.then(({ json }) => json);
+    return raw ? promise : promise.then(({ json }) => json);
+  }
+
+  paginatedList(path, params, options = {}) {
+    const { sort, filters, limit, pages, since } = _extends({
+      sort: "-last_modified"
+    }, params);
+    // Safety/Consistency check on ETag value.
+    if (since && typeof since !== "string") {
+      throw new Error(`Invalid value for since (${since}), should be ETag value.`);
+    }
+
+    const querystring = (0, _utils.qsify)(_extends({}, filters, {
+      _sort: sort,
+      _limit: limit,
+      _since: since
+    }));
+    let results = [],
+        current = 0;
+
+    const next = function (nextPage) {
+      if (!nextPage) {
+        throw new Error("Pagination exhausted.");
+      }
+      return processNextPage(nextPage);
+    };
+
+    const processNextPage = nextPage => {
+      const { headers } = options;
+      return this.http.request(nextPage, { headers }).then(handleResponse);
+    };
+
+    const pageResults = (results, nextPage, etag, totalRecords) => {
+      // ETag string is supposed to be opaque and stored «as-is».
+      // ETag header values are quoted (because of * and W/"foo").
+      return {
+        last_modified: etag ? etag.replace(/"/g, "") : etag,
+        data: results,
+        next: next.bind(null, nextPage),
+        hasNextPage: !!nextPage,
+        totalRecords
+      };
+    };
+
+    const handleResponse = ({ headers, json }) => {
+      const nextPage = headers.get("Next-Page");
+      const etag = headers.get("ETag");
+      const totalRecords = parseInt(headers.get("Total-Records"), 10);
+
+      if (!pages) {
+        return pageResults(json.data, nextPage, etag, totalRecords);
+      }
+      // Aggregate new results with previous ones
+      results = results.concat(json.data);
+      current += 1;
+      if (current >= pages || !nextPage) {
+        // Pagination exhausted
+        return pageResults(results, nextPage, etag, totalRecords);
+      }
+      // Follow next page
+      return processNextPage(nextPage);
+    };
+    return this.execute(_extends({
+      path: path + "?" + querystring
+    }, options), { raw: true }).then(handleResponse);
+  }
+
+  /**
+   * Lists all permissions.
+   *
+   * @param  {Object} [options={}]      The options object.
+   * @param  {Object} [options.headers] The headers object option.
+   * @return {Promise<Object[], Error>}
+   */
+
+  listPermissions(options = {}) {
+    const reqOptions = this._getRequestOptions(options);
+    return this.execute(_extends({
+      path: (0, _endpoint2.default)("permissions")
+    }, reqOptions));
   }
 
   /**
@@ -494,10 +786,9 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
    * @return {Promise<Object[], Error>}
    */
   listBuckets(options = {}) {
-    return this.execute({
-      path: (0, _endpoint2.default)("bucket"),
-      headers: _extends({}, this.defaultReqOptions.headers, options.headers)
-    });
+    const path = (0, _endpoint2.default)("bucket");
+    const reqOptions = this._getRequestOptions(options);
+    return this.paginatedList(path, options, reqOptions);
   }
 
   /**
@@ -561,10 +852,10 @@ let KintoClientBase = (_dec = (0, _utils.nobatch)("This operation is not support
     const path = (0, _endpoint2.default)("bucket");
     return this.execute(requests.deleteRequest(path, reqOptions));
   }
-}, (_applyDecoratedDescriptor(_class.prototype, "fetchServerSettings", [_dec], Object.getOwnPropertyDescriptor(_class.prototype, "fetchServerSettings"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "fetchServerCapabilities", [_dec2], Object.getOwnPropertyDescriptor(_class.prototype, "fetchServerCapabilities"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "fetchUser", [_dec3], Object.getOwnPropertyDescriptor(_class.prototype, "fetchUser"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "fetchHTTPApiVersion", [_dec4], Object.getOwnPropertyDescriptor(_class.prototype, "fetchHTTPApiVersion"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "batch", [_dec5], Object.getOwnPropertyDescriptor(_class.prototype, "batch"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "deleteBuckets", [_dec6], Object.getOwnPropertyDescriptor(_class.prototype, "deleteBuckets"), _class.prototype)), _class));
+}, (_applyDecoratedDescriptor(_class.prototype, "fetchServerSettings", [_dec], Object.getOwnPropertyDescriptor(_class.prototype, "fetchServerSettings"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "fetchServerCapabilities", [_dec2], Object.getOwnPropertyDescriptor(_class.prototype, "fetchServerCapabilities"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "fetchUser", [_dec3], Object.getOwnPropertyDescriptor(_class.prototype, "fetchUser"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "fetchHTTPApiVersion", [_dec4], Object.getOwnPropertyDescriptor(_class.prototype, "fetchHTTPApiVersion"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "batch", [_dec5], Object.getOwnPropertyDescriptor(_class.prototype, "batch"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "listPermissions", [_dec6], Object.getOwnPropertyDescriptor(_class.prototype, "listPermissions"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "deleteBuckets", [_dec7], Object.getOwnPropertyDescriptor(_class.prototype, "deleteBuckets"), _class.prototype)), _class));
 exports.default = KintoClientBase;
 
-},{"./batch":3,"./bucket":4,"./endpoint":6,"./http":8,"./requests":9,"./utils":10}],3:[function(require,module,exports){
+},{"./batch":8,"./bucket":9,"./endpoint":11,"./http":13,"./requests":14,"./utils":15}],8:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -591,21 +882,29 @@ function aggregate(responses = [], requests = []) {
   };
   return responses.reduce((acc, response, index) => {
     const { status } = response;
+    const request = requests[index];
     if (status >= 200 && status < 400) {
       acc.published.push(response.body);
     } else if (status === 404) {
-      acc.skipped.push(response.body);
+      // Extract the id manually from request path while waiting for Kinto/kinto#818
+      const extracts = request.path.match(/(buckets|groups|collections|records)\/([^\/]+)$/);
+      const id = extracts.length === 3 ? extracts[2] : undefined;
+      acc.skipped.push({
+        id,
+        path: request.path,
+        error: response.body
+      });
     } else if (status === 412) {
       acc.conflicts.push({
         // XXX: specifying the type is probably superfluous
         type: "outgoing",
-        local: requests[index].body,
+        local: request.body,
         remote: response.body.details && response.body.details.existing || null
       });
     } else {
       acc.errors.push({
-        path: response.path,
-        sent: requests[index],
+        path: request.path,
+        sent: request,
         error: response.body
       });
     }
@@ -613,7 +912,7 @@ function aggregate(responses = [], requests = []) {
   }, results);
 }
 
-},{}],4:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -622,6 +921,8 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _dec, _desc, _value, _class;
 
 var _utils = require("./utils");
 
@@ -641,11 +942,40 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
 /**
  * Abstract representation of a selected bucket.
  *
  */
-let Bucket = class Bucket {
+let Bucket = (_dec = (0, _utils.capable)(["history"]), (_class = class Bucket {
   /**
    * Constructor.
    *
@@ -714,10 +1044,9 @@ let Bucket = class Bucket {
    * @return {Promise<Object, Error>}
    */
   getData(options = {}) {
-    return this.client.execute({
-      path: (0, _endpoint2.default)("bucket", this.name),
-      headers: _extends({}, this.options.headers, options.headers)
-    }).then(res => res.data);
+    const reqOptions = _extends({}, this._bucketOptions(options));
+    const request = _extends({}, reqOptions, { path: (0, _endpoint2.default)("bucket", this.name) });
+    return this.client.execute(request).then(res => res.data);
   }
 
   /**
@@ -752,6 +1081,20 @@ let Bucket = class Bucket {
   }
 
   /**
+   * Retrieves the list of history entries in the current bucket.
+   *
+   * @param  {Object} [options={}]      The options object.
+   * @param  {Object} [options.headers] The headers object option.
+   * @return {Promise<Array<Object>, Error>}
+   */
+
+  listHistory(options = {}) {
+    const path = (0, _endpoint2.default)("history", this.name);
+    const reqOptions = this._bucketOptions(options);
+    return this.client.paginatedList(path, options, reqOptions);
+  }
+
+  /**
    * Retrieves the list of collections in the current bucket.
    *
    * @param  {Object} [options={}]      The options object.
@@ -759,10 +1102,9 @@ let Bucket = class Bucket {
    * @return {Promise<Array<Object>, Error>}
    */
   listCollections(options = {}) {
-    return this.client.execute({
-      path: (0, _endpoint2.default)("collection", this.name),
-      headers: _extends({}, this.options.headers, options.headers)
-    });
+    const path = (0, _endpoint2.default)("collection", this.name);
+    const reqOptions = this._bucketOptions(options);
+    return this.client.paginatedList(path, options, reqOptions);
   }
 
   /**
@@ -815,10 +1157,9 @@ let Bucket = class Bucket {
    * @return {Promise<Array<Object>, Error>}
    */
   listGroups(options = {}) {
-    return this.client.execute({
-      path: (0, _endpoint2.default)("group", this.name),
-      headers: _extends({}, this.options.headers, options.headers)
-    });
+    const path = (0, _endpoint2.default)("group", this.name);
+    const reqOptions = this._bucketOptions(options);
+    return this.client.paginatedList(path, options, reqOptions);
   }
 
   /**
@@ -830,10 +1171,9 @@ let Bucket = class Bucket {
    * @return {Promise<Object, Error>}
    */
   getGroup(id, options = {}) {
-    return this.client.execute({
-      path: (0, _endpoint2.default)("group", this.name, id),
-      headers: _extends({}, this.options.headers, options.headers)
-    });
+    const reqOptions = _extends({}, this._bucketOptions(options));
+    const request = _extends({}, reqOptions, { path: (0, _endpoint2.default)("group", this.name, id) });
+    return this.client.execute(request);
   }
 
   /**
@@ -914,10 +1254,9 @@ let Bucket = class Bucket {
    * @return {Promise<Object, Error>}
    */
   getPermissions(options = {}) {
-    return this.client.execute({
-      path: (0, _endpoint2.default)("bucket", this.name),
-      headers: _extends({}, this.options.headers, options.headers)
-    }).then(res => res.permissions);
+    const reqOptions = this._bucketOptions(options);
+    const request = _extends({}, reqOptions, { path: (0, _endpoint2.default)("bucket", this.name) });
+    return this.client.execute(request).then(res => res.permissions);
   }
 
   /**
@@ -955,10 +1294,10 @@ let Bucket = class Bucket {
   batch(fn, options = {}) {
     return this.client.batch(fn, this._bucketOptions(options));
   }
-};
+}, (_applyDecoratedDescriptor(_class.prototype, "listHistory", [_dec], Object.getOwnPropertyDescriptor(_class.prototype, "listHistory"), _class.prototype)), _class));
 exports.default = Bucket;
 
-},{"./collection":5,"./endpoint":6,"./requests":9,"./utils":10}],5:[function(require,module,exports){
+},{"./collection":10,"./endpoint":11,"./requests":14,"./utils":15}],10:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -967,6 +1306,10 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _dec, _dec2, _desc, _value, _class;
+
+var _uuid = require("uuid");
 
 var _utils = require("./utils");
 
@@ -982,11 +1325,40 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
+function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
 /**
  * Abstract representation of a selected collection.
  *
  */
-let Collection = class Collection {
+let Collection = (_dec = (0, _utils.capable)(["attachments"]), _dec2 = (0, _utils.capable)(["attachments"]), (_class = class Collection {
   /**
    * Constructor.
    *
@@ -1042,6 +1414,20 @@ let Collection = class Collection {
   }
 
   /**
+   * Retrieves the total number of records in this collection.
+   *
+   * @param  {Object} [options={}]      The options object.
+   * @param  {Object} [options.headers] The headers object option.
+   * @return {Promise<Number, Error>}
+   */
+  getTotalRecords(options = {}) {
+    const path = (0, _endpoint2.default)("record", this.bucket.name, this.name);
+    const reqOptions = this._collOptions(options);
+    const request = _extends({}, reqOptions, { path, method: "HEAD" });
+    return this.client.execute(request, { raw: true }).then(({ headers }) => parseInt(headers.get("Total-Records"), 10));
+  }
+
+  /**
    * Retrieves collection data.
    *
    * @param  {Object} [options={}]      The options object.
@@ -1049,11 +1435,10 @@ let Collection = class Collection {
    * @return {Promise<Object, Error>}
    */
   getData(options = {}) {
-    const { headers } = this._collOptions(options);
-    return this.client.execute({
-      path: (0, _endpoint2.default)("collection", this.bucket.name, this.name),
-      headers
-    }).then(res => res.data);
+    const reqOptions = this._collOptions(options);
+    const path = (0, _endpoint2.default)("collection", this.bucket.name, this.name);
+    const request = _extends({}, reqOptions, { path });
+    return this.client.execute(request).then(res => res.data);
   }
 
   /**
@@ -1086,11 +1471,10 @@ let Collection = class Collection {
    * @return {Promise<Object, Error>}
    */
   getPermissions(options = {}) {
-    const { headers } = this._collOptions(options);
-    return this.client.execute({
-      path: (0, _endpoint2.default)("collection", this.bucket.name, this.name),
-      headers
-    }).then(res => res.permissions);
+    const path = (0, _endpoint2.default)("collection", this.bucket.name, this.name);
+    const reqOptions = this._collOptions(options);
+    const request = _extends({}, reqOptions, { path });
+    return this.client.execute(request).then(res => res.permissions);
   }
 
   /**
@@ -1117,10 +1501,11 @@ let Collection = class Collection {
   /**
    * Creates a record in current collection.
    *
-   * @param  {Object}  record            The record to create.
-   * @param  {Object}  [options={}]      The options object.
-   * @param  {Object}  [options.headers] The headers object option.
-   * @param  {Boolean} [options.safe]    The safe option.
+   * @param  {Object}  record                The record to create.
+   * @param  {Object}  [options={}]          The options object.
+   * @param  {Object}  [options.headers]     The headers object option.
+   * @param  {Boolean} [options.safe]        The safe option.
+   * @param  {Object}  [options.permissions] The permissions option.
    * @return {Promise<Object, Error>}
    */
   createRecord(record, options = {}) {
@@ -1132,6 +1517,50 @@ let Collection = class Collection {
   }
 
   /**
+   * Adds an attachment to a record, creating the record when it doesn't exist.
+   *
+   * @param  {String}  dataURL                 The data url.
+   * @param  {Object}  [record={}]             The record data.
+   * @param  {Object}  [options={}]            The options object.
+   * @param  {Object}  [options.headers]       The headers object option.
+   * @param  {Boolean} [options.safe]          The safe option.
+   * @param  {Number}  [options.last_modified] The last_modified option.
+   * @param  {Object}  [options.permissions]   The permissions option.
+   * @param  {String}  [options.filename]      Force the attachment filename.
+   * @param  {String}  [options.gzipped]       Force the attachment to be gzipped or not.
+   * @return {Promise<Object, Error>}
+   */
+
+  addAttachment(dataURI, record = {}, options = {}) {
+    const reqOptions = this._collOptions(options);
+    const { permissions } = reqOptions;
+    const id = record.id || _uuid.v4.v4();
+    const path = (0, _endpoint2.default)("attachment", this.bucket.name, this.name, id);
+    const addAttachmentRequest = requests.addAttachmentRequest(path, dataURI, {
+      data: record,
+      permissions
+    }, reqOptions);
+    return this.client.execute(addAttachmentRequest, { stringify: false }).then(() => this.getRecord(id));
+  }
+
+  /**
+   * Removes an attachment from a given record.
+   *
+   * @param  {Object}  recordId                The record id.
+   * @param  {Object}  [options={}]            The options object.
+   * @param  {Object}  [options.headers]       The headers object option.
+   * @param  {Boolean} [options.safe]          The safe option.
+   * @param  {Number}  [options.last_modified] The last_modified option.
+   */
+
+  removeAttachment(recordId, options = {}) {
+    const reqOptions = this._collOptions(options);
+    const path = (0, _endpoint2.default)("attachment", this.bucket.name, this.name, recordId);
+    const request = requests.deleteRequest(path, reqOptions);
+    return this.client.execute(request);
+  }
+
+  /**
    * Updates a record in current collection.
    *
    * @param  {Object}  record                  The record to update.
@@ -1139,6 +1568,7 @@ let Collection = class Collection {
    * @param  {Object}  [options.headers]       The headers object option.
    * @param  {Boolean} [options.safe]          The safe option.
    * @param  {Number}  [options.last_modified] The last_modified option.
+   * @param  {Object}  [options.permissions]   The permissions option.
    * @return {Promise<Object, Error>}
    */
   updateRecord(record, options = {}) {
@@ -1186,9 +1616,10 @@ let Collection = class Collection {
    * @return {Promise<Object, Error>}
    */
   getRecord(id, options = {}) {
-    return this.client.execute(_extends({
-      path: (0, _endpoint2.default)("record", this.bucket.name, this.name, id)
-    }, this._collOptions(options)));
+    const path = (0, _endpoint2.default)("record", this.bucket.name, this.name, id);
+    const reqOptions = this._collOptions(options);
+    const request = _extends({}, reqOptions, { path });
+    return this.client.execute(request);
   }
 
   /**
@@ -1199,7 +1630,7 @@ let Collection = class Collection {
    * - The field to order the results by, prefixed with `-` for descending.
    * Default: `-last_modified`.
    *
-   * @see http://kinto.readthedocs.io/en/stable/core/api/resource.html#sorting
+   * @see http://kinto.readthedocs.io/en/stable/api/1.x/sorting.html
    *
    * Filtering is done by passing a `filters` option object:
    *
@@ -1209,7 +1640,7 @@ let Collection = class Collection {
    * - `{not_fieldname: 0}`
    * - `{exclude_fieldname: "0,1"}`
    *
-   * @see http://kinto.readthedocs.io/en/stable/core/api/resource.html#filtering
+   * @see http://kinto.readthedocs.io/en/stable/api/1.x/filtering.html
    *
    * Paginating is done by passing a `limit` option, then calling the `next()`
    * method from the resolved result object to fetch the next page, if any.
@@ -1218,71 +1649,63 @@ let Collection = class Collection {
    * @param  {Object}   [options.headers]               The headers object option.
    * @param  {Object}   [options.filters=[]]            The filters object.
    * @param  {String}   [options.sort="-last_modified"] The sort field.
+   * @param  {String}   [options.at]                    The timestamp to get a snapshot at.
    * @param  {String}   [options.limit=null]            The limit field.
    * @param  {String}   [options.pages=1]               The number of result pages to aggregate.
    * @param  {Number}   [options.since=null]            Only retrieve records modified since the provided timestamp.
    * @return {Promise<Object, Error>}
    */
   listRecords(options = {}) {
-    const { http } = this.client;
-    const { sort, filters, limit, pages, since } = _extends({
-      sort: "-last_modified"
-    }, options);
-    // Safety/Consistency check on ETag value.
-    if (since && typeof since !== "string") {
-      throw new Error(`Invalid value for since (${ since }), should be ETag value.`);
-    }
-    const collHeaders = this.options.headers;
     const path = (0, _endpoint2.default)("record", this.bucket.name, this.name);
-    const querystring = (0, _utils.qsify)(_extends({}, filters, {
-      _sort: sort,
-      _limit: limit,
-      _since: since
-    }));
-    let results = [],
-        current = 0;
+    const reqOptions = this._collOptions(options);
+    if (options.hasOwnProperty("at")) {
+      return this._getSnapshot(options.at);
+    } else {
+      return this.client.paginatedList(path, options, reqOptions);
+    }
+  }
 
-    const next = function (nextPage) {
-      if (!nextPage) {
-        throw new Error("Pagination exhausted.");
+  /**
+   * @private
+   */
+  _getSnapshot(at) {
+    if (!Number.isInteger(at) || at <= 0) {
+      throw new Error("Invalid argument, expected a positive integer.");
+    }
+    // TODO: we process history changes forward, while it would probably be more
+    // efficient and accurate to process them backward.
+    return this.bucket.listHistory({
+      pages: Infinity, // all pages up to target timestamp are required
+      sort: "-target.data.last_modified",
+      filters: {
+        resource_name: "record",
+        collection_id: this.name,
+        "max_target.data.last_modified": String(at)
       }
-      return processNextPage(nextPage);
-    };
+    }).then(({ data: changes }) => {
+      const seenIds = new Set();
+      let snapshot = [];
+      for (const _ref of changes) {
+        const { target: { data: record } } = _ref;
 
-    const processNextPage = nextPage => {
-      return http.request(nextPage, { headers: collHeaders }).then(handleResponse);
-    };
-
-    const pageResults = (results, nextPage, etag) => {
-      // ETag string is supposed to be opaque and stored «as-is».
-      // ETag header values are quoted (because of * and W/"foo").
+        if (record.deleted) {
+          seenIds.add(record.id); // ensure not reprocessing deleted entries
+          snapshot = snapshot.filter(r => r.id !== record.id);
+        } else if (!seenIds.has(record.id)) {
+          seenIds.add(record.id);
+          snapshot.push(record);
+        }
+      }
       return {
-        last_modified: etag ? etag.replace(/"/g, "") : etag,
-        data: results,
-        next: next.bind(null, nextPage)
+        last_modified: String(at),
+        data: snapshot.sort((a, b) => b.last_modified - a.last_modified),
+        next: () => {
+          throw new Error("Snapshots don't support pagination");
+        },
+        hasNextPage: false,
+        totalRecords: snapshot.length
       };
-    };
-
-    const handleResponse = ({ headers, json }) => {
-      const nextPage = headers.get("Next-Page");
-      const etag = headers.get("ETag");
-      if (!pages) {
-        return pageResults(json.data, nextPage, etag);
-      }
-      // Aggregate new results with previous ones
-      results = results.concat(json.data);
-      current += 1;
-      if (current >= pages || !nextPage) {
-        // Pagination exhausted
-        return pageResults(results, nextPage, etag);
-      }
-      // Follow next page
-      return processNextPage(nextPage);
-    };
-
-    return this.client.execute(_extends({
-      path: path + "?" + querystring
-    }, this._collOptions(options)), { raw: true }).then(handleResponse);
+    });
   }
 
   /**
@@ -1302,10 +1725,10 @@ let Collection = class Collection {
       collection: this.name
     }));
   }
-};
+}, (_applyDecoratedDescriptor(_class.prototype, "addAttachment", [_dec], Object.getOwnPropertyDescriptor(_class.prototype, "addAttachment"), _class.prototype), _applyDecoratedDescriptor(_class.prototype, "removeAttachment", [_dec2], Object.getOwnPropertyDescriptor(_class.prototype, "removeAttachment"), _class.prototype)), _class));
 exports.default = Collection;
 
-},{"./endpoint":6,"./requests":9,"./utils":10}],6:[function(require,module,exports){
+},{"./endpoint":11,"./requests":14,"./utils":15,"uuid":2}],11:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1319,10 +1742,13 @@ exports.default = endpoint;
 const ENDPOINTS = {
   root: () => "/",
   batch: () => "/batch",
-  bucket: bucket => "/buckets" + (bucket ? `/${ bucket }` : ""),
-  collection: (bucket, coll) => `${ ENDPOINTS.bucket(bucket) }/collections` + (coll ? `/${ coll }` : ""),
-  group: (bucket, group) => `${ ENDPOINTS.bucket(bucket) }/groups` + (group ? `/${ group }` : ""),
-  record: (bucket, coll, id) => `${ ENDPOINTS.collection(bucket, coll) }/records` + (id ? `/${ id }` : "")
+  permissions: () => "/permissions",
+  bucket: bucket => "/buckets" + (bucket ? `/${bucket}` : ""),
+  history: bucket => `${ENDPOINTS.bucket(bucket)}/history`,
+  collection: (bucket, coll) => `${ENDPOINTS.bucket(bucket)}/collections` + (coll ? `/${coll}` : ""),
+  group: (bucket, group) => `${ENDPOINTS.bucket(bucket)}/groups` + (group ? `/${group}` : ""),
+  record: (bucket, coll, id) => `${ENDPOINTS.collection(bucket, coll)}/records` + (id ? `/${id}` : ""),
+  attachment: (bucket, coll, id) => `${ENDPOINTS.record(bucket, coll, id)}/attachment`
 };
 
 /**
@@ -1337,7 +1763,7 @@ function endpoint(name, ...args) {
   return ENDPOINTS[name](...args);
 }
 
-},{}],7:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1358,7 +1784,7 @@ exports.default = {
   111: "Missing Token / id",
   112: "Content-Length header was not provided",
   113: "Request body too large",
-  114: "Resource was modified meanwhile",
+  114: "Resource was created, updated or deleted meanwhile",
   115: "Method not allowed on this end point (hint: server may be readonly)",
   116: "Requested version not available on this server",
   117: "Client has sent too many requests",
@@ -1369,13 +1795,15 @@ exports.default = {
   999: "Internal Server Error"
 };
 
-},{}],8:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = undefined;
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var _errors = require("./errors");
 
@@ -1406,7 +1834,7 @@ let HTTP = class HTTP {
    * @type {Object}
    */
   static get defaultOptions() {
-    return { timeout: 5000, requestMode: "cors" };
+    return { timeout: null, requestMode: "cors" };
   }
 
   /**
@@ -1414,7 +1842,7 @@ let HTTP = class HTTP {
    *
    * @param {EventEmitter} events                       The event handler.
    * @param {Object}       [options={}}                 The options object.
-   * @param {Number}       [options.timeout=5000]       The request timeout in ms (default: `5000`).
+   * @param {Number}       [options.timeout=null]       The request timeout in ms, if any (default: `null`).
    * @param {String}       [options.requestMode="cors"] The HTTP request mode (default: `"cors"`).
    */
   constructor(events, options = {}) {
@@ -1453,26 +1881,40 @@ let HTTP = class HTTP {
    * @param  {String} url               The URL.
    * @param  {Object} [options={}]      The fetch() options object.
    * @param  {Object} [options.headers] The request headers object (default: {})
+   * @param  {Object} [options.retry]   Number of retries (default: 0)
    * @return {Promise}
    */
-  request(url, options = { headers: {} }) {
+  request(url, options = { headers: {}, retry: 0 }) {
     let response, status, statusText, headers, hasTimedout;
     // Ensure default request headers are always set
-    options.headers = Object.assign({}, HTTP.DEFAULT_REQUEST_HEADERS, options.headers);
+    options.headers = _extends({}, HTTP.DEFAULT_REQUEST_HEADERS, options.headers);
+    // If a multipart body is provided, remove any custom Content-Type header as
+    // the fetch() implementation will add the correct one for us.
+    if (options.body && typeof options.body.append === "function") {
+      delete options.headers["Content-Type"];
+    }
     options.mode = this.requestMode;
     return new Promise((resolve, reject) => {
-      const _timeoutId = setTimeout(() => {
-        hasTimedout = true;
-        reject(new Error("Request timeout."));
-      }, this.timeout);
+      // Detect if a request has timed out.
+      let _timeoutId;
+      if (this.timeout) {
+        _timeoutId = setTimeout(() => {
+          hasTimedout = true;
+          reject(new Error("Request timeout."));
+        }, this.timeout);
+      }
       fetch(url, options).then(res => {
         if (!hasTimedout) {
-          clearTimeout(_timeoutId);
+          if (_timeoutId) {
+            clearTimeout(_timeoutId);
+          }
           resolve(res);
         }
       }).catch(err => {
         if (!hasTimedout) {
-          clearTimeout(_timeoutId);
+          if (_timeoutId) {
+            clearTimeout(_timeoutId);
+          }
           reject(err);
         }
       });
@@ -1483,39 +1925,50 @@ let HTTP = class HTTP {
       statusText = res.statusText;
       this._checkForDeprecationHeader(headers);
       this._checkForBackoffHeader(status, headers);
-      this._checkForRetryAfterHeader(status, headers);
-      return res.text();
-    })
-    // Check if we have a body; if so parse it as JSON.
-    .then(text => {
-      if (text.length === 0) {
-        return null;
+
+      // Check if the server summons the client to retry after a while.
+      const retryAfter = this._checkForRetryAfterHeader(status, headers);
+      // If number of allowed of retries is not exhausted, retry the same request.
+      if (retryAfter && options.retry > 0) {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve(this.request(url, _extends({}, options, { retry: options.retry - 1 })));
+          }, retryAfter);
+        });
       }
-      // Note: we can't consume the response body twice.
-      return JSON.parse(text);
-    }).catch(err => {
-      const error = new Error(`HTTP ${ status || 0 }; ${ err }`);
-      error.response = response;
-      error.stack = err.stack;
-      throw error;
-    }).then(json => {
-      if (json && status >= 400) {
-        let message = `HTTP ${ status } ${ json.error || "" }: `;
-        if (json.errno && json.errno in _errors2.default) {
-          const errnoMsg = _errors2.default[json.errno];
-          message += errnoMsg;
-          if (json.message && json.message !== errnoMsg) {
-            message += ` (${ json.message })`;
-          }
-        } else {
-          message += statusText || "";
+
+      return Promise.resolve(res.text())
+      // Check if we have a body; if so parse it as JSON.
+      .then(text => {
+        if (text.length === 0) {
+          return null;
         }
-        const error = new Error(message.trim());
+        // Note: we can't consume the response body twice.
+        return JSON.parse(text);
+      }).catch(err => {
+        const error = new Error(`HTTP ${status || 0}; ${err}`);
         error.response = response;
-        error.data = json;
+        error.stack = err.stack;
         throw error;
-      }
-      return { status, json, headers };
+      }).then(json => {
+        if (json && status >= 400) {
+          let message = `HTTP ${status} ${json.error || ""}: `;
+          if (json.errno && json.errno in _errors2.default) {
+            const errnoMsg = _errors2.default[json.errno];
+            message += errnoMsg;
+            if (json.message && json.message !== errnoMsg) {
+              message += ` (${json.message})`;
+            }
+          } else {
+            message += statusText || "";
+          }
+          const error = new Error(message.trim());
+          error.response = response;
+          error.data = json;
+          throw error;
+        }
+        return { status, json, headers };
+      });
     });
   }
 
@@ -1551,13 +2004,15 @@ let HTTP = class HTTP {
     if (!retryAfter) {
       return;
     }
-    retryAfter = new Date().getTime() + parseInt(retryAfter, 10) * 1000;
+    const delay = parseInt(retryAfter, 10) * 1000;
+    retryAfter = new Date().getTime() + delay;
     this.events.emit("retry-after", retryAfter);
+    return delay;
   }
 };
 exports.default = HTTP;
 
-},{"./errors":7}],9:[function(require,module,exports){
+},{"./errors":12}],14:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1569,6 +2024,7 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 exports.createRequest = createRequest;
 exports.updateRequest = updateRequest;
 exports.deleteRequest = deleteRequest;
+exports.addAttachmentRequest = addAttachmentRequest;
 
 var _utils = require("./utils");
 
@@ -1589,7 +2045,7 @@ function safeHeader(safe, last_modified) {
     return {};
   }
   if (last_modified) {
-    return { "If-Match": `"${ last_modified }"` };
+    return { "If-Match": `"${last_modified}"` };
   }
   return { "If-None-Match": "*" };
 }
@@ -1651,12 +2107,40 @@ function deleteRequest(path, options = {}) {
   };
 }
 
-},{"./utils":10}],10:[function(require,module,exports){
+/**
+ * @private
+ */
+function addAttachmentRequest(path, dataURI, { data, permissions } = {}, options = {}) {
+  const { headers, safe, gzipped } = _extends({}, requestDefaults, options);
+  const { last_modified } = _extends({}, data, options);
+
+  const body = { data, permissions };
+  const formData = (0, _utils.createFormData)(dataURI, body, options);
+  let customPath;
+
+  if (gzipped != null) {
+    customPath = path + "?gzipped=" + (gzipped ? "true" : "false");
+  } else {
+    customPath = path;
+  }
+
+  return {
+    method: "POST",
+    path: customPath,
+    headers: _extends({}, headers, safeHeader(safe, last_modified)),
+    body: formData
+  };
+}
+
+},{"./utils":15}],15:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 exports.partition = partition;
 exports.pMap = pMap;
 exports.omit = omit;
@@ -1667,6 +2151,9 @@ exports.support = support;
 exports.capable = capable;
 exports.nobatch = nobatch;
 exports.isObject = isObject;
+exports.parseDataURL = parseDataURL;
+exports.extractFileInfo = extractFileInfo;
+exports.createFormData = createFormData;
 /**
  * Chunks an array into n pieces.
  *
@@ -1750,18 +2237,17 @@ function toDataBody(resource) {
  * @return {String}
  */
 function qsify(obj) {
-  const sep = "&";
   const encode = v => encodeURIComponent(typeof v === "boolean" ? String(v) : v);
   const stripUndefined = o => JSON.parse(JSON.stringify(o));
   const stripped = stripUndefined(obj);
   return Object.keys(stripped).map(k => {
     const ks = encode(k) + "=";
     if (Array.isArray(stripped[k])) {
-      return stripped[k].map(v => ks + encode(v)).join(sep);
+      return ks + stripped[k].map(v => encode(v)).join(",");
     } else {
       return ks + encode(stripped[k]);
     }
-  }).join(sep);
+  }).join("&");
 }
 
 /**
@@ -1779,7 +2265,7 @@ function checkVersion(version, minVersion, maxVersion) {
   const [maxMajor, maxMinor] = extract(maxVersion);
   const checks = [verMajor < minMajor, verMajor === minMajor && verMinor < minMinor, verMajor > maxMajor, verMajor === maxMajor && verMinor >= maxMinor];
   if (checks.some(x => x)) {
-    throw new Error(`Version ${ version } doesn't satisfy ` + `${ minVersion } <= x < ${ maxVersion }`);
+    throw new Error(`Version ${version} doesn't satisfy ` + `${minVersion} <= x < ${maxVersion}`);
   }
 }
 
@@ -1800,7 +2286,7 @@ function support(min, max) {
         const wrappedMethod = (...args) => {
           // "this" is the current instance which its method is decorated.
           const client = "client" in this ? this.client : this;
-          return client.fetchHTTPApiVersion().then(version => checkVersion(version, min, max)).then(Promise.resolve(fn.apply(this, args)));
+          return client.fetchHTTPApiVersion().then(version => checkVersion(version, min, max)).then(() => fn.apply(this, args));
         };
         Object.defineProperty(this, key, {
           value: wrappedMethod,
@@ -1830,11 +2316,11 @@ function capable(capabilities) {
           // "this" is the current instance which its method is decorated.
           const client = "client" in this ? this.client : this;
           return client.fetchServerCapabilities().then(available => {
-            const missing = capabilities.filter(c => available.indexOf(c) < 0);
+            const missing = capabilities.filter(c => !available.hasOwnProperty(c));
             if (missing.length > 0) {
-              throw new Error(`Required capabilities ${ missing.join(", ") } ` + "not present on server");
+              throw new Error(`Required capabilities ${missing.join(", ")} ` + "not present on server");
             }
-          }).then(Promise.resolve(fn.apply(this, args)));
+          }).then(() => fn.apply(this, args));
         };
         Object.defineProperty(this, key, {
           value: wrappedMethod,
@@ -1885,6 +2371,65 @@ function nobatch(message) {
  */
 function isObject(thing) {
   return typeof thing === "object" && thing !== null && !Array.isArray(thing);
+}
+
+/**
+ * Parses a data url.
+ * @param  {String} dataURL The data url.
+ * @return {Object}
+ */
+function parseDataURL(dataURL) {
+  const regex = /^data:(.*);base64,(.*)/;
+  const match = dataURL.match(regex);
+  if (!match) {
+    throw new Error(`Invalid data-url: ${String(dataURL).substr(0, 32)}...`);
+  }
+  const props = match[1];
+  const base64 = match[2];
+  const [type, ...rawParams] = props.split(";");
+  const params = rawParams.reduce((acc, param) => {
+    const [key, value] = param.split("=");
+    return _extends({}, acc, { [key]: value });
+  }, {});
+  return _extends({}, params, { type, base64 });
+}
+
+/**
+ * Extracts file information from a data url.
+ * @param  {String} dataURL The data url.
+ * @return {Object}
+ */
+function extractFileInfo(dataURL) {
+  const { name, type, base64 } = parseDataURL(dataURL);
+  const binary = atob(base64);
+  const array = [];
+  for (let i = 0; i < binary.length; i++) {
+    array.push(binary.charCodeAt(i));
+  }
+  const blob = new Blob([new Uint8Array(array)], { type });
+  return { blob, name };
+}
+
+/**
+ * Creates a FormData instance from a data url and an existing JSON response
+ * body.
+ * @param  {String} dataURL            The data url.
+ * @param  {Object} body               The response body.
+ * @param  {Object} [options={}]       The options object.
+ * @param  {Object} [options.filename] Force attachment file name.
+ * @return {FormData}
+ */
+function createFormData(dataURL, body, options = {}) {
+  const { filename = "untitled" } = options;
+  const { blob, name } = extractFileInfo(dataURL);
+  const formData = new FormData();
+  formData.append("attachment", blob, name || filename);
+  for (const property in body) {
+    if (typeof body[property] !== "undefined") {
+      formData.append(property, JSON.stringify(body[property]));
+    }
+  }
+  return formData;
 }
 
 },{}]},{},[1])(1)

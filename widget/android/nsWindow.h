@@ -12,6 +12,7 @@
 #include "nsIIdleServiceInternal.h"
 #include "nsTArray.h"
 #include "AndroidJavaWrappers.h"
+#include "EventDispatcher.h"
 #include "GeneratedJNIWrappers.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/Mutex.h"
@@ -22,15 +23,17 @@
 struct ANPEvent;
 
 namespace mozilla {
-    class TextComposition;
     class WidgetTouchEvent;
 
     namespace layers {
-        class CompositorBridgeParent;
         class CompositorBridgeChild;
         class LayerManager;
         class APZCTreeManager;
     }
+
+    namespace widget {
+        class GeckoEditableSupport;
+    } // namespace widget
 }
 
 class nsWindow : public nsBaseWidget
@@ -47,6 +50,7 @@ public:
 
     static void InitNatives();
     void SetScreenId(uint32_t aScreenId) { mScreenId = aScreenId; }
+    void EnableEventDispatcher();
 
 private:
     uint32_t mScreenId;
@@ -58,6 +62,7 @@ private:
              class Impl = typename Lambda::TargetClass>
     class WindowEvent;
 
+public:
     // Smart pointer for holding a pointer back to the nsWindow inside a native
     // object class. The nsWindow pointer is automatically cleared when the
     // nsWindow is destroyed, and a WindowPtr<Impl>::Locked class is provided
@@ -96,6 +101,81 @@ private:
         void Detach();
     };
 
+    template<class Impl>
+    class WindowPtr final
+    {
+        friend NativePtr<Impl>;
+
+        NativePtr<Impl>* mPtr;
+        nsWindow* mWindow;
+        mozilla::Mutex mWindowLock;
+
+    public:
+        class Locked final : private mozilla::MutexAutoLock
+        {
+            nsWindow* const mWindow;
+
+        public:
+            Locked(WindowPtr<Impl>& aPtr)
+                : mozilla::MutexAutoLock(aPtr.mWindowLock)
+                , mWindow(aPtr.mWindow)
+            {}
+
+            operator nsWindow*() const { return mWindow; }
+            nsWindow* operator->() const { return mWindow; }
+        };
+
+        WindowPtr(NativePtr<Impl>* aPtr, nsWindow* aWindow)
+            : mPtr(aPtr)
+            , mWindow(aWindow)
+            , mWindowLock(NativePtr<Impl>::sName)
+        {
+            MOZ_ASSERT(NS_IsMainThread());
+            if (mPtr) {
+                mPtr->mPtr = this;
+            }
+        }
+
+        ~WindowPtr()
+        {
+            MOZ_ASSERT(NS_IsMainThread());
+            if (!mPtr) {
+                return;
+            }
+            mPtr->mPtr = nullptr;
+            mPtr->mImpl = nullptr;
+        }
+
+        operator nsWindow*() const
+        {
+            MOZ_ASSERT(NS_IsMainThread());
+            return mWindow;
+        }
+
+        nsWindow* operator->() const { return operator nsWindow*(); }
+    };
+
+private:
+    class AndroidView final : public nsIAndroidView
+    {
+        virtual ~AndroidView() {}
+
+    public:
+        const RefPtr<mozilla::widget::EventDispatcher> mEventDispatcher{
+            new mozilla::widget::EventDispatcher()};
+
+        AndroidView() {}
+
+        NS_DECL_ISUPPORTS
+        NS_DECL_NSIANDROIDVIEW
+
+        NS_FORWARD_NSIANDROIDEVENTDISPATCHER(mEventDispatcher->)
+
+        mozilla::java::GeckoBundle::GlobalRef mSettings;
+    };
+
+    RefPtr<AndroidView> mAndroidView;
+
     class LayerViewSupport;
     // Object that implements native LayerView calls.
     // Owned by the Java LayerView instance.
@@ -105,6 +185,11 @@ private:
     // Object that implements native NativePanZoomController calls.
     // Owned by the Java NativePanZoomController instance.
     NativePtr<NPZCSupport> mNPZCSupport;
+
+    // Object that implements native GeckoEditable calls.
+    // Strong referenced by the Java instance.
+    NativePtr<mozilla::widget::GeckoEditableSupport> mEditableSupport;
+    mozilla::java::GeckoEditable::GlobalRef mEditable;
 
     class GeckoViewSupport;
     // Object that implements native GeckoView calls and associated states.
@@ -118,6 +203,9 @@ private:
 
 public:
     static nsWindow* TopWindow();
+
+    static mozilla::Modifiers GetModifiers(int32_t aMetaState);
+    static mozilla::TimeStamp GetEventTimeStamp(int64_t aEventTime);
 
     void OnSizeChanged(const mozilla::gfx::IntSize& aSize);
 
@@ -138,65 +226,55 @@ public:
                                          const LayoutDeviceIntRect& aRect,
                                          nsWidgetInitData* aInitData) override;
     virtual void Destroy() override;
-    NS_IMETHOD ConfigureChildren(const nsTArray<nsIWidget::Configuration>&) override;
-    NS_IMETHOD SetParent(nsIWidget* aNewParent) override;
+    virtual nsresult ConfigureChildren(const nsTArray<nsIWidget::Configuration>&) override;
+    virtual void SetParent(nsIWidget* aNewParent) override;
     virtual nsIWidget *GetParent(void) override;
     virtual float GetDPI() override;
     virtual double GetDefaultScaleInternal() override;
-    NS_IMETHOD Show(bool aState) override;
+    virtual void Show(bool aState) override;
     virtual bool IsVisible() const override;
     virtual void ConstrainPosition(bool aAllowSlop,
                                    int32_t *aX,
                                    int32_t *aY) override;
-    NS_IMETHOD Move(double aX,
-                    double aY) override;
-    NS_IMETHOD Resize(double aWidth,
-                      double aHeight,
-                      bool   aRepaint) override;
-    NS_IMETHOD Resize(double aX,
-                      double aY,
-                      double aWidth,
-                      double aHeight,
-                      bool aRepaint) override;
+    virtual void Move(double aX,
+                      double aY) override;
+    virtual void Resize(double aWidth,
+                        double aHeight,
+                        bool   aRepaint) override;
+    virtual void Resize(double aX,
+                        double aY,
+                        double aWidth,
+                        double aHeight,
+                        bool aRepaint) override;
     void SetZIndex(int32_t aZIndex) override;
     virtual void SetSizeMode(nsSizeMode aMode) override;
-    NS_IMETHOD Enable(bool aState) override;
+    virtual void Enable(bool aState) override;
     virtual bool IsEnabled() const override;
-    NS_IMETHOD Invalidate(const LayoutDeviceIntRect& aRect) override;
-    NS_IMETHOD SetFocus(bool aRaise = false) override;
+    virtual void Invalidate(const LayoutDeviceIntRect& aRect) override;
+    virtual nsresult SetFocus(bool aRaise = false) override;
     virtual LayoutDeviceIntRect GetScreenBounds() override;
     virtual LayoutDeviceIntPoint WidgetToScreenOffset() override;
-    NS_IMETHOD DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
-                             nsEventStatus& aStatus) override;
+    virtual nsresult DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
+                                   nsEventStatus& aStatus) override;
     nsEventStatus DispatchEvent(mozilla::WidgetGUIEvent* aEvent);
     virtual already_AddRefed<nsIScreen> GetWidgetScreen() override;
     virtual nsresult MakeFullScreen(bool aFullScreen,
                                     nsIScreen* aTargetScreen = nullptr)
                                     override;
 
-    NS_IMETHOD SetCursor(nsCursor aCursor) override { return NS_ERROR_NOT_IMPLEMENTED; }
-    NS_IMETHOD SetCursor(imgIContainer* aCursor,
-                         uint32_t aHotspotX,
-                         uint32_t aHotspotY) override { return NS_ERROR_NOT_IMPLEMENTED; }
-    NS_IMETHOD SetHasTransparentBackground(bool aTransparent) { return NS_OK; }
-    NS_IMETHOD GetHasTransparentBackground(bool& aTransparent) { aTransparent = false; return NS_OK; }
-    NS_IMETHOD HideWindowChrome(bool aShouldHide) override { return NS_ERROR_NOT_IMPLEMENTED; }
+    virtual void SetCursor(nsCursor aCursor) override {}
+    virtual nsresult SetCursor(imgIContainer* aCursor, uint32_t aHotspotX,
+                               uint32_t aHotspotY) override { return NS_ERROR_NOT_IMPLEMENTED; }
     void* GetNativeData(uint32_t aDataType) override;
     void SetNativeData(uint32_t aDataType, uintptr_t aVal) override;
-    NS_IMETHOD SetTitle(const nsAString& aTitle) override { return NS_OK; }
-    NS_IMETHOD SetIcon(const nsAString& aIconSpec) override { return NS_OK; }
-    NS_IMETHOD GetAttention(int32_t aCycleCount) override { return NS_ERROR_NOT_IMPLEMENTED; }
-    NS_IMETHOD BeginResizeDrag(mozilla::WidgetGUIEvent* aEvent,
-                               int32_t aHorizontal,
-                               int32_t aVertical) override
-    {
-        return NS_ERROR_NOT_IMPLEMENTED;
-    }
+    virtual nsresult SetTitle(const nsAString& aTitle) override { return NS_OK; }
+    virtual MOZ_MUST_USE nsresult GetAttention(int32_t aCycleCount) override { return NS_ERROR_NOT_IMPLEMENTED; }
 
-    NS_IMETHOD_(void) SetInputContext(const InputContext& aContext,
-                                      const InputContextAction& aAction) override;
-    NS_IMETHOD_(InputContext) GetInputContext() override;
-    virtual nsIMEUpdatePreference GetIMEUpdatePreference() override;
+
+    TextEventDispatcherListener* GetNativeTextEventDispatcherListener() override;
+    virtual void SetInputContext(const InputContext& aContext,
+                                 const InputContextAction& aAction) override;
+    virtual InputContext GetInputContext() override;
 
     void SetSelectionDragState(bool aState);
     LayerManager* GetLayerManager(PLayerTransactionChild* aShadowManager = nullptr,
@@ -231,30 +309,25 @@ public:
     nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
                                        nsIObserver* aObserver) override;
 
-    CompositorBridgeParent* GetCompositorBridgeParent() const;
+    CompositorBridgeChild* GetCompositorBridgeChild() const;
 
     mozilla::jni::DependentRef<mozilla::java::GeckoLayerClient> GetLayerClient();
+
+    // Call this function when the users activity is the direct cause of an
+    // event (like a keypress or mouse click).
+    void UserActivity();
+
+    mozilla::java::GeckoEditable::Ref& GetEditableParent() { return mEditable; }
 
 protected:
     void BringToFront();
     nsWindow *FindTopLevel();
     bool IsTopLevel();
 
-    RefPtr<mozilla::TextComposition> GetIMEComposition();
-    enum RemoveIMECompositionFlag {
-        CANCEL_IME_COMPOSITION,
-        COMMIT_IME_COMPOSITION
-    };
-    void RemoveIMEComposition(RemoveIMECompositionFlag aFlag = COMMIT_IME_COMPOSITION);
-
     void ConfigureAPZControllerThread() override;
     void DispatchHitTest(const mozilla::WidgetTouchEvent& aEvent);
 
     already_AddRefed<GeckoContentController> CreateRootContentController() override;
-
-    // Call this function when the users activity is the direct cause of an
-    // event (like a keypress or mouse click).
-    void UserActivity();
 
     bool mIsVisible;
     nsTArray<nsWindow*> mChildren;
@@ -267,9 +340,6 @@ protected:
 
     bool mAwaitingFullScreen;
     bool mIsFullScreen;
-
-    virtual nsresult NotifyIMEInternal(
-                         const IMENotification& aIMENotification) override;
 
     bool UseExternalCompositingSurface() const override {
       return true;
@@ -284,6 +354,8 @@ private:
     void RedrawAll();
 
     mozilla::java::LayerRenderer::Frame::GlobalRef mLayerRendererFrame;
+
+    int64_t GetRootLayerId() const;
 };
 
 #endif /* NSWINDOW_H_ */

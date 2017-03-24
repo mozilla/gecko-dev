@@ -70,16 +70,120 @@ void UIPruneSavedDumps(const std::string& directory)
   }
 }
 
-void UIRunMinidumpAnalyzer(const string& exename, const string& filename)
+bool UIRunProgram(const std::string& exename, const std::string& arg,
+                  const std::string& data, bool wait)
 {
-  // Run the minidump analyzer and wait for it to finish
+  bool usePipes = !data.empty();
+  int fd[2];
+
+  if (usePipes && (pipe(fd) != 0)) {
+    return false;
+  }
+
   pid_t pid = fork();
 
   if (pid == -1) {
-    return; // Nothing to do upon failure
+    return false;
   } else if (pid == 0) {
-    execl(exename.c_str(), exename.c_str(), filename.c_str(), nullptr);
+    // Child
+    if (usePipes) {
+      if (dup2(fd[0], STDIN_FILENO) == -1) {
+        exit(EXIT_FAILURE);
+      }
+
+      close(fd[0]);
+      close(fd[1]);
+    }
+
+    char* argv[] = {
+      const_cast<char*>(exename.c_str()),
+      const_cast<char*>(arg.c_str()),
+      nullptr
+    };
+
+    // Run the program
+    int rv = execv(exename.c_str(), argv);
+
+    if (rv == -1) {
+      exit(EXIT_FAILURE);
+    }
   } else {
-    waitpid(pid, nullptr, 0);
+    // Parent
+    if (usePipes) {
+      ssize_t rv;
+      size_t offset = 0;
+      size_t size = data.size();
+
+      do {
+        rv = write(fd[1], data.c_str() + offset, size);
+
+        if (rv > 0) {
+          size -= rv;
+          offset += rv;
+        }
+      } while (size && ((rv > 0) || ((rv == -1) && errno == EINTR)));
+
+      close(fd[0]);
+      close(fd[1]);
+    }
+
+    if (wait) {
+      waitpid(pid, nullptr, 0);
+    }
   }
+
+  return true;
+}
+
+bool UIEnsurePathExists(const string& path)
+{
+  int ret = mkdir(path.c_str(), S_IRWXU);
+  int e = errno;
+  if (ret == -1 && e != EEXIST)
+    return false;
+
+  return true;
+}
+
+bool UIFileExists(const string& path)
+{
+  struct stat sb;
+  int ret = stat(path.c_str(), &sb);
+  if (ret == -1 || !(sb.st_mode & S_IFREG))
+    return false;
+
+  return true;
+}
+
+bool UIDeleteFile(const string& file)
+{
+  return (unlink(file.c_str()) != -1);
+}
+
+std::ifstream* UIOpenRead(const string& filename, bool binary)
+{
+  std::ios_base::openmode mode = std::ios::in;
+
+  if (binary) {
+    mode = mode | std::ios::binary;
+  }
+
+  return new std::ifstream(filename.c_str(), mode);
+}
+
+std::ofstream* UIOpenWrite(const string& filename,
+                           bool append, // append=false
+                           bool binary) // binary=false
+{
+  std::ios_base::openmode mode = std::ios::out;
+
+  if (append) {
+    mode = mode | std::ios::app;
+  }
+
+  if (binary) {
+    mode = mode | std::ios::binary;
+  }
+
+  return new std::ofstream(filename.c_str(), mode);
 }

@@ -1,3 +1,5 @@
+/* eslint-env mozilla/frame-script */
+
 requestLongerTimeout(2);
 
 const DUMMY_PATH = "browser/browser/base/content/test/general/dummy_page.html";
@@ -80,8 +82,7 @@ var waitForLoadWithFlags = Task.async(function*(uri, flags = Ci.nsIWebNavigation
 
     if (flags & Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY) {
       gExpectedHistory.entries.pop();
-    }
-    else {
+    } else {
       gExpectedHistory.index++;
     }
 

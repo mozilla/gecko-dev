@@ -22,6 +22,18 @@ namespace mozilla {
 class CSSStyleSheet;
 } // namespace mozilla
 
+namespace mozilla {
+namespace css {
+
+// Enum defining how error should be handled.
+enum FailureAction {
+  eCrash = 0,
+  eLogToConsole
+};
+
+}
+}
+
 class nsLayoutStylesheetCache final
  : public nsIObserver
  , public nsIMemoryReporter
@@ -66,6 +78,8 @@ class nsLayoutStylesheetCache final
 
   static void Shutdown();
 
+  static void SetUserContentCSSURL(nsIURI* aURI);
+
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
@@ -76,12 +90,15 @@ private:
   void InitMemoryReporter();
   void LoadSheetURL(const char* aURL,
                     RefPtr<mozilla::StyleSheet>* aSheet,
-                    mozilla::css::SheetParsingMode aParsingMode);
+                    mozilla::css::SheetParsingMode aParsingMode,
+                    mozilla::css::FailureAction aFailureAction);
   void LoadSheetFile(nsIFile* aFile,
                      RefPtr<mozilla::StyleSheet>* aSheet,
-                     mozilla::css::SheetParsingMode aParsingMode);
+                     mozilla::css::SheetParsingMode aParsingMode,
+                     mozilla::css::FailureAction aFailureAction);
   void LoadSheet(nsIURI* aURI, RefPtr<mozilla::StyleSheet>* aSheet,
-                 mozilla::css::SheetParsingMode aParsingMode);
+                 mozilla::css::SheetParsingMode aParsingMode,
+                 mozilla::css::FailureAction aFailureAction);
   static void InvalidateSheet(RefPtr<mozilla::StyleSheet>* aGeckoSheet,
                               RefPtr<mozilla::StyleSheet>* aServoSheet);
   static void DependentPrefChanged(const char* aPref, void* aData);
@@ -92,6 +109,7 @@ private:
   static mozilla::StaticRefPtr<nsLayoutStylesheetCache> gStyleCache_Servo;
   static mozilla::StaticRefPtr<mozilla::css::Loader> gCSSLoader_Gecko;
   static mozilla::StaticRefPtr<mozilla::css::Loader> gCSSLoader_Servo;
+  static mozilla::StaticRefPtr<nsIURI> gUserContentSheetURL;
   mozilla::StyleBackendType mBackendType;
   RefPtr<mozilla::StyleSheet> mChromePreferenceSheet;
   RefPtr<mozilla::StyleSheet> mContentEditableSheet;

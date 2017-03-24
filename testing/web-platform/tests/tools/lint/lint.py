@@ -3,7 +3,6 @@ from __future__ import print_function, unicode_literals
 import abc
 import argparse
 import ast
-import fnmatch
 import json
 import os
 import re
@@ -12,11 +11,14 @@ import sys
 
 from collections import defaultdict
 
+from . import fnmatch
 from ..localpaths import repo_root
+from ..gitignore.gitignore import PathFilter
 
-from manifest.sourcefile import SourceFile
-from six import iteritems, itervalues
+from manifest.sourcefile import SourceFile, js_meta_re, python_meta_re
+from six import binary_type, iteritems, itervalues
 from six.moves import range
+from six.moves.urllib.parse import urlsplit, urljoin
 
 here = os.path.abspath(os.path.split(__file__)[0])
 
@@ -33,16 +35,33 @@ you could add the following line to the lint.whitelist file.
 
 %s:%s"""
 
-def all_git_paths(repo_root):
-    command_line = ["git", "ls-tree", "-r", "--name-only", "HEAD"]
-    output = subprocess.check_output(command_line, cwd=repo_root)
-    for item in output.split("\n"):
-        yield item
+def all_filesystem_paths(repo_root):
+    path_filter = PathFilter(repo_root, extras=[".git/*"])
+    for dirpath, dirnames, filenames in os.walk(repo_root):
+        for filename in filenames:
+            path = os.path.relpath(os.path.join(dirpath, filename), repo_root)
+            if path_filter(path):
+                yield path
+        dirnames[:] = [item for item in dirnames if
+                       path_filter(os.path.relpath(os.path.join(dirpath, item) + "/",
+                                                   repo_root))]
 
-
-def check_path_length(repo_root, path):
+def check_path_length(repo_root, path, css_mode):
     if len(path) + 1 > 150:
-        return [("PATH LENGTH", "/%s longer than maximum path length (%d > 150)" % (path, len(path) + 1), None)]
+        return [("PATH LENGTH", "/%s longer than maximum path length (%d > 150)" % (path, len(path) + 1), path, None)]
+    return []
+
+
+def check_worker_collision(repo_root, path, css_mode):
+    endings = [(".any.html", ".any.js"),
+               (".any.worker.html", ".any.js"),
+               (".worker.html", ".worker.js")]
+    for path_ending, generated in endings:
+        if path.endswith(path_ending):
+            return [("WORKER COLLISION",
+                     "path ends with %s which collides with generated tests from %s files" % (path_ending, generated),
+                     path,
+                     None)]
     return []
 
 
@@ -65,6 +84,7 @@ def parse_whitelist(f):
             parts[-1] = int(parts[-1])
 
         error_type, file_match, line_number = parts
+        file_match = os.path.normcase(file_match)
 
         if error_type == "*":
             ignored_files.add(file_match)
@@ -79,10 +99,14 @@ def filter_whitelist_errors(data, path, errors):
     Filter out those errors that are whitelisted in `data`.
     """
 
+    if not errors:
+        return []
+
     whitelisted = [False for item in range(len(errors))]
+    normpath = os.path.normcase(path)
 
     for file_match, whitelist_errors in iteritems(data):
-        if fnmatch.fnmatch(path, file_match):
+        if fnmatch.fnmatchcase(normpath, file_match):
             for i, (error_type, msg, path, line) in enumerate(errors):
                 if error_type in whitelist_errors:
                     allowed_lines = whitelist_errors[error_type]
@@ -122,6 +146,12 @@ class CRRegexp(Regexp):
     error = "CR AT EOL"
     description = "CR character in line separator"
 
+class SetTimeoutRegexp(Regexp):
+    pattern = b"setTimeout\s*\("
+    error = "SET TIMEOUT"
+    file_extensions = [".html", ".htm", ".js", ".xht", ".xhtml", ".svg"]
+    description = "setTimeout used; step_timeout should typically be used instead"
+
 class W3CTestOrgRegexp(Regexp):
     pattern = b"w3c\-test\.org"
     error = "W3C-TEST.ORG"
@@ -148,12 +178,13 @@ regexps = [item() for item in
            [TrailingWhitespaceRegexp,
             TabsRegexp,
             CRRegexp,
+            SetTimeoutRegexp,
             W3CTestOrgRegexp,
             Webidl2Regexp,
             ConsoleRegexp,
             PrintRegexp]]
 
-def check_regexp_line(repo_root, path, f):
+def check_regexp_line(repo_root, path, f, css_mode):
     errors = []
 
     applicable_regexps = [regexp for regexp in regexps if regexp.applies(path)]
@@ -165,10 +196,16 @@ def check_regexp_line(repo_root, path, f):
 
     return errors
 
-def check_parsed(repo_root, path, f):
+def check_parsed(repo_root, path, f, css_mode):
     source_file = SourceFile(repo_root, path, "/", contents=f.read())
 
     errors = []
+
+    if css_mode or path.startswith("css/"):
+        if (source_file.type == "support" and
+            not source_file.name_is_non_test and
+            not source_file.name_is_reference):
+            return [("SUPPORT-WRONG-DIR", "Support file not in support directory", path, None)]
 
     if source_file.name_is_non_test or source_file.name_is_manual:
         return []
@@ -178,6 +215,39 @@ def check_parsed(repo_root, path, f):
 
     if source_file.root is None:
         return [("PARSE-FAILED", "Unable to parse file", path, None)]
+
+    if source_file.type == "manual" and not source_file.name_is_manual:
+        return [("CONTENT-MANUAL", "Manual test whose filename doesn't end in '-manual'", path, None)]
+
+    if source_file.type == "visual" and not source_file.name_is_visual:
+        return [("CONTENT-VISUAL", "Visual test whose filename doesn't end in '-visual'", path, None)]
+
+    for reftest_node in source_file.reftest_nodes:
+        href = reftest_node.attrib.get("href", "")
+        parts = urlsplit(href)
+        if parts.scheme or parts.netloc:
+            errors.append(("ABSOLUTE-URL-REF",
+                     "Reference test with a reference file specified via an absolute URL: '%s'" % href, path, None))
+            continue
+
+        ref_url = urljoin(source_file.url, href)
+        ref_parts = urlsplit(ref_url)
+
+        if source_file.url == ref_url:
+            errors.append(("SAME-FILE-REF",
+                           "Reference test which points at itself as a reference",
+                           path,
+                           None))
+            continue
+
+        assert ref_parts.path != ""
+
+        reference_file = os.path.join(repo_root, ref_parts.path[1:])
+        reference_rel = reftest_node.attrib.get("rel", "")
+
+        if not os.path.isfile(reference_file):
+            errors.append(("NON-EXISTENT-REF",
+                     "Reference test with a non-existent '%s' relationship reference: '%s'" % (reference_rel, href), path, None))
 
     if len(source_file.timeout_nodes) > 1:
         errors.append(("MULTIPLE-TIMEOUT", "More than one meta name='timeout'", path, None))
@@ -278,7 +348,7 @@ class OpenModeCheck(ASTCheck):
 
 ast_checkers = [item() for item in [OpenModeCheck]]
 
-def check_python_ast(repo_root, path, f):
+def check_python_ast(repo_root, path, f, css_mode):
     if not path.endswith(".py"):
         return []
 
@@ -294,34 +364,79 @@ def check_python_ast(repo_root, path, f):
     return errors
 
 
-def check_path(repo_root, path):
+broken_js_metadata = re.compile(b"//\s*META:")
+broken_python_metadata = re.compile(b"#\s*META:")
+
+
+def check_script_metadata(repo_root, path, f, css_mode):
+    if path.endswith((".worker.js", ".any.js")):
+        meta_re = js_meta_re
+        broken_metadata = broken_js_metadata
+    elif path.endswith(".py"):
+        meta_re = python_meta_re
+        broken_metadata = broken_python_metadata
+    else:
+        return []
+
+    done = False
+    errors = []
+    for idx, line in enumerate(f):
+        assert isinstance(line, binary_type), line
+
+        m = meta_re.match(line)
+        if m:
+            key, value = m.groups()
+            if key == b"timeout":
+                if value != b"long":
+                    errors.append(("UNKNOWN-TIMEOUT-METADATA", "Unexpected value for timeout metadata", path, idx + 1))
+            elif key == b"script":
+                pass
+            else:
+                errors.append(("UNKNOWN-METADATA", "Unexpected kind of metadata", path, idx + 1))
+        else:
+            done = True
+
+        if done:
+            if meta_re.match(line):
+                errors.append(("STRAY-METADATA", "Metadata comments should start the file", path, idx + 1))
+            elif meta_re.search(line):
+                errors.append(("INDENTED-METADATA", "Metadata comments should start the line", path, idx + 1))
+            elif broken_metadata.search(line):
+                errors.append(("BROKEN-METADATA", "Metadata comment is not formatted correctly", path, idx + 1))
+
+    return errors
+
+
+def check_path(repo_root, path, css_mode):
     """
     Runs lints that check the file path.
 
     :param repo_root: the repository root
     :param path: the path of the file within the repository
+    :param css_mode: whether we're in CSS testsuite mode
     :returns: a list of errors found in ``path``
     """
 
     errors = []
     for path_fn in path_lints:
-        errors.extend(path_fn(repo_root, path))
+        errors.extend(path_fn(repo_root, path, css_mode))
     return errors
 
 
-def check_file_contents(repo_root, path, f):
+def check_file_contents(repo_root, path, f, css_mode):
     """
     Runs lints that check the file contents.
 
     :param repo_root: the repository root
     :param path: the path of the file within the repository
     :param f: a file-like object with the file contents
+    :param css_mode: whether we're in CSS testsuite mode
     :returns: a list of errors found in ``f``
     """
 
     errors = []
     for file_fn in file_lints:
-        errors.extend(file_fn(repo_root, path, f))
+        errors.extend(file_fn(repo_root, path, f, css_mode))
         f.seek(0)
     return errors
 
@@ -330,8 +445,8 @@ def output_errors_text(errors):
     for error_type, description, path, line_number in errors:
         pos_string = path
         if line_number:
-            pos_string += " %s" % line_number
-        print("%s: %s %s" % (error_type, pos_string, description))
+            pos_string += ":%s" % line_number
+        print("%s: %s (%s)" % (pos_string, description, error_type))
 
 def output_errors_json(errors):
     for error_type, error, path, line_number in errors:
@@ -355,14 +470,16 @@ def parse_args():
                         help="List of paths to lint")
     parser.add_argument("--json", action="store_true",
                         help="Output machine-readable JSON format")
+    parser.add_argument("--css-mode", action="store_true",
+                        help="Run CSS testsuite specific lints")
     return parser.parse_args()
 
-def main():
+def main(force_css_mode=False):
     args = parse_args()
-    paths = args.paths if args.paths else all_git_paths(repo_root)
-    return lint(repo_root, paths, args.json)
+    paths = args.paths if args.paths else all_filesystem_paths(repo_root)
+    return lint(repo_root, paths, args.json, force_css_mode or args.css_mode)
 
-def lint(repo_root, paths, output_json):
+def lint(repo_root, paths, output_json, css_mode):
     error_count = defaultdict(int)
     last = None
 
@@ -403,12 +520,12 @@ def lint(repo_root, paths, output_json):
         if any(fnmatch.fnmatch(path, file_match) for file_match in ignored_files):
             continue
 
-        errors = check_path(repo_root, path)
+        errors = check_path(repo_root, path, css_mode)
         last = process_errors(path, errors) or last
 
         if not os.path.isdir(abs_path):
             with open(abs_path, 'rb') as f:
-                errors = check_file_contents(repo_root, path, f)
+                errors = check_file_contents(repo_root, path, f, css_mode)
                 last = process_errors(path, errors) or last
 
     if not output_json:
@@ -417,8 +534,8 @@ def lint(repo_root, paths, output_json):
             print(ERROR_MSG % (last[0], last[1], last[0], last[1]))
     return sum(itervalues(error_count))
 
-path_lints = [check_path_length]
-file_lints = [check_regexp_line, check_parsed, check_python_ast]
+path_lints = [check_path_length, check_worker_collision]
+file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_metadata]
 
 if __name__ == "__main__":
     error_count = main()

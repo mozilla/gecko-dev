@@ -14,9 +14,11 @@ from mozbuild.util import ReadOnlyDict
 PARAMETER_NAMES = set([
     'base_repository',
     'build_date',
+    'filters',
     'head_ref',
     'head_repository',
     'head_rev',
+    'include_nightly',
     'level',
     'message',
     'moz_build_date',
@@ -60,13 +62,27 @@ def load_parameters_file(options):
     """
     Load parameters from the --parameters option
     """
+    import urllib
+    from taskgraph.util.taskcluster import get_artifact_url
+
     filename = options['parameters']
+
     if not filename:
         return Parameters()
-    with open(filename) as f:
-        if filename.endswith('.yml'):
-            return Parameters(**yaml.safe_load(f))
-        elif filename.endswith('.json'):
-            return Parameters(**json.load(f))
-        else:
-            raise TypeError("Parameters file `{}` is not JSON or YAML".format(filename))
+
+    try:
+        # reading parameters from a local parameters.yml file
+        f = open(filename)
+    except IOError:
+        # fetching parameters.yml using task task-id or supplied url
+        if filename.startswith("task-id="):
+            task_id = filename.split("=")[1]
+            filename = get_artifact_url(task_id, 'public/parameters.yml')
+        f = urllib.urlopen(filename)
+
+    if filename.endswith('.yml'):
+        return Parameters(**yaml.safe_load(f))
+    elif filename.endswith('.json'):
+        return Parameters(**json.load(f))
+    else:
+        raise TypeError("Parameters file `{}` is not JSON or YAML".format(filename))

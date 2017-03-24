@@ -29,6 +29,9 @@
 
 #include "gfxVROculus.h"
 
+#include "mozilla/dom/GamepadEventTypes.h"
+#include "mozilla/dom/GamepadBinding.h"
+
 /** XXX The DX11 objects and quad blitting could be encapsulated
  *    into a separate object if either Oculus starts supporting
  *     non-Windows platforms or the blit is needed by other HMD\
@@ -49,6 +52,7 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::gfx::impl;
 using namespace mozilla::layers;
+using namespace mozilla::dom;
 
 namespace {
 
@@ -94,6 +98,7 @@ static pfn_ovr_GetFloatArray ovr_GetFloatArray = nullptr;
 static pfn_ovr_SetFloatArray ovr_SetFloatArray = nullptr;
 static pfn_ovr_GetString ovr_GetString = nullptr;
 static pfn_ovr_SetString ovr_SetString = nullptr;
+static pfn_ovr_GetBoundaryDimensions ovr_GetBoundaryDimensions = nullptr;
 
 #ifdef XP_WIN
 static pfn_ovr_CreateTextureSwapChainDX ovr_CreateTextureSwapChainDX = nullptr;
@@ -114,8 +119,34 @@ static pfn_ovr_GetMirrorTextureBufferGL ovr_GetMirrorTextureBufferGL = nullptr;
 #endif
 
 #define OVR_PRODUCT_VERSION 1
-#define OVR_MAJOR_VERSION   3
-#define OVR_MINOR_VERSION   1
+#define OVR_MAJOR_VERSION   1
+#define OVR_MINOR_VERSION   10
+
+enum class OculusLeftControllerButtonType : uint16_t {
+  LThumb,
+  IndexTrigger,
+  HandTrigger,
+  Button_X,
+  Button_Y,
+  LThumbRest,
+  NumButtonType
+};
+
+enum class OculusRightControllerButtonType : uint16_t {
+  RThumb,
+  IndexTrigger,
+  HandTrigger,
+  Button_A,
+  Button_B,
+  RThumbRest,
+  NumButtonType
+};
+
+static const uint32_t kNumOculusButton = static_cast<uint32_t>
+                                         (OculusLeftControllerButtonType::
+                                         NumButtonType);
+static const uint32_t kNumOculusHaptcs = 0;  // TODO: Bug 1305892
+
 
 static bool
 InitializeOculusCAPI()
@@ -256,6 +287,7 @@ InitializeOculusCAPI()
   REQUIRE_FUNCTION(ovr_SetFloatArray);
   REQUIRE_FUNCTION(ovr_GetString);
   REQUIRE_FUNCTION(ovr_SetString);
+  REQUIRE_FUNCTION(ovr_GetBoundaryDimensions);
 
 #ifdef XP_WIN
 
@@ -326,11 +358,13 @@ VRDisplayOculus::VRDisplayOculus(ovrSession aSession)
   , mVertexBuffer(nullptr)
   , mInputLayout(nullptr)
   , mIsPresenting(false)
+  , mEyeHeight(OVR_DEFAULT_EYE_HEIGHT)
 {
   MOZ_COUNT_CTOR_INHERITED(VRDisplayOculus, VRDisplayHost);
 
   mDisplayInfo.mDisplayName.AssignLiteral("Oculus VR HMD");
   mDisplayInfo.mIsConnected = true;
+  mDisplayInfo.mIsMounted = false;
 
   mDesc = ovr_GetHmdDesc(aSession);
 
@@ -342,8 +376,10 @@ VRDisplayOculus::VRDisplayOculus(ovrSession aSession)
   if (mDesc.AvailableTrackingCaps & ovrTrackingCap_Position) {
     mDisplayInfo.mCapabilityFlags |= VRDisplayCapabilityFlags::Cap_Position;
     mDisplayInfo.mCapabilityFlags |= VRDisplayCapabilityFlags::Cap_LinearAcceleration;
+    mDisplayInfo.mCapabilityFlags |= VRDisplayCapabilityFlags::Cap_StageParameters;
   }
   mDisplayInfo.mCapabilityFlags |= VRDisplayCapabilityFlags::Cap_External;
+  mDisplayInfo.mCapabilityFlags |= VRDisplayCapabilityFlags::Cap_MountDetection;
   mDisplayInfo.mCapabilityFlags |= VRDisplayCapabilityFlags::Cap_Present;
 
   mFOVPort[VRDisplayInfo::Eye_Left] = mDesc.DefaultEyeFov[ovrEye_Left];
@@ -369,6 +405,8 @@ VRDisplayOculus::VRDisplayOculus(ovrSession aSession)
   // take the max of both for eye resolution
   mDisplayInfo.mEyeResolution.width = std::max(texSize[VRDisplayInfo::Eye_Left].w, texSize[VRDisplayInfo::Eye_Right].w);
   mDisplayInfo.mEyeResolution.height = std::max(texSize[VRDisplayInfo::Eye_Left].h, texSize[VRDisplayInfo::Eye_Right].h);
+
+  UpdateStageParameters();
 }
 
 VRDisplayOculus::~VRDisplayOculus() {
@@ -387,9 +425,48 @@ VRDisplayOculus::Destroy()
 }
 
 void
+VRDisplayOculus::UpdateStageParameters()
+{
+  ovrVector3f playArea;
+  ovrResult res = ovr_GetBoundaryDimensions(mSession, ovrBoundary_PlayArea, &playArea);
+  if (res == ovrSuccess) {
+    mDisplayInfo.mStageSize.width = playArea.x;
+    mDisplayInfo.mStageSize.height = playArea.z;
+  } else {
+    // If we fail, fall back to reasonable defaults.
+    // 1m x 1m space
+    mDisplayInfo.mStageSize.width = 1.0f;
+    mDisplayInfo.mStageSize.height = 1.0f;
+  }
+
+  mEyeHeight = ovr_GetFloat(mSession, OVR_KEY_EYE_HEIGHT, OVR_DEFAULT_EYE_HEIGHT);
+
+  mDisplayInfo.mSittingToStandingTransform._11 = 1.0f;
+  mDisplayInfo.mSittingToStandingTransform._12 = 0.0f;
+  mDisplayInfo.mSittingToStandingTransform._13 = 0.0f;
+  mDisplayInfo.mSittingToStandingTransform._14 = 0.0f;
+
+  mDisplayInfo.mSittingToStandingTransform._21 = 0.0f;
+  mDisplayInfo.mSittingToStandingTransform._22 = 1.0f;
+  mDisplayInfo.mSittingToStandingTransform._23 = 0.0f;
+  mDisplayInfo.mSittingToStandingTransform._24 = 0.0f;
+
+  mDisplayInfo.mSittingToStandingTransform._31 = 0.0f;
+  mDisplayInfo.mSittingToStandingTransform._32 = 0.0f;
+  mDisplayInfo.mSittingToStandingTransform._33 = 1.0f;
+  mDisplayInfo.mSittingToStandingTransform._34 = 0.0f;
+
+  mDisplayInfo.mSittingToStandingTransform._41 = 0.0f;
+  mDisplayInfo.mSittingToStandingTransform._42 = mEyeHeight;
+  mDisplayInfo.mSittingToStandingTransform._43 = 0.0f;
+  mDisplayInfo.mSittingToStandingTransform._44 = 1.0f;
+}
+
+void
 VRDisplayOculus::ZeroSensor()
 {
   ovr_RecenterTrackingOrigin(mSession);
+  UpdateStageParameters();
 }
 
 VRHMDSensorState
@@ -408,13 +485,8 @@ VRDisplayOculus::GetSensorState()
   result = GetSensorState(frameDelta);
   result.inputFrameID = mInputFrameID;
   mLastSensorState[result.inputFrameID % kMaxLatencyFrames] = result;
+  result.position[1] -= mEyeHeight;
   return result;
-}
-
-VRHMDSensorState
-VRDisplayOculus::GetImmediateSensorState()
-{
-  return GetSensorState(0.0);
 }
 
 VRHMDSensorState
@@ -465,6 +537,7 @@ VRDisplayOculus::GetSensorState(double timeOffset)
     result.linearAcceleration[2] = pose.LinearAcceleration.z;
   }
   result.flags |= VRDisplayCapabilityFlags::Cap_External;
+  result.flags |= VRDisplayCapabilityFlags::Cap_MountDetection;
   result.flags |= VRDisplayCapabilityFlags::Cap_Present;
 
   return result;
@@ -615,92 +688,6 @@ VRDisplayOculus::StopPresentation()
   if (mTextureSet) {
     ovr_DestroyTextureSwapChain(mSession, mTextureSet);
     mTextureSet = nullptr;
-  }
-}
-
-/*static*/ already_AddRefed<VRDisplayManagerOculus>
-VRDisplayManagerOculus::Create()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  if (!gfxPrefs::VREnabled() || !gfxPrefs::VROculusEnabled())
-  {
-    return nullptr;
-  }
-
-  if (!InitializeOculusCAPI()) {
-    return nullptr;
-  }
-
-  RefPtr<VRDisplayManagerOculus> manager = new VRDisplayManagerOculus();
-  return manager.forget();
-}
-
-bool
-VRDisplayManagerOculus::Init()
-{
-  if (!mOculusInitialized) {
-    nsIThread* thread = nullptr;
-    NS_GetCurrentThread(&thread);
-    mOculusThread = already_AddRefed<nsIThread>(thread);
-
-    ovrInitParams params;
-    memset(&params, 0, sizeof(params));
-    params.Flags = ovrInit_RequestVersion;
-    params.RequestedMinorVersion = OVR_MINOR_VERSION;
-    params.LogCallback = nullptr;
-    params.ConnectionTimeoutMS = 0;
-
-    ovrResult orv = ovr_Initialize(&params);
-
-    if (orv == ovrSuccess) {
-      mOculusInitialized = true;
-    }
-  }
-
-  return mOculusInitialized;
-}
-
-void
-VRDisplayManagerOculus::Destroy()
-{
-  if (mOculusInitialized) {
-    MOZ_ASSERT(NS_GetCurrentThread() == mOculusThread);
-    mOculusThread = nullptr;
-
-    mHMDInfo = nullptr;
-
-    ovr_Shutdown();
-    mOculusInitialized = false;
-  }
-}
-
-void
-VRDisplayManagerOculus::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
-{
-  if (!mOculusInitialized) {
-    return;
-  }
-
-  // ovr_Create can be slow when no HMD is present and we wish
-  // to keep the same oculus session when possible, so we detect
-  // presence of an HMD with ovr_GetHmdDesc before calling ovr_Create
-  ovrHmdDesc desc = ovr_GetHmdDesc(NULL);
-  if (desc.Type == ovrHmd_None) {
-    // No HMD connected.
-    mHMDInfo = nullptr;
-  } else if (mHMDInfo == nullptr) {
-    // HMD Detected
-    ovrSession session;
-    ovrGraphicsLuid luid;
-    ovrResult orv = ovr_Create(&session, &luid);
-    if (orv == ovrSuccess) {
-      mHMDInfo = new VRDisplayOculus(session);
-    }
-  }
-
-  if (mHMDInfo) {
-    aHMDResult.AppendElement(mHMDInfo);
   }
 }
 
@@ -893,4 +880,469 @@ VRDisplayOculus::NotifyVSync()
   ovrSessionStatus sessionStatus;
   ovrResult ovr = ovr_GetSessionStatus(mSession, &sessionStatus);
   mDisplayInfo.mIsConnected = (ovr == ovrSuccess && sessionStatus.HmdPresent);
+}
+
+VRControllerOculus::VRControllerOculus(dom::GamepadHand aHand)
+  : VRControllerHost(VRDeviceType::Oculus)
+  , mIndexTrigger(0.0f)
+  , mHandTrigger(0.0f)
+{
+  MOZ_COUNT_CTOR_INHERITED(VRControllerOculus, VRControllerHost);
+
+  char* touchID = "";
+  switch (aHand) {
+    case dom::GamepadHand::Left:
+      touchID = "Oculus Touch (Left)";
+      break;
+    case dom::GamepadHand::Right:
+      touchID = "Oculus Touch (Right)";
+      break;
+    default:
+      MOZ_ASSERT(false);
+      break;
+  }
+  mControllerInfo.mControllerName = touchID;
+  mControllerInfo.mMappingType = GamepadMappingType::_empty;
+  mControllerInfo.mHand = aHand;
+
+  MOZ_ASSERT(kNumOculusButton ==
+             static_cast<uint32_t>(OculusLeftControllerButtonType::NumButtonType)
+             && kNumOculusButton ==
+             static_cast<uint32_t>(OculusRightControllerButtonType::NumButtonType));
+
+  mControllerInfo.mNumButtons = kNumOculusButton;
+  mControllerInfo.mNumAxes = static_cast<uint32_t>(
+                             OculusControllerAxisType::NumVRControllerAxisType);
+  mControllerInfo.mNumHaptics = kNumOculusHaptcs;
+}
+
+float
+VRControllerOculus::GetAxisMove(uint32_t aAxis)
+{
+  return mAxisMove[aAxis];
+}
+
+void
+VRControllerOculus::SetAxisMove(uint32_t aAxis, float aValue)
+{
+  mAxisMove[aAxis] = aValue;
+}
+
+float
+VRControllerOculus::GetIndexTrigger()
+{
+  return mIndexTrigger;
+}
+
+void
+VRControllerOculus::SetIndexTrigger(float aValue)
+{
+  mIndexTrigger = aValue;
+}
+
+float
+VRControllerOculus::GetHandTrigger()
+{
+  return mHandTrigger;
+}
+
+void
+VRControllerOculus::SetHandTrigger(float aValue)
+{
+  mHandTrigger = aValue;
+}
+
+VRControllerOculus::~VRControllerOculus()
+{
+  MOZ_COUNT_DTOR_INHERITED(VRControllerOculus, VRControllerHost);
+}
+
+/*static*/ already_AddRefed<VRSystemManagerOculus>
+VRSystemManagerOculus::Create()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (!gfxPrefs::VREnabled() || !gfxPrefs::VROculusEnabled())
+  {
+    return nullptr;
+  }
+
+  if (!InitializeOculusCAPI()) {
+    return nullptr;
+  }
+
+  RefPtr<VRSystemManagerOculus> manager = new VRSystemManagerOculus();
+  return manager.forget();
+}
+
+bool
+VRSystemManagerOculus::Init()
+{
+  if (!mOculusInitialized) {
+    nsIThread* thread = nullptr;
+    NS_GetCurrentThread(&thread);
+    mOculusThread = already_AddRefed<nsIThread>(thread);
+
+    ovrInitParams params;
+    memset(&params, 0, sizeof(params));
+    params.Flags = ovrInit_RequestVersion;
+    params.RequestedMinorVersion = OVR_MINOR_VERSION;
+    params.LogCallback = nullptr;
+    params.ConnectionTimeoutMS = 0;
+
+    ovrResult orv = ovr_Initialize(&params);
+
+    if (orv == ovrSuccess) {
+      mOculusInitialized = true;
+    }
+  }
+
+  return mOculusInitialized;
+}
+
+void
+VRSystemManagerOculus::Destroy()
+{
+  if (mOculusInitialized) {
+    MOZ_ASSERT(NS_GetCurrentThread() == mOculusThread);
+    mOculusThread = nullptr;
+    mSession = nullptr;
+    mHMDInfo = nullptr;
+
+    ovr_Shutdown();
+    mOculusInitialized = false;
+  }
+}
+
+void
+VRSystemManagerOculus::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
+{
+  if (!mOculusInitialized) {
+    return;
+  }
+
+  // ovr_Create can be slow when no HMD is present and we wish
+  // to keep the same oculus session when possible, so we detect
+  // presence of an HMD with ovr_GetHmdDesc before calling ovr_Create
+  ovrHmdDesc desc = ovr_GetHmdDesc(NULL);
+  if (desc.Type == ovrHmd_None) {
+    // No HMD connected.
+    mHMDInfo = nullptr;
+  } else if (mHMDInfo == nullptr) {
+    // HMD Detected
+    ovrSession session;
+    ovrGraphicsLuid luid;
+    ovrResult orv = ovr_Create(&session, &luid);
+    if (orv == ovrSuccess) {
+      mSession = session;
+      orv = ovr_SetTrackingOriginType(session, ovrTrackingOrigin_FloorLevel);
+      if (orv != ovrSuccess) {
+        NS_WARNING("ovr_SetTrackingOriginType failed.\n");
+      }
+
+      mHMDInfo = new VRDisplayOculus(session);
+    }
+  }
+
+  if (mHMDInfo) {
+    aHMDResult.AppendElement(mHMDInfo);
+  }
+}
+
+bool
+VRSystemManagerOculus::GetIsPresenting()
+{
+  if (mHMDInfo) {
+    VRDisplayInfo displayInfo(mHMDInfo->GetDisplayInfo());
+    return displayInfo.GetIsPresenting();
+  }
+
+  return false;
+}
+
+void
+VRSystemManagerOculus::HandleInput()
+{
+  // mSession is available after VRDisplay is created
+  // at GetHMDs().
+  if (!mSession) {
+    return;
+  }
+
+  RefPtr<impl::VRControllerOculus> controller;
+  ovrInputState inputState;
+  uint32_t axis = 0;
+  const bool hasInputState = ovr_GetInputState(mSession, ovrControllerType_Touch,
+                                               &inputState) == ovrSuccess;
+
+  if (!hasInputState) {
+    return;
+  }
+
+  for (uint32_t i = 0; i < mOculusController.Length(); ++i) {
+    controller = mOculusController[i];
+    const GamepadHand hand = controller->GetHand();
+    const uint32_t handIdx = static_cast<uint32_t>(hand) - 1;
+    uint32_t buttonIdx = 0;
+
+    switch (hand) {
+      case dom::GamepadHand::Left:
+        HandleButtonPress(i, buttonIdx, ovrButton_LThumb, inputState.Buttons);
+        ++buttonIdx;
+        HandleTriggerPress(i, buttonIdx, inputState.IndexTrigger[handIdx]);
+        ++buttonIdx;
+        HandleTriggerPress(i, buttonIdx, inputState.HandTrigger[handIdx]);
+        ++buttonIdx;
+        HandleButtonPress(i, buttonIdx, ovrButton_X, inputState.Buttons);
+        ++buttonIdx;
+        HandleButtonPress(i, buttonIdx, ovrButton_Y, inputState.Buttons);
+        ++buttonIdx;
+        HandleTouchEvent(i, buttonIdx, ovrTouch_LThumbRest, inputState.Touches);
+        ++buttonIdx;
+        break;
+      case dom::GamepadHand::Right:
+        HandleButtonPress(i, buttonIdx, ovrButton_RThumb, inputState.Buttons);
+        ++buttonIdx;
+        HandleTriggerPress(i, buttonIdx, inputState.IndexTrigger[handIdx]);
+        ++buttonIdx;
+        HandleTriggerPress(i, buttonIdx, inputState.HandTrigger[handIdx]);
+        ++buttonIdx;
+        HandleButtonPress(i, buttonIdx, ovrButton_A, inputState.Buttons);
+        ++buttonIdx;
+        HandleButtonPress(i, buttonIdx, ovrButton_B, inputState.Buttons);
+        ++buttonIdx;
+        HandleTouchEvent(i, buttonIdx, ovrTouch_RThumbRest, inputState.Touches);
+        ++buttonIdx;
+        break;
+      default:
+        MOZ_ASSERT(false);
+        break;
+    }
+    controller->SetButtonPressed(inputState.Buttons);
+
+    axis = static_cast<uint32_t>(OculusControllerAxisType::ThumbstickXAxis);
+    HandleAxisMove(i, axis, inputState.Thumbstick[i].x);
+
+    axis = static_cast<uint32_t>(OculusControllerAxisType::ThumbstickYAxis);
+    HandleAxisMove(i, axis, -inputState.Thumbstick[i].y);
+
+    // Start to process pose
+    ovrTrackingState state = ovr_GetTrackingState(mSession, 0.0, false);
+    // HandPoses is ordered by ovrControllerType_LTouch and ovrControllerType_RTouch,
+    // therefore, we can't get its state by the index of mOculusController.
+
+    ovrPoseStatef& pose(state.HandPoses[handIdx]);
+    GamepadPoseState poseState;
+
+    if (state.HandStatusFlags[handIdx] & ovrStatus_OrientationTracked) {
+      poseState.flags |= GamepadCapabilityFlags::Cap_Orientation;
+      poseState.orientation[0] = pose.ThePose.Orientation.x;
+      poseState.orientation[1] = pose.ThePose.Orientation.y;
+      poseState.orientation[2] = pose.ThePose.Orientation.z;
+      poseState.orientation[3] = pose.ThePose.Orientation.w;
+      poseState.angularVelocity[0] = pose.AngularVelocity.x;
+      poseState.angularVelocity[1] = pose.AngularVelocity.y;
+      poseState.angularVelocity[2] = pose.AngularVelocity.z;
+
+      poseState.flags |= GamepadCapabilityFlags::Cap_AngularAcceleration;
+      poseState.angularAcceleration[0] = pose.AngularAcceleration.x;
+      poseState.angularAcceleration[1] = pose.AngularAcceleration.y;
+      poseState.angularAcceleration[2] = pose.AngularAcceleration.z;
+    }
+    if (state.HandStatusFlags[handIdx] & ovrStatus_PositionTracked) {
+      poseState.flags |= GamepadCapabilityFlags::Cap_Position;
+      poseState.position[0] = pose.ThePose.Position.x;
+      poseState.position[1] = pose.ThePose.Position.y;
+      poseState.position[2] = pose.ThePose.Position.z;
+      poseState.linearVelocity[0] = pose.LinearVelocity.x;
+      poseState.linearVelocity[1] = pose.LinearVelocity.y;
+      poseState.linearVelocity[2] = pose.LinearVelocity.z;
+
+      poseState.flags |= GamepadCapabilityFlags::Cap_LinearAcceleration;
+      poseState.linearAcceleration[0] = pose.LinearAcceleration.x;
+      poseState.linearAcceleration[1] = pose.LinearAcceleration.y;
+      poseState.linearAcceleration[2] = pose.LinearAcceleration.z;
+
+      float eyeHeight = ovr_GetFloat(mSession, OVR_KEY_EYE_HEIGHT, OVR_DEFAULT_EYE_HEIGHT);
+      poseState.position[1] -= eyeHeight;
+    }
+    HandlePoseTracking(i, poseState, controller);
+  }
+}
+
+void
+VRSystemManagerOculus::HandleButtonPress(uint32_t aControllerIdx,
+                                         uint32_t aButton,
+                                         uint64_t aButtonMask,
+                                         uint64_t aButtonPressed)
+{
+  RefPtr<impl::VRControllerOculus> controller(mOculusController[aControllerIdx]);
+  MOZ_ASSERT(controller);
+  const uint64_t diff = (controller->GetButtonPressed() ^ aButtonPressed);
+
+  if (diff & aButtonMask) {
+    NewButtonEvent(aControllerIdx, aButton, aButtonMask & aButtonPressed,
+                   (aButtonMask & aButtonPressed) ? 1.0L : 0.0L);
+  }
+}
+
+void
+VRSystemManagerOculus::HandleTriggerPress(uint32_t aControllerIdx, uint32_t aButton,
+                                          float aValue)
+{
+  RefPtr<impl::VRControllerOculus> controller(mOculusController[aControllerIdx]);
+  MOZ_ASSERT(controller);
+  const uint32_t indexTrigger = static_cast<const uint32_t>
+                                (OculusLeftControllerButtonType::IndexTrigger);
+  const uint32_t handTrigger =  static_cast<const uint32_t>
+                                (OculusLeftControllerButtonType::HandTrigger);
+  float oldValue = 0.0f;
+
+  // Avoid sending duplicated events in IPC channels.
+  if (aButton == indexTrigger) {
+    oldValue = controller->GetIndexTrigger();
+    if (oldValue == aValue) {
+      return;
+    }
+    controller->SetIndexTrigger(aValue);
+  } else if (aButton == handTrigger) {
+    oldValue = controller->GetHandTrigger();
+    if (oldValue == aValue) {
+      return;
+    }
+    controller->SetHandTrigger(aValue);
+  } else {
+    MOZ_ASSERT(false, "We only support indexTrigger and handTrigger in Oculus.");
+  }
+
+  NewButtonEvent(aControllerIdx, aButton, aValue > 0.1f, aValue);
+}
+
+void
+VRSystemManagerOculus::HandleTouchEvent(uint32_t aControllerIdx, uint32_t aButton,
+                                        uint64_t aTouchMask, uint64_t aTouched)
+{
+  // TODO: Bug 1336003
+}
+
+void
+VRSystemManagerOculus::HandleAxisMove(uint32_t aControllerIdx, uint32_t aAxis,
+                                      float aValue)
+{
+  RefPtr<impl::VRControllerOculus> controller(mOculusController[aControllerIdx]);
+  MOZ_ASSERT(controller);
+  float value = aValue;
+
+  if (abs(aValue) < 0.0000009f) {
+    value = 0.0f; // Clear noise signal
+  }
+
+  if (controller->GetAxisMove(aAxis) != value) {
+    NewAxisMove(aControllerIdx, aAxis, value);
+    controller->SetAxisMove(aAxis, value);
+  }
+}
+
+void
+VRSystemManagerOculus::HandlePoseTracking(uint32_t aControllerIdx,
+                                          const GamepadPoseState& aPose,
+                                          VRControllerHost* aController)
+{
+  MOZ_ASSERT(aController);
+  if (aPose != aController->GetPose()) {
+    aController->SetPose(aPose);
+    NewPoseState(aControllerIdx, aPose);
+  }
+}
+
+void
+VRSystemManagerOculus::VibrateHaptic(uint32_t aControllerIdx,
+                                     uint32_t aHapticIndex,
+                                     double aIntensity,
+                                     double aDuration,
+                                     uint32_t aPromiseID)
+{
+  // TODO: Bug 1305892
+}
+
+void
+VRSystemManagerOculus::StopVibrateHaptic(uint32_t aControllerIdx)
+{
+}
+
+void
+VRSystemManagerOculus::GetControllers(nsTArray<RefPtr<VRControllerHost>>&
+                                      aControllerResult)
+{
+  if (!mOculusInitialized) {
+    return;
+  }
+
+  aControllerResult.Clear();
+  for (uint32_t i = 0; i < mOculusController.Length(); ++i) {
+    aControllerResult.AppendElement(mOculusController[i]);
+  }
+}
+
+void
+VRSystemManagerOculus::ScanForControllers()
+{
+  // mSession is available after VRDisplay is created
+  // at GetHMDs().
+  if (!mSession) {
+    return;
+  }
+
+  ovrInputState inputState;
+  bool hasInputState = ovr_GetInputState(mSession, ovrControllerType_Touch,
+                                         &inputState) == ovrSuccess;
+  ovrControllerType activeControllerArray[2];
+  uint32_t newControllerCount = 0;
+
+  if (inputState.ControllerType & ovrControllerType_LTouch) {
+    activeControllerArray[newControllerCount] = ovrControllerType_LTouch;
+    ++newControllerCount;
+  }
+
+  if (inputState.ControllerType & ovrControllerType_RTouch) {
+    activeControllerArray[newControllerCount] = ovrControllerType_RTouch;
+    ++newControllerCount;
+  }
+
+  if (newControllerCount != mControllerCount) {
+    // controller count is changed, removing the existing gamepads first.
+    for (uint32_t i = 0; i < mOculusController.Length(); ++i) {
+      RemoveGamepad(i);
+    }
+
+    mControllerCount = 0;
+    mOculusController.Clear();
+
+    // Re-adding controllers to VRControllerManager.
+    for (uint32_t i = 0; i < newControllerCount; ++i) {
+      GamepadHand hand;
+
+      switch (activeControllerArray[i]) {
+        case ovrControllerType::ovrControllerType_LTouch:
+          hand = GamepadHand::Left;
+          break;
+        case ovrControllerType::ovrControllerType_RTouch:
+          hand = GamepadHand::Right;
+          break;
+      }
+      RefPtr<VRControllerOculus> oculusController = new VRControllerOculus(hand);
+      mOculusController.AppendElement(oculusController);
+
+      // Not already present, add it.
+      AddGamepad(oculusController->GetControllerInfo());
+      ++mControllerCount;
+    }
+  }
+}
+
+void
+VRSystemManagerOculus::RemoveControllers()
+{
+  mOculusController.Clear();
+  mControllerCount = 0;
 }

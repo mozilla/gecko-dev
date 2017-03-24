@@ -12,18 +12,21 @@ add_task(function* test_default_behavior_host() {
   let uri3 = NetUtil.newURI("http://bookmarked/");
   let uri4 = NetUtil.newURI("http://tpbk/");
   let uri5 = NetUtil.newURI("http://tagged/");
+  let uri6 = NetUtil.newURI("https://secure/");
 
   yield PlacesTestUtils.addVisits([
     { uri: uri1, title: "typed", transition: TRANSITION_TYPED },
     { uri: uri2, title: "visited" },
     { uri: uri4, title: "tpbk", transition: TRANSITION_TYPED },
+    { uri: uri6, title: "secure", transition: TRANSITION_TYPED },
   ]);
   yield addBookmark( { uri: uri3, title: "bookmarked" } );
   yield addBookmark( { uri: uri4, title: "tpbk" } );
   yield addBookmark( { uri: uri5, title: "title", tags: ["foo"] } );
 
-  yield setFaviconForHref(uri1.spec, "chrome://global/skin/icons/information-16.png");
+  yield setFaviconForHref(uri1.spec, "chrome://global/skin/icons/info.svg");
   yield setFaviconForHref(uri3.spec, "chrome://global/skin/icons/error-16.png");
+  yield setFaviconForHref(uri6.spec, "chrome://global/skin/icons/question-16.png");
 
   // RESTRICT TO HISTORY.
   Services.prefs.setBoolPref("browser.urlbar.suggest.history", true);
@@ -42,9 +45,18 @@ add_task(function* test_default_behavior_host() {
   yield check_autocomplete({
     search: "ty",
     matches: [ { uri: uri1, title: "typed", style: [ "autofill", "heuristic" ],
-                 icon: "chrome://global/skin/icons/information-16.png" } ],
+                 icon: "chrome://global/skin/icons/info.svg" } ],
     autofilled: "typed/",
     completed: "typed/"
+  });
+
+  do_print("Restrict history, secure typed visit, should autoFill with https");
+  yield check_autocomplete({
+    search: "secure",
+    matches: [ { uri: uri6, title: "https://secure", style: [ "autofill", "heuristic" ],
+                 icon: "chrome://global/skin/icons/question-16.png" } ],
+    autofilled: "secure/",
+    completed: "https://secure/"
   });
 
   // Don't autoFill this one cause it's not typed.
@@ -104,7 +116,7 @@ add_task(function* test_default_behavior_host() {
   yield check_autocomplete({
     search: "ty",
     matches: [ { uri: uri1, title: "typed", style: [ "autofill", "heuristic" ],
-                 icon: "chrome://global/skin/icons/information-16.png"} ],
+                 icon: "chrome://global/skin/icons/info.svg"} ],
     autofilled: "typed/",
     completed: "typed/"
   });
@@ -211,7 +223,7 @@ add_task(function* test_default_behavior_url() {
   yield addBookmark( { uri: uri3, title: "bookmarked" } );
   yield addBookmark( { uri: uri4, title: "tpbk" } );
 
-  yield setFaviconForHref(uri1.spec, "chrome://global/skin/icons/information-16.png");
+  yield setFaviconForHref(uri1.spec, "chrome://global/skin/icons/info.svg");
   yield setFaviconForHref(uri3.spec, "chrome://global/skin/icons/error-16.png");
 
   // RESTRICT TO HISTORY.
@@ -233,7 +245,7 @@ add_task(function* test_default_behavior_url() {
   yield check_autocomplete({
     search: "typed/t",
     matches: [ { uri: uri1, title: "typed/ty/", style: [ "autofill", "heuristic" ],
-                 icon: "chrome://global/skin/icons/information-16.png"} ],
+                 icon: "chrome://global/skin/icons/info.svg"} ],
     autofilled: "typed/ty/",
     completed: "http://typed/ty/"
   });

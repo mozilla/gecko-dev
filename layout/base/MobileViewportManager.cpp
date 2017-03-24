@@ -7,10 +7,10 @@
 
 #include "gfxPrefs.h"
 #include "LayersLogging.h"
+#include "mozilla/PresShell.h"
 #include "nsIDOMEvent.h"
 #include "nsIFrame.h"
 #include "nsLayoutUtils.h"
-#include "nsPresShell.h"
 #include "nsViewManager.h"
 #include "nsViewportInfo.h"
 #include "UnitTransforms.h"
@@ -305,6 +305,13 @@ MobileViewportManager::UpdateDisplayPortMargins()
       // comment 1).
       return;
     }
+    nsRect displayportBase =
+      nsRect(nsPoint(0, 0), nsLayoutUtils::CalculateCompositionSizeForFrame(root));
+    // We only create MobileViewportManager for root content documents. If that ever changes
+    // we'd need to limit the size of this displayport base rect because non-toplevel documents
+    // have no limit on their size.
+    MOZ_ASSERT(mPresShell->GetPresContext()->IsRootContentDocument());
+    nsLayoutUtils::SetDisplayPortBaseIfNotSet(root->GetContent(), displayportBase);
     nsIScrollableFrame* scrollable = do_QueryFrame(root);
     nsLayoutUtils::CalculateAndSetDisplayPortMargins(scrollable,
       nsLayoutUtils::RepaintMode::DoNotRepaint);

@@ -40,14 +40,47 @@ SourceSurfaceSkia::GetFormat() const
   return mFormat;
 }
 
+static sk_sp<SkData>
+MakeSkData(void* aData, int32_t aHeight, size_t aStride)
+{
+  CheckedInt<size_t> size = aStride;
+  size *= aHeight;
+  if (size.isValid()) {
+    void* mem = sk_malloc_flags(size.value(), 0);
+    if (mem) {
+      if (aData) {
+        memcpy(mem, aData, size.value());
+      }
+      return SkData::MakeFromMalloc(mem, size.value());
+    }
+  }
+  return nullptr;
+}
+
+static sk_sp<SkImage>
+ReadSkImage(const sk_sp<SkImage>& aImage, const SkImageInfo& aInfo, size_t aStride)
+{
+  if (sk_sp<SkData> data = MakeSkData(nullptr, aInfo.height(), aStride)) {
+    if (aImage->readPixels(aInfo, data->writable_data(), aStride, 0, 0, SkImage::kDisallow_CachingHint)) {
+      return SkImage::MakeRasterData(aInfo, data, aStride);
+    }
+  }
+  return nullptr;
+}
+
 bool
 SourceSurfaceSkia::InitFromData(unsigned char* aData,
                                 const IntSize &aSize,
                                 int32_t aStride,
                                 SurfaceFormat aFormat)
 {
-  SkPixmap pixmap(MakeSkiaImageInfo(aSize, aFormat), aData, aStride);
-  mImage = SkImage::MakeRasterCopy(pixmap);
+  sk_sp<SkData> data = MakeSkData(aData, aSize.height, aStride);
+  if (!data) {
+    return false;
+  }
+
+  SkImageInfo info = MakeSkiaImageInfo(aSize, aFormat);
+  mImage = SkImage::MakeRasterData(info, data, aStride);
   if (!mImage) {
     return false;
   }
@@ -59,7 +92,7 @@ SourceSurfaceSkia::InitFromData(unsigned char* aData,
 }
 
 bool
-SourceSurfaceSkia::InitFromImage(sk_sp<SkImage> aImage,
+SourceSurfaceSkia::InitFromImage(const sk_sp<SkImage>& aImage,
                                  SurfaceFormat aFormat,
                                  DrawTargetSkia* aOwner)
 {
@@ -103,23 +136,16 @@ SourceSurfaceSkia::InitFromImage(sk_sp<SkImage> aImage,
 uint8_t*
 SourceSurfaceSkia::GetData()
 {
+  if (!mImage) {
+    return nullptr;
+  }
 #ifdef USE_SKIA_GPU
   if (mImage->isTextureBacked()) {
-    sk_sp<SkImage> raster;
-    CheckedInt<size_t> size = mStride;
-    size *= mSize.height;
-    if (size.isValid()) {
-      if (sk_sp<SkData> data = SkData::MakeUninitialized(size.value())) {
-        SkImageInfo info = MakeSkiaImageInfo(mSize, mFormat);
-        if (mImage->readPixels(info, data->writable_data(), mStride, 0, 0, SkImage::kDisallow_CachingHint)) {
-          raster = SkImage::MakeRasterData(info, data, mStride);
-        }
-      }
-    }
-    if (!raster) {
+    if (sk_sp<SkImage> raster = ReadSkImage(mImage, MakeSkiaImageInfo(mSize, mFormat), mStride)) {
+      mImage = raster;
+    } else {
       gfxCriticalError() << "Failed making Skia raster image for GPU surface";
     }
-    mImage = raster;
   }
 #endif
   SkPixmap pixmap;
@@ -140,7 +166,7 @@ SourceSurfaceSkia::DrawTargetWillChange()
     // don't need to do anything for them here.
     SkPixmap pixmap;
     if (mImage->peekPixels(&pixmap)) {
-      mImage = SkImage::MakeRasterCopy(pixmap);
+      mImage = ReadSkImage(mImage, pixmap.info(), pixmap.rowBytes());
       if (!mImage) {
         gfxCriticalError() << "Failed copying Skia raster snapshot";
       }

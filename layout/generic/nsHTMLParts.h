@@ -11,6 +11,7 @@
 #include "nscore.h"
 #include "nsISupports.h"
 #include "nsIFrame.h"
+class nsComboboxControlFrame;
 class nsIAtom;
 class nsNodeInfoManager;
 class nsIContent;
@@ -23,12 +24,14 @@ class nsIURI;
 class nsIPresShell;
 class nsIChannel;
 class nsTableColFrame;
+namespace mozilla {
+class ViewportFrame;
+} // namespace mozilla
 
 // These are all the block specific frame bits, they are copied from
 // the prev-in-flow to a newly created next-in-flow, except for the
 // NS_BLOCK_FLAGS_NON_INHERITED_MASK bits below.
-#define NS_BLOCK_FLAGS_MASK (NS_BLOCK_MARGIN_ROOT              | \
-                             NS_BLOCK_FLOAT_MGR                | \
+#define NS_BLOCK_FLAGS_MASK (NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS | \
                              NS_BLOCK_CLIP_PAGINATED_OVERFLOW  | \
                              NS_BLOCK_HAS_FIRST_LETTER_STYLE   | \
                              NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET | \
@@ -81,8 +84,7 @@ NS_NewSubDocumentFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewHTMLFramesetFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-class ViewportFrame;
-ViewportFrame*
+mozilla::ViewportFrame*
 NS_NewViewportFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 class nsCanvasFrame;
 nsCanvasFrame*
@@ -161,7 +163,7 @@ nsIFrame*
 NS_NewNativeSelectControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsContainerFrame*
 NS_NewListControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-nsContainerFrame*
+nsComboboxControlFrame*
 NS_NewComboboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aFlags);
 nsIFrame*
 NS_NewProgressFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);

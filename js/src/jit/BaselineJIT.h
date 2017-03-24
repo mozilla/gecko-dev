@@ -24,6 +24,7 @@ namespace jit {
 class StackValue;
 class BaselineICEntry;
 class ICStub;
+class ControlFlowGraph;
 
 class PCMappingSlotInfo
 {
@@ -239,6 +240,8 @@ struct BaselineScript
     // An ion compilation that is ready, but isn't linked yet.
     IonBuilder *pendingBuilder_;
 
+    ControlFlowGraph* controlFlowGraph_;
+
   public:
     // Do not call directly, use BaselineScript::New. This is public for cx->new_.
     BaselineScript(uint32_t prologueOffset, uint32_t epilogueOffset,
@@ -397,7 +400,7 @@ struct BaselineScript
     void copyICEntries(JSScript* script, const BaselineICEntry* entries, MacroAssembler& masm);
     void adoptFallbackStubs(FallbackICStubSpace* stubSpace);
 
-    void copyYieldEntries(JSScript* script, Vector<uint32_t>& yieldOffsets);
+    void copyYieldAndAwaitEntries(JSScript* script, Vector<uint32_t>& yieldAndAwaitOffsets);
 
     PCMappingIndexEntry& pcMappingIndexEntry(size_t index);
     CompactBufferReader pcMappingReader(size_t indexEntry);
@@ -449,7 +452,7 @@ struct BaselineScript
 #endif
 
     void noteAccessedGetter(uint32_t pcOffset);
-    void noteArrayWriteHole(uint32_t pcOffset);
+    void noteHasDenseAdd(uint32_t pcOffset);
 
     static size_t offsetOfFlags() {
         return offsetof(BaselineScript, flags_);
@@ -511,6 +514,14 @@ struct BaselineScript
         setPendingIonBuilder(nullptr, script, nullptr);
         if (script->maybeIonScript() == ION_PENDING_SCRIPT)
             script->setIonScript(nullptr, nullptr);
+    }
+
+    const ControlFlowGraph* controlFlowGraph() const {
+        return controlFlowGraph_;
+    }
+
+    void setControlFlowGraph(ControlFlowGraph* controlFlowGraph) {
+        controlFlowGraph_ = controlFlowGraph;
     }
 
 };
@@ -581,6 +592,10 @@ struct BaselineBailoutInfo
     // The bytecode pc where we will resume.
     jsbytecode* resumePC;
 
+    // The bytecode pc of try block and fault block.
+    jsbytecode* tryPC;
+    jsbytecode* faultPC;
+
     // If resuming into a TypeMonitor IC chain, this field holds the
     // address of the first stub in that chain.  If this field is
     // set, then the actual jitcode resumed into is the jitcode for
@@ -591,6 +606,12 @@ struct BaselineBailoutInfo
 
     // Number of baseline frames to push on the stack.
     uint32_t numFrames;
+
+    // If Ion bailed out on a global script before it could perform the global
+    // declaration conflicts check. In such cases the baseline script is
+    // resumed at the first pc instead of the prologue, so an extra flag is
+    // needed to perform the check.
+    bool checkGlobalDeclarationConflicts;
 
     // The bailout kind.
     BailoutKind bailoutKind;

@@ -56,7 +56,7 @@ TextTrackCue::TextTrackCue(nsPIDOMWindowInner* aOwnerWindow,
   , mEndTime(aEndTime)
   , mReset(false, "TextTrackCue::mReset")
   , mHaveStartedWatcher(false)
-  , mWatchManager(this, AbstractThread::MainThread())
+  , mWatchManager(this, GetOwnerGlobal()->AbstractMainThreadFor(TaskCategory::Other))
 {
   SetDefaultCueSettings();
   MOZ_ASSERT(aOwnerWindow);
@@ -78,7 +78,7 @@ TextTrackCue::TextTrackCue(nsPIDOMWindowInner* aOwnerWindow,
   , mTrackElement(aTrackElement)
   , mReset(false, "TextTrackCue::mReset")
   , mHaveStartedWatcher(false)
-  , mWatchManager(this, AbstractThread::MainThread())
+  , mWatchManager(this, GetOwnerGlobal()->AbstractMainThreadFor(TaskCategory::Other))
 {
   SetDefaultCueSettings();
   MOZ_ASSERT(aOwnerWindow);
@@ -133,17 +133,13 @@ TextTrackCue::GetCueAsHTML()
     return mDocument->CreateDocumentFragment();
   }
 
-  nsCOMPtr<nsIDOMHTMLElement> div;
+  nsCOMPtr<nsIDOMDocumentFragment> frag;
   sParserWrapper->ConvertCueToDOMTree(window, this,
-                                      getter_AddRefs(div));
-  if (!div) {
+                                      getter_AddRefs(frag));
+  if (!frag) {
     return mDocument->CreateDocumentFragment();
   }
-  RefPtr<DocumentFragment> docFrag = mDocument->CreateDocumentFragment();
-  nsCOMPtr<nsIDOMNode> throwAway;
-  docFrag->AppendChild(div, getter_AddRefs(throwAway));
-
-  return docFrag.forget();
+  return frag.forget().downcast<DocumentFragment>();
 }
 
 void

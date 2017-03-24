@@ -137,176 +137,74 @@ LinkData::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
            symbolicLinks.sizeOfExcludingThis(mallocSizeOf);
 }
 
-size_t
-Import::serializedSize() const
+/* virtual */ void
+Module::serializedSize(size_t* maybeBytecodeSize, size_t* maybeCompiledSize) const
 {
-    return module.serializedSize() +
-           field.serializedSize();
-}
+    if (maybeBytecodeSize)
+        *maybeBytecodeSize = bytecode_->bytes.length();
 
-uint8_t*
-Import::serialize(uint8_t* cursor) const
-{
-    cursor = module.serialize(cursor);
-    cursor = field.serialize(cursor);
-    return cursor;
-}
+    // The compiled debug code must not be saved, set compiled size to 0,
+    // so Module::assumptionsMatch will return false during assumptions
+    // deserialization.
+    if (maybeCompiledSize && metadata_->debugEnabled)
+        *maybeCompiledSize = 0;
 
-const uint8_t*
-Import::deserialize(const uint8_t* cursor)
-{
-    (cursor = module.deserialize(cursor)) &&
-    (cursor = field.deserialize(cursor));
-    return cursor;
-}
-
-size_t
-Import::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
-{
-    return module.sizeOfExcludingThis(mallocSizeOf) +
-           field.sizeOfExcludingThis(mallocSizeOf);
-}
-
-Export::Export(UniqueChars fieldName, uint32_t index, DefinitionKind kind)
-  : fieldName_(Move(fieldName))
-{
-    pod.kind_ = kind;
-    pod.index_ = index;
-}
-
-Export::Export(UniqueChars fieldName, DefinitionKind kind)
-  : fieldName_(Move(fieldName))
-{
-    pod.kind_ = kind;
-    pod.index_ = 0;
-}
-
-uint32_t
-Export::funcIndex() const
-{
-    MOZ_ASSERT(pod.kind_ == DefinitionKind::Function);
-    return pod.index_;
-}
-
-uint32_t
-Export::globalIndex() const
-{
-    MOZ_ASSERT(pod.kind_ == DefinitionKind::Global);
-    return pod.index_;
-}
-
-size_t
-Export::serializedSize() const
-{
-    return fieldName_.serializedSize() +
-           sizeof(pod);
-}
-
-uint8_t*
-Export::serialize(uint8_t* cursor) const
-{
-    cursor = fieldName_.serialize(cursor);
-    cursor = WriteBytes(cursor, &pod, sizeof(pod));
-    return cursor;
-}
-
-const uint8_t*
-Export::deserialize(const uint8_t* cursor)
-{
-    (cursor = fieldName_.deserialize(cursor)) &&
-    (cursor = ReadBytes(cursor, &pod, sizeof(pod)));
-    return cursor;
-}
-
-size_t
-Export::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
-{
-    return fieldName_.sizeOfExcludingThis(mallocSizeOf);
-}
-
-size_t
-ElemSegment::serializedSize() const
-{
-    return sizeof(tableIndex) +
-           sizeof(offset) +
-           SerializedPodVectorSize(elemFuncIndices) +
-           SerializedPodVectorSize(elemCodeRangeIndices);
-}
-
-uint8_t*
-ElemSegment::serialize(uint8_t* cursor) const
-{
-    cursor = WriteBytes(cursor, &tableIndex, sizeof(tableIndex));
-    cursor = WriteBytes(cursor, &offset, sizeof(offset));
-    cursor = SerializePodVector(cursor, elemFuncIndices);
-    cursor = SerializePodVector(cursor, elemCodeRangeIndices);
-    return cursor;
-}
-
-const uint8_t*
-ElemSegment::deserialize(const uint8_t* cursor)
-{
-    (cursor = ReadBytes(cursor, &tableIndex, sizeof(tableIndex))) &&
-    (cursor = ReadBytes(cursor, &offset, sizeof(offset))) &&
-    (cursor = DeserializePodVector(cursor, &elemFuncIndices)) &&
-    (cursor = DeserializePodVector(cursor, &elemCodeRangeIndices));
-    return cursor;
-}
-
-size_t
-ElemSegment::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
-{
-    return elemFuncIndices.sizeOfExcludingThis(mallocSizeOf) +
-           elemCodeRangeIndices.sizeOfExcludingThis(mallocSizeOf);
+    if (maybeCompiledSize && !metadata_->debugEnabled) {
+        *maybeCompiledSize = assumptions_.serializedSize() +
+                             SerializedPodVectorSize(code_) +
+                             linkData_.serializedSize() +
+                             SerializedVectorSize(imports_) +
+                             SerializedVectorSize(exports_) +
+                             SerializedPodVectorSize(dataSegments_) +
+                             SerializedVectorSize(elemSegments_) +
+                             metadata_->serializedSize();
+    }
 }
 
 /* virtual */ void
-Module::serializedSize(size_t* bytecodeSize, size_t* compiledSize) const
+Module::serialize(uint8_t* maybeBytecodeBegin, size_t maybeBytecodeSize,
+                  uint8_t* maybeCompiledBegin, size_t maybeCompiledSize) const
 {
-    *bytecodeSize = SerializedPodVectorSize(bytecode_->bytes);
+    MOZ_ASSERT(!!maybeBytecodeBegin == !!maybeBytecodeSize);
+    MOZ_ASSERT(!!maybeCompiledBegin == !!maybeCompiledSize);
 
-    *compiledSize = assumptions_.serializedSize() +
-                    SerializedPodVectorSize(code_) +
-                    linkData_.serializedSize() +
-                    SerializedVectorSize(imports_) +
-                    SerializedVectorSize(exports_) +
-                    SerializedPodVectorSize(dataSegments_) +
-                    SerializedVectorSize(elemSegments_) +
-                    metadata_->serializedSize();
-}
+    if (maybeBytecodeBegin) {
+        // Bytecode deserialization is not guarded by Assumptions and thus must not
+        // change incompatibly between builds. Thus, for simplicity, the format
+        // of the bytecode file is simply a .wasm file (thus, backwards
+        // compatibility is ensured by backwards compatibility of the wasm
+        // binary format).
 
-/* virtual */ void
-Module::serialize(uint8_t* bytecodeBegin, size_t bytecodeSize,
-                  uint8_t* compiledBegin, size_t compiledSize) const
-{
-    // Bytecode deserialization is not guarded by Assumptions and thus must not
-    // change incompatibly between builds.
+        const Bytes& bytes = bytecode_->bytes;
+        uint8_t* bytecodeEnd = WriteBytes(maybeBytecodeBegin, bytes.begin(), bytes.length());
+        MOZ_RELEASE_ASSERT(bytecodeEnd == maybeBytecodeBegin + maybeBytecodeSize);
+    }
 
-    uint8_t* bytecodeEnd = SerializePodVector(bytecodeBegin, bytecode_->bytes);
-    MOZ_RELEASE_ASSERT(bytecodeEnd == bytecodeBegin + bytecodeSize);
+    MOZ_ASSERT_IF(maybeCompiledBegin && metadata_->debugEnabled, maybeCompiledSize == 0);
 
-    // Assumption must be serialized at the beginning of the compiled bytes so
-    // that compiledAssumptionsMatch can detect a build-id mismatch before any
-    // other decoding occurs.
+    if (maybeCompiledBegin && !metadata_->debugEnabled) {
+        // Assumption must be serialized at the beginning of the compiled bytes so
+        // that compiledAssumptionsMatch can detect a build-id mismatch before any
+        // other decoding occurs.
 
-    uint8_t* cursor = compiledBegin;
-    cursor = assumptions_.serialize(cursor);
-    cursor = SerializePodVector(cursor, code_);
-    cursor = linkData_.serialize(cursor);
-    cursor = SerializeVector(cursor, imports_);
-    cursor = SerializeVector(cursor, exports_);
-    cursor = SerializePodVector(cursor, dataSegments_);
-    cursor = SerializeVector(cursor, elemSegments_);
-    cursor = metadata_->serialize(cursor);
-    MOZ_RELEASE_ASSERT(cursor == compiledBegin + compiledSize);
+        uint8_t* cursor = maybeCompiledBegin;
+        cursor = assumptions_.serialize(cursor);
+        cursor = SerializePodVector(cursor, code_);
+        cursor = linkData_.serialize(cursor);
+        cursor = SerializeVector(cursor, imports_);
+        cursor = SerializeVector(cursor, exports_);
+        cursor = SerializePodVector(cursor, dataSegments_);
+        cursor = SerializeVector(cursor, elemSegments_);
+        cursor = metadata_->serialize(cursor);
+        MOZ_RELEASE_ASSERT(cursor == maybeCompiledBegin + maybeCompiledSize);
+    }
 }
 
 /* static */ bool
-Module::assumptionsMatch(const Assumptions& current, const uint8_t* cursor)
+Module::assumptionsMatch(const Assumptions& current, const uint8_t* compiledBegin, size_t remain)
 {
     Assumptions cached;
-    cursor = cached.deserialize(cursor);
-    if (!cursor)
+    if (!cached.deserialize(compiledBegin, remain))
         return false;
 
     return current == cached;
@@ -318,19 +216,13 @@ Module::deserialize(const uint8_t* bytecodeBegin, size_t bytecodeSize,
                     Metadata* maybeMetadata)
 {
     MutableBytes bytecode = js_new<ShareableBytes>();
-    if (!bytecode)
+    if (!bytecode || !bytecode->bytes.initLengthUninitialized(bytecodeSize))
         return nullptr;
 
-    const uint8_t* bytecodeEnd = DeserializePodVector(bytecodeBegin, &bytecode->bytes);
-    if (!bytecodeEnd)
-        return nullptr;
-
-    MOZ_RELEASE_ASSERT(bytecodeEnd == bytecodeBegin + bytecodeSize);
-
-    const uint8_t* cursor = compiledBegin;
+    memcpy(bytecode->bytes.begin(), bytecodeBegin, bytecodeSize);
 
     Assumptions assumptions;
-    cursor = assumptions.deserialize(cursor);
+    const uint8_t* cursor = assumptions.deserialize(compiledBegin, compiledSize);
     if (!cursor)
         return nullptr;
 
@@ -437,7 +329,7 @@ wasm::CompiledModuleAssumptionsMatch(PRFileDesc* compiled, JS::BuildIdCharVector
         return false;
 
     Assumptions assumptions(Move(buildId));
-    return Module::assumptionsMatch(assumptions, mapping.get());
+    return Module::assumptionsMatch(assumptions, mapping.get(), info.size);
 }
 
 SharedModule
@@ -460,15 +352,15 @@ wasm::DeserializeModule(PRFileDesc* bytecodeFile, PRFileDesc* maybeCompiledFile,
                                    compiledMapping.get(), compiledInfo.size);
     }
 
+    // Since the compiled file's assumptions don't match, we must recompile from
+    // bytecode. The bytecode file format is simply that of a .wasm (see
+    // Module::serialize).
+
     MutableBytes bytecode = js_new<ShareableBytes>();
-    if (!bytecode)
+    if (!bytecode || !bytecode->bytes.initLengthUninitialized(bytecodeInfo.size))
         return nullptr;
 
-    const uint8_t* bytecodeEnd = DeserializePodVector(bytecodeMapping.get(), &bytecode->bytes);
-    if (!bytecodeEnd)
-        return nullptr;
-
-    MOZ_RELEASE_ASSERT(bytecodeEnd == bytecodeMapping.get() + bytecodeInfo.size);
+    memcpy(bytecode->bytes.begin(), bytecodeMapping.get(), bytecodeInfo.size);
 
     ScriptedCaller scriptedCaller;
     scriptedCaller.filename = Move(filename);
@@ -526,28 +418,37 @@ Module::extractCode(JSContext* cx, MutableHandleValue vp)
     if (!segments)
         return false;
 
-    for (auto p = metadata_->codeRanges.begin(); p != metadata_->codeRanges.end(); p++) {
+    for (const CodeRange& p : metadata_->codeRanges) {
         RootedObject segment(cx, NewObjectWithGivenProto<PlainObject>(cx, nullptr));
-        value.setNumber((uint32_t)p->begin());
+        if (!segment)
+            return false;
+
+        value.setNumber((uint32_t)p.begin());
         if (!JS_DefineProperty(cx, segment, "begin", value, JSPROP_ENUMERATE))
             return false;
-        value.setNumber((uint32_t)p->end());
+
+        value.setNumber((uint32_t)p.end());
         if (!JS_DefineProperty(cx, segment, "end", value, JSPROP_ENUMERATE))
             return false;
-        value.setNumber((uint32_t)p->kind());
+
+        value.setNumber((uint32_t)p.kind());
         if (!JS_DefineProperty(cx, segment, "kind", value, JSPROP_ENUMERATE))
             return false;
-        if (p->isFunction()) {
-            value.setNumber((uint32_t)p->funcIndex());
+
+        if (p.isFunction()) {
+            value.setNumber((uint32_t)p.funcIndex());
             if (!JS_DefineProperty(cx, segment, "funcIndex", value, JSPROP_ENUMERATE))
                 return false;
-            value.setNumber((uint32_t)p->funcNonProfilingEntry());
+
+            value.setNumber((uint32_t)p.funcNormalEntry());
             if (!JS_DefineProperty(cx, segment, "funcBodyBegin", value, JSPROP_ENUMERATE))
                 return false;
-            value.setNumber((uint32_t)p->funcProfilingEpilogue());
+
+            value.setNumber((uint32_t)p.end());
             if (!JS_DefineProperty(cx, segment, "funcBodyEnd", value, JSPROP_ENUMERATE))
                 return false;
         }
+
         if (!NewbornArrayPush(cx, segments, ObjectValue(*segment)))
             return false;
     }
@@ -588,8 +489,6 @@ Module::initSegments(JSContext* cx,
 
     for (const ElemSegment& seg : elemSegments_) {
         uint32_t numElems = seg.elemCodeRangeIndices.length();
-        if (!numElems)
-            continue;
 
         uint32_t tableLength = tables[seg.tableIndex]->length();
         uint32_t offset = EvaluateInitExpr(globalImports, seg.offset);
@@ -603,9 +502,6 @@ Module::initSegments(JSContext* cx,
 
     if (memoryObj) {
         for (const DataSegment& seg : dataSegments_) {
-            if (!seg.length)
-                continue;
-
             uint32_t memoryLength = memoryObj->buffer().byteLength();
             uint32_t offset = EvaluateInitExpr(globalImports, seg.offset);
 
@@ -625,7 +521,6 @@ Module::initSegments(JSContext* cx,
     for (const ElemSegment& seg : elemSegments_) {
         Table& table = *tables[seg.tableIndex];
         uint32_t offset = EvaluateInitExpr(globalImports, seg.offset);
-        bool profilingEnabled = instance.code().profilingEnabled();
         const CodeRangeVector& codeRanges = metadata().codeRanges;
         uint8_t* codeBase = instance.codeBase();
 
@@ -643,9 +538,7 @@ Module::initSegments(JSContext* cx,
             } else {
                 const CodeRange& cr = codeRanges[seg.elemCodeRangeIndices[i]];
                 uint32_t entryOffset = table.isTypedFunction()
-                                       ? profilingEnabled
-                                         ? cr.funcProfilingEntry()
-                                         : cr.funcNonProfilingEntry()
+                                       ? cr.funcNormalEntry()
                                        : cr.funcTableEntry();
                 table.set(offset + i, codeBase + entryOffset, instance);
             }
@@ -666,6 +559,19 @@ Module::initSegments(JSContext* cx,
     return true;
 }
 
+static const Import&
+FindImportForFuncImport(const ImportVector& imports, uint32_t funcImportIndex)
+{
+    for (const Import& import : imports) {
+        if (import.kind != DefinitionKind::Function)
+            continue;
+        if (funcImportIndex == 0)
+            return import;
+        funcImportIndex--;
+    }
+    MOZ_CRASH("ran out of imports");
+}
+
 bool
 Module::instantiateFunctions(JSContext* cx, Handle<FunctionVector> funcImports) const
 {
@@ -684,7 +590,9 @@ Module::instantiateFunctions(JSContext* cx, Handle<FunctionVector> funcImports) 
         const FuncExport& funcExport = instance.metadata().lookupFuncExport(funcIndex);
 
         if (funcExport.sig() != metadata_->funcImports[i].sig()) {
-            JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_IMPORT_SIG);
+            const Import& import = FindImportForFuncImport(imports_, i);
+            JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_IMPORT_SIG,
+                                      import.module.get(), import.field.get());
             return false;
         }
     }
@@ -693,8 +601,8 @@ Module::instantiateFunctions(JSContext* cx, Handle<FunctionVector> funcImports) 
 }
 
 static bool
-CheckLimits(JSContext* cx, uint32_t declaredMin, Maybe<uint32_t> declaredMax, uint32_t actualLength,
-            Maybe<uint32_t> actualMax, bool isAsmJS, const char* kind)
+CheckLimits(JSContext* cx, uint32_t declaredMin, const Maybe<uint32_t>& declaredMax, uint32_t actualLength,
+            const Maybe<uint32_t>& actualMax, bool isAsmJS, const char* kind)
 {
     if (isAsmJS) {
         MOZ_ASSERT(actualLength >= declaredMin);
@@ -858,10 +766,9 @@ GetGlobalExport(JSContext* cx, const GlobalDescVector& globals, uint32_t globalI
         return true;
       }
       case ValType::F32: {
-        float f = val.f32().fp();
+        float f = val.f32();
         if (JitOptions.wasmTestMode && IsNaN(f)) {
-            uint32_t bits = val.f32().bits();
-            RootedObject obj(cx, CreateCustomNaNObject(cx, (float*)&bits));
+            RootedObject obj(cx, CreateCustomNaNObject(cx, &f));
             if (!obj)
                 return false;
             jsval.set(ObjectValue(*obj));
@@ -871,10 +778,9 @@ GetGlobalExport(JSContext* cx, const GlobalDescVector& globals, uint32_t globalI
         return true;
       }
       case ValType::F64: {
-        double d = val.f64().fp();
+        double d = val.f64();
         if (JitOptions.wasmTestMode && IsNaN(d)) {
-            uint64_t bits = val.f64().bits();
-            RootedObject obj(cx, CreateCustomNaNObject(cx, (double*)&bits));
+            RootedObject obj(cx, CreateCustomNaNObject(cx, &d));
             if (!obj)
                 return false;
             jsval.set(ObjectValue(*obj));
@@ -911,7 +817,10 @@ CreateExportObject(JSContext* cx,
         return true;
     }
 
-    exportObj.set(JS_NewPlainObject(cx));
+    if (metadata.isAsmJS())
+        exportObj.set(NewBuiltinClassInstance<PlainObject>(cx));
+    else
+        exportObj.set(NewObjectWithGivenProto<PlainObject>(cx, nullptr));
     if (!exportObj)
         return false;
 
@@ -943,6 +852,11 @@ CreateExportObject(JSContext* cx,
             return false;
     }
 
+    if (!metadata.isAsmJS()) {
+        if (!JS_FreezeObject(cx, exportObj))
+            return false;
+    }
+
     return true;
 }
 
@@ -971,15 +885,23 @@ Module::instantiate(JSContext* cx,
     // instance must hold onto a ref of the bytecode (keeping it alive). This
     // wastes memory for most users, so we try to only save the source when a
     // developer actually cares: when the compartment is debuggable (which is
-    // true when the web console is open) or a names section is present (since
-    // this going to be stripped for non-developer builds).
+    // true when the web console is open), has code compiled with debug flag
+    // enabled or a names section is present (since this going to be stripped
+    // for non-developer builds).
 
     const ShareableBytes* maybeBytecode = nullptr;
-    if (cx->compartment()->isDebuggee() || !metadata_->funcNames.empty())
+    if (cx->compartment()->isDebuggee() || metadata_->debugEnabled ||
+        !metadata_->funcNames.empty())
+    {
         maybeBytecode = bytecode_.get();
+    }
 
     auto codeSegment = CodeSegment::create(cx, code_, linkData_, *metadata_, memory);
     if (!codeSegment)
+        return false;
+
+    auto globalSegment = GlobalSegment::create(linkData_.globalDataLength);
+    if (!globalSegment)
         return false;
 
     auto code = cx->make_unique<Code>(Move(codeSegment), *metadata_, maybeBytecode);
@@ -988,6 +910,7 @@ Module::instantiate(JSContext* cx,
 
     instance.set(WasmInstanceObject::create(cx,
                                             Move(code),
+                                            Move(globalSegment),
                                             memory,
                                             Move(tables),
                                             funcImports,

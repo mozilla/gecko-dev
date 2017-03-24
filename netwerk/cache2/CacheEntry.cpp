@@ -26,6 +26,7 @@
 #include "nsSerializationHelper.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include <math.h>
 #include <algorithm>
 
@@ -48,8 +49,6 @@ NS_IMPL_ISUPPORTS(CacheEntryHandle, nsICacheEntry)
 CacheEntryHandle::CacheEntryHandle(CacheEntry* aEntry)
 : mEntry(aEntry)
 {
-  MOZ_COUNT_CTOR(CacheEntryHandle);
-
 #ifdef DEBUG
   if (!mEntry->HandlesCount()) {
     // CacheEntry.mHandlesCount must go from zero to one only under
@@ -68,8 +67,6 @@ CacheEntryHandle::~CacheEntryHandle()
 {
   mEntry->ReleaseHandleRef();
   mEntry->OnHandleClosed(this);
-
-  MOZ_COUNT_DTOR(CacheEntryHandle);
 }
 
 // CacheEntry::Callback
@@ -453,8 +450,8 @@ bool CacheEntry::Load(bool aTruncate, bool aPriority)
 
 NS_IMETHODIMP CacheEntry::OnFileReady(nsresult aResult, bool aIsNew)
 {
-  LOG(("CacheEntry::OnFileReady [this=%p, rv=0x%08x, new=%d]",
-      this, aResult, aIsNew));
+  LOG(("CacheEntry::OnFileReady [this=%p, rv=0x%08" PRIx32 ", new=%d]",
+       this, static_cast<uint32_t>(aResult), aIsNew));
 
   MOZ_ASSERT(!mLoadStart.IsNull());
 
@@ -546,10 +543,12 @@ already_AddRefed<CacheEntryHandle> CacheEntry::ReopenTruncated(bool aMemoryOnly,
 
     if (NS_SUCCEEDED(rv)) {
       newEntry = handle->Entry();
-      LOG(("  exchanged entry %p by entry %p, rv=0x%08x", this, newEntry.get(), rv));
+      LOG(("  exchanged entry %p by entry %p, rv=0x%08" PRIx32,
+           this, newEntry.get(), static_cast<uint32_t>(rv)));
       newEntry->AsyncOpen(aCallback, nsICacheStorage::OPEN_TRUNCATE);
     } else {
-      LOG(("  exchanged of entry %p failed, rv=0x%08x", this, rv));
+      LOG(("  exchanged of entry %p failed, rv=0x%08" PRIx32,
+           this, static_cast<uint32_t>(rv)));
       AsyncDoom(nullptr);
     }
   }
@@ -749,7 +748,8 @@ bool CacheEntry::InvokeCallback(Callback & aCallback)
 
           nsresult rv = aCallback.mCallback->OnCacheEntryCheck(
             this, nullptr, &checkResult);
-          LOG(("  OnCacheEntryCheck: rv=0x%08x, result=%d", rv, checkResult));
+          LOG(("  OnCacheEntryCheck: rv=0x%08" PRIx32 ", result=%" PRId32,
+               static_cast<uint32_t>(rv), static_cast<uint32_t>(checkResult)));
 
           if (NS_FAILED(rv))
             checkResult = ENTRY_NOT_WANTED;
@@ -840,7 +840,7 @@ void CacheEntry::InvokeAvailableCallback(Callback const & aCallback)
       new AvailableCallbackRunnable(this, aCallback);
 
     rv = aCallback.mTargetThread->Dispatch(event, nsIEventTarget::DISPATCH_NORMAL);
-    LOG(("  redispatched, (rv = 0x%08x)", rv));
+    LOG(("  redispatched, (rv = 0x%08" PRIx32 ")", static_cast<uint32_t>(rv)));
     return;
   }
 
@@ -890,7 +890,7 @@ void CacheEntry::InvokeAvailableCallback(Callback const & aCallback)
     handle, state == WRITING, nullptr, NS_OK);
 
   if (NS_FAILED(rv)) {
-    LOG(("  writing/revalidating failed (0x%08x)", rv));
+    LOG(("  writing/revalidating failed (0x%08" PRIx32 ")", static_cast<uint32_t>(rv)));
 
     // Consumer given a new entry failed to take care of the entry.
     OnHandleClosed(handle);
@@ -1483,7 +1483,7 @@ NS_IMETHODIMP CacheEntry::Recreate(bool aMemoryOnly,
   }
 
   BackgroundOp(Ops::CALLBACKS, true);
-  return NS_OK;
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP CacheEntry::GetDataSize(int64_t *aDataSize)
@@ -1508,7 +1508,7 @@ NS_IMETHODIMP CacheEntry::GetDataSize(int64_t *aDataSize)
     return NS_ERROR_IN_PROGRESS;
   }
 
-  LOG(("  size=%lld", *aDataSize));
+  LOG(("  size=%" PRId64, *aDataSize));
   return NS_OK;
 }
 
@@ -1544,6 +1544,27 @@ NS_IMETHODIMP CacheEntry::HasWriteAccess(bool aWriteAllowed, bool *aWriteAccess)
 NS_IMETHODIMP CacheEntry::Close()
 {
   // NOT IMPLEMENTED ACTUALLY
+  return NS_OK;
+}
+
+NS_IMETHODIMP CacheEntry::GetDiskStorageSizeInKB(uint32_t *aDiskStorageSize)
+{
+  if (NS_FAILED(mFileStatus)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  return mFile->GetDiskStorageSizeInKB(aDiskStorageSize);
+}
+
+NS_IMETHODIMP CacheEntry::GetLoadContextInfo(nsILoadContextInfo** aInfo)
+{
+  nsCOMPtr<nsILoadContextInfo> info = CacheFileUtils::ParseKey(mStorageID);
+  if (!info) {
+    return NS_ERROR_FAILURE;
+  }
+
+  info.forget(aInfo);
+
   return NS_OK;
 }
 
@@ -1855,12 +1876,10 @@ void CacheEntry::StoreFrecency(double aFrecency)
 CacheOutputCloseListener::CacheOutputCloseListener(CacheEntry* aEntry)
 : mEntry(aEntry)
 {
-  MOZ_COUNT_CTOR(CacheOutputCloseListener);
 }
 
 CacheOutputCloseListener::~CacheOutputCloseListener()
 {
-  MOZ_COUNT_DTOR(CacheOutputCloseListener);
 }
 
 void CacheOutputCloseListener::OnOutputClosed()

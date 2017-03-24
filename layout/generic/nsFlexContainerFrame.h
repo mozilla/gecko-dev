@@ -56,28 +56,51 @@ public:
   class FlexLine;
   class FlexboxAxisTracker;
   struct StrutInfo;
+  class CachedMeasuringReflowResult;
 
   // nsIFrame overrides
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) override;
+  void Init(nsIContent*       aContent,
+            nsContainerFrame* aParent,
+            nsIFrame*         aPrevInFlow) override;
 
-  virtual void Reflow(nsPresContext*           aPresContext,
-                      ReflowOutput&     aDesiredSize,
-                      const ReflowInput& aReflowInput,
-                      nsReflowStatus&          aStatus) override;
+  void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                        const nsRect&           aDirtyRect,
+                        const nsDisplayListSet& aLists) override;
 
-  virtual nscoord
-    GetMinISize(nsRenderingContext* aRenderingContext) override;
-  virtual nscoord
-    GetPrefISize(nsRenderingContext* aRenderingContext) override;
+  void MarkIntrinsicISizesDirty() override;
 
-  virtual nsIAtom* GetType() const override;
+  void Reflow(nsPresContext* aPresContext,
+              ReflowOutput& aDesiredSize,
+              const ReflowInput& aReflowInput,
+              nsReflowStatus& aStatus) override;
+
+  nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
+  nscoord GetPrefISize(nsRenderingContext* aRenderingContext) override;
+
+  nsIAtom* GetType() const override;
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   nscoord GetLogicalBaseline(mozilla::WritingMode aWM) const override;
+
+  bool GetVerticalAlignBaseline(mozilla::WritingMode aWM,
+                                nscoord* aBaseline) const override
+  {
+    return GetNaturalBaselineBOffset(aWM, BaselineSharingGroup::eFirst, aBaseline);
+  }
+
+  bool GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
+                                 BaselineSharingGroup aBaselineGroup,
+                                 nscoord*             aBaseline) const override
+  {
+    if (HasAnyStateBits(NS_STATE_FLEX_SYNTHESIZE_BASELINE)) {
+      return false;
+    }
+    *aBaseline = aBaselineGroup == BaselineSharingGroup::eFirst ?
+                   mBaselineFromLastReflow : mLastBaselineFromLastReflow;
+    return true;
+  }
 
   // nsContainerFrame overrides
   uint16_t CSSAlignmentForAbsPosChild(
@@ -107,17 +130,12 @@ public:
                                     uint32_t* aNumPackingSpacesRemaining,
                                     nscoord* aPackingSpaceRemaining);
 
-  /**
-   * Returns true if aFrame is the frame for an element with
-   * "display:-webkit-box" or "display:-webkit-inline-box".
-   */
-  static bool IsLegacyBox(const nsIFrame* aFrame);
-
 protected:
   // Protected constructor & destructor
   explicit nsFlexContainerFrame(nsStyleContext* aContext)
     : nsContainerFrame(aContext)
     , mBaselineFromLastReflow(NS_INTRINSIC_WIDTH_UNKNOWN)
+    , mLastBaselineFromLastReflow(NS_INTRINSIC_WIDTH_UNKNOWN)
   {}
   virtual ~nsFlexContainerFrame();
 
@@ -176,6 +194,18 @@ protected:
                                      nsIFrame* aChildFrame,
                                      const ReflowInput& aParentReflowInput,
                                      const FlexboxAxisTracker& aAxisTracker);
+
+  /**
+   * This method gets a cached measuring reflow for a flex item, or does it and
+   * caches it.
+   *
+   * This avoids exponential reflows, see the comment on
+   * CachedMeasuringReflowResult.
+   */
+  const CachedMeasuringReflowResult& MeasureAscentAndHeightForFlexItem(
+    FlexItem& aItem,
+    nsPresContext* aPresContext,
+    ReflowInput& aChildReflowInput);
 
   /**
    * This method performs a "measuring" reflow to get the content height of
@@ -303,6 +333,8 @@ protected:
                                    // to satisfy their 'order' values?
 
   nscoord mBaselineFromLastReflow;
+  // Note: the last baseline is a distance from our border-box end edge.
+  nscoord mLastBaselineFromLastReflow;
 };
 
 #endif /* nsFlexContainerFrame_h___ */

@@ -20,16 +20,11 @@ DEFAULT_PREFS = {
 class UpdateTestRunner(FirefoxUITestRunner):
 
     def __init__(self, **kwargs):
-        FirefoxUITestRunner.__init__(self, **kwargs)
+        super(UpdateTestRunner, self).__init__(**kwargs)
 
         self.original_bin = self.bin
 
         self.prefs.update(DEFAULT_PREFS)
-
-        # In case of overriding the update URL, set the appropriate preference
-        override_url = kwargs.pop('update_override_url', None)
-        if override_url:
-            self.prefs.update({'app.update.url.override': override_url})
 
         self.run_direct_update = not kwargs.pop('update_fallback_only', False)
         self.run_fallback_update = not kwargs.pop('update_direct_only', False)
@@ -57,7 +52,7 @@ class UpdateTestRunner(FirefoxUITestRunner):
                 self.bin = mozinstall.get_binary(application_folder, 'Firefox')
 
                 self.test_tags = tags
-                FirefoxUITestRunner.run_tests(self, tests)
+                super(UpdateTestRunner, self).run_tests(tests)
 
             except Exception:
                 self.exc_info = sys.exc_info()

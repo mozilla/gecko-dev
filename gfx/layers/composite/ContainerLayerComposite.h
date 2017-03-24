@@ -29,11 +29,13 @@ class ContainerLayerComposite : public ContainerLayer,
   template<class ContainerT>
   friend void ContainerRender(ContainerT* aContainer,
                               LayerManagerComposite* aManager,
-                              const RenderTargetIntRect& aClipRect);
+                              const RenderTargetIntRect& aClipRect,
+                              const Maybe<gfx::Polygon>& aGeometry);
   template<class ContainerT>
   friend void RenderLayers(ContainerT* aContainer,
                            LayerManagerComposite* aManager,
-                           const RenderTargetIntRect& aClipRect);
+                           const RenderTargetIntRect& aClipRect,
+                           const Maybe<gfx::Polygon>& aGeometry);
   template<class ContainerT>
   friend void RenderIntermediate(ContainerT* aContainer,
                    LayerManagerComposite* aManager,
@@ -63,23 +65,22 @@ public:
   // LayerComposite Implementation
   virtual Layer* GetLayer() override { return this; }
 
-  virtual void SetLayerManager(LayerManagerComposite* aManager) override
+  virtual void SetLayerManager(HostLayerManager* aManager) override
   {
     LayerComposite::SetLayerManager(aManager);
     mManager = aManager;
     mLastIntermediateSurface = nullptr;
-
-    for (Layer* l = GetFirstChild(); l; l = l->GetNextSibling()) {
-      LayerComposite* child = l->AsLayerComposite();
-      child->SetLayerManager(aManager);
-    }
   }
 
   virtual void Destroy() override;
 
   LayerComposite* GetFirstChildComposite() override;
 
-  virtual void RenderLayer(const gfx::IntRect& aClipRect) override;
+  virtual void Cleanup() override;
+
+  virtual void RenderLayer(const gfx::IntRect& aClipRect,
+                           const Maybe<gfx::Polygon>& aGeometry) override;
+
   virtual void Prepare(const RenderTargetIntRect& aClipRect) override;
 
   virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) override
@@ -89,7 +90,7 @@ public:
 
   virtual void CleanupResources() override;
 
-  virtual LayerComposite* AsLayerComposite() override { return this; }
+  virtual HostLayer* AsHostLayer() override { return this; }
 
   // container layers don't use a compositable
   CompositableHost* GetCompositableHost() override { return nullptr; }
@@ -101,15 +102,15 @@ public:
   // post-scales.
   virtual float GetPostXScale() const override {
     if (mScaleToResolution) {
-      return mPostXScale * mPresShellResolution;
+      return mSimpleAttrs.PostXScale() * mPresShellResolution;
     }
-    return mPostXScale;
+    return mSimpleAttrs.PostXScale();
   }
   virtual float GetPostYScale() const override {
     if (mScaleToResolution) {
-      return mPostYScale * mPresShellResolution;
+      return mSimpleAttrs.PostYScale() * mPresShellResolution;
     }
-    return mPostYScale;
+    return mSimpleAttrs.PostYScale();
   }
 
   virtual const char* Name() const override { return "ContainerLayerComposite"; }
@@ -128,11 +129,13 @@ class RefLayerComposite : public RefLayer,
   template<class ContainerT>
   friend void ContainerRender(ContainerT* aContainer,
                               LayerManagerComposite* aManager,
-                              const gfx::IntRect& aClipRect);
+                              const gfx::IntRect& aClipRect,
+                              const Maybe<gfx::Polygon>& aGeometry);
   template<class ContainerT>
   friend void RenderLayers(ContainerT* aContainer,
                            LayerManagerComposite* aManager,
-                           const gfx::IntRect& aClipRect);
+                           const gfx::IntRect& aClipRect,
+                           const Maybe<gfx::Polygon>& aGeometry);
   template<class ContainerT>
   friend void RenderIntermediate(ContainerT* aContainer,
                    LayerManagerComposite* aManager,
@@ -159,11 +162,20 @@ public:
   /** LayerOGL implementation */
   Layer* GetLayer() override { return this; }
 
+  virtual void SetLayerManager(HostLayerManager* aManager) override
+  {
+    LayerComposite::SetLayerManager(aManager);
+    mManager = aManager;
+    mLastIntermediateSurface = nullptr;
+  }
+
   void Destroy() override;
 
   LayerComposite* GetFirstChildComposite() override;
 
-  virtual void RenderLayer(const gfx::IntRect& aClipRect) override;
+  virtual void RenderLayer(const gfx::IntRect& aClipRect,
+                           const Maybe<gfx::Polygon>& aGeometry) override;
+
   virtual void Prepare(const RenderTargetIntRect& aClipRect) override;
 
   virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) override
@@ -173,7 +185,7 @@ public:
 
   virtual void CleanupResources() override;
 
-  virtual LayerComposite* AsLayerComposite() override { return this; }
+  virtual HostLayer* AsHostLayer() override { return this; }
 
   // ref layers don't use a compositable
   CompositableHost* GetCompositableHost() override { return nullptr; }

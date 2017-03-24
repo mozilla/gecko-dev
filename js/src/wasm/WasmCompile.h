@@ -19,7 +19,6 @@
 #ifndef wasm_compile_h
 #define wasm_compile_h
 
-#include "wasm/WasmJS.h"
 #include "wasm/WasmModule.h"
 
 namespace js {
@@ -40,18 +39,20 @@ struct CompileArgs
 {
     Assumptions assumptions;
     ScriptedCaller scriptedCaller;
-    MOZ_INIT_OUTSIDE_CTOR bool alwaysBaseline;
+    bool alwaysBaseline;
+    bool debugEnabled;
 
     CompileArgs(Assumptions&& assumptions, ScriptedCaller&& scriptedCaller)
       : assumptions(Move(assumptions)),
         scriptedCaller(Move(scriptedCaller)),
-        alwaysBaseline(false)
+        alwaysBaseline(false),
+        debugEnabled(false)
     {}
 
     // If CompileArgs is constructed without arguments, initFromContext() must
     // be called to complete initialization.
     CompileArgs() = default;
-    bool initFromContext(ExclusiveContext* cx, ScriptedCaller&& scriptedCaller);
+    bool initFromContext(JSContext* cx, ScriptedCaller&& scriptedCaller);
 };
 
 // Compile the given WebAssembly bytecode with the given arguments into a

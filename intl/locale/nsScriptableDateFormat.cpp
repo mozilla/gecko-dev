@@ -3,18 +3,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "DateTimeFormat.h"
 #include "mozilla/Sprintf.h"
-#include "nsILocaleService.h"
-#include "nsDateTimeFormatCID.h"
-#include "nsIDateTimeFormat.h"
 #include "nsIScriptableDateFormat.h"
 #include "nsCOMPtr.h"
 #include "nsServiceManagerUtils.h"
 
 static NS_DEFINE_CID(kLocaleServiceCID, NS_LOCALESERVICE_CID);
-static NS_DEFINE_CID(kDateTimeFormatCID, NS_DATETIMEFORMAT_CID);
 
-class nsScriptableDateFormat : public nsIScriptableDateFormat {
+class nsScriptableDateFormat final : public nsIScriptableDateFormat {
  public: 
   NS_DECL_ISUPPORTS 
 
@@ -75,22 +72,7 @@ NS_IMETHODIMP nsScriptableDateFormat::FormatDateTime(
     return NS_ERROR_INVALID_ARG;
 
   nsresult rv;
-  nsAutoString localeName(aLocale);
   *dateTimeString = nullptr;
-
-  nsCOMPtr<nsILocale> locale;
-  // re-initialise locale pointer only if the locale was given explicitly
-  if (!localeName.IsEmpty()) {
-    // get locale service
-    nsCOMPtr<nsILocaleService> localeService(do_GetService(kLocaleServiceCID, &rv));
-    NS_ENSURE_SUCCESS(rv, rv);
-    // get locale
-    rv = localeService->NewLocale(localeName, getter_AddRefs(locale));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  nsCOMPtr<nsIDateTimeFormat> dateTimeFormat(do_CreateInstance(kDateTimeFormatCID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
 
   tm tmTime;
   time_t timetTime;
@@ -107,8 +89,8 @@ NS_IMETHODIMP nsScriptableDateFormat::FormatDateTime(
   timetTime = mktime(&tmTime);
 
   if ((time_t)-1 != timetTime) {
-    rv = dateTimeFormat->FormatTime(locale, dateFormatSelector, timeFormatSelector, 
-                                     timetTime, mStringOut);
+    rv = mozilla::DateTimeFormat::FormatTime(dateFormatSelector, timeFormatSelector,
+                                             timetTime, mStringOut);
   }
   else {
     // if mktime fails (e.g. year <= 1970), then try NSPR.
@@ -118,8 +100,8 @@ NS_IMETHODIMP nsScriptableDateFormat::FormatDateTime(
     if (PR_SUCCESS != PR_ParseTimeString(string, false, &prtime))
       return NS_ERROR_INVALID_ARG;
 
-    rv = dateTimeFormat->FormatPRTime(locale, dateFormatSelector, timeFormatSelector, 
-                                      prtime, mStringOut);
+    rv = mozilla::DateTimeFormat::FormatPRTime(dateFormatSelector, timeFormatSelector,
+                                               prtime, mStringOut);
   }
   if (NS_SUCCEEDED(rv))
     *dateTimeString = ToNewUnicode(mStringOut);

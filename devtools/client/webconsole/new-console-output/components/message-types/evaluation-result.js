@@ -33,13 +33,17 @@ function EvaluationResult(props) {
     level,
     id: messageId,
     exceptionDocURL,
+    frame,
+    timeStamp,
+    parameters,
+    notes,
   } = message;
 
   let messageBody;
   if (message.messageText) {
     messageBody = message.messageText;
   } else {
-    messageBody = GripMessageBody({grip: message.parameters});
+    messageBody = GripMessageBody({grip: parameters, serviceContainer, useQuotes: true});
   }
 
   const topLevelClasses = ["cm-s-mozilla"];
@@ -55,6 +59,10 @@ function EvaluationResult(props) {
     scrollToMessage: props.autoscroll,
     serviceContainer,
     exceptionDocURL,
+    frame,
+    timeStamp,
+    parameters,
+    notes,
   };
   return Message(childProps);
 }

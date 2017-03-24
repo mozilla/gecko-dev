@@ -20,7 +20,7 @@
 #include "mozilla/scache/StartupCache.h"
 
 namespace mozilla {
-class CSSStyleSheet;
+class StyleSheet;
 } // namespace mozilla
 
 /**
@@ -74,15 +74,15 @@ public:
      * Get a style sheet by URI. If the style sheet is not in the cache,
      * returns nullptr.
      */
-    mozilla::CSSStyleSheet* GetStyleSheet(nsIURI* aURI) {
-        return mStyleSheetTable.GetWeak(aURI);
-    }
+    mozilla::StyleSheet* GetStyleSheet(nsIURI* aURI,
+                                       mozilla::StyleBackendType aType);
 
     /**
      * Store a style sheet in the cache. The key, style sheet's URI is obtained
      * from the style sheet itself.
      */
-    nsresult PutStyleSheet(mozilla::CSSStyleSheet* aStyleSheet);
+    nsresult PutStyleSheet(mozilla::StyleSheet* aStyleSheet,
+                           mozilla::StyleBackendType aType);
 
     /**
      * Write the XUL prototype document to a cache file. The proto must be
@@ -122,8 +122,15 @@ protected:
 
     void FlushSkinFiles();
 
+    typedef nsRefPtrHashtable<nsURIHashKey, mozilla::StyleSheet> StyleSheetTable;
+    StyleSheetTable& TableForBackendType(mozilla::StyleBackendType aType) {
+      return aType == mozilla::StyleBackendType::Gecko ? mGeckoStyleSheetTable
+                                                       : mServoStyleSheetTable;
+    }
+
     nsRefPtrHashtable<nsURIHashKey,nsXULPrototypeDocument>   mPrototypeTable; // owns the prototypes
-    nsRefPtrHashtable<nsURIHashKey,mozilla::CSSStyleSheet>   mStyleSheetTable;
+    StyleSheetTable                                          mGeckoStyleSheetTable;
+    StyleSheetTable                                          mServoStyleSheetTable;
     nsJSThingHashtable<nsURIHashKey, JSScript*>              mScriptTable;
     nsRefPtrHashtable<nsURIHashKey,nsXBLDocumentInfo>        mXBLDocTable;
 

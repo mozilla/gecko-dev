@@ -87,11 +87,10 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
         self.log.info("%s | current directory: %r" % (name, self.remoteHere))
         self.log.info("%s | environment: %s" % (name, self.env))
 
-    def getHeadAndTailFiles(self, test):
+    def getHeadFiles(self, test):
         """Override parent method to find files on remote device.
 
-        Obtains lists of head- and tail files.  Returns a tuple containing
-        a list of head files and a list of tail files.
+        Obtains lists of head- files.  Returns a list of head files.
         """
         def sanitize_list(s, kind):
             for f in s.strip().split(' '):
@@ -109,9 +108,7 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
         self.remoteHere = self.remoteForLocal(test['here'])
 
         headlist = test.get('head', '')
-        taillist = test.get('tail', '')
-        return (list(sanitize_list(headlist, 'head')),
-                list(sanitize_list(taillist, 'tail')))
+        return list(sanitize_list(headlist, 'head'))
 
     def buildXpcsCmd(self):
         # change base class' paths to remote paths and use base class to build command
@@ -147,9 +144,9 @@ class RemoteXPCShellTestThread(xpcshell.XPCShellTestThread):
                 self.shellReturnCode = self.device.shell(cmd, f, timeout=timeout+10)
             except mozdevice.DMError as e:
                 if self.timedout:
-                    # If the test timed out, there is a good chance the SUTagent also
-                    # timed out and failed to return a return code, generating a
-                    # DMError. Ignore the DMError to simplify the error report.
+                    # If the test timed out, there is a good chance the device
+                    # manager also timed out and raised DMError.
+                    # Ignore the DMError to simplify the error report.
                     self.shellReturnCode = None
                     pass
                 else:
@@ -581,16 +578,10 @@ def main():
                                     options,
                                     {"tbpl": sys.stdout})
 
-    if options.dm_trans == "adb":
-        if options.deviceIP:
-            dm = mozdevice.DroidADB(options.deviceIP, options.devicePort, packageName=None, deviceRoot=options.remoteTestRoot)
-        else:
-            dm = mozdevice.DroidADB(packageName=None, deviceRoot=options.remoteTestRoot)
+    if options.deviceIP:
+        dm = mozdevice.DroidADB(options.deviceIP, options.devicePort, packageName=None, deviceRoot=options.remoteTestRoot)
     else:
-        if not options.deviceIP:
-            print "Error: you must provide a device IP to connect to via the --device option"
-            sys.exit(1)
-        dm = mozdevice.DroidSUT(options.deviceIP, options.devicePort, deviceRoot=options.remoteTestRoot)
+        dm = mozdevice.DroidADB(packageName=None, deviceRoot=options.remoteTestRoot)
 
     if options.interactive and not options.testPath:
         print >>sys.stderr, "Error: You must specify a test filename in interactive mode!"

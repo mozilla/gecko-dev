@@ -16,11 +16,11 @@ XPCOMUtils.defineLazyGetter(this, "gBrowserBundle", function() {
   return Services.strings.createBundle("chrome://browser/locale/browser.properties");
 });
 
-XPCOMUtils.defineLazyGetter(this, "gTextDecoder", function () {
+XPCOMUtils.defineLazyGetter(this, "gTextDecoder", function() {
   return new TextDecoder();
 });
 
-XPCOMUtils.defineLazyGetter(this, "gTextEncoder", function () {
+XPCOMUtils.defineLazyGetter(this, "gTextEncoder", function() {
   return new TextEncoder();
 });
 
@@ -193,6 +193,8 @@ _ContextualIdentityService.prototype = {
       identity.icon = icon;
       delete identity.l10nID;
       delete identity.accessKey;
+
+      Services.obs.notifyObservers(null, "contextual-identity-updated", userContextId);
       this.saveSoon();
     }
 
@@ -239,11 +241,10 @@ _ContextualIdentityService.prototype = {
       }
     } catch (error) {
       this.loadError(error);
-      return;
     }
   },
 
-  getIdentities() {
+  getPublicIdentities() {
     this.ensureDataReady();
     return Cu.cloneInto(this._identities.filter(info => info.public), {});
   },
@@ -253,15 +254,15 @@ _ContextualIdentityService.prototype = {
     return Cu.cloneInto(this._identities.find(info => !info.public && info.name == name), {});
   },
 
-  getIdentityFromId(userContextId) {
+  getPublicIdentityFromId(userContextId) {
     this.ensureDataReady();
     return Cu.cloneInto(this._identities.find(info => info.userContextId == userContextId &&
                                               info.public), {});
   },
 
   getUserContextLabel(userContextId) {
-    let identity = this.getIdentityFromId(userContextId);
-    if (!identity || !identity.public) {
+    let identity = this.getPublicIdentityFromId(userContextId);
+    if (!identity) {
       return "";
     }
 
@@ -279,23 +280,25 @@ _ContextualIdentityService.prototype = {
     }
 
     let userContextId = tab.getAttribute("usercontextid");
-    let identity = this.getIdentityFromId(userContextId);
+    let identity = this.getPublicIdentityFromId(userContextId);
     tab.setAttribute("data-identity-color", identity ? identity.color : "");
   },
 
-  countContainerTabs() {
+  countContainerTabs(userContextId = 0) {
     let count = 0;
-    this._forEachContainerTab(function() { ++count; });
+    this._forEachContainerTab(function() {
+      ++count;
+    }, userContextId);
     return count;
   },
 
-  closeAllContainerTabs() {
+  closeContainerTabs(userContextId = 0) {
     this._forEachContainerTab(function(tab, tabbrowser) {
       tabbrowser.removeTab(tab);
-    });
+    }, userContextId);
   },
 
-  _forEachContainerTab(callback) {
+  _forEachContainerTab(callback, userContextId = 0) {
     let windowList = Services.wm.getEnumerator("navigator:browser");
     while (windowList.hasMoreElements()) {
       let win = windowList.getNext();
@@ -307,7 +310,9 @@ _ContextualIdentityService.prototype = {
       let tabbrowser = win.gBrowser;
       for (let i = tabbrowser.tabContainer.childNodes.length - 1; i >= 0; --i) {
         let tab = tabbrowser.tabContainer.childNodes[i];
-	if (tab.hasAttribute("usercontextid")) {
+	if (tab.hasAttribute("usercontextid") &&
+            (!userContextId ||
+             parseInt(tab.getAttribute("usercontextid"), 10) == userContextId)) {
 	  callback(tab, tabbrowser);
 	}
       }
@@ -315,10 +320,10 @@ _ContextualIdentityService.prototype = {
   },
 
   telemetry(userContextId) {
-    let identity = this.getIdentityFromId(userContextId);
+    let identity = this.getPublicIdentityFromId(userContextId);
 
     // Let's ignore unknown identities for now.
-    if (!identity || !identity.public) {
+    if (!identity) {
       return;
     }
 

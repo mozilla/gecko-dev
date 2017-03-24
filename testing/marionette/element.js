@@ -8,8 +8,10 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Log.jsm");
 
+Cu.import("chrome://marionette/content/assert.js");
 Cu.import("chrome://marionette/content/atom.js");
 Cu.import("chrome://marionette/content/error.js");
+Cu.import("chrome://marionette/content/wait.js");
 
 const logger = Log.repository.getLogger("Marionette");
 
@@ -173,14 +175,18 @@ element.Store = class {
     if (container.shadowRoot) {
       wrappedShadowRoot = new XPCNativeWrapper(container.shadowRoot);
     }
-
     let wrappedEl = new XPCNativeWrapper(el);
+    let wrappedContainer = {
+      frame: wrappedFrame,
+      shadowRoot: wrappedShadowRoot,
+    };
     if (!el ||
         !(wrappedEl.ownerDocument == wrappedFrame.document) ||
-        element.isDisconnected(wrappedEl, wrappedFrame, wrappedShadowRoot)) {
+        element.isDisconnected(wrappedEl, wrappedContainer)) {
       throw new StaleElementReferenceError(
-          "The element reference is stale. Either the element " +
-          "is no longer attached to the DOM or the page has been refreshed.");
+          error.pprint`The element reference of ${el} stale: ` +
+              "either the element is no longer attached to the DOM " +
+              "or the page has been refreshed");
     }
 
     return el;
@@ -234,7 +240,7 @@ element.Store = class {
  *     If a single element is requested, this error will throw if the
  *     element is not found.
  */
-element.find = function(container, strategy, selector, opts = {}) {
+element.find = function (container, strategy, selector, opts = {}) {
   opts.all = !!opts.all;
   opts.timeout = opts.timeout || 0;
 
@@ -246,9 +252,14 @@ element.find = function(container, strategy, selector, opts = {}) {
   }
 
   return new Promise((resolve, reject) => {
-    let findElements = implicitlyWaitFor(
-        () => find_(container, strategy, selector, searchFn, opts),
-        opts.timeout);
+    let findElements = wait.until((resolve, reject) => {
+      let res = find_(container, strategy, selector, searchFn, opts);
+      if (res.length > 0) {
+        resolve(Array.from(res));
+      } else {
+        reject([]);
+      }
+    }, opts.timeout);
 
     findElements.then(foundEls => {
       // the following code ought to be moved into findElement
@@ -277,7 +288,25 @@ element.find = function(container, strategy, selector, opts = {}) {
 
 function find_(container, strategy, selector, searchFn, opts) {
   let rootNode = container.shadowRoot || container.frame.document;
-  let startNode = opts.startNode || rootNode;
+  let startNode;
+
+  if (opts.startNode) {
+    startNode = opts.startNode;
+  } else {
+    switch (strategy) {
+      // For anonymous nodes the start node needs to be of type DOMElement, which
+      // will refer to :root in case of a DOMDocument.
+      case element.Strategy.Anon:
+      case element.Strategy.AnonAttribute:
+        if (rootNode instanceof Ci.nsIDOMDocument) {
+          startNode = rootNode.documentElement;
+        }
+        break;
+
+      default:
+        startNode = rootNode;
+    }
+  }
 
   let res;
   try {
@@ -309,9 +338,9 @@ function find_(container, strategy, selector, searchFn, opts) {
  * @return {DOMElement}
  *     First element matching expression.
  */
-element.findByXPath = function(root, startNode, expr) {
+element.findByXPath = function (root, startNode, expr) {
   let iter = root.evaluate(expr, startNode, null,
-      Ci.nsIDOMXPathResult.FIRST_ORDERED_NODE_TYPE, null)
+      Ci.nsIDOMXPathResult.FIRST_ORDERED_NODE_TYPE, null);
   return iter.singleNodeValue;
 };
 
@@ -328,7 +357,7 @@ element.findByXPath = function(root, startNode, expr) {
  * @return {Array.<DOMElement>}
  *     Sequence of found elements matching expression.
  */
-element.findByXPathAll = function(root, startNode, expr) {
+element.findByXPathAll = function (root, startNode, expr) {
   let rv = [];
   let iter = root.evaluate(expr, startNode, null,
       Ci.nsIDOMXPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
@@ -351,7 +380,7 @@ element.findByXPathAll = function(root, startNode, expr) {
  * @return {Array.<DOMAnchorElement>}
  *     Sequence of link elements which text is |s|.
  */
-element.findByLinkText = function(node, s) {
+element.findByLinkText = function (node, s) {
   return filterLinks(node, link => link.text.trim() === s);
 };
 
@@ -366,7 +395,7 @@ element.findByLinkText = function(node, s) {
  * @return {Array.<DOMAnchorElement>}
  *     Sequence of link elements which text containins |s|.
  */
-element.findByPartialLinkText = function(node, s) {
+element.findByPartialLinkText = function (node, s) {
   return filterLinks(node, link => link.text.indexOf(s) != -1);
 };
 
@@ -459,6 +488,7 @@ function findElement(using, value, rootNode, startNode) {
       } catch (e) {
         throw new InvalidSelectorError(`${e.message}: "${value}"`);
       }
+      break;
 
     case element.Strategy.Anon:
       return rootNode.getAnonymousNodes(startNode);
@@ -470,7 +500,7 @@ function findElement(using, value, rootNode, startNode) {
     default:
       throw new InvalidSelectorError(`No such strategy: ${using}`);
   }
-};
+}
 
 /**
  * Find multiple elements.
@@ -538,84 +568,8 @@ function findElements(using, value, rootNode, startNode) {
   }
 }
 
-/**
- * Runs function off the main thread until its return value is truthy
- * or the provided timeout is reached.  The function is guaranteed to be
- * run at least once, irregardless of the timeout.
- *
- * A truthy return value constitutes a truthful boolean, positive number,
- * object, or non-empty array.
- *
- * The |func| is evaluated every |interval| for as long as its runtime
- * duration does not exceed |interval|.  If the runtime evaluation duration
- * of |func| is greater than |interval|, evaluations of |func| are queued.
- *
- * @param {function(): ?} func
- *     Function to run off the main thread.
- * @param {number} timeout
- *     Desired timeout.  If 0 or less than the runtime evaluation time
- *     of |func|, |func| is guaranteed to run at least once.
- * @param {number=} interval
- *     Duration between each poll of |func| in milliseconds.  Defaults to
- *     100 milliseconds.
- *
- * @return {Promise}
- *     Yields the return value from |func|.  The promise is rejected if
- *     |func| throws.
- */
-function implicitlyWaitFor(func, timeout, interval = 100) {
-  let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-
-  return new Promise((resolve, reject) => {
-    let startTime = new Date().getTime();
-    let endTime = startTime + timeout;
-
-    let elementSearch = function() {
-      let res;
-      try {
-        res = func();
-      } catch (e) {
-        reject(e);
-      }
-
-      if (
-        // collections that might contain web elements
-        // should be checked until they are not empty
-        (element.isCollection(res) && res.length > 0)
-
-        // !![] (ensuring boolean type on empty array) always returns true
-        // and we can only use it on non-collections
-        || (!element.isCollection(res) && !!res)
-
-        // return immediately if timeout is 0,
-        // allowing |func| to be evaluted at least once
-        || startTime == endTime
-
-        // return if timeout has elapsed
-        || new Date().getTime() >= endTime
-      ) {
-        resolve(res);
-      }
-    };
-
-    // the repeating slack timer waits |interval|
-    // before invoking |elementSearch|
-    elementSearch();
-
-    timer.init(elementSearch, interval, Ci.nsITimer.TYPE_REPEATING_SLACK);
-
-  // cancel timer and propagate result
-  }).then(res => {
-    timer.cancel();
-    return res;
-  }, err => {
-    timer.cancel();
-    throw err;
-  });
-}
-
 /** Determines if |obj| is an HTML or JS collection. */
-element.isCollection = function(seq) {
+element.isCollection = function (seq) {
   switch (Object.prototype.toString.call(seq)) {
     case "[object Arguments]":
     case "[object Array]":
@@ -632,7 +586,7 @@ element.isCollection = function(seq) {
   }
 };
 
-element.makeWebElement = function(uuid) {
+element.makeWebElement = function (uuid) {
   return {
     [element.Key]: uuid,
     [element.LegacyKey]: uuid,
@@ -647,7 +601,7 @@ element.makeWebElement = function(uuid) {
  * @return {boolean}
  *     True if |ref| has either expected property.
  */
-element.isWebElementReference = function(ref) {
+element.isWebElementReference = function (ref) {
   let properties = Object.getOwnPropertyNames(ref);
   return properties.includes(element.Key) || properties.includes(element.LegacyKey);
 };
@@ -674,7 +628,7 @@ element.generateUUID = function() {
  *     Same object as provided by |obj| with the web elements replaced
  *     by DOM elements.
  */
-element.fromJson = function(
+element.fromJson = function (
     obj, seenEls, win, shadowRoot = undefined) {
   switch (typeof obj) {
     case "boolean":
@@ -730,7 +684,7 @@ element.fromJson = function(
  *     Same object as provided by |obj| with the elements replaced by
  *     web elements.
  */
-element.toJson = function(obj, seenEls) {
+element.toJson = function (obj, seenEls) {
   let t = Object.prototype.toString.call(obj);
 
   // null
@@ -774,18 +728,19 @@ element.toJson = function(obj, seenEls) {
  *
  * @param {nsIDOMElement} el
  *     Element to be checked.
- * @param nsIDOMWindow frame
- *     Window object that contains the element or the current host
- *     of the shadow root.
- * @param {ShadowRoot=} shadowRoot
- *     An optional shadow root containing an element.
+ * @param {Container} container
+ *     Container with |frame|, which is the window object that contains
+ *     the element, and an optional |shadowRoot|.
  *
  * @return {boolean}
  *     Flag indicating that the element is disconnected.
  */
-element.isDisconnected = function(el, frame, shadowRoot = undefined) {
+element.isDisconnected = function (el, container = {}) {
+  const {frame, shadowRoot} = container;
+  assert.defined(frame);
+
   // shadow dom
-  if (shadowRoot && frame.ShadowRoot) {
+  if (frame.ShadowRoot && shadowRoot) {
     if (el.compareDocumentPosition(shadowRoot) &
         DOCUMENT_POSITION_DISCONNECTED) {
       return true;
@@ -796,7 +751,9 @@ element.isDisconnected = function(el, frame, shadowRoot = undefined) {
     while (parent && !(parent instanceof frame.ShadowRoot)) {
       parent = parent.parentNode;
     }
-    return element.isDisconnected(shadowRoot.host, frame, parent);
+    return element.isDisconnected(
+        shadowRoot.host,
+        {frame: frame, shadowRoot: parent});
 
   // outside shadow dom
   } else {
@@ -826,7 +783,7 @@ element.isDisconnected = function(el, frame, shadowRoot = undefined) {
  * @throws TypeError
  *     If |xOffset| or |yOffset| are not numbers.
  */
-element.coordinates = function(
+element.coordinates = function (
     node, xOffset = undefined, yOffset = undefined) {
 
   let box = node.getBoundingClientRect();
@@ -863,8 +820,8 @@ element.coordinates = function(
  * @return {boolean}
  *     True if if |el| is in viewport, false otherwise.
  */
-element.inViewport = function(el, x = undefined, y = undefined) {
-  let win = el.ownerDocument.defaultView;
+element.inViewport = function (el, x = undefined, y = undefined) {
+  let win = el.ownerGlobal;
   let c = element.coordinates(el, x, y);
   let vp = {
     top: win.pageYOffset,
@@ -880,13 +837,69 @@ element.inViewport = function(el, x = undefined, y = undefined) {
 };
 
 /**
+ * Gets the element's container element.
+ *
+ * An element container is defined by the WebDriver
+ * specification to be an <option> element in a valid element context
+ * (https://html.spec.whatwg.org/#concept-element-contexts), meaning
+ * that it has an ancestral element that is either <datalist> or <select>.
+ *
+ * If the element does not have a valid context, its container element
+ * is itself.
+ *
+ * @param {Element} el
+ *     Element to get the container of.
+ *
+ * @return {Element}
+ *     Container element of |el|.
+ */
+element.getContainer = function (el) {
+  if (el.localName != "option") {
+    return el;
+  }
+
+  function validContext(ctx) {
+    return ctx.localName == "datalist" || ctx.localName == "select";
+  }
+
+  // does <option> have a valid context,
+  // meaning is it a child of <datalist> or <select>?
+  let parent = el;
+  while (parent.parentNode && !validContext(parent)) {
+    parent = parent.parentNode;
+  }
+
+  if (!validContext(parent)) {
+    return el;
+  }
+  return parent;
+};
+
+/**
+ * An element is in view if it is a member of its own pointer-interactable
+ * paint tree.
+ *
+ * This means an element is considered to be in view, but not necessarily
+ * pointer-interactable, if it is found somewhere in the
+ * |elementsFromPoint| list at |el|'s in-view centre coordinates.
+ *
+ * @param {Element} el
+ *     Element to check if is in view.
+ *
+ * @return {boolean}
+ *     True if |el| is inside the viewport, or false otherwise.
+ */
+element.isInView = function (el) {
+  let tree = element.getPointerInteractablePaintTree(el);
+  return tree.includes(el);
+};
+
+/**
  * This function throws the visibility of the element error if the element is
  * not displayed or the given coordinates are not within the viewport.
  *
- * @param {Element} element
+ * @param {Element} el
  *     Element to check if visible.
- * @param {Window} window
- *     Window object.
  * @param {number=} x
  *     Horizontal offset relative to target.  Defaults to the centre of
  *     the target's bounding box.
@@ -897,8 +910,8 @@ element.inViewport = function(el, x = undefined, y = undefined) {
  * @return {boolean}
  *     True if visible, false otherwise.
  */
-element.isVisible = function(el, x = undefined, y = undefined) {
-  let win = el.ownerDocument.defaultView;
+element.isVisible = function (el, x = undefined, y = undefined) {
+  let win = el.ownerGlobal;
 
   // Bug 1094246: webdriver's isShown doesn't work with content xul
   if (!element.isXULElement(el) && !atom.isElementDisplayed(el, win)) {
@@ -910,21 +923,12 @@ element.isVisible = function(el, x = undefined, y = undefined) {
   }
 
   if (!element.inViewport(el, x, y)) {
-    if (el.scrollIntoView) {
-      el.scrollIntoView({block: "start", inline: "nearest"});
-      if (!element.inViewport(el)) {
-        return false;
-      }
-    } else {
+    element.scrollIntoView(el);
+    if (!element.inViewport(el)) {
       return false;
     }
   }
   return true;
-};
-
-element.isInteractable = function(el) {
-  return element.isPointerInteractable(el) ||
-      element.isKeyboardInteractable(el);
 };
 
 /**
@@ -939,9 +943,40 @@ element.isInteractable = function(el) {
  * @return {boolean}
  *     True if interactable, false otherwise.
  */
-element.isPointerInteractable = function(el) {
-  let tree = element.getInteractableElementTree(el);
-  return tree.length > 0;
+element.isPointerInteractable = function (el) {
+  let tree = element.getPointerInteractablePaintTree(el);
+  return tree[0] === el;
+};
+
+/**
+ * Calculate the in-view centre point of the area of the given DOM client
+ * rectangle that is inside the viewport.
+ *
+ * @param {DOMRect} rect
+ *     Element off a DOMRect sequence produced by calling |getClientRects|
+ *     on a |DOMElement|.
+ * @param {nsIDOMWindow} win
+ *     Current browsing context.
+ *
+ * @return {Map.<string, number>}
+ *     X and Y coordinates that denotes the in-view centre point of |rect|.
+ */
+element.getInViewCentrePoint = function (rect, win) {
+  const {max, min} = Math;
+
+  let x = {
+    left: max(0, min(rect.x, rect.x + rect.width)),
+    right: min(win.innerWidth, max(rect.x, rect.x + rect.width)),
+  };
+  let y = {
+    top: max(0, min(rect.y, rect.y + rect.height)),
+    bottom: min(win.innerHeight, max(rect.y, rect.y + rect.height)),
+  };
+
+  return {
+    x: (x.left + x.right) / 2,
+    y: (y.top + y.bottom) / 2,
+  };
 };
 
 /**
@@ -955,55 +990,49 @@ element.isPointerInteractable = function(el) {
  *     Element to determine if is pointer-interactable.
  *
  * @return {Array.<DOMElement>}
- *     Sequence of non-opaque elements in paint order.
+ *     Sequence of elements in paint order.
  */
-element.getInteractableElementTree = function(el) {
-  let doc = el.ownerDocument;
-  let win = doc.defaultView;
+element.getPointerInteractablePaintTree = function (el) {
+  const doc = el.ownerDocument;
+  const win = doc.defaultView;
 
-  // step 1
-  // TODO
-
-  // steps 2-3
-  let box = el.getBoundingClientRect();
-  let visible = {
-    width: Math.max(box.x, box.x + box.width) - win.innerWidth,
-    height: Math.max(box.y, box.y + box.height) - win.innerHeight,
-  };
-
-  // steps 4-5
-  let offset = {
-    vertical: visible.width / 2.0,
-    horizontal: visible.height / 2.0,
-  };
-
-  // step 6
-  let centre = {
-    x: box.x + offset.horizontal,
-    y: box.y + offset.vertical,
-  };
-
-  // step 7
-  let tree = doc.elementsFromPoint(centre.x, centre.y);
-
-  // filter out non-interactable elements
-  let rv = [];
-  for (let el of tree) {
-    if (win.getComputedStyle(el).opacity === "1") {
-      rv.push(el);
-    }
+  // pointer-interactable elements tree, step 1
+  if (element.isDisconnected(el, {frame: win})) {
+    return [];
   }
 
-  return rv;
+  // steps 2-3
+  let rects = el.getClientRects();
+  if (rects.length == 0) {
+    return [];
+  }
+
+  // step 4
+  let centre = element.getInViewCentrePoint(rects[0], win);
+
+  // step 5
+  return doc.elementsFromPoint(centre.x, centre.y);
 };
 
 // TODO(ato): Not implemented.
 // In fact, it's not defined in the spec.
-element.isKeyboardInteractable = function(el) {
+element.isKeyboardInteractable = function (el) {
   return true;
 };
 
-element.isXULElement = function(el) {
+/**
+ * Attempts to scroll into view |el|.
+ *
+ * @param {DOMElement} el
+ *     Element to scroll into view.
+ */
+element.scrollIntoView = function (el) {
+  if (el.scrollIntoView) {
+    el.scrollIntoView({block: "end", inline: "nearest", behavior: "instant"});
+  }
+};
+
+element.isXULElement = function (el) {
   let ns = atom.getElementAttribute(el, "namespaceURI");
   return ns.indexOf("there.is.only.xul") >= 0;
 };
@@ -1042,7 +1071,7 @@ const boolEls = {
  * @return {boolean}
  *     True if the attribute is boolean, false otherwise.
  */
-element.isBooleanAttribute = function(el, attr) {
+element.isBooleanAttribute = function (el, attr) {
   if (el.namespaceURI !== XMLNS) {
     return false;
   }

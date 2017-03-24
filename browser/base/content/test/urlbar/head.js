@@ -1,3 +1,5 @@
+/* eslint-env mozilla/frame-script */
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
@@ -27,8 +29,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
  *        progress listener callback.
  * @return promise
  */
-function waitForDocLoadAndStopIt(aExpectedURL, aBrowser=gBrowser.selectedBrowser, aStopFromProgressListener=true) {
-  function content_script(aStopFromProgressListener) {
+function waitForDocLoadAndStopIt(aExpectedURL, aBrowser = gBrowser.selectedBrowser, aStopFromProgressListener = true) {
+  function content_script(contentStopFromProgressListener) {
     let { interfaces: Ci, utils: Cu } = Components;
     Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
     let wp = docShell.QueryInterface(Ci.nsIWebProgress);
@@ -46,7 +48,7 @@ function waitForDocLoadAndStopIt(aExpectedURL, aBrowser=gBrowser.selectedBrowser
     }
 
     let progressListener = {
-      onStateChange: function (webProgress, req, flags, status) {
+      onStateChange(webProgress, req, flags, status) {
         dump("waitForDocLoadAndStopIt: onStateChange " + flags.toString(16) + ": " + req.name + "\n");
 
         if (webProgress.isTopLevel &&
@@ -56,7 +58,7 @@ function waitForDocLoadAndStopIt(aExpectedURL, aBrowser=gBrowser.selectedBrowser
           let chan = req.QueryInterface(Ci.nsIChannel);
           dump(`waitForDocLoadAndStopIt: Document start: ${chan.URI.spec}\n`);
 
-          stopContent(aStopFromProgressListener, chan.originalURI.spec);
+          stopContent(contentStopFromProgressListener, chan.originalURI.spec);
         }
       },
       QueryInterface: XPCOMUtils.generateQI(["nsISupportsWeakReference"])
@@ -68,7 +70,7 @@ function waitForDocLoadAndStopIt(aExpectedURL, aBrowser=gBrowser.selectedBrowser
      * event handler is the easiest way to ensure the weakly referenced
      * progress listener is kept alive as long as necessary.
      */
-    addEventListener("unload", function () {
+    addEventListener("unload", function() {
       try {
         wp.removeProgressListener(progressListener);
       } catch (e) { /* Will most likely fail. */ }
@@ -139,10 +141,9 @@ function promisePopupEvent(popup, eventSuffix) {
 
   let eventType = "popup" + eventSuffix;
   let deferred = Promise.defer();
-  popup.addEventListener(eventType, function onPopupShown(event) {
-    popup.removeEventListener(eventType, onPopupShown);
+  popup.addEventListener(eventType, function(event) {
     deferred.resolve();
-  });
+  }, {once: true});
 
   return deferred.promise;
 }
@@ -190,16 +191,15 @@ function promiseNewSearchEngine(basename) {
     info("Waiting for engine to be added: " + basename);
     let url = getRootDirectory(gTestPath) + basename;
     Services.search.addEngine(url, null, "", false, {
-      onSuccess: function (engine) {
+      onSuccess(engine) {
         info("Search engine added: " + basename);
         registerCleanupFunction(() => Services.search.removeEngine(engine));
         resolve(engine);
       },
-      onError: function (errCode) {
+      onError(errCode) {
         Assert.ok(false, "addEngine failed with error code " + errCode);
         reject();
       },
     });
   });
 }
-

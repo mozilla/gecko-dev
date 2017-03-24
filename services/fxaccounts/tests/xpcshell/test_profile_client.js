@@ -14,13 +14,18 @@ const STATUS_SUCCESS = 200;
  *        Mocked raw response from the server
  * @returns {Function}
  */
-var mockResponse = function (response) {
-  let Request = function (requestUri) {
+let mockResponse = function(response) {
+  let Request = function(requestUri) {
     // Store the request uri so tests can inspect it
     Request._requestUri = requestUri;
+    Request.ifNoneMatchSet = false;
     return {
-      setHeader: function () {},
-      get: function () {
+      setHeader(header, value) {
+        if (header == "If-None-Match" && value == "bogusETag") {
+          Request.ifNoneMatchSet = true;
+        }
+      },
+      get() {
         this.response = response;
         this.onComplete();
       }
@@ -33,7 +38,7 @@ var mockResponse = function (response) {
 // A simple mock FxA that hands out tokens without checking them and doesn't
 // expect tokens to be revoked. We have specific token tests further down that
 // has more checks here.
-var mockFxa = {
+let mockFxa = {
   getOAuthToken(options) {
     do_check_eq(options.scope, "profile");
     return "token";
@@ -51,38 +56,81 @@ const PROFILE_OPTIONS = {
  *        Error object
  * @returns {Function}
  */
-var mockResponseError = function (error) {
-  return function () {
+let mockResponseError = function(error) {
+  return function() {
     return {
-      setHeader: function () {},
-      get: function () {
+      setHeader() {},
+      get() {
         this.onComplete(error);
       }
     };
   };
 };
 
-add_test(function successfulResponse () {
+add_test(function successfulResponse() {
   let client = new FxAccountsProfileClient(PROFILE_OPTIONS);
   let response = {
     success: true,
     status: STATUS_SUCCESS,
+    headers: { etag: "bogusETag" },
     body: "{\"email\":\"someone@restmail.net\",\"uid\":\"0d5c1a89b8c54580b8e3e8adadae864a\"}",
   };
 
   client._Request = new mockResponse(response);
   client.fetchProfile()
     .then(
-      function (result) {
+      function(result) {
         do_check_eq(client._Request._requestUri, "http://127.0.0.1:1111/v1/profile");
-        do_check_eq(result.email, "someone@restmail.net");
-        do_check_eq(result.uid, "0d5c1a89b8c54580b8e3e8adadae864a");
+        do_check_eq(result.body.email, "someone@restmail.net");
+        do_check_eq(result.body.uid, "0d5c1a89b8c54580b8e3e8adadae864a");
+        do_check_eq(result.etag, "bogusETag");
         run_next_test();
       }
     );
 });
 
-add_test(function parseErrorResponse () {
+add_test(function setsIfNoneMatchETagHeader() {
+  let client = new FxAccountsProfileClient(PROFILE_OPTIONS);
+  let response = {
+    success: true,
+    status: STATUS_SUCCESS,
+    headers: {},
+    body: "{\"email\":\"someone@restmail.net\",\"uid\":\"0d5c1a89b8c54580b8e3e8adadae864a\"}",
+  };
+
+  let req = new mockResponse(response);
+  client._Request = req;
+  client.fetchProfile("bogusETag")
+    .then(
+      function(result) {
+        do_check_eq(client._Request._requestUri, "http://127.0.0.1:1111/v1/profile");
+        do_check_eq(result.body.email, "someone@restmail.net");
+        do_check_eq(result.body.uid, "0d5c1a89b8c54580b8e3e8adadae864a");
+        do_check_true(req.ifNoneMatchSet);
+        run_next_test();
+      }
+    );
+});
+
+add_test(function successful304Response() {
+  let client = new FxAccountsProfileClient(PROFILE_OPTIONS);
+  let response = {
+    success: true,
+    headers: { etag: "bogusETag" },
+    status: 304,
+  };
+
+  client._Request = new mockResponse(response);
+  client.fetchProfile()
+    .then(
+      function(result) {
+        do_check_eq(result, null);
+        run_next_test();
+      }
+    );
+});
+
+add_test(function parseErrorResponse() {
   let client = new FxAccountsProfileClient(PROFILE_OPTIONS);
   let response = {
     success: true,
@@ -94,7 +142,7 @@ add_test(function parseErrorResponse () {
   client.fetchProfile()
     .then(
       null,
-      function (e) {
+      function(e) {
         do_check_eq(e.name, "FxAccountsProfileClientError");
         do_check_eq(e.code, STATUS_SUCCESS);
         do_check_eq(e.errno, ERRNO_PARSE);
@@ -105,7 +153,7 @@ add_test(function parseErrorResponse () {
     );
 });
 
-add_test(function serverErrorResponse () {
+add_test(function serverErrorResponse() {
   let client = new FxAccountsProfileClient(PROFILE_OPTIONS);
   let response = {
     status: 500,
@@ -116,7 +164,7 @@ add_test(function serverErrorResponse () {
   client.fetchProfile()
     .then(
     null,
-    function (e) {
+    function(e) {
       do_check_eq(e.name, "FxAccountsProfileClientError");
       do_check_eq(e.code, 500);
       do_check_eq(e.errno, 100);
@@ -129,13 +177,13 @@ add_test(function serverErrorResponse () {
 
 // Test that we get a token, then if we get a 401 we revoke it, get a new one
 // and retry.
-add_test(function server401ResponseThenSuccess () {
+add_test(function server401ResponseThenSuccess() {
   // The last token we handed out.
   let lastToken = -1;
   // The number of times our removeCachedOAuthToken function was called.
   let numTokensRemoved = 0;
 
-  let mockFxa = {
+  let mockFxaWithRemove = {
     getOAuthToken(options) {
       do_check_eq(options.scope, "profile");
       return "" + ++lastToken; // tokens are strings.
@@ -149,7 +197,7 @@ add_test(function server401ResponseThenSuccess () {
   }
   let profileOptions = {
     serverURL: "http://127.0.0.1:1111/v1",
-    fxa: mockFxa,
+    fxa: mockFxaWithRemove,
   };
   let client = new FxAccountsProfileClient(profileOptions);
 
@@ -162,6 +210,7 @@ add_test(function server401ResponseThenSuccess () {
     {
       success: true,
       status: STATUS_SUCCESS,
+      headers: {},
       body: "{\"avatar\":\"http://example.com/image.jpg\",\"id\":\"0d5c1a89b8c54580b8e3e8adadae864a\"}",
     },
   ];
@@ -171,13 +220,13 @@ add_test(function server401ResponseThenSuccess () {
   // Like mockResponse but we want access to headers etc.
   client._Request = function(requestUri) {
     return {
-      setHeader: function (name, value) {
+      setHeader(name, value) {
         if (name == "Authorization") {
           numAuthHeaders++;
           do_check_eq(value, "Bearer " + lastToken);
         }
       },
-      get: function () {
+      get() {
         this.response = responses[numRequests];
         ++numRequests;
         this.onComplete();
@@ -187,8 +236,8 @@ add_test(function server401ResponseThenSuccess () {
 
   client.fetchProfile()
     .then(result => {
-      do_check_eq(result.avatar, "http://example.com/image.jpg");
-      do_check_eq(result.id, "0d5c1a89b8c54580b8e3e8adadae864a");
+      do_check_eq(result.body.avatar, "http://example.com/image.jpg");
+      do_check_eq(result.body.id, "0d5c1a89b8c54580b8e3e8adadae864a");
       // should have been exactly 2 requests and exactly 2 auth headers.
       do_check_eq(numRequests, 2);
       do_check_eq(numAuthHeaders, 2);
@@ -202,13 +251,13 @@ add_test(function server401ResponseThenSuccess () {
 
 // Test that we get a token, then if we get a 401 we revoke it, get a new one
 // and retry - but we *still* get a 401 on the retry, so the caller sees that.
-add_test(function server401ResponsePersists () {
+add_test(function server401ResponsePersists() {
   // The last token we handed out.
   let lastToken = -1;
   // The number of times our removeCachedOAuthToken function was called.
   let numTokensRemoved = 0;
 
-  let mockFxa = {
+  let mockFxaWithRemove = {
     getOAuthToken(options) {
       do_check_eq(options.scope, "profile");
       return "" + ++lastToken; // tokens are strings.
@@ -222,7 +271,7 @@ add_test(function server401ResponsePersists () {
   }
   let profileOptions = {
     serverURL: "http://127.0.0.1:1111/v1",
-    fxa: mockFxa,
+    fxa: mockFxaWithRemove,
   };
   let client = new FxAccountsProfileClient(profileOptions);
 
@@ -235,13 +284,13 @@ add_test(function server401ResponsePersists () {
   let numAuthHeaders = 0;
   client._Request = function(requestUri) {
     return {
-      setHeader: function (name, value) {
+      setHeader(name, value) {
         if (name == "Authorization") {
           numAuthHeaders++;
           do_check_eq(value, "Bearer " + lastToken);
         }
       },
-      get: function () {
+      get() {
         this.response = response;
         ++numRequests;
         this.onComplete();
@@ -251,7 +300,7 @@ add_test(function server401ResponsePersists () {
 
   client.fetchProfile().then(
     null,
-    function (e) {
+    function(e) {
       do_check_eq(e.name, "FxAccountsProfileClientError");
       do_check_eq(e.code, 401);
       do_check_eq(e.errno, 100);
@@ -266,15 +315,15 @@ add_test(function server401ResponsePersists () {
   );
 });
 
-add_test(function networkErrorResponse () {
+add_test(function networkErrorResponse() {
   let client = new FxAccountsProfileClient({
-    serverURL: "http://",
+    serverURL: "http://domain.dummy",
     fxa: mockFxa,
   });
   client.fetchProfile()
     .then(
       null,
-      function (e) {
+      function(e) {
         do_check_eq(e.name, "FxAccountsProfileClientError");
         do_check_eq(e.code, null);
         do_check_eq(e.errno, ERRNO_NETWORK);
@@ -284,13 +333,13 @@ add_test(function networkErrorResponse () {
     );
 });
 
-add_test(function unsupportedMethod () {
+add_test(function unsupportedMethod() {
   let client = new FxAccountsProfileClient(PROFILE_OPTIONS);
 
   return client._createRequest("/profile", "PUT")
     .then(
       null,
-      function (e) {
+      function(e) {
         do_check_eq(e.name, "FxAccountsProfileClientError");
         do_check_eq(e.code, ERROR_CODE_METHOD_NOT_ALLOWED);
         do_check_eq(e.errno, ERRNO_NETWORK);
@@ -301,13 +350,13 @@ add_test(function unsupportedMethod () {
     );
 });
 
-add_test(function onCompleteRequestError () {
+add_test(function onCompleteRequestError() {
   let client = new FxAccountsProfileClient(PROFILE_OPTIONS);
   client._Request = new mockResponseError(new Error("onComplete error"));
   client.fetchProfile()
     .then(
       null,
-      function (e) {
+      function(e) {
         do_check_eq(e.name, "FxAccountsProfileClientError");
         do_check_eq(e.code, null);
         do_check_eq(e.errno, ERRNO_NETWORK);
@@ -316,26 +365,6 @@ add_test(function onCompleteRequestError () {
         run_next_test();
       }
   );
-});
-
-add_test(function fetchProfileImage_successfulResponse () {
-  let client = new FxAccountsProfileClient(PROFILE_OPTIONS);
-  let response = {
-    success: true,
-    status: STATUS_SUCCESS,
-    body: "{\"avatar\":\"http://example.com/image.jpg\",\"id\":\"0d5c1a89b8c54580b8e3e8adadae864a\"}",
-  };
-
-  client._Request = new mockResponse(response);
-  client.fetchProfileImage()
-    .then(
-      function (result) {
-        do_check_eq(client._Request._requestUri, "http://127.0.0.1:1111/v1/avatar");
-        do_check_eq(result.avatar, "http://example.com/image.jpg");
-        do_check_eq(result.id, "0d5c1a89b8c54580b8e3e8adadae864a");
-        run_next_test();
-      }
-    );
 });
 
 add_test(function constructorTests() {

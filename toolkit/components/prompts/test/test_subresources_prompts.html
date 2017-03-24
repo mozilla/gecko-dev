@@ -30,12 +30,12 @@
 <pre id="test"></pre>
 
 <script class="testbody" type="text/javascript">
+/* import-globals-from prompt_common.js */
 var iframe1Loaded = onloadPromiseFor("iframe_diff_origin");
 var iframe2Loaded = onloadPromiseFor("iframe_same_origin");
 var iframe_prompt = document.getElementById("iframe_prompt");
 
-add_task(function* runTest()
-{
+add_task(function* runTest() {
   // This test depends on tab modal prompts being enabled.
   if (!isTabModal) {
     todo(false, "Test disabled when tab modal prompts are not enabled.");
@@ -49,24 +49,24 @@ add_task(function* runTest()
   let state, action;
 
   state = {
-    msg         : "hello world",
-    iconClass   : "alert-icon",
-    titleHidden : true,
-    textHidden  : true,
-    passHidden  : true,
-    checkHidden : true,
-    textValue   : "",
-    passValue   : "",
-    checkMsg    : "",
-    checked     : false,
-    focused     : "button0",
-    defButton   : "button0",
+    msg: "hello world",
+    iconClass: "alert-icon",
+    titleHidden: true,
+    textHidden: true,
+    passHidden: true,
+    checkHidden: true,
+    textValue: "",
+    passValue: "",
+    checkMsg: "",
+    checked: false,
+    focused: "button0",
+    defButton: "button0",
   };
   action = {
     buttonClick: "ok",
   };
 
-  promptDone = handlePrompt(state, action);
+  let promptDone = handlePrompt(state, action);
 
   var button = document.querySelector("button");
   dispatchMouseEvent(button, "click");
@@ -108,40 +108,40 @@ add_task(function* runTest()
   yield promptDone;
 });
 
-add_task(function* runTestAuth()
-{
+add_task(function* runTestAuth() {
   // Following tests chack prompt message for a cross-origin and not
   // cross-origin subresources load
 
   // Force parent to not look for tab-modal prompts, as they're not
   // used for auth prompts.
   isTabModal = false;
+  let state, action;
 
   state = {
-    msg         : "http://mochi.test:8888 is requesting your username " +
-                  "and password. The site says: “mochitest”",
-    title       : "Authentication Required",
-    textValue   : "",
-    passValue   : "",
-    iconClass   : "authentication-icon question-icon",
-    titleHidden : true,
-    textHidden  : false,
-    passHidden  : false,
-    checkHidden : true,
-    checkMsg    : "",
-    checked     : false,
-    focused     : "textField",
-    defButton   : "button0",
+    msg: "http://mochi.test:8888 is requesting your username " +
+         "and password. The site says: “mochitest”",
+    title: "Authentication Required",
+    textValue: "",
+    passValue: "",
+    iconClass: "authentication-icon question-icon",
+    titleHidden: true,
+    textHidden: false,
+    passHidden: false,
+    checkHidden: true,
+    checkMsg: "",
+    checked: false,
+    focused: "textField",
+    defButton: "button0",
   };
 
   action = {
-    buttonClick : "ok",
-    setCheckbox : false,
-    textField   : "mochiuser1",
-    passField   : "mochipass1",
+    buttonClick: "ok",
+    setCheckbox: false,
+    textField: "mochiuser1",
+    passField: "mochipass1",
   };
 
-  promptDone = handlePrompt(state, action);
+  let promptDone = handlePrompt(state, action);
 
   var iframe3Loaded = onloadPromiseFor("iframe_prompt");
   iframe_prompt.src = "authenticate.sjs?user=mochiuser1&pass=mochipass1";
@@ -153,29 +153,29 @@ add_task(function* runTestAuth()
   // Cross-origin subresourse test.
 
   // Force parent to not look for tab-modal prompts, as they're not used for auth prompts.
-  isTabModal =false;
+  isTabModal = false;
   state = {
-    msg         : "http://example.com is requesting your username and password. " +
-                  "WARNING: Your password will not be sent to the website you are currently visiting!",
-    title       : "Authentication Required",
-    textValue   : "",
-    passValue   : "",
-    iconClass   : "authentication-icon question-icon",
-    titleHidden : true,
-    textHidden  : false,
-    passHidden  : false,
-    checkHidden : true,
-    checkMsg    : "",
-    checked     : false,
-    focused     : "textField",
-    defButton   : "button0",
+    msg: "http://example.com is requesting your username and password. " +
+         "WARNING: Your password will not be sent to the website you are currently visiting!",
+    title: "Authentication Required",
+    textValue: "",
+    passValue: "",
+    iconClass: "authentication-icon question-icon",
+    titleHidden: true,
+    textHidden: false,
+    passHidden: false,
+    checkHidden: true,
+    checkMsg: "",
+    checked: false,
+    focused: "textField",
+    defButton: "button0",
   };
 
   action = {
-    buttonClick : "ok",
-    setCheckbox : false,
-    textField   : "mochiuser2",
-    passField   : "mochipass2",
+    buttonClick: "ok",
+    setCheckbox: false,
+    textField: "mochiuser2",
+    passField: "mochipass2",
   };
 
   promptDone = handlePrompt(state, action);
@@ -188,8 +188,7 @@ add_task(function* runTestAuth()
                       SpecialPowers.wrap(iframe_prompt.contentWindow).document);
 });
 
-function dispatchMouseEvent(target, type)
-{
+function dispatchMouseEvent(target, type) {
   var win = SpecialPowers.unwrap(target.ownerDocument.defaultView);
   var e = document.createEvent("MouseEvent");
   e.initEvent(type, false, false, win, 0, 1, 1, 1, 1,

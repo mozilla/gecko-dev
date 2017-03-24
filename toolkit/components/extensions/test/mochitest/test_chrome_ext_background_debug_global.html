@@ -7,7 +7,7 @@
   <script src="chrome://mochikit/content/tests/SimpleTest/ExtensionTestUtils.js"></script>
   <script type="text/javascript" src="chrome_head.js"></script>
   <script type="text/javascript" src="head.js"></script>
-  <link rel="stylesheet" href="chrome://mochikit/contents/tests/SimpleTest/test.css"/>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
 </head>
 <body>
 
@@ -19,7 +19,7 @@ Cu.import("resource://gre/modules/AddonManager.jsm");
 
 const {
   XPIProvider,
-} = Components.utils.import("resource://gre/modules/addons/XPIProvider.jsm");
+} = Components.utils.import("resource://gre/modules/addons/XPIProvider.jsm", {});
 
 /**
  * This test is asserting that ext-backgroundPage.js successfully sets its
@@ -64,7 +64,7 @@ add_task(function* () {
   });
 
   let addon = yield new Promise((resolve, reject) => {
-    AddonManager.getAddonByID(ID, aAddon => aAddon ? resolve(aAddon) : reject());
+    AddonManager.getAddonByID(ID, addon => addon ? resolve(addon) : reject());
   });
 
   ok(addon, `Got the addon wrapper for ${addon.id}`);

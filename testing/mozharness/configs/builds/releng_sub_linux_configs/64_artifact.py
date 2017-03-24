@@ -18,15 +18,24 @@ config = {
     'app_ini_path': '%(obj_dir)s/dist/bin/application.ini',
     # decides whether we want to use moz_sign_cmd in env
     'enable_signing': False,
+    'secret_files': [
+        {'filename': '/builds/gapi.data',
+         'secret_name': 'project/releng/gecko/build/level-%(scm-level)s/gapi.data',
+         'min_scm_level': 2, 'default': 'try-build-has-no-secrets'},
+        {'filename': '/builds/mozilla-desktop-geoloc-api.key',
+         'secret_name': 'project/releng/gecko/build/level-%(scm-level)s/mozilla-desktop-geoloc-api.key',
+         'min_scm_level': 2, 'default': 'try-build-has-no-secrets'},
+    ],
     'enable_ccache': True,
     'vcs_share_base': '/builds/hg-shared',
     'objdir': 'obj-firefox',
     'tooltool_script': ["/builds/tooltool.py"],
     'tooltool_bootstrap': "setup.sh",
     'enable_count_ctors': True,
-    'enable_talos_sendchange': False,
-    # allows triggering of test jobs when --artifact try syntax is detected on buildbot
+    # allows triggering of dependent jobs when --artifact try syntax is detected on buildbot
     'enable_unittest_sendchange': True,
+    'enable_talos_sendchange': True,
+    'perfherder_extra_options': ['artifact'],
     #########################################################################
 
 

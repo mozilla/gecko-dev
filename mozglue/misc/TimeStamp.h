@@ -8,6 +8,8 @@
 #define mozilla_TimeStamp_h
 
 #include <stdint.h>
+#include <algorithm>  // for std::min, std::max
+#include <ostream>
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/FloatingPoint.h"
@@ -175,6 +177,17 @@ public:
     return FromTicks(ticks);
   }
 
+  static BaseTimeDuration Max(const BaseTimeDuration& aA,
+                              const BaseTimeDuration& aB)
+  {
+    return FromTicks(std::max(aA.mValue, aB.mValue));
+  }
+  static BaseTimeDuration Min(const BaseTimeDuration& aA,
+                              const BaseTimeDuration& aB)
+  {
+    return FromTicks(std::min(aA.mValue, aB.mValue));
+  }
+
 private:
   // Block double multiplier (slower, imprecise if long duration) - Bug 853398.
   // If required, use MultDouble explicitly and with care.
@@ -265,6 +278,11 @@ public:
   explicit operator bool() const
   {
     return mValue != 0;
+  }
+
+  friend std::ostream& operator<<(std::ostream& aStream,
+                                  const BaseTimeDuration& aDuration) {
+    return aStream << aDuration.ToMilliseconds() << " ms";
   }
 
   // Return a best guess at the system's current timing resolution,
@@ -405,9 +423,12 @@ public:
    * on platforms that support vsync aligned refresh drivers / compositors
    * Verified true as of Jan 31, 2015: B2G and OS X
    * False on Windows 7
+   * Android's event time uses CLOCK_MONOTONIC via SystemClock.uptimeMilles.
+   * So it is same value of TimeStamp posix implementation.
    * UNTESTED ON OTHER PLATFORMS
    */
-#if defined(MOZ_WIDGET_GONK) || defined(XP_DARWIN)
+#if defined(MOZ_WIDGET_GONK) || defined(XP_DARWIN) || \
+    defined(MOZ_WIDGET_ANDROID)
   static TimeStamp FromSystemTime(int64_t aSystemTime)
   {
     static_assert(sizeof(aSystemTime) == sizeof(TimeStampValue),

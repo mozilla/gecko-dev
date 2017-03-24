@@ -103,7 +103,7 @@
 #identity-popup-permissions-content,
 #tracking-protection-content {
   padding: 0.5em 0 1em;
-  /* .identity-popup-headline.host depends on this width */
+  /* .identity-popup-host depends on this width */
   padding-inline-start: calc(2em + 24px);
   padding-inline-end: 1em;
 }
@@ -182,7 +182,7 @@
   font-size: 150%;
 }
 
-.identity-popup-headline.host {
+.identity-popup-host {
   word-wrap: break-word;
   /* 1em + 2em + 24px is #identity-popup-security-content padding
    * 30em is .panel-mainview:not([panelid="PanelUI-popup"]) width */
@@ -383,6 +383,16 @@ description#identity-popup-content-verifier,
   50% { opacity: 0; }
 }
 
+.identity-popup-permission-label,
+.identity-popup-permission-state-label {
+  /* We need to align the action buttons and permission icons with the text.
+     This is tricky because the icon height is defined in pixels, while the
+     font height can vary with platform and system settings, and at least on
+     Windows the default font metrics reserve more extra space for accents.
+     This value is a good compromise for different platforms and font sizes. */
+  margin-top: -0.1em;
+}
+
 .identity-popup-permission-label {
   margin-inline-start: 1em;
 }
@@ -413,7 +423,7 @@ description#identity-popup-content-verifier,
   width: 16px;
   height: 16px;
   list-style-image: url(chrome://browser/skin/panel-icons.svg#cancel);
-  filter: url(chrome://browser/skin/filters.svg#fill);
+  filter: url(chrome://global/skin/filters.svg#fill);
   fill: graytext;
 }
 

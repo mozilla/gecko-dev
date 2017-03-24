@@ -24,7 +24,7 @@ static uint32_t gEntryID = 0;
 nsSHEntry::nsSHEntry()
   : mShared(new nsSHEntryShared())
   , mLoadReplace(false)
-  , mReferrerPolicy(mozilla::net::RP_Default)
+  , mReferrerPolicy(mozilla::net::RP_Unset)
   , mLoadType(0)
   , mID(gEntryID++)
   , mScrollPositionX(0)
@@ -59,19 +59,14 @@ nsSHEntry::nsSHEntry(const nsSHEntry& aOther)
 {
 }
 
-static bool
-ClearParentPtr(nsISHEntry* aEntry, void* /* aData */)
-{
-  if (aEntry) {
-    aEntry->SetParent(nullptr);
-  }
-  return true;
-}
-
 nsSHEntry::~nsSHEntry()
 {
   // Null out the mParent pointers on all our kids.
-  mChildren.EnumerateForwards(ClearParentPtr, nullptr);
+  for (nsISHEntry* entry : mChildren) {
+    if (entry) {
+      entry->SetParent(nullptr);
+    }
+  }
 }
 
 NS_IMPL_ISUPPORTS(nsSHEntry, nsISHContainer, nsISHEntry, nsISHEntryInternal)
@@ -413,9 +408,12 @@ nsSHEntry::Create(nsIURI* aURI, const nsAString& aTitle,
                   nsISupports* aCacheKey, const nsACString& aContentType,
                   nsIPrincipal* aTriggeringPrincipal,
                   nsIPrincipal* aPrincipalToInherit,
-                  uint64_t aDocShellID,
+                  const nsID& aDocShellID,
                   bool aDynamicCreation)
 {
+  MOZ_ASSERT(aTriggeringPrincipal,
+             "need a valid triggeringPrincipal to create a session history entry");
+
   mURI = aURI;
   mTitle = aTitle;
   mPostData = aInputStream;
@@ -749,6 +747,8 @@ nsSHEntry::RemoveChild(nsISHEntry* aChild)
   } else {
     int32_t index = mChildren.IndexOfObject(aChild);
     if (index >= 0) {
+      // Other alive non-dynamic child docshells still keep mChildOffset,
+      // so we don't want to change the indices here.
       mChildren.ReplaceObjectAt(nullptr, index);
       childRemoved = true;
     }
@@ -785,13 +785,10 @@ nsSHEntry::ReplaceChild(nsISHEntry* aNewEntry)
 {
   NS_ENSURE_STATE(aNewEntry);
 
-  uint64_t docshellID;
-  aNewEntry->GetDocshellID(&docshellID);
+  nsID docshellID = aNewEntry->DocshellID();
 
-  uint64_t otherID;
   for (int32_t i = 0; i < mChildren.Count(); ++i) {
-    if (mChildren[i] && NS_SUCCEEDED(mChildren[i]->GetDocshellID(&otherID)) &&
-        docshellID == otherID) {
+    if (mChildren[i] && docshellID == mChildren[i]->DocshellID()) {
       mChildren[i]->SetParent(nullptr);
       mChildren.ReplaceObjectAt(aNewEntry, i);
       return aNewEntry->SetParent(this);
@@ -916,16 +913,22 @@ nsSHEntry::HasDynamicallyAddedChild(bool* aAdded)
 }
 
 NS_IMETHODIMP
-nsSHEntry::GetDocshellID(uint64_t* aID)
+nsSHEntry::GetDocshellID(nsID** aID)
 {
-  *aID = mShared->mDocShellID;
+  *aID = static_cast<nsID*>(nsMemory::Clone(&mShared->mDocShellID, sizeof(nsID)));
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsSHEntry::SetDocshellID(uint64_t aID)
+const nsID
+nsSHEntry::DocshellID()
 {
-  mShared->mDocShellID = aID;
+  return mShared->mDocShellID;
+}
+
+NS_IMETHODIMP
+nsSHEntry::SetDocshellID(const nsID* aID)
+{
+  mShared->mDocShellID = *aID;
   return NS_OK;
 }
 

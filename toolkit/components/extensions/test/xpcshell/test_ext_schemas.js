@@ -2,9 +2,11 @@
 
 Components.utils.import("resource://gre/modules/Schemas.jsm");
 Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
-Components.utils.import("resource://gre/modules/ExtensionUtils.jsm");
+Components.utils.import("resource://gre/modules/ExtensionCommon.jsm");
 
-let {LocalAPIImplementation, SchemaAPIInterface} = ExtensionUtils;
+let {LocalAPIImplementation, SchemaAPIInterface} = ExtensionCommon;
+
+const global = this;
 
 let json = [
   {namespace: "testing",
@@ -383,7 +385,7 @@ let talliedErrors = [];
 function checkErrors(errors) {
   do_check_eq(talliedErrors.length, errors.length, "Got expected number of errors");
   for (let [i, error] of errors.entries()) {
-    do_check_true(i in talliedErrors && talliedErrors[i].includes(error),
+    do_check_true(i in talliedErrors && String(talliedErrors[i]).includes(error),
                   `${JSON.stringify(error)} is a substring of error ${JSON.stringify(talliedErrors[i])}`);
   }
 
@@ -431,6 +433,8 @@ class TallyingAPIImplementation extends SchemaAPIInterface {
 let wrapper = {
   url: "moz-extension://b66e3509-cdb3-44f6-8eb8-c8b39b3a1d27/",
 
+  cloneScope: global,
+
   checkLoadURL(url) {
     return !url.startsWith("chrome:");
   },
@@ -449,8 +453,8 @@ let wrapper = {
     return permissions.has(permission);
   },
 
-  shouldInject(ns) {
-    return ns != "do-not-inject";
+  shouldInject(ns, name) {
+    return name != "do-not-inject";
   },
 
   getImplementation(namespace, name) {
@@ -472,7 +476,7 @@ add_task(function* () {
   do_check_eq(root.testing.type1.VALUE2, "value2", "enum type");
 
   do_check_eq("inject" in root, true, "namespace 'inject' should be injected");
-  do_check_eq("do-not-inject" in root, false, "namespace 'do-not-inject' should not be injected");
+  do_check_eq(root["do-not-inject"], undefined, "namespace 'do-not-inject' should not be injected");
 
   root.testing.foo(11, true);
   verify("call", "testing", "foo", [11, true]);
@@ -637,8 +641,8 @@ add_task(function* () {
                   "should throw for access denied");
   }
 
-  for (let url of ["//foo.html", "http://foo/bar.html"]) {
-    Assert.throws(() => root.testing.format({strictRelativeUrl: url}),
+  for (let urlString of ["//foo.html", "http://foo/bar.html"]) {
+    Assert.throws(() => root.testing.format({strictRelativeUrl: urlString}),
                   /must be a relative URL/,
                   "should throw for non-relative URL");
   }
@@ -753,10 +757,10 @@ add_task(function* () {
                 "should throw when passing a Proxy");
 
   if (Symbol.toStringTag) {
-    let target = {prop1: 12, prop2: ["value1", "value3"]};
-    target[Symbol.toStringTag] = () => "[object Object]";
-    let proxy = new Proxy(target, {});
-    Assert.throws(() => root.testing.quack(proxy),
+    let stringTarget = {prop1: 12, prop2: ["value1", "value3"]};
+    stringTarget[Symbol.toStringTag] = () => "[object Object]";
+    let stringProxy = new Proxy(stringTarget, {});
+    Assert.throws(() => root.testing.quack(stringProxy),
                   /Expected a plain JavaScript object, got a Proxy/,
                   "should throw when passing a Proxy");
   }
@@ -1172,9 +1176,9 @@ add_task(function* testPermissions() {
   equal(typeof root.noPerms, "object", "noPerms namespace should exist");
   equal(typeof root.noPerms.noPerms, "function", "noPerms.noPerms method should exist");
 
-  ok(!("fooPerm" in root.noPerms), "noPerms.fooPerm should not method exist");
+  equal(root.noPerms.fooPerm, undefined, "noPerms.fooPerm should not method exist");
 
-  ok(!("fooPerm" in root), "fooPerm namespace should not exist");
+  equal(root.fooPerm, undefined, "fooPerm namespace should not exist");
 
 
   do_print('Add "foo" permission');
@@ -1190,7 +1194,7 @@ add_task(function* testPermissions() {
   equal(typeof root.fooPerm, "object", "fooPerm namespace should exist");
   equal(typeof root.fooPerm.noPerms, "function", "noPerms.noPerms method should exist");
 
-  ok(!("fooBarPerm" in root.fooPerm), "fooPerm.fooBarPerm method should not exist");
+  equal(root.fooPerm.fooBarPerm, undefined, "fooPerm.fooBarPerm method should not exist");
 
 
   do_print('Add "foo.bar" permission');
@@ -1328,8 +1332,9 @@ add_task(function* testLocalAPIImplementation() {
   };
 
   let localWrapper = {
-    shouldInject(ns) {
-      return ns == "testing" || ns == "testing.prop3";
+    cloneScope: global,
+    shouldInject(ns, name) {
+      return name == "testing" || ns == "testing" || ns == "testing.prop3";
     },
     getImplementation(ns, name) {
       do_check_true(ns == "testing" || ns == "testing.prop3");
@@ -1410,6 +1415,7 @@ add_task(function* testDefaults() {
   };
 
   let localWrapper = {
+    cloneScope: global,
     shouldInject(ns) {
       return true;
     },

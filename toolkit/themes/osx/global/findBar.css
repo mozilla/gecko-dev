@@ -76,9 +76,9 @@ label.findbar-find-fast:-moz-lwtheme,
   -moz-appearance: none;
   border-radius: 10000px;
   border: @roundButtonBorder@;
+  color: @roundButtonColor@;
   background: @roundButtonBackground@;
   box-shadow: @roundButtonShadow@;
-  color: buttontext;
   margin: 0;
 }
 
@@ -105,7 +105,7 @@ label.findbar-find-fast:-moz-lwtheme,
 .findbar-find-next:-moz-focusring,
 .findbar-find-previous:-moz-focusring {
   position: relative;
-  box-shadow: @focusRingShadow@, @roundButtonShadow@;
+  box-shadow: var(--focus-ring-box-shadow), @roundButtonShadow@;
 }
 
 .findbar-container > toolbarbutton[disabled] {
@@ -129,20 +129,7 @@ label.findbar-find-fast:-moz-lwtheme,
 .findbar-find-previous:hover:active:-moz-focusring {
   text-shadow: @loweredShadow@;
   background: @roundButtonPressedBackground@;
-  box-shadow: @focusRingShadow@, @roundButtonPressedShadow@;
-}
-
-@media (-moz-mac-yosemite-theme) {
-  .findbar-container > toolbarbutton:-moz-focusring,
-  .findbar-find-next:-moz-focusring,
-  .findbar-find-previous:-moz-focusring {
-    box-shadow: @yosemiteFocusRingShadow@, @roundButtonShadow@;
-  }
-
-  .findbar-find-next:hover:active:-moz-focusring,
-  .findbar-find-previous:hover:active:-moz-focusring {
-    box-shadow: @yosemiteFocusRingShadow@, @roundButtonPressedShadow@;
-  }
+  box-shadow: var(--focus-ring-box-shadow), @roundButtonPressedShadow@;
 }
 
 /* Search field */
@@ -180,13 +167,7 @@ label.findbar-find-fast:-moz-lwtheme,
 }
 
 .findbar-textbox[focused="true"] {
-  box-shadow: @focusRingShadow@;
-}
-
-@media (-moz-mac-yosemite-theme) {
-  .findbar-textbox[focused="true"] {
-    box-shadow: @yosemiteFocusRingShadow@;
-  }
+  box-shadow: var(--focus-ring-box-shadow);
 }
 
 .findbar-textbox[flash="true"] {
@@ -220,13 +201,21 @@ label.findbar-find-fast:-moz-lwtheme,
   border-left: none;
   border-right: none;
   margin-inline-end: 0;
-  list-style-image: url(chrome://global/skin/icons/find-arrows.svg#glyph-find-previous);
+  list-style-image: url(chrome://global/skin/icons/find-arrows.svg#previous);
   border-radius: 0;
 }
 
 .findbar-find-next {
-  list-style-image: url(chrome://global/skin/icons/find-arrows.svg#glyph-find-next);
+  list-style-image: url(chrome://global/skin/icons/find-arrows.svg#next);
   padding-inline-end: 7px;
+}
+
+.findbar-find-previous[disabled] {
+  list-style-image: url(chrome://global/skin/icons/find-arrows.svg#previous-disabled);
+}
+
+.findbar-find-next[disabled] {
+  list-style-image: url(chrome://global/skin/icons/find-arrows.svg#next-disabled);
 }
 
 .findbar-find-next:-moz-locale-dir(ltr) {

@@ -10,7 +10,7 @@ this.EXPORTED_SYMBOLS = ["WebsiteMetadata"];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Messaging", "resource://gre/modules/Messaging.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "EventDispatcher", "resource://gre/modules/Messaging.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task", "resource://gre/modules/Task.jsm");
 
 var WebsiteMetadata = {
@@ -21,7 +21,9 @@ var WebsiteMetadata = {
   parseAsynchronously: function(doc) {
     Task.spawn(function() {
       let metadata = getMetadata(doc, doc.location.href, {
-        image_url: metadataRules['image_url']
+        image_url: metadataRules['image_url'],
+        provider: metadataRules['provider'],
+        description_length: metadataRules['description_length']
       });
 
       // No metadata was extracted, so don't bother sending it.
@@ -32,10 +34,11 @@ var WebsiteMetadata = {
       let msg = {
         type: 'Website:Metadata',
         location: doc.location.href,
-        metadata: metadata,
+        hasImage: metadata.image_url && metadata.image_url !== "",
+        metadata: JSON.stringify(metadata),
       };
 
-      Messaging.sendRequest(msg);
+      EventDispatcher.instance.sendRequest(msg);
     });
   }
 };
@@ -90,12 +93,21 @@ function buildRuleset(name, rules, processors) {
   };
 }
 
+const descriptionRules = [
+  ['meta[property="og:description"]', node => node.element.getAttribute('content')],
+  ['meta[name="description"]', node => node.element.getAttribute('content')],
+];
+
 const metadataRules = {
   description: {
-    rules: [
-      ['meta[property="og:description"]', node => node.element.getAttribute('content')],
-      ['meta[name="description"]', node => node.element.getAttribute('content')],
-    ],
+    rules: descriptionRules
+  },
+
+  description_length: {
+    rules: descriptionRules,
+    processors: [
+      (description) => description.length
+    ]
   },
 
   icon_url: {
@@ -155,6 +167,12 @@ const metadataRules = {
       ['meta[property="og:url"]', node => node.element.getAttribute('content')],
       ['link[rel="canonical"]', node => node.element.getAttribute('href')],
     ],
+  },
+
+  provider: {
+    rules: [
+      ['meta[property="og:site_name"]', node => node.element.getAttribute('content')]
+    ]
   },
 };
 

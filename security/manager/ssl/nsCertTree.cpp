@@ -95,11 +95,11 @@ NS_IMPL_ISUPPORTS0(nsCertAddonInfo)
 NS_IMPL_ISUPPORTS(nsCertTreeDispInfo, nsICertTreeItem)
 
 nsCertTreeDispInfo::nsCertTreeDispInfo()
-:mAddonInfo(nullptr)
-,mTypeOfEntry(direct_db)
-,mPort(-1)
-,mOverrideBits(nsCertOverride::ob_None)
-,mIsTemporary(true)
+  : mAddonInfo(nullptr)
+  , mTypeOfEntry(direct_db)
+  , mPort(-1)
+  , mOverrideBits(nsCertOverride::OverrideBits::None)
+  , mIsTemporary(true)
 {
 }
 
@@ -572,7 +572,7 @@ nsCertTree::GetCertsByTypeFromCertList(CERTCertList *aCertList,
         certai->mUsageCount++;
         certdi->mTypeOfEntry = nsCertTreeDispInfo::direct_db;
         // not necessary: certdi->mAsciiHost.Clear(); certdi->mPort = -1;
-        certdi->mOverrideBits = nsCertOverride::ob_None;
+        certdi->mOverrideBits = nsCertOverride::OverrideBits::None;
         certdi->mIsTemporary = false;
         mDispInfo.InsertElementAt(InsertPosition, certdi);
         ++count;
@@ -1075,30 +1075,9 @@ nsCertTree::GetCellText(int32_t row, nsITreeColumn* col,
 
   if (NS_LITERAL_STRING("certcol").Equals(colID)) {
     if (!cert) {
-      mNSSComponent->GetPIPNSSBundleString("CertNotStored", _retval);
-    }
-    else {
-      rv = cert->GetCommonName(_retval);
-      if (NS_FAILED(rv) || _retval.IsEmpty()) {
-        // kaie: I didn't invent the idea to cut off anything before 
-        //       the first colon. :-)
-        nsAutoString nick;
-        rv = cert->GetNickname(nick);
-        
-        nsAString::const_iterator start, end, end2;
-        nick.BeginReading(start);
-        nick.EndReading(end);
-        end2 = end;
-  
-        if (FindInReadable(NS_LITERAL_STRING(":"), start, end)) {
-          // found. end points to the first char after the colon,
-          // that's what we want.
-          _retval = Substring(end, end2);
-        }
-        else {
-          _retval = nick;
-        }
-      }
+      rv = mNSSComponent->GetPIPNSSBundleString("CertNotStored", _retval);
+    } else {
+      rv = cert->GetDisplayName(_retval);
     }
   } else if (NS_LITERAL_STRING("tokencol").Equals(colID) && cert) {
     rv = cert->GetTokenName(_retval);

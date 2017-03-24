@@ -59,16 +59,12 @@ def build_dict(config, env=os.environ):
 
     # processor
     p = substs["TARGET_CPU"]
-    # for universal mac builds, put in a special value
-    if d["os"] == "mac" and "UNIVERSAL_BINARY" in substs and substs["UNIVERSAL_BINARY"] == "1":
-        p = "universal-x86-x86_64"
-    else:
-        # do some slight massaging for some values
-        #TODO: retain specific values in case someone wants them?
-        if p.startswith("arm"):
-            p = "arm"
-        elif re.match("i[3-9]86", p):
-            p = "x86"
+    # do some slight massaging for some values
+    #TODO: retain specific values in case someone wants them?
+    if p.startswith("arm"):
+        p = "arm"
+    elif re.match("i[3-9]86", p):
+        p = "x86"
     d["processor"] = p
     # hardcoded list of 64-bit CPUs
     if p in ["x86_64", "ppc64"]:
@@ -86,6 +82,7 @@ def build_dict(config, env=os.environ):
     d['datareporting'] = bool(substs.get('MOZ_DATA_REPORTING'))
     d['healthreport'] = substs.get('MOZ_SERVICES_HEALTHREPORT') == '1'
     d['sync'] = substs.get('MOZ_SERVICES_SYNC') == '1'
+    d['stylo'] = substs.get('MOZ_STYLO') == '1'
     d['asan'] = substs.get('MOZ_ASAN') == '1'
     d['tsan'] = substs.get('MOZ_TSAN') == '1'
     d['telemetry'] = substs.get('MOZ_TELEMETRY_REPORTING') == '1'
@@ -94,7 +91,8 @@ def build_dict(config, env=os.environ):
     d['addon_signing'] = substs.get('MOZ_ADDON_SIGNING') == '1'
     d['require_signing'] = substs.get('MOZ_REQUIRE_SIGNING') == '1'
     d['official'] = bool(substs.get('MOZILLA_OFFICIAL'))
-    d['sm_promise'] = bool(substs.get('SPIDERMONKEY_PROMISE'))
+    d['updater'] = substs.get('MOZ_UPDATER') == '1'
+    d['artifact'] = substs.get('MOZ_ARTIFACT_BUILDS') == '1'
 
     def guess_platform():
         if d['buildapp'] in ('browser', 'mulet'):

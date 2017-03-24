@@ -145,13 +145,13 @@
             for (var col = this.columns.getFirstColumn(); col; col = col.getNext())
               cols.push(col.element);
             for (i = 0; i < cols.length; ++i)
-              cols[i].setAttribute("ordinal", (i*2)+1);
+              cols[i].setAttribute("ordinal", (i * 2) + 1);
 
             // update the ordinal positions of splitters to even numbers, so that
             // they are in between columns
             var splitters = this.getElementsByTagName("splitter");
             for (i = 0; i < splitters.length; ++i)
-              splitters[i].setAttribute("ordinal", (i+1)*2);
+              splitters[i].setAttribute("ordinal", (i + 1) * 2);
           }
           this._columnsDirty = false;
         ]]></body>
@@ -196,7 +196,7 @@
         <parameter name="aThresh"/>
         <parameter name="aPos"/>
         <body><![CDATA[
-          var isRTL = document.defaultView.getComputedStyle(this, "")
+          var isRTL = document.defaultView.getComputedStyle(this)
                               .direction == "rtl";
 
           if (aPos)
@@ -243,8 +243,8 @@
             if (row == this.currentIndex) {
               // Only fire event when current row is expanded or collapsed
               // because that's all the assistive technology really cares about.
-              var event = document.createEvent('Events');
-              event.initEvent('OpenStateChange', true, true);
+              var event = document.createEvent("Events");
+              event.initEvent("OpenStateChange", true, true);
               this.dispatchEvent(event);
             }
             return true;
@@ -271,8 +271,7 @@
           var col = this.view.selection.currentColumn;
           if (col) {
             col = left ? col.getPrevious() : col.getNext();
-          }
-          else {
+          } else {
             col = this.columns.getKeyColumn();
           }
           while (col && (col.width == 0 || !col.selectable ||
@@ -356,7 +355,7 @@
             var cellRect = box.getCoordsForCellItem(row, column, "cell");
 
             // Calculate the top offset of the textbox.
-            var style = window.getComputedStyle(input, "");
+            var style = window.getComputedStyle(input);
             var topadj = parseInt(style.borderTopWidth) + parseInt(style.paddingTop);
             input.top = textRect.y - topadj;
 
@@ -385,14 +384,11 @@
             }
             setTimeout(selectText, 0);
 
-            // Clear the text because we don't want the text appearing underneath the input.
-            this.view.setCellText(row, column, "");
-            // Save the original text so we can restore it after stoping editing.
-            input.setAttribute("data-original-text", input.value);
-
             this._editingRow = row;
             this._editingColumn = column;
             this.setAttribute("editing", "true");
+
+            box.invalidateCell(row, column);
             return true;
           ]]>
         </body>
@@ -408,15 +404,16 @@
             var input = this.inputField;
             var editingRow = this._editingRow;
             var editingColumn = this._editingColumn;
-            var value = accept ? input.value : input.getAttribute("data-original-text");
             this._editingRow = -1;
             this._editingColumn = null;
-            this.view.setCellText(editingRow, editingColumn, value);
 
+            if (accept) {
+              var value = input.value;
+              this.view.setCellText(editingRow, editingColumn, value);
+            }
             input.hidden = true;
             input.value = "";
             this.removeAttribute("editing");
-            input.removeAttribute("data-original-text");
           ]]>
         </body>
       </method>
@@ -904,84 +901,84 @@
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveByOffset(-1, 0, event);
+          this._moveByOffset(-1, 0, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_DOWN" modifiers="accel any">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveByOffset(1, this.view.rowCount - 1, event);
+          this._moveByOffset(1, this.view.rowCount - 1, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_UP" modifiers="accel any, shift">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveByOffsetShift(-1, 0, event);
+          this._moveByOffsetShift(-1, 0, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_DOWN" modifiers="accel any, shift">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveByOffsetShift(1, this.view.rowCount - 1, event);
+          this._moveByOffsetShift(1, this.view.rowCount - 1, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_PAGE_UP" modifiers="accel any">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveByPage(-1, 0, event);
+          this._moveByPage(-1, 0, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_PAGE_DOWN" modifiers="accel any">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveByPage(1, this.view.rowCount - 1, event);
+          this._moveByPage(1, this.view.rowCount - 1, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_PAGE_UP" modifiers="accel any, shift">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveByPageShift(-1, 0, event);
+          this._moveByPageShift(-1, 0, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_PAGE_DOWN" modifiers="accel any, shift">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveByPageShift(1, this.view.rowCount - 1, event);
+          this._moveByPageShift(1, this.view.rowCount - 1, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_HOME" modifiers="accel any">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveToEdge(0, event);
+          this._moveToEdge(0, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_END" modifiers="accel any">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveToEdge(this.view.rowCount - 1, event);
+          this._moveToEdge(this.view.rowCount - 1, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_HOME" modifiers="accel any, shift">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveToEdgeShift(0, event);
+          this._moveToEdgeShift(0, event);
         ]]>
       </handler>
       <handler event="keydown" keycode="VK_END" modifiers="accel any, shift">
         <![CDATA[
           if (this._editingColumn)
             return;
-          _moveToEdgeShift(this.view.rowCount - 1, event);
+          this._moveToEdgeShift(this.view.rowCount - 1, event);
         ]]>
       </handler>
       <handler event="keypress">
@@ -989,17 +986,16 @@
          if (this._editingColumn)
            return;
 
-         if (event.charCode == ' '.charCodeAt(0)) {
+         if (event.charCode == " ".charCodeAt(0)) {
            var c = this.currentIndex;
            if (!this.view.selection.isSelected(c) ||
                (!this.view.selection.single && this._isAccelPressed(event))) {
              this.view.selection.toggleSelect(c);
              event.preventDefault();
            }
-         }
-         else if (!this.disableKeyNavigation && event.charCode > 0 &&
-                  !event.altKey && !this._isAccelPressed(event) &&
-                  !event.metaKey && !event.ctrlKey) {
+         } else if (!this.disableKeyNavigation && event.charCode > 0 &&
+                    !event.altKey && !this._isAccelPressed(event) &&
+                    !event.metaKey && !event.ctrlKey) {
            var l = this._keyNavigate(event);
            if (l >= 0) {
              this.view.selection.timedSelect(l, this._selectDelay);
@@ -1026,7 +1022,7 @@
       <constructor><![CDATA[
         // Set resizeafter="farthest" on the splitters if nothing else has been
         // specified.
-        Array.forEach(this.getElementsByTagName("splitter"), function (splitter) {
+        Array.forEach(this.getElementsByTagName("splitter"), function(splitter) {
           if (!splitter.hasAttribute("resizeafter"))
             splitter.setAttribute("resizeafter", "farthest");
         });
@@ -1176,7 +1172,7 @@
           return;
         }
 
-        if (! view.selection.single) {
+        if (!view.selection.single) {
           var augment = this._isAccelPressed(event);
           if (event.shiftKey) {
             view.selection.rangedSelect(-1, cell.row, augment);
@@ -1239,8 +1235,10 @@
 
         var cell = tbo.getCellAt(event.clientX, event.clientY);
 
-        if (cell.childElt != "twisty")
+        if (cell.childElt != "twisty") {
+          view.selection.currentColumn = cell.col;
           this.parentNode.startEditing(row, cell.col);
+        }
 
         if (this.parentNode._editingColumn || !view.isContainer(row))
           return;
@@ -1377,8 +1375,7 @@
               // the same as the column we're moving, don't move
               if (before && col == sib) {
                 move = false;
-              }
-              else if (!before && col == col.mTargetCol) {
+              } else if (!before && col == col.mTargetCol) {
                 // If this is an after move and the column we're moving is
                 // the same as the target column, don't move.
                 move = false;
@@ -1490,7 +1487,7 @@
           <![CDATA[
             // We no longer cache the picker content, remove the old content.
             while (aPopup.childNodes.length > 2)
-              aPopup.removeChild(aPopup.firstChild);
+              aPopup.firstChild.remove();
 
             var refChild = aPopup.firstChild;
 
@@ -1533,16 +1530,14 @@
             var popup = document.getAnonymousElementByAttribute(this, "anonid", "popup");
             this.buildPopup(popup);
             popup.showPopup(this, -1, -1, "popup", "bottomright", "topright");
-          }
-          else {
+          } else {
             var tree = this.parentNode.parentNode;
             tree.stopEditing(true);
             var menuitem = document.getAnonymousElementByAttribute(this, "anonid", "menuitem");
             if (event.originalTarget == menuitem) {
               tree.columns.restoreNaturalOrder();
               tree._ensureColumnOrder();
-            }
-            else {
+            } else {
               var colindex = event.originalTarget.getAttribute("colindex");
               var column = tree.columns[colindex];
               if (column) {

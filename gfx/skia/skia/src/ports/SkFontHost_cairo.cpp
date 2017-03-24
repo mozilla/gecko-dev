@@ -41,6 +41,12 @@ typedef enum FT_LcdFilter_
 } FT_LcdFilter;
 #endif
 
+// If compiling with FreeType before 2.5.0
+#ifndef FT_LOAD_COLOR
+#    define FT_LOAD_COLOR ( 1L << 20 )
+#    define FT_PIXEL_MODE_BGRA 7
+#endif
+
 #ifndef SK_CAN_USE_DLOPEN
 #define SK_CAN_USE_DLOPEN 1
 #endif
@@ -332,6 +338,8 @@ SkScalerContext_CairoFT::SkScalerContext_CairoFT(SkTypeface* typeface, const SkS
 
     computeShapeMatrix(matrix);
 
+    fRec.fFlags |= SkScalerContext::kEmbeddedBitmapText_Flag;
+
 #ifdef CAIRO_HAS_FC_FONT
     resolvePattern(pattern);
 #endif
@@ -394,9 +402,7 @@ SkScalerContext_CairoFT::SkScalerContext_CairoFT(SkTypeface* typeface, const SkS
         loadFlags |= FT_LOAD_VERTICAL_LAYOUT;
     }
 
-#ifdef FT_LOAD_COLOR
     loadFlags |= FT_LOAD_COLOR;
-#endif
 
     fLoadGlyphFlags = loadFlags;
 }
@@ -414,9 +420,6 @@ void SkScalerContext_CairoFT::parsePattern(FcPattern* pattern)
     if (FcPatternGetBool(pattern, FC_AUTOHINT, 0, &autohint) == FcResultMatch && autohint) {
         fRec.fFlags |= SkScalerContext::kForceAutohinting_Flag;
     }
-    if (FcPatternGetBool(pattern, FC_EMBEDDED_BITMAP, 0, &bitmap) == FcResultMatch && bitmap) {
-        fRec.fFlags |= SkScalerContext::kEmbeddedBitmapText_Flag;
-    }
     if (FcPatternGetBool(pattern, FC_EMBOLDEN, 0, &embolden) == FcResultMatch && embolden) {
         fRec.fFlags |= SkScalerContext::kEmbolden_Flag;
     }
@@ -424,8 +427,16 @@ void SkScalerContext_CairoFT::parsePattern(FcPattern* pattern)
         fRec.fFlags |= SkScalerContext::kVertical_Flag;
     }
 
-    if (fRec.fMaskFormat != SkMask::kBW_Format &&
-        (FcPatternGetBool(pattern, FC_ANTIALIAS, 0, &antialias) != FcResultMatch || antialias)) {
+    // Match cairo-ft's handling of embeddedbitmap:
+    // If AA is explicitly disabled, leave bitmaps enabled.
+    // Otherwise, disable embedded bitmaps unless explicitly enabled.
+    if (FcPatternGetBool(pattern, FC_ANTIALIAS, 0, &antialias) == FcResultMatch && !antialias) {
+        fRec.fMaskFormat = SkMask::kBW_Format;
+    } else if (FcPatternGetBool(pattern, FC_EMBEDDED_BITMAP, 0, &bitmap) != FcResultMatch || !bitmap) {
+        fRec.fFlags &= ~SkScalerContext::kEmbeddedBitmapText_Flag;
+    }
+
+    if (fRec.fMaskFormat != SkMask::kBW_Format) {
         int rgba;
         if (!isLCD(fRec) ||
             FcPatternGetInteger(pattern, FC_RGBA, 0, &rgba) != FcResultMatch) {
@@ -470,8 +481,6 @@ void SkScalerContext_CairoFT::parsePattern(FcPattern* pattern)
                 break;
             }
         }
-    } else {
-        fRec.fMaskFormat = SkMask::kBW_Format;
     }
 
     if (fRec.getHinting() != SkPaint::kNo_Hinting) {
@@ -684,11 +693,9 @@ void SkScalerContext_CairoFT::generateMetrics(SkGlyph* glyph)
         }
         break;
     case FT_GLYPH_FORMAT_BITMAP:
-#ifdef FT_LOAD_COLOR
         if (face->glyph->bitmap.pixel_mode == FT_PIXEL_MODE_BGRA) {
             glyph->fMaskFormat = SkMask::kARGB32_Format;
         }
-#endif
 
         if (isLCD(fRec)) {
             fRec.fMaskFormat = SkMask::kA8_Format;

@@ -23,7 +23,7 @@ public:
 
   AppTrustDomain(UniqueCERTCertList& certChain, void* pinArg);
 
-  SECStatus SetTrustedRoot(AppTrustedRoot trustedRoot);
+  nsresult SetTrustedRoot(AppTrustedRoot trustedRoot);
 
   virtual Result GetCertTrust(mozilla::pkix::EndEntityOrCA endEntityOrCA,
                               const mozilla::pkix::CertPolicyId& policy,
@@ -76,7 +76,6 @@ private:
   /*out*/ UniqueCERTCertList& mCertChain;
   void* mPinArg; // non-owning!
   UniqueCERTCertificate mTrustedRoot;
-  unsigned int mMinRSABits;
 
   static StaticMutex sMutex;
   static UniquePtr<unsigned char[]> sDevImportedDERData;

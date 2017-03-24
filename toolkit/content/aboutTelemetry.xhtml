@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="chrome://global/content/aboutTelemetry.css"
           type="text/css"/>
 
-    <script type="application/javascript;version=1.7"
+    <script type="application/javascript"
             src="chrome://global/content/aboutTelemetry.js"/>
   </head>
 
@@ -140,6 +140,9 @@
         <h1 class="section-name">&aboutTelemetry.scalarsSection;</h1>
         <span class="toggle-caption">&aboutTelemetry.toggle;</span>
         <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+        <div class="processes-ui">
+          <select id="scalars-processes" class="process-picker"></select>
+        </div>
         <div id="scalars" class="data">
         </div>
       </section>
@@ -149,6 +152,9 @@
         <h1 class="section-name">&aboutTelemetry.keyedScalarsSection;</h1>
         <span class="toggle-caption">&aboutTelemetry.toggle;</span>
         <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+        <div class="processes-ui">
+          <select id="keyed-scalars-processes" class="process-picker"></select>
+        </div>
         <div id="keyed-scalars" class="data">
         </div>
       </section>
@@ -177,6 +183,18 @@
           <select id="keyed-histograms-processes" class="process-picker"></select>
         </div>
         <div id="keyed-histograms" class="data">
+        </div>
+      </section>
+
+      <section id="events-section" class="data-section">
+        <input type="checkbox" class="statebox"/>
+        <h1 class="section-name">&aboutTelemetry.eventsSection;</h1>
+        <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+        <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+        <div class="processes-ui">
+          <select id="events-processes" class="process-picker"></select>
+        </div>
+        <div id="events" class="data">
         </div>
       </section>
 
@@ -214,8 +232,8 @@
         <span class="toggle-caption">&aboutTelemetry.toggle;</span>
         <span class="empty-caption">&aboutTelemetry.emptySection;</span>
         <div id="chrome-hangs" class="data">
-          <a id="chrome-hangs-fetch-symbols" href="#">&aboutTelemetry.fetchSymbols;</a>
-          <a id="chrome-hangs-hide-symbols" class="hidden" href="#">&aboutTelemetry.hideSymbols;</a>
+          <a id="chrome-hangs-fetch-symbols" href="#">&aboutTelemetry.fetchStackSymbols;</a>
+          <a id="chrome-hangs-hide-symbols" class="hidden" href="#">&aboutTelemetry.hideStackSymbols;</a>
           <br/>
           <br/>
           <div id="chrome-hangs-data">
@@ -238,8 +256,8 @@
         <span class="toggle-caption">&aboutTelemetry.toggle;</span>
         <span class="empty-caption">&aboutTelemetry.emptySection;</span>
         <div id="late-writes" class="data">
-          <a id="late-writes-fetch-symbols" href="#">&aboutTelemetry.fetchSymbols;</a>
-          <a id="late-writes-hide-symbols" class="hidden" href="#">&aboutTelemetry.hideSymbols;</a>
+          <a id="late-writes-fetch-symbols" href="#">&aboutTelemetry.fetchStackSymbols;</a>
+          <a id="late-writes-hide-symbols" class="hidden" href="#">&aboutTelemetry.hideStackSymbols;</a>
           <br/>
           <br/>
           <div id="late-writes-data">
@@ -262,6 +280,21 @@
         <span class="toggle-caption">&aboutTelemetry.toggle;</span>
         <span class="empty-caption">&aboutTelemetry.emptySection;</span>
         <div id="addon-histograms" class="data">
+        </div>
+      </section>
+
+      <section id="captured-stacks-section" class="data-section">
+        <input type="checkbox" class="statebox"/>
+        <h1 class="section-name">&aboutTelemetry.capturedStacksSection;</h1>
+        <span class="toggle-caption">&aboutTelemetry.toggle;</span>
+        <span class="empty-caption">&aboutTelemetry.emptySection;</span>
+        <div id="captured-stacks" class="data">
+          <a id="captured-stacks-fetch-symbols" href="#">&aboutTelemetry.fetchStackSymbols;</a>
+          <a id="captured-stacks-hide-symbols" class="hidden" href="#">&aboutTelemetry.hideStackSymbols;</a>
+          <br/>
+          <br/>
+          <div id="captured-stacks-data">
+          </div>
         </div>
       </section>
 

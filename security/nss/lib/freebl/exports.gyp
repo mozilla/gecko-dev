@@ -23,7 +23,7 @@
               ],
             }],
           ],
-          'destination': '<(nss_dist_dir)/public/<(module)'
+          'destination': '<(nss_public_dist_dir)/<(module)'
         },
         {
           'files': [
@@ -33,11 +33,12 @@
             'ec.h',
             'ecl/ecl-curve.h',
             'ecl/ecl.h',
+            'ecl/eclt.h',
             'hmacct.h',
             'secmpi.h',
             'secrng.h'
           ],
-          'destination': '<(nss_dist_dir)/private/<(module)'
+          'destination': '<(nss_private_dist_dir)/<(module)'
         }
       ]
     }

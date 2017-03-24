@@ -18,7 +18,7 @@ typedef PRUint16 SSL3ProtocolVersion;
 /* The TLS 1.3 draft version. Used to avoid negotiating
  * between incompatible pre-standard TLS 1.3 drafts.
  * TODO(ekr@rtfm.com): Remove when TLS 1.3 is published. */
-#define TLS_1_3_DRAFT_VERSION 16
+#define TLS_1_3_DRAFT_VERSION 18
 
 typedef PRUint16 ssl3CipherSuite;
 /* The cipher suites are defined in sslproto.h */
@@ -32,6 +32,7 @@ typedef PRUint16 ssl3CipherSuite;
 #define SSL3_RANDOM_LENGTH 32
 
 #define SSL3_RECORD_HEADER_LENGTH 5
+#define TLS13_RECORD_HEADER_LENGTH_SHORT 2
 
 /* SSL3_RECORD_HEADER_LENGTH + epoch/sequence_number */
 #define DTLS_RECORD_HEADER_LENGTH 13
@@ -117,8 +118,10 @@ typedef enum {
     unrecognized_name = 112,
     bad_certificate_status_response = 113,
     bad_certificate_hash_value = 114,
-    no_application_protocol = 120
+    no_application_protocol = 120,
 
+    /* invalid alert */
+    no_alert = 256
 } SSL3AlertDescription;
 
 typedef struct {
@@ -284,10 +287,11 @@ typedef struct {
 
 /* NewSessionTicket handshake message. */
 typedef struct {
-    PRUint32 received_timestamp;
+    PRTime received_timestamp;
     PRUint32 ticket_lifetime_hint;
     PRUint32 flags;
     PRUint32 ticket_age_add;
+    PRUint32 max_early_data_size;
     SECItem ticket;
 } NewSessionTicket;
 
@@ -295,11 +299,6 @@ typedef enum {
     tls13_psk_ke = 0,
     tls13_psk_dh_ke = 1
 } TLS13PskKEModes;
-
-typedef enum {
-    tls13_psk_auth = 0,
-    tls13_psk_sign_auth = 1
-} TLS13PskAuthModes;
 
 typedef enum {
     CLIENT_AUTH_ANONYMOUS = 0,

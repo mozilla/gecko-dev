@@ -15,7 +15,7 @@
 #include "nsFrameManager.h"
 #include "nsIDocument.h"
 #include "nsStyleChangeList.h"
-#include "mozilla/RestyleManager.h"
+#include "mozilla/GeckoRestyleManager.h"
 #include "RestyleTrackerInlines.h"
 #include "nsTransitionManager.h"
 #include "mozilla/RestyleTimelineMarker.h"
@@ -61,9 +61,7 @@ RestyleTracker::Document() const {
 
 struct RestyleEnumerateData : RestyleTracker::Hints {
   RefPtr<dom::Element> mElement;
-#if defined(MOZ_ENABLE_PROFILER_SPS)
-  UniquePtr<ProfilerBacktrace> mBacktrace;
-#endif
+  UniqueProfilerBacktrace mBacktrace;
 };
 
 inline void
@@ -79,19 +77,19 @@ RestyleTracker::ProcessOneRestyle(Element* aElement,
                   "Element has unexpected document");
 
   LOG_RESTYLE("aRestyleHint = %s, aChangeHint = %s",
-              RestyleManager::RestyleHintToString(aRestyleHint).get(),
-              RestyleManager::ChangeHintToString(aChangeHint).get());
+              GeckoRestyleManager::RestyleHintToString(aRestyleHint).get(),
+              GeckoRestyleManager::ChangeHintToString(aChangeHint).get());
 
   nsIFrame* primaryFrame = aElement->GetPrimaryFrame();
 
   if (aRestyleHint & ~eRestyle_LaterSiblings) {
 #ifdef RESTYLE_LOGGING
     if (ShouldLogRestyle() && primaryFrame &&
-        RestyleManager::StructsToLog() != 0) {
+        GeckoRestyleManager::StructsToLog() != 0) {
       LOG_RESTYLE("style context tree before restyle:");
       LOG_RESTYLE_INDENT();
       primaryFrame->StyleContext()->LogStyleContextTree(
-          LoggingDepth(), RestyleManager::StructsToLog());
+          LoggingDepth(), GeckoRestyleManager::StructsToLog());
     }
 #endif
     mRestyleManager->RestyleElement(aElement, primaryFrame, aChangeHint,
@@ -100,7 +98,7 @@ RestyleTracker::ProcessOneRestyle(Element* aElement,
              (primaryFrame ||
               (aChangeHint & nsChangeHint_ReconstructFrame))) {
     // Don't need to recompute style; just apply the hint
-    nsStyleChangeList changeList;
+    nsStyleChangeList changeList(StyleBackendType::Gecko);
     changeList.AppendChange(primaryFrame, aElement, aChangeHint);
     mRestyleManager->ProcessRestyledFrames(changeList);
   }
@@ -116,8 +114,8 @@ RestyleTracker::DoProcessRestyles()
       docURL = uri->GetSpecOrDefault();
     }
   }
-  PROFILER_LABEL_PRINTF("RestyleTracker", "ProcessRestyles",
-                        js::ProfileEntry::Category::CSS, "(%s)", docURL.get());
+  PROFILER_LABEL_DYNAMIC("RestyleTracker", "ProcessRestyles",
+                         js::ProfileEntry::Category::CSS, docURL.get());
 
   nsDocShell* docShell = static_cast<nsDocShell*>(mRestyleManager->PresContext()->GetDocShell());
   RefPtr<TimelineConsumers> timelines = TimelineConsumers::Get();
@@ -148,7 +146,7 @@ RestyleTracker::DoProcessRestyles()
   // EndReconstruct so those style contexts go away before
   // EndReconstruct.
   {
-    RestyleManager::ReframingStyleContexts
+    GeckoRestyleManager::ReframingStyleContexts
       reframingStyleContexts(mRestyleManager);
 
     mRestyleManager->BeginProcessingRestyles(*this);
@@ -257,12 +255,10 @@ RestyleTracker::DoProcessRestyles()
               data->mRestyleHint, MarkerTracingType::START)));
         }
 
-#if defined(MOZ_ENABLE_PROFILER_SPS)
         Maybe<GeckoProfilerTracingRAII> profilerRAII;
         if (profiler_feature_active("restyle")) {
           profilerRAII.emplace("Paint", "Styles", Move(data->mBacktrace));
         }
-#endif
         ProcessOneRestyle(element, data->mRestyleHint, data->mChangeHint,
                           data->mRestyleHintData);
         AddRestyleRootsIfAwaitingRestyle(data->mDescendants);
@@ -337,9 +333,7 @@ RestyleTracker::DoProcessRestyles()
           // We can move data since we'll be clearing mPendingRestyles after
           // we finish enumerating it.
           restyle->mRestyleHintData = Move(data->mRestyleHintData);
-#if defined(MOZ_ENABLE_PROFILER_SPS)
           restyle->mBacktrace = Move(data->mBacktrace);
-#endif
 
 #ifdef RESTYLE_LOGGING
           count++;
@@ -365,12 +359,10 @@ RestyleTracker::DoProcessRestyles()
                       index++, count);
           LOG_RESTYLE_INDENT();
 
-#if defined(MOZ_ENABLE_PROFILER_SPS)
           Maybe<GeckoProfilerTracingRAII> profilerRAII;
           if (profiler_feature_active("restyle")) {
             profilerRAII.emplace("Paint", "Styles", Move(currentRestyle->mBacktrace));
           }
-#endif
           if (isTimelineRecording) {
             timelines->AddMarkerForDocShell(docShell, Move(
               MakeUnique<RestyleTimelineMarker>(

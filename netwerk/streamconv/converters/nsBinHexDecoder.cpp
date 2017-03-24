@@ -175,7 +175,9 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
       break;
 
     case BINHEX_STATE_FNAME:
-      mName.BeginWriting()[mCount] = c;
+      if (mCount < mName.Length()) {
+        mName.BeginWriting()[mCount] = c;
+      }
 
       if (++mCount > mName.Length())
       {
@@ -274,7 +276,7 @@ nsresult nsBinHexDecoder::ProcessNextState(nsIRequest * aRequest, nsISupports * 
         {
           // when we reach the finished state...fire an on stop request on the event listener...
           mNextListener->OnStopRequest(aRequest, aContext, NS_OK);
-          mNextListener = 0;
+          mNextListener = nullptr;
 
           /*   now We are done with everything.  */
           ++mState;

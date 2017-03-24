@@ -16,7 +16,7 @@ function setText(id, value) {
     return;
   }
   if (element.hasChildNodes()) {
-    element.removeChild(element.firstChild);
+    element.firstChild.remove();
   }
   element.appendChild(document.createTextNode(value));
 }
@@ -33,30 +33,27 @@ function viewCertHelper(parent, cert) {
   cd.viewCert(parent, cert);
 }
 
-function getDERString(cert)
-{
+function getDERString(cert) {
   var length = {};
   var derArray = cert.getRawDER(length);
-  var derString = '';
+  var derString = "";
   for (var i = 0; i < derArray.length; i++) {
     derString += String.fromCharCode(derArray[i]);
   }
   return derString;
 }
 
-function getPKCS7String(cert, chainMode)
-{
+function getPKCS7String(cert, chainMode) {
   var length = {};
   var pkcs7Array = cert.exportAsCMS(chainMode, length);
-  var pkcs7String = '';
+  var pkcs7String = "";
   for (var i = 0; i < pkcs7Array.length; i++) {
     pkcs7String += String.fromCharCode(pkcs7Array[i]);
   }
   return pkcs7String;
 }
 
-function getPEMString(cert)
-{
+function getPEMString(cert) {
   var derb64 = btoa(getDERString(cert));
   // Wrap the Base64 string into lines of 64 characters with CRLF line breaks
   // (as specified in RFC 1421).
@@ -66,8 +63,7 @@ function getPEMString(cert)
          + "\r\n-----END CERTIFICATE-----\r\n";
 }
 
-function alertPromptService(title, message)
-{
+function alertPromptService(title, message) {
   var ps = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].
            getService(Components.interfaces.nsIPromptService);
   ps.alert(window, title, message);
@@ -85,10 +81,7 @@ const DEFAULT_CERT_EXTENSION = "crt";
  *          Generated filename.
  */
 function certToFilename(cert) {
-  let filename = cert.commonName;
-  if (!filename) {
-    filename = cert.windowTitle;
-  }
+  let filename = cert.displayName;
 
   // Remove unneeded and/or unsafe characters.
   filename = filename.replace(/\s/g, "")
@@ -103,8 +96,7 @@ function certToFilename(cert) {
   return `${filename}.${DEFAULT_CERT_EXTENSION}`;
 }
 
-function exportToFile(parent, cert)
-{
+function exportToFile(parent, cert) {
   var bundle = document.getElementById("pippki_bundle");
   if (!cert) {
     return;
@@ -128,7 +120,7 @@ function exportToFile(parent, cert)
     return;
   }
 
-  var content = '';
+  var content = "";
   switch (fp.filterIndex) {
     case 1:
       content = getPEMString(cert);

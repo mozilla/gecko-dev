@@ -79,7 +79,6 @@ public:
   nsresult DeleteData(uint32_t aOffset, uint32_t aCount);
   nsresult ReplaceData(uint32_t aOffset, uint32_t aCount,
                        const nsAString& aArg);
-  NS_IMETHOD MozRemove();
 
   // nsINode methods
   virtual uint32_t GetChildCount() const override;
@@ -90,7 +89,7 @@ public:
                                  bool aNotify) override;
   virtual void RemoveChildAt(uint32_t aIndex, bool aNotify) override;
   virtual void GetTextContentInternal(nsAString& aTextContent,
-                                      mozilla::ErrorResult& aError) override
+                                      mozilla::OOMReporter& aError) override
   {
     GetNodeValue(aTextContent);
   }
@@ -137,6 +136,7 @@ public:
   virtual nsresult AppendText(const char16_t* aBuffer, uint32_t aLength,
                               bool aNotify) override;
   virtual bool TextIsOnlyWhitespace() override;
+  virtual bool ThreadSafeTextIsOnlyWhitespace() const final;
   virtual bool HasTextForTranslation() override;
   virtual void AppendTextTo(nsAString& aResult) override;
   MOZ_MUST_USE
@@ -161,9 +161,6 @@ public:
   virtual void SetXBLInsertionParent(nsIContent* aContent) override;
   virtual bool IsNodeOfType(uint32_t aFlags) const override;
   virtual bool IsLink(nsIURI** aURI) const override;
-
-  virtual mozilla::dom::CustomElementData* GetCustomElementData() const override;
-  virtual void SetCustomElementData(mozilla::dom::CustomElementData* aData) override;
 
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker) override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;

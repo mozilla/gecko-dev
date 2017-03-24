@@ -11,7 +11,6 @@
 #include "base/basictypes.h"
 #include "base/message_loop.h"
 
-#include "mozilla/Function.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Vector.h"
@@ -26,6 +25,7 @@
 #include "MessageLink.h"
 
 #include <deque>
+#include <functional>
 #include <stack>
 #include <math.h>
 
@@ -33,6 +33,7 @@ namespace mozilla {
 namespace ipc {
 
 class MessageChannel;
+class IToplevelProtocol;
 
 class RefCountedMonitor : public Monitor
 {
@@ -60,6 +61,15 @@ enum class SyncSendError {
     ReplyError,
 };
 
+enum ChannelState {
+    ChannelClosed,
+    ChannelOpening,
+    ChannelConnected,
+    ChannelTimeout,
+    ChannelClosing,
+    ChannelError
+};
+
 class AutoEnterTransaction;
 
 class MessageChannel : HasResultCodes
@@ -79,8 +89,12 @@ class MessageChannel : HasResultCodes
     typedef IPC::MessageInfo MessageInfo;
     typedef mozilla::ipc::Transport Transport;
 
-    explicit MessageChannel(MessageListener *aListener);
+    explicit MessageChannel(IToplevelProtocol *aListener);
     ~MessageChannel();
+
+    IToplevelProtocol *Listener() const {
+        return mListener;
+    }
 
     // "Open" from the perspective of the transport layer; the underlying
     // socketpair/pipe should already be created.
@@ -116,7 +130,7 @@ class MessageChannel : HasResultCodes
     // Call aInvoke for each pending message until it returns false.
     // XXX: You must get permission from an IPC peer to use this function
     //      since it requires custom deserialization and re-orders events.
-    void PeekMessages(mozilla::function<bool(const Message& aMsg)> aInvoke);
+    void PeekMessages(std::function<bool(const Message& aMsg)> aInvoke);
 
     // Misc. behavioral traits consumers can request for this channel
     enum ChannelFlags {
@@ -138,6 +152,8 @@ class MessageChannel : HasResultCodes
 
     // Asynchronously send a message to the other side of the channel
     bool Send(Message* aMsg);
+
+    void SendBuildID();
 
     // Asynchronously deliver a message back to this side of the
     // channel
@@ -328,31 +344,14 @@ class MessageChannel : HasResultCodes
     // This helper class manages mCxxStackDepth on behalf of MessageChannel.
     // When the stack depth is incremented from zero to non-zero, it invokes
     // a callback, and similarly for when the depth goes from non-zero to zero.
-    void EnteredCxxStack() {
-       mListener->OnEnteredCxxStack();
-    }
-
+    void EnteredCxxStack();
     void ExitedCxxStack();
 
-    void EnteredCall() {
-        mListener->OnEnteredCall();
-    }
+    void EnteredCall();
+    void ExitedCall();
 
-    void ExitedCall() {
-        mListener->OnExitedCall();
-    }
-
-    void EnteredSyncSend() {
-        mListener->OnEnteredSyncSend();
-    }
-
-    void ExitedSyncSend() {
-        mListener->OnExitedSyncSend();
-    }
-
-    MessageListener *Listener() const {
-        return mListener;
-    }
+    void EnteredSyncSend();
+    void ExitedSyncSend();
 
     void DebugAbort(const char* file, int line, const char* cond,
                     const char* why,
@@ -438,6 +437,7 @@ class MessageChannel : HasResultCodes
     // Can be run on either thread
     void AssertWorkerThread() const
     {
+        MOZ_ASSERT(mWorkerLoopID != -1, "Channel hasn't been opened yet");
         MOZ_RELEASE_ASSERT(mWorkerLoopID == MessageLoop::current()->id(),
                            "not on worker thread!");
     }
@@ -447,6 +447,7 @@ class MessageChannel : HasResultCodes
     // NOT our worker thread.
     void AssertLinkThread() const
     {
+        MOZ_ASSERT(mWorkerLoopID != -1, "Channel hasn't been opened yet");
         MOZ_RELEASE_ASSERT(mWorkerLoopID != MessageLoop::current()->id(),
                            "on worker thread but should not be!");
     }
@@ -458,9 +459,7 @@ class MessageChannel : HasResultCodes
         public nsIRunnablePriority
     {
     public:
-        explicit MessageTask(MessageChannel* aChannel, Message&& aMessage)
-          : mChannel(aChannel), mMessage(Move(aMessage)), mScheduled(false)
-        {}
+        explicit MessageTask(MessageChannel* aChannel, Message&& aMessage);
 
         NS_DECL_ISUPPORTS_INHERITED
 
@@ -495,7 +494,7 @@ class MessageChannel : HasResultCodes
   private:
     // Based on presumption the listener owns and overlives the channel,
     // this is never nullified.
-    MessageListener* mListener;
+    IToplevelProtocol* mListener;
     ChannelState mChannelState;
     RefPtr<RefCountedMonitor> mMonitor;
     Side mSide;

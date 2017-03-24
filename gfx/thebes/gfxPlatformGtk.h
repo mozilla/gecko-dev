@@ -101,6 +101,8 @@ public:
      */
     virtual void FlushContentDrawing() override;
 
+    FT_Library GetFTLibrary() override;
+
 #if (MOZ_WIDGET_GTK == 2)
     static void SetGdkDrawable(cairo_surface_t *target,
                                GdkDrawable *drawable);
@@ -117,8 +119,6 @@ public:
     }
 #endif
 
-    static bool UseFcFontList() { return sUseFcFontList; }
-
     bool UseImageOffscreenSurfaces();
 
     virtual gfxImageFormat GetOffscreenFormat() override;
@@ -126,8 +126,6 @@ public:
     bool SupportsApzWheelInput() const override {
       return true;
     }
-
-    bool SupportsApzTouchInput() const override;
 
     void FontsPrefsChanged(const char *aPref) override;
 
@@ -139,11 +137,6 @@ public:
     }
 
     bool AccelerateLayersByDefault() override {
-#ifdef NIGHTLY_BUILD
-      // Only enable the GL compositor on Nightly for now until we have
-      // sufficient data for blocklisting.
-      return true;
-#endif
       return false;
     }
 
@@ -180,10 +173,6 @@ private:
     wl_display* mWaylandCompositorDisplay;
 #endif
 #endif
-
-    // xxx - this will be removed once the new fontconfig platform font list
-    // replaces gfxPangoFontGroup
-    static bool sUseFcFontList;
 };
 
 #endif /* GFX_PLATFORM_GTK_H */

@@ -35,7 +35,11 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/dom/MutableBlobStorage.h"
+#include "mozilla/dom/BodyExtractor.h"
 #include "mozilla/dom/TypedArray.h"
+#include "mozilla/dom/File.h"
+#include "mozilla/dom/FormData.h"
+#include "mozilla/dom/URLSearchParams.h"
 #include "mozilla/dom/XMLHttpRequest.h"
 #include "mozilla/dom/XMLHttpRequestBinding.h"
 #include "mozilla/dom/XMLHttpRequestEventTarget.h"
@@ -55,10 +59,8 @@ class nsIJSID;
 namespace mozilla {
 namespace dom {
 
-class Blob;
 class BlobSet;
-class FormData;
-class URLSearchParams;
+class DOMString;
 class XMLHttpRequestUpload;
 struct OriginAttributesDictionary;
 
@@ -164,6 +166,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
                                        public nsSupportsWeakReference,
                                        public nsITimerCallback,
                                        public nsISizeOfEventTarget,
+                                       public nsINamed,
                                        public MutableBlobStorageCallback
 {
   friend class nsXHRParseEndListener;
@@ -230,6 +233,9 @@ public:
   // nsITimerCallback
   NS_DECL_NSITIMERCALLBACK
 
+  // nsINamed
+  NS_DECL_NSINAMED
+
   // nsISizeOfEventTarget
   virtual size_t
     SizeOfEventTargetIncludingThis(MallocSizeOf aMallocSizeOf) const override;
@@ -288,34 +294,7 @@ public:
 private:
   virtual ~XMLHttpRequestMainThread();
 
-  class RequestBodyBase
-  {
-  public:
-    virtual nsresult GetAsStream(nsIInputStream** aResult,
-                                 uint64_t* aContentLength,
-                                 nsACString& aContentType,
-                                 nsACString& aCharset) const
-    {
-      NS_ASSERTION(false, "RequestBodyBase should not be used directly.");
-      return NS_ERROR_FAILURE;
-    }
-  };
-
-  template<typename Type>
-  class RequestBody final : public RequestBodyBase
-  {
-    Type* mBody;
-  public:
-    explicit RequestBody(Type* aBody) : mBody(aBody)
-    {
-    }
-    nsresult GetAsStream(nsIInputStream** aResult,
-                         uint64_t* aContentLength,
-                         nsACString& aContentType,
-                         nsACString& aCharset) const override;
-  };
-
-  nsresult SendInternal(const RequestBodyBase* aBody);
+  nsresult SendInternal(const BodyExtractorBase* aBody);
 
   bool IsCrossSiteCORSRequest() const;
   bool IsDeniedCrossSiteCORSRequest();
@@ -324,6 +303,8 @@ private:
   // If it's an HTTP channel and we were told to use a non-default
   // interface ID.
   void PopulateNetworkInterfaceId();
+
+  void UnsuppressEventHandlingAndResume();
 
 public:
   virtual void
@@ -336,7 +317,7 @@ public:
   Send(JSContext* /*aCx*/, const ArrayBuffer& aArrayBuffer,
        ErrorResult& aRv) override
   {
-    RequestBody<const ArrayBuffer> body(&aArrayBuffer);
+    BodyExtractor<const ArrayBuffer> body(&aArrayBuffer);
     aRv = SendInternal(&body);
   }
 
@@ -344,28 +325,28 @@ public:
   Send(JSContext* /*aCx*/, const ArrayBufferView& aArrayBufferView,
        ErrorResult& aRv) override
   {
-    RequestBody<const ArrayBufferView> body(&aArrayBufferView);
+    BodyExtractor<const ArrayBufferView> body(&aArrayBufferView);
     aRv = SendInternal(&body);
   }
 
   virtual void
   Send(JSContext* /*aCx*/, Blob& aBlob, ErrorResult& aRv) override
   {
-    RequestBody<Blob> body(&aBlob);
+    BodyExtractor<nsIXHRSendable> body(&aBlob);
     aRv = SendInternal(&body);
   }
 
   virtual void Send(JSContext* /*aCx*/, URLSearchParams& aURLSearchParams,
                     ErrorResult& aRv) override
   {
-    RequestBody<URLSearchParams> body(&aURLSearchParams);
+    BodyExtractor<nsIXHRSendable> body(&aURLSearchParams);
     aRv = SendInternal(&body);
   }
 
   virtual void
   Send(JSContext* /*aCx*/, nsIDocument& aDoc, ErrorResult& aRv) override
   {
-    RequestBody<nsIDocument> body(&aDoc);
+    BodyExtractor<nsIDocument> body(&aDoc);
     aRv = SendInternal(&body);
   }
 
@@ -375,7 +356,7 @@ public:
     if (DOMStringIsNull(aString)) {
       Send(aCx, aRv);
     } else {
-      RequestBody<const nsAString> body(&aString);
+      BodyExtractor<const nsAString> body(&aString);
       aRv = SendInternal(&body);
     }
   }
@@ -383,7 +364,7 @@ public:
   virtual void
   Send(JSContext* /*aCx*/, FormData& aFormData, ErrorResult& aRv) override
   {
-    RequestBody<FormData> body(&aFormData);
+    BodyExtractor<nsIXHRSendable> body(&aFormData);
     aRv = SendInternal(&body);
   }
 
@@ -391,9 +372,14 @@ public:
   Send(JSContext* aCx, nsIInputStream* aStream, ErrorResult& aRv) override
   {
     NS_ASSERTION(aStream, "Null should go to string version");
-    RequestBody<nsIInputStream> body(aStream);
+    BodyExtractor<nsIInputStream> body(aStream);
     aRv = SendInternal(&body);
   }
+
+  void
+  RequestErrorSteps(const ProgressEventType aEventType,
+                    const nsresult aOptionalException,
+                    ErrorResult& aRv);
 
   void
   Abort() {
@@ -459,7 +445,7 @@ public:
               ErrorResult& aRv) override;
 
   virtual void
-  GetResponseText(nsAString& aResponseText, ErrorResult& aRv) override;
+  GetResponseText(DOMString& aResponseText, ErrorResult& aRv) override;
 
   void
   GetResponseText(XMLHttpRequestStringSnapshot& aSnapshot,
@@ -520,8 +506,10 @@ public:
 
   void SetRequestObserver(nsIRequestObserver* aObserver);
 
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_INHERITED(XMLHttpRequestMainThread,
-                                                                   XMLHttpRequest)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(XMLHttpRequestMainThread,
+                                                         XMLHttpRequest)
+  virtual bool IsCertainlyAliveForCC() const override;
+
   bool AllowUploadProgress();
 
   virtual void DisconnectFromOwner() override;
@@ -541,6 +529,9 @@ public:
   void BlobStoreCompleted(MutableBlobStorage* aBlobStorage,
                           Blob* aBlob,
                           nsresult aResult) override;
+
+  void
+  LocalFileToBlobCompleted(Blob* aBlob);
 
 protected:
   // XHR states are meant to mirror the XHR2 spec:
@@ -563,7 +554,6 @@ protected:
                                    uint32_t *writeCount);
   nsresult CreateResponseParsedJSON(JSContext* aCx);
   void CreatePartialBlob(ErrorResult& aRv);
-  bool CreateDOMBlob(nsIRequest *request);
   // Change the state of the object with this. The broadcast argument
   // determines if the onreadystatechange listener should be called.
   nsresult ChangeState(State aState, bool aBroadcast = true);
@@ -587,6 +577,8 @@ protected:
   void MaybeCreateBlobStorage();
 
   nsresult OnRedirectVerifyCallback(nsresult result);
+
+  void SetTimerEventTarget(nsITimer* aTimer);
 
   already_AddRefed<nsXMLHttpRequestXPCOMifier> EnsureXPCOMifier();
 
@@ -649,14 +641,9 @@ protected:
   // It is either a cached blob-response from the last call to GetResponse,
   // but is also explicitly set in OnStopRequest.
   RefPtr<Blob> mResponseBlob;
-  // Non-null only when we are able to get a os-file representation of the
-  // response, i.e. when loading from a file.
-  RefPtr<Blob> mDOMBlob;
-  // We stream data to mBlobStorage when response type is "blob" and mDOMBlob is
-  // null.
+  // We stream data to mBlobStorage when response type is "blob".
   RefPtr<MutableBlobStorage> mBlobStorage;
-  // We stream data to mBlobStorage when response type is "moz-blob" and
-  // mDOMBlob is null.
+  // We stream data to mBlobSet when response type is "moz-blob".
   nsAutoPtr<BlobSet> mBlobSet;
 
   nsString mOverrideMimeType;
@@ -709,6 +696,9 @@ protected:
   nsCOMPtr<nsITimer> mTimeoutTimer;
   void StartTimeoutTimer();
   void HandleTimeoutCallback();
+
+  nsCOMPtr<nsIDocument> mSuspendedDoc;
+  nsCOMPtr<nsIRunnable> mResumeTimeoutRunnable;
 
   nsCOMPtr<nsITimer> mSyncTimeoutTimer;
 

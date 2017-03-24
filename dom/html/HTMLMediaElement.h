@@ -16,7 +16,6 @@
 #include "DecoderTraits.h"
 #include "nsIAudioChannelAgent.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/TextTrackManager.h"
 #include "mozilla/WeakPtr.h"
 #include "MediaDecoder.h"
@@ -39,8 +38,10 @@ typedef uint16_t nsMediaNetworkState;
 typedef uint16_t nsMediaReadyState;
 typedef uint32_t SuspendTypes;
 typedef uint32_t AudibleChangedReasons;
+typedef uint8_t AudibleState;
 
 namespace mozilla {
+class AbstractThread;
 class DecoderDoctorDiagnostics;
 class DOMMediaStream;
 class ErrorResult;
@@ -48,7 +49,6 @@ class MediaResource;
 class MediaDecoder;
 class VideoFrameContainer;
 namespace dom {
-class AudioChannelAgent;
 class MediaKeys;
 class TextTrack;
 class TimeRanges;
@@ -59,7 +59,6 @@ class VideoStreamTrack;
 } // namespace dom
 } // namespace mozilla
 
-class AutoNotifyAudioChannelAgent;
 class nsIChannel;
 class nsIHttpChannel;
 class nsILoadGroup;
@@ -75,6 +74,7 @@ namespace dom {
 
 class MediaError;
 class MediaSource;
+class Promise;
 class TextTrackList;
 class AudioTrackList;
 class VideoTrackList;
@@ -82,12 +82,9 @@ class VideoTrackList;
 class HTMLMediaElement : public nsGenericHTMLElement,
                          public nsIDOMHTMLMediaElement,
                          public MediaDecoderOwner,
-                         public nsIAudioChannelAgentCallback,
                          public PrincipalChangeObserver<DOMMediaStream>,
                          public SupportsWeakPtr<HTMLMediaElement>
 {
-  friend AutoNotifyAudioChannelAgent;
-
 public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::layers::ImageContainer ImageContainer;
@@ -117,8 +114,6 @@ public:
 
   // nsIDOMHTMLMediaElement
   NS_DECL_NSIDOMHTMLMEDIAELEMENT
-
-  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
 
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
@@ -179,6 +174,11 @@ public:
   // Called by the video decoder object, on the main thread, when the
   // resource has a decode error during metadata loading or decoding.
   virtual void DecodeError(const MediaResult& aError) final override;
+
+  // Called by the decoder object, on the main thread, when the
+  // resource has a decode issue during metadata loading or decoding, but can
+  // continue decoding.
+  virtual void DecodeWarning(const MediaResult& aError) final override;
 
   // Return true if error attribute is not null.
   virtual bool HasError() const final override;
@@ -286,6 +286,8 @@ public:
 
   // called to notify that the principal of the decoder's media resource has changed.
   void NotifyDecoderPrincipalChanged() final override;
+
+  void GetEMEInfo(nsString& aEMEInfo);
 
   // An interface for observing principal changes on the media elements
   // MediaDecoder. This will also be notified if the active CORSMode changes.
@@ -421,10 +423,7 @@ public:
 
   // WebIDL
 
-  MediaError* GetError() const
-  {
-    return mError;
-  }
+  MediaError* GetError() const;
 
   // XPCOM GetSrc() is OK
   void SetSrc(const nsAString& aSrc, ErrorResult& aRv)
@@ -549,7 +548,7 @@ public:
     SetHTMLBoolAttr(nsGkAtoms::loop, aValue, aRv);
   }
 
-  void Play(ErrorResult& aRv);
+  already_AddRefed<Promise> Play(ErrorResult& aRv);
 
   void Pause(ErrorResult& aRv);
 
@@ -612,9 +611,25 @@ public:
   // data. Used for debugging purposes.
   void GetMozDebugReaderData(nsAString& aString);
 
+  // Returns a promise which will be resolved after collecting debugging
+  // data from decoder/reader/MDSM. Used for debugging purposes.
+  already_AddRefed<Promise> MozRequestDebugInfo(ErrorResult& aRv);
+
   void MozDumpDebugInfo();
 
+  // For use by mochitests. Enabling pref "media.test.video-suspend"
   void SetVisible(bool aVisible);
+
+  // For use by mochitests. Enabling pref "media.test.video-suspend"
+  bool HasSuspendTaint() const;
+
+  // Synchronously, return the next video frame and mark the element unable to
+  // participate in decode suspending.
+  //
+  // This function is synchronous for cases where decoding has been suspended
+  // and JS needs a frame to use in, eg., nsLayoutUtils::SurfaceFromElement()
+  // via drawImage().
+  already_AddRefed<layers::Image> GetCurrentImage();
 
   already_AddRefed<DOMMediaStream> GetSrcObject() const;
   void SetSrcObject(DOMMediaStream& aValue);
@@ -746,6 +761,8 @@ public:
 
   void SetMediaInfo(const MediaInfo& aInfo);
 
+  virtual AbstractThread* AbstractMainThread() const final override;
+
   // Telemetry: to record the usage of a {visible / invisible} video element as
   // the source of {drawImage(), createPattern(), createImageBitmap() and
   // captureStream()} APIs.
@@ -757,10 +774,20 @@ public:
   };
   void MarkAsContentSource(CallerAPI aAPI);
 
+  nsIDocument* GetDocument() const override;
+
+  void ConstructMediaTracks(const MediaInfo* aInfo) override;
+
+  void RemoveMediaTracks() override;
+
+  already_AddRefed<GMPCrashHelper> CreateGMPCrashHelper() override;
+
 protected:
   virtual ~HTMLMediaElement();
 
+  class AudioChannelAgentCallback;
   class ChannelLoader;
+  class ErrorSink;
   class MediaLoadListener;
   class MediaStreamTracksAvailableCallback;
   class MediaStreamTrackListener;
@@ -769,8 +796,12 @@ protected:
   class ShutdownObserver;
 
   MediaDecoderOwner::NextFrameStatus NextFrameStatus();
+
   void SetDecoder(MediaDecoder* aDecoder) {
     MOZ_ASSERT(aDecoder); // Use ShutdownDecoder() to clear.
+    if (mDecoder) {
+      ShutdownDecoder();
+    }
     mDecoder = aDecoder;
   }
 
@@ -818,7 +849,7 @@ protected:
     nsTArray<Pair<nsString, RefPtr<MediaInputPort>>> mTrackPorts;
   };
 
-  nsresult PlayInternal();
+  already_AddRefed<Promise> PlayInternal(ErrorResult& aRv);
 
   /** Use this method to change the mReadyState member, so required
    * events can be fired.
@@ -964,11 +995,20 @@ protected:
   void AbortExistingLoads();
 
   /**
+   * This is the dedicated media source failure steps.
    * Called when all potential resources are exhausted. Changes network
    * state to NETWORK_NO_SOURCE, and sends error event with code
    * MEDIA_ERR_SRC_NOT_SUPPORTED.
    */
   void NoSupportedMediaSourceError(const nsACString& aErrorDetails = nsCString());
+
+  /**
+   * Per spec, Failed with elements: Queue a task, using the DOM manipulation
+   * task source, to fire a simple event named error at the candidate element.
+   * So dispatch |QueueLoadFromSourceTask| to main thread to make sure the task
+   * will be executed later than loadstart event.
+   */
+  void DealWithFailedElement(nsIContent* aSourceElement);
 
   /**
    * Attempts to load resources from the <source> children. This is a
@@ -1208,9 +1248,6 @@ protected:
   // next block of audio samples) preceeding seek target.
   already_AddRefed<Promise> Seek(double aTime, SeekTarget::Type aSeekType, ErrorResult& aRv);
 
-  // A method to check if we are playing through the AudioChannel.
-  bool IsPlayingThroughTheAudioChannel() const;
-
   // Update the audio channel playing state
   void UpdateAudioChannelPlayingState(bool aForcePlaying = false);
 
@@ -1226,50 +1263,11 @@ protected:
   // Recomputes ready state and fires events as necessary based on current state.
   void UpdateReadyStateInternal();
 
-  // Notifies the audio channel agent when the element starts or stops playing.
-  void NotifyAudioChannelAgent(bool aPlaying);
-
-  // True if we create the audio channel agent successfully or we already have
-  // one. The agent is used to communicate with the AudioChannelService. eg.
-  // notify we are playing/audible and receive muted/unmuted/suspend/resume
-  // commands from AudioChannelService.
-  bool MaybeCreateAudioChannelAgent();
-
   // Determine if the element should be paused because of suspend conditions.
   bool ShouldElementBePaused();
 
-  // Create or destroy the captured stream depend on mAudioCapturedByWindow.
-  void AudioCaptureStreamChangeIfNeeded();
-
-  /**
-   * We have different kinds of suspended cases,
-   * - SUSPENDED_PAUSE
-   * It's used when we temporary lost platform audio focus. MediaElement can
-   * only be resumed when we gain the audio focus again.
-   *
-   * - SUSPENDED_PAUSE_DISPOSABLE
-   * It's used when user press the pause botton on the remote media-control.
-   * MediaElement can be resumed by reomte media-control or via play().
-   *
-   * - SUSPENDED_BLOCK
-   * It's used to reduce the power comsuption, we won't play the auto-play
-   * audio/video in the page we have never visited before. MediaElement would
-   * be resumed when the page is active. See bug647429 for more details.
-   *
-   * - SUSPENDED_STOP_DISPOSABLE
-   * When we permanently lost platform audio focus, we shuold stop playing
-   * and stop the audio channel agent. MediaElement can only be restarted by
-   * play().
-   */
-  void PauseByAudioChannel(SuspendTypes aSuspend);
-  void BlockByAudioChannel();
-
-  void ResumeFromAudioChannel();
-  void ResumeFromAudioChannelPaused(SuspendTypes aSuspend);
-  void ResumeFromAudioChannelBlocked();
-
-  bool IsSuspendedByAudioChannel() const;
-  void SetAudioChannelSuspended(SuspendTypes aSuspend);
+  // Create or destroy the captured stream.
+  void AudioCaptureStreamChange(bool aCapture);
 
   // A method to check whether the media element is allowed to start playback.
   bool IsAllowedToPlay();
@@ -1277,27 +1275,51 @@ protected:
   // If the network state is empty and then we would trigger DoLoad().
   void MaybeDoLoad();
 
-  // True if the tab which media element belongs to has been to foreground at
-  // least once or activated by manually clicking the unblocking tab icon.
-  bool IsTabActivated() const;
-
-  bool IsAudible() const;
-  bool HaveFailedWithSourceNotSupportedError() const;
-
-  void OpenUnsupportedMediaWithExtenalAppIfNeeded();
-
-  // It's used for fennec only, send the notification when the user resumes the
-  // media which was paused by media control.
-  void MaybeNotifyMediaResumed(SuspendTypes aSuspend);
+  // Anything we need to check after played success and not related with spec.
+  void UpdateCustomPolicyAfterPlayed();
 
   class nsAsyncEventRunner;
+  class nsNotifyAboutPlayingRunner;
+  class nsResolveOrRejectPendingPlayPromisesRunner;
   using nsGenericHTMLElement::DispatchEvent;
   // For nsAsyncEventRunner.
   nsresult DispatchEvent(const nsAString& aName);
 
+  // Open unsupported types media with the external app when the media element
+  // triggers play() after loaded fail. eg. preload the data before start play.
+  void OpenUnsupportedMediaWithExternalAppIfNeeded() const;
+
+  // This method moves the mPendingPlayPromises into a temperate object. So the
+  // mPendingPlayPromises is cleared after this method call.
+  nsTArray<RefPtr<Promise>> TakePendingPlayPromises();
+
+  // This method snapshots the mPendingPlayPromises by TakePendingPlayPromises()
+  // and queues a task to resolve them.
+  void AsyncResolvePendingPlayPromises();
+
+  // This method snapshots the mPendingPlayPromises by TakePendingPlayPromises()
+  // and queues a task to reject them.
+  void AsyncRejectPendingPlayPromises(nsresult aError);
+
+  // This method snapshots the mPendingPlayPromises by TakePendingPlayPromises()
+  // and queues a task to resolve them also to dispatch a "playing" event.
+  void NotifyAboutPlaying();
+
+  already_AddRefed<Promise> CreateDOMPromise(ErrorResult& aRv) const;
+
+  // Pass information for deciding the video decode mode to decoder.
+  void NotifyDecoderActivityChanges() const;
+
+  // Mark the decoder owned by the element as tainted so that the
+  // suspend-video-decoder is disabled.
+  void MarkAsTainted();
+
   // The current decoder. Load() has been called on this decoder.
   // At most one of mDecoder and mSrcStream can be non-null.
   RefPtr<MediaDecoder> mDecoder;
+
+  // The DocGroup-specific AbstractThread::MainThread() of this HTML element.
+  RefPtr<AbstractThread> mAbstractMainThread;
 
   // Observers listening to changes to the mDecoder principal.
   // Used by streams captured from this element.
@@ -1355,9 +1377,6 @@ protected:
   RefPtr<MediaSource> mMediaSource;
 
   RefPtr<ChannelLoader> mChannelLoader;
-
-  // Error attribute
-  RefPtr<MediaError> mError;
 
   // The current media load ID. This is incremented every time we start a
   // new load. Async events note the ID when they're first sent, and only fire
@@ -1509,7 +1528,6 @@ protected:
   };
 
   uint32_t mMuted;
-  SuspendTypes mAudioChannelSuspended;
 
   // True if the media statistics are currently being shown by the builtin
   // video controls
@@ -1526,18 +1544,11 @@ protected:
   // True if the sound is being captured.
   bool mAudioCaptured;
 
-  // True if the sound is being captured by the window.
-  bool mAudioCapturedByWindow;
-
   // If TRUE then the media element was actively playing before the currently
   // in progress seeking. If FALSE then the media element is either not seeking
   // or was not actively playing before the current seek. Used to decide whether
   // to raise the 'waiting' event as per 4.7.1.8 in HTML 5 specification.
   bool mPlayingBeforeSeek;
-
-  // if TRUE then the seek started while content was in active playing state
-  // if FALSE then the seek started while the content was not playing.
-  bool mPlayingThroughTheAudioChannelBeforeSeek;
 
   // True iff this element is paused because the document is inactive or has
   // been suspended by the audio channel service.
@@ -1634,20 +1645,10 @@ protected:
   // Audio Channel.
   AudioChannel mAudioChannel;
 
-  // The audio channel volume
-  float mAudioChannelVolume;
-
-  // Is this media element playing?
-  bool mPlayingThroughTheAudioChannel;
-
   // Disable the video playback by track selection. This flag might not be
   // enough if we ever expand the ability of supporting multi-tracks video
   // playback.
   bool mDisableVideo;
-
-  // An agent used to join audio channel service and its life cycle would equal
-  // to media element.
-  RefPtr<AudioChannelAgent> mAudioChannelAgent;
 
   RefPtr<TextTrackManager> mTextTrackManager;
 
@@ -1740,11 +1741,33 @@ private:
   // True if the audio track is not silent.
   bool mIsAudioTrackAudible;
 
-  // True if media element is audible for users.
-  bool mAudible;
+  // True if media element has been marked as 'tainted' and can't
+  // participate in video decoder suspending.
+  bool mHasSuspendTaint;
 
   Visibility mVisibilityState;
+
+  UniquePtr<ErrorSink> mErrorSink;
+
+  // This wrapper will handle all audio channel related stuffs, eg. the operations
+  // of tab audio indicator, Fennec's media control.
+  // Note: mAudioChannelWrapper might be null after GC happened.
+  RefPtr<AudioChannelAgentCallback> mAudioChannelWrapper;
+
+  // A list of pending play promises. The elements are pushed during the play()
+  // method call and are resolved/rejected during further playback steps.
+  nsTArray<RefPtr<Promise>> mPendingPlayPromises;
+
+  // A list of already-dispatched but not yet run
+  // nsResolveOrRejectPendingPlayPromisesRunners.
+  // Runners whose Run() method is called remove themselves from this list.
+  // We keep track of these because the load algorithm resolves/rejects all
+  // already-dispatched pending play promises.
+  nsTArray<nsResolveOrRejectPendingPlayPromisesRunner*> mPendingPlayPromisesRunners;
 };
+
+// Check if the context is chrome or has the debugger permission
+bool HasDebuggerPrivilege(JSContext* aCx, JSObject* aObj);
 
 } // namespace dom
 } // namespace mozilla

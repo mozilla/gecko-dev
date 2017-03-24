@@ -13,7 +13,6 @@
 
 #include <limits>
 #include <type_traits>
-#include "nsIAtom.h"
 #include "nsString.h"
 #include "nsCSSPropertyID.h"
 #include "nsStyleStructFwd.h"
@@ -21,6 +20,8 @@
 #include "mozilla/CSSEnabledState.h"
 #include "mozilla/UseCounter.h"
 #include "mozilla/EnumTypeTraits.h"
+#include "mozilla/Preferences.h"
+#include "nsXULAppAPI.h"
 
 // Length of the "--" prefix on custom names (such as custom property names,
 // and, in the future, custom media query names).
@@ -332,10 +333,6 @@ enum nsStyleAnimType {
   eStyleAnimType_None
 };
 
-// Empty class derived from nsIAtom so that function signatures can
-// require an atom from the atom list.
-class nsICSSProperty : public nsIAtom {};
-
 class nsCSSProps {
 public:
   typedef mozilla::CSSEnabledState EnabledState;
@@ -636,6 +633,12 @@ public:
   static bool IsEnabled(nsCSSPropertyID aProperty) {
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_with_aliases,
                "out of range");
+    // We don't have useful pref init phases in the parent process.  But in the
+    // child process, assert that we're not trying to parse stylesheets before
+    // we've gotten all our prefs.
+    MOZ_ASSERT(XRE_IsParentProcess() ||
+               mozilla::Preferences::InitPhase() == END_ALL_PREFS,
+               "Checking style preferences before they have been set");
     return gPropertyEnabled[aProperty];
   }
 
@@ -674,25 +677,6 @@ public:
   }
 
 public:
-  static void AddRefAtoms();
-  static nsICSSProperty* AtomForProperty(nsCSSPropertyID aProperty)
-  {
-    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT);
-    return gPropertyAtomTable[aProperty];
-  }
-
-#define CSS_PROP(name_, id_, ...) static nsICSSProperty* id_;
-#define CSS_PROP_SHORTHAND(name_, id_, ...) CSS_PROP(name_, id_, ...)
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
-#include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
-#undef CSS_PROP_SHORTHAND
-#undef CSS_PROP
-
-private:
-  static nsICSSProperty* gPropertyAtomTable[eCSSProperty_COUNT];
-
-public:
 
 // Storing the enabledstate_ value in an nsCSSPropertyID variable is a small hack
 // to avoid needing a separate variable declaration for its real type
@@ -712,11 +696,13 @@ public:
   static const KTableEntry kAnimationPlayStateKTable[];
   static const KTableEntry kAnimationTimingFunctionKTable[];
   static const KTableEntry kAppearanceKTable[];
+  static const KTableEntry kMozAppearanceKTable[];
   static const KTableEntry kAzimuthKTable[];
   static const KTableEntry kBackfaceVisibilityKTable[];
   static const KTableEntry kTransformStyleKTable[];
   static const KTableEntry kImageLayerAttachmentKTable[];
-  static const KTableEntry kImageLayerOriginKTable[];
+  static const KTableEntry kBackgroundOriginKTable[];
+  static const KTableEntry kMaskOriginKTable[];
   static const KTableEntry kImageLayerPositionKTable[];
   static const KTableEntry kImageLayerRepeatKTable[];
   static const KTableEntry kImageLayerRepeatPartKTable[];
@@ -726,6 +712,7 @@ public:
   // Not const because we modify its entries when the pref
   // "layout.css.background-clip.text" changes:
   static KTableEntry kBackgroundClipKTable[];
+  static const KTableEntry kMaskClipKTable[];
   static const KTableEntry kBlendModeKTable[];
   static const KTableEntry kBorderCollapseKTable[];
   static const KTableEntry kBorderImageRepeatKTable[];
@@ -758,6 +745,7 @@ public:
   static const KTableEntry kColorAdjustKTable[];
   static const KTableEntry kColorInterpolationKTable[];
   static const KTableEntry kColumnFillKTable[];
+  static const KTableEntry kColumnSpanKTable[];
   static const KTableEntry kBoxPropSourceKTable[];
   static const KTableEntry kBoxShadowTypeKTable[];
   static const KTableEntry kBoxSizingKTable[];
@@ -869,8 +857,10 @@ public:
   static const KTableEntry kTextEmphasisPositionKTable[];
   static const KTableEntry kTextEmphasisStyleFillKTable[];
   static const KTableEntry kTextEmphasisStyleShapeKTable[];
+  static const KTableEntry kTextJustifyKTable[];
   static const KTableEntry kTextOrientationKTable[];
   static const KTableEntry kTextOverflowKTable[];
+  static const KTableEntry kTextSizeAdjustKTable[];
   static const KTableEntry kTextTransformKTable[];
   static const KTableEntry kTouchActionKTable[];
   static const KTableEntry kTopLayerKTable[];

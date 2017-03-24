@@ -10,6 +10,8 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/GamepadBinding.h"
 #include "mozilla/dom/GamepadButton.h"
+#include "mozilla/dom/GamepadPose.h"
+#include "mozilla/dom/GamepadHapticActuator.h"
 #include "mozilla/dom/Performance.h"
 #include <stdint.h>
 #include "nsCOMPtr.h"
@@ -33,14 +35,6 @@ const int kLeftStickYAxis = 1;
 const int kRightStickXAxis = 2;
 const int kRightStickYAxis = 3;
 
-// Standard channel is used for managing gamepads that
-// are from GamepadPlatformService. VR channel
-// is for gamepads that are from VRManagerChild.
-enum class GamepadServiceType : uint16_t {
-  Standard,
-  VR,
-  NumGamepadServiceType
-};
 
 class Gamepad final : public nsISupports,
                       public nsWrapperCache
@@ -48,8 +42,11 @@ class Gamepad final : public nsISupports,
 public:
   Gamepad(nsISupports* aParent,
           const nsAString& aID, uint32_t aIndex,
-          GamepadMappingType aMapping,
-          uint32_t aNumButtons, uint32_t aNumAxes);
+          uint32_t aHashKey,
+          GamepadMappingType aMapping, GamepadHand aHand,
+          uint32_t aNumButtons, uint32_t aNumAxes,
+          uint32_t aNumHaptics);
+
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Gamepad)
 
@@ -57,6 +54,7 @@ public:
   void SetButton(uint32_t aButton, bool aPressed, double aValue);
   void SetAxis(uint32_t aAxis, double aValue);
   void SetIndex(uint32_t aIndex);
+  void SetPose(const GamepadPoseState& aPose);
 
   // Make the state of this gamepad equivalent to other.
   void SyncState(Gamepad* aOther);
@@ -87,6 +85,11 @@ public:
     return mMapping;
   }
 
+  GamepadHand Hand()
+  {
+    return mHand;
+  }
+
   bool Connected() const
   {
     return mConnected;
@@ -95,6 +98,11 @@ public:
   uint32_t Index() const
   {
     return mIndex;
+  }
+
+  uint32_t HashKey() const
+  {
+    return mHashKey;
   }
 
   void GetButtons(nsTArray<RefPtr<GamepadButton>>& aButtons) const
@@ -107,6 +115,16 @@ public:
     aAxes = mAxes;
   }
 
+  GamepadPose* GetPose() const
+  {
+    return mPose;
+  }
+
+  void GetHapticActuators(nsTArray<RefPtr<GamepadHapticActuator>>& aHapticActuators) const
+  {
+    aHapticActuators = mHapticActuators;
+  }
+
 private:
   virtual ~Gamepad() {}
   void UpdateTimestamp();
@@ -115,9 +133,12 @@ protected:
   nsCOMPtr<nsISupports> mParent;
   nsString mID;
   uint32_t mIndex;
+  // the gamepad hash key in GamepadManager
+  uint32_t mHashKey;
 
   // The mapping in use.
   GamepadMappingType mMapping;
+  GamepadHand mHand;
 
   // true if this gamepad is currently connected.
   bool mConnected;
@@ -126,6 +147,8 @@ protected:
   nsTArray<RefPtr<GamepadButton>> mButtons;
   nsTArray<double> mAxes;
   DOMHighResTimeStamp mTimestamp;
+  RefPtr<GamepadPose> mPose;
+  nsTArray<RefPtr<GamepadHapticActuator>> mHapticActuators;
 };
 
 } // namespace dom

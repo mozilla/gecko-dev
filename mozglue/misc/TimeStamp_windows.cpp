@@ -20,7 +20,7 @@
 class AutoCriticalSection
 {
 public:
-  AutoCriticalSection(LPCRITICAL_SECTION aSection)
+  explicit AutoCriticalSection(LPCRITICAL_SECTION aSection)
     : mSection(aSection)
   {
     ::EnterCriticalSection(mSection);
@@ -474,9 +474,17 @@ HasStableTSC()
   return regs[3] & (1 << 8);
 }
 
+static bool gInitialized = false;
+
 MFBT_API void
 TimeStamp::Startup()
 {
+  if (gInitialized) {
+    return;
+  }
+
+  gInitialized = true;
+
   // Decide which implementation to use for the high-performance timer.
 
   HMODULE kernelDLL = GetModuleHandleW(L"kernel32.dll");

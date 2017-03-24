@@ -6,12 +6,10 @@
 
 %filter substitution
 
-%define selectorPrefix
 %define selectorSuffix
 %define iconVariant
 %include icons.inc.css
 
-%define selectorPrefix
 %define selectorSuffix :-moz-lwtheme
 %define iconVariant -black
 %include icons.inc.css
@@ -79,6 +77,13 @@
   height: 16px;
 }
 
+#urlbar[actiontype="extension"] > #identity-box > #identity-icon {
+  -moz-image-region: inherit;
+  list-style-image: url(chrome://browser/skin/addons/addon-install-anchor.svg);
+  width: 16px;
+  height: 16px;
+}
+
 /* SHARING ICON */
 
 #sharing-icon {
@@ -108,10 +113,11 @@
 
 #identity-box[sharing] > #identity-icon,
 #sharing-icon {
-  animation: 3s linear pulse infinite;
+  animation: 3s linear identity-box-sharing-icon-pulse infinite;
 }
 
-@keyframes pulse {
+/* This should remain identical to tab-sharing-icon-pulse in tabs.inc.css */
+@keyframes identity-box-sharing-icon-pulse {
   0%, 16.66%, 83.33%, 100% {
     opacity: 0;
   }

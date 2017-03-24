@@ -8,7 +8,7 @@
 #define nsMathMLElement_h
 
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/ElementInlines.h"
+#include "mozilla/dom/Element.h"
 #include "nsMappedAttributeElement.h"
 #include "nsIDOMElement.h"
 #include "Link.h"
@@ -72,9 +72,9 @@ public:
                                 nsIDocument*    aDocument);
 
   static void MapMathMLAttributesInto(const nsMappedAttributes* aAttributes, 
-                                      nsRuleData* aRuleData);
+                                      mozilla::GenericSpecifiedValues* aGenericData);
   
-  virtual nsresult PreHandleEvent(
+  virtual nsresult GetEventTargetParent(
                      mozilla::EventChainPreVisitor& aVisitor) override;
   virtual nsresult PostHandleEvent(
                      mozilla::EventChainPostVisitor& aVisitor) override;

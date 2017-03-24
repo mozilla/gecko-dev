@@ -26,5 +26,5 @@
 == fieldset-with-valid-element-add-barred-dynamic.html fieldset-with-valid-element-add-barred-dynamic.html
 == fieldset-nested-invalid.html fieldset-nested-invalid.html
 == fieldset-div-invalid.html fieldset-div-invalid.html
-== fieldset-nested-valid-invalid.html fieldset-nested-valid-invalid.html
-fails fuzzy-if(skiaContent,1,5) == fieldset-nested-barred.html fieldset-nested-barred.html
+fails == fieldset-nested-valid-invalid.html fieldset-nested-valid-invalid.html
+fails == fieldset-nested-barred.html fieldset-nested-barred.html

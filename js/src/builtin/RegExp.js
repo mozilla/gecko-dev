@@ -54,7 +54,7 @@ function RegExpToString()
     var flags = ToString(R.flags);
 
     // Steps 5-6.
-    return '/' + pattern + '/' + flags;
+    return "/" + pattern + "/" + flags;
 }
 _SetCanonicalName(RegExpToString, "toString");
 
@@ -122,8 +122,7 @@ function RegExpMatch(string) {
         }
 
         // Step 5.
-        var sticky = !!(flags & REGEXP_STICKY_FLAG);
-        return RegExpLocalMatchOpt(rx, S, sticky);
+        return RegExpBuiltinExec(rx, S, false);
     }
 
     // Stes 4-6
@@ -220,37 +219,6 @@ function RegExpGlobalMatchOpt(rx, S, fullUnicode) {
     }
 }
 
-// ES 2017 draft rev 6859bb9ccaea9c6ede81d71e5320e3833b92cb3e 21.2.5.6 step 5.
-// Optimized path for @@match without global flag.
-function RegExpLocalMatchOpt(rx, S, sticky) {
-    // Step 4.
-    var lastIndex = ToLength(rx.lastIndex);
-
-    // Step 8.
-    if (!sticky) {
-        lastIndex = 0;
-    } else {
-        if (lastIndex > S.length) {
-            // Steps 12.a.i-ii, 12.c.i.1-2.
-            rx.lastIndex = 0;
-            return null;
-        }
-    }
-
-    // Steps 3, 9-25, except 12.a.i-ii, 12.c.i.1-2, 15.
-    var result = RegExpMatcher(rx, S, lastIndex);
-    if (result === null) {
-        // Steps 12.a.i-ii, 12.c.i.1-2.
-        rx.lastIndex = 0;
-    } else {
-        // Step 15.
-        if (sticky)
-            rx.lastIndex = result.index + result[0].length;
-    }
-
-    return result;
-}
-
 // Checks if following properties and getters are not modified, and accessing
 // them not observed by content script:
 //   * flags
@@ -318,9 +286,10 @@ function RegExpReplace(string, replaceValue) {
 
             if (functionalReplace) {
                 var elemBase = GetElemBaseForLambda(replaceValue);
-                if (IsObject(elemBase))
+                if (IsObject(elemBase)) {
                     return RegExpGlobalReplaceOptElemBase(rx, S, lengthS, replaceValue,
                                                           fullUnicode, elemBase);
+                }
                 return RegExpGlobalReplaceOptFunc(rx, S, lengthS, replaceValue,
                                                   fullUnicode);
             }
@@ -336,18 +305,11 @@ function RegExpReplace(string, replaceValue) {
                                           fullUnicode);
         }
 
-        var sticky = !!(flags & REGEXP_STICKY_FLAG);
-
-        if (functionalReplace) {
-            return RegExpLocalReplaceOptFunc(rx, S, lengthS, replaceValue,
-                                             sticky);
-        }
-        if (firstDollarIndex !== -1) {
-            return RegExpLocalReplaceOptSubst(rx, S, lengthS, replaceValue,
-                                              sticky, firstDollarIndex);
-        }
-        return RegExpLocalReplaceOpt(rx, S, lengthS, replaceValue,
-                                     sticky);
+        if (functionalReplace)
+            return RegExpLocalReplaceOptFunc(rx, S, lengthS, replaceValue);
+        if (firstDollarIndex !== -1)
+            return RegExpLocalReplaceOptSubst(rx, S, lengthS, replaceValue, firstDollarIndex);
+        return RegExpLocalReplaceOpt(rx, S, lengthS, replaceValue);
     }
 
     // Steps 8-16.
@@ -647,7 +609,8 @@ function RegExpGlobalReplaceShortOpt(rx, S, lengthS, replaceValue, fullUnicode)
 #undef SUBSTITUTION
 #undef FUNC_NAME
 
-// ES 2017 draft 6859bb9ccaea9c6ede81d71e5320e3833b92cb3e 21.2.5.9.
+// ES2017 draft rev 6390c2f1b34b309895d31d8c0512eac8660a0210
+// 21.2.5.9 RegExp.prototype [ @@search ] ( string )
 function RegExpSearch(string) {
     // Step 1.
     var rx = this;
@@ -659,41 +622,69 @@ function RegExpSearch(string) {
     // Step 3.
     var S = ToString(string);
 
-    if (IsRegExpMethodOptimizable(rx) && S.length < 0x7fff) {
-        // Step 6.
-        var result = RegExpSearcher(rx, S, 0);
-
-        // Step 8.
-        if (result === -1)
-            return -1;
-
-        // Step 9.
-        return result & 0x7fff;
-    }
-
-    return RegExpSearchSlowPath(rx, S);
-}
-
-// ES 2017 draft 6859bb9ccaea9c6ede81d71e5320e3833b92cb3e 21.2.5.9
-// steps 4-9.
-function RegExpSearchSlowPath(rx, S) {
     // Step 4.
     var previousLastIndex = rx.lastIndex;
 
     // Step 5.
-    rx.lastIndex = 0;
+    var lastIndexIsZero = SameValue(previousLastIndex, 0);
+    if (!lastIndexIsZero)
+        rx.lastIndex = 0;
 
+    if (IsRegExpMethodOptimizable(rx) && S.length < 0x7fff) {
+        // Step 6.
+        var result = RegExpSearcher(rx, S, 0);
+
+        // We need to consider two cases:
+        //
+        // 1. Neither global nor sticky is set:
+        // RegExpBuiltinExec doesn't modify lastIndex for local RegExps, that
+        // means |SameValue(rx.lastIndex, 0)| is true after calling exec. The
+        // comparison in steps 7-8 |SameValue(rx.lastIndex, previousLastIndex)|
+        // is therefore equal to the already computed |lastIndexIsZero| value.
+        //
+        // 2. Global or sticky flag is set.
+        // RegExpBuiltinExec will always update lastIndex and we need to
+        // restore the property to its original value.
+
+        // Steps 7-8.
+        if (!lastIndexIsZero) {
+            rx.lastIndex = previousLastIndex;
+        } else {
+            var flags = UnsafeGetInt32FromReservedSlot(rx, REGEXP_FLAGS_SLOT);
+            if (flags & (REGEXP_GLOBAL_FLAG | REGEXP_STICKY_FLAG))
+                rx.lastIndex = previousLastIndex;
+        }
+
+        // Step 9.
+        if (result === -1)
+            return -1;
+
+        // Step 10.
+        return result & 0x7fff;
+    }
+
+    return RegExpSearchSlowPath(rx, S, previousLastIndex);
+}
+
+// ES2017 draft rev 6390c2f1b34b309895d31d8c0512eac8660a0210
+// 21.2.5.9 RegExp.prototype [ @@search ] ( string )
+// Steps 6-10.
+function RegExpSearchSlowPath(rx, S, previousLastIndex) {
     // Step 6.
     var result = RegExpExec(rx, S, false);
 
     // Step 7.
-    rx.lastIndex = previousLastIndex;
+    var currentLastIndex = rx.lastIndex;
 
     // Step 8.
+    if (!SameValue(currentLastIndex, previousLastIndex))
+        rx.lastIndex = previousLastIndex;
+
+    // Step 9.
     if (result === null)
         return -1;
 
-    // Step 9.
+    // Step 10.
     return result.index;
 }
 
@@ -942,15 +933,16 @@ function RegExpExec(R, S, forTest) {
     return forTest ? result !== null : result;
 }
 
-// ES 2017 draft rev 6a13789aa9e7c6de4e96b7d3e24d9e6eba6584ad 21.2.5.2.2.
+// ES2017 draft rev 6390c2f1b34b309895d31d8c0512eac8660a0210
+// 21.2.5.2.2 Runtime Semantics: RegExpBuiltinExec ( R, S )
 function RegExpBuiltinExec(R, S, forTest) {
-    // ES6 21.2.5.2.1 step 6.
+    // 21.2.5.2.1 Runtime Semantics: RegExpExec, step 5.
     // This check is here for RegExpTest.  RegExp_prototype_Exec does same
     // thing already.
     if (!IsRegExpObject(R))
         return UnwrapAndCallRegExpBuiltinExec(R, S, forTest);
 
-    // Steps 1-2 (skipped).
+    // Steps 1-3 (skipped).
 
     // Step 4.
     var lastIndex = ToLength(R.lastIndex);
@@ -965,9 +957,11 @@ function RegExpBuiltinExec(R, S, forTest) {
     if (!globalOrSticky) {
         lastIndex = 0;
     } else {
+        // Step 12.a.
         if (lastIndex > S.length) {
-            // Steps 12.a.i-ii, 12.c.i.1-2.
-            R.lastIndex = 0;
+            // Steps 12.a.i-ii.
+            if (globalOrSticky)
+                R.lastIndex = 0;
             return forTest ? false : null;
         }
     }
@@ -977,7 +971,8 @@ function RegExpBuiltinExec(R, S, forTest) {
         var endIndex = RegExpTester(R, S, lastIndex);
         if (endIndex == -1) {
             // Steps 12.a.i-ii, 12.c.i.1-2.
-            R.lastIndex = 0;
+            if (globalOrSticky)
+                R.lastIndex = 0;
             return false;
         }
 
@@ -991,8 +986,9 @@ function RegExpBuiltinExec(R, S, forTest) {
     // Steps 3, 9-25, except 12.a.i-ii, 12.c.i.1-2, 15.
     var result = RegExpMatcher(R, S, lastIndex);
     if (result === null) {
-        // Steps 12.a.i-ii, 12.c.i.1-2.
-        R.lastIndex = 0;
+        // Steps 12.a.i, 12.c.i.
+        if (globalOrSticky)
+            R.lastIndex = 0;
     } else {
         // Step 15.
         if (globalOrSticky)

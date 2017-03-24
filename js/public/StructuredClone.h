@@ -188,7 +188,8 @@ enum OwnTransferablePolicy {
     NoTransferables
 };
 
-class MOZ_NON_MEMMOVABLE JSStructuredCloneData : public mozilla::BufferList<js::SystemAllocPolicy>
+class MOZ_NON_MEMMOVABLE JS_PUBLIC_API(JSStructuredCloneData) :
+    public mozilla::BufferList<js::SystemAllocPolicy>
 {
     typedef js::SystemAllocPolicy AllocPolicy;
     typedef mozilla::BufferList<js::SystemAllocPolicy> BufferList;
@@ -327,6 +328,7 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
 #define JS_SCERR_TRANSFERABLE 1
 #define JS_SCERR_DUP_TRANSFERABLE 2
 #define JS_SCERR_UNSUPPORTED_TYPE 3
+#define JS_SCERR_SAB_TRANSFERABLE 4
 
 JS_PUBLIC_API(bool)
 JS_ReadUint32Pair(JSStructuredCloneReader* r, uint32_t* p1, uint32_t* p2);

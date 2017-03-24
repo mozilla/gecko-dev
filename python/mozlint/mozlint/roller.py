@@ -6,25 +6,22 @@ from __future__ import unicode_literals
 
 import os
 import signal
+import sys
 import traceback
 from collections import defaultdict
+from multiprocessing import Manager, Pool, cpu_count
 from Queue import Empty
-from multiprocessing import (
-    Manager,
-    Pool,
-    cpu_count,
-)
 
 from .errors import LintersNotConfigured
-from .types import supported_types
 from .parser import Parser
+from .types import supported_types
 from .vcs import VCSFiles
 
 
 def _run_linters(queue, paths, **lintargs):
     parse = Parser()
     results = defaultdict(list)
-    return_code = 0
+    failed = []
 
     while True:
         try:
@@ -35,7 +32,7 @@ def _run_linters(queue, paths, **lintargs):
             # Queue is dead and IOError is raised.
             linter_path = queue.get(False)
         except (Empty, IOError):
-            return results, return_code
+            return results, failed
 
         # Ideally we would pass the entire LINTER definition as an argument
         # to the worker instead of re-parsing it. But passing a function from
@@ -47,7 +44,7 @@ def _run_linters(queue, paths, **lintargs):
 
         if not isinstance(res, (list, tuple)):
             if res:
-                return_code = 1
+                failed.append(linter['name'])
             continue
 
         for r in res:
@@ -62,6 +59,8 @@ def _run_worker(*args, **lintargs):
         # it here so it isn't lost.
         traceback.print_exc()
         raise
+    finally:
+        sys.stdout.flush()
 
 
 class LintRoller(object):
@@ -81,7 +80,8 @@ class LintRoller(object):
         self.lintargs = lintargs
         self.lintargs['root'] = root or self.vcs.root or os.getcwd()
 
-        self.return_code = None
+        # linters that return non-zero
+        self.failed = None
 
     def read(self, paths):
         """Parse one or more linters and add them to the registry.
@@ -94,11 +94,12 @@ class LintRoller(object):
         for path in paths:
             self.linters.append(self.parse(path))
 
-    def roll(self, paths=None, rev=None, workdir=None, num_procs=None):
+    def roll(self, paths=None, rev=None, outgoing=None, workdir=None, num_procs=None):
         """Run all of the registered linters against the specified file paths.
 
         :param paths: An iterable of files and/or directories to lint.
         :param rev: Lint all files touched by the specified revision.
+        :param outgoing: Lint files touched by commits that are not on the remote repository.
         :param workdir: Lint all files touched in the working directory.
         :param num_procs: The number of processes to use. Default: cpu count
         :return: A dictionary with file names as the key, and a list of
@@ -116,6 +117,9 @@ class LintRoller(object):
             paths.extend(self.vcs.by_rev(rev))
         if workdir:
             paths.extend(self.vcs.by_workdir())
+        if outgoing:
+            paths.extend(self.vcs.outgoing(outgoing))
+
         paths = paths or ['.']
         paths = map(os.path.abspath, paths)
 
@@ -139,13 +143,16 @@ class LintRoller(object):
 
         # ignore SIGINT in parent so we can still get partial results
         # from child processes. These should shutdown quickly anyway.
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-        self.return_code = 0
+        orig_sigint = signal.signal(signal.SIGINT, signal.SIG_IGN)
+        self.failed = []
         for worker in workers:
             # parent process blocks on worker.get()
-            results, return_code = worker.get()
-            if results or return_code:
-                self.return_code = 1
+            results, failed = worker.get()
+            if failed:
+                self.failed.extend(failed)
             for k, v in results.iteritems():
                 all_results[k].extend(v)
+
+        signal.signal(signal.SIGINT, orig_sigint)
+        m.shutdown()
         return all_results

@@ -48,13 +48,13 @@ WyciwygChannelChild::WyciwygChannelChild()
   , mIPCOpen(false)
   , mSentAppData(false)
 {
-  LOG(("Creating WyciwygChannelChild @%x\n", this));
+  LOG(("Creating WyciwygChannelChild @%p\n", this));
   mEventQ = new ChannelEventQueue(NS_ISUPPORTS_CAST(nsIWyciwygChannel*, this));
 }
 
 WyciwygChannelChild::~WyciwygChannelChild()
 {
-  LOG(("Destroying WyciwygChannelChild @%x\n", this));
+  LOG(("Destroying WyciwygChannelChild @%p\n", this));
   if (mLoadInfo) {
     NS_ReleaseOnMainThread(mLoadInfo.forget());
   }
@@ -152,7 +152,7 @@ private:
   nsCString mSecurityInfo;
 };
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelChild::RecvOnStartRequest(const nsresult& statusCode,
                                         const int64_t& contentLength,
                                         const int32_t& source,
@@ -162,7 +162,7 @@ WyciwygChannelChild::RecvOnStartRequest(const nsresult& statusCode,
   mEventQ->RunOrEnqueue(new WyciwygStartRequestEvent(this, statusCode,
                                                      contentLength, source,
                                                      charset, securityInfo));
-  return true;
+  return IPC_OK();
 }
 
 void
@@ -206,12 +206,12 @@ private:
   uint64_t mOffset;
 };
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelChild::RecvOnDataAvailable(const nsCString& data,
                                          const uint64_t& offset)
 {
   mEventQ->RunOrEnqueue(new WyciwygDataAvailableEvent(this, data, offset));
-  return true;
+  return IPC_OK();
 }
 
 void
@@ -265,18 +265,18 @@ private:
   nsresult mStatusCode;
 };
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelChild::RecvOnStopRequest(const nsresult& statusCode)
 {
   mEventQ->RunOrEnqueue(new WyciwygStopRequestEvent(this, statusCode));
-  return true;
+  return IPC_OK();
 }
 
 void
 WyciwygChannelChild::OnStopRequest(const nsresult& statusCode)
 {
-  LOG(("WyciwygChannelChild::RecvOnStopRequest [this=%p status=%u]\n",
-           this, statusCode));
+  LOG(("WyciwygChannelChild::RecvOnStopRequest [this=%p status=%" PRIu32 "]\n",
+       this, static_cast<uint32_t>(statusCode)));
 
   { // We need to ensure that all IPDL message dispatching occurs
     // before we delete the protocol below
@@ -291,14 +291,14 @@ WyciwygChannelChild::OnStopRequest(const nsresult& statusCode)
 
     mListener->OnStopRequest(this, mListenerContext, statusCode);
 
-    mListener = 0;
-    mListenerContext = 0;
+    mListener = nullptr;
+    mListenerContext = nullptr;
 
     if (mLoadGroup)
       mLoadGroup->RemoveRequest(this, nullptr, mStatus);
 
-    mCallbacks = 0;
-    mProgressSink = 0;
+    mCallbacks = nullptr;
+    mProgressSink = nullptr;
   }
 
   if (mIPCOpen)
@@ -318,11 +318,11 @@ class WyciwygCancelEvent : public ChannelEvent
   nsresult mStatus;
 };
 
-bool
+mozilla::ipc::IPCResult
 WyciwygChannelChild::RecvCancelEarly(const nsresult& statusCode)
 {
   mEventQ->RunOrEnqueue(new WyciwygCancelEvent(this, statusCode));
-  return true;
+  return IPC_OK();
 }
 
 void WyciwygChannelChild::CancelEarly(const nsresult& statusCode)
@@ -646,6 +646,7 @@ WyciwygChannelChild::AsyncOpen(nsIStreamListener *aListener, nsISupports *aConte
 
   mozilla::dom::TabChild* tabChild = GetTabChild(this);
   if (MissingRequiredTabChild(tabChild, "wyciwyg")) {
+    mCallbacks = nullptr;
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
@@ -665,7 +666,10 @@ WyciwygChannelChild::AsyncOpen2(nsIStreamListener *aListener)
 {
   nsCOMPtr<nsIStreamListener> listener = aListener;
   nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    mCallbacks = nullptr;
+    return rv;
+  }
   return AsyncOpen(listener, nullptr);
 }
 
@@ -689,8 +693,22 @@ WyciwygChannelChild::WriteToCacheEntry(const nsAString & aData)
     mSentAppData = true;
   }
 
-  SendWriteToCacheEntry(PromiseFlatString(aData));
   mState = WCC_ONWRITE;
+
+  // Give ourselves a megabyte of headroom for the message size. Convert bytes
+  // to wide chars.
+  static const size_t kMaxMessageSize = (IPC::Channel::kMaximumMessageSize - 1024) / 2;
+
+  size_t curIndex = 0;
+  size_t charsRemaining = aData.Length();
+  do {
+    size_t chunkSize = std::min(charsRemaining, kMaxMessageSize);
+    SendWriteToCacheEntry(Substring(aData, curIndex, chunkSize));
+
+    charsRemaining -= chunkSize;
+    curIndex += chunkSize;
+  } while (charsRemaining != 0);
+
   return NS_OK;
 }
 

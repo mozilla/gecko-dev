@@ -10,19 +10,18 @@ const notificationID = "indexedDB-permissions-prompt";
 function promiseMessage(aMessage, browser) {
   return ContentTask.spawn(browser.selectedBrowser, aMessage, function* (aMessage) {
     yield new Promise((resolve, reject) => {
-      content.addEventListener("message", function messageListener(event) {
-        content.removeEventListener("message", messageListener);
+      content.addEventListener("message", function(event) {
         is(event.data, aMessage, "received " + aMessage);
         if (event.data == aMessage)
           resolve();
         else
           reject();
-      });
+      }, {once: true});
     });
   });
 }
 
-add_task(function test1() {
+add_task(function* test1() {
   removePermission(testPageURL, "indexedDB");
 
   info("creating tab");
@@ -37,7 +36,7 @@ add_task(function test1() {
   });
   registerPopupEventHandler("popupshown", function () {
     ok(true, "prompt shown");
-    triggerSecondaryCommand(this, 0);
+    triggerSecondaryCommand(this);
   });
   registerPopupEventHandler("popuphidden", function () {
     ok(true, "prompt hidden");
@@ -51,7 +50,7 @@ add_task(function test1() {
   gBrowser.removeCurrentTab();
 });
 
-add_task(function test2() {
+add_task(function* test2() {
   info("creating private window");
   let win = yield BrowserTestUtils.openNewBrowserWindow({ private : true });
   
@@ -81,7 +80,7 @@ add_task(function test2() {
   win.close();
 });
 
-add_task(function test3() {
+add_task(function* test3() {
   info("creating tab");
   gBrowser.selectedTab = gBrowser.addTab();
 

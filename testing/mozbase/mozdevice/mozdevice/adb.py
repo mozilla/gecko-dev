@@ -5,12 +5,14 @@
 import os
 import posixpath
 import re
+import shutil
 import subprocess
 import tempfile
 import time
 import traceback
 
 from abc import ABCMeta, abstractmethod
+from distutils import dir_util
 
 
 class ADBProcess(object):
@@ -149,15 +151,19 @@ class ADBCommand(object):
         self._adb_port = adb_port
         self._timeout = timeout
         self._polling_interval = 0.1
+        self._adb_version = ''
 
         self._logger.debug("%s: %s" % (self.__class__.__name__,
                                        self.__dict__))
 
         # catch early a missing or non executable adb command
+        # and get the adb version while we are at it.
         try:
-            subprocess.Popen([adb, 'help'],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE).communicate()
+            output = subprocess.Popen([adb, 'version'],
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE).communicate()
+            re_version = re.compile(r'Android Debug Bridge version (.*)')
+            self._adb_version = re_version.match(output[0]).group(1)
         except Exception as exc:
             raise ADBError('%s: %s is not executable.' % (exc, adb))
 
@@ -455,7 +461,7 @@ class ADBHost(ADBCommand):
             r"([^\s]+)\s+(offline|bootloader|device|host|recovery|sideload|"
             "no permissions|unauthorized|unknown)")
         devices = []
-        lines = self.command_output(["devices", "-l"], timeout=timeout).split('\n')
+        lines = self.command_output(["devices", "-l"], timeout=timeout).splitlines()
         for line in lines:
             if line == 'List of devices attached ':
                 continue
@@ -931,7 +937,7 @@ class ADBDevice(ADBCommand):
                  * ADBError
         """
         forwards = self.command_output(["forward", "--list"], timeout=timeout)
-        return [tuple(line.split(" ")) for line in forwards.split("\n") if line.strip()]
+        return [tuple(line.split(" ")) for line in forwards.splitlines() if line.strip()]
 
     def remove_forwards(self, local=None, timeout=None):
         """Remove existing port forwards.
@@ -1218,7 +1224,7 @@ class ADBDevice(ADBCommand):
         """
         buffers = self._get_logcat_buffer_args(buffers)
         cmds = ["logcat", "-v", format, "-d"] + buffers + filter_specs
-        lines = self.command_output(cmds, timeout=timeout).split('\r')
+        lines = self.command_output(cmds, timeout=timeout).splitlines()
 
         for regex in filter_out_regexps:
             lines = [line for line in lines if not re.search(regex, line)]
@@ -1319,7 +1325,7 @@ class ADBDevice(ADBCommand):
             except ADBError:
                 output = ''
 
-            for line in output.split("\n"):
+            for line in output.splitlines():
                 if not matched_interface:
                     match = re1_ip.match(line)
                     if match:
@@ -1363,7 +1369,7 @@ class ADBDevice(ADBCommand):
             output = self.shell_output('netcfg', timeout=timeout)
         except ADBError:
             output = ''
-        for line in output.split("\n"):
+        for line in output.splitlines():
             match = re3_netcfg.search(line)
             if match:
                 matched_interface, matched_ip = match.groups()
@@ -1556,7 +1562,7 @@ class ADBDevice(ADBCommand):
             try:
                 data = self.shell_output("%s %s" % (self._ls, path),
                                          timeout=timeout,
-                                         root=root).split('\r\n')
+                                         root=root).splitlines()
                 self._logger.debug('list_files: data: %s' % data)
             except ADBError:
                 self._logger.error('Ignoring exception in ADBDevice.list_files\n%s' %
@@ -1628,7 +1634,7 @@ class ADBDevice(ADBCommand):
                     path += '*'
         lines = self.shell_output('%s %s %s' % (self._ls, recursive_flag, path),
                                   timeout=timeout,
-                                  root=root).split('\r\n')
+                                  root=root).splitlines()
         for line in lines:
             line = line.strip()
             if not line:
@@ -1718,8 +1724,42 @@ class ADBDevice(ADBCommand):
         :raises: * ADBTimeoutError
                  * ADBError
         """
-        self.command_output(["push", os.path.realpath(local), remote],
-                            timeout=timeout)
+        # remove trailing /
+        local = os.path.normpath(local)
+        remote = os.path.normpath(remote)
+        copy_required = False
+        if self._adb_version >= '1.0.36' and \
+           os.path.isdir(local) and self.is_dir(remote):
+            # See do_sync_push in
+            # https://android.googlesource.com/platform/system/core/+/master/adb/file_sync_client.cpp
+            # Work around change in behavior in adb 1.0.36 where if
+            # the remote destination directory exists, adb push will
+            # copy the source directory *into* the destination
+            # directory otherwise it will copy the source directory
+            # *onto* the destination directory.
+            #
+            # If the destination directory does exist, push to its
+            # parent directory.  If the source and destination leaf
+            # directory names are different, copy the source directory
+            # to a temporary directory with the same leaf name as the
+            # destination so that when we push to the parent, the
+            # source is copied onto the destination directory.
+            local_name = os.path.basename(local)
+            remote_name = os.path.basename(remote)
+            if local_name != remote_name:
+                copy_required = True
+                temp_parent = tempfile.mkdtemp()
+                new_local = os.path.join(temp_parent, remote_name)
+                dir_util.copy_tree(local, new_local)
+                local = new_local
+            remote = '/'.join(remote.rstrip('/').split('/')[:-1])
+        try:
+            self.command_output(["push", local, remote], timeout=timeout)
+        except:
+            raise
+        finally:
+            if copy_required:
+                shutil.rmtree(temp_parent)
 
     def pull(self, remote, local, timeout=None):
         """Pulls a file or directory from the device.
@@ -1738,8 +1778,42 @@ class ADBDevice(ADBCommand):
         :raises: * ADBTimeoutError
                  * ADBError
         """
-        self.command_output(["pull", remote, os.path.realpath(local)],
-                            timeout=timeout)
+        # remove trailing /
+        local = os.path.normpath(local)
+        remote = os.path.normpath(remote)
+        copy_required = False
+        original_local = local
+        if self._adb_version >= '1.0.36' and \
+           os.path.isdir(local) and self.is_dir(remote):
+            # See do_sync_pull in
+            # https://android.googlesource.com/platform/system/core/+/master/adb/file_sync_client.cpp
+            # Work around change in behavior in adb 1.0.36 where if
+            # the local destination directory exists, adb pull will
+            # copy the source directory *into* the destination
+            # directory otherwise it will copy the source directory
+            # *onto* the destination directory.
+            #
+            # If the destination directory does exist, pull to its
+            # parent directory. If the source and destination leaf
+            # directory names are different, pull the source directory
+            # into a temporary directory and then copy the temporary
+            # directory onto the destination.
+            local_name = os.path.basename(local)
+            remote_name = os.path.basename(remote)
+            if local_name != remote_name:
+                copy_required = True
+                temp_parent = tempfile.mkdtemp()
+                local = os.path.join(temp_parent, remote_name)
+            else:
+                local = '/'.join(local.rstrip('/').split('/')[:-1])
+        try:
+            self.command_output(["pull", remote, local], timeout=timeout)
+        except:
+            raise
+        finally:
+            if copy_required:
+                dir_util.copy_tree(local, original_local)
+                shutil.rmtree(temp_parent)
 
     def rm(self, path, recursive=False, force=False, timeout=None, root=False):
         """Delete files or directories on the device.

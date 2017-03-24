@@ -75,14 +75,9 @@ nsMeterFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   mBarDiv = doc->CreateHTMLElement(nsGkAtoms::div);
 
   // Associate ::-moz-meter-bar pseudo-element to the anonymous child.
-  CSSPseudoElementType pseudoType = CSSPseudoElementType::mozMeterBar;
-  RefPtr<nsStyleContext> newStyleContext = PresContext()->StyleSet()->
-    ResolvePseudoElementStyle(mContent->AsElement(), pseudoType,
-                              StyleContext(), mBarDiv->AsElement());
+  mBarDiv->SetPseudoElementType(CSSPseudoElementType::mozMeterBar);
 
-  if (!aElements.AppendElement(ContentInfo(mBarDiv, newStyleContext))) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  aElements.AppendElement(mBarDiv);
 
   return NS_OK;
 }
@@ -133,7 +128,7 @@ nsMeterFrame::Reflow(nsPresContext*           aPresContext,
   ConsiderChildOverflow(aDesiredSize.mOverflowAreas, barFrame);
   FinishAndStoreOverflow(&aDesiredSize);
 
-  aStatus = NS_FRAME_COMPLETE;
+  aStatus.Reset();
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowInput, aDesiredSize);
 }
@@ -277,11 +272,11 @@ nsMeterFrame::ShouldUseNativeStyle() const
   // - both frames use the native appearance;
   // - neither frame has author specified rules setting the border or the
   //   background.
-  return StyleDisplay()->mAppearance == NS_THEME_METERBAR &&
+  return StyleDisplay()->UsedAppearance() == NS_THEME_METERBAR &&
          !PresContext()->HasAuthorSpecifiedRules(this,
                                                  NS_AUTHOR_SPECIFIED_BORDER | NS_AUTHOR_SPECIFIED_BACKGROUND) &&
          barFrame &&
-         barFrame->StyleDisplay()->mAppearance == NS_THEME_METERCHUNK &&
+         barFrame->StyleDisplay()->UsedAppearance() == NS_THEME_METERCHUNK &&
          !PresContext()->HasAuthorSpecifiedRules(barFrame,
                                                  NS_AUTHOR_SPECIFIED_BORDER | NS_AUTHOR_SPECIFIED_BACKGROUND);
 }

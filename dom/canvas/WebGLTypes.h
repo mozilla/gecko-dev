@@ -149,6 +149,7 @@ enum class WebGLExtensionID : uint8_t {
     EXT_shader_texture_lod,
     EXT_texture_filter_anisotropic,
     EXT_disjoint_timer_query,
+    MOZ_debug_get,
     OES_element_index_uint,
     OES_standard_derivatives,
     OES_texture_float,
@@ -157,8 +158,9 @@ enum class WebGLExtensionID : uint8_t {
     OES_texture_half_float_linear,
     OES_vertex_array_object,
     WEBGL_color_buffer_float,
+    WEBGL_compressed_texture_astc,
     WEBGL_compressed_texture_atc,
-    WEBGL_compressed_texture_es3_0,
+    WEBGL_compressed_texture_etc,
     WEBGL_compressed_texture_etc1,
     WEBGL_compressed_texture_pvrtc,
     WEBGL_compressed_texture_s3tc,
@@ -169,6 +171,50 @@ enum class WebGLExtensionID : uint8_t {
     WEBGL_lose_context,
     Max,
     Unknown
+};
+
+class UniqueBuffer
+{
+    // Like UniquePtr<>, but for void* and malloc/calloc/free.
+    void* mBuffer;
+
+public:
+    UniqueBuffer()
+        : mBuffer(nullptr)
+    { }
+
+    MOZ_IMPLICIT UniqueBuffer(void* buffer)
+        : mBuffer(buffer)
+    { }
+
+    ~UniqueBuffer() {
+        free(mBuffer);
+    }
+
+    UniqueBuffer(UniqueBuffer&& other) {
+        this->mBuffer = other.mBuffer;
+        other.mBuffer = nullptr;
+    }
+
+    UniqueBuffer& operator =(UniqueBuffer&& other) {
+        free(this->mBuffer);
+        this->mBuffer = other.mBuffer;
+        other.mBuffer = nullptr;
+        return *this;
+    }
+
+    UniqueBuffer& operator =(void* newBuffer) {
+        free(this->mBuffer);
+        this->mBuffer = newBuffer;
+        return *this;
+    }
+
+    explicit operator bool() const { return bool(mBuffer); }
+
+    void* get() const { return mBuffer; }
+
+    UniqueBuffer(const UniqueBuffer& other) = delete; // construct using Move()!
+    void operator =(const UniqueBuffer& other) = delete; // assign using Move()!
 };
 
 } // namespace mozilla

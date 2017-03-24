@@ -457,7 +457,7 @@ const TEST_DATA = [
 
   {
     desc: "delete disabled property",
-    input: "\n  a:b;\n  /* color:#f0c; */\n  e:f;",
+    input: "\n  a:b;\n  /* color:#f06; */\n  e:f;",
     instruction: {type: "remove", name: "color", index: 1},
     expected: "\n  a:b;\n  e:f;",
   },
@@ -469,9 +469,61 @@ const TEST_DATA = [
   },
   {
     desc: "delete disabled property leaving other disabled property",
-    input: "\n  a:b;\n  /* color:#f0c; background-color: seagreen; */\n  e:f;",
+    input: "\n  a:b;\n  /* color:#f06; background-color: seagreen; */\n  e:f;",
     instruction: {type: "remove", name: "color", index: 1},
     expected: "\n  a:b;\n   /* background-color: seagreen; */\n  e:f;",
+  },
+
+  {
+    desc: "regression test for bug 1328016",
+    input: "position:absolute;top50px;height:50px;width:50px;",
+    instruction: {type: "set", name: "width", value: "60px", priority: "",
+                  index: 2},
+    expected: "position:absolute;top50px;height:50px;width:60px;",
+  },
+
+  {
+    desc: "url regression test for bug 1321970",
+    input: "",
+    instruction: {type: "create", name: "p", value: "url(", priority: "",
+                  index: 0, enabled: true},
+    expected: "p: url();",
+    changed: {0: "url()"}
+  },
+
+  {
+    desc: "url semicolon regression test for bug 1321970",
+    input: "",
+    instruction: {type: "create", name: "p", value: "url(;", priority: "",
+                  index: 0, enabled: true},
+    expected: "p: url();",
+    changed: {0: "url()"}
+  },
+
+  {
+    desc: "basic regression test for bug 1321970",
+    input: "",
+    instruction: {type: "create", name: "p", value: "(", priority: "",
+                  index: 0, enabled: true},
+    expected: "p: \\(;",
+    changed: {0: "\\("}
+  },
+
+  {
+    desc: "unbalanced regression test for bug 1321970",
+    input: "",
+    instruction: {type: "create", name: "p", value: "({[})", priority: "",
+                  index: 0, enabled: true},
+    expected: "p: ({\\[});",
+    changed: {0: "({\\[})"}
+  },
+
+  {
+    desc: "function regression test for bug 1321970",
+    input: "",
+    instruction: {type: "create", name: "p", value: "func(1,2)", priority: "",
+                  index: 0, enabled: true},
+    expected: "p: func(1,2);",
   },
 ];
 
@@ -513,9 +565,7 @@ function rewriteDeclarations(inputString, instruction, defaultIndentation) {
 }
 
 function run_test() {
-  let i = 0;
   for (let test of TEST_DATA) {
-    ++i;
     let {changed, text} = rewriteDeclarations(test.input, test.instruction,
                                               "\t");
     equal(text, test.expected, "output for " + test.desc);

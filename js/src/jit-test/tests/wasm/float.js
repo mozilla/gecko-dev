@@ -1,6 +1,3 @@
-// |jit-test| test-also-wasm-baseline
-load(libdir + "wasm.js");
-
 wasmFullPass('(module (func (result f32) (f32.const -1)) (export "run" 0))', -1);
 wasmFullPass('(module (func (result f32) (f32.const 1)) (export "run" 0))', 1);
 wasmFullPass('(module (func (result f64) (f64.const -2)) (export "run" 0))', -2);

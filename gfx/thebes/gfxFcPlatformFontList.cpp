@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Logging.h"
+#include "mozilla/SizePrintfMacros.h"
 
 #include "gfxFcPlatformFontList.h"
 #include "gfxFont.h"
@@ -134,29 +135,37 @@ GetFaceNames(FcPattern* aFont, const nsAString& aFamilyName,
 static uint16_t
 MapFcWeight(int aFcWeight)
 {
-    if (aFcWeight <= (FC_WEIGHT_THIN + FC_WEIGHT_EXTRALIGHT) / 2) {
-        return 100;
-    } else if (aFcWeight <= (FC_WEIGHT_EXTRALIGHT + FC_WEIGHT_LIGHT) / 2) {
-        return 200;
-    } else if (aFcWeight <= (FC_WEIGHT_LIGHT + FC_WEIGHT_BOOK) / 2) {
-        return 300;
-    } else if (aFcWeight <= (FC_WEIGHT_REGULAR + FC_WEIGHT_MEDIUM) / 2) {
-        // This includes FC_WEIGHT_BOOK
-        return 400;
-    } else if (aFcWeight <= (FC_WEIGHT_MEDIUM + FC_WEIGHT_DEMIBOLD) / 2) {
-        return 500;
-    } else if (aFcWeight <= (FC_WEIGHT_DEMIBOLD + FC_WEIGHT_BOLD) / 2) {
-        return 600;
-    } else if (aFcWeight <= (FC_WEIGHT_BOLD + FC_WEIGHT_EXTRABOLD) / 2) {
-        return 700;
-    } else if (aFcWeight <= (FC_WEIGHT_EXTRABOLD + FC_WEIGHT_BLACK) / 2) {
-        return 800;
-    } else if (aFcWeight <= FC_WEIGHT_BLACK) {
-        return 900;
-    }
+  if (aFcWeight <= (FC_WEIGHT_THIN + FC_WEIGHT_EXTRALIGHT) / 2) {
+    return 100;
+  }
+  if (aFcWeight <= (FC_WEIGHT_EXTRALIGHT + FC_WEIGHT_LIGHT) / 2) {
+    return 200;
+  }
+  if (aFcWeight <= (FC_WEIGHT_LIGHT + FC_WEIGHT_BOOK) / 2) {
+    return 300;
+  }
+  if (aFcWeight <= (FC_WEIGHT_REGULAR + FC_WEIGHT_MEDIUM) / 2) {
+    // This includes FC_WEIGHT_BOOK
+    return 400;
+  }
+  if (aFcWeight <= (FC_WEIGHT_MEDIUM + FC_WEIGHT_DEMIBOLD) / 2) {
+    return 500;
+  }
+  if (aFcWeight <= (FC_WEIGHT_DEMIBOLD + FC_WEIGHT_BOLD) / 2) {
+    return 600;
+  }
+  if (aFcWeight <= (FC_WEIGHT_BOLD + FC_WEIGHT_EXTRABOLD) / 2) {
+    return 700;
+  }
+  if (aFcWeight <= (FC_WEIGHT_EXTRABOLD + FC_WEIGHT_BLACK) / 2) {
+    return 800;
+  }
+  if (aFcWeight <= FC_WEIGHT_BLACK) {
+    return 900;
+  }
 
-    // including FC_WEIGHT_EXTRABLACK
-    return 901;
+  // including FC_WEIGHT_EXTRABLACK
+  return 901;
 }
 
 static int16_t
@@ -373,7 +382,7 @@ gfxFontconfigFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
         mCharacterMap = new gfxCharacterMap();
     }
 
-    LOG_FONTLIST(("(fontlist-cmap) name: %s, size: %d hash: %8.8x%s\n",
+    LOG_FONTLIST(("(fontlist-cmap) name: %s, size: %" PRIuSIZE " hash: %8.8x%s\n",
                   NS_ConvertUTF16toUTF8(mName).get(),
                   charmap->SizeOfIncludingThis(moz_malloc_size_of),
                   charmap->mHash, mCharacterMap == charmap ? " new" : ""));
@@ -644,6 +653,7 @@ PrepareFontOptions(FcPattern* aPattern,
 
 cairo_scaled_font_t*
 gfxFontconfigFontEntry::CreateScaledFont(FcPattern* aRenderPattern,
+                                         gfxFloat aAdjustedSize,
                                          const gfxFontStyle *aStyle,
                                          bool aNeedsBold)
 {
@@ -681,11 +691,7 @@ gfxFontconfigFontEntry::CreateScaledFont(FcPattern* aRenderPattern,
     cairo_matrix_t sizeMatrix;
     cairo_matrix_t identityMatrix;
 
-    double adjustedSize = aStyle->size;
-    if (aStyle->sizeAdjust >= 0.0) {
-        adjustedSize = aStyle->GetAdjustedSize(GetAspect());
-    }
-    cairo_matrix_init_scale(&sizeMatrix, adjustedSize, adjustedSize);
+    cairo_matrix_init_scale(&sizeMatrix, aAdjustedSize, aAdjustedSize);
     cairo_matrix_init_identity(&identityMatrix);
 
     if (needsOblique) {
@@ -771,20 +777,20 @@ PreparePattern(FcPattern* aPattern, bool aIsPrinterFont)
        FcPatternAddBool(aPattern, PRINTING_FC_PROPERTY, FcTrue);
     } else {
 #ifdef MOZ_WIDGET_GTK
-       ApplyGdkScreenFontOptions(aPattern);
-#endif
+        ApplyGdkScreenFontOptions(aPattern);
 
 #ifdef MOZ_X11
-        if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
-            FcValue value;
-            int lcdfilter;
-            if (FcPatternGet(aPattern, FC_LCD_FILTER, 0, &value)
-                    == FcResultNoMatch &&
-                GetXftInt(DefaultXDisplay(), "lcdfilter", &lcdfilter)) {
+        FcValue value;
+        int lcdfilter;
+        if (FcPatternGet(aPattern, FC_LCD_FILTER, 0, &value) == FcResultNoMatch) {
+            GdkDisplay* dpy = gdk_display_get_default();
+            if (GDK_IS_X11_DISPLAY(dpy) &&
+                GetXftInt(GDK_DISPLAY_XDISPLAY(dpy), "lcdfilter", &lcdfilter)) {
                 FcPatternAddInteger(aPattern, FC_LCD_FILTER, lcdfilter);
             }
         }
-#endif
+#endif // MOZ_X11
+#endif // MOZ_WIDGET_GTK
     }
 
     FcDefaultSubstitute(aPattern);
@@ -809,10 +815,16 @@ gfxFontconfigFontEntry::CreateFontInstance(const gfxFontStyle *aFontStyle,
         return nullptr;
     }
 
+    double adjustedSize = aFontStyle->size;
+    if (aFontStyle->sizeAdjust >= 0.0) {
+        adjustedSize = aFontStyle->GetAdjustedSize(GetAspect());
+    }
+
     cairo_scaled_font_t* scaledFont =
-        CreateScaledFont(renderPattern, aFontStyle, aNeedsBold);
+        CreateScaledFont(renderPattern, adjustedSize, aFontStyle, aNeedsBold);
     gfxFont* newFont =
-        new gfxFontconfigFont(scaledFont, renderPattern, this, aFontStyle, aNeedsBold);
+        new gfxFontconfigFont(scaledFont, renderPattern, adjustedSize,
+                              this, aFontStyle, aNeedsBold);
     cairo_scaled_font_destroy(scaledFont);
 
     return newFont;
@@ -925,11 +937,13 @@ gfxFontconfigFontFamily::AddFontPattern(FcPattern* aFontPattern)
 
 gfxFontconfigFont::gfxFontconfigFont(cairo_scaled_font_t *aScaledFont,
                                      FcPattern *aPattern,
+                                     gfxFloat aAdjustedSize,
                                      gfxFontEntry *aFontEntry,
                                      const gfxFontStyle *aFontStyle,
                                      bool aNeedsBold) :
     gfxFontconfigFontBase(aScaledFont, aPattern, aFontEntry, aFontStyle)
 {
+    mAdjustedSize = aAdjustedSize;
 }
 
 gfxFontconfigFont::~gfxFontconfigFont()

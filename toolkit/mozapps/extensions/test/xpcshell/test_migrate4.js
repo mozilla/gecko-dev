@@ -137,7 +137,7 @@ function prepare_profile() {
       }
 
       a6.findUpdates({
-        onUpdateAvailable: function(aAddon, aInstall6) {
+        onUpdateAvailable(aAddon, aInstall6) {
           AddonManager.getInstallForURL("http://localhost:" + gPort + "/addons/test_migrate4_7.xpi", function(aInstall7) {
             completeAllInstalls([aInstall6, aInstall7], function() {
               restartManager();
@@ -148,12 +148,12 @@ function prepare_profile() {
                                            "addon4@tests.mozilla.org",
                                            "addon5@tests.mozilla.org",
                                            "addon6@tests.mozilla.org"],
-                                           function([a1, a2, a3, a4, a5, a6]) {
-                a3.userDisabled = true;
-                a4.userDisabled = false;
+                                           function([a1_2, a2_2, a3_2, a4_2, a5_2, a6_2]) {
+                a3_2.userDisabled = true;
+                a4_2.userDisabled = false;
 
-                a5.findUpdates({
-                  onUpdateFinished: function() {
+                a5_2.findUpdates({
+                  onUpdateFinished() {
                     do_execute_soon(perform_migration);
                   }
                 }, AddonManager.UPDATE_WHEN_USER_REQUESTED);

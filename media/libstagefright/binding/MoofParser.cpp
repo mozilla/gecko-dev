@@ -10,6 +10,7 @@
 
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Logging.h"
+#include "mozilla/SizePrintfMacros.h"
 
 #if defined(MOZ_FMP4)
 extern mozilla::LogModule* GetDemuxerLog();
@@ -26,6 +27,8 @@ namespace mp4_demuxer
 
 using namespace stagefright;
 using namespace mozilla;
+
+const uint32_t kKeyIdSize = 16;
 
 bool
 MoofParser::RebuildFragmentedIndex(
@@ -315,6 +318,18 @@ MoofParser::ParseStbl(Box& aBox)
   for (Box box = aBox.FirstChild(); box.IsAvailable(); box = box.Next()) {
     if (box.IsType("stsd")) {
       ParseStsd(box);
+    } else if (box.IsType("sgpd")) {
+      Sgpd sgpd(box);
+      if (sgpd.IsValid() && sgpd.mGroupingType == "seig") {
+        mTrackSampleEncryptionInfoEntries.Clear();
+        mTrackSampleEncryptionInfoEntries.AppendElements(sgpd.mEntries);
+      }
+    } else if (box.IsType("sbgp")) {
+      Sbgp sbgp(box);
+      if (sbgp.IsValid() && sbgp.mGroupingType == "seig") {
+        mTrackSampleToGroupEntries.Clear();
+        mTrackSampleToGroupEntries.AppendElements(sbgp.mEntries);
+      }
     }
   }
 }
@@ -480,12 +495,25 @@ Moof::ParseTraf(Box& aBox, Trex& aTrex, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, S
   MOZ_ASSERT(aDecodeTime);
   Tfhd tfhd(aTrex);
   Tfdt tfdt;
+
   for (Box box = aBox.FirstChild(); box.IsAvailable(); box = box.Next()) {
     if (box.IsType("tfhd")) {
       tfhd = Tfhd(box, aTrex);
     } else if (!aTrex.mTrackId || tfhd.mTrackId == aTrex.mTrackId) {
       if (box.IsType("tfdt")) {
         tfdt = Tfdt(box);
+      } else if (box.IsType("sgpd")) {
+        Sgpd sgpd(box);
+        if (sgpd.IsValid() && sgpd.mGroupingType == "seig") {
+          mFragmentSampleEncryptionInfoEntries.Clear();
+          mFragmentSampleEncryptionInfoEntries.AppendElements(sgpd.mEntries);
+        }
+      } else if (box.IsType("sbgp")) {
+        Sbgp sbgp(box);
+        if (sbgp.IsValid() && sbgp.mGroupingType == "seig") {
+          mFragmentSampleToGroupEntries.Clear();
+          mFragmentSampleToGroupEntries.AppendElements(sbgp.mEntries);
+        }
       } else if (box.IsType("saiz")) {
         mSaizs.AppendElement(Saiz(box, aSinf.mDefaultEncryptionType));
       } else if (box.IsType("saio")) {
@@ -557,7 +585,7 @@ Moof::ParseTrun(Box& aBox, Tfhd& aTfhd, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, u
     }
   }
   if (reader->Remaining() < need) {
-    LOG(Moof, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Moof, "Incomplete Box (have:%" PRIuSIZE " need:%" PRIuSIZE ")",
         reader->Remaining(), need);
     return false;
   }
@@ -625,7 +653,7 @@ Tkhd::Tkhd(Box& aBox)
   size_t need =
     3*(version ? sizeof(int64_t) : sizeof(int32_t)) + 2*sizeof(int32_t);
   if (reader->Remaining() < need) {
-    LOG(Tkhd, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Tkhd, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
         (uint64_t)reader->Remaining(), (uint64_t)need);
     return;
   }
@@ -660,7 +688,7 @@ Mvhd::Mvhd(Box& aBox)
   size_t need =
     3*(version ? sizeof(int64_t) : sizeof(int32_t)) + sizeof(uint32_t);
   if (reader->Remaining() < need) {
-    LOG(Mvhd, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Mvhd, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
         (uint64_t)reader->Remaining(), (uint64_t)need);
     return;
   }
@@ -693,7 +721,7 @@ Trex::Trex(Box& aBox)
 {
   BoxReader reader(aBox);
   if (reader->Remaining() < 6*sizeof(uint32_t)) {
-    LOG(Trex, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Trex, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
         (uint64_t)reader->Remaining(), (uint64_t)6*sizeof(uint32_t));
     return;
   }
@@ -728,7 +756,7 @@ Tfhd::Tfhd(Box& aBox, Trex& aTrex)
     }
   }
   if (reader->Remaining() < need) {
-    LOG(Tfhd, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Tfhd, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
         (uint64_t)reader->Remaining(), (uint64_t)need);
     return;
   }
@@ -761,7 +789,7 @@ Tfdt::Tfdt(Box& aBox)
   uint8_t version = flags >> 24;
   size_t need = version ? sizeof(uint64_t) : sizeof(uint32_t) ;
   if (reader->Remaining() < need) {
-    LOG(Tfdt, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Tfdt, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
         (uint64_t)reader->Remaining(), (uint64_t)need);
     return;
   }
@@ -792,7 +820,7 @@ Edts::Edts(Box& aBox)
   size_t need =
     sizeof(uint32_t) + 2*(version ? sizeof(int64_t) : sizeof(uint32_t));
   if (reader->Remaining() < need) {
-    LOG(Edts, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Edts, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
         (uint64_t)reader->Remaining(), (uint64_t)need);
     return;
   }
@@ -837,7 +865,7 @@ Saiz::Saiz(Box& aBox, AtomType aDefaultType)
   size_t need =
     ((flags & 1) ? 2*sizeof(uint32_t) : 0) + sizeof(uint8_t) + sizeof(uint32_t);
   if (reader->Remaining() < need) {
-    LOG(Saiz, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Saiz, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
         (uint64_t)reader->Remaining(), (uint64_t)need);
     return;
   }
@@ -875,7 +903,7 @@ Saio::Saio(Box& aBox, AtomType aDefaultType)
   uint8_t version = flags >> 24;
   size_t need = ((flags & 1) ? (2*sizeof(uint32_t)) : 0) + sizeof(uint32_t);
   if (reader->Remaining() < need) {
-    LOG(Saio, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Saio, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
         (uint64_t)reader->Remaining(), (uint64_t)need);
     return;
   }
@@ -886,7 +914,7 @@ Saio::Saio(Box& aBox, AtomType aDefaultType)
   size_t count = reader->ReadU32();
   need = (version ? sizeof(uint64_t) : sizeof(uint32_t)) * count;
   if (reader->Remaining() < need) {
-    LOG(Saio, "Incomplete Box (have:%lld need:%lld)",
+    LOG(Saio, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
         (uint64_t)reader->Remaining(), (uint64_t)need);
     return;
   }
@@ -904,6 +932,144 @@ Saio::Saio(Box& aBox, AtomType aDefaultType)
     }
   }
   mValid = true;
+}
+
+Sbgp::Sbgp(Box& aBox)
+{
+  BoxReader reader(aBox);
+
+  if (!reader->CanReadType<uint32_t>()) {
+    LOG(Sbgp, "Incomplete Box (missing flags)");
+    return;
+  }
+
+  uint32_t flags = reader->ReadU32();
+  const uint8_t version = flags >> 24;
+  flags = flags & 0xffffff;
+
+  // Make sure we have enough bytes to read as far as the count.
+  uint32_t need = (version == 1 ? sizeof(uint32_t) : 0) + sizeof(uint32_t) * 2;
+  if (reader->Remaining() < need) {
+    LOG(Sbgp, "Incomplete Box (have:%" PRIu64 ", need:%" PRIu64 ")",
+        (uint64_t)reader->Remaining(), (uint64_t)need);
+    return;
+  }
+
+  mGroupingType = reader->ReadU32();
+
+  if (version == 1) {
+    mGroupingTypeParam = reader->Read32();
+  }
+
+  uint32_t count = reader->ReadU32();
+
+  // Make sure we can read all the entries.
+  need = sizeof(uint32_t) * 2 * count;
+  if (reader->Remaining() < need) {
+    LOG(Sbgp, "Incomplete Box (have:%" PRIu64 ", need:%" PRIu64 "). Failed to read entries",
+        (uint64_t)reader->Remaining(), (uint64_t)need);
+    return;
+  }
+
+  for (uint32_t i = 0; i < count; i++) {
+    uint32_t sampleCount = reader->ReadU32();
+    uint32_t groupDescriptionIndex = reader->ReadU32();
+
+    SampleToGroupEntry entry(sampleCount, groupDescriptionIndex);
+    mEntries.AppendElement(entry);
+  }
+
+  mValid = true;
+}
+
+Sgpd::Sgpd(Box& aBox)
+{
+  BoxReader reader(aBox);
+
+  if (!reader->CanReadType<uint32_t>()) {
+    LOG(Sgpd, "Incomplete Box (missing flags)");
+    return;
+  }
+
+  uint32_t flags = reader->ReadU32();
+  const uint8_t version = flags >> 24;
+  flags = flags & 0xffffff;
+
+  uint32_t need = ((flags & 1) ? sizeof(uint32_t) : 0) + sizeof(uint32_t) * 2;
+  if (reader->Remaining() < need) {
+    LOG(Sgpd, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 ")",
+        (uint64_t)reader->Remaining(), (uint64_t)need);
+    return;
+  }
+
+  mGroupingType = reader->ReadU32();
+
+  const uint32_t entrySize = sizeof(uint32_t) + kKeyIdSize;
+  uint32_t defaultLength = 0;
+
+  if (version == 1) {
+    defaultLength = reader->ReadU32();
+    if (defaultLength < entrySize && defaultLength != 0) {
+      return;
+    }
+  }
+
+  uint32_t count = reader->ReadU32();
+
+  // Make sure we have sufficient remaining bytes to read the entries.
+  need =
+    count * (sizeof(uint32_t) * (version == 1 && defaultLength == 0 ? 2 : 1) +
+             kKeyIdSize * sizeof(uint8_t));
+  if (reader->Remaining() < need) {
+    LOG(Sgpd, "Incomplete Box (have:%" PRIu64 " need:%" PRIu64 "). Failed to read entries",
+        (uint64_t)reader->Remaining(), (uint64_t)need);
+    return;
+  }
+  for (uint32_t i = 0; i < count; ++i) {
+    if (version == 1 && defaultLength == 0) {
+      uint32_t descriptionLength = reader->ReadU32();
+      if (descriptionLength < entrySize) {
+        return;
+      }
+    }
+
+    CencSampleEncryptionInfoEntry entry;
+    bool valid = entry.Init(reader);
+    if (!valid) {
+      return;
+    }
+    mEntries.AppendElement(entry);
+  }
+
+  mValid = true;
+}
+
+bool CencSampleEncryptionInfoEntry::Init(BoxReader& aReader)
+{
+  // Skip a reserved byte.
+  aReader->ReadU8();
+
+  uint8_t possiblePatternInfo = aReader->ReadU8();
+  uint8_t flag = aReader->ReadU8();
+
+  mIVSize = aReader->ReadU8();
+
+  // Read the key id.
+  for (uint32_t i = 0; i < kKeyIdSize; ++i) {
+    mKeyId.AppendElement(aReader->ReadU8());
+  }
+
+  mIsEncrypted = flag != 0;
+
+  if (mIsEncrypted) {
+    if (mIVSize != 8 && mIVSize != 16) {
+      return false;
+    }
+  } else if (mIVSize != 0) {
+    return false;
+  }
+
+  return true;
 }
 
 #undef LOG

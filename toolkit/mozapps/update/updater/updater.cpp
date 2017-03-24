@@ -899,9 +899,8 @@ static int rename_file(const NS_tchar *spath, const NS_tchar *dpath,
       LOG(("rename_file: path present, but not a file: " LOG_S ", err: %d",
            spath, errno));
       return RENAME_ERROR_EXPECTED_FILE;
-    } else {
-      LOG(("rename_file: proceeding to rename the directory"));
     }
+    LOG(("rename_file: proceeding to rename the directory"));
   }
 
   if (!NS_taccess(dpath, F_OK)) {
@@ -1086,7 +1085,7 @@ class Action
 {
 public:
   Action() : mProgressCost(1), mNext(nullptr) { }
-  virtual ~Action() { }
+  virtual ~Action() = default;
 
   virtual int Parse(NS_tchar *line) = 0;
 
@@ -1115,10 +1114,10 @@ class RemoveFile : public Action
 public:
   RemoveFile() : mSkip(0) { }
 
-  int Parse(NS_tchar *line);
-  int Prepare();
-  int Execute();
-  void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override;
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   mozilla::UniquePtr<NS_tchar[]> mFile;
@@ -1246,10 +1245,10 @@ class RemoveDir : public Action
 public:
   RemoveDir() : mSkip(0) { }
 
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare(); // check that the source dir exists
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override; // check that the source dir exists
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   mozilla::UniquePtr<NS_tchar[]> mDir;
@@ -1363,10 +1362,10 @@ class AddFile : public Action
 public:
   AddFile() : mAdded(false) { }
 
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare();
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override;
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   mozilla::UniquePtr<NS_tchar[]> mFile;
@@ -1466,12 +1465,12 @@ class PatchFile : public Action
 public:
   PatchFile() : mPatchFile(nullptr), mPatchIndex(-1), buf(nullptr) { }
 
-  virtual ~PatchFile();
+  ~PatchFile() override;
 
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare(); // should check for patch file and for checksum here
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override; // should check for patch file and for checksum here
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   int LoadSourceFile(FILE* ofile);
@@ -1787,10 +1786,10 @@ PatchFile::Finish(int status)
 class AddIfFile : public AddFile
 {
 public:
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare();
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override;
+  int Execute() override;
+  void Finish(int status) override;
 
 protected:
   mozilla::UniquePtr<NS_tchar[]> mTestFile;
@@ -1848,10 +1847,10 @@ AddIfFile::Finish(int status)
 class AddIfNotFile : public AddFile
 {
 public:
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare();
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override;
+  int Execute() override;
+  void Finish(int status) override;
 
 protected:
   mozilla::UniquePtr<NS_tchar[]> mTestFile;
@@ -1909,10 +1908,10 @@ AddIfNotFile::Finish(int status)
 class PatchIfFile : public PatchFile
 {
 public:
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare(); // should check for patch file and for checksum here
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override; // should check for patch file and for checksum here
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   mozilla::UniquePtr<NS_tchar[]> mTestFile;
@@ -3501,10 +3500,25 @@ int NS_main(int argc, NS_tchar **argv)
       *d = NS_T('\0');
       ++d;
 
+      const size_t callbackBackupPathBufSize =
+        sizeof(gCallbackBackupPath)/sizeof(gCallbackBackupPath[0]);
+      const int callbackBackupPathLen =
+        NS_tsnprintf(gCallbackBackupPath, callbackBackupPathBufSize,
+                     NS_T("%s" CALLBACK_BACKUP_EXT), argv[callbackIndex]);
+
+      if (callbackBackupPathLen < 0 ||
+          callbackBackupPathLen >= static_cast<int>(callbackBackupPathBufSize)) {
+        LOG(("NS_main: callback backup path truncated"));
+        LogFinish();
+        WriteStatusFile(USAGE_ERROR);
+
+        // Don't attempt to launch the callback when the callback path is
+        // longer than expected.
+        EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
+        return 1;
+      }
+
       // Make a copy of the callback executable so it can be read when patching.
-      NS_tsnprintf(gCallbackBackupPath,
-                   sizeof(gCallbackBackupPath)/sizeof(gCallbackBackupPath[0]),
-                   NS_T("%s" CALLBACK_BACKUP_EXT), argv[callbackIndex]);
       NS_tremove(gCallbackBackupPath);
       if(!CopyFileW(argv[callbackIndex], gCallbackBackupPath, true)) {
         DWORD copyFileError = GetLastError();

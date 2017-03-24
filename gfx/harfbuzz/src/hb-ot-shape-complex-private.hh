@@ -146,6 +146,14 @@ struct hb_ot_complex_shaper_t
 		       hb_buffer_t              *buffer,
 		       hb_font_t                *font);
 
+  /* disable_otl()
+   * Called during shape().
+   * If set and returns true, GDEF/GSUB/GPOS of the font are ignored
+   * and fallback operations used.
+   * May be NULL.
+   */
+  bool (*disable_otl) (const hb_ot_shape_plan_t *plan);
+
   hb_ot_shape_zero_width_marks_type_t zero_width_marks;
 
   bool fallback_position;
@@ -182,6 +190,9 @@ hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
     /* Unicode-7.0 additions */
     case HB_SCRIPT_MANICHAEAN:
     case HB_SCRIPT_PSALTER_PAHLAVI:
+
+    /* Unicode-9.0 additions */
+    case HB_SCRIPT_ADLAM:
 
       /* For Arabic script, use the Arabic shaper even if no OT script tag was found.
        * This is because we do fallback shaping for Arabic script (and not others).

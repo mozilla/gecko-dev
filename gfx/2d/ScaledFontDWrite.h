@@ -40,6 +40,8 @@ public:
 
   virtual bool GetFontFileData(FontFileDataOutput aDataCallback, void *aBaton);
 
+  virtual bool CanSerialize() override { return true; }
+
   virtual AntialiasMode GetDefaultAAMode() override;
 
   bool UseEmbeddedBitmaps() { return mUseEmbeddedBitmap; }
@@ -64,7 +66,7 @@ class GlyphRenderingOptionsDWrite : public GlyphRenderingOptions
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GlyphRenderingOptionsDWrite)
-  GlyphRenderingOptionsDWrite(IDWriteRenderingParams *aParams)
+  explicit GlyphRenderingOptionsDWrite(IDWriteRenderingParams *aParams)
     : mParams(aParams)
   {
   }

@@ -12,7 +12,7 @@
 # OS_TARGET	User defined, or set to OS_ARCH
 # CPU_ARCH  	(from unmame -m or -p, ONLY on WINNT)
 # OS_CONFIG	OS_TARGET + OS_RELEASE
-# OBJDIR_TAG    (uses ASAN_TAG, GCOV_TAG, 64BIT_TAG)
+# OBJDIR_TAG    (uses GCOV_TAG, 64BIT_TAG)
 # OBJDIR_NAME
 #######################################################################
 
@@ -115,6 +115,20 @@ ifeq ($(OS_ARCH),Linux)
     ifneq ($(words $(OS_RELEASE)),1)
 	OS_RELEASE := $(word 1,$(OS_RELEASE)).$(word 2,$(OS_RELEASE))
     endif
+    KERNEL = Linux
+endif
+
+# Since all uses of OS_ARCH that follow affect only userland, we can
+# merge other Glibc systems with Linux here.
+ifeq ($(OS_ARCH),GNU)
+    OS_ARCH = Linux
+    OS_RELEASE = 2.6
+    KERNEL = GNU
+endif
+ifeq ($(OS_ARCH),GNU_kFreeBSD)
+    OS_ARCH = Linux
+    OS_RELEASE = 2.6
+    KERNEL = FreeBSD
 endif
 
 #
@@ -254,11 +268,6 @@ OS_CONFIG = $(OS_TARGET)$(OS_RELEASE)
 # to distinguish between debug and release builds.
 #
 
-ifeq ($(USE_ASAN), 1)
-    ASAN_TAG = _ASAN
-else
-    ASAN_TAG =
-endif
 ifeq ($(USE_GCOV), 1)
     GCOV_TAG = _GCOV
 else
@@ -269,7 +278,7 @@ ifeq ($(USE_64), 1)
 else
     64BIT_TAG =
 endif
-OBJDIR_TAG_BASE=$(ASAN_TAG)$(GCOV_TAG)$(64BIT_TAG)
+OBJDIR_TAG_BASE=$(GCOV_TAG)$(64BIT_TAG)
 
 ifdef BUILD_OPT
     OBJDIR_TAG = $(OBJDIR_TAG_BASE)_OPT

@@ -10,8 +10,16 @@ EXTRA_COMPONENTS += [
     'extensions-browser.manifest',
 ]
 
+EXTRA_JS_MODULES += [
+    'ExtensionPopups.jsm',
+]
+
 DIRS += ['schemas']
 
-BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
+BROWSER_CHROME_MANIFESTS += [
+    'test/browser/browser-remote.ini',
+    'test/browser/browser.ini',
+]
+
 MOCHITEST_MANIFESTS += ['test/mochitest/mochitest.ini']
 XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell/xpcshell.ini']

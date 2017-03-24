@@ -78,7 +78,12 @@ static sslOptions ssl_defaults = {
     PR_FALSE,              /* enableExtendedMS    */
     PR_FALSE,              /* enableSignedCertTimestamps */
     PR_FALSE,              /* requireDHENamedGroups */
-    PR_FALSE               /* enable0RttData */
+    PR_FALSE,              /* enable0RttData */
+#ifdef NSS_ENABLE_TLS13_SHORT_HEADERS
+    PR_TRUE /* enableShortHeaders */
+#else
+    PR_FALSE /* enableShortHeaders */
+#endif
 };
 
 /*
@@ -325,6 +330,10 @@ ssl_DupSocket(sslSocket *os)
         ss->getClientAuthDataArg = os->getClientAuthDataArg;
         ss->sniSocketConfig = os->sniSocketConfig;
         ss->sniSocketConfigArg = os->sniSocketConfigArg;
+        ss->alertReceivedCallback = os->alertReceivedCallback;
+        ss->alertReceivedCallbackArg = os->alertReceivedCallbackArg;
+        ss->alertSentCallback = os->alertSentCallback;
+        ss->alertSentCallbackArg = os->alertSentCallbackArg;
         ss->handleBadCert = os->handleBadCert;
         ss->badCertArg = os->badCertArg;
         ss->handshakeCallback = os->handshakeCallback;
@@ -1668,6 +1677,9 @@ ssl_IsValidDHEShare(const SECItem *dh_p, const SECItem *dh_Ys)
     unsigned int commonPart;
     int cmp;
 
+    if (dh_p->len == 0 || dh_Ys->len == 0) {
+        return PR_FALSE;
+    }
     /* Check that the prime is at least odd. */
     if ((dh_p->data[dh_p->len - 1] & 0x01) == 0) {
         return PR_FALSE;
@@ -1760,7 +1772,7 @@ ssl_SelectDHEGroup(sslSocket *ss, const sslNamedGroupDef **groupDef)
      * indicated that it supports an FFDHE named group. */
     if (ss->ssl3.dheWeakGroupEnabled &&
         ss->version < SSL_LIBRARY_VERSION_TLS_1_3 &&
-        !ss->ssl3.hs.peerSupportsFfdheGroups) {
+        !ss->xtnData.peerSupportsFfdheGroups) {
         *groupDef = &weak_group_def;
         return SECSuccess;
     }
@@ -1889,7 +1901,7 @@ ssl_NextProtoNegoCallback(void *arg, PRFileDesc *fd,
                 PORT_Memcmp(&protos[i + 1], &ss->opt.nextProtoNego.data[j + 1],
                             protos[i]) == 0) {
                 /* We found a match. */
-                ss->ssl3.nextProtoState = SSL_NEXT_PROTO_NEGOTIATED;
+                ss->xtnData.nextProtoState = SSL_NEXT_PROTO_NEGOTIATED;
                 result = &protos[i];
                 goto found;
             }
@@ -1902,7 +1914,7 @@ ssl_NextProtoNegoCallback(void *arg, PRFileDesc *fd,
      * protocols configured, or none of its options match ours. In this case we
      * request our favoured protocol. */
     /* This will be treated as a failure for ALPN. */
-    ss->ssl3.nextProtoState = SSL_NEXT_PROTO_NO_OVERLAP;
+    ss->xtnData.nextProtoState = SSL_NEXT_PROTO_NO_OVERLAP;
     result = ss->opt.nextProtoNego.data;
 
 found:
@@ -1961,16 +1973,16 @@ SSL_GetNextProto(PRFileDesc *fd, SSLNextProtoState *state, unsigned char *buf,
         return SECFailure;
     }
 
-    *state = ss->ssl3.nextProtoState;
+    *state = ss->xtnData.nextProtoState;
 
-    if (ss->ssl3.nextProtoState != SSL_NEXT_PROTO_NO_SUPPORT &&
-        ss->ssl3.nextProto.data) {
-        if (ss->ssl3.nextProto.len > bufLenMax) {
+    if (ss->xtnData.nextProtoState != SSL_NEXT_PROTO_NO_SUPPORT &&
+        ss->xtnData.nextProto.data) {
+        if (ss->xtnData.nextProto.len > bufLenMax) {
             PORT_SetError(SEC_ERROR_OUTPUT_LEN);
             return SECFailure;
         }
-        PORT_Memcpy(buf, ss->ssl3.nextProto.data, ss->ssl3.nextProto.len);
-        *bufLen = ss->ssl3.nextProto.len;
+        PORT_Memcpy(buf, ss->xtnData.nextProto.data, ss->xtnData.nextProto.len);
+        *bufLen = ss->xtnData.nextProto.len;
     } else {
         *bufLen = 0;
     }
@@ -2040,12 +2052,12 @@ SSL_GetSRTPCipher(PRFileDesc *fd, PRUint16 *cipher)
         return SECFailure;
     }
 
-    if (!ss->ssl3.dtlsSRTPCipherSuite) {
+    if (!ss->xtnData.dtlsSRTPCipherSuite) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
 
-    *cipher = ss->ssl3.dtlsSRTPCipherSuite;
+    *cipher = ss->xtnData.dtlsSRTPCipherSuite;
     return SECSuccess;
 }
 
@@ -2140,6 +2152,14 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         ss->sniSocketConfig = sm->sniSocketConfig;
     if (sm->sniSocketConfigArg)
         ss->sniSocketConfigArg = sm->sniSocketConfigArg;
+    if (ss->alertReceivedCallback) {
+        ss->alertReceivedCallback = sm->alertReceivedCallback;
+        ss->alertReceivedCallbackArg = sm->alertReceivedCallbackArg;
+    }
+    if (ss->alertSentCallback) {
+        ss->alertSentCallback = sm->alertSentCallback;
+        ss->alertSentCallbackArg = sm->alertSentCallbackArg;
+    }
     if (sm->handleBadCert)
         ss->handleBadCert = sm->handleBadCert;
     if (sm->badCertArg)
@@ -3606,6 +3626,12 @@ ssl_FreeEphemeralKeyPair(sslEphemeralKeyPair *keyPair)
     PORT_Free(keyPair);
 }
 
+PRBool
+ssl_HaveEphemeralKeyPair(const sslSocket *ss, const sslNamedGroupDef *groupDef)
+{
+    return ssl_LookupEphemeralKeyPair((sslSocket *)ss, groupDef) != NULL;
+}
+
 sslEphemeralKeyPair *
 ssl_LookupEphemeralKeyPair(sslSocket *ss, const sslNamedGroupDef *groupDef)
 {
@@ -3676,6 +3702,10 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->sniSocketConfig = NULL;
     ss->sniSocketConfigArg = NULL;
     ss->getClientAuthData = NULL;
+    ss->alertReceivedCallback = NULL;
+    ss->alertReceivedCallbackArg = NULL;
+    ss->alertSentCallback = NULL;
+    ss->alertSentCallbackArg = NULL;
     ss->handleBadCert = NULL;
     ss->badCertArg = NULL;
     ss->pkcs11PinArg = NULL;
@@ -3688,9 +3718,9 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->additionalShares = 0;
     PR_INIT_CLIST(&ss->ssl3.hs.remoteExtensions);
     PR_INIT_CLIST(&ss->ssl3.hs.lastMessageFlight);
-    PR_INIT_CLIST(&ss->ssl3.hs.remoteKeyShares);
     PR_INIT_CLIST(&ss->ssl3.hs.cipherSpecs);
     PR_INIT_CLIST(&ss->ssl3.hs.bufferedEarlyData);
+    ssl3_InitExtensionData(&ss->xtnData);
     if (makeLocks) {
         rv = ssl_MakeLocks(ss);
         if (rv != SECSuccess)
@@ -3702,7 +3732,6 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     rv = ssl3_InitGather(&ss->gs);
     if (rv != SECSuccess)
         goto loser;
-
     return ss;
 
 loser:

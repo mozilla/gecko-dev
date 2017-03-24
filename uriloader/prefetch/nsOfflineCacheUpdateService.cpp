@@ -38,6 +38,7 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Unused.h"
 #include "nsIDiskSpaceWatcher.h"
 #include "nsIDocShell.h"
@@ -396,7 +397,7 @@ nsOfflineCacheUpdateService::UpdateFinished(nsOfflineCacheUpdate *aUpdate)
 nsresult
 nsOfflineCacheUpdateService::ProcessNextUpdate()
 {
-    LOG(("nsOfflineCacheUpdateService::ProcessNextUpdate [%p, num=%d]",
+    LOG(("nsOfflineCacheUpdateService::ProcessNextUpdate [%p, num=%" PRIuSIZE "]",
          this, mUpdates.Length()));
 
     if (mDisabled)
@@ -681,7 +682,7 @@ nsOfflineCacheUpdateService::OfflineAppAllowedForURI(nsIURI *aURI,
                                                      nsIPrefBranch *aPrefBranch,
                                                      bool *aAllowed)
 {
-    PrincipalOriginAttributes attrs;
+    OriginAttributes attrs;
     nsCOMPtr<nsIPrincipal> principal =
         BasePrincipal::CreateCodebasePrincipal(aURI, attrs);
     return OfflineAppPermForPrincipal(principal, aPrefBranch, false, aAllowed);
@@ -692,7 +693,7 @@ nsOfflineCacheUpdateService::OfflineAppPinnedForURI(nsIURI *aDocumentURI,
                                                     nsIPrefBranch *aPrefBranch,
                                                     bool *aPinned)
 {
-    PrincipalOriginAttributes attrs;
+    OriginAttributes attrs;
     nsCOMPtr<nsIPrincipal> principal =
         BasePrincipal::CreateCodebasePrincipal(aDocumentURI, attrs);
     return OfflineAppPermForPrincipal(principal, aPrefBranch, true, aPinned);

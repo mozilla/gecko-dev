@@ -25,15 +25,15 @@
 using namespace js;
 
 /* static */ Shape*
-js::ErrorObject::assignInitialShape(ExclusiveContext* cx, Handle<ErrorObject*> obj)
+js::ErrorObject::assignInitialShape(JSContext* cx, Handle<ErrorObject*> obj)
 {
     MOZ_ASSERT(obj->empty());
 
-    if (!obj->addDataProperty(cx, cx->names().fileName, FILENAME_SLOT, 0))
+    if (!NativeObject::addDataProperty(cx, obj, cx->names().fileName, FILENAME_SLOT, 0))
         return nullptr;
-    if (!obj->addDataProperty(cx, cx->names().lineNumber, LINENUMBER_SLOT, 0))
+    if (!NativeObject::addDataProperty(cx, obj, cx->names().lineNumber, LINENUMBER_SLOT, 0))
         return nullptr;
-    return obj->addDataProperty(cx, cx->names().columnNumber, COLUMNNUMBER_SLOT, 0);
+    return NativeObject::addDataProperty(cx, obj, cx->names().columnNumber, COLUMNNUMBER_SLOT, 0);
 }
 
 /* static */ bool
@@ -57,7 +57,7 @@ js::ErrorObject::init(JSContext* cx, Handle<ErrorObject*> obj, JSExnType type,
     // |new Error()|.
     RootedShape messageShape(cx);
     if (message) {
-        messageShape = obj->addDataProperty(cx, cx->names().message, MESSAGE_SLOT, 0);
+        messageShape = NativeObject::addDataProperty(cx, obj, cx->names().message, MESSAGE_SLOT, 0);
         if (!messageShape)
             return false;
         MOZ_ASSERT(messageShape->slot() == MESSAGE_SLOT);
@@ -164,29 +164,25 @@ js::ErrorObject::getOrCreateErrorReport(JSContext* cx)
 }
 
 static bool
-ErrorObject_checkAndUnwrapThis(JSContext* cx, CallArgs& args, const char* fnName,
-                               MutableHandle<ErrorObject*> error)
+FindErrorInstanceOrPrototype(JSContext* cx, HandleObject obj, MutableHandleObject result)
 {
-    const Value& thisValue = args.thisv();
+    // Walk up the prototype chain until we find an error object instance or
+    // prototype object. This allows code like:
+    //  Object.create(Error.prototype).stack
+    // or
+    //   function NYI() { }
+    //   NYI.prototype = new Error;
+    //   (new NYI).stack
+    // to continue returning stacks that are useless, but at least don't throw.
 
-    if (!thisValue.isObject()) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_NOT_NONNULL_OBJECT,
-                                  InformalValueTypeName(thisValue));
-        return false;
-    }
-
-    // Walk up the prototype chain until we find the first ErrorObject that has
-    // the slots we need. This allows us to support the poor-man's subclassing
-    // of error: Object.create(Error.prototype).
-
-    RootedObject target(cx, CheckedUnwrap(&thisValue.toObject()));
+    RootedObject target(cx, CheckedUnwrap(obj));
     if (!target) {
-        JS_ReportErrorASCII(cx, "Permission denied to access object");
+        ReportAccessDenied(cx);
         return false;
     }
 
     RootedObject proto(cx);
-    while (!target->is<ErrorObject>()) {
+    while (!IsErrorProtoKey(StandardProtoKeyOrNull(target))) {
         if (!GetPrototype(cx, target, &proto))
             return false;
 
@@ -194,35 +190,56 @@ ErrorObject_checkAndUnwrapThis(JSContext* cx, CallArgs& args, const char* fnName
             // We walked the whole prototype chain and did not find an Error
             // object.
             JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                                      js_Error_str, fnName, thisValue.toObject().getClass()->name);
+                                      js_Error_str, "(get stack)", obj->getClass()->name);
             return false;
         }
 
         target = CheckedUnwrap(proto);
         if (!target) {
-            JS_ReportErrorASCII(cx, "Permission denied to access object");
+            ReportAccessDenied(cx);
             return false;
         }
     }
 
-    error.set(&target->as<ErrorObject>());
+    result.set(target);
     return true;
+}
+
+
+static MOZ_ALWAYS_INLINE bool
+IsObject(HandleValue v)
+{
+    return v.isObject();
 }
 
 /* static */ bool
 js::ErrorObject::getStack(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    Rooted<ErrorObject*> error(cx);
-    if (!ErrorObject_checkAndUnwrapThis(cx, args, "(get stack)", &error))
+    // We accept any object here, because of poor-man's subclassing of Error.
+    return CallNonGenericMethod<IsObject, getStack_impl>(cx, args);
+}
+
+/* static */ bool
+js::ErrorObject::getStack_impl(JSContext* cx, const CallArgs& args)
+{
+    RootedObject thisObj(cx, &args.thisv().toObject());
+
+    RootedObject obj(cx);
+    if (!FindErrorInstanceOrPrototype(cx, thisObj, &obj))
         return false;
 
-    RootedObject savedFrameObj(cx, error->stack());
+    if (!obj->is<ErrorObject>()) {
+        args.rval().setString(cx->runtime()->emptyString);
+        return true;
+    }
+
+    RootedObject savedFrameObj(cx, obj->as<ErrorObject>().stack());
     RootedString stackString(cx);
     if (!BuildStackString(cx, savedFrameObj, &stackString))
         return false;
 
-    if (cx->stackFormat() == js::StackFormat::V8) {
+    if (cx->runtime()->stackFormat() == js::StackFormat::V8) {
         // When emulating V8 stack frames, we also need to prepend the
         // stringified Error to the stack string.
         HandlePropertyName name = cx->names().ErrorToStringWithTrailingNewline;
@@ -245,12 +262,6 @@ js::ErrorObject::getStack(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
-static MOZ_ALWAYS_INLINE bool
-IsObject(HandleValue v)
-{
-    return v.isObject();
-}
-
 /* static */ bool
 js::ErrorObject::setStack(JSContext* cx, unsigned argc, Value* vp)
 {
@@ -262,9 +273,7 @@ js::ErrorObject::setStack(JSContext* cx, unsigned argc, Value* vp)
 /* static */ bool
 js::ErrorObject::setStack_impl(JSContext* cx, const CallArgs& args)
 {
-    const Value& thisValue = args.thisv();
-    MOZ_ASSERT(thisValue.isObject());
-    RootedObject thisObj(cx, &thisValue.toObject());
+    RootedObject thisObj(cx, &args.thisv().toObject());
 
     if (!args.requireAtLeast(cx, "(set stack)", 1))
         return false;

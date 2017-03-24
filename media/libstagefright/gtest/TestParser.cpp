@@ -72,7 +72,6 @@ TEST(stagefright_MP4Metadata, EmptyStream)
 {
   RefPtr<Stream> stream = new TestStream(nullptr, 0);
 
-  EXPECT_FALSE(MP4Metadata::HasCompleteMetadata(stream));
   RefPtr<MediaByteBuffer> metadataBuffer = MP4Metadata::Metadata(stream);
   EXPECT_FALSE(metadataBuffer);
 
@@ -166,41 +165,44 @@ struct TestFileData
   uint64_t mMoofReachedOffset; // or 0 for the end.
   bool mValidMoof;
   bool mHeader;
+  int8_t mAudioProfile;
 };
 static const TestFileData testFiles[] = {
-  // filename                      #V dur   w    h  #A dur  crypt  off   moof  headr
-  { "test_case_1156505.mp4",        0, -1,   0,   0, 0, -1, false, 152, false, false },
-  { "test_case_1181213.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false },
-  { "test_case_1181215.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false },
-  { "test_case_1181220.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false },
-  { "test_case_1181223.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false },
-  { "test_case_1181719.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false },
+  // filename                      #V dur   w    h  #A dur  crypt  off   moof  headr  audio_profile
+  { "test_case_1156505.mp4",        0, -1,   0,   0, 0, -1, false, 152, false, false, 0 },
+  { "test_case_1181213.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
+  { "test_case_1181215.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
+  { "test_case_1181220.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
+  { "test_case_1181223.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
+  { "test_case_1181719.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
   { "test_case_1185230.mp4",        1, 416666,
-                                           320, 240, 1,  5, false,   0, false, false },
+                                           320, 240, 1,  5, false,   0, false, false, 2 },
   { "test_case_1187067.mp4",        1, 80000,
-                                           160,  90, 0, -1, false,   0, false, false },
-  { "test_case_1200326.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false },
+                                           160,  90, 0, -1, false,   0, false, false, 0 },
+  { "test_case_1200326.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
   { "test_case_1204580.mp4",        1, 502500,
-                                           320, 180, 0, -1, false,   0, false, false },
-  { "test_case_1216748.mp4",        0, -1,   0,   0, 0, -1, false, 152, false, false },
-  { "test_case_1296473.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false },
+                                           320, 180, 0, -1, false,   0, false, false, 0 },
+  { "test_case_1216748.mp4",        0, -1,   0,   0, 0, -1, false, 152, false, false, 0 },
+  { "test_case_1296473.mp4",        0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
   { "test_case_1296532.mp4",        1, 5589333,
                                            560, 320, 1, 5589333,
-                                                            true,    0, true,  true  },
+                                                            true,    0, true,  true,  2  },
   { "test_case_1301065.mp4",        0, -1,   0,   0, 1, 100079991719000000,
-                                                            false,   0, false, false },
+                                                            false,   0, false, false, 2 },
   { "test_case_1301065-u32max.mp4", 0, -1,   0,   0, 1, 97391548639,
-                                                            false,   0, false, false },
+                                                            false,   0, false, false, 2 },
   { "test_case_1301065-max-ez.mp4", 0, -1,   0,   0, 1, 209146758205306,
-                                                            false,   0, false, false },
+                                                            false,   0, false, false, 2 },
   { "test_case_1301065-harder.mp4", 0, -1,   0,   0, 1, 209146758205328,
-                                                            false,   0, false, false },
+                                                            false,   0, false, false, 2 },
   { "test_case_1301065-max-ok.mp4", 0, -1,   0,   0, 1, 9223372036854775804,
-                                                            false,   0, false, false },
-  { "test_case_1301065-overfl.mp4", 0, -1,   0,   0, 0, -1, false,   0, false, false },
-  { "test_case_1301065-i64max.mp4", 0, -1,   0,   0, 0, -1, false,   0, false, false },
-  { "test_case_1301065-i64min.mp4", 0, -1,   0,   0, 0, -1, false,   0, false, false },
-  { "test_case_1301065-u64max.mp4", 0, -1,   0,   0, 0, -1, false,   0, false, false },
+                                                            false,   0, false, false, 2 },
+  { "test_case_1301065-overfl.mp4", 0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
+  { "test_case_1301065-i64max.mp4", 0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
+  { "test_case_1301065-i64min.mp4", 0, -1,   0,   0, 0, -1, false,   0, false, false, 0 },
+  { "test_case_1301065-u64max.mp4", 0, -1,   0,   0, 1,  0, false,   0, false, false, 2 },
+  { "test_case_1329061.mov",        0, -1,   0,   0, 1,  234567981,
+                                                            false,   0, false, false, 2 },
 };
 
 TEST(stagefright_MPEG4Metadata, test_case_mp4)
@@ -210,7 +212,6 @@ TEST(stagefright_MPEG4Metadata, test_case_mp4)
     ASSERT_FALSE(buffer.IsEmpty());
     RefPtr<Stream> stream = new TestStream(buffer.Elements(), buffer.Length());
 
-    EXPECT_TRUE(MP4Metadata::HasCompleteMetadata(stream));
     RefPtr<MediaByteBuffer> metadataBuffer = MP4Metadata::Metadata(stream);
     EXPECT_TRUE(metadataBuffer);
 
@@ -235,11 +236,14 @@ TEST(stagefright_MPEG4Metadata, test_case_mp4)
       EXPECT_EQ(testFiles[test].mVideoDuration, videoInfo->mDuration);
       EXPECT_EQ(testFiles[test].mWidth, videoInfo->mDisplay.width);
       EXPECT_EQ(testFiles[test].mHeight, videoInfo->mDisplay.height);
-      FallibleTArray<mp4_demuxer::Index::Indice> indices;
-      EXPECT_TRUE(metadata.ReadTrackIndex(indices, videoInfo->mTrackId));
-      for (const mp4_demuxer::Index::Indice& indice : indices) {
-        EXPECT_TRUE(indice.start_offset <= indice.end_offset);
-        EXPECT_TRUE(indice.start_composition <= indice.end_composition);
+
+      UniquePtr<IndiceWrapper> indices = metadata.GetTrackIndice(videoInfo->mTrackId);
+      EXPECT_TRUE(!!indices);
+      for (size_t i = 0; i < indices->Length(); i++) {
+        Index::Indice data;
+        EXPECT_TRUE(indices->GetIndice(i, data));
+        EXPECT_TRUE(data.start_offset <= data.end_offset);
+        EXPECT_TRUE(data.start_composition <= data.end_composition);
       }
     }
     trackInfo = metadata.GetTrackInfo(TrackInfo::kAudioTrack, 0);
@@ -252,11 +256,15 @@ TEST(stagefright_MPEG4Metadata, test_case_mp4)
       EXPECT_TRUE(audioInfo->IsValid());
       EXPECT_TRUE(audioInfo->IsAudio());
       EXPECT_EQ(testFiles[test].mAudioDuration, audioInfo->mDuration);
-      FallibleTArray<mp4_demuxer::Index::Indice> indices;
-      EXPECT_TRUE(metadata.ReadTrackIndex(indices, audioInfo->mTrackId));
-      for (const mp4_demuxer::Index::Indice& indice : indices) {
-        EXPECT_TRUE(indice.start_offset <= indice.end_offset);
-        EXPECT_TRUE(indice.start_composition <= indice.end_composition);
+      EXPECT_EQ(testFiles[test].mAudioProfile, audioInfo->mProfile);
+
+      UniquePtr<IndiceWrapper> indices = metadata.GetTrackIndice(audioInfo->mTrackId);
+      EXPECT_TRUE(!!indices);
+      for (size_t i = 0; i < indices->Length(); i++) {
+        Index::Indice data;
+        EXPECT_TRUE(indices->GetIndice(i, data));
+        EXPECT_TRUE(data.start_offset <= data.end_offset);
+        EXPECT_TRUE(data.start_composition <= data.end_composition);
       }
     }
     EXPECT_FALSE(metadata.GetTrackInfo(TrackInfo::kTextTrack, 0));
@@ -285,7 +293,6 @@ TEST(stagefright_MPEG4Metadata, test_case_mp4_subsets)
         RefPtr<TestStream> stream =
           new TestStream(buffer.Elements() + offset, size);
 
-        MP4Metadata::HasCompleteMetadata(stream);
         RefPtr<MediaByteBuffer> metadataBuffer = MP4Metadata::Metadata(stream);
         MP4Metadata metadata(stream);
 
@@ -461,7 +468,6 @@ TEST(stagefright_MP4Metadata, EmptyCTTS)
   buffer->AppendElements(media_libstagefright_gtest_video_init_mp4, media_libstagefright_gtest_video_init_mp4_len);
   RefPtr<BufferStream> stream = new BufferStream(buffer);
 
-  EXPECT_TRUE(MP4Metadata::HasCompleteMetadata(stream));
   RefPtr<MediaByteBuffer> metadataBuffer = MP4Metadata::Metadata(stream);
   EXPECT_TRUE(metadataBuffer);
 

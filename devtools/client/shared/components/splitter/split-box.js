@@ -20,21 +20,27 @@ const SplitBox = React.createClass({
     // Custom class name. You can use more names separated by a space.
     className: PropTypes.string,
     // Initial size of controlled panel.
-    initialSize: PropTypes.number,
+    initialSize: PropTypes.string,
+    // Initial width of controlled panel.
+    initialWidth: PropTypes.string,
+    // Initial height of controlled panel.
+    initialHeight: PropTypes.string,
     // Left/top panel
     startPanel: PropTypes.any,
     // Min panel size.
-    minSize: PropTypes.number,
+    minSize: PropTypes.string,
     // Max panel size.
-    maxSize: PropTypes.number,
+    maxSize: PropTypes.string,
     // Right/bottom panel
     endPanel: PropTypes.any,
     // True if the right/bottom panel should be controlled.
     endPanelControl: PropTypes.bool,
     // Size of the splitter handle bar.
-    splitterSize: PropTypes.number,
+    splitterSize: PropTypes.string,
     // True if the splitter bar is vertical (default is vertical).
-    vert: PropTypes.bool
+    vert: PropTypes.bool,
+    // Style object.
+    style: PropTypes.object,
   },
 
   getDefaultProps() {
@@ -56,6 +62,14 @@ const SplitBox = React.createClass({
       width: this.props.initialWidth || this.props.initialSize,
       height: this.props.initialHeight || this.props.initialSize
     };
+  },
+
+  componentWillReceiveProps(nextProps) {
+    let { vert } = nextProps;
+
+    if (vert !== this.props.vert) {
+      this.setState({ vert });
+    }
   },
 
   // Dragging Events
@@ -107,19 +121,17 @@ const SplitBox = React.createClass({
         endPanelControl = !endPanelControl;
       }
 
-      let innerOffset = x - win.mozInnerScreenX;
       size = endPanelControl ?
-        (node.offsetLeft + node.offsetWidth) - innerOffset :
-        innerOffset - node.offsetLeft;
+        (node.offsetLeft + node.offsetWidth) - x :
+        x - node.offsetLeft;
 
       this.setState({
         width: size
       });
     } else {
-      let innerOffset = y - win.mozInnerScreenY;
       size = endPanelControl ?
-        (node.offsetTop + node.offsetHeight) - innerOffset :
-        innerOffset - node.offsetTop;
+        (node.offsetTop + node.offsetHeight) - y :
+        y - node.offsetTop;
 
       this.setState({
         height: size

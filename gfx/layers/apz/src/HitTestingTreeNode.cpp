@@ -7,6 +7,7 @@
 #include "HitTestingTreeNode.h"
 
 #include "AsyncPanZoomController.h"                     // for AsyncPanZoomController
+#include "gfxPrefs.h"
 #include "LayersLogging.h"                              // for Stringify
 #include "mozilla/gfx/Point.h"                          // for Point4D
 #include "mozilla/layers/APZThreadUtils.h"              // for AssertOnCompositorThread
@@ -26,8 +27,8 @@ HitTestingTreeNode::HitTestingTreeNode(AsyncPanZoomController* aApzc,
   , mIsPrimaryApzcHolder(aIsPrimaryHolder)
   , mLayersId(aLayersId)
   , mScrollViewId(FrameMetrics::NULL_SCROLL_ID)
-  , mScrollDir(Layer::NONE)
-  , mScrollSize(0)
+  , mScrollDir(ScrollDirection::NONE)
+  , mScrollThumbLength(0)
   , mIsScrollbarContainer(false)
   , mFixedPosTarget(FrameMetrics::NULL_SCROLL_ID)
   , mOverride(EventRegionsOverride::NoOverride)
@@ -95,36 +96,42 @@ HitTestingTreeNode::SetLastChild(HitTestingTreeNode* aChild)
 
 void
 HitTestingTreeNode::SetScrollbarData(FrameMetrics::ViewID aScrollViewId,
-                                     Layer::ScrollDirection aDir,
-                                     int32_t aScrollSize,
+                                     ScrollDirection aDir,
+                                     int32_t aScrollThumbLength,
                                      bool aIsScrollContainer)
 {
   mScrollViewId = aScrollViewId;
   mScrollDir = aDir;
-  mScrollSize = aScrollSize;;
+  mScrollThumbLength = aScrollThumbLength;
   mIsScrollbarContainer = aIsScrollContainer;
 }
 
 bool
 HitTestingTreeNode::MatchesScrollDragMetrics(const AsyncDragMetrics& aDragMetrics) const
 {
-  return ((mScrollDir == Layer::HORIZONTAL &&
+  return ((mScrollDir == ScrollDirection::HORIZONTAL &&
            aDragMetrics.mDirection == AsyncDragMetrics::HORIZONTAL) ||
-          (mScrollDir == Layer::VERTICAL &&
+          (mScrollDir == ScrollDirection::VERTICAL &&
            aDragMetrics.mDirection == AsyncDragMetrics::VERTICAL)) &&
          mScrollViewId == aDragMetrics.mViewId;
 }
 
-int32_t
-HitTestingTreeNode::GetScrollSize() const
+LayerIntCoord
+HitTestingTreeNode::GetScrollThumbLength() const
 {
-  return mScrollSize;
+  return mScrollThumbLength;
 }
 
 bool
 HitTestingTreeNode::IsScrollbarNode() const
 {
-  return mIsScrollbarContainer || (mScrollDir != Layer::NONE);
+  return mIsScrollbarContainer || (mScrollDir != ScrollDirection::NONE);
+}
+
+FrameMetrics::ViewID
+HitTestingTreeNode::GetScrollTargetId() const
+{
+  return mScrollViewId;
 }
 
 void

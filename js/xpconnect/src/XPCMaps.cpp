@@ -55,18 +55,6 @@ JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(XPCJSContext* context)
 
         // Walk the wrapper chain and update all JSObjects.
         while (wrapper) {
-#ifdef DEBUG
-            if (!wrapper->IsSubjectToFinalization()) {
-                // If a wrapper is not subject to finalization then it roots its
-                // JS object.  If so, then it will not be about to be finalized
-                // and any necessary pointer update will have already happened
-                // when it was marked.
-                JSObject* obj = wrapper->GetJSObjectPreserveColor();
-                JSObject* prior = obj;
-                JS_UpdateWeakPointerAfterGCUnbarriered(&obj);
-                MOZ_ASSERT(obj == prior);
-            }
-#endif
             if (wrapper->IsSubjectToFinalization()) {
                 wrapper->UpdateObjectPointerAfterGC();
                 if (!wrapper->GetJSObjectPreserveColor())
@@ -385,105 +373,6 @@ IID2ThisTranslatorMap::newMap(int length)
 IID2ThisTranslatorMap::IID2ThisTranslatorMap(int length)
   : mTable(&Entry::sOps, sizeof(Entry), length)
 {
-}
-
-/***************************************************************************/
-
-PLDHashNumber
-XPCNativeScriptableSharedMap::Entry::Hash(const void* key)
-{
-    PLDHashNumber h;
-    const unsigned char* s;
-
-    XPCNativeScriptableShared* obj =
-        (XPCNativeScriptableShared*) key;
-
-    // hash together the flags and the classname string, ignore the interfaces
-    // bitmap since it's very rare that it's different when flags and classname
-    // are the same.
-
-    h = (PLDHashNumber) obj->GetFlags();
-    for (s = (const unsigned char*) obj->GetJSClass()->name; *s != '\0'; s++)
-        h = RotateLeft(h, 4) ^ *s;
-    return h;
-}
-
-bool
-XPCNativeScriptableSharedMap::Entry::Match(const PLDHashEntryHdr* entry,
-                                           const void* key)
-{
-    XPCNativeScriptableShared* obj1 =
-        ((XPCNativeScriptableSharedMap::Entry*) entry)->key;
-
-    XPCNativeScriptableShared* obj2 =
-        (XPCNativeScriptableShared*) key;
-
-    // match the flags and the classname string
-
-    if (obj1->GetFlags() != obj2->GetFlags())
-        return false;
-
-    const char* name1 = obj1->GetJSClass()->name;
-    const char* name2 = obj2->GetJSClass()->name;
-
-    if (!name1 || !name2)
-        return name1 == name2;
-
-    return 0 == strcmp(name1, name2);
-}
-
-const struct PLDHashTableOps XPCNativeScriptableSharedMap::Entry::sOps =
-{
-    Hash,
-    Match,
-    PLDHashTable::MoveEntryStub,
-    PLDHashTable::ClearEntryStub
-};
-
-// static
-XPCNativeScriptableSharedMap*
-XPCNativeScriptableSharedMap::newMap(int length)
-{
-    return new XPCNativeScriptableSharedMap(length);
-}
-
-XPCNativeScriptableSharedMap::XPCNativeScriptableSharedMap(int length)
-  : mTable(&Entry::sOps, sizeof(Entry), length)
-{
-}
-
-bool
-XPCNativeScriptableSharedMap::GetNewOrUsed(uint32_t flags,
-                                           char* name,
-                                           XPCNativeScriptableInfo* si)
-{
-    NS_PRECONDITION(name,"bad param");
-    NS_PRECONDITION(si,"bad param");
-
-    RefPtr<XPCNativeScriptableShared> key =
-        new XPCNativeScriptableShared(flags, name, /* populate = */ false);
-    auto entry = static_cast<Entry*>(mTable.Add(key, fallible));
-    if (!entry)
-        return false;
-
-    RefPtr<XPCNativeScriptableShared> shared = entry->key;
-
-    // XXX: this XPCNativeScriptableShared is heap-allocated, which means the
-    // js::Class it contains is also heap-allocated. This causes problems for
-    // memory reporting. See the comment above the BaseShape case in
-    // StatsCellCallback() in js/src/vm/MemoryMetrics.cpp.
-    //
-    // When the code below is removed (bug 1265271) and there are no longer any
-    // heap-allocated js::Class instances, the disabled code in
-    // StatsCellCallback() should be reinstated.
-    //
-    if (!shared) {
-        shared = new XPCNativeScriptableShared(flags, key->TransferNameOwnership(),
-                                               /* populate = */ true);
-        entry->key = shared;
-    }
-    si->SetScriptableShared(shared.forget());
-    return true;
 }
 
 /***************************************************************************/

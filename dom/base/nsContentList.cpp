@@ -54,12 +54,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsBaseContentList)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsBaseContentList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mElements)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(nsBaseContentList)
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsBaseContentList)
-  if (nsCCUncollectableMarker::sGeneration && tmp->IsBlack()) {
+  if (nsCCUncollectableMarker::sGeneration && tmp->HasKnownLiveWrapper()) {
     for (uint32_t i = 0; i < tmp->mElements.Length(); ++i) {
       nsIContent* c = tmp->mElements[i];
       if (c->IsPurple()) {
@@ -72,11 +71,11 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsBaseContentList)
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsBaseContentList)
-  return nsCCUncollectableMarker::sGeneration && tmp->IsBlack();
+  return nsCCUncollectableMarker::sGeneration && tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsBaseContentList)
-  return nsCCUncollectableMarker::sGeneration && tmp->IsBlack();
+  return nsCCUncollectableMarker::sGeneration && tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 #define NS_CONTENT_LIST_INTERFACES(_class)                                    \
@@ -491,7 +490,7 @@ nsContentList::Item(uint32_t aIndex, bool aDoFlush)
     nsIDocument* doc = mRootNode->GetUncomposedDoc();
     if (doc) {
       // Flush pending content changes Bug 4891.
-      doc->FlushPendingNotifications(Flush_ContentAndNotify);
+      doc->FlushPendingNotifications(FlushType::ContentAndNotify);
     }
   }
 
@@ -985,7 +984,7 @@ nsContentList::BringSelfUpToDate(bool aDoFlush)
     nsIDocument* doc = mRootNode->GetUncomposedDoc();
     if (doc) {
       // Flush pending content changes Bug 4891.
-      doc->FlushPendingNotifications(Flush_ContentAndNotify);
+      doc->FlushPendingNotifications(FlushType::ContentAndNotify);
     }
   }
 

@@ -25,7 +25,6 @@ void
 ProxyAccessibleBase<Derived>::Shutdown()
 {
   MOZ_DIAGNOSTIC_ASSERT(!IsDoc());
-  NS_ASSERTION(!mOuterDoc, "Why do we still have a child doc?");
   xpcAccessibleDocument* xpcDoc =
     GetAccService()->GetCachedXPCDocument(Document());
   if (xpcDoc) {
@@ -34,15 +33,16 @@ ProxyAccessibleBase<Derived>::Shutdown()
 
   // XXX Ideally  this wouldn't be necessary, but it seems OuterDoc accessibles
   // can be destroyed before the doc they own.
+  uint32_t childCount = mChildren.Length();
   if (!mOuterDoc) {
-    uint32_t childCount = mChildren.Length();
     for (uint32_t idx = 0; idx < childCount; idx++)
       mChildren[idx]->Shutdown();
   } else {
-    if (mChildren.Length() != 1)
-      MOZ_CRASH("outer doc doesn't own adoc!");
-
-    mChildren[0]->AsDoc()->Unbind();
+    if (childCount > 1) {
+      MOZ_CRASH("outer doc has too many documents!");
+    } else if (childCount == 1) {
+      mChildren[0]->AsDoc()->Unbind();
+    }
   }
 
   mChildren.Clear();
@@ -52,17 +52,31 @@ ProxyAccessibleBase<Derived>::Shutdown()
 
 template <class Derived>
 void
-ProxyAccessibleBase<Derived>::SetChildDoc(DocAccessibleParent* aParent)
+ProxyAccessibleBase<Derived>::SetChildDoc(DocAccessibleParent* aChildDoc)
 {
-  if (aParent) {
-    MOZ_ASSERT(mChildren.IsEmpty());
-    mChildren.AppendElement(aParent);
-    mOuterDoc = true;
+  // DocAccessibleParent::AddChildDoc tolerates replacing one document with
+  // another. We must reflect that here.
+  MOZ_ASSERT(aChildDoc);
+  MOZ_ASSERT(mChildren.Length() <= 1);
+  if (mChildren.IsEmpty()) {
+    mChildren.AppendElement(aChildDoc);
   } else {
-    MOZ_ASSERT(mChildren.Length() == 1);
-    mChildren.Clear();
-    mOuterDoc = false;
+    mChildren.ReplaceElementAt(0, aChildDoc);
   }
+  mOuterDoc = true;
+}
+
+template <class Derived>
+void
+ProxyAccessibleBase<Derived>::ClearChildDoc(DocAccessibleParent* aChildDoc)
+{
+  MOZ_ASSERT(aChildDoc);
+  // This is possible if we're replacing one document with another: Doc 1
+  // has not had a chance to remove itself, but was already replaced by Doc 2
+  // in SetChildDoc(). This could result in two subsequent calls to
+  // ClearChildDoc() even though mChildren.Length() == 1.
+  MOZ_ASSERT(mChildren.Length() <= 1);
+  mChildren.RemoveElement(aChildDoc);
 }
 
 template <class Derived>
@@ -151,6 +165,47 @@ ProxyAccessibleBase<Derived>::OuterDocOfRemoteBrowser() const
   DocAccessible* chromeDoc = GetExistingDocAccessible(frame->OwnerDoc());
 
   return chromeDoc ? chromeDoc->GetAccessible(frame) : nullptr;
+}
+
+template<class Derived>
+void
+ProxyAccessibleBase<Derived>::SetParent(Derived* aParent)
+{
+  MOZ_ASSERT(IsDoc(), "we should only reparent documents");
+  if (!aParent) {
+    mParent = kNoParent;
+  } else {
+    MOZ_ASSERT(!aParent->IsDoc());
+    mParent = aParent->ID();
+  }
+}
+
+template<class Derived>
+Derived*
+ProxyAccessibleBase<Derived>::Parent() const
+{
+  if (mParent == kNoParent) {
+    return nullptr;
+  }
+
+  // if we are not a document then are parent is another proxy in the same
+  // document.  That means we can just ask our document for the proxy with our
+  // parent id.
+  if (!IsDoc()) {
+    return Document()->GetAccessible(mParent);
+  }
+
+  // If we are a top level document then our parent is not a proxy.
+  if (AsDoc()->IsTopLevel()) {
+    return nullptr;
+  }
+
+  // Finally if we are a non top level document then our parent id is for a
+  // proxy in our parent document so get the proxy from there.
+  DocAccessibleParent* parentDoc = AsDoc()->ParentDoc();
+  MOZ_ASSERT(parentDoc);
+  MOZ_ASSERT(mParent);
+  return parentDoc->GetAccessible(mParent);
 }
 
 template class ProxyAccessibleBase<ProxyAccessible>;

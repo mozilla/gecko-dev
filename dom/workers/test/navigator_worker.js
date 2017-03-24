@@ -15,7 +15,8 @@ var supportedProps = [
   "language",
   "languages",
   "hardwareConcurrency",
-  { name: "storage", nightly: true },
+  { name: "storage", nightly: true, isSecureContext: true },
+  "connection",
 ];
 
 self.onmessage = function(event) {
@@ -38,7 +39,8 @@ function startTest(channelData) {
     }
 
     if (prop.nightly === !channelData.isNightly ||
-        prop.release === !channelData.isRelease) {
+        prop.release === !channelData.isRelease ||
+        prop.isSecureContext === !isSecureContext) {
       interfaceMap[prop.name] = false;
       continue;
     }

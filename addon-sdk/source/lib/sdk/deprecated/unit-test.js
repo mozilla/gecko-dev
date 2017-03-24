@@ -317,10 +317,9 @@ TestRunner.prototype = {
           resolve()
         }
         else {
-          win.addEventListener("DOMContentLoaded", function onLoad() {
-            win.removeEventListener("DOMContentLoaded", onLoad, false);
+          win.addEventListener("DOMContentLoaded", function() {
             resolve();
-          }, false);
+          }, {once: true});
         }
       });
     });

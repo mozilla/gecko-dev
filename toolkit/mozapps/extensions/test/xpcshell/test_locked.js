@@ -166,9 +166,9 @@ add_task(function* init() {
   a7.userDisabled = true;
   t2.userDisabled = false;
   a3.findUpdates({
-    onUpdateFinished: function() {
+    onUpdateFinished() {
       a4.findUpdates({
-        onUpdateFinished: function() {
+        onUpdateFinished() {
           // Let the updates finish before restarting the manager
           deferredUpdateFinished.resolve();
         }
@@ -264,7 +264,7 @@ add_task(function* run_test_1() {
   if (OS.Constants.libc.O_EXLOCK)
     options.unixFlags = OS.Constants.libc.O_EXLOCK;
 
-  let file = yield OS.File.open(gExtensionsJSON.path, {read:true, write:true, existing:true}, options);
+  let file = yield OS.File.open(gExtensionsJSON.path, {read: true, write: true, existing: true}, options);
 
   let filePermissions = gExtensionsJSON.permissions;
   if (!OS.Constants.Win) {

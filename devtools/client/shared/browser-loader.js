@@ -12,10 +12,18 @@ const Services = devtools.require("Services");
 const { AppConstants } = devtools.require("resource://gre/modules/AppConstants.jsm");
 
 const BROWSER_BASED_DIRS = [
+  "resource://devtools/client/inspector/boxmodel",
+  "resource://devtools/client/inspector/computed",
+  "resource://devtools/client/inspector/grids",
   "resource://devtools/client/inspector/layout",
   "resource://devtools/client/jsonview",
-  "resource://devtools/client/shared/vendor",
+  "resource://devtools/client/shared/source-map",
   "resource://devtools/client/shared/redux",
+  "resource://devtools/client/shared/vendor",
+];
+
+const COMMON_LIBRARY_DIRS = [
+  "resource://devtools/client/shared/vendor",
 ];
 
 // Any directory that matches the following regular expression
@@ -81,8 +89,12 @@ function BrowserLoader(options) {
  * @param Boolean useOnlyShared
  *        If true, ignores `baseURI` and only loads the shared
  *        BROWSER_BASED_DIRS via BrowserLoader.
+ * @param Function commonLibRequire
+ *        Require function that should be used to load common libraries, like React.
+ *        Allows for sharing common modules between tools, instead of loading a new
+ *        instance into each tool. For example, pass "toolbox.browserRequire" here.
  */
-function BrowserLoaderBuilder({ baseURI, window, useOnlyShared }) {
+function BrowserLoaderBuilder({ baseURI, window, useOnlyShared, commonLibRequire }) {
   assert(!!baseURI !== !!useOnlyShared,
     "Cannot use both `baseURI` and `useOnlyShared`.");
 
@@ -109,14 +121,14 @@ function BrowserLoaderBuilder({ baseURI, window, useOnlyShared }) {
       }
 
       const uri = require.resolve(id);
-      let isBrowserDir = BROWSER_BASED_DIRS.filter(dir => {
-        return uri.startsWith(dir);
-      }).length > 0;
 
-      // If the URI doesn't match hardcoded paths try the regexp.
-      if (!isBrowserDir) {
-        isBrowserDir = uri.match(browserBasedDirsRegExp) != null;
+      if (commonLibRequire && COMMON_LIBRARY_DIRS.some(dir => uri.startsWith(dir))) {
+        return commonLibRequire(uri);
       }
+
+      // Check if the URI matches one of hardcoded paths or a regexp.
+      let isBrowserDir = BROWSER_BASED_DIRS.some(dir => uri.startsWith(dir)) ||
+                         uri.match(browserBasedDirsRegExp) != null;
 
       if ((useOnlyShared || !uri.startsWith(baseURI)) && !isBrowserDir) {
         return devtools.require(uri);

@@ -64,8 +64,7 @@ function* test_promisedHelper() {
   try {
     yield PlacesUtils.promisePlaceInfo(uri);
     do_throw("PlacesUtils.promisePlaceInfo should have rejected the promise");
-  }
-  catch (ex) { }
+  } catch (ex) { }
 }
 add_task(test_promisedHelper);
 
@@ -81,10 +80,9 @@ add_task(test_infoByGUID);
 
 function* test_invalid_guid() {
   try {
-    let placeInfoByGUID = yield PlacesUtils.promisePlaceInfo("###");
+    yield PlacesUtils.promisePlaceInfo("###");
     do_throw("getPlacesInfo should fail for invalid guids")
-  }
-  catch (ex) { }
+  } catch (ex) { }
 }
 add_task(test_invalid_guid);
 

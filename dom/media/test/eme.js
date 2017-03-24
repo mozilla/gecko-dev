@@ -131,7 +131,7 @@ function UpdateSessionFunc(test, token, sessionType, resolve, reject) {
           "k":HexToBase64(key)
         });
       } else {
-        bail(token + " couldn't find key for key id " + idHex);
+        bail(token + " couldn't find key for key id " + idHex)("No such key");
       }
     }
 
@@ -264,19 +264,24 @@ function LoadTest(test, elem, token, loadParams)
   });
 }
 
-// Same as LoadTest, but manage a token+"_load" start&finished.
-// Also finish main token if loading fails.
-function LoadTestWithManagedLoadToken(test, elem, manager, token, loadParams)
-{
-  manager.started(token + "_load");
-  return LoadTest(test, elem, token, loadParams)
-  .catch(function (reason) {
-    ok(false, TimeStamp(token) + " - Error during load: " + reason);
-    manager.finished(token + "_load");
+function EMEPromise() {
+  var self = this;
+  self.promise = new Promise(function(resolve, reject) {
+    self.resolve = resolve;
+    self.reject = reject;
+  });
+}
+
+// Finish |token| when all promises are resolved or any one promise is
+// rejected. It also clean up the media element to release resources.
+function EMEPromiseAll(v, token, promises) {
+  Promise.all(promises).then(values => {
+    removeNodeAndSource(v);
     manager.finished(token);
-  })
-  .then(function () {
-    manager.finished(token + "_load");
+  }, reason => {
+    ok(false, TimeStamp(token) + " - Error during load: " + reason);
+    removeNodeAndSource(v);
+    manager.finished(token);
   });
 }
 
@@ -291,7 +296,7 @@ function SetupEME(test, token, params)
       () => {
         v.setMediaKeys(null);
         if (v.parentNode) {
-          v.parentNode.removeChild(v);
+          v.remove();
         }
         v.onerror = null;
         v.src = null;
@@ -305,7 +310,7 @@ function SetupEME(test, token, params)
   ].forEach(function (e) {
     v.addEventListener(e, function(event) {
       Log(token, "" + e);
-    }, false);
+    });
   });
 
   // Finish the test when error is encountered.
@@ -449,8 +454,8 @@ function SetupEME(test, token, params)
 function SetupEMEPref(callback) {
   var prefs = [
     [ "media.mediasource.enabled", true ],
-    [ "media.eme.apiVisible", true ],
     [ "media.mediasource.webm.enabled", true ],
+    [ "media.eme.vp9-in-mp4.enabled", true ],
   ];
 
   if (SpecialPowers.Services.appinfo.name == "B2G" ||
@@ -483,10 +488,9 @@ function fetchWithXHR(uri, onLoadFunction) {
 
 function once(target, name, cb) {
   var p = new Promise(function(resolve, reject) {
-    target.addEventListener(name, function onceEvent(arg) {
-      target.removeEventListener(name, onceEvent);
+    target.addEventListener(name, function(arg) {
       resolve(arg);
-    });
+    }, {once: true});
   });
   if (cb) {
     p.then(cb);

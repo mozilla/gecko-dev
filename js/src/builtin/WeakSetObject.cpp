@@ -41,14 +41,15 @@ const JSFunctionSpec WeakSetObject::methods[] = {
 };
 
 JSObject*
-WeakSetObject::initClass(JSContext* cx, JSObject* obj)
+WeakSetObject::initClass(JSContext* cx, HandleObject obj)
 {
-    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
+    Handle<GlobalObject*> global = obj.as<GlobalObject>();
     RootedPlainObject proto(cx, NewBuiltinClassInstance<PlainObject>(cx));
     if (!proto)
         return nullptr;
 
-    Rooted<JSFunction*> ctor(cx, global->createConstructor(cx, construct, ClassName(JSProto_WeakSet, cx), 0));
+    Rooted<JSFunction*> ctor(cx, GlobalObject::createConstructor(cx, construct,
+                                                                 ClassName(JSProto_WeakSet, cx), 0));
     if (!ctor ||
         !LinkConstructorAndPrototype(cx, ctor, proto) ||
         !DefinePropertiesAndFunctions(cx, proto, properties, methods) ||
@@ -117,12 +118,7 @@ WeakSetObject::construct(JSContext* cx, unsigned argc, Value* vp)
                 MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
 
                 if (keyVal.isPrimitive()) {
-                    UniqueChars bytes =
-                        DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, keyVal, nullptr);
-                    if (!bytes)
-                        return false;
-                    JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr,
-                                               JSMSG_NOT_NONNULL_OBJECT, bytes.get());
+                    ReportNotObjectWithName(cx, "WeakSet value", keyVal);
                     return false;
                 }
 

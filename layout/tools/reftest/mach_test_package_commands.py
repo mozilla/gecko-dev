@@ -51,7 +51,6 @@ def run_reftest_android(context, args):
     args.utilityPath = context.hostutils
     args.xrePath = context.hostutils
     args.httpdPath = context.module_dir
-    args.dm_trans = 'adb'
     args.ignoreWindowSize = True
     args.printDeviceInfo = False
 
@@ -88,5 +87,6 @@ class ReftestCommands(object):
              description='Run the reftest harness.',
              parser=setup_argument_parser)
     def reftest(self, **kwargs):
+        self.context.activate_mozharness_venv()
         kwargs['suite'] = 'reftest'
         return run_reftest(self.context, **kwargs)

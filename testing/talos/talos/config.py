@@ -28,9 +28,9 @@ DEFAULTS = dict(
         profile_path='${talos}/base_profile',
         responsiveness=False,
         e10s=False,
-        sps_profile=False,
-        sps_profile_interval=1,
-        sps_profile_entries=100000,
+        gecko_profile=False,
+        gecko_profile_interval=1,
+        gecko_profile_entries=100000,
         resolution=1,
         rss=False,
         mainthread=False,
@@ -100,6 +100,10 @@ DEFAULTS = dict(
             'http://127.0.0.1/safebrowsing-dummy/gethash',
         'browser.safebrowsing.provider.google.updateURL':
             'http://127.0.0.1/safebrowsing-dummy/update',
+        'browser.safebrowsing.provider.google4.gethashURL':
+            'http://127.0.0.1/safebrowsing4-dummy/gethash',
+        'browser.safebrowsing.provider.google4.updateURL':
+            'http://127.0.0.1/safebrowsing4-dummy/update',
         'browser.safebrowsing.provider.mozilla.gethashURL':
             'http://127.0.0.1/safebrowsing-dummy/gethash',
         'browser.safebrowsing.provider.mozilla.updateURL':
@@ -143,6 +147,8 @@ DEFAULTS = dict(
         'media.gmp-manager.updateEnabled': False,
         'extensions.systemAddon.update.url':
             'http://127.0.0.1/dummy-system-addons.xml',
+        'extensions.shield-recipe-client.api_url':
+            'https://127.0.0.1/selfsupport-dummy/',
         'media.navigator.enabled': True,
         'media.peerconnection.enabled': True,
         'media.navigator.permission.disabled': True,
@@ -185,9 +191,9 @@ DEFAULTS = dict(
 # keys to generated self.config that are global overrides to tests
 GLOBAL_OVERRIDES = (
     'cycles',
-    'sps_profile',
-    'sps_profile_interval',
-    'sps_profile_entries',
+    'gecko_profile',
+    'gecko_profile_interval',
+    'gecko_profile_entries',
     'rss',
     'mainthread',
     'shutdown',
@@ -314,7 +320,7 @@ def get_global_overrides(config):
         value = config[key]
         if value is not None:
             global_overrides[key] = value
-        if key != 'sps_profile':
+        if key != 'gecko_profile':
             config.pop(key)
 
     # add noChrome to global overrides (HACK)

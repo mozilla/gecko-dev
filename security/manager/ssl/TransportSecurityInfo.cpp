@@ -6,12 +6,12 @@
 
 #include "TransportSecurityInfo.h"
 
+#include "DateTimeFormat.h"
 #include "PSMRunnable.h"
 #include "mozilla/Casting.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIArray.h"
 #include "nsICertOverrideService.h"
-#include "nsIDateTimeFormat.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIWebProgressListener.h"
@@ -99,9 +99,10 @@ TransportSecurityInfo::GetPort(int32_t *aPort)
 }
 
 nsresult
-TransportSecurityInfo::SetFirstPartyDomain(const nsACString& aFirstPartyDomain)
+TransportSecurityInfo::SetOriginAttributes(
+  const OriginAttributes& aOriginAttributes)
 {
-  mFirstPartyDomain.Assign(aFirstPartyDomain);
+  mOriginAttributes = aOriginAttributes;
   return NS_OK;
 }
 
@@ -249,10 +250,10 @@ TransportSecurityInfo::formatErrorMessage(MutexAutoLock const & proofOfLock,
 
   nsresult rv;
   NS_ConvertASCIItoUTF16 hostNameU(mHostName);
-  NS_ASSERTION(errorMessageType != OverridableCertErrorMessage || 
-                (mSSLStatus && mSSLStatus->HasServerCert() &&
-                 mSSLStatus->mHaveCertErrorBits),
-                "GetErrorLogMessage called for cert error without cert");
+  MOZ_ASSERT(errorMessageType != OverridableCertErrorMessage ||
+               (mSSLStatus && mSSLStatus->HasServerCert() &&
+                mSSLStatus->mHaveCertErrorBits),
+             "formatErrorMessage() called for cert error without cert");
   if (errorMessageType == OverridableCertErrorMessage && 
       mSSLStatus && mSSLStatus->HasServerCert()) {
     rv = formatOverridableCertErrorMessage(*mSSLStatus, errorCode,
@@ -797,14 +798,9 @@ GetDateBoundary(nsIX509Cert* ix509,
     trueExpired_falseNotYetValid = false;
   }
 
-  nsCOMPtr<nsIDateTimeFormat> dateTimeFormat = nsIDateTimeFormat::Create();
-  if (!dateTimeFormat) {
-    return;
-  }
-
-  dateTimeFormat->FormatPRTime(nullptr, kDateFormatLong, kTimeFormatNoSeconds,
+  DateTimeFormat::FormatPRTime(kDateFormatLong, kTimeFormatNoSeconds,
                                timeToUse, formattedDate);
-  dateTimeFormat->FormatPRTime(nullptr, kDateFormatLong, kTimeFormatNoSeconds,
+  DateTimeFormat::FormatPRTime(kDateFormatLong, kTimeFormatNoSeconds,
                                now, nowDate);
 }
 
@@ -994,8 +990,7 @@ RememberCertErrorsTable::RememberCertHasError(TransportSecurityInfo* infoObject,
     return;
 
   if (certVerificationResult != SECSuccess) {
-    NS_ASSERTION(status,
-        "Must have nsSSLStatus object when remembering flags");
+    MOZ_ASSERT(status, "Must have nsSSLStatus object when remembering flags");
 
     if (!status)
       return;
@@ -1056,7 +1051,7 @@ TransportSecurityInfo::SetStatusErrorBits(nsNSSCertificate* cert,
     mSSLStatus = new nsSSLStatus();
   }
 
-  mSSLStatus->SetServerCert(cert, nsNSSCertificate::ev_status_invalid);
+  mSSLStatus->SetServerCert(cert, EVStatus::NotEV);
 
   mSSLStatus->mHaveCertErrorBits = true;
   mSSLStatus->mIsDomainMismatch = 
@@ -1074,7 +1069,7 @@ TransportSecurityInfo::SetStatusErrorBits(nsNSSCertificate* cert,
 NS_IMETHODIMP
 TransportSecurityInfo::GetFailedCertChain(nsIX509CertList** _result)
 {
-  NS_ASSERTION(_result, "non-NULL destination required");
+  MOZ_ASSERT(_result);
 
   *_result = mFailedCertChain;
   NS_IF_ADDREF(*_result);

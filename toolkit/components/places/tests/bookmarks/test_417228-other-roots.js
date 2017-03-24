@@ -20,7 +20,6 @@ this.push(myTest);
 */
 
 tests.push({
-  excludeItemsFromRestore: [],
   populate: function populate() {
     // check initial size
     var rootNode = PlacesUtils.getFolderContents(PlacesUtils.placesRootId,
@@ -59,7 +58,6 @@ tests.push({
                                          "excluded",
                                          PlacesUtils.bookmarks.DEFAULT_INDEX);
     do_check_eq(rootNode.childCount, 7);
-    this.excludeItemsFromRestore.push(excludedFolderId);
 
     // add a test bookmark to it
     PlacesUtils.bookmarks.insertBookmark(excludedFolderId, this._testURI,
@@ -129,17 +127,11 @@ add_task(function* () {
   // make json file
   let jsonFile = OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.json");
 
-  // array of ids not to delete when restoring
-  var excludedItemsFromRestore = [];
-
   // populate db
   tests.forEach(function(aTest) {
     aTest.populate();
     // sanity
     aTest.validate();
-
-    if (aTest.excludedItemsFromRestore)
-      excludedItemsFromRestore = excludedItems.concat(aTest.excludedItemsFromRestore);
   });
 
   yield BookmarkJSONUtils.exportToFile(jsonFile);

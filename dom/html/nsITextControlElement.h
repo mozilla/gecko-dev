@@ -17,6 +17,9 @@ class nsFrameSelection;
 class nsTextControlFrame;
 
 namespace mozilla {
+
+class ErrorResult;
+
 namespace dom {
 class Element;
 } // namespace dom
@@ -139,7 +142,7 @@ public:
   /**
    * Get the anonymous root node for the text control.
    */
-  NS_IMETHOD_(nsIContent*) GetRootEditorNode() = 0;
+  NS_IMETHOD_(mozilla::dom::Element*) GetRootEditorNode() = 0;
 
   /**
    * Create the placeholder anonymous node for the text control and returns it.
@@ -170,6 +173,12 @@ public:
    * Callback called whenever the value is changed.
    */
   NS_IMETHOD_(void) OnValueChanged(bool aNotify, bool aWasInteractiveUserChange) = 0;
+
+  /**
+   * Helpers for value manipulation from SetRangeText.
+   */
+  virtual void GetValueFromSetRangeText(nsAString& aValue) = 0;
+  virtual nsresult SetValueFromSetRangeText(const nsAString& aValue) = 0;
 
   static const int32_t DEFAULT_COLS = 20;
   static const int32_t DEFAULT_ROWS = 1;

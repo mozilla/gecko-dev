@@ -499,3 +499,15 @@ ER3(SSL_ERROR_BAD_2ND_CLIENT_HELLO, (SSL_ERROR_BASE + 156),
 
 ER3(SSL_ERROR_MISSING_SIGNATURE_ALGORITHMS_EXTENSION, (SSL_ERROR_BASE + 157),
     "SSL expected a signature algorithms extension.")
+
+ER3(SSL_ERROR_MALFORMED_PSK_KEY_EXCHANGE_MODES, (SSL_ERROR_BASE + 158),
+    "SSL received a malformed PSK key exchange modes extension.")
+
+ER3(SSL_ERROR_MISSING_PSK_KEY_EXCHANGE_MODES, (SSL_ERROR_BASE + 159),
+    "SSL expected a PSK key exchange modes extension.")
+
+ER3(SSL_ERROR_DOWNGRADE_WITH_EARLY_DATA, (SSL_ERROR_BASE + 160),
+    "SSL got a pre-TLS 1.3 version even though we sent early data.")
+
+ER3(SSL_ERROR_TOO_MUCH_EARLY_DATA, (SSL_ERROR_BASE + 161),
+    "SSL received more early data than permitted.")

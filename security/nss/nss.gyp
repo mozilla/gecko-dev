@@ -120,39 +120,9 @@
             'cmd/smimetools/smimetools.gyp:cmsutil',
             'cmd/ssltap/ssltap.gyp:ssltap',
             'cmd/symkeyutil/symkeyutil.gyp:symkeyutil',
+            'nss-tool/nss_tool.gyp:nss',
           ],
         }],
-      ],
-    },
-    {
-      'target_name': 'nss_sign_shared_libs',
-      'type': 'none',
-      'dependencies': [
-        'cmd/shlibsign/shlibsign.gyp:shlibsign',
-      ],
-      'actions': [
-        {
-          'action_name': 'shlibsign',
-          'inputs': [
-            '<(nss_dist_obj_dir)/lib/<(dll_prefix)freebl3.<(dll_suffix)',
-            '<(nss_dist_obj_dir)/lib/<(dll_prefix)freeblpriv3.<(dll_suffix)',
-            '<(nss_dist_obj_dir)/lib/<(dll_prefix)nssdbm3.<(dll_suffix)',
-            '<(nss_dist_obj_dir)/lib/<(dll_prefix)softokn3.<(dll_suffix)',
-          ],
-          'outputs': [
-            '<(nss_dist_obj_dir)/lib/<(dll_prefix)freebl3.chk',
-            '<(nss_dist_obj_dir)/lib/<(dll_prefix)freeblpriv3.chk',
-            '<(nss_dist_obj_dir)/lib/<(dll_prefix)nssdbm3.chk',
-            '<(nss_dist_obj_dir)/lib/<(dll_prefix)softokn3.chk'
-          ],
-          'conditions': [
-            ['OS!="linux"', {
-              'inputs/': [['exclude', 'freeblpriv']],
-              'outputs/': [['exclude', 'freeblpriv']]
-            }],
-          ],
-          'action': ['<(python)', '<(DEPTH)/coreconf/shlibsign.py', '<@(_inputs)']
-        }
       ],
     },
   ],
@@ -207,13 +177,12 @@
             'cmd/tstclnt/tstclnt.gyp:tstclnt',
             'cmd/vfychain/vfychain.gyp:vfychain',
             'cmd/vfyserv/vfyserv.gyp:vfyserv',
-            'gtests/google_test/google_test.gyp:gtest1',
-            'gtests/common/common.gyp:gtests',
             'gtests/der_gtest/der_gtest.gyp:der_gtest',
+            'gtests/freebl_gtest/freebl_gtest.gyp:prng_gtest',
             'gtests/pk11_gtest/pk11_gtest.gyp:pk11_gtest',
             'gtests/ssl_gtest/ssl_gtest.gyp:ssl_gtest',
             'gtests/util_gtest/util_gtest.gyp:util_gtest',
-            'gtests/nss_bogo_shim/nss_bogo_shim.gyp:nss_bogo_shim'
+            'gtests/nss_bogo_shim/nss_bogo_shim.gyp:nss_bogo_shim',
           ],
           'conditions': [
             [ 'OS=="linux"', {
@@ -226,6 +195,65 @@
                 'cmd/pkix-errcodes/pkix-errcodes.gyp:pkix-errcodes',
               ],
             }],
+            [ 'test_build==1', {
+              'dependencies': [
+                'cmd/mpitests/mpitests.gyp:mpi_tests',
+                'gtests/freebl_gtest/freebl_gtest.gyp:freebl_gtest',
+              ],
+            }],
+          ],
+        },
+      ],
+    }],
+    [ 'sign_libs==1', {
+      'targets': [
+        {
+        'target_name': 'nss_sign_shared_libs',
+          'type': 'none',
+          'dependencies': [
+            'cmd/shlibsign/shlibsign.gyp:shlibsign',
+          ],
+          'actions': [
+            {
+          'action_name': 'shlibsign',
+              'msvs_cygwin_shell': 0,
+              'inputs': [
+                '<(nss_dist_obj_dir)/lib/<(dll_prefix)freebl3.<(dll_suffix)',
+                '<(nss_dist_obj_dir)/lib/<(dll_prefix)freeblpriv3.<(dll_suffix)',
+                '<(nss_dist_obj_dir)/lib/<(dll_prefix)nssdbm3.<(dll_suffix)',
+                '<(nss_dist_obj_dir)/lib/<(dll_prefix)softokn3.<(dll_suffix)',
+              ],
+              'outputs': [
+                '<(nss_dist_obj_dir)/lib/<(dll_prefix)freebl3.chk',
+                '<(nss_dist_obj_dir)/lib/<(dll_prefix)freeblpriv3.chk',
+                '<(nss_dist_obj_dir)/lib/<(dll_prefix)nssdbm3.chk',
+                '<(nss_dist_obj_dir)/lib/<(dll_prefix)softokn3.chk'
+              ],
+              'conditions': [
+                ['OS!="linux"', {
+                  'inputs/': [['exclude', 'freeblpriv']],
+                  'outputs/': [['exclude', 'freeblpriv']]
+                }],
+              ],
+              'action': ['<(python)', '<(DEPTH)/coreconf/shlibsign.py', '<@(_inputs)']
+            }
+          ],
+        },
+      ],
+    }],
+    [ 'fuzz_tls==1', {
+      'targets': [
+        {
+          'target_name': 'fuzz_warning',
+          'type': 'none',
+          'actions': [
+            {
+              'action_name': 'fuzz_warning',
+              'action': ['cat', 'fuzz/warning.txt'],
+              'inputs': ['fuzz/warning.txt'],
+              'ninja_use_console': 1,
+              'outputs': ['dummy'],
+            }
           ],
         },
       ],
@@ -235,14 +263,8 @@
         {
           'target_name': 'fuzz',
           'type': 'none',
-          'actions': [
-            {
-              'action_name': 'warn_fuzz',
-              'action': ['cat', 'fuzz/warning.txt'],
-              'inputs': ['fuzz/warning.txt'],
-              'ninja_use_console': 1,
-              'outputs': ['dummy'],
-            }
+          'dependencies': [
+            'fuzz/fuzz.gyp:nssfuzz',
           ],
         },
       ],

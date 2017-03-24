@@ -13,10 +13,11 @@
 #include "Triangle.h"
 
 using namespace mozilla::gfx;
+typedef mozilla::gfx::Polygon MozPolygon;
 
-TEST(Polygon3D, TriangulateRectangle)
+TEST(MozPolygon, TriangulateRectangle)
 {
-  const Polygon3D p {
+  const MozPolygon p {
     Point3D(0.0f, 0.0f, 1.0f),
     Point3D(0.0f, 1.0f, 1.0f),
     Point3D(1.0f, 1.0f, 1.0f),
@@ -32,9 +33,9 @@ TEST(Polygon3D, TriangulateRectangle)
   AssertArrayEQ(triangles, expected);
 }
 
-TEST(Polygon3D, TriangulatePentagon)
+TEST(MozPolygon, TriangulatePentagon)
 {
-  const Polygon3D p {
+  const MozPolygon p {
     Point3D(0.0f, 0.0f, 1.0f),
     Point3D(0.0f, 1.0f, 1.0f),
     Point3D(0.5f, 1.5f, 1.0f),
@@ -52,92 +53,84 @@ TEST(Polygon3D, TriangulatePentagon)
   AssertArrayEQ(triangles, expected);
 }
 
-TEST(Polygon3D, ClipRectangle)
+void
+TestClipRect(const MozPolygon& aPolygon,
+             const MozPolygon& aExpected,
+             const Rect& aRect)
 {
-  Polygon3D clipped, expected;
+  const MozPolygon res = aPolygon.ClipPolygon(MozPolygon::FromRect(aRect));
+  EXPECT_TRUE(res == aExpected);
+}
 
-  Polygon3D polygon {
+TEST(MozPolygon, ClipRectangle)
+{
+  MozPolygon polygon {
     Point3D(0.0f, 0.0f, 0.0f),
     Point3D(0.0f, 1.0f, 0.0f),
     Point3D(1.0f, 1.0f, 0.0f),
     Point3D(1.0f, 0.0f, 0.0f)
   };
+  TestClipRect(polygon, polygon, Rect(0.0f, 0.0f, 1.0f, 1.0f));
 
-  clipped = polygon.ClipPolygon(Rect(0.0f, 0.0f, 1.0f, 1.0f));
-  EXPECT_TRUE(clipped == polygon);
-
-
-  clipped = polygon.ClipPolygon(Rect(0.0f, 0.0f, 0.8f, 0.8f));
-  expected = Polygon3D {
+  MozPolygon expected = MozPolygon {
     Point3D(0.0f, 0.0f, 0.0f),
     Point3D(0.0f, 0.8f, 0.0f),
     Point3D(0.8f, 0.8f, 0.0f),
     Point3D(0.8f, 0.0f, 0.0f)
   };
-  EXPECT_TRUE(clipped == expected);
+  TestClipRect(polygon, expected, Rect(0.0f, 0.0f, 0.8f, 0.8f));
 
-
-  clipped = polygon.ClipPolygon(Rect(0.2f, 0.2f, 0.8f, 0.8f));
-  expected = Polygon3D {
+  expected = MozPolygon {
     Point3D(0.2f, 0.2f, 0.0f),
     Point3D(0.2f, 1.0f, 0.0f),
     Point3D(1.0f, 1.0f, 0.0f),
     Point3D(1.0f, 0.2f, 0.0f)
   };
-  EXPECT_TRUE(clipped == expected);
+  TestClipRect(polygon, expected, Rect(0.2f, 0.2f, 0.8f, 0.8f));
 
-
-  clipped = polygon.ClipPolygon(Rect(0.2f, 0.2f, 0.6f, 0.6f));
-  expected = Polygon3D {
+  expected = MozPolygon {
     Point3D(0.2f, 0.2f, 0.0f),
     Point3D(0.2f, 0.8f, 0.0f),
     Point3D(0.8f, 0.8f, 0.0f),
     Point3D(0.8f, 0.2f, 0.0f)
   };
-  EXPECT_TRUE(clipped == expected);
+  TestClipRect(polygon, expected, Rect(0.2f, 0.2f, 0.6f, 0.6f));
 }
 
-TEST(Polygon3D, ClipTriangle)
+TEST(MozPolygon, ClipTriangle)
 {
-  Polygon3D clipped, expected;
-  const Polygon3D polygon {
+  MozPolygon clipped, expected;
+  const MozPolygon polygon {
     Point3D(0.0f, 0.0f, 0.0f),
     Point3D(0.0f, 1.0f, 0.0f),
     Point3D(1.0f, 1.0f, 0.0f)
   };
 
-  clipped = polygon.ClipPolygon(Rect(0.0f, 0.0f, 1.0f, 1.0f));
-  expected = Polygon3D {
+  expected = MozPolygon {
     Point3D(0.0f, 0.0f, 0.0f),
     Point3D(0.0f, 1.0f, 0.0f),
     Point3D(1.0f, 1.0f, 0.0f)
   };
-  EXPECT_TRUE(clipped == expected);
+  TestClipRect(polygon, expected, Rect(0.0f, 0.0f, 1.0f, 1.0f));
 
-
-  clipped = polygon.ClipPolygon(Rect(0.0f, 0.0f, 0.8f, 0.8f));
-  expected = Polygon3D {
+  expected = MozPolygon {
     Point3D(0.0f, 0.0f, 0.0f),
     Point3D(0.0f, 0.8f, 0.0f),
     Point3D(0.8f, 0.8f, 0.0f)
   };
-  EXPECT_TRUE(clipped == expected);
+  TestClipRect(polygon, expected, Rect(0.0f, 0.0f, 0.8f, 0.8f));
 
-
-  clipped = polygon.ClipPolygon(Rect(0.2f, 0.2f, 0.8f, 0.8f));
-  expected = Polygon3D {
+  expected = MozPolygon {
     Point3D(0.2f, 0.2f, 0.0f),
     Point3D(0.2f, 1.0f, 0.0f),
     Point3D(1.0f, 1.0f, 0.0f)
   };
-  EXPECT_TRUE(clipped == expected);
+  TestClipRect(polygon, expected, Rect(0.2f, 0.2f, 0.8f, 0.8f));
 
-
-  clipped = polygon.ClipPolygon(Rect(0.2f, 0.2f, 0.6f, 0.6f));
-  expected = Polygon3D {
+  expected = MozPolygon {
     Point3D(0.2f, 0.2f, 0.0f),
     Point3D(0.2f, 0.8f, 0.0f),
     Point3D(0.8f, 0.8f, 0.0f)
   };
-  EXPECT_TRUE(clipped == expected);
+  TestClipRect(polygon, expected, Rect(0.2f, 0.2f, 0.6f, 0.6f));
 }

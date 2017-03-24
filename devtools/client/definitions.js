@@ -12,6 +12,7 @@ loader.lazyGetter(this, "OptionsPanel", () => require("devtools/client/framework
 loader.lazyGetter(this, "InspectorPanel", () => require("devtools/client/inspector/panel").InspectorPanel);
 loader.lazyGetter(this, "WebConsolePanel", () => require("devtools/client/webconsole/panel").WebConsolePanel);
 loader.lazyGetter(this, "DebuggerPanel", () => require("devtools/client/debugger/panel").DebuggerPanel);
+loader.lazyGetter(this, "NewDebuggerPanel", () => require("devtools/client/debugger/new/panel").DebuggerPanel);
 loader.lazyGetter(this, "StyleEditorPanel", () => require("devtools/client/styleeditor/styleeditor-panel").StyleEditorPanel);
 loader.lazyGetter(this, "ShaderEditorPanel", () => require("devtools/client/shadereditor/panel").ShaderEditorPanel);
 loader.lazyGetter(this, "CanvasDebuggerPanel", () => require("devtools/client/canvasdebugger/panel").CanvasDebuggerPanel);
@@ -22,6 +23,12 @@ loader.lazyGetter(this, "NetMonitorPanel", () => require("devtools/client/netmon
 loader.lazyGetter(this, "StoragePanel", () => require("devtools/client/storage/panel").StoragePanel);
 loader.lazyGetter(this, "ScratchpadPanel", () => require("devtools/client/scratchpad/scratchpad-panel").ScratchpadPanel);
 loader.lazyGetter(this, "DomPanel", () => require("devtools/client/dom/dom-panel").DomPanel);
+
+// Other dependencies
+loader.lazyRequireGetter(this, "CommandUtils", "devtools/client/shared/developer-toolbar", true);
+loader.lazyRequireGetter(this, "CommandState", "devtools/shared/gcli/command-state", true);
+loader.lazyImporter(this, "ResponsiveUIManager", "resource://devtools/client/responsivedesign/responsivedesign.jsm");
+loader.lazyImporter(this, "ScratchpadManager", "resource://devtools/client/scratchpad/scratchpad-manager.jsm");
 
 const {LocalizationHelper} = require("devtools/shared/l10n");
 const L10N = new LocalizationHelper("devtools/client/locales/startup.properties");
@@ -155,8 +162,6 @@ Tools.jsdebugger = {
 
 function switchDebugger() {
   if (Services.prefs.getBoolPref("devtools.debugger.new-debugger-frontend")) {
-    const NewDebuggerPanel = require("devtools/client/debugger/new/panel").DebuggerPanel;
-
     Tools.jsdebugger.url = "chrome://devtools/content/debugger/new/index.html";
     Tools.jsdebugger.build = function (iframeWindow, toolbox) {
       return new NewDebuggerPanel(iframeWindow, toolbox);
@@ -303,7 +308,7 @@ Tools.netMonitor = {
   visibilityswitch: "devtools.netmonitor.enabled",
   icon: "chrome://devtools/skin/images/tool-network.svg",
   invertIconForDarkTheme: true,
-  url: "chrome://devtools/content/netmonitor/netmonitor.xul",
+  url: "chrome://devtools/content/netmonitor/netmonitor.xhtml",
   label: l10n("netmonitor.label"),
   panelLabel: l10n("netmonitor.panelLabel"),
   get tooltip() {
@@ -471,21 +476,116 @@ exports.defaultThemes = [
 // addons that have manually inserted toolbarbuttons into DOM.
 // (By default, supported target is only local tab)
 exports.ToolboxButtons = [
-  { id: "command-button-frames",
-    isTargetSupported: target => {
-      return target.activeTab && target.activeTab.traits.frames;
+  { id: "command-button-splitconsole",
+    description: l10n("toolbox.buttons.splitconsole", "Esc"),
+    isTargetSupported: target => !target.isAddon,
+    onClick(event, toolbox) {
+      toolbox.toggleSplitConsole();
+    },
+    isChecked(toolbox) {
+      return toolbox.splitConsole;
+    },
+    setup(toolbox, onChange) {
+      toolbox.on("split-console", onChange);
+    },
+    teardown(toolbox, onChange) {
+      toolbox.off("split-console", onChange);
     }
   },
-  { id: "command-button-splitconsole",
-    isTargetSupported: target => !target.isAddon },
-  { id: "command-button-responsive" },
-  { id: "command-button-paintflashing" },
-  { id: "command-button-scratchpad" },
-  { id: "command-button-screenshot" },
-  { id: "command-button-rulers" },
-  { id: "command-button-measure" },
-  { id: "command-button-noautohide",
-    isTargetSupported: target => target.chrome },
+  { id: "command-button-paintflashing",
+    description: l10n("toolbox.buttons.paintflashing"),
+    isTargetSupported: target => target.isLocalTab,
+    onClick(event, toolbox) {
+      CommandUtils.executeOnTarget(toolbox.target, "paintflashing toggle");
+    },
+    isChecked(toolbox) {
+      return CommandState.isEnabledForTarget(toolbox.target, "paintflashing");
+    },
+    setup(toolbox, onChange) {
+      CommandState.on("changed", onChange);
+    },
+    teardown(toolbox, onChange) {
+      CommandState.off("changed", onChange);
+    }
+  },
+  { id: "command-button-scratchpad",
+    description: l10n("toolbox.buttons.scratchpad"),
+    isTargetSupported: target => target.isLocalTab,
+    onClick(event, toolbox) {
+      ScratchpadManager.openScratchpad();
+    }
+  },
+  { id: "command-button-responsive",
+    description: l10n("toolbox.buttons.responsive",
+                      osString == "Darwin" ? "Cmd+Opt+M" : "Ctrl+Shift+M"),
+    isTargetSupported: target => target.isLocalTab,
+    onClick(event, toolbox) {
+      let tab = toolbox.target.tab;
+      let browserWindow = tab.ownerDocument.defaultView;
+      ResponsiveUIManager.handleGcliCommand(browserWindow, tab,
+        "resize toggle", null);
+    },
+    isChecked(toolbox) {
+      if (!toolbox.target.tab) {
+        return false;
+      }
+      return ResponsiveUIManager.isActiveForTab(toolbox.target.tab);
+    },
+    setup(toolbox, onChange) {
+      ResponsiveUIManager.on("on", onChange);
+      ResponsiveUIManager.on("off", onChange);
+    },
+    teardown(toolbox, onChange) {
+      ResponsiveUIManager.off("on", onChange);
+      ResponsiveUIManager.off("off", onChange);
+    }
+  },
+  { id: "command-button-screenshot",
+    description: l10n("toolbox.buttons.screenshot"),
+    isTargetSupported: target => target.isLocalTab,
+    onClick(event, toolbox) {
+      // Special case for screenshot button to check for clipboard preference
+      const clipboardEnabled = Services.prefs
+        .getBoolPref("devtools.screenshot.clipboard.enabled");
+      let args = "--fullpage --file";
+      if (clipboardEnabled) {
+        args += " --clipboard";
+      }
+      CommandUtils.executeOnTarget(toolbox.target, "screenshot " + args);
+    }
+  },
+  { id: "command-button-rulers",
+    description: l10n("toolbox.buttons.rulers"),
+    isTargetSupported: target => target.isLocalTab,
+    onClick(event, toolbox) {
+      CommandUtils.executeOnTarget(toolbox.target, "rulers");
+    },
+    isChecked(toolbox) {
+      return CommandState.isEnabledForTarget(toolbox.target, "rulers");
+    },
+    setup(toolbox, onChange) {
+      CommandState.on("changed", onChange);
+    },
+    teardown(toolbox, onChange) {
+      CommandState.off("changed", onChange);
+    }
+  },
+  { id: "command-button-measure",
+    description: l10n("toolbox.buttons.measure"),
+    isTargetSupported: target => target.isLocalTab,
+    onClick(event, toolbox) {
+      CommandUtils.executeOnTarget(toolbox.target, "measure");
+    },
+    isChecked(toolbox) {
+      return CommandState.isEnabledForTarget(toolbox.target, "measure");
+    },
+    setup(toolbox, onChange) {
+      CommandState.on("changed", onChange);
+    },
+    teardown(toolbox, onChange) {
+      CommandState.off("changed", onChange);
+    }
+  },
 ];
 
 /**

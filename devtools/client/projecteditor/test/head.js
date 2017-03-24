@@ -109,7 +109,7 @@ function addProjectEditorTabForTempDirectory(opts = {}) {
 }
 
 function addProjectEditorTab(opts = {}) {
-  return addTab("chrome://devtools/content/projecteditor/chrome/content/projecteditor-test.xul").then(() => {
+  return addTab("chrome://mochitests/content/browser/devtools/client/projecteditor/test/projecteditor-test.xul").then(() => {
     let iframe = content.document.getElementById("projecteditor-iframe");
     if (opts.menubar !== false) {
       opts.menubar = content.document.querySelector("menubar");
@@ -366,19 +366,17 @@ function onceProjectRefreshed(projecteditor) {
 
 function onPopupShow(menu) {
   let defer = promise.defer();
-  menu.addEventListener("popupshown", function onpopupshown() {
-    menu.removeEventListener("popupshown", onpopupshown);
+  menu.addEventListener("popupshown", function () {
     defer.resolve();
-  });
+  }, {once: true});
   return defer.promise;
 }
 
 function onPopupHidden(menu) {
   let defer = promise.defer();
-  menu.addEventListener("popuphidden", function onpopuphidden() {
-    menu.removeEventListener("popuphidden", onpopuphidden);
+  menu.addEventListener("popuphidden", function () {
     defer.resolve();
-  });
+  }, {once: true});
   return defer.promise;
 }
 

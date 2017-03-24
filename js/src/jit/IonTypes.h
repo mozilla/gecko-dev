@@ -806,6 +806,11 @@ enum ABIFunctionType
     // float f(float)
     Args_Float32_Float32 = (ArgType_Float32 << RetType_Shift) | (ArgType_Float32 << ArgType_Shift),
 
+    // float f(int, int)
+    Args_Float32_IntInt = (ArgType_Float32 << RetType_Shift) |
+        (ArgType_General << (ArgType_Shift * 1)) |
+        (ArgType_General << (ArgType_Shift * 2)),
+
     // double f(double)
     Args_Double_Double = Args_Double_None | (ArgType_Double << ArgType_Shift),
 
@@ -868,6 +873,14 @@ enum class BarrierKind : uint32_t {
 };
 
 enum ReprotectCode { Reprotect = true, DontReprotect = false };
+
+// Rounding modes for round instructions.
+enum class RoundingMode {
+    Down,
+    Up,
+    NearestTiesToEven,
+    TowardsZero
+};
 
 } // namespace jit
 } // namespace js

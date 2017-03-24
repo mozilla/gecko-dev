@@ -165,7 +165,7 @@ nsContentAreaDragDropDataProvider::SaveURIToFile(nsAString& inSourceURIString,
 
   // referrer policy can be anything since the referrer is nullptr
   return persist->SavePrivacyAwareURI(sourceURI, nullptr, nullptr,
-                                      mozilla::net::RP_Default,
+                                      mozilla::net::RP_Unset,
                                       nullptr, nullptr,
                                       inDestFile, isPrivate);
 }
@@ -353,7 +353,7 @@ DragDataProducer::GetNodeString(nsIContent* inNode,
 
   // use a range to get the text-equivalent of the node
   nsCOMPtr<nsIDocument> doc = node->OwnerDoc();
-  mozilla::ErrorResult rv;
+  mozilla::IgnoredErrorResult rv;
   RefPtr<nsRange> range = doc->CreateRange(rv);
   if (range) {
     range->SelectNode(*node, rv);

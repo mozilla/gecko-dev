@@ -7,7 +7,6 @@
 const { Ci } = require("chrome");
 const Services = require("Services");
 const { Task } = require("devtools/shared/task");
-const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const { BrowserElementWebNavigation } = require("./web-navigation");
 const { getStack } = require("devtools/shared/platform/stack");
 
@@ -23,6 +22,7 @@ function debug(msg) {
  * list at /devtools/client/responsive.html/docs/browser-swap.md.
  */
 const SWAPPED_BROWSER_STATE = [
+  "_remoteFinder",
   "_securityUI",
   "_documentURI",
   "_documentContentType",
@@ -126,7 +126,8 @@ function tunnelToInnerBrowser(outer, inner) {
       // This means the key that matches the content is on the inner browser.  Since we
       // want the browser UI to believe the page content is part of the outer browser, we
       // copy the content's `permanentKey` up to the outer browser.
-      copyPermanentKey(outer, inner);
+      debug("Copy inner permanentKey to outer browser");
+      outer.permanentKey = inner.permanentKey;
 
       // Replace the outer browser's native messageManager with a message manager tunnel
       // which we can use to route messages of interest to the inner browser instead.
@@ -143,6 +144,7 @@ function tunnelToInnerBrowser(outer, inner) {
       // down to the inner browser by this tunnel, the tab's remoteness effectively is the
       // remoteness of the inner browser.
       outer.setAttribute("remote", "true");
+      outer.setAttribute("remoteType", inner.remoteType);
 
       // Clear out any cached state that references the current non-remote XBL binding,
       // such as form fill controllers.  Otherwise they will remain in place and leak the
@@ -236,7 +238,7 @@ function tunnelToInnerBrowser(outer, inner) {
       // outside the main focus of RDM.
       let { detail } = event;
       event.preventDefault();
-      let uri = Services.io.newURI(detail.url, null, null);
+      let uri = Services.io.newURI(detail.url);
       // This API is used mainly because it's near the path used for <a target/> with
       // regular browser tabs (which calls `openURIInFrame`).  The more elaborate APIs
       // that support openers, window features, etc. didn't seem callable from JS and / or
@@ -269,6 +271,7 @@ function tunnelToInnerBrowser(outer, inner) {
 
       // Reset @remote since this is now back to a regular, non-remote browser
       outer.setAttribute("remote", "false");
+      outer.removeAttribute("remoteType");
 
       // Delete browser window properties exposed on content's owner global
       delete inner.ownerGlobal.PopupNotifications;
@@ -301,32 +304,6 @@ function tunnelToInnerBrowser(outer, inner) {
 
 exports.tunnelToInnerBrowser = tunnelToInnerBrowser;
 
-function copyPermanentKey(outer, inner) {
-  // When we're in the process of swapping content around, we end up receiving a
-  // SessionStore:update message which lists the container page that is loaded into the
-  // outer browser (that we're hiding the inner browser within) as part of its history.
-  // We want SessionStore's view of the history for our tab to only have the page content
-  // of the inner browser, so we want to hide this message from SessionStore, but we have
-  // no direct mechanism to do so.  As a workaround, we wait until the one errant message
-  // has gone by, and then we copy the permanentKey after that, since the permanentKey is
-  // what SessionStore uses to identify each browser.
-  let outerMM = outer[FRAME_LOADER].messageManager;
-  let onHistoryEntry = message => {
-    let history = message.data.data.history;
-    if (!history || !history.entries) {
-      // Wait for a message that contains history data
-      return;
-    }
-    outerMM.removeMessageListener("SessionStore:update", onHistoryEntry);
-    debug("Got session update for outer browser");
-    DevToolsUtils.executeSoon(() => {
-      debug("Copy inner permanentKey to outer browser");
-      outer.permanentKey = inner.permanentKey;
-    });
-  };
-  outerMM.addMessageListener("SessionStore:update", onHistoryEntry);
-}
-
 /**
  * This module allows specific messages of interest to be directed from the
  * outer browser to the inner browser (and vice versa) in a targetted fashion
@@ -349,11 +326,6 @@ MessageManagerTunnel.prototype = {
    * the outer browser's real message manager.
    */
   PASS_THROUGH_METHODS: [
-    "killChild",
-    "assertPermission",
-    "assertContainApp",
-    "assertAppHasPermission",
-    "assertAppHasStatus",
     "removeDelayedFrameScript",
     "getDelayedFrameScripts",
     "loadProcessScript",
@@ -430,7 +402,7 @@ MessageManagerTunnel.prototype = {
     "InlineSpellChecker:",
     // Messages sent from pageinfo.js
     "PageInfo:",
-    // Messsage sent from printUtils.js
+    // Messages sent from printUtils.js
     "Printing:",
     // Messages sent from browser-social.js
     "Social:",
@@ -450,7 +422,7 @@ MessageManagerTunnel.prototype = {
     "Finder:",
     // Messages sent to pageinfo.js
     "PageInfo:",
-    // Messsage sent from printUtils.js
+    // Messages sent to printUtils.js
     "Printing:",
     // Messages sent to browser-social.js
     "Social:",
@@ -489,13 +461,11 @@ MessageManagerTunnel.prototype = {
 
   init() {
     for (let method of this.PASS_THROUGH_METHODS) {
-      // Workaround bug 449811 to ensure a fresh binding each time through the loop
-      let _method = method;
-      this[_method] = (...args) => {
+      this[method] = (...args) => {
         if (!this.outerParentMM) {
           return null;
         }
-        return this.outerParentMM[_method](...args);
+        return this.outerParentMM[method](...args);
       };
     }
 
@@ -539,13 +509,11 @@ MessageManagerTunnel.prototype = {
     // ensure it keeps working after tunnel close, rewrite the overidden methods as pass
     // through methods.
     for (let method of this.OVERRIDDEN_METHODS) {
-      // Workaround bug 449811 to ensure a fresh binding each time through the loop
-      let _method = method;
-      this[_method] = (...args) => {
+      this[method] = (...args) => {
         if (!this.outerParentMM) {
           return null;
         }
-        return this.outerParentMM[_method](...args);
+        return this.outerParentMM[method](...args);
       };
     }
   },

@@ -19,10 +19,10 @@ two_frames_doc = inline("<iframe src='%s'></iframe>" % one_frame_doc)
 @pytest.fixture
 def new_window(session):
     """Open new window and return the window handle."""
-    windows_before = session.window_handles
+    windows_before = session.handles
     name = session.execute_script("window.open()")
-    assert len(session.window_handles) == len(windows_before) + 1
-    new_windows = session.window_handles - windows_before
+    assert len(session.handles) == len(windows_before) + 1
+    new_windows = set(session.handles) - set(windows_before)
     return new_windows.pop()
 
 
@@ -65,12 +65,16 @@ def test_get_current_url_special_pages(session):
     assert session.url == "about:blank"
 
 
+"""
+Disabled due to https://bugzilla.mozilla.org/show_bug.cgi?id=1332122
+
 # TODO(ato): This test requires modification to pass on Windows
 def test_get_current_url_file_protocol(session):
     # tests that the browsing context remains the same
     # when navigated privileged documents
     session.url = "file:///"
     assert session.url == "file:///"
+"""
 
 
 # TODO(ato): Test for http:// and https:// protocols.
@@ -79,8 +83,8 @@ def test_get_current_url_file_protocol(session):
 
 
 def test_get_current_url_malformed_url(session):
-    session.url = "foo"
-    assert session.url
+    with pytest.raises(webdriver.InvalidArgumentException):
+        session.url = "foo"
 
 
 def test_get_current_url_after_modified_location(session):
@@ -100,10 +104,10 @@ def test_get_current_url_nested_browsing_contexts(session):
     session.url = two_frames_doc
     top_level_url = session.url
 
-    outer_frame = session.find("iframe", all=False)
+    outer_frame = session.find.css("iframe", all=False)
     session.switch_frame(outer_frame)
 
-    inner_frame = session.find("iframe", all=False)
-    session.switch_frame(frame)
+    inner_frame = session.find.css("iframe", all=False)
+    session.switch_frame(inner_frame)
 
     assert session.url == top_level_url

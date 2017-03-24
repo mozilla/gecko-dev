@@ -11,6 +11,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Telemetry.h"
 #include "nsCOMArray.h"
+#include "nsDependentSubstring.h"
 #include "nsIAsyncInputStream.h"
 #include "nsIFile.h"
 #include "nsIMutableArray.h"
@@ -152,7 +153,7 @@ BackgroundFileSaver::Init()
   rv = NS_GetCurrentThread(getter_AddRefs(mControlThread));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = NS_NewThread(getter_AddRefs(mWorkerThread));
+  rv = NS_NewNamedThread("BgFileSaver", getter_AddRefs(mWorkerThread));
   NS_ENSURE_SUCCESS(rv, rv);
 
   sThreadCount++;
@@ -893,11 +894,11 @@ BackgroundFileSaver::ExtractSignatureInfo(const nsAString& filePath)
               continue;
           }
           nsCOMPtr<nsIX509Cert> nssCert = nullptr;
-          rv = certDB->ConstructX509(
+          nsDependentCSubstring certDER(
             reinterpret_cast<char *>(
               certChainElement->pCertContext->pbCertEncoded),
-            certChainElement->pCertContext->cbCertEncoded,
-            getter_AddRefs(nssCert));
+            certChainElement->pCertContext->cbCertEncoded);
+          rv = certDB->ConstructX509(certDER, getter_AddRefs(nssCert));
           if (!nssCert) {
             extractionSuccess = false;
             LOG(("Couldn't create NSS cert [this = %p]", this));

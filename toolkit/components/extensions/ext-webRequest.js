@@ -13,7 +13,6 @@ Cu.import("resource://gre/modules/ExtensionManagement.jsm");
 Cu.import("resource://gre/modules/ExtensionUtils.jsm");
 var {
   SingletonEventManager,
-  runSafeSync,
 } = ExtensionUtils;
 
 // EventManager-like class specifically for WebRequest. Inherits from
@@ -21,7 +20,7 @@ var {
 // when invoking listeners.
 function WebRequestEventManager(context, eventName) {
   let name = `webRequest.${eventName}`;
-  let register = (callback, filter, info) => {
+  let register = (fire, filter, info) => {
     let listener = data => {
       // Prevent listening in on requests originating from system principal to
       // prevent tinkering with OCSP, app and addon updates, etc.
@@ -29,14 +28,39 @@ function WebRequestEventManager(context, eventName) {
         return;
       }
 
+      // Check hosts permissions for both the resource being requested,
+      const hosts = context.extension.whiteListedHosts;
+      if (!hosts.matchesIgnoringPath(NetUtil.newURI(data.url))) {
+        return;
+      }
+      // and the origin that is loading the resource.
+      const origin = data.documentUrl;
+      const own = origin && origin.startsWith(context.extension.getURL());
+      if (origin && !own && !hosts.matchesIgnoringPath(NetUtil.newURI(origin))) {
+        return;
+      }
+
+      let browserData = {tabId: -1, windowId: -1};
+      if (data.browser) {
+        browserData = tabTracker.getBrowserData(data.browser);
+      }
+      if (filter.tabId != null && browserData.tabId != filter.tabId) {
+        return;
+      }
+      if (filter.windowId != null && browserData.windowId != filter.windowId) {
+        return;
+      }
+
       let data2 = {
         requestId: data.requestId,
         url: data.url,
         originUrl: data.originUrl,
+        documentUrl: data.documentUrl,
         method: data.method,
+        tabId: browserData.tabId,
         type: data.type,
         timeStamp: Date.now(),
-        frameId: ExtensionManagement.getFrameId(data.windowId),
+        frameId: data.type == "main_frame" ? 0 : ExtensionManagement.getFrameId(data.windowId),
         parentFrameId: ExtensionManagement.getParentFrameId(data.parentWindowId, data.windowId),
       };
 
@@ -49,17 +73,15 @@ function WebRequestEventManager(context, eventName) {
         data2.ip = data.ip;
       }
 
-      extensions.emit("fill-browser-data", data.browser, data2);
-
       let optional = ["requestHeaders", "responseHeaders", "statusCode", "statusLine", "error", "redirectUrl",
-                      "requestBody"];
+                      "requestBody", "scheme", "realm", "isProxy", "challenger"];
       for (let opt of optional) {
         if (opt in data) {
           data2[opt] = data[opt];
         }
       }
 
-      return runSafeSync(context, callback, data2);
+      return fire.sync(data2);
     };
 
     let filter2 = {};
@@ -104,6 +126,7 @@ extensions.registerSchemaAPI("webRequest", "addon_parent", context => {
       onBeforeSendHeaders: new WebRequestEventManager(context, "onBeforeSendHeaders").api(),
       onSendHeaders: new WebRequestEventManager(context, "onSendHeaders").api(),
       onHeadersReceived: new WebRequestEventManager(context, "onHeadersReceived").api(),
+      onAuthRequired: new WebRequestEventManager(context, "onAuthRequired").api(),
       onBeforeRedirect: new WebRequestEventManager(context, "onBeforeRedirect").api(),
       onResponseStarted: new WebRequestEventManager(context, "onResponseStarted").api(),
       onErrorOccurred: new WebRequestEventManager(context, "onErrorOccurred").api(),

@@ -11,9 +11,14 @@ const LAYOUT_ERRORS_L10N =
 // displayed below it.
 
 const EXPECTED_PROPERTIES = [
+  "background-attachment",
+  "background-clip",
   "background-color",
+  "background-image",
+  "background-origin",
   "background-position-x",
   "background-position-y",
+  "background-repeat",
   "background-size",
   "border-bottom-left-radius",
   "border-bottom-right-radius",
@@ -77,7 +82,7 @@ function hasExpectedWarnings(containerEl) {
   let warnings = [...containerEl.querySelectorAll(".warning")];
   for (let warning of warnings) {
     let warningID =
-      "CompositorAnimationWarningTransformWithGeometricProperties";
+      "CompositorAnimationWarningTransformWithSyncGeometricAnimations";
     if (warning.getAttribute("title") == LAYOUT_ERRORS_L10N.getStr(warningID)) {
       return true;
     }

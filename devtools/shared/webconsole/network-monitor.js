@@ -37,6 +37,8 @@ const HTTP_TEMPORARY_REDIRECT = 307;
 
 // The maximum number of bytes a NetworkResponseListener can hold: 1 MB
 const RESPONSE_BODY_LIMIT = 1048576;
+// Exported for testing.
+exports.RESPONSE_BODY_LIMIT = RESPONSE_BODY_LIMIT;
 
 /**
  * Check if a given network request should be logged by a network monitor
@@ -84,9 +86,16 @@ function matchRequest(channel, filters) {
 
   if (filters.outerWindowID) {
     let topFrame = NetworkHelper.getTopFrameForRequest(channel);
-    if (topFrame && topFrame.outerWindowID &&
-        topFrame.outerWindowID == filters.outerWindowID) {
-      return true;
+    // topFrame is typically null for some chrome requests like favicons
+    if (topFrame) {
+      try {
+        if (topFrame.outerWindowID == filters.outerWindowID) {
+          return true;
+        }
+      } catch (e) {
+        // outerWindowID getter from browser.xml (non-remote <xul:browser>) may
+        // throw when closing a tab while resources are still loading.
+      }
     }
   }
 
@@ -591,7 +600,7 @@ NetworkResponseListener.prototype = {
       text: data || "",
     };
 
-    response.size = response.text.length;
+    response.size = this.bodySize;
     response.transferredSize = this.transferredSize;
 
     try {
@@ -1072,10 +1081,18 @@ NetworkMonitor.prototype = {
     }
 
     // Determine the cause and if this is an XHR request.
-    let causeType = channel.loadInfo.externalContentPolicyType;
-    let loadingPrincipal = channel.loadInfo.loadingPrincipal;
-    let causeUri = loadingPrincipal ? loadingPrincipal.URI : null;
+    let causeType = Ci.nsIContentPolicy.TYPE_OTHER;
+    let causeUri = null;
     let stacktrace;
+
+    if (channel.loadInfo) {
+      causeType = channel.loadInfo.externalContentPolicyType;
+      const { loadingPrincipal } = channel.loadInfo;
+      if (loadingPrincipal && loadingPrincipal.URI) {
+        causeUri = loadingPrincipal.URI.spec;
+      }
+    }
+
     // If this is the parent process, there is no stackTraceCollector - the stack
     // trace will be added in NetworkMonitorChild._onNewEvent.
     if (this.owner.stackTraceCollector) {
@@ -1083,8 +1100,8 @@ NetworkMonitor.prototype = {
     }
 
     event.cause = {
-      type: causeType,
-      loadingDocumentUri: causeUri ? causeUri.spec : null,
+      type: causeTypeToString(causeType),
+      loadingDocumentUri: causeUri,
       stacktrace
     };
 
@@ -1472,7 +1489,7 @@ NetworkMonitor.prototype = {
       Services.obs.removeObserver(this._httpResponseExaminer,
                                   "http-on-examine-cached-response");
       Services.obs.removeObserver(this._httpModifyExaminer,
-                                  "http-on-modify-request", false);
+                                  "http-on-modify-request");
     }
 
     Services.obs.removeObserver(this._serviceWorkerRequest,
@@ -1501,8 +1518,6 @@ NetworkMonitor.prototype = {
  * data to the WebConsoleActor or to a NetworkEventActor.
  *
  * @constructor
- * @param number appId
- *        The web appId of the child process.
  * @param number outerWindowID
  *        The outerWindowID of the TabActor's main window.
  * @param nsIMessageManager messageManager
@@ -1512,8 +1527,7 @@ NetworkMonitor.prototype = {
  * @param object owner
  *        The WebConsoleActor that is listening for the network requests.
  */
-function NetworkMonitorChild(appId, outerWindowID, messageManager, conn, owner) {
-  this.appId = appId;
+function NetworkMonitorChild(outerWindowID, messageManager, conn, owner) {
   this.outerWindowID = outerWindowID;
   this.conn = conn;
   this.owner = owner;
@@ -1521,12 +1535,12 @@ function NetworkMonitorChild(appId, outerWindowID, messageManager, conn, owner) 
   this._onNewEvent = this._onNewEvent.bind(this);
   this._onUpdateEvent = this._onUpdateEvent.bind(this);
   this._netEvents = new Map();
+  this._msgName = `debug:${this.conn.prefix}netmonitor`;
 }
 
 exports.NetworkMonitorChild = NetworkMonitorChild;
 
 NetworkMonitorChild.prototype = {
-  appId: null,
   owner: null,
   _netEvents: null,
   _saveRequestAndResponseBodies: true,
@@ -1539,7 +1553,7 @@ NetworkMonitorChild.prototype = {
   set saveRequestAndResponseBodies(val) {
     this._saveRequestAndResponseBodies = val;
 
-    this._messageManager.sendAsyncMessage("debug:netmonitor", {
+    this._messageManager.sendAsyncMessage(this._msgName, {
       action: "setPreferences",
       preferences: {
         saveRequestAndResponseBodies: this._saveRequestAndResponseBodies,
@@ -1554,7 +1568,7 @@ NetworkMonitorChild.prototype = {
   set throttleData(val) {
     this._throttleData = val;
 
-    this._messageManager.sendAsyncMessage("debug:netmonitor", {
+    this._messageManager.sendAsyncMessage(this._msgName, {
       action: "setPreferences",
       preferences: {
         throttleData: this._throttleData,
@@ -1569,12 +1583,9 @@ NetworkMonitorChild.prototype = {
     });
 
     let mm = this._messageManager;
-    mm.addMessageListener("debug:netmonitor:newEvent",
-                          this._onNewEvent);
-    mm.addMessageListener("debug:netmonitor:updateEvent",
-                          this._onUpdateEvent);
-    mm.sendAsyncMessage("debug:netmonitor", {
-      appId: this.appId,
+    mm.addMessageListener(`${this._msgName}:newEvent`, this._onNewEvent);
+    mm.addMessageListener(`${this._msgName}:updateEvent`, this._onUpdateEvent);
+    mm.sendAsyncMessage(this._msgName, {
       outerWindowID: this.outerWindowID,
       action: "start",
     });
@@ -1598,13 +1609,12 @@ NetworkMonitorChild.prototype = {
     let weakActor = this._netEvents.get(id);
     let actor = weakActor ? weakActor.get() : null;
     if (!actor) {
-      console.error("Received debug:netmonitor:updateEvent for unknown " +
-                    "event ID: " + id);
+      console.error(`Received ${this._msgName}:updateEvent for unknown event ID: ${id}`);
       return;
     }
     if (!(method in actor)) {
-      console.error("Received debug:netmonitor:updateEvent unsupported " +
-                    "method: " + method);
+      console.error(`Received ${this._msgName}:updateEvent unsupported ` +
+                    `method: ${method}`);
       return;
     }
     actor[method].apply(actor, args);
@@ -1613,10 +1623,8 @@ NetworkMonitorChild.prototype = {
   destroy: function () {
     let mm = this._messageManager;
     try {
-      mm.removeMessageListener("debug:netmonitor:newEvent",
-                               this._onNewEvent);
-      mm.removeMessageListener("debug:netmonitor:updateEvent",
-                               this._onUpdateEvent);
+      mm.removeMessageListener(`${this._msgName}:newEvent`, this._onNewEvent);
+      mm.removeMessageListener(`${this._msgName}:updateEvent`, this._onUpdateEvent);
     } catch (e) {
       // On b2g, when registered to a new root docshell,
       // all message manager functions throw when trying to call them during
@@ -1645,10 +1653,13 @@ NetworkMonitorChild.prototype = {
  * @param nsIMessageManager messageManager
  *        The message manager for the child app process. This is used for
  *        communication with the NetworkMonitorChild instance of the process.
+ * @param string msgName
+ *        The message name to be used for this connection.
  */
-function NetworkEventActorProxy(messageManager) {
+function NetworkEventActorProxy(messageManager, msgName) {
   this.id = gSequenceId();
   this.messageManager = messageManager;
+  this._msgName = msgName;
 }
 exports.NetworkEventActorProxy = NetworkEventActorProxy;
 
@@ -1656,7 +1667,7 @@ NetworkEventActorProxy.methodFactory = function (method) {
   return DevToolsUtils.makeInfallible(function () {
     let args = Array.slice(arguments);
     let mm = this.messageManager;
-    mm.sendAsyncMessage("debug:netmonitor:updateEvent", {
+    mm.sendAsyncMessage(`${this._msgName}:updateEvent`, {
       id: this.id,
       method: method,
       args: args,
@@ -1676,7 +1687,7 @@ NetworkEventActorProxy.prototype = {
    */
   init: DevToolsUtils.makeInfallible(function (event) {
     let mm = this.messageManager;
-    mm.sendAsyncMessage("debug:netmonitor:newEvent", {
+    mm.sendAsyncMessage(`${this._msgName}:newEvent`, {
       id: this.id,
       event: event,
     });
@@ -1724,6 +1735,7 @@ exports.setupParentProcess = setupParentProcess;
  *        The RDP connection prefix that uniquely identifies the connection.
  */
 function NetworkMonitorParent(mm, prefix) {
+  this._msgName = `debug:${prefix}netmonitor`;
   this.onNetMonitorMessage = this.onNetMonitorMessage.bind(this);
   this.onNetworkEvent = this.onNetworkEvent.bind(this);
   this.setMessageManager(mm);
@@ -1736,16 +1748,16 @@ NetworkMonitorParent.prototype = {
   setMessageManager(mm) {
     if (this.messageManager) {
       let oldMM = this.messageManager;
-      oldMM.removeMessageListener("debug:netmonitor", this.onNetMonitorMessage);
+      oldMM.removeMessageListener(this._msgName, this.onNetMonitorMessage);
     }
     this.messageManager = mm;
     if (mm) {
-      mm.addMessageListener("debug:netmonitor", this.onNetMonitorMessage);
+      mm.addMessageListener(this._msgName, this.onNetMonitorMessage);
     }
   },
 
   /**
-   * Handler for "debug:netmonitor" messages received through the message manager
+   * Handler for `debug:${prefix}netmonitor` messages received through the message manager
    * from the content process.
    *
    * @param object msg
@@ -1800,7 +1812,7 @@ NetworkMonitorParent.prototype = {
    *         data about the request is available.
    */
   onNetworkEvent: DevToolsUtils.makeInfallible(function (event) {
-    return new NetworkEventActorProxy(this.messageManager).init(event);
+    return new NetworkEventActorProxy(this.messageManager, this._msgName).init(event);
   }),
 
   destroy: function () {
@@ -2040,3 +2052,36 @@ function gSequenceId() {
   return gSequenceId.n++;
 }
 gSequenceId.n = 1;
+
+/**
+ * Convert a nsIContentPolicy constant to a display string
+ */
+const LOAD_CAUSE_STRINGS = {
+  [Ci.nsIContentPolicy.TYPE_INVALID]: "invalid",
+  [Ci.nsIContentPolicy.TYPE_OTHER]: "other",
+  [Ci.nsIContentPolicy.TYPE_SCRIPT]: "script",
+  [Ci.nsIContentPolicy.TYPE_IMAGE]: "img",
+  [Ci.nsIContentPolicy.TYPE_STYLESHEET]: "stylesheet",
+  [Ci.nsIContentPolicy.TYPE_OBJECT]: "object",
+  [Ci.nsIContentPolicy.TYPE_DOCUMENT]: "document",
+  [Ci.nsIContentPolicy.TYPE_SUBDOCUMENT]: "subdocument",
+  [Ci.nsIContentPolicy.TYPE_REFRESH]: "refresh",
+  [Ci.nsIContentPolicy.TYPE_XBL]: "xbl",
+  [Ci.nsIContentPolicy.TYPE_PING]: "ping",
+  [Ci.nsIContentPolicy.TYPE_XMLHTTPREQUEST]: "xhr",
+  [Ci.nsIContentPolicy.TYPE_OBJECT_SUBREQUEST]: "objectSubdoc",
+  [Ci.nsIContentPolicy.TYPE_DTD]: "dtd",
+  [Ci.nsIContentPolicy.TYPE_FONT]: "font",
+  [Ci.nsIContentPolicy.TYPE_MEDIA]: "media",
+  [Ci.nsIContentPolicy.TYPE_WEBSOCKET]: "websocket",
+  [Ci.nsIContentPolicy.TYPE_CSP_REPORT]: "csp",
+  [Ci.nsIContentPolicy.TYPE_XSLT]: "xslt",
+  [Ci.nsIContentPolicy.TYPE_BEACON]: "beacon",
+  [Ci.nsIContentPolicy.TYPE_FETCH]: "fetch",
+  [Ci.nsIContentPolicy.TYPE_IMAGESET]: "imageset",
+  [Ci.nsIContentPolicy.TYPE_WEB_MANIFEST]: "webManifest"
+};
+
+function causeTypeToString(causeType) {
+  return LOAD_CAUSE_STRINGS[causeType] || "unknown";
+}

@@ -24,44 +24,44 @@
           # building on.
           'target_arch%': '<(host_arch)',
         }],
+        ['OS=="linux"', {
+          # FIPS-140 LOWHASH
+          'freebl_name': 'freeblpriv3',
+        }, {
+          'freebl_name': 'freebl3',
+        }],
+        ['OS=="mac"', {
+          'use_system_sqlite%': 1,
+        },{
+          'use_system_sqlite%': 0,
+        }],
+        ['OS=="mac" or OS=="win"', {
+          'cc_use_gnu_ld%': 0,
+        }, {
+          'cc_use_gnu_ld%': 1,
+        }],
         ['OS=="win"', {
           'use_system_zlib%': 0,
-          'nspr_libs%': ['nspr4.lib', 'plc4.lib', 'plds4.lib'],
-          #XXX: gyp breaks if these are empty!
-          'nspr_lib_dir%': ' ',
-          'nspr_include_dir%': ' ',
+          'nspr_libs%': ['libnspr4.lib', 'libplc4.lib', 'libplds4.lib'],
           'zlib_libs%': [],
           #TODO
           'moz_debug_flags%': '',
           'dll_prefix': '',
           'dll_suffix': 'dll',
         }, {
-          'nspr_libs%': ['-lplds4', '-lplc4', '-lnspr4'],
-          'nspr_lib_dir%': '<!(<(python) <(DEPTH)/coreconf/pkg_config.py . --libs nspr)',
-          'nspr_include_dir%': '<!(<(python) <(DEPTH)/coreconf/pkg_config.py . --cflags nspr)',
           'use_system_zlib%': 1,
-        }],
-        ['OS=="linux" or OS=="android"', {
-          'zlib_libs%': ['<!@(<(python) <(DEPTH)/coreconf/pkg_config.py raw --libs zlib)'],
-          'moz_debug_flags%': '-gdwarf-2',
-          'optimize_flags%': '-O2',
-          'dll_prefix': 'lib',
-          'dll_suffix': 'so',
-        }],
-        ['OS=="linux"', {
-          'freebl_name': 'freeblpriv3',
-        }, {
-          'freebl_name': 'freebl3',
-        }],
-        ['OS=="mac"', {
+          'nspr_libs%': ['-lplds4', '-lplc4', '-lnspr4'],
           'zlib_libs%': ['-lz'],
-          'use_system_sqlite%': 1,
-          'moz_debug_flags%': '-gdwarf-2 -gfull',
-          'optimize_flags%': '-O2',
           'dll_prefix': 'lib',
-          'dll_suffix': 'dylib',
-        }, {
-          'use_system_sqlite%': 0,
+          'conditions': [
+            ['OS=="mac"', {
+              'moz_debug_flags%': '-gdwarf-2 -gfull',
+              'dll_suffix': 'dylib',
+            }, {
+              'moz_debug_flags%': '-gdwarf-2',
+              'dll_suffix': 'so',
+            }],
+          ],
         }],
         ['"<(GENERATOR)"=="ninja"', {
           'cc_is_clang%': '<!(<(python) <(DEPTH)/coreconf/check_cc_clang.py)',
@@ -86,19 +86,29 @@
     'dll_suffix': '<(dll_suffix)',
     'freebl_name': '<(freebl_name)',
     'cc_is_clang%': '<(cc_is_clang)',
+    'cc_use_gnu_ld%': '<(cc_use_gnu_ld)',
     # Some defaults
     'disable_tests%': 0,
     'disable_chachapoly%': 0,
     'disable_dbm%': 0,
-    'disable_libpkix%': 0,
+    'disable_libpkix%': 1,
     'disable_werror%': 0,
     'mozilla_client%': 0,
     'moz_fold_libs%': 0,
     'moz_folded_library_name%': '',
     'ssl_enable_zlib%': 1,
-    'use_asan%': 0,
+    'sanitizer_flags%': 0,
     'test_build%': 0,
+    'no_zdefs%': 0,
     'fuzz%': 0,
+    'fuzz_tls%': 0,
+    'fuzz_oss%': 0,
+    'sign_libs%': 1,
+    'use_pprof%': 0,
+    'ct_verif%': 0,
+    'nss_public_dist_dir%': '<(nss_dist_dir)/public',
+    'nss_private_dist_dir%': '<(nss_dist_dir)/private',
+    'only_dev_random%': 1,
   },
   'target_defaults': {
     # Settings specific to targets should go here.
@@ -106,6 +116,8 @@
     'variables': {
       'mapfile%': '',
       'test_build%': 0,
+      'debug_optimization_level%': '0',
+      'release_optimization_level%': '2',
     },
     'standalone_static_library': 0,
     'include_dirs': [
@@ -113,12 +125,21 @@
       '<(nss_dist_dir)/private/<(module)',
     ],
     'conditions': [
-      [ 'OS=="linux"', {
+      [ 'OS!="android" and OS!="mac" and OS!="win"', {
         'libraries': [
           '-lpthread',
+        ],
+      }],
+      [ 'OS=="linux"', {
+        'libraries': [
           '-ldl',
           '-lc',
         ],
+      }],
+      [ 'fuzz==1', {
+        'variables': {
+          'debug_optimization_level%': '1',
+        },
       }],
     ],
     'target_conditions': [
@@ -133,7 +154,7 @@
         'product_dir': '<(nss_dist_obj_dir)/lib'
       }],
       # mapfile handling
-      [ 'test_build==0 and mapfile!=""', {
+      [ 'mapfile!=""', {
         # Work around a gyp bug. Fixed upstream but not in Ubuntu packages:
         # https://chromium.googlesource.com/external/gyp/+/b85ad3e578da830377dbc1843aa4fbc5af17a192%5E%21/
         'sources': [
@@ -146,7 +167,7 @@
           ],
         },
         'conditions': [
-          [ 'OS=="linux" or OS=="android"', {
+          [ 'cc_use_gnu_ld==1', {
             'ldflags': [
               '-Wl,--version-script,<(INTERMEDIATE_DIR)/out.>(mapfile)',
             ],
@@ -193,10 +214,24 @@
       # Shared library specific settings.
       [ '_type=="shared_library"', {
         'conditions': [
-          [ 'OS=="linux" or OS=="android"', {
+          [ 'cc_use_gnu_ld==1', {
             'ldflags': [
               '-Wl,--gc-sections',
-              '-Wl,-z,defs',
+            ],
+            'conditions': [
+              ['no_zdefs==0', {
+                'ldflags': [
+                  '-Wl,-z,defs',
+                ],
+               'conditions': [
+                 ['OS=="dragonfly" or OS=="freebsd" or OS=="netbsd" or OS=="openbsd"', {
+                   # Bug 1321317 - unix_rand.c:880: undefined reference to `environ'
+                   'ldflags': [
+                     '-Wl,--warn-unresolved-symbols',
+                   ],
+                 }],
+               ],
+              }],
             ],
           }],
         ],
@@ -218,7 +253,7 @@
     'default_configuration': 'Debug',
     'configurations': {
       # Common settings for Debug+Release should go here.
-      'Common_Base': {
+      'Common': {
         'abstract': 1,
         'defines': [
           'NSS_NO_INIT_SUPPORT',
@@ -249,22 +284,46 @@
               'LINUX2_1',
               'LINUX',
               'linux',
+            ],
+          }],
+          [ 'OS=="dragonfly" or OS=="freebsd"', {
+            'defines': [
+              'FREEBSD',
+            ],
+          }],
+          [ 'OS=="netbsd"', {
+            'defines': [
+              'NETBSD',
+            ],
+          }],
+          [ 'OS=="openbsd"', {
+            'defines': [
+              'OPENBSD',
+            ],
+          }],
+          ['OS=="mac" or OS=="dragonfly" or OS=="freebsd" or OS=="netbsd" or OS=="openbsd"', {
+            'defines': [
+              'HAVE_BSD_FLOCK',
+            ],
+          }],
+          [ 'OS!="win"', {
+            'defines': [
               'HAVE_STRERROR',
               'XP_UNIX',
               '_REENTRANT',
             ],
+          }],
+          [ 'OS!="mac" and OS!="win"', {
             'cflags': [
               '-fPIC',
               '-pipe',
               '-ffunction-sections',
               '-fdata-sections',
-              '<(moz_debug_flags)',
             ],
             'cflags_cc': [
               '-std=c++0x',
             ],
             'conditions': [
-
               [ 'target_arch=="ia32"', {
                 'cflags': ['-m32'],
                 'ldflags': ['-m32'],
@@ -275,13 +334,56 @@
               }],
             ],
           }],
-          [ 'disable_werror==0 and (OS=="linux" or OS=="mac")', {
+          [ 'use_pprof==1 and OS!="android" and OS!="win"', {
+            'conditions': [
+              [ 'OS=="mac"', {
+                'xcode_settings': {
+                  'OTHER_LDFLAGS': [ '-lprofiler' ],
+                },
+              }, {
+                'ldflags': [ '-lprofiler' ],
+              }],
+              [ 'OS!="linux"', {
+                'library_dirs': [
+                  '/usr/local/lib/',
+                ],
+              }],
+            ],
+          }],
+          [ 'disable_werror==0 and OS!="android" and OS!="win"', {
             'cflags': [
               '<!@(<(python) <(DEPTH)/coreconf/werror.py)',
             ],
+            'xcode_settings': {
+              'OTHER_CFLAGS': [
+                '<!@(<(python) <(DEPTH)/coreconf/werror.py)',
+              ],
+            },
           }],
-          [ 'fuzz==1', {
-            'cflags': ['-Wno-unused-function']
+          [ 'fuzz_tls==1', {
+            'cflags': [
+              '-Wno-unused-function',
+              '-Wno-unused-variable',
+            ],
+            'xcode_settings': {
+              'OTHER_CFLAGS': [
+                '-Wno-unused-function',
+                '-Wno-unused-variable',
+              ],
+            },
+          }],
+          [ 'sanitizer_flags!=0', {
+            'cflags': ['<@(sanitizer_flags)'],
+            'ldflags': ['<@(sanitizer_flags)'],
+            'xcode_settings': {
+              'OTHER_CFLAGS': ['<@(sanitizer_flags)'],
+              # We want to pass -fsanitize=... to our final link call,
+              # but not to libtool. OTHER_LDFLAGS is passed to both.
+              # To trick GYP into doing what we want, we'll piggyback on
+              # LIBRARY_SEARCH_PATHS, producing "-L/usr/lib -fsanitize=...".
+              # The -L/usr/lib is redundant but innocuous: it's a default path.
+              'LIBRARY_SEARCH_PATHS': ['/usr/lib <(sanitizer_flags)'],
+            },
           }],
           [ 'OS=="android" and mozilla_client==0', {
             'defines': [
@@ -293,9 +395,6 @@
           [ 'OS=="mac"', {
             'defines': [
               'DARWIN',
-              'HAVE_STRERROR',
-              'HAVE_BSD_FLOCK',
-              'XP_UNIX',
             ],
             'conditions': [
               [ 'target_arch=="ia32"', {
@@ -327,7 +426,36 @@
             'conditions': [
               [ 'disable_werror==0', {
                 'cflags': ['-WX']
-              }]
+              }],
+              [ 'target_arch=="ia32"', {
+                'msvs_configuration_platform': 'Win32',
+                'msvs_settings': {
+                  'VCLinkerTool': {
+                    'MinimumRequiredVersion': '5.01',  # XP.
+                    'TargetMachine': '1',
+                    'ImageHasSafeExceptionHandlers': 'false',
+                  },
+                  'VCCLCompilerTool': {
+                    'PreprocessorDefinitions': [
+                      'WIN32',
+                    ],
+                  },
+                },
+              }],
+              [ 'target_arch=="x64"', {
+                'msvs_configuration_platform': 'x64',
+                'msvs_settings': {
+                  'VCLinkerTool': {
+                    'TargetMachine': '17', # x86-64
+                  },
+                  'VCCLCompilerTool': {
+                    'PreprocessorDefinitions': [
+                      'WIN64',
+                      '_AMD64_',
+                    ],
+                  },
+                },
+              }],
             ],
           }],
           [ 'disable_dbm==1', {
@@ -342,50 +470,28 @@
           }],
         ],
       },
-      # Common settings for x86 should go here.
-      'x86_Base': {
-        'abstract': 1,
-        'msvs_settings': {
-          'VCLinkerTool': {
-            'MinimumRequiredVersion': '5.01',  # XP.
-            'TargetMachine': '1',
-          },
-          'VCCLCompilerTool': {
-            'PreprocessorDefinitions': [
-              'WIN32',
-            ],
-          },
-        },
-        'msvs_configuration_platform': 'Win32',
-      },
-      # Common settings for x86-64 should go here.
-      'x64_Base': {
-        'abstract': 1,
-        'msvs_configuration_platform': 'x64',
-        'msvs_settings': {
-          'VCLinkerTool': {
-            'TargetMachine': '17', # x86-64
-          },
-          'VCCLCompilerTool': {
-            'PreprocessorDefinitions': [
-              'WIN64',
-              '_AMD64_',
-            ],
-          },
-        },
-      },
       # Common settings for debug should go here.
-      'Debug_Base': {
-        'abstract': 1,
+      'Debug': {
+        'inherit_from': ['Common'],
+        'conditions': [
+          [ 'OS!="mac" and OS!="win"', {
+            'cflags': [
+              '-g',
+              '<(moz_debug_flags)',
+            ],
+          }]
+        ],
         #TODO: DEBUG_$USER
         'defines': ['DEBUG'],
+        'cflags': [ '-O<(debug_optimization_level)' ],
         'xcode_settings': {
           'COPY_PHASE_STRIP': 'NO',
-          'GCC_OPTIMIZATION_LEVEL': '0',
+          'GCC_OPTIMIZATION_LEVEL': '<(debug_optimization_level)',
+          'GCC_GENERATE_DEBUGGING_SYMBOLS': 'YES',
         },
         'msvs_settings': {
           'VCCLCompilerTool': {
-            'Optimization': '0',
+            'Optimization': '<(debug_optimization_level)',
             'BasicRuntimeChecks': '3',
             'RuntimeLibrary': '2', # /MD
           },
@@ -397,19 +503,18 @@
           },
         },
       },
-      # Common settings for release should go here.n
-      'Release_Base': {
-        'abstract': 1,
-        'defines': [
-          'NDEBUG',
-        ],
+      # Common settings for release should go here.
+      'Release': {
+        'inherit_from': ['Common'],
+        'defines': ['NDEBUG'],
+        'cflags': [ '-O<(release_optimization_level)' ],
         'xcode_settings': {
           'DEAD_CODE_STRIPPING': 'YES',  # -Wl,-dead_strip
-          'GCC_OPTIMIZATION_LEVEL': '2', # -O2
+          'GCC_OPTIMIZATION_LEVEL': '<(release_optimization_level)',
         },
         'msvs_settings': {
           'VCCLCompilerTool': {
-            'Optimization': '2', # /Os
+            'Optimization': '<(release_optimization_level)',
             'RuntimeLibrary': '2', # /MD
           },
           'VCLinkerTool': {
@@ -417,30 +522,26 @@
           },
         },
       },
-      #
-      # Concrete configurations
-      #
-      # These configurations shouldn't have anything in them, it should
-      # all be derived from the _Base configurations above.
-      'Debug': {
-        'inherit_from': ['Common_Base', 'x86_Base', 'Debug_Base'],
-      },
-      'Release': {
-        'inherit_from': ['Common_Base', 'x86_Base', 'Release_Base'],
-      },
-      # The gyp ninja backend requires these.
-      'Debug_x64': {
-        'inherit_from': ['Common_Base', 'x64_Base', 'Debug_Base'],
-      },
-      'Release_x64': {
-        'inherit_from': ['Common_Base', 'x64_Base', 'Release_Base'],
-      },
+      'conditions': [
+        [ 'OS=="win"', {
+          # The gyp ninja backend requires these.
+          # TODO: either we should support building both 32/64-bit as
+          # configurations from the same gyp build, or we should fix
+          # upstream gyp to not require these.
+          'Debug_x64': {
+            'inherit_from': ['Debug'],
+          },
+          'Release_x64': {
+            'inherit_from': ['Release'],
+          },
+        }],
+      ],
     },
   },
   'conditions': [
-    [ 'OS=="linux" or OS=="android"', {
+    [ 'cc_use_gnu_ld==1', {
       'variables': {
-        'process_map_file': ['/bin/sh', '-c', '/bin/grep -v ";-" >(mapfile) | sed -e "s,;+,," -e "s; DATA ;;" -e "s,;;,," -e "s,;.*,;," > >@(_outputs)'],
+        'process_map_file': ['/bin/sh', '-c', '/usr/bin/env grep -v ";-" >(mapfile) | sed -e "s,;+,," -e "s; DATA ;;" -e "s,;;,," -e "s,;.*,;," > >@(_outputs)'],
       },
     }],
     [ 'OS=="mac"', {

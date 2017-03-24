@@ -27,6 +27,7 @@ exports.ConsoleMessage = Immutable.Record({
   id: null,
   allowRepeating: true,
   source: null,
+  timeStamp: null,
   type: null,
   level: null,
   messageText: null,
@@ -38,6 +39,7 @@ exports.ConsoleMessage = Immutable.Record({
   groupId: null,
   exceptionDocURL: null,
   userProvidedStyles: null,
+  notes: null,
 });
 
 exports.NetworkEventMessage = Immutable.Record({
@@ -50,4 +52,6 @@ exports.NetworkEventMessage = Immutable.Record({
   source: MESSAGE_SOURCE.NETWORK,
   type: MESSAGE_TYPE.LOG,
   groupId: null,
+  timeStamp: null,
+  totalTime: null,
 });

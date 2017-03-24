@@ -27,7 +27,7 @@
 #include "nsISVGSVGFrame.h" //XXX
 #include "mozilla/dom/SVGRect.h"
 #include "nsError.h"
-#include "nsISVGChildFrame.h"
+#include "nsSVGDisplayableFrame.h"
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/dom/SVGSVGElementBinding.h"
 #include "nsSVGUtils.h"
@@ -589,7 +589,7 @@ SVGSVGElement::IsAttributeMapped(const nsIAtom* name) const
 // nsIContent methods:
 
 nsresult
-SVGSVGElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
+SVGSVGElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   if (aVisitor.mEvent->mMessage == eSVGLoad) {
     if (mTimedDocumentRoot) {
@@ -600,7 +600,7 @@ SVGSVGElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
       AnimationNeedsResample();
     }
   }
-  return SVGSVGElementBase::PreHandleEvent(aVisitor);
+  return SVGSVGElementBase::GetEventTargetParent(aVisitor);
 }
 
 bool
@@ -807,7 +807,7 @@ SVGSVGElement::InvalidateTransformNotifyFrame()
   // might fail this check if we've failed conditional processing
   if (svgframe) {
     svgframe->NotifyViewportOrTransformChanged(
-                nsISVGChildFrame::TRANSFORM_CHANGED);
+                nsSVGDisplayableFrame::TRANSFORM_CHANGED);
   }
 }
 

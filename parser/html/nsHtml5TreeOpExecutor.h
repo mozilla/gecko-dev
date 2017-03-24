@@ -38,7 +38,6 @@ class nsHtml5TreeOpExecutor final : public nsHtml5DocumentBuilder,
   typedef mozilla::net::ReferrerPolicy ReferrerPolicy;
 
   public:
-    NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
     NS_DECL_ISUPPORTS_INHERITED
 
   private:
@@ -136,7 +135,7 @@ class nsHtml5TreeOpExecutor final : public nsHtml5DocumentBuilder,
     /**
      * No-op for backwards compat.
      */
-    virtual void FlushPendingNotifications(mozFlushType aType) override;
+    virtual void FlushPendingNotifications(mozilla::FlushType aType) override;
 
     /**
      * Don't call. For interface compat only.
@@ -171,7 +170,9 @@ class nsHtml5TreeOpExecutor final : public nsHtml5DocumentBuilder,
 
     virtual nsresult MarkAsBroken(nsresult aReason) override;
 
-    void StartLayout();
+    void StartLayout(bool* aInterrupted);
+
+    void PauseDocUpdate(bool* aInterrupted);
     
     void FlushSpeculativeLoads();
                   

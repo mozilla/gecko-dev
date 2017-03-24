@@ -17,6 +17,7 @@ namespace dom {
 
 class Proxy;
 class SendRunnable;
+class DOMString;
 
 namespace workers {
 class WorkerPrivate;
@@ -33,15 +34,16 @@ public:
     uint32_t mStatus;
     nsCString mStatusText;
     uint16_t mReadyState;
+    bool mFlagSend;
     JS::Heap<JS::Value> mResponse;
     nsresult mResponseTextResult;
     nsresult mStatusResult;
     nsresult mResponseResult;
 
     StateData()
-    : mStatus(0), mReadyState(0), mResponse(JS::UndefinedValue()),
-      mResponseTextResult(NS_OK), mStatusResult(NS_OK),
-      mResponseResult(NS_OK)
+    : mStatus(0), mReadyState(0), mFlagSend(false),
+      mResponse(JS::UndefinedValue()), mResponseTextResult(NS_OK),
+      mStatusResult(NS_OK), mResponseResult(NS_OK)
     { }
 
     void trace(JSTracer* trc);
@@ -245,7 +247,7 @@ public:
               ErrorResult& aRv) override;
 
   virtual void
-  GetResponseText(nsAString& aResponseText, ErrorResult& aRv) override;
+  GetResponseText(DOMString& aResponseText, ErrorResult& aRv) override;
 
   virtual nsIDocument*
   GetResponseXML(ErrorResult& aRv) override

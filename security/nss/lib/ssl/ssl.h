@@ -228,7 +228,7 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  * on the server to read that data. Calls to
  * SSL_GetPreliminaryChannelInfo() and SSL_GetNextProto()
  * can be made used during this period to learn about the channel
- * parameters [TODO(ekr@rtfm.com): This hasn't landed yet].
+ * parameters.
  *
  * The transition between the 0-RTT and 1-RTT modes is marked by the
  * handshake callback.
@@ -356,10 +356,11 @@ SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 ** that is compatible with both its certificate and its peer's supported
 ** values.
 **
-** NSS uses the strict signature schemes from TLS 1.3 in TLS 1.2.  That means
-** that if a peer indicates support for SHA-384 and ECDSA, NSS will not
-** generate a signature if it has a P-256 key, even though that is permitted in
-** TLS 1.2.
+** This configuration affects TLS 1.2, but the combination of EC group and hash
+** algorithm is interpreted loosely to be compatible with other implementations.
+** For TLS 1.2, NSS will ignore the curve group when generating or verifying
+** ECDSA signatures.  For example, a P-384 ECDSA certificate is used with
+** SHA-256 if ssl_sig_ecdsa_secp256r1_sha256 is enabled.
 **
 ** Omitting SHA-256 schemes from this list might be foolish.  Support is
 ** mandatory in TLS 1.2 and 1.3 and there might be interoperability issues.
@@ -819,6 +820,25 @@ SSL_IMPORT PRFileDesc *SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd);
 SSL_IMPORT SECStatus SSL_SetPKCS11PinArg(PRFileDesc *fd, void *a);
 
 /*
+** These are callbacks for dealing with SSL alerts.
+ */
+
+typedef PRUint8 SSLAlertLevel;
+typedef PRUint8 SSLAlertDescription;
+
+typedef struct {
+    SSLAlertLevel level;
+    SSLAlertDescription description;
+} SSLAlert;
+
+typedef void(PR_CALLBACK *SSLAlertCallback)(const PRFileDesc *fd, void *arg,
+                                            const SSLAlert *alert);
+
+SSL_IMPORT SECStatus SSL_AlertReceivedCallback(PRFileDesc *fd, SSLAlertCallback cb,
+                                               void *arg);
+SSL_IMPORT SECStatus SSL_AlertSentCallback(PRFileDesc *fd, SSLAlertCallback cb,
+                                           void *arg);
+/*
 ** This is a callback for dealing with server certs that are not authenticated
 ** by the client.  The client app can decide that it actually likes the
 ** cert by some external means and restart the connection.
@@ -912,6 +932,19 @@ SSL_IMPORT SECStatus
 SSL_ConfigSecureServerWithCertChain(PRFileDesc *fd, CERTCertificate *cert,
                                     const CERTCertificateList *certChainOpt,
                                     SECKEYPrivateKey *key, SSLKEAType kea);
+
+/*
+** SSL_SetSessionTicketKeyPair configures an asymmetric key pair for use in
+** wrapping session ticket keys, used by the server.  This function currently
+** only accepts an RSA public/private key pair.
+**
+** Prior to the existence of this function, NSS used an RSA private key
+** associated with a configured certificate to perform session ticket
+** encryption.  If this function isn't used, the keys provided with a configured
+** RSA certificate are used for wrapping session ticket keys.
+*/
+SSL_IMPORT SECStatus
+SSL_SetSessionTicketKeyPair(SECKEYPublicKey *pubKey, SECKEYPrivateKey *privKey);
 
 /*
 ** Configure a secure server's session-id cache. Define the maximum number
@@ -1215,6 +1248,16 @@ SSL_IMPORT SECStatus SSL_ExportKeyingMaterial(PRFileDesc *fd,
                                               unsigned int contextLen,
                                               unsigned char *out,
                                               unsigned int outLen);
+
+/* Early exporters are used if 0-RTT is enabled.  This is TLS 1.3 only.  Note
+ * that in TLS 1.3, an empty context is equivalent to an absent context. */
+SSL_IMPORT SECStatus SSL_ExportEarlyKeyingMaterial(PRFileDesc *fd,
+                                                   const char *label,
+                                                   unsigned int labelLen,
+                                                   const unsigned char *context,
+                                                   unsigned int contextLen,
+                                                   unsigned char *out,
+                                                   unsigned int outLen);
 
 /*
 ** Return a new reference to the certificate that was most recently sent

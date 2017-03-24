@@ -147,14 +147,8 @@ module.exports = createClass({
 
     let tooltip = long;
 
-    // If the source is linkable and line > 0
-    const shouldDisplayLine = isLinkable && line;
-
-    // Exclude all falsy values, including `0`, as even
-    // a number 0 for line doesn't make sense, and should not be displayed.
-    // If source isn't linkable, don't attempt to append line and column
-    // info, as this probably doesn't make sense.
-    if (shouldDisplayLine) {
+    // Exclude all falsy values, including `0`, as line numbers start with 1.
+    if (line) {
       tooltip += `:${line}`;
       // Intentionally exclude 0
       if (column) {
@@ -175,8 +169,10 @@ module.exports = createClass({
 
       if (functionDisplayName) {
         elements.push(
-          dom.span({ className: "frame-link-function-display-name" },
-            functionDisplayName),
+          dom.span({
+            key: "function-display-name",
+            className: "frame-link-function-display-name",
+          }, functionDisplayName),
           " "
         );
       }
@@ -190,11 +186,12 @@ module.exports = createClass({
     }
 
     sourceElements.push(dom.span({
+      key: "filename",
       className: "frame-link-filename",
     }, displaySource));
 
-    // If source is linkable, and we have a line number > 0
-    if (shouldDisplayLine) {
+    // If we have a line number > 0.
+    if (line) {
       let lineInfo = `:${line}`;
       // Add `data-line` attribute for testing
       attributes["data-line"] = line;
@@ -206,12 +203,16 @@ module.exports = createClass({
         attributes["data-column"] = column;
       }
 
-      sourceElements.push(dom.span({ className: "frame-link-line" }, lineInfo));
+      sourceElements.push(dom.span({
+        key: "line",
+        className: "frame-link-line"
+      }, lineInfo));
     }
 
     // Inner el is useful for achieving ellipsis on the left and correct LTR/RTL
     // ordering. See CSS styles for frame-link-source-[inner] and bug 1290056.
     let sourceInnerEl = dom.span({
+      key: "source-inner",
       className: "frame-link-source-inner",
       title: isLinkable ?
         l10n.getFormatStr("frame.viewsourceindebugger", tooltip) : tooltip,
@@ -231,13 +232,18 @@ module.exports = createClass({
       }, sourceInnerEl);
     } else {
       sourceEl = dom.span({
+        key: "source",
         className: "frame-link-source",
       }, sourceInnerEl);
     }
     elements.push(sourceEl);
 
     if (showHost && host) {
-      elements.push(" ", dom.span({ className: "frame-link-host" }, host));
+      elements.push(" ");
+      elements.push(dom.span({
+        key: "host",
+        className: "frame-link-host",
+      }, host));
     }
 
     return dom.span(attributes, ...elements);

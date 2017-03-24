@@ -9,7 +9,7 @@ add_task(function* insert_separator_notification() {
   let parentId = yield PlacesUtils.promiseItemId(bm.parentGuid);
   observer.check([ { name: "onItemAdded",
                      arguments: [ itemId, parentId, bm.index, bm.type,
-                                  null, null, bm.dateAdded,
+                                  null, null, bm.dateAdded * 1000,
                                   bm.guid, bm.parentGuid,
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
@@ -24,7 +24,7 @@ add_task(function* insert_folder_notification() {
   let parentId = yield PlacesUtils.promiseItemId(bm.parentGuid);
   observer.check([ { name: "onItemAdded",
                      arguments: [ itemId, parentId, bm.index, bm.type,
-                                  null, bm.title, bm.dateAdded,
+                                  null, bm.title, bm.dateAdded * 1000,
                                   bm.guid, bm.parentGuid,
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
@@ -38,7 +38,7 @@ add_task(function* insert_folder_notitle_notification() {
   let parentId = yield PlacesUtils.promiseItemId(bm.parentGuid);
   observer.check([ { name: "onItemAdded",
                      arguments: [ itemId, parentId, bm.index, bm.type,
-                                  null, null, bm.dateAdded,
+                                  null, null, bm.dateAdded * 1000,
                                   bm.guid, bm.parentGuid,
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
@@ -54,7 +54,7 @@ add_task(function* insert_bookmark_notification() {
   let parentId = yield PlacesUtils.promiseItemId(bm.parentGuid);
   observer.check([ { name: "onItemAdded",
                      arguments: [ itemId, parentId, bm.index, bm.type,
-                                  bm.url, bm.title, bm.dateAdded,
+                                  bm.url, bm.title, bm.dateAdded * 1000,
                                   bm.guid, bm.parentGuid,
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
@@ -69,7 +69,7 @@ add_task(function* insert_bookmark_notitle_notification() {
   let parentId = yield PlacesUtils.promiseItemId(bm.parentGuid);
   observer.check([ { name: "onItemAdded",
                      arguments: [ itemId, parentId, bm.index, bm.type,
-                                  bm.url, null, bm.dateAdded,
+                                  bm.url, null, bm.dateAdded * 1000,
                                   bm.guid, bm.parentGuid,
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
@@ -94,12 +94,12 @@ add_task(function* insert_bookmark_tag_notification() {
 
   observer.check([ { name: "onItemAdded",
                      arguments: [ tagId, tagParentId, tag.index, tag.type,
-                                  tag.url, null, tag.dateAdded,
+                                  tag.url, null, tag.dateAdded * 1000,
                                   tag.guid, tag.parentGuid,
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] },
                    { name: "onItemChanged",
                      arguments: [ itemId, "tags", false, "",
-                                  bm.lastModified, bm.type, parentId,
+                                  bm.lastModified * 1000, bm.type, parentId,
                                   bm.guid, bm.parentGuid, "",
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
@@ -117,7 +117,7 @@ add_task(function* update_bookmark_lastModified() {
 
   observer.check([ { name: "onItemChanged",
                      arguments: [ itemId, "lastModified", false,
-                                  `${bm.lastModified * 1000}`, bm.lastModified,
+                                  `${bm.lastModified * 1000}`, bm.lastModified * 1000,
                                   bm.type, parentId, bm.guid, bm.parentGuid, "",
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
@@ -135,7 +135,7 @@ add_task(function* update_bookmark_title() {
 
   observer.check([ { name: "onItemChanged",
                      arguments: [ itemId, "title", false, bm.title,
-                                  bm.lastModified, bm.type, parentId, bm.guid,
+                                  bm.lastModified * 1000, bm.type, parentId, bm.guid,
                                   bm.parentGuid, "", Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
 });
@@ -152,7 +152,7 @@ add_task(function* update_bookmark_uri() {
 
   observer.check([ { name: "onItemChanged",
                      arguments: [ itemId, "uri", false, bm.url.href,
-                                  bm.lastModified, bm.type, parentId, bm.guid,
+                                  bm.lastModified * 1000, bm.type, parentId, bm.guid,
                                   bm.parentGuid, "http://url.example.com/",
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
@@ -161,8 +161,8 @@ add_task(function* update_bookmark_uri() {
 add_task(function* update_move_same_folder() {
   // Ensure there are at least two items in place (others test do so for us,
   // but we don't have to depend on that).
-  let sep = yield PlacesUtils.bookmarks.insert({ type: PlacesUtils.bookmarks.TYPE_SEPARATOR,
-                                                 parentGuid: PlacesUtils.bookmarks.unfiledGuid });
+  yield PlacesUtils.bookmarks.insert({ type: PlacesUtils.bookmarks.TYPE_SEPARATOR,
+                                       parentGuid: PlacesUtils.bookmarks.unfiledGuid });
   let bm = yield PlacesUtils.bookmarks.insert({ type: PlacesUtils.bookmarks.TYPE_BOOKMARK,
                                                 parentGuid: PlacesUtils.bookmarks.unfiledGuid,
                                                 url: new URL("http://move.example.com/") });
@@ -270,7 +270,7 @@ add_task(function* remove_bookmark_tag_notification() {
   let tagParentId = yield PlacesUtils.promiseItemId(tag.parentGuid);
 
   let observer = expectNotifications();
-  let removed = yield PlacesUtils.bookmarks.remove(tag.guid);
+  yield PlacesUtils.bookmarks.remove(tag.guid);
 
   observer.check([ { name: "onItemRemoved",
                      arguments: [ tagId, tagParentId, tag.index, tag.type,
@@ -278,7 +278,7 @@ add_task(function* remove_bookmark_tag_notification() {
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] },
                    { name: "onItemChanged",
                      arguments: [ itemId, "tags", false, "",
-                                  bm.lastModified, bm.type, parentId,
+                                  bm.lastModified * 1000, bm.type, parentId,
                                   bm.guid, bm.parentGuid, "",
                                   Ci.nsINavBookmarksService.SOURCE_DEFAULT ] }
                  ]);
@@ -506,10 +506,10 @@ function expectNotifications() {
             if (arg && arg instanceof Ci.nsIURI)
               return new URL(arg.spec);
             if (arg && typeof(arg) == "number" && arg >= Date.now() * 1000)
-              return new Date(parseInt(arg/1000));
+              return new Date(parseInt(arg / 1000));
             return arg;
           });
-          notifications.push({ name: name, arguments: args });
+          notifications.push({ name, arguments: args });
         }
       }
 

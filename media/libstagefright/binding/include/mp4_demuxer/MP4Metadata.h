@@ -11,6 +11,7 @@
 #include "MediaData.h"
 #include "MediaInfo.h"
 #include "Stream.h"
+#include "mp4parse.h"
 
 namespace mp4_demuxer
 {
@@ -18,13 +19,23 @@ namespace mp4_demuxer
 class MP4MetadataStagefright;
 class MP4MetadataRust;
 
+class IndiceWrapper {
+public:
+  virtual size_t Length() const = 0;
+
+  // TODO: Index::Indice is from stagefright, we should use another struct once
+  //       stagefrigth is removed.
+  virtual bool GetIndice(size_t aIndex, Index::Indice& aIndice) const = 0;
+
+  virtual ~IndiceWrapper() {}
+};
+
 class MP4Metadata
 {
 public:
   explicit MP4Metadata(Stream* aSource);
   ~MP4Metadata();
 
-  static bool HasCompleteMetadata(Stream* aSource);
   static already_AddRefed<mozilla::MediaByteBuffer> Metadata(Stream* aSource);
   uint32_t GetNumberTracks(mozilla::TrackInfo::TrackType aType) const;
   mozilla::UniquePtr<mozilla::TrackInfo> GetTrackInfo(mozilla::TrackInfo::TrackType aType,
@@ -33,11 +44,10 @@ public:
 
   const CryptoFile& Crypto() const;
 
-  bool ReadTrackIndex(FallibleTArray<Index::Indice>& aDest, mozilla::TrackID aTrackID);
+  mozilla::UniquePtr<IndiceWrapper> GetTrackIndice(mozilla::TrackID aTrackID);
 
 private:
   UniquePtr<MP4MetadataStagefright> mStagefright;
-#ifdef MOZ_RUST_MP4PARSE
   UniquePtr<MP4MetadataRust> mRust;
   mutable bool mPreferRust;
   mutable bool mReportedAudioTrackTelemetry;
@@ -46,7 +56,6 @@ private:
   mutable bool mRustTestMode;
 #endif
   bool ShouldPreferRust() const;
-#endif
 };
 
 } // namespace mp4_demuxer

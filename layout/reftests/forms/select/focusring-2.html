@@ -4,7 +4,7 @@
     <title>Testcase #2 for bug 1253977</title>
     <style type="text/css">
 
-* { -moz-appearance:none; }
+* { -moz-appearance:none; appearance: none; }
 :focus {
   border:2px solid black;
 }
@@ -38,7 +38,7 @@ function runTests(){
 }
 
 window.focus();
-window.addEventListener("MozReftestInvalidate", runTests, false);
+window.addEventListener("MozReftestInvalidate", runTests);
 
 </script>
 

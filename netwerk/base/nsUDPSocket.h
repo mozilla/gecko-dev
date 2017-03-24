@@ -58,8 +58,6 @@ private:
                                   const PRNetAddr& aIface);
   nsresult SetMulticastInterfaceInternal(const PRNetAddr& aIface);
 
-  void SaveNetworkStats(bool aEnforce);
-
   void CloseSocket();
 
   // lock protects access to mListener;
@@ -67,8 +65,7 @@ private:
   Mutex                                mLock;
   PRFileDesc                          *mFD;
   NetAddr                              mAddr;
-  uint32_t                             mAppId;
-  bool                                 mIsInIsolatedMozBrowserElement;
+  OriginAttributes                     mOriginAttributes;
   nsCOMPtr<nsIUDPSocketListener>       mListener;
   nsCOMPtr<nsIEventTarget>             mListenerTarget;
   bool                                 mAttached;
@@ -76,9 +73,6 @@ private:
 
   uint64_t   mByteReadCount;
   uint64_t   mByteWriteCount;
-#ifdef MOZ_WIDGET_GONK
-  nsMainThreadPtrHandle<nsINetworkInfo> mActiveNetworkInfo;
-#endif
 };
 
 //-----------------------------------------------------------------------------

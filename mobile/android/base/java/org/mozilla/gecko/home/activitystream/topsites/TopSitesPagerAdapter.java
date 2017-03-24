@@ -13,8 +13,10 @@ import android.view.ViewGroup;
 
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.home.HomePager;
+import org.mozilla.gecko.widget.RecyclerViewClickSupport;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The primary / top-level TopSites adapter: it handles the ViewPager, and also handles
@@ -22,12 +24,13 @@ import java.util.LinkedList;
  */
 public class TopSitesPagerAdapter extends PagerAdapter {
     public static final int PAGES = 4;
+    public static final int SUGGESTED_SITES_MAX_PAGES = 2;
 
     private int tiles;
     private int tilesWidth;
     private int tilesHeight;
 
-    private LinkedList<TopSitesPage> pages = new LinkedList<>();
+    private final List<TopSitesPage> pages;
 
     private final Context context;
     private final HomePager.OnUrlOpenListener onUrlOpenListener;
@@ -38,6 +41,8 @@ public class TopSitesPagerAdapter extends PagerAdapter {
     public TopSitesPagerAdapter(Context context,
                                 HomePager.OnUrlOpenListener onUrlOpenListener,
                                 HomePager.OnUrlOpenInBackgroundListener onUrlOpenInBackgroundListener) {
+        pages = new ArrayList<>(PAGES);
+
         this.context = context;
         this.onUrlOpenListener = onUrlOpenListener;
         this.onUrlOpenInBackgroundListener = onUrlOpenInBackgroundListener;
@@ -70,7 +75,12 @@ public class TopSitesPagerAdapter extends PagerAdapter {
 
     @Override
     public int getItemPosition(Object object) {
-        return PagerAdapter.POSITION_NONE;
+        if (pages.contains(object)) {
+            // Pages don't get rearranged, so if it exists it still has its original position
+            return PagerAdapter.POSITION_UNCHANGED;
+        } else {
+            return PagerAdapter.POSITION_NONE;
+        }
     }
 
     @Override
@@ -86,8 +96,9 @@ public class TopSitesPagerAdapter extends PagerAdapter {
             count = 0;
         }
 
-        pages.clear();
-        final int pageDelta = count;
+        // Try to only add/remove pages if really needed: this minimises the amount of UI work that
+        // happens when e.g. only one topsite has moved or has been added.
+        final int pageDelta = count - pages.size();
 
         if (pageDelta > 0) {
             final LayoutInflater inflater = LayoutInflater.from(context);
@@ -95,19 +106,21 @@ public class TopSitesPagerAdapter extends PagerAdapter {
                 final TopSitesPage page = (TopSitesPage) inflater.inflate(R.layout.activity_stream_topsites_page, null, false);
 
                 page.setTiles(tiles);
-                final TopSitesPageAdapter adapter = new TopSitesPageAdapter(context, tiles, tilesWidth, tilesHeight,
+                final TopSitesPageAdapter adapter = new TopSitesPageAdapter(
+                        context, i, tiles, tilesWidth, tilesHeight,
                         onUrlOpenListener, onUrlOpenInBackgroundListener);
                 page.setAdapter(adapter);
+                RecyclerViewClickSupport.addTo(page).setOnItemClickListener(adapter);
                 pages.add(page);
             }
         } else if (pageDelta < 0) {
             for (int i = 0; i > pageDelta; i--) {
-                final TopSitesPage page = pages.getLast();
+                final TopSitesPage page = pages.get(pages.size() - 1);
 
                 // Ensure the page doesn't use the old/invalid cursor anymore
                 page.getAdapter().swapCursor(null, 0);
 
-                pages.removeLast();
+                pages.remove(pages.size() - 1);
             }
         } else {
             // do nothing: we will be updating all the pages below

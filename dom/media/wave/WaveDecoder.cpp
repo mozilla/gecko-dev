@@ -5,9 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WaveDemuxer.h"
-#include "mozilla/Preferences.h"
+#include "MediaContainerType.h"
 #include "MediaDecoderStateMachine.h"
-#include "WaveReader.h"
 #include "WaveDecoder.h"
 #include "MediaFormatReader.h"
 #include "PDMFactory.h"
@@ -23,39 +22,24 @@ WaveDecoder::Clone(MediaDecoderOwner* aOwner)
 MediaDecoderStateMachine*
 WaveDecoder::CreateStateMachine()
 {
-  if (Preferences::GetBool("media.wave.decoder.enabled", false)) {
-    RefPtr<MediaDecoderReader> reader =
-        new MediaFormatReader(this, new WAVDemuxer(GetResource()));
-    return new MediaDecoderStateMachine(this, reader);
-  } else {
-    return new MediaDecoderStateMachine(this, new WaveReader(this));
-  }
+  return new MediaDecoderStateMachine(
+    this, new MediaFormatReader(this, new WAVDemuxer(GetResource())));
 }
 
-/* static */
-bool
-WaveDecoder::IsEnabled()
+/* static */ bool
+WaveDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-  if (!Preferences::GetBool("media.wave.decoder.enabled", false)) {
+  if (!IsWaveEnabled()) {
     return false;
   }
-  RefPtr<PDMFactory> platform = new PDMFactory();
-  return platform->SupportsMimeType(NS_LITERAL_CSTRING("audio/x-wav"),
-                                    /* DecoderDoctorDiagnostics* */ nullptr);
-}
-
-/* static */
-bool
-WaveDecoder::CanHandleMediaType(const nsACString& aType,
-                               const nsAString& aCodecs)
-{
-  if (aType.EqualsASCII("audio/wave") || aType.EqualsASCII("audio/x-wav") ||
-      aType.EqualsASCII("audio/wav")  || aType.EqualsASCII("audio/x-pn-wav")) {
-    return IsEnabled() && (aCodecs.IsEmpty() ||
-                           aCodecs.EqualsASCII("1") ||
-                           aCodecs.EqualsASCII("6") ||
-                           aCodecs.EqualsASCII("7"));
+  if (aContainerType.Type() == MEDIAMIMETYPE("audio/wave")
+      || aContainerType.Type() == MEDIAMIMETYPE("audio/x-wav")
+      || aContainerType.Type() == MEDIAMIMETYPE("audio/wav")
+      || aContainerType.Type() == MEDIAMIMETYPE("audio/x-pn-wav")) {
+    return (aContainerType.ExtendedType().Codecs().IsEmpty()
+            || aContainerType.ExtendedType().Codecs() == "1"
+            || aContainerType.ExtendedType().Codecs() == "6"
+            || aContainerType.ExtendedType().Codecs() == "7");
   }
 
   return false;

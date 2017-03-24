@@ -1,8 +1,8 @@
 /**
- * Provides infrastructure for automated login components tests.
+ * Provides infrastructure for automated formautofill components tests.
  */
 
- /* exported importAutofillModule, getTempFile */
+/* exported loadFormAutofillContent, getTempFile, sinon */
 
 "use strict";
 
@@ -10,17 +10,35 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://testing-common/MockDocument.jsm");
-
-// Load the module by Service newFileURI API for running extension's XPCShell test
-function importAutofillModule(module) {
-  return Cu.import(Services.io.newFileURI(do_get_file(module)).spec);
-}
+Cu.import("resource://testing-common/TestUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "DownloadPaths",
                                   "resource://gre/modules/DownloadPaths.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
+
+do_get_profile();
+
+// Setup the environment for sinon.
+Cu.import("resource://gre/modules/Timer.jsm");
+let self = {}; // eslint-disable-line no-unused-vars
+var sinon;
+Services.scriptloader.loadSubScript("resource://testing-common/sinon-1.16.1.js");
+
+// Load our bootstrap extension manifest so we can access our chrome/resource URIs.
+const EXTENSION_ID = "formautofill@mozilla.org";
+let extensionDir = Services.dirsvc.get("GreD", Ci.nsIFile);
+extensionDir.append("browser");
+extensionDir.append("features");
+extensionDir.append(EXTENSION_ID);
+// If the unpacked extension doesn't exist, use the packed version.
+if (!extensionDir.exists()) {
+  extensionDir = extensionDir.parent;
+  extensionDir.append(EXTENSION_ID + ".xpi");
+}
+Components.manager.addBootstrappedManifestLocation(extensionDir);
 
 // While the previous test file should have deleted all the temporary files it
 // used, on Windows these might still be pending deletion on the physical file
@@ -61,11 +79,13 @@ function getTempFile(leafName) {
   return file;
 }
 
-add_task(function* test_common_initialize() {
+add_task(function* head_initialize() {
+  Services.prefs.setBoolPref("browser.formautofill.experimental", true);
   Services.prefs.setBoolPref("dom.forms.autocomplete.experimental", true);
 
   // Clean up after every test.
-  do_register_cleanup(() => {
-    Services.prefs.setBoolPref("dom.forms.autocomplete.experimental", false);
+  do_register_cleanup(function head_cleanup() {
+    Services.prefs.clearUserPref("browser.formautofill.experimental");
+    Services.prefs.clearUserPref("dom.forms.autocomplete.experimental");
   });
 });

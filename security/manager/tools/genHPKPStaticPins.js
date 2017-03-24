@@ -19,7 +19,7 @@ if (arguments.length != 3) {
                   "<absolute path to StaticHPKPins.h>");
 }
 
-var { 'classes': Cc, 'interfaces': Ci, 'utils': Cu, 'results': Cr } = Components;
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 var { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 var { FileUtils } = Cu.import("resource://gre/modules/FileUtils.jsm", {});
@@ -28,7 +28,6 @@ var { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 var gCertDB = Cc["@mozilla.org/security/x509certdb;1"]
                 .getService(Ci.nsIX509CertDB);
 
-const BUILT_IN_NICK_PREFIX = "Builtin Object Token:";
 const SHA256_PREFIX = "sha256/";
 const GOOGLE_PIN_PREFIX = "GOOGLE_PIN_";
 
@@ -48,17 +47,19 @@ const FILE_HEADER = "/* This Source Code Form is subject to the terms of the Moz
 
 const DOMAINHEADER = "/* Domainlist */\n" +
   "struct TransportSecurityPreload {\n" +
+  "  // See bug 1338873 about making these fields const.\n" +
   "  const char* mHost;\n" +
-  "  const bool mIncludeSubdomains;\n" +
-  "  const bool mTestMode;\n" +
-  "  const bool mIsMoz;\n" +
-  "  const int32_t mId;\n" +
+  "  bool mIncludeSubdomains;\n" +
+  "  bool mTestMode;\n" +
+  "  bool mIsMoz;\n" +
+  "  int32_t mId;\n" +
   "  const StaticFingerprints* pinset;\n" +
   "};\n\n";
 
 const PINSETDEF = "/* Pinsets are each an ordered list by the actual value of the fingerprint */\n" +
   "struct StaticFingerprints {\n" +
-  "  const size_t size;\n" +
+  "  // See bug 1338873 about making these fields const.\n" +
+  "  size_t size;\n" +
   "  const char* const* data;\n" +
   "};\n\n";
 
@@ -120,8 +121,7 @@ function download(filename) {
   req.open("GET", filename, false); // doing the request synchronously
   try {
     req.send();
-  }
-  catch (e) {
+  } catch (e) {
     throw new Error(`ERROR: problem downloading '${filename}': ${e}`);
   }
 
@@ -133,8 +133,7 @@ function download(filename) {
   let resultDecoded;
   try {
     resultDecoded = atob(req.responseText);
-  }
-  catch (e) {
+  } catch (e) {
     throw new Error("ERROR: could not decode data as base64 from '" + filename +
                     "': " + e);
   }
@@ -147,8 +146,7 @@ function downloadAsJson(filename) {
   let data = null;
   try {
     data = JSON.parse(result);
-  }
-  catch (e) {
+  } catch (e) {
     throw new Error("ERROR: could not parse data from '" + filename + "': " + e);
   }
   return data;
@@ -171,8 +169,7 @@ function sha256Base64(input) {
   let decodedValue;
   try {
     decodedValue = atob(input);
-  }
-  catch (e) {
+  } catch (e) {
     throw new Error(`ERROR: could not decode as base64: '${input}': ${e}`);
   }
 
@@ -228,7 +225,6 @@ function downloadAndParseChromeCerts(filename, certNameToSKD, certSKDToName) {
   let state = PRE_NAME;
 
   let lines = download(filename).split("\n");
-  let name = "";
   let pemCert = "";
   let pemPubKey = "";
   let hash = "";
@@ -237,7 +233,7 @@ function downloadAndParseChromeCerts(filename, certNameToSKD, certSKDToName) {
   let chromeName;
   for (let line of lines) {
     // Skip comments and newlines.
-    if (line.length == 0 || line[0] == '#') {
+    if (line.length == 0 || line[0] == "#") {
       continue;
     }
     switch (state) {
@@ -402,7 +398,7 @@ function loadNSSCertinfo(extraCertificates) {
     if (!isCertBuiltIn(cert)) {
       continue;
     }
-    let name = cert.nickname.substr(BUILT_IN_NICK_PREFIX.length);
+    let name = cert.displayName;
     let SKD = cert.sha256SubjectPublicKeyInfoDigest;
     certNameToSKD[name] = SKD;
     certSKDToName[SKD] = name;
@@ -441,7 +437,7 @@ function nameToAlias(certName) {
   return "k" + certName + "Fingerprint";
 }
 
-function compareByName (a, b) {
+function compareByName(a, b) {
   return a.name.localeCompare(b.name);
 }
 
@@ -455,7 +451,6 @@ function genExpirationTime() {
 }
 
 function writeFullPinset(certNameToSKD, certSKDToName, pinset) {
-  let prefix = "kPinset_" + pinset.name;
   if (!pinset.sha256_hashes || pinset.sha256_hashes.length == 0) {
     throw new Error(`ERROR: Pinset ${pinset.name} does not contain any hashes`);
   }
@@ -487,7 +482,7 @@ function writeFingerprints(certNameToSKD, certSKDToName, name, hashes) {
 }
 
 function writeEntry(entry) {
-  let printVal = "  { \"" + entry.name + "\",\ ";
+  let printVal = `  { "${entry.name}", `;
   if (entry.include_subdomains) {
     printVal += "true, ";
   } else {

@@ -10,6 +10,7 @@
 #include "jsprf.h"
 #include "nsArrayEnumerator.h"
 #include "nsContentUtils.h"
+#include "nsIScriptError.h"
 #include "nsWrapperCache.h"
 #include "AccessCheck.h"
 #include "nsJSUtils.h"
@@ -554,7 +555,9 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
         nsresult rv = nsXPCWrappedJS::GetNewOrUsed(obj, aIID, getter_AddRefs(wrapper));
 
         // Do the same thing we do for the "check for any existing wrapper" case above.
-        *aInstancePtr = wrapper.forget().take()->GetXPTCStub();
+        if (NS_SUCCEEDED(rv) && wrapper) {
+            *aInstancePtr = wrapper.forget().take()->GetXPTCStub();
+        }
         return rv;
     }
 
@@ -1411,7 +1414,7 @@ nsXPCWrappedJSClass::DebugDump(int16_t depth)
 {
 #ifdef DEBUG
     depth-- ;
-    XPC_LOG_ALWAYS(("nsXPCWrappedJSClass @ %x with mRefCnt = %d", this, mRefCnt.get()));
+    XPC_LOG_ALWAYS(("nsXPCWrappedJSClass @ %p with mRefCnt = %" PRIuPTR, this, mRefCnt.get()));
     XPC_LOG_INDENT();
         char* name;
         mInfo->GetName(&name);
@@ -1422,22 +1425,22 @@ nsXPCWrappedJSClass::DebugDump(int16_t depth)
         XPC_LOG_ALWAYS(("IID number is %s", iid ? iid : "invalid"));
         if (iid)
             free(iid);
-        XPC_LOG_ALWAYS(("InterfaceInfo @ %x", mInfo.get()));
+        XPC_LOG_ALWAYS(("InterfaceInfo @ %p", mInfo.get()));
         uint16_t methodCount = 0;
         if (depth) {
             uint16_t i;
             nsCOMPtr<nsIInterfaceInfo> parent;
             XPC_LOG_INDENT();
             mInfo->GetParent(getter_AddRefs(parent));
-            XPC_LOG_ALWAYS(("parent @ %x", parent.get()));
+            XPC_LOG_ALWAYS(("parent @ %p", parent.get()));
             mInfo->GetMethodCount(&methodCount);
             XPC_LOG_ALWAYS(("MethodCount = %d", methodCount));
             mInfo->GetConstantCount(&i);
             XPC_LOG_ALWAYS(("ConstantCount = %d", i));
             XPC_LOG_OUTDENT();
         }
-        XPC_LOG_ALWAYS(("mContext @ %x", mContext));
-        XPC_LOG_ALWAYS(("mDescriptors @ %x count = %d", mDescriptors, methodCount));
+        XPC_LOG_ALWAYS(("mContext @ %p", mContext));
+        XPC_LOG_ALWAYS(("mDescriptors @ %p count = %d", mDescriptors, methodCount));
         if (depth && mDescriptors && methodCount) {
             depth--;
             XPC_LOG_INDENT();

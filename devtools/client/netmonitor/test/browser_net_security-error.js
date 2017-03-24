@@ -1,6 +1,6 @@
-/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
 /**
@@ -9,9 +9,11 @@
 
 add_task(function* () {
   let { tab, monitor } = yield initNetMonitor(CUSTOM_GET_URL);
-  let { $, EVENTS, NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu, NetworkDetails } = NetMonitorView;
-  RequestsMenu.lazyUpdate = false;
+  let { document, gStore, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/actions/index");
+  let { EVENTS } = windowRequire("devtools/client/netmonitor/constants");
+
+  gStore.dispatch(Actions.batchEnable(false));
 
   info("Requesting a resource that has a certificate problem.");
 
@@ -21,26 +23,15 @@ add_task(function* () {
   });
   yield wait;
 
-  info("Selecting the request.");
-  RequestsMenu.selectedIndex = 0;
+  wait = waitForDOM(document, "#security-panel");
+  EventUtils.sendMouseEvent({ type: "click" },
+    document.querySelector(".network-details-panel-toggle"));
+  EventUtils.sendMouseEvent({ type: "click" },
+    document.querySelector("#security-tab"));
+  yield wait;
 
-  info("Waiting for details pane to be updated.");
-  yield monitor.panelWin.once(EVENTS.TAB_UPDATED);
-
-  info("Selecting security tab.");
-  NetworkDetails.widget.selectedIndex = 5;
-
-  info("Waiting for security tab to be updated.");
-  yield monitor.panelWin.once(EVENTS.TAB_UPDATED);
-
-  let errorbox = $("#security-error");
-  let errormsg = $("#security-error-message");
-  let infobox = $("#security-information");
-
-  is(errorbox.hidden, false, "Error box is visble.");
-  is(infobox.hidden, true, "Information box is hidden.");
-
-  isnot(errormsg.value, "", "Error message is not empty.");
+  let errormsg = document.querySelector(".security-info-value");
+  isnot(errormsg.textContent, "", "Error message is not empty.");
 
   return teardown(monitor);
 

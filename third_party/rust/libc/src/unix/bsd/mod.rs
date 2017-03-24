@@ -117,6 +117,12 @@ s! {
         pub msg_flags: ::c_int,
     }
 
+    pub struct cmsghdr {
+        pub cmsg_len: ::socklen_t,
+        pub cmsg_level: ::c_int,
+        pub cmsg_type: ::c_int,
+    }
+
     pub struct fsid_t {
         __fsid_val: [::int32_t; 2],
     }
@@ -321,6 +327,8 @@ f! {
 }
 
 extern {
+    pub fn getifaddrs(ifap: *mut *mut ::ifaddrs) -> ::c_int;
+    pub fn freeifaddrs(ifa: *mut ::ifaddrs);
     pub fn setgroups(ngroups: ::c_int,
                      ptr: *const ::gid_t) -> ::c_int;
     pub fn ioctl(fd: ::c_int, request: ::c_ulong, ...) -> ::c_int;
@@ -347,6 +355,10 @@ extern {
     pub fn getloadavg(loadavg: *mut ::c_double, nelem: ::c_int) -> ::c_int;
     pub fn if_nameindex() -> *mut if_nameindex;
     pub fn if_freenameindex(ptr: *mut if_nameindex);
+
+    pub fn getpeereid(socket: ::c_int,
+                      euid: *mut ::uid_t,
+                      egid: *mut ::gid_t) -> ::c_int;
 }
 
 cfg_if! {
@@ -355,8 +367,8 @@ cfg_if! {
         pub use self::apple::*;
     } else if #[cfg(any(target_os = "openbsd", target_os = "netbsd",
                         target_os = "bitrig"))] {
-        mod openbsdlike;
-        pub use self::openbsdlike::*;
+        mod netbsdlike;
+        pub use self::netbsdlike::*;
     } else if #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))] {
         mod freebsdlike;
         pub use self::freebsdlike::*;

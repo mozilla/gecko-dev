@@ -28,6 +28,20 @@ typedef void (*PrefChangedFunc)(const char *, void *);
 #define have_PrefChangedFunc_typedef
 #endif
 
+#ifdef DEBUG
+enum pref_initPhase {
+  START,
+  BEGIN_INIT_PREFS,
+  END_INIT_PREFS,
+  BEGIN_ALL_PREFS,
+  END_ALL_PREFS
+};
+
+#define SET_PREF_PHASE(p) Preferences::SetInitPhase(p)
+#else
+#define SET_PREF_PHASE(p) do { } while (0)
+#endif
+
 namespace mozilla {
 
 namespace dom {
@@ -251,28 +265,60 @@ public:
 
   /**
    * Registers/Unregisters the callback function for the aPref.
-   *
-   * Pass ExactMatch for aMatchKind to only get callbacks for
-   * exact matches and not prefixes.
    */
-  enum MatchKind {
-    PrefixMatch,
-    ExactMatch,
-  };
   static nsresult RegisterCallback(PrefChangedFunc aCallback,
                                    const char* aPref,
-                                   void* aClosure = nullptr,
-                                   MatchKind aMatchKind = PrefixMatch);
+                                   void* aClosure = nullptr)
+  {
+    return RegisterCallback(aCallback, aPref, aClosure, ExactMatch);
+  }
   static nsresult UnregisterCallback(PrefChangedFunc aCallback,
                                      const char* aPref,
-                                     void* aClosure = nullptr,
-                                     MatchKind aMatchKind = PrefixMatch);
+                                     void* aClosure = nullptr)
+  {
+    return UnregisterCallback(aCallback, aPref, aClosure, ExactMatch);
+  }
   // Like RegisterCallback, but also calls the callback immediately for
   // initialization.
   static nsresult RegisterCallbackAndCall(PrefChangedFunc aCallback,
                                           const char* aPref,
-                                          void* aClosure = nullptr,
-                                          MatchKind aMatchKind = PrefixMatch);
+                                          void* aClosure = nullptr)
+  {
+    return RegisterCallbackAndCall(aCallback, aPref, aClosure, ExactMatch);
+  }
+
+  /**
+   * Like RegisterCallback, but registers a callback for a prefix of multiple
+   * pref names, not a single pref name.
+   */
+  static nsresult RegisterPrefixCallback(PrefChangedFunc aCallback,
+                                         const char* aPref,
+                                         void* aClosure = nullptr)
+  {
+    return RegisterCallback(aCallback, aPref, aClosure, PrefixMatch);
+  }
+
+  /**
+   * Like RegisterPrefixCallback, but also calls the callback immediately for
+   * initialization.
+   */
+  static nsresult RegisterPrefixCallbackAndCall(PrefChangedFunc aCallback,
+                                                const char* aPref,
+                                                void* aClosure = nullptr)
+  {
+    return RegisterCallbackAndCall(aCallback, aPref, aClosure, PrefixMatch);
+  }
+
+  /**
+   * Unregister a callback registered with RegisterPrefixCallback or
+   * RegisterPrefixCallbackAndCall.
+   */
+  static nsresult UnregisterPrefixCallback(PrefChangedFunc aCallback,
+                                           const char* aPref,
+                                           void* aClosure = nullptr)
+  {
+    return UnregisterCallback(aCallback, aPref, aClosure, PrefixMatch);
+  }
 
   /**
    * Adds the aVariable to cache table.  aVariable must be a pointer for a
@@ -366,6 +412,13 @@ public:
   static void GetPreference(PrefSetting* aPref);
   static void SetPreference(const PrefSetting& aPref);
 
+  static void SetInitPreferences(nsTArray<PrefSetting>* aPrefs);
+
+#ifdef DEBUG
+  static void SetInitPhase(pref_initPhase phase);
+  static pref_initPhase InitPhase();
+#endif
+
   static int64_t SizeOfIncludingThisAndOtherStuff(mozilla::MallocSizeOf aMallocSizeOf);
 
   static void DirtyCallback();
@@ -387,6 +440,31 @@ protected:
   nsresult SavePrefFileInternal(nsIFile* aFile);
   nsresult WritePrefFile(nsIFile* aFile);
   nsresult MakeBackupPrefFile(nsIFile *aFile);
+
+  /**
+   * Helpers for implementing
+   * Register(Prefix)Callback/Unregister(Prefix)Callback.
+   */
+public:
+  // Public so the ValueObserver classes can use it.
+  enum MatchKind {
+    PrefixMatch,
+    ExactMatch,
+  };
+
+protected:
+  static nsresult RegisterCallback(PrefChangedFunc aCallback,
+                                   const char* aPref,
+                                   void* aClosure,
+                                   MatchKind aMatchKind);
+  static nsresult UnregisterCallback(PrefChangedFunc aCallback,
+                                     const char* aPref,
+                                     void* aClosure,
+                                     MatchKind aMatchKind);
+  static nsresult RegisterCallbackAndCall(PrefChangedFunc aCallback,
+                                          const char* aPref,
+                                          void* aClosure,
+                                          MatchKind aMatchKind);
 
 private:
   nsCOMPtr<nsIFile>        mCurrentFile;

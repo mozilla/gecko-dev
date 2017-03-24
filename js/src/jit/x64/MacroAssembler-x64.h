@@ -58,8 +58,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     // X64 helpers.
     /////////////////////////////////////////////////////////////////
     void writeDataRelocation(const Value& val) {
-        if (val.isMarkable()) {
-            gc::Cell* cell = val.toMarkablePointer();
+        if (val.isGCThing()) {
+            gc::Cell* cell = val.toGCThing();
             if (cell && gc::IsInsideNursery(cell))
                 embedsNurseryPointers_ = true;
             dataRelocations_.writeUnsigned(masm.currentOffset());
@@ -132,7 +132,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     template <typename T>
     void storeValue(const Value& val, const T& dest) {
         ScratchRegisterScope scratch(asMasm());
-        if (val.isMarkable()) {
+        if (val.isGCThing()) {
             movWithPatch(ImmWord(val.asRawBits()), scratch);
             writeDataRelocation(val);
         } else {
@@ -171,7 +171,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         pop(val.valueReg());
     }
     void pushValue(const Value& val) {
-        if (val.isMarkable()) {
+        if (val.isGCThing()) {
             ScratchRegisterScope scratch(asMasm());
             movWithPatch(ImmWord(val.asRawBits()), scratch);
             writeDataRelocation(val);
@@ -563,6 +563,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void loadPtr(const Address& address, Register dest) {
         movq(Operand(address), dest);
     }
+    void load64(const Address& address, Register dest) {
+        movq(Operand(address), dest);
+    }
     void loadPtr(const Operand& src, Register dest) {
         movq(src, dest);
     }
@@ -606,6 +609,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         movq(scratch, Operand(address));
     }
     void storePtr(Register src, const Address& address) {
+        movq(src, Operand(address));
+    }
+    void store64(Register src, const Address& address) {
         movq(src, Operand(address));
     }
     void storePtr(Register src, const BaseIndex& address) {
@@ -788,6 +794,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             andq(src, dest);
         }
     }
+    void unboxNonDouble(const Address& src, Register dest) {
+        unboxNonDouble(Operand(src), dest);
+    }
 
     void unboxString(const ValueOperand& src, Register dest) { unboxNonDouble(src, dest); }
     void unboxString(const Operand& src, Register dest) { unboxNonDouble(src, dest); }
@@ -854,8 +863,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
     void loadConstantDouble(double d, FloatRegister dest);
     void loadConstantFloat32(float f, FloatRegister dest);
-    void loadConstantDouble(wasm::RawF64 d, FloatRegister dest);
-    void loadConstantFloat32(wasm::RawF32 f, FloatRegister dest);
 
     void loadConstantSimd128Int(const SimdConstant& v, FloatRegister dest);
     void loadConstantSimd128Float(const SimdConstant& v, FloatRegister dest);
@@ -877,8 +884,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
                                      Label* oolRejoin, FloatRegister tempDouble);
 
     void loadWasmGlobalPtr(uint32_t globalDataOffset, Register dest) {
-        CodeOffset label = loadRipRelativeInt64(dest);
-        append(wasm::GlobalAccess(label, globalDataOffset));
+        loadPtr(Address(WasmTlsReg, offsetof(wasm::TlsData, globalArea) + globalDataOffset), dest);
     }
     void loadWasmPinnedRegsFromTls() {
         loadPtr(Address(WasmTlsReg, offsetof(wasm::TlsData, memoryBase)), HeapReg);

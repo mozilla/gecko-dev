@@ -14,8 +14,8 @@ Test that we only render visible tree items.
 </head>
 <body>
 <pre id="test">
-<script src="head.js" type="application/javascript;version=1.8"></script>
-<script type="application/javascript;version=1.8">
+<script src="head.js" type="application/javascript"></script>
+<script type="application/javascript">
 window.onload = Task.async(function* () {
   try {
     function getSpacerHeights() {
@@ -42,6 +42,7 @@ window.onload = Task.async(function* () {
       scroll: 1 * ITEM_HEIGHT
     });
 
+    isAccessibleTree(tree);
     isRenderedTree(document.body.textContent, [
       "A:false",
       "-B:false",
@@ -59,6 +60,7 @@ window.onload = Task.async(function* () {
       scroll: 3 * ITEM_HEIGHT
     });
 
+    isAccessibleTree(tree);
     isRenderedTree(document.body.textContent, [
       "--E:false",
       "---K:false",

@@ -8,9 +8,10 @@
  * values they accept
  */
 
+#include "nsCSSProps.h"
+
 #include "mozilla/ArrayUtils.h"
 
-#include "nsCSSProps.h"
 #include "nsCSSKeywords.h"
 #include "nsLayoutUtils.h"
 #include "nsStyleConsts.h"
@@ -21,7 +22,6 @@
 #include "mozilla/LookAndFeel.h" // for system colors
 
 #include "nsString.h"
-#include "nsStaticAtom.h"
 #include "nsStaticNameTable.h"
 
 #include "mozilla/Preferences.h"
@@ -207,7 +207,7 @@ nsCSSProps::AddRefTable(void)
     static bool prefObserversInited = false;
     if (!prefObserversInited) {
       prefObserversInited = true;
-      
+
       #define OBSERVE_PROP(pref_, id_)                                        \
         if (pref_[0]) {                                                       \
           Preferences::AddBoolVarCache(&gPropertyEnabled[id_],                \
@@ -714,49 +714,6 @@ nsCSSProps::GetStringValue(nsCSSCounterDesc aCounterDesc)
   }
 }
 
-#define CSS_PROP(name_, id_, ...) nsICSSProperty* nsCSSProps::id_;
-#define CSS_PROP_SHORTHAND(name_, id_, ...) CSS_PROP(name_, id_, ...)
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
-#include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
-#undef CSS_PROP_SHORTHAND
-#undef CSS_PROP
-
-#define CSS_PROP(name_, id_, ...) NS_STATIC_ATOM_BUFFER(id_##_buffer, #name_)
-#define CSS_PROP_SHORTHAND(name_, id_, ...) CSS_PROP(name_, id_, ...)
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
-#include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
-#undef CSS_PROP_SHORTHAND
-#undef CSS_PROP
-
-static const nsStaticAtom CSSProps_info[] = {
-#define CSS_PROP(name_, id_, ...) \
-  NS_STATIC_ATOM(id_##_buffer, (nsIAtom**)&nsCSSProps::id_),
-#define CSS_PROP_SHORTHAND(name_, id_, ...) CSS_PROP(name_, id_, __VA_ARGS__)
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
-#include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
-#undef CSS_PROP_SHORTHAND
-#undef CSS_PROP
-};
-
-nsICSSProperty* nsCSSProps::gPropertyAtomTable[eCSSProperty_COUNT];
-
-/* static */ void
-nsCSSProps::AddRefAtoms()
-{
-  NS_RegisterStaticAtoms(CSSProps_info);
-#define CSS_PROP(name_, id_, ...) \
-  gPropertyAtomTable[eCSSProperty_##id_] = nsCSSProps::id_;
-#define CSS_PROP_SHORTHAND(name_, id_, ...) CSS_PROP(name_, id_, ...)
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
-#include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
-#undef CSS_PROP_SHORTHAND
-#undef CSS_PROP
-}
-
 /***************************************************************************/
 
 const KTableEntry nsCSSProps::kAnimationDirectionKTable[] = {
@@ -787,6 +744,12 @@ const KTableEntry nsCSSProps::kAnimationPlayStateKTable[] = {
 };
 
 const KTableEntry nsCSSProps::kAppearanceKTable[] = {
+  { eCSSKeyword_auto,    NS_THEME_AUTO },
+  { eCSSKeyword_none,    NS_THEME_NONE },
+  { eCSSKeyword_UNKNOWN, -1 }
+};
+
+const KTableEntry nsCSSProps::kMozAppearanceKTable[] = {
   { eCSSKeyword_none,                   NS_THEME_NONE },
   { eCSSKeyword_button,                 NS_THEME_BUTTON },
   { eCSSKeyword_radio,                  NS_THEME_RADIO },
@@ -932,33 +895,43 @@ const KTableEntry nsCSSProps::kImageLayerAttachmentKTable[] = {
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
-static_assert(NS_STYLE_IMAGELAYER_CLIP_BORDER == NS_STYLE_IMAGELAYER_ORIGIN_BORDER &&
-              NS_STYLE_IMAGELAYER_CLIP_PADDING == NS_STYLE_IMAGELAYER_ORIGIN_PADDING &&
-              NS_STYLE_IMAGELAYER_CLIP_CONTENT == NS_STYLE_IMAGELAYER_ORIGIN_CONTENT,
-              "Except background-clip:text, all {background,mask}-clip and "
-              "{background,mask}-origin style constants must agree");
-
-const KTableEntry nsCSSProps::kImageLayerOriginKTable[] = {
-  { eCSSKeyword_border_box, NS_STYLE_IMAGELAYER_ORIGIN_BORDER },
-  { eCSSKeyword_padding_box, NS_STYLE_IMAGELAYER_ORIGIN_PADDING },
-  { eCSSKeyword_content_box, NS_STYLE_IMAGELAYER_ORIGIN_CONTENT },
+const KTableEntry nsCSSProps::kBackgroundOriginKTable[] = {
+  { eCSSKeyword_border_box, StyleGeometryBox::BorderBox },
+  { eCSSKeyword_padding_box, StyleGeometryBox::PaddingBox },
+  { eCSSKeyword_content_box, StyleGeometryBox::ContentBox },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
 KTableEntry nsCSSProps::kBackgroundClipKTable[] = {
-  { eCSSKeyword_border_box, NS_STYLE_IMAGELAYER_CLIP_BORDER },
-  { eCSSKeyword_padding_box, NS_STYLE_IMAGELAYER_CLIP_PADDING },
-  { eCSSKeyword_content_box, NS_STYLE_IMAGELAYER_CLIP_CONTENT },
+  { eCSSKeyword_border_box, StyleGeometryBox::BorderBox },
+  { eCSSKeyword_padding_box, StyleGeometryBox::PaddingBox },
+  { eCSSKeyword_content_box, StyleGeometryBox::ContentBox },
   // The next entry is controlled by the layout.css.background-clip-text.enabled
   // pref.
-  { eCSSKeyword_text, NS_STYLE_IMAGELAYER_CLIP_TEXT },
+  { eCSSKeyword_text, StyleGeometryBox::Text },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
-static_assert(MOZ_ARRAY_LENGTH(nsCSSProps::kImageLayerOriginKTable) ==
-              MOZ_ARRAY_LENGTH(nsCSSProps::kBackgroundClipKTable) - 1,
-              "background-clip has one extra value, which is text, compared"
-              "to {background,mask}-origin");
+const KTableEntry nsCSSProps::kMaskOriginKTable[] = {
+  { eCSSKeyword_border_box, StyleGeometryBox::BorderBox },
+  { eCSSKeyword_padding_box, StyleGeometryBox::PaddingBox },
+  { eCSSKeyword_content_box, StyleGeometryBox::ContentBox },
+  { eCSSKeyword_fill_box, StyleGeometryBox::FillBox },
+  { eCSSKeyword_stroke_box, StyleGeometryBox::StrokeBox },
+  { eCSSKeyword_view_box, StyleGeometryBox::ViewBox },
+  { eCSSKeyword_UNKNOWN, -1 }
+};
+
+const KTableEntry nsCSSProps::kMaskClipKTable[] = {
+  { eCSSKeyword_border_box, StyleGeometryBox::BorderBox },
+  { eCSSKeyword_padding_box, StyleGeometryBox::PaddingBox },
+  { eCSSKeyword_content_box, StyleGeometryBox::ContentBox },
+  { eCSSKeyword_fill_box, StyleGeometryBox::FillBox },
+  { eCSSKeyword_stroke_box, StyleGeometryBox::StrokeBox },
+  { eCSSKeyword_view_box, StyleGeometryBox::ViewBox },
+  { eCSSKeyword_no_clip, StyleGeometryBox::NoClip },
+  { eCSSKeyword_UNKNOWN, -1 }
+};
 
 // Note: Don't change this table unless you update
 // ParseImageLayerPosition!
@@ -1302,18 +1275,18 @@ KTableEntry nsCSSProps::kDisplayKTable[] = {
   { eCSSKeyword_table_caption,       StyleDisplay::TableCaption },
   // Make sure this is kept in sync with the code in
   // nsCSSFrameConstructor::ConstructXULFrame
-  { eCSSKeyword__moz_box,            StyleDisplay::Box },
-  { eCSSKeyword__moz_inline_box,     StyleDisplay::InlineBox },
+  { eCSSKeyword__moz_box,            StyleDisplay::MozBox },
+  { eCSSKeyword__moz_inline_box,     StyleDisplay::MozInlineBox },
 #ifdef MOZ_XUL
-  { eCSSKeyword__moz_grid,           StyleDisplay::XulGrid },
-  { eCSSKeyword__moz_inline_grid,    StyleDisplay::InlineXulGrid },
-  { eCSSKeyword__moz_grid_group,     StyleDisplay::XulGridGroup },
-  { eCSSKeyword__moz_grid_line,      StyleDisplay::XulGridLine },
-  { eCSSKeyword__moz_stack,          StyleDisplay::Stack },
-  { eCSSKeyword__moz_inline_stack,   StyleDisplay::InlineStack },
-  { eCSSKeyword__moz_deck,           StyleDisplay::Deck },
-  { eCSSKeyword__moz_popup,          StyleDisplay::Popup },
-  { eCSSKeyword__moz_groupbox,       StyleDisplay::Groupbox },
+  { eCSSKeyword__moz_grid,           StyleDisplay::MozGrid },
+  { eCSSKeyword__moz_inline_grid,    StyleDisplay::MozInlineGrid },
+  { eCSSKeyword__moz_grid_group,     StyleDisplay::MozGridGroup },
+  { eCSSKeyword__moz_grid_line,      StyleDisplay::MozGridLine },
+  { eCSSKeyword__moz_stack,          StyleDisplay::MozStack },
+  { eCSSKeyword__moz_inline_stack,   StyleDisplay::MozInlineStack },
+  { eCSSKeyword__moz_deck,           StyleDisplay::MozDeck },
+  { eCSSKeyword__moz_popup,          StyleDisplay::MozPopup },
+  { eCSSKeyword__moz_groupbox,       StyleDisplay::MozGroupbox },
 #endif
   { eCSSKeyword_flex,                StyleDisplay::Flex },
   { eCSSKeyword_inline_flex,         StyleDisplay::InlineFlex },
@@ -1330,9 +1303,9 @@ KTableEntry nsCSSProps::kDisplayKTable[] = {
   { eCSSKeyword__webkit_inline_box,  StyleDisplay::WebkitInlineBox },
   { eCSSKeyword__webkit_flex,        StyleDisplay::Flex },
   { eCSSKeyword__webkit_inline_flex, StyleDisplay::InlineFlex },
-  // The next entry is controlled by the layout.css.display-contents.enabled
-  // pref.
   { eCSSKeyword_contents,            StyleDisplay::Contents },
+  // The next entry is controlled by the layout.css.display-flow-root.enabled pref.
+  { eCSSKeyword_flow_root,           StyleDisplay::FlowRoot },
   { eCSSKeyword_UNKNOWN,             -1 }
 };
 
@@ -1513,9 +1486,9 @@ const KTableEntry nsCSSProps::kFlexWrapKTable[] = {
 };
 
 const KTableEntry nsCSSProps::kHyphensKTable[] = {
-  { eCSSKeyword_none, NS_STYLE_HYPHENS_NONE },
-  { eCSSKeyword_manual, NS_STYLE_HYPHENS_MANUAL },
-  { eCSSKeyword_auto, NS_STYLE_HYPHENS_AUTO },
+  { eCSSKeyword_none, StyleHyphens::None },
+  { eCSSKeyword_manual, StyleHyphens::Manual },
+  { eCSSKeyword_auto, StyleHyphens::Auto },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -1702,8 +1675,8 @@ const KTableEntry nsCSSProps::kGridAutoFlowKTable[] = {
 };
 
 const KTableEntry nsCSSProps::kGridTrackBreadthKTable[] = {
-  { eCSSKeyword_min_content, NS_STYLE_GRID_TRACK_BREADTH_MIN_CONTENT },
-  { eCSSKeyword_max_content, NS_STYLE_GRID_TRACK_BREADTH_MAX_CONTENT },
+  { eCSSKeyword_min_content, StyleGridTrackBreadth::MinContent },
+  { eCSSKeyword_max_content, StyleGridTrackBreadth::MaxContent },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -2033,6 +2006,17 @@ KTableEntry nsCSSProps::kTextAlignLastKTable[] = {
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
+const KTableEntry nsCSSProps::kTextJustifyKTable[] = {
+  { eCSSKeyword_none, StyleTextJustify::None },
+  { eCSSKeyword_auto, StyleTextJustify::Auto },
+  { eCSSKeyword_inter_word, StyleTextJustify::InterWord },
+  { eCSSKeyword_inter_character, StyleTextJustify::InterCharacter },
+  // For legacy reasons, UAs must also support the keyword "distribute" with
+  // the exact same meaning and behavior as "inter-character".
+  { eCSSKeyword_distribute, StyleTextJustify::InterCharacter },
+  { eCSSKeyword_UNKNOWN, -1 }
+};
+
 const KTableEntry nsCSSProps::kTextCombineUprightKTable[] = {
   { eCSSKeyword_none, NS_STYLE_TEXT_COMBINE_UPRIGHT_NONE },
   { eCSSKeyword_all, NS_STYLE_TEXT_COMBINE_UPRIGHT_ALL },
@@ -2097,6 +2081,12 @@ const KTableEntry nsCSSProps::kTextOverflowKTable[] = {
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
+const KTableEntry nsCSSProps::kTextSizeAdjustKTable[] = {
+  { eCSSKeyword_none, NS_STYLE_TEXT_SIZE_ADJUST_NONE },
+  { eCSSKeyword_auto, NS_STYLE_TEXT_SIZE_ADJUST_AUTO },
+  { eCSSKeyword_UNKNOWN, -1 }
+};
+
 const KTableEntry nsCSSProps::kTextTransformKTable[] = {
   { eCSSKeyword_none, NS_STYLE_TEXT_TRANSFORM_NONE },
   { eCSSKeyword_capitalize, NS_STYLE_TEXT_TRANSFORM_CAPITALIZE },
@@ -2122,9 +2112,9 @@ const KTableEntry nsCSSProps::kTopLayerKTable[] = {
 };
 
 const KTableEntry nsCSSProps::kTransformBoxKTable[] = {
-  { eCSSKeyword_border_box, NS_STYLE_TRANSFORM_BOX_BORDER_BOX },
-  { eCSSKeyword_fill_box, NS_STYLE_TRANSFORM_BOX_FILL_BOX },
-  { eCSSKeyword_view_box, NS_STYLE_TRANSFORM_BOX_VIEW_BOX },
+  { eCSSKeyword_border_box, StyleGeometryBox::BorderBox },
+  { eCSSKeyword_fill_box, StyleGeometryBox::FillBox },
+  { eCSSKeyword_view_box, StyleGeometryBox::ViewBox },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -2146,9 +2136,6 @@ const KTableEntry nsCSSProps::kUnicodeBidiKTable[] = {
   { eCSSKeyword_isolate, NS_STYLE_UNICODE_BIDI_ISOLATE },
   { eCSSKeyword_isolate_override, NS_STYLE_UNICODE_BIDI_ISOLATE_OVERRIDE },
   { eCSSKeyword_plaintext, NS_STYLE_UNICODE_BIDI_PLAINTEXT },
-  { eCSSKeyword__moz_isolate, NS_STYLE_UNICODE_BIDI_ISOLATE },
-  { eCSSKeyword__moz_isolate_override, NS_STYLE_UNICODE_BIDI_ISOLATE_OVERRIDE },
-  { eCSSKeyword__moz_plaintext, NS_STYLE_UNICODE_BIDI_PLAINTEXT },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -2333,19 +2320,19 @@ const KTableEntry nsCSSProps::kFillRuleKTable[] = {
 };
 
 const KTableEntry nsCSSProps::kClipPathGeometryBoxKTable[] = {
-  { eCSSKeyword_content_box, StyleClipPathGeometryBox::Content },
-  { eCSSKeyword_padding_box, StyleClipPathGeometryBox::Padding },
-  { eCSSKeyword_border_box, StyleClipPathGeometryBox::Border },
-  { eCSSKeyword_margin_box, StyleClipPathGeometryBox::Margin },
-  { eCSSKeyword_fill_box, StyleClipPathGeometryBox::Fill },
-  { eCSSKeyword_stroke_box, StyleClipPathGeometryBox::Stroke },
-  { eCSSKeyword_view_box, StyleClipPathGeometryBox::View },
+  { eCSSKeyword_content_box, StyleGeometryBox::ContentBox },
+  { eCSSKeyword_padding_box, StyleGeometryBox::PaddingBox },
+  { eCSSKeyword_border_box, StyleGeometryBox::BorderBox },
+  { eCSSKeyword_margin_box, StyleGeometryBox::MarginBox },
+  { eCSSKeyword_fill_box, StyleGeometryBox::FillBox },
+  { eCSSKeyword_stroke_box, StyleGeometryBox::StrokeBox },
+  { eCSSKeyword_view_box, StyleGeometryBox::ViewBox },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
 const KTableEntry nsCSSProps::kShapeRadiusKTable[] = {
-  { eCSSKeyword_closest_side, NS_RADIUS_CLOSEST_SIDE },
-  { eCSSKeyword_farthest_side, NS_RADIUS_FARTHEST_SIDE },
+  { eCSSKeyword_closest_side, StyleShapeRadius::ClosestSide },
+  { eCSSKeyword_farthest_side, StyleShapeRadius::FarthestSide },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -2378,10 +2365,10 @@ const KTableEntry nsCSSProps::kMaskTypeKTable[] = {
 };
 
 const KTableEntry nsCSSProps::kShapeOutsideShapeBoxKTable[] = {
-  { eCSSKeyword_content_box, StyleShapeOutsideShapeBox::Content },
-  { eCSSKeyword_padding_box, StyleShapeOutsideShapeBox::Padding },
-  { eCSSKeyword_border_box, StyleShapeOutsideShapeBox::Border },
-  { eCSSKeyword_margin_box, StyleShapeOutsideShapeBox::Margin },
+  { eCSSKeyword_content_box, StyleGeometryBox::ContentBox },
+  { eCSSKeyword_padding_box, StyleGeometryBox::PaddingBox },
+  { eCSSKeyword_border_box, StyleGeometryBox::BorderBox },
+  { eCSSKeyword_margin_box, StyleGeometryBox::MarginBox },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -2451,6 +2438,12 @@ const KTableEntry nsCSSProps::kColorInterpolationKTable[] = {
 const KTableEntry nsCSSProps::kColumnFillKTable[] = {
   { eCSSKeyword_auto, NS_STYLE_COLUMN_FILL_AUTO },
   { eCSSKeyword_balance, NS_STYLE_COLUMN_FILL_BALANCE },
+  { eCSSKeyword_UNKNOWN, -1 }
+};
+
+const KTableEntry nsCSSProps::kColumnSpanKTable[] = {
+  { eCSSKeyword_all, NS_STYLE_COLUMN_SPAN_ALL },
+  { eCSSKeyword_none, NS_STYLE_COLUMN_SPAN_NONE },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -2665,10 +2658,10 @@ static const nsCSSPropertyID gBorderRadiusSubpropTable[] = {
 static const nsCSSPropertyID gOutlineRadiusSubpropTable[] = {
   // Code relies on these being in topleft-topright-bottomright-bottomleft
   // order.
-  eCSSProperty__moz_outline_radius_topLeft,
-  eCSSProperty__moz_outline_radius_topRight,
-  eCSSProperty__moz_outline_radius_bottomRight,
-  eCSSProperty__moz_outline_radius_bottomLeft,
+  eCSSProperty__moz_outline_radius_topleft,
+  eCSSProperty__moz_outline_radius_topright,
+  eCSSProperty__moz_outline_radius_bottomright,
+  eCSSProperty__moz_outline_radius_bottomleft,
   eCSSProperty_UNKNOWN
 };
 
@@ -2704,10 +2697,10 @@ static const nsCSSPropertyID gBorderSubpropTable[] = {
   eCSSProperty_border_right_color,
   eCSSProperty_border_bottom_color,
   eCSSProperty_border_left_color,
-  eCSSProperty_border_top_colors,
-  eCSSProperty_border_right_colors,
-  eCSSProperty_border_bottom_colors,
-  eCSSProperty_border_left_colors,
+  eCSSProperty__moz_border_top_colors,
+  eCSSProperty__moz_border_right_colors,
+  eCSSProperty__moz_border_bottom_colors,
+  eCSSProperty__moz_border_left_colors,
   eCSSProperty_border_image_source,
   eCSSProperty_border_image_slice,
   eCSSProperty_border_image_width,
@@ -2743,12 +2736,12 @@ static const nsCSSPropertyID gBorderBottomSubpropTable[] = {
   eCSSProperty_UNKNOWN
 };
 
-static_assert(NS_SIDE_TOP == 0 && NS_SIDE_RIGHT == 1 &&
-              NS_SIDE_BOTTOM == 2 && NS_SIDE_LEFT == 3,
+static_assert(eSideTop == 0 && eSideRight == 1 &&
+              eSideBottom == 2 && eSideLeft == 3,
               "box side constants not top/right/bottom/left == 0/1/2/3");
 static const nsCSSPropertyID gBorderColorSubpropTable[] = {
   // Code relies on these being in top-right-bottom-left order.
-  // Code relies on these matching the NS_SIDE_* constants.
+  // Code relies on these matching the enum Side constants.
   eCSSProperty_border_top_color,
   eCSSProperty_border_right_color,
   eCSSProperty_border_bottom_color,
@@ -2831,7 +2824,6 @@ static const nsCSSPropertyID gFontSubpropTable[] = {
   eCSSProperty_font_feature_settings,
   eCSSProperty_font_language_override,
   eCSSProperty_font_kerning,
-  eCSSProperty_font_synthesis,
   eCSSProperty_font_variant_alternates,
   eCSSProperty_font_variant_caps,
   eCSSProperty_font_variant_east_asian,
@@ -2907,7 +2899,7 @@ static const nsCSSPropertyID gFlexFlowSubpropTable[] = {
 
 static const nsCSSPropertyID gGridTemplateSubpropTable[] = {
   eCSSProperty_grid_template_areas,
-  eCSSProperty_grid_template_rows, 
+  eCSSProperty_grid_template_rows,
   eCSSProperty_grid_template_columns,
   eCSSProperty_UNKNOWN
 };
@@ -3005,6 +2997,24 @@ static const nsCSSPropertyID gMarkerSubpropTable[] = {
   eCSSProperty_marker_start,
   eCSSProperty_marker_mid,
   eCSSProperty_marker_end,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSPropertyID gPlaceContentSubpropTable[] = {
+  eCSSProperty_align_content,
+  eCSSProperty_justify_content,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSPropertyID gPlaceItemsSubpropTable[] = {
+  eCSSProperty_align_items,
+  eCSSProperty_justify_items,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSPropertyID gPlaceSelfSubpropTable[] = {
+  eCSSProperty_align_self,
+  eCSSProperty_justify_self,
   eCSSProperty_UNKNOWN
 };
 

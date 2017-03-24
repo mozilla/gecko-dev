@@ -6,9 +6,22 @@ module.exports = {
     "mozilla"
   ],
   "rules": {
-    "mozilla/import-globals": 1,
+    "mozilla/avoid-removeChild": "error",
+    "mozilla/avoid-nsISupportsString-preferences": "error",
+    "mozilla/import-globals": "warn",
+    "mozilla/no-import-into-var-and-global": "error",
+    "mozilla/no-useless-parameters": "error",
+    "mozilla/no-useless-removeEventListener": "error",
+    "mozilla/use-default-preference-values": "error",
+    "mozilla/use-ownerGlobal": "error",
+
+    // No (!foo in bar) or (!object instanceof Class)
+    "no-unsafe-negation": "error",
   },
   "env": {
     "es6": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 8,
   },
 };

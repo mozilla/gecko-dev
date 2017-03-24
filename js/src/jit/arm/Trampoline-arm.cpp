@@ -33,7 +33,7 @@ static const FloatRegisterSet NonVolatileFloatRegs =
                      (1ULL << FloatRegisters::d15));
 
 static void
-GenerateReturn(MacroAssembler& masm, int returnCode, SPSProfiler* prof)
+GenerateReturn(MacroAssembler& masm, int returnCode, GeckoProfiler* prof)
 {
     // Restore non-volatile floating point registers.
     masm.transferMultipleByRuns(NonVolatileFloatRegs, IsLoad, StackPointer, IA);
@@ -287,7 +287,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
         masm.push(scratch);
         masm.push(Imm32(0)); // Fake return address.
         // No GC things to mark on the stack, push a bare token.
-        masm.enterFakeExitFrame(ExitFrameLayoutBareToken);
+        masm.enterFakeExitFrame(scratch, ExitFrameLayoutBareToken);
 
         masm.push(framePtr); // BaselineFrame
         masm.push(r0); // jitcode
@@ -314,7 +314,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
         {
             Label skipProfilingInstrumentation;
             Register realFramePtr = numStackValues;
-            AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
+            AbsoluteAddress addressOfEnabled(cx->runtime()->geckoProfiler().addressOfEnabled());
             masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0),
                           &skipProfilingInstrumentation);
             masm.as_add(realFramePtr, framePtr, Imm8(sizeof(void*)));
@@ -376,7 +376,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
     //                   JSReturnReg_Data, EDtrAddr(r5, EDtrOffImm(0)));
 
     // Restore non-volatile registers and return.
-    GenerateReturn(masm, true, &cx->runtime()->spsProfiler);
+    GenerateReturn(masm, true, &cx->runtime()->geckoProfiler());
 
     Linker linker(masm);
     AutoFlushICache afc("EnterJIT");
@@ -793,7 +793,7 @@ JitRuntime::generateVMWrapper(JSContext* cx, const VMFunction& f)
     if (f.expectTailCall == NonTailCall)
         masm.pushReturnAddress();
 
-    masm.enterExitFrame(&f);
+    masm.enterExitFrame(cxreg, &f);
     masm.loadJSContext(cxreg);
 
     // Save the base of the argument set stored on the stack.
@@ -1042,7 +1042,7 @@ JitRuntime::generateDebugTrapHandler(JSContext* cx)
     // is set to the correct caller frame.
     {
         Label skipProfilingInstrumentation;
-        AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
+        AbsoluteAddress addressOfEnabled(cx->runtime()->geckoProfiler().addressOfEnabled());
         masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
         masm.profilerExitFrame();
         masm.bind(&skipProfilingInstrumentation);
@@ -1155,8 +1155,8 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
     // ^--- Entry Frame (From C++)
     //
     Register actReg = scratch4;
-    AbsoluteAddress activationAddr(GetJitContext()->runtime->addressOfProfilingActivation());
-    masm.loadPtr(activationAddr, actReg);
+    masm.loadJSContext(actReg);
+    masm.loadPtr(Address(actReg, offsetof(JSContext, profilingActivation_)), actReg);
 
     Address lastProfilingFrame(actReg, JitActivation::offsetOfLastProfilingFrame());
     Address lastProfilingCallSite(actReg, JitActivation::offsetOfLastProfilingCallSite());
@@ -1190,7 +1190,7 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
     Label handle_IonJS;
     Label handle_BaselineStub;
     Label handle_Rectifier;
-    Label handle_IonAccessorIC;
+    Label handle_IonICCall;
     Label handle_Entry;
     Label end;
 
@@ -1198,7 +1198,7 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_BaselineJS), &handle_IonJS);
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_BaselineStub), &handle_BaselineStub);
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_Rectifier), &handle_Rectifier);
-    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_IonAccessorIC), &handle_IonAccessorIC);
+    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_IonICCall), &handle_IonICCall);
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_Entry), &handle_Entry);
 
     masm.assumeUnreachable("Invalid caller frame type when exiting from Ion frame.");
@@ -1369,29 +1369,29 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
         masm.ret();
     }
 
-    // JitFrame_IonAccessorIC
+    // JitFrame_IonICCall
     //
     // The caller is always an IonJS frame.
     //
     //              Ion-Descriptor
     //              Ion-ReturnAddr
-    //              ... ion frame data ... |- AccFrame-Descriptor.Size
-    //              StubCode             |
-    //              AccFrame-Descriptor  |- IonAccessorICFrameLayout::Size()
-    //              AccFrame-ReturnAddr  |
-    //              ... accessor frame data & args ... |- Descriptor.Size
+    //              ... ion frame data ... |- CallFrame-Descriptor.Size
+    //              StubCode               |
+    //              ICCallFrame-Descriptor |- IonICCallFrameLayout::Size()
+    //              ICCallFrame-ReturnAddr |
+    //              ... call frame data & args ... |- Descriptor.Size
     //              ActualArgc      |
     //              CalleeToken     |- JitFrameLayout::Size()
     //              Descriptor      |
     //    FP -----> ReturnAddr      |
-    masm.bind(&handle_IonAccessorIC);
+    masm.bind(&handle_IonICCall);
     {
         // scratch2 := StackPointer + Descriptor.size + JitFrameLayout::Size()
         masm.ma_add(StackPointer, scratch1, scratch2);
         masm.addPtr(Imm32(JitFrameLayout::Size()), scratch2);
 
-        // scratch3 := AccFrame-Descriptor.Size
-        masm.loadPtr(Address(scratch2, IonAccessorICFrameLayout::offsetOfDescriptor()), scratch3);
+        // scratch3 := ICCallFrame-Descriptor.Size
+        masm.loadPtr(Address(scratch2, IonICCallFrameLayout::offsetOfDescriptor()), scratch3);
 #ifdef DEBUG
         // Assert previous frame is an IonJS frame.
         masm.movePtr(scratch3, scratch1);
@@ -1399,20 +1399,20 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
         {
             Label checkOk;
             masm.branch32(Assembler::Equal, scratch1, Imm32(JitFrame_IonJS), &checkOk);
-            masm.assumeUnreachable("IonAccessorIC frame must be preceded by IonJS frame");
+            masm.assumeUnreachable("IonICCall frame must be preceded by IonJS frame");
             masm.bind(&checkOk);
         }
 #endif
         masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), scratch3);
 
-        // lastProfilingCallSite := AccFrame-ReturnAddr
-        masm.loadPtr(Address(scratch2, IonAccessorICFrameLayout::offsetOfReturnAddress()), scratch1);
+        // lastProfilingCallSite := ICCallFrame-ReturnAddr
+        masm.loadPtr(Address(scratch2, IonICCallFrameLayout::offsetOfReturnAddress()), scratch1);
         masm.storePtr(scratch1, lastProfilingCallSite);
 
-        // lastProfilingFrame := AccessorFrame + AccFrame-Descriptor.Size +
-        //                       IonAccessorICFrameLayout::Size()
+        // lastProfilingFrame := ICCallFrame + ICCallFrame-Descriptor.Size +
+        //                       IonICCallFrameLayout::Size()
         masm.ma_add(scratch2, scratch3, scratch1);
-        masm.addPtr(Imm32(IonAccessorICFrameLayout::Size()), scratch1);
+        masm.addPtr(Imm32(IonICCallFrameLayout::Size()), scratch1);
         masm.storePtr(scratch1, lastProfilingFrame);
         masm.ret();
     }

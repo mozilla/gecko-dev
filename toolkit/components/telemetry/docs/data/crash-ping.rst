@@ -2,7 +2,18 @@
 "crash" ping
 ============
 
-This ping is captured after the main Firefox process crashes, whether or not the crash report is submitted to crash-stats.mozilla.org. It includes non-identifying metadata about the crash.
+This ping is captured after the main Firefox process crashes or after a content
+process crashes, whether or not the crash report is submitted to
+crash-stats.mozilla.org. It includes non-identifying metadata about the crash.
+
+This ping is sent either by the ```CrashManager``` or by the crash reporter
+client. The ```CrashManager``` is responsible for sending crash pings for the
+content process crashes, which are sent right after the crash is detected,
+as well as for main process crashes, which are sent after Firefox restarts
+successfully. The crash reporter client sends crash pings only for main process
+crashes whether or not the user also reports the crash. The crash reporter
+client will not send the crash ping if telemetry has been disabled in Firefox
+though.
 
 The environment block that is sent with this ping varies: if Firefox was running long enough to record the environment block before the crash, then the environment at the time of the crash will be recorded and ``hasCrashEnvironment`` will be true. If Firefox crashed before the environment was recorded, ``hasCrashEnvironment`` will be false and the recorded environment will be the environment at time of submission.
 
@@ -13,19 +24,23 @@ Structure:
 .. code-block:: js
 
     {
-      version: 1,
       type: "crash",
       ... common ping data
       clientId: <UUID>,
       environment: { ... },
+      processType: <type>, // Type of process that crashed, see below for a list of types
       payload: {
         crashDate: "YYYY-MM-DD",
+        crashTime: <ISO Date>, // per-hour resolution
+        version: 1,
         sessionId: <UUID>, // may be missing for crashes that happen early
                            // in startup. Added in Firefox 48 with the
                            // intention of uplifting to Firefox 46
         crashId: <UUID>, // Optional, ID of the associated crash
+        minidumpSha256Hash: <hash>, // SHA256 hash of the minidump file
         stackTraces: { ... }, // Optional, see below
         metadata: { // Annotations saved while Firefox was running. See nsExceptionHandler.cpp for more information
+          ProductID: "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}",
           ProductName: "Firefox",
           ReleaseChannel: <channel>,
           Version: <version number>,
@@ -54,6 +69,21 @@ Structure:
         hasCrashEnvironment: bool
       }
     }
+
+Process Types
+-------------
+
+The ``processType`` field contains the type of process that crashed. There are
+currently multiple process types defined in ``nsICrashService`` but crash pings
+are sent only for the ones below:
+
++---------------+---------------------------------------------------+
+| Type          | Description                                       |
++===============+===================================================+
+| main          | Main process, also known as the browser process   |
++---------------+---------------------------------------------------+
+| content       | Content process                                   |
++---------------+---------------------------------------------------+
 
 Stack Traces
 ------------
@@ -113,7 +143,7 @@ crash address meaning depends on the type of crash. In a segmentation fault the
 crash address will be the memory address whose access caused the fault; in a
 crash triggered by an illegal instruction exception the address will be the
 instruction pointer where the invalid instruction resides.
-See `breakpad <https://chromium.googlesource.com/breakpad/breakpad/+/c99d374dde62654a024840accfb357b2851daea0/src/processor/minidump_processor.cc#675>`_'s
+See `breakpad <https://chromium.googlesource.com/breakpad/breakpad/+/c99d374dde62654a024840accfb357b2851daea0/src/processor/minidump_processor.cc#675>`__'s
 relevant code for further information.
 
 Since it's not always possible to establish with certainty the address of the
@@ -140,5 +170,5 @@ The trust levels are (from least trusted to most trusted):
 +---------------+---------------------------------------------------+
 
 The ``code_id`` field holds a unique ID used to distinguish between different
-versions and builds of the same module. See `breakpad <https://chromium.googlesource.com/breakpad/breakpad/+/24f5931c5e0120982c0cbf1896641e3ef2bdd52f/src/google_breakpad/processor/code_module.h#60>`_'s
+versions and builds of the same module. See `breakpad <https://chromium.googlesource.com/breakpad/breakpad/+/24f5931c5e0120982c0cbf1896641e3ef2bdd52f/src/google_breakpad/processor/code_module.h#60>`__'s
 description for further information. This field is populated only on Windows.

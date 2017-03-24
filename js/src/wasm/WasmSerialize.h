@@ -41,6 +41,16 @@ ReadBytes(const uint8_t* src, void* dst, size_t nbytes)
     return src + nbytes;
 }
 
+static inline const uint8_t*
+ReadBytesChecked(const uint8_t* src, size_t* remain, void* dst, size_t nbytes)
+{
+    if (*remain < nbytes)
+        return nullptr;
+    memcpy(dst, src, nbytes);
+    *remain -= nbytes;
+    return src + nbytes;
+}
+
 template <class T>
 static inline uint8_t*
 WriteScalar(uint8_t* dst, T t)
@@ -54,6 +64,17 @@ static inline const uint8_t*
 ReadScalar(const uint8_t* src, T* dst)
 {
     memcpy(dst, src, sizeof(*dst));
+    return src + sizeof(*dst);
+}
+
+template <class T>
+static inline const uint8_t*
+ReadScalarChecked(const uint8_t* src, size_t* remain, T* dst)
+{
+    if (*remain < sizeof(*dst))
+        return nullptr;
+    memcpy(dst, src, sizeof(*dst));
+    *remain -= sizeof(*dst);
     return src + sizeof(*dst);
 }
 
@@ -116,7 +137,7 @@ static inline uint8_t*
 SerializePodVector(uint8_t* cursor, const mozilla::Vector<T, N, SystemAllocPolicy>& vec)
 {
     // This binary format must not change without taking into consideration the
-    // constraints in Assumptions::serialize and Module::serialize.
+    // constraints in Assumptions::serialize.
 
     cursor = WriteScalar<uint32_t>(cursor, vec.length());
     cursor = WriteBytes(cursor, vec.begin(), vec.length() * sizeof(T));
@@ -132,6 +153,18 @@ DeserializePodVector(const uint8_t* cursor, mozilla::Vector<T, N, SystemAllocPol
     if (!vec->initLengthUninitialized(length))
         return nullptr;
     cursor = ReadBytes(cursor, vec->begin(), length * sizeof(T));
+    return cursor;
+}
+
+template <class T, size_t N>
+static inline const uint8_t*
+DeserializePodVectorChecked(const uint8_t* cursor, size_t* remain, mozilla::Vector<T, N, SystemAllocPolicy>* vec)
+{
+    uint32_t length;
+    cursor = ReadScalarChecked<uint32_t>(cursor, remain, &length);
+    if (!cursor || !vec->initLengthUninitialized(length))
+        return nullptr;
+    cursor = ReadBytesChecked(cursor, remain, vec->begin(), length * sizeof(T));
     return cursor;
 }
 

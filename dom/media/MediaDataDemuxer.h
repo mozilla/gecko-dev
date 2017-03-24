@@ -55,8 +55,8 @@ public:
   // aTrackNumber must be constrained between  0 and  GetNumberTracks(aType) - 1
   // The actual Track ID is to be retrieved by calling
   // MediaTrackDemuxer::TrackInfo.
-  virtual already_AddRefed<MediaTrackDemuxer> GetTrackDemuxer(TrackInfo::TrackType aType,
-                                                              uint32_t aTrackNumber) = 0;
+  virtual already_AddRefed<MediaTrackDemuxer> GetTrackDemuxer(
+    TrackInfo::TrackType aType, uint32_t aTrackNumber) = 0;
 
   // Returns true if the underlying resource allows seeking.
   virtual bool IsSeekable() const = 0;
@@ -101,15 +101,17 @@ class MediaTrackDemuxer
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaTrackDemuxer)
 
-  class SamplesHolder {
+  class SamplesHolder
+  {
   public:
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SamplesHolder)
     nsTArray<RefPtr<MediaRawData>> mSamples;
   private:
-    ~SamplesHolder() {}
+    ~SamplesHolder() { }
   };
 
-  class SkipFailureHolder {
+  class SkipFailureHolder
+  {
   public:
     SkipFailureHolder(const MediaResult& aFailure, uint32_t aSkipped)
       : mFailure(aFailure)
@@ -119,9 +121,13 @@ public:
     uint32_t mSkipped;
   };
 
-  typedef MozPromise<media::TimeUnit, MediaResult, /* IsExclusive = */ true> SeekPromise;
-  typedef MozPromise<RefPtr<SamplesHolder>, MediaResult, /* IsExclusive = */ true> SamplesPromise;
-  typedef MozPromise<uint32_t, SkipFailureHolder, /* IsExclusive = */ true> SkipAccessPointPromise;
+  typedef MozPromise<media::TimeUnit, MediaResult, /* IsExclusive = */ true>
+    SeekPromise;
+  typedef MozPromise<RefPtr<SamplesHolder>, MediaResult,
+                     /* IsExclusive = */ true>
+    SamplesPromise;
+  typedef MozPromise<uint32_t, SkipFailureHolder, /* IsExclusive = */ true>
+    SkipAccessPointPromise;
 
   // Returns the TrackInfo (a.k.a Track Description) for this track.
   // The TrackInfo returned will be:
@@ -132,7 +138,7 @@ public:
 
   // Seeks to aTime. Upon success, SeekPromise will be resolved with the
   // actual time seeked to. Typically the random access point time
-  virtual RefPtr<SeekPromise> Seek(media::TimeUnit aTime) = 0;
+  virtual RefPtr<SeekPromise> Seek(const media::TimeUnit& aTime) = 0;
 
   // Returns the next aNumSamples sample(s) available.
   // If only a lesser amount of samples is available, only those will be
@@ -176,7 +182,8 @@ public:
   // The first frame returned by the next call to GetSamples() will be the
   // first random access point found after aTimeThreshold.
   // Upon success, returns the number of frames skipped.
-  virtual RefPtr<SkipAccessPointPromise> SkipToNextRandomAccessPoint(media::TimeUnit aTimeThreshold) = 0;
+  virtual RefPtr<SkipAccessPointPromise>
+  SkipToNextRandomAccessPoint(const media::TimeUnit& aTimeThreshold) = 0;
 
   // Gets the resource's offset used for the last Seek() or GetSample().
   // A negative value indicates that this functionality isn't supported.
@@ -206,7 +213,7 @@ public:
   }
 
 protected:
-  virtual ~MediaTrackDemuxer() {}
+  virtual ~MediaTrackDemuxer() { }
 };
 
 } // namespace mozilla

@@ -12,6 +12,7 @@ interface nsICacheEntryDoomCallback;
 interface nsICacheListener;
 interface nsIFile;
 interface nsICacheEntryMetaDataVisitor;
+interface nsILoadContextInfo;
 
 [scriptable, uuid(607c2a2c-0a48-40b9-a956-8cf2bb9857cf)]
 interface nsICacheEntry : nsISupports
@@ -174,6 +175,11 @@ interface nsICacheEntry : nsISupports
   void setValid();
 
   /**
+   * Returns the size in kilobytes used to store the cache entry on disk.
+   */
+   readonly attribute uint32_t diskStorageSizeInKB;
+
+  /**
    * Doom this entry and open a new, empty, entry for write.  Consumer has
    * to exchange the entry this method is called on for the newly created.
    * Used on 200 responses to conditional requests.
@@ -227,6 +233,11 @@ interface nsICacheEntry : nsISupports
    *      all or if alt-data of the given type doesn't exist.
    */
   nsIInputStream openAlternativeInputStream(in ACString type);
+
+  /**
+   * Get the nsILoadContextInfo of the cache entry
+   */
+  readonly attribute nsILoadContextInfo loadContextInfo;
 
   /****************************************************************************
    * The following methods might be added to some nsICacheEntryInternal

@@ -115,10 +115,10 @@ function doKey(aKey, modifier) {
                QueryInterface(SpecialPowers.Ci.nsIInterfaceRequestor).
                getInterface(SpecialPowers.Ci.nsIDOMWindowUtils);
 
-  if (wutils.sendKeyEvent("keydown",  key, 0, modifier)) {
+  if (wutils.sendKeyEvent("keydown", key, 0, modifier)) {
     wutils.sendKeyEvent("keypress", key, 0, modifier);
   }
-  wutils.sendKeyEvent("keyup",    key, 0, modifier);
+  wutils.sendKeyEvent("keyup", key, 0, modifier);
 }
 
 /**
@@ -166,35 +166,38 @@ function commonInit(selfFilling) {
 }
 
 function registerRunTests() {
-  // We provide a general mechanism for our tests to know when they can
-  // safely run: we add a final form that we know will be filled in, wait
-  // for the login manager to tell us that it's filled in and then continue
-  // with the rest of the tests.
-  window.addEventListener("DOMContentLoaded", (event) => {
-    var form = document.createElement('form');
-    form.id = 'observerforcer';
-    var username = document.createElement('input');
-    username.name = 'testuser';
-    form.appendChild(username);
-    var password = document.createElement('input');
-    password.name = 'testpass';
-    password.type = 'password';
-    form.appendChild(password);
+  return new Promise(resolve => {
+    // We provide a general mechanism for our tests to know when they can
+    // safely run: we add a final form that we know will be filled in, wait
+    // for the login manager to tell us that it's filled in and then continue
+    // with the rest of the tests.
+    window.addEventListener("DOMContentLoaded", (event) => {
+      var form = document.createElement("form");
+      form.id = "observerforcer";
+      var username = document.createElement("input");
+      username.name = "testuser";
+      form.appendChild(username);
+      var password = document.createElement("input");
+      password.name = "testpass";
+      password.type = "password";
+      form.appendChild(password);
 
-    var observer = SpecialPowers.wrapCallback(function(subject, topic, data) {
-      var formLikeRoot = subject.QueryInterface(SpecialPowers.Ci.nsIDOMNode);
-      if (formLikeRoot.id !== 'observerforcer')
-        return;
-      SpecialPowers.removeObserver(observer, "passwordmgr-processed-form");
-      formLikeRoot.remove();
-      SimpleTest.executeSoon(() => {
-        var runTestEvent = new Event("runTests");
-        window.dispatchEvent(runTestEvent);
+      var observer = SpecialPowers.wrapCallback(function(subject, topic, data) {
+        var formLikeRoot = subject.QueryInterface(SpecialPowers.Ci.nsIDOMNode);
+        if (formLikeRoot.id !== "observerforcer")
+          return;
+        SpecialPowers.removeObserver(observer, "passwordmgr-processed-form");
+        formLikeRoot.remove();
+        SimpleTest.executeSoon(() => {
+          var runTestEvent = new Event("runTests");
+          window.dispatchEvent(runTestEvent);
+          resolve();
+        });
       });
-    });
-    SpecialPowers.addObserver(observer, "passwordmgr-processed-form", false);
+      SpecialPowers.addObserver(observer, "passwordmgr-processed-form", false);
 
-    document.body.appendChild(form);
+      document.body.appendChild(form);
+    });
   });
 }
 
@@ -221,7 +224,7 @@ function setMasterPassword(enable) {
   // invocation of pwmgr can trigger a MP prompt.
 
   var pk11db = Cc["@mozilla.org/security/pk11tokendb;1"].getService(Ci.nsIPK11TokenDB);
-  var token = pk11db.findTokenByName("");
+  var token = pk11db.getInternalKeyToken();
   info("MP change from " + oldPW + " to " + newPW);
   token.changePassword(oldPW, newPW);
 }
@@ -423,7 +426,11 @@ if (this.addMessageListener) {
       return arg;
     });
 
-    return Services.logins[msg.methodName](...recreatedArgs);
+    let rv = Services.logins[msg.methodName](...recreatedArgs);
+    if (rv instanceof Ci.nsILoginInfo) {
+      rv = LoginHelper.loginToVanillaObject(rv);
+    }
+    return rv;
   });
 
   var globalMM = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
@@ -432,7 +439,12 @@ if (this.addMessageListener) {
   });
 } else {
   // Code to only run in the mochitest pages (not in the chrome script).
+  SpecialPowers.pushPrefEnv({"set": [["signon.rememberSignons", true],
+                                     ["signon.autofillForms.http", true],
+                                     ["security.insecure_field_warning.contextual.enabled", false]]
+                           });
   SimpleTest.registerCleanupFunction(() => {
+    SpecialPowers.popPrefEnv();
     runInParent(function cleanupParent() {
       const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
       Cu.import("resource://gre/modules/Services.jsm");

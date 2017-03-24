@@ -71,22 +71,13 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::unicode;
 
-gfxFontconfigUtils *gfxPlatformGtk::sFontconfigUtils = nullptr;
-
 #if (MOZ_WIDGET_GTK == 2)
 static cairo_user_data_key_t cairo_gdk_drawable_key;
 #endif
 
-bool gfxPlatformGtk::sUseFcFontList = false;
-
 gfxPlatformGtk::gfxPlatformGtk()
 {
     gtk_init(nullptr, nullptr);
-
-    sUseFcFontList = mozilla::Preferences::GetBool("gfx.font_rendering.fontconfig.fontlist.enabled");
-    if (!sUseFcFontList && !sFontconfigUtils) {
-        sFontconfigUtils = gfxFontconfigUtils::GetFontconfigUtils();
-    }
 
     mMaxGenericSubstitutions = UNINITIALIZED_VALUE;
 
@@ -127,21 +118,10 @@ gfxPlatformGtk::gfxPlatformGtk()
 
 gfxPlatformGtk::~gfxPlatformGtk()
 {
-    if (!sUseFcFontList) {
-        gfxFontconfigUtils::Shutdown();
-        sFontconfigUtils = nullptr;
-        gfxPangoFontGroup::Shutdown();
+#ifdef MOZ_X11
+    if (mIsX11Display && mCompositorDisplay) {
+      XCloseDisplay(mCompositorDisplay);
     }
-
-#if defined(MOZ_X11)
-    if (mIsX11Display) {
-       XCloseDisplay(mXCompositorDisplay);
-    }
-#if defined(GDK_WINDOWING_WAYLAND)
-    else {
-       wl_display_disconnect(mWaylandCompositorDisplay);
-    }
-#endif
 #endif
 }
 
@@ -215,27 +195,17 @@ gfxPlatformGtk::GetFontList(nsIAtom *aLangGroup,
                             const nsACString& aGenericFamily,
                             nsTArray<nsString>& aListOfFonts)
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList::PlatformFontList()->GetFontList(aLangGroup,
-                                                             aGenericFamily,
-                                                             aListOfFonts);
-        return NS_OK;
-    }
-
-    return sFontconfigUtils->GetFontList(aLangGroup,
-                                         aGenericFamily,
-                                         aListOfFonts);
+    gfxPlatformFontList::PlatformFontList()->GetFontList(aLangGroup,
+                                                         aGenericFamily,
+                                                         aListOfFonts);
+    return NS_OK;
 }
 
 nsresult
 gfxPlatformGtk::UpdateFontList()
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList::PlatformFontList()->UpdateFontList();
-        return NS_OK;
-    }
-
-    return sFontconfigUtils->UpdateFontList();
+    gfxPlatformFontList::PlatformFontList()->UpdateFontList();
+    return NS_OK;
 }
 
 // xxx - this is ubuntu centric, need to go through other distros and flesh
@@ -302,13 +272,9 @@ gfxPlatformGtk::CreatePlatformFontList()
 nsresult
 gfxPlatformGtk::GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName)
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList::PlatformFontList()->
-            GetStandardFamilyName(aFontName, aFamilyName);
-        return NS_OK;
-    }
-
-    return sFontconfigUtils->GetStandardFamilyName(aFontName, aFamilyName);
+    gfxPlatformFontList::PlatformFontList()->
+        GetStandardFamilyName(aFontName, aFamilyName);
+    return NS_OK;
 }
 
 gfxFontGroup *
@@ -318,13 +284,8 @@ gfxPlatformGtk::CreateFontGroup(const FontFamilyList& aFontFamilyList,
                                 gfxUserFontSet* aUserFontSet,
                                 gfxFloat aDevToCssSize)
 {
-    if (sUseFcFontList) {
-        return new gfxFontGroup(aFontFamilyList, aStyle, aTextPerf,
-                                aUserFontSet, aDevToCssSize);
-    }
-
-    return new gfxPangoFontGroup(aFontFamilyList, aStyle,
-                                 aUserFontSet, aDevToCssSize);
+    return new gfxFontGroup(aFontFamilyList, aStyle, aTextPerf,
+                            aUserFontSet, aDevToCssSize);
 }
 
 gfxFontEntry*
@@ -333,14 +294,9 @@ gfxPlatformGtk::LookupLocalFont(const nsAString& aFontName,
                                 int16_t aStretch,
                                 uint8_t aStyle)
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
-        return pfl->LookupLocalFont(aFontName, aWeight, aStretch,
-                                    aStyle);
-    }
-
-    return gfxPangoFontGroup::NewFontEntry(aFontName, aWeight,
-                                           aStretch, aStyle);
+    gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
+    return pfl->LookupLocalFont(aFontName, aWeight, aStretch,
+                                aStyle);
 }
 
 gfxFontEntry*
@@ -351,16 +307,15 @@ gfxPlatformGtk::MakePlatformFont(const nsAString& aFontName,
                                  const uint8_t* aFontData,
                                  uint32_t aLength)
 {
-    if (sUseFcFontList) {
-        gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
-        return pfl->MakePlatformFont(aFontName, aWeight, aStretch,
-                                     aStyle, aFontData, aLength);
-    }
+    gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
+    return pfl->MakePlatformFont(aFontName, aWeight, aStretch,
+                                 aStyle, aFontData, aLength);
+}
 
-    // passing ownership of the font data to the new font entry
-    return gfxPangoFontGroup::NewFontEntry(aFontName, aWeight,
-                                           aStretch, aStyle,
-                                           aFontData, aLength);
+FT_Library
+gfxPlatformGtk::GetFTLibrary()
+{
+    return gfxFcPlatformFontList::GetFTLibrary();
 }
 
 bool
@@ -414,13 +369,14 @@ gfxPlatformGtk::GetDPIScale()
     // scale on WINNT and at this ratio the advantages of larger rendering
     // outweigh the disadvantages from scaling and pixel mis-alignment.
     int32_t dpi = GetDPI();
-    if (dpi < 144) {
+    if (dpi < 132) {
         return 1.0;
-    } else if (dpi < 168) {
-        return 1.5;
-    } else {
-        return round(dpi/96.0);
     }
+    if (dpi < 168) {
+        return 1.5;
+    }
+    return round(dpi/96.0);
+
 }
 
 bool
@@ -451,11 +407,9 @@ void gfxPlatformGtk::FontsPrefsChanged(const char *aPref)
     }
 
     mMaxGenericSubstitutions = UNINITIALIZED_VALUE;
-    if (sUseFcFontList) {
-        gfxFcPlatformFontList* pfl = gfxFcPlatformFontList::PlatformFontList();
-        pfl->ClearGenericMappings();
-        FlushFontAndWordCaches();
-    }
+    gfxFcPlatformFontList* pfl = gfxFcPlatformFontList::PlatformFontList();
+    pfl->ClearGenericMappings();
+    FlushFontAndWordCaches();
 }
 
 uint32_t gfxPlatformGtk::MaxGenericSubstitions()
@@ -740,21 +694,18 @@ public:
         ScopedXFree<GLXFBConfig> cfgs;
         GLXFBConfig config;
         int visid;
+        bool forWebRender = false;
         if (!gl::GLContextGLX::FindFBConfigForWindow(mXDisplay, screen, root,
-                                                     &cfgs, &config, &visid)) {
+                                                     &cfgs, &config, &visid,
+                                                     forWebRender)) {
           lock.NotifyAll();
           return;
         }
 
-        mGLContext = gl::GLContextGLX::CreateGLContext(
-            gl::CreateContextFlags::NONE,
-            gl::SurfaceCaps::Any(),
-            nullptr,
-            false,
-            mXDisplay,
-            root,
-            config,
-            false);
+        mGLContext = gl::GLContextGLX::CreateGLContext(gl::CreateContextFlags::NONE,
+                                                       gl::SurfaceCaps::Any(), false,
+                                                       mXDisplay, root, config, false,
+                                                       nullptr);
 
         if (!mGLContext) {
           lock.NotifyAll();
@@ -765,7 +716,7 @@ public:
 
         // Test that SGI_video_sync lets us get the counter.
         unsigned int syncCounter = 0;
-        if (gl::sGLXLibrary.xGetVideoSync(&syncCounter) != 0) {
+        if (gl::sGLXLibrary.fGetVideoSync(&syncCounter) != 0) {
           mGLContext = nullptr;
         }
 
@@ -829,7 +780,7 @@ public:
       mGLContext->MakeCurrent();
 
       unsigned int syncCounter = 0;
-      gl::sGLXLibrary.xGetVideoSync(&syncCounter);
+      gl::sGLXLibrary.fGetVideoSync(&syncCounter);
       for (;;) {
         {
           MonitorAutoLock lock(mVsyncEnabledLock);
@@ -846,7 +797,7 @@ public:
         // until the parity of the counter value changes.
         unsigned int nextSync = syncCounter + 1;
         int status;
-        if ((status = gl::sGLXLibrary.xWaitVideoSync(2, nextSync % 2, &syncCounter)) != 0) {
+        if ((status = gl::sGLXLibrary.fWaitVideoSync(2, nextSync % 2, &syncCounter)) != 0) {
           gfxWarningOnce() << "glXWaitVideoSync returned " << status;
           useSoftware = true;
         }
@@ -909,13 +860,6 @@ gfxPlatformGtk::CreateHardwareVsyncSource()
     NS_WARNING("SGI_video_sync unsupported. Falling back to software vsync.");
   }
   return gfxPlatform::CreateHardwareVsyncSource();
-}
-
-bool
-gfxPlatformGtk::SupportsApzTouchInput() const
-{
-  int value = gfxPrefs::TouchEventsEnabled();
-  return value == 1 || value == 2;
 }
 
 #endif

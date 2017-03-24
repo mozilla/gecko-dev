@@ -6,6 +6,7 @@
 
 EXPORTS += [
     'agnostic/AgnosticDecoderModule.h',
+    'agnostic/DummyMediaDataDecoder.h',
     'agnostic/OpusDecoder.h',
     'agnostic/TheoraDecoder.h',
     'agnostic/VorbisDecoder.h',
@@ -13,21 +14,25 @@ EXPORTS += [
     'MediaTelemetryConstants.h',
     'PDMFactory.h',
     'PlatformDecoderModule.h',
-    'wrappers/FuzzingWrapper.h',
-    'wrappers/H264Converter.h'
+    'SimpleMap.h',
+    'wrappers/H264Converter.h',
+    'wrappers/MediaDataDecoderProxy.h'
+
 ]
 
 UNIFIED_SOURCES += [
     'agnostic/AgnosticDecoderModule.cpp',
     'agnostic/BlankDecoderModule.cpp',
+    'agnostic/DummyMediaDataDecoder.cpp',
+    'agnostic/NullDecoderModule.cpp',
     'agnostic/OpusDecoder.cpp',
     'agnostic/TheoraDecoder.cpp',
     'agnostic/VorbisDecoder.cpp',
     'agnostic/VPXDecoder.cpp',
     'agnostic/WAVDecoder.cpp',
     'PDMFactory.cpp',
-    'wrappers/FuzzingWrapper.cpp',
-    'wrappers/H264Converter.cpp'
+    'wrappers/H264Converter.cpp',
+    'wrappers/MediaDataDecoderProxy.cpp'
 ]
 
 DIRS += [
@@ -70,10 +75,6 @@ if CONFIG['MOZ_APPLEMEDIA']:
       '-framework AudioToolbox',
   ]
 
-if CONFIG['MOZ_GONK_MEDIACODEC']:
-    DEFINES['MOZ_GONK_MEDIACODEC'] = True
-    DIRS += ['gonk']
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
@@ -82,7 +83,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     ]
     UNIFIED_SOURCES += [
         'android/AndroidDecoderModule.cpp',
-        'android/MediaCodecDataDecoder.cpp',
         'android/RemoteDataDecoder.cpp',
     ]
 

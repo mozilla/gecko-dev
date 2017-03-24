@@ -9,6 +9,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/Pair.h"
 #include "gfxPattern.h"
 #include "gfxMatrix.h"
 #include "nsSVGContainerFrame.h"
@@ -38,6 +39,7 @@ class nsSVGMaskFrame final : public nsSVGContainerFrame
 
   typedef mozilla::gfx::Matrix Matrix;
   typedef mozilla::gfx::SourceSurface SourceSurface;
+  typedef mozilla::image::DrawResult DrawResult;
 
 protected:
   explicit nsSVGMaskFrame(nsStyleContext* aContext)
@@ -50,14 +52,25 @@ protected:
 public:
   NS_DECL_FRAMEARENA_HELPERS
 
+  struct MaskParams {
+    gfxContext* ctx;
+    nsIFrame* maskedFrame;
+    const gfxMatrix& toUserSpace;
+    float opacity;
+    Matrix* maskTransform;
+    uint8_t maskMode;
+
+    explicit MaskParams(gfxContext* aCtx, nsIFrame* aMaskedFrame,
+                        const gfxMatrix& aToUserSpace, float aOpacity,
+                        Matrix* aMaskTransform, uint8_t aMaskMode)
+    : ctx(aCtx), maskedFrame(aMaskedFrame), toUserSpace(aToUserSpace),
+      opacity(aOpacity), maskTransform(aMaskTransform), maskMode(aMaskMode)
+    { }
+  };
+
   // nsSVGMaskFrame method:
-  already_AddRefed<SourceSurface>
-  GetMaskForMaskedFrame(gfxContext* aContext,
-                        nsIFrame* aMaskedFrame,
-                        const gfxMatrix &aMatrix,
-                        float aOpacity,
-                        Matrix* aMaskTransform,
-                        uint8_t aMaskOp = NS_STYLE_MASK_MODE_MATCH_SOURCE);
+  mozilla::Pair<DrawResult, RefPtr<SourceSurface>>
+  GetMaskForMaskedFrame(MaskParams& aParams);
 
   gfxRect
   GetMaskArea(nsIFrame* aMaskedFrame);
@@ -97,28 +110,6 @@ private:
    * returns the resulting transform.
    */
   gfxMatrix GetMaskTransform(nsIFrame* aMaskedFrame);
-
-  // A helper class to allow us to paint masks safely. The helper
-  // automatically sets and clears the mInUse flag on the mask frame
-  // (to prevent nasty reference loops). It's easy to mess this up
-  // and break things, so this helper makes the code far more robust.
-  class MOZ_RAII AutoMaskReferencer
-  {
-  public:
-    explicit AutoMaskReferencer(nsSVGMaskFrame *aFrame
-                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-       : mFrame(aFrame) {
-      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-      NS_ASSERTION(!mFrame->mInUse, "reference loop!");
-      mFrame->mInUse = true;
-    }
-    ~AutoMaskReferencer() {
-      mFrame->mInUse = false;
-    }
-  private:
-    nsSVGMaskFrame *mFrame;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-  };
 
   gfxMatrix mMatrixForChildren;
   // recursion prevention flag

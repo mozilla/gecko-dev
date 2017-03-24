@@ -15,6 +15,12 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 use url::{Host, Url, form_urlencoded};
 
+#[test]
+fn size() {
+    use std::mem::size_of;
+    assert_eq!(size_of::<Url>(), size_of::<Option<Url>>());
+}
+
 macro_rules! assert_from_file_path {
     ($path: expr) => { assert_from_file_path!($path, $path) };
     ($path: expr, $url_path: expr) => {{
@@ -70,6 +76,10 @@ fn new_path_windows_fun() {
         // test windows canonicalized path
         let path = PathBuf::from(r"\\?\C:\foo\bar");
         assert!(Url::from_file_path(path).is_ok());
+
+        // Percent-encoded drive letter
+        let url = Url::parse("file:///C%3A/foo/bar").unwrap();
+        assert_eq!(url.to_file_path(), Ok(PathBuf::from(r"C:\foo\bar")));
     }
 }
 
@@ -102,6 +112,14 @@ fn from_str() {
 }
 
 #[test]
+fn parse_with_params() {
+    let url = Url::parse_with_params("http://testing.com/this?dont=clobberme",
+                                     &[("lang", "rust")]).unwrap();
+
+    assert_eq!(url.as_str(), "http://testing.com/this?dont=clobberme&lang=rust");
+}
+
+#[test]
 fn issue_124() {
     let url: Url = "file:a".parse().unwrap();
     assert_eq!(url.path(), "/a");
@@ -113,14 +131,15 @@ fn issue_124() {
 
 #[test]
 fn test_equality() {
-    use std::hash::{Hash, Hasher, SipHasher};
+    use std::hash::{Hash, Hasher};
+    use std::collections::hash_map::DefaultHasher;
 
     fn check_eq(a: &Url, b: &Url) {
         assert_eq!(a, b);
 
-        let mut h1 = SipHasher::new();
+        let mut h1 = DefaultHasher::new();
         a.hash(&mut h1);
-        let mut h2 = SipHasher::new();
+        let mut h2 = DefaultHasher::new();
         b.hash(&mut h2);
         assert_eq!(h1.finish(), h2.finish());
     }
@@ -192,6 +211,7 @@ fn host_serialization() {
 fn test_idna() {
     assert!("http://goșu.ro".parse::<Url>().is_ok());
     assert_eq!(Url::parse("http://☃.net/").unwrap().host(), Some(Host::Domain("xn--n3h.net")));
+    assert!("https://r2---sn-huoa-cvhl.googlevideo.com/crossdomain.xml".parse::<Url>().is_ok());
 }
 
 #[test]
@@ -239,13 +259,13 @@ fn test_form_serialize() {
 fn issue_25() {
     let filename = if cfg!(windows) { r"C:\run\pg.sock" } else { "/run/pg.sock" };
     let mut url = Url::from_file_path(filename).unwrap();
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     url.set_scheme("postgres").unwrap();
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     url.set_host(Some("")).unwrap();
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     url.set_username("me").unwrap();
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     let expected = format!("postgres://me@/{}run/pg.sock", if cfg!(windows) { "C:/" } else { "" });
     assert_eq!(url.as_str(), expected);
 }
@@ -257,7 +277,7 @@ fn issue_61() {
     url.set_scheme("https").unwrap();
     assert_eq!(url.port(), None);
     assert_eq!(url.port_or_known_default(), Some(443));
-    url.assert_invariants();
+    url.check_invariants().unwrap();
 }
 
 #[test]
@@ -265,18 +285,23 @@ fn issue_61() {
 /// https://github.com/servo/rust-url/issues/197
 fn issue_197() {
     let mut url = Url::from_file_path("/").expect("Failed to parse path");
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     assert_eq!(url, Url::parse("file:///").expect("Failed to parse path + protocol"));
     url.path_segments_mut().expect("path_segments_mut").pop_if_empty();
+}
+
+#[test]
+fn issue_241() {
+    Url::parse("mailto:").unwrap().cannot_be_a_base();
 }
 
 #[test]
 /// https://github.com/servo/rust-url/issues/222
 fn append_trailing_slash() {
     let mut url: Url = "http://localhost:6767/foo/bar?a=b".parse().unwrap();
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     url.path_segments_mut().unwrap().push("");
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     assert_eq!(url.to_string(), "http://localhost:6767/foo/bar/?a=b");
 }
 
@@ -285,10 +310,10 @@ fn append_trailing_slash() {
 fn extend_query_pairs_then_mutate() {
     let mut url: Url = "http://localhost:6767/foo/bar".parse().unwrap();
     url.query_pairs_mut().extend_pairs(vec![ ("auth", "my-token") ].into_iter());
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     assert_eq!(url.to_string(), "http://localhost:6767/foo/bar?auth=my-token");
     url.path_segments_mut().unwrap().push("some_other_path");
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     assert_eq!(url.to_string(), "http://localhost:6767/foo/bar/some_other_path?auth=my-token");
 }
 
@@ -296,8 +321,24 @@ fn extend_query_pairs_then_mutate() {
 /// https://github.com/servo/rust-url/issues/222
 fn append_empty_segment_then_mutate() {
     let mut url: Url = "http://localhost:6767/foo/bar?a=b".parse().unwrap();
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     url.path_segments_mut().unwrap().push("").pop();
-    url.assert_invariants();
+    url.check_invariants().unwrap();
     assert_eq!(url.to_string(), "http://localhost:6767/foo/bar?a=b");
+}
+
+#[test]
+/// https://github.com/servo/rust-url/issues/243
+fn test_set_host() {
+    let mut url = Url::parse("https://example.net/hello").unwrap();
+    url.set_host(Some("foo.com")).unwrap();
+    assert_eq!(url.as_str(), "https://foo.com/hello");
+    assert!(url.set_host(None).is_err());
+    assert_eq!(url.as_str(), "https://foo.com/hello");
+    assert!(url.set_host(Some("")).is_err());
+    assert_eq!(url.as_str(), "https://foo.com/hello");
+
+    let mut url = Url::parse("foobar://example.net/hello").unwrap();
+    url.set_host(None).unwrap();
+    assert_eq!(url.as_str(), "foobar:/hello");
 }

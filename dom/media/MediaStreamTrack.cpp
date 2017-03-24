@@ -44,7 +44,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 auto
 MediaStreamTrackSource::ApplyConstraints(
     nsPIDOMWindowInner* aWindow,
-    const dom::MediaTrackConstraints& aConstraints) -> already_AddRefed<PledgeVoid>
+    const dom::MediaTrackConstraints& aConstraints,
+    CallerType aCallerType) -> already_AddRefed<PledgeVoid>
 {
   RefPtr<PledgeVoid> p = new PledgeVoid();
   p->Reject(new MediaStreamError(aWindow,
@@ -83,7 +84,9 @@ class MediaStreamTrack::PrincipalHandleListener : public MediaStreamTrackListene
 {
 public:
   explicit PrincipalHandleListener(MediaStreamTrack* aTrack)
-    : mTrack(aTrack) {}
+    : mTrack(aTrack)
+    , mAbstractMainThread(aTrack->mOwningStream->AbstractMainThread())
+    {}
 
   void Forget()
   {
@@ -105,15 +108,16 @@ public:
   void NotifyPrincipalHandleChanged(MediaStreamGraph* aGraph,
                                     const PrincipalHandle& aNewPrincipalHandle) override
   {
-    nsCOMPtr<nsIRunnable> runnable =
+    aGraph->DispatchToMainThreadAfterStreamStateUpdate(
+      mAbstractMainThread,
       NewRunnableMethod<StoreCopyPassByConstLRef<PrincipalHandle>>(
-        this, &PrincipalHandleListener::DoNotifyPrincipalHandleChanged, aNewPrincipalHandle);
-    aGraph->DispatchToMainThreadAfterStreamStateUpdate(runnable.forget());
+        this, &PrincipalHandleListener::DoNotifyPrincipalHandleChanged, aNewPrincipalHandle));
   }
 
 protected:
   // These fields may only be accessed on the main thread
   MediaStreamTrack* mTrack;
+  const RefPtr<AbstractThread> mAbstractMainThread;
 };
 
 MediaStreamTrack::MediaStreamTrack(DOMMediaStream* aStream, TrackID aTrackID,
@@ -126,11 +130,12 @@ MediaStreamTrack::MediaStreamTrack(DOMMediaStream* aStream, TrackID aTrackID,
     mReadyState(MediaStreamTrackState::Live),
     mEnabled(true), mConstraints(aConstraints)
 {
-
   GetSource().RegisterSink(this);
 
-  mPrincipalHandleListener = new PrincipalHandleListener(this);
-  AddListener(mPrincipalHandleListener);
+  if (GetOwnedStream()) {
+    mPrincipalHandleListener = new PrincipalHandleListener(this);
+    AddListener(mPrincipalHandleListener);
+  }
 
   nsresult rv;
   nsCOMPtr<nsIUUIDGenerator> uuidgen =
@@ -267,6 +272,7 @@ MediaStreamTrack::GetSettings(dom::MediaTrackSettings& aResult)
 
 already_AddRefed<Promise>
 MediaStreamTrack::ApplyConstraints(const MediaTrackConstraints& aConstraints,
+                                   CallerType aCallerType,
                                    ErrorResult &aRv)
 {
   if (MOZ_LOG_TEST(gMediaStreamTrackLog, LogLevel::Info)) {
@@ -291,7 +297,8 @@ MediaStreamTrack::ApplyConstraints(const MediaTrackConstraints& aConstraints,
 
   // Keep a reference to this, to make sure it's still here when we get back.
   RefPtr<MediaStreamTrack> that = this;
-  RefPtr<PledgeVoid> p = GetSource().ApplyConstraints(window, aConstraints);
+  RefPtr<PledgeVoid> p = GetSource().ApplyConstraints(window, aConstraints,
+                                                      aCallerType);
   p->Then([this, that, promise, aConstraints](bool& aDummy) mutable {
     mConstraints = aConstraints;
     promise->MaybeResolve(false);

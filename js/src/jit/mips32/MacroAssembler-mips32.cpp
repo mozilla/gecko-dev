@@ -202,17 +202,6 @@ MacroAssemblerMIPS::ma_li(Register dest, ImmWord imm)
     ma_li(dest, Imm32(uint32_t(imm.value)));
 }
 
-// This method generates lui and ori instruction pair that can be modified by
-// UpdateLuiOriValue, either during compilation (eg. Assembler::bind), or
-// during execution (eg. jit::PatchJump).
-void
-MacroAssemblerMIPS::ma_liPatchable(Register dest, Imm32 imm)
-{
-    m_buffer.ensureSpace(2 * sizeof(uint32_t));
-    as_lui(dest, Imm16::Upper(imm).encode());
-    as_ori(dest, dest, Imm16::Lower(imm).encode());
-}
-
 void
 MacroAssemblerMIPS::ma_liPatchable(Register dest, ImmPtr imm)
 {
@@ -1413,12 +1402,6 @@ MacroAssemblerMIPSCompat::loadConstantFloat32(float f, FloatRegister dest)
 }
 
 void
-MacroAssemblerMIPSCompat::loadConstantFloat32(wasm::RawF32 f, FloatRegister dest)
-{
-    ma_lis(dest, f);
-}
-
-void
 MacroAssemblerMIPSCompat::loadInt32OrDouble(const Address& src, FloatRegister dest)
 {
     Label notInt32, end;
@@ -1468,34 +1451,6 @@ MacroAssemblerMIPSCompat::loadConstantDouble(double dp, FloatRegister dest)
     ma_lid(dest, dp);
 }
 
-void
-MacroAssemblerMIPSCompat::loadConstantDouble(wasm::RawF64 d, FloatRegister dest)
-{
-    struct DoubleStruct {
-        uint32_t lo;
-        uint32_t hi;
-    } ;
-    DoubleStruct intStruct = mozilla::BitwiseCast<DoubleStruct>(d.bits());
-
-    // put hi part of 64 bit value into the odd register
-    if (intStruct.hi == 0) {
-        moveToDoubleHi(zero, dest);
-    } else {
-        ScratchRegisterScope scratch(asMasm());
-        ma_li(scratch, Imm32(intStruct.hi));
-        moveToDoubleHi(scratch, dest);
-    }
-
-    // put low part of 64 bit value into the even register
-    if (intStruct.lo == 0) {
-        moveToDoubleLo(zero, dest);
-    } else {
-        ScratchRegisterScope scratch(asMasm());
-        ma_li(scratch, Imm32(intStruct.lo));
-        moveToDoubleLo(scratch, dest);
-    }
-}
-
 Register
 MacroAssemblerMIPSCompat::extractObject(const Address& address, Register scratch)
 {
@@ -1527,8 +1482,8 @@ MacroAssemblerMIPSCompat::getType(const Value& val)
 void
 MacroAssemblerMIPSCompat::moveData(const Value& val, Register data)
 {
-    if (val.isMarkable())
-        ma_li(data, ImmGCPtr(val.toMarkablePointer()));
+    if (val.isGCThing())
+        ma_li(data, ImmGCPtr(val.toGCThing()));
     else
         ma_li(data, Imm32(val.toNunboxPayload()));
 }
@@ -1957,7 +1912,7 @@ MacroAssemblerMIPSCompat::handleFailureWithHandlerTail(void* handler)
     {
         Label skipProfilingInstrumentation;
         // Test if profiler enabled.
-        AbsoluteAddress addressOfEnabled(GetJitContext()->runtime->spsProfiler().addressOfEnabled());
+        AbsoluteAddress addressOfEnabled(GetJitContext()->runtime->geckoProfiler().addressOfEnabled());
         asMasm().branch32(Assembler::Equal, addressOfEnabled, Imm32(0),
                           &skipProfilingInstrumentation);
         profilerExitFrame();
@@ -2097,8 +2052,8 @@ MacroAssemblerMIPSCompat::toggledCall(JitCode* target, bool enabled)
 void
 MacroAssemblerMIPSCompat::profilerEnterFrame(Register framePtr, Register scratch)
 {
-    AbsoluteAddress activation(GetJitContext()->runtime->addressOfProfilingActivation());
-    loadPtr(activation, scratch);
+    asMasm().loadJSContext(scratch);
+    loadPtr(Address(scratch, offsetof(JSContext, profilingActivation_)), scratch);
     storePtr(framePtr, Address(scratch, JitActivation::offsetOfLastProfilingFrame()));
     storePtr(ImmPtr(nullptr), Address(scratch, JitActivation::offsetOfLastProfilingCallSite()));
 }

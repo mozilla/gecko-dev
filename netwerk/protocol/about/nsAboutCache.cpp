@@ -396,7 +396,7 @@ NS_IMETHODIMP
 nsAboutCache::Channel::OnCacheEntryInfo(nsIURI *aURI, const nsACString & aIdEnhance,
                                         int64_t aDataSize, int32_t aFetchCount,
                                         uint32_t aLastModified, uint32_t aExpirationTime,
-                                        bool aPinned)
+                                        bool aPinned, nsILoadContextInfo* aInfo)
 {
     // We need mStream for this
     if (!mStream || mCancel) {
@@ -565,7 +565,7 @@ nsAboutCache::Channel::FlushBuffer()
 NS_IMETHODIMP
 nsAboutCache::GetURIFlags(nsIURI *aURI, uint32_t *result)
 {
-    *result = 0;
+    *result = nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT;
     return NS_OK;
 }
 

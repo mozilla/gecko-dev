@@ -1,8 +1,15 @@
+/* import-globals-from head_appinfo.js */
+/* import-globals-from ../../../common/tests/unit/head_helpers.js */
+/* import-globals-from head_helpers.js */
+
 var Cm = Components.manager;
 
 // Shared logging for all HTTP server functions.
 Cu.import("resource://gre/modules/Log.jsm");
 const SYNC_HTTP_LOGGER = "Sync.Test.Server";
+
+// While the sync code itself uses 1.5, the tests hard-code 1.1,
+// so we're sticking with 1.1 here.
 const SYNC_API_VERSION = "1.1";
 
 // Use the same method that record.js does, which mirrors the server.
@@ -21,6 +28,11 @@ function return_timestamp(request, response, timestamp) {
   response.setStatusLine(request.httpVersion, 200, "OK");
   response.bodyOutputStream.write(body, body.length);
   return timestamp;
+}
+
+function has_hawk_header(req) {
+  return req.hasHeader("Authorization") &&
+         req.getHeader("Authorization").startsWith("Hawk");
 }
 
 function basic_auth_header(user, password) {
@@ -72,17 +84,17 @@ ServerWBO.prototype = {
     return JSON.parse(this.payload);
   },
 
-  get: function() {
+  get() {
     return JSON.stringify(this, ["id", "modified", "payload"]);
   },
 
-  put: function(input) {
+  put(input) {
     input = JSON.parse(input);
     this.payload = input.payload;
     this.modified = new_timestamp();
   },
 
-  delete: function() {
+  delete() {
     delete this.payload;
     delete this.modified;
   },
@@ -90,7 +102,7 @@ ServerWBO.prototype = {
   // This handler sets `newModified` on the response body if the collection
   // timestamp has changed. This allows wrapper handlers to extract information
   // that otherwise would exist only in the body stream.
-  handler: function() {
+  handler() {
     let self = this;
 
     return function(request, response) {
@@ -98,7 +110,7 @@ ServerWBO.prototype = {
       var status = "OK";
       var body;
 
-      switch(request.method) {
+      switch (request.method) {
         case "GET":
           if (self.payload) {
             body = self.get();
@@ -199,7 +211,7 @@ ServerCollection.prototype = {
    */
   wbos: function wbos(filter) {
     let os = [];
-    for (let [id, wbo] of Object.entries(this._wbos)) {
+    for (let wbo of Object.values(this._wbos)) {
       if (wbo.payload) {
         os.push(wbo);
       }
@@ -216,8 +228,8 @@ ServerCollection.prototype = {
    *
    * @return an array of the payloads of each stored WBO.
    */
-  payloads: function () {
-    return this.wbos().map(function (wbo) {
+  payloads() {
+    return this.wbos().map(function(wbo) {
       return JSON.parse(JSON.parse(wbo.payload).ciphertext);
     });
   },
@@ -267,16 +279,16 @@ ServerCollection.prototype = {
     delete this._wbos[id];
   },
 
-  _inResultSet: function(wbo, options) {
+  _inResultSet(wbo, options) {
     return wbo.payload
            && (!options.ids || (options.ids.indexOf(wbo.id) != -1))
            && (!options.newer || (wbo.modified > options.newer));
   },
 
-  count: function(options) {
+  count(options) {
     options = options || {};
     let c = 0;
-    for (let [id, wbo] of Object.entries(this._wbos)) {
+    for (let wbo of Object.values(this._wbos)) {
       if (wbo.modified && this._inResultSet(wbo, options)) {
         c++;
       }
@@ -284,11 +296,11 @@ ServerCollection.prototype = {
     return c;
   },
 
-  get: function(options) {
+  get(options) {
     let result;
     if (options.full) {
       let data = [];
-      for (let [id, wbo] of Object.entries(this._wbos)) {
+      for (let wbo of Object.values(this._wbos)) {
         // Drop deleted.
         if (wbo.modified && this._inResultSet(wbo, options)) {
           data.push(wbo.get());
@@ -330,7 +342,7 @@ ServerCollection.prototype = {
     return result;
   },
 
-  post: function(input) {
+  post(input) {
     input = JSON.parse(input);
     let success = [];
     let failed = {};
@@ -355,13 +367,13 @@ ServerCollection.prototype = {
       }
     }
     return {modified: new_timestamp(),
-            success: success,
-            failed: failed};
+            success,
+            failed};
   },
 
-  delete: function(options) {
+  delete(options) {
     let deleted = [];
-    for (let [id, wbo] of Object.entries(this._wbos)) {
+    for (let wbo of Object.values(this._wbos)) {
       if (this._inResultSet(wbo, options)) {
         this._log.debug("Deleting " + JSON.stringify(wbo));
         deleted.push(wbo.id);
@@ -373,7 +385,7 @@ ServerCollection.prototype = {
 
   // This handler sets `newModified` on the response body if the collection
   // timestamp has changed.
-  handler: function() {
+  handler() {
     let self = this;
 
     return function(request, response) {
@@ -394,7 +406,14 @@ ServerCollection.prototype = {
           options[chunk[0]] = chunk[1];
         }
       }
-      if (options.ids) {
+      // The real servers return 400 if ids= is specified without a list of IDs.
+      if (options.hasOwnProperty("ids")) {
+        if (!options.ids) {
+          response.setStatusLine(request.httpVersion, "400", "Bad Request");
+          body = "Bad Request";
+          response.bodyOutputStream.write(body, body.length);
+          return;
+        }
         options.ids = options.ids.split(",");
       }
       if (options.newer) {
@@ -407,7 +426,7 @@ ServerCollection.prototype = {
         options.offset = parseInt(options.offset, 10);
       }
 
-      switch(request.method) {
+      switch (request.method) {
         case "GET":
           body = self.get(options, request);
           // see http://moz-services-docs.readthedocs.io/en/latest/storage/apis-1.5.html
@@ -506,7 +525,7 @@ function track_collections_helper() {
    */
   function info_collections(request, response) {
     let body = "Error.";
-    switch(request.method) {
+    switch (request.method) {
       case "GET":
         body = JSON.stringify(collections);
         break;
@@ -528,9 +547,9 @@ function track_collections_helper() {
           "update_collection": update_collection};
 }
 
-//===========================================================================//
+// ===========================================================================//
 // httpd.js-based Sync server.                                               //
-//===========================================================================//
+// ===========================================================================//
 
 /**
  * In general, the preferred way of using SyncServer is to directly introspect
@@ -655,7 +674,7 @@ SyncServer.prototype = {
       throw new Error("User already exists.");
     }
     this.users[username] = {
-      password: password,
+      password,
       collections: {}
     };
     return this.user(username);
@@ -763,16 +782,16 @@ SyncServer.prototype = {
     let collection       = this.getCollection.bind(this, username);
     let createCollection = this.createCollection.bind(this, username);
     let createContents   = this.createContents.bind(this, username);
-    let modified         = function (collectionName) {
+    let modified         = function(collectionName) {
       return collection(collectionName).timestamp;
     }
     let deleteCollections = this.deleteCollections.bind(this, username);
     return {
-      collection:        collection,
-      createCollection:  createCollection,
-      createContents:    createContents,
-      deleteCollections: deleteCollections,
-      modified:          modified
+      collection,
+      createCollection,
+      createContents,
+      deleteCollections,
+      modified
     };
   },
 
@@ -848,7 +867,7 @@ SyncServer.prototype = {
       throw HTTP_404;
     }
 
-    let [all, version, username, first, rest] = parts;
+    let [, version, username, first, rest] = parts;
     // Doing a float compare of the version allows for us to pretend there was
     // a node-reassignment - eg, we could re-assign from "1.1/user/" to
     // "1.10/user" - this server will then still accept requests with the new
@@ -866,8 +885,8 @@ SyncServer.prototype = {
 
     // Hand off to the appropriate handler for this path component.
     if (first in this.toplevelHandlers) {
-      let handler = this.toplevelHandlers[first];
-      return handler.call(this, handler, req, resp, version, username, rest);
+      let newHandler = this.toplevelHandlers[first];
+      return newHandler.call(this, newHandler, req, resp, version, username, rest);
     }
     this._log.debug("SyncServer: Unknown top-level " + first);
     throw HTTP_404;
@@ -916,16 +935,18 @@ SyncServer.prototype = {
         this._log.warn("SyncServer: Unknown storage operation " + rest);
         throw HTTP_404;
       }
-      let [all, collection, wboID] = match;
+      let [, collection, wboID] = match;
       let coll = this.getCollection(username, collection);
       switch (req.method) {
-        case "GET":
+        case "GET": {
           if (!coll) {
             if (wboID) {
               respond(404, "Not found", "Not found");
               return undefined;
             }
-            // *cries inside*: Bug 687299.
+            // *cries inside*: Bug 687299 - now fixed, so apparently the real
+            // sync server *will* 404 in this case - bug 1347807 is to change
+            // this to a 404 and fix a handful of test failures it causes.
             respond(200, "OK", "[]");
             return undefined;
           }
@@ -938,9 +959,9 @@ SyncServer.prototype = {
             return undefined;
           }
           return wbo.handler()(req, resp);
-
+        }
         // TODO: implement handling of X-If-Unmodified-Since for write verbs.
-        case "DELETE":
+        case "DELETE": {
           if (!coll) {
             respond(200, "OK", "{}");
             return undefined;
@@ -984,6 +1005,7 @@ SyncServer.prototype = {
             this.callback.onItemDeleted(username, collection, deleted[i]);
           }
           return undefined;
+        }
         case "POST":
         case "PUT":
           if (!coll) {

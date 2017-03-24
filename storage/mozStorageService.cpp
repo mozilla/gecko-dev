@@ -14,8 +14,6 @@
 #include "nsEmbedCID.h"
 #include "nsThreadUtils.h"
 #include "mozStoragePrivateHelpers.h"
-#include "nsILocale.h"
-#include "nsILocaleService.h"
 #include "nsIXPConnect.h"
 #include "nsIObserverService.h"
 #include "nsIPropertyBag2.h"
@@ -211,9 +209,11 @@ Service::getSingleton()
     if (ps) {
       nsAutoString title, message;
       title.AppendLiteral("SQLite Version Error");
-      message.AppendLiteral("The application has been updated, but your version "
-                          "of SQLite is too old and the application cannot "
-                          "run.");
+      message.AppendLiteral("The application has been updated, but the SQLite "
+                            "library wasn't updated properly and the application "
+                            "cannot run. Please try to launch the application again. "
+                            "If that should still fail, please try reinstalling "
+                            "it, or visit https://support.mozilla.org/.");
       (void)ps->Alert(nullptr, title.get(), message.get());
     }
     MOZ_CRASH("SQLite Version Error");
@@ -608,19 +608,6 @@ Service::getLocaleCollation()
   if (mLocaleCollation)
     return mLocaleCollation;
 
-  nsCOMPtr<nsILocaleService> svc(do_GetService(NS_LOCALESERVICE_CONTRACTID));
-  if (!svc) {
-    NS_WARNING("Could not get locale service");
-    return nullptr;
-  }
-
-  nsCOMPtr<nsILocale> appLocale;
-  nsresult rv = svc->GetApplicationLocale(getter_AddRefs(appLocale));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Could not get application locale");
-    return nullptr;
-  }
-
   nsCOMPtr<nsICollationFactory> collFact =
     do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID);
   if (!collFact) {
@@ -628,7 +615,7 @@ Service::getLocaleCollation()
     return nullptr;
   }
 
-  rv = collFact->CreateCollation(appLocale, getter_AddRefs(mLocaleCollation));
+  nsresult rv = collFact->CreateCollation(getter_AddRefs(mLocaleCollation));
   if (NS_FAILED(rv)) {
     NS_WARNING("Could not create collation");
     return nullptr;

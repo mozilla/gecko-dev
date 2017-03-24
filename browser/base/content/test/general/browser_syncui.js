@@ -6,7 +6,7 @@ var {Weave} = Cu.import("resource://services-sync/main.js", {});
 
 var stringBundle = Cc["@mozilla.org/intl/stringbundle;1"]
                    .getService(Ci.nsIStringBundleService)
-                   .createBundle("chrome://weave/locale/services/sync.properties");
+                   .createBundle("chrome://weave/locale/sync.properties");
 
 // ensure test output sees log messages.
 Log.repository.getLogger("browserwindow.syncui").addAppender(new Log.DumpAppender());
@@ -182,14 +182,14 @@ add_task(function* testButtonActivitiesInNavBar() {
 add_task(function* testFormatLastSyncDateNow() {
   let now = new Date();
   let nowString = gSyncUI.formatLastSyncDate(now);
-  Assert.equal(nowString, "Last sync: " + now.toLocaleDateString(undefined, {weekday: 'long', hour: 'numeric', minute: 'numeric'}));
+  Assert.equal(nowString, "Last sync: " + now.toLocaleDateString(undefined, {weekday: "long", hour: "numeric", minute: "numeric"}));
 });
 
 add_task(function* testFormatLastSyncDateMonthAgo() {
   let monthAgo = new Date();
   monthAgo.setMonth(monthAgo.getMonth() - 1);
   let monthAgoString = gSyncUI.formatLastSyncDate(monthAgo);
-  Assert.equal(monthAgoString, "Last sync: " + monthAgo.toLocaleDateString(undefined, {month: 'long', day: 'numeric'}));
+  Assert.equal(monthAgoString, "Last sync: " + monthAgo.toLocaleDateString(undefined, {month: "long", day: "numeric"}));
 });
 
 add_task(function* testButtonActivitiesInPanel() {

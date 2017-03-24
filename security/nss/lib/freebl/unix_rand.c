@@ -160,7 +160,7 @@ RNG_kstat(PRUint32 *fed)
 
 #endif
 
-#if defined(SCO) || defined(UNIXWARE) || defined(BSDI) || defined(FREEBSD) || defined(NETBSD) || defined(DARWIN) || defined(OPENBSD) || defined(NTO) || defined(__riscos__)
+#if defined(SCO) || defined(UNIXWARE) || defined(BSDI) || defined(FREEBSD) || defined(NETBSD) || defined(DARWIN) || defined(OPENBSD) || defined(NTO) || defined(__riscos__) || defined(__GNU__) || defined(__FreeBSD_kernel__) || defined(__NetBSD_kernel__)
 #include <sys/times.h>
 
 #define getdtablesize() sysconf(_SC_OPEN_MAX)
@@ -682,134 +682,6 @@ RNG_GetNoise(void *buf, size_t maxbytes)
     return n;
 }
 
-#define SAFE_POPEN_MAXARGS 10 /* must be at least 2 */
-
-/*
- * safe_popen is static to this module and we know what arguments it is
- * called with. Note that this version only supports a single open child
- * process at any time.
- */
-static pid_t safe_popen_pid;
-static struct sigaction oldact;
-
-static FILE *
-safe_popen(char *cmd)
-{
-    int p[2], fd, argc;
-    pid_t pid;
-    char *argv[SAFE_POPEN_MAXARGS + 1];
-    FILE *fp;
-    static char blank[] = " \t";
-    static struct sigaction newact;
-
-    if (pipe(p) < 0)
-        return 0;
-
-    fp = fdopen(p[0], "r");
-    if (fp == 0) {
-        close(p[0]);
-        close(p[1]);
-        return 0;
-    }
-
-    /* Setup signals so that SIGCHLD is ignored as we want to do waitpid */
-    newact.sa_handler = SIG_DFL;
-    newact.sa_flags = 0;
-    sigfillset(&newact.sa_mask);
-    sigaction(SIGCHLD, &newact, &oldact);
-
-    pid = fork();
-    switch (pid) {
-        int ndesc;
-
-        case -1:
-            fclose(fp); /* this closes p[0], the fd associated with fp */
-            close(p[1]);
-            sigaction(SIGCHLD, &oldact, NULL);
-            return 0;
-
-        case 0:
-            /* dup write-side of pipe to stderr and stdout */
-            if (p[1] != 1)
-                dup2(p[1], 1);
-            if (p[1] != 2)
-                dup2(p[1], 2);
-
-            /*
-             * close the other file descriptors, except stdin which we
-             * try reassociating with /dev/null, first (bug 174993)
-             */
-            if (!freopen("/dev/null", "r", stdin))
-                close(0);
-            ndesc = getdtablesize();
-            for (fd = PR_MIN(65536, ndesc); --fd > 2; close(fd))
-                ;
-
-            /* clean up environment in the child process */
-            putenv("PATH=/bin:/usr/bin:/sbin:/usr/sbin:/etc:/usr/etc");
-            putenv("SHELL=/bin/sh");
-            putenv("IFS= \t");
-
-            /*
-             * The caller may have passed us a string that is in text
-             * space. It may be illegal to modify the string
-             */
-            cmd = strdup(cmd);
-            /* format argv */
-            argv[0] = strtok(cmd, blank);
-            argc = 1;
-            while ((argv[argc] = strtok(0, blank)) != 0) {
-                if (++argc == SAFE_POPEN_MAXARGS) {
-                    argv[argc] = 0;
-                    break;
-                }
-            }
-
-            /* and away we go */
-            execvp(argv[0], argv);
-            exit(127);
-            break;
-
-        default:
-            close(p[1]);
-            break;
-    }
-
-    /* non-zero means there's a cmd running */
-    safe_popen_pid = pid;
-    return fp;
-}
-
-static int
-safe_pclose(FILE *fp)
-{
-    pid_t pid;
-    int status = -1, rv;
-
-    if ((pid = safe_popen_pid) == 0)
-        return -1;
-    safe_popen_pid = 0;
-
-    fclose(fp);
-
-    /* yield the processor so the child gets some time to exit normally */
-    PR_Sleep(PR_INTERVAL_NO_WAIT);
-
-    /* if the child hasn't exited, kill it -- we're done with its output */
-    while ((rv = waitpid(pid, &status, WNOHANG)) == -1 && errno == EINTR)
-        ;
-    if (rv == 0) {
-        kill(pid, SIGKILL);
-        while ((rv = waitpid(pid, &status, 0)) == -1 && errno == EINTR)
-            ;
-    }
-
-    /* Reset SIGCHLD signal hander before returning */
-    sigaction(SIGCHLD, &oldact, NULL);
-
-    return status;
-}
-
 #ifdef DARWIN
 #include <TargetConditionals.h>
 #if !TARGET_OS_IPHONE
@@ -817,15 +689,9 @@ safe_pclose(FILE *fp)
 #endif
 #endif
 
-/* Fork netstat to collect its output by default. Do not unset this unless
- * another source of entropy is available
- */
-#define DO_NETSTAT 1
-
 void
 RNG_SystemInfoForRNG(void)
 {
-    FILE *fp;
     char buf[BUFSIZ];
     size_t bytes;
     const char *const *cp;
@@ -860,12 +726,6 @@ RNG_SystemInfoForRNG(void)
     };
 #endif
 
-#if defined(BSDI)
-    static char netstat_ni_cmd[] = "netstat -nis";
-#else
-    static char netstat_ni_cmd[] = "netstat -ni";
-#endif
-
     GiveSystemInfo();
 
     bytes = RNG_GetNoise(buf, sizeof(buf));
@@ -890,10 +750,12 @@ RNG_SystemInfoForRNG(void)
     if (gethostname(buf, sizeof(buf)) == 0) {
         RNG_RandomUpdate(buf, strlen(buf));
     }
-    GiveSystemInfo();
 
     /* grab some data from system's PRNG before any other files. */
     bytes = RNG_FileUpdate("/dev/urandom", SYSTEM_RNG_SEED_COUNT);
+    if (!bytes) {
+        PORT_SetError(SEC_ERROR_NEED_RANDOM);
+    }
 
     /* If the user points us to a random file, pass it through the rng */
     randfile = PR_GetEnvSecure("NSRANDFILE");
@@ -911,33 +773,12 @@ RNG_SystemInfoForRNG(void)
     for (cp = files; *cp; cp++)
         RNG_FileForRNG(*cp);
 
-/*
- * Bug 100447: On BSD/OS 4.2 and 4.3, we have problem calling safe_popen
- * in a pthreads environment.  Therefore, we call safe_popen last and on
- * BSD/OS we do not call safe_popen when we succeeded in getting data
- * from /dev/urandom.
- *
- * Bug 174993: On platforms providing /dev/urandom, don't fork netstat
- * either, if data has been gathered successfully.
- */
-
 #if defined(BSDI) || defined(FREEBSD) || defined(NETBSD) || defined(OPENBSD) || defined(DARWIN) || defined(LINUX) || defined(HPUX)
     if (bytes)
         return;
 #endif
 
 #ifdef SOLARIS
-
-/*
- * On Solaris, NSS may be initialized automatically from libldap in
- * applications that are unaware of the use of NSS. safe_popen forks, and
- * sometimes creates issues with some applications' pthread_atfork handlers.
- * We always have /dev/urandom on Solaris 9 and above as an entropy source,
- * and for Solaris 8 we have the libkstat interface, so we don't need to
- * fork netstat.
- */
-
-#undef DO_NETSTAT
     if (!bytes) {
         /* On Solaris 8, /dev/urandom isn't available, so we use libkstat. */
         PRUint32 kstat_bytes = 0;
@@ -946,15 +787,6 @@ RNG_SystemInfoForRNG(void)
         }
         bytes += kstat_bytes;
         PORT_Assert(bytes);
-    }
-#endif
-
-#ifdef DO_NETSTAT
-    fp = safe_popen(netstat_ni_cmd);
-    if (fp != NULL) {
-        while ((bytes = fread(buf, 1, sizeof(buf), fp)) > 0)
-            RNG_RandomUpdate(buf, bytes);
-        safe_pclose(fp);
     }
 #endif
 }
@@ -1022,20 +854,6 @@ RNG_FileForRNG(const char *fileName)
     RNG_FileUpdate(fileName, TOTAL_FILE_LIMIT);
 }
 
-void
-ReadSingleFile(const char *fileName)
-{
-    FILE *file;
-    unsigned char buffer[BUFSIZ];
-
-    file = fopen(fileName, "rb");
-    if (file != NULL) {
-        while (fread(buffer, 1, sizeof(buffer), file) > 0)
-            ;
-        fclose(file);
-    }
-}
-
 #define _POSIX_PTHREAD_SEMANTICS
 #include <dirent.h>
 
@@ -1055,89 +873,6 @@ ReadFileOK(char *dir, char *file)
     return S_ISREG(stat_buf.st_mode) ? PR_TRUE : PR_FALSE;
 }
 
-/*
- * read one file out of either /etc or the user's home directory.
- * fileToRead tells which file to read.
- *
- * return 1 if it's time to reset the fileToRead (no more files to read).
- */
-static int
-ReadOneFile(int fileToRead)
-{
-    char *dir = "/etc";
-    DIR *fd = opendir(dir);
-    int resetCount = 0;
-    struct dirent *entry;
-#if defined(__sun)
-    char firstName[256];
-#else
-    char firstName[NAME_MAX + 1];
-#endif
-    const char *name = NULL;
-    int i;
-
-    if (fd == NULL) {
-        dir = PR_GetEnvSecure("HOME");
-        if (dir) {
-            fd = opendir(dir);
-        }
-    }
-    if (fd == NULL) {
-        return 1;
-    }
-
-    firstName[0] = '\0';
-    for (i = 0; i <= fileToRead; i++) {
-        do {
-            /* readdir() isn't guaranteed to be thread safe on every platform;
-             * this code assumes the same directory isn't read concurrently.
-             * This usage is confirmed safe on Linux, see bug 1254334. */
-            entry = readdir(fd);
-        } while (entry != NULL && !ReadFileOK(dir, &entry->d_name[0]));
-        if (entry == NULL) {
-            resetCount = 1; /* read to the end, start again at the beginning */
-            if (firstName[0]) {
-                /* ran out of entries in the directory, use the first one */
-                name = firstName;
-            }
-            break;
-        }
-        name = entry->d_name;
-        if (i == 0) {
-            /* copy the name of the first in case we run out of entries */
-            PORT_Assert(PORT_Strlen(name) < sizeof(firstName));
-            PORT_Strncpy(firstName, name, sizeof(firstName) - 1);
-            firstName[sizeof(firstName) - 1] = '\0';
-        }
-    }
-
-    if (name) {
-        char filename[PATH_MAX];
-        int count = snprintf(filename, sizeof(filename), "%s/%s", dir, name);
-        if (count >= 1) {
-            ReadSingleFile(filename);
-        }
-    }
-
-    closedir(fd);
-    return resetCount;
-}
-
-/*
- * do something to try to introduce more noise into the 'GetNoise' call
- */
-static void
-rng_systemJitter(void)
-{
-    static int fileToRead = 1;
-
-    if (ReadOneFile(fileToRead)) {
-        fileToRead = 1;
-    } else {
-        fileToRead++;
-    }
-}
-
 size_t
 RNG_SystemRNG(void *dest, size_t maxLen)
 {
@@ -1149,7 +884,8 @@ RNG_SystemRNG(void *dest, size_t maxLen)
 
     file = fopen("/dev/urandom", "r");
     if (file == NULL) {
-        return rng_systemFromNoise(dest, maxLen);
+        PORT_SetError(SEC_ERROR_NEED_RANDOM);
+        return 0;
     }
     /* Read from the underlying file descriptor directly to bypass stdio
      * buffering and avoid reading more bytes than we need from /dev/urandom.

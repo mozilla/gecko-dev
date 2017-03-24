@@ -5,25 +5,15 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.util.ActivityUtils;
 import org.mozilla.gecko.util.HardwareUtils;
-import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.geckoview.BuildConfig;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.RectF;
-import android.hardware.SensorEventListener;
-import android.location.LocationListener;
 import android.view.View;
 import android.widget.AbsoluteLayout;
 
 public class BaseGeckoInterface implements GeckoAppShell.GeckoInterface {
-    // Bug 908744: Implement GeckoEventListener
-    // Bug 908752: Implement SensorEventListener
-    // Bug 908755: Implement LocationListener
-    // Bug 908756: Implement Tabs.OnTabsChangedListener
-    // Bug 908760: Implement GeckoEventResponder
-
     private final Context mContext;
     private GeckoProfile mProfile;
     private final EventDispatcher eventDispatcher;
@@ -49,13 +39,14 @@ public class BaseGeckoInterface implements GeckoAppShell.GeckoInterface {
 
     @Override
     public Activity getActivity() {
-        return (Activity)mContext;
+        // By default, GeckoView consumers do not have a distinguished current foreground Activity.
+        return null;
     }
 
     @Override
     public String getDefaultUAString() {
-        return HardwareUtils.isTablet() ? AppConstants.USER_AGENT_FENNEC_TABLET :
-                                          AppConstants.USER_AGENT_FENNEC_MOBILE;
+        return HardwareUtils.isTablet() ? BuildConfig.USER_AGENT_GECKOVIEW_TABLET :
+                                          BuildConfig.USER_AGENT_GECKOVIEW_MOBILE;
     }
 
     // Bug 908775: Implement this
@@ -64,12 +55,7 @@ public class BaseGeckoInterface implements GeckoAppShell.GeckoInterface {
 
     @Override
     public void setFullScreen(final boolean fullscreen) {
-        ThreadUtils.postToUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ActivityUtils.setFullScreen(getActivity(), fullscreen);
-            }
-        });
+        // This API doesn't make sense for GeckoView, so we do nothing for now.
     }
 
     // Bug 908779: Implement this
@@ -107,11 +93,6 @@ public class BaseGeckoInterface implements GeckoAppShell.GeckoInterface {
     @Override
     public AbsoluteLayout getPluginContainer() {
         return null;
-    }
-
-    @Override
-    public void notifyCheckUpdateResult(String result) {
-        GeckoAppShell.notifyObservers("Update:CheckResult", result);
     }
 
     // Bug 908792: Implement this
@@ -165,5 +146,16 @@ public class BaseGeckoInterface implements GeckoAppShell.GeckoInterface {
     public String getDefaultChromeURI() {
         // By default, use the GeckoView-specific chrome URI.
         return "chrome://browser/content/geckoview.xul";
+    }
+
+    @Override
+    public boolean isForegrounded() {
+        return false;
+    }
+
+    @Override
+    public boolean isOfficial() {
+        // By default, GeckoView consumers are not official Mozilla applications.
+        return false;
     }
 }

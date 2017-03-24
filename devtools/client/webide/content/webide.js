@@ -56,15 +56,13 @@ console.log = console.log.bind(console);
 console.warn = console.warn.bind(console);
 console.error = console.error.bind(console);
 
-window.addEventListener("load", function onLoad() {
-  window.removeEventListener("load", onLoad);
+window.addEventListener("load", function () {
   UI.init();
-});
+}, {once: true});
 
-window.addEventListener("unload", function onUnload() {
-  window.removeEventListener("unload", onUnload);
+window.addEventListener("unload", function () {
   UI.destroy();
-});
+}, {once: true});
 
 var UI = {
   init: function () {
@@ -440,7 +438,6 @@ var UI = {
     // Runtime commands
     let monitorCmd = document.querySelector("#cmd_showMonitor");
     let screenshotCmd = document.querySelector("#cmd_takeScreenshot");
-    let permissionsCmd = document.querySelector("#cmd_showPermissionsTable");
     let detailsCmd = document.querySelector("#cmd_showRuntimeDetails");
     let disconnectCmd = document.querySelector("#cmd_disconnectRuntime");
     let devicePrefsCmd = document.querySelector("#cmd_showDevicePrefs");
@@ -450,20 +447,15 @@ var UI = {
       if (AppManager.deviceFront) {
         monitorCmd.removeAttribute("disabled");
         detailsCmd.removeAttribute("disabled");
-        permissionsCmd.removeAttribute("disabled");
         screenshotCmd.removeAttribute("disabled");
       }
       if (AppManager.preferenceFront) {
         devicePrefsCmd.removeAttribute("disabled");
       }
-      if (AppManager.settingsFront) {
-        settingsCmd.removeAttribute("disabled");
-      }
       disconnectCmd.removeAttribute("disabled");
     } else {
       monitorCmd.setAttribute("disabled", "true");
       detailsCmd.setAttribute("disabled", "true");
-      permissionsCmd.setAttribute("disabled", "true");
       screenshotCmd.setAttribute("disabled", "true");
       disconnectCmd.setAttribute("disabled", "true");
       devicePrefsCmd.setAttribute("disabled", "true");
@@ -1047,20 +1039,12 @@ var Cmds = {
     }), "taking screenshot");
   },
 
-  showPermissionsTable: function () {
-    UI.selectDeckPanel("permissionstable");
-  },
-
   showRuntimeDetails: function () {
     UI.selectDeckPanel("runtimedetails");
   },
 
   showDevicePrefs: function () {
     UI.selectDeckPanel("devicepreferences");
-  },
-
-  showSettings: function () {
-    UI.selectDeckPanel("devicesettings");
   },
 
   showMonitor: function () {

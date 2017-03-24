@@ -31,7 +31,6 @@ class nsHtml5Parser final : public nsIParser,
                             public nsSupportsWeakReference
 {
   public:
-    NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHtml5Parser, nsIParser)
@@ -279,9 +278,10 @@ class nsHtml5Parser final : public nsIParser,
     bool                          mDocWriteSpeculativeLastWasCR;
 
     /**
-     * The parser is blocking on a script
+     * The parser is blocking on the load of an external script from a web
+     * page, or any number of extension content scripts.
      */
-    bool                          mBlocked;
+    uint32_t                      mBlocked;
 
     /**
      * Whether the document.write() speculator is already active.

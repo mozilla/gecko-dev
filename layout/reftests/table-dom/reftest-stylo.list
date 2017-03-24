@@ -1,12 +1,12 @@
 # DO NOT EDIT! This is a auto-generated temporary list for Stylo testing
-skip == appendCells1.html appendCells1.html
-skip == appendCellsRebuild1.html appendCellsRebuild1.html
-skip == appendCellsZeroColspan.html appendCellsZeroColspan.html
-skip == appendCol1.html appendCol1.html
-skip == appendCol2.html appendCol2.html
-skip == appendColGroup1.html appendColGroup1.html
-skip == appendRowsExpand1.html appendRowsExpand1.html
-skip == appendTbodyExpand1.html appendTbodyExpand1.html
+== appendCells1.html appendCells1.html
+== appendCellsRebuild1.html appendCellsRebuild1.html
+== appendCellsZeroColspan.html appendCellsZeroColspan.html
+== appendCol1.html appendCol1.html
+== appendCol2.html appendCol2.html
+== appendColGroup1.html appendColGroup1.html
+== appendRowsExpand1.html appendRowsExpand1.html
+== appendTbodyExpand1.html appendTbodyExpand1.html
 == deleteCellsRebuild1.html deleteCellsRebuild1.html
 == deleteCellsShrink1.html deleteCellsShrink1.html
 == deleteCellsShrink2.html deleteCellsShrink2.html

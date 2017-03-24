@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'Networking')
+
 DIRS += ['interfaces']
 
 MOCHITEST_CHROME_MANIFESTS += ['tests/chrome.ini']
@@ -29,6 +32,8 @@ EXPORTS.mozilla.dom.network += [
 
 UNIFIED_SOURCES += [
     'Connection.cpp',
+    'ConnectionMainThread.cpp',
+    'ConnectionWorker.cpp',
     'TCPServerSocket.cpp',
     'TCPServerSocketChild.cpp',
     'TCPServerSocketParent.cpp',
@@ -41,19 +46,9 @@ UNIFIED_SOURCES += [
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    EXTRA_JS_MODULES += [
-        'NetworkStatsDB.jsm',
-        'NetworkStatsService.jsm',
-    ]
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     EXTRA_COMPONENTS += [
         'EthernetManager.js',
         'EthernetManager.manifest',
-        'NetworkStatsManager.js',
-        'NetworkStatsManager.manifest',
-        'NetworkStatsServiceProxy.js',
-        'NetworkStatsServiceProxy.manifest',
     ]
     EXPORTS.mozilla.dom.network += [
         'NetUtils.h',
@@ -66,6 +61,10 @@ IPDL_SOURCES += [
     'PTCPServerSocket.ipdl',
     'PTCPSocket.ipdl',
     'PUDPSocket.ipdl',
+]
+
+LOCAL_INCLUDES += [
+    '../workers',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')

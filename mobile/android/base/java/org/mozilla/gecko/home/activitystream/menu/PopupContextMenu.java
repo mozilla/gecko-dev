@@ -5,18 +5,20 @@
 package org.mozilla.gecko.home.activitystream.menu;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.PopupWindow;
 
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.activitystream.ActivityStreamTelemetry;
 import org.mozilla.gecko.home.HomePager;
+import org.mozilla.gecko.home.activitystream.model.Item;
 
 /* package-private */ class PopupContextMenu
         extends ActivityStreamContextMenu {
@@ -28,15 +30,15 @@ import org.mozilla.gecko.home.HomePager;
 
     public PopupContextMenu(final Context context,
                             View anchor,
+                            final ActivityStreamTelemetry.Extras.Builder telemetryExtraBuilder,
                             final MenuMode mode,
-                            final String title,
-                            @NonNull final String url,
+                            final Item item,
                             HomePager.OnUrlOpenListener onUrlOpenListener,
                             HomePager.OnUrlOpenInBackgroundListener onUrlOpenInBackgroundListener) {
         super(context,
+                telemetryExtraBuilder,
                 mode,
-                title,
-                url,
+                item,
                 onUrlOpenListener,
                 onUrlOpenInBackgroundListener);
 
@@ -52,6 +54,15 @@ import org.mozilla.gecko.home.HomePager;
         popupWindow.setContentView(card);
         popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         popupWindow.setFocusable(true);
+
+        // On a variety of devices running Android 4 and 5, PopupWindow is assigned height/width = 0 - we therefore
+        // need to manually override that behaviour. There don't appear to be any reported issues
+        // with devices running 6 (Marshmallow) or newer, so we should restrict the workaround
+        // as much as possible:
+        if (AppConstants.Versions.preMarshmallow) {
+            popupWindow.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+            popupWindow.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
 
         super.postInit();
     }

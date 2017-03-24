@@ -357,7 +357,7 @@ nsDOMDataChannel::Send(nsIInputStream* aMsgStream,
   MOZ_ASSERT(state == mozilla::DataChannel::OPEN,
              "Unknown state in nsDOMDataChannel::Send");
 
-  int32_t sent;
+  bool sent;
   if (aMsgStream) {
     sent = mDataChannel->SendBinaryStream(aMsgStream, aMsgLength);
   } else {
@@ -367,7 +367,7 @@ nsDOMDataChannel::Send(nsIInputStream* aMsgStream,
       sent = mDataChannel->SendMsg(aMsgString);
     }
   }
-  if (sent < 0) {
+  if (!sent) {
     aRv.Throw(NS_ERROR_FAILURE);
   }
 }
@@ -408,7 +408,7 @@ nsDOMDataChannel::DoOnMessageAvailable(const nsACString& aData,
       NS_ENSURE_SUCCESS(rv, rv);
       jsData.setObject(*arrayBuf);
     } else {
-      NS_RUNTIMEABORT("Unknown binary type!");
+      MOZ_CRASH("Unknown binary type!");
       return NS_ERROR_UNEXPECTED;
     }
   } else {

@@ -359,6 +359,7 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
     }
 
     public void refresh() {
+        progressBar.setImageDrawable(getResources().getDrawable(R.drawable.progress));
         urlDisplayLayout.dismissSiteIdentityPopup();
     }
 
@@ -469,11 +470,10 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
                     setPrivateMode(tab.isPrivate());
                     // Fall through.
                 case LOAD_ERROR:
-                    flags.add(UpdateFlags.TITLE);
-                    // Fall through.
                 case LOCATION_CHANGE:
-                    // A successful location change will cause Tab to notify
-                    // us of a title change, so we don't update the title here.
+                    // We're displaying the tab URL in place of the title,
+                    // so we always need to update our "title" here as well.
+                    flags.add(UpdateFlags.TITLE);
                     flags.add(UpdateFlags.FAVICON);
                     flags.add(UpdateFlags.SITE_IDENTITY);
 
@@ -520,8 +520,10 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
             progressBar.setProgress(progress);
             progressBar.setPrivateMode(selectedTab.isPrivate());
             progressBar.setVisibility(View.VISIBLE);
+            progressBar.pinDynamicToolbar();
         } else {
             progressBar.setVisibility(View.GONE);
+            progressBar.unpinDynamicToolbar();
         }
     }
 
@@ -652,13 +654,6 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
 
         if (needsNewFocus) {
             requestFocus();
-        }
-    }
-
-    public void setToolBarButtonsAlpha(float alpha) {
-        ViewHelper.setAlpha(tabsCounter, alpha);
-        if (!HardwareUtils.isTablet()) {
-            ViewHelper.setAlpha(menuIcon, alpha);
         }
     }
 

@@ -14,6 +14,7 @@
 #include "nsIHttpChannel.h"
 #include "nsIURL.h"
 #include "nsISimpleEnumerator.h"
+#include "nsISupportsPriority.h"
 #include "nsNetUtil.h"
 #include "nsString.h"
 #include "nsXPIDLString.h"
@@ -149,14 +150,27 @@ nsPrefetchNode::OpenChannel()
     nsCOMPtr<nsIHttpChannel> httpChannel =
         do_QueryInterface(mChannel);
     if (httpChannel) {
-        httpChannel->SetReferrerWithPolicy(mReferrerURI, referrerPolicy);
-        httpChannel->SetRequestHeader(
-            NS_LITERAL_CSTRING("X-Moz"),
-            NS_LITERAL_CSTRING("prefetch"),
-            false);
+        rv = httpChannel->SetReferrerWithPolicy(mReferrerURI, referrerPolicy);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+        rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("X-Moz"),
+                                           NS_LITERAL_CSTRING("prefetch"),
+                                           false);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
     }
 
-    return mChannel->AsyncOpen2(this);
+    // Reduce the priority of prefetch network requests.
+    nsCOMPtr<nsISupportsPriority> priorityChannel = do_QueryInterface(mChannel);
+    if (priorityChannel) {
+      priorityChannel->AdjustPriority(nsISupportsPriority::PRIORITY_LOWEST);
+    }
+
+    rv = mChannel->AsyncOpen2(this);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      // Drop the ref to the channel, because we don't want to end up with
+      // cycles through it.
+      mChannel = nullptr;
+    }
+    return rv;
 }
 
 nsresult
@@ -196,10 +210,12 @@ nsPrefetchNode::OnStartRequest(nsIRequest *aRequest,
     // if the load is cross origin without CORS, or the CORS access is rejected,
     // always fire load event to avoid leaking site information.
     nsCOMPtr<nsILoadInfo> loadInfo = httpChannel->GetLoadInfo();
-    mShouldFireLoadEvent = loadInfo->GetTainting() == LoadTainting::Opaque ||
-                           (loadInfo->GetTainting() == LoadTainting::CORS &&
-                            (NS_FAILED(httpChannel->GetStatus(&rv)) ||
-                             NS_FAILED(rv)));
+    if (loadInfo) {
+        mShouldFireLoadEvent = loadInfo->GetTainting() == LoadTainting::Opaque ||
+                               (loadInfo->GetTainting() == LoadTainting::CORS &&
+                                (NS_FAILED(httpChannel->GetStatus(&rv)) ||
+                                 NS_FAILED(rv)));
+    }
 
     // no need to prefetch http error page
     bool requestSucceeded;
@@ -248,7 +264,7 @@ nsPrefetchNode::OnDataAvailable(nsIRequest *aRequest,
     uint32_t bytesRead = 0;
     aStream->ReadSegments(NS_DiscardSegment, nullptr, aCount, &bytesRead);
     mBytesRead += bytesRead;
-    LOG(("prefetched %u bytes [offset=%llu]\n", bytesRead, aOffset));
+    LOG(("prefetched %u bytes [offset=%" PRIu64 "]\n", bytesRead, aOffset));
     return NS_OK;
 }
 
@@ -258,7 +274,7 @@ nsPrefetchNode::OnStopRequest(nsIRequest *aRequest,
                               nsISupports *aContext,
                               nsresult aStatus)
 {
-    LOG(("done prefetching [status=%x]\n", aStatus));
+    LOG(("done prefetching [status=%" PRIx32 "]\n", static_cast<uint32_t>(aStatus)));
 
     if (mBytesRead == 0 && aStatus == NS_OK && mChannel) {
         // we didn't need to read (because LOAD_ONLY_IF_MODIFIED was
@@ -324,9 +340,10 @@ nsPrefetchNode::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aNewChannel);
     NS_ENSURE_STATE(httpChannel);
 
-    httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("X-Moz"),
-                                  NS_LITERAL_CSTRING("prefetch"),
-                                  false);
+    rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("X-Moz"),
+                                       NS_LITERAL_CSTRING("prefetch"),
+                                       false);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     // Assign to mChannel after we get notification about success of the
     // redirect in OnRedirectResult.

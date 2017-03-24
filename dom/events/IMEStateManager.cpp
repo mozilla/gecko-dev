@@ -14,6 +14,7 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/Unused.h"
@@ -162,7 +163,7 @@ void
 IMEStateManager::Shutdown()
 {
   MOZ_LOG(sISMLog, LogLevel::Info,
-    ("Shutdown(), sTextCompositions=0x%p, sTextCompositions->Length()=%u",
+    ("Shutdown(), sTextCompositions=0x%p, sTextCompositions->Length()=%" PRIuSIZE,
      sTextCompositions, sTextCompositions ? sTextCompositions->Length() : 0));
 
   MOZ_ASSERT(!sTextCompositions || !sTextCompositions->Length());
@@ -264,7 +265,7 @@ IMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
     if (i != TextCompositionArray::NoIndex) {
       MOZ_LOG(sISMLog, LogLevel::Debug,
         ("  OnDestroyPresContext(), "
-         "removing TextComposition instance from the array (index=%u)", i));
+         "removing TextComposition instance from the array (index=%" PRIuSIZE ")", i));
       // there should be only one composition per presContext object.
       sTextCompositions->ElementAt(i)->Destroy();
       sTextCompositions->RemoveElementAt(i);
@@ -562,12 +563,18 @@ IMEStateManager::OnInstalledMenuKeyboardListener(bool aInstalling)
 bool
 IMEStateManager::OnMouseButtonEventInEditor(nsPresContext* aPresContext,
                                             nsIContent* aContent,
-                                            nsIDOMMouseEvent* aMouseEvent)
+                                            WidgetMouseEvent* aMouseEvent)
 {
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("OnMouseButtonEventInEditor(aPresContext=0x%p, "
      "aContent=0x%p, aMouseEvent=0x%p), sPresContext=0x%p, sContent=0x%p",
      aPresContext, aContent, aMouseEvent, sPresContext.get(), sContent.get()));
+
+  if (NS_WARN_IF(!aMouseEvent)) {
+    MOZ_LOG(sISMLog, LogLevel::Debug,
+      ("  OnMouseButtonEventInEditor(), aMouseEvent is nullptr"));
+    return false;
+  }
 
   if (sPresContext != aPresContext || sContent != aContent) {
     MOZ_LOG(sISMLog, LogLevel::Debug,
@@ -590,25 +597,15 @@ IMEStateManager::OnMouseButtonEventInEditor(nsPresContext* aPresContext,
     return false;
   }
 
-  WidgetMouseEvent* internalEvent =
-    aMouseEvent->AsEvent()->WidgetEventPtr()->AsMouseEvent();
-  if (NS_WARN_IF(!internalEvent)) {
-    MOZ_LOG(sISMLog, LogLevel::Debug,
-      ("  OnMouseButtonEventInEditor(), "
-       "the internal event of aMouseEvent isn't WidgetMouseEvent"));
-    return false;
-  }
-
   bool consumed =
-    sActiveIMEContentObserver->OnMouseButtonEvent(aPresContext, internalEvent);
+    sActiveIMEContentObserver->OnMouseButtonEvent(aPresContext, aMouseEvent);
 
   if (MOZ_LOG_TEST(sISMLog, LogLevel::Info)) {
     nsAutoString eventType;
-    aMouseEvent->AsEvent()->GetType(eventType);
     MOZ_LOG(sISMLog, LogLevel::Info,
       ("  OnMouseButtonEventInEditor(), "
-       "mouse event (type=%s, button=%d) is %s",
-       NS_ConvertUTF16toUTF8(eventType).get(), internalEvent->button,
+       "mouse event (mMessage=%s, button=%d) is %s",
+       ToChar(aMouseEvent->mMessage), aMouseEvent->button,
        consumed ? "consumed" : "not consumed"));
   }
 
@@ -619,12 +616,16 @@ IMEStateManager::OnMouseButtonEventInEditor(nsPresContext* aPresContext,
 void
 IMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
                                  nsIContent* aContent,
-                                 nsIDOMMouseEvent* aMouseEvent)
+                                 const WidgetMouseEvent* aMouseEvent)
 {
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("OnClickInEditor(aPresContext=0x%p, aContent=0x%p, aMouseEvent=0x%p), "
      "sPresContext=0x%p, sContent=0x%p",
      aPresContext, aContent, aMouseEvent, sPresContext.get(), sContent.get()));
+
+  if (NS_WARN_IF(!aMouseEvent)) {
+    return;
+  }
 
   if (sPresContext != aPresContext || sContent != aContent) {
     MOZ_LOG(sISMLog, LogLevel::Debug,
@@ -636,40 +637,29 @@ IMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
   nsCOMPtr<nsIWidget> widget = aPresContext->GetRootWidget();
   NS_ENSURE_TRUE_VOID(widget);
 
-  bool isTrusted;
-  nsresult rv = aMouseEvent->AsEvent()->GetIsTrusted(&isTrusted);
-  NS_ENSURE_SUCCESS_VOID(rv);
-  if (!isTrusted) {
+  if (!aMouseEvent->IsTrusted()) {
     MOZ_LOG(sISMLog, LogLevel::Debug,
       ("  OnClickInEditor(), "
        "the mouse event isn't a trusted event"));
     return; // ignore untrusted event.
   }
 
-  int16_t button;
-  rv = aMouseEvent->GetButton(&button);
-  NS_ENSURE_SUCCESS_VOID(rv);
-  if (button != 0) {
+  if (aMouseEvent->button) {
     MOZ_LOG(sISMLog, LogLevel::Debug,
       ("  OnClickInEditor(), "
        "the mouse event isn't a left mouse button event"));
     return; // not a left click event.
   }
 
-  int32_t clickCount;
-  rv = aMouseEvent->GetDetail(&clickCount);
-  NS_ENSURE_SUCCESS_VOID(rv);
-  if (clickCount != 1) {
+  if (aMouseEvent->mClickCount != 1) {
     MOZ_LOG(sISMLog, LogLevel::Debug,
       ("  OnClickInEditor(), "
        "the mouse event isn't a single click event"));
     return; // should notify only first click event.
   }
 
-  uint16_t inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
-  aMouseEvent->GetMozInputSource(&inputSource);
   InputContextAction::Cause cause =
-    inputSource == nsIDOMMouseEvent::MOZ_SOURCE_TOUCH ?
+    aMouseEvent->inputSource == nsIDOMMouseEvent::MOZ_SOURCE_TOUCH ?
       InputContextAction::CAUSE_TOUCH : InputContextAction::CAUSE_MOUSE;
 
   InputContextAction action(cause, InputContextAction::FOCUS_NOT_CHANGED);
@@ -925,7 +915,7 @@ IMEStateManager::SetInputContextForChildProcess(
     ("SetInputContextForChildProcess(aTabParent=0x%p, "
      "aInputContext={ mIMEState={ mEnabled=%s, mOpen=%s }, "
      "mHTMLInputType=\"%s\", mHTMLInputInputmode=\"%s\", mActionHint=\"%s\" }, "
-     "aAction={ mCause=%s, mAction=%s }, aTabParent=0x%p), sPresContext=0x%p, "
+     "aAction={ mCause=%s, mAction=%s }), sPresContext=0x%p, "
      "sActiveTabParent=0x%p",
      aTabParent, GetIMEStateEnabledName(aInputContext.mIMEState.mEnabled),
      GetIMEStateSetOpenName(aInputContext.mIMEState.mOpen),
@@ -1116,10 +1106,10 @@ IMEStateManager::DispatchCompositionEvent(
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("DispatchCompositionEvent(aNode=0x%p, "
      "aPresContext=0x%p, aCompositionEvent={ mMessage=%s, "
-     "mNativeIMEContext={ mRawNativeIMEContext=0x%X, "
-     "mOriginProcessID=0x%X }, mWidget(0x%p)={ "
-     "GetNativeIMEContext()={ mRawNativeIMEContext=0x%X, "
-     "mOriginProcessID=0x%X }, Destroyed()=%s }, "
+     "mNativeIMEContext={ mRawNativeIMEContext=0x%" PRIXPTR ", "
+     "mOriginProcessID=0x%" PRIX64 " }, mWidget(0x%p)={ "
+     "GetNativeIMEContext()={ mRawNativeIMEContext=0x%" PRIXPTR ", "
+     "mOriginProcessID=0x%" PRIX64 " }, Destroyed()=%s }, "
      "mFlags={ mIsTrusted=%s, mPropagationStopped=%s } }, "
      "aIsSynthesized=%s), tabParent=%p",
      aEventTargetNode, aPresContext,
@@ -1266,10 +1256,10 @@ IMEStateManager::OnCompositionEventDiscarded(
 
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("OnCompositionEventDiscarded(aCompositionEvent={ "
-     "mMessage=%s, mNativeIMEContext={ mRawNativeIMEContext=0x%X, "
-     "mOriginProcessID=0x%X }, mWidget(0x%p)={ "
-     "GetNativeIMEContext()={ mRawNativeIMEContext=0x%X, "
-     "mOriginProcessID=0x%X }, Destroyed()=%s }, "
+     "mMessage=%s, mNativeIMEContext={ mRawNativeIMEContext=0x%" PRIXPTR ", "
+     "mOriginProcessID=0x%" PRIX64 " }, mWidget(0x%p)={ "
+     "GetNativeIMEContext()={ mRawNativeIMEContext=0x%" PRIXPTR ", "
+     "mOriginProcessID=0x%" PRIX64 " }, Destroyed()=%s }, "
      "mFlags={ mIsTrusted=%s } })",
      ToChar(aCompositionEvent->mMessage),
      aCompositionEvent->mNativeIMEContext.mRawNativeIMEContext,

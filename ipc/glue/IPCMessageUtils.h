@@ -269,10 +269,10 @@ struct ParamTraits<base::FileDescriptor>
 {
   typedef base::FileDescriptor paramType;
   static void Write(Message* aMsg, const paramType& aParam) {
-    NS_RUNTIMEABORT("FileDescriptor isn't meaningful on this platform");
+    MOZ_CRASH("FileDescriptor isn't meaningful on this platform");
   }
   static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult) {
-    NS_RUNTIMEABORT("FileDescriptor isn't meaningful on this platform");
+    MOZ_CRASH("FileDescriptor isn't meaningful on this platform");
     return false;
   }
 };
@@ -415,6 +415,28 @@ struct ParamTraits<nsLiteralString> : ParamTraits<nsAString>
 {
   typedef nsLiteralString paramType;
 };
+
+template <>
+struct ParamTraits<nsDependentSubstring> : ParamTraits<nsAString>
+{
+  typedef nsDependentSubstring paramType;
+};
+
+template <>
+struct ParamTraits<nsDependentCSubstring> : ParamTraits<nsACString>
+{
+  typedef nsDependentCSubstring paramType;
+};
+
+#ifdef MOZILLA_INTERNAL_API
+
+template<>
+struct ParamTraits<nsAutoString> : ParamTraits<nsString>
+{
+  typedef nsAutoString paramType;
+};
+
+#endif  // MOZILLA_INTERNAL_API
 
 // Pickle::ReadBytes and ::WriteBytes take the length in ints, so we must
 // ensure there is no overflow. This returns |false| if it would overflow.

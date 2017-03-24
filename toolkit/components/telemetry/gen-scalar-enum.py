@@ -30,6 +30,7 @@ file_footer = """\
 #endif // mozilla_TelemetryScalarEnums_h
 """
 
+
 def main(output, *filenames):
     # Load the scalars first.
     if len(filenames) > 1:
@@ -38,7 +39,7 @@ def main(output, *filenames):
 
     # Write the enum file.
     print(banner, file=output)
-    print(file_header, file=output);
+    print(file_header, file=output)
 
     for s in scalars:
         cpp_guard = s.cpp_guard

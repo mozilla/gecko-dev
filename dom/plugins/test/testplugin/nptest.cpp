@@ -140,8 +140,6 @@ static bool getObjectValue(NPObject* npobj, const NPVariant* args, uint32_t argC
 static bool getJavaCodebase(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool checkObjectValue(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool enableFPExceptions(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
-static bool setCookie(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
-static bool getCookie(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getAuthInfo(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool asyncCallbackTest(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool checkGCRace(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
@@ -151,6 +149,7 @@ static bool getClipboardText(NPObject* npobj, const NPVariant* args, uint32_t ar
 static bool callOnDestroy(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool reinitWidget(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool crashPluginInNestedLoop(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
+static bool triggerXError(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool destroySharedGfxStuff(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool propertyAndMethod(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getTopLevelWindowActivationState(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
@@ -176,6 +175,7 @@ static bool stopAudioPlayback(NPObject* npobj, const NPVariant* args, uint32_t a
 static bool getAudioMuted(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool nativeWidgetIsVisible(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getLastCompositionText(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
+static bool getInvokeDefaultObject(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 
 static const NPUTF8* sPluginMethodIdentifierNames[] = {
   "npnEvaluateTest",
@@ -214,8 +214,6 @@ static const NPUTF8* sPluginMethodIdentifierNames[] = {
   "getJavaCodebase",
   "checkObjectValue",
   "enableFPExceptions",
-  "setCookie",
-  "getCookie",
   "getAuthInfo",
   "asyncCallbackTest",
   "checkGCRace",
@@ -225,6 +223,7 @@ static const NPUTF8* sPluginMethodIdentifierNames[] = {
   "callOnDestroy",
   "reinitWidget",
   "crashInNestedLoop",
+  "triggerXError",
   "destroySharedGfxStuff",
   "propertyAndMethod",
   "getTopLevelWindowActivationState",
@@ -250,6 +249,7 @@ static const NPUTF8* sPluginMethodIdentifierNames[] = {
   "audioMuted",
   "nativeWidgetIsVisible",
   "getLastCompositionText",
+  "getInvokeDefaultObject",
 };
 static NPIdentifier sPluginMethodIdentifiers[MOZ_ARRAY_LENGTH(sPluginMethodIdentifierNames)];
 static const ScriptableFunction sPluginMethodFunctions[] = {
@@ -289,8 +289,6 @@ static const ScriptableFunction sPluginMethodFunctions[] = {
   getJavaCodebase,
   checkObjectValue,
   enableFPExceptions,
-  setCookie,
-  getCookie,
   getAuthInfo,
   asyncCallbackTest,
   checkGCRace,
@@ -300,6 +298,7 @@ static const ScriptableFunction sPluginMethodFunctions[] = {
   callOnDestroy,
   reinitWidget,
   crashPluginInNestedLoop,
+  triggerXError,
   destroySharedGfxStuff,
   propertyAndMethod,
   getTopLevelWindowActivationState,
@@ -325,6 +324,7 @@ static const ScriptableFunction sPluginMethodFunctions[] = {
   getAudioMuted,
   nativeWidgetIsVisible,
   getLastCompositionText,
+  getInvokeDefaultObject,
 };
 
 static_assert(MOZ_ARRAY_LENGTH(sPluginMethodIdentifierNames) ==
@@ -657,7 +657,6 @@ void scriptableDeallocate(NPObject* npobj);
 void scriptableInvalidate(NPObject* npobj);
 bool scriptableHasMethod(NPObject* npobj, NPIdentifier name);
 bool scriptableInvoke(NPObject* npobj, NPIdentifier name, const NPVariant* args, uint32_t argCount, NPVariant* result);
-bool scriptableInvokeDefault(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 bool scriptableHasProperty(NPObject* npobj, NPIdentifier name);
 bool scriptableGetProperty(NPObject* npobj, NPIdentifier name, NPVariant* result);
 bool scriptableSetProperty(NPObject* npobj, NPIdentifier name, const NPVariant* value);
@@ -755,7 +754,7 @@ NP_EXPORT(NPError) NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs)
   sNPClass.invalidate =     (NPInvalidateFunctionPtr)scriptableInvalidate;
   sNPClass.hasMethod =      (NPHasMethodFunctionPtr)scriptableHasMethod;
   sNPClass.invoke =         (NPInvokeFunctionPtr)scriptableInvoke;
-  sNPClass.invokeDefault =  (NPInvokeDefaultFunctionPtr)scriptableInvokeDefault;
+  sNPClass.invokeDefault =  nullptr;
   sNPClass.hasProperty =    (NPHasPropertyFunctionPtr)scriptableHasProperty;
   sNPClass.getProperty =    (NPGetPropertyFunctionPtr)scriptableGetProperty;
   sNPClass.setProperty =    (NPSetPropertyFunctionPtr)scriptableSetProperty;
@@ -876,12 +875,6 @@ NPP_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* 
   instanceData->scriptableObject = scriptableObject;
 
   instanceData->instanceCountWatchGeneration = sCurrentInstanceCountWatchGeneration;
-
-  if (NP_FULL == mode) {
-    instanceData->streamMode = NP_SEEK;
-    instanceData->frame = "testframe";
-    addRange(instanceData, "100,100");
-  }
 
   AsyncDrawing requestAsyncDrawing = AD_NONE;
 
@@ -1016,7 +1009,16 @@ NPP_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* 
     if (strcmp(argn[i], "salign") == 0) {
       alreadyHasSalign = true;
     }
-}
+
+    // We don't support NP_FULL any more, but name="plugin" is an indication
+    // that we're a full-page plugin. We use default seek parameters for
+    // test_fullpage.html
+    if (strcmp(argn[i], "name") == 0 && strcmp(argv[i], "plugin") == 0) {
+      instanceData->streamMode = NP_SEEK;
+      instanceData->frame = "testframe";
+      addRange(instanceData, "100,100");
+    }
+  }
 
   if (!browserSupportsWindowless || !pluginSupportsWindowlessMode()) {
     requestWindow = true;
@@ -2087,53 +2089,6 @@ scriptableInvoke(NPObject* npobj, NPIdentifier name, const NPVariant* args, uint
 }
 
 bool
-scriptableInvokeDefault(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
-{
-  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
-  InstanceData* id = static_cast<InstanceData*>(npp->pdata);
-  if (id->throwOnNextInvoke) {
-    id->throwOnNextInvoke = false;
-    if (argCount == 0) {
-      NPN_SetException(npobj, nullptr);
-    }
-    else {
-      for (uint32_t i = 0; i < argCount; i++) {
-        const NPString* argstr = &NPVARIANT_TO_STRING(args[i]);
-        NPN_SetException(npobj, argstr->UTF8Characters);
-      }
-    }
-    return false;
-  }
-
-  ostringstream value;
-  value << sPluginName;
-  for (uint32_t i = 0; i < argCount; i++) {
-    switch(args[i].type) {
-      case NPVariantType_Int32:
-        value << ";" << NPVARIANT_TO_INT32(args[i]);
-        break;
-      case NPVariantType_String: {
-        const NPString* argstr = &NPVARIANT_TO_STRING(args[i]);
-        value << ";" << argstr->UTF8Characters;
-        break;
-      }
-      case NPVariantType_Void:
-        value << ";undefined";
-        break;
-      case NPVariantType_Null:
-        value << ";null";
-        break;
-      default:
-        value << ";other";
-    }
-  }
-
-  char *outval = NPN_StrDup(value.str().c_str());
-  STRINGZ_TO_NPVARIANT(outval, *result);
-  return true;
-}
-
-bool
 scriptableHasProperty(NPObject* npobj, NPIdentifier name)
 {
   if (NPN_IdentifierIsString(name)) {
@@ -3057,84 +3012,6 @@ static bool enableFPExceptions(NPObject* npobj, const NPVariant* args, uint32_t 
 #endif
 }
 
-// caller is responsible for freeing return buffer
-static char* URLForInstanceWindow(NPP instance) {
-  char *outString = nullptr;
-
-  NPObject* windowObject = nullptr;
-  NPError err = NPN_GetValue(instance, NPNVWindowNPObject, &windowObject);
-  if (err != NPERR_NO_ERROR || !windowObject)
-    return nullptr;
-
-  NPIdentifier locationIdentifier = NPN_GetStringIdentifier("location");
-  NPVariant locationVariant;
-  if (NPN_GetProperty(instance, windowObject, locationIdentifier, &locationVariant)) {
-    NPObject *locationObject = locationVariant.value.objectValue;
-    if (locationObject) {
-      NPIdentifier hrefIdentifier = NPN_GetStringIdentifier("href");
-      NPVariant hrefVariant;
-      if (NPN_GetProperty(instance, locationObject, hrefIdentifier, &hrefVariant)) {
-        const NPString* hrefString = &NPVARIANT_TO_STRING(hrefVariant);
-        if (hrefString) {
-          outString = (char *)malloc(hrefString->UTF8Length + 1);
-          if (outString) {
-            strcpy(outString, hrefString->UTF8Characters);
-            outString[hrefString->UTF8Length] = '\0';
-          }
-        }
-        NPN_ReleaseVariantValue(&hrefVariant);
-      }
-    }
-    NPN_ReleaseVariantValue(&locationVariant);
-  }
-
-  NPN_ReleaseObject(windowObject);
-
-  return outString;
-}
-
-static bool
-setCookie(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
-{
-  if (argCount != 1)
-    return false;
-  if (!NPVARIANT_IS_STRING(args[0]))
-    return false;
-  const NPString* cookie = &NPVARIANT_TO_STRING(args[0]);
-
-  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
-
-  char* url = URLForInstanceWindow(npp);
-  if (!url)
-    return false;
-  NPError err = NPN_SetValueForURL(npp, NPNURLVCookie, url, cookie->UTF8Characters, cookie->UTF8Length);
-  free(url);
-
-  return (err == NPERR_NO_ERROR);
-}
-
-static bool
-getCookie(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
-{
-  if (argCount != 0)
-    return false;
-
-  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
-
-  char* url = URLForInstanceWindow(npp);
-  if (!url)
-    return false;
-  char* cookie = nullptr;
-  unsigned int length = 0;
-  NPError err = NPN_GetValueForURL(npp, NPNURLVCookie, url, &cookie, &length);
-  free(url);
-  if (err != NPERR_NO_ERROR || !cookie)
-    return false;
-
-  STRINGZ_TO_NPVARIANT(cookie, *result);
-  return true;
-}
-
 static bool
 getAuthInfo(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
 {
@@ -3492,6 +3369,15 @@ crashPluginInNestedLoop(NPObject* npobj, const NPVariant* args,
 }
 
 bool
+triggerXError(NPObject* npobj, const NPVariant* args,
+              uint32_t argCount, NPVariant* result)
+{
+  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
+  InstanceData* id = static_cast<InstanceData*>(npp->pdata);
+  return pluginTriggerXError(id);
+}
+
+bool
 destroySharedGfxStuff(NPObject* npobj, const NPVariant* args,
                         uint32_t argCount, NPVariant* result)
 {
@@ -3512,6 +3398,14 @@ getClipboardText(NPObject* npobj, const NPVariant* args, uint32_t argCount,
 bool
 crashPluginInNestedLoop(NPObject* npobj, const NPVariant* args,
                         uint32_t argCount, NPVariant* result)
+{
+  // XXX Not implemented!
+  return false;
+}
+
+bool
+triggerXError(NPObject* npobj, const NPVariant* args,
+              uint32_t argCount, NPVariant* result)
 {
   // XXX Not implemented!
   return false;
@@ -3565,6 +3459,69 @@ getLastCompositionText(NPObject* npobj, const NPVariant* args,
   // XXX not implemented
   return false;
 #endif
+}
+
+bool
+scriptableInvokeDefault(NPObject* npobj, const NPVariant* args,
+                        uint32_t argCount, NPVariant* result)
+{
+  ostringstream value;
+  value << sPluginName;
+  for (uint32_t i = 0; i < argCount; i++) {
+    switch(args[i].type) {
+      case NPVariantType_Int32:
+        value << ";" << NPVARIANT_TO_INT32(args[i]);
+        break;
+      case NPVariantType_String: {
+        const NPString* argstr = &NPVARIANT_TO_STRING(args[i]);
+        value << ";" << argstr->UTF8Characters;
+        break;
+      }
+      case NPVariantType_Void:
+        value << ";undefined";
+        break;
+      case NPVariantType_Null:
+        value << ";null";
+        break;
+      default:
+        value << ";other";
+    }
+  }
+
+  char *outval = NPN_StrDup(value.str().c_str());
+  STRINGZ_TO_NPVARIANT(outval, *result);
+  return true;
+}
+
+static const NPClass kInvokeDefaultClass = {
+  NP_CLASS_STRUCT_VERSION,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  scriptableInvokeDefault,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr
+};
+
+bool
+getInvokeDefaultObject(NPObject* npobj, const NPVariant* args,
+                       uint32_t argCount, NPVariant* result)
+{
+  if (0 != argCount) {
+    return false;
+  }
+
+  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
+  NPObject* testObject =
+    NPN_CreateObject(npp, const_cast<NPClass*>(&kInvokeDefaultClass));
+  OBJECT_TO_NPVARIANT(testObject, *result);
+  return true;
 }
 
 bool

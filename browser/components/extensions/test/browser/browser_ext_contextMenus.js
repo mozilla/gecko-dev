@@ -16,9 +16,14 @@ add_task(function* () {
 
     background: function() {
       browser.contextMenus.create({
-        id: "clickme",
+        id: "clickme-image",
         title: "Click me!",
         contexts: ["image"],
+      });
+      browser.contextMenus.create({
+        id: "clickme-page",
+        title: "Click me!",
+        contexts: ["page"],
       });
       browser.test.notifyPass();
     },
@@ -34,7 +39,7 @@ add_task(function* () {
 
   contentAreaContextMenu = yield openContextMenu("body");
   item = contentAreaContextMenu.getElementsByAttribute("label", "Click me!");
-  is(item.length, 0, "no contextMenu item for image was found");
+  is(item.length, 1, "contextMenu item for page was found");
   yield closeContextMenu();
 
   yield extension.unload();
@@ -52,7 +57,7 @@ add_task(function* () {
       "permissions": ["contextMenus"],
     },
 
-    background: function() {
+    background: async function() {
       // A generic onclick callback function.
       function genericOnClick(info, tab) {
         browser.test.sendMessage("onclick", {info, tab});
@@ -67,7 +72,7 @@ add_task(function* () {
         type: "separator",
       });
 
-      let contexts = ["page", "selection", "image", "editable"];
+      let contexts = ["page", "selection", "image", "editable", "password"];
       for (let i = 0; i < contexts.length; i++) {
         let context = contexts[i];
         let title = context;
@@ -122,14 +127,12 @@ add_task(function* () {
         id: "ext-without-onclick",
       });
 
-      browser.contextMenus.update(parent, {parentId: child2}).then(
-        () => {
-          browser.test.notifyFail("contextmenus");
-        },
-        () => {
-          browser.test.notifyPass("contextmenus");
-        }
-      );
+      await browser.test.assertRejects(
+        browser.contextMenus.update(parent, {parentId: child2}),
+        /cannot be an ancestor/,
+        "Should not be able to reparent an item as descendent of itself");
+
+      browser.test.notifyPass("contextmenus");
     },
   });
 
@@ -201,6 +204,21 @@ add_task(function* () {
   result = yield extension.awaitMessage("browser.contextMenus.onClicked");
   checkClickInfo(result);
 
+  extensionMenuRoot = yield openExtensionContextMenu("#password");
+  items = extensionMenuRoot.getElementsByAttribute("label", "password");
+  is(items.length, 1, "contextMenu item for password input element was found (context=password)");
+  let password = items[0];
+  yield closeExtensionContextMenu(password);
+  expectedClickInfo = {
+    menuItemId: "ext-password",
+    pageUrl: PAGE,
+    editable: true,
+  };
+
+  result = yield extension.awaitMessage("onclick");
+  checkClickInfo(result);
+  result = yield extension.awaitMessage("browser.contextMenus.onClicked");
+  checkClickInfo(result);
 
   // Select some text
   yield ContentTask.spawn(gBrowser.selectedBrowser, { }, function* (arg) {

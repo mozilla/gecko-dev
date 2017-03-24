@@ -8,6 +8,22 @@
   --drag-drop-transition-duration: .3s;
 }
 
+#main-window[customization-lwtheme] #tab-view-deck:-moz-lwtheme {
+  background-repeat: no-repeat;
+  background-position: right top;
+  background-attachment: fixed;
+  background-color: transparent;
+  background-image: -moz-image-rect(var(--lwt-header-image), 0, 100%,
+                      var(--toolbox-rect-height), 0),
+                    linear-gradient(to bottom,
+                      var(--lwt-accent-color) calc(var(--toolbox-rect-height-with-unit) - 1px),
+                      rgba(0,0,0,0.25) calc(var(--toolbox-rect-height-with-unit) - 1px),
+                      rgba(0,0,0,0.25) calc(var(--toolbox-rect-height-with-unit) + 1px),
+                      rgba(255,255,255,0.5) calc(var(--toolbox-rect-height-with-unit) + 1px),
+                      rgba(255,255,255,0.5) calc(var(--toolbox-rect-height-with-unit) + 2px),
+                      transparent calc(var(--toolbox-rect-height-with-unit) + 2px));
+}
+
 #main-window:-moz-any([customize-entering],[customize-entered]) #browser-bottombox {
   margin-bottom: 2em;
 }
@@ -194,7 +210,7 @@
   width: 20px;
   height: 20px;
   border-radius: 2px;
-  background-image: url("chrome://browser/skin/theme-switcher-icon.png");
+  background-image: url("chrome://browser/content/default-theme-icon.svg");
   background-size: contain;
 }
 
@@ -388,7 +404,7 @@ toolbarpaletteitem[place="toolbar"]:not([mousedown="true"]):-moz-focusring {
 }
 
 .customization-lwtheme-menu-theme[defaulttheme] {
-  list-style-image: url(chrome://browser/skin/theme-switcher-icon.png);
+  list-style-image: url(chrome://browser/content/default-theme-icon.svg);
 }
 
 .customization-lwtheme-menu-theme[active="true"],

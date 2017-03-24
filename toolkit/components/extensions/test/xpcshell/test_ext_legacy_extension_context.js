@@ -5,7 +5,7 @@
 Cu.import("resource://gre/modules/Extension.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-const {LegacyExtensionContext} = Cu.import("resource://gre/modules/LegacyExtensionsUtils.jsm");
+const {LegacyExtensionContext} = Cu.import("resource://gre/modules/LegacyExtensionsUtils.jsm", {});
 
 /**
  * This test case ensures that LegacyExtensionContext instances:
@@ -31,18 +31,18 @@ add_task(function* test_legacy_extension_context() {
 
     let port;
 
-    browser.test.onMessage.addListener(msg => {
+    browser.test.onMessage.addListener(async msg => {
       if (msg == "do-send-message") {
-        browser.runtime.sendMessage("webextension -> legacy_extension message").then(reply => {
-          browser.test.assertEq("legacy_extension -> webextension reply", reply,
-                                "Got the expected message from the LegacyExtensionContext");
-          browser.test.sendMessage("got-reply-message");
-        });
+        let reply = await browser.runtime.sendMessage("webextension -> legacy_extension message");
+
+        browser.test.assertEq("legacy_extension -> webextension reply", reply,
+                              "Got the expected message from the LegacyExtensionContext");
+        browser.test.sendMessage("got-reply-message");
       } else if (msg == "do-connect") {
         port = browser.runtime.connect();
 
-        port.onMessage.addListener(msg => {
-          browser.test.assertEq("legacy_extension -> webextension port message", msg,
+        port.onMessage.addListener(portMsg => {
+          browser.test.assertEq("legacy_extension -> webextension port message", portMsg,
                                 "Got the expected message from the LegacyExtensionContext");
           port.postMessage("webextension -> legacy_extension port message");
         });
@@ -108,7 +108,7 @@ add_task(function* test_legacy_extension_context() {
      "Got the expected message");
   ok(msgSender, "Got a message sender object");
 
-  equal(msgSender.id, extensionInfo.uuid, "The sender has the expected id property");
+  equal(msgSender.id, extension.id, "The sender has the expected id property");
   equal(msgSender.url, extensionInfo.bgURL, "The sender has the expected url property");
 
   // Wait confirmation that the reply has been received.
@@ -136,7 +136,7 @@ add_task(function* test_legacy_extension_context() {
 
   ok(port, "Got the Port API object");
   ok(port.sender, "The port has a sender property");
-  equal(port.sender.id, extensionInfo.uuid,
+  equal(port.sender.id, extension.id,
      "The port sender has the expected id property");
   equal(port.sender.url, extensionInfo.bgURL,
      "The port sender has the expected url property");

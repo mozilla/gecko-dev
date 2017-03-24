@@ -43,7 +43,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(DOMEventTargetHelper)
     NS_IMPL_CYCLE_COLLECTION_DESCRIBE(DOMEventTargetHelper, tmp->mRefCnt.get())
   }
 
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mListenerManager)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -53,24 +52,24 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(DOMEventTargetHelper)
-  if (tmp->IsBlack() || tmp->IsCertainlyAliveForCC()) {
+  bool hasLiveWrapper = tmp->HasKnownLiveWrapper();
+  if (hasLiveWrapper || tmp->IsCertainlyAliveForCC()) {
     if (tmp->mListenerManager) {
       tmp->mListenerManager->MarkForCC();
     }
-    if (!tmp->IsBlack() && tmp->PreservingWrapper()) {
-      // This marks the wrapper black.
-      tmp->GetWrapper();
+    if (!hasLiveWrapper && tmp->PreservingWrapper()) {
+      tmp->MarkWrapperLive();
     }
     return true;
   }
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(DOMEventTargetHelper)
-  return tmp->IsBlackAndDoesNotNeedTracing(tmp);
+  return tmp->HasKnownLiveWrapperAndDoesNotNeedTracing(tmp);
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(DOMEventTargetHelper)
-  return tmp->IsBlack();
+  return tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMEventTargetHelper)
@@ -322,14 +321,14 @@ DOMEventTargetHelper::GetEventHandler(nsIAtom* aType,
 {
   EventHandlerNonNull* handler = GetEventHandler(aType, EmptyString());
   if (handler) {
-    *aValue = JS::ObjectValue(*handler->Callable());
+    *aValue = JS::ObjectOrNullValue(handler->CallableOrNull());
   } else {
     *aValue = JS::NullValue();
   }
 }
 
 nsresult
-DOMEventTargetHelper::PreHandleEvent(EventChainPreVisitor& aVisitor)
+DOMEventTargetHelper::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = true;
   aVisitor.mParentTarget = nullptr;

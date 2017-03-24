@@ -78,6 +78,7 @@ public:
   NS_IMETHOD AsyncOpen2(nsIStreamListener *aListener) override;
 
   // HttpBaseChannel::nsIHttpChannel
+  NS_IMETHOD SetReferrerWithPolicy(nsIURI *referrer, uint32_t referrerPolicy) override;
   NS_IMETHOD SetRequestHeader(const nsACString& aHeader,
                               const nsACString& aValue,
                               bool aMerge) override;
@@ -102,58 +103,62 @@ public:
   void AddIPDLReference();
   void ReleaseIPDLReference();
 
-  bool IsSuspended();
+  MOZ_MUST_USE bool IsSuspended();
 
-  bool RecvNotifyTrackingProtectionDisabled() override;
+  mozilla::ipc::IPCResult RecvNotifyTrackingProtectionDisabled() override;
+  mozilla::ipc::IPCResult RecvNotifyTrackingResource() override;
   void FlushedForDiversion();
+  mozilla::ipc::IPCResult RecvSetClassifierMatchedInfo(const ClassifierInfo& aInfo) override;
 
 protected:
-  bool RecvOnStartRequest(const nsresult& channelStatus,
-                          const nsHttpResponseHead& responseHead,
-                          const bool& useResponseHead,
-                          const nsHttpHeaderArray& requestHeaders,
-                          const bool& isFromCache,
-                          const bool& cacheEntryAvailable,
-                          const uint32_t& cacheExpirationTime,
-                          const nsCString& cachedCharset,
-                          const nsCString& securityInfoSerialization,
-                          const NetAddr& selfAddr,
-                          const NetAddr& peerAddr,
-                          const int16_t& redirectCount,
-                          const uint32_t& cacheKey,
-                          const nsCString& altDataType) override;
-  bool RecvOnTransportAndData(const nsresult& channelStatus,
-                              const nsresult& status,
-                              const uint64_t& progress,
-                              const uint64_t& progressMax,
-                              const uint64_t& offset,
-                              const uint32_t& count,
-                              const nsCString& data) override;
-  bool RecvOnStopRequest(const nsresult& statusCode, const ResourceTimingStruct& timing) override;
-  bool RecvOnProgress(const int64_t& progress, const int64_t& progressMax) override;
-  bool RecvOnStatus(const nsresult& status) override;
-  bool RecvFailedAsyncOpen(const nsresult& status) override;
-  bool RecvRedirect1Begin(const uint32_t& registrarId,
-                          const URIParams& newURI,
-                          const uint32_t& redirectFlags,
-                          const nsHttpResponseHead& responseHead,
-                          const nsCString& securityInfoSerialization,
-                          const nsCString& channelId) override;
-  bool RecvRedirect3Complete() override;
-  bool RecvAssociateApplicationCache(const nsCString& groupID,
-                                     const nsCString& clientID) override;
-  bool RecvFlushedForDiversion() override;
-  bool RecvDivertMessages() override;
-  bool RecvDeleteSelf() override;
-  bool RecvFinishInterceptedRedirect() override;
+  mozilla::ipc::IPCResult RecvOnStartRequest(const nsresult& channelStatus,
+                                             const nsHttpResponseHead& responseHead,
+                                             const bool& useResponseHead,
+                                             const nsHttpHeaderArray& requestHeaders,
+                                             const bool& isFromCache,
+                                             const bool& cacheEntryAvailable,
+                                             const uint32_t& cacheExpirationTime,
+                                             const nsCString& cachedCharset,
+                                             const nsCString& securityInfoSerialization,
+                                             const NetAddr& selfAddr,
+                                             const NetAddr& peerAddr,
+                                             const int16_t& redirectCount,
+                                             const uint32_t& cacheKey,
+                                             const nsCString& altDataType,
+                                             const int64_t& altDataLen) override;
+  mozilla::ipc::IPCResult RecvOnTransportAndData(const nsresult& channelStatus,
+                                                 const nsresult& status,
+                                                 const uint64_t& offset,
+                                                 const uint32_t& count,
+                                                 const nsCString& data) override;
+  mozilla::ipc::IPCResult RecvOnStopRequest(const nsresult& statusCode, const ResourceTimingStruct& timing) override;
+  mozilla::ipc::IPCResult RecvOnProgress(const int64_t& progress, const int64_t& progressMax) override;
+  mozilla::ipc::IPCResult RecvOnStatus(const nsresult& status) override;
+  mozilla::ipc::IPCResult RecvFailedAsyncOpen(const nsresult& status) override;
+  mozilla::ipc::IPCResult RecvRedirect1Begin(const uint32_t& registrarId,
+                                             const URIParams& newURI,
+                                             const uint32_t& redirectFlags,
+                                             const nsHttpResponseHead& responseHead,
+                                             const nsCString& securityInfoSerialization,
+                                             const nsCString& channelId) override;
+  mozilla::ipc::IPCResult RecvRedirect3Complete() override;
+  mozilla::ipc::IPCResult RecvAssociateApplicationCache(const nsCString& groupID,
+                                                        const nsCString& clientID) override;
+  mozilla::ipc::IPCResult RecvFlushedForDiversion() override;
+  mozilla::ipc::IPCResult RecvDivertMessages() override;
+  mozilla::ipc::IPCResult RecvDeleteSelf() override;
+  mozilla::ipc::IPCResult RecvFinishInterceptedRedirect() override;
 
-  bool RecvReportSecurityMessage(const nsString& messageTag,
-                                 const nsString& messageCategory) override;
+  mozilla::ipc::IPCResult RecvReportSecurityMessage(const nsString& messageTag,
+                                                    const nsString& messageCategory) override;
 
-  bool RecvIssueDeprecationWarning(const uint32_t& warning,
-                                   const bool& asError) override;
+  mozilla::ipc::IPCResult RecvIssueDeprecationWarning(const uint32_t& warning,
+                                                      const bool& asError) override;
 
-  bool GetAssociatedContentSecurity(nsIAssociatedContentSecurity** res = nullptr);
+  mozilla::ipc::IPCResult RecvSetPriority(const int16_t& aPriority) override;
+
+  MOZ_MUST_USE bool
+  GetAssociatedContentSecurity(nsIAssociatedContentSecurity** res = nullptr);
   virtual void DoNotifyListenerCleanup() override;
 
   NS_IMETHOD GetResponseSynthesized(bool* aSynthesized) override;
@@ -178,7 +183,13 @@ private:
     nsAutoPtr<nsHttpResponseHead> mHead;
   };
 
-  nsresult ContinueAsyncOpen();
+  // Sets the event target for future IPC messages. Messages will either be
+  // directed to the TabGroup or DocGroup, depending on the LoadInfo associated
+  // with the channel. Should be called when a new channel is being set up,
+  // before the constructor message is sent to the parent.
+  void SetEventTarget();
+
+  MOZ_MUST_USE nsresult ContinueAsyncOpen();
 
   void DoOnStartRequest(nsIRequest* aRequest, nsISupports* aContext);
   void DoOnStatus(nsIRequest* aRequest, nsresult status);
@@ -293,14 +304,13 @@ private:
                       const NetAddr& selfAddr,
                       const NetAddr& peerAddr,
                       const uint32_t& cacheKey,
-                      const nsCString& altDataType);
+                      const nsCString& altDataType,
+                      const int64_t& altDataLen);
   void MaybeDivertOnData(const nsCString& data,
                          const uint64_t& offset,
                          const uint32_t& count);
   void OnTransportAndData(const nsresult& channelStatus,
                           const nsresult& status,
-                          const uint64_t progress,
-                          const uint64_t& progressMax,
                           const uint64_t& offset,
                           const uint32_t& count,
                           const nsCString& data);
@@ -321,10 +331,10 @@ private:
 
   // Create a a new channel to be used in a redirection, based on the provided
   // response headers.
-  nsresult SetupRedirect(nsIURI* uri,
-                         const nsHttpResponseHead* responseHead,
-                         const uint32_t& redirectFlags,
-                         nsIChannel** outChannel);
+  MOZ_MUST_USE nsresult SetupRedirect(nsIURI* uri,
+                                      const nsHttpResponseHead* responseHead,
+                                      const uint32_t& redirectFlags,
+                                      nsIChannel** outChannel);
 
   // Perform a redirection without communicating with the parent process at all.
   void BeginNonIPCRedirect(nsIURI* responseURI,

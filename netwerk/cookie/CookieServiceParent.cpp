@@ -18,8 +18,7 @@
 
 using namespace mozilla::ipc;
 using mozilla::BasePrincipal;
-using mozilla::NeckoOriginAttributes;
-using mozilla::PrincipalOriginAttributes;
+using mozilla::OriginAttributes;
 using mozilla::dom::PContentParent;
 using mozilla::net::NeckoParent;
 
@@ -28,16 +27,11 @@ namespace {
 // Ignore failures from this function, as they only affect whether we do or
 // don't show a dialog box in private browsing mode if the user sets a pref.
 void
-CreateDummyChannel(nsIURI* aHostURI, NeckoOriginAttributes& aAttrs, bool aIsPrivate,
+CreateDummyChannel(nsIURI* aHostURI, OriginAttributes& aAttrs, bool aIsPrivate,
                    nsIChannel** aChannel)
 {
-  MOZ_ASSERT(aAttrs.mAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID);
-
-  PrincipalOriginAttributes attrs;
-  attrs.InheritFromNecko(aAttrs);
-
   nsCOMPtr<nsIPrincipal> principal =
-    BasePrincipal::CreateCodebasePrincipal(aHostURI, attrs);
+    BasePrincipal::CreateCodebasePrincipal(aHostURI, aAttrs);
   if (!principal) {
     return;
   }
@@ -92,44 +86,42 @@ CookieServiceParent::ActorDestroy(ActorDestroyReason aWhy)
   // non-refcounted class.
 }
 
-bool
+mozilla::ipc::IPCResult
 CookieServiceParent::RecvGetCookieString(const URIParams& aHost,
                                          const bool& aIsForeign,
-                                         const bool& aFromHttp,
-                                         const NeckoOriginAttributes& aAttrs,
+                                         const OriginAttributes& aAttrs,
                                          nsCString* aResult)
 {
   if (!mCookieService)
-    return true;
+    return IPC_OK();
 
   // Deserialize URI. Having a host URI is mandatory and should always be
   // provided by the child; thus we consider failure fatal.
   nsCOMPtr<nsIURI> hostURI = DeserializeURI(aHost);
   if (!hostURI)
-    return false;
+    return IPC_FAIL_NO_REASON(this);
 
   bool isPrivate = aAttrs.mPrivateBrowsingId > 0;
-  mCookieService->GetCookieStringInternal(hostURI, aIsForeign, aFromHttp, aAttrs,
+  mCookieService->GetCookieStringInternal(hostURI, aIsForeign, false, aAttrs,
                                           isPrivate, *aResult);
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CookieServiceParent::RecvSetCookieString(const URIParams& aHost,
                                          const bool& aIsForeign,
                                          const nsCString& aCookieString,
                                          const nsCString& aServerTime,
-                                         const bool& aFromHttp,
-                                         const NeckoOriginAttributes& aAttrs)
+                                         const OriginAttributes& aAttrs)
 {
   if (!mCookieService)
-    return true;
+    return IPC_OK();
 
   // Deserialize URI. Having a host URI is mandatory and should always be
   // provided by the child; thus we consider failure fatal.
   nsCOMPtr<nsIURI> hostURI = DeserializeURI(aHost);
   if (!hostURI)
-    return false;
+    return IPC_FAIL_NO_REASON(this);
 
   bool isPrivate = aAttrs.mPrivateBrowsingId > 0;
 
@@ -141,27 +133,15 @@ CookieServiceParent::RecvSetCookieString(const URIParams& aHost,
   // with aIsForeign before we have to worry about nsCookiePermission trying
   // to use the channel to inspect it.
   nsCOMPtr<nsIChannel> dummyChannel;
-  CreateDummyChannel(hostURI, const_cast<NeckoOriginAttributes&>(aAttrs),
+  CreateDummyChannel(hostURI, const_cast<OriginAttributes&>(aAttrs),
                      isPrivate, getter_AddRefs(dummyChannel));
 
   // NB: dummyChannel could be null if something failed in CreateDummyChannel.
   nsDependentCString cookieString(aCookieString, 0);
   mCookieService->SetCookieStringInternal(hostURI, aIsForeign, cookieString,
-                                          aServerTime, aFromHttp, aAttrs,
+                                          aServerTime, false, aAttrs,
                                           isPrivate, dummyChannel);
-  return true;
-}
-
-mozilla::ipc::IProtocol*
-CookieServiceParent::CloneProtocol(Channel* aChannel,
-                                   mozilla::ipc::ProtocolCloneContext* aCtx)
-{
-  NeckoParent* manager = aCtx->GetNeckoParent();
-  nsAutoPtr<PCookieServiceParent> actor(manager->AllocPCookieServiceParent());
-  if (!actor || !manager->RecvPCookieServiceConstructor(actor)) {
-    return nullptr;
-  }
-  return actor.forget();
+  return IPC_OK();
 }
 
 } // namespace net

@@ -36,7 +36,7 @@ function Number_toLocaleString() {
     }
 
     // Step 5.
-    return intl_FormatNumber(numberFormat, x);
+    return intl_FormatNumber(numberFormat, x, /* formatToParts = */ false);
 }
 
 // ES6 draft ES6 20.1.2.4
@@ -56,7 +56,7 @@ function Number_isNaN(num) {
 // ES6 draft ES6 20.1.2.5
 function Number_isSafeInteger(number) {
     // Step 1.
-    if (typeof number !== 'number')
+    if (typeof number !== "number")
         return false;
 
     // Step 2.
@@ -82,6 +82,6 @@ function Global_isNaN(number) {
     return Number_isNaN(ToNumber(number));
 }
 
-function Global_isFinite(number){
+function Global_isFinite(number) {
     return Number_isFinite(ToNumber(number));
 }

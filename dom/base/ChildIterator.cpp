@@ -60,7 +60,7 @@ GetMatchedNodesForPoint(nsIContent* aContent)
 
   // Web components case
   MOZ_ASSERT(aContent->IsHTMLElement(nsGkAtoms::content));
-  return MatchedNodes(static_cast<HTMLContentElement*>(aContent));
+  return MatchedNodes(HTMLContentElement::FromContent(aContent));
 }
 
 nsIContent*
@@ -115,7 +115,7 @@ ExplicitChildIterator::GetNextChild()
     if (ShadowRoot::IsShadowInsertionPoint(mChild)) {
       // Look for the next child in the projected ShadowRoot for the <shadow>
       // element.
-      HTMLShadowElement* shadowElem = static_cast<HTMLShadowElement*>(mChild);
+      HTMLShadowElement* shadowElem = HTMLShadowElement::FromContent(mChild);
       ShadowRoot* projectedShadow = shadowElem->GetOlderShadowRoot();
       if (projectedShadow) {
         mShadowIterator = new ExplicitChildIterator(projectedShadow);
@@ -270,7 +270,7 @@ ExplicitChildIterator::GetPreviousChild()
     if (ShadowRoot::IsShadowInsertionPoint(mChild)) {
       // If the current child being iterated is a shadow insertion point then
       // the iterator needs to go into the projected ShadowRoot.
-      HTMLShadowElement* shadowElem = static_cast<HTMLShadowElement*>(mChild);
+      HTMLShadowElement* shadowElem = HTMLShadowElement::FromContent(mChild);
       ShadowRoot* projectedShadow = shadowElem->GetOlderShadowRoot();
       if (projectedShadow) {
         // Create a ExplicitChildIterator that begins iterating from the end.
@@ -383,12 +383,10 @@ AllChildrenIterator::AppendNativeAnonymousChildren()
 
   // The root scroll frame is not the primary frame of the root element.
   // Detect and handle this case.
-  if (mOriginalContent == mOriginalContent->OwnerDoc()->GetRootElement()) {
-    nsIPresShell* presShell = mOriginalContent->OwnerDoc()->GetShell();
-    nsIFrame* scrollFrame = presShell ? presShell->GetRootScrollFrame() : nullptr;
-    if (scrollFrame) {
-      AppendNativeAnonymousChildrenFromFrame(scrollFrame);
-    }
+  if (!(mFlags & nsIContent::eSkipDocumentLevelNativeAnonymousContent) &&
+      mOriginalContent == mOriginalContent->OwnerDoc()->GetRootElement()) {
+    nsContentUtils::AppendDocumentLevelNativeAnonymousContentTo(
+        mOriginalContent->OwnerDoc(), mAnonKids);
   }
 }
 
@@ -549,11 +547,13 @@ IsNativeAnonymousImplementationOfPseudoElement(nsIContent* aContent)
   //   ":-moz-text", so we need to check for the anonymous box case here.
   // * The primary frame for table elements is an anonymous box that inherits
   //   from the table's style.
-  if (pseudoType == CSSPseudoElementType::AnonBox) {
+  if (pseudoType == CSSPseudoElementType::InheritingAnonBox) {
     MOZ_ASSERT(f->StyleContext()->GetPseudo() == nsCSSAnonBoxes::mozText ||
                f->StyleContext()->GetPseudo() == nsCSSAnonBoxes::tableWrapper);
     return false;
   }
+
+  MOZ_ASSERT(pseudoType != CSSPseudoElementType::NonInheritingAnonBox);
 
   // Finally check the actual pseudo type.
   bool isImpl = pseudoType != CSSPseudoElementType::NotPseudo;
@@ -582,12 +582,6 @@ StyleChildrenIterator::IsNeeded(const Element* aElement)
   // If the node has native anonymous content, return true.
   nsIAnonymousContentCreator* ac = do_QueryFrame(aElement->GetPrimaryFrame());
   if (ac) {
-    return true;
-  }
-
-  // The root element has a scroll frame that is not the primary frame, so we
-  // need to do special checking for that case.
-  if (aElement == aElement->OwnerDoc()->GetRootElement()) {
     return true;
   }
 

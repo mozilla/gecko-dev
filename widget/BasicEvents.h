@@ -132,6 +132,16 @@ public:
   // Similar to mComposed. Set it to true to allow events cross the boundary
   // between native non-anonymous content and native anonymouse content
   bool mComposedInNativeAnonymousContent : 1;
+  // Set to true for events which are suppressed or delayed so that later a
+  // DelayedEvent of it is dispatched. This is used when parent side process
+  // the key event after content side, and may drop the event if the event
+  // was suppressed or delayed in contents side.
+  // It is also set to true for the events (in a DelayedInputEvent), which will
+  // be dispatched afterwards.
+  bool mIsSuppressedOrDelayed : 1;
+  // Certain mouse events can be marked as positionless to return 0 from
+  // coordinate related getters.
+  bool mIsPositionless : 1;
 
   // If the event is being handled in target phase, returns true.
   inline bool InTargetPhase() const
@@ -157,6 +167,9 @@ public:
   }
   inline void PreventDefault(bool aCalledByDefaultHandler = true)
   {
+    if (!mCancelable) {
+      return;
+    }
     mDefaultPrevented = true;
     // Note that even if preventDefault() has already been called by chrome,
     // a call of preventDefault() by content needs to overwrite
@@ -171,6 +184,9 @@ public:
   // This should be used only before dispatching events into the DOM tree.
   inline void PreventDefaultBeforeDispatch()
   {
+    if (!mCancelable) {
+      return;
+    }
     mDefaultPrevented = true;
   }
   inline bool DefaultPrevented() const
@@ -403,9 +419,15 @@ public:
   nsString mSpecifiedEventTypeString;
 
   // Event targets, needed by DOM Events
+  // Note that when you need event target for DOM event, you should use
+  // Get*DOMEventTarget() instead of accessing these members directly.
   nsCOMPtr<dom::EventTarget> mTarget;
   nsCOMPtr<dom::EventTarget> mCurrentTarget;
   nsCOMPtr<dom::EventTarget> mOriginalTarget;
+
+  dom::EventTarget* GetDOMEventTarget() const;
+  dom::EventTarget* GetCurrentDOMEventTarget() const;
+  dom::EventTarget* GetOriginalDOMEventTarget() const;
 
   void AssignEventData(const WidgetEvent& aEvent, bool aCopyTargets)
   {
@@ -430,6 +452,9 @@ public:
   void StopCrossProcessForwarding() { mFlags.StopCrossProcessForwarding(); }
   void PreventDefault(bool aCalledByDefaultHandler = true)
   {
+    // Legacy mouse events shouldn't be prevented on ePointerDown by default
+    // handlers.
+    MOZ_RELEASE_ASSERT(!aCalledByDefaultHandler || mMessage != ePointerDown);
     mFlags.PreventDefault(aCalledByDefaultHandler);
   }
   void PreventDefaultBeforeDispatch() { mFlags.PreventDefaultBeforeDispatch(); }
@@ -499,6 +524,10 @@ public:
   bool HasPluginActivationEventMessage() const;
 
   /**
+   * Returns true if the event can be sent to remote process.
+   */
+  bool CanBeSentToRemoteProcess() const;
+  /**
    * Returns true if the event is native event deliverer event for plugin and
    * it should be retarted to focused document.
    */
@@ -551,6 +580,10 @@ public:
    */
   bool IsAllowedToDispatchDOMEvent() const;
   /**
+   * Whether the event should be dispatched in system group.
+   */
+  bool IsAllowedToDispatchInSystemGroup() const;
+  /**
    * Initialize mComposed
    */
   void SetDefaultComposed()
@@ -581,6 +614,7 @@ public:
       case eMouseEventClass:
         mFlags.mComposed = mMessage == eMouseClick ||
                            mMessage == eMouseDoubleClick ||
+                           mMessage == eMouseAuxClick ||
                            mMessage == eMouseDown || mMessage == eMouseUp ||
                            mMessage == eMouseEnter || mMessage == eMouseLeave ||
                            mMessage == eMouseOver || mMessage == eMouseOut ||

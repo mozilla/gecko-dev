@@ -21,6 +21,9 @@
 
 #include "gfxVROSVR.h"
 
+#include "mozilla/dom/GamepadEventTypes.h"
+#include "mozilla/dom/GamepadBinding.h"
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -28,6 +31,7 @@
 using namespace mozilla::layers;
 using namespace mozilla::gfx;
 using namespace mozilla::gfx::impl;
+using namespace mozilla::dom;
 
 namespace {
 // need to typedef functions that will be used in the code below
@@ -317,12 +321,6 @@ VRDisplayOSVR::GetSensorState()
   return result;
 }
 
-VRHMDSensorState
-VRDisplayOSVR::GetImmediateSensorState()
-{
-  return GetSensorState();
-}
-
 #if defined(XP_WIN)
 
 void
@@ -349,8 +347,8 @@ VRDisplayOSVR::StopPresentation()
   // XXX Add code to end VR Presentation
 }
 
-already_AddRefed<VRDisplayManagerOSVR>
-VRDisplayManagerOSVR::Create()
+already_AddRefed<VRSystemManagerOSVR>
+VRSystemManagerOSVR::Create()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -360,12 +358,12 @@ VRDisplayManagerOSVR::Create()
   if (!LoadOSVRRuntime()) {
     return nullptr;
   }
-  RefPtr<VRDisplayManagerOSVR> manager = new VRDisplayManagerOSVR();
+  RefPtr<VRSystemManagerOSVR> manager = new VRSystemManagerOSVR();
   return manager.forget();
 }
 
 void
-VRDisplayManagerOSVR::CheckOSVRStatus()
+VRSystemManagerOSVR::CheckOSVRStatus()
 {
   if (mOSVRInitialized) {
     return;
@@ -389,7 +387,7 @@ VRDisplayManagerOSVR::CheckOSVRStatus()
 }
 
 void
-VRDisplayManagerOSVR::InitializeClientContext()
+VRSystemManagerOSVR::InitializeClientContext()
 {
   // already initialized
   if (mClientContextInitialized) {
@@ -418,7 +416,7 @@ VRDisplayManagerOSVR::InitializeClientContext()
 }
 
 void
-VRDisplayManagerOSVR::InitializeInterface()
+VRSystemManagerOSVR::InitializeInterface()
 {
   // already initialized
   if (mInterfaceInitialized) {
@@ -435,7 +433,7 @@ VRDisplayManagerOSVR::InitializeInterface()
 }
 
 void
-VRDisplayManagerOSVR::InitializeDisplay()
+VRSystemManagerOSVR::InitializeDisplay()
 {
   // display is fully configured
   if (mDisplayConfigInitialized) {
@@ -470,7 +468,7 @@ VRDisplayManagerOSVR::InitializeDisplay()
 }
 
 bool
-VRDisplayManagerOSVR::Init()
+VRSystemManagerOSVR::Init()
 {
 
   // OSVR server should be running in the background
@@ -494,7 +492,7 @@ VRDisplayManagerOSVR::Init()
 }
 
 void
-VRDisplayManagerOSVR::Destroy()
+VRSystemManagerOSVR::Destroy()
 {
   if (mOSVRInitialized) {
     MOZ_ASSERT(NS_GetCurrentThread() == mOSVRThread);
@@ -512,7 +510,7 @@ VRDisplayManagerOSVR::Destroy()
 }
 
 void
-VRDisplayManagerOSVR::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
+VRSystemManagerOSVR::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
 {
   // make sure context, interface and display are initialized
   CheckOSVRStatus();
@@ -526,4 +524,49 @@ VRDisplayManagerOSVR::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
   if (mHMDInfo) {
     aHMDResult.AppendElement(mHMDInfo);
   }
+}
+
+bool
+VRSystemManagerOSVR::GetIsPresenting()
+{
+  if (mHMDInfo) {
+    VRDisplayInfo displayInfo(mHMDInfo->GetDisplayInfo());
+    return displayInfo.GetIsPresenting();
+  }
+
+  return false;
+}
+
+void
+VRSystemManagerOSVR::HandleInput()
+{
+}
+
+void
+VRSystemManagerOSVR::VibrateHaptic(uint32_t aControllerIdx,
+                                   uint32_t aHapticIndex,
+                                   double aIntensity,
+                                   double aDuration,
+                                   uint32_t aPromiseID)
+{
+}
+
+void
+VRSystemManagerOSVR::StopVibrateHaptic(uint32_t aControllerIdx)
+{
+}
+
+void
+VRSystemManagerOSVR::GetControllers(nsTArray<RefPtr<VRControllerHost>>& aControllerResult)
+{
+}
+
+void
+VRSystemManagerOSVR::ScanForControllers()
+{
+}
+
+void
+VRSystemManagerOSVR::RemoveControllers()
+{
 }

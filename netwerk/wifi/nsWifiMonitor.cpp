@@ -16,6 +16,7 @@
 
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Services.h"
 
 using namespace mozilla;
@@ -84,7 +85,7 @@ NS_IMETHODIMP nsWifiMonitor::StartWatching(nsIWifiListener *aListener)
   }
 
   if (!mThread) {
-    rv = NS_NewThread(getter_AddRefs(mThread), this);
+    rv = NS_NewNamedThread("Wifi Monitor", getter_AddRefs(mThread), this);
     if (NS_FAILED(rv))
       return rv;
   }
@@ -155,10 +156,8 @@ NS_IMETHODIMP nsWifiMonitor::Run()
 {
   LOG(("@@@@@ wifi monitor run called\n"));
 
-  PR_SetCurrentThreadName("Wifi Monitor");
-
   nsresult rv = DoScan();
-  LOG(("@@@@@ wifi monitor run::doscan complete %x\n", rv));
+  LOG(("@@@@@ wifi monitor run::doscan complete %" PRIx32 "\n", static_cast<uint32_t>(rv)));
 
   nsAutoPtr<WifiListenerArray> currentListeners;
   bool doError = false;

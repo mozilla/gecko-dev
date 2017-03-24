@@ -1,6 +1,7 @@
 [
   {
     "namespace": "manifest",
+    "permissions": [],
     "types": [
       {
         "id": "WebExtensionManifest",
@@ -165,6 +166,7 @@
 
           "permissions": {
             "type": "array",
+            "default": [],
             "items": {
               "choices": [
                 { "$ref": "Permission" },
@@ -211,7 +213,9 @@
             "type": "string",
             "enum": [
               "alarms",
+              "clipboardRead",
               "clipboardWrite",
+              "geolocation",
               "idle",
               "notifications",
               "storage"
@@ -219,6 +223,12 @@
           },
           { "$ref": "MatchPattern" }
         ]
+      },
+      {
+        "id": "HttpURL",
+        "type": "string",
+        "format": "url",
+        "pattern": "^https?://.*$"
       },
       {
         "id": "ExtensionURL",

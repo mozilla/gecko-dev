@@ -30,6 +30,10 @@ public:
 
   nsresult Init(nsICryptoHash* aHasher);
 
+#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
+  virtual nsCString GetRawTableUpdates() const { return mPending; }
+#endif
+
   virtual void SetCurrentTable(const nsACString& aTable) = 0;
 
   void SetRequestedTables(const nsTArray<nsCString>& aRequestTables)
@@ -97,6 +101,12 @@ public:
   virtual const nsTArray<ForwardedUpdate> &Forwards() const override { return mForwards; }
   virtual bool ResetRequested() override { return mResetRequested; }
 
+#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
+  // Unfortunately we have to override to return mRawUpdate which
+  // will not be modified during the parsing, unlike mPending.
+  virtual nsCString GetRawTableUpdates() const override { return mRawUpdate; }
+#endif
+
 private:
   virtual TableUpdate* CreateTableUpdate(const nsACString& aTableName) const override;
 
@@ -154,6 +164,10 @@ private:
 
   // Updates to apply to the current table being parsed.
   TableUpdateV2 *mTableUpdate;
+
+#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
+  nsCString mRawUpdate; // Keep a copy of mPending before it's processed.
+#endif
 };
 
 // Helpers to parse the "proto" list format.

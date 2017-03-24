@@ -8,6 +8,7 @@
 #include "CompositionTransaction.h"
 #include "mozilla/EditorBase.h"
 #include "mozilla/dom/Selection.h"
+#include "mozilla/Move.h"
 #include "nsGkAtoms.h"
 #include "nsQueryObject.h"
 
@@ -15,13 +16,18 @@ namespace mozilla {
 
 using namespace dom;
 
-PlaceholderTransaction::PlaceholderTransaction()
+PlaceholderTransaction::PlaceholderTransaction(
+                          EditorBase& aEditorBase,
+                          nsIAtom* aName,
+                          UniquePtr<SelectionState> aSelState)
   : mAbsorb(true)
   , mForwarding(nullptr)
   , mCompositionTransaction(nullptr)
   , mCommitted(false)
-  , mEditorBase(nullptr)
+  , mStartSel(Move(aSelState))
+  , mEditorBase(&aEditorBase)
 {
+  mName = aName;
 }
 
 PlaceholderTransaction::~PlaceholderTransaction()
@@ -35,6 +41,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(PlaceholderTransaction,
   if (tmp->mStartSel) {
     ImplCycleCollectionUnlink(*tmp->mStartSel);
   }
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mEditorBase);
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mEndSel);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -43,6 +50,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(PlaceholderTransaction,
   if (tmp->mStartSel) {
     ImplCycleCollectionTraverse(cb, *tmp->mStartSel, "mStartSel", 0);
   }
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mEditorBase);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mEndSel);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -55,19 +63,6 @@ NS_IMPL_ADDREF_INHERITED(PlaceholderTransaction, EditAggregateTransaction)
 NS_IMPL_RELEASE_INHERITED(PlaceholderTransaction, EditAggregateTransaction)
 
 NS_IMETHODIMP
-PlaceholderTransaction::Init(nsIAtom* aName,
-                             SelectionState* aSelState,
-                             EditorBase* aEditorBase)
-{
-  NS_ENSURE_TRUE(aEditorBase && aSelState, NS_ERROR_NULL_POINTER);
-
-  mName = aName;
-  mStartSel = aSelState;
-  mEditorBase = aEditorBase;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 PlaceholderTransaction::DoTransaction()
 {
   return NS_OK;
@@ -76,6 +71,10 @@ PlaceholderTransaction::DoTransaction()
 NS_IMETHODIMP
 PlaceholderTransaction::UndoTransaction()
 {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // Undo transactions.
   nsresult rv = EditAggregateTransaction::UndoTransaction();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -91,6 +90,10 @@ PlaceholderTransaction::UndoTransaction()
 NS_IMETHODIMP
 PlaceholderTransaction::RedoTransaction()
 {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // Redo transactions.
   nsresult rv = EditAggregateTransaction::RedoTransaction();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -261,6 +264,10 @@ PlaceholderTransaction::Commit()
 nsresult
 PlaceholderTransaction::RememberEndingSelection()
 {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   RefPtr<Selection> selection = mEditorBase->GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   mEndSel.SaveSelection(selection);

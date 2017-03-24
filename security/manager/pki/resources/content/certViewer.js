@@ -27,8 +27,7 @@ const nsASN1Tree = "@mozilla.org/security/nsASN1Tree;1";
 
 var bundle;
 
-function doPrompt(msg)
-{
+function doPrompt(msg) {
   let prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].
     getService(Components.interfaces.nsIPromptService);
   prompts.alert(window, null, msg);
@@ -42,20 +41,13 @@ function doPrompt(msg)
  * @param {nsIArray<nsIX509Cert>} chain
  *        Chain where cert element n is issued by cert element n + 1.
  */
-function AddCertChain(node, chain)
-{
-  var child = document.getElementById(node);
-  var currCert;
-  var displayVal;
+function AddCertChain(node, chain) {
+  let child = document.getElementById(node);
   for (let i = chain.length - 1; i >= 0; i--) {
-    currCert = chain.queryElementAt(i, nsIX509Cert);
-    if (currCert.commonName) {
-      displayVal = currCert.commonName;
-    } else {
-      displayVal = currCert.windowTitle;
-    }
+    let currCert = chain.queryElementAt(i, nsIX509Cert);
+    let displayValue = currCert.displayName;
     let addTwistie = i != 0;
-    child = addChildrenToTree(child, displayVal, currCert.dbKey, addTwistie);
+    child = addChildrenToTree(child, displayValue, currCert.dbKey, addTwistie);
   }
 }
 
@@ -65,8 +57,7 @@ function AddCertChain(node, chain)
  * @param {String} usage
  *        Verified usage to add.
  */
-function AddUsage(usage)
-{
+function AddUsage(usage) {
   let verifyInfoBox = document.getElementById("verify_info_box");
   let text = document.createElement("textbox");
   text.setAttribute("value", usage);
@@ -76,13 +67,12 @@ function AddUsage(usage)
   verifyInfoBox.appendChild(text);
 }
 
-function setWindowName()
-{
+function setWindowName() {
   bundle = document.getElementById("pippki_bundle");
 
   let cert = window.arguments[0].QueryInterface(Ci.nsIX509Cert);
   document.title = bundle.getFormattedString("certViewerTitle",
-                                             [cert.windowTitle]);
+                                             [cert.displayName]);
 
   //
   //  Set the cert attributes for viewing
@@ -155,7 +145,7 @@ function asyncDetermineUsages(cert) {
       let usage = certificateUsages[usageString];
       certdb.asyncVerifyCertAtTime(cert, usage, 0, null, now,
         (aPRErrorCode, aVerifiedChain, aHasEVPolicy) => {
-          resolve({ usageString: usageString, errorCode: aPRErrorCode });
+          resolve({ usageString, errorCode: aPRErrorCode });
         });
     }));
   });
@@ -228,8 +218,7 @@ function displayUsages(results) {
   Services.obs.notifyObservers(window, "ViewCertDetails:CertUsagesDone", null);
 }
 
-function addChildrenToTree(parentTree, label, value, addTwistie)
-{
+function addChildrenToTree(parentTree, label, value, addTwistie) {
   let treeChild1 = document.createElement("treechildren");
   let treeElement = addTreeItemToTreeChild(treeChild1, label, value,
                                            addTwistie);
@@ -237,8 +226,7 @@ function addChildrenToTree(parentTree, label, value, addTwistie)
   return treeElement;
 }
 
-function addTreeItemToTreeChild(treeChild, label, value, addTwistie)
-{
+function addTreeItemToTreeChild(treeChild, label, value, addTwistie) {
   let treeElem1 = document.createElement("treeitem");
   if (addTwistie) {
     treeElem1.setAttribute("container", "true");
@@ -257,10 +245,10 @@ function addTreeItemToTreeChild(treeChild, label, value, addTwistie)
 }
 
 function displaySelected() {
-  var asn1Tree = document.getElementById('prettyDumpTree')
+  var asn1Tree = document.getElementById("prettyDumpTree")
           .view.QueryInterface(nsIASN1Tree);
   var items = asn1Tree.selection;
-  var certDumpVal = document.getElementById('certDumpVal');
+  var certDumpVal = document.getElementById("certDumpVal");
   if (items.currentIndex != -1) {
     var value = asn1Tree.getDisplayData(items.currentIndex);
     certDumpVal.value = value;
@@ -269,21 +257,19 @@ function displaySelected() {
   }
 }
 
-function BuildPrettyPrint(cert)
-{
+function BuildPrettyPrint(cert) {
   var certDumpTree = Components.classes[nsASN1Tree].
                           createInstance(nsIASN1Tree);
   certDumpTree.loadASN1Structure(cert.ASN1Structure);
-  document.getElementById('prettyDumpTree').view = certDumpTree;
+  document.getElementById("prettyDumpTree").view = certDumpTree;
 }
 
-function addAttributeFromCert(nodeName, value)
-{
+function addAttributeFromCert(nodeName, value) {
   var node = document.getElementById(nodeName);
   if (!value) {
-    value = bundle.getString('notPresent');
+    value = bundle.getString("notPresent");
   }
-  node.setAttribute('value', value);
+  node.setAttribute("value", value);
 }
 
 /**
@@ -292,8 +278,7 @@ function addAttributeFromCert(nodeName, value)
  * @param {nsIX509Cert} cert
  *        Cert to display information about.
  */
-function DisplayGeneralDataFromCert(cert)
-{
+function DisplayGeneralDataFromCert(cert) {
   addAttributeFromCert("commonname", cert.commonName);
   addAttributeFromCert("organization", cert.organization);
   addAttributeFromCert("orgunit", cert.organizationalUnit);
@@ -308,17 +293,16 @@ function DisplayGeneralDataFromCert(cert)
   addAttributeFromCert("issuerorgunit", cert.issuerOrganizationUnit);
 }
 
-function updateCertDump()
-{
-  var asn1Tree = document.getElementById('prettyDumpTree')
+function updateCertDump() {
+  var asn1Tree = document.getElementById("prettyDumpTree")
           .view.QueryInterface(nsIASN1Tree);
 
-  var tree = document.getElementById('treesetDump');
+  var tree = document.getElementById("treesetDump");
   if (tree.currentIndex < 0) {
-    doPrompt("No items are selected."); //This should never happen.
+    doPrompt("No items are selected."); // This should never happen.
   } else {
     var item = tree.contentView.getItemAtIndex(tree.currentIndex);
-    var dbKey = item.firstChild.firstChild.getAttribute('display');
+    var dbKey = item.firstChild.firstChild.getAttribute("display");
     //  Get the cert from the cert database
     var certdb = Components.classes[nsX509CertDB].getService(nsIX509CertDB);
     var cert = certdb.findCertByDBKey(dbKey);
@@ -327,12 +311,11 @@ function updateCertDump()
   displaySelected();
 }
 
-function getCurrentCert()
-{
+function getCurrentCert() {
   var realIndex;
-  var tree = document.getElementById('treesetDump');
+  var tree = document.getElementById("treesetDump");
   if (tree.view.selection.isSelected(tree.currentIndex)
-      && document.getElementById('prettyprint_tab').selected) {
+      && document.getElementById("prettyprint_tab").selected) {
     /* if the user manually selected a cert on the Details tab,
        then take that one  */
     realIndex = tree.currentIndex;
@@ -344,7 +327,7 @@ function getCurrentCert()
   }
   if (realIndex >= 0) {
     var item = tree.contentView.getItemAtIndex(realIndex);
-    var dbKey = item.firstChild.firstChild.getAttribute('display');
+    var dbKey = item.firstChild.firstChild.getAttribute("display");
     var certdb = Components.classes[nsX509CertDB].getService(nsIX509CertDB);
     var cert = certdb.findCertByDBKey(dbKey);
     return cert;

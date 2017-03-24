@@ -1,3 +1,5 @@
+/* eslint-env mozilla/frame-script */
+
 "use strict";
 
 var gMessageManager;
@@ -114,7 +116,7 @@ var gTests = [
   {
     desc: "F11 key",
     affectsFullscreenMode: true,
-    exitFunc: function () {
+    exitFunc() {
       executeSoon(() => EventUtils.synthesizeKey("VK_F11", {}));
     }
   }

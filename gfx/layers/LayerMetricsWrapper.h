@@ -409,7 +409,7 @@ public:
     return EventRegionsOverride::NoOverride;
   }
 
-  Layer::ScrollDirection GetScrollbarDirection() const
+  ScrollDirection GetScrollbarDirection() const
   {
     MOZ_ASSERT(IsValid());
 
@@ -423,9 +423,9 @@ public:
     return mLayer->GetScrollbarTargetContainerId();
   }
 
-  int32_t GetScrollbarSize() const
+  int32_t GetScrollThumbLength() const
   {
-    if (GetScrollbarDirection() == Layer::VERTICAL) {
+    if (GetScrollbarDirection() == ScrollDirection::VERTICAL) {
       return mLayer->GetVisibleRegion().GetBounds().height;
     } else {
       return mLayer->GetVisibleRegion().GetBounds().width;

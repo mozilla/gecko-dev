@@ -6,16 +6,34 @@
 
 "use strict";
 
-const { createClass, DOM: dom } =
+const { createClass, DOM: dom, PropTypes } =
   require("devtools/client/shared/vendor/react");
 const { debugAddon } = require("../../modules/addon");
 const Services = require("Services");
+
+loader.lazyImporter(this, "BrowserToolboxProcess",
+  "resource://devtools/client/framework/ToolboxProcess.jsm");
+
+loader.lazyRequireGetter(this, "DebuggerClient",
+  "devtools/shared/client/main", true);
 
 const Strings = Services.strings.createBundle(
   "chrome://devtools/locale/aboutdebugging.properties");
 
 module.exports = createClass({
   displayName: "AddonTarget",
+
+  propTypes: {
+    client: PropTypes.instanceOf(DebuggerClient).isRequired,
+    debugDisabled: PropTypes.bool,
+    target: PropTypes.shape({
+      addonActor: PropTypes.string.isRequired,
+      addonID: PropTypes.string.isRequired,
+      icon: PropTypes.string,
+      name: PropTypes.string.isRequired,
+      temporarilyInstalled: PropTypes.bool
+    }).isRequired
+  },
 
   debug() {
     let { target } = this.props;
@@ -40,7 +58,8 @@ module.exports = createClass({
     // Only temporarily installed add-ons can be reloaded.
     const canBeReloaded = target.temporarilyInstalled;
 
-    return dom.li({ className: "target-container" },
+    return dom.li(
+      { className: "target-container", "data-addon-id": target.addonID },
       dom.img({
         className: "target-icon",
         role: "presentation",

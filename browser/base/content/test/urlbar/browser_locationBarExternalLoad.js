@@ -1,9 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const url = "data:text/html,<body>hi";
-
 add_task(function*() {
+  const url = "data:text/html,<body>hi";
   yield* testURL(url, urlEnter);
   yield* testURL(url, urlClick);
 });
@@ -23,10 +22,9 @@ function urlClick(url) {
 
 function promiseNewTabSwitched() {
   return new Promise(resolve => {
-    gBrowser.addEventListener("TabSwitchDone", function onSwitch() {
-      gBrowser.removeEventListener("TabSwitchDone", onSwitch);
+    gBrowser.addEventListener("TabSwitchDone", function() {
       executeSoon(resolve);
-    });
+    }, {once: true});
   });
 }
 

@@ -53,9 +53,6 @@ function testWorker([mime, shouldLoad]) {
     };
     worker.onerror = (error) => {
       ok(!shouldLoad, `worker with wrong mime '${mime}' should be blocked`);
-      let msg = error.message;
-      ok(msg.match(/^NetworkError/) || msg.match(/Failed to load worker script/),
-         "should gets correct error message");
       error.preventDefault();
       resolve();
     }
@@ -74,9 +71,6 @@ function testWorkerImportScripts([mime, shouldLoad]) {
     };
     worker.onerror = (error) => {
       ok(!shouldLoad, `worker/importScripts with wrong mime '${mime}' should be blocked`);
-      let msg = error.message;
-      ok(msg.match(/^NetworkError/) || msg.match(/Failed to load worker script/),
-         "should gets correct error message");
       error.preventDefault();
       resolve();
     }
@@ -91,8 +85,8 @@ SpecialPowers.pushPrefEnv({set: [["security.block_script_with_wrong_mime", true]
   }).then(() => {
     return Promise.all(MIMETypes.map(testWorkerImportScripts));
   }).then(() => {
-    SpecialPowers.popPrefEnv(SimpleTest.finish);
-  });
+    return SpecialPowers.popPrefEnv();
+  }).then(SimpleTest.finish);
 });
 
 </script>

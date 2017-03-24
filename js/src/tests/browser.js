@@ -12,7 +12,193 @@
 //       better modularity/resilience against tests that must do particularly
 //       bizarre things that might break the harness.
 
+(function initializeUtilityExports(global, parent) {
+  "use strict";
+
+  /**********************************************************************
+   * CACHED PRIMORDIAL FUNCTIONALITY (before a test might overwrite it) *
+   **********************************************************************/
+
+  var Error = global.Error;
+  var String = global.String;
+  var GlobalEval = global.eval;
+  var ReflectApply = global.Reflect.apply;
+  var FunctionToString = global.Function.prototype.toString;
+  var ObjectDefineProperty = global.Object.defineProperty;
+
+  // BEWARE: ObjectGetOwnPropertyDescriptor is only safe to use if its result
+  //         is inspected using own-property-examining functionality.  Directly
+  //         accessing properties on a returned descriptor without first
+  //         verifying the property's existence can invoke user-modifiable
+  //         behavior.
+  var ObjectGetOwnPropertyDescriptor = global.Object.getOwnPropertyDescriptor;
+
+  var Worker = global.Worker;
+  var Blob = global.Blob;
+  var URL = global.URL;
+
+  var document = global.document;
+  var documentDocumentElement = global.document.documentElement;
+  var DocumentCreateElement = global.document.createElement;
+
+  var EventTargetPrototypeAddEventListener = global.EventTarget.prototype.addEventListener;
+  var HTMLElementPrototypeStyleSetter =
+    ObjectGetOwnPropertyDescriptor(global.HTMLElement.prototype, "style").set;
+  var HTMLIFramePrototypeContentWindowGetter =
+    ObjectGetOwnPropertyDescriptor(global.HTMLIFrameElement.prototype, "contentWindow").get;
+  var HTMLScriptElementTextSetter =
+    ObjectGetOwnPropertyDescriptor(global.HTMLScriptElement.prototype, "text").set;
+  var NodePrototypeAppendChild = global.Node.prototype.appendChild;
+  var NodePrototypeRemoveChild = global.Node.prototype.removeChild;
+  var {get: WindowOnErrorGetter, set: WindowOnErrorSetter} =
+    ObjectGetOwnPropertyDescriptor(global, "onerror");
+  var WorkerPrototypePostMessage = Worker.prototype.postMessage;
+  var URLCreateObjectURL = URL.createObjectURL;
+
+  // List of saved window.onerror handlers.
+  var savedGlobalOnError = [];
+
+  // Set |newOnError| as the current window.onerror handler.
+  function setGlobalOnError(newOnError) {
+    var currentOnError = ReflectApply(WindowOnErrorGetter, global, []);
+    ArrayPush(savedGlobalOnError, currentOnError);
+    ReflectApply(WindowOnErrorSetter, global, [newOnError]);
+  }
+
+  // Restore the previous window.onerror handler.
+  function restoreGlobalOnError() {
+    var previousOnError = ArrayPop(savedGlobalOnError);
+    ReflectApply(WindowOnErrorSetter, global, [previousOnError]);
+  }
+
+  /****************************
+   * GENERAL HELPER FUNCTIONS *
+   ****************************/
+
+  function ArrayPush(array, value) {
+    ReflectApply(ObjectDefineProperty, null, [
+      array, array.length,
+      {__proto__: null, value, writable: true, enumerable: true, configurable: true}
+    ]);
+  }
+
+  function ArrayPop(array) {
+    if (array.length) {
+      var item = array[array.length - 1];
+      array.length -= 1;
+      return item;
+    }
+  }
+
+  function AppendChild(elt, kid) {
+    ReflectApply(NodePrototypeAppendChild, elt, [kid]);
+  }
+
+  function CreateElement(name) {
+    return ReflectApply(DocumentCreateElement, document, [name]);
+  }
+
+  function RemoveChild(elt, kid) {
+    ReflectApply(NodePrototypeRemoveChild, elt, [kid]);
+  }
+
+  function CreateWorker(script) {
+    var blob = new Blob([script], {__proto__: null, type: "text/javascript"});
+    return new Worker(URLCreateObjectURL(blob));
+  }
+
+  /****************************
+   * UTILITY FUNCTION EXPORTS *
+   ****************************/
+
+  var evaluate = global.evaluate;
+  if (typeof evaluate !== "function") {
+    // Shim in "evaluate".
+    evaluate = function evaluate(code) {
+      if (typeof code !== "string")
+        throw Error("Expected string argument for evaluate()");
+
+      return GlobalEval(code);
+    };
+
+    global.evaluate = evaluate;
+  }
+
+  var evaluateScript = global.evaluateScript;
+  if (typeof evaluateScript !== "function") {
+    evaluateScript = function evaluateScript(code) {
+      code = String(code);
+      var script = CreateElement("script");
+
+      // Temporarily install a new onerror handler to catch script errors.
+      var hasUncaughtError = false;
+      var uncaughtError;
+      var eventOptions = {__proto__: null, once: true};
+      ReflectApply(EventTargetPrototypeAddEventListener, script, [
+        "beforescriptexecute", function() {
+          setGlobalOnError(function(messageOrEvent, source, lineno, colno, error) {
+            hasUncaughtError = true;
+            uncaughtError = error;
+            return true;
+          });
+        }, eventOptions
+      ]);
+      ReflectApply(EventTargetPrototypeAddEventListener, script, [
+        "afterscriptexecute", function() {
+          restoreGlobalOnError();
+        }, eventOptions
+      ]);
+
+      ReflectApply(HTMLScriptElementTextSetter, script, [code]);
+      AppendChild(documentDocumentElement, script);
+      RemoveChild(documentDocumentElement, script);
+
+      if (hasUncaughtError)
+        throw uncaughtError;
+    };
+
+    global.evaluateScript = evaluateScript;
+  }
+
+  var newGlobal = global.newGlobal;
+  if (typeof newGlobal !== "function") {
+    // Reuse the parent's newGlobal to ensure iframes can be added to the DOM.
+    newGlobal = parent ? parent.newGlobal : function newGlobal() {
+      var iframe = CreateElement("iframe");
+      AppendChild(documentDocumentElement, iframe);
+      var win =
+        ReflectApply(HTMLIFramePrototypeContentWindowGetter, iframe, []);
+
+      // Removing the iframe breaks evaluateScript() and detachArrayBuffer().
+      ReflectApply(HTMLElementPrototypeStyleSetter, iframe, ["display:none"]);
+
+      // Create utility functions in the new global object.
+      var initFunction = ReflectApply(FunctionToString, initializeUtilityExports, []);
+      win.Function("parent", initFunction + "; initializeUtilityExports(this, parent);")(global);
+
+      return win;
+    };
+
+    global.newGlobal = newGlobal;
+  }
+
+  var detachArrayBuffer = global.detachArrayBuffer;
+  if (typeof detachArrayBuffer !== "function") {
+    var worker = null;
+    detachArrayBuffer = function detachArrayBuffer(arrayBuffer) {
+      if (worker === null) {
+        worker = CreateWorker("/* black hole */");
+      }
+      ReflectApply(WorkerPrototypePostMessage, worker, ["detach", [arrayBuffer]]);
+    };
+
+    global.detachArrayBuffer = detachArrayBuffer;
+  }
+})(this);
+
 (function(global) {
+  "use strict";
+
   /**********************************************************************
    * CACHED PRIMORDIAL FUNCTIONALITY (before a test might overwrite it) *
    **********************************************************************/
@@ -26,18 +212,14 @@
   //         behavior.
   var ObjectGetOwnPropertyDescriptor = global.Object.getOwnPropertyDescriptor;
 
+  var String = global.String;
+
   var document = global.document;
-  var documentBody = global.document.body;
-  var documentDocumentElement = global.document.documentElement;
   var DocumentCreateElement = global.document.createElement;
-  var ElementInnerHTMLSetter =
-    ObjectGetOwnPropertyDescriptor(global.Element.prototype, "innerHTML").set;
-  var HTMLIFramePrototypeContentWindowGetter =
-    ObjectGetOwnPropertyDescriptor(global.HTMLIFrameElement.prototype, "contentWindow").get;
-  var HTMLIFramePrototypeRemove = global.HTMLIFrameElement.prototype.remove;
   var NodePrototypeAppendChild = global.Node.prototype.appendChild;
   var NodePrototypeTextContentSetter =
     ObjectGetOwnPropertyDescriptor(global.Node.prototype, "textContent").set;
+  var HTMLElementPrototypeSetAttribute = global.Element.prototype.setAttribute;
 
   // Cached DOM nodes used by the test harness itself.  (We assume the test
   // doesn't misbehave in a way that actively interferes with what the test
@@ -65,26 +247,6 @@
 
   function SetTextContent(element, text) {
     ReflectApply(NodePrototypeTextContentSetter, element, [text]);
-  }
-
-  /****************************
-   * UTILITY FUNCTION EXPORTS *
-   ****************************/
-
-  var newGlobal = global.newGlobal;
-  if (typeof newGlobal !== "function") {
-    newGlobal = function newGlobal() {
-      var iframe = CreateElement("iframe");
-      AppendChild(documentDocumentElement, iframe);
-      var win =
-        ReflectApply(HTMLIFramePrototypeContentWindowGetter, iframe, []);
-      ReflectApply(HTMLIFramePrototypeRemove, iframe, []);
-
-      // Shim in "evaluate"
-      win.evaluate = win.eval;
-      return win;
-    };
-    global.newGlobal = newGlobal;
   }
 
   // This function is *only* used by shell.js's for-browsers |print()| function!
@@ -151,58 +313,41 @@ var gPageCompleted;
 var GLOBAL = this + '';
 
 // Variables local to jstests harness.
-var jstestsTestPassesUnlessItThrows = false;
-var jstestsRestoreFunction;
 var jstestsOptions;
 
-/*
- * Signals to this script that the current test case should be considered to
- * have passed if it doesn't throw an exception.
- *
- * Overrides the same-named function in shell.js.
- */
-function testPassesUnlessItThrows() {
-  jstestsTestPassesUnlessItThrows = true;
-}
-
-/*
- * Sets a restore function which restores the standard built-in ECMAScript
- * properties after a destructive test case, and which will be called after
- * the test case terminates.
- */
-function setRestoreFunction(restore) {
-  jstestsRestoreFunction = restore;
-}
-
-window.onerror = function (msg, page, line)
-{
-  jstestsTestPassesUnlessItThrows = false;
-
+window.onerror = function (msg, page, line, column, error) {
   // Restore options in case a test case used this common variable name.
   options = jstestsOptions;
 
-  // Restore the ECMAScript environment after potentially destructive tests.
-  if (typeof jstestsRestoreFunction === "function") {
-    jstestsRestoreFunction();
-  }
-
   optionsPush();
 
-  if (typeof DESCRIPTION == 'undefined')
-  {
+  if (typeof DESCRIPTION == 'undefined') {
     DESCRIPTION = 'Unknown';
   }
-  if (typeof EXPECTED == 'undefined')
-  {
+  if (typeof EXPECTED == 'undefined') {
     EXPECTED = 'Unknown';
   }
 
   var testcase = new TestCase("unknown-test-name", DESCRIPTION, EXPECTED, "error");
 
-  if (document.location.href.indexOf('-n.js') != -1)
-  {
-    // negative test
+  var href = document.location.href;
+  if (href.indexOf('-n.js') !== -1) {
+    // Negative test without a specific error type.
     testcase.passed = true;
+  } else if (href.indexOf('error=') !== -1) {
+    // Negative test which expects a specific error type.
+    var startIndex = href.indexOf('error=');
+    var endIndex = href.indexOf(';', startIndex);
+    if (endIndex === -1)
+      endIndex = href.length;
+    var errorType = href.substring(startIndex + 'error='.length, endIndex);
+
+    // Check the error type when an actual error object is available.
+    if (Error.prototype.isPrototypeOf(error)) {
+      testcase.passed = error.constructor.name === errorType;
+    } else {
+      testcase.passed = true;
+    }
   }
 
   testcase.reason = page + ':' + line + ': ' + msg;
@@ -375,18 +520,6 @@ function jsTestDriverBrowserInit()
     {
       properties.version = '1.8';
     }
-    else if (properties.test.match(/^ecma_6\/LexicalEnvironment/))
-    {
-      properties.version = '1.8';
-    }
-    else if (properties.test.match(/^ecma_6\/Class/))
-    {
-      properties.version = '1.8';
-    }
-    else if (properties.test.match(/^ecma_6\/extensions/))
-    {
-      properties.version = '1.8';
-    }
   }
 
   // default to language=type;text/javascript. required for
@@ -404,7 +537,7 @@ function jsTestDriverBrowserInit()
     gczeal(Number(properties.gczeal));
   }
 
-  var testpathparts = properties.test.split(/\//);
+  var testpathparts = properties.test.split("/");
 
   if (testpathparts.length < 2)
   {
@@ -414,56 +547,99 @@ function jsTestDriverBrowserInit()
 
   document.write('<title>' + properties.test + '<\/title>');
 
-  // XXX bc - the first document.written script is ignored if the protocol
-  // is file:. insert an empty script tag, to work around it.
-  document.write('<script></script>');
-
   // Output script tags for shell.js, then browser.js, at each level of the
   // test path hierarchy.
   var prepath = "";
-  var i = 0;
-  for (end = testpathparts.length - 1; i < end; i++) {
+  var scripts = [];
+  var end = testpathparts.length - 1;
+  for (var i = 0; i < end; i++) {
     prepath += testpathparts[i] + "/";
-    outputscripttag(prepath + "shell.js", properties);
-    outputscripttag(prepath + "browser.js", properties);
+
+    scripts.push({src: prepath + "shell.js", module: false});
+    scripts.push({src: prepath + "browser.js", module: false});
   }
 
   // Output the test script itself.
-  outputscripttag(prepath + testpathparts[i], properties);
+  var moduleTest = !!properties.module;
+  scripts.push({src: prepath + testpathparts[end], module: moduleTest});
 
   // Finally output the driver-end script to advance to the next test.
-  outputscripttag('js-test-driver-end.js', properties);
-  return;
-}
+  scripts.push({src: "js-test-driver-end.js", module: false});
 
-function outputscripttag(src, properties)
-{
-  if (!src)
-  {
-    return;
-  }
+  if (!moduleTest) {
+    // XXX bc - the first document.written script is ignored if the protocol
+    // is file:. insert an empty script tag, to work around it.
+    document.write('<script></script>');
 
-  var s = '<script src="' +  src + '" charset="utf-8" ';
-
-  if (properties.language != 'type')
-  {
-    s += 'language="javascript';
-    if (properties.version)
-    {
-      s += properties.version;
+    var key, value;
+    if (properties.language !== "type") {
+      key = "language";
+      value = "javascript";
+      if (properties.version) {
+        value += properties.version;
+      }
+    } else {
+      key = "type";
+      value = properties.mimetype;
+      if (properties.version) {
+        value += ";version=" + properties.version;
+      }
     }
-  }
-  else
-  {
-    s += 'type="' + properties.mimetype;
-    if (properties.version)
-    {
-      s += ';version=' + properties.version;
-    }
-  }
-  s += '"><\/script>';
 
-  document.write(s);
+    for (var i = 0; i < scripts.length; i++) {
+      var src = scripts[i].src;
+      document.write(`<script src="${src}" charset="utf-8" ${key}="${value}"><\/script>`);
+    }
+  } else {
+    // Modules are loaded asynchronously by default, but for the test harness
+    // we need to execute all scripts and modules one after the other.
+
+    // Saved built-ins (TODO: Move this function into the IIFE).
+    var ReflectApply = Reflect.apply;
+    var NodePrototypeAppendChild = Node.prototype.appendChild;
+    var documentElement = document.documentElement;
+
+    // Appends the next script element to the DOM.
+    function appendScript(index) {
+      var script = scriptElements[index];
+      scriptElements[index] = null;
+      if (script !== null) {
+        ReflectApply(NodePrototypeAppendChild, documentElement, [script]);
+      }
+    }
+
+    // Create all script elements upfront, so we don't need to worry about
+    // modified built-ins.
+    var scriptElements = [];
+    for (var i = 0; i < scripts.length; i++) {
+      var spec = scripts[i];
+
+      var script = document.createElement("script");
+      script.charset = "utf-8";
+      if (spec.module) {
+        script.type = "module";
+      }
+      script.src = spec.src;
+
+      let nextScriptIndex = i + 1;
+      if (nextScriptIndex < scripts.length) {
+        var callNextAppend = () => appendScript(nextScriptIndex);
+        script.addEventListener("afterscriptexecute", callNextAppend, {once: true});
+
+        // Module scripts don't fire the "afterscriptexecute" event when there
+        // was an error, instead the "error" event is emitted. So listen for
+        // both events when creating module scripts.
+        if (spec.module) {
+          script.addEventListener("error", callNextAppend, {once: true});
+        }
+      }
+
+      scriptElements[i] = script;
+    }
+
+    // Append the first script.
+    appendScript(0);
+  }
 }
 
 function jsTestDriverEnd()
@@ -485,17 +661,6 @@ function jsTestDriverEnd()
 
   // Restore options in case a test case used this common variable name.
   options = jstestsOptions;
-
-  // Restore the ECMAScript environment after potentially destructive tests.
-  if (typeof jstestsRestoreFunction === "function") {
-    jstestsRestoreFunction();
-  }
-
-  if (jstestsTestPassesUnlessItThrows) {
-    var testcase = new TestCase("unknown-test-name", "", true, true);
-    print(PASSED);
-    jstestsTestPassesUnlessItThrows = false;
-  }
 
   try
   {
@@ -527,9 +692,6 @@ function jsTestDriverEnd()
     gPageCompleted = true;
   }
 }
-
-//var dlog = (function (s) { print('debug: ' + s); });
-var dlog = (function (s) {});
 
 // dialog closer from http://bclary.com/projects/spider/spider/chrome/content/spider/dialog-closer.js
 

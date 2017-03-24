@@ -60,6 +60,8 @@
            otherwise flickering may occur when the cursor is moved over the area
            of a disabled menu item that overlaps the panel.  See bug 492960. -->
       <menupopup id="downloadsContextMenu"
+                 onpopupshown="DownloadsView.onContextPopupShown(event);"
+                 onpopuphidden="DownloadsView.onContextPopupHidden(event);"
                  class="download-state">
         <menuitem command="downloadsCmd_pauseResume"
                   class="downloadPauseMenuItem"
@@ -69,18 +71,10 @@
                   class="downloadResumeMenuItem"
                   label="&cmd.resume.label;"
                   accesskey="&cmd.resume.accesskey;"/>
-        <menuitem command="downloadsCmd_cancel"
-                  class="downloadCancelMenuItem"
-                  label="&cmd.cancel.label;"
-                  accesskey="&cmd.cancel.accesskey;"/>
         <menuitem command="downloadsCmd_unblock"
                   class="downloadUnblockMenuItem"
                   label="&cmd.unblock2.label;"
                   accesskey="&cmd.unblock2.accesskey;"/>
-        <menuitem command="cmd_delete"
-                  class="downloadRemoveFromHistoryMenuItem"
-                  label="&cmd.removeFromHistory.label;"
-                  accesskey="&cmd.removeFromHistory.accesskey;"/>
         <menuitem command="downloadsCmd_show"
                   class="downloadShowMenuItem"
 #ifdef XP_MACOSX
@@ -103,6 +97,10 @@
 
         <menuseparator/>
 
+        <menuitem command="cmd_delete"
+                  class="downloadRemoveFromHistoryMenuItem"
+                  label="&cmd.removeFromHistory.label;"
+                  accesskey="&cmd.removeFromHistory.accesskey;"/>
         <menuitem command="downloadsCmd_clearList"
                   label="&cmd.clearList2.label;"
                   accesskey="&cmd.clearList2.accesskey;"/>

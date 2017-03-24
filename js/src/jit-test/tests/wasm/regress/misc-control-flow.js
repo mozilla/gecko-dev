@@ -1,6 +1,3 @@
-// |jit-test| test-also-wasm-baseline
-load(libdir + "wasm.js");
-
 wasmFailValidateText(`(module
    (func (result i32) (param i32)
      (loop (if (i32.const 0) (br 0)) (get_local 0)))
@@ -17,7 +14,7 @@ wasmFailValidateText(`(module
    (func (result i32) (param i32)
      (loop (if (i32.const 0) (br 0)) (drop (get_local 0))))
    (export "" 0)
-)`, mismatchError("void", "i32"));
+)`, emptyStackError);
 
 assertEq(wasmEvalText(`(module
    (func (result i32) (param i32)
@@ -114,19 +111,20 @@ wasmEvalText(`
 }).exports.foo();
 
 assertEq(wasmEvalText(`(module (func
- (return)
+ return
  (select
-  (loop (i32.const 1))
-  (loop (i32.const 2))
+  (loop i32 (i32.const 1))
+  (loop i32 (i32.const 2))
   (i32.const 3)
  )
+ drop
 ) (export "" 0))`).exports[""](), undefined);
 
 wasmEvalText(`(module (func (result i32)
  (return (i32.const 0))
  (select
-  (loop (i32.const 1))
-  (loop (i32.const 2))
+  (loop i32 (i32.const 1))
+  (loop i32 (i32.const 2))
   (i32.const 3)
  )
 ))`);
@@ -204,7 +202,7 @@ wasmFailValidateText(`
         (br_table 1 0 (i32.const 15))
       )
     )
-)`, mismatchError("i32", "void"));
+)`, /br_table targets must all have the same value type/);
 
 wasmFailValidateText(`
 (module
@@ -214,7 +212,7 @@ wasmFailValidateText(`
       (br_table 1 0 (i32.const 15))
     )
   )
-)`, mismatchError("i32", "void"));
+)`, /br_table targets must all have the same value type/);
 
 wasmValidateText(`
 (module

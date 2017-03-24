@@ -118,9 +118,31 @@ function isInDevEdition() {
   return AppConstants.MOZ_DEV_EDITION;
 }
 
-function removeDeveloperButtonIfDevEdition(areaPanelPlacements) {
-  if (isInDevEdition()) {
+function isInNightly() {
+  return AppConstants.NIGHTLY_BUILD;
+}
+
+function removeNonReleaseButtons(areaPanelPlacements) {
+  if (isInDevEdition() && areaPanelPlacements.includes("developer-button")) {
     areaPanelPlacements.splice(areaPanelPlacements.indexOf("developer-button"), 1);
+  }
+
+  if (!isInNightly() && areaPanelPlacements.includes("webcompat-reporter-button")) {
+    areaPanelPlacements.splice(areaPanelPlacements.indexOf("webcompat-reporter-button"), 1);
+  }
+}
+
+function removeNonOriginalButtons() {
+  CustomizableUI.removeWidgetFromArea("sync-button");
+  if (isInNightly()) {
+    CustomizableUI.removeWidgetFromArea("webcompat-reporter-button");
+  }
+}
+
+function restoreNonOriginalButtons() {
+  CustomizableUI.addWidgetToArea("sync-button", CustomizableUI.AREA_PANEL);
+  if (isInNightly()) {
+    CustomizableUI.addWidgetToArea("webcompat-reporter-button", CustomizableUI.AREA_PANEL);
   }
 }
 
@@ -130,6 +152,8 @@ function assertAreaPlacements(areaId, expectedPlacements) {
 }
 
 function placementArraysEqual(areaId, actualPlacements, expectedPlacements) {
+  info("Actual placements: " + actualPlacements.join(", "));
+  info("Expected placements: " + expectedPlacements.join(", "));
   is(actualPlacements.length, expectedPlacements.length,
      "Area " + areaId + " should have " + expectedPlacements.length + " items.");
   let minItems = Math.min(expectedPlacements.length, actualPlacements.length);
@@ -174,7 +198,7 @@ function simulateItemDrag(aToDrag, aTarget) {
   synthesizeDrop(aToDrag.parentNode, aTarget);
 }
 
-function endCustomizing(aWindow=window) {
+function endCustomizing(aWindow = window) {
   if (aWindow.document.documentElement.getAttribute("customizing") != "true") {
     return true;
   }
@@ -191,7 +215,7 @@ function endCustomizing(aWindow=window) {
   return deferredEndCustomizing.promise;
 }
 
-function startCustomizing(aWindow=window) {
+function startCustomizing(aWindow = window) {
   if (aWindow.document.documentElement.getAttribute("customizing") == "true") {
     return null;
   }
@@ -209,14 +233,14 @@ function startCustomizing(aWindow=window) {
 
 function promiseObserverNotified(aTopic) {
   let deferred = Promise.defer();
-  Services.obs.addObserver(function onNotification(aSubject, aTopic, aData) {
-    Services.obs.removeObserver(onNotification, aTopic);
-      deferred.resolve({subject: aSubject, data: aData});
+  Services.obs.addObserver(function onNotification(subject, topic, data) {
+    Services.obs.removeObserver(onNotification, topic);
+      deferred.resolve({subject, data});
     }, aTopic, false);
   return deferred.promise;
 }
 
-function openAndLoadWindow(aOptions, aWaitForDelayedStartup=false) {
+function openAndLoadWindow(aOptions, aWaitForDelayedStartup = false) {
   let deferred = Promise.defer();
   let win = OpenBrowserWindow(aOptions);
   if (aWaitForDelayedStartup) {
@@ -229,20 +253,18 @@ function openAndLoadWindow(aOptions, aWaitForDelayedStartup=false) {
     }, "browser-delayed-startup-finished", false);
 
   } else {
-    win.addEventListener("load", function onLoad() {
-      win.removeEventListener("load", onLoad);
+    win.addEventListener("load", function() {
       deferred.resolve(win);
-    });
+    }, {once: true});
   }
   return deferred.promise;
 }
 
 function promiseWindowClosed(win) {
   let deferred = Promise.defer();
-  win.addEventListener("unload", function onunload() {
-    win.removeEventListener("unload", onunload);
+  win.addEventListener("unload", function() {
     deferred.resolve();
-  });
+  }, {once: true});
   win.close();
   return deferred.promise;
 }
@@ -329,7 +351,7 @@ function subviewHidden(aSubview) {
   return deferred.promise;
 }
 
-function waitForCondition(aConditionFn, aMaxTries=50, aCheckInterval=100) {
+function waitForCondition(aConditionFn, aMaxTries = 50, aCheckInterval = 100) {
   function tryNow() {
     tries++;
     if (aConditionFn()) {
@@ -349,7 +371,7 @@ function waitForCondition(aConditionFn, aMaxTries=50, aCheckInterval=100) {
   return deferred.promise;
 }
 
-function waitFor(aTimeout=100) {
+function waitFor(aTimeout = 100) {
   let deferred = Promise.defer();
   setTimeout(() => deferred.resolve(), aTimeout);
   return deferred.promise;
@@ -363,29 +385,11 @@ function waitFor(aTimeout=100) {
  * @param aEventType The load event type to wait for.  Defaults to "load".
  * @return {Promise} resolved when the event is handled.
  */
-function promiseTabLoadEvent(aTab, aURL, aEventType="load") {
-  let deferred = Promise.defer();
-  info("Wait for tab event: " + aEventType);
+function promiseTabLoadEvent(aTab, aURL) {
+  let browser = aTab.linkedBrowser;
 
-  let timeoutId = setTimeout(() => {
-    aTab.linkedBrowser.removeEventListener(aEventType, onTabLoad, true);
-    deferred.reject("TabSelect did not happen within " + kTabEventFailureTimeoutInMs + "ms");
-  }, kTabEventFailureTimeoutInMs);
-
-  function onTabLoad(event) {
-    if (event.originalTarget != aTab.linkedBrowser.contentDocument ||
-        event.target.location.href == "about:blank") {
-      info("skipping spurious load event");
-      return;
-    }
-    clearTimeout(timeoutId);
-    aTab.linkedBrowser.removeEventListener(aEventType, onTabLoad, true);
-    info("Tab event received: " + aEventType);
-    deferred.resolve();
-  }
-  aTab.linkedBrowser.addEventListener(aEventType, onTabLoad, true, true);
-  aTab.linkedBrowser.loadURI(aURL);
-  return deferred.promise;
+  BrowserTestUtils.loadURI(browser, aURL);
+  return BrowserTestUtils.browserLoaded(browser);
 }
 
 /**
@@ -489,7 +493,7 @@ function promisePopupEvent(aPopup, aEventSuffix) {
 
 // This is a simpler version of the context menu check that
 // exists in contextmenu_common.js.
-function checkContextMenu(aContextMenu, aExpectedEntries, aWindow=window) {
+function checkContextMenu(aContextMenu, aExpectedEntries, aWindow = window) {
   let childNodes = [...aContextMenu.childNodes];
   // Ignore hidden nodes:
   childNodes = childNodes.filter((n) => !n.hidden);

@@ -5,17 +5,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WMFUtils.h"
-#include <stdint.h>
+#include "VideoUtils.h"
 #include "mozilla/ArrayUtils.h"
-#include "mozilla/RefPtr.h"
-#include "mozilla/WindowsVersion.h"
+#include "mozilla/CheckedInt.h"
 #include "mozilla/Logging.h"
+#include "mozilla/RefPtr.h"
+#include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "nsWindowsHelpers.h"
-#include "mozilla/CheckedInt.h"
-#include "VideoUtils.h"
 #include <initguid.h>
-#include "nsTArray.h"
+#include <stdint.h>
 
 #ifdef WMF_MUST_DEFINE_AAC_MFT_CLSID
 // Some SDK versions don't define the AAC decoder CLSID.
@@ -53,7 +52,8 @@ GetDefaultStride(IMFMediaType *aType, uint32_t aWidth, uint32_t* aOutStride)
   hr = aType->GetGUID(MF_MT_SUBTYPE, &subtype);
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
-  hr = wmf::MFGetStrideForBitmapInfoHeader(subtype.Data1, aWidth, (LONG*)(aOutStride));
+  hr = wmf::MFGetStrideForBitmapInfoHeader(
+    subtype.Data1, aWidth, (LONG*)(aOutStride));
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
   return hr;
@@ -91,7 +91,8 @@ GetPictureRegion(IMFMediaType* aMediaType, nsIntRect& aOutPictureRegion)
 {
   // Determine if "pan and scan" is enabled for this media. If it is, we
   // only display a region of the video frame, not the entire frame.
-  BOOL panScan = MFGetAttributeUINT32(aMediaType, MF_MT_PAN_SCAN_ENABLED, FALSE);
+  BOOL panScan =
+    MFGetAttributeUINT32(aMediaType, MF_MT_PAN_SCAN_ENABLED, FALSE);
 
   // If pan and scan mode is enabled. Try to get the display region.
   HRESULT hr = E_FAIL;
@@ -180,52 +181,41 @@ LoadDLLs()
   return S_OK;
 }
 
-#define ENSURE_FUNCTION_PTR_HELPER(FunctionType, FunctionName, DLL) \
-  static FunctionType FunctionName##Ptr = nullptr; \
-  if (!FunctionName##Ptr) { \
-    FunctionName##Ptr = (FunctionType) GetProcAddress(GetModuleHandleW(L ## #DLL), #FunctionName); \
-    if (!FunctionName##Ptr) { \
-      NS_WARNING("Failed to get GetProcAddress of " #FunctionName " from " #DLL); \
-      return E_FAIL; \
-    } \
+#define ENSURE_FUNCTION_PTR_HELPER(FunctionType, FunctionName, DLL)            \
+  static FunctionType FunctionName##Ptr = nullptr;                             \
+  if (!FunctionName##Ptr) {                                                    \
+    FunctionName##Ptr =                                                        \
+      (FunctionType)GetProcAddress(GetModuleHandleW(L## #DLL), #FunctionName); \
+    if (!FunctionName##Ptr) {                                                  \
+      NS_WARNING("Failed to get GetProcAddress of " #FunctionName              \
+                 " from " #DLL);                                               \
+      return E_FAIL;                                                           \
+    }                                                                          \
   }
 
-#define ENSURE_FUNCTION_PTR(FunctionName, DLL) \
-  ENSURE_FUNCTION_PTR_HELPER(decltype(::FunctionName)*, FunctionName, DLL) \
+#define ENSURE_FUNCTION_PTR(FunctionName, DLL)                                 \
+  ENSURE_FUNCTION_PTR_HELPER(decltype(::FunctionName)*, FunctionName, DLL)
 
-#define ENSURE_FUNCTION_PTR_(FunctionName, DLL) \
-  ENSURE_FUNCTION_PTR_HELPER(FunctionName##Ptr_t, FunctionName, DLL) \
+#define ENSURE_FUNCTION_PTR_(FunctionName, DLL)                                \
+  ENSURE_FUNCTION_PTR_HELPER(FunctionName##Ptr_t, FunctionName, DLL)
 
-#define DECL_FUNCTION_PTR(FunctionName, ...) \
-  typedef HRESULT (STDMETHODCALLTYPE * FunctionName##Ptr_t)(__VA_ARGS__)
+#define DECL_FUNCTION_PTR(FunctionName, ...)                                   \
+  typedef HRESULT(STDMETHODCALLTYPE* FunctionName##Ptr_t)(__VA_ARGS__)
 
 HRESULT
 MFStartup()
 {
-  if (!IsVistaOrLater()) {
-    // *Only* use WMF on Vista and later, as if Firefox is run in Windows 95
-    // compatibility mode on Windows 7 (it does happen!) we may crash trying
-    // to startup WMF. So we need to detect the OS version here, as in
-    // compatibility mode IsVistaOrLater() and friends behave as if we're on
-    // the emulated version of Windows. See bug 1279171.
-    return E_FAIL;
-  }
-
   HRESULT hr = LoadDLLs();
   if (FAILED(hr)) {
     return hr;
   }
 
-  const int MF_VISTA_VERSION = (0x0001 << 16 | MF_API_VERSION);
   const int MF_WIN7_VERSION = (0x0002 << 16 | MF_API_VERSION);
 
   // decltype is unusable for functions having default parameters
   DECL_FUNCTION_PTR(MFStartup, ULONG, DWORD);
   ENSURE_FUNCTION_PTR_(MFStartup, Mfplat.dll)
-  if (!IsWin7OrLater())
-    return MFStartupPtr(MF_VISTA_VERSION, MFSTARTUP_FULL);
-  else
-    return MFStartupPtr(MF_WIN7_VERSION, MFSTARTUP_FULL);
+  return MFStartupPtr(MF_WIN7_VERSION, MFSTARTUP_FULL);
 }
 
 HRESULT
@@ -282,11 +272,13 @@ MFCreateAlignedMemoryBuffer(DWORD cbMaxLength,
                             IMFMediaBuffer **ppBuffer)
 {
   ENSURE_FUNCTION_PTR(MFCreateAlignedMemoryBuffer, mfplat.dll)
-  return (MFCreateAlignedMemoryBufferPtr)(cbMaxLength, fAlignmentFlags, ppBuffer);
+  return (MFCreateAlignedMemoryBufferPtr)(
+    cbMaxLength, fAlignmentFlags, ppBuffer);
 }
 
 HRESULT
-MFCreateDXGIDeviceManager(UINT *pResetToken, IMFDXGIDeviceManager **ppDXVAManager)
+MFCreateDXGIDeviceManager(UINT* pResetToken,
+                          IMFDXGIDeviceManager** ppDXVAManager)
 {
   ENSURE_FUNCTION_PTR(MFCreateDXGIDeviceManager, mfplat.dll)
   return (MFCreateDXGIDeviceManagerPtr)(pResetToken, ppDXVAManager);
@@ -300,7 +292,8 @@ MFCreateDXGISurfaceBuffer(REFIID riid,
                           IMFMediaBuffer **ppBuffer)
 {
   ENSURE_FUNCTION_PTR(MFCreateDXGISurfaceBuffer, mfplat.dll)
-  return (MFCreateDXGISurfaceBufferPtr)(riid, punkSurface, uSubresourceIndex, fButtomUpWhenLinear, ppBuffer);
+  return (MFCreateDXGISurfaceBufferPtr)(
+    riid, punkSurface, uSubresourceIndex, fButtomUpWhenLinear, ppBuffer);
 }
 
 } // end namespace wmf

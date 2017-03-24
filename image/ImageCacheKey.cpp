@@ -6,10 +6,10 @@
 #include "ImageCacheKey.h"
 
 #include "mozilla/Move.h"
-#include "File.h"
 #include "ImageURL.h"
 #include "nsHostObjectProtocolHandler.h"
 #include "nsString.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/workers/ServiceWorkerManager.h"
 #include "nsIDocument.h"
 #include "nsPrintfCString.h"
@@ -46,7 +46,7 @@ BlobSerial(ImageURL* aURI)
 }
 
 ImageCacheKey::ImageCacheKey(nsIURI* aURI,
-                             const PrincipalOriginAttributes& aAttrs,
+                             const OriginAttributes& aAttrs,
                              nsIDocument* aDocument,
                              nsresult& aRv)
   : mURI(new ImageURL(aURI, aRv))
@@ -66,7 +66,7 @@ ImageCacheKey::ImageCacheKey(nsIURI* aURI,
 }
 
 ImageCacheKey::ImageCacheKey(ImageURL* aURI,
-                             const PrincipalOriginAttributes& aAttrs,
+                             const OriginAttributes& aAttrs,
                              nsIDocument* aDocument)
   : mURI(aURI)
   , mOriginAttributes(aAttrs)
@@ -131,7 +131,7 @@ ImageCacheKey::Spec() const
 /* static */ uint32_t
 ImageCacheKey::ComputeHash(ImageURL* aURI,
                            const Maybe<uint64_t>& aBlobSerial,
-                           const PrincipalOriginAttributes& aAttrs,
+                           const OriginAttributes& aAttrs,
                            void* aControlledDocument)
 {
   // Since we frequently call Hash() several times in a row on the same
@@ -141,21 +141,8 @@ ImageCacheKey::ComputeHash(ImageURL* aURI,
   nsAutoCString suffix;
   aAttrs.CreateSuffix(suffix);
 
-  if (aBlobSerial) {
-    // For blob URIs, we hash the serial number of the underlying blob, so that
-    // different blob URIs which point to the same blob share a cache entry. We
-    // also include the ref portion of the URI to support -moz-samplesize, which
-    // requires us to create different Image objects even if the source data is
-    // the same.
-    nsAutoCString ref;
-    aURI->GetRef(ref);
-    return HashGeneric(*aBlobSerial, HashString(ref + suffix + ptr));
-  }
-
-  // For non-blob URIs, we hash the URI spec.
-  nsAutoCString spec;
-  aURI->GetSpec(spec);
-  return HashString(spec + suffix + ptr);
+  return AddToHash(0, aURI->ComputeHash(aBlobSerial),
+                   HashString(suffix), HashString(ptr));
 }
 
 /* static */ void*

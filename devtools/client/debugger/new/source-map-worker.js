@@ -1,42 +1,51 @@
-var Debugger =
-/******/ (function(modules) { // webpackBootstrap
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory();
+	else if(typeof define === 'function' && define.amd)
+		define([], factory);
+	else {
+		var a = factory();
+		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
+	}
+})(this, function() {
+return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
-/******/
+
 /******/ 	// The require function
 /******/ 	function __webpack_require__(moduleId) {
-/******/
+
 /******/ 		// Check if module is in cache
 /******/ 		if(installedModules[moduleId])
 /******/ 			return installedModules[moduleId].exports;
-/******/
+
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = installedModules[moduleId] = {
 /******/ 			exports: {},
 /******/ 			id: moduleId,
 /******/ 			loaded: false
 /******/ 		};
-/******/
+
 /******/ 		// Execute the module function
 /******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-/******/
+
 /******/ 		// Flag the module as loaded
 /******/ 		module.loaded = true;
-/******/
+
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-/******/
-/******/
+
+
 /******/ 	// expose the modules object (__webpack_modules__)
 /******/ 	__webpack_require__.m = modules;
-/******/
+
 /******/ 	// expose the module cache
 /******/ 	__webpack_require__.c = installedModules;
-/******/
+
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/public/build";
-/******/
+/******/ 	__webpack_require__.p = "/assets/build";
+
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
 /******/ })
@@ -46,270 +55,12 @@ var Debugger =
 /***/ 0:
 /***/ function(module, exports, __webpack_require__) {
 
-	var _resolveAndFetch = (() => {
-	  var _ref = _asyncToGenerator(function* (generatedSource) {
-	    // Fetch the sourcemap over the network and create it.
-	    var sourceMapURL = _resolveSourceMapURL(generatedSource);
-	    var fetched = yield networkRequest(sourceMapURL, { loadFromCache: false });
-	
-	    // Create the source map and fix it up.
-	    var map = new SourceMapConsumer(fetched.content);
-	    _setSourceMapRoot(map, sourceMapURL, generatedSource);
-	    return map;
-	  });
-	
-	  return function _resolveAndFetch(_x) {
-	    return _ref.apply(this, arguments);
-	  };
-	})();
-	
-	var getOriginalURLs = (() => {
-	  var _ref2 = _asyncToGenerator(function* (generatedSource) {
-	    var map = yield _fetchSourceMap(generatedSource);
-	    return map && map.sources;
-	  });
-	
-	  return function getOriginalURLs(_x2) {
-	    return _ref2.apply(this, arguments);
-	  };
-	})();
-	
-	var getGeneratedLocation = (() => {
-	  var _ref3 = _asyncToGenerator(function* (location, originalSource) {
-	    if (!isOriginalId(location.sourceId)) {
-	      return location;
-	    }
-	
-	    var generatedSourceId = originalToGeneratedId(location.sourceId);
-	    var map = yield _getSourceMap(generatedSourceId);
-	    if (!map) {
-	      return location;
-	    }
-	
-	    var _map$generatedPositio = map.generatedPositionFor({
-	      source: originalSource.url,
-	      line: location.line,
-	      column: location.column == null ? 0 : location.column
-	    });
-	
-	    var line = _map$generatedPositio.line;
-	    var column = _map$generatedPositio.column;
-	
-	
-	    return {
-	      sourceId: generatedSourceId,
-	      line: line,
-	      // Treat 0 as no column so that line breakpoints work correctly.
-	      column: column === 0 ? undefined : column
-	    };
-	  });
-	
-	  return function getGeneratedLocation(_x3, _x4) {
-	    return _ref3.apply(this, arguments);
-	  };
-	})();
-	
-	var getOriginalLocation = (() => {
-	  var _ref4 = _asyncToGenerator(function* (location) {
-	    if (!isGeneratedId(location.sourceId)) {
-	      return location;
-	    }
-	
-	    var map = yield _getSourceMap(location.sourceId);
-	    if (!map) {
-	      return location;
-	    }
-	
-	    var _map$originalPosition = map.originalPositionFor({
-	      line: location.line,
-	      column: location.column == null ? Infinity : location.column
-	    });
-	
-	    var url = _map$originalPosition.source;
-	    var line = _map$originalPosition.line;
-	    var column = _map$originalPosition.column;
-	
-	
-	    if (url == null) {
-	      // No url means the location didn't map.
-	      return location;
-	    }
-	
-	    return {
-	      sourceId: generatedToOriginalId(location.sourceId, url),
-	      line,
-	      column
-	    };
-	  });
-	
-	  return function getOriginalLocation(_x5) {
-	    return _ref4.apply(this, arguments);
-	  };
-	})();
-	
-	var getOriginalSourceText = (() => {
-	  var _ref5 = _asyncToGenerator(function* (originalSource) {
-	    assert(isOriginalId(originalSource.id), "Source is not an original source");
-	
-	    var generatedSourceId = originalToGeneratedId(originalSource.id);
-	    var map = yield _getSourceMap(generatedSourceId);
-	    if (!map) {
-	      return null;
-	    }
-	
-	    var text = map.sourceContentFor(originalSource.url);
-	    if (!text) {
-	      text = (yield networkRequest(originalSource.url, { loadFromCache: false })).content;
-	    }
-	
-	    return {
-	      text,
-	      contentType: isJavaScript(originalSource.url) ? "text/javascript" : "text/plain"
-	    };
-	  });
-	
-	  return function getOriginalSourceText(_x6) {
-	    return _ref5.apply(this, arguments);
-	  };
-	})();
-	
-	function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
-	
-	var networkRequest = __webpack_require__(205);
-	var URL = __webpack_require__(289);
-	var path = __webpack_require__(276);
-	
-	var _require = __webpack_require__(465);
-	
-	var SourceMapConsumer = _require.SourceMapConsumer;
-	var SourceMapGenerator = _require.SourceMapGenerator;
-	
-	var _require2 = __webpack_require__(275);
-	
-	var isJavaScript = _require2.isJavaScript;
-	
-	var assert = __webpack_require__(245);
-	
-	var _require3 = __webpack_require__(263);
-	
-	var originalToGeneratedId = _require3.originalToGeneratedId;
-	var generatedToOriginalId = _require3.generatedToOriginalId;
-	var isGeneratedId = _require3.isGeneratedId;
-	var isOriginalId = _require3.isOriginalId;
-	
-	
-	var sourceMapRequests = new Map();
-	var sourceMapsEnabled = false;
-	
-	function clearSourceMaps() {
-	  sourceMapRequests.clear();
-	}
-	
-	function enableSourceMaps() {
-	  sourceMapsEnabled = true;
-	}
-	
-	function _resolveSourceMapURL(source) {
-	  if (path.isURL(source.sourceMapURL) || !source.url) {
-	    // If it's already a full URL or the source doesn't have a URL,
-	    // don't resolve anything.
-	    return source.sourceMapURL;
-	  } else if (path.isAbsolute(source.sourceMapURL)) {
-	    // If it's an absolute path, it should be resolved relative to the
-	    // host of the source.
-	    var urlObj = URL.parse(source.url);
-	    var base = urlObj.protocol + "//" + urlObj.host;
-	    return base + source.sourceMapURL;
-	  }
-	  // Otherwise, it's a relative path and should be resolved relative
-	  // to the source.
-	  return path.dirname(source.url) + "/" + source.sourceMapURL;
-	}
-	
-	/**
-	 * Sets the source map's sourceRoot to be relative to the source map url.
-	 */
-	function _setSourceMapRoot(sourceMap, absSourceMapURL, source) {
-	  // No need to do this fiddling if we won't be fetching any sources over the
-	  // wire.
-	  if (sourceMap.hasContentsOfAllSources()) {
-	    return;
-	  }
-	
-	  var base = path.dirname(absSourceMapURL.indexOf("data:") === 0 && source.url ? source.url : absSourceMapURL);
-	
-	  if (sourceMap.sourceRoot) {
-	    sourceMap.sourceRoot = path.join(base, sourceMap.sourceRoot);
-	  } else {
-	    sourceMap.sourceRoot = base;
-	  }
-	
-	  return sourceMap;
-	}
-	
-	function _getSourceMap(generatedSourceId) {
-	  return sourceMapRequests.get(generatedSourceId);
-	}
-	
-	function _fetchSourceMap(generatedSource) {
-	  var existingRequest = sourceMapRequests.get(generatedSource.id);
-	  if (existingRequest) {
-	    // If it has already been requested, return the request. Make sure
-	    // to do this even if sourcemapping is turned off, because
-	    // pretty-printing uses sourcemaps.
-	    //
-	    // An important behavior here is that if it's in the middle of
-	    // requesting it, all subsequent calls will block on the initial
-	    // request.
-	    return existingRequest;
-	  } else if (!generatedSource.sourceMapURL || !sourceMapsEnabled) {
-	    return Promise.resolve(null);
-	  }
-	
-	  // Fire off the request, set it in the cache, and return it.
-	  // Suppress any errors and just return null (ignores bogus
-	  // sourcemaps).
-	  var req = _resolveAndFetch(generatedSource).catch(() => null);
-	  sourceMapRequests.set(generatedSource.id, req);
-	  return req;
-	}
-	
-	function applySourceMap(generatedId, url, code, mappings) {
-	  var generator = new SourceMapGenerator({ file: url });
-	  mappings.forEach(mapping => generator.addMapping(mapping));
-	  generator.setSourceContent(url, code);
-	
-	  var map = SourceMapConsumer(generator.toJSON());
-	  sourceMapRequests.set(generatedId, Promise.resolve(map));
-	}
-	
-	var publicInterface = {
-	  getOriginalURLs,
-	  getGeneratedLocation,
-	  getOriginalLocation,
-	  getOriginalSourceText,
-	  enableSourceMaps,
-	  applySourceMap,
-	  clearSourceMaps
-	};
-	
-	self.onmessage = function (msg) {
-	  var _msg$data = msg.data;
-	  var id = _msg$data.id;
-	  var method = _msg$data.method;
-	  var args = _msg$data.args;
-	
-	  var response = publicInterface[method].apply(undefined, args);
-	  if (response instanceof Promise) {
-	    response.then(val => self.postMessage({ id, response: val }), err => self.postMessage({ id, error: err }));
-	  } else {
-	    self.postMessage({ id, response });
-	  }
-	};
+	module.exports = __webpack_require__(814);
+
 
 /***/ },
 
-/***/ 77:
+/***/ 51:
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -326,13 +77,13 @@ var Debugger =
 
 /***/ },
 
-/***/ 205:
+/***/ 127:
 /***/ function(module, exports) {
 
 	function networkRequest(url, opts) {
 	  return new Promise((resolve, reject) => {
-	    var req = new XMLHttpRequest();
-	
+	    const req = new XMLHttpRequest();
+
 	    req.addEventListener("readystatechange", () => {
 	      if (req.readyState === XMLHttpRequest.DONE) {
 	        if (req.status === 200) {
@@ -342,7 +93,7 @@ var Debugger =
 	        }
 	      }
 	    });
-	
+
 	    // Not working yet.
 	    // if (!opts.loadFromCache) {
 	    //   req.channel.loadFlags = (
@@ -351,62 +102,255 @@ var Debugger =
 	    //       Components.interfaces.nsIRequest.LOAD_ANONYMOUS
 	    //   );
 	    // }
-	
+
 	    req.open("GET", url);
 	    req.send();
 	  });
 	}
-	
+
 	module.exports = networkRequest;
+
 
 /***/ },
 
-/***/ 242:
+/***/ 223:
+/***/ function(module, exports) {
+
+	"use strict";
+
+	function assert(condition, message) {
+	  if (!condition) {
+	    throw new Error(`Assertion failure: ${message}`);
+	  }
+	}
+
+	module.exports = assert;
+
+/***/ },
+
+/***/ 233:
 /***/ function(module, exports, __webpack_require__) {
 
-	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-	
+	"use strict";
+
+	/**
+	 * Utils for working with Source URLs
+	 * @module utils/source
+	 */
+
+	var _require = __webpack_require__(234),
+	    endTruncateStr = _require.endTruncateStr;
+
+	var _require2 = __webpack_require__(235),
+	    basename = _require2.basename;
+
+	/**
+	 * Trims the query part or reference identifier of a url string, if necessary.
+	 *
+	 * @memberof utils/source
+	 * @static
+	 */
+	function trimUrlQuery(url) {
+	  var length = url.length;
+	  var q1 = url.indexOf("?");
+	  var q2 = url.indexOf("&");
+	  var q3 = url.indexOf("#");
+	  var q = Math.min(q1 != -1 ? q1 : length, q2 != -1 ? q2 : length, q3 != -1 ? q3 : length);
+
+	  return url.slice(0, q);
+	}
+
+	/**
+	 * Returns true if the specified url and/or content type are specific to
+	 * javascript files.
+	 *
+	 * @return boolean
+	 *         True if the source is likely javascript.
+	 *
+	 * @memberof utils/source
+	 * @static
+	 */
+	function isJavaScript(url) {
+	  var contentType = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
+
+	  return url && /\.(jsm|js)?$/.test(trimUrlQuery(url)) || contentType.includes("javascript");
+	}
+
+	/**
+	 * @memberof utils/source
+	 * @static
+	 */
+	function isPretty(source) {
+	  return source.url ? /formatted$/.test(source.url) : false;
+	}
+
+	/**
+	 * @memberof utils/source
+	 * @static
+	 */
+	function getPrettySourceURL(url) {
+	  return `${url}:formatted`;
+	}
+
+	/**
+	 * @memberof utils/source
+	 * @static
+	 */
+	function getRawSourceURL(url) {
+	  return url.replace(/:formatted$/, "");
+	}
+
+	function getFilenameFromURL(url) {
+	  url = getRawSourceURL(url || "");
+	  var name = basename(url) || "(index)";
+	  return endTruncateStr(name, 50);
+	}
+
+	/**
+	 * Show a source url's filename.
+	 * If the source does not have a url, use the source id.
+	 *
+	 * @memberof utils/source
+	 * @static
+	 */
+	function getFilename(source) {
+	  var url = source.url,
+	      id = source.id;
+
+	  if (!url) {
+	    var sourceId = id.split("/")[1];
+	    return `SOURCE${sourceId}`;
+	  }
+
+	  return getFilenameFromURL(url);
+	}
+
+	var contentTypeModeMap = {
+	  "text/javascript": { name: "javascript" },
+	  "text/typescript": { name: "javascript", typescript: true },
+	  "text/coffeescript": "coffeescript",
+	  "text/typescript-jsx": {
+	    name: "jsx",
+	    base: { name: "javascript", typescript: true }
+	  },
+	  "text/jsx": "jsx",
+	  "text/x-elm": "elm",
+	  "text/wasm": { name: "text" },
+	  "html": { name: "htmlmixed" }
+	};
+
+	/**
+	 *
+	 * Returns Code Mirror mode for source content type
+	 * @param contentType
+	 * @return String
+	 * @memberof utils/source
+	 * @static
+	 */
+
+	function getMode(sourceText) {
+	  var contentType = sourceText.contentType,
+	      text = sourceText.text;
+
+	  // //  or /*  */
+
+	  if (text.match(/^\s*(\/\/ @flow|\/\* @flow \*\/)/)) {
+	    return contentTypeModeMap["text/typescript"];
+	  }
+
+	  if (/script|elm|jsx|wasm/.test(contentType)) {
+	    if (contentType in contentTypeModeMap) {
+	      return contentTypeModeMap[contentType];
+	    }
+
+	    return contentTypeModeMap["text/javascript"];
+	  }
+
+	  // Use HTML mode for files in which the first non whitespace
+	  // character is `<` regardless of extension.
+	  if (text.match(/^\s*</)) {
+	    return { name: "htmlmixed" };
+	  }
+
+	  return { name: "text" };
+	}
+
+	function getContentType(url) {
+	  if (isJavaScript(url)) {
+	    return "text/javascript";
+	  }
+
+	  if (url.match(/ts$/)) {
+	    return "text/typescript";
+	  }
+
+	  if (url.match(/tsx$/)) {
+	    return "text/typescript-jsx";
+	  }
+
+	  if (url.match(/jsx$/)) {
+	    return "text/jsx";
+	  }
+
+	  if (url.match(/coffee$/)) {
+	    return "text/coffeescript";
+	  }
+
+	  if (url.match(/elm$/)) {
+	    return "text/elm";
+	  }
+
+	  return "text/plain";
+	}
+
+	module.exports = {
+	  isJavaScript,
+	  isPretty,
+	  getPrettySourceURL,
+	  getRawSourceURL,
+	  getFilename,
+	  getFilenameFromURL,
+	  getMode,
+	  getContentType
+	};
+
+/***/ },
+
+/***/ 234:
+/***/ function(module, exports) {
+
+	"use strict";
+
 	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-	
+
 	/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 	/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 	/* This Source Code Form is subject to the terms of the Mozilla Public
 	 * License, v. 2.0. If a copy of the MPL was not distributed with this
 	 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-	
-	var co = __webpack_require__(243);
-	
-	function asPaused(client, func) {
-	  if (client.state != "paused") {
-	    return co(function* () {
-	      yield client.interrupt();
-	      var result = void 0;
-	
-	      try {
-	        result = yield func();
-	      } catch (e) {
-	        // Try to put the debugger back in a working state by resuming
-	        // it
-	        yield client.resume();
-	        throw e;
-	      }
-	
-	      yield client.resume();
-	      return result;
-	    });
-	  }
-	  return func();
-	}
-	
+
+	/**
+	 * Utils for utils, by utils
+	 * @module utils/utils
+	 */
+
+	/**
+	 * @memberof utils/utils
+	 * @static
+	 */
 	function handleError(err) {
 	  console.log("ERROR: ", err);
 	}
-	
+
+	/**
+	 * @memberof utils/utils
+	 * @static
+	 */
 	function promisify(context, method) {
 	  for (var _len = arguments.length, args = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
 	    args[_key - 2] = arguments[_key];
 	  }
-	
+
 	  return new Promise((resolve, reject) => {
 	    args.push(response => {
 	      if (response.error) {
@@ -418,39 +362,40 @@ var Debugger =
 	    method.apply(context, args);
 	  });
 	}
-	
-	function truncateStr(str, size) {
-	  if (str.length > size) {
-	    return str.slice(0, size) + "...";
-	  }
-	  return str;
-	}
-	
+
+	/**
+	 * @memberof utils/utils
+	 * @static
+	 */
 	function endTruncateStr(str, size) {
 	  if (str.length > size) {
-	    return "..." + str.slice(str.length - size);
+	    return `...${str.slice(str.length - size)}`;
 	  }
 	  return str;
 	}
-	
+
 	var msgId = 1;
+	/**
+	 * @memberof utils/utils
+	 * @static
+	 */
 	function workerTask(worker, method) {
 	  return function () {
 	    for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
 	      args[_key2] = arguments[_key2];
 	    }
-	
+
 	    return new Promise((resolve, reject) => {
 	      var id = msgId++;
 	      worker.postMessage({ id, method, args });
-	
+
 	      var listener = (_ref) => {
 	        var result = _ref.data;
-	
+
 	        if (result.id !== id) {
 	          return;
 	        }
-	
+
 	        worker.removeEventListener("message", listener);
 	        if (result.error) {
 	          reject(result.error);
@@ -458,108 +403,32 @@ var Debugger =
 	          resolve(result.response);
 	        }
 	      };
-	
+
 	      worker.addEventListener("message", listener);
 	    });
 	  };
 	}
-	
+
 	/**
-	 * Interleaves two arrays element by element, returning the combined array, like
-	 * a zip. In the case of arrays with different sizes, undefined values will be
-	 * interleaved at the end along with the extra values of the larger array.
-	 *
-	 * @param Array a
-	 * @param Array b
-	 * @returns Array
-	 *          The combined array, in the form [a1, b1, a2, b2, ...]
+	 * @memberof utils/utils
+	 * @static
 	 */
-	function zip(a, b) {
-	  if (!b) {
-	    return a;
-	  }
-	  if (!a) {
-	    return b;
-	  }
-	  var pairs = [];
-	  for (var i = 0, aLength = a.length, bLength = b.length; i < aLength || i < bLength; i++) {
-	    pairs.push([a[i], b[i]]);
-	  }
-	  return pairs;
-	}
-	
-	/**
-	 * Converts an object into an array with 2-element arrays as key/value
-	 * pairs of the object. `{ foo: 1, bar: 2}` would become
-	 * `[[foo, 1], [bar 2]]` (order not guaranteed);
-	 *
-	 * @param object obj
-	 * @returns array
-	 */
-	function entries(obj) {
-	  return Object.keys(obj).map(k => [k, obj[k]]);
-	}
-	
-	function mapObject(obj, iteratee) {
-	  return toObject(entries(obj).map((_ref2) => {
-	    var _ref3 = _slicedToArray(_ref2, 2);
-	
-	    var key = _ref3[0];
-	    var value = _ref3[1];
-	
-	    return [key, iteratee(key, value)];
-	  }));
-	}
-	
-	/**
-	 * Takes an array of 2-element arrays as key/values pairs and
-	 * constructs an object using them.
-	 */
-	function toObject(arr) {
-	  var obj = {};
-	  for (var pair of arr) {
-	    obj[pair[0]] = pair[1];
-	  }
-	  return obj;
-	}
-	
-	/**
-	 * Composes the given functions into a single function, which will
-	 * apply the results of each function right-to-left, starting with
-	 * applying the given arguments to the right-most function.
-	 * `compose(foo, bar, baz)` === `args => foo(bar(baz(args)`
-	 *
-	 * @param ...function funcs
-	 * @returns function
-	 */
-	function compose() {
-	  for (var _len3 = arguments.length, funcs = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-	    funcs[_key3] = arguments[_key3];
-	  }
-	
-	  return function () {
-	    for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
-	      args[_key4] = arguments[_key4];
-	    }
-	
-	    var initialValue = funcs[funcs.length - 1].apply(null, args);
-	    var leftFuncs = funcs.slice(0, -1);
-	    return leftFuncs.reduceRight((composed, f) => f(composed), initialValue);
-	  };
-	}
-	
 	function updateObj(obj, fields) {
 	  return Object.assign({}, obj, fields);
 	}
-	
+
+	/**
+	 * @memberof utils/utils
+	 * @static
+	 */
 	function throttle(func, ms) {
 	  var timeout = void 0,
 	      _this = void 0;
 	  return function () {
-	    for (var _len5 = arguments.length, args = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
-	      args[_key5] = arguments[_key5];
+	    for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+	      args[_key3] = arguments[_key3];
 	    }
-	
+
 	    _this = this;
 	    if (!timeout) {
 	      timeout = setTimeout(() => {
@@ -569,319 +438,94 @@ var Debugger =
 	    }
 	  };
 	}
-	
+
+	function waitForMs(ms) {
+	  return new Promise(resolve => setTimeout(resolve, ms));
+	}
+
 	module.exports = {
-	  asPaused,
 	  handleError,
 	  promisify,
-	  truncateStr,
 	  endTruncateStr,
 	  workerTask,
-	  zip,
-	  entries,
-	  toObject,
-	  mapObject,
-	  compose,
 	  updateObj,
-	  throttle
+	  throttle,
+	  waitForMs
 	};
 
 /***/ },
 
-/***/ 243:
+/***/ 235:
 /***/ function(module, exports) {
 
-	
-	/**
-	 * slice() reference.
-	 */
-	
-	var slice = Array.prototype.slice;
-	
-	/**
-	 * Expose `co`.
-	 */
-	
-	module.exports = co['default'] = co.co = co;
-	
-	/**
-	 * Wrap the given generator `fn` into a
-	 * function that returns a promise.
-	 * This is a separate function so that
-	 * every `co()` call doesn't create a new,
-	 * unnecessary closure.
-	 *
-	 * @param {GeneratorFunction} fn
-	 * @return {Function}
-	 * @api public
-	 */
-	
-	co.wrap = function (fn) {
-	  createPromise.__generatorFunction__ = fn;
-	  return createPromise;
-	  function createPromise() {
-	    return co.call(this, fn.apply(this, arguments));
-	  }
+	"use strict";
+
+	function basename(path) {
+	  return path.split("/").pop();
+	}
+
+	function dirname(path) {
+	  var idx = path.lastIndexOf("/");
+	  return path.slice(0, idx);
+	}
+
+	function isURL(str) {
+	  return str.indexOf("://") !== -1;
+	}
+
+	function isAbsolute(str) {
+	  return str[0] === "/";
+	}
+
+	function join(base, dir) {
+	  return `${base}/${dir}`;
+	}
+
+	module.exports = {
+	  basename, dirname, isURL, isAbsolute, join
 	};
-	
-	/**
-	 * Execute the generator function or a generator
-	 * and return a promise.
-	 *
-	 * @param {Function} fn
-	 * @return {Promise}
-	 * @api public
-	 */
-	
-	function co(gen) {
-	  var ctx = this;
-	  var args = slice.call(arguments, 1)
-	
-	  // we wrap everything in a promise to avoid promise chaining,
-	  // which leads to memory leak errors.
-	  // see https://github.com/tj/co/issues/180
-	  return new Promise(function(resolve, reject) {
-	    if (typeof gen === 'function') gen = gen.apply(ctx, args);
-	    if (!gen || typeof gen.next !== 'function') return resolve(gen);
-	
-	    onFulfilled();
-	
-	    /**
-	     * @param {Mixed} res
-	     * @return {Promise}
-	     * @api private
-	     */
-	
-	    function onFulfilled(res) {
-	      var ret;
-	      try {
-	        ret = gen.next(res);
-	      } catch (e) {
-	        return reject(e);
-	      }
-	      next(ret);
-	    }
-	
-	    /**
-	     * @param {Error} err
-	     * @return {Promise}
-	     * @api private
-	     */
-	
-	    function onRejected(err) {
-	      var ret;
-	      try {
-	        ret = gen.throw(err);
-	      } catch (e) {
-	        return reject(e);
-	      }
-	      next(ret);
-	    }
-	
-	    /**
-	     * Get the next value in the generator,
-	     * return a promise.
-	     *
-	     * @param {Object} ret
-	     * @return {Promise}
-	     * @api private
-	     */
-	
-	    function next(ret) {
-	      if (ret.done) return resolve(ret.value);
-	      var value = toPromise.call(ctx, ret.value);
-	      if (value && isPromise(value)) return value.then(onFulfilled, onRejected);
-	      return onRejected(new TypeError('You may only yield a function, promise, generator, array, or object, '
-	        + 'but the following object was passed: "' + String(ret.value) + '"'));
-	    }
-	  });
-	}
-	
-	/**
-	 * Convert a `yield`ed value into a promise.
-	 *
-	 * @param {Mixed} obj
-	 * @return {Promise}
-	 * @api private
-	 */
-	
-	function toPromise(obj) {
-	  if (!obj) return obj;
-	  if (isPromise(obj)) return obj;
-	  if (isGeneratorFunction(obj) || isGenerator(obj)) return co.call(this, obj);
-	  if ('function' == typeof obj) return thunkToPromise.call(this, obj);
-	  if (Array.isArray(obj)) return arrayToPromise.call(this, obj);
-	  if (isObject(obj)) return objectToPromise.call(this, obj);
-	  return obj;
-	}
-	
-	/**
-	 * Convert a thunk to a promise.
-	 *
-	 * @param {Function}
-	 * @return {Promise}
-	 * @api private
-	 */
-	
-	function thunkToPromise(fn) {
-	  var ctx = this;
-	  return new Promise(function (resolve, reject) {
-	    fn.call(ctx, function (err, res) {
-	      if (err) return reject(err);
-	      if (arguments.length > 2) res = slice.call(arguments, 1);
-	      resolve(res);
-	    });
-	  });
-	}
-	
-	/**
-	 * Convert an array of "yieldables" to a promise.
-	 * Uses `Promise.all()` internally.
-	 *
-	 * @param {Array} obj
-	 * @return {Promise}
-	 * @api private
-	 */
-	
-	function arrayToPromise(obj) {
-	  return Promise.all(obj.map(toPromise, this));
-	}
-	
-	/**
-	 * Convert an object of "yieldables" to a promise.
-	 * Uses `Promise.all()` internally.
-	 *
-	 * @param {Object} obj
-	 * @return {Promise}
-	 * @api private
-	 */
-	
-	function objectToPromise(obj){
-	  var results = new obj.constructor();
-	  var keys = Object.keys(obj);
-	  var promises = [];
-	  for (var i = 0; i < keys.length; i++) {
-	    var key = keys[i];
-	    var promise = toPromise.call(this, obj[key]);
-	    if (promise && isPromise(promise)) defer(promise, key);
-	    else results[key] = obj[key];
-	  }
-	  return Promise.all(promises).then(function () {
-	    return results;
-	  });
-	
-	  function defer(promise, key) {
-	    // predefine the key in the result
-	    results[key] = undefined;
-	    promises.push(promise.then(function (res) {
-	      results[key] = res;
-	    }));
-	  }
-	}
-	
-	/**
-	 * Check if `obj` is a promise.
-	 *
-	 * @param {Object} obj
-	 * @return {Boolean}
-	 * @api private
-	 */
-	
-	function isPromise(obj) {
-	  return 'function' == typeof obj.then;
-	}
-	
-	/**
-	 * Check if `obj` is a generator.
-	 *
-	 * @param {Mixed} obj
-	 * @return {Boolean}
-	 * @api private
-	 */
-	
-	function isGenerator(obj) {
-	  return 'function' == typeof obj.next && 'function' == typeof obj.throw;
-	}
-	
-	/**
-	 * Check if `obj` is a generator function.
-	 *
-	 * @param {Mixed} obj
-	 * @return {Boolean}
-	 * @api private
-	 */
-	function isGeneratorFunction(obj) {
-	  var constructor = obj.constructor;
-	  if (!constructor) return false;
-	  if ('GeneratorFunction' === constructor.name || 'GeneratorFunction' === constructor.displayName) return true;
-	  return isGenerator(constructor.prototype);
-	}
-	
-	/**
-	 * Check for plain object.
-	 *
-	 * @param {Mixed} val
-	 * @return {Boolean}
-	 * @api private
-	 */
-	
-	function isObject(val) {
-	  return Object == val.constructor;
-	}
-
 
 /***/ },
 
-/***/ 245:
-/***/ function(module, exports) {
-
-	function assert(condition, message) {
-	  if (!condition) {
-	    throw new Error("Assertion failure: " + message);
-	  }
-	}
-	
-	module.exports = assert;
-
-/***/ },
-
-/***/ 263:
+/***/ 247:
 /***/ function(module, exports, __webpack_require__) {
 
-	var md5 = __webpack_require__(264);
-	
+	"use strict";
+
+	var md5 = __webpack_require__(248);
+
 	function originalToGeneratedId(originalId) {
 	  var match = originalId.match(/(.*)\/originalSource/);
-	  return match ? match[1] : null;
+	  return match ? match[1] : "";
 	}
-	
+
 	function generatedToOriginalId(generatedId, url) {
-	  return generatedId + "/originalSource-" + md5(url);
+	  return `${generatedId}/originalSource-${md5(url)}`;
 	}
-	
+
 	function isOriginalId(id) {
-	  return id.match(/\/originalSource/);
+	  return !!id.match(/\/originalSource/);
 	}
-	
+
 	function isGeneratedId(id) {
 	  return !isOriginalId(id);
 	}
-	
+
 	module.exports = {
 	  originalToGeneratedId, generatedToOriginalId, isOriginalId, isGeneratedId
 	};
 
 /***/ },
 
-/***/ 264:
+/***/ 248:
 /***/ function(module, exports, __webpack_require__) {
 
 	(function(){
-	  var crypt = __webpack_require__(265),
-	      utf8 = __webpack_require__(266).utf8,
-	      isBuffer = __webpack_require__(267),
-	      bin = __webpack_require__(266).bin,
-	
+	  var crypt = __webpack_require__(249),
+	      utf8 = __webpack_require__(250).utf8,
+	      isBuffer = __webpack_require__(251),
+	      bin = __webpack_require__(250).bin,
+
 	  // The core
 	  md5 = function (message, options) {
 	    // Convert to byte array
@@ -895,37 +539,37 @@ var Debugger =
 	    else if (!Array.isArray(message))
 	      message = message.toString();
 	    // else, assume byte array already
-	
+
 	    var m = crypt.bytesToWords(message),
 	        l = message.length * 8,
 	        a =  1732584193,
 	        b = -271733879,
 	        c = -1732584194,
 	        d =  271733878;
-	
+
 	    // Swap endian
 	    for (var i = 0; i < m.length; i++) {
 	      m[i] = ((m[i] <<  8) | (m[i] >>> 24)) & 0x00FF00FF |
 	             ((m[i] << 24) | (m[i] >>>  8)) & 0xFF00FF00;
 	    }
-	
+
 	    // Padding
 	    m[l >>> 5] |= 0x80 << (l % 32);
 	    m[(((l + 64) >>> 9) << 4) + 14] = l;
-	
+
 	    // Method shortcuts
 	    var FF = md5._ff,
 	        GG = md5._gg,
 	        HH = md5._hh,
 	        II = md5._ii;
-	
+
 	    for (var i = 0; i < m.length; i += 16) {
-	
+
 	      var aa = a,
 	          bb = b,
 	          cc = c,
 	          dd = d;
-	
+
 	      a = FF(a, b, c, d, m[i+ 0],  7, -680876936);
 	      d = FF(d, a, b, c, m[i+ 1], 12, -389564586);
 	      c = FF(c, d, a, b, m[i+ 2], 17,  606105819);
@@ -942,7 +586,7 @@ var Debugger =
 	      d = FF(d, a, b, c, m[i+13], 12, -40341101);
 	      c = FF(c, d, a, b, m[i+14], 17, -1502002290);
 	      b = FF(b, c, d, a, m[i+15], 22,  1236535329);
-	
+
 	      a = GG(a, b, c, d, m[i+ 1],  5, -165796510);
 	      d = GG(d, a, b, c, m[i+ 6],  9, -1069501632);
 	      c = GG(c, d, a, b, m[i+11], 14,  643717713);
@@ -959,7 +603,7 @@ var Debugger =
 	      d = GG(d, a, b, c, m[i+ 2],  9, -51403784);
 	      c = GG(c, d, a, b, m[i+ 7], 14,  1735328473);
 	      b = GG(b, c, d, a, m[i+12], 20, -1926607734);
-	
+
 	      a = HH(a, b, c, d, m[i+ 5],  4, -378558);
 	      d = HH(d, a, b, c, m[i+ 8], 11, -2022574463);
 	      c = HH(c, d, a, b, m[i+11], 16,  1839030562);
@@ -976,7 +620,7 @@ var Debugger =
 	      d = HH(d, a, b, c, m[i+12], 11, -421815835);
 	      c = HH(c, d, a, b, m[i+15], 16,  530742520);
 	      b = HH(b, c, d, a, m[i+ 2], 23, -995338651);
-	
+
 	      a = II(a, b, c, d, m[i+ 0],  6, -198630844);
 	      d = II(d, a, b, c, m[i+ 7], 10,  1126891415);
 	      c = II(c, d, a, b, m[i+14], 15, -1416354905);
@@ -993,16 +637,16 @@ var Debugger =
 	      d = II(d, a, b, c, m[i+11], 10, -1120210379);
 	      c = II(c, d, a, b, m[i+ 2], 15,  718787259);
 	      b = II(b, c, d, a, m[i+ 9], 21, -343485551);
-	
+
 	      a = (a + aa) >>> 0;
 	      b = (b + bb) >>> 0;
 	      c = (c + cc) >>> 0;
 	      d = (d + dd) >>> 0;
 	    }
-	
+
 	    return crypt.endian([a, b, c, d]);
 	  };
-	
+
 	  // Auxiliary functions
 	  md5._ff  = function (a, b, c, d, x, s, t) {
 	    var n = a + (b & c | ~b & d) + (x >>> 0) + t;
@@ -1020,78 +664,78 @@ var Debugger =
 	    var n = a + (c ^ (b | ~d)) + (x >>> 0) + t;
 	    return ((n << s) | (n >>> (32 - s))) + b;
 	  };
-	
+
 	  // Package private blocksize
 	  md5._blocksize = 16;
 	  md5._digestsize = 16;
-	
+
 	  module.exports = function (message, options) {
 	    if (message === undefined || message === null)
 	      throw new Error('Illegal argument ' + message);
-	
+
 	    var digestbytes = crypt.wordsToBytes(md5(message, options));
 	    return options && options.asBytes ? digestbytes :
 	        options && options.asString ? bin.bytesToString(digestbytes) :
 	        crypt.bytesToHex(digestbytes);
 	  };
-	
+
 	})();
 
 
 /***/ },
 
-/***/ 265:
+/***/ 249:
 /***/ function(module, exports) {
 
 	(function() {
 	  var base64map
 	      = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-	
+
 	  crypt = {
 	    // Bit-wise rotation left
 	    rotl: function(n, b) {
 	      return (n << b) | (n >>> (32 - b));
 	    },
-	
+
 	    // Bit-wise rotation right
 	    rotr: function(n, b) {
 	      return (n << (32 - b)) | (n >>> b);
 	    },
-	
+
 	    // Swap big-endian to little-endian and vice versa
 	    endian: function(n) {
 	      // If number given, swap endian
 	      if (n.constructor == Number) {
 	        return crypt.rotl(n, 8) & 0x00FF00FF | crypt.rotl(n, 24) & 0xFF00FF00;
 	      }
-	
+
 	      // Else, assume array and swap all items
 	      for (var i = 0; i < n.length; i++)
 	        n[i] = crypt.endian(n[i]);
 	      return n;
 	    },
-	
+
 	    // Generate an array of any length of random bytes
 	    randomBytes: function(n) {
 	      for (var bytes = []; n > 0; n--)
 	        bytes.push(Math.floor(Math.random() * 256));
 	      return bytes;
 	    },
-	
+
 	    // Convert a byte array to big-endian 32-bit words
 	    bytesToWords: function(bytes) {
 	      for (var words = [], i = 0, b = 0; i < bytes.length; i++, b += 8)
 	        words[b >>> 5] |= bytes[i] << (24 - b % 32);
 	      return words;
 	    },
-	
+
 	    // Convert big-endian 32-bit words to a byte array
 	    wordsToBytes: function(words) {
 	      for (var bytes = [], b = 0; b < words.length * 32; b += 8)
 	        bytes.push((words[b >>> 5] >>> (24 - b % 32)) & 0xFF);
 	      return bytes;
 	    },
-	
+
 	    // Convert a byte array to a hex string
 	    bytesToHex: function(bytes) {
 	      for (var hex = [], i = 0; i < bytes.length; i++) {
@@ -1100,14 +744,14 @@ var Debugger =
 	      }
 	      return hex.join('');
 	    },
-	
+
 	    // Convert a hex string to a byte array
 	    hexToBytes: function(hex) {
 	      for (var bytes = [], c = 0; c < hex.length; c += 2)
 	        bytes.push(parseInt(hex.substr(c, 2), 16));
 	      return bytes;
 	    },
-	
+
 	    // Convert a byte array to a base-64 string
 	    bytesToBase64: function(bytes) {
 	      for (var base64 = [], i = 0; i < bytes.length; i += 3) {
@@ -1120,12 +764,12 @@ var Debugger =
 	      }
 	      return base64.join('');
 	    },
-	
+
 	    // Convert a base-64 string to a byte array
 	    base64ToBytes: function(base64) {
 	      // Remove non-base-64 characters
 	      base64 = base64.replace(/[^A-Z0-9+\/]/ig, '');
-	
+
 	      for (var bytes = [], i = 0, imod4 = 0; i < base64.length;
 	          imod4 = ++i % 4) {
 	        if (imod4 == 0) continue;
@@ -1136,14 +780,14 @@ var Debugger =
 	      return bytes;
 	    }
 	  };
-	
+
 	  module.exports = crypt;
 	})();
 
 
 /***/ },
 
-/***/ 266:
+/***/ 250:
 /***/ function(module, exports) {
 
 	var charenc = {
@@ -1153,13 +797,13 @@ var Debugger =
 	    stringToBytes: function(str) {
 	      return charenc.bin.stringToBytes(unescape(encodeURIComponent(str)));
 	    },
-	
+
 	    // Convert a byte array to a string
 	    bytesToString: function(bytes) {
 	      return decodeURIComponent(escape(charenc.bin.bytesToString(bytes)));
 	    }
 	  },
-	
+
 	  // Binary encoding
 	  bin: {
 	    // Convert a string to a byte array
@@ -1168,7 +812,7 @@ var Debugger =
 	        bytes.push(str.charCodeAt(i) & 0xFF);
 	      return bytes;
 	    },
-	
+
 	    // Convert a byte array to a string
 	    bytesToString: function(bytes) {
 	      for (var str = [], i = 0; i < bytes.length; i++)
@@ -1177,13 +821,13 @@ var Debugger =
 	    }
 	  }
 	};
-	
+
 	module.exports = charenc;
 
 
 /***/ },
 
-/***/ 267:
+/***/ 251:
 /***/ function(module, exports) {
 
 	/*!
@@ -1192,17 +836,17 @@ var Debugger =
 	 * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
 	 * @license  MIT
 	 */
-	
+
 	// The _isBuffer check is for Safari 5-7 support, because it's missing
 	// Object.prototype.constructor. Remove this eventually
 	module.exports = function (obj) {
 	  return obj != null && (isBuffer(obj) || isSlowBuffer(obj) || !!obj._isBuffer)
 	}
-	
+
 	function isBuffer (obj) {
 	  return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
 	}
-	
+
 	// For Node v0.10 support. Remove this eventually.
 	function isSlowBuffer (obj) {
 	  return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
@@ -1211,100 +855,7 @@ var Debugger =
 
 /***/ },
 
-/***/ 275:
-/***/ function(module, exports, __webpack_require__) {
-
-	var _require = __webpack_require__(242);
-	
-	var endTruncateStr = _require.endTruncateStr;
-	
-	var _require2 = __webpack_require__(276);
-	
-	var basename = _require2.basename;
-	
-	
-	/**
-	 * Trims the query part or reference identifier of a url string, if necessary.
-	 */
-	function trimUrlQuery(url) {
-	  var length = url.length;
-	  var q1 = url.indexOf("?");
-	  var q2 = url.indexOf("&");
-	  var q3 = url.indexOf("#");
-	  var q = Math.min(q1 != -1 ? q1 : length, q2 != -1 ? q2 : length, q3 != -1 ? q3 : length);
-	
-	  return url.slice(0, q);
-	}
-	
-	/**
-	 * Returns true if the specified url and/or content type are specific to
-	 * javascript files.
-	 *
-	 * @return boolean
-	 *         True if the source is likely javascript.
-	 */
-	function isJavaScript(url) {
-	  var contentType = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
-	
-	  return url && /\.(jsm|js)?$/.test(trimUrlQuery(url)) || contentType.includes("javascript");
-	}
-	
-	function isPretty(source) {
-	  return source.url ? /formatted$/.test(source.url) : false;
-	}
-	
-	/**
-	 * Show a source url's filename.
-	 * If the source does not have a url, use the source id.
-	 */
-	function getFilename(source) {
-	  var url = source.url;
-	  var id = source.id;
-	
-	  if (!url) {
-	    var sourceId = id.split("/")[1];
-	    return `SOURCE${ sourceId }`;
-	  }
-	
-	  var name = basename(source.url);
-	  return endTruncateStr(name, 50);
-	}
-	
-	module.exports = {
-	  isJavaScript,
-	  isPretty,
-	  getFilename
-	};
-
-/***/ },
-
-/***/ 276:
-/***/ function(module, exports) {
-
-	function basename(path) {
-	  return path.split("/").pop();
-	}
-	
-	function dirname(path) {
-	  var idx = path.lastIndexOf("/");
-	  return path.slice(0, idx);
-	}
-	
-	function isURL(str) {
-	  return str.indexOf("://") !== -1;
-	}
-	
-	function isAbsolute(str) {
-	  return str[0] === "/";
-	}
-	
-	module.exports = {
-	  basename, dirname, isURL, isAbsolute
-	};
-
-/***/ },
-
-/***/ 289:
+/***/ 334:
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -1327,16 +878,19 @@ var Debugger =
 	// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 	// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 	// USE OR OTHER DEALINGS IN THE SOFTWARE.
-	
-	var punycode = __webpack_require__(290);
-	
+
+	'use strict';
+
+	var punycode = __webpack_require__(335);
+	var util = __webpack_require__(336);
+
 	exports.parse = urlParse;
 	exports.resolve = urlResolve;
 	exports.resolveObject = urlResolveObject;
 	exports.format = urlFormat;
-	
+
 	exports.Url = Url;
-	
+
 	function Url() {
 	  this.protocol = null;
 	  this.slashes = null;
@@ -1351,21 +905,24 @@ var Debugger =
 	  this.path = null;
 	  this.href = null;
 	}
-	
+
 	// Reference: RFC 3986, RFC 1808, RFC 2396
-	
+
 	// define these here so at least they only have to be
 	// compiled once on the first module load.
 	var protocolPattern = /^([a-z0-9.+-]+:)/i,
 	    portPattern = /:[0-9]*$/,
-	
+
+	    // Special case for a simple path URL
+	    simplePathPattern = /^(\/\/?(?!\/)[^\?\s]*)(\?[^\s]*)?$/,
+
 	    // RFC 2396: characters reserved for delimiting URLs.
 	    // We actually just auto-escape these.
 	    delims = ['<', '>', '"', '`', ' ', '\r', '\n', '\t'],
-	
+
 	    // RFC 2396: characters not allowed for various reasons.
 	    unwise = ['{', '}', '|', '\\', '^', '`'].concat(delims),
-	
+
 	    // Allowed by RFCs, but cause of XSS attacks.  Always escape these.
 	    autoEscape = ['\''].concat(unwise),
 	    // Characters that are never ever allowed in a hostname.
@@ -1375,8 +932,8 @@ var Debugger =
 	    nonHostChars = ['%', '/', '?', ';', '#'].concat(autoEscape),
 	    hostEndingChars = ['/', '?', '#'],
 	    hostnameMaxLen = 255,
-	    hostnamePartPattern = /^[a-z0-9A-Z_-]{0,63}$/,
-	    hostnamePartStart = /^([a-z0-9A-Z_-]{0,63})(.*)$/,
+	    hostnamePartPattern = /^[+a-z0-9A-Z_-]{0,63}$/,
+	    hostnamePartStart = /^([+a-z0-9A-Z_-]{0,63})(.*)$/,
 	    // protocols that can allow "unsafe" and "unwise" chars.
 	    unsafeProtocol = {
 	      'javascript': true,
@@ -1400,27 +957,60 @@ var Debugger =
 	      'gopher:': true,
 	      'file:': true
 	    },
-	    querystring = __webpack_require__(291);
-	
+	    querystring = __webpack_require__(337);
+
 	function urlParse(url, parseQueryString, slashesDenoteHost) {
-	  if (url && isObject(url) && url instanceof Url) return url;
-	
+	  if (url && util.isObject(url) && url instanceof Url) return url;
+
 	  var u = new Url;
 	  u.parse(url, parseQueryString, slashesDenoteHost);
 	  return u;
 	}
-	
+
 	Url.prototype.parse = function(url, parseQueryString, slashesDenoteHost) {
-	  if (!isString(url)) {
+	  if (!util.isString(url)) {
 	    throw new TypeError("Parameter 'url' must be a string, not " + typeof url);
 	  }
-	
+
+	  // Copy chrome, IE, opera backslash-handling behavior.
+	  // Back slashes before the query string get converted to forward slashes
+	  // See: https://code.google.com/p/chromium/issues/detail?id=25916
+	  var queryIndex = url.indexOf('?'),
+	      splitter =
+	          (queryIndex !== -1 && queryIndex < url.indexOf('#')) ? '?' : '#',
+	      uSplit = url.split(splitter),
+	      slashRegex = /\\/g;
+	  uSplit[0] = uSplit[0].replace(slashRegex, '/');
+	  url = uSplit.join(splitter);
+
 	  var rest = url;
-	
+
 	  // trim before proceeding.
 	  // This is to support parse stuff like "  http://foo.com  \n"
 	  rest = rest.trim();
-	
+
+	  if (!slashesDenoteHost && url.split('#').length === 1) {
+	    // Try fast path regexp
+	    var simplePath = simplePathPattern.exec(rest);
+	    if (simplePath) {
+	      this.path = rest;
+	      this.href = rest;
+	      this.pathname = simplePath[1];
+	      if (simplePath[2]) {
+	        this.search = simplePath[2];
+	        if (parseQueryString) {
+	          this.query = querystring.parse(this.search.substr(1));
+	        } else {
+	          this.query = this.search.substr(1);
+	        }
+	      } else if (parseQueryString) {
+	        this.search = '';
+	        this.query = {};
+	      }
+	      return this;
+	    }
+	  }
+
 	  var proto = protocolPattern.exec(rest);
 	  if (proto) {
 	    proto = proto[0];
@@ -1428,7 +1018,7 @@ var Debugger =
 	    this.protocol = lowerProto;
 	    rest = rest.substr(proto.length);
 	  }
-	
+
 	  // figure out if it's got a host
 	  // user@server is *always* interpreted as a hostname, and url
 	  // resolution will treat //foo/bar as host=foo,path=bar because that's
@@ -1440,10 +1030,10 @@ var Debugger =
 	      this.slashes = true;
 	    }
 	  }
-	
+
 	  if (!hostlessProtocol[proto] &&
 	      (slashes || (proto && !slashedProtocol[proto]))) {
-	
+
 	    // there's a hostname.
 	    // the first instance of /, ?, ;, or # ends the host.
 	    //
@@ -1455,10 +1045,10 @@ var Debugger =
 	    // ex:
 	    // http://a@b@c/ => user:a@b host:c
 	    // http://a@b?@c => user:a host:c path:/?@c
-	
+
 	    // v0.12 TODO(isaacs): This is not quite how Chrome does things.
 	    // Review our test case against browsers more comprehensively.
-	
+
 	    // find the first instance of any hostEndingChars
 	    var hostEnd = -1;
 	    for (var i = 0; i < hostEndingChars.length; i++) {
@@ -1466,7 +1056,7 @@ var Debugger =
 	      if (hec !== -1 && (hostEnd === -1 || hec < hostEnd))
 	        hostEnd = hec;
 	    }
-	
+
 	    // at this point, either we have an explicit point where the
 	    // auth portion cannot go past, or the last @ char is the decider.
 	    var auth, atSign;
@@ -1478,7 +1068,7 @@ var Debugger =
 	      // http://a@b/c@d => host:b auth:a path:/c@d
 	      atSign = rest.lastIndexOf('@', hostEnd);
 	    }
-	
+
 	    // Now we have a portion which is definitely the auth.
 	    // Pull that off.
 	    if (atSign !== -1) {
@@ -1486,7 +1076,7 @@ var Debugger =
 	      rest = rest.slice(atSign + 1);
 	      this.auth = decodeURIComponent(auth);
 	    }
-	
+
 	    // the host is the remaining to the left of the first non-host char
 	    hostEnd = -1;
 	    for (var i = 0; i < nonHostChars.length; i++) {
@@ -1497,22 +1087,22 @@ var Debugger =
 	    // if we still have not hit it, then the entire thing is a host.
 	    if (hostEnd === -1)
 	      hostEnd = rest.length;
-	
+
 	    this.host = rest.slice(0, hostEnd);
 	    rest = rest.slice(hostEnd);
-	
+
 	    // pull out port.
 	    this.parseHost();
-	
+
 	    // we've indicated that there is a hostname,
 	    // so even if it's empty, it has to be present.
 	    this.hostname = this.hostname || '';
-	
+
 	    // if hostname begins with [ and ends with ]
 	    // assume that it's an IPv6 address.
 	    var ipv6Hostname = this.hostname[0] === '[' &&
 	        this.hostname[this.hostname.length - 1] === ']';
-	
+
 	    // validate a little.
 	    if (!ipv6Hostname) {
 	      var hostparts = this.hostname.split(/\./);
@@ -1549,34 +1139,27 @@ var Debugger =
 	        }
 	      }
 	    }
-	
+
 	    if (this.hostname.length > hostnameMaxLen) {
 	      this.hostname = '';
 	    } else {
 	      // hostnames are always lower case.
 	      this.hostname = this.hostname.toLowerCase();
 	    }
-	
+
 	    if (!ipv6Hostname) {
-	      // IDNA Support: Returns a puny coded representation of "domain".
-	      // It only converts the part of the domain name that
-	      // has non ASCII characters. I.e. it dosent matter if
-	      // you call it with a domain that already is in ASCII.
-	      var domainArray = this.hostname.split('.');
-	      var newOut = [];
-	      for (var i = 0; i < domainArray.length; ++i) {
-	        var s = domainArray[i];
-	        newOut.push(s.match(/[^A-Za-z0-9_-]/) ?
-	            'xn--' + punycode.encode(s) : s);
-	      }
-	      this.hostname = newOut.join('.');
+	      // IDNA Support: Returns a punycoded representation of "domain".
+	      // It only converts parts of the domain name that
+	      // have non-ASCII characters, i.e. it doesn't matter if
+	      // you call it with a domain that already is ASCII-only.
+	      this.hostname = punycode.toASCII(this.hostname);
 	    }
-	
+
 	    var p = this.port ? ':' + this.port : '';
 	    var h = this.hostname || '';
 	    this.host = h + p;
 	    this.href += this.host;
-	
+
 	    // strip [ and ] from the hostname
 	    // the host field still retains them, though
 	    if (ipv6Hostname) {
@@ -1586,16 +1169,18 @@ var Debugger =
 	      }
 	    }
 	  }
-	
+
 	  // now rest is set to the post-host stuff.
 	  // chop off any delim chars.
 	  if (!unsafeProtocol[lowerProto]) {
-	
+
 	    // First, make 100% sure that any "autoEscape" chars get
 	    // escaped, even if encodeURIComponent doesn't think they
 	    // need to be.
 	    for (var i = 0, l = autoEscape.length; i < l; i++) {
 	      var ae = autoEscape[i];
+	      if (rest.indexOf(ae) === -1)
+	        continue;
 	      var esc = encodeURIComponent(ae);
 	      if (esc === ae) {
 	        esc = escape(ae);
@@ -1603,8 +1188,8 @@ var Debugger =
 	      rest = rest.split(ae).join(esc);
 	    }
 	  }
-	
-	
+
+
 	  // chop off from the tail first.
 	  var hash = rest.indexOf('#');
 	  if (hash !== -1) {
@@ -1630,30 +1215,30 @@ var Debugger =
 	      this.hostname && !this.pathname) {
 	    this.pathname = '/';
 	  }
-	
+
 	  //to support http.request
 	  if (this.pathname || this.search) {
 	    var p = this.pathname || '';
 	    var s = this.search || '';
 	    this.path = p + s;
 	  }
-	
+
 	  // finally, reconstruct the href based on what has been validated.
 	  this.href = this.format();
 	  return this;
 	};
-	
+
 	// format a parsed object into a url string
 	function urlFormat(obj) {
 	  // ensure it's an object, and not a string url.
 	  // If it's an obj, this is a no-op.
 	  // this way, you can call url_format() on strings
 	  // to clean up potentially wonky urls.
-	  if (isString(obj)) obj = urlParse(obj);
+	  if (util.isString(obj)) obj = urlParse(obj);
 	  if (!(obj instanceof Url)) return Url.prototype.format.call(obj);
 	  return obj.format();
 	}
-	
+
 	Url.prototype.format = function() {
 	  var auth = this.auth || '';
 	  if (auth) {
@@ -1661,13 +1246,13 @@ var Debugger =
 	    auth = auth.replace(/%3A/i, ':');
 	    auth += '@';
 	  }
-	
+
 	  var protocol = this.protocol || '',
 	      pathname = this.pathname || '',
 	      hash = this.hash || '',
 	      host = false,
 	      query = '';
-	
+
 	  if (this.host) {
 	    host = auth + this.host;
 	  } else if (this.hostname) {
@@ -1678,17 +1263,17 @@ var Debugger =
 	      host += ':' + this.port;
 	    }
 	  }
-	
+
 	  if (this.query &&
-	      isObject(this.query) &&
+	      util.isObject(this.query) &&
 	      Object.keys(this.query).length) {
 	    query = querystring.stringify(this.query);
 	  }
-	
+
 	  var search = this.search || (query && ('?' + query)) || '';
-	
+
 	  if (protocol && protocol.substr(-1) !== ':') protocol += ':';
-	
+
 	  // only the slashedProtocols get the //.  Not mailto:, xmpp:, etc.
 	  // unless they had them to begin with.
 	  if (this.slashes ||
@@ -1698,71 +1283,75 @@ var Debugger =
 	  } else if (!host) {
 	    host = '';
 	  }
-	
+
 	  if (hash && hash.charAt(0) !== '#') hash = '#' + hash;
 	  if (search && search.charAt(0) !== '?') search = '?' + search;
-	
+
 	  pathname = pathname.replace(/[?#]/g, function(match) {
 	    return encodeURIComponent(match);
 	  });
 	  search = search.replace('#', '%23');
-	
+
 	  return protocol + host + pathname + search + hash;
 	};
-	
+
 	function urlResolve(source, relative) {
 	  return urlParse(source, false, true).resolve(relative);
 	}
-	
+
 	Url.prototype.resolve = function(relative) {
 	  return this.resolveObject(urlParse(relative, false, true)).format();
 	};
-	
+
 	function urlResolveObject(source, relative) {
 	  if (!source) return relative;
 	  return urlParse(source, false, true).resolveObject(relative);
 	}
-	
+
 	Url.prototype.resolveObject = function(relative) {
-	  if (isString(relative)) {
+	  if (util.isString(relative)) {
 	    var rel = new Url();
 	    rel.parse(relative, false, true);
 	    relative = rel;
 	  }
-	
+
 	  var result = new Url();
-	  Object.keys(this).forEach(function(k) {
-	    result[k] = this[k];
-	  }, this);
-	
+	  var tkeys = Object.keys(this);
+	  for (var tk = 0; tk < tkeys.length; tk++) {
+	    var tkey = tkeys[tk];
+	    result[tkey] = this[tkey];
+	  }
+
 	  // hash is always overridden, no matter what.
 	  // even href="" will remove it.
 	  result.hash = relative.hash;
-	
+
 	  // if the relative url is empty, then there's nothing left to do here.
 	  if (relative.href === '') {
 	    result.href = result.format();
 	    return result;
 	  }
-	
+
 	  // hrefs like //foo/bar always cut to the protocol.
 	  if (relative.slashes && !relative.protocol) {
 	    // take everything except the protocol from relative
-	    Object.keys(relative).forEach(function(k) {
-	      if (k !== 'protocol')
-	        result[k] = relative[k];
-	    });
-	
+	    var rkeys = Object.keys(relative);
+	    for (var rk = 0; rk < rkeys.length; rk++) {
+	      var rkey = rkeys[rk];
+	      if (rkey !== 'protocol')
+	        result[rkey] = relative[rkey];
+	    }
+
 	    //urlParse appends trailing / to urls like http://www.example.com
 	    if (slashedProtocol[result.protocol] &&
 	        result.hostname && !result.pathname) {
 	      result.path = result.pathname = '/';
 	    }
-	
+
 	    result.href = result.format();
 	    return result;
 	  }
-	
+
 	  if (relative.protocol && relative.protocol !== result.protocol) {
 	    // if it's a known url protocol, then changing
 	    // the protocol does weird things
@@ -1773,13 +1362,15 @@ var Debugger =
 	    // because that's known to be hostless.
 	    // anything else is assumed to be absolute.
 	    if (!slashedProtocol[relative.protocol]) {
-	      Object.keys(relative).forEach(function(k) {
+	      var keys = Object.keys(relative);
+	      for (var v = 0; v < keys.length; v++) {
+	        var k = keys[v];
 	        result[k] = relative[k];
-	      });
+	      }
 	      result.href = result.format();
 	      return result;
 	    }
-	
+
 	    result.protocol = relative.protocol;
 	    if (!relative.host && !hostlessProtocol[relative.protocol]) {
 	      var relPath = (relative.pathname || '').split('/');
@@ -1808,7 +1399,7 @@ var Debugger =
 	    result.href = result.format();
 	    return result;
 	  }
-	
+
 	  var isSourceAbs = (result.pathname && result.pathname.charAt(0) === '/'),
 	      isRelAbs = (
 	          relative.host ||
@@ -1820,7 +1411,7 @@ var Debugger =
 	      srcPath = result.pathname && result.pathname.split('/') || [],
 	      relPath = relative.pathname && relative.pathname.split('/') || [],
 	      psychotic = result.protocol && !slashedProtocol[result.protocol];
-	
+
 	  // if the url is a non-slashed url, then relative
 	  // links like ../.. should be able
 	  // to crawl up to the hostname, as well.  This is strange.
@@ -1845,7 +1436,7 @@ var Debugger =
 	    }
 	    mustEndAbs = mustEndAbs && (relPath[0] === '' || srcPath[0] === '');
 	  }
-	
+
 	  if (isRelAbs) {
 	    // it's absolute.
 	    result.host = (relative.host || relative.host === '') ?
@@ -1864,14 +1455,14 @@ var Debugger =
 	    srcPath = srcPath.concat(relPath);
 	    result.search = relative.search;
 	    result.query = relative.query;
-	  } else if (!isNullOrUndefined(relative.search)) {
+	  } else if (!util.isNullOrUndefined(relative.search)) {
 	    // just pull out the search.
 	    // like href='?foo'.
 	    // Put this after the other two cases because it simplifies the booleans
 	    if (psychotic) {
 	      result.hostname = result.host = srcPath.shift();
 	      //occationaly the auth can get stuck only in host
-	      //this especialy happens in cases like
+	      //this especially happens in cases like
 	      //url.resolveObject('mailto:local1@domain1', 'local2@domain2')
 	      var authInHost = result.host && result.host.indexOf('@') > 0 ?
 	                       result.host.split('@') : false;
@@ -1883,14 +1474,14 @@ var Debugger =
 	    result.search = relative.search;
 	    result.query = relative.query;
 	    //to support http.request
-	    if (!isNull(result.pathname) || !isNull(result.search)) {
+	    if (!util.isNull(result.pathname) || !util.isNull(result.search)) {
 	      result.path = (result.pathname ? result.pathname : '') +
 	                    (result.search ? result.search : '');
 	    }
 	    result.href = result.format();
 	    return result;
 	  }
-	
+
 	  if (!srcPath.length) {
 	    // no path at all.  easy.
 	    // we've already handled the other stuff above.
@@ -1904,21 +1495,21 @@ var Debugger =
 	    result.href = result.format();
 	    return result;
 	  }
-	
+
 	  // if a url ENDs in . or .., then it must get a trailing slash.
 	  // however, if it ends in anything else non-slashy,
 	  // then it must NOT get a trailing slash.
 	  var last = srcPath.slice(-1)[0];
 	  var hasTrailingSlash = (
-	      (result.host || relative.host) && (last === '.' || last === '..') ||
-	      last === '');
-	
+	      (result.host || relative.host || srcPath.length > 1) &&
+	      (last === '.' || last === '..') || last === '');
+
 	  // strip single dots, resolve double dots to parent dir
 	  // if the path tries to go above the root, `up` ends up > 0
 	  var up = 0;
 	  for (var i = srcPath.length; i >= 0; i--) {
 	    last = srcPath[i];
-	    if (last == '.') {
+	    if (last === '.') {
 	      srcPath.splice(i, 1);
 	    } else if (last === '..') {
 	      srcPath.splice(i, 1);
@@ -1928,32 +1519,32 @@ var Debugger =
 	      up--;
 	    }
 	  }
-	
+
 	  // if the path is allowed to go above the root, restore leading ..s
 	  if (!mustEndAbs && !removeAllDots) {
 	    for (; up--; up) {
 	      srcPath.unshift('..');
 	    }
 	  }
-	
+
 	  if (mustEndAbs && srcPath[0] !== '' &&
 	      (!srcPath[0] || srcPath[0].charAt(0) !== '/')) {
 	    srcPath.unshift('');
 	  }
-	
+
 	  if (hasTrailingSlash && (srcPath.join('/').substr(-1) !== '/')) {
 	    srcPath.push('');
 	  }
-	
+
 	  var isAbsolute = srcPath[0] === '' ||
 	      (srcPath[0] && srcPath[0].charAt(0) === '/');
-	
+
 	  // put the host back
 	  if (psychotic) {
 	    result.hostname = result.host = isAbsolute ? '' :
 	                                    srcPath.length ? srcPath.shift() : '';
 	    //occationaly the auth can get stuck only in host
-	    //this especialy happens in cases like
+	    //this especially happens in cases like
 	    //url.resolveObject('mailto:local1@domain1', 'local2@domain2')
 	    var authInHost = result.host && result.host.indexOf('@') > 0 ?
 	                     result.host.split('@') : false;
@@ -1962,22 +1553,22 @@ var Debugger =
 	      result.host = result.hostname = authInHost.shift();
 	    }
 	  }
-	
+
 	  mustEndAbs = mustEndAbs || (result.host && srcPath.length);
-	
+
 	  if (mustEndAbs && !isAbsolute) {
 	    srcPath.unshift('');
 	  }
-	
+
 	  if (!srcPath.length) {
 	    result.pathname = null;
 	    result.path = null;
 	  } else {
 	    result.pathname = srcPath.join('/');
 	  }
-	
+
 	  //to support request.http
-	  if (!isNull(result.pathname) || !isNull(result.search)) {
+	  if (!util.isNull(result.pathname) || !util.isNull(result.search)) {
 	    result.path = (result.pathname ? result.pathname : '') +
 	                  (result.search ? result.search : '');
 	  }
@@ -1986,7 +1577,7 @@ var Debugger =
 	  result.href = result.format();
 	  return result;
 	};
-	
+
 	Url.prototype.parseHost = function() {
 	  var host = this.host;
 	  var port = portPattern.exec(host);
@@ -1999,31 +1590,16 @@ var Debugger =
 	  }
 	  if (host) this.hostname = host;
 	};
-	
-	function isString(arg) {
-	  return typeof arg === "string";
-	}
-	
-	function isObject(arg) {
-	  return typeof arg === 'object' && arg !== null;
-	}
-	
-	function isNull(arg) {
-	  return arg === null;
-	}
-	function isNullOrUndefined(arg) {
-	  return  arg == null;
-	}
 
 
 /***/ },
 
-/***/ 290:
+/***/ 335:
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! https://mths.be/punycode v1.3.2 by @mathias */
 	;(function(root) {
-	
+
 		/** Detect free variables */
 		var freeExports = typeof exports == 'object' && exports &&
 			!exports.nodeType && exports;
@@ -2037,17 +1613,17 @@ var Debugger =
 		) {
 			root = freeGlobal;
 		}
-	
+
 		/**
 		 * The `punycode` object.
 		 * @name punycode
 		 * @type Object
 		 */
 		var punycode,
-	
+
 		/** Highest positive signed 32-bit float value */
 		maxInt = 2147483647, // aka. 0x7FFFFFFF or 2^31-1
-	
+
 		/** Bootstring parameters */
 		base = 36,
 		tMin = 1,
@@ -2057,29 +1633,29 @@ var Debugger =
 		initialBias = 72,
 		initialN = 128, // 0x80
 		delimiter = '-', // '\x2D'
-	
+
 		/** Regular expressions */
 		regexPunycode = /^xn--/,
 		regexNonASCII = /[^\x20-\x7E]/, // unprintable ASCII chars + non-ASCII chars
 		regexSeparators = /[\x2E\u3002\uFF0E\uFF61]/g, // RFC 3490 separators
-	
+
 		/** Error messages */
 		errors = {
 			'overflow': 'Overflow: input needs wider integers to process',
 			'not-basic': 'Illegal input >= 0x80 (not a basic code point)',
 			'invalid-input': 'Invalid input'
 		},
-	
+
 		/** Convenience shortcuts */
 		baseMinusTMin = base - tMin,
 		floor = Math.floor,
 		stringFromCharCode = String.fromCharCode,
-	
+
 		/** Temporary variable */
 		key;
-	
+
 		/*--------------------------------------------------------------------------*/
-	
+
 		/**
 		 * A generic error utility function.
 		 * @private
@@ -2089,7 +1665,7 @@ var Debugger =
 		function error(type) {
 			throw RangeError(errors[type]);
 		}
-	
+
 		/**
 		 * A generic `Array#map` utility function.
 		 * @private
@@ -2106,7 +1682,7 @@ var Debugger =
 			}
 			return result;
 		}
-	
+
 		/**
 		 * A simple `Array#map`-like wrapper to work with domain name strings or email
 		 * addresses.
@@ -2132,7 +1708,7 @@ var Debugger =
 			var encoded = map(labels, fn).join('.');
 			return result + encoded;
 		}
-	
+
 		/**
 		 * Creates an array containing the numeric code points of each Unicode
 		 * character in the string. While JavaScript uses UCS-2 internally,
@@ -2171,7 +1747,7 @@ var Debugger =
 			}
 			return output;
 		}
-	
+
 		/**
 		 * Creates a string based on an array of numeric code points.
 		 * @see `punycode.ucs2.decode`
@@ -2192,7 +1768,7 @@ var Debugger =
 				return output;
 			}).join('');
 		}
-	
+
 		/**
 		 * Converts a basic code point into a digit/integer.
 		 * @see `digitToBasic()`
@@ -2214,7 +1790,7 @@ var Debugger =
 			}
 			return base;
 		}
-	
+
 		/**
 		 * Converts a digit/integer into a basic code point.
 		 * @see `basicToDigit()`
@@ -2231,7 +1807,7 @@ var Debugger =
 			// 26..35 map to ASCII 0..9
 			return digit + 22 + 75 * (digit < 26) - ((flag != 0) << 5);
 		}
-	
+
 		/**
 		 * Bias adaptation function as per section 3.4 of RFC 3492.
 		 * http://tools.ietf.org/html/rfc3492#section-3.4
@@ -2246,7 +1822,7 @@ var Debugger =
 			}
 			return floor(k + (baseMinusTMin + 1) * delta / (delta + skew));
 		}
-	
+
 		/**
 		 * Converts a Punycode string of ASCII-only symbols to a string of Unicode
 		 * symbols.
@@ -2272,16 +1848,16 @@ var Debugger =
 			    t,
 			    /** Cached calculation results */
 			    baseMinusT;
-	
+
 			// Handle the basic code points: let `basic` be the number of input code
 			// points before the last delimiter, or `0` if there is none, then copy
 			// the first basic code points to the output.
-	
+
 			basic = input.lastIndexOf(delimiter);
 			if (basic < 0) {
 				basic = 0;
 			}
-	
+
 			for (j = 0; j < basic; ++j) {
 				// if it's not a basic code point
 				if (input.charCodeAt(j) >= 0x80) {
@@ -2289,65 +1865,65 @@ var Debugger =
 				}
 				output.push(input.charCodeAt(j));
 			}
-	
+
 			// Main decoding loop: start just after the last delimiter if any basic code
 			// points were copied; start at the beginning otherwise.
-	
+
 			for (index = basic > 0 ? basic + 1 : 0; index < inputLength; /* no final expression */) {
-	
+
 				// `index` is the index of the next character to be consumed.
 				// Decode a generalized variable-length integer into `delta`,
 				// which gets added to `i`. The overflow checking is easier
 				// if we increase `i` as we go, then subtract off its starting
 				// value at the end to obtain `delta`.
 				for (oldi = i, w = 1, k = base; /* no condition */; k += base) {
-	
+
 					if (index >= inputLength) {
 						error('invalid-input');
 					}
-	
+
 					digit = basicToDigit(input.charCodeAt(index++));
-	
+
 					if (digit >= base || digit > floor((maxInt - i) / w)) {
 						error('overflow');
 					}
-	
+
 					i += digit * w;
 					t = k <= bias ? tMin : (k >= bias + tMax ? tMax : k - bias);
-	
+
 					if (digit < t) {
 						break;
 					}
-	
+
 					baseMinusT = base - t;
 					if (w > floor(maxInt / baseMinusT)) {
 						error('overflow');
 					}
-	
+
 					w *= baseMinusT;
-	
+
 				}
-	
+
 				out = output.length + 1;
 				bias = adapt(i - oldi, out, oldi == 0);
-	
+
 				// `i` was supposed to wrap around from `out` to `0`,
 				// incrementing `n` each time, so we'll fix that now:
 				if (floor(i / out) > maxInt - n) {
 					error('overflow');
 				}
-	
+
 				n += floor(i / out);
 				i %= out;
-	
+
 				// Insert `n` at position `i` of the output
 				output.splice(i++, 0, n);
-	
+
 			}
-	
+
 			return ucs2encode(output);
 		}
-	
+
 		/**
 		 * Converts a string of Unicode symbols (e.g. a domain name label) to a
 		 * Punycode string of ASCII-only symbols.
@@ -2374,18 +1950,18 @@ var Debugger =
 			    handledCPCountPlusOne,
 			    baseMinusT,
 			    qMinusT;
-	
+
 			// Convert the input in UCS-2 to Unicode
 			input = ucs2decode(input);
-	
+
 			// Cache the length
 			inputLength = input.length;
-	
+
 			// Initialize the state
 			n = initialN;
 			delta = 0;
 			bias = initialBias;
-	
+
 			// Handle the basic code points
 			for (j = 0; j < inputLength; ++j) {
 				currentValue = input[j];
@@ -2393,20 +1969,20 @@ var Debugger =
 					output.push(stringFromCharCode(currentValue));
 				}
 			}
-	
+
 			handledCPCount = basicLength = output.length;
-	
+
 			// `handledCPCount` is the number of code points that have been handled;
 			// `basicLength` is the number of basic code points.
-	
+
 			// Finish the basic string - if it is not empty - with a delimiter
 			if (basicLength) {
 				output.push(delimiter);
 			}
-	
+
 			// Main encoding loop:
 			while (handledCPCount < inputLength) {
-	
+
 				// All non-basic code points < n have been handled already. Find the next
 				// larger one:
 				for (m = maxInt, j = 0; j < inputLength; ++j) {
@@ -2415,24 +1991,24 @@ var Debugger =
 						m = currentValue;
 					}
 				}
-	
+
 				// Increase `delta` enough to advance the decoder's <n,i> state to <m,0>,
 				// but guard against overflow
 				handledCPCountPlusOne = handledCPCount + 1;
 				if (m - n > floor((maxInt - delta) / handledCPCountPlusOne)) {
 					error('overflow');
 				}
-	
+
 				delta += (m - n) * handledCPCountPlusOne;
 				n = m;
-	
+
 				for (j = 0; j < inputLength; ++j) {
 					currentValue = input[j];
-	
+
 					if (currentValue < n && ++delta > maxInt) {
 						error('overflow');
 					}
-	
+
 					if (currentValue == n) {
 						// Represent delta as a generalized variable-length integer
 						for (q = delta, k = base; /* no condition */; k += base) {
@@ -2447,21 +2023,21 @@ var Debugger =
 							);
 							q = floor(qMinusT / baseMinusT);
 						}
-	
+
 						output.push(stringFromCharCode(digitToBasic(q, 0)));
 						bias = adapt(delta, handledCPCountPlusOne, handledCPCount == basicLength);
 						delta = 0;
 						++handledCPCount;
 					}
 				}
-	
+
 				++delta;
 				++n;
-	
+
 			}
 			return output.join('');
 		}
-	
+
 		/**
 		 * Converts a Punycode string representing a domain name or an email address
 		 * to Unicode. Only the Punycoded parts of the input will be converted, i.e.
@@ -2480,7 +2056,7 @@ var Debugger =
 					: string;
 			});
 		}
-	
+
 		/**
 		 * Converts a Unicode string representing a domain name or an email address to
 		 * Punycode. Only the non-ASCII parts of the domain name will be converted,
@@ -2499,9 +2075,9 @@ var Debugger =
 					: string;
 			});
 		}
-	
+
 		/*--------------------------------------------------------------------------*/
-	
+
 		/** Define the public API */
 		punycode = {
 			/**
@@ -2526,7 +2102,7 @@ var Debugger =
 			'toASCII': toASCII,
 			'toUnicode': toUnicode
 		};
-	
+
 		/** Expose `punycode` */
 		// Some AMD build optimizers, like r.js, check for specific condition patterns
 		// like the following:
@@ -2547,25 +2123,48 @@ var Debugger =
 		} else { // in Rhino or a web browser
 			root.punycode = punycode;
 		}
-	
+
 	}(this));
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(77)(module), (function() { return this; }())))
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(51)(module), (function() { return this; }())))
 
 /***/ },
 
-/***/ 291:
+/***/ 336:
+/***/ function(module, exports) {
+
+	'use strict';
+
+	module.exports = {
+	  isString: function(arg) {
+	    return typeof(arg) === 'string';
+	  },
+	  isObject: function(arg) {
+	    return typeof(arg) === 'object' && arg !== null;
+	  },
+	  isNull: function(arg) {
+	    return arg === null;
+	  },
+	  isNullOrUndefined: function(arg) {
+	    return arg == null;
+	  }
+	};
+
+
+/***/ },
+
+/***/ 337:
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	
-	exports.decode = exports.parse = __webpack_require__(292);
-	exports.encode = exports.stringify = __webpack_require__(293);
+
+	exports.decode = exports.parse = __webpack_require__(338);
+	exports.encode = exports.stringify = __webpack_require__(339);
 
 
 /***/ },
 
-/***/ 292:
+/***/ 338:
 /***/ function(module, exports) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -2588,44 +2187,44 @@ var Debugger =
 	// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 	// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 	// USE OR OTHER DEALINGS IN THE SOFTWARE.
-	
+
 	'use strict';
-	
+
 	// If obj.hasOwnProperty has been overridden, then calling
 	// obj.hasOwnProperty(prop) will break.
 	// See: https://github.com/joyent/node/issues/1707
 	function hasOwnProperty(obj, prop) {
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
-	
+
 	module.exports = function(qs, sep, eq, options) {
 	  sep = sep || '&';
 	  eq = eq || '=';
 	  var obj = {};
-	
+
 	  if (typeof qs !== 'string' || qs.length === 0) {
 	    return obj;
 	  }
-	
+
 	  var regexp = /\+/g;
 	  qs = qs.split(sep);
-	
+
 	  var maxKeys = 1000;
 	  if (options && typeof options.maxKeys === 'number') {
 	    maxKeys = options.maxKeys;
 	  }
-	
+
 	  var len = qs.length;
 	  // maxKeys <= 0 means that we should not limit keys count
 	  if (maxKeys > 0 && len > maxKeys) {
 	    len = maxKeys;
 	  }
-	
+
 	  for (var i = 0; i < len; ++i) {
 	    var x = qs[i].replace(regexp, '%20'),
 	        idx = x.indexOf(eq),
 	        kstr, vstr, k, v;
-	
+
 	    if (idx >= 0) {
 	      kstr = x.substr(0, idx);
 	      vstr = x.substr(idx + 1);
@@ -2633,10 +2232,10 @@ var Debugger =
 	      kstr = x;
 	      vstr = '';
 	    }
-	
+
 	    k = decodeURIComponent(kstr);
 	    v = decodeURIComponent(vstr);
-	
+
 	    if (!hasOwnProperty(obj, k)) {
 	      obj[k] = v;
 	    } else if (Array.isArray(obj[k])) {
@@ -2645,14 +2244,14 @@ var Debugger =
 	      obj[k] = [obj[k], v];
 	    }
 	  }
-	
+
 	  return obj;
 	};
 
 
 /***/ },
 
-/***/ 293:
+/***/ 339:
 /***/ function(module, exports) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -2675,32 +2274,32 @@ var Debugger =
 	// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 	// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 	// USE OR OTHER DEALINGS IN THE SOFTWARE.
-	
+
 	'use strict';
-	
+
 	var stringifyPrimitive = function(v) {
 	  switch (typeof v) {
 	    case 'string':
 	      return v;
-	
+
 	    case 'boolean':
 	      return v ? 'true' : 'false';
-	
+
 	    case 'number':
 	      return isFinite(v) ? v : '';
-	
+
 	    default:
 	      return '';
 	  }
 	};
-	
+
 	module.exports = function(obj, sep, eq, name) {
 	  sep = sep || '&';
 	  eq = eq || '=';
 	  if (obj === null) {
 	    obj = undefined;
 	  }
-	
+
 	  if (typeof obj === 'object') {
 	    return Object.keys(obj).map(function(k) {
 	      var ks = encodeURIComponent(stringifyPrimitive(k)) + eq;
@@ -2712,9 +2311,9 @@ var Debugger =
 	        return ks + encodeURIComponent(stringifyPrimitive(obj[k]));
 	      }
 	    }).join(sep);
-	
+
 	  }
-	
+
 	  if (!name) return '';
 	  return encodeURIComponent(stringifyPrimitive(name)) + eq +
 	         encodeURIComponent(stringifyPrimitive(obj));
@@ -2723,7 +2322,287 @@ var Debugger =
 
 /***/ },
 
-/***/ 465:
+/***/ 814:
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	var _resolveAndFetch = (() => {
+	  var _ref = _asyncToGenerator(function* (generatedSource) {
+	    // Fetch the sourcemap over the network and create it.
+	    var sourceMapURL = _resolveSourceMapURL(generatedSource);
+	    var fetched = yield networkRequest(sourceMapURL, { loadFromCache: false });
+
+	    // Create the source map and fix it up.
+	    var map = new SourceMapConsumer(fetched.content);
+	    _setSourceMapRoot(map, sourceMapURL, generatedSource);
+	    return map;
+	  });
+
+	  return function _resolveAndFetch(_x) {
+	    return _ref.apply(this, arguments);
+	  };
+	})();
+
+	var getOriginalURLs = (() => {
+	  var _ref2 = _asyncToGenerator(function* (generatedSource) {
+	    var map = yield _fetchSourceMap(generatedSource);
+	    return map && map.sources;
+	  });
+
+	  return function getOriginalURLs(_x2) {
+	    return _ref2.apply(this, arguments);
+	  };
+	})();
+
+	var getGeneratedLocation = (() => {
+	  var _ref3 = _asyncToGenerator(function* (location, originalSource) {
+	    if (!isOriginalId(location.sourceId)) {
+	      return location;
+	    }
+
+	    var generatedSourceId = originalToGeneratedId(location.sourceId);
+	    var map = yield _getSourceMap(generatedSourceId);
+	    if (!map) {
+	      return location;
+	    }
+
+	    var _map$generatedPositio = map.generatedPositionFor({
+	      source: originalSource.url,
+	      line: location.line,
+	      column: location.column == null ? 0 : location.column,
+	      bias: SourceMapConsumer.LEAST_UPPER_BOUND
+	    }),
+	        line = _map$generatedPositio.line,
+	        column = _map$generatedPositio.column;
+
+	    return {
+	      sourceId: generatedSourceId,
+	      line: line,
+	      // Treat 0 as no column so that line breakpoints work correctly.
+	      column: column === 0 ? undefined : column
+	    };
+	  });
+
+	  return function getGeneratedLocation(_x3, _x4) {
+	    return _ref3.apply(this, arguments);
+	  };
+	})();
+
+	var getOriginalLocation = (() => {
+	  var _ref4 = _asyncToGenerator(function* (location) {
+	    if (!isGeneratedId(location.sourceId)) {
+	      return location;
+	    }
+
+	    var map = yield _getSourceMap(location.sourceId);
+	    if (!map) {
+	      return location;
+	    }
+
+	    var _map$originalPosition = map.originalPositionFor({
+	      line: location.line,
+	      column: location.column == null ? Infinity : location.column
+	    }),
+	        url = _map$originalPosition.source,
+	        line = _map$originalPosition.line,
+	        column = _map$originalPosition.column;
+
+	    if (url == null) {
+	      // No url means the location didn't map.
+	      return location;
+	    }
+
+	    return {
+	      sourceId: generatedToOriginalId(location.sourceId, url),
+	      line,
+	      column
+	    };
+	  });
+
+	  return function getOriginalLocation(_x5) {
+	    return _ref4.apply(this, arguments);
+	  };
+	})();
+
+	var getOriginalSourceText = (() => {
+	  var _ref5 = _asyncToGenerator(function* (originalSource) {
+	    assert(isOriginalId(originalSource.id), "Source is not an original source");
+
+	    var generatedSourceId = originalToGeneratedId(originalSource.id);
+	    var map = yield _getSourceMap(generatedSourceId);
+	    if (!map) {
+	      return null;
+	    }
+
+	    var text = map.sourceContentFor(originalSource.url);
+	    if (!text) {
+	      text = (yield networkRequest(originalSource.url, { loadFromCache: false })).content;
+	    }
+
+	    return {
+	      text,
+	      contentType: getContentType(originalSource.url || "")
+	    };
+	  });
+
+	  return function getOriginalSourceText(_x6) {
+	    return _ref5.apply(this, arguments);
+	  };
+	})();
+
+	function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
+	/**
+	 * Source Map Worker
+	 * @module utils/source-map-worker
+	 */
+
+	var networkRequest = __webpack_require__(127);
+
+	var _require = __webpack_require__(334),
+	    parse = _require.parse;
+
+	var path = __webpack_require__(235);
+
+	var _require2 = __webpack_require__(815),
+	    SourceMapConsumer = _require2.SourceMapConsumer,
+	    SourceMapGenerator = _require2.SourceMapGenerator;
+
+	var _require3 = __webpack_require__(233),
+	    getContentType = _require3.getContentType;
+
+	var assert = __webpack_require__(223);
+
+	var _require4 = __webpack_require__(247),
+	    originalToGeneratedId = _require4.originalToGeneratedId,
+	    generatedToOriginalId = _require4.generatedToOriginalId,
+	    isGeneratedId = _require4.isGeneratedId,
+	    isOriginalId = _require4.isOriginalId;
+
+	var sourceMapRequests = new Map();
+	var sourceMapsEnabled = false;
+
+	function clearSourceMaps() {
+	  sourceMapRequests.clear();
+	}
+
+	function enableSourceMaps() {
+	  sourceMapsEnabled = true;
+	}
+
+	function _resolveSourceMapURL(source) {
+	  var _source$url = source.url,
+	      url = _source$url === undefined ? "" : _source$url,
+	      _source$sourceMapURL = source.sourceMapURL,
+	      sourceMapURL = _source$sourceMapURL === undefined ? "" : _source$sourceMapURL;
+
+	  if (path.isURL(sourceMapURL) || url == "") {
+	    // If it's already a full URL or the source doesn't have a URL,
+	    // don't resolve anything.
+	    return sourceMapURL;
+	  } else if (path.isAbsolute(sourceMapURL)) {
+	    // If it's an absolute path, it should be resolved relative to the
+	    // host of the source.
+	    var _parse = parse(url),
+	        _parse$protocol = _parse.protocol,
+	        protocol = _parse$protocol === undefined ? "" : _parse$protocol,
+	        _parse$host = _parse.host,
+	        host = _parse$host === undefined ? "" : _parse$host;
+
+	    return `${protocol}//${host}${sourceMapURL}`;
+	  }
+	  // Otherwise, it's a relative path and should be resolved relative
+	  // to the source.
+	  return `${path.dirname(url)}/${sourceMapURL}`;
+	}
+
+	/**
+	 * Sets the source map's sourceRoot to be relative to the source map url.
+	 * @memberof utils/source-map-worker
+	 * @static
+	 */
+	function _setSourceMapRoot(sourceMap, absSourceMapURL, source) {
+	  // No need to do this fiddling if we won't be fetching any sources over the
+	  // wire.
+	  if (sourceMap.hasContentsOfAllSources()) {
+	    return;
+	  }
+
+	  var base = path.dirname(absSourceMapURL.indexOf("data:") === 0 && source.url ? source.url : absSourceMapURL);
+
+	  if (sourceMap.sourceRoot) {
+	    sourceMap.sourceRoot = path.join(base, sourceMap.sourceRoot);
+	  } else {
+	    sourceMap.sourceRoot = base;
+	  }
+
+	  return sourceMap;
+	}
+
+	function _getSourceMap(generatedSourceId) {
+	  return sourceMapRequests.get(generatedSourceId);
+	}
+
+	function _fetchSourceMap(generatedSource) {
+	  var existingRequest = sourceMapRequests.get(generatedSource.id);
+	  if (existingRequest) {
+	    // If it has already been requested, return the request. Make sure
+	    // to do this even if sourcemapping is turned off, because
+	    // pretty-printing uses sourcemaps.
+	    //
+	    // An important behavior here is that if it's in the middle of
+	    // requesting it, all subsequent calls will block on the initial
+	    // request.
+	    return existingRequest;
+	  } else if (!generatedSource.sourceMapURL || !sourceMapsEnabled) {
+	    return Promise.resolve(null);
+	  }
+
+	  // Fire off the request, set it in the cache, and return it.
+	  // Suppress any errors and just return null (ignores bogus
+	  // sourcemaps).
+	  var req = _resolveAndFetch(generatedSource).catch(() => null);
+	  sourceMapRequests.set(generatedSource.id, req);
+	  return req;
+	}
+
+	function applySourceMap(generatedId, url, code, mappings) {
+	  var generator = new SourceMapGenerator({ file: url });
+	  mappings.forEach(mapping => generator.addMapping(mapping));
+	  generator.setSourceContent(url, code);
+
+	  var map = SourceMapConsumer(generator.toJSON());
+	  sourceMapRequests.set(generatedId, Promise.resolve(map));
+	}
+
+	var publicInterface = {
+	  getOriginalURLs,
+	  getGeneratedLocation,
+	  getOriginalLocation,
+	  getOriginalSourceText,
+	  enableSourceMaps,
+	  applySourceMap,
+	  clearSourceMaps
+	};
+
+	self.onmessage = function (msg) {
+	  var _msg$data = msg.data,
+	      id = _msg$data.id,
+	      method = _msg$data.method,
+	      args = _msg$data.args;
+
+	  var response = publicInterface[method].apply(undefined, args);
+	  if (response instanceof Promise) {
+	    response.then(val => self.postMessage({ id, response: val }), err => self.postMessage({ id, error: err }));
+	  } else {
+	    self.postMessage({ id, response });
+	  }
+	};
+
+/***/ },
+
+/***/ 815:
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -2731,14 +2610,14 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE.txt or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	exports.SourceMapGenerator = __webpack_require__(466).SourceMapGenerator;
-	exports.SourceMapConsumer = __webpack_require__(472).SourceMapConsumer;
-	exports.SourceNode = __webpack_require__(475).SourceNode;
+	exports.SourceMapGenerator = __webpack_require__(816).SourceMapGenerator;
+	exports.SourceMapConsumer = __webpack_require__(822).SourceMapConsumer;
+	exports.SourceNode = __webpack_require__(825).SourceNode;
 
 
 /***/ },
 
-/***/ 466:
+/***/ 816:
 /***/ function(module, exports, __webpack_require__) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -2747,12 +2626,12 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	
-	var base64VLQ = __webpack_require__(467);
-	var util = __webpack_require__(469);
-	var ArraySet = __webpack_require__(470).ArraySet;
-	var MappingList = __webpack_require__(471).MappingList;
-	
+
+	var base64VLQ = __webpack_require__(817);
+	var util = __webpack_require__(819);
+	var ArraySet = __webpack_require__(820).ArraySet;
+	var MappingList = __webpack_require__(821).MappingList;
+
 	/**
 	 * An instance of the SourceMapGenerator represents a source map which is
 	 * being built incrementally. You may pass an object with the following
@@ -2773,9 +2652,9 @@ var Debugger =
 	  this._mappings = new MappingList();
 	  this._sourcesContents = null;
 	}
-	
+
 	SourceMapGenerator.prototype._version = 3;
-	
+
 	/**
 	 * Creates a new SourceMapGenerator based on a SourceMapConsumer
 	 *
@@ -2795,23 +2674,23 @@ var Debugger =
 	          column: mapping.generatedColumn
 	        }
 	      };
-	
+
 	      if (mapping.source != null) {
 	        newMapping.source = mapping.source;
 	        if (sourceRoot != null) {
 	          newMapping.source = util.relative(sourceRoot, newMapping.source);
 	        }
-	
+
 	        newMapping.original = {
 	          line: mapping.originalLine,
 	          column: mapping.originalColumn
 	        };
-	
+
 	        if (mapping.name != null) {
 	          newMapping.name = mapping.name;
 	        }
 	      }
-	
+
 	      generator.addMapping(newMapping);
 	    });
 	    aSourceMapConsumer.sources.forEach(function (sourceFile) {
@@ -2822,7 +2701,7 @@ var Debugger =
 	    });
 	    return generator;
 	  };
-	
+
 	/**
 	 * Add a single mapping from original source line and column to the generated
 	 * source's line and column for this source map being created. The mapping
@@ -2839,25 +2718,25 @@ var Debugger =
 	    var original = util.getArg(aArgs, 'original', null);
 	    var source = util.getArg(aArgs, 'source', null);
 	    var name = util.getArg(aArgs, 'name', null);
-	
+
 	    if (!this._skipValidation) {
 	      this._validateMapping(generated, original, source, name);
 	    }
-	
+
 	    if (source != null) {
 	      source = String(source);
 	      if (!this._sources.has(source)) {
 	        this._sources.add(source);
 	      }
 	    }
-	
+
 	    if (name != null) {
 	      name = String(name);
 	      if (!this._names.has(name)) {
 	        this._names.add(name);
 	      }
 	    }
-	
+
 	    this._mappings.add({
 	      generatedLine: generated.line,
 	      generatedColumn: generated.column,
@@ -2867,7 +2746,7 @@ var Debugger =
 	      name: name
 	    });
 	  };
-	
+
 	/**
 	 * Set the source content for a source file.
 	 */
@@ -2877,7 +2756,7 @@ var Debugger =
 	    if (this._sourceRoot != null) {
 	      source = util.relative(this._sourceRoot, source);
 	    }
-	
+
 	    if (aSourceContent != null) {
 	      // Add the source content to the _sourcesContents map.
 	      // Create a new _sourcesContents map if the property is null.
@@ -2894,7 +2773,7 @@ var Debugger =
 	      }
 	    }
 	  };
-	
+
 	/**
 	 * Applies the mappings of a sub-source-map for a specific source file to the
 	 * source map being generated. Each mapping to the supplied source file is
@@ -2933,7 +2812,7 @@ var Debugger =
 	    // the names array.
 	    var newSources = new ArraySet();
 	    var newNames = new ArraySet();
-	
+
 	    // Find mappings for the "sourceFile"
 	    this._mappings.unsortedForEach(function (mapping) {
 	      if (mapping.source === sourceFile && mapping.originalLine != null) {
@@ -2958,21 +2837,21 @@ var Debugger =
 	          }
 	        }
 	      }
-	
+
 	      var source = mapping.source;
 	      if (source != null && !newSources.has(source)) {
 	        newSources.add(source);
 	      }
-	
+
 	      var name = mapping.name;
 	      if (name != null && !newNames.has(name)) {
 	        newNames.add(name);
 	      }
-	
+
 	    }, this);
 	    this._sources = newSources;
 	    this._names = newNames;
-	
+
 	    // Copy sourcesContents of applied map.
 	    aSourceMapConsumer.sources.forEach(function (sourceFile) {
 	      var content = aSourceMapConsumer.sourceContentFor(sourceFile);
@@ -2987,7 +2866,7 @@ var Debugger =
 	      }
 	    }, this);
 	  };
-	
+
 	/**
 	 * A mapping can have one of the three levels of data:
 	 *
@@ -3025,7 +2904,7 @@ var Debugger =
 	      }));
 	    }
 	  };
-	
+
 	/**
 	 * Serialize the accumulated mappings in to the stream of base 64 VLQs
 	 * specified by the source map format.
@@ -3043,12 +2922,12 @@ var Debugger =
 	    var mapping;
 	    var nameIdx;
 	    var sourceIdx;
-	
+
 	    var mappings = this._mappings.toArray();
 	    for (var i = 0, len = mappings.length; i < len; i++) {
 	      mapping = mappings[i];
 	      next = ''
-	
+
 	      if (mapping.generatedLine !== previousGeneratedLine) {
 	        previousGeneratedColumn = 0;
 	        while (mapping.generatedLine !== previousGeneratedLine) {
@@ -3064,38 +2943,38 @@ var Debugger =
 	          next += ',';
 	        }
 	      }
-	
+
 	      next += base64VLQ.encode(mapping.generatedColumn
 	                                 - previousGeneratedColumn);
 	      previousGeneratedColumn = mapping.generatedColumn;
-	
+
 	      if (mapping.source != null) {
 	        sourceIdx = this._sources.indexOf(mapping.source);
 	        next += base64VLQ.encode(sourceIdx - previousSource);
 	        previousSource = sourceIdx;
-	
+
 	        // lines are stored 0-based in SourceMap spec version 3
 	        next += base64VLQ.encode(mapping.originalLine - 1
 	                                   - previousOriginalLine);
 	        previousOriginalLine = mapping.originalLine - 1;
-	
+
 	        next += base64VLQ.encode(mapping.originalColumn
 	                                   - previousOriginalColumn);
 	        previousOriginalColumn = mapping.originalColumn;
-	
+
 	        if (mapping.name != null) {
 	          nameIdx = this._names.indexOf(mapping.name);
 	          next += base64VLQ.encode(nameIdx - previousName);
 	          previousName = nameIdx;
 	        }
 	      }
-	
+
 	      result += next;
 	    }
-	
+
 	    return result;
 	  };
-	
+
 	SourceMapGenerator.prototype._generateSourcesContent =
 	  function SourceMapGenerator_generateSourcesContent(aSources, aSourceRoot) {
 	    return aSources.map(function (source) {
@@ -3111,7 +2990,7 @@ var Debugger =
 	        : null;
 	    }, this);
 	  };
-	
+
 	/**
 	 * Externalize the source map.
 	 */
@@ -3132,10 +3011,10 @@ var Debugger =
 	    if (this._sourcesContents) {
 	      map.sourcesContent = this._generateSourcesContent(map.sources, map.sourceRoot);
 	    }
-	
+
 	    return map;
 	  };
-	
+
 	/**
 	 * Render the source map being generated to a string.
 	 */
@@ -3143,13 +3022,13 @@ var Debugger =
 	  function SourceMapGenerator_toString() {
 	    return JSON.stringify(this.toJSON());
 	  };
-	
+
 	exports.SourceMapGenerator = SourceMapGenerator;
 
 
 /***/ },
 
-/***/ 467:
+/***/ 817:
 /***/ function(module, exports, __webpack_require__) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -3188,9 +3067,9 @@ var Debugger =
 	 * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 	 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	 */
-	
-	var base64 = __webpack_require__(468);
-	
+
+	var base64 = __webpack_require__(818);
+
 	// A single base 64 digit can contain 6 bits of data. For the base 64 variable
 	// length quantities we use in the source map spec, the first bit is the sign,
 	// the next four bits are the actual value, and the 6th bit is the
@@ -3202,18 +3081,18 @@ var Debugger =
 	//   |    |
 	//   V    V
 	//   101011
-	
+
 	var VLQ_BASE_SHIFT = 5;
-	
+
 	// binary: 100000
 	var VLQ_BASE = 1 << VLQ_BASE_SHIFT;
-	
+
 	// binary: 011111
 	var VLQ_BASE_MASK = VLQ_BASE - 1;
-	
+
 	// binary: 100000
 	var VLQ_CONTINUATION_BIT = VLQ_BASE;
-	
+
 	/**
 	 * Converts from a two-complement value to a value where the sign bit is
 	 * placed in the least significant bit.  For example, as decimals:
@@ -3225,7 +3104,7 @@ var Debugger =
 	    ? ((-aValue) << 1) + 1
 	    : (aValue << 1) + 0;
 	}
-	
+
 	/**
 	 * Converts to a two-complement value from a value where the sign bit is
 	 * placed in the least significant bit.  For example, as decimals:
@@ -3239,16 +3118,16 @@ var Debugger =
 	    ? -shifted
 	    : shifted;
 	}
-	
+
 	/**
 	 * Returns the base 64 VLQ encoded value.
 	 */
 	exports.encode = function base64VLQ_encode(aValue) {
 	  var encoded = "";
 	  var digit;
-	
+
 	  var vlq = toVLQSigned(aValue);
-	
+
 	  do {
 	    digit = vlq & VLQ_BASE_MASK;
 	    vlq >>>= VLQ_BASE_SHIFT;
@@ -3259,10 +3138,10 @@ var Debugger =
 	    }
 	    encoded += base64.encode(digit);
 	  } while (vlq > 0);
-	
+
 	  return encoded;
 	};
-	
+
 	/**
 	 * Decodes the next base 64 VLQ value from the given string and returns the
 	 * value and the rest of the string via the out parameter.
@@ -3272,23 +3151,23 @@ var Debugger =
 	  var result = 0;
 	  var shift = 0;
 	  var continuation, digit;
-	
+
 	  do {
 	    if (aIndex >= strLen) {
 	      throw new Error("Expected more digits in base 64 VLQ value.");
 	    }
-	
+
 	    digit = base64.decode(aStr.charCodeAt(aIndex++));
 	    if (digit === -1) {
 	      throw new Error("Invalid base64 digit: " + aStr.charAt(aIndex - 1));
 	    }
-	
+
 	    continuation = !!(digit & VLQ_CONTINUATION_BIT);
 	    digit &= VLQ_BASE_MASK;
 	    result = result + (digit << shift);
 	    shift += VLQ_BASE_SHIFT;
 	  } while (continuation);
-	
+
 	  aOutParam.value = fromVLQSigned(result);
 	  aOutParam.rest = aIndex;
 	};
@@ -3296,7 +3175,7 @@ var Debugger =
 
 /***/ },
 
-/***/ 468:
+/***/ 818:
 /***/ function(module, exports) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -3305,9 +3184,9 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	
+
 	var intToCharMap = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('');
-	
+
 	/**
 	 * Encode an integer in the range of 0 to 63 to a single base 64 digit.
 	 */
@@ -3317,7 +3196,7 @@ var Debugger =
 	  }
 	  throw new TypeError("Must be between 0 and 63: " + number);
 	};
-	
+
 	/**
 	 * Decode a single base 64 character code digit to an integer. Returns -1 on
 	 * failure.
@@ -3325,44 +3204,44 @@ var Debugger =
 	exports.decode = function (charCode) {
 	  var bigA = 65;     // 'A'
 	  var bigZ = 90;     // 'Z'
-	
+
 	  var littleA = 97;  // 'a'
 	  var littleZ = 122; // 'z'
-	
+
 	  var zero = 48;     // '0'
 	  var nine = 57;     // '9'
-	
+
 	  var plus = 43;     // '+'
 	  var slash = 47;    // '/'
-	
+
 	  var littleOffset = 26;
 	  var numberOffset = 52;
-	
+
 	  // 0 - 25: ABCDEFGHIJKLMNOPQRSTUVWXYZ
 	  if (bigA <= charCode && charCode <= bigZ) {
 	    return (charCode - bigA);
 	  }
-	
+
 	  // 26 - 51: abcdefghijklmnopqrstuvwxyz
 	  if (littleA <= charCode && charCode <= littleZ) {
 	    return (charCode - littleA + littleOffset);
 	  }
-	
+
 	  // 52 - 61: 0123456789
 	  if (zero <= charCode && charCode <= nine) {
 	    return (charCode - zero + numberOffset);
 	  }
-	
+
 	  // 62: +
 	  if (charCode == plus) {
 	    return 62;
 	  }
-	
+
 	  // 63: /
 	  if (charCode == slash) {
 	    return 63;
 	  }
-	
+
 	  // Invalid base64 digit.
 	  return -1;
 	};
@@ -3370,7 +3249,7 @@ var Debugger =
 
 /***/ },
 
-/***/ 469:
+/***/ 819:
 /***/ function(module, exports) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -3379,7 +3258,7 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	
+
 	/**
 	 * This is a helper function for getting values from parameter/options
 	 * objects.
@@ -3400,10 +3279,10 @@ var Debugger =
 	  }
 	}
 	exports.getArg = getArg;
-	
+
 	var urlRegexp = /^(?:([\w+\-.]+):)?\/\/(?:(\w+:\w+)@)?([\w.]*)(?::(\d+))?(\S*)$/;
 	var dataUrlRegexp = /^data:.+\,.+$/;
-	
+
 	function urlParse(aUrl) {
 	  var match = aUrl.match(urlRegexp);
 	  if (!match) {
@@ -3418,7 +3297,7 @@ var Debugger =
 	  };
 	}
 	exports.urlParse = urlParse;
-	
+
 	function urlGenerate(aParsedUrl) {
 	  var url = '';
 	  if (aParsedUrl.scheme) {
@@ -3440,7 +3319,7 @@ var Debugger =
 	  return url;
 	}
 	exports.urlGenerate = urlGenerate;
-	
+
 	/**
 	 * Normalizes a path, or the path portion of a URL:
 	 *
@@ -3462,7 +3341,7 @@ var Debugger =
 	    path = url.path;
 	  }
 	  var isAbsolute = exports.isAbsolute(path);
-	
+
 	  var parts = path.split(/\/+/);
 	  for (var part, up = 0, i = parts.length - 1; i >= 0; i--) {
 	    part = parts[i];
@@ -3484,11 +3363,11 @@ var Debugger =
 	    }
 	  }
 	  path = parts.join('/');
-	
+
 	  if (path === '') {
 	    path = isAbsolute ? '/' : '.';
 	  }
-	
+
 	  if (url) {
 	    url.path = path;
 	    return urlGenerate(url);
@@ -3496,7 +3375,7 @@ var Debugger =
 	  return path;
 	}
 	exports.normalize = normalize;
-	
+
 	/**
 	 * Joins two paths/URLs.
 	 *
@@ -3525,7 +3404,7 @@ var Debugger =
 	  if (aRootUrl) {
 	    aRoot = aRootUrl.path || '/';
 	  }
-	
+
 	  // `join(foo, '//www.example.org')`
 	  if (aPathUrl && !aPathUrl.scheme) {
 	    if (aRootUrl) {
@@ -3533,21 +3412,21 @@ var Debugger =
 	    }
 	    return urlGenerate(aPathUrl);
 	  }
-	
+
 	  if (aPathUrl || aPath.match(dataUrlRegexp)) {
 	    return aPath;
 	  }
-	
+
 	  // `join('http://', 'www.example.com')`
 	  if (aRootUrl && !aRootUrl.host && !aRootUrl.path) {
 	    aRootUrl.host = aPath;
 	    return urlGenerate(aRootUrl);
 	  }
-	
+
 	  var joined = aPath.charAt(0) === '/'
 	    ? aPath
 	    : normalize(aRoot.replace(/\/+$/, '') + '/' + aPath);
-	
+
 	  if (aRootUrl) {
 	    aRootUrl.path = joined;
 	    return urlGenerate(aRootUrl);
@@ -3555,11 +3434,11 @@ var Debugger =
 	  return joined;
 	}
 	exports.join = join;
-	
+
 	exports.isAbsolute = function (aPath) {
 	  return aPath.charAt(0) === '/' || !!aPath.match(urlRegexp);
 	};
-	
+
 	/**
 	 * Make a path relative to a URL or another path.
 	 *
@@ -3570,9 +3449,9 @@ var Debugger =
 	  if (aRoot === "") {
 	    aRoot = ".";
 	  }
-	
+
 	  aRoot = aRoot.replace(/\/$/, '');
-	
+
 	  // It is possible for the path to be above the root. In this case, simply
 	  // checking whether the root is a prefix of the path won't work. Instead, we
 	  // need to remove components from the root one by one, until either we find
@@ -3583,7 +3462,7 @@ var Debugger =
 	    if (index < 0) {
 	      return aPath;
 	    }
-	
+
 	    // If the only part of the root that is left is the scheme (i.e. http://,
 	    // file:///, etc.), one or more slashes (/), or simply nothing at all, we
 	    // have exhausted all components, so the path is not relative to the root.
@@ -3591,24 +3470,24 @@ var Debugger =
 	    if (aRoot.match(/^([^\/]+:\/)?\/*$/)) {
 	      return aPath;
 	    }
-	
+
 	    ++level;
 	  }
-	
+
 	  // Make sure we add a "../" for each component we removed from the root.
 	  return Array(level + 1).join("../") + aPath.substr(aRoot.length + 1);
 	}
 	exports.relative = relative;
-	
+
 	var supportsNullProto = (function () {
 	  var obj = Object.create(null);
 	  return !('__proto__' in obj);
 	}());
-	
+
 	function identity (s) {
 	  return s;
 	}
-	
+
 	/**
 	 * Because behavior goes wacky when you set `__proto__` on objects, we
 	 * have to prefix all the strings in our set with an arbitrary character.
@@ -3622,31 +3501,31 @@ var Debugger =
 	  if (isProtoString(aStr)) {
 	    return '$' + aStr;
 	  }
-	
+
 	  return aStr;
 	}
 	exports.toSetString = supportsNullProto ? identity : toSetString;
-	
+
 	function fromSetString(aStr) {
 	  if (isProtoString(aStr)) {
 	    return aStr.slice(1);
 	  }
-	
+
 	  return aStr;
 	}
 	exports.fromSetString = supportsNullProto ? identity : fromSetString;
-	
+
 	function isProtoString(s) {
 	  if (!s) {
 	    return false;
 	  }
-	
+
 	  var length = s.length;
-	
+
 	  if (length < 9 /* "__proto__".length */) {
 	    return false;
 	  }
-	
+
 	  if (s.charCodeAt(length - 1) !== 95  /* '_' */ ||
 	      s.charCodeAt(length - 2) !== 95  /* '_' */ ||
 	      s.charCodeAt(length - 3) !== 111 /* 'o' */ ||
@@ -3658,16 +3537,16 @@ var Debugger =
 	      s.charCodeAt(length - 9) !== 95  /* '_' */) {
 	    return false;
 	  }
-	
+
 	  for (var i = length - 10; i >= 0; i--) {
 	    if (s.charCodeAt(i) !== 36 /* '$' */) {
 	      return false;
 	    }
 	  }
-	
+
 	  return true;
 	}
-	
+
 	/**
 	 * Comparator between two mappings where the original positions are compared.
 	 *
@@ -3681,31 +3560,31 @@ var Debugger =
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.originalLine - mappingB.originalLine;
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.originalColumn - mappingB.originalColumn;
 	  if (cmp !== 0 || onlyCompareOriginal) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.generatedColumn - mappingB.generatedColumn;
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.generatedLine - mappingB.generatedLine;
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  return mappingA.name - mappingB.name;
 	}
 	exports.compareByOriginalPositions = compareByOriginalPositions;
-	
+
 	/**
 	 * Comparator between two mappings with deflated source and name indices where
 	 * the generated positions are compared.
@@ -3720,43 +3599,43 @@ var Debugger =
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.generatedColumn - mappingB.generatedColumn;
 	  if (cmp !== 0 || onlyCompareGenerated) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.source - mappingB.source;
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.originalLine - mappingB.originalLine;
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.originalColumn - mappingB.originalColumn;
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  return mappingA.name - mappingB.name;
 	}
 	exports.compareByGeneratedPositionsDeflated = compareByGeneratedPositionsDeflated;
-	
+
 	function strcmp(aStr1, aStr2) {
 	  if (aStr1 === aStr2) {
 	    return 0;
 	  }
-	
+
 	  if (aStr1 > aStr2) {
 	    return 1;
 	  }
-	
+
 	  return -1;
 	}
-	
+
 	/**
 	 * Comparator between two mappings with inflated source and name strings where
 	 * the generated positions are compared.
@@ -3766,27 +3645,27 @@ var Debugger =
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.generatedColumn - mappingB.generatedColumn;
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = strcmp(mappingA.source, mappingB.source);
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.originalLine - mappingB.originalLine;
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  cmp = mappingA.originalColumn - mappingB.originalColumn;
 	  if (cmp !== 0) {
 	    return cmp;
 	  }
-	
+
 	  return strcmp(mappingA.name, mappingB.name);
 	}
 	exports.compareByGeneratedPositionsInflated = compareByGeneratedPositionsInflated;
@@ -3794,7 +3673,7 @@ var Debugger =
 
 /***/ },
 
-/***/ 470:
+/***/ 820:
 /***/ function(module, exports, __webpack_require__) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -3803,10 +3682,10 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	
-	var util = __webpack_require__(469);
+
+	var util = __webpack_require__(819);
 	var has = Object.prototype.hasOwnProperty;
-	
+
 	/**
 	 * A data structure which is a combination of an array and a set. Adding a new
 	 * member is O(1), testing for membership is O(1), and finding the index of an
@@ -3817,7 +3696,7 @@ var Debugger =
 	  this._array = [];
 	  this._set = Object.create(null);
 	}
-	
+
 	/**
 	 * Static method for creating ArraySet instances from an existing array.
 	 */
@@ -3828,7 +3707,7 @@ var Debugger =
 	  }
 	  return set;
 	};
-	
+
 	/**
 	 * Return how many unique items are in this ArraySet. If duplicates have been
 	 * added, than those do not count towards the size.
@@ -3838,7 +3717,7 @@ var Debugger =
 	ArraySet.prototype.size = function ArraySet_size() {
 	  return Object.getOwnPropertyNames(this._set).length;
 	};
-	
+
 	/**
 	 * Add the given string to this set.
 	 *
@@ -3855,7 +3734,7 @@ var Debugger =
 	    this._set[sStr] = idx;
 	  }
 	};
-	
+
 	/**
 	 * Is the given string a member of this set?
 	 *
@@ -3865,7 +3744,7 @@ var Debugger =
 	  var sStr = util.toSetString(aStr);
 	  return has.call(this._set, sStr);
 	};
-	
+
 	/**
 	 * What is the index of the given string in the array?
 	 *
@@ -3878,7 +3757,7 @@ var Debugger =
 	  }
 	  throw new Error('"' + aStr + '" is not in the set.');
 	};
-	
+
 	/**
 	 * What is the element at the given index?
 	 *
@@ -3890,7 +3769,7 @@ var Debugger =
 	  }
 	  throw new Error('No element indexed by ' + aIdx);
 	};
-	
+
 	/**
 	 * Returns the array representation of this set (which has the proper indices
 	 * indicated by indexOf). Note that this is a copy of the internal array used
@@ -3899,13 +3778,13 @@ var Debugger =
 	ArraySet.prototype.toArray = function ArraySet_toArray() {
 	  return this._array.slice();
 	};
-	
+
 	exports.ArraySet = ArraySet;
 
 
 /***/ },
 
-/***/ 471:
+/***/ 821:
 /***/ function(module, exports, __webpack_require__) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -3914,9 +3793,9 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	
-	var util = __webpack_require__(469);
-	
+
+	var util = __webpack_require__(819);
+
 	/**
 	 * Determine whether mappingB is after mappingA with respect to generated
 	 * position.
@@ -3930,7 +3809,7 @@ var Debugger =
 	  return lineB > lineA || lineB == lineA && columnB >= columnA ||
 	         util.compareByGeneratedPositionsInflated(mappingA, mappingB) <= 0;
 	}
-	
+
 	/**
 	 * A data structure to provide a sorted view of accumulated mappings in a
 	 * performance conscious manner. It trades a neglibable overhead in general
@@ -3942,7 +3821,7 @@ var Debugger =
 	  // Serves as infimum
 	  this._last = {generatedLine: -1, generatedColumn: 0};
 	}
-	
+
 	/**
 	 * Iterate through internal items. This method takes the same arguments that
 	 * `Array.prototype.forEach` takes.
@@ -3953,7 +3832,7 @@ var Debugger =
 	  function MappingList_forEach(aCallback, aThisArg) {
 	    this._array.forEach(aCallback, aThisArg);
 	  };
-	
+
 	/**
 	 * Add the given source mapping.
 	 *
@@ -3968,7 +3847,7 @@ var Debugger =
 	    this._array.push(aMapping);
 	  }
 	};
-	
+
 	/**
 	 * Returns the flat, sorted array of mappings. The mappings are sorted by
 	 * generated position.
@@ -3985,13 +3864,13 @@ var Debugger =
 	  }
 	  return this._array;
 	};
-	
+
 	exports.MappingList = MappingList;
 
 
 /***/ },
 
-/***/ 472:
+/***/ 822:
 /***/ function(module, exports, __webpack_require__) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -4000,33 +3879,33 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	
-	var util = __webpack_require__(469);
-	var binarySearch = __webpack_require__(473);
-	var ArraySet = __webpack_require__(470).ArraySet;
-	var base64VLQ = __webpack_require__(467);
-	var quickSort = __webpack_require__(474).quickSort;
-	
+
+	var util = __webpack_require__(819);
+	var binarySearch = __webpack_require__(823);
+	var ArraySet = __webpack_require__(820).ArraySet;
+	var base64VLQ = __webpack_require__(817);
+	var quickSort = __webpack_require__(824).quickSort;
+
 	function SourceMapConsumer(aSourceMap) {
 	  var sourceMap = aSourceMap;
 	  if (typeof aSourceMap === 'string') {
 	    sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
 	  }
-	
+
 	  return sourceMap.sections != null
 	    ? new IndexedSourceMapConsumer(sourceMap)
 	    : new BasicSourceMapConsumer(sourceMap);
 	}
-	
+
 	SourceMapConsumer.fromSourceMap = function(aSourceMap) {
 	  return BasicSourceMapConsumer.fromSourceMap(aSourceMap);
 	}
-	
+
 	/**
 	 * The version of the source mapping spec that we are consuming.
 	 */
 	SourceMapConsumer.prototype._version = 3;
-	
+
 	// `__generatedMappings` and `__originalMappings` are arrays that hold the
 	// parsed mapping coordinates from the source map's "mappings" attribute. They
 	// are lazily instantiated, accessed via the `_generatedMappings` and
@@ -4056,35 +3935,35 @@ var Debugger =
 	// `_generatedMappings` is ordered by the generated positions.
 	//
 	// `_originalMappings` is ordered by the original positions.
-	
+
 	SourceMapConsumer.prototype.__generatedMappings = null;
 	Object.defineProperty(SourceMapConsumer.prototype, '_generatedMappings', {
 	  get: function () {
 	    if (!this.__generatedMappings) {
 	      this._parseMappings(this._mappings, this.sourceRoot);
 	    }
-	
+
 	    return this.__generatedMappings;
 	  }
 	});
-	
+
 	SourceMapConsumer.prototype.__originalMappings = null;
 	Object.defineProperty(SourceMapConsumer.prototype, '_originalMappings', {
 	  get: function () {
 	    if (!this.__originalMappings) {
 	      this._parseMappings(this._mappings, this.sourceRoot);
 	    }
-	
+
 	    return this.__originalMappings;
 	  }
 	});
-	
+
 	SourceMapConsumer.prototype._charIsMappingSeparator =
 	  function SourceMapConsumer_charIsMappingSeparator(aStr, index) {
 	    var c = aStr.charAt(index);
 	    return c === ";" || c === ",";
 	  };
-	
+
 	/**
 	 * Parse the mappings in a string in to a data structure which we can easily
 	 * query (the ordered arrays in the `this.__generatedMappings` and
@@ -4094,13 +3973,13 @@ var Debugger =
 	  function SourceMapConsumer_parseMappings(aStr, aSourceRoot) {
 	    throw new Error("Subclasses must implement _parseMappings");
 	  };
-	
+
 	SourceMapConsumer.GENERATED_ORDER = 1;
 	SourceMapConsumer.ORIGINAL_ORDER = 2;
-	
+
 	SourceMapConsumer.GREATEST_LOWER_BOUND = 1;
 	SourceMapConsumer.LEAST_UPPER_BOUND = 2;
-	
+
 	/**
 	 * Iterate over each mapping between an original source/line/column and a
 	 * generated line/column in this source map.
@@ -4121,7 +4000,7 @@ var Debugger =
 	  function SourceMapConsumer_eachMapping(aCallback, aContext, aOrder) {
 	    var context = aContext || null;
 	    var order = aOrder || SourceMapConsumer.GENERATED_ORDER;
-	
+
 	    var mappings;
 	    switch (order) {
 	    case SourceMapConsumer.GENERATED_ORDER:
@@ -4133,7 +4012,7 @@ var Debugger =
 	    default:
 	      throw new Error("Unknown order of iteration.");
 	    }
-	
+
 	    var sourceRoot = this.sourceRoot;
 	    mappings.map(function (mapping) {
 	      var source = mapping.source === null ? null : this._sources.at(mapping.source);
@@ -4150,7 +4029,7 @@ var Debugger =
 	      };
 	    }, this).forEach(aCallback, context);
 	  };
-	
+
 	/**
 	 * Returns all generated line and column information for the original source,
 	 * line, and column provided. If no column is provided, returns all mappings
@@ -4173,7 +4052,7 @@ var Debugger =
 	SourceMapConsumer.prototype.allGeneratedPositionsFor =
 	  function SourceMapConsumer_allGeneratedPositionsFor(aArgs) {
 	    var line = util.getArg(aArgs, 'line');
-	
+
 	    // When there is no exact match, BasicSourceMapConsumer.prototype._findMapping
 	    // returns the index of the closest mapping less than the needle. By
 	    // setting needle.originalColumn to 0, we thus find the last mapping for
@@ -4183,7 +4062,7 @@ var Debugger =
 	      originalLine: line,
 	      originalColumn: util.getArg(aArgs, 'column', 0)
 	    };
-	
+
 	    if (this.sourceRoot != null) {
 	      needle.source = util.relative(this.sourceRoot, needle.source);
 	    }
@@ -4191,9 +4070,9 @@ var Debugger =
 	      return [];
 	    }
 	    needle.source = this._sources.indexOf(needle.source);
-	
+
 	    var mappings = [];
-	
+
 	    var index = this._findMapping(needle,
 	                                  this._originalMappings,
 	                                  "originalLine",
@@ -4202,10 +4081,10 @@ var Debugger =
 	                                  binarySearch.LEAST_UPPER_BOUND);
 	    if (index >= 0) {
 	      var mapping = this._originalMappings[index];
-	
+
 	      if (aArgs.column === undefined) {
 	        var originalLine = mapping.originalLine;
-	
+
 	        // Iterate until either we run out of mappings, or we run into
 	        // a mapping for a different line than the one we found. Since
 	        // mappings are sorted, this is guaranteed to find all mappings for
@@ -4216,12 +4095,12 @@ var Debugger =
 	            column: util.getArg(mapping, 'generatedColumn', null),
 	            lastColumn: util.getArg(mapping, 'lastGeneratedColumn', null)
 	          });
-	
+
 	          mapping = this._originalMappings[++index];
 	        }
 	      } else {
 	        var originalColumn = mapping.originalColumn;
-	
+
 	        // Iterate until either we run out of mappings, or we run into
 	        // a mapping for a different line than the one we were searching for.
 	        // Since mappings are sorted, this is guaranteed to find all mappings for
@@ -4234,17 +4113,17 @@ var Debugger =
 	            column: util.getArg(mapping, 'generatedColumn', null),
 	            lastColumn: util.getArg(mapping, 'lastGeneratedColumn', null)
 	          });
-	
+
 	          mapping = this._originalMappings[++index];
 	        }
 	      }
 	    }
-	
+
 	    return mappings;
 	  };
-	
+
 	exports.SourceMapConsumer = SourceMapConsumer;
-	
+
 	/**
 	 * A BasicSourceMapConsumer instance represents a parsed source map which we can
 	 * query for information about the original file positions by giving it a file
@@ -4280,7 +4159,7 @@ var Debugger =
 	  if (typeof aSourceMap === 'string') {
 	    sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
 	  }
-	
+
 	  var version = util.getArg(sourceMap, 'version');
 	  var sources = util.getArg(sourceMap, 'sources');
 	  // Sass 3.3 leaves out the 'names' array, so we deviate from the spec (which
@@ -4290,13 +4169,13 @@ var Debugger =
 	  var sourcesContent = util.getArg(sourceMap, 'sourcesContent', null);
 	  var mappings = util.getArg(sourceMap, 'mappings');
 	  var file = util.getArg(sourceMap, 'file', null);
-	
+
 	  // Once again, Sass deviates from the spec and supplies the version as a
 	  // string rather than a number, so we use loose equality checking here.
 	  if (version != this._version) {
 	    throw new Error('Unsupported version: ' + version);
 	  }
-	
+
 	  sources = sources
 	    .map(String)
 	    // Some source maps produce relative source paths like "./foo.js" instead of
@@ -4312,23 +4191,23 @@ var Debugger =
 	        ? util.relative(sourceRoot, source)
 	        : source;
 	    });
-	
+
 	  // Pass `true` below to allow duplicate names and sources. While source maps
 	  // are intended to be compressed and deduplicated, the TypeScript compiler
 	  // sometimes generates source maps with duplicates in them. See Github issue
 	  // #72 and bugzil.la/889492.
 	  this._names = ArraySet.fromArray(names.map(String), true);
 	  this._sources = ArraySet.fromArray(sources, true);
-	
+
 	  this.sourceRoot = sourceRoot;
 	  this.sourcesContent = sourcesContent;
 	  this._mappings = mappings;
 	  this.file = file;
 	}
-	
+
 	BasicSourceMapConsumer.prototype = Object.create(SourceMapConsumer.prototype);
 	BasicSourceMapConsumer.prototype.consumer = SourceMapConsumer;
-	
+
 	/**
 	 * Create a BasicSourceMapConsumer from a SourceMapGenerator.
 	 *
@@ -4339,54 +4218,54 @@ var Debugger =
 	BasicSourceMapConsumer.fromSourceMap =
 	  function SourceMapConsumer_fromSourceMap(aSourceMap) {
 	    var smc = Object.create(BasicSourceMapConsumer.prototype);
-	
+
 	    var names = smc._names = ArraySet.fromArray(aSourceMap._names.toArray(), true);
 	    var sources = smc._sources = ArraySet.fromArray(aSourceMap._sources.toArray(), true);
 	    smc.sourceRoot = aSourceMap._sourceRoot;
 	    smc.sourcesContent = aSourceMap._generateSourcesContent(smc._sources.toArray(),
 	                                                            smc.sourceRoot);
 	    smc.file = aSourceMap._file;
-	
+
 	    // Because we are modifying the entries (by converting string sources and
 	    // names to indices into the sources and names ArraySets), we have to make
 	    // a copy of the entry or else bad things happen. Shared mutable state
 	    // strikes again! See github issue #191.
-	
+
 	    var generatedMappings = aSourceMap._mappings.toArray().slice();
 	    var destGeneratedMappings = smc.__generatedMappings = [];
 	    var destOriginalMappings = smc.__originalMappings = [];
-	
+
 	    for (var i = 0, length = generatedMappings.length; i < length; i++) {
 	      var srcMapping = generatedMappings[i];
 	      var destMapping = new Mapping;
 	      destMapping.generatedLine = srcMapping.generatedLine;
 	      destMapping.generatedColumn = srcMapping.generatedColumn;
-	
+
 	      if (srcMapping.source) {
 	        destMapping.source = sources.indexOf(srcMapping.source);
 	        destMapping.originalLine = srcMapping.originalLine;
 	        destMapping.originalColumn = srcMapping.originalColumn;
-	
+
 	        if (srcMapping.name) {
 	          destMapping.name = names.indexOf(srcMapping.name);
 	        }
-	
+
 	        destOriginalMappings.push(destMapping);
 	      }
-	
+
 	      destGeneratedMappings.push(destMapping);
 	    }
-	
+
 	    quickSort(smc.__originalMappings, util.compareByOriginalPositions);
-	
+
 	    return smc;
 	  };
-	
+
 	/**
 	 * The version of the source mapping spec that we are consuming.
 	 */
 	BasicSourceMapConsumer.prototype._version = 3;
-	
+
 	/**
 	 * The list of original sources.
 	 */
@@ -4397,7 +4276,7 @@ var Debugger =
 	    }, this);
 	  }
 	});
-	
+
 	/**
 	 * Provide the JIT with a nice shape / hidden class.
 	 */
@@ -4409,7 +4288,7 @@ var Debugger =
 	  this.originalColumn = null;
 	  this.name = null;
 	}
-	
+
 	/**
 	 * Parse the mappings in a string in to a data structure which we can easily
 	 * query (the ordered arrays in the `this.__generatedMappings` and
@@ -4430,7 +4309,7 @@ var Debugger =
 	    var originalMappings = [];
 	    var generatedMappings = [];
 	    var mapping, str, segment, end, value;
-	
+
 	    while (index < length) {
 	      if (aStr.charAt(index) === ';') {
 	        generatedLine++;
@@ -4443,7 +4322,7 @@ var Debugger =
 	      else {
 	        mapping = new Mapping();
 	        mapping.generatedLine = generatedLine;
-	
+
 	        // Because each offset is encoded relative to the previous one,
 	        // many segments often have the same encoding. We can exploit this
 	        // fact by caching the parsed variable length fields of each segment,
@@ -4455,7 +4334,7 @@ var Debugger =
 	          }
 	        }
 	        str = aStr.slice(index, end);
-	
+
 	        segment = cachedSegments[str];
 	        if (segment) {
 	          index += str.length;
@@ -4467,58 +4346,58 @@ var Debugger =
 	            index = temp.rest;
 	            segment.push(value);
 	          }
-	
+
 	          if (segment.length === 2) {
 	            throw new Error('Found a source, but no line and column');
 	          }
-	
+
 	          if (segment.length === 3) {
 	            throw new Error('Found a source and line, but no column');
 	          }
-	
+
 	          cachedSegments[str] = segment;
 	        }
-	
+
 	        // Generated column.
 	        mapping.generatedColumn = previousGeneratedColumn + segment[0];
 	        previousGeneratedColumn = mapping.generatedColumn;
-	
+
 	        if (segment.length > 1) {
 	          // Original source.
 	          mapping.source = previousSource + segment[1];
 	          previousSource += segment[1];
-	
+
 	          // Original line.
 	          mapping.originalLine = previousOriginalLine + segment[2];
 	          previousOriginalLine = mapping.originalLine;
 	          // Lines are stored 0-based
 	          mapping.originalLine += 1;
-	
+
 	          // Original column.
 	          mapping.originalColumn = previousOriginalColumn + segment[3];
 	          previousOriginalColumn = mapping.originalColumn;
-	
+
 	          if (segment.length > 4) {
 	            // Original name.
 	            mapping.name = previousName + segment[4];
 	            previousName += segment[4];
 	          }
 	        }
-	
+
 	        generatedMappings.push(mapping);
 	        if (typeof mapping.originalLine === 'number') {
 	          originalMappings.push(mapping);
 	        }
 	      }
 	    }
-	
+
 	    quickSort(generatedMappings, util.compareByGeneratedPositionsDeflated);
 	    this.__generatedMappings = generatedMappings;
-	
+
 	    quickSort(originalMappings, util.compareByOriginalPositions);
 	    this.__originalMappings = originalMappings;
 	  };
-	
+
 	/**
 	 * Find the mapping that best matches the hypothetical "needle" mapping that
 	 * we are searching for in the given "haystack" of mappings.
@@ -4530,7 +4409,7 @@ var Debugger =
 	    // mapping for the given position and then return the opposite position it
 	    // points to. Because the mappings are sorted, we can use binary search to
 	    // find the best mapping.
-	
+
 	    if (aNeedle[aLineName] <= 0) {
 	      throw new TypeError('Line must be greater than or equal to 1, got '
 	                          + aNeedle[aLineName]);
@@ -4539,10 +4418,10 @@ var Debugger =
 	      throw new TypeError('Column must be greater than or equal to 0, got '
 	                          + aNeedle[aColumnName]);
 	    }
-	
+
 	    return binarySearch.search(aNeedle, aMappings, aComparator, aBias);
 	  };
-	
+
 	/**
 	 * Compute the last column for each generated mapping. The last column is
 	 * inclusive.
@@ -4551,25 +4430,25 @@ var Debugger =
 	  function SourceMapConsumer_computeColumnSpans() {
 	    for (var index = 0; index < this._generatedMappings.length; ++index) {
 	      var mapping = this._generatedMappings[index];
-	
+
 	      // Mappings do not contain a field for the last generated columnt. We
 	      // can come up with an optimistic estimate, however, by assuming that
 	      // mappings are contiguous (i.e. given two consecutive mappings, the
 	      // first mapping ends where the second one starts).
 	      if (index + 1 < this._generatedMappings.length) {
 	        var nextMapping = this._generatedMappings[index + 1];
-	
+
 	        if (mapping.generatedLine === nextMapping.generatedLine) {
 	          mapping.lastGeneratedColumn = nextMapping.generatedColumn - 1;
 	          continue;
 	        }
 	      }
-	
+
 	      // The last mapping for each line spans the entire line.
 	      mapping.lastGeneratedColumn = Infinity;
 	    }
 	  };
-	
+
 	/**
 	 * Returns the original source, line, and column information for the generated
 	 * source's line and column positions provided. The only argument is an object
@@ -4596,7 +4475,7 @@ var Debugger =
 	      generatedLine: util.getArg(aArgs, 'line'),
 	      generatedColumn: util.getArg(aArgs, 'column')
 	    };
-	
+
 	    var index = this._findMapping(
 	      needle,
 	      this._generatedMappings,
@@ -4605,10 +4484,10 @@ var Debugger =
 	      util.compareByGeneratedPositionsDeflated,
 	      util.getArg(aArgs, 'bias', SourceMapConsumer.GREATEST_LOWER_BOUND)
 	    );
-	
+
 	    if (index >= 0) {
 	      var mapping = this._generatedMappings[index];
-	
+
 	      if (mapping.generatedLine === needle.generatedLine) {
 	        var source = util.getArg(mapping, 'source', null);
 	        if (source !== null) {
@@ -4629,7 +4508,7 @@ var Debugger =
 	        };
 	      }
 	    }
-	
+
 	    return {
 	      source: null,
 	      line: null,
@@ -4637,7 +4516,7 @@ var Debugger =
 	      name: null
 	    };
 	  };
-	
+
 	/**
 	 * Return true if we have the source content for every source in the source
 	 * map, false otherwise.
@@ -4650,7 +4529,7 @@ var Debugger =
 	    return this.sourcesContent.length >= this._sources.size() &&
 	      !this.sourcesContent.some(function (sc) { return sc == null; });
 	  };
-	
+
 	/**
 	 * Returns the original source content. The only argument is the url of the
 	 * original source file. Returns null if no original source content is
@@ -4661,15 +4540,15 @@ var Debugger =
 	    if (!this.sourcesContent) {
 	      return null;
 	    }
-	
+
 	    if (this.sourceRoot != null) {
 	      aSource = util.relative(this.sourceRoot, aSource);
 	    }
-	
+
 	    if (this._sources.has(aSource)) {
 	      return this.sourcesContent[this._sources.indexOf(aSource)];
 	    }
-	
+
 	    var url;
 	    if (this.sourceRoot != null
 	        && (url = util.urlParse(this.sourceRoot))) {
@@ -4682,13 +4561,13 @@ var Debugger =
 	          && this._sources.has(fileUriAbsPath)) {
 	        return this.sourcesContent[this._sources.indexOf(fileUriAbsPath)]
 	      }
-	
+
 	      if ((!url.path || url.path == "/")
 	          && this._sources.has("/" + aSource)) {
 	        return this.sourcesContent[this._sources.indexOf("/" + aSource)];
 	      }
 	    }
-	
+
 	    // This function is used recursively from
 	    // IndexedSourceMapConsumer.prototype.sourceContentFor. In that case, we
 	    // don't want to throw if we can't find the source - we just want to
@@ -4700,7 +4579,7 @@ var Debugger =
 	      throw new Error('"' + aSource + '" is not in the SourceMap.');
 	    }
 	  };
-	
+
 	/**
 	 * Returns the generated line and column information for the original source,
 	 * line, and column positions provided. The only argument is an object with
@@ -4734,13 +4613,13 @@ var Debugger =
 	      };
 	    }
 	    source = this._sources.indexOf(source);
-	
+
 	    var needle = {
 	      source: source,
 	      originalLine: util.getArg(aArgs, 'line'),
 	      originalColumn: util.getArg(aArgs, 'column')
 	    };
-	
+
 	    var index = this._findMapping(
 	      needle,
 	      this._originalMappings,
@@ -4749,10 +4628,10 @@ var Debugger =
 	      util.compareByOriginalPositions,
 	      util.getArg(aArgs, 'bias', SourceMapConsumer.GREATEST_LOWER_BOUND)
 	    );
-	
+
 	    if (index >= 0) {
 	      var mapping = this._originalMappings[index];
-	
+
 	      if (mapping.source === needle.source) {
 	        return {
 	          line: util.getArg(mapping, 'generatedLine', null),
@@ -4761,16 +4640,16 @@ var Debugger =
 	        };
 	      }
 	    }
-	
+
 	    return {
 	      line: null,
 	      column: null,
 	      lastColumn: null
 	    };
 	  };
-	
+
 	exports.BasicSourceMapConsumer = BasicSourceMapConsumer;
-	
+
 	/**
 	 * An IndexedSourceMapConsumer instance represents a parsed source map which
 	 * we can query for information. It differs from BasicSourceMapConsumer in
@@ -4821,17 +4700,17 @@ var Debugger =
 	  if (typeof aSourceMap === 'string') {
 	    sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
 	  }
-	
+
 	  var version = util.getArg(sourceMap, 'version');
 	  var sections = util.getArg(sourceMap, 'sections');
-	
+
 	  if (version != this._version) {
 	    throw new Error('Unsupported version: ' + version);
 	  }
-	
+
 	  this._sources = new ArraySet();
 	  this._names = new ArraySet();
-	
+
 	  var lastOffset = {
 	    line: -1,
 	    column: 0
@@ -4845,13 +4724,13 @@ var Debugger =
 	    var offset = util.getArg(s, 'offset');
 	    var offsetLine = util.getArg(offset, 'line');
 	    var offsetColumn = util.getArg(offset, 'column');
-	
+
 	    if (offsetLine < lastOffset.line ||
 	        (offsetLine === lastOffset.line && offsetColumn < lastOffset.column)) {
 	      throw new Error('Section offsets must be ordered and non-overlapping.');
 	    }
 	    lastOffset = offset;
-	
+
 	    return {
 	      generatedOffset: {
 	        // The offset fields are 0-based, but we use 1-based indices when
@@ -4863,15 +4742,15 @@ var Debugger =
 	    }
 	  });
 	}
-	
+
 	IndexedSourceMapConsumer.prototype = Object.create(SourceMapConsumer.prototype);
 	IndexedSourceMapConsumer.prototype.constructor = SourceMapConsumer;
-	
+
 	/**
 	 * The version of the source mapping spec that we are consuming.
 	 */
 	IndexedSourceMapConsumer.prototype._version = 3;
-	
+
 	/**
 	 * The list of original sources.
 	 */
@@ -4886,7 +4765,7 @@ var Debugger =
 	    return sources;
 	  }
 	});
-	
+
 	/**
 	 * Returns the original source, line, and column information for the generated
 	 * source's line and column positions provided. The only argument is an object
@@ -4908,7 +4787,7 @@ var Debugger =
 	      generatedLine: util.getArg(aArgs, 'line'),
 	      generatedColumn: util.getArg(aArgs, 'column')
 	    };
-	
+
 	    // Find the section containing the generated position we're trying to map
 	    // to an original position.
 	    var sectionIndex = binarySearch.search(needle, this._sections,
@@ -4917,12 +4796,12 @@ var Debugger =
 	        if (cmp) {
 	          return cmp;
 	        }
-	
+
 	        return (needle.generatedColumn -
 	                section.generatedOffset.generatedColumn);
 	      });
 	    var section = this._sections[sectionIndex];
-	
+
 	    if (!section) {
 	      return {
 	        source: null,
@@ -4931,7 +4810,7 @@ var Debugger =
 	        name: null
 	      };
 	    }
-	
+
 	    return section.consumer.originalPositionFor({
 	      line: needle.generatedLine -
 	        (section.generatedOffset.generatedLine - 1),
@@ -4942,7 +4821,7 @@ var Debugger =
 	      bias: aArgs.bias
 	    });
 	  };
-	
+
 	/**
 	 * Return true if we have the source content for every source in the source
 	 * map, false otherwise.
@@ -4953,7 +4832,7 @@ var Debugger =
 	      return s.consumer.hasContentsOfAllSources();
 	    });
 	  };
-	
+
 	/**
 	 * Returns the original source content. The only argument is the url of the
 	 * original source file. Returns null if no original source content is
@@ -4963,7 +4842,7 @@ var Debugger =
 	  function IndexedSourceMapConsumer_sourceContentFor(aSource, nullOnMissing) {
 	    for (var i = 0; i < this._sections.length; i++) {
 	      var section = this._sections[i];
-	
+
 	      var content = section.consumer.sourceContentFor(aSource, true);
 	      if (content) {
 	        return content;
@@ -4976,7 +4855,7 @@ var Debugger =
 	      throw new Error('"' + aSource + '" is not in the SourceMap.');
 	    }
 	  };
-	
+
 	/**
 	 * Returns the generated line and column information for the original source,
 	 * line, and column positions provided. The only argument is an object with
@@ -4995,7 +4874,7 @@ var Debugger =
 	  function IndexedSourceMapConsumer_generatedPositionFor(aArgs) {
 	    for (var i = 0; i < this._sections.length; i++) {
 	      var section = this._sections[i];
-	
+
 	      // Only consider this section if the requested source is in the list of
 	      // sources of the consumer.
 	      if (section.consumer.sources.indexOf(util.getArg(aArgs, 'source')) === -1) {
@@ -5014,13 +4893,13 @@ var Debugger =
 	        return ret;
 	      }
 	    }
-	
+
 	    return {
 	      line: null,
 	      column: null
 	    };
 	  };
-	
+
 	/**
 	 * Parse the mappings in a string in to a data structure which we can easily
 	 * query (the ordered arrays in the `this.__generatedMappings` and
@@ -5035,18 +4914,18 @@ var Debugger =
 	      var sectionMappings = section.consumer._generatedMappings;
 	      for (var j = 0; j < sectionMappings.length; j++) {
 	        var mapping = sectionMappings[j];
-	
+
 	        var source = section.consumer._sources.at(mapping.source);
 	        if (section.consumer.sourceRoot !== null) {
 	          source = util.join(section.consumer.sourceRoot, source);
 	        }
 	        this._sources.add(source);
 	        source = this._sources.indexOf(source);
-	
+
 	        var name = section.consumer._names.at(mapping.name);
 	        this._names.add(name);
 	        name = this._names.indexOf(name);
-	
+
 	        // The mappings coming from the consumer for the section have
 	        // generated positions relative to the start of the section, so we
 	        // need to offset them to be relative to the start of the concatenated
@@ -5063,24 +4942,24 @@ var Debugger =
 	          originalColumn: mapping.originalColumn,
 	          name: name
 	        };
-	
+
 	        this.__generatedMappings.push(adjustedMapping);
 	        if (typeof adjustedMapping.originalLine === 'number') {
 	          this.__originalMappings.push(adjustedMapping);
 	        }
 	      }
 	    }
-	
+
 	    quickSort(this.__generatedMappings, util.compareByGeneratedPositionsDeflated);
 	    quickSort(this.__originalMappings, util.compareByOriginalPositions);
 	  };
-	
+
 	exports.IndexedSourceMapConsumer = IndexedSourceMapConsumer;
 
 
 /***/ },
 
-/***/ 473:
+/***/ 823:
 /***/ function(module, exports) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -5089,10 +4968,10 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	
+
 	exports.GREATEST_LOWER_BOUND = 1;
 	exports.LEAST_UPPER_BOUND = 2;
-	
+
 	/**
 	 * Recursive implementation of binary search.
 	 *
@@ -5128,7 +5007,7 @@ var Debugger =
 	      // The element is in the upper half.
 	      return recursiveSearch(mid, aHigh, aNeedle, aHaystack, aCompare, aBias);
 	    }
-	
+
 	    // The exact needle element was not found in this haystack. Determine if
 	    // we are in termination case (3) or (2) and return the appropriate thing.
 	    if (aBias == exports.LEAST_UPPER_BOUND) {
@@ -5143,7 +5022,7 @@ var Debugger =
 	      // The element is in the lower half.
 	      return recursiveSearch(aLow, mid, aNeedle, aHaystack, aCompare, aBias);
 	    }
-	
+
 	    // we are in termination case (3) or (2) and return the appropriate thing.
 	    if (aBias == exports.LEAST_UPPER_BOUND) {
 	      return mid;
@@ -5152,7 +5031,7 @@ var Debugger =
 	    }
 	  }
 	}
-	
+
 	/**
 	 * This is an implementation of binary search which will always try and return
 	 * the index of the closest element if there is no exact hit. This is because
@@ -5175,13 +5054,13 @@ var Debugger =
 	  if (aHaystack.length === 0) {
 	    return -1;
 	  }
-	
+
 	  var index = recursiveSearch(-1, aHaystack.length, aNeedle, aHaystack,
 	                              aCompare, aBias || exports.GREATEST_LOWER_BOUND);
 	  if (index < 0) {
 	    return -1;
 	  }
-	
+
 	  // We have found either the exact element, or the next-closest element than
 	  // the one we are searching for. However, there may be more than one such
 	  // element. Make sure we always return the smallest of these.
@@ -5191,14 +5070,14 @@ var Debugger =
 	    }
 	    --index;
 	  }
-	
+
 	  return index;
 	};
 
 
 /***/ },
 
-/***/ 474:
+/***/ 824:
 /***/ function(module, exports) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -5207,7 +5086,7 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	
+
 	// It turns out that some (most?) JavaScript engines don't self-host
 	// `Array.prototype.sort`. This makes sense because C++ will likely remain
 	// faster than JS when doing raw CPU-intensive sorting. However, when using a
@@ -5217,7 +5096,7 @@ var Debugger =
 	// fact, when sorting with a comparator, these costs outweigh the benefits of
 	// sorting in C++. By using our own JS-implemented Quick Sort (below), we get
 	// a ~3500ms mean speed-up in `bench/bench.html`.
-	
+
 	/**
 	 * Swap the elements indexed by `x` and `y` in the array `ary`.
 	 *
@@ -5233,7 +5112,7 @@ var Debugger =
 	  ary[x] = ary[y];
 	  ary[y] = temp;
 	}
-	
+
 	/**
 	 * Returns a random integer within the range `low .. high` inclusive.
 	 *
@@ -5245,7 +5124,7 @@ var Debugger =
 	function randomIntInRange(low, high) {
 	  return Math.round(low + (Math.random() * (high - low)));
 	}
-	
+
 	/**
 	 * The Quick Sort algorithm.
 	 *
@@ -5262,7 +5141,7 @@ var Debugger =
 	  // If our lower bound is less than our upper bound, we (1) partition the
 	  // array into two pieces and (2) recurse on each half. If it is not, this is
 	  // the empty array and our base case.
-	
+
 	  if (p < r) {
 	    // (1) Partitioning.
 	    //
@@ -5272,15 +5151,15 @@ var Debugger =
 	    // once partition is done, the pivot is in the exact place it will be when
 	    // the array is put in sorted order, and it will not need to be moved
 	    // again. This runs in O(n) time.
-	
+
 	    // Always choose a random pivot so that an input array which is reverse
 	    // sorted does not cause O(n^2) running time.
 	    var pivotIndex = randomIntInRange(p, r);
 	    var i = p - 1;
-	
+
 	    swap(ary, pivotIndex, r);
 	    var pivot = ary[r];
-	
+
 	    // Immediately after `j` is incremented in this loop, the following hold
 	    // true:
 	    //
@@ -5293,17 +5172,17 @@ var Debugger =
 	        swap(ary, i, j);
 	      }
 	    }
-	
+
 	    swap(ary, i + 1, j);
 	    var q = i + 1;
-	
+
 	    // (2) Recurse on each half.
-	
+
 	    doQuickSort(ary, comparator, p, q - 1);
 	    doQuickSort(ary, comparator, q + 1, r);
 	  }
 	}
-	
+
 	/**
 	 * Sort the given array in-place with the given comparator function.
 	 *
@@ -5319,7 +5198,7 @@ var Debugger =
 
 /***/ },
 
-/***/ 475:
+/***/ 825:
 /***/ function(module, exports, __webpack_require__) {
 
 	/* -*- Mode: js; js-indent-level: 2; -*- */
@@ -5328,22 +5207,22 @@ var Debugger =
 	 * Licensed under the New BSD license. See LICENSE or:
 	 * http://opensource.org/licenses/BSD-3-Clause
 	 */
-	
-	var SourceMapGenerator = __webpack_require__(466).SourceMapGenerator;
-	var util = __webpack_require__(469);
-	
+
+	var SourceMapGenerator = __webpack_require__(816).SourceMapGenerator;
+	var util = __webpack_require__(819);
+
 	// Matches a Windows-style `\r\n` newline or a `\n` newline used by all other
 	// operating systems these days (capturing the result).
 	var REGEX_NEWLINE = /(\r?\n)/;
-	
+
 	// Newline character code for charCodeAt() comparisons
 	var NEWLINE_CODE = 10;
-	
+
 	// Private symbol for identifying `SourceNode`s when multiple versions of
 	// the source-map library are loaded. This MUST NOT CHANGE across
 	// versions!
 	var isSourceNode = "$$$isSourceNode$$$";
-	
+
 	/**
 	 * SourceNodes provide a way to abstract over interpolating/concatenating
 	 * snippets of generated JavaScript source code while maintaining the line and
@@ -5366,7 +5245,7 @@ var Debugger =
 	  this[isSourceNode] = true;
 	  if (aChunks != null) this.add(aChunks);
 	}
-	
+
 	/**
 	 * Creates a SourceNode from generated code and a SourceMapConsumer.
 	 *
@@ -5380,7 +5259,7 @@ var Debugger =
 	    // The SourceNode we want to fill with the generated code
 	    // and the SourceMap
 	    var node = new SourceNode();
-	
+
 	    // All even indices of this array are one line of the generated code,
 	    // while all odd indices are the newlines between two adjacent lines
 	    // (since `REGEX_NEWLINE` captures its match).
@@ -5392,15 +5271,15 @@ var Debugger =
 	      var newLine = remainingLines.shift() || "";
 	      return lineContents + newLine;
 	    };
-	
+
 	    // We need to remember the position of "remainingLines"
 	    var lastGeneratedLine = 1, lastGeneratedColumn = 0;
-	
+
 	    // The generate SourceNodes we need a code range.
 	    // To extract it current and last mapping is used.
 	    // Here we store the last mapping.
 	    var lastMapping = null;
-	
+
 	    aSourceMapConsumer.eachMapping(function (mapping) {
 	      if (lastMapping !== null) {
 	        // We add the code from "lastMapping" to "mapping":
@@ -5451,7 +5330,7 @@ var Debugger =
 	      // and add the remaining lines without any mapping
 	      node.add(remainingLines.join(""));
 	    }
-	
+
 	    // Copy sourcesContent into SourceNode
 	    aSourceMapConsumer.sources.forEach(function (sourceFile) {
 	      var content = aSourceMapConsumer.sourceContentFor(sourceFile);
@@ -5462,9 +5341,9 @@ var Debugger =
 	        node.setSourceContent(sourceFile, content);
 	      }
 	    });
-	
+
 	    return node;
-	
+
 	    function addMappingWithCode(mapping, code) {
 	      if (mapping === null || mapping.source === undefined) {
 	        node.add(code);
@@ -5480,7 +5359,7 @@ var Debugger =
 	      }
 	    }
 	  };
-	
+
 	/**
 	 * Add a chunk of generated JS to this source node.
 	 *
@@ -5505,7 +5384,7 @@ var Debugger =
 	  }
 	  return this;
 	};
-	
+
 	/**
 	 * Add a chunk of generated JS to the beginning of this source node.
 	 *
@@ -5528,7 +5407,7 @@ var Debugger =
 	  }
 	  return this;
 	};
-	
+
 	/**
 	 * Walk over the tree of JS snippets in this node and its children. The
 	 * walking function is called once for each snippet of JS and is passed that
@@ -5553,7 +5432,7 @@ var Debugger =
 	    }
 	  }
 	};
-	
+
 	/**
 	 * Like `String.prototype.join` except for SourceNodes. Inserts `aStr` between
 	 * each of `this.children`.
@@ -5575,7 +5454,7 @@ var Debugger =
 	  }
 	  return this;
 	};
-	
+
 	/**
 	 * Call String.prototype.replace on the very right-most source snippet. Useful
 	 * for trimming whitespace from the end of a source node, etc.
@@ -5596,7 +5475,7 @@ var Debugger =
 	  }
 	  return this;
 	};
-	
+
 	/**
 	 * Set the source content for a source file. This will be added to the SourceMapGenerator
 	 * in the sourcesContent field.
@@ -5608,7 +5487,7 @@ var Debugger =
 	  function SourceNode_setSourceContent(aSourceFile, aSourceContent) {
 	    this.sourceContents[util.toSetString(aSourceFile)] = aSourceContent;
 	  };
-	
+
 	/**
 	 * Walk over the tree of SourceNodes. The walking function is called for each
 	 * source file content and is passed the filename and source content.
@@ -5622,13 +5501,13 @@ var Debugger =
 	        this.children[i].walkSourceContents(aFn);
 	      }
 	    }
-	
+
 	    var sources = Object.keys(this.sourceContents);
 	    for (var i = 0, len = sources.length; i < len; i++) {
 	      aFn(util.fromSetString(sources[i]), this.sourceContents[sources[i]]);
 	    }
 	  };
-	
+
 	/**
 	 * Return the string representation of this source node. Walks over the tree
 	 * and concatenates all the various snippets together to one string.
@@ -5640,7 +5519,7 @@ var Debugger =
 	  });
 	  return str;
 	};
-	
+
 	/**
 	 * Returns the string representation of this source node along with a source
 	 * map.
@@ -5724,14 +5603,15 @@ var Debugger =
 	  this.walkSourceContents(function (sourceFile, sourceContent) {
 	    map.setSourceContent(sourceFile, sourceContent);
 	  });
-	
+
 	  return { code: generated.code, map: map };
 	};
-	
+
 	exports.SourceNode = SourceNode;
 
 
 /***/ }
 
-/******/ });
-//# sourceMappingURL=source-map-worker.js.map
+/******/ })
+});
+;

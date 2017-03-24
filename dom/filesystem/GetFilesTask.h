@@ -16,6 +16,7 @@ namespace mozilla {
 namespace dom {
 
 class BlobImpl;
+class FileSystemGetFilesParams;
 
 class GetFilesTaskChild final : public FileSystemTaskChildBase
 {
@@ -32,9 +33,6 @@ public:
 
   already_AddRefed<Promise>
   GetPromise();
-
-  virtual void
-  GetPermissionAccessType(nsCString& aAccess) const override;
 
 private:
   // If aDirectoryOnly is set, we should ensure that the target is a directory.
@@ -60,12 +58,7 @@ private:
   bool mRecursiveFlag;
 
   // We store the fullpath and the dom path of Files.
-  struct FileData {
-    nsString mRealPath;
-    nsString mDOMPath;
-  };
-
-  FallibleTArray<FileData> mTargetData;
+  FallibleTArray<RefPtr<File>> mTargetData;
 };
 
 class GetFilesTaskParent final : public FileSystemTaskParentBase
@@ -78,8 +71,8 @@ public:
          FileSystemRequestParent* aParent,
          ErrorResult& aRv);
 
-  virtual void
-  GetPermissionAccessType(nsCString& aAccess) const override;
+  nsresult
+  GetTargetPath(nsAString& aPath) const override;
 
 private:
   GetFilesTaskParent(FileSystemBase* aFileSystem,

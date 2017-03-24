@@ -31,14 +31,14 @@ public:
   // Override this rather than ActorDestroy
   virtual void Destroy() {}
 
-  virtual bool RecvDestroy() override
+  virtual mozilla::ipc::IPCResult RecvDestroy() override
   {
     DestroyIfNeeded();
     Unused << Protocol::Send__delete__(this);
-    return true;
+    return IPC_OK();
   }
 
-  typedef ipc::IProtocolManager<ipc::IProtocol>::ActorDestroyReason Why;
+  typedef ipc::IProtocol::ActorDestroyReason Why;
 
   virtual void ActorDestroy(Why) override {
     DestroyIfNeeded();

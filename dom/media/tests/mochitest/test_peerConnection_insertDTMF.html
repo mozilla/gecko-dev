@@ -5,7 +5,7 @@
 </head>
 <body>
 <pre id="test">
-<script type="application/javascript;version=1.8">
+<script type="application/javascript">
 createHTML({
   bug: "1291715",
   title: "Test insertDTMF on sender",
@@ -66,7 +66,7 @@ runNetworkTest(() => {
     }
   ]);
 
-  var pushPrefs = (...p) => new Promise(r => SpecialPowers.pushPrefEnv({set: p}, r));
+  var pushPrefs = (...p) => SpecialPowers.pushPrefEnv({set: p});
 
   return pushPrefs(['media.peerconnection.dtmf.enabled', true])
     .then(() => { test.run() })

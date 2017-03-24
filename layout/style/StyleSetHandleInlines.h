@@ -79,17 +79,19 @@ StyleSetHandle::Ptr::EndUpdate()
 // resolve a style context
 already_AddRefed<nsStyleContext>
 StyleSetHandle::Ptr::ResolveStyleFor(dom::Element* aElement,
-                                     nsStyleContext* aParentContext)
+                                     nsStyleContext* aParentContext,
+                                     LazyComputeBehavior aMayCompute)
 {
-  FORWARD(ResolveStyleFor, (aElement, aParentContext));
+  FORWARD(ResolveStyleFor, (aElement, aParentContext, aMayCompute));
 }
 
 already_AddRefed<nsStyleContext>
 StyleSetHandle::Ptr::ResolveStyleFor(dom::Element* aElement,
                                      nsStyleContext* aParentContext,
+                                     LazyComputeBehavior aMayCompute,
                                      TreeMatchContext& aTreeMatchContext)
 {
-  FORWARD(ResolveStyleFor, (aElement, aParentContext, aTreeMatchContext));
+  FORWARD(ResolveStyleFor, (aElement, aParentContext, aMayCompute, aTreeMatchContext));
 }
 
 already_AddRefed<nsStyleContext>
@@ -100,9 +102,15 @@ StyleSetHandle::Ptr::ResolveStyleForText(nsIContent* aTextNode,
 }
 
 already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveStyleForOtherNonElement(nsStyleContext* aParentContext)
+StyleSetHandle::Ptr::ResolveStyleForPlaceholder()
 {
-  FORWARD(ResolveStyleForOtherNonElement, (aParentContext));
+  FORWARD(ResolveStyleForPlaceholder, ());
+}
+
+already_AddRefed<nsStyleContext>
+StyleSetHandle::Ptr::ResolveStyleForFirstLetterContinuation(nsStyleContext* aParentContext)
+{
+  FORWARD(ResolveStyleForFirstLetterContinuation, (aParentContext));
 }
 
 already_AddRefed<nsStyleContext>
@@ -117,11 +125,18 @@ StyleSetHandle::Ptr::ResolvePseudoElementStyle(dom::Element* aParentElement,
 
 // aFlags is an nsStyleSet flags bitfield
 already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveAnonymousBoxStyle(nsIAtom* aPseudoTag,
-                                              nsStyleContext* aParentContext,
-                                              uint32_t aFlags)
+StyleSetHandle::Ptr::ResolveInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag,
+                                                        nsStyleContext* aParentContext,
+                                                        uint32_t aFlags)
 {
-  FORWARD(ResolveAnonymousBoxStyle, (aPseudoTag, aParentContext, aFlags));
+  FORWARD(ResolveInheritingAnonymousBoxStyle, (aPseudoTag, aParentContext,
+                                               aFlags));
+}
+
+already_AddRefed<nsStyleContext>
+StyleSetHandle::Ptr::ResolveNonInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag)
+{
+  FORWARD(ResolveNonInheritingAnonymousBoxStyle, (aPseudoTag));
 }
 
 // manage the set of style sheets in the style set

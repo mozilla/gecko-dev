@@ -7,6 +7,7 @@
 
 #include "gfxUserFontSet.h"
 #include "gfxPlatform.h"
+#include "gfxPrefs.h"
 #include "nsContentPolicyUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsNetUtil.h"
@@ -176,17 +177,29 @@ gfxUserFontEntry::CreateFontInstance(const gfxFontStyle* aFontStyle, bool aNeeds
 class gfxOTSContext : public ots::OTSContext {
 public:
     explicit gfxOTSContext(gfxUserFontEntry* aUserFontEntry)
-        : mUserFontEntry(aUserFontEntry) {}
+        : mUserFontEntry(aUserFontEntry)
+    {
+        // Whether to apply OTS validation to OpenType Layout tables
+        mCheckOTLTables = gfxPrefs::ValidateOTLTables();
+        // Whether to preserve Variation tables in downloaded fonts
+        mKeepVariationTables = gfxPrefs::KeepVariationTables();
+    }
 
     virtual ots::TableAction GetTableAction(uint32_t aTag) override {
-        // Preserve Graphite, color glyph and SVG tables
-        if (
-#ifdef RELEASE_OR_BETA // For Beta/Release, also allow OT Layout tables through
-                     // unchecked, and rely on harfbuzz to handle them safely.
-            aTag == TRUETYPE_TAG('G', 'D', 'E', 'F') ||
-            aTag == TRUETYPE_TAG('G', 'P', 'O', 'S') ||
-            aTag == TRUETYPE_TAG('G', 'S', 'U', 'B') ||
-#endif
+        // Preserve Graphite, color glyph and SVG tables,
+        // and possibly OTL and Variation tables (depending on prefs)
+        if ((!mCheckOTLTables &&
+             (aTag == TRUETYPE_TAG('G', 'D', 'E', 'F') ||
+              aTag == TRUETYPE_TAG('G', 'P', 'O', 'S') ||
+              aTag == TRUETYPE_TAG('G', 'S', 'U', 'B'))) ||
+            (mKeepVariationTables &&
+             (aTag == TRUETYPE_TAG('a', 'v', 'a', 'r') ||
+              aTag == TRUETYPE_TAG('c', 'v', 'a', 'r') ||
+              aTag == TRUETYPE_TAG('f', 'v', 'a', 'r') ||
+              aTag == TRUETYPE_TAG('g', 'v', 'a', 'r') ||
+              aTag == TRUETYPE_TAG('H', 'V', 'A', 'R') ||
+              aTag == TRUETYPE_TAG('M', 'V', 'A', 'R') ||
+              aTag == TRUETYPE_TAG('V', 'V', 'A', 'R'))) ||
             aTag == TRUETYPE_TAG('S', 'i', 'l', 'f') ||
             aTag == TRUETYPE_TAG('S', 'i', 'l', 'l') ||
             aTag == TRUETYPE_TAG('G', 'l', 'o', 'c') ||
@@ -225,6 +238,8 @@ public:
 private:
     gfxUserFontEntry* mUserFontEntry;
     nsTHashtable<nsCStringHashKey> mWarningsIssued;
+    bool mCheckOTLTables;
+    bool mKeepVariationTables;
 };
 
 // Call the OTS library to sanitize an sfnt before attempting to use it.
@@ -319,6 +334,19 @@ gfxUserFontEntry::GetFamilyNameAndURIForLogging(nsACString& aFamilyName,
   } else {
     if (mSrcList[mSrcIndex].mURI) {
       mSrcList[mSrcIndex].mURI->GetSpec(aURI);
+      // If the source URI was very long, elide the middle of it.
+      // In principle, the byte-oriented chopping here could leave us
+      // with partial UTF-8 characters at the point where we cut it,
+      // but it really doesn't matter as this is just for logging.
+      const uint32_t kMaxURILengthForLogging = 256;
+      // UTF-8 ellipsis, with spaces to allow additional wrap opportunities
+      // in the resulting log message
+      const char kEllipsis[] = { ' ', '\xE2', '\x80', '\xA6', ' ' };
+      if (aURI.Length() > kMaxURILengthForLogging) {
+        aURI.Replace(kMaxURILengthForLogging / 2,
+                     aURI.Length() - kMaxURILengthForLogging,
+                     kEllipsis, ArrayLength(kEllipsis));
+      }
     } else {
       aURI.AppendLiteral("(invalid URI)");
     }
@@ -636,6 +664,16 @@ gfxUserFontEntry::LoadPlatformFont(const uint8_t* aFontData, uint32_t& aLength)
         SanitizeOpenTypeData(aFontData, aLength, saneLen, fontType);
     if (!saneData) {
         mFontSet->LogMessage(this, "rejected by sanitizer");
+    } else {
+        // Check whether saneData is a known OpenType format; it might be
+        // a TrueType Collection, which OTS would accept but we don't yet
+        // know how to handle. If so, discard.
+        if (gfxFontUtils::DetermineFontDataType(saneData, saneLen) !=
+            GFX_USERFONT_OPENTYPE) {
+            mFontSet->LogMessage(this, "not a supported OpenType format");
+            free((void*)saneData);
+            saneData = nullptr;
+        }
     }
     if (saneData) {
         if (saneLen) {
@@ -938,32 +976,6 @@ gfxUserFontSet::AddUserFontEntry(const nsAString& aFamilyName,
              aUserFontEntry->Weight(), aUserFontEntry->Stretch(),
              aUserFontEntry->GetFontDisplay()));
     }
-}
-
-gfxUserFontEntry*
-gfxUserFontSet::FindUserFontEntryAndLoad(gfxFontFamily* aFamily,
-                                         const gfxFontStyle& aFontStyle,
-                                         bool& aNeedsBold,
-                                         bool& aWaitForUserFont)
-{
-    aWaitForUserFont = false;
-    gfxFontEntry* fe = aFamily->FindFontForStyle(aFontStyle, aNeedsBold);
-    NS_ASSERTION(!fe || fe->mIsUserFontContainer,
-                 "should only have userfont entries in userfont families");
-    if (!fe) {
-        return nullptr;
-    }
-
-    gfxUserFontEntry* userFontEntry = static_cast<gfxUserFontEntry*>(fe);
-
-    // start the load if it hasn't been loaded
-    userFontEntry->Load();
-    if (userFontEntry->GetPlatformFontEntry()) {
-        return userFontEntry;
-    }
-
-    aWaitForUserFont = userFontEntry->WaitForUserFont();
-    return nullptr;
 }
 
 void

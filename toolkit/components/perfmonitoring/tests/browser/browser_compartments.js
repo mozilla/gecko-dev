@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+/* eslint-env mozilla/frame-script */
+
 "use strict";
 
 /**
@@ -27,9 +29,6 @@ function frameScript() {
     const { utils: Cu, classes: Cc, interfaces: Ci } = Components;
     Cu.import("resource://gre/modules/PerformanceStats.jsm");
     Cu.import("resource://gre/modules/Services.jsm");
-    let performanceStatsService =
-      Cc["@mozilla.org/toolkit/performance-stats-service;1"].
-      getService(Ci.nsIPerformanceStatsService);
 
     // Make sure that the stopwatch is now active.
     let monitor = PerformanceStats.getMonitor(["jank", "cpow", "ticks", "compartments"]);
@@ -67,25 +66,25 @@ function frameScript() {
 // A variant of `Assert` that doesn't spam the logs
 // in case of success.
 var SilentAssert = {
-  equal: function(a, b, msg) {
+  equal(a, b, msg) {
     if (a == b) {
       return;
     }
     Assert.equal(a, b, msg);
   },
-  notEqual: function(a, b, msg) {
+  notEqual(a, b, msg) {
     if (a != b) {
       return;
     }
     Assert.notEqual(a, b, msg);
   },
-  ok: function(a, msg) {
+  ok(a, msg) {
     if (a) {
       return;
     }
     Assert.ok(a, msg);
   },
-  leq: function(a, b, msg) {
+  leq(a, b, msg) {
     this.ok(a <= b, `${msg}: ${a} <= ${b}`);
   }
 };
@@ -177,7 +176,7 @@ function monotinicity_tester(source, testName) {
       let key = item.groupId;
       if (map.has(key)) {
         let old = map.get(key);
-        Assert.ok(false, `Component ${key} has already been seen. Latest: ${item.addonId||item.name}, previous: ${old.addonId||old.name}`);
+        Assert.ok(false, `Component ${key} has already been seen. Latest: ${item.addonId || item.name}, previous: ${old.addonId || old.name}`);
       }
       map.set(key, item);
     }

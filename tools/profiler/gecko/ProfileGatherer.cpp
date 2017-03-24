@@ -1,11 +1,17 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/ProfileGatherer.h"
+#include "ProfileGatherer.h"
+
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"
-#include "GeckoSampler.h"
+#include "nsIProfileSaveEvent.h"
+#include "nsLocalFile.h"
+#include "nsIFileStreams.h"
+#include "platform.h"
 
 using mozilla::dom::AutoJSAPI;
 using mozilla::dom::Promise;
@@ -23,8 +29,8 @@ static const uint32_t MAX_SUBPROCESS_EXIT_PROFILES = 5;
 
 NS_IMPL_ISUPPORTS(ProfileGatherer, nsIObserver)
 
-ProfileGatherer::ProfileGatherer(GeckoSampler* aTicker)
-  : mTicker(aTicker)
+ProfileGatherer::ProfileGatherer()
+  : mIsCancelled(false)
   , mSinceTime(0)
   , mPendingProfiles(0)
   , mGathering(false)
@@ -32,9 +38,10 @@ ProfileGatherer::ProfileGatherer(GeckoSampler* aTicker)
 }
 
 void
-ProfileGatherer::GatheredOOPProfile()
+ProfileGatherer::GatheredOOPProfile(PSLockRef aLock)
 {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
   if (!mGathering) {
     // If we're not actively gathering, then we don't actually
     // care that we gathered a profile here. This can happen for
@@ -42,7 +49,7 @@ ProfileGatherer::GatheredOOPProfile()
     return;
   }
 
-  if (NS_WARN_IF(!mPromise)) {
+  if (NS_WARN_IF(!mPromise && !mFile)) {
     // If we're not holding on to a Promise, then someone is
     // calling us erroneously.
     return;
@@ -53,7 +60,7 @@ ProfileGatherer::GatheredOOPProfile()
   if (mPendingProfiles == 0) {
     // We've got all of the async profiles now. Let's
     // finish off the profile and resolve the Promise.
-    Finish();
+    Finish(aLock);
   }
 }
 
@@ -64,10 +71,10 @@ ProfileGatherer::WillGatherOOPProfile()
 }
 
 void
-ProfileGatherer::Start(double aSinceTime,
-                       Promise* aPromise)
+ProfileGatherer::Start(PSLockRef aLock, double aSinceTime, Promise* aPromise)
 {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
   if (mGathering) {
     // If we're already gathering, reject the promise - this isn't going
     // to end well.
@@ -77,8 +84,39 @@ ProfileGatherer::Start(double aSinceTime,
     return;
   }
 
-  mSinceTime = aSinceTime;
   mPromise = aPromise;
+
+  Start2(aLock, aSinceTime);
+}
+
+void
+ProfileGatherer::Start(PSLockRef aLock, double aSinceTime,
+                       const nsACString& aFileName)
+{
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
+  nsCOMPtr<nsIFile> file = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
+  nsresult rv = file->InitWithNativePath(aFileName);
+  if (NS_FAILED(rv)) {
+    MOZ_CRASH();
+  }
+
+  if (mGathering) {
+    return;
+  }
+
+  mFile = file;
+
+  Start2(aLock, aSinceTime);
+}
+
+// This is the common tail shared by both Start() methods.
+void
+ProfileGatherer::Start2(PSLockRef aLock, double aSinceTime)
+{
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
+  mSinceTime = aSinceTime;
   mGathering = true;
   mPendingProfiles = 0;
 
@@ -87,27 +125,42 @@ ProfileGatherer::Start(double aSinceTime,
     DebugOnly<nsresult> rv =
       os->AddObserver(this, "profiler-subprocess", false);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "AddObserver failed");
+
+    // This notification triggers calls back to
+    // profiler_will_gather_OOP_profile(). See the comment in that function for
+    // the gory details of the connection between this function and that one.
     rv = os->NotifyObservers(this, "profiler-subprocess-gather", nullptr);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NotifyObservers failed");
   }
 
   if (!mPendingProfiles) {
-    Finish();
+    Finish(aLock);
   }
 }
 
 void
-ProfileGatherer::Finish()
+ProfileGatherer::Finish(PSLockRef aLock)
 {
-  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
-  if (!mTicker) {
+  if (mIsCancelled) {
     // We somehow got called after we were cancelled! This shouldn't
     // be possible, but doing a belt-and-suspenders check to be sure.
     return;
   }
 
-  UniquePtr<char[]> buf = mTicker->ToJSON(mSinceTime);
+  UniquePtr<char[]> buf = ToJSON(aLock, mSinceTime);
+
+  if (mFile) {
+    nsCOMPtr<nsIFileOutputStream> of =
+      do_CreateInstance("@mozilla.org/network/file-output-stream;1");
+    of->Init(mFile, -1, -1, 0);
+    uint32_t sz;
+    of->Write(buf.get(), strlen(buf.get()), &sz);
+    of->Close();
+    Reset();
+    return;
+  }
 
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os) {
@@ -153,6 +206,7 @@ ProfileGatherer::Reset()
 {
   mSinceTime = 0;
   mPromise = nullptr;
+  mFile = nullptr;
   mPendingProfiles = 0;
   mGathering = false;
 }
@@ -160,14 +214,15 @@ ProfileGatherer::Reset()
 void
 ProfileGatherer::Cancel()
 {
-  // The GeckoSampler is going away. If we have a Promise in flight, we
-  // should reject it.
+  // We're about to stop profiling. If we have a Promise in flight, we should
+  // reject it.
   if (mPromise) {
     mPromise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
   }
+  mPromise = nullptr;
+  mFile = nullptr;
 
-  // Clear out the GeckoSampler reference, since it's being destroyed.
-  mTicker = nullptr;
+  mIsCancelled = true;
 }
 
 void
@@ -177,12 +232,6 @@ ProfileGatherer::OOPExitProfile(const nsCString& aProfile)
     mExitProfiles.RemoveElementAt(0);
   }
   mExitProfiles.AppendElement(aProfile);
-
-  // If a process exited while gathering, we need to make
-  // sure we decrement the counter.
-  if (mGathering) {
-    GatheredOOPProfile();
-  }
 }
 
 NS_IMETHODIMP

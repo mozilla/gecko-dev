@@ -12,7 +12,6 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 const myScope = this;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/PromiseUtils.jsm");
@@ -44,6 +43,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "WindowsRegistry",
 const MAX_ADDON_STRING_LENGTH = 100;
 // The maximum length of a string value in the settings.attribution object.
 const MAX_ATTRIBUTION_STRING_LENGTH = 100;
+// The maximum lengths for the experiment id and branch in the experiments section.
+const MAX_EXPERIMENT_ID_LENGTH = 100;
+const MAX_EXPERIMENT_BRANCH_LENGTH = 100;
 
 /**
  * This is a policy object used to override behavior for testing.
@@ -65,32 +67,69 @@ this.TelemetryEnvironment = {
     return getGlobal().currentEnvironment;
   },
 
-  onInitialized: function() {
+  onInitialized() {
     return getGlobal().onInitialized();
   },
 
-  delayedInit: function() {
+  delayedInit() {
     return getGlobal().delayedInit();
   },
 
-  registerChangeListener: function(name, listener) {
+  registerChangeListener(name, listener) {
     return getGlobal().registerChangeListener(name, listener);
   },
 
-  unregisterChangeListener: function(name) {
+  unregisterChangeListener(name) {
     return getGlobal().unregisterChangeListener(name);
   },
 
-  shutdown: function() {
+  /**
+   * Add an experiment annotation to the environment.
+   * If an annotation with the same id already exists, it will be overwritten.
+   * This triggers a new subsession, subject to throttling.
+   *
+   * @param {String} id The id of the active experiment.
+   * @param {String} branch The experiment branch.
+   */
+  setExperimentActive(id, branch) {
+    return getGlobal().setExperimentActive(id, branch);
+  },
+
+  /**
+   * Remove an experiment annotation from the environment.
+   * If the annotation exists, a new subsession will triggered.
+   *
+   * @param {String} id The id of the active experiment.
+   */
+  setExperimentInactive(id) {
+    return getGlobal().setExperimentInactive(id);
+  },
+
+  /**
+   * Returns an object containing the data for the active experiments.
+   *
+   * The returned object is of the format:
+   *
+   * {
+   *   "<experiment id>": { branch: "<branch>" },
+   *   // …
+   * }
+   */
+  getActiveExperiments() {
+    return getGlobal().getActiveExperiments();
+  },
+
+  shutdown() {
     return getGlobal().shutdown();
   },
 
   // Policy to use when saving preferences. Exported for using them in tests.
   RECORD_PREF_STATE: 1, // Don't record the preference value
   RECORD_PREF_VALUE: 2, // We only record user-set prefs.
+  RECORD_DEFAULTPREF_VALUE: 3, // We only record default pref if set
 
   // Testing method
-  testWatchPreferences: function(prefMap) {
+  testWatchPreferences(prefMap) {
     return getGlobal()._watchPreferences(prefMap);
   },
 
@@ -102,14 +141,14 @@ this.TelemetryEnvironment = {
    * TelemetryEnvironment is a singleton. We, therefore, need this helper
    * method to be able to re-set TelemetryEnvironment.
    */
-  testReset: function() {
+  testReset() {
     return getGlobal().reset();
   },
 
   /**
    * Intended for use in tests only.
    */
-  testCleanRestart: function() {
+  testCleanRestart() {
     getGlobal().shutdown();
     gGlobalEnvironment = null;
     return getGlobal();
@@ -118,6 +157,7 @@ this.TelemetryEnvironment = {
 
 const RECORD_PREF_STATE = TelemetryEnvironment.RECORD_PREF_STATE;
 const RECORD_PREF_VALUE = TelemetryEnvironment.RECORD_PREF_VALUE;
+const RECORD_DEFAULTPREF_VALUE = TelemetryEnvironment.RECORD_DEFAULTPREF_VALUE;
 const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["app.feedback.baseURL", {what: RECORD_PREF_VALUE}],
   ["app.support.baseURL", {what: RECORD_PREF_VALUE}],
@@ -134,18 +174,16 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["browser.cache.memory.enable", {what: RECORD_PREF_VALUE}],
   ["browser.cache.offline.enable", {what: RECORD_PREF_VALUE}],
   ["browser.formfill.enable", {what: RECORD_PREF_VALUE}],
-  ["browser.newtab.url", {what: RECORD_PREF_STATE}],
   ["browser.newtabpage.enabled", {what: RECORD_PREF_VALUE}],
   ["browser.newtabpage.enhanced", {what: RECORD_PREF_VALUE}],
   ["browser.shell.checkDefaultBrowser", {what: RECORD_PREF_VALUE}],
+  ["browser.search.ignoredJAREngines", {what: RECORD_DEFAULTPREF_VALUE}],
   ["browser.search.suggest.enabled", {what: RECORD_PREF_VALUE}],
   ["browser.startup.homepage", {what: RECORD_PREF_STATE}],
   ["browser.startup.page", {what: RECORD_PREF_VALUE}],
   ["browser.tabs.animate", {what: RECORD_PREF_VALUE}],
   ["browser.urlbar.suggest.searches", {what: RECORD_PREF_VALUE}],
   ["browser.urlbar.userMadeSearchSuggestionsChoice", {what: RECORD_PREF_VALUE}],
-  // Record "Zoom Text Only" pref in Firefox 50 to 52 (Bug 979323).
-  ["browser.zoom.full", {what: RECORD_PREF_VALUE}],
   ["devtools.chrome.enabled", {what: RECORD_PREF_VALUE}],
   ["devtools.debugger.enabled", {what: RECORD_PREF_VALUE}],
   ["devtools.debugger.remote-enabled", {what: RECORD_PREF_VALUE}],
@@ -185,7 +223,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["places.history.enabled", {what: RECORD_PREF_VALUE}],
   ["privacy.trackingprotection.enabled", {what: RECORD_PREF_VALUE}],
   ["privacy.donottrackheader.enabled", {what: RECORD_PREF_VALUE}],
-  ["services.sync.serverURL", {what: RECORD_PREF_STATE}],
   ["security.mixed_content.block_active_content", {what: RECORD_PREF_VALUE}],
   ["security.mixed_content.block_display_content", {what: RECORD_PREF_VALUE}],
   ["security.sandbox.content.level", {what: RECORD_PREF_VALUE}],
@@ -208,6 +245,7 @@ const PREF_SEARCH_COHORT = "browser.search.cohort";
 const PREF_E10S_COHORT = "e10s.rollout.cohort";
 
 const COMPOSITOR_CREATED_TOPIC = "compositor:created";
+const COMPOSITOR_PROCESS_ABORTED_TOPIC = "compositor:process-aborted";
 const DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC = "distribution-customization-complete";
 const EXPERIMENTS_CHANGED_TOPIC = "experiments-changed";
 const GFX_FEATURES_READY_TOPIC = "gfx-features-ready";
@@ -228,14 +266,12 @@ function enforceBoolean(aValue) {
 }
 
 /**
- * Get the current browser.
+ * Get the current browser locale.
  * @return a string with the locale or null on failure.
  */
 function getBrowserLocale() {
   try {
-    return Cc["@mozilla.org/chrome/chrome-registry;1"].
-             getService(Ci.nsIXULChromeRegistry).
-             getSelectedLocale('global');
+    return Services.locale.getAppLocaleAsLangTag();
   } catch (e) {
     return null;
   }
@@ -247,21 +283,12 @@ function getBrowserLocale() {
  */
 function getSystemLocale() {
   try {
-    return Services.locale.getLocaleComponentForUserAgent();
+    return Cc["@mozilla.org/intl/ospreferences;1"].
+             getService(Ci.mozIOSPreferences).
+             systemLocale;
   } catch (e) {
     return null;
   }
-}
-
-/**
- * Asynchronously get a list of addons of the specified type from the AddonManager.
- * @param aTypes An array containing the types of addons to request.
- * @return Promise<Array> resolved when AddonManager has finished, returning an
- *         array of addons.
- */
-function promiseGetAddonsByTypes(aTypes) {
-  return new Promise((resolve) =>
-                     AddonManager.getAddonsByTypes(aTypes, (addons) => resolve(addons)));
 }
 
 /**
@@ -379,7 +406,7 @@ function getWindowsVersionInfo() {
   // This structure is described at:
   // http://msdn.microsoft.com/en-us/library/ms724833%28v=vs.85%29.aspx
   const SZCSDVERSIONLENGTH = 128;
-  const OSVERSIONINFOEXW = new ctypes.StructType('OSVERSIONINFOEXW',
+  const OSVERSIONINFOEXW = new ctypes.StructType("OSVERSIONINFOEXW",
       [
       {dwOSVersionInfoSize: DWORD},
       {dwMajorVersion: DWORD},
@@ -438,7 +465,7 @@ EnvironmentAddonBuilder.prototype = {
    * Get the initial set of addons.
    * @returns Promise<void> when the initial load is complete.
    */
-  init: function() {
+  init() {
     // Some tests don't initialize the addon manager. This accounts for the
     // unfortunate reality of life.
     try {
@@ -462,38 +489,38 @@ EnvironmentAddonBuilder.prototype = {
   /**
    * Register an addon listener and watch for changes.
    */
-  watchForChanges: function() {
+  watchForChanges() {
     this._loaded = true;
     AddonManager.addAddonListener(this);
     Services.obs.addObserver(this, EXPERIMENTS_CHANGED_TOPIC, false);
   },
 
   // AddonListener
-  onEnabled: function() {
+  onEnabled() {
     this._onAddonChange();
   },
-  onDisabled: function() {
+  onDisabled() {
     this._onAddonChange();
   },
-  onInstalled: function() {
+  onInstalled() {
     this._onAddonChange();
   },
-  onUninstalling: function() {
+  onUninstalling() {
     this._onAddonChange();
   },
 
-  _onAddonChange: function() {
+  _onAddonChange() {
     this._environment._log.trace("_onAddonChange");
     this._checkForChanges("addons-changed");
   },
 
   // nsIObserver
-  observe: function (aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     this._environment._log.trace("observe - Topic " + aTopic);
     this._checkForChanges("experiment-changed");
   },
 
-  _checkForChanges: function(changeReason) {
+  _checkForChanges(changeReason) {
     if (this._pendingTask) {
       this._environment._log.trace("_checkForChanges - task already pending, dropping change with reason " + changeReason);
       return;
@@ -512,7 +539,7 @@ EnvironmentAddonBuilder.prototype = {
       });
   },
 
-  _shutdownBlocker: function() {
+  _shutdownBlocker() {
     if (this._loaded) {
       AddonManager.removeAddonListener(this);
       Services.obs.removeObserver(this, EXPERIMENTS_CHANGED_TOPIC);
@@ -530,7 +557,7 @@ EnvironmentAddonBuilder.prototype = {
    *   changed - Whether the environment changed.
    *   oldEnvironment - Only set if a change occured, contains the environment data before the change.
    */
-  _updateAddons: Task.async(function* () {
+  async _updateAddons() {
     this._environment._log.trace("_updateAddons");
     let personaId = null;
     if (AppConstants.platform !== "gonk") {
@@ -541,10 +568,10 @@ EnvironmentAddonBuilder.prototype = {
     }
 
     let addons = {
-      activeAddons: yield this._getActiveAddons(),
-      theme: yield this._getActiveTheme(),
+      activeAddons: await this._getActiveAddons(),
+      theme: await this._getActiveTheme(),
       activePlugins: this._getActivePlugins(),
-      activeGMPlugins: yield this._getActiveGMPlugins(),
+      activeGMPlugins: await this._getActiveGMPlugins(),
       activeExperiment: this._getActiveExperiment(),
       persona: personaId,
     };
@@ -561,15 +588,15 @@ EnvironmentAddonBuilder.prototype = {
     }
 
     return result;
-  }),
+  },
 
   /**
    * Get the addon data in object form.
    * @return Promise<object> containing the addon data.
    */
-  _getActiveAddons: Task.async(function* () {
+  async _getActiveAddons() {
     // Request addons, asynchronously.
-    let allAddons = yield promiseGetAddonsByTypes(["extension", "service"]);
+    let allAddons = await AddonManager.getAddonsByTypes(["extension", "service"]);
 
     let activeAddons = {};
     for (let addon of allAddons) {
@@ -612,15 +639,15 @@ EnvironmentAddonBuilder.prototype = {
     }
 
     return activeAddons;
-  }),
+  },
 
   /**
    * Get the currently active theme data in object form.
    * @return Promise<object> containing the active theme data.
    */
-  _getActiveTheme: Task.async(function* () {
+  async _getActiveTheme() {
     // Request themes, asynchronously.
-    let themes = yield promiseGetAddonsByTypes(["theme"]);
+    let themes = await AddonManager.getAddonsByTypes(["theme"]);
 
     let activeTheme = {};
     // We only store information about the active theme.
@@ -647,13 +674,13 @@ EnvironmentAddonBuilder.prototype = {
     }
 
     return activeTheme;
-  }),
+  },
 
   /**
    * Get the plugins data in object form.
    * @return Object containing the plugins data.
    */
-  _getActivePlugins: function () {
+  _getActivePlugins() {
     let pluginTags =
       Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost).getPluginTags({});
 
@@ -694,9 +721,9 @@ EnvironmentAddonBuilder.prototype = {
    * This should only be called from _pendingTask; otherwise we risk
    * running this during addon manager shutdown.
    */
-  _getActiveGMPlugins: Task.async(function* () {
+  async _getActiveGMPlugins() {
     // Request plugins, asynchronously.
-    let allPlugins = yield promiseGetAddonsByTypes(["plugin"]);
+    let allPlugins = await AddonManager.getAddonsByTypes(["plugin"]);
 
     let activeGMPlugins = {};
     for (let plugin of allPlugins) {
@@ -718,13 +745,13 @@ EnvironmentAddonBuilder.prototype = {
     }
 
     return activeGMPlugins;
-  }),
+  },
 
   /**
    * Get the active experiment data in object form.
    * @return Object containing the active experiment data.
    */
-  _getActiveExperiment: function () {
+  _getActiveExperiment() {
     let experimentInfo = {};
     try {
       let scope = {};
@@ -775,7 +802,7 @@ function EnvironmentCache() {
   let p = [];
   if (AppConstants.platform === "gonk") {
     this._addonBuilder = {
-      watchForChanges: function() {}
+      watchForChanges() {}
     };
   } else {
     this._addonBuilder = new EnvironmentAddonBuilder(this);
@@ -819,7 +846,7 @@ EnvironmentCache.prototype = {
    * Wait for the current enviroment to be fully initialized.
    * @returns Promise<object>
    */
-  onInitialized: function() {
+  onInitialized() {
     if (this._initTask) {
       return this._initTask;
     }
@@ -829,7 +856,7 @@ EnvironmentCache.prototype = {
   /**
    * This gets called when the delayed init completes.
    */
-  delayedInit: function() {
+  delayedInit() {
     this._delayedInitFinished = true;
   },
 
@@ -840,7 +867,7 @@ EnvironmentCache.prototype = {
    * @param listener function(reason, oldEnvironment) - Will receive a reason for
                      the change and the environment data before the change.
    */
-  registerChangeListener: function (name, listener) {
+  registerChangeListener(name, listener) {
     this._log.trace("registerChangeListener for " + name);
     if (this._shutdown) {
       this._log.warn("registerChangeListener - already shutdown");
@@ -854,7 +881,7 @@ EnvironmentCache.prototype = {
    * It's fine to call this on an unitialized TelemetryEnvironment.
    * @param name The name of the listener to remove.
    */
-  unregisterChangeListener: function (name) {
+  unregisterChangeListener(name) {
     this._log.trace("unregisterChangeListener for " + name);
     if (this._shutdown) {
       this._log.warn("registerChangeListener - already shutdown");
@@ -863,7 +890,48 @@ EnvironmentCache.prototype = {
     this._changeListeners.delete(name);
   },
 
-  shutdown: function() {
+  setExperimentActive(id, branch) {
+    this._log.trace("setExperimentActive");
+    // Make sure both the id and the branch have sane lengths.
+    const saneId = limitStringToLength(id, MAX_EXPERIMENT_ID_LENGTH);
+    const saneBranch = limitStringToLength(branch, MAX_EXPERIMENT_BRANCH_LENGTH);
+    if (!saneId || !saneBranch) {
+      this._log.error("setExperimentActive - the provided arguments are not strings.");
+      return;
+    }
+
+    // Warn the user about any content truncation.
+    if (saneId.length != id.length || saneBranch.length != branch.length) {
+      this._log.warn("setExperimentActive - the experiment id or branch were truncated.");
+    }
+
+    let oldEnvironment = Cu.cloneInto(this._currentEnvironment, myScope);
+    // Add the experiment annotation.
+    let experiments = this._currentEnvironment.experiments || {};
+    experiments[saneId] = { "branch": saneBranch };
+    this._currentEnvironment.experiments = experiments;
+    // Notify of the change.
+    this._onEnvironmentChange("experiment-annotation-changed", oldEnvironment);
+  },
+
+  setExperimentInactive(id) {
+    this._log.trace("setExperimentInactive");
+    let experiments = this._currentEnvironment.experiments || {};
+    if (id in experiments) {
+      // Only attempt to notify if a previous annotation was found and removed.
+      let oldEnvironment = Cu.cloneInto(this._currentEnvironment, myScope);
+      // Remove the experiment annotation.
+      delete this._currentEnvironment.experiments[id];
+      // Notify of the change.
+      this._onEnvironmentChange("experiment-annotation-changed", oldEnvironment);
+    }
+  },
+
+  getActiveExperiments() {
+    return Cu.cloneInto(this._currentEnvironment.experiments || {}, myScope);
+  },
+
+  shutdown() {
     this._log.trace("shutdown");
     this._shutdown = true;
   },
@@ -872,7 +940,7 @@ EnvironmentCache.prototype = {
    * Only used in tests, set the preferences to watch.
    * @param aPreferences A map of preferences names and their recording policy.
    */
-  _watchPreferences: function (aPreferences) {
+  _watchPreferences(aPreferences) {
     this._stopWatchingPrefs();
     this._watchedPrefs = aPreferences;
     this._updateSettings();
@@ -885,11 +953,16 @@ EnvironmentCache.prototype = {
    *
    * @return An object containing the preferences values.
    */
-  _getPrefData: function () {
+  _getPrefData() {
     let prefData = {};
     for (let [pref, policy] of this._watchedPrefs.entries()) {
-      // Only record preferences if they are non-default
-      if (!Preferences.isSet(pref)) {
+      if (policy.what == TelemetryEnvironment.RECORD_DEFAULTPREF_VALUE) {
+        // For default prefs, make sure they exist
+        if (!Preferences.has(pref)) {
+          continue;
+        }
+      } else if (!Preferences.isSet(pref)) {
+        // For user prefs, make sure they are set
         continue;
       }
 
@@ -909,7 +982,7 @@ EnvironmentCache.prototype = {
   /**
    * Start watching the preferences.
    */
-  _startWatchingPrefs: function () {
+  _startWatchingPrefs() {
     this._log.trace("_startWatchingPrefs - " + this._watchedPrefs);
 
     for (let [pref, options] of this._watchedPrefs) {
@@ -919,7 +992,7 @@ EnvironmentCache.prototype = {
     }
   },
 
-  _onPrefChanged: function() {
+  _onPrefChanged() {
     this._log.trace("_onPrefChanged");
     let oldEnvironment = Cu.cloneInto(this._currentEnvironment, myScope);
     this._updateSettings();
@@ -929,7 +1002,7 @@ EnvironmentCache.prototype = {
   /**
    * Do not receive any more change notifications for the preferences.
    */
-  _stopWatchingPrefs: function () {
+  _stopWatchingPrefs() {
     this._log.trace("_stopWatchingPrefs");
 
     for (let [pref, options] of this._watchedPrefs) {
@@ -939,17 +1012,19 @@ EnvironmentCache.prototype = {
     }
   },
 
-  _addObservers: function () {
+  _addObservers() {
     // Watch the search engine change and service topics.
     Services.obs.addObserver(this, COMPOSITOR_CREATED_TOPIC, false);
+    Services.obs.addObserver(this, COMPOSITOR_PROCESS_ABORTED_TOPIC, false);
     Services.obs.addObserver(this, DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC, false);
     Services.obs.addObserver(this, GFX_FEATURES_READY_TOPIC, false);
     Services.obs.addObserver(this, SEARCH_ENGINE_MODIFIED_TOPIC, false);
     Services.obs.addObserver(this, SEARCH_SERVICE_TOPIC, false);
   },
 
-  _removeObservers: function () {
+  _removeObservers() {
     Services.obs.removeObserver(this, COMPOSITOR_CREATED_TOPIC);
+    Services.obs.removeObserver(this, COMPOSITOR_PROCESS_ABORTED_TOPIC);
     try {
       Services.obs.removeObserver(this, DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC);
     } catch (ex) {}
@@ -958,7 +1033,7 @@ EnvironmentCache.prototype = {
     Services.obs.removeObserver(this, SEARCH_SERVICE_TOPIC);
   },
 
-  observe: function (aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     this._log.trace("observe - aTopic: " + aTopic + ", aData: " + aData);
     switch (aTopic) {
       case SEARCH_ENGINE_MODIFIED_TOPIC:
@@ -982,6 +1057,11 @@ EnvironmentCache.prototype = {
         // first compositor to be created and then query nsIGfxInfo again.
         this._updateGraphicsFeatures();
         break;
+      case COMPOSITOR_PROCESS_ABORTED_TOPIC:
+        // Our compositor process has been killed for whatever reason, so refresh
+        // our reported graphics features and trigger an environment change.
+        this._onCompositorProcessAborted();
+        break;
       case DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC:
         // Distribution customizations are applied after final-ui-startup. query
         // partner prefs again when they are ready.
@@ -996,7 +1076,7 @@ EnvironmentCache.prototype = {
    * @return {String} Returns the search engine identifier, "NONE" if no default search
    *         engine is defined or "UNDEFINED" if no engine identifier or name can be found.
    */
-  _getDefaultSearchEngine: function () {
+  _getDefaultSearchEngine() {
     let engine;
     try {
       engine = Services.search.defaultEngine;
@@ -1019,7 +1099,7 @@ EnvironmentCache.prototype = {
   /**
    * Update the default search engine value.
    */
-  _updateSearchEngine: function () {
+  _updateSearchEngine() {
     if (!Services.search) {
       // Just ignore cases where the search service is not implemented.
       return;
@@ -1045,7 +1125,7 @@ EnvironmentCache.prototype = {
   /**
    * Update the default search engine value and trigger the environment change.
    */
-  _onSearchEngineChange: function () {
+  _onSearchEngineChange() {
     this._log.trace("_onSearchEngineChange");
 
     // Finally trigger the environment change notification.
@@ -1055,9 +1135,23 @@ EnvironmentCache.prototype = {
   },
 
   /**
+   * Refresh the Telemetry environment and trigger an environment change due to
+   * a change in compositor process (normally this will mean we've fallen back
+   * from out-of-process to in-process compositing).
+   */
+  _onCompositorProcessAborted() {
+    this._log.trace("_onCompositorProcessAborted");
+
+    // Trigger the environment change notification.
+    let oldEnvironment = Cu.cloneInto(this._currentEnvironment, myScope);
+    this._updateGraphicsFeatures();
+    this._onEnvironmentChange("gfx-features-changed", oldEnvironment);
+  },
+
+  /**
    * Update the graphics features object.
    */
-  _updateGraphicsFeatures: function () {
+  _updateGraphicsFeatures() {
     let gfxData = this._currentEnvironment.system.gfx;
     try {
       let gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
@@ -1070,7 +1164,7 @@ EnvironmentCache.prototype = {
   /**
    * Update the partner prefs.
    */
-  _updatePartner: function() {
+  _updatePartner() {
     this._currentEnvironment.partner = this._getPartner();
   },
 
@@ -1078,7 +1172,7 @@ EnvironmentCache.prototype = {
    * Get the build data in object form.
    * @return Object containing the build data.
    */
-  _getBuild: function () {
+  _getBuild() {
     let buildData = {
       applicationId: Services.appinfo.ID || null,
       applicationName: Services.appinfo.name || null,
@@ -1106,7 +1200,7 @@ EnvironmentCache.prototype = {
    * Determine if we're the default browser.
    * @returns null on error, true if we are the default browser, or false otherwise.
    */
-  _isDefaultBrowser: function () {
+  _isDefaultBrowser() {
     if (AppConstants.platform === "gonk") {
       return true;
     }
@@ -1147,7 +1241,7 @@ EnvironmentCache.prototype = {
   /**
    * Update the cached settings data.
    */
-  _updateSettings: function () {
+  _updateSettings() {
     let updateChannel = null;
     try {
       updateChannel = UpdateUtils.getUpdateChannel(false);
@@ -1184,12 +1278,12 @@ EnvironmentCache.prototype = {
    * Update the cached profile data.
    * @returns Promise<> resolved when the I/O is complete.
    */
-  _updateProfile: Task.async(function* () {
+  async _updateProfile() {
     const logger = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, "ProfileAge - ");
     let profileAccessor = new ProfileAge(null, logger);
 
-    let creationDate = yield profileAccessor.created;
-    let resetDate = yield profileAccessor.reset;
+    let creationDate = await profileAccessor.created;
+    let resetDate = await profileAccessor.reset;
 
     this._currentEnvironment.profile.creationDate =
       Utils.millisecondsToDays(creationDate);
@@ -1197,14 +1291,14 @@ EnvironmentCache.prototype = {
       this._currentEnvironment.profile.resetDate =
         Utils.millisecondsToDays(resetDate);
     }
-  }),
+  },
 
   /**
    * Update the cached attribution data object.
    * @returns Promise<> resolved when the I/O is complete.
    */
-  _updateAttribution: Task.async(function* () {
-    let data = yield AttributionCode.getAttrDataAsync();
+  async _updateAttribution() {
+    let data = await AttributionCode.getAttrDataAsync();
     if (Object.keys(data).length > 0) {
       this._currentEnvironment.settings.attribution = {};
       for (let key in data) {
@@ -1212,13 +1306,13 @@ EnvironmentCache.prototype = {
           limitStringToLength(data[key], MAX_ATTRIBUTION_STRING_LENGTH);
       }
     }
-  }),
+  },
 
   /**
    * Get the partner data in object form.
    * @return Object containing the partner data.
    */
-  _getPartner: function () {
+  _getPartner() {
     let partnerData = {
       distributionId: Preferences.get(PREF_DISTRIBUTION_ID, null),
       distributionVersion: Preferences.get(PREF_DISTRIBUTION_VERSION, null),
@@ -1238,7 +1332,7 @@ EnvironmentCache.prototype = {
    * Get the CPU information.
    * @return Object containing the CPU information data.
    */
-  _getCpuData: function () {
+  _getCpuData() {
     let cpuData = {
       count: getSysinfoProperty("cpucount", null),
       cores: getSysinfoProperty("cpucores", null),
@@ -1273,7 +1367,7 @@ EnvironmentCache.prototype = {
    * @return Object containing the device information data, or null if
    * not a portable device.
    */
-  _getDeviceData: function () {
+  _getDeviceData() {
     if (!["gonk", "android"].includes(AppConstants.platform)) {
       return null;
     }
@@ -1290,7 +1384,7 @@ EnvironmentCache.prototype = {
    * Get the OS information.
    * @return Object containing the OS data.
    */
-  _getOSData: function () {
+  _getOSData() {
     let data = {
       name: forceToStringOrNull(getSysinfoProperty("name", null)),
       version: forceToStringOrNull(getSysinfoProperty("version", null)),
@@ -1306,10 +1400,10 @@ EnvironmentCache.prototype = {
       let versionInfo = getWindowsVersionInfo();
       data.servicePackMajor = versionInfo.servicePackMajor;
       data.servicePackMinor = versionInfo.servicePackMinor;
-      // We only need the build number and UBR if we're at or above Windows 10.
-      if (typeof(data.version) === 'string' &&
+      data.windowsBuildNumber = versionInfo.buildNumber;
+      // We only need the UBR if we're at or above Windows 10.
+      if (typeof(data.version) === "string" &&
           Services.vc.compare(data.version, "10") >= 0) {
-        data.windowsBuildNumber = versionInfo.buildNumber;
         // Query the UBR key and only add it to the environment if it's available.
         // |readRegKey| doesn't throw, but rather returns 'undefined' on error.
         let ubr = WindowsRegistry.readRegKey(Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
@@ -1327,7 +1421,7 @@ EnvironmentCache.prototype = {
    * Get the HDD information.
    * @return Object containing the HDD data.
    */
-  _getHDDData: function () {
+  _getHDDData() {
     return {
       profile: { // hdd where the profile folder is located
         model: getSysinfoProperty("profileHDDModel", null),
@@ -1348,7 +1442,7 @@ EnvironmentCache.prototype = {
    * Get the GFX information.
    * @return Object containing the GFX data.
    */
-  _getGFXData: function () {
+  _getGFXData() {
     let gfxData = {
       D2DEnabled: getGfxField("D2DEnabled", null),
       DWriteEnabled: getGfxField("DWriteEnabled", null),
@@ -1400,7 +1494,7 @@ EnvironmentCache.prototype = {
    * Get the system data in object form.
    * @return Object containing the system data.
    */
-  _getSystem: function () {
+  _getSystem() {
     let memoryMB = getSysinfoProperty("memsize", null);
     if (memoryMB) {
       // Send RAM size in megabytes. Rounding because sysinfo doesn't
@@ -1416,7 +1510,7 @@ EnvironmentCache.prototype = {
     }
 
     let data = {
-      memoryMB: memoryMB,
+      memoryMB,
       virtualMaxMB: virtualMB,
       cpu: this._getCpuData(),
       os: this._getOSData(),
@@ -1433,7 +1527,7 @@ EnvironmentCache.prototype = {
     return data;
   },
 
-  _onEnvironmentChange: function (what, oldEnvironment) {
+  _onEnvironmentChange(what, oldEnvironment) {
     this._log.trace("_onEnvironmentChange for " + what);
 
     // We are already skipping change events in _checkChanges if there is a pending change task running.
@@ -1452,7 +1546,7 @@ EnvironmentCache.prototype = {
     }
   },
 
-  reset: function () {
+  reset() {
     this._shutdown = false;
     this._delayedInitFinished = false;
   }

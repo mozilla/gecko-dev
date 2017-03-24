@@ -55,7 +55,8 @@ private: // ctor from ProcessHeader
                 uint32_t expiresAt,
                 const nsACString &alternateHost,
                 int32_t alternatePort,
-                const nsACString &npnToken);
+                const nsACString &npnToken,
+                const OriginAttributes &originAttributes);
 public:
   AltSvcMapping(DataStorage *storage, int32_t storageEpoch, const nsCString &serialized);
 
@@ -63,7 +64,7 @@ public:
                             const nsCString &originHost, int32_t originPort,
                             const nsACString &username, bool privateBrowsing,
                             nsIInterfaceRequestor *callbacks, nsProxyInfo *proxyInfo,
-                            uint32_t caps, const NeckoOriginAttributes &originAttributes);
+                            uint32_t caps, const OriginAttributes &originAttributes);
 
   const nsCString &AlternateHost() const { return mAlternateHost; }
   const nsCString &OriginHost() const { return mOriginHost; }
@@ -76,7 +77,7 @@ public:
   bool HTTPS() { return mHttps; }
 
   void GetConnectionInfo(nsHttpConnectionInfo **outCI, nsProxyInfo *pi,
-                         const NeckoOriginAttributes &originAttributes);
+                         const OriginAttributes &originAttributes);
 
   int32_t TTL();
   int32_t StorageEpoch() { return mStorageEpoch; }
@@ -92,11 +93,12 @@ public:
                           const nsACString &originScheme,
                           const nsACString &originHost,
                           int32_t originPort,
-                          bool privateBrowsing);
+                          bool privateBrowsing,
+                          const OriginAttributes &originAttributes);
 
 private:
   virtual ~AltSvcMapping() {};
-  void     SyncString(nsCString val);
+  void     SyncString(const nsCString& val);
   RefPtr<DataStorage> mStorage;
   int32_t             mStorageEpoch;
   void Serialize (nsCString &out);
@@ -120,6 +122,8 @@ private:
   MOZ_INIT_OUTSIDE_CTOR bool mMixedScheme; // .wk allows http and https on same con
 
   nsCString mNPNToken;
+
+  OriginAttributes mOriginAttributes;
 };
 
 class AltSvcOverride : public nsIInterfaceRequestor
@@ -169,12 +173,13 @@ public:
   virtual ~AltSvcCache () {};
   void UpdateAltServiceMapping(AltSvcMapping *map, nsProxyInfo *pi,
                                nsIInterfaceRequestor *, uint32_t caps,
-                               const NeckoOriginAttributes &originAttributes); // main thread
+                               const OriginAttributes &originAttributes); // main thread
   already_AddRefed<AltSvcMapping> GetAltServiceMapping(const nsACString &scheme,
                                                        const nsACString &host,
-                                                       int32_t port, bool pb);
+                                                       int32_t port, bool pb,
+                                                       const OriginAttributes &originAttributes);
   void ClearAltServiceMappings();
-  void ClearHostMapping(const nsACString &host, int32_t port);
+  void ClearHostMapping(const nsACString &host, int32_t port, const OriginAttributes &originAttributes);
   void ClearHostMapping(nsHttpConnectionInfo *ci);
   DataStorage *GetStoragePtr() { return mStorage.get(); }
   int32_t      StorageEpoch()  { return mStorageEpoch; }

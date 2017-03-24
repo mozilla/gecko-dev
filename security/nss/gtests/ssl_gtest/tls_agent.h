@@ -14,9 +14,11 @@
 #include <iostream>
 
 #include "test_io.h"
+#include "tls_filter.h"
 
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
+#include "scoped_ptrs.h"
 
 extern bool g_ssl_gtest_verbose;
 
@@ -42,6 +44,8 @@ const extern std::vector<SSLNamedGroup> kECDHEGroups;
 const extern std::vector<SSLNamedGroup> kFFDHEGroups;
 const extern std::vector<SSLNamedGroup> kFasterDHEGroups;
 
+// These functions are called from callbacks.  They use bare pointers because
+// TlsAgent sets up the callback and it doesn't know who owns it.
 typedef std::function<SECStatus(TlsAgent* agent, bool checksig, bool isServer)>
     AuthCertificateCallbackFunction;
 
@@ -62,6 +66,7 @@ class TlsAgent : public PollTarget {
   static const std::string kServerRsaSign;
   static const std::string kServerRsaPss;
   static const std::string kServerRsaDecrypt;
+  static const std::string kServerRsaChain;  // A cert that requires a chain.
   static const std::string kServerEcdsa256;
   static const std::string kServerEcdsa384;
   static const std::string kServerEcdsa521;
@@ -72,21 +77,20 @@ class TlsAgent : public PollTarget {
   TlsAgent(const std::string& name, Role role, Mode mode);
   virtual ~TlsAgent();
 
-  bool Init() {
-    pr_fd_ = DummyPrSocket::CreateFD(role_str(), mode_);
-    if (!pr_fd_) return false;
-
-    adapter_ = DummyPrSocket::GetAdapter(pr_fd_);
-    if (!adapter_) return false;
-
-    return true;
+  void SetPeer(std::shared_ptr<TlsAgent>& peer) {
+    adapter_->SetPeer(peer->adapter_);
   }
 
-  void SetPeer(TlsAgent* peer) { adapter_->SetPeer(peer->adapter_); }
-
-  void SetPacketFilter(PacketFilter* filter) {
+  void SetTlsRecordFilter(std::shared_ptr<TlsRecordFilter> filter) {
+    filter->SetAgent(this);
     adapter_->SetPacketFilter(filter);
   }
+
+  void SetPacketFilter(std::shared_ptr<PacketFilter> filter) {
+    adapter_->SetPacketFilter(filter);
+  }
+
+  void DeletePacketFilter() { adapter_->SetPacketFilter(nullptr); }
 
   void StartConnect(PRFileDesc* model = nullptr);
   void CheckKEA(SSLKEAType kea_type, SSLNamedGroup group,
@@ -106,19 +110,23 @@ class TlsAgent : public PollTarget {
   void PrepareForRenegotiate();
   // Prepares for renegotiation, then actually triggers it.
   void StartRenegotiate();
+  static bool LoadCertificate(const std::string& name,
+                              ScopedCERTCertificate* cert,
+                              ScopedSECKEYPrivateKey* priv);
   bool ConfigServerCert(const std::string& name, bool updateKeyBits = false,
                         const SSLExtraServerCertData* serverCertData = nullptr);
+  bool ConfigServerCertWithChain(const std::string& name);
   bool EnsureTlsSetup(PRFileDesc* modelSocket = nullptr);
 
   void SetupClientAuth();
   void RequestClientAuth(bool requireAuth);
-  bool GetClientAuthCredentials(CERTCertificate** cert,
-                                SECKEYPrivateKey** priv) const;
 
   void ConfigureSessionCache(SessionResumptionMode mode);
   void SetSessionTicketsEnabled(bool en);
   void SetSessionCacheEnabled(bool en);
   void Set0RttEnabled(bool en);
+  void SetFallbackSCSVEnabled(bool en);
+  void SetShortHeadersEnabled();
   void SetVersionRange(uint16_t minver, uint16_t maxver);
   void GetVersionRange(uint16_t* minver, uint16_t* maxver);
   void CheckPreliminaryInfo();
@@ -128,6 +136,7 @@ class TlsAgent : public PollTarget {
   void ExpectReadWriteError();
   void EnableFalseStart();
   void ExpectResumption();
+  void ExpectShortHeaders();
   void SetSignatureSchemes(const SSLSignatureScheme* schemes, size_t count);
   void EnableAlpn(const uint8_t* val, size_t len);
   void CheckAlpn(SSLNextProtoState expected_state,
@@ -135,9 +144,11 @@ class TlsAgent : public PollTarget {
   void EnableSrtp();
   void CheckSrtp() const;
   void CheckErrorCode(int32_t expected) const;
+  void CheckAlerts() const;
   void WaitForErrorCode(int32_t expected, uint32_t delay) const;
   // Send data on the socket, encrypting it.
   void SendData(size_t bytes, size_t blocksize = 1024);
+  void SendBuffer(const DataBuffer& buf);
   // Send data directly to the underlying socket, skipping the TLS layer.
   void SendDirect(const DataBuffer& buf);
   void ReadBytes();
@@ -150,6 +161,9 @@ class TlsAgent : public PollTarget {
   void SetDowngradeCheckVersion(uint16_t version);
   void CheckSecretsDestroyed();
   void ConfigNamedGroups(const std::vector<SSLNamedGroup>& groups);
+  void DisableECDHEServerKeyReuse();
+  bool GetPeerChainLength(size_t* count);
+  void CheckCipherSuite(uint16_t cipher_suite);
 
   const std::string& name() const { return name_; }
 
@@ -159,15 +173,15 @@ class TlsAgent : public PollTarget {
   State state() const { return state_; }
 
   const CERTCertificate* peer_cert() const {
-    return SSL_PeerCertificate(ssl_fd_);
+    return SSL_PeerCertificate(ssl_fd_.get());
   }
 
   const char* state_str() const { return state_str(state()); }
 
   static const char* state_str(State state) { return states[state]; }
 
-  PRFileDesc* ssl_fd() { return ssl_fd_; }
-  DummyPrSocket* adapter() { return adapter_; }
+  PRFileDesc* ssl_fd() const { return ssl_fd_.get(); }
+  std::shared_ptr<DummyPrSocket>& adapter() { return adapter_; }
 
   bool is_compressed() const {
     return info_.compressionMethod != ssl_compression_null;
@@ -230,6 +244,34 @@ class TlsAgent : public PollTarget {
 
   void SetSniCallback(SniCallbackFunction sni_callback) {
     sni_callback_ = sni_callback;
+  }
+
+  size_t alert_received_count() const { return alert_received_count_; }
+
+  void SetExpectedAlertReceivedCount(size_t count) {
+    expected_alert_received_count_ = count;
+  }
+
+  bool GetLastAlertReceived(SSLAlert* alert) const {
+    if (!alert_received_count_) {
+      return false;
+    }
+    *alert = last_alert_received_;
+    return true;
+  }
+
+  size_t alert_sent_count() const { return alert_sent_count_; }
+
+  void SetExpectedAlertSentCount(size_t count) {
+    expected_alert_sent_count_ = count;
+  }
+
+  bool GetLastAlertSent(SSLAlert* alert) const {
+    if (!alert_sent_count_) {
+      return false;
+    }
+    *alert = last_alert_sent_;
+    return true;
   }
 
  private:
@@ -313,6 +355,30 @@ class TlsAgent : public PollTarget {
     return SECSuccess;
   }
 
+  static void AlertReceivedCallback(const PRFileDesc* fd, void* arg,
+                                    const SSLAlert* alert) {
+    TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
+
+    std::cerr << agent->role_str()
+              << ": Alert received: level=" << static_cast<int>(alert->level)
+              << " desc=" << static_cast<int>(alert->description) << std::endl;
+
+    ++agent->alert_received_count_;
+    agent->last_alert_received_ = *alert;
+  }
+
+  static void AlertSentCallback(const PRFileDesc* fd, void* arg,
+                                const SSLAlert* alert) {
+    TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
+
+    std::cerr << agent->role_str()
+              << ": Alert sent: level=" << static_cast<int>(alert->level)
+              << " desc=" << static_cast<int>(alert->description) << std::endl;
+
+    ++agent->alert_sent_count_;
+    agent->last_alert_sent_ = *alert;
+  }
+
   static void HandshakeCallback(PRFileDesc* fd, void* arg) {
     TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
     agent->handshake_callback_called_ = true;
@@ -330,13 +396,12 @@ class TlsAgent : public PollTarget {
 
   const std::string name_;
   Mode mode_;
-  uint16_t server_key_bits_;
-  PRFileDesc* pr_fd_;
-  DummyPrSocket* adapter_;
-  PRFileDesc* ssl_fd_;
   Role role_;
+  uint16_t server_key_bits_;
+  std::shared_ptr<DummyPrSocket> adapter_;
+  ScopedPRFileDesc ssl_fd_;
   State state_;
-  Poller::Timer* timer_handle_;
+  std::shared_ptr<Poller::Timer> timer_handle_;
   bool falsestart_enabled_;
   uint16_t expected_version_;
   uint16_t expected_cipher_suite_;
@@ -345,6 +410,12 @@ class TlsAgent : public PollTarget {
   bool can_falsestart_hook_called_;
   bool sni_hook_called_;
   bool auth_certificate_hook_called_;
+  size_t alert_received_count_;
+  size_t expected_alert_received_count_;
+  SSLAlert last_alert_received_;
+  size_t alert_sent_count_;
+  size_t expected_alert_sent_count_;
+  SSLAlert last_alert_sent_;
   bool handshake_callback_called_;
   SSLChannelInfo info_;
   SSLCipherSuiteInfo csinfo_;
@@ -356,6 +427,7 @@ class TlsAgent : public PollTarget {
   HandshakeCallbackFunction handshake_callback_;
   AuthCertificateCallbackFunction auth_certificate_callback_;
   SniCallbackFunction sni_callback_;
+  bool expect_short_headers_;
 };
 
 inline std::ostream& operator<<(std::ostream& stream,
@@ -367,13 +439,13 @@ class TlsAgentTestBase : public ::testing::Test {
  public:
   static ::testing::internal::ParamGenerator<std::string> kTlsRolesAll;
 
-  TlsAgentTestBase(TlsAgent::Role role, Mode mode)
-      : agent_(nullptr), fd_(nullptr), role_(role), mode_(mode) {}
-  ~TlsAgentTestBase() {
-    if (fd_) {
-      PR_Close(fd_);
-    }
-  }
+  TlsAgentTestBase(TlsAgent::Role role, Mode mode, uint16_t version = 0)
+      : agent_(nullptr),
+        role_(role),
+        mode_(mode),
+        version_(version),
+        sink_adapter_(new DummyPrSocket("sink", mode)) {}
+  virtual ~TlsAgentTestBase() {}
 
   void SetUp();
   void TearDown();
@@ -407,27 +479,34 @@ class TlsAgentTestBase : public ::testing::Test {
   void ProcessMessage(const DataBuffer& buffer, TlsAgent::State expected_state,
                       int32_t error_code = 0);
 
-  TlsAgent* agent_;
-  PRFileDesc* fd_;
+  std::unique_ptr<TlsAgent> agent_;
   TlsAgent::Role role_;
   Mode mode_;
+  uint16_t version_;
+  // This adapter is here just to accept packets from this agent.
+  std::shared_ptr<DummyPrSocket> sink_adapter_;
 };
 
 class TlsAgentTest : public TlsAgentTestBase,
                      public ::testing::WithParamInterface<
-                         std::tuple<std::string, std::string>> {
+                         std::tuple<std::string, std::string, uint16_t>> {
  public:
   TlsAgentTest()
       : TlsAgentTestBase(ToRole(std::get<0>(GetParam())),
-                         ToMode(std::get<1>(GetParam()))) {}
+                         ToMode(std::get<1>(GetParam())),
+                         std::get<2>(GetParam())) {}
 };
 
-class TlsAgentTestClient : public TlsAgentTestBase,
-                           public ::testing::WithParamInterface<std::string> {
+class TlsAgentTestClient
+    : public TlsAgentTestBase,
+      public ::testing::WithParamInterface<std::tuple<std::string, uint16_t>> {
  public:
   TlsAgentTestClient()
-      : TlsAgentTestBase(TlsAgent::CLIENT, ToMode(GetParam())) {}
+      : TlsAgentTestBase(TlsAgent::CLIENT, ToMode(std::get<0>(GetParam())),
+                         std::get<1>(GetParam())) {}
 };
+
+class TlsAgentTestClient13 : public TlsAgentTestClient {};
 
 class TlsAgentStreamTestClient : public TlsAgentTestBase {
  public:

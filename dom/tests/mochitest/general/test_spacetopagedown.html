@@ -4,7 +4,7 @@
   <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <script type="application/javascript" src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
-  <script type="application/javascript;version=1.7">
+  <script type="application/javascript">
 
 SimpleTest.waitForExplicitFinish();
 
@@ -28,7 +28,7 @@ function initTest()
 
 function runTest()
 {
-  Task.async(function () {
+  Task.async(function* () {
     yield pressKey(false);
 
     ok(window.scrollY > 0, "Space with no focus" + window.scrollY);

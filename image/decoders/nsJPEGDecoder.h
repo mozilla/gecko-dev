@@ -52,11 +52,6 @@ class nsJPEGDecoder : public Decoder
 public:
   virtual ~nsJPEGDecoder();
 
-  virtual void SetSampleSize(int aSampleSize) override
-  {
-    mSampleSize = aSampleSize;
-  }
-
   void NotifyDone();
 
 protected:
@@ -65,7 +60,7 @@ protected:
                        IResumable* aOnResume) override;
   nsresult FinishInternal() override;
 
-  Maybe<Telemetry::ID> SpeedHistogram() const override;
+  Maybe<Telemetry::HistogramID> SpeedHistogram() const override;
 
 protected:
   Orientation ReadOrientationFromEXIF();
@@ -115,8 +110,6 @@ public:
   const Decoder::DecodeStyle mDecodeStyle;
 
   uint32_t mCMSMode;
-
-  int mSampleSize;
 };
 
 } // namespace image

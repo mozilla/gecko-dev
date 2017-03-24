@@ -22,15 +22,16 @@
 namespace js {
 
 bool
-RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone* shadowZone)
+RuntimeFromActiveCooperatingThreadIsHeapMajorCollecting(JS::shadow::Zone* shadowZone)
 {
-    return shadowZone->runtimeFromMainThread()->isHeapMajorCollecting();
+    MOZ_ASSERT(CurrentThreadCanAccessRuntime(shadowZone->runtimeFromActiveCooperatingThread()));
+    return JS::CurrentThreadIsHeapMajorCollecting();
 }
 
 #ifdef DEBUG
 
 bool
-IsMarkedBlack(NativeObject* obj)
+IsMarkedBlack(JSObject* obj)
 {
     // Note: we assume conservatively that Nursery things will be live.
     if (!obj->isTenured())
@@ -51,34 +52,34 @@ HeapSlot::preconditionForSet(NativeObject* owner, Kind kind, uint32_t slot) cons
          : &owner->getDenseElement(slot) == (const Value*)this;
 }
 
-bool
-HeapSlot::preconditionForWriteBarrierPost(NativeObject* obj, Kind kind, uint32_t slot,
-                                          const Value& target) const
+void
+HeapSlot::assertPreconditionForWriteBarrierPost(NativeObject* obj, Kind kind, uint32_t slot,
+                                                const Value& target) const
 {
-    bool isCorrectSlot = kind == Slot
-                         ? obj->getSlotAddressUnchecked(slot)->get() == target
-                         : static_cast<HeapSlot*>(obj->getDenseElements() + slot)->get() == target;
-    bool isBlackToGray = target.isMarkable() &&
-                         IsMarkedBlack(obj) && JS::GCThingIsMarkedGray(JS::GCCellPtr(target));
-    return isCorrectSlot && !isBlackToGray;
+    if (kind == Slot)
+        MOZ_ASSERT(obj->getSlotAddressUnchecked(slot)->get() == target);
+    else
+        MOZ_ASSERT(static_cast<HeapSlot*>(obj->getDenseElements() + slot)->get() == target);
+
+    CheckEdgeIsNotBlackToGray(obj, target);
 }
 
 bool
 CurrentThreadIsIonCompiling()
 {
-    return TlsPerThreadData.get()->ionCompiling;
+    return TlsContext.get()->ionCompiling;
 }
 
 bool
 CurrentThreadIsIonCompilingSafeForMinorGC()
 {
-    return TlsPerThreadData.get()->ionCompilingSafeForMinorGC;
+    return TlsContext.get()->ionCompilingSafeForMinorGC;
 }
 
 bool
 CurrentThreadIsGCSweeping()
 {
-    return TlsPerThreadData.get()->gcSweeping;
+    return TlsContext.get()->gcSweeping;
 }
 
 #endif // DEBUG
@@ -145,9 +146,9 @@ MovableCellHasher<T>::hash(const Lookup& l)
         return 0;
 
     // We have to access the zone from-any-thread here: a worker thread may be
-    // cloning a self-hosted object from the main-thread-runtime-owned self-
-    // hosting zone into the off-main-thread runtime. The zone's uid lock will
-    // protect against multiple workers doing this simultaneously.
+    // cloning a self-hosted object from the main runtime's self- hosting zone
+    // into another runtime. The zone's uid lock will protect against multiple
+    // workers doing this simultaneously.
     MOZ_ASSERT(CurrentThreadCanAccessZone(l->zoneFromAnyThread()) ||
                l->zoneFromAnyThread()->isSelfHostingZone());
 
@@ -179,12 +180,21 @@ MovableCellHasher<T>::match(const Key& k, const Lookup& l)
     return zone->getUniqueIdInfallible(k) == zone->getUniqueIdInfallible(l);
 }
 
-template struct MovableCellHasher<JSObject*>;
-template struct MovableCellHasher<GlobalObject*>;
-template struct MovableCellHasher<SavedFrame*>;
-template struct MovableCellHasher<EnvironmentObject*>;
-template struct MovableCellHasher<WasmInstanceObject*>;
-template struct MovableCellHasher<JSScript*>;
+#ifdef JS_BROKEN_GCC_ATTRIBUTE_WARNING
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+#endif // JS_BROKEN_GCC_ATTRIBUTE_WARNING
+
+template struct JS_PUBLIC_API(MovableCellHasher<JSObject*>);
+template struct JS_PUBLIC_API(MovableCellHasher<GlobalObject*>);
+template struct JS_PUBLIC_API(MovableCellHasher<SavedFrame*>);
+template struct JS_PUBLIC_API(MovableCellHasher<EnvironmentObject*>);
+template struct JS_PUBLIC_API(MovableCellHasher<WasmInstanceObject*>);
+template struct JS_PUBLIC_API(MovableCellHasher<JSScript*>);
+
+#ifdef JS_BROKEN_GCC_ATTRIBUTE_WARNING
+#pragma GCC diagnostic pop
+#endif // JS_BROKEN_GCC_ATTRIBUTE_WARNING
 
 } // namespace js
 

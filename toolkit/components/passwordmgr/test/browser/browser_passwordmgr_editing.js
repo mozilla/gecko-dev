@@ -28,7 +28,7 @@ function synthesizeDblClickOnCell(aTree, column, row) {
   let y = rect.y + rect.height / 2;
   // Simulate the double click.
   EventUtils.synthesizeMouse(aTree.body, x, y, { clickCount: 2 },
-                             aTree.ownerDocument.defaultView);
+                             aTree.ownerGlobal);
 }
 
 function* togglePasswords() {
@@ -88,7 +88,7 @@ add_task(function* test_setup() {
   // Open the password manager dialog.
   pwmgrdlg = window.openDialog(PWMGR_DLG, "Toolkit:PasswordManager", "");
 
-  Services.ww.registerNotification(function (aSubject, aTopic, aData) {
+  Services.ww.registerNotification(function(aSubject, aTopic, aData) {
     if (aTopic == "domwindowopened") {
       let win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
       SimpleTest.waitForFocus(function() {

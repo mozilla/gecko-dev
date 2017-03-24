@@ -297,6 +297,16 @@ nsNodeUtils::LastRelease(nsINode* aNode)
                                          NodeWillBeDestroyed, (aNode));
     }
 
+    if (aNode->IsElement()) {
+      Element* elem = aNode->AsElement();
+      FragmentOrElement::nsDOMSlots* domSlots =
+        static_cast<FragmentOrElement::nsDOMSlots*>(slots);
+      for (auto iter = domSlots->mRegisteredIntersectionObservers.Iter(); !iter.Done(); iter.Next()) {
+        DOMIntersectionObserver* observer = iter.Key();
+        observer->UnlinkTarget(*elem);
+      }
+    }
+
     delete slots;
     aNode->mSlots = nullptr;
   }
@@ -508,7 +518,7 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
 
     aNode->mNodeInfo.swap(newNodeInfo);
     if (elem) {
-      elem->NodeInfoChanged();
+      elem->NodeInfoChanged(oldDoc);
     }
 
     nsIDocument* newDoc = aNode->OwnerDoc();
@@ -572,8 +582,13 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
         JSAutoCompartment ac(cx, wrapper);
         rv = ReparentWrapper(cx, wrapper);
         if (NS_FAILED(rv)) {
+          if (wasRegistered) {
+            aNode->OwnerDoc()->UnregisterActivityObserver(aNode->AsElement());
+          }
           aNode->mNodeInfo.swap(newNodeInfo);
-
+          if (wasRegistered) {
+            aNode->OwnerDoc()->RegisterActivityObserver(aNode->AsElement());
+          }
           return rv;
         }
       }

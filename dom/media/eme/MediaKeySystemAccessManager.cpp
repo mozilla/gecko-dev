@@ -94,9 +94,7 @@ MediaKeySystemAccessManager::Request(DetailedPromise* aPromise,
   DecoderDoctorDiagnostics diagnostics;
 
   // Ensure keysystem is supported.
-  if (!IsWidevineKeySystem(aKeySystem) &&
-      !IsClearkeyKeySystem(aKeySystem) &&
-      !IsPrimetimeKeySystem(aKeySystem)) {
+  if (!IsWidevineKeySystem(aKeySystem) && !IsClearkeyKeySystem(aKeySystem)) {
     // Not to inform user, because nothing to do if the keySystem is not
     // supported.
     aPromise->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR,
@@ -132,7 +130,7 @@ MediaKeySystemAccessManager::Request(DetailedPromise* aPromise,
   LogToBrowserConsole(NS_ConvertUTF8toUTF16(msg));
 
   if (status == MediaKeySystemStatus::Cdm_not_installed &&
-      (IsPrimetimeKeySystem(aKeySystem) || IsWidevineKeySystem(aKeySystem))) {
+      IsWidevineKeySystem(aKeySystem)) {
     // These are cases which could be resolved by downloading a new(er) CDM.
     // When we send the status to chrome, chrome's GMPProvider will attempt to
     // download or update the CDM. In AwaitInstall() we add listeners to wait
@@ -269,9 +267,8 @@ MediaKeySystemAccessManager::Observe(nsISupports* aSubject,
     // Note: We don't have a way to communicate from chrome that the CDM has
     // failed to download, so we'll just let the timeout fail us in that case.
     nsTArray<PendingRequest> requests;
-    for (size_t i = mRequests.Length(); i > 0; i--) {
-      const size_t index = i - i;
-      PendingRequest& request = mRequests[index];
+    for (size_t i = mRequests.Length(); i-- > 0; ) {
+      PendingRequest& request = mRequests[i];
       nsAutoCString message;
       MediaKeySystemStatus status =
         MediaKeySystemAccess::GetKeySystemStatus(request.mKeySystem, message);
@@ -281,7 +278,7 @@ MediaKeySystemAccessManager::Observe(nsISupports* aSubject,
       }
       // Status has changed, retry request.
       requests.AppendElement(Move(request));
-      mRequests.RemoveElementAt(index);
+      mRequests.RemoveElementAt(i);
     }
     // Retry all pending requests, but this time fail if the CDM is not installed.
     for (PendingRequest& request : requests) {

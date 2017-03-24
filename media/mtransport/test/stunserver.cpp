@@ -82,6 +82,11 @@ nrappkit copyright:
 #include "mozilla/Unused.h"
 #include "databuffer.h"
 
+// mozilla/utils.h defines this as well
+#ifdef UNIMPLEMENTED
+#undef UNIMPLEMENTED
+#endif
+
 extern "C" {
 #include "nr_api.h"
 #include "async_wait.h"
@@ -260,6 +265,13 @@ int TestStunServer::Initialize(int address_family) {
   r = nr_stun_find_local_addresses(addrs, max_addrs, &addr_ct);
   if (r) {
     MOZ_MTLOG(ML_ERROR, "Couldn't retrieve addresses");
+    return R_INTERNAL;
+  }
+
+  // removes duplicates and, based on prefs, loopback and link_local addrs
+  r = nr_stun_filter_local_addresses(addrs, &addr_ct);
+  if (r) {
+    MOZ_MTLOG(ML_ERROR, "Couldn't filter addresses");
     return R_INTERNAL;
   }
 

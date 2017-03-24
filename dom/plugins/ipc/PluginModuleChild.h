@@ -46,17 +46,12 @@ typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGINUNIXINIT) (const NPNetscapeFun
 typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGINSHUTDOWN) (void);
 
 namespace mozilla {
-namespace dom {
-class PCrashReporterChild;
-} // namespace dom
-
 namespace plugins {
 
 class PluginInstanceChild;
 
 class PluginModuleChild : public PPluginModuleChild
 {
-    typedef mozilla::dom::PCrashReporterChild PCrashReporterChild;
 protected:
     virtual mozilla::ipc::RacyInterruptPolicy
     MediateInterruptRace(const MessageInfo& parent,
@@ -67,24 +62,22 @@ protected:
 
     virtual bool ShouldContinueFromReplyTimeout() override;
 
-    virtual bool RecvSettingChanged(const PluginSettings& aSettings) override;
+    virtual mozilla::ipc::IPCResult RecvSettingChanged(const PluginSettings& aSettings) override;
 
     // Implement the PPluginModuleChild interface
-    virtual bool RecvDisableFlashProtectedMode() override;
-    virtual bool AnswerNP_GetEntryPoints(NPError* rv) override;
-    virtual bool AnswerNP_Initialize(const PluginSettings& aSettings, NPError* rv) override;
-    virtual bool RecvAsyncNP_Initialize(const PluginSettings& aSettings) override;
-    virtual bool AnswerSyncNPP_New(PPluginInstanceChild* aActor, NPError* rv)
+    virtual mozilla::ipc::IPCResult RecvDisableFlashProtectedMode() override;
+    virtual mozilla::ipc::IPCResult AnswerNP_GetEntryPoints(NPError* rv) override;
+    virtual mozilla::ipc::IPCResult AnswerNP_Initialize(const PluginSettings& aSettings, NPError* rv) override;
+    virtual mozilla::ipc::IPCResult RecvAsyncNP_Initialize(const PluginSettings& aSettings) override;
+    virtual mozilla::ipc::IPCResult AnswerSyncNPP_New(PPluginInstanceChild* aActor, NPError* rv)
                                    override;
-    virtual bool RecvAsyncNPP_New(PPluginInstanceChild* aActor) override;
+    virtual mozilla::ipc::IPCResult RecvAsyncNPP_New(PPluginInstanceChild* aActor) override;
 
-    virtual PPluginModuleChild*
-    AllocPPluginModuleChild(mozilla::ipc::Transport* aTransport,
-                            base::ProcessId aOtherProcess) override;
+    virtual mozilla::ipc::IPCResult
+    RecvInitPluginModuleChild(Endpoint<PPluginModuleChild>&& endpoint) override;
 
     virtual PPluginInstanceChild*
     AllocPPluginInstanceChild(const nsCString& aMimeType,
-                              const uint16_t& aMode,
                               const InfallibleTArray<nsCString>& aNames,
                               const InfallibleTArray<nsCString>& aValues)
                               override;
@@ -92,67 +85,58 @@ protected:
     virtual bool
     DeallocPPluginInstanceChild(PPluginInstanceChild* aActor) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvPPluginInstanceConstructor(PPluginInstanceChild* aActor,
                                    const nsCString& aMimeType,
-                                   const uint16_t& aMode,
                                    InfallibleTArray<nsCString>&& aNames,
                                    InfallibleTArray<nsCString>&& aValues)
                                    override;
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     AnswerNP_Shutdown(NPError *rv) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     AnswerOptionalFunctionsSupported(bool *aURLRedirectNotify,
                                      bool *aClearSiteData,
                                      bool *aGetSitesWithData) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvNPP_ClearSiteData(const nsCString& aSite,
                             const uint64_t& aFlags,
                             const uint64_t& aMaxAge,
                             const uint64_t& aCallbackId) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvNPP_GetSitesWithData(const uint64_t& aCallbackId) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvSetAudioSessionData(const nsID& aId,
                             const nsString& aDisplayName,
                             const nsString& aIconPath) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvSetParentHangTimeout(const uint32_t& aSeconds) override;
 
-    virtual PCrashReporterChild*
-    AllocPCrashReporterChild(mozilla::dom::NativeThreadId* id,
-                             uint32_t* processType) override;
-    virtual bool
-    DeallocPCrashReporterChild(PCrashReporterChild* actor) override;
-    virtual bool
-    AnswerPCrashReporterConstructor(PCrashReporterChild* actor,
-                                    mozilla::dom::NativeThreadId* id,
-                                    uint32_t* processType) override;
+    virtual mozilla::ipc::IPCResult
+    AnswerInitCrashReporter(Shmem&& aShmem, mozilla::dom::NativeThreadId* aId) override;
 
     virtual void
     ActorDestroy(ActorDestroyReason why) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvProcessNativeEventsInInterruptCall() override;
 
-    virtual bool RecvStartProfiler(const ProfilerInitParams& params) override;
-    virtual bool RecvStopProfiler() override;
-    virtual bool RecvGatherProfile() override;
+    virtual mozilla::ipc::IPCResult RecvStartProfiler(const ProfilerInitParams& params) override;
+    virtual mozilla::ipc::IPCResult RecvStopProfiler() override;
+    virtual mozilla::ipc::IPCResult RecvPauseProfiler(const bool& aPause) override;
+    virtual mozilla::ipc::IPCResult RecvGatherProfile() override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     AnswerModuleSupportsAsyncRender(bool* aResult) override;
 public:
     explicit PluginModuleChild(bool aIsChrome);
     virtual ~PluginModuleChild();
 
-    bool CommonInit(base::ProcessId aParentPid,
-                    MessageLoop* aIOLoop,
-                    IPC::Channel* aChannel);
+    void CommonInit();
 
     // aPluginFilename is UTF8, not native-charset!
     bool InitForChrome(const std::string& aPluginFilename,
@@ -160,13 +144,10 @@ public:
                        MessageLoop* aIOLoop,
                        IPC::Channel* aChannel);
 
-    bool InitForContent(base::ProcessId aParentPid,
-                        MessageLoop* aIOLoop,
-                        IPC::Channel* aChannel);
+    bool InitForContent(Endpoint<PPluginModuleChild>&& aEndpoint);
 
-    static PluginModuleChild*
-    CreateForContentProcess(mozilla::ipc::Transport* aTransport,
-                            base::ProcessId aOtherProcess);
+    static bool
+    CreateForContentProcess(Endpoint<PPluginModuleChild>&& aEndpoint);
 
     void CleanUp();
 
@@ -241,8 +222,8 @@ public:
 
     NPError PluginRequiresAudioDeviceChanges(PluginInstanceChild* aInstance,
                                              NPBool aShouldRegister);
-    bool RecvNPP_SetValue_NPNVaudioDeviceChangeDetails(
-                    const NPAudioDeviceChangeDetailsIPC& detailsIPC) override;
+    mozilla::ipc::IPCResult RecvNPP_SetValue_NPNVaudioDeviceChangeDetails(
+        const NPAudioDeviceChangeDetailsIPC& detailsIPC) override;
 
 private:
     NPError DoNP_Initialize(const PluginSettings& aSettings);
@@ -273,7 +254,6 @@ private:
 
     bool mIsChrome;
     bool mHasShutdown; // true if NP_Shutdown has run
-    Transport* mTransport;
 
     // we get this from the plugin
     NP_PLUGINSHUTDOWN mShutdownFunc;

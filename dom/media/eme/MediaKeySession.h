@@ -30,6 +30,12 @@ class ArrayBufferViewOrArrayBuffer;
 class MediaKeyError;
 class MediaKeyStatusMap;
 
+nsCString
+ToCString(MediaKeySessionType aType);
+
+nsString
+ToString(MediaKeySessionType aType);
+
 class MediaKeySession final : public DOMEventTargetHelper
 {
 public:
@@ -52,8 +58,6 @@ public:
   MediaKeyError* GetError() const;
 
   MediaKeyStatusMap* KeyStatuses() const;
-
-  void GetKeySystem(nsString& aRetval) const;
 
   void GetSessionId(nsString& aRetval) const;
 

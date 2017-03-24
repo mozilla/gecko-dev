@@ -236,19 +236,18 @@ function suggestionsPresent() {
   return false;
 }
 
-function assertVisible(visible, win=window) {
+function assertVisible(visible, win = window) {
   let style =
     win.getComputedStyle(win.gURLBar.popup.searchSuggestionsNotification);
   Assert.equal(style.visibility, visible ? "visible" : "collapse");
 }
 
-function promiseTransition(win=window) {
+function promiseTransition(win = window) {
   return new Promise(resolve => {
-    win.gURLBar.popup.addEventListener("transitionend", function onEnd() {
-      win.gURLBar.popup.removeEventListener("transitionend", onEnd, true);
+    win.gURLBar.popup.addEventListener("transitionend", function() {
       // The urlbar needs to handle the transitionend first, but that happens
       // naturally since promises are resolved at the end of the current tick.
       resolve();
-    }, true);
+    }, {capture: true, once: true});
   });
 }

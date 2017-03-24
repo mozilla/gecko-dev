@@ -1,54 +1,41 @@
-/* vim:set ts=2 sw=2 sts=2 et: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#toolbar-labels {
+@import "resource://devtools/client/shared/components/splitter/split-box.css";
+@import "resource://devtools/client/shared/components/tree/tree-view.css";
+@import "resource://devtools/client/shared/components/tabs/tabs.css";
+@import "resource://devtools/client/shared/components/tabs/tabbar.css";
+
+* {
+  box-sizing: border-box;
+}
+
+.toolbar-labels {
   overflow: hidden;
-}
-
-#react-clear-button-hook,
-#react-details-pane-toggle-hook {
   display: flex;
+  flex: auto;
 }
 
-/**
- * Collapsed details pane needs to be truly hidden to prevent both accessibility
- * tools and keyboard from accessing its contents.
- */
-#details-pane.pane-collapsed {
-  visibility: hidden;
+.devtools-toolbar-container {
+  display: flex;
+  justify-content: space-between;
 }
 
-#details-pane-toggle[disabled] {
-  display: none;
-}
-
-#custom-pane {
-  overflow: auto;
+.devtools-toolbar-group {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 #response-content-image-box {
   overflow: auto;
 }
 
-#network-statistics-charts {
-  overflow: auto;
-}
-
 .cropped-textbox .textbox-input {
   /* workaround for textbox not supporting the @crop attribute */
   text-overflow: ellipsis;
-}
-
-/* Responsive sidebar */
-@media (max-width: 700px) {
-  #toolbar-spacer,
-  #details-pane-toggle,
-  .requests-menu-waterfall,
-  #requests-menu-network-summary-button > .toolbarbutton-text {
-    display: none;
-  }
 }
 
 :root.theme-dark {
@@ -85,7 +72,7 @@
   --table-splitter-color: rgba(0,0,0,0.15);
   --table-zebra-background: rgba(0,0,0,0.05);
 
-  --timing-blocked-color:  rgba(235, 83, 104, 0.8); /* red */
+  --timing-blocked-color: rgba(235, 83, 104, 0.8); /* red */
   --timing-dns-color: rgba(223, 128, 255, 0.8); /* pink */
   --timing-connect-color: rgba(217, 102, 41, 0.8); /* orange */
   --timing-send-color: rgba(70, 175, 227, 0.8); /* light blue */
@@ -96,56 +83,90 @@
   --sort-descending-image: url(chrome://devtools/skin/images/firebug/arrow-down.svg);
 }
 
-#requests-menu-empty-notice {
+.request-list-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.request-list-empty-notice {
   margin: 0;
   padding: 12px;
   font-size: 120%;
 }
 
-#notice-perf-message {
+.notice-perf-message {
   margin-top: 2px;
 }
 
-#requests-menu-perf-notice-button {
+.requests-list-perf-notice-button {
   min-width: 30px;
   min-height: 26px;
-  margin: 0;
-  list-style-image: url(images/profiler-stopwatch.svg);
+  margin: 0 5px;
+  vertical-align: middle;
 }
 
-/* Make sure the icon is visible on Linux (to overwrite a rule
-  in xul.css that hides the icon if there is no label.
-  See also bug 1278050. */
-#requests-menu-perf-notice-button .button-icon {
-  display: block;
+.requests-list-perf-notice-button::before {
+  background-image: url(images/profiler-stopwatch.svg);
 }
 
-#requests-menu-perf-notice-button .button-text {
-  display: none;
-}
-
-#requests-menu-reload-notice-button {
+.requests-list-reload-notice-button {
+  font-size: inherit;
   min-height: 26px;
-  margin: 0;
-  background-color: var(--theme-toolbar-background);
+  margin: 0 5px;
 }
 
 /* Network requests table */
 
-#requests-menu-toolbar {
+.requests-list-toolbar {
+  display: flex;
   padding: 0;
 }
 
-.theme-firebug #requests-menu-toolbar {
-  height: 16px !important;
+.requests-list-filter-buttons {
+  display: flex;
+  flex-wrap: nowrap;
 }
 
-.requests-menu-subitem {
+.theme-firebug .requests-list-toolbar {
+  height: 19px !important;
+}
+
+.requests-list-contents {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  --timings-scale: 1;
+  --timings-rev-scale: 1;
+}
+
+.requests-list-subitem {
+  display: flex;
+  flex: none;
+  box-sizing: border-box;
+  align-items: center;
   padding: 3px;
+  cursor: default;
 }
 
-.requests-menu-header-button {
-  -moz-appearance: none;
+.subitem-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.requests-list-header {
+  display: flex;
+  flex: none;
+}
+
+.requests-list-header-button {
+  display: flex;
+  align-items: center;
+  flex: auto;
+  -moz-appearance: none; appearance: none;
   background-color: transparent;
   border-image: linear-gradient(transparent 15%,
                                 var(--theme-splitter-color) 15%,
@@ -157,60 +178,69 @@
   min-width: 1px;
   min-height: 24px;
   margin: 0;
-  padding-bottom: 2px;
-  padding-inline-start: 13px;
   padding-top: 2px;
+  padding-bottom: 2px;
+  padding-inline-start: 16px;
+  padding-inline-end: 0;
   text-align: center;
   color: inherit;
   font-weight: inherit !important;
 }
 
-.requests-menu-header:first-child .requests-menu-header-button {
+.requests-list-header-button::-moz-focus-inner {
+  border: 0;
+  padding: 0;
+}
+
+.requests-list-header:first-child .requests-list-header-button {
   border-width: 0;
 }
 
-.requests-menu-header-button:hover {
+.requests-list-header-button:hover {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-.requests-menu-header-button > .button-box > .button-icon,
-#requests-menu-waterfall-image {
-  display: -moz-box;
+.requests-list-header-button > .button-text {
+  flex: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.requests-list-header-button > .button-icon {
+  flex: none;
   height: 4px;
+  margin-inline-start: 3px;
   margin-inline-end: 6px;
-  -moz-box-ordinal-group: 2;
   width: 7px;
 }
 
-.requests-menu-header-button[sorted=ascending] > .button-box > .button-icon,
-.requests-menu-header-button[sorted=ascending] #requests-menu-waterfall-image {
-  list-style-image: var(--sort-ascending-image);
+.requests-list-header-button[data-sorted=ascending] > .button-icon {
+  background-image: var(--sort-ascending-image);
 }
 
-.requests-menu-header-button[sorted=descending] > .button-box > .button-icon,
-.requests-menu-header-button[sorted=descending] #requests-menu-waterfall-image {
-  list-style-image: var(--sort-descending-image);
+.requests-list-header-button[data-sorted=descending] > .button-icon {
+  background-image: var(--sort-descending-image);
 }
 
-.requests-menu-header-button > .button-box > .button-text,
-#requests-menu-waterfall-label-wrapper {
-  -moz-box-flex: 1;
+.requests-list-waterfall-label-wrapper {
+  display: flex;
 }
 
-.requests-menu-header-button[sorted],
-.requests-menu-header-button[sorted]:hover {
+.requests-list-header-button[data-sorted],
+.requests-list-header-button[data-sorted]:hover {
   background-color: var(--theme-selection-background);
   color: var(--theme-selection-color);
 }
 
-.requests-menu-header-button[sorted],
-.requests-menu-header[active] + .requests-menu-header .requests-menu-header-button {
+.requests-list-header-button[data-sorted],
+.requests-list-header[data-active] + .requests-list-header .requests-list-header-button {
   border-image: linear-gradient(var(--theme-splitter-color), var(--theme-splitter-color)) 1 1;
 }
 
 /* Firebug theme support for Network panel header */
 
-.theme-firebug .requests-menu-header {
+.theme-firebug .requests-list-header {
   padding: 0 !important;
   font-weight: bold;
   background: linear-gradient(rgba(255, 255, 255, 0.05),
@@ -218,15 +248,24 @@
                               #C8D2DC;
 }
 
-.theme-firebug .requests-menu-header-button {
+.theme-firebug .requests-list-header-button {
   min-height: 17px;
 }
 
-.theme-firebug .requests-header-menu-button[sorted] {
+.theme-firebug .requests-list-header-button > .button-icon {
+  height: 7px;
+}
+
+.theme-firebug .requests-list-header-button[data-sorted] {
   background-color: #AAC3DC;
 }
 
-.theme-firebug .requests-header-menu:hover:active {
+:root[platform="linux"].theme-firebug .requests-list-header-button[data-sorted] {
+  background-color: #FAC8AF !important;
+  color: inherit !important;
+}
+
+.theme-firebug .requests-list-header:hover:active {
   background-image: linear-gradient(rgba(0, 0, 0, 0.1),
                                     transparent);
 }
@@ -234,82 +273,88 @@
 
 /* Network requests table: specific column dimensions */
 
-.requests-menu-status {
+.requests-list-status {
   max-width: 6em;
   text-align: center;
   width: 10vw;
 }
 
-.requests-menu-method,
-.requests-menu-method-box {
+.requests-list-method,
+.requests-list-method-box {
   max-width: 7em;
   text-align: center;
   width: 10vw;
 }
 
-.requests-menu-icon-and-file {
+.requests-list-icon-and-file {
   width: 22vw;
 }
 
-.requests-menu-icon {
-  background: #fff;
-  width: calc(1em + 4px);
-  height: calc(1em + 4px);
-  margin: -4px 0px;
+.requests-list-icon {
+  background: transparent;
+  width: 15px;
+  height: 15px;
   margin-inline-end: 4px;
 }
 
-.requests-menu-icon {
+.requests-list-icon {
   outline: 1px solid var(--table-splitter-color);
 }
 
-.requests-menu-security-and-domain {
+.requests-list-security-and-domain {
   width: 14vw;
 }
 
 .requests-security-state-icon {
+  flex: none;
   width: 16px;
   height: 16px;
   margin-inline-end: 4px;
 }
 
-.side-menu-widget-item.selected .requests-security-state-icon {
+.request-list-item.selected .requests-security-state-icon {
   filter: brightness(1.3);
 }
 
 .security-state-insecure {
-  list-style-image: url(chrome://devtools/skin/images/security-state-insecure.svg);
+  background-image: url(chrome://devtools/skin/images/security-state-insecure.svg);
 }
 
 .security-state-secure {
-  list-style-image: url(chrome://devtools/skin/images/security-state-secure.svg);
+  background-image: url(chrome://devtools/skin/images/security-state-secure.svg);
 }
 
 .security-state-weak {
-  list-style-image: url(chrome://devtools/skin/images/security-state-weak.svg);
+  background-image: url(chrome://devtools/skin/images/security-state-weak.svg);
 }
 
 .security-state-broken {
-  list-style-image: url(chrome://devtools/skin/images/security-state-broken.svg);
+  background-image: url(chrome://devtools/skin/images/security-state-broken.svg);
 }
 
 .security-state-local {
-  list-style-image: url(chrome://devtools/skin/images/globe.svg);
+  background-image: url(chrome://devtools/skin/images/globe.svg);
 }
 
-.requests-menu-type,
-.requests-menu-size {
+.requests-list-type,
+.requests-list-size {
   max-width: 6em;
-  text-align: center;
   width: 8vw;
+  justify-content: center;
 }
 
-.requests-menu-cause {
+.requests-list-transferred {
+  max-width: 8em;
+  width: 8vw;
+  justify-content: center;
+}
+
+.requests-list-cause {
   max-width: 8em;
   width: 8vw;
 }
 
-.requests-menu-cause-stack {
+.requests-list-cause-stack {
   background-color: var(--theme-body-color-alt);
   color: var(--theme-body-background);
   font-size: 8px;
@@ -322,25 +367,19 @@
   -moz-user-select: none;
 }
 
-.requests-menu-transferred {
-  max-width: 8em;
-  text-align: center;
-  width: 8vw;
-}
-
-.side-menu-widget-item.selected .requests-menu-transferred.theme-comment {
+.request-list-item.selected .requests-list-transferred.theme-comment {
   color: var(--theme-selection-color);
 }
 
 /* Network requests table: status codes */
 
-.requests-menu-status-code {
+.requests-list-status-code {
   margin-inline-start: 3px !important;
   width: 3em;
   margin-inline-end: -3em !important;
 }
 
-.requests-menu-status-icon {
+.requests-list-status-icon {
   background: #fff;
   height: 10px;
   width: 10px;
@@ -348,31 +387,32 @@
   margin-inline-end: 5px;
   border-radius: 10px;
   transition: box-shadow 0.5s ease-in-out;
+  box-sizing: border-box;
 }
 
-.side-menu-widget-item.selected .requests-menu-status-icon {
+.request-list-item.selected .requests-list-status-icon {
   filter: brightness(1.3);
 }
 
-.requests-menu-status-icon:not([code]) {
+.requests-list-status-icon:not([data-code]) {
   background-color: var(--theme-content-color2);
 }
 
-.requests-menu-status-icon[code="cached"] {
+.requests-list-status-icon[data-code="cached"] {
   border: 2px solid var(--theme-content-color2);
   background-color: transparent;
 }
 
-.requests-menu-status-icon[code^="1"] {
+.requests-list-status-icon[data-code^="1"] {
   background-color: var(--theme-highlight-blue);
 }
 
-.requests-menu-status-icon[code^="2"] {
+.requests-list-status-icon[data-code^="2"] {
   background-color: var(--theme-highlight-green);
 }
 
 /* 3xx are triangles */
-.requests-menu-status-icon[code^="3"] {
+.requests-list-status-icon[data-code^="3"] {
   background-color: transparent;
   width: 0;
   height: 0;
@@ -383,12 +423,12 @@
 }
 
 /* 4xx and 5xx are squares - error codes */
-.requests-menu-status-icon[code^="4"] {
+.requests-list-status-icon[data-code^="4"] {
  background-color: var(--theme-highlight-red);
   border-radius: 0; /* squares */
 }
 
-.requests-menu-status-icon[code^="5"] {
+.requests-list-status-icon[data-code^="5"] {
   background-color: var(--theme-highlight-pink);
   border-radius: 0;
   transform: rotate(45deg);
@@ -396,202 +436,211 @@
 
 /* Network requests table: waterfall header */
 
-.requests-menu-waterfall {
+.requests-list-waterfall {
+  flex: auto;
   padding-inline-start: 0;
 }
 
-#requests-menu-waterfall-label:not(.requests-menu-waterfall-visible) {
-  padding-inline-start: 13px;
+.requests-list-waterfall-label-wrapper:not(.requests-list-waterfall-visible) {
+  padding-inline-start: 16px;
 }
 
-.requests-menu-timings-division {
-  width: 100px;
+.requests-list-timings-division {
   padding-top: 2px;
   padding-inline-start: 4px;
   font-size: 75%;
   pointer-events: none;
   box-sizing: border-box;
   text-align: start;
+  /* Allow the timing label to shrink if the container gets too narrow.
+   * The container width then is not limited by the content. */
+  flex: initial;
 }
 
-.requests-menu-timings-division:first-child {
-  width: 98px; /* Substract 2px for borders */
-}
-
-.requests-menu-timings-division:not(:first-child) {
+.requests-list-timings-division:not(:first-child) {
   border-inline-start: 1px dashed;
-  margin-inline-start: -100px !important; /* Don't affect layout. */
 }
 
-.requests-menu-timings-division:-moz-locale-dir(ltr) {
+.requests-list-timings-division:-moz-locale-dir(ltr) {
   transform-origin: left center;
 }
 
-.requests-menu-timings-division:-moz-locale-dir(rtl) {
+.requests-list-timings-division:-moz-locale-dir(rtl) {
   transform-origin: right center;
 }
 
-.theme-dark .requests-menu-timings-division {
+.theme-dark .requests-list-timings-division {
   border-inline-start-color: #5a6169 !important;
 }
 
-.theme-light .requests-menu-timings-division {
+.theme-light .requests-list-timings-division {
   border-inline-start-color: #585959 !important;
 }
 
-.requests-menu-timings-division[division-scale=second],
-.requests-menu-timings-division[division-scale=minute] {
+.requests-list-timings-division[data-division-scale=second],
+.requests-list-timings-division[data-division-scale=minute] {
   font-weight: 600;
 }
 
 /* Network requests table: waterfall items */
 
-.requests-menu-subitem.requests-menu-waterfall {
-  padding-inline-start: 0px;
+.requests-list-subitem.requests-list-waterfall {
+  padding-inline-start: 0;
   padding-inline-end: 4px;
   /* Background created on a <canvas> in js. */
   /* @see devtools/client/netmonitor/netmonitor-view.js */
   background-image: -moz-element(#waterfall-background);
   background-repeat: repeat-y;
-  background-position: -1px center;
+  background-position: left center;
 }
 
-.requests-menu-subitem.requests-menu-waterfall:-moz-locale-dir(rtl) {
+.requests-list-subitem.requests-list-waterfall:-moz-locale-dir(rtl) {
   background-position: right center;
 }
 
-.requests-menu-timings:-moz-locale-dir(ltr) {
+.requests-list-timings {
+  display: flex;
+  flex: none;
+  align-items: center;
+  transform: scaleX(var(--timings-scale));
+}
+
+.requests-list-timings:-moz-locale-dir(ltr) {
   transform-origin: left center;
 }
 
-.requests-menu-timings:-moz-locale-dir(rtl) {
+.requests-list-timings:-moz-locale-dir(rtl) {
   transform-origin: right center;
 }
 
-.requests-menu-timings-total:-moz-locale-dir(ltr) {
+.requests-list-timings-total:-moz-locale-dir(ltr) {
   transform-origin: left center;
 }
 
-.requests-menu-timings-total:-moz-locale-dir(rtl) {
+.requests-list-timings-total:-moz-locale-dir(rtl) {
   transform-origin: right center;
 }
 
-.requests-menu-timings-total {
+.requests-list-timings-total {
+  display: inline-block;
   padding-inline-start: 4px;
   font-size: 85%;
   font-weight: 600;
+  white-space: nowrap;
+  /* This node should not be scaled - apply a reversed transformation */
+  transform: scaleX(var(--timings-rev-scale));
 }
 
-.requests-menu-timings-box {
+.requests-list-timings-box {
+  display: inline-block;
   height: 9px;
 }
 
-.theme-firebug .requests-menu-timings-box {
+.theme-firebug .requests-list-timings-box {
   background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.2));
   height: 16px;
 }
 
-.requests-menu-timings-box.blocked {
+.requests-list-timings-box.blocked {
   background-color: var(--timing-blocked-color);
 }
 
-.requests-menu-timings-box.dns {
+.requests-list-timings-box.dns {
   background-color: var(--timing-dns-color);
 }
 
-.requests-menu-timings-box.connect {
+.requests-list-timings-box.connect {
   background-color: var(--timing-connect-color);
 }
 
-.requests-menu-timings-box.send {
+.requests-list-timings-box.send {
   background-color: var(--timing-send-color);
 }
 
-.requests-menu-timings-box.wait {
+.requests-list-timings-box.wait {
   background-color: var(--timing-wait-color);
 }
 
-.requests-menu-timings-box.receive {
+.requests-list-timings-box.receive {
   background-color: var(--timing-receive-color);
 }
 
 /* SideMenuWidget */
-#network-table .side-menu-widget-empty-text,
-#network-table .side-menu-widget-container {
+#network-table .request-list-empty-notice,
+#network-table .request-list-container {
   background-color: var(--theme-body-background);
 }
 
-#network-table .side-menu-widget-item {
+.request-list-item {
+  display: flex;
   border-top-color: transparent;
   border-bottom-color: transparent;
+  padding: 0;
 }
 
-.side-menu-widget-item-contents {
-  padding: 0px;
+.request-list-item.selected {
+  background-color: var(--theme-selection-background);
+  color: var(--theme-selection-color);
 }
 
-.side-menu-widget-item:not(.selected)[odd] {
+.request-list-item:not(.selected).odd {
   background-color: var(--table-zebra-background);
 }
 
-.side-menu-widget-item:not(.selected):hover {
+.request-list-item:not(.selected):hover {
   background-color: var(--theme-selection-background-semitransparent);
 }
 
-.theme-firebug .side-menu-widget-item:not(.selected):hover {
+.request-list-item.fromCache > .requests-list-subitem:not(.requests-list-waterfall) {
+    opacity: 0.6;
+}
+
+.theme-firebug .request-list-item:not(.selected):hover {
   background: #EFEFEF;
 }
 
-.theme-firebug .requests-menu-subitem {
+.theme-firebug .requests-list-subitem {
   padding: 1px;
 }
 
 /* HTTP Status Column */
-.theme-firebug .requests-menu-subitem.requests-menu-status {
+.theme-firebug .requests-list-subitem.requests-list-status {
   font-weight: bold;
 }
 
 /* Method Column */
 
-.theme-firebug .requests-menu-subitem.requests-menu-method-box {
+.theme-firebug .requests-list-subitem.requests-list-method-box {
   color: rgb(128, 128, 128);
 }
 
-.side-menu-widget-item.selected .requests-menu-method {
+.request-list-item.selected .requests-list-method {
   color: var(--theme-selection-color);
 }
 
 /* Size Column */
-.theme-firebug .requests-menu-subitem.requests-menu-size {
-  text-align: end;
+.theme-firebug .requests-list-subitem.requests-list-size {
+  justify-content: end;
   padding-inline-end: 4px;
 }
 
-/* Network request details */
+/* Network details panel */
 
-#details-pane-toggle:-moz-locale-dir(ltr)::before,
-#details-pane-toggle.pane-collapsed:-moz-locale-dir(rtl)::before {
+.network-details-panel-toggle[disabled] {
+  display: none;
+}
+
+.network-details-panel-toggle:-moz-locale-dir(ltr)::before,
+.network-details-panel-toggle.pane-collapsed:-moz-locale-dir(rtl)::before {
   background-image: var(--theme-pane-collapse-image);
 }
 
-#details-pane-toggle.pane-collapsed:-moz-locale-dir(ltr)::before,
-#details-pane-toggle:-moz-locale-dir(rtl)::before {
+.network-details-panel-toggle.pane-collapsed:-moz-locale-dir(ltr)::before,
+.network-details-panel-toggle:-moz-locale-dir(rtl)::before {
   background-image: var(--theme-pane-expand-image);
 }
 
 /* Network request details tabpanels */
-
-.tabpanel-content {
-  background-color: var(--theme-sidebar-background);
-}
-
-.theme-dark .tabpanel-content {
-  color: var(--theme-selection-color);
-}
-
-#headers-tabpanel {
-  background-color: var(--theme-toolbar-background);
-}
 
 .theme-firebug .variables-view-scope:focus > .title {
   color: var(--theme-body-color);
@@ -604,6 +653,7 @@
 }
 
 .tabpanel-summary-label {
+  display: inline-block;
   padding-inline-start: 4px;
   padding-inline-end: 3px;
   font-weight: 600;
@@ -620,91 +670,93 @@
 
 /* Headers tabpanel */
 
-#headers-summary-status,
-#headers-summary-version {
-  padding-bottom: 2px;
+.headers-overview {
+  background: var(--theme-toolbar-background);
 }
 
-#headers-summary-size {
-  padding-top: 2px;
+.headers-summary .status-text {
+    width: auto!important;
 }
 
-#headers-summary-resend {
-  margin-top: -10px;
-  margin-inline-end: 6px;
+.headers-summary .learn-more-link {
+  color: var(--theme-highlight-blue);
+  cursor: pointer;
+  margin: 0 5px;
+  white-space: nowrap;
+  flex-grow: 1;
 }
 
-#toggle-raw-headers {
-  margin-top: -10px;
-  margin-inline-end: 6px;
-}
-
-.raw-response-textarea {
-  height: 50vh;
+.headers-summary .learn-more-link:hover {
+  text-decoration: underline;
 }
 
 /* Response tabpanel */
 
-#response-content-info-header {
+.response-error-header {
   margin: 0;
   padding: 3px 8px;
   background-color: var(--theme-highlight-red);
   color: var(--theme-selection-color);
 }
 
-#response-content-image-box {
-  padding-top: 10px;
-  padding-bottom: 10px;
+.response-image-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  padding: 10px;
 }
 
-#response-content-image {
+.response-image {
   background: #fff;
   border: 1px dashed GrayText;
   margin-bottom: 10px;
-}
-
-/* Preview tabpanel */
-
-#preview-tabpanel {
-  background: #fff;
-}
-
-#response-preview {
-  display: -moz-box;
-  -moz-box-flex: 1;
+  max-width: 300px;
+  max-height: 100px;
 }
 
 /* Timings tabpanel */
 
-#timings-tabpanel .tabpanel-summary-label {
+.timings-container {
+  display: flex;
+}
+
+.timings-label {
   width: 10em;
 }
 
-#timings-tabpanel .requests-menu-timings-box {
-  transition: transform 0.2s ease-out;
+.requests-list-timings-container {
+  display: flex;
+  flex: 1;
+  align-items: center;
+}
+
+.requests-list-timings-offset {
+  transition: width 0.2s ease-out;
+}
+
+.requests-list-timings-box {
   border: none;
   min-width: 1px;
+  transition: width 0.2s ease-out;
 }
 
-#timings-tabpanel .requests-menu-timings-total {
-  transition: transform 0.2s ease-out;
-}
-
-.theme-firebug #timings-tabpanel .requests-menu-timings-total {
+.theme-firebug .requests-list-timings-total {
   color: var(--theme-body-color);
 }
 
 /* Security tabpanel */
-.security-info-section {
-  padding-inline-start: 1em;
+
+/* Overwrite tree-view cell colon `:` for security panel and tree section */
+.security-panel .treeTable .treeLabelCell::after,
+.treeTable .tree-section .treeLabelCell::after {
+  content: "";
 }
 
-.theme-dark #security-error-message {
-  color: var(--theme-selection-color);
-}
-
-#security-tabpanel {
-  overflow: auto;
+/* Layout additional warning icon in tree value cell  */
+.security-info-value {
+  display: flex;
 }
 
 .security-warning-icon {
@@ -722,48 +774,97 @@
   }
 }
 
-/* Custom request form */
+/* Custom request view */
 
-#custom-pane {
-  padding: 0.6em 0.5em;
+.custom-request-panel {
+  height: 100%;
+  overflow: auto;
+  padding: 0 4px;
+  background-color: var(--theme-sidebar-background);
+}
+
+.theme-dark .custom-request-panel {
+  color: var(--theme-selection-color);
+}
+
+.custom-request-label {
+  font-weight: 600;
+}
+
+.custom-request-panel textarea {
+  resize: none;
+  font: message-box;
+}
+
+.custom-header,
+.custom-method-and-url,
+.custom-request,
+.custom-section {
+  display: flex;
 }
 
 .custom-header {
+  flex-grow: 1;
   font-size: 1.1em;
+  padding-top: 4px;
 }
 
 .custom-section {
+  flex-direction: column;
   margin-top: 0.5em;
 }
 
-#custom-method-value {
+.custom-method-value {
   width: 4.5em;
+}
+
+.custom-url-value {
+  flex-grow: 1;
+  margin-inline-start: 6px;
 }
 
 /* Performance analysis buttons */
 
-#requests-menu-network-summary-button {
+.requests-list-network-summary-button {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
   background: none;
   box-shadow: none;
   border-color: transparent;
-  list-style-image: url(images/profiler-stopwatch.svg);
   padding-inline-end: 0;
   cursor: pointer;
   margin-inline-end: 1em;
   min-width: 0;
 }
 
-/* Performance analysis view */
-
-#network-statistics-toolbar {
-  border: none;
-  margin: 0;
-  padding: 0;
+.requests-list-network-summary-button > .summary-info-icon {
+  background-image: url(images/profiler-stopwatch.svg);
+  filter: var(--icon-filter);
+  width: 16px;
+  height: 16px;
+  opacity: 0.8;
 }
 
-#network-statistics-back-button {
+.requests-list-network-summary-button > .summary-info-text {
+  opacity: 0.8;
+  margin-inline-start: 0.5em;
+}
+
+.requests-list-network-summary-button:hover > .summary-info-icon,
+.requests-list-network-summary-button:hover > .summary-info-text {
+  opacity: 1;
+}
+
+/* Performance analysis view */
+
+.statistics-panel {
+  display: flex;
+  height: 100vh;
+}
+
+.statistics-panel .devtools-toolbarbutton.back-button {
   min-width: 4em;
-  min-height: 100vh;
   margin: 0;
   padding: 0;
   border-radius: 0;
@@ -772,26 +873,40 @@
   border-inline-start: none;
 }
 
-#network-statistics-view-splitter {
+.statistics-panel .splitter {
   border-color: rgba(0,0,0,0.2);
   cursor: default;
   pointer-events: none;
+  height: 100%;
 }
 
-#network-statistics-charts {
-  min-height: 1px;
+.statistics-panel .charts-container {
+  display: flex;
+  width: 100%;
 }
 
-#network-statistics-charts {
-  background-color: var(--theme-sidebar-background);
+.statistics-panel .charts,
+.statistics-panel .pie-table-chart-container {
+  width: 100%;
+  height: 100%;
 }
 
-#network-statistics-charts .pie-chart-container {
+.pie-table-chart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.statistics-panel .pie-chart-container {
   margin-inline-start: 3vw;
   margin-inline-end: 1vw;
 }
 
-#network-statistics-charts .table-chart-container {
+.statistics-panel .table-chart-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 240px;
   margin-inline-start: 1vw;
   margin-inline-end: 3vw;
 }
@@ -836,6 +951,10 @@
   background: var(--theme-highlight-red);
 }
 
+.table-chart-row {
+  display: flex;
+}
+
 .table-chart-row-label[name=cached] {
   display: none;
 }
@@ -847,14 +966,22 @@
 
 .table-chart-row-label[name=label] {
   width: 7em;
+  text-align: start;
 }
 
 .table-chart-row-label[name=size] {
   width: 7em;
+  text-align: start;
 }
 
 .table-chart-row-label[name=time] {
   width: 7em;
+  text-align: start;
+}
+
+.table-chart-totals {
+  display: flex;
+  flex-direction: column;
 }
 
 /* Firebug theme support for network charts */
@@ -901,59 +1028,74 @@
 
 /* Responsive sidebar */
 @media (max-width: 700px) {
-  #requests-menu-toolbar {
+  #toolbar-spacer,
+  .network-details-panel-toggle,
+  .requests-list-network-summary-button > .summary-info-text {
+    display: none;
+  }
+
+  .requests-list-toolbar {
     height: 22px;
   }
 
-  .requests-menu-header-button {
+  .requests-list-header-button {
     min-height: 22px;
     padding-left: 8px;
   }
 
-  #details-pane {
-    margin: 0 !important;
-    /* To prevent all the margin hacks to hide the sidebar. */
-  }
-
-  .requests-menu-status {
+  .requests-list-status {
     max-width: none;
-    width: 12vw;
-  }
-
-  .requests-menu-status-code {
-    width: auto;
-  }
-
-  .requests-menu-method,
-  .requests-menu-method-box {
-    max-width: none;
-    width: 14vw;
-  }
-
-  .requests-menu-icon-and-file {
-    width: 22vw;
-  }
-
-  .requests-menu-security-and-domain {
-    width: 18vw;
-  }
-
-  .requests-menu-type {
     width: 10vw;
   }
 
-  .requests-menu-transferred,
-  .requests-menu-size {
+  .requests-list-status-code {
+    width: auto;
+  }
+
+  .requests-list-method,
+  .requests-list-method-box {
+    max-width: none;
     width: 12vw;
+  }
+
+  .requests-list-icon-and-file {
+    width: 22vw;
+  }
+
+  .requests-list-security-and-domain {
+    width: 16vw;
+  }
+
+  .requests-list-cause,
+  .requests-list-type,
+  .requests-list-transferred,
+  .requests-list-size {
+    max-width: none;
+    width: 10vw;
+  }
+
+  .requests-list-waterfall {
+    display: none;
+  }
+
+  .statistics-panel .charts-container {
+    flex-direction: column;
+    /* Minus 4em for statistics back button width */
+    width: calc(100% - 4em);
+  }
+
+  .statistics-panel .splitter {
+    width: 100%;
+    height: 1px;
   }
 }
 
 /* Platform overrides (copied in from the old platform specific files) */
-:root[platform="win"] .requests-menu-header-button > .button-box {
+:root[platform="win"] .requests-list-header-button > .button-box {
   padding: 0;
 }
 
-:root[platform="win"] .requests-menu-timings-division {
+:root[platform="win"] .requests-list-timings-division {
   padding-top: 1px;
   font-size: 90%;
 }
@@ -968,7 +1110,209 @@
 
 /* Responsive sidebar */
 @media (max-width: 700px) {
-  :root[platform="linux"] .requests-menu-header-button {
+  :root[platform="linux"] .requests-list-header-button {
     font-size: 85%;
   }
+}
+
+.textbox-input {
+  text-overflow: ellipsis;
+  border: none;
+  background: none;
+  color: inherit;
+  width: 100%;
+}
+
+.treeTable .textbox-input:focus {
+  outline: 0;
+  box-shadow: var(--theme-focus-box-shadow-textbox);
+}
+
+.panel-container,
+.properties-view {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
+}
+
+.properties-view .searchbox-section {
+  flex: 0 1 auto;
+}
+
+.properties-view .devtools-searchbox {
+  padding: 0;
+}
+
+.properties-view .devtools-searchbox input {
+  margin: 1px 3px;
+}
+
+.tree-container {
+  position: relative;
+  height: 100%;
+}
+
+/* Make treeTable fill parent element and scrollable */
+.tree-container .treeTable {
+  position: absolute;
+  display: block;
+  overflow-y: auto;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* Apply flex to table tbody in order to fill available vertical space */
+.tree-container .treeTable tbody {
+  display: flex;
+  flex-direction: column;
+  /* Apply flex to table will create an anonymous table element outside of tbody
+   * See also http://stackoverflow.com/a/30851678
+   * Therefore, we set height with this magic number in order to remove the
+   * redundant scrollbar when source editor appears.
+   */
+  height: calc(100% - 4px);
+}
+
+.tree-container .treeTable tr {
+  display: block;
+}
+
+/* Make right td fill available horizontal space */
+.tree-container .treeTable td:last-child {
+  width: 100%;
+}
+
+/* If there is a source editor shows up in the last row of TreeView,
+ * it should occupy the available vertical space.
+ */
+.tree-container .treeTable .editor-row-container,
+.tree-container .treeTable tr:last-child td[colspan="2"] {
+  display: block;
+  height: 100%;
+}
+
+.properties-view .devtools-searchbox,
+.tree-container .treeTable .tree-section {
+  width: 100%;
+  background-color: var(--theme-toolbar-background);
+}
+
+.tree-container .treeTable tr.tree-section:not(:first-child) td:not([class=""]) {
+  border-top: 1px solid var(--theme-splitter-color);
+}
+
+.properties-view .devtools-searchbox,
+.tree-container .treeTable tr.tree-section:not(:last-child) td:not([class=""]) {
+  border-bottom: 1px solid var(--theme-splitter-color);
+}
+
+.tree-container .treeTable .tree-section > * {
+  vertical-align: middle;
+}
+
+.tree-container .treeTable .treeRow.tree-section > .treeLabelCell > .treeLabel,
+.tree-container .treeTable .treeRow.tree-section > .treeLabelCell > .treeLabel:hover {
+  color: var(--theme-body-color-alt);
+}
+
+.tree-container .treeTable .treeValueCell {
+  /* FIXME: Make value cell can be reduced to shorter width */
+  max-width: 0;
+  padding-inline-end: 5px;
+}
+
+.headers-summary input:not([type="button"]) {
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  margin-inline-end: 2px;
+}
+
+.headers-summary input:not([type="button"]):focus {
+  outline: none;
+  box-shadow: var(--theme-focus-box-shadow-textbox);
+  transition: all 0.2s ease-in-out;
+}
+
+.headers-summary-label,
+.tree-container .objectBox {
+  white-space: nowrap;
+}
+
+.headers-summary,
+.response-summary {
+  display: flex;
+  align-items: center;
+}
+
+.headers-summary .devtools-button {
+  margin-inline-end: 6px;
+}
+
+.headers-summary .requests-list-status-icon {
+  min-width: 10px;
+}
+
+.headers-summary .raw-headers-container {
+  display: flex;
+  width: 100%;
+}
+
+.headers-summary .raw-headers {
+  width: 50%;
+  padding: 0 4px;
+}
+
+.headers-summary .raw-headers textarea {
+  width: 100%;
+  height: 50vh;
+  font: message-box;
+  resize: none;
+  box-sizing: border-box;
+}
+
+.headers-summary .raw-headers .tabpanel-summary-label {
+  padding: 0 0 4px 0;
+}
+
+.empty-notice {
+  color: var(--theme-body-color-alt);
+  padding: 3px 8px;
+}
+
+.response-summary {
+  display: flex;
+}
+
+.editor-container,
+.editor-mount,
+.panel-container iframe {
+  border: none;
+  width: 100%;
+  height: 100%;
+}
+
+.network-details-panel {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.split-box {
+  overflow: hidden;
+}
+
+html,
+body,
+.root,
+.network-monitor,
+.monitor-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }

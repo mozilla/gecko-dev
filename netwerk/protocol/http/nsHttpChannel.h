@@ -29,6 +29,7 @@
 #include "nsICorsPreflightCallback.h"
 #include "AlternateServices.h"
 #include "nsIHstsPrimingCallback.h"
+#include "nsIRaceCacheWithNetwork.h"
 
 class nsDNSPrefetch;
 class nsICancelable;
@@ -43,8 +44,9 @@ class Http2PushedStream;
 class HttpChannelSecurityWarningReporter
 {
 public:
-  virtual nsresult ReportSecurityMessage(const nsAString& aMessageTag,
-                                         const nsAString& aMessageCategory) = 0;
+  virtual MOZ_MUST_USE nsresult
+  ReportSecurityMessage(const nsAString& aMessageTag,
+                        const nsAString& aMessageCategory) = 0;
 };
 
 //-----------------------------------------------------------------------------
@@ -77,6 +79,8 @@ class nsHttpChannel final : public HttpBaseChannel
                           , public nsICorsPreflightCallback
                           , public nsIChannelWithDivertableParentListener
                           , public nsIHstsPrimingCallback
+                          , public nsIRaceCacheWithNetwork
+                          , public nsITimerCallback
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
@@ -97,6 +101,8 @@ public:
     NS_DECL_NSIDNSLISTENER
     NS_DECL_NSICHANNELWITHDIVERTABLEPARENTLISTENER
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_HTTPCHANNEL_IID)
+    NS_DECL_NSIRACECACHEWITHNETWORK
+    NS_DECL_NSITIMERCALLBACK
 
     // nsIHttpAuthenticableChannel. We can't use
     // NS_DECL_NSIHTTPAUTHENTICABLECHANNEL because it duplicates cancel() and
@@ -110,6 +116,7 @@ public:
     NS_IMETHOD SetWWWCredentials(const nsACString & aCredentials) override;
     NS_IMETHOD OnAuthAvailable() override;
     NS_IMETHOD OnAuthCancelled(bool userCancel) override;
+    NS_IMETHOD CloseStickyConnection() override;
     // Functions we implement from nsIHttpAuthenticableChannel but are
     // declared in HttpBaseChannel must be implemented in this class. We
     // just call the HttpBaseChannel:: impls.
@@ -121,12 +128,14 @@ public:
 
     nsHttpChannel();
 
-    virtual nsresult Init(nsIURI *aURI, uint32_t aCaps, nsProxyInfo *aProxyInfo,
-                          uint32_t aProxyResolveFlags,
-                          nsIURI *aProxyURI,
-                          const nsID& aChannelId) override;
+    virtual MOZ_MUST_USE nsresult Init(nsIURI *aURI, uint32_t aCaps,
+                                       nsProxyInfo *aProxyInfo,
+                                       uint32_t aProxyResolveFlags,
+                                       nsIURI *aProxyURI,
+                                       const nsID& aChannelId) override;
 
-    nsresult OnPush(const nsACString &uri, Http2PushedStream *pushedStream);
+    MOZ_MUST_USE nsresult OnPush(const nsACString &uri,
+                                 Http2PushedStream *pushedStream);
 
     static bool IsRedirectStatus(uint32_t status);
 
@@ -170,31 +179,34 @@ public:
     NS_IMETHOD OnPreflightSucceeded() override;
     NS_IMETHOD OnPreflightFailed(nsresult aError) override;
 
-    nsresult AddSecurityMessage(const nsAString& aMessageTag,
-                                const nsAString& aMessageCategory) override;
+    MOZ_MUST_USE nsresult
+    AddSecurityMessage(const nsAString& aMessageTag,
+                       const nsAString& aMessageCategory) override;
 
     void SetWarningReporter(HttpChannelSecurityWarningReporter* aReporter)
       { mWarningReporter = aReporter; }
 
 public: /* internal necko use only */
 
+    using InitLocalBlockListCallback = std::function<void(bool)>;
+
     void InternalSetUploadStream(nsIInputStream *uploadStream)
       { mUploadStream = uploadStream; }
     void SetUploadStreamHasHeaders(bool hasHeaders)
       { mUploadStreamHasHeaders = hasHeaders; }
 
-    nsresult SetReferrerWithPolicyInternal(nsIURI *referrer,
-                                           uint32_t referrerPolicy) {
+    MOZ_MUST_USE nsresult
+    SetReferrerWithPolicyInternal(nsIURI *referrer, uint32_t referrerPolicy) {
         nsAutoCString spec;
         nsresult rv = referrer->GetAsciiSpec(spec);
         if (NS_FAILED(rv)) return rv;
         mReferrer = referrer;
         mReferrerPolicy = referrerPolicy;
-        mRequestHead.SetHeader(nsHttp::Referer, spec);
-        return NS_OK;
+        rv = mRequestHead.SetHeader(nsHttp::Referer, spec);
+        return rv;
     }
 
-    nsresult SetTopWindowURI(nsIURI* aTopWindowURI) {
+    MOZ_MUST_USE nsresult SetTopWindowURI(nsIURI* aTopWindowURI) {
         mTopWindowURI = aTopWindowURI;
         return NS_OK;
     }
@@ -204,13 +216,13 @@ public: /* internal necko use only */
         return mRequestTime;
     }
 
-    nsresult OpenCacheEntry(bool usingSSL);
-    nsresult ContinueConnect();
+    MOZ_MUST_USE nsresult OpenCacheEntry(bool usingSSL);
+    MOZ_MUST_USE nsresult ContinueConnect();
 
     // If the load is mixed-content, build and send an HSTS priming request.
-    nsresult TryHSTSPriming();
+    MOZ_MUST_USE nsresult TryHSTSPriming();
 
-    nsresult StartRedirectChannelToURI(nsIURI *, uint32_t);
+    MOZ_MUST_USE nsresult StartRedirectChannelToURI(nsIURI *, uint32_t);
 
     // This allows cache entry to be marked as foreign even after channel itself
     // is gone.  Needed for e10s (see HttpChannelParent::RecvDocumentChannelCleanup)
@@ -265,6 +277,10 @@ public: /* internal necko use only */
     bool AwaitingCacheCallbacks();
     void SetCouldBeSynthesized();
 
+    // Return true if the latest ODA is invoked by mCachePump.
+    // Should only be called on the same thread as ODA.
+    bool IsReadingFromCache() const { return mIsReadingFromCache; }
+
 private: // used for alternate service validation
     RefPtr<TransactionObserver> mTransactionObserver;
 public:
@@ -279,85 +295,101 @@ private:
     typedef nsresult (nsHttpChannel::*nsContinueRedirectionFunc)(nsresult result);
 
     bool     RequestIsConditional();
+
+    // Connections will only be established in this function.
+    // (including DNS prefetch and speculative connection.)
+    nsresult BeginConnectActual();
+
+    // We might synchronously or asynchronously call BeginConnectActual,
+    // which includes DNS prefetch and speculative connection, according to
+    // whether an async tracker lookup is required. If the tracker lookup
+    // is required, this funciton will just return NS_OK and BeginConnectActual()
+    // will be called when callback. See Bug 1325054 for more information.
     nsresult BeginConnect();
-    nsresult ContinueBeginConnectWithResult();
+
+    MOZ_MUST_USE nsresult ContinueBeginConnectWithResult();
     void     ContinueBeginConnect();
-    nsresult Connect();
+    MOZ_MUST_USE nsresult Connect();
     void     SpeculativeConnect();
-    nsresult SetupTransaction();
+    MOZ_MUST_USE nsresult SetupTransaction();
     void     SetupTransactionRequestContext();
-    nsresult CallOnStartRequest();
-    nsresult ProcessResponse();
-    nsresult ContinueProcessResponse1(nsresult);
-    nsresult ContinueProcessResponse2(nsresult);
-    nsresult ProcessNormal();
-    nsresult ContinueProcessNormal(nsresult);
+    MOZ_MUST_USE nsresult CallOnStartRequest();
+    MOZ_MUST_USE nsresult ProcessResponse();
+    void                  AsyncContinueProcessResponse();
+    MOZ_MUST_USE nsresult ContinueProcessResponse1();
+    MOZ_MUST_USE nsresult ContinueProcessResponse2(nsresult);
+    MOZ_MUST_USE nsresult ContinueProcessResponse3(nsresult);
+    MOZ_MUST_USE nsresult ProcessNormal();
+    MOZ_MUST_USE nsresult ContinueProcessNormal(nsresult);
     void     ProcessAltService();
     bool     ShouldBypassProcessNotModified();
-    nsresult ProcessNotModified();
-    nsresult AsyncProcessRedirection(uint32_t httpStatus);
-    nsresult ContinueProcessRedirection(nsresult);
-    nsresult ContinueProcessRedirectionAfterFallback(nsresult);
-    nsresult ProcessFailedProxyConnect(uint32_t httpStatus);
-    nsresult ProcessFallback(bool *waitingForRedirectCallback);
-    nsresult ContinueProcessFallback(nsresult);
+    MOZ_MUST_USE nsresult ProcessNotModified();
+    MOZ_MUST_USE nsresult AsyncProcessRedirection(uint32_t httpStatus);
+    MOZ_MUST_USE nsresult ContinueProcessRedirection(nsresult);
+    MOZ_MUST_USE nsresult ContinueProcessRedirectionAfterFallback(nsresult);
+    MOZ_MUST_USE nsresult ProcessFailedProxyConnect(uint32_t httpStatus);
+    MOZ_MUST_USE nsresult ProcessFallback(bool *waitingForRedirectCallback);
+    MOZ_MUST_USE nsresult ContinueProcessFallback(nsresult);
     void     HandleAsyncAbort();
-    nsresult EnsureAssocReq();
+    MOZ_MUST_USE nsresult EnsureAssocReq();
     void     ProcessSSLInformation();
     bool     IsHTTPS();
 
-    nsresult ContinueOnStartRequest1(nsresult);
-    nsresult ContinueOnStartRequest2(nsresult);
-    nsresult ContinueOnStartRequest3(nsresult);
+    MOZ_MUST_USE nsresult ContinueOnStartRequest1(nsresult);
+    MOZ_MUST_USE nsresult ContinueOnStartRequest2(nsresult);
+    MOZ_MUST_USE nsresult ContinueOnStartRequest3(nsresult);
+
+    bool InitLocalBlockList(const InitLocalBlockListCallback& aCallback);
 
     // redirection specific methods
     void     HandleAsyncRedirect();
     void     HandleAsyncAPIRedirect();
-    nsresult ContinueHandleAsyncRedirect(nsresult);
+    MOZ_MUST_USE nsresult ContinueHandleAsyncRedirect(nsresult);
     void     HandleAsyncNotModified();
     void     HandleAsyncFallback();
-    nsresult ContinueHandleAsyncFallback(nsresult);
-    nsresult PromptTempRedirect();
-    virtual  nsresult SetupReplacementChannel(nsIURI *, nsIChannel *,
-                                              bool preserveMethod,
-                                              uint32_t redirectFlags) override;
+    MOZ_MUST_USE nsresult ContinueHandleAsyncFallback(nsresult);
+    MOZ_MUST_USE nsresult PromptTempRedirect();
+    virtual MOZ_MUST_USE nsresult
+    SetupReplacementChannel(nsIURI *, nsIChannel *, bool preserveMethod,
+                            uint32_t redirectFlags) override;
 
     // proxy specific methods
-    nsresult ProxyFailover();
-    nsresult AsyncDoReplaceWithProxy(nsIProxyInfo *);
-    nsresult ContinueDoReplaceWithProxy(nsresult);
-    nsresult ResolveProxy();
+    MOZ_MUST_USE nsresult ProxyFailover();
+    MOZ_MUST_USE nsresult AsyncDoReplaceWithProxy(nsIProxyInfo *);
+    MOZ_MUST_USE nsresult ContinueDoReplaceWithProxy(nsresult);
+    MOZ_MUST_USE nsresult ResolveProxy();
 
     // cache specific methods
-    nsresult OnOfflineCacheEntryAvailable(nsICacheEntry *aEntry,
-                                          bool aNew,
-                                          nsIApplicationCache* aAppCache,
-                                          nsresult aResult);
-    nsresult OnNormalCacheEntryAvailable(nsICacheEntry *aEntry,
-                                         bool aNew,
-                                         nsresult aResult);
-    nsresult OpenOfflineCacheEntryForWriting();
-    nsresult OnOfflineCacheEntryForWritingAvailable(nsICacheEntry *aEntry,
-                                                    nsIApplicationCache* aAppCache,
-                                                    nsresult aResult);
-    nsresult OnCacheEntryAvailableInternal(nsICacheEntry *entry,
-                                      bool aNew,
-                                      nsIApplicationCache* aAppCache,
-                                      nsresult status);
-    nsresult GenerateCacheKey(uint32_t postID, nsACString &key);
-    nsresult UpdateExpirationTime();
-    nsresult CheckPartial(nsICacheEntry* aEntry, int64_t *aSize, int64_t *aContentLength);
+    MOZ_MUST_USE nsresult
+    OnOfflineCacheEntryAvailable(nsICacheEntry *aEntry, bool aNew,
+                                 nsIApplicationCache* aAppCache,
+                                 nsresult aResult);
+    MOZ_MUST_USE nsresult OnNormalCacheEntryAvailable(nsICacheEntry *aEntry,
+                                                      bool aNew,
+                                                      nsresult aResult);
+    MOZ_MUST_USE nsresult OpenOfflineCacheEntryForWriting();
+    MOZ_MUST_USE nsresult
+    OnOfflineCacheEntryForWritingAvailable(nsICacheEntry *aEntry,
+                                           nsIApplicationCache* aAppCache,
+                                           nsresult aResult);
+    MOZ_MUST_USE nsresult
+    OnCacheEntryAvailableInternal(nsICacheEntry *entry, bool aNew,
+                                  nsIApplicationCache* aAppCache,
+                                  nsresult status);
+    MOZ_MUST_USE nsresult GenerateCacheKey(uint32_t postID, nsACString &key);
+    MOZ_MUST_USE nsresult UpdateExpirationTime();
+    MOZ_MUST_USE nsresult CheckPartial(nsICacheEntry* aEntry, int64_t *aSize, int64_t *aContentLength);
     bool ShouldUpdateOfflineCacheEntry();
-    nsresult ReadFromCache(bool alreadyMarkedValid);
+    MOZ_MUST_USE nsresult ReadFromCache(bool alreadyMarkedValid);
     void     CloseCacheEntry(bool doomOnFailure);
     void     CloseOfflineCacheEntry();
-    nsresult InitCacheEntry();
+    MOZ_MUST_USE nsresult InitCacheEntry();
     void     UpdateInhibitPersistentCachingFlag();
-    nsresult InitOfflineCacheEntry();
-    nsresult AddCacheEntryHeaders(nsICacheEntry *entry);
-    nsresult FinalizeCacheEntry();
-    nsresult InstallCacheListener(int64_t offset = 0);
-    nsresult InstallOfflineCacheListener(int64_t offset = 0);
+    MOZ_MUST_USE nsresult InitOfflineCacheEntry();
+    MOZ_MUST_USE nsresult AddCacheEntryHeaders(nsICacheEntry *entry);
+    MOZ_MUST_USE nsresult FinalizeCacheEntry();
+    MOZ_MUST_USE nsresult InstallCacheListener(int64_t offset = 0);
+    MOZ_MUST_USE nsresult InstallOfflineCacheListener(int64_t offset = 0);
     void     MaybeInvalidateCacheEntryForSubsequentGet();
     void     AsyncOnExamineCachedResponse();
 
@@ -365,15 +397,15 @@ private:
     void ClearBogusContentEncodingIfNeeded();
 
     // byte range request specific methods
-    nsresult ProcessPartialContent();
-    nsresult OnDoneReadingPartialCacheEntry(bool *streamDone);
+    MOZ_MUST_USE nsresult ProcessPartialContent();
+    MOZ_MUST_USE nsresult OnDoneReadingPartialCacheEntry(bool *streamDone);
 
-    nsresult DoAuthRetry(nsAHttpConnection *);
+    MOZ_MUST_USE nsresult DoAuthRetry(nsAHttpConnection *);
 
     void     HandleAsyncRedirectChannelToHttps();
-    nsresult StartRedirectChannelToHttps();
-    nsresult ContinueAsyncRedirectChannelToURI(nsresult rv);
-    nsresult OpenRedirectChannel(nsresult rv);
+    MOZ_MUST_USE nsresult StartRedirectChannelToHttps();
+    MOZ_MUST_USE nsresult ContinueAsyncRedirectChannelToURI(nsresult rv);
+    MOZ_MUST_USE nsresult OpenRedirectChannel(nsresult rv);
 
     /**
      * A function that takes care of reading STS and PKP headers and enforcing
@@ -381,7 +413,7 @@ private:
      * requires the channel to be trusted or any STS or PKP header data on
      * the channel is ignored. This is called from ProcessResponse.
      */
-    nsresult ProcessSecurityHeaders();
+    MOZ_MUST_USE nsresult ProcessSecurityHeaders();
 
     /**
      * Taking care of the Content-Signature header and fail the channel if
@@ -392,7 +424,8 @@ private:
      * successful, the load proceeds as usual. If the verification fails, a
      * NS_ERROR_INVALID_SIGNATURE is thrown and a fallback loaded in nsDocShell
      */
-    nsresult ProcessContentSignatureHeader(nsHttpResponseHead *aResponseHead);
+    MOZ_MUST_USE nsresult
+    ProcessContentSignatureHeader(nsHttpResponseHead *aResponseHead);
 
     /**
      * A function that will, if the feature is enabled, send security reports.
@@ -404,13 +437,13 @@ private:
      * some basic sanity checks have been applied to the channel. Called
      * from ProcessSecurityHeaders.
      */
-    nsresult ProcessSingleSecurityHeader(uint32_t aType,
-                                         nsISSLStatus *aSSLStatus,
-                                         uint32_t aFlags);
+    MOZ_MUST_USE nsresult ProcessSingleSecurityHeader(uint32_t aType,
+                                                      nsISSLStatus *aSSLStatus,
+                                                      uint32_t aFlags);
 
     void InvalidateCacheEntryForLocation(const char *location);
     void AssembleCacheKey(const char *spec, uint32_t postID, nsACString &key);
-    nsresult CreateNewURI(const char *loc, nsIURI **newURI);
+    MOZ_MUST_USE nsresult CreateNewURI(const char *loc, nsIURI **newURI);
     void DoInvalidateCacheEntry(nsIURI* aURI);
 
     // Ref RFC2616 13.10: "invalidation... MUST only be performed if
@@ -429,6 +462,10 @@ private:
                rv == NS_ERROR_MALFORMED_URI;
     }
 
+    // Report net vs cache time telemetry
+    void ReportNetVSCacheTelemetry();
+    int64_t ComputeTelemetryBucketNumber(int64_t difftime_ms);
+
     // Create a aggregate set of the current notification callbacks
     // and ensure the transaction is updated to use it.
     void UpdateAggregateCallbacks();
@@ -437,13 +474,15 @@ private:
     bool ResponseWouldVary(nsICacheEntry* entry);
     bool IsResumable(int64_t partialLen, int64_t contentLength,
                      bool ignoreMissingPartialLen = false) const;
-    nsresult MaybeSetupByteRangeRequest(int64_t partialLen, int64_t contentLength,
-                                        bool ignoreMissingPartialLen = false);
-    nsresult SetupByteRangeRequest(int64_t partialLen);
+    MOZ_MUST_USE nsresult
+    MaybeSetupByteRangeRequest(int64_t partialLen, int64_t contentLength,
+                               bool ignoreMissingPartialLen = false);
+    MOZ_MUST_USE nsresult SetupByteRangeRequest(int64_t partialLen);
     void UntieByteRangeRequest();
     void UntieValidationRequest();
-    nsresult OpenCacheInputStream(nsICacheEntry* cacheEntry, bool startBuffering,
-                                  bool checkingAppCacheEntry);
+    MOZ_MUST_USE nsresult OpenCacheInputStream(nsICacheEntry* cacheEntry,
+                                               bool startBuffering,
+                                               bool checkingAppCacheEntry);
 
     void SetPushedStream(Http2PushedStream *stream);
 
@@ -452,6 +491,19 @@ private:
     void SetLoadGroupUserAgentOverride();
 
     void SetDoNotTrack();
+
+private:
+    // this section is for main-thread-only object
+    // all the references need to be proxy released on main thread.
+    nsCOMPtr<nsIApplicationCache> mApplicationCacheForWrite;
+    // auth specific data
+    nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
+    nsCOMPtr<nsIURI> mRedirectURI;
+    nsCOMPtr<nsIChannel> mRedirectChannel;
+    nsCOMPtr<nsIChannel> mPreflightChannel;
+
+    // Proxy release all members above on main thread.
+    void ReleaseMainThreadOnlyReferences();
 
 private:
     nsCOMPtr<nsICancelable>           mProxyRequest;
@@ -479,10 +531,8 @@ private:
 
     nsCOMPtr<nsICacheEntry> mOfflineCacheEntry;
     uint32_t                          mOfflineCacheLastModifiedTime;
-    nsCOMPtr<nsIApplicationCache>     mApplicationCacheForWrite;
 
-    // auth specific data
-    nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
+    mozilla::TimeStamp                mOnStartRequestTimestamp;
 
     // States of channel interception
     enum {
@@ -506,12 +556,13 @@ private:
     friend class AutoRedirectVetoNotifier;
     friend class HttpAsyncAborter<nsHttpChannel>;
 
-    nsCOMPtr<nsIURI>                  mRedirectURI;
-    nsCOMPtr<nsIChannel>              mRedirectChannel;
     uint32_t                          mRedirectType;
 
     static const uint32_t WAIT_FOR_CACHE_ENTRY = 1;
     static const uint32_t WAIT_FOR_OFFLINE_CACHE_ENTRY = 2;
+
+    bool                              mCacheOpenWithPriority;
+    uint32_t                          mCacheQueueSizeWhenOpen;
 
     // state flags
     uint32_t                          mCachedContentIsValid     : 1;
@@ -563,7 +614,8 @@ private:
     // by chunking, content-length, or h2 end-stream framing
     uint32_t                          mStronglyFramed : 1;
 
-    nsCOMPtr<nsIChannel>              mPreflightChannel;
+    // true if an HTTP transaction is created for the socket thread
+    uint32_t                          mUsedNetwork : 1;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 
@@ -575,7 +627,7 @@ private:
     // tracking (if tracking protection is enabled) blocklist
     bool                              mLocalBlocklist;
 
-    nsresult WaitForRedirectCallback();
+    MOZ_MUST_USE nsresult WaitForRedirectCallback();
     void PushRedirectAsyncFunc(nsContinueRedirectionFunc func);
     void PopRedirectAsyncFunc(nsContinueRedirectionFunc func);
 
@@ -585,6 +637,38 @@ private:
     HttpChannelSecurityWarningReporter* mWarningReporter;
 
     RefPtr<ADivertableParentChannel> mParentChannel;
+
+    // True if the channel is reading from cache.
+    Atomic<bool> mIsReadingFromCache;
+
+    // These next members are only used in unit tests to delay the call to
+    // cache->AsyncOpenURI in order to race the cache with the network.
+    nsCOMPtr<nsITimer> mCacheOpenTimer;
+    std::function<void(nsHttpChannel*)> mCacheOpenFunc;
+    uint32_t mCacheOpenDelay = 0;
+
+    // We need to remember which is the source of the response we are using.
+    enum {
+        RESPONSE_PENDING,           // response is pending
+        RESPONSE_FROM_CACHE,        // response coming from cache. no network.
+        RESPONSE_FROM_NETWORK,      // response coming from the network
+    } mFirstResponseSource = RESPONSE_PENDING;
+
+    nsresult TriggerNetwork(int32_t aTimeout);
+    void CancelNetworkRequest(nsresult aStatus);
+    // Timer used to delay the network request, or to trigger the network
+    // request if retrieving the cache entry takes too long.
+    nsCOMPtr<nsITimer> mNetworkTriggerTimer;
+    // Is true if the network request has been triggered.
+    bool mNetworkTriggered = false;
+    bool mWaitingForProxy = false;
+    // Is true if the onCacheEntryAvailable callback has been called.
+    Atomic<bool> mOnCacheAvailableCalled;
+    // Will be true if the onCacheEntryAvailable callback is not called by the
+    // time we send the network request. This could also be true when we are
+    // bypassing the cache.
+    Atomic<bool> mRacingNetAndCache;
+
 protected:
     virtual void DoNotifyListenerCleanup() override;
 

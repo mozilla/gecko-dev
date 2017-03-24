@@ -1,6 +1,3 @@
-// |jit-test| test-also-wasm-baseline
-load(libdir + "wasm.js");
-
 assertEq(wasmEvalText('(module (func (result i32) (i32.const -1)) (export "" 0))').exports[""](), -1);
 assertEq(wasmEvalText('(module (func (result i32) (i32.const -2147483648)) (export "" 0))').exports[""](), -2147483648);
 assertEq(wasmEvalText('(module (func (result i32) (i32.const 4294967295)) (export "" 0))').exports[""](), -1);
@@ -108,14 +105,28 @@ testBinary32('add', 40, 2, 42);
 testBinary32('sub', 40, 2, 38);
 testBinary32('mul', 40, 2, 80);
 testBinary32('div_s', -40, 2, -20);
+testBinary32('div_s', -40, 8, -5);
+testBinary32('div_s', -40, 7, -5);
+testBinary32('div_s', 40, 8, 5);
+testBinary32('div_s', 40, 7, 5);
 testBinary32('div_u', -40, 2, 2147483628);
+testBinary32('div_u', 40, 2, 20);
+testBinary32('div_u', 40, 8, 5);
 testBinary32('rem_s', 40, -3, 1);
+testBinary32('rem_s', 0, -3, 0);
+testBinary32('rem_s', 5, 2, 1);
+testBinary32('rem_s', 65, 64, 1);
+testBinary32('rem_s', -65, 64, -1);
 testBinary32('rem_u', 40, -3, 40);
+testBinary32('rem_u', 41, 8, 1);
 testBinary32('and', 42, 6, 2);
 testBinary32('or', 42, 6, 46);
 testBinary32('xor', 42, 2, 40);
+testBinary32('shl', 40, 0, 40);
 testBinary32('shl', 40, 2, 160);
+testBinary32('shr_s', -40, 0, -40);
 testBinary32('shr_s', -40, 2, -10);
+testBinary32('shr_u', -40, 0, -40);
 testBinary32('shr_u', -40, 2, 1073741814);
 
 testTrap32('div_s', 42, 0, /integer divide by zero/);
@@ -167,16 +178,26 @@ assertEq(testTrunc(13.37), 1);
     testBinary64('mul', "0x80000000", 2, "0x100000000");
     testBinary64('mul', "0x7fffffff", 2, "0xfffffffe");
     testBinary64('div_s', -40, 2, -20);
+    testBinary64('div_s', -40, 8, -5);
+    testBinary64('div_s', -40, 7, -5);
+    testBinary64('div_s', 40, 8, 5);
+    testBinary64('div_s', 40, 7, 5);
     testBinary64('div_s', "0x1234567887654321", 2, "0x91a2b3c43b2a190");
     testBinary64('div_s', "0x1234567887654321", "0x1000000000", "0x1234567");
     testBinary64('div_u', -40, 2, "0x7fffffffffffffec");
     testBinary64('div_u', "0x1234567887654321", 9, "0x205d0b80f0b4059");
+    testBinary64('div_u', 40, 2, 20);
+    testBinary64('div_u', 40, 8, 5);
     testBinary64('rem_s', 40, -3, 1);
+    testBinary64('rem_s', 0, -3, 0);
+    testBinary64('rem_s', 5, 2, 1);
+    testBinary64('rem_s', 65, 64, 1);
     testBinary64('rem_s', "0x1234567887654321", "0x1000000000", "0x887654321");
     testBinary64('rem_s', "0x7fffffffffffffff", -1, 0);
     testBinary64('rem_s', "0x8000000000000001", 1000, -807);
     testBinary64('rem_s', "0x8000000000000000", -1, 0);
     testBinary64('rem_u', 40, -3, 40);
+    testBinary64('rem_u', 41, 8, 1);
     testBinary64('rem_u', "0x1234567887654321", "0x1000000000", "0x887654321");
     testBinary64('rem_u', "0x8000000000000000", -1, "0x8000000000000000");
     testBinary64('rem_u', "0x8ff00ff00ff00ff0", "0x100000001", "0x80000001");
@@ -187,31 +208,71 @@ assertEq(testTrunc(13.37), 1);
     testTrap64('rem_s', 10, 0, /integer divide by zero/);
     testTrap64('rem_u', 10, 0, /integer divide by zero/);
 
-    testBinary64('and', 42, 6, 2);
+    // Bitops.
     testBinary64('or', 42, 6, 46);
-    testBinary64('xor', 42, 2, 40);
-    testBinary64('and', "0x8765432112345678", "0xffff0000ffff0000", "0x8765000012340000");
     testBinary64('or', "0x8765432112345678", "0xffff0000ffff0000", "0xffff4321ffff5678");
+
+    testBinary64('xor', 42, 2, 40);
     testBinary64('xor', "0x8765432112345678", "0xffff0000ffff0000", "0x789a4321edcb5678");
-    testBinary64('shl', 40, 2, 160);
-    testBinary64('shr_s', -40, 2, -10);
-    testBinary64('shr_u', -40, 2, "0x3ffffffffffffff6");
-    testBinary64('shl', 0xff00ff, 28, "0xff00ff0000000");
+
+    testBinary64('shl', 0xff00ff, 28, "0x0ff00ff0000000");
+    testBinary64('shl', 0xff00ff, 30, "0x3fc03fc0000000");
+    testBinary64('shl', 0xff00ff, 31, "0x7f807f80000000");
+    testBinary64('shl', 0xff00ff, 32, "0xff00ff00000000");
     testBinary64('shl', 1, 63, "0x8000000000000000");
     testBinary64('shl', 1, 64, 1);
-    testBinary64('shr_s', "0xff00ff0000000", 28, 0xff00ff);
-    testBinary64('shr_u', "0x8ffff00ff0000000", 56, 0x8f);
-    testBinary64('rotl', 40, 2, 160);
-    testBinary64('rotr', 40, 2, 10);
-    testBinary64('rotr', "0x1234567812345678", 4, "0x8123456781234567");
-    testBinary64('rotl', "0x1234567812345678", 4, "0x2345678123456781");
-    testBinary64('rotl', "0x1234567812345678", 60, "0x8123456781234567");
-    testBinary64('rotr', "0x1234567812345678", 60, "0x2345678123456781");
-    testBinary64('rotr', 40, 0, 40);
-    testBinary64('rotl', 40, 0, 40);
-    testBinary64('and', 42, 0, 0);
-    testBinary64('and', "0x0000000012345678", "0xffff0000ffff0000", "0x0000000012340000");
+    testBinary64('shl', 40, 2, 160);
+    testBinary64('shl', 40, 0, 40);
 
+    testBinary64('shr_s', -40, 0, -40);
+    testBinary64('shr_s', -40, 2, -10);
+    testBinary64('shr_s', "0xff00ff0000000", 28, 0xff00ff);
+    testBinary64('shr_s', "0xff00ff0000000", 30, 0x3fc03f);
+    testBinary64('shr_s', "0xff00ff0000000", 31, 0x1fe01f);
+    testBinary64('shr_s', "0xff00ff0000000", 32, 0x0ff00f);
+
+    testBinary64('shr_u', -40, 0, -40);
+    testBinary64('shr_u', -40, 2, "0x3ffffffffffffff6");
+    testBinary64('shr_u', "0x8ffff00ff0000000", 30, "0x23fffc03f");
+    testBinary64('shr_u', "0x8ffff00ff0000000", 31, "0x11fffe01f");
+    testBinary64('shr_u', "0x8ffff00ff0000000", 32, "0x08ffff00f");
+    testBinary64('shr_u', "0x8ffff00ff0000000", 56, 0x8f);
+
+    testBinary64('and', 42, 0, 0);
+    testBinary64('and', 42, 6, 2);
+    testBinary64('and', "0x0000000012345678", "0xffff0000ffff0000", "0x0000000012340000");
+    testBinary64('and', "0x8765432112345678", "0xffff0000ffff0000", "0x8765000012340000");
+
+    // Rotations.
+    testBinary64('rotl', 40, 0, 0x28);
+    testBinary64('rotl', 40, 2, 0xA0);
+    testBinary64('rotl', 40, 8, 0x2800);
+    testBinary64('rotl', 40, 30, "0xA00000000");
+    testBinary64('rotl', 40, 31, "0x1400000000");
+    testBinary64('rotl', 40, 32, "0x2800000000");
+
+    testBinary64('rotl', "0x1234567812345678", 4, "0x2345678123456781");
+    testBinary64('rotl', "0x1234567812345678", 30, "0x048D159E048D159E");
+    testBinary64('rotl', "0x1234567812345678", 31, "0x091A2B3C091A2B3C");
+    testBinary64('rotl', "0x1234567812345678", 32, "0x1234567812345678");
+
+    testBinary64('rotl', "0x0000000000001000", 127, "0x0000000000000800");
+
+    testBinary64('rotr', 40, 0, 0x28);
+    testBinary64('rotr', 40, 2, 0x0A);
+    testBinary64('rotr', 40, 30, "0xA000000000");
+    testBinary64('rotr', 40, 31, "0x5000000000");
+    testBinary64('rotr', 40, 32, "0x2800000000");
+
+    testBinary64('rotr', "0x1234567812345678", 4, "0x8123456781234567");
+    testBinary64('rotr', "0x1234567812345678", 30, "0x48D159E048D159E0");
+    testBinary64('rotr', "0x1234567812345678", 31, "0x2468ACF02468ACF0");
+    testBinary64('rotr', "0x1234567812345678", 32, "0x1234567812345678");
+    testBinary64('rotr', "0x1234567812345678", 60, "0x2345678123456781");
+
+    testBinary64('rotr', "0x0000000000001000", 127, "0x0000000000002000");
+
+    // Comparisons.
     testComparison64('eq', 40, 40, 1);
     testComparison64('ne', 40, 40, 0);
     testComparison64('lt_s', 40, 40, 0);

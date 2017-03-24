@@ -14,6 +14,7 @@
 #include "mozilla/dom/ScreenOrientation.h"  // for ScreenOrientation
 #include "mozilla/gfx/BasePoint.h"      // for BasePoint
 #include "mozilla/gfx/Matrix.h"         // for Matrix4x4
+#include "mozilla/layers/AnimationMetricsTracker.h" // for AnimationMetricsTracker
 #include "mozilla/layers/FrameUniformityData.h" // For FrameUniformityData
 #include "mozilla/layers/LayersMessages.h"  // for TargetConfig
 #include "mozilla/RefPtr.h"                   // for nsRefPtr
@@ -70,7 +71,7 @@ class AsyncCompositionManager final
 public:
   NS_INLINE_DECL_REFCOUNTING(AsyncCompositionManager)
 
-  explicit AsyncCompositionManager(LayerManagerComposite* aManager);
+  explicit AsyncCompositionManager(CompositorBridgeParent* aParent, HostLayerManager* aManager);
 
   /**
    * This forces the is-first-paint flag to true. This is intended to
@@ -218,7 +219,7 @@ private:
   TargetConfig mTargetConfig;
   CSSRect mContentRect;
 
-  RefPtr<LayerManagerComposite> mLayerManager;
+  RefPtr<HostLayerManager> mLayerManager;
   // When this flag is set, the next composition will be the first for a
   // particular document (i.e. the document displayed on the screen will change).
   // This happens when loading a new page or switching tabs. We notify the
@@ -238,6 +239,9 @@ private:
   LayerTransformRecorder mLayerTransformRecorder;
 
   TimeStamp mPreviousFrameTimeStamp;
+  AnimationMetricsTracker mAnimationMetricsTracker;
+
+  CompositorBridgeParent* mCompositorBridge;
 
 #ifdef MOZ_WIDGET_ANDROID
   // The following two fields are only needed on Fennec with C++ APZ, because

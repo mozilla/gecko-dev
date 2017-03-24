@@ -315,8 +315,14 @@ PrefBranch.prototype = {
         let localList = this._observers[domain].slice();
         for (let observer of localList) {
           try {
-            observer.observe(this, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID,
-                             relativeName);
+            if ("observe" in observer) {
+              observer.observe(this, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID,
+                               relativeName);
+            } else {
+              // Function-style observer -- these aren't mentioned in
+              // the IDL, but they're accepted and devtools uses them.
+              observer(this, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID, relativeName);
+            }
           } catch (e) {
             console.error(e);
           }
@@ -341,7 +347,8 @@ PrefBranch.prototype = {
     let parent = this;
     for (let branch of branchList) {
       if (!parent._children[branch]) {
-        let isParentRoot = !parent.parent;
+        let isParentRoot = !parent._parent;
+
         let branchName = (isParentRoot ? "" : parent.root + ".") + branch;
         parent._children[branch] = new PrefBranch(parent, branch, branchName);
       }
@@ -430,6 +437,8 @@ PrefBranch.prototype = {
       /* eslint-disable no-eval */
       let devtools = require("raw!prefs!devtools/client/preferences/devtools");
       eval(devtools);
+      const dbg = require("raw!prefs!devtools/client/preferences/debugger");
+      eval(dbg);
       let all = require("raw!prefs!modules/libpref/init/all");
       eval(all);
       /* eslint-enable no-eval */
@@ -599,6 +608,14 @@ const Services = {
         },
       };
     },
+  },
+
+  /**
+   * Shims for Services.obs.add/removeObserver.
+   */
+  obs: {
+    addObserver: () => {},
+    removeObserver: () => {},
   },
 };
 

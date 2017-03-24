@@ -6,7 +6,6 @@
 
 #include "mozilla/dom/cache/PrincipalVerifier.h"
 
-#include "mozilla/AppProcessChecker.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/cache/ManagerId.h"
 #include "mozilla/ipc/BackgroundParent.h"
@@ -50,7 +49,7 @@ void
 PrincipalVerifier::AddListener(Listener* aListener)
 {
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aListener);
+  MOZ_DIAGNOSTIC_ASSERT(aListener);
   MOZ_ASSERT(!mListenerList.Contains(aListener));
   mListenerList.AppendElement(aListener);
 }
@@ -59,7 +58,7 @@ void
 PrincipalVerifier::RemoveListener(Listener* aListener)
 {
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aListener);
+  MOZ_DIAGNOSTIC_ASSERT(aListener);
   MOZ_ALWAYS_TRUE(mListenerList.RemoveElement(aListener));
 }
 
@@ -72,8 +71,8 @@ PrincipalVerifier::PrincipalVerifier(Listener* aListener,
   , mResult(NS_OK)
 {
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT(mInitiatingThread);
-  MOZ_ASSERT(aListener);
+  MOZ_DIAGNOSTIC_ASSERT(mInitiatingThread);
+  MOZ_DIAGNOSTIC_ASSERT(aListener);
 
   mListenerList.AppendElement(aListener);
 }
@@ -84,11 +83,11 @@ PrincipalVerifier::~PrincipalVerifier()
   // threads, its a race to see which thread de-refs us last.  Therefore
   // we cannot guarantee which thread we destruct on.
 
-  MOZ_ASSERT(mListenerList.IsEmpty());
+  MOZ_DIAGNOSTIC_ASSERT(mListenerList.IsEmpty());
 
   // We should always be able to explicitly release the actor on the main
   // thread.
-  MOZ_ASSERT(!mActor);
+  MOZ_DIAGNOSTIC_ASSERT(!mActor);
 }
 
 NS_IMETHODIMP
@@ -145,11 +144,6 @@ PrincipalVerifier::VerifyOnMainThread()
     return;
   }
 
-  // Verify that a child process claims to own the app for this principal
-  if (NS_WARN_IF(actor && !AssertAppPrincipal(actor, principal))) {
-    DispatchToInitiatingThread(NS_ERROR_FAILURE);
-    return;
-  }
   actor = nullptr;
 
 #ifdef DEBUG
@@ -196,7 +190,7 @@ PrincipalVerifier::CompleteOnInitiatingThread()
   }
 
   // The listener must clear its reference in OnPrincipalVerified()
-  MOZ_ASSERT(mListenerList.IsEmpty());
+  MOZ_DIAGNOSTIC_ASSERT(mListenerList.IsEmpty());
 }
 
 void

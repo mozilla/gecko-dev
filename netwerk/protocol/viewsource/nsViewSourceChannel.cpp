@@ -11,7 +11,7 @@
 #include "nsContentUtils.h"
 #include "nsIHttpHeaderVisitor.h"
 #include "nsContentSecurityManager.h"
-#include "nsNullPrincipal.h"
+#include "NullPrincipal.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIInputStreamChannel.h"
 #include "mozilla/DebugOnly.h"
@@ -67,7 +67,7 @@ nsViewSourceChannel::Init(nsIURI* uri)
     // Until then we follow the principal of least privilege and use
     // nullPrincipal as the loadingPrincipal and the least permissive
     // securityflag.
-    nsCOMPtr<nsIPrincipal> nullPrincipal = nsNullPrincipal::Create();
+    nsCOMPtr<nsIPrincipal> nullPrincipal = NullPrincipal::Create();
 
     rv = pService->NewChannel2(path,
                                nullptr, // aOriginCharset
@@ -726,6 +726,27 @@ nsViewSourceChannel::SetChannelId(const nsACString& aChannelId)
 }
 
 NS_IMETHODIMP
+nsViewSourceChannel::GetTopLevelContentWindowId(uint64_t *aWindowId)
+{
+  return !mHttpChannel ? NS_ERROR_NULL_POINTER :
+      mHttpChannel->GetTopLevelContentWindowId(aWindowId);
+}
+
+NS_IMETHODIMP
+nsViewSourceChannel::SetTopLevelContentWindowId(uint64_t aWindowId)
+{
+  return !mHttpChannel ? NS_ERROR_NULL_POINTER :
+      mHttpChannel->SetTopLevelContentWindowId(aWindowId);
+}
+
+NS_IMETHODIMP
+nsViewSourceChannel::GetIsTrackingResource(bool* aIsTrackingResource)
+{
+  return !mHttpChannel ? NS_ERROR_NULL_POINTER :
+      mHttpChannel->GetIsTrackingResource(aIsTrackingResource);
+}
+
+NS_IMETHODIMP
 nsViewSourceChannel::GetRequestMethod(nsACString & aRequestMethod)
 {
     return !mHttpChannel ? NS_ERROR_NULL_POINTER :
@@ -886,7 +907,11 @@ nsViewSourceChannel::GetResponseHeader(const nsACString & aHeader,
                         nsCaseInsensitiveCStringComparator()) &&
         !aHeader.Equals(NS_LITERAL_CSTRING("X-Frame-Options"),
                         nsCaseInsensitiveCStringComparator())) {
-        return NS_OK;
+        // We simulate the NS_ERROR_NOT_AVAILABLE error which is produced by
+        // GetResponseHeader via nsHttpHeaderArray::GetHeader when the entry is
+        // not present, such that it appears as though no headers except for the
+        // whitelisted ones were set on this channel.
+        return NS_ERROR_NOT_AVAILABLE;
     }
 
     return mHttpChannel->GetResponseHeader(aHeader, aValue);
@@ -910,8 +935,9 @@ nsViewSourceChannel::VisitResponseHeaders(nsIHttpHeaderVisitor *aVisitor)
     nsAutoCString contentType;
     nsresult rv =
         mHttpChannel->GetResponseHeader(contentTypeStr, contentType);
-    if (NS_SUCCEEDED(rv))
-        aVisitor->VisitHeader(contentTypeStr, contentType);
+    if (NS_SUCCEEDED(rv)) {
+        return aVisitor->VisitHeader(contentTypeStr, contentType);
+    }
     return NS_OK;
 }
 
@@ -924,8 +950,7 @@ nsViewSourceChannel::GetOriginalResponseHeader(const nsACString & aHeader,
     if (NS_FAILED(rv)) {
         return rv;
     }
-    aVisitor->VisitHeader(aHeader, value);
-    return NS_OK;
+    return aVisitor->VisitHeader(aHeader, value);
 }
 
 NS_IMETHODIMP

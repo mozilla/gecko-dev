@@ -37,31 +37,29 @@
     uri: "https://foo.com/", lastVisit: today},
 
    // Begin the invalid queries: wrong search term
-   {isInQuery: false, isVisit:true, isDetails: true, title: "m o z",
+   {isInQuery: false, isVisit: true, isDetails: true, title: "m o z",
     uri: "http://foo.com/tooearly.php", lastVisit: today},
 
    // Test bad URI
-   {isInQuery: false, isVisit:true, isDetails: true, title: "moz",
+   {isInQuery: false, isVisit: true, isDetails: true, title: "moz",
     uri: "http://sffoo.com/justwrong.htm", lastVisit: yesterday},
 
    // Test what we do with escaping in titles
-   {isInQuery: false, isVisit:true, isDetails: true, title: "m%0o%0z",
+   {isInQuery: false, isVisit: true, isDetails: true, title: "m%0o%0z",
     uri: "http://foo.com/changeme1.htm", lastVisit: yesterday},
 
    // Test another invalid title - for updating later
-   {isInQuery: false, isVisit:true, isDetails: true, title: "m,oz",
+   {isInQuery: false, isVisit: true, isDetails: true, title: "m,oz",
     uri: "http://foo.com/changeme2.htm", lastVisit: yesterday}];
 
 /**
  * This test will test Queries that use relative search terms and domain options
  */
-function run_test()
-{
+function run_test() {
   run_next_test();
 }
 
-add_task(function* test_searchterms_domain()
-{
+add_task(function* test_searchterms_domain() {
   yield task_populateDB(testData);
   var query = PlacesUtils.history.getNewQuery();
   query.searchTerms = "moz";
@@ -79,7 +77,7 @@ add_task(function* test_searchterms_domain()
   root.containerOpen = true;
 
   do_print("Number of items in result set: " + root.childCount);
-  for (var i=0; i < root.childCount; ++i) {
+  for (var i = 0; i < root.childCount; ++i) {
     do_print("result: " + root.getChild(i).uri + " Title: " + root.getChild(i).title);
   }
 
@@ -104,7 +102,7 @@ add_task(function* test_searchterms_domain()
   // Add one and take one out of query set, and simply change one so that it
   // still applies to the query.
   do_print("Updating More Items");
-  var change3 = [{isDetails: true, uri:"http://foo.com/changeme2.htm",
+  var change3 = [{isDetails: true, uri: "http://foo.com/changeme2.htm",
                   title: "moz"},
                  {isDetails: true, uri: "http://mail.foo.com/yiihah",
                   title: "moz now updated"},

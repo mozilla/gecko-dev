@@ -7,14 +7,15 @@ Support for running hazard jobs via dedicated scripts
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-from voluptuous import Schema, Required, Optional, Any
+from taskgraph.util.schema import Schema
+from voluptuous import Required, Optional, Any
 
 from taskgraph.transforms.job import run_job_using
 from taskgraph.transforms.job.common import (
     docker_worker_add_workspace_cache,
     docker_worker_setup_secrets,
     docker_worker_add_public_artifacts,
-    docker_worker_support_vcs_checkout,
+    support_vcs_checkout,
 )
 
 haz_run_schema = Schema({
@@ -49,7 +50,7 @@ def docker_worker_hazard(config, job, taskdesc):
     docker_worker_add_public_artifacts(config, job, taskdesc)
     docker_worker_add_workspace_cache(config, job, taskdesc)
     docker_worker_setup_secrets(config, job, taskdesc)
-    docker_worker_support_vcs_checkout(config, job, taskdesc)
+    support_vcs_checkout(config, job, taskdesc)
 
     env = worker['env']
     env.update({
@@ -74,8 +75,6 @@ def docker_worker_hazard(config, job, taskdesc):
         'docker-worker:relengapi-proxy:tooltool.download.public',
     ])
     env['TOOLTOOL_CACHE'] = '/home/worker/tooltool-cache'
-    env['TOOLTOOL_REPO'] = 'https://github.com/mozilla/build-tooltool'
-    env['TOOLTOOL_REV'] = 'master'
 
     # build-haz-linux.sh needs this otherwise it assumes the checkout is in
     # the workspace.

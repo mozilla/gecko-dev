@@ -195,7 +195,7 @@ add_task(function* test_subprocess_round_trip_perf() {
 
     let now = Date.now();
     const COUNT = 1000;
-    for (let i = 0; i < COUNT; i++) {
+    for (let j = 0; j < COUNT; j++) {
       let [output] = yield Promise.all([
         read(proc.stdout),
         proc.stdin.write(LINE),
@@ -460,7 +460,7 @@ add_task(function* test_subprocess_invalid_json() {
 
 if (AppConstants.isPlatformAndVersionAtLeast("win", "6")) {
   add_task(function* test_subprocess_inherited_descriptors() {
-    let {ctypes, libc, win32} = Cu.import("resource://gre/modules/subprocess/subprocess_win.jsm");
+    let {ctypes, libc, win32} = Cu.import("resource://gre/modules/subprocess/subprocess_win.jsm", {});
 
     let secAttr = new win32.SECURITY_ATTRIBUTES();
     secAttr.nLength = win32.SECURITY_ATTRIBUTES.size;
@@ -539,12 +539,12 @@ add_task(function* test_subprocess_workdir() {
       arguments: ["-u", TEST_SCRIPT, "pwd"],
     }, options));
 
-    let pwd = read(proc.stdout);
+    let pwdOutput = read(proc.stdout);
 
     let {exitCode} = yield proc.wait();
     equal(exitCode, 0, "Got expected exit code");
 
-    return pwd;
+    return pwdOutput;
   }
 
   let dir = yield pwd({});
@@ -753,7 +753,7 @@ add_task(function* test_bad_executable() {
 
 
 add_task(function* test_cleanup() {
-  let {SubprocessImpl} = Cu.import("resource://gre/modules/Subprocess.jsm");
+  let {SubprocessImpl} = Cu.import("resource://gre/modules/Subprocess.jsm", {});
 
   let worker = SubprocessImpl.Process.getWorker();
 

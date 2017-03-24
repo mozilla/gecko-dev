@@ -12,6 +12,7 @@ import os
 import pprint
 import copy
 import re
+import shutil
 import json
 
 import mozharness
@@ -25,6 +26,7 @@ from mozharness.base.vcs.vcsbase import MercurialScript
 from mozharness.mozilla.testing.errors import TinderBoxPrintRe
 from mozharness.mozilla.buildbot import TBPL_SUCCESS, TBPL_WORST_LEVEL_TUPLE
 from mozharness.mozilla.buildbot import TBPL_RETRY, TBPL_FAILURE, TBPL_WARNING
+from mozharness.mozilla.tooltool import TooltoolMixin
 
 external_tools_path = os.path.join(
     os.path.abspath(os.path.dirname(os.path.dirname(mozharness.__file__))),
@@ -86,7 +88,7 @@ class TalosOutputParser(OutputParser):
         super(TalosOutputParser, self).parse_single_line(line)
 
 
-class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
+class Talos(TestingMixin, MercurialScript, BlobUploadMixin, TooltoolMixin):
     """
     install and run Talos tests:
     https://wiki.mozilla.org/Buildbot/Talos
@@ -122,14 +124,14 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
           "default": None,
           "help": "extra options to talos"
           }],
-        [["--spsProfile"], {
-            "dest": "sps_profile",
+        [["--geckoProfile"], {
+            "dest": "gecko_profile",
             "action": "store_true",
             "default": False,
             "help": "Whether or not to profile the test run and save the profile results"
         }],
-        [["--spsProfileInterval"], {
-            "dest": "sps_profile_interval",
+        [["--geckoProfileInterval"], {
+            "dest": "gecko_profile_interval",
             "type": "int",
             "default": 0,
             "help": "The interval between samples taken by the profiler (milliseconds)"
@@ -164,18 +166,18 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
         self.talos_json = self.config.get("talos_json")
         self.talos_json_config = self.config.get("talos_json_config")
         self.tests = None
-        self.pagesets_url = None
-        self.sps_profile = self.config.get('sps_profile')
-        self.sps_profile_interval = self.config.get('sps_profile_interval')
+        self.gecko_profile = self.config.get('gecko_profile')
+        self.gecko_profile_interval = self.config.get('gecko_profile_interval')
+        self.pagesets_name = None
 
     # We accept some configuration options from the try commit message in the format mozharness: <options>
     # Example try commit message:
-    #   mozharness: --spsProfile try: <stuff>
-    def query_sps_profile_options(self):
-        sps_results = []
+    #   mozharness: --geckoProfile try: <stuff>
+    def query_gecko_profile_options(self):
+        gecko_results = []
         if self.buildbot_config:
             # this is inside automation
-            # now let's see if we added spsProfile specs in the commit message
+            # now let's see if we added GeckoProfile specs in the commit message
             try:
                 junk, junk, opts = self.buildbot_config['sourcestamp']['changes'][-1]['comments'].partition('mozharness:')
             except IndexError:
@@ -187,23 +189,23 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
               # the first line for mozharness options
               opts = opts.split('\n')[0]
               opts = re.sub(r'\w+:.*', '', opts).strip().split(' ')
-              if "--spsProfile" in opts:
+              if "--geckoProfile" in opts:
                   # overwrite whatever was set here.
-                  self.sps_profile = True
+                  self.gecko_profile = True
               try:
-                  idx = opts.index('--spsProfileInterval')
+                  idx = opts.index('--geckoProfileInterval')
                   if len(opts) > idx + 1:
-                      self.sps_profile_interval = opts[idx + 1]
+                      self.gecko_profile_interval = opts[idx + 1]
               except ValueError:
                   pass
-        # finally, if sps_profile is set, we add that to the talos options
-        if self.sps_profile:
-            sps_results.append('--spsProfile')
-            if self.sps_profile_interval:
-                sps_results.extend(
-                    ['--spsProfileInterval', str(self.sps_profile_interval)]
+        # finally, if gecko_profile is set, we add that to the talos options
+        if self.gecko_profile:
+            gecko_results.append('--geckoProfile')
+            if self.gecko_profile_interval:
+                gecko_results.extend(
+                    ['--geckoProfileInterval', str(self.gecko_profile_interval)]
                 )
-        return sps_results
+        return gecko_results
 
     def query_abs_dirs(self):
         if self.abs_dirs:
@@ -223,15 +225,42 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
         self.info(pprint.pformat(self.talos_json_config))
         return self.talos_json_config
 
-    def query_pagesets_url(self):
+    def query_pagesets_name(self):
         """Certain suites require external pagesets to be downloaded and
         extracted.
         """
-        if self.pagesets_url:
-            return self.pagesets_url
-        if self.query_talos_json_config() and 'suite' in self.config:
-            self.pagesets_url = self.talos_json_config['suites'][self.config['suite']].get('pagesets_url')
-            return self.pagesets_url
+        if self.pagesets_name:
+            return self.pagesets_name
+        if self.query_talos_json_config() and self.suite is not None:
+            self.pagesets_name = self.talos_json_config['suites'][self.suite].get('pagesets_name')
+            return self.pagesets_name
+
+    def get_suite_from_test(self):
+        """ Retrieve the talos suite name from a given talos test name."""
+        # running locally, single test name provided instead of suite; go through tests and find suite name
+        suite_name = None
+        if self.query_talos_json_config():
+            if '-a' in self.config['talos_extra_options']:
+                test_name_index = self.config['talos_extra_options'].index('-a') + 1
+            if '--activeTests' in self.config['talos_extra_options']:
+                test_name_index = self.config['talos_extra_options'].index('--activeTests') + 1
+            if test_name_index < len(self.config['talos_extra_options']):
+                test_name = self.config['talos_extra_options'][test_name_index]
+                for talos_suite in self.talos_json_config['suites']:
+                    if test_name in self.talos_json_config['suites'][talos_suite].get('tests'):
+                        suite_name = talos_suite
+            if not suite_name:
+                # no suite found to contain the specified test, error out
+                self.fatal("Test name is missing or invalid")
+        else:
+            self.fatal("Talos json config not found, cannot verify suite")
+        return suite_name
+
+    def validate_suite(self):
+        """ Ensure suite name is a valid talos suite. """
+        if self.query_talos_json_config() and self.suite is not None:
+            if not self.suite in self.talos_json_config.get('suites'):
+                self.fatal("Suite '%s' is not valid (not found in talos json config)" % self.suite)
 
     def talos_options(self, args=None, **kw):
         """return options to talos"""
@@ -264,7 +293,7 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
         for key, value in kw_options.items():
             options.extend(['--%s' % key, value])
         # configure profiling options
-        options.extend(self.query_sps_profile_options())
+        options.extend(self.query_gecko_profile_options())
         # extra arguments
         if args is not None:
             options += args
@@ -274,24 +303,48 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
 
     def populate_webroot(self):
         """Populate the production test slaves' webroots"""
-        c = self.config
-
         self.talos_path = os.path.join(
             self.query_abs_dirs()['abs_work_dir'], 'tests', 'talos'
         )
-        if c.get('run_local'):
+
+        # need to determine if talos pageset is required to be downloaded
+        if self.config.get('run_local'):
+            # talos initiated locally, get and verify test/suite from cmd line
             self.talos_path = os.path.dirname(self.talos_json)
+            if '-a' in self.config['talos_extra_options'] or '--activeTests' in self.config['talos_extra_options']:
+                # test name (-a or --activeTests) specified, find out what suite it is a part of
+                self.suite = self.get_suite_from_test()
+            elif '--suite' in self.config['talos_extra_options']:
+                # --suite specified, get suite from cmd line and ensure is valid
+                suite_name_index = self.config['talos_extra_options'].index('--suite') + 1
+                if suite_name_index < len(self.config['talos_extra_options']):
+                    self.suite = self.config['talos_extra_options'][suite_name_index]
+                    self.validate_suite()
+                else:
+                    self.fatal("Suite name not provided")
+        else:
+            # talos initiated in production via mozharness
+            self.suite = self.config['suite']
 
-        src_talos_webdir = os.path.join(self.talos_path, 'talos')
-
-        if self.query_pagesets_url():
-            self.info('Downloading pageset...')
-            dirs = self.query_abs_dirs()
-            src_talos_pageset = os.path.join(src_talos_webdir, 'tests')
-            archive = self.download_file(self.pagesets_url, parent_dir=dirs['abs_work_dir'])
-            unzip = self.query_exe('unzip')
-            unzip_cmd = [unzip, '-q', '-o', archive, '-d', src_talos_pageset]
-            self.run_command(unzip_cmd, halt_on_failure=True)
+        # now that have the suite name, check if pageset is required, if so download it
+        # the --no-download option will override this
+        if self.query_pagesets_name():
+            if '--no-download' not in self.config['talos_extra_options']:
+                self.info("Downloading pageset with tooltool...")
+                self.src_talos_webdir = os.path.join(self.talos_path, 'talos')
+                src_talos_pageset = os.path.join(self.src_talos_webdir, 'tests')
+                manifest_file = os.path.join(self.talos_path, 'tp5n-pageset.manifest')
+                self.tooltool_fetch(
+                    manifest_file,
+                    output_dir=src_talos_pageset,
+                    cache=self.config.get('tooltool_cache')
+                )
+                archive = os.path.join(src_talos_pageset, self.pagesets_name)
+                unzip = self.query_exe('unzip')
+                unzip_cmd = [unzip, '-q', '-o', archive, '-d', src_talos_pageset]
+                self.run_command(unzip_cmd, halt_on_failure=True)
+            else:
+                self.info("Not downloading pageset because the no-download option was specified")
 
     # Action methods. {{{1
     # clobber defined in BaseScript
@@ -360,6 +413,14 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
             self.exception("Error while validating PERFHERDER_DATA")
             parser.update_worst_log_and_tbpl_levels(WARNING, TBPL_WARNING)
 
+    def _artifact_perf_data(self, dest):
+        src = os.path.join(self.query_abs_dirs()['abs_work_dir'], 'local.json')
+        try:
+            shutil.copyfile(src, dest)
+        except:
+            self.critical("Error copying results %s to upload dir %s" % (src, dest))
+            parser.update_worst_log_and_tbpl_levels(CRITICAL, TBPL_FAILURE)
+
     def run_tests(self, args=None, **kw):
         """run Talos tests"""
 
@@ -376,6 +437,7 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
         if not self.run_local:
             env['MINIDUMP_STACKWALK'] = self.query_minidump_stackwalk()
         env['MINIDUMP_SAVE_PATH'] = self.query_abs_dirs()['abs_blob_upload_dir']
+        env['RUST_BACKTRACE'] = '1'
         if not os.path.isdir(env['MOZ_UPLOAD_DIR']):
             self.mkdir_p(env['MOZ_UPLOAD_DIR'])
         env = self.query_env(partial_env=env, log_level=INFO)
@@ -423,8 +485,12 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
 
             parser.update_worst_log_and_tbpl_levels(log_level, tbpl_level)
         else:
-            if not self.sps_profile:
+            if not self.gecko_profile:
                 self._validate_treeherder_data(parser)
+                if not self.run_local:
+                    # copy results to upload dir so they are included as an artifact
+                    dest = os.path.join(env['MOZ_UPLOAD_DIR'], 'perfherder-data.json')
+                    self._artifact_perf_data(dest)
 
         self.buildbot_status(parser.worst_tbpl_status,
                              level=parser.worst_log_level)

@@ -43,12 +43,13 @@ public:
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
 
- Http2Session(nsISocketTransport *, uint32_t version);
+ Http2Session(nsISocketTransport *, uint32_t version, bool attemptingEarlyData);
 
-  bool AddStream(nsAHttpTransaction *, int32_t,
-                 bool, nsIInterfaceRequestor *) override;
+  MOZ_MUST_USE bool AddStream(nsAHttpTransaction *, int32_t,
+                              bool, nsIInterfaceRequestor *) override;
   bool CanReuse() override { return !mShouldGoAway && !mClosed; }
   bool RoomForMoreStreams() override;
+  uint32_t SpdyVersion() override;
 
   // When the connection is active this is called up to once every 1 second
   // return the interval (in seconds) that the connection next wants to
@@ -169,6 +170,9 @@ public:
     kBackgroundGroupID =  0x7,
     kSpeculativeGroupID = 0x9,
     kFollowerGroupID =    0xB
+    // Hey, you! YES YOU! If you add/remove any groups here, you almost
+    // certainly need to change the lookup of the stream/ID hash in
+    // Http2Session::OnTransportStatus. Yeah, that's right. YOU!
   };
 
   static nsresult RecvHeaders(Http2Session *);
@@ -201,19 +205,20 @@ public:
   void TransactionHasDataToWrite(Http2Stream *);
 
   // an overload of nsAHttpSegementReader
-  virtual nsresult CommitToSegmentSize(uint32_t size, bool forceCommitment) override;
-  nsresult BufferOutput(const char *, uint32_t, uint32_t *);
+  virtual MOZ_MUST_USE nsresult CommitToSegmentSize(uint32_t size,
+                                                    bool forceCommitment) override;
+  MOZ_MUST_USE nsresult BufferOutput(const char *, uint32_t, uint32_t *);
   void     FlushOutputQueue();
   uint32_t AmountOfOutputBuffered() { return mOutputQueueUsed - mOutputQueueSent; }
 
   uint32_t GetServerInitialStreamWindow() { return mServerInitialStreamWindow; }
 
-  bool TryToActivate(Http2Stream *stream);
+  MOZ_MUST_USE bool TryToActivate(Http2Stream *stream);
   void ConnectPushedStream(Http2Stream *stream);
   void ConnectSlowConsumer(Http2Stream *stream);
 
-  nsresult ConfirmTLSProfile();
-  static bool ALPNCallback(nsISupports *securityInfo);
+  MOZ_MUST_USE nsresult ConfirmTLSProfile();
+  static MOZ_MUST_USE bool ALPNCallback(nsISupports *securityInfo);
 
   uint64_t Serial() { return mSerial; }
 
@@ -229,12 +234,14 @@ public:
   uint32_t InitialRwin() { return mInitialRwin; }
 
   void SendPing() override;
-  bool MaybeReTunnel(nsAHttpTransaction *) override;
+  MOZ_MUST_USE bool MaybeReTunnel(nsAHttpTransaction *) override;
   bool UseH2Deps() { return mUseH2Deps; }
 
   // overload of nsAHttpTransaction
-  nsresult ReadSegmentsAgain(nsAHttpSegmentReader *, uint32_t, uint32_t *, bool *) override final;
-  nsresult WriteSegmentsAgain(nsAHttpSegmentWriter *, uint32_t , uint32_t *, bool *) override final;
+  MOZ_MUST_USE nsresult ReadSegmentsAgain(nsAHttpSegmentReader *, uint32_t, uint32_t *, bool *) override final;
+  MOZ_MUST_USE nsresult WriteSegmentsAgain(nsAHttpSegmentWriter *, uint32_t , uint32_t *, bool *) override final;
+  MOZ_MUST_USE bool Do0RTT() override final { return true; }
+  MOZ_MUST_USE nsresult Finish0RTT(bool aRestart, bool aAlpnChanged) override final;
 
 private:
 
@@ -254,12 +261,12 @@ private:
 
   static const uint8_t kMagicHello[24];
 
-  nsresult    ResponseHeadersComplete();
+  MOZ_MUST_USE nsresult ResponseHeadersComplete();
   uint32_t    GetWriteQueueSize();
   void        ChangeDownstreamState(enum internalStateType);
   void        ResetDownstreamState();
-  nsresult    ReadyToProcessDataFrame(enum internalStateType);
-  nsresult    UncompressAndDiscard(bool);
+  MOZ_MUST_USE nsresult ReadyToProcessDataFrame(enum internalStateType);
+  MOZ_MUST_USE nsresult UncompressAndDiscard(bool);
   void        GeneratePing(bool);
   void        GenerateSettingsAck();
   void        GeneratePriority(uint32_t, uint8_t);
@@ -270,18 +277,20 @@ private:
   void        CloseStream(Http2Stream *, nsresult);
   void        SendHello();
   void        RemoveStreamFromQueues(Http2Stream *);
-  nsresult    ParsePadding(uint8_t &, uint16_t &);
+  MOZ_MUST_USE nsresult ParsePadding(uint8_t &, uint16_t &);
 
   void        SetWriteCallbacks();
   void        RealignOutputQueue();
 
   void        ProcessPending();
-  nsresult    ProcessConnectedPush(Http2Stream *, nsAHttpSegmentWriter *,
-                                   uint32_t, uint32_t *);
-  nsresult    ProcessSlowConsumer(Http2Stream *, nsAHttpSegmentWriter *,
-                                  uint32_t, uint32_t *);
+  MOZ_MUST_USE nsresult ProcessConnectedPush(Http2Stream *,
+                                             nsAHttpSegmentWriter *,
+                                             uint32_t, uint32_t *);
+  MOZ_MUST_USE nsresult ProcessSlowConsumer(Http2Stream *,
+                                            nsAHttpSegmentWriter *,
+                                            uint32_t, uint32_t *);
 
-  nsresult    SetInputFrameDataStream(uint32_t);
+  MOZ_MUST_USE nsresult SetInputFrameDataStream(uint32_t);
   void        CreatePriorityNode(uint32_t, uint32_t, uint8_t, const char *);
   bool        VerifyStream(Http2Stream *, uint32_t);
   void        SetNeedsCleanup();
@@ -297,7 +306,7 @@ private:
 
   // a wrapper for all calls to the nshttpconnection level segment writer. Used
   // to track network I/O for timeout purposes
-  nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, uint32_t, uint32_t *);
+  MOZ_MUST_USE nsresult NetworkRead(nsAHttpSegmentWriter *, char *, uint32_t, uint32_t *);
 
   void Shutdown();
 
@@ -483,6 +492,9 @@ private:
   // to make sure streams aren't shared across sessions.
   uint64_t        mSerial;
 
+  // Telemetry for continued headers (pushed and pulled) for quic design
+  uint32_t        mAggregatedHeaderSize;
+
   // If push is disabled, we want to be able to send PROTOCOL_ERRORs if we
   // receive a PUSH_PROMISE, but we have to wait for the SETTINGS ACK before
   // we can actually tell the other end to go away. These help us keep track
@@ -491,6 +503,10 @@ private:
   bool mGoAwayOnPush;
 
   bool mUseH2Deps;
+
+  bool mAttemptingEarlyData;
+  // The ID(s) of the stream(s) that we are getting 0RTT data from.
+  nsTArray<uint32_t> m0RTTStreams;
 
 private:
 /// connect tunnels

@@ -207,6 +207,8 @@ Node::exposeToJS() const
         v.setUndefined();
     }
 
+    ExposeValueToActiveJS(v);
+
     return v;
 }
 
@@ -321,7 +323,7 @@ TracerConcrete<Referent>::edges(JSContext* cx, bool wantNames) const {
     if (!range)
         return nullptr;
 
-    if (!range->init(cx, ptr, JS::MapTypeToTraceKind<Referent>::kind, wantNames))
+    if (!range->init(cx->runtime(), ptr, JS::MapTypeToTraceKind<Referent>::kind, wantNames))
         return nullptr;
 
     return UniquePtr<EdgeRange>(range.release());
@@ -411,11 +413,11 @@ RootList::RootList(JSContext* cx, Maybe<AutoCheckCannotGC>& noGC, bool wantNames
 bool
 RootList::init()
 {
-    EdgeVectorTracer tracer(cx, &edges, wantNames);
+    EdgeVectorTracer tracer(cx->runtime(), &edges, wantNames);
     js::TraceRuntime(&tracer);
     if (!tracer.okay)
         return false;
-    noGC.emplace(cx);
+    noGC.emplace();
     return true;
 }
 
@@ -423,7 +425,7 @@ bool
 RootList::init(CompartmentSet& debuggees)
 {
     EdgeVector allRootEdges;
-    EdgeVectorTracer tracer(cx, &allRootEdges, wantNames);
+    EdgeVectorTracer tracer(cx->runtime(), &allRootEdges, wantNames);
 
     ZoneSet debuggeeZones;
     if (!debuggeeZones.init())
@@ -455,7 +457,7 @@ RootList::init(CompartmentSet& debuggees)
             return false;
     }
 
-    noGC.emplace(cx);
+    noGC.emplace();
     return true;
 }
 

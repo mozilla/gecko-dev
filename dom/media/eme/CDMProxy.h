@@ -17,6 +17,7 @@
 
 namespace mozilla {
 class MediaRawData;
+class ChromiumCDMProxy;
 
 enum DecryptStatus {
   Ok = 0,
@@ -33,6 +34,8 @@ struct DecryptResult {
   DecryptStatus mStatus;
   RefPtr<MediaRawData> mSample;
 };
+
+typedef MozPromise<DecryptResult, DecryptResult, /* IsExclusive = */ true> DecryptPromise;
 
 class CDMKeyInfo {
 public:
@@ -73,20 +76,19 @@ protected:
   typedef dom::MediaKeySessionType MediaKeySessionType;
 public:
 
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) = 0;
-  NS_IMETHOD_(MozExternalRefCountType) Release(void) = 0;
-
-  typedef MozPromise<DecryptResult, DecryptResult, /* IsExclusive = */ true> DecryptPromise;
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   // Main thread only.
   CDMProxy(dom::MediaKeys* aKeys,
            const nsAString& aKeySystem,
            bool aDistinctiveIdentifierRequired,
-           bool aPersistentStateRequired)
+           bool aPersistentStateRequired,
+           nsIEventTarget* aMainThread)
     : mKeys(aKeys)
     , mKeySystem(aKeySystem)
     , mDistinctiveIdentifierRequired(aDistinctiveIdentifierRequired)
     , mPersistentStateRequired(aPersistentStateRequired)
+    , mMainThread(aMainThread)
   {}
 
   // Main thread only.
@@ -95,8 +97,9 @@ public:
   virtual void Init(PromiseId aPromiseId,
                     const nsAString& aOrigin,
                     const nsAString& aTopLevelOrigin,
-                    const nsAString& aName,
-                    bool aInPrivateBrowsing) = 0;
+                    const nsAString& aName) = 0;
+
+  virtual void OnSetDecryptorId(uint32_t aId) {}
 
   // Main thread only.
   // Uses the CDM to create a key session.
@@ -112,6 +115,7 @@ public:
   // Uses the CDM to load a presistent session stored on disk.
   // Calls MediaKeys::OnSessionActivated() when session is loaded.
   virtual void LoadSession(PromiseId aPromiseId,
+                           dom::MediaKeySessionType aSessionType,
                            const nsAString& aSessionId) = 0;
 
   // Main thread only.
@@ -219,6 +223,10 @@ public:
   virtual bool IsOnOwnerThread() = 0;
 #endif
 
+  virtual uint32_t GetDecryptorId() { return 0; }
+
+  virtual ChromiumCDMProxy* AsChromiumCDMProxy() { return nullptr; }
+
 protected:
   virtual ~CDMProxy() {}
 
@@ -267,6 +275,9 @@ protected:
 
   const bool mDistinctiveIdentifierRequired;
   const bool mPersistentStateRequired;
+
+  // The main thread associated with the root document.
+  const nsCOMPtr<nsIEventTarget> mMainThread;
 };
 
 

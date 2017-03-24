@@ -1,221 +1,174 @@
 "use strict";
 
-module.exports = { // eslint-disable-line no-undef
+module.exports = {
+  "extends": [
+    "plugin:mozilla/recommended"
+  ],
   "rules": {
+    // Enforce return statements in callbacks of array methods.
+    "array-callback-return": "error",
+
     // Braces only needed for multi-line arrow function blocks
-    "arrow-body-style": [2, "as-needed"],
-
-    // Require spacing around =>
-    "arrow-spacing": 2,
-
-    // Always require spacing around a single line block
-    "block-spacing": 2,
-
-    // No space before always a space after a comma
-    "comma-spacing": [2, {"before": false, "after": true}],
+    "arrow-body-style": ["error", "as-needed"],
 
     // Commas at the end of the line not the start
-    "comma-style": 2,
+    "comma-style": "error",
 
-    // Don't require spaces around computed properties
-    "computed-property-spacing": [2, "never"],
-
-    // Functions must always return something or nothing
-    "consistent-return": 2,
+    // Verify calls of super() in constructors.
+    "constructor-super": "error",
 
     // Require braces around blocks that start a new line
-    "curly": [2, "multi-line"],
+    "curly": ["error", "multi-line"],
+
+    // Require default case in switch statements.
+    "default-case": "error",
+
+    // Require `foo.bar` dot notation instead of `foo["bar"]` notation.
+    "dot-notation": "error",
 
     // Always require a trailing EOL
-    "eol-last": 2,
+    "eol-last": "error",
+
+    // No spaces between function name and parentheses.
+    "func-call-spacing": ["error", "never"],
 
     // Require function* name()
-    "generator-star-spacing": [2, {"before": false, "after": true}],
+    "generator-star-spacing": ["error", {"before": false, "after": true}],
 
     // Space after colon not before in property declarations
-    "key-spacing": [2, { "beforeColon": false, "afterColon": true, "mode": "minimum" }],
-
-    // Require spaces around keywords
-    "keyword-spacing": 2,
-
-    // Unix linebreaks
-    "linebreak-style": [2, "unix"],
+    "key-spacing": ["error", { "beforeColon": false, "afterColon": true, "mode": "minimum" }],
 
     // Always require parenthesis for new calls
-    "new-parens": 2,
+    "new-parens": "error",
 
     // Disallow use of alert(), confirm(), and prompt().
-    "no-alert": 2,
+    "no-alert": "error",
 
     // Use [] instead of Array()
-    "no-array-constructor": 2,
+    "no-array-constructor": "error",
 
     // Disallow use of arguments.caller or arguments.callee.
-    "no-caller": 2,
+    "no-caller": "error",
+
+    // Disallow likely erroneous `switch` scoped lexical declarations in
+    // case/default clauses.
+    "no-case-declarations": "error",
 
     // Disallow modifying variables of class declarations.
-    "no-class-assign": 2,
-
-    // Disallow assignment in conditional expressions, except if the assignment
-    // is within parentheses.
-    "no-cond-assign": [2, "except-parens"],
+    "no-class-assign": "error",
 
     // Disallow use of the console API.
-    "no-console": 2,
+    "no-console": "error",
 
     // Disallow modifying variables that are declared using const.
-    "no-const-assign": 2,
+    "no-const-assign": "error",
 
-    // Disallow use of debugger
-    "no-debugger": 2,
+    // Disallow constant expressions in conditions (except for loops).
+    "no-constant-condition": ["error", { "checkLoops": false }],
 
-    // Disallow deletion of variables (deleting properties is fine though).
-    "no-delete-var": 2,
+    // Disallow control characters in regular expressions.
+    "no-control-regex": "error",
 
-    // No duplicate arguments in function declarations
-    "no-dupe-args": 2,
-
-    // No duplicate keys in object declarations
-    "no-dupe-keys": 2,
-
-    // No duplicate cases in switch statements
-    "no-duplicate-case": 2,
+    // Disallow duplicate class members.
+    "no-dupe-class-members": "error",
 
     // Disallow use of eval().
-    "no-eval": 2,
+    "no-eval": "error",
 
-    // No labels
-    "no-labels": 2,
+    // Disallow extending of native objects.
+    "no-extend-native": "error",
 
-    // If an if block ends with a return no need for an else block
-    "no-else-return": 2,
+    // Disallow case statement fallthrough without explicit `// falls through`
+    // annotation.
+    "no-fallthrough": "error",
 
-    // No empty character classes in regex
-    "no-empty-character-class": 2,
+    // No reassigning native JS objects or read only globals.
+    "no-global-assign": "error",
 
-    // Disallow empty destructuring
-    "no-empty-pattern": 2,
+    // Disallow implied eval().
+    "no-implied-eval": "error",
 
-    // No assigning to exception variable
-    "no-ex-assign": 2,
-
-    // No using !! where casting to boolean is already happening
-    "no-extra-boolean-cast": 2,
-
-    // No double semicolon
-    "no-extra-semi": 2,
-
-    // No overwriting defined functions
-    "no-func-assign": 2,
-
-    // No invalid regular expressions
-    "no-invalid-regexp": 2,
-
-    // No odd whitespace characters
-    "no-irregular-whitespace": 2,
-
-    // No single if block inside an else block
-    "no-lonely-if": 2,
-
-    // No mixing spaces and tabs in indent
-    "no-mixed-spaces-and-tabs": [2, "smart-tabs"],
-
-    // No unnecessary spacing
-    "no-multi-spaces": [2, { "exceptions": {
-      "AssignmentExpression": true,
-      "VariableDeclarator": true,
-      "ArrayExpression": true,
-      "ObjectExpression": true
-    }}],
-
-    // No reassigning native JS objects
-    "no-native-reassign": 2,
-
-    // No (!foo in bar)
-    "no-negated-in-lhs": 2,
-
-    // Nested ternary statements are confusing
-    "no-nested-ternary": 2,
-
-    // Use {} instead of new Object()
-    "no-new-object": 2,
-
-    // No Math() or JSON()
-    "no-obj-calls": 2,
-
-    // No octal literals
-    "no-octal": 2,
-
-    // No redeclaring variables
-    "no-redeclare": 2,
+    // Disallow primitive wrapper instances like `new Boolean(false)`, which
+    // seem like they should act like primitives but don't.
+    "no-new-wrappers": "error",
 
     // Disallow use of assignment in return statement.
-    "no-return-assign": [2, "always"],
+    "no-return-assign": ["error", "always"],
 
-    // Disallow self assignment such as |foo = foo|.
-    "no-self-assign": 2,
+    // Disallow use of the comma operator.
+    "no-sequences": "error",
 
-    // No unnecessary comparisons
-    "no-self-compare": 2,
+    // Disallow tabs.
+    "no-tabs": "error",
 
-    // No declaring variables that hide things like arguments
-    "no-shadow-restricted-names": 2,
+    // Disallow template literal placeholder syntax in regular strings.
+    "no-template-curly-in-string": "error",
 
-    // No spaces between function name and parentheses
-    "no-spaced-func": 2,
-
-    // Disallow sparse arrays, eg. let arr = [,,2].
-    "no-sparse-arrays": 2,
+    // Disallow use of this/super before calling super() in constructors.
+    "no-this-before-super": "error",
 
     // Disallow throwing literals (eg. |throw "error"| instead of
     // |throw new Error("error")|)
-    "no-throw-literal": 2,
-
-    // No trailing whitespace
-    "no-trailing-spaces": 2,
+    "no-throw-literal": "error",
 
     // No using undeclared variables
-    "no-undef": 2,
+    "no-undef": "error",
 
-    // Error on newline where a semicolon is needed
-    "no-unexpected-multiline": 2,
+    // Disallow unmodified loop conditions.
+    "no-unmodified-loop-condition": "error",
 
-    // No unreachable statements
-    "no-unreachable": 2,
+    // Disallow ternary operators when simpler alternatives exist.
+    "no-unneeded-ternary": "error",
 
     // No expressions where a statement is expected
-    "no-unused-expressions": 2,
+    "no-unused-expressions": "error",
 
-    // No using with
-    "no-with": 2,
+    // Disallow unnecessary escape usage in strings and regular expressions.
+    "no-useless-escape": "error",
+
+    // Disallow whitespace before properties.
+    "no-whitespace-before-property": "error",
+
+    // Disallow blank line padding within blocks.
+    "padded-blocks": ["error", "never"],
 
     // Always require semicolon at end of statement
-    "semi": [2, "always"],
+    "semi": ["error", "always"],
 
-    // Require space before blocks
-    "space-before-blocks": 2,
+    // Enforce spacing after semicolons.
+    "semi-spacing": ["error", { "before": false, "after": true }],
+
+    // Never use spaces before named function parentheses, but always for async
+    // arrow functions.
+    "space-before-function-paren": ["error", {
+      "anonymous": "ignore",
+      "asyncArrow": "always",
+      "named": "never",
+    }],
 
     // No space padding in parentheses
-    "space-in-parens": [2, "never"],
+    "space-in-parens": ["error", "never"],
 
     // Require spaces around operators
-    "space-infix-ops": 2,
+    "space-infix-ops": "error",
 
     // ++ and -- should not need spacing
-    "space-unary-ops": [2, { "words": true, "nonwords": false }],
+    "space-unary-ops": ["error", { "words": true, "nonwords": false }],
 
     // Require "use strict" to be defined globally in the script.
-    "strict": [2, "global"],
+    "strict": ["error", "global"],
 
-    // No comparisons to NaN
-    "use-isnan": 2,
+    // Enforce valid JSDoc comments.
+    "valid-jsdoc": ["error", {
+      "requireParamDescription": false,
+      "requireReturn": false,
+      "requireReturnDescription": false,
+    }],
 
-    // Only check typeof against valid results
-    "valid-typeof": 2
+    // Disallow Yoda conditions.
+    "yoda": ["error", "never"],
   },
-  "env": {
-    "browser": true
-  },
+
   "globals": {
     "Components": false,
     "dump": false

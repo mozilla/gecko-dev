@@ -73,7 +73,7 @@ struct ElementPropertyTransition : public dom::KeyframeEffectReadOnly
       NS_WARNING("Failed to generate transition property values");
       return StyleAnimationValue();
     }
-    return mProperties[0].mSegments[0].mToValue;
+    return mProperties[0].mSegments[0].mToValue.mGecko;
   }
 
   // This is the start value to be used for a check for whether a
@@ -214,6 +214,10 @@ public:
       const TimeDuration& aStartTime,
       double aPlaybackRate);
 
+  void MaybeQueueCancelEvent(StickyTimeDuration aActiveTime) override {
+    QueueEvents(aActiveTime);
+  }
+
 protected:
   virtual ~CSSTransition()
   {
@@ -225,7 +229,10 @@ protected:
   void UpdateTiming(SeekFlag aSeekFlag,
                     SyncNotifyFlag aSyncNotifyFlag) override;
 
-  void QueueEvents();
+  void QueueEvents(StickyTimeDuration activeTime = StickyTimeDuration());
+
+
+  enum class TransitionPhase;
 
   // The (pseudo-)element whose computed transition-property refers to this
   // transition (if any).
@@ -250,7 +257,7 @@ protected:
   // to be queued on this tick.
   // See: https://drafts.csswg.org/css-transitions-2/#transition-phase
   enum class TransitionPhase {
-    Idle   = static_cast<int>(ComputedTiming::AnimationPhase::Null),
+    Idle   = static_cast<int>(ComputedTiming::AnimationPhase::Idle),
     Before = static_cast<int>(ComputedTiming::AnimationPhase::Before),
     Active = static_cast<int>(ComputedTiming::AnimationPhase::Active),
     After  = static_cast<int>(ComputedTiming::AnimationPhase::After),
@@ -397,12 +404,6 @@ public:
   }
   void SortEvents()      { mEventDispatcher.SortEvents(); }
   void ClearEventQueue() { mEventDispatcher.ClearEventQueue(); }
-
-  // Stop transitions on the element. This method takes the real element
-  // rather than the element for the generated content for transitions on
-  // ::before and ::after.
-  void StopTransitionsForElement(mozilla::dom::Element* aElement,
-                                 mozilla::CSSPseudoElementType aPseudoType);
 
 protected:
   virtual ~nsTransitionManager() {}

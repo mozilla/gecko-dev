@@ -35,6 +35,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonManagerPrivate",
                                   "resource://gre/modules/AddonManager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository",
                                   "resource://gre/modules/addons/AddonRepository.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ServiceRequest",
+                                  "resource://gre/modules/ServiceRequest.jsm");
+
 
 // Shared code for suppressing bad cert dialogs.
 XPCOMUtils.defineLazyGetter(this, "CertUtils", function() {
@@ -79,7 +82,7 @@ RDFSerializer.prototype = {
    * @return a string with all characters invalid in XML character data
    *         converted to entity references.
    */
-  escapeEntities: function(aString) {
+  escapeEntities(aString) {
     aString = aString.replace(/&/g, "&amp;");
     aString = aString.replace(/</g, "&lt;");
     aString = aString.replace(/>/g, "&gt;");
@@ -97,7 +100,7 @@ RDFSerializer.prototype = {
    *         The current level of indent for pretty-printing
    * @return a string containing the serialized elements.
    */
-  serializeContainerItems: function(aDs, aContainer, aIndent) {
+  serializeContainerItems(aDs, aContainer, aIndent) {
     var result = "";
     var items = aContainer.GetElements();
     while (items.hasMoreElements()) {
@@ -123,7 +126,7 @@ RDFSerializer.prototype = {
    * @return a string containing the serialized properties.
    * @throws if the resource contains a property that cannot be serialized
    */
-  serializeResourceProperties: function(aDs, aResource, aIndent) {
+  serializeResourceProperties(aDs, aResource, aIndent) {
     var result = "";
     var items = [];
     var arcs = aDs.ArcLabelsOut(aResource);
@@ -143,16 +146,13 @@ RDFSerializer.prototype = {
           item += this.serializeResource(aDs, target, aIndent + this.INDENT);
           item += aIndent + "</em:" + prop + ">\n";
           items.push(item);
-        }
-        else if (target instanceof Ci.nsIRDFLiteral) {
+        } else if (target instanceof Ci.nsIRDFLiteral) {
           items.push(aIndent + "<em:" + prop + ">" +
                      this.escapeEntities(target.Value) + "</em:" + prop + ">\n");
-        }
-        else if (target instanceof Ci.nsIRDFInt) {
+        } else if (target instanceof Ci.nsIRDFInt) {
           items.push(aIndent + "<em:" + prop + " NC:parseType=\"Integer\">" +
                      target.Value + "</em:" + prop + ">\n");
-        }
-        else {
+        } else {
           throw Components.Exception("Cannot serialize unknown literal type");
         }
       }
@@ -177,7 +177,7 @@ RDFSerializer.prototype = {
    * @return a string containing the serialized resource.
    * @throws if the RDF data contains multiple references to the same resource.
    */
-  serializeResource: function(aDs, aResource, aIndent) {
+  serializeResource(aDs, aResource, aIndent) {
     if (this.resources.indexOf(aResource) != -1 ) {
       // We cannot output multiple references to the same resource.
       throw Components.Exception("Cannot serialize multiple references to " + aResource.Value);
@@ -191,12 +191,10 @@ RDFSerializer.prototype = {
     if (this.cUtils.IsSeq(aDs, aResource)) {
       type = "Seq";
       container = this.cUtils.MakeSeq(aDs, aResource);
-    }
-    else if (this.cUtils.IsAlt(aDs, aResource)) {
+    } else if (this.cUtils.IsAlt(aDs, aResource)) {
       type = "Alt";
       container = this.cUtils.MakeAlt(aDs, aResource);
-    }
-    else if (this.cUtils.IsBag(aDs, aResource)) {
+    } else if (this.cUtils.IsBag(aDs, aResource)) {
       type = "Bag";
       container = this.cUtils.MakeBag(aDs, aResource);
     }
@@ -338,8 +336,7 @@ function parseRDFManifest(aId, aUpdateKey, aRequest, aManifestData) {
 
     try {
       updateString = serializer.serializeResource(ds, addonRes);
-    }
-    catch (e) {
+    } catch (e) {
       throw Components.Exception("Failed to generate signed string for " + aId + ". Serializer threw " + e,
                                  e.result);
     }
@@ -350,8 +347,7 @@ function parseRDFManifest(aId, aUpdateKey, aRequest, aManifestData) {
       let verifier = Cc["@mozilla.org/security/datasignatureverifier;1"].
                      getService(Ci.nsIDataSignatureVerifier);
       result = verifier.verifyData(updateString, signature, aUpdateKey);
-    }
-    catch (e) {
+    } catch (e) {
       throw Components.Exception("The signature or updateKey for " + aId + " is malformed." +
                                  "Verifier threw " + e, e.result);
     }
@@ -401,15 +397,14 @@ function parseRDFManifest(aId, aUpdateKey, aRequest, aManifestData) {
         appEntry.id = getRequiredProperty(ds, targetApp, "id");
         appEntry.minVersion = getRequiredProperty(ds, targetApp, "minVersion");
         appEntry.maxVersion = getRequiredProperty(ds, targetApp, "maxVersion");
-      }
-      catch (e) {
+      } catch (e) {
         logger.warn(e);
         continue;
       }
 
       let result = {
         id: aId,
-        version: version,
+        version,
         multiprocessCompatible: getBooleanProperty(ds, item, "multiprocessCompatible"),
         updateURL: getProperty(ds, targetApp, "updateLink"),
         updateHash: getProperty(ds, targetApp, "updateHash"),
@@ -520,7 +515,7 @@ function parseJSONManifest(aId, aUpdateKey, aRequest, aManifestData) {
 
     let result = {
       id: aId,
-      version: version,
+      version,
       multiprocessCompatible: getProperty(update, "multiprocess_compatible", "boolean", true),
       updateURL: getProperty(update, "update_link", "string"),
       updateHash: getProperty(update, "update_hash", "string"),
@@ -569,17 +564,11 @@ function UpdateParser(aId, aUpdateKey, aUrl, aObserver) {
   this.observer = aObserver;
   this.url = aUrl;
 
-  let requireBuiltIn = true;
-  try {
-    requireBuiltIn = Services.prefs.getBoolPref(PREF_UPDATE_REQUIREBUILTINCERTS);
-  }
-  catch (e) {
-  }
+  let requireBuiltIn = Services.prefs.getBoolPref(PREF_UPDATE_REQUIREBUILTINCERTS, true);
 
   logger.debug("Requesting " + aUrl);
   try {
-    this.request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
-                   createInstance(Ci.nsIXMLHttpRequest);
+    this.request = new ServiceRequest();
     this.request.open("GET", this.url, true);
     this.request.channel.notificationCallbacks = new CertUtils.BadCertHandler(!requireBuiltIn);
     this.request.channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
@@ -588,12 +577,11 @@ function UpdateParser(aId, aUpdateKey, aUrl, aObserver) {
     this.request.overrideMimeType("text/plain");
     this.request.setRequestHeader("Moz-XPI-Update", "1", true);
     this.request.timeout = TIMEOUT;
-    this.request.addEventListener("load", () => this.onLoad(), false);
-    this.request.addEventListener("error", () => this.onError(), false);
-    this.request.addEventListener("timeout", () => this.onTimeout(), false);
+    this.request.addEventListener("load", () => this.onLoad());
+    this.request.addEventListener("error", () => this.onError());
+    this.request.addEventListener("timeout", () => this.onTimeout());
     this.request.send(null);
-  }
-  catch (e) {
+  } catch (e) {
     logger.error("Failed to request update manifest", e);
   }
 }
@@ -608,22 +596,16 @@ UpdateParser.prototype = {
   /**
    * Called when the manifest has been successfully loaded.
    */
-  onLoad: function() {
+  onLoad() {
     let request = this.request;
     this.request = null;
     this._doneAt = new Error("place holder");
 
-    let requireBuiltIn = true;
-    try {
-      requireBuiltIn = Services.prefs.getBoolPref(PREF_UPDATE_REQUIREBUILTINCERTS);
-    }
-    catch (e) {
-    }
+    let requireBuiltIn = Services.prefs.getBoolPref(PREF_UPDATE_REQUIREBUILTINCERTS, true);
 
     try {
       CertUtils.checkCert(request.channel, !requireBuiltIn);
-    }
-    catch (e) {
+    } catch (e) {
       logger.warn("Request failed: " + this.url + " - " + e);
       this.notifyError(AddonUpdateChecker.ERROR_DOWNLOAD_ERROR);
       return;
@@ -671,8 +653,7 @@ UpdateParser.prototype = {
     let results;
     try {
       results = parser();
-    }
-    catch (e) {
+    } catch (e) {
       logger.warn("onUpdateCheckComplete failed to parse update manifest", e);
       this.notifyError(AddonUpdateChecker.ERROR_PARSE_ERROR);
       return;
@@ -681,12 +662,10 @@ UpdateParser.prototype = {
     if ("onUpdateCheckComplete" in this.observer) {
       try {
         this.observer.onUpdateCheckComplete(results);
-      }
-      catch (e) {
+      } catch (e) {
         logger.warn("onUpdateCheckComplete notification failed", e);
       }
-    }
-    else {
+    } else {
       logger.warn("onUpdateCheckComplete may not properly cancel", new Error("stack marker"));
     }
   },
@@ -694,7 +673,7 @@ UpdateParser.prototype = {
   /**
    * Called when the request times out
    */
-  onTimeout: function() {
+  onTimeout() {
     this.request = null;
     this._doneAt = new Error("Timed out");
     logger.warn("Request for " + this.url + " timed out");
@@ -704,23 +683,20 @@ UpdateParser.prototype = {
   /**
    * Called when the manifest failed to load.
    */
-  onError: function() {
+  onError() {
     if (!Components.isSuccessCode(this.request.status)) {
       logger.warn("Request failed: " + this.url + " - " + this.request.status);
-    }
-    else if (this.request.channel instanceof Ci.nsIHttpChannel) {
+    } else if (this.request.channel instanceof Ci.nsIHttpChannel) {
       try {
         if (this.request.channel.requestSucceeded) {
           logger.warn("Request failed: " + this.url + " - " +
                this.request.channel.responseStatus + ": " +
                this.request.channel.responseStatusText);
         }
-      }
-      catch (e) {
+      } catch (e) {
         logger.warn("HTTP Request failed for an unknown reason");
       }
-    }
-    else {
+    } else {
       logger.warn("Request failed for an unknown reason");
     }
 
@@ -733,12 +709,11 @@ UpdateParser.prototype = {
   /**
    * Helper method to notify the observer that an error occured.
    */
-  notifyError: function(aStatus) {
+  notifyError(aStatus) {
     if ("onUpdateCheckError" in this.observer) {
       try {
         this.observer.onUpdateCheckError(aStatus);
-      }
-      catch (e) {
+      } catch (e) {
         logger.warn("onUpdateCheckError notification failed", e);
       }
     }
@@ -747,7 +722,7 @@ UpdateParser.prototype = {
   /**
    * Called to cancel an in-progress update check.
    */
-  cancel: function() {
+  cancel() {
     if (!this.request) {
       logger.error("Trying to cancel already-complete request", this._doneAt);
       return;
@@ -841,7 +816,7 @@ this.AddonUpdateChecker = {
    *         Ignore strictCompatibility when testing if an update matches. Optional.
    * @return an update object if one matches or null if not
    */
-  getCompatibilityUpdate: function(aUpdates, aVersion, aIgnoreCompatibility,
+  getCompatibilityUpdate(aUpdates, aVersion, aIgnoreCompatibility,
                                    aAppVersion, aPlatformVersion,
                                    aIgnoreMaxVersion, aIgnoreStrictCompat) {
     if (!aAppVersion)
@@ -857,8 +832,7 @@ this.AddonUpdateChecker = {
             if (id == Services.appinfo.ID || id == TOOLKIT_ID)
               return update;
           }
-        }
-        else if (matchesVersions(update, aAppVersion, aPlatformVersion,
+        } else if (matchesVersions(update, aAppVersion, aPlatformVersion,
                                  aIgnoreMaxVersion, aIgnoreStrictCompat)) {
           return update;
         }
@@ -884,7 +858,7 @@ this.AddonUpdateChecker = {
    *         Array of AddonCompatibilityOverride to take into account. Optional.
    * @return an update object if one matches or null if not
    */
-  getNewestCompatibleUpdate: function(aUpdates, aAppVersion, aPlatformVersion,
+  getNewestCompatibleUpdate(aUpdates, aAppVersion, aPlatformVersion,
                                       aIgnoreMaxVersion, aIgnoreStrictCompat,
                                       aCompatOverrides) {
     if (!aAppVersion)
@@ -926,7 +900,7 @@ this.AddonUpdateChecker = {
    * @return UpdateParser so that the caller can use UpdateParser.cancel() to shut
    *         down in-progress update requests
    */
-  checkForUpdates: function(aId, aUpdateKey, aUrl, aObserver) {
+  checkForUpdates(aId, aUpdateKey, aUrl, aObserver) {
     return new UpdateParser(aId, aUpdateKey, aUrl, aObserver);
   }
 };

@@ -169,7 +169,7 @@ HTMLLinkElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   }
 
   if (IsInComposedDoc()) {
-    TryDNSPrefetchPreconnectOrPrefetch();
+    TryDNSPrefetchPreconnectOrPrefetchOrPrerender();
   }
 
   void (HTMLLinkElement::*update)() = &HTMLLinkElement::UpdateStyleSheetInternal;
@@ -333,7 +333,7 @@ HTMLLinkElement::UpdateImport()
 
 nsresult
 HTMLLinkElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                               nsAttrValueOrString* aValue, bool aNotify)
+                               const nsAttrValueOrString* aValue, bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       (aName == nsGkAtoms::href || aName == nsGkAtoms::rel)) {
@@ -389,7 +389,7 @@ HTMLLinkElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 
       if ((aName == nsGkAtoms::rel || aName == nsGkAtoms::href) &&
           IsInComposedDoc()) {
-        TryDNSPrefetchPreconnectOrPrefetch();
+        TryDNSPrefetchPreconnectOrPrefetchOrPrerender();
       }
 
       UpdateStyleSheetInternal(nullptr, nullptr,
@@ -421,9 +421,9 @@ HTMLLinkElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 }
 
 nsresult
-HTMLLinkElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
+HTMLLinkElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
-  return PreHandleEventForAnchors(aVisitor);
+  return GetEventTargetParentForAnchors(aVisitor);
 }
 
 nsresult

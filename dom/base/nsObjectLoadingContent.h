@@ -14,6 +14,7 @@
 #define NSOBJECTLOADINGCONTENT_H_
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "nsImageLoadingContent.h"
 #include "nsIStreamListener.h"
 #include "nsIChannelEventSink.h"
@@ -193,10 +194,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     {
       return GetTypeOfContent(NS_ConvertUTF16toUTF8(aMIMEType));
     }
-    void PlayPlugin(mozilla::ErrorResult& aRv)
-    {
-      aRv = PlayPlugin();
-    }
+    void PlayPlugin(mozilla::dom::SystemCallerGuarantee,
+                    mozilla::ErrorResult& aRv);
     void Reload(bool aClearActivation, mozilla::ErrorResult& aRv)
     {
       aRv = Reload(aClearActivation);
@@ -239,17 +238,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                     JS::MutableHandle<JS::Value> aRetval,
                     mozilla::ErrorResult& aRv);
 
-    uint32_t GetRunID(mozilla::ErrorResult& aRv)
-    {
-      uint32_t runID;
-      nsresult rv = GetRunID(&runID);
-      if (NS_FAILED(rv)) {
-        aRv.Throw(rv);
-        return 0;
-      }
-
-      return runID;
-    }
+    uint32_t GetRunID(mozilla::dom::SystemCallerGuarantee,
+                      mozilla::ErrorResult& aRv);
 
     bool IsRewrittenYoutubeEmbed() const
     {
@@ -331,8 +321,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     void CreateStaticClone(nsObjectLoadingContent* aDest) const;
 
-    void DoStopPlugin(nsPluginInstanceOwner* aInstanceOwner, bool aDelayedStop,
-                      bool aForcedReentry = false);
+    void DoStopPlugin(nsPluginInstanceOwner* aInstanceOwner);
 
     nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                         nsIContent* aBindingParent,
@@ -344,6 +333,21 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      * Return the content policy type used for loading the element.
      */
     virtual nsContentPolicyType GetContentPolicyType() const = 0;
+
+    /**
+     * Decides whether we should load <embed>/<object> node content.
+     *
+     * If this is an <embed> or <object> node there are cases in which we should
+     * not try to load the content:
+     *
+     * - If the node is the child of a media element
+     * - If the node is the child of an <object> node that already has
+     *   content being loaded.
+     *
+     * In these cases, this function will return false, which will cause
+     * us to skip calling LoadObject.
+     */
+    bool BlockEmbedOrObjectContentLoading();
 
   private:
 
@@ -461,6 +465,32 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      */
     bool ShouldPlay(FallbackType &aReason, bool aIgnoreCurrentType);
 
+    /**
+     * This method tells if the fallback content should be attempted to be used
+     * over the original object content.
+     * It will look at prefs and this plugin's CTP state to make a decision.
+     *
+     * NOTE that this doesn't say whether the fallback _will_ be used, only whether
+     * we should look into it to possibly use it. The final answer will be
+     * given by the PreferFallback method.
+     *
+     * @param aIsPluginClickToPlay Whether this object instance is CTP.
+     */
+    bool FavorFallbackMode(bool aIsPluginClickToPlay);
+
+    /**
+     * Whether the page has provided good fallback content to this object.
+     */
+    bool HasGoodFallback();
+
+    /**
+     * This method tells the final answer on whether this object's fallback
+     * content should be used instead of the original plugin content.
+     *
+     * @param aIsPluginClickToPlay Whether this object instance is CTP.
+     */
+    bool PreferFallback(bool aIsPluginClickToPlay);
+
     /*
      * Helper to check if mBaseURI can be used by java as a codebase
      */
@@ -484,13 +514,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      * @return true if call succeeded and NS_CP_ACCEPTED(*aContentPolicy)
      */
     bool CheckProcessPolicy(int16_t *aContentPolicy);
-
-    /**
-     * Checks whether the given type is a supported document type
-     *
-     * NOTE Does not take content policy or capabilities into account
-     */
-    bool IsSupportedDocument(const nsCString& aType);
 
     /**
      * Gets the plugin instance and creates a plugin stream listener, assigning
@@ -565,7 +588,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     // Helper class for SetupProtoChain
     class SetupProtoChainRunner final : public nsIRunnable
     {
-      ~SetupProtoChainRunner();
+      ~SetupProtoChainRunner() = default;
     public:
       NS_DECL_ISUPPORTS
 
@@ -662,7 +685,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     bool                        mActivated : 1;
 
     // Whether content blocking is enabled or not for this object.
-    bool                        mContentBlockingDisabled : 1;
+    bool                        mContentBlockingEnabled : 1;
 
     // Protects DoStopPlugin from reentry (bug 724781).
     bool                        mIsStopping : 1;
@@ -680,7 +703,12 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     // videos.
     bool                        mRewrittenYoutubeEmbed : 1;
 
-    nsWeakFrame                 mPrintFrame;
+    // Cache the answer of PreferFallback() because ShouldPlay is called several
+    // times during the load process.
+    bool                        mPreferFallback : 1;
+    bool                        mPreferFallbackKnown : 1;
+
+    WeakFrame                   mPrintFrame;
 
     RefPtr<nsPluginInstanceOwner> mInstanceOwner;
     nsTArray<mozilla::dom::MozPluginParameter> mCachedAttributes;

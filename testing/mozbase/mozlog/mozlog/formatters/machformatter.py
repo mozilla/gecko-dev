@@ -54,6 +54,7 @@ class MachFormatter(base.BaseFormatter):
 
         self.summary_values = {"tests": 0,
                                "subtests": 0,
+                               "assertion_counts": 0,
                                "expected": 0,
                                "unexpected": defaultdict(int),
                                "skipped": 0}
@@ -87,6 +88,10 @@ class MachFormatter(base.BaseFormatter):
                 color = self.terminal.yellow
             elif data["action"] == "crash":
                 color = self.terminal.red
+            elif data["action"] == "assertion_count":
+                if (data["count"] > data["max_expected"] or
+                    data["count"] < data["min_expected"]):
+                    color = self.terminal.red
 
             if color is not None:
                 action = color(action)
@@ -111,11 +116,13 @@ class MachFormatter(base.BaseFormatter):
     def suite_start(self, data):
         self.summary_values = {"tests": 0,
                                "subtests": 0,
+                               "assertion_counts": 0,
                                "expected": 0,
                                "unexpected": defaultdict(int),
                                "skipped": 0}
         self.summary_unexpected = []
-        return "%i" % len(data["tests"])
+        num_tests = reduce(lambda x, y: x + len(y), data['tests'].itervalues(), 0)
+        return "%i" % num_tests
 
     def suite_end(self, data):
         term = self.terminal if self.terminal is not None else NullTerminal()
@@ -124,14 +131,21 @@ class MachFormatter(base.BaseFormatter):
         rv = ["", heading, "=" * len(heading), ""]
 
         has_subtests = self.summary_values["subtests"] > 0
+        has_assert_counts = self.summary_values["assertion_counts"] > 0
 
+        test_count = self.summary_values["tests"]
+        components = ["%i parents" % self.summary_values["tests"]]
         if has_subtests:
-            rv.append("Ran %i tests (%i parents, %i subtests)" %
-                      (self.summary_values["tests"] + self.summary_values["subtests"],
-                       self.summary_values["tests"],
-                       self.summary_values["subtests"]))
-        else:
-            rv.append("Ran %i tests" % self.summary_values["tests"])
+            test_count += self.summary_values["subtests"]
+            components.append("%i subtests" % self.summary_values["subtests"])
+        if has_assert_counts:
+            test_count += self.summary_values["assertion_counts"]
+            components.append("%i assertion counts" % self.summary_values["assertion_counts"])
+
+        summary = "Ran %i tests" % test_count
+        if len(components) > 1:
+            summary += " (%s)" % ", ".join(components)
+        rv.append(summary)
 
         rv.append("Expected results: %i" % self.summary_values["expected"])
 
@@ -279,6 +293,24 @@ class MachFormatter(base.BaseFormatter):
                                                            message))
         return rv
 
+    def assertion_count(self, data):
+        self.summary_values["assertion_counts"] += 1
+        if data["min_expected"] != data["max_expected"]:
+            expected = "%i to %i" % (data["min_expected"],
+                                     data["max_expected"])
+        else:
+            expected = "%i" % data["min_expected"]
+
+        if data["min_expected"] <= data["count"] <= data["max_expected"]:
+            return
+        elif data["max_expected"] < data["count"]:
+            status = "FAIL"
+        else:
+            status = "PASS"
+
+        self.summary_values["unexpected"][status] += 1
+        return "Assertion count %i, expected %s assertions\n" % (data["count"], expected)
+
     def _update_summary(self, data):
         if "expected" in data:
             self.summary_values["unexpected"][data["status"]] += 1
@@ -290,11 +322,15 @@ class MachFormatter(base.BaseFormatter):
     def process_output(self, data):
         rv = []
 
+        pid = data['process']
+        if pid.isdigit():
+            pid = 'pid:%s' % pid
+
         if "command" in data and data["process"] not in self._known_pids:
             self._known_pids.add(data["process"])
-            rv.append('(pid:%s) Full command: %s' % (data["process"], data["command"]))
+            rv.append('(%s) Full command: %s' % (pid, data["command"]))
 
-        rv.append('(pid:%s) "%s"' % (data["process"], data["data"]))
+        rv.append('(%s) "%s"' % (pid, data["data"]))
         return "\n".join(rv)
 
     def crash(self, data):

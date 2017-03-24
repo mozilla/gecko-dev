@@ -836,15 +836,15 @@ nsCacheProfilePrefObserver::ReadPrefs(nsIPrefBranch* branch)
 nsresult
 nsCacheService::DispatchToCacheIOThread(nsIRunnable* event)
 {
-    if (!gService->mCacheIOThread) return NS_ERROR_NOT_AVAILABLE;
+    if (!gService || !gService->mCacheIOThread) return NS_ERROR_NOT_AVAILABLE;
     return gService->mCacheIOThread->Dispatch(event, NS_DISPATCH_NORMAL);
 }
 
 nsresult
 nsCacheService::SyncWithCacheIOThread()
 {
+    if (!gService || !gService->mCacheIOThread) return NS_ERROR_NOT_AVAILABLE;
     gService->mLock.AssertCurrentThreadOwns();
-    if (!gService->mCacheIOThread) return NS_ERROR_NOT_AVAILABLE;
 
     nsCOMPtr<nsIRunnable> event = new nsBlockOnCacheThreadEvent();
 
@@ -933,7 +933,7 @@ nsCacheProfilePrefObserver::MemoryCacheCapacity()
     }
 
     static uint64_t bytes = PR_GetPhysicalMemorySize();
-    CACHE_LOG_DEBUG(("Physical Memory size is %llu\n", bytes));
+    CACHE_LOG_DEBUG(("Physical Memory size is %" PRIu64 "\n", bytes));
 
     // If getting the physical memory failed, arbitrarily assume
     // 32 MB of RAM. We use a low default to have a reasonable
@@ -1146,7 +1146,7 @@ nsCacheService::Init()
     rv = NS_NewNamedThread("Cache I/O",
                            getter_AddRefs(mCacheIOThread));
     if (NS_FAILED(rv)) {
-        NS_RUNTIMEABORT("Can't create cache IO thread");
+        MOZ_CRASH("Can't create cache IO thread");
     }
 
     rv = nsDeleteDir::Init();
@@ -1180,7 +1180,7 @@ nsCacheService::Shutdown()
     // This method must be called on the main thread because mCacheIOThread must
     // only be modified on the main thread.
     if (!NS_IsMainThread()) {
-        NS_RUNTIMEABORT("nsCacheService::Shutdown called off the main thread");
+        MOZ_CRASH("nsCacheService::Shutdown called off the main thread");
     }
 
     nsCOMPtr<nsIThread> cacheIOThread;
@@ -1429,9 +1429,7 @@ nsCacheService::DoomEntry(nsCacheSession   *session,
 {
     CACHE_LOG_DEBUG(("Dooming entry for session %p, key %s\n",
                      session, PromiseFlatCString(key).get()));
-    NS_ASSERTION(gService, "nsCacheService::gService is null.");
-
-    if (!gService->mInitialized)
+    if (!gService || !gService->mInitialized)
         return NS_ERROR_NOT_INITIALIZED;
 
     return DispatchToCacheIOThread(new nsDoomEvent(session, key, listener));
@@ -1684,7 +1682,7 @@ public:
 void
 nsCacheService::MarkStartingFresh()
 {
-    if (!gService->mObserver->ShouldUseOldMaxSmartSize()) {
+    if (!gService || !gService->mObserver->ShouldUseOldMaxSmartSize()) {
         // Already using new max, nothing to do here
         return;
     }
@@ -1776,7 +1774,8 @@ nsCacheService::CreateCustomOfflineDevice(nsIFile *aProfileDir,
 
     nsresult rv = (*aDevice)->InitWithSqlite(mStorageService);
     if (NS_FAILED(rv)) {
-        CACHE_LOG_DEBUG(("OfflineDevice->InitWithSqlite() failed (0x%.8x)\n", rv));
+        CACHE_LOG_DEBUG(("OfflineDevice->InitWithSqlite() failed (0x%.8" PRIx32 ")\n",
+                         static_cast<uint32_t>(rv)));
         CACHE_LOG_DEBUG(("    - disabling offline cache for this session.\n"));
 
         NS_RELEASE(*aDevice);
@@ -2026,11 +2025,10 @@ nsCacheService::OpenCacheEntry(nsCacheSession *           session,
     CACHE_LOG_DEBUG(("Opening entry for session %p, key %s, mode %d, blocking %d\n",
                      session, PromiseFlatCString(key).get(), accessRequested,
                      blockingMode));
-    NS_ASSERTION(gService, "nsCacheService::gService is null.");
     if (result)
         *result = nullptr;
 
-    if (!gService->mInitialized)
+    if (!gService || !gService->mInitialized)
         return NS_ERROR_NOT_INITIALIZED;
 
     nsCacheRequest * request = nullptr;
@@ -2189,7 +2187,7 @@ nsCacheService::SearchCacheDevices(nsCString * key, nsCacheStoragePolicy policy,
         if (mMemoryDevice) {
             entry = mMemoryDevice->FindEntry(key, collision);
             CACHE_LOG_DEBUG(("Searching mMemoryDevice for key %s found: 0x%p, "
-                             "collision: %d\n", key->get(), entry, collision));
+                             "collision: %d\n", key->get(), entry, *collision));
         }
     }
 
@@ -2353,12 +2351,12 @@ nsCacheService::DoomEntry_Internal(nsCacheEntry * entry,
 void
 nsCacheService::OnProfileShutdown()
 {
-    if (!gService)  return;
-    if (!gService->mInitialized) {
+    if (!gService || !gService->mInitialized) {
         // The cache service has been shut down, but someone is still holding
         // a reference to it. Ignore this call.
         return;
     }
+
     {
         nsCacheServiceAutoLock lock(LOCK_TELEM(NSCACHESERVICE_ONPROFILESHUTDOWN));
         gService->mClearingEntries = true;
@@ -2645,10 +2643,10 @@ nsCacheService::Lock()
 }
 
 void
-nsCacheService::Lock(mozilla::Telemetry::ID mainThreadLockerID)
+nsCacheService::Lock(mozilla::Telemetry::HistogramID mainThreadLockerID)
 {
-    mozilla::Telemetry::ID lockerID;
-    mozilla::Telemetry::ID generalID;
+    mozilla::Telemetry::HistogramID lockerID;
+    mozilla::Telemetry::HistogramID generalID;
 
     if (NS_IsMainThread()) {
         lockerID = mainThreadLockerID;

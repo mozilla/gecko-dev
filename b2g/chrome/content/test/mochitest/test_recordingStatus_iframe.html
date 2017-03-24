@@ -3,14 +3,14 @@
 <head>
   <title>Test for Recording Status in iframe</title>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="text/javascript;version=1.7" src="RecordingStatusHelper.js"></script>
+  <script type="text/javascript" src="RecordingStatusHelper.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
 
 <pre id="test">
 <iframe id="gum-iframe"></iframe>
-<script class="testbody" type="text/javascript;version=1.7">
+<script class="testbody" type="text/javascript">
 SimpleTest.waitForExplicitFinish();
 
 function test() {
@@ -31,7 +31,7 @@ function test() {
         if (event.data === 'start-finished') {
           resolve();
         }
-      }, false);
+      });
 
       gumIframe.onload = function() {
         info('start audio stream in iframe');

@@ -2,8 +2,6 @@
 // Turn off baseline and since it messes up the GC finalization assertions by
 // adding spurious edges to the GC graph.
 
-load(libdir + 'wasm.js');
-
 const Module = WebAssembly.Module;
 const Instance = WebAssembly.Instance;
 const Table = WebAssembly.Table;
@@ -26,32 +24,32 @@ assertErrorMessage(() => e.call(1), RuntimeError, /indirect call to null/);
 assertErrorMessage(() => e.call(2), RuntimeError, /index out of bounds/);
 assertEq(finalizeCount(), 0);
 i.edge = makeFinalizeObserver();
-e.edge = makeFinalizeObserver();
 t.edge = makeFinalizeObserver();
 f.edge = makeFinalizeObserver();
 gc();
 assertEq(finalizeCount(), 0);
+f.x = 42;
 f = null;
 gc();
-assertEq(finalizeCount(), 1);
+assertEq(finalizeCount(), 0);
 f = t.get(0);
-f.edge = makeFinalizeObserver();
+assertEq(f.x, 42);
 gc();
-assertEq(finalizeCount(), 1);
+assertEq(finalizeCount(), 0);
 i.exports = null;
 e = null;
 gc();
-assertEq(finalizeCount(), 2);
+assertEq(finalizeCount(), 0);
 t = null;
 gc();
-assertEq(finalizeCount(), 2);
+assertEq(finalizeCount(), 0);
 i = null;
 gc();
-assertEq(finalizeCount(), 2);
+assertEq(finalizeCount(), 0);
 assertEq(f(), 0);
 f = null;
 gc();
-assertEq(finalizeCount(), 5);
+assertEq(finalizeCount(), 3);
 
 // A table should hold the instance of any of its elements alive.
 resetFinalizeCount();
@@ -60,7 +58,6 @@ var e = i.exports;
 var t = e.tbl;
 var f = t.get(0);
 i.edge = makeFinalizeObserver();
-e.edge = makeFinalizeObserver();
 t.edge = makeFinalizeObserver();
 f.edge = makeFinalizeObserver();
 gc();
@@ -68,16 +65,16 @@ assertEq(finalizeCount(), 0);
 i.exports = null;
 e = null;
 gc();
-assertEq(finalizeCount(), 1);
+assertEq(finalizeCount(), 0);
 f = null;
 gc();
-assertEq(finalizeCount(), 2);
+assertEq(finalizeCount(), 0);
 i = null;
 gc();
-assertEq(finalizeCount(), 2);
+assertEq(finalizeCount(), 0);
 t = null;
 gc();
-assertEq(finalizeCount(), 4);
+assertEq(finalizeCount(), 3);
 
 // Null elements shouldn't keep anything alive.
 resetFinalizeCount();
@@ -85,20 +82,19 @@ var i = wasmEvalText(`(module (table 2 anyfunc) (export "tbl" table) ${caller})`
 var e = i.exports;
 var t = e.tbl;
 i.edge = makeFinalizeObserver();
-e.edge = makeFinalizeObserver();
 t.edge = makeFinalizeObserver();
 gc();
 assertEq(finalizeCount(), 0);
 i.exports = null;
 e = null;
 gc();
-assertEq(finalizeCount(), 1);
+assertEq(finalizeCount(), 0);
 i = null;
 gc();
-assertEq(finalizeCount(), 2);
+assertEq(finalizeCount(), 1);
 t = null;
 gc();
-assertEq(finalizeCount(), 3);
+assertEq(finalizeCount(), 2);
 
 // Before initialization, a table is not bound to any instance.
 resetFinalizeCount();
@@ -132,21 +128,18 @@ assertEq(finalizeCount(), 0);
 f = null;
 i.exports = null;
 gc();
-assertEq(finalizeCount(), 1);
+assertEq(finalizeCount(), 0);
 assertEq(t.get(0)(), 42);
-t.get(0).edge = makeFinalizeObserver();
-gc();
-assertEq(finalizeCount(), 2);
 i = null;
 gc();
-assertEq(finalizeCount(), 2);
+assertEq(finalizeCount(), 0);
 t.set(0, null);
 assertEq(t.get(0), null);
 gc();
-assertEq(finalizeCount(), 3);
+assertEq(finalizeCount(), 2);
 t = null;
 gc();
-assertEq(finalizeCount(), 4);
+assertEq(finalizeCount(), 3);
 
 // Once all of an instance's elements in a Table have been clobbered, the
 // Instance should not be reachable.
@@ -169,14 +162,18 @@ f1 = f2 = null;
 i1.exports = null;
 i2.exports = null;
 gc();
-assertEq(finalizeCount(), 2);
+assertEq(finalizeCount(), 0);
 i1 = null;
 i2 = null;
 gc();
-assertEq(finalizeCount(), 2);
+assertEq(finalizeCount(), 0);
 t.set(0, t.get(1));
 gc();
-assertEq(finalizeCount(), 3);
+assertEq(finalizeCount(), 2);
+t.set(0, null);
+t.set(1, null);
+gc();
+assertEq(finalizeCount(), 4);
 t = null;
 gc();
 assertEq(finalizeCount(), 5);

@@ -43,6 +43,7 @@
 #include "mozilla/net/ReferrerPolicy.h"
 #include "nsINetworkInterceptController.h"
 #include "nsSandboxFlags.h"
+#include "nsIScriptElement.h"
 
 using namespace mozilla;
 
@@ -153,17 +154,24 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
   }
 
   nsAutoString nonce;
+  bool parserCreated = false;
   if (!isPreload) {
     nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(aRequestContext);
     if (htmlElement) {
       rv = htmlElement->GetAttribute(NS_LITERAL_STRING("nonce"), nonce);
       NS_ENSURE_SUCCESS(rv, rv);
     }
+
+    nsCOMPtr<nsIScriptElement> script = do_QueryInterface(aRequestContext);
+    if (script && script->GetParserCreated() != mozilla::dom::NOT_FROM_PARSER) {
+      parserCreated = true;
+    }
   }
 
-  // aExtra is only non-null if the channel got redirected.
-  bool wasRedirected = (aExtra != nullptr);
+  // aExtra holds the original URI of the channel if the
+  // channel got redirected (until we fix Bug 1332422).
   nsCOMPtr<nsIURI> originalURI = do_QueryInterface(aExtra);
+  bool wasRedirected = originalURI;
 
   bool permitted = permitsInternal(dir,
                                    aContentLocation,
@@ -173,7 +181,8 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
                                    isPreload,
                                    false,     // allow fallback to default-src
                                    true,      // send violation reports
-                                   true);     // send blocked URI in violation reports
+                                   true,     // send blocked URI in violation reports
+                                   parserCreated);
 
   *outDecision = permitted ? nsIContentPolicy::ACCEPT
                            : nsIContentPolicy::REJECT_SERVER;
@@ -201,7 +210,8 @@ nsCSPContext::permitsInternal(CSPDirective aDir,
                               bool aIsPreload,
                               bool aSpecific,
                               bool aSendViolationReports,
-                              bool aSendContentLocationInViolationReports)
+                              bool aSendContentLocationInViolationReports,
+                              bool aParserCreated)
 {
   bool permits = true;
 
@@ -220,6 +230,7 @@ nsCSPContext::permitsInternal(CSPDirective aDir,
                                aNonce,
                                aWasRedirected,
                                aSpecific,
+                               aParserCreated,
                                violatedDirective)) {
       // If the policy is violated and not report-only, reject the load and
       // report to the console
@@ -336,9 +347,9 @@ NS_IMETHODIMP
 nsCSPContext::GetReferrerPolicy(uint32_t* outPolicy, bool* outIsSet)
 {
   *outIsSet = false;
-  *outPolicy = mozilla::net::RP_Default;
+  *outPolicy = mozilla::net::RP_Unset;
   nsAutoString refpol;
-  mozilla::net::ReferrerPolicy previousPolicy = mozilla::net::RP_Default;
+  mozilla::net::ReferrerPolicy previousPolicy = mozilla::net::RP_Unset;
   for (uint32_t i = 0; i < mPolicies.Length(); i++) {
     mPolicies[i]->getReferrerPolicy(refpol);
     // only set the referrer policy if not delievered through a CSPRO and
@@ -404,7 +415,9 @@ nsCSPContext::GetAllowsEval(bool* outShouldReportViolation,
 
   for (uint32_t i = 0; i < mPolicies.Length(); i++) {
     if (!mPolicies[i]->allows(nsIContentPolicy::TYPE_SCRIPT,
-                              CSP_UNSAFE_EVAL, EmptyString())) {
+                              CSP_UNSAFE_EVAL,
+                              EmptyString(),
+                              false)) {
       // policy is violated: must report the violation and allow the inline
       // script if the policy is report-only.
       *outShouldReportViolation = true;
@@ -471,6 +484,7 @@ nsCSPContext::reportInlineViolation(nsContentPolicyType aContentType,
 NS_IMETHODIMP
 nsCSPContext::GetAllowsInline(nsContentPolicyType aContentType,
                               const nsAString& aNonce,
+                              bool aParserCreated,
                               const nsAString& aContent,
                               uint32_t aLineNumber,
                               bool* outAllowsInline)
@@ -489,9 +503,9 @@ nsCSPContext::GetAllowsInline(nsContentPolicyType aContentType,
   // always iterate all policies, otherwise we might not send out all reports
   for (uint32_t i = 0; i < mPolicies.Length(); i++) {
     bool allowed =
-      mPolicies[i]->allows(aContentType, CSP_UNSAFE_INLINE, EmptyString()) ||
-      mPolicies[i]->allows(aContentType, CSP_NONCE, aNonce) ||
-      mPolicies[i]->allows(aContentType, CSP_HASH, aContent);
+      mPolicies[i]->allows(aContentType, CSP_UNSAFE_INLINE, EmptyString(), aParserCreated) ||
+      mPolicies[i]->allows(aContentType, CSP_NONCE, aNonce, aParserCreated) ||
+      mPolicies[i]->allows(aContentType, CSP_HASH, aContent, aParserCreated);
 
     if (!allowed) {
       // policy is violoated: deny the load unless policy is report only and
@@ -535,13 +549,17 @@ nsCSPContext::GetAllowsInline(nsContentPolicyType aContentType,
  * @param keyword: the keyword corresponding to violation (UNSAFE_INLINE for most)
  * @param observerTopic: the observer topic string to send with the CSP
  *                 observer notifications.
+ *
+ * Please note that inline violations for scripts are reported within
+ * GetAllowsInline() and do not call this macro, hence we can pass 'false'
+ * as the argument _aParserCreated_ to allows().
  */
 #define CASE_CHECK_AND_REPORT(violationType, contentPolicyType, nonceOrHash,   \
                               keyword, observerTopic)                          \
   case nsIContentSecurityPolicy::VIOLATION_TYPE_ ## violationType :            \
     PR_BEGIN_MACRO                                                             \
     if (!mPolicies[p]->allows(nsIContentPolicy::TYPE_ ## contentPolicyType,    \
-                              keyword, nonceOrHash))                           \
+                              keyword, nonceOrHash, false))                    \
     {                                                                          \
       nsAutoString violatedDirective;                                          \
       mPolicies[p]->getDirectiveStringForContentType(                          \
@@ -982,7 +1000,8 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
     // if this is an HTTP channel, set the request method to post
     nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(reportChannel));
     if (httpChannel) {
-      httpChannel->SetRequestMethod(NS_LITERAL_CSTRING("POST"));
+      rv = httpChannel->SetRequestMethod(NS_LITERAL_CSTRING("POST"));
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
     }
 
     RefPtr<CSPViolationReportListener> listener = new CSPViolationReportListener();
@@ -995,7 +1014,7 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
 
     if (NS_FAILED(rv)) {
       const char16_t* params[] = { reportURIs[r].get() };
-      CSPCONTEXTLOG(("AsyncOpen failed for report URI %s", params[0]));
+      CSPCONTEXTLOG(("AsyncOpen failed for report URI %s", NS_ConvertUTF16toUTF8(params[0]).get()));
       logToConsole(u"triedToSendReport", params, ArrayLength(params),
                    aSourceFile, aScriptSample, aLineNum, 0, nsIScriptError::errorFlag);
     } else {
@@ -1210,6 +1229,10 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
   // iterate through each docShell parent item
   while (NS_SUCCEEDED(treeItem->GetParent(getter_AddRefs(parentTreeItem))) &&
          parentTreeItem != nullptr) {
+    // stop when reaching chrome
+    if (parentTreeItem->ItemType() == nsIDocShellTreeItem::typeChrome) {
+      break;
+    }
 
     nsIDocument* doc = parentTreeItem->GetDocument();
     NS_ASSERTION(doc, "Could not get nsIDocument from nsIDocShellTreeItem in nsCSPContext::PermitsAncestry");
@@ -1218,12 +1241,6 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
     currentURI = doc->GetDocumentURI();
 
     if (currentURI) {
-      // stop when reaching chrome
-      bool isChrome = false;
-      rv = currentURI->SchemeIs("chrome", &isChrome);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (isChrome) { break; }
-
       // delete the userpass from the URI.
       rv = currentURI->CloneIgnoringRef(getter_AddRefs(uriClone));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -1268,7 +1285,8 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
                                    false,   // not a preload.
                                    true,    // specific, do not use default-src
                                    true,    // send violation reports
-                                   okToSendAncestor);
+                                   okToSendAncestor,
+                                   false);  // not parser created
     if (!permits) {
       *outPermitsAncestry = false;
     }
@@ -1295,7 +1313,8 @@ nsCSPContext::Permits(nsIURI* aURI,
                                 false,    // not a preload.
                                 aSpecific,
                                 true,     // send violation reports
-                                true);    // send blocked URI in violation reports
+                                true,     // send blocked URI in violation reports
+                                false);   // not parser created
 
   if (CSPCONTEXTLOGENABLED()) {
       CSPCONTEXTLOG(("nsCSPContext::Permits, aUri: %s, aDir: %d, isAllowed: %s",
@@ -1354,7 +1373,7 @@ nsCSPContext::GetCSPSandboxFlags(uint32_t* aOutSandboxFlags)
       mPolicies[i]->toString(policy);
 
       CSPCONTEXTLOG(("nsCSPContext::GetCSPSandboxFlags, report only policy, ignoring sandbox in: %s",
-                    policy.get()));
+                     NS_ConvertUTF16toUTF8(policy).get()));
 
       const char16_t* params[] = { policy.get() };
       logToConsole(u"ignoringReportOnlyDirective", params, ArrayLength(params),

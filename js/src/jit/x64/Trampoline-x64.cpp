@@ -13,6 +13,7 @@
 #endif
 #include "jit/VMFunctions.h"
 #include "jit/x64/SharedICHelpers-x64.h"
+#include "vtune/VTuneWrapper.h"
 
 #include "jit/MacroAssembler-inl.h"
 
@@ -229,7 +230,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
         masm.push(valuesSize);
         masm.push(Imm32(0)); // Fake return address.
         // No GC things to mark, push a bare token.
-        masm.enterFakeExitFrame(ExitFrameLayoutBareToken);
+        masm.enterFakeExitFrame(scratch, ExitFrameLayoutBareToken);
 
         regs.add(valuesSize);
 
@@ -257,7 +258,7 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
         {
             Label skipProfilingInstrumentation;
             Register realFramePtr = numStackValues;
-            AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
+            AbsoluteAddress addressOfEnabled(cx->runtime()->geckoProfiler().addressOfEnabled());
             masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0),
                           &skipProfilingInstrumentation);
             masm.lea(Operand(framePtr, sizeof(void*)), realFramePtr);
@@ -340,6 +341,9 @@ JitRuntime::generateEnterJIT(JSContext* cx, EnterJitType type)
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "EnterJIT");
 #endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(code, "EnterJIT");
+#endif
 
     return code;
 }
@@ -388,6 +392,9 @@ JitRuntime::generateInvalidator(JSContext* cx)
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "Invalidator");
+#endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(code, "Invalidator");
 #endif
 
     return code;
@@ -548,6 +555,9 @@ JitRuntime::generateArgumentsRectifier(JSContext* cx, void** returnAddrOut)
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "ArgumentsRectifier");
 #endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(code, "ArgumentsRectifier");
+#endif
 
     if (returnAddrOut)
         *returnAddrOut = (void*)(code->raw() + returnOffset);
@@ -633,6 +643,9 @@ JitRuntime::generateBailoutHandler(JSContext* cx)
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "BailoutHandler");
 #endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(code, "BailoutHandler");
+#endif
 
     return code;
 }
@@ -667,7 +680,7 @@ JitRuntime::generateVMWrapper(JSContext* cx, const VMFunction& f)
     //  +0  returnAddress
     //
     // We're aligned to an exit frame, so link it up.
-    masm.enterExitFrame(&f);
+    masm.enterExitFrame(cxreg, &f);
     masm.loadJSContext(cxreg);
 
     // Save the current stack pointer as the base for copying arguments.
@@ -818,6 +831,9 @@ JitRuntime::generateVMWrapper(JSContext* cx, const VMFunction& f)
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(wrapper, "VMWrapper");
 #endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(wrapper, "VMWrapper");
+#endif
 
     // linker.newCode may trigger a GC and sweep functionWrappers_ so we have to
     // use relookupOrAdd instead of add.
@@ -853,6 +869,9 @@ JitRuntime::generatePreBarrier(JSContext* cx, MIRType type)
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "PreBarrier");
+#endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(code, "PreBarrier");
 #endif
 
     return code;
@@ -916,7 +935,7 @@ JitRuntime::generateDebugTrapHandler(JSContext* cx)
     // is set to the correct caller frame.
     {
         Label skipProfilingInstrumentation;
-        AbsoluteAddress addressOfEnabled(cx->runtime()->spsProfiler.addressOfEnabled());
+        AbsoluteAddress addressOfEnabled(cx->runtime()->geckoProfiler().addressOfEnabled());
         masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
         masm.profilerExitFrame();
         masm.bind(&skipProfilingInstrumentation);
@@ -929,6 +948,9 @@ JitRuntime::generateDebugTrapHandler(JSContext* cx)
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(codeDbg, "DebugTrapHandler");
+#endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(codeDbg, "DebugTrapHandler");
 #endif
 
     return codeDbg;
@@ -947,6 +969,9 @@ JitRuntime::generateExceptionTailStub(JSContext* cx, void* handler)
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "ExceptionTailStub");
 #endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(code, "ExceptionTailStub");
+#endif
 
     return code;
 }
@@ -963,6 +988,9 @@ JitRuntime::generateBailoutTailStub(JSContext* cx)
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "BailoutTailStub");
+#endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(code, "BailoutTailStub");
 #endif
 
     return code;
@@ -1026,8 +1054,8 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
     // ^--- Entry Frame (From C++)
     //
     Register actReg = scratch4;
-    AbsoluteAddress activationAddr(GetJitContext()->runtime->addressOfProfilingActivation());
-    masm.loadPtr(activationAddr, actReg);
+    masm.loadJSContext(actReg);
+    masm.loadPtr(Address(actReg, offsetof(JSContext, profilingActivation_)), actReg);
 
     Address lastProfilingFrame(actReg, JitActivation::offsetOfLastProfilingFrame());
     Address lastProfilingCallSite(actReg, JitActivation::offsetOfLastProfilingCallSite());
@@ -1059,7 +1087,7 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
     Label handle_IonJS;
     Label handle_BaselineStub;
     Label handle_Rectifier;
-    Label handle_IonAccessorIC;
+    Label handle_IonICCall;
     Label handle_Entry;
     Label end;
 
@@ -1067,7 +1095,7 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_BaselineJS), &handle_IonJS);
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_BaselineStub), &handle_BaselineStub);
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_Rectifier), &handle_Rectifier);
-    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_IonAccessorIC), &handle_IonAccessorIC);
+    masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_IonICCall), &handle_IonICCall);
     masm.branch32(Assembler::Equal, scratch2, Imm32(JitFrame_Entry), &handle_Entry);
 
     masm.assumeUnreachable("Invalid caller frame type when exiting from Ion frame.");
@@ -1233,28 +1261,28 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
         masm.ret();
     }
 
-    // JitFrame_IonAccessorIC
+    // JitFrame_IonICCall
     //
     // The caller is always an IonJS frame.
     //
     //              Ion-Descriptor
     //              Ion-ReturnAddr
-    //              ... ion frame data ... |- AccFrame-Descriptor.Size
-    //              StubCode             |
-    //              AccFrame-Descriptor  |- IonAccessorICFrameLayout::Size()
-    //              AccFrame-ReturnAddr  |
-    //              ... accessor frame data & args ... |- Descriptor.Size
+    //              ... ion frame data ... |- CallFrame-Descriptor.Size
+    //              StubCode               |
+    //              ICCallFrame-Descriptor |- IonICCallFrameLayout::Size()
+    //              ICCallFrame-ReturnAddr |
+    //              ... call frame data & args ... |- Descriptor.Size
     //              ActualArgc      |
     //              CalleeToken     |- JitFrameLayout::Size()
     //              Descriptor      |
     //    FP -----> ReturnAddr      |
-    masm.bind(&handle_IonAccessorIC);
+    masm.bind(&handle_IonICCall);
     {
         // scratch2 := StackPointer + Descriptor.size + JitFrameLayout::Size()
         masm.lea(Operand(StackPointer, scratch1, TimesOne, JitFrameLayout::Size()), scratch2);
 
-        // scratch3 := AccFrame-Descriptor.Size
-        masm.loadPtr(Address(scratch2, IonAccessorICFrameLayout::offsetOfDescriptor()), scratch3);
+        // scratch3 := ICCallFrame-Descriptor.Size
+        masm.loadPtr(Address(scratch2, IonICCallFrameLayout::offsetOfDescriptor()), scratch3);
 #ifdef DEBUG
         // Assert previous frame is an IonJS frame.
         masm.movePtr(scratch3, scratch1);
@@ -1262,19 +1290,19 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
         {
             Label checkOk;
             masm.branch32(Assembler::Equal, scratch1, Imm32(JitFrame_IonJS), &checkOk);
-            masm.assumeUnreachable("IonAccessorIC frame must be preceded by IonJS frame");
+            masm.assumeUnreachable("IonICCall frame must be preceded by IonJS frame");
             masm.bind(&checkOk);
         }
 #endif
         masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), scratch3);
 
-        // lastProfilingCallSite := AccFrame-ReturnAddr
-        masm.loadPtr(Address(scratch2, IonAccessorICFrameLayout::offsetOfReturnAddress()), scratch1);
+        // lastProfilingCallSite := ICCallFrame-ReturnAddr
+        masm.loadPtr(Address(scratch2, IonICCallFrameLayout::offsetOfReturnAddress()), scratch1);
         masm.storePtr(scratch1, lastProfilingCallSite);
 
-        // lastProfilingFrame := AccessorFrame + AccFrame-Descriptor.Size +
-        //                       IonAccessorICFrameLayout::Size()
-        masm.lea(Operand(scratch2, scratch3, TimesOne, IonAccessorICFrameLayout::Size()), scratch1);
+        // lastProfilingFrame := ICCallFrame + ICCallFrame-Descriptor.Size +
+        //                       IonICCallFrameLayout::Size()
+        masm.lea(Operand(scratch2, scratch3, TimesOne, IonICCallFrameLayout::Size()), scratch1);
         masm.storePtr(scratch1, lastProfilingFrame);
         masm.ret();
     }
@@ -1297,6 +1325,9 @@ JitRuntime::generateProfilerExitFrameTailStub(JSContext* cx)
 
 #ifdef JS_ION_PERF
     writePerfSpewerJitCodeProfile(code, "ProfilerExitFrameStub");
+#endif
+#ifdef MOZ_VTUNE
+    vtune::MarkStub(code, "ProfilerExitFrameStub");
 #endif
 
     return code;

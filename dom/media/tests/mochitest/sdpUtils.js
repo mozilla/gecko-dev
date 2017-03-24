@@ -15,6 +15,11 @@ checkSdpAfterEndOfTrickle: function(sdp, testOptions, label) {
   } else {
     ok(sdp.sdp.includes("a=rtcp:"), label + ": SDP contains rtcp port");
   }
+  if (testOptions.ssrc) {
+    ok(sdp.sdp.includes("a=ssrc"), label + ": SDP contains a=ssrc");
+  } else {
+    ok(!sdp.sdp.includes("a=ssrc"), label + ": SDP does not contain a=ssrc");
+  }
 },
 
 // takes sdp in string form (or possibly a fragment, say an m-section), and
@@ -37,6 +42,10 @@ removeCodec: function(sdp, codec) {
 
 removeRtcpMux: function(sdp) {
   return sdp.replace(/a=rtcp-mux\r\n/g,"");
+},
+
+removeSSRCs: function(sdp) {
+  return sdp.replace(/a=ssrc.*\r\n/g,"");
 },
 
 removeBundle: function(sdp) {
@@ -65,12 +74,17 @@ transferSimulcastProperties: function(offer_sdp, answer_sdp) {
   if (!offer_sdp.includes("a=simulcast:")) {
     return answer_sdp;
   }
+  ok(offer_sdp.includes("a=simulcast: send rid"), "Offer contains simulcast attribute");
   var o_simul = offer_sdp.match(/simulcast: send rid=(.*)([\n$])*/i);
-  var o_rids = offer_sdp.match(/a=rid:(.*)/ig);
   var new_answer_sdp = answer_sdp + "a=simulcast: recv rid=" + o_simul[1] + "\r\n";
+  ok(offer_sdp.includes("a=rid:"), "Offer contains RID attribute");
+  var o_rids = offer_sdp.match(/a=rid:(.*)/ig);
   o_rids.forEach((o_rid) => {
     new_answer_sdp = new_answer_sdp + o_rid.replace(/send/, "recv") + "\r\n";
   });
+  var extmap_id = offer_sdp.match("a=extmap:([0-9+])/sendonly urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id");
+  ok(extmap_id != null, "Offer contains RID RTP header extension");
+  new_answer_sdp = new_answer_sdp + "a=extmap:" + extmap_id[1] + "/recvonly urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\n";
   return new_answer_sdp;
 },
 
@@ -127,6 +141,7 @@ verifySdp: function(desc, expectedType, offerConstraintsList, offerOptions,
 	   desc.sdp.includes("a=rtpmap:121 VP9/90000"), "VP8 or VP9 codec is present in SDP");
     }
     is(testOptions.rtcpmux, desc.sdp.includes("a=rtcp-mux"), "RTCP Mux is offered in SDP");
+    is(testOptions.ssrc, desc.sdp.includes("a=ssrc"), "a=ssrc signaled in SDP");
   }
 
   return requiresTrickleIce;

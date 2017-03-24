@@ -35,8 +35,8 @@ from mozrunner.utils import get_stack_fixer_function, test_environment
 from mozscreenshot import printstatus, dump_screen
 
 try:
-    from marionette import Marionette
     from marionette_driver.addons import Addons
+    from marionette_harness import Marionette
 except ImportError, e:
     # Defer ImportError until attempt to use Marionette
     def reraise(*args, **kwargs):
@@ -132,6 +132,7 @@ class ReftestThread(threading.Thread):
 
             if summaryHeadRegex.search(line) is None:
                 yield line
+
 
 class ReftestResolver(object):
     def defaultManifest(self, suite):
@@ -292,6 +293,12 @@ class RefTest(object):
            '5.1' in platform.version() and options.e10s:
             prefs['layers.acceleration.disabled'] = True
 
+        # Bug 1300355: Disable canvas cache for win7 as it uses
+        # too much memory and causes OOMs.
+        if platform.system() in ("Windows", "Microsoft") and \
+           '6.1' in platform.version():
+            prefs['reftest.nocache'] = True
+
         if options.marionette:
             port = options.marionette.split(':')[1]
             prefs['marionette.defaultPrefs.port'] = int(port)
@@ -315,7 +322,8 @@ class RefTest(object):
                 addons.append(options.specialPowersExtensionPath)
             # SpecialPowers requires insecure automation-only features that we
             # put behind a pref.
-            prefs['security.turn_off_all_security_so_that_viruses_can_take_over_this_computer'] = True
+            prefs['security.turn_off_all_security_so_that_viruses'
+                  '_can_take_over_this_computer'] = True
 
         for pref in prefs:
             prefs[pref] = mozprofile.Preferences.cast(prefs[pref])
@@ -338,6 +346,8 @@ class RefTest(object):
             profile = mozprofile.Profile.clone(profile_to_clone, **kwargs)
         else:
             profile = mozprofile.Profile(**kwargs)
+
+        options.extraProfileFiles.append(os.path.join(here, 'chrome'))
 
         self.copyExtraFilesToProfile(options, profile)
         return profile
@@ -509,8 +519,9 @@ class RefTest(object):
         """handle process output timeout"""
         # TODO: bug 913975 : _processOutput should call self.processOutputLine
         # one more time one timeout (I think)
-        self.log.error("%s | application timed out after %d seconds with no output" % (self.lastTestSeen, int(timeout)))
-        self.log.error("Force-terminating active process(es).");
+        self.log.error("%s | application timed out after %d seconds with no output" % (
+                       self.lastTestSeen, int(timeout)))
+        self.log.error("Force-terminating active process(es).")
         self.killAndGetStack(
             proc, utilityPath, debuggerInfo, dump_screen=not debuggerInfo)
 
@@ -592,11 +603,8 @@ class RefTest(object):
             timeout = None
             signal.signal(signal.SIGINT, lambda sigid, frame: None)
 
-        if mozinfo.info.get('appname') == 'b2g' and mozinfo.info.get('toolkit') != 'gonk':
-            runner_cls = mozrunner.Runner
-        else:
-            runner_cls = mozrunner.runners.get(mozinfo.info.get('appname', 'firefox'),
-                                               mozrunner.Runner)
+        runner_cls = mozrunner.runners.get(mozinfo.info.get('appname', 'firefox'),
+                                           mozrunner.Runner)
         runner = runner_cls(profile=profile,
                             binary=binary,
                             process_class=mozprocess.ProcessHandlerMixin,
@@ -683,8 +691,7 @@ class RefTest(object):
             mozleak.process_leak_log(self.leakLogFile,
                                      leak_thresholds=options.leakThresholds,
                                      stack_fixer=get_stack_fixer_function(options.utilityPath,
-                                                                          options.symbolsPath),
-            )
+                                                                          options.symbolsPath))
         finally:
             self.cleanup(profileDir)
         return status

@@ -13,9 +13,9 @@
 #include "mozilla/ArrayUtils.h"
 #include "include/ESDS.h"
 
-#ifdef MOZ_RUST_MP4PARSE
+// OpusDecoder header is really needed only by MP4 in rust
+#include "OpusDecoder.h"
 #include "mp4parse.h"
-#endif
 
 using namespace stagefright;
 
@@ -187,11 +187,73 @@ MP4VideoInfo::Update(const MetaData* aMetaData, const char* aMimeType)
 
 }
 
-#ifdef MOZ_RUST_MP4PARSE
+static void
+UpdateTrackProtectedInfo(mozilla::TrackInfo& aConfig,
+                         const mp4parse_sinf_info& aSinf)
+{
+  if (aSinf.is_encrypted != 0) {
+    aConfig.mCrypto.mValid = true;
+    aConfig.mCrypto.mMode = aSinf.is_encrypted;
+    aConfig.mCrypto.mIVSize = aSinf.iv_size;
+    aConfig.mCrypto.mKeyId.AppendElements(aSinf.kid.data, aSinf.kid.length);
+  }
+}
+
+void
+MP4AudioInfo::Update(const mp4parse_track_info* track,
+                     const mp4parse_track_audio_info* audio)
+{
+  UpdateTrackProtectedInfo(*this, audio->protected_data);
+
+  if (track->codec == MP4PARSE_CODEC_OPUS) {
+    mMimeType = NS_LITERAL_CSTRING("audio/opus");
+    // The Opus decoder expects the container's codec delay or
+    // pre-skip value, in microseconds, as a 64-bit int at the
+    // start of the codec-specific config blob.
+    MOZ_ASSERT(audio->codec_specific_config.data);
+    MOZ_ASSERT(audio->codec_specific_config.length >= 12);
+    uint16_t preskip =
+      LittleEndian::readUint16(audio->codec_specific_config.data + 10);
+    OpusDataDecoder::AppendCodecDelay(mCodecSpecificConfig,
+        mozilla::FramesToUsecs(preskip, 48000).value());
+  } else if (track->codec == MP4PARSE_CODEC_AAC) {
+    mMimeType = MEDIA_MIMETYPE_AUDIO_AAC;
+  } else if (track->codec == MP4PARSE_CODEC_FLAC) {
+    mMimeType = MEDIA_MIMETYPE_AUDIO_FLAC;
+  } else if (track->codec == MP4PARSE_CODEC_MP3) {
+    mMimeType = MEDIA_MIMETYPE_AUDIO_MPEG;
+  }
+
+  mRate = audio->sample_rate;
+  mChannels = audio->channels;
+  mBitDepth = audio->bit_depth;
+  mExtendedProfile = audio->profile;
+  mDuration = track->duration;
+  mMediaTime = track->media_time;
+  mTrackId = track->track_id;
+
+  // In stagefright, mProfile is kKeyAACProfile, mExtendedProfile is kKeyAACAOT.
+  // Both are from audioObjectType in AudioSpecificConfig.
+  if (audio->profile <= 4) {
+    mProfile = audio->profile;
+  }
+
+  if (audio->codec_specific_config.length > 0) {
+    mExtraData->AppendElements(audio->codec_specific_config.data,
+                               audio->codec_specific_config.length);
+  }
+
+  if (audio->codec_specific_data.length > 0) {
+    mCodecSpecificConfig->AppendElements(audio->codec_specific_data.data,
+                                         audio->codec_specific_data.length);
+  }
+}
+
 void
 MP4VideoInfo::Update(const mp4parse_track_info* track,
                      const mp4parse_track_video_info* video)
 {
+  UpdateTrackProtectedInfo(*this, video->protected_data);
   if (track->codec == MP4PARSE_CODEC_AVC) {
     mMimeType = MEDIA_MIMETYPE_VIDEO_AVC;
   } else if (track->codec == MP4PARSE_CODEC_VP9) {
@@ -204,8 +266,11 @@ MP4VideoInfo::Update(const mp4parse_track_info* track,
   mDisplay.height = video->display_height;
   mImage.width = video->image_width;
   mImage.height = video->image_height;
+  mRotation = ToSupportedRotation(video->rotation);
+  if (video->extra_data.data) {
+    mExtraData->AppendElements(video->extra_data.data, video->extra_data.length);
+  }
 }
-#endif
 
 bool
 MP4VideoInfo::IsValid() const

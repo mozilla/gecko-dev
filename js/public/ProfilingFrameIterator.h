@@ -7,7 +7,7 @@
 #ifndef js_ProfilingFrameIterator_h
 #define js_ProfilingFrameIterator_h
 
-#include "mozilla/Alignment.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 
 #include "jsbytecode.h"
@@ -44,9 +44,9 @@ struct ForEachTrackedOptimizationTypeInfoOp;
 // Note that the caller must not do anything that could cause GC to happen while
 // the iterator is alive, since this could invalidate Ion code and cause its
 // contents to become out of date.
-class JS_PUBLIC_API(ProfilingFrameIterator)
+class MOZ_NON_PARAM JS_PUBLIC_API(ProfilingFrameIterator)
 {
-    JSRuntime* rt_;
+    JSContext* cx_;
     uint32_t sampleBufferGen_;
     js::Activation* activation_;
 
@@ -55,31 +55,33 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
     // activation (if any) comes around.
     void* savedPrevJitTop_;
 
-    JS::AutoCheckCannotGC nogc_;
-
     static const unsigned StorageSpace = 8 * sizeof(void*);
-    mozilla::AlignedStorage<StorageSpace> storage_;
+    alignas(void*) unsigned char storage_[StorageSpace];
+
+    void* storage() { return storage_; }
+    const void* storage() const { return storage_; }
+
     js::wasm::ProfilingFrameIterator& wasmIter() {
         MOZ_ASSERT(!done());
         MOZ_ASSERT(isWasm());
-        return *reinterpret_cast<js::wasm::ProfilingFrameIterator*>(storage_.addr());
+        return *static_cast<js::wasm::ProfilingFrameIterator*>(storage());
     }
     const js::wasm::ProfilingFrameIterator& wasmIter() const {
         MOZ_ASSERT(!done());
         MOZ_ASSERT(isWasm());
-        return *reinterpret_cast<const js::wasm::ProfilingFrameIterator*>(storage_.addr());
+        return *static_cast<const js::wasm::ProfilingFrameIterator*>(storage());
     }
 
     js::jit::JitProfilingFrameIterator& jitIter() {
         MOZ_ASSERT(!done());
         MOZ_ASSERT(isJit());
-        return *reinterpret_cast<js::jit::JitProfilingFrameIterator*>(storage_.addr());
+        return *static_cast<js::jit::JitProfilingFrameIterator*>(storage());
     }
 
     const js::jit::JitProfilingFrameIterator& jitIter() const {
         MOZ_ASSERT(!done());
         MOZ_ASSERT(isJit());
-        return *reinterpret_cast<const js::jit::JitProfilingFrameIterator*>(storage_.addr());
+        return *static_cast<const js::jit::JitProfilingFrameIterator*>(storage());
     }
 
     void settle();
@@ -91,9 +93,10 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
   public:
     struct RegisterState
     {
-        RegisterState() : pc(nullptr), sp(nullptr), lr(nullptr) {}
+        RegisterState() : pc(nullptr), sp(nullptr), fp(nullptr), lr(nullptr) {}
         void* pc;
         void* sp;
+        void* fp;
         void* lr;
     };
 
@@ -123,8 +126,8 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
         void* stackAddress;
         void* returnAddress;
         void* activation;
-        UniqueChars label;
-    };
+        const char* label;
+    } JS_HAZ_GC_INVALIDATED;
 
     bool isWasm() const;
     bool isJit() const;
@@ -140,7 +143,7 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
     void iteratorConstruct();
     void iteratorDestroy();
     bool iteratorDone();
-};
+} JS_HAZ_GC_INVALIDATED;
 
 JS_FRIEND_API(bool)
 IsProfilingEnabledForContext(JSContext* cx);
@@ -185,10 +188,13 @@ struct ForEachProfiledFrameOp
         bool hasTrackedOptimizations() const { return optsIndex_.isSome(); }
         void* canonicalAddress() const { return canonicalAddr_; }
 
-        ProfilingFrameIterator::FrameKind frameKind() const;
-        void forEachOptimizationAttempt(ForEachTrackedOptimizationAttemptOp& op,
-                                        JSScript** scriptOut, jsbytecode** pcOut) const;
-        void forEachOptimizationTypeInfo(ForEachTrackedOptimizationTypeInfoOp& op) const;
+        JS_PUBLIC_API(ProfilingFrameIterator::FrameKind) frameKind() const;
+        JS_PUBLIC_API(void) forEachOptimizationAttempt(ForEachTrackedOptimizationAttemptOp& op,
+                                                       JSScript** scriptOut,
+                                                       jsbytecode** pcOut) const;
+
+        JS_PUBLIC_API(void)
+        forEachOptimizationTypeInfo(ForEachTrackedOptimizationTypeInfoOp& op) const;
     };
 
     // Called once per frame.

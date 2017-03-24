@@ -50,34 +50,17 @@ Manifest.prototype = {
     by_type:function(type) {
         var ret = [] ;
         if (this.data.items.hasOwnProperty(type)) {
-            ret = this.data.items[type].slice(0) ;
-        }
-        // local_changes.items in manifest is an Object just as
-        // items is.  However, the properties of local_changes.items
-        // are Objects and the properties of items are Arrays.
-        // So we need to extract any relevant local changes by iterating
-        // over the Object and pulling out the referenced nodes as array items.
-        if (this.data.hasOwnProperty("local_changes")) {
-            var local = this.data.local_changes ;
-            // add in any local items
-            if (local.items.hasOwnProperty(type)) {
-                Object.keys(local.items[type]).forEach(function(ref) {
-                    ret.push(local.items[type][ref][0]) ;
-                }.bind(this));
-            }
-            // remove any items that are locally deleted but not yet committed
-            // note that the deleted and deleted_reftests properties of the local_changes
-            // object are always present, even if they are empty
-            if (ret.length && local.deleted.length) {
-                // make a hash of the deleted to speed searching
-                var dels = {} ;
-                local.deleted.forEach(function(x) { dels[x] = true; } );
-                for (var j = ret.length-1; j >= 0; j--) {
-                    if ( dels[ret[j].path] || (type === "reftest" && local.deleted_reftests[ret[j].path]) ){
-                        // we have a match
-                        ret.splice(j, 1) ;
-                    }
+            for (var propertyName in this.data.items[type]) {
+                var arr = this.data.items[type][propertyName][0];
+                var item = arr[arr.length - 1];
+                item.path = propertyName;
+                if ('string' === typeof arr[0]) {
+                    item.url = arr[0];
                 }
+                if (Array.isArray(arr[1])) {
+                    item.references = arr[1];
+                }
+                ret.push(item);
             }
         }
         return ret ;
@@ -169,7 +152,6 @@ function VisualOutput(elem, runner) {
     this.section_wrapper = null;
     this.results_table = this.elem.querySelector(".results > table");
     this.section = null;
-    this.manifest_status = this.elem.querySelector("#manifest");
     this.progress = this.elem.querySelector(".summary .progress");
     this.meter = this.progress.querySelector(".progress-bar");
     this.result_count = null;
@@ -212,7 +194,7 @@ VisualOutput.prototype = {
         }
         this.meter.style.width = '0px';
         this.meter.textContent = '0%';
-        this.manifest_status.style.display = "none";
+        this.meter.classList.remove("stopped", "loading-manifest");
         this.elem.querySelector(".jsonResults").style.display = "none";
         this.results_table.removeChild(this.results_table.tBodies[0]);
         this.results_table.appendChild(document.createElement("tbody"));
@@ -222,14 +204,13 @@ VisualOutput.prototype = {
         this.clear();
         this.instructions.style.display = "none";
         this.elem.style.display = "block";
-        this.manifest_status.style.display = "inline";
+        this.steady_status("loading-manifest");
     },
 
     on_start: function() {
         this.clear();
         this.instructions.style.display = "none";
         this.elem.style.display = "block";
-        this.meter.classList.remove("stopped");
         this.meter.classList.add("progress-striped", "active");
     },
 
@@ -298,17 +279,24 @@ VisualOutput.prototype = {
         this.update_meter(this.runner.progress(), this.runner.results.count(), this.runner.test_count());
     },
 
-    on_done: function() {
+    steady_status: function(statusName) {
+        var statusTexts = {
+            done: "Done!",
+            stopped: "Stopped",
+            "loading-manifest": "Updating and loading test manifest; this may take several minutes."
+        };
+        var textContent = statusTexts[statusName];
+
         this.meter.setAttribute("aria-valuenow", this.meter.getAttribute("aria-valuemax"));
         this.meter.style.width = "100%";
-        if (this.runner.stop_flag) {
-            this.meter.textContent = "Stopped";
-            this.meter.classList.add("stopped");
-        } else {
-            this.meter.textContent = "Done!";
-        }
-        this.meter.classList.remove("progress-striped", "active");
+        this.meter.textContent = textContent;
+        this.meter.classList.remove("progress-striped", "active", "stopped", "loading-manifest");
+        this.meter.classList.add(statusName);
         this.runner.test_div.textContent = "";
+    },
+
+    on_done: function() {
+        this.steady_status(this.runner.stop_flag ? "stopped" : "done");
         //add the json serialization of the results
         var a = this.elem.querySelector(".jsonResults");
         var json = this.runner.results.to_json();
@@ -661,8 +649,10 @@ Runner.prototype = {
         return this.manifest[this.mTestCount];
     },
 
-    open_test_window: function() {
-        this.test_window = window.open("about:blank", 800, 600);
+    ensure_test_window: function() {
+        if (!this.test_window || this.test_window.location === null) {
+          this.test_window = window.open("about:blank", 800, 600);
+        }
     },
 
     manifest_loaded: function() {
@@ -683,6 +673,7 @@ Runner.prototype = {
         this.manifest_iterator = new ManifestIterator(this.manifest, this.path, this.test_types, this.use_regex);
         this.num_tests = null;
 
+        this.ensure_test_window();
         if (this.manifest.data === null) {
             this.wait_for_manifest();
         } else {
@@ -699,7 +690,6 @@ Runner.prototype = {
 
     do_start: function() {
         if (this.manifest_iterator.count() > 0) {
-            this.open_test_window();
             this.start_callbacks.forEach(function(callback) {
                 callback();
             });
@@ -744,6 +734,7 @@ Runner.prototype = {
         this.done_flag = true;
         if (this.test_window) {
             this.test_window.close();
+            this.test_window = undefined;
         }
         this.done_callbacks.forEach(function(callback) {
             callback();
@@ -775,9 +766,7 @@ Runner.prototype = {
     },
 
     load: function(path) {
-        if (this.test_window.location === null) {
-            this.open_test_window();
-        }
+        this.ensure_test_window();
         this.test_window.location.href = this.server + path;
     },
 

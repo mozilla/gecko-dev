@@ -289,7 +289,7 @@ CERT_FindUserCertByUsage(CERTCertDBHandle *handle,
         goto loser;
     }
 
-    if (!CERT_LIST_END(CERT_LIST_HEAD(certList), certList)) {
+    if (!CERT_LIST_EMPTY(certList)) {
         cert = CERT_DupCertificate(CERT_LIST_HEAD(certList)->cert);
     }
 
@@ -1080,7 +1080,10 @@ CERT_CertChainFromCert(CERTCertificate *cert, SECCertUsage usage,
         derCert.len = (unsigned int)stanCert->encoding.size;
         derCert.data = (unsigned char *)stanCert->encoding.data;
         derCert.type = siBuffer;
-        SECITEM_CopyItem(arena, &chain->certs[i], &derCert);
+        if (SECITEM_CopyItem(arena, &chain->certs[i], &derCert) != SECSuccess) {
+            CERT_DestroyCertificate(cCert);
+            goto loser;
+        }
         stanCert = stanChain[++i];
         if (!stanCert && !cCert->isRoot) {
             /* reached the end of the chain, but the final cert is

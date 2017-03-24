@@ -5,7 +5,7 @@
 Components.utils.import("resource://testing-common/MockRegistrar.jsm");
 
 const WindowWatcher = {
-  openWindow: function(aParent, aUrl, aName, aFeatures, aArgs) {
+  openWindow(aParent, aUrl, aName, aFeatures, aArgs) {
     gCheckFunc();
   },
 
@@ -13,7 +13,7 @@ const WindowWatcher = {
 };
 
 const WindowMediator = {
-  getMostRecentWindow: function(aWindowType) {
+  getMostRecentWindow(aWindowType) {
     do_execute_soon(check_status);
     return { getInterface: XPCOMUtils.generateQI([Ci.nsIDOMWindow]) };
   },
@@ -33,7 +33,7 @@ function run_test() {
   Services.prefs.setBoolPref(PREF_APP_UPDATE_SILENT, false);
 
   start_httpserver();
-  setUpdateURLOverride(gURLData + gHTTPHandlerPath);
+  setUpdateURL(gURLData + gHTTPHandlerPath);
   standardInit();
 
   let windowWatcherCID =

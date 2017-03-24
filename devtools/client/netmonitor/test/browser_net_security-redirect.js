@@ -1,6 +1,6 @@
-/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
 /**
@@ -10,9 +10,10 @@
 
 add_task(function* () {
   let { tab, monitor } = yield initNetMonitor(CUSTOM_GET_URL);
-  let { $, NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
-  RequestsMenu.lazyUpdate = false;
+  let { document, gStore, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/actions/index");
+
+  gStore.dispatch(Actions.batchEnable(false));
 
   let wait = waitForNetworkEvents(monitor, 2);
   yield ContentTask.spawn(tab.linkedBrowser, HTTPS_REDIRECT_SJS, function* (url) {
@@ -20,13 +21,13 @@ add_task(function* () {
   });
   yield wait;
 
-  is(RequestsMenu.itemCount, 2, "There were two requests due to redirect.");
+  is(gStore.getState().requests.requests.size, 2,
+     "There were two requests due to redirect.");
 
-  let initial = RequestsMenu.items[0];
-  let redirect = RequestsMenu.items[1];
-
-  let initialSecurityIcon = $(".requests-security-state-icon", initial.target);
-  let redirectSecurityIcon = $(".requests-security-state-icon", redirect.target);
+  let [
+    initialSecurityIcon,
+    redirectSecurityIcon,
+  ] = document.querySelectorAll(".requests-security-state-icon");
 
   ok(initialSecurityIcon.classList.contains("security-state-insecure"),
      "Initial request was marked insecure.");

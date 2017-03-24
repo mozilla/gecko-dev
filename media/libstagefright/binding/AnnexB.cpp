@@ -45,11 +45,15 @@ AnnexB::ConvertSampleToAnnexB(mozilla::MediaRawData* aSample, bool aAddSPS)
     uint32_t nalLen = reader.ReadU32();
     const uint8_t* p = reader.Read(nalLen);
 
-    writer.Write(kAnnexBDelimiter, ArrayLength(kAnnexBDelimiter));
+    if (!writer.Write(kAnnexBDelimiter, ArrayLength(kAnnexBDelimiter))) {
+      return false;
+    }
     if (!p) {
       break;
     }
-    writer.Write(p, nalLen);
+    if (!writer.Write(p, nalLen)) {
+      return false;
+    }
   }
 
   nsAutoPtr<MediaRawDataWriter> samplewriter(aSample->CreateWriter());
@@ -64,6 +68,15 @@ AnnexB::ConvertSampleToAnnexB(mozilla::MediaRawData* aSample, bool aAddSPS)
       ConvertExtraDataToAnnexB(aSample->mExtraData);
     if (!samplewriter->Prepend(annexB->Elements(), annexB->Length())) {
       return false;
+    }
+
+    // Prepending the NAL with SPS/PPS will mess up the encryption subsample
+    // offsets. So we need to account for the extra bytes by increasing
+    // the length of the first clear data subsample. Otherwise decryption
+    // will fail.
+    if (aSample->mCrypto.mValid) {
+      MOZ_ASSERT(samplewriter->mCrypto.mPlainSizes.Length() > 0);
+      samplewriter->mCrypto.mPlainSizes[0] += annexB->Length();
     }
   }
 
@@ -188,7 +201,7 @@ FindStartCode(ByteReader& aBr, size_t& aStartSize)
   return true;
 }
 
-static void
+static bool
 ParseNALUnits(ByteWriter& aBw, ByteReader& aBr)
 {
   size_t startSize;
@@ -200,17 +213,22 @@ ParseNALUnits(ByteWriter& aBw, ByteReader& aBr)
       size_t offset = aBr.Offset();
       size_t sizeNAL = offset - startOffset - startSize;
       aBr.Seek(startOffset);
-      aBw.WriteU32(sizeNAL);
-      aBw.Write(aBr.Read(sizeNAL), sizeNAL);
+      if (!aBw.WriteU32(sizeNAL)
+          || !aBw.Write(aBr.Read(sizeNAL), sizeNAL)) {
+        return false;
+      }
       aBr.Read(startSize);
       startOffset = offset;
     }
   }
   size_t sizeNAL = aBr.Remaining();
   if (sizeNAL) {
-    aBw.WriteU32(sizeNAL);
-    aBw.Write(aBr.Read(sizeNAL), sizeNAL);
+    if (!aBw.WriteU32(sizeNAL)
+        || !aBw.Write(aBr.Read(sizeNAL), sizeNAL)) {
+      return false;
+    }
   }
+  return true;
 }
 
 bool
@@ -228,7 +246,9 @@ AnnexB::ConvertSampleToAVCC(mozilla::MediaRawData* aSample)
   ByteWriter writer(nalu);
   ByteReader reader(aSample->Data(), aSample->Size());
 
-  ParseNALUnits(writer, reader);
+  if (!ParseNALUnits(writer, reader)) {
+    return false;
+  }
   nsAutoPtr<MediaRawDataWriter> samplewriter(aSample->CreateWriter());
   return samplewriter->Replace(nalu.begin(), nalu.length());
 }
@@ -284,12 +304,16 @@ AnnexB::ExtractExtraData(const mozilla::MediaRawData* aSample)
 
     if (nalType == 0x7) { /* SPS */
       numSps++;
-      spsw.WriteU16(nalLen);
-      spsw.Write(p, nalLen);
+      if (!spsw.WriteU16(nalLen)
+          || !spsw.Write(p, nalLen)) {
+        return extradata.forget();
+      }
     } else if (nalType == 0x8) { /* PPS */
       numPps++;
-      ppsw.WriteU16(nalLen);
-      ppsw.Write(p, nalLen);
+      if (!ppsw.WriteU16(nalLen)
+          || !ppsw.Write(p, nalLen)) {
+        return extradata.forget();
+      }
     }
   }
 
@@ -334,6 +358,47 @@ AnnexB::HasSPS(const mozilla::MediaByteBuffer* aExtraData)
 }
 
 bool
+AnnexB::HasPPS(const mozilla::MediaRawData* aSample)
+{
+  return HasPPS(aSample->mExtraData);
+}
+
+bool
+AnnexB::HasPPS(const mozilla::MediaByteBuffer* aExtraData)
+{
+  if (!aExtraData) {
+    return false;
+  }
+
+  ByteReader reader(aExtraData);
+  const uint8_t* ptr = reader.Read(5);
+  if (!ptr || !reader.CanRead8()) {
+    return false;
+  }
+  uint8_t numSps = reader.ReadU8() & 0x1f;
+  // Skip over the included SPS.
+  for (uint8_t i = 0; i < numSps; i++) {
+    if (reader.Remaining() < 3) {
+      return false;
+    }
+    uint16_t length = reader.ReadU16();
+    if ((reader.PeekU8() & 0x1f) != 7) {
+      // Not an SPS NAL type.
+      return false;
+    }
+    if (!reader.Read(length)) {
+      return false;
+    }
+  }
+  if (!reader.CanRead8()) {
+    return false;
+  }
+  uint8_t numPps = reader.ReadU8();
+
+  return numPps > 0;
+}
+
+bool
 AnnexB::ConvertSampleTo4BytesAVCC(mozilla::MediaRawData* aSample)
 {
   MOZ_ASSERT(IsAVCC(aSample));
@@ -358,8 +423,10 @@ AnnexB::ConvertSampleTo4BytesAVCC(mozilla::MediaRawData* aSample)
     if (!p) {
       return true;
     }
-    writer.WriteU32(nalLen);
-    writer.Write(p, nalLen);
+    if (!writer.WriteU32(nalLen)
+        || !writer.Write(p, nalLen)) {
+      return false;
+    }
   }
   nsAutoPtr<MediaRawDataWriter> samplewriter(aSample->CreateWriter());
   return samplewriter->Replace(dest.begin(), dest.length());

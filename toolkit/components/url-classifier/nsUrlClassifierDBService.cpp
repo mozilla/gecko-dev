@@ -28,7 +28,6 @@
 #include "nsTArray.h"
 #include "nsNetCID.h"
 #include "nsThreadUtils.h"
-#include "nsXPCOMStrings.h"
 #include "nsProxyRelease.h"
 #include "nsString.h"
 #include "mozilla/Atomics.h"
@@ -36,10 +35,10 @@
 #include "mozilla/ErrorNames.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Logging.h"
-#include "prprf.h"
 #include "prnetdb.h"
 #include "Entries.h"
 #include "HashStore.h"
@@ -50,6 +49,11 @@
 #include "Classifier.h"
 #include "ProtocolParser.h"
 #include "nsContentUtils.h"
+#include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/PermissionMessageUtils.h"
+#include "mozilla/dom/URLClassifierChild.h"
+#include "mozilla/ipc/URIUtils.h"
+#include "nsProxyRelease.h"
 
 namespace mozilla {
 namespace safebrowsing {
@@ -99,12 +103,6 @@ LazyLogModule gUrlClassifierDbServiceLog("UrlClassifierDbService");
 #define CHECK_PHISHING_PREF     "browser.safebrowsing.phishing.enabled"
 #define CHECK_PHISHING_DEFAULT  false
 
-#define CHECK_TRACKING_PREF     "privacy.trackingprotection.enabled"
-#define CHECK_TRACKING_DEFAULT  false
-
-#define CHECK_TRACKING_PB_PREF    "privacy.trackingprotection.pbmode.enabled"
-#define CHECK_TRACKING_PB_DEFAULT false
-
 #define CHECK_BLOCKED_PREF    "browser.safebrowsing.blockedURIs.enabled"
 #define CHECK_BLOCKED_DEFAULT false
 
@@ -124,12 +122,20 @@ LazyLogModule gUrlClassifierDbServiceLog("UrlClassifierDbService");
 #define CONFIRM_AGE_PREF        "urlclassifier.max-complete-age"
 #define CONFIRM_AGE_DEFAULT_SEC (45 * 60)
 
+// TODO: The following two prefs are to be removed after we
+//       roll out full v4 hash completion. See Bug 1331534.
+#define TAKE_V4_COMPLETION_RESULT_PREF    "browser.safebrowsing.temporary.take_v4_completion_result"
+#define TAKE_V4_COMPLETION_RESULT_DEFAULT false
+
 class nsUrlClassifierDBServiceWorker;
 
 // Singleton instance.
 static nsUrlClassifierDBService* sUrlClassifierDBService;
 
 nsIThread* nsUrlClassifierDBService::gDbBackgroundThread = nullptr;
+
+// For update only.
+static nsIThread* gDbUpdateThread = nullptr;
 
 // Once we've committed to shutting down, don't do work in the background
 // thread.
@@ -172,6 +178,9 @@ nsUrlClassifierDBServiceWorker::QueueLookup(const nsACString& spec,
                                             nsIUrlClassifierLookupCallback* callback)
 {
   MutexAutoLock lock(mPendingLookupLock);
+  if (gShuttingDownThread) {
+      return NS_ERROR_ABORT;
+  }
 
   PendingLookup* lookup = mPendingLookups.AppendElement();
   if (!lookup) return NS_ERROR_OUT_OF_MEMORY;
@@ -189,6 +198,10 @@ nsUrlClassifierDBServiceWorker::DoLocalLookup(const nsACString& spec,
                                               const nsACString& tables,
                                               LookupResultArray* results)
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   MOZ_ASSERT(!NS_IsMainThread(), "DoLocalLookup must be on background thread");
   if (!results) {
     return NS_ERROR_FAILURE;
@@ -202,15 +215,14 @@ nsUrlClassifierDBServiceWorker::DoLocalLookup(const nsACString& spec,
   // results that were found than fail.
   mClassifier->Check(spec, tables, gFreshnessGuarantee, *results);
 
-  LOG(("Found %d results.", results->Length()));
+  LOG(("Found %" PRIuSIZE " results.", results->Length()));
   return NS_OK;
 }
 
-static nsCString
-ProcessLookupResults(LookupResultArray* results)
+static nsresult
+ProcessLookupResults(LookupResultArray* results, nsTArray<nsCString>& tables)
 {
-  // Build a stringified list of result tables.
-  nsTArray<nsCString> tables;
+  // Build the result array.
   for (uint32_t i = 0; i < results->Length(); i++) {
     LookupResult& result = results->ElementAt(i);
     MOZ_ASSERT(!result.mNoise, "Lookup results should not have noise added");
@@ -219,13 +231,7 @@ ProcessLookupResults(LookupResultArray* results)
       tables.AppendElement(result.mTableName);
     }
   }
-  nsAutoCString tableStr;
-  for (uint32_t i = 0; i < tables.Length(); i++) {
-    if (i != 0)
-      tableStr.Append(',');
-    tableStr.Append(tables[i]);
-  }
-  return tableStr;
+  return NS_OK;
 }
 
 /**
@@ -266,7 +272,7 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
     return rv;
   }
 
-  LOG(("Found %d results.", results->Length()));
+  LOG(("Found %" PRIuSIZE " results.", results->Length()));
 
 
   if (LOG_ENABLED()) {
@@ -278,8 +284,12 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
   nsAutoPtr<LookupResultArray> completes(new LookupResultArray());
 
   for (uint32_t i = 0; i < results->Length(); i++) {
-    if (!mMissCache.Contains(results->ElementAt(i).hash.prefix)) {
-      completes->AppendElement(results->ElementAt(i));
+    const LookupResult& lookupResult = results->ElementAt(i);
+
+    // mMissCache should only be used in V2.
+    if (!lookupResult.mProtocolV2 ||
+        !mMissCache.Contains(lookupResult.hash.fixedLengthPrefix)) {
+      completes->AppendElement(lookupResult);
     }
   }
 
@@ -288,7 +298,7 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
       // We're going to be doing a gethash request, add some extra entries.
       // Note that we cannot pass the first two by reference, because we
       // add to completes, whicah can cause completes to reallocate and move.
-      AddNoise(completes->ElementAt(i).hash.prefix,
+      AddNoise(completes->ElementAt(i).hash.fixedLengthPrefix,
                completes->ElementAt(i).mTableName,
                mGethashNoise, *completes);
       break;
@@ -304,6 +314,10 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
 nsresult
 nsUrlClassifierDBServiceWorker::HandlePendingLookups()
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   MutexAutoLock lock(mPendingLookupLock);
   while (mPendingLookups.Length() > 0) {
     PendingLookup lookup = mPendingLookups[0];
@@ -313,7 +327,7 @@ nsUrlClassifierDBServiceWorker::HandlePendingLookups()
       DoLookup(lookup.mKey, lookup.mTables, lookup.mCallback);
     }
     double lookupTime = (TimeStamp::Now() - lookup.mStartTime).ToMilliseconds();
-    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_LOOKUP_TIME,
+    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_LOOKUP_TIME_2,
                           static_cast<uint32_t>(lookupTime));
   }
 
@@ -326,6 +340,10 @@ nsUrlClassifierDBServiceWorker::AddNoise(const Prefix aPrefix,
                                          uint32_t aCount,
                                          LookupResultArray& results)
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   if (aCount < 1) {
     return NS_OK;
   }
@@ -340,9 +358,9 @@ nsUrlClassifierDBServiceWorker::AddNoise(const Prefix aPrefix,
     if (!result)
       return NS_ERROR_OUT_OF_MEMORY;
 
-    result->hash.prefix = noiseEntries[i];
+    result->hash.fixedLengthPrefix = noiseEntries[i];
     result->mNoise = true;
-
+    result->mPartialHashLength = PREFIX_SIZE; // Noise is always 4-byte,
     result->mTableName.Assign(tableName);
   }
 
@@ -355,14 +373,19 @@ nsUrlClassifierDBServiceWorker::Lookup(nsIPrincipal* aPrincipal,
                                        const nsACString& aTables,
                                        nsIUrlClassifierCallback* c)
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   return HandlePendingLookups();
 }
 
 NS_IMETHODIMP
 nsUrlClassifierDBServiceWorker::GetTables(nsIUrlClassifierCallback* c)
 {
-  if (gShuttingDownThread)
+  if (gShuttingDownThread) {
     return NS_ERROR_NOT_INITIALIZED;
+  }
 
   nsresult rv = OpenDb();
   if (NS_FAILED(rv)) {
@@ -436,8 +459,9 @@ nsUrlClassifierDBServiceWorker::BeginStream(const nsACString &table)
   LOG(("nsUrlClassifierDBServiceWorker::BeginStream"));
   MOZ_ASSERT(!NS_IsMainThread(), "Streaming must be on the background thread");
 
-  if (gShuttingDownThread)
+  if (gShuttingDownThread) {
     return NS_ERROR_NOT_INITIALIZED;
+  }
 
   NS_ENSURE_STATE(mUpdateObserver);
   NS_ENSURE_STATE(!mInStream);
@@ -516,8 +540,9 @@ nsUrlClassifierDBServiceWorker::BeginStream(const nsACString &table)
 NS_IMETHODIMP
 nsUrlClassifierDBServiceWorker::UpdateStream(const nsACString& chunk)
 {
-  if (gShuttingDownThread)
+  if (gShuttingDownThread) {
     return NS_ERROR_NOT_INITIALIZED;
+  }
 
   NS_ENSURE_STATE(mInStream);
 
@@ -557,6 +582,11 @@ nsUrlClassifierDBServiceWorker::FinishStream()
     // parser.
     mTableUpdates.AppendElements(mProtocolParser->GetTableUpdates());
     mProtocolParser->ForgetTableUpdates();
+
+#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
+    // The assignment involves no string copy since the source string is sharable.
+    mRawTableUpdates = mProtocolParser->GetRawTableUpdates();
+#endif
   } else {
     LOG(("nsUrlClassifierDBService::FinishStream Failed to parse the stream "
          "using mProtocolParser."));
@@ -568,6 +598,8 @@ nsUrlClassifierDBServiceWorker::FinishStream()
     if (mProtocolParser->ResetRequested()) {
       mClassifier->ResetTables(Classifier::Clear_All, mUpdateTables);
     }
+  } else {
+    mUpdateStatus = NS_ERROR_UC_UPDATE_PROTOCOL_PARSER_ERROR;
   }
 
   mProtocolParser = nullptr;
@@ -578,15 +610,94 @@ nsUrlClassifierDBServiceWorker::FinishStream()
 NS_IMETHODIMP
 nsUrlClassifierDBServiceWorker::FinishUpdate()
 {
-  if (gShuttingDownThread)
+  if (gShuttingDownThread) {
     return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  MOZ_ASSERT(!mProtocolParser, "Should have been nulled out in FinishStream() "
+                               "or never created.");
+
   NS_ENSURE_STATE(mUpdateObserver);
 
-  if (NS_SUCCEEDED(mUpdateStatus)) {
-    mUpdateStatus = ApplyUpdate();
-  } else {
+  if (NS_FAILED(mUpdateStatus)) {
     LOG(("nsUrlClassifierDBServiceWorker::FinishUpdate() Not running "
          "ApplyUpdate() since the update has already failed."));
+    return NotifyUpdateObserver(mUpdateStatus);
+  }
+
+  if (mTableUpdates.IsEmpty()) {
+    LOG(("Nothing to update. Just notify update observer."));
+    return NotifyUpdateObserver(NS_OK);
+  }
+
+  RefPtr<nsUrlClassifierDBServiceWorker> self = this;
+
+  // TODO: Asynchronously dispatch |ApplyUpdatesBackground| to update thread.
+  //       See Bug 1339050. For now we *synchronously* run
+  //       ApplyUpdatesForeground() after ApplyUpdatesBackground().
+  nsresult backgroundRv;
+  nsCString failedTableName;
+  nsCOMPtr<nsIRunnable> r =
+    NS_NewRunnableFunction([self, &backgroundRv, &failedTableName] () -> void {
+      backgroundRv = self->ApplyUpdatesBackground(failedTableName);
+    });
+
+  LOG(("Bulding new tables..."));
+  mozilla::SyncRunnable::DispatchToThread(gDbUpdateThread, r);
+  LOG(("Done bulding new tables. Try to commit them."));
+
+  return ApplyUpdatesForeground(backgroundRv, failedTableName);
+}
+
+nsresult
+nsUrlClassifierDBServiceWorker::ApplyUpdatesForeground(nsresult aBackgroundRv,
+                                                      const nsACString& aFailedTableName)
+{
+  if (gShuttingDownThread) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  MOZ_ASSERT(NS_GetCurrentThread() == nsUrlClassifierDBService::BackgroundThread(),
+             "nsUrlClassifierDBServiceWorker::ApplyUpdatesForeground MUST "
+             "run on worker thread!!");
+
+  nsresult rv =
+    mClassifier->ApplyUpdatesForeground(aBackgroundRv, aFailedTableName);
+
+  return NotifyUpdateObserver(rv);
+}
+
+nsresult
+nsUrlClassifierDBServiceWorker::NotifyUpdateObserver(nsresult aUpdateStatus)
+{
+  // We've either
+  //  1) failed starting a download stream
+  //  2) succeeded in starting a download stream but failed to obtain
+  //     table updates
+  //  3) succeeded in obtaining table updates but failed to build new
+  //     tables.
+  //  4) succeeded in building new tables but failed to take them.
+  //  5) succeeded in taking new tables.
+
+  mUpdateStatus = aUpdateStatus;
+
+  nsCOMPtr<nsIUrlClassifierUtils> urlUtil =
+    do_GetService(NS_URLCLASSIFIERUTILS_CONTRACTID);
+
+  nsCString provider;
+  // Assume that all the tables in update should have the same provider.
+  urlUtil->GetTelemetryProvider(mUpdateTables.SafeElementAt(0, EmptyCString()), provider);
+
+  nsresult updateStatus = mUpdateStatus;
+  if (NS_FAILED(mUpdateStatus)) {
+   updateStatus = NS_ERROR_GET_MODULE(mUpdateStatus) == NS_ERROR_MODULE_URL_CLASSIFIER ?
+     mUpdateStatus : NS_ERROR_UC_UPDATE_UNKNOWN;
+  }
+
+  // Do not record telemetry for testing tables.
+  if (!provider.Equals(TESTING_TABLE_PROVIDER_NAME)) {
+    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_UPDATE_ERROR, provider,
+                          NS_ERROR_GET_CODE(updateStatus));
   }
 
   mMissCache.Clear();
@@ -603,7 +714,8 @@ nsUrlClassifierDBServiceWorker::FinishUpdate()
     if (LOG_ENABLED()) {
       nsAutoCString errorName;
       mozilla::GetErrorName(mUpdateStatus, errorName);
-      LOG(("Notifying error: %s (%d)", errorName.get(), mUpdateStatus));
+      LOG(("Notifying error: %s (%" PRIu32 ")", errorName.get(),
+           static_cast<uint32_t>(mUpdateStatus)));
     }
 
     mUpdateObserver->UpdateError(mUpdateStatus);
@@ -619,10 +731,34 @@ nsUrlClassifierDBServiceWorker::FinishUpdate()
 }
 
 nsresult
-nsUrlClassifierDBServiceWorker::ApplyUpdate()
+nsUrlClassifierDBServiceWorker::ApplyUpdatesBackground(nsACString& aFailedTableName)
 {
-  LOG(("nsUrlClassifierDBServiceWorker::ApplyUpdate()"));
-  return mClassifier->ApplyUpdates(&mTableUpdates);
+  // ********* Please be very careful while adding tasks. *********
+  // This function will run on the update thread (whereas most of the other
+  // functions will run on the worker thread) so any task that might mutate
+  // the in-use data is forbidden.
+
+  if (gShuttingDownThread) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  MOZ_ASSERT(NS_GetCurrentThread() == gDbUpdateThread,
+             "nsUrlClassifierDBServiceWorker::BuildNewTables MUST "
+             "run on update thread!!");
+
+  LOG(("nsUrlClassifierDBServiceWorker::BuildNewTables()"));
+  nsresult rv = mClassifier->ApplyUpdatesBackground(&mTableUpdates,
+                                                    aFailedTableName);
+
+#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
+  if (NS_FAILED(rv) && NS_ERROR_OUT_OF_MEMORY != rv) {
+    mClassifier->DumpRawTableUpdates(mRawTableUpdates);
+  }
+  // Invalidate the raw table updates.
+  mRawTableUpdates = EmptyCString();
+#endif
+
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -720,6 +856,10 @@ nsUrlClassifierDBServiceWorker::CloseDb()
 nsresult
 nsUrlClassifierDBServiceWorker::CacheCompletions(CacheResultArray *results)
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   LOG(("nsUrlClassifierDBServiceWorker::CacheCompletions [%p]", this));
   if (!mClassifier)
     return NS_OK;
@@ -784,7 +924,7 @@ nsUrlClassifierDBServiceWorker::CacheCompletions(CacheResultArray *results)
 nsresult
 nsUrlClassifierDBServiceWorker::CacheMisses(PrefixArray *results)
 {
-  LOG(("nsUrlClassifierDBServiceWorker::CacheMisses [%p] %d",
+  LOG(("nsUrlClassifierDBServiceWorker::CacheMisses [%p] %" PRIuSIZE,
        this, results->Length()));
 
   // Ownership is transferred in to us
@@ -799,6 +939,10 @@ nsUrlClassifierDBServiceWorker::CacheMisses(PrefixArray *results)
 nsresult
 nsUrlClassifierDBServiceWorker::OpenDb()
 {
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
   MOZ_ASSERT(!NS_IsMainThread(), "Must initialize DB on background thread");
   // Connection already open, don't do anything.
   if (mClassifier) {
@@ -926,23 +1070,27 @@ nsUrlClassifierLookupCallback::LookupComplete(nsTArray<LookupResult>* results)
       // has registered the table. In the second case we should not call
       // complete.
       if ((!gethashUrl.IsEmpty() ||
-           StringBeginsWith(result.mTableName, NS_LITERAL_CSTRING("test-"))) &&
+           StringBeginsWith(result.mTableName, NS_LITERAL_CSTRING("test"))) &&
           mDBService->GetCompleter(result.mTableName,
                                    getter_AddRefs(completer))) {
-        nsAutoCString partialHash;
-        partialHash.Assign(reinterpret_cast<char*>(&result.hash.prefix),
-                           PREFIX_SIZE);
 
-        nsresult rv = completer->Complete(partialHash, gethashUrl, this);
+        // Bug 1323953 - Send the first 4 bytes for completion no matter how
+        // long we matched the prefix.
+        nsAutoCString partialHash;
+        partialHash.Assign(reinterpret_cast<char*>(&result.hash.fixedLengthPrefix),
+                           PREFIX_SIZE);
+        nsresult rv = completer->Complete(partialHash,
+                                          gethashUrl,
+                                          result.mTableName,
+                                          this);
         if (NS_SUCCEEDED(rv)) {
           mPendingCompletions++;
         }
       } else {
         // For tables with no hash completer, a complete hash match is
-        // good enough, we'll consider it fresh, even if it hasn't been updated
-        // in 45 minutes.
+        // good enough, we'll consider it is valid.
         if (result.Complete()) {
-          result.mFresh = true;
+          result.mConfirmed = true;
           LOG(("Skipping completion in a table without a valid completer (%s).",
                result.mTableName.get()));
         } else {
@@ -987,6 +1135,15 @@ nsUrlClassifierLookupCallback::Completion(const nsACString& completeHash,
 {
   LOG(("nsUrlClassifierLookupCallback::Completion [%p, %s, %d]",
        this, PromiseFlatCString(tableName).get(), chunkId));
+
+  if (StringEndsWith(tableName, NS_LITERAL_CSTRING("-proto")) &&
+      !Preferences::GetBool(TAKE_V4_COMPLETION_RESULT_PREF,
+                            TAKE_V4_COMPLETION_RESULT_DEFAULT)) {
+    // Bug 1331534 - We temporarily ignore hash completion result
+    // for v4 tables.
+    return NS_OK;
+  }
+
   mozilla::safebrowsing::Completion hash;
   hash.Assign(completeHash);
 
@@ -1020,6 +1177,27 @@ nsUrlClassifierLookupCallback::Completion(const nsACString& completeHash,
   return NS_OK;
 }
 
+
+static uint8_t
+ConvertMatchResultToUint(const MatchResult& aResult)
+{
+  MOZ_ASSERT(!(aResult & MatchResult::eTelemetryDisabled));
+  switch (aResult) {
+  case MatchResult::eNoMatch:          return 0;
+  case MatchResult::eV2Prefix:         return 1;
+  case MatchResult::eV4Prefix:         return 2;
+  case MatchResult::eBothPrefix:       return 3;
+  case MatchResult::eAll:              return 4;
+  case MatchResult::eV2PreAndCom:      return 5;
+  case MatchResult::eV4PreAndCom:      return 6;
+  case MatchResult::eBothPreAndV2Com:  return 7;
+  case MatchResult::eBothPreAndV4Com:  return 8;
+  default:
+    MOZ_ASSERT_UNREACHABLE("Unexpected match result");
+    return 9;
+  }
+}
+
 nsresult
 nsUrlClassifierLookupCallback::HandleResults()
 {
@@ -1031,8 +1209,13 @@ nsUrlClassifierLookupCallback::HandleResults()
   MOZ_ASSERT(mPendingCompletions == 0, "HandleResults() should never be "
              "called while there are pending completions");
 
-  LOG(("nsUrlClassifierLookupCallback::HandleResults [%p, %u results]",
+  LOG(("nsUrlClassifierLookupCallback::HandleResults [%p, %" PRIuSIZE " results]",
        this, mResults->Length()));
+
+  nsCOMPtr<nsIUrlClassifierClassifyCallback> classifyCallback =
+    do_QueryInterface(mCallback);
+
+  MatchResult matchResult = MatchResult::eTelemetryDisabled;
 
   nsTArray<nsCString> tables;
   // Build a stringified list of result tables.
@@ -1043,23 +1226,52 @@ nsUrlClassifierLookupCallback::HandleResults()
     // the list can't be verified.  Also leave out randomly-generated
     // noise.
     if (result.mNoise) {
-      LOG(("Skipping result %X from table %s (noise)",
-           result.hash.prefix.ToUint32(), result.mTableName.get()));
-      continue;
-    } else if (!result.Confirmed()) {
-      LOG(("Skipping result %X from table %s (not confirmed)",
-           result.hash.prefix.ToUint32(), result.mTableName.get()));
+      LOG(("Skipping result %s from table %s (noise)",
+           result.PartialHashHex().get(), result.mTableName.get()));
       continue;
     }
 
-    LOG(("Confirmed result %X from table %s",
-         result.hash.prefix.ToUint32(), result.mTableName.get()));
+    bool confirmed = result.Confirmed();
+
+    // If mMatchResult is set to eTelemetryDisabled, then we don't need to
+    // set |matchResult| for this lookup.
+    if (result.mMatchResult != MatchResult::eTelemetryDisabled) {
+      matchResult &= ~(MatchResult::eTelemetryDisabled);
+      if (result.mProtocolV2) {
+        matchResult |=
+          confirmed ? MatchResult::eV2PreAndCom : MatchResult::eV2Prefix;
+      } else {
+        matchResult |=
+          confirmed ? MatchResult::eV4PreAndCom : MatchResult::eV4Prefix;
+      }
+    }
+
+    if (!confirmed) {
+      LOG(("Skipping result %s from table %s (not confirmed)",
+           result.PartialHashHex().get(), result.mTableName.get()));
+      continue;
+    }
+
+    LOG(("Confirmed result %s from table %s",
+         result.PartialHashHex().get(), result.mTableName.get()));
 
     if (tables.IndexOf(result.mTableName) == nsTArray<nsCString>::NoIndex) {
       tables.AppendElement(result.mTableName);
     }
+
+    if (classifyCallback) {
+      nsCString prefixString;
+      result.hash.fixedLengthPrefix.ToString(prefixString);
+      classifyCallback->HandleResult(result.mTableName, prefixString);
+    }
   }
 
+  if (matchResult != MatchResult::eTelemetryDisabled) {
+    Telemetry::Accumulate(Telemetry::URLCLASSIFIER_MATCH_RESULT,
+                          ConvertMatchResultToUint(matchResult));
+  }
+
+  // TODO: Bug 1333328, Refactor cache miss mechanism for v2.
   // Some parts of this gethash request generated no hits at all.
   // Prefixes must have been removed from the database since our last update.
   // Save the prefixes we checked to prevent repeated requests
@@ -1068,8 +1280,8 @@ nsUrlClassifierLookupCallback::HandleResults()
   if (cacheMisses) {
     for (uint32_t i = 0; i < mResults->Length(); i++) {
       LookupResult &result = mResults->ElementAt(i);
-      if (!result.Confirmed() && !result.mNoise) {
-        cacheMisses->AppendElement(result.PrefixHash());
+      if (result.mProtocolV2 && !result.Confirmed() && !result.mNoise) {
+        cacheMisses->AppendElement(result.hash.fixedLengthPrefix);
       }
     }
     // Hands ownership of the miss array back to the worker thread.
@@ -1092,46 +1304,126 @@ nsUrlClassifierLookupCallback::HandleResults()
   return mCallback->HandleEvent(tableStr);
 }
 
+struct Provider {
+  nsCString name;
+  uint8_t priority;
+};
+
+// Order matters
+// Provider which is not included in this table has the lowest priority 0
+static const Provider kBuiltInProviders[] = {
+  { NS_LITERAL_CSTRING("mozilla"), 1 },
+  { NS_LITERAL_CSTRING("google4"), 2 },
+  { NS_LITERAL_CSTRING("google"), 3 },
+};
 
 // -------------------------------------------------------------------------
-// Helper class for nsIURIClassifier implementation, translates table names
-// to nsIURIClassifier enums.
+// Helper class for nsIURIClassifier implementation, handle classify result and
+// send back to nsIURIClassifier
 
-class nsUrlClassifierClassifyCallback final : public nsIUrlClassifierCallback
+class nsUrlClassifierClassifyCallback final : public nsIUrlClassifierCallback,
+                                              public nsIUrlClassifierClassifyCallback
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIURLCLASSIFIERCALLBACK
+  NS_DECL_NSIURLCLASSIFIERCLASSIFYCALLBACK
 
   explicit nsUrlClassifierClassifyCallback(nsIURIClassifierCallback *c)
     : mCallback(c)
     {}
 
 private:
-  ~nsUrlClassifierClassifyCallback() {}
+
+  struct ClassifyMatchedInfo {
+    nsCString table;
+    nsCString prefix;
+    Provider provider;
+    nsresult errorCode;
+  };
+
+  ~nsUrlClassifierClassifyCallback() {};
 
   nsCOMPtr<nsIURIClassifierCallback> mCallback;
+  nsTArray<ClassifyMatchedInfo> mMatchedArray;
 };
 
 NS_IMPL_ISUPPORTS(nsUrlClassifierClassifyCallback,
-                  nsIUrlClassifierCallback)
+                  nsIUrlClassifierCallback,
+                  nsIUrlClassifierClassifyCallback)
 
 NS_IMETHODIMP
 nsUrlClassifierClassifyCallback::HandleEvent(const nsACString& tables)
 {
   nsresult response = TablesToResponse(tables);
-  mCallback->OnClassifyComplete(response);
+  ClassifyMatchedInfo* matchedInfo = nullptr;
+
+  if (NS_FAILED(response)) {
+    // Filter all matched info which has correct response
+    // In the case multiple tables found, use the higher priority provider
+    nsTArray<ClassifyMatchedInfo> matches;
+    for (uint32_t i = 0; i < mMatchedArray.Length(); i++) {
+      if (mMatchedArray[i].errorCode == response &&
+          (!matchedInfo ||
+           matchedInfo->provider.priority < mMatchedArray[i].provider.priority)) {
+        matchedInfo = &mMatchedArray[i];
+      }
+    }
+  }
+
+  nsCString provider = matchedInfo ? matchedInfo->provider.name : EmptyCString();
+  nsCString prefix = matchedInfo ? matchedInfo->prefix : EmptyCString();
+  nsCString table = matchedInfo ? matchedInfo->table : EmptyCString();
+
+  mCallback->OnClassifyComplete(response, table, provider, prefix);
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsUrlClassifierClassifyCallback::HandleResult(const nsACString& aTable,
+                                              const nsACString& aPrefix)
+{
+  LOG(("nsUrlClassifierClassifyCallback::HandleResult [%p, table %s prefix %s]",
+        this, PromiseFlatCString(aTable).get(), PromiseFlatCString(aPrefix).get()));
+
+  if (NS_WARN_IF(aTable.IsEmpty()) || NS_WARN_IF(aPrefix.IsEmpty())) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  ClassifyMatchedInfo* matchedInfo = mMatchedArray.AppendElement();
+  matchedInfo->table = aTable;
+  matchedInfo->prefix = aPrefix;
+
+  nsCOMPtr<nsIUrlClassifierUtils> urlUtil =
+    do_GetService(NS_URLCLASSIFIERUTILS_CONTRACTID);
+
+  nsCString provider;
+  nsresult rv = urlUtil->GetProvider(aTable, provider);
+
+  matchedInfo->provider.name = NS_SUCCEEDED(rv) ? provider : EmptyCString();
+  matchedInfo->provider.priority = 0;
+  for (uint8_t i = 0; i < ArrayLength(kBuiltInProviders); i++) {
+    if (kBuiltInProviders[i].name.Equals(matchedInfo->provider.name)) {
+      matchedInfo->provider.priority = kBuiltInProviders[i].priority;
+    }
+  }
+  matchedInfo->errorCode = TablesToResponse(aTable);
+
+  return NS_OK;
+}
 
 // -------------------------------------------------------------------------
 // Proxy class implementation
 
-NS_IMPL_ISUPPORTS(nsUrlClassifierDBService,
-                  nsIUrlClassifierDBService,
-                  nsIURIClassifier,
-                  nsIObserver)
+NS_IMPL_ADDREF(nsUrlClassifierDBService)
+NS_IMPL_RELEASE(nsUrlClassifierDBService)
+NS_INTERFACE_MAP_BEGIN(nsUrlClassifierDBService)
+  // Only nsIURIClassifier is supported in the content process!
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIUrlClassifierDBService, XRE_IsParentProcess())
+  NS_INTERFACE_MAP_ENTRY(nsIURIClassifier)
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIObserver, XRE_IsParentProcess())
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIURIClassifier)
+NS_INTERFACE_MAP_END
 
 /* static */ nsUrlClassifierDBService*
 nsUrlClassifierDBService::GetInstance(nsresult *result)
@@ -1162,7 +1454,6 @@ nsUrlClassifierDBService::GetInstance(nsresult *result)
 nsUrlClassifierDBService::nsUrlClassifierDBService()
  : mCheckMalware(CHECK_MALWARE_DEFAULT)
  , mCheckPhishing(CHECK_PHISHING_DEFAULT)
- , mCheckTracking(CHECK_TRACKING_DEFAULT)
  , mCheckBlockedURIs(CHECK_BLOCKED_DEFAULT)
  , mInUpdate(false)
 {
@@ -1237,14 +1528,26 @@ nsUrlClassifierDBService::Init()
     }
   }
 
+  switch (XRE_GetProcessType()) {
+  case GeckoProcessType_Default:
+    // The parent process is supported.
+    break;
+  case GeckoProcessType_Content:
+    // In a content process, we simply forward all requests to the parent process,
+    // so we can skip the initialization steps here.
+    // Note that since we never register an observer, Shutdown() will also never
+    // be called in the content process.
+    return NS_OK;
+  default:
+    // No other process type is supported!
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   // Retrieve all the preferences.
   mCheckMalware = Preferences::GetBool(CHECK_MALWARE_PREF,
     CHECK_MALWARE_DEFAULT);
   mCheckPhishing = Preferences::GetBool(CHECK_PHISHING_PREF,
     CHECK_PHISHING_DEFAULT);
-  mCheckTracking =
-    Preferences::GetBool(CHECK_TRACKING_PREF, CHECK_TRACKING_DEFAULT) ||
-    Preferences::GetBool(CHECK_TRACKING_PB_PREF, CHECK_TRACKING_PB_DEFAULT);
   mCheckBlockedURIs = Preferences::GetBool(CHECK_BLOCKED_PREF,
     CHECK_BLOCKED_DEFAULT);
   uint32_t gethashNoise = Preferences::GetUint(GETHASH_NOISE_PREF,
@@ -1253,10 +1556,20 @@ nsUrlClassifierDBService::Init()
     CONFIRM_AGE_DEFAULT_SEC);
   ReadTablesFromPrefs();
 
-  // Force PSM loading on main thread
   nsresult rv;
-  nsCOMPtr<nsICryptoHash> dummy = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
+
+  {
+    // Force PSM loading on main thread
+    nsCOMPtr<nsICryptoHash> dummy = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  {
+    // Force nsIUrlClassifierUtils loading on main thread.
+    nsCOMPtr<nsIUrlClassifierUtils> dummy =
+      do_GetService(NS_URLCLASSIFIERUTILS_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   // Directory providers must also be accessed on the main thread.
   nsCOMPtr<nsIFile> cacheDir;
@@ -1274,6 +1587,13 @@ nsUrlClassifierDBService::Init()
   rv = NS_NewNamedThread("URL Classifier", &gDbBackgroundThread);
   if (NS_FAILED(rv))
     return rv;
+
+  // Start the update thread.
+  rv = NS_NewNamedThread(NS_LITERAL_CSTRING("SafeBrowsing DB Update"),
+                         &gDbUpdateThread);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   mWorker = new nsUrlClassifierDBServiceWorker();
   if (!mWorker)
@@ -1298,8 +1618,9 @@ nsUrlClassifierDBService::Init()
   if (!observerService)
     return NS_ERROR_FAILURE;
 
+  // The application is about to quit
+  observerService->AddObserver(this, "quit-application", false);
   observerService->AddObserver(this, "profile-before-change", false);
-  observerService->AddObserver(this, "xpcom-shutdown-threads", false);
 
   // XXX: Do we *really* need to be able to change all of these at runtime?
   // Note: These observers should only be added when everything else above has
@@ -1307,8 +1628,6 @@ nsUrlClassifierDBService::Init()
   //       situations. See Bug 1247798 and Bug 1244803.
   Preferences::AddStrongObserver(this, CHECK_MALWARE_PREF);
   Preferences::AddStrongObserver(this, CHECK_PHISHING_PREF);
-  Preferences::AddStrongObserver(this, CHECK_TRACKING_PREF);
-  Preferences::AddStrongObserver(this, CHECK_TRACKING_PB_PREF);
   Preferences::AddStrongObserver(this, CHECK_BLOCKED_PREF);
   Preferences::AddStrongObserver(this, GETHASH_NOISE_PREF);
   Preferences::AddStrongObserver(this, CONFIRM_AGE_PREF);
@@ -1368,11 +1687,45 @@ nsUrlClassifierDBService::BuildTables(bool aTrackingProtectionEnabled,
 // nsChannelClassifier is the only consumer of this interface.
 NS_IMETHODIMP
 nsUrlClassifierDBService::Classify(nsIPrincipal* aPrincipal,
+                                   nsIEventTarget* aEventTarget,
                                    bool aTrackingProtectionEnabled,
                                    nsIURIClassifierCallback* c,
                                    bool* result)
 {
   NS_ENSURE_ARG(aPrincipal);
+
+  if (XRE_IsContentProcess()) {
+    using namespace mozilla::dom;
+
+    ContentChild* content = ContentChild::GetSingleton();
+    MOZ_ASSERT(content);
+
+    auto actor = static_cast<URLClassifierChild*>
+      (content->AllocPURLClassifierChild(IPC::Principal(aPrincipal),
+                                         aTrackingProtectionEnabled,
+                                         result));
+    MOZ_ASSERT(actor);
+
+    if (aEventTarget) {
+      content->SetEventTargetForActor(actor, aEventTarget);
+    } else {
+      // In the case null event target we should use systemgroup event target
+      NS_WARNING(("Null event target, we should use SystemGroup to do labelling"));
+      nsCOMPtr<nsIEventTarget> systemGroupEventTarget
+        = mozilla::SystemGroup::EventTargetFor(mozilla::TaskCategory::Other);
+      content->SetEventTargetForActor(actor, systemGroupEventTarget);
+    }
+    if (!content->SendPURLClassifierConstructor(actor, IPC::Principal(aPrincipal),
+                  aTrackingProtectionEnabled,
+                  result)) {
+      *result = false;
+      return NS_ERROR_FAILURE;
+    }
+
+    actor->SetCallback(c);
+    return NS_OK;
+  }
+
   NS_ENSURE_TRUE(gDbBackgroundThread, NS_ERROR_NOT_INITIALIZED);
 
   if (!(mCheckMalware || mCheckPhishing || aTrackingProtectionEnabled ||
@@ -1383,6 +1736,7 @@ nsUrlClassifierDBService::Classify(nsIPrincipal* aPrincipal,
 
   RefPtr<nsUrlClassifierClassifyCallback> callback =
     new nsUrlClassifierClassifyCallback(c);
+
   if (!callback) return NS_ERROR_OUT_OF_MEMORY;
 
   nsAutoCString tables;
@@ -1400,12 +1754,46 @@ nsUrlClassifierDBService::Classify(nsIPrincipal* aPrincipal,
 }
 
 NS_IMETHODIMP
-nsUrlClassifierDBService::ClassifyLocalWithTables(nsIURI *aURI,
-                                                  const nsACString & aTables,
-                                                  nsACString & aTableResults)
+nsUrlClassifierDBService::ClassifyLocal(nsIURI *aURI,
+                                        const nsACString& aTables,
+                                        nsACString& aTableResults)
 {
-  PROFILER_LABEL_FUNC(js::ProfileEntry::Category::OTHER);
-  MOZ_ASSERT(NS_IsMainThread(), "ClassifyLocalWithTables must be on main thread");
+  nsTArray<nsCString> results;
+  ClassifyLocalWithTables(aURI, aTables, results);
+
+  // Convert the result array to a comma separated string
+  aTableResults.AssignLiteral("");
+  bool first = true;
+  for (nsCString& result : results) {
+    if (first) {
+      first = false;
+    } else {
+      aTableResults.AppendLiteral(",");
+    }
+    aTableResults.Append(result);
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsUrlClassifierDBService::AsyncClassifyLocalWithTables(nsIURI *aURI,
+                                                       const nsACString& aTables,
+                                                       nsIURIClassifierCallback* aCallback)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "AsyncClassifyLocalWithTables must be called "
+                                "on main thread");
+
+  if (XRE_IsContentProcess()) {
+    // TODO: e10s support. Bug 1343425.
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
+  using namespace mozilla::Telemetry;
+  auto startTime = TimeStamp::Now(); // For telemetry.
 
   nsCOMPtr<nsIURI> uri = NS_GetInnermostURI(aURI);
   NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
@@ -1417,6 +1805,89 @@ nsUrlClassifierDBService::ClassifyLocalWithTables(nsIURI *aURI,
   nsresult rv = utilsService->GetKeyForURI(uri, key);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  auto worker = mWorker;
+  nsCString tables(aTables);
+
+  // Since aCallback will be passed around threads...
+  nsMainThreadPtrHandle<nsIURIClassifierCallback> callback(
+    new nsMainThreadPtrHolder<nsIURIClassifierCallback>(aCallback));
+
+  nsCOMPtr<nsIRunnable> r =
+    NS_NewRunnableFunction([worker, key, tables, callback, startTime] () -> void {
+
+    nsCString matchedLists;
+    nsAutoPtr<LookupResultArray> results(new LookupResultArray());
+    if (results) {
+      nsresult rv = worker->DoLocalLookup(key, tables, results);
+      if (NS_SUCCEEDED(rv)) {
+        for (uint32_t i = 0; i < results->Length(); i++) {
+          if (i > 0) {
+            matchedLists.AppendLiteral(",");
+          }
+          matchedLists.Append(results->ElementAt(i).mTableName);
+        }
+      }
+    }
+
+    nsCOMPtr<nsIRunnable> cbRunnable =
+      NS_NewRunnableFunction([callback, matchedLists, startTime] () -> void {
+        // Measure the time diff between calling and callback.
+        AccumulateDelta_impl<Millisecond>::compute(
+          Telemetry::URLCLASSIFIER_ASYNC_CLASSIFYLOCAL_TIME, startTime);
+
+        // |callback| is captured as const value so ...
+        auto cb = const_cast<nsIURIClassifierCallback*>(callback.get());
+        cb->OnClassifyComplete(NS_OK,           // Not used.
+                               matchedLists,
+                               EmptyCString(),  // provider. (Not used)
+                               EmptyCString()); // prefix. (Not used)
+      });
+
+    NS_DispatchToMainThread(cbRunnable);
+  });
+
+  return gDbBackgroundThread->Dispatch(r, NS_DISPATCH_NORMAL);
+}
+
+NS_IMETHODIMP
+nsUrlClassifierDBService::ClassifyLocalWithTables(nsIURI *aURI,
+                                                  const nsACString& aTables,
+                                                  nsTArray<nsCString>& aTableResults)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "ClassifyLocalWithTables must be on main thread");
+  if (gShuttingDownThread) {
+    return NS_ERROR_ABORT;
+  }
+
+  nsresult rv;
+  if (XRE_IsContentProcess()) {
+    using namespace mozilla::dom;
+    using namespace mozilla::ipc;
+    URIParams uri;
+    SerializeURI(aURI, uri);
+    nsAutoCString tables(aTables);
+    bool result = ContentChild::GetSingleton()->SendClassifyLocal(uri, tables,
+                                                                  &rv,
+                                                                  &aTableResults);
+    if (result) {
+      return rv;
+    }
+    return NS_ERROR_FAILURE;
+  }
+
+  PROFILER_LABEL_FUNC(js::ProfileEntry::Category::OTHER);
+  Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_CLASSIFYLOCAL_TIME> timer;
+
+  nsCOMPtr<nsIURI> uri = NS_GetInnermostURI(aURI);
+  NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
+
+  nsAutoCString key;
+  // Canonicalize the url
+  nsCOMPtr<nsIUrlClassifierUtils> utilsService =
+    do_GetService(NS_URLCLASSIFIERUTILS_CONTRACTID);
+  rv = utilsService->GetKeyForURI(uri, key);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsAutoPtr<LookupResultArray> results(new LookupResultArray());
   if (!results) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -1425,7 +1896,8 @@ nsUrlClassifierDBService::ClassifyLocalWithTables(nsIURI *aURI,
   // In unittests, we may not have been initalized, so don't crash.
   rv = mWorkerProxy->DoLocalLookup(key, aTables, results);
   if (NS_SUCCEEDED(rv)) {
-    aTableResults = ProcessLookupResults(results);
+    rv = ProcessLookupResults(results, aTableResults);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;
 }
@@ -1695,11 +2167,6 @@ nsUrlClassifierDBService::Observe(nsISupports *aSubject, const char *aTopic,
     } else if (NS_LITERAL_STRING(CHECK_PHISHING_PREF).Equals(aData)) {
       mCheckPhishing = Preferences::GetBool(CHECK_PHISHING_PREF,
         CHECK_PHISHING_DEFAULT);
-    } else if (NS_LITERAL_STRING(CHECK_TRACKING_PREF).Equals(aData) ||
-               NS_LITERAL_STRING(CHECK_TRACKING_PB_PREF).Equals(aData)) {
-      mCheckTracking =
-        Preferences::GetBool(CHECK_TRACKING_PREF, CHECK_TRACKING_DEFAULT) ||
-        Preferences::GetBool(CHECK_TRACKING_PB_PREF, CHECK_TRACKING_PB_DEFAULT);
     } else if (NS_LITERAL_STRING(CHECK_BLOCKED_PREF).Equals(aData)) {
       mCheckBlockedURIs = Preferences::GetBool(CHECK_BLOCKED_PREF,
         CHECK_BLOCKED_DEFAULT);
@@ -1718,9 +2185,32 @@ nsUrlClassifierDBService::Observe(nsISupports *aSubject, const char *aTopic,
       gFreshnessGuarantee = Preferences::GetInt(CONFIRM_AGE_PREF,
         CONFIRM_AGE_DEFAULT_SEC);
     }
-  } else if (!strcmp(aTopic, "profile-before-change") ||
-             !strcmp(aTopic, "xpcom-shutdown-threads")) {
+  } else if (!strcmp(aTopic, "quit-application")) {
     Shutdown();
+  } else if (!strcmp(aTopic, "profile-before-change")) {
+    // Unit test does not receive "quit-application",
+    // need call shutdown in this case
+    Shutdown();
+    LOG(("joining background thread"));
+    mWorkerProxy = nullptr;
+
+    if (gDbBackgroundThread) {
+      nsIThread *backgroundThread = gDbBackgroundThread;
+      // Nulling out gDbBackgroundThread MUST be done before Shutdown()
+      // since Shutdown() will lead to processing pending events.
+      gDbBackgroundThread = nullptr;
+      backgroundThread->Shutdown();
+      NS_RELEASE(backgroundThread);
+    }
+
+    if (gDbUpdateThread) {
+      nsIThread *updateThread = gDbUpdateThread;
+      gDbUpdateThread = nullptr;
+      updateThread->Shutdown();
+      NS_RELEASE(updateThread);
+    }
+
+    return NS_OK;
   } else {
     return NS_ERROR_UNEXPECTED;
   }
@@ -1733,9 +2223,15 @@ nsresult
 nsUrlClassifierDBService::Shutdown()
 {
   LOG(("shutting down db service\n"));
+  MOZ_ASSERT(XRE_IsParentProcess());
 
-  if (!gDbBackgroundThread)
+  if ((!gDbBackgroundThread && !gDbUpdateThread) || gShuttingDownThread) {
     return NS_OK;
+  }
+
+  gShuttingDownThread = true;
+
+  Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_SHUTDOWN_TIME> timer;
 
   mCompleters.Clear();
 
@@ -1743,8 +2239,6 @@ nsUrlClassifierDBService::Shutdown()
   if (prefs) {
     prefs->RemoveObserver(CHECK_MALWARE_PREF, this);
     prefs->RemoveObserver(CHECK_PHISHING_PREF, this);
-    prefs->RemoveObserver(CHECK_TRACKING_PREF, this);
-    prefs->RemoveObserver(CHECK_TRACKING_PB_PREF, this);
     prefs->RemoveObserver(CHECK_BLOCKED_PREF, this);
     prefs->RemoveObserver(PHISH_TABLE_PREF, this);
     prefs->RemoveObserver(MALWARE_TABLE_PREF, this);
@@ -1766,18 +2260,6 @@ nsUrlClassifierDBService::Shutdown()
     rv = mWorkerProxy->CloseDb();
     NS_ASSERTION(NS_SUCCEEDED(rv), "failed to post close db event");
   }
-
-  mWorkerProxy = nullptr;
-
-  LOG(("joining background thread"));
-
-  gShuttingDownThread = true;
-
-  nsIThread *backgroundThread = gDbBackgroundThread;
-  gDbBackgroundThread = nullptr;
-  backgroundThread->Shutdown();
-  NS_RELEASE(backgroundThread);
-
   return NS_OK;
 }
 
@@ -1787,3 +2269,9 @@ nsUrlClassifierDBService::BackgroundThread()
   return gDbBackgroundThread;
 }
 
+// static
+bool
+nsUrlClassifierDBService::ShutdownHasStarted()
+{
+  return gShuttingDownThread;
+}

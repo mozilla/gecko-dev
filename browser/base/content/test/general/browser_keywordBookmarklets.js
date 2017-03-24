@@ -5,7 +5,7 @@ add_task(function* test_keyword_bookmarklet() {
                                                 title: "bookmarklet",
                                                 url: "javascript:'1';" });
   let tab = gBrowser.selectedTab = gBrowser.addTab();
-  registerCleanupFunction (function* () {
+  registerCleanupFunction(function* () {
     gBrowser.removeTab(tab);
     yield PlacesUtils.bookmarks.remove(bm);
   });
@@ -46,9 +46,8 @@ add_task(function* test_keyword_bookmarklet() {
 
 function* promisePageShow() {
   return new Promise(resolve => {
-    gBrowser.selectedBrowser.addEventListener("pageshow", function listen() {
-      gBrowser.selectedBrowser.removeEventListener("pageshow", listen);
+    gBrowser.selectedBrowser.addEventListener("pageshow", function() {
       resolve();
-    });
+    }, {once: true});
   });
 }

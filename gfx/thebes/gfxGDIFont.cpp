@@ -72,11 +72,11 @@ gfxGDIFont::~gfxGDIFont()
     delete mMetrics;
 }
 
-gfxFont*
+UniquePtr<gfxFont>
 gfxGDIFont::CopyWithAntialiasOption(AntialiasOption anAAOption)
 {
-    return new gfxGDIFont(static_cast<GDIFontEntry*>(mFontEntry.get()),
-                          &mStyle, mNeedsBold, anAAOption);
+    auto entry = static_cast<GDIFontEntry*>(mFontEntry.get());
+    return MakeUnique<gfxGDIFont>(entry, &mStyle, mNeedsBold, anAAOption);
 }
 
 bool
@@ -191,10 +191,13 @@ gfxGDIFont::Initialize()
             // initialize its metrics so we can calculate size adjustment
             Initialize();
 
+            // Unless the font was so small that GDI metrics rounded to zero,
             // calculate the properly adjusted size, and then proceed
             // to recreate mFont and recalculate metrics
-            gfxFloat aspect = mMetrics->xHeight / mMetrics->emHeight;
-            mAdjustedSize = mStyle.GetAdjustedSize(aspect);
+            if (mMetrics->xHeight > 0.0 && mMetrics->emHeight > 0.0) {
+                gfxFloat aspect = mMetrics->xHeight / mMetrics->emHeight;
+                mAdjustedSize = mStyle.GetAdjustedSize(aspect);
+            }
 
             // delete the temporary font and metrics
             ::DeleteObject(mFont);
@@ -458,8 +461,7 @@ gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize,
         weight = mNeedsBold ? 700 : fe->Weight();
     }
 
-    fe->FillLogFont(&aLogFont, weight, aSize, 
-                    (mAntialiasOption == kAntialiasSubpixel) ? true : false);
+    fe->FillLogFont(&aLogFont, weight, aSize);
 
     // If GDI synthetic italic is wanted, force the lfItalic field to true
     if (aUseGDIFakeItalic) {

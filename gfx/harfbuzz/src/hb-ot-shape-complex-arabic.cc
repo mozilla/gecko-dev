@@ -540,7 +540,7 @@ apply_stch (const hb_ot_shape_plan_t *plan,
       /* See if we can improve the fit by adding an extra repeat and squeezing them together a bit. */
       hb_position_t extra_repeat_overlap = 0;
       hb_position_t shortfall = sign * w_remaining - sign * w_repeating * (n_copies + 1);
-      if (shortfall > 0)
+      if (shortfall > 0 && n_repeating > 0)
       {
         ++n_copies;
         hb_position_t excess = (n_copies + 1) * sign * w_repeating - sign * w_remaining;
@@ -618,6 +618,7 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_arabic =
   NULL, /* decompose */
   NULL, /* compose */
   setup_masks_arabic,
+  NULL, /* disable_otl */
   HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF_LATE,
   true, /* fallback_position */
 };

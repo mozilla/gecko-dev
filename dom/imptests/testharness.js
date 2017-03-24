@@ -655,7 +655,7 @@ policies and contribution forms [3].
 
     function on_event(object, event, callback)
     {
-        object.addEventListener(event, callback, false);
+        object.addEventListener(event, callback);
     }
 
     function step_timeout(f, t) {
@@ -2173,7 +2173,7 @@ policies and contribution forms [3].
                                      style_element.textContent = "table#results > tbody > tr."+result_class+"{display:none}";
                                      output_document.body.appendChild(style_element);
                                  } else if (style_element && input_element.checked) {
-                                     style_element.parentNode.removeChild(style_element);
+                                     style_element.remove();
                                  }
                              });
                 });

@@ -8,6 +8,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtrExtensions.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "nsGlobalWindow.h"
 #include "nsIDOMClientRect.h"
 #include "nsIDocShell.h"
@@ -131,13 +132,13 @@ MediaEngineTabVideoSource::DestroyRunnable::Run()
 }
 
 void
-MediaEngineTabVideoSource::GetName(nsAString_internal& aName) const
+MediaEngineTabVideoSource::GetName(nsAString& aName) const
 {
   aName.AssignLiteral(u"&getUserMedia.videoSource.tabShare;");
 }
 
 void
-MediaEngineTabVideoSource::GetUUID(nsACString_internal& aUuid) const
+MediaEngineTabVideoSource::GetUUID(nsACString& aUuid) const
 {
   aUuid.AssignLiteral("tab");
 }
@@ -150,7 +151,7 @@ nsresult
 MediaEngineTabVideoSource::Allocate(const dom::MediaTrackConstraints& aConstraints,
                                     const MediaEnginePrefs& aPrefs,
                                     const nsString& aDeviceId,
-                                    const nsACString& aOrigin,
+                                    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
                                     AllocationHandle** aOutHandle,
                                     const char** aOutBadConstraint)
 {
@@ -284,7 +285,7 @@ MediaEngineTabVideoSource::Draw() {
   {
     float pixelRatio;
     if (mWindow) {
-      mWindow->GetDevicePixelRatio(&pixelRatio);
+      pixelRatio = mWindow->GetDevicePixelRatio(CallerType::System);
     } else {
       pixelRatio = 1.0f;
     }
@@ -329,20 +330,22 @@ MediaEngineTabVideoSource::Draw() {
   RefPtr<layers::ImageContainer> container =
     layers::LayerManager::CreateImageContainer(layers::ImageContainer::ASYNCHRONOUS);
   RefPtr<DrawTarget> dt =
-    Factory::CreateDrawTargetForData(BackendType::CAIRO,
+    Factory::CreateDrawTargetForData(gfxPlatform::GetPlatform()->GetSoftwareBackend(),
                                      mData.get(),
                                      size,
                                      stride,
-                                     SurfaceFormat::B8G8R8X8);
+                                     SurfaceFormat::B8G8R8X8,
+                                     true);
   if (!dt || !dt->IsValid()) {
     return;
   }
-  RefPtr<gfxContext> context = gfxContext::CreateOrNull(dt);
-  MOZ_ASSERT(context); // already checked the draw target above
-  context->SetMatrix(context->CurrentMatrix().Scale((((float) size.width)/mViewportWidth),
-                                                    (((float) size.height)/mViewportHeight)));
 
   if (mWindow) {
+    RefPtr<gfxContext> context = gfxContext::CreateOrNull(dt);
+    MOZ_ASSERT(context); // already checked the draw target above
+    context->SetMatrix(context->CurrentMatrix().Scale((((float) size.width)/mViewportWidth),
+                                                      (((float) size.height)/mViewportHeight)));
+
     nscolor bgColor = NS_RGB(255, 255, 255);
     uint32_t renderDocFlags = mScrollWithPage? 0 :
       (nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING |
@@ -352,6 +355,8 @@ MediaEngineTabVideoSource::Draw() {
              nsPresContext::CSSPixelsToAppUnits((float)mViewportWidth),
              nsPresContext::CSSPixelsToAppUnits((float)mViewportHeight));
     NS_ENSURE_SUCCESS_VOID(presShell->RenderDocument(r, renderDocFlags, bgColor, context));
+  } else {
+    dt->ClearRect(Rect(0, 0, size.width, size.height));
   }
 
   RefPtr<SourceSurface> surface = dt->Snapshot();

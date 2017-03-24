@@ -5,7 +5,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["BrowserUsageTelemetry"];
+this.EXPORTED_SYMBOLS = ["BrowserUsageTelemetry", "URLBAR_SELECTED_RESULT_TYPES"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
@@ -23,6 +23,7 @@ const WINDOWS_RESTORED_TOPIC = "sessionstore-windows-restored";
 const TAB_RESTORING_TOPIC = "SSTabRestoring";
 const TELEMETRY_SUBSESSIONSPLIT_TOPIC = "internal-telemetry-after-subsession-split";
 const DOMWINDOW_OPENED_TOPIC = "domwindowopened";
+const AUTOCOMPLETE_ENTER_TEXT_TOPIC = "autocomplete-did-enter-text";
 
 // Probe names.
 const MAX_TAB_COUNT_SCALAR_NAME = "browser.engagement.max_concurrent_tab_count";
@@ -47,6 +48,24 @@ const KNOWN_ONEOFF_SOURCES = [
   "oneoff-searchbar",
   "unknown", // Edge case: this is the searchbar (see bug 1195733 comment 7).
 ];
+
+/**
+ * The buckets used for logging telemetry to the FX_URLBAR_SELECTED_RESULT_TYPE
+ * histogram.
+ */
+const URLBAR_SELECTED_RESULT_TYPES = {
+  autofill: 0,
+  bookmark: 1,
+  history: 2,
+  keyword: 3,
+  searchengine: 4,
+  searchsuggestion: 5,
+  switchtab: 6,
+  tag: 7,
+  visiturl: 8,
+  remotetab: 9,
+  extension: 10,
+};
 
 function getOpenTabsAndWinsCounts() {
   let tabCount = 0;
@@ -133,7 +152,7 @@ let URICountListener = {
 
     // Don't count about:blank and similar pages, as they would artificially
     // inflate the counts.
-    if (browser.ownerDocument.defaultView.gInitialPages.includes(uriSpec)) {
+    if (browser.ownerGlobal.gInitialPages.includes(uriSpec)) {
       return;
     }
 
@@ -187,9 +206,82 @@ let URICountListener = {
                                          Ci.nsISupportsWeakReference]),
 };
 
+let urlbarListener = {
+  init() {
+    Services.obs.addObserver(this, AUTOCOMPLETE_ENTER_TEXT_TOPIC, true);
+  },
+
+  uninit() {
+    Services.obs.removeObserver(this, AUTOCOMPLETE_ENTER_TEXT_TOPIC);
+  },
+
+  observe(subject, topic, data) {
+    switch (topic) {
+      case AUTOCOMPLETE_ENTER_TEXT_TOPIC:
+        this._handleURLBarTelemetry(subject.QueryInterface(Ci.nsIAutoCompleteInput));
+        break;
+    }
+  },
+
+  /**
+   * Used to log telemetry when the user enters text in the urlbar.
+   *
+   * @param {nsIAutoCompleteInput} input  The autocomplete element where the
+   *                                      text was entered.
+   */
+  _handleURLBarTelemetry(input) {
+    if (!input ||
+        input.id != "urlbar" ||
+        input.inPrivateContext ||
+        input.popup.selectedIndex < 0) {
+      return;
+    }
+    let controller =
+      input.popup.view.QueryInterface(Ci.nsIAutoCompleteController);
+    let idx = input.popup.selectedIndex;
+    let value = controller.getValueAt(idx);
+    let action = input._parseActionUrl(value);
+    let actionType;
+    if (action) {
+      actionType =
+        action.type == "searchengine" && action.params.searchSuggestion ?
+          "searchsuggestion" :
+        action.type;
+    }
+    if (!actionType) {
+      let styles = new Set(controller.getStyleAt(idx).split(/\s+/));
+      let style = ["autofill", "tag", "bookmark"].find(s => styles.has(s));
+      actionType = style || "history";
+    }
+
+    Services.telemetry
+            .getHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX")
+            .add(idx);
+
+    // Ideally this would be a keyed histogram and we'd just add(actionType),
+    // but keyed histograms aren't currently shown on the telemetry dashboard
+    // (bug 1151756).
+    //
+    // You can add values but don't change any of the existing values.
+    // Otherwise you'll break our data.
+    if (actionType in URLBAR_SELECTED_RESULT_TYPES) {
+      Services.telemetry
+              .getHistogramById("FX_URLBAR_SELECTED_RESULT_TYPE")
+              .add(URLBAR_SELECTED_RESULT_TYPES[actionType]);
+    } else {
+      Cu.reportError("Unknown FX_URLBAR_SELECTED_RESULT_TYPE type: " +
+                     actionType);
+    }
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference]),
+};
+
 let BrowserUsageTelemetry = {
   init() {
     Services.obs.addObserver(this, WINDOWS_RESTORED_TOPIC, false);
+    urlbarListener.init();
   },
 
   /**
@@ -208,9 +300,10 @@ let BrowserUsageTelemetry = {
   },
 
   uninit() {
-    Services.obs.removeObserver(this, DOMWINDOW_OPENED_TOPIC, false);
-    Services.obs.removeObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC, false);
-    Services.obs.removeObserver(this, WINDOWS_RESTORED_TOPIC, false);
+    Services.obs.removeObserver(this, DOMWINDOW_OPENED_TOPIC);
+    Services.obs.removeObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC);
+    Services.obs.removeObserver(this, WINDOWS_RESTORED_TOPIC);
+    urlbarListener.uninit();
   },
 
   observe(subject, topic, data) {
@@ -268,16 +361,19 @@ let BrowserUsageTelemetry = {
    *        The object describing the event that triggered the search.
    * @throws if source is not in the known sources list.
    */
-  recordSearch(engine, source, details={}) {
+  recordSearch(engine, source, details = {}) {
     const isOneOff = !!details.isOneOff;
+    const countId = getSearchEngineId(engine) + "." + source;
 
     if (isOneOff) {
       if (!KNOWN_ONEOFF_SOURCES.includes(source)) {
         // Silently drop the error if this bogus call
         // came from 'urlbar' or 'searchbar'. They're
         // calling |recordSearch| twice from two different
-        // code paths.
-        if (['urlbar', 'searchbar'].includes(source)) {
+        // code paths because they want to record the search
+        // in SEARCH_COUNTS.
+        if (["urlbar", "searchbar"].includes(source)) {
+          Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS").add(countId);
           return;
         }
         throw new Error("Unknown source for one-off search: " + source);
@@ -286,34 +382,38 @@ let BrowserUsageTelemetry = {
       if (!KNOWN_SEARCH_SOURCES.includes(source)) {
         throw new Error("Unknown source for search: " + source);
       }
-      let countId = getSearchEngineId(engine) + "." + source;
       Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS").add(countId);
     }
 
     // Dispatch the search signal to other handlers.
-    this._handleSearchAction(source, details);
+    this._handleSearchAction(engine, source, details);
   },
 
-  _handleSearchAction(source, details) {
+  _recordSearch(engine, source, action = null) {
+    let scalarKey = action ? "search_" + action : "search";
+    Services.telemetry.keyedScalarAdd("browser.engagement.navigation." + source,
+                                      scalarKey, 1);
+    Services.telemetry.recordEvent("navigation", "search", source, action,
+                                   { engine: getSearchEngineId(engine) });
+  },
+
+  _handleSearchAction(engine, source, details) {
     switch (source) {
       case "urlbar":
       case "oneoff-urlbar":
       case "searchbar":
       case "oneoff-searchbar":
       case "unknown": // Edge case: this is the searchbar (see bug 1195733 comment 7).
-        this._handleSearchAndUrlbar(source, details);
+        this._handleSearchAndUrlbar(engine, source, details);
         break;
       case "abouthome":
-        Services.telemetry.keyedScalarAdd("browser.engagement.navigation.about_home",
-                                          "search_enter", 1);
+        this._recordSearch(engine, "about_home", "enter");
         break;
       case "newtab":
-        Services.telemetry.keyedScalarAdd("browser.engagement.navigation.about_newtab",
-                                          "search_enter", 1);
+        this._recordSearch(engine, "about_newtab", "enter");
         break;
       case "contextmenu":
-        Services.telemetry.keyedScalarAdd("browser.engagement.navigation.contextmenu",
-                                          "search", 1);
+        this._recordSearch(engine, "contextmenu");
         break;
     }
   },
@@ -322,15 +422,14 @@ let BrowserUsageTelemetry = {
    * This function handles the "urlbar", "urlbar-oneoff", "searchbar" and
    * "searchbar-oneoff" sources.
    */
-  _handleSearchAndUrlbar(source, details) {
+  _handleSearchAndUrlbar(engine, source, details) {
     // We want "urlbar" and "urlbar-oneoff" (and similar cases) to go in the same
     // scalar, but in a different key.
 
     // When using one-offs in the searchbar we get an "unknown" source. See bug
     // 1195733 comment 7 for the context. Fix-up the label here.
-    const plainSourceName =
+    const sourceName =
       (source === "unknown") ? "searchbar" : source.replace("oneoff-", "");
-    const scalarName = "browser.engagement.navigation." + plainSourceName;
 
     const isOneOff = !!details.isOneOff;
     if (isOneOff) {
@@ -344,25 +443,24 @@ let BrowserUsageTelemetry = {
         return;
       }
 
-      // If that's a legit one-off search signal, increment the scalar using the
-      // relative key.
-      Services.telemetry.keyedScalarAdd(scalarName, "search_oneoff", 1);
+      // If that's a legit one-off search signal, record it using the relative key.
+      this._recordSearch(engine, sourceName, "oneoff");
       return;
     }
 
     // The search was not a one-off. It was a search with the default search engine.
     if (details.isSuggestion) {
       // It came from a suggested search, so count it as such.
-      Services.telemetry.keyedScalarAdd(scalarName, "search_suggestion", 1);
+      this._recordSearch(engine, sourceName, "suggestion");
       return;
     } else if (details.isAlias) {
       // This one came from a search that used an alias.
-      Services.telemetry.keyedScalarAdd(scalarName, "search_alias", 1);
+      this._recordSearch(engine, sourceName, "alias");
       return;
     }
 
     // The search signal was generated by typing something and pressing enter.
-    Services.telemetry.keyedScalarAdd(scalarName, "search_enter", 1);
+    this._recordSearch(engine, sourceName, "enter");
   },
 
   /**
@@ -441,7 +539,7 @@ let BrowserUsageTelemetry = {
     }
 
     let onLoad = () => {
-      win.removeEventListener("load", onLoad, false);
+      win.removeEventListener("load", onLoad);
 
       // Ignore non browser windows.
       if (win.document.documentElement.getAttribute("windowtype") != "navigator:browser") {
@@ -458,6 +556,6 @@ let BrowserUsageTelemetry = {
       // Account for that.
       this._onTabOpen(counts.tabCount);
     };
-    win.addEventListener("load", onLoad, false);
+    win.addEventListener("load", onLoad);
   },
 };

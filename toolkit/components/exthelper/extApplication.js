@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// This file expects these globals to be declared before it is included.
+/* global Ci, Cc */
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 
@@ -264,7 +267,7 @@ PreferenceBranch.prototype = {
 
     switch (type) {
       case Ci.nsIPrefBranch.PREF_STRING:
-        aValue = this._prefs.getComplexValue(aName, Ci.nsISupportsString).data;
+        aValue = this._prefs.getStringPref(aName);
         break;
       case Ci.nsIPrefBranch.PREF_BOOL:
         aValue = this._prefs.getBoolPref(aName);
@@ -282,10 +285,7 @@ PreferenceBranch.prototype = {
 
     switch (type) {
       case "String":
-        var str = Components.classes["@mozilla.org/supports-string;1"]
-                            .createInstance(Ci.nsISupportsString);
-        str.data = aValue;
-        this._prefs.setComplexValue(aName, Ci.nsISupportsString, str);
+        this._prefs.setStringPref(aName, aValue);
         break;
       case "Boolean":
         this._prefs.setBoolPref(aName, aValue);
@@ -413,7 +413,7 @@ SessionStorage.prototype = {
     return this.has(aName) ? this._storage[aName] : aDefaultValue;
   },
 
-  QueryInterface : XPCOMUtils.generateQI([Ci.extISessionStorage])
+  QueryInterface: XPCOMUtils.generateQI([Ci.extISessionStorage])
 };
 
 // =================================================
@@ -550,7 +550,7 @@ Extension.prototype = {
 function Extensions(addons) {
   this._cache = {};
 
-  addons.forEach(function (addon) {
+  addons.forEach(function(addon) {
     this._cache[addon.id] = new Extension(addon);
   }, this);
 }
@@ -629,16 +629,13 @@ extApplication.prototype = {
   observe: function app_observe(aSubject, aTopic, aData) {
     if (aTopic == "app-startup") {
       this.events.dispatch("load", "application");
-    }
-    else if (aTopic == "final-ui-startup") {
+    } else if (aTopic == "final-ui-startup") {
       this.events.dispatch("ready", "application");
-    }
-    else if (aTopic == "quit-application-requested") {
+    } else if (aTopic == "quit-application-requested") {
       // we can stop the quit by checking the return value
       if (this.events.dispatch("quit", "application") == false)
         aSubject.data = true;
-    }
-    else if (aTopic == "xpcom-shutdown") {
+    } else if (aTopic == "xpcom-shutdown") {
       this.events.dispatch("unload", "application");
       gExtensionObserver = null;
       gPreferenceObserver = null;
@@ -663,8 +660,8 @@ extApplication.prototype = {
     return this.prefs;
   },
 
-  getExtensions: function(callback) {
-    AddonManager.getAddonsByTypes(["extension"], function (addons) {
+  getExtensions(callback) {
+    AddonManager.getAddonsByTypes(["extension"], function(addons) {
       callback.callback(new Extensions(addons));
     });
   },
@@ -700,7 +697,7 @@ extApplication.prototype = {
     if (cancelQuit.data)
       return false; // somebody canceled our quit request
 
-    let appStartup = Components.classes['@mozilla.org/toolkit/app-startup;1']
+    let appStartup = Components.classes["@mozilla.org/toolkit/app-startup;1"]
                                .getService(Components.interfaces.nsIAppStartup);
     appStartup.quit(aFlags);
     return true;

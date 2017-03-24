@@ -6,7 +6,6 @@ import argparse
 import json
 import os
 import re
-import signal
 import socket
 import sys
 import threading
@@ -20,7 +19,7 @@ from multiprocessing import Process, Event
 from ..localpaths import repo_root
 
 import sslutils
-from manifest.sourcefile import meta_re
+from manifest.sourcefile import read_script_metadata, js_meta_re
 from wptserve import server as wptserve, handlers
 from wptserve import stash
 from wptserve.logger import set_logger
@@ -46,8 +45,8 @@ class WorkersHandler(object):
         return self.handler(request, response)
 
     def handle_request(self, request, response):
-        worker_path = replace_end(request.url_parts.path, ".worker", ".worker.js")
-        meta = self._get_meta(request)
+        worker_path = replace_end(request.url_parts.path, ".worker.html", ".worker.js")
+        meta = "\n".join(self._get_meta(request))
         return """<!doctype html>
 <meta charset=utf-8>
 %(meta)s
@@ -61,22 +60,19 @@ fetch_tests_from_worker(new Worker("%(worker_path)s"));
 
     def _get_meta(self, request):
         path = filesystem_path(self.base_path, request, self.url_base)
-        path = path.replace(".worker", ".worker.js")
-        meta_values = []
-        with open(path) as f:
-            for line in f:
-                m = meta_re.match(line)
-                if m:
-                    name, content = m.groups()
-                    name = name.replace('"', '\\"').replace(">", "&gt;")
-                    content = content.replace('"', '\\"').replace(">", "&gt;")
-                    meta_values.append((name, content))
-        return "\n".join('<meta name="%s" content="%s">' % item for item in meta_values)
-
+        path = path.replace(".any.worker.html", ".any.js")
+        path = path.replace(".worker.html", ".worker.js")
+        with open(path, "rb") as f:
+            for key, value in read_script_metadata(f, js_meta_re):
+                if key == b"timeout":
+                    if value == b"long":
+                        yield '<meta name="timeout" content="long">'
 
 
 class AnyHtmlHandler(object):
-    def __init__(self):
+    def __init__(self, base_path=None, url_base="/"):
+        self.base_path = base_path
+        self.url_base = url_base
         self.handler = handlers.handler(self.handle_request)
 
     def __call__(self, request, response):
@@ -84,9 +80,11 @@ class AnyHtmlHandler(object):
 
     def handle_request(self, request, response):
         test_path = replace_end(request.url_parts.path, ".any.html", ".any.js")
+        meta = "\n".join(self._get_meta(request))
         return """\
 <!doctype html>
 <meta charset=utf-8>
+%(meta)s
 <script>
 self.GLOBAL = {
   isWindow: function() { return true; },
@@ -96,12 +94,26 @@ self.GLOBAL = {
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
-<script src="%s"></script>
-""" % (test_path,)
+<script src="%(test_path)s"></script>
+""" % {"meta": meta, "test_path": test_path}
+
+    def _get_meta(self, request):
+        path = filesystem_path(self.base_path, request, self.url_base)
+        path = path.replace(".any.html", ".any.js")
+        with open(path, "rb") as f:
+            for key, value in read_script_metadata(f, js_meta_re):
+                if key == b"timeout":
+                    if value == b"long":
+                        yield '<meta name="timeout" content="long">'
+                elif key == b"script":
+                    attribute = value.decode('utf-8').replace('"', "&quot;").replace(">", "&gt;")
+                    yield '<script src="%s"></script>' % attribute
 
 
 class AnyWorkerHandler(object):
-    def __init__(self):
+    def __init__(self, base_path=None, url_base="/"):
+        self.base_path = base_path
+        self.url_base = url_base
         self.handler = handlers.handler(self.handle_request)
 
     def __call__(self, request, response):
@@ -109,15 +121,28 @@ class AnyWorkerHandler(object):
 
     def handle_request(self, request, response):
         test_path = replace_end(request.url_parts.path, ".any.worker.js", ".any.js")
+        meta = "\n".join(self._get_meta(request))
         return """\
+%(meta)s
 self.GLOBAL = {
   isWindow: function() { return false; },
   isWorker: function() { return true; },
 };
 importScripts("/resources/testharness.js");
-importScripts("%s");
+importScripts("%(test_path)s");
 done();
-""" % (test_path,)
+""" % {"meta": meta, "test_path": test_path}
+
+    def _get_meta(self, request):
+        path = filesystem_path(self.base_path, request, self.url_base)
+        path = path.replace(".any.worker.js", ".any.js")
+        with open(path, "rb") as f:
+            for key, value in read_script_metadata(f, js_meta_re):
+                if key == b"timeout":
+                    pass
+                elif key == b"script":
+                    attribute = value.decode('utf-8').replace("\\", "\\\\").replace('"', '\\"')
+                    yield 'importScripts("%s")' % attribute
 
 
 rewrites = [("GET", "/resources/WebIDLParser.js", "/resources/webidl2/lib/webidl2.js")]
@@ -139,11 +164,7 @@ class RoutesBuilder(object):
                           ("*", "{spec}/tools/*", handlers.ErrorHandler(404)),
                           ("*", "/serve.py", handlers.ErrorHandler(404))]
 
-        self.static = [
-            ("GET", "*.worker", WorkersHandler()),
-            ("GET", "*.any.html", AnyHtmlHandler()),
-            ("GET", "*.any.worker.js", AnyWorkerHandler()),
-        ]
+        self.static = []
 
         self.mountpoint_routes = OrderedDict()
 
@@ -167,9 +188,14 @@ class RoutesBuilder(object):
 
         self.mountpoint_routes[url_base] = []
 
-        routes = [("GET", "*.asis", handlers.AsIsHandler),
-                  ("*", "*.py", handlers.PythonScriptHandler),
-                  ("GET", "*", handlers.FileHandler)]
+        routes = [
+            ("GET", "*.worker.html", WorkersHandler),
+            ("GET", "*.any.html", AnyHtmlHandler),
+            ("GET", "*.any.worker.js", AnyWorkerHandler),
+            ("GET", "*.asis", handlers.AsIsHandler),
+            ("*", "*.py", handlers.PythonScriptHandler),
+            ("GET", "*", handlers.FileHandler)
+        ]
 
         for (method, suffix, handler_cls) in routes:
             self.mountpoint_routes[url_base].append(
@@ -177,9 +203,25 @@ class RoutesBuilder(object):
                  b"%s%s" % (str(url_base) if url_base != "/" else "", str(suffix)),
                  handler_cls(base_path=path, url_base=url_base)))
 
+    def add_file_mount_point(self, file_url, base_path):
+        assert file_url.startswith("/")
+        url_base = file_url[0:file_url.rfind("/") + 1]
+        self.mountpoint_routes[file_url] = [("GET", file_url, handlers.FileHandler(base_path=base_path, url_base=url_base))]
 
-def default_routes():
-    return RoutesBuilder().get_routes()
+
+def build_routes(aliases):
+    builder = RoutesBuilder()
+    for alias in aliases:
+        url = alias["url-path"]
+        directory = alias["local-dir"]
+        if not url.startswith("/") or len(directory) == 0:
+            logger.error("\"url-path\" value must start with '/'.")
+            continue
+        if url.endswith("/"):
+            builder.add_mount_point(url, directory)
+        else:
+            builder.add_file_mount_point(url, directory)
+    return builder.get_routes()
 
 
 def setup_logger(level):
@@ -217,7 +259,8 @@ class ServerProc(object):
               ssl_config, **kwargs):
         self.proc = Process(target=self.create_daemon,
                             args=(init_func, host, port, paths, routes, bind_hostname,
-                                  external_config, ssl_config))
+                                  external_config, ssl_config),
+                            kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
 
@@ -257,12 +300,12 @@ class ServerProc(object):
         return self.proc.is_alive()
 
 
-def check_subdomains(host, paths, bind_hostname, ssl_config):
+def check_subdomains(host, paths, bind_hostname, ssl_config, aliases):
     port = get_port()
     subdomains = get_subdomains(host)
 
     wrapper = ServerProc()
-    wrapper.start(start_http_server, host, port, paths, default_routes(), bind_hostname,
+    wrapper.start(start_http_server, host, port, paths, build_routes(aliases), bind_hostname,
                   None, ssl_config)
 
     connected = False
@@ -491,7 +534,7 @@ def start(config, ssl_environment, routes, **kwargs):
     ssl_config = get_ssl_config(config, external_config["domains"].values(), ssl_environment)
 
     if config["check_subdomains"]:
-        check_subdomains(host, paths, bind_hostname, ssl_config)
+        check_subdomains(host, paths, bind_hostname, ssl_config, config["aliases"])
 
     servers = start_servers(host, ports, paths, routes, bind_hostname, external_config,
                             ssl_config, **kwargs)
@@ -520,6 +563,9 @@ def set_computed_defaults(config):
     if not value_set(config, "ws_doc_root"):
         root = get_value_or_default(config, "doc_root", default=repo_root)
         config["ws_doc_root"] = os.path.join(root, "websockets", "handlers")
+
+    if not value_set(config, "aliases"):
+        config["aliases"] = []
 
 
 def merge_json(base_obj, override_obj):
@@ -605,9 +651,13 @@ def main():
 
     setup_logger(config["log_level"])
 
-    with stash.StashServer((config["host"], get_port()), authkey=str(uuid.uuid4())):
+    stash_address = None
+    if config["bind_hostname"]:
+        stash_address = (config["host"], get_port())
+
+    with stash.StashServer(stash_address, authkey=str(uuid.uuid4())):
         with get_ssl_environment(config) as ssl_env:
-            config_, servers = start(config, ssl_env, default_routes(), **kwargs)
+            config_, servers = start(config, ssl_env, build_routes(config["aliases"]), **kwargs)
 
             try:
                 while any(item.is_alive() for item in iter_procs(servers)):

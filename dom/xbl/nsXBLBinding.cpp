@@ -46,7 +46,6 @@
 #include "nsIScriptSecurityManager.h"
 #include "mozilla/dom/XBLChildrenElement.h"
 
-#include "prprf.h"
 #include "nsNodeUtils.h"
 #include "nsJSUtils.h"
 
@@ -58,7 +57,6 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ShadowRoot.h"
-#include "mozilla/ServoStyleSet.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -419,15 +417,6 @@ nsXBLBinding::GenerateAnonymousContent()
     // Conserve space by wiping the attributes off the clone.
     if (mContent)
       mContent->UnsetAttr(namespaceID, name, false);
-  }
-
-  // Now that we've finished shuffling the tree around, go ahead and restyle it
-  // since frame construction is about to happen.
-  nsIPresShell* presShell = mBoundElement->OwnerDoc()->GetShell();
-  ServoStyleSet* servoSet = presShell->StyleSet()->GetAsServo();
-  if (servoSet) {
-    mBoundElement->SetHasDirtyDescendantsForServo();
-    servoSet->StyleNewChildren(mBoundElement);
   }
 }
 

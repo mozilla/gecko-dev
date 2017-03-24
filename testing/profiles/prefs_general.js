@@ -5,6 +5,7 @@ user_pref("browser.dom.window.dump.enabled", true);
 user_pref("browser.firstrun.show.localepicker", false);
 user_pref("browser.firstrun.show.uidiscovery", false);
 user_pref("browser.startup.page", 0); // use about:blank, not browser.startup.homepage
+user_pref("browser.search.suggest.timeout", 10000); // use a 10s suggestion timeout in tests
 user_pref("browser.ui.layout.tablet", 0); // force tablet UI off
 user_pref("dom.allow_scripts_to_close_windows", true);
 user_pref("dom.disable_open_during_load", false);
@@ -12,6 +13,7 @@ user_pref("dom.experimental_forms", true); // on for testing
 user_pref("dom.forms.number", true); // on for testing
 user_pref("dom.forms.color", true); // on for testing
 user_pref("dom.forms.datetime", true); // on for testing
+user_pref("dom.forms.datetime.others", true); // on for testing
 user_pref("dom.max_script_run_time", 0); // no slow script dialogs
 user_pref("hangmonitor.timeout", 0); // no hang monitor
 user_pref("dom.max_chrome_script_run_time", 0);
@@ -32,6 +34,7 @@ user_pref("devtools.debugger.remote-port", 6023);
 user_pref("devtools.devedition.promo.enabled", false);
 user_pref("browser.EULA.override", true);
 user_pref("gfx.color_management.force_srgb", true);
+user_pref("gfx.logging.level", 1);
 user_pref("network.manage-offline-status", false);
 // Disable speculative connections so they aren't reported as leaking when they're hanging around.
 user_pref("network.http.speculative-parallel-limit", 0);
@@ -44,7 +47,8 @@ user_pref("media.preload.auto", 3); // auto = enough
 user_pref("media.cache_size", 1000);
 user_pref("media.volume_scale", "0.01");
 user_pref("media.test.dumpDebugInfo", true);
-user_pref("media.dormant-on-pause-timeout-ms", -1); // Disable dormant for it breaks some tests.
+user_pref("media.dormant-on-pause-timeout-ms", 0); // Enter dormant immediately without waiting for timeout.
+user_pref("media.suspend-bkgnd-video.enabled", false);
 user_pref("security.warn_viewing_mixed", false);
 user_pref("app.update.enabled", false);
 user_pref("app.update.staging.enabled", false);
@@ -60,6 +64,8 @@ user_pref("dom.htmlimports.enabled", true);
 // Existing tests assume there is no font size inflation.
 user_pref("font.size.inflation.emPerLine", 0);
 user_pref("font.size.inflation.minTwips", 0);
+// Disable the caret blinking so we get stable snapshot
+user_pref("ui.caretBlinkTime", -1);
 
 // AddonManager tests require that the experiments provider be present.
 user_pref("experiments.supported", true);
@@ -97,6 +103,8 @@ user_pref("urlclassifier.updateinterval", 172800);
 user_pref("browser.safebrowsing.downloads.remote.url", "http://%(server)s/safebrowsing-dummy/update");
 user_pref("browser.safebrowsing.provider.google.gethashURL", "http://%(server)s/safebrowsing-dummy/gethash");
 user_pref("browser.safebrowsing.provider.google.updateURL", "http://%(server)s/safebrowsing-dummy/update");
+user_pref("browser.safebrowsing.provider.google4.gethashURL", "http://%(server)s/safebrowsing4-dummy/gethash");
+user_pref("browser.safebrowsing.provider.google4.updateURL", "http://%(server)s/safebrowsing4-dummy/update");
 user_pref("browser.safebrowsing.provider.mozilla.gethashURL", "http://%(server)s/safebrowsing-dummy/gethash");
 user_pref("browser.safebrowsing.provider.mozilla.updateURL", "http://%(server)s/safebrowsing-dummy/update");
 user_pref("privacy.trackingprotection.introURL", "http://%(server)s/trackingprotection/tour");
@@ -161,8 +169,7 @@ user_pref("datareporting.healthreport.about.reportUrl", "http://%(server)s/about
 // Make sure CSS error reporting is enabled for tests
 user_pref("layout.css.report_errors", true);
 
-// Enable CSS Grid for testing
-user_pref("layout.css.grid.enabled", true);
+// Enable CSS Grid 'subgrid' feature for testing
 user_pref("layout.css.grid-template-subgrid-value.enabled", true);
 
 // Enable CSS 'contain' for testing
@@ -170,9 +177,6 @@ user_pref("layout.css.contain.enabled", true);
 
 // Enable CSS initial-letter for testing
 user_pref("layout.css.initial-letter.enabled", true);
-
-// Enable CSS object-fit & object-position for testing
-user_pref("layout.css.object-fit-and-position.enabled", true);
 
 // Enable webkit prefixed CSS features for testing
 user_pref("layout.css.prefixes.webkit", true);
@@ -183,18 +187,15 @@ user_pref("layout.css.prefixes.device-pixel-ratio-webkit", true);
 // Enable CSS shape-outside for testing
 user_pref("layout.css.shape-outside.enabled", true);
 
+// Enable CSS text-justify for testing
+user_pref("layout.css.text-justify.enabled", true);
+
 // Disable spammy layout warnings because they pollute test logs
 user_pref("layout.spammy_warnings.enabled", false);
 
 // Enable Media Source Extensions for testing
 user_pref("media.mediasource.mp4.enabled", true);
 user_pref("media.mediasource.webm.enabled", true);
-
-// Enable mozContacts
-user_pref("dom.mozContacts.enabled", true);
-
-// Enable mozSettings
-user_pref("dom.mozSettings.enabled", true);
 
 // Make sure the disk cache doesn't get auto disabled
 user_pref("network.http.bypass-cachelock-threshold", 200000);
@@ -229,14 +230,11 @@ user_pref("browser.snippets.firstrunHomepage.enabled", false);
 
 // Disable useragent updates.
 user_pref("general.useragent.updates.enabled", false);
+user_pref("general.useragent.updates.url", "https://example.com/0/%%APP_ID%%");
 
 // Disable webapp updates.  Yes, it is supposed to be an integer.
 user_pref("browser.webapps.checkForUpdates", 0);
 
-// Enable debug logging in the tcp presentation server.
-user_pref("dom.presentation.tcp_server.debug", true);
-// Enable debug logging in the presentation core service.
-user_pref("logging.Presentation", "debug");
 user_pref("dom.presentation.testing.simulate-receiver", false);
 
 // Don't connect to Yahoo! for RSS feed tests.
@@ -306,8 +304,9 @@ user_pref("browser.search.countryCode", "US");
 // This will prevent HTTP requests for region defaults.
 user_pref("browser.search.geoSpecificDefaults", false);
 
-// Make sure the self support tab doesn't hit the network.
-user_pref("browser.selfsupport.url", "https://%(server)s/selfsupport-dummy/");
+// Make sure self support doesn't hit the network.
+user_pref("browser.selfsupport.url", "https://example.com/selfsupport-dummy/");
+user_pref("extensions.shield-recipe-client.api_url", "https://example.com/selfsupport-dummy/");
 
 user_pref("media.eme.enabled", true);
 
@@ -342,6 +341,8 @@ user_pref("browser.urlbar.suggest.searches", false);
 // tests that don't expect it to be there.
 user_pref("browser.urlbar.userMadeSearchSuggestionsChoice", true);
 
+user_pref("browser.urlbar.usepreloadedtopurls.enabled", false);
+
 user_pref("dom.audiochannel.mutedByDefault", false);
 
 user_pref("webextensions.tests", true);
@@ -355,3 +356,12 @@ user_pref("plugin.load_flash_only", false);
 // Don't block old libavcodec libraries when testing, because our test systems
 // cannot easily be upgraded.
 user_pref("media.libavcodec.allow-obsolete", true);
+
+user_pref("media.openUnsupportedTypeWithExternalApp", false);
+
+// Disable password capture, so that mochitests that include forms aren't
+// influenced by the presence of the persistent doorhanger notification.
+user_pref("signon.rememberSignons", false);
+
+// Enable form autofill feature testing.
+user_pref("browser.formautofill.experimental", true);

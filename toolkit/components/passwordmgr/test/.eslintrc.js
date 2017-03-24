@@ -2,12 +2,12 @@
 
 module.exports = { // eslint-disable-line no-undef
   "extends": [
-    "../../../../testing/mochitest/mochitest.eslintrc.js",
-    "../../../../testing/mochitest/chrome.eslintrc.js"
+    "plugin:mozilla/mochitest-test",
+    "plugin:mozilla/chrome-test"
   ],
   "rules": {
-    "brace-style": 0,
-    "no-undef": 0,
-    "no-unused-vars": 0,
+    "brace-style": "off",
+    "no-undef": "off",
+    "no-unused-vars": "off",
   },
 };

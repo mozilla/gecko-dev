@@ -10,7 +10,7 @@
 #include "DecoderTraits.h"
 #include "Benchmark.h"
 #include "DecoderDoctorDiagnostics.h"
-#include "MediaContentType.h"
+#include "MediaContainerType.h"
 #include "MediaResult.h"
 #include "MediaSourceUtils.h"
 #include "SourceBuffer.h"
@@ -72,8 +72,8 @@ static bool
 IsWebMForced(DecoderDoctorDiagnostics* aDiagnostics)
 {
   bool mp4supported =
-    DecoderTraits::IsMP4TypeAndEnabled(NS_LITERAL_CSTRING("video/mp4"),
-                                       aDiagnostics);
+    DecoderTraits::IsMP4SupportedType(MediaContainerType(MEDIAMIMETYPE("video/mp4")),
+                                      aDiagnostics);
   bool hwsupported = gfx::gfxVars::CanUseHardwareVideoDecoding();
 #ifdef MOZ_WIDGET_ANDROID
   return !mp4supported || !hwsupported || VP9Benchmark::IsVP9DecodeFast() ||
@@ -93,33 +93,36 @@ MediaSource::IsTypeSupported(const nsAString& aType, DecoderDoctorDiagnostics* a
     return NS_ERROR_DOM_TYPE_ERR;
   }
 
-  MediaContentType contentType{aType};
-  if (!contentType.IsValid()) {
-    return NS_ERROR_DOM_TYPE_ERR;
+  Maybe<MediaContainerType> containerType = MakeMediaContainerType(aType);
+  if (!containerType) {
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
 
-  if (DecoderTraits::CanHandleContentType(contentType, aDiagnostics)
+  if (DecoderTraits::CanHandleContainerType(*containerType, aDiagnostics)
       == CANPLAY_NO) {
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
 
   // Now we know that this media type could be played.
   // MediaSource imposes extra restrictions, and some prefs.
-  const nsACString& mimeType = contentType.GetMIMEType();
-  if (mimeType.EqualsASCII("video/mp4") || mimeType.EqualsASCII("audio/mp4")) {
+  const MediaMIMEType& mimeType = containerType->Type();
+  if (mimeType == MEDIAMIMETYPE("video/mp4") ||
+      mimeType == MEDIAMIMETYPE("audio/mp4")) {
     if (!Preferences::GetBool("media.mediasource.mp4.enabled", false)) {
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
     return NS_OK;
   }
-  if (mimeType.EqualsASCII("video/webm")) {
+  if (mimeType == MEDIAMIMETYPE("video/webm")) {
     if (!(Preferences::GetBool("media.mediasource.webm.enabled", false) ||
+          containerType->ExtendedType().Codecs().Contains(
+            NS_LITERAL_STRING("vp8")) ||
           IsWebMForced(aDiagnostics))) {
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
     return NS_OK;
   }
-  if (mimeType.EqualsASCII("audio/webm")) {
+  if (mimeType == MEDIAMIMETYPE("audio/webm")) {
     if (!(Preferences::GetBool("media.mediasource.webm.enabled", false) ||
           Preferences::GetBool("media.mediasource.webm.audio.enabled", true))) {
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
@@ -237,13 +240,12 @@ MediaSource::AddSourceBuffer(const nsAString& aType, ErrorResult& aRv)
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
   }
-  MediaContentType contentType{aType};
-  if (!contentType.IsValid()) {
+  Maybe<MediaContainerType> containerType = MakeMediaContainerType(aType);
+  if (!containerType) {
     aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return nullptr;
   }
-  const nsACString& mimeType = contentType.GetMIMEType();
-  RefPtr<SourceBuffer> sourceBuffer = new SourceBuffer(this, mimeType);
+  RefPtr<SourceBuffer> sourceBuffer = new SourceBuffer(this, *containerType);
   if (!sourceBuffer) {
     aRv.Throw(NS_ERROR_FAILURE); // XXX need a better error here
     return nullptr;
@@ -335,7 +337,7 @@ void
 MediaSource::EndOfStream(const MediaResult& aError)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MSE_API("EndOfStream(aError=%d)", aError.Code());
+  MSE_API("EndOfStream(aError=%" PRId32")", static_cast<uint32_t>(aError.Code()));
 
   SetReadyState(MediaSourceReadyState::Ended);
   mSourceBuffers->Ended();
@@ -454,6 +456,7 @@ MediaSource::MediaSource(nsPIDOMWindowInner* aWindow)
   : DOMEventTargetHelper(aWindow)
   , mDecoder(nullptr)
   , mPrincipal(nullptr)
+  , mAbstractMainThread(GetOwnerGlobal()->AbstractMainThreadFor(TaskCategory::Other))
   , mReadyState(MediaSourceReadyState::Closed)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -474,7 +477,8 @@ MediaSource::SetReadyState(MediaSourceReadyState aState)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aState != mReadyState);
-  MSE_DEBUG("SetReadyState(aState=%d) mReadyState=%d", aState, mReadyState);
+  MSE_DEBUG("SetReadyState(aState=%" PRIu32 ") mReadyState=%" PRIu32,
+            static_cast<uint32_t>(aState), static_cast<uint32_t>(mReadyState));
 
   MediaSourceReadyState oldState = mReadyState;
   mReadyState = aState;
@@ -519,7 +523,7 @@ MediaSource::QueueAsyncSimpleEvent(const char* aName)
 {
   MSE_DEBUG("Queuing event '%s'", aName);
   nsCOMPtr<nsIRunnable> event = new AsyncEventRunner<MediaSource>(this, aName);
-  NS_DispatchToMainThread(event);
+  mAbstractMainThread->Dispatch(event.forget());
 }
 
 void
@@ -557,7 +561,9 @@ MediaSource::DurationChange(double aNewDuration, ErrorResult& aRv)
 void
 MediaSource::GetMozDebugReaderData(nsAString& aString)
 {
-  mDecoder->GetMozDebugReaderData(aString);
+  nsAutoCString result;
+  mDecoder->GetMozDebugReaderData(result);
+  aString = NS_ConvertUTF8toUTF16(result);
 }
 
 nsPIDOMWindowInner*

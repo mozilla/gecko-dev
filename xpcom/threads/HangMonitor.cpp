@@ -16,11 +16,9 @@
 #include "mozilla/UniquePtr.h"
 #include "nsReadableUtils.h"
 #include "mozilla/StackWalk.h"
-#ifdef _WIN64
-#include "mozilla/StackWalk_windows.h"
-#endif
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
+#include "GeckoProfiler.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
@@ -30,7 +28,7 @@
 #include <windows.h>
 #endif
 
-#if defined(MOZ_ENABLE_PROFILER_SPS) && defined(MOZ_PROFILING) && defined(XP_WIN)
+#if defined(MOZ_GECKO_PROFILER) && defined(MOZ_PROFILING) && defined(XP_WIN)
   #define REPORT_CHROME_HANGS
 #endif
 
@@ -120,7 +118,7 @@ Crash()
   }
 #endif
 
-  NS_RUNTIMEABORT("HangMonitor triggered");
+  MOZ_CRASH("HangMonitor triggered");
 }
 
 #ifdef REPORT_CHROME_HANGS
@@ -150,13 +148,6 @@ GetChromeHangReport(Telemetry::ProcessedStack& aStack,
   std::vector<uintptr_t> rawStack;
   rawStack.reserve(MAX_CALL_STACK_PCS);
 
-  // Workaround possible deadlock where the main thread is running a
-  // long-standing JS job, and happens to be in the JIT allocator when we
-  // suspend it. Since, on win 64, this requires holding a process lock that
-  // MozStackWalk requires, take this "workaround lock" to avoid deadlock.
-#ifdef _WIN64
-  AcquireStackWalkWorkaroundLock();
-#endif
   DWORD ret = ::SuspendThread(winMainThreadHandle);
   bool suspended = false;
   if (ret != -1) {
@@ -169,10 +160,6 @@ GetChromeHangReport(Telemetry::ProcessedStack& aStack,
       suspended = true;
     }
   }
-
-#ifdef _WIN64
-  ReleaseStackWalkWorkaroundLock();
-#endif
 
   if (!suspended) {
     if (ret != -1) {
@@ -209,6 +196,7 @@ GetChromeHangReport(Telemetry::ProcessedStack& aStack,
 void
 ThreadMain(void*)
 {
+  AutoProfilerRegister registerThread("Hang Monitor");
   PR_SetCurrentThreadName("Hang Monitor");
 
   MonitorAutoLock lock(*gMonitor);
@@ -299,11 +287,11 @@ Startup()
   MOZ_ASSERT(!gMonitor, "Hang monitor already initialized");
   gMonitor = new Monitor("HangMonitor");
 
-  Preferences::RegisterCallback(PrefChanged, kHangMonitorPrefName, nullptr);
+  Preferences::RegisterCallback(PrefChanged, kHangMonitorPrefName);
   PrefChanged(nullptr, nullptr);
 
 #ifdef REPORT_CHROME_HANGS
-  Preferences::RegisterCallback(PrefChanged, kTelemetryPrefName, nullptr);
+  Preferences::RegisterCallback(PrefChanged, kTelemetryPrefName);
   winMainThreadHandle =
     OpenThread(THREAD_ALL_ACCESS, FALSE, GetCurrentThreadId());
   if (!winMainThreadHandle) {

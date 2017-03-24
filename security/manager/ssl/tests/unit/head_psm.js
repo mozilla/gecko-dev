@@ -139,15 +139,11 @@ function readFile(file) {
 function addCertFromFile(certdb, filename, trustString) {
   let certFile = do_get_file(filename, false);
   let certBytes = readFile(certFile);
-  let successful = false;
   try {
-    certdb.addCert(certBytes, trustString, null);
-    successful = true;
+    return certdb.addCert(certBytes, trustString);
   } catch (e) {}
-  if (!successful) {
-    // It might be PEM instead of DER.
-    certdb.addCertFromBase64(pemToBase64(certBytes), trustString, null);
-  }
+  // It might be PEM instead of DER.
+  return certdb.addCertFromBase64(pemToBase64(certBytes), trustString);
 }
 
 function constructCertFromFile(filename) {
@@ -156,7 +152,7 @@ function constructCertFromFile(filename) {
   let certdb = Cc["@mozilla.org/security/x509certdb;1"]
                  .getService(Ci.nsIX509CertDB);
   try {
-    return certdb.constructX509(certBytes, certBytes.length);
+    return certdb.constructX509(certBytes);
   } catch (e) {}
   // It might be PEM instead of DER.
   return certdb.constructX509FromBase64(pemToBase64(certBytes));
@@ -177,8 +173,8 @@ function getXPCOMStatusFromNSS(statusNSS) {
 // certdb implements nsIX509CertDB. See nsIX509CertDB.idl for documentation.
 // In particular, hostname is optional.
 function checkCertErrorGenericAtTime(certdb, cert, expectedError, usage, time,
-                                     /*optional*/ hasEVPolicy,
-                                     /*optional*/ hostname) {
+                                     /* optional */ hasEVPolicy,
+                                     /* optional */ hostname) {
   do_print(`cert cn=${cert.commonName}`);
   do_print(`cert issuer cn=${cert.issuerCommonName}`);
   let verifiedChain = {};
@@ -191,8 +187,8 @@ function checkCertErrorGenericAtTime(certdb, cert, expectedError, usage, time,
 // certdb implements nsIX509CertDB. See nsIX509CertDB.idl for documentation.
 // In particular, hostname is optional.
 function checkCertErrorGeneric(certdb, cert, expectedError, usage,
-                               /*optional*/ hasEVPolicy,
-                               /*optional*/ hostname) {
+                               /* optional */ hasEVPolicy,
+                               /* optional */ hostname) {
   do_print(`cert cn=${cert.commonName}`);
   do_print(`cert issuer cn=${cert.issuerCommonName}`);
   let verifiedChain = {};
@@ -209,7 +205,8 @@ function checkEVStatus(certDB, cert, usage, isEVExpected) {
                "Actual and expected EV status should match");
 }
 
-function _getLibraryFunctionWithNoArguments(functionName, libraryName) {
+function _getLibraryFunctionWithNoArguments(functionName, libraryName,
+                                            returnType) {
   // Open the NSS library. copied from services/crypto/modules/WeaveCrypto.js
   let path = ctypes.libraryName(libraryName);
 
@@ -226,7 +223,8 @@ function _getLibraryFunctionWithNoArguments(functionName, libraryName) {
   }
 
   let SECStatus = ctypes.int;
-  let func = nsslib.declare(functionName, ctypes.default_abi, SECStatus);
+  let func = nsslib.declare(functionName, ctypes.default_abi,
+                            returnType || SECStatus);
   return func;
 }
 
@@ -249,6 +247,39 @@ function clearSessionCache() {
   if (!SSL_ClearSessionCache || SSL_ClearSessionCache() != 0) {
     throw new Error("Failed to clear SSL session cache");
   }
+}
+
+function getSSLStatistics() {
+  let SSL3Statistics = new ctypes.StructType("SSL3Statistics",
+                           [ { "sch_sid_cache_hits": ctypes.long },
+                             { "sch_sid_cache_misses": ctypes.long },
+                             { "sch_sid_cache_not_ok": ctypes.long },
+                             { "hsh_sid_cache_hits": ctypes.long },
+                             { "hsh_sid_cache_misses": ctypes.long },
+                             { "hsh_sid_cache_not_ok": ctypes.long },
+                             { "hch_sid_cache_hits": ctypes.long },
+                             { "hch_sid_cache_misses": ctypes.long },
+                             { "hch_sid_cache_not_ok": ctypes.long },
+                             { "sch_sid_stateless_resumes": ctypes.long },
+                             { "hsh_sid_stateless_resumes": ctypes.long },
+                             { "hch_sid_stateless_resumes": ctypes.long },
+                             { "hch_sid_ticket_parse_failures": ctypes.long }]);
+  let SSL3StatisticsPtr = new ctypes.PointerType(SSL3Statistics);
+  let SSL_GetStatistics = null;
+  try {
+    SSL_GetStatistics = _getLibraryFunctionWithNoArguments("SSL_GetStatistics",
+                                                           "ssl3",
+                                                           SSL3StatisticsPtr);
+  } catch (e) {
+    // On Windows, this is actually in the nss3 library.
+    SSL_GetStatistics = _getLibraryFunctionWithNoArguments("SSL_GetStatistics",
+                                                           "nss3",
+                                                           SSL3StatisticsPtr);
+  }
+  if (!SSL_GetStatistics) {
+    throw new Error("Failed to get SSL statistics");
+  }
+  return SSL_GetStatistics();
 }
 
 // Set up a TLS testing environment that has a TLS server running and
@@ -324,29 +355,32 @@ function add_tls_server_setup(serverBinName, certsPath) {
  * @param {Function} aAfterStreamOpen
  *   A callback function that is called with the nsISocketTransport once the
  *   output stream is ready.
- * @param {String} aFirstPartyDomain
- *   The first party domain which will be used to double-key the OCSP cache.
+ * @param {OriginAttributes} aOriginAttributes (optional)
+ *   The origin attributes that the socket transport will have. This parameter
+ *   affects OCSP because OCSP cache is double-keyed by origin attributes' first
+ *   party domain.
  */
 function add_connection_test(aHost, aExpectedResult,
                              aBeforeConnect, aWithSecurityInfo,
-                             aAfterStreamOpen, aFirstPartyDomain) {
+                             aAfterStreamOpen,
+                             /* optional */ aOriginAttributes) {
   const REMOTE_PORT = 8443;
 
-  function Connection(aHost) {
-    this.host = aHost;
+  function Connection(host) {
+    this.host = host;
     let threadManager = Cc["@mozilla.org/thread-manager;1"]
                           .getService(Ci.nsIThreadManager);
     this.thread = threadManager.currentThread;
     this.defer = Promise.defer();
     let sts = Cc["@mozilla.org/network/socket-transport-service;1"]
                 .getService(Ci.nsISocketTransportService);
-    this.transport = sts.createTransport(["ssl"], 1, aHost, REMOTE_PORT, null);
+    this.transport = sts.createTransport(["ssl"], 1, host, REMOTE_PORT, null);
     // See bug 1129771 - attempting to connect to [::1] when the server is
     // listening on 127.0.0.1 causes frequent failures on OS X 10.10.
     this.transport.connectionFlags |= Ci.nsISocketTransport.DISABLE_IPV6;
     this.transport.setEventSink(this, this.thread);
-    if (aFirstPartyDomain) {
-      this.transport.firstPartyDomain = aFirstPartyDomain;
+    if (aOriginAttributes) {
+      this.transport.originAttributes = aOriginAttributes;
     }
     this.inputStream = null;
     this.outputStream = null;
@@ -355,7 +389,7 @@ function add_connection_test(aHost, aExpectedResult,
 
   Connection.prototype = {
     // nsITransportEventSink
-    onTransportStatus: function(aTransport, aStatus, aProgress, aProgressMax) {
+    onTransportStatus(aTransport, aStatus, aProgress, aProgressMax) {
       if (!this.connected && aStatus == Ci.nsISocketTransport.STATUS_CONNECTED_TO) {
         this.connected = true;
         this.outputStream.asyncWait(this, 0, 0, this.thread);
@@ -363,7 +397,7 @@ function add_connection_test(aHost, aExpectedResult,
     },
 
     // nsIInputStreamCallback
-    onInputStreamReady: function(aStream) {
+    onInputStreamReady(aStream) {
       try {
         // this will throw if the stream has been closed by an error
         let str = NetUtil.readInputStreamToString(aStream, aStream.available());
@@ -379,7 +413,7 @@ function add_connection_test(aHost, aExpectedResult,
     },
 
     // nsIOutputStreamCallback
-    onOutputStreamReady: function(aStream) {
+    onOutputStreamReady(aStream) {
       if (aAfterStreamOpen) {
         aAfterStreamOpen(this.transport);
       }
@@ -393,18 +427,18 @@ function add_connection_test(aHost, aExpectedResult,
       this.inputStream.asyncWait(this, 0, 0, this.thread);
     },
 
-    go: function() {
+    go() {
       this.outputStream = this.transport.openOutputStream(0, 0, 0)
                             .QueryInterface(Ci.nsIAsyncOutputStream);
       return this.defer.promise;
     }
   };
 
-  /* Returns a promise to connect to aHost that resolves to the result of that
+  /* Returns a promise to connect to host that resolves to the result of that
    * connection */
-  function connectTo(aHost) {
-    Services.prefs.setCharPref("network.dns.localDomains", aHost);
-    let connection = new Connection(aHost);
+  function connectTo(host) {
+    Services.prefs.setCharPref("network.dns.localDomains", host);
+    let connection = new Connection(host);
     return connection.go();
   }
 
@@ -454,8 +488,7 @@ function _getBinaryUtil(binaryUtilName) {
 }
 
 // Do not call this directly; use add_tls_server_setup
-function _setupTLSServerTest(serverBinName, certsPath)
-{
+function _setupTLSServerTest(serverBinName, certsPath) {
   let certdb = Cc["@mozilla.org/security/x509certdb;1"]
                   .getService(Ci.nsIX509CertDB);
   // The trusted CA that is typically used for "good" certificates.
@@ -506,8 +539,7 @@ function _setupTLSServerTest(serverBinName, certsPath)
 // for a nssDB where the certs and public keys are prepopulated.
 // ocspRespArray is an array of arrays like:
 // [ [typeOfResponse, certnick, extracertnick]...]
-function generateOCSPResponses(ocspRespArray, nssDBlocation)
-{
+function generateOCSPResponses(ocspRespArray, nssDBlocation) {
   let utilBinName = "GenerateOCSPResponse";
   let ocspGenBin = _getBinaryUtil(utilBinName);
   let retArray = [];
@@ -609,7 +641,7 @@ function startOCSPResponder(serverPort, identity, nssDBLocation,
   httpServer.identity.setPrimary("http", identity, serverPort);
   httpServer.start(serverPort);
   return {
-    stop: function(callback) {
+    stop(callback) {
       // make sure we consumed each expected response
       Assert.equal(ocspResponses.length, 0,
                    "Should have 0 remaining expected OCSP responses");
@@ -643,10 +675,10 @@ FakeSSLStatus.prototype = {
   isNotValidAtThisTime: false,
   isUntrusted: false,
   isExtendedValidation: false,
-  getInterface: function(aIID) {
+  getInterface(aIID) {
     return this.QueryInterface(aIID);
   },
-  QueryInterface: function(aIID) {
+  QueryInterface(aIID) {
     if (aIID.equals(Ci.nsISSLStatus) ||
         aIID.equals(Ci.nsISupports)) {
       return this;
@@ -737,7 +769,7 @@ function loginToDBWithDefaultPassword() {
                   .getService(Ci.nsIPK11TokenDB);
   let token = tokenDB.getInternalKeyToken();
   token.initPassword("");
-  token.login(/*force*/ false);
+  token.login(/* force */ false);
 }
 
 // Helper for asyncTestCertificateUsages.
@@ -822,4 +854,16 @@ function loadPKCS11TestModule(expectModuleUnloadToFail) {
     }
   });
   pkcs11.addModule("PKCS11 Test Module", libraryFile.path, 0, 0);
+}
+
+/**
+ * @param {String} data
+ * @returns {String}
+ */
+function hexify(data) {
+  // |slice(-2)| chomps off the last two characters of a string.
+  // Therefore, if the Unicode value is < 0x10, we have a single-character hex
+  // string when we want one that's two characters, and unconditionally
+  // prepending a "0" solves the problem.
+  return Array.from(data, (c, i) => ("0" + data.charCodeAt(i).toString(16)).slice(-2)).join("");
 }

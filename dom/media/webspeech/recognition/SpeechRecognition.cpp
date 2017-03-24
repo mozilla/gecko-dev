@@ -20,6 +20,7 @@
 #include "mozilla/Services.h"
 
 #include "AudioSegment.h"
+#include "DOMMediaStream.h"
 #include "endpointer.h"
 
 #include "mozilla/dom/SpeechRecognitionEvent.h"
@@ -186,6 +187,7 @@ SpeechRecognition::Constructor(const GlobalObject& aGlobal,
   nsCOMPtr<nsPIDOMWindowInner> win = do_QueryInterface(aGlobal.GetAsSupports());
   if (!win) {
     aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
   }
 
   MOZ_ASSERT(win->IsInnerWindow());
@@ -723,7 +725,9 @@ SpeechRecognition::SetServiceURI(const nsAString& aArg, ErrorResult& aRv)
 }
 
 void
-SpeechRecognition::Start(const Optional<NonNull<DOMMediaStream>>& aStream, ErrorResult& aRv)
+SpeechRecognition::Start(const Optional<NonNull<DOMMediaStream>>& aStream,
+                         CallerType aCallerType,
+                         ErrorResult& aRv)
 {
   if (mCurrentState != STATE_IDLE) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
@@ -755,7 +759,8 @@ SpeechRecognition::Start(const Optional<NonNull<DOMMediaStream>>& aStream, Error
     manager->GetUserMedia(GetOwner(),
                           constraints,
                           new GetUserMediaSuccessCallback(this),
-                          new GetUserMediaErrorCallback(this));
+                          new GetUserMediaErrorCallback(this),
+                          aCallerType);
   }
 
   RefPtr<SpeechEvent> event = new SpeechEvent(this, EVENT_START);

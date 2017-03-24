@@ -5,7 +5,12 @@
 
 #include "nsTemporaryFileInputStream.h"
 #include "nsStreamUtils.h"
+#include "mozilla/ipc/InputStreamUtils.h"
+#include "private/pprio.h"
 #include <algorithm>
+
+using namespace mozilla;
+using namespace mozilla::ipc;
 
 typedef mozilla::ipc::FileDescriptor::PlatformHandleType FileHandleType;
 
@@ -84,6 +89,11 @@ nsTemporaryFileInputStream::ReadSegments(nsWriteSegmentFun writer,
   while (*result < count) {
     uint32_t bufCount = std::min(count - *result, (uint32_t) sizeof(buf));
     int32_t bytesRead = PR_Read(mFileDescOwner->mFD, buf, bufCount);
+    if (bytesRead == 0) {
+      mClosed = true;
+      return NS_OK;
+    }
+
     if (bytesRead < 0) {
       return NS_ErrorAccordingToNSPR();
     }

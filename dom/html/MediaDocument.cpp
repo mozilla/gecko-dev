@@ -349,7 +349,7 @@ MediaDocument::LinkScript(const nsAString& aScript)
   NS_ENSURE_TRUE(script, NS_ERROR_OUT_OF_MEMORY);
 
   script->SetAttr(kNameSpaceID_None, nsGkAtoms::type,
-                  NS_LITERAL_STRING("text/javascript;version=1.8"), true);
+                  NS_LITERAL_STRING("text/javascript"), true);
 
   script->SetAttr(kNameSpaceID_None, nsGkAtoms::src, aScript, true);
 
@@ -418,8 +418,7 @@ MediaDocument::UpdateTitleAndCharset(const nsACString& aTypeStr,
     nsXPIDLString titleWithStatus;
     const nsPromiseFlatString& status = PromiseFlatString(aStatus);
     const char16_t *formatStrings[2] = {title.get(), status.get()};
-    NS_NAMED_LITERAL_STRING(fmtName, "TitleWithStatus");
-    mStringBundle->FormatStringFromName(fmtName.get(), formatStrings, 2,
+    mStringBundle->FormatStringFromName(u"TitleWithStatus", formatStrings, 2,
                                         getter_Copies(titleWithStatus));
     SetTitle(titleWithStatus);
   }

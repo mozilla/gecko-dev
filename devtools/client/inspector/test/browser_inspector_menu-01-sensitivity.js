@@ -26,6 +26,7 @@ const ALL_MENU_ITEMS = [
   "node-menu-copyinner",
   "node-menu-copyouter",
   "node-menu-copyuniqueselector",
+  "node-menu-copycsspath",
   "node-menu-copyimagedatauri",
   "node-menu-delete",
   "node-menu-pseudo-hover",
@@ -34,6 +35,7 @@ const ALL_MENU_ITEMS = [
   "node-menu-scrollnodeintoview",
   "node-menu-screenshotnode",
   "node-menu-add-attribute",
+  "node-menu-copy-attribute",
   "node-menu-edit-attribute",
   "node-menu-remove-attribute"
 ].concat(PASTE_MENU_ITEMS, ACTIVE_ON_DOCTYPE_ITEMS);
@@ -69,6 +71,7 @@ const TEST_CASES = [
     clipboardDataType: "html",
     disabled: [
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ],
@@ -85,6 +88,7 @@ const TEST_CASES = [
       "node-menu-pasteafter",
       "node-menu-pastefirstchild",
       "node-menu-pastelastchild",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ],
@@ -98,6 +102,7 @@ const TEST_CASES = [
       "node-menu-copyimagedatauri",
       "node-menu-pastebefore",
       "node-menu-pasteafter",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]
@@ -108,6 +113,7 @@ const TEST_CASES = [
     clipboardDataType: "html",
     selector: "img",
     disabled: [
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]
@@ -122,6 +128,7 @@ const TEST_CASES = [
       "node-menu-pastebefore",
       "node-menu-pasteafter",
       "node-menu-screenshotnode",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ],
@@ -132,6 +139,7 @@ const TEST_CASES = [
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
       "node-menu-screenshotnode",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -143,6 +151,7 @@ const TEST_CASES = [
     selector: "#paste-area",
     disabled: [
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]
@@ -156,6 +165,7 @@ const TEST_CASES = [
     selector: "#paste-area",
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -167,6 +177,7 @@ const TEST_CASES = [
     selector: "#paste-area",
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -178,6 +189,7 @@ const TEST_CASES = [
     selector: "#paste-area",
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -188,6 +200,7 @@ const TEST_CASES = [
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
       "node-menu-screenshotnode",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),
@@ -198,6 +211,7 @@ const TEST_CASES = [
     disabled: PASTE_MENU_ITEMS.concat([
       "node-menu-copyimagedatauri",
       "node-menu-screenshotnode",
+      "node-menu-copy-attribute",
       "node-menu-edit-attribute",
       "node-menu-remove-attribute"
     ]),

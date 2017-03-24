@@ -15,11 +15,11 @@ add_task(function* () {
     windows: [
       {
         tabs: [
-          { entries: [{ url: "about:blank" }] },
+          { entries: [{ url: "about:blank", triggeringPrincipal_base64 }] },
         ]
       }
     ],
-    global: global
+    global
   };
 
   function testRestoredState() {

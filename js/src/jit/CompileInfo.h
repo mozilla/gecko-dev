@@ -7,6 +7,8 @@
 #ifndef jit_CompileInfo_h
 #define jit_CompileInfo_h
 
+#include "mozilla/Maybe.h"
+
 #include "jsfun.h"
 
 #include "jit/JitAllocPolicy.h"
@@ -221,12 +223,34 @@ class CompileInfo
         nlocals_ = script->nfixed();
         nstack_ = Max<unsigned>(script->nslots() - script->nfixed(), MinJITStackSize);
         nslots_ = nimplicit_ + nargs_ + nlocals_ + nstack_;
+
+        // For derived class constructors, find and cache the frame slot for
+        // the .this binding. This slot is assumed to be always
+        // observable. See isObservableFrameSlot.
+        if (script->isDerivedClassConstructor()) {
+            MOZ_ASSERT(script->functionHasThisBinding());
+            CompileRuntime* runtime = GetJitContext()->runtime;
+            for (BindingIter bi(script); bi; bi++) {
+                if (bi.name() != runtime->names().dotThis)
+                    continue;
+                BindingLocation loc = bi.location();
+                if (loc.kind() == BindingLocation::Kind::Frame) {
+                    thisSlotForDerivedClassConstructor_ = mozilla::Some(localSlot(loc.slot()));
+                    break;
+                }
+            }
+        }
+
+        // If the script uses an environment in body, the environment chain
+        // will need to be observable.
+        needsBodyEnvironmentObject_ = script->needsBodyEnvironment();
     }
 
     explicit CompileInfo(unsigned nlocals)
       : script_(nullptr), fun_(nullptr), osrPc_(nullptr),
         analysisMode_(Analysis_None), scriptNeedsArgsObj_(false),
-        mayReadFrameArgsDirectly_(false), inlineScriptTree_(nullptr)
+        mayReadFrameArgsDirectly_(false), inlineScriptTree_(nullptr),
+        needsBodyEnvironmentObject_(false)
     {
         nimplicit_ = 0;
         nargs_ = 0;
@@ -415,26 +439,46 @@ class CompileInfo
         return analysisMode_ != Analysis_None;
     }
 
+    bool needsBodyEnvironmentObject() const {
+        return needsBodyEnvironmentObject_;
+    }
+
     // Returns true if a slot can be observed out-side the current frame while
     // the frame is active on the stack.  This implies that these definitions
     // would have to be executed and that they cannot be removed even if they
     // are unused.
-    bool isObservableSlot(uint32_t slot) const {
-        if (isObservableFrameSlot(slot))
-            return true;
+    inline bool isObservableSlot(uint32_t slot) const {
+        if (slot >= firstLocalSlot()) {
+            // The |this| slot for a derived class constructor is a local slot.
+            if (thisSlotForDerivedClassConstructor_)
+                return *thisSlotForDerivedClassConstructor_ == slot;
+            return false;
+        }
 
-        if (isObservableArgumentSlot(slot))
-            return true;
+        if (slot < firstArgSlot())
+            return isObservableFrameSlot(slot);
 
-        return false;
+        return isObservableArgumentSlot(slot);
     }
 
     bool isObservableFrameSlot(uint32_t slot) const {
+        // The |envChain| value must be preserved if environments are added
+        // after the prologue.
+        if (needsBodyEnvironmentObject() && slot == environmentChainSlot())
+            return true;
+
         if (!funMaybeLazy())
             return false;
 
         // The |this| value must always be observable.
         if (slot == thisSlot())
+            return true;
+
+        // The |this| frame slot in derived class constructors should never be
+        // optimized out, as a Debugger might need to perform TDZ checks on it
+        // via, e.g., an exceptionUnwind handler. The TDZ check is required
+        // for correctness if the handler decides to continue execution.
+        if (thisSlotForDerivedClassConstructor_ && *thisSlotForDerivedClassConstructor_ == slot)
             return true;
 
         if (funMaybeLazy()->needsSomeEnvironmentObject() && slot == environmentChainSlot())
@@ -469,9 +513,11 @@ class CompileInfo
     // definition which can be observed and recovered, implies that this
     // definition can be optimized away as long as we can compute its values.
     bool isRecoverableOperand(uint32_t slot) const {
-        // If this script is not a function, then none of the slots are
-        // observable.  If it this |slot| is not observable, thus we can always
-        // recover it.
+        // The |envChain| value cannot be recovered if environments can be
+        // added in body (after the prologue).
+        if (needsBodyEnvironmentObject() && slot == environmentChainSlot())
+            return false;
+
         if (!funMaybeLazy())
             return true;
 
@@ -503,13 +549,14 @@ class CompileInfo
     unsigned nlocals_;
     unsigned nstack_;
     unsigned nslots_;
+    mozilla::Maybe<unsigned> thisSlotForDerivedClassConstructor_;
     JSScript* script_;
     JSFunction* fun_;
     jsbytecode* osrPc_;
     AnalysisMode analysisMode_;
 
     // Whether a script needs an arguments object is unstable over compilation
-    // since the arguments optimization could be marked as failed on the main
+    // since the arguments optimization could be marked as failed on the active
     // thread, so cache a value here and use it throughout for consistency.
     bool scriptNeedsArgsObj_;
 
@@ -520,6 +567,10 @@ class CompileInfo
     bool mayReadFrameArgsDirectly_;
 
     InlineScriptTree* inlineScriptTree_;
+
+    // Whether a script needs environments within its body. This informs us
+    // that the environment chain is not easy to reconstruct.
+    bool needsBodyEnvironmentObject_;
 };
 
 } // namespace jit

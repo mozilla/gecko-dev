@@ -30,14 +30,14 @@
         <parameter name="aValue"/>
         <body>
         <![CDATA[
-          var change = (aValue != (this.getAttribute('checked') == 'true'));
+          var change = (aValue != (this.getAttribute("checked") == "true"));
           if (aValue)
-            this.setAttribute('checked', 'true');
+            this.setAttribute("checked", "true");
           else
-            this.removeAttribute('checked');
+            this.removeAttribute("checked");
           if (change) {
-            var event = document.createEvent('Events');
-            event.initEvent('CheckboxStateChange', true, true);
+            var event = document.createEvent("Events");
+            event.initEvent("CheckboxStateChange", true, true);
             this.dispatchEvent(event);
           }
           return aValue;
@@ -63,22 +63,6 @@
         ]]>
       </handler>
     </handlers>
-  </binding>
-
-  <binding id="checkbox-with-spacing"
-           extends="chrome://global/content/bindings/checkbox.xml#checkbox">
-
-    <content>
-      <xul:hbox class="checkbox-spacer-box">
-        <xul:image class="checkbox-check" xbl:inherits="checked,disabled"/>
-      </xul:hbox>
-      <xul:hbox class="checkbox-label-center-box" flex="1">
-        <xul:hbox class="checkbox-label-box" flex="1">
-          <xul:image class="checkbox-icon" xbl:inherits="src"/>
-          <xul:label class="checkbox-label" xbl:inherits="xbl:text=label,accesskey,crop" flex="1"/>
-        </xul:hbox>
-      </xul:hbox>
-    </content>
   </binding>
 
 </bindings>

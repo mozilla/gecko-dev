@@ -37,12 +37,12 @@ function getTopWindow(win) {
                     .getInterface(Ci.nsIWebNavigation)
                     .QueryInterface(Ci.nsIDocShell);
 
-  if (!docShell.isMozBrowserOrApp) {
+  if (!docShell.isMozBrowser) {
     return win.top;
   }
 
   let topDocShell =
-    docShell.getSameTypeRootTreeItemIgnoreBrowserAndAppBoundaries();
+    docShell.getSameTypeRootTreeItemIgnoreBrowserBoundaries();
 
   return topDocShell
           ? topDocShell.contentViewer.DOMDocument.defaultView
@@ -98,12 +98,12 @@ function getParentWindow(win) {
                  .getInterface(Ci.nsIWebNavigation)
                  .QueryInterface(Ci.nsIDocShell);
 
-  if (!docShell.isMozBrowserOrApp) {
+  if (!docShell.isMozBrowser) {
     return win.parent;
   }
 
   let parentDocShell =
-    docShell.getSameTypeParentIgnoreBrowserAndAppBoundaries();
+    docShell.getSameTypeParentIgnoreBrowserBoundaries();
 
   return parentDocShell
           ? parentDocShell.contentViewer.DOMDocument.defaultView
@@ -203,6 +203,10 @@ function getAdjustedQuads(boundaryWindow, node, region) {
 
   let [xOffset, yOffset] = getFrameOffsets(boundaryWindow, node);
   let scale = getCurrentZoom(node);
+  let { scrollX, scrollY } = boundaryWindow;
+
+  xOffset += scrollX * scale;
+  yOffset += scrollY * scale;
 
   let adjustedQuads = [];
   for (let quad of quads) {
@@ -320,7 +324,7 @@ function getNodeBounds(boundaryWindow, node) {
   if (!node) {
     return null;
   }
-
+  let { scrollX, scrollY } = boundaryWindow;
   let scale = getCurrentZoom(node);
 
   // Find out the offset of the node in its current frame
@@ -347,8 +351,8 @@ function getNodeBounds(boundaryWindow, node) {
 
   // And add the potential frame offset if the node is nested
   let [xOffset, yOffset] = getFrameOffsets(boundaryWindow, node);
-  xOffset += offsetLeft;
-  yOffset += offsetTop;
+  xOffset += offsetLeft + scrollX;
+  yOffset += offsetTop + scrollY;
 
   xOffset *= scale;
   yOffset *= scale;
@@ -409,7 +413,7 @@ function safelyGetContentWindow(frame) {
  *         of the content document.
  */
 function getFrameContentOffset(frame) {
-  let style = safelyGetContentWindow(frame).getComputedStyle(frame, null);
+  let style = safelyGetContentWindow(frame).getComputedStyle(frame);
 
   // In some cases, the computed style is null
   if (!style) {
@@ -627,6 +631,70 @@ function getCurrentZoom(node) {
   return utilsFor(win).fullZoom;
 }
 exports.getCurrentZoom = getCurrentZoom;
+
+/**
+ * Get the display pixel ratio for a given window.
+ * The `devicePixelRatio` property is affected by the zoom (see bug 809788), so we have to
+ * divide by the zoom value in order to get just the display density, expressed as pixel
+ * ratio (the physical display pixel compares to a pixel on a “normal” density screen).
+ *
+ * @param {DOMNode|DOMWindow}
+ *        The node for which the zoom factor should be calculated, or its
+ *        owner window.
+ * @return {Number}
+ */
+function getDisplayPixelRatio(node) {
+  let win = getWindowFor(node);
+  return win.devicePixelRatio / utilsFor(win).fullZoom;
+}
+exports.getDisplayPixelRatio = getDisplayPixelRatio;
+
+/**
+ * Returns the window's dimensions for the `window` given.
+ *
+ * @return {Object} An object with `width` and `height` properties, representing the
+ * number of pixels for the document's size.
+ */
+function getWindowDimensions(window) {
+  // First we'll try without flushing layout, because it's way faster.
+  let windowUtils = utilsFor(window);
+  let { width, height } = windowUtils.getRootBounds();
+
+  if (!width || !height) {
+    // We need a flush after all :'(
+    width = window.innerWidth + window.scrollMaxX - window.scrollMinX;
+    height = window.innerHeight + window.scrollMaxY - window.scrollMinY;
+
+    let scrollbarHeight = {};
+    let scrollbarWidth = {};
+    windowUtils.getScrollbarSize(false, scrollbarWidth, scrollbarHeight);
+    width -= scrollbarWidth.value;
+    height -= scrollbarHeight.value;
+  }
+
+  return { width, height };
+}
+exports.getWindowDimensions = getWindowDimensions;
+
+/**
+ * Returns the max size allowed for a surface like textures or canvas.
+ * If no `webgl` context is available, DEFAULT_MAX_SURFACE_SIZE is returned instead.
+ *
+ * @param {DOMNode|DOMWindow|DOMDocument} node The node to get the window for.
+ * @return {Number} the max size allowed
+ */
+const DEFAULT_MAX_SURFACE_SIZE = 4096;
+function getMaxSurfaceSize(node) {
+  let canvas = getWindowFor(node).document.createElement("canvas");
+  let gl = canvas.getContext("webgl");
+
+  if (!gl) {
+    return DEFAULT_MAX_SURFACE_SIZE;
+  }
+
+  return gl.getParameter(gl.MAX_TEXTURE_SIZE);
+}
+exports.getMaxSurfaceSize = getMaxSurfaceSize;
 
 /**
  * Return the default view for a given node, where node can be:

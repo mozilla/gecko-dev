@@ -42,6 +42,7 @@ class OutOfLineUnboxFloatingPoint;
 class OutOfLineStoreElementHole;
 class OutOfLineTypeOfV;
 class OutOfLineUpdateCache;
+class OutOfLineICFallback;
 class OutOfLineCallPostWriteBarrier;
 class OutOfLineCallPostWriteElementBarrier;
 class OutOfLineIsCallable;
@@ -134,6 +135,7 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void visitOutOfLineLambdaArrow(OutOfLineLambdaArrow* ool);
     void visitLambdaArrow(LLambdaArrow* lir);
     void visitLambdaForSingleton(LLambdaForSingleton* lir);
+    void visitSetFunName(LSetFunName* lir);
     void visitPointer(LPointer* lir);
     void visitKeepAliveObject(LKeepAliveObject* lir);
     void visitSlots(LSlots* lir);
@@ -166,8 +168,8 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void visitOutOfLineCallPostWriteElementBarrier(OutOfLineCallPostWriteElementBarrier* ool);
     void visitCallNative(LCallNative* call);
     void emitCallInvokeFunction(LInstruction* call, Register callereg,
-                                bool isConstructing, uint32_t argc,
-                                uint32_t unusedStack);
+                                bool isConstructing, bool ignoresReturnValue,
+                                uint32_t argc, uint32_t unusedStack);
     void visitCallGeneric(LCallGeneric* call);
     void emitCallInvokeFunctionShuffleNewTarget(LCallKnown *call,
                                                 Register calleeReg,
@@ -256,13 +258,13 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void emitSetPropertyPolymorphic(LInstruction* lir, Register obj,
                                     Register scratch, const ConstantOrRegister& value);
     void visitSetPropertyPolymorphicV(LSetPropertyPolymorphicV* ins);
-    void visitArraySplice(LArraySplice* splice);
     void visitSetPropertyPolymorphicT(LSetPropertyPolymorphicT* ins);
     void visitAbsI(LAbsI* lir);
     void visitAtan2D(LAtan2D* lir);
     void visitHypot(LHypot* lir);
     void visitPowI(LPowI* lir);
     void visitPowD(LPowD* lir);
+    void visitPowV(LPowV* lir);
     void visitMathFunctionD(LMathFunctionD* ins);
     void visitMathFunctionF(LMathFunctionF* ins);
     void visitModD(LModD* ins);
@@ -284,6 +286,8 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void visitSinCos(LSinCos *lir);
     void visitStringSplit(LStringSplit* lir);
     void visitFunctionEnvironment(LFunctionEnvironment* lir);
+    void visitNewLexicalEnvironmentObject(LNewLexicalEnvironmentObject* lir);
+    void visitCopyLexicalEnvironmentObject(LCopyLexicalEnvironmentObject* lir);
     void visitCallGetProperty(LCallGetProperty* lir);
     void visitCallGetElement(LCallGetElement* lir);
     void visitCallSetElement(LCallSetElement* lir);
@@ -291,6 +295,7 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void visitThrow(LThrow* lir);
     void visitTypeOfV(LTypeOfV* lir);
     void visitOutOfLineTypeOfV(OutOfLineTypeOfV* ool);
+    void visitToAsync(LToAsync* lir);
     void visitToIdV(LToIdV* lir);
     template<typename T> void emitLoadElementT(LLoadElementT* lir, const T& source);
     void visitLoadElementT(LLoadElementT* lir);
@@ -362,6 +367,12 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void visitCallDOMNative(LCallDOMNative* lir);
     void visitCallGetIntrinsicValue(LCallGetIntrinsicValue* lir);
     void visitCallBindVar(LCallBindVar* lir);
+    enum CallableOrConstructor {
+        Callable,
+        Constructor
+    };
+    template <CallableOrConstructor mode>
+    void emitIsCallableOrConstructor(Register object, Register output, Label* failure);
     void visitIsCallable(LIsCallable* lir);
     void visitOutOfLineIsCallable(OutOfLineIsCallable* ool);
     void visitIsConstructor(LIsConstructor* lir);
@@ -382,6 +393,7 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void visitArrowNewTarget(LArrowNewTarget* ins);
     void visitCheckReturn(LCheckReturn* ins);
     void visitCheckIsObj(LCheckIsObj* ins);
+    void visitCheckIsCallable(LCheckIsCallable* ins);
     void visitCheckObjCoercible(LCheckObjCoercible* ins);
     void visitDebugCheckSelfHosted(LDebugCheckSelfHosted* ins);
     void visitNaNToZero(LNaNToZero* ins);
@@ -399,6 +411,7 @@ class CodeGenerator final : public CodeGeneratorSpecific
 
     // Inline caches visitors.
     void visitOutOfLineCache(OutOfLineUpdateCache* ool);
+    void visitOutOfLineICFallback(OutOfLineICFallback* ool);
 
     void visitGetPropertyCacheV(LGetPropertyCacheV* ins);
     void visitGetPropertyCacheT(LGetPropertyCacheT* ins);
@@ -407,8 +420,6 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void visitSetPropertyCache(LSetPropertyCache* ins);
     void visitGetNameCache(LGetNameCache* ins);
 
-    void visitGetPropertyIC(OutOfLineUpdateCache* ool, DataPtr<GetPropertyIC>& ic);
-    void visitSetPropertyIC(OutOfLineUpdateCache* ool, DataPtr<SetPropertyIC>& ic);
     void visitBindNameIC(OutOfLineUpdateCache* ool, DataPtr<BindNameIC>& ic);
     void visitNameIC(OutOfLineUpdateCache* ool, DataPtr<NameIC>& ic);
 
@@ -425,6 +436,7 @@ class CodeGenerator final : public CodeGeneratorSpecific
     void visitInterruptCheck(LInterruptCheck* lir);
     void visitOutOfLineInterruptCheckImplicit(OutOfLineInterruptCheckImplicit* ins);
     void visitWasmTrap(LWasmTrap* lir);
+    void visitWasmLoadTls(LWasmLoadTls* ins);
     void visitWasmBoundsCheck(LWasmBoundsCheck* ins);
     void visitRecompileCheck(LRecompileCheck* ins);
     void visitRotate(LRotate* ins);
@@ -443,16 +455,16 @@ class CodeGenerator final : public CodeGeneratorSpecific
     }
 
   private:
-    void addGetPropertyCache(LInstruction* ins, LiveRegisterSet liveRegs, Register objReg,
-                             const ConstantOrRegister& id, TypedOrValueRegister output,
-                             bool monitoredResult, bool allowDoubleResult,
-                             jsbytecode* profilerLeavePc);
+    void addGetPropertyCache(LInstruction* ins, LiveRegisterSet liveRegs,
+                             TypedOrValueRegister value, const ConstantOrRegister& id,
+                             TypedOrValueRegister output, Register maybeTemp, bool monitoredResult,
+                             bool allowDoubleResult, jsbytecode* profilerLeavePc);
     void addSetPropertyCache(LInstruction* ins, LiveRegisterSet liveRegs, Register objReg,
-                             Register temp, Register tempUnbox, FloatRegister tempDouble,
+                             Register temp, FloatRegister tempDouble,
                              FloatRegister tempF32, const ConstantOrRegister& id,
                              const ConstantOrRegister& value,
-                             bool strict, bool needsTypeBarrier, bool guardHoles,
-                             jsbytecode* profilerLeavePc);
+                             bool strict, bool needsPostBarrier, bool needsTypeBarrier,
+                             bool guardHoles, jsbytecode* profilerLeavePc);
 
     MOZ_MUST_USE bool generateBranchV(const ValueOperand& value, Label* ifTrue, Label* ifFalse,
                                       FloatRegister fr);

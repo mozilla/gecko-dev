@@ -212,7 +212,6 @@ metaZones:table(nofallback){
         }
         Chile{
             001{"America/Santiago"}
-            AQ{"Antarctica/Palmer"}
         }
         China{
             001{"Asia/Shanghai"}
@@ -2245,6 +2244,13 @@ metaZones:table(nofallback){
                 "Atlantic",
             }
         }
+        "America:Punta_Arenas"{
+            {
+                "Chile",
+                "1970-01-01 00:00",
+                "2016-12-03 23:00",
+            }
+        }
         "America:Rainy_River"{
             {
                 "America_Central",
@@ -2527,6 +2533,11 @@ metaZones:table(nofallback){
             {
                 "Australia_Western",
                 "2012-02-21 17:00",
+                "2016-10-21 16:00",
+            }
+            {
+                "Casey",
+                "2016-10-21 16:00",
                 "9999-12-31 23:59",
             }
         }
@@ -2571,7 +2582,7 @@ metaZones:table(nofallback){
             {
                 "Chile",
                 "1982-05-01 03:00",
-                "9999-12-31 23:59",
+                "2016-12-03 23:00",
             }
         }
         "Antarctica:Rothera"{
@@ -2681,6 +2692,13 @@ metaZones:table(nofallback){
             {
                 "Turkmenistan",
                 "1991-10-26 20:00",
+                "9999-12-31 23:59",
+            }
+        }
+        "Asia:Atyrau"{
+            {
+                "Kazakhstan_Western",
+                "2004-10-30 22:00",
                 "9999-12-31 23:59",
             }
         }
@@ -2840,6 +2858,13 @@ metaZones:table(nofallback){
                 "Tajikistan",
                 "1991-09-08 21:00",
                 "9999-12-31 23:59",
+            }
+        }
+        "Asia:Famagusta"{
+            {
+                "Europe_Eastern",
+                "1970-01-01 00:00",
+                "2016-09-07 21:00",
             }
         }
         "Asia:Gaza"{
@@ -3435,6 +3460,11 @@ metaZones:table(nofallback){
                 "America_Eastern",
             }
         }
+        "Etc:GMT"{
+            {
+                "GMT",
+            }
+        }
         "Europe:Amsterdam"{
             {
                 "Europe_Central",
@@ -3793,6 +3823,13 @@ metaZones:table(nofallback){
         "Europe:Sarajevo"{
             {
                 "Europe_Central",
+            }
+        }
+        "Europe:Saratov"{
+            {
+                "Moscow",
+                "1992-03-28 22:00",
+                "2016-12-03 23:00",
             }
         }
         "Europe:Simferopol"{

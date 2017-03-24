@@ -75,31 +75,6 @@ EnsureSurfaceStored(DrawEventRecorderPrivate *aRecorder, SourceSurface *aSurface
   return;
 }
 
-class SourceSurfaceRecording : public SourceSurface
-{
-public:
-  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SourceSurfaceRecording)
-  SourceSurfaceRecording(SourceSurface *aFinalSurface, DrawEventRecorderPrivate *aRecorder)
-    : mFinalSurface(aFinalSurface), mRecorder(aRecorder)
-  {
-    mRecorder->AddStoredObject(this);
-  }
-
-  ~SourceSurfaceRecording()
-  {
-    mRecorder->RemoveStoredObject(this);
-    mRecorder->RecordEvent(RecordedSourceSurfaceDestruction(this));
-  }
-
-  virtual SurfaceType GetType() const { return SurfaceType::RECORDING; }
-  virtual IntSize GetSize() const { return mFinalSurface->GetSize(); }
-  virtual SurfaceFormat GetFormat() const { return mFinalSurface->GetFormat(); }
-  virtual already_AddRefed<DataSourceSurface> GetDataSurface() { return mFinalSurface->GetDataSurface(); }
-
-  RefPtr<SourceSurface> mFinalSurface;
-  RefPtr<DrawEventRecorderPrivate> mRecorder;
-};
-
 class GradientStopsRecording : public GradientStops
 {
 public:
@@ -245,7 +220,8 @@ struct AdjustedPattern
         mPattern =
           new (mSurfPat) SurfacePattern(GetSourceSurface(surfPat->mSurface),
                                         surfPat->mExtendMode, surfPat->mMatrix,
-                                        surfPat->mSamplingFilter);
+                                        surfPat->mSamplingFilter,
+                                        surfPat->mSamplingRect);
         return mPattern;
       }
     case PatternType::LINEAR_GRADIENT:
@@ -299,12 +275,13 @@ DrawTargetRecording::DrawTargetRecording(DrawEventRecorder *aRecorder, DrawTarge
 }
 
 DrawTargetRecording::DrawTargetRecording(const DrawTargetRecording *aDT,
-                                         const IntSize &aSize,
-                                         SurfaceFormat aFormat)
+                                         DrawTarget *aSimilarDT)
   : mRecorder(aDT->mRecorder)
-  , mFinalDT(aDT->mFinalDT->CreateSimilarDrawTarget(aSize, aFormat))
+  , mFinalDT(aSimilarDT)
 {
-  mRecorder->RecordEvent(RecordedCreateSimilarDrawTarget(this, aSize, aFormat));
+  mRecorder->RecordEvent(RecordedCreateSimilarDrawTarget(this,
+                                                         mFinalDT->GetSize(),
+                                                         mFinalDT->GetFormat()));
   mFormat = mFinalDT->GetFormat();
 }
 
@@ -415,7 +392,7 @@ DrawTargetRecording::FillGlyphs(ScaledFont *aFont,
   }
 
   mRecorder->RecordEvent(RecordedFillGlyphs(this, aFont, aPattern, aOptions, aBuffer.mGlyphs, aBuffer.mNumGlyphs));
-  mFinalDT->FillGlyphs(aFont, aBuffer, aPattern, aOptions, aRenderingOptions);
+  mFinalDT->FillGlyphs(aFont, aBuffer, *AdjustedPattern(aPattern), aOptions, aRenderingOptions);
 }
 
 void
@@ -640,7 +617,14 @@ DrawTargetRecording::CreateSourceSurfaceFromNativeSurface(const NativeSurface &a
 already_AddRefed<DrawTarget>
 DrawTargetRecording::CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFormat) const
 {
-  return MakeAndAddRef<DrawTargetRecording>(this, aSize, aFormat);
+  RefPtr<DrawTarget> similarDT =
+    mFinalDT->CreateSimilarDrawTarget(aSize, aFormat);
+  if (!similarDT) {
+    return nullptr;
+  }
+
+  similarDT = new DrawTargetRecording(this, similarDT);
+  return similarDT.forget();
 }
 
 already_AddRefed<PathBuilder>

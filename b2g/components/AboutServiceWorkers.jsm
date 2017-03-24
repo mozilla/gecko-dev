@@ -47,10 +47,7 @@ this.AboutServiceWorkers = {
     if (this._enabled) {
       return this._enabled;
     }
-    this._enabled = false;
-    try {
-      this._enabled = Services.prefs.getBoolPref("dom.serviceWorkers.enabled");
-    } catch(e) {}
+    this._enabled = Services.prefs.getBoolPref("dom.serviceWorkers.enabled", false);
     return this._enabled;
   },
 
@@ -151,7 +148,7 @@ this.AboutServiceWorkers = {
 
         let principal = Services.scriptSecurityManager.createCodebasePrincipal(
           // TODO: Bug 1196652. use originNoSuffix
-          Services.io.newURI(message.principal.origin, null, null),
+          Services.io.newURI(message.principal.origin),
           message.principal.originAttributes);
 
         if (!message.scope) {

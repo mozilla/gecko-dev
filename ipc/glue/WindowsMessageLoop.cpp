@@ -17,8 +17,8 @@
 #include "WinUtils.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/PaintTracker.h"
-#include "mozilla/WindowsVersion.h"
 
 using namespace mozilla;
 using namespace mozilla::ipc;
@@ -397,7 +397,7 @@ ProcessOrDeferMessage(HWND hwnd,
    case WM_GETOBJECT: {
       if (!::GetPropW(hwnd, k3rdPartyWindowProp)) {
         DWORD objId = static_cast<DWORD>(lParam);
-        if ((objId == OBJID_CLIENT || objId == MOZOBJID_UIAROOT)) {
+        if (objId == OBJID_CLIENT || objId == MOZOBJID_UIAROOT) {
           WNDPROC oldWndProc = (WNDPROC)GetProp(hwnd, kOldWndProcProp);
           if (oldWndProc) {
             return CallWindowProcW(oldWndProc, hwnd, uMsg, wParam, lParam);
@@ -493,19 +493,7 @@ WindowIsDeferredWindow(HWND hWnd)
 
   // Plugin windows that can trigger ipc calls in child:
   // 'ShockwaveFlashFullScreen' - flash fullscreen window
-  // 'QTNSHIDDEN' - QuickTime
-  // 'AGFullScreenWinClass' - silverlight fullscreen window
-  if (className.EqualsLiteral("ShockwaveFlashFullScreen") ||
-      className.EqualsLiteral("QTNSHIDDEN") ||
-      className.EqualsLiteral("AGFullScreenWinClass")) {
-    SetPropW(hWnd, k3rdPartyWindowProp, (HANDLE)1);
-    return true;
-  }
-
-  // Google Earth bridging msg window between the plugin instance and a separate
-  // earth process. The earth process can trigger a plugin incall on the browser
-  // at any time, which is badness if the instance is already making an incall.
-  if (className.EqualsLiteral("__geplugin_bridge_window__")) {
+  if (className.EqualsLiteral("ShockwaveFlashFullScreen")) {
     SetPropW(hWnd, k3rdPartyWindowProp, (HANDLE)1);
     return true;
   }
@@ -807,7 +795,7 @@ void
 MessageChannel::SpinInternalEventLoop()
 {
   if (mozilla::PaintTracker::IsPainting()) {
-    NS_RUNTIMEABORT("Don't spin an event loop while painting.");
+    MOZ_CRASH("Don't spin an event loop while painting.");
   }
 
   NS_ASSERTION(mTopFrame && mTopFrame->mSpinNestedEvents,
@@ -1033,7 +1021,7 @@ MessageChannel::WaitForSyncNotify(bool aHandleWindowsMessages)
   MOZ_ASSERT(gUIThreadId, "InitUIThread was not called!");
 
 #if defined(ACCESSIBILITY)
-  if (IsVistaOrLater() && (mFlags & REQUIRE_A11Y_REENTRY)) {
+  if (mFlags & REQUIRE_A11Y_REENTRY) {
     MOZ_ASSERT(!(mFlags & REQUIRE_DEFERRED_MESSAGE_PROTECTION));
     return WaitForSyncNotifyWithA11yReentry();
   }
@@ -1189,7 +1177,7 @@ MessageChannel::WaitForInterruptNotify()
 
   if (!InterruptStackDepth() && !AwaitingIncomingMessage()) {
     // There is currently no way to recover from this condition.
-    NS_RUNTIMEABORT("StackDepth() is 0 in call to MessageChannel::WaitForNotify!");
+    MOZ_CRASH("StackDepth() is 0 in call to MessageChannel::WaitForNotify!");
   }
 
   NS_ASSERTION(mFlags & REQUIRE_DEFERRED_MESSAGE_PROTECTION,

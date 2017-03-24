@@ -16,8 +16,7 @@ var gPrintSettingsInterface = Components.interfaces.nsIPrintSettings;
 var gDoDebug = false;
 
 // ---------------------------------------------------
-function initDialog()
-{
+function initDialog() {
   gDialog = {};
 
   gDialog.orientation     = document.getElementById("orientation");
@@ -63,21 +62,12 @@ function initDialog()
 }
 
 // ---------------------------------------------------
-function isListOfPrinterFeaturesAvailable()
-{
-  var has_printerfeatures = false;
-
-  try {
-    has_printerfeatures = gPrefs.getBoolPref("print.tmp.printerfeatures." + gPrintSettings.printerName + ".has_special_printerfeatures");
-  } catch (ex) {
-  }
-
-  return has_printerfeatures;
+function isListOfPrinterFeaturesAvailable() {
+  return gPrefs.getBoolPref("print.tmp.printerfeatures." + gPrintSettings.printerName + ".has_special_printerfeatures", false);
 }
 
 // ---------------------------------------------------
-function checkDouble(element)
-{
+function checkDouble(element) {
   element.value = element.value.replace(/[^.0-9]/g, "");
 }
 
@@ -86,8 +76,7 @@ var gPageWidth  = 8.5;
 var gPageHeight = 11.0;
 
 // ---------------------------------------------------
-function setOrientation()
-{
+function setOrientation() {
   var selection = gDialog.orientation.selectedItem;
 
   var style = "background-color:white;";
@@ -99,33 +88,30 @@ function setOrientation()
     gPageWidth = temp;
   }
   var div = gDoingMetric ? 100 : 10;
-  style += "width:" + gPageWidth/div + unitString() + ";height:" + gPageHeight/div + unitString() + ";";
+  style += "width:" + gPageWidth / div + unitString() + ";height:" + gPageHeight / div + unitString() + ";";
   gDialog.marginPage.setAttribute( "style", style );
 }
 
 // ---------------------------------------------------
-function unitString()
-{
+function unitString() {
   return (gPrintSettings.paperSizeUnit == gPrintSettingsInterface.kPaperSizeInches) ? "in" : "mm";
 }
 
 // ---------------------------------------------------
-function checkMargin( value, max, other )
-{
+function checkMargin( value, max, other ) {
   // Don't draw this margin bigger than permitted.
   return Math.min(value, max - other.value);
 }
 
 // ---------------------------------------------------
-function changeMargin( node )
-{
+function changeMargin( node ) {
   // Correct invalid input.
   checkDouble(node);
 
   // Reset the margin height/width for this node.
   var val = node.value;
   var nodeToStyle;
-  var attr="width";
+  var attr = "width";
   if ( node == gDialog.topInput ) {
     nodeToStyle = gDialog.marginTop;
     val = checkMargin( val, gPageHeight, gDialog.bottomInput );
@@ -141,13 +127,12 @@ function changeMargin( node )
     nodeToStyle = gDialog.marginRight;
     val = checkMargin( val, gPageWidth, gDialog.leftInput );
   }
-  var style = attr + ":" + (val/10) + unitString() + ";";
+  var style = attr + ":" + (val / 10) + unitString() + ";";
   nodeToStyle.setAttribute( "style", style );
 }
 
 // ---------------------------------------------------
-function changeMargins()
-{
+function changeMargins() {
   changeMargin( gDialog.topInput );
   changeMargin( gDialog.bottomInput );
   changeMargin( gDialog.leftInput );
@@ -155,8 +140,7 @@ function changeMargins()
 }
 
 // ---------------------------------------------------
-function customize( node )
-{
+function customize( node ) {
   // If selection is now "Custom..." then prompt user for custom setting.
   if ( node.value == 6 ) {
     var prompter = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
@@ -172,9 +156,8 @@ function customize( node )
 }
 
 // ---------------------------------------------------
-function setHeaderFooter( node, value )
-{
-  node.value= hfValueToId(value);
+function setHeaderFooter( node, value ) {
+  node.value = hfValueToId(value);
   if (node.value == 6) {
     // Remember current Custom... value.
     node.custom = value;
@@ -191,8 +174,7 @@ gHFValues["&D"] = 3;
 gHFValues["&P"] = 4;
 gHFValues["&PT"] = 5;
 
-function hfValueToId(val)
-{
+function hfValueToId(val) {
   if ( val in gHFValues ) {
       return gHFValues[val];
   }
@@ -202,8 +184,7 @@ function hfValueToId(val)
   return 0; // --blank--
 }
 
-function hfIdToValue(node)
-{
+function hfIdToValue(node) {
   var result = "";
   switch ( parseInt( node.value ) ) {
   case 0:
@@ -230,8 +211,7 @@ function hfIdToValue(node)
   return result;
 }
 
-function setPrinterDefaultsForSelectedPrinter()
-{
+function setPrinterDefaultsForSelectedPrinter() {
   if (gPrintSettings.printerName == "") {
     gPrintSettings.printerName = gPrintService.defaultPrinterName;
   }
@@ -243,13 +223,12 @@ function setPrinterDefaultsForSelectedPrinter()
   gPrintService.initPrintSettingsFromPrefs(gPrintSettings, true, gPrintSettingsInterface.kInitSaveAll);
 
   if (gDoDebug) {
-    dump("pagesetup/setPrinterDefaultsForSelectedPrinter: printerName='"+gPrintSettings.printerName+"', orientation='"+gPrintSettings.orientation+"'\n");
+    dump("pagesetup/setPrinterDefaultsForSelectedPrinter: printerName='" + gPrintSettings.printerName + "', orientation='" + gPrintSettings.orientation + "'\n");
   }
 }
 
 // ---------------------------------------------------
-function loadDialog()
-{
+function loadDialog() {
   var print_orientation   = 0;
   var print_margin_top    = 0.5;
   var print_margin_left   = 0.5;
@@ -267,7 +246,7 @@ function loadDialog()
       }
     }
   } catch (ex) {
-    dump("loadDialog: ex="+ex+"\n");
+    dump("loadDialog: ex=" + ex + "\n");
   }
 
   setPrinterDefaultsForSelectedPrinter();
@@ -298,12 +277,12 @@ function loadDialog()
   print_margin_bottom = convertMarginInchesToUnits(gPrintSettings.marginBottom, gDoingMetric);
 
   if (gDoDebug) {
-    dump("print_orientation   "+print_orientation+"\n");
+    dump("print_orientation   " + print_orientation + "\n");
 
-    dump("print_margin_top    "+print_margin_top+"\n");
-    dump("print_margin_left   "+print_margin_left+"\n");
-    dump("print_margin_right  "+print_margin_right+"\n");
-    dump("print_margin_bottom "+print_margin_bottom+"\n");
+    dump("print_margin_top    " + print_margin_top + "\n");
+    dump("print_margin_left   " + print_margin_left + "\n");
+    dump("print_margin_right  " + print_margin_right + "\n");
+    dump("print_margin_bottom " + print_margin_bottom + "\n");
   }
 
   if (print_orientation == gPrintSettingsInterface.kPortraitOrientation) {
@@ -348,8 +327,7 @@ function loadDialog()
 }
 
 // ---------------------------------------------------
-function onLoad()
-{
+function onLoad() {
   // Init gDialog.
   initDialog();
 
@@ -370,16 +348,14 @@ function onLoad()
   }
 }
 
-function convertUnitsMarginToInches(aVal, aIsMetric)
-{
+function convertUnitsMarginToInches(aVal, aIsMetric) {
   if (aIsMetric) {
     return aVal / 25.4;
   }
   return aVal;
 }
 
-function convertMarginInchesToUnits(aVal, aIsMetric)
-{
+function convertMarginInchesToUnits(aVal, aIsMetric) {
   if (aIsMetric) {
     return aVal * 25.4;
   }
@@ -387,8 +363,7 @@ function convertMarginInchesToUnits(aVal, aIsMetric)
 }
 
 // ---------------------------------------------------
-function onAccept()
-{
+function onAccept() {
 
   if (gPrintSettings) {
     if ( gDialog.orientation.selectedItem == gDialog.portrait ) {
@@ -428,10 +403,10 @@ function onAccept()
 
     if (gDoDebug) {
       dump("******* Page Setup Accepting ******\n");
-      dump("print_margin_top    "+gDialog.topInput.value+"\n");
-      dump("print_margin_left   "+gDialog.leftInput.value+"\n");
-      dump("print_margin_right  "+gDialog.bottomInput.value+"\n");
-      dump("print_margin_bottom "+gDialog.rightInput.value+"\n");
+      dump("print_margin_top    " + gDialog.topInput.value + "\n");
+      dump("print_margin_left   " + gDialog.leftInput.value + "\n");
+      dump("print_margin_right  " + gDialog.bottomInput.value + "\n");
+      dump("print_margin_bottom " + gDialog.rightInput.value + "\n");
     }
   }
 
@@ -464,8 +439,7 @@ function onAccept()
 }
 
 // ---------------------------------------------------
-function onCancel()
-{
+function onCancel() {
   // set return value to "cancel"
   if (paramBlock) {
     paramBlock.SetInt(0, 0);
@@ -475,4 +449,3 @@ function onCancel()
 
   return true;
 }
-

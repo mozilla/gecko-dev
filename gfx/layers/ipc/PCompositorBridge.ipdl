@@ -11,12 +11,10 @@ include PlatformWidgetTypes;
 include protocol PAPZ;
 include protocol PAPZCTreeManager;
 include protocol PBrowser;
-include protocol PCompositable;
 include protocol PCompositorWidget;
-include protocol PImageContainer;
-include protocol PLayer;
 include protocol PLayerTransaction;
 include protocol PTexture;
+include protocol PWebRenderBridge;
 include "mozilla/GfxMessageUtils.h";
 
 using struct mozilla::null_t from "ipc/IPCMessageUtils.h";
@@ -32,18 +30,41 @@ using mozilla::ipc::SharedMemoryBasic::Handle from "mozilla/ipc/SharedMemoryBasi
 using mozilla::CSSIntRegion from "Units.h";
 using mozilla::LayoutDeviceIntPoint from "Units.h";
 using mozilla::LayoutDeviceIntRegion from "Units.h";
+using mozilla::LayoutDeviceIntSize from "Units.h";
 using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
 using class mozilla::layers::FrameUniformityData from "mozilla/layers/FrameUniformityData.h";
 using mozilla::layers::TextureFlags from "mozilla/layers/CompositorTypes.h";
+using mozilla::layers::CompositorOptions from "mozilla/layers/CompositorOptions.h";
+using mozilla::wr::PipelineId from "mozilla/webrender/WebRenderTypes.h";
 
 namespace mozilla {
 namespace layers {
 
 
 /**
- * The PCompositorBridge protocol is used to manage communication between
- * the main thread and the compositor thread context. It's primary
- * purpose is to manage the PLayerTransaction sub protocol.
+ * The PCompositorBridge protocol is a top-level protocol for the compositor.
+ * There is an instance of the protocol for each compositor, plus one for each
+ * content process. In other words:
+ * - There is a CompositorBridgeParent/CompositorBridgeChild pair created
+ *   for each "top level browser window", which has its own compositor. The
+ *   CompositorBridgeChild instance lives in the UI process, and the
+ *   CompositorBridgeParent lives in the GPU process (if there is one) or the
+ *   UI process otherwise.
+ * - There is also a CrossProcessCompositorBridgeParent/CompositorBridgeChild
+ *   pair created for each content process. The CrossProcessCompositorBridgeParent
+ *   lives in the GPU process (if there is one) or the UI process otherwise. The
+ *   CompositorBridgeChild is a singleton in the content process. Note that
+ *   a given content process may have multiple browser instances (represented
+ *   by TabChild instances), that are attached to different windows, and therefore
+ *   rendered by different compositors. This means that when a browser instance
+ *   sends messages via its CompositorBridgeChild, the corresponding
+ *   CrossProcessCompositorBridgeParent has to use the layers id in the message
+ *   to find the correct compositor or CompositorBridgeParent to pass the message
+ *   on to.
+ *
+ * One of the main goals of this protocol is to manage the PLayerTransaction sub-
+ * protocol, which is per-browser. A lot of the functions in the protocol are
+ * basically multiplexing/demultiplexing stuff in PLayerTransaction.
  */
 sync protocol PCompositorBridge
 {
@@ -53,6 +74,7 @@ sync protocol PCompositorBridge
   manages PLayerTransaction;
   manages PTexture;
   manages PCompositorWidget;
+  manages PWebRenderBridge;
 
 child:
   // The child should invalidate retained layers. This is used for local
@@ -62,8 +84,12 @@ child:
 
   // The compositor type or device has changed, and a new texture factory
   // identifier is available. Layers must be invalidated and the new identifier
-  // must be propagated.
-  async CompositorUpdated(uint64_t layersId, TextureFactoryIdentifier newIdentifier);
+  // must be propagated. The sequence number is a generation count for the
+  // compositor.
+  async CompositorUpdated(
+    uint64_t layersId,
+    TextureFactoryIdentifier newIdentifier,
+    uint64_t seqNo);
 
   // The compositor completed a layers transaction. id is the layers id
   // of the child layer tree that was composited (or 0 when notifying
@@ -72,9 +98,6 @@ child:
   // if there was no transaction since the last composite.
   async DidComposite(uint64_t id, uint64_t transactionId,
                      TimeStamp compositeStart, TimeStamp compositeEnd);
-
-  // The parent sends the child the requested fill ratio numbers.
-  async Overfill(uint32_t aOverfill);
 
   /**
    * Parent informs the child that the graphics objects are ready for
@@ -107,12 +130,6 @@ child:
    */
   async HideAllPlugins(uintptr_t aParentWidget);
 
-  /**
-   * Drop any buffers that might be retained on the child compositor
-   * side.
-   */
-  async ClearCachedResources(uint64_t id);
-
   async ParentAsyncMessages(AsyncParentMessageData[] aMessages);
 
   async ObserveLayerUpdate(uint64_t aLayersId, uint64_t aEpoch, bool aActive);
@@ -123,9 +140,11 @@ parent:
 
   // When out-of-process, this must be called to finish initialization.
   sync Initialize(uint64_t rootLayerTreeId);
+  sync Reset(LayersBackend[] aBackendHints, uint64_t aSeqNo)
+    returns (bool aResult, TextureFactoryIdentifier aOutIdentifier);
 
-  // Returns whether this Compositor has APZ enabled or not.
-  sync AsyncPanZoomEnabled(uint64_t layersId) returns (bool aHasAPZ);
+  // Returns the CompositorOptions for this compositor.
+  sync GetCompositorOptions(uint64_t layersId) returns (CompositorOptions aOptions);
 
   // Must be called after Initialize(), and only succeeds if AsyncPanZoomEnabled() is true.
   async PAPZ(uint64_t layersId);
@@ -138,10 +157,7 @@ parent:
 
   // Confirmation that the child has invalidated all its layers, and will not
   // request layers against an old compositor.
-  async AcknowledgeCompositorUpdate(uint64_t id);
-
-  // Child sends the parent a request for fill ratio numbers.
-  async RequestOverfill();
+  async AcknowledgeCompositorUpdate(uint64_t aLayersId, uint64_t aSeqNo);
 
   // Child requests frame uniformity measurements
   sync GetFrameUniformity() returns (FrameUniformityData data);
@@ -153,8 +169,12 @@ parent:
   // the compositor needs to pause/resume in lockstep with the application.
   sync Pause();
   sync Resume();
+  async ForceIsFirstPaint();
 
-  async NotifyChildCreated(uint64_t id);
+  // See bug 1316632 comment #33 for why this has to be sync. Otherwise,
+  // there are ordering issues with SendPLayerTransactionConstructor.
+  sync NotifyChildCreated(uint64_t id);
+
   async AdoptChild(uint64_t id);
 
   // Same as NotifyChildCreated, but used when child processes need to
@@ -221,6 +241,10 @@ parent:
   async PTexture(SurfaceDescriptor aSharedData, LayersBackend aBackend, TextureFlags aTextureFlags, uint64_t id, uint64_t aSerial);
 
   sync SyncWithCompositor();
+
+  // The pipelineId is the same as the layersId
+  sync PWebRenderBridge(PipelineId pipelineId, LayoutDeviceIntSize aSize)
+    returns (TextureFactoryIdentifier textureFactoryIdentifier, uint32_t idNamespace); //XXX: use the WrIdNamespace type
 
 child:
   // Send back Compositor Frame Metrics from APZCs so tiled layers can

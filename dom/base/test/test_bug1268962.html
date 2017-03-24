@@ -52,7 +52,7 @@ function testCancelPrefetchNotCrash(url) {
 
   // Not actually verifying any value, just to ensure cancelPrefetch
   // won't cause crash.
-  prefetch.cancelPrefetchURI(ios.newURI(url, null, null), link);
+  prefetch.cancelPrefetchURI(ios.newURI(url), link);
 }
 
 const SJS_PATH = window.location.pathname.replace(/[^/]+$/, "file_bug1268962.sjs");
@@ -61,8 +61,7 @@ const CROSS_ORIGIN = "http://example.com" + SJS_PATH;
 
 SimpleTest.waitForExplicitFinish();
 
-new Promise(resolve =>
-  SpecialPowers.pushPrefEnv({"set": [["network.prefetch-next.aggressive", true]]}, resolve))
+SpecialPowers.pushPrefEnv({"set": [["network.prefetch-next.aggressive", true]]})
 
 // test same origin
 .then(() => testPrefetchEvent(SAME_ORIGIN + "?statusCode=200&cacheControl=no-cache", false, false))

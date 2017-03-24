@@ -14,13 +14,11 @@ function test() {
 
   let numVisBeforeHide, numVisAfterHide;
   gBrowser.tabContainer.addEventListener("TabSelect", function() {
-    gBrowser.tabContainer.removeEventListener("TabSelect", arguments.callee, false);
-
     // While the next tab is being selected, hide the removing tab
     numVisBeforeHide = gBrowser.visibleTabs.length;
     gBrowser.hideTab(testTab);
     numVisAfterHide = gBrowser.visibleTabs.length;
-  }, false);
+  }, {once: true});
   gBrowser.removeTab(testTab, {animate: true});
 
   // Make sure the tab gets removed at the end of the animation by polling

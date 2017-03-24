@@ -14,13 +14,13 @@ import json
 import time
 
 from taskgraph.util.treeherder import split_symbol
-from taskgraph.transforms.base import (
-    validate_schema,
-    TransformSequence
-)
-from voluptuous import Schema, Any, Required, Optional, Extra
+from taskgraph.transforms.base import TransformSequence
+from taskgraph.util.schema import validate_schema, Schema
+from taskgraph.util.scriptworker import get_release_config
+from voluptuous import Any, Required, Optional, Extra
 
 from .gecko_v2_whitelist import JOB_NAME_WHITELIST, JOB_NAME_WHITELIST_ERROR
+
 
 # shortcut for a string where task references are allowed
 taskref_or_string = Any(
@@ -56,6 +56,9 @@ task_description_schema = Schema({
     # added automatically
     Optional('scopes'): [basestring],
 
+    # Tags
+    Optional('tags'): {basestring: object},
+
     # custom "task.extra" content
     Optional('extra'): {basestring: object},
 
@@ -86,23 +89,13 @@ task_description_schema = Schema({
     # if omitted, the build will not be indexed.
     Optional('index'): {
         # the name of the product this build produces
-        'product': Any('firefox', 'mobile'),
+        'product': Any('firefox', 'mobile', 'static-analysis'),
 
         # the names to use for this job in the TaskCluster index
-        'job-name': Any(
-            # Assuming the job is named "normally", this is the v2 job name,
-            # and the v1 and buildbot routes will be determined appropriately.
-            basestring,
+        'job-name': basestring,
 
-            # otherwise, give separate names for each of the legacy index
-            # routes; if a name is omitted, no corresponding route will be
-            # created.
-            {
-                # the name as it appears in buildbot routes
-                Optional('buildbot'): basestring,
-                Required('gecko-v2'): basestring,
-            }
-        ),
+        # Type of gecko v2 index to use
+        'type': Any('generic', 'nightly', 'l10n', 'nightly-with-multi-l10n'),
 
         # The rank that the task will receive in the TaskCluster
         # index.  A newly completed task supercedes the currently
@@ -135,10 +128,25 @@ task_description_schema = Schema({
     # tasks are never coalesced
     Optional('coalesce-name'): basestring,
 
+    # Optimizations to perform on this task during the optimization phase,
+    # specified in order.  These optimizations are defined in
+    # taskcluster/taskgraph/optimize.py.
+    Optional('optimizations'): [Any(
+        # search the index for the given index namespace, and replace this task if found
+        ['index-search', basestring],
+        # consult SETA and skip this task if it is low-value
+        ['seta'],
+        # skip this task if none of the given file patterns match
+        ['files-changed', [basestring]],
+    )],
+
     # the provisioner-id/worker-type for the task.  The following parameters will
     # be substituted in this string:
     #  {level} -- the scm level of this push
     'worker-type': basestring,
+
+    # Whether the job should use sccache compiler caching.
+    Required('needs-sccache', default=False): bool,
 
     # information specific to the worker implementation that will run this task
     'worker': Any({
@@ -151,7 +159,7 @@ task_description_schema = Schema({
         Required('docker-image'): Any(
             # a raw Docker image path (repo/image:tag)
             basestring,
-            # an in-tree generated docker image (from `testing/docker/<name>`)
+            # an in-tree generated docker image (from `taskcluster/docker/<name>`)
             {'in-tree': basestring}
         ),
 
@@ -162,6 +170,7 @@ task_description_schema = Schema({
         Required('allow-ptrace', default=False): bool,
         Required('loopback-video', default=False): bool,
         Required('loopback-audio', default=False): bool,
+        Required('docker-in-docker', default=False): bool,  # (aka 'dind')
 
         # caches to set up for the task
         Optional('caches'): [{
@@ -251,13 +260,17 @@ task_description_schema = Schema({
             Extra: basestring,  # additional properties are allowed
         },
     }, {
-        'implementation': 'macosx-engine',
+        Required('implementation'): 'native-engine',
 
         # A link for an executable to download
-        Optional('link'): basestring,
+        Optional('context'): basestring,
+
+        # Tells the worker whether machine should reboot
+        # after the task is finished.
+        Optional('reboot'): bool,
 
         # the command to run
-        Required('command'): [taskref_or_string],
+        Optional('command'): [taskref_or_string],
 
         # environment variables
         Optional('env'): {basestring: taskref_or_string},
@@ -274,20 +287,68 @@ task_description_schema = Schema({
             # type=directory)
             Required('name'): basestring,
         }],
-    }),
+    }, {
+        Required('implementation'): 'scriptworker-signing',
 
-    # The "when" section contains descriptions of the circumstances
-    # under which this task can be "optimized", that is, left out of the
-    # task graph because it is unnecessary.
-    Optional('when'): Any({
-        # This task only needs to be run if a file matching one of the given
-        # patterns has changed in the push.  The patterns use the mozpack
-        # match function (python/mozbuild/mozpack/path.py).
-        Optional('files-changed'): [basestring],
+        # the maximum time to spend signing, in seconds
+        Required('max-run-time', default=600): int,
+
+        # list of artifact URLs for the artifacts that should be signed
+        Required('upstream-artifacts'): [{
+            # taskId of the task with the artifact
+            Required('taskId'): taskref_or_string,
+
+            # type of signing task (for CoT)
+            Required('taskType'): basestring,
+
+            # Paths to the artifacts to sign
+            Required('paths'): [basestring],
+
+            # Signing formats to use on each of the paths
+            Required('formats'): [basestring],
+        }],
+    }, {
+        Required('implementation'): 'beetmover',
+
+        # the maximum time to spend signing, in seconds
+        Required('max-run-time', default=600): int,
+
+        # locale key, if this is a locale beetmover job
+        Optional('locale'): basestring,
+
+        # list of artifact URLs for the artifacts that should be beetmoved
+        Required('upstream-artifacts'): [{
+            # taskId of the task with the artifact
+            Required('taskId'): taskref_or_string,
+
+            # type of signing task (for CoT)
+            Required('taskType'): basestring,
+
+            # Paths to the artifacts to sign
+            Required('paths'): [basestring],
+
+            # locale is used to map upload path and allow for duplicate simple names
+            Required('locale'): basestring,
+        }],
+    }, {
+        Required('implementation'): 'balrog',
+
+        # list of artifact URLs for the artifacts that should be beetmoved
+        Required('upstream-artifacts'): [{
+            # taskId of the task with the artifact
+            Required('taskId'): taskref_or_string,
+
+            # type of signing task (for CoT)
+            Required('taskType'): basestring,
+
+            # Paths to the artifacts to sign
+            Required('paths'): [basestring],
+        }],
     }),
 })
 
 GROUP_NAMES = {
+    'py': 'Python unit tests',
     'tc': 'Executed by TaskCluster',
     'tc-e10s': 'Executed by TaskCluster with e10s',
     'tc-Fxfn-l': 'Firefox functional tests (local) executed by TaskCluster',
@@ -296,29 +357,50 @@ GROUP_NAMES = {
     'tc-Fxfn-r-e10s': 'Firefox functional tests (remote) executed by TaskCluster with e10s',
     'tc-M': 'Mochitests executed by TaskCluster',
     'tc-M-e10s': 'Mochitests executed by TaskCluster with e10s',
+    'tc-M-V': 'Mochitests on Valgrind executed by TaskCluster',
     'tc-R': 'Reftests executed by TaskCluster',
     'tc-R-e10s': 'Reftests executed by TaskCluster with e10s',
+    'tc-T': 'Talos performance tests executed by TaskCluster',
+    'tc-T-e10s': 'Talos performance tests executed by TaskCluster with e10s',
+    'tc-SY-e10s': 'Are we slim yet tests by TaskCluster with e10s',
     'tc-VP': 'VideoPuppeteer tests executed by TaskCluster',
     'tc-W': 'Web platform tests executed by TaskCluster',
     'tc-W-e10s': 'Web platform tests executed by TaskCluster with e10s',
     'tc-X': 'Xpcshell tests executed by TaskCluster',
     'tc-X-e10s': 'Xpcshell tests executed by TaskCluster with e10s',
+    'tc-L10n': 'Localised Repacks executed by Taskcluster',
+    'tc-BM-L10n': 'Beetmover for locales executed by Taskcluster',
+    'tc-Up': 'Balrog submission of updates, executed by Taskcluster',
+    'tc-cs': 'Checksum signing executed by Taskcluster',
+    'tc-BMcs': 'Beetmover checksums, executed by Taskcluster',
     'Aries': 'Aries Device Image',
     'Nexus 5-L': 'Nexus 5-L Device Image',
-    'Cc': 'Toolchain builds',
+    'I': 'Docker Image Builds',
+    'TL': 'Toolchain builds for Linux 64-bits',
+    'TM': 'Toolchain builds for OSX',
+    'TW32': 'Toolchain builds for Windows 32-bits',
+    'TW64': 'Toolchain builds for Windows 64-bits',
     'SM-tc': 'Spidermonkey builds',
 }
 UNKNOWN_GROUP_NAME = "Treeherder group {} has no name; add it to " + __file__
 
-BUILDBOT_ROUTE_TEMPLATES = [
-    "index.buildbot.branches.{project}.{job-name-buildbot}",
-    "index.buildbot.revisions.{head_rev}.{project}.{job-name-buildbot}",
+V2_ROUTE_TEMPLATES = [
+    "index.gecko.v2.{project}.latest.{product}.{job-name}",
+    "index.gecko.v2.{project}.pushdate.{build_date_long}.{product}.{job-name}",
+    "index.gecko.v2.{project}.revision.{head_rev}.{product}.{job-name}",
 ]
 
-V2_ROUTE_TEMPLATES = [
-    "index.gecko.v2.{project}.latest.{product}.{job-name-gecko-v2}",
-    "index.gecko.v2.{project}.pushdate.{build_date_long}.{product}.{job-name-gecko-v2}",
-    "index.gecko.v2.{project}.revision.{head_rev}.{product}.{job-name-gecko-v2}",
+V2_NIGHTLY_TEMPLATES = [
+    "index.gecko.v2.{project}.nightly.latest.{product}.{job-name}",
+    "index.gecko.v2.{project}.nightly.{build_date}.revision.{head_rev}.{product}.{job-name}",
+    "index.gecko.v2.{project}.nightly.{build_date}.latest.{product}.{job-name}",
+    "index.gecko.v2.{project}.nightly.revision.{head_rev}.{product}.{job-name}",
+]
+
+V2_L10N_TEMPLATES = [
+    "index.gecko.v2.{project}.revision.{head_rev}.{product}-l10n.{job-name}.{locale}",
+    "index.gecko.v2.{project}.pushdate.{build_date_long}.{product}-l10n.{job-name}.{locale}",
+    "index.gecko.v2.{project}.latest.{product}-l10n.{job-name}.{locale}",
 ]
 
 # the roots of the treeherder routes, keyed by treeherder environment
@@ -339,6 +421,16 @@ def payload_builder(name):
         return func
     return wrap
 
+# define a collection of index builders, depending on the type implementation
+index_builders = {}
+
+
+def index_builder(name):
+    def wrap(func):
+        index_builders[name] = func
+        return func
+    return wrap
+
 
 @payload_builder('docker-worker')
 def build_docker_worker_payload(config, task, task_def):
@@ -349,7 +441,7 @@ def build_docker_worker_payload(config, task, task_def):
         docker_image_task = 'build-docker-image-' + image['in-tree']
         task.setdefault('dependencies', {})['docker-image'] = docker_image_task
         image = {
-            "path": "public/image.tar",
+            "path": "public/image.tar.zst",
             "taskId": {"task-reference": "<docker-image>"},
             "type": "task-image",
         }
@@ -369,6 +461,19 @@ def build_docker_worker_payload(config, task, task_def):
     if worker.get('chain-of-trust'):
         features['chainOfTrust'] = True
 
+    if worker.get('docker-in-docker'):
+        features['dind'] = True
+
+    if task.get('needs-sccache'):
+        features['taskclusterProxy'] = True
+        task_def['scopes'].append(
+            'assume:project:taskcluster:level-{level}-sccache-buckets'.format(
+                level=config.params['level'])
+        )
+        worker['env']['USE_SCCACHE'] = '1'
+    else:
+        worker['env']['SCCACHE_DISABLE'] = '1'
+
     capabilities = {}
 
     for lo in 'audio', 'video':
@@ -379,10 +484,11 @@ def build_docker_worker_payload(config, task, task_def):
             task_def['scopes'].append('docker-worker:capability:device:' + capitalized)
 
     task_def['payload'] = payload = {
-        'command': worker['command'],
         'image': image,
         'env': worker['env'],
     }
+    if 'command' in worker:
+        payload['command'] = worker['command']
 
     if 'max-run-time' in worker:
         payload['maxRunTime'] = worker['max-run-time']
@@ -450,11 +556,48 @@ def build_generic_worker_payload(config, task, task_def):
         'osGroups': worker.get('os-groups', []),
     }
 
+    # needs-sccache is handled in mozharness_on_windows
+
     if 'retry-exit-status' in worker:
         raise Exception("retry-exit-status not supported in generic-worker")
 
 
-@payload_builder('macosx-engine')
+@payload_builder('scriptworker-signing')
+def build_scriptworker_signing_payload(config, task, task_def):
+    worker = task['worker']
+
+    task_def['payload'] = {
+        'maxRunTime': worker['max-run-time'],
+        'upstreamArtifacts':  worker['upstream-artifacts']
+    }
+
+
+@payload_builder('beetmover')
+def build_beetmover_payload(config, task, task_def):
+    worker = task['worker']
+    release_config = get_release_config(config)
+
+    task_def['payload'] = {
+        'maxRunTime': worker['max-run-time'],
+        'upload_date': config.params['build_date'],
+        'upstreamArtifacts':  worker['upstream-artifacts']
+    }
+    if worker.get('locale'):
+        task_def['payload']['locale'] = worker['locale']
+    if release_config:
+        task_def['payload'].update(release_config)
+
+
+@payload_builder('balrog')
+def build_balrog_payload(config, task, task_def):
+    worker = task['worker']
+
+    task_def['payload'] = {
+        'upstreamArtifacts':  worker['upstream-artifacts']
+    }
+
+
+@payload_builder('native-engine')
 def build_macosx_engine_payload(config, task, task_def):
     worker = task['worker']
     artifacts = map(lambda artifact: {
@@ -462,14 +605,31 @@ def build_macosx_engine_payload(config, task, task_def):
         'path': artifact['path'],
         'type': artifact['type'],
         'expires': task_def['expires'],
-    }, worker['artifacts'])
+    }, worker.get('artifacts', []))
 
     task_def['payload'] = {
-        'link': worker['link'],
+        'context': worker['context'],
         'command': worker['command'],
         'env': worker['env'],
+        'reboot': worker.get('reboot', False),
         'artifacts': artifacts,
     }
+
+    if task.get('needs-sccache'):
+        raise Exception('needs-sccache not supported in native-engine')
+
+
+@payload_builder('buildbot-bridge')
+def build_buildbot_bridge_payload(config, task, task_def):
+    del task['extra']['treeherder']
+    del task['extra']['treeherderEnv']
+    worker = task['worker']
+    task_def['payload'] = {
+        'buildername': worker['buildername'],
+        'sourcestamp': worker['sourcestamp'],
+        'properties': worker['properties'],
+    }
+
 
 transforms = TransformSequence()
 
@@ -482,41 +642,108 @@ def validate(config, tasks):
             "In task {!r}:".format(task.get('label', '?no-label?')))
 
 
+@index_builder('generic')
+def add_generic_index_routes(config, task):
+    index = task.get('index')
+    routes = task.setdefault('routes', [])
+
+    job_name = index['job-name']
+    if job_name not in JOB_NAME_WHITELIST:
+        raise Exception(JOB_NAME_WHITELIST_ERROR.format(job_name))
+
+    subs = config.params.copy()
+    subs['job-name'] = job_name
+    subs['build_date_long'] = time.strftime("%Y.%m.%d.%Y%m%d%H%M%S",
+                                            time.gmtime(config.params['build_date']))
+    subs['product'] = index['product']
+
+    for tpl in V2_ROUTE_TEMPLATES:
+        routes.append(tpl.format(**subs))
+
+    return task
+
+
+@index_builder('nightly')
+def add_nightly_index_routes(config, task):
+    index = task.get('index')
+    routes = task.setdefault('routes', [])
+
+    job_name = index['job-name']
+    if job_name not in JOB_NAME_WHITELIST:
+        raise Exception(JOB_NAME_WHITELIST_ERROR.format(job_name))
+
+    subs = config.params.copy()
+    subs['job-name'] = job_name
+    subs['build_date_long'] = time.strftime("%Y.%m.%d.%Y%m%d%H%M%S",
+                                            time.gmtime(config.params['build_date']))
+    subs['build_date'] = time.strftime("%Y.%m.%d",
+                                       time.gmtime(config.params['build_date']))
+    subs['product'] = index['product']
+
+    for tpl in V2_NIGHTLY_TEMPLATES:
+        routes.append(tpl.format(**subs))
+
+    # Also add routes for en-US
+    task = add_l10n_index_routes(config, task, force_locale="en-US")
+
+    return task
+
+
+@index_builder('nightly-with-multi-l10n')
+def add_nightly_multi_index_routes(config, task):
+    task = add_nightly_index_routes(config, task)
+    task = add_l10n_index_routes(config, task, force_locale="multi")
+    return task
+
+
+@index_builder('l10n')
+def add_l10n_index_routes(config, task, force_locale=None):
+    index = task.get('index')
+    routes = task.setdefault('routes', [])
+
+    job_name = index['job-name']
+    if job_name not in JOB_NAME_WHITELIST:
+        raise Exception(JOB_NAME_WHITELIST_ERROR.format(job_name))
+
+    subs = config.params.copy()
+    subs['job-name'] = job_name
+    subs['build_date_long'] = time.strftime("%Y.%m.%d.%Y%m%d%H%M%S",
+                                            time.gmtime(config.params['build_date']))
+    subs['product'] = index['product']
+
+    locales = task['attributes'].get('chunk_locales',
+                                     task['attributes'].get('all_locales'))
+
+    if force_locale:
+        # Used for en-US and multi-locale
+        locales = [force_locale]
+
+    if not locales:
+        raise Exception("Error: Unable to use l10n index for tasks without locales")
+
+    # If there are too many locales, we can't write a route for all of them
+    # See Bug 1323792
+    if len(locales) > 18:  # 18 * 3 = 54, max routes = 64
+        return task
+
+    for locale in locales:
+        for tpl in V2_L10N_TEMPLATES:
+            routes.append(tpl.format(locale=locale, **subs))
+
+    return task
+
+
 @transforms.add
 def add_index_routes(config, tasks):
     for task in tasks:
         index = task.get('index')
-        routes = task.setdefault('routes', [])
 
         if not index:
             yield task
             continue
 
-        job_name = index['job-name']
-        # unpack the v2 name to v1 and buildbot names
-        if isinstance(job_name, basestring):
-            base_name, type_name = job_name.rsplit('-', 1)
-            job_name = {
-                'buildbot': base_name,
-                'gecko-v2': '{}-{}'.format(base_name, type_name),
-            }
-
-        if job_name['gecko-v2'] not in JOB_NAME_WHITELIST:
-            raise Exception(JOB_NAME_WHITELIST_ERROR.format(job_name['gecko-v2']))
-
-        subs = config.params.copy()
-        for n in job_name:
-            subs['job-name-' + n] = job_name[n]
-        subs['build_date_long'] = time.strftime("%Y.%m.%d.%Y%m%d%H%M%S",
-                                                time.gmtime(config.params['build_date']))
-        subs['product'] = index['product']
-
-        if 'buildbot' in job_name:
-            for tpl in BUILDBOT_ROUTE_TEMPLATES:
-                routes.append(tpl.format(**subs))
-        if 'gecko-v2' in job_name:
-            for tpl in V2_ROUTE_TEMPLATES:
-                routes.append(tpl.format(**subs))
+        index_type = index.get('type', 'generic')
+        task = index_builders[index_type](config, task)
 
         # The default behavior is to rank tasks according to their tier
         extra_index = task.setdefault('extra', {}).setdefault('index', {})
@@ -587,6 +814,9 @@ def build_task(config, tasks):
                 name=task['coalesce-name'])
             routes.append('coalesce.v1.' + key)
 
+        tags = task.get('tags', {})
+        tags.update({'createdForUser': config.params['owner']})
+
         task_def = {
             'provisionerId': provisioner_id,
             'workerType': worker_type,
@@ -605,8 +835,15 @@ def build_task(config, tasks):
                     config.path),
             },
             'extra': extra,
-            'tags': {'createdForUser': config.params['owner']},
+            'tags': tags,
         }
+
+        if task_th:
+            # link back to treeherder in description
+            th_push_link = 'https://treeherder.mozilla.org/#/jobs?repo={}&revision={}'.format(
+                config.params['project'], config.params['head_rev'])
+            task_def['metadata']['description'] += ' ([Treeherder push]({}))'.format(
+                th_push_link)
 
         # add the payload and adjust anything else as required (e.g., scopes)
         payload_builders[task['worker']['implementation']](config, task, task_def)
@@ -619,7 +856,7 @@ def build_task(config, tasks):
             'task': task_def,
             'dependencies': task.get('dependencies', {}),
             'attributes': attributes,
-            'when': task.get('when', {}),
+            'optimizations': task.get('optimizations', []),
         }
 
 
@@ -630,19 +867,28 @@ def check_v2_routes():
     with open("testing/mozharness/configs/routes.json", "rb") as f:
         routes_json = json.load(f)
 
-    # we only deal with the 'routes' key here
-    routes = routes_json['routes']
+    for key in ('routes', 'nightly', 'l10n'):
+        if key == 'routes':
+            tc_template = V2_ROUTE_TEMPLATES
+        elif key == 'nightly':
+            tc_template = V2_NIGHTLY_TEMPLATES
+        elif key == 'l10n':
+            tc_template = V2_L10N_TEMPLATES
 
-    # we use different variables than mozharness
-    for mh, tg in [
-            ('{index}', 'index'),
-            ('{build_product}', '{product}'),
-            ('{build_name}-{build_type}', '{job-name-gecko-v2}'),
-            ('{year}.{month}.{day}.{pushdate}', '{build_date_long}')]:
-        routes = [r.replace(mh, tg) for r in routes]
+        routes = routes_json[key]
 
-    if sorted(routes) != sorted(V2_ROUTE_TEMPLATES):
-        raise Exception("V2_ROUTE_TEMPLATES does not match Mozharness's routes.json: "
-                        "%s vs %s" % (V2_ROUTE_TEMPLATES, routes))
+        # we use different variables than mozharness
+        for mh, tg in [
+                ('{index}', 'index'),
+                ('{build_product}', '{product}'),
+                ('{build_name}-{build_type}', '{job-name}'),
+                ('{year}.{month}.{day}.{pushdate}', '{build_date_long}'),
+                ('{year}.{month}.{day}', '{build_date}')]:
+            routes = [r.replace(mh, tg) for r in routes]
+
+        if sorted(routes) != sorted(tc_template):
+            raise Exception("V2 TEMPLATES do not match Mozharness's routes.json: "
+                            "(tc):%s vs (mh):%s" % (tc_template, routes))
+
 
 check_v2_routes()

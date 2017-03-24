@@ -18,6 +18,24 @@ pub type __fsword_t = ::c_long;
 pub type __priority_which_t = ::c_uint;
 
 s! {
+    pub struct aiocb {
+        pub aio_fildes: ::c_int,
+        pub aio_lio_opcode: ::c_int,
+        pub aio_reqprio: ::c_int,
+        pub aio_buf: *mut ::c_void,
+        pub aio_nbytes: ::size_t,
+        pub aio_sigevent: ::sigevent,
+        __next_prio: *mut aiocb,
+        __abs_prio: ::c_int,
+        __policy: ::c_int,
+        __error_code: ::c_int,
+        __return_value: ::ssize_t,
+        pub aio_offset: off_t,
+        #[cfg(target_pointer_width = "32")]
+        __unused1: [::c_char; 4],
+        __glibc_reserved: [::c_char; 32]
+    }
+
     pub struct stat {
         pub st_dev: ::dev_t,
         pub st_ino: ::ino_t,
@@ -141,6 +159,12 @@ s! {
         pub msg_flags: ::c_int,
     }
 
+    pub struct cmsghdr {
+        pub cmsg_len: ::size_t,
+        pub cmsg_level: ::c_int,
+        pub cmsg_type: ::c_int,
+    }
+
     pub struct termios {
         pub c_iflag: ::tcflag_t,
         pub c_oflag: ::tcflag_t,
@@ -233,7 +257,55 @@ s! {
         pub uc_mcontext: mcontext_t,
         pub uc_sigmask: ::sigset_t,
     }
+
+    pub struct msqid_ds {
+        pub msg_perm: ::ipc_perm,
+        pub msg_stime: ::time_t,
+        pub msg_rtime: ::time_t,
+        pub msg_ctime: ::time_t,
+        __msg_cbytes: ::c_ulong,
+        pub msg_qnum: ::msgqnum_t,
+        pub msg_qbytes: ::msglen_t,
+        pub msg_lspid: ::pid_t,
+        pub msg_lrpid: ::pid_t,
+        __glibc_reserved4: ::c_ulong,
+        __glibc_reserved5: ::c_ulong,
+    }
 }
+
+pub const CLONE_NEWCGROUP: ::c_int = 0x02000000;
+
+pub const SFD_CLOEXEC: ::c_int = 0x080000;
+
+pub const NCCS: usize = 32;
+
+pub const O_TRUNC: ::c_int = 512;
+
+pub const O_CLOEXEC: ::c_int = 0x80000;
+
+pub const EBFONT: ::c_int = 59;
+pub const ENOSTR: ::c_int = 60;
+pub const ENODATA: ::c_int = 61;
+pub const ETIME: ::c_int = 62;
+pub const ENOSR: ::c_int = 63;
+pub const ENONET: ::c_int = 64;
+pub const ENOPKG: ::c_int = 65;
+pub const EREMOTE: ::c_int = 66;
+pub const ENOLINK: ::c_int = 67;
+pub const EADV: ::c_int = 68;
+pub const ESRMNT: ::c_int = 69;
+pub const ECOMM: ::c_int = 70;
+pub const EPROTO: ::c_int = 71;
+pub const EDOTDOT: ::c_int = 73;
+
+pub const SA_NODEFER: ::c_int = 0x40000000;
+pub const SA_RESETHAND: ::c_int = 0x80000000;
+pub const SA_RESTART: ::c_int = 0x10000000;
+pub const SA_NOCLDSTOP: ::c_int = 0x00000001;
+
+pub const EPOLL_CLOEXEC: ::c_int = 0x80000;
+
+pub const EFD_CLOEXEC: ::c_int = 0x80000;
 
 pub const POSIX_FADV_DONTNEED: ::c_int = 6;
 pub const POSIX_FADV_NOREUSE: ::c_int = 7;
@@ -375,6 +447,7 @@ pub const ENOPROTOOPT: ::c_int = 92;
 pub const EPROTONOSUPPORT: ::c_int = 93;
 pub const ESOCKTNOSUPPORT: ::c_int = 94;
 pub const EOPNOTSUPP: ::c_int = 95;
+pub const ENOTSUP: ::c_int = EOPNOTSUPP;
 pub const EPFNOSUPPORT: ::c_int = 96;
 pub const EAFNOSUPPORT: ::c_int = 97;
 pub const ENETDOWN: ::c_int = 100;
@@ -464,10 +537,8 @@ pub const TMP_MAX: ::c_uint = 238328;
 pub const FOPEN_MAX: ::c_uint = 16;
 pub const POSIX_MADV_DONTNEED: ::c_int = 4;
 pub const _SC_2_C_VERSION: ::c_int = 96;
-pub const RUSAGE_THREAD: ::c_int = 1;
 pub const O_ASYNC: ::c_int = 0x2000;
 pub const O_NDELAY: ::c_int = 0x800;
-pub const RUSAGE_CHILDREN: ::c_int = -1;
 pub const ST_RELATIME: ::c_ulong = 4096;
 pub const NI_MAXHOST: ::socklen_t = 1025;
 

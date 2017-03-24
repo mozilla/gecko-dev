@@ -235,6 +235,26 @@ dtls_RetransmitDetected(sslSocket *ss)
     return rv;
 }
 
+static SECStatus
+dtls_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *data, PRBool last)
+{
+
+    /* At this point we are advancing our state machine, so we can free our last
+     * flight of messages. */
+    dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
+    ss->ssl3.hs.recvdHighWater = -1;
+
+    /* Reset the timer to the initial value if the retry counter
+     * is 0, per Sec. 4.2.4.1 */
+    dtls_CancelTimer(ss);
+    if (ss->ssl3.hs.rtRetries == 0) {
+        ss->ssl3.hs.rtTimeoutMs = DTLS_RETRANSMIT_INITIAL_MS;
+    }
+
+    return ssl3_HandleHandshakeMessage(ss, data, ss->ssl3.hs.msg_len,
+                                       last);
+}
+
 /* Called only from ssl3_HandleRecord, for each (deciphered) DTLS record.
  * origBuf is the decrypted ssl record content and is expected to contain
  * complete handshake records
@@ -329,23 +349,10 @@ dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
             ss->ssl3.hs.msg_type = (SSL3HandshakeType)type;
             ss->ssl3.hs.msg_len = message_length;
 
-            /* At this point we are advancing our state machine, so
-             * we can free our last flight of messages */
-            dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
-            ss->ssl3.hs.recvdHighWater = -1;
-            dtls_CancelTimer(ss);
-
-            /* Reset the timer to the initial value if the retry counter
-             * is 0, per Sec. 4.2.4.1 */
-            if (ss->ssl3.hs.rtRetries == 0) {
-                ss->ssl3.hs.rtTimeoutMs = DTLS_RETRANSMIT_INITIAL_MS;
-            }
-
-            rv = ssl3_HandleHandshakeMessage(ss, buf.buf, ss->ssl3.hs.msg_len,
+            rv = dtls_HandleHandshakeMessage(ss, buf.buf,
                                              buf.len == fragment_length);
             if (rv == SECFailure) {
-                /* Do not attempt to process rest of messages in this record */
-                break;
+                break; /* Discard the remainder of the record. */
             }
         } else {
             if (message_seq < ss->ssl3.hs.recvMessageSeq) {
@@ -446,24 +453,11 @@ dtls_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 
                 /* If we have all the bytes, then we are good to go */
                 if (ss->ssl3.hs.recvdHighWater == ss->ssl3.hs.msg_len) {
-                    ss->ssl3.hs.recvdHighWater = -1;
+                    rv = dtls_HandleHandshakeMessage(ss, ss->ssl3.hs.msg_body.buf,
+                                                     buf.len == fragment_length);
 
-                    rv = ssl3_HandleHandshakeMessage(
-                        ss,
-                        ss->ssl3.hs.msg_body.buf, ss->ssl3.hs.msg_len,
-                        buf.len == fragment_length);
-                    if (rv == SECFailure)
-                        break; /* Skip rest of record */
-
-                    /* At this point we are advancing our state machine, so
-                     * we can free our last flight of messages */
-                    dtls_FreeHandshakeMessages(&ss->ssl3.hs.lastMessageFlight);
-                    dtls_CancelTimer(ss);
-
-                    /* If there have been no retries this time, reset the
-                     * timer value to the default per Section 4.2.4.1 */
-                    if (ss->ssl3.hs.rtRetries == 0) {
-                        ss->ssl3.hs.rtTimeoutMs = DTLS_RETRANSMIT_INITIAL_MS;
+                    if (rv == SECFailure) {
+                        break; /* Discard the rest of the record. */
                     }
                 }
             }
@@ -800,54 +794,6 @@ dtls_SendSavedWriteData(sslSocket *ss)
         ss->ssl3.hs.maxMessageSent = sent;
 
     return SECSuccess;
-}
-
-/* Compress, MAC, encrypt a DTLS record. Allows specification of
- * the epoch using epoch value. If use_epoch is PR_TRUE then
- * we use the provided epoch. If use_epoch is PR_FALSE then
- * whatever the current value is in effect is used.
- *
- * Called from ssl3_SendRecord()
- */
-SECStatus
-dtls_CompressMACEncryptRecord(sslSocket *ss,
-                              ssl3CipherSpec *cwSpec,
-                              SSL3ContentType type,
-                              const SSL3Opaque *pIn,
-                              PRUint32 contentLen,
-                              sslBuffer *wrBuf)
-{
-    SECStatus rv = SECFailure;
-
-    ssl_GetSpecReadLock(ss); /********************************/
-
-    /* The reason for this switch-hitting code is that we might have
-     * a flight of records spanning an epoch boundary, e.g.,
-     *
-     * ClientKeyExchange (epoch = 0)
-     * ChangeCipherSpec (epoch = 0)
-     * Finished (epoch = 1)
-     *
-     * Thus, each record needs a different cipher spec. The information
-     * about which epoch to use is carried with the record.
-     */
-    if (!cwSpec) {
-        cwSpec = ss->ssl3.cwSpec;
-    } else {
-        PORT_Assert(type == content_handshake ||
-                    type == content_change_cipher_spec);
-    }
-
-    if (cwSpec->version < SSL_LIBRARY_VERSION_TLS_1_3) {
-        rv = ssl3_CompressMACEncryptRecord(cwSpec, ss->sec.isServer, PR_TRUE,
-                                           PR_FALSE, type, pIn, contentLen,
-                                           wrBuf);
-    } else {
-        rv = tls13_ProtectRecord(ss, cwSpec, type, pIn, contentLen, wrBuf);
-    }
-    ssl_ReleaseSpecReadLock(ss); /************************************/
-
-    return rv;
 }
 
 static SECStatus

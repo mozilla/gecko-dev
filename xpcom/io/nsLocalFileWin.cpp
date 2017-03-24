@@ -7,7 +7,6 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/UniquePtrExtensions.h"
-#include "mozilla/WindowsVersion.h"
 
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
@@ -22,7 +21,6 @@
 #include "nsIComponentManager.h"
 #include "prio.h"
 #include "private/pprio.h"  // To get PR_ImportFile
-#include "prprf.h"
 #include "prmem.h"
 #include "nsHashKeys.h"
 
@@ -180,13 +178,12 @@ private:
     HRESULT hr;
     if (attributes & FILE_ATTRIBUTE_DIRECTORY) {
       // We have a directory so we should open the directory itself.
-      ITEMIDLIST* dir =
-        static_cast<ITEMIDLIST*>(ILCreateFromPathW(mResolvedPath.get()));
+      LPITEMIDLIST dir = ILCreateFromPathW(mResolvedPath.get());
       if (!dir) {
         return NS_ERROR_FAILURE;
       }
 
-      const ITEMIDLIST* selection[] = { dir };
+      LPCITEMIDLIST selection[] = { dir };
       UINT count = ArrayLength(selection);
 
       //Perform the open of the directory.
@@ -204,21 +201,19 @@ private:
       PathRemoveFileSpecW(parentDirectoryPath);
 
       // We have a file so we should open the parent directory.
-      ITEMIDLIST* dir =
-        static_cast<ITEMIDLIST*>(ILCreateFromPathW(parentDirectoryPath));
+      LPITEMIDLIST dir = ILCreateFromPathW(parentDirectoryPath);
       if (!dir) {
         return NS_ERROR_FAILURE;
       }
 
       // Set the item in the directory to select to the file we want to reveal.
-      ITEMIDLIST* item =
-        static_cast<ITEMIDLIST*>(ILCreateFromPathW(mResolvedPath.get()));
+      LPITEMIDLIST item = ILCreateFromPathW(mResolvedPath.get());
       if (!item) {
         CoTaskMemFree(dir);
         return NS_ERROR_FAILURE;
       }
 
-      const ITEMIDLIST* selection[] = { item };
+      LPCITEMIDLIST selection[] = { item };
       UINT count = ArrayLength(selection);
 
       //Perform the selection of the file.
@@ -1973,13 +1968,11 @@ nsLocalFile::CopySingleFile(nsIFile* aSourceFile, nsIFile* aDestParent,
   // So we only use COPY_FILE_NO_BUFFERING when we have a remote drive.
   int copyOK;
   DWORD dwCopyFlags = COPY_FILE_ALLOW_DECRYPTED_DESTINATION;
-  if (IsVistaOrLater()) {
-    bool path1Remote, path2Remote;
-    if (!IsRemoteFilePath(filePath.get(), path1Remote) ||
-        !IsRemoteFilePath(destPath.get(), path2Remote) ||
-        path1Remote || path2Remote) {
-      dwCopyFlags |= COPY_FILE_NO_BUFFERING;
-    }
+  bool path1Remote, path2Remote;
+  if (!IsRemoteFilePath(filePath.get(), path1Remote) ||
+      !IsRemoteFilePath(destPath.get(), path2Remote) ||
+      path1Remote || path2Remote) {
+    dwCopyFlags |= COPY_FILE_NO_BUFFERING;
   }
 
   if (!move) {

@@ -19,8 +19,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
  * @resolves to the received event
  * @rejects if a valid load event is not received within a meaningful interval
  */
-function promiseTabLoadEvent(tab, url, eventType="load")
-{
+function promiseTabLoadEvent(tab, url, eventType = "load") {
   info(`Wait tab event: ${eventType}`);
 
   function handle(loadedUrl) {
@@ -33,8 +32,6 @@ function promiseTabLoadEvent(tab, url, eventType="load")
     return true;
   }
 
-  // Create two promises: one resolved from the content process when the page
-  // loads and one that is rejected if we take too long to load the url.
   let loaded;
   if (eventType === "load") {
     loaded = BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, handle);

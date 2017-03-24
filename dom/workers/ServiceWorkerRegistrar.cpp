@@ -41,6 +41,8 @@ namespace {
 
 static const char* gSupportedRegistrarVersions[] = {
   SERVICEWORKERREGISTRAR_VERSION,
+  "5",
+  "4",
   "3",
   "2"
 };
@@ -108,6 +110,8 @@ ServiceWorkerRegistrar::GetRegistrations(
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aValues.IsEmpty());
 
+  MonitorAutoLock lock(mMonitor);
+
   // If we don't have the profile directory, profile is not started yet (and
   // probably we are in a utest).
   if (!mProfileDir) {
@@ -123,17 +127,13 @@ ServiceWorkerRegistrar::GetRegistrations(
     startTime = TimeStamp::NowLoRes();
   }
 
-  {
-    MonitorAutoLock lock(mMonitor);
-
-    // Waiting for data loaded.
-    mMonitor.AssertCurrentThreadOwns();
-    while (!mDataLoaded) {
-      mMonitor.Wait();
-    }
-
-    aValues.AppendElements(mData);
+  // Waiting for data loaded.
+  mMonitor.AssertCurrentThreadOwns();
+  while (!mDataLoaded) {
+    mMonitor.Wait();
   }
+
+  aValues.AppendElements(mData);
 
   if (firstTime) {
     firstTime = false;
@@ -272,15 +272,22 @@ ServiceWorkerRegistrar::ReadData()
   // We cannot assert about the correct thread because normally this method
   // runs on a IO thread, but in gTests we call it from the main-thread.
 
-  MOZ_ASSERT(mProfileDir);
-
   nsCOMPtr<nsIFile> file;
-  nsresult rv = mProfileDir->Clone(getter_AddRefs(file));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+
+  {
+    MonitorAutoLock lock(mMonitor);
+
+    if (!mProfileDir) {
+      return NS_ERROR_FAILURE;
+    }
+
+    nsresult rv = mProfileDir->Clone(getter_AddRefs(file));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
   }
 
-  rv = file->Append(NS_LITERAL_STRING(SERVICEWORKERREGISTRAR_FILE));
+  nsresult rv = file->Append(NS_LITERAL_STRING(SERVICEWORKERREGISTRAR_FILE));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -339,7 +346,7 @@ ServiceWorkerRegistrar::ReadData()
       nsAutoCString suffix;
       GET_LINE(suffix);
 
-      PrincipalOriginAttributes attrs;
+      OriginAttributes attrs;
       if (!attrs.PopulateFromSuffix(suffix)) {
         return NS_ERROR_INVALID_ARG;
       }
@@ -347,13 +354,92 @@ ServiceWorkerRegistrar::ReadData()
       GET_LINE(entry->scope());
 
       entry->principal() =
-        mozilla::ipc::ContentPrincipalInfo(attrs, entry->scope());
+        mozilla::ipc::ContentPrincipalInfo(attrs, void_t(), entry->scope());
 
       GET_LINE(entry->currentWorkerURL());
+
+      nsAutoCString fetchFlag;
+      GET_LINE(fetchFlag);
+      if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
+          !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
+        return NS_ERROR_INVALID_ARG;
+      }
+      entry->currentWorkerHandlesFetch() =
+        fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
 
       nsAutoCString cacheName;
       GET_LINE(cacheName);
       CopyUTF8toUTF16(cacheName, entry->cacheName());
+
+      nsAutoCString loadFlags;
+      GET_LINE(loadFlags);
+      entry->loadFlags() = loadFlags.ToInteger(&rv, 16);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      } else if (entry->loadFlags() != nsIRequest::LOAD_NORMAL &&
+                 entry->loadFlags() != nsIRequest::VALIDATE_ALWAYS) {
+        return NS_ERROR_INVALID_ARG;
+      }
+    } else if (version.EqualsLiteral("5")) {
+      overwrite = true;
+      dedupe = true;
+
+      nsAutoCString suffix;
+      GET_LINE(suffix);
+
+      OriginAttributes attrs;
+      if (!attrs.PopulateFromSuffix(suffix)) {
+        return NS_ERROR_INVALID_ARG;
+      }
+
+      GET_LINE(entry->scope());
+
+      entry->principal() =
+        mozilla::ipc::ContentPrincipalInfo(attrs, void_t(), entry->scope());
+
+      GET_LINE(entry->currentWorkerURL());
+
+      nsAutoCString fetchFlag;
+      GET_LINE(fetchFlag);
+      if (!fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE) &&
+          !fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_FALSE)) {
+        return NS_ERROR_INVALID_ARG;
+      }
+      entry->currentWorkerHandlesFetch() =
+        fetchFlag.EqualsLiteral(SERVICEWORKERREGISTRAR_TRUE);
+
+      nsAutoCString cacheName;
+      GET_LINE(cacheName);
+      CopyUTF8toUTF16(cacheName, entry->cacheName());
+
+      entry->loadFlags() = nsIRequest::VALIDATE_ALWAYS;
+    } else if (version.EqualsLiteral("4")) {
+      overwrite = true;
+      dedupe = true;
+
+      nsAutoCString suffix;
+      GET_LINE(suffix);
+
+      OriginAttributes attrs;
+      if (!attrs.PopulateFromSuffix(suffix)) {
+        return NS_ERROR_INVALID_ARG;
+      }
+
+      GET_LINE(entry->scope());
+
+      entry->principal() =
+        mozilla::ipc::ContentPrincipalInfo(attrs, void_t(), entry->scope());
+
+      GET_LINE(entry->currentWorkerURL());
+
+      // default handlesFetch flag to Enabled
+      entry->currentWorkerHandlesFetch() = true;
+
+      nsAutoCString cacheName;
+      GET_LINE(cacheName);
+      CopyUTF8toUTF16(cacheName, entry->cacheName());
+
+      entry->loadFlags() = nsIRequest::VALIDATE_ALWAYS;
     } else if (version.EqualsLiteral("3")) {
       overwrite = true;
       dedupe = true;
@@ -361,7 +447,7 @@ ServiceWorkerRegistrar::ReadData()
       nsAutoCString suffix;
       GET_LINE(suffix);
 
-      PrincipalOriginAttributes attrs;
+      OriginAttributes attrs;
       if (!attrs.PopulateFromSuffix(suffix)) {
         return NS_ERROR_INVALID_ARG;
       }
@@ -372,13 +458,18 @@ ServiceWorkerRegistrar::ReadData()
       GET_LINE(entry->scope());
 
       entry->principal() =
-        mozilla::ipc::ContentPrincipalInfo(attrs, entry->scope());
+        mozilla::ipc::ContentPrincipalInfo(attrs, void_t(), entry->scope());
 
       GET_LINE(entry->currentWorkerURL());
+
+      // default handlesFetch flag to Enabled
+      entry->currentWorkerHandlesFetch() = true;
 
       nsAutoCString cacheName;
       GET_LINE(cacheName);
       CopyUTF8toUTF16(cacheName, entry->cacheName());
+
+      entry->loadFlags() = nsIRequest::VALIDATE_ALWAYS;
     } else if (version.EqualsLiteral("2")) {
       overwrite = true;
       dedupe = true;
@@ -386,7 +477,7 @@ ServiceWorkerRegistrar::ReadData()
       nsAutoCString suffix;
       GET_LINE(suffix);
 
-      PrincipalOriginAttributes attrs;
+      OriginAttributes attrs;
       if (!attrs.PopulateFromSuffix(suffix)) {
         return NS_ERROR_INVALID_ARG;
       }
@@ -397,12 +488,15 @@ ServiceWorkerRegistrar::ReadData()
       GET_LINE(entry->scope());
 
       entry->principal() =
-        mozilla::ipc::ContentPrincipalInfo(attrs, entry->scope());
+        mozilla::ipc::ContentPrincipalInfo(attrs, void_t(), entry->scope());
 
       // scriptSpec is no more used in latest version.
       GET_LINE(unused);
 
       GET_LINE(entry->currentWorkerURL());
+
+      // default handlesFetch flag to Enabled
+      entry->currentWorkerHandlesFetch() = true;
 
       nsAutoCString cacheName;
       GET_LINE(cacheName);
@@ -410,6 +504,8 @@ ServiceWorkerRegistrar::ReadData()
 
       // waitingCacheName is no more used in latest version.
       GET_LINE(unused);
+
+      entry->loadFlags() = nsIRequest::VALIDATE_ALWAYS;
     } else {
       MOZ_ASSERT_UNREACHABLE("Should never get here!");
     }
@@ -476,20 +572,23 @@ ServiceWorkerRegistrar::DeleteData()
   // We cannot assert about the correct thread because normally this method
   // runs on a IO thread, but in gTests we call it from the main-thread.
 
-  MOZ_ASSERT(mProfileDir);
+  nsCOMPtr<nsIFile> file;
 
   {
     MonitorAutoLock lock(mMonitor);
     mData.Clear();
+
+    if (!mProfileDir) {
+      return;
+    }
+
+    nsresult rv = mProfileDir->Clone(getter_AddRefs(file));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return;
+    }
   }
 
-  nsCOMPtr<nsIFile> file;
-  nsresult rv = mProfileDir->Clone(getter_AddRefs(file));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  rv = file->Append(NS_LITERAL_STRING(SERVICEWORKERREGISTRAR_FILE));
+  nsresult rv = file->Append(NS_LITERAL_STRING(SERVICEWORKERREGISTRAR_FILE));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -638,15 +737,22 @@ ServiceWorkerRegistrar::WriteData()
   // We cannot assert about the correct thread because normally this method
   // runs on a IO thread, but in gTests we call it from the main-thread.
 
-  MOZ_ASSERT(mProfileDir);
-
   nsCOMPtr<nsIFile> file;
-  nsresult rv = mProfileDir->Clone(getter_AddRefs(file));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+
+  {
+    MonitorAutoLock lock(mMonitor);
+
+    if (!mProfileDir) {
+      return NS_ERROR_FAILURE;
+    }
+
+    nsresult rv = mProfileDir->Clone(getter_AddRefs(file));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
   }
 
-  rv = file->Append(NS_LITERAL_STRING(SERVICEWORKERREGISTRAR_FILE));
+  nsresult rv = file->Append(NS_LITERAL_STRING(SERVICEWORKERREGISTRAR_FILE));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -699,8 +805,22 @@ ServiceWorkerRegistrar::WriteData()
     buffer.Append(data[i].currentWorkerURL());
     buffer.Append('\n');
 
+    buffer.Append(data[i].currentWorkerHandlesFetch() ?
+                    SERVICEWORKERREGISTRAR_TRUE : SERVICEWORKERREGISTRAR_FALSE);
+    buffer.Append('\n');
+
     buffer.Append(NS_ConvertUTF16toUTF8(data[i].cacheName()));
     buffer.Append('\n');
+
+    buffer.AppendInt(data[i].loadFlags(), 16);
+    buffer.Append('\n');
+    MOZ_DIAGNOSTIC_ASSERT(data[i].loadFlags() == nsIRequest::LOAD_NORMAL ||
+                          data[i].loadFlags() == nsIRequest::VALIDATE_ALWAYS);
+
+    static_assert(nsIRequest::LOAD_NORMAL == 0,
+                  "LOAD_NORMAL matches serialized value.");
+    static_assert(nsIRequest::VALIDATE_ALWAYS == (1 << 11),
+                  "VALIDATE_ALWAYS matches serialized value");
 
     buffer.AppendLiteral(SERVICEWORKERREGISTRAR_TERMINATOR);
     buffer.Append('\n');
@@ -730,7 +850,9 @@ void
 ServiceWorkerRegistrar::ProfileStarted()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!mProfileDir);
+
+  MonitorAutoLock lock(mMonitor);
+  MOZ_DIAGNOSTIC_ASSERT(!mProfileDir);
 
   nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
                                        getter_AddRefs(mProfileDir));
@@ -754,6 +876,8 @@ void
 ServiceWorkerRegistrar::ProfileStopped()
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+  MonitorAutoLock lock(mMonitor);
 
   if (!mProfileDir) {
     nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,

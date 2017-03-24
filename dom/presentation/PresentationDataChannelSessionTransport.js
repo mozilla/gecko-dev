@@ -78,6 +78,10 @@ PresentationTransportBuilder.prototype = {
 
     this._peerConnection.onnegotiationneeded = () => {
       log("onnegotiationneeded with role " + this._role);
+      if (!this._peerConnection) {
+        log("ignoring negotiationneeded without PeerConnection");
+        return;
+      }
       this._peerConnection.createOffer()
           .then(aOffer => this._peerConnection.setLocalDescription(aOffer))
           .then(() => this._listener
@@ -105,13 +109,7 @@ PresentationTransportBuilder.prototype = {
 
     // TODO bug 1228235 we should have a way to let device providers customize
     // the time-out duration.
-    let timeout;
-    try {
-      timeout = Services.prefs.getIntPref("presentation.receiver.loading.timeout");
-    } catch (e) {
-      // This happens if the pref doesn't exist, so we have a default value.
-      timeout = 10000;
-    }
+    let timeout = Services.prefs.getIntPref("presentation.receiver.loading.timeout", 10000);
 
     // The timer is to check if the negotiation finishes on time.
     this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
@@ -137,6 +135,8 @@ PresentationTransportBuilder.prototype = {
       // _sessionTransport
       this._sessionTransport = new PresentationTransport();
       this._sessionTransport.init(this._peerConnection, this._dataChannel, this._window);
+      this._peerConnection.onicecandidate = null;
+      this._peerConnection.onnegotiationneeded = null;
       this._peerConnection = this._dataChannel = null;
 
       this._listener.onSessionTransport(this._sessionTransport);
@@ -220,6 +220,10 @@ PresentationTransportBuilder.prototype = {
 
   onIceCandidate: function(aCandidate) {
     log("onIceCandidate: " + aCandidate + " with role " + this._role);
+    if (!this._window || !this._peerConnection) {
+      log("ignoring ICE candidate after connection");
+      return;
+    }
     let candidate = new this._window.RTCIceCandidate(JSON.parse(aCandidate));
     this._peerConnection.addIceCandidate(candidate).catch(e => this._reportError(e));
   },

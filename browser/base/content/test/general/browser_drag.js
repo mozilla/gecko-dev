@@ -1,5 +1,4 @@
-function test()
-{
+function test() {
   waitForExplicitFinish();
 
   let scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
@@ -12,14 +11,14 @@ function test()
   var urlString = value + "\n" + content.document.title;
   var htmlString = "<a href=\"" + value + "\">" + value + "</a>";
   var expected = [ [
-    { type  : "text/x-moz-url",
-      data  : urlString },
-    { type  : "text/uri-list",
-      data  : value },
-    { type  : "text/plain",
-      data  : value },
-    { type  : "text/html",
-      data  : htmlString }
+    { type: "text/x-moz-url",
+      data: urlString },
+    { type: "text/uri-list",
+      data: value },
+    { type: "text/plain",
+      data: value },
+    { type: "text/html",
+      data: htmlString }
   ] ];
   // set the valid attribute so dropping is allowed
   var oldstate = gURLBar.getAttribute("pageproxystate");
@@ -35,7 +34,7 @@ function test()
   var tab = gBrowser.addTab("about:blank", {skipAnimation: true});
   var browser = gBrowser.getBrowserForTab(tab);
 
-  browser.addEventListener("load", function () {
+  browser.addEventListener("load", function() {
     is(browser.contentWindow.location, "http://mochi.test:8888/", "drop on tab");
     gBrowser.removeTab(tab);
     finish();

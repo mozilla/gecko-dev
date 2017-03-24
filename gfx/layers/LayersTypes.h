@@ -26,6 +26,10 @@
 
 #define INVALID_OVERLAY -1
 
+namespace IPC {
+template <typename T> struct ParamTraits;
+} // namespace IPC
+
 namespace android {
 class MOZ_EXPORT GraphicBuffer;
 } // namespace android
@@ -42,9 +46,9 @@ enum class LayersBackend : int8_t {
   LAYERS_NONE = 0,
   LAYERS_BASIC,
   LAYERS_OPENGL,
-  LAYERS_D3D9,
   LAYERS_D3D11,
   LAYERS_CLIENT,
+  LAYERS_WR,
   LAYERS_LAST
 };
 
@@ -63,45 +67,6 @@ enum class SurfaceMode : int8_t {
   SURFACE_OPAQUE,
   SURFACE_SINGLE_CHANNEL_ALPHA,
   SURFACE_COMPONENT_ALPHA
-};
-
-// LayerRenderState for Composer2D
-// We currently only support Composer2D using gralloc. If we want to be backed
-// by other surfaces we will need a more generic LayerRenderState.
-enum class LayerRenderStateFlags : int8_t {
-  LAYER_RENDER_STATE_DEFAULT = 0,
-  ORIGIN_BOTTOM_LEFT = 1 << 0,
-  BUFFER_ROTATION = 1 << 1,
-  // Notify Composer2D to swap the RB pixels of gralloc buffer
-  FORMAT_RB_SWAP = 1 << 2,
-  // We record opaqueness here alongside the actual surface we're going to
-  // render. This avoids confusion when a layer might return different kinds
-  // of surfaces over time (e.g. video frames).
-  OPAQUE = 1 << 3
-};
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(LayerRenderStateFlags)
-
-struct LayerRenderState {
-  // Constructors and destructor are defined in LayersTypes.cpp so we don't
-  // have to pull in a definition for GraphicBuffer.h here. In KK at least,
-  // that results in nasty pollution such as libui's hardware.h #defining
-  // 'version_major' and 'version_minor' which conflict with Theora's codec.c...
-  LayerRenderState();
-  LayerRenderState(const LayerRenderState& aOther);
-  ~LayerRenderState();
-
-  void SetOffset(const nsIntPoint& aOffset)
-  {
-    mOffset = aOffset;
-    mHasOwnOffset = true;
-  }
-
-  // see LayerRenderStateFlags
-  LayerRenderStateFlags mFlags;
-  // true if mOffset is applicable
-  bool mHasOwnOffset;
-  // the location of the layer's origin on mSurface
-  nsIntPoint mOffset;
 };
 
 enum class ScaleMode : int8_t {
@@ -243,6 +208,102 @@ typedef gfx::Matrix4x4Typed<LayerPixel, CSSTransformedLayerPixel> CSSTransformMa
 // PixelCastJustification is provided for this purpose.
 typedef gfx::Matrix4x4Typed<ParentLayerPixel, ParentLayerPixel> AsyncTransformComponentMatrix;
 typedef gfx::Matrix4x4Typed<CSSTransformedLayerPixel, ParentLayerPixel> AsyncTransformMatrix;
+
+typedef Array<gfx::Color, 4> BorderColors;
+typedef Array<LayerSize, 4> BorderCorners;
+typedef Array<LayerCoord, 4> BorderWidths;
+typedef Array<uint8_t, 4> BorderStyles;
+
+// This is used to communicate Layers across IPC channels. The Handle is valid
+// for layers in the same PLayerTransaction. Handles are created by ClientLayerManager,
+// and are cached in LayerTransactionParent on first use.
+class LayerHandle
+{
+  friend struct IPC::ParamTraits<mozilla::layers::LayerHandle>;
+public:
+  LayerHandle() : mHandle(0)
+  {}
+  LayerHandle(const LayerHandle& aOther) : mHandle(aOther.mHandle)
+  {}
+  explicit LayerHandle(uint64_t aHandle) : mHandle(aHandle)
+  {}
+  bool IsValid() const {
+    return mHandle != 0;
+  }
+  explicit operator bool() const {
+    return IsValid();
+  }
+  bool operator ==(const LayerHandle& aOther) const {
+    return mHandle == aOther.mHandle;
+  }
+  uint64_t Value() const {
+    return mHandle;
+  }
+private:
+  uint64_t mHandle;
+};
+
+// This is used to communicate Compositables across IPC channels. The Handle is valid
+// for layers in the same PLayerTransaction or PImageBridge. Handles are created by
+// ClientLayerManager or ImageBridgeChild, and are cached in the parent side on first
+// use.
+class CompositableHandle
+{
+  friend struct IPC::ParamTraits<mozilla::layers::CompositableHandle>;
+public:
+  CompositableHandle() : mHandle(0)
+  {}
+  CompositableHandle(const CompositableHandle& aOther) : mHandle(aOther.mHandle)
+  {}
+  explicit CompositableHandle(uint64_t aHandle) : mHandle(aHandle)
+  {}
+  bool IsValid() const {
+    return mHandle != 0;
+  }
+  explicit operator bool() const {
+    return IsValid();
+  }
+  bool operator ==(const CompositableHandle& aOther) const {
+    return mHandle == aOther.mHandle;
+  }
+  uint64_t Value() const {
+    return mHandle;
+  }
+private:
+  uint64_t mHandle;
+};
+
+class ReadLockHandle
+{
+  friend struct IPC::ParamTraits<mozilla::layers::ReadLockHandle>;
+public:
+  ReadLockHandle() : mHandle(0)
+  {}
+  ReadLockHandle(const ReadLockHandle& aOther) : mHandle(aOther.mHandle)
+  {}
+  explicit ReadLockHandle(uint64_t aHandle) : mHandle(aHandle)
+  {}
+  bool IsValid() const {
+    return mHandle != 0;
+  }
+  explicit operator bool() const {
+    return IsValid();
+  }
+  bool operator ==(const ReadLockHandle& aOther) const {
+    return mHandle == aOther.mHandle;
+  }
+  uint64_t Value() const {
+    return mHandle;
+  }
+private:
+  uint64_t mHandle;
+};
+
+enum class ScrollDirection : uint32_t {
+  NONE,
+  VERTICAL,
+  HORIZONTAL
+};
 
 } // namespace layers
 } // namespace mozilla

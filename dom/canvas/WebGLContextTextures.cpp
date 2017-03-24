@@ -209,7 +209,7 @@ WebGLContext::BindTexture(GLenum rawTarget, WebGLTexture* newTex)
     if (IsContextLost())
         return;
 
-     if (!ValidateObjectAllowDeletedOrNull("bindTexture", newTex))
+     if (newTex && !ValidateObject("bindTexture", *newTex))
         return;
 
     // Need to check rawTarget first before comparing against newTex->Target() as
@@ -290,21 +290,16 @@ WebGLContext::GetTexParameter(GLenum rawTexTarget, GLenum pname)
 bool
 WebGLContext::IsTexture(WebGLTexture* tex)
 {
-    if (IsContextLost())
-        return false;
-
-    if (!ValidateObjectAllowDeleted("isTexture", tex))
+    if (!ValidateIsObject("isTexture", tex))
         return false;
 
     return tex->IsTexture();
 }
 
 void
-WebGLContext::TexParameter_base(GLenum rawTexTarget, GLenum pname, GLint* maybeIntParam,
-                                GLfloat* maybeFloatParam)
+WebGLContext::TexParameter_base(GLenum rawTexTarget, GLenum pname,
+                                const FloatOrInt& param)
 {
-    MOZ_ASSERT(maybeIntParam || maybeFloatParam);
-
     const char funcName[] = "texParameter";
     const uint8_t funcDims = 0;
 
@@ -313,7 +308,7 @@ WebGLContext::TexParameter_base(GLenum rawTexTarget, GLenum pname, GLint* maybeI
     if (!ValidateTexTarget(this, funcName, funcDims, rawTexTarget, &texTarget, &tex))
         return;
 
-    tex->TexParameter(texTarget, pname, maybeIntParam, maybeFloatParam);
+    tex->TexParameter(texTarget, pname, param);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

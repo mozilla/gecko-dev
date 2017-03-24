@@ -50,19 +50,12 @@ const idStartSupplemental = [
 
 // From PropList.txt (Unicode 9):
 const otherIdStart = [
-    // Enable the following lines when Bug 1282724 is fixed.
-    // 0x1885,     // MONGOLIAN LETTER ALI GALI BALUDA, Gc=Mn
-    // 0x1886,     // MONGOLIAN LETTER ALI GALI THREE BALUDA, Gc=Mn
+    0x1885,     // MONGOLIAN LETTER ALI GALI BALUDA, Gc=Mn
+    0x1886,     // MONGOLIAN LETTER ALI GALI THREE BALUDA, Gc=Mn
     0x2118,     // SCRIPT CAPITAL P, Gc=Sm
     0x212E,     // ESTIMATED SYMBOL, Gc=So
     0x309B,     // KATAKANA-HIRAGANA VOICED SOUND MARK, Gc=Sk
     0x309C,     // KATAKANA-HIRAGANA SEMI-VOICED SOUND MARK, Gc=Sk
-];
-
-// Remove this list when we support Unicode 9 (Bug 1282724).
-const otherIdStart_Unicode9 = [
-    0x1885,     // MONGOLIAN LETTER ALI GALI BALUDA, Gc=Mn
-    0x1886,     // MONGOLIAN LETTER ALI GALI THREE BALUDA, Gc=Mn
 ];
 
 // From DerivedCoreProperties.txt (Unicode 9):
@@ -105,7 +98,7 @@ const otherIdContinue = [
     0x19DA,     // NEW TAI LUE THAM DIGIT ONE, Gc=No
 ];
 
-for (let ident of [...idStart, ...otherIdStart, ...otherIdStart_Unicode9]) {
+for (let ident of [...idStart, ...otherIdStart, ...idStartSupplemental]) {
     for (let count of leadingZeros) {
         let zeros = "0".repeat(count);
         eval(`
@@ -115,32 +108,18 @@ for (let ident of [...idStart, ...otherIdStart, ...otherIdStart_Unicode9]) {
     }
 }
 
-// Move this to the loop above when Bug 1197230 is fixed.
-for (let ident of [...idStartSupplemental]) {
-    for (let zeros of leadingZeros) {
-        assertThrowsInstanceOf(() => eval(`\\u{${zeros}${ident.toString(16)}}`), SyntaxError);
-    }
-}
-
 for (let ident of [...idContinue, ...idContinueSupplemental, ...otherIdContinue]) {
     for (let zeros of leadingZeros) {
         assertThrowsInstanceOf(() => eval(`\\u{${zeros}${ident.toString(16)}}`), SyntaxError);
     }
 }
 
-for (let ident of [...idStart, ...otherIdStart, ...otherIdStart_Unicode9, ...idContinue, ...otherIdContinue]) {
+for (let ident of [...idStart, ...otherIdStart, ...idContinue, ...otherIdContinue, ...idStartSupplemental, ...idContinueSupplemental]) {
     for (let zeros of leadingZeros) {
         eval(`
             let A\\u{${zeros}${ident.toString(16)}} = 123;
             assertEq(${String.fromCodePoint(0x41, ident)}, 123);
         `);
-    }
-}
-
-// Move this to the loop above when Bug 1197230 is fixed.
-for (let ident of [...idStartSupplemental, ...idContinueSupplemental]) {
-    for (let zeros of leadingZeros) {
-        assertThrowsInstanceOf(() => eval(`\\u{${zeros}${ident.toString(16)}}`), SyntaxError);
     }
 }
 

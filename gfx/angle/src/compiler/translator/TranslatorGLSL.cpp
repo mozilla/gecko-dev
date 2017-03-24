@@ -14,6 +14,9 @@
 #include "compiler/translator/RewriteTexelFetchOffset.h"
 #include "compiler/translator/VersionGLSL.h"
 
+namespace sh
+{
+
 TranslatorGLSL::TranslatorGLSL(sh::GLenum type,
                                ShShaderSpec spec,
                                ShShaderOutput output)
@@ -26,6 +29,11 @@ void TranslatorGLSL::initBuiltInFunctionEmulator(BuiltInFunctionEmulator *emu,
     if (compileOptions & SH_EMULATE_ABS_INT_FUNCTION)
     {
         InitBuiltInAbsFunctionEmulatorForGLSLWorkarounds(emu, getShaderType());
+    }
+
+    if (compileOptions & SH_EMULATE_ISNAN_FLOAT_FUNCTION)
+    {
+        InitBuiltInIsnanFunctionEmulatorForGLSLWorkarounds(emu, getShaderVersion());
     }
 
     int targetGLSLVersion = ShaderOutputTypeToGLSLVersion(getOutputType());
@@ -52,7 +60,7 @@ void TranslatorGLSL::translate(TIntermNode *root, ShCompileOptions compileOption
     // variables that are actually used, to avoid affecting the behavior of the shader.
     if ((compileOptions & SH_FLATTEN_PRAGMA_STDGL_INVARIANT_ALL) && getPragma().stdgl.invariantAll)
     {
-        collectVariables(root);
+        ASSERT(wereVariablesCollected());
 
         switch (getShaderType())
         {
@@ -79,8 +87,7 @@ void TranslatorGLSL::translate(TIntermNode *root, ShCompileOptions compileOption
 
     if ((compileOptions & SH_REWRITE_TEXELFETCHOFFSET_TO_TEXELFETCH) != 0)
     {
-        sh::RewriteTexelFetchOffset(root, getTemporaryIndex(), getSymbolTable(),
-                                    getShaderVersion());
+        sh::RewriteTexelFetchOffset(root, getSymbolTable(), getShaderVersion());
     }
 
     bool precisionEmulation = getResources().WEBGL_debug_shader_precision && getPragma().debugShaderPrecision;
@@ -181,13 +188,9 @@ void TranslatorGLSL::translate(TIntermNode *root, ShCompileOptions compileOption
     }
 
     // Write translated shader.
-    TOutputGLSL outputGLSL(sink,
-                           getArrayIndexClampingStrategy(),
-                           getHashFunction(),
-                           getNameMap(),
-                           getSymbolTable(),
-                           getShaderVersion(),
-                           getOutputType());
+    TOutputGLSL outputGLSL(sink, getArrayIndexClampingStrategy(), getHashFunction(), getNameMap(),
+                           getSymbolTable(), getShaderType(), getShaderVersion(), getOutputType(),
+                           compileOptions);
     root->traverse(&outputGLSL);
 }
 
@@ -196,6 +199,12 @@ bool TranslatorGLSL::shouldFlattenPragmaStdglInvariantAll()
     // Required when outputting to any GLSL version greater than 1.20, but since ANGLE doesn't
     // translate to that version, return true for the next higher version.
     return IsGLSL130OrNewer(getOutputType());
+}
+
+bool TranslatorGLSL::shouldCollectVariables(ShCompileOptions compileOptions)
+{
+    return (compileOptions & SH_FLATTEN_PRAGMA_STDGL_INVARIANT_ALL) ||
+           TCompiler::shouldCollectVariables(compileOptions);
 }
 
 void TranslatorGLSL::writeVersion(TIntermNode *root)
@@ -248,20 +257,14 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root)
     }
 
     // Need to enable gpu_shader5 to have index constant sampler array indexing
-    if (getOutputType() != SH_ESSL_OUTPUT && getOutputType() < SH_GLSL_400_CORE_OUTPUT)
+    if (getOutputType() != SH_ESSL_OUTPUT && getOutputType() < SH_GLSL_400_CORE_OUTPUT  &&
+        getShaderVersion() == 100)
     {
-        sink << "#extension GL_ARB_gpu_shader5 : ";
-
-        // Don't use "require" on WebGL 1 to avoid breaking WebGL on drivers that silently
-        // support index constant sampler array indexing, but don't have the extension.
-        if (getShaderVersion() >= 300)
-        {
-            sink << "require\n";
-        }
-        else
-        {
-            sink << "enable\n";
-        }
+        // Don't use "require" on to avoid breaking WebGL 1 on drivers that silently
+        // support index constant sampler array indexing, but don't have the extension or
+        // on drivers that don't have the extension at all as it would break WebGL 1 for
+        // some users.
+        sink << "#extension GL_ARB_gpu_shader5 : enable\n";
     }
 
     TExtensionGLSL extensionGLSL(getOutputType());
@@ -285,3 +288,5 @@ void TranslatorGLSL::conditionallyOutputInvariantDeclaration(const char *builtin
         sink << "invariant " << builtinVaryingName << ";\n";
     }
 }
+
+}  // namespace sh

@@ -101,7 +101,6 @@ var textareaInFrame;
 
 const nsITextInputProcessorCallback = Components.interfaces.nsITextInputProcessorCallback;
 const nsIDOMNSEditableElement = Components.interfaces.nsIDOMNSEditableElement;
-const nsIEditorIMESupport = Components.interfaces.nsIEditorIMESupport;
 const nsIInterfaceRequestor = Components.interfaces.nsIInterfaceRequestor;
 const nsIWebNavigation = Components.interfaces.nsIWebNavigation;
 const nsIDocShell = Components.interfaces.nsIDocShell;
@@ -115,11 +114,9 @@ function hitEventLoop(aFunc, aTimes)
   }
 }
 
-function getEditorIMESupport(aNode)
+function getEditor(aNode)
 {
-  return aNode.QueryInterface(nsIDOMNSEditableElement).
-               editor.
-               QueryInterface(nsIEditorIMESupport);
+  return aNode.QueryInterface(nsIDOMNSEditableElement).editor;
 }
 
 function getHTMLEditorIMESupport(aWindow)
@@ -4023,14 +4020,53 @@ function runSetSelectionEventTest()
   contenteditable.innerHTML = "a<blink>b</blink>c";
   synthesizeSelectionSet(0, 3);
   is(selection.anchorNode, contenteditable.firstChild,
-     "runSetSelectionEventTest #15 (0, 0), \"" + contenteditable.innerHTML + "\": selection anchor node should be the first text node");
+     "runSetSelectionEventTest #16 (0, 3), \"" + contenteditable.innerHTML + "\": selection anchor node should be the first text node");
   is(selection.anchorOffset, 0,
-     "runSetSelectionEventTest #15 (0, 0), \"" + contenteditable.innerHTML + "\": selection anchor offset should be 0");
+     "runSetSelectionEventTest #16 (0, 3), \"" + contenteditable.innerHTML + "\": selection anchor offset should be 0");
   is(selection.focusNode, contenteditable.lastChild,
-     "runSetSelectionEventTest #15 (0, 0), \"" + contenteditable.innerHTML + "\": selection focus node should be the last text node");
+     "runSetSelectionEventTest #16 (0, 3), \"" + contenteditable.innerHTML + "\": selection focus node should be the last text node");
   is(selection.focusOffset, contenteditable.lastChild.wholeText.length,
-     "runSetSelectionEventTest #15 (0, 0), \"" + contenteditable.innerHTML + "\": selection focus offset should be the length of the last text node");
+     "runSetSelectionEventTest #16 (0, 3), \"" + contenteditable.innerHTML + "\": selection focus offset should be the length of the last text node");
   checkSelection(0, "abc", "runSetSelectionEventTest #16 (0, 3), \"" + contenteditable.innerHTML + "\"");
+
+  // #17 (bug 1319660 - incorrect adjustment of content iterator last node)
+  contenteditable.innerHTML = "<div>a</div><div><br></div>";
+
+  synthesizeSelectionSet(kLFLen, 1+kLFLen);
+  is(selection.anchorNode, contenteditable.firstChild,
+     "runSetSelectionEventTest #17 (kLFLen, 1+kLFLen), \"" + contenteditable.innerHTML + "\": selection anchor node should be the first <div> element");
+  is(selection.anchorOffset, 0,
+     "runSetSelectionEventTest #17 (kLFLen, 1+kLFLen), \"" + contenteditable.innerHTML + "\": selection anchor offset should be 0");
+  is(selection.focusNode, contenteditable.lastChild,
+     "runSetSelectionEventTest #17 (kLFLen, 1+kLFLen), \"" + contenteditable.innerHTML + "\": selection focus node should be the second <div> element");
+  is(selection.focusOffset, 0,
+     "runSetSelectionEventTest #17 (kLFLen, 1+kLFLen), \"" + contenteditable.innerHTML + "\": selection focus offset should be 0");
+  checkSelection(kLFLen, "a" + kLF, "runSetSelectionEventTest #17 (kLFLen, 1+kLFLen), \"" + contenteditable.innerHTML + "\"");
+
+  synthesizeSelectionSet(1+2*kLFLen, 0);
+  is(selection.anchorNode, contenteditable.lastChild,
+     "runSetSelectionEventTest #17 (1+2*kLFLen, 0), \"" + contenteditable.innerHTML + "\": selection anchor node should be the second <div> element");
+  is(selection.anchorOffset, 0,
+     "runSetSelectionEventTest #17 (1+2*kLFLen, 0), \"" + contenteditable.innerHTML + "\": selection anchor offset should be 0");
+  is(selection.focusNode, contenteditable.lastChild,
+     "runSetSelectionEventTest #17 (1+2*kLFLen, 0), \"" + contenteditable.innerHTML + "\": selection focus node should be the second <div> element");
+  is(selection.focusOffset, 0,
+     "runSetSelectionEventTest #17 (1+2*kLFLen, 0), \"" + contenteditable.innerHTML + "\": selection focus offset should be 0");
+  checkSelection(1+2*kLFLen, "", "runSetSelectionEventTest #17 (1+2*kLFLen, 0), \"" + contenteditable.innerHTML + "\"");
+
+  // #18 (bug 1319660 - content iterator start node regression)
+  contenteditable.innerHTML = "<div><br></div><div><br></div>";
+
+  synthesizeSelectionSet(2*kLFLen, kLFLen);
+  is(selection.anchorNode, contenteditable.firstChild,
+     "runSetSelectionEventTest #18 (2*kLFLen, kLFLen), \"" + contenteditable.innerHTML + "\": selection anchor node should be the first <div> element");
+  is(selection.anchorOffset, 1,
+     "runSetSelectionEventTest #18 (2*kLFLen, kLFLen), \"" + contenteditable.innerHTML + "\": selection anchor offset should be 1");
+  is(selection.focusNode, contenteditable.lastChild,
+     "runSetSelectionEventTest #18 (2*kLFLen, kLFLen), \"" + contenteditable.innerHTML + "\": selection focus node should be the second <div> element");
+  is(selection.focusOffset, 0,
+     "runSetSelectionEventTest #18 (2*kLFLen, kLFLen), \"" + contenteditable.innerHTML + "\": selection focus offset should be 0");
+  checkSelection(2*kLFLen, kLF, "runSetSelectionEventTest #18 (2*kLFLen, kLFLen), \"" + contenteditable.innerHTML + "\"");
 }
 
 function runQueryTextContentEventTest()
@@ -4763,7 +4799,7 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #2");
   is(events[2].target, textarea,
      "runForceCommitTest: The 3rd event was fired on wrong event target #2");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea still has composition #2");
   is(textarea.value, "\u306E",
      "runForceCommitTest: the textarea doesn't have the committed text #2");
@@ -4803,9 +4839,9 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #3");
   is(events[2].target, textarea,
      "runForceCommitTest: The 3rd event was fired on wrong event target #3");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea still has composition #3");
-  ok(!getEditorIMESupport(input).isComposing,
+  ok(!getEditor(input).isComposing,
      "runForceCommitTest: the input has composition #3");
   is(textarea.value, "\u306E",
      "runForceCommitTest: the textarea doesn't have the committed text #3");
@@ -4846,7 +4882,7 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #4");
   is(events[2].target, textarea,
      "runForceCommitTest: The 3rd event was fired on wrong event target #4");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea still has composition #4");
   is(textarea.value, "\u306E",
      "runForceCommitTest: the textarea doesn't have the committed text #4");
@@ -4886,9 +4922,9 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #5");
   is(events[2].target, textarea,
      "runForceCommitTest: The 3rd event was fired on wrong event target #5");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea still has composition #5");
-  ok(!getEditorIMESupport(input).isComposing,
+  ok(!getEditor(input).isComposing,
      "runForceCommitTest: the input has composition #5");
   is(textarea.value, "\u306E",
      "runForceCommitTest: the textarea doesn't have the committed text #5");
@@ -4930,9 +4966,9 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #6");
   is(events[2].target, textarea,
      "runForceCommitTest: The 3rd event was fired on wrong event target #6");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea still has composition #6");
-  ok(!getEditorIMESupport(textareaInFrame).isComposing,
+  ok(!getEditor(textareaInFrame).isComposing,
      "runForceCommitTest: the textarea in frame has composition #6");
   is(textarea.value, "\u306E",
      "runForceCommitTest: the textarea doesn't have the committed text #6");
@@ -4974,9 +5010,9 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #7");
   is(events[2].target, textarea,
      "runForceCommitTest: The 3rd event was fired on wrong event target #7");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea still has composition #7");
-  ok(!getEditorIMESupport(textareaInFrame).isComposing,
+  ok(!getEditor(textareaInFrame).isComposing,
      "runForceCommitTest: the textarea in frame has composition #7");
   is(textarea.value, "\u306E",
      "runForceCommitTest: the textarea doesn't have the committed text #7");
@@ -5019,7 +5055,7 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #8");
   is(events[2].target, textarea,
      "runForceCommitTest: The 3rd event was fired on wrong event target #8");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea still has composition #8");
   ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
      "runForceCommitTest: the editable document has composition #8");
@@ -5107,7 +5143,7 @@ function runForceCommitTest()
      "runForceCommitTest: The 3rd event was fired on wrong event target #10");
   ok(!getHTMLEditorIMESupport(iframe2.contentWindow).isComposing,
      "runForceCommitTest: the editable document still has composition #10");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea has composition #10");
   ok(iframe2.contentDocument.body.innerHTML != iframe2BodyInnerHTML &&
      iframe2.contentDocument.body.innerHTML.indexOf("\u306E") >= 0,
@@ -5195,7 +5231,7 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #12");
   is(events[2].target, input,
      "runForceCommitTest: The 3rd event was fired on wrong event target #12");
-  ok(!getEditorIMESupport(input).isComposing,
+  ok(!getEditor(input).isComposing,
      "runForceCommitTest: the input still has composition #12");
   is(input.value, "set value",
      "runForceCommitTest: the input doesn't have the set text #12");
@@ -5233,7 +5269,7 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #13");
   is(events[2].target, textarea,
      "runForceCommitTest: The 3rd event was fired on wrong event target #13");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runForceCommitTest: the textarea still has composition #13");
   is(textarea.value, "set value",
      "runForceCommitTest: the textarea doesn't have the set text #13");
@@ -5271,7 +5307,7 @@ function runForceCommitTest()
      "runForceCommitTest: The 2nd event was fired on wrong event target #14");
   is(events[2].target, input,
      "runForceCommitTest: The 3rd event was fired on wrong event target #14");
-  ok(!getEditorIMESupport(input).isComposing,
+  ok(!getEditor(input).isComposing,
      "runForceCommitTest: the input still has composition #14");
   is(input.value, "\u306E appended value",
      "runForceCommitTest: the input should have both composed text and appended text #14");
@@ -5383,7 +5419,7 @@ function runNestedSettingValue()
      "runNestedSettingValue: The 2nd event was fired on wrong event target #1");
   is(events[2].target, textarea,
      "runNestedSettingValue: The 3rd event was fired on wrong event target #1");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runNestedSettingValue: the textarea still has composition #1");
   is(textarea.value, "first setting value, text, compositionend, input, ",
      "runNestedSettingValue: the textarea should have all string set to value attribute");
@@ -5423,7 +5459,7 @@ function runNestedSettingValue()
      "runNestedSettingValue: The 2nd event was fired on wrong event target #2");
   is(events[2].target, input,
      "runNestedSettingValue: The 3rd event was fired on wrong event target #2");
-  ok(!getEditorIMESupport(input).isComposing,
+  ok(!getEditor(input).isComposing,
      "runNestedSettingValue: the input still has composition #2");
   is(textarea.value, "first setting value, text, compositionend, input, ",
      "runNestedSettingValue: the input should have all string set to value attribute #2");
@@ -5463,7 +5499,7 @@ function runNestedSettingValue()
      "runNestedSettingValue: The 2nd event was fired on wrong event target #3");
   is(events[2].target, textarea,
      "runNestedSettingValue: The 3rd event was fired on wrong event target #3");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runNestedSettingValue: the textarea still has composition #3");
   is(textarea.value, "\u306Efirst setting value, text, compositionend, input, ",
      "runNestedSettingValue: the textarea should have appended by setRangeText() and all string set to value attribute #3");
@@ -5503,7 +5539,7 @@ function runNestedSettingValue()
      "runNestedSettingValue: The 2nd event was fired on wrong event target #4");
   is(events[2].target, input,
      "runNestedSettingValue: The 3rd event was fired on wrong event target #4");
-  ok(!getEditorIMESupport(input).isComposing,
+  ok(!getEditor(input).isComposing,
      "runNestedSettingValue: the input still has composition #4");
   is(textarea.value, "\u306Efirst setting value, text, compositionend, input, ",
      "runNestedSettingValue: the input should have all string appended by setRangeText() and set to value attribute #4");
@@ -5610,7 +5646,7 @@ function runAsyncForceCommitTest(aNextTest)
      "runAsyncForceCommitTest: The 2nd event was fired on wrong event target #2");
   is(events[2].target, textarea,
      "runAsyncForceCommitTest: The 3rd event was fired on wrong event target #2");
-  ok(!getEditorIMESupport(textarea).isComposing,
+  ok(!getEditor(textarea).isComposing,
      "runAsyncForceCommitTest: the textarea still has composition #2");
   is(textarea.value, "\u306E",
      "runAsyncForceCommitTest: the textarea doesn't have the committed text #2");
@@ -5949,6 +5985,140 @@ function runNotRedundantChangeTest()
   textarea.removeEventListener("text", handler, true);
 }
 
+function runNativeLineBreakerTest()
+{
+  textarea.focus();
+
+  var result = {};
+  function clearResult()
+  {
+    result = { compositionupdate: null, compositionend: null };
+  }
+
+  function handler(aEvent)
+  {
+    result[aEvent.type] = aEvent.data;
+  }
+
+  SpecialPowers.setBoolPref("dom.compositionevent.allow_control_characters", false);
+
+  textarea.addEventListener("compositionupdate", handler, true);
+  textarea.addEventListener("compositionend", handler, true);
+
+  // '\n' in composition string shouldn't be changed.
+  clearResult();
+  textarea.value = "";
+  var clauses = [ "abc\n", "def\n\ng", "hi\n", "\njkl" ];
+  var caret = clauses[0] + clauses[1] + clauses[2];
+  synthesizeCompositionChange(
+    { "composition":
+      { "string": clauses.join(''),
+        "clauses":
+        [
+          { "length": clauses[0].length,
+            "attr": COMPOSITION_ATTR_RAW_CLAUSE },
+          { "length": clauses[1].length,
+            "attr": COMPOSITION_ATTR_SELECTED_RAW_CLAUSE },
+          { "length": clauses[2].length,
+            "attr": COMPOSITION_ATTR_CONVERTED_CLAUSE },
+          { "length": clauses[3].length,
+            "attr": COMPOSITION_ATTR_SELECTED_CLAUSE },
+        ]
+      },
+      "caret": { "start": caret.length, "length": 0 }
+    });
+
+  checkSelection(caret.replace(/\n/g, "\n").length + (kLFLen - 1) * 4, "", "runNativeLineBreakerTest", "#1");
+  checkIMESelection("RawClause", true, 0, clauses[0].replace(/\n/g, kLF), "runNativeLineBreakerTest: \\n shouldn't be replaced with any character #1");
+  checkIMESelection("SelectedRawClause", true, clauses[0].replace(/\n/g, kLF).length, clauses[1].replace(/\n/g, kLF), "runNativeLineBreakerTest: \\n shouldn't be replaced with any character #1");
+  checkIMESelection("ConvertedClause", true, (clauses[0] + clauses[1]).replace(/\n/g, kLF).length, clauses[2].replace(/\n/g, kLF), "runNativeLineBreakerTest: \\n shouldn't be replaced with any character #1");
+  checkIMESelection("SelectedClause", true, (clauses[0] + clauses[1] + clauses[2]).replace(/\n/g, kLF).length, clauses[3].replace(/\n/g, kLF), "runNativeLineBreakerTest: \\n shouldn't be replaced with any character #1");
+  is(result.compositionupdate, clauses.join('').replace(/\n/g, "\n"), "runNativeLineBreakerTest: \\n in compositionupdate.data shouldn't be removed nor replaced with other characters #1");
+  is(textarea.value, clauses.join('').replace(/\n/g, "\n"), "runNativeLineBreakerTest: \\n in textarea.value shouldn't be removed nor replaced with other characters #1");
+
+  synthesizeComposition({ type: "compositioncommit", data: clauses.join('') });
+  checkSelection(clauses.join('').replace(/\n/g, "\n").length + (kLFLen - 1) * 5, "", "runNativeLineBreakerTest", "#2");
+  is(result.compositionend, clauses.join('').replace(/\n/g, "\n"), "runNativeLineBreakerTest: \\n in compositionend.data shouldn't be removed nor replaced with other characters #2");
+  is(textarea.value, clauses.join('').replace(/\n/g, "\n"), "runNativeLineBreakerTest: \\n in textarea.value shouldn't be removed nor replaced with other characters #2");
+
+  // \r\n in composition string should be replaced with \n.
+  clearResult();
+  textarea.value = "";
+  clauses = [ "abc\r\n", "def\r\n\r\ng", "hi\r\n", "\r\njkl" ];
+  caret = clauses[0] + clauses[1] + clauses[2];
+  synthesizeCompositionChange(
+    { "composition":
+      { "string": clauses.join(''),
+        "clauses":
+        [
+          { "length": clauses[0].length,
+            "attr": COMPOSITION_ATTR_RAW_CLAUSE },
+          { "length": clauses[1].length,
+            "attr": COMPOSITION_ATTR_SELECTED_RAW_CLAUSE },
+          { "length": clauses[2].length,
+            "attr": COMPOSITION_ATTR_CONVERTED_CLAUSE },
+          { "length": clauses[3].length,
+            "attr": COMPOSITION_ATTR_SELECTED_CLAUSE },
+        ]
+      },
+      "caret": { "start": caret.length, "length": 0 }
+    });
+
+  checkSelection(caret.replace(/\r\n/g, "\n").length + (kLFLen - 1) * 4, "", "runNativeLineBreakerTest", "#3");
+  checkIMESelection("RawClause", true, 0, clauses[0].replace(/\r\n/g, kLF), "runNativeLineBreakerTest: \\r\\n should be replaced with \\n #3");
+  checkIMESelection("SelectedRawClause", true, clauses[0].replace(/\r\n/g, kLF).length, clauses[1].replace(/\r\n/g, kLF), "runNativeLineBreakerTest: \\r\\n should be replaced with \\n #3");
+  checkIMESelection("ConvertedClause", true, (clauses[0] + clauses[1]).replace(/\r\n/g, kLF).length, clauses[2].replace(/\r\n/g, kLF), "runNativeLineBreakerTest: \\r\\n should be replaced with \\n #3");
+  checkIMESelection("SelectedClause", true, (clauses[0] + clauses[1] + clauses[2]).replace(/\r\n/g, kLF).length, clauses[3].replace(/\r\n/g, kLF), "runNativeLineBreakerTest: \\r\\n should be replaced with \\n #3");
+  is(result.compositionupdate, clauses.join('').replace(/\r\n/g, "\n"), "runNativeLineBreakerTest: \\r\\n in compositionudpate.data should be replaced with \\n #3");
+  is(textarea.value, clauses.join('').replace(/\r\n/g, "\n"), "runNativeLineBreakerTest: \\r\\n in textarea.value should be replaced with \\n #3");
+
+  synthesizeComposition({ type: "compositioncommit", data: clauses.join('') });
+  checkSelection(clauses.join('').replace(/\r\n/g, "\n").length + (kLFLen - 1) * 5, "", "runNativeLineBreakerTest", "#4");
+  is(result.compositionend, clauses.join('').replace(/\r\n/g, "\n"), "runNativeLineBreakerTest: \\r\\n in compositionend.data should be replaced with \\n #4");
+  is(textarea.value, clauses.join('').replace(/\r\n/g, "\n"), "runNativeLineBreakerTest: \\r\\n in textarea.value should be replaced with \\n #4");
+
+  // \r (not followed by \n) in composition string should be replaced with \n.
+  clearResult();
+  textarea.value = "";
+  clauses = [ "abc\r", "def\r\rg", "hi\r", "\rjkl" ];
+  caret = clauses[0] + clauses[1] + clauses[2];
+  synthesizeCompositionChange(
+    { "composition":
+      { "string": clauses.join(''),
+        "clauses":
+        [
+          { "length": clauses[0].length,
+            "attr": COMPOSITION_ATTR_RAW_CLAUSE },
+          { "length": clauses[1].length,
+            "attr": COMPOSITION_ATTR_SELECTED_RAW_CLAUSE },
+          { "length": clauses[2].length,
+            "attr": COMPOSITION_ATTR_CONVERTED_CLAUSE },
+          { "length": clauses[3].length,
+            "attr": COMPOSITION_ATTR_SELECTED_CLAUSE },
+        ]
+      },
+      "caret": { "start": caret.length, "length": 0 }
+    });
+
+  checkSelection(caret.replace(/\r/g, "\n").length + (kLFLen - 1) * 4, "", "runNativeLineBreakerTest", "#5");
+  checkIMESelection("RawClause", true, 0, clauses[0].replace(/\r/g, kLF), "runNativeLineBreakerTest: \\r should be replaced with \\n #5");
+  checkIMESelection("SelectedRawClause", true, clauses[0].replace(/\r/g, kLF).length, clauses[1].replace(/\r/g, kLF), "runNativeLineBreakerTest: \\r should be replaced with \\n #5");
+  checkIMESelection("ConvertedClause", true, (clauses[0] + clauses[1]).replace(/\r/g, kLF).length, clauses[2].replace(/\r/g, kLF), "runNativeLineBreakerTest: \\r should be replaced with \\n #5");
+  checkIMESelection("SelectedClause", true, (clauses[0] + clauses[1] + clauses[2]).replace(/\r/g, kLF).length, clauses[3].replace(/\r/g, kLF), "runNativeLineBreakerTest: \\r should be replaced with \\n #5");
+  is(result.compositionupdate, clauses.join('').replace(/\r/g, "\n"), "runNativeLineBreakerTest: \\r in compositionupdate.data should be replaced with \\n #5");
+  is(textarea.value, clauses.join('').replace(/\r/g, "\n"), "runNativeLineBreakerTest: \\r in textarea.value should be replaced with \\n #5");
+
+  synthesizeComposition({ type: "compositioncommit", data: clauses.join('') });
+  checkSelection(clauses.join('').replace(/\r/g, "\n").length + (kLFLen - 1) * 5, "", "runNativeLineBreakerTest", "#6");
+  is(result.compositionend, clauses.join('').replace(/\r/g, "\n"), "runNativeLineBreakerTest: \\r in compositionend.data should be replaced with \\n #6");
+  is(textarea.value, clauses.join('').replace(/\r/g, "\n"), "runNativeLineBreakerTest: \\r in textarea.value should be replaced with \\n #6");
+
+  textarea.removeEventListener("compositionupdate", handler, true);
+  textarea.removeEventListener("compositionend", handler, true);
+
+  SpecialPowers.clearUserPref("dom.compositionevent.allow_control_characters");
+}
+
 function runControlCharTest()
 {
   textarea.focus();
@@ -5970,7 +6140,7 @@ function runControlCharTest()
   textarea.value = "";
 
   var controlChars = String.fromCharCode.apply(null, Object.keys(Array.from({length:0x20}))) + "\x7F";
-  var allowedChars = "\t";
+  var allowedChars = "\t\n\n";
 
   var data = "AB" + controlChars + "CD" + controlChars + "EF";
   var removedData = "AB" + allowedChars + "CD" + allowedChars + "EF";
@@ -5994,7 +6164,7 @@ function runControlCharTest()
       "caret": { "start": DIndex, "length": 0 }
     });
 
-  checkSelection(removedDIndex, "", "runControlCharTest", "#1")
+  checkSelection(removedDIndex + (kLFLen - 1) * 2, "", "runControlCharTest", "#1")
 
   is(result.compositionupdate, removedData, "runControlCharTest: control characters in event.data should be removed in compositionupdate event #1");
   is(textarea.value, removedData, "runControlCharTest: control characters should not appear in textarea #1");
@@ -6026,14 +6196,14 @@ function runControlCharTest()
       "caret": { "start": DIndex, "length": 0 }
     });
 
-  checkSelection(DIndex - 1 + kLFLen, "", "runControlCharTest", "#3")
+  checkSelection(DIndex + (kLFLen - 1) * 2, "", "runControlCharTest", "#3")
 
-  is(result.compositionupdate, data, "runControlCharTest: control characters in event.data should not be removed in compositionupdate event #3");
+  is(result.compositionupdate, data.replace(/\r/g, "\n"), "runControlCharTest: control characters in event.data should not be removed in compositionupdate event #3");
   is(textarea.value, data.replace(/\r/g, "\n"), "runControlCharTest: control characters should appear in textarea #3");
 
   synthesizeComposition({ type: "compositioncommit", data: data });
 
-  is(result.compositionend, data, "runControlCharTest: control characters in event.data should not be removed in compositionend event #4");
+  is(result.compositionend, data.replace(/\r/g, "\n"), "runControlCharTest: control characters in event.data should not be removed in compositionend event #4");
   is(textarea.value, data.replace(/\r/g, "\n"), "runControlCharTest: control characters should appear in textarea #4");
 
   SpecialPowers.clearUserPref("dom.compositionevent.allow_control_characters");
@@ -6095,7 +6265,7 @@ function runRemoveContentTest(aCallback)
        "runRemoveContentTest: The 2nd event was fired on wrong event target #1");
     is(events[2].target, textarea,
        "runRemoveContentTest: The 3rd event was fired on wrong event target #1");
-    ok(!getEditorIMESupport(textarea).isComposing,
+    ok(!getEditor(textarea).isComposing,
        "runRemoveContentTest: the textarea still has composition #1");
     todo_is(textarea.value, "",
        "runRemoveContentTest: the textarea has the committed text? #1");
@@ -6120,7 +6290,7 @@ function runRemoveContentTest(aCallback)
          "runRemoveContentTest: compositionupdate has wrong data #2");
       is(events[0].target, textarea,
          "runRemoveContentTest: The 1st event was fired on wrong event target #2");
-      ok(!getEditorIMESupport(textarea).isComposing,
+      ok(!getEditor(textarea).isComposing,
          "runRemoveContentTest: the textarea still has composition #2");
       is(textarea.value, "",
          "runRemoveContentTest: the textarea has the committed text? #2");
@@ -6935,6 +7105,7 @@ function runTest()
   runIsComposingTest();
   runRedundantChangeTest();
   runNotRedundantChangeTest();
+  runNativeLineBreakerTest();
   runControlCharTest();
   runEditorReframeTests(function () {
     runAsyncForceCommitTest(function () {

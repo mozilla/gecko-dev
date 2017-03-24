@@ -1,0 +1,27 @@
+[package]
+name = "webrender_traits"
+version = "0.26.0"
+authors = ["Glenn Watson <gw@intuitionlibrary.com>"]
+license = "MPL-2.0"
+repository = "https://github.com/servo/webrender"
+
+[features]
+nightly = ["euclid/unstable", "serde/unstable"]
+ipc = ["ipc-channel"]
+
+[dependencies]
+app_units = "0.4"
+byteorder = "1.0"
+euclid = "0.11"
+gleam = "0.4"
+heapsize = "0.3.6"
+ipc-channel = {version = "0.7", optional = true}
+offscreen_gl_context = {version = "0.8", features = ["serde"]}
+serde = "0.9"
+serde_derive = "0.9"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-graphics = "0.7"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+dwrote = "0.3"

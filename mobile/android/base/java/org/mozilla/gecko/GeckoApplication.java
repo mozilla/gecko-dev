@@ -9,7 +9,6 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -31,6 +30,7 @@ import org.mozilla.gecko.preferences.DistroSharedPrefsImport;
 import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.Clipboard;
 import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -41,10 +41,9 @@ public class GeckoApplication extends Application
     implements ContextGetter {
     private static final String LOG_TAG = "GeckoApplication";
 
-    private static volatile GeckoApplication instance;
-
     private boolean mInBackground;
     private boolean mPausedGecko;
+    private boolean mIsInitialResume;
 
     private LightweightTheme mLightweightTheme;
 
@@ -52,11 +51,6 @@ public class GeckoApplication extends Application
 
     public GeckoApplication() {
         super();
-        instance = this;
-    }
-
-    public static GeckoApplication get() {
-        return instance;
     }
 
     public static RefWatcher getRefWatcher(Context context) {
@@ -130,38 +124,35 @@ public class GeckoApplication extends Application
                     db.expireHistory(getContentResolver(), BrowserContract.ExpirePriority.NORMAL);
                 }
             });
+
+            GeckoNetworkManager.getInstance().stop();
         }
-        GeckoNetworkManager.getInstance().stop();
     }
 
     public void onActivityResume(GeckoActivityStatus activity) {
-        if (mPausedGecko) {
+        if (mIsInitialResume) {
+            GeckoBatteryManager.getInstance().start(this);
+            GeckoNetworkManager.getInstance().start(this);
+            mIsInitialResume = false;
+        } else if (mPausedGecko) {
             GeckoThread.onResume();
             mPausedGecko = false;
+            GeckoNetworkManager.getInstance().start(this);
         }
-
-        GeckoBatteryManager.getInstance().start(this);
-        GeckoNetworkManager.getInstance().start(this);
 
         mInBackground = false;
     }
 
     @Override
-    protected void attachBaseContext(Context base) {
-        super.attachBaseContext(base);
-        AppConstants.maybeInstallMultiDex(base);
-    }
-
-    @Override
     public void onCreate() {
         Log.i(LOG_TAG, "zerdatime " + SystemClock.uptimeMillis() + " - Fennec application start");
+        mIsInitialResume = true;
 
         mRefWatcher = LeakCanary.install(this);
 
         final Context context = getApplicationContext();
         GeckoAppShell.setApplicationContext(context);
         HardwareUtils.init(context);
-        Clipboard.init(context);
         FilePicker.init(context);
         DownloadsIntegration.init();
         HomePanelsManager.getInstance().init(context);
@@ -203,10 +194,6 @@ public class GeckoApplication extends Application
                     }
                 }
             });
-        }
-
-        if (AppConstants.MOZ_ANDROID_DOWNLOAD_CONTENT_SERVICE) {
-            DownloadContentService.startStudy(this);
         }
 
         GeckoAccessibility.setAccessibilityManagerListeners(this);
@@ -291,11 +278,11 @@ public class GeckoApplication extends Application
         }
 
         @Override // BundleEventListener
-        public void handleMessage(final String event, final Bundle message,
+        public void handleMessage(final String event, final GeckoBundle message,
                                   final EventCallback callback) {
             if ("Profile:Create".equals(event)) {
-                onProfileCreate(message.getCharSequence("name").toString(),
-                                message.getCharSequence("path").toString());
+                onProfileCreate(message.getString("name"),
+                                message.getString("path"));
             }
         }
     }

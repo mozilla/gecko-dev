@@ -4,7 +4,11 @@
 
 "use strict";
 
-let {ExtensionUtils: {SchemaAPIManager}} = Cu.import("resource://gre/modules/ExtensionUtils.jsm", {});
+Cu.import("resource://gre/modules/ExtensionCommon.jsm");
+
+const {
+  SchemaAPIManager,
+} = ExtensionCommon;
 
 this.unknownvar = "Some module-global var";
 
@@ -18,7 +22,7 @@ function toLocalURI(code) {
   let uniqueResPart = `need-a-local-uri-for-subscript-loading-${++gUniqueId}`;
   Services.io.getProtocolHandler("resource")
     .QueryInterface(Ci.nsIResProtocolHandler)
-    .setSubstitution(uniqueResPart, Services.io.newURI(dataUrl, null, null));
+    .setSubstitution(uniqueResPart, Services.io.newURI(dataUrl));
   return `resource://${uniqueResPart}`;
 }
 

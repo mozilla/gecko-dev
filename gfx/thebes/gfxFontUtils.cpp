@@ -25,6 +25,10 @@
 #include "plbase64.h"
 #include "mozilla/Logging.h"
 
+#ifdef XP_MACOSX
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 #define LOG(log, args) MOZ_LOG(gfxPlatform::GetLog(log), \
                                LogLevel::Debug, args)
 
@@ -139,9 +143,13 @@ gfxFontUtils::ReadCMAPTableFormat10(const uint8_t *aBuf, uint32_t aLength,
 }
 
 nsresult
-gfxFontUtils::ReadCMAPTableFormat12(const uint8_t *aBuf, uint32_t aLength,
-                                    gfxSparseBitSet& aCharacterMap) 
+gfxFontUtils::ReadCMAPTableFormat12or13(const uint8_t *aBuf, uint32_t aLength,
+                                        gfxSparseBitSet& aCharacterMap)
 {
+    // Format 13 has the same structure as format 12, the only difference is
+    // the interpretation of the glyphID field. So we can share the code here
+    // that reads the table and just records character coverage.
+
     // Ensure table is large enough that we can safely read the header
     NS_ENSURE_TRUE(aLength >= sizeof(Format12CmapHeader),
                     NS_ERROR_GFX_CMAP_MALFORMED);
@@ -149,9 +157,10 @@ gfxFontUtils::ReadCMAPTableFormat12(const uint8_t *aBuf, uint32_t aLength,
     // Sanity-check header fields
     const Format12CmapHeader *cmap12 =
         reinterpret_cast<const Format12CmapHeader*>(aBuf);
-    NS_ENSURE_TRUE(uint16_t(cmap12->format) == 12, 
+    NS_ENSURE_TRUE(uint16_t(cmap12->format) == 12 ||
+                   uint16_t(cmap12->format) == 13,
                    NS_ERROR_GFX_CMAP_MALFORMED);
-    NS_ENSURE_TRUE(uint16_t(cmap12->reserved) == 0, 
+    NS_ENSURE_TRUE(uint16_t(cmap12->reserved) == 0,
                    NS_ERROR_GFX_CMAP_MALFORMED);
 
     uint32_t tablelen = cmap12->length;
@@ -472,7 +481,7 @@ gfxFontUtils::FindPreferredSubtable(const uint8_t *aBuf, uint32_t aBufLength,
             keepFormat = format;
             *aTableOffset = offset;
             *aSymbolEncoding = false;
-        } else if ((format == 10 || format == 12) &&
+        } else if ((format == 10 || format == 12 || format == 13) &&
                    acceptableUCS4Encoding(platformID, encodingID, keepFormat)) {
             keepFormat = format;
             *aTableOffset = offset;
@@ -521,10 +530,11 @@ gfxFontUtils::ReadCMAP(const uint8_t *aBuf, uint32_t aBufLength,
                                      aCharacterMap);
 
     case 12:
+    case 13:
         aUnicodeFont = true;
         aSymbolFont = false;
-        return ReadCMAPTableFormat12(aBuf + offset, aBufLength - offset,
-                                     aCharacterMap);
+        return ReadCMAPTableFormat12or13(aBuf + offset, aBufLength - offset,
+                                         aCharacterMap);
 
     default:
         break;
@@ -651,13 +661,17 @@ gfxFontUtils::MapCharToGlyphFormat10(const uint8_t *aBuf, uint32_t aCh)
 }
 
 uint32_t
-gfxFontUtils::MapCharToGlyphFormat12(const uint8_t *aBuf, uint32_t aCh)
+gfxFontUtils::MapCharToGlyphFormat12or13(const uint8_t *aBuf, uint32_t aCh)
 {
+    // The only difference between formats 12 and 13 is the interpretation of
+    // the glyphId field. So the code here uses the same "Format12" structures,
+    // etc., to handle both subtable formats.
+
     const Format12CmapHeader *cmap12 =
         reinterpret_cast<const Format12CmapHeader*>(aBuf);
 
     // We know that numGroups is within range for the subtable size
-    // because it was checked by ReadCMAPTableFormat12.
+    // because it was checked by ReadCMAPTableFormat12or13.
     uint32_t numGroups = cmap12->numGroups;
 
     // The array of groups immediately follows the subtable header.
@@ -688,10 +702,13 @@ gfxFontUtils::MapCharToGlyphFormat12(const uint8_t *aBuf, uint32_t aCh)
     }
 
     // Check if the character is actually present in the range and return
-    // the corresponding glyph ID
+    // the corresponding glyph ID. Here is where formats 12 and 13 interpret
+    // the startGlyphId (12) or glyphId (13) field differently
     startCharCode = groups[range].startCharCode;
     if (startCharCode <= aCh && groups[range].endCharCode >= aCh) {
-        return groups[range].startGlyphId + aCh - startCharCode;
+        return uint16_t(cmap12->format) == 12
+               ? uint16_t(groups[range].startGlyphId) + aCh - startCharCode
+               : uint16_t(groups[range].startGlyphId);
     }
 
     // Else it's not present, so return the .notdef glyph
@@ -767,7 +784,8 @@ gfxFontUtils::MapCharToGlyph(const uint8_t *aCmapBuf, uint32_t aBufLength,
         gid = MapCharToGlyphFormat10(aCmapBuf + offset, aUnicode);
         break;
     case 12:
-        gid = MapCharToGlyphFormat12(aCmapBuf + offset, aUnicode);
+    case 13:
+        gid = MapCharToGlyphFormat12or13(aCmapBuf + offset, aUnicode);
         break;
     default:
         NS_WARNING("unsupported cmap format, glyphs will be missing");
@@ -793,8 +811,9 @@ gfxFontUtils::MapCharToGlyph(const uint8_t *aCmapBuf, uint32_t aBufLength,
                                                     aUnicode);
                     break;
                 case 12:
-                    varGID = MapCharToGlyphFormat12(aCmapBuf + offset,
-                                                    aUnicode);
+                case 13:
+                    varGID = MapCharToGlyphFormat12or13(aCmapBuf + offset,
+                                                        aUnicode);
                     break;
                 }
             }
@@ -1461,6 +1480,24 @@ gfxFontUtils::DecodeFontName(const char *aNameData, int32_t aByteLen,
     nsCOMPtr<nsIUnicodeDecoder> decoder =
         mozilla::dom::EncodingUtils::DecoderForEncoding(csName);
     if (!decoder) {
+#ifdef XP_MACOSX
+        // Special case for macOS only: support legacy Mac encodings
+        // that DecoderForEncoding didn't handle.
+        if (aPlatformCode == PLATFORM_ID_MAC) {
+            CFStringRef str =
+                CFStringCreateWithBytes(kCFAllocatorDefault,
+                                        (const UInt8*)aNameData, aByteLen,
+                                        aScriptCode, false);
+            if (str) {
+                CFIndex length = CFStringGetLength(str);
+                aName.SetLength(length);
+                CFStringGetCharacters(str, CFRangeMake(0, length),
+                                      (UniChar*)aName.BeginWriting());
+                CFRelease(str);
+                return true;
+            }
+        }
+#endif
         NS_WARNING("failed to get the decoder for a font name string");
         return false;
     }

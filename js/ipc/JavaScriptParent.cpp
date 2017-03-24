@@ -9,6 +9,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsJSUtils.h"
+#include "nsIScriptError.h"
 #include "jsfriendapi.h"
 #include "jswrapper.h"
 #include "js/Proxy.h"
@@ -165,7 +166,7 @@ JavaScriptParent::trace(JSTracer* trc)
 JSObject*
 JavaScriptParent::scopeForTargetObjects()
 {
-    // CPWOWs from the child need to point into the parent's unprivileged junk
+    // CPOWs from the child need to point into the parent's unprivileged junk
     // scope so that a compromised child cannot compromise the parent. In
     // practice, this means that a child process can only (a) hold parent
     // objects alive and (b) invoke them if they are callable.

@@ -1,21 +1,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 "use strict";
 
-const { defer, all } = require("promise");
-const { LocalizationHelper } = require("devtools/shared/l10n");
 const Services = require("Services");
 const appInfo = Services.appinfo;
+const { LocalizationHelper } = require("devtools/shared/l10n");
 const { CurlUtils } = require("devtools/client/shared/curl");
-const { getFormDataSections } = require("devtools/client/netmonitor/request-utils");
+const {
+  getFormDataSections,
+  getUrlQuery,
+  parseQueryString,
+} = require("devtools/client/netmonitor/utils/request-utils");
 
-loader.lazyRequireGetter(this, "NetworkHelper", "devtools/shared/webconsole/network-helper");
-
-loader.lazyGetter(this, "L10N", () => {
-  return new LocalizationHelper("devtools/client/locales/har.properties");
-});
-
+const L10N = new LocalizationHelper("devtools/client/locales/har.properties");
 const HAR_VERSION = "1.1";
 
 /**
@@ -27,8 +26,7 @@ const HAR_VERSION = "1.1";
  *
  * The following options are supported:
  *
- * - items {Array}: List of Network requests to be exported. It is possible
- *   to use directly: NetMonitorView.RequestsMenu.items
+ * - items {Array}: List of Network requests to be exported.
  *
  * - id {String}: ID of the exported page.
  *
@@ -60,18 +58,13 @@ HarBuilder.prototype = {
     let log = this.buildLog();
 
     // Build entries.
-    let items = this._options.items;
-    for (let i = 0; i < items.length; i++) {
-      let file = items[i].attachment;
+    for (let file of this._options.items) {
       log.entries.push(this.buildEntry(log, file));
     }
 
     // Some data needs to be fetched from the backend during the
     // build process, so wait till all is done.
-    let { resolve, promise } = defer();
-    all(this.promises).then(results => resolve({ log: log }));
-
-    return promise;
+    return Promise.all(this.promises).then(() => ({ log }));
   },
 
   // Helpers
@@ -170,8 +163,7 @@ HarBuilder.prototype = {
     request.headers = this.appendHeadersPostData(request.headers, file);
     request.cookies = this.buildCookies(file.requestCookies);
 
-    request.queryString = NetworkHelper.parseQueryString(
-      NetworkHelper.nsIURL(file.url).query) || [];
+    request.queryString = parseQueryString(getUrlQuery(file.url)) || [];
 
     request.postData = this.buildPostData(file);
 
@@ -277,10 +269,9 @@ HarBuilder.prototype = {
           file.requestHeaders,
           file.requestHeadersFromUploadStream,
           file.requestPostData,
-          this._options.getString
         ).then(formDataSections => {
           formDataSections.forEach(section => {
-            let paramsArray = NetworkHelper.parseQueryString(section);
+            let paramsArray = parseQueryString(section);
             if (paramsArray) {
               postData.params = [...postData.params, ...paramsArray];
             }

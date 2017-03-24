@@ -7,6 +7,7 @@
 #include "nsLayoutStatics.h"
 #include "nscore.h"
 
+#include "DateTimeFormat.h"
 #include "nsAttrValue.h"
 #include "nsAutoCopyListener.h"
 #include "nsColorNames.h"
@@ -21,6 +22,7 @@
 #include "nsCSSPseudoClasses.h"
 #include "nsCSSPseudoElements.h"
 #include "nsCSSRendering.h"
+#include "nsGenericHTMLFrameElement.h"
 #include "mozilla/dom/Attr.h"
 #include "nsDOMClassInfo.h"
 #include "mozilla/EventListenerManager.h"
@@ -30,7 +32,7 @@
 #include "nsImageFrame.h"
 #include "nsLayoutStylesheetCache.h"
 #include "mozilla/RuleProcessorCache.h"
-#include "nsPrincipal.h"
+#include "ContentPrincipal.h"
 #include "nsRange.h"
 #include "nsRegion.h"
 #include "nsRepeatService.h"
@@ -49,7 +51,10 @@
 #include "nsCSSRuleProcessor.h"
 #include "nsCORSListenerProxy.h"
 #include "nsHTMLDNSPrefetch.h"
+#include "nsHtml5Atoms.h"
 #include "nsHtml5Module.h"
+#include "nsHTMLTags.h"
+#include "nsIRDFContentSink.h"	// for RDF atom initialization
 #include "mozilla/dom/FallbackEncoding.h"
 #include "nsFocusManager.h"
 #include "nsListControlFrame.h"
@@ -59,7 +64,7 @@
 #include "nsMathMLAtoms.h"
 #include "nsMathMLOperators.h"
 #include "Navigator.h"
-#include "DOMStorageObserver.h"
+#include "StorageObserver.h"
 #include "CacheObserver.h"
 #include "DisplayItemClip.h"
 #include "ActiveLayerTracker.h"
@@ -67,7 +72,6 @@
 #include "FrameLayerBuilder.h"
 #include "AnimationCommon.h"
 #include "LayerAnimationInfo.h"
-#include "mozilla/dom/VideoDecoderManagerChild.h"
 
 #include "AudioChannelService.h"
 #include "mozilla/dom/PromiseDebugging.h"
@@ -125,7 +129,6 @@ using namespace mozilla::system;
 #include "TouchManager.h"
 #include "MediaDecoder.h"
 #include "MediaPrefs.h"
-#include "mozilla/dom/devicestorage/DeviceStorageStatics.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/StaticPresData.h"
 #include "mozilla/dom/WebIDLGlobalNameHash.h"
@@ -156,10 +159,15 @@ nsLayoutStatics::Initialize()
   nsCSSPseudoClasses::AddRefAtoms();
   nsCSSPseudoElements::AddRefAtoms();
   nsCSSKeywords::AddRefTable();
-  nsCSSProps::AddRefAtoms();
   nsCSSProps::AddRefTable();
   nsColorNames::AddRefTable();
   nsGkAtoms::AddRefAtoms();
+  nsHtml5Atoms::AddRefAtoms();
+  nsTextServicesDocument::RegisterAtoms();
+  nsHTMLTags::RegisterAtoms();
+  nsRDFAtoms::RegisterAtoms();
+
+  NS_SealStaticAtomTable();
 
   StartupJSEnvironment();
   rv = nsRegion::InitStatic();
@@ -212,8 +220,6 @@ nsLayoutStatics::Initialize()
 
   nsMathMLOperators::AddRefTable();
 
-  nsTextServicesDocument::RegisterAtoms();
-
 #ifdef DEBUG
   nsFrame::DisplayReflowStartup();
 #endif
@@ -225,9 +231,9 @@ nsLayoutStatics::Initialize()
     return rv;
   }
 
-  rv = DOMStorageObserver::Init();
+  rv = StorageObserver::Init();
   if (NS_FAILED(rv)) {
-    NS_ERROR("Could not initialize DOMStorageObserver");
+    NS_ERROR("Could not initialize StorageObserver");
     return rv;
   }
 
@@ -264,11 +270,9 @@ nsLayoutStatics::Initialize()
   nsLayoutUtils::Initialize();
   nsIPresShell::InitializeStatics();
   TouchManager::InitializeStatics();
-  nsPrincipal::InitializeStatics();
+  ContentPrincipal::InitializeStatics();
 
   nsCORSListenerProxy::Startup();
-
-  NS_SealStaticAtomTable();
 
   nsWindowMemoryReporter::Init();
 
@@ -282,6 +286,7 @@ nsLayoutStatics::Initialize()
   nsApplicationCacheService::AppClearDataObserverInit();
 
   HTMLVideoElement::Init();
+  nsGenericHTMLFrameElement::InitStatics();
 
 #ifdef MOZ_XUL
   nsMenuBarListener::InitializeStatics();
@@ -302,17 +307,13 @@ nsLayoutStatics::Initialize()
 
   MediaDecoder::InitStatics();
 
-  VideoDecoderManagerChild::Initialize();
-
   PromiseDebugging::Init();
-
-  mozilla::dom::devicestorage::DeviceStorageStatics::Initialize();
 
   mozilla::dom::WebCryptoThreadPool::Initialize();
 
-  // NB: We initialize servo in nsAppRunner.cpp, because we need to do it after
-  // creating the hidden DOM window to support some current stylo hacks. We
-  // should move initialization back here once those go away.
+#ifdef MOZ_STYLO
+  Servo_Initialize();
+#endif
 
 #ifndef MOZ_WIDGET_ANDROID
   // On Android, we instantiate it when constructing AndroidBridge.
@@ -328,12 +329,16 @@ nsLayoutStatics::Shutdown()
   // Don't need to shutdown nsWindowMemoryReporter, that will be done by the
   // memory reporter manager.
 
+#ifdef MOZ_STYLO
+  Servo_Shutdown();
+#endif
+
   nsMessageManagerScriptExecutor::Shutdown();
   nsFocusManager::Shutdown();
 #ifdef MOZ_XUL
   nsXULPopupManager::Shutdown();
 #endif
-  DOMStorageObserver::Shutdown();
+  StorageObserver::Shutdown();
   txMozillaXSLTProcessor::Shutdown();
   Attr::Shutdown();
   EventListenerManager::Shutdown();
@@ -426,6 +431,8 @@ nsLayoutStatics::Shutdown()
 
   nsHyphenationManager::Shutdown();
   nsDOMMutationObserver::Shutdown();
+
+  DateTimeFormat::Shutdown();
 
   ContentParent::ShutDown();
 

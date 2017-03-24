@@ -8,8 +8,7 @@ package org.mozilla.gecko;
 import java.io.IOException;
 
 import org.mozilla.gecko.util.EventCallback;
-import org.json.JSONObject;
-import org.json.JSONException;
+import org.mozilla.gecko.util.GeckoBundle;
 
 import com.google.android.gms.cast.Cast.MessageReceivedCallback;
 import com.google.android.gms.cast.ApplicationMetadata;
@@ -89,15 +88,15 @@ class ChromeCastPlayer implements GeckoMediaPlayer {
 
             switch (mediaStatus.getPlayerState()) {
             case MediaStatus.PLAYER_STATE_PLAYING:
-                GeckoAppShell.notifyObservers("MediaPlayer:Playing", null);
+                EventDispatcher.getInstance().dispatch("MediaPlayer:Playing", null);
                 break;
             case MediaStatus.PLAYER_STATE_PAUSED:
-                GeckoAppShell.notifyObservers("MediaPlayer:Paused", null);
+                EventDispatcher.getInstance().dispatch("MediaPlayer:Paused", null);
                 break;
             case MediaStatus.PLAYER_STATE_IDLE:
                 // TODO: Do we want to shutdown when there are errors?
                 if (mediaStatus.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {
-                    GeckoAppShell.notifyObservers("Casting:Stop", null);
+                    EventDispatcher.getInstance().dispatch("Casting:Stop", null);
                 }
                 break;
             default:
@@ -184,27 +183,22 @@ class ChromeCastPlayer implements GeckoMediaPlayer {
      *  easier to filter out duplicate devices from different sources in JS.
      *  Returns null if the device can't be found.
      */
-    @Override
-    public JSONObject toJSON() {
-        final JSONObject obj = new JSONObject();
-        try {
-            final CastDevice device = CastDevice.getFromBundle(route.getExtras());
-            if (device == null) {
-                return null;
-            }
-
-            obj.put("uuid", route.getId());
-            obj.put("version", device.getDeviceVersion());
-            obj.put("friendlyName", device.getFriendlyName());
-            obj.put("location", device.getIpAddress().toString());
-            obj.put("modelName", device.getModelName());
-            obj.put("mirror", canMirror);
-            // For now we just assume all of these are Google devices
-            obj.put("manufacturer", "Google Inc.");
-        } catch (JSONException ex) {
-            debug("Error building route", ex);
+    @Override // GeckoMediaPlayer
+    public GeckoBundle toBundle() {
+        final CastDevice device = CastDevice.getFromBundle(route.getExtras());
+        if (device == null) {
+            return null;
         }
 
+        final GeckoBundle obj = new GeckoBundle(7);
+        obj.putString("uuid", route.getId());
+        obj.putString("version", device.getDeviceVersion());
+        obj.putString("friendlyName", device.getFriendlyName());
+        obj.putString("location", device.getIpAddress().toString());
+        obj.putString("modelName", device.getModelName());
+        obj.putBoolean("mirror", canMirror);
+        // For now we just assume all of these are Google devices
+        obj.putString("manufacturer", "Google Inc.");
         return obj;
     }
 
@@ -388,7 +382,9 @@ class ChromeCastPlayer implements GeckoMediaPlayer {
         @Override
         public void onMessageReceived(CastDevice castDevice, String namespace,
                                       String message) {
-            GeckoAppShell.notifyObservers("MediaPlayer:Response", message);
+            final GeckoBundle data = new GeckoBundle(1);
+            data.putString("message", message);
+            EventDispatcher.getInstance().dispatch("MediaPlayer:Response", data);
         }
 
         public void sendMessage(String message) {
@@ -437,7 +433,9 @@ class ChromeCastPlayer implements GeckoMediaPlayer {
                     Log.e(LOGTAG, "Exception while creating channel", e);
                 }
 
-                GeckoAppShell.notifyObservers("Casting:Mirror", route.getId());
+                final GeckoBundle message = new GeckoBundle(1);
+                message.putString("id", route.getId());
+                EventDispatcher.getInstance().dispatch("Casting:Mirror", message);
             } else {
                 sendError(callback, status.toString());
             }

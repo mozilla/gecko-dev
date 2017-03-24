@@ -122,6 +122,7 @@ class EventLoopLagDispatcher : public Runnable
  */
 void TracerThread(void *arg)
 {
+  AutoProfilerRegister registerThread("Event Tracer");
   PR_SetCurrentThreadName("Event Tracer");
 
   TracerStartClosure* threadArgs = static_cast<TracerStartClosure*>(arg);
@@ -166,7 +167,6 @@ void TracerThread(void *arg)
 
   while (!sExit) {
     TimeStamp start(TimeStamp::Now());
-    profiler_responsiveness(start);
     PRIntervalTime next_sleep = interval;
 
     //TODO: only wait up to a maximum of interval; return

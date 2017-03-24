@@ -4,7 +4,7 @@
 
 /* globals recordInitialTimestamps, onlyNewItemsFilter, checkRecentlyClosed */
 
-SimpleTest.requestCompleteLog();
+requestLongerTimeout(2);
 
 Services.scriptloader.loadSubScript(new URL("head_sessions.js", gTestPath).href,
                                     this);
@@ -93,5 +93,38 @@ add_task(function* test_sessions_get_recently_closed() {
   recentlyClosed = yield extension.awaitMessage("recentlyClosed");
   checkRecentlyClosed(recentlyClosed.filter(onlyNewItemsFilter), 2, currentWindowId);
 
+  yield extension.unload();
+});
+
+add_task(function* test_sessions_get_recently_closed_navigated() {
+  function background() {
+    browser.sessions.getRecentlyClosed({maxResults: 1}).then(recentlyClosed => {
+      let tab = recentlyClosed[0].window.tabs[0];
+      browser.test.assertEq("http://example.com/", tab.url,
+        "Tab in closed window has the expected url.");
+      browser.test.assertTrue(tab.title.includes("mochitest index"),
+        "Tab in closed window has the expected title.");
+      browser.test.notifyPass("getRecentlyClosed with navigation");
+    });
+  }
+
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: ["sessions", "tabs"],
+    },
+    background,
+  });
+
+  // Test with a window with navigation history.
+  let win = yield BrowserTestUtils.openNewBrowserWindow();
+  for (let url of ["about:robots", "about:mozilla", "http://example.com/"]) {
+    yield BrowserTestUtils.loadURI(win.gBrowser.selectedBrowser, url);
+    yield BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
+  }
+
+  yield BrowserTestUtils.closeWindow(win);
+
+  yield extension.startup();
+  yield extension.awaitFinish();
   yield extension.unload();
 });

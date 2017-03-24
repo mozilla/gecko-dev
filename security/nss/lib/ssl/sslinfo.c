@@ -1,9 +1,11 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
+#include "tls13hkdf.h"
 
 static const char *
 ssl_GetCompressionMethodName(SSLCompressionMethod compression)
@@ -138,6 +140,20 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
     inf.valuesSet = ss->ssl3.hs.preliminaryInfo;
     inf.protocolVersion = ss->version;
     inf.cipherSuite = ss->ssl3.hs.cipher_suite;
+    inf.canSendEarlyData = !ss->sec.isServer &&
+                           (ss->ssl3.hs.zeroRttState == ssl_0rtt_sent ||
+                            ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted);
+    /* We shouldn't be able to send early data if the handshake is done. */
+    PORT_Assert(!ss->firstHsDone || !inf.canSendEarlyData);
+
+    if (ss->sec.ci.sid &&
+        (ss->ssl3.hs.zeroRttState == ssl_0rtt_sent ||
+         ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted)) {
+        inf.maxEarlyDataSize =
+            ss->sec.ci.sid->u.ssl3.locked.sessionTicket.max_early_data_size;
+    } else {
+        inf.maxEarlyDataSize = 0;
+    }
 
     memcpy(info, &inf, inf.length);
     return SECSuccess;
@@ -373,6 +389,24 @@ SSL_GetNegotiatedHostInfo(PRFileDesc *fd)
     return sniName;
 }
 
+static SECStatus
+tls13_Exporter(sslSocket *ss, PK11SymKey *secret,
+               const char *label, unsigned int labelLen,
+               const unsigned char *context, unsigned int contextLen,
+               unsigned char *out, unsigned int outLen)
+{
+    if (!secret) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    return tls13_HkdfExpandLabelRaw(secret,
+                                    tls13_GetHash(ss),
+                                    context, contextLen,
+                                    label, labelLen,
+                                    out, outLen);
+}
+
 SECStatus
 SSL_ExportKeyingMaterial(PRFileDesc *fd,
                          const char *label, unsigned int labelLen,
@@ -392,9 +426,17 @@ SSL_ExportKeyingMaterial(PRFileDesc *fd,
         return SECFailure;
     }
 
-    if (ss->version < SSL_LIBRARY_VERSION_3_1_TLS) {
-        PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION);
+    if (!label || !labelLen || !out || !outLen ||
+        (hasContext && (!context || !contextLen))) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
+    }
+
+    if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
+        return tls13_Exporter(ss, ss->ssl3.hs.exporterSecret,
+                              label, labelLen,
+                              context, hasContext ? contextLen : 0,
+                              out, outLen);
     }
 
     /* construct PRF arguments */
@@ -427,12 +469,38 @@ SSL_ExportKeyingMaterial(PRFileDesc *fd,
         PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
         rv = SECFailure;
     } else {
-        HASH_HashType ht = ssl3_GetTls12HashType(ss);
-        rv = ssl3_TLSPRFWithMasterSecret(ss->ssl3.cwSpec, label, labelLen, val,
-                                         valLen, out, outLen, ht);
+        rv = ssl3_TLSPRFWithMasterSecret(ss, ss->ssl3.cwSpec, label, labelLen,
+                                         val, valLen, out, outLen);
     }
     ssl_ReleaseSpecReadLock(ss);
 
     PORT_ZFree(val, valLen);
     return rv;
+}
+
+SECStatus
+SSL_ExportEarlyKeyingMaterial(PRFileDesc *fd,
+                              const char *label, unsigned int labelLen,
+                              const unsigned char *context,
+                              unsigned int contextLen,
+                              unsigned char *out, unsigned int outLen)
+{
+    sslSocket *ss;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+        SSL_DBG(("%d: SSL[%d]: bad socket in SSL_ExportEarlyKeyingMaterial",
+                 SSL_GETPID(), fd));
+        return SECFailure;
+    }
+
+    if (!label || !labelLen || !out || !outLen ||
+        (!context && contextLen)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    return tls13_Exporter(ss, ss->ssl3.hs.earlyExporterSecret,
+                          label, labelLen, context, contextLen,
+                          out, outLen);
 }

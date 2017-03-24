@@ -11,7 +11,8 @@ add_task(function* () {
   let { monitor } = yield initNetMonitor(SIMPLE_URL);
   info("Starting test... ");
 
-  let { document, Chart } = monitor.panelWin;
+  let { document, windowRequire } = monitor.panelWin;
+  let { Chart } = windowRequire("devtools/client/shared/widgets/Chart");
 
   let pie = Chart.Pie(document, {
     width: 100,

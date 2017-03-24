@@ -109,7 +109,7 @@
 }
 
 .tooltip-xul-wrapper {
-  -moz-appearance: none;
+  -moz-appearance: none; appearance: none;
   background: transparent;
   overflow: visible;
   border-style: none;
@@ -292,7 +292,8 @@
   direction: rtl;
 }
 
-.event-tooltip-debugger-icon {
+.event-tooltip-debugger-icon,
+.event-tooltip-debugger-spacer {
   width: 16px;
   height: 16px;
   margin-inline-end: 4px;
@@ -349,7 +350,7 @@
   padding: 2px;
   margin-inline-start: 5px;
   background-color: var(--theme-body-color-alt);
-  color: var(--theme-toolbar-background);
+  color: var(--theme-body-background);
 }
 
 .event-tooltip-attributes {
@@ -444,4 +445,13 @@
 
 #searchbox-panel-listbox .autocomplete-item > .autocomplete-value {
   max-width: 150px;
+}
+
+/* Tooltip: Image tooltip */
+
+.devtools-tooltip-image-broken {
+  box-sizing: border-box;
+  height: 100%;
+  text-align: center;
+  line-height: 30px;
 }

@@ -32,16 +32,14 @@ add_task(function*() {
     let setHomepagePromise = new Promise(function(resolve) {
       let observer = {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
-        observe: function(subject, topic, data) {
+        observe(subject, topic, data) {
           is(topic, "nsPref:changed", "observed correct topic");
           is(data, HOMEPAGE_PREF, "observed correct data");
-          let modified = Services.prefs.getComplexValue(HOMEPAGE_PREF,
-                                                        Ci.nsISupportsString);
-          is(modified.data, homepage, "homepage is set correctly");
+          let modified = Services.prefs.getStringPref(HOMEPAGE_PREF);
+          is(modified, homepage, "homepage is set correctly");
           Services.prefs.removeObserver(HOMEPAGE_PREF, observer);
 
-          Services.prefs.setComplexValue(HOMEPAGE_PREF,
-                                         Ci.nsISupportsString, homepageStr);
+          Services.prefs.setStringPref(HOMEPAGE_PREF, "about:mozilla;");
 
           resolve();
         }
@@ -57,7 +55,7 @@ add_task(function*() {
   function dropInvalidURI() {
     return new Promise(resolve => {
       let consoleListener = {
-        observe: function (m) {
+        observe(m) {
           if (m.message.includes("NS_ERROR_DOM_BAD_URI")) {
             ok(true, "drop was blocked");
             resolve();
@@ -65,11 +63,11 @@ add_task(function*() {
         }
       };
       Services.console.registerListener(consoleListener);
-      registerCleanupFunction(function () {
+      registerCleanupFunction(function() {
         Services.console.unregisterListener(consoleListener);
       });
 
-      executeSoon(function () {
+      executeSoon(function() {
         info("Attempting second drop, of a javascript: URI");
         // The drop handler throws an exception when dragging URIs that inherit
         // principal, e.g. javascript:
@@ -87,4 +85,3 @@ add_task(function*() {
               "http://mochi.test:8888/|http://mochi.test:8888/b|http://mochi.test:8888/c");
   yield dropInvalidURI();
 });
-

@@ -190,7 +190,7 @@ PluginPRLibrary::NP_GetEntryPoints(NPPluginFuncs* pFuncs, NPError* error)
 
 nsresult
 PluginPRLibrary::NPP_New(NPMIMEType pluginType, NPP instance,
-			 uint16_t mode, int16_t argc, char* argn[],
+			 int16_t argc, char* argn[],
 			 char* argv[], NPSavedData* saved,
 			 NPError* error)
 {
@@ -198,7 +198,7 @@ PluginPRLibrary::NPP_New(NPMIMEType pluginType, NPP instance,
     return NS_ERROR_FAILURE;
 
   MAIN_THREAD_JNI_REF_GUARD;
-  *error = mNPP_New(pluginType, instance, mode, argc, argn, argv, saved);
+  *error = mNPP_New(pluginType, instance, NP_EMBED, argc, argn, argv, saved);
   return NS_OK;
 }
 
@@ -319,7 +319,7 @@ PluginPRLibrary::BeginUpdateBackground(NPP instance, const nsIntRect&,
 nsresult
 PluginPRLibrary::EndUpdateBackground(NPP instance, const nsIntRect&)
 {
-  NS_RUNTIMEABORT("This should never be called");
+  MOZ_CRASH("This should never be called");
   return NS_ERROR_NOT_AVAILABLE;
 }
 

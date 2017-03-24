@@ -10,19 +10,31 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/gfx/PGPUChild.h"
 #include "mozilla/gfx/gfxVarReceiver.h"
+#include "ProfilerControllingProcess.h"
 
 namespace mozilla {
+
+#ifdef MOZ_GECKO_PROFILER
+class CrossProcessProfilerController;
+#endif
+
 namespace ipc {
 class CrashReporterHost;
-} // namespace
+} // namespace ipc
+namespace dom {
+class MemoryReportRequestHost;
+} // namespace dom
 namespace gfx {
 
 class GPUProcessHost;
 
 class GPUChild final
-  : public PGPUChild,
-    public gfxVarReceiver
+  : public PGPUChild
+  , public gfxVarReceiver
+  , public ProfilerControllingProcess
 {
+  typedef mozilla::dom::MemoryReportRequestHost MemoryReportRequestHost;
+
 public:
   explicit GPUChild(GPUProcessHost* aHost);
   ~GPUChild();
@@ -35,21 +47,44 @@ public:
   void OnVarChanged(const GfxVarUpdate& aVar) override;
 
   // PGPUChild overrides.
-  bool RecvInitComplete(const GPUDeviceData& aData) override;
-  bool RecvReportCheckerboard(const uint32_t& aSeverity, const nsCString& aLog) override;
-  bool RecvInitCrashReporter(Shmem&& shmem) override;
-  bool RecvAccumulateChildHistogram(InfallibleTArray<Accumulation>&& aAccumulations) override;
-  bool RecvAccumulateChildKeyedHistogram(InfallibleTArray<KeyedAccumulation>&& aAccumulations) override;
+  mozilla::ipc::IPCResult RecvInitComplete(const GPUDeviceData& aData) override;
+  mozilla::ipc::IPCResult RecvReportCheckerboard(const uint32_t& aSeverity, const nsCString& aLog) override;
+  mozilla::ipc::IPCResult RecvInitCrashReporter(Shmem&& shmem, const NativeThreadId& aThreadId) override;
+
+  mozilla::ipc::IPCResult RecvAccumulateChildHistograms(InfallibleTArray<Accumulation>&& aAccumulations) override;
+  mozilla::ipc::IPCResult RecvAccumulateChildKeyedHistograms(InfallibleTArray<KeyedAccumulation>&& aAccumulations) override;
+  mozilla::ipc::IPCResult RecvUpdateChildScalars(InfallibleTArray<ScalarAction>&& aScalarActions) override;
+  mozilla::ipc::IPCResult RecvUpdateChildKeyedScalars(InfallibleTArray<KeyedScalarAction>&& aScalarActions) override;
+  mozilla::ipc::IPCResult RecvRecordChildEvents(nsTArray<ChildEventData>&& events) override;
+
   void ActorDestroy(ActorDestroyReason aWhy) override;
-  bool RecvGraphicsError(const nsCString& aError) override;
-  bool RecvNotifyUiObservers(const nsCString& aTopic) override;
+  mozilla::ipc::IPCResult RecvGraphicsError(const nsCString& aError) override;
+  mozilla::ipc::IPCResult RecvNotifyUiObservers(const nsCString& aTopic) override;
+  mozilla::ipc::IPCResult RecvNotifyDeviceReset() override;
+  mozilla::ipc::IPCResult RecvProfile(const nsCString& aProfile) override;
+  mozilla::ipc::IPCResult RecvAddMemoryReport(const MemoryReport& aReport) override;
+  mozilla::ipc::IPCResult RecvFinishMemoryReport(const uint32_t& aGeneration) override;
+
+  void SendStartProfiler(const ProfilerInitParams& aParams) override;
+  void SendStopProfiler() override;
+  void SendPauseProfiler(const bool& aPause) override;
+  void SendGatherProfile() override;
+
+  bool SendRequestMemoryReport(const uint32_t& aGeneration,
+                               const bool& aAnonymize,
+                               const bool& aMinimizeMemoryUsage,
+                               const MaybeFileDesc& aDMDFile);
 
   static void Destroy(UniquePtr<GPUChild>&& aChild);
 
 private:
   GPUProcessHost* mHost;
   UniquePtr<ipc::CrashReporterHost> mCrashReporter;
+  UniquePtr<MemoryReportRequestHost> mMemoryReportRequest;
   bool mGPUReady;
+#ifdef MOZ_GECKO_PROFILER
+  UniquePtr<CrossProcessProfilerController> mProfilerController;
+#endif
 };
 
 } // namespace gfx

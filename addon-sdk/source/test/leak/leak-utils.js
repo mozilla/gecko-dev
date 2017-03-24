@@ -31,7 +31,6 @@ function gc() {
     Cu.schedulePreciseGC(genGCCallback());
   });
 }
-exports.gc = gc;
 
 // Execute the given test function and verify that we did not leak windows
 // in the process.  The test function must return a promise or be a generator.
@@ -61,7 +60,7 @@ exports.asyncWindowLeakTest = function*(assert, asyncTestFunc) {
 
   // Stop tracking new windows and attempt to GC any resources allocated
   // by the test body.
-  Services.obs.removeObserver(windowObserver, "domwindowopened", false);
+  Services.obs.removeObserver(windowObserver, "domwindowopened");
   yield gc();
 
   // Check to see if any of the windows we saw survived the GC.  We consider

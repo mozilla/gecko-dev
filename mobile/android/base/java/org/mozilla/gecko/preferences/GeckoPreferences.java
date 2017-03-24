@@ -9,14 +9,13 @@ import org.json.JSONArray;
 import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.AdjustConstants;
 import org.mozilla.gecko.AppConstants;
-import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.BrowserApp;
 import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.DataReportingNotification;
 import org.mozilla.gecko.DynamicToolbar;
 import org.mozilla.gecko.EventDispatcher;
+import org.mozilla.gecko.Experiments;
 import org.mozilla.gecko.GeckoActivityStatus;
-import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoApplication;
 import org.mozilla.gecko.GeckoProfile;
@@ -30,7 +29,6 @@ import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.TelemetryContract.Method;
 import org.mozilla.gecko.activitystream.ActivityStream;
-import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.db.BrowserContract.SuggestedSites;
 import org.mozilla.gecko.feeds.FeedService;
 import org.mozilla.gecko.feeds.action.CheckForUpdatesAction;
@@ -41,13 +39,15 @@ import org.mozilla.gecko.tabqueue.TabQueueHelper;
 import org.mozilla.gecko.tabqueue.TabQueuePrompt;
 import org.mozilla.gecko.updater.UpdateService;
 import org.mozilla.gecko.updater.UpdateServiceHelper;
+import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.ContextUtils;
 import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.InputOptionsUtils;
-import org.mozilla.gecko.util.NativeEventListener;
-import org.mozilla.gecko.util.NativeJSObject;
+import org.mozilla.gecko.util.IntentUtils;
 import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.util.ViewUtil;
 
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
@@ -92,6 +92,8 @@ import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
+import org.mozilla.gecko.switchboard.SwitchBoard;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -101,12 +103,11 @@ import java.util.Locale;
 import java.util.Map;
 
 public class GeckoPreferences
-extends AppCompatPreferenceActivity
-implements
-GeckoActivityStatus,
-NativeEventListener,
-OnPreferenceChangeListener,
-OnSharedPreferenceChangeListener
+    extends AppCompatPreferenceActivity
+    implements BundleEventListener,
+               GeckoActivityStatus,
+               OnPreferenceChangeListener,
+               OnSharedPreferenceChangeListener
 {
     private static final String LOGTAG = "GeckoPreferences";
 
@@ -119,8 +120,11 @@ OnSharedPreferenceChangeListener
     public static final String NON_PREF_PREFIX = "android.not_a_preference.";
     public static final String INTENT_EXTRA_RESOURCES = "resource";
     public static final String PREFS_TRACKING_PROTECTION_PROMPT_SHOWN = NON_PREF_PREFIX + "trackingProtectionPromptShown";
-    public static String PREFS_HEALTHREPORT_UPLOAD_ENABLED = NON_PREF_PREFIX + "healthreport.uploadEnabled";
+    public static final String PREFS_HEALTHREPORT_UPLOAD_ENABLED = NON_PREF_PREFIX + "healthreport.uploadEnabled";
     public static final String PREFS_SYNC = NON_PREF_PREFIX + "sync";
+
+    // Has this activity recently started another Gecko activity?
+    private boolean mGeckoActivityOpened;
 
     private static boolean sIsCharEncodingEnabled;
     private boolean mInitialized;
@@ -166,6 +170,10 @@ OnSharedPreferenceChangeListener
     public static final String PREFS_CUSTOM_TABS = NON_PREF_PREFIX + "customtabs";
     public static final String PREFS_ACTIVITY_STREAM = NON_PREF_PREFIX + "activitystream";
     public static final String PREFS_CATEGORY_EXPERIMENTAL_FEATURES = NON_PREF_PREFIX + "category_experimental";
+    public static final String PREFS_COMPACT_TABS = NON_PREF_PREFIX + "compact_tabs";
+    public static final String PREFS_SHOW_QUIT_MENU = NON_PREF_PREFIX + "distribution.show_quit_menu";
+    public static final String PREFS_SEARCH_SUGGESTIONS_ENABLED = "browser.search.suggest.enabled";
+    public static final String PREFS_DEFAULT_BROWSER = NON_PREF_PREFIX + "default_browser.link";
 
     private static final String ACTION_STUMBLER_UPLOAD_PREF = "STUMBLER_PREF";
 
@@ -176,6 +184,7 @@ OnSharedPreferenceChangeListener
     public static final String PREFS_RESTORE_SESSION = NON_PREF_PREFIX + "restoreSession3";
     public static final String PREFS_RESTORE_SESSION_FROM_CRASH = "browser.sessionstore.resume_from_crash";
     public static final String PREFS_RESTORE_SESSION_MAX_CRASH_RESUMES = "browser.sessionstore.max_resumed_crashes";
+    public static final String PREFS_RESTORE_SESSION_ONCE = "browser.sessionstore.resume_session_once";
     public static final String PREFS_TAB_QUEUE = NON_PREF_PREFIX + "tab_queue";
     public static final String PREFS_TAB_QUEUE_LAST_SITE = NON_PREF_PREFIX + "last_site";
     public static final String PREFS_TAB_QUEUE_LAST_TIME = NON_PREF_PREFIX + "last_time";
@@ -231,6 +240,14 @@ OnSharedPreferenceChangeListener
         }
     }
 
+    private void updateHomeAsUpIndicator() {
+        final ActionBar actionBar = getSupportActionBar();
+        if (actionBar == null) {
+            return;
+        }
+        actionBar.setHomeAsUpIndicator(android.support.v7.appcompat.R.drawable.abc_ic_ab_back_mtrl_am_alpha);
+    }
+
     /**
      * We only call this method for pre-HC versions of Android.
      */
@@ -258,6 +275,12 @@ OnSharedPreferenceChangeListener
         Log.d(LOGTAG, "onLocaleChanged: " + newLocale);
 
         BrowserLocaleManager.getInstance().updateConfiguration(getApplicationContext(), newLocale);
+        //  If activity is not recreated, also update locale to current activity configuration
+        BrowserLocaleManager.getInstance().updateConfiguration(GeckoPreferences.this, newLocale);
+        ViewUtil.setLayoutDirection(getWindow().getDecorView(), newLocale);
+        //  Force update navigate up icon by current layout direction
+        updateHomeAsUpIndicator();
+
         this.lastLocale = newLocale;
 
         if (isMultiPane()) {
@@ -316,6 +339,11 @@ OnSharedPreferenceChangeListener
     }
 
     private void checkLocale() {
+        if (AppConstants.Versions.feature21Plus && AppConstants.Versions.preMarshmallow) {
+            //  Force update navigate up icon by current layout direction
+            updateHomeAsUpIndicator();
+        }
+
         final Locale currentLocale = Locale.getDefault();
         Log.v(LOGTAG, "Checking locale: " + currentLocale + " vs " + lastLocale);
         if (currentLocale.equals(lastLocale)) {
@@ -368,9 +396,7 @@ OnSharedPreferenceChangeListener
         // Use setResourceToOpen to specify these extras.
         Bundle intentExtras = getIntent().getExtras();
 
-        EventDispatcher.getInstance().registerGeckoThreadListener(this,
-                                                                  "Sanitize:Finished",
-                                                                  "Snackbar:Show");
+        EventDispatcher.getInstance().registerUiThreadListener(this, "Sanitize:Finished");
 
         // Add handling for long-press click.
         // This is only for Android 3.0 and below (which use the long-press-context-menu paradigm).
@@ -505,9 +531,7 @@ OnSharedPreferenceChangeListener
     protected void onDestroy() {
         super.onDestroy();
 
-        EventDispatcher.getInstance().unregisterGeckoThreadListener(this,
-                                                                    "Sanitize:Finished",
-                                                                    "Snackbar:Show");
+        EventDispatcher.getInstance().unregisterUiThreadListener(this, "Sanitize:Finished");
 
         if (mPrefsRequest != null) {
             PrefsHelper.removeObserver(mPrefsRequest);
@@ -517,6 +541,8 @@ OnSharedPreferenceChangeListener
 
     @Override
     public void onPause() {
+        EventDispatcher.getInstance().unregisterUiThreadListener(this, "Snackbar:Show");
+
         // Symmetric with onResume.
         if (isMultiPane()) {
             SharedPreferences prefs = GeckoSharedPrefs.forApp(this);
@@ -534,8 +560,11 @@ OnSharedPreferenceChangeListener
     public void onResume() {
         super.onResume();
 
+        EventDispatcher.getInstance().registerUiThreadListener(this, "Snackbar:Show");
+
         if (getApplication() instanceof GeckoApplication) {
             ((GeckoApplication) getApplication()).onActivityResume(this);
+            mGeckoActivityOpened = false;
         }
 
         // Watch prefs, otherwise we don't reliably get told when they change.
@@ -559,6 +588,12 @@ OnSharedPreferenceChangeListener
     }
 
     @Override
+    public void startActivityForResult(Intent intent, int request) {
+        mGeckoActivityOpened = IntentUtils.checkIfGeckoActivity(intent);
+        super.startActivityForResult(intent, request);
+    }
+
+    @Override
     public void startWithFragment(String fragmentName, Bundle args,
             Fragment resultTo, int resultRequestCode, int titleRes, int shortTitleRes) {
         Log.v(LOGTAG, "Starting with fragment: " + fragmentName + ", title " + titleRes);
@@ -568,6 +603,7 @@ OnSharedPreferenceChangeListener
         if (resultTo == null) {
             startActivityForResultChoosingTransition(intent, REQUEST_CODE_PREF_SCREEN);
         } else {
+            mGeckoActivityOpened = IntentUtils.checkIfGeckoActivity(intent);
             resultTo.startActivityForResult(intent, resultRequestCode);
             if (NO_TRANSITIONS) {
                 overridePendingTransition(0, 0);
@@ -607,27 +643,22 @@ OnSharedPreferenceChangeListener
     }
 
     @Override
-    public void handleMessage(final String event, final NativeJSObject message, final EventCallback callback) {
-        try {
-            switch (event) {
-                case "Sanitize:Finished":
-                    boolean success = message.getBoolean("success");
-                    final int stringRes = success ? R.string.private_data_success : R.string.private_data_fail;
+    public void handleMessage(final String event, final GeckoBundle message,
+                              final EventCallback callback) {
+        if ("Snackbar:Show".equals(event)) {
+            SnackbarBuilder.builder(this)
+                    .fromEvent(message)
+                    .callback(callback)
+                    .buildAndShow();
 
-                    SnackbarBuilder.builder(GeckoPreferences.this)
-                            .message(stringRes)
-                            .duration(Snackbar.LENGTH_LONG)
-                            .buildAndShow();
-                    break;
-                case "Snackbar:Show":
-                    SnackbarBuilder.builder(this)
-                            .fromEvent(message)
-                            .callback(callback)
-                            .buildAndShow();
-                    break;
-            }
-        } catch (Exception e) {
-            Log.e(LOGTAG, "Exception handling message \"" + event + "\":", e);
+        } else if ("Sanitize:Finished".equals(event)) {
+            final boolean success = message.getBoolean("success");
+            final int stringRes = success ? R.string.private_data_success : R.string.private_data_fail;
+
+            SnackbarBuilder.builder(this)
+                    .message(stringRes)
+                    .duration(Snackbar.LENGTH_LONG)
+                    .buildAndShow();
         }
     }
 
@@ -888,6 +919,18 @@ OnSharedPreferenceChangeListener
                     preferences.removePreference(pref);
                     i--;
                     continue;
+                } else if (PREFS_COMPACT_TABS.equals(key)) {
+                    if (HardwareUtils.isTablet()) {
+                        preferences.removePreference(pref);
+                        i--;
+                        continue;
+                    } else {
+                        final boolean value = GeckoSharedPrefs.forApp(this).getBoolean(GeckoPreferences.PREFS_COMPACT_TABS,
+                                SwitchBoard.isInExperiment(this, Experiments.COMPACT_TABS));
+
+                        pref.setDefaultValue(value);
+                        ((SwitchPreference) pref).setChecked(value);
+                    }
                 }
 
                 // Some Preference UI elements are not actually preferences,
@@ -931,10 +974,10 @@ OnSharedPreferenceChangeListener
      * Restore default search engines in Gecko and retrigger a search engine refresh.
      */
     protected void restoreDefaultSearchEngines() {
-        GeckoAppShell.notifyObservers("SearchEngines:RestoreDefaults", null);
+        EventDispatcher.getInstance().dispatch("SearchEngines:RestoreDefaults", null);
 
         // Send message to Gecko to get engines. SearchPreferenceCategory listens for the response.
-        GeckoAppShell.notifyObservers("SearchEngines:GetVisible", null);
+        EventDispatcher.getInstance().dispatch("SearchEngines:GetVisible", null);
     }
 
     @Override
@@ -1208,6 +1251,10 @@ OnSharedPreferenceChangeListener
         } else if (HANDLERS.containsKey(prefName)) {
             PrefHandler handler = HANDLERS.get(prefName);
             handler.onChange(this, preference, newValue);
+        } else if (PREFS_SEARCH_SUGGESTIONS_ENABLED.equals(prefName)) {
+            // Tell Gecko to transmit the current search engine data again, so
+            // BrowserSearch is notified immediately about the new enabled state.
+            EventDispatcher.getInstance().dispatch("SearchEngines:GetVisible", null);
         }
 
         // Send Gecko-side pref changes to Gecko
@@ -1492,7 +1539,7 @@ OnSharedPreferenceChangeListener
 
     @Override
     public boolean isGeckoActivityOpened() {
-        return false;
+        return mGeckoActivityOpened;
     }
 
     /**

@@ -42,6 +42,7 @@ SEARCH_PATHS = [
     'python/blessings',
     'python/compare-locales',
     'python/configobj',
+    'python/dlmanager',
     'python/futures',
     'python/jsmin',
     'python/psutil',
@@ -53,6 +54,7 @@ SEARCH_PATHS = [
     'python/slugid',
     'python/py',
     'python/pytest',
+    'python/pytoml',
     'python/redo',
     'python/voluptuous',
     'build',
@@ -66,10 +68,10 @@ SEARCH_PATHS = [
     'taskcluster',
     'testing',
     'testing/firefox-ui/harness',
-    'testing/firefox-ui/tests',
-    'testing/marionette/harness',
-    'testing/marionette/harness/marionette/runner/mixins/browsermob-proxy-py',
     'testing/marionette/client',
+    'testing/marionette/harness',
+    'testing/marionette/harness/marionette_harness/runner/mixins/browsermob-proxy-py',
+    'testing/marionette/puppeteer/firefox',
     'testing/mozbase/mozcrash',
     'testing/mozbase/mozdebug',
     'testing/mozbase/mozdevice',
@@ -88,12 +90,12 @@ SEARCH_PATHS = [
     'testing/mozbase/moztest',
     'testing/mozbase/mozversion',
     'testing/mozbase/manifestparser',
-    'testing/puppeteer/firefox',
     'testing/taskcluster',
     'testing/tools/autotry',
     'testing/web-platform',
     'testing/web-platform/harness',
     'testing/web-platform/tests/tools/wptserve',
+    'testing/web-platform/tests/tools/six',
     'testing/xpcshell',
     'xpcom/idl-parser',
 ]
@@ -204,6 +206,9 @@ def bootstrap(topsrcdir, mozilla_dir=None):
     sys.path[0:0] = [os.path.join(mozilla_dir, path) for path in SEARCH_PATHS]
     import mach.main
     from mozboot.util import get_state_dir
+
+    from mozbuild.util import patch_main
+    patch_main()
 
     def telemetry_handler(context, data):
         # We have not opted-in to telemetry
@@ -403,7 +408,8 @@ class ImportHook(object):
         # python modules under our source directory (either because it
         # doesn't happen or because it doesn't matter).
         if not os.path.exists(module.__file__[:-1]):
-            os.remove(module.__file__)
+            if os.path.exists(module.__file__):
+                os.remove(module.__file__)
             del sys.modules[module.__name__]
             module = self(name, globals, locals, fromlist, level)
 

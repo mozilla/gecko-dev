@@ -28,12 +28,14 @@ import android.os.Parcelable;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.ViewConfigurationCompat;
 import android.support.v4.view.ViewPager;
+import android.support.v7.widget.ViewUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.util.FloatUtils;
 
 import static android.graphics.Paint.ANTI_ALIAS_FLAG;
 import static android.widget.LinearLayout.HORIZONTAL;
@@ -213,6 +215,14 @@ public class CirclePageIndicator
         return mSnap;
     }
 
+    private boolean isRtl() {
+        return ViewUtils.isLayoutRtl(this);
+    }
+
+    private float getRadiusRelativly() {
+        return getRadius() * (isRtl() ? -1 : 1);
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -230,23 +240,25 @@ public class CirclePageIndicator
             return;
         }
 
-        int longSize;
-        int longPaddingBefore;
-        int longPaddingAfter;
-        int shortPaddingBefore;
+        final int longSize;
+        final int longPaddingBefore;
+        final int longPaddingAfter;
+        final int shortPaddingBefore;
+        final float threeRadius;
         if (mOrientation == HORIZONTAL) {
             longSize = getWidth();
             longPaddingBefore = getPaddingLeft();
             longPaddingAfter = getPaddingRight();
             shortPaddingBefore = getPaddingTop();
+            threeRadius = getRadiusRelativly() * SEPARATION_FACTOR;
         } else {
             longSize = getHeight();
             longPaddingBefore = getPaddingTop();
             longPaddingAfter = getPaddingBottom();
             shortPaddingBefore = getPaddingLeft();
+            threeRadius = mRadius * SEPARATION_FACTOR;
         }
 
-        final float threeRadius = mRadius * SEPARATION_FACTOR;
         final float shortOffset = shortPaddingBefore + mRadius;
         float longOffset = longPaddingBefore + mRadius;
         if (mCentered) {
@@ -277,7 +289,7 @@ public class CirclePageIndicator
             }
 
             // Only paint stroke if a stroke width was non-zero
-            if (pageFillRadius != mRadius) {
+            if (!FloatUtils.fuzzyEquals(pageFillRadius, mRadius)) {
                 canvas.drawCircle(dX, dY, mRadius, mPaintStroke);
             }
         }
@@ -385,13 +397,13 @@ public class CirclePageIndicator
             return;
         }
         if (mViewPager != null) {
-            mViewPager.setOnPageChangeListener(null);
+            mViewPager.removeOnPageChangeListener(this);
         }
         if (view.getAdapter() == null) {
             throw new IllegalStateException("ViewPager does not have adapter instance.");
         }
         mViewPager = view;
-        mViewPager.setOnPageChangeListener(this);
+        mViewPager.addOnPageChangeListener(this);
         invalidate();
     }
 

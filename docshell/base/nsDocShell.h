@@ -60,10 +60,13 @@
 #include "nsRect.h"
 #include "Units.h"
 #include "nsIDeprecationWarner.h"
+#include "nsIThrottlingService.h"
 
 namespace mozilla {
+enum class TaskCategory;
 namespace dom {
 class EventTarget;
+class PendingGlobalHistoryEntry;
 typedef uint32_t ScreenOrientationInternal;
 } // namespace dom
 } // namespace mozilla
@@ -157,8 +160,6 @@ public:
 
   nsDocShell();
 
-  NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
-
   virtual nsresult Init() override;
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -200,15 +201,18 @@ public:
                          const nsAString& aFileName,
                          nsIInputStream* aPostDataStream,
                          nsIInputStream* aHeadersDataStream,
-                         bool aIsTrusted) override;
+                         bool aIsTrusted,
+                         nsIPrincipal* aTriggeringPrincipal) override;
   NS_IMETHOD OnLinkClickSync(nsIContent* aContent,
                              nsIURI* aURI,
                              const char16_t* aTargetSpec,
                              const nsAString& aFileName,
                              nsIInputStream* aPostDataStream = 0,
                              nsIInputStream* aHeadersDataStream = 0,
+                             bool aNoOpenerImplied = false,
                              nsIDocShell** aDocShell = 0,
-                             nsIRequest** aRequest = 0) override;
+                             nsIRequest** aRequest = 0,
+                             nsIPrincipal* aTriggeringPrincipal = nullptr) override;
   NS_IMETHOD OnOverLink(nsIContent* aContent,
                         nsIURI* aURI,
                         const char16_t* aTargetSpec) override;
@@ -231,7 +235,6 @@ public:
   NS_IMETHOD GetUseRemoteTabs(bool*) override;
   NS_IMETHOD SetRemoteTabs(bool) override;
   NS_IMETHOD GetOriginAttributes(JS::MutableHandle<JS::Value>) override;
-  NS_IMETHOD IsTrackingProtectionOn(bool*) override;
 
   // Restores a cached presentation from history (mLSHE).
   // This method swaps out the content viewer and simulates loads for
@@ -270,13 +273,17 @@ public:
   }
   bool InFrameSwap();
 
-  const mozilla::DocShellOriginAttributes&
+private:
+  bool CanSetOriginAttributes();
+
+public:
+  const mozilla::OriginAttributes&
   GetOriginAttributes()
   {
     return mOriginAttributes;
   }
 
-  nsresult SetOriginAttributes(const mozilla::DocShellOriginAttributes& aAttrs);
+  nsresult SetOriginAttributes(const mozilla::OriginAttributes& aAttrs);
 
   void GetInterceptedDocumentId(nsAString& aId)
   {
@@ -326,7 +333,8 @@ protected:
   // passed in, the about:blank principal will end up being used.
   nsresult CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
                                          nsIURI* aBaseURI,
-                                         bool aTryToSaveOldPresentation = true);
+                                         bool aTryToSaveOldPresentation = true,
+                                         bool aCheckPermitUnload = true);
   nsresult CreateContentViewer(const nsACString& aContentType,
                                nsIRequest* aRequest,
                                nsIStreamListener** aContentHandler);
@@ -731,9 +739,6 @@ protected:
   // Convenience method for getting our parent docshell. Can return null
   already_AddRefed<nsDocShell> GetParentDocshell();
 
-  // Check if aURI is about:newtab.
-  bool IsAboutNewtab(nsIURI* aURI);
-
 protected:
   nsresult GetCurScrollPos(int32_t aScrollOrientation, int32_t* aCurPos);
   nsresult SetCurScrollPosEx(int32_t aCurHorizontalPos,
@@ -746,9 +751,15 @@ protected:
 
   /**
    * Initializes mTiming if it isn't yet.
-   * After calling this, mTiming is non-null.
+   * After calling this, mTiming is non-null. This method returns true if the
+   * initialization of the Timing can be reset (basically this is true if a new
+   * Timing object is created).
+   * In case the loading is aborted, MaybeResetInitTiming() can be called
+   * passing the return value of MaybeInitTiming(): if it's possible to reset
+   * the Timing, this method will do it.
    */
-  void MaybeInitTiming();
+  MOZ_MUST_USE bool MaybeInitTiming();
+  void MaybeResetInitTiming(bool aReset);
 
   bool DisplayLoadError(nsresult aError, nsIURI* aURI, const char16_t* aURL,
                         nsIChannel* aFailedChannel)
@@ -779,8 +790,6 @@ protected:
   static const nsCString FrameTypeToString(uint32_t aFrameType)
   {
     switch (aFrameType) {
-      case FRAME_TYPE_APP:
-        return NS_LITERAL_CSTRING("app");
       case FRAME_TYPE_BROWSER:
         return NS_LITERAL_CSTRING("browser");
       case FRAME_TYPE_REGULAR:
@@ -794,6 +803,8 @@ protected:
   uint32_t GetInheritedFrameType();
 
   bool HasUnloadedParent();
+
+  void UpdateGlobalHistoryTitle(nsIURI* aURI);
 
   // Dimensions of the docshell
   nsIntRect mBounds;
@@ -947,6 +958,7 @@ protected:
   bool mIsAppTab : 1;
   bool mUseGlobalHistory : 1;
   bool mUseRemoteTabs : 1;
+  bool mUseTrackingProtection : 1;
   bool mDeviceSizeIsPageSize : 1;
   bool mWindowDraggingAllowed : 1;
   bool mInFrameSwap : 1;
@@ -1000,7 +1012,7 @@ protected:
   bool mInEnsureScriptEnv;
 #endif
 
-  uint64_t mHistoryID;
+  nsID mHistoryID;
   uint32_t mDefaultLoadFlags;
 
   static nsIURIFixup* sURIFixup;
@@ -1029,7 +1041,9 @@ private:
   nsTObserverArray<nsWeakPtr> mScrollObservers;
   nsCString mOriginalUriString;
   nsWeakPtr mOpener;
-  mozilla::DocShellOriginAttributes mOriginAttributes;
+  mozilla::OriginAttributes mOriginAttributes;
+
+  mozilla::UniquePtr<mozilla::dom::PendingGlobalHistoryEntry> mPrerenderGlobalHistory;
 
   // A depth count of how many times NotifyRunToCompletionStart
   // has been called without a matching NotifyRunToCompletionStop.
@@ -1042,8 +1056,9 @@ private:
   // Separate function to do the actual name (i.e. not _top, _self etc.)
   // searching for FindItemWithName.
   nsresult DoFindItemWithName(const nsAString& aName,
-                              nsISupports* aRequestor,
+                              nsIDocShellTreeItem* aRequestor,
                               nsIDocShellTreeItem* aOriginalRequestor,
+                              bool aSkipTabGroup,
                               nsIDocShellTreeItem** aResult);
 
   // Helper assertion to enforce that mInPrivateBrowsing is in sync with
@@ -1053,6 +1068,18 @@ private:
   // Notify consumers of a search being loaded through the observer service:
   void MaybeNotifyKeywordSearchLoading(const nsString& aProvider,
                                        const nsString& aKeyword);
+
+  // Internal implementation of nsIDocShell::FirePageHideNotification.
+  // If aSkipCheckingDynEntries is true, it will not try to remove dynamic
+  // subframe entries. This is to avoid redundant RemoveDynEntries calls in all
+  // children docshells.
+  void FirePageHideNotificationInternal(bool aIsUnload,
+                                        bool aSkipCheckingDynEntries);
+
+  // Dispatch a runnable to the TabGroup associated to this docshell.
+  nsresult DispatchToTabGroup(const char* aName,
+                              mozilla::TaskCategory aCategory,
+                              already_AddRefed<nsIRunnable>&& aRunnable);
 
 #ifdef DEBUG
   // We're counting the number of |nsDocShells| to help find leaks
@@ -1072,6 +1099,9 @@ public:
     InterfaceRequestorProxy() {}
     nsWeakPtr mWeakPtr;
   };
+
+private:
+  mozilla::UniquePtr<mozilla::net::Throttler> mThrottler;
 };
 
 #endif /* nsDocShell_h__ */

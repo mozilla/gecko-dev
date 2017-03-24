@@ -1,3 +1,7 @@
+/* eslint-env mozilla/frame-script */
+// assert is available to chrome scripts loaded via SpecialPowers.loadChromeScript.
+/* global assert */
+
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/FormHistory.jsm");
@@ -25,11 +29,11 @@ var ParentUtils = {
 
   updateFormHistory(changes) {
     let handler = {
-      handleError: function (error) {
+      handleError(error) {
         assert.ok(false, error);
         sendAsyncMessage("formHistoryUpdated", { ok: false });
       },
-      handleCompletion: function (reason) {
+      handleCompletion(reason) {
         if (!reason)
           sendAsyncMessage("formHistoryUpdated", { ok: true });
       },
@@ -68,10 +72,16 @@ var ParentUtils = {
 
   checkRowCount(expectedCount, expectedFirstValue = null) {
     ContentTaskUtils.waitForCondition(() => {
-      return gAutocompletePopup.view.matchCount === expectedCount &&
-        (!expectedFirstValue ||
-          expectedCount <= 1 ||
-          gAutocompletePopup.view.getValueAt(0) === expectedFirstValue);
+      // This may be called before gAutocompletePopup has initialised
+      // which causes it to throw
+      try {
+        return gAutocompletePopup.view.matchCount === expectedCount &&
+          (!expectedFirstValue ||
+           expectedCount <= 1 ||
+           gAutocompletePopup.view.getValueAt(0) === expectedFirstValue);
+      } catch (e) {
+        return false;
+      }
     }, "Waiting for row count change: " + expectedCount + " First value: " + expectedFirstValue).then(() => {
       let results = this.getMenuEntries();
       sendAsyncMessage("gotMenuChange", { results });

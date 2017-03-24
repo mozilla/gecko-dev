@@ -5,6 +5,11 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
   "resource://testing-common/PlacesTestUtils.jsm");
 
+// Imported via PlacesOverlay.xul
+/* global doGetPlacesControllerForCommand:false, PlacesControllerDragHelper:false,
+          PlacesUIUtils:false
+*/
+
 // We need to cache this before test runs...
 var cachedLeftPaneFolderIdGetter;
 var getter = PlacesUIUtils.__lookupGetter__("leftPaneFolderId");
@@ -14,8 +19,8 @@ if (!cachedLeftPaneFolderIdGetter && typeof(getter) == "function") {
 
 // ...And restore it when test ends.
 registerCleanupFunction(function() {
-  let getter = PlacesUIUtils.__lookupGetter__("leftPaneFolderId");
-  if (cachedLeftPaneFolderIdGetter && typeof(getter) != "function") {
+  let updatedGetter = PlacesUIUtils.__lookupGetter__("leftPaneFolderId");
+  if (cachedLeftPaneFolderIdGetter && typeof(updatedGetter) != "function") {
     PlacesUIUtils.__defineGetter__("leftPaneFolderId", cachedLeftPaneFolderIdGetter);
   }
 });
@@ -24,7 +29,7 @@ function openLibrary(callback, aLeftPaneRoot) {
   let library = window.openDialog("chrome://browser/content/places/places.xul",
                                   "", "chrome,toolbar=yes,dialog=no,resizable",
                                   aLeftPaneRoot);
-  waitForFocus(function () {
+  waitForFocus(function() {
     callback(library);
   }, library);
 
@@ -46,8 +51,7 @@ function promiseLibrary(aLeftPaneRoot) {
         library.PlacesOrganizer.selectLeftPaneContainerByHierarchy(aLeftPaneRoot);
       }
       resolve(library);
-    }
-    else {
+    } else {
       openLibrary(resolve, aLeftPaneRoot);
     }
   });
@@ -56,10 +60,9 @@ function promiseLibrary(aLeftPaneRoot) {
 function promiseLibraryClosed(organizer) {
   return new Promise(resolve => {
     // Wait for the Organizer window to actually be closed
-    organizer.addEventListener("unload", function onUnload() {
-      organizer.removeEventListener("unload", onUnload);
+    organizer.addEventListener("unload", function() {
       resolve();
-    });
+    }, {once: true});
 
     // Close Library window.
     organizer.close();
@@ -99,8 +102,7 @@ function promiseClipboard(aPopulateClipboardFn, aFlavor) {
  *       complete.  Note that WAL makes so that writers don't block readers, but
  *       this is a problem only across different connections.
  */
-function waitForAsyncUpdates(aCallback, aScope, aArguments)
-{
+function waitForAsyncUpdates(aCallback, aScope, aArguments) {
   let scope = aScope || this;
   let args = aArguments || [];
   let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
@@ -111,10 +113,9 @@ function waitForAsyncUpdates(aCallback, aScope, aArguments)
 
   let commit = db.createAsyncStatement("COMMIT");
   commit.executeAsync({
-    handleResult: function() {},
-    handleError: function() {},
-    handleCompletion: function(aReason)
-    {
+    handleResult() {},
+    handleError() {},
+    handleCompletion(aReason) {
       aCallback.apply(scope, args);
     }
   });
@@ -150,7 +151,7 @@ function synthesizeClickOnSelectedTreeCell(aTree, aOptions) {
 function promiseIsURIVisited(aURI) {
   let deferred = Promise.defer();
 
-  PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
+  PlacesUtils.asyncHistory.isURIVisited(aURI, function(unused, aIsVisited) {
     deferred.resolve(aIsVisited);
   });
 
@@ -284,15 +285,14 @@ var withBookmarksDialog = Task.async(function* (autoCancel, openFn, taskFn) {
     Services.ww.registerNotification(function winObserver(subject, topic, data) {
       if (topic == "domwindowopened") {
         let win = subject.QueryInterface(Ci.nsIDOMWindow);
-        win.addEventListener("load", function load() {
-          win.removeEventListener("load", load);
+        win.addEventListener("load", function() {
           ok(win.location.href.startsWith("chrome://browser/content/places/bookmarkProperties"),
              "The bookmark properties dialog is open");
           // This is needed for the overlay.
           waitForFocus(() => {
             resolve(win);
           }, win);
-        });
+        }, {once: true});
       } else if (topic == "domwindowclosed") {
         Services.ww.unregisterNotification(winObserver);
         closed = true;
@@ -436,10 +436,9 @@ var withSidebarTree = Task.async(function* (type, taskFn) {
   let sidebar = document.getElementById("sidebar");
   info("withSidebarTree: waiting sidebar load");
   let sidebarLoadedPromise = new Promise(resolve => {
-    sidebar.addEventListener("load", function load() {
-      sidebar.removeEventListener("load", load, true);
+    sidebar.addEventListener("load", function() {
       resolve();
-    }, true);
+    }, {capture: true, once: true});
   });
   let sidebarId = type == "bookmarks" ? "viewBookmarksSidebar"
                                       : "viewHistorySidebar";

@@ -480,6 +480,7 @@ ValueNumberer::removePredecessorAndDoDCE(MBasicBlock* block, MBasicBlock* pred, 
     for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd()); iter != end; ) {
         MPhi* phi = *iter++;
         MOZ_ASSERT(!values_.has(phi), "Visited phi in block having predecessor removed");
+        MOZ_ASSERT(!phi->isGuard());
 
         MDefinition* op = phi->getOperand(predIndex);
         phi->removeOperand(predIndex);
@@ -488,9 +489,9 @@ ValueNumberer::removePredecessorAndDoDCE(MBasicBlock* block, MBasicBlock* pred, 
         if (!handleUseReleased(op, DontSetUseRemoved) || !processDeadDefs())
             return false;
 
-        // If |nextDef_| became dead while we had it pinned, advance the iterator
-        // and discard it now.
-        while (nextDef_ && !nextDef_->hasUses()) {
+        // If |nextDef_| became dead while we had it pinned, advance the
+        // iterator and discard it now.
+        while (nextDef_ && !nextDef_->hasUses() && !nextDef_->isGuardRangeBailouts()) {
             phi = nextDef_->toPhi();
             iter++;
             nextDef_ = iter != end ? *iter : nullptr;
@@ -727,7 +728,8 @@ ValueNumberer::visitDefinition(MDefinition* def)
         MResumePoint* rp = nop->resumePoint();
         if (rp && rp->numOperands() > 0 &&
             rp->getOperand(rp->numOperands() - 1) == prev &&
-            !nop->block()->lastIns()->isThrow())
+            !nop->block()->lastIns()->isThrow() &&
+            !prev->isAssertRecoveredOnBailout())
         {
             size_t numOperandsLive = 0;
             for (size_t j = 0; j < prev->numOperands(); j++) {
@@ -795,6 +797,9 @@ ValueNumberer::visitDefinition(MDefinition* def)
         // guard, then either |rep| is also a guard, or a guard isn't actually
         // needed, so we can clear |def|'s guard flag and let it be discarded.
         def->setNotGuardUnchecked();
+
+        if (def->isGuardRangeBailouts())
+            sim->setGuardRangeBailoutsUnchecked();
 
         if (DeadIfUnused(def)) {
             if (!discardDefsRecursively(def))

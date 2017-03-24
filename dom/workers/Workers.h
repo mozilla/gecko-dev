@@ -254,10 +254,12 @@ struct WorkerLoadInfo
 
   nsAutoPtr<mozilla::ipc::PrincipalInfo> mPrincipalInfo;
   nsCString mDomain;
+  nsString mOrigin; // Derived from mPrincipal; can be used on worker thread.
 
   nsString mServiceWorkerCacheName;
 
   ChannelInfo mChannelInfo;
+  nsLoadFlags mLoadFlags;
 
   uint64_t mWindowID;
   uint64_t mServiceWorkerID;
@@ -270,12 +272,41 @@ struct WorkerLoadInfo
   bool mPrincipalIsSystem;
   bool mStorageAllowed;
   bool mServiceWorkersTestingInWindow;
-  PrincipalOriginAttributes mOriginAttributes;
+  OriginAttributes mOriginAttributes;
 
   WorkerLoadInfo();
   ~WorkerLoadInfo();
 
   void StealFrom(WorkerLoadInfo& aOther);
+
+  nsresult
+  SetPrincipalOnMainThread(nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup);
+
+  nsresult
+  GetPrincipalAndLoadGroupFromChannel(nsIChannel* aChannel,
+                                      nsIPrincipal** aPrincipalOut,
+                                      nsILoadGroup** aLoadGroupOut);
+
+  nsresult
+  SetPrincipalFromChannel(nsIChannel* aChannel);
+
+#if defined(DEBUG) || !defined(RELEASE_OR_BETA)
+  bool
+  FinalChannelPrincipalIsValid(nsIChannel* aChannel);
+
+  bool
+  PrincipalIsValid() const;
+
+  bool
+  PrincipalURIMatchesScriptURL();
+#endif
+
+  bool
+  ProxyReleaseMainThreadObjects(WorkerPrivate* aWorkerPrivate);
+
+  bool
+  ProxyReleaseMainThreadObjects(WorkerPrivate* aWorkerPrivate,
+                                nsCOMPtr<nsILoadGroup>& aLoadGroupToCancel);
 };
 
 // All of these are implemented in RuntimeService.cpp
@@ -369,14 +400,6 @@ IsDebuggerGlobal(JSObject* global);
 
 bool
 IsDebuggerSandbox(JSObject* object);
-
-// Throws the JSMSG_GETTER_ONLY exception.  This shouldn't be used going
-// forward -- getter-only properties should just use JS_PSG for the setter
-// (implying no setter at all), which will not throw when set in non-strict
-// code but will in strict code.  Old code should use this only for temporary
-// compatibility reasons.
-extern bool
-GetterOnlyJSNative(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 
 END_WORKERS_NAMESPACE
 

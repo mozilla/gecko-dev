@@ -464,10 +464,12 @@ nsSOCKSSocketInfo::StartDNS(PRFileDesc *fd)
     nsCString proxyHost;
     mProxy->GetHost(proxyHost);
 
+    mozilla::OriginAttributes attrs;
+
     mFD  = fd;
-    nsresult rv = dns->AsyncResolve(proxyHost, 0, this,
-                                    NS_GetCurrentThread(),
-                                    getter_AddRefs(mLookup));
+    nsresult rv = dns->AsyncResolveNative(proxyHost, 0, this,
+                                          NS_GetCurrentThread(), attrs,
+                                          getter_AddRefs(mLookup));
 
     if (NS_FAILED(rv)) {
         LOGERROR(("socks: DNS lookup for SOCKS proxy %s failed",
@@ -1009,6 +1011,7 @@ nsSOCKSSocketInfo::ReadV5ConnectResponseTop()
                 break;
             case 0x04:
                 LOGERROR(("socks5: connect failed: 04, Host unreachable."));
+                c = PR_BAD_ADDRESS_ERROR;
                 break;
             case 0x05:
                 LOGERROR(("socks5: connect failed: 05, Connection refused."));

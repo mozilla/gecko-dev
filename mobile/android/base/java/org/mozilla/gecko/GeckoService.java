@@ -11,12 +11,14 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import java.io.File;
 
-import org.mozilla.gecko.util.NativeEventListener;
-import org.mozilla.gecko.util.NativeJSObject;
+import org.mozilla.gecko.util.BundleEventListener;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.EventCallback;
 
 public class GeckoService extends Service {
@@ -29,14 +31,16 @@ public class GeckoService extends Service {
 
     private static final String INTENT_ACTION_UPDATE_ADDONS = "update-addons";
     private static final String INTENT_ACTION_CREATE_SERVICES = "create-services";
+    private static final String INTENT_ACTION_LOAD_LIBS = "load-libs";
+    private static final String INTENT_ACTION_START_GECKO = "start-gecko";
 
     private static final String INTENT_SERVICE_CATEGORY = "category";
     private static final String INTENT_SERVICE_DATA = "data";
 
-    private static class EventListener implements NativeEventListener {
-        @Override // NativeEventListener
+    private static class EventListener implements BundleEventListener {
+        @Override // BundleEventListener
         public void handleMessage(final String event,
-                                  final NativeJSObject message,
+                                  final GeckoBundle message,
                                   final EventCallback callback) {
             final Context context = GeckoAppShell.getApplicationContext();
             switch (event) {
@@ -130,15 +134,24 @@ public class GeckoService extends Service {
         return getIntentToCreateServices(context, category, /* data */ null);
     }
 
+    public static Intent getIntentToLoadLibs(final Context context) {
+        return getIntentForAction(context, INTENT_ACTION_LOAD_LIBS);
+    }
+
+    public static Intent getIntentToStartGecko(final Context context) {
+        return getIntentForAction(context, INTENT_ACTION_START_GECKO);
+    }
+
     public static void setIntentProfile(final Intent intent, final String profileName,
                                         final String profileDir) {
         intent.putExtra(INTENT_PROFILE_NAME, profileName);
         intent.putExtra(INTENT_PROFILE_DIR, profileDir);
     }
 
-    private int handleIntent(final Intent intent, final int startId) {
-        if (DEBUG) {
-            Log.d(LOGTAG, "Handling " + intent.getAction());
+    private boolean initGecko(final Intent intent) {
+        if (INTENT_ACTION_LOAD_LIBS.equals(intent.getAction())) {
+            // Intentionally not initialize Gecko when only loading libs.
+            return true;
         }
 
         final String profileName = intent.getStringExtra(INTENT_PROFILE_NAME);
@@ -148,8 +161,8 @@ public class GeckoService extends Service {
             throw new IllegalArgumentException("Intent must specify profile.");
         }
 
-        if (!GeckoThread.initWithProfile(profileName != null ? profileName : "",
-                                         profileDir != null ? new File(profileDir) : null)) {
+        if (!GeckoThread.initMainProcessWithProfile(
+                profileName, profileDir != null ? new File(profileDir) : null)) {
             Log.w(LOGTAG, "Ignoring due to profile mismatch: " +
                           profileName + " [" + profileDir + ']');
 
@@ -158,6 +171,17 @@ public class GeckoService extends Service {
                 Log.w(LOGTAG, "Current profile is " + profile.getName() +
                               " [" + profile.getDir().getAbsolutePath() + ']');
             }
+            return false;
+        }
+        return true;
+    }
+
+    private int handleIntent(final Intent intent, final int startId) {
+        if (DEBUG) {
+            Log.d(LOGTAG, "Handling " + intent.getAction());
+        }
+
+        if (!initGecko(intent)) {
             stopSelf(startId);
             return Service.START_NOT_STICKY;
         }
@@ -168,6 +192,10 @@ public class GeckoService extends Service {
         case INTENT_ACTION_UPDATE_ADDONS:
             // Run the add-on update service. Because the service is automatically invoked
             // when loading Gecko, we don't have to do anything else here.
+        case INTENT_ACTION_LOAD_LIBS:
+            // Load libs only. Don't take any additional actions.
+        case INTENT_ACTION_START_GECKO:
+            // Load libs and start Gecko. Don't take any additional actions.
             break;
 
         case INTENT_ACTION_CREATE_SERVICES:

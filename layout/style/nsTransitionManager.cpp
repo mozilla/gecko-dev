@@ -11,6 +11,7 @@
 #include "mozilla/dom/CSSTransitionBinding.h"
 
 #include "nsIContent.h"
+#include "nsContentUtils.h"
 #include "nsStyleContext.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
@@ -32,8 +33,8 @@
 #include "nsDisplayList.h"
 #include "nsStyleChangeList.h"
 #include "nsStyleSet.h"
-#include "mozilla/RestyleManagerHandle.h"
-#include "mozilla/RestyleManagerHandleInlines.h"
+#include "mozilla/RestyleManager.h"
+#include "mozilla/RestyleManagerInlines.h"
 #include "nsDOMMutationObserver.h"
 
 using mozilla::TimeStamp;
@@ -45,8 +46,6 @@ using mozilla::dom::KeyframeEffectReadOnly;
 
 using namespace mozilla;
 using namespace mozilla::css;
-
-typedef mozilla::ComputedTiming::AnimationPhase AnimationPhase;
 
 namespace {
 struct TransitionEventParams {
@@ -122,7 +121,7 @@ ElementPropertyTransition::UpdateStartValueFromReplacedTransition()
         StyleAnimationValue::UncomputeValue(mProperties[0].mProperty,
                                             startValue,
                                             cssValue);
-      mProperties[0].mSegments[0].mFromValue = Move(startValue);
+      mProperties[0].mSegments[0].mFromValue.mGecko = Move(startValue);
       MOZ_ASSERT(uncomputeResult, "UncomputeValue should not fail");
       MOZ_ASSERT(mKeyframes.Length() == 2,
           "Transitions should have exactly two animation keyframes");
@@ -180,10 +179,9 @@ CSSTransition::UpdateTiming(SeekFlag aSeekFlag, SyncNotifyFlag aSyncNotifyFlag)
 }
 
 void
-CSSTransition::QueueEvents()
+CSSTransition::QueueEvents(StickyTimeDuration aActiveTime)
 {
-  if (!mEffect ||
-      !mOwningElement.IsSet()) {
+  if (!mOwningElement.IsSet()) {
     return;
   }
 
@@ -192,19 +190,31 @@ CSSTransition::QueueEvents()
   mOwningElement.GetElement(owningElement, owningPseudoType);
   MOZ_ASSERT(owningElement, "Owning element should be set");
 
-  nsPresContext* presContext = mOwningElement.GetRenderedPresContext();
+  nsPresContext* presContext =
+    nsContentUtils::GetContextForContent(owningElement);
   if (!presContext) {
     return;
   }
 
-  ComputedTiming computedTiming = mEffect->GetComputedTiming();
-  const StickyTimeDuration zeroDuration;
-  StickyTimeDuration intervalStartTime =
-    std::max(std::min(StickyTimeDuration(-mEffect->SpecifiedTiming().mDelay),
-                      computedTiming.mActiveDuration), zeroDuration);
-  StickyTimeDuration intervalEndTime =
-    std::max(std::min((EffectEnd() - mEffect->SpecifiedTiming().mDelay),
-                      computedTiming.mActiveDuration), zeroDuration);
+  const StickyTimeDuration zeroDuration = StickyTimeDuration();
+
+  TransitionPhase currentPhase;
+  StickyTimeDuration intervalStartTime;
+  StickyTimeDuration intervalEndTime;
+
+  if (!mEffect) {
+    currentPhase = GetAnimationPhaseWithoutEffect<TransitionPhase>(*this);
+  } else {
+    ComputedTiming computedTiming = mEffect->GetComputedTiming();
+
+    currentPhase = static_cast<TransitionPhase>(computedTiming.mPhase);
+    intervalStartTime =
+      std::max(std::min(StickyTimeDuration(-mEffect->SpecifiedTiming().mDelay),
+                        computedTiming.mActiveDuration), zeroDuration);
+    intervalEndTime =
+      std::max(std::min((EffectEnd() - mEffect->SpecifiedTiming().mDelay),
+                        computedTiming.mActiveDuration), zeroDuration);
+  }
 
   // TimeStamps to use for ordering the events when they are dispatched. We
   // use a TimeStamp so we can compare events produced by different elements,
@@ -215,41 +225,50 @@ CSSTransition::QueueEvents()
   TimeStamp startTimeStamp = ElapsedTimeToTimeStamp(intervalStartTime);
   TimeStamp endTimeStamp   = ElapsedTimeToTimeStamp(intervalEndTime);
 
-  TransitionPhase currentPhase;
   if (mPendingState != PendingState::NotPending &&
       (mPreviousTransitionPhase == TransitionPhase::Idle ||
        mPreviousTransitionPhase == TransitionPhase::Pending))
   {
     currentPhase = TransitionPhase::Pending;
-  } else {
-    currentPhase = static_cast<TransitionPhase>(computedTiming.mPhase);
   }
 
   AutoTArray<TransitionEventParams, 3> events;
+
+  // Handle cancel events first
+  if ((mPreviousTransitionPhase != TransitionPhase::Idle &&
+       mPreviousTransitionPhase != TransitionPhase::After) &&
+      currentPhase == TransitionPhase::Idle) {
+    TimeStamp activeTimeStamp = ElapsedTimeToTimeStamp(aActiveTime);
+    events.AppendElement(TransitionEventParams{ eTransitionCancel,
+                                                aActiveTime,
+                                                activeTimeStamp });
+  }
+
+  // All other events
   switch (mPreviousTransitionPhase) {
     case TransitionPhase::Idle:
       if (currentPhase == TransitionPhase::Pending ||
           currentPhase == TransitionPhase::Before) {
         events.AppendElement(TransitionEventParams{ eTransitionRun,
-                                                   intervalStartTime,
-                                                   zeroTimeStamp });
+                                                    intervalStartTime,
+                                                    zeroTimeStamp });
       } else if (currentPhase == TransitionPhase::Active) {
         events.AppendElement(TransitionEventParams{ eTransitionRun,
-                                                   intervalStartTime,
-                                                   zeroTimeStamp });
+                                                    intervalStartTime,
+                                                    zeroTimeStamp });
         events.AppendElement(TransitionEventParams{ eTransitionStart,
-                                                   intervalStartTime,
-                                                   startTimeStamp });
+                                                    intervalStartTime,
+                                                    startTimeStamp });
       } else if (currentPhase == TransitionPhase::After) {
         events.AppendElement(TransitionEventParams{ eTransitionRun,
-                                                   intervalStartTime,
-                                                   zeroTimeStamp });
+                                                    intervalStartTime,
+                                                    zeroTimeStamp });
         events.AppendElement(TransitionEventParams{ eTransitionStart,
-                                                   intervalStartTime,
-                                                   startTimeStamp });
+                                                    intervalStartTime,
+                                                    startTimeStamp });
         events.AppendElement(TransitionEventParams{ eTransitionEnd,
-                                                   intervalEndTime,
-                                                   endTimeStamp });
+                                                    intervalEndTime,
+                                                    endTimeStamp });
       }
       break;
 
@@ -257,42 +276,42 @@ CSSTransition::QueueEvents()
     case TransitionPhase::Before:
       if (currentPhase == TransitionPhase::Active) {
         events.AppendElement(TransitionEventParams{ eTransitionStart,
-                                                   intervalStartTime,
-                                                   startTimeStamp });
+                                                    intervalStartTime,
+                                                    startTimeStamp });
       } else if (currentPhase == TransitionPhase::After) {
         events.AppendElement(TransitionEventParams{ eTransitionStart,
-                                                   intervalStartTime,
-                                                   startTimeStamp });
+                                                    intervalStartTime,
+                                                    startTimeStamp });
         events.AppendElement(TransitionEventParams{ eTransitionEnd,
-                                                   intervalEndTime,
-                                                   endTimeStamp });
+                                                    intervalEndTime,
+                                                    endTimeStamp });
       }
       break;
 
     case TransitionPhase::Active:
       if (currentPhase == TransitionPhase::After) {
         events.AppendElement(TransitionEventParams{ eTransitionEnd,
-                                                   intervalEndTime,
-                                                   endTimeStamp });
+                                                    intervalEndTime,
+                                                    endTimeStamp });
       } else if (currentPhase == TransitionPhase::Before) {
         events.AppendElement(TransitionEventParams{ eTransitionEnd,
-                                                   intervalStartTime,
-                                                   startTimeStamp });
+                                                    intervalStartTime,
+                                                    startTimeStamp });
       }
       break;
 
     case TransitionPhase::After:
       if (currentPhase == TransitionPhase::Active) {
         events.AppendElement(TransitionEventParams{ eTransitionStart,
-                                                   intervalEndTime,
-                                                   startTimeStamp });
+                                                    intervalEndTime,
+                                                    startTimeStamp });
       } else if (currentPhase == TransitionPhase::Before) {
         events.AppendElement(TransitionEventParams{ eTransitionStart,
-                                                   intervalEndTime,
-                                                   startTimeStamp });
+                                                    intervalEndTime,
+                                                    startTimeStamp });
         events.AppendElement(TransitionEventParams{ eTransitionEnd,
-                                                   intervalStartTime,
-                                                   endTimeStamp });
+                                                    intervalStartTime,
+                                                    endTimeStamp });
       }
       break;
   }
@@ -360,7 +379,7 @@ CSSTransition::HasLowerCompositeOrderThan(const CSSTransition& aOther) const
 }
 
 /* static */ Nullable<TimeDuration>
-CSSTransition::GetCurrentTimeAt(const DocumentTimeline& aTimeline,
+CSSTransition::GetCurrentTimeAt(const dom::DocumentTimeline& aTimeline,
                                 const TimeStamp& aBaseTime,
                                 const TimeDuration& aStartTime,
                                 double aPlaybackRate)
@@ -377,7 +396,7 @@ CSSTransition::GetCurrentTimeAt(const DocumentTimeline& aTimeline,
 }
 
 void
-CSSTransition::SetEffectFromStyle(AnimationEffectReadOnly* aEffect)
+CSSTransition::SetEffectFromStyle(dom::AnimationEffectReadOnly* aEffect)
 {
   Animation::SetEffectNoUpdate(aEffect);
 
@@ -521,8 +540,8 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
                "for transitions");
     nsStyleSet* styleSet = mPresContext->StyleSet()->AsGecko();
     afterChangeStyle =
-      styleSet->ResolveStyleWithoutAnimation(aElement, newStyleContext,
-                                             eRestyle_CSSTransitions);
+      styleSet->ResolveStyleByRemovingAnimation(aElement, newStyleContext,
+                                                eRestyle_CSSTransitions);
   } else {
     afterChangeStyle = newStyleContext;
   }
@@ -877,12 +896,11 @@ nsTransitionManager::ConsiderInitiatingTransition(
     reversePortion = valuePortion;
   }
 
-  TimingParams timing;
-  timing.mDuration.emplace(StickyTimeDuration::FromMilliseconds(duration));
-  timing.mDelay = TimeDuration::FromMilliseconds(delay);
-  timing.mIterations = 1.0;
-  timing.mDirection = dom::PlaybackDirection::Normal;
-  timing.mFill = dom::FillMode::Backwards;
+  TimingParams timing =
+    TimingParamsFromCSSParams(duration, delay,
+                              1.0 /* iteration count */,
+                              dom::PlaybackDirection::Normal,
+                              dom::FillMode::Backwards);
 
   // aElement is non-null here, so we emplace it directly.
   Maybe<OwningAnimationTarget> target;
@@ -955,8 +973,8 @@ nsTransitionManager::ConsiderInitiatingTransition(
           oldPT->GetAnimation()->PlaybackRate(),
           oldPT->SpecifiedTiming(),
           segment.mTimingFunction,
-          segment.mFromValue,
-          segment.mToValue
+          segment.mFromValue.mGecko,
+          segment.mToValue.mGecko
         })
       );
     }
@@ -1061,20 +1079,4 @@ nsTransitionManager::PruneCompletedTransitions(mozilla::dom::Element* aElement,
     // |collection| is now a dangling pointer!
     collection = nullptr;
   }
-}
-
-void
-nsTransitionManager::StopTransitionsForElement(
-  mozilla::dom::Element* aElement,
-  mozilla::CSSPseudoElementType aPseudoType)
-{
-  MOZ_ASSERT(aElement);
-  CSSTransitionCollection* collection =
-    CSSTransitionCollection::GetAnimationCollection(aElement, aPseudoType);
-  if (!collection) {
-    return;
-  }
-
-  nsAutoAnimationMutationBatch mb(aElement->OwnerDoc());
-  collection->Destroy();
 }

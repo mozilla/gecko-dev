@@ -11,7 +11,7 @@
           href="chrome://branding/content/icon32.png"/>
     <link rel="stylesheet" href="chrome://global/skin/in-content/common.css"
           type="text/css"/>
-    <script type="text/javascript;version=1.8" src="chrome://global/content/aboutPerformance.js"></script>
+    <script type="text/javascript" src="chrome://global/content/aboutPerformance.js"></script>
     <style>
       @import url("chrome://global/skin/in-content/common.css");
 
@@ -116,7 +116,7 @@
         -moz-margin-end: 0;
         width: 100%;
       }
-      #subprocess-reports:-moz-dir(rtl) {
+      #subprocess-reports:dir(rtl) {
         float: left;
       }
       #subprocess-reports th,
@@ -142,6 +142,15 @@
         border-color: var(--in-content-table-border-dark-color);
         border-spacing: 40px;
       }
+      .options {
+        width: 100%;
+      }
+      .options > .toggle-container-with-text {
+        display: inline-flex;
+      }
+      .options > .toggle-container-with-text:not(:first-child) {
+        margin-inline-start: 2ch;
+      }
     </style>
   </head>
   <body onload="go()">
@@ -155,11 +164,15 @@
         </tr>
       </table>
     </div>
-    <div>
-      <input type="checkbox" checked="false" id="check-display-recent"></input> 
-      <label for="check-display-recent" id="label-display-recent">Display only the last few seconds.</label>
-      <input type="checkbox" checked="true" id="check-autorefresh"></input>
-      <label for="check-autorefresh">Refresh automatically</label>
+    <div class="options">
+      <div class="toggle-container-with-text">
+        <input type="checkbox" checked="false" id="check-display-recent" role="checkbox"></input>
+        <label for="check-display-recent" id="label-display-recent">Display only the last few seconds.</label>
+      </div>
+      <div class="toggle-container-with-text">
+        <input type="checkbox" checked="true" id="check-autorefresh" role="checkbox"></input>
+        <label for="check-autorefresh">Refresh automatically</label>
+      </div>
     </div>
     <div>
       <h2>Performance of Add-ons</h2>

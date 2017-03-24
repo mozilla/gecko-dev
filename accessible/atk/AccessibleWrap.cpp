@@ -13,6 +13,7 @@
 #include "mozilla/a11y/PDocAccessible.h"
 #include "OuterDocAccessible.h"
 #include "ProxyAccessible.h"
+#include "DocAccessibleParent.h"
 #include "RootAccessible.h"
 #include "TableAccessible.h"
 #include "TableCellAccessible.h"
@@ -28,7 +29,6 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Sprintf.h"
-#include "nsXPCOMStrings.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIPersistentProperties2.h"
 
@@ -373,6 +373,9 @@ AccessibleWrap::CreateMaiInterfaces(void)
     if (AsTable())
       interfacesBits |= 1 << MAI_INTERFACE_TABLE;
  
+    if (AsTableCell())
+      interfacesBits |= 1 << MAI_INTERFACE_TABLE_CELL;
+
     // Selection interface.
     if (IsSelect()) {
       interfacesBits |= 1 << MAI_INTERFACE_SELECTION;
@@ -610,8 +613,7 @@ static void
 MaybeFireNameChange(AtkObject* aAtkObj, const nsString& aNewName)
 {
   NS_ConvertUTF16toUTF8 newNameUTF8(aNewName);
-  if (aAtkObj->name &&
-      !strncmp(aAtkObj->name, newNameUTF8.get(), newNameUTF8.Length()))
+  if (aAtkObj->name && !strcmp(aAtkObj->name, newNameUTF8.get()))
     return;
 
   // Below we duplicate the functionality of atk_object_set_name(),
@@ -1129,6 +1131,9 @@ GetInterfacesForProxy(ProxyAccessible* aProxy, uint32_t aInterfaces)
 
   if (aInterfaces & Interfaces::TABLE)
     interfaces |= 1 << MAI_INTERFACE_TABLE;
+
+  if (aInterfaces & Interfaces::TABLECELL)
+    interfaces |= 1 << MAI_INTERFACE_TABLE_CELL;
 
   if (aInterfaces & Interfaces::IMAGE)
     interfaces |= 1 << MAI_INTERFACE_IMAGE;

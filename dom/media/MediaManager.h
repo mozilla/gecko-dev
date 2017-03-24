@@ -48,7 +48,12 @@ namespace dom {
 struct MediaStreamConstraints;
 struct MediaTrackConstraints;
 struct MediaTrackConstraintSet;
+enum class CallerType : uint32_t;
 } // namespace dom
+
+namespace ipc {
+class PrincipalInfo;
+}
 
 class MediaManager;
 class GetUserMediaCallbackMediaStreamListener;
@@ -73,7 +78,7 @@ public:
   virtual Source* GetSource() = 0;
   nsresult Allocate(const dom::MediaTrackConstraints &aConstraints,
                     const MediaEnginePrefs &aPrefs,
-                    const nsACString& aOrigin,
+                    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
                     const char** aOutBadConstraint);
   nsresult Restart(const dom::MediaTrackConstraints &aConstraints,
                    const MediaEnginePrefs &aPrefs,
@@ -237,7 +242,8 @@ public:
     nsPIDOMWindowInner* aWindow,
     const dom::MediaStreamConstraints& aConstraints,
     nsIDOMGetUserMediaSuccessCallback* onSuccess,
-    nsIDOMGetUserMediaErrorCallback* onError);
+    nsIDOMGetUserMediaErrorCallback* onError,
+    dom::CallerType aCallerType);
 
   nsresult GetUserMediaDevices(nsPIDOMWindowInner* aWindow,
                                const dom::MediaStreamConstraints& aConstraints,
@@ -257,7 +263,6 @@ public:
   MediaEnginePrefs mPrefs;
 
   typedef nsTArray<RefPtr<MediaDevice>> SourceSet;
-  static bool IsPrivateBrowsing(nsPIDOMWindowInner* window);
 
   virtual int AddDeviceChangeCallback(DeviceChangeCallback* aCallback) override;
   virtual void OnDeviceChange() override;
@@ -332,7 +337,7 @@ private:
   media::CoatCheck<PledgeChar> mOutstandingCharPledges;
   media::CoatCheck<PledgeVoid> mOutstandingVoidPledges;
 public:
-  media::CoatCheck<media::Pledge<nsCString>> mGetOriginKeyPledges;
+  media::CoatCheck<media::Pledge<nsCString>> mGetPrincipalKeyPledges;
   RefPtr<media::Parent<media::NonE10s>> mNonE10sParent;
 };
 

@@ -155,7 +155,12 @@ GECKOVIEW_JARS = \
   gecko-mozglue.jar \
   gecko-util.jar \
   gecko-view.jar \
+  sync-thirdparty.jar \
   $(NULL)
+
+ifdef MOZ_INSTALL_TRACKING
+GECKOVIEW_JARS += gecko-thirdparty-adjust_sdk.jar
+endif
 
 geckoview_jars_classpath := $(subst $(NULL) ,:,$(strip $(GECKOVIEW_JARS)))
 
@@ -163,7 +168,6 @@ FENNEC_JARS = \
   gecko-browser.jar \
   gecko-thirdparty.jar \
   services.jar \
-  sync-thirdparty.jar \
   ../javaaddons/javaaddons-1.0.jar \
   $(NULL)
 
@@ -177,10 +181,6 @@ endif
 
 ifdef MOZ_ANDROID_MLS_STUMBLER
 FENNEC_JARS += ../stumbler/stumbler.jar
-endif
-
-ifdef MOZ_INSTALL_TRACKING
-FENNEC_JARS += gecko-thirdparty-adjust_sdk.jar
 endif
 
 # All the jars we're compiling from source. (not to be confused with
@@ -324,24 +324,6 @@ FennecJNIWrappers.cpp: $(ANNOTATION_PROCESSOR_JAR_FILES) $(FENNEC_JARS)
 	$(JAVA) -classpath $(all_jars_classpath):$(JAVA_BOOTCLASSPATH):$(JAVA_CLASSPATH):$(ANNOTATION_PROCESSOR_JAR_FILES) \
 		org.mozilla.gecko.annotationProcessors.AnnotationProcessor \
 		Fennec $(FENNEC_JARS)
-
-# Certain source files need to be preprocessed.  This special rule
-# generates these files into generated/org/mozilla/gecko for
-# consumption by the build system and IDEs.
-
-# The list in moz.build looks like
-# 'preprocessed/org/mozilla/gecko/AppConstants.java'.  The list in
-# constants_PP_JAVAFILES looks like
-# 'generated/preprocessed/org/mozilla/gecko/AppConstants.java'.  We
-# need to write AppConstants.java.in to
-# generated/preprocessed/org/mozilla/gecko.
-preprocessed := $(addsuffix .in,$(subst generated/preprocessed/org/mozilla/gecko/,,$(filter generated/preprocessed/org/mozilla/gecko/%,$(constants_PP_JAVAFILES))))
-
-preprocessed_PATH := generated/preprocessed/org/mozilla/gecko
-preprocessed_KEEP_PATH := 1
-preprocessed_FLAGS := --marker='//\\\#'
-
-PP_TARGETS += preprocessed
 
 include $(topsrcdir)/config/rules.mk
 
@@ -592,3 +574,18 @@ media_pkg := org/mozilla/gecko/media
 $(aidl_target_path)/$(media_pkg)/%.java:$(aidl_src_path)/$(media_pkg)/%.aidl
 	@echo "Processing AIDL: $< => $@"
 	$(AIDL) -p$(ANDROID_SDK)/framework.aidl -I$(aidl_src_path) -o$(aidl_target_path) $<
+
+GECKOVIEW_AIDLS = \
+  org/mozilla/gecko/IGeckoEditableChild.aidl \
+  org/mozilla/gecko/IGeckoEditableParent.aidl \
+  org/mozilla/gecko/process/IChildProcess.aidl \
+  org/mozilla/gecko/process/IProcessManager.aidl \
+  $(NULL)
+
+geckoview_aidl_src_path := $(topsrcdir)/mobile/android/geckoview/src/main/aidl
+geckoview_aidl_target_path := generated
+geckoview_aidl_targets := $(addprefix $(geckoview_aidl_target_path)/,$(GECKOVIEW_AIDLS:.aidl=.java))
+
+$(geckoview_aidl_targets): $(geckoview_aidl_target_path)/%.java: $(geckoview_aidl_src_path)/%.aidl
+	@echo "Processing AIDL: $< => $@"
+	$(AIDL) -p$(ANDROID_SDK)/framework.aidl -I$(geckoview_aidl_src_path) -o$(geckoview_aidl_target_path) $<

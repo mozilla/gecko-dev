@@ -48,7 +48,9 @@ RInstruction::readRecoverData(CompactBufferReader& reader, RInstructionStorage* 
 #   define MATCH_OPCODES_(op)                                           \
       case Recover_##op:                                                \
         static_assert(sizeof(R##op) <= sizeof(RInstructionStorage),     \
-                      "Storage space is too small to decode R" #op " instructions."); \
+                      "storage space must be big enough to store R" #op); \
+        static_assert(alignof(R##op) <= alignof(RInstructionStorage),   \
+                      "storage space must be aligned adequate to store R" #op); \
         new (raw->addr()) R##op(reader);                                \
         break;
 
@@ -1297,6 +1299,34 @@ RNewObject::recover(JSContext* cx, SnapshotIterator& iter) const
         break;
     }
 
+    if (!resultObject)
+        return false;
+
+    result.setObject(*resultObject);
+    iter.storeInstructionResult(result);
+    return true;
+}
+
+bool
+MNewTypedArray::writeRecoverData(CompactBufferWriter& writer) const
+{
+    MOZ_ASSERT(canRecoverOnBailout());
+    writer.writeUnsigned(uint32_t(RInstruction::Recover_NewTypedArray));
+    return true;
+}
+
+RNewTypedArray::RNewTypedArray(CompactBufferReader& reader)
+{
+}
+
+bool
+RNewTypedArray::recover(JSContext* cx, SnapshotIterator& iter) const
+{
+    RootedObject templateObject(cx, &iter.read().toObject());
+    RootedValue result(cx);
+
+    uint32_t length = templateObject.as<TypedArrayObject>()->length();
+    JSObject* resultObject = TypedArrayCreateWithTemplate(cx, templateObject, length);
     if (!resultObject)
         return false;
 

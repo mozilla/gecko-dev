@@ -66,15 +66,13 @@ var aboutNewTabService = Cc["@mozilla.org/browser/aboutnewtab-service;1"]
                            .getService(Ci.nsIAboutNewTabService);
 
 function pushPrefs(...aPrefs) {
-  return new Promise((resolve) => {
-    SpecialPowers.pushPrefEnv({"set": aPrefs}, resolve);
-  });
+  return SpecialPowers.pushPrefEnv({"set": aPrefs});
 }
 
 /*
  * run tests with input from TESTS
  */
-function doTest(aExpectedStrings, reload, aUrl, aNewTabPref) {
+function* doTest(aExpectedStrings, reload, aUrl, aNewTabPref) {
   // set about:newtab location for this test if it's a newtab test
   if (aNewTabPref) {
     aboutNewTabService.newTabURL = aNewTabPref;
@@ -85,7 +83,7 @@ function doTest(aExpectedStrings, reload, aUrl, aNewTabPref) {
       ["browser.newtabpage.remote.content-signing-test", true],
       ["browser.newtabpage.remote", true],
       ["security.content.signature.root_hash",
-       "65:AE:D8:1E:B5:12:AE:B0:6B:38:58:BC:7C:47:35:3D:D4:EA:25:F1:63:DA:08:BB:86:3A:2E:97:39:66:8F:55"]);
+       "CC:BE:04:87:74:B2:98:24:4A:C6:7A:71:BC:6F:DB:D6:C0:48:17:29:57:51:96:47:38:CC:24:C8:E4:F9:DD:CB"]);
 
   if (aNewTabPref === URI_BAD_CSP) {
     // Use stricter CSP to test CSP violation.
@@ -188,7 +186,7 @@ function doTest(aExpectedStrings, reload, aUrl, aNewTabPref) {
   );
 }
 
-function runTests() {
+function* runTests() {
   // run tests from TESTS
   for (let i = 0; i < TESTS.length; i++) {
     let testCase = TESTS[i];
@@ -205,6 +203,6 @@ function runTests() {
       url = testCase.url;
     }
 
-    yield doTest(aExpectedStrings, reload, url, aNewTabPref);
+    yield* doTest(aExpectedStrings, reload, url, aNewTabPref);
   }
 }

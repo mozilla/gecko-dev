@@ -6,7 +6,6 @@
 
 #include "nsIContentParent.h"
 
-#include "mozilla/AppProcessChecker.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/ContentParent.h"
@@ -19,7 +18,9 @@
 #include "mozilla/jsipc/CrossProcessObjectWrappers.h"
 #include "mozilla/ipc/FileDescriptorSetParent.h"
 #include "mozilla/ipc/PFileDescriptorSetParent.h"
-#include "mozilla/ipc/SendStreamAlloc.h"
+#include "mozilla/ipc/IPCStreamAlloc.h"
+#include "mozilla/ipc/IPCStreamDestination.h"
+#include "mozilla/ipc/IPCStreamSource.h"
 #include "mozilla/Unused.h"
 
 #include "nsFrameMessageManager.h"
@@ -122,11 +123,9 @@ nsIContentParent::AllocPBrowserParent(const TabId& aTabId,
                                       const IPCTabContext& aContext,
                                       const uint32_t& aChromeFlags,
                                       const ContentParentId& aCpId,
-                                      const bool& aIsForApp,
                                       const bool& aIsForBrowser)
 {
   Unused << aCpId;
-  Unused << aIsForApp;
   Unused << aIsForBrowser;
 
   if (!CanOpenBrowser(aContext)) {
@@ -212,62 +211,42 @@ nsIContentParent::GetOrCreateActorForBlobImpl(BlobImpl* aImpl)
   return actor;
 }
 
-bool
+mozilla::ipc::IPCResult
 nsIContentParent::RecvSyncMessage(const nsString& aMsg,
                                   const ClonedMessageData& aData,
                                   InfallibleTArray<CpowEntry>&& aCpows,
                                   const IPC::Principal& aPrincipal,
                                   nsTArray<ipc::StructuredCloneData>* aRetvals)
 {
-  // FIXME Permission check in Content process
-  nsIPrincipal* principal = aPrincipal;
-  if (IsContentParent()) {
-    ContentParent* parent = AsContentParent();
-    if (!ContentParent::IgnoreIPCPrincipal() &&
-        parent && principal && !AssertAppPrincipal(parent, principal)) {
-      return false;
-    }
-  }
-
+  CrossProcessCpowHolder cpows(this, aCpows);
   RefPtr<nsFrameMessageManager> ppm = mMessageManager;
   if (ppm) {
     ipc::StructuredCloneData data;
     ipc::UnpackClonedMessageDataForParent(aData, data);
 
-    CrossProcessCpowHolder cpows(this, aCpows);
     ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()), nullptr,
                         aMsg, true, &data, &cpows, aPrincipal, aRetvals);
   }
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 nsIContentParent::RecvRpcMessage(const nsString& aMsg,
                                  const ClonedMessageData& aData,
                                  InfallibleTArray<CpowEntry>&& aCpows,
                                  const IPC::Principal& aPrincipal,
                                  nsTArray<ipc::StructuredCloneData>* aRetvals)
 {
-  // FIXME Permission check in Content process
-  nsIPrincipal* principal = aPrincipal;
-  if (IsContentParent()) {
-    ContentParent* parent = AsContentParent();
-    if (!ContentParent::IgnoreIPCPrincipal() &&
-        parent && principal && !AssertAppPrincipal(parent, principal)) {
-      return false;
-    }
-  }
-
+  CrossProcessCpowHolder cpows(this, aCpows);
   RefPtr<nsFrameMessageManager> ppm = mMessageManager;
   if (ppm) {
     ipc::StructuredCloneData data;
     ipc::UnpackClonedMessageDataForParent(aData, data);
 
-    CrossProcessCpowHolder cpows(this, aCpows);
     ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()), nullptr,
                         aMsg, true, &data, &cpows, aPrincipal, aRetvals);
   }
-  return true;
+  return IPC_OK();
 }
 
 PFileDescriptorSetParent*
@@ -283,45 +262,48 @@ nsIContentParent::DeallocPFileDescriptorSetParent(PFileDescriptorSetParent* aAct
   return true;
 }
 
-PSendStreamParent*
-nsIContentParent::AllocPSendStreamParent()
+PChildToParentStreamParent*
+nsIContentParent::AllocPChildToParentStreamParent()
 {
-  return mozilla::ipc::AllocPSendStreamParent();
+  return mozilla::ipc::AllocPChildToParentStreamParent();
 }
 
 bool
-nsIContentParent::DeallocPSendStreamParent(PSendStreamParent* aActor)
+nsIContentParent::DeallocPChildToParentStreamParent(PChildToParentStreamParent* aActor)
 {
   delete aActor;
   return true;
 }
 
+PParentToChildStreamParent*
+nsIContentParent::AllocPParentToChildStreamParent()
+{
+  MOZ_CRASH("PParentToChildStreamChild actors should be manually constructed!");
+}
+
 bool
+nsIContentParent::DeallocPParentToChildStreamParent(PParentToChildStreamParent* aActor)
+{
+  delete aActor;
+  return true;
+}
+
+mozilla::ipc::IPCResult
 nsIContentParent::RecvAsyncMessage(const nsString& aMsg,
                                    InfallibleTArray<CpowEntry>&& aCpows,
                                    const IPC::Principal& aPrincipal,
                                    const ClonedMessageData& aData)
 {
-  // FIXME Permission check in Content process
-  nsIPrincipal* principal = aPrincipal;
-  if (IsContentParent()) {
-    ContentParent* parent = AsContentParent();
-    if (!ContentParent::IgnoreIPCPrincipal() &&
-        parent && principal && !AssertAppPrincipal(parent, principal)) {
-      return false;
-    }
-  }
-
+  CrossProcessCpowHolder cpows(this, aCpows);
   RefPtr<nsFrameMessageManager> ppm = mMessageManager;
   if (ppm) {
     ipc::StructuredCloneData data;
     ipc::UnpackClonedMessageDataForParent(aData, data);
 
-    CrossProcessCpowHolder cpows(this, aCpows);
     ppm->ReceiveMessage(static_cast<nsIContentFrameMessageManager*>(ppm.get()), nullptr,
                         aMsg, false, &data, &cpows, aPrincipal, nullptr);
   }
-  return true;
+  return IPC_OK();
 }
 
 } // namespace dom

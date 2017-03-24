@@ -133,20 +133,31 @@ GetStorageEstimate(nsIQuotaUsageRequest* aRequest,
 {
   MOZ_ASSERT(aRequest);
 
-  uint64_t usage;
-  nsresult rv = aRequest->GetUsage(&usage);
+  nsCOMPtr<nsIVariant> result;
+  nsresult rv = aRequest->GetResult(getter_AddRefs(result));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  uint64_t limit;
-  rv = aRequest->GetLimit(&limit);
+  nsID* iid;
+  nsCOMPtr<nsISupports> supports;
+  rv = result->GetAsInterface(&iid, getter_AddRefs(supports));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  aStorageEstimate.mUsage.Construct() = usage;
-  aStorageEstimate.mQuota.Construct() = limit;
+  free(iid);
+
+  nsCOMPtr<nsIQuotaOriginUsageResult> originUsageResult =
+    do_QueryInterface(supports);
+  MOZ_ASSERT(originUsageResult);
+
+  MOZ_ALWAYS_SUCCEEDS(
+    originUsageResult->GetUsage(&aStorageEstimate.mUsage.Construct()));
+
+  MOZ_ALWAYS_SUCCEEDS(
+    originUsageResult->GetLimit(&aStorageEstimate.mQuota.Construct()));
+
   return NS_OK;
 }
 
@@ -324,7 +335,7 @@ StorageManager::Estimate(ErrorResult& aRv)
     new EstimateWorkerMainThreadRunnable(promiseProxy->GetWorkerPrivate(),
                                          promiseProxy);
 
-  runnnable->Dispatch(aRv);
+  runnnable->Dispatch(Terminating, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }

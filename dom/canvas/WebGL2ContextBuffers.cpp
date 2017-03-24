@@ -31,15 +31,6 @@ WebGL2Context::CopyBufferSubData(GLenum readTarget, GLenum writeTarget,
     if (!writeBuffer)
         return;
 
-    if (readBuffer->mNumActiveTFOs ||
-        writeBuffer->mNumActiveTFOs)
-    {
-        ErrorInvalidOperation("%s: Buffer is bound to an active transform feedback"
-                              " object.",
-                              funcName);
-        return;
-    }
-
     if (!ValidateNonNegative(funcName, "readOffset", readOffset) ||
         !ValidateNonNegative(funcName, "writeOffset", writeOffset) ||
         !ValidateNonNegative(funcName, "size", size))
@@ -64,10 +55,18 @@ WebGL2Context::CopyBufferSubData(GLenum readTarget, GLenum writeTarget,
         return;
     }
 
-    if (readBuffer == writeBuffer &&
-        !ValidateDataRanges(readOffset, writeOffset, size, funcName))
-    {
-        return;
+    if (readBuffer == writeBuffer) {
+        MOZ_ASSERT((CheckedInt<WebGLsizeiptr>(readOffset) + size).isValid());
+        MOZ_ASSERT((CheckedInt<WebGLsizeiptr>(writeOffset) + size).isValid());
+
+        const bool separate = (readOffset + size <= writeOffset ||
+                               writeOffset + size <= readOffset);
+        if (!separate) {
+            ErrorInvalidValue("%s: ranges [readOffset, readOffset + size) and"
+                              " [writeOffset, writeOffset + size) overlap",
+                              funcName);
+            return;
+        }
     }
 
     const auto& readType = readBuffer->Content();
@@ -121,21 +120,6 @@ WebGL2Context::GetBufferSubData(GLenum target, GLintptr srcByteOffset,
 
     ////
 
-    if (buffer->mNumActiveTFOs) {
-        ErrorInvalidOperation("%s: Buffer is bound to an active transform feedback"
-                              " object.",
-                              funcName);
-        return;
-    }
-
-    if (target == LOCAL_GL_TRANSFORM_FEEDBACK_BUFFER &&
-        mBoundTransformFeedback->mIsActive)
-    {
-        ErrorInvalidOperation("%s: Currently bound transform feedback is active.",
-                              funcName);
-        return;
-    }
-
     if (!CheckedInt<GLsizeiptr>(byteLen).isValid()) {
         ErrorOutOfMemory("%s: Size too large.", funcName);
         return;
@@ -147,13 +131,28 @@ WebGL2Context::GetBufferSubData(GLenum target, GLintptr srcByteOffset,
     gl->MakeCurrent();
     const ScopedLazyBind readBind(gl, target, buffer);
 
-    const auto mappedBytes = gl->fMapBufferRange(target, srcByteOffset, glByteLen,
-                                                 LOCAL_GL_MAP_READ_BIT);
-    // Warning: Possibly shared memory.  See bug 1225033.
     if (byteLen) {
+        const bool isTF = (target == LOCAL_GL_TRANSFORM_FEEDBACK_BUFFER);
+        GLenum mapTarget = target;
+        if (isTF) {
+            gl->fBindTransformFeedback(LOCAL_GL_TRANSFORM_FEEDBACK, mEmptyTFO);
+            gl->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, buffer->mGLName);
+            mapTarget = LOCAL_GL_ARRAY_BUFFER;
+        }
+
+        const auto mappedBytes = gl->fMapBufferRange(mapTarget, srcByteOffset, glByteLen,
+                                                     LOCAL_GL_MAP_READ_BIT);
         memcpy(bytes, mappedBytes, byteLen);
+        gl->fUnmapBuffer(mapTarget);
+
+        if (isTF) {
+            const GLuint vbo = (mBoundArrayBuffer ? mBoundArrayBuffer->mGLName : 0);
+            gl->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, vbo);
+            const GLuint tfo = (mBoundTransformFeedback ? mBoundTransformFeedback->mGLName
+                                                        : 0);
+            gl->fBindTransformFeedback(LOCAL_GL_TRANSFORM_FEEDBACK, tfo);
+        }
     }
-    gl->fUnmapBuffer(target);
 }
 
 } // namespace mozilla

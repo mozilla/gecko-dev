@@ -11,7 +11,6 @@
 #include "nsIServiceManager.h"
 #include "nsIURI.h"
 
-#include "nsIChromeRegistry.h"
 #include "nsIFile.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
@@ -28,9 +27,11 @@
 #include "mozilla/scache/StartupCache.h"
 #include "mozilla/scache/StartupCacheUtils.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/intl/LocaleService.h"
 
 using namespace mozilla;
 using namespace mozilla::scache;
+using mozilla::intl::LocaleService;
 
 static bool gDisableXULCache = false; // enabled by default
 static const char kDisableXULCachePref[] = "nglayout.debug.disable_xul_cache";
@@ -189,16 +190,25 @@ nsXULPrototypeCache::PutPrototype(nsXULPrototypeDocument* aDocument)
     return NS_OK;
 }
 
+mozilla::StyleSheet*
+nsXULPrototypeCache::GetStyleSheet(nsIURI* aURI,
+                                   StyleBackendType aType)
+{
+    StyleSheetTable& table = TableForBackendType(aType);
+    return table.GetWeak(aURI);
+}
+
 nsresult
-nsXULPrototypeCache::PutStyleSheet(CSSStyleSheet* aStyleSheet)
+nsXULPrototypeCache::PutStyleSheet(StyleSheet* aStyleSheet,
+                                   StyleBackendType aType)
 {
     nsIURI* uri = aStyleSheet->GetSheetURI();
 
-    mStyleSheetTable.Put(uri, aStyleSheet);
+    StyleSheetTable& table = TableForBackendType(aType);
+    table.Put(uri, aStyleSheet);
 
     return NS_OK;
 }
-
 
 JSScript*
 nsXULPrototypeCache::GetScript(nsIURI* aURI)
@@ -254,11 +264,16 @@ nsXULPrototypeCache::FlushSkinFiles()
   }
 
   // Now flush out our skin stylesheets from the cache.
-  for (auto iter = mStyleSheetTable.Iter(); !iter.Done(); iter.Next()) {
-    nsAutoCString str;
-    iter.Data()->GetSheetURI()->GetPath(str);
-    if (strncmp(str.get(), "/skin", 5) == 0) {
-      iter.Remove();
+  mozilla::StyleBackendType tableTypes[] = { StyleBackendType::Gecko,
+                                             StyleBackendType::Servo };
+  for (auto tableType : tableTypes) {
+    StyleSheetTable& table = TableForBackendType(tableType);
+    for (auto iter = table.Iter(); !iter.Done(); iter.Next()) {
+      nsAutoCString str;
+      iter.Data()->GetSheetURI()->GetPath(str);
+      if (strncmp(str.get(), "/skin", 5) == 0) {
+        iter.Remove();
+      }
     }
   }
 
@@ -281,7 +296,8 @@ nsXULPrototypeCache::Flush()
 {
     mPrototypeTable.Clear();
     mScriptTable.Clear();
-    mStyleSheetTable.Clear();
+    mGeckoStyleSheetTable.Clear();
+    mServoStyleSheetTable.Clear();
     mXBLDocTable.Clear();
 }
 
@@ -484,12 +500,8 @@ nsXULPrototypeCache::BeginCaching(nsIURI* aURI)
     rv = aURI->GetHost(package);
     if (NS_FAILED(rv))
         return rv;
-    nsCOMPtr<nsIXULChromeRegistry> chromeReg
-        = do_GetService(NS_CHROMEREGISTRY_CONTRACTID, &rv);
     nsAutoCString locale;
-    rv = chromeReg->GetSelectedLocale(package, false, locale);
-    if (NS_FAILED(rv))
-        return rv;
+    LocaleService::GetInstance()->GetAppLocaleAsLangTag(locale);
 
     nsAutoCString fileChromePath, fileLocale;
 

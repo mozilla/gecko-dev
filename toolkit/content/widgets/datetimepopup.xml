@@ -11,12 +11,23 @@
    xmlns:xbl="http://www.mozilla.org/xbl">
   <binding id="datetime-popup"
            extends="chrome://global/content/bindings/popup.xml#arrowpanel">
+    <resources>
+      <stylesheet src="chrome://global/skin/datetimepopup.css"/>
+    </resources>
     <implementation>
       <field name="dateTimePopupFrame">
         this.querySelector("#dateTimePopupFrame");
       </field>
-      <field name="TIME_PICKER_WIDTH" readonly="true">"14em"</field>
-      <field name="TIME_PICKER_HEIGHT" readonly="true">"14em"</field>
+      <field name="TIME_PICKER_WIDTH" readonly="true">"12em"</field>
+      <field name="TIME_PICKER_HEIGHT" readonly="true">"21em"</field>
+      <field name="DATE_PICKER_WIDTH" readonly="true">"23.1em"</field>
+      <field name="DATE_PICKER_HEIGHT" readonly="true">"20.7em"</field>
+      <constructor><![CDATA[
+        this.mozIntl = Components.classes["@mozilla.org/mozintl;1"]
+                                 .getService(Components.interfaces.mozIMozIntl);
+        // Notify DateTimePickerHelper.jsm that binding is ready.
+        this.dispatchEvent(new CustomEvent("DateTimePickerBindingReady"));
+      ]]></constructor>
       <method name="loadPicker">
         <parameter name="type"/>
         <parameter name="detail"/>
@@ -24,6 +35,8 @@
           this.hidden = false;
           this.type = type;
           this.pickerState = {};
+          // TODO: Resize picker according to content zoom level
+          this.style.fontSize = "10px";
           switch (type) {
             case "time": {
               this.detail = detail;
@@ -31,6 +44,14 @@
               this.dateTimePopupFrame.setAttribute("src", "chrome://global/content/timepicker.xhtml");
               this.dateTimePopupFrame.style.width = this.TIME_PICKER_WIDTH;
               this.dateTimePopupFrame.style.height = this.TIME_PICKER_HEIGHT;
+              break;
+            }
+            case "date": {
+              this.detail = detail;
+              this.dateTimePopupFrame.addEventListener("load", this, true);
+              this.dateTimePopupFrame.setAttribute("src", "chrome://global/content/datepicker.xhtml");
+              this.dateTimePopupFrame.style.width = this.DATE_PICKER_WIDTH;
+              this.dateTimePopupFrame.style.height = this.DATE_PICKER_HEIGHT;
               break;
             }
           }
@@ -43,7 +64,7 @@
           this.pickerState = {};
           this.type = undefined;
           this.dateTimePopupFrame.removeEventListener("load", this, true);
-          this.dateTimePopupFrame.contentDocument.removeEventListener("TimePickerPopupChanged", this, false);
+          this.dateTimePopupFrame.contentDocument.removeEventListener("message", this);
           this.dateTimePopupFrame.setAttribute("src", "");
         ]]></body>
       </method>
@@ -53,8 +74,21 @@
           switch (this.type) {
             case "time": {
               this.postMessageToPicker({
-                name: "TimePickerSetValue",
+                name: "PickerSetValue",
                 detail: data.value
+              });
+              break;
+            }
+            case "date": {
+              const { year, month, day } = data.value;
+              this.postMessageToPicker({
+                name: "PickerSetValue",
+                detail: {
+                  year,
+                  // Month value from input box starts from 1 instead of 0
+                  month: month == undefined ? undefined : month - 1,
+                  day
+                }
               });
               break;
             }
@@ -64,14 +98,16 @@
       <method name="initPicker">
         <parameter name="detail"/>
         <body><![CDATA[
+          const locale = Services.locale.getAppLocaleAsBCP47();
+          const dir = this.mozIntl.getLocaleInfo(locale).direction;
+
           switch (this.type) {
             case "time": {
               const { hour, minute } = detail.value;
               const format = detail.format || "12";
-              const locale = Components.classes["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry).getSelectedLocale("global");
 
               this.postMessageToPicker({
-                name: "TimePickerInit",
+                name: "PickerInit",
                 detail: {
                   hour,
                   minute,
@@ -80,6 +116,53 @@
                   min: detail.min,
                   max: detail.max,
                   step: detail.step,
+                }
+              });
+              break;
+            }
+            case "date": {
+              const { year, month, day } = detail.value;
+              const { firstDayOfWeek, weekends } =
+                this.getCalendarInfo(locale);
+              const monthStrings = this.getDisplayNames(
+                locale, [
+                  "dates/gregorian/months/january",
+                  "dates/gregorian/months/february",
+                  "dates/gregorian/months/march",
+                  "dates/gregorian/months/april",
+                  "dates/gregorian/months/may",
+                  "dates/gregorian/months/june",
+                  "dates/gregorian/months/july",
+                  "dates/gregorian/months/august",
+                  "dates/gregorian/months/september",
+                  "dates/gregorian/months/october",
+                  "dates/gregorian/months/november",
+                  "dates/gregorian/months/december",
+                ], "short");
+              const weekdayStrings = this.getDisplayNames(
+                locale, [
+                  "dates/gregorian/weekdays/sunday",
+                  "dates/gregorian/weekdays/monday",
+                  "dates/gregorian/weekdays/tuesday",
+                  "dates/gregorian/weekdays/wednesday",
+                  "dates/gregorian/weekdays/thursday",
+                  "dates/gregorian/weekdays/friday",
+                  "dates/gregorian/weekdays/saturday",
+                ], "short");
+
+              this.postMessageToPicker({
+                name: "PickerInit",
+                detail: {
+                  year,
+                  // Month value from input box starts from 1 instead of 0
+                  month: month == undefined ? undefined : month - 1,
+                  day,
+                  firstDayOfWeek,
+                  weekends,
+                  monthStrings,
+                  weekdayStrings,
+                  locale,
+                  dir,
                 }
               });
               break;
@@ -107,6 +190,10 @@
               }
               break;
             }
+            case "date": {
+              this.sendPickerValueChanged(this.pickerState);
+              break;
+            }
           }
         ]]></body>
       </method>
@@ -123,7 +210,58 @@
               }));
               break;
             }
+            case "date": {
+              this.dispatchEvent(new CustomEvent("DateTimePickerValueChanged", {
+                detail: {
+                  year: value.year,
+                  // Month value from input box starts from 1 instead of 0
+                  month: value.month == undefined ? undefined : value.month + 1,
+                  day: value.day
+                }
+              }));
+              break;
+            }
           }
+        ]]></body>
+      </method>
+      <method name="getCalendarInfo">
+        <parameter name="locale"/>
+        <body><![CDATA[
+          const calendarInfo = this.mozIntl.getCalendarInfo(locale);
+
+          // Day of week from calendarInfo starts from 1 as Sunday to 7 as Saturday,
+          // so they need to be mapped to JavaScript convention with 0 as Sunday
+          // and 6 as Saturday
+          let firstDayOfWeek = calendarInfo.firstDayOfWeek - 1,
+              weekendStart = calendarInfo.weekendStart - 1,
+              weekendEnd = calendarInfo.weekendEnd - 1;
+
+          let weekends = [];
+
+          // Make sure weekendEnd is greater than weekendStart
+          if (weekendEnd < weekendStart) {
+            weekendEnd += 7;
+          }
+
+          // We get the weekends by incrementing weekendStart up to weekendEnd.
+          // If the start and end is the same day, then weekends only has one day.
+          for (let day = weekendStart; day <= weekendEnd; day++) {
+            weekends.push(day % 7);
+          }
+
+          return {
+            firstDayOfWeek,
+            weekends
+          }
+        ]]></body>
+      </method>
+      <method name="getDisplayNames">
+        <parameter name="locale"/>
+        <parameter name="keys"/>
+        <parameter name="style"/>
+        <body><![CDATA[
+          const displayNames = this.mozIntl.getDisplayNames(locale, {keys, style});
+          return keys.map(key => displayNames.values[key]);
         ]]></body>
       </method>
       <method name="handleEvent">
@@ -132,7 +270,7 @@
           switch (aEvent.type) {
             case "load": {
               this.initPicker(this.detail);
-              this.dateTimePopupFrame.contentWindow.addEventListener("message", this, false);
+              this.dateTimePopupFrame.contentWindow.addEventListener("message", this);
               break;
             }
             case "message": {
@@ -150,9 +288,13 @@
           }
 
           switch (aEvent.data.name) {
-            case "TimePickerPopupChanged": {
+            case "PickerPopupChanged": {
               this.pickerState = aEvent.data.detail;
               this.setInputBoxValue();
+              break;
+            }
+            case "ClosePopup": {
+              this.closePicker();
               break;
             }
           }

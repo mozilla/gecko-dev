@@ -8,7 +8,6 @@
 #define PDMFactory_h_
 
 #include "PlatformDecoderModule.h"
-#include "mozilla/Function.h"
 #include "mozilla/StaticMutex.h"
 
 class CDMProxy;
@@ -19,7 +18,8 @@ class DecoderDoctorDiagnostics;
 class PDMFactoryImpl;
 template<class T> class StaticAutoPtr;
 
-class PDMFactory final {
+class PDMFactory final
+{
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PDMFactory)
 
@@ -53,7 +53,7 @@ public:
 private:
   virtual ~PDMFactory();
   void CreatePDMs();
-  void CreateBlankPDM();
+  void CreateNullPDM();
   // Startup the provided PDM and add it to our list if successful.
   bool StartupPDM(PlatformDecoderModule* aPDM);
   // Returns the first PDM in our list supporting the mimetype.
@@ -67,7 +67,7 @@ private:
 
   nsTArray<RefPtr<PlatformDecoderModule>> mCurrentPDMs;
   RefPtr<PlatformDecoderModule> mEMEPDM;
-  RefPtr<PlatformDecoderModule> mBlankPDM;
+  RefPtr<PlatformDecoderModule> mNullPDM;
 
   bool mWMFFailedToLoad = false;
   bool mFFmpegFailedToLoad = false;

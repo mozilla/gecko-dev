@@ -5,9 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsSMILCompositor.h"
-#include "nsSMILCSSProperty.h"
+
 #include "nsCSSProps.h"
 #include "nsHashKeys.h"
+#include "nsSMILCSSProperty.h"
 
 // PLDHashEntryHdr methods
 bool
@@ -24,8 +25,7 @@ nsSMILCompositor::HashKey(KeyTypePointer aKey)
   // its 2 lowest-order bits. (Those shifted-off bits will always be 0 since
   // our pointers will be word-aligned.)
   return (NS_PTR_TO_UINT32(aKey->mElement.get()) >> 2) +
-    NS_PTR_TO_UINT32(aKey->mAttributeName.get()) +
-    (aKey->mIsCSS ? 1 : 0);
+    NS_PTR_TO_UINT32(aKey->mAttributeName.get());
 }
 
 // Cycle-collection support
@@ -126,31 +126,42 @@ nsSMILCompositor::ClearAnimationEffects()
 nsISMILAttr*
 nsSMILCompositor::CreateSMILAttr()
 {
-  if (mKey.mIsCSS) {
-    nsCSSPropertyID propId =
-      nsCSSProps::LookupProperty(nsDependentAtomString(mKey.mAttributeName),
-                                 CSSEnabledState::eForAllContent);
-    if (nsSMILCSSProperty::IsPropertyAnimatable(propId)) {
-      return new nsSMILCSSProperty(propId, mKey.mElement.get());
+  nsCSSPropertyID propID =
+    nsCSSProps::LookupProperty(nsDependentAtomString(mKey.mAttributeName),
+                               CSSEnabledState::eForAllContent);
+  if (nsSMILCSSProperty::IsPropertyAnimatable(propID)) {
+    // If we are animating the 'width' or 'height' of an outer SVG
+    // element we should animate it as a CSS property, but for other elements
+    // (e.g. <rect>) we should animate it as a length attribute.
+    // The easiest way to test for an outer SVG element, is to see if it is an
+    // SVG-namespace element mapping its width/height attribute to style.
+    bool animateAsAttr = (mKey.mAttributeName == nsGkAtoms::width ||
+                          mKey.mAttributeName == nsGkAtoms::height) &&
+                         mKey.mElement->GetNameSpaceID() == kNameSpaceID_SVG &&
+                         !mKey.mElement->IsAttributeMapped(mKey.mAttributeName);
+    if (!animateAsAttr) {
+      return new nsSMILCSSProperty(propID, mKey.mElement.get());
     }
-  } else {
-    return mKey.mElement->GetAnimatedAttr(mKey.mAttributeNamespaceID,
-                                          mKey.mAttributeName);
   }
-  return nullptr;
+
+  return mKey.mElement->GetAnimatedAttr(mKey.mAttributeNamespaceID,
+                                        mKey.mAttributeName);
 }
 
 uint32_t
 nsSMILCompositor::GetFirstFuncToAffectSandwich()
 {
-  // canThrottle is true when attributeName is not 'display' and
-  // the element or subtree is display:none
-  RefPtr<nsStyleContext> styleContext =
-    nsComputedDOMStyle::GetStyleContextForElementNoFlush(mKey.mElement,
-                                                         nullptr, nullptr);
+  // For performance reasons, we throttle most animations on elements in
+  // display:none subtrees. (We can't throttle animations that target the
+  // "display" property itself, though -- if we did, display:none elements
+  // could never be dynamically displayed via animations.)
+  // To determine whether we're in a display:none subtree, we will check the
+  // element's primary frame since element in display:none subtree doesn't have
+  // a primary frame. Before this process, we will construct frame when we
+  // append an element to subtree. So we will not need to worry about pending
+  // frame construction in this step.
   bool canThrottle = mKey.mAttributeName != nsGkAtoms::display &&
-                     styleContext &&
-                     styleContext->IsInDisplayNoneSubtree();
+                     !mKey.mElement->GetPrimaryFrame();
 
   uint32_t i;
   for (i = mAnimationFunctions.Length(); i > 0; --i) {

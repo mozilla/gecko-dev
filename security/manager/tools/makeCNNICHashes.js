@@ -37,7 +37,8 @@ const HEADER = "// This Source Code Form is subject to the terms of the Mozilla 
 
 const PREAMBLE = "#define CNNIC_WHITELIST_HASH_LEN 32\n\n" +
 "struct WhitelistedCNNICHash {\n" +
-" const uint8_t hash[CNNIC_WHITELIST_HASH_LEN];\n" +
+"  // See bug 1338873 about making this field const.\n" +
+"  uint8_t hash[CNNIC_WHITELIST_HASH_LEN];\n" +
 "};\n\n" +
 "static const struct WhitelistedCNNICHash WhitelistedCNNICHashes[] = {\n";
 
@@ -127,7 +128,7 @@ function loadCertificates(certFile, currentWhitelist) {
       cert = gCertDB.constructX509FromBase64(certData);
     } catch (e) {}
     if (!cert) {
-      cert = gCertDB.constructX509(certData, certData.length);
+      cert = gCertDB.constructX509(certData);
     }
     // Don't add multiple copies of any particular certificate.
     if (cert.sha256Fingerprint in certMap) {
@@ -169,9 +170,11 @@ function loadCertificates(certFile, currentWhitelist) {
       invalidCerts.push(cert);
     }
   }
-  return { certs: certs,
-           lastValidTime: latestNotAfter,
-           invalidCerts: invalidCerts };
+  return {
+    certs,
+    lastValidTime: latestNotAfter,
+    invalidCerts
+  };
 }
 
 // Expects something like "00:11:22:...", returns a string of bytes.
@@ -199,7 +202,7 @@ function compareCertificatesByHash(certA, certB) {
 
 function certToPEM(cert) {
   let der = cert.getRawDER({});
-  let derString = '';
+  let derString = "";
   for (let i = 0; i < der.length; i++) {
     derString += String.fromCharCode(der[i]);
   }
@@ -245,9 +248,7 @@ function readCurrentWhitelist(currentWhitelistFile) {
   return currentWhitelist;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
 
 if (arguments.length != 3) {
   throw new Error("Usage: makeCNNICHashes.js <PEM intermediates file> " +

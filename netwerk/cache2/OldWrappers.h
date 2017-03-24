@@ -105,6 +105,11 @@ public:
                        mOldDesc->SetMetaDataElement(key, value);
   }
 
+  NS_IMETHOD GetDiskStorageSizeInKB(uint32_t *aDiskStorageSize) override
+  {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
   // nsICacheEntryInfo
   NS_IMETHOD GetKey(nsACString & aKey) override
   {
@@ -129,6 +134,10 @@ public:
   nsresult GetDataSize(uint32_t *aDataSize)
   {
     return mOldInfo->GetDataSize(aDataSize);
+  }
+  NS_IMETHOD GetLoadContextInfo(nsILoadContextInfo** aInfo) override
+  {
+    return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   NS_IMETHOD AsyncDoom(nsICacheEntryDoomCallback* listener) override;
@@ -244,7 +253,6 @@ class _OldVisitCallbackWrapper : public nsICacheVisitor
   , mLoadInfo(aInfo)
   , mHit(false)
   {
-    MOZ_COUNT_CTOR(_OldVisitCallbackWrapper);
   }
 
 private:

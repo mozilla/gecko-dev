@@ -11,24 +11,39 @@
 //   * FUNCTIONAL       -- replaceValue is a function
 //   * neither of above -- replaceValue is a string without "$"
 
-// ES 2017 draft 03bfda119d060aca4099d2b77cf43f6d4f11cfa2 21.2.5.8
+// ES 2017 draft 6390c2f1b34b309895d31d8c0512eac8660a0210 21.2.5.8
 // steps 11.a-16.
 // Optimized path for @@replace with the following conditions:
 //   * global flag is false
-function FUNC_NAME(rx, S, lengthS, replaceValue, sticky
+function FUNC_NAME(rx, S, lengthS, replaceValue
 #ifdef SUBSTITUTION
                    , firstDollarIndex
 #endif
                   )
 {
-    var lastIndex;
-    if (sticky) {
-        lastIndex = ToLength(rx.lastIndex);
+    // 21.2.5.2.2 RegExpBuiltinExec, step 4.
+    var lastIndex = ToLength(rx.lastIndex);
+
+    // 21.2.5.2.2 RegExpBuiltinExec, step 5.
+    // Side-effects in step 4 can recompile the RegExp, so we need to read the
+    // flags again and handle the case when global was enabled even though this
+    // function is optimized for non-global RegExps.
+    var flags = UnsafeGetInt32FromReservedSlot(rx, REGEXP_FLAGS_SLOT);
+
+    // 21.2.5.2.2 RegExpBuiltinExec, steps 6-7.
+    var globalOrSticky = !!(flags & (REGEXP_GLOBAL_FLAG | REGEXP_STICKY_FLAG));
+
+    if (globalOrSticky) {
+        // 21.2.5.2.2 RegExpBuiltinExec, step 12.a.
         if (lastIndex > lengthS) {
-            rx.lastIndex = 0;
+            if (globalOrSticky)
+                rx.lastIndex = 0;
+
+            // Steps 12-16.
             return S;
         }
     } else {
+        // 21.2.5.2.2 RegExpBuiltinExec, step 8.
         lastIndex = 0;
     }
 
@@ -37,7 +52,11 @@ function FUNC_NAME(rx, S, lengthS, replaceValue, sticky
 
     // Step 11.b.
     if (result === null) {
-        rx.lastIndex = 0;
+        // 21.2.5.2.2 RegExpBuiltinExec, steps 12.a.i, 12.c.i.
+        if (globalOrSticky)
+            rx.lastIndex = 0;
+
+        // Steps 12-16.
         return S;
     }
 
@@ -61,7 +80,8 @@ function FUNC_NAME(rx, S, lengthS, replaceValue, sticky
     // To set rx.lastIndex before RegExpGetComplexReplacement.
     var nextSourcePosition = position + matchLength;
 
-    if (sticky)
+    // 21.2.5.2.2 RegExpBuiltinExec, step 15.
+    if (globalOrSticky)
        rx.lastIndex = nextSourcePosition;
 
     var replacement;

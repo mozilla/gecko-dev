@@ -143,10 +143,8 @@ nsUXThemeData::InitTitlebarInfo()
   sCommandButtons[3].cx = sCommandButtons[0].cx * 3;
   sCommandButtons[3].cy = sCommandButtons[0].cy;
 
-  // Use system metrics for pre-vista, otherwise trigger a
-  // refresh on the next layout.
-  sTitlebarInfoPopulatedAero = sTitlebarInfoPopulatedThemed =
-    !IsVistaOrLater();
+  // Trigger a refresh on the next layout.
+  sTitlebarInfoPopulatedAero = sTitlebarInfoPopulatedThemed = false;
 }
 
 // static
@@ -158,10 +156,10 @@ nsUXThemeData::UpdateTitlebarInfo(HWND aWnd)
 
   if (!sTitlebarInfoPopulatedAero && nsUXThemeData::CheckForCompositor()) {
     RECT captionButtons;
-    if (SUCCEEDED(WinUtils::dwmGetWindowAttributePtr(aWnd,
-                                                     DWMWA_CAPTION_BUTTON_BOUNDS,
-                                                     &captionButtons,
-                                                     sizeof(captionButtons)))) {
+    if (SUCCEEDED(DwmGetWindowAttribute(aWnd,
+                                        DWMWA_CAPTION_BUTTON_BOUNDS,
+                                        &captionButtons,
+                                        sizeof(captionButtons)))) {
       sCommandButtons[CMDBUTTONIDX_BUTTONBOX].cx = captionButtons.right - captionButtons.left - 3;
       sCommandButtons[CMDBUTTONIDX_BUTTONBOX].cy = (captionButtons.bottom - captionButtons.top) - 1;
       sTitlebarInfoPopulatedAero = true;
@@ -295,8 +293,8 @@ bool nsUXThemeData::IsHighContrastOn()
 bool nsUXThemeData::CheckForCompositor(bool aUpdateCache)
 {
   static BOOL sCachedValue = FALSE;
-  if (aUpdateCache && WinUtils::dwmIsCompositionEnabledPtr) {
-    WinUtils::dwmIsCompositionEnabledPtr(&sCachedValue);
+  if (aUpdateCache) {
+    DwmIsCompositionEnabled(&sCachedValue);
   }
   return sCachedValue;
 }
@@ -306,7 +304,7 @@ void
 nsUXThemeData::UpdateNativeThemeInfo()
 {
   // Trigger a refresh of themed button metrics if needed
-  sTitlebarInfoPopulatedThemed = !IsVistaOrLater();
+  sTitlebarInfoPopulatedThemed = false;
 
   sIsDefaultWindowsTheme = false;
   sThemeId = LookAndFeel::eWindowsTheme_Generic;

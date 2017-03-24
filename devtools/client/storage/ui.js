@@ -8,9 +8,15 @@
 const {Task} = require("devtools/shared/task");
 const EventEmitter = require("devtools/shared/event-emitter");
 const {LocalizationHelper, ELLIPSIS} = require("devtools/shared/l10n");
-const {KeyShortcuts} = require("devtools/client/shared/key-shortcuts");
+const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 const JSOL = require("devtools/client/shared/vendor/jsol");
 const {KeyCodes} = require("devtools/client/shared/keycodes");
+
+// GUID to be used as a separator in compound keys. This must match the same
+// constant in devtools/server/actors/storage.js,
+// devtools/client/storage/test/head.js and
+// devtools/server/tests/browser/head.js
+const SEPARATOR_GUID = "{9d414cc5-8319-0a04-0586-c0a6ae01670a}";
 
 loader.lazyRequireGetter(this, "TreeWidget",
                          "devtools/client/shared/widgets/TreeWidget", true);
@@ -35,13 +41,6 @@ const GENERIC_VARIABLES_VIEW_SETTINGS = {
   searchPlaceholder: L10N.getStr("storage.search.placeholder"),
   preventDescriptorModifiers: true
 };
-
-// Columns which are hidden by default in the storage table
-const HIDDEN_COLUMNS = [
-  "creationTime",
-  "isDomain",
-  "isSecure"
-];
 
 const REASON = {
   NEW_ROW: "new-row",
@@ -128,9 +127,9 @@ function StorageUI(front, target, panelWin, toolbox) {
   this.view = new VariablesView(this.sidebar.firstChild,
                                 GENERIC_VARIABLES_VIEW_SETTINGS);
 
-  this.searchBox = this._panelDoc.getElementById("storage-searchbox");
   this.filterItems = this.filterItems.bind(this);
-  this.searchBox.addEventListener("command", this.filterItems);
+  this.onPaneToggleButtonClicked = this.onPaneToggleButtonClicked.bind(this);
+  this.setupToolbar();
 
   let shortcuts = new KeyShortcuts({
     window: this._panelDoc.defaultView,
@@ -192,6 +191,7 @@ exports.StorageUI = StorageUI;
 StorageUI.prototype = {
 
   storageTypes: null,
+  sidebarToggledOpen: null,
   shouldLoadMoreItems: true,
 
   set animationsEnabled(value) {
@@ -210,6 +210,9 @@ StorageUI.prototype = {
     this.searchBox.removeEventListener("input", this.filterItems);
     this.searchBox = null;
 
+    this.sidebarToggleBtn.removeEventListener("click", this.onPaneToggleButtonClicked);
+    this.sidebarToggleBtn = null;
+
     this._treePopup.removeEventListener("popupshowing", this.onTreePopupShowing);
     this._treePopupDeleteAll.removeEventListener("command", this.onRemoveAll);
     this._treePopupDelete.removeEventListener("command", this.onRemoveTreeItem);
@@ -220,13 +223,49 @@ StorageUI.prototype = {
     this._tablePopupDeleteAll.removeEventListener("command", this.onRemoveAll);
   },
 
+  setupToolbar: function () {
+    this.searchBox = this._panelDoc.getElementById("storage-searchbox");
+    this.searchBox.addEventListener("command", this.filterItems);
+
+    // Setup the sidebar toggle button.
+    this.sidebarToggleBtn = this._panelDoc.querySelector(".sidebar-toggle");
+    this.updateSidebarToggleButton();
+
+    this.sidebarToggleBtn.addEventListener("click", this.onPaneToggleButtonClicked);
+  },
+
+  onPaneToggleButtonClicked: function () {
+    if (this.sidebar.hidden && this.table.selectedRow) {
+      this.sidebar.hidden = false;
+      this.sidebarToggledOpen = true;
+      this.updateSidebarToggleButton();
+    } else {
+      this.sidebarToggledOpen = false;
+      this.hideSidebar();
+    }
+  },
+
+  updateSidebarToggleButton: function () {
+    let title;
+    this.sidebarToggleBtn.hidden = !this.table.hasSelectedRow;
+
+    if (this.sidebar.hidden) {
+      this.sidebarToggleBtn.classList.add("pane-collapsed");
+      title = L10N.getStr("storage.expandPane");
+    } else {
+      this.sidebarToggleBtn.classList.remove("pane-collapsed");
+      title = L10N.getStr("storage.collapsePane");
+    }
+
+    this.sidebarToggleBtn.setAttribute("tooltiptext", title);
+  },
+
   /**
-   * Empties and hides the object viewer sidebar
+   * Hide the object viewer sidebar
    */
   hideSidebar: function () {
-    this.view.empty();
     this.sidebar.hidden = true;
-    this.table.clearSelection();
+    this.updateSidebarToggleButton();
   },
 
   getCurrentActor: function () {
@@ -491,6 +530,8 @@ StorageUI.prototype = {
                                                     : {};
     let storageType = this.storageTypes[type];
 
+    this.sidebarToggledOpen = null;
+
     if (reason !== REASON.NEXT_50_ITEMS &&
         reason !== REASON.UPDATE &&
         reason !== REASON.NEW_ROW &&
@@ -574,7 +615,7 @@ StorageUI.prototype = {
   },
 
   /**
-   * Populates the selected entry from teh table in the sidebar for a more
+   * Populates the selected entry from the table in the sidebar for a more
    * detailed view.
    */
   displayObjectSidebar: Task.async(function* () {
@@ -582,6 +623,7 @@ StorageUI.prototype = {
     if (!item) {
       // Make sure that sidebar is hidden and return
       this.sidebar.hidden = true;
+      this.updateSidebarToggleButton();
       return;
     }
 
@@ -592,7 +634,11 @@ StorageUI.prototype = {
     }
 
     // Start updating the UI. Everything is sync beyond this point.
-    this.sidebar.hidden = false;
+    if (this.sidebarToggledOpen === null || this.sidebarToggledOpen === true) {
+      this.sidebar.hidden = false;
+    }
+
+    this.updateSidebarToggleButton();
     this.view.empty();
     let mainScope = this.view.addScope(L10N.getStr("storage.data.label"));
     mainScope.expanded = true;
@@ -616,6 +662,11 @@ StorageUI.prototype = {
         let otherProps = itemProps.filter(
           e => !["name", "value", "valueActor"].includes(e));
         for (let prop of otherProps) {
+          let column = this.table.columns.get(prop);
+          if (column && column.private) {
+            continue;
+          }
+
           let cookieProp = COOKIE_KEY_MAP[prop] || prop;
           // The pseduo property of HostOnly refers to converse of isDomain property
           rawObject[cookieProp] = (prop === "isDomain") ? !item[prop] : item[prop];
@@ -627,6 +678,11 @@ StorageUI.prototype = {
     } else {
       // Case when displaying IndexedDB db/object store properties.
       for (let key in item) {
+        let column = this.table.columns.get(key);
+        if (column && column.private) {
+          continue;
+        }
+
         mainScope.addItem(key, {}, true).setGrip(item[key]);
         this.parseItemValue(key, item[key]);
       }
@@ -786,6 +842,8 @@ StorageUI.prototype = {
     let uniqueKey = null;
     let columns = {};
     let editableFields = [];
+    let hiddenFields = [];
+    let privateFields = [];
     let fields = yield this.getCurrentActor().getFields(subtype);
 
     fields.forEach(f => {
@@ -797,10 +855,21 @@ StorageUI.prototype = {
         editableFields.push(f.name);
       }
 
+      if (f.hidden) {
+        hiddenFields.push(f.name);
+      }
+
+      if (f.private) {
+        privateFields.push(f.name);
+      }
+
       columns[f.name] = f.name;
       let columnName;
       try {
-        columnName = L10N.getStr("table.headers." + type + "." + f.name);
+        // Path key names for l10n in the case of a string change.
+        let name = f.name === "keyPath" ? "keyPath2" : f.name;
+
+        columnName = L10N.getStr("table.headers." + type + "." + name);
       } catch (e) {
         columnName = COOKIE_KEY_MAP[f.name];
       }
@@ -812,7 +881,7 @@ StorageUI.prototype = {
       }
     });
 
-    this.table.setColumns(columns, null, HIDDEN_COLUMNS);
+    this.table.setColumns(columns, null, hiddenFields, privateFields);
     this.hideSidebar();
 
     yield this.makeFieldsEditable(editableFields);
@@ -876,6 +945,7 @@ StorageUI.prototype = {
     if (event.keyCode == KeyCodes.DOM_VK_ESCAPE && !this.sidebar.hidden) {
       // Stop Propagation to prevent opening up of split console
       this.hideSidebar();
+      this.sidebarToggledOpen = false;
       event.stopPropagation();
       event.preventDefault();
     }
@@ -927,10 +997,13 @@ StorageUI.prototype = {
 
     let rowId = this.table.contextMenuRowId;
     let data = this.table.items.get(rowId);
-    let name = addEllipsis(data[this.table.uniqueId]);
+    let name = data[this.table.uniqueId];
+
+    let separatorRegex = new RegExp(SEPARATOR_GUID, "g");
+    let label = addEllipsis((name + "").replace(separatorRegex, "-"));
 
     this._tablePopupDelete.setAttribute("label",
-      L10N.getFormatStr("storage.popupMenu.deleteLabel", name));
+      L10N.getFormatStr("storage.popupMenu.deleteLabel", label));
 
     if (type === "cookies") {
       let host = addEllipsis(data.host);

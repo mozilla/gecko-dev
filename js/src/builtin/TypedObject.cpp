@@ -230,7 +230,7 @@ const Class js::ScalarTypeDescr::class_ = {
 
 const JSFunctionSpec js::ScalarTypeDescr::typeObjectMethods[] = {
     JS_SELF_HOSTED_FN("toSource", "DescrToSource", 0, 0),
-    JS_SELF_HOSTED_FN("array", "ArrayShorthand", 1, JSFUN_HAS_REST),
+    JS_SELF_HOSTED_FN("array", "ArrayShorthand", 1, 0),
     JS_SELF_HOSTED_FN("equivalent", "TypeDescrEquivalent", 1, 0),
     JS_FS_END
 };
@@ -652,7 +652,7 @@ ArrayMetaTypeDescr::create(JSContext* cx,
     if (!CreateTraceList(cx, obj))
         return nullptr;
 
-    if (!cx->zone()->typeDescrObjects.put(obj)) {
+    if (!cx->zone()->addTypeDescrObject(cx, obj)) {
         ReportOutOfMemory(cx);
         return nullptr;
     }
@@ -993,8 +993,8 @@ StructMetaTypeDescr::create(JSContext* cx,
     if (!CreateTraceList(cx, descr))
         return nullptr;
 
-    if (!cx->zone()->typeDescrObjects.put(descr) ||
-        !cx->zone()->typeDescrObjects.put(fieldTypeVec))
+    if (!cx->zone()->addTypeDescrObject(cx, descr) ||
+        !cx->zone()->addTypeDescrObject(cx, fieldTypeVec))
     {
         ReportOutOfMemory(cx);
         return nullptr;
@@ -1124,11 +1124,11 @@ DefineSimpleTypeDescr(JSContext* cx,
                       typename T::Type type,
                       HandlePropertyName className)
 {
-    RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
+    RootedObject objProto(cx, GlobalObject::getOrCreateObjectPrototype(cx, global));
     if (!objProto)
         return false;
 
-    RootedObject funcProto(cx, global->getOrCreateFunctionPrototype(cx));
+    RootedObject funcProto(cx, GlobalObject::getOrCreateFunctionPrototype(cx, global));
     if (!funcProto)
         return false;
 
@@ -1165,10 +1165,8 @@ DefineSimpleTypeDescr(JSContext* cx,
     if (!CreateTraceList(cx, descr))
         return false;
 
-    if (!cx->zone()->typeDescrObjects.put(descr)) {
-        ReportOutOfMemory(cx);
+    if (!cx->zone()->addTypeDescrObject(cx, descr))
         return false;
-    }
 
     return true;
 }
@@ -1187,7 +1185,7 @@ DefineMetaTypeDescr(JSContext* cx,
     if (!className)
         return nullptr;
 
-    RootedObject funcProto(cx, global->getOrCreateFunctionPrototype(cx));
+    RootedObject funcProto(cx, GlobalObject::getOrCreateFunctionPrototype(cx, global));
     if (!funcProto)
         return nullptr;
 
@@ -1199,7 +1197,7 @@ DefineMetaTypeDescr(JSContext* cx,
 
     // Create ctor.prototype.prototype, which inherits from Object.__proto__
 
-    RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
+    RootedObject objProto(cx, GlobalObject::getOrCreateObjectPrototype(cx, global));
     if (!objProto)
         return nullptr;
     RootedObject protoProto(cx);
@@ -1218,7 +1216,7 @@ DefineMetaTypeDescr(JSContext* cx,
 
     const int constructorLength = 2;
     RootedFunction ctor(cx);
-    ctor = global->createConstructor(cx, T::construct, className, constructorLength);
+    ctor = GlobalObject::createConstructor(cx, T::construct, className, constructorLength);
     if (!ctor ||
         !LinkConstructorAndPrototype(cx, ctor, proto) ||
         !DefinePropertiesAndFunctions(cx, proto,
@@ -1242,10 +1240,10 @@ DefineMetaTypeDescr(JSContext* cx,
  * initializer for the `TypedObject` class populate the
  * `TypedObject` global (which is referred to as "module" herein).
  */
-bool
+/* static */ bool
 GlobalObject::initTypedObjectModule(JSContext* cx, Handle<GlobalObject*> global)
 {
-    RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
+    RootedObject objProto(cx, GlobalObject::getOrCreateObjectPrototype(cx, global));
     if (!objProto)
         return false;
 
@@ -1319,9 +1317,8 @@ GlobalObject::initTypedObjectModule(JSContext* cx, Handle<GlobalObject*> global)
 JSObject*
 js::InitTypedObjectModuleObject(JSContext* cx, HandleObject obj)
 {
-    MOZ_ASSERT(obj->is<GlobalObject>());
-    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
-    return global->getOrCreateTypedObjectModule(cx);
+    Handle<GlobalObject*> global = obj.as<GlobalObject>();
+    return GlobalObject::getOrCreateTypedObjectModule(cx, global);
 }
 
 /******************************************************************************
@@ -1442,7 +1439,7 @@ OutlineTypedObject::setOwnerAndData(JSObject* owner, uint8_t* data)
     // Trigger a post barrier when attaching an object outside the nursery to
     // one that is inside it.
     if (owner && !IsInsideNursery(this) && IsInsideNursery(owner))
-        runtimeFromMainThread()->gc.storeBuffer.putWholeCell(this);
+        zone()->group()->storeBuffer().putWholeCell(this);
 }
 
 /*static*/ OutlineTypedObject*
@@ -1639,7 +1636,10 @@ OutlineTypedObject::obj_trace(JSTracer* trc, JSObject* object)
         newData += reinterpret_cast<uint8_t*>(owner) - reinterpret_cast<uint8_t*>(oldOwner);
         typedObj.setData(newData);
 
-        trc->runtime()->gc.nursery.maybeSetForwardingPointer(trc, oldData, newData, /* direct = */ false);
+        if (trc->isTenuringTracer()) {
+            Nursery& nursery = typedObj.zoneFromAnyThread()->group()->nursery();
+            nursery.maybeSetForwardingPointer(trc, oldData, newData, /* direct = */ false);
+        }
     }
 
     if (!descr.opaque() || !typedObj.isAttached())
@@ -1675,10 +1675,10 @@ TypeDescr::hasProperty(const JSAtomState& names, jsid id)
 
 /* static */ bool
 TypedObject::obj_lookupProperty(JSContext* cx, HandleObject obj, HandleId id,
-                                MutableHandleObject objp, MutableHandleShape propp)
+                                MutableHandleObject objp, MutableHandle<PropertyResult> propp)
 {
     if (obj->as<TypedObject>().typeDescr().hasProperty(cx->names(), id)) {
-        MarkNonNativePropertyFound<CanGC>(propp);
+        propp.setNonNativeProperty();
         objp.set(obj);
         return true;
     }
@@ -1686,7 +1686,7 @@ TypedObject::obj_lookupProperty(JSContext* cx, HandleObject obj, HandleId id,
     RootedObject proto(cx, obj->staticPrototype());
     if (!proto) {
         objp.set(nullptr);
-        propp.set(nullptr);
+        propp.setNotFound();
         return true;
     }
 
@@ -2144,8 +2144,8 @@ InlineTypedObject::objectMovedDuringMinorGC(JSTracer* trc, JSObject* dst, JSObje
         // but they will not set any direct forwarding pointers.
         uint8_t* oldData = reinterpret_cast<uint8_t*>(src) + offsetOfDataStart();
         uint8_t* newData = dst->as<InlineTypedObject>().inlineTypedMem();
-        trc->runtime()->gc.nursery.maybeSetForwardingPointer(trc, oldData, newData,
-                                                             descr.size() >= sizeof(uintptr_t));
+        dst->zone()->group()->nursery().maybeSetForwardingPointer(trc, oldData, newData,
+                                                                  descr.size() >= sizeof(uintptr_t));
     }
 }
 
@@ -2192,7 +2192,7 @@ InlineTransparentTypedObject::getOrCreateBuffer(JSContext* cx)
     if (IsInsideNursery(this)) {
         // Make sure the buffer is traced by the next generational collection,
         // so that its data pointer is updated after this typed object moves.
-        cx->runtime()->gc.storeBuffer.putWholeCell(buffer);
+        zone()->group()->storeBuffer().putWholeCell(buffer);
     }
 
     return buffer;
@@ -2380,6 +2380,35 @@ TypedObject::construct(JSContext* cx, unsigned int argc, Value* vp)
     // Something bogus.
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_TYPEDOBJECT_BAD_ARGS);
     return false;
+}
+
+/* static */ JS::Result<TypedObject*, JS::OOM&>
+TypedObject::create(JSContext* cx, js::gc::AllocKind kind, js::gc::InitialHeap heap,
+                    js::HandleShape shape, js::HandleObjectGroup group)
+{
+    debugCheckNewObject(group, shape, kind, heap);
+
+    const js::Class* clasp = group->clasp();
+    MOZ_ASSERT(::IsTypedObjectClass(clasp));
+
+    JSObject* obj = js::Allocate<JSObject>(cx, kind, /* nDynamicSlots = */ 0, heap, clasp);
+    if (!obj)
+        return cx->alreadyReportedOOM();
+
+    TypedObject* tobj = static_cast<TypedObject*>(obj);
+    tobj->group_.init(group);
+    tobj->initShape(shape);
+
+    tobj->setInitialElementsMaybeNonNative(js::emptyObjectElements);
+
+    if (clasp->shouldDelayMetadataBuilder())
+        cx->compartment()->setObjectPendingMetadata(cx, tobj);
+    else
+        tobj = SetNewObjectMetadata(cx, tobj);
+
+    js::gc::TraceCreateObject(tobj);
+
+    return tobj;
 }
 
 /******************************************************************************
@@ -2682,8 +2711,8 @@ StoreReferenceAny::store(JSContext* cx, GCPtrValue* heap, const Value& v,
     // value properties of typed objects, as these properties are always
     // considered to contain undefined.
     if (!v.isUndefined()) {
-        if (cx->isJSContext())
-            AddTypePropertyId(cx->asJSContext(), obj, id, v);
+        if (!cx->helperThread())
+            AddTypePropertyId(cx, obj, id, v);
         else if (!HasTypePropertyId(obj, id, v))
             return false;
     }
@@ -2702,8 +2731,8 @@ StoreReferenceObject::store(JSContext* cx, GCPtrObject* heap, const Value& v,
     // object properties of typed objects, as these properties are always
     // considered to contain null.
     if (v.isObject()) {
-        if (cx->isJSContext())
-            AddTypePropertyId(cx->asJSContext(), obj, id, v);
+        if (!cx->helperThread())
+            AddTypePropertyId(cx, obj, id, v);
         else if (!HasTypePropertyId(obj, id, v))
             return false;
     }

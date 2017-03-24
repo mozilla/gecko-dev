@@ -8,14 +8,13 @@
 include protocol PHttpChannel;
 include protocol PFTPChannel;
 include protocol PRtspChannel;
-include protocol PSendStream;
+include protocol PChildToParentStream;
 include BlobTypes;
 include URIParams;
 include IPCStream;
-include InputStreamParams;
 include PBackgroundSharedTypes;
 
-using mozilla::NeckoOriginAttributes from "mozilla/ipc/BackgroundUtils.h";
+using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
 using RequestHeaderTuples from "mozilla/net/PHttpChannelParams.h";
 using struct nsHttpAtom from "nsHttp.h";
@@ -33,6 +32,7 @@ struct LoadInfoArgs
   OptionalPrincipalInfo requestingPrincipalInfo;
   PrincipalInfo         triggeringPrincipalInfo;
   OptionalPrincipalInfo principalToInheritInfo;
+  OptionalPrincipalInfo sandboxedLoadingPrincipalInfo;
   uint32_t              securityFlags;
   uint32_t              contentPolicyType;
   uint32_t              tainting;
@@ -47,7 +47,7 @@ struct LoadInfoArgs
   bool                  enforceSecurity;
   bool                  initialSecurityCheckDone;
   bool                  isInThirdPartyContext;
-  NeckoOriginAttributes originAttributes;
+  OriginAttributes      originAttributes;
   PrincipalInfo[]       redirectChainIncludingInternalRedirects;
   PrincipalInfo[]       redirectChain;
   nsCString[]           corsUnsafeHeaders;
@@ -104,10 +104,9 @@ struct HttpChannelOpenArgs
   nsCString                   requestMethod;
   OptionalIPCStream           uploadStream;
   bool                        uploadStreamHasHeaders;
-  uint16_t                    priority;
+  int16_t                     priority;
   uint32_t                    classOfService;
   uint8_t                     redirectionLimit;
-  bool                        allowPipelining;
   bool                        allowSTS;
   uint32_t                    thirdPartyFlags;
   bool                        resumeAt;
@@ -117,6 +116,7 @@ struct HttpChannelOpenArgs
   nsCString                   appCacheClientID;
   bool                        allowSpdy;
   bool                        allowAltSvc;
+  bool                        beConservative;
   OptionalLoadInfoArgs        loadInfo;
   OptionalHttpResponseHead    synthesizedResponseHead;
   nsCString                   synthesizedSecurityInfoSerialization;
@@ -129,7 +129,9 @@ struct HttpChannelOpenArgs
   bool                        allowStaleCacheContent;
   nsCString                   contentTypeHint;
   nsCString                   channelId;
+  uint64_t                    contentWindowId;
   nsCString                   preferredAlternativeType;
+  uint64_t                    topLevelOuterContentWindowId;
 };
 
 struct HttpChannelConnectArgs
@@ -153,7 +155,7 @@ struct FTPChannelOpenArgs
   URIParams                 uri;
   uint64_t                  startPos;
   nsCString                 entityID;
-  OptionalInputStreamParams uploadStream;
+  OptionalIPCStream         uploadStream;
   OptionalLoadInfoArgs      loadInfo;
 };
 

@@ -4,10 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
+BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
 XPCSHELL_TESTS_MANIFESTS += [
     'test/unit/social/xpcshell.ini',
-    'test/xpcshell/xpcshell.ini',
+    'test/unit/xpcshell.ini',
 ]
 
 EXTRA_JS_MODULES += [
@@ -16,7 +16,6 @@ EXTRA_JS_MODULES += [
     'AttributionCode.jsm',
     'BrowserUITelemetry.jsm',
     'BrowserUsageTelemetry.jsm',
-    'CaptivePortalWatcher.jsm',
     'CastingApps.jsm',
     'ContentClick.jsm',
     'ContentCrashHandlers.jsm',
@@ -26,9 +25,11 @@ EXTRA_JS_MODULES += [
     'ContentWebRTC.jsm',
     'DirectoryLinksProvider.jsm',
     'E10SUtils.jsm',
+    'ExtensionsUI.jsm',
     'Feeds.jsm',
     'FormSubmitObserver.jsm',
     'FormValidationHandler.jsm',
+    'FullZoomUI.jsm',
     'HiddenFrame.jsm',
     'LaterRun.jsm',
     'NetworkPrioritizer.jsm',
@@ -45,7 +46,6 @@ EXTRA_JS_MODULES += [
     'Social.jsm',
     'SocialService.jsm',
     'TransientPrefs.jsm',
-    'URLBarZoom.jsm',
     'webrtcUI.jsm',
 ]
 

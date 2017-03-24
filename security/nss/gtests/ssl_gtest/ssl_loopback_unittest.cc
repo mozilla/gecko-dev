@@ -161,16 +161,15 @@ TEST_P(TlsConnectDatagram, TestDtlsHolddownExpiry) {
 class TlsPreCCSHeaderInjector : public TlsRecordFilter {
  public:
   TlsPreCCSHeaderInjector() {}
-  virtual PacketFilter::Action FilterRecord(const RecordHeader& record_header,
-                                            const DataBuffer& input,
-                                            size_t* offset,
-                                            DataBuffer* output) override {
+  virtual PacketFilter::Action FilterRecord(
+      const TlsRecordHeader& record_header, const DataBuffer& input,
+      size_t* offset, DataBuffer* output) override {
     if (record_header.content_type() != kTlsChangeCipherSpecType) return KEEP;
 
     std::cerr << "Injecting Finished header before CCS\n";
     const uint8_t hhdr[] = {kTlsHandshakeFinished, 0x00, 0x00, 0x0c};
     DataBuffer hhdr_buf(hhdr, sizeof(hhdr));
-    RecordHeader nhdr(record_header.version(), kTlsHandshakeType, 0);
+    TlsRecordHeader nhdr(record_header.version(), kTlsHandshakeType, 0);
     *offset = nhdr.Write(output, *offset, hhdr_buf);
     *offset = record_header.Write(output, *offset, input);
     return CHANGE;
@@ -178,14 +177,14 @@ class TlsPreCCSHeaderInjector : public TlsRecordFilter {
 };
 
 TEST_P(TlsConnectStreamPre13, ClientFinishedHeaderBeforeCCS) {
-  client_->SetPacketFilter(new TlsPreCCSHeaderInjector());
+  client_->SetPacketFilter(std::make_shared<TlsPreCCSHeaderInjector>());
   ConnectExpectFail();
   client_->CheckErrorCode(SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT);
   server_->CheckErrorCode(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
 }
 
 TEST_P(TlsConnectStreamPre13, ServerFinishedHeaderBeforeCCS) {
-  server_->SetPacketFilter(new TlsPreCCSHeaderInjector());
+  server_->SetPacketFilter(std::make_shared<TlsPreCCSHeaderInjector>());
   client_->StartConnect();
   server_->StartConnect();
   Handshake();
@@ -208,6 +207,25 @@ TEST_P(TlsConnectTls13, AlertWrongLevel) {
                    kTlsAlertUnexpectedMessage);
   client_->ExpectReadWriteError();
   client_->WaitForErrorCode(SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT, 2000);
+}
+
+TEST_F(TlsConnectStreamTls13, Tls13FailedWriteSecondFlight) {
+  EnsureTlsSetup();
+  client_->StartConnect();
+  server_->StartConnect();
+  client_->Handshake();
+  server_->Handshake();  // Send first flight.
+  client_->adapter()->CloseWrites();
+  client_->Handshake();  // This will get an error, but shouldn't crash.
+  client_->CheckErrorCode(SSL_ERROR_SOCKET_WRITE_FAILURE);
+}
+
+TEST_F(TlsConnectStreamTls13, NegotiateShortHeaders) {
+  client_->SetShortHeadersEnabled();
+  server_->SetShortHeadersEnabled();
+  client_->ExpectShortHeaders();
+  server_->ExpectShortHeaders();
+  Connect();
 }
 
 INSTANTIATE_TEST_CASE_P(GenericStream, TlsConnectGeneric,

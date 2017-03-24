@@ -387,6 +387,8 @@ class AssemblerX86Shared : public AssemblerShared
     static Condition UnsignedCondition(Condition cond);
     static Condition ConditionWithoutEqual(Condition cond);
 
+    static DoubleCondition InvertCondition(DoubleCondition cond);
+
     // Return the primary condition to test. Some primary conditions may not
     // handle NaNs properly and may therefore require a secondary condition.
     // Use NaNCondFromDoubleCondition to determine what else is needed.
@@ -405,6 +407,18 @@ class AssemblerX86Shared : public AssemblerShared
                jumpRelocations_.oom() ||
                dataRelocations_.oom() ||
                preBarriers_.oom();
+    }
+
+    void disableProtection() { masm.disableProtection(); }
+    void enableProtection() { masm.enableProtection(); }
+    void setLowerBoundForProtection(size_t size) {
+        masm.setLowerBoundForProtection(size);
+    }
+    void unprotectRegion(unsigned char* first, size_t size) {
+        masm.unprotectRegion(first, size);
+    }
+    void reprotectRegion(unsigned char* first, size_t size) {
+        masm.reprotectRegion(first, size);
     }
 
     void setPrinter(Sprinter* sp) {
@@ -1057,9 +1071,9 @@ class AssemblerX86Shared : public AssemblerShared
     CodeOffset callWithPatch() {
         return CodeOffset(masm.call().offset());
     }
+
     void patchCall(uint32_t callerOffset, uint32_t calleeOffset) {
         unsigned char* code = masm.data();
-        X86Encoding::AutoUnprotectAssemblerBufferRegion unprotect(masm, callerOffset - 4, 4);
         X86Encoding::SetRel32(code + callerOffset, code + calleeOffset);
     }
     CodeOffset farJumpWithPatch() {
@@ -1067,11 +1081,16 @@ class AssemblerX86Shared : public AssemblerShared
     }
     void patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
         unsigned char* code = masm.data();
-        X86Encoding::AutoUnprotectAssemblerBufferRegion unprotect(masm, farJump.offset() - 4, 4);
         X86Encoding::SetRel32(code + farJump.offset(), code + targetOffset);
     }
     static void repatchFarJump(uint8_t* code, uint32_t farJumpOffset, uint32_t targetOffset) {
         X86Encoding::SetRel32(code + farJumpOffset, code + targetOffset);
+    }
+
+    // This is for patching during code generation, not after.
+    void patchAddl(CodeOffset offset, int32_t n) {
+        unsigned char* code = masm.data();
+        X86Encoding::SetInt32(code + offset.offset(), n);
     }
 
     CodeOffset twoByteNop() {
@@ -1082,6 +1101,13 @@ class AssemblerX86Shared : public AssemblerShared
     }
     static void patchJumpToTwoByteNop(uint8_t* jump) {
         X86Encoding::BaseAssembler::patchJumpToTwoByteNop(jump);
+    }
+
+    static void patchFiveByteNopToCall(uint8_t* callsite, uint8_t* target) {
+        X86Encoding::BaseAssembler::patchFiveByteNopToCall(callsite, target);
+    }
+    static void patchCallToFiveByteNop(uint8_t* callsite) {
+        X86Encoding::BaseAssembler::patchCallToFiveByteNop(callsite);
     }
 
     void breakpoint() {
@@ -1097,6 +1123,17 @@ class AssemblerX86Shared : public AssemblerShared
     static bool SupportsUnalignedAccesses() { return true; }
     static bool SupportsSimd() { return CPUInfo::IsSSE2Present(); }
     static bool HasAVX() { return CPUInfo::IsAVXPresent(); }
+
+    static bool HasRoundInstruction(RoundingMode mode) {
+        switch (mode) {
+          case RoundingMode::Up:
+          case RoundingMode::Down:
+          case RoundingMode::NearestTiesToEven:
+          case RoundingMode::TowardsZero:
+            return CPUInfo::IsSSE41Present();
+        }
+        MOZ_CRASH("unexpected mode");
+    }
 
     void cmpl(Register rhs, Register lhs) {
         masm.cmpl_rr(rhs.encoding(), lhs.encoding());
@@ -3332,6 +3369,21 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE2());
         masm.vsqrtss_rr(src1.encoding(), src0.encoding(), dest.encoding());
     }
+
+    static X86Encoding::RoundingMode
+    ToX86RoundingMode(RoundingMode mode) {
+        switch (mode) {
+          case RoundingMode::Up:
+            return X86Encoding::RoundUp;
+          case RoundingMode::Down:
+            return X86Encoding::RoundDown;
+          case RoundingMode::NearestTiesToEven:
+            return X86Encoding::RoundToNearest;
+          case RoundingMode::TowardsZero:
+            return X86Encoding::RoundToZero;
+        }
+        MOZ_CRASH("unexpected mode");
+    }
     void vroundsd(X86Encoding::RoundingMode mode, FloatRegister src1, FloatRegister src0, FloatRegister dest) {
         MOZ_ASSERT(HasSSE41());
         masm.vroundsd_irr(mode, src1.encoding(), src0.encoding(), dest.encoding());
@@ -3340,6 +3392,7 @@ class AssemblerX86Shared : public AssemblerShared
         MOZ_ASSERT(HasSSE41());
         masm.vroundss_irr(mode, src1.encoding(), src0.encoding(), dest.encoding());
     }
+
     unsigned vinsertpsMask(unsigned sourceLane, unsigned destLane, unsigned zeroMask = 0)
     {
         // Note that the sourceLane bits are ignored in the case of a source

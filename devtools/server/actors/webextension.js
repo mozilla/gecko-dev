@@ -292,7 +292,7 @@ WebExtensionActor.prototype._docShellsToWindows = function (docshells) {
  */
 WebExtensionActor.prototype._allowSource = function (source) {
   try {
-    let uri = Services.io.newURI(source.url, null, null);
+    let uri = Services.io.newURI(source.url);
     let addonID = mapURIToAddonID(uri);
 
     return addonID == this.id;
@@ -309,7 +309,7 @@ WebExtensionActor.prototype._shouldAddNewGlobalAsDebuggee = function (newGlobal)
   const global = unwrapDebuggerObjectGlobal(newGlobal);
 
   if (global instanceof Ci.nsIDOMWindow) {
-    return global.document.nodePrincipal.originAttributes.addonId == this.id;
+    return global.document.nodePrincipal.addonId == this.id;
   }
 
   try {

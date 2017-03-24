@@ -30,9 +30,11 @@
 #include "nsIScriptError.h"
 #include "nsIURI.h"
 #include "nsIChannelEventSink.h"
+#include "nsNetUtil.h"
 #include "nsAsyncRedirectVerifyHelper.h"
 #include "mozilla/LoadInfo.h"
 #include "nsISiteSecurityService.h"
+#include "prnetdb.h"
 
 #include "mozilla/Logging.h"
 #include "mozilla/Telemetry.h"
@@ -58,6 +60,35 @@ bool nsMixedContentBlocker::sBlockMixedDisplay = false;
 bool nsMixedContentBlocker::sUseHSTS = false;
 // Do we send an HSTS priming request
 bool nsMixedContentBlocker::sSendHSTSPriming = false;
+// Default HSTS Priming failure timeout to 7 days, in seconds
+uint32_t nsMixedContentBlocker::sHSTSPrimingCacheTimeout = (60 * 60 * 24 * 7);
+
+bool
+IsEligibleForHSTSPriming(nsIURI* aContentLocation) {
+  bool isHttpScheme = false;
+  nsresult rv = aContentLocation->SchemeIs("http", &isHttpScheme);
+  NS_ENSURE_SUCCESS(rv, false);
+  if (!isHttpScheme) {
+    return false;
+  }
+
+  int32_t port = -1;
+  rv = aContentLocation->GetPort(&port);
+  NS_ENSURE_SUCCESS(rv, false);
+  int32_t defaultPort = NS_GetDefaultPort("https");
+
+  if (port != -1 && port != defaultPort) {
+    // HSTS priming requests are only sent if the port is the default port
+    return false;
+  }
+
+  nsAutoCString hostname;
+  rv = aContentLocation->GetHost(hostname);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  PRNetAddr hostAddr;
+  return (PR_StringToNetAddr(hostname.get(), &hostAddr) != PR_SUCCESS);
+}
 
 // Fired at the document that attempted to load mixed content.  The UI could
 // handle this event, for example, by displaying an info bar that offers the
@@ -208,6 +239,10 @@ nsMixedContentBlocker::nsMixedContentBlocker()
   // Cache the pref for sending HSTS priming
   Preferences::AddBoolVarCache(&sSendHSTSPriming,
                                "security.mixed_content.send_hsts_priming");
+
+  // Cache the pref for HSTS priming failure cache time
+  Preferences::AddUintVarCache(&sHSTSPrimingCacheTimeout,
+                               "security.mixed_content.hsts_priming_cache_timeout");
 }
 
 nsMixedContentBlocker::~nsMixedContentBlocker()
@@ -340,12 +375,16 @@ nsMixedContentBlocker::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
     nsCOMPtr<nsILoadInfo> newLoadInfo;
     rv = aNewChannel->GetLoadInfo(getter_AddRefs(newLoadInfo));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = nsMixedContentBlocker::MarkLoadInfoForPriming(newUri,
-                                                       requestingContext,
-                                                       newLoadInfo);
-    if (NS_FAILED(rv)) {
+    if (newLoadInfo) {
+      rv = nsMixedContentBlocker::MarkLoadInfoForPriming(newUri,
+                                                         requestingContext,
+                                                         newLoadInfo);
+      if (NS_FAILED(rv)) {
+        decision = REJECT_REQUEST;
+        newLoadInfo->ClearHSTSPriming();
+      }
+    } else {
       decision = REJECT_REQUEST;
-      newLoadInfo->ClearHSTSPriming();
     }
   }
 
@@ -825,15 +864,22 @@ nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
   }
   nsresult stateRV = securityUI->GetState(&state);
 
+  OriginAttributes originAttributes;
+  if (principal) {
+    originAttributes = principal->OriginAttributesRef();
+  } else if (aRequestPrincipal) {
+    originAttributes = aRequestPrincipal->OriginAttributesRef();
+  }
+
   bool doHSTSPriming = false;
-  if (isHttpScheme) {
+  if (IsEligibleForHSTSPriming(aContentLocation)) {
     bool hsts = false;
     bool cached = false;
     nsCOMPtr<nsISiteSecurityService> sss =
       do_GetService(NS_SSSERVICE_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, aContentLocation,
-        0, &cached, &hsts);
+        0, originAttributes, &cached, &hsts);
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (hsts && sUseHSTS) {
@@ -868,14 +914,16 @@ nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
   bool active = (classification == eMixedScript);
   if (!aHadInsecureImageRedirect) {
     if (XRE_IsParentProcess()) {
-      AccumulateMixedContentHSTS(innerContentLocation, active, doHSTSPriming);
+      AccumulateMixedContentHSTS(innerContentLocation, active, doHSTSPriming,
+                                 originAttributes);
     } else {
       // Ask the parent process to do the same call
       mozilla::dom::ContentChild* cc = mozilla::dom::ContentChild::GetSingleton();
       if (cc) {
         mozilla::ipc::URIParams uri;
         SerializeURI(innerContentLocation, uri);
-        cc->SendAccumulateMixedContentHSTS(uri, active, doHSTSPriming);
+        cc->SendAccumulateMixedContentHSTS(uri, active, doHSTSPriming,
+                                           originAttributes);
       }
     }
   }
@@ -1058,7 +1106,9 @@ enum MixedContentHSTSPrimingState {
 // Record information on when HSTS would have made mixed content not mixed
 // content (regardless of whether it was actually blocked)
 void
-nsMixedContentBlocker::AccumulateMixedContentHSTS(nsIURI* aURI, bool aActive, bool aHasHSTSPriming)
+nsMixedContentBlocker::AccumulateMixedContentHSTS(
+  nsIURI* aURI, bool aActive, bool aHasHSTSPriming,
+  const OriginAttributes& aOriginAttributes)
 {
   // This method must only be called in the parent, because
   // nsSiteSecurityService is only available in the parent
@@ -1073,7 +1123,8 @@ nsMixedContentBlocker::AccumulateMixedContentHSTS(nsIURI* aURI, bool aActive, bo
   if (NS_FAILED(rv)) {
     return;
   }
-  rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, aURI, 0, nullptr, &hsts);
+  rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, aURI, 0,
+                        aOriginAttributes, nullptr, &hsts);
   if (NS_FAILED(rv)) {
     return;
   }

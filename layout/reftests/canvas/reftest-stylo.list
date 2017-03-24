@@ -1,66 +1,59 @@
 # DO NOT EDIT! This is a auto-generated temporary list for Stylo testing
 == default-size.html default-size.html
-skip-if(B2G||Mulet) fuzzy-if(Android,8,1000) == size-1.html size-1.html
-# Initial mulet triage: parity with B2G/B2G Desktop
+fails == size-1.html size-1.html
 
 == empty-transaction-1.html empty-transaction-1.html
 
-== image-rendering-test.html image-rendering-test.html
+fails == image-rendering-test.html image-rendering-test.html
 == image-shadow.html image-shadow.html
 
-skip-if(B2G||Mulet) asserts-if(cocoaWidget,0-2) == size-change-1.html size-change-1.html
-# Initial mulet triage: parity with B2G/B2G Desktop
+fails == size-change-1.html size-change-1.html
 
-random-if(cocoaWidget) == subpixel-1.html subpixel-1.html
-# see bug 1192616, re-enable once we're off the pandaboards
+asserts-if(stylo,1) == subpixel-1.html subpixel-1.html # bug 1324700
 
-== text-ltr-left.html text-ltr-left.html
-== text-ltr-right.html text-ltr-right.html
-== text-rtl-left.html text-rtl-left.html
-== text-rtl-right.html text-rtl-right.html
+asserts-if(stylo,1) == text-ltr-left.html text-ltr-left.html # bug 1324700
+asserts-if(stylo,1) == text-ltr-right.html text-ltr-right.html # bug 1324700
+asserts-if(stylo,1) == text-rtl-left.html text-rtl-left.html # bug 1324700
+asserts-if(stylo,1) == text-rtl-right.html text-rtl-right.html # bug 1324700
 
-== text-ltr-start.html text-ltr-start.html
-== text-ltr-end.html text-ltr-end.html
-== text-ltr-left.html text-ltr-left.html
-== text-rtl-start.html text-rtl-start.html
-== text-rtl-end.html text-rtl-end.html
-== text-rtl-left.html text-rtl-left.html
+asserts-if(stylo,1) == text-ltr-start.html text-ltr-start.html # bug 1324700
+asserts-if(stylo,1) == text-ltr-end.html text-ltr-end.html # bug 1324700
+asserts-if(stylo,1) == text-ltr-left.html text-ltr-left.html # bug 1324700
+asserts-if(stylo,1) == text-rtl-start.html text-rtl-start.html # bug 1324700
+asserts-if(stylo,1) == text-rtl-end.html text-rtl-end.html # bug 1324700
+asserts-if(stylo,1) == text-rtl-left.html text-rtl-left.html # bug 1324700
 
-== text-ltr-left.html text-ltr-left.html
+asserts-if(stylo,1) == text-ltr-left.html text-ltr-left.html # bug 1324700
 
-== text-ltr-alignment-test.html text-ltr-alignment-test.html
-== text-rtl-alignment-test.html text-rtl-alignment-test.html
+fails asserts-if(stylo,1) == text-ltr-alignment-test.html text-ltr-alignment-test.html # bug 1324700
+fails asserts-if(stylo,1) == text-rtl-alignment-test.html text-rtl-alignment-test.html # bug 1324700
 
-fuzzy-if((B2G||Mulet)&&azureSkiaGL,1,256) == text-horzline-with-bottom.html text-horzline-with-bottom.html
-# Initial mulet triage: parity with B2G/B2G Desktop
-fuzzy-if((B2G||Mulet)&&azureSkiaGL,1,256) fails-if(azureSkia&&OSX>=1008) == text-horzline-with-top.html text-horzline-with-top.html
-# Initial mulet triage: parity with B2G/B2G Desktop
+asserts-if(stylo,1) == text-horzline-with-bottom.html text-horzline-with-bottom.html # bug 1324700
+fails-if(azureSkia&&OSX>=1008) asserts-if(stylo,1) == text-horzline-with-top.html text-horzline-with-top.html # bug 1324700
 
-== text-big-stroke.html text-big-stroke.html
-== text-big-stroke.html text-big-stroke.html
+fails asserts-if(stylo,1) == text-big-stroke.html text-big-stroke.html # Bug 1324700
+fails asserts-if(stylo,1) == text-big-stroke.html text-big-stroke.html # Bug 1324700
 
-== text-context-state-test.html text-context-state-test.html
-== text-font-inherit.html text-font-inherit.html
-== text-space-replace-test.html text-space-replace-test.html
+fails asserts-if(stylo,1) == text-context-state-test.html text-context-state-test.html # bug 1324700
+fails asserts-if(stylo,1) == text-font-inherit.html text-font-inherit.html # bug 1324700
+fails asserts-if(stylo,1) == text-space-replace-test.html text-space-replace-test.html # bug 1324700
 
-== text-no-frame-test.html text-no-frame-test.html
-== text-no-frame-2-test.html text-no-frame-2-test.html
-fuzzy-if(azureSkiaGL,10,400) == text-not-in-doc-test.html text-not-in-doc-test.html
+fails asserts-if(stylo,1) == text-no-frame-test.html text-no-frame-test.html # bug 1324700
+fails asserts-if(stylo,1) == text-no-frame-2-test.html text-no-frame-2-test.html # bug 1324700
+fails asserts-if(stylo,1) == text-not-in-doc-test.html text-not-in-doc-test.html # bug 1324700
 
-== text-bidi-ltr-test.html text-bidi-ltr-test.html
-== text-bidi-ltr-test.html text-bidi-ltr-test.html
-# for bug 698185
-== text-bidi-rtl-test.html text-bidi-rtl-test.html
+fails asserts-if(stylo,1) == text-bidi-ltr-test.html text-bidi-ltr-test.html # Bug 1324700
+fails asserts-if(stylo,1) == text-bidi-ltr-test.html text-bidi-ltr-test.html # Bug 1324700
+fails asserts-if(stylo,1) == text-bidi-rtl-test.html text-bidi-rtl-test.html # bug 1324700
 
-skip-if(B2G||Mulet) == text-font-lang.html text-font-lang.html
-# Initial mulet triage: parity with B2G/B2G Desktop
+fails asserts-if(stylo,4) == text-font-lang.html text-font-lang.html # bug 1324700
 
-== text-measure.html text-measure.html
-== text-small-caps-1.html text-small-caps-1.html
+fails asserts-if(stylo,1) == text-measure.html text-measure.html # bug 1324700
+fails asserts-if(stylo,1) == text-small-caps-1.html text-small-caps-1.html # bug 1324700
 
-random-if(!d2d) == text-subpixel-1.html text-subpixel-1.html
+fails asserts-if(stylo,1) == text-subpixel-1.html text-subpixel-1.html # bug 1324700
 
-== strokeText-path.html strokeText-path.html
+fails asserts-if(stylo,1) == strokeText-path.html strokeText-path.html # bug 1324700
 
 # check that emoji character renders as something non-blank (for Apple Color Emoji font, bug 715798)
 # apparently fails on some 10.7 systems for unknown reasons, bug 804522.
@@ -69,38 +62,32 @@ random-if(!d2d) == text-subpixel-1.html text-subpixel-1.html
 ## if they have an Emoji font installed when running the tests.)
 ## WAS: random-if(OSX==1007) == text-emoji.html text-emoji.html
 # With Skia canvas on OS X (bug 932958) it fails even on 10.8 and 10.10.
-random-if(cocoaWidget&&azureSkia) random-if(!cocoaWidget||OSX==1006||OSX==1007) == text-emoji.html text-emoji.html
+random-if(cocoaWidget&&azureSkia) random-if(!cocoaWidget||OSX==1006||OSX==1007) asserts-if(stylo,1) == text-emoji.html text-emoji.html # bug 1324700
 
 # azure quartz uses CGDrawLinearGradient instead of DrawShading
 # so we have less control over degenerate behaviour as tested by this
 # test
-skip == linear-gradient-1a.html linear-gradient-1a.html
+fails-if((azureSkia&&!azureSkiaGL)||(azureSkiaGL&&Android)) skip-if(stylo) == linear-gradient-1a.html linear-gradient-1a.html # Too random.
 
 # this passes with cairo on 10.7 and 10.8 but not with azure for reasons unknown
-skip == linear-gradient-1b.html linear-gradient-1b.html
+fails-if((azureSkia&&!azureSkiaGL)||(azureSkiaGL&&Android)) skip-if(stylo) == linear-gradient-1b.html linear-gradient-1b.html # Too random.
 
 == zero-dimensions.html zero-dimensions.html
 
-== evenodd-fill-sanity.html evenodd-fill-sanity.html
 == evenodd-fill-1.html evenodd-fill-1.html
 == evenodd-fill-1.html evenodd-fill-1.html
-random-if(azureSkiaGL) == evenodd-fill-2.html evenodd-fill-2.html
-== evenodd-fill-3.html evenodd-fill-3.html
 
 == dash-sanity.html dash-sanity.html
-fuzzy-if(azureSkia||skiaContent,9,470) random-if(Android) == dash-1.html dash-1.html
-# Bug 668412 (really is android-specific, not IPC-specific)
+== dash-1.html dash-1.html
 
 == ctm-sanity.html ctm-sanity.html
 == ctm-singular-sanity.html ctm-singular-sanity.html
 == ctm-1.html ctm-1.html
 
-fails-if(azureQuartz&&OSX==1006) == 672646-alpha-radial-gradient.html 672646-alpha-radial-gradient.html
-# Bug 673333
+== 672646-alpha-radial-gradient.html 672646-alpha-radial-gradient.html
 == 674003-alpha-radial-gradient-superlum.html 674003-alpha-radial-gradient-superlum.html
 
-== 693610-1.html 693610-1.html
-# bug 693610: multiple glyph runs should not be overprinted
+fails asserts-if(stylo,1) == 693610-1.html 693610-1.html # bug 1324700
 
 == 726951-shadow-clips.html 726951-shadow-clips.html
 
@@ -111,12 +98,20 @@ fuzzy-if(azureSkia,1,15) fuzzy-if(skiaContent,1,20) == transformed-gradient.html
 == 749467-1.html 749467-1.html
 
 # You get a little bit of rounding fuzz on OSX from transforming the paths between user space and device space
-fuzzy-if(azureQuartz,2,128) fuzzy-if(d2d,12,21) fuzzy-if(skiaContent,12,7) fuzzy-if(d2d&&/^Windows\x20NT\x2010\.0/.test(http.oscpu),2,141) == 784573-1.html 784573-1.html
+== 784573-1.html 784573-1.html
 
-== 802658-1.html 802658-1.html
+fails asserts-if(stylo,1) == 802658-1.html 802658-1.html # bug 1324700
 == 1074733-1.html 1074733-1.html
-fuzzy-if(Mulet,45,2) == 1107096-invisibles.html 1107096-invisibles.html
+fails asserts-if(stylo,1) == 1107096-invisibles.html 1107096-invisibles.html # bug 1324700
 == 1151821-1.html 1151821-1.html
 == 1201272-1.html 1201272-1.html
 == 1224976-1.html 1224976-1.html
 == 1238795-1.html 1238795-1.html
+== 1303534-1.html 1303534-1.html
+
+fails asserts-if(stylo,1) == 1304353-text-global-alpha-1.html 1304353-text-global-alpha-1.html # bug 1324700
+fails asserts-if(stylo,1) == 1304353-text-global-alpha-2.html 1304353-text-global-alpha-2.html # bug 1324700
+fails asserts-if(stylo,1) == 1304353-text-global-composite-op-1.html 1304353-text-global-composite-op-1.html # bug 1324700
+
+skip-if(stylo) == text-indent-1a.html text-indent-1a.html # Bug 1347410
+== text-indent-1b.html text-indent-1b.html

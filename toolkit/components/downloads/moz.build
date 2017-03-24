@@ -19,7 +19,7 @@ with Files('generate_csd.sh'):
 with Files('nsIApplicationReputation.idl'):
     BUG_COMPONENT = ('Toolkit', 'Safe Browsing')
 
-XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
+TEST_DIRS += ['test']
 
 XPIDL_SOURCES += [
     'nsIApplicationReputation.idl',
@@ -47,14 +47,6 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     # included in LoadContext ends up undefining.
     SOURCES += [
         'nsDownloadScanner.cpp',
-    ]
-
-# XXX - Until Suite builds off XULRunner we can't guarantee our implementation
-# of nsIDownloadManagerUI overrides toolkit's.
-if not CONFIG['MOZ_SUITE']:
-    EXTRA_COMPONENTS += [
-        'nsDownloadManagerUI.js',
-        'nsDownloadManagerUI.manifest',
     ]
 
 FINAL_LIBRARY = 'xul'

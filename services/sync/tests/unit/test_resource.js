@@ -3,11 +3,11 @@
 
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/observers.js");
-Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/resource.js");
+Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/util.js");
-
-var logger;
+Cu.import("resource://services-sync/browserid_identity.js");
+Cu.import("resource://testing-common/services/sync/utils.js");
 
 var fetched = false;
 function server_open(metadata, response) {
@@ -26,7 +26,7 @@ function server_open(metadata, response) {
 function server_protected(metadata, response) {
   let body;
 
-  if (basic_auth_matches(metadata, "guest", "guest")) {
+  if (has_hawk_header(metadata)) {
     body = "This path exists and is protected";
     response.setStatusLine(metadata.httpVersion, 200, "OK, authorized");
     response.setHeader("WWW-Authenticate", 'Basic realm="secret"', false);
@@ -69,7 +69,7 @@ function server_upload(metadata, response) {
     body = "Valid data upload via " + metadata.method;
     response.setStatusLine(metadata.httpVersion, 200, "OK");
   } else {
-    body = "Invalid data upload via " + metadata.method + ': ' + input;
+    body = "Invalid data upload via " + metadata.method + ": " + input;
     response.setStatusLine(metadata.httpVersion, 500, "Internal Server Error");
   }
 
@@ -98,28 +98,28 @@ const TIMESTAMP = 1274380461;
 
 function server_timestamp(metadata, response) {
   let body = "Thank you for your request";
-  response.setHeader("X-Weave-Timestamp", ''+TIMESTAMP, false);
+  response.setHeader("X-Weave-Timestamp", "" + TIMESTAMP, false);
   response.setStatusLine(metadata.httpVersion, 200, "OK");
   response.bodyOutputStream.write(body, body.length);
 }
 
 function server_backoff(metadata, response) {
   let body = "Hey, back off!";
-  response.setHeader("X-Weave-Backoff", '600', false);
+  response.setHeader("X-Weave-Backoff", "600", false);
   response.setStatusLine(metadata.httpVersion, 200, "OK");
   response.bodyOutputStream.write(body, body.length);
 }
 
 function server_quota_notice(request, response) {
   let body = "You're approaching quota.";
-  response.setHeader("X-Weave-Quota-Remaining", '1048576', false);
+  response.setHeader("X-Weave-Quota-Remaining", "1048576", false);
   response.setStatusLine(request.httpVersion, 200, "OK");
   response.bodyOutputStream.write(body, body.length);
 }
 
 function server_quota_error(request, response) {
   let body = "14";
-  response.setHeader("X-Weave-Quota-Remaining", '-1024', false);
+  response.setHeader("X-Weave-Quota-Remaining", "-1024", false);
   response.setStatusLine(request.httpVersion, 400, "OK");
   response.bodyOutputStream.write(body, body.length);
 }
@@ -153,7 +153,7 @@ function run_test() {
 
   do_test_pending();
 
-  let logger = Log.repository.getLogger('Test');
+  let logger = Log.repository.getLogger("Test");
   Log.repository.rootLogger.addAppender(new Log.DumpAppender());
 
   let server = httpd_setup({
@@ -209,7 +209,7 @@ function run_test() {
   logger = res._log;
   let dbg    = logger.debug;
   let debugMessages = [];
-  logger.debug = function (msg) {
+  logger.debug = function(msg) {
     debugMessages.push(msg);
     dbg.call(this, msg);
   }
@@ -229,11 +229,6 @@ function run_test() {
               "Parse fail: Response body starts: \"\"This path exists\"\".");
   logger.debug = dbg;
 
-  _("Test that the BasicAuthenticator doesn't screw up header case.");
-  let res1 = new Resource(server.baseURI + "/foo");
-  res1.setHeader("Authorization", "Basic foobar");
-  do_check_eq(res1.headers["authorization"], "Basic foobar");
-
   _("GET a password protected resource (test that it'll fail w/o pass, no throw)");
   let res2 = new Resource(server.baseURI + "/protected");
   content = res2.get();
@@ -243,8 +238,10 @@ function run_test() {
 
   _("GET a password protected resource");
   let res3 = new Resource(server.baseURI + "/protected");
-  let identity = new IdentityManager();
-  let auth = identity.getBasicResourceAuthenticator("guest", "guest");
+  let identityConfig = makeIdentityConfig();
+  let browseridManager = Status._authManager;
+  configureFxAccountIdentity(browseridManager, identityConfig);
+  let auth = browseridManager.getResourceAuthenticator();
   res3.authenticator = auth;
   do_check_eq(res3.authenticator, auth);
   content = res3.get();
@@ -341,27 +338,27 @@ function run_test() {
   _("GET: no special request headers");
   let res9 = new Resource(server.baseURI + "/headers");
   content = res9.get();
-  do_check_eq(content, '{}');
+  do_check_eq(content, "{}");
 
   _("PUT: Content-Type defaults to text/plain");
-  content = res9.put('data');
+  content = res9.put("data");
   do_check_eq(content, JSON.stringify({"content-type": "text/plain"}));
 
   _("POST: Content-Type defaults to text/plain");
-  content = res9.post('data');
+  content = res9.post("data");
   do_check_eq(content, JSON.stringify({"content-type": "text/plain"}));
 
   _("setHeader(): setting simple header");
-  res9.setHeader('X-What-Is-Weave', 'awesome');
-  do_check_eq(res9.headers['x-what-is-weave'], 'awesome');
+  res9.setHeader("X-What-Is-Weave", "awesome");
+  do_check_eq(res9.headers["x-what-is-weave"], "awesome");
   content = res9.get();
   do_check_eq(content, JSON.stringify({"x-what-is-weave": "awesome"}));
 
   _("setHeader(): setting multiple headers, overwriting existing header");
-  res9.setHeader('X-WHAT-is-Weave', 'more awesomer');
-  res9.setHeader('X-Another-Header', 'hello world');
-  do_check_eq(res9.headers['x-what-is-weave'], 'more awesomer');
-  do_check_eq(res9.headers['x-another-header'], 'hello world');
+  res9.setHeader("X-WHAT-is-Weave", "more awesomer");
+  res9.setHeader("X-Another-Header", "hello world");
+  do_check_eq(res9.headers["x-what-is-weave"], "more awesomer");
+  do_check_eq(res9.headers["x-another-header"], "hello world");
   content = res9.get();
   do_check_eq(content, JSON.stringify({"x-another-header": "hello world",
                                        "x-what-is-weave": "more awesomer"}));
@@ -372,11 +369,11 @@ function run_test() {
   do_check_eq(content, "{}");
 
   _("PUT/POST: override default Content-Type");
-  res9.setHeader('Content-Type', 'application/foobar');
-  do_check_eq(res9.headers['content-type'], 'application/foobar');
-  content = res9.put('data');
+  res9.setHeader("Content-Type", "application/foobar");
+  do_check_eq(res9.headers["content-type"], "application/foobar");
+  content = res9.put("data");
   do_check_eq(content, JSON.stringify({"content-type": "application/foobar"}));
-  content = res9.post('data');
+  content = res9.post("data");
   do_check_eq(content, JSON.stringify({"content-type": "application/foobar"}));
 
 
@@ -415,7 +412,7 @@ function run_test() {
   let res11 = new Resource("http://localhost:12345/does/not/exist");
   try {
     content = res11.get();
-  } catch(ex) {
+  } catch (ex) {
     error = ex;
   }
   do_check_eq(error.result, Cr.NS_ERROR_CONNECTION_REFUSED);
@@ -426,10 +423,9 @@ function run_test() {
   let res18 = new Resource(server.baseURI + "/json");
   let onProgress = function(rec) {
     // Provoke an XPC exception without a Javascript wrapper.
-    Services.io.newURI("::::::::", null, null);
+    Services.io.newURI("::::::::");
   };
   res18._onProgress = onProgress;
-  let oldWarn = res18._log.warn;
   let warnings = [];
   res18._log.warn = function(msg) { warnings.push(msg) };
   error = undefined;
@@ -454,7 +450,7 @@ function run_test() {
     throw "BOO!";
   };
   res18._onProgress = onProgress;
-  oldWarn = res18._log.warn;
+  let oldWarn = res18._log.warn;
   warnings = [];
   res18._log.warn = function(msg) { warnings.push(msg) };
   error = undefined;
@@ -472,6 +468,7 @@ function run_test() {
               "Got exception calling onProgress handler during fetch of " +
               server.baseURI + "/json");
 
+  res18._log.warn = oldWarn;
 
   _("Ensure channel timeouts are thrown appropriately.");
   let res19 = new Resource(server.baseURI + "/json");

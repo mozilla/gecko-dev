@@ -389,7 +389,7 @@ policies and contribution forms [3].
         self.addEventListener("connect",
                 function(message_event) {
                     this_obj._add_message_port(message_event.source);
-                });
+                }, false);
     }
     SharedWorkerTestEnvironment.prototype = Object.create(WorkerTestEnvironment.prototype);
 
@@ -430,7 +430,7 @@ policies and contribution forms [3].
                             this_obj._add_message_port(event.source);
                         }
                     }
-                });
+                }, false);
 
         // The oninstall event is received after the service worker script and
         // all imported scripts have been fetched and executed. It's the
@@ -527,8 +527,14 @@ policies and contribution forms [3].
             tests.promise_tests = Promise.resolve();
         }
         tests.promise_tests = tests.promise_tests.then(function() {
-            return Promise.resolve(test.step(func, test, test))
-                .then(
+            var donePromise = new Promise(function(resolve) {
+                test.add_cleanup(resolve);
+            });
+            var promise = test.step(func, test, test);
+            test.step(function() {
+                assert_not_equals(promise, undefined);
+            });
+            Promise.resolve(promise).then(
                     function() {
                         test.done();
                     })
@@ -540,6 +546,7 @@ policies and contribution forms [3].
                         assert(false, "promise_test", null,
                                "Unhandled rejection with value: ${value}", {value:value});
                     }));
+            return donePromise;
         });
     }
 
@@ -582,7 +589,7 @@ policies and contribution forms [3].
         });
 
         for (var i = 0; i < eventTypes.length; i++) {
-            watchedNode.addEventListener(eventTypes[i], eventHandler);
+            watchedNode.addEventListener(eventTypes[i], eventHandler, false);
         }
 
         /**
@@ -607,7 +614,7 @@ policies and contribution forms [3].
 
         function stop_watching() {
             for (var i = 0; i < eventTypes.length; i++) {
-                watchedNode.removeEventListener(eventTypes[i], eventHandler);
+                watchedNode.removeEventListener(eventTypes[i], eventHandler, false);
             }
         };
 
@@ -1247,6 +1254,7 @@ policies and contribution forms [3].
                 ReadOnlyError: 0,
                 VersionError: 0,
                 OperationError: 0,
+                NotAllowedError: 0
             };
 
             if (!(name in name_code_map)) {
@@ -1910,10 +1918,46 @@ policies and contribution forms [3].
         this.notify_complete();
     };
 
+    /*
+     * Determine if any tests share the same `name` property. Return an array
+     * containing the names of any such duplicates.
+     */
+    Tests.prototype.find_duplicates = function() {
+        var names = Object.create(null);
+        var duplicates = [];
+
+        forEach (this.tests,
+                 function(test)
+                 {
+                     if (test.name in names && duplicates.indexOf(test.name) === -1) {
+                        duplicates.push(test.name);
+                     }
+                     names[test.name] = true;
+                 });
+
+        return duplicates;
+    };
+
     Tests.prototype.notify_complete = function() {
         var this_obj = this;
+        var duplicates;
+
         if (this.status.status === null) {
-            this.status.status = this.status.OK;
+            duplicates = this.find_duplicates();
+
+            // Test names are presumed to be unique within test files--this
+            // allows consumers to use them for identification purposes.
+            // Duplicated names violate this expectation and should therefore
+            // be reported as an error.
+            if (duplicates.length) {
+                this.status.status = this.status.ERROR;
+                this.status.message =
+                   duplicates.length + ' duplicate test name' +
+                   (duplicates.length > 1 ? 's' : '') + ': "' +
+                   duplicates.join('", "') + '"';
+            } else {
+                this.status.status = this.status.OK;
+            }
         }
 
         forEach (this.all_done_callbacks,
@@ -2463,6 +2507,11 @@ policies and contribution forms [3].
             }
         }
 
+        // 'Error.stack' is not supported in all browsers/versions
+        if (!stack) {
+            return "(Stack trace unavailable)";
+        }
+
         var lines = stack.split("\n");
 
         // Create a pattern to match stack frames originating within testharness.js.  These include the
@@ -2659,22 +2708,36 @@ policies and contribution forms [3].
 
     var tests = new Tests();
 
-    addEventListener("error", function(e) {
+    var error_handler = function(e) {
+        if (tests.tests.length === 0 && !tests.allow_uncaught_exception) {
+            tests.set_file_is_test();
+        }
+
+        var stack;
+        if (e.error && e.error.stack) {
+            stack = e.error.stack;
+        } else {
+            stack = e.filename + ":" + e.lineno + ":" + e.colno;
+        }
+
         if (tests.file_is_test) {
             var test = tests.tests[0];
             if (test.phase >= test.phases.HAS_RESULT) {
                 return;
             }
-            test.set_status(test.FAIL, e.message, e.stack);
+            test.set_status(test.FAIL, e.message, stack);
             test.phase = test.phases.HAS_RESULT;
             test.done();
-            done();
         } else if (!tests.allow_uncaught_exception) {
             tests.status.status = tests.status.ERROR;
             tests.status.message = e.message;
-            tests.status.stack = e.stack;
+            tests.status.stack = stack;
         }
-    });
+        done();
+    };
+
+    addEventListener("error", error_handler, false);
+    addEventListener("unhandledrejection", function(e){ error_handler(e.reason); }, false);
 
     test_environment.on_tests_ready();
 

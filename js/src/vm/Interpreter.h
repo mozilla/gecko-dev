@@ -201,7 +201,7 @@ Execute(JSContext* cx, HandleScript script, JSObject& scopeChain, Value* rval);
 class ExecuteState;
 class InvokeState;
 
-// RunState is passed to RunScript and RunScript then eiter passes it to the
+// RunState is passed to RunScript and RunScript then either passes it to the
 // interpreter or to the JITs. RunState contains all information we need to
 // construct an interpreter or JIT frame.
 class RunState
@@ -420,14 +420,6 @@ ThrowingOperation(JSContext* cx, HandleValue v);
 bool
 GetProperty(JSContext* cx, HandleValue value, HandlePropertyName name, MutableHandleValue vp);
 
-bool
-GetEnvironmentName(JSContext* cx, HandleObject obj, HandlePropertyName name,
-                   MutableHandleValue vp);
-
-bool
-GetEnvironmentNameForTypeOf(JSContext* cx, HandleObject obj, HandlePropertyName name,
-                            MutableHandleValue vp);
-
 JSObject*
 Lambda(JSContext* cx, HandleFunction fun, HandleObject parent);
 
@@ -561,11 +553,21 @@ void
 ReportRuntimeRedeclaration(JSContext* cx, HandlePropertyName name, const char* redeclKind);
 
 enum class CheckIsObjectKind : uint8_t {
-    IteratorNext
+    IteratorNext,
+    IteratorReturn,
+    IteratorThrow,
+    GetIterator
 };
 
 bool
 ThrowCheckIsObject(JSContext* cx, CheckIsObjectKind kind);
+
+enum class CheckIsCallableKind : uint8_t {
+    IteratorReturn
+};
+
+bool
+ThrowCheckIsCallable(JSContext* cx, CheckIsCallableKind kind);
 
 bool
 ThrowUninitializedThis(JSContext* cx, AbstractFramePtr frame);

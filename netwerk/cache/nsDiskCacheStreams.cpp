@@ -116,20 +116,20 @@ nsDiskCacheInputStream::Read(char * buffer, uint32_t count, uint32_t * bytesRead
     if (mClosed) {
         CACHE_LOG_DEBUG(("CACHE: nsDiskCacheInputStream::Read "
                          "[stream=%p] stream was closed",
-                         this, buffer, count));
+                         this));
         return NS_OK;
     }
     
     if (mPos == mStreamEnd) {
         CACHE_LOG_DEBUG(("CACHE: nsDiskCacheInputStream::Read "
                          "[stream=%p] stream at end of file",
-                         this, buffer, count));
+                         this));
         return NS_OK;
     }
     if (mPos > mStreamEnd) {
         CACHE_LOG_DEBUG(("CACHE: nsDiskCacheInputStream::Read "
                          "[stream=%p] stream past end of file (!)",
-                         this, buffer, count));
+                         this));
         return NS_ERROR_UNEXPECTED;
     }
     
@@ -573,7 +573,7 @@ nsDiskCacheStreamIO::FlushBufferToFile()
     // write buffer to the file when there is data in it
     if (mStreamEnd > 0) {
         if (!mBuffer) {
-            NS_RUNTIMEABORT("Fix me!");
+            MOZ_CRASH("Fix me!");
         }
         if (PR_Write(mFD, mBuffer, mStreamEnd) != (int32_t)mStreamEnd) {
             NS_WARNING("failed to flush all data");

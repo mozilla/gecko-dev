@@ -6,6 +6,8 @@
 
 #include "CTLogVerifier.h"
 
+#include <stdint.h>
+
 #include "CTSerialization.h"
 #include "hasht.h"
 #include "mozilla/ArrayUtils.h"
@@ -120,12 +122,33 @@ public:
 
 CTLogVerifier::CTLogVerifier()
   : mSignatureAlgorithm(DigitallySigned::SignatureAlgorithm::Anonymous)
+  , mOperatorId(-1)
+  , mDisqualified(false)
+  , mDisqualificationTime(UINT64_MAX)
 {
 }
 
 Result
-CTLogVerifier::Init(Input subjectPublicKeyInfo)
+CTLogVerifier::Init(Input subjectPublicKeyInfo,
+                    CTLogOperatorId operatorId,
+                    CTLogStatus logStatus,
+                    uint64_t disqualificationTime)
 {
+  switch (logStatus) {
+    case CTLogStatus::Included:
+      mDisqualified = false;
+      mDisqualificationTime = UINT64_MAX;
+      break;
+    case CTLogStatus::Disqualified:
+      mDisqualified = true;
+      mDisqualificationTime = disqualificationTime;
+      break;
+    case CTLogStatus::Unknown:
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unsupported CTLogStatus");
+      return Result::FATAL_ERROR_INVALID_ARGS;
+  }
+
   SignatureParamsTrustDomain trustDomain;
   Result rv = CheckSubjectPublicKeyInfo(subjectPublicKeyInfo, trustDomain,
                                         EndEntityOrCA::MustBeEndEntity);
@@ -148,6 +171,7 @@ CTLogVerifier::Init(Input subjectPublicKeyInfo)
     return rv;
   }
 
+  mOperatorId = operatorId;
   return Success;
 }
 
@@ -173,10 +197,16 @@ CTLogVerifier::Verify(const LogEntry& entry,
   if (rv != Success) {
     return rv;
   }
+
+  // sct.extensions may be empty.  If it is, sctExtensionsInput will remain in
+  // its default state, which is valid but of length 0.
   Input sctExtensionsInput;
-  rv = BufferToInput(sct.extensions, sctExtensionsInput);
-  if (rv != Success) {
-    return rv;
+  if (sct.extensions.length() > 0) {
+    rv = sctExtensionsInput.Init(sct.extensions.begin(),
+                                 sct.extensions.length());
+    if (rv != Success) {
+      return rv;
+    }
   }
 
   Buffer serializedData;

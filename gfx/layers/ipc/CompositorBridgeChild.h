@@ -38,6 +38,7 @@ class IAPZCTreeManager;
 class APZCTreeManagerChild;
 class ClientLayerManager;
 class CompositorBridgeParent;
+class CompositorOptions;
 class TextureClient;
 class TextureClientPool;
 struct FrameMetrics;
@@ -50,7 +51,7 @@ class CompositorBridgeChild final : public PCompositorBridgeChild,
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorBridgeChild, override);
 
-  explicit CompositorBridgeChild(ClientLayerManager *aLayerManager);
+  explicit CompositorBridgeChild(LayerManager *aLayerManager);
 
   void Destroy();
 
@@ -69,7 +70,7 @@ public:
 
   static RefPtr<CompositorBridgeChild> CreateRemote(
     const uint64_t& aProcessToken,
-    ClientLayerManager* aLayerManager,
+    LayerManager* aLayerManager,
     Endpoint<PCompositorBridgeChild>&& aEndpoint);
 
   /**
@@ -80,7 +81,7 @@ public:
     widget::CompositorWidget* aWidget,
     const uint64_t& aLayerTreeId,
     CSSToLayoutDeviceScale aScale,
-    bool aUseAPZ,
+    const CompositorOptions& aOptions,
     bool aUseExternalSurface,
     const gfx::IntSize& aSurfaceSize);
 
@@ -88,35 +89,32 @@ public:
 
   static bool ChildProcessHasCompositorBridge();
 
-  void AddOverfillObserver(ClientLayerManager* aLayerManager);
+  // Returns whether the compositor is in the GPU process (false if in the UI
+  // process). This may only be called on the main thread.
+  static bool CompositorIsInGPUProcess();
 
-  virtual bool
-  RecvClearCachedResources(const uint64_t& id) override;
-
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvDidComposite(const uint64_t& aId, const uint64_t& aTransactionId,
                    const TimeStamp& aCompositeStart,
                    const TimeStamp& aCompositeEnd) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvInvalidateLayers(const uint64_t& aLayersId) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvCompositorUpdated(const uint64_t& aLayersId,
-                        const TextureFactoryIdentifier& aNewIdentifier) override;
+                        const TextureFactoryIdentifier& aNewIdentifier,
+                        const uint64_t& aSeqNo) override;
 
-  virtual bool
-  RecvOverfill(const uint32_t &aOverfill) override;
-
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvUpdatePluginConfigurations(const LayoutDeviceIntPoint& aContentOffset,
                                  const LayoutDeviceIntRegion& aVisibleRegion,
                                  nsTArray<PluginWindowData>&& aPlugins) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvCaptureAllPlugins(const uintptr_t& aParentWidget) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvHideAllPlugins(const uintptr_t& aParentWidget) override;
 
   virtual PTextureChild* AllocPTextureChild(const SurfaceDescriptor& aSharedData,
@@ -127,14 +125,14 @@ public:
 
   virtual bool DeallocPTextureChild(PTextureChild* actor) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvParentAsyncMessages(InfallibleTArray<AsyncParentMessageData>&& aMessages) override;
   virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData,
                                        LayersBackend aLayersBackend,
                                        TextureFlags aFlags,
                                        uint64_t aSerial) override;
 
-  virtual void FatalError(const char* const aName, const char* const aMsg) const override;
+  virtual void HandleFatalError(const char* aName, const char* aMsg) const override;
 
   /**
    * Request that the parent tell us when graphics are ready on GPU.
@@ -215,8 +213,6 @@ public:
   PCompositorWidgetChild* AllocPCompositorWidgetChild(const CompositorWidgetInitData& aInitData) override;
   bool DeallocPCompositorWidgetChild(PCompositorWidgetChild* aActor) override;
 
-  RefPtr<IAPZCTreeManager> GetAPZCTreeManager(uint64_t aLayerTreeId);
-
   PAPZCTreeManagerChild* AllocPAPZCTreeManagerChild(const uint64_t& aLayersId) override;
   bool DeallocPAPZCTreeManagerChild(PAPZCTreeManagerChild* aActor) override;
 
@@ -227,9 +223,22 @@ public:
 
   void WillEndTransaction();
 
+  PWebRenderBridgeChild* AllocPWebRenderBridgeChild(const wr::PipelineId& aPipelineId,
+                                                    const LayoutDeviceIntSize&,
+                                                    TextureFactoryIdentifier*,
+                                                    uint32_t*) override;
+  bool DeallocPWebRenderBridgeChild(PWebRenderBridgeChild* aActor) override;
+
+  uint64_t DeviceResetSequenceNumber() const {
+    return mDeviceResetSequenceNumber;
+  }
+
 private:
   // Private destructor, to discourage deletion outside of Release():
   virtual ~CompositorBridgeChild();
+
+  void InitIPDL();
+  void DeallocPCompositorBridgeChild() override;
 
   virtual PLayerTransactionChild*
     AllocPLayerTransactionChild(const nsTArray<LayersBackend>& aBackendHints,
@@ -241,20 +250,20 @@ private:
 
   virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  virtual bool RecvSharedCompositorFrameMetrics(const mozilla::ipc::SharedMemoryBasic::Handle& metrics,
-                                                const CrossProcessMutexHandle& handle,
-                                                const uint64_t& aLayersId,
-                                                const uint32_t& aAPZCId) override;
+  virtual mozilla::ipc::IPCResult RecvSharedCompositorFrameMetrics(const mozilla::ipc::SharedMemoryBasic::Handle& metrics,
+                                                                   const CrossProcessMutexHandle& handle,
+                                                                   const uint64_t& aLayersId,
+                                                                   const uint32_t& aAPZCId) override;
 
-  virtual bool RecvReleaseSharedCompositorFrameMetrics(const ViewID& aId,
-                                                       const uint32_t& aAPZCId) override;
+  virtual mozilla::ipc::IPCResult RecvReleaseSharedCompositorFrameMetrics(const ViewID& aId,
+                                                                          const uint32_t& aAPZCId) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvRemotePaintIsReady() override;
 
-  bool RecvObserveLayerUpdate(const uint64_t& aLayersId,
-                              const uint64_t& aEpoch,
-                              const bool& aActive) override;
+  mozilla::ipc::IPCResult RecvObserveLayerUpdate(const uint64_t& aLayersId,
+                                                 const uint64_t& aEpoch,
+                                                 const bool& aActive) override;
 
   // Class used to store the shared FrameMetrics, mutex, and APZCId  in a hash table
   class SharedFrameMetricsData {
@@ -282,7 +291,7 @@ private:
     uint32_t mAPZCId;
   };
 
-  RefPtr<ClientLayerManager> mLayerManager;
+  RefPtr<LayerManager> mLayerManager;
   // When not multi-process, hold a reference to the CompositorBridgeParent to keep it
   // alive. This reference should be null in multi-process.
   RefPtr<CompositorBridgeParent> mCompositorBridgeParent;
@@ -297,9 +306,6 @@ private:
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorBridgeChild);
 
-  // When we receive overfill numbers, notify these client layer managers
-  AutoTArray<ClientLayerManager*,0> mOverfillObservers;
-
   // True until the beginning of the two-step shutdown sequence of this actor.
   bool mCanSend;
 
@@ -308,6 +314,11 @@ private:
    * It is incrementaed by UpdateFwdTransactionId() in each BeginTransaction() call.
    */
   uint64_t mFwdTransactionId;
+
+  /**
+   * Last sequence number recognized for a device reset.
+   */
+  uint64_t mDeviceResetSequenceNumber;
 
   /**
    * Hold TextureClients refs until end of their usages on host side.

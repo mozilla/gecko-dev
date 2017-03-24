@@ -387,7 +387,9 @@ var Stepper = (function StepperClosure() {
       this.table.appendChild(chunk);
     },
     getNextBreakPoint: function getNextBreakPoint() {
-      this.breakPoints.sort(function(a, b) { return a - b; });
+      this.breakPoints.sort(function(a, b) {
+        return a - b;
+      });
       for (var i = 0; i < this.breakPoints.length; i++) {
         if (this.breakPoints[i] > this.currentIdx) {
           return this.breakPoints[i];
@@ -403,13 +405,13 @@ var Stepper = (function StepperClosure() {
       var listener = function(e) {
         switch (e.keyCode) {
           case 83: // step
-            dom.removeEventListener('keydown', listener, false);
+            dom.removeEventListener('keydown', listener);
             self.nextBreakPoint = self.currentIdx + 1;
             self.goTo(-1);
             callback();
             break;
           case 67: // continue
-            dom.removeEventListener('keydown', listener, false);
+            dom.removeEventListener('keydown', listener);
             var breakPoint = self.getNextBreakPoint();
             self.nextBreakPoint = breakPoint;
             self.goTo(-1);
@@ -417,7 +419,7 @@ var Stepper = (function StepperClosure() {
             break;
         }
       };
-      dom.addEventListener('keydown', listener, false);
+      dom.addEventListener('keydown', listener);
       self.goTo(idx);
     },
     goTo: function goTo(idx) {
@@ -484,7 +486,9 @@ var Stats = (function Stats() {
       wrapper.appendChild(title);
       wrapper.appendChild(statsDiv);
       stats.push({ pageNumber: pageNumber, div: wrapper });
-      stats.sort(function(a, b) { return a.pageNumber - b.pageNumber; });
+      stats.sort(function(a, b) {
+        return a.pageNumber - b.pageNumber;
+      });
       clear(this.panel);
       for (var i = 0, ii = stats.length; i < ii; ++i) {
         this.panel.appendChild(stats[i].div);

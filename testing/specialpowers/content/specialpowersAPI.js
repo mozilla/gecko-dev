@@ -332,6 +332,7 @@ SPConsoleListener.prototype = {
       m.columnNumber  = msg.columnNumber;
       m.category      = msg.category;
       m.windowID      = msg.outerWindowID;
+      m.innerWindowID = msg.innerWindowID;
       m.isScriptError = true;
       m.isWarning     = ((msg.flags & Ci.nsIScriptError.warningFlag) === 1);
       m.isException   = ((msg.flags & Ci.nsIScriptError.exceptionFlag) === 1);
@@ -340,7 +341,11 @@ SPConsoleListener.prototype = {
 
     Object.freeze(m);
 
-    this.callback.call(undefined, m);
+    // Run in a separate runnable since console listeners aren't
+    // supposed to touch content and this one might.
+    Services.tm.mainThread.dispatch(() => {
+      this.callback.call(undefined, m);
+    }, Ci.nsIThread.DISPATCH_NORMAL);
 
     if (!m.isScriptError && m.message === "SENTINEL")
       Services.console.unregisterListener(this);
@@ -1208,6 +1213,38 @@ SpecialPowersAPI.prototype = {
     Services.obs.notifyObservers(subject, topic, data);
   },
 
+  /**
+   * An async observer is useful if you're listening for a
+   * notification that normally is only used by C++ code or chrome
+   * code (so it runs in the SystemGroup), but we need to know about
+   * it for a test (which runs as web content). If we used
+   * addObserver, we would assert when trying to enter web content
+   * from a runnabled labeled by the SystemGroup. An async observer
+   * avoids this problem.
+   */
+  _asyncObservers: new WeakMap(),
+  addAsyncObserver: function(obs, notification, weak) {
+    obs = Cu.waiveXrays(obs);
+    if (typeof obs == 'object' && obs.observe.name != 'SpecialPowersCallbackWrapper') {
+      obs.observe = wrapCallback(obs.observe);
+    }
+    let asyncObs = (...args) => {
+      Services.tm.mainThread.dispatch(() => {
+        if (typeof obs == 'function') {
+          obs.call(undefined, ...args);
+        } else {
+          obs.observe.call(undefined, ...args);
+        }
+      }, Ci.nsIThread.DISPATCH_NORMAL);
+    };
+    this._asyncObservers.set(obs, asyncObs);
+    Services.obs.addObserver(asyncObs, notification, weak);
+  },
+  removeAsyncObserver: function(obs, notification) {
+    let asyncObs = this._asyncObservers.get(Cu.waiveXrays(obs));
+    Services.obs.removeObserver(asyncObs, notification);
+  },
+
   can_QI: function(obj) {
     return obj.QueryInterface !== undefined;
   },
@@ -1316,13 +1353,11 @@ SpecialPowersAPI.prototype = {
   },
   addAutoCompletePopupEventListener: function(window, eventname, listener) {
     this._getAutoCompletePopup(window).addEventListener(eventname,
-                                                        listener,
-                                                        false);
+                                                        listener);
   },
   removeAutoCompletePopupEventListener: function(window, eventname, listener) {
     this._getAutoCompletePopup(window).removeEventListener(eventname,
-                                                           listener,
-                                                           false);
+                                                           listener);
   },
   get formHistory() {
     let tmp = {};
@@ -1772,24 +1807,14 @@ SpecialPowersAPI.prototype = {
 
     if (typeof(arg) == "string") {
       // It's an URL.
-      let uri = Services.io.newURI(arg, null, null);
+      let uri = Services.io.newURI(arg);
       principal = secMan.createCodebasePrincipal(uri, {});
-    } else if (arg.manifestURL) {
-      // It's a thing representing an app.
-      let appsSvc = Cc["@mozilla.org/AppsService;1"]
-                      .getService(Ci.nsIAppsService)
-      let app = appsSvc.getAppByManifestURL(arg.manifestURL);
-      if (!app) {
-        throw "No app for this manifest!";
-      }
-
-      principal = app.principal;
     } else if (arg.nodePrincipal) {
       // It's a document.
       // In some tests the arg is a wrapped DOM element, so we unwrap it first.
       principal = unwrapIfWrapped(arg).nodePrincipal;
     } else {
-      let uri = Services.io.newURI(arg.url, null, null);
+      let uri = Services.io.newURI(arg.url);
       let attrs = arg.originAttributes || {};
       principal = secMan.createCodebasePrincipal(uri, attrs);
     }
@@ -2093,6 +2118,32 @@ SpecialPowersAPI.prototype = {
                .QueryInterface(Ci.nsIContentViewerEdit)
                .setCommandNode(node);
   },
+
+  /* Bug 1339006 Runnables of nsIURIClassifier.classify may be labeled by
+   * SystemGroup, but some test cases may run as web content. That would assert
+   * when trying to enter web content from a runnable labeled by the
+   * SystemGroup. To avoid that, we run classify from SpecialPowers which is
+   * chrome-privileged and allowed to run inside SystemGroup
+   */
+
+  doUrlClassify(principal, eventTarget, tpEnabled, callback) {
+    let classifierService =
+      Cc["@mozilla.org/url-classifier/dbservice;1"].getService(Ci.nsIURIClassifier);
+
+    let wrapCallback = (...args) => {
+      Services.tm.mainThread.dispatch(() => {
+        if (typeof callback == 'function') {
+          callback.call(undefined, ...args);
+        } else {
+          callback.onClassifyComplete.call(undefined, ...args);
+        }
+      }, Ci.nsIThread.DISPATCH_NORMAL);
+    };
+
+    return classifierService.classify(unwrapIfWrapped(principal), eventTarget,
+                                      tpEnabled, wrapCallback);
+  },
+
 };
 
 this.SpecialPowersAPI = SpecialPowersAPI;

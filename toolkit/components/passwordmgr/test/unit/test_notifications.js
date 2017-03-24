@@ -6,9 +6,9 @@ var expectedNotification;
 var expectedData;
 
 var TestObserver = {
-  QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]),
 
-  observe : function (subject, topic, data) {
+  observe(subject, topic, data) {
     do_check_eq(topic, "passwordmgr-storage-changed");
     do_check_eq(data, expectedNotification);
 

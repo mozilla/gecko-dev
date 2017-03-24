@@ -169,11 +169,7 @@ WeakMap_set_impl(JSContext* cx, const CallArgs& args)
     MOZ_ASSERT(IsWeakMap(args.thisv()));
 
     if (!args.get(0).isObject()) {
-        UniqueChars bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, args.get(0), nullptr);
-        if (!bytes)
-            return false;
-        JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr, JSMSG_NOT_NONNULL_OBJECT,
-                                   bytes.get());
+        ReportNotObjectWithName(cx, "WeakMap key", args.get(0));
         return false;
     }
 
@@ -224,7 +220,7 @@ JS_NondeterministicGetWeakMapKeys(JSContext* cx, HandleObject objArg, MutableHan
 }
 
 static void
-WeakMap_mark(JSTracer* trc, JSObject* obj)
+WeakMap_trace(JSTracer* trc, JSObject* obj)
 {
     if (ObjectValueMap* map = obj->as<WeakMapObject>().getMap())
         map->trace(trc);
@@ -233,7 +229,7 @@ WeakMap_mark(JSTracer* trc, JSObject* obj)
 static void
 WeakMap_finalize(FreeOp* fop, JSObject* obj)
 {
-    MOZ_ASSERT(fop->maybeOffMainThread());
+    MOZ_ASSERT(fop->maybeOnHelperThread());
     if (ObjectValueMap* map = obj->as<WeakMapObject>().getMap()) {
 #ifdef DEBUG
         map->~ObjectValueMap();
@@ -326,7 +322,7 @@ static const ClassOps WeakMapObjectClassOps = {
     nullptr, /* call */
     nullptr, /* hasInstance */
     nullptr, /* construct */
-    WeakMap_mark
+    WeakMap_trace
 };
 
 const Class WeakMapObject::class_ = {
@@ -350,14 +346,14 @@ InitWeakMapClass(JSContext* cx, HandleObject obj, bool defineMembers)
 {
     MOZ_ASSERT(obj->isNative());
 
-    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
+    Handle<GlobalObject*> global = obj.as<GlobalObject>();
 
     RootedPlainObject proto(cx, NewBuiltinClassInstance<PlainObject>(cx));
     if (!proto)
         return nullptr;
 
-    RootedFunction ctor(cx, global->createConstructor(cx, WeakMap_construct,
-                                                      cx->names().WeakMap, 0));
+    RootedFunction ctor(cx, GlobalObject::createConstructor(cx, WeakMap_construct,
+                                                            cx->names().WeakMap, 0));
     if (!ctor)
         return nullptr;
 

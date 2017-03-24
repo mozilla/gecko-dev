@@ -16,11 +16,10 @@ add_task(function* test_switchtab_decodeuri() {
   info("switch-to-tab");
   yield new Promise((resolve, reject) => {
     // In case of success it should switch tab.
-    gBrowser.tabContainer.addEventListener("TabSelect", function select() {
-      gBrowser.tabContainer.removeEventListener("TabSelect", select, false);
+    gBrowser.tabContainer.addEventListener("TabSelect", function() {
       is(gBrowser.selectedTab, tab, "Should have switched to the right tab");
       resolve();
-    }, false);
+    }, {once: true});
     EventUtils.synthesizeKey("VK_RETURN", { });
   });
 

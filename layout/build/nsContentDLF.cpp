@@ -19,7 +19,6 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsString.h"
 #include "nsContentCID.h"
-#include "prprf.h"
 #include "nsNetUtil.h"
 #include "nsCRT.h"
 #include "nsIViewSourceChannel.h"
@@ -155,7 +154,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
     // type of the data.  If it's known, use it; otherwise use
     // text/plain.
     nsAutoCString type;
-    viewSourceChannel->GetOriginalContentType(type);
+    mozilla::Unused << viewSourceChannel->GetOriginalContentType(type);
     bool knownType =
       (!type.EqualsLiteral(VIEWSOURCE_CONTENT_TYPE) &&
         IsTypeInList(type, gHTMLTypes)) ||

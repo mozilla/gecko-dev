@@ -122,6 +122,12 @@ add_task(function* testObserver() {
   Assert.ok(component.observe.calledWith(null, FxAccountsCommon.ONLOGIN_NOTIFICATION, ""),
     "component is notified of login");
   Assert.equal(component.updatePanel.callCount, 3, "triggers panel update again");
+
+  Services.obs.notifyObservers(null, "weave:service:login:change", "");
+
+  Assert.ok(component.observe.calledWith(null, "weave:service:login:change", ""),
+    "component is notified of login change");
+  Assert.equal(component.updatePanel.callCount, 4, "triggers panel update again");
 });
 
 add_task(function* testPanelStatus() {
@@ -134,6 +140,16 @@ add_task(function* testPanelStatus() {
   let SyncedTabsMock = {
     getTabClients() {}
   };
+  let loginFailed = false;
+  let chromeWindowMock = {
+    gSyncUI: {
+      loginFailed() {
+        return loginFailed;
+      }
+    }
+  };
+  let getChromeWindowMock = sinon.stub();
+  getChromeWindowMock.returns(chromeWindowMock);
 
   sinon.stub(listStore, "getData");
 
@@ -143,6 +159,7 @@ add_task(function* testPanelStatus() {
     deckStore,
     listComponent,
     SyncedTabs: SyncedTabsMock,
+    getChromeWindowMock
   });
 
   let isAuthed = false;
@@ -151,6 +168,11 @@ add_task(function* testPanelStatus() {
   Assert.equal(result, component.PANELS.NOT_AUTHED_INFO);
 
   isAuthed = true;
+
+  loginFailed = true;
+  result = yield component.getPanelStatus();
+  Assert.equal(result, component.PANELS.NOT_AUTHED_INFO);
+  loginFailed = false;
 
   SyncedTabsMock.isConfiguredToSyncTabs = false;
   result = yield component.getPanelStatus();
@@ -190,11 +212,11 @@ add_task(function* testActions() {
   };
   let chromeWindowMock = {
     gSyncUI: {
-      openSetup() {}
+      openPrefs() {}
     }
   };
   sinon.spy(windowMock, "openUILink");
-  sinon.spy(chromeWindowMock.gSyncUI, "openSetup");
+  sinon.spy(chromeWindowMock.gSyncUI, "openPrefs");
 
   let getChromeWindowMock = sinon.stub();
   getChromeWindowMock.returns(chromeWindowMock);
@@ -214,5 +236,5 @@ add_task(function* testActions() {
 
   component.openSyncPrefs();
   Assert.ok(getChromeWindowMock.calledWith(windowMock));
-  Assert.ok(chromeWindowMock.gSyncUI.openSetup.called);
+  Assert.ok(chromeWindowMock.gSyncUI.openPrefs.called);
 });

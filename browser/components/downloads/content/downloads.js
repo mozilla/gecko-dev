@@ -140,7 +140,7 @@ const DownloadsPanel = {
     }
     this._state = this.kStateHidden;
 
-    window.addEventListener("unload", this.onWindowUnload, false);
+    window.addEventListener("unload", this.onWindowUnload);
 
     // Load and resume active downloads if required.  If there are downloads to
     // be shown in the panel, they will be loaded asynchronously.
@@ -175,7 +175,7 @@ const DownloadsPanel = {
       return;
     }
 
-    window.removeEventListener("unload", this.onWindowUnload, false);
+    window.removeEventListener("unload", this.onWindowUnload);
 
     // Ensure that the panel is closed before shutting down.
     this.hidePanel();
@@ -439,12 +439,12 @@ const DownloadsPanel = {
    */
   _attachEventListeners() {
     // Handle keydown to support accel-V.
-    this.panel.addEventListener("keydown", this, false);
+    this.panel.addEventListener("keydown", this);
     // Handle keypress to be able to preventDefault() events before they reach
     // the richlistbox, for keyboard navigation.
-    this.panel.addEventListener("keypress", this, false);
+    this.panel.addEventListener("keypress", this);
     // Handle height adjustment on show.
-    this.panel.addEventListener("popupshown", this, false);
+    this.panel.addEventListener("popupshown", this);
   },
 
   /**
@@ -452,9 +452,9 @@ const DownloadsPanel = {
    * is called automatically on panel termination.
    */
   _unattachEventListeners() {
-    this.panel.removeEventListener("keydown", this, false);
-    this.panel.removeEventListener("keypress", this, false);
-    this.panel.removeEventListener("popupshown", this, false);
+    this.panel.removeEventListener("keydown", this);
+    this.panel.removeEventListener("keypress", this);
+    this.panel.removeEventListener("popupshown", this);
   },
 
   _onKeyPress(aEvent) {
@@ -720,7 +720,17 @@ const DownloadsView = {
   /**
    * Maximum number of items shown by the list at any given time.
    */
-  kItemCountLimit: 3,
+  kItemCountLimit: 5,
+
+  /**
+   * Indicates whether there is an open contextMenu for a download item.
+   */
+  contextMenuOpen: false,
+
+  /**
+   * Indicates whether there is a DownloadsBlockedSubview open.
+   */
+  subViewOpen: false,
 
   /**
    * Indicates whether we are still loading downloads data asynchronously.
@@ -1000,20 +1010,59 @@ const DownloadsView = {
   },
 
   /**
+   * Event handlers to keep track of context menu state (open/closed) for
+   * download items.
+   */
+  onContextPopupShown(aEvent) {
+    // Ignore events raised by nested popups.
+    if (aEvent.target != aEvent.currentTarget) {
+      return;
+    }
+
+    DownloadsCommon.log("Context menu has shown.");
+    this.contextMenuOpen = true;
+  },
+
+  onContextPopupHidden(aEvent) {
+    // Ignore events raised by nested popups.
+    if (aEvent.target != aEvent.currentTarget) {
+      return;
+    }
+
+    DownloadsCommon.log("Context menu has hidden.");
+    this.contextMenuOpen = false;
+  },
+
+  /**
    * Mouse listeners to handle selection on hover.
    */
   onDownloadMouseOver(aEvent) {
-    if (aEvent.originalTarget.parentNode == this.richListBox) {
-      this.richListBox.selectedItem = aEvent.originalTarget;
+    if (aEvent.originalTarget.classList.contains("downloadButton")) {
+      aEvent.target.classList.add("downloadHoveringButton");
+
+      let button = aEvent.originalTarget;
+      let tooltip = button.getAttribute("tooltiptext");
+      if (tooltip) {
+        button.setAttribute("aria-label", tooltip);
+        button.removeAttribute("tooltiptext");
+      }
+    }
+    if (!(this.contextMenuOpen || this.subViewOpen) &&
+        aEvent.target.parentNode == this.richListBox) {
+      this.richListBox.selectedItem = aEvent.target;
     }
   },
 
   onDownloadMouseOut(aEvent) {
-    if (aEvent.originalTarget.parentNode == this.richListBox) {
+    if (aEvent.originalTarget.classList.contains("downloadButton")) {
+      aEvent.target.classList.remove("downloadHoveringButton");
+    }
+    if (!(this.contextMenuOpen || this.subViewOpen) &&
+        aEvent.target.parentNode == this.richListBox) {
       // If the destination element is outside of the richlistitem, clear the
       // selection.
       let element = aEvent.relatedTarget;
-      while (element && element != aEvent.originalTarget) {
+      while (element && element != aEvent.target) {
         element = element.parentNode;
       }
       if (!element) {
@@ -1033,6 +1082,11 @@ const DownloadsView = {
     // Set the state attribute so that only the appropriate items are displayed.
     let contextMenu = document.getElementById("downloadsContextMenu");
     contextMenu.setAttribute("state", element.getAttribute("state"));
+    if (element.hasAttribute("exists")) {
+      contextMenu.setAttribute("exists", "true");
+    } else {
+      contextMenu.removeAttribute("exists");
+    }
     contextMenu.classList.toggle("temporary-block",
                                  element.classList.contains("temporary-block"));
   },
@@ -1150,8 +1204,7 @@ DownloadsViewItem.prototype = {
 
   cmd_delete() {
     DownloadsCommon.removeAndFinalizeDownload(this.download);
-    PlacesUtils.bhistory.removePage(
-                           NetUtil.newURI(this.download.source.url));
+    PlacesUtils.history.remove(this.download.source.url).catch(Cu.reportError);
   },
 
   downloadsCmd_unblock() {
@@ -1635,6 +1688,8 @@ const DownloadsBlockedSubview = {
 
     this.element = element;
     element.setAttribute("showingsubview", "true");
+    DownloadsView.subViewOpen = true;
+    DownloadsViewController.updateCommands();
 
     let e = this.elements;
     let s = DownloadsCommon.strings;
@@ -1661,6 +1716,7 @@ const DownloadsBlockedSubview = {
       case "ViewHiding":
         this.subview.removeEventListener(event.type, this);
         this.element.removeAttribute("showingsubview");
+        DownloadsView.subViewOpen = false;
         delete this.element;
         break;
       default:

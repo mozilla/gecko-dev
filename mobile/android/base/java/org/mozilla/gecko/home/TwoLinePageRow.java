@@ -10,6 +10,8 @@ import java.util.concurrent.Future;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.support.v4.view.ViewCompat;
+import android.support.v4.widget.TextViewCompat;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Gravity;
@@ -66,7 +68,7 @@ public class TwoLinePageRow extends LinearLayout
 
         LayoutInflater.from(context).inflate(R.layout.two_line_page_row, this);
         // Merge layouts lose their padding, so set it dynamically.
-        setPadding(0, 0, (int) getResources().getDimension(R.dimen.page_row_edge_padding), 0);
+        ViewCompat.setPaddingRelative(this, 0, 0, (int) getResources().getDimension(R.dimen.page_row_edge_padding), 0);
 
         mTitle = (TextView) findViewById(R.id.title);
         mUrl = (TextView) findViewById(R.id.url);
@@ -163,7 +165,7 @@ public class TwoLinePageRow extends LinearLayout
         }
 
         mSwitchToTabIconId = iconId;
-        mUrl.setCompoundDrawablesWithIntrinsicBounds(mSwitchToTabIconId, 0, 0, 0);
+        TextViewCompat.setCompoundDrawablesRelativeWithIntrinsicBounds(mUrl, mSwitchToTabIconId, 0, 0, 0);
     }
 
     private void updateStatusIcon(boolean isBookmark, boolean isReaderItem) {
@@ -201,13 +203,15 @@ public class TwoLinePageRow extends LinearLayout
      * selected tab.
      */
     protected void updateDisplayedUrl() {
-        boolean isPrivate = Tabs.getInstance().getSelectedTab().isPrivate();
+        final Tab selectedTab = Tabs.getInstance().getSelectedTab();
+        final boolean isPrivate = (selectedTab != null) && (selectedTab.isPrivate());
+        final Tab.TabType type = selectedTab != null ? selectedTab.getType() : Tab.TabType.BROWSING;
 
         // We always want to display the underlying page url, however for readermode pages
         // we navigate to the about:reader equivalent, hence we need to use that url when finding
         // existing tabs
         final String navigationUrl = mHasReaderCacheItem ? ReaderModeUtils.getAboutReaderForUrl(mPageUrl) : mPageUrl;
-        Tab tab = Tabs.getInstance().getFirstTabForUrl(navigationUrl, isPrivate);
+        Tab tab = Tabs.getInstance().getFirstTabForUrl(navigationUrl, isPrivate, type);
 
 
         if (!mShowIcons || tab == null) {
@@ -266,7 +270,9 @@ public class TwoLinePageRow extends LinearLayout
         // remove the about:reader prefix to ensure the Favicon loads properly.
         final String pageURL = ReaderModeUtils.stripAboutReaderUrl(url);
 
-        if (bookmarkId < BrowserContract.Bookmarks.FAKE_PARTNER_BOOKMARKS_START) {
+        if (TextUtils.isEmpty(pageURL)) {
+            // If url is empty, display the item as-is but do not load an icon if we do not have a page URL (bug 1310622)
+        } else if (bookmarkId < BrowserContract.Bookmarks.FAKE_PARTNER_BOOKMARKS_START) {
             mOngoingIconLoad = Icons.with(getContext())
                     .pageUrl(pageURL)
                     .skipNetwork()

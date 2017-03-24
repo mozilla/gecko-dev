@@ -7,7 +7,6 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/HTMLIFrameElementBinding.h"
 #include "mozilla/dom/TabParent.h"
-#include "mozilla/Function.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Move.h"
 #include "mozilla/Preferences.h"
@@ -222,8 +221,9 @@ PresentationSessionInfo::Init(nsIPresentationControlChannel* aControlChannel)
 /* virtual */ void
 PresentationSessionInfo::Shutdown(nsresult aReason)
 {
-  PRES_DEBUG("%s:id[%s], reason[%x], role[%d]\n", __func__,
-             NS_ConvertUTF16toUTF8(mSessionId).get(), aReason, mRole);
+  PRES_DEBUG("%s:id[%s], reason[%" PRIx32 "], role[%d]\n", __func__,
+             NS_ConvertUTF16toUTF8(mSessionId).get(), static_cast<uint32_t>(aReason),
+             mRole);
 
   NS_WARNING_ASSERTION(NS_SUCCEEDED(aReason), "bad reason");
 
@@ -461,8 +461,9 @@ PresentationSessionInfo::NotifyTransportReady()
 NS_IMETHODIMP
 PresentationSessionInfo::NotifyTransportClosed(nsresult aReason)
 {
-  PRES_DEBUG("%s:id[%s], reason[%x], role[%d]\n", __func__,
-             NS_ConvertUTF16toUTF8(mSessionId).get(), aReason, mRole);
+  PRES_DEBUG("%s:id[%s], reason[%" PRIx32 "], role[%d]\n", __func__,
+             NS_ConvertUTF16toUTF8(mSessionId).get(), static_cast<uint32_t>(aReason),
+             mRole);
 
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -544,8 +545,9 @@ PresentationSessionInfo::OnSessionTransport(nsIPresentationSessionTransport* aTr
 NS_IMETHODIMP
 PresentationSessionInfo::OnError(nsresult aReason)
 {
-  PRES_DEBUG("%s:id[%s], reason[%x], role[%d]\n", __func__,
-             NS_ConvertUTF16toUTF8(mSessionId).get(), aReason, mRole);
+  PRES_DEBUG("%s:id[%s], reason[%" PRIx32 "], role[%d]\n", __func__,
+             NS_ConvertUTF16toUTF8(mSessionId).get(), static_cast<uint32_t>(aReason),
+             mRole);
 
   ResetBuilder();
   return ReplyError(aReason);
@@ -900,8 +902,9 @@ PresentationControllingInfo::BuildTransport()
 NS_IMETHODIMP
 PresentationControllingInfo::NotifyDisconnected(nsresult aReason)
 {
-  PRES_DEBUG("%s:id[%s], reason[%x], role[%d]\n", __func__,
-             NS_ConvertUTF16toUTF8(mSessionId).get(), aReason, mRole);
+  PRES_DEBUG("%s:id[%s], reason[%" PRIx32 "], role[%d]\n", __func__,
+             NS_ConvertUTF16toUTF8(mSessionId).get(), static_cast<uint32_t>(aReason),
+             mRole);
 
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -983,7 +986,8 @@ NS_IMETHODIMP
 PresentationControllingInfo::OnStopListening(nsIServerSocket* aServerSocket,
                                            nsresult aStatus)
 {
-  PRES_DEBUG("controller %s:status[%x]\n",__func__, aStatus);
+  PRES_DEBUG("controller %s:status[%" PRIx32 "]\n",__func__,
+             static_cast<uint32_t>(aStatus));
 
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -1543,8 +1547,9 @@ PresentationPresentingInfo::NotifyReconnected()
 NS_IMETHODIMP
 PresentationPresentingInfo::NotifyDisconnected(nsresult aReason)
 {
-  PRES_DEBUG("%s:id[%s], reason[%x], role[%d]\n", __func__,
-             NS_ConvertUTF16toUTF8(mSessionId).get(), aReason, mRole);
+  PRES_DEBUG("%s:id[%s], reason[%" PRIx32 "], role[%d]\n", __func__,
+             NS_ConvertUTF16toUTF8(mSessionId).get(), static_cast<uint32_t>(aReason),
+             mRole);
 
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -1602,8 +1607,9 @@ PresentationPresentingInfo::ResolvedCallback(JSContext* aCx,
   }
 
   // Start to listen to document state change event |STATE_TRANSFERRING|.
-  HTMLIFrameElement* frame = nullptr;
-  nsresult rv = UNWRAP_OBJECT(HTMLIFrameElement, obj, frame);
+  // Use Element to support both HTMLIFrameElement and nsXULElement.
+  Element* frame = nullptr;
+  nsresult rv = UNWRAP_OBJECT(Element, obj, frame);
   if (NS_WARN_IF(!frame)) {
     ReplyError(NS_ERROR_DOM_OPERATION_ERR);
     return;

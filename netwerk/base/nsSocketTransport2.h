@@ -91,7 +91,7 @@ public:
     uint64_t ByteCount()    { return mByteCount; }
 
     // called by the socket transport on the socket thread...
-    void OnSocketReady(nsresult condition); 
+    void OnSocketReady(nsresult condition);
 
 private:
     static nsresult WriteFromSegments(nsIInputStream *, void *,
@@ -171,11 +171,11 @@ public:
     uint64_t ByteCountSent() override { return mOutput.ByteCount(); }
     static void CloseSocket(PRFileDesc *aFd, bool aTelemetryEnabled);
     static void SendPRBlockingTelemetry(PRIntervalTime aStart,
-        Telemetry::ID aIDNormal,
-        Telemetry::ID aIDShutdown,
-        Telemetry::ID aIDConnectivityChange,
-        Telemetry::ID aIDLinkChange,
-        Telemetry::ID aIDOffline);
+        Telemetry::HistogramID aIDNormal,
+        Telemetry::HistogramID aIDShutdown,
+        Telemetry::HistogramID aIDConnectivityChange,
+        Telemetry::HistogramID aIDLinkChange,
+        Telemetry::HistogramID aIDOffline);
 protected:
 
     virtual ~nsSocketTransport();
@@ -302,13 +302,15 @@ private:
     bool mProxyTransparentResolvesHost;
     bool mHttpsProxy;
     uint32_t     mConnectionFlags;
+    bool mReuseAddrPort;
 
-    // This is only non-empty when "privacy.firstparty.isolate" is enabled.
-    // It is used to create sockets. It's the only way to carry it down to NSPR
-    // layers which are final consumers.  It must be set before the socket
-    // transport is built.
-    nsCString    mFirstPartyDomain;
-    
+    // The origin attributes are used to create sockets.  The first party domain
+    // will eventually be used to isolate OCSP cache and is only non-empty when
+    // "privacy.firstparty.isolate" is enabled.  Setting this is the only way to
+    // carry origin attributes down to NSPR layers which are final consumers.
+    // It must be set before the socket transport is built.
+    OriginAttributes mOriginAttributes;
+
     uint16_t         SocketPort() { return (!mProxyHost.IsEmpty() && !mProxyTransparent) ? mProxyPort : mPort; }
     const nsCString &SocketHost() { return (!mProxyHost.IsEmpty() && !mProxyTransparent) ? mProxyHost : mHost; }
 
@@ -349,7 +351,7 @@ private:
 
     void     SendStatus(nsresult status);
     nsresult ResolveHost();
-    nsresult BuildSocket(PRFileDesc *&, bool &, bool &); 
+    nsresult BuildSocket(PRFileDesc *&, bool &, bool &);
     nsresult InitiateSocket();
     bool     RecoverFromError();
 

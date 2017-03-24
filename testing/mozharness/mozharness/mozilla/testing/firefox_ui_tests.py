@@ -17,6 +17,10 @@ from mozharness.mozilla.testing.testbase import (
     TestingMixin,
     testing_config_options,
 )
+from mozharness.mozilla.testing.codecoverage import (
+    CodeCoverageMixin,
+    code_coverage_config_options
+)
 from mozharness.mozilla.vcstools import VCSToolsScript
 
 
@@ -48,7 +52,8 @@ firefox_ui_tests_config_options = [
         'dest': 'tag',
         'help': 'Subset of tests to run (local, remote).',
     }],
-] + copy.deepcopy(testing_config_options)
+] + copy.deepcopy(testing_config_options) \
+  + copy.deepcopy(code_coverage_config_options)
 
 # Command line arguments for update tests
 firefox_ui_update_harness_config_options = [
@@ -90,7 +95,7 @@ firefox_ui_update_config_options = firefox_ui_update_harness_config_options \
     + copy.deepcopy(firefox_ui_tests_config_options)
 
 
-class FirefoxUITests(TestingMixin, VCSToolsScript):
+class FirefoxUITests(TestingMixin, VCSToolsScript, CodeCoverageMixin):
 
     # Needs to be overwritten in sub classes
     cli_script = None
@@ -134,17 +139,11 @@ class FirefoxUITests(TestingMixin, VCSToolsScript):
         self.register_virtualenv_module(requirements=[requirements], two_pass=True)
 
     def download_and_extract(self):
-        """Overriding method from TestingMixin for more specific behavior.
-
-        We use the test_packages_url command line argument to check where to get the
-        harness, puppeteer, and tests from and how to set them up.
-
-        """
+        """Override method from TestingMixin for more specific behavior."""
         extract_dirs = ['config/*',
                         'firefox-ui/*',
                         'marionette/*',
                         'mozbase/*',
-                        'puppeteer/*',
                         'tools/wptserve/*',
                         ]
         super(FirefoxUITests, self).download_and_extract(extract_dirs=extract_dirs)
@@ -216,6 +215,9 @@ class FirefoxUITests(TestingMixin, VCSToolsScript):
             # additional reports helpful for Jenkins and inpection via Treeherder
             '--log-html', os.path.join(dirs['abs_blob_upload_dir'], 'report.html'),
             '--log-xunit', os.path.join(dirs['abs_blob_upload_dir'], 'report.xml'),
+
+            # Enable tracing output to log transmission protocol
+            '-vv',
         ]
 
         # Collect all pass-through harness options to the script
@@ -244,6 +246,11 @@ class FirefoxUITests(TestingMixin, VCSToolsScript):
         env.update({'MINIDUMP_SAVE_PATH': dirs['abs_blob_upload_dir']})
         if self.query_minidump_stackwalk():
             env.update({'MINIDUMP_STACKWALK': self.minidump_stackwalk_path})
+        env['RUST_BACKTRACE'] = '1'
+
+        # If code coverage is enabled, set GCOV_PREFIX env variable
+        if self.config.get('code_coverage'):
+            env['GCOV_PREFIX'] = self.gcov_dir
 
         if self.config['allow_software_gl_layers']:
             env['MOZ_LAYERS_ALLOW_SOFTWARE_GL'] = '1'

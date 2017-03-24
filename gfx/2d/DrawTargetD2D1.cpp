@@ -229,7 +229,7 @@ DrawTargetD2D1::DrawSurfaceWithShadow(SourceSurface *aSurface,
   mTransformDirty = true;
 
   Matrix mat;
-  RefPtr<ID2D1Image> image = GetImageForSurface(aSurface, mat, ExtendMode::CLAMP);
+  RefPtr<ID2D1Image> image = GetImageForSurface(aSurface, mat, ExtendMode::CLAMP, nullptr, false);
 
   if (!image) {
     gfxWarning() << "Couldn't get image for surface.";
@@ -243,21 +243,29 @@ DrawTargetD2D1::DrawSurfaceWithShadow(SourceSurface *aSurface,
 
   // Step 1, create the shadow effect.
   RefPtr<ID2D1Effect> shadowEffect;
-  HRESULT hr = mDC->CreateEffect(CLSID_D2D1Shadow, getter_AddRefs(shadowEffect));
+  HRESULT hr = mDC->CreateEffect(mFormat == SurfaceFormat::A8 ? CLSID_D2D1GaussianBlur : CLSID_D2D1Shadow,
+                                 getter_AddRefs(shadowEffect));
   if (FAILED(hr) || !shadowEffect) {
     gfxWarning() << "Failed to create shadow effect. Code: " << hexa(hr);
     return;
   }
   shadowEffect->SetInput(0, image);
-  shadowEffect->SetValue(D2D1_SHADOW_PROP_BLUR_STANDARD_DEVIATION, aSigma);
-  D2D1_VECTOR_4F color = { aColor.r, aColor.g, aColor.b, aColor.a };
-  shadowEffect->SetValue(D2D1_SHADOW_PROP_COLOR, color);
+  if (mFormat == SurfaceFormat::A8) {
+    shadowEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION, aSigma);
+    shadowEffect->SetValue(D2D1_GAUSSIANBLUR_PROP_BORDER_MODE, D2D1_BORDER_MODE_HARD);
+  } else {
+    shadowEffect->SetValue(D2D1_SHADOW_PROP_BLUR_STANDARD_DEVIATION, aSigma);
+    D2D1_VECTOR_4F color = { aColor.r, aColor.g, aColor.b, aColor.a };
+    shadowEffect->SetValue(D2D1_SHADOW_PROP_COLOR, color);
+  }
 
   D2D1_POINT_2F shadowPoint = D2DPoint(aDest + aOffset);
   mDC->DrawImage(shadowEffect, &shadowPoint, nullptr, D2D1_INTERPOLATION_MODE_LINEAR, D2DCompositionMode(aOperator));
 
-  D2D1_POINT_2F imgPoint = D2DPoint(aDest);
-  mDC->DrawImage(image, &imgPoint, nullptr, D2D1_INTERPOLATION_MODE_LINEAR, D2DCompositionMode(aOperator));
+  if (aSurface->GetFormat() != SurfaceFormat::A8) {
+    D2D1_POINT_2F imgPoint = D2DPoint(aDest);
+    mDC->DrawImage(image, &imgPoint, nullptr, D2D1_INTERPOLATION_MODE_LINEAR, D2DCompositionMode(aOperator));
+  }
 }
 
 void
@@ -370,7 +378,7 @@ DrawTargetD2D1::CopySurface(SourceSurface *aSurface,
   mTransformDirty = true;
 
   Matrix mat = Matrix::Translation(aDestination.x - aSourceRect.x, aDestination.y - aSourceRect.y);
-  RefPtr<ID2D1Image> image = GetImageForSurface(aSurface, mat, ExtendMode::CLAMP);
+  RefPtr<ID2D1Image> image = GetImageForSurface(aSurface, mat, ExtendMode::CLAMP, nullptr, false);
 
   if (!image) {
     gfxWarning() << "Couldn't get image for surface.";
@@ -504,7 +512,7 @@ DrawTargetD2D1::Fill(const Path *aPath,
                      const Pattern &aPattern,
                      const DrawOptions &aOptions)
 {
-  if (aPath->GetBackendType() != BackendType::DIRECT2D1_1) {
+  if (!aPath || aPath->GetBackendType() != BackendType::DIRECT2D1_1) {
     gfxDebug() << *this << ": Ignoring drawing call for incompatible path.";
     return;
   }
@@ -1350,6 +1358,9 @@ DrawTargetD2D1::FinalizeDrawing(CompositionOp aOp, const Pattern &aPattern)
     // We don't need to preserve the current content of this layer as the output
     // of the blend effect should completely replace it.
     RefPtr<ID2D1Image> tmpImage = GetImageForLayerContent(false);
+    if (!tmpImage) {
+      return;
+    }
 
     blendEffect->SetInput(0, tmpImage);
     blendEffect->SetInput(1, source);
@@ -1369,6 +1380,11 @@ DrawTargetD2D1::FinalizeDrawing(CompositionOp aOp, const Pattern &aPattern)
   const RadialGradientPattern *pat = static_cast<const RadialGradientPattern*>(&aPattern);
   if (pat->mCenter1 == pat->mCenter2 && pat->mRadius1 == pat->mRadius2) {
     // Draw nothing!
+    return;
+  }
+
+  if (!pat->mStops) {
+    // Draw nothing because of no color stops
     return;
   }
 
@@ -1448,9 +1464,13 @@ DrawTargetD2D1::GetImageForLayerContent(bool aShouldPreserveContent)
     HRESULT hr = mDC->CreateBitmap(D2DIntSize(mSize), D2D1::BitmapProperties(D2DPixelFormat(mFormat)), getter_AddRefs(tmpBitmap));
     if (FAILED(hr)) {
       gfxCriticalError(CriticalLog::DefaultOptions(Factory::ReasonableSurfaceSize(mSize))) << "[D2D1.1] 6CreateBitmap failure " << mSize << " Code: " << hexa(hr) << " format " << (int)mFormat;
-      // For now, crash in this scenario; this should happen because tmpBitmap is
+      // If it's a recreate target error, return and handle it elsewhere.
+      if (hr == D2DERR_RECREATE_TARGET) {
+        mDC->Flush();
+        return nullptr;
+      }
+      // For now, crash in other scenarios; this should happen because tmpBitmap is
       // null and CopyFromBitmap call below dereferences it.
-      // return;
     }
     mDC->Flush();
 
@@ -1837,7 +1857,8 @@ DrawTargetD2D1::CreateBrushForPattern(const Pattern &aPattern, Float aAlpha)
 
 already_AddRefed<ID2D1Image>
 DrawTargetD2D1::GetImageForSurface(SourceSurface *aSurface, Matrix &aSourceTransform,
-                                   ExtendMode aExtendMode, const IntRect* aSourceRect)
+                                   ExtendMode aExtendMode, const IntRect* aSourceRect,
+                                   bool aUserSpace)
 {
   RefPtr<ID2D1Image> image;
 
@@ -1856,7 +1877,8 @@ DrawTargetD2D1::GetImageForSurface(SourceSurface *aSurface, Matrix &aSourceTrans
         gfxWarning() << "Invalid surface type.";
         return nullptr;
       }
-      return CreatePartialBitmapForSurface(dataSurf, mTransform, mSize, aExtendMode,
+      Matrix transform = aUserSpace ? mTransform : Matrix();
+      return CreatePartialBitmapForSurface(dataSurf, transform, mSize, aExtendMode,
                                            aSourceTransform, mDC, aSourceRect);
     }
     break;

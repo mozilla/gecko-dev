@@ -61,18 +61,6 @@ WebGLContext::Enable(GLenum cap)
     gl->fEnable(cap);
 }
 
-static JS::Value
-StringValue(JSContext* cx, const nsAString& str, ErrorResult& rv)
-{
-    JSString* jsStr = JS_NewUCStringCopyN(cx, str.BeginReading(), str.Length());
-    if (!jsStr) {
-        rv.Throw(NS_ERROR_OUT_OF_MEMORY);
-        return JS::NullValue();
-    }
-
-    return JS::StringValue(jsStr);
-}
-
 bool
 WebGLContext::GetStencilBits(GLint* const out_stencilBits)
 {
@@ -242,17 +230,15 @@ WebGLContext::GetParameter(JSContext* cx, GLenum pname, ErrorResult& rv)
         } else if (pname >= LOCAL_GL_DRAW_BUFFER0 &&
                    pname < GLenum(LOCAL_GL_DRAW_BUFFER0 + mImplMaxDrawBuffers))
         {
-            GLint iv = 0;
-            gl->fGetIntegerv(pname, &iv);
-
-            if (mBoundDrawFramebuffer)
-                return JS::Int32Value(iv);
-
-            const GLint index = (pname - LOCAL_GL_DRAW_BUFFER0);
-            if (iv == LOCAL_GL_COLOR_ATTACHMENT0 + index)
-                return JS::Int32Value(LOCAL_GL_BACK);
-
-            return JS::Int32Value(LOCAL_GL_NONE);
+            GLint ret = LOCAL_GL_NONE;
+            if (!mBoundDrawFramebuffer) {
+                if (pname == LOCAL_GL_DRAW_BUFFER0) {
+                    ret = gl->Screen()->GetDrawBufferMode();
+                }
+            } else {
+                gl->fGetIntegerv(pname, &ret);
+            }
+            return JS::Int32Value(ret);
         }
     }
 
@@ -264,24 +250,32 @@ WebGLContext::GetParameter(JSContext* cx, GLenum pname, ErrorResult& rv)
         }
     }
 
-    if (IsWebGL2() || IsExtensionEnabled(WebGLExtensionID::EXT_disjoint_timer_query)) {
-        if (pname == LOCAL_GL_TIMESTAMP_EXT) {
-            GLuint64 iv = 0;
-            if (HasTimestampBits()) {
-                gl->fGetInteger64v(pname, (GLint64*)&iv);
-            } else {
-                GenerateWarning("QUERY_COUNTER_BITS_EXT for TIMESTAMP_EXT is 0.");
+    if (IsExtensionEnabled(WebGLExtensionID::EXT_disjoint_timer_query)) {
+        switch (pname) {
+        case LOCAL_GL_TIMESTAMP_EXT:
+            {
+                uint64_t val = 0;
+                if (Has64BitTimestamps()) {
+                    gl->fGetInteger64v(pname, (GLint64*)&val);
+                } else {
+                    gl->fGetIntegerv(pname, (GLint*)&val);
+                }
+                // TODO: JS doesn't support 64-bit integers. Be lossy and
+                // cast to double (53 bits)
+                return JS::NumberValue(val);
             }
-            // TODO: JS doesn't support 64-bit integers. Be lossy and
-            // cast to double (53 bits)
-            return JS::NumberValue(static_cast<double>(iv));
-        } else if (pname == LOCAL_GL_GPU_DISJOINT_EXT) {
-            // When disjoint isn't supported, leave as false.
-            realGLboolean disjoint = LOCAL_GL_FALSE;
-            if (gl->IsExtensionSupported(gl::GLContext::EXT_disjoint_timer_query)) {
-                gl->fGetBooleanv(pname, &disjoint);
+
+        case LOCAL_GL_GPU_DISJOINT_EXT:
+            {
+                realGLboolean val = false; // Not disjoint by default.
+                if (gl->IsExtensionSupported(gl::GLContext::EXT_disjoint_timer_query)) {
+                    gl->fGetBooleanv(pname, &val);
+                }
+                return JS::BooleanValue(val);
             }
-            return JS::BooleanValue(bool(disjoint));
+
+        default:
+            break;
         }
     }
 
@@ -378,49 +372,33 @@ WebGLContext::GetParameter(JSContext* cx, GLenum pname, ErrorResult& rv)
         case LOCAL_GL_BLEND_DST_RGB:
         case LOCAL_GL_BLEND_DST_ALPHA:
         case LOCAL_GL_BLEND_EQUATION_RGB:
-        case LOCAL_GL_BLEND_EQUATION_ALPHA:
-        case LOCAL_GL_GENERATE_MIPMAP_HINT: {
+        case LOCAL_GL_BLEND_EQUATION_ALPHA: {
             GLint i = 0;
             gl->fGetIntegerv(pname, &i);
             return JS::NumberValue(uint32_t(i));
         }
+
+        case LOCAL_GL_GENERATE_MIPMAP_HINT:
+            return JS::NumberValue(mGenerateMipmapHint);
+
+        case LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT:
         case LOCAL_GL_IMPLEMENTATION_COLOR_READ_TYPE: {
             const webgl::FormatUsageInfo* usage;
             uint32_t width, height;
             if (!ValidateCurFBForRead(funcName, &usage, &width, &height))
                 return JS::NullValue();
 
-            GLint i = 0;
-            if (gl->IsSupported(gl::GLFeature::ES2_compatibility)) {
-                gl->fGetIntegerv(pname, &i);
+            const auto implPI = ValidImplementationColorReadPI(usage);
+
+            GLenum ret;
+            if (pname == LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT) {
+                ret = implPI.format;
             } else {
-                i = LOCAL_GL_UNSIGNED_BYTE;
+                ret = implPI.type;
             }
-
-            return JS::NumberValue(uint32_t(i));
+            return JS::NumberValue(uint32_t(ret));
         }
-        case LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT: {
-            const webgl::FormatUsageInfo* usage;
-            uint32_t width, height;
-            if (!ValidateCurFBForRead(funcName, &usage, &width, &height))
-                return JS::NullValue();
 
-            GLint i = 0;
-            if (gl->IsSupported(gl::GLFeature::ES2_compatibility)) {
-                gl->fGetIntegerv(pname, &i);
-            } else {
-                i = LOCAL_GL_RGBA;
-            }
-
-            // OpenGL ES 3.0.4 p112 Table 3.2 shows that read format SRGB_ALPHA is
-            // not supported. And if internal format of fbo is SRGB8_ALPHA8, then
-            // IMPLEMENTATION_COLOR_READ_FORMAT is SRGB_ALPHA which is not supported
-            // by ReadPixels. So, just return RGBA here.
-            if (i == LOCAL_GL_SRGB_ALPHA)
-                i = LOCAL_GL_RGBA;
-
-            return JS::NumberValue(uint32_t(i));
-        }
         // int
         case LOCAL_GL_STENCIL_REF:
         case LOCAL_GL_STENCIL_BACK_REF: {
@@ -669,7 +647,7 @@ WebGLContext::GetParameterIndexed(JSContext* cx, GLenum pname, GLuint index,
         case LOCAL_GL_TRANSFORM_FEEDBACK_BUFFER_BINDING:
         {
             if (index >= mGLMaxTransformFeedbackSeparateAttribs) {
-                ErrorInvalidValue("getParameterIndexed: index should be less than MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS", index);
+                ErrorInvalidValue("getParameterIndexed: index should be less than MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS");
                 retval.setNull();
                 return;
             }

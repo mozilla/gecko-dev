@@ -7,9 +7,10 @@
 #ifndef mozilla_RubyUtils_h_
 #define mozilla_RubyUtils_h_
 
-#include "nsTArray.h"
-#include "nsGkAtoms.h"
 #include "nsCSSAnonBoxes.h"
+#include "nsGkAtoms.h"
+#include "nsIFrame.h"
+#include "nsTArray.h"
 
 #define RTC_ARRAY_SIZE 1
 
@@ -207,6 +208,26 @@ private:
   AutoTArray<nsRubyContentFrame*, RTC_ARRAY_SIZE + 1> mFrames;
   // Whether we are on a column for intra-level whitespaces
   bool mAtIntraLevelWhitespace;
+};
+
+/**
+ * Stores block-axis leadings produced from ruby annotations.
+ */
+struct RubyBlockLeadings
+{
+  nscoord mStart = 0;
+  nscoord mEnd = 0;
+
+  void Reset() {
+    mStart = mEnd = 0;
+  }
+  void Update(nscoord aStart, nscoord aEnd) {
+    mStart = std::max(mStart, aStart);
+    mEnd = std::max(mEnd, aEnd);
+  }
+  void Update(const RubyBlockLeadings& aOther) {
+    Update(aOther.mStart, aOther.mEnd);
+  }
 };
 
 } // namespace mozilla

@@ -19,13 +19,13 @@ function run_test() {
     return;
   }
 
-  if (Services.appinfo.OS === 'Linux' || Services.appinfo.OS === 'Android') {
+  if (Services.appinfo.OS === "Linux" || Services.appinfo.OS === "Android") {
     // We use the rt_tgsigqueueinfo syscall on Linux which requires a
     // certain kernel version. It's not an error if the system running
     // the test is older than that.
-    let kernel = Services.sysinfo.get('kernel_version') ||
-                 Services.sysinfo.get('version');
-    if (Services.vc.compare(kernel, '2.6.31') < 0) {
+    let kernel = Services.sysinfo.get("kernel_version") ||
+                 Services.sysinfo.get("version");
+    if (Services.vc.compare(kernel, "2.6.31") < 0) {
       ok("Hang reporting not supported for old kernel.");
       return;
     }
@@ -84,13 +84,16 @@ function run_test() {
       notEqual(endHangs.hangs[0].stack.length, 0);
       equal(typeof endHangs.hangs[0].stack[0], "string");
 
-      // Make sure one of the hangs is a permanent
-      // hang containing a native stack.
-      ok(endHangs.hangs.some((hang) => (
-        Array.isArray(hang.nativeStack) &&
-        hang.nativeStack.length !== 0 &&
-        typeof hang.nativeStack[0] === "string"
-      )));
+      // Native stack gathering is only enabled on Windows.
+      if (mozinfo.os == "win") {
+        // Make sure one of the hangs is a permanent
+        // hang containing a native stack.
+        ok(endHangs.hangs.some((hang) => (
+          hang.nativeStack &&
+          Array.isArray(hang.nativeStack.memoryMap) &&
+          Array.isArray(hang.nativeStack.stacks)
+        )));
+      }
 
       check_histogram(endHangs.hangs[0].histogram);
 

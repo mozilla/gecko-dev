@@ -339,6 +339,24 @@ class TestConfigure(unittest.TestCase):
         self.assertEquals(sandbox.keys(), ['__builtins__', 'foo'])
         self.assertEquals(sandbox['__builtins__'], ConfigureSandbox.BUILTINS)
 
+        exec_(textwrap.dedent('''
+            @template
+            @imports('sys')
+            def foo():
+                @depends(when=True)
+                def bar():
+                    return sys
+                return bar
+            bar = foo()'''),
+            sandbox
+        )
+
+        with self.assertRaises(NameError) as e:
+            sandbox._depends[sandbox['bar']].result()
+
+        self.assertEquals(e.exception.message,
+                          "global name 'sys' is not defined")
+
     def test_apply_imports(self):
         imports = []
 
@@ -854,6 +872,25 @@ class TestConfigure(unittest.TestCase):
                               '@depends function needs the same `when` as '
                               'options it depends on')
 
+        with self.moz_configure('''
+            @depends(when=True)
+            def always():
+                return True
+            @depends(when=True)
+            def always2():
+                return True
+            with only_when(always2):
+                option('--with-foo', help='foo', when=always)
+                # include() triggers resolution of its dependencies, and their
+                # side effects.
+                include(depends('--with-foo', when=always)(lambda x: x))
+                # The sandbox should figure that the `when` here is
+                # appropriate. Bad behavior in CombinedDependsFunction.__eq__
+                # made this fail in the past.
+                set_config('FOO', depends('--with-foo', when=always)(lambda x: x))
+        '''):
+            self.get_config()
+
     def test_include_failures(self):
         with self.assertRaises(ConfigureError) as e:
             with self.moz_configure('include("../foo.configure")'):
@@ -1249,6 +1286,40 @@ class TestConfigure(unittest.TestCase):
             imply_option('--foo', True)
         ''' + moz_configure):
             self.get_config(['--enable-when'])
+
+    def test_depends_or(self):
+        with self.moz_configure('''
+            option('--foo', nargs=1, help='foo')
+            @depends('--foo')
+            def foo(value):
+                return value or None
+
+            option('--bar', nargs=1, help='bar')
+            @depends('--bar')
+            def bar(value):
+                return value
+
+            set_config('FOOBAR', foo | bar)
+        '''):
+            config = self.get_config()
+            self.assertEqual(config, {
+                'FOOBAR': NegativeOptionValue(),
+            })
+
+            config = self.get_config(['--foo=foo'])
+            self.assertEqual(config, {
+                'FOOBAR': PositiveOptionValue(('foo',)),
+            })
+
+            config = self.get_config(['--bar=bar'])
+            self.assertEqual(config, {
+                'FOOBAR': PositiveOptionValue(('bar',)),
+            })
+
+            config = self.get_config(['--foo=foo', '--bar=bar'])
+            self.assertEqual(config, {
+                'FOOBAR': PositiveOptionValue(('foo',)),
+            })
 
 
 if __name__ == '__main__':

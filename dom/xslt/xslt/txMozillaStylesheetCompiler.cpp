@@ -84,7 +84,7 @@ public:
     NS_IMETHOD WillInterrupt(void) override { return NS_OK; }
     NS_IMETHOD WillResume(void) override { return NS_OK; }
     NS_IMETHOD SetParser(nsParserBase* aParser) override { return NS_OK; }
-    virtual void FlushPendingNotifications(mozFlushType aType) override { }
+    virtual void FlushPendingNotifications(mozilla::FlushType aType) override { }
     NS_IMETHOD SetDocumentCharset(nsACString& aCharset) override { return NS_OK; }
     virtual nsISupports *GetTarget() override { return nullptr; }
 
@@ -308,7 +308,7 @@ txStylesheetSink::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
 
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aRequest);
     if (httpChannel) {
-        httpChannel->GetRequestSucceeded(&success);
+        Unused << httpChannel->GetRequestSucceeded(&success);
     }
 
     nsresult result = aStatusCode;
@@ -414,7 +414,7 @@ txCompileObserver::loadURI(const nsAString& aUri,
     rv = NS_NewURI(getter_AddRefs(referrerUri), aReferrerUri);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    PrincipalOriginAttributes attrs;
+    OriginAttributes attrs;
     nsCOMPtr<nsIPrincipal> referrerPrincipal =
       BasePrincipal::CreateCodebasePrincipal(referrerUri, attrs);
     NS_ENSURE_TRUE(referrerPrincipal, NS_ERROR_FAILURE);
@@ -462,14 +462,17 @@ txCompileObserver::startLoad(nsIURI* aUri, txStylesheetCompiler* aCompiler,
 
     nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
     if (httpChannel) {
-        httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"),
-                                      NS_LITERAL_CSTRING("*/*"),
-                                      false);
+        DebugOnly<nsresult> rv;
+        rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"),
+                                           NS_LITERAL_CSTRING("*/*"),
+                                           false);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
 
         nsCOMPtr<nsIURI> referrerURI;
         aReferrerPrincipal->GetURI(getter_AddRefs(referrerURI));
         if (referrerURI) {
-            httpChannel->SetReferrerWithPolicy(referrerURI, aReferrerPolicy);
+            rv = httpChannel->SetReferrerWithPolicy(referrerURI, aReferrerPolicy);
+            MOZ_ASSERT(NS_SUCCEEDED(rv));
         }
     }
 
@@ -619,7 +622,7 @@ txSyncCompileObserver::loadURI(const nsAString& aUri,
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIPrincipal> referrerPrincipal =
-      BasePrincipal::CreateCodebasePrincipal(referrerUri, PrincipalOriginAttributes());
+      BasePrincipal::CreateCodebasePrincipal(referrerUri, OriginAttributes());
     NS_ENSURE_TRUE(referrerPrincipal, NS_ERROR_FAILURE);
 
     // This is probably called by js, a loadGroup for the channel doesn't

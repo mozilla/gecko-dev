@@ -12,6 +12,9 @@
 
 namespace mozilla {
 
+using dom::ConstrainBooleanParameters;
+using dom::OwningLongOrConstrainLongRange;
+
 template<class ValueType>
 template<class ConstrainRange>
 void
@@ -294,6 +297,10 @@ NormalizedConstraints::NormalizedConstraints(
   : NormalizedConstraintSet(*aOthers[0])
   , mBadConstraint(nullptr)
 {
+  for (auto& entry : aOthers[0]->mAdvanced) {
+    mAdvanced.push_back(entry);
+  }
+
   // Create a list of member pointers.
   nsTArray<MemberPtrType> list;
   NormalizedConstraints dummy(dom::MediaTrackConstraints(), &list);

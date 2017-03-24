@@ -23,13 +23,14 @@ class Console;
 class Crypto;
 class Function;
 class IDBFactory;
-enum class ImageBitmapFormat : uint32_t;
+enum class ImageBitmapFormat : uint8_t;
 class Performance;
 class Promise;
 class RequestOrUSVString;
 class ServiceWorkerRegistration;
 class WorkerLocation;
 class WorkerNavigator;
+enum class CallerType : uint32_t;
 
 namespace cache {
 
@@ -111,9 +112,6 @@ public:
   already_AddRefed<WorkerNavigator>
   GetExistingNavigator() const;
 
-  void
-  Close(JSContext* aCx, ErrorResult& aRv);
-
   OnErrorEventHandlerNonNull*
   GetOnerror();
   void
@@ -142,6 +140,9 @@ public:
   ClearInterval(int32_t aHandle);
 
   void
+  GetOrigin(nsAString& aOrigin) const;
+
+  void
   Atob(const nsAString& aAtob, nsAString& aOutput, ErrorResult& aRv) const;
   void
   Btoa(const nsAString& aBtoa, nsAString& aOutput, ErrorResult& aRv) const;
@@ -155,7 +156,8 @@ public:
   Performance* GetPerformance();
 
   already_AddRefed<Promise>
-  Fetch(const RequestOrUSVString& aInput, const RequestInit& aInit, ErrorResult& aRv);
+  Fetch(const RequestOrUSVString& aInput, const RequestInit& aInit,
+        CallerType aCallerType, ErrorResult& aRv);
 
   already_AddRefed<IDBFactory>
   GetIndexedDB(ErrorResult& aErrorResult);
@@ -166,15 +168,18 @@ public:
   bool IsSecureContext() const;
 
   already_AddRefed<Promise>
-  CreateImageBitmap(const ImageBitmapSource& aImage, ErrorResult& aRv);
+  CreateImageBitmap(JSContext* aCx,
+                    const ImageBitmapSource& aImage, ErrorResult& aRv);
 
   already_AddRefed<Promise>
-  CreateImageBitmap(const ImageBitmapSource& aImage,
+  CreateImageBitmap(JSContext* aCx,
+                    const ImageBitmapSource& aImage,
                     int32_t aSx, int32_t aSy, int32_t aSw, int32_t aSh,
                     ErrorResult& aRv);
 
   already_AddRefed<mozilla::dom::Promise>
-  CreateImageBitmap(const ImageBitmapSource& aImage,
+  CreateImageBitmap(JSContext* aCx,
+                    const ImageBitmapSource& aImage,
                     int32_t aOffset, int32_t aLength,
                     mozilla::dom::ImageBitmapFormat aFormat,
                     const mozilla::dom::Sequence<mozilla::dom::ChannelPixelLayout>& aLayout,
@@ -213,8 +218,11 @@ public:
 
   void
   PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-              const Optional<Sequence<JS::Value>>& aTransferable,
+              const Sequence<JSObject*>& aTransferable,
               ErrorResult& aRv);
+
+  void
+  Close(JSContext* aCx);
 
   IMPL_EVENT_HANDLER(message)
 };
@@ -237,6 +245,9 @@ public:
   {
     aName.AsAString() = NS_ConvertUTF8toUTF16(mName);
   }
+
+  void
+  Close(JSContext* aCx);
 
   IMPL_EVENT_HANDLER(connect)
 };
@@ -281,13 +292,25 @@ public:
   SkipWaiting(ErrorResult& aRv);
 
   IMPL_EVENT_HANDLER(activate)
-  IMPL_EVENT_HANDLER(fetch)
   IMPL_EVENT_HANDLER(install)
   IMPL_EVENT_HANDLER(message)
 
   IMPL_EVENT_HANDLER(push)
   IMPL_EVENT_HANDLER(pushsubscriptionchange)
 
+  EventHandlerNonNull*
+  GetOnfetch();
+
+  void
+  SetOnfetch(mozilla::dom::EventHandlerNonNull* aCallback);
+
+  using DOMEventTargetHelper::AddEventListener;
+  virtual void
+  AddEventListener(const nsAString& aType,
+                   dom::EventListener* aListener,
+                   const dom::AddEventListenerOptionsOrBoolean& aOptions,
+                   const dom::Nullable<bool>& aWantsUntrusted,
+                   ErrorResult& aRv) override;
 };
 
 class WorkerDebuggerGlobalScope final : public DOMEventTargetHelper,

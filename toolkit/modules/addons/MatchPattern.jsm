@@ -39,6 +39,7 @@ function globToRegexp(pat, allowQuestion) {
 // These patterns follow the syntax in
 // https://developer.chrome.com/extensions/match_patterns
 function SingleMatchPattern(pat) {
+  this.pat = pat;
   if (pat == "<all_urls>") {
     this.schemes = PERMITTED_SCHEMES;
     this.hostMatch = () => true;
@@ -91,9 +92,13 @@ SingleMatchPattern.prototype = {
   },
 
   matches(uri, ignorePath = false) {
-    return (this.schemes.includes(uri.scheme) &&
-            this.hostMatch(uri) &&
-            (ignorePath || this.pathMatch(uri.path)));
+    return (
+      this.schemes.includes(uri.scheme) &&
+      this.hostMatch(uri) &&
+      (ignorePath || (
+        this.pathMatch(uri.cloneIgnoringRef().path)
+      ))
+    );
   },
 };
 
@@ -106,6 +111,12 @@ this.MatchPattern = function(pat) {
   } else {
     this.matchers = pat.map(p => new SingleMatchPattern(p));
   }
+
+  XPCOMUtils.defineLazyGetter(this, "explicitMatchers", () => {
+    return this.matchers.filter(matcher => matcher.pat != "<all_urls>" &&
+                                           matcher.host &&
+                                           !matcher.host.startsWith("*"));
+  });
 };
 
 MatchPattern.prototype = {
@@ -114,7 +125,10 @@ MatchPattern.prototype = {
     return this.matchers.some(matcher => matcher.matches(uri));
   },
 
-  matchesIgnoringPath(uri) {
+  matchesIgnoringPath(uri, explicit = false) {
+    if (explicit) {
+      return this.explicitMatchers.some(matcher => matcher.matches(uri, true));
+    }
     return this.matchers.some(matcher => matcher.matches(uri, true));
   },
 

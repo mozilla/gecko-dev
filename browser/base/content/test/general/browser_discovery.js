@@ -5,10 +5,9 @@ function doc() {
 }
 
 function setHandlerFunc(aResultFunc) {
-  gBrowser.addEventListener("DOMLinkAdded", function (event) {
-    gBrowser.removeEventListener("DOMLinkAdded", arguments.callee, false);
+  gBrowser.addEventListener("DOMLinkAdded", function(event) {
     executeSoon(aResultFunc);
-  }, false);
+  }, {once: true});
 }
 
 function test() {
@@ -16,10 +15,9 @@ function test() {
 
   gBrowser.selectedTab = gBrowser.addTab();
   browser = gBrowser.selectedBrowser;
-  browser.addEventListener("load", function (event) {
-    event.currentTarget.removeEventListener("load", arguments.callee, true);
+  browser.addEventListener("load", function(event) {
     iconDiscovery();
-  }, true);
+  }, {capture: true, once: true});
   var rootDir = getRootDirectory(gTestPath);
   content.location = rootDir + "discovery.html";
 }
@@ -44,7 +42,7 @@ function runIconDiscoveryTest() {
   else
     ok(!hasSrc, testCase.text);
 
-  head.removeChild(head.getElementsByTagName('link')[0]);
+  head.removeChild(head.getElementsByTagName("link")[0]);
   iconDiscoveryTests.shift();
   iconDiscovery(); // Run the next test.
 }
@@ -100,8 +98,7 @@ function runSearchDiscoveryTest() {
                                        (browser.engines[0].title == title);
     ok(hasEngine, testCase.text);
     browser.engines = null;
-  }
-  else
+  } else
     ok(!testCase.pass, testCase.text);
 
   searchDiscoveryTests.shift();

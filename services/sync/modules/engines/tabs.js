@@ -6,8 +6,8 @@ this.EXPORTED_SYMBOLS = ["TabEngine", "TabSetRecord"];
 
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
-const TABS_TTL = 604800;           // 7 days.
-const TAB_ENTRIES_LIMIT = 25;      // How many URLs to include in tab history.
+const TABS_TTL = 1814400;          // 21 days.
+const TAB_ENTRIES_LIMIT = 5;      // How many URLs to include in tab history.
 
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -51,7 +51,7 @@ TabEngine.prototype = {
 
   syncPriority: 3,
 
-  getChangedIDs: function () {
+  getChangedIDs() {
     // No need for a proper timestamp (no conflict resolution needed).
     let changedIDs = {};
     if (this._tracker.modified)
@@ -60,22 +60,22 @@ TabEngine.prototype = {
   },
 
   // API for use by Sync UI code to give user choices of tabs to open.
-  getAllClients: function () {
+  getAllClients() {
     return this._store._remoteClients;
   },
 
-  getClientById: function (id) {
+  getClientById(id) {
     return this._store._remoteClients[id];
   },
 
-  _resetClient: function () {
+  _resetClient() {
     SyncEngine.prototype._resetClient.call(this);
     this._store.wipe();
     this._tracker.modified = true;
     this.hasSyncedThisSession = false;
   },
 
-  removeClientData: function () {
+  removeClientData() {
     let url = this.engineURL + "/" + this.service.clientsEngine.localID;
     this.service.resource(url).delete();
   },
@@ -83,7 +83,7 @@ TabEngine.prototype = {
   /**
    * Return a Set of open URLs.
    */
-  getOpenURLs: function () {
+  getOpenURLs() {
     let urls = new Set();
     for (let entry of this._store.getAllTabs()) {
       urls.add(entry.urlHistory[0]);
@@ -91,7 +91,7 @@ TabEngine.prototype = {
     return urls;
   },
 
-  _reconcile: function (item) {
+  _reconcile(item) {
     // Skip our own record.
     // TabStore.itemExists tests only against our local client ID.
     if (this._store.itemExists(item.id)) {
@@ -115,24 +115,24 @@ function TabStore(name, engine) {
 TabStore.prototype = {
   __proto__: Store.prototype,
 
-  itemExists: function (id) {
+  itemExists(id) {
     return id == this.engine.service.clientsEngine.localID;
   },
 
-  getWindowEnumerator: function () {
+  getWindowEnumerator() {
     return Services.wm.getEnumerator("navigator:browser");
   },
 
-  shouldSkipWindow: function (win) {
+  shouldSkipWindow(win) {
     return win.closed ||
            PrivateBrowsingUtils.isWindowPrivate(win);
   },
 
-  getTabState: function (tab) {
+  getTabState(tab) {
     return JSON.parse(Svc.Session.getTabState(tab));
   },
 
-  getAllTabs: function (filter) {
+  getAllTabs(filter) {
     let filteredUrls = new RegExp(Svc.Prefs.get("engine.tabs.filteredUrls"), "i");
 
     let allTabs = [];
@@ -200,20 +200,21 @@ TabStore.prototype = {
     return allTabs;
   },
 
-  createRecord: function (id, collection) {
+  createRecord(id, collection) {
     let record = new TabSetRecord(collection, id);
     record.clientName = this.engine.service.clientsEngine.localName;
 
     // Sort tabs in descending-used order to grab the most recently used
-    let tabs = this.getAllTabs(true).sort(function (a, b) {
+    let tabs = this.getAllTabs(true).sort(function(a, b) {
       return b.lastUsed - a.lastUsed;
     });
 
-    // Figure out how many tabs we can pack into a payload. Starting with a 28KB
-    // payload, we can estimate various overheads from encryption/JSON/WBO.
-    let size = JSON.stringify(tabs).length;
+    // Figure out how many tabs we can pack into a payload.
+    // We use byteLength here because the data is not encrypted in ascii yet.
+    let size = new TextEncoder("utf-8").encode(JSON.stringify(tabs)).byteLength;
     let origLength = tabs.length;
-    const MAX_TAB_SIZE = 20000;
+    // See bug 535326 comment 8 for an explanation of the estimation
+    const MAX_TAB_SIZE = this.engine.maxRecordPayloadBytes / 4 * 3 - 1500;
     if (size > MAX_TAB_SIZE) {
       // Estimate a little more than the direct fraction to maximize packing
       let cutoff = Math.ceil(tabs.length * MAX_TAB_SIZE / size);
@@ -225,7 +226,7 @@ TabStore.prototype = {
     }
 
     this._log.trace("Created tabs " + tabs.length + " of " + origLength);
-    tabs.forEach(function (tab) {
+    tabs.forEach(function(tab) {
       this._log.trace("Wrapping tab: " + JSON.stringify(tab));
     }, this);
 
@@ -233,7 +234,7 @@ TabStore.prototype = {
     return record;
   },
 
-  getAllIDs: function () {
+  getAllIDs() {
     // Don't report any tabs if all windows are in private browsing for
     // first syncs.
     let ids = {};
@@ -259,18 +260,18 @@ TabStore.prototype = {
     return ids;
   },
 
-  wipe: function () {
+  wipe() {
     this._remoteClients = {};
   },
 
-  create: function (record) {
+  create(record) {
     this._log.debug("Adding remote tabs from " + record.clientName);
     this._remoteClients[record.id] = Object.assign({}, record.cleartext, {
       lastModified: record.modified
     });
   },
 
-  update: function (record) {
+  update(record) {
     this._log.trace("Ignoring tab updates as local ones win");
   },
 };
@@ -290,44 +291,40 @@ TabTracker.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
 
-  loadChangedIDs: function () {
-    // Don't read changed IDs from disk at start up.
-  },
-
-  clearChangedIDs: function () {
+  clearChangedIDs() {
     this.modified = false;
   },
 
   _topics: ["pageshow", "TabOpen", "TabClose", "TabSelect"],
 
-  _registerListenersForWindow: function (window) {
+  _registerListenersForWindow(window) {
     this._log.trace("Registering tab listeners in window");
     for (let topic of this._topics) {
-      window.addEventListener(topic, this.onTab, false);
+      window.addEventListener(topic, this.onTab);
     }
-    window.addEventListener("unload", this._unregisterListeners, false);
+    window.addEventListener("unload", this._unregisterListeners);
     // If it's got a tab browser we can listen for things like navigation.
     if (window.gBrowser) {
       window.gBrowser.addProgressListener(this);
     }
   },
 
-  _unregisterListeners: function (event) {
+  _unregisterListeners(event) {
     this._unregisterListenersForWindow(event.target);
   },
 
-  _unregisterListenersForWindow: function (window) {
+  _unregisterListenersForWindow(window) {
     this._log.trace("Removing tab listeners in window");
-    window.removeEventListener("unload", this._unregisterListeners, false);
+    window.removeEventListener("unload", this._unregisterListeners);
     for (let topic of this._topics) {
-      window.removeEventListener(topic, this.onTab, false);
+      window.removeEventListener(topic, this.onTab);
     }
     if (window.gBrowser) {
       window.gBrowser.removeProgressListener(this);
     }
   },
 
-  startTracking: function () {
+  startTracking() {
     Svc.Obs.add("domwindowopened", this);
     let wins = Services.wm.getEnumerator("navigator:browser");
     while (wins.hasMoreElements()) {
@@ -335,7 +332,7 @@ TabTracker.prototype = {
     }
   },
 
-  stopTracking: function () {
+  stopTracking() {
     Svc.Obs.remove("domwindowopened", this);
     let wins = Services.wm.getEnumerator("navigator:browser");
     while (wins.hasMoreElements()) {
@@ -343,24 +340,24 @@ TabTracker.prototype = {
     }
   },
 
-  observe: function (subject, topic, data) {
+  observe(subject, topic, data) {
     Tracker.prototype.observe.call(this, subject, topic, data);
 
     switch (topic) {
       case "domwindowopened":
         let onLoad = () => {
-          subject.removeEventListener("load", onLoad, false);
+          subject.removeEventListener("load", onLoad);
           // Only register after the window is done loading to avoid unloads.
           this._registerListenersForWindow(subject);
         };
 
         // Add tab listeners now that a window has opened.
-        subject.addEventListener("load", onLoad, false);
+        subject.addEventListener("load", onLoad);
         break;
     }
   },
 
-  onTab: function (event) {
+  onTab(event) {
     if (event.originalTarget.linkedBrowser) {
       let browser = event.originalTarget.linkedBrowser;
       if (PrivateBrowsingUtils.isBrowserPrivate(browser) &&
@@ -382,7 +379,7 @@ TabTracker.prototype = {
   },
 
   // web progress listeners.
-  onLocationChange: function (webProgress, request, location, flags) {
+  onLocationChange(webProgress, request, location, flags) {
     // We only care about top-level location changes which are not in the same
     // document.
     if (webProgress.isTopLevel &&

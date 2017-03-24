@@ -13,14 +13,13 @@
 */
 
 #include "mozilla/Attributes.h"
-#include "mozilla/css/StyleRule.h"
 #include "nsAutoPtr.h"
 #include "nsChangeHint.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsError.h"
 #include "mozilla/dom/DOMRect.h"
-#include "mozilla/dom/ElementInlines.h"
+#include "mozilla/dom/Element.h"
 #include "nsISupportsImpl.h"
 #include "nsStyledElement.h"
 #include "nsSVGClass.h"
@@ -39,6 +38,8 @@ class nsSVGString;
 class nsSVGViewBox;
 
 namespace mozilla {
+class DeclarationBlock;
+
 namespace dom {
 class SVGSVGElement;
 
@@ -78,7 +79,7 @@ protected:
   friend nsresult NS_NewSVGElement(mozilla::dom::Element **aResult,
                                    already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
   nsresult Init();
-  virtual ~nsSVGElement(){}
+  virtual ~nsSVGElement();
 
 public:
 
@@ -113,6 +114,12 @@ public:
 
   virtual bool IsNodeOfType(uint32_t aFlags) const override;
 
+  /**
+   * We override the default to unschedule computation of Servo declaration blocks
+   * when adopted across documents.
+   */
+  virtual void NodeInfoChanged(nsIDocument* aOldDoc) override;
+
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker) override;
   void WalkAnimatedContentStyleRules(nsRuleWalker* aRuleWalker);
 
@@ -134,6 +141,8 @@ public:
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
   NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
   NS_DECL_NSIDOMSVGELEMENT
+
+  NS_IMPL_FROMCONTENT(nsSVGElement, kNameSpaceID_SVG)
 
   // Gets the element that establishes the rectangular viewport against which
   // we should resolve percentage lengths (our "coordinate context"). Returns
@@ -317,7 +326,12 @@ public:
   mozilla::dom::SVGSVGElement* GetOwnerSVGElement();
   nsSVGElement* GetViewportElement();
   already_AddRefed<mozilla::dom::SVGAnimatedString> ClassName();
+
+  virtual bool IsSVGFocusable(bool* aIsFocusable, int32_t* aTabIndex);
   virtual bool IsFocusableInternal(int32_t* aTabIndex, bool aWithMouse) override;
+
+  void UpdateContentDeclarationBlock(mozilla::StyleBackendType aBackend);
+  const mozilla::DeclarationBlock* GetContentDeclarationBlock() const;
 
 protected:
   virtual JSObject* WrapNode(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
@@ -329,7 +343,7 @@ protected:
   // BeforeSetAttr since it would involve allocating extra SVG value types.
   // See the comment in nsSVGElement::WillChangeValue.
   virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                 nsAttrValueOrString* aValue,
+                                 const nsAttrValueOrString* aValue,
                                  bool aNotify) override final
   {
     return nsSVGElementBase::BeforeSetAttr(aNamespaceID, aName, aValue, aNotify);
@@ -342,10 +356,6 @@ protected:
   static nsresult ReportAttributeParseFailure(nsIDocument* aDocument,
                                               nsIAtom* aAttribute,
                                               const nsAString& aValue);
-
-  void UpdateContentStyleRule();
-  void UpdateAnimatedContentStyleRule();
-  mozilla::css::StyleRule* GetAnimatedContentStyleRule();
 
   nsAttrValue WillChangeValue(nsIAtom* aName);
   // aNewValue is set to the old value. This value may be invalid if
@@ -635,7 +645,7 @@ private:
 
   nsSVGClass mClassAttribute;
   nsAutoPtr<nsAttrValue> mClassAnimAttr;
-  RefPtr<mozilla::css::StyleRule> mContentStyleRule;
+  RefPtr<mozilla::DeclarationBlock> mContentDeclarationBlock;
 };
 
 /**
@@ -715,7 +725,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER                            \
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END                                          \
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(_val)                                \
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(_element)                                \
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS                           \
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END                                        \
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(_val)                                   \
 NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER                             \

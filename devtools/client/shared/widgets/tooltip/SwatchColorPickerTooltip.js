@@ -4,8 +4,10 @@
 
 "use strict";
 
+const Services = require("Services");
 const {Task} = require("devtools/shared/task");
 const {colorUtils} = require("devtools/shared/css/color");
+const {ColorWidget} = require("devtools/client/shared/widgets/ColorWidget");
 const {Spectrum} = require("devtools/client/shared/widgets/Spectrum");
 const SwatchBasedEditorTooltip = require("devtools/client/shared/widgets/tooltip/SwatchBasedEditorTooltip");
 const {LocalizationHelper} = require("devtools/shared/l10n");
@@ -13,6 +15,8 @@ const L10N = new LocalizationHelper("devtools/client/locales/inspector.propertie
 
 const Heritage = require("sdk/core/heritage");
 
+const colorWidgetPref = "devtools.inspector.colorWidget.enabled";
+const NEW_COLOR_WIDGET = Services.prefs.getBoolPref(colorWidgetPref);
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
 /**
@@ -28,10 +32,17 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
  *        inline editor.
  * @param {InspectorPanel} inspector
  *        The inspector panel, needed for the eyedropper.
+ * @param {Function} supportsCssColor4ColorFunction
+ *        A function for checking the supporting of css-color-4 color function.
  */
-function SwatchColorPickerTooltip(document, inspector) {
-  let stylesheet = "chrome://devtools/content/shared/widgets/spectrum.css";
-  SwatchBasedEditorTooltip.call(this, document, stylesheet);
+function SwatchColorPickerTooltip(document,
+                                  inspector,
+                                  {supportsCssColor4ColorFunction}) {
+  let stylesheet = NEW_COLOR_WIDGET ?
+    null :
+    "chrome://devtools/content/shared/widgets/spectrum.css";
+  let tooltipDocument = NEW_COLOR_WIDGET ? inspector.panelDoc : document;
+  SwatchBasedEditorTooltip.call(this, tooltipDocument, stylesheet, NEW_COLOR_WIDGET);
 
   this.inspector = inspector;
 
@@ -40,6 +51,7 @@ function SwatchColorPickerTooltip(document, inspector) {
   this.spectrum = this.setColorPickerContent([0, 0, 0, 1]);
   this._onSpectrumColorChange = this._onSpectrumColorChange.bind(this);
   this._openEyeDropper = this._openEyeDropper.bind(this);
+  this.cssColor4 = supportsCssColor4ColorFunction();
 }
 
 SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.prototype, {
@@ -52,9 +64,20 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
 
     let container = doc.createElementNS(XHTML_NS, "div");
     container.id = "spectrum-tooltip";
-    let spectrumNode = doc.createElementNS(XHTML_NS, "div");
-    spectrumNode.id = "spectrum";
-    container.appendChild(spectrumNode);
+
+    let widget;
+    let node = doc.createElementNS(XHTML_NS, "div");
+
+    if (NEW_COLOR_WIDGET) {
+      node.id = "colorwidget";
+      container.appendChild(node);
+      widget = new ColorWidget(node, color);
+    } else {
+      node.id = "spectrum";
+      container.appendChild(node);
+      widget = new Spectrum(node, color);
+    }
+
     let eyedropper = doc.createElementNS(XHTML_NS, "button");
     eyedropper.id = "eyedropper-button";
     eyedropper.className = "devtools-button";
@@ -66,15 +89,13 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
 
     this.tooltip.setContent(container, { width: 218, height: 224 });
 
-    let spectrum = new Spectrum(spectrumNode, color);
-
-    // Wait for the tooltip to be shown before calling spectrum.show
+    // Wait for the tooltip to be shown before calling widget.show
     // as it expect to be visible in order to compute DOM element sizes.
     this.tooltip.once("shown", () => {
-      spectrum.show();
+      widget.show();
     });
 
-    return spectrum;
+    return widget;
   },
 
   /**
@@ -84,6 +105,7 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
   show: Task.async(function* () {
     // Call then parent class' show function
     yield SwatchBasedEditorTooltip.prototype.show.call(this);
+
     // Then set spectrum's color and listen to color changes to preview them
     if (this.activeSwatch) {
       this.currentSwatchColor = this.activeSwatch.nextSibling;
@@ -95,20 +117,17 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
       this.spectrum.updateUI();
     }
 
-    let {target} = this.inspector;
-    target.actorHasMethod("inspector", "pickColorFromPage").then(value => {
-      let tooltipDoc = this.tooltip.doc;
-      let eyeButton = tooltipDoc.querySelector("#eyedropper-button");
-      if (value && this.inspector.selection.nodeFront.isInHTMLDocument) {
-        eyeButton.disabled = false;
-        eyeButton.removeAttribute("title");
-        eyeButton.addEventListener("click", this._openEyeDropper);
-      } else {
-        eyeButton.disabled = true;
-        eyeButton.title = L10N.getStr("eyedropper.disabled.title");
-      }
-      this.emit("ready");
-    }, e => console.error(e));
+    let eyeButton = this.tooltip.container.querySelector("#eyedropper-button");
+    let canShowEyeDropper = yield this.inspector.supportsEyeDropper();
+    if (canShowEyeDropper) {
+      eyeButton.disabled = false;
+      eyeButton.removeAttribute("title");
+      eyeButton.addEventListener("click", this._openEyeDropper);
+    } else {
+      eyeButton.disabled = true;
+      eyeButton.title = L10N.getStr("eyedropper.disabled.title");
+    }
+    this.emit("ready");
   }),
 
   _onSpectrumColorChange: function (event, rgba, cssColor) {
@@ -159,14 +178,14 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
   },
 
   _colorToRgba: function (color) {
-    color = new colorUtils.CssColor(color);
+    color = new colorUtils.CssColor(color, this.cssColor4);
     let rgba = color._getRGBATuple();
     return [rgba.r, rgba.g, rgba.b, rgba.a];
   },
 
   _toDefaultType: function (color) {
     let colorObj = new colorUtils.CssColor(color);
-    colorObj.setAuthoredUnitFromColor(this._originalColor);
+    colorObj.setAuthoredUnitFromColor(this._originalColor, this.cssColor4);
     return colorObj.toString();
   },
 

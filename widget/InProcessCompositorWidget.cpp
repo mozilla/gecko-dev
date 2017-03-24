@@ -16,19 +16,23 @@ namespace widget {
 // InProcessCompositorWidget by default.
 #if !defined(MOZ_WIDGET_SUPPORTS_OOP_COMPOSITING)
 /* static */ RefPtr<CompositorWidget>
-CompositorWidget::CreateLocal(const CompositorWidgetInitData& aInitData, nsIWidget* aWidget)
+CompositorWidget::CreateLocal(const CompositorWidgetInitData& aInitData,
+                              const layers::CompositorOptions& aOptions,
+                              nsIWidget* aWidget)
 {
   MOZ_ASSERT(aWidget);
 #ifdef MOZ_WIDGET_ANDROID
-  return new AndroidCompositorWidget(static_cast<nsBaseWidget*>(aWidget));
+  return new AndroidCompositorWidget(aOptions, static_cast<nsBaseWidget*>(aWidget));
 #else
-  return new InProcessCompositorWidget(static_cast<nsBaseWidget*>(aWidget));
+  return new InProcessCompositorWidget(aOptions, static_cast<nsBaseWidget*>(aWidget));
 #endif
 }
 #endif
 
-InProcessCompositorWidget::InProcessCompositorWidget(nsBaseWidget* aWidget)
- : mWidget(aWidget)
+InProcessCompositorWidget::InProcessCompositorWidget(const layers::CompositorOptions& aOptions,
+                                                     nsBaseWidget* aWidget)
+ : CompositorWidget(aOptions)
+ , mWidget(aWidget)
 {
 }
 
@@ -112,12 +116,6 @@ uint32_t
 InProcessCompositorWidget::GetGLFrameBufferFormat()
 {
   return mWidget->GetGLFrameBufferFormat();
-}
-
-layers::Composer2D*
-InProcessCompositorWidget::GetComposer2D()
-{
-  return mWidget->GetComposer2D();
 }
 
 uintptr_t

@@ -29,11 +29,12 @@ config = {
         for f in ["debug", "nightly", "l10n-mozconfig"]
     ] + [
         # File, from, to
-        ("{}/l10n-nightly".format(d),
+        ("{}/{}".format(d, f),
         "ac_add_options --with-l10n-base=../../l10n-central",
-        "ac_add_options --with-l10n-base=..")
+        "ac_add_options --with-l10n-base=../../mozilla-aurora")
         for d in ["mobile/android/config/mozconfigs/android-api-15/",
                   "mobile/android/config/mozconfigs/android-x86/"]
+        for f in ["l10n-nightly", "l10n-release"]
     ] + [
         # File, from, to
         (f, "ac_add_options --enable-profiling", "") for f in
@@ -41,7 +42,7 @@ config = {
          "mobile/android/config/mozconfigs/android-x86/nightly",
          "browser/config/mozconfigs/linux32/nightly",
          "browser/config/mozconfigs/linux64/nightly",
-         "browser/config/mozconfigs/macosx-universal/nightly",
+         "browser/config/mozconfigs/macosx64/nightly",
          "browser/config/mozconfigs/win32/nightly",
          "browser/config/mozconfigs/win64/nightly"]
     ] + [
@@ -52,12 +53,6 @@ config = {
         ("browser/confvars.sh",
          "MAR_CHANNEL_ID=firefox-mozilla-central",
          "MAR_CHANNEL_ID=firefox-mozilla-aurora"),
-        ("browser/config/mozconfigs/macosx-universal/nightly",
-         "ac_add_options --with-branding=browser/branding/nightly",
-         "ac_add_options --with-branding=browser/branding/aurora"),
-        ("browser/config/mozconfigs/macosx-universal/l10n-mozconfig",
-         "ac_add_options --with-branding=browser/branding/nightly",
-         "ac_add_options --with-branding=browser/branding/aurora"),
         ("browser/config/mozconfigs/whitelist",
          "ac_add_options --with-branding=browser/branding/nightly",
          "ac_add_options --with-branding=browser/branding/aurora"),
@@ -66,7 +61,8 @@ config = {
         "browser/locales/shipped-locales",
         "browser/locales/all-locales",
         "mobile/android/locales/maemo-locales",
-        "mobile/android/locales/all-locales"
+        "mobile/android/locales/all-locales",
+        "mobile/locales/l10n-changesets.json",
     ],
 
     "vcs_share_base": os.path.join(ABS_WORK_DIR, 'hg-shared'),

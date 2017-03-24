@@ -38,6 +38,7 @@
 #include "nsRect.h"
 #include "nsMathUtils.h"
 #include "WinUtils.h"
+#include "KeyboardLayout.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/Tools.h"
@@ -369,7 +370,8 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   // until bug 1224754 is fixed.
   SetDragEndPoint(LayoutDeviceIntPoint(NSToIntRound(cssPos.x),
                                        NSToIntRound(cssPos.y)));
-  EndDragSession(true);
+  ModifierKeyState modifierKeyState;
+  EndDragSession(true, modifierKeyState.GetModifiers());
 
   mDoingDrag = false;
 
@@ -625,7 +627,7 @@ nsDragService::IsCollectionObject(IDataObject* inDataObj)
 // w/out crashing when we're still holding onto their data
 //
 NS_IMETHODIMP
-nsDragService::EndDragSession(bool aDoneDrag)
+nsDragService::EndDragSession(bool aDoneDrag, uint32_t aKeyModifiers)
 {
   // Bug 100180: If we've got mouse events captured, make sure we release it -
   // that way, if we happen to call EndDragSession before diving into a nested
@@ -634,8 +636,34 @@ nsDragService::EndDragSession(bool aDoneDrag)
     ::ReleaseCapture();
   }
 
-  nsBaseDragService::EndDragSession(aDoneDrag);
+  nsBaseDragService::EndDragSession(aDoneDrag, aKeyModifiers);
   NS_IF_RELEASE(mDataObject);
 
   return NS_OK;
 }
+
+NS_IMETHODIMP
+nsDragService::UpdateDragImage(nsIDOMNode* aImage, int32_t aImageX, int32_t aImageY)
+{
+  if (!mDataObject) {
+    return NS_OK;
+  }
+
+  nsBaseDragService::UpdateDragImage(aImage, aImageX, aImageY);
+
+  IDragSourceHelper *pdsh;
+  if (SUCCEEDED(CoCreateInstance(CLSID_DragDropHelper, nullptr,
+                                 CLSCTX_INPROC_SERVER,
+                                 IID_IDragSourceHelper, (void**)&pdsh))) {
+    SHDRAGIMAGE sdi;
+    if (CreateDragImage(mSourceNode, nullptr, &sdi)) {
+      nsNativeDragTarget::DragImageChanged();
+      if (FAILED(pdsh->InitializeFromBitmap(&sdi, mDataObject)))
+        DeleteObject(sdi.hbmpDragImage);
+    }
+    pdsh->Release();
+  }
+
+  return NS_OK;
+}
+

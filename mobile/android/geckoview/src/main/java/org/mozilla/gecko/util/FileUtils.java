@@ -18,6 +18,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.Comparator;
+import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -230,6 +231,10 @@ public class FileUtils {
             mPattern = pattern;
         }
 
+        public FilenameRegexFilter(final String pattern) {
+            mPattern = Pattern.compile(pattern);
+        }
+
         @Override
         public boolean accept(final File dir, final String filename) {
             if (mCachedMatcher == null) {
@@ -255,5 +260,22 @@ public class FileUtils {
                 return 1;
             }
         }
+    }
+
+    public static File createTempDir(File directory, String prefix) {
+        // Force a prefix null check first
+        if (prefix.length() < 3) {
+            throw new IllegalArgumentException("prefix must be at least 3 characters");
+        }
+        if (directory == null) {
+            String tmpDir = System.getProperty("java.io.tmpdir", ".");
+            directory = new File(tmpDir);
+        }
+        File result;
+        Random random = new Random();
+        do {
+            result = new File(directory, prefix + random.nextInt());
+        } while (!result.mkdirs());
+        return result;
     }
 }

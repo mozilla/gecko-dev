@@ -13,6 +13,7 @@ SCRIPT_DIR = os.path.abspath(os.path.realpath(os.path.dirname(__file__)))
 sys.path.insert(0, SCRIPT_DIR)
 
 from argparse import Namespace
+from collections import defaultdict
 import ctypes
 import glob
 import json
@@ -37,6 +38,7 @@ import uuid
 import zipfile
 import bisection
 
+from ctypes.util import find_library
 from datetime import datetime
 from manifestparser import TestManifest
 from manifestparser.filters import (
@@ -49,9 +51,9 @@ from manifestparser.filters import (
 )
 
 try:
-    from marionette import Marionette
     from marionette_driver.addons import Addons
-except ImportError, e:
+    from marionette_harness import Marionette
+except ImportError as e:
     # Defer ImportError until attempt to use Marionette
     def reraise(*args, **kwargs):
         raise(e)
@@ -78,6 +80,15 @@ except ImportError:
     pass
 
 here = os.path.abspath(os.path.dirname(__file__))
+
+NO_TESTS_FOUND = """
+No tests were found for flavor '{}' and the following manifest filters:
+{}
+
+Make sure the test paths (if any) are spelt correctly and the corresponding
+--flavor and --subsuite are being used. See `mach mochitest --help` for a
+list of valid flavors.
+""".lstrip()
 
 
 ########################################
@@ -144,8 +155,10 @@ class MessageLogger(object):
                           'chrome://mochitests/content/browser/',
                           'chrome://mochitests/content/chrome/']
 
-    def __init__(self, logger, buffering=True):
+    def __init__(self, logger, buffering=True, structured=True):
         self.logger = logger
+        self.structured = structured
+        self.gecko_id = 'GECKO'
 
         # Even if buffering is enabled, we only want to buffer messages between
         # TEST-START/TEST-END. So it is off to begin, but will be enabled after
@@ -159,11 +172,12 @@ class MessageLogger(object):
         # Failures reporting, after the end of the tests execution
         self.errors = []
 
-    def valid_message(self, obj):
-        """True if the given object is a valid structured message
+    def validate(self, obj):
+        """Tests whether the given object is a valid structured message
         (only does a superficial validation)"""
-        return isinstance(obj, dict) and 'action' in obj and obj[
-            'action'] in MessageLogger.VALID_ACTIONS
+        if not (isinstance(obj, dict) and 'action' in obj and obj[
+                'action'] in MessageLogger.VALID_ACTIONS):
+            raise ValueError
 
     def _fix_test_name(self, message):
         """Normalize a logged test path to match the relative path from the sourcedir.
@@ -193,18 +207,21 @@ class MessageLogger(object):
                 continue
             try:
                 message = json.loads(fragment)
-                if not self.valid_message(message):
+                self.validate(message)
+            except ValueError:
+                if self.structured:
+                    message = dict(
+                        action='process_output',
+                        process=self.gecko_id,
+                        data=fragment,
+                    )
+                else:
                     message = dict(
                         action='log',
                         level='info',
                         message=fragment,
-                        unstructured=True)
-            except ValueError:
-                message = dict(
-                    action='log',
-                    level='info',
-                    message=fragment,
-                    unstructured=True)
+                    )
+
             self._fix_test_name(message)
             self._fix_message_format(message)
             messages.append(message)
@@ -220,11 +237,6 @@ class MessageLogger(object):
         if message['action'] == 'buffering_off':
             self.buffering = False
             return
-
-        unstructured = False
-        if 'unstructured' in message:
-            unstructured = True
-            message.pop('unstructured')
 
         # Error detection also supports "raw" errors (in log messages) because some tests
         # manually dump 'TEST-UNEXPECTED-FAIL'.
@@ -247,15 +259,12 @@ class MessageLogger(object):
 
             # Logging the error message
             self.logger.log_raw(message)
-        # If we don't do any buffering, or the tests haven't started, or the message was
-        # unstructured, it is directly logged.
-        elif any([not self.buffering,
-                  unstructured,
-                  message['action'] not in self.BUFFERED_ACTIONS]):
-            self.logger.log_raw(message)
-        else:
-            # Buffering the message
+        # Determine if message should be buffered
+        elif self.buffering and self.structured and message['action'] in self.BUFFERED_ACTIONS:
             self.buffered_messages.append(message)
+        # Otherwise log the message directly
+        else:
+            self.logger.log_raw(message)
 
         # If a test ended, we clean the buffer
         if message['action'] == 'test_end':
@@ -320,6 +329,7 @@ def killPid(pid, log):
         os.kill(pid, getattr(signal, "SIGKILL", signal.SIGTERM))
     except Exception as e:
         log.info("Failed to kill process %d: %s" % (pid, str(e)))
+
 
 if mozinfo.isWin:
     import ctypes.wintypes
@@ -627,7 +637,7 @@ def checkAndConfigureV4l2loopback(device):
     if not mozinfo.isLinux:
         return False, ''
 
-    libc = ctypes.cdll.LoadLibrary('libc.so.6')
+    libc = ctypes.cdll.LoadLibrary(find_library("c"))
     O_RDWR = 2
     # These are from linux/videodev2.h
 
@@ -775,23 +785,27 @@ class MochitestDesktop(object):
     DEFAULT_TIMEOUT = 60.0
     mediaDevices = None
 
+    patternFiles = {}
+
     # XXX use automation.py for test name to avoid breaking legacy
     # TODO: replace this with 'runtests.py' or 'mochitest' or the like
     test_name = 'automation.py'
 
-    def __init__(self, logger_options, quiet=False):
+    def __init__(self, flavor, logger_options, quiet=False):
         self.update_mozinfo()
+        self.flavor = flavor
         self.server = None
         self.wsserver = None
         self.websocketProcessBridge = None
         self.sslTunnel = None
+        self.tests_by_manifest = defaultdict(list)
         self._active_tests = None
         self._locations = None
 
         self.marionette = None
         self.start_script = None
         self.mozLogs = None
-        self.start_script_args = []
+        self.start_script_kwargs = {}
         self.urlOpts = []
 
         if self.log is None:
@@ -805,7 +819,12 @@ class MochitestDesktop(object):
                                                  })
             MochitestDesktop.log = self.log
 
-        self.message_logger = MessageLogger(logger=self.log, buffering=quiet)
+        # Jetpack flavors still don't use the structured logger. We need to process their output
+        # slightly differently.
+        structured = not self.flavor.startswith('jetpack')
+        self.message_logger = MessageLogger(
+                logger=self.log, buffering=quiet, structured=structured)
+
         # Max time in seconds to wait for server startup before tests will fail -- if
         # this seems big, it's mostly for debug machines where cold startup
         # (particularly after a build) takes forever.
@@ -849,7 +868,7 @@ class MochitestDesktop(object):
         try:
             return dict(parseKeyValue(extraPrefs, context='--setpref='))
         except KeyValueParseError as e:
-            print str(e)
+            print(str(e))
             sys.exit(1)
 
     def getFullPath(self, path):
@@ -965,6 +984,8 @@ class MochitestDesktop(object):
                 self.urlOpts.append("dumpDMDAfterTest=true")
             if options.debugger:
                 self.urlOpts.append("interactiveDebugger=true")
+            if options.jscov_dir_prefix:
+                self.urlOpts.append("jscovDirPrefix=%s" % options.jscov_dir_prefix)
 
     def normflavor(self, flavor):
         """
@@ -1013,8 +1034,11 @@ class MochitestDesktop(object):
             self.testRoot = self.TEST_PATH
         self.testRootAbs = os.path.join(SCRIPT_DIR, self.testRoot)
 
-    def buildTestURL(self, options):
-        testHost = "http://mochi.test:8888"
+    def buildTestURL(self, options, scheme='http'):
+        if scheme == 'https':
+            testHost = "https://example.com:443"
+        else:
+            testHost = "http://mochi.test:8888"
         testURL = "/".join([testHost, self.TEST_PATH])
 
         if len(options.test_paths) == 1:
@@ -1036,7 +1060,7 @@ class MochitestDesktop(object):
             testURL = "/".join([testHost, self.NESTED_OOP_TEST_PATH])
         return testURL
 
-    def buildTestPath(self, options, testsToFilter=None, disabled=True):
+    def getTestsByScheme(self, options, testsToFilter=None, disabled=True):
         """ Build the url path to the specific test harness and test file or directory
             Build a manifest of tests to run and write out a json file for the harness to read
             testsToFilter option is used to filter/keep the tests provided in the list
@@ -1052,12 +1076,13 @@ class MochitestDesktop(object):
                 continue
             paths.append(test)
 
-        # Bug 883865 - add this functionality into manifestparser
-        with open(os.path.join(SCRIPT_DIR, options.testRunManifestFile), 'w') as manifestFile:
-            manifestFile.write(json.dumps({'tests': paths}))
-        options.manifestFile = options.testRunManifestFile
-
-        return self.buildTestURL(options)
+        # Generate test by schemes
+        for (scheme, grouped_tests) in self.groupTestsByScheme(paths).items():
+            # Bug 883865 - add this functionality into manifestparser
+            with open(os.path.join(SCRIPT_DIR, options.testRunManifestFile), 'w') as manifestFile:
+                manifestFile.write(json.dumps({'tests': grouped_tests}))
+            options.manifestFile = options.testRunManifestFile
+            yield (scheme, grouped_tests)
 
     def startWebSocketServer(self, options, debuggerInfo):
         """ Launch the websocket server """
@@ -1085,7 +1110,9 @@ class MochitestDesktop(object):
 
         command = [sys.executable,
                    os.path.join("websocketprocessbridge",
-                                "websocketprocessbridge.py")]
+                                "websocketprocessbridge.py"),
+                   "--port",
+                   options.websocket_process_bridge_port]
         self.websocketProcessBridge = mozprocess.ProcessHandler(command,
                                                                 cwd=SCRIPT_DIR)
         self.websocketProcessBridge.run()
@@ -1284,7 +1311,7 @@ toolbar#nav-bar {
     def logPreamble(self, tests):
         """Logs a suite_start message and test_start/test_end at the beginning of a run.
         """
-        self.log.suite_start([t['path'] for t in tests])
+        self.log.suite_start(self.tests_by_manifest)
         for test in tests:
             if 'disabled' in test:
                 self.log.test_start(test['path'])
@@ -1293,6 +1320,54 @@ toolbar#nav-bar {
                     'SKIP',
                     message=test['disabled'])
 
+    def loadFailurePatternFile(self, pat_file):
+        if pat_file in self.patternFiles:
+            return self.patternFiles[pat_file]
+        if not os.path.isfile(pat_file):
+            self.log.error("TEST-UNEXPECTED-ERROR | runtests.py | "
+                           "Cannot find failure pattern file " + pat_file)
+            return None
+
+        # Using ":error" to ensure it shows up in the failure summary.
+        self.log.warning(
+            "[runtests.py:error] Using {} to filter failures. If there "
+            "is any number mismatch below, you could have fixed "
+            "something documented in that file. Please reduce the "
+            "failure count appropriately.".format(pat_file))
+        patternRE = re.compile(r"""
+            ^\s*\*\s*               # list bullet
+            (test_\S+|\.{3})        # test name
+            (?:\s*(`.+?`|asserts))? # failure pattern
+            (?::.+)?                # optional description
+            \s*\[(\d+|\*)\]         # expected count
+            \s*$
+        """, re.X)
+        patterns = {}
+        with open(pat_file) as f:
+            last_name = None
+            for line in f:
+                match = patternRE.match(line)
+                if not match:
+                    continue
+                name = match.group(1)
+                name = last_name if name == "..." else name
+                last_name = name
+                pat = match.group(2)
+                if pat is not None:
+                    pat = "ASSERTION" if pat == "asserts" else pat[1:-1]
+                count = match.group(3)
+                count = None if count == "*" else int(count)
+                if name not in patterns:
+                    patterns[name] = []
+                patterns[name].append((pat, count))
+        self.patternFiles[pat_file] = patterns
+        return patterns
+
+    def getFailurePatterns(self, pat_file, test_name):
+        patterns = self.loadFailurePatternFile(pat_file)
+        if patterns:
+            return patterns.get(test_name, None)
+
     def getActiveTests(self, options, disabled=True):
         """
           This method is used to parse the manifest and return active filtered tests.
@@ -1300,6 +1375,7 @@ toolbar#nav-bar {
         if self._active_tests:
             return self._active_tests
 
+        tests = []
         manifest = self.getTestManifest(options)
         if manifest:
             if options.extra_mozinfo_json:
@@ -1363,11 +1439,13 @@ toolbar#nav-bar {
                 exists=False, disabled=disabled, filters=filters, **info)
 
             if len(tests) == 0:
-                self.log.error("no tests to run using specified "
-                               "combination of filters: {}".format(
-                                   manifest.fmt_filters()))
+                self.log.error(NO_TESTS_FOUND.format(options.flavor, manifest.fmt_filters()))
 
         paths = []
+
+        # When running mochitest locally the manifest is based on topsrcdir,
+        # but when running in automation it is based on the test root.
+        manifest_root = build_obj.topsrcdir if build_obj else self.testRootAbs
         for test in tests:
             if len(tests) == 1 and 'disabled' in test:
                 del test['disabled']
@@ -1382,11 +1460,22 @@ toolbar#nav-bar {
                     (test['name'], test['manifest']))
                 continue
 
+            manifest_relpath = os.path.relpath(test['manifest'], manifest_root)
+            self.tests_by_manifest[manifest_relpath].append(tp)
+
             testob = {'path': tp}
             if 'disabled' in test:
                 testob['disabled'] = test['disabled']
             if 'expected' in test:
                 testob['expected'] = test['expected']
+            if 'scheme' in test:
+                testob['scheme'] = test['scheme']
+            if options.failure_pattern_file:
+                pat_file = os.path.join(os.path.dirname(test['manifest']),
+                                        options.failure_pattern_file)
+                patterns = self.getFailurePatterns(pat_file, test['name'])
+                if patterns:
+                    testob['expected'] = patterns
             paths.append(testob)
 
         def path_sort(ob1, ob2):
@@ -1395,16 +1484,22 @@ toolbar#nav-bar {
             return cmp(path1, path2)
 
         paths.sort(path_sort)
-        self._active_tests = paths
         if options.dump_tests:
             options.dump_tests = os.path.expanduser(options.dump_tests)
             assert os.path.exists(os.path.dirname(options.dump_tests))
             with open(options.dump_tests, 'w') as dumpFile:
-                dumpFile.write(json.dumps({'active_tests': self._active_tests}))
+                dumpFile.write(json.dumps({'active_tests': paths}))
 
             self.log.info("Dumping active_tests to %s file." % options.dump_tests)
             sys.exit()
 
+        # Upload a list of test manifests that were executed in this run.
+        if 'MOZ_UPLOAD_DIR' in os.environ:
+            artifact = os.path.join(os.environ['MOZ_UPLOAD_DIR'], 'manifests.list')
+            with open(artifact, 'a') as fh:
+                fh.write('\n'.join(sorted(self.tests_by_manifest.keys())))
+
+        self._active_tests = paths
         return self._active_tests
 
     def getTestManifest(self, options):
@@ -1429,7 +1524,8 @@ toolbar#nav-bar {
             if os.path.exists(masterPath):
                 manifest = TestManifest([masterPath], strict=False)
             else:
-                self._log.warning(
+                manifest = None
+                self.log.warning(
                     'TestManifest masterPath %s does not exist' %
                     masterPath)
 
@@ -1474,14 +1570,6 @@ toolbar#nav-bar {
         # via the commandline at your own risk.
         browserEnv["XPCOM_DEBUG_BREAK"] = "stack"
 
-        # When creating child processes on Windows pre-Vista (e.g. Windows XP) we
-        # don't normally inherit stdout/err handles, because you can only do it by
-        # inheriting all other inheritable handles as well.
-        # We need to inherit them for plain mochitests for test logging purposes, so
-        # we do so on the basis of a specific environment variable.
-        if options.flavor == 'plain':
-            browserEnv["MOZ_WIN_INHERIT_STD_HANDLES_PRE_VISTA"] = "1"
-
         # interpolate environment passed with options
         try:
             browserEnv.update(
@@ -1511,9 +1599,6 @@ toolbar#nav-bar {
         self.mozLogs = MOZ_LOG and "MOZ_UPLOAD_DIR" in os.environ
         if self.mozLogs:
             browserEnv["MOZ_LOG"] = MOZ_LOG
-
-        if debugger and not options.slowscript:
-            browserEnv["JS_DISABLE_SLOW_SCRIPT_SIGNALS"] = "1"
 
         # For e10s, our tests default to suppressing the "unsafe CPOW usage"
         # warnings that can plague test logs.
@@ -1558,7 +1643,7 @@ toolbar#nav-bar {
             script = self.start_script
 
         with self.marionette.using_context('chrome'):
-            return self.marionette.execute_script(script, script_args=self.start_script_args)
+            return self.marionette.execute_script(script, script_args=(self.start_script_kwargs, ))
 
     def fillCertificateDB(self, options):
         # TODO: move -> mozprofile:
@@ -1631,9 +1716,11 @@ toolbar#nav-bar {
                 "testing.browserTestHarness.timeout=%d" %
                 options.timeout)
         # browser-chrome tests use a fairly short default timeout of 45 seconds;
-        # this is sometimes too short on asan, where we expect reduced performance.
-        if mozinfo.info["asan"] and options.flavor == 'browser' and options.timeout is None:
-            self.log.info("Increasing default timeout to 90 seconds on ASAN")
+        # this is sometimes too short on asan and debug, where we expect reduced
+        # performance.
+        if (mozinfo.info["asan"] or mozinfo.info["debug"]) and \
+                options.flavor == 'browser' and options.timeout is None:
+            self.log.info("Increasing default timeout to 90 seconds")
             options.extraPrefs.append("testing.browserTestHarness.timeout=90")
 
         options.extraPrefs.append(
@@ -1647,17 +1734,6 @@ toolbar#nav-bar {
 
         # get extensions to install
         extensions = self.getExtensionsToInstall(options)
-
-        # web apps
-        appsPath = os.path.join(
-            SCRIPT_DIR,
-            'profile_data',
-            'webapps_mochitest.json')
-        if os.path.exists(appsPath):
-            with open(appsPath) as apps_file:
-                apps = json.load(apps_file)
-        else:
-            apps = None
 
         # preferences
         preferences = [
@@ -1710,7 +1786,6 @@ toolbar#nav-bar {
                                addons=extensions,
                                locations=self.locations,
                                preferences=prefs,
-                               apps=apps,
                                proxy=proxy
                                )
 
@@ -1947,7 +2022,7 @@ toolbar#nav-bar {
             # TODO: mozrunner should use -foreground at least for mac
             # https://bugzilla.mozilla.org/show_bug.cgi?id=916512
             args.append('-foreground')
-            self.start_script_args.append(testUrl or 'about:blank')
+            self.start_script_kwargs['testUrl'] = testUrl or 'about:blank'
 
             if detectShutdownLeaks:
                 shutdownLeaks = ShutdownLeaks(self.log)
@@ -2006,11 +2081,14 @@ toolbar#nav-bar {
                          outputTimeout=timeout)
             proc = runner.process_handler
             self.log.info("runtests.py | Application pid: %d" % proc.pid)
-            self.log.process_start("Main app process")
+
+            gecko_id = "GECKO(%d)" % proc.pid
+            self.log.process_start(gecko_id)
+            self.message_logger.gecko_id = gecko_id
 
             # start marionette and kick off the tests
             marionette_args = marionette_args or {}
-            port_timeout = marionette_args.pop('port_timeout')
+            port_timeout = marionette_args.pop('port_timeout', 60)
             self.marionette = Marionette(**marionette_args)
             self.marionette.start_session(timeout=port_timeout)
 
@@ -2074,6 +2152,7 @@ toolbar#nav-bar {
             # cleanup
             if os.path.exists(processLog):
                 os.remove(processLog)
+            self.urlOpts = []
 
         return status
 
@@ -2093,7 +2172,7 @@ toolbar#nav-bar {
         Return a path to the runtimes file for a given flavor and
         subsuite.
         """
-        template = "mochitest{e10s}-{suite_slug}.runtimes.json"
+        template = "mochitest-{suite_slug}{e10s}.runtimes.json"
         data_dir = os.path.join(SCRIPT_DIR, 'runtimes')
 
         # Determine the suite slug in the runtimes file name
@@ -2176,6 +2255,20 @@ toolbar#nav-bar {
 
         return result
 
+    def groupTestsByScheme(self, tests):
+        """
+        split tests into groups by schemes. test is classified as http if
+        no scheme specified
+        """
+        httpTests = []
+        httpsTests = []
+        for test in tests:
+            if not test.get('scheme') or test.get('scheme') == 'http':
+                httpTests.append(test)
+            elif test.get('scheme') == 'https':
+                httpsTests.append(test)
+        return {'http': httpTests, 'https': httpsTests}
+
     def runTests(self, options):
         """ Prepare, configure, run tests and cleanup """
 
@@ -2184,6 +2277,10 @@ toolbar#nav-bar {
         if options.flavor in ('a11y', 'chrome'):
             options.e10s = False
         mozinfo.update({"e10s": options.e10s})  # for test manifest parsing.
+
+        # Add flag to mozinfo to indicate that code coverage is enabled.
+        if os.getenv('GCOV_PREFIX') is not None:
+            mozinfo.update({"coverage": True})
 
         self.setTestRoot(options)
 
@@ -2210,7 +2307,7 @@ toolbar#nav-bar {
 
         result = 1  # default value, if no tests are run.
         for d in dirs:
-            print "dir: %s" % d
+            print("dir: %s" % d)
             tests_in_dir = [t for t in testsToRun if os.path.dirname(t) == d]
 
             # If we are using --run-by-dir, we should not use the profile path (if) provided
@@ -2228,20 +2325,20 @@ toolbar#nav-bar {
 
         # printing total number of tests
         if options.flavor == 'browser':
-            print "TEST-INFO | checking window state"
-            print "Browser Chrome Test Summary"
-            print "\tPassed: %s" % self.countpass
-            print "\tFailed: %s" % self.countfail
-            print "\tTodo: %s" % self.counttodo
-            print "\tMode: %s" % e10s_mode
-            print "*** End BrowserChrome Test Results ***"
+            print("TEST-INFO | checking window state")
+            print("Browser Chrome Test Summary")
+            print("\tPassed: %s" % self.countpass)
+            print("\tFailed: %s" % self.countfail)
+            print("\tTodo: %s" % self.counttodo)
+            print("\tMode: %s" % e10s_mode)
+            print("*** End BrowserChrome Test Results ***")
         else:
-            print "0 INFO TEST-START | Shutdown"
-            print "1 INFO Passed:  %s" % self.countpass
-            print "2 INFO Failed:  %s" % self.countfail
-            print "3 INFO Todo:    %s" % self.counttodo
-            print "4 INFO Mode:    %s" % e10s_mode
-            print "5 INFO SimpleTest FINISHED"
+            print("0 INFO TEST-START | Shutdown")
+            print("1 INFO Passed:  %s" % self.countpass)
+            print("2 INFO Failed:  %s" % self.countfail)
+            print("3 INFO Todo:    %s" % self.counttodo)
+            print("4 INFO Mode:    %s" % e10s_mode)
+            print("5 INFO SimpleTest FINISHED")
 
         return result
 
@@ -2317,37 +2414,16 @@ toolbar#nav-bar {
             self.browserEnv["MOZ_LOG_FILE"] = "{}/moz-pid=%PID-uid={}.log".format(
                 self.browserEnv["MOZ_UPLOAD_DIR"], str(uuid.uuid4()))
 
+        status = 0
         try:
             self.startServers(options, debuggerInfo)
-
-            # testsToFilter parameter is used to filter out the test list that
-            # is sent to buildTestPath
-            testURL = self.buildTestPath(options, testsToFilter)
-
-            # read the number of tests here, if we are not going to run any,
-            # terminate early
-            if os.path.exists(
-                os.path.join(
-                    SCRIPT_DIR,
-                    options.testRunManifestFile)):
-                with open(os.path.join(SCRIPT_DIR, options.testRunManifestFile)) as fHandle:
-                    tests = json.load(fHandle)
-                count = 0
-                for test in tests['tests']:
-                    count += 1
-                if count == 0:
-                    return 1
-
-            self.buildURLOptions(options, self.browserEnv)
-            if self.urlOpts:
-                testURL += "?" + "&".join(self.urlOpts)
 
             if options.immersiveMode:
                 options.browserArgs.extend(('-firefoxpath', options.app))
                 options.app = self.immersiveHelperPath
 
             if options.jsdebugger:
-                options.browserArgs.extend(['-jsdebugger'])
+                options.browserArgs.extend(['-jsdebugger', '-wait-for-jsdebugger'])
 
             # Remove the leak detection file so it can't "leak" to the tests run.
             # The file is not there if leak logging was not enabled in the
@@ -2370,7 +2446,7 @@ toolbar#nav-bar {
                 detectShutdownLeaks = mozinfo.info[
                     "debug"] and options.flavor == 'browser'
 
-            self.start_script_args.append(self.normflavor(options.flavor))
+            self.start_script_kwargs['flavor'] = self.normflavor(options.flavor)
             marionette_args = {
                 'symbols_path': options.symbolsPath,
                 'socket_timeout': options.marionette_socket_timeout,
@@ -2382,25 +2458,41 @@ toolbar#nav-bar {
                 marionette_args['host'] = host
                 marionette_args['port'] = int(port)
 
-            self.log.info("runtests.py | Running with e10s: {}".format(options.e10s))
-            self.log.info("runtests.py | Running tests: start.\n")
-            status = self.runApp(testURL,
-                                 self.browserEnv,
-                                 options.app,
-                                 profile=self.profile,
-                                 extraArgs=options.browserArgs,
-                                 utilityPath=options.utilityPath,
-                                 debuggerInfo=debuggerInfo,
-                                 valgrindPath=valgrindPath,
-                                 valgrindArgs=valgrindArgs,
-                                 valgrindSuppFiles=valgrindSuppFiles,
-                                 symbolsPath=options.symbolsPath,
-                                 timeout=timeout,
-                                 detectShutdownLeaks=detectShutdownLeaks,
-                                 screenshotOnFail=options.screenshotOnFail,
-                                 bisectChunk=options.bisectChunk,
-                                 marionette_args=marionette_args,
-                                 )
+            # testsToFilter parameter is used to filter out the test list that
+            # is sent to getTestsByScheme
+            for (scheme, tests) in self.getTestsByScheme(options, testsToFilter):
+                # read the number of tests here, if we are not going to run any,
+                # terminate early
+                if not tests:
+                    continue
+
+                testURL = self.buildTestURL(options, scheme=scheme)
+
+                self.buildURLOptions(options, self.browserEnv)
+                if self.urlOpts:
+                    testURL += "?" + "&".join(self.urlOpts)
+
+                self.log.info("runtests.py | Running with e10s: {}".format(options.e10s))
+                self.log.info("runtests.py | Running tests: start.\n")
+                ret = self.runApp(
+                    testURL,
+                    self.browserEnv,
+                    options.app,
+                    profile=self.profile,
+                    extraArgs=options.browserArgs,
+                    utilityPath=options.utilityPath,
+                    debuggerInfo=debuggerInfo,
+                    valgrindPath=valgrindPath,
+                    valgrindArgs=valgrindArgs,
+                    valgrindSuppFiles=valgrindSuppFiles,
+                    symbolsPath=options.symbolsPath,
+                    timeout=timeout,
+                    detectShutdownLeaks=detectShutdownLeaks,
+                    screenshotOnFail=options.screenshotOnFail,
+                    bisectChunk=options.bisectChunk,
+                    marionette_args=marionette_args,
+                )
+                status = ret or status
         except KeyboardInterrupt:
             self.log.info("runtests.py | Received keyboard interrupt.\n")
             status = -1
@@ -2662,7 +2754,7 @@ def run_test_harness(parser, options):
         key: value for key, value in vars(options).iteritems()
         if key.startswith('log') or key == 'valgrind'}
 
-    runner = MochitestDesktop(logger_options, quiet=options.quiet)
+    runner = MochitestDesktop(options.flavor, logger_options, quiet=options.quiet)
 
     options.runByDir = False
 
@@ -2701,6 +2793,7 @@ def cli(args=sys.argv[1:]):
         sys.exit(1)
 
     return run_test_harness(parser, options)
+
 
 if __name__ == "__main__":
     sys.exit(cli())

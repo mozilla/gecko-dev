@@ -29,18 +29,12 @@
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/WindowsVersion.h"
 
 #include <usp10.h>
 
 using namespace mozilla;
 
 #define ROUND(x) floor((x) + 0.5)
-
-
-#ifndef CLEARTYPE_QUALITY
-#define CLEARTYPE_QUALITY 5
-#endif
 
 #define LOG_FONTLIST(args) MOZ_LOG(gfxPlatform::GetLog(eGfxLog_fontlist), \
                                LogLevel::Debug, args)
@@ -65,7 +59,7 @@ BuildKeyNameFromFontName(nsAString &aName)
 
 class WinUserFontData : public gfxUserFontData {
 public:
-    WinUserFontData(HANDLE aFontRef)
+    explicit WinUserFontData(HANDLE aFontRef)
         : mFontRef(aFontRef)
     { }
 
@@ -222,16 +216,7 @@ GDIFontEntry::IsSymbolFont()
 gfxFont *
 GDIFontEntry::CreateFontInstance(const gfxFontStyle* aFontStyle, bool aNeedsBold)
 {
-    bool isXP = !IsVistaOrLater();
-
-    bool useClearType = isXP && !aFontStyle->systemFont &&
-        (gfxWindowsPlatform::GetPlatform()->UseClearTypeAlways() ||
-         (mIsDataUserFont &&
-          gfxWindowsPlatform::GetPlatform()->UseClearTypeForDownloadableFonts()));
-
-    return new gfxGDIFont(this, aFontStyle, aNeedsBold, 
-                          (useClearType ? gfxFont::kAntialiasSubpixel
-                                        : gfxFont::kAntialiasDefault));
+    return new gfxGDIFont(this, aFontStyle, aNeedsBold);
 }
 
 nsresult
@@ -263,8 +248,7 @@ GDIFontEntry::CopyFontTable(uint32_t aTableTag, nsTArray<uint8_t>& aBuffer)
 
 void
 GDIFontEntry::FillLogFont(LOGFONTW *aLogFont,
-                          uint16_t aWeight, gfxFloat aSize,
-                          bool aUseCleartype)
+                          uint16_t aWeight, gfxFloat aSize)
 {
     memcpy(aLogFont, &mLogFont, sizeof(LOGFONTW));
 
@@ -290,8 +274,6 @@ GDIFontEntry::FillLogFont(LOGFONTW *aLogFont,
     if (mIsDataUserFont) {
         aLogFont->lfItalic = 0;
     }
-
-    aLogFont->lfQuality = (aUseCleartype ? CLEARTYPE_QUALITY : DEFAULT_QUALITY);
 }
 
 #define MISSING_GLYPH 0x1F // glyph index returned for missing characters
@@ -818,7 +800,7 @@ gfxGDIFontList::MakePlatformFont(const nsAString& aFontName,
     // so we set up a stack object to ensure it is freed even if we take an
     // early exit
     struct FontDataDeleter {
-        FontDataDeleter(const uint8_t* aFontData)
+        explicit FontDataDeleter(const uint8_t* aFontData)
             : mFontData(aFontData) { }
         ~FontDataDeleter() { free((void*)mFontData); }
         const uint8_t *mFontData;
@@ -879,15 +861,8 @@ gfxGDIFontList::MakePlatformFont(const nsAString& aFontName,
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) /*type*/,
         aStyle, w, aStretch, winUserFontData, false);
 
-    if (!fe)
-        return fe;
-
-    fe->mIsDataUserFont = true;
-
-    // Uniscribe doesn't place CFF fonts loaded privately
-    // via AddFontMemResourceEx on XP/Vista
-    if (isCFF && !IsWin7OrLater()) {
-        fe->mForceGDI = true;
+    if (fe) {
+      fe->mIsDataUserFont = true;
     }
 
     return fe;

@@ -5,7 +5,7 @@
   <script src="chrome://mochikit/content/tests/SimpleTest/SpawnTask.js"></script>
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <script src="chrome://mochikit/content/tests/SimpleTest/ExtensionTestUtils.js"></script>
-  <link rel="stylesheet" href="chrome://mochikit/contents/tests/SimpleTest/test.css"/>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
 </head>
 <body>
 
@@ -15,15 +15,18 @@
 add_task(function* test_downloads_saveAs() {
   function background() {
     const url = URL.createObjectURL(new Blob(["file content"]));
-    browser.test.onMessage.addListener(() =>
-      browser.downloads.download({url, saveAs: true})
-        .then(id => browser.downloads.onChanged.addListener(delta => {
-          if (delta.state.current === "complete") {
+    browser.test.onMessage.addListener(async () => {
+      try {
+        let id = await browser.downloads.download({url, saveAs: true});
+        browser.downloads.onChanged.addListener(delta => {
+          if (delta.id == id && delta.state.current === "complete") {
             browser.test.sendMessage("done", {ok: true, id});
           }
-        })).catch(({message}) => {
-          browser.test.sendMessage("done", {ok: false, message});
-        }));
+        });
+      } catch ({message}) {
+        browser.test.sendMessage("done", {ok: false, message});
+      }
+    });
     browser.test.sendMessage("ready");
   }
 
@@ -32,8 +35,7 @@ add_task(function* test_downloads_saveAs() {
   const extension = ExtensionTestUtils.loadExtension(manifest);
 
   MockFilePicker.init(window);
-  MockFilePicker.useAnyFile();
-  const [file] = MockFilePicker.returnFiles;
+  const file = yield MockFilePicker.useAnyFile();
 
   yield extension.startup();
   yield extension.awaitMessage("ready");
@@ -42,6 +44,8 @@ add_task(function* test_downloads_saveAs() {
   let result = yield extension.awaitMessage("done");
 
   ok(result.ok, "downloads.download() works with saveAs");
+
+  ok(file.exists(), "the file exists.");
   is(file.fileSize, 12, "downloaded file is the correct size");
   file.remove(false);
 

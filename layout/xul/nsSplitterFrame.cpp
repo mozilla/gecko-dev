@@ -13,7 +13,7 @@
 #include "nsSplitterFrame.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMElement.h"
-#include "nsIDOMXULElement.h"
+#include "nsXULElement.h"
 #include "nsPresContext.h"
 #include "nsRenderingContext.h"
 #include "nsIDocument.h"
@@ -286,7 +286,8 @@ nsSplitterFrame::Init(nsIContent*       aContent,
                           NS_LITERAL_STRING("vertical"), false);
         nsStyleContext* parentStyleContext = StyleContext()->GetParent();
         RefPtr<nsStyleContext> newContext = PresContext()->StyleSet()->
-          ResolveStyleFor(aContent->AsElement(), parentStyleContext);
+          ResolveStyleFor(aContent->AsElement(), parentStyleContext,
+                          LazyComputeBehavior::Allow);
         SetStyleContextWithoutNotification(newContext);
       }
     }
@@ -383,7 +384,7 @@ nsSplitterFrame::HandleEvent(nsPresContext* aPresContext,
     return NS_OK;
   }
 
-  nsWeakFrame weakFrame(this);
+  AutoWeakFrame weakFrame(this);
   RefPtr<nsSplitterFrameInner> inner(mInner);
   switch (aEvent->mMessage) {
     case eMouseMove: 
@@ -422,7 +423,8 @@ nsSplitterFrameInner::MouseUp(nsPresContext* aPresContext,
 
     // if we dragged then fire a command event.
     if (mDidDrag) {
-      nsCOMPtr<nsIDOMXULElement> element = do_QueryInterface(mOuter->GetContent());
+      RefPtr<nsXULElement> element =
+        nsXULElement::FromContent(mOuter->GetContent());
       element->DoCommand();
     }
 
@@ -974,7 +976,7 @@ nsSplitterFrameInner::SetPreferredSize(nsBoxLayoutState& aState, nsIFrame* aChil
                            prefValue, eCaseMatters))
      return;
 
-  nsWeakFrame weakBox(aChildBox);
+  AutoWeakFrame weakBox(aChildBox);
   content->SetAttr(kNameSpaceID_None, attribute, prefValue, true);
   ENSURE_TRUE(weakBox.IsAlive());
   aState.PresShell()->FrameNeedsReflow(aChildBox, nsIPresShell::eStyleChange,

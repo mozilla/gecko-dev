@@ -7,236 +7,19 @@
 #ifndef mozilla_BasePrincipal_h
 #define mozilla_BasePrincipal_h
 
-#include "nsIPrincipal.h"
-#include "nsIScriptSecurityManager.h"
 #include "nsJSPrincipals.h"
 
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/ChromeUtilsBinding.h"
+#include "mozilla/OriginAttributes.h"
 
 class nsIContentSecurityPolicy;
 class nsIObjectOutputStream;
 class nsIObjectInputStream;
 class nsIURI;
 
-class nsExpandedPrincipal;
+class ExpandedPrincipal;
 
 namespace mozilla {
-
-class GenericOriginAttributes;
-
-// Base OriginAttributes class. This has several subclass flavors, and is not
-// directly constructable itself.
-class OriginAttributes : public dom::OriginAttributesDictionary
-{
-public:
-  bool operator==(const OriginAttributes& aOther) const
-  {
-    return mAppId == aOther.mAppId &&
-           mInIsolatedMozBrowser == aOther.mInIsolatedMozBrowser &&
-           mAddonId == aOther.mAddonId &&
-           mUserContextId == aOther.mUserContextId &&
-           mPrivateBrowsingId == aOther.mPrivateBrowsingId &&
-           mFirstPartyDomain == aOther.mFirstPartyDomain;
-  }
-  bool operator!=(const OriginAttributes& aOther) const
-  {
-    return !(*this == aOther);
-  }
-
-  // Serializes/Deserializes non-default values into the suffix format, i.e.
-  // |!key1=value1&key2=value2|. If there are no non-default attributes, this
-  // returns an empty string.
-  void CreateSuffix(nsACString& aStr) const;
-  MOZ_MUST_USE bool PopulateFromSuffix(const nsACString& aStr);
-
-  // Populates the attributes from a string like
-  // |uri!key1=value1&key2=value2| and returns the uri without the suffix.
-  MOZ_MUST_USE bool PopulateFromOrigin(const nsACString& aOrigin,
-                          nsACString& aOriginNoSuffix);
-
-  // Helper function to match mIsPrivateBrowsing to existing private browsing
-  // flags. Once all other flags are removed, this can be removed too.
-  void SyncAttributesWithPrivateBrowsing(bool aInPrivateBrowsing);
-
-  void SetFromGenericAttributes(const GenericOriginAttributes& aAttrs);
-
-protected:
-  OriginAttributes() {}
-  explicit OriginAttributes(const OriginAttributesDictionary& aOther)
-    : OriginAttributesDictionary(aOther) {}
-
-  // check if "privacy.firstparty.isolate" is enabled.
-  bool IsFirstPartyEnabled();
-};
-
-class PrincipalOriginAttributes;
-class DocShellOriginAttributes;
-class NeckoOriginAttributes;
-
-// Various classes in Gecko contain OriginAttributes members, and those
-// OriginAttributes get propagated to other classes according to certain rules.
-// For example, the OriginAttributes on the docshell affect the OriginAttributes
-// for the principal of a document loaded inside it, whose OriginAttributes in
-// turn affect those of network loads and child docshells. To codify and
-// centralize these rules, we introduce separate subclasses for the different
-// flavors, and a variety of InheritFrom* methods to implement the transfer
-// behavior.
-
-// For OriginAttributes stored on principals.
-class PrincipalOriginAttributes : public OriginAttributes
-{
-public:
-  PrincipalOriginAttributes() {}
-  PrincipalOriginAttributes(uint32_t aAppId, bool aInIsolatedMozBrowser)
-  {
-    mAppId = aAppId;
-    mInIsolatedMozBrowser = aInIsolatedMozBrowser;
-  }
-
-  // Inheriting OriginAttributes from docshell to document when user navigates.
-  //
-  // @param aAttrs  Origin Attributes of the docshell.
-  // @param aURI    The URI of the document.
-  void InheritFromDocShellToDoc(const DocShellOriginAttributes& aAttrs,
-                                const nsIURI* aURI);
-
-  // Inherit OriginAttributes from Necko.
-  void InheritFromNecko(const NeckoOriginAttributes& aAttrs);
-
-  void StripUserContextIdAndFirstPartyDomain();
-};
-
-// For OriginAttributes stored on docshells / loadcontexts / browsing contexts.
-class DocShellOriginAttributes : public OriginAttributes
-{
-public:
-  DocShellOriginAttributes() {}
-  DocShellOriginAttributes(uint32_t aAppId, bool aInIsolatedMozBrowser)
-  {
-    mAppId = aAppId;
-    mInIsolatedMozBrowser = aInIsolatedMozBrowser;
-  }
-
-  // Inheriting OriginAttributes from document to child docshell when an
-  // <iframe> is created.
-  //
-  // @param aAttrs  Origin Attributes of the document.
-  void
-  InheritFromDocToChildDocShell(const PrincipalOriginAttributes& aAttrs);
-};
-
-// For OriginAttributes stored on Necko.
-class NeckoOriginAttributes : public OriginAttributes
-{
-public:
-  NeckoOriginAttributes() {}
-  NeckoOriginAttributes(uint32_t aAppId, bool aInIsolatedMozBrowser)
-  {
-    mAppId = aAppId;
-    mInIsolatedMozBrowser = aInIsolatedMozBrowser;
-  }
-
-  // Inheriting OriginAttributes from document to necko when a network request
-  // is made.
-  void InheritFromDocToNecko(const PrincipalOriginAttributes& aAttrs);
-
-  // Inheriting OriginAttributes from a docshell when loading a top-level
-  // document.
-  void InheritFromDocShellToNecko(const DocShellOriginAttributes& aAttrs,
-                                  const bool aIsTopLevelDocument = false,
-                                  nsIURI* aURI = nullptr);
-};
-
-// For operating on OriginAttributes not associated with any data structure.
-class GenericOriginAttributes : public OriginAttributes
-{
-public:
-  GenericOriginAttributes() {}
-  explicit GenericOriginAttributes(const OriginAttributesDictionary& aOther)
-    : OriginAttributes(aOther) {}
-};
-
-class OriginAttributesPattern : public dom::OriginAttributesPatternDictionary
-{
-public:
-  // To convert a JSON string to an OriginAttributesPattern, do the following:
-  //
-  // OriginAttributesPattern pattern;
-  // if (!pattern.Init(aJSONString)) {
-  //   ... // handle failure.
-  // }
-  OriginAttributesPattern() {}
-
-  explicit OriginAttributesPattern(const OriginAttributesPatternDictionary& aOther)
-    : OriginAttributesPatternDictionary(aOther) {}
-
-  // Performs a match of |aAttrs| against this pattern.
-  bool Matches(const OriginAttributes& aAttrs) const
-  {
-    if (mAppId.WasPassed() && mAppId.Value() != aAttrs.mAppId) {
-      return false;
-    }
-
-    if (mInIsolatedMozBrowser.WasPassed() && mInIsolatedMozBrowser.Value() != aAttrs.mInIsolatedMozBrowser) {
-      return false;
-    }
-
-    if (mAddonId.WasPassed() && mAddonId.Value() != aAttrs.mAddonId) {
-      return false;
-    }
-
-    if (mUserContextId.WasPassed() && mUserContextId.Value() != aAttrs.mUserContextId) {
-      return false;
-    }
-
-    if (mPrivateBrowsingId.WasPassed() && mPrivateBrowsingId.Value() != aAttrs.mPrivateBrowsingId) {
-      return false;
-    }
-
-    if (mFirstPartyDomain.WasPassed() && mFirstPartyDomain.Value() != aAttrs.mFirstPartyDomain) {
-      return false;
-    }
-
-    return true;
-  }
-
-  bool Overlaps(const OriginAttributesPattern& aOther) const
-  {
-    if (mAppId.WasPassed() && aOther.mAppId.WasPassed() &&
-        mAppId.Value() != aOther.mAppId.Value()) {
-      return false;
-    }
-
-    if (mInIsolatedMozBrowser.WasPassed() &&
-        aOther.mInIsolatedMozBrowser.WasPassed() &&
-        mInIsolatedMozBrowser.Value() != aOther.mInIsolatedMozBrowser.Value()) {
-      return false;
-    }
-
-    if (mAddonId.WasPassed() && aOther.mAddonId.WasPassed() &&
-        mAddonId.Value() != aOther.mAddonId.Value()) {
-      return false;
-    }
-
-    if (mUserContextId.WasPassed() && aOther.mUserContextId.WasPassed() &&
-        mUserContextId.Value() != aOther.mUserContextId.Value()) {
-      return false;
-    }
-
-    if (mPrivateBrowsingId.WasPassed() && aOther.mPrivateBrowsingId.WasPassed() &&
-        mPrivateBrowsingId.Value() != aOther.mPrivateBrowsingId.Value()) {
-      return false;
-    }
-
-    if (mFirstPartyDomain.WasPassed() && aOther.mFirstPartyDomain.WasPassed() &&
-        mFirstPartyDomain.Value() != aOther.mFirstPartyDomain.Value()) {
-      return false;
-    }
-
-    return true;
-  }
-};
 
 /*
  * Base class from which all nsIPrincipal implementations inherit. Use this for
@@ -248,7 +31,14 @@ public:
 class BasePrincipal : public nsJSPrincipals
 {
 public:
-  BasePrincipal();
+  enum PrincipalKind {
+    eNullPrincipal,
+    eCodebasePrincipal,
+    eExpandedPrincipal,
+    eSystemPrincipal
+  };
+
+  explicit BasePrincipal(PrincipalKind aKind);
 
   enum DocumentDomainConsideration { DontConsiderDocumentDomain, ConsiderDocumentDomain};
   bool Subsumes(nsIPrincipal* aOther, DocumentDomainConsideration aConsideration);
@@ -259,8 +49,10 @@ public:
   NS_IMETHOD EqualsConsideringDomain(nsIPrincipal* other, bool* _retval) final;
   NS_IMETHOD Subsumes(nsIPrincipal* other, bool* _retval) final;
   NS_IMETHOD SubsumesConsideringDomain(nsIPrincipal* other, bool* _retval) final;
+  NS_IMETHOD SubsumesConsideringDomainIgnoringFPD(nsIPrincipal* other, bool* _retval) final;
   NS_IMETHOD CheckMayLoad(nsIURI* uri, bool report, bool allowIfInheritsPrincipal) final;
   NS_IMETHOD GetCsp(nsIContentSecurityPolicy** aCsp) override;
+  NS_IMETHOD SetCsp(nsIContentSecurityPolicy* aCsp) override;
   NS_IMETHOD EnsureCSP(nsIDOMDocument* aDocument, nsIContentSecurityPolicy** aCSP) override;
   NS_IMETHOD GetPreloadCsp(nsIContentSecurityPolicy** aPreloadCSP) override;
   NS_IMETHOD EnsurePreloadCSP(nsIDOMDocument* aDocument, nsIContentSecurityPolicy** aCSP) override;
@@ -273,41 +65,41 @@ public:
   NS_IMETHOD GetOriginSuffix(nsACString& aOriginSuffix) final;
   NS_IMETHOD GetAppStatus(uint16_t* aAppStatus) final;
   NS_IMETHOD GetAppId(uint32_t* aAppStatus) final;
-  NS_IMETHOD GetAddonId(nsAString& aAddonId) final;
   NS_IMETHOD GetIsInIsolatedMozBrowserElement(bool* aIsInIsolatedMozBrowserElement) final;
   NS_IMETHOD GetUnknownAppId(bool* aUnknownAppId) final;
   NS_IMETHOD GetUserContextId(uint32_t* aUserContextId) final;
   NS_IMETHOD GetPrivateBrowsingId(uint32_t* aPrivateBrowsingId) final;
 
-  bool EqualsIgnoringAddonId(nsIPrincipal *aOther);
-
   virtual bool AddonHasPermission(const nsAString& aPerm);
-
-  virtual bool IsOnCSSUnprefixingWhitelist() override { return false; }
 
   virtual bool IsCodebasePrincipal() const { return false; };
 
   static BasePrincipal* Cast(nsIPrincipal* aPrin) { return static_cast<BasePrincipal*>(aPrin); }
   static already_AddRefed<BasePrincipal>
-  CreateCodebasePrincipal(nsIURI* aURI, const PrincipalOriginAttributes& aAttrs);
+  CreateCodebasePrincipal(nsIURI* aURI, const OriginAttributes& aAttrs);
   static already_AddRefed<BasePrincipal> CreateCodebasePrincipal(const nsACString& aOrigin);
 
-  const PrincipalOriginAttributes& OriginAttributesRef() { return mOriginAttributes; }
+  const OriginAttributes& OriginAttributesRef() final { return mOriginAttributes; }
   uint32_t AppId() const { return mOriginAttributes.mAppId; }
   uint32_t UserContextId() const { return mOriginAttributes.mUserContextId; }
   uint32_t PrivateBrowsingId() const { return mOriginAttributes.mPrivateBrowsingId; }
   bool IsInIsolatedMozBrowserElement() const { return mOriginAttributes.mInIsolatedMozBrowser; }
 
-  enum PrincipalKind {
-    eNullPrincipal,
-    eCodebasePrincipal,
-    eExpandedPrincipal,
-    eSystemPrincipal
-  };
-
-  virtual PrincipalKind Kind() = 0;
+  PrincipalKind Kind() const { return mKind; }
 
   already_AddRefed<BasePrincipal> CloneStrippingUserContextIdAndFirstPartyDomain();
+
+  // Helper to check whether this principal is associated with an addon that
+  // allows unprivileged code to load aURI.  aExplicit == true will prevent
+  // use of all_urls permission, requiring the domain in its permissions.
+  bool AddonAllowsLoad(nsIURI* aURI, bool aExplicit = false);
+
+  // Call these to avoid the cost of virtual dispatch.
+  inline bool FastEquals(nsIPrincipal* aOther);
+  inline bool FastEqualsConsideringDomain(nsIPrincipal* aOther);
+  inline bool FastSubsumes(nsIPrincipal* aOther);
+  inline bool FastSubsumesConsideringDomain(nsIPrincipal* aOther);
+  inline bool FastSubsumesConsideringDomainIgnoringFPD(nsIPrincipal* aOther);
 
 protected:
   virtual ~BasePrincipal();
@@ -321,16 +113,116 @@ protected:
   // principal would allow the load ignoring any common behavior implemented in
   // BasePrincipal::CheckMayLoad.
   virtual bool MayLoadInternal(nsIURI* aURI) = 0;
-  friend class ::nsExpandedPrincipal;
+  friend class ::ExpandedPrincipal;
 
-  // Helper to check whether this principal is associated with an addon that
-  // allows unprivileged code to load aURI.
-  bool AddonAllowsLoad(nsIURI* aURI);
+  // This function should be called as the last step of the initialization of the
+  // principal objects.  It's typically called as the last step from the Init()
+  // method of the child classes.
+  void FinishInit();
 
   nsCOMPtr<nsIContentSecurityPolicy> mCSP;
   nsCOMPtr<nsIContentSecurityPolicy> mPreloadCSP;
-  PrincipalOriginAttributes mOriginAttributes;
+  nsCOMPtr<nsIAtom> mOriginNoSuffix;
+  nsCOMPtr<nsIAtom> mOriginSuffix;
+  OriginAttributes mOriginAttributes;
+  PrincipalKind mKind;
+  bool mDomainSet;
 };
+
+inline bool
+BasePrincipal::FastEquals(nsIPrincipal* aOther)
+{
+  auto other = Cast(aOther);
+  if (Kind() != other->Kind()) {
+    // Principals of different kinds can't be equal.
+    return false;
+  }
+
+  // Two principals are considered to be equal if their origins are the same.
+  // If the two principals are codebase principals, their origin attributes
+  // (aka the origin suffix) must also match.
+  // If the two principals are null principals, they're only equal if they're
+  // the same object.
+  if (Kind() == eNullPrincipal || Kind() == eSystemPrincipal) {
+    return this == other;
+  }
+
+  if (mOriginNoSuffix) {
+    if (Kind() == eCodebasePrincipal) {
+      return mOriginNoSuffix == other->mOriginNoSuffix &&
+             mOriginSuffix == other->mOriginSuffix;
+    }
+
+    MOZ_ASSERT(Kind() == eExpandedPrincipal);
+    return mOriginNoSuffix == other->mOriginNoSuffix;
+  }
+
+  // If mOriginNoSuffix is null on one of our principals, we must fall back
+  // to the slow path.
+  return Subsumes(aOther, DontConsiderDocumentDomain) &&
+         other->Subsumes(this, DontConsiderDocumentDomain);
+}
+
+inline bool
+BasePrincipal::FastEqualsConsideringDomain(nsIPrincipal* aOther)
+{
+  // If neither of the principals have document.domain set, we use the fast path
+  // in Equals().  Otherwise, we fall back to the slow path below.
+  auto other = Cast(aOther);
+  if (!mDomainSet && !other->mDomainSet) {
+    return FastEquals(aOther);
+  }
+
+  return Subsumes(aOther, ConsiderDocumentDomain) &&
+         other->Subsumes(this, ConsiderDocumentDomain);
+}
+
+inline bool
+BasePrincipal::FastSubsumes(nsIPrincipal* aOther)
+{
+  // If two principals are equal, then they both subsume each other.
+  // We deal with two special cases first:
+  // Null principals only subsume each other if they are equal, and are only
+  // equal if they're the same object.
+  // Also, if mOriginNoSuffix is null, FastEquals falls back to the slow path
+  // using Subsumes, so we don't want to use it in that case to avoid an
+  // infinite recursion.
+  auto other = Cast(aOther);
+  if (Kind() == eNullPrincipal && other->Kind() == eNullPrincipal) {
+    return this == other;
+  }
+  if (mOriginNoSuffix && FastEquals(aOther)) {
+    return true;
+  }
+
+  // Otherwise, fall back to the slow path.
+  return Subsumes(aOther, DontConsiderDocumentDomain);
+}
+
+inline bool
+BasePrincipal::FastSubsumesConsideringDomain(nsIPrincipal* aOther)
+{
+  // If neither of the principals have document.domain set, we hand off to
+  // FastSubsumes() which has fast paths for some special cases. Otherwise, we fall
+  // back to the slow path below.
+  if (!mDomainSet && !Cast(aOther)->mDomainSet) {
+    return FastSubsumes(aOther);
+  }
+
+  return Subsumes(aOther, ConsiderDocumentDomain);
+}
+
+inline bool
+BasePrincipal::FastSubsumesConsideringDomainIgnoringFPD(nsIPrincipal* aOther)
+{
+  if (Kind() == eCodebasePrincipal &&
+      !dom::ChromeUtils::IsOriginAttributesEqualIgnoringFPD(
+            mOriginAttributes, Cast(aOther)->mOriginAttributes)) {
+    return false;
+  }
+
+ return SubsumesInternal(aOther, ConsiderDocumentDomain);
+}
 
 } // namespace mozilla
 

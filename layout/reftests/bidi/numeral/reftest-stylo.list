@@ -4,11 +4,11 @@ pref(bidi.numeral,1) == arabic-1.html arabic-1.html
 pref(bidi.numeral,2) == arabic-1.html arabic-1.html
 pref(bidi.numeral,3) == arabic-1.html arabic-1.html
 pref(bidi.numeral,4) == arabic-1.html arabic-1.html
-skip pref(bidi.numeral,0) == arabic-2.html arabic-2.html
-skip pref(bidi.numeral,1) == arabic-2.html arabic-2.html
-skip pref(bidi.numeral,2) == arabic-2.html arabic-2.html
-skip pref(bidi.numeral,3) == arabic-2.html arabic-2.html
-skip pref(bidi.numeral,4) == arabic-2.html arabic-2.html
+pref(bidi.numeral,0) == arabic-2.html arabic-2.html
+pref(bidi.numeral,1) == arabic-2.html arabic-2.html
+pref(bidi.numeral,2) == arabic-2.html arabic-2.html
+pref(bidi.numeral,3) == arabic-2.html arabic-2.html
+pref(bidi.numeral,4) == arabic-2.html arabic-2.html
 pref(bidi.numeral,0) == arabic-3.html arabic-3.html
 pref(bidi.numeral,1) == arabic-3.html arabic-3.html
 pref(bidi.numeral,2) == arabic-3.html arabic-3.html
@@ -35,9 +35,9 @@ pref(bidi.numeral,2) == bug441782-2.html bug441782-2.html
 pref(bidi.numeral,3) == bug441782-2.html bug441782-2.html
 pref(bidi.numeral,4) == bug441782-2.html bug441782-2.html
 pref(bidi.numeral,0) == bug441782-3.html bug441782-3.html
-fails-if(winWidget&&!layersGPUAccelerated&&!(/^Windows\x20NT\x205\.1/.test(http.oscpu))&&!skiaContent) fuzzy-if(winWidget&&!d2d&&d3d11,13,1) pref(bidi.numeral,1) == bug441782-3.html bug441782-3.html
-fails-if(winWidget&&!layersGPUAccelerated&&!(/^Windows\x20NT\x205\.1/.test(http.oscpu))&&!skiaContent) fuzzy-if(winWidget&&!d2d&&d3d11,13,1) pref(bidi.numeral,2) == bug441782-3.html bug441782-3.html
-fails-if(winWidget&&!layersGPUAccelerated&&!(/^Windows\x20NT\x205\.1/.test(http.oscpu))&&!skiaContent) fuzzy-if(winWidget&&!d2d&&d3d11,13,1) pref(bidi.numeral,3) == bug441782-3.html bug441782-3.html
+== bug441782-3.html bug441782-3.html
+== bug441782-3.html bug441782-3.html
+== bug441782-3.html bug441782-3.html
 pref(bidi.numeral,4) == bug441782-3.html bug441782-3.html
 pref(bidi.numeral,0) == bug441782-4.html bug441782-4.html
 pref(bidi.numeral,1) == bug441782-4.html bug441782-4.html
@@ -91,13 +91,13 @@ pref(bidi.numeral,3) == persian-1.html persian-1.html
 pref(bidi.numeral,4) == persian-1.html persian-1.html
 pref(bidi.numeral,5) == persian-1.html persian-1.html
 pref(bidi.numeral,6) == persian-1.html persian-1.html
-skip pref(bidi.numeral,0) == persian-2.html persian-2.html
-skip pref(bidi.numeral,1) == persian-2.html persian-2.html
-skip pref(bidi.numeral,2) == persian-2.html persian-2.html
-skip pref(bidi.numeral,3) == persian-2.html persian-2.html
-skip pref(bidi.numeral,4) == persian-2.html persian-2.html
-skip pref(bidi.numeral,5) == persian-2.html persian-2.html
-skip pref(bidi.numeral,6) == persian-2.html persian-2.html
+pref(bidi.numeral,0) == persian-2.html persian-2.html
+pref(bidi.numeral,1) == persian-2.html persian-2.html
+pref(bidi.numeral,2) == persian-2.html persian-2.html
+pref(bidi.numeral,3) == persian-2.html persian-2.html
+pref(bidi.numeral,4) == persian-2.html persian-2.html
+pref(bidi.numeral,5) == persian-2.html persian-2.html
+pref(bidi.numeral,6) == persian-2.html persian-2.html
 pref(bidi.numeral,0) == persian-3.html persian-3.html
 pref(bidi.numeral,1) == persian-3.html persian-3.html
 pref(bidi.numeral,2) == persian-3.html persian-3.html

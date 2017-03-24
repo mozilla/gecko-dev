@@ -1,6 +1,20 @@
 # This file contains a definition of the scalar probes that are recorded in Telemetry.
 # They are submitted with the "main" pings and can be inspected in about:telemetry.
 
+# The following section contains the aushelper system add-on scalars.
+aushelper:
+  websense_reg_version:
+    bug_numbers:
+      - 1305847
+    description: The Websense version from the Windows registry.
+    expires: "60"
+    kind: string
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
 # The following section contains the browser engagement scalars.
 browser.engagement:
   max_concurrent_tab_count:
@@ -10,11 +24,13 @@ browser.engagement:
       The count of maximum number of tabs open during a subsession,
       across all windows, including tabs in private windows and restored
       at startup.
-    expires: "55"
+    expires: never
     kind: uint
     notification_emails:
       - rweiss@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   tab_open_event_count:
     bug_numbers:
@@ -23,11 +39,13 @@ browser.engagement:
       The count of tab open events per subsession, across all windows, after the
       session has been restored. This includes tab open events from private windows
       and from manual session restorations (i.e. after crashes and from about:home).
-    expires: "55"
+    expires: never
     kind: uint
     notification_emails:
       - rweiss@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   max_concurrent_window_count:
     bug_numbers:
@@ -35,11 +53,13 @@ browser.engagement:
     description: >
       The count of maximum number of browser windows open during a subsession. This
       includes private windows and the ones opened when starting the browser.
-    expires: "55"
+    expires: never
     kind: uint
     notification_emails:
       - rweiss@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   window_open_event_count:
     bug_numbers:
@@ -48,11 +68,13 @@ browser.engagement:
       The count of browser window open events per subsession, after the session
       has been restored. The count includes private windows and the ones from manual
       session restorations (i.e. after crashes and from about:home).
-    expires: "55"
+    expires: never
     kind: uint
     notification_emails:
       - rweiss@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   total_uri_count:
     bug_numbers:
@@ -61,11 +83,13 @@ browser.engagement:
       The count of the total non-unique http(s) URIs visited in a subsession, including
       page reloads, after the session has been restored. This does not include background
       page requests and URIs from embedded pages or private browsing.
-    expires: "55"
+    expires: never
     kind: uint
     notification_emails:
       - rweiss@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   unfiltered_uri_count:
     bug_numbers:
@@ -75,11 +99,13 @@ browser.engagement:
       a specific protocol, including page reloads and about:* pages (other than initial
       pages such as about:blank, ...), after the session has been restored. This does
       not include background page requests and URIs from embedded pages or private browsing.
-    expires: "55"
+    expires: never
     kind: uint
     notification_emails:
       - bcolloran@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   unique_domains_count:
     bug_numbers:
@@ -90,11 +116,13 @@ browser.engagement:
       (i.e. test.example.com and other.example.com are only counted once).
       This does not include background page requests and domains from embedded pages
       or private browsing. The count is limited to 100 unique domains.
-    expires: "55"
+    expires: never
     kind: uint
     notification_emails:
       - rweiss@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
 # The following section contains the browser engagement scalars.
 browser.engagement.navigation:
@@ -104,12 +132,14 @@ browser.engagement.navigation:
     description: >
       The count URI loads triggered in a subsession from the urlbar (awesomebar),
       broken down by the originating action.
-    expires: "55"
+    expires: never
     kind: uint
     keyed: true
     notification_emails:
       - bcolloran@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   searchbar:
     bug_numbers:
@@ -117,12 +147,14 @@ browser.engagement.navigation:
     description: >
       The count URI loads triggered in a subsession from the searchbar,
       broken down by the originating action.
-    expires: "55"
+    expires: never
     kind: uint
     keyed: true
     notification_emails:
       - bcolloran@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   about_home:
     bug_numbers:
@@ -130,12 +162,14 @@ browser.engagement.navigation:
     description: >
       The count URI loads triggered in a subsession from about:home,
       broken down by the originating action.
-    expires: "55"
+    expires: never
     kind: uint
     keyed: true
     notification_emails:
       - bcolloran@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   about_newtab:
     bug_numbers:
@@ -143,12 +177,14 @@ browser.engagement.navigation:
     description: >
       The count URI loads triggered in a subsession from about:newtab,
       broken down by the originating action.
-    expires: "55"
+    expires: never
     kind: uint
     keyed: true
     notification_emails:
       - bcolloran@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   contextmenu:
     bug_numbers:
@@ -156,12 +192,66 @@ browser.engagement.navigation:
     description: >
       The count URI loads triggered in a subsession from the contextmenu,
       broken down by the originating action.
-    expires: "55"
+    expires: never
     kind: uint
     keyed: true
     notification_emails:
       - bcolloran@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
+# This section is for probes used to measure use of the Webextensions storage.sync API.
+storage.sync.api.usage:
+  extensions_using:
+    bug_numbers:
+      - 1328974
+    description: >
+      The count of webextensions that have data stored in the chrome.storage.sync API.
+      This includes extensions that have not used the storage.sync API this session.
+      This includes items that were not stored this session.
+      This scalar is collected after every sync.
+    expires: "58"
+    kind: uint
+    keyed: false
+    notification_emails:
+      - eglassercamp@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+  items_stored:
+    bug_numbers:
+      - 1328974
+    description: >
+      The count of items in storage.sync storage, broken down by extension ID.
+      This includes extensions that have not used the storage.sync API this session.
+      This includes items that were not stored this session.
+      This scalar is collected after every sync.
+    expires: "58"
+    kind: uint
+    keyed: true
+    notification_emails:
+      - eglassercamp@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+  storage_consumed:
+    bug_numbers:
+      - 1328974
+    description: >
+      The count of bytes used in storage.sync, broken down by extension ID.
+      This includes extensions that have not used the storage.sync API this session.
+      This includes items that were not stored this session.
+      This scalar is collected after every sync.
+    expires: "58"
+    kind: uint
+    keyed: true
+    notification_emails:
+      - eglassercamp@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+
 
 # The following section is for probes testing the Telemetry system. They will not be
 # submitted in pings and are only used for testing.
@@ -176,6 +266,8 @@ telemetry.test:
     kind: uint
     notification_emails:
       - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
 
   string_kind:
     bug_numbers:
@@ -185,6 +277,8 @@ telemetry.test:
     kind: string
     notification_emails:
       - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
 
   boolean_kind:
     bug_numbers:
@@ -194,6 +288,8 @@ telemetry.test:
     kind: boolean
     notification_emails:
       - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
 
   expired:
     bug_numbers:
@@ -203,6 +299,8 @@ telemetry.test:
     kind: uint
     notification_emails:
       - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
 
   unexpired:
     bug_numbers:
@@ -212,6 +310,8 @@ telemetry.test:
     kind: uint
     notification_emails:
       - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
 
   release_optin:
     bug_numbers:
@@ -222,6 +322,8 @@ telemetry.test:
     notification_emails:
       - telemetry-client-dev@mozilla.com
     release_channel_collection: opt-in
+    record_in_processes:
+      - 'main'
 
   release_optout:
     bug_numbers:
@@ -232,6 +334,8 @@ telemetry.test:
     notification_emails:
       - telemetry-client-dev@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   keyed_release_optin:
     bug_numbers:
@@ -243,6 +347,8 @@ telemetry.test:
     notification_emails:
       - telemetry-client-dev@mozilla.com
     release_channel_collection: opt-in
+    record_in_processes:
+      - 'main'
 
   keyed_release_optout:
     bug_numbers:
@@ -254,6 +360,8 @@ telemetry.test:
     notification_emails:
       - telemetry-client-dev@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
 
   keyed_expired:
     bug_numbers:
@@ -264,6 +372,8 @@ telemetry.test:
     keyed: true
     notification_emails:
       - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
 
   keyed_unsigned_int:
     bug_numbers:
@@ -274,6 +384,8 @@ telemetry.test:
     keyed: true
     notification_emails:
       - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
 
   keyed_boolean_kind:
     bug_numbers:
@@ -284,3 +396,143 @@ telemetry.test:
     keyed: true
     notification_emails:
       - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'main'
+      - 'content'
+
+  content_only_uint:
+    bug_numbers:
+      - 1278556
+    description: A testing uint scalar; not meant to be touched.
+    expires: never
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'content'
+
+  all_processes_uint:
+    bug_numbers:
+      - 1278556
+    description: A testing uint scalar; not meant to be touched.
+    expires: never
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'all'
+
+  all_child_processes_string:
+    bug_numbers:
+      - 1278556
+    description: A testing string scalar; not meant to be touched.
+    expires: never
+    kind: string
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    record_in_processes:
+      - 'all_childs'
+
+# The following section contains WebRTC nICEr scalars
+# For more info on ICE, see https://tools.ietf.org/html/rfc5245
+# For more info on STUN, see https://tools.ietf.org/html/rfc5389
+# For more info on TURN, see https://tools.ietf.org/html/rfc5766
+webrtc.nicer:
+  stun_retransmits:
+    bug_numbers:
+      - 1325536
+    description: >
+      The count of STUN message retransmissions during a WebRTC call.
+      When sending STUN request messages over UDP, messages may be
+      dropped by the network. Retransmissions are the mechanism used to
+      accomplish reliability of the STUN request/response transaction.
+      This can happen during both successful and unsuccessful WebRTC
+      calls.
+      For more info on ICE, see https://tools.ietf.org/html/rfc5245
+      For more info on STUN, see https://tools.ietf.org/html/rfc5389
+      For more info on TURN, see https://tools.ietf.org/html/rfc5766
+    expires: "57"
+    kind: uint
+    notification_emails:
+      - webrtc-ice-telemetry-alerts@mozilla.com
+    release_channel_collection: opt-in
+    record_in_processes:
+      - 'main'
+      - 'content'
+
+  turn_401s:
+    bug_numbers:
+      - 1325536
+    description: >
+      The count of TURN 401 (Unauthorized) responses to allocation
+      requests. Only 401 responses beyond the first, expected 401 are
+      counted. More than one 401 repsonse indicates the client is
+      experiencing difficulty authenticating with the TURN server. This
+      can happen during both successful and unsuccessful WebRTC calls.
+      For more info on ICE, see https://tools.ietf.org/html/rfc5245
+      For more info on STUN, see https://tools.ietf.org/html/rfc5389
+      For more info on TURN, see https://tools.ietf.org/html/rfc5766
+    expires: "57"
+    kind: uint
+    notification_emails:
+      - webrtc-ice-telemetry-alerts@mozilla.com
+    release_channel_collection: opt-in
+    record_in_processes:
+      - 'main'
+      - 'content'
+
+  turn_403s:
+    bug_numbers:
+      - 1325536
+    description: >
+      The count of TURN 403 (Forbidden) responses to CreatePermission or
+      ChannelBind requests.  This indicates that the TURN server is
+      refusing the request for an IP address or IP address/port
+      combination, likely due to administrative restrictions.
+      For more info on ICE, see https://tools.ietf.org/html/rfc5245
+      For more info on STUN, see https://tools.ietf.org/html/rfc5389
+      For more info on TURN, see https://tools.ietf.org/html/rfc5766
+    expires: "57"
+    kind: uint
+    notification_emails:
+      - webrtc-ice-telemetry-alerts@mozilla.com
+    release_channel_collection: opt-in
+    record_in_processes:
+      - 'main'
+      - 'content'
+
+  turn_438s:
+    bug_numbers:
+      - 1325536
+    description: >
+      The count of TURN 438 (Stale Nonce) responses to allocation
+      requests. This can happen during both successful and unsuccessful
+      WebRTC calls.
+      For more info on ICE, see https://tools.ietf.org/html/rfc5245
+      For more info on STUN, see https://tools.ietf.org/html/rfc5389
+      For more info on TURN, see https://tools.ietf.org/html/rfc5766
+    expires: "57"
+    kind: uint
+    notification_emails:
+      - webrtc-ice-telemetry-alerts@mozilla.com
+    release_channel_collection: opt-in
+    record_in_processes:
+      - 'main'
+      - 'content'
+
+# The following section contains content process base counters.
+dom.contentprocess:
+  troubled_due_to_memory:
+    bug_numbers:
+      - 1305091
+    description: >
+      The number of content processes that were marked as troubled because
+      it was running low on virtual memory.
+    expires: "58"
+    kind: uint
+    notification_emails:
+      - benjamin@smedbergs.us
+      - mconley@mozilla.com
+    release_channel_collection: opt-in
+    record_in_processes:
+      - 'main'

@@ -6,6 +6,7 @@
 #include "WebGLVertexAttribData.h"
 
 #include "GLContext.h"
+#include "WebGLBuffer.h"
 
 namespace mozilla {
 
@@ -43,14 +44,37 @@ CalcBytesPerVertex(GLenum type, uint8_t size)
     return bytesPerType * size;
 }
 
+static GLenum
+AttribPointerBaseType(bool integerFunc, GLenum type)
+{
+    if (!integerFunc)
+        return LOCAL_GL_FLOAT;
+
+    switch (type) {
+    case LOCAL_GL_BYTE:
+    case LOCAL_GL_SHORT:
+    case LOCAL_GL_INT:
+        return LOCAL_GL_INT;
+
+    case LOCAL_GL_UNSIGNED_BYTE:
+    case LOCAL_GL_UNSIGNED_SHORT:
+    case LOCAL_GL_UNSIGNED_INT:
+        return LOCAL_GL_UNSIGNED_INT;
+
+    default:
+        MOZ_CRASH();
+    }
+}
+
 void
 WebGLVertexAttribData::VertexAttribPointer(bool integerFunc, WebGLBuffer* buf,
                                            uint8_t size, GLenum type, bool normalized,
                                            uint32_t stride, uint64_t byteOffset)
 {
     mIntegerFunc = integerFunc;
-    mBuf = buf;
+    WebGLBuffer::SetSlot(0, buf, &mBuf);
     mType = type;
+    mBaseType = AttribPointerBaseType(integerFunc, type);
     mSize = size;
     mBytesPerVertex = CalcBytesPerVertex(mType, mSize);
     mNormalized = normalized;

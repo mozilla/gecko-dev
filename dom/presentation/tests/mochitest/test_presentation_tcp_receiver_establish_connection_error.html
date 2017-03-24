@@ -10,7 +10,7 @@
 </head>
 <body>
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1069230">Test for connection establishing errors of B2G Presentation API at receiver side</a>
-<script type="application/javascript;version=1.8">
+<script type="application/javascript">
 
 'use strict';
 
@@ -46,7 +46,7 @@ function setup() {
                                    receiverListener);
         teardown();
       }
-    }, false);
+    });
 
     var promise = new Promise(function(aResolve, aReject) {
       document.body.appendChild(iframe);
@@ -100,7 +100,8 @@ SpecialPowers.pushPermissions([
   SpecialPowers.pushPrefEnv({ 'set': [["dom.presentation.enabled", true],
                                       ["dom.presentation.receiver.enabled", true],
                                       ["dom.presentation.session_transport.data_channel.enable", false],
-                                      ["dom.mozBrowserFramesEnabled", true]]},
+                                      ["dom.mozBrowserFramesEnabled", true],
+                                      ["network.disable.ipc.security", true]]},
                             runTests);
 });
 

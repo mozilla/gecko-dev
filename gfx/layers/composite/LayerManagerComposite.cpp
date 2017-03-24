@@ -8,11 +8,9 @@
 #include <stdint.h>                     // for uint16_t, uint32_t
 #include "CanvasLayerComposite.h"       // for CanvasLayerComposite
 #include "ColorLayerComposite.h"        // for ColorLayerComposite
-#include "Composer2D.h"                 // for Composer2D
 #include "CompositableHost.h"           // for CompositableHost
 #include "ContainerLayerComposite.h"    // for ContainerLayerComposite, etc
 #include "FPSCounter.h"                 // for FPSState, FPSCounter
-#include "PaintCounter.h"               // For PaintCounter
 #include "FrameMetrics.h"               // for FrameMetrics
 #include "GeckoProfiler.h"              // for profiler_set_frame_number, etc
 #include "ImageLayerComposite.h"        // for ImageLayerComposite
@@ -51,7 +49,6 @@
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_WARNING, NS_RUNTIMEABORT, etc
 #include "nsISupportsImpl.h"            // for Layer::AddRef, etc
-#include "nsIWidget.h"                  // for nsIWidget
 #include "nsPoint.h"                    // for nsIntPoint
 #include "nsRect.h"                     // for mozilla::gfx::IntRect
 #include "nsRegion.h"                   // for nsIntRegion, etc
@@ -63,12 +60,17 @@
 #include "opengl/CompositorOGL.h"
 #include "GLContextEGL.h"
 #include "GLContextProvider.h"
+#include "mozilla/widget/AndroidCompositorWidget.h"
 #include "ScopedGLHelpers.h"
 #endif
 #include "GeckoProfiler.h"
 #include "TextRenderer.h"               // for TextRenderer
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "TreeTraversal.h"              // for ForEachNode
+
+#ifdef USE_SKIA
+#include "PaintCounter.h"               // For PaintCounter
+#endif
 
 class gfxContext;
 
@@ -111,25 +113,34 @@ LayerManagerComposite::ClearCachedResources(Layer* aSubtree)
   // Do we need that?
 }
 
+HostLayerManager::HostLayerManager()
+  : mDebugOverlayWantsNextFrame(false)
+  , mWarningLevel(0.0f)
+  , mWindowOverlayChanged(false)
+  , mLastPaintTime(TimeDuration::Forever())
+  , mRenderStartTime(TimeStamp::Now())
+{}
+
+HostLayerManager::~HostLayerManager()
+{}
+
 /**
  * LayerManagerComposite
  */
 LayerManagerComposite::LayerManagerComposite(Compositor* aCompositor)
-: mWarningLevel(0.0f)
-, mUnusedApzTransformWarning(false)
+: mUnusedApzTransformWarning(false)
 , mDisabledApzWarning(false)
 , mCompositor(aCompositor)
 , mInTransaction(false)
 , mIsCompositorReady(false)
-, mDebugOverlayWantsNextFrame(false)
 , mGeometryChanged(true)
-, mLastFrameMissedHWC(false)
-, mWindowOverlayChanged(false)
-, mLastPaintTime(TimeDuration::Forever())
-, mRenderStartTime(TimeStamp::Now())
 {
   mTextRenderer = new TextRenderer(aCompositor);
   MOZ_ASSERT(aCompositor);
+
+#ifdef USE_SKIA
+  mPaintCounter = nullptr;
+#endif
 }
 
 LayerManagerComposite::~LayerManagerComposite()
@@ -146,10 +157,14 @@ LayerManagerComposite::Destroy()
     if (mRoot) {
       RootLayer()->Destroy();
     }
+    mCompositor->CancelFrame();
     mRoot = nullptr;
     mClonedLayerTreeProperties = nullptr;
-    mPaintCounter = nullptr;
     mDestroyed = true;
+
+#ifdef USE_SKIA
+    mPaintCounter = nullptr;
+#endif
   }
 }
 
@@ -234,7 +249,7 @@ LayerManagerComposite::PostProcessLayers(Layer* aLayer,
     // Direct children of the establisher may have a clip, becaue the
     // item containing it; ex. of nsHTMLScrollFrame, may give it one.
     Maybe<ParentLayerIntRect> layerClip =
-      aLayer->AsLayerComposite()->GetShadowClipRect();
+      aLayer->AsHostLayer()->GetShadowClipRect();
     Maybe<ParentLayerIntRect> ancestorClipForChildren =
       IntersectMaybeRects(layerClip, aClipFromAncestors);
     MOZ_ASSERT(!layerClip || !aLayer->Combines3DTransformWithAncestors(),
@@ -268,7 +283,7 @@ LayerManagerComposite::PostProcessLayers(Layer* aLayer,
 
   // Compute a clip that's the combination of our layer clip with the clip
   // from our ancestors.
-  LayerComposite* composite = aLayer->AsLayerComposite();
+  LayerComposite* composite = static_cast<LayerComposite*>(aLayer->AsHostLayer());
   Maybe<ParentLayerIntRect> layerClip = composite->GetShadowClipRect();
   MOZ_ASSERT(!layerClip || !aLayer->Combines3DTransformWithAncestors(),
              "The layer with a clip should not participate "
@@ -396,7 +411,7 @@ LayerManagerComposite::EndTransaction(const TimeStamp& aTimeStamp,
   // Set composition timestamp here because we need it in
   // ComputeEffectiveTransforms (so the correct video frame size is picked) and
   // also to compute invalid regions properly.
-  mCompositor->SetCompositionTime(aTimeStamp);
+  SetCompositionTime(aTimeStamp);
 
   if (mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
     MOZ_ASSERT(!aTimeStamp.IsNull());
@@ -493,48 +508,7 @@ LayerManagerComposite::UpdateAndRender()
 already_AddRefed<DrawTarget>
 LayerManagerComposite::CreateOptimalMaskDrawTarget(const IntSize &aSize)
 {
-  NS_RUNTIMEABORT("Should only be called on the drawing side");
-  return nullptr;
-}
-
-already_AddRefed<PaintedLayer>
-LayerManagerComposite::CreatePaintedLayer()
-{
-  MOZ_ASSERT(gIsGtest, "Unless you're testing the compositor using GTest,"
-                       "this should only be called on the drawing side");
-  RefPtr<PaintedLayer> layer = new PaintedLayerComposite(this);
-  return layer.forget();
-}
-
-already_AddRefed<ContainerLayer>
-LayerManagerComposite::CreateContainerLayer()
-{
-  MOZ_ASSERT(gIsGtest, "Unless you're testing the compositor using GTest,"
-                       "this should only be called on the drawing side");
-  RefPtr<ContainerLayer> layer = new ContainerLayerComposite(this);
-  return layer.forget();
-}
-
-already_AddRefed<ImageLayer>
-LayerManagerComposite::CreateImageLayer()
-{
-  NS_RUNTIMEABORT("Should only be called on the drawing side");
-  return nullptr;
-}
-
-already_AddRefed<ColorLayer>
-LayerManagerComposite::CreateColorLayer()
-{
-  MOZ_ASSERT(gIsGtest, "Unless you're testing the compositor using GTest,"
-                       "this should only be called on the drawing side");
-  RefPtr<ColorLayer> layer = new ColorLayerComposite(this);
-  return layer.forget();
-}
-
-already_AddRefed<CanvasLayer>
-LayerManagerComposite::CreateCanvasLayer()
-{
-  NS_RUNTIMEABORT("Should only be called on the drawing side");
+  MOZ_CRASH("Should only be called on the drawing side");
   return nullptr;
 }
 
@@ -563,7 +537,6 @@ LayerManagerComposite::InvalidateDebugOverlay(nsIntRegion& aInvalidRegion, const
   bool drawFps = gfxPrefs::LayersDrawFPS();
   bool drawFrameCounter = gfxPrefs::DrawFrameCounter();
   bool drawFrameColorBars = gfxPrefs::CompositorDrawColorBars();
-  bool drawPaintTimes = gfxPrefs::AlwaysPaint();
 
   if (drawFps || drawFrameCounter) {
     aInvalidRegion.Or(aInvalidRegion, nsIntRect(0, 0, 256, 256));
@@ -571,11 +544,16 @@ LayerManagerComposite::InvalidateDebugOverlay(nsIntRegion& aInvalidRegion, const
   if (drawFrameColorBars) {
     aInvalidRegion.Or(aInvalidRegion, nsIntRect(0, 0, 10, aBounds.height));
   }
+
+#ifdef USE_SKIA
+  bool drawPaintTimes = gfxPrefs::AlwaysPaint();
   if (drawPaintTimes) {
     aInvalidRegion.Or(aInvalidRegion, nsIntRect(PaintCounter::GetPaintRect()));
   }
+#endif
 }
 
+#ifdef USE_SKIA
 void
 LayerManagerComposite::DrawPaintTimes(Compositor* aCompositor)
 {
@@ -586,6 +564,7 @@ LayerManagerComposite::DrawPaintTimes(Compositor* aCompositor)
   TimeDuration compositeTime = TimeStamp::Now() - mRenderStartTime;
   mPaintCounter->Draw(aCompositor, mLastPaintTime, compositeTime);
 }
+#endif
 
 static uint16_t sFrameCount = 0;
 void
@@ -594,7 +573,6 @@ LayerManagerComposite::RenderDebugOverlay(const IntRect& aBounds)
   bool drawFps = gfxPrefs::LayersDrawFPS();
   bool drawFrameCounter = gfxPrefs::DrawFrameCounter();
   bool drawFrameColorBars = gfxPrefs::CompositorDrawColorBars();
-  bool drawPaintTimes = gfxPrefs::AlwaysPaint();
 
   TimeStamp now = TimeStamp::Now();
 
@@ -735,9 +713,12 @@ LayerManagerComposite::RenderDebugOverlay(const IntRect& aBounds)
     sFrameCount++;
   }
 
+#ifdef USE_SKIA
+  bool drawPaintTimes = gfxPrefs::AlwaysPaint();
   if (drawPaintTimes) {
     DrawPaintTimes(mCompositor);
   }
+#endif
 }
 
 RefPtr<CompositingRenderTarget>
@@ -835,8 +816,8 @@ ClearLayerFlags(Layer* aLayer) {
       aLayer,
       [] (Layer* layer)
       {
-        if (layer->AsLayerComposite()) {
-          layer->AsLayerComposite()->SetLayerComposited(false);
+        if (layer->AsHostLayer()) {
+          static_cast<LayerComposite*>(layer->AsHostLayer())->SetLayerComposited(false);
         }
       });
 }
@@ -884,32 +865,6 @@ LayerManagerComposite::Render(const nsIntRegion& aInvalidRegion, const nsIntRegi
     layerscope::LayersPacket* layersPacket = packet->mutable_layers();
     this->Dump(layersPacket);
     LayerScope::SendLayerDump(Move(packet));
-  }
-
-  /** Our more efficient but less powerful alter ego, if one is available. */
-  RefPtr<Composer2D> composer2D;
-  composer2D = mCompositor->GetWidget()->GetComposer2D();
-
-  // We can't use composert2D if we have layer effects
-  if (!mTarget && !haveLayerEffects &&
-      gfxPrefs::Composer2DCompositionEnabled() &&
-      composer2D && composer2D->HasHwc() && composer2D->TryRenderWithHwc(mRoot,
-          mCompositor->GetWidget()->RealWidget(),
-          mGeometryChanged,
-          mCompositor->HasImageHostOverlays()))
-  {
-    LayerScope::SetHWComposed();
-    if (mFPS) {
-      double fps = mFPS->mCompositionFps.AddFrameAndGetFps(TimeStamp::Now());
-      if (gfxPrefs::LayersDrawFPS()) {
-        printf_stderr("HWComposer: FPS is %g\n", fps);
-      }
-    }
-    mCompositor->EndFrameForExternalComposition(Matrix());
-    mLastFrameMissedHWC = false;
-    return;
-  } else if (!mTarget && !haveLayerEffects) {
-    mLastFrameMissedHWC = !!composer2D;
   }
 
   mozilla::widget::WidgetRenderingContext widgetContext;
@@ -971,7 +926,8 @@ LayerManagerComposite::Render(const nsIntRegion& aInvalidRegion, const nsIntRegi
 
   // Render our layers.
   RootLayer()->Prepare(ViewAs<RenderTargetPixel>(clipRect, PixelCastJustification::RenderTargetIsParentLayerForRoot));
-  RootLayer()->RenderLayer(clipRect.ToUnknownRect());
+  RootLayer()->RenderLayer(clipRect.ToUnknownRect(), Nothing());
+  RootLayer()->Cleanup();
 
   if (!mRegionToClear.IsEmpty()) {
     for (auto iter = mRegionToClear.RectIter(); !iter.Done(); iter.Next()) {
@@ -1001,10 +957,6 @@ LayerManagerComposite::Render(const nsIntRegion& aInvalidRegion, const nsIntRegi
 
     // Call after EndFrame()
     mCompositor->SetDispAcquireFence(mRoot);
-  }
-
-  if (composer2D) {
-    composer2D->Render(mCompositor->GetWidget()->RealWidget());
   }
 
   mCompositor->GetWidget()->PostRender(&widgetContext);
@@ -1086,16 +1038,14 @@ private:
 void
 LayerManagerComposite::RenderToPresentationSurface()
 {
-#ifdef MOZ_WIDGET_ANDROID
-  nsIWidget* const widget = mCompositor->GetWidget()->RealWidget();
-  auto window = static_cast<ANativeWindow*>(
-      widget->GetNativeData(NS_PRESENTATION_WINDOW));
+  widget::CompositorWidget* const widget = mCompositor->GetWidget();
+  ANativeWindow* window = widget->AsAndroid()->GetPresentationANativeWindow();
 
   if (!window) {
     return;
   }
 
-  EGLSurface surface = widget->GetNativeData(NS_PRESENTATION_SURFACE);
+  EGLSurface surface = widget->AsAndroid()->GetPresentationEGLSurface();
 
   if (!surface) {
     //create surface;
@@ -1104,8 +1054,7 @@ LayerManagerComposite::RenderToPresentationSurface()
       return;
     }
 
-    widget->SetNativeData(NS_PRESENTATION_SURFACE,
-                          reinterpret_cast<uintptr_t>(surface));
+    widget->AsAndroid()->SetPresentationEGLSurface(surface);
   }
 
   CompositorOGL* compositor = mCompositor->AsCompositorOGL();
@@ -1119,7 +1068,6 @@ LayerManagerComposite::RenderToPresentationSurface()
   const IntSize windowSize(ANativeWindow_getWidth(window),
                            ANativeWindow_getHeight(window));
 
-#endif
 
   if ((windowSize.width <= 0) || (windowSize.height <= 0)) {
     return;
@@ -1182,70 +1130,178 @@ LayerManagerComposite::RenderToPresentationSurface()
   const IntRect clipRect = IntRect::Truncate(0, 0, actualWidth, actualHeight);
 
   RootLayer()->Prepare(RenderTargetIntRect::FromUnknownRect(clipRect));
-  RootLayer()->RenderLayer(clipRect);
+  RootLayer()->RenderLayer(clipRect, Nothing());
 
   mCompositor->EndFrame();
 }
 #endif
 
-already_AddRefed<PaintedLayerComposite>
-LayerManagerComposite::CreatePaintedLayerComposite()
+class TextLayerComposite : public TextLayer,
+                           public LayerComposite
+{
+public:
+  explicit TextLayerComposite(LayerManagerComposite *aManager)
+    : TextLayer(aManager, nullptr)
+    , LayerComposite(aManager)
+  {
+    MOZ_COUNT_CTOR(TextLayerComposite);
+    mImplData = static_cast<LayerComposite*>(this);
+  }
+
+protected:
+  ~TextLayerComposite()
+  {
+    MOZ_COUNT_DTOR(TextLayerComposite);
+    Destroy();
+  }
+
+public:
+  // LayerComposite Implementation
+  virtual Layer* GetLayer() override { return this; }
+
+  virtual void SetLayerManager(HostLayerManager* aManager) override
+  {
+    LayerComposite::SetLayerManager(aManager);
+    mManager = aManager;
+  }
+
+  virtual void Destroy() override { mDestroyed = true; }
+
+  virtual void RenderLayer(const gfx::IntRect& aClipRect,
+                           const Maybe<gfx::Polygon>& aGeometry) override {}
+  virtual void CleanupResources() override {};
+
+  virtual void GenEffectChain(EffectChain& aEffect) override {}
+
+  CompositableHost* GetCompositableHost() override { return nullptr; }
+
+  virtual HostLayer* AsHostLayer() override { return this; }
+
+  virtual const char* Name() const override { return "TextLayerComposite"; }
+};
+
+class BorderLayerComposite : public BorderLayer,
+                             public LayerComposite
+{
+public:
+  explicit BorderLayerComposite(LayerManagerComposite *aManager)
+    : BorderLayer(aManager, nullptr)
+    , LayerComposite(aManager)
+  {
+    MOZ_COUNT_CTOR(BorderLayerComposite);
+    mImplData = static_cast<LayerComposite*>(this);
+  }
+
+protected:
+  ~BorderLayerComposite()
+  {
+    MOZ_COUNT_DTOR(BorderLayerComposite);
+    Destroy();
+  }
+
+public:
+  // LayerComposite Implementation
+  virtual Layer* GetLayer() override { return this; }
+
+  virtual void SetLayerManager(HostLayerManager* aManager) override
+  {
+    LayerComposite::SetLayerManager(aManager);
+    mManager = aManager;
+  }
+
+  virtual void Destroy() override { mDestroyed = true; }
+
+  virtual void RenderLayer(const gfx::IntRect& aClipRect,
+                           const Maybe<gfx::Polygon>& aGeometry) override {}
+  virtual void CleanupResources() override {};
+
+  virtual void GenEffectChain(EffectChain& aEffect) override {}
+
+  CompositableHost* GetCompositableHost() override { return nullptr; }
+
+  virtual HostLayer* AsHostLayer() override { return this; }
+
+  virtual const char* Name() const override { return "BorderLayerComposite"; }
+};
+
+already_AddRefed<PaintedLayer>
+LayerManagerComposite::CreatePaintedLayer()
 {
   if (mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return RefPtr<PaintedLayerComposite>(new PaintedLayerComposite(this)).forget();
+  return RefPtr<PaintedLayer>(new PaintedLayerComposite(this)).forget();
 }
 
-already_AddRefed<ContainerLayerComposite>
-LayerManagerComposite::CreateContainerLayerComposite()
+already_AddRefed<ContainerLayer>
+LayerManagerComposite::CreateContainerLayer()
 {
   if (mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return RefPtr<ContainerLayerComposite>(new ContainerLayerComposite(this)).forget();
+  return RefPtr<ContainerLayer>(new ContainerLayerComposite(this)).forget();
 }
 
-already_AddRefed<ImageLayerComposite>
-LayerManagerComposite::CreateImageLayerComposite()
+already_AddRefed<ImageLayer>
+LayerManagerComposite::CreateImageLayer()
 {
   if (mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return RefPtr<ImageLayerComposite>(new ImageLayerComposite(this)).forget();
+  return RefPtr<ImageLayer>(new ImageLayerComposite(this)).forget();
 }
 
-already_AddRefed<ColorLayerComposite>
-LayerManagerComposite::CreateColorLayerComposite()
+already_AddRefed<ColorLayer>
+LayerManagerComposite::CreateColorLayer()
 {
   if (LayerManagerComposite::mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return RefPtr<ColorLayerComposite>(new ColorLayerComposite(this)).forget();
+  return RefPtr<ColorLayer>(new ColorLayerComposite(this)).forget();
 }
 
-already_AddRefed<CanvasLayerComposite>
-LayerManagerComposite::CreateCanvasLayerComposite()
+already_AddRefed<CanvasLayer>
+LayerManagerComposite::CreateCanvasLayer()
 {
   if (LayerManagerComposite::mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return RefPtr<CanvasLayerComposite>(new CanvasLayerComposite(this)).forget();
+  return RefPtr<CanvasLayer>(new CanvasLayerComposite(this)).forget();
 }
 
-already_AddRefed<RefLayerComposite>
-LayerManagerComposite::CreateRefLayerComposite()
+already_AddRefed<RefLayer>
+LayerManagerComposite::CreateRefLayer()
 {
   if (LayerManagerComposite::mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return nullptr;
   }
-  return RefPtr<RefLayerComposite>(new RefLayerComposite(this)).forget();
+  return RefPtr<RefLayer>(new RefLayerComposite(this)).forget();
+}
+
+already_AddRefed<TextLayer>
+LayerManagerComposite::CreateTextLayer()
+{
+  if (LayerManagerComposite::mDestroyed) {
+    NS_WARNING("Call on destroyed layer manager");
+    return nullptr;
+  }
+  return RefPtr<TextLayer>(new TextLayerComposite(this)).forget();
+}
+
+already_AddRefed<BorderLayer>
+LayerManagerComposite::CreateBorderLayer()
+{
+  if (LayerManagerComposite::mDestroyed) {
+    NS_WARNING("Call on destroyed layer manager");
+    return nullptr;
+  }
+  return RefPtr<BorderLayer>(new BorderLayerComposite(this)).forget();
 }
 
 LayerManagerComposite::AutoAddMaskEffect::AutoAddMaskEffect(Layer* aMaskLayer,
@@ -1281,17 +1337,18 @@ LayerManagerComposite::AutoAddMaskEffect::~AutoAddMaskEffect()
 void
 LayerManagerComposite::ChangeCompositor(Compositor* aNewCompositor)
 {
+  if (mCompositor) {
+    mCompositor->CancelFrame();
+  }
   mCompositor = aNewCompositor;
   mTextRenderer = new TextRenderer(aNewCompositor);
   mTwoPassTmpTarget = nullptr;
 }
 
 LayerComposite::LayerComposite(LayerManagerComposite *aManager)
-  : mCompositeManager(aManager)
+  : HostLayer(aManager)
+  , mCompositeManager(aManager)
   , mCompositor(aManager->GetCompositor())
-  , mShadowOpacity(1.0)
-  , mShadowTransformSetByAnimation(false)
-  , mShadowOpacitySetByAnimation(false)
   , mDestroyed(false)
   , mLayerComposited(false)
 { }
@@ -1337,19 +1394,26 @@ LayerManagerComposite::NotifyShadowTreeTransaction()
 }
 
 void
-LayerComposite::SetLayerManager(LayerManagerComposite* aManager)
+LayerComposite::SetLayerManager(HostLayerManager* aManager)
 {
-  mCompositeManager = aManager;
-  mCompositor = aManager->GetCompositor();
+  HostLayer::SetLayerManager(aManager);
+  mCompositeManager = static_cast<LayerManagerComposite*>(aManager);
+  mCompositor = mCompositeManager->GetCompositor();
 }
 
 bool
 LayerManagerComposite::AsyncPanZoomEnabled() const
 {
   if (CompositorBridgeParent* bridge = mCompositor->GetCompositorBridgeParent()) {
-    return bridge->AsyncPanZoomEnabled();
+    return bridge->GetOptions().UseAPZ();
   }
   return false;
+}
+
+bool
+LayerManagerComposite::AlwaysScheduleComposite() const
+{
+  return !!(mCompositor->GetDiagnosticTypes() & DiagnosticTypes::FLASH_BORDERS);
 }
 
 nsIntRegion
@@ -1368,7 +1432,7 @@ LayerComposite::GetFullyRenderedRegion() {
 }
 
 Matrix4x4
-LayerComposite::GetShadowTransform() {
+HostLayer::GetShadowTransform() {
   Matrix4x4 transform = mShadowTransform;
   Layer* layer = GetLayer();
 

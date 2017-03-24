@@ -144,7 +144,7 @@ ScaledFontDWrite::GetSkTypeface()
       return nullptr;
     }
 
-    mTypeface = SkCreateTypefaceFromDWriteFont(factory, mFontFace, mStyle);
+    mTypeface = SkCreateTypefaceFromDWriteFont(factory, mFontFace, mStyle, mForceGDIMode);
   }
   return mTypeface;
 }
@@ -228,6 +228,10 @@ ScaledFontDWrite::GetFontFileData(FontFileDataOutput aDataCallback, void *aBaton
     return false;
   }
 
+  if (!aDataCallback) {
+    return true;
+  }
+
   RefPtr<IDWriteFontFile> file;
   mFontFace->GetFiles(&fileCount, getter_AddRefs(file));
 
@@ -257,7 +261,8 @@ ScaledFontDWrite::GetFontFileData(FontFileDataOutput aDataCallback, void *aBaton
   void *context;
   stream->ReadFileFragment(&fragmentStart, 0, fileSize, &context);
 
-  aDataCallback((uint8_t*)fragmentStart, fileSize, mFontFace->GetIndex(), mSize, aBaton);
+  aDataCallback((uint8_t*)fragmentStart, fileSize, mFontFace->GetIndex(), mSize,
+                0, nullptr, aBaton);
 
   stream->ReleaseFileFragment(context);
 

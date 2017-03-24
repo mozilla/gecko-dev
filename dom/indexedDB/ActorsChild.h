@@ -215,6 +215,13 @@ private:
   DeallocPBackgroundIDBDatabaseChild(PBackgroundIDBDatabaseChild* aActor)
                                      override;
 
+  mozilla::ipc::IPCResult
+  RecvPBackgroundIDBDatabaseConstructor(
+                                    PBackgroundIDBDatabaseChild* aActor,
+                                    const DatabaseSpec& aSpec,
+                                    PBackgroundIDBFactoryRequestChild* aRequest)
+                                    override;
+
   bool
   SendDeleteMe() = delete;
 };
@@ -285,13 +292,13 @@ private:
   virtual void
   ActorDestroy(ActorDestroyReason aWhy) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   Recv__delete__(const FactoryRequestResponse& aResponse) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvPermissionChallenge(const PrincipalInfo& aPrincipalInfo) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvBlocked(const uint64_t& aCurrentVersion) override;
 };
 
@@ -393,7 +400,7 @@ private:
                                               const int64_t& aNextIndexId)
                                               override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvPBackgroundIDBVersionChangeTransactionConstructor(
                             PBackgroundIDBVersionChangeTransactionChild* aActor,
                             const uint64_t& aCurrentVersion,
@@ -415,15 +422,15 @@ private:
   DeallocPBackgroundMutableFileChild(PBackgroundMutableFileChild* aActor)
                                      override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvVersionChange(const uint64_t& aOldVersion,
                     const NullableVersion& aNewVersion)
                     override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvInvalidate() override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvCloseAfterInvalidationComplete() override;
 
   bool
@@ -454,7 +461,7 @@ private:
   HandleResponse(const CreateFileRequestResponse& aResponse);
 
   // IPDL methods are only called by IPDL.
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   Recv__delete__(const DatabaseRequestResponse& aResponse) override;
 };
 
@@ -537,7 +544,7 @@ private:
   virtual void
   ActorDestroy(ActorDestroyReason aWhy) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvComplete(const nsresult& aResult) override;
 
   virtual PBackgroundIDBRequestChild*
@@ -593,7 +600,7 @@ private:
   virtual void
   ActorDestroy(ActorDestroyReason aWhy) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvComplete(const nsresult& aResult) override;
 
   virtual PBackgroundIDBRequestChild*
@@ -707,10 +714,10 @@ private:
   virtual void
   ActorDestroy(ActorDestroyReason aWhy) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   Recv__delete__(const RequestResponse& aResponse) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvPreprocess(const PreprocessParams& aParams) override;
 };
 
@@ -820,7 +827,7 @@ private:
   virtual void
   ActorDestroy(ActorDestroyReason aWhy) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvResponse(const CursorResponse& aResponse) override;
 
   // Force callers to use SendContinueInternal.

@@ -11,8 +11,6 @@ if CONFIG['OS_TARGET'] in ('WINNT', 'Darwin', 'Android'):
 else:
     Library('mozglue')
 
-SDK_LIBRARY = True
-
 if CONFIG['OS_TARGET'] == 'Android':
     SOURCES += [
         'BionicGlue.cpp',
@@ -91,6 +89,7 @@ USE_LIBS += [
 ]
 
 DEFINES['IMPL_MFBT'] = True
+LIBRARY_DEFINES['MOZ_HAS_MOZGLUE'] = True
 
 LDFLAGS += CONFIG['MOZ_GLUE_WRAP_LDFLAGS']
 

@@ -62,20 +62,27 @@ public:
 // with an appropriate reason before any runnable is dispatched to the worker.
 // If the event is extendable then the runnable should inherit
 // ExtendableEventWorkerRunnable.
-class ServiceWorkerPrivate final : public nsIObserver
+class ServiceWorkerPrivate final
 {
   friend class KeepAliveToken;
 
 public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(ServiceWorkerPrivate)
-  NS_DECL_NSIOBSERVER
+  NS_IMETHOD_(MozExternalRefCountType) AddRef();
+  NS_IMETHOD_(MozExternalRefCountType) Release();
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(ServiceWorkerPrivate)
 
+  typedef mozilla::FalseType HasThreadSafeRefCnt;
+
+protected:
+  nsCycleCollectingAutoRefCnt mRefCnt;
+  NS_DECL_OWNINGTHREAD
+
+public:
   explicit ServiceWorkerPrivate(ServiceWorkerInfo* aInfo);
 
   nsresult
   SendMessageEvent(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-                   const Optional<Sequence<JS::Value>>& aTransferable,
+                   const Sequence<JSObject*>& aTransferable,
                    UniquePtr<ServiceWorkerClientInfo>&& aClientInfo);
 
   // This is used to validate the worker script and continue the installation
@@ -151,7 +158,7 @@ public:
   IsIdle() const;
 
   void
-  AddPendingWindow(Runnable* aPendingWindow);
+  SetHandlesFetch(bool aValue);
 
 private:
   enum WakeUpReason {
@@ -166,11 +173,11 @@ private:
   };
 
   // Timer callbacks
-  static void
-  NoteIdleWorkerCallback(nsITimer* aTimer, void* aPrivate);
+  void
+  NoteIdleWorkerCallback(nsITimer* aTimer);
 
-  static void
-  TerminateWorkerCallback(nsITimer* aTimer, void *aPrivate);
+  void
+  TerminateWorkerCallback(nsITimer* aTimer);
 
   void
   RenewKeepAliveToken(WakeUpReason aWhy);
@@ -225,8 +232,6 @@ private:
   // Array of function event worker runnables that are pending due to
   // the worker activating.  Main thread only.
   nsTArray<RefPtr<WorkerRunnable>> mPendingFunctionalEvents;
-
-  nsTArray<Runnable*> pendingWindows;
 };
 
 } // namespace workers

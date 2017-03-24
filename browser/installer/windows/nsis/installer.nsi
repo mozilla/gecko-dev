@@ -21,13 +21,9 @@ CRCCheck on
 
 RequestExecutionLevel user
 
-; The commands inside this ifdef require NSIS 3.0a2 or greater so the ifdef can
-; be removed after we require NSIS 3.0a2 or greater.
-!ifdef NSIS_PACKEDVERSION
-  Unicode true
-  ManifestSupportedOS all
-  ManifestDPIAware true
-!endif
+Unicode true
+ManifestSupportedOS all
+ManifestDPIAware true
 
 !addplugindir ./
 
@@ -46,7 +42,7 @@ Var PreventRebootRequired
 ; StartMenuDir variable can use the common InstallOnInitCommon macro.
 !define NO_STARTMENU_DIR
 
-; On Vista and above attempt to elevate Standard Users in addition to users that
+; Attempt to elevate Standard Users in addition to users that
 ; are a member of the Administrators group.
 !define NONADMIN_ELEVATE
 
@@ -252,7 +248,7 @@ Section "-InstallStartCleanup"
   ; setup the application model id registration value
   ${InitHashAppModelId} "$INSTDIR" "Software\Mozilla\${AppName}\TaskBarIDs"
 
-  ; Remove the updates directory for Vista and above
+  ; Remove the updates directory
   ${CleanUpdateDirectories} "Mozilla\Firefox" "Mozilla\updates"
 
   ${RemoveDeprecatedFiles}
@@ -382,56 +378,28 @@ Section "-Application" APP_IDX
 
   ; In Win8, the delegate execute handler picks up the value in FirefoxURL and
   ; FirefoxHTML to launch the desktop browser when it needs to.
-  ${AddDisabledDDEHandlerValues} "FirefoxHTML" "$2" "$8,1" \
+  ${AddDisabledDDEHandlerValues} "FirefoxHTML-$AppUserModelID" "$2" "$8,1" \
                                  "${AppRegName} Document" ""
-  ${AddDisabledDDEHandlerValues} "FirefoxURL" "$2" "$8,1" "${AppRegName} URL" \
-                                 "true"
+  ${AddDisabledDDEHandlerValues} "FirefoxURL-$AppUserModelID" "$2" "$8,1" \
+                                 "${AppRegName} URL" "true"
 
   ; For pre win8, the following keys should only be set if we can write to HKLM.
-  ; For post win8, the keys below get set in both HKLM and HKCU.
+  ; For post win8, the keys below can be set in HKCU if needed.
   ${If} $TmpVal == "HKLM"
-    ; Set the Start Menu Internet and Vista Registered App HKLM registry keys.
+    ; Set the Start Menu Internet and Registered App HKLM registry keys.
     ${SetStartMenuInternet} "HKLM"
     ${FixShellIconHandler} "HKLM"
-
-    ; If we are writing to HKLM and create either the desktop or start menu
-    ; shortcuts set IconsVisible to 1 otherwise to 0.
-    ; Taskbar shortcuts imply having a start menu shortcut.
-    ${StrFilter} "${FileMainEXE}" "+" "" "" $R9
-    StrCpy $0 "Software\Clients\StartMenuInternet\$R9\InstallInfo"
-    ${If} $AddDesktopSC == 1
-    ${OrIf} $AddStartMenuSC == 1
-    ${OrIf} $AddTaskbarSC == 1
-      WriteRegDWORD HKLM "$0" "IconsVisible" 1
-    ${Else}
-      WriteRegDWORD HKLM "$0" "IconsVisible" 0
-    ${EndIf}
-  ${EndIf}
-
-  ${If} ${AtLeastWin8}
-    ; Set the Start Menu Internet and Vista Registered App HKCU registry keys.
+  ${ElseIf} ${AtLeastWin8}
+    ; Set the Start Menu Internet and Registered App HKCU registry keys.
     ${SetStartMenuInternet} "HKCU"
     ${FixShellIconHandler} "HKCU"
-
-    ; If we create either the desktop or start menu shortcuts, then
-    ; set IconsVisible to 1 otherwise to 0.
-    ; Taskbar shortcuts imply having a start menu shortcut.
-    ${StrFilter} "${FileMainEXE}" "+" "" "" $R9
-    StrCpy $0 "Software\Clients\StartMenuInternet\$R9\InstallInfo"
-    ${If} $AddDesktopSC == 1
-    ${OrIf} $AddStartMenuSC == 1
-    ${OrIf} $AddTaskbarSC == 1
-      WriteRegDWORD HKCU "$0" "IconsVisible" 1
-    ${Else}
-      WriteRegDWORD HKCU "$0" "IconsVisible" 0
-    ${EndIf}
   ${EndIf}
 
 !ifdef MOZ_MAINTENANCE_SERVICE
-  ; If the maintenance service page was displayed then a value was already 
-  ; explicitly selected for installing the maintenance service and 
+  ; If the maintenance service page was displayed then a value was already
+  ; explicitly selected for installing the maintenance service and
   ; and so InstallMaintenanceService will already be 0 or 1.
-  ; If the maintenance service page was not displayed then 
+  ; If the maintenance service page was not displayed then
   ; InstallMaintenanceService will be equal to "".
   ${If} $InstallMaintenanceService == ""
     Call IsUserAdmin
@@ -439,14 +407,8 @@ Section "-Application" APP_IDX
     ${If} $R0 == "true"
     ; Only proceed if we have HKLM write access
     ${AndIf} $TmpVal == "HKLM"
-      ; On Windows < XP SP3 we do not install the maintenance service.
-      ${If} ${IsWinXP}
-      ${AndIf} ${AtMostServicePack} 2
-        StrCpy $InstallMaintenanceService "0"
-      ${Else}
-        ; The user is an admin, so we should default to installing the service.
-        StrCpy $InstallMaintenanceService "1"
-      ${EndIf}
+      ; The user is an admin, so we should default to installing the service.
+      StrCpy $InstallMaintenanceService "1"
     ${Else}
       ; The user is not admin, so we can't install the service.
       StrCpy $InstallMaintenanceService "0"
@@ -455,7 +417,7 @@ Section "-Application" APP_IDX
 
   ${If} $InstallMaintenanceService == "1"
     ; The user wants to install the maintenance service, so execute
-    ; the pre-packaged maintenance service installer. 
+    ; the pre-packaged maintenance service installer.
     ; This option can only be turned on if the user is an admin so there
     ; is no need to use ExecShell w/ verb runas to enforce elevated.
     nsExec::Exec "$\"$INSTDIR\maintenanceservice_installer.exe$\""
@@ -474,7 +436,7 @@ Section "-Application" APP_IDX
   ${CreateRegKey} "$TmpVal" "$0" 0
 
   ${If} $TmpVal == "HKLM"
-    ; Set the permitted LSP Categories for WinVista and above
+    ; Set the permitted LSP Categories
     ${SetAppLSPCategories} ${LSP_CATEGORIES}
   ${EndIf}
 
@@ -594,6 +556,7 @@ Section "-InstallEndCleanup"
   SetDetailsPrint none
 
   ${Unless} ${Silent}
+    ClearErrors
     ${MUI_INSTALLOPTIONS_READ} $0 "summary.ini" "Field 4" "State"
     ${If} "$0" == "1"
       ; NB: this code is duplicated in stub.nsi. Please keep in sync.
@@ -601,15 +564,13 @@ Section "-InstallEndCleanup"
       ; value was before we changed it. To do so, we read it here and store it
       ; in our own registry key.
       StrCpy $0 ""
-      ${If} ${AtLeastWinVista}
-        AppAssocReg::QueryCurrentDefault "http" "protocol" "effective"
-        Pop $1
-        ; If the method hasn't failed, $1 will contain the progid. Check:
-        ${If} "$1" != "method failed"
-        ${AndIf} "$1" != "method not available"
-          ; Read the actual command from the progid
-          ReadRegStr $0 HKCR "$1\shell\open\command" ""
-        ${EndIf}
+      AppAssocReg::QueryCurrentDefault "http" "protocol" "effective"
+      Pop $1
+      ; If the method hasn't failed, $1 will contain the progid. Check:
+      ${If} "$1" != "method failed"
+      ${AndIf} "$1" != "method not available"
+        ; Read the actual command from the progid
+        ReadRegStr $0 HKCR "$1\shell\open\command" ""
       ${EndIf}
       ; If using the App Association Registry didn't happen or failed, fall back
       ; to the effective http default:
@@ -632,7 +593,7 @@ Section "-InstallEndCleanup"
         GetFunctionAddress $0 SetAsDefaultAppUserHKCU
         UAC::ExecCodeSegment $0
       ${EndIf}
-    ${Else}
+    ${ElseIfNot} ${Errors}
       ${LogHeader} "Writing default-browser opt-out"
       ClearErrors
       WriteRegStr HKCU "Software\Mozilla\Firefox" "DefaultBrowserOptOut" "True"
@@ -842,16 +803,10 @@ Function LaunchApp
 FunctionEnd
 
 Function LaunchAppFromElevatedProcess
-  ; Find the installation directory when launching using GetFunctionAddress
-  ; from an elevated installer since $INSTDIR will not be set in this installer
-  ${StrFilter} "${FileMainEXE}" "+" "" "" $R9
-  ReadRegStr $0 HKLM "Software\Clients\StartMenuInternet\$R9\DefaultIcon" ""
-  ${GetPathFromString} "$0" $0
-  ${GetParent} "$0" $1
   ; Set our current working directory to the application's install directory
   ; otherwise the 7-Zip temp directory will be in use and won't be deleted.
-  SetOutPath "$1"
-  Exec "$\"$0$\""
+  SetOutPath "$INSTDIR"
+  Exec "$\"$INSTDIR\${FileMainEXE}$\""
 FunctionEnd
 
 ################################################################################
@@ -954,12 +909,6 @@ Function preComponents
   Pop $R9
   ${If} $R9 == 1
     ; The service already exists so don't show this page.
-    Abort
-  ${EndIf}
-
-  ; On Windows < XP SP3 we do not install the maintenance service.
-  ${If} ${IsWinXP}
-  ${AndIf} ${AtMostServicePack} 2
     Abort
   ${EndIf}
 
@@ -1138,13 +1087,11 @@ Function .onInit
 
   ; Don't install on systems that don't support SSE2. The parameter value of
   ; 10 is for PF_XMMI64_INSTRUCTIONS_AVAILABLE which will check whether the
-  ; SSE2 instruction set is available.
+  ; SSE2 instruction set is available. Result returned in $R7.
   System::Call "kernel32::IsProcessorFeaturePresent(i 10)i .R7"
 
-!ifdef HAVE_64BIT_BUILD
-  ; Restrict x64 builds from being installed on x86 and pre Win7
-  ${Unless} ${RunningX64}
-  ${OrUnless} ${AtLeastWin7}
+  ; Windows NT 6.0 (Vista/Server 2008) and lower are not supported.
+  ${Unless} ${AtLeastWin7}
     ${If} "$R7" == "0"
       strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
     ${Else}
@@ -1155,60 +1102,23 @@ Function .onInit
     Quit
   ${EndUnless}
 
-  SetRegView 64
-!else
-  StrCpy $R8 "0"
-  ${If} ${AtMostWin2000}
-    StrCpy $R8 "1"
-  ${EndIf}
-
-  ${If} ${IsWinXP}
-  ${AndIf} ${AtMostServicePack} 1
-    StrCpy $R8 "1"
-  ${EndIf}
-
-  ${If} $R8 == "1"
-    ; XXX-rstrong - some systems failed the AtLeastWin2000 test that we
-    ; used to use for an unknown reason and likely fail the AtMostWin2000
-    ; and possibly the IsWinXP test as well. To work around this also
-    ; check if the Windows NT registry Key exists and if it does if the
-    ; first char in CurrentVersion is equal to 3 (Windows NT 3.5 and
-    ; 3.5.1), 4 (Windows NT 4), or 5 (Windows 2000 and Windows XP).
-    StrCpy $R8 ""
-    ClearErrors
-    ReadRegStr $R8 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" "CurrentVersion"
-    StrCpy $R8 "$R8" 1
-    ${If} ${Errors}
-    ${OrIf} "$R8" == "3"
-    ${OrIf} "$R8" == "4"
-    ${OrIf} "$R8" == "5"
-      ${If} "$R7" == "0"
-        strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
-      ${Else}
-        strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_MSG)"
-      ${EndIf}
-      MessageBox MB_OKCANCEL|MB_ICONSTOP "$R7" IDCANCEL +2
-      ExecShell "open" "${URLSystemRequirements}"
-      Quit
-    ${EndIf}
-  ${EndUnless}
-!endif
-
+  ; SSE2 CPU support
   ${If} "$R7" == "0"
     MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_CPU_MSG)" IDCANCEL +2
     ExecShell "open" "${URLSystemRequirements}"
     Quit
   ${EndIf}
 
-  ${InstallOnInitCommon} "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
-
-; The commands inside this ifndef are needed prior to NSIS 3.0a2 and can be
-; removed after we require NSIS 3.0a2 or greater.
-!ifndef NSIS_PACKEDVERSION
-  ${If} ${AtLeastWinVista}
-    System::Call 'user32::SetProcessDPIAware()'
-  ${EndIf}
+!ifdef HAVE_64BIT_BUILD
+  ${Unless} ${RunningX64}
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_OSVER_MSG)" IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    Quit
+  ${EndUnless}
+  SetRegView 64
 !endif
+
+  ${InstallOnInitCommon} "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
 
   !insertmacro InitInstallOptionsFile "options.ini"
   !insertmacro InitInstallOptionsFile "shortcuts.ini"

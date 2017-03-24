@@ -196,15 +196,13 @@ function* promiseOpenNewTab(url = "about:blank") {
 
 function promiseNewTabSwitched() {
   return new Promise(resolve => {
-    gBrowser.addEventListener("TabSwitchDone", function onSwitch() {
-      gBrowser.removeEventListener("TabSwitchDone", onSwitch);
+    gBrowser.addEventListener("TabSwitchDone", function() {
       executeSoon(resolve);
-    });
+    }, {once: true});
   });
 }
 
-function promiseCheckChildNoFocusedElement(browser)
-{
+function promiseCheckChildNoFocusedElement(browser) {
   if (!gMultiProcessBrowser) {
     Assert.equal(Services.focus.focusedElement, null, "There should be no focused element");
     return null;

@@ -15,8 +15,7 @@ Cu.import("resource://gre/modules/AppConstants.jsm");
 var Experiments;
 try {
   Experiments = Cu.import("resource:///modules/experiments/Experiments.jsm").Experiments;
-}
-catch (e) {
+} catch (e) {
 }
 
 // We use a preferences whitelist to make sure we only show preferences that
@@ -112,7 +111,7 @@ const PREFS_BLACKLIST = [
 // It's important to use getComplexValue for strings: it returns Unicode (wchars), getCharPref returns UTF-8 encoded chars.
 const PREFS_GETTERS = {};
 
-PREFS_GETTERS[Ci.nsIPrefBranch.PREF_STRING] = (prefs, name) => prefs.getComplexValue(name, Ci.nsISupportsString).data;
+PREFS_GETTERS[Ci.nsIPrefBranch.PREF_STRING] = (prefs, name) => prefs.getStringPref(name);
 PREFS_GETTERS[Ci.nsIPrefBranch.PREF_INT] = (prefs, name) => prefs.getIntPref(name);
 PREFS_GETTERS[Ci.nsIPrefBranch.PREF_BOOL] = (prefs, name) => prefs.getBoolPref(name);
 
@@ -158,8 +157,7 @@ this.Troubleshoot = {
     for (let name in dataProviders) {
       try {
         dataProviders[name](providerDone.bind(null, name));
-      }
-      catch (err) {
+      } catch (err) {
         let msg = "Troubleshoot data provider failed: " + name + "\n" + err;
         Cu.reportError(msg);
         providerDone(name, msg);
@@ -196,16 +194,15 @@ var dataProviders = {
     if (AppConstants.MOZ_UPDATER)
       data.updateChannel = Cu.import("resource://gre/modules/UpdateUtils.jsm", {}).UpdateUtils.UpdateChannel;
 
+    // eslint-disable-next-line mozilla/use-default-preference-values
     try {
       data.vendor = Services.prefs.getCharPref("app.support.vendor");
-    }
-    catch (e) {}
+    } catch (e) {}
     let urlFormatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
                        getService(Ci.nsIURLFormatter);
     try {
       data.supportURL = urlFormatter.formatURLPref("app.support.baseURL");
-    }
-    catch (e) {}
+    } catch (e) {}
 
     data.numTotalWindows = 0;
     data.numRemoteWindows = 0;
@@ -234,12 +231,19 @@ var dataProviders = {
       data.autoStartStatus = -1;
     }
 
+    const keyGoogle = Services.urlFormatter.formatURL("%GOOGLE_API_KEY%").trim();
+    data.keyGoogleFound = keyGoogle != "no-google-api-key" && keyGoogle.length > 0;
+
+    const keyMozilla = Services.urlFormatter.formatURL("%MOZILLA_API_KEY%").trim();
+    data.keyMozillaFound = keyMozilla != "no-mozilla-api-key" && keyMozilla.length > 0;
+
     done(data);
   },
 
   extensions: function extensions(done) {
-    AddonManager.getAddonsByTypes(["extension"], function (extensions) {
-      extensions.sort(function (a, b) {
+    AddonManager.getAddonsByTypes(["extension"], function(extensions) {
+      extensions = extensions.filter(e => !e.isSystem);
+      extensions.sort(function(a, b) {
         if (a.isActive != b.isActive)
           return b.isActive ? 1 : -1;
 
@@ -254,10 +258,34 @@ var dataProviders = {
         return 0;
       });
       let props = ["name", "version", "isActive", "id"];
-      done(extensions.map(function (ext) {
-        return props.reduce(function (extData, prop) {
+      done(extensions.map(function(ext) {
+        return props.reduce(function(extData, prop) {
           extData[prop] = ext[prop];
           return extData;
+        }, {});
+      }));
+    });
+  },
+
+  features: function features(done) {
+    AddonManager.getAddonsByTypes(["extension"], function(features) {
+      features = features.filter(f => f.isSystem);
+      features.sort(function(a, b) {
+        // In some unfortunate cases addon names can be null.
+        let aname = a.name || null;
+        let bname = b.name || null;
+        let lc = aname.localeCompare(bname);
+        if (lc != 0)
+          return lc;
+        if (a.version != b.version)
+          return a.version > b.version ? 1 : -1;
+        return 0;
+      });
+      let props = ["name", "version", "id"];
+      done(features.map(function(f) {
+        return props.reduce(function(fData, prop) {
+          fData[prop] = f[prop];
+          return fData;
         }, {});
       }));
     });
@@ -292,8 +320,7 @@ var dataProviders = {
       let msg = [""];
       try {
         var status = gfxInfo.getFeatureStatus(feature);
-      }
-      catch (e) {}
+      } catch (e) {}
       switch (status) {
       case Ci.nsIGfxInfo.FEATURE_BLOCKED_DEVICE:
       case Ci.nsIGfxInfo.FEATURE_DISCOURAGED:
@@ -306,8 +333,7 @@ var dataProviders = {
         try {
           var suggestedDriverVersion =
             gfxInfo.getFeatureSuggestedDriverVersion(feature);
-        }
-        catch (e) {}
+        } catch (e) {}
         msg = suggestedDriverVersion ?
               ["tryNewerDriver", suggestedDriverVersion] :
               ["blockedDriver"];
@@ -324,8 +350,7 @@ var dataProviders = {
     try {
       // nsIGfxInfo may not be implemented on some platforms.
       var gfxInfo = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo);
-    }
-    catch (e) {}
+    } catch (e) {}
 
     let promises = [];
     // done will be called upon all pending promises being resolved.
@@ -343,29 +368,28 @@ var dataProviders = {
                      getInterface(Ci.nsIDOMWindowUtils);
       try {
         // NOTE: windowless browser's windows should not be reported in the graphics troubleshoot report
-        if (winUtils.layerManagerType == "None") {
+        if (winUtils.layerManagerType == "None" || !winUtils.layerManagerRemote) {
           continue;
         }
         data.numTotalWindows++;
         data.windowLayerManagerType = winUtils.layerManagerType;
         data.windowLayerManagerRemote = winUtils.layerManagerRemote;
-      }
-      catch (e) {
+      } catch (e) {
         continue;
       }
       if (data.windowLayerManagerType != "Basic")
         data.numAcceleratedWindows++;
     }
 
+    // If we had no OMTC windows, report back Basic Layers.
+    if (!data.windowLayerManagerType) {
+      data.windowLayerManagerType = "Basic";
+      data.windowLayerManagerRemote = false;
+    }
+
     let winUtils = Services.wm.getMostRecentWindow("").
                    QueryInterface(Ci.nsIInterfaceRequestor).
                    getInterface(Ci.nsIDOMWindowUtils)
-    data.supportsHardwareH264 = "Unknown";
-    let promise = winUtils.supportsHardwareH264Decoding;
-    promise.then(function(v) {
-      data.supportsHardwareH264 = v;
-    });
-    promises.push(promise);
 
     data.currentAudioBackend = winUtils.currentAudioBackend;
 
@@ -414,8 +438,7 @@ var dataProviders = {
     for (let prop in gfxInfoProps) {
       try {
         data[gfxInfoProps[prop] || prop] = gfxInfo[prop];
-      }
-      catch (e) {}
+      } catch (e) {}
     }
 
     if (("direct2DEnabled" in data) && !data.direct2DEnabled)
@@ -428,11 +451,20 @@ var dataProviders = {
       .createInstance(Ci.nsIDOMParser)
       .parseFromString("<html/>", "text/html");
 
-    function GetWebGLInfo(contextType) {
+    function GetWebGLInfo(data, keyPrefix, contextType) {
+        data[keyPrefix + "Renderer"] = "-";
+        data[keyPrefix + "Version"] = "-";
+        data[keyPrefix + "DriverExtensions"] = "-";
+        data[keyPrefix + "Extensions"] = "-";
+        data[keyPrefix + "WSIInfo"] = "-";
+
+        // //
+
         let canvas = doc.createElement("canvas");
         canvas.width = 1;
         canvas.height = 1;
 
+        // //
 
         let creationError = null;
 
@@ -441,43 +473,47 @@ var dataProviders = {
 
             function(e) {
                 creationError = e.statusMessage;
-            },
-
-            false
+            }
         );
 
         let gl = null;
         try {
-          gl = canvas.getContext(contextType);
+            gl = canvas.getContext(contextType);
+        } catch (e) {
+            if (!creationError) {
+                creationError = e.toString();
+            }
         }
-        catch (e) {
-          if (!creationError) {
-            creationError = e.toString();
-          }
+        if (!gl) {
+            data[keyPrefix + "Renderer"] = creationError || "(no creation error info)";
+            return;
         }
-        if (!gl)
-            return creationError || "(no info)";
 
+        // //
 
-        let infoExt = gl.getExtension("WEBGL_debug_renderer_info");
+        data[keyPrefix + "Extensions"] = gl.getSupportedExtensions().join(" ");
+
+        // //
+
+        let ext = gl.getExtension("MOZ_debug_get");
         // This extension is unconditionally available to chrome. No need to check.
-        let vendor = gl.getParameter(infoExt.UNMASKED_VENDOR_WEBGL);
-        let renderer = gl.getParameter(infoExt.UNMASKED_RENDERER_WEBGL);
+        let vendor = ext.getParameter(gl.VENDOR);
+        let renderer = ext.getParameter(gl.RENDERER);
 
-        let contextInfo = vendor + " -- " + renderer;
+        data[keyPrefix + "Renderer"] = vendor + " -- " + renderer;
+        data[keyPrefix + "Version"] = ext.getParameter(gl.VERSION);
+        data[keyPrefix + "DriverExtensions"] = ext.getParameter(ext.EXTENSIONS);
+        data[keyPrefix + "WSIInfo"] = ext.getParameter(ext.WSI_INFO);
 
+        // //
 
         // Eagerly free resources.
         let loseExt = gl.getExtension("WEBGL_lose_context");
         loseExt.loseContext();
-
-
-        return contextInfo;
     }
 
-
-    data.webglRenderer = GetWebGLInfo("webgl");
-    data.webgl2Renderer = GetWebGLInfo("webgl2");
+    GetWebGLInfo(data, "webgl1", "webgl");
+    GetWebGLInfo(data, "webgl2", "webgl2");
 
 
     let infoInfo = gfxInfo.getInfo();
@@ -517,11 +553,11 @@ var dataProviders = {
     data.isActive = Cc["@mozilla.org/xre/app-info;1"].
                     getService(Ci.nsIXULRuntime).
                     accessibilityEnabled;
+    // eslint-disable-next-line mozilla/use-default-preference-values
     try {
       data.forceDisabled =
         Services.prefs.getIntPref("accessibility.force_disabled");
-    }
-    catch (e) {}
+    } catch (e) {}
     done(data);
   },
 
@@ -557,7 +593,7 @@ if (AppConstants.MOZ_CRASHREPORTER) {
     let reportsNew = reports.filter(report => (now - report.date < Troubleshoot.kMaxCrashAge));
     let reportsSubmitted = reportsNew.filter(report => (!report.pending));
     let reportsPendingCount = reportsNew.length - reportsSubmitted.length;
-    let data = {submitted : reportsSubmitted, pending : reportsPendingCount};
+    let data = {submitted: reportsSubmitted, pending: reportsPendingCount};
     done(data);
   }
 }
@@ -577,6 +613,21 @@ if (AppConstants.MOZ_SANDBOX) {
           data[key] = sysInfo.getPropertyAsBool(key);
         }
       }
+
+      let reporter = Cc["@mozilla.org/sandbox/syscall-reporter;1"].
+                     getService(Ci.mozISandboxReporter);
+      const snapshot = reporter.snapshot();
+      let syscalls = [];
+      for (let index = snapshot.begin; index < snapshot.end; ++index) {
+        let report = snapshot.getElement(index);
+        let { msecAgo, pid, tid, procType, syscall } = report;
+        let args = []
+        for (let i = 0; i < report.numArgs; ++i) {
+          args.push(report.getArg(i));
+        }
+        syscalls.push({ index, msecAgo, pid, tid, procType, syscall, args });
+      }
+      data.syscallLog = syscalls;
     }
 
     if (AppConstants.MOZ_CONTENT_SANDBOX) {

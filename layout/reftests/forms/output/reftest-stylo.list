@@ -2,7 +2,7 @@
 == output-1.html output-1.html
 == output-2.html output-2.html
 == output-3.html output-3.html
-== output-4.html output-4.html
+fails == output-4.html output-4.html
 == output-5.html output-5.html
 == output-6.html output-6.html
 == output-7.html output-7.html

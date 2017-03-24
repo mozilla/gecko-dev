@@ -71,10 +71,8 @@ public:
                                    const ThebesBufferData& aThebesBufferData,
                                    const nsIntRegion& aUpdatedRegion) = 0;
 
-  virtual void Destroy(CompositableChild* aCompositable);
-
-  virtual bool DestroyInTransaction(PTextureChild* aTexture, bool synchronously) = 0;
-  virtual bool DestroyInTransaction(PCompositableChild* aCompositable, bool synchronously) = 0;
+  virtual void ReleaseCompositable(const CompositableHandle& aHandle) = 0;
+  virtual bool DestroyInTransaction(PTextureChild* aTexture) = 0;
 
   /**
    * Tell the CompositableHost on the compositor side to remove the texture
@@ -115,6 +113,8 @@ public:
   void AssertInForwarderThread() {
     MOZ_ASSERT(InForwarderThread());
   }
+
+  static uint32_t GetMaxFileDescriptorsPerMessage();
 
 protected:
   nsTArray<RefPtr<TextureClient> > mTexturesToRemove;

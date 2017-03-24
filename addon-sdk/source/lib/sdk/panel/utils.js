@@ -138,7 +138,7 @@ function display(panel, options, anchor) {
     // The XUL Panel has an arrow, so the margin needs to be reset
     // to the default value.
     panel.style.margin = "";
-    let { CustomizableUI, window } = anchor.ownerDocument.defaultView;
+    let { CustomizableUI, window } = anchor.ownerGlobal;
 
     // In Australis, widgets may be positioned in an overflow panel or the
     // menu panel.
@@ -255,7 +255,7 @@ function setupPanelFrame(frame) {
   frame.setAttribute("autocompleteenabled", true);
   frame.setAttribute("tooltip", "aHTMLTooltip");
   if (platform === "darwin") {
-    frame.style.borderRadius = "6px";
+    frame.style.borderRadius = "var(--arrowpanel-border-radius, 3.5px)";
     frame.style.padding = "1px";
   }
 }
@@ -331,7 +331,7 @@ function make(document, options) {
   for (let event of ["popupshowing", "popuphiding", "popupshown", "popuphidden"])
     panel.addEventListener(event, onPanelStateChange);
 
-  panel.addEventListener("click", onPanelClick, false);
+  panel.addEventListener("click", onPanelClick);
 
   // Panel content document can be either in panel `viewFrame` or in
   // a `backgroundFrame` depending on panel state. Listeners are set
@@ -367,7 +367,7 @@ function attach(panel, document) {
 exports.attach = attach;
 
 function detach(panel) {
-  if (panel.parentNode) panel.parentNode.removeChild(panel);
+  if (panel.parentNode) panel.remove();
 }
 exports.detach = detach;
 

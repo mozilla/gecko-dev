@@ -14,6 +14,7 @@
 
 namespace js {
 
+class GCMarker;
 struct WeakMapTracer;
 
 struct WatchKey {
@@ -66,15 +67,15 @@ class WatchpointMap {
     bool init();
     bool watch(JSContext* cx, HandleObject obj, HandleId id,
                JSWatchPointHandler handler, HandleObject closure);
-    void unwatch(JSObject* obj, jsid id,
-                 JSWatchPointHandler* handlerp, JSObject** closurep);
+    void unwatch(JSObject* obj, jsid id);
     void unwatchObject(JSObject* obj);
     void clear();
 
     bool triggerWatchpoint(JSContext* cx, HandleObject obj, HandleId id, MutableHandleValue vp);
 
-    bool markIteratively(JSTracer* trc);
-    void markAll(JSTracer* trc);
+    bool markIteratively(GCMarker* marker);
+    void trace(JSTracer* trc);
+
     static void sweepAll(JSRuntime* rt);
     void sweep();
 

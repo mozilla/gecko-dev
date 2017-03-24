@@ -50,10 +50,9 @@ add_task(function *() {
     let onFocus, onTabSelect;
     if (toolbox.hostType == Toolbox.HostType.WINDOW) {
       onFocus = new Promise(done => {
-        toolbox.win.parent.addEventListener("focus", function onFocus() {
-          toolbox.win.parent.removeEventListener("focus", onFocus, true);
+        toolbox.win.parent.addEventListener("focus", function () {
           done();
-        }, true);
+        }, {capture: true, once: true});
       });
     } else {
       onTabSelect = new Promise(done => {
@@ -79,18 +78,14 @@ add_task(function *() {
     }
 
     yield toolbox.selectTool("webconsole");
-    ok(toolboxTab.hasAttribute("highlighted") &&
-       toolboxTab.getAttribute("highlighted") == "true",
+    ok(toolboxTab.classList.contains("highlighted"),
       "The highlighted class is present");
-    ok(!toolboxTab.hasAttribute("selected") ||
-        toolboxTab.getAttribute("selected") != "true",
+    ok(!toolboxTab.classList.contains("selected"),
       "The tab is not selected");
     yield toolbox.selectTool("jsdebugger");
-    ok(toolboxTab.hasAttribute("highlighted") &&
-       toolboxTab.getAttribute("highlighted") == "true",
+    ok(toolboxTab.classList.contains("highlighted"),
       "The highlighted class is present");
-    ok(toolboxTab.hasAttribute("selected") &&
-       toolboxTab.getAttribute("selected") == "true",
+    ok(toolboxTab.classList.contains("selected"),
       "...and the tab is selected, so the glow will not be present.");
   }
 
@@ -104,11 +99,9 @@ add_task(function *() {
     yield onPaused;
 
     yield toolbox.selectTool("webconsole");
-    ok(!toolboxTab.hasAttribute("highlighted") ||
-        toolboxTab.getAttribute("highlighted") != "true",
+    ok(!toolboxTab.classList.contains("highlighted"),
       "The highlighted class is not present now after the resume");
-    ok(!toolboxTab.hasAttribute("selected") ||
-        toolboxTab.getAttribute("selected") != "true",
+    ok(!toolboxTab.classList.contains("selected"),
       "The tab is not selected");
   }
 });

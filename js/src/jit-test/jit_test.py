@@ -140,10 +140,6 @@ def main(argv):
     op.add_option('--deviceSerial', action='store',
                   type='string', dest='device_serial', default=None,
                   help='ADB device serial number of remote device to test')
-    op.add_option('--deviceTransport', action='store',
-                  type='string', dest='device_transport', default='sut',
-                  help='The transport to use to communicate with device:'
-                  ' [adb|sut]; default=sut')
     op.add_option('--remoteTestRoot', dest='remote_test_root', action='store',
                   type='string', default='/data/local/tests',
                   help='The remote directory to use as test root'
@@ -200,14 +196,14 @@ def main(argv):
     # wasm-baseline run when requesting --jitflags=interp, but the test
     # contains test-also-noasmjs.)
     test_flags = get_jitflags(options.jitflags)
-    options.can_test_also_noasmjs = True
-    options.can_test_also_wasm_baseline = True
+    options.asmjs_enabled = True
+    options.wasm_enabled = True
     if all(['--no-asmjs' in flags for flags in test_flags]):
-        options.can_test_also_noasmjs = False
-        options.can_test_also_wasm_baseline = False
+        options.asmjs_enabled = False
+        options.wasm_enabled = False
     if all(['--no-wasm' in flags for flags in test_flags]):
-        options.can_test_also_noasmjs = False
-        options.can_test_also_wasm_baseline = False
+        options.asmjs_enabled = False
+        options.wasm_enabled = False
 
     if test_args:
         read_all = False
@@ -233,6 +229,13 @@ def main(argv):
 
     if read_all:
         test_list = jittests.find_tests()
+
+    # If code coverage is enabled, exclude tests. (bug 1347245)
+    if os.getenv('GCOV_PREFIX') is not None:
+        if options.exclude:
+            options.exclude += ['asm.js/testSIMD.js']
+        else:
+            options.exclude = ['asm.js/testSIMD.js']
 
     if options.exclude:
         exclude_list = []

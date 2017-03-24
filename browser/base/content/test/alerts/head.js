@@ -3,15 +3,14 @@ function promiseAlertWindow() {
     let listener = {
       onOpenWindow(window) {
         let alertWindow = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
-        alertWindow.addEventListener("load", function onLoad() {
-          alertWindow.removeEventListener("load", onLoad);
+        alertWindow.addEventListener("load", function() {
           let windowType = alertWindow.document.documentElement.getAttribute("windowtype");
           if (windowType != "alert:alert") {
             return;
           }
           Services.wm.removeListener(listener);
           resolve(alertWindow);
-        });
+        }, {once: true});
       },
     };
     Services.wm.addListener(listener);
@@ -42,9 +41,9 @@ function promiseWindowClosed(window) {
  * rejected after the requested number of miliseconds.
  */
 function openNotification(aBrowser, fn, timeout) {
-  return ContentTask.spawn(aBrowser, { fn, timeout }, function* ({ fn, timeout }) {
+  return ContentTask.spawn(aBrowser, [fn, timeout], function* ([contentFn, contentTimeout]) {
     let win = content.wrappedJSObject;
-    let notification = win[fn]();
+    let notification = win[contentFn]();
     win._notification = notification;
     yield new Promise((resolve, reject) => {
       function listener() {
@@ -54,11 +53,11 @@ function openNotification(aBrowser, fn, timeout) {
 
       notification.addEventListener("show", listener);
 
-      if (timeout) {
+      if (contentTimeout) {
         content.setTimeout(() => {
           notification.removeEventListener("show", listener);
           reject("timed out");
-        }, timeout);
+        }, contentTimeout);
       }
     });
   });

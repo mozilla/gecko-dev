@@ -2,8 +2,9 @@ const { Constructor: CC } = Components;
 
 Cu.import("resource://testing-common/httpd.js");
 
-const { OneCRLBlocklistClient } = Cu.import("resource://services-common/blocklist-clients.js");
-const { loadKinto } = Cu.import("resource://services-common/kinto-offline-client.js");
+const { OneCRLBlocklistClient } = Cu.import("resource://services-common/blocklist-clients.js", {});
+const { Kinto } = Cu.import("resource://services-common/kinto-offline-client.js", {});
+const { FirefoxAdapter } = Cu.import("resource://services-common/kinto-storage-adapter.js", {});
 
 const BinaryInputStream = CC("@mozilla.org/binaryinputstream;1",
   "nsIBinaryInputStream", "setInputStream");
@@ -11,40 +12,35 @@ const BinaryInputStream = CC("@mozilla.org/binaryinputstream;1",
 let server;
 
 // set up what we need to make storage adapters
-const Kinto = loadKinto();
-const FirefoxAdapter = Kinto.adapters.FirefoxAdapter;
-const kintoFilename = "kinto.sqlite";
-
-let kintoClient;
+let sqliteHandle;
+const KINTO_FILENAME = "kinto.sqlite";
 
 function do_get_kinto_collection(collectionName) {
-  if (!kintoClient) {
-    let config = {
-      // Set the remote to be some server that will cause test failure when
-      // hit since we should never hit the server directly, only via maybeSync()
-      remote: "https://firefox.settings.services.mozilla.com/v1/",
-      // Set up the adapter and bucket as normal
-      adapter: FirefoxAdapter,
-      bucket: "blocklists"
-    };
-    kintoClient = new Kinto(config);
-  }
-  return kintoClient.collection(collectionName);
+  let config = {
+    // Set the remote to be some server that will cause test failure when
+    // hit since we should never hit the server directly, only via maybeSync()
+    remote: "https://firefox.settings.services.mozilla.com/v1/",
+    // Set up the adapter and bucket as normal
+    adapter: FirefoxAdapter,
+    adapterOptions: {sqliteHandle},
+    bucket: "blocklists"
+  };
+  return new Kinto(config).collection(collectionName);
 }
 
 // Some simple tests to demonstrate that the logic inside maybeSync works
 // correctly and that simple kinto operations are working as expected. There
 // are more tests for core Kinto.js (and its storage adapter) in the
 // xpcshell tests under /services/common
-add_task(function* test_something(){
+add_task(function* test_something() {
   const configPath = "/v1/";
   const recordsPath = "/v1/buckets/blocklists/collections/certificates/records";
 
-  Services.prefs.setCharPref("services.settings.server",
-                             `http://localhost:${server.identity.primaryPort}/v1`);
+  const dummyServerURL = `http://localhost:${server.identity.primaryPort}/v1`;
+  Services.prefs.setCharPref("services.settings.server", dummyServerURL);
 
   // register a handler
-  function handleResponse (request, response) {
+  function handleResponse(request, response) {
     try {
       const sample = getSampleResponse(request, server.identity.primaryPort);
       if (!sample) {
@@ -55,7 +51,7 @@ add_task(function* test_something(){
                              sample.status.statusText);
       // send the headers
       for (let headerLine of sample.sampleHeaders) {
-        let headerElements = headerLine.split(':');
+        let headerElements = headerLine.split(":");
         response.setHeader(headerElements[0], headerElements[1].trimLeft());
       }
       response.setHeader("Date", (new Date()).toUTCString());
@@ -69,26 +65,47 @@ add_task(function* test_something(){
   server.registerPathHandler(recordsPath, handleResponse);
 
   // Test an empty db populates
-  let result = yield OneCRLBlocklistClient.maybeSync(2000, Date.now());
+  yield OneCRLBlocklistClient.maybeSync(2000, Date.now());
+
+  sqliteHandle = yield FirefoxAdapter.openConnection({path: KINTO_FILENAME});
+  const collection = do_get_kinto_collection("certificates");
 
   // Open the collection, verify it's been populated:
-  // Our test data has a single record; it should be in the local collection
-  let collection = do_get_kinto_collection("certificates");
-  yield collection.db.open();
   let list = yield collection.list();
-  do_check_eq(list.data.length, 1);
-  yield collection.db.close();
+  // We know there will be initial values from the JSON dump.
+  // (at least as many as in the dump shipped when this test was written).
+  do_check_true(list.data.length >= 363);
 
-  // Test the db is updated when we call again with a later lastModified value
-  result = yield OneCRLBlocklistClient.maybeSync(4000, Date.now());
+  // No sync will be intented if maybeSync() is up-to-date.
+  Services.prefs.clearUserPref("services.settings.server");
+  Services.prefs.setIntPref("services.blocklist.onecrl.checked", 0);
+  // Use any last_modified older than highest shipped in JSON dump.
+  yield OneCRLBlocklistClient.maybeSync(123456, Date.now());
+  // Last check value was updated.
+  do_check_neq(0, Services.prefs.getIntPref("services.blocklist.onecrl.checked"));
+
+  // Restore server pref.
+  Services.prefs.setCharPref("services.settings.server", dummyServerURL);
+  // clear the collection, save a non-zero lastModified so we don't do
+  // import of initial data when we sync again.
+  yield collection.clear();
+  // a lastModified value of 1000 means we get a remote collection with a
+  // single record
+  yield collection.db.saveLastModified(1000);
+  yield OneCRLBlocklistClient.maybeSync(2000, Date.now());
 
   // Open the collection, verify it's been updated:
   // Our test data now has two records; both should be in the local collection
-  collection = do_get_kinto_collection("certificates");
-  yield collection.db.open();
+  list = yield collection.list();
+  do_check_eq(list.data.length, 1);
+
+  // Test the db is updated when we call again with a later lastModified value
+  yield OneCRLBlocklistClient.maybeSync(4000, Date.now());
+
+  // Open the collection, verify it's been updated:
+  // Our test data now has two records; both should be in the local collection
   list = yield collection.list();
   do_check_eq(list.data.length, 3);
-  yield collection.db.close();
 
   // Try to maybeSync with the current lastModified value - no connection
   // should be attempted.
@@ -109,8 +126,7 @@ add_task(function* test_something(){
   // Check that a sync completes even when there's bad data in the
   // collection. This will throw on fail, so just calling maybeSync is an
   // acceptible test.
-  Services.prefs.setCharPref("services.settings.server",
-                             `http://localhost:${server.identity.primaryPort}/v1`);
+  Services.prefs.setCharPref("services.settings.server", dummyServerURL);
   yield OneCRLBlocklistClient.maybeSync(5000, Date.now());
 });
 
@@ -127,6 +143,7 @@ function run_test() {
 
   do_register_cleanup(function() {
     server.stop(() => { });
+    return sqliteHandle.close();
   });
 }
 
@@ -160,6 +177,17 @@ function getSampleResponse(req, port) {
         "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
         "Content-Type: application/json; charset=UTF-8",
         "Server: waitress",
+        "Etag: \"1000\""
+      ],
+      "status": {status: 200, statusText: "OK"},
+      "responseBody": JSON.stringify({"data":[{}]})
+    },
+    "GET:/v1/buckets/blocklists/collections/certificates/records?_sort=-last_modified&_since=1000": {
+      "sampleHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: Retry-After, Content-Length, Alert, Backoff",
+        "Content-Type: application/json; charset=UTF-8",
+        "Server: waitress",
         "Etag: \"3000\""
       ],
       "status": {status: 200, statusText: "OK"},
@@ -184,7 +212,7 @@ function getSampleResponse(req, port) {
         "serialNumber":"ATFpsA==",
         "id":"dabafde9-df4a-ddba-2548-748da04cc02c",
         "last_modified":4000
-      },{
+      }, {
         "subject":"MCIxIDAeBgNVBAMMF0Fub3RoZXIgVGVzdCBFbmQtZW50aXR5",
         "pubKeyHash":"VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8=",
         "id":"dabafde9-df4a-ddba-2548-748da04cc02d",
@@ -205,12 +233,12 @@ function getSampleResponse(req, port) {
         "serialNumber":"not a base64 encoded serial",
         "id":"dabafde9-df4a-ddba-2548-748da04cc02e",
         "last_modified":5000
-      },{
+      }, {
         "subject":"not a base64 encoded subject",
         "pubKeyHash":"not a base64 encoded pubKeyHash",
         "id":"dabafde9-df4a-ddba-2548-748da04cc02f",
         "last_modified":5000
-      },{
+      }, {
         "subject":"MCIxIDAeBgNVBAMMF0Fub3RoZXIgVGVzdCBFbmQtZW50aXR5",
         "pubKeyHash":"VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8=",
         "id":"dabafde9-df4a-ddba-2548-748da04cc02g",

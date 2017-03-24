@@ -1,3 +1,5 @@
+/* eslint-env mozilla/frame-script */
+
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/Timer.jsm");
@@ -58,7 +60,7 @@ function handlePrompt(action, isTabModal, isSelect) {
     promptState = getPromptState(ui);
     dismissPrompt(ui, action);
   }
-  sendAsyncMessage("promptHandled", { promptState: promptState });
+  sendAsyncMessage("promptHandled", { promptState });
   return true;
 }
 
