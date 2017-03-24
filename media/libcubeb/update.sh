@@ -69,3 +69,6 @@ patch -p1 < ./osx-linearize-operations.patch
 
 echo "Applying a patch on top of $version"
 patch -p1 < ./prevent-double-free.patch
+
+echo "Applying a patch on top of $version"
+patch -p1 < ./uplift-wasapi-part-to-beta.patch
