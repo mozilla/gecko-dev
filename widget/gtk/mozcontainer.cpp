@@ -81,7 +81,8 @@ moz_container_get_type(void)
 
         moz_container_type = g_type_register_static (GTK_TYPE_CONTAINER,
                                                      "MozContainer",
-                                                     &moz_container_info, 0);
+                                                     &moz_container_info,
+                                                     static_cast<GTypeFlags>(0));
 #ifdef ACCESSIBILITY
         /* Set a factory to return accessible object with ROLE_REDUNDANT for
          * MozContainer, so that gail won't send focus notification for it */
@@ -99,7 +100,7 @@ moz_container_new (void)
 {
     MozContainer *container;
 
-    container = g_object_new (MOZ_CONTAINER_TYPE, NULL);
+    container = static_cast<MozContainer*>(g_object_new (MOZ_CONTAINER_TYPE, nullptr));
 
     return GTK_WIDGET(container);
 }
@@ -257,12 +258,13 @@ registry_handle_global (void *data,
                         const char *interface,
                         uint32_t version)
 {
-    MozContainer *container = data;
+    MozContainer *container = MOZ_CONTAINER(data);
     if(strcmp(interface, "wl_subcompositor") == 0) {
-        container->subcompositor = wl_registry_bind(registry,
-                                                    name,
-                                                    &wl_subcompositor_interface,
-                                                    1);
+        container->subcompositor =
+            static_cast<wl_subcompositor*>(wl_registry_bind(registry,
+                                           name,
+                                           &wl_subcompositor_interface,
+                                           1));
     }
 }
 
@@ -365,7 +367,6 @@ moz_container_realize (GtkWidget *widget)
         GdkWindowAttr attributes;
         gint attributes_mask = GDK_WA_VISUAL | GDK_WA_X | GDK_WA_Y;
         GtkAllocation allocation;
-        GtkWidget* parent_widget;
 
         gtk_widget_get_allocation (widget, &allocation);
         attributes.event_mask = gtk_widget_get_events (widget);
@@ -378,7 +379,7 @@ moz_container_realize (GtkWidget *widget)
         attributes.window_type = GDK_WINDOW_CHILD;
 #if defined(GDK_WINDOWING_WAYLAND)
 /*
-        parent_widget = gtk_widget_get_parent(widget);
+        GtkWidget* parent_widget = gtk_widget_get_parent(widget);
         if (parent_widget &&
             gtk_window_get_window_type(GTK_WINDOW(parent_widget)) == GTK_WINDOW_POPUP) {
             attributes.window_type = GDK_WINDOW_SUBSURFACE;
@@ -457,7 +458,7 @@ moz_container_size_allocate (GtkWidget     *widget,
     tmp_list = container->children;
 
     while (tmp_list) {
-        MozContainerChild *child = tmp_list->data;
+        MozContainerChild *child = static_cast<MozContainerChild*>(tmp_list->data);
 
         moz_container_allocate_child (container, child);
 
@@ -547,7 +548,7 @@ moz_container_forall (GtkContainer *container, gboolean include_internals,
     tmp_list = moz_container->children;
     while (tmp_list) {
         MozContainerChild *child;
-        child = tmp_list->data;
+        child = static_cast<MozContainerChild*>(tmp_list->data);
         tmp_list = tmp_list->next;
         (* callback) (child->widget, callback_data);
     }
@@ -575,7 +576,7 @@ moz_container_get_child (MozContainer *container, GtkWidget *child_widget)
     while (tmp_list) {
         MozContainerChild *child;
 
-        child = tmp_list->data;
+        child = static_cast<MozContainerChild*>(tmp_list->data);
         tmp_list = tmp_list->next;
 
         if (child->widget == child_widget)

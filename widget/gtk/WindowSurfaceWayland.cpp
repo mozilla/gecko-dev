@@ -42,6 +42,7 @@ GDK_WINDOWING_X11 - remove
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Tools.h"
 #include "gfxPlatform.h"
+#include "mozcontainer.h"
 #include "os-compatibility.h"
 
 #ifdef GDK_WINDOWING_WAYLAND
@@ -372,10 +373,6 @@ gst_wl_display_thread_run (gpointer data)
   }
 
   return NULL;
-}
-
-extern "C" {
-struct wl_event_queue* moz_container_get_wl_queue();
 }
 
 static void
