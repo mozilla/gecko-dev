@@ -1718,14 +1718,9 @@ nsWindow::GetNativeData(uint32_t aDataType)
     }
     case NS_NATIVE_OPENGL_CONTEXT:
       return nullptr;
-#if defined(MOZ_X11) || defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_X11)
     case NS_NATIVE_COMPOSITOR_DISPLAY:
-        if (mIsX11Display)
-          return gfxPlatformGtk::GetPlatform()->GetXCompositorDisplay();
-        else
-          return gfxPlatformGtk::GetPlatform()->GetWaylandCompositorDisplay();
-    case NS_NATIVE_COMPOSITOR_DISPLAY_X11:
-        return (void *)mIsX11Display;
+        return gfxPlatformGtk::GetPlatform()->GetCompositorDisplay();
 #endif
     default:
         NS_WARNING("nsWindow::GetNativeData called with bad value");
