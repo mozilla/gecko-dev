@@ -35,8 +35,7 @@ struct WaylandLibWrapper
   void (*proxy_destroy)(struct wl_proxy *proxy);
 
 private:
-  // Reset the wrapper and unlink all attached libraries.
-  void Unlink();
+  void SetFallbackCalls();
 
   PRLibrary* mWaylandLib;
 };

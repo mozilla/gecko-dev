@@ -21,12 +21,6 @@ extern "C" {
 struct _XDisplay;
 typedef struct _XDisplay Display;
 #endif // MOZ_X11
-#ifndef GDK_WINDOWING_WAYLAND
-#define GDK_WINDOWING_WAYLAND 1
-#endif
-#ifdef GDK_WINDOWING_WAYLAND
-struct wl_display;
-#endif
 
 class gfxFontconfigUtils;
 
@@ -112,7 +106,7 @@ public:
     static int32_t GetDPI();
     static double  GetDPIScale();
 
-#if defined(MOZ_X11) || defined(GDK_WINDOWING_WAYLAND)
+#ifdef MOZ_X11
     virtual void GetAzureBackendInfo(mozilla::widget::InfoObject &aObj) override {
       gfxPlatform::GetAzureBackendInfo(aObj);
       aObj.DefineProperty("CairoUseXRender", mozilla::gfx::gfxVars::UseXRender());
@@ -145,17 +139,9 @@ public:
 #endif
 
 #ifdef MOZ_X11
-    bool     IsXDisplay() {
-      return mIsX11Display;
+    Display* GetCompositorDisplay() {
+      return mCompositorDisplay;
     }
-    Display* GetXCompositorDisplay() {
-      return mXCompositorDisplay;
-    }
-#ifdef GDK_WINDOWING_WAYLAND
-    wl_display* GetWaylandCompositorDisplay() {
-      return mWaylandCompositorDisplay;
-    }
-#endif
 #endif // MOZ_X11
 
 protected:
@@ -166,12 +152,9 @@ protected:
 private:
     virtual void GetPlatformCMSOutputProfile(void *&mem,
                                              size_t &size) override;
+
 #ifdef MOZ_X11
-    bool        mIsX11Display;
-    Display*    mXCompositorDisplay;
-#ifdef GDK_WINDOWING_WAYLAND
-    wl_display* mWaylandCompositorDisplay;
-#endif
+    Display* mCompositorDisplay;
 #endif
 };
 
