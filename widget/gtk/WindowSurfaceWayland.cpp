@@ -229,7 +229,7 @@ BackBufferWayland::Resize(int aWidth, int aHeight)
   if (aWidth == mWidth && aHeight == mHeight)
     return true;
 
-  fprintf(stderr, "BackBufferResize, %dx%d -> %dx%d",
+  fprintf(stderr, "BackBufferResize, %dx%d -> %dx%d\n",
           mWidth, mHeight, aWidth, aHeight);
   ReleaseBuffer();
 
