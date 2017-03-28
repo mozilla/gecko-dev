@@ -36,7 +36,6 @@ GDK_WINDOWING_X11 - remove
 #include <assert.h>
 #include <poll.h>
 
-#include "WaylandLibWrapper.h"
 #include "WindowSurfaceWayland.h"
 
 #include "mozilla/gfx/2D.h"
@@ -78,7 +77,7 @@ ImageBuffer::~ImageBuffer()
 
 already_AddRefed<gfx::DrawTarget>
 ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
-{    
+{
   gfx::IntRect bounds = aRegion.GetBounds().ToUnknownRect();
   gfx::IntSize imageSize(bounds.XMost(), bounds.YMost());
 
@@ -95,11 +94,11 @@ ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
     if (mBufferData) {
       free(mBufferData);
     }
-    
+
     mBufferData = (unsigned char*)malloc(newSize);
     if (!mBufferData)
       return nullptr;
-    
+
     mBufferAllocated = newSize;
   }
 
@@ -130,7 +129,7 @@ bool BackBufferWayland::CreateShmPool(int aSize)
                                 mShmPoolFd, mAllocatedSize);
   wl_proxy_set_queue((struct wl_proxy *)mShmPool,
                      WindowSurfaceWayland::GetQueue());
-                                
+
   return true;
 }
 
@@ -272,7 +271,7 @@ BackBufferWayland::Attach(wl_surface* aSurface)
   // not be a problem.  Without a frame event, we need to send a sync
   // request to ensure that they get flushed.    
   //wl_callback_destroy(wl_display_sync(WindowSurfaceWayland::GetDisplay()));
-  
+
   wl_surface_attach(aSurface, mBuffer, 0, 0);
   wl_surface_commit(aSurface);
   wl_display_flush(WindowSurfaceWayland::GetDisplay());
@@ -393,7 +392,7 @@ WindowSurfaceWayland::Init()
   if (mInitialized)
     return;
   mInitialized = true;
-  
+
   mQueue = moz_container_get_wl_queue();
 
   // wl_shm and wl_subcompositor are not provided by Gtk so we need
@@ -459,13 +458,13 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
         NS_ASSERTION(!mBackBuffer->IsAttached(), "We don't have any buffer to draw to!");
         return nullptr;
       }
-      
+
       BackBufferWayland *tmp = mFrontBuffer;
       mFrontBuffer = mBackBuffer;
       mBackBuffer = tmp;
 
       mFrontBuffer->Sync(mBackBuffer);
-      
+
       // TODO (https://bugzilla.redhat.com/show_bug.cgi?id=1418260)
       wl_surface_damage(mSurface, 0, 0, aWidth, aHeight);
     }

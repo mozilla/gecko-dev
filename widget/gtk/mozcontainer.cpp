@@ -8,6 +8,7 @@
 #include "mozcontainer.h"
 #include <gtk/gtk.h>
 #ifdef GDK_WINDOWING_WAYLAND
+#include <gdk/gdkx.h>
 #include <gdk/gdkwayland.h>
 #endif
 
@@ -206,16 +207,16 @@ moz_container_unmap_surface(MozContainer *container)
 static void
 moz_container_create_surface(MozContainer *container)
 {
-    if (!mQueue) {
-      GdkDisplay *display = gtk_widget_get_display(GTK_WIDGET(container));
-      mQueue = wl_display_create_queue(gdk_wayland_display_get_wl_display(display));
-    }
+    GdkDisplay *display = gtk_widget_get_display(GTK_WIDGET(container));
+    if (GDK_IS_X11_DISPLAY(display))
+        return;
 
+    if (!mQueue) {
+        mQueue = wl_display_create_queue(gdk_wayland_display_get_wl_display(display));
+    }
     if (!container->surface) {
-        GdkDisplay *display;
         struct wl_compositor *compositor;
 
-        display = gtk_widget_get_display(GTK_WIDGET (container));
         compositor = gdk_wayland_display_get_wl_compositor(display);
         container->surface = wl_compositor_create_surface(compositor);
         wl_proxy_set_queue((struct wl_proxy *)container->surface, mQueue);
@@ -377,16 +378,6 @@ moz_container_realize (GtkWidget *widget)
         attributes.wclass = GDK_INPUT_OUTPUT;
         attributes.visual = gtk_widget_get_visual (widget);
         attributes.window_type = GDK_WINDOW_CHILD;
-#if defined(GDK_WINDOWING_WAYLAND)
-/*
-        GtkWidget* parent_widget = gtk_widget_get_parent(widget);
-        if (parent_widget &&
-            gtk_window_get_window_type(GTK_WINDOW(parent_widget)) == GTK_WINDOW_POPUP) {
-            attributes.window_type = GDK_WINDOW_SUBSURFACE;
-        }
-*/
-#endif
-
 #if (MOZ_WIDGET_GTK == 2)
         attributes.colormap = gtk_widget_get_colormap (widget);
         attributes_mask |= GDK_WA_COLORMAP;
