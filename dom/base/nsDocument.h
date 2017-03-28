@@ -904,13 +904,13 @@ public:
   void DecreaseEventSuppression() {
     MOZ_ASSERT(mEventsSuppressed);
     --mEventsSuppressed;
-    MaybeRescheduleAnimationFrameNotifications();
+    UpdateFrameRequestCallbackSchedulingState();
   }
 
   void ResumeAnimations() {
     MOZ_ASSERT(mAnimationsPaused);
     --mAnimationsPaused;
-    MaybeRescheduleAnimationFrameNotifications();
+    UpdateFrameRequestCallbackSchedulingState();
   }
 
   virtual nsIDocument* GetTemplateContentsOwner() override;
@@ -1509,12 +1509,6 @@ private:
   // aSheetSet as the preferred set in the CSSLoader.
   void EnableStyleSheetsForSetInternal(const nsAString& aSheetSet,
                                        bool aUpdateCSSLoader);
-
-  // Revoke any pending notifications due to requestAnimationFrame calls
-  void RevokeAnimationFrameNotifications();
-  // Reschedule any notifications we need to handle
-  // requestAnimationFrame, if it's OK to do so.
-  void MaybeRescheduleAnimationFrameNotifications();
 
   void ClearAllBoxObjects();
 
