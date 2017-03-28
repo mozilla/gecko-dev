@@ -6,10 +6,13 @@
 
 if CONFIG['OS_TARGET'] in ('Android', 'Linux'):
     UNIFIED_SOURCES += [
-        'LulTest.cpp',
         'LulTestDwarf.cpp',
         'LulTestInfrastructure.cpp',
     ]
+    if CONFIG['CPU_ARCH'] != 'x86':
+        UNIFIED_SOURCES += [
+            'LulTest.cpp',
+        ]
 
 LOCAL_INCLUDES += [
     '/tools/profiler/core',
