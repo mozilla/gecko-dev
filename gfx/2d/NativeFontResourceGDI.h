@@ -12,7 +12,6 @@
 #include "2D.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Vector.h"
-#include "u16string.h"
 
 namespace mozilla {
 namespace gfx {
@@ -36,18 +35,17 @@ public:
   ~NativeFontResourceGDI();
 
   already_AddRefed<ScaledFont>
-    CreateScaledFont(uint32_t aIndex, Float aGlyphSize) final;
+    CreateScaledFont(uint32_t aIndex, Float aGlyphSize,
+                     const uint8_t* aInstanceData, uint32_t aInstanceDataLength) final;
 
 private:
   NativeFontResourceGDI(HANDLE aFontResourceHandle,
-                        Vector<mozilla::u16string>&& aFontNames,
                         bool aNeedsCairo)
-    : mFontResourceHandle(aFontResourceHandle), mFontNames(Move(aFontNames))
+    : mFontResourceHandle(aFontResourceHandle)
     , mNeedsCairo(aNeedsCairo)
   {}
 
   HANDLE mFontResourceHandle;
-  Vector<mozilla::u16string> mFontNames;
   bool mNeedsCairo;
 };
 
