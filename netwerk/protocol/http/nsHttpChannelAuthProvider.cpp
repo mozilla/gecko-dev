@@ -804,6 +804,10 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
     }
 
     mConnectionBased = !!(authFlags & nsIHttpAuthenticator::CONNECTION_BASED);
+    if (mConnectionBased) {
+        rv = mAuthChannel->ForceNoSpdy();
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+    }
 
     if (identityInvalid) {
         if (entry) {
