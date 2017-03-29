@@ -723,7 +723,8 @@ nsEditor::DoTransaction(nsITransaction* aTxn)
 
     nsresult res;
     if (mTxnMgr) {
-      res = mTxnMgr->DoTransaction(aTxn);
+      RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
+      res = txnMgr->DoTransaction(aTxn);
     } else {
       res = aTxn->DoTransaction();
     }
@@ -809,8 +810,9 @@ nsEditor::Undo(uint32_t aCount)
     return NS_OK;
   }
 
+  RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
   for (uint32_t i = 0; i < aCount; ++i) {
-    nsresult rv = mTxnMgr->UndoTransaction();
+    nsresult rv = txnMgr->UndoTransaction();
     NS_ENSURE_SUCCESS(rv, rv);
 
     DoAfterUndoTransaction();
@@ -848,8 +850,9 @@ nsEditor::Redo(uint32_t aCount)
     return NS_OK;
   }
 
+  RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
   for (uint32_t i = 0; i < aCount; ++i) {
-    nsresult rv = mTxnMgr->RedoTransaction();
+    nsresult rv = txnMgr->RedoTransaction();
     NS_ENSURE_SUCCESS(rv, rv);
 
     DoAfterRedoTransaction();
@@ -881,7 +884,8 @@ nsEditor::BeginTransaction()
   BeginUpdateViewBatch();
 
   if (mTxnMgr) {
-    mTxnMgr->BeginBatch(nullptr);
+    RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
+    txnMgr->BeginBatch(nullptr);
   }
 
   return NS_OK;
@@ -891,7 +895,8 @@ NS_IMETHODIMP
 nsEditor::EndTransaction()
 {
   if (mTxnMgr) {
-    mTxnMgr->EndBatch(false);
+    RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
+    txnMgr->EndBatch(false);
   }
 
   EndUpdateViewBatch();
