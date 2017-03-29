@@ -71,9 +71,6 @@ public:
          FileSystemRequestParent* aParent,
          ErrorResult& aRv);
 
-  nsresult
-  GetTargetPath(nsAString& aPath) const override;
-
 private:
   GetFilesTaskParent(FileSystemBase* aFileSystem,
                      const FileSystemGetFilesParams& aParam,

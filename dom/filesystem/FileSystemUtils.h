@@ -26,8 +26,7 @@ public:
    * Return true if aDescendantPath is a descendant of aPath.
    */
   static bool
-  IsDescendantPath(const nsAString& aPath,
-                   const nsAString& aDescendantPath);
+  IsDescendantPath(nsIFile* aPath, nsIFile* aDescendantPath);
 
   /**
    * Return true if this is valid DOMPath. It also splits the path in

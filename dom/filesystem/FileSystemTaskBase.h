@@ -242,9 +242,6 @@ public:
   NS_IMETHOD
   Run() override;
 
-  virtual nsresult
-  GetTargetPath(nsAString& aPath) const = 0;
-
 private:
   /*
    * Wrap the task result to FileSystemResponseValue for sending it through IPC.

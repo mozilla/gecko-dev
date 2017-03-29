@@ -380,11 +380,5 @@ GetDirectoryListingTaskParent::IOWork()
   return NS_OK;
 }
 
-nsresult
-GetDirectoryListingTaskParent::GetTargetPath(nsAString& aPath) const
-{
-  return mTargetPath->GetPath(aPath);
-}
-
 } // namespace dom
 } // namespace mozilla

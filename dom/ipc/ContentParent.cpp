@@ -45,7 +45,6 @@
 #include "mozilla/dom/DOMStorageIPC.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/File.h"
-#include "mozilla/dom/FileSystemSecurity.h"
 #include "mozilla/dom/ExternalHelperAppParent.h"
 #include "mozilla/dom/GetFilesHelper.h"
 #include "mozilla/dom/GeolocationBinding.h"
@@ -1790,11 +1789,6 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
   if (mHangMonitorActor) {
     ProcessHangMonitor::RemoveProcess(mHangMonitorActor);
     mHangMonitorActor = nullptr;
-  }
-
-  RefPtr<FileSystemSecurity> fss = FileSystemSecurity::Get();
-  if (fss) {
-    fss->Forget(ChildID());
   }
 
   if (why == NormalShutdown && !mCalledClose) {
