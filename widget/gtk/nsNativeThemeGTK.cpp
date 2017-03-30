@@ -7,6 +7,7 @@
 #include "nsThemeConstants.h"
 #include "gtkdrawing.h"
 #include "nsScreenGtk.h"
+#include "X11UndefineNone.h"
 
 #include "gfx2DGlue.h"
 #include "nsIObserverService.h"
@@ -30,6 +31,7 @@
 
 #include <gdk/gdkprivate.h>
 #include <gtk/gtk.h>
+#include <gtk/gtkx.h>
 
 #include "gfxContext.h"
 #include "gfxPlatformGtk.h"

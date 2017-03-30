@@ -6,6 +6,7 @@
 #ifndef _GTK_NSNATIVETHEMEGTK_H_
 #define _GTK_NSNATIVETHEMEGTK_H_
 
+#include "X11UndefineNone.h"
 #include "nsITheme.h"
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"

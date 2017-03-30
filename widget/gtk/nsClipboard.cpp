@@ -9,6 +9,10 @@
 
 #include "nsArrayUtils.h"
 #include "nsClipboard.h"
+#include "nsClipboardX11.h"
+#if defined(GDK_WINDOWING_WAYLAND)
+#include "nsClipboardWayland.h"
+#endif
 #include "nsSupportsPrimitives.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"
@@ -20,20 +24,11 @@
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/TimeStamp.h"
 
 #include "imgIContainer.h"
 
 #include <gtk/gtk.h>
-
-// For manipulation of the X event queue
-#include <X11/Xlib.h>
-#include <gdk/gdkx.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <unistd.h>
-#include "X11UndefineNone.h"
+#include <gtk/gtkx.h>
 
 #include "mozilla/dom/EncodingUtils.h"
 #include "nsIUnicodeDecoder.h"
@@ -62,24 +57,52 @@ ConvertHTMLtoUCS2          (guchar             *data,
 static void
 GetHTMLCharset             (guchar * data, int32_t dataLength, nsCString& str);
 
+GdkAtom
+GetSelectionAtom(int32_t aWhichClipboard)
+{
+    if (aWhichClipboard == nsIClipboard::kGlobalClipboard)
+        return GDK_SELECTION_CLIPBOARD;
 
-// Our own versions of gtk_clipboard_wait_for_contents and
-// gtk_clipboard_wait_for_text, which don't run the event loop while
-// waiting for the data.  This prevents a lot of problems related to
-// dispatching events at unexpected times.
+    return GDK_SELECTION_PRIMARY;
+}
 
-static GtkSelectionData *
-wait_for_contents          (GtkClipboard *clipboard, GdkAtom target);
+// Idle timeout for receiving selection and property notify events (microsec)
+const int
+nsRetrievalContext::kClipboardTimeout = 500000;
 
-static gchar *
-wait_for_text              (GtkClipboard *clipboard);
+NS_IMPL_ISUPPORTS(nsRetrievalContext, nsIObserver)
 
-static GdkFilterReturn
-selection_request_filter   (GdkXEvent *gdk_xevent,
-                            GdkEvent *event,
-                            gpointer data);
+nsRetrievalContext::nsRetrievalContext(void)
+{
+    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+    if (os) {
+        os->AddObserver(this, "quit-application", false);
+    }
+}
+
+nsRetrievalContext::~nsRetrievalContext(void)
+{
+}
+
+NS_IMETHODIMP
+nsRetrievalContext::Observe(nsISupports *aSubject, const char *aTopic, const char16_t *aData)
+{
+    if (strcmp(aTopic, "quit-application") == 0) {
+        // application is going to quit, save clipboard content
+        Store();
+    }
+    return NS_OK;
+}
+
+void
+nsRetrievalContext::Store(void)
+{
+    GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    gtk_clipboard_store(clipboard);
+}
 
 nsClipboard::nsClipboard()
+ : mContext(nullptr)
 {
 }
 
@@ -100,40 +123,24 @@ NS_IMPL_ISUPPORTS(nsClipboard, nsIClipboard)
 nsresult
 nsClipboard::Init(void)
 {
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (!os)
-      return NS_ERROR_FAILURE;
-
-    os->AddObserver(this, "quit-application", false);
-
-    // A custom event filter to workaround attempting to dereference a null
-    // selection requestor in GTK3 versions before 3.11.3. See bug 1178799.
-#if (MOZ_WIDGET_GTK == 3) && defined(MOZ_X11)
-    if (gtk_check_version(3, 11, 3))
-        gdk_window_add_filter(nullptr, selection_request_filter, nullptr);
+    // create nsRetrievalContext
+    if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
+        mContext = new nsRetrievalContextX11();
+#if defined(GDK_WINDOWING_WAYLAND)
+    } else {
+        mContext = new nsRetrievalContextWayland();
 #endif
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsClipboard::Observe(nsISupports *aSubject, const char *aTopic, const char16_t *aData)
-{
-    if (strcmp(aTopic, "quit-application") == 0) {
-        // application is going to quit, save clipboard content
-        Store();
-        gdk_window_remove_filter(nullptr, selection_request_filter, nullptr);
     }
     return NS_OK;
 }
+
 
 nsresult
 nsClipboard::Store(void)
 {
     // Ask the clipboard manager to store the current clipboard content
     if (mGlobalTransferable) {
-        GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
-        gtk_clipboard_store(clipboard);
+        mContext->Store();
     }
     return NS_OK;
 }
@@ -248,11 +255,8 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
     if (!aTransferable)
         return NS_ERROR_FAILURE;
 
-    GtkClipboard *clipboard;
-    clipboard = gtk_clipboard_get(GetSelectionAtom(aWhichClipboard));
-
     guchar        *data = nullptr;
-    gint           length = 0;
+    uint32_t       length = 0;
     bool           foundData = false;
     nsAutoCString  foundFlavor;
 
@@ -276,21 +280,34 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
             // Special case text/unicode since we can convert any
             // string into text/unicode
             if (!strcmp(flavorStr, kUnicodeMime)) {
-                gchar* new_text = wait_for_text(clipboard);
-                if (new_text) {
-                    // Convert utf-8 into our unicode format.
-                    NS_ConvertUTF8toUTF16 ucs2string(new_text);
-                    data = (guchar *)ToNewUnicode(ucs2string);
-                    length = ucs2string.Length() * 2;
-                    g_free(new_text);
-                    foundData = true;
-                    foundFlavor = kUnicodeMime;
-                    break;
+                nsCOMPtr<nsIInputStream> dataStream;
+                rv = mContext->GetClipboardContent(GTK_DEFAULT_MIME_TEXT,
+                                                   aWhichClipboard,
+                                                   getter_AddRefs(dataStream),
+                                                   &length);
+                if (NS_FAILED(rv)) {
+                    // If the type was text/unicode and we couldn't get
+                    // text off the clipboard, run the next loop
+                    // iteration.
+                    continue;
                 }
-                // If the type was text/unicode and we couldn't get
-                // text off the clipboard, run the next loop
-                // iteration.
-                continue;
+
+                char* new_text = (char*)g_malloc(length);
+                uint32_t ret;
+                rv = dataStream->Read(new_text, length, &ret);
+                if(NS_FAILED(rv)) {
+                    g_free(new_text);
+                    continue;
+                }
+
+                // Convert utf-8 into our unicode format.
+                NS_ConvertUTF8toUTF16 ucs2string(new_text, length);
+                data = (guchar *)ToNewUnicode(ucs2string);
+                length = ucs2string.Length() * 2;
+                g_free(new_text);
+                foundData = true;
+                foundFlavor = kUnicodeMime;
+                break;
             }
 
             // For images, we must wrap the data in an nsIInputStream then return instead of break,
@@ -304,52 +321,54 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
                     flavorStr.Assign(kJPEGImageMime);
                 }
 
-                GdkAtom atom = gdk_atom_intern(flavorStr, FALSE);
-
-                GtkSelectionData *selectionData = wait_for_contents(clipboard, atom);
-                if (!selectionData)
+                nsCOMPtr<nsIInputStream> byteStream;
+                rv = mContext->GetClipboardContent(flavorStr.get(), aWhichClipboard,
+                                                   getter_AddRefs(byteStream),
+                                                   &length);
+                if (NS_FAILED(rv))
                     continue;
 
-                nsCOMPtr<nsIInputStream> byteStream;
-                NS_NewByteInputStream(getter_AddRefs(byteStream), 
-                                      (const char*)gtk_selection_data_get_data(selectionData),
-                                      gtk_selection_data_get_length(selectionData), 
-                                      NS_ASSIGNMENT_COPY);
                 aTransferable->SetTransferData(flavorStr, byteStream, sizeof(nsIInputStream*));
-                gtk_selection_data_free(selectionData);
                 return NS_OK;
             }
 
-            // Get the atom for this type and try to request it off
-            // the clipboard.
-            GdkAtom atom = gdk_atom_intern(flavorStr, FALSE);
-            GtkSelectionData *selectionData;
-            selectionData = wait_for_contents(clipboard, atom);
-            if (selectionData) {
-                const guchar *clipboardData = gtk_selection_data_get_data(selectionData);
-                length = gtk_selection_data_get_length(selectionData);
+            // Try to request it off the clipboard.
+            nsCOMPtr<nsIInputStream> byteStream;
+            rv = mContext->GetClipboardContent(flavorStr.get(), aWhichClipboard,
+                                               getter_AddRefs(byteStream),
+                                               &length);
+            if (NS_SUCCEEDED(rv)) {
                 // Special case text/html since we can convert into UCS2
                 if (!strcmp(flavorStr, kHTMLMime)) {
+                    guchar *clipboardData = (guchar *)g_malloc(length);
+                    uint32_t ret;
+                    rv = byteStream->Read((char*)clipboardData, length, &ret);
+                    if(NS_FAILED(rv)) {
+                        g_free(clipboardData);
+                        continue;
+                    }
+
                     char16_t* htmlBody= nullptr;
                     int32_t htmlBodyLen = 0;
                     // Convert text/html into our unicode format
-                    ConvertHTMLtoUCS2(const_cast<guchar*>(clipboardData), length,
+                    ConvertHTMLtoUCS2(clipboardData, length,
                                       &htmlBody, htmlBodyLen);
+                    g_free(clipboardData);
+
                     // Try next data format?
                     if (!htmlBodyLen)
                         continue;
                     data = (guchar *)htmlBody;
                     length = htmlBodyLen * 2;
+
+                    foundData = true;
+                    foundFlavor = flavorStr;
+
                 } else {
-                    data = (guchar *)moz_xmalloc(length);
-                    if (!data)
-                        break;
-                    memcpy(data, clipboardData, length);
+                    aTransferable->SetTransferData(flavorStr, byteStream,
+                                                   sizeof(nsIInputStream*));
+                    return NS_OK;
                 }
-                gtk_selection_data_free(selectionData);
-                foundData = true;
-                foundFlavor = flavorStr;
-                break;
             }
         }
     }
@@ -394,63 +413,16 @@ NS_IMETHODIMP
 nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, uint32_t aLength,
                                     int32_t aWhichClipboard, bool *_retval)
 {
-    if (!aFlavorList || !_retval)
-        return NS_ERROR_NULL_POINTER;
-
-    *_retval = false;
-
-    GtkSelectionData *selection_data =
-        GetTargets(GetSelectionAtom(aWhichClipboard));
-    if (!selection_data)
-        return NS_OK;
-
-    gint n_targets = 0;
-    GdkAtom *targets = nullptr;
-
-    if (!gtk_selection_data_get_targets(selection_data, 
-                                        &targets, &n_targets) ||
-        !n_targets)
-        return NS_OK;
-
-    // Walk through the provided types and try to match it to a
-    // provided type.
-    for (uint32_t i = 0; i < aLength && !*_retval; i++) {
-        // We special case text/unicode here.
-        if (!strcmp(aFlavorList[i], kUnicodeMime) && 
-            gtk_selection_data_targets_include_text(selection_data)) {
-            *_retval = true;
-            break;
-        }
-
-        for (int32_t j = 0; j < n_targets; j++) {
-            gchar *atom_name = gdk_atom_name(targets[j]);
-            if (!atom_name)
-                continue;
-
-            if (!strcmp(atom_name, aFlavorList[i]))
-                *_retval = true;
-
-            // X clipboard supports image/jpeg, but we want to emulate support
-            // for image/jpg as well
-            if (!strcmp(aFlavorList[i], kJPGImageMime) && !strcmp(atom_name, kJPEGImageMime))
-                *_retval = true;
-
-            g_free(atom_name);
-
-            if (*_retval)
-                break;
-        }
-    }
-    gtk_selection_data_free(selection_data);
-    g_free(targets);
-
-    return NS_OK;
+    return mContext->HasDataMatchingFlavors(aFlavorList, aLength,
+                                            aWhichClipboard, _retval);
 }
 
 NS_IMETHODIMP
 nsClipboard::SupportsSelectionClipboard(bool *_retval)
 {
-    *_retval = true; // yeah, unix supports the selection clipboard
+    // yeah, unix supports the selection clipboard on X11
+    // TODO Wayland
+    *_retval = GDK_IS_X11_DISPLAY(gdk_display_get_default());
     return NS_OK;
 }
 
@@ -459,24 +431,6 @@ nsClipboard::SupportsFindClipboard(bool* _retval)
 {
   *_retval = false;
   return NS_OK;
-}
-
-/* static */
-GdkAtom
-nsClipboard::GetSelectionAtom(int32_t aWhichClipboard)
-{
-    if (aWhichClipboard == kGlobalClipboard)
-        return GDK_SELECTION_CLIPBOARD;
-
-    return GDK_SELECTION_PRIMARY;
-}
-
-/* static */
-GtkSelectionData *
-nsClipboard::GetTargets(GdkAtom aWhichClipboard)
-{
-    GtkClipboard *clipboard = gtk_clipboard_get(aWhichClipboard);
-    return wait_for_contents(clipboard, gdk_atom_intern("TARGETS", FALSE));
 }
 
 nsITransferable *
@@ -800,247 +754,4 @@ void GetHTMLCharset(guchar * data, int32_t dataLength, nsCString& str)
         return;
     }
     str.AssignLiteral("UNKNOWN");
-}
-
-static void
-DispatchSelectionNotifyEvent(GtkWidget *widget, XEvent *xevent)
-{
-    GdkEvent event;
-    event.selection.type = GDK_SELECTION_NOTIFY;
-    event.selection.window = gtk_widget_get_window(widget);
-    event.selection.selection = gdk_x11_xatom_to_atom(xevent->xselection.selection);
-    event.selection.target = gdk_x11_xatom_to_atom(xevent->xselection.target);
-    event.selection.property = gdk_x11_xatom_to_atom(xevent->xselection.property);
-    event.selection.time = xevent->xselection.time;
-
-    gtk_widget_event(widget, &event);
-}
-
-static void
-DispatchPropertyNotifyEvent(GtkWidget *widget, XEvent *xevent)
-{
-    GdkWindow *window = gtk_widget_get_window(widget);
-    if ((gdk_window_get_events(window)) & GDK_PROPERTY_CHANGE_MASK) {
-        GdkEvent event;
-        event.property.type = GDK_PROPERTY_NOTIFY;
-        event.property.window = window;
-        event.property.atom = gdk_x11_xatom_to_atom(xevent->xproperty.atom);
-        event.property.time = xevent->xproperty.time;
-        event.property.state = xevent->xproperty.state;
-
-        gtk_widget_event(widget, &event);
-    }
-}
-
-struct checkEventContext
-{
-    GtkWidget *cbWidget;
-    Atom       selAtom;
-};
-
-static Bool
-checkEventProc(Display *display, XEvent *event, XPointer arg)
-{
-    checkEventContext *context = (checkEventContext *) arg;
-
-    if (event->xany.type == SelectionNotify ||
-        (event->xany.type == PropertyNotify &&
-         event->xproperty.atom == context->selAtom)) {
-
-        GdkWindow *cbWindow = 
-            gdk_x11_window_lookup_for_display(gdk_x11_lookup_xdisplay(display),
-                                              event->xany.window);
-        if (cbWindow) {
-            GtkWidget *cbWidget = nullptr;
-            gdk_window_get_user_data(cbWindow, (gpointer *)&cbWidget);
-            if (cbWidget && GTK_IS_WIDGET(cbWidget)) {
-                context->cbWidget = cbWidget;
-                return True;
-            }
-        }
-    }
-
-    return False;
-}
-
-// Idle timeout for receiving selection and property notify events (microsec)
-static const int kClipboardTimeout = 500000;
-
-static gchar* CopyRetrievedData(const gchar *aData)
-{
-    return g_strdup(aData);
-}
-
-static GtkSelectionData* CopyRetrievedData(GtkSelectionData *aData)
-{
-    // A negative length indicates that retrieving the data failed.
-    return gtk_selection_data_get_length(aData) >= 0 ?
-        gtk_selection_data_copy(aData) : nullptr;
-}
-
-class RetrievalContext {
-    ~RetrievalContext()
-    {
-        MOZ_ASSERT(!mData, "Wait() wasn't called");
-    }
-
-public:
-    NS_INLINE_DECL_REFCOUNTING(RetrievalContext)
-    enum State { INITIAL, COMPLETED, TIMED_OUT };
-
-    RetrievalContext() : mState(INITIAL), mData(nullptr) {}
-
-    /**
-     * Call this when data has been retrieved.
-     */
-    template <class T> void Complete(T *aData)
-    {
-        if (mState == INITIAL) {
-            mState = COMPLETED;
-            mData = CopyRetrievedData(aData);
-        } else {
-            // Already timed out
-            MOZ_ASSERT(mState == TIMED_OUT);
-        }
-    }
-
-    /**
-     * Spins X event loop until timing out or being completed. Returns
-     * null if we time out, otherwise returns the completed data (passing
-     * ownership to caller).
-     */
-    void *Wait();
-
-protected:
-    State mState;
-    void* mData;
-};
-
-void *
-RetrievalContext::Wait()
-{
-    if (mState == COMPLETED) { // the request completed synchronously
-        void *data = mData;
-        mData = nullptr;
-        return data;
-    }
-
-    GdkDisplay *gdkDisplay = gdk_display_get_default();
-    if (GDK_IS_X11_DISPLAY(gdkDisplay)) {
-        Display *xDisplay = GDK_DISPLAY_XDISPLAY(gdkDisplay);
-        checkEventContext context;
-        context.cbWidget = nullptr;
-        context.selAtom = gdk_x11_atom_to_xatom(gdk_atom_intern("GDK_SELECTION",
-                                                                FALSE));
-
-        // Send X events which are relevant to the ongoing selection retrieval
-        // to the clipboard widget.  Wait until either the operation completes, or
-        // we hit our timeout.  All other X events remain queued.
-
-        int select_result;
-
-        int cnumber = ConnectionNumber(xDisplay);
-        fd_set select_set;
-        FD_ZERO(&select_set);
-        FD_SET(cnumber, &select_set);
-        ++cnumber;
-        TimeStamp start = TimeStamp::Now();
-
-        do {
-            XEvent xevent;
-
-            while (XCheckIfEvent(xDisplay, &xevent, checkEventProc,
-                                 (XPointer) &context)) {
-
-                if (xevent.xany.type == SelectionNotify)
-                    DispatchSelectionNotifyEvent(context.cbWidget, &xevent);
-                else
-                    DispatchPropertyNotifyEvent(context.cbWidget, &xevent);
-
-                if (mState == COMPLETED) {
-                    void *data = mData;
-                    mData = nullptr;
-                    return data;
-                }
-            }
-
-            TimeStamp now = TimeStamp::Now();
-            struct timeval tv;
-            tv.tv_sec = 0;
-            tv.tv_usec = std::max<int32_t>(0,
-                kClipboardTimeout - (now - start).ToMicroseconds());
-            select_result = select(cnumber, &select_set, nullptr, nullptr, &tv);
-        } while (select_result == 1 ||
-                 (select_result == -1 && errno == EINTR));
-    }
-#ifdef DEBUG_CLIPBOARD
-    printf("exceeded clipboard timeout\n");
-#endif
-    mState = TIMED_OUT;
-    return nullptr;
-}
-
-static void
-clipboard_contents_received(GtkClipboard     *clipboard,
-                            GtkSelectionData *selection_data,
-                            gpointer          data)
-{
-    RetrievalContext *context = static_cast<RetrievalContext*>(data);
-    context->Complete(selection_data);
-    context->Release();
-}
-
-static GtkSelectionData *
-wait_for_contents(GtkClipboard *clipboard, GdkAtom target)
-{
-    RefPtr<RetrievalContext> context = new RetrievalContext();
-    // Balanced by Release in clipboard_contents_received
-    context.get()->AddRef();
-    gtk_clipboard_request_contents(clipboard, target,
-                                   clipboard_contents_received,
-                                   context.get());
-    return static_cast<GtkSelectionData*>(context->Wait());
-}
-
-static void
-clipboard_text_received(GtkClipboard *clipboard,
-                        const gchar  *text,
-                        gpointer      data)
-{
-    RetrievalContext *context = static_cast<RetrievalContext*>(data);
-    context->Complete(text);
-    context->Release();
-}
-
-static gchar *
-wait_for_text(GtkClipboard *clipboard)
-{
-    RefPtr<RetrievalContext> context = new RetrievalContext();
-    // Balanced by Release in clipboard_text_received
-    context.get()->AddRef();
-    gtk_clipboard_request_text(clipboard, clipboard_text_received, context.get());
-    return static_cast<gchar*>(context->Wait());
-}
-
-static GdkFilterReturn
-selection_request_filter(GdkXEvent *gdk_xevent, GdkEvent *event, gpointer data)
-{
-    XEvent *xevent = static_cast<XEvent*>(gdk_xevent);
-    if (xevent->xany.type == SelectionRequest) {
-        if (xevent->xselectionrequest.requestor == X11None)
-            return GDK_FILTER_REMOVE;
-
-        GdkDisplay *display = gdk_x11_lookup_xdisplay(
-                xevent->xselectionrequest.display);
-        if (!display)
-            return GDK_FILTER_REMOVE;
-
-        GdkWindow *window = gdk_x11_window_foreign_new_for_display(display,
-                xevent->xselectionrequest.requestor);
-        if (!window)
-            return GDK_FILTER_REMOVE;
-
-        g_object_unref(window);
-    }
-    return GDK_FILTER_CONTINUE;
 }

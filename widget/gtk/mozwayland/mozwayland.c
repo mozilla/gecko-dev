@@ -13,10 +13,14 @@
 
 const struct wl_interface wl_buffer_interface;
 const struct wl_interface wl_callback_interface;
+const struct wl_interface wl_data_device_interface;
+const struct wl_interface wl_data_device_manager_interface;
+const struct wl_interface wl_keyboard_interface;
 const struct wl_interface wl_region_interface;
 const struct wl_interface wl_registry_interface;
 const struct wl_interface wl_shm_interface;
 const struct wl_interface wl_shm_pool_interface;
+const struct wl_interface wl_seat_interface;
 const struct wl_interface wl_surface_interface;
 const struct wl_interface wl_subsurface_interface;
 const struct wl_interface wl_subcompositor_interface;

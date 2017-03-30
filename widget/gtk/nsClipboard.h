@@ -10,10 +10,39 @@
 
 #include "nsIClipboard.h"
 #include "nsIObserver.h"
+#include "nsIBinaryOutputStream.h"
 #include <gtk/gtk.h>
 
-class nsClipboard : public nsIClipboard,
-                    public nsIObserver
+// Default Gtk MIME for text
+#define GTK_DEFAULT_MIME_TEXT "UTF8_STRING"
+
+class nsRetrievalContext : public nsIObserver {
+public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
+
+    nsRetrievalContext();
+
+    NS_IMETHOD HasDataMatchingFlavors(const char** aFlavorList,
+                                      uint32_t aLength,
+                                      int32_t aWhichClipboard,
+                                      bool *_retval) = 0;
+    NS_IMETHOD GetClipboardContent(const char* aMimeType,
+                                   int32_t aWhichClipboard,
+                                   nsIInputStream** aResult,
+                                   uint32_t* aContentLength) = 0;
+
+    // Save global clipboard content to gtk
+    void  Store(void);
+
+protected:
+    virtual ~nsRetrievalContext();
+
+    // Idle timeout for receiving selection and property notify events (microsec)
+    static const int kClipboardTimeout;
+};
+
+class nsClipboard : public nsIClipboard
 {
 public:
     nsClipboard();
@@ -21,7 +50,6 @@ public:
     NS_DECL_ISUPPORTS
     
     NS_DECL_NSICLIPBOARD
-    NS_DECL_NSIOBSERVER
 
     // Make sure we are initialized, called from the factory
     // constructor
@@ -34,10 +62,6 @@ public:
 
 private:
     virtual ~nsClipboard();
-
-    // Utility methods
-    static GdkAtom               GetSelectionAtom (int32_t aWhichClipboard);
-    static GtkSelectionData     *GetTargets       (GdkAtom aWhichClipboard);
 
     // Save global clipboard content to gtk
     nsresult                     Store            (void);
@@ -52,7 +76,9 @@ private:
     nsCOMPtr<nsIClipboardOwner>  mGlobalOwner;
     nsCOMPtr<nsITransferable>    mSelectionTransferable;
     nsCOMPtr<nsITransferable>    mGlobalTransferable;
-
+    RefPtr<nsRetrievalContext>   mContext;
 };
+
+GdkAtom GetSelectionAtom(int32_t aWhichClipboard);
 
 #endif /* __nsClipboard_h_ */
