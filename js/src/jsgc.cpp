@@ -4586,6 +4586,8 @@ JSCompartment::findDeadProxyZoneEdges(bool* foundAny)
             if (IsDeadProxyObject(&value.toObject())) {
                 *foundAny = true;
                 Zone* wrappedZone = static_cast<JSObject*>(e.front().key().wrapped)->zone();
+                if (!wrappedZone->isGCMarking())
+                    continue;
                 if (!wrappedZone->gcZoneGroupEdges.put(zone()))
                     return false;
             }
