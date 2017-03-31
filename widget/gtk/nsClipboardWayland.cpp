@@ -111,7 +111,7 @@ data_offer_offer (void                 *data,
       static_cast<nsRetrievalContextWayland*>(data);
   context->AddMIMEType(type);
 }
-
+/*
 static void
 data_offer_source_actions(void *data,
                           struct wl_data_offer *wl_data_offer,
@@ -125,11 +125,13 @@ data_offer_action(void *data,
                   uint32_t dnd_action)
 {
 }
-
+*/
 static const struct wl_data_offer_listener data_offer_listener = {
-    data_offer_offer,
+    data_offer_offer
+/*
     data_offer_source_actions,
     data_offer_action
+*/
 };
 
 static void

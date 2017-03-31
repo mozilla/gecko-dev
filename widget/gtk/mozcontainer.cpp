@@ -44,7 +44,9 @@ static void moz_container_forall      (GtkContainer      *container,
 static void moz_container_add         (GtkContainer      *container,
                                         GtkWidget        *widget);
 
+#ifdef GDK_WINDOWING_WAYLAND
 static struct wl_event_queue *mQueue;
+#endif
 
 typedef struct _MozContainerChild MozContainerChild;
 

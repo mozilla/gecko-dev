@@ -4697,11 +4697,20 @@ nsWindow::GrabPointer(guint32 aTime)
 
     if (!mGdkWindow)
         return;
-
+/*
     GdkSeat *gdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
     gint retval;
     retval = gdk_seat_grab(gdkSeat, mGdkWindow, GDK_SEAT_CAPABILITY_ALL_POINTING, TRUE,
                            nullptr, nullptr, nullptr, nullptr);
+*/
+    gint retval;
+    retval = gdk_pointer_grab(mGdkWindow, TRUE,
+                              (GdkEventMask)(GDK_BUTTON_PRESS_MASK |
+                                             GDK_BUTTON_RELEASE_MASK |
+                                             GDK_ENTER_NOTIFY_MASK |
+                                             GDK_LEAVE_NOTIFY_MASK |
+                                             GDK_POINTER_MOTION_MASK),
+                              (GdkWindow *)nullptr, nullptr, aTime);
 
     if (retval == GDK_GRAB_NOT_VIEWABLE) {
         LOG(("GrabPointer: window not viewable; will retry\n"));
@@ -4725,8 +4734,11 @@ nsWindow::ReleaseGrabs(void)
     LOG(("ReleaseGrabs\n"));
 
     mRetryPointerGrab = false;
+/*
     GdkSeat *gdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
     gdk_seat_ungrab(gdkSeat);
+*/
+    gdk_pointer_ungrab(GDK_CURRENT_TIME);
 }
 
 GtkWidget *
@@ -6746,19 +6758,20 @@ nsWindow::RoundsWidgetCoordinatesTo()
 
 void nsWindow::GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInitData* aInitData)
 {
-  #ifdef MOZ_X11
-  if (mIsX11Display) {
-    *aInitData = mozilla::widget::CompositorWidgetInitData(
-                                  mXWindow,
-                                  nsCString(XDisplayString(mXDisplay)),
-                                  GetClientSize());
-  #ifdef GDK_WINDOWING_WAYLAND
-  } else {
+#ifdef MOZ_X11
+#ifdef GDK_WINDOWING_WAYLAND
+  if (!mIsX11Display) {
     *aInitData = mozilla::widget::CompositorWidgetInitData(
                                   (uintptr_t)mWaylandSurface,
                                   nsCString(nullptr),
                                   GetClientSize());
+  } else
+#endif
+  {
+    *aInitData = mozilla::widget::CompositorWidgetInitData(
+                                  mXWindow,
+                                  nsCString(XDisplayString(mXDisplay)),
+                                  GetClientSize());
   }
-  #endif
-  #endif
+#endif
 }

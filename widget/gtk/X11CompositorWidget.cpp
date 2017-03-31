@@ -24,18 +24,29 @@ X11CompositorWidget::X11CompositorWidget(const CompositorWidgetInitData& aInitDa
   // If we don't, then use the init data to connect to the display
   if (aWindow) {
     mIsX11Display = aWindow->IsX11Display();
-    if (mIsX11Display) {
-      mXDisplay = aWindow->XDisplay();
-    } else {
+#ifdef GDK_WINDOWING_WAYLAND
+    if (!mIsX11Display) {
       mWaylandDisplay = aWindow->WaylandDisplay();
+	} else
+#endif
+	{
+      mXDisplay = aWindow->XDisplay();
     }
   } else {
+#ifdef GDK_WINDOWING_WAYLAND
     // TODO - not implemented
-    abort();
+    MOZ_CRASH();
+#endif
     mXDisplay = XOpenDisplay(aInitData.XDisplayString().get());
   }  
-  
-  if (mIsX11Display) {
+
+#ifdef GDK_WINDOWING_WAYLAND
+  if (!mIsX11Display) {
+    mWaylandSurface = (wl_surface *)aInitData.XWindow();
+    mProvider.Initialize(aWindow, mWaylandDisplay, mWaylandSurface);
+  } else
+#endif
+  {
     mXWindow = (Window)aInitData.XWindow();
 
     // Grab the window's visual and depth
@@ -52,9 +63,6 @@ X11CompositorWidget::X11CompositorWidget(const CompositorWidgetInitData& aInitDa
       visual,
       depth
       );
-  } else {
-    mWaylandSurface = (wl_surface *)aInitData.XWindow();
-    mProvider.Initialize(aWindow, mWaylandDisplay, mWaylandSurface);
   }
   mClientSize = aInitData.InitialClientSize();
 }

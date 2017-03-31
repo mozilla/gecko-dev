@@ -128,6 +128,10 @@ if CONFIG['USE_ICU']:
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gtk3':
     USE_LIBS += [
         'mozgtk_stub',
+    ]
+
+if CONFIG['MOZ_WAYLAND']:
+    USE_LIBS += [
         'mozwayland',
     ]
 

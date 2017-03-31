@@ -11,7 +11,9 @@
 #include "WindowSurfaceX11Image.h"
 #include "WindowSurfaceX11SHM.h"
 #include "WindowSurfaceXRender.h"
+#ifdef GDK_WINDOWING_WAYLAND
 #include "WindowSurfaceWayland.h"
+#endif
 
 namespace mozilla {
 namespace widget {
@@ -53,6 +55,7 @@ void WindowSurfaceProvider::Initialize(
   mIsX11Display = true;
 }
 
+#ifdef GDK_WINDOWING_WAYLAND
 void WindowSurfaceProvider::Initialize(
       nsWindow *aWidget,
       wl_display *aWaylandDisplay,
@@ -66,6 +69,7 @@ void WindowSurfaceProvider::Initialize(
   mWaylandSurface = aWaylandSurface;
   mIsX11Display = false;
 }
+#endif
 
 void WindowSurfaceProvider::CleanupResources()
 {
@@ -75,7 +79,14 @@ void WindowSurfaceProvider::CleanupResources()
 UniquePtr<WindowSurface>
 WindowSurfaceProvider::CreateWindowSurface()
 {
-  if (mIsX11Display) {
+#ifdef GDK_WINDOWING_WAYLAND
+  if (!mIsX11Display) {
+    MOZ_ASSERT(mWaylandDisplay);
+    LOGDRAW(("Drawing to nsWindow %p using wl_surface\n", (void*)this));
+    return MakeUnique<WindowSurfaceWayland>(mWidget, mWaylandDisplay, mWaylandSurface);
+  } else
+#endif
+  {
     // We should be initialized
     MOZ_ASSERT(mXDisplay);
 
@@ -100,10 +111,6 @@ WindowSurfaceProvider::CreateWindowSurface()
 
     LOGDRAW(("Drawing to nsWindow %p using XPutImage\n", (void*)this));
     return MakeUnique<WindowSurfaceX11Image>(mXDisplay, mXWindow, mXVisual, mXDepth);
-  } else {
-    MOZ_ASSERT(mWaylandDisplay);
-    LOGDRAW(("Drawing to nsWindow %p using wl_surface\n", (void*)this));
-    return MakeUnique<WindowSurfaceWayland>(mWidget, mWaylandDisplay, mWaylandSurface);
   }
 }
 

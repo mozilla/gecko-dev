@@ -6,6 +6,8 @@
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gtk3':
     DIRS += ['mozgtk']
+
+if CONFIG['MOZ_WAYLAND']:
     DIRS += ['mozwayland']
 
 EXPORTS += [
@@ -74,17 +76,21 @@ if CONFIG['NS_PRINTING']:
 if CONFIG['MOZ_X11']:
     UNIFIED_SOURCES += [
         'nsClipboard.cpp',
-        'nsClipboardWayland.cpp',
         'nsClipboardX11.cpp',
         'nsDragService.cpp',
         'WindowSurfaceProvider.cpp',
-        'WindowSurfaceWayland.cpp',
         'WindowSurfaceX11.cpp',
         'WindowSurfaceX11Image.cpp',
         'WindowSurfaceXRender.cpp',
     ]
     EXPORTS.mozilla.widget += [
         'WindowSurfaceProvider.h',
+    ]
+
+if CONFIG['MOZ_WAYLAND']:
+    UNIFIED_SOURCES += [
+        'nsClipboardWayland.cpp',
+        'WindowSurfaceWayland.cpp',
     ]
 
 if CONFIG['ACCESSIBILITY']:
