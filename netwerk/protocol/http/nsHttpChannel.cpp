@@ -2304,7 +2304,7 @@ nsHttpChannel::ContinueProcessResponse3(nsresult rv)
     }
 
     LOG(("ContinueProcessResponse3 got failure result [rv=%x]\n", rv));
-    if (mTransaction->ProxyConnectFailed()) {
+    if (mTransaction && mTransaction->ProxyConnectFailed()) {
         return ProcessFailedProxyConnect(mRedirectType);
     }
     return ProcessNormal();
