@@ -11,7 +11,7 @@
 #include "WindowSurfaceX11Image.h"
 #include "WindowSurfaceX11SHM.h"
 #include "WindowSurfaceXRender.h"
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
 #include "WindowSurfaceWayland.h"
 #endif
 
@@ -28,7 +28,7 @@ WindowSurfaceProvider::WindowSurfaceProvider()
     , mXVisual(nullptr)
     , mXDepth(0)
     , mWindowSurface(nullptr)
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
     , mWidget(nullptr)
     , mWaylandDisplay(nullptr)
     , mWaylandSurface(nullptr)
@@ -55,7 +55,7 @@ void WindowSurfaceProvider::Initialize(
   mIsX11Display = true;
 }
 
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
 void WindowSurfaceProvider::Initialize(
       nsWindow *aWidget,
       wl_display *aWaylandDisplay,
@@ -79,7 +79,7 @@ void WindowSurfaceProvider::CleanupResources()
 UniquePtr<WindowSurface>
 WindowSurfaceProvider::CreateWindowSurface()
 {
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
   if (!mIsX11Display) {
     MOZ_ASSERT(mWaylandDisplay);
     LOGDRAW(("Drawing to nsWindow %p using wl_surface\n", (void*)this));

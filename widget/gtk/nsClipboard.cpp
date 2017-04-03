@@ -10,7 +10,7 @@
 #include "nsArrayUtils.h"
 #include "nsClipboard.h"
 #include "nsClipboardX11.h"
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
 #include "nsClipboardWayland.h"
 #endif
 #include "nsSupportsPrimitives.h"
@@ -126,7 +126,7 @@ nsClipboard::Init(void)
     // create nsRetrievalContext
     if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
         mContext = new nsRetrievalContextX11();
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
     } else {
         mContext = new nsRetrievalContextWayland();
 #endif

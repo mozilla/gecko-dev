@@ -14,7 +14,7 @@ moz-container -> display check
 X11CompositorWidget - update
 nsWindow::GetCompositorWidgetInitData
 GDK_WINDOWING_X11 - remove
-#ifdef GDK_WINDOWING_WAYLAND + display test
+#ifdef MOZ_WAYLAND + display test
 - ensure we always draw to container
 - surface cleaning/realocation
 - can we redraw on allocate?
@@ -44,9 +44,7 @@ GDK_WINDOWING_X11 - remove
 #include "mozcontainer.h"
 #include "os-compatibility.h"
 
-#ifdef GDK_WINDOWING_WAYLAND
 #include <gdk/gdkwayland.h>
-#endif
 #include <sys/mman.h>
 #include <fcntl.h>
 

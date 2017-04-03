@@ -23,7 +23,7 @@
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #endif /* MOZ_X11 */
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
 #include <gdk/gdkwayland.h>
 #endif
 
@@ -353,7 +353,7 @@ public:
 #ifdef MOZ_X11
     Display* XDisplay() { return mXDisplay; }
 #endif
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
     wl_display* WaylandDisplay() { return mWaylandDisplay; }
 #endif
     virtual void GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInitData* aInitData) override;
@@ -467,7 +467,7 @@ private:
     Window              mXWindow;
     Visual*             mXVisual;
     int                 mXDepth;
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
     wl_display*         mWaylandDisplay;
     wl_surface*         mWaylandSurface;
 #endif

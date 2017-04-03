@@ -7,8 +7,6 @@
 
 #include "mozilla/Types.h"
 #include <gtk/gtk.h>
-
-#ifdef GDK_WINDOWING_WAYLAND
 #include <gdk/gdkwayland.h>
 
 const struct wl_interface wl_buffer_interface;
@@ -273,4 +271,3 @@ wl_log_set_handler_client(wl_log_func_t handler)
 {
 }
 
-#endif // GDK_WINDOWING_WAYLAND

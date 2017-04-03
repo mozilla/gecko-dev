@@ -62,7 +62,7 @@ private:
   bool     mIsX11Display;
   Display* mXDisplay;
   Window   mXWindow;
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
   wl_display* mWaylandDisplay;
   wl_surface* mWaylandSurface;
 #endif  

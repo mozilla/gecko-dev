@@ -7,7 +7,7 @@
 
 #include "mozcontainer.h"
 #include <gtk/gtk.h>
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
 #include <gdk/gdkx.h>
 #include <gdk/gdkwayland.h>
 #endif
@@ -28,7 +28,7 @@ static void moz_container_init                (MozContainer      *container);
 static void moz_container_map                 (GtkWidget         *widget);
 static void moz_container_unmap               (GtkWidget         *widget);
 static void moz_container_realize             (GtkWidget         *widget);
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
 static void moz_container_unrealize           (GtkWidget         *widget);
 #endif
 static void moz_container_size_allocate       (GtkWidget         *widget,
@@ -44,7 +44,7 @@ static void moz_container_forall      (GtkContainer      *container,
 static void moz_container_add         (GtkContainer      *container,
                                         GtkWidget        *widget);
 
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
 static struct wl_event_queue *mQueue;
 #endif
 
@@ -157,7 +157,7 @@ moz_container_move (MozContainer *container, GtkWidget *child_widget,
 
 /* static methods */
 
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
 /* We have to recreate our wl_surfaces when GdkWindow is shown,
  * otherwise Gdk resources may not finished
  * and gdk_wayland_window_get_wl_surface() fails.
@@ -243,7 +243,7 @@ moz_container_class_init (MozContainerClass *klass)
     widget_class->map = moz_container_map;
     widget_class->unmap = moz_container_unmap;
     widget_class->realize = moz_container_realize;
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
     widget_class->unrealize = moz_container_unrealize;
 #endif
     widget_class->size_allocate = moz_container_size_allocate;
@@ -253,7 +253,7 @@ moz_container_class_init (MozContainerClass *klass)
     container_class->add = moz_container_add;
 }
 
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
 static void
 registry_handle_global (void *data,
                         struct wl_registry *registry,
@@ -291,7 +291,7 @@ moz_container_init (MozContainer *container)
     gtk_container_set_resize_mode(GTK_CONTAINER(container), GTK_RESIZE_IMMEDIATE);
     gtk_widget_set_redraw_on_allocate(GTK_WIDGET(container), FALSE);
 
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
     {
       GdkDisplay *gdk_display = gtk_widget_get_display(GTK_WIDGET(container));
       if (GDK_IS_WAYLAND_DISPLAY (gdk_display)) {
@@ -349,7 +349,7 @@ moz_container_unmap (GtkWidget *widget)
     if (gtk_widget_get_has_window (widget)) {
         gdk_window_hide (gtk_widget_get_window(widget));
     }
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
   /* Gdk/Wayland deletes underlying GdkWindow wl_surface on unmap event.
    * Delete the wl_subsurface interface which
    * keeps wl_surface object and it's available for reuse.
@@ -403,12 +403,12 @@ moz_container_realize (GtkWidget *widget)
 #if (MOZ_WIDGET_GTK == 2)
     widget->style = gtk_style_attach (widget->style, widget->window);
 #endif
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
     moz_container_create_surface(MOZ_CONTAINER(widget));
 #endif
 }
 
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
 static void
 moz_container_unrealize (GtkWidget *widget)
 {
@@ -468,7 +468,7 @@ moz_container_size_allocate (GtkWidget     *widget,
                                allocation->height);
     }
 
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
     if (container->subsurface) {
         gint x, y;
         gdk_window_get_position(gtk_widget_get_window(widget), &x, &y);
@@ -585,7 +585,7 @@ moz_container_add(GtkContainer *container, GtkWidget *widget)
     moz_container_put(MOZ_CONTAINER(container), widget, 0, 0);
 }
 
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
 struct wl_surface*
 moz_container_get_wl_surface(MozContainer *container)
 {

@@ -59,7 +59,7 @@
 #include <gtk/gtkprivate.h>
 #endif
 
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
 #include <gdk/gdkwayland.h>
 #endif
 
@@ -451,7 +451,7 @@ nsWindow::nsWindow()
     mXVisual  = nullptr;
     mXDepth   = 0;
 #endif /* MOZ_X11 */
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
     mWaylandSurface = nullptr;
 #endif
 
@@ -1692,7 +1692,7 @@ nsWindow::GetNativeData(uint32_t aDataType)
           return GDK_DISPLAY_XDISPLAY(gdkDisplay);
         }
 #endif
-#if defined(GDK_WINDOWING_WAYLAND)
+#if defined(MOZ_WAYLAND)
         if (GDK_IS_WAYLAND_DISPLAY(gdkDisplay)) {
           return gdk_wayland_display_get_wl_display(gdkDisplay);
         }
@@ -2076,7 +2076,7 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     if (!listener)
         return FALSE;
 
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
     // We don't have any Wayland surface to paint to
     if (mContainer && !mIsX11Display && !moz_container_map_wl_surface(mContainer))
         return FALSE;
@@ -4009,7 +4009,7 @@ nsWindow::Create(nsIWidget* aParent,
 
       mSurfaceProvider.Initialize(mXDisplay, mXWindow, mXVisual, mXDepth);
     }
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
     else {
       mWaylandDisplay = gdk_wayland_display_get_wl_display(gdk_display_get_default());
       mWaylandSurface = moz_container_get_wl_surface(MOZ_CONTAINER(mContainer));
@@ -6759,7 +6759,7 @@ nsWindow::RoundsWidgetCoordinatesTo()
 void nsWindow::GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInitData* aInitData)
 {
 #ifdef MOZ_X11
-#ifdef GDK_WINDOWING_WAYLAND
+#ifdef MOZ_WAYLAND
   if (!mIsX11Display) {
     *aInitData = mozilla::widget::CompositorWidgetInitData(
                                   (uintptr_t)mWaylandSurface,
