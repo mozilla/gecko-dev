@@ -281,7 +281,7 @@ mochitest-browser-chrome:
     chunks:
         by-test-platform:
             linux64-jsdcov/opt: 35
-            default: 7
+            default: 10
     e10s:
         by-test-platform:
             linux64-jsdcov/opt: false
