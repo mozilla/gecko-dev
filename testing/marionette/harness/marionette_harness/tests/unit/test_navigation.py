@@ -360,6 +360,7 @@ class TestNavigate(WindowManagerMixin, MarionetteTestCase):
         self.marionette.close()
         self.marionette.switch_to_window(self.start_window)
 
+    @skip("Bug 1332064 - NoSuchElementException: Unable to locate element: :focus")
     @run_if_manage_instance("Only runnable if Marionette manages the instance")
     @skip_if_mobile("Bug 1322993 - Missing temporary folder")
     def test_focus_after_navigation(self):
