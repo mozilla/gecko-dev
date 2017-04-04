@@ -116,6 +116,17 @@ nsPrincipal::GetOriginForURI(nsIURI* aURI, nsACString& aOrigin)
     return NS_ERROR_FAILURE;
   }
 
+  nsresult rv;
+// NB: This is only compiled for Thunderbird/Suite.
+#if IS_ORIGIN_IS_FULL_SPEC_DEFINED
+  bool fullSpec = false;
+  rv = NS_URIChainHasFlags(origin, nsIProtocolHandler::ORIGIN_IS_FULL_SPEC, &fullSpec);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (fullSpec) {
+    return origin->GetAsciiSpec(aOrigin);
+  }
+#endif
+
   nsAutoCString hostPort;
 
   // chrome: URLs don't have a meaningful origin, so make
@@ -123,7 +134,7 @@ nsPrincipal::GetOriginForURI(nsIURI* aURI, nsACString& aOrigin)
   // XXX this should be removed in favor of the solution in
   // bug 160042.
   bool isChrome;
-  nsresult rv = origin->SchemeIs("chrome", &isChrome);
+  rv = origin->SchemeIs("chrome", &isChrome);
   if (NS_SUCCEEDED(rv) && !isChrome) {
     rv = origin->GetAsciiHostPort(hostPort);
     // Some implementations return an empty string, treat it as no support
