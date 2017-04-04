@@ -202,12 +202,16 @@ add_old_configure_assignment('MOZ_X11', x11)
 # Wayland support
 # ==============================================================
 option('--enable-wayland', env='MOZ_WAYLAND',
-       help='Enable Gtk3 Wayland backend build.')
+       help='Enable Gtk3 Wayland backend.')
 
 @depends('--enable-wayland')
 def wayland(value):
-    if value:
+   if value:
         return True
+
+# Check for Wayland headers
+wayland_headers = pkg_check_modules('MOZ_WAYLAND', 'gtk+-wayland-3.0 >= 3.20',
+                                    when=wayland)
 
 set_config('MOZ_WAYLAND', wayland)
 set_define('MOZ_WAYLAND', wayland)
