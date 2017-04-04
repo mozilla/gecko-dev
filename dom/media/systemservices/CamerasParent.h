@@ -79,8 +79,6 @@ public:
 class InputObserver :  public webrtc::ViEInputObserver
 {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(InputObserver)
-
   explicit InputObserver(CamerasParent* aParent)
     : mParent(aParent) {};
   virtual void DeviceChange();
@@ -88,8 +86,6 @@ public:
   friend CamerasParent;
 
 private:
-  ~InputObserver() {}
-
   RefPtr<CamerasParent> mParent;
 };
 
@@ -176,7 +172,7 @@ protected:
   // Above 2 are PBackground only, but this is potentially
   // read cross-thread.
   mozilla::Atomic<bool> mWebRTCAlive;
-  nsTArray<RefPtr<InputObserver>> mObservers;
+  nsTArray<InputObserver*> mObservers;
 };
 
 PCamerasParent* CreateCamerasParent();
