@@ -523,7 +523,7 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
             while (ch != kNullCh && ch != kSemicolon && ch != kComma) {
               ++end;
 
-              ch = *end;
+              ch = *(end + 1);
             }
           }
         }
