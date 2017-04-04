@@ -44,16 +44,18 @@ namespace camera {
 //   called "VideoCapture". On Windows this is a thread with an event loop
 //   suitable for UI access.
 
+// InputObserver is owned by CamerasParent, and it has a ref to CamerasParent
 void InputObserver::DeviceChange() {
   LOG((__PRETTY_FUNCTION__));
   MOZ_ASSERT(mParent);
 
+  RefPtr<InputObserver> self(this);
   RefPtr<nsIRunnable> ipc_runnable =
-    media::NewRunnableFrom([this]() -> nsresult {
-      if (mParent->IsShuttingDown()) {
+    media::NewRunnableFrom([self]() -> nsresult {
+      if (self->mParent->IsShuttingDown()) {
         return NS_ERROR_FAILURE;
       }
-      Unused << mParent->SendDeviceChange();
+      Unused << self->mParent->SendDeviceChange();
       return NS_OK;
     });
 
@@ -422,13 +424,12 @@ CamerasParent::SetupEngine(CaptureEngine aCapEngine)
     return false;
   }
 
-  InputObserver** observer = mObservers.AppendElement(
-          new InputObserver(this));
+  RefPtr<InputObserver>* observer = mObservers.AppendElement(new InputObserver(this));
 
 #ifdef DEBUG
-  MOZ_ASSERT(0 == helper->mPtrViECapture->RegisterInputObserver(*observer));
+  MOZ_ASSERT(0 == helper->mPtrViECapture->RegisterInputObserver(observer->get()));
 #else
-  helper->mPtrViECapture->RegisterInputObserver(*observer);
+  helper->mPtrViECapture->RegisterInputObserver(observer->get());
 #endif
 
   helper->mPtrViERender = webrtc::ViERender::GetInterface(helper->mEngine);
@@ -487,9 +488,6 @@ CamerasParent::CloseEngines()
     }
   }
 
-  for (InputObserver* observer : mObservers) {
-    delete observer;
-  }
   mObservers.Clear();
 
   mWebRTCAlive = false;
