@@ -117,8 +117,8 @@ set_config('L10NBASEDIR', l10n_base)
 # `choices` depending on the target, but that doesn't pan out for the same
 # reason.
 option('--enable-default-toolkit', nargs=1,
-       choices=('cairo-windows', 'cairo-gtk3', 'cairo-cocoa', 'cairo-uikit',
-                'cairo-android', 'cairo-gonk'),
+       choices=('cairo-windows', 'cairo-gtk3', 'cairo-gtk3-wayland',
+                'cairo-cocoa', 'cairo-uikit', 'cairo-android', 'cairo-gonk'),
        help='Select default toolkit')
 
 @depends('--enable-default-toolkit', target)
@@ -140,7 +140,7 @@ def toolkit(value, target):
         else:
             platform_choices = ('cairo-android',)
     else:
-        platform_choices = ('cairo-gtk3',)
+        platform_choices = ('cairo-gtk3', 'cairo-gtk3-wayland',)
 
     if value:
         if value[0] not in platform_choices:
@@ -150,11 +150,16 @@ def toolkit(value, target):
 
     return platform_choices[0]
 
+@depends(toolkit)
+def wayland(toolkit):
+    return toolkit == 'cairo-gtk3-wayland'
 
 @depends(toolkit)
 def toolkit(toolkit):
     if toolkit == 'cairo-gtk2-x11':
         widget_toolkit = 'gtk2'
+    elif toolkit == 'cairo-gtk3-wayland' :
+        widget_toolkit = 'gtk3'
     else:
         widget_toolkit = toolkit.replace('cairo-', '')
     return widget_toolkit
@@ -201,21 +206,11 @@ add_old_configure_assignment('MOZ_X11', x11)
 
 # Wayland support
 # ==============================================================
-option('--enable-wayland', env='MOZ_WAYLAND',
-       help='Enable Gtk3 Wayland backend.')
-
-@depends('--enable-wayland')
-def wayland(value):
-   if value:
-        return True
-
-# Check for Wayland headers
-wayland_headers = pkg_check_modules('MOZ_WAYLAND', 'gtk+-wayland-3.0 >= 3.20',
+wayland_headers = pkg_check_modules('MOZ_WAYLAND', 'gtk+-wayland-3.0 >= 3.22',
                                     when=wayland)
 
-set_config('MOZ_WAYLAND', wayland)
-set_define('MOZ_WAYLAND', wayland)
-imply_option('--enable-wayland', wayland)
+set_config('MOZ_WAYLAND', depends_if(wayland_headers)(lambda _: True))
+set_define('MOZ_WAYLAND', depends_if(wayland_headers)(lambda _: True))
 
 # GL Provider
 # ==============================================================
