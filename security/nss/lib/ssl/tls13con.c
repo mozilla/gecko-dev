@@ -2853,6 +2853,9 @@ tls13_DestroyKeyShares(PRCList *list)
 {
     PRCList *cur_p;
 
+    /* The list must be initialized. */
+    PORT_Assert(PR_LIST_HEAD(list));
+
     while (!PR_CLIST_IS_EMPTY(list)) {
         cur_p = PR_LIST_TAIL(list);
         PR_REMOVE_LINK(cur_p);

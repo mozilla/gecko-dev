@@ -13294,8 +13294,6 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     tls13_DestroyEarlyData(&ss->ssl3.hs.bufferedEarlyData);
 
     ss->ssl3.initialized = PR_FALSE;
-
-    SECITEM_FreeItem(&ss->xtnData.nextProto, PR_FALSE);
 }
 
 #define MAP_NULL(x) (((x) != 0) ? (x) : SEC_OID_NULL_CIPHER)

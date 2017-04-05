@@ -7,6 +7,7 @@ DEPTH      = ../..
 MODULE = nss
 
 CPPSRCS = \
+	util_b64_unittest.cc \
 	util_utf8_unittest.cc \
 	$(NULL)
 

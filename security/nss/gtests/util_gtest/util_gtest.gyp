@@ -11,6 +11,7 @@
       'target_name': 'util_gtest',
       'type': 'executable',
       'sources': [
+        'util_b64_unittest.cc',
         'util_utf8_unittest.cc',
         '<(DEPTH)/gtests/common/gtests.cc'
       ],
