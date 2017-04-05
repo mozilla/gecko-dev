@@ -12,9 +12,8 @@ function checkStateRead(aSubject, aTopic, aData) {
   // nonexistent.example.com should never be an HSTS host
   ok(!gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
                               "nonexistent.example.com", 0));
-  // bugzilla.mozilla.org is preloaded
   ok(gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
-                             "bugzilla.mozilla.org", 0));
+                             "includesubdomains.preloaded.test", 0));
   // notexpired.example.com is an HSTS host in a different test - we
   // want to make sure that test hasn't interfered with this one.
   ok(!gSSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,

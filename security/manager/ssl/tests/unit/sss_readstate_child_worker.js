@@ -10,16 +10,16 @@ function run_test() {
   ok(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
                             "notexpired.example.com", 0));
   ok(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
-                            "bugzilla.mozilla.org", 0));
+                            "includesubdomains.preloaded.test", 0));
   ok(!SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
-                             "sub.bugzilla.mozilla.org", 0));
+                             "sub.includesubdomains.preloaded.test", 0));
   ok(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
                             "incsubdomain.example.com", 0));
   ok(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
                             "sub.incsubdomain.example.com", 0));
   ok(!SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
-                             "login.persona.org", 0));
+                             "includesubdomains2.preloaded.test", 0));
   ok(!SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
-                             "sub.login.persona.org", 0));
+                             "sub.includesubdomains2.preloaded.test", 0));
   do_test_finished();
 }
