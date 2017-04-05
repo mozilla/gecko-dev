@@ -8549,7 +8549,13 @@ LookupAsmJSModuleInCache(ExclusiveContext* cx, AsmJSParser& parser, bool* loaded
     if (!moduleChars.match(parser))
         return true;
 
+    // Don't punish release users by crashing if there is a programmer error
+    // here, just gracefully return with a cache miss.
+#ifdef NIGHTLY_BUILD
     MOZ_RELEASE_ASSERT(cursor == entry.memory + entry.serializedSize);
+#endif
+    if (cursor != entry.memory + entry.serializedSize)
+        return true;
 
     // See AsmJSMetadata comment as well as ModuleValidator::init().
     asmJSMetadata->srcStart = parser.pc->functionBox()->functionNode->pn_body->pn_pos.begin;
