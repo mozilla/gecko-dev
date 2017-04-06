@@ -44,10 +44,6 @@ static void moz_container_forall      (GtkContainer      *container,
 static void moz_container_add         (GtkContainer      *container,
                                         GtkWidget        *widget);
 
-#ifdef MOZ_WAYLAND
-static struct wl_event_queue *mQueue;
-#endif
-
 typedef struct _MozContainerChild MozContainerChild;
 
 struct _MozContainerChild {
@@ -186,7 +182,6 @@ moz_container_map_wl_surface(MozContainer *container)
       wl_subcompositor_get_subsurface (container->subcompositor,
                                        container->surface,
                                        gtk_surface);
-    wl_proxy_set_queue((struct wl_proxy *)container->subsurface, mQueue);
     gdk_window_get_position(window, &x, &y);
     wl_subsurface_set_position(container->subsurface, x, y);
     wl_subsurface_set_desync(container->subsurface);
@@ -213,15 +208,10 @@ moz_container_create_surface(MozContainer *container)
     if (GDK_IS_X11_DISPLAY(display))
         return;
 
-    if (!mQueue) {
-        mQueue = wl_display_create_queue(gdk_wayland_display_get_wl_display(display));
-    }
     if (!container->surface) {
         struct wl_compositor *compositor;
-
         compositor = gdk_wayland_display_get_wl_compositor(display);
         container->surface = wl_compositor_create_surface(compositor);
-        wl_proxy_set_queue((struct wl_proxy *)container->surface, mQueue);
     }
 }
 
@@ -299,13 +289,10 @@ moz_container_init (MozContainer *container)
           struct wl_registry *registry;
 
           display = gdk_wayland_display_get_wl_display(gdk_display);
-          if (!mQueue) {
-            mQueue = wl_display_create_queue(display);
-          }
           registry = wl_display_get_registry(display);
           wl_registry_add_listener(registry, &registry_listener, container);
-          wl_proxy_set_queue((struct wl_proxy *)registry, mQueue);
-          wl_display_roundtrip_queue(display, mQueue);
+          wl_display_roundtrip(display);
+          wl_display_roundtrip(display);
         }
     }
 #endif
@@ -590,10 +577,5 @@ struct wl_surface*
 moz_container_get_wl_surface(MozContainer *container)
 {
     return container->surface;
-}
-struct wl_event_queue*
-moz_container_get_wl_queue()
-{
-    return mQueue;
 }
 #endif

@@ -391,7 +391,7 @@ WindowSurfaceWayland::Init()
     return;
   mInitialized = true;
 
-  mQueue = moz_container_get_wl_queue();
+  mQueue = wl_display_create_queue(mDisplay);
 
   // wl_shm and wl_subcompositor are not provided by Gtk so we need
   // to query wayland directly
@@ -491,8 +491,9 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
   BackBufferWayland* buffer = GetBufferToDraw(rect.width,
                                               rect.height);
   NS_ASSERTION(buffer, "We don't have any buffer to draw to!");
-  if (!buffer)
+  if (!buffer) {
     return;
+  }
 
   for (auto iter = aInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
     const mozilla::LayoutDeviceIntRect &r = iter.Get();
