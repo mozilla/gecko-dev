@@ -57,6 +57,9 @@ class FxDesktopBuild(BuildScript, object):
                 # hg tool stuff
                 'default_vcs': 'hgtool',
                 "tools_repo": "https://hg.mozilla.org/build/tools",
+                # Seed all clones with mozilla-unified. This ensures subsequent
+                # jobs have a minimal `hg pull`.
+                "clone_upstream_url": "https://hg.mozilla.org/mozilla-unified",
                 "repo_base": "https://hg.mozilla.org",
                 'tooltool_url': 'https://api.pub.build.mozilla.org/tooltool/',
                 "graph_selector": "/server/collect.cgi",
