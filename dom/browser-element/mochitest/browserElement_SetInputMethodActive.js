@@ -228,7 +228,7 @@ function next(msg) {
 
         case 'input':
           if (gFrameMsgCounts.input === 1) {
-            is(value, 'hello#0',
+            is(value, '#0hello',
               'Failed to get correct input from the first iframe.');
           } else {
             ok(false, 'Unexpected multiple messages from input.')
@@ -283,7 +283,7 @@ function next(msg) {
 
         case 'input':
           if (gFrameMsgCounts.input === 2) {
-            is(value, 'hello#0#1',
+            is(value, '#0#1hello',
                'Failed to get correct input from the second iframe.');
           } else {
             ok(false, 'Unexpected multiple messages from input.')

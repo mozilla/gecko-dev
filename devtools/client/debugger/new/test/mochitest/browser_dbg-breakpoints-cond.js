@@ -32,7 +32,7 @@ add_task(function* () {
   yield setConditionalBreakpoint(dbg, 5, "2");
   yield waitForDispatch(dbg, "SET_BREAKPOINT_CONDITION");
   bp = findBreakpoint(dbg, "simple2", 5);
-  is(bp.condition, "12", "breakpoint is created with the condition");
+  is(bp.condition, "21", "breakpoint is created with the condition");
 
   // Removing a conditional breakpoint
   clickElement(dbg, "gutter", 5);
