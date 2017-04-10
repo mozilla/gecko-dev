@@ -77,12 +77,12 @@ shm_format(void *data, wl_shm *wl_shm, uint32_t format)
  }
 
 struct wl_shm_listener shm_listener = {
-	shm_format
+  shm_format
 };
 
 static void
 global_registry_handler(void *data, wl_registry *registry, uint32_t id,
-	                      const char *interface, uint32_t version)
+                        const char *interface, uint32_t version)
 {
   if (strcmp(interface, "wl_shm") == 0) {
     auto interface = reinterpret_cast<WaylandDisplay *>(data);
@@ -212,13 +212,13 @@ WaylandShmBuffer::CreateTemporaryFile(int aSize)
   int fd = -1;
 
   if (tmpname.GetMutableData(&filename)) {
-    	fd = mkstemp(filename);
-    	if (fd >= 0) {
+      fd = mkstemp(filename);
+      if (fd >= 0) {
           int flags = fcntl(fd, F_GETFD);
           if (flags >= 0) {
               fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
           }
-    	}
+      }
   }
 
   if (fd >= 0) {
@@ -229,13 +229,13 @@ WaylandShmBuffer::CreateTemporaryFile(int aSize)
   }
 
 #ifdef HAVE_POSIX_FALLOCATE
-	int ret = posix_fallocate(fd, 0, aSize);
+  int ret = posix_fallocate(fd, 0, aSize);
 #else
-	int ret = ftruncate(fd, aSize);
+  int ret = ftruncate(fd, aSize);
 #endif
   MOZ_RELEASE_ASSERT(ret == 0, "Mapping file allocation failed.");
 
-	return fd;
+  return fd;
 }
 
 WaylandShmBuffer::WaylandShmBuffer(int aSize)
@@ -307,8 +307,8 @@ void WindowBackBuffer::Create(int aWidth, int aHeight)
   mShmBuffer.Resize(newBufferSize);
 
   mWaylandBuffer = wl_shm_pool_create_buffer(mShmBuffer.GetShmPool(), 0,
-                                     			  aWidth, aHeight, aWidth*BUFFER_BPP,
-                                    			  WL_SHM_FORMAT_ARGB8888);
+                                            aWidth, aHeight, aWidth*BUFFER_BPP,
+                                            WL_SHM_FORMAT_ARGB8888);
   wl_proxy_set_queue((struct wl_proxy *)mWaylandBuffer,
                      gWaylandDisplay->GetEventQueue());
   wl_buffer_add_listener(mWaylandBuffer, &buffer_listener, this);
