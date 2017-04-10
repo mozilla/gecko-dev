@@ -2101,7 +2101,8 @@ DocAccessible::SeizeChild(Accessible* aNewParent, Accessible* aChild,
   }
 
   bool isReinserted = false;
-  {
+  if (aIdxInParent != -1 &&
+      aIdxInParent <= static_cast<int32_t>(aNewParent->ChildCount())) {
     AutoTreeMutation mut(aNewParent);
     isReinserted = aNewParent->InsertChildAt(aIdxInParent, aChild);
   }
