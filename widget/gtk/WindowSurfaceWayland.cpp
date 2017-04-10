@@ -109,7 +109,7 @@ WaylandDisplayLoop(gpointer data)
 {
   wl_display *display = gWaylandDisplay->GetDisplay();
   wl_event_queue *eventQueue = gWaylandDisplay->GetEventQueue();
-  
+
   struct pollfd fds;
   fds.fd = wl_display_get_fd(display);
   fds.events = POLLIN;
@@ -203,7 +203,7 @@ ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
 int
 WaylandShmBuffer::CreateTemporaryFile(int aSize)
 {
-  const char* tmppath = getenv("XDG_RUNTIME_DIR");	
+  const char* tmppath = getenv("XDG_RUNTIME_DIR");
   MOZ_RELEASE_ASSERT(tmppath, "Missing XDG_RUNTIME_DIR env variable.");
 
   nsPrintfCString tmpname("%s/weston-shared-XXXXXX", tmppath);
@@ -219,15 +219,15 @@ WaylandShmBuffer::CreateTemporaryFile(int aSize)
               fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
           }
     	}
-  }  
-  
+  }
+
   if (fd >= 0) {
       unlink(tmpname.get());
   } else {
       printf_stderr("Unable to create mapping file %s\n", filename);
-      MOZ_CRASH();    
+      MOZ_CRASH();
   }
-  
+
 #ifdef HAVE_POSIX_FALLOCATE
 	int ret = posix_fallocate(fd, 0, aSize);
 #else
@@ -256,7 +256,7 @@ WaylandShmBuffer::WaylandShmBuffer(int aSize)
 
 bool
 WaylandShmBuffer::Resize(int aSize)
-{ 
+{
   // We do size increase only
   if (aSize <= mAllocatedSize)
     return true;
@@ -292,7 +292,7 @@ WaylandShmBuffer::~WaylandShmBuffer()
 
 static void
 buffer_release(void *data, wl_buffer *buffer)
-{  
+{
   auto surface = reinterpret_cast<WindowBackBuffer*>(data);
   surface->Detach();
 }
@@ -329,7 +329,7 @@ WindowBackBuffer::WindowBackBuffer(int aWidth, int aHeight)
   ,mWidth(aWidth)
   ,mHeight(aHeight)
   ,mAttached(false)
-{  
+{
   Create(aWidth, aHeight);
 }
 
@@ -381,7 +381,7 @@ WindowBackBuffer::Attach(wl_surface* aSurface)
   // Some compositors, namely Weston, queue buffer release events instead
   // of sending them immediately.  If a frame event is used, this should
   // not be a problem.  Without a frame event, we need to send a sync
-  // request to ensure that they get flushed.    
+  // request to ensure that they get flushed.
   //wl_callback_destroy(wl_display_sync(WindowSurfaceWayland::GetDisplay()));
 
   wl_surface_attach(aSurface, mWaylandBuffer, 0, 0);
@@ -433,7 +433,7 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
                     "We can't do anything useful without valid wl_surface.");
   // Ensure we have valid display connection
   WaylandDisplayInit(aDisplay);
-  
+
   // Make sure the drawing surface is handled by our event loop
   // and not the default (Gdk) one to draw out of main thread.
   wl_proxy_set_queue((struct wl_proxy *)mSurface,
@@ -455,7 +455,7 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
 {
   if (!mFrontBuffer) {
     mFrontBuffer = new WindowBackBuffer(aWidth, aHeight);
-    mBackBuffer = new WindowBackBuffer(aWidth, aHeight);  
+    mBackBuffer = new WindowBackBuffer(aWidth, aHeight);
   } else {
     if (mFrontBuffer->IsAttached()) {
       if (mBackBuffer->IsAttached()) {

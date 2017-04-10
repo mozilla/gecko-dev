@@ -54,17 +54,17 @@ private:
 
 // Allocates and owns shared memory for Wayland drawing surfaces
 class WaylandShmBuffer {
-public:  
+public:
   WaylandShmBuffer(int aSize);
   ~WaylandShmBuffer();
-  
+
   bool          Resize(int aSize);
   wl_shm_pool*  GetShmPool()    { return mShmPool;    };
   void*         GetImageData()  { return mImageData; };
-  
+
 private:
   int CreateTemporaryFile(int aSize);
-    
+
   wl_shm_pool*       mShmPool;
   int                mShmPoolFd;
   int                mAllocatedSize;
@@ -84,13 +84,13 @@ public:
   bool Resize(int aWidth, int aHeight);
   bool Sync(class WindowBackBuffer* aSourceBuffer);
 
-  bool MatchSize(int aWidth, int aHeight) 
+  bool MatchSize(int aWidth, int aHeight)
   {
     return aWidth == mWidth && aHeight == mHeight;
   }
-  bool MatchSize(class WindowBackBuffer *aBuffer) 
+  bool MatchSize(class WindowBackBuffer *aBuffer)
   {
-    return aBuffer->mWidth == mWidth && aBuffer->mHeight == mHeight; 
+    return aBuffer->mWidth == mWidth && aBuffer->mHeight == mHeight;
   }
 
   void CopyRectangle(ImageBuffer *aImage,
@@ -102,7 +102,7 @@ private:
 
   // WaylandShmBuffer provides actual shared memory we draw into
   WaylandShmBuffer   mShmBuffer;
-  
+
   // wl_buffer is a wayland object that encapsulates the shared memory
   // and passes it to wayland compositor by wl_surface object.
   wl_buffer*         mWaylandBuffer;
@@ -124,18 +124,18 @@ public:
 
 private:
   WindowBackBuffer*         GetBufferToDraw(int aWidth, int aHeight);
-  
+
   nsWindow*                 mWidget;
-  
+
   // The surface size is dynamically allocated by Commit() call,
-  // we store the latest size request here to optimize 
+  // we store the latest size request here to optimize
   // buffer usage and our gfx operations
   wl_surface*               mSurface;
   int                       mWidth;
   int                       mHeight;
 
   ImageBuffer               mImageBuffer;
-  
+
   WindowBackBuffer*         mFrontBuffer;
   WindowBackBuffer*         mBackBuffer;
   wl_callback*              mFrameCallback;
