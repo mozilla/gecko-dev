@@ -155,53 +155,8 @@ WaylandDisplay::WaylandDisplay(wl_display *aDisplay)
   mLoopThread = g_thread_new("WaylandDisplayLoop", WaylandDisplayLoop, this);
 }
 
-WaylandDisplay::~WaylandDisplay()
-{
-}
-
-ImageBuffer::ImageBuffer()
-  : mImageData(nullptr)
-  , mBufferAllocated(0)
-  , mWidth(0)
-  , mHeight(0)
-{
-}
-
-ImageBuffer::~ImageBuffer()
-{
-  if (mImageData)
-    free(mImageData);
-}
-
-already_AddRefed<gfx::DrawTarget>
-ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
-{
-  gfx::IntRect bounds = aRegion.GetBounds().ToUnknownRect();
-  gfx::IntSize imageSize(bounds.XMost(), bounds.YMost());
-
-  //TODO -> widget->getBounds!!
-  int newSize = imageSize.width * imageSize.height * BUFFER_BPP;
-  if (!mImageData || mBufferAllocated < newSize) {
-    if (mImageData) {
-      free(mImageData);
-    }
-
-    mImageData = (unsigned char*)malloc(newSize);
-    if (!mImageData)
-      return nullptr;
-
-    mBufferAllocated = newSize;
-  }
-
-  mWidth = imageSize.width;
-  mHeight = imageSize.height;
-
-  return gfxPlatform::CreateDrawTargetForData(mImageData, imageSize,
-    BUFFER_BPP * mWidth, gWaylandDisplay->GetSurfaceFormat());
-}
-
 int
-WaylandShmBuffer::CreateTemporaryFile(int aSize)
+WaylandShmPool::CreateTemporaryFile(int aSize)
 {
   const char* tmppath = getenv("XDG_RUNTIME_DIR");
   MOZ_RELEASE_ASSERT(tmppath, "Missing XDG_RUNTIME_DIR env variable.");
@@ -238,7 +193,7 @@ WaylandShmBuffer::CreateTemporaryFile(int aSize)
   return fd;
 }
 
-WaylandShmBuffer::WaylandShmBuffer(int aSize)
+WaylandShmPool::WaylandShmPool(int aSize)
 {
   mAllocatedSize = aSize;
 
@@ -255,7 +210,7 @@ WaylandShmBuffer::WaylandShmBuffer(int aSize)
 }
 
 bool
-WaylandShmBuffer::Resize(int aSize)
+WaylandShmPool::Resize(int aSize)
 {
   // We do size increase only
   if (aSize <= mAllocatedSize)
@@ -283,11 +238,58 @@ WaylandShmBuffer::Resize(int aSize)
   return true;
 }
 
-WaylandShmBuffer::~WaylandShmBuffer()
+WaylandShmPool::~WaylandShmPool()
 {
   munmap(mImageData, mAllocatedSize);
   wl_shm_pool_destroy(mShmPool);
   close(mShmPoolFd);
+}
+
+WaylandDisplay::~WaylandDisplay()
+{
+}
+
+ImageBuffer::ImageBuffer()
+  : mImageData(nullptr)
+  , mBufferAllocated(0)
+  , mWidth(0)
+  , mHeight(0)
+{
+}
+
+ImageBuffer::~ImageBuffer()
+{
+  if (mImageData)
+    free(mImageData);
+}
+
+already_AddRefed<gfx::DrawTarget>
+ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
+{
+  gfx::IntRect bounds = aRegion.GetBounds().ToUnknownRect();
+  gfx::IntSize imageSize(bounds.XMost(), bounds.YMost());
+
+  // TODO - use widget bounds?
+  // LayoutDeviceIntRect rect = mWidget->GetBounds();
+
+  int newSize = imageSize.width * imageSize.height * BUFFER_BPP;
+  if (!mImageData || mBufferAllocated < newSize) {
+    if (mImageData) {
+      free(mImageData);
+    }
+
+    mImageData = (unsigned char*)malloc(newSize);
+    if (!mImageData)
+      return nullptr;
+
+    mBufferAllocated = newSize;
+  }
+
+  mWidth = imageSize.width;
+  mHeight = imageSize.height;
+
+  return gfxPlatform::CreateDrawTargetForData(mImageData, imageSize,
+    BUFFER_BPP * mWidth, gWaylandDisplay->GetSurfaceFormat());
 }
 
 static void
@@ -304,9 +306,9 @@ static const struct wl_buffer_listener buffer_listener = {
 void WindowBackBuffer::Create(int aWidth, int aHeight)
 {
   int newBufferSize = aWidth*aHeight*BUFFER_BPP;
-  mShmBuffer.Resize(newBufferSize);
+  mShmPool.Resize(newBufferSize);
 
-  mWaylandBuffer = wl_shm_pool_create_buffer(mShmBuffer.GetShmPool(), 0,
+  mWaylandBuffer = wl_shm_pool_create_buffer(mShmPool.GetShmPool(), 0,
                                             aWidth, aHeight, aWidth*BUFFER_BPP,
                                             WL_SHM_FORMAT_ARGB8888);
   wl_proxy_set_queue((struct wl_proxy *)mWaylandBuffer,
@@ -324,7 +326,7 @@ void WindowBackBuffer::Release()
 }
 
 WindowBackBuffer::WindowBackBuffer(int aWidth, int aHeight)
- : mShmBuffer(aWidth*aHeight*BUFFER_BPP)
+ : mShmPool(aWidth*aHeight*BUFFER_BPP)
   ,mWaylandBuffer(nullptr)
   ,mWidth(aWidth)
   ,mHeight(aHeight)
@@ -343,9 +345,6 @@ WindowBackBuffer::Resize(int aWidth, int aHeight)
 {
   if (aWidth == mWidth && aHeight == mHeight)
     return true;
-
-  fprintf(stderr, "BackBufferResize, %dx%d -> %dx%d\n",
-          mWidth, mHeight, aWidth, aHeight);
 
   Release();
   Create(aWidth, aHeight);
@@ -368,7 +367,7 @@ WindowBackBuffer::CopyRectangle(ImageBuffer *aImage,
   for (int y = r.y; y < r.y + r.height; y++) {
     int start = (y * mWidth + r.x) * BUFFER_BPP;
     int lenght = r.width * BUFFER_BPP;
-    memcpy((unsigned char *)mShmBuffer.GetImageData() + start,
+    memcpy((unsigned char *)mShmPool.GetImageData() + start,
             aImage->GetImageData() + ((y * aImage->GetWidth()) + r.x) * BUFFER_BPP,
             lenght);
   }
@@ -403,7 +402,7 @@ bool WindowBackBuffer::Sync(class WindowBackBuffer* aSourceBuffer)
     Resize(aSourceBuffer->mWidth, aSourceBuffer->mHeight);
   }
 
-  memcpy(mShmBuffer.GetImageData(), aSourceBuffer->mShmBuffer.GetImageData(),
+  memcpy(mShmPool.GetImageData(), aSourceBuffer->mShmPool.GetImageData(),
          aSourceBuffer->mWidth * aSourceBuffer->mHeight * BUFFER_BPP);
   return true;
 }
@@ -428,6 +427,7 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
   , mBackBuffer(nullptr)
   , mFrameCallback(nullptr)
   , mDelayedCommit(false)
+  , mFullScreenDamage(false)
 {
   MOZ_RELEASE_ASSERT(mSurface != nullptr,
                     "We can't do anything useful without valid wl_surface.");
@@ -446,7 +446,7 @@ WindowSurfaceWayland::~WindowSurfaceWayland()
   delete mBackBuffer;
 
   if (mFrameCallback) {
-      wl_callback_destroy(mFrameCallback);
+    wl_callback_destroy(mFrameCallback);
   }
 }
 
@@ -456,27 +456,38 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
   if (!mFrontBuffer) {
     mFrontBuffer = new WindowBackBuffer(aWidth, aHeight);
     mBackBuffer = new WindowBackBuffer(aWidth, aHeight);
-  } else {
-    if (mFrontBuffer->IsAttached()) {
-      if (mBackBuffer->IsAttached()) {
-        NS_ASSERTION(!mBackBuffer->IsAttached(), "We don't have any buffer to draw to!");
-        return nullptr;
-      }
+    return mFrontBuffer;
+  }
 
-      WindowBackBuffer *tmp = mFrontBuffer;
-      mFrontBuffer = mBackBuffer;
-      mBackBuffer = tmp;
-
-      // TODO sync only when we don't resize after switch
-      mFrontBuffer->Sync(mBackBuffer);
-
-      // TODO (https://bugzilla.redhat.com/show_bug.cgi?id=1418260)
-      wl_surface_damage(mSurface, 0, 0, aWidth, aHeight);
-    }
-
+  if (!mFrontBuffer->IsAttached()) {
     if (!mFrontBuffer->MatchSize(aWidth, aHeight)) {
       mFrontBuffer->Resize(aWidth, aHeight);
     }
+    return mFrontBuffer;
+  }
+
+  // Front buffer is used by compositor, draw to back buffer
+  if (mBackBuffer->IsAttached()) {
+      NS_ASSERTION(!mBackBuffer->IsAttached(), "We don't have any buffer to draw to!");
+      return nullptr;
+  }
+
+  WindowBackBuffer *tmp = mFrontBuffer;
+  mFrontBuffer = mBackBuffer;
+  mBackBuffer = tmp;
+
+  if (mBackBuffer->MatchSize(aWidth, aHeight)) {
+    // Former front buffer has the same size as a requested one.
+    // Gecko may expect a content already drawn on screen so copy
+    // existing data to the new buffer.
+    mFrontBuffer->Sync(mBackBuffer);
+    // When buffer switches we need to damage whole screen
+    // (https://bugzilla.redhat.com/show_bug.cgi?id=1418260)
+    mFullScreenDamage = true;
+  } else {
+    // Former buffer has different size from the new request. Only resize
+    // the new buffer and leave geck to render new whole content.
+    mFrontBuffer->Resize(aWidth, aHeight);
   }
 
   return mFrontBuffer;
@@ -485,18 +496,40 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
 already_AddRefed<gfx::DrawTarget>
 WindowSurfaceWayland::Lock(const LayoutDeviceIntRegion& aRegion)
 {
+  // We can use backbuffer directly when:
+  // 1) Front buffer is not used by compositor
+  // 2) We're asked for full screen area
+  // 3) No pre/after drawing - resize drop fullscreen, delete fullscreen flag between comits
+/*
+  if (!mFrontBuffer) {
+    LayoutDeviceIntRect rect = mWidget->GetBounds();
+    (void)GetBufferToDraw(rect.width, rect.height);
+  }
+
+  if (!mFrontBuffer->IsAttached()) {
+    LayoutDeviceIntRect rect = mWidget->GetBounds();
+    mFullScreen = false;
+    for (auto iter = aRegion.RectIter(); !iter.Done(); iter.Next()) {
+      const mozilla::LayoutDeviceIntRect &r = iter.Get();
+      if (r.x == 0 && r.y == 0 &&
+          r.width == rect.width && r.height == rect.height) {
+        fprintf(stderr, "************* Fulscreen %d x %d\n", r.width, r.height);
+        mFullScreen = true;
+        break;
+      }
+    }
+  }
+*/
   // TODO -> compare with bound size
   // and provide back buffer direcly when possible
   // (no data in img buffer and size match)
+  // and we also don't need to switch buffers
   return mImageBuffer.Lock(aRegion);
 }
 
 void
 WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
 {
-  gfx::IntRect bounds = aInvalidRegion.GetBounds().ToUnknownRect();
-  gfx::IntSize bufferSize(bounds.XMost(), bounds.YMost());
-
   LayoutDeviceIntRect rect = mWidget->GetBounds();
   WindowBackBuffer* buffer = GetBufferToDraw(rect.width,
                                              rect.height);
@@ -505,11 +538,17 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
     return;
   }
 
-  // TODO - overlapping areas?
+  // TODO - Do we want to fix redundat copy of overlapping areas?
   for (auto iter = aInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
     const mozilla::LayoutDeviceIntRect &r = iter.Get();
     buffer->CopyRectangle(&mImageBuffer, r);
-    wl_surface_damage(mSurface, r.x, r.y, r.width, r.height);
+    if (!mFullScreenDamage)
+      wl_surface_damage(mSurface, r.x, r.y, r.width, r.height);
+  }
+
+  if (mFullScreenDamage) {
+    wl_surface_damage(mSurface, 0, 0, rect.width, rect.height);
+    mFullScreenDamage = false;
   }
 
   if (mFrameCallback) {

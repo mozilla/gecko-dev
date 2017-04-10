@@ -20,19 +20,38 @@ public:
   WaylandDisplay(wl_display *aDisplay);
   ~WaylandDisplay();
 
-  void               SetShm(wl_shm* aShm)   { mShm = aShm; };
-  wl_shm*            GetShm()               { return(mShm); };
-  wl_event_queue*    GetEventQueue()        { return mEventQueue; };
-  wl_display*        GetDisplay()           { return mDisplay; };
-  gfx::SurfaceFormat GetSurfaceFormat()     { return mFormat; };
-  void               SetWaylandPixelFormat(uint32_t format);
+  void                SetShm(wl_shm* aShm)   { mShm = aShm; };
+  wl_shm*             GetShm()               { return(mShm); };
+  wl_event_queue*     GetEventQueue()        { return mEventQueue; };
+  wl_display*         GetDisplay()           { return mDisplay; };
+  gfx::SurfaceFormat  GetSurfaceFormat()     { return mFormat; };
+  void                SetWaylandPixelFormat(uint32_t format);
 
 private:
-  gfx::SurfaceFormat mFormat;
-  wl_shm*            mShm;
-  wl_event_queue*    mEventQueue;
-  GThread*           mLoopThread;
-  wl_display*        mDisplay;
+  gfx::SurfaceFormat  mFormat;
+  wl_shm*             mShm;
+  wl_event_queue*     mEventQueue;
+  GThread*            mLoopThread;
+  wl_display*         mDisplay;
+};
+
+// Allocates and owns shared memory for Wayland drawing surfaces
+class WaylandShmPool {
+public:
+  WaylandShmPool(int aSize);
+  ~WaylandShmPool();
+
+  bool                Resize(int aSize);
+  wl_shm_pool*        GetShmPool()    { return mShmPool;   };
+  void*               GetImageData()  { return mImageData; };
+
+private:
+  int CreateTemporaryFile(int aSize);
+
+  wl_shm_pool*        mShmPool;
+  int                 mShmPoolFd;
+  int                 mAllocatedSize;
+  void*               mImageData;
 };
 
 class ImageBuffer {
@@ -46,29 +65,10 @@ public:
   int GetHeight()                { return mHeight; };
 
 private:
-  unsigned char*     mImageData;
-  int                mBufferAllocated;
-  int                mWidth;
-  int                mHeight;
-};
-
-// Allocates and owns shared memory for Wayland drawing surfaces
-class WaylandShmBuffer {
-public:
-  WaylandShmBuffer(int aSize);
-  ~WaylandShmBuffer();
-
-  bool          Resize(int aSize);
-  wl_shm_pool*  GetShmPool()    { return mShmPool;    };
-  void*         GetImageData()  { return mImageData; };
-
-private:
-  int CreateTemporaryFile(int aSize);
-
-  wl_shm_pool*       mShmPool;
-  int                mShmPoolFd;
-  int                mAllocatedSize;
-  void*              mImageData;
+  unsigned char*      mImageData;
+  int                 mBufferAllocated;
+  int                 mWidth;
+  int                 mHeight;
 };
 
 // Holds actual graphics data for wl_surface
@@ -100,15 +100,15 @@ private:
   void Create(int aWidth, int aHeight);
   void Release();
 
-  // WaylandShmBuffer provides actual shared memory we draw into
-  WaylandShmBuffer   mShmBuffer;
+  // WaylandShmPool provides actual shared memory we draw into
+  WaylandShmPool      mShmPool;
 
   // wl_buffer is a wayland object that encapsulates the shared memory
   // and passes it to wayland compositor by wl_surface object.
-  wl_buffer*         mWaylandBuffer;
-  int                mWidth;
-  int                mHeight;
-  bool               mAttached;
+  wl_buffer*          mWaylandBuffer;
+  int                 mWidth;
+  int                 mHeight;
+  bool                mAttached;
 };
 
 // WindowSurfaceWayland is an abstraction for wl_surface
@@ -140,6 +140,7 @@ private:
   WindowBackBuffer*         mBackBuffer;
   wl_callback*              mFrameCallback;
   bool                      mDelayedCommit;
+  bool                      mFullScreenDamage;
 };
 
 }  // namespace widget
