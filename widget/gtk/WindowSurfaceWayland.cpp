@@ -5,16 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
- * Derived from Weston project,
- * https://github.com/wayland-project/weston/blob/master/clients/simple-shm.c
- */
-/*
 TODO:
-moz-container -> display check
 X11CompositorWidget - update
 nsWindow::GetCompositorWidgetInitData
-GDK_WINDOWING_X11 - remove
-#ifdef MOZ_WAYLAND + display test
 - ensure we always draw to container
 - surface cleaning/realocation
 - can we redraw on allocate?
@@ -25,24 +18,25 @@ GDK_WINDOWING_X11 - remove
 - call wayland display/queue events right after attach&co?
 - optimization -> use Image bufer when update area is smaller that whole window
 - is bounds.x bounds.y non-zero??
-- buffer sync - can be undamaged part unsynced?
 - GdkWidnow - show/hide -> callback, get surface and frame callback
 - optimization - give backbuffer directly when requested whole area in Lock()
-- how big is rectangle owerlap in BackBufferWayland::CopyRectangle()?
+- how big is rectangle owerlap in WindowBackBuffer::CopyRectangle()?
 (firefox:15155): Gdk-WARNING **: Tried to map a popup with a non-top most parent
   - it was ok in X11
 - try to draw (first commit) when vblank comes like Gtk does, not when gecko calls it
+- why we can't draw directly to back-buffer? Why do we need the image buffer??
+
 */
 #include <assert.h>
 #include <poll.h>
 
 #include "WindowSurfaceWayland.h"
 
+#include "nsPrintfCString.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Tools.h"
 #include "gfxPlatform.h"
 #include "mozcontainer.h"
-#include "os-compatibility.h"
 
 #include <gdk/gdkwayland.h>
 #include <sys/mman.h>
@@ -51,251 +45,18 @@ GDK_WINDOWING_X11 - remove
 namespace mozilla {
 namespace widget {
 
-bool                WindowSurfaceWayland::mIsAvailable;
-bool                WindowSurfaceWayland::mInitialized;
-gfx::SurfaceFormat  WindowSurfaceWayland::mFormat = gfx::SurfaceFormat::UNKNOWN;
-wl_shm*             WindowSurfaceWayland::mShm;
-wl_event_queue*     WindowSurfaceWayland::mQueue;
-GThread*            WindowSurfaceWayland::mThread;
-wl_display*         WindowSurfaceWayland::mDisplay;
+static WaylandDisplay *gWaylandDisplay = nullptr;
 
-ImageBuffer::ImageBuffer()
-  : mBufferData(nullptr)
-  , mBufferAllocated(0)
-  , mWidth(0)
-  , mHeight(0)
+void
+WaylandDisplayInit(wl_display *aDisplay)
 {
-}
-
-ImageBuffer::~ImageBuffer()
-{
-  if (mBufferData)
-    free(mBufferData);
-}
-
-already_AddRefed<gfx::DrawTarget>
-ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
-{
-  gfx::IntRect bounds = aRegion.GetBounds().ToUnknownRect();
-  gfx::IntSize imageSize(bounds.XMost(), bounds.YMost());
-
-  // We use the same trick as nsShmImage::CreateDrawTarget() does:
-  // Due to bug 1205045, we must avoid making GTK calls off the main thread
-  // to query window size.
-  // Instead we just track the largest offset within the image we are
-  // drawing to and grow the image to accomodate it. Since usually
-  // the entire window is invalidated on the first paint to it,
-  // this should grow the image to the necessary size quickly without
-  // many intermediate reallocations.
-  int newSize = imageSize.width * imageSize.height * BUFFER_BPP;
-  if (!mBufferData || mBufferAllocated < newSize) {
-    if (mBufferData) {
-      free(mBufferData);
+    if (!gWaylandDisplay) {
+        gWaylandDisplay = new WaylandDisplay(aDisplay);
     }
-
-    mBufferData = (unsigned char*)malloc(newSize);
-    if (!mBufferData)
-      return nullptr;
-
-    mBufferAllocated = newSize;
-  }
-
-  mWidth = imageSize.width;
-  mHeight = imageSize.height;
-
-  return gfxPlatform::CreateDrawTargetForData(mBufferData, imageSize,
-    BUFFER_BPP * mWidth, WindowSurfaceWayland::GetSurfaceFormat());
-}
-
-bool BackBufferWayland::CreateShmPool(int aSize)
-{
-  mAllocatedSize = aSize;
-
-  mShmPoolFd = os_create_anonymous_file(mAllocatedSize);
-  if (mShmPoolFd < 0)
-    return false;
-
-  mBufferData = mmap(nullptr, mAllocatedSize,
-                     PROT_READ | PROT_WRITE, MAP_SHARED, mShmPoolFd, 0);
-  if (mBufferData == MAP_FAILED) {
-    close(mShmPoolFd);
-    mShmPoolFd = 0;
-    return false;
-  }
-
-  mShmPool = wl_shm_create_pool(WindowSurfaceWayland::GetShm(),
-                                mShmPoolFd, mAllocatedSize);
-  wl_proxy_set_queue((struct wl_proxy *)mShmPool,
-                     WindowSurfaceWayland::GetQueue());
-
-  return true;
-}
-
-bool BackBufferWayland::ResizeShmPool(int aSize)
-{
-  // We do size increase only
-  if (aSize <= mAllocatedSize)
-    return true;
-
-  if (ftruncate(mShmPoolFd, aSize) < 0)
-    return false;
-
-#ifdef HAVE_POSIX_FALLOCATE
-  errno = posix_fallocate(mShmPoolFd, 0, aSize);
-  if (errno != 0)
-    return false;
-#endif
-
-  wl_shm_pool_resize(mShmPool, aSize);
-
-  munmap(mBufferData, mAllocatedSize);
-
-  mBufferData = mmap(nullptr, aSize,
-                     PROT_READ | PROT_WRITE, MAP_SHARED, mShmPoolFd, 0);
-  if (mBufferData == MAP_FAILED)
-    return false;
-
-  mAllocatedSize = aSize;
-  return true;
-}
-
-void BackBufferWayland::ReleaseShmPool()
-{
-  munmap(mBufferData, mAllocatedSize);
-  wl_shm_pool_destroy(mShmPool);
-  close(mShmPoolFd);
-
-  mBufferData = nullptr;
-  mAllocatedSize = 0;
-}
-
-static void
-buffer_release(void *data, wl_buffer *buffer)
-{  
-  auto surface = reinterpret_cast<BackBufferWayland*>(data);
-  surface->Detach();
-}
-
-static const struct wl_buffer_listener buffer_listener = {
-  buffer_release
-};
-
-void BackBufferWayland::CreateBuffer(int aWidth, int aHeight)
-{
-  mBuffer = wl_shm_pool_create_buffer(mShmPool, 0,
-                              			  aWidth, aHeight, aWidth*BUFFER_BPP,
-                              			  WL_SHM_FORMAT_ARGB8888);
-  wl_proxy_set_queue((struct wl_proxy *)mBuffer,
-                     WindowSurfaceWayland::GetQueue());
-  wl_buffer_add_listener(mBuffer, &buffer_listener, this);
-
-  mWidth = aWidth;
-  mHeight = aHeight;
-}
-
-void BackBufferWayland::ReleaseBuffer()
-{
-  wl_buffer_destroy(mBuffer);
-  mWidth = mHeight = 0;
-}
-
-BackBufferWayland::BackBufferWayland(int aWidth, int aHeight)
- : mShmPool(nullptr)
-  ,mShmPoolFd(0)
-  ,mAllocatedSize(0)
-  ,mBuffer(nullptr)
-  ,mBufferData(nullptr)
-  ,mWidth(aWidth)
-  ,mHeight(aHeight)
-  ,mAttached(false)
-{
-  if(CreateShmPool(aWidth*aHeight*BUFFER_BPP)) {
-    CreateBuffer(aWidth, aHeight);
-  } else
-    assert(0);
-}
-
-BackBufferWayland::~BackBufferWayland()
-{
-  ReleaseBuffer();
-  ReleaseShmPool();
-}
-
-bool
-BackBufferWayland::Resize(int aWidth, int aHeight)
-{
-  if (aWidth == mWidth && aHeight == mHeight)
-    return true;
-
-  fprintf(stderr, "BackBufferResize, %dx%d -> %dx%d\n",
-          mWidth, mHeight, aWidth, aHeight);
-  ReleaseBuffer();
-
-  int newSize = aWidth*aHeight*BUFFER_BPP;
-  if (newSize > mAllocatedSize)
-    ResizeShmPool(newSize);
-
-  CreateBuffer(aWidth, aHeight);
-  return (mBuffer != nullptr);
-}
-
-// Update back buffer with image data from ImageBuffer
-void
-BackBufferWayland::CopyRectangle(ImageBuffer *aImage,
-                                 const mozilla::LayoutDeviceIntRect &rect)
-{
-  mozilla::LayoutDeviceIntRect r = rect;
-
-  if (r.x + r.width > mWidth)
-    r.width = mWidth - r.x;
-  if (r.y + r.height > mHeight)
-    r.height = mHeight - r.y;
-
-  for (int y = r.y; y < r.y + r.height; y++) {
-    int start = (y * mWidth + r.x) * BUFFER_BPP;
-    int lenght = r.width * BUFFER_BPP;
-    memcpy((unsigned char *)mBufferData + start,
-            aImage->GetData() + ((y * aImage->mWidth) + r.x) * BUFFER_BPP,
-            lenght);
-  }
 }
 
 void
-BackBufferWayland::Attach(wl_surface* aSurface)
-{
-  // Taken from Hybris project:
-  // Some compositors, namely Weston, queue buffer release events instead
-  // of sending them immediately.  If a frame event is used, this should
-  // not be a problem.  Without a frame event, we need to send a sync
-  // request to ensure that they get flushed.    
-  //wl_callback_destroy(wl_display_sync(WindowSurfaceWayland::GetDisplay()));
-
-  wl_surface_attach(aSurface, mBuffer, 0, 0);
-  wl_surface_commit(aSurface);
-  wl_display_flush(WindowSurfaceWayland::GetDisplay());
-  mAttached = true;
-}
-
-void
-BackBufferWayland::Detach()
-{
-  mAttached = false;
-}
-
-bool BackBufferWayland::Sync(class BackBufferWayland* aSourceBuffer)
-{
-  bool bufferSizeMatches = MatchSize(aSourceBuffer);
-  if (!bufferSizeMatches) {
-    Resize(aSourceBuffer->mWidth, aSourceBuffer->mHeight);
-  }
-
-  memcpy(mBufferData, aSourceBuffer->mBufferData,
-         aSourceBuffer->mWidth * aSourceBuffer->mHeight * BUFFER_BPP);
-  return true;
-}
-
-void
-WindowSurfaceWayland::SetWaylandPixelFormat(uint32_t format)
+WaylandDisplay::SetWaylandPixelFormat(uint32_t format)
 {
   switch (format) {
     case WL_SHM_FORMAT_ARGB8888:
@@ -311,7 +72,7 @@ WindowSurfaceWayland::SetWaylandPixelFormat(uint32_t format)
 static void
 shm_format(void *data, wl_shm *wl_shm, uint32_t format)
 {
-  auto interface = reinterpret_cast<WindowSurfaceWayland *>(data);
+  auto interface = reinterpret_cast<WaylandDisplay *>(data);
   interface->SetWaylandPixelFormat(format);
  }
 
@@ -324,11 +85,11 @@ global_registry_handler(void *data, wl_registry *registry, uint32_t id,
 	                      const char *interface, uint32_t version)
 {
   if (strcmp(interface, "wl_shm") == 0) {
+    auto interface = reinterpret_cast<WaylandDisplay *>(data);
     auto shm = static_cast<wl_shm*>(
         wl_registry_bind(registry, id, &wl_shm_interface, 1));
-    wl_proxy_set_queue((struct wl_proxy *)shm, WindowSurfaceWayland::GetQueue());
-    wl_shm_add_listener(shm, &shm_listener, NULL);
-    auto interface = reinterpret_cast<WindowSurfaceWayland *>(data);
+    wl_proxy_set_queue((struct wl_proxy *)shm, interface->GetEventQueue());
+    wl_shm_add_listener(shm, &shm_listener, data);
     interface->SetShm(shm);
   }
 }
@@ -344,77 +105,319 @@ static const struct wl_registry_listener registry_listener = {
 };
 
 static gpointer
-gst_wl_display_thread_run (gpointer data)
+WaylandDisplayLoop(gpointer data)
 {
+  wl_display *display = gWaylandDisplay->GetDisplay();
+  wl_event_queue *eventQueue = gWaylandDisplay->GetEventQueue();
+  
   struct pollfd fds;
-  fds.fd = wl_display_get_fd (WindowSurfaceWayland::GetDisplay());
+  fds.fd = wl_display_get_fd(display);
   fds.events = POLLIN;
 
   /* main loop */
   while (1) {
-    while (wl_display_prepare_read_queue (WindowSurfaceWayland::GetDisplay(),
-                                          WindowSurfaceWayland::GetQueue()) < 0) {
-      wl_display_dispatch_queue_pending (WindowSurfaceWayland::GetDisplay(),
-                                         WindowSurfaceWayland::GetQueue());
-    }
-    wl_display_flush (WindowSurfaceWayland::GetDisplay());
+      while (wl_display_prepare_read_queue(display, eventQueue) < 0) {
+          wl_display_dispatch_queue_pending(display, eventQueue);
+      }
+      wl_display_flush(display);
 
-    int ret = poll(&fds, 1, -1);
-    if (ret == -1) {
-      wl_display_cancel_read(WindowSurfaceWayland::GetDisplay());
-      break;
-    }
-    wl_display_read_events(WindowSurfaceWayland::GetDisplay());
-    wl_display_dispatch_queue_pending (WindowSurfaceWayland::GetDisplay(), 
-                                       WindowSurfaceWayland::GetQueue());
+      int ret = poll(&fds, 1, -1);
+      if (ret == -1) {
+          wl_display_cancel_read(display);
+      }
+      wl_display_read_events(display);
+      wl_display_dispatch_queue_pending(display, eventQueue);
   }
 
-  return NULL;
+  return nullptr;
 }
 
-static void
-redraw(void *data, struct wl_callback *callback, uint32_t time)
+WaylandDisplay::WaylandDisplay(wl_display *aDisplay)
+  : mDisplay(aDisplay)
 {
-    auto surface = reinterpret_cast<WindowSurfaceWayland*>(data);
-    surface->Draw();
-}
-
-static const struct wl_callback_listener frame_listener = {
-    redraw
-};
-
-void
-WindowSurfaceWayland::Init()
-{
-  // Try to initialize only once
-  if (mInitialized)
-    return;
-  mInitialized = true;
-
-  mQueue = wl_display_create_queue(mDisplay);
+  mEventQueue = wl_display_create_queue(mDisplay);
 
   // wl_shm and wl_subcompositor are not provided by Gtk so we need
   // to query wayland directly
   wl_registry* registry = wl_display_get_registry(mDisplay);
-  wl_proxy_set_queue((struct wl_proxy *)registry, mQueue);
-  wl_registry_add_listener(registry,
-                           &registry_listener, nullptr);
+  wl_proxy_set_queue((struct wl_proxy *)registry, mEventQueue);
+  wl_registry_add_listener(registry, &registry_listener, this);
 
   // We need two roundtrips here to get the registry info
-  wl_display_dispatch_queue(mDisplay, mQueue);
-  wl_display_roundtrip_queue(mDisplay, mQueue);
-  wl_display_roundtrip_queue(mDisplay, mQueue);
+  wl_display_dispatch_queue(mDisplay, mEventQueue);
+  wl_display_roundtrip_queue(mDisplay, mEventQueue);
+  wl_display_roundtrip_queue(mDisplay, mEventQueue);
 
-  // We should have a valid pixel format now
-  mIsAvailable = (mFormat != gfx::SurfaceFormat::UNKNOWN);
-  NS_ASSERTION(mIsAvailable, "We don't have any pixel format!");
-  
-  assert(mFormat != gfx::SurfaceFormat::UNKNOWN);
+  // We must have a valid pixel format
+  MOZ_RELEASE_ASSERT(mFormat != gfx::SurfaceFormat::UNKNOWN,
+                     "We don't have any pixel format!");
 
-  GError *err = nullptr;
-  mThread = g_thread_try_new ("GstWlDisplay", gst_wl_display_thread_run,
-                              this, &err);
+  mLoopThread = g_thread_new("WaylandDisplayLoop", WaylandDisplayLoop, this);
 }
+
+WaylandDisplay::~WaylandDisplay()
+{
+}
+
+ImageBuffer::ImageBuffer()
+  : mImageData(nullptr)
+  , mBufferAllocated(0)
+  , mWidth(0)
+  , mHeight(0)
+{
+}
+
+ImageBuffer::~ImageBuffer()
+{
+  if (mImageData)
+    free(mImageData);
+}
+
+already_AddRefed<gfx::DrawTarget>
+ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
+{
+  gfx::IntRect bounds = aRegion.GetBounds().ToUnknownRect();
+  gfx::IntSize imageSize(bounds.XMost(), bounds.YMost());
+
+  //TODO -> widget->getBounds!!
+  int newSize = imageSize.width * imageSize.height * BUFFER_BPP;
+  if (!mImageData || mBufferAllocated < newSize) {
+    if (mImageData) {
+      free(mImageData);
+    }
+
+    mImageData = (unsigned char*)malloc(newSize);
+    if (!mImageData)
+      return nullptr;
+
+    mBufferAllocated = newSize;
+  }
+
+  mWidth = imageSize.width;
+  mHeight = imageSize.height;
+
+  return gfxPlatform::CreateDrawTargetForData(mImageData, imageSize,
+    BUFFER_BPP * mWidth, gWaylandDisplay->GetSurfaceFormat());
+}
+
+int
+WaylandShmBuffer::CreateTemporaryFile(int aSize)
+{
+  const char* tmppath = getenv("XDG_RUNTIME_DIR");	
+  MOZ_RELEASE_ASSERT(tmppath, "Missing XDG_RUNTIME_DIR env variable.");
+
+  nsPrintfCString tmpname("%s/weston-shared-XXXXXX", tmppath);
+
+  char* filename;
+  int fd = -1;
+
+  if (tmpname.GetMutableData(&filename)) {
+    	fd = mkstemp(filename);
+    	if (fd >= 0) {
+          int flags = fcntl(fd, F_GETFD);
+          if (flags >= 0) {
+              fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+          }
+    	}
+  }  
+  
+  if (fd >= 0) {
+      unlink(tmpname.get());
+  } else {
+      printf_stderr("Unable to create mapping file %s\n", filename);
+      MOZ_CRASH();    
+  }
+  
+#ifdef HAVE_POSIX_FALLOCATE
+	int ret = posix_fallocate(fd, 0, aSize);
+#else
+	int ret = ftruncate(fd, aSize);
+#endif
+  MOZ_RELEASE_ASSERT(ret == 0, "Mapping file allocation failed.");
+
+	return fd;
+}
+
+WaylandShmBuffer::WaylandShmBuffer(int aSize)
+{
+  mAllocatedSize = aSize;
+
+  mShmPoolFd = CreateTemporaryFile(mAllocatedSize);
+  mImageData = mmap(nullptr, mAllocatedSize,
+                     PROT_READ | PROT_WRITE, MAP_SHARED, mShmPoolFd, 0);
+  MOZ_RELEASE_ASSERT(mImageData != MAP_FAILED,
+                     "Unable to map drawing surface!");
+
+  mShmPool = wl_shm_create_pool(gWaylandDisplay->GetShm(),
+                                mShmPoolFd, mAllocatedSize);
+  wl_proxy_set_queue((struct wl_proxy *)mShmPool,
+                     gWaylandDisplay->GetEventQueue());
+}
+
+bool
+WaylandShmBuffer::Resize(int aSize)
+{ 
+  // We do size increase only
+  if (aSize <= mAllocatedSize)
+    return true;
+
+  if (ftruncate(mShmPoolFd, aSize) < 0)
+    return false;
+
+#ifdef HAVE_POSIX_FALLOCATE
+  errno = posix_fallocate(mShmPoolFd, 0, aSize);
+  if (errno != 0)
+    return false;
+#endif
+
+  wl_shm_pool_resize(mShmPool, aSize);
+
+  munmap(mImageData, mAllocatedSize);
+
+  mImageData = mmap(nullptr, aSize,
+                     PROT_READ | PROT_WRITE, MAP_SHARED, mShmPoolFd, 0);
+  if (mImageData == MAP_FAILED)
+    return false;
+
+  mAllocatedSize = aSize;
+  return true;
+}
+
+WaylandShmBuffer::~WaylandShmBuffer()
+{
+  munmap(mImageData, mAllocatedSize);
+  wl_shm_pool_destroy(mShmPool);
+  close(mShmPoolFd);
+}
+
+static void
+buffer_release(void *data, wl_buffer *buffer)
+{  
+  auto surface = reinterpret_cast<WindowBackBuffer*>(data);
+  surface->Detach();
+}
+
+static const struct wl_buffer_listener buffer_listener = {
+  buffer_release
+};
+
+void WindowBackBuffer::Create(int aWidth, int aHeight)
+{
+  int newBufferSize = aWidth*aHeight*BUFFER_BPP;
+  mShmBuffer.Resize(newBufferSize);
+
+  mWaylandBuffer = wl_shm_pool_create_buffer(mShmBuffer.GetShmPool(), 0,
+                                     			  aWidth, aHeight, aWidth*BUFFER_BPP,
+                                    			  WL_SHM_FORMAT_ARGB8888);
+  wl_proxy_set_queue((struct wl_proxy *)mWaylandBuffer,
+                     gWaylandDisplay->GetEventQueue());
+  wl_buffer_add_listener(mWaylandBuffer, &buffer_listener, this);
+
+  mWidth = aWidth;
+  mHeight = aHeight;
+}
+
+void WindowBackBuffer::Release()
+{
+  wl_buffer_destroy(mWaylandBuffer);
+  mWidth = mHeight = 0;
+}
+
+WindowBackBuffer::WindowBackBuffer(int aWidth, int aHeight)
+ : mShmBuffer(aWidth*aHeight*BUFFER_BPP)
+  ,mWaylandBuffer(nullptr)
+  ,mWidth(aWidth)
+  ,mHeight(aHeight)
+  ,mAttached(false)
+{  
+  Create(aWidth, aHeight);
+}
+
+WindowBackBuffer::~WindowBackBuffer()
+{
+  Release();
+}
+
+bool
+WindowBackBuffer::Resize(int aWidth, int aHeight)
+{
+  if (aWidth == mWidth && aHeight == mHeight)
+    return true;
+
+  fprintf(stderr, "BackBufferResize, %dx%d -> %dx%d\n",
+          mWidth, mHeight, aWidth, aHeight);
+
+  Release();
+  Create(aWidth, aHeight);
+
+  return (mWaylandBuffer != nullptr);
+}
+
+// Update back buffer with image data from ImageBuffer
+void
+WindowBackBuffer::CopyRectangle(ImageBuffer *aImage,
+                                const mozilla::LayoutDeviceIntRect &rect)
+{
+  mozilla::LayoutDeviceIntRect r = rect;
+
+  if (r.x + r.width > mWidth)
+    r.width = mWidth - r.x;
+  if (r.y + r.height > mHeight)
+    r.height = mHeight - r.y;
+
+  for (int y = r.y; y < r.y + r.height; y++) {
+    int start = (y * mWidth + r.x) * BUFFER_BPP;
+    int lenght = r.width * BUFFER_BPP;
+    memcpy((unsigned char *)mShmBuffer.GetImageData() + start,
+            aImage->GetImageData() + ((y * aImage->GetWidth()) + r.x) * BUFFER_BPP,
+            lenght);
+  }
+}
+
+void
+WindowBackBuffer::Attach(wl_surface* aSurface)
+{
+  // Taken from Hybris project:
+  // Some compositors, namely Weston, queue buffer release events instead
+  // of sending them immediately.  If a frame event is used, this should
+  // not be a problem.  Without a frame event, we need to send a sync
+  // request to ensure that they get flushed.    
+  //wl_callback_destroy(wl_display_sync(WindowSurfaceWayland::GetDisplay()));
+
+  wl_surface_attach(aSurface, mWaylandBuffer, 0, 0);
+  wl_surface_commit(aSurface);
+  wl_display_flush(gWaylandDisplay->GetDisplay());
+  mAttached = true;
+}
+
+void
+WindowBackBuffer::Detach()
+{
+  mAttached = false;
+}
+
+bool WindowBackBuffer::Sync(class WindowBackBuffer* aSourceBuffer)
+{
+  bool bufferSizeMatches = MatchSize(aSourceBuffer);
+  if (!bufferSizeMatches) {
+    Resize(aSourceBuffer->mWidth, aSourceBuffer->mHeight);
+  }
+
+  memcpy(mShmBuffer.GetImageData(), aSourceBuffer->mShmBuffer.GetImageData(),
+         aSourceBuffer->mWidth * aSourceBuffer->mHeight * BUFFER_BPP);
+  return true;
+}
+
+static void
+frame_callback_handler(void *data, struct wl_callback *callback, uint32_t time)
+{
+    auto surface = reinterpret_cast<WindowSurfaceWayland*>(data);
+    surface->FrameCallbackHandler();
+}
+
+static const struct wl_callback_listener frame_listener = {
+    frame_callback_handler
+};
 
 WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
                                            wl_display *aDisplay,
@@ -426,12 +429,15 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
   , mFrameCallback(nullptr)
   , mDelayedCommit(false)
 {
-  NS_ASSERTION(mSurface != nullptr,
-               "Missing Wayland surfaces to draw to!");
-
-  mDisplay = aDisplay;
-  Init();
-  wl_proxy_set_queue((struct wl_proxy *)mSurface, mQueue);    
+  MOZ_RELEASE_ASSERT(mSurface != nullptr,
+                    "We can't do anything useful without valid wl_surface.");
+  // Ensure we have valid display connection
+  WaylandDisplayInit(aDisplay);
+  
+  // Make sure the drawing surface is handled by our event loop
+  // and not the default (Gdk) one to draw out of main thread.
+  wl_proxy_set_queue((struct wl_proxy *)mSurface,
+                     gWaylandDisplay->GetEventQueue());
 }
 
 WindowSurfaceWayland::~WindowSurfaceWayland()
@@ -444,12 +450,12 @@ WindowSurfaceWayland::~WindowSurfaceWayland()
   }
 }
 
-BackBufferWayland*
+WindowBackBuffer*
 WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
 {
   if (!mFrontBuffer) {
-    mFrontBuffer = new BackBufferWayland(aWidth, aHeight);
-    mBackBuffer = new BackBufferWayland(aWidth, aHeight);  
+    mFrontBuffer = new WindowBackBuffer(aWidth, aHeight);
+    mBackBuffer = new WindowBackBuffer(aWidth, aHeight);  
   } else {
     if (mFrontBuffer->IsAttached()) {
       if (mBackBuffer->IsAttached()) {
@@ -457,10 +463,11 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
         return nullptr;
       }
 
-      BackBufferWayland *tmp = mFrontBuffer;
+      WindowBackBuffer *tmp = mFrontBuffer;
       mFrontBuffer = mBackBuffer;
       mBackBuffer = tmp;
 
+      // TODO sync only when we don't resize after switch
       mFrontBuffer->Sync(mBackBuffer);
 
       // TODO (https://bugzilla.redhat.com/show_bug.cgi?id=1418260)
@@ -478,6 +485,9 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
 already_AddRefed<gfx::DrawTarget>
 WindowSurfaceWayland::Lock(const LayoutDeviceIntRegion& aRegion)
 {
+  // TODO -> compare with bound size
+  // and provide back buffer direcly when possible
+  // (no data in img buffer and size match)
   return mImageBuffer.Lock(aRegion);
 }
 
@@ -488,13 +498,14 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
   gfx::IntSize bufferSize(bounds.XMost(), bounds.YMost());
 
   LayoutDeviceIntRect rect = mWidget->GetBounds();
-  BackBufferWayland* buffer = GetBufferToDraw(rect.width,
-                                              rect.height);
+  WindowBackBuffer* buffer = GetBufferToDraw(rect.width,
+                                             rect.height);
   NS_ASSERTION(buffer, "We don't have any buffer to draw to!");
   if (!buffer) {
     return;
   }
 
+  // TODO - overlapping areas?
   for (auto iter = aInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
     const mozilla::LayoutDeviceIntRect &r = iter.Get();
     buffer->CopyRectangle(&mImageBuffer, r);
@@ -518,7 +529,7 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
 }
 
 void
-WindowSurfaceWayland::Draw()
+WindowSurfaceWayland::FrameCallbackHandler()
 {
   if (mFrameCallback) {
       wl_callback_destroy(mFrameCallback);
@@ -526,6 +537,8 @@ WindowSurfaceWayland::Draw()
   }
 
   if (mDelayedCommit) {
+    // Send pending surface to compositor and register frame callback
+    // for possible subsequent drawing.
     mFrameCallback = wl_surface_frame(mSurface);
     wl_callback_add_listener(mFrameCallback, &frame_listener, this);
 

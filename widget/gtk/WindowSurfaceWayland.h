@@ -13,67 +13,99 @@ namespace widget {
 // We support only 32bpp formats
 #define BUFFER_BPP 4
 
-// Image surface which holds actual drawing to back buffer,
-// it is commited to BackBufferWayland
+// Our general connection to Wayland display server,
+// holds our display connection and runs event loop.
+class WaylandDisplay {
+public:
+  WaylandDisplay(wl_display *aDisplay);
+  ~WaylandDisplay();
+
+  void               SetShm(wl_shm* aShm)   { mShm = aShm; };
+  wl_shm*            GetShm()               { return(mShm); };
+  wl_event_queue*    GetEventQueue()        { return mEventQueue; };
+  wl_display*        GetDisplay()           { return mDisplay; };
+  gfx::SurfaceFormat GetSurfaceFormat()     { return mFormat; };
+  void               SetWaylandPixelFormat(uint32_t format);
+
+private:
+  gfx::SurfaceFormat mFormat;
+  wl_shm*            mShm;
+  wl_event_queue*    mEventQueue;
+  GThread*           mLoopThread;
+  wl_display*        mDisplay;
+};
+
 class ImageBuffer {
-friend class BackBufferWayland;
 public:
   ImageBuffer();
   ~ImageBuffer();
 
   already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion);
-  unsigned char* GetData() { return mBufferData; };
+  unsigned char* GetImageData()  { return mImageData; };
+  int GetWidth()                 { return mWidth; };
+  int GetHeight()                { return mHeight; };
 
 private:
-  unsigned char*     mBufferData;
+  unsigned char*     mImageData;
   int                mBufferAllocated;
   int                mWidth;
   int                mHeight;
 };
 
-// Holds actual graphics data for wl_surface
-class BackBufferWayland {
-public:
-  BackBufferWayland(int aWidth, int aHeight);
-  ~BackBufferWayland();
-
-  void CopyRectangle(ImageBuffer *aImage,
-                     const mozilla::LayoutDeviceIntRect &rect);
+// Allocates and owns shared memory for Wayland drawing surfaces
+class WaylandShmBuffer {
+public:  
+  WaylandShmBuffer(int aSize);
+  ~WaylandShmBuffer();
   
+  bool          Resize(int aSize);
+  wl_shm_pool*  GetShmPool()    { return mShmPool;    };
+  void*         GetImageData()  { return mImageData; };
+  
+private:
+  int CreateTemporaryFile(int aSize);
+    
+  wl_shm_pool*       mShmPool;
+  int                mShmPoolFd;
+  int                mAllocatedSize;
+  void*              mImageData;
+};
+
+// Holds actual graphics data for wl_surface
+class WindowBackBuffer {
+public:
+  WindowBackBuffer(int aWidth, int aHeight);
+  ~WindowBackBuffer();
+
   void Attach(wl_surface* aSurface);
   void Detach();
   bool IsAttached() { return mAttached; }
 
   bool Resize(int aWidth, int aHeight);
-  bool Sync(class BackBufferWayland* aSourceBuffer);
-  
+  bool Sync(class WindowBackBuffer* aSourceBuffer);
+
   bool MatchSize(int aWidth, int aHeight) 
   {
     return aWidth == mWidth && aHeight == mHeight;
   }
-  bool MatchSize(class BackBufferWayland *aBuffer) 
+  bool MatchSize(class WindowBackBuffer *aBuffer) 
   {
     return aBuffer->mWidth == mWidth && aBuffer->mHeight == mHeight; 
   }
- 
-  bool MatchAllocatedSize(int aSize)
-  {
-    return aSize <= mAllocatedSize; 
-  }
-  
+
+  void CopyRectangle(ImageBuffer *aImage,
+                     const mozilla::LayoutDeviceIntRect &rect);
+
 private:
-  bool CreateShmPool(int aSize);
-  bool ResizeShmPool(int aSize);
-  void ReleaseShmPool(void);
+  void Create(int aWidth, int aHeight);
+  void Release();
 
-  void CreateBuffer(int aWidth, int aHeight);
-  void ReleaseBuffer();
-
-  wl_shm_pool*       mShmPool;
-  int                mShmPoolFd;
-  int                mAllocatedSize;
-  wl_buffer*         mBuffer;
-  void*              mBufferData;
+  // WaylandShmBuffer provides actual shared memory we draw into
+  WaylandShmBuffer   mShmBuffer;
+  
+  // wl_buffer is a wayland object that encapsulates the shared memory
+  // and passes it to wayland compositor by wl_surface object.
+  wl_buffer*         mWaylandBuffer;
   int                mWidth;
   int                mHeight;
   bool               mAttached;
@@ -88,27 +120,11 @@ public:
 
   already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion) override;
   void                      Commit(const LayoutDeviceIntRegion& aInvalidRegion) final;
-  void                      Draw();
-
-  static void               SetShm(wl_shm* aShm) { mShm = aShm; };
-  static wl_shm*            GetShm() { return(mShm); };
-  static wl_event_queue*    GetQueue() { return mQueue; };
-  static wl_display*        GetDisplay() { return mDisplay; };
-  static void               SetWaylandPixelFormat(uint32_t format);
-  static gfx::SurfaceFormat GetSurfaceFormat() { return mFormat; };
+  void                      FrameCallbackHandler();
 
 private:
-  BackBufferWayland*        GetBufferToDraw(int aWidth, int aHeight);
-  void                      Init();
-
-  static bool               mIsAvailable;
-  static bool               mInitialized;
-  static gfx::SurfaceFormat mFormat;
-  static wl_shm*            mShm;
-  static wl_event_queue*    mQueue;
-  static GThread*           mThread;
-  static wl_display*        mDisplay;
-
+  WindowBackBuffer*         GetBufferToDraw(int aWidth, int aHeight);
+  
   nsWindow*                 mWidget;
   
   // The surface size is dynamically allocated by Commit() call,
@@ -120,8 +136,8 @@ private:
 
   ImageBuffer               mImageBuffer;
   
-  BackBufferWayland*        mFrontBuffer;
-  BackBufferWayland*        mBackBuffer;
+  WindowBackBuffer*         mFrontBuffer;
+  WindowBackBuffer*         mBackBuffer;
   wl_callback*              mFrameCallback;
   bool                      mDelayedCommit;
 };

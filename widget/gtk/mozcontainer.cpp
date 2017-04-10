@@ -161,18 +161,11 @@ moz_container_move (MozContainer *container, GtkWidget *child_widget,
 gboolean
 moz_container_map_wl_surface(MozContainer *container)
 {
-    GdkDisplay *display;
-    struct wl_compositor *compositor;
-    struct wl_surface *gtk_surface;
-    struct wl_region *region;
-    GdkWindow *window;
-    gint x, y;
-
     if (container->subsurface)
       return TRUE;
 
-    window = gtk_widget_get_window(GTK_WIDGET(container));
-    gtk_surface = gdk_wayland_window_get_wl_surface(window);
+    GdkWindow* window = gtk_widget_get_window(GTK_WIDGET(container));
+    wl_surface* gtk_surface = gdk_wayland_window_get_wl_surface(window);
     if (!gtk_surface) {
       // We requested the underlying wl_surface too early.
       return FALSE;
@@ -182,14 +175,15 @@ moz_container_map_wl_surface(MozContainer *container)
       wl_subcompositor_get_subsurface (container->subcompositor,
                                        container->surface,
                                        gtk_surface);
+    gint x, y;
     gdk_window_get_position(window, &x, &y);
     wl_subsurface_set_position(container->subsurface, x, y);
     wl_subsurface_set_desync(container->subsurface);
 
     // Don't accept input on subsurface
-    display = gtk_widget_get_display(GTK_WIDGET (container));
-    compositor = gdk_wayland_display_get_wl_compositor(display);
-    region = wl_compositor_create_region(compositor);
+    GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET (container));
+    wl_compositor* compositor = gdk_wayland_display_get_wl_compositor(display);
+    wl_region* region = wl_compositor_create_region(compositor);
     wl_surface_set_input_region(container->surface, region);
     wl_region_destroy(region);
     return TRUE;
@@ -285,11 +279,8 @@ moz_container_init (MozContainer *container)
     {
       GdkDisplay *gdk_display = gtk_widget_get_display(GTK_WIDGET(container));
       if (GDK_IS_WAYLAND_DISPLAY (gdk_display)) {
-          struct wl_display *display;
-          struct wl_registry *registry;
-
-          display = gdk_wayland_display_get_wl_display(gdk_display);
-          registry = wl_display_get_registry(display);
+          wl_display* display = gdk_wayland_display_get_wl_display(gdk_display);
+          wl_registry* registry = wl_display_get_registry(display);
           wl_registry_add_listener(registry, &registry_listener, container);
           wl_display_roundtrip(display);
           wl_display_roundtrip(display);
