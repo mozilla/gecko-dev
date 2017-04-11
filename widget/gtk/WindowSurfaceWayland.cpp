@@ -124,9 +124,10 @@ WaylandDisplayLoop(gpointer data)
       int ret = poll(&fds, 1, -1);
       if (ret == -1) {
           wl_display_cancel_read(display);
+      } else {
+          wl_display_read_events(display);
+          wl_display_dispatch_queue_pending(display, eventQueue);
       }
-      wl_display_read_events(display);
-      wl_display_dispatch_queue_pending(display, eventQueue);
   }
 
   return nullptr;
