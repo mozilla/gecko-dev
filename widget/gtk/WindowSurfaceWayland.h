@@ -131,9 +131,6 @@ private:
   // we store the latest size request here to optimize
   // buffer usage and our gfx operations
   wl_surface*               mSurface;
-  int                       mWidth;
-  int                       mHeight;
-
   ImageBuffer               mImageBuffer;
 
   WindowBackBuffer*         mFrontBuffer;

@@ -306,6 +306,8 @@ static const struct wl_buffer_listener buffer_listener = {
 
 void WindowBackBuffer::Create(int aWidth, int aHeight)
 {
+  MOZ_ASSERT(!IsAttached(), "We can't resize attached buffers.");
+
   int newBufferSize = aWidth*aHeight*BUFFER_BPP;
   mShmPool.Resize(newBufferSize);
 
@@ -469,9 +471,12 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
 
   // Front buffer is used by compositor, draw to back buffer
   if (mBackBuffer->IsAttached()) {
-      NS_ASSERTION(!mBackBuffer->IsAttached(), "We don't have any buffer to draw to!");
-      return nullptr;
+      MOZ_WARNING("Forced Wayland back-buffer release.")
+      mBackBuffer->Detach();
   }
+
+  MOZ_ASSERT(!mDelayedCommit,
+             "Unable to switch buffers waiting for commit.");
 
   WindowBackBuffer *tmp = mFrontBuffer;
   mFrontBuffer = mBackBuffer;
