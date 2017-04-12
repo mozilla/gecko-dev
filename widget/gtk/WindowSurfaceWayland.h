@@ -26,6 +26,7 @@ public:
   wl_display*         GetDisplay()           { return mDisplay; };
   gfx::SurfaceFormat  GetSurfaceFormat()     { return mFormat; };
   void                SetWaylandPixelFormat(uint32_t format);
+  void                DisplayLoop();
 
 private:
   gfx::SurfaceFormat  mFormat;

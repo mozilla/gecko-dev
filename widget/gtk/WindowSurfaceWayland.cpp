@@ -25,13 +25,12 @@ nsWindow::GetCompositorWidgetInitData
   - it was ok in X11
 - try to draw (first commit) when vblank comes like Gtk does, not when gecko calls it
 - why we can't draw directly to back-buffer? Why do we need the image buffer??
-
 */
-#include <assert.h>
-#include <poll.h>
 
 #include "WindowSurfaceWayland.h"
 
+#include "base/message_loop.h"          // for MessageLoop
+#include "base/task.h"                  // for NewRunnableMethod, etc
 #include "nsPrintfCString.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Tools.h"
@@ -41,6 +40,8 @@ nsWindow::GetCompositorWidgetInitData
 #include <gdk/gdkwayland.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <assert.h>
+#include <poll.h>
 
 namespace mozilla {
 namespace widget {
@@ -104,33 +105,20 @@ static const struct wl_registry_listener registry_listener = {
   global_registry_remover
 };
 
-static gpointer
-WaylandDisplayLoop(gpointer data)
+//Call as timer?
+//Integrate to compositor loop?
+void
+WaylandDisplay::DisplayLoop()
 {
-  wl_display *display = gWaylandDisplay->GetDisplay();
-  wl_event_queue *eventQueue = gWaylandDisplay->GetEventQueue();
+  wl_display_roundtrip_queue(mDisplay, mEventQueue);
+}
 
-  struct pollfd fds;
-  fds.fd = wl_display_get_fd(display);
-  fds.events = POLLIN;
-
-  /* main loop */
-  while (1) {
-      while (wl_display_prepare_read_queue(display, eventQueue) < 0) {
-          wl_display_dispatch_queue_pending(display, eventQueue);
-      }
-      wl_display_flush(display);
-
-      int ret = poll(&fds, 1, -1);
-      if (ret == -1) {
-          wl_display_cancel_read(display);
-      } else {
-          wl_display_read_events(display);
-          wl_display_dispatch_queue_pending(display, eventQueue);
-      }
-  }
-
-  return nullptr;
+static void
+RunDisplayLoop(WaylandDisplay *aWaylandDisplay)
+{
+  aWaylandDisplay->DisplayLoop();
+  MessageLoop::current()->PostTask(
+      NewRunnableFunction(&RunDisplayLoop, aWaylandDisplay));
 }
 
 WaylandDisplay::WaylandDisplay(wl_display *aDisplay)
@@ -153,7 +141,7 @@ WaylandDisplay::WaylandDisplay(wl_display *aDisplay)
   MOZ_RELEASE_ASSERT(mFormat != gfx::SurfaceFormat::UNKNOWN,
                      "We don't have any pixel format!");
 
-  mLoopThread = g_thread_new("WaylandDisplayLoop", WaylandDisplayLoop, this);
+  MessageLoop::current()->PostTask(NewRunnableFunction(&RunDisplayLoop, this));
 }
 
 int
@@ -471,12 +459,12 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
 
   // Front buffer is used by compositor, draw to back buffer
   if (mBackBuffer->IsAttached()) {
-      MOZ_WARNING("Forced Wayland back-buffer release.")
-      mBackBuffer->Detach();
+    NS_WARNING("No drawing buffer available");
+    return nullptr;
   }
 
-  MOZ_ASSERT(!mDelayedCommit,
-             "Unable to switch buffers waiting for commit.");
+  NS_ASSERTION(!mDelayedCommit,
+               "Uncommitted buffer switch, screen artifacts ahead.");
 
   WindowBackBuffer *tmp = mFrontBuffer;
   mFrontBuffer = mBackBuffer;
