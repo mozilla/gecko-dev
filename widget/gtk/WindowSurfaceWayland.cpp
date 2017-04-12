@@ -87,17 +87,23 @@ static const struct wl_registry_listener registry_listener = {
   global_registry_remover
 };
 
-//Call as timer?
-//Integrate to compositor loop?
 void
 WaylandDisplay::DisplayLoop()
 {
+  /* NoteThis function may dispatch other events being received on the given
+     queue. This function uses wl_display_dispatch_queue() internally.
+     If you are using wl_display_read_events() from more threads,
+     don't use this function (or make sure that calling wl_display_roundtrip_queue()
+     doesn't interfere with calling wl_display_prepare_read() and
+     wl_display_read_events()).
+  */
   wl_display_roundtrip_queue(mDisplay, mEventQueue);
 }
 
 static void
 RunDisplayLoop(WaylandDisplay *aWaylandDisplay)
 {
+  // TODO - don't register task when firefox quits.
   aWaylandDisplay->DisplayLoop();
   MessageLoop::current()->PostTask(
       NewRunnableFunction(&RunDisplayLoop, aWaylandDisplay));

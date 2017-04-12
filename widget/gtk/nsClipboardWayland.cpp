@@ -111,7 +111,7 @@ data_offer_offer (void                 *data,
       static_cast<nsRetrievalContextWayland*>(data);
   context->AddMIMEType(type);
 }
-/*
+
 static void
 data_offer_source_actions(void *data,
                           struct wl_data_offer *wl_data_offer,
@@ -125,13 +125,11 @@ data_offer_action(void *data,
                   uint32_t dnd_action)
 {
 }
-*/
+
 static const struct wl_data_offer_listener data_offer_listener = {
-    data_offer_offer
-/*
+    data_offer_offer,
     data_offer_source_actions,
     data_offer_action
-*/
 };
 
 static void
@@ -400,26 +398,32 @@ nsRetrievalContextWayland::GetClipboardContent(const char* aMimeType,
 
     // Choose some reasonable timeout here
     int ret = poll(&fds, 1, kClipboardTimeout*1000);
-    if (ret && ret != -1) {
-        #define BUFFER_SIZE 4096
-
-        NS_NewStorageStream(BUFFER_SIZE, UINT32_MAX, getter_AddRefs(storageStream));
-        nsCOMPtr<nsIOutputStream> outputStream;
-        rv = storageStream->GetOutputStream(0, getter_AddRefs(outputStream));
-        if (NS_SUCCEEDED(rv)) {
-            do {
-                char buffer[BUFFER_SIZE];
-                length = read(pipe_fd[0], buffer, sizeof(buffer));
-                if (length == 0 || length == -1)
-                    break;
-
-                uint32_t ret;
-                rv = outputStream->Write(buffer, length, &ret);
-            } while(NS_SUCCEEDED(rv) && length == BUFFER_SIZE);
-        }
-        outputStream->Close();
+    if (!ret || ret == -1) {
+        close(pipe_fd[0]);
+        return NS_ERROR_FAILURE;
     }
 
+    #define BUFFER_SIZE 4096
+
+    NS_NewStorageStream(BUFFER_SIZE, UINT32_MAX, getter_AddRefs(storageStream));
+    nsCOMPtr<nsIOutputStream> outputStream;
+    rv = storageStream->GetOutputStream(0, getter_AddRefs(outputStream));
+    if (NS_FAILED(rv)) {
+        close(pipe_fd[0]);
+        return NS_ERROR_FAILURE;
+    }
+
+    do {
+        char buffer[BUFFER_SIZE];
+        length = read(pipe_fd[0], buffer, sizeof(buffer));
+        if (length == 0 || length == -1)
+            break;
+
+        uint32_t ret;
+        rv = outputStream->Write(buffer, length, &ret);
+    } while(NS_SUCCEEDED(rv) && length == BUFFER_SIZE);
+
+    outputStream->Close();
     close(pipe_fd[0]);
 
     rv = storageStream->GetLength(aContentLength);
