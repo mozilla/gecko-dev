@@ -6,25 +6,7 @@
 
 /*
 TODO:
-X11CompositorWidget - update
-nsWindow::GetCompositorWidgetInitData
-- ensure we always draw to container
-- surface cleaning/realocation
-- can we redraw on allocate?
-- create subsurface on show
-- share fd/pool with more buffers?
-- resize (pool size) optimization
-- pool of available buffers?
-- call wayland display/queue events right after attach&co?
-- optimization -> use Image bufer when update area is smaller that whole window
-- is bounds.x bounds.y non-zero??
-- GdkWidnow - show/hide -> callback, get surface and frame callback
-- optimization - give backbuffer directly when requested whole area in Lock()
-- how big is rectangle owerlap in WindowBackBuffer::CopyRectangle()?
-(firefox:15155): Gdk-WARNING **: Tried to map a popup with a non-top most parent
-  - it was ok in X11
-- try to draw (first commit) when vblank comes like Gtk does, not when gecko calls it
-- why we can't draw directly to back-buffer? Why do we need the image buffer??
+- do we need our event queue in mozcontainer?
 */
 
 #include "WindowSurfaceWayland.h"
