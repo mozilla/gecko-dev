@@ -55,28 +55,13 @@ private:
   void*               mImageData;
 };
 
-class ImageBuffer {
-public:
-  ImageBuffer();
-  ~ImageBuffer();
-
-  already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion);
-  unsigned char* GetImageData()  { return mImageData; };
-  int GetWidth()                 { return mWidth; };
-  int GetHeight()                { return mHeight; };
-
-private:
-  unsigned char*      mImageData;
-  int                 mBufferAllocated;
-  int                 mWidth;
-  int                 mHeight;
-};
-
 // Holds actual graphics data for wl_surface
 class WindowBackBuffer {
 public:
   WindowBackBuffer(int aWidth, int aHeight);
   ~WindowBackBuffer();
+
+  already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion);
 
   void Attach(wl_surface* aSurface);
   void Detach();
@@ -93,9 +78,6 @@ public:
   {
     return aBuffer->mWidth == mWidth && aBuffer->mHeight == mHeight;
   }
-
-  void CopyRectangle(ImageBuffer *aImage,
-                     const mozilla::LayoutDeviceIntRect &rect);
 
 private:
   void Create(int aWidth, int aHeight);
@@ -132,7 +114,6 @@ private:
   // we store the latest size request here to optimize
   // buffer usage and our gfx operations
   wl_surface*               mSurface;
-  ImageBuffer               mImageBuffer;
 
   WindowBackBuffer*         mFrontBuffer;
   WindowBackBuffer*         mBackBuffer;
