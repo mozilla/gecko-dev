@@ -1,62 +1,49 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:expandtab:shiftwidth=2:tabstop=8:
+/* vim:expandtab:shiftwidth=2:tabstop=2:
  */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef NSXREMOTESERVICE_H
-#define NSXREMOTESERVICE_H
+#ifndef __nsGTKRemoteService_h__
+#define __nsGTKRemoteService_h__
 
-#include "nsString.h"
+#include <gdk/gdk.h>
+#include <gdk/gdkx.h>
+#include <gtk/gtk.h>
 
-#include "nsIRemoteService.h"
-#include "nsIObserver.h"
-#include <X11/Xlib.h>
-#include <X11/X.h>
+#include "nsInterfaceHashtable.h"
+#include "nsXRemoteService.h"
+#include "mozilla/Attributes.h"
 
-class nsIDOMWindow;
-class nsIWeakReference;
-
-/**
-  Base class for GTK/Qt remote service
-*/
-class nsXRemoteService : public nsIRemoteService,
-                         public nsIObserver
+class nsGTKRemoteService final : public nsXRemoteService
 {
 public:
-    NS_DECL_NSIOBSERVER
+  // We will be a static singleton, so don't use the ordinary methods.
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIREMOTESERVICE
 
 
-protected:
-    nsXRemoteService();
+  nsGTKRemoteService() :
+    mServerWindow(nullptr) { }
 
-    static bool HandleNewProperty(Window aWindowId,Display* aDisplay,
-                                    Time aEventTime, Atom aChangedAtom,
-                                    nsIWeakReference* aDomWindow);
-    
-    void XRemoteBaseStartup(const char *aAppName, const char *aProfileName);
-
-    void HandleCommandsFor(Window aWindowId);
-    static nsXRemoteService *sRemoteImplementation;
 private:
-    void EnsureAtoms();
-    static const char* HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
-                                         uint32_t aTimestamp);
+  ~nsGTKRemoteService() { }
 
-    virtual void SetDesktopStartupIDOrTimestamp(const nsACString& aDesktopStartupID,
-                                                uint32_t aTimestamp) = 0;
+  void HandleCommandsFor(GtkWidget* aWidget,
+                         nsIWeakReference* aWindow);
 
-    nsCString mAppName;
-    nsCString mProfileName;
 
-    static Atom sMozVersionAtom;
-    static Atom sMozLockAtom;
-    static Atom sMozResponseAtom;
-    static Atom sMozUserAtom;
-    static Atom sMozProfileAtom;
-    static Atom sMozProgramAtom;
-    static Atom sMozCommandLineAtom;
+  static gboolean HandlePropertyChange(GtkWidget *widget,
+                                       GdkEventProperty *event,
+                                       nsIWeakReference* aThis);
+
+
+  virtual void SetDesktopStartupIDOrTimestamp(const nsACString& aDesktopStartupID,
+                                              uint32_t aTimestamp) override;
+
+  nsInterfaceHashtable<nsPtrHashKey<GtkWidget>, nsIWeakReference> mWindows;
+  GtkWidget* mServerWindow;  
 };
 
-#endif // NSXREMOTESERVICE_H
+#endif // __nsGTKRemoteService_h__
