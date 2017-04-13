@@ -2923,7 +2923,6 @@ const char* DetectDisplay(void)
 {
   bool tryX11 = false;
   bool tryWayland = false;
-  bool tryBroadway = false;
 
   // Honor user backend selection
   const char *backend = PR_GetEnv("GDK_BACKEND");
@@ -2931,14 +2930,11 @@ const char* DetectDisplay(void)
     // Try all backends
     tryX11 = true;
     tryWayland = true;
-    tryBroadway = true;
   } else if (backend) {
     if (strstr(backend, "x11"))
       tryX11 = true;
     if (strstr(backend, "wayland"))
       tryWayland = true;
-    if (strstr(backend, "broadway"))
-      tryBroadway = true;
   }
 
   const char *display_name;
@@ -2946,9 +2942,6 @@ const char* DetectDisplay(void)
     return display_name;
   }
   if (tryWayland && (display_name = PR_GetEnv("WAYLAND_DISPLAY"))) {
-    return display_name;
-  }
-  if (tryBroadway && (display_name = PR_GetEnv("BROADWAY_DISPLAY"))) {
     return display_name;
   }
 
@@ -3810,9 +3803,14 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
     if (saveDisplayArg) {
       SaveWordToEnv("DISPLAY", nsDependentCString(display_name));
     }
-  } else {
-    mDisableRemote = true;
   }
+#ifdef MOZ_WAYLAND
+  else if (GDK_IS_WAYLAND_DISPLAY(mGdkDisplay)) {
+    if (saveDisplayArg) {
+      SaveWordToEnv("WAYLAND_DISPLAY", nsDependentCString(display_name));
+    }
+  }
+#endif
 #endif
 #ifdef MOZ_ENABLE_XREMOTE
   // handle --remote now that xpcom is fired up
