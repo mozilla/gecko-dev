@@ -10,14 +10,18 @@ XPIDL_SOURCES += [
 
 XPIDL_MODULE = 'toolkitremote'
 
-SOURCES += [
-    'nsXRemoteService.cpp',
-]
-
-if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
+if CONFIG['MOZ_WAYLAND']:
     SOURCES += [
-        'nsGTKRemoteService.cpp',
+        'nsDBusRemoteService.cpp',
     ]
+else:
+    SOURCES += [
+        'nsXRemoteService.cpp',
+    ]
+    if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
+        SOURCES += [
+            'nsGTKRemoteService.cpp',
+        ]
 
 FINAL_LIBRARY = 'xul'
 
