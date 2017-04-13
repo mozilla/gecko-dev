@@ -4209,6 +4209,17 @@ DisRegExp(JSContext* cx, unsigned argc, Value* vp)
 }
 #endif // DEBUG
 
+static bool
+IsConstructor(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() < 1)
+        args.rval().setBoolean(false);
+    else
+        args.rval().setBoolean(IsConstructor(args[0]));
+    return true;
+}
+
 static const JSFunctionSpecWithHelp TestingFunctions[] = {
     JS_FN_HELP("gc", ::GC, 0, 0,
 "gc([obj] | 'zone' [, 'shrinking'])",
@@ -4754,6 +4765,10 @@ gc::ZealModeHelpText),
     JS_FN_HELP("getModuleEnvironmentValue", GetModuleEnvironmentValue, 2, 0,
 "getModuleEnvironmentValue(module, name)",
 "  Get the value of a bound name in a module environment.\n"),
+
+    JS_FN_HELP("isConstructor", IsConstructor, 1, 0,
+"isConstructor(value)",
+"  Returns whether the value is considered IsConstructor.\n"),
 
     JS_FS_HELP_END
 };
