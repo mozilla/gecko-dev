@@ -354,7 +354,7 @@ static already_AddRefed<SourceSurface>
 GetSurfaceFromElement(nsIGlobalObject* aGlobal, HTMLElementType& aElement, ErrorResult& aRv)
 {
   nsLayoutUtils::SurfaceFromElementResult res =
-    nsLayoutUtils::SurfaceFromElement(&aElement, nsLayoutUtils::SFE_WANT_FIRST_FRAME);
+    nsLayoutUtils::SurfaceFromElement(&aElement, nsLayoutUtils::SFE_WANT_FIRST_FRAME_IF_IMAGE);
 
   // check origin-clean
   if (!CheckSecurityForHTMLElements(res)) {
@@ -732,7 +732,7 @@ ImageBitmap::CreateFromOffscreenCanvas(nsIGlobalObject* aGlobal,
 
   nsLayoutUtils::SurfaceFromElementResult res =
     nsLayoutUtils::SurfaceFromOffscreenCanvas(&aOffscreenCanvas,
-                                              nsLayoutUtils::SFE_WANT_FIRST_FRAME);
+                                              nsLayoutUtils::SFE_WANT_FIRST_FRAME_IF_IMAGE);
 
   RefPtr<SourceSurface> surface = res.GetSourceSurface();
 
