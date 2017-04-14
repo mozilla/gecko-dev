@@ -7,9 +7,6 @@
 #include "vm/ProxyObject.h"
 
 #include "jscompartment.h"
-
-#include "proxy/ScriptedProxyHandler.h"
-
 #include "jsobjinlines.h"
 
 using namespace js;
@@ -117,16 +114,6 @@ ProxyObject::setSameCompartmentPrivate(const Value& priv)
 void
 ProxyObject::nuke(const BaseProxyHandler* handler)
 {
-    // When nuking scripted proxies, isCallable and isConstructor values for
-    // the proxy needs to be preserved. Do this before clearing the target.
-    uint32_t callable = handler()->isCallable(this)
-                        ? ScriptedProxyHandler::IS_CALLABLE : 0;
-    uint32_t constructor = handler()->isConstructor(this)
-                           ? ScriptedProxyHandler::IS_CONSTRUCTOR : 0;
-    setExtra(ScriptedProxyHandler::IS_CALLCONSTRUCT_EXTRA,
-             PrivateUint32Value(callable | constructor));
-
-    // Clear the target reference.
     setSameCompartmentPrivate(NullValue());
     for (size_t i = 0; i < detail::PROXY_EXTRA_SLOTS; i++)
         SetProxyExtra(this, i, NullValue());

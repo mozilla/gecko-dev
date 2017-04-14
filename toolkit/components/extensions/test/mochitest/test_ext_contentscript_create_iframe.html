@@ -148,12 +148,12 @@ add_task(function* test_contentscript_create_iframe() {
   ok(!manifest, "manifest should be undefined");
 
   is(String(manifestException), "TypeError: ww.browser.runtime is undefined",
-     "expected exception received");
+     "expected \"TypeError: ... is undefined\" exception received");
 
   let getManifestException = ww.testGetManifestException();
 
-  is(getManifestException, "TypeError: can't access dead object",
-     "expected exception received");
+  is(getManifestException, "TypeError: window.GET_MANIFEST is not a function",
+     "expected \"TypeError: ... is not a function\" exception received");
 
   win.close();
 
