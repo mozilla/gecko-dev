@@ -1070,6 +1070,9 @@ Promise::PerformWorkerMicroTaskCheckpoint()
   MOZ_ASSERT(!NS_IsMainThread(), "Wrong thread!");
 
   CycleCollectedJSContext* context = CycleCollectedJSContext::Get();
+  if (!context) {
+    return;
+  }
 
   for (;;) {
     // For a normal microtask checkpoint, we try to use the debugger microtask
@@ -1104,6 +1107,9 @@ Promise::PerformWorkerDebuggerMicroTaskCheckpoint()
   MOZ_ASSERT(!NS_IsMainThread(), "Wrong thread!");
 
   CycleCollectedJSContext* context = CycleCollectedJSContext::Get();
+  if (!context) {
+    return;
+  }
 
   for (;;) {
     // For a debugger microtask checkpoint, we always use the debugger microtask
