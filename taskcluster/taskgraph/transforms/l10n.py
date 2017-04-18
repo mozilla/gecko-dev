@@ -14,6 +14,7 @@ from mozbuild.chunkify import chunkify
 from taskgraph.transforms.base import (
     TransformSequence,
 )
+from taskgraph.transforms.job import job_description_schema
 from taskgraph.util.schema import (
     validate_schema,
     optionally_keyed_by,
@@ -36,6 +37,10 @@ def _by_platform(arg):
 taskref_or_string = Any(
     basestring,
     {Required('task-reference'): basestring})
+
+# Voluptuous uses marker objects as dictionary *keys*, but they are not
+# comparable, so we cast all of the keys back to regular strings
+job_description_schema = {str(k): v for k, v in job_description_schema.schema.iteritems()}
 
 l10n_description_schema = Schema({
     # Name for this job, inferred from the dependent job before validation
@@ -77,6 +82,8 @@ l10n_description_schema = Schema({
     },
     # Description of the localized task
     Required('description'): _by_platform(basestring),
+
+    Optional('run-on-projects'): job_description_schema['run-on-projects'],
 
     # task object of the dependent task
     Required('dependent-task'): object,
@@ -376,7 +383,7 @@ def make_job_description(config, jobs):
                 'symbol': job['treeherder']['symbol'],
                 'platform': job['treeherder']['platform'],
             },
-            'run-on-projects': [],
+            'run-on-projects': job.get('run-on-projects') if job.get('run-on-projects') else [],
         }
 
         if job.get('index'):
