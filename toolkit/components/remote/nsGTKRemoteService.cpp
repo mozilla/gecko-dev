@@ -178,54 +178,54 @@ const char* introspect_xml =
 "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n"
 "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\";>\n"
 "<node>\n"
-"	<interface name=\"org.freedesktop.DBus.Introspectable\">\n"
-"		<method name=\"Introspect\">\n"
-"			<arg name=\"data\" direction=\"out\" type=\"s\"/>\n"
-"		</method>\n"
-"	</interface>\n"
-"	<interface name=\"org.mozilla.firefox\">\n"
-"		<method name=\"OpenURL\">\n"
-"			<arg name=\"url\" direction=\"in\" type=\"s\"/>\n"
-"		</method>\n"
-"	</interface>\n"
+" <interface name=\"org.freedesktop.DBus.Introspectable\">\n"
+"   <method name=\"Introspect\">\n"
+"     <arg name=\"data\" direction=\"out\" type=\"s\"/>\n"
+"   </method>\n"
+" </interface>\n"
+" <interface name=\"org.mozilla.firefox\">\n"
+"   <method name=\"OpenURL\">\n"
+"     <arg name=\"url\" direction=\"in\" type=\"s\"/>\n"
+"   </method>\n"
+" </interface>\n"
 "</node>\n";
 
 DBusHandlerResult
 nsGTKRemoteService::Introspect(DBusMessage *msg)
 {
-	DBusMessage *reply;
+  DBusMessage *reply;
 
-	reply = dbus_message_new_method_return(msg);
-	if (!reply)
-		return DBUS_HANDLER_RESULT_NEED_MEMORY;
+  reply = dbus_message_new_method_return(msg);
+  if (!reply)
+    return DBUS_HANDLER_RESULT_NEED_MEMORY;
 
-	dbus_message_append_args(reply,
-			DBUS_TYPE_STRING, &introspect_xml,
-			DBUS_TYPE_INVALID);
+  dbus_message_append_args(reply,
+      DBUS_TYPE_STRING, &introspect_xml,
+      DBUS_TYPE_INVALID);
 
-	dbus_connection_send(mConnection, reply, NULL);
-	dbus_message_unref(reply);
+  dbus_connection_send(mConnection, reply, NULL);
+  dbus_message_unref(reply);
 
-	return DBUS_HANDLER_RESULT_HANDLED;
+  return DBUS_HANDLER_RESULT_HANDLED;
 }
 
 DBusHandlerResult
 nsGTKRemoteService::OpenURL(DBusMessage *msg)
 {
   DBusMessage *reply = nullptr;
-	const char  *commandLine;
+  const char  *commandLine;
 
-	if (!dbus_message_get_args(msg, nullptr, DBUS_TYPE_STRING, &commandLine,
-				                     DBUS_TYPE_INVALID)) {
+  if (!dbus_message_get_args(msg, nullptr, DBUS_TYPE_STRING, &commandLine,
+                             DBUS_TYPE_INVALID)) {
     reply = dbus_message_new_error(msg, "org.mozilla.firefox.Error",
                                    "Wrong argument");
-	} else {
+  } else {
     OpenURL(commandLine);
     reply = dbus_message_new_method_return(msg);
   }
   
   dbus_connection_send(mConnection, reply, NULL);
-	dbus_message_unref(reply);
+  dbus_message_unref(reply);
 
   return DBUS_HANDLER_RESULT_HANDLED;  
 }
@@ -235,20 +235,20 @@ nsGTKRemoteService::HandleDBusMessage(DBusConnection *aConnection, DBusMessage *
 {
   NS_ASSERTION(mConnection == aConnection, "Wrong D-Bus connection.");
   
-	const char *method = dbus_message_get_member(msg);
-	const char *iface = dbus_message_get_interface(msg);
+  const char *method = dbus_message_get_member(msg);
+  const char *iface = dbus_message_get_interface(msg);
 
-	if ((strcmp("Introspect", method) == 0) &&
-		 (strcmp("org.freedesktop.DBus.Introspectable", iface) == 0)) {
-		return Introspect(msg);
+  if ((strcmp("Introspect", method) == 0) &&
+     (strcmp("org.freedesktop.DBus.Introspectable", iface) == 0)) {
+    return Introspect(msg);
   }
 
-	if ((strcmp("OpenURL", method) == 0) && 
+  if ((strcmp("OpenURL", method) == 0) && 
     (strcmp("org.mozilla.firefox", iface) == 0)) {
     return OpenURL(msg);
-	}
+  }
 
-	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
 
 void
@@ -261,19 +261,19 @@ static DBusHandlerResult
 message_handler(DBusConnection *conn, DBusMessage *msg, void *user_data)
 {
   auto interface = static_cast<nsGTKRemoteService*>(user_data);
-	return interface->HandleDBusMessage(conn, msg);
+  return interface->HandleDBusMessage(conn, msg);
 }
 
 static DBusHandlerResult
 unregister(DBusConnection *conn, DBusMessage *msg, void *user_data)
 {
   auto interface = static_cast<nsGTKRemoteService*>(user_data);
-	interface->UnregisterDBusInterface();
+  interface->UnregisterDBusInterface();
 }
 
 static DBusObjectPathVTable remoteHandlersTable = {
-	.unregister_function	= unregister,
-	.message_function	= message_handler,
+  .unregister_function  = unregister,
+  .message_function = message_handler,
 };
 
 bool
