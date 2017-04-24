@@ -15,8 +15,14 @@
 #include "nsInterfaceHashtable.h"
 #include "nsXRemoteService.h"
 #include "mozilla/Attributes.h"
+#if defined(MOZ_WAYLAND) && defined(MOZ_ENABLE_DBUS)
+#include "DBusRemoteService.h"
+#endif
 
-class nsGTKRemoteService final : public nsXRemoteService
+class nsGTKRemoteService final : public nsXRemoteService,
+#if defined(MOZ_WAYLAND) && defined(MOZ_ENABLE_DBUS)
+                                 public DBusRemoteService
+#endif
 {
 public:
   // We will be a static singleton, so don't use the ordinary methods.
@@ -43,7 +49,8 @@ private:
                                               uint32_t aTimestamp) override;
 
   nsInterfaceHashtable<nsPtrHashKey<GtkWidget>, nsIWeakReference> mWindows;
-  GtkWidget* mServerWindow;  
+  GtkWidget* mServerWindow;
+  bool       mIsX11Display;
 };
 
 #endif // __nsGTKRemoteService_h__

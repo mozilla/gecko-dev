@@ -37,14 +37,23 @@ nsGTKRemoteService::Startup(const char* aAppName, const char* aProfileName)
 
   if (mServerWindow) return NS_ERROR_ALREADY_INITIALIZED;
 
-  XRemoteBaseStartup(aAppName, aProfileName);
-
   mServerWindow = gtk_invisible_new();
   gtk_widget_realize(mServerWindow);
-  HandleCommandsFor(mServerWindow, nullptr);
 
-  for (auto iter = mWindows.Iter(); !iter.Done(); iter.Next()) {
-    HandleCommandsFor(iter.Key(), iter.UserData());
+  mIsX11Display = GDK_IS_X11_DISPLAY(gdk_display_get_default());
+#if defined(MOZ_WAYLAND) && defined(MOZ_ENABLE_DBUS)
+  if (!mIsX11Display) {
+    Connect(aAppName, aProfileName);
+  } else
+#endif
+  {
+    XRemoteBaseStartup(aAppName, aProfileName);
+
+    HandleCommandsFor(mServerWindow, nullptr);
+
+    for (auto iter = mWindows.Iter(); !iter.Done(); iter.Next()) {
+      HandleCommandsFor(iter.Key(), iter.UserData());
+    }
   }
 
   return NS_OK;
@@ -78,7 +87,7 @@ nsGTKRemoteService::RegisterWindow(mozIDOMWindow* aWindow)
   mWindows.Put(widget, weak);
 
   // If Startup() has already been called, immediately register this window.
-  if (mServerWindow) {
+  if (mServerWindow && mIsX11Display) {
     HandleCommandsFor(widget, weak);
   }
 
