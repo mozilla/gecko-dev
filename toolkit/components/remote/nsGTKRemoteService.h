@@ -39,6 +39,9 @@ public:
 #endif    
     { }
 
+    DBusHandlerResult HandleDBusMessage(DBusConnection *aConnection, DBusMessage *msg);
+    void UnregisterDBusInterface();
+
 private:
   ~nsGTKRemoteService() { }
 
@@ -59,8 +62,6 @@ private:
 
   DBusHandlerResult OpenURL(DBusMessage *msg);
   DBusHandlerResult Introspect(DBusMessage *msg);
-  DBusHandlerResult HandleDBusMessage(DBusConnection *aConnection, DBusMessage *msg);
-  void UnregisterDBusInterface();
 
   bool Connect(const char* aAppName, const char* aProfileName);
   void Disconnect();

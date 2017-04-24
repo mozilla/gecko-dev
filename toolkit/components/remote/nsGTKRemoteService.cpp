@@ -20,10 +20,16 @@
 #include "nsIWidget.h"
 #include "nsIAppShellService.h"
 #include "nsAppShellCID.h"
+#include "nsPrintfCString.h"
 
 #include "nsCOMPtr.h"
 
 #include "nsGTKToolkit.h"
+
+#ifdef ENABLE_REMOTE_DBUS
+#include <dbus/dbus.h>
+#include <dbus/dbus-glib-lowlevel.h>
+#endif
 
 NS_IMPL_ISUPPORTS(nsGTKRemoteService,
                   nsIRemoteService,
@@ -252,8 +258,9 @@ nsGTKRemoteService::HandleDBusMessage(DBusConnection *aConnection, DBusMessage *
 }
 
 void
-nsGTKRemoteService::UnregisterDBusInterface()
+nsGTKRemoteService::UnregisterDBusInterface(DBusConnection *aConnection)
 {
+  NS_ASSERTION(mConnection == aConnection, "Wrong D-Bus connection.");
   // Not implemented
 }
 
@@ -264,11 +271,11 @@ message_handler(DBusConnection *conn, DBusMessage *msg, void *user_data)
   return interface->HandleDBusMessage(conn, msg);
 }
 
-static DBusHandlerResult
-unregister(DBusConnection *conn, DBusMessage *msg, void *user_data)
+static void
+unregister(DBusConnection *conn, void *user_data)
 {
   auto interface = static_cast<nsGTKRemoteService*>(user_data);
-  interface->UnregisterDBusInterface();
+  interface->UnregisterDBusInterface(conn);
 }
 
 static DBusObjectPathVTable remoteHandlersTable = {
@@ -277,7 +284,7 @@ static DBusObjectPathVTable remoteHandlersTable = {
 };
 
 bool
-DBusRemoteService::Connect(const char* aAppName, const char* aProfileName)
+nsGTKRemoteService::Connect(const char* aAppName, const char* aProfileName)
 {
   mConnection = already_AddRefed<DBusConnection>(
     dbus_bus_get(DBUS_BUS_SESSION, nullptr));
@@ -310,7 +317,7 @@ DBusRemoteService::Connect(const char* aAppName, const char* aProfileName)
 }
 
 void
-DBusRemoteService::Disconnect()
+nsGTKRemoteService::Disconnect()
 {
   if (mConnection) {
     dbus_connection_unref(mConnection);
