@@ -174,8 +174,9 @@ nsGTKRemoteService::HandlePropertyChange(GtkWidget *aWidget,
 
 void nsGTKRemoteService::OpenURL(const char *aCommandLine)
 {
-  
-  
+  char* buffer = strdup(aCommandLine);
+  HandleCommandLine(buffer, nullptr, 0);
+  free(buffer);
 }
 
 #define MOZILLA_REMOTE_OBJECT       "/org/mozilla/Firefox/Remote"

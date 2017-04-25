@@ -39,10 +39,11 @@ protected:
 
     void HandleCommandsFor(Window aWindowId);
     static nsXRemoteService *sRemoteImplementation;
-private:
-    void EnsureAtoms();
     static const char* HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
                                          uint32_t aTimestamp);
+
+private:
+    void EnsureAtoms();
 
     virtual void SetDesktopStartupIDOrTimestamp(const nsACString& aDesktopStartupID,
                                                 uint32_t aTimestamp) = 0;
