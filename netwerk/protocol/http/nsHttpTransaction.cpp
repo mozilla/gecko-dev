@@ -999,7 +999,7 @@ nsHttpTransaction::Close(nsresult reason)
     // auth provider, beliving the cached credentials are wrong and asking for
     // the password mistakenly again from the user.
     if ((reason == NS_ERROR_NET_RESET || reason == NS_OK) &&
-        !(mCaps & NS_HTTP_STICKY_CONNECTION)) {
+        (!(mCaps & NS_HTTP_STICKY_CONNECTION) || (mCaps & NS_HTTP_CONNECTION_RESTARTABLE))) {
 
         if (mForceRestart && NS_SUCCEEDED(Restart())) {
             if (mResponseHead) {

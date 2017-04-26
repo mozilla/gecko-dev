@@ -93,6 +93,12 @@ typedef uint8_t nsHttpVersion;
 // interop problems with critical infrastructure
 #define NS_HTTP_BE_CONSERVATIVE      (1<<11)
 
+// (1<<12) is used for NS_HTTP_URGENT_START on a newer branch
+
+// A sticky connection of the transaction is explicitly allowed to be restarted
+// on ERROR_NET_RESET.
+#define NS_HTTP_CONNECTION_RESTARTABLE  (1<<13)
+
 //-----------------------------------------------------------------------------
 // some default values
 //-----------------------------------------------------------------------------
