@@ -58,13 +58,12 @@ private:
                                               uint32_t aTimestamp) override;
 
 #ifdef ENABLE_REMOTE_DBUS
-  void OpenURL(const char *aCommandLine);
+  void OpenURL(const char *aCommandLine, int aLength);
 
   DBusHandlerResult OpenURL(DBusMessage *msg);
   DBusHandlerResult Introspect(DBusMessage *msg);
 
   bool Connect(const char* aAppName, const char* aProfileName);
-  void Disconnect();
 #endif
 
   nsInterfaceHashtable<nsPtrHashKey<GtkWidget>, nsIWeakReference> mWindows;

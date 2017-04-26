@@ -25,6 +25,10 @@
 #include <unistd.h>
 #include <limits.h>
 #include <X11/Xatom.h>
+#include "nsPrintfCString.h"
+#include <gtk/gtk.h>
+#include <gdk/gdk.h>
+#include <gdk/gdkx.h>
 
 #define MOZILLA_VERSION_PROP   "_MOZILLA_VERSION"
 #define MOZILLA_LOCK_PROP      "_MOZILLA_LOCK"
@@ -41,7 +45,7 @@
 #else
 #define TO_LITTLE_ENDIAN32(x) (x)
 #endif
-    
+
 #ifndef MAX_PATH
 #ifdef PATH_MAX
 #define MAX_PATH PATH_MAX
@@ -70,6 +74,8 @@ XRemoteClient::XRemoteClient()
   mMozProfileAtom = 0;
   mMozProgramAtom = 0;
   mLockData = 0;
+  mIsX11Display = true;
+  mConnection = nullptr;
   if (!sRemoteLm)
     sRemoteLm = PR_NewLogModule("XRemoteClient");
   MOZ_LOG(sRemoteLm, LogLevel::Debug, ("XRemoteClient::XRemoteClient"));
@@ -103,24 +109,38 @@ XRemoteClient::Init()
   if (mInitialized)
     return NS_OK;
 
-  // try to open the display
-  mDisplay = XOpenDisplay(0);
-  if (!mDisplay)
-    return NS_ERROR_FAILURE;
+  mIsX11Display = GDK_IS_X11_DISPLAY(gdk_display_get_default());
 
-  // get our atoms
-  XInternAtoms(mDisplay, const_cast<char**>(XAtomNames),
-               MOZ_ARRAY_LENGTH(XAtomNames), False, XAtoms);
+#ifdef ENABLE_REMOTE_DBUS
+  if (!mIsX11Display) {
+    mConnection = already_AddRefed<DBusConnection>(
+      dbus_bus_get(DBUS_BUS_SESSION, nullptr));
+    if (!mConnection)
+      return NS_ERROR_FAILURE;
 
-  int i = 0;
-  mMozVersionAtom  = XAtoms[i++];
-  mMozLockAtom     = XAtoms[i++];
-  mMozResponseAtom = XAtoms[i++];
-  mMozWMStateAtom  = XAtoms[i++];
-  mMozUserAtom     = XAtoms[i++];
-  mMozProfileAtom  = XAtoms[i++];
-  mMozProgramAtom  = XAtoms[i++];
-  mMozCommandLineAtom = XAtoms[i++];
+    dbus_connection_set_exit_on_disconnect(mConnection, false);
+  } else
+#endif
+  {
+    // try to open the display
+    mDisplay = XOpenDisplay(0);
+    if (!mDisplay)
+      return NS_ERROR_FAILURE;
+
+    // get our atoms
+    XInternAtoms(mDisplay, const_cast<char**>(XAtomNames),
+                 MOZ_ARRAY_LENGTH(XAtomNames), False, XAtoms);
+
+    int i = 0;
+    mMozVersionAtom  = XAtoms[i++];
+    mMozLockAtom     = XAtoms[i++];
+    mMozResponseAtom = XAtoms[i++];
+    mMozWMStateAtom  = XAtoms[i++];
+    mMozUserAtom     = XAtoms[i++];
+    mMozProfileAtom  = XAtoms[i++];
+    mMozProgramAtom  = XAtoms[i++];
+    mMozCommandLineAtom = XAtoms[i++];
+  }
 
   mInitialized = true;
 
@@ -135,8 +155,20 @@ XRemoteClient::Shutdown (void)
   if (!mInitialized)
     return;
 
-  // shut everything down
-  XCloseDisplay(mDisplay);
+// shut everything down
+#ifdef ENABLE_REMOTE_DBUS
+  if (!mIsX11Display) {
+    if (mConnection) {
+      // This connection is owned by libdbus and we don't need to close it
+      mConnection = nullptr;
+    }
+  } else
+#endif
+  {
+    if (mDisplay)
+      XCloseDisplay(mDisplay);
+  }
+
   mDisplay = 0;
   mInitialized = false;
   if (mLockData) {
@@ -152,9 +184,9 @@ HandleBadWindow(Display *display, XErrorEvent *event)
     sGotBadWindow = true;
     return 0; // ignored
   }
-  
+
     return (*sOldHandler)(display, event);
-  
+
 }
 
 nsresult
@@ -166,48 +198,55 @@ XRemoteClient::SendCommandLine (const char *aProgram, const char *aUsername,
 {
   MOZ_LOG(sRemoteLm, LogLevel::Debug, ("XRemoteClient::SendCommandLine"));
 
-  *aWindowFound = false;
-
-  // FindBestWindow() iterates down the window hierarchy, so catch X errors
-  // when windows get destroyed before being accessed.
-  sOldHandler = XSetErrorHandler(HandleBadWindow);
-
-  Window w = FindBestWindow(aProgram, aUsername, aProfile);
-
   nsresult rv = NS_OK;
 
-  if (w) {
-    // ok, let the caller know that we at least found a window.
-    *aWindowFound = true;
+#ifdef ENABLE_REMOTE_DBUS
+  if (!mIsX11Display) {
+    rv = DoSendCommandLine(0, argc, argv, aDesktopStartupID, aResponse,
+                           nullptr, aProgram, aProfile);
+    *aWindowFound = NS_SUCCEEDED(rv);
+  } else
+#endif
+  {
+    *aWindowFound = false;
 
-    // Ignore BadWindow errors up to this point.  The last request from
-    // FindBestWindow() was a synchronous XGetWindowProperty(), so no need to
-    // Sync.  Leave the error handler installed to detect if w gets destroyed.
-    sGotBadWindow = false;
+    // FindBestWindow() iterates down the window hierarchy, so catch X errors
+    // when windows get destroyed before being accessed.
+    sOldHandler = XSetErrorHandler(HandleBadWindow);
 
-    // make sure we get the right events on that window
-    XSelectInput(mDisplay, w,
-                 (PropertyChangeMask|StructureNotifyMask));
+    Window w = FindBestWindow(aProgram, aUsername, aProfile);
+    if (w) {
+      // ok, let the caller know that we at least found a window.
+      *aWindowFound = true;
 
-    bool destroyed = false;
+      // Ignore BadWindow errors up to this point.  The last request from
+      // FindBestWindow() was a synchronous XGetWindowProperty(), so no need to
+      // Sync.  Leave the error handler installed to detect if w gets destroyed.
+      sGotBadWindow = false;
 
-    // get the lock on the window
-    rv = GetLock(w, &destroyed);
+      // make sure we get the right events on that window
+      XSelectInput(mDisplay, w,
+                   (PropertyChangeMask|StructureNotifyMask));
 
-    if (NS_SUCCEEDED(rv)) {
-      // send our command
-      rv = DoSendCommandLine(w, argc, argv, aDesktopStartupID, aResponse,
-                             &destroyed);
+      bool destroyed = false;
 
-      // if the window was destroyed, don't bother trying to free the
-      // lock.
-      if (!destroyed)
-          FreeLock(w); // doesn't really matter what this returns
+      // get the lock on the window
+      rv = GetLock(w, &destroyed);
 
+      if (NS_SUCCEEDED(rv)) {
+        // send our command
+        rv = DoSendCommandLine(w, argc, argv, aDesktopStartupID, aResponse,
+                               &destroyed, aProgram, aProfile);
+
+        // if the window was destroyed, don't bother trying to free the
+        // lock.
+        if (!destroyed)
+            FreeLock(w); // doesn't really matter what this returns
+      }
     }
-  }
 
-  XSetErrorHandler(sOldHandler);
+    XSetErrorHandler(sOldHandler);
+  }
 
   MOZ_LOG(sRemoteLm, LogLevel::Debug, ("SendCommandInternal returning 0x%" PRIx32 "\n",
                                        static_cast<uint32_t>(rv)));
@@ -254,11 +293,11 @@ XRemoteClient::CheckChildren(Window aWindow)
   unsigned long nitems, after;
   unsigned char *data;
   Window retval = None;
-  
+
   if (!XQueryTree(mDisplay, aWindow, &root, &parent, &children,
 		  &nchildren))
     return None;
-  
+
   // scan the list first before recursing into the list of windows
   // which can get quite deep.
   for (i=0; !retval && (i < nchildren); i++) {
@@ -292,7 +331,7 @@ XRemoteClient::GetLock(Window aWindow, bool *aDestroyed)
   nsresult rv = NS_OK;
 
   if (!mLockData) {
-    
+
     char pidstr[32];
     char sysinfobuf[SYS_INFO_BUFFER_LENGTH];
     SprintfLiteral(pidstr, "pid%d@", getpid());
@@ -302,7 +341,7 @@ XRemoteClient::GetLock(Window aWindow, bool *aDestroyed)
     if (status != PR_SUCCESS) {
       return NS_ERROR_FAILURE;
     }
-    
+
     // allocate enough space for the string plus the terminating
     // char
     mLockData = (char *)malloc(strlen(pidstr) + strlen(sysinfobuf) + 1);
@@ -355,7 +394,7 @@ XRemoteClient::GetLock(Window aWindow, bool *aDestroyed)
       /* We tried to grab the lock this time, and failed because someone
 	 else is holding it already.  So, wait for a PropertyDelete event
 	 to come in, and try again. */
-      MOZ_LOG(sRemoteLm, LogLevel::Debug, 
+      MOZ_LOG(sRemoteLm, LogLevel::Debug,
 	     ("window 0x%x is locked by %s; waiting...\n",
 	      (unsigned int) aWindow, data));
       waited = True;
@@ -479,7 +518,7 @@ XRemoteClient::FindBestWindow(const char *aProgram, const char *aUsername,
                                     False, XA_STRING,
                                     &type, &format, &nitems, &bytesafter,
                                     &data_return);
-        
+
         // If the return name is not the same as what someone passed in,
         // we don't want this window.
         if (data_return) {
@@ -619,9 +658,11 @@ estrcpy(const char* s, char* d)
 nsresult
 XRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc, char **argv,
                                  const char* aDesktopStartupID,
-                                 char **aResponse, bool *aDestroyed)
+                                 char **aResponse, bool *aDestroyed,
+                                 const char *aProgram, const char *aProfile)
 {
-  *aDestroyed = false;
+  if (aDestroyed)
+    *aDestroyed = false;
 
   char cwdbuf[MAX_PATH];
   if (!getcwd(cwdbuf, MAX_PATH))
@@ -679,15 +720,21 @@ XRemoteClient::DoSendCommandLine(Window aWindow, int32_t argc, char **argv,
     printf("  argv[%i]:\t%s\n", debug_i,
            ((char*) buffer) + TO_LITTLE_ENDIAN32(debug_offset[debug_i]));
 #endif
+#ifdef ENABLE_REMOTE_DBUS
+  if (!mIsX11Display) {
+    return DoSendDBusCommandLine(aProgram, aProfile, (unsigned char *)buffer,
+                                 bufend - ((char*)buffer));
+  } else
+#endif
+  {
+    XChangeProperty (mDisplay, aWindow, mMozCommandLineAtom, XA_STRING, 8,
+                     PropModeReplace, (unsigned char *) buffer,
+                     bufend - ((char*)buffer));
+    free(buffer);
 
-  XChangeProperty (mDisplay, aWindow, mMozCommandLineAtom, XA_STRING, 8,
-                   PropModeReplace, (unsigned char *) buffer,
-                   bufend - ((char*) buffer));
-  free(buffer);
-
-  if (!WaitForResponse(aWindow, aResponse, aDestroyed, mMozCommandLineAtom))
-    return NS_ERROR_FAILURE;
-  
+    if (!WaitForResponse(aWindow, aResponse, aDestroyed, mMozCommandLineAtom))
+      return NS_ERROR_FAILURE;
+  }
   return NS_OK;
 }
 
@@ -800,8 +847,46 @@ XRemoteClient::WaitForResponse(Window aWindow, char **aResponse,
               MOZILLA_COMMANDLINE_PROP ".)\n",
               (unsigned int) aWindow));
     }
-    
+
   }
 
   return accepted;
+}
+
+nsresult
+XRemoteClient::DoSendDBusCommandLine(const char *aProgram, const char *aProfile,
+                                     unsigned char* aBuffer, int aLength)
+{
+  nsAutoCString interfaceName;
+  interfaceName = nsPrintfCString("org.mozilla.%s.%s", aProgram, aProfile);
+
+  DBusMessage* msg;
+  msg = dbus_message_new_method_call(interfaceName.get(), // target for the method call
+                                     "/org/mozilla/Firefox/Remote", // object to call on
+                                     "org.mozilla.firefox", // interface to call on
+                                     "OpenURL"); // method name
+  if (!msg) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // append arguments
+  if (!dbus_message_append_args(msg, DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                &aBuffer, aLength, DBUS_TYPE_INVALID)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // send message and get a handle for a reply
+  DBusError err;
+  dbus_error_init(&err);
+  DBusMessage* reply = dbus_connection_send_with_reply_and_block(mConnection,
+                                                                 msg, -1, &err);
+  dbus_message_unref(msg);
+
+  if (!reply) {
+    dbus_error_free(&err);
+    return NS_ERROR_FAILURE;
+	} else {
+    dbus_message_unref(reply);
+    return NS_OK;
+  }
 }

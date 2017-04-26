@@ -9,3 +9,5 @@ FINAL_LIBRARY = 'xul'
 SOURCES += [
     'XRemoteClient.cpp',
 ]
+
+CXXFLAGS += CONFIG['TK_CFLAGS']

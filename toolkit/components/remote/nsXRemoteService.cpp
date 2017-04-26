@@ -234,7 +234,7 @@ nsXRemoteService::HandleNewProperty(XID aWindowId, Display* aDisplay,
 }
 
 const char*
-nsXRemoteService::HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
+nsXRemoteService::HandleCommandLine(const char* aBuffer, nsIDOMWindow* aWindow,
                                     uint32_t aTimestamp)
 {
   nsresult rv;
@@ -250,8 +250,8 @@ nsXRemoteService::HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
   // [argc][offsetargv0][offsetargv1...]<workingdir>\0<argv[0]>\0argv[1]...\0
   // (offset is from the beginning of the buffer)
 
-  int32_t argc = TO_LITTLE_ENDIAN32(*reinterpret_cast<int32_t*>(aBuffer));
-  char *wd   = aBuffer + ((argc + 1) * sizeof(int32_t));
+  int32_t argc = TO_LITTLE_ENDIAN32(*reinterpret_cast<const int32_t*>(aBuffer));
+  const char *wd   = aBuffer + ((argc + 1) * sizeof(int32_t));
 
   nsCOMPtr<nsIFile> lf;
   rv = NS_NewNativeLocalFile(nsDependentCString(wd), true,
@@ -261,10 +261,10 @@ nsXRemoteService::HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
 
   nsAutoCString desktopStartupID;
 
-  char **argv = (char**) malloc(sizeof(char*) * argc);
+  const char **argv = (const char**) malloc(sizeof(char*) * argc);
   if (!argv) return "509 internal error";
 
-  int32_t  *offset = reinterpret_cast<int32_t*>(aBuffer) + 1;
+  const int32_t  *offset = reinterpret_cast<const int32_t*>(aBuffer) + 1;
 
   for (int i = 0; i < argc; ++i) {
     argv[i] = aBuffer + TO_LITTLE_ENDIAN32(offset[i]);

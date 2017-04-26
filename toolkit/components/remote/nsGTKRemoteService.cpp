@@ -172,11 +172,9 @@ nsGTKRemoteService::HandlePropertyChange(GtkWidget *aWidget,
 
 #ifdef ENABLE_REMOTE_DBUS
 
-void nsGTKRemoteService::OpenURL(const char *aCommandLine)
+void nsGTKRemoteService::OpenURL(const char *aCommandLine, int aLength)
 {
-  char* buffer = strdup(aCommandLine);
-  HandleCommandLine(buffer, nullptr, 0);
-  free(buffer);
+  HandleCommandLine(aCommandLine, nullptr, 0);
 }
 
 #define MOZILLA_REMOTE_OBJECT       "/org/mozilla/Firefox/Remote"
@@ -221,27 +219,28 @@ nsGTKRemoteService::OpenURL(DBusMessage *msg)
 {
   DBusMessage *reply = nullptr;
   const char  *commandLine;
+  int          length;
 
-  if (!dbus_message_get_args(msg, nullptr, DBUS_TYPE_STRING, &commandLine,
-                             DBUS_TYPE_INVALID)) {
+  if (!dbus_message_get_args(msg, nullptr, DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+       &commandLine, &length, DBUS_TYPE_INVALID) || length == 0) {
     reply = dbus_message_new_error(msg, "org.mozilla.firefox.Error",
                                    "Wrong argument");
   } else {
-    OpenURL(commandLine);
+    OpenURL(commandLine, length);
     reply = dbus_message_new_method_return(msg);
   }
-  
+
   dbus_connection_send(mConnection, reply, NULL);
   dbus_message_unref(reply);
 
-  return DBUS_HANDLER_RESULT_HANDLED;  
+  return DBUS_HANDLER_RESULT_HANDLED;
 }
 
 DBusHandlerResult
 nsGTKRemoteService::HandleDBusMessage(DBusConnection *aConnection, DBusMessage *msg)
 {
   NS_ASSERTION(mConnection == aConnection, "Wrong D-Bus connection.");
-  
+
   const char *method = dbus_message_get_member(msg);
   const char *iface = dbus_message_get_interface(msg);
 
@@ -250,7 +249,7 @@ nsGTKRemoteService::HandleDBusMessage(DBusConnection *aConnection, DBusMessage *
     return Introspect(msg);
   }
 
-  if ((strcmp("OpenURL", method) == 0) && 
+  if ((strcmp("OpenURL", method) == 0) &&
     (strcmp("org.mozilla.firefox", iface) == 0)) {
     return OpenURL(msg);
   }
@@ -287,6 +286,11 @@ static DBusObjectPathVTable remoteHandlersTable = {
 bool
 nsGTKRemoteService::Connect(const char* aAppName, const char* aProfileName)
 {
+  if (mConnection && dbus_connection_get_is_connected(mConnection)) {
+    // We're already connected so we don't need to reconnect
+    return true;
+  }
+
   mConnection = already_AddRefed<DBusConnection>(
     dbus_bus_get(DBUS_BUS_SESSION, nullptr));
   if (!mConnection)
@@ -315,15 +319,6 @@ nsGTKRemoteService::Connect(const char* aAppName, const char* aProfileName)
   }
 
   return true;
-}
-
-void
-nsGTKRemoteService::Disconnect()
-{
-  if (mConnection) {
-    dbus_connection_unref(mConnection);
-    mConnection = nullptr;
-  }
 }
 #endif
 

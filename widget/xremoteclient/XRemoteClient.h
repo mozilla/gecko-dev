@@ -7,6 +7,10 @@
 #include <X11/Xlib.h>
 
 #include "nsRemoteClient.h"
+#if defined(MOZ_WAYLAND) && defined(MOZ_ENABLE_DBUS)
+#define  ENABLE_REMOTE_DBUS 1
+#include "mozilla/ipc/DBusConnectionRefPtr.h"
+#endif
 
 class XRemoteClient : public nsRemoteClient
 {
@@ -35,9 +39,15 @@ private:
                                    int32_t argc, char **argv,
                                    const char* aDesktopStartupID,
                                    char **aResponse,
-                                   bool *aDestroyed);
+                                   bool *aDestroyed,
+                                   const char *aProgram,
+                                   const char *aProfile);
   bool           WaitForResponse  (Window aWindow, char **aResponse,
                                    bool *aDestroyed, Atom aCommandAtom);
+#ifdef ENABLE_REMOTE_DBUS
+  nsresult       DoSendDBusCommandLine(const char *aProgram, const char *aProfile,
+                                       unsigned char* aBuffer, int aLength);
+#endif
 
   Display       *mDisplay;
 
@@ -53,4 +63,8 @@ private:
   char          *mLockData;
 
   bool           mInitialized;
+#ifdef ENABLE_REMOTE_DBUS
+  bool           mIsX11Display;
+  RefPtr<DBusConnection> mConnection;
+#endif
 };

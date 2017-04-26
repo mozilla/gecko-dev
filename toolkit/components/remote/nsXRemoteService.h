@@ -39,7 +39,7 @@ protected:
 
     void HandleCommandsFor(Window aWindowId);
     static nsXRemoteService *sRemoteImplementation;
-    static const char* HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
+    static const char* HandleCommandLine(const char* aBuffer, nsIDOMWindow* aWindow,
                                          uint32_t aTimestamp);
 
 private:
