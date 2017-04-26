@@ -3855,6 +3855,14 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
       }
     }
 
+    if (!profile) {
+#ifdef MOZ_DEV_EDITION
+      profile = "dev-edition-default";
+#else
+      profile = "default";
+#endif
+    }
+
     nsCOMPtr<nsIFile> mutexDir;
     rv = GetSpecialSystemDirectory(OS_TemporaryDirectory, getter_AddRefs(mutexDir));
     if (NS_SUCCEEDED(rv)) {
