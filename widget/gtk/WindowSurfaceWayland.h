@@ -15,10 +15,11 @@ namespace widget {
 
 // Our general connection to Wayland display server,
 // holds our display connection and runs event loop.
-class WaylandDisplay {
+class nsWaylandDisplay : public nsISupports {
+  NS_DECL_THREADSAFE_ISUPPORTS
+
 public:
-  WaylandDisplay(wl_display *aDisplay);
-  ~WaylandDisplay();
+  nsWaylandDisplay(wl_display *aDisplay);
 
   void                SetShm(wl_shm* aShm)   { mShm = aShm; };
   wl_shm*             GetShm()               { return(mShm); };
@@ -26,13 +27,14 @@ public:
   wl_display*         GetDisplay()           { return mDisplay; };
   gfx::SurfaceFormat  GetSurfaceFormat()     { return mFormat; };
   void                SetWaylandPixelFormat(uint32_t format);
-  void                DisplayLoop();
+  bool                DisplayLoop();
 
 private:
+  virtual ~nsWaylandDisplay();
+
   gfx::SurfaceFormat  mFormat;
   wl_shm*             mShm;
   wl_event_queue*     mEventQueue;
-  GThread*            mLoopThread;
   wl_display*         mDisplay;
 };
 
