@@ -4,11 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
-TODO:
-- do we need our event queue in mozcontainer?
-*/
-
 #include "WindowSurfaceWayland.h"
 
 #include "base/message_loop.h"          // for MessageLoop
@@ -28,18 +23,35 @@ TODO:
 namespace mozilla {
 namespace widget {
 
-static WaylandDisplay *gWaylandDisplay = nullptr;
+static nsWaylandDisplay* gWaylandDisplay = nullptr;
 
-void
-WaylandDisplayInit(wl_display *aDisplay)
+static void
+WaylandDisplayAddRef(wl_display *aDisplay)
 {
-    if (!gWaylandDisplay) {
-        gWaylandDisplay = new WaylandDisplay(aDisplay);
-    }
+  if (!gWaylandDisplay) {
+    gWaylandDisplay = new nsWaylandDisplay(aDisplay);
+  }
+  NS_ADDREF(gWaylandDisplay);
+}
+
+static void
+WaylandDisplayRelease()
+{
+  NS_IF_RELEASE(gWaylandDisplay);
+}
+
+static void
+WaylandDisplayLoop(void *tmp)
+{
+  // Check we still have the display interface
+  if (gWaylandDisplay && gWaylandDisplay->DisplayLoop()) {
+    MessageLoop::current()->PostTask(
+        NewRunnableFunction(&WaylandDisplayLoop, nullptr));
+  }
 }
 
 void
-WaylandDisplay::SetWaylandPixelFormat(uint32_t format)
+nsWaylandDisplay::SetWaylandPixelFormat(uint32_t format)
 {
   switch (format) {
     case WL_SHM_FORMAT_ARGB8888:
@@ -55,7 +67,7 @@ WaylandDisplay::SetWaylandPixelFormat(uint32_t format)
 static void
 shm_format(void *data, wl_shm *wl_shm, uint32_t format)
 {
-  auto interface = reinterpret_cast<WaylandDisplay *>(data);
+  auto interface = reinterpret_cast<nsWaylandDisplay *>(data);
   interface->SetWaylandPixelFormat(format);
  }
 
@@ -68,7 +80,7 @@ global_registry_handler(void *data, wl_registry *registry, uint32_t id,
                         const char *interface, uint32_t version)
 {
   if (strcmp(interface, "wl_shm") == 0) {
-    auto interface = reinterpret_cast<WaylandDisplay *>(data);
+    auto interface = reinterpret_cast<nsWaylandDisplay *>(data);
     auto shm = static_cast<wl_shm*>(
         wl_registry_bind(registry, id, &wl_shm_interface, 1));
     wl_proxy_set_queue((struct wl_proxy *)shm, interface->GetEventQueue());
@@ -87,8 +99,8 @@ static const struct wl_registry_listener registry_listener = {
   global_registry_remover
 };
 
-void
-WaylandDisplay::DisplayLoop()
+bool
+nsWaylandDisplay::DisplayLoop()
 {
   /* NoteThis function may dispatch other events being received on the given
      queue. This function uses wl_display_dispatch_queue() internally.
@@ -97,19 +109,12 @@ WaylandDisplay::DisplayLoop()
      doesn't interfere with calling wl_display_prepare_read() and
      wl_display_read_events()).
   */
-  wl_display_roundtrip_queue(mDisplay, mEventQueue);
+  return wl_display_roundtrip_queue(mDisplay, mEventQueue) != -1;
 }
 
-static void
-RunDisplayLoop(WaylandDisplay *aWaylandDisplay)
-{
-  // TODO - don't register task when firefox quits.
-  aWaylandDisplay->DisplayLoop();
-  MessageLoop::current()->PostTask(
-      NewRunnableFunction(&RunDisplayLoop, aWaylandDisplay));
-}
+NS_IMPL_ISUPPORTS(nsWaylandDisplay, nsISupports);
 
-WaylandDisplay::WaylandDisplay(wl_display *aDisplay)
+nsWaylandDisplay::nsWaylandDisplay(wl_display *aDisplay)
   : mDisplay(aDisplay)
 {
   mEventQueue = wl_display_create_queue(mDisplay);
@@ -130,7 +135,14 @@ WaylandDisplay::WaylandDisplay(wl_display *aDisplay)
                      "We don't have any pixel format!");
 
   // TODO - is that correct way how to run wayland event pump?
-  MessageLoop::current()->PostTask(NewRunnableFunction(&RunDisplayLoop, this));
+  MessageLoop::current()->PostTask(NewRunnableFunction(&WaylandDisplayLoop, nullptr));
+}
+
+nsWaylandDisplay::~nsWaylandDisplay()
+{
+  wl_event_queue_destroy(mEventQueue);
+  mEventQueue = nullptr;
+  mDisplay = nullptr;
 }
 
 int
@@ -221,10 +233,6 @@ WaylandShmPool::~WaylandShmPool()
   munmap(mImageData, mAllocatedSize);
   wl_shm_pool_destroy(mShmPool);
   close(mShmPoolFd);
-}
-
-WaylandDisplay::~WaylandDisplay()
-{
 }
 
 static void
@@ -354,7 +362,7 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
   MOZ_RELEASE_ASSERT(mSurface != nullptr,
                     "We can't do anything useful without valid wl_surface.");
   // Ensure we have valid display connection
-  WaylandDisplayInit(aDisplay);
+  WaylandDisplayAddRef(aDisplay);
 
   // Make sure the drawing surface is handled by our event loop
   // and not the default (Gdk) one to draw out of main thread.
@@ -370,6 +378,8 @@ WindowSurfaceWayland::~WindowSurfaceWayland()
   if (mFrameCallback) {
     wl_callback_destroy(mFrameCallback);
   }
+  
+  WaylandDisplayRelease();
 }
 
 WindowBackBuffer*
