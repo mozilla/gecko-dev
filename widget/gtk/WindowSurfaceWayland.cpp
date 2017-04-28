@@ -28,6 +28,8 @@ static nsWaylandDisplay* gWaylandDisplay = nullptr;
 static void
 WaylandDisplayAddRef(wl_display *aDisplay)
 {
+  // We should run in Compositor thread
+  MOZ_ASSERT(!NS_IsMainThread());
   if (!gWaylandDisplay) {
     gWaylandDisplay = new nsWaylandDisplay(aDisplay);
   }
@@ -35,14 +37,19 @@ WaylandDisplayAddRef(wl_display *aDisplay)
 }
 
 static void
-WaylandDisplayRelease()
+WaylandDisplayRelease(void *aUnused)
 {
+  // WaylandDisplayLoop is running in Compositor thread
+  // so we also have to delete WaylandDisplay there.
+  MOZ_ASSERT(!NS_IsMainThread());
   NS_IF_RELEASE(gWaylandDisplay);
 }
 
 static void
 WaylandDisplayLoop(void *tmp)
 {
+  MOZ_ASSERT(!NS_IsMainThread());
+
   // Check we still have the display interface
   if (gWaylandDisplay && gWaylandDisplay->DisplayLoop()) {
     MessageLoop::current()->PostTask(
@@ -117,6 +124,9 @@ NS_IMPL_ISUPPORTS(nsWaylandDisplay, nsISupports);
 nsWaylandDisplay::nsWaylandDisplay(wl_display *aDisplay)
   : mDisplay(aDisplay)
 {
+  // We're supposed to run in Compositor thread
+  MOZ_ASSERT(!NS_IsMainThread());
+
   mEventQueue = wl_display_create_queue(mDisplay);
 
   // wl_shm and wl_subcompositor are not provided by Gtk so we need
@@ -336,7 +346,6 @@ WindowBackBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
                                               gWaylandDisplay->GetSurfaceFormat());
 }
 
-
 static void
 frame_callback_handler(void *data, struct wl_callback *callback, uint32_t time)
 {
@@ -358,6 +367,7 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
   , mFrameCallback(nullptr)
   , mDelayedCommit(false)
   , mFullScreenDamage(false)
+  , mWaylandMessageLoop(MessageLoop::current())
 {
   MOZ_RELEASE_ASSERT(mSurface != nullptr,
                     "We can't do anything useful without valid wl_surface.");
@@ -378,8 +388,9 @@ WindowSurfaceWayland::~WindowSurfaceWayland()
   if (mFrameCallback) {
     wl_callback_destroy(mFrameCallback);
   }
-  
-  WaylandDisplayRelease();
+
+  mWaylandMessageLoop->PostTask(
+    NewRunnableFunction(&WaylandDisplayRelease, nullptr));
 }
 
 WindowBackBuffer*

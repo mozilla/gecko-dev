@@ -362,7 +362,14 @@ moz_container_realize (GtkWidget *widget)
         attributes.colormap = gtk_widget_get_colormap (widget);
         attributes_mask |= GDK_WA_COLORMAP;
 #endif
-
+#ifdef MOZ_WAYLAND
+        // Get mShell type
+        GtkWidget* parent_widget = gtk_widget_get_parent(widget);
+        if (parent_widget &&
+            gtk_window_get_window_type(GTK_WINDOW(parent_widget)) == GTK_WINDOW_POPUP) {
+            //attributes.window_type = GDK_WINDOW_SUBSURFACE;
+        }
+#endif
         window = gdk_window_new (parent, &attributes, attributes_mask);
         gdk_window_set_user_data (window, widget);
 #if (MOZ_WIDGET_GTK == 2)

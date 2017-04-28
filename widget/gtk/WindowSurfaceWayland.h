@@ -122,6 +122,7 @@ private:
   wl_callback*              mFrameCallback;
   bool                      mDelayedCommit;
   bool                      mFullScreenDamage;
+  MessageLoop*              mWaylandMessageLoop;
 };
 
 }  // namespace widget
