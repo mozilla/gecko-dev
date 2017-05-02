@@ -32,6 +32,9 @@ WaylandDisplayAddRef(wl_display *aDisplay)
   MOZ_ASSERT(!NS_IsMainThread());
   if (!gWaylandDisplay) {
     gWaylandDisplay = new nsWaylandDisplay(aDisplay);
+  } else {
+    MOZ_ASSERT(gWaylandDisplay->GetDisplay() == aDisplay,
+               "Unknown Wayland display!");
   }
   NS_ADDREF(gWaylandDisplay);
 }
@@ -39,8 +42,6 @@ WaylandDisplayAddRef(wl_display *aDisplay)
 static void
 WaylandDisplayRelease(void *aUnused)
 {
-  // WaylandDisplayLoop is running in Compositor thread
-  // so we also have to delete WaylandDisplay there.
   MOZ_ASSERT(!NS_IsMainThread());
   NS_IF_RELEASE(gWaylandDisplay);
 }
@@ -150,6 +151,7 @@ nsWaylandDisplay::nsWaylandDisplay(wl_display *aDisplay)
 
 nsWaylandDisplay::~nsWaylandDisplay()
 {
+  MOZ_ASSERT(!NS_IsMainThread());
   wl_event_queue_destroy(mEventQueue);
   mEventQueue = nullptr;
   mDisplay = nullptr;
@@ -193,7 +195,7 @@ WaylandShmPool::CreateTemporaryFile(int aSize)
   return fd;
 }
 
-WaylandShmPool::WaylandShmPool(int aSize)
+WaylandShmPool::WaylandShmPool(bool aIsMainThread, int aSize)
 {
   mAllocatedSize = aSize;
 
@@ -205,8 +207,10 @@ WaylandShmPool::WaylandShmPool(int aSize)
 
   mShmPool = wl_shm_create_pool(gWaylandDisplay->GetShm(),
                                 mShmPoolFd, mAllocatedSize);
-  wl_proxy_set_queue((struct wl_proxy *)mShmPool,
-                     gWaylandDisplay->GetEventQueue());
+  if (!aIsMainThread) {
+    wl_proxy_set_queue((struct wl_proxy *)mShmPool,
+                      gWaylandDisplay->GetEventQueue());
+  }
 }
 
 bool
@@ -266,8 +270,10 @@ void WindowBackBuffer::Create(int aWidth, int aHeight)
   mWaylandBuffer = wl_shm_pool_create_buffer(mShmPool.GetShmPool(), 0,
                                             aWidth, aHeight, aWidth*BUFFER_BPP,
                                             WL_SHM_FORMAT_ARGB8888);
-  wl_proxy_set_queue((struct wl_proxy *)mWaylandBuffer,
-                     gWaylandDisplay->GetEventQueue());
+  if (!mIsMainThread) {
+    wl_proxy_set_queue((struct wl_proxy *)mWaylandBuffer,
+                      gWaylandDisplay->GetEventQueue());
+  }
   wl_buffer_add_listener(mWaylandBuffer, &buffer_listener, this);
 
   mWidth = aWidth;
@@ -280,12 +286,13 @@ void WindowBackBuffer::Release()
   mWidth = mHeight = 0;
 }
 
-WindowBackBuffer::WindowBackBuffer(int aWidth, int aHeight)
- : mShmPool(aWidth*aHeight*BUFFER_BPP)
+WindowBackBuffer::WindowBackBuffer(bool aIsMainThread, int aWidth, int aHeight)
+ : mShmPool(aIsMainThread, aWidth*aHeight*BUFFER_BPP)
   ,mWaylandBuffer(nullptr)
   ,mWidth(aWidth)
   ,mHeight(aHeight)
   ,mAttached(false)
+  ,mIsMainThread(aIsMainThread)
 {
   Create(aWidth, aHeight);
 }
@@ -367,17 +374,19 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
   , mFrameCallback(nullptr)
   , mDelayedCommit(false)
   , mFullScreenDamage(false)
-  , mWaylandMessageLoop(MessageLoop::current())
+  , mWaylandMessageLoop(nullptr)
+  , mIsMainThread(NS_IsMainThread())
 {
   MOZ_RELEASE_ASSERT(mSurface != nullptr,
                     "We can't do anything useful without valid wl_surface.");
-  // Ensure we have valid display connection
-  WaylandDisplayAddRef(aDisplay);
 
-  // Make sure the drawing surface is handled by our event loop
-  // and not the default (Gdk) one to draw out of main thread.
-  wl_proxy_set_queue((struct wl_proxy *)mSurface,
-                     gWaylandDisplay->GetEventQueue());
+  if (!mIsMainThread) {
+    // Register and run wayland loop when running in compositor thread.
+    mWaylandMessageLoop = MessageLoop::current();
+    WaylandDisplayAddRef(aDisplay);
+    wl_proxy_set_queue((struct wl_proxy *)mSurface,
+                       gWaylandDisplay->GetEventQueue());
+  }
 }
 
 WindowSurfaceWayland::~WindowSurfaceWayland()
@@ -389,16 +398,19 @@ WindowSurfaceWayland::~WindowSurfaceWayland()
     wl_callback_destroy(mFrameCallback);
   }
 
-  mWaylandMessageLoop->PostTask(
-    NewRunnableFunction(&WaylandDisplayRelease, nullptr));
+  if (!mIsMainThread) {
+    // Release WaylandDisplay only for surfaces created in Compositor thread.
+    mWaylandMessageLoop->PostTask(
+      NewRunnableFunction(&WaylandDisplayRelease, nullptr));
+  }
 }
 
 WindowBackBuffer*
 WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
 {
   if (!mFrontBuffer) {
-    mFrontBuffer = new WindowBackBuffer(aWidth, aHeight);
-    mBackBuffer = new WindowBackBuffer(aWidth, aHeight);
+    mFrontBuffer = new WindowBackBuffer(mIsMainThread, aWidth, aHeight);
+    mBackBuffer = new WindowBackBuffer(mIsMainThread, aWidth, aHeight);
     return mFrontBuffer;
   }
 
@@ -415,8 +427,8 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
     return nullptr;
   }
 
-  NS_ASSERTION(!mDelayedCommit,
-               "Uncommitted buffer switch, screen artifacts ahead.");
+  MOZ_ASSERT(!mDelayedCommit,
+             "Uncommitted buffer switch, screen artifacts ahead.");
 
   WindowBackBuffer *tmp = mFrontBuffer;
   mFrontBuffer = mBackBuffer;
@@ -442,12 +454,14 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
 already_AddRefed<gfx::DrawTarget>
 WindowSurfaceWayland::Lock(const LayoutDeviceIntRegion& aRegion)
 {
+  MOZ_ASSERT(mIsMainThread == NS_IsMainThread());
+
   // We allocate back buffer to widget size but return only
   // portion requested by aRegion.
   LayoutDeviceIntRect rect = mWidget->GetBounds();
   WindowBackBuffer* buffer = GetBufferToDraw(rect.width,
                                              rect.height);
-  NS_ASSERTION(buffer, "We don't have any buffer to draw to!");
+  MOZ_ASSERT(buffer, "We don't have any buffer to draw to!");
   if (!buffer) {
     return nullptr;
   }
@@ -458,6 +472,8 @@ WindowSurfaceWayland::Lock(const LayoutDeviceIntRegion& aRegion)
 void
 WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
 {
+  MOZ_ASSERT(mIsMainThread == NS_IsMainThread());
+
   for (auto iter = aInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
     const mozilla::LayoutDeviceIntRect &r = iter.Get();
     if (!mFullScreenDamage)
@@ -489,6 +505,8 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
 void
 WindowSurfaceWayland::FrameCallbackHandler()
 {
+  MOZ_ASSERT(mIsMainThread == NS_IsMainThread());
+
   if (mFrameCallback) {
       wl_callback_destroy(mFrameCallback);
       mFrameCallback = nullptr;

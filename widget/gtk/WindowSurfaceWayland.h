@@ -41,7 +41,7 @@ private:
 // Allocates and owns shared memory for Wayland drawing surfaces
 class WaylandShmPool {
 public:
-  WaylandShmPool(int aSize);
+  WaylandShmPool(bool aIsMainThread, int aSize);
   ~WaylandShmPool();
 
   bool                Resize(int aSize);
@@ -60,7 +60,7 @@ private:
 // Holds actual graphics data for wl_surface
 class WindowBackBuffer {
 public:
-  WindowBackBuffer(int aWidth, int aHeight);
+  WindowBackBuffer(bool aIsMainThread, int aWidth, int aHeight);
   ~WindowBackBuffer();
 
   already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion);
@@ -94,6 +94,7 @@ private:
   int                 mWidth;
   int                 mHeight;
   bool                mAttached;
+  bool                mIsMainThread;
 };
 
 // WindowSurfaceWayland is an abstraction for wl_surface
@@ -123,6 +124,7 @@ private:
   bool                      mDelayedCommit;
   bool                      mFullScreenDamage;
   MessageLoop*              mWaylandMessageLoop;
+  bool                      mIsMainThread;
 };
 
 }  // namespace widget
