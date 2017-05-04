@@ -586,9 +586,9 @@ D3D11DXVA2Manager::SupportsConfig(IMFMediaType* aType, float aFramerate)
   UINT32 height = 0;
   hr = MFGetAttributeSize(aType, MF_MT_FRAME_SIZE, &width, &height);
   NS_ENSURE_TRUE(SUCCEEDED(hr), false);
-  NS_ENSURE_TRUE(desc.SampleHeight <= MAX_VIDEO_HEIGHT, false);
   desc.SampleWidth = width;
   desc.SampleHeight = height;
+  NS_ENSURE_TRUE(desc.SampleHeight <= MAX_VIDEO_HEIGHT, false);
 
   desc.OutputFormat = DXGI_FORMAT_NV12;
 
