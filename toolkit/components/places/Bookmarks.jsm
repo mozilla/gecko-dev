@@ -469,10 +469,10 @@ var Bookmarks = Object.freeze({
    * @resolves once the removal is complete.
    */
   eraseEverything: function(options={}) {
+    const folderGuids = [this.toolbarGuid, this.menuGuid, this.unfiledGuid,
+                         this.mobileGuid];
     return PlacesUtils.withConnectionWrapper("Bookmarks.jsm: eraseEverything",
       db => db.executeTransaction(function* () {
-        const folderGuids = [this.toolbarGuid, this.menuGuid, this.unfiledGuid,
-                             this.mobileGuid];
         yield removeFoldersContents(db, folderGuids, options);
         const time = PlacesUtils.toPRTime(new Date());
         for (let folderGuid of folderGuids) {
@@ -481,7 +481,7 @@ var Bookmarks = Object.freeze({
              WHERE id IN (SELECT id FROM moz_bookmarks WHERE guid = :folderGuid )
             `, { folderGuid, time });
         }
-      }.bind(this))
+      })
     );
   },
 
