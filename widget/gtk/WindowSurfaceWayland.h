@@ -101,7 +101,7 @@ private:
   int                 mWidth;
   int                 mHeight;
   bool                mAttached;
-  nsWaylandDisplay*   mDisplay;
+  nsWaylandDisplay*   mWaylandDisplay;
 };
 
 // WindowSurfaceWayland is an abstraction for wl_surface
@@ -119,7 +119,7 @@ private:
   WindowBackBuffer*         GetBufferToDraw(int aWidth, int aHeight);
 
   nsWindow*                 mWidget;
-  nsWaylandDisplay*         mDisplay;
+  nsWaylandDisplay*         mWaylandDisplay;
   WindowBackBuffer*         mFrontBuffer;
   WindowBackBuffer*         mBackBuffer;
   wl_callback*              mFrameCallback;
