@@ -30,8 +30,6 @@ WindowSurfaceProvider::WindowSurfaceProvider()
     , mWindowSurface(nullptr)
 #ifdef MOZ_WAYLAND
     , mWidget(nullptr)
-    , mWaylandDisplay(nullptr)
-    , mWaylandSurface(nullptr)
 #endif
 {
 }
@@ -56,18 +54,10 @@ void WindowSurfaceProvider::Initialize(
 }
 
 #ifdef MOZ_WAYLAND
-void WindowSurfaceProvider::Initialize(
-      nsWindow *aWidget,
-      wl_display *aWaylandDisplay,
-      wl_surface *aWaylandSurface)
+void WindowSurfaceProvider::Initialize(nsWindow *aWidget)
 {
-  // We should not be initialized
-  MOZ_ASSERT(!mWaylandSurface);
-
   mWidget = aWidget;
-  mWaylandDisplay = aWaylandDisplay;
-  mWaylandSurface = aWaylandSurface;
-  mIsX11Display = false;
+  mIsX11Display = aWidget->IsX11Display();
 }
 #endif
 
@@ -81,9 +71,8 @@ WindowSurfaceProvider::CreateWindowSurface()
 {
 #ifdef MOZ_WAYLAND
   if (!mIsX11Display) {
-    MOZ_ASSERT(mWaylandDisplay);
     LOGDRAW(("Drawing to nsWindow %p using wl_surface\n", (void*)this));
-    return MakeUnique<WindowSurfaceWayland>(mWidget, mWaylandDisplay, mWaylandSurface);
+    return MakeUnique<WindowSurfaceWayland>(mWidget);
   } else
 #endif
   {

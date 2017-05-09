@@ -354,7 +354,8 @@ public:
     Display* XDisplay() { return mXDisplay; }
 #endif
 #ifdef MOZ_WAYLAND
-    wl_display* WaylandDisplay() { return mWaylandDisplay; }
+    wl_display* GetWaylandDisplay();
+    wl_surface* GetWaylandSurface();
 #endif
     virtual void GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInitData* aInitData) override;
 
@@ -467,10 +468,6 @@ private:
     Window              mXWindow;
     Visual*             mXVisual;
     int                 mXDepth;
-#ifdef MOZ_WAYLAND
-    wl_display*         mWaylandDisplay;
-    wl_surface*         mWaylandSurface;
-#endif
     mozilla::widget::WindowSurfaceProvider mSurfaceProvider;
 #endif
     // Upper bound on pending ConfigureNotify events to be dispatched to the

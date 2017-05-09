@@ -451,9 +451,6 @@ nsWindow::nsWindow()
     mXVisual  = nullptr;
     mXDepth   = 0;
 #endif /* MOZ_X11 */
-#ifdef MOZ_WAYLAND
-    mWaylandSurface = nullptr;
-#endif
 
     if (!gGlobalsInitialized) {
         gGlobalsInitialized = true;
@@ -2075,12 +2072,6 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     nsIWidgetListener *listener = GetListener();
     if (!listener)
         return FALSE;
-
-#ifdef MOZ_WAYLAND
-    // We don't have any Wayland surface to paint to
-    if (mContainer && !mIsX11Display && !moz_container_map_wl_surface(mContainer))
-        return FALSE;
-#endif
 
     LayoutDeviceIntRegion exposeRegion;
 #if (MOZ_WIDGET_GTK == 2)
@@ -3717,7 +3708,9 @@ nsWindow::Create(nsIWidget* aParent,
                         gtkTypeHint = GDK_WINDOW_TYPE_HINT_TOOLTIP;
                         break;
                     default:
-                        gtkTypeHint = GDK_WINDOW_TYPE_HINT_UTILITY;
+                        gtkTypeHint = GDK_WINDOW_TYPE_HINT_POPUP_MENU;
+                        //gtkTypeHint = GDK_WINDOW_TYPE_HINT_TOOLTIP;
+                        //gtkTypeHint = GDK_WINDOW_TYPE_HINT_UTILITY;
                         break;
                 }
             }
@@ -4010,10 +4003,8 @@ nsWindow::Create(nsIWidget* aParent,
       mSurfaceProvider.Initialize(mXDisplay, mXWindow, mXVisual, mXDepth);
     }
 #ifdef MOZ_WAYLAND
-    else {
-      mWaylandDisplay = gdk_wayland_display_get_wl_display(gdk_display_get_default());
-      mWaylandSurface = moz_container_get_wl_surface(MOZ_CONTAINER(mContainer));
-      mSurfaceProvider.Initialize(this, mWaylandDisplay, mWaylandSurface);
+    else if (!mIsX11Display) {
+      mSurfaceProvider.Initialize(this);
     }
 #endif
 #endif
@@ -4185,6 +4176,12 @@ nsWindow::NativeMoveResize()
     }
 }
 
+static void
+show_shell(GdkSeat *seat, GdkWindow *window, gpointer user_data)
+{
+    gtk_widget_show(GTK_WIDGET(user_data));
+}
+
 void
 nsWindow::NativeShow(bool aAction)
 {
@@ -4197,7 +4194,24 @@ nsWindow::NativeShow(bool aAction)
             if (mWindowType != eWindowType_invisible) {
                 SetUserTimeAndStartupIDForActivatedWindow(mShell);
             }
-            gtk_widget_show(mShell);
+
+            // TODO
+            if (0 && mWindowType == eWindowType_popup) {
+                mRetryPointerGrab = false;
+                //sRetryGrabTime = aTime;
+
+                GdkSeat *gdkSeat = gdk_display_get_default_seat(gdk_display_get_default());
+                gint retval = gdk_seat_grab(gdkSeat, gtk_widget_get_window(mShell),
+                                            GDK_SEAT_CAPABILITY_ALL_POINTING, TRUE,
+                                            nullptr, nullptr, show_shell, mShell);
+                MOZ_ASSERT(retval == GDK_GRAB_SUCCESS);
+                if (retval == GDK_GRAB_NOT_VIEWABLE) {
+                    mRetryPointerGrab = true;
+                } else if (retval != GDK_GRAB_SUCCESS) {
+                }
+            } else {
+                gtk_widget_show(mShell);
+            }
         }
         else if (mContainer) {
             gtk_widget_show(GTK_WIDGET(mContainer));
@@ -6762,7 +6776,7 @@ void nsWindow::GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInit
 #ifdef MOZ_WAYLAND
   if (!mIsX11Display) {
     *aInitData = mozilla::widget::CompositorWidgetInitData(
-                                  (uintptr_t)mWaylandSurface,
+                                  (uintptr_t)nullptr,
                                   nsCString(nullptr),
                                   GetClientSize());
   } else
@@ -6775,3 +6789,19 @@ void nsWindow::GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInit
   }
 #endif
 }
+
+#ifdef MOZ_WAYLAND
+wl_display*
+nsWindow::GetWaylandDisplay()
+{
+  GdkDisplay* gdkDisplay = gdk_display_get_default();
+  return mIsX11Display ? nullptr :
+                         gdk_wayland_display_get_wl_display(gdkDisplay);
+}
+
+wl_surface*
+nsWindow::GetWaylandSurface()
+{
+  return moz_container_get_wl_surface(MOZ_CONTAINER(mContainer));
+}
+#endif

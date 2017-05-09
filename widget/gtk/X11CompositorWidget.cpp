@@ -23,27 +23,21 @@ X11CompositorWidget::X11CompositorWidget(const CompositorWidgetInitData& aInitDa
   // If we have a nsWindow, then grab the already existing display connection
   // If we don't, then use the init data to connect to the display
   if (aWindow) {
-    mIsX11Display = aWindow->IsX11Display();
-#ifdef MOZ_WAYLAND
-    if (!mIsX11Display) {
-      mWaylandDisplay = aWindow->WaylandDisplay();
-	} else
-#endif
-	{
-      mXDisplay = aWindow->XDisplay();
-    }
+    mXDisplay = aWindow->XDisplay();
   } else {
-#ifdef MOZ_WAYLAND
-    // TODO - not implemented
-    MOZ_CRASH();
-#endif
     mXDisplay = XOpenDisplay(aInitData.XDisplayString().get());
+#ifdef MOZ_WAYLAND
+    if (!mXDisplay) {
+      // TODO - not implemented
+      MOZ_CRASH();
+    }
+#endif
   }  
 
 #ifdef MOZ_WAYLAND
-  if (!mIsX11Display) {
-    mWaylandSurface = (wl_surface *)aInitData.XWindow();
-    mProvider.Initialize(aWindow, mWaylandDisplay, mWaylandSurface);
+  if (!mXDisplay) {
+    MOZ_ASSERT(aWindow);
+    mProvider.Initialize(aWindow);
   } else
 #endif
   {

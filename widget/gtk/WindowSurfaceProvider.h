@@ -46,9 +46,7 @@ public:
       int aDepth);
 
 #ifdef MOZ_WAYLAND
-   void Initialize(nsWindow *aWidget,
-                   wl_display *aWaylandDisplay,
-                   wl_surface *aWaylandSurface);
+   void Initialize(nsWindow *aWidget);
 #endif
 
   /**
@@ -76,8 +74,6 @@ private:
   UniquePtr<WindowSurface> mWindowSurface;
 #ifdef MOZ_WAYLAND
   nsWindow*   mWidget;
-  wl_display* mWaylandDisplay;
-  wl_surface* mWaylandSurface;
 #endif
 };
 

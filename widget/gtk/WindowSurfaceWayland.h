@@ -7,6 +7,8 @@
 #ifndef _MOZILLA_WIDGET_GTK_WINDOW_SURFACE_WAYLAND_H
 #define _MOZILLA_WIDGET_GTK_WINDOW_SURFACE_WAYLAND_H
 
+#include <prthread.h>
+
 namespace mozilla {
 namespace widget {
 
@@ -21,17 +23,22 @@ class nsWaylandDisplay : public nsISupports {
 public:
   nsWaylandDisplay(wl_display *aDisplay);
 
+  wl_shm*             GetShm();
+  wl_event_queue*     GetEventQueue();
+
   void                SetShm(wl_shm* aShm)   { mShm = aShm; };
-  wl_shm*             GetShm()               { return(mShm); };
-  wl_event_queue*     GetEventQueue()        { return mEventQueue; };
   wl_display*         GetDisplay()           { return mDisplay; };
   gfx::SurfaceFormat  GetSurfaceFormat()     { return mFormat; };
-  void                SetWaylandPixelFormat(uint32_t format);
   bool                DisplayLoop();
+  bool                Matches(wl_display *aDisplay);
+#ifdef DEBUG
+  bool                MatchesThread();
+#endif
 
 private:
   virtual ~nsWaylandDisplay();
 
+  PRThread*           mThreadId;
   gfx::SurfaceFormat  mFormat;
   wl_shm*             mShm;
   wl_event_queue*     mEventQueue;
@@ -41,7 +48,7 @@ private:
 // Allocates and owns shared memory for Wayland drawing surfaces
 class WaylandShmPool {
 public:
-  WaylandShmPool(bool aIsMainThread, int aSize);
+  WaylandShmPool(nsWaylandDisplay* aDisplay, int aSize);
   ~WaylandShmPool();
 
   bool                Resize(int aSize);
@@ -60,7 +67,7 @@ private:
 // Holds actual graphics data for wl_surface
 class WindowBackBuffer {
 public:
-  WindowBackBuffer(bool aIsMainThread, int aWidth, int aHeight);
+  WindowBackBuffer(nsWaylandDisplay* aDisplay, int aWidth, int aHeight);
   ~WindowBackBuffer();
 
   already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion);
@@ -94,14 +101,14 @@ private:
   int                 mWidth;
   int                 mHeight;
   bool                mAttached;
-  bool                mIsMainThread;
+  nsWaylandDisplay*   mDisplay;
 };
 
 // WindowSurfaceWayland is an abstraction for wl_surface
 // and related management
 class WindowSurfaceWayland : public WindowSurface {
 public:
-  WindowSurfaceWayland(nsWindow *aWidget, wl_display *aDisplay, wl_surface *aSurface);
+  WindowSurfaceWayland(nsWindow *aWidget);
   ~WindowSurfaceWayland();
 
   already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion) override;
@@ -112,12 +119,7 @@ private:
   WindowBackBuffer*         GetBufferToDraw(int aWidth, int aHeight);
 
   nsWindow*                 mWidget;
-
-  // The surface size is dynamically allocated by Commit() call,
-  // we store the latest size request here to optimize
-  // buffer usage and our gfx operations
-  wl_surface*               mSurface;
-
+  nsWaylandDisplay*         mDisplay;
   WindowBackBuffer*         mFrontBuffer;
   WindowBackBuffer*         mBackBuffer;
   wl_callback*              mFrameCallback;

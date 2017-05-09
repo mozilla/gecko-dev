@@ -159,7 +159,7 @@ moz_container_move (MozContainer *container, GtkWidget *child_widget,
  * and gdk_wayland_window_get_wl_surface() fails.
  */
 gboolean
-moz_container_map_wl_surface(MozContainer *container)
+moz_container_map_surface(MozContainer *container)
 {
     if (container->subsurface)
       return TRUE;
@@ -193,6 +193,7 @@ static void
 moz_container_unmap_surface(MozContainer *container)
 {
     g_clear_pointer(&container->subsurface, wl_subsurface_destroy);
+    g_clear_pointer(&container->surface, wl_surface_destroy);
 }
 
 static void
@@ -315,6 +316,10 @@ moz_container_map (GtkWidget *widget)
     if (gtk_widget_get_has_window (widget)) {
         gdk_window_show (gtk_widget_get_window(widget));
     }
+#if defined(MOZ_WAYLAND)
+    moz_container_create_surface(MOZ_CONTAINER(widget));
+    moz_container_map_surface(MOZ_CONTAINER(widget));
+#endif
 }
 
 void
@@ -367,7 +372,7 @@ moz_container_realize (GtkWidget *widget)
         GtkWidget* parent_widget = gtk_widget_get_parent(widget);
         if (parent_widget &&
             gtk_window_get_window_type(GTK_WINDOW(parent_widget)) == GTK_WINDOW_POPUP) {
-            //attributes.window_type = GDK_WINDOW_SUBSURFACE;
+            //attributes.window_type = GDK_WINDOW_TEMP;
         }
 #endif
         window = gdk_window_new (parent, &attributes, attributes_mask);
@@ -389,7 +394,7 @@ moz_container_realize (GtkWidget *widget)
     widget->style = gtk_style_attach (widget->style, widget->window);
 #endif
 #if defined(MOZ_WAYLAND)
-    moz_container_create_surface(MOZ_CONTAINER(widget));
+//    moz_container_create_surface(MOZ_CONTAINER(widget));
 #endif
 }
 
@@ -574,6 +579,7 @@ moz_container_add(GtkContainer *container, GtkWidget *widget)
 struct wl_surface*
 moz_container_get_wl_surface(MozContainer *container)
 {
+    // TODO -> map
     return container->surface;
 }
 #endif

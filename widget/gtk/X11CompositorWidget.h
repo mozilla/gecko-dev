@@ -59,13 +59,8 @@ protected:
 private:
   LayoutDeviceIntSize mClientSize;
 
-  bool     mIsX11Display;
   Display* mXDisplay;
   Window   mXWindow;
-#ifdef MOZ_WAYLAND
-  wl_display* mWaylandDisplay;
-  wl_surface* mWaylandSurface;
-#endif  
   WindowSurfaceProvider mProvider;
 };
 
