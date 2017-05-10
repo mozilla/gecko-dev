@@ -319,6 +319,7 @@ nsRetrievalContextWayland::nsRetrievalContextWayland(void)
     wl_registry_add_listener(wl_display_get_registry(mDisplay),
                              &clipboard_registry_listener, this);
     wl_display_roundtrip(mDisplay);
+    wl_display_roundtrip(mDisplay);
 
     // We don't have Wayland support here so just give up
     if (!mDataDeviceManager || !mSeat)
@@ -327,6 +328,10 @@ nsRetrievalContextWayland::nsRetrievalContextWayland(void)
     wl_data_device *dataDevice =
         wl_data_device_manager_get_data_device(mDataDeviceManager, mSeat);
     wl_data_device_add_listener(dataDevice, &data_device_listener, this);
+    // We have to call wl_display_roundtrip() twice otherwise data_offer_listener
+    // may not be processed because it's called from data_device_data_offer
+    // callback.
+    wl_display_roundtrip(mDisplay);
     wl_display_roundtrip(mDisplay);
 
     mInitialized = true;
