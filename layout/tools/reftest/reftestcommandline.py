@@ -142,6 +142,10 @@ class ReftestArgumentsParser(argparse.ArgumentParser):
                           default=None,
                           help=argparse.SUPPRESS)
 
+        self.add_argument("--marionette-startup-timeout",
+                          default=None,
+                          help=argparse.SUPPRESS)
+
         self.add_argument("--setenv",
                           action="append",
                           type=str,

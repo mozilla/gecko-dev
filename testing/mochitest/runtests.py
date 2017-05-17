@@ -2406,6 +2406,7 @@ toolbar#nav-bar {
                 'symbols_path': options.symbolsPath,
                 'socket_timeout': options.marionette_socket_timeout,
                 'port_timeout': options.marionette_port_timeout,
+                'startup_timeout': options.marionette_startup_timeout,
             }
 
             if options.marionette:
