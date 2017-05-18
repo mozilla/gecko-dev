@@ -245,7 +245,7 @@ needs-focus == selectors-4/focus-within-002.html selectors-4/focus-within-001-re
 needs-focus == selectors-4/focus-within-003.html selectors-4/focus-within-001-ref.html
 needs-focus == selectors-4/focus-within-004.html selectors-4/focus-within-001-ref.html
 needs-focus == selectors-4/focus-within-005.html selectors-4/focus-within-001-ref.html
-needs-focus == selectors-4/focus-within-006.html selectors-4/focus-within-001-ref.html
+needs-focus fuzzy-if(/^Windows\x20NT\x205\.1/.test(http.oscpu),1,2) == selectors-4/focus-within-006.html selectors-4/focus-within-001-ref.html
 fails needs-focus == selectors-4/focus-within-shadow-001.html selectors-4/focus-within-shadow-001-ref.html
 pref(dom.webcomponents.enabled,true) needs-focus == selectors-4/focus-within-shadow-002.html selectors-4/focus-within-shadow-001-ref.html
 pref(dom.webcomponents.enabled,true) needs-focus == selectors-4/focus-within-shadow-003.html selectors-4/focus-within-shadow-001-ref.html

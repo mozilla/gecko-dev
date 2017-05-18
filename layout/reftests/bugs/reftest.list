@@ -804,7 +804,7 @@ fuzzy-if(skiaContent,1,600) == 393649-1.html 393649-1-ref.html
 == 393671-2.html 393671-2-ref.html
 == 393671-3.html 393671-3-ref.html
 == 393760-1.xml 393760-1-ref.xml
-fuzzy-if(skiaContent,1,500) == 393760-2.xml 393760-2-ref.xml
+fuzzy-if(skiaContent,1,500) fuzzy-if(/^Windows\x20NT\x205\.1/.test(http.oscpu),2,396) == 393760-2.xml 393760-2-ref.xml
 == 394111-1.html about:blank  # Really an assertion test rather than a rendering test
 == 394534-1.html 394534-1-ref.html
 == 394676-1.xhtml 394676-1-ref.xhtml
@@ -964,7 +964,7 @@ fails == 413027-3.html 413027-3-ref.html
 == 413286-1b.html 413286-1-ref.html
 == 413286-1c.html 413286-1-ref.html
 == 413286-2a.html 413286-2-ref.html
-== 413286-2b.html 413286-2-ref.html
+fuzzy-if(/^Windows\x20NT\x205\.1/.test(http.oscpu),22,4) == 413286-2b.html 413286-2-ref.html
 == 413286-2c.html 413286-2-ref.html
 == 413286-3.html 413286-3-ref.html
 == 413286-4a.html 413286-4-ref.html
