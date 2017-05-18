@@ -1765,7 +1765,6 @@ MessageChannel::ShouldDeferInterruptMessage(const Message& aMsg, size_t aStackDe
     // Interrupt in-calls have raced. The winner, if there is one, gets to defer
     // processing of the other side's in-call.
     bool defer;
-    const char* winner;
     const MessageInfo parentMsgInfo =
         (mSide == ChildSide) ? MessageInfo(aMsg) : mInterruptStack.top();
     const MessageInfo childMsgInfo =
@@ -1773,11 +1772,9 @@ MessageChannel::ShouldDeferInterruptMessage(const Message& aMsg, size_t aStackDe
     switch (mListener->MediateInterruptRace(parentMsgInfo, childMsgInfo))
     {
         case RIPChildWins:
-            winner = "child";
             defer = (mSide == ChildSide);
             break;
         case RIPParentWins:
-            winner = "parent";
             defer = (mSide != ChildSide);
             break;
         case RIPError:
