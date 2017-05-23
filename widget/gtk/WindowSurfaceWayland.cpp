@@ -37,6 +37,8 @@ static nsWaylandDisplay* WaylandDisplayGet(wl_display *aDisplay);
 static void WaylandDisplayRelease(wl_display *aDisplay);
 static void WaylandDisplayLoop(wl_display *aDisplay);
 
+#define EVENT_LOOP_DELAY (1000/60)
+
 // Get WaylandDisplay for given wl_display and actual calling thread.
 static nsWaylandDisplay*
 WaylandDisplayGetLocked(wl_display *aDisplay, const StaticMutexAutoLock&)
@@ -102,8 +104,8 @@ WaylandDisplayLoopLocked(wl_display* aDisplay,
   for (int i = 0; i < len; i++) {
     if (gWaylandDisplays[i]->Matches(aDisplay)) {
       if (gWaylandDisplays[i]->DisplayLoop()) {
-        MessageLoop::current()->PostTask(
-            NewRunnableFunction(&WaylandDisplayLoop, aDisplay));
+        MessageLoop::current()->PostDelayedTask(
+            NewRunnableFunction(&WaylandDisplayLoop, aDisplay), EVENT_LOOP_DELAY);
       }
       break;
     }
@@ -175,14 +177,8 @@ nsWaylandDisplay::GetShm()
 bool
 nsWaylandDisplay::DisplayLoop()
 {
-  /* NoteThis function may dispatch other events being received on the given
-     queue. This function uses wl_display_dispatch_queue() internally.
-     If you are using wl_display_read_events() from more threads,
-     don't use this function (or make sure that calling wl_display_roundtrip_queue()
-     doesn't interfere with calling wl_display_prepare_read() and
-     wl_display_read_events()).
-  */
-  return wl_display_roundtrip_queue(mDisplay, mEventQueue) != -1;
+  wl_display_dispatch_queue_pending(mDisplay, mEventQueue);
+  return true;
 }
 
 bool
