@@ -5,21 +5,12 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        55.2
+Version:        55.3
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
 Group:          Applications/Internet
 Source0:        %{name}-%{version}.tar.gz
-Source10:       firefox-mozconfig
-Source12:       firefox-redhat-default-prefs.js
-Source20:       firefox-wayland.desktop
-Source21:       firefox-wayland.sh.in
-Source24:       mozilla-api-key
-Source26:       distribution.ini
-
-# Build patches
-Patch0:         firefox-install-dir.patch
 
 BuildRequires:  pkgconfig(libpng)
 BuildRequires:  zip
@@ -63,11 +54,10 @@ compliance, performance and portability.
 # Build patches, can't change backup suffix from default because during build
 # there is a compare of config and js/config directories and .orig suffix is
 # ignored during this compare.
-%patch0  -p1
+patch -p1 < firefox-install-dir.patch
 
 %{__rm} -f .mozconfig
-%{__cp} %{SOURCE10} .mozconfig
-%{__cp} %{SOURCE24} mozilla-api-key
+%{__cp} firefox-mozconfig .mozconfig
 
 echo "ac_add_options --enable-debug" >> .mozconfig
 %if !%{?optimized_build}
@@ -119,11 +109,11 @@ DESTDIR=$RPM_BUILD_ROOT make -C objdir install
 
 %{__mkdir_p} $RPM_BUILD_ROOT{%{_libdir},%{_bindir},%{_datadir}/applications}
 
-desktop-file-install --dir $RPM_BUILD_ROOT%{_datadir}/applications %{SOURCE20}
+desktop-file-install --dir $RPM_BUILD_ROOT%{_datadir}/applications firefox-wayland.desktop
 
 # set up the firefox start script
 %{__rm} -rf $RPM_BUILD_ROOT%{_bindir}/firefox
-%{__cat} %{SOURCE21} > $RPM_BUILD_ROOT%{_bindir}/firefox-wayland
+%{__cat} firefox-wayland.sh.in > $RPM_BUILD_ROOT%{_bindir}/firefox-wayland
 %{__chmod} 755 $RPM_BUILD_ROOT%{_bindir}/firefox-wayland
 
 %{__rm} -f $RPM_BUILD_ROOT/%{mozappdir}/firefox-config
@@ -191,11 +181,11 @@ EOF
 ln -s %{_datadir}/myspell ${RPM_BUILD_ROOT}%{mozappdir}/dictionaries
 
 # Default
-%{__cp} %{SOURCE12} ${RPM_BUILD_ROOT}%{mozappdir}/browser/defaults/preferences
+%{__cp} firefox-redhat-default-prefs.js ${RPM_BUILD_ROOT}%{mozappdir}/browser/defaults/preferences
 
 # Add distribution.ini
 %{__mkdir_p} ${RPM_BUILD_ROOT}%{mozappdir}/distribution
-%{__cp} %{SOURCE26} ${RPM_BUILD_ROOT}%{mozappdir}/distribution
+%{__cp} distribution.ini ${RPM_BUILD_ROOT}%{mozappdir}/distribution
 
 # Remove copied libraries to speed up build
 rm -f ${RPM_BUILD_ROOT}%{mozappdirdev}/sdk/lib/libmozjs.so
@@ -267,6 +257,9 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Wed May 24 2017 Martin Stransky <stransky@redhat.com> 55.3-1
+- Tweaked sources 
+
 * Wed May 24 2017 Martin Stransky <stransky@redhat.com> 55.2-1
 - Added build files (stransky@redhat.com)
 
