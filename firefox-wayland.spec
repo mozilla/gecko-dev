@@ -55,7 +55,7 @@ compliance, performance and portability.
 # there is a compare of config and js/config directories and .orig suffix is
 # ignored during this compare.
 pwd
-patch -p1 < firefox-install-dir.patch
+#patch -p1 < firefox-install-dir.patch
 
 %{__rm} -f .mozconfig
 %{__cp} firefox-mozconfig .mozconfig
