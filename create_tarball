@@ -1,0 +1,4 @@
+git clone https://github.com/stransky/gecko-dev.git
+cd gecko-dev
+git archive master | bzip2 > firefox-wayland.tar.bz2
+

@@ -1,0 +1,14 @@
+. $topsrcdir/browser/config/mozconfig
+
+ac_add_options --enable-default-toolkit=cairo-gtk3-wayland
+
+ac_add_options --prefix="$PREFIX"
+ac_add_options --libdir="$LIBDIR"
+ac_add_options --disable-strip
+ac_add_options --disable-tests
+ac_add_options --disable-updater
+ac_add_options --with-mozilla-api-keyfile=../mozilla-api-key
+ac_add_options --enable-release
+ac_add_options --disable-crashreporter
+
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/objdir

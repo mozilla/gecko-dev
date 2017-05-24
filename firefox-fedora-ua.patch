@@ -1,0 +1,21 @@
+diff -up firefox-35.0.1/mozilla-release/media/webrtc/trunk/Makefile.old firefox-35.0.1/mozilla-release/media/webrtc/trunk/Makefile
+diff -up firefox-35.0.1/mozilla-release/netwerk/protocol/http/nsHttpHandler.cpp.old firefox-35.0.1/mozilla-release/netwerk/protocol/http/nsHttpHandler.cpp
+--- firefox-35.0.1/mozilla-release/netwerk/protocol/http/nsHttpHandler.cpp.old	2015-01-23 07:00:06.000000000 +0100
++++ firefox-35.0.1/mozilla-release/netwerk/protocol/http/nsHttpHandler.cpp	2015-02-09 16:40:42.983220596 +0100
+@@ -607,7 +607,7 @@ nsHttpHandler::BuildUserAgent()
+     mUserAgent.SetCapacity(mLegacyAppName.Length() +
+                            mLegacyAppVersion.Length() +
+ #ifndef UA_SPARE_PLATFORM
+-                           mPlatform.Length() +
++                           mPlatform.Length() + 8 +
+ #endif
+                            mOscpu.Length() +
+                            mMisc.Length() +
+@@ -631,6 +631,7 @@ nsHttpHandler::BuildUserAgent()
+     if (!mPlatform.IsEmpty()) {
+       mUserAgent += mPlatform;
+       mUserAgent.AppendLiteral("; ");
++      mUserAgent.AppendLiteral("Fedora; ");
+     }
+ #endif
+     if (!mCompatDevice.IsEmpty()) {

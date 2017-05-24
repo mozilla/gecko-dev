@@ -1,0 +1,12 @@
+diff -up firefox-45.0/firefox-45.0/config/baseconfig.mk.orig firefox-45.0/firefox-45.0/config/baseconfig.mk
+--- firefox-45.0/config/baseconfig.mk.orig	2016-03-02 13:26:31.981927073 +0100
++++ firefox-45.0/config/baseconfig.mk	2016-03-02 13:30:09.044756473 +0100
+@@ -4,7 +4,7 @@
+ # whether a normal build is happening or whether the check is running.
+ includedir := $(includedir)/$(MOZ_APP_NAME)-$(MOZ_APP_VERSION)
+ idldir = $(datadir)/idl/$(MOZ_APP_NAME)-$(MOZ_APP_VERSION)
+-installdir = $(libdir)/$(MOZ_APP_NAME)-$(MOZ_APP_VERSION)
++installdir = $(libdir)/$(MOZ_APP_NAME)-wayland
+ sdkdir = $(libdir)/$(MOZ_APP_NAME)-devel-$(MOZ_APP_VERSION)
+ ifeq (.,$(DEPTH))
+ DIST = dist
