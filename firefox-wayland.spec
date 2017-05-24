@@ -258,14 +258,4 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
 %changelog
 * Wed May 24 2017 Martin Stransky <stransky@redhat.com> 55.3-1
-- Tweaked sources 
-
-* Wed May 24 2017 Martin Stransky <stransky@redhat.com> 55.2-1
-- Added build files (stransky@redhat.com)
-
-* Wed May 24 2017 Martin Stransky <stransky@redhat.com> 55.1-1
-- new package built with tito
-
-* Tue May 16 2017 Martin Stransky <stransky@redhat.com> - 53.0.2-5
-- Arm gcc6 build fix (mozbz#1337988)
-
+- Added tito build files
