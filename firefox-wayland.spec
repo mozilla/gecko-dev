@@ -49,13 +49,12 @@ compliance, performance and portability.
 #---------------------------------------------------------------------
 
 %prep
-%setup -q -c
+%setup -q
 
 # Build patches, can't change backup suffix from default because during build
 # there is a compare of config and js/config directories and .orig suffix is
 # ignored during this compare.
-pwd
-#patch -p1 < firefox-install-dir.patch
+patch -p1 < firefox-install-dir.patch
 
 %{__rm} -f .mozconfig
 %{__cp} firefox-mozconfig .mozconfig
