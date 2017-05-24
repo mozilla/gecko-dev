@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        55.1
+Version:        55.2
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -267,6 +267,9 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Wed May 24 2017 Martin Stransky <stransky@redhat.com> 55.2-1
+- Added build files (stransky@redhat.com)
+
 * Wed May 24 2017 Martin Stransky <stransky@redhat.com> 55.1-1
 - new package built with tito
 
