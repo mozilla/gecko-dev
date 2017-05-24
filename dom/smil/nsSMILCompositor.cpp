@@ -6,6 +6,7 @@
 
 #include "nsSMILCompositor.h"
 
+#include "nsComputedDOMStyle.h"
 #include "nsCSSProps.h"
 #include "nsHashKeys.h"
 #include "nsSMILCSSProperty.h"
@@ -54,9 +55,18 @@ nsSMILCompositor::ComposeAttribute(bool& aMightHavePendingStyleUpdates)
   if (!mKey.mElement)
     return;
 
+  // If we might need to resolve base styles, grab a suitable style context
+  // for initializing our nsISMILAttr with.
+  RefPtr<nsStyleContext> baseStyleContext;
+  if (MightNeedBaseStyle()) {
+    baseStyleContext =
+      nsComputedDOMStyle::GetUnanimatedStyleContextNoFlush(mKey.mElement,
+                                                           nullptr, nullptr);
+  }
+
   // FIRST: Get the nsISMILAttr (to grab base value from, and to eventually
   // give animated value to)
-  nsAutoPtr<nsISMILAttr> smilAttr(CreateSMILAttr());
+  UniquePtr<nsISMILAttr> smilAttr = CreateSMILAttr(baseStyleContext);
   if (!smilAttr) {
     // Target attribute not found (or, out of memory)
     return;
@@ -82,6 +92,8 @@ nsSMILCompositor::ComposeAttribute(bool& aMightHavePendingStyleUpdates)
   nsSMILValue sandwichResultValue;
   if (!mAnimationFunctions[firstFuncToCompose]->WillReplace()) {
     sandwichResultValue = smilAttr->GetBaseValue();
+    MOZ_ASSERT(!sandwichResultValue.IsNull(),
+               "Result of GetBaseValue should not be null");
   }
   UpdateCachedBaseValue(sandwichResultValue);
 
@@ -113,7 +125,7 @@ nsSMILCompositor::ClearAnimationEffects()
   if (!mKey.mElement || !mKey.mAttributeName)
     return;
 
-  nsAutoPtr<nsISMILAttr> smilAttr(CreateSMILAttr());
+  UniquePtr<nsISMILAttr> smilAttr = CreateSMILAttr(nullptr);
   if (!smilAttr) {
     // Target attribute not found (or, out of memory)
     return;
@@ -123,29 +135,71 @@ nsSMILCompositor::ClearAnimationEffects()
 
 // Protected Helper Functions
 // --------------------------
-nsISMILAttr*
-nsSMILCompositor::CreateSMILAttr()
+UniquePtr<nsISMILAttr>
+nsSMILCompositor::CreateSMILAttr(nsStyleContext* aBaseStyleContext)
 {
-  nsCSSPropertyID propID =
-    nsCSSProps::LookupProperty(nsDependentAtomString(mKey.mAttributeName),
-                               CSSEnabledState::eForAllContent);
-  if (nsSMILCSSProperty::IsPropertyAnimatable(propID)) {
-    // If we are animating the 'width' or 'height' of an outer SVG
-    // element we should animate it as a CSS property, but for other elements
-    // (e.g. <rect>) we should animate it as a length attribute.
-    // The easiest way to test for an outer SVG element, is to see if it is an
-    // SVG-namespace element mapping its width/height attribute to style.
-    bool animateAsAttr = (mKey.mAttributeName == nsGkAtoms::width ||
-                          mKey.mAttributeName == nsGkAtoms::height) &&
-                         mKey.mElement->GetNameSpaceID() == kNameSpaceID_SVG &&
-                         !mKey.mElement->IsAttributeMapped(mKey.mAttributeName);
-    if (!animateAsAttr) {
-      return new nsSMILCSSProperty(propID, mKey.mElement.get());
-    }
+  nsCSSPropertyID propID = GetCSSPropertyToAnimate();
+
+  if (propID != eCSSProperty_UNKNOWN) {
+    return MakeUnique<nsSMILCSSProperty>(propID, mKey.mElement.get(),
+                                         aBaseStyleContext);
   }
 
   return mKey.mElement->GetAnimatedAttr(mKey.mAttributeNamespaceID,
                                         mKey.mAttributeName);
+}
+
+nsCSSPropertyID
+nsSMILCompositor::GetCSSPropertyToAnimate() const
+{
+  if (mKey.mAttributeNamespaceID != kNameSpaceID_None) {
+    return eCSSProperty_UNKNOWN;
+  }
+
+  nsCSSPropertyID propID =
+    nsCSSProps::LookupProperty(nsDependentAtomString(mKey.mAttributeName),
+                               CSSEnabledState::eForAllContent);
+
+  if (!nsSMILCSSProperty::IsPropertyAnimatable(propID)) {
+    return eCSSProperty_UNKNOWN;
+  }
+
+  // If we are animating the 'width' or 'height' of an outer SVG
+  // element we should animate it as a CSS property, but for other elements
+  // (e.g. <rect>) we should animate it as a length attribute.
+  // The easiest way to test for an outer SVG element, is to see if it is an
+  // SVG-namespace element mapping its width/height attribute to style.
+  //
+  // If we have animation of 'width' or 'height' on an SVG element that is
+  // NOT mapping that attributes to style then it must not be an outermost SVG
+  // element so we should return eCSSProperty_UNKNOWN to indicate that we
+  // should animate as an attribute instead.
+  if ((mKey.mAttributeName == nsGkAtoms::width ||
+       mKey.mAttributeName == nsGkAtoms::height) &&
+      mKey.mElement->GetNameSpaceID() == kNameSpaceID_SVG &&
+      !mKey.mElement->IsAttributeMapped(mKey.mAttributeName)) {
+    return eCSSProperty_UNKNOWN;
+  }
+
+  return propID;
+}
+
+bool
+nsSMILCompositor::MightNeedBaseStyle() const
+{
+  if (GetCSSPropertyToAnimate() == eCSSProperty_UNKNOWN) {
+    return false;
+  }
+
+  // We should return true if at least one animation function might build on
+  // the base value.
+  for (const nsSMILAnimationFunction* func : mAnimationFunctions) {
+    if (!func->WillReplace()) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 uint32_t
@@ -198,14 +252,9 @@ nsSMILCompositor::GetFirstFuncToAffectSandwich()
 void
 nsSMILCompositor::UpdateCachedBaseValue(const nsSMILValue& aBaseValue)
 {
-  if (!mCachedBaseValue) {
-    // We don't have last sample's base value cached. Assume it's changed.
-    mCachedBaseValue = new nsSMILValue(aBaseValue);
-    NS_WARNING_ASSERTION(mCachedBaseValue, "failed to cache base value (OOM?)");
-    mForceCompositing = true;
-  } else if (*mCachedBaseValue != aBaseValue) {
+  if (mCachedBaseValue != aBaseValue) {
     // Base value has changed since last sample.
-    *mCachedBaseValue = aBaseValue;
+    mCachedBaseValue = aBaseValue;
     mForceCompositing = true;
   }
 }

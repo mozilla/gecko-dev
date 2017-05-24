@@ -11,6 +11,7 @@
 #include "mozilla/RangedArray.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/ServoBindingTypes.h"
+#include "mozilla/ServoComputedValuesWithParent.h"
 #include "mozilla/StyleAnimationValue.h"
 #include "mozilla/TimingParams.h"
 #include "mozilla/dom/BaseKeyframeTypesBinding.h" // For FastBaseKeyframe etc.
@@ -469,9 +470,7 @@ KeyframeUtils::GetKeyframesFromObject(JSContext* aCx,
     return keyframes;
   }
 
-  // FIXME: Bug 1311257: Support missing keyframes for Servo backend.
-  if ((!AnimationUtils::IsCoreAPIEnabled() ||
-       aDocument->IsStyledByServo()) &&
+  if (!AnimationUtils::IsCoreAPIEnabled() &&
       RequiresAdditiveAnimation(keyframes, aDocument)) {
     keyframes.Clear();
     aRv.Throw(NS_ERROR_DOM_ANIM_MISSING_PROPS_ERR);
@@ -729,6 +728,25 @@ KeyframeUtils::IsAnimatableProperty(nsCSSPropertyID aProperty)
   }
 
   return false;
+}
+
+/* static */ already_AddRefed<RawServoDeclarationBlock>
+KeyframeUtils::ParseProperty(nsCSSPropertyID aProperty,
+                             const nsAString& aValue,
+                             nsIDocument* aDocument)
+{
+  MOZ_ASSERT(aDocument);
+
+  NS_ConvertUTF16toUTF8 value(aValue);
+  // FIXME this is using the wrong base uri (bug 1343919)
+  RefPtr<URLExtraData> data = new URLExtraData(aDocument->GetDocumentURI(),
+                                               aDocument->GetDocumentURI(),
+                                               aDocument->NodePrincipal());
+  return Servo_ParseProperty(aProperty,
+                             &value,
+                             data,
+                             ParsingMode::Default,
+                             aDocument->GetCompatibilityMode()).Consume();
 }
 
 // ------------------------------------------------------------------
@@ -1016,24 +1034,13 @@ MakePropertyValuePair(nsCSSPropertyID aProperty, const nsAString& aStringValue,
   result.mProperty = aProperty;
 
   if (aDocument->GetStyleBackendType() == StyleBackendType::Servo) {
-    nsCString name = nsCSSProps::GetStringValue(aProperty);
-
-    NS_ConvertUTF16toUTF8 value(aStringValue);
-
-    nsCString baseString;
-    // FIXME this is using the wrong base uri (bug 1343919)
-    GeckoParserExtraData data(aDocument->GetDocumentURI(),
-                              aDocument->GetDocumentURI(),
-                              aDocument->NodePrincipal());
-    aDocument->GetDocumentURI()->GetSpec(baseString);
-
     RefPtr<RawServoDeclarationBlock> servoDeclarationBlock =
-      Servo_ParseProperty(&name, &value, &baseString, &data).Consume();
+      KeyframeUtils::ParseProperty(aProperty, aStringValue, aDocument);
 
     if (servoDeclarationBlock) {
       result.mServoDeclarationBlock = servoDeclarationBlock.forget();
-      return result;
     }
+    return result;
   }
 
   nsCSSValue value;
@@ -1067,13 +1074,6 @@ MakePropertyValuePair(nsCSSPropertyID aProperty, const nsAString& aStringValue,
                "The shorthand property of a token stream should be initialized"
                " to unknown");
     value.SetTokenStreamValue(tokenStream);
-  } else {
-    // If we succeeded in parsing with Gecko, but not Servo the animation is
-    // not going to work since, for the purposes of animation, we're going to
-    // ignore |mValue| when the backend is Servo.
-    NS_WARNING_ASSERTION(aDocument->GetStyleBackendType() !=
-                           StyleBackendType::Servo,
-                         "Gecko succeeded in parsing where Servo failed");
   }
 
   result.mValue = value;
@@ -1452,8 +1452,6 @@ GetKeyframeListFromPropertyIndexedKeyframe(JSContext* aCx,
     return;
   }
 
-  bool isServoBackend = aDocument->IsStyledByServo();
-
   // Create a set of keyframes for each property.
   nsCSSParser parser(aDocument->CSSLoader());
   nsClassHashtable<nsFloatHashKey, Keyframe> processedKeyframes;
@@ -1466,9 +1464,8 @@ GetKeyframeListFromPropertyIndexedKeyframe(JSContext* aCx,
 
     // If we only have one value, we should animate from the underlying value
     // using additive animation--however, we don't support additive animation
-    // for Servo backend (bug 1311257) or when the core animation API pref is
-    // switched off.
-    if ((!AnimationUtils::IsCoreAPIEnabled() || isServoBackend) &&
+    // when the core animation API pref is switched off.
+    if ((!AnimationUtils::IsCoreAPIEnabled()) &&
         count == 1) {
       aRv.Throw(NS_ERROR_DOM_ANIM_MISSING_PROPS_ERR);
       return;

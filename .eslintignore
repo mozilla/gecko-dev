@@ -9,7 +9,6 @@ obj*/**
 # below.
 addon-sdk/**
 build/**
-caps/**
 chrome/**
 config/**
 db/**
@@ -55,24 +54,28 @@ b2g/locales/en-US/b2g-l10n.js
 # browser/ exclusions
 browser/app/**
 browser/branding/**/firefox-branding.js
-browser/base/content/nsContextMenu.js
-browser/base/content/sanitizeDialog.js
 browser/base/content/test/general/file_csp_block_all_mixedcontent.html
+# Gzipped test file.
+browser/base/content/test/general/gZipOfflineChild.html
 browser/base/content/test/urlbar/file_blank_but_not_blank.html
 browser/base/content/newtab/**
-browser/components/downloads/**
 # Test files that are really json not js, and don't need to be linted.
 browser/components/sessionstore/test/unit/data/sessionstore_valid.js
 browser/components/sessionstore/test/unit/data/sessionstore_invalid.js
 browser/components/tabview/**
 # generated & special files in cld2
 browser/components/translation/cld2/**
+# Screenshots is imported as a system add-on and has its own lint rules currently.
+browser/extensions/screenshots/**
 browser/extensions/pdfjs/content/build**
 browser/extensions/pdfjs/content/web**
 # generated or library files in pocket
 browser/extensions/pocket/content/panels/js/tmpl.js
 browser/extensions/pocket/content/panels/js/vendor/**
 browser/locales/**
+# generated or library files in activity-stream
+browser/extensions/activity-stream/data/content/activity-stream.bundle.js
+browser/extensions/activity-stream/vendor/**
 # imported from chromium
 browser/extensions/mortar/**
 
@@ -81,6 +84,8 @@ devtools/client/canvasdebugger/**
 devtools/client/commandline/**
 devtools/client/debugger/**
 devtools/client/framework/**
+!devtools/client/framework/devtools.js
+!devtools/client/framework/devtools-browser.js
 !devtools/client/framework/selection.js
 !devtools/client/framework/target*
 !devtools/client/framework/toolbox*
@@ -123,11 +128,6 @@ devtools/client/webconsole/webconsole-connection-proxy.js
 devtools/client/webconsole/webconsole.js
 devtools/client/webide/**
 !devtools/client/webide/components/webideCli.js
-devtools/server/actors/webconsole.js
-devtools/server/actors/object.js
-devtools/server/actors/script.js
-devtools/server/actors/styleeditor.js
-devtools/server/actors/stylesheets.js
 devtools/server/tests/browser/storage-*.html
 !devtools/server/tests/browser/storage-unsecured-iframe.html
 devtools/server/tests/browser/stylesheets-nested-iframes.html
@@ -172,6 +172,7 @@ devtools/client/debugger/test/mochitest/code_math_bogus_map.js
 devtools/client/debugger/test/mochitest/code_ugly*
 devtools/client/debugger/test/mochitest/code_worker-source-map.js
 devtools/client/framework/test/code_ugly*
+devtools/client/inspector/markup/test/events_bundle.js
 devtools/server/tests/unit/babel_and_browserify_script_with_source_map.js
 devtools/server/tests/unit/setBreakpoint*
 devtools/server/tests/unit/sourcemapped.js
@@ -257,9 +258,10 @@ js/src/devtools/**
 js/src/octane/**
 js/src/jit-test/**
 js/src/tests/**
+js/src/Y.js
 
 # mobile/android/ exclusions
-mobile/android/tests/
+mobile/android/tests/browser/chrome/tp5/**
 
 # Uses `#filter substitution`
 mobile/android/b2gdroid/app/b2gdroid.js
@@ -330,3 +332,4 @@ toolkit/webapps/**
 
 # Third party
 toolkit/modules/third_party/**
+third_party/**

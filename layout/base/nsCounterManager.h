@@ -79,22 +79,21 @@ struct nsCounterUseNode : public nsCounterNode {
     // The same structure passed through the style system:  an array
     // containing the values in the counter() or counters() in the order
     // given in the CSS spec.
-    RefPtr<nsCSSValue::ThreadSafeArray> mCounterFunction;
+    RefPtr<nsCSSValue::Array> mCounterFunction;
 
     nsPresContext* mPresContext;
-    RefPtr<mozilla::CounterStyle> mCounterStyle;
+    mozilla::CounterStylePtr mCounterStyle;
 
     // false for counter(), true for counters()
     bool mAllCounters;
 
     // args go directly to member variables here and of nsGenConNode
     nsCounterUseNode(nsPresContext* aPresContext,
-                     nsCSSValue::ThreadSafeArray* aCounterFunction,
+                     nsCSSValue::Array* aCounterFunction,
                      uint32_t aContentIndex, bool aAllCounters)
         : nsCounterNode(aContentIndex, USE)
         , mCounterFunction(aCounterFunction)
         , mPresContext(aPresContext)
-        , mCounterStyle(nullptr)
         , mAllCounters(aAllCounters)
     {
         NS_ASSERTION(aContentIndex <= INT32_MAX, "out of range");

@@ -12,6 +12,8 @@
 namespace mozilla {
 namespace layers {
 
+class WebRenderBridgeParent;
+
 /**
  * ImageHost. Works with ImageClientSingle and ImageClientBuffered
  */
@@ -65,9 +67,23 @@ public:
 
   virtual WebRenderImageHost* AsWebRenderImageHost() override { return this; }
 
+  TextureHost* GetAsTextureHostForComposite();
+
+  void SetWrBridge(WebRenderBridgeParent* aWrBridge);
+
+  void ClearWrBridge();
+
 protected:
   // ImageComposite
   virtual TimeStamp GetCompositionTime() const override;
+
+  void SetCurrentTextureHost(TextureHost* aTexture);
+
+  WebRenderBridgeParent* MOZ_NON_OWNING_REF mWrBridge;
+
+  uint32_t mWrBridgeBindings;
+
+  CompositableTextureHostRef mCurrentTextureHost;
 };
 
 } // namespace layers

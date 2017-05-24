@@ -41,7 +41,6 @@
 #include "nsIFrame.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsFocusManager.h"
-#include "nsThreadUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -73,11 +72,11 @@ nsFormFillController::nsFormFillController() :
   // The amount of time a context menu event supresses showing a
   // popup from a focus event in ms. This matches the threshold in
   // toolkit/components/passwordmgr/LoginManagerContent.jsm.
-  mFocusAfterContextMenuThreshold(400),
+  mFocusAfterRightClickThreshold(400),
   mTimeout(50),
   mMinResultsForPopup(1),
   mMaxRows(0),
-  mLastContextMenuEventTimeStamp(TimeStamp()),
+  mLastRightClickTimeStamp(TimeStamp()),
   mDisableAutoComplete(false),
   mCompleteDefaultIndex(false),
   mCompleteSelectedIndex(false),
@@ -301,8 +300,9 @@ nsFormFillController::MarkAsLoginManagerField(nsIDOMHTMLInputElement *aInput)
     }
   }
 
-  if (!mLoginManager)
+  if (!mLoginManager) {
     mLoginManager = do_GetService("@mozilla.org/login-manager;1");
+  }
 
   return NS_OK;
 }
@@ -323,6 +323,9 @@ nsFormFillController::MarkAsAutofillField(nsIDOMHTMLInputElement *aInput)
 
   mAutofillInputs.Put(node, true);
   node->AddMutationObserverUnlessExists(this);
+
+  nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(aInput);
+  txtCtrl->EnablePreview();
 
   nsFocusManager *fm = nsFocusManager::GetFocusManager();
   if (fm) {
@@ -365,10 +368,11 @@ nsFormFillController::GetController(nsIAutoCompleteController **aController)
 NS_IMETHODIMP
 nsFormFillController::GetPopupOpen(bool *aPopupOpen)
 {
-  if (mFocusedPopup)
+  if (mFocusedPopup) {
     mFocusedPopup->GetPopupOpen(aPopupOpen);
-  else
+  } else {
     *aPopupOpen = false;
+  }
   return NS_OK;
 }
 
@@ -397,8 +401,9 @@ nsFormFillController::SetPopupOpen(bool aPopupOpen)
         nsCOMPtr<nsIDOMElement> element = do_QueryInterface(mFocusedInput);
         mFocusedPopup->OpenAutocompletePopup(this, element);
       }
-    } else
+    } else {
       mFocusedPopup->ClosePopup();
+    }
   }
 
   return NS_OK;
@@ -740,8 +745,9 @@ nsFormFillController::StartSearch(const nsAString &aSearchString, const nsAStrin
   // If the login manager has indicated it's responsible for this field, let it
   // handle the autocomplete. Otherwise, handle with form history.
   // This method is sometimes called in unit tests and from XUL without a focused node.
-  if (mFocusedInputNode && (mPwmgrInputs.Get(mFocusedInputNode) ||
-                            formControl->GetType() == NS_FORM_INPUT_PASSWORD)) {
+  if (mFocusedInputNode &&
+      (mPwmgrInputs.Get(mFocusedInputNode) ||
+       formControl->ControlType() == NS_FORM_INPUT_PASSWORD)) {
 
     // Handle the case where a password field is focused but
     // MarkAsLoginManagerField wasn't called because password manager is disabled.
@@ -827,60 +833,18 @@ nsFormFillController::PerformInputListAutoComplete(const nsAString& aSearch,
   return NS_OK;
 }
 
-class UpdateSearchResultRunnable : public mozilla::Runnable
-{
-public:
-  UpdateSearchResultRunnable(nsIAutoCompleteObserver* aObserver,
-                             nsIAutoCompleteSearch* aSearch,
-                             nsIAutoCompleteResult* aResult)
-    : mObserver(aObserver)
-    , mSearch(aSearch)
-    , mResult(aResult)
-  {
-    MOZ_ASSERT(mResult, "Should have a valid result");
-    MOZ_ASSERT(mObserver, "You shouldn't call this runnable with a null observer!");
-  }
-
-  NS_IMETHOD Run() override {
-    mObserver->OnUpdateSearchResult(mSearch, mResult);
-    return NS_OK;
-  }
-
-private:
-  nsCOMPtr<nsIAutoCompleteObserver> mObserver;
-  nsCOMPtr<nsIAutoCompleteSearch> mSearch;
-  nsCOMPtr<nsIAutoCompleteResult> mResult;
-};
-
 void nsFormFillController::RevalidateDataList()
 {
   if (!mLastListener) {
     return;
   }
 
-  if (XRE_IsContentProcess()) {
-    nsCOMPtr<nsIAutoCompleteController> controller(do_QueryInterface(mLastListener));
-    if (!controller) {
-      return;
-    }
-
-    controller->StartSearch(mLastSearchString);
+  nsCOMPtr<nsIAutoCompleteController> controller(do_QueryInterface(mLastListener));
+  if (!controller) {
     return;
   }
 
-  nsresult rv;
-  nsCOMPtr <nsIInputListAutoComplete> inputListAutoComplete =
-    do_GetService("@mozilla.org/satchel/inputlist-autocomplete;1", &rv);
-
-  nsCOMPtr<nsIAutoCompleteResult> result;
-
-  rv = inputListAutoComplete->AutoCompleteSearch(mLastSearchString,
-                                                 mFocusedInput,
-                                                 getter_AddRefs(result));
-
-  nsCOMPtr<nsIRunnable> event =
-    new UpdateSearchResultRunnable(mLastListener, this, result);
-  NS_DispatchToCurrentThread(event);
+  controller->StartSearch(mLastSearchString);
 }
 
 NS_IMETHODIMP
@@ -939,40 +903,43 @@ nsFormFillController::HandleEvent(nsIDOMEvent* aEvent)
            mController->HandleText(&unused) : NS_OK;
   }
   if (type.EqualsLiteral("blur")) {
-    if (mFocusedInput)
+    if (mFocusedInput) {
       StopControllingInput();
+    }
     return NS_OK;
   }
   if (type.EqualsLiteral("compositionstart")) {
     NS_ASSERTION(mController, "should have a controller!");
-    if (mController && mFocusedInput)
+    if (mController && mFocusedInput) {
       mController->HandleStartComposition();
+    }
     return NS_OK;
   }
   if (type.EqualsLiteral("compositionend")) {
     NS_ASSERTION(mController, "should have a controller!");
-    if (mController && mFocusedInput)
+    if (mController && mFocusedInput) {
       mController->HandleEndComposition();
+    }
     return NS_OK;
   }
   if (type.EqualsLiteral("contextmenu")) {
-    // Set timestamp to check for a recent contextmenu
-    // call in Focus(), to avoid showing the popup.
-    mLastContextMenuEventTimeStamp = TimeStamp::Now();
-    if (mFocusedPopup)
+    if (mFocusedPopup) {
       mFocusedPopup->ClosePopup();
+    }
     return NS_OK;
   }
   if (type.EqualsLiteral("pagehide")) {
 
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(
       aEvent->InternalDOMEvent()->GetTarget());
-    if (!doc)
+    if (!doc) {
       return NS_OK;
+    }
 
     if (mFocusedInput) {
-      if (doc == mFocusedInputNode->OwnerDoc())
+      if (doc == mFocusedInputNode->OwnerDoc()) {
         StopControllingInput();
+      }
     }
 
     RemoveForDocument(doc);
@@ -1013,17 +980,20 @@ void
 nsFormFillController::MaybeStartControllingInput(nsIDOMHTMLInputElement* aInput)
 {
   nsCOMPtr<nsINode> inputNode = do_QueryInterface(aInput);
-  if (!inputNode)
+  if (!inputNode) {
     return;
+  }
 
   nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aInput);
-  if (!formControl || !formControl->IsSingleLineTextControl(false))
+  if (!formControl || !formControl->IsSingleLineTextControl(false)) {
     return;
+  }
 
   bool isReadOnly = false;
   aInput->GetReadOnly(&isReadOnly);
-  if (isReadOnly)
+  if (isReadOnly) {
     return;
+  }
 
   bool autocomplete = nsContentUtils::IsAutocompleteEnabled(aInput);
 
@@ -1033,39 +1003,12 @@ nsFormFillController::MaybeStartControllingInput(nsIDOMHTMLInputElement* aInput)
 
   bool isPwmgrInput = false;
   if (mPwmgrInputs.Get(inputNode) ||
-      formControl->GetType() == NS_FORM_INPUT_PASSWORD) {
+      formControl->ControlType() == NS_FORM_INPUT_PASSWORD) {
     isPwmgrInput = true;
   }
 
   if (isPwmgrInput || hasList || autocomplete) {
     StartControllingInput(aInput);
-  }
-}
-
-void
-nsFormFillController::FocusEventDelayedCallback(nsIFormControl* aFormControl)
-{
-  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(mFocusedInputNode);
-
-  if (!formControl || formControl != aFormControl ||
-      formControl->GetType() != NS_FORM_INPUT_PASSWORD) {
-    return;
-  }
-
-  // If we have not seen a context menu call yet, just show the popup.
-  if (mLastContextMenuEventTimeStamp.IsNull()) {
-   ShowPopup();
-   return;
-  }
-
-  uint64_t timeDiff = fabs((TimeStamp::Now() - mLastContextMenuEventTimeStamp).ToMilliseconds());
-  // If this focus doesn't follow a contextmenu event within our specified
-  // threshold then show the autocomplete popup for all password fields.
-  // This is done to avoid showing both the context menu and the popup
-  // at the same time. The threshold should be a low amount of time that
-  // makes it impossible for the user to accidentally trigger this condition.
-  if (timeDiff > mFocusAfterContextMenuThreshold) {
-   ShowPopup();
   }
 }
 
@@ -1085,8 +1028,28 @@ nsFormFillController::Focus(nsIDOMEvent* aEvent)
   nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(mFocusedInputNode);
   MOZ_ASSERT(formControl);
 
-  NS_DispatchToMainThread(NewRunnableMethod<nsCOMPtr<nsIFormControl>>(
-      this, &nsFormFillController::FocusEventDelayedCallback, formControl));
+  // If this focus doesn't follow a right click within our specified
+  // threshold then show the autocomplete popup for all password fields.
+  // This is done to avoid showing both the context menu and the popup
+  // at the same time.
+  // We use a timestamp instead of a bool to avoid complexity when dealing with
+  // multiple input forms and the fact that a mousedown into an already focused
+  // field does not trigger another focus.
+
+  if (formControl->ControlType() != NS_FORM_INPUT_PASSWORD) {
+    return NS_OK;
+  }
+
+  // If we have not seen a right click yet, just show the popup.
+  if (mLastRightClickTimeStamp.IsNull()) {
+    ShowPopup();
+    return NS_OK;
+  }
+
+  uint64_t timeDiff = (TimeStamp::Now() - mLastRightClickTimeStamp).ToMilliseconds();
+  if (timeDiff > mFocusAfterRightClickThreshold) {
+    ShowPopup();
+  }
 #endif
 
   return NS_OK;
@@ -1096,12 +1059,14 @@ nsresult
 nsFormFillController::KeyPress(nsIDOMEvent* aEvent)
 {
   NS_ASSERTION(mController, "should have a controller!");
-  if (!mFocusedInput || !mController)
+  if (!mFocusedInput || !mController) {
     return NS_OK;
+  }
 
   nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aEvent);
-  if (!keyEvent)
+  if (!keyEvent) {
     return NS_ERROR_FAILURE;
+  }
 
   bool cancel = false;
   bool unused = false;
@@ -1138,8 +1103,9 @@ nsFormFillController::KeyPress(nsIDOMEvent* aEvent)
       keyEvent->GetCtrlKey(&isCtrl);
       keyEvent->GetAltKey(&isAlt);
       keyEvent->GetMetaKey(&isMeta);
-      if (isCtrl || isAlt || isMeta)
+      if (isCtrl || isAlt || isMeta) {
         break;
+      }
     }
     MOZ_FALLTHROUGH;
   case nsIDOMKeyEvent::DOM_VK_UP:
@@ -1208,18 +1174,30 @@ nsresult
 nsFormFillController::MouseDown(nsIDOMEvent* aEvent)
 {
   nsCOMPtr<nsIDOMMouseEvent> mouseEvent(do_QueryInterface(aEvent));
-  if (!mouseEvent)
+  if (!mouseEvent) {
     return NS_ERROR_FAILURE;
+  }
 
   nsCOMPtr<nsIDOMHTMLInputElement> targetInput = do_QueryInterface(
     aEvent->InternalDOMEvent()->GetTarget());
-  if (!targetInput)
+  if (!targetInput) {
     return NS_OK;
+  }
 
   int16_t button;
   mouseEvent->GetButton(&button);
-  if (button != 0)
+
+  // In case of a right click we set a timestamp that
+  // will be checked in Focus() to avoid showing
+  // both contextmenu and popup at the same time.
+  if (button == 2) {
+    mLastRightClickTimeStamp = TimeStamp::Now();
     return NS_OK;
+  }
+
+  if (button != 0) {
+    return NS_OK;
+  }
 
   return ShowPopup();
 }
@@ -1235,8 +1213,9 @@ nsFormFillController::ShowPopup()
 
   nsCOMPtr<nsIAutoCompleteInput> input;
   mController->GetInput(getter_AddRefs(input));
-  if (!input)
+  if (!input) {
     return NS_OK;
+  }
 
   nsAutoString value;
   input->GetTextValue(value);
@@ -1261,13 +1240,15 @@ nsFormFillController::ShowPopup()
 void
 nsFormFillController::AddWindowListeners(nsPIDOMWindowOuter* aWindow)
 {
-  if (!aWindow)
+  if (!aWindow) {
     return;
+  }
 
   EventTarget* target = aWindow->GetChromeEventHandler();
 
-  if (!target)
+  if (!target) {
     return;
+  }
 
   target->AddEventListener(NS_LITERAL_STRING("focus"), this,
                            true, false);
@@ -1294,8 +1275,9 @@ nsFormFillController::AddWindowListeners(nsPIDOMWindowOuter* aWindow)
 void
 nsFormFillController::RemoveWindowListeners(nsPIDOMWindowOuter* aWindow)
 {
-  if (!aWindow)
+  if (!aWindow) {
     return;
+  }
 
   StopControllingInput();
 
@@ -1304,8 +1286,9 @@ nsFormFillController::RemoveWindowListeners(nsPIDOMWindowOuter* aWindow)
 
   EventTarget* target = aWindow->GetChromeEventHandler();
 
-  if (!target)
+  if (!target) {
     return;
+  }
 
   target->RemoveEventListener(NS_LITERAL_STRING("focus"), this, true);
   target->RemoveEventListener(NS_LITERAL_STRING("blur"), this, true);
@@ -1333,8 +1316,9 @@ nsFormFillController::StartControllingInput(nsIDOMHTMLInputElement *aInput)
   // Find the currently focused docShell
   nsCOMPtr<nsIDocShell> docShell = GetDocShellForInput(aInput);
   int32_t index = GetIndexOfDocShell(docShell);
-  if (index < 0)
+  if (index < 0) {
     return;
+  }
 
   // Cache the popup for the focused docShell
   mFocusedPopup = mPopups.SafeElementAt(index);
@@ -1373,8 +1357,9 @@ nsFormFillController::StopControllingInput()
     // focus by clicking another autocomplete textbox
     nsCOMPtr<nsIAutoCompleteInput> input;
     mController->GetInput(getter_AddRefs(input));
-    if (input == this)
+    if (input == this) {
       mController->SetInput(nullptr);
+    }
   }
 
   if (mFocusedInputNode) {
@@ -1427,14 +1412,16 @@ nsFormFillController::GetWindowForDocShell(nsIDocShell *aDocShell)
 int32_t
 nsFormFillController::GetIndexOfDocShell(nsIDocShell *aDocShell)
 {
-  if (!aDocShell)
+  if (!aDocShell) {
     return -1;
+  }
 
   // Loop through our cached docShells looking for the given docShell
   uint32_t count = mDocShells.Length();
   for (uint32_t i = 0; i < count; ++i) {
-    if (mDocShells[i] == aDocShell)
+    if (mDocShells[i] == aDocShell) {
       return i;
+    }
   }
 
   // Recursively check the parent docShell of this one

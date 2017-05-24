@@ -12,14 +12,19 @@
 #include "mozilla/dom/MediaKeyMessageEventBinding.h"
 #include "content_decryption_module.h"
 #include "GMPLog.h"
+#include "MediaPrefs.h"
+#include "GMPUtils.h"
 
 namespace mozilla {
 namespace gmp {
+
+using namespace eme;
 
 ChromiumCDMParent::ChromiumCDMParent(GMPContentParent* aContentParent,
                                      uint32_t aPluginId)
   : mPluginId(aPluginId)
   , mContentParent(aContentParent)
+  , mVideoShmemLimit(MediaPrefs::EMEChromiumAPIVideoShmemCount())
 {
   GMP_LOG(
     "ChromiumCDMParent::ChromiumCDMParent(this=%p, contentParent=%p, id=%u)",
@@ -169,8 +174,9 @@ ChromiumCDMParent::RemoveSession(const nsCString& aSessionId,
   }
 }
 
-static bool
-InitCDMInputBuffer(gmp::CDMInputBuffer& aBuffer, MediaRawData* aSample)
+bool
+ChromiumCDMParent::InitCDMInputBuffer(gmp::CDMInputBuffer& aBuffer,
+                                      MediaRawData* aSample)
 {
   const CryptoSample& crypto = aSample->mCrypto;
   if (crypto.mEncryptedSizes.Length() != crypto.mPlainSizes.Length()) {
@@ -178,17 +184,34 @@ InitCDMInputBuffer(gmp::CDMInputBuffer& aBuffer, MediaRawData* aSample)
     return false;
   }
 
-  nsTArray<uint8_t> data;
-  data.AppendElements(aSample->Data(), aSample->Size());
+  Shmem shmem;
+  if (!AllocShmem(aSample->Size(), Shmem::SharedMemory::TYPE_BASIC, &shmem)) {
+    return false;
+  }
+  memcpy(shmem.get<uint8_t>(), aSample->Data(), aSample->Size());
 
-  aBuffer = gmp::CDMInputBuffer(data,
+  aBuffer = gmp::CDMInputBuffer(shmem,
                                 crypto.mKeyId,
                                 crypto.mIV,
-                                aSample->mTime,
-                                aSample->mDuration,
+                                aSample->mTime.ToMicroseconds(),
+                                aSample->mDuration.ToMicroseconds(),
                                 crypto.mPlainSizes,
                                 crypto.mEncryptedSizes,
                                 crypto.mValid);
+  return true;
+}
+
+bool
+ChromiumCDMParent::SendBufferToCDM(uint32_t aSizeInBytes)
+{
+  Shmem shmem;
+  if (!AllocShmem(aSizeInBytes, Shmem::SharedMemory::TYPE_BASIC, &shmem)) {
+    return false;
+  }
+  if (!SendGiveBuffer(shmem)) {
+    DeallocShmem(shmem);
+    return false;
+  }
   return true;
 }
 
@@ -204,11 +227,20 @@ ChromiumCDMParent::Decrypt(MediaRawData* aSample)
     return DecryptPromise::CreateAndReject(DecryptResult(GenericErr, aSample),
                                            __func__);
   }
+  // Send a buffer to the CDM to store the output. The CDM will either fill
+  // it with the decrypted sample and return it, or deallocate it on failure.
+  if (!SendBufferToCDM(aSample->Size())) {
+    DeallocShmem(buffer.mData());
+    return DecryptPromise::CreateAndReject(DecryptResult(GenericErr, aSample),
+                                           __func__);
+  }
+
   RefPtr<DecryptJob> job = new DecryptJob(aSample);
   if (!SendDecrypt(job->mId, buffer)) {
     GMP_LOG(
       "ChromiumCDMParent::Decrypt(this=%p) failed to send decrypt message",
       this);
+    DeallocShmem(buffer.mData());
     return DecryptPromise::CreateAndReject(DecryptResult(GenericErr, aSample),
                                            __func__);
   }
@@ -517,21 +549,22 @@ ToDecryptStatus(uint32_t aError)
 }
 
 ipc::IPCResult
-ChromiumCDMParent::RecvDecrypted(const uint32_t& aId,
-                                 const uint32_t& aStatus,
-                                 nsTArray<uint8_t>&& aData)
+ChromiumCDMParent::RecvDecryptFailed(const uint32_t& aId,
+                                     const uint32_t& aStatus)
 {
-  GMP_LOG("ChromiumCDMParent::RecvDecrypted(this=%p, id=%u, status=%u)",
+  GMP_LOG("ChromiumCDMParent::RecvDecryptFailed(this=%p, id=%u, status=%u)",
           this,
           aId,
           aStatus);
+
   if (mIsShutdown) {
     MOZ_ASSERT(mDecrypts.IsEmpty());
     return IPC_OK();
   }
+
   for (size_t i = 0; i < mDecrypts.Length(); i++) {
     if (mDecrypts[i]->mId == aId) {
-      mDecrypts[i]->PostResult(ToDecryptStatus(aStatus), aData);
+      mDecrypts[i]->PostResult(ToDecryptStatus(aStatus));
       mDecrypts.RemoveElementAt(i);
       break;
     }
@@ -540,35 +573,230 @@ ChromiumCDMParent::RecvDecrypted(const uint32_t& aId,
 }
 
 ipc::IPCResult
-ChromiumCDMParent::RecvDecoded(const CDMVideoFrame& aFrame)
+ChromiumCDMParent::RecvDecrypted(const uint32_t& aId,
+                                 const uint32_t& aStatus,
+                                 ipc::Shmem&& aShmem)
 {
+  GMP_LOG("ChromiumCDMParent::RecvDecrypted(this=%p, id=%u, status=%u)",
+          this,
+          aId,
+          aStatus);
+
+  // We must deallocate the shmem once we've copied the result out of it
+  // in PostResult below.
+  auto autoDeallocateShmem = MakeScopeExit([&, this] { DeallocShmem(aShmem); });
+
+  if (mIsShutdown) {
+    MOZ_ASSERT(mDecrypts.IsEmpty());
+    return IPC_OK();
+  }
+  for (size_t i = 0; i < mDecrypts.Length(); i++) {
+    if (mDecrypts[i]->mId == aId) {
+      mDecrypts[i]->PostResult(
+        ToDecryptStatus(aStatus),
+        MakeSpan<const uint8_t>(aShmem.get<uint8_t>(), aShmem.Size<uint8_t>()));
+      mDecrypts.RemoveElementAt(i);
+      break;
+    }
+  }
+  return IPC_OK();
+}
+
+bool
+ChromiumCDMParent::PurgeShmems()
+{
+  GMP_LOG("ChromiumCDMParent::PurgeShmems(this=%p) frame_size=%" PRIuSIZE
+          " limit=%" PRIu32 " active=%" PRIu32,
+          this,
+          mVideoFrameBufferSize,
+          mVideoShmemLimit,
+          mVideoShmemsActive);
+
+  if (mVideoShmemsActive == 0) {
+    // We haven't allocated any shmems, nothing to do here.
+    return true;
+  }
+  if (!SendPurgeShmems()) {
+    return false;
+  }
+  mVideoShmemsActive = 0;
+  return true;
+}
+
+bool
+ChromiumCDMParent::EnsureSufficientShmems(size_t aVideoFrameSize)
+{
+  GMP_LOG("ChromiumCDMParent::EnsureSufficientShmems(this=%p) "
+          "size=%" PRIuSIZE " expected_size=%" PRIuSIZE " limit=%" PRIu32
+          " active=%" PRIu32,
+          this,
+          aVideoFrameSize,
+          mVideoFrameBufferSize,
+          mVideoShmemLimit,
+          mVideoShmemsActive);
+
+  // The Chromium CDM API requires us to implement a synchronous
+  // interface to supply buffers to the CDM for it to write decrypted samples
+  // into. We want our buffers to be backed by shmems, in order to reduce
+  // the overhead of transferring decoded frames. However due to sandboxing
+  // restrictions, the CDM process cannot allocate shmems itself.
+  // We don't want to be doing synchronous IPC to request shmems from the
+  // content process, nor do we want to have to do intr IPC or make async
+  // IPC conform to the sync allocation interface. So instead we have the
+  // content process pre-allocate a set of shmems and give them to the CDM
+  // process in advance of them being needed.
+  //
+  // When the CDM needs to allocate a buffer for storing a decoded video
+  // frame, the CDM host gives it one of these shmems' buffers. When this
+  // is sent back to the content process, we upload it to a GPU surface,
+  // and send the shmem back to the CDM process so it can reuse it.
+  //
+  // Normally the CDM won't allocate more than one buffer at once, but
+  // we've seen cases where it allocates multiple buffers, returns one and
+  // holds onto the rest. So we need to ensure we have several extra
+  // shmems pre-allocated for the CDM. This threshold is set by the pref
+  // media.eme.chromium-api.video-shmems.
+  //
+  // We also have a failure recovery mechanism; if the CDM asks for more
+  // buffers than we have shmem's available, ChromiumCDMChild gives the
+  // CDM a non-shared memory buffer, and returns the frame to the parent
+  // in an nsTArray<uint8_t> instead of a shmem. Every time this happens,
+  // the parent sends an extra shmem to the CDM process for it to add to the
+  // set of shmems with which to return output. Via this mechanism we should
+  // recover from incorrectly predicting how many shmems to pre-allocate.
+  //
+  // At decoder start up, we guess how big the shmems need to be based on
+  // the video frame dimensions. If we guess wrong, the CDM will follow
+  // the non-shmem path, and we'll re-create the shmems of the correct size.
+  // This meanns we can recover from guessing the shmem size wrong.
+  // We must re-take this path after every decoder de-init/re-init, as the
+  // frame sizes should change every time we switch video stream.
+
+  if (mVideoFrameBufferSize < aVideoFrameSize) {
+    if (!PurgeShmems()) {
+      return false;
+    }
+    mVideoFrameBufferSize = aVideoFrameSize;
+  } else {
+    // Put an upper limit on the number of shmems we tolerate the CDM asking
+    // for, to prevent a memory blow-out. In practice, we expect the CDM to
+    // need less than 5, but some encodings require more.
+    // We'd expect CDMs to not have video frames larger than 720p-1080p
+    // (due to DRM robustness requirements), which is about 1.5MB-3MB per
+    // frame.
+    if (mVideoShmemLimit > 50) {
+      return false;
+    }
+    mVideoShmemLimit++;
+  }
+
+  while (mVideoShmemsActive < mVideoShmemLimit) {
+    if (!SendBufferToCDM(mVideoFrameBufferSize)) {
+      return false;
+    }
+    mVideoShmemsActive++;
+  }
+  return true;
+}
+
+ipc::IPCResult
+ChromiumCDMParent::RecvDecodedData(const CDMVideoFrame& aFrame,
+                                   nsTArray<uint8_t>&& aData)
+{
+  GMP_LOG("ChromiumCDMParent::RecvDecodedData(this=%p)", this);
+
   if (mIsShutdown || mDecodePromise.IsEmpty()) {
     return IPC_OK();
   }
-  VideoData::YCbCrBuffer b;
-  nsTArray<uint8_t> data;
-  data = aFrame.mData();
 
-  if (data.IsEmpty()) {
-    mDecodePromise.ResolveIfExists(nsTArray<RefPtr<MediaData>>(), __func__);
+  if (!EnsureSufficientShmems(aData.Length())) {
+    mDecodePromise.RejectIfExists(
+      MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                  RESULT_DETAIL("Failled to ensure CDM has enough shmems.")),
+      __func__);
     return IPC_OK();
   }
 
-  b.mPlanes[0].mData = data.Elements();
+  RefPtr<VideoData> v = CreateVideoFrame(aFrame, aData);
+  if (!v) {
+    mDecodePromise.RejectIfExists(
+      MediaResult(NS_ERROR_OUT_OF_MEMORY,
+                  RESULT_DETAIL("Can't create VideoData")),
+      __func__);
+    return IPC_OK();
+  }
+
+  mDecodePromise.ResolveIfExists({ Move(v) }, __func__);
+
+  return IPC_OK();
+}
+
+ipc::IPCResult
+ChromiumCDMParent::RecvDecodedShmem(const CDMVideoFrame& aFrame,
+                                    ipc::Shmem&& aShmem)
+{
+  GMP_LOG("ChromiumCDMParent::RecvDecodedShmem(this=%p)", this);
+
+  // On failure we need to deallocate the shmem we're to return to the
+  // CDM. On success we return it to the CDM to be reused.
+  auto autoDeallocateShmem =
+    MakeScopeExit([&, this] { this->DeallocShmem(aShmem); });
+
+  if (mIsShutdown || mDecodePromise.IsEmpty()) {
+    return IPC_OK();
+  }
+
+  RefPtr<VideoData> v = CreateVideoFrame(
+    aFrame, MakeSpan<uint8_t>(aShmem.get<uint8_t>(), aShmem.Size<uint8_t>()));
+  if (!v) {
+    mDecodePromise.RejectIfExists(
+      MediaResult(NS_ERROR_OUT_OF_MEMORY,
+                  RESULT_DETAIL("Can't create VideoData")),
+      __func__);
+    return IPC_OK();
+  }
+
+  // Return the shmem to the CDM so the shmem can be reused to send us
+  // another frame.
+  if (!SendGiveBuffer(aShmem)) {
+    mDecodePromise.RejectIfExists(
+      MediaResult(NS_ERROR_OUT_OF_MEMORY,
+                  RESULT_DETAIL("Can't return shmem to CDM process")),
+      __func__);
+    return IPC_OK();
+  }
+
+  // Don't need to deallocate the shmem since the CDM process is responsible
+  // for it again.
+  autoDeallocateShmem.release();
+
+  mDecodePromise.ResolveIfExists({ Move(v) }, __func__);
+
+  return IPC_OK();
+}
+
+already_AddRefed<VideoData>
+ChromiumCDMParent::CreateVideoFrame(const CDMVideoFrame& aFrame,
+                                    Span<uint8_t> aData)
+{
+  VideoData::YCbCrBuffer b;
+  MOZ_ASSERT(aData.Length() > 0);
+
+  b.mPlanes[0].mData = aData.Elements();
   b.mPlanes[0].mWidth = aFrame.mImageWidth();
   b.mPlanes[0].mHeight = aFrame.mImageHeight();
   b.mPlanes[0].mStride = aFrame.mYPlane().mStride();
   b.mPlanes[0].mOffset = aFrame.mYPlane().mPlaneOffset();
   b.mPlanes[0].mSkip = 0;
 
-  b.mPlanes[1].mData = data.Elements();
+  b.mPlanes[1].mData = aData.Elements();
   b.mPlanes[1].mWidth = (aFrame.mImageWidth() + 1) / 2;
   b.mPlanes[1].mHeight = (aFrame.mImageHeight() + 1) / 2;
   b.mPlanes[1].mStride = aFrame.mUPlane().mStride();
   b.mPlanes[1].mOffset = aFrame.mUPlane().mPlaneOffset();
   b.mPlanes[1].mSkip = 0;
 
-  b.mPlanes[2].mData = data.Elements();
+  b.mPlanes[2].mData = aData.Elements();
   b.mPlanes[2].mWidth = (aFrame.mImageWidth() + 1) / 2;
   b.mPlanes[2].mHeight = (aFrame.mImageHeight() + 1) / 2;
   b.mPlanes[2].mStride = aFrame.mVPlane().mStride();
@@ -576,27 +804,18 @@ ChromiumCDMParent::RecvDecoded(const CDMVideoFrame& aFrame)
   b.mPlanes[2].mSkip = 0;
 
   gfx::IntRect pictureRegion(0, 0, aFrame.mImageWidth(), aFrame.mImageHeight());
-  RefPtr<VideoData> v = VideoData::CreateAndCopyData(mVideoInfo,
-                                                     mImageContainer,
-                                                     mLastStreamOffset,
-                                                     aFrame.mTimestamp(),
-                                                     aFrame.mDuration(),
-                                                     b,
-                                                     false,
-                                                     -1,
-                                                     pictureRegion);
+  RefPtr<VideoData> v = VideoData::CreateAndCopyData(
+    mVideoInfo,
+    mImageContainer,
+    mLastStreamOffset,
+    media::TimeUnit::FromMicroseconds(aFrame.mTimestamp()),
+    media::TimeUnit::FromMicroseconds(aFrame.mDuration()),
+    b,
+    false,
+    media::TimeUnit::FromMicroseconds(-1),
+    pictureRegion);
 
-  RefPtr<ChromiumCDMParent> self = this;
-  if (v) {
-    mDecodePromise.ResolveIfExists({ Move(v) }, __func__);
-  } else {
-    mDecodePromise.RejectIfExists(
-      MediaResult(NS_ERROR_OUT_OF_MEMORY,
-                  RESULT_DETAIL("CallBack::CreateAndCopyData")),
-      __func__);
-  }
-
-  return IPC_OK();
+  return v.forget();
 }
 
 ipc::IPCResult
@@ -606,6 +825,12 @@ ChromiumCDMParent::RecvDecodeFailed(const uint32_t& aStatus)
     MOZ_ASSERT(mDecodePromise.IsEmpty());
     return IPC_OK();
   }
+
+  if (aStatus == cdm::kNeedMoreData) {
+    mDecodePromise.ResolveIfExists(nsTArray<RefPtr<MediaData>>(), __func__);
+    return IPC_OK();
+  }
+
   mDecodePromise.RejectIfExists(
     MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                 RESULT_DETAIL("ChromiumCDMParent::RecvDecodeFailed")),
@@ -627,6 +852,8 @@ ChromiumCDMParent::ActorDestroy(ActorDestroyReason aWhy)
   GMP_LOG("ChromiumCDMParent::ActorDestroy(this=%p, reason=%d)", this, aWhy);
   MOZ_ASSERT(!mActorDestroyed);
   mActorDestroyed = true;
+  // Shutdown() will clear mProxy, so let's keep a reference for later use.
+  RefPtr<ChromiumCDMProxy> proxy = mProxy;
   if (!mIsShutdown) {
     // Plugin crash.
     MOZ_ASSERT(aWhy == AbnormalShutdown);
@@ -639,9 +866,9 @@ ChromiumCDMParent::ActorDestroy(ActorDestroyReason aWhy)
     mContentParent = nullptr;
   }
   bool abnormalShutdown = (aWhy == AbnormalShutdown);
-  if (abnormalShutdown && mProxy) {
+  if (abnormalShutdown && proxy) {
     RefPtr<Runnable> task =
-      NewRunnableMethod(mProxy, &ChromiumCDMProxy::Terminated);
+      NewRunnableMethod(proxy, &ChromiumCDMProxy::Terminated);
     NS_DispatchToMainThread(task);
   }
   MaybeDisconnect(abnormalShutdown);
@@ -660,6 +887,22 @@ ChromiumCDMParent::InitializeVideoDecoder(
       __func__);
   }
 
+  const size_t bufferSize =
+    I420FrameBufferSizePadded(aInfo.mImage.width, aInfo.mImage.height);
+  if (bufferSize <= 0) {
+    return MediaDataDecoder::InitPromise::CreateAndReject(
+      MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                  RESULT_DETAIL("Video frame buffer size is invalid.")),
+      __func__);
+  }
+
+  if (!EnsureSufficientShmems(bufferSize)) {
+    return MediaDataDecoder::InitPromise::CreateAndReject(
+      MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                  RESULT_DETAIL("Failed to init shmems for video decoder")),
+      __func__);
+  }
+
   if (!SendInitializeVideoDecoder(aConfig)) {
     return MediaDataDecoder::InitPromise::CreateAndReject(
       MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
@@ -670,6 +913,7 @@ ChromiumCDMParent::InitializeVideoDecoder(
   mVideoDecoderInitialized = true;
   mImageContainer = aImageContainer;
   mVideoInfo = aInfo;
+  mVideoFrameBufferSize = bufferSize;
 
   return mInitVideoDecoderPromise.Ensure(__func__);
 }
@@ -707,6 +951,9 @@ ChromiumCDMParent::DecryptAndDecodeFrame(MediaRawData* aSample)
       __func__);
   }
 
+  GMP_LOG("ChromiumCDMParent::DecryptAndDecodeFrame t=%" PRId64,
+          aSample->mTime.ToMicroseconds());
+
   CDMInputBuffer buffer;
 
   if (!InitCDMInputBuffer(buffer, aSample)) {
@@ -721,6 +968,7 @@ ChromiumCDMParent::DecryptAndDecodeFrame(MediaRawData* aSample)
     GMP_LOG(
       "ChromiumCDMParent::Decrypt(this=%p) failed to send decrypt message.",
       this);
+    DeallocShmem(buffer.mData());
     return MediaDataDecoder::DecodePromise::CreateAndReject(
       MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                   "Failed to send decrypt to CDM process."),
@@ -802,6 +1050,12 @@ ChromiumCDMParent::ShutdownVideoDecoder()
     return ShutdownPromise::CreateAndResolve(true, __func__);
   }
   mVideoDecoderInitialized = false;
+
+  // The ChromiumCDMChild will purge its shmems, so if the decoder is
+  // reinitialized the shmems need to be re-allocated, and they may need
+  // to be a different size.
+  mVideoShmemsActive = 0;
+  mVideoFrameBufferSize = 0;
   return ShutdownPromise::CreateAndResolve(true, __func__);
 }
 
@@ -815,8 +1069,24 @@ ChromiumCDMParent::Shutdown()
   }
   mIsShutdown = true;
 
+  // If we're shutting down due to the plugin shutting down due to application
+  // shutdown, we should tell the CDM proxy to also shutdown. Otherwise the
+  // proxy will shutdown when the owning MediaKeys is destroyed during cycle
+  // collection, and that will not shut down cleanly as the GMP thread will be
+  // shutdown by then.
+  if (mProxy) {
+    RefPtr<Runnable> task =
+      NewRunnableMethod(mProxy, &ChromiumCDMProxy::Shutdown);
+    NS_DispatchToMainThread(task.forget());
+  }
+
+  // We may be called from a task holding the last reference to the proxy, so
+  // let's clear our local weak pointer to ensure it will not be used afterward
+  // (including from an already-queued task, e.g.: ActorDestroy).
+  mProxy = nullptr;
+
   for (RefPtr<DecryptJob>& decrypt : mDecrypts) {
-    decrypt->PostResult(AbortedErr);
+    decrypt->PostResult(eme::AbortedErr);
   }
   mDecrypts.Clear();
 

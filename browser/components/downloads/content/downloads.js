@@ -3,6 +3,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* eslint-env mozilla/browser-window */
 
 /**
  * Handles the Downloads panel user interface for each browser window.
@@ -78,15 +79,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadsPanel
+// DownloadsPanel
 
 /**
  * Main entry point for the downloads panel interface.
  */
 const DownloadsPanel = {
-  //////////////////////////////////////////////////////////////////////////////
-  //// Initialization and termination
+  // Initialization and termination
 
   /**
    * Internal state of the downloads panel, based on one of the kState
@@ -192,8 +191,7 @@ const DownloadsPanel = {
     DownloadsCommon.log("DownloadsPanel terminated.");
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Panel interface
+  // Panel interface
 
   /**
    * Main panel element in the browser window, or null if the panel overlay
@@ -226,14 +224,6 @@ const DownloadsPanel = {
     }
 
     this.initialize(() => {
-      let downloadsFooterButtons =
-        document.getElementById("downloadsFooterButtons");
-      if (DownloadsCommon.showPanelDropmarker) {
-        downloadsFooterButtons.classList.remove("downloadsHideDropmarker");
-      } else {
-        downloadsFooterButtons.classList.add("downloadsHideDropmarker");
-      }
-
       // Delay displaying the panel because this function will sometimes be
       // called while another window is closing (like the window for selecting
       // whether to save or open the file), and that would cause the panel to
@@ -308,9 +298,11 @@ const DownloadsPanel = {
         this.keyFocusing = false;
         break;
       case "keydown":
-        return this._onKeyDown(aEvent);
+        this._onKeyDown(aEvent);
+        break;
       case "keypress":
-        return this._onKeyPress(aEvent);
+        this._onKeyPress(aEvent);
+        break;
       case "popupshown":
         if (this.setHeightToFitOnShow) {
           this.setHeightToFitOnShow = false;
@@ -328,8 +320,7 @@ const DownloadsPanel = {
     }
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Callback functions from DownloadsView
+  // Callback functions from DownloadsView
 
   /**
    * Called after data loading finished.
@@ -338,8 +329,7 @@ const DownloadsPanel = {
     this._openPopupIfDataReady();
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// User interface event functions
+  // User interface event functions
 
   onWindowUnload() {
     // This function is registered as an event listener, we can't use "this".
@@ -389,26 +379,7 @@ const DownloadsPanel = {
     this._state = this.kStateHidden;
   },
 
-  onFooterPopupShowing(aEvent) {
-    let itemClearList = document.getElementById("downloadsDropdownItemClearList");
-    if (DownloadsCommon.getData(window).canRemoveFinished) {
-      itemClearList.removeAttribute("hidden");
-    } else {
-      itemClearList.setAttribute("hidden", "true");
-    }
-    DownloadsViewController.updateCommands();
-
-    document.getElementById("downloadsFooter")
-      .setAttribute("showingdropdown", true);
-  },
-
-  onFooterPopupHidden(aEvent) {
-    document.getElementById("downloadsFooter")
-      .removeAttribute("showingdropdown");
-  },
-
-  //////////////////////////////////////////////////////////////////////////////
-  //// Related operations
+  // Related operations
 
   /**
    * Shows or focuses the user interface dedicated to downloads history.
@@ -422,15 +393,7 @@ const DownloadsPanel = {
     BrowserDownloadsUI();
   },
 
-  openDownloadsFolder() {
-    Downloads.getPreferredDownloadsDirectory().then(downloadsPath => {
-      DownloadsCommon.showDirectory(new FileUtils.File(downloadsPath));
-    }).catch(Cu.reportError);
-    this.hidePanel();
-  },
-
-  //////////////////////////////////////////////////////////////////////////////
-  //// Internal functions
+  // Internal functions
 
   /**
    * Attach event listeners to a panel element. These listeners should be
@@ -625,8 +588,7 @@ const DownloadsPanel = {
 
 XPCOMUtils.defineConstant(this, "DownloadsPanel", DownloadsPanel);
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadsOverlayLoader
+// DownloadsOverlayLoader
 
 /**
  * Allows loading the downloads panel and the status indicator interfaces on
@@ -705,8 +667,7 @@ const DownloadsOverlayLoader = {
 
 XPCOMUtils.defineConstant(this, "DownloadsOverlayLoader", DownloadsOverlayLoader);
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadsView
+// DownloadsView
 
 /**
  * Builds and updates the downloads list widget, responding to changes in the
@@ -714,8 +675,7 @@ XPCOMUtils.defineConstant(this, "DownloadsOverlayLoader", DownloadsOverlayLoader
  * interaction events raised by the downloads list widget.
  */
 const DownloadsView = {
-  //////////////////////////////////////////////////////////////////////////////
-  //// Functions handling download items in the list
+  // Functions handling download items in the list
 
   /**
    * Maximum number of items shown by the list at any given time.
@@ -791,8 +751,7 @@ const DownloadsView = {
     return this.downloadsHistory = document.getElementById("downloadsHistory");
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Callback functions from DownloadsData
+  // Callback functions from DownloadsData
 
   /**
    * Called before multiple downloads are about to be loaded.
@@ -918,8 +877,7 @@ const DownloadsView = {
    * Creates a new view item associated with the specified data item, and adds
    * it to the top or the bottom of the list.
    */
-  _addViewItem(download, aNewest)
-  {
+  _addViewItem(download, aNewest) {
     DownloadsCommon.log("Adding a new DownloadsViewItem to the downloads list.",
                         "aNewest =", aNewest);
 
@@ -950,8 +908,7 @@ const DownloadsView = {
     this._itemsForElements.delete(element);
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// User interface event functions
+  // User interface event functions
 
   /**
    * Helper function to do commands on a specific download item.
@@ -1118,8 +1075,7 @@ const DownloadsView = {
 
 XPCOMUtils.defineConstant(this, "DownloadsView", DownloadsView);
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadsViewItem
+// DownloadsViewItem
 
 /**
  * Builds and updates a single item in the downloads list widget, responding to
@@ -1199,8 +1155,7 @@ DownloadsViewItem.prototype = {
     }
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Item commands
+  // Item commands
 
   cmd_delete() {
     DownloadsCommon.removeAndFinalizeDownload(this.download);
@@ -1268,8 +1223,7 @@ DownloadsViewItem.prototype = {
   },
 };
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadsViewController
+// DownloadsViewController
 
 /**
  * Handles part of the user interaction events raised by the downloads list
@@ -1277,8 +1231,7 @@ DownloadsViewItem.prototype = {
  * dispatches the commands that apply to individual items.
  */
 const DownloadsViewController = {
-  //////////////////////////////////////////////////////////////////////////////
-  //// Initialization and termination
+  // Initialization and termination
 
   initialize() {
     window.controllers.insertControllerAt(0, this);
@@ -1288,8 +1241,7 @@ const DownloadsViewController = {
     window.controllers.removeController(this);
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// nsIController
+  // nsIController
 
   supportsCommand(aCommand) {
     if (aCommand === "downloadsCmd_clearList") {
@@ -1352,8 +1304,7 @@ const DownloadsViewController = {
 
   onEvent() {},
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Other functions
+  // Other functions
 
   updateCommands() {
     function updateCommandsForObject(object) {
@@ -1367,8 +1318,7 @@ const DownloadsViewController = {
     updateCommandsForObject(DownloadsViewItem.prototype);
   },
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Selection-independent commands
+  // Selection-independent commands
 
   downloadsCmd_clearList() {
     DownloadsCommon.getData(window).removeFinished();
@@ -1377,8 +1327,7 @@ const DownloadsViewController = {
 
 XPCOMUtils.defineConstant(this, "DownloadsViewController", DownloadsViewController);
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadsSummary
+// DownloadsSummary
 
 /**
  * Manages the summary at the bottom of the downloads panel list if the number
@@ -1562,8 +1511,7 @@ const DownloadsSummary = {
 
 XPCOMUtils.defineConstant(this, "DownloadsSummary", DownloadsSummary);
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadsFooter
+// DownloadsFooter
 
 /**
  * Manages events sent to to the footer vbox, which contains both the
@@ -1622,8 +1570,7 @@ const DownloadsFooter = {
 XPCOMUtils.defineConstant(this, "DownloadsFooter", DownloadsFooter);
 
 
-////////////////////////////////////////////////////////////////////////////////
-//// DownloadsBlockedSubview
+// DownloadsBlockedSubview
 
 /**
  * Manages the blocked subview that slides in when you click a blocked download.

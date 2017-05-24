@@ -43,7 +43,7 @@ NS_IMPL_ISUPPORTS_INHERITED(SVGScriptElement, SVGScriptElementBase,
 SVGScriptElement::SVGScriptElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
                                    FromParser aFromParser)
   : SVGScriptElementBase(aNodeInfo)
-  , nsScriptElement(aFromParser)
+  , ScriptElement(aFromParser)
 {
   AddMutationObserver(this);
 }
@@ -56,7 +56,8 @@ SVGScriptElement::~SVGScriptElement()
 // nsIDOMNode methods
 
 nsresult
-SVGScriptElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
+SVGScriptElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                        bool aPreallocateChildren) const
 {
   *aResult = nullptr;
 
@@ -65,7 +66,7 @@ SVGScriptElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) co
 
   nsCOMPtr<nsINode> kungFuDeathGrip = it;
   nsresult rv1 = it->Init();
-  nsresult rv2 = const_cast<SVGScriptElement*>(this)->CopyInnerTo(it);
+  nsresult rv2 = const_cast<SVGScriptElement*>(this)->CopyInnerTo(it, aPreallocateChildren);
   NS_ENSURE_SUCCESS(rv1, rv1);
   NS_ENSURE_SUCCESS(rv2, rv2);
 
@@ -189,7 +190,7 @@ SVGScriptElement::FreezeUriAsyncDefer()
 }
 
 //----------------------------------------------------------------------
-// nsScriptElement methods
+// ScriptElement methods
 
 bool
 SVGScriptElement::HasScriptContent()
@@ -232,7 +233,8 @@ SVGScriptElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
 nsresult
 SVGScriptElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                               const nsAttrValue* aValue, bool aNotify)
+                               const nsAttrValue* aValue,
+                               const nsAttrValue* aOldValue, bool aNotify)
 {
   if ((aNamespaceID == kNameSpaceID_XLink ||
        aNamespaceID == kNameSpaceID_None) &&
@@ -240,7 +242,7 @@ SVGScriptElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
     MaybeProcessScript();
   }
   return SVGScriptElementBase::AfterSetAttr(aNamespaceID, aName,
-                                            aValue, aNotify);
+                                            aValue, aOldValue, aNotify);
 }
 
 bool

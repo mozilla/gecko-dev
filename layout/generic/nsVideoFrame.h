@@ -81,8 +81,6 @@ public:
   mozilla::a11y::AccType AccessibleType() override;
 #endif
 
-  nsIAtom* GetType() const override;
-
   bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsSplittableFrame::IsFrameOfType(aFlags &
@@ -127,6 +125,9 @@ protected:
   // if we're the frame for a video element. Only call on frames for video
   // elements, not for frames for audio elements.
   void UpdatePosterSource(bool aNotify);
+
+  // Notify the mediaElement that the mCaptionDiv was created.
+  void UpdateTextTrack();
 
   virtual ~nsVideoFrame();
 

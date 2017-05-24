@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global AccessFu, Components, Utils, PrefCache, Logger, Services,
-          PointerAdapter, dump, Presentation, Rect */
 /* exported AccessFu */
 
 'use strict';
@@ -135,8 +133,8 @@ this.AccessFu = { // jshint ignore:line
       ]);
     }
 
-    Services.obs.addObserver(this, 'remote-browser-shown', false);
-    Services.obs.addObserver(this, 'inprocess-browser-shown', false);
+    Services.obs.addObserver(this, 'remote-browser-shown');
+    Services.obs.addObserver(this, 'inprocess-browser-shown');
     Utils.win.addEventListener('TabOpen', this);
     Utils.win.addEventListener('TabClose', this);
     Utils.win.addEventListener('TabSelect', this);

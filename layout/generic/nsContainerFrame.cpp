@@ -87,10 +87,10 @@ nsContainerFrame::SetInitialChildList(ChildListID  aListID,
     {
       nsIFrame* placeholder = aChildList.FirstChild();
       MOZ_ASSERT(aChildList.OnlyChild(), "Should have only one backdrop");
-      MOZ_ASSERT(placeholder->GetType() == nsGkAtoms::placeholderFrame,
+      MOZ_ASSERT(placeholder->IsPlaceholderFrame(),
                 "The frame to be stored should be a placeholder");
       MOZ_ASSERT(static_cast<nsPlaceholderFrame*>(placeholder)->
-                GetOutOfFlowFrame()->GetType() == nsGkAtoms::backdropFrame,
+                GetOutOfFlowFrame()->IsBackdropFrame(),
                 "The placeholder should points to a backdrop frame");
     }
 #endif
@@ -866,8 +866,8 @@ nsContainerFrame::ComputeAutoSize(nsRenderingContext* aRenderingContext,
 void
 nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
                               nsPresContext*           aPresContext,
-                              ReflowOutput&     aDesiredSize,
-                              const ReflowInput& aReflowInput,
+                              ReflowOutput&            aDesiredSize,
+                              const ReflowInput&       aReflowInput,
                               const WritingMode&       aWM,
                               const LogicalPoint&      aPos,
                               const nsSize&            aContainerSize,
@@ -880,6 +880,9 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
     NS_ASSERTION(aContainerSize.width != NS_UNCONSTRAINEDSIZE,
                  "ReflowChild with unconstrained container width!");
   }
+  MOZ_ASSERT(aDesiredSize.VisualOverflow() == nsRect(0,0,0,0) &&
+             aDesiredSize.ScrollableOverflow() == nsRect(0,0,0,0),
+             "please reset the overflow areas before calling ReflowChild");
 
   // Position the child frame and its view if requested.
   if (NS_FRAME_NO_MOVE_FRAME != (aFlags & NS_FRAME_NO_MOVE_FRAME)) {
@@ -1289,7 +1292,7 @@ nsContainerFrame::StealFramesAfter(nsIFrame* aChild)
   NS_ASSERTION(!aChild ||
                !(aChild->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER),
                "StealFramesAfter doesn't handle overflow containers");
-  NS_ASSERTION(GetType() != nsGkAtoms::blockFrame, "unexpected call");
+  NS_ASSERTION(!IsBlockFrame(), "unexpected call");
 
   if (!aChild) {
     nsFrameList copy(mFrames);
@@ -1328,7 +1331,7 @@ nsContainerFrame::StealFramesAfter(nsIFrame* aChild)
 nsIFrame*
 nsContainerFrame::CreateNextInFlow(nsIFrame* aFrame)
 {
-  NS_PRECONDITION(GetType() != nsGkAtoms::blockFrame,
+  NS_PRECONDITION(!IsBlockFrame(),
                   "you should have called nsBlockFrame::CreateContinuationFor instead");
   NS_PRECONDITION(mFrames.ContainsFrame(aFrame), "expected an in-flow child frame");
 
@@ -1503,8 +1506,7 @@ nsContainerFrame::MoveOverflowToChildList()
     if (prevOverflowFrames) {
       // Tables are special; they can have repeated header/footer
       // frames on mFrames at this point.
-      NS_ASSERTION(mFrames.IsEmpty() || GetType() == nsGkAtoms::tableFrame,
-                   "bad overflow list");
+      NS_ASSERTION(mFrames.IsEmpty() || IsTableFrame(), "bad overflow list");
       // When pushing and pulling frames we need to check for whether any
       // views need to be reparented.
       nsContainerFrame::ReparentFrameViewList(*prevOverflowFrames,

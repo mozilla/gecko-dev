@@ -65,10 +65,11 @@ public:
                              bool aNotify) override;
   virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                 const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
                                 bool aNotify) override;
   virtual void DestroyContent() override;
 
-  nsresult CopyInnerTo(mozilla::dom::Element* aDest);
+  nsresult CopyInnerTo(mozilla::dom::Element* aDest, bool aPreallocateChildren);
 
   virtual int32_t TabIndexDefault() override;
 

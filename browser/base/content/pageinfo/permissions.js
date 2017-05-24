@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* import-globals-from pageInfo.js */
+
 Components.utils.import("resource:///modules/SitePermissions.jsm");
 Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 
@@ -45,7 +47,7 @@ function onLoadPermission(uri, principal) {
       initRow(i);
     var os = Components.classes["@mozilla.org/observer-service;1"]
                        .getService(Components.interfaces.nsIObserverService);
-    os.addObserver(permissionObserver, "perm-changed", false);
+    os.addObserver(permissionObserver, "perm-changed");
     onUnloadRegistry.push(onUnloadPermission);
     permTab.hidden = false;
   } else
@@ -179,6 +181,11 @@ function setRadioState(aPartId, aValue) {
 }
 
 function initIndexedDBRow() {
+  // IndexedDB information is not shown for pages with a null principal
+  // such as sandboxed pages because these pages do not have access to indexedDB.
+  if (gPermPrincipal.isNullPrincipal)
+    return;
+
   let row = document.getElementById("perm-indexedDB-row");
   let extras = document.getElementById("perm-indexedDB-extras");
 

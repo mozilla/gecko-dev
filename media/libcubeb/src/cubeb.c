@@ -25,6 +25,9 @@ struct cubeb_stream {
 #if defined(USE_PULSE)
 int pulse_init(cubeb ** context, char const * context_name);
 #endif
+#if defined(USE_PULSE_RUST)
+int pulse_rust_init(cubeb ** contet, char const * context_name);
+#endif
 #if defined(USE_JACK)
 int jack_init (cubeb ** context, char const * context_name);
 #endif
@@ -111,6 +114,10 @@ cubeb_init(cubeb ** context, char const * context_name, char const * backend_nam
     if (!strcmp(backend_name, "pulse")) {
 #if defined(USE_PULSE)
       init_oneshot = pulse_init;
+#endif
+    } else if (!strcmp(backend_name, "pulse-rust")) {
+#if defined(USE_PULSE_RUST)
+      init_oneshot = pulse_rust_init;
 #endif
     } else if (!strcmp(backend_name, "jack")) {
 #if defined(USE_JACK)
@@ -311,15 +318,24 @@ cubeb_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_n
     return r;
   }
 
-  return context->ops->stream_init(context, stream, stream_name,
-                                   input_device,
-                                   input_stream_params,
-                                   output_device,
-                                   output_stream_params,
-                                   latency,
-                                   data_callback,
-                                   state_callback,
-                                   user_ptr);
+  r = context->ops->stream_init(context, stream, stream_name,
+                                input_device,
+                                input_stream_params,
+                                output_device,
+                                output_stream_params,
+                                latency,
+                                data_callback,
+                                state_callback,
+                                user_ptr);
+
+  if (r == CUBEB_ERROR_INVALID_FORMAT) {
+    LOG("Invalid format, %p %p %d %d",
+        output_stream_params, input_stream_params,
+        output_stream_params && output_stream_params->format,
+        input_stream_params && input_stream_params->format);
+  }
+
+  return r;
 }
 
 void
@@ -546,7 +562,7 @@ int cubeb_enumerate_devices(cubeb * context,
 
   rv = context->ops->enumerate_devices(context, devtype, collection);
 
-  if (g_log_callback) {
+  if (g_cubeb_log_callback) {
     for (uint32_t i = 0; i < (*collection)->count; i++) {
       log_device((*collection)->device[i]);
     }
@@ -610,12 +626,12 @@ int cubeb_set_log_callback(cubeb_log_level log_level,
     return CUBEB_ERROR_INVALID_PARAMETER;
   }
 
-  if (g_log_callback && log_callback) {
+  if (g_cubeb_log_callback && log_callback) {
     return CUBEB_ERROR_NOT_SUPPORTED;
   }
 
-  g_log_callback = log_callback;
-  g_log_level = log_level;
+  g_cubeb_log_callback = log_callback;
+  g_cubeb_log_level = log_level;
 
   // Logging a message here allows to initialize the asynchronous logger from a
   // thread that is not the audio rendering thread, and especially to not

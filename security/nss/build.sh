@@ -49,6 +49,7 @@ fuzz=0
 fuzz_tls=0
 fuzz_oss=0
 no_local_nspr=0
+armhf=0
 
 gyp_params=(--depth="$cwd" --generator-output=".")
 nspr_params=()
@@ -58,6 +59,8 @@ ninja_params=()
 arch=$(python "$cwd"/coreconf/detect_host_arch.py)
 if [ "$arch" = "x64" -o "$arch" = "aarch64" ]; then
     build_64=1
+elif [ "$arch" = "arm" ]; then
+    armhf=1
 fi
 
 # parse command line arguments
@@ -101,7 +104,7 @@ else
 fi
 if [ "$build_64" = 1 ]; then
     nspr_params+=(--enable-64bit)
-else
+elif [ ! "$armhf" = 1 ]; then
     gyp_params+=(-Dtarget_arch=ia32)
 fi
 if [ "$fuzz" = 1 ]; then
@@ -180,7 +183,10 @@ if [[ "$rebuild_nspr" = 1 && "$no_local_nspr" = 0 ]]; then
     mv -f "$nspr_config".new "$nspr_config"
 fi
 if [ "$rebuild_gyp" = 1 ]; then
-
+    if ! hash gyp 2> /dev/null; then
+        echo "Please install gyp" 1>&2
+        exit 1
+    fi
     # These extra arguments aren't used in determining whether to rebuild.
     obj_dir="$dist_dir"/$target
     gyp_params+=(-Dnss_dist_obj_dir=$obj_dir)

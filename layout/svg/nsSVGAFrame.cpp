@@ -7,6 +7,7 @@
 #include "gfxMatrix.h"
 #include "mozilla/dom/SVGAElement.h"
 #include "nsAutoPtr.h"
+#include "nsIDOMMutationEvent.h"
 #include "nsSVGContainerFrame.h"
 #include "nsSVGIntegrationUtils.h"
 #include "nsSVGUtils.h"
@@ -20,7 +21,8 @@ class nsSVGAFrame : public nsSVGDisplayContainerFrame
   NS_NewSVGAFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
   explicit nsSVGAFrame(nsStyleContext* aContext)
-    : nsSVGDisplayContainerFrame(aContext) {}
+    : nsSVGDisplayContainerFrame(aContext, LayoutFrameType::SVGA)
+  {}
 
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -35,13 +37,6 @@ public:
   virtual nsresult  AttributeChanged(int32_t         aNameSpaceID,
                                      nsIAtom*        aAttribute,
                                      int32_t         aModType) override;
-
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgAFrame
-   */
-  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override
@@ -100,13 +95,22 @@ nsSVGAFrame::AttributeChanged(int32_t         aNameSpaceID,
     NotifySVGChanged(TRANSFORM_CHANGED);
   }
 
- return NS_OK;
-}
+  // Currently our SMIL implementation does not modify the DOM attributes. Once
+  // we implement the SVG 2 SMIL behaviour this can be removed
+  // SVGAElement::SetAttr/UnsetAttr's ResetLinkState() call will be sufficient.
+  if (aModType == nsIDOMMutationEvent::SMIL &&
+      aAttribute == nsGkAtoms::href &&
+      (aNameSpaceID == kNameSpaceID_None ||
+       aNameSpaceID == kNameSpaceID_XLink)) {
 
-nsIAtom *
-nsSVGAFrame::GetType() const
-{
-  return nsGkAtoms::svgAFrame;
+    dom::SVGAElement* content = static_cast<dom::SVGAElement*>(mContent);
+
+    // SMIL may change whether an <a> element is a link, in which case we will
+    // need to update the link state.
+    content->ResetLinkState(true, content->ElementHasHref());
+  }
+
+ return NS_OK;
 }
 
 //----------------------------------------------------------------------

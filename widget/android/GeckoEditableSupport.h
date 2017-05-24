@@ -192,7 +192,7 @@ public:
     NS_IMETHOD NotifyIME(TextEventDispatcher* aTextEventDispatcher,
                          const IMENotification& aNotification) override;
 
-    NS_IMETHOD_(nsIMEUpdatePreference) GetIMEUpdatePreference() override;
+    NS_IMETHOD_(IMENotificationRequests) GetIMENotificationRequests() override;
 
     NS_IMETHOD_(void) OnRemovedFrom(
             TextEventDispatcher* aTextEventDispatcher) override;
@@ -241,7 +241,7 @@ public:
             int32_t aRangeBackColor, int32_t aRangeLineColor);
 
     // Update styling for the active composition using previous-added ranges.
-    void OnImeUpdateComposition(int32_t aStart, int32_t aEnd);
+    void OnImeUpdateComposition(int32_t aStart, int32_t aEnd, int32_t aFlags);
 
     // Set cursor mode whether IME requests
     void OnImeRequestCursorUpdates(int aRequestMode);

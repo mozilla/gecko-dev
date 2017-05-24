@@ -71,27 +71,6 @@ public:
                         int32_t  aModType,
                         const nsAttrValue* aOldValue);
 
-  // Get a counter that increments on every style change, that we use to
-  // track whether off-main-thread animations are up-to-date.
-  uint64_t GetAnimationGeneration() const { return mAnimationGeneration; }
-
-  static uint64_t GetAnimationGenerationForFrame(nsIFrame* aFrame);
-
-  // Update the animation generation count to mark that animation state
-  // has changed.
-  //
-  // This is normally performed automatically by ProcessPendingRestyles
-  // but it is also called when we have out-of-band changes to animations
-  // such as changes made through the Web Animations API.
-  void IncrementAnimationGeneration() {
-    // We update the animation generation at start of each call to
-    // ProcessPendingRestyles so we should ignore any subsequent (redundant)
-    // calls that occur while we are still processing restyles.
-    if (!mIsProcessingRestyles) {
-      ++mAnimationGeneration;
-    }
-  }
-
   // Whether rule matching should skip styles associated with animation
   bool SkipAnimationRules() const { return mSkipAnimationRules; }
 
@@ -113,7 +92,11 @@ public:
     mPendingRestyles.ClearSelectors();
   }
 
+  void PostRestyleEventForLazyConstruction() { PostRestyleEventInternal(); }
+
 private:
+  void PostRestyleEventInternal();
+
   // Used when restyling an element with a frame.
   void ComputeAndProcessStyleChange(nsIFrame*              aFrame,
                                     nsChangeHint           aMinChange,
@@ -290,6 +273,12 @@ public:
                         nsChangeHint aMinChangeHint,
                         const RestyleHintData* aRestyleHintData = nullptr);
 
+  void PostRestyleEventForCSSRuleChanges(Element* aElement,
+                                         nsRestyleHint aRestyleHint,
+                                         nsChangeHint aMinChangeHint) {
+    PostRestyleEvent(aElement, aRestyleHint, aMinChangeHint);
+  }
+
 public:
   /**
    * Asynchronously clear style data from the root frame downwards and ensure
@@ -351,6 +340,8 @@ public:
   int32_t& LoggingDepth() { return mLoggingDepth; }
 #endif
 
+  bool IsProcessingRestyles() { return mIsProcessingRestyles; }
+
 private:
   inline nsStyleSet* StyleSet() const {
     MOZ_ASSERT(PresContext()->StyleSet()->IsGecko(),
@@ -399,10 +390,6 @@ private:
 
   nsChangeHint mRebuildAllExtraHint;
   nsRestyleHint mRebuildAllRestyleHint;
-
-  // The total number of animation flushes by this frame constructor.
-  // Used to keep the layer and animation manager in sync.
-  uint64_t mAnimationGeneration;
 
   ReframingStyleContexts* mReframingStyleContexts;
 
@@ -603,8 +590,6 @@ private:
   /**
    * Helpers for Restyle().
    */
-  void AddLayerChangesForAnimation();
-
   bool MoveStyleContextsForContentChildren(nsIFrame* aParent,
                                            nsStyleContext* aOldContext,
                                            nsTArray<nsStyleContext*>& aContextsToMove);

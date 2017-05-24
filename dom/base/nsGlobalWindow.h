@@ -87,6 +87,7 @@ class nsIControllers;
 class nsIJSID;
 class nsIScriptContext;
 class nsIScriptTimeoutHandler;
+class nsITabChild;
 class nsITimeoutHandler;
 class nsIWebBrowserChrome;
 class mozIDOMWindowProxy;
@@ -423,7 +424,7 @@ public:
                                bool aOriginalOpener) override;
 
   // Outer windows only.
-  virtual void EnsureSizeUpToDate() override;
+  virtual void EnsureSizeAndPositionUpToDate() override;
 
   virtual void EnterModalState() override;
   virtual void LeaveModalState() override;
@@ -456,7 +457,11 @@ public:
   virtual void SetHasGamepadEventListener(bool aHasGamepad = true) override;
   void NotifyVREventListenerAdded();
   bool HasUsedVR() const;
+
+  using EventTarget::EventListenerAdded;
   virtual void EventListenerAdded(nsIAtom* aType) override;
+  using EventTarget::EventListenerRemoved;
+  virtual void EventListenerRemoved(nsIAtom* aType) override;
 
   // nsIInterfaceRequestor
   NS_DECL_NSIINTERFACEREQUESTOR
@@ -469,6 +474,8 @@ public:
 
   static bool IsShowModalDialogEnabled(JSContext* /* unused */ = nullptr,
                                        JSObject* /* unused */ = nullptr);
+
+  static bool IsRequestIdleCallbackEnabled(JSContext* aCx, JSObject* /* unused */);
 
   bool DoResolve(JSContext* aCx, JS::Handle<JSObject*> aObj,
                  JS::Handle<jsid> aId,
@@ -848,8 +855,7 @@ public:
   void GetName(nsAString& aName, mozilla::ErrorResult& aError);
   void SetNameOuter(const nsAString& aName, mozilla::ErrorResult& aError);
   void SetName(const nsAString& aName, mozilla::ErrorResult& aError);
-  mozilla::dom::Location* GetLocation(mozilla::ErrorResult& aError);
-  nsIDOMLocation* GetLocation() override;
+  mozilla::dom::Location* GetLocation() override;
   nsHistory* GetHistory(mozilla::ErrorResult& aError);
   mozilla::dom::CustomElementRegistry* CustomElements() override;
   mozilla::dom::BarProp* GetLocationbar(mozilla::ErrorResult& aError);
@@ -924,7 +930,7 @@ public:
                 nsIDocShellLoadInfo* aLoadInfo,
                 bool aForceNoOpener,
                 nsPIDOMWindowOuter **_retval) override;
-  mozilla::dom::Navigator* GetNavigator(mozilla::ErrorResult& aError);
+  mozilla::dom::Navigator* Navigator();
   nsIDOMNavigator* GetNavigator() override;
   nsIDOMOfflineResourceList* GetApplicationCache(mozilla::ErrorResult& aError);
   already_AddRefed<nsIDOMOfflineResourceList> GetApplicationCache() override;
@@ -1185,8 +1191,8 @@ public:
   void Back(mozilla::ErrorResult& aError);
   void ForwardOuter(mozilla::ErrorResult& aError);
   void Forward(mozilla::ErrorResult& aError);
-  void HomeOuter(mozilla::ErrorResult& aError);
-  void Home(mozilla::ErrorResult& aError);
+  void HomeOuter(nsIPrincipal& aSubjectPrincipal, mozilla::ErrorResult& aError);
+  void Home(nsIPrincipal& aSubjectPrincipal, mozilla::ErrorResult& aError);
   bool FindOuter(const nsAString& aString, bool aCaseSensitive, bool aBackwards,
                  bool aWrapAround, bool aWholeWord, bool aSearchInFrames,
                  bool aShowDialog, mozilla::ErrorResult& aError);
@@ -1965,6 +1971,8 @@ protected:
 
   // These member variables are used on both inner and the outer windows.
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;
+  // mTabChild is only ever populated in the content process.
+  nsCOMPtr<nsITabChild>  mTabChild;
 
   uint32_t mSuspendDepth;
   uint32_t mFreezeDepth;
@@ -2053,6 +2061,7 @@ protected:
   // after loading.  The value is the ID of the VRDisplay that content should
   // begin presentation on.
   uint32_t mAutoActivateVRDisplayID; // Outer windows only
+  int64_t mBeforeUnloadListenerCount; // Inner windows only
 
 #ifdef ENABLE_INTL_API
   RefPtr<mozilla::dom::IntlUtils> mIntlUtils;

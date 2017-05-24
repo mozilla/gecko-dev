@@ -25,8 +25,10 @@ using namespace mozilla::gfx;
 //----------------------------------------------------------------------
 // Implementation
 
-nsSVGGradientFrame::nsSVGGradientFrame(nsStyleContext* aContext)
-  : nsSVGPaintServerFrame(aContext)
+nsSVGGradientFrame::nsSVGGradientFrame(nsStyleContext* aContext,
+                                       LayoutFrameType aType)
+  : nsSVGPaintServerFrame(aContext, aType)
+  , mSource(nullptr)
   , mLoopFlag(false)
   , mNoHRefURI(false)
 {
@@ -229,6 +231,7 @@ nsSVGGradientFrame::GetPaintServerPattern(nsIFrame* aSource,
                                           const gfxMatrix& aContextMatrix,
                                           nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                                           float aGraphicOpacity,
+                                          imgDrawingParams& aImgParams,
                                           const gfxRect* aOverrideBounds)
 {
   uint16_t gradientUnits = GetGradientUnits();
@@ -251,7 +254,7 @@ nsSVGGradientFrame::GetPaintServerPattern(nsIFrame* aSource,
   // the corresponding fill or stroke had "none" specified.
   if (nStops == 0) {
     RefPtr<gfxPattern> pattern = new gfxPattern(Color());
-    return pattern.forget();
+    return do_AddRef(new gfxPattern(Color()));
   }
 
   if (nStops == 1 || GradientVectorLengthIsZero()) {
@@ -262,8 +265,7 @@ nsSVGGradientFrame::GetPaintServerPattern(nsIFrame* aSource,
 
     Color stopColor2 = Color::FromABGR(stopColor);
     stopColor2.a *= stopOpacity * aGraphicOpacity;
-    RefPtr<gfxPattern> pattern = new gfxPattern(stopColor2);
-    return pattern.forget();
+    return do_AddRef(new gfxPattern(stopColor2));
   }
 
   // Get the transform list (if there is one). We do this after the returns
@@ -288,8 +290,9 @@ nsSVGGradientFrame::GetPaintServerPattern(nsIFrame* aSource,
   }
 
   RefPtr<gfxPattern> gradient = CreateGradient();
-  if (!gradient)
+  if (!gradient) {
     return nullptr;
+  }
 
   uint16_t aSpread = GetSpreadMethod();
   if (aSpread == SVG_SPREADMETHOD_PAD)
@@ -370,9 +373,9 @@ nsSVGGradientFrame::GetReferencedGradient()
   if (!result)
     return nullptr;
 
-  nsIAtom* frameType = result->GetType();
-  if (frameType != nsGkAtoms::svgLinearGradientFrame &&
-      frameType != nsGkAtoms::svgRadialGradientFrame)
+  LayoutFrameType frameType = result->Type();
+  if (frameType != LayoutFrameType::SVGLinearGradient &&
+      frameType != LayoutFrameType::SVGRadialGradient)
     return nullptr;
 
   return static_cast<nsSVGGradientFrame*>(result);
@@ -384,7 +387,7 @@ nsSVGGradientFrame::GetStopFrames(nsTArray<nsIFrame*>* aStopFrames)
   nsIFrame *stopFrame = nullptr;
   for (stopFrame = mFrames.FirstChild(); stopFrame;
        stopFrame = stopFrame->GetNextSibling()) {
-    if (stopFrame->GetType() == nsGkAtoms::svgStopFrame) {
+    if (stopFrame->IsSVGStopFrame()) {
       aStopFrames->AppendElement(stopFrame);
     }
   }
@@ -426,12 +429,6 @@ nsSVGLinearGradientFrame::Init(nsIContent*       aContent,
   nsSVGGradientFrame::Init(aContent, aParent, aPrevInFlow);
 }
 #endif /* DEBUG */
-
-nsIAtom*
-nsSVGLinearGradientFrame::GetType() const
-{
-  return nsGkAtoms::svgLinearGradientFrame;
-}
 
 nsresult
 nsSVGLinearGradientFrame::AttributeChanged(int32_t         aNameSpaceID,
@@ -534,12 +531,6 @@ nsSVGRadialGradientFrame::Init(nsIContent*       aContent,
   nsSVGGradientFrame::Init(aContent, aParent, aPrevInFlow);
 }
 #endif /* DEBUG */
-
-nsIAtom*
-nsSVGRadialGradientFrame::GetType() const
-{
-  return nsGkAtoms::svgRadialGradientFrame;
-}
 
 nsresult
 nsSVGRadialGradientFrame::AttributeChanged(int32_t         aNameSpaceID,

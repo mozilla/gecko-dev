@@ -240,6 +240,10 @@ struct CSSPixel {
                       NSAppUnitsToIntPixels(aRect.height, float(AppUnitsPerCSSPixel())));
   }
 
+  static CSSIntRect FromAppUnitsToNearest(const nsRect& aRect) {
+    return CSSIntRect::FromUnknownRect(aRect.ToNearestPixels(AppUnitsPerCSSPixel()));
+  }
+
   // Conversions to app units
 
   static nscoord ToAppUnits(CSSCoord aCoord) {
@@ -295,6 +299,12 @@ struct LayoutDevicePixel {
                             NSAppUnitsToFloatPixels(aRect.y, float(aAppUnitsPerDevPixel)),
                             NSAppUnitsToFloatPixels(aRect.width, float(aAppUnitsPerDevPixel)),
                             NSAppUnitsToFloatPixels(aRect.height, float(aAppUnitsPerDevPixel)));
+  }
+
+  static LayoutDeviceSize FromAppUnits(const nsSize& aSize, nscoord aAppUnitsPerDevPixel) {
+    return LayoutDeviceSize(
+      NSAppUnitsToFloatPixels(aSize.width, aAppUnitsPerDevPixel),
+      NSAppUnitsToFloatPixels(aSize.height, aAppUnitsPerDevPixel));
   }
 
   static LayoutDevicePoint FromAppUnits(const nsPoint& aPoint, nscoord aAppUnitsPerDevPixel) {

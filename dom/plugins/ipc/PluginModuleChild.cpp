@@ -286,7 +286,7 @@ PluginModuleChild::InitForChrome(const std::string& aPluginFilename,
 
     // TODO: use PluginPRLibrary here
 
-#if defined(OS_LINUX) || defined(OS_BSD)
+#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
     mShutdownFunc =
         (NP_PLUGINSHUTDOWN) PR_FindFunctionSymbol(mLibrary, "NP_Shutdown");
 
@@ -923,13 +923,6 @@ static NPError
 _setvalueforurl(NPP npp, NPNURLVariable variable, const char *url,
                 const char *value, uint32_t len);
 
-static NPError
-_getauthenticationinfo(NPP npp, const char *protocol,
-                       const char *host, int32_t port,
-                       const char *scheme, const char *realm,
-                       char **username, uint32_t *ulen,
-                       char **password, uint32_t *plen);
-
 static uint32_t
 _scheduletimer(NPP instance, uint32_t interval, NPBool repeat,
                void (*timerFunc)(NPP npp, uint32_t timerID));
@@ -1013,7 +1006,7 @@ const NPNetscapeFuncs PluginModuleChild::sBrowserFuncs = {
     mozilla::plugins::child::_construct,
     mozilla::plugins::child::_getvalueforurl,
     mozilla::plugins::child::_setvalueforurl,
-    mozilla::plugins::child::_getauthenticationinfo,
+    nullptr, //NPN GetAuthenticationInfo, not supported
     mozilla::plugins::child::_scheduletimer,
     mozilla::plugins::child::_unscheduletimer,
     mozilla::plugins::child::_popupcontextmenu,
@@ -1176,6 +1169,11 @@ _posturlnotify(NPP aNPP,
     if (!aBuffer)
         return NPERR_INVALID_PARAM;
 
+    if (aIsFile) {
+      PLUGIN_LOG_DEBUG(("NPN_PostURLNotify with file=true is no longer supported"));
+      return NPERR_GENERIC_ERROR;
+    }
+
     nsCString url = NullableString(aRelativeURL);
     auto* sn = new StreamNotifyChild(url);
 
@@ -1204,6 +1202,10 @@ _posturl(NPP aNPP,
     PLUGIN_LOG_DEBUG_FUNCTION;
     ENSURE_PLUGIN_THREAD(NPERR_INVALID_PARAM);
 
+    if (aIsFile) {
+      PLUGIN_LOG_DEBUG(("NPN_PostURL with file=true is no longer supported"));
+      return NPERR_GENERIC_ERROR;
+    }
     NPError err;
     // FIXME what should happen when |aBuffer| is null?
     InstCast(aNPP)->CallNPN_PostURL(NullableString(aRelativeURL),
@@ -1646,38 +1648,6 @@ _setvalueforurl(NPP npp, NPNURLVariable variable, const char *url,
     return NPERR_INVALID_PARAM;
 }
 
-NPError
-_getauthenticationinfo(NPP npp, const char *protocol,
-                       const char *host, int32_t port,
-                       const char *scheme, const char *realm,
-                       char **username, uint32_t *ulen,
-                       char **password, uint32_t *plen)
-{
-    PLUGIN_LOG_DEBUG_FUNCTION;
-    AssertPluginThread();
-
-    if (!protocol || !host || !scheme || !realm || !username || !ulen ||
-        !password || !plen)
-        return NPERR_INVALID_PARAM;
-
-    nsCString u;
-    nsCString p;
-    NPError result;
-    InstCast(npp)->
-        CallNPN_GetAuthenticationInfo(nsDependentCString(protocol),
-                                      nsDependentCString(host),
-                                      port,
-                                      nsDependentCString(scheme),
-                                      nsDependentCString(realm),
-                                      &u, &p, &result);
-    if (NPERR_NO_ERROR == result) {
-        *username = ToNewCString(u);
-        *ulen = u.Length();
-        *password = ToNewCString(p);
-        *plen = p.Length();
-    }
-    return result;
-}
 
 uint32_t
 _scheduletimer(NPP npp, uint32_t interval, NPBool repeat,
@@ -1833,7 +1803,7 @@ PluginModuleChild::AnswerNP_GetEntryPoints(NPError* _retval)
     AssertPluginThread();
     MOZ_ASSERT(mIsChrome);
 
-#if defined(OS_LINUX) || defined(OS_BSD)
+#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
     return IPC_OK();
 #elif defined(OS_WIN) || defined(OS_MACOSX)
     *_retval = mGetEntryPointsFunc(&mFunctions);
@@ -1881,7 +1851,7 @@ PluginModuleChild::DoNP_Initialize(const PluginSettings& aSettings)
 #endif
 
     NPError result;
-#if defined(OS_LINUX) || defined(OS_BSD)
+#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
     result = mInitializeFunc(&sBrowserFuncs, &mFunctions);
 #elif defined(OS_WIN) || defined(OS_MACOSX)
     result = mInitializeFunc(&sBrowserFuncs);
@@ -2070,7 +2040,10 @@ class GetKeyStateTask : public Runnable
 
 public:
     explicit GetKeyStateTask(int aVirtKey, HANDLE aSemaphore, SHORT* aKeyState) :
-        mVirtKey(aVirtKey), mSemaphore(aSemaphore), mKeyState(aKeyState)
+        Runnable("GetKeyStateTask"),
+        mVirtKey(aVirtKey),
+        mSemaphore(aSemaphore),
+        mKeyState(aKeyState)
     {}
 
     NS_IMETHOD Run() override
@@ -2141,8 +2114,9 @@ class GetFileNameTask : public Runnable
 public:
     explicit GetFileNameTask(GetFileNameFunc func, void* aLpOpenFileName,
                              HANDLE aSemaphore, BOOL* aReturnValue) :
-        mLpOpenFileName(aLpOpenFileName), mSemaphore(aSemaphore),
-        mReturnValue(aReturnValue), mFunc(func)
+        Runnable("GetFileNameTask"), mLpOpenFileName(aLpOpenFileName),
+        mSemaphore(aSemaphore), mReturnValue(aReturnValue),
+        mFunc(func)
     {}
 
     NS_IMETHOD Run() override
@@ -2694,19 +2668,13 @@ PluginModuleChild::ProcessNativeEvents() {
 mozilla::ipc::IPCResult
 PluginModuleChild::RecvStartProfiler(const ProfilerInitParams& params)
 {
-    nsTArray<const char*> featureArray;
-    for (size_t i = 0; i < params.features().Length(); ++i) {
-        featureArray.AppendElement(params.features()[i].get());
+    nsTArray<const char*> filterArray;
+    for (size_t i = 0; i < params.filters().Length(); ++i) {
+        filterArray.AppendElement(params.filters()[i].get());
     }
 
-    nsTArray<const char*> threadNameFilterArray;
-    for (size_t i = 0; i < params.threadFilters().Length(); ++i) {
-        threadNameFilterArray.AppendElement(params.threadFilters()[i].get());
-    }
-
-    profiler_start(params.entries(), params.interval(),
-                   featureArray.Elements(), featureArray.Length(),
-                   threadNameFilterArray.Elements(), threadNameFilterArray.Length());
+    profiler_start(params.entries(), params.interval(), params.features(),
+                   filterArray.Elements(), filterArray.Length());
 
     return IPC_OK();
 }
@@ -2741,7 +2709,7 @@ PluginModuleChild::RecvGatherProfile()
         profileCString = nsCString("", 0);
     }
 
-    Unused << SendProfile(profileCString);
+    Unused << SendProfile(profileCString, false);
     return IPC_OK();
 }
 

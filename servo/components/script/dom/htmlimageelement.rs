@@ -35,19 +35,20 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::point::Point2D;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache_thread::{ImageResponder, ImageResponse, PendingImageId, ImageState};
-use net_traits::image_cache_thread::{UsePlaceholder, ImageOrMetadataAvailable, CanRequestImages};
-use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
+use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
+use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::{RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
 use script_thread::Runnable;
 use servo_url::ServoUrl;
+use servo_url::origin::ImmutableOrigin;
 use std::cell::Cell;
 use std::default::Default;
 use std::i32;
@@ -73,6 +74,7 @@ struct ImageRequest {
     #[ignore_heap_size_of = "Arc"]
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
+    final_url: Option<ServoUrl>,
 }
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -120,8 +122,8 @@ impl Runnable for ImageResponseHandlerRunnable {
 
 /// The context required for asynchronously loading an external image.
 struct ImageContext {
-    /// A handle with which to communicate with the image cache.
-    image_cache: ImageCacheThread,
+    /// Reference to the script thread image cache.
+    image_cache: Arc<ImageCache>,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
     /// The cache ID for this request.
@@ -186,7 +188,7 @@ impl HTMLImageElement {
                 Some(LoadBlocker::new(&*document, LoadType::Image(img_url.clone())));
         }
 
-        fn add_cache_listener_for_element(image_cache: &ImageCacheThread,
+        fn add_cache_listener_for_element(image_cache: Arc<ImageCache>,
                                           id: PendingImageId,
                                           elem: &HTMLImageElement) {
             let trusted_node = Trusted::new(elem);
@@ -197,8 +199,9 @@ impl HTMLImageElement {
             let wrapper = window.get_runnable_wrapper();
             let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
-                // Return the image via a message to the script thread, which marks the element
-                // as dirty and triggers a reflow.
+                debug!("Got image {:?}", message);
+                // Return the image via a message to the script thread, which marks
+                // the element as dirty and triggers a reflow.
                 let runnable = ImageResponseHandlerRunnable::new(
                     trusted_node.clone(), message.to().unwrap(), generation);
                 let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
@@ -208,14 +211,14 @@ impl HTMLImageElement {
         }
 
         let window = window_from_node(self);
-        let image_cache = window.image_cache_thread();
+        let image_cache = window.image_cache();
         let response =
             image_cache.find_image_or_metadata(img_url.clone().into(),
                                                UsePlaceholder::Yes,
                                                CanRequestImages::Yes);
         match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => {
-                self.process_image_response(ImageResponse::Loaded(image));
+            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
+                self.process_image_response(ImageResponse::Loaded(image, url));
             }
 
             Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
@@ -223,7 +226,7 @@ impl HTMLImageElement {
             }
 
             Err(ImageState::Pending(id)) => {
-                add_cache_listener_for_element(image_cache, id, self);
+                add_cache_listener_for_element(image_cache.clone(), id, self);
             }
 
             Err(ImageState::LoadError) => {
@@ -242,7 +245,7 @@ impl HTMLImageElement {
         let window = window_from_node(self);
 
         let context = Arc::new(Mutex::new(ImageContext {
-            image_cache: window.image_cache_thread().clone(),
+            image_cache: window.image_cache(),
             status: Ok(()),
             id: id,
         }));
@@ -272,7 +275,8 @@ impl HTMLImageElement {
 
     fn process_image_response(&self, image: ImageResponse) {
         let (image, metadata, trigger_image_load, trigger_image_error) = match image {
-            ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
+            ImageResponse::Loaded(image, url) | ImageResponse::PlaceholderLoaded(image, url) => {
+                self.current_request.borrow_mut().final_url = Some(url);
                 (Some(image.clone()),
                  Some(ImageMetadata { height: image.height, width: image.width }),
                  true,
@@ -367,7 +371,7 @@ impl HTMLImageElement {
         }
     }
 
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             current_request: DOMRefCell::new(ImageRequest {
@@ -377,6 +381,7 @@ impl HTMLImageElement {
                 image: None,
                 metadata: None,
                 blocker: None,
+                final_url: None,
             }),
             pending_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
@@ -385,6 +390,7 @@ impl HTMLImageElement {
                 image: None,
                 metadata: None,
                 blocker: None,
+                final_url: None,
             }),
             form_owner: Default::default(),
             generation: Default::default(),
@@ -393,7 +399,7 @@ impl HTMLImageElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLImageElement> {
         Node::reflect_node(box HTMLImageElement::new_inherited(local_name, prefix, document),
                            document,
@@ -422,23 +428,32 @@ impl HTMLImageElement {
         };
 
         let value = usemap_attr.value();
+
+        if value.len() == 0 || !value.is_char_boundary(1) {
+            return None
+        }
+
         let (first, last) = value.split_at(1);
 
         if first != "#" || last.len() == 0 {
             return None
         }
 
-        let map = self.upcast::<Node>()
-                      .following_siblings()
-                      .filter_map(Root::downcast::<HTMLMapElement>)
-                      .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
+        let useMapElements = document_from_node(self).upcast::<Node>()
+                                .traverse_preorder()
+                                .filter_map(Root::downcast::<HTMLMapElement>)
+                                .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
 
-        let elements: Vec<Root<HTMLAreaElement>> = map.unwrap().upcast::<Node>()
-                      .children()
-                      .filter_map(Root::downcast::<HTMLAreaElement>)
-                      .collect();
-        Some(elements)
+        useMapElements.map(|mapElem| mapElem.get_area_elements())
     }
+
+    pub fn get_origin(&self) -> Option<ImmutableOrigin> {
+        match self.current_request.borrow_mut().final_url {
+            Some(ref url) => Some(url.origin()),
+            None => None
+        }
+    }
+
 }
 
 pub trait LayoutHTMLImageElementHelpers {

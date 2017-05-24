@@ -385,7 +385,7 @@ Accessible::VisibilityState()
   // marked invisible.
   // XXX Can we just remove this check? Why do we need to mark empty
   // text invisible?
-  if (frame->GetType() == nsGkAtoms::textFrame &&
+  if (frame->IsTextFrame() &&
       !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
       frame->GetRect().IsEmpty()) {
     nsIFrame::RenderedText text = frame->GetRenderedText(0,
@@ -636,7 +636,8 @@ Accessible::RelativeBounds(nsIFrame** aBoundingFrame) const
       // Find a canvas frame the found hit region is relative to.
       nsIFrame* canvasFrame = frame->GetParent();
       if (canvasFrame) {
-        canvasFrame = nsLayoutUtils::GetClosestFrameOfType(canvasFrame, nsGkAtoms::HTMLCanvasFrame);
+        canvasFrame = nsLayoutUtils::GetClosestFrameOfType(
+          canvasFrame, LayoutFrameType::HTMLCanvas);
       }
 
       // make the canvas the bounding frame
@@ -1888,7 +1889,7 @@ Accessible::AppendTextTo(nsAString& aText, uint32_t aStartOffset,
   NS_ASSERTION(mParent,
                "Called on accessible unbound from tree. Result can be wrong.");
 
-  if (frame->GetType() == nsGkAtoms::brFrame) {
+  if (frame->IsBrFrame()) {
     aText += kForcedNewLineChar;
   } else if (mParent && nsAccUtils::MustPrune(mParent)) {
     // Expose the embedded object accessible as imaginary embedded object
@@ -2135,7 +2136,8 @@ Accessible::RemoveChild(Accessible* aChild)
   MOZ_DIAGNOSTIC_ASSERT(aChild->mParent, "No parent");
   MOZ_DIAGNOSTIC_ASSERT(aChild->mParent == this, "Wrong parent");
   MOZ_DIAGNOSTIC_ASSERT(aChild->mIndexInParent != -1, "Unbound child was given");
-  MOZ_DIAGNOSTIC_ASSERT((mStateFlags & eKidsMutating) || aChild->IsDefunct() || aChild->IsDoc(),
+  MOZ_DIAGNOSTIC_ASSERT((mStateFlags & eKidsMutating) || aChild->IsDefunct() ||
+                        aChild->IsDoc() || IsApplication(),
                         "Illicit children change");
 
   int32_t index = static_cast<uint32_t>(aChild->mIndexInParent);

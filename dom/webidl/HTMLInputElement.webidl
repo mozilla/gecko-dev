@@ -217,14 +217,7 @@ partial interface HTMLInputElement {
   void chooseDirectory();
 };
 
-[NoInterfaceObject]
-interface MozPhonetic {
-  [Pure, ChromeOnly]
-  readonly attribute DOMString phonetic;
-};
-
 HTMLInputElement implements MozImageLoadingContent;
-HTMLInputElement implements MozPhonetic;
 
 // Webkit/Blink
 partial interface HTMLInputElement {
@@ -261,4 +254,12 @@ partial interface HTMLInputElement {
 
   [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
   void closeDateTimePicker();
+
+  [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
+  void setFocusState(boolean aIsFocused);
+};
+
+partial interface HTMLInputElement {
+  [ChromeOnly]
+  attribute DOMString previewValue;
 };

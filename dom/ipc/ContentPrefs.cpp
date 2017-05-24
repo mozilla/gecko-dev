@@ -6,9 +6,17 @@
 
 #include "ContentPrefs.h"
 
-/************************************************************
- *    DO NOT ADD PREFS TO THIS LIST WITHOUT DOM PEER REVIEW *
- ************************************************************/
+/******************************************************************************
+ *
+ *           DO NOT ADD PREFS TO THIS LIST WITHOUT DOM PEER REVIEW
+ *
+ * This is the list of preferences that are sent to the content process on
+ * startup. Only prefs that are required immediately upon startup should be
+ * listed here. The first IPC message received in the content process will
+ * contain all the other prefs. Prefs should only be listed here if they must be
+ * read before the first IPC message is received.
+ *
+ ******************************************************************************/
 
 const char* mozilla::dom::ContentPrefs::gInitPrefs[] = {
   "accessibility.monoaudio.enable",
@@ -56,6 +64,7 @@ const char* mozilla::dom::ContentPrefs::gInitPrefs[] = {
   "dom.vibrator.enabled",
   "dom.vibrator.max_vibrate_list_len",
   "dom.vibrator.max_vibrate_ms",
+  "dom.webcomponents.customelements.enabled",
   "dom.webcomponents.enabled",
   "focusmanager.testmode",
   "font.size.inflation.disabledInMasterProcess",
@@ -104,7 +113,6 @@ const char* mozilla::dom::ContentPrefs::gInitPrefs[] = {
   "javascript.options.wasm_baselinejit",
   "javascript.options.werror",
   "javascript.use_us_english_locale",
-  "jsloader.reuseGlobal",
   "layout.idle_period.required_quiescent_frames",
   "layout.idle_period.time_limit",
   "layout.interruptible-reflow.enabled",
@@ -204,7 +212,6 @@ const char* mozilla::dom::ContentPrefs::gInitPrefs[] = {
   "security.sandbox.content.tempDirSuffix",
   "security.sandbox.logging.enabled",
   "security.sandbox.mac.track.violations",
-  "security.sandbox.windows.log",
   "security.sandbox.windows.log.stackTraceDepth",
   "shutdown.watchdog.timeoutSecs",
   "signed.applets.codebase_principal_support",
@@ -244,4 +251,3 @@ const char*  mozilla::dom::ContentPrefs::GetContentPref(size_t aIndex)
   MOZ_ASSERT(aIndex < ArrayLength(ContentPrefs::gInitPrefs));
   return gInitPrefs[aIndex];
 }
-

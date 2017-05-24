@@ -6,15 +6,15 @@
 
 extern crate encoding;
 
+use context::QuirksMode;
 use cssparser::{stylesheet_encoding, EncodingSupport};
 use error_reporting::ParseErrorReporter;
 use media_queries::MediaList;
-use parser::ParserContextExtraData;
 use self::encoding::{EncodingRef, DecoderTrap};
-use servo_url::ServoUrl;
 use shared_lock::SharedRwLock;
 use std::str;
-use stylesheets::{Stylesheet, StylesheetLoader, Origin};
+use stylearc::Arc;
+use stylesheets::{Stylesheet, StylesheetLoader, Origin, UrlExtraData};
 
 struct RustEncoding;
 
@@ -50,7 +50,7 @@ impl Stylesheet {
     /// Takes care of decoding the network bytes and forwards the resulting
     /// string to `Stylesheet::from_str`.
     pub fn from_bytes(bytes: &[u8],
-                      base_url: ServoUrl,
+                      url_data: UrlExtraData,
                       protocol_encoding_label: Option<&str>,
                       environment_encoding: Option<EncodingRef>,
                       origin: Origin,
@@ -58,18 +58,19 @@ impl Stylesheet {
                       shared_lock: SharedRwLock,
                       stylesheet_loader: Option<&StylesheetLoader>,
                       error_reporter: &ParseErrorReporter,
-                      extra_data: ParserContextExtraData)
+                      quirks_mode: QuirksMode)
                       -> Stylesheet {
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
         Stylesheet::from_str(&string,
-                             base_url,
+                             url_data,
                              origin,
-                             media,
+                             Arc::new(shared_lock.wrap(media)),
                              shared_lock,
                              stylesheet_loader,
                              error_reporter,
-                             extra_data)
+                             quirks_mode,
+                             0u64)
     }
 
     /// Updates an empty stylesheet with a set of bytes that reached over the
@@ -78,15 +79,16 @@ impl Stylesheet {
                              bytes: &[u8],
                              protocol_encoding_label: Option<&str>,
                              environment_encoding: Option<EncodingRef>,
+                             url_data: &UrlExtraData,
                              stylesheet_loader: Option<&StylesheetLoader>,
-                             error_reporter: &ParseErrorReporter,
-                             extra_data: ParserContextExtraData) {
+                             error_reporter: &ParseErrorReporter) {
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
         Self::update_from_str(existing,
                               &string,
+                              url_data,
                               stylesheet_loader,
                               error_reporter,
-                              extra_data)
+                              0)
     }
 }

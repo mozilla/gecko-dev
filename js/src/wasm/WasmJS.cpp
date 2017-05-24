@@ -675,7 +675,7 @@ WasmModuleObject::imports(JSContext* cx, unsigned argc, Value* vp)
         props.infallibleAppend(IdValuePair(NameToId(names.kind), StringValue(kindStr)));
 
         if (JitOptions.wasmTestMode && import.kind == DefinitionKind::Function) {
-            JSString* sigStr = SigToString(cx, module->metadata().funcImports[numFuncImport++].sig());
+            JSString* sigStr = SigToString(cx, module->metadataTier().funcImports[numFuncImport++].sig());
             if (!sigStr)
                 return false;
             if (!props.append(IdValuePair(NameToId(names.signature), StringValue(sigStr))))
@@ -731,7 +731,7 @@ WasmModuleObject::exports(JSContext* cx, unsigned argc, Value* vp)
         props.infallibleAppend(IdValuePair(NameToId(names.kind), StringValue(kindStr)));
 
         if (JitOptions.wasmTestMode && exp.kind() == DefinitionKind::Function) {
-            JSString* sigStr = SigToString(cx, module->metadata().funcExports[numFuncExport++].sig());
+            JSString* sigStr = SigToString(cx, module->metadataTier().funcExports[numFuncExport++].sig());
             if (!sigStr)
                 return false;
             if (!props.append(IdValuePair(NameToId(names.signature), StringValue(sigStr))))
@@ -815,6 +815,7 @@ WasmModuleObject::create(JSContext* cx, Module& module, HandleObject proto)
 
     obj->initReservedSlot(MODULE_SLOT, PrivateValue(&module));
     module.AddRef();
+    cx->zone()->updateJitCodeMallocBytes(module.codeLengthTier());
     return obj;
 }
 
@@ -976,7 +977,8 @@ WasmInstanceObject::trace(JSTracer* trc, JSObject* obj)
 
 /* static */ WasmInstanceObject*
 WasmInstanceObject::create(JSContext* cx,
-                           UniqueCode code,
+                           SharedCode code,
+                           UniqueDebugState debug,
                            UniqueGlobalSegment globals,
                            HandleWasmMemoryObject memory,
                            SharedTableVector&& tables,
@@ -1010,7 +1012,8 @@ WasmInstanceObject::create(JSContext* cx,
     // Root the Instance via WasmInstanceObject before any possible GC.
     auto* instance = cx->new_<Instance>(cx,
                                         obj,
-                                        Move(code),
+                                        code,
+                                        Move(debug),
                                         Move(globals),
                                         memory,
                                         Move(tables),
@@ -1129,7 +1132,7 @@ WasmInstanceObject::getExportedFunction(JSContext* cx, HandleWasmInstanceObject 
     // asm.js needs to act like a normal JS function which means having the name
     // from the original source and being callable as a constructor.
     if (instance.isAsmJS()) {
-        RootedAtom name(cx, instance.code().getFuncAtom(cx, funcIndex));
+        RootedAtom name(cx, instance.getFuncAtom(cx, funcIndex));
         if (!name)
             return false;
 
@@ -1163,8 +1166,8 @@ WasmInstanceObject::getExportedFunctionCodeRange(HandleFunction fun)
 {
     uint32_t funcIndex = ExportedFunctionToFuncIndex(fun);
     MOZ_ASSERT(exports().lookup(funcIndex)->value() == fun);
-    const Metadata& metadata = instance().metadata();
-    return metadata.codeRanges[metadata.lookupFuncExport(funcIndex).codeRangeIndex()];
+    const FuncExport& funcExport = instance().metadata().lookupFuncExport(funcIndex);
+    return instance().metadataTier().codeRanges[funcExport.codeRangeIndex()];
 }
 
 /* static */ WasmFunctionScope*
@@ -1713,8 +1716,8 @@ WasmTableObject::setImpl(JSContext* cx, const CallArgs& args)
 
         Instance& instance = instanceObj->instance();
         const FuncExport& funcExport = instance.metadata().lookupFuncExport(funcIndex);
-        const CodeRange& codeRange = instance.metadata().codeRanges[funcExport.codeRangeIndex()];
-        void* code = instance.codeSegment().base() + codeRange.funcTableEntry();
+        const CodeRange& codeRange = instance.metadataTier().codeRanges[funcExport.codeRangeIndex()];
+        void* code = instance.codeBaseTier() + codeRange.funcTableEntry();
         table.set(index, code, instance);
     } else {
         table.setNull(index);
@@ -1787,14 +1790,6 @@ WebAssembly_toSource(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 #endif
-
-static bool
-Nop(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    args.rval().setUndefined();
-    return true;
-}
 
 static bool
 Reject(JSContext* cx, const CompileArgs& args, UniqueChars error, Handle<PromiseObject*> promise)
@@ -1916,11 +1911,7 @@ WebAssembly_compile(JSContext* cx, unsigned argc, Value* vp)
         return false;
     }
 
-    RootedFunction nopFun(cx, NewNativeFunction(cx, Nop, 0, nullptr));
-    if (!nopFun)
-        return false;
-
-    Rooted<PromiseObject*> promise(cx, PromiseObject::create(cx, nopFun));
+    Rooted<PromiseObject*> promise(cx, PromiseObject::createSkippingExecutor(cx));
     if (!promise)
         return false;
 
@@ -2013,11 +2004,7 @@ WebAssembly_instantiate(JSContext* cx, unsigned argc, Value* vp)
         return false;
     }
 
-    RootedFunction nopFun(cx, NewNativeFunction(cx, Nop, 0, nullptr));
-    if (!nopFun)
-        return false;
-
-    Rooted<PromiseObject*> promise(cx, PromiseObject::create(cx, nopFun));
+    Rooted<PromiseObject*> promise(cx, PromiseObject::createSkippingExecutor(cx));
     if (!promise)
         return false;
 

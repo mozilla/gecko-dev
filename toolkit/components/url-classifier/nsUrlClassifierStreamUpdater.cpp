@@ -25,11 +25,26 @@
 #include "nsContentUtils.h"
 #include "nsIURLFormatter.h"
 #include "Classifier.h"
+#include "SBTelemetryUtils.h"
+
+using namespace mozilla::safebrowsing;
+
+#define DEFAULT_RESPONSE_TIMEOUT_MS 15 * 1000
+#define DEFAULT_TIMEOUT_MS 60 * 1000
+static_assert(DEFAULT_TIMEOUT_MS > DEFAULT_RESPONSE_TIMEOUT_MS,
+  "General timeout must be greater than reponse timeout");
 
 static const char* gQuitApplicationMessage = "quit-application";
 
+static uint32_t sResponseTimeoutMs = DEFAULT_RESPONSE_TIMEOUT_MS;
+static uint32_t sTimeoutMs = DEFAULT_TIMEOUT_MS;
+
 // Limit the list file size to 32mb
 const uint32_t MAX_FILE_SIZE = (32 * 1024 * 1024);
+
+// Retry delay when we failed to DownloadUpdate() if due to
+// DBService busy.
+const uint32_t FETCH_NEXT_REQUEST_RETRY_DELAY_MS = 1000;
 
 #undef LOG
 
@@ -71,7 +86,7 @@ static MOZ_FORMAT_PRINTF(1, 2) void TrimAndLog(const char* aFmt, ...)
 
 nsUrlClassifierStreamUpdater::nsUrlClassifierStreamUpdater()
   : mIsUpdating(false), mInitialized(false), mDownloadError(false),
-    mBeganStream(false), mChannel(nullptr)
+    mBeganStream(false), mChannel(nullptr), mTelemetryClockStart(0)
 {
   LOG(("nsUrlClassifierStreamUpdater init [this=%p]", this));
 }
@@ -183,7 +198,44 @@ nsUrlClassifierStreamUpdater::FetchUpdate(nsIURI *aUpdateUrl,
   rv = mChannel->AsyncOpen2(this);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  mTelemetryClockStart = PR_IntervalNow();
   mStreamTable = aStreamTable;
+
+  static bool preferencesInitialized = false;
+
+  if (!preferencesInitialized) {
+    mozilla::Preferences::AddUintVarCache(&sTimeoutMs,
+                                          "urlclassifier.update.timeout_ms",
+                                          DEFAULT_TIMEOUT_MS);
+    mozilla::Preferences::AddUintVarCache(&sResponseTimeoutMs,
+                                          "urlclassifier.update.response_timeout_ms",
+                                          DEFAULT_RESPONSE_TIMEOUT_MS);
+    preferencesInitialized = true;
+  }
+
+  if (sResponseTimeoutMs > sTimeoutMs) {
+    NS_WARNING("Safe Browsing response timeout is greater than the general "
+      "timeout. Disabling these update timeouts.");
+    return NS_OK;
+  }
+  mResponseTimeoutTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+  if (NS_SUCCEEDED(rv)) {
+    rv = mResponseTimeoutTimer->InitWithCallback(this,
+                                                 sResponseTimeoutMs,
+                                                 nsITimer::TYPE_ONE_SHOT);
+  }
+
+  mTimeoutTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+
+  if (NS_SUCCEEDED(rv)) {
+    if (sTimeoutMs < DEFAULT_TIMEOUT_MS) {
+      LOG(("Download update timeout %d ms (< %d ms) would be too small",
+           sTimeoutMs, DEFAULT_TIMEOUT_MS));
+    }
+    rv = mTimeoutTimer->InitWithCallback(this,
+                                         sTimeoutMs,
+                                         nsITimer::TYPE_ONE_SHOT);
+  }
 
   return NS_OK;
 }
@@ -280,6 +332,17 @@ nsUrlClassifierStreamUpdater::DownloadUpdates(
     request->mSuccessCallback = aSuccessCallback;
     request->mUpdateErrorCallback = aUpdateErrorCallback;
     request->mDownloadErrorCallback = aDownloadErrorCallback;
+
+    // We cannot guarantee that we will be notified when DBService is done
+    // processing the current update, so we fire a retry timer on our own.
+    nsresult rv;
+    mFetchNextRequestTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+    if (NS_SUCCEEDED(rv)) {
+      rv = mFetchNextRequestTimer->InitWithCallback(this,
+                                                    FETCH_NEXT_REQUEST_RETRY_DELAY_MS,
+                                                    nsITimer::TYPE_ONE_SHOT);
+    }
+
     return NS_OK;
   }
 
@@ -412,10 +475,10 @@ nsUrlClassifierStreamUpdater::StreamFinished(nsresult status,
   // scheduling the next time we pull the list from the server. That's a different
   // timer in listmanager.js (see bug 1110891).
   nsresult rv;
-  mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+  mFetchIndirectUpdatesTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
   if (NS_SUCCEEDED(rv)) {
-    rv = mTimer->InitWithCallback(this, requestedDelay,
-                                  nsITimer::TYPE_ONE_SHOT);
+    rv = mFetchIndirectUpdatesTimer->InitWithCallback(this, requestedDelay,
+                                                      nsITimer::TYPE_ONE_SHOT);
   }
 
   if (NS_FAILED(rv)) {
@@ -674,6 +737,17 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request,
            "(status=%s, uri=%s, this=%p)", errorName.get(),
            spec.get(), this));
     }
+    if (mTelemetryClockStart > 0) {
+      uint32_t msecs = PR_IntervalToMilliseconds(PR_IntervalNow() - mTelemetryClockStart);
+      mozilla::Telemetry::Accumulate(mozilla::Telemetry::URLCLASSIFIER_UPDATE_SERVER_RESPONSE_TIME,
+                                     mTelemetryProvider, msecs);
+
+    }
+
+    if (mResponseTimeoutTimer) {
+      mResponseTimeoutTimer->Cancel();
+      mResponseTimeoutTimer = nullptr;
+    }
 
     uint8_t netErrCode = NS_FAILED(status) ? NetworkErrorToBucket(status) : 0;
     mozilla::Telemetry::Accumulate(
@@ -780,7 +854,23 @@ nsUrlClassifierStreamUpdater::OnStopRequest(nsIRequest *request, nsISupports* co
     rv = mDBService->FinishUpdate();
   }
 
+  if (mResponseTimeoutTimer) {
+    mResponseTimeoutTimer->Cancel();
+    mResponseTimeoutTimer = nullptr;
+  }
+
+  // mResponseTimeoutTimer may be cleared in OnStartRequest, so we check mTimeoutTimer
+  // to see whether the update was has timed out
+  if (mTimeoutTimer) {
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::URLCLASSIFIER_UPDATE_TIMEOUT,
+                                   mTelemetryProvider,
+                                   static_cast<uint8_t>(eNoTimeout));
+    mTimeoutTimer->Cancel();
+    mTimeoutTimer = nullptr;
+  }
+
   mTelemetryProvider.Truncate();
+  mTelemetryClockStart = 0;
   mChannel = nullptr;
 
   // If the fetch failed, return the network status rather than NS_OK, the
@@ -806,11 +896,25 @@ nsUrlClassifierStreamUpdater::Observe(nsISupports *aSubject, const char *aTopic,
       NS_ENSURE_SUCCESS(rv, rv);
       mIsUpdating = false;
       mChannel = nullptr;
+      mTelemetryClockStart = 0;
     }
-    if (mTimer) {
-      mTimer->Cancel();
-      mTimer = nullptr;
+    if (mFetchIndirectUpdatesTimer) {
+      mFetchIndirectUpdatesTimer->Cancel();
+      mFetchIndirectUpdatesTimer = nullptr;
     }
+    if (mFetchNextRequestTimer) {
+      mFetchNextRequestTimer->Cancel();
+      mFetchNextRequestTimer = nullptr;
+    }
+    if (mResponseTimeoutTimer) {
+      mResponseTimeoutTimer->Cancel();
+      mResponseTimeoutTimer = nullptr;
+    }
+    if (mTimeoutTimer) {
+      mTimeoutTimer->Cancel();
+      mTimeoutTimer = nullptr;
+    }
+
   }
   return NS_OK;
 }
@@ -832,11 +936,61 @@ nsUrlClassifierStreamUpdater::Notify(nsITimer *timer)
 {
   LOG(("nsUrlClassifierStreamUpdater::Notify [%p]", this));
 
-  mTimer = nullptr;
+  if (timer == mFetchNextRequestTimer) {
+    mFetchNextRequestTimer = nullptr;
+    FetchNextRequest();
+    return NS_OK;
+  }
 
-  // Start the update process up again.
-  FetchNext();
+  if (timer == mFetchIndirectUpdatesTimer) {
+    mFetchIndirectUpdatesTimer = nullptr;
+    // Start the update process up again.
+    FetchNext();
+    return NS_OK;
+  }
 
+  bool updateFailed = false;
+  if (timer == mResponseTimeoutTimer) {
+    mResponseTimeoutTimer = nullptr;
+    if (mTimeoutTimer) {
+      mTimeoutTimer->Cancel();
+      mTimeoutTimer = nullptr;
+    }
+    mDownloadError = true; // Trigger backoff
+    updateFailed = true;
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::URLCLASSIFIER_UPDATE_TIMEOUT,
+                                   mTelemetryProvider,
+                                   static_cast<uint8_t>(eResponseTimeout));
+  }
+
+  if (timer == mTimeoutTimer) {
+    mTimeoutTimer = nullptr;
+    // No backoff since the connection may just be temporarily slow.
+    updateFailed = true;
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::URLCLASSIFIER_UPDATE_TIMEOUT,
+                                   mTelemetryProvider,
+                                   static_cast<uint8_t>(eDownloadTimeout));
+  }
+
+  if (updateFailed) {
+    // Cancelling the channel will trigger OnStopRequest.
+    mozilla::Unused << mChannel->Cancel(NS_ERROR_ABORT);
+    mChannel = nullptr;
+    mTelemetryClockStart = 0;
+
+    if (mFetchIndirectUpdatesTimer) {
+      mFetchIndirectUpdatesTimer->Cancel();
+      mFetchIndirectUpdatesTimer = nullptr;
+    }
+    if (mFetchNextRequestTimer) {
+      mFetchNextRequestTimer->Cancel();
+      mFetchNextRequestTimer = nullptr;
+    }
+
+    return NS_OK;
+  }
+
+  MOZ_ASSERT_UNREACHABLE("A timer is fired from nowhere.");
   return NS_OK;
 }
 

@@ -736,26 +736,37 @@ MediaPipeline::UpdateTransport_s(int level,
 }
 
 void
-MediaPipeline::SelectSsrc_m(size_t ssrc_index)
+MediaPipeline::AddRIDExtension_m(size_t extension_id)
 {
-  if (ssrc_index < ssrcs_received_.size()) {
-    uint32_t ssrc = ssrcs_received_[ssrc_index];
-    RUN_ON_THREAD(sts_thread_,
-                  WrapRunnable(
-                               this,
-                               &MediaPipeline::SelectSsrc_s,
-                               ssrc),
-                  NS_DISPATCH_NORMAL);
-
-    conduit_->SetRemoteSSRC(ssrc);
-  }
+  RUN_ON_THREAD(sts_thread_,
+                WrapRunnable(RefPtr<MediaPipeline>(this),
+                             &MediaPipeline::AddRIDExtension_s,
+                             extension_id),
+                NS_DISPATCH_NORMAL);
 }
 
 void
-MediaPipeline::SelectSsrc_s(uint32_t ssrc)
+MediaPipeline::AddRIDExtension_s(size_t extension_id)
+{
+  rtp_parser_->RegisterRtpHeaderExtension(webrtc::kRtpExtensionRtpStreamId,
+                                          extension_id);
+}
+
+void
+MediaPipeline::AddRIDFilter_m(const std::string& rid)
+{
+  RUN_ON_THREAD(sts_thread_,
+                WrapRunnable(RefPtr<MediaPipeline>(this),
+                             &MediaPipeline::AddRIDFilter_s,
+                             rid),
+                NS_DISPATCH_NORMAL);
+}
+
+void
+MediaPipeline::AddRIDFilter_s(const std::string& rid)
 {
   filter_ = new MediaPipelineFilter;
-  filter_->AddRemoteSSRC(ssrc);
+  filter_->AddRemoteRtpStreamId(rid);
 }
 
 void MediaPipeline::StateChange(TransportFlow *flow, TransportLayer::State state) {
@@ -1046,11 +1057,6 @@ void MediaPipeline::RtpPacketReceived(TransportLayer *layer,
   webrtc::RTPHeader header;
   if (!rtp_parser_->Parse(data, len, &header)) {
     return;
-  }
-
-  if (std::find(ssrcs_received_.begin(), ssrcs_received_.end(), header.ssrc) ==
-      ssrcs_received_.end()) {
-    ssrcs_received_.push_back(header.ssrc);
   }
 
   if (filter_ && !filter_->Filter(header)) {

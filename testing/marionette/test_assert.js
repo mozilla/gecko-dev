@@ -21,7 +21,7 @@ add_test(function test_session() {
 add_test(function test_platforms() {
   // at least one will fail
   let raised;
-  for (let fn of [assert.firefox, assert.fennec, assert.b2g, assert.mobile]) {
+  for (let fn of [assert.firefox, assert.fennec]) {
     try {
       fn();
     } catch (e) {
@@ -29,6 +29,14 @@ add_test(function test_platforms() {
     }
   }
   ok(raised instanceof UnsupportedOperationError);
+
+  run_next_test();
+});
+
+add_test(function test_noUserPrompt() {
+  assert.noUserPrompt(null);
+  assert.noUserPrompt(undefined);
+  Assert.throws(() => assert.noUserPrompt({}), UnexpectedAlertOpenError);
 
   run_next_test();
 });
@@ -48,6 +56,17 @@ add_test(function test_number() {
   for (let i of ["foo", "1", {}, [], NaN, Infinity, undefined]) {
     Assert.throws(() => assert.number(i), InvalidArgumentError);
   }
+  run_next_test();
+});
+
+add_test(function test_callable() {
+  assert.callable(function () {});
+  assert.callable(() => {});
+
+  for (let typ of [undefined, "", true, {}, []]) {
+    Assert.throws(() => assert.callable(typ), InvalidArgumentError);
+  }
+
   run_next_test();
 });
 
@@ -83,6 +102,18 @@ add_test(function test_string() {
   assert.string("foo");
   assert.string(`bar`);
   Assert.throws(() => assert.string(42), InvalidArgumentError);
+
+  run_next_test();
+});
+
+add_test(function test_window() {
+  assert.window({ document: { defaultView: true }});
+
+  let deadWindow = { get document() { throw new TypeError("can't access dead object"); }};
+
+  for (let typ of [null, undefined, deadWindow]) {
+    Assert.throws(() => assert.window(typ), NoSuchWindowError);
+  }
 
   run_next_test();
 });

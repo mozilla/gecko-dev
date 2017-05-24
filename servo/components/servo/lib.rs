@@ -82,7 +82,6 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, LogMetadata, LogRecord};
-use net::image_cache_thread::new_image_cache_thread;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -127,6 +126,8 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
+        // Make sure the gl context is made current.
+        window.prepare_for_composite(0, 0);
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -182,6 +183,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
                 enable_profiler: opts.webrender_stats,
+                enable_batcher: opts.webrender_batch,
                 debug: opts.webrender_debug,
                 recorder: recorder,
                 precache_shaders: opts.precache_shaders,
@@ -290,7 +292,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
                              config_dir);
-    let image_cache_thread = new_image_cache_thread(webrender_api_sender.create_api());
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
                                                  Some(webrender_api_sender.create_api()));
 
@@ -301,7 +302,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
         debugger_chan: debugger_chan,
         devtools_chan: devtools_chan,
         bluetooth_thread: bluetooth_thread,
-        image_cache_thread: image_cache_thread,
         font_cache_thread: font_cache_thread,
         public_resource_threads: public_resource_threads,
         private_resource_threads: private_resource_threads,

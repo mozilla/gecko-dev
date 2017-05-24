@@ -148,7 +148,6 @@ public class GeckoPreferences
     private static final String PREFS_DEVTOOLS_REMOTE_LINK = NON_PREF_PREFIX + "remote_debugging.link";
     private static final String PREFS_TRACKING_PROTECTION = "privacy.trackingprotection.state";
     private static final String PREFS_TRACKING_PROTECTION_PB = "privacy.trackingprotection.pbmode.enabled";
-    private static final String PREFS_ZOOMED_VIEW_ENABLED = "ui.zoomedview.enabled";
     public static final String PREFS_VOICE_INPUT_ENABLED = NON_PREF_PREFIX + "voice_input_enabled";
     public static final String PREFS_QRCODE_ENABLED = NON_PREF_PREFIX + "qrcode_enabled";
     private static final String PREFS_TRACKING_PROTECTION_PRIVATE_BROWSING = "privacy.trackingprotection.pbmode.enabled";
@@ -157,6 +156,7 @@ public class GeckoPreferences
     private static final String PREFS_CLEAR_PRIVATE_DATA_EXIT = NON_PREF_PREFIX + "history.clear_on_exit";
     private static final String PREFS_SCREEN_ADVANCED = NON_PREF_PREFIX + "advanced_screen";
     public static final String PREFS_HOMEPAGE = NON_PREF_PREFIX + "homepage";
+    public static final String PREFS_HOMEPAGE_FOR_EVERY_NEW_TAB = NON_PREF_PREFIX + "newtab.load_homepage";
     public static final String PREFS_HOMEPAGE_PARTNER_COPY = GeckoPreferences.PREFS_HOMEPAGE + ".partner";
     public static final String PREFS_HISTORY_SAVED_SEARCH = NON_PREF_PREFIX + "search.search_history.enabled";
     private static final String PREFS_FAQ_LINK = NON_PREF_PREFIX + "faq.link";
@@ -168,12 +168,14 @@ public class GeckoPreferences
     public static final String PREFS_READ_PARTNER_CUSTOMIZATIONS_PROVIDER = NON_PREF_PREFIX + "distribution.read_partner_customizations_provider";
     public static final String PREFS_READ_PARTNER_BOOKMARKS_PROVIDER = NON_PREF_PREFIX + "distribution.read_partner_bookmarks_provider";
     public static final String PREFS_CUSTOM_TABS = NON_PREF_PREFIX + "customtabs";
-    public static final String PREFS_ACTIVITY_STREAM = NON_PREF_PREFIX + "activitystream";
+    public static final String PREFS_ACTIVITY_STREAM = NON_PREF_PREFIX + "experiments.activitystream";
     public static final String PREFS_CATEGORY_EXPERIMENTAL_FEATURES = NON_PREF_PREFIX + "category_experimental";
     public static final String PREFS_COMPACT_TABS = NON_PREF_PREFIX + "compact_tabs";
     public static final String PREFS_SHOW_QUIT_MENU = NON_PREF_PREFIX + "distribution.show_quit_menu";
     public static final String PREFS_SEARCH_SUGGESTIONS_ENABLED = "browser.search.suggest.enabled";
     public static final String PREFS_DEFAULT_BROWSER = NON_PREF_PREFIX + "default_browser.link";
+    public static final String PREFS_SYSTEM_FONT_SIZE = NON_PREF_PREFIX + "font.size.use_system_font_size";
+    public static final String PREFS_SET_AS_HOMEPAGE = NON_PREF_PREFIX + "distribution.set_as_homepage";
 
     private static final String ACTION_STUMBLER_UPLOAD_PREF = "STUMBLER_PREF";
 
@@ -714,8 +716,8 @@ public class GeckoPreferences
                     i--;
                     continue;
                 } else if (PREFS_CATEGORY_EXPERIMENTAL_FEATURES.equals(key)
-                        && !AppConstants.MOZ_ANDROID_ACTIVITY_STREAM
-                        && !AppConstants.MOZ_ANDROID_CUSTOM_TABS) {
+                        && !AppConstants.MOZ_ANDROID_CUSTOM_TABS
+                        && !ActivityStream.isUserSwitchable(this)) {
                     preferences.removePreference(pref);
                     i--;
                     continue;
@@ -837,12 +839,6 @@ public class GeckoPreferences
                         i--;
                         continue;
                     }
-                } else if (PREFS_ZOOMED_VIEW_ENABLED.equals(key)) {
-                    if (!AppConstants.NIGHTLY_BUILD) {
-                        preferences.removePreference(pref);
-                        i--;
-                        continue;
-                    }
                 } else if (PREFS_VOICE_INPUT_ENABLED.equals(key)) {
                     if (!InputOptionsUtils.supportsVoiceRecognizer(getApplicationContext(), getResources().getString(R.string.voicesearch_prompt))) {
                         // Remove UI for voice input on non nightly builds.
@@ -915,7 +911,8 @@ public class GeckoPreferences
                     preferences.removePreference(pref);
                     i--;
                     continue;
-                } else if (PREFS_ACTIVITY_STREAM.equals(key) && !ActivityStream.isUserEligible(this)) {
+                } else if (PREFS_ACTIVITY_STREAM.equals(key)
+                        && !ActivityStream.isUserSwitchable(this)) {
                     preferences.removePreference(pref);
                     i--;
                     continue;
@@ -1036,10 +1033,8 @@ public class GeckoPreferences
                 .putExtra("pref", PREFS_GEO_REPORTING)
                 .putExtra("branch", GeckoSharedPrefs.APP_PREFS_NAME)
                 .putExtra("enabled", value)
-                .putExtra("moz_mozilla_api_key", AppConstants.MOZ_MOZILLA_API_KEY);
-       if (GeckoAppShell.getGeckoInterface() != null) {
-           intent.putExtra("user_agent", GeckoAppShell.getGeckoInterface().getDefaultUAString());
-       }
+                .putExtra("moz_mozilla_api_key", AppConstants.MOZ_MOZILLA_API_KEY)
+                .putExtra("user_agent", GeckoApplication.getDefaultUAString());
        broadcastAction(context, intent);
     }
 
@@ -1241,13 +1236,6 @@ public class GeckoPreferences
             }
         } else if (PREFS_NOTIFICATIONS_CONTENT.equals(prefName)) {
             FeedService.setup(this);
-        } else if (PREFS_ACTIVITY_STREAM.equals(prefName)) {
-            ThreadUtils.postDelayedToUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    GeckoAppShell.scheduleRestart();
-                }
-            }, 1000);
         } else if (HANDLERS.containsKey(prefName)) {
             PrefHandler handler = HANDLERS.get(prefName);
             handler.onChange(this, preference, newValue);
@@ -1270,9 +1258,6 @@ public class GeckoPreferences
         } else if (preference instanceof LinkPreference) {
             setResult(RESULT_CODE_EXIT_SETTINGS);
             finishChoosingTransition();
-        } else if (preference instanceof FontSizePreference) {
-            final FontSizePreference fontSizePref = (FontSizePreference) preference;
-            fontSizePref.setSummary(fontSizePref.getSavedFontSizeName());
         }
 
         return true;
@@ -1496,16 +1481,6 @@ public class GeckoPreferences
                         // Set the summary string to the current entry
                         CharSequence selectedEntry = ((ListPreference) pref).getEntry();
                         ((ListPreference) pref).setSummary(selectedEntry);
-                    }
-                });
-            } else if (pref instanceof FontSizePreference) {
-                final FontSizePreference fontSizePref = (FontSizePreference) pref;
-                fontSizePref.setSavedFontSize(value);
-                final String fontSizeName = fontSizePref.getSavedFontSizeName();
-                ThreadUtils.postToUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        fontSizePref.setSummary(fontSizeName); // Ex: "Small".
                     }
                 });
             }

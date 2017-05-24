@@ -12,6 +12,7 @@
 #include "mozilla/layers/CompositorThread.h" // for CompositorThreadHolder
 #include "mozilla/layers/LayerAnimationUtils.h" // for TimingFunctionToComputedTimingFunction
 #include "mozilla/StyleAnimationValue.h" // for StyleAnimationValue, etc
+#include "nsDisplayList.h"              // for nsDisplayTransform, etc
 
 namespace mozilla {
 namespace layers {
@@ -28,7 +29,15 @@ CompositorAnimationStorage::Clear()
 
   mAnimatedValues.Clear();
   mAnimations.Clear();
+}
 
+void
+CompositorAnimationStorage::ClearById(const uint64_t& aId)
+{
+  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
+
+  mAnimatedValues.Remove(aId);
+  mAnimations.Remove(aId);
 }
 
 AnimatedValue*
@@ -45,7 +54,21 @@ CompositorAnimationStorage::SetAnimatedValue(uint64_t aId,
                                              const TransformData& aData)
 {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  AnimatedValue* value = new AnimatedValue(Move(aTransformInDevSpace), Move(aFrameTransform), aData);
+  AnimatedValue* value = new AnimatedValue(Move(aTransformInDevSpace),
+                                           Move(aFrameTransform),
+                                           aData);
+  mAnimatedValues.Put(aId, value);
+}
+
+void
+CompositorAnimationStorage::SetAnimatedValue(uint64_t aId,
+                                             gfx::Matrix4x4&& aTransformInDevSpace)
+{
+  MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
+  const TransformData dontCare = {};
+  AnimatedValue* value = new AnimatedValue(Move(aTransformInDevSpace),
+                                           gfx::Matrix4x4(),
+                                           dontCare);
   mAnimatedValues.Put(aId, value);
 }
 
@@ -131,7 +154,7 @@ SampleValue(float aPortion, const layers::Animation& aAnimation,
 }
 
 bool
-AnimationHelper::SampleAnimationForEachNode(TimeStamp aPoint,
+AnimationHelper::SampleAnimationForEachNode(TimeStamp aTime,
                            AnimationArray& aAnimations,
                            InfallibleTArray<AnimData>& aAnimationData,
                            StyleAnimationValue& aAnimationValue,
@@ -150,15 +173,21 @@ AnimationHelper::SampleAnimationForEachNode(TimeStamp aPoint,
 
     activeAnimations = true;
 
-    MOZ_ASSERT(!animation.startTime().IsNull() ||
+    MOZ_ASSERT((!animation.originTime().IsNull() &&
+                animation.startTime().type() ==
+                  MaybeTimeDuration::TTimeDuration) ||
                animation.isNotPlaying(),
-               "Failed to resolve start time of play-pending animations");
-    // If the animation is not currently playing , e.g. paused or
+               "If we are playing, we should have an origin time and a start"
+               " time");
+    // If the animation is not currently playing, e.g. paused or
     // finished, then use the hold time to stay at the same position.
-    TimeDuration elapsedDuration = animation.isNotPlaying()
+    TimeDuration elapsedDuration =
+      animation.isNotPlaying() ||
+      animation.startTime().type() != MaybeTimeDuration::TTimeDuration
       ? animation.holdTime()
-      : (aPoint - animation.startTime())
-          .MultDouble(animation.playbackRate());
+      : (aTime - animation.originTime() -
+         animation.startTime().get_TimeDuration())
+        .MultDouble(animation.playbackRate());
     TimingParams timing;
     timing.mDuration.emplace(animation.duration());
     timing.mDelay = animation.delay();
@@ -476,6 +505,83 @@ AnimationHelper::GetNextCompositorAnimationsId()
   uint64_t nextId = procId;
   nextId = nextId << 32 | sNextId;
   return nextId;
+}
+
+void
+AnimationHelper::SampleAnimations(CompositorAnimationStorage* aStorage,
+                                  TimeStamp aTime)
+{
+  MOZ_ASSERT(aStorage);
+
+  // Do nothing if there are no compositor animations
+  if (!aStorage->AnimationsCount()) {
+    return;
+  }
+
+  //Sample the animations in CompositorAnimationStorage
+  for (auto iter = aStorage->ConstAnimationsTableIter();
+       !iter.Done(); iter.Next()) {
+    bool hasInEffectAnimations = false;
+    AnimationArray* animations = iter.UserData();
+    StyleAnimationValue animationValue;
+    InfallibleTArray<AnimData> animationData;
+    AnimationHelper::SetAnimations(*animations,
+                                   animationData,
+                                   animationValue);
+    AnimationHelper::SampleAnimationForEachNode(aTime,
+                                                *animations,
+                                                animationData,
+                                                animationValue,
+                                                hasInEffectAnimations);
+
+    if (!hasInEffectAnimations) {
+      continue;
+    }
+
+    // Store the AnimatedValue
+    Animation& animation = animations->LastElement();
+    switch (animation.property()) {
+      case eCSSProperty_opacity: {
+        aStorage->SetAnimatedValue(iter.Key(),
+                                   animationValue.GetFloatValue());
+        break;
+      }
+      case eCSSProperty_transform: {
+        nsCSSValueSharedList* list = animationValue.GetCSSValueSharedListValue();
+        const TransformData& transformData = animation.data().get_TransformData();
+        nsPoint origin = transformData.origin();
+        // we expect all our transform data to arrive in device pixels
+        gfx::Point3D transformOrigin = transformData.transformOrigin();
+        nsDisplayTransform::FrameTransformProperties props(list,
+                                                           transformOrigin);
+
+        gfx::Matrix4x4 transform =
+          nsDisplayTransform::GetResultingTransformMatrix(props, origin,
+                                                          transformData.appUnitsPerDevPixel(),
+                                                          0, &transformData.bounds());
+        gfx::Matrix4x4 frameTransform = transform;
+        // If the parent has perspective transform, then the offset into reference
+        // frame coordinates is already on this transform. If not, then we need to ask
+        // for it to be added here.
+        if (!transformData.hasPerspectiveParent()) {
+           nsLayoutUtils::PostTranslate(transform, origin,
+                                        transformData.appUnitsPerDevPixel(),
+                                        true);
+        }
+
+        transform.PostScale(transformData.inheritedXScale(),
+                            transformData.inheritedYScale(),
+                            1);
+
+        aStorage->SetAnimatedValue(iter.Key(),
+                                   Move(transform), Move(frameTransform),
+                                   transformData);
+        break;
+      }
+      default:
+        MOZ_ASSERT_UNREACHABLE("Unhandled animated property");
+    }
+  }
 }
 
 } // namespace layers

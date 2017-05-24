@@ -1769,29 +1769,6 @@ ssl3_InitCompressionContext(ssl3CipherSpec *pwSpec)
     return SECSuccess;
 }
 
-/* This function should probably be moved to pk11wrap and be named
- * PK11_ParamFromIVAndEffectiveKeyBits
- */
-static SECItem *
-ssl3_ParamFromIV(CK_MECHANISM_TYPE mtype, SECItem *iv, CK_ULONG ulEffectiveBits)
-{
-    SECItem *param = PK11_ParamFromIV(mtype, iv);
-    if (param && param->data && param->len >= sizeof(CK_RC2_PARAMS)) {
-        switch (mtype) {
-            case CKM_RC2_KEY_GEN:
-            case CKM_RC2_ECB:
-            case CKM_RC2_CBC:
-            case CKM_RC2_MAC:
-            case CKM_RC2_MAC_GENERAL:
-            case CKM_RC2_CBC_PAD:
-                *(CK_RC2_PARAMS *)param->data = ulEffectiveBits;
-            default:
-                break;
-        }
-    }
-    return param;
-}
-
 /* ssl3_BuildRecordPseudoHeader writes the SSL/TLS pseudo-header (the data
  * which is included in the MAC or AEAD additional data) to |out| and returns
  * its length. See https://tools.ietf.org/html/rfc5246#section-6.2.3.3 for the
@@ -1973,7 +1950,6 @@ ssl3_InitPendingContexts(sslSocket *ss)
     CK_MECHANISM_TYPE mechanism;
     CK_MECHANISM_TYPE mac_mech;
     CK_ULONG macLength;
-    CK_ULONG effKeyBits;
     SECItem iv;
     SECItem mac_param;
     SSLCipherAlgorithm calg;
@@ -2043,14 +2019,13 @@ ssl3_InitPendingContexts(sslSocket *ss)
         return SECSuccess;
     }
     mechanism = ssl3_Alg2Mech(calg);
-    effKeyBits = cipher_def->key_size * BPB;
 
     /*
      * build the server context
      */
     iv.data = pwSpec->server.write_iv;
     iv.len = cipher_def->iv_size;
-    param = ssl3_ParamFromIV(mechanism, &iv, effKeyBits);
+    param = PK11_ParamFromIV(mechanism, &iv);
     if (param == NULL) {
         ssl_MapLowLevelError(SSL_ERROR_IV_PARAM_FAILURE);
         goto fail;
@@ -2074,7 +2049,7 @@ ssl3_InitPendingContexts(sslSocket *ss)
     iv.data = pwSpec->client.write_iv;
     iv.len = cipher_def->iv_size;
 
-    param = ssl3_ParamFromIV(mechanism, &iv, effKeyBits);
+    param = PK11_ParamFromIV(mechanism, &iv);
     if (param == NULL) {
         ssl_MapLowLevelError(SSL_ERROR_IV_PARAM_FAILURE);
         goto fail;
@@ -4996,7 +4971,6 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
     PRBool isTLS = PR_FALSE;
     PRBool requestingResume = PR_FALSE, fallbackSCSV = PR_FALSE;
     PRInt32 total_exten_len = 0;
-    unsigned paddingExtensionLen;
     unsigned numCompressionMethods;
     PRUint16 version;
     PRInt32 flags;
@@ -5292,19 +5266,12 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
         length += 1 + ss->ssl3.hs.cookie.len;
     }
 
-    /* A padding extension may be included to ensure that the record containing
-     * the ClientHello doesn't have a length between 256 and 511 bytes
-     * (inclusive). Initial, ClientHello records with such lengths trigger bugs
-     * in F5 devices.
-     *
-     * This is not done for DTLS, for renegotiation, or when there are no
-     * extensions. */
-    if (!IS_DTLS(ss) && isTLS && !ss->firstHsDone && total_exten_len) {
-        paddingExtensionLen = ssl3_CalculatePaddingExtensionLength(length);
-        total_exten_len += paddingExtensionLen;
-        length += paddingExtensionLen;
-    } else {
-        paddingExtensionLen = 0;
+    if (total_exten_len > 0) {
+        ssl3_CalculatePaddingExtLen(ss, length);
+        if (ss->xtnData.paddingLen) {
+            total_exten_len += 4 + ss->xtnData.paddingLen;
+            length += 4 + ss->xtnData.paddingLen;
+        }
     }
 
     rv = ssl3_AppendHandshakeHeader(ss, client_hello, length);
@@ -5474,15 +5441,6 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
             }
             return rv; /* err set by AppendHandshake. */
         }
-
-        extLen = ssl3_AppendPaddingExtension(ss, paddingExtensionLen, maxBytes);
-        if (extLen < 0) {
-            if (sid->u.ssl3.lock) {
-                PR_RWLock_Unlock(sid->u.ssl3.lock);
-            }
-            return SECFailure;
-        }
-        maxBytes -= extLen;
 
         extLen = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, maxBytes, NULL);
         if (extLen < 0) {
@@ -11190,9 +11148,7 @@ ssl3_SendNextProto(sslSocket *ss)
 
     padding_len = 32 - ((ss->xtnData.nextProto.len + 2) % 32);
 
-    rv = ssl3_AppendHandshakeHeader(ss, next_proto, ss->xtnData.nextProto.len +
-                                                        2 +
-                                                        padding_len);
+    rv = ssl3_AppendHandshakeHeader(ss, next_proto, ss->xtnData.nextProto.len + 2 + padding_len);
     if (rv != SECSuccess) {
         return rv; /* error code set by AppendHandshakeHeader */
     }

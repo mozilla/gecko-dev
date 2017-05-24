@@ -170,7 +170,7 @@ class SharedIntlData
      * isn't a valid IANA time zone name, |result| remains unchanged.
      */
     bool validateTimeZoneName(JSContext* cx, JS::HandleString timeZone,
-                              JS::MutableHandleString result);
+                              MutableHandleAtom result);
 
     /**
      * Returns the canonical time zone name in |result|. If no canonical name
@@ -180,7 +180,7 @@ class SharedIntlData
      * by ICU when compared to IANA.
      */
     bool tryCanonicalizeTimeZoneConsistentWithIANA(JSContext* cx, JS::HandleString timeZone,
-                                                   JS::MutableHandleString result);
+                                                   MutableHandleAtom result);
 
   private:
     /**
@@ -666,6 +666,27 @@ intl_GetLocaleInfo(JSContext* cx, unsigned argc, Value* vp);
  */
 extern MOZ_MUST_USE bool
 intl_ComputeDisplayNames(JSContext* cx, unsigned argc, Value* vp);
+
+
+/******************** String ********************/
+
+/**
+ * Returns the input string converted to lower case based on the language
+ * specific case mappings for the input locale.
+ *
+ * Usage: lowerCase = intl_toLocaleLowerCase(string, locale)
+ */
+extern MOZ_MUST_USE bool
+intl_toLocaleLowerCase(JSContext* cx, unsigned argc, Value* vp);
+
+/**
+ * Returns the input string converted to upper case based on the language
+ * specific case mappings for the input locale.
+ *
+ * Usage: upperCase = intl_toLocaleUpperCase(string, locale)
+ */
+extern MOZ_MUST_USE bool
+intl_toLocaleUpperCase(JSContext* cx, unsigned argc, Value* vp);
 
 #if ENABLE_INTL_API
 /**

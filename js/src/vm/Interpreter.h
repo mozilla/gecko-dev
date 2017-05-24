@@ -14,8 +14,6 @@
 #include "jsiter.h"
 #include "jspubtd.h"
 
-#include "frontend/ParseNode.h"
-
 #include "vm/Stack.h"
 
 namespace js {
@@ -556,7 +554,8 @@ enum class CheckIsObjectKind : uint8_t {
     IteratorNext,
     IteratorReturn,
     IteratorThrow,
-    GetIterator
+    GetIterator,
+    GetAsyncIterator
 };
 
 bool

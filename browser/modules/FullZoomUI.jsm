@@ -29,7 +29,7 @@ function fullZoomLocationChangeObserver(aSubject, aTopic) {
   }
   updateZoomUI(aSubject, false);
 }
-Services.obs.addObserver(fullZoomLocationChangeObserver, "browser-fullZoom:location-change", false);
+Services.obs.addObserver(fullZoomLocationChangeObserver, "browser-fullZoom:location-change");
 
 function onEndSwapDocShells(event) {
   updateZoomUI(event.originalTarget);
@@ -98,8 +98,7 @@ let customizationListener = {
 };
 customizationListener.onWidgetAdded =
 customizationListener.onWidgetRemoved =
-customizationListener.onWidgetMoved =
-customizationListener.onWidgetInstanceRemoved = function(aWidgetId) {
+customizationListener.onWidgetMoved = function(aWidgetId) {
   if (aWidgetId == "zoom-controls") {
     for (let window of CustomizableUI.windows) {
       updateZoomUI(window.gBrowser.selectedBrowser);

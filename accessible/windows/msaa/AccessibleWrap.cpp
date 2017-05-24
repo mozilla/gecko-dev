@@ -15,6 +15,7 @@
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
 #include "nsIAccessibleEvent.h"
+#include "nsWindowsHelpers.h"
 #include "nsWinUtils.h"
 #include "mozilla/a11y/ProxyAccessible.h"
 #include "ProxyWrappers.h"
@@ -43,6 +44,7 @@
 #include "nsArrayUtils.h"
 #include "mozilla/Preferences.h"
 #include "nsIXULRuntime.h"
+#include "mozilla/mscom/AsyncInvoker.h"
 
 #include "oleacc.h"
 
@@ -62,6 +64,7 @@ static gAccessibles = 0;
 #endif
 
 MsaaIdGenerator AccessibleWrap::sIDGen;
+StaticAutoPtr<nsTArray<AccessibleWrap::HandlerControllerData>> AccessibleWrap::sHandlerControllers;
 
 static const VARIANT kVarChildIdSelf = {VT_I4};
 
@@ -1563,13 +1566,12 @@ AccessibleWrap::UpdateSystemCaretFor(Accessible* aAccessible)
 
   // Create invisible bitmap for caret, otherwise its appearance interferes
   // with Gecko caret
-  HBITMAP caretBitMap = CreateBitmap(1, caretRect.height, 1, 1, nullptr);
+  nsAutoBitmap caretBitMap(CreateBitmap(1, caretRect.height, 1, 1, nullptr));
   if (::CreateCaret(caretWnd, caretBitMap, 1, caretRect.height)) {  // Also destroys the last caret
     ::ShowCaret(caretWnd);
     RECT windowRect;
     ::GetWindowRect(caretWnd, &windowRect);
     ::SetCaretPos(caretRect.x - windowRect.left, caretRect.y - windowRect.top);
-    ::DeleteObject(caretBitMap);
   }
 }
 
@@ -1606,3 +1608,80 @@ AccessibleWrap::ReleaseContentProcessIdFor(dom::ContentParentId aIPCContentId)
 {
   sIDGen.ReleaseContentProcessIDFor(aIPCContentId);
 }
+
+/* static */
+void
+AccessibleWrap::SetHandlerControl(DWORD aPid, RefPtr<IHandlerControl> aCtrl)
+{
+  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread());
+
+  if (!sHandlerControllers) {
+    sHandlerControllers = new nsTArray<HandlerControllerData>();
+    ClearOnShutdown(&sHandlerControllers);
+  }
+
+  HandlerControllerData ctrlData(aPid, Move(aCtrl));
+  if (sHandlerControllers->Contains(ctrlData)) {
+    return;
+  }
+
+  sHandlerControllers->AppendElement(Move(ctrlData));
+}
+
+
+bool
+AccessibleWrap::DispatchTextChangeToHandler(bool aIsInsert,
+                                            const nsString& aText,
+                                            int32_t aStart, uint32_t aLen)
+{
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (!sHandlerControllers || sHandlerControllers->IsEmpty()) {
+    return false;
+  }
+
+  HWND hwnd = GetHWNDFor(this);
+  MOZ_ASSERT(hwnd);
+  if (!hwnd) {
+    return false;
+  }
+
+  long msaaId = GetChildIDFor(this);
+
+  DWORD ourPid = ::GetCurrentProcessId();
+
+  // The handler ends up calling NotifyWinEvent, which should only be done once
+  // since it broadcasts the same event to every process who is subscribed.
+  // OTOH, if our chrome process contains a handler, we should prefer to
+  // broadcast the event from that process, as we want any DLLs injected by ATs
+  // to receive the event synchronously. Otherwise we simply choose the first
+  // handler in the list, for the lack of a better heuristic.
+
+  nsTArray<HandlerControllerData>::index_type ctrlIndex =
+    sHandlerControllers->IndexOf(ourPid);
+
+  if (ctrlIndex == nsTArray<HandlerControllerData>::NoIndex) {
+    ctrlIndex = 0;
+  }
+
+  HandlerControllerData& controller = sHandlerControllers->ElementAt(ctrlIndex);
+  MOZ_ASSERT(controller.mPid);
+  MOZ_ASSERT(controller.mCtrl);
+
+  VARIANT_BOOL isInsert = aIsInsert ? VARIANT_TRUE : VARIANT_FALSE;
+
+  IA2TextSegment textSegment{::SysAllocStringLen(aText.get(), aText.Length()),
+                             aStart, static_cast<long>(aLen)};
+
+  ASYNC_INVOKER_FOR(IHandlerControl) invoker(controller.mCtrl,
+                                             Some(controller.mIsProxy));
+
+  HRESULT hr = ASYNC_INVOKE(invoker, OnTextChange, PtrToLong(hwnd), msaaId,
+                            isInsert, &textSegment);
+
+  ::SysFreeString(textSegment.text);
+
+  return SUCCEEDED(hr);
+}
+

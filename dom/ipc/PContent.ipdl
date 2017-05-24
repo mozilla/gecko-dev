@@ -19,7 +19,9 @@ include protocol PHal;
 include protocol PHeapSnapshotTempFileHelper;
 include protocol PProcessHangMonitor;
 include protocol PImageBridge;
+include protocol PIPCBlobInputStream;
 include protocol PMedia;
+include protocol PMemoryStream;
 include protocol PNecko;
 include protocol PGMPContent;
 include protocol PGMPService;
@@ -30,7 +32,6 @@ include protocol PChildToParentStream;
 include protocol PParentToChildStream;
 include protocol POfflineCacheUpdate;
 include protocol PRenderFrame;
-include protocol PScreenManager;
 include protocol PSpeechSynthesis;
 include protocol PStorage;
 include protocol PTestShell;
@@ -40,11 +41,14 @@ include protocol PWebBrowserPersistDocument;
 include protocol PWebrtcGlobal;
 include protocol PPresentation;
 include protocol PURLClassifier;
+include protocol PURLClassifierLocal;
 include protocol PVRManager;
 include protocol PVideoDecoderManager;
 include protocol PFlyWebPublishedServer;
+include protocol PScriptCache;
 include DOMTypes;
 include JavaScriptTypes;
+include IPCBlob;
 include IPCStream;
 include PTabContext;
 include URIParams;
@@ -61,6 +65,7 @@ include MemoryReportTypes;
 // are put into different UnifiedProtocolsXX.cpp files.
 // XXX Remove this once bug 1069073 is fixed
 include "mozilla/dom/PContentBridgeParent.h";
+include "mozilla/layers/WebRenderMessageUtils.h";
 
 using GeoPosition from "nsGeoPositionIPCSerialiser.h";
 using AlertNotificationType from "mozilla/AlertNotificationIPCSerializer.h";
@@ -73,6 +78,7 @@ using base::ProcessId from "base/process.h";
 using struct IPC::Permission from "mozilla/net/NeckoMessageUtils.h";
 using class IPC::Principal from "mozilla/dom/PermissionMessageUtils.h";
 using struct mozilla::null_t from "ipc/IPCMessageUtils.h";
+using mozilla::a11y::IHandlerControlHolder from "mozilla/a11y/IPCTypes.h";
 using mozilla::dom::NativeThreadId from "mozilla/dom/TabMessageUtils.h";
 using mozilla::hal::ProcessPriority from "mozilla/HalTypes.h";
 using mozilla::gfx::IntSize from "mozilla/gfx/2D.h";
@@ -85,12 +91,14 @@ using class mozilla::dom::ipc::StructuredCloneData from "mozilla/dom/ipc/Structu
 using mozilla::DataStorageType from "ipc/DataStorageIPCUtils.h";
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/CompositorTypes.h";
+using mozilla::layers::CompositorOptions from "mozilla/layers/CompositorOptions.h";
 using struct mozilla::dom::FlyWebPublishOptions from "mozilla/dom/FlyWebPublishOptionsIPCSerializer.h";
 using mozilla::Telemetry::Accumulation from "mozilla/TelemetryComms.h";
 using mozilla::Telemetry::KeyedAccumulation from "mozilla/TelemetryComms.h";
 using mozilla::Telemetry::ScalarAction from "mozilla/TelemetryComms.h";
 using mozilla::Telemetry::KeyedScalarAction from "mozilla/TelemetryComms.h";
 using mozilla::Telemetry::ChildEventData from "mozilla/TelemetryComms.h";
+using mozilla::wr::PipelineId from "mozilla/webrender/WebRenderTypes.h";
 
 union ChromeRegistryItem
 {
@@ -191,7 +199,7 @@ struct AndroidSystemInfo
 
 struct GetFilesResponseSuccess
 {
-  PBlob[] blobs;
+  IPCBlob[] blobs;
 };
 
 struct GetFilesResponseFailure
@@ -207,7 +215,7 @@ union GetFilesResponseResult
 
 struct FileCreationSuccessResult
 {
-  PBlob blob;
+  IPCBlob blob;
 };
 
 struct FileCreationErrorResult
@@ -224,7 +232,7 @@ union FileCreationResult
 struct BlobURLRegistrationData
 {
     nsCString url;
-    PBlob blob;
+    IPCBlob blob;
     Principal principal;
 };
 
@@ -264,6 +272,8 @@ struct XPCOMInitData
     PrefSetting[] prefs;
     GfxInfoFeatureStatus[] gfxFeatureStatus;
     DataStorageEntry[] dataStorage;
+    nsCString[] appLocales;
+    nsCString[] requestedLocales;
 };
 
 /**
@@ -283,13 +293,14 @@ nested(upto inside_cpow) sync protocol PContent
     manages PHal;
     manages PHandlerService;
     manages PHeapSnapshotTempFileHelper;
+    manages PIPCBlobInputStream;
     manages PMedia;
+    manages PMemoryStream;
     manages PNecko;
     manages POfflineCacheUpdate;
     manages PPrinting;
     manages PChildToParentStream;
     manages PParentToChildStream;
-    manages PScreenManager;
     manages PSpeechSynthesis;
     manages PStorage;
     manages PTestShell;
@@ -300,6 +311,8 @@ nested(upto inside_cpow) sync protocol PContent
     manages PPresentation;
     manages PFlyWebPublishedServer;
     manages PURLClassifier;
+    manages PURLClassifierLocal;
+    manages PScriptCache;
 
 both:
     // Depending on exactly how the new browser is being created, it might be
@@ -319,8 +332,13 @@ both:
     // type PopupIPCTabContext.  The parent checks that if the opener is a
     // browser element, the context is also for a browser element.
     //
+    // If |sameTabGroupAs| is non-zero, the new tab should go in the same
+    // TabGroup as |sameTabGroupAs|. This parameter should always be zero
+    // for PBrowser messages sent from the child to the parent.
+    //
     // Keep the last 3 attributes in sync with GetProcessAttributes!
-    async PBrowser(TabId tabId, IPCTabContext context, uint32_t chromeFlags,
+    async PBrowser(TabId tabId, TabId sameTabGroupAs,
+                   IPCTabContext context, uint32_t chromeFlags,
                    ContentParentId cpId, bool isForBrowser);
 
     async PBlob(BlobConstructorParams params);
@@ -344,7 +362,8 @@ child:
       Endpoint<PCompositorBridgeChild> compositor,
       Endpoint<PImageBridgeChild> imageBridge,
       Endpoint<PVRManagerChild> vr,
-      Endpoint<PVideoDecoderManagerChild> video);
+      Endpoint<PVideoDecoderManagerChild> video,
+      uint32_t[] namespaces);
 
     // Re-create the rendering stack using the given endpoints. This is sent
     // after the compositor process has crashed. The new endpoints may be to a
@@ -353,7 +372,11 @@ child:
       Endpoint<PCompositorBridgeChild> compositor,
       Endpoint<PImageBridgeChild> bridge,
       Endpoint<PVRManagerChild> vr,
-      Endpoint<PVideoDecoderManagerChild> video);
+      Endpoint<PVideoDecoderManagerChild> video,
+      uint32_t[] namespaces);
+
+    // Re-create the rendering stack for a device reset.
+    async ReinitRenderingForDeviceReset();
 
     /**
      * Enable system-level sandboxing features, if available.  Can
@@ -385,6 +408,8 @@ child:
 
     async PTestShell();
 
+    async PScriptCache(FileDescOrError cacheFile, bool wantCacheData);
+
     async RegisterChrome(ChromePackage[] packages, SubstitutionMapping[] substitutions,
                          OverrideMapping[] overrides, nsCString locale, bool reset);
     async RegisterChromeItem(ChromeRegistryItem item);
@@ -411,6 +436,9 @@ child:
     async GeolocationError(uint16_t errorCode);
 
     async UpdateDictionaryList(nsString[] dictionaries);
+
+    async UpdateAppLocales(nsCString[] appLocales);
+    async UpdateRequestedLocales(nsCString[] requestedLocales);
 
     // nsIPermissionManager messages
     async AddPermission(Permission permission);
@@ -563,7 +591,7 @@ child:
 
     async GetFilesResponse(nsID aID, GetFilesResponseResult aResult);
 
-    async BlobURLRegistration(nsCString aURI, PBlob aBlob,
+    async BlobURLRegistration(nsCString aURI, IPCBlob aBlob,
                               Principal aPrincipal);
 
     async BlobURLUnregistration(nsCString aURI);
@@ -595,13 +623,18 @@ child:
 
     async SetPermissionsWithKey(nsCString aPermissionKey, Permission[] aPermissions);
 
+    async RefreshScreens(ScreenDetails[] aScreens);
+
+    async PIPCBlobInputStream(nsID aID, uint64_t aSize);
+
 parent:
     async InitBackground(Endpoint<PBackgroundParent> aEndpoint);
 
     sync CreateChildProcess(IPCTabContext context,
                             ProcessPriority priority,
-                            TabId openerTabId)
-        returns (ContentParentId cpId, bool isForBrowser, TabId tabId);
+                            TabId openerTabId,
+                            TabId tabId)
+        returns (ContentParentId cpId, bool isForBrowser);
     sync BridgeToChildProcess(ContentParentId cpId)
         returns (Endpoint<PContentBridgeParent> endpoint);
 
@@ -646,6 +679,8 @@ parent:
     async PJavaScript();
 
     async PRemoteSpellcheckEngine();
+
+    async PMemoryStream(uint64_t aSize);
 
     async InitCrashReporter(Shmem shmem, NativeThreadId tid);
 
@@ -705,16 +740,13 @@ parent:
 
     async PHeapSnapshotTempFileHelper();
 
-    async PNecko();
+    // Giving high priority to prevent other messages sending before this one.
+    // See bug 1360549 for details.
+    prio(high) async PNecko();
 
     async PPrinting();
 
     async PChildToParentStream();
-
-    nested(inside_sync) sync PScreenManager()
-        returns (uint32_t numberOfScreens,
-                 float systemDefaultScale,
-                 bool success);
 
     async PSpeechSynthesis();
 
@@ -732,6 +764,8 @@ parent:
         returns (bool success);
     sync ClassifyLocal(URIParams uri, nsCString tables)
         returns (nsresult rv, nsCString[] results);
+    // The async version of ClassifyLocal.
+    async PURLClassifierLocal(URIParams uri, nsCString tables);
 
     // Services remoting
 
@@ -820,12 +854,6 @@ parent:
     // Tell the parent that the child has gone idle for the first time.
     async FirstIdle();
 
-    async AudioChannelServiceStatus(bool aActiveTelephonyChannel,
-                                    bool aContentOrNormalChannel,
-                                    bool aAnyActiveChannel);
-
-    async AudioChannelChangeDefVolChannel(int32_t aChannel, bool aHidden);
-
     sync KeywordToURI(nsCString keyword)
         returns (nsString providerName, OptionalIPCStream postData, OptionalURIParams uri);
 
@@ -892,15 +920,10 @@ parent:
     sync KeygenProvideContent()
         returns (nsString aAttribute, nsString[] aContent);
 
-    /**
-     * Tell the chrome process there is an creation of PBrowser.
-     * return a system-wise unique Id.
-     */
-    sync AllocateTabId(TabId openerTabId, IPCTabContext context, ContentParentId cpId)
-        returns (TabId tabId);
-    async DeallocateTabId(TabId tabId,
-                          ContentParentId cpId,
-                          bool aMarkedDestroying);
+    /** Clear RemoteFrameInfo of the given tab id. */
+    async UnregisterRemoteFrame(TabId tabId,
+                                ContentParentId cpId,
+                                bool aMarkedDestroying);
 
     /**
      * Tell the chrome process there is a destruction of PBrowser(Tab)
@@ -972,7 +995,7 @@ parent:
     async PContentPermissionRequest(PermissionRequest[] aRequests, Principal aPrincipal,
                                     TabId tabId);
 
-    async Profile(nsCString aProfile);
+    async Profile(nsCString aProfile, bool aIsExitProfile);
 
     /**
      * Request graphics initialization information from the parent.
@@ -996,7 +1019,8 @@ parent:
                FrameScriptInfo[] frameScripts,
                nsCString urlToLoad,
                TextureFactoryIdentifier textureFactoryIdentifier,
-               uint64_t layersId);
+               uint64_t layersId,
+               CompositorOptions compositorOptions);
 
     async CreateWindowInDifferentProcess(
       PBrowser aThisTab,
@@ -1062,7 +1086,7 @@ parent:
                                int64_t lastModified, bool aExistenceCheck,
                                bool aIsFromNsIFile);
 
-     async StoreAndBroadcastBlobURLRegistration(nsCString url, PBlob blob,
+     async StoreAndBroadcastBlobURLRegistration(nsCString url, IPCBlob blob,
                                                 Principal principal);
 
      async UnstoreAndBroadcastBlobURLUnregistration(nsCString url);
@@ -1084,9 +1108,13 @@ parent:
     async RecordChildEvents(ChildEventData[] events);
 
     sync GetA11yContentId() returns (uint32_t aContentId);
+    async A11yHandlerControl(uint32_t aPid,
+                             IHandlerControlHolder aHandlerControl);
 
     async AddMemoryReport(MemoryReport aReport);
     async FinishMemoryReport(uint32_t aGeneration);
+
+    async AllocPipelineId() returns (PipelineId pipelineId);
 
 both:
      async AsyncMessage(nsString aMessage, CpowEntry[] aCpows,

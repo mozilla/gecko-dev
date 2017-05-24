@@ -26,7 +26,7 @@ read_procmaps(lul::LUL* aLUL)
 {
   MOZ_ASSERT(aLUL->CountMappings() == 0);
 
-# if defined(GP_OS_linux) || defined(GP_OS_android) || defined(GP_OS_darwin)
+# if defined(GP_OS_linux) || defined(GP_OS_android)
   SharedLibraryInfo info = SharedLibraryInfo::GetInfoForSelf();
 
   for (size_t i = 0; i < info.GetSize(); i++) {
@@ -34,7 +34,7 @@ read_procmaps(lul::LUL* aLUL)
 
     std::string nativePath = lib.GetNativeDebugPath();
 
-#   if defined(USE_FAULTY_LIB)
+#   if defined(GP_OS_android)
     // We're using faulty.lib.  Use a special-case object mapper.
     AutoObjectMapperFaultyLib mapper(aLUL->mLog);
 #   else
@@ -51,16 +51,12 @@ read_procmaps(lul::LUL* aLUL)
       aLUL->NotifyAfterMap(lib.GetStart(), lib.GetEnd()-lib.GetStart(),
                            nativePath.c_str(), image);
     } else if (!ok && lib.GetDebugName().IsEmpty()) {
-      // The object has no name and (as a consequence) the mapper
-      // failed to map it.  This happens on Linux, where
-      // GetInfoForSelf() produces two such mappings: one for the
-      // executable and one for the VDSO.  The executable one isn't a
-      // big deal since there's not much interesting code in there,
-      // but the VDSO one is a problem on x86-{linux,android} because
-      // lack of knowledge about the mapped area inhibits LUL's
-      // special __kernel_syscall handling.  Hence notify |aLUL| at
-      // least of the mapping, even though it can't read any unwind
-      // information for the area.
+      // The object has no name and (as a consequence) the mapper failed to map
+      // it.  This happens on Linux, where GetInfoForSelf() produces such a
+      // mapping for the VDSO.  This is a problem on x86-{linux,android} because
+      // lack of knowledge about the mapped area inhibits LUL's special
+      // __kernel_syscall handling.  Hence notify |aLUL| at least of the
+      // mapping, even though it can't read any unwind information for the area.
       aLUL->NotifyExecutableArea(lib.GetStart(), lib.GetEnd()-lib.GetStart());
     }
 

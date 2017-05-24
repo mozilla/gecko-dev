@@ -36,6 +36,7 @@ interface nsIPrincipal;
 interface mozIDOMWindow;
 interface nsIPermission;
 interface nsISimpleEnumerator;
+interface nsIRunnable;
 
 %{ C++
 namespace IPC {
@@ -315,6 +316,41 @@ interface nsIPermissionManager : nsISupports
    * @param perms  An array with the permissions which match the given key.
    */
   void setPermissionsWithKey(in ACString permissionKey, in IPCPermissionArrayRef perms);
+
+  /**
+   * Broadcasts permissions for the given principal to all content processes.
+   *
+   * DO NOT USE THIS METHOD if you can avoid it. It was added in bug XXX to
+   * handle the current temporary implementation of ServiceWorker debugging. It
+   * will be removed when service worker debugging is fixed.
+   *
+   * @param aPrincipal The principal to broadcast permissions for.
+   */
+  void broadcastPermissionsForPrincipalToAllContentProcesses(in nsIPrincipal aPrincipal);
+
+  /**
+   * Add a callback which should be run when all permissions are available for
+   * the given nsIPrincipal. This method invokes the callback runnable
+   * synchronously when the permissions are already available. Otherwise the
+   * callback will be run asynchronously in SystemGroup when all permissions
+   * are available in the future.
+   *
+   * NOTE: This method will not request the permissions be sent by the parent
+   * process. This should only be used to wait for permissions which may not
+   * have arrived yet in order to ensure they are present.
+   *
+   * @param aPrincipal The principal to wait for permissions to be available for.
+   * @param aRunnable  The runnable to run when permissions are available for the
+   *                   given principal.
+   */
+  void whenPermissionsAvailable(in nsIPrincipal aPrincipal,
+                                in nsIRunnable aRunnable);
+
+  /**
+   * True if any "preload" permissions are present. This is used to avoid making
+   * potentially expensive permissions checks in nsContentBlocker.
+   */
+  [infallible] readonly attribute boolean hasPreloadPermissions;
 };
 
 %{ C++

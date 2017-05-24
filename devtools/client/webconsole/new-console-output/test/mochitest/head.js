@@ -14,9 +14,7 @@ Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/framework/test/shared-head.js",
   this);
 
-var {Utils: WebConsoleUtils} = require("devtools/client/webconsole/utils");
-const WEBCONSOLE_STRINGS_URI = "devtools/client/locales/webconsole.properties";
-var WCUL10n = new WebConsoleUtils.L10n(WEBCONSOLE_STRINGS_URI);
+var WCUL10n = require("devtools/client/webconsole/webconsole-l10n");
 
 Services.prefs.setBoolPref("devtools.webconsole.new-frontend-enabled", true);
 registerCleanupFunction(function* () {
@@ -101,11 +99,9 @@ function waitForMessages({ hud, messages }) {
  * @return object
  *         A promise that is resolved with the result of the condition.
  */
-function* waitFor(condition, message = "waitFor", interval = 10, maxTries = 500) {
-  return new Promise(resolve => {
-    BrowserTestUtils.waitForCondition(condition, message, interval, maxTries)
-      .then(() => resolve(condition()));
-  });
+async function waitFor(condition, message = "waitFor", interval = 10, maxTries = 500) {
+  await BrowserTestUtils.waitForCondition(condition, message, interval, maxTries);
+  return condition();
 }
 
 /**

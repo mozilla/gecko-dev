@@ -36,6 +36,8 @@ namespace ipc {
 class PFileDescriptorSetParent;
 class PChildToParentStreamParent;
 class PParentToChildStreamParent;
+class PMemoryStreamParent;
+class PIPCBlobInputStreamParent;
 }
 
 namespace dom {
@@ -70,9 +72,15 @@ public:
   SendPBlobConstructor(PBlobParent* aActor,
                        const BlobConstructorParams& aParams) = 0;
 
+  virtual mozilla::ipc::PIPCBlobInputStreamParent*
+  SendPIPCBlobInputStreamConstructor(mozilla::ipc::PIPCBlobInputStreamParent* aActor,
+                                     const nsID& aID,
+                                     const uint64_t& aSize) = 0;
+
   MOZ_MUST_USE virtual PBrowserParent*
   SendPBrowserConstructor(PBrowserParent* actor,
                           const TabId& aTabId,
+                          const TabId& aSameTabGroupAs,
                           const IPCTabContext& context,
                           const uint32_t& chromeFlags,
                           const ContentParentId& aCpId,
@@ -111,6 +119,7 @@ protected: // IPDL methods
   virtual bool DeallocPJavaScriptParent(mozilla::jsipc::PJavaScriptParent*);
 
   virtual PBrowserParent* AllocPBrowserParent(const TabId& aTabId,
+                                              const TabId& aSameTabGroupsAs,
                                               const IPCTabContext& aContext,
                                               const uint32_t& aChromeFlags,
                                               const ContentParentId& aCpId,
@@ -120,6 +129,17 @@ protected: // IPDL methods
   virtual PBlobParent* AllocPBlobParent(const BlobConstructorParams& aParams);
 
   virtual bool DeallocPBlobParent(PBlobParent* aActor);
+
+  virtual mozilla::ipc::PMemoryStreamParent*
+  AllocPMemoryStreamParent(const uint64_t& aSize);
+
+  virtual bool DeallocPMemoryStreamParent(mozilla::ipc::PMemoryStreamParent* aActor);
+
+  virtual mozilla::ipc::PIPCBlobInputStreamParent*
+  AllocPIPCBlobInputStreamParent(const nsID& aID, const uint64_t& aSize);
+
+  virtual bool
+  DeallocPIPCBlobInputStreamParent(mozilla::ipc::PIPCBlobInputStreamParent* aActor);
 
   virtual mozilla::ipc::PFileDescriptorSetParent*
   AllocPFileDescriptorSetParent(const mozilla::ipc::FileDescriptor& aFD);

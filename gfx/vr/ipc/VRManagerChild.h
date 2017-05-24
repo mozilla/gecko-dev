@@ -64,13 +64,19 @@ public:
 
   static bool IsCreated();
 
-  virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData,
-                                       layers::LayersBackend aLayersBackend,
-                                       TextureFlags aFlags,
-                                       uint64_t aSerial) override;
+  virtual PTextureChild* CreateTexture(
+    const SurfaceDescriptor& aSharedData,
+    layers::LayersBackend aLayersBackend,
+    TextureFlags aFlags,
+    uint64_t aSerial,
+    wr::MaybeExternalImageId& aExternalImageId,
+    nsIEventTarget* aTarget = nullptr) override;
   virtual void CancelWaitForRecycle(uint64_t aTextureId) override;
 
-  PVRLayerChild* CreateVRLayer(uint32_t aDisplayID, const Rect& aLeftEyeRect, const Rect& aRightEyeRect);
+  PVRLayerChild* CreateVRLayer(uint32_t aDisplayID,
+                               const Rect& aLeftEyeRect,
+                               const Rect& aRightEyeRect,
+                               nsIEventTarget* aTarget);
 
   static void IdentifyTextureHost(const layers::TextureFactoryIdentifier& aIdentifier);
   layers::LayersBackend GetBackendType() const;

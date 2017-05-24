@@ -35,7 +35,7 @@ class TestCapabilities(MarionetteTestCase):
         self.assertFalse(self.caps["acceptInsecureCerts"])
         self.assertDictEqual(self.caps["timeouts"],
                              {"implicit": 0,
-                              "page load": 300000,
+                              "pageLoad": 300000,
                               "script": 30000})
 
     def test_supported_features(self):
@@ -223,9 +223,14 @@ class TestCapabilityMatching(MarionetteTestCase):
             self.marionette.start_session({"desiredCapabilities": {"pageLoadStrategy": strategy}})
             self.assertEqual(self.marionette.session_capabilities["pageLoadStrategy"], strategy)
 
+        # A null value should be treatend as "normal"
+        self.delete_session()
+        self.marionette.start_session({"desiredCapabilities": {"pageLoadStrategy": None}})
+        self.assertEqual(self.marionette.session_capabilities["pageLoadStrategy"], "normal")
+
         for value in ["", "EAGER", True, 42, {}, []]:
             print("invalid strategy {}".format(value))
-            with self.assertRaises(SessionNotCreatedException):
+            with self.assertRaisesRegexp(SessionNotCreatedException, "InvalidArgumentError"):
                 self.marionette.start_session({"desiredCapabilities": {"pageLoadStrategy": value}})
 
     def test_proxy_default(self):
@@ -245,7 +250,7 @@ class TestCapabilityMatching(MarionetteTestCase):
         self.assertEqual(self.marionette.get_pref("network.proxy.type"), 1)
 
     def test_timeouts(self):
-        timeouts = {u"implicit": 123, u"page load": 456, u"script": 789}
+        timeouts = {u"implicit": 123, u"pageLoad": 456, u"script": 789}
         caps = {"desiredCapabilities": {"timeouts": timeouts}}
         self.marionette.start_session(caps)
         self.assertIn("timeouts", self.marionette.session_capabilities)

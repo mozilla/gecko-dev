@@ -239,9 +239,9 @@ function registerService() {
       this.serviceRegistered++;
       return {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsICancelable]),
-        cancel: function() {
+        cancel: () => {
           this.serviceUnregistered++;
-        }.bind(this)
+        }
       };
     },
     resolveService: function(serviceInfo, listener) {},
@@ -328,9 +328,9 @@ function registerServiceDynamically() {
       this.serviceRegistered++;
       return {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsICancelable]),
-        cancel: function() {
+        cancel: () => {
           this.serviceUnregistered++;
-        }.bind(this)
+        }
       };
     },
     resolveService: function(serviceInfo, listener) {},
@@ -804,9 +804,9 @@ function ignoreIncompatibleDevice() {
   let mockServerObj = {
     QueryInterface: XPCOMUtils.generateQI([Ci.nsIPresentationControlService]),
     startServer: function() {
-      Services.tm.currentThread.dispatch(() => {
+      Services.tm.dispatchToMainThread(() => {
         this.listener.onServerReady(this.port, this.certFingerprint);
-      }, Ci.nsIThread.DISPATCH_NORMAL);
+      });
     },
     sessionRequest: function() {},
     close: function() {},
@@ -889,9 +889,9 @@ function ignoreSelfDevice() {
   let mockServerObj = {
     QueryInterface: XPCOMUtils.generateQI([Ci.nsIPresentationControlService]),
     startServer: function() {
-      Services.tm.currentThread.dispatch(() => {
+      Services.tm.dispatchToMainThread(() => {
         this.listener.onServerReady(this.port, this.certFingerprint);
-      }, Ci.nsIThread.DISPATCH_NORMAL);
+      });
     },
     sessionRequest: function() {},
     close: function() {},
@@ -1176,9 +1176,9 @@ function serverClosed() {
       this.serviceRegistered++;
       return {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsICancelable]),
-        cancel: function() {
+        cancel: () => {
           this.serviceUnregistered++;
-        }.bind(this)
+        }
       };
     },
     resolveService: function(serviceInfo, listener) {
@@ -1253,14 +1253,14 @@ function serverRetry() {
     startServer: function(encrypted, port) {
       if (!isRetrying) {
         isRetrying = true;
-        Services.tm.currentThread.dispatch(() => {
+        Services.tm.dispatchToMainThread(() => {
           this.listener.onServerStopped(Cr.NS_ERROR_FAILURE);
-        }, Ci.nsIThread.DISPATCH_NORMAL);
+        });
       } else {
         this.port = 54321;
-        Services.tm.currentThread.dispatch(() => {
+        Services.tm.dispatchToMainThread(() => {
           this.listener.onServerReady(this.port, this.certFingerprint);
-        }, Ci.nsIThread.DISPATCH_NORMAL);
+        });
       }
     },
     sessionRequest: function() {},

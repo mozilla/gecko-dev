@@ -13,7 +13,22 @@
 #include "shared.h"
 #include "tls_client_config.h"
 #include "tls_common.h"
+#include "tls_mutators.h"
 #include "tls_socket.h"
+
+#ifdef IS_DTLS
+__attribute__((constructor)) static void set_is_dtls() {
+  TlsMutators::SetIsDTLS();
+}
+#endif
+
+PRFileDesc* ImportFD(PRFileDesc* model, PRFileDesc* fd) {
+#ifdef IS_DTLS
+  return DTLS_ImportFD(model, fd);
+#else
+  return SSL_ImportFD(model, fd);
+#endif
+}
 
 static SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
                                      PRBool isServer) {
@@ -48,9 +63,11 @@ static void SetSocketOptions(PRFileDesc* fd,
                      config->RequireSafeNegotiation());
   assert(rv == SECSuccess);
 
+#ifndef IS_DTLS
   rv =
       SSL_OptionSet(fd, SSL_ENABLE_RENEGOTIATION, SSL_RENEGOTIATE_UNRESTRICTED);
   assert(rv == SECSuccess);
+#endif
 }
 
 // This is only called when we set SSL_ENABLE_FALSE_START=1,
@@ -79,16 +96,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   // Clear the cache. We never want to resume as we couldn't reproduce that.
   SSL_ClearSessionCache();
 
-#ifdef UNSAFE_FUZZER_MODE
   // Reset the RNG state.
-  assert(RNG_ResetForFuzzing() == SECSuccess);
-#endif
+  assert(RNG_RandomUpdate(NULL, 0) == SECSuccess);
 
   // Create and import dummy socket.
   std::unique_ptr<DummyPrSocket> socket(new DummyPrSocket(data, len));
   static PRDescIdentity id = PR_GetUniqueIdentity("fuzz-client");
   ScopedPRFileDesc fd(DummyIOLayerMethods::CreateFD(id, socket.get()));
-  PRFileDesc* ssl_fd = SSL_ImportFD(nullptr, fd.get());
+  PRFileDesc* ssl_fd = ImportFD(nullptr, fd.get());
   assert(ssl_fd == fd.get());
 
   // Probably not too important for clients.
@@ -100,4 +115,20 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   DoHandshake(ssl_fd, false);
 
   return 0;
+}
+
+extern "C" size_t LLVMFuzzerCustomMutator(uint8_t* data, size_t size,
+                                          size_t max_size, unsigned int seed) {
+  using namespace TlsMutators;
+  return CustomMutate({DropRecord, ShuffleRecords, DuplicateRecord,
+                       TruncateRecord, FragmentRecord},
+                      data, size, max_size, seed);
+}
+
+extern "C" size_t LLVMFuzzerCustomCrossOver(const uint8_t* data1, size_t size1,
+                                            const uint8_t* data2, size_t size2,
+                                            uint8_t* out, size_t max_out_size,
+                                            unsigned int seed) {
+  return TlsMutators::CrossOver(data1, size1, data2, size2, out, max_out_size,
+                                seed);
 }

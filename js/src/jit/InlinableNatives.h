@@ -129,6 +129,8 @@
                                     \
     _(IntrinsicGetNextSetEntryForIterator) \
                                     \
+    _(IntrinsicNewArrayIterator)    \
+                                    \
     _(IntrinsicArrayBufferByteLength) \
     _(IntrinsicPossiblyWrappedArrayBufferByteLength) \
                                     \
@@ -156,6 +158,7 @@ enum class InlinableNative : uint16_t {
 #define ADD_NATIVE(native) native,
     INLINABLE_NATIVE_LIST(ADD_NATIVE)
 #undef ADD_NATIVE
+    Limit
 };
 
 #define ADD_NATIVE(native) extern const JSJitInfo JitInfo_##native;

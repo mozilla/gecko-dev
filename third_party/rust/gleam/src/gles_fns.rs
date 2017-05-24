@@ -21,11 +21,6 @@ impl GlesFns
     }
 }
 
-#[cfg(target_os="android")]
-extern {
-    fn glEGLImageTargetTexture2DOES(target: GLenum, image: GLeglImageOES);
-}
-
 impl Gl for GlesFns {
     fn get_type(&self) -> GlType {
         GlType::Gles
@@ -38,6 +33,10 @@ impl Gl for GlesFns {
                                     data,
                                     usage);
         }
+    }
+
+    fn tex_buffer(&self, _target: GLenum, _internal_format: GLenum, _buffer: GLuint) {
+        panic!("not supported")
     }
 
     fn buffer_sub_data_untyped(&self, target: GLenum, offset: isize, size: GLsizeiptr, data: *const GLvoid) {
@@ -1096,6 +1095,14 @@ impl Gl for GlesFns {
         }
     }
 
+    fn get_vertex_attrib_pointer_v(&self, index: GLuint, pname: GLenum) -> GLsizeiptr {
+        let mut result = 0 as *mut GLvoid;
+        unsafe {
+            self.ffi_gl_.GetVertexAttribPointerv(index, pname, &mut result)
+        }
+        result as GLsizeiptr
+    }
+
     fn get_buffer_parameter_iv(&self, target: GLuint, pname: GLenum) -> GLint {
         unsafe {
             let mut result: GLint = 0 as GLint;
@@ -1134,6 +1141,21 @@ impl Gl for GlesFns {
             self.ffi_gl_.GetShaderiv(shader, pname, &mut result);
             return result;
         }
+    }
+
+    fn get_shader_precision_format(&self,
+                                   shader_type: GLuint,
+                                   precision_type: GLuint)
+                                   -> (GLint, GLint, GLint) {
+        let mut range = [0 as GLint, 0];
+        let mut precision = 0 as GLint;
+        unsafe {
+            self.ffi_gl_.GetShaderPrecisionFormat(shader_type,
+                                                  precision_type,
+                                                  range.as_mut_ptr(),
+                                                  &mut precision);
+        }
+        (range[0], range[1], precision)
     }
 
     fn compile_shader(&self, shader: GLuint) {
@@ -1270,16 +1292,9 @@ impl Gl for GlesFns {
         }
     }
 
-    #[allow(unused_variables)]
-    #[cfg(not(target_os="android"))]
-    fn egl_image_target_texture2d_oes(&self, target: GLenum, image: GLeglImageOES) {
-        panic!("not supported")
-    }
-
-    #[cfg(target_os="android")]
     fn egl_image_target_texture2d_oes(&self, target: GLenum, image: GLeglImageOES) {
         unsafe {
-            glEGLImageTargetTexture2DOES(target, image);
+            self.ffi_gl_.EGLImageTargetTexture2DOES(target, image);
         }
     }
 

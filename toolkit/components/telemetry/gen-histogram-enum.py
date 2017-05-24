@@ -13,10 +13,12 @@
 # The histograms are defined in files provided as command-line arguments.
 
 from __future__ import print_function
+from shared_telemetry_utils import ParserError
 
 import histogram_tools
 import itertools
 import sys
+
 
 banner = """/* This file is auto-generated, see gen-histogram-enum.py.  */
 """
@@ -43,7 +45,12 @@ def main(output, *filenames):
     print(header, file=output)
 
     # Load the histograms.
-    all_histograms = list(histogram_tools.from_files(filenames))
+    try:
+        all_histograms = list(histogram_tools.from_files(filenames))
+    except ParserError as ex:
+        print("\nError processing histograms:\n" + str(ex) + "\n")
+        sys.exit(1)
+
     groups = itertools.groupby(all_histograms,
                                lambda h: h.name().startswith("USE_COUNTER2_"))
 
@@ -78,7 +85,8 @@ def main(output, *filenames):
 
     print("  HistogramCount,", file=output)
     if seen_use_counters:
-        print("  HistogramUseCounterCount = HistogramLastUseCounter - HistogramFirstUseCounter + 1", file=output)
+        print("  HistogramUseCounterCount = HistogramLastUseCounter -"
+              " HistogramFirstUseCounter + 1", file=output)
     else:
         print("  HistogramFirstUseCounter = 0,", file=output)
         print("  HistogramLastUseCounter = 0,", file=output)
@@ -99,7 +107,8 @@ def main(output, *filenames):
 
     print("\ntemplate<class T> struct CategoricalLabelId {};", file=output)
     for name, _, id in enums:
-        print("template<> struct CategoricalLabelId<%s> : IntegralConstant<uint32_t, %s> {};" % (name, id), file=output)
+        print("template<> struct CategoricalLabelId<%s> : "
+              "IntegralConstant<uint32_t, %s> {};" % (name, id), file=output)
 
     # Footer.
     print(footer, file=output)

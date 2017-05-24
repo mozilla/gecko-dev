@@ -44,6 +44,7 @@
 
 #include "mozAutoDocUpdate.h"
 #include "mozilla/AsyncEventDispatcher.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ImageTracker.h"
@@ -92,6 +93,7 @@ nsImageLoadingContent::nsImageLoadingContent()
     mUserDisabled(false),
     mSuppressed(false),
     mNewRequestsWillNeedAnimationReset(false),
+    mUseUrgentStartForChannel(false),
     mStateChangerDepth(0),
     mCurrentRequestRegistered(false),
     mPendingRequestRegistered(false)
@@ -100,8 +102,7 @@ nsImageLoadingContent::nsImageLoadingContent()
     mLoadingEnabled = false;
   }
 
-  bool isInconsistent;
-  mMostRecentRequestChange = TimeStamp::ProcessCreation(isInconsistent);
+  mMostRecentRequestChange = TimeStamp::ProcessCreation();
 }
 
 void
@@ -885,7 +886,12 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
                                           this, loadFlags,
                                           content->LocalName(),
                                           getter_AddRefs(req),
-                                          policyType);
+                                          policyType,
+                                          mUseUrgentStartForChannel);
+
+  // Reset the flag to avoid loading from XPCOM or somewhere again else without
+  // initiated by user interaction.
+  mUseUrgentStartForChannel = false;
 
   // Tell the document to forget about the image preload, if any, for
   // this URI, now that we might have another imgRequestProxy for it.
@@ -1320,6 +1326,8 @@ nsImageLoadingContent::MakePendingRequestCurrent()
   mPendingRequest = nullptr;
   mCurrentRequestFlags = mPendingRequestFlags;
   mPendingRequestFlags = 0;
+  mCurrentRequestRegistered = mPendingRequestRegistered;
+  mPendingRequestRegistered = false;
   ResetAnimationIfNeeded();
 }
 

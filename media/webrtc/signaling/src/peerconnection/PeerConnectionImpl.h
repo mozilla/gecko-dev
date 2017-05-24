@@ -450,11 +450,20 @@ public:
   GetParameters(dom::MediaStreamTrack& aTrack,
                 std::vector<JsepTrack::JsConstraints>* aOutConstraints);
 
-  NS_IMETHODIMP_TO_ERRORRESULT(SelectSsrc, ErrorResult &rv,
+  // test-only: called from simulcast mochitests.
+  NS_IMETHODIMP_TO_ERRORRESULT(AddRIDExtension, ErrorResult &rv,
                                dom::MediaStreamTrack& aRecvTrack,
-                               unsigned short aSsrcIndex)
+                               unsigned short aExtensionId)
   {
-    rv = SelectSsrc(aRecvTrack, aSsrcIndex);
+    rv = AddRIDExtension(aRecvTrack, aExtensionId);
+  }
+
+  // test-only: called from simulcast mochitests.
+  NS_IMETHODIMP_TO_ERRORRESULT(AddRIDFilter, ErrorResult& rv,
+                               dom::MediaStreamTrack& aRecvTrack,
+                               const nsAString& aRid)
+  {
+    rv = AddRIDFilter(aRecvTrack, aRid);
   }
 
   nsresult GetPeerIdentity(nsAString& peerIdentity)
@@ -650,6 +659,11 @@ private:
     NS_ENSURE_TRUE(on, false);
     return true;
   }
+
+  // test-only: called from AddRIDExtension and AddRIDFilter
+  // for simulcast mochitests.
+  RefPtr<MediaPipeline> GetMediaPipelineForTrack(
+      dom::MediaStreamTrack& aRecvTrack);
 
   nsresult GetTimeSinceEpoch(DOMHighResTimeStamp *result);
 

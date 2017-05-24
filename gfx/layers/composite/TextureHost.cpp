@@ -22,6 +22,7 @@
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/layers/GPUVideoTextureHost.h"
 #include "mozilla/layers/WebRenderTextureHost.h"
+#include "mozilla/webrender/WebRenderAPI.h"
 #include "nsAString.h"
 #include "mozilla/RefPtr.h"                   // for nsRefPtr
 #include "nsPrintfCString.h"            // for nsPrintfCString
@@ -65,7 +66,7 @@ namespace layers {
 class TextureParent : public ParentActor<PTextureParent>
 {
 public:
-  explicit TextureParent(HostIPCAllocator* aAllocator, uint64_t aSerial);
+  explicit TextureParent(HostIPCAllocator* aAllocator, uint64_t aSerial, const wr::MaybeExternalImageId& aExternalImageId);
 
   ~TextureParent();
 
@@ -87,7 +88,22 @@ public:
   RefPtr<TextureHost> mTextureHost;
   // mSerial is unique in TextureClient's process.
   const uint64_t mSerial;
+  wr::MaybeExternalImageId mExternalImageId;
 };
+
+static bool
+WrapWithWebRenderTextureHost(ISurfaceAllocator* aDeallocator,
+                             LayersBackend aBackend,
+                             TextureFlags aFlags)
+{
+  if (!gfxVars::UseWebRender() ||
+      (aFlags & TextureFlags::SNAPSHOT) ||
+      (aBackend != LayersBackend::LAYERS_WR) ||
+      (!aDeallocator->UsesImageBridge() && !aDeallocator->AsCompositorBridgeParentBase())) {
+    return false;
+  }
+  return true;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 PTextureParent*
@@ -95,7 +111,8 @@ TextureHost::CreateIPDLActor(HostIPCAllocator* aAllocator,
                              const SurfaceDescriptor& aSharedData,
                              LayersBackend aLayersBackend,
                              TextureFlags aFlags,
-                             uint64_t aSerial)
+                             uint64_t aSerial,
+                             const wr::MaybeExternalImageId& aExternalImageId)
 {
   if (aSharedData.type() == SurfaceDescriptor::TSurfaceDescriptorBuffer &&
       aSharedData.get_SurfaceDescriptorBuffer().data().type() == MemoryOrShmem::Tuintptr_t &&
@@ -104,7 +121,7 @@ TextureHost::CreateIPDLActor(HostIPCAllocator* aAllocator,
     NS_ERROR("A client process is trying to peek at our address space using a MemoryTexture!");
     return nullptr;
   }
-  TextureParent* actor = new TextureParent(aAllocator, aSerial);
+  TextureParent* actor = new TextureParent(aAllocator, aSerial, aExternalImageId);
   if (!actor->Init(aSharedData, aLayersBackend, aFlags)) {
     delete actor;
     return nullptr;
@@ -182,54 +199,59 @@ already_AddRefed<TextureHost>
 TextureHost::Create(const SurfaceDescriptor& aDesc,
                     ISurfaceAllocator* aDeallocator,
                     LayersBackend aBackend,
-                    TextureFlags aFlags)
+                    TextureFlags aFlags,
+                    wr::MaybeExternalImageId& aExternalImageId)
 {
+  RefPtr<TextureHost> result;
+
   switch (aDesc.type()) {
     case SurfaceDescriptor::TSurfaceDescriptorBuffer:
     case SurfaceDescriptor::TSurfaceDescriptorDIB:
     case SurfaceDescriptor::TSurfaceDescriptorFileMapping:
     case SurfaceDescriptor::TSurfaceDescriptorGPUVideo:
-      return CreateBackendIndependentTextureHost(aDesc, aDeallocator, aBackend, aFlags);
+      result = CreateBackendIndependentTextureHost(aDesc, aDeallocator, aBackend, aFlags);
+      break;
 
     case SurfaceDescriptor::TEGLImageDescriptor:
     case SurfaceDescriptor::TSurfaceTextureDescriptor:
     case SurfaceDescriptor::TSurfaceDescriptorSharedGLTexture:
-      return CreateTextureHostOGL(aDesc, aDeallocator, aBackend, aFlags);
+      result = CreateTextureHostOGL(aDesc, aDeallocator, aBackend, aFlags);
+      break;
 
     case SurfaceDescriptor::TSurfaceDescriptorMacIOSurface:
       if (aBackend == LayersBackend::LAYERS_OPENGL ||
           aBackend == LayersBackend::LAYERS_WR) {
-        return CreateTextureHostOGL(aDesc, aDeallocator, aBackend, aFlags);
+        result = CreateTextureHostOGL(aDesc, aDeallocator, aBackend, aFlags);
+        break;
       } else {
-        return CreateTextureHostBasic(aDesc, aDeallocator, aBackend, aFlags);
+        result = CreateTextureHostBasic(aDesc, aDeallocator, aBackend, aFlags);
+        break;
       }
 
 #ifdef MOZ_X11
     case SurfaceDescriptor::TSurfaceDescriptorX11: {
       const SurfaceDescriptorX11& desc = aDesc.get_SurfaceDescriptorX11();
-      return MakeAndAddRef<X11TextureHost>(aFlags, desc);
+      result = MakeAndAddRef<X11TextureHost>(aFlags, desc);
+      break;
     }
 #endif
 
 #ifdef XP_WIN
     case SurfaceDescriptor::TSurfaceDescriptorD3D10:
     case SurfaceDescriptor::TSurfaceDescriptorDXGIYCbCr:
-      return CreateTextureHostD3D11(aDesc, aDeallocator, aBackend, aFlags);
+      result = CreateTextureHostD3D11(aDesc, aDeallocator, aBackend, aFlags);
+      break;
 #endif
     default:
       MOZ_CRASH("GFX: Unsupported Surface type host");
   }
-}
 
-bool WrapWithWebRenderTextureHost(LayersBackend aBackend,
-                                  TextureFlags aFlags)
-{
-  if (!gfxVars::UseWebRender() ||
-      (aFlags & TextureFlags::SNAPSHOT) ||
-      (aBackend != LayersBackend::LAYERS_WR)) {
-    return false;
+  if (WrapWithWebRenderTextureHost(aDeallocator, aBackend, aFlags)) {
+    MOZ_ASSERT(aExternalImageId.isSome());
+    result = new WebRenderTextureHost(aDesc, aFlags, result, aExternalImageId.ref());
   }
-  return true;
+
+  return result.forget();
 }
 
 already_AddRefed<TextureHost>
@@ -249,18 +271,12 @@ CreateBackendIndependentTextureHost(const SurfaceDescriptor& aDesc,
                                         bufferDesc.desc(),
                                         aDeallocator,
                                         aFlags);
-          if (WrapWithWebRenderTextureHost(aBackend, aFlags)) {
-            result = new WebRenderTextureHost(aFlags, result);
-          }
           break;
         }
         case MemoryOrShmem::Tuintptr_t: {
           result = new MemoryTextureHost(reinterpret_cast<uint8_t*>(data.get_uintptr_t()),
                                          bufferDesc.desc(),
                                          aFlags);
-          if (WrapWithWebRenderTextureHost(aBackend, aFlags)) {
-            result = new WebRenderTextureHost(aFlags, result);
-          }
           break;
         }
         default:
@@ -393,7 +409,8 @@ TextureHost::PrintInfo(std::stringstream& aStream, const char* aPrefix)
   }
   AppendToString(aStream, mFlags, " [flags=", "]");
 #ifdef MOZ_DUMP_PAINTING
-  if (gfxPrefs::LayersDumpTexture() || profiler_feature_active("layersdump")) {
+  if (gfxPrefs::LayersDumpTexture() ||
+      profiler_feature_active(ProfilerFeature::LayersDump)) {
     nsAutoCString pfx(aPrefix);
     pfx += "  ";
 
@@ -416,12 +433,10 @@ TextureHost::Updated(const nsIntRegion* aRegion)
 TextureSource::TextureSource()
 : mCompositableCount(0)
 {
-    MOZ_COUNT_CTOR(TextureSource);
 }
 
 TextureSource::~TextureSource()
 {
-    MOZ_COUNT_DTOR(TextureSource);
 }
 
 const char*
@@ -539,6 +554,33 @@ BufferTextureHost::Unlock()
 {
   MOZ_ASSERT(mLocked);
   mLocked = false;
+}
+
+void
+BufferTextureHost::AddWRImage(wr::WebRenderAPI* aAPI,
+                              Range<const wr::ImageKey>& aImageKeys,
+                              const wr::ExternalImageId& aExtID)
+{
+  MOZ_ASSERT(aImageKeys.length() == 1);
+  // XXX handling YUV
+  gfx::SurfaceFormat wrFormat =
+      (GetFormat() == gfx::SurfaceFormat::YUV) ? gfx::SurfaceFormat::B8G8R8A8
+                                               : GetFormat();
+  gfx::SurfaceFormat format = GetFormat();
+  uint32_t wrStride = 0;
+
+  if (format == gfx::SurfaceFormat::YUV) {
+    // XXX this stride is used until yuv image rendering by webrender is used.
+    // Software converted RGB buffers strides are aliened to 16
+    wrStride = gfx::GetAlignedStride<16>(GetSize().width, BytesPerPixel(gfx::SurfaceFormat::B8G8R8A8));
+  } else {
+    wrStride = ImageDataSerializer::ComputeRGBStride(format, GetSize().width);
+  }
+
+  wr::ImageDescriptor descriptor(GetSize(), wrStride, wrFormat);
+  aAPI->AddExternalImageBuffer(aImageKeys[0],
+                               descriptor,
+                               aExtID);
 }
 
 void
@@ -1069,9 +1111,10 @@ size_t MemoryTextureHost::GetBufferSize()
   return std::numeric_limits<size_t>::max();
 }
 
-TextureParent::TextureParent(HostIPCAllocator* aSurfaceAllocator, uint64_t aSerial)
+TextureParent::TextureParent(HostIPCAllocator* aSurfaceAllocator, uint64_t aSerial, const wr::MaybeExternalImageId& aExternalImageId)
 : mSurfaceAllocator(aSurfaceAllocator)
 , mSerial(aSerial)
+, mExternalImageId(aExternalImageId)
 {
   MOZ_COUNT_CTOR(TextureParent);
 }
@@ -1098,7 +1141,8 @@ TextureParent::Init(const SurfaceDescriptor& aSharedData,
   mTextureHost = TextureHost::Create(aSharedData,
                                      mSurfaceAllocator,
                                      aBackend,
-                                     aFlags);
+                                     aFlags,
+                                     mExternalImageId);
   if (mTextureHost) {
     mTextureHost->mActor = this;
   }

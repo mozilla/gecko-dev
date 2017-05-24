@@ -130,25 +130,21 @@ class GeckoProfiler
     JSRuntime*           rt;
     ExclusiveData<ProfileStringMap> strings;
     ProfileEntry*        stack_;
-    uint32_t*            size_;
+    mozilla::Atomic<uint32_t>* size_;
     uint32_t             max_;
     bool                 slowAssertions;
     uint32_t             enabled_;
     void                (*eventMarker_)(const char*);
 
     UniqueChars allocProfileString(JSScript* script, JSFunction* function);
-    void push(const char* string, void* sp, JSScript* script, jsbytecode* pc, bool copy,
-              ProfileEntry::Category category = ProfileEntry::Category::JS);
+    void push(const char* label, const char* dynamicString, void* sp, JSScript* script,
+              jsbytecode* pc, ProfileEntry::Category category = ProfileEntry::Category::JS);
     void pop();
 
   public:
     explicit GeckoProfiler(JSRuntime* rt);
 
     bool init();
-
-    uint32_t** addressOfSizePointer() {
-        return &size_;
-    }
 
     uint32_t* addressOfMaxSize() {
         return &max_;
@@ -158,7 +154,6 @@ class GeckoProfiler
         return &stack_;
     }
 
-    uint32_t* sizePointer() { return size_; }
     uint32_t maxSize() { return max_; }
     uint32_t size() { MOZ_ASSERT(installed()); return *size_; }
     ProfileEntry* stack() { return stack_; }
@@ -190,12 +185,10 @@ class GeckoProfiler
     }
 
     /* Enter wasm code */
-    void beginPseudoJS(const char* string, void* sp);
+    void beginPseudoJS(const char* label, void* sp);    // label must be a static string!
     void endPseudoJS() { pop(); }
 
-    jsbytecode* ipToPC(JSScript* script, size_t ip) { return nullptr; }
-
-    void setProfilingStack(ProfileEntry* stack, uint32_t* size, uint32_t max);
+    void setProfilingStack(ProfileEntry* stack, mozilla::Atomic<uint32_t>* size, uint32_t max);
     void setEventMarker(void (*fn)(const char*));
     const char* profileString(JSScript* script, JSFunction* maybeFun);
     void onScriptFinalized(JSScript* script);

@@ -84,6 +84,7 @@ var gPlayedTests = [
   { name:"seek-short.webm", type:"video/webm", duration:0.23 },
   { name:"gizmo-short.mp4", type:"video/mp4", duration:0.27 },
   { name:"owl-short.mp3", type:"audio/mpeg", duration:0.52 },
+  { name:"very-short.mp3", type:"audio/mpeg", duration:0.07 },
   // Disable vbr.mp3 to see if it reduces the error of AUDCLNT_E_CPUUSAGE_EXCEEDED.
   // See bug 1110922 comment 26.
   //{ name:"vbr.mp3", type:"audio/mpeg", duration:10.0 },
@@ -545,6 +546,13 @@ if (manifestNavigator().userAgent.includes("Windows") &&
                                    {name: "red-48x46.mp4", type:"video/mp4"});
 }
 
+// These files would get error after receiving "loadedmetadata", we would like
+// to check duration in "onerror" and make sure the duration is still available.
+var gDurationTests = [
+  { name:"bug603918.webm", duration:6.076 },
+  { name:"bug604067.webm", duration:6.076 }
+]
+
 // These are files that have nontrivial duration and are useful for seeking within.
 var gSeekTests = [
   { name:"r11025_s16_c1.wav", type:"audio/x-wav", duration:1.0 },
@@ -601,14 +609,6 @@ if (manifestNavigator().userAgent.indexOf("Mobile") != -1 ||
 
 function getAndroidVersion() {
   return androidVersion;
-}
-
-//Android supports fragmented MP4 playback from 4.3.
-//Fragmented MP4.
-if (getAndroidVersion() >= 18) {
-  gUnseekableTests = gUnseekableTests.concat([
-    { name:"street.mp4", type:"video/mp4" }
-  ]);
 }
 
 // These are files suitable for using with a "new Audio" constructor.
@@ -775,16 +775,21 @@ var gMetadataTests = [
   },
   { name:"wavedata_u8.wav", tags: { }
   },
-  { name:"flac-s24.flac", tags: {
-      ALBUM:"Seascapes",
-      TITLE:"(La Mer) - II. Jeux de vagues. Allegro",
-      COMPOSER:"Debussy, Claude",
-      TRACKNUMBER:"2/9",
-      DISCNUMBER:"1/1",
-      encoder:"Lavf57.41.100",
-    }
-  },
 ];
+
+// Now Fennec doesn't support flac, so only test it on non-android platforms.
+if (getAndroidVersion() < 0) {
+  gMetadataTests = gMetadataTests.concat([
+    { name:"flac-s24.flac", tags: {
+        ALBUM:"Seascapes",
+        TITLE:"(La Mer) - II. Jeux de vagues. Allegro",
+        COMPOSER:"Debussy, Claude",
+        TRACKNUMBER:"2/9",
+        DISCNUMBER:"1/1",
+        encoder:"Lavf57.41.100",
+      }
+    }]);
+}
 
 // Test files for Encrypted Media Extensions
 var gEMETests = [
@@ -1644,11 +1649,11 @@ function MediaTestManager() {
 
     // Always wait for explicit finish.
     SimpleTest.waitForExplicitFinish();
-    SpecialPowers.pushPrefEnv({'set': gTestPrefs}, (function() {
+    SpecialPowers.pushPrefEnv({'set': gTestPrefs}, () => {
       this.nextTest();
-    }).bind(this));
+    });
 
-    SimpleTest.registerCleanupFunction(function() {
+    SimpleTest.registerCleanupFunction(() => {
       if (this.tokens.length > 0) {
         info("Test timed out. Remaining tests=" + this.tokens);
       }
@@ -1658,7 +1663,7 @@ function MediaTestManager() {
           handler.ontimeout();
         }
       }
-    }.bind(this));
+    });
   }
 
   // Registers that the test corresponding to 'token' has been started.
@@ -1668,11 +1673,11 @@ function MediaTestManager() {
     this.numTestsRunning++;
     this.handlers[token] = handler;
 
-    var onTimeout = function() {
+    var onTimeout = () => {
       this.hasTimeout = true;
       ok(false, `${token} timed out!`);
       this.finished(token);
-    }.bind(this);
+    };
     // Default timeout to 180s for each test.
     this.timers[token] = setTimeout(onTimeout, 180000);
 
@@ -1738,12 +1743,12 @@ function MediaTestManager() {
       if (this.hasTimeout) {
         dumpDebugInfo();
       }
-      var onCleanup = function() {
+      var onCleanup = () => {
         var end = new Date();
         SimpleTest.info("Finished at " + end + " (" + (end.getTime() / 1000) + "s)");
         SimpleTest.info("Running time: " + elapsedTime(this.startTime) + "s");
         SimpleTest.finish();
-      }.bind(this);
+      };
       mediaTestCleanup(onCleanup);
       return;
     }

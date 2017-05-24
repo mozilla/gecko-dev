@@ -17,7 +17,6 @@ config = {
     'app_ini_path': '%(obj_dir)s/dist/bin/application.ini',
     # decides whether we want to use moz_sign_cmd in env
     'enable_signing': False,
-    'enable_ccache': True,
     'vcs_share_base': '/builds/hg-shared',
     'objdir': 'obj-firefox',
     'tooltool_script': ["/builds/tooltool.py"],
@@ -37,12 +36,11 @@ config = {
     'publish_nightly_en_US_routes': False,
     'env': {
         'MOZBUILD_STATE_PATH': os.path.join(os.getcwd(), '.mozbuild'),
-        'MOZ_AUTOMATION': '1',
         'DISPLAY': ':2',
         'HG_SHARE_BASE_DIR': '/builds/hg-shared',
         'MOZ_OBJDIR': 'obj-firefox',
         'TINDERBOX_OUTPUT': '1',
-        'TOOLTOOL_CACHE': '/builds/tooltool_cache',
+        'TOOLTOOL_CACHE': '/home/worker/tooltool-cache',
         'TOOLTOOL_HOME': '/builds',
         'MOZ_CRASHREPORTER_NO_REPORT': '1',
         'CCACHE_DIR': '/builds/ccache',
@@ -86,4 +84,5 @@ config = {
     'tooltool_manifest_src': 'browser/config/tooltool-manifests/linux64/\
 clang.manifest.centos6',
     #######################
+    'artifact_flag_build_variant_in_try': None,
 }

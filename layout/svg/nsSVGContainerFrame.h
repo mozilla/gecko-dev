@@ -40,8 +40,8 @@ class nsSVGContainerFrame : public nsContainerFrame
   friend nsIFrame* NS_NewSVGContainerFrame(nsIPresShell* aPresShell,
                                            nsStyleContext* aContext);
 protected:
-  explicit nsSVGContainerFrame(nsStyleContext* aContext)
-    : nsContainerFrame(aContext)
+  nsSVGContainerFrame(nsStyleContext* aContext, mozilla::LayoutFrameType aType)
+    : nsContainerFrame(aContext, aType)
   {
     AddStateBits(NS_FRAME_SVG_LAYOUT);
   }
@@ -111,8 +111,9 @@ class nsSVGDisplayContainerFrame : public nsSVGContainerFrame,
                                    public nsSVGDisplayableFrame
 {
 protected:
-  explicit nsSVGDisplayContainerFrame(nsStyleContext* aContext)
-    : nsSVGContainerFrame(aContext)
+  nsSVGDisplayContainerFrame(nsStyleContext* aContext,
+                             mozilla::LayoutFrameType aType)
+    : nsSVGContainerFrame(aContext, aType)
   {
      AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
   }
@@ -140,11 +141,11 @@ public:
                                 Matrix *aFromParentTransform = nullptr) const override;
 
   // nsSVGDisplayableFrame interface:
-  virtual DrawResult PaintSVG(gfxContext& aContext,
-                              const gfxMatrix& aTransform,
-                              const nsIntRect *aDirtyRect = nullptr) override;
+  virtual void PaintSVG(gfxContext& aContext,
+                        const gfxMatrix& aTransform,
+                        imgDrawingParams& aImgParams,
+                        const nsIntRect* aDirtyRect = nullptr) override;
   virtual nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) override;
-  virtual nsRect GetCoveredRegion() override;
   virtual void ReflowSVG() override;
   virtual void NotifySVGChanged(uint32_t aFlags) override;
   virtual SVGBBox GetBBoxContribution(const Matrix &aToBBoxUserspace,

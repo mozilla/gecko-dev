@@ -728,6 +728,8 @@ Http2PushApiListener.prototype = {
     pushChannel.asyncOpen2(this);
     if (pushChannel.originalURI.spec == "https://localhost:" + serverPort + "/pushapi1/2") {
       pushChannel.cancel(Components.results.NS_ERROR_ABORT);
+    } else if (pushChannel.originalURI.spec == "https://localhost:" + serverPort + "/pushapi1/3") {
+      do_check_true(pushChannel.getRequestHeader("Accept-Encoding").includes("br"));
     }
   },
 
@@ -774,7 +776,7 @@ Http2PushApiListener.prototype = {
 // 2 to see /pushapi1/1 with 1
 // 3 to see /pushapi1/1 with 1 (again)
 // 4 to see /pushapi1/2 that it will cancel
-// 5 to see /pushapi1/3 with 3
+// 5 to see /pushapi1/3 with 3 with brotli
 
 function test_http2_pushapi_1() {
   var chan = makeChan("https://localhost:" + serverPort + "/pushapi1");
@@ -949,6 +951,13 @@ function test_http2_push_userContext3() {
   chan.asyncOpen2(listener);
 }
 
+function test_http2_status_phrase() {
+  var chan = makeChan("https://localhost:" + serverPort + "/statusphrase");
+  var listener = new Http2CheckListener();
+  listener.shouldSucceed = false;
+  chan.asyncOpen2(listener);
+}
+
 function test_complete() {
   resetPrefs();
   do_test_pending();
@@ -994,6 +1003,7 @@ var tests = [ test_http2_post_big
             , test_http2_illegalhpackhard
             , test_http2_folded_header
             , test_http2_empty_data
+            , test_http2_status_phrase
             // Add new tests above here - best to add new tests before h1
             // streams get too involved
             // These next two must always come in this order
@@ -1129,7 +1139,6 @@ function run_test() {
   altsvcpref2 = prefs.getBoolPref("network.http.altsvc.oe", true);
 
   prefs.setBoolPref("network.http.spdy.enabled", true);
-  prefs.setBoolPref("network.http.spdy.enabled.v3-1", true);
   prefs.setBoolPref("network.http.spdy.allow-push", true);
   prefs.setBoolPref("network.http.spdy.enabled.http2", true);
   prefs.setBoolPref("network.http.altsvc.enabled", true);

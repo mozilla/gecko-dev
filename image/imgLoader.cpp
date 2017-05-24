@@ -15,7 +15,6 @@
 #include "mozilla/Move.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ChaosMode.h"
-#include "mozilla/Telemetry.h"
 
 #include "nsImageModule.h"
 #include "imgRequestProxy.h"
@@ -31,6 +30,7 @@
 #include "nsStreamUtils.h"
 #include "nsIHttpChannel.h"
 #include "nsICacheInfoChannel.h"
+#include "nsIClassOfService.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIProgressEventSink.h"
@@ -1370,6 +1370,29 @@ imgLoader::ClearCache(bool chrome)
 }
 
 NS_IMETHODIMP
+imgLoader::RemoveEntry(nsIURI* aURI,
+                       nsIDOMDocument* aDOMDoc)
+{
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDOMDoc);
+  if (aURI) {
+    OriginAttributes attrs;
+    if (doc) {
+      nsCOMPtr<nsIPrincipal> principal = doc->NodePrincipal();
+      if (principal) {
+        attrs = principal->OriginAttributesRef();
+      }
+    }
+
+    nsresult rv = NS_OK;
+    ImageCacheKey key(aURI, attrs, doc, rv);
+    if (NS_SUCCEEDED(rv) && RemoveFromCache(key)) {
+      return NS_OK;
+    }
+  }
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
 imgLoader::FindEntryProperties(nsIURI* uri,
                                nsIDOMDocument* aDOMDoc,
                                nsIProperties** _retval)
@@ -2046,6 +2069,7 @@ imgLoader::LoadImageXPCOM(nsIURI* aURI,
                             aCacheKey,
                             aContentPolicyType,
                             EmptyString(),
+                            /* aUseUrgentStartForChannel */ false,
                             &proxy);
     *_retval = proxy;
     return rv;
@@ -2065,14 +2089,9 @@ imgLoader::LoadImage(nsIURI* aURI,
                      nsISupports* aCacheKey,
                      nsContentPolicyType aContentPolicyType,
                      const nsAString& initiatorType,
+                     bool aUseUrgentStartForChannel,
                      imgRequestProxy** _retval)
 {
-  // Note: We round the time to the nearest milliseconds.  Due to this rounding,
-  // the actual minimum value is 500 microseconds.
-  static const uint32_t kMinTelemetryLatencyMs = 1;
-
-  mozilla::TimeStamp start = TimeStamp::Now();
-
   VerifyCacheSizes();
 
   NS_ASSERTION(aURI, "imgLoader::LoadImage -- NULL URI pointer");
@@ -2218,6 +2237,11 @@ imgLoader::LoadImage(nsIURI* aURI,
            ("[this=%p] imgLoader::LoadImage -- Created new imgRequest"
             " [request=%p]\n", this, request.get()));
 
+    nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(newChannel));
+    if (cos && aUseUrgentStartForChannel) {
+      cos->AddClassFlags(nsIClassOfService::UrgentStart);
+    }
+
     nsCOMPtr<nsILoadGroup> channelLoadGroup;
     newChannel->GetLoadGroup(getter_AddRefs(channelLoadGroup));
     rv = request->Init(aURI, aURI, /* aHadInsecureRedirect = */ false,
@@ -2308,11 +2332,8 @@ imgLoader::LoadImage(nsIURI* aURI,
     if (!newChannel) {
       proxy->NotifyListener();
     }
-  }
 
-  uint32_t latencyMs = round((TimeStamp::Now() - start).ToMilliseconds());
-  if (XRE_IsContentProcess() && latencyMs >= kMinTelemetryLatencyMs) {
-    Telemetry::Accumulate(Telemetry::IMAGE_LOAD_TRIGGER_LATENCY_MS, latencyMs);
+    return rv;
   }
 
   NS_ASSERTION(*_retval, "imgLoader::LoadImage -- no return value");

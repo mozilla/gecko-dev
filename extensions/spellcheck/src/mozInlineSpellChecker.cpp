@@ -477,7 +477,11 @@ class mozInlineSpellResume : public Runnable
 public:
   mozInlineSpellResume(const mozInlineSpellStatus& aStatus,
                        uint32_t aDisabledAsyncToken)
-    : mDisabledAsyncToken(aDisabledAsyncToken), mStatus(aStatus) {}
+    : Runnable("mozInlineSpellResume")
+    , mDisabledAsyncToken(aDisabledAsyncToken)
+    , mStatus(aStatus)
+  {
+  }
 
   nsresult Post()
   {

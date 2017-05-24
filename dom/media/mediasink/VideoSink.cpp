@@ -41,7 +41,6 @@ VideoSink::VideoSink(AbstractThread* aThread,
   , mContainer(aContainer)
   , mProducerID(ImageContainer::AllocateProducerID())
   , mFrameStats(aFrameStats)
-  , mVideoFrameEndTime(-1)
   , mHasVideo(false)
   , mUpdateScheduler(aThread)
   , mVideoQueueSendToCompositorSize(aVQueueSentToCompositerSize)
@@ -84,7 +83,7 @@ VideoSink::OnEnded(TrackType aType)
   return nullptr;
 }
 
-int64_t
+TimeUnit
 VideoSink::GetEndTime(TrackType aType) const
 {
   AssertOwnerThread();
@@ -95,14 +94,13 @@ VideoSink::GetEndTime(TrackType aType) const
   } else if (aType == TrackInfo::kAudioTrack) {
     return mAudioSink->GetEndTime(aType);
   }
-  return -1;
+  return TimeUnit::Zero();
 }
 
-int64_t
+TimeUnit
 VideoSink::GetPosition(TimeStamp* aTimeStamp) const
 {
   AssertOwnerThread();
-
   return mAudioSink->GetPosition(aTimeStamp);
 }
 
@@ -166,7 +164,7 @@ VideoSink::SetPlaying(bool aPlaying)
 }
 
 void
-VideoSink::Start(int64_t aStartTime, const MediaInfo& aInfo)
+VideoSink::Start(const TimeUnit& aStartTime, const MediaInfo& aInfo)
 {
   AssertOwnerThread();
   VSINK_LOG("[%s]", __func__);
@@ -225,7 +223,7 @@ VideoSink::Stop()
     mEndPromiseHolder.ResolveIfExists(true, __func__);
     mEndPromise = nullptr;
   }
-  mVideoFrameEndTime = -1;
+  mVideoFrameEndTime = TimeUnit::Zero();
 }
 
 bool
@@ -367,8 +365,7 @@ VideoSink::RenderVideoFrames(int32_t aMaxFrames,
       continue;
     }
 
-    int64_t frameTime = frame->mTime;
-    if (frameTime < 0) {
+    if (frame->mTime.IsNegative()) {
       // Frame times before the start time are invalid; drop such frames
       continue;
     }
@@ -376,7 +373,7 @@ VideoSink::RenderVideoFrames(int32_t aMaxFrames,
     TimeStamp t;
     if (aMaxFrames > 1) {
       MOZ_ASSERT(!aClockTimeStamp.IsNull());
-      int64_t delta = frame->mTime - aClockTime;
+      int64_t delta = frame->mTime.ToMicroseconds() - aClockTime;
       t = aClockTimeStamp +
           TimeDuration::FromMicroseconds(delta / params.mPlaybackRate);
       if (!lastFrameTime.IsNull() && t <= lastFrameTime) {
@@ -396,7 +393,8 @@ VideoSink::RenderVideoFrames(int32_t aMaxFrames,
     img->mProducerID = mProducerID;
 
     VSINK_LOG_V("playing video frame %" PRId64 " (id=%x) (vq-queued=%" PRIuSIZE ")",
-                frame->mTime, frame->mFrameID, VideoQueue().GetSize());
+                frame->mTime.ToMicroseconds(), frame->mFrameID,
+                VideoQueue().GetSize());
   }
 
   if (images.Length() > 0) {
@@ -412,11 +410,11 @@ VideoSink::UpdateRenderedVideoFrames()
 
   // Get the current playback position.
   TimeStamp nowTime;
-  const int64_t clockTime = mAudioSink->GetPosition(&nowTime);
-  NS_ASSERTION(clockTime >= 0, "Should have positive clock time.");
+  const auto clockTime = mAudioSink->GetPosition(&nowTime);
+  MOZ_ASSERT(!clockTime.IsNegative(), "Should have positive clock time.");
 
   // Skip frames up to the playback position.
-  int64_t lastFrameEndTime = 0;
+  TimeUnit lastFrameEndTime;
   while (VideoQueue().GetSize() > mMinVideoQueueSize &&
          clockTime >= VideoQueue().PeekFront()->GetEndTime()) {
     RefPtr<VideoData> frame = VideoQueue().PopFront();
@@ -426,7 +424,7 @@ VideoSink::UpdateRenderedVideoFrames()
     } else {
       mFrameStats.NotifyDecodedFrames({ 0, 0, 1 });
       VSINK_LOG_V("discarding video frame mTime=%" PRId64 " clock_time=%" PRId64,
-                  frame->mTime, clockTime);
+                  frame->mTime.ToMicroseconds(), clockTime.ToMicroseconds());
     }
   }
 
@@ -439,7 +437,9 @@ VideoSink::UpdateRenderedVideoFrames()
 
   MaybeResolveEndPromise();
 
-  RenderVideoFrames(mVideoQueueSendToCompositorSize, clockTime, nowTime);
+  RenderVideoFrames(
+    mVideoQueueSendToCompositorSize,
+    clockTime.ToMicroseconds(), nowTime);
 
   // Get the timestamp of the next frame. Schedule the next update at
   // the start time of the next frame. If we don't have a next frame,
@@ -450,8 +450,9 @@ VideoSink::UpdateRenderedVideoFrames()
     return;
   }
 
-  int64_t nextFrameTime = frames[1]->mTime;
-  int64_t delta = std::max<int64_t>((nextFrameTime - clockTime), MIN_UPDATE_INTERVAL_US);
+  int64_t nextFrameTime = frames[1]->mTime.ToMicroseconds();
+  int64_t delta = std::max(
+    nextFrameTime - clockTime.ToMicroseconds(), MIN_UPDATE_INTERVAL_US);
   TimeStamp target = nowTime + TimeDuration::FromMicroseconds(
      delta / mAudioSink->GetPlaybackParams().mPlaybackRate);
 
@@ -484,7 +485,7 @@ VideoSink::GetDebugInfo()
     "size=%" PRIuSIZE ") mVideoFrameEndTime=%" PRId64 " mHasVideo=%d "
     "mVideoSinkEndRequest.Exists()=%d mEndPromiseHolder.IsEmpty()=%d\n",
     IsStarted(), IsPlaying(), VideoQueue().IsFinished(),
-    VideoQueue().GetSize(), mVideoFrameEndTime, mHasVideo,
+    VideoQueue().GetSize(), mVideoFrameEndTime.ToMicroseconds(), mHasVideo,
     mVideoSinkEndRequest.Exists(), mEndPromiseHolder.IsEmpty())
     + mAudioSink->GetDebugInfo();
 }

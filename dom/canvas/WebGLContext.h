@@ -321,6 +321,9 @@ class WebGLContext
     enum {
         UNPACK_FLIP_Y_WEBGL = 0x9240,
         UNPACK_PREMULTIPLY_ALPHA_WEBGL = 0x9241,
+        // We throw InvalidOperation in TexImage if we fail to use GPU fast-path
+        // for texture copy when it is set to true, only for debug purpose.
+        UNPACK_REQUIRE_FASTPATH = 0x10001,
         CONTEXT_LOST_WEBGL = 0x9242,
         UNPACK_COLORSPACE_CONVERSION_WEBGL = 0x9243,
         BROWSER_DEFAULT_WEBGL = 0x9244,
@@ -375,8 +378,8 @@ public:
                               const char16_t* encoderOptions,
                               nsIInputStream** out_stream) override;
 
-    already_AddRefed<mozilla::gfx::SourceSurface>
-    GetSurfaceSnapshot(bool* out_premultAlpha) override;
+    virtual already_AddRefed<mozilla::gfx::SourceSurface>
+    GetSurfaceSnapshot(gfxAlphaType* out_alphaType) override;
 
     NS_IMETHOD SetIsOpaque(bool) override { return NS_OK; };
     bool GetIsOpaque() override { return false; }
@@ -1871,6 +1874,7 @@ protected:
     GLenum mPixelStore_ColorspaceConversion;
     bool mPixelStore_FlipY;
     bool mPixelStore_PremultiplyAlpha;
+    bool mPixelStore_RequireFastPath;
 
     ////////////////////////////////////
     class FakeBlackTexture {
@@ -2050,7 +2054,7 @@ protected:
 public:
     // console logging helpers
     void GenerateWarning(const char* fmt, ...) MOZ_FORMAT_PRINTF(2, 3);
-    void GenerateWarning(const char* fmt, va_list ap);
+    void GenerateWarning(const char* fmt, va_list ap) MOZ_FORMAT_PRINTF(2, 0);
 
     void GeneratePerfWarning(const char* fmt, ...) const MOZ_FORMAT_PRINTF(2, 3);
 
@@ -2164,10 +2168,9 @@ private:
 
 ////
 
-void
-Intersect(uint32_t srcSize, int32_t dstStartInSrc, uint32_t dstSize,
-          uint32_t* const out_intStartInSrc, uint32_t* const out_intStartInDst,
-          uint32_t* const out_intSize);
+bool
+Intersect(int32_t srcSize, int32_t read0, int32_t readSize, int32_t* out_intRead0,
+          int32_t* out_intWrite0, int32_t* out_intSize);
 
 ////
 

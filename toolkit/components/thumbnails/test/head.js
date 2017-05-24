@@ -43,14 +43,14 @@ var TestRunner = {
   run() {
     waitForExplicitFinish();
 
-    SessionStore.promiseInitialized.then(function() {
+    SessionStore.promiseInitialized.then(() => {
       this._iter = runTests();
       if (this._iter) {
         this.next();
       } else {
         finish();
       }
-    }.bind(this));
+    });
   },
 
   /**
@@ -91,7 +91,7 @@ function next(aValue) {
  * @param aCallback The function to call when the tab has loaded.
  */
 function addTab(aURI, aCallback) {
-  let tab = gBrowser.selectedTab = gBrowser.addTab(aURI);
+  let tab = gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, aURI);
   whenLoaded(tab.linkedBrowser, aCallback);
 }
 
@@ -297,8 +297,8 @@ function bgAddPageThumbObserver(url) {
         Services.obs.removeObserver(observe, "page-thumbnail:error");
       }
     }
-    Services.obs.addObserver(observe, "page-thumbnail:create", false);
-    Services.obs.addObserver(observe, "page-thumbnail:error", false);
+    Services.obs.addObserver(observe, "page-thumbnail:create");
+    Services.obs.addObserver(observe, "page-thumbnail:error");
   });
 }
 
@@ -328,7 +328,7 @@ function bgAddCrashObserver() {
       removeFile(minidumpDirectory, dumpID + ".dmp");
       removeFile(minidumpDirectory, dumpID + ".extra");
     }
-  }, "ipc:content-shutdown", false);
+  }, "ipc:content-shutdown");
   return {
     get crashed() {
       return crashed;

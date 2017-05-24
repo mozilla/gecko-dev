@@ -134,12 +134,16 @@ public:
    *                (for JavaScript)
    *
    *  NOTIFY        whether to notify frames and such
+   *
+   *  NO_RESELECT   no need to select something after an option is deselected
+   *                (for reset)
    */
   enum OptionType {
     IS_SELECTED   = 1 << 0,
     CLEAR_ALL     = 1 << 1,
     SET_DISABLED  = 1 << 2,
-    NOTIFY        = 1 << 3
+    NOTIFY        = 1 << 3,
+    NO_RESELECT   = 1 << 4
   };
 
   using nsIConstraintValidation::GetValidationMessage;
@@ -296,7 +300,6 @@ public:
   virtual void RemoveChildAt(uint32_t aIndex, bool aNotify) override;
 
   // Overriden nsIFormControl methods
-  NS_IMETHOD_(uint32_t) GetType() const override { return NS_FORM_SELECT; }
   NS_IMETHOD Reset() override;
   NS_IMETHOD SubmitNamesValues(HTMLFormSubmission* aFormSubmission) override;
   NS_IMETHOD SaveState() override;
@@ -385,7 +388,9 @@ public:
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify) override;
   virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify) override;
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                bool aNotify) override;
   virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify) override;
 
@@ -403,7 +408,8 @@ public:
                                               int32_t aModType) const override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
+                         bool aPreallocateChildren) const override;
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLSelectElement,
                                            nsGenericHTMLFormElementWithState)
@@ -442,6 +448,9 @@ public:
 
   bool OpenInParentProcess();
   void SetOpenInParentProcess(bool aVal);
+
+  void GetPreviewValue(nsAString& aValue);
+  void SetPreviewValue(const nsAString& aValue);
 
 protected:
   virtual ~HTMLSelectElement();
@@ -607,6 +616,7 @@ protected:
   /** The options[] array */
   RefPtr<HTMLOptionsCollection> mOptions;
   nsContentUtils::AutocompleteAttrState mAutocompleteAttrState;
+  nsContentUtils::AutocompleteAttrState mAutocompleteInfoState;
   /** false if the parser is in the middle of adding children. */
   bool            mIsDoneAddingChildren;
   /** true if our disabled state has changed from the default **/

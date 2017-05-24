@@ -222,7 +222,7 @@
                     "playing", "waiting", "canplay", "canplaythrough",
                     "seeking", "seeked", "emptied", "loadedmetadata",
                     "error", "suspend", "stalled",
-                    "mozexitvideosuspend"],
+                    "mozvideoonlyseekbegin", "mozvideoonlyseekcompleted"],
 
       showHours: false,
       firstFrameShown: false,
@@ -505,9 +505,9 @@
        * 250 ms.
        *
        * When an already-suspended video element becomes visible, we
-       * resume its video decoder immediately and queue a seek task to
-       * seek the resumed video decoder to the current position;
-       * meanwhile, we also file a "mozexitvideosuspend" event which
+       * resume its video decoder immediately and queue a video-only seek
+       * task to seek the resumed video decoder to the current position;
+       * meanwhile, we also file a "mozvideoonlyseekbegin" event which
        * we used to start the timer here.
        *
        * Once the queued seek operation is done, we dispatch a
@@ -517,16 +517,19 @@
       SHOW_THROBBER_TIMEOUT_MS: 250,
       _showThrobberTimer: null,
       _delayShowThrobberWhileResumingVideoDecoder() {
-          this._showThrobberTimer = setTimeout(() => {
-              this.statusIcon.setAttribute("type", "throbber");
-              this.setupStatusFader();
-          }, this.SHOW_THROBBER_TIMEOUT_MS);
+        this._showThrobberTimer = setTimeout(() => {
+          this.statusIcon.setAttribute("type", "throbber");
+          // Show the throbber immediately since we have waited for SHOW_THROBBER_TIMEOUT_MS.
+          // We don't want to wait for another transition-delay(750ms) and the
+          // transition-duration(300ms).
+          this.setupStatusFader(true);
+        }, this.SHOW_THROBBER_TIMEOUT_MS);
       },
       _cancelShowThrobberWhileResumingVideoDecoder() {
-          if (this._showThrobberTimer) {
-            clearTimeout(this._showThrobberTimer);
-            this._showThrobberTimer = null;
-          }
+        if (this._showThrobberTimer) {
+          clearTimeout(this._showThrobberTimer);
+          this._showThrobberTimer = null;
+        }
       },
 
       handleEvent(aEvent) {
@@ -652,7 +655,7 @@
 
             // If the user is dragging the scrubber ignore the delayed seek
             // responses (don't yank the thumb away from the user)
-            if (this.scrubber.isDragging || this.scrubber.startToDrag) {
+            if (this.scrubber.isDragging) {
               return;
             }
             this.showPosition(currentTime, duration);
@@ -674,7 +677,6 @@
           case "seeked":
           case "playing":
           case "canplay":
-            this._cancelShowThrobberWhileResumingVideoDecoder();
           case "canplaythrough":
             this.setupStatusFader();
             break;
@@ -701,8 +703,12 @@
               this.controlsSpacer.removeAttribute("hideCursor");
             }
             break;
-          case "mozexitvideosuspend":
+          case "mozvideoonlyseekbegin":
             this._delayShowThrobberWhileResumingVideoDecoder();
+            break;
+          case "mozvideoonlyseekcompleted":
+            this._cancelShowThrobberWhileResumingVideoDecoder();
+            this.setupStatusFader();
             break;
           default:
             this.log("!!! event " + aEvent.type + " not handled!");
@@ -712,17 +718,21 @@
       terminateEventListeners() {
         if (this.videoEvents) {
           for (let event of this.videoEvents) {
-            this.video.removeEventListener(event, this, {
-              capture: true,
-              mozSystemGroup: true
-            });
+            try {
+              this.video.removeEventListener(event, this, {
+                capture: true,
+                mozSystemGroup: true
+              });
+            } catch (ex) {}
           }
         }
 
         if (this.controlListeners) {
           for (let element of this.controlListeners) {
-            element.item.removeEventListener(element.event, element.func,
-              { mozSystemGroup: true });
+            try {
+              element.item.removeEventListener(element.event, element.func,
+                { mozSystemGroup: true, capture: element.capture });
+            } catch (ex) {}
           }
 
           delete this.controlListeners;
@@ -889,16 +899,14 @@
         const duration = Math.round(this.video.duration * 1000); // in ms
         let time = this.scrubber.value;
 
-        if (!this.scrubber.startToDrag || this.scrubber.isDragging) {
-          this.seekToPosition(time);
-          this.showPosition(time, duration);
-        }
+        this.seekToPosition(time);
+        this.showPosition(time, duration);
 
-        this.scrubber.startToDrag = true;
+        this.scrubber.isDragging = true;
+        this.pauseVideoDuringDragging();
       },
 
       onScrubberChange(e) {
-        this.scrubber.startToDrag = false;
         this.scrubber.isDragging = false;
 
         if (this.isPausedByDragging) {
@@ -1023,12 +1031,6 @@
       },
       HIDE_CONTROLS_TIMEOUT_MS: 2000,
       onMouseMove(event) {
-        // Pause playing video when the mouse is dragging over the control bar.
-        if (this.scrubber.startToDrag) {
-          this.scrubber.isDragging = true;
-          this.pauseVideoDuringDragging();
-        }
-
         // If the controls are static, don't change anything.
         if (!this.dynamicControls) {
           return;
@@ -1542,11 +1544,11 @@
         ttBtn.classList.add("textTrackItem");
         ttBtn.setAttribute("index", tt.index);
 
-        ttBtn.addEventListener("click", function(event) {
+        ttBtn.addEventListener("click", event => {
           event.stopPropagation();
 
           this.changeTextTrack(tt.index);
-        }.bind(this));
+        });
 
         ttBtn.appendChild(ttText);
 
@@ -1835,10 +1837,10 @@
         // Due to this helper function, "Utils" is made available to the event
         // listener functions. Hence declare it as a global for ESLint.
         /* global Utils */
-        function addListener(elem, eventName, func) {
+        function addListener(elem, eventName, func, capture = false) {
           let boundFunc = func.bind(self);
-          self.controlListeners.push({ item: elem, event: eventName, func: boundFunc });
-          elem.addEventListener(eventName, boundFunc, { mozSystemGroup: true });
+          self.controlListeners.push({ item: elem, event: eventName, func: boundFunc, capture });
+          elem.addEventListener(eventName, boundFunc, { mozSystemGroup: true, capture });
         }
 
         addListener(this.muteButton, "click", this.toggleMute);
@@ -1854,7 +1856,7 @@
         addListener(this.video.ownerDocument, "mozfullscreenchange", this.onFullscreenChange);
         addListener(this.controlBar, "transitionend", this.onControlBarTransitioned);
         addListener(this.video.ownerDocument, "fullscreenchange", this.onFullscreenChange);
-        addListener(this.video, "keypress", this.keyHandler);
+        addListener(this.video, "keypress", this.keyHandler, true);
 
         addListener(this.videocontrols, "dragstart", function(event) {
           event.preventDefault(); // prevent dragging of controls image (bug 517114)
@@ -2038,7 +2040,9 @@
       handleEvent(aEvent) {
         if (aEvent.type == "transitionend") {
           this.firstShow = false;
-          this.videocontrols.removeEventListener("transitionend", this);
+          try {
+            this.videocontrols.removeEventListener("transitionend", this);
+          } catch (ex) {}
           return;
         }
 
@@ -2049,7 +2053,9 @@
 
       terminateEventListeners() {
         for (var event of this.videoEvents) {
-          this.Utils.video.removeEventListener(event, this);
+          try {
+            this.Utils.video.removeEventListener(event, this);
+          } catch (ex) {}
         }
       },
 
@@ -2194,12 +2200,16 @@
       controlListeners: [],
       terminateEventListeners() {
         for (let event of this.videoEvents) {
-          this.video.removeEventListener(event, this, { mozSystemGroup: true });
+          try {
+            this.video.removeEventListener(event, this, { mozSystemGroup: true });
+          } catch (ex) {}
         }
 
         for (let element of this.controlListeners) {
-          element.item.removeEventListener(element.event, element.func,
-            { mozSystemGroup: true });
+          try {
+            element.item.removeEventListener(element.event, element.func,
+              { mozSystemGroup: true });
+          } catch (ex) {}
         }
 
         delete this.controlListeners;

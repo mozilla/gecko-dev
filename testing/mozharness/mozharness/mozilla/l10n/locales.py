@@ -146,11 +146,10 @@ class LocalesMixin(ChunkingMixin):
     def run_compare_locales(self, locale, halt_on_failure=False):
         dirs = self.query_abs_dirs()
         env = self.query_l10n_env()
-        python = self.query_exe('python2.7')
         compare_locales_error_list = list(PythonErrorList)
         self.rmtree(dirs['abs_merge_dir'])
         self.mkdir_p(dirs['abs_merge_dir'])
-        command = [python, 'mach', 'compare-locales',
+        command = [sys.executable, 'mach', 'compare-locales',
                    '--merge-dir', dirs['abs_merge_dir'],
                    '--l10n-ini', os.path.join(dirs['abs_locales_src_dir'], 'l10n.ini'),
                    '--l10n-base', dirs['abs_l10n_dir'], locale]
@@ -255,27 +254,6 @@ class LocalesMixin(ChunkingMixin):
                 repo = repository['repo']
                 break
         return repo
-
-# GaiaLocalesMixin {{{1
-class GaiaLocalesMixin(object):
-    gaia_locale_revisions = None
-
-    def pull_gaia_locale_source(self, l10n_config, locales, base_dir):
-        root = l10n_config['root']
-        # urljoin will strip the last part of root if it doesn't end with "/"
-        if not root.endswith('/'):
-            root = root + '/'
-        vcs = l10n_config['vcs']
-        env = l10n_config.get('env', {})
-        repos = []
-        for locale in locales:
-            repos.append({
-                'repo': urljoin(root, locale),
-                'dest': locale,
-                'vcs': vcs,
-                'env': env,
-            })
-        self.gaia_locale_revisions = self.vcs_checkout_repos(repo_list=repos, parent_dir=base_dir)
 
 
 # __main__ {{{1

@@ -38,7 +38,7 @@ HTMLScriptElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
 HTMLScriptElement::HTMLScriptElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
                                      FromParser aFromParser)
   : nsGenericHTMLElement(aNodeInfo)
-  , nsScriptElement(aFromParser)
+  , ScriptElement(aFromParser)
 {
   AddMutationObserver(this);
 }
@@ -93,7 +93,8 @@ HTMLScriptElement::ParseAttribute(int32_t aNamespaceID,
 }
 
 nsresult
-HTMLScriptElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
+HTMLScriptElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const
 {
   *aResult = nullptr;
 
@@ -101,7 +102,7 @@ HTMLScriptElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) c
   HTMLScriptElement* it = new HTMLScriptElement(ni, NOT_FROM_PARSER);
 
   nsCOMPtr<nsINode> kungFuDeathGrip = it;
-  nsresult rv = const_cast<HTMLScriptElement*>(this)->CopyInnerTo(it);
+  nsresult rv = const_cast<HTMLScriptElement*>(this)->CopyInnerTo(it, aPreallocateChildren);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // The clone should be marked evaluated if we are.
@@ -219,15 +220,28 @@ HTMLScriptElement::SetAsync(bool aValue, ErrorResult& rv)
   SetHTMLBoolAttr(nsGkAtoms::async, aValue, rv);
 }
 
+bool
+HTMLScriptElement::NoModule()
+{
+  return GetBoolAttr(nsGkAtoms::nomodule);
+}
+
+void
+HTMLScriptElement::SetNoModule(bool aValue, ErrorResult& aRv)
+{
+  SetHTMLBoolAttr(nsGkAtoms::nomodule, aValue, aRv);
+}
+
 nsresult
 HTMLScriptElement::AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify)
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue, bool aNotify)
 {
   if (nsGkAtoms::async == aName && kNameSpaceID_None == aNamespaceID) {
     mForceAsync = false;
   }
   return nsGenericHTMLElement::AfterSetAttr(aNamespaceID, aName, aValue,
-                                            aNotify);
+                                            aOldValue, aNotify);
 }
 
 NS_IMETHODIMP

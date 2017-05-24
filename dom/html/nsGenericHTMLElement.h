@@ -68,7 +68,7 @@ public:
   NS_IMPL_FROMCONTENT(nsGenericHTMLElement, kNameSpaceID_XHTML)
 
   // From Element
-  nsresult CopyInnerTo(mozilla::dom::Element* aDest);
+  nsresult CopyInnerTo(mozilla::dom::Element* aDest, bool aPreallocateChildren);
 
   void GetTitle(mozilla::dom::DOMString& aTitle)
   {
@@ -943,7 +943,9 @@ private:
 
 protected:
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify) override;
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                bool aNotify) override;
 
   virtual mozilla::EventListenerManager*
     GetEventListenerManagerForAttr(nsIAtom* aAttrName,
@@ -1208,7 +1210,8 @@ class nsGenericHTMLFormElement : public nsGenericHTMLElement,
                                  public nsIFormControl
 {
 public:
-  explicit nsGenericHTMLFormElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  nsGenericHTMLFormElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
+                           uint8_t aType);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -1225,7 +1228,7 @@ public:
     return mForm;
   }
   virtual void SetForm(nsIDOMHTMLFormElement* aForm) override;
-  virtual void ClearForm(bool aRemoveFromForm) override;
+  virtual void ClearForm(bool aRemoveFromForm, bool aUnbindOrDelete) override;
 
   nsresult GetForm(nsIDOMHTMLFormElement** aForm);
 
@@ -1300,7 +1303,15 @@ protected:
                                  bool aNotify) override;
 
   virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify) override;
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                bool aNotify) override;
+
+  virtual void BeforeSetForm(bool aBindToTree) {}
+
+  virtual void AfterClearForm(bool aUnbindOrDelete) {}
+
+  void SetForm(mozilla::dom::HTMLFormElement* aForm, bool aBindToTree);
 
   /**
    * This method will update the form owner, using @form or looking to a parent.
@@ -1368,7 +1379,8 @@ protected:
 class nsGenericHTMLFormElementWithState : public nsGenericHTMLFormElement
 {
 public:
-  explicit nsGenericHTMLFormElementWithState(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  nsGenericHTMLFormElementWithState(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
+                                    uint8_t aType);
 
   /**
    * Get the presentation state for a piece of content, or create it if it does

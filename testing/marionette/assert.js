@@ -15,7 +15,6 @@ Cu.import("chrome://marionette/content/error.js");
 this.EXPORTED_SYMBOLS = ["assert"];
 
 const isFennec = () => AppConstants.platform == "android";
-const isB2G = () => AppConstants.MOZ_B2G;
 const isFirefox = () => Services.appinfo.name == "Firefox";
 
 /** Shorthands for common assertions made in Marionette. */
@@ -70,20 +69,6 @@ assert.fennec = function (msg = "") {
 };
 
 /**
- * Asserts that the current browser is B2G.
- *
- * @param {string=} msg
- *     Custom error message.
- *
- * @throws {UnsupportedOperationError}
- *     If the current browser is not B2G.
- */
-assert.b2g = function (msg = "") {
-  msg = msg || "Only supported in B2G";
-  assert.that(isB2G, msg, UnsupportedOperationError)();
-};
-
-/**
  * Asserts that the current |context| is content.
  *
  * @param {string} context
@@ -103,21 +88,6 @@ assert.content = function (context, msg = "") {
 };
 
 /**
- * Asserts that the current browser is a mobile browser, that is either
- * B2G or Fennec.
- *
- * @param {string=} msg
- *     Custom error message.
- *
- * @throws {UnsupportedOperationError}
- *     If the current browser is not B2G or Fennec.
- */
-assert.mobile = function (msg = "") {
-  msg = msg || "Only supported in Fennec or B2G";
-  assert.that(() => isFennec() || isB2G(), msg, UnsupportedOperationError)();
-};
-
-/**
  * Asserts that |win| is open.
  *
  * @param {ChromeWindow} win
@@ -133,8 +103,33 @@ assert.mobile = function (msg = "") {
  */
 assert.window = function (win, msg = "") {
   msg = msg || "Unable to locate window";
-  return assert.that(w => w && w.document.defaultView, msg, NoSuchWindowError)(win);
-}
+  return assert.that(w => {
+    try {
+      return w && w.document.defaultView;
+
+    // If the window is no longer available a TypeError is thrown.
+    } catch (e if e.name === "TypeError") {
+      return null;
+    }
+  }, msg, NoSuchWindowError)(win);
+};
+
+/**
+ * Asserts that there is no current user prompt.
+ *
+ * @param {modal.Dialog} dialog
+ *     Reference to current dialogue.
+ * @param {string=} msg
+ *     Custom error message.
+ *
+ * @throws {UnexpectedAlertOpenError}
+ *     If there is a user prompt.
+ */
+assert.noUserPrompt = function (dialog, msg = "") {
+  assert.that(d => d === null || typeof d == "undefined",
+      msg,
+      UnexpectedAlertOpenError)(dialog);
+};
 
 /**
  * Asserts that |obj| is defined.
@@ -172,6 +167,25 @@ assert.defined = function (obj, msg = "") {
 assert.number = function (obj, msg = "") {
   msg = msg || error.pprint`Expected ${obj} to be finite number`;
   return assert.that(Number.isFinite, msg)(obj);
+};
+
+/**
+ * Asserts that |obj| is callable.
+ *
+ * @param {?} obj
+ *     Value to test.
+ * @param {string=} msg
+ *     Custom error message.
+ *
+ * @return {Function}
+ *     |obj| is returned unaltered.
+ *
+ * @throws {InvalidArgumentError}
+ *     If |obj| is not callable.
+ */
+assert.callable = function (obj, msg = "") {
+  msg = msg || error.pprint`${obj} is not callable`;
+  return assert.that(o => typeof o == "function", msg)(obj);
 };
 
 /**
@@ -267,8 +281,12 @@ assert.string = function (obj, msg = "") {
  */
 assert.object = function (obj, msg = "") {
   msg = msg || error.pprint`Expected ${obj} to be an object`;
-  return assert.that(o =>
-      Object.prototype.toString.call(o) == "[object Object]", msg)(obj);
+  return assert.that(o => {
+    // unable to use instanceof because LHS and RHS may come from
+    // different globals
+    let s = Object.prototype.toString.call(o);
+    return s == "[object Object]" || s == "[object nsJSIID]";
+  })(obj);
 };
 
 /**

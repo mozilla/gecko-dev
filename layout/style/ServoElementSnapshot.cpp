@@ -12,8 +12,8 @@
 namespace mozilla {
 
 ServoElementSnapshot::ServoElementSnapshot(const Element* aElement)
-  : mContains(Flags(0))
-  , mState(0)
+  : mState(0)
+  , mContains(Flags(0))
 {
   MOZ_COUNT_CTOR(ServoElementSnapshot);
   mIsHTMLElementInHTMLDocument =
@@ -32,7 +32,7 @@ ServoElementSnapshot::AddAttrs(Element* aElement)
 {
   MOZ_ASSERT(aElement);
 
-  if (HasAny(Flags::Attributes)) {
+  if (HasAttrs()) {
     return;
   }
 
@@ -45,6 +45,12 @@ ServoElementSnapshot::AddAttrs(Element* aElement)
     mAttrs.AppendElement(ServoAttrSnapshot(*attrName, *attrValue));
   }
   mContains |= Flags::Attributes;
+  if (aElement->HasID()) {
+    mContains |= Flags::Id;
+  }
+  if (aElement->MayHaveClass()) {
+    mContains |= Flags::MaybeClass;
+  }
 }
 
 } // namespace mozilla

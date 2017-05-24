@@ -12,6 +12,8 @@
   --space-above-tabbar: 0px;
   --toolbarbutton-text-shadow: none;
   --backbutton-urlbar-overlap: 0px;
+  /* 18px icon + 2 * 5px padding + 1 * 1px border */
+  --forwardbutton-width: 29px;
 }
 
 :root:-moz-lwtheme-brighttext {
@@ -176,14 +178,55 @@ toolbar:-moz-lwtheme-darktext {
   text-shadow: var(--toolbarbutton-text-shadow);
 }
 
-/* Using toolbar[brighttext] instead of important to override linux */
-toolbar[brighttext] #downloads-indicator-counter {
-  text-shadow: var(--toolbarbutton-text-shadow);
-  color: var(--chrome-color);
-}
-
 #TabsToolbar {
   text-shadow: none !important;
+}
+
+/* Back and forward button */
+
+#back-button > .toolbarbutton-icon,
+#forward-button > .toolbarbutton-icon {
+  background: var(--chrome-nav-buttons-background) !important;
+  border-radius: 0 !important;
+  padding: var(--toolbarbutton-inner-padding) 5px !important;
+  margin: 0 !important;
+  border: 1px solid var(--chrome-nav-bar-controls-border-color) !important;
+  box-shadow: none !important;
+  height: auto !important;
+}
+
+/* the normal theme adds box-shadow: <stuff> !important when the back-button is [open]. Fix: */
+#back-button[open="true"] > .toolbarbutton-icon {
+  box-shadow: none !important;
+}
+
+%ifndef MOZ_PHOTON_THEME
+#forward-button > .toolbarbutton-icon {
+  border-inline-start: none !important;
+}
+%endif
+
+/* Override a box shadow for disabled back button */
+#main-window:not([customizing]) #back-button[disabled] > .toolbarbutton-icon {
+  box-shadow: none !important;
+}
+
+/* Override !important properties for hovered back button */
+#main-window #back-button:hover:not([disabled="true"]) > .toolbarbutton-icon,
+#main-window #forward-button:hover:not([disabled="true"]) > .toolbarbutton-icon {
+  background: var(--chrome-nav-buttons-hover-background) !important;
+  box-shadow: none !important;
+}
+
+#back-button > .toolbarbutton-icon {
+  border-radius: 2px 0 0 2px !important;
+}
+
+#nav-bar .toolbarbutton-1:not([type=menu-button]),
+#nav-bar .toolbarbutton-1 > .toolbarbutton-menubutton-button,
+#nav-bar .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker {
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 /* URL bar and search bar*/
@@ -196,13 +239,17 @@ toolbar[brighttext] #downloads-indicator-counter {
   box-shadow: none !important;
 }
 
-%filter substitution
-%define selectorSuffix :-moz-lwtheme-brighttext
-%define iconVariant -white
-%include identity-block/icons.inc.css
+#identity-icon:-moz-lwtheme-brighttext,
+#tracking-protection-icon:-moz-lwtheme-brighttext,
+#connection-icon:-moz-lwtheme-brighttext,
+#extension-icon:-moz-lwtheme-brighttext {
+  fill: rgba(255,255,255,.7);
+}
 
 #urlbar {
+%ifndef MOZ_PHOTON_THEME
   border-inline-start: none !important;
+%endif
   opacity: 1 !important;
 }
 
@@ -246,13 +293,7 @@ window:not([chromehidden~="toolbar"]) #urlbar-wrapper > #urlbar:-moz-locale-dir(
 
 /* Use smaller back button icon */
 #back-button {
-  -moz-image-region: rect(0, 54px, 18px, 36px);
-}
-
-@media (min-resolution: 1.1dppx) {
-  #back-button {
-    -moz-image-region: rect(0, 108px, 36px, 72px);
-  }
+  list-style-image: url("chrome://browser/skin/back.svg");
 }
 
 .tab-background {

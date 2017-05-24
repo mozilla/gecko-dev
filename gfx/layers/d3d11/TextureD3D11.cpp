@@ -14,6 +14,7 @@
 #include "mozilla/gfx/DeviceManagerDx.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
+#include "mozilla/webrender/WebRenderAPI.h"
 
 namespace mozilla {
 
@@ -169,7 +170,6 @@ DataTextureSourceD3D11::DataTextureSourceD3D11(ID3D11Device* aDevice,
   , mIterating(false)
   , mAllowTextureUploads(true)
 {
-  MOZ_COUNT_CTOR(DataTextureSourceD3D11);
 }
 
 DataTextureSourceD3D11::DataTextureSourceD3D11(ID3D11Device* aDevice,
@@ -183,8 +183,6 @@ DataTextureSourceD3D11::DataTextureSourceD3D11(ID3D11Device* aDevice,
 , mIterating(false)
 , mAllowTextureUploads(false)
 {
-  MOZ_COUNT_CTOR(DataTextureSourceD3D11);
-
   mTexture = aTexture;
   D3D11_TEXTURE2D_DESC desc;
   aTexture->GetDesc(&desc);
@@ -204,7 +202,6 @@ DataTextureSourceD3D11::DataTextureSourceD3D11(gfx::SurfaceFormat aFormat, Textu
 
 DataTextureSourceD3D11::~DataTextureSourceD3D11()
 {
-  MOZ_COUNT_DTOR(DataTextureSourceD3D11);
 }
 
 
@@ -428,6 +425,8 @@ D3D11TextureData::Create(IntSize aSize, SurfaceFormat aFormat, SourceSurface* aS
   D3D11_SUBRESOURCE_DATA uploadData;
   D3D11_SUBRESOURCE_DATA* uploadDataPtr = nullptr;
   RefPtr<DataSourceSurface> srcSurf;
+  DataSourceSurface::MappedSurface sourceMap;
+
   if (aSurface) {
     srcSurf = aSurface->GetDataSurface();
 
@@ -436,12 +435,13 @@ D3D11TextureData::Create(IntSize aSize, SurfaceFormat aFormat, SourceSurface* aS
       return nullptr;
     }
 
-    DataSourceSurface::MappedSurface sourceMap;
     if (!srcSurf->Map(DataSourceSurface::READ, &sourceMap)) {
       gfxCriticalError() << "Failed to map source surface for D3D11TextureData::Create";
       return nullptr;
     }
+  }
 
+  if (srcSurf && !DeviceManagerDx::Get()->HasCrashyInitData()) {
     uploadData.pSysMem = sourceMap.mData;
     uploadData.SysMemPitch = sourceMap.mStride;
     uploadData.SysMemSlicePitch = 0; // unused
@@ -451,6 +451,18 @@ D3D11TextureData::Create(IntSize aSize, SurfaceFormat aFormat, SourceSurface* aS
 
   RefPtr<ID3D11Texture2D> texture11;
   HRESULT hr = device->CreateTexture2D(&newDesc, uploadDataPtr, getter_AddRefs(texture11));
+
+  if (srcSurf && DeviceManagerDx::Get()->HasCrashyInitData()) {
+    D3D11_BOX box;
+    box.front = box.top = box.left = 0;
+    box.back = 1;
+    box.right = aSize.width;
+    box.bottom = aSize.height;
+    RefPtr<ID3D11DeviceContext> ctx;
+    device->GetImmediateContext(getter_AddRefs(ctx));
+    ctx->UpdateSubresource(texture11, 0, &box, sourceMap.mData, sourceMap.mStride, 0);
+  }
+
   if (srcSurf) {
     srcSurf->Unmap();
   }
@@ -738,19 +750,25 @@ DXGITextureHostD3D11::GetDevice()
     return nullptr;
   }
 
-  return mProvider->GetD3D11Device();
+  if (mProvider) {
+    return mProvider->GetD3D11Device();
+  } else {
+    return mDevice;
+  }
 }
 
 void
 DXGITextureHostD3D11::SetTextureSourceProvider(TextureSourceProvider* aProvider)
 {
   if (!aProvider || !aProvider->GetD3D11Device()) {
+    mDevice = nullptr;
     mProvider = nullptr;
     mTextureSource = nullptr;
     return;
   }
 
   mProvider = aProvider;
+  mDevice = aProvider->GetD3D11Device();
 
   if (mTextureSource) {
     mTextureSource->SetTextureSourceProvider(aProvider);
@@ -776,6 +794,9 @@ DXGITextureHostD3D11::LockWithoutCompositor()
   // Unlike the normal Lock() function, this function may be called when
   // mCompositor is nullptr such as during WebVR frame submission. So, there is
   // no 'mCompositor' checking here.
+  if (!mDevice) {
+    mDevice = DeviceManagerDx::Get()->GetCompositorDevice();
+  }
   return LockInternal();
 }
 
@@ -805,7 +826,12 @@ DXGITextureHostD3D11::LockInternal()
       return false;
     }
 
-    mTextureSource = new DataTextureSourceD3D11(mFormat, mProvider, mTexture);
+    if (mProvider) {
+      MOZ_RELEASE_ASSERT(mProvider->IsValid());
+      mTextureSource = new DataTextureSourceD3D11(mFormat, mProvider, mTexture);
+    } else {
+      mTextureSource = new DataTextureSourceD3D11(mDevice, mFormat, mTexture);
+    }
   }
 
   mIsLocked = LockD3DTexture(mTextureSource->GetD3D11Texture());
@@ -827,6 +853,14 @@ DXGITextureHostD3D11::BindTextureSource(CompositableTextureSourceRef& aTexture)
   MOZ_ASSERT(mTextureSource);
   aTexture = mTextureSource;
   return !!aTexture;
+}
+
+void
+DXGITextureHostD3D11::AddWRImage(wr::WebRenderAPI* aAPI,
+                                 Range<const wr::ImageKey>& aImageKeys,
+                                 const wr::ExternalImageId& aExtID)
+{
+  MOZ_ASSERT_UNREACHABLE("No AddWRImage() implementation for this DXGITextureHostD3D11 type.");
 }
 
 DXGIYCbCrTextureHostD3D11::DXGIYCbCrTextureHostD3D11(TextureFlags aFlags,
@@ -895,11 +929,14 @@ void
 DXGIYCbCrTextureHostD3D11::SetTextureSourceProvider(TextureSourceProvider* aProvider)
 {
   if (!aProvider || !aProvider->GetD3D11Device()) {
+    mProvider = nullptr;
     mTextureSources[0] = nullptr;
     mTextureSources[1] = nullptr;
     mTextureSources[2] = nullptr;
     return;
   }
+
+  mProvider = aProvider;
 
   if (mTextureSources[0]) {
     mTextureSources[0]->SetTextureSourceProvider(aProvider);
@@ -957,6 +994,14 @@ DXGIYCbCrTextureHostD3D11::BindTextureSource(CompositableTextureSourceRef& aText
   MOZ_ASSERT(mTextureSources[0] && mTextureSources[1] && mTextureSources[2]);
   aTexture = mTextureSources[0].get();
   return !!aTexture;
+}
+
+void
+DXGIYCbCrTextureHostD3D11::AddWRImage(wr::WebRenderAPI* aAPI,
+                                      Range<const wr::ImageKey>& aImageKeys,
+                                      const wr::ExternalImageId& aExtID)
+{
+  MOZ_ASSERT_UNREACHABLE("No AddWRImage() implementation for this DXGIYCbCrTextureHostD3D11 type.");
 }
 
 bool
@@ -1209,6 +1254,21 @@ SyncObjectD3D11::SyncObjectD3D11(SyncHandle aSyncHandle, ID3D11Device* aDevice)
   mD3D11Device = aDevice;
 }
 
+static inline bool
+ShouldDevCrashOnSyncInitFailure()
+{
+  // Compositor shutdown does not wait for video decoding to finish, so it is
+  // possible for the compositor to destroy the SyncObject before video has a
+  // chance to initialize it.
+  if (!NS_IsMainThread()) {
+    return false;
+  }
+
+  // Note: CompositorIsInGPUProcess is a main-thread-only function.
+  return !CompositorBridgeChild::CompositorIsInGPUProcess() &&
+         !DeviceManagerDx::Get()->HasDeviceReset();
+}
+
 bool
 SyncObjectD3D11::Init()
 {
@@ -1222,13 +1282,10 @@ SyncObjectD3D11::Init()
     (void**)(ID3D11Texture2D**)getter_AddRefs(mD3D11Texture));
   if (FAILED(hr) || !mD3D11Texture) {
     gfxCriticalNote << "Failed to OpenSharedResource for SyncObjectD3D11: " << hexa(hr);
-    if (!CompositorBridgeChild::CompositorIsInGPUProcess() &&
-        !DeviceManagerDx::Get()->HasDeviceReset())
-    {
+    if (ShouldDevCrashOnSyncInitFailure()) {
       gfxDevCrash(LogReason::D3D11FinalizeFrame) << "Without device reset: " << hexa(hr);
-    } else {
-      return false;
     }
+    return false;
   }
 
   hr = mD3D11Texture->QueryInterface(__uuidof(IDXGIKeyedMutex), getter_AddRefs(mKeyedMutex));

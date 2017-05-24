@@ -14,6 +14,7 @@
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsISupportsPriority.h"
 #include "nsIThreadRetargetableRequest.h"
 #include "nsIUploadChannel2.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -30,6 +31,7 @@
 
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/workers/Workers.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/Unused.h"
 
@@ -46,10 +48,11 @@ NS_IMPL_ISUPPORTS(FetchDriver,
                   nsIThreadRetargetableStreamListener)
 
 FetchDriver::FetchDriver(InternalRequest* aRequest, nsIPrincipal* aPrincipal,
-                         nsILoadGroup* aLoadGroup)
+                         nsILoadGroup* aLoadGroup, bool aIsTrackingFetch)
   : mPrincipal(aPrincipal)
   , mLoadGroup(aLoadGroup)
   , mRequest(aRequest)
+  , mIsTrackingFetch(aIsTrackingFetch)
 #ifdef DEBUG
   , mResponseAvailableCalled(false)
   , mFetchCalled(false)
@@ -255,6 +258,13 @@ FetchDriver::HttpFetch()
 #endif
   chan->SetNotificationCallbacks(this);
 
+  nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(chan));
+  // Mark channel as urgent-start if the Fetch is triggered by user input
+  // events.
+  if (cos && EventStateManager::IsHandlingUserInput()) {
+    cos->AddClassFlags(nsIClassOfService::UrgentStart);
+  }
+
   // Step 3.5 begins "HTTP network or cache fetch".
   // HTTP network or cache fetch
   // ---------------------------
@@ -362,6 +372,13 @@ FetchDriver::HttpFetch()
     nsCOMPtr<nsILoadInfo> loadInfo = chan->GetLoadInfo();
     if (loadInfo) {
       loadInfo->SetCorsPreflightInfo(unsafeHeaders, false);
+    }
+  }
+
+  if (mIsTrackingFetch && nsContentUtils::IsLowerNetworkPriority()) {
+    nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(chan);
+    if (p) {
+      p->SetPriority(nsISupportsPriority::PRIORITY_LOWEST);
     }
   }
 

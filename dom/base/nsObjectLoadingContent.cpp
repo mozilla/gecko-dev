@@ -11,6 +11,7 @@
 
 // Interface headers
 #include "imgLoader.h"
+#include "nsIClassOfService.h"
 #include "nsIConsoleService.h"
 #include "nsIContent.h"
 #include "nsIContentInlines.h"
@@ -84,9 +85,9 @@
 #include "mozilla/dom/PluginCrashedEvent.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/EventDispatcher.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
 #include "mozilla/dom/HTMLSharedObjectElement.h"
 #include "mozilla/dom/HTMLObjectElement.h"
@@ -152,7 +153,7 @@ InActiveDocument(nsIContent *aContent)
 class nsAsyncInstantiateEvent : public Runnable {
 public:
   explicit nsAsyncInstantiateEvent(nsObjectLoadingContent* aContent)
-  : mContent(aContent) {}
+    : Runnable("nsAsyncInstantiateEvent"), mContent(aContent) {}
 
   ~nsAsyncInstantiateEvent() override = default;
 
@@ -261,7 +262,8 @@ CheckPluginStopEvent::Run()
 class nsSimplePluginEvent : public Runnable {
 public:
   nsSimplePluginEvent(nsIContent* aTarget, const nsAString &aEvent)
-    : mTarget(aTarget)
+    : Runnable("nsSimplePluginEvent")
+    , mTarget(aTarget)
     , mDocument(aTarget->GetComposedDoc())
     , mEvent(aEvent)
   {
@@ -326,7 +328,8 @@ public:
                        const nsAString& aPluginName,
                        const nsAString& aPluginFilename,
                        bool submittedCrashReport)
-    : mContent(aContent),
+    : Runnable("nsPluginCrashedEvent"),
+      mContent(aContent),
       mPluginDumpID(aPluginDumpID),
       mBrowserDumpID(aBrowserDumpID),
       mPluginName(aPluginName),
@@ -491,11 +494,6 @@ IsPluginEnabledByExtension(nsIURI* uri, nsCString& mimeType)
 
   // Disables any native PDF plugins, when internal PDF viewer is enabled.
   if (ext.EqualsIgnoreCase("pdf") && nsContentUtils::IsPDFJSEnabled()) {
-    return false;
-  }
-
-  // Disables any native SWF plugins, when internal SWF player is enabled.
-  if (ext.EqualsIgnoreCase("swf") && nsContentUtils::IsSWFPlayerEnabled()) {
     return false;
   }
 
@@ -1017,10 +1015,10 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
         NS_LITERAL_STRING(" since it was found on an internal Firefox blocklist.");
       console->LogStringMessage(message.get());
     }
-    Telemetry::Accumulate(Telemetry::PLUGIN_BLOCKED_FOR_STABILITY, 1);
     mContentBlockingEnabled = true;
     return NS_ERROR_FAILURE;
   }
+
   if (status == NS_ERROR_TRACKING_URI) {
     mContentBlockingEnabled = true;
     return NS_ERROR_FAILURE;
@@ -1419,7 +1417,6 @@ nsObjectLoadingContent::MaybeRewriteYoutubeEmbed(nsIURI* aURI, nsIURI* aBaseURI,
   }
 
   if (uri.Find("enablejsapi=1", true, 0, -1) != kNotFound) {
-    Telemetry::Accumulate(Telemetry::YOUTUBE_NONREWRITABLE_EMBED_SEEN, 1);
     return;
   }
 
@@ -1438,10 +1435,6 @@ nsObjectLoadingContent::MaybeRewriteYoutubeEmbed(nsIURI* aURI, nsIURI* aBaseURI,
       replaceQuery = true;
     }
   }
-
-  // If we've made it this far, we've got a rewritable embed. Log it in
-  // telemetry.
-  Telemetry::Accumulate(Telemetry::YOUTUBE_REWRITABLE_EMBED_SEEN, 1);
 
   // If we're pref'd off, return after telemetry has been logged.
   if (!Preferences::GetBool(kPrefYoutubeRewrite)) {
@@ -2559,6 +2552,11 @@ nsObjectLoadingContent::OpenChannel()
     if (timedChannel) {
       timedChannel->SetInitiatorType(thisContent->LocalName());
     }
+
+    nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(httpChan));
+    if (cos && EventStateManager::IsHandlingUserInput()) {
+      cos->AddClassFlags(nsIClassOfService::UrgentStart);
+    }
   }
 
   nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(chan);
@@ -2685,27 +2683,31 @@ nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
 
   EventStates newState = ObjectState();
 
+  if (newState == aOldState && mType == aOldType) {
+    return; // Also done.
+  }
+
   if (newState != aOldState) {
     NS_ASSERTION(thisContent->IsInComposedDoc(), "Something is confused");
     // This will trigger frame construction
     EventStates changedBits = aOldState ^ newState;
-
     {
       nsAutoScriptBlocker scriptBlocker;
       doc->ContentStateChanged(thisContent, changedBits);
-    }
-    if (aSync) {
-      NS_ASSERTION(InActiveDocument(thisContent), "Something is confused");
-      // Make sure that frames are actually constructed immediately.
-      doc->FlushPendingNotifications(FlushType::Frames);
     }
   } else if (aOldType != mType) {
     // If our state changed, then we already recreated frames
     // Otherwise, need to do that here
     nsCOMPtr<nsIPresShell> shell = doc->GetShell();
     if (shell) {
-      shell->RecreateFramesFor(thisContent);
+      shell->PostRecreateFramesFor(thisContent->AsElement());
     }
+  }
+
+  if (aSync) {
+    NS_ASSERTION(InActiveDocument(thisContent), "Something is confused");
+    // Make sure that frames are actually constructed immediately.
+    doc->FlushPendingNotifications(FlushType::Frames);
   }
 }
 
@@ -3274,7 +3276,7 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason, bool aIgnoreCurrentTyp
   NS_ENSURE_TRUE(topDoc, false);
 
   // Check the flash blocking status for this page (this applies to Flash only)
-  FlashClassification documentClassification = FlashClassification::Allowed;
+  FlashClassification documentClassification = FlashClassification::Unknown;
   if (IsFlashMIME(mContentType)) {
     documentClassification = ownerDoc->DocumentFlashClassification();
   }
@@ -3349,10 +3351,16 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason, bool aIgnoreCurrentTyp
     return false;
   }
 
+  // On the following switch we don't need to handle the case where
+  // documentClassification is FlashClassification::Denied because
+  // that's already handled above.
   switch (enabledState) {
   case nsIPluginTag::STATE_ENABLED:
-    return documentClassification == FlashClassification::Allowed;
+    return true;
   case nsIPluginTag::STATE_CLICKTOPLAY:
+    if (documentClassification == FlashClassification::Allowed) {
+      return true;
+    }
     return false;
   }
   MOZ_CRASH("Unexpected enabledState");
@@ -3422,6 +3430,14 @@ nsObjectLoadingContent::HasGoodFallback() {
         if (child->IsHTMLElement(nsGkAtoms::video)) {
           return true;
         }
+      }
+    }
+
+    // RULE "nosrc":
+    // Use fallback content if the object has not specified an URI.
+    if (rulesList[i].EqualsLiteral("nosrc")) {
+      if (!mOriginalURI) {
+        return true;
       }
     }
 

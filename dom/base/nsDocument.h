@@ -31,7 +31,6 @@
 #include "nsJSThingHashtable.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIURI.h"
-#include "nsScriptLoader.h"
 #include "nsIRadioGroupContainer.h"
 #include "nsILayoutHistoryState.h"
 #include "nsIRequest.h"
@@ -60,6 +59,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PendingAnimationTracker.h"
 #include "mozilla/dom/DOMImplementation.h"
+#include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/StyleSheetList.h"
 #include "nsDataHashtable.h"
 #include "mozilla/TimeStamp.h"
@@ -143,26 +143,90 @@ public:
  * Perhaps the document.all results should have their own hashtable
  * in nsHTMLDocument.
  */
-class nsIdentifierMapEntry : public nsStringHashKey
+class nsIdentifierMapEntry : public PLDHashEntryHdr
 {
 public:
+  struct AtomOrString
+  {
+    MOZ_IMPLICIT AtomOrString(nsIAtom* aAtom) : mAtom(aAtom) {}
+    MOZ_IMPLICIT AtomOrString(const nsAString& aString) : mString(aString) {}
+    AtomOrString(const AtomOrString& aOther)
+      : mAtom(aOther.mAtom)
+      , mString(aOther.mString)
+    {
+    }
+
+    AtomOrString(AtomOrString&& aOther)
+      : mAtom(aOther.mAtom.forget())
+      , mString(aOther.mString)
+    {
+    }
+
+    nsCOMPtr<nsIAtom> mAtom;
+    const nsString mString;
+  };
+
+  typedef const AtomOrString& KeyType;
+  typedef const AtomOrString* KeyTypePointer;
+
   typedef mozilla::dom::Element Element;
   typedef mozilla::net::ReferrerPolicy ReferrerPolicy;
 
-  explicit nsIdentifierMapEntry(const nsAString& aKey) :
-    nsStringHashKey(&aKey), mNameContentList(nullptr)
+  explicit nsIdentifierMapEntry(const AtomOrString& aKey)
+    : mKey(aKey)
   {
   }
-  explicit nsIdentifierMapEntry(const nsAString* aKey) :
-    nsStringHashKey(aKey), mNameContentList(nullptr)
+  explicit nsIdentifierMapEntry(const AtomOrString* aKey)
+    : mKey(aKey ? *aKey : nullptr)
   {
   }
-  nsIdentifierMapEntry(const nsIdentifierMapEntry& aOther) :
-    nsStringHashKey(&aOther.GetKey())
+  nsIdentifierMapEntry(nsIdentifierMapEntry&& aOther) :
+    mKey(mozilla::Move(aOther.GetKey())),
+    mIdContentList(mozilla::Move(aOther.mIdContentList)),
+    mNameContentList(aOther.mNameContentList.forget()),
+    mChangeCallbacks(aOther.mChangeCallbacks.forget()),
+    mImageElement(aOther.mImageElement.forget())
   {
-    NS_ERROR("Should never be called");
   }
   ~nsIdentifierMapEntry();
+
+  KeyType GetKey() const { return mKey; }
+
+  nsString GetKeyAsString() const
+  {
+    if (mKey.mAtom) {
+      return nsAtomString(mKey.mAtom);
+    }
+
+    return mKey.mString;
+  }
+
+  bool KeyEquals(const KeyTypePointer aOtherKey) const
+  {
+    if (mKey.mAtom) {
+      if (aOtherKey->mAtom) {
+        return mKey.mAtom == aOtherKey->mAtom;
+      }
+
+      return mKey.mAtom->Equals(aOtherKey->mString);
+    }
+
+    if (aOtherKey->mAtom) {
+      return aOtherKey->mAtom->Equals(mKey.mString);
+    }
+
+    return mKey.mString.Equals(aOtherKey->mString);
+  }
+
+  static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
+
+  static PLDHashNumber HashKey(const KeyTypePointer aKey)
+  {
+    return aKey->mAtom ?
+      aKey->mAtom->hash() : mozilla::HashString(aKey->mString);
+  }
+
+  enum { ALLOW_MEMMOVE = false };
 
   void AddNameElement(nsINode* aDocument, Element* aElement);
   void RemoveNameElement(Element* aElement);
@@ -254,12 +318,16 @@ public:
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
+  nsIdentifierMapEntry(const nsIdentifierMapEntry& aOther) = delete;
+  nsIdentifierMapEntry& operator=(const nsIdentifierMapEntry& aOther) = delete;
+
   void FireChangeCallbacks(Element* aOldElement, Element* aNewElement,
                            bool aImageOnly = false);
 
+  AtomOrString mKey;
   // empty if there are no elements with this ID.
   // The elements are stored as weak pointers.
-  nsTArray<Element*> mIdContentList;
+  AutoTArray<Element*, 1> mIdContentList;
   RefPtr<nsBaseContentList> mNameContentList;
   nsAutoPtr<nsTHashtable<ChangeCallbackEntry> > mChangeCallbacks;
   RefPtr<Element> mImageElement;
@@ -514,6 +582,8 @@ public:
   virtual void ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
                           nsIPrincipal* aPrincipal) override;
 
+  already_AddRefed<nsIPrincipal> MaybeDowngradePrincipal(nsIPrincipal* aPrincipal);
+
   // StartDocumentLoad is pure virtual so that subclasses must override it.
   // The nsDocument StartDocumentLoad does some setup, but does NOT set
   // *aDocListener; this is the job of subclasses.
@@ -672,7 +742,7 @@ public:
   /**
    * Get the script loader for this document
    */
-  virtual nsScriptLoader* ScriptLoader() override;
+  virtual mozilla::dom::ScriptLoader* ScriptLoader() override;
 
   /**
    * Add/Remove an element to the document's id and name hashes
@@ -742,7 +812,8 @@ public:
   virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
                                  bool aNotify) override;
   virtual void RemoveChildAt(uint32_t aIndex, bool aNotify) override;
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override
   {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -920,7 +991,7 @@ public:
   void DecreaseEventSuppression() {
     MOZ_ASSERT(mEventsSuppressed);
     --mEventsSuppressed;
-    MaybeRescheduleAnimationFrameNotifications();
+    UpdateFrameRequestCallbackSchedulingState();
   }
 
   virtual nsIDocument* GetTemplateContentsOwner() override;
@@ -941,7 +1012,7 @@ public:
     mLoadedAsInteractiveData = aLoadedAsInteractiveData;
   }
 
-  nsresult CloneDocHelper(nsDocument* clone) const;
+  nsresult CloneDocHelper(nsDocument* clone, bool aPreallocateChildren) const;
 
   void MaybeInitializeFinalizeFrameLoaders();
 
@@ -1021,13 +1092,6 @@ public:
   // Notifies any responsive content added by AddResponsiveContent upon media
   // features values changing.
   virtual void NotifyMediaFeatureValuesChanged() override;
-
-  // Adds an element to mMediaContent when the element is added to the tree.
-  virtual void AddMediaContent(nsIContent* aContent) override;
-
-  // Removes an element from mMediaContent when the element is removed from
-  // the tree.
-  virtual void RemoveMediaContent(nsIContent* aContent) override;
 
   virtual nsresult GetStateObject(nsIVariant** aResult) override;
 
@@ -1399,20 +1463,6 @@ private:
   void UpdatePossiblyStaleDocumentState();
   static bool CustomElementConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 
-  /**
-   * Check if the passed custom element name, aOptions.mIs, is a registered
-   * custom element type or not, then return the custom element name for future
-   * usage.
-   *
-   * If there is no existing custom element definition for this name, throw a
-   * NotFoundError.
-   */
-  const nsString* CheckCustomElementName(
-    const mozilla::dom::ElementCreationOptions& aOptions,
-    const nsAString& aLocalName,
-    uint32_t aNamespaceID,
-    ErrorResult& rv);
-
 public:
   virtual already_AddRefed<mozilla::dom::CustomElementRegistry>
     GetCustomElementRegistry() override;
@@ -1428,7 +1478,7 @@ public:
   RefPtr<mozilla::EventListenerManager> mListenerManager;
   RefPtr<mozilla::dom::StyleSheetList> mDOMStyleSheets;
   RefPtr<nsDOMStyleSheetSetList> mStyleSheetSetList;
-  RefPtr<nsScriptLoader> mScriptLoader;
+  RefPtr<mozilla::dom::ScriptLoader> mScriptLoader;
   nsDocHeaderData* mHeaderData;
   /* mIdentifierMap works as follows for IDs:
    * 1) Attribute changes affect the table immediately (removing and adding
@@ -1542,12 +1592,6 @@ private:
   void EnableStyleSheetsForSetInternal(const nsAString& aSheetSet,
                                        bool aUpdateCSSLoader);
 
-  // Revoke any pending notifications due to requestAnimationFrame calls
-  void RevokeAnimationFrameNotifications();
-  // Reschedule any notifications we need to handle
-  // requestAnimationFrame, if it's OK to do so.
-  void MaybeRescheduleAnimationFrameNotifications();
-
   void ClearAllBoxObjects();
 
   // Returns true if the scheme for the url for this document is "about"
@@ -1580,9 +1624,6 @@ private:
 
   // A set of responsive images keyed by address pointer.
   nsTHashtable< nsPtrHashKey<nsIContent> > mResponsiveContent;
-
-  // A set of media elements keyed by address pointer.
-  nsTHashtable<nsPtrHashKey<nsIContent>> mMediaContent;
 
   // Member to store out last-selected stylesheet set.
   nsString mLastStyleSheetSet;

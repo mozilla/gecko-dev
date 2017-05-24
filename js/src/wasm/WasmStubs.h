@@ -23,10 +23,15 @@
 
 namespace js {
 
-namespace jit { class MacroAssembler; class Label; }
+namespace jit {
+    class MacroAssembler;
+    class Label;
+    enum ABIFunctionType;
+}
 
 namespace wasm {
 
+class ExitReason;
 class FuncExport;
 class FuncImport;
 
@@ -42,6 +47,10 @@ GenerateImportInterpExit(jit::MacroAssembler& masm, const FuncImport& fi, uint32
 
 extern CallableOffsets
 GenerateImportJitExit(jit::MacroAssembler& masm, const FuncImport& fi, jit::Label* throwLabel);
+
+extern CallableOffsets
+GenerateBuiltinThunk(jit::MacroAssembler& masm, jit::ABIFunctionType abiType, ExitReason exitReason,
+                     void* func);
 
 extern CallableOffsets
 GenerateTrapExit(jit::MacroAssembler& masm, Trap trap, jit::Label* throwLabel);

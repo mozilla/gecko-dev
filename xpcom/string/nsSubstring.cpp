@@ -186,17 +186,42 @@ public:
 void
 nsStringBuffer::AddRef()
 {
-  ++mRefCount;
+  // Memory synchronization is not required when incrementing a
+  // reference count.  The first increment of a reference count on a
+  // thread is not important, since the first use of the object on a
+  // thread can happen before it.  What is important is the transfer
+  // of the pointer to that thread, which may happen prior to the
+  // first increment on that thread.  The necessary memory
+  // synchronization is done by the mechanism that transfers the
+  // pointer between threads.
+#ifdef NS_BUILD_REFCNT_LOGGING
+  uint32_t count =
+#endif
+    mRefCount.fetch_add(1, std::memory_order_relaxed)
+#ifdef NS_BUILD_REFCNT_LOGGING
+    + 1
+#endif
+    ;
   STRING_STAT_INCREMENT(Share);
-  NS_LOG_ADDREF(this, mRefCount, "nsStringBuffer", sizeof(*this));
+  NS_LOG_ADDREF(this, count, "nsStringBuffer", sizeof(*this));
 }
 
 void
 nsStringBuffer::Release()
 {
-  int32_t count = --mRefCount;
+  // Since this may be the last release on this thread, we need
+  // release semantics so that prior writes on this thread are visible
+  // to the thread that destroys the object when it reads mValue with
+  // acquire semantics.
+  uint32_t count = mRefCount.fetch_sub(1, std::memory_order_release) - 1;
   NS_LOG_RELEASE(this, count, "nsStringBuffer");
   if (count == 0) {
+    // We're going to destroy the object on this thread, so we need
+    // acquire semantics to synchronize with the memory released by
+    // the last release on other threads, that is, to ensure that
+    // writes prior to that release are now visible on this thread.
+    count = mRefCount.load(std::memory_order_acquire);
+
     STRING_STAT_INCREMENT(Free);
     free(this); // we were allocated with |malloc|
   }
@@ -353,6 +378,10 @@ void Gecko_IncrementStringAdoptCount(void* aData)
 {
   MOZ_LOG_CTOR(aData, "StringAdopt", 1);
 }
+#elif defined(MOZ_DEBUG_RUST)
+void Gecko_IncrementStringAdoptCount(void *aData)
+{
+}
 #endif
 
 void Gecko_FinalizeCString(nsACString* aThis)
@@ -390,6 +419,16 @@ bool Gecko_FallibleSetLengthCString(nsACString* aThis, uint32_t aLength)
   return aThis->SetLength(aLength, mozilla::fallible);
 }
 
+char* Gecko_BeginWritingCString(nsACString* aThis)
+{
+  return aThis->BeginWriting();
+}
+
+char* Gecko_FallibleBeginWritingCString(nsACString* aThis)
+{
+  return aThis->BeginWriting(mozilla::fallible);
+}
+
 void Gecko_FinalizeString(nsAString* aThis)
 {
   aThis->~nsAString();
@@ -425,18 +464,14 @@ bool Gecko_FallibleSetLengthString(nsAString* aThis, uint32_t aLength)
   return aThis->SetLength(aLength, mozilla::fallible);
 }
 
-// NOTE: These two methods, Gecko_TruncateString and Gecko_TruncateCString are
-// not used by the nsstring bindings, but until the version in servo
-// (nsstring_vendor) is udpated, they still need to be included in the binary to
-// not break the tree. These will be removed in bug 1348398.
-void Gecko_TruncateString(nsAString* aThis)
+char16_t* Gecko_BeginWritingString(nsAString* aThis)
 {
-  aThis->Truncate();
+  return aThis->BeginWriting();
 }
 
-void Gecko_TruncateCString(nsACString* aThis)
+char16_t* Gecko_FallibleBeginWritingString(nsAString* aThis)
 {
-  aThis->Truncate();
+  return aThis->BeginWriting(mozilla::fallible);
 }
 
 } // extern "C"

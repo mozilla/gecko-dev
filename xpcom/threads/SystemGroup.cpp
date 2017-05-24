@@ -12,7 +12,7 @@
 
 using namespace mozilla;
 
-class SystemGroupImpl final : public ValidatingDispatcher
+class SystemGroupImpl final : public SchedulerGroup
 {
 public:
   SystemGroupImpl();
@@ -21,6 +21,8 @@ public:
   static void InitStatic();
   static void ShutdownStatic();
   static SystemGroupImpl* Get();
+
+  static bool Initialized() { return !!sSingleton; }
 
   NS_METHOD_(MozExternalRefCountType) AddRef(void)
   {
@@ -74,6 +76,12 @@ void
 SystemGroup::Shutdown()
 {
   SystemGroupImpl::ShutdownStatic();
+}
+
+bool
+SystemGroup::Initialized()
+{
+  return SystemGroupImpl::Initialized();
 }
 
 /* static */ nsresult

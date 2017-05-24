@@ -150,9 +150,6 @@ with Files("tests/selection/**"):
 with Files("tests/selectors/**"):
     BUG_COMPONENT = ("Core", "DOM")
 
-with Files("tests/selectors-api/**"):
-    BUG_COMPONENT = ("Core", "DOM")
-
 with Files("tests/service-workers/**"):
     BUG_COMPONENT = ("Core", "DOM: Service Workers")
 
@@ -173,9 +170,6 @@ with Files("tests/svg-aam/**"):
 
 with Files("tests/touch-events/**"):
     BUG_COMPONENT = ("Core", "DOM")
-
-with Files("tests/typedarrays/**"):
-    BUG_COMPONENT = ("Core", "Javascript: Standard Library")
 
 with Files("tests/uievents/**"):
     BUG_COMPONENT = ("Core", "DOM: Events")

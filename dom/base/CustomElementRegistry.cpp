@@ -78,12 +78,21 @@ CustomElementCallback::CustomElementCallback(Element* aThisObject,
 {
 }
 
+//-----------------------------------------------------
+// CustomElementData
+
 CustomElementData::CustomElementData(nsIAtom* aType)
-  : mType(aType),
-    mCurrentCallback(-1),
-    mElementIsBeingCreated(false),
-    mCreatedCallbackInvoked(true),
-    mAssociatedMicroTask(-1)
+  : CustomElementData(aType, CustomElementData::State::eUndefined)
+{
+}
+
+CustomElementData::CustomElementData(nsIAtom* aType, State aState)
+  : mType(aType)
+  , mCurrentCallback(-1)
+  , mElementIsBeingCreated(false)
+  , mCreatedCallbackInvoked(true)
+  , mAssociatedMicroTask(-1)
+  , mState(aState)
 {
 }
 
@@ -98,6 +107,9 @@ CustomElementData::RunCallbackQueue()
   mCallbackQueue.Clear();
   mCurrentCallback = -1;
 }
+
+//-----------------------------------------------------
+// CustomElementRegistry
 
 // Only needed for refcounted objects.
 NS_IMPL_CYCLE_COLLECTION_CLASS(CustomElementRegistry)
@@ -172,7 +184,7 @@ NS_INTERFACE_MAP_END
 /* static */ bool
 CustomElementRegistry::IsCustomElementEnabled(JSContext* aCx, JSObject* aObject)
 {
-  return Preferences::GetBool("dom.webcomponents.customelements.enabled") ||
+  return nsContentUtils::IsCustomElementsEnabled() ||
          nsContentUtils::IsWebComponentsEnabled();
 }
 
@@ -306,10 +318,15 @@ CustomElementRegistry::SetupCustomElement(Element* aElement,
     aElement->SetAttr(kNameSpaceID_None, nsGkAtoms::is, *aTypeExtension, true);
   }
 
-  CustomElementDefinition* data = LookupCustomElementDefinition(
+  // SetupCustomElement() should be called with an element that don't have
+  // CustomElementData setup, if not we will hit the assertion in
+  // SetCustomElementData().
+  aElement->SetCustomElementData(new CustomElementData(typeAtom));
+
+  CustomElementDefinition* definition = LookupCustomElementDefinition(
     aElement->NodeInfo()->LocalName(), aTypeExtension);
 
-  if (!data) {
+  if (!definition) {
     // The type extension doesn't exist in the registry,
     // thus we don't need to enqueue callback or adjust
     // the "is" attribute, but it is possibly an upgrade candidate.
@@ -317,7 +334,7 @@ CustomElementRegistry::SetupCustomElement(Element* aElement,
     return;
   }
 
-  if (data->mLocalName != tagAtom) {
+  if (definition->mLocalName != tagAtom) {
     // The element doesn't match the local name for the
     // definition, thus the element isn't a custom element
     // and we don't need to do anything more.
@@ -326,7 +343,7 @@ CustomElementRegistry::SetupCustomElement(Element* aElement,
 
   // Enqueuing the created callback will set the CustomElementData on the
   // element, causing prototype swizzling to occur in Element::WrapObject.
-  EnqueueLifecycleCallback(nsIDocument::eCreated, aElement, nullptr, data);
+  EnqueueLifecycleCallback(nsIDocument::eCreated, aElement, nullptr, definition);
 }
 
 void
@@ -335,7 +352,8 @@ CustomElementRegistry::EnqueueLifecycleCallback(nsIDocument::ElementCallbackType
                                                 LifecycleCallbackArgs* aArgs,
                                                 CustomElementDefinition* aDefinition)
 {
-  CustomElementData* elementData = aCustomElement->GetCustomElementData();
+  RefPtr<CustomElementData> elementData = aCustomElement->GetCustomElementData();
+  MOZ_ASSERT(elementData, "CustomElementData should exist");
 
   // Let DEFINITION be ELEMENT's definition
   CustomElementDefinition* definition = aDefinition;
@@ -353,16 +371,6 @@ CustomElementRegistry::EnqueueLifecycleCallback(nsIDocument::ElementCallbackType
       // a custom element. We are done, nothing to do.
       return;
     }
-  }
-
-  if (!elementData) {
-    // Create the custom element data the first time
-    // that we try to enqueue a callback.
-    elementData = new CustomElementData(definition->mType);
-    // aCustomElement takes ownership of elementData
-    aCustomElement->SetCustomElementData(elementData);
-    MOZ_ASSERT(aType == nsIDocument::eCreated,
-               "First callback should be the created callback");
   }
 
   // Let CALLBACK be the callback associated with the key NAME in CALLBACKS.
@@ -550,15 +558,6 @@ CustomElementRegistry::Define(const nsAString& aName,
                               const ElementDefinitionOptions& aOptions,
                               ErrorResult& aRv)
 {
-  // We do this for [CEReaction] temporarily and it will be removed
-  // after webidl supports [CEReaction] annotation in bug 1309147.
-  DocGroup* docGroup = mWindow->GetDocGroup();
-  if (!docGroup) {
-    aRv.Throw(NS_ERROR_UNEXPECTED);
-    return;
-  }
-
-  AutoCEReaction ceReaction(docGroup->CustomElementReactionsStack());
   aRv.MightThrowJSException();
 
   AutoJSAPI jsapi;
@@ -748,7 +747,7 @@ CustomElementRegistry::Define(const nsAString& aName,
       //       here.
       JS::RootedValue rootedv(cx, JS::ObjectValue(*constructorProtoUnwrapped));
       if (!JS_WrapValue(cx, &rootedv) || !callbacksHolder->Init(cx, rootedv)) {
-        aRv.Throw(NS_ERROR_FAILURE);
+        aRv.StealExceptionFromJSContext(cx);
         return;
       }
     } // Leave constructorProtoUnwrapped's compartment.
@@ -869,33 +868,41 @@ CustomElementRegistry::Upgrade(Element* aElement,
   }
 
   MOZ_ASSERT(aElement->IsHTMLElement(aDefinition->mLocalName));
-  nsWrapperCache* cache;
-  CallQueryInterface(aElement, &cache);
-  MOZ_ASSERT(cache, "Element doesn't support wrapper cache?");
 
   AutoJSAPI jsapi;
   if (NS_WARN_IF(!jsapi.Init(mWindow))) {
     return;
   }
 
-  JSContext *cx = jsapi.cx();
-  // We want to set the custom prototype in the the compartment of define()'s caller.
-  // We store the prototype from define() directly,
-  // hence the prototype's compartment is the caller's compartment.
-  JS::RootedObject wrapper(cx);
-  JS::Rooted<JSObject*> prototype(cx, aDefinition->mPrototype);
-  { // Enter prototype's compartment.
-    JSAutoCompartment ac(cx, prototype);
+  JSContext* cx = jsapi.cx();
 
-    if ((wrapper = cache->GetWrapper()) && JS_WrapObject(cx, &wrapper)) {
-      if (!JS_SetPrototype(cx, wrapper, prototype)) {
+  JS::Rooted<JSObject*> reflector(cx, aElement->GetWrapper());
+  if (reflector) {
+    Maybe<JSAutoCompartment> ac;
+    JS::Rooted<JSObject*> prototype(cx, aDefinition->mPrototype);
+    if (aElement->NodePrincipal()->SubsumesConsideringDomain(nsContentUtils::ObjectPrincipal(prototype))) {
+      ac.emplace(cx, reflector);
+      if (!JS_WrapObject(cx, &prototype) ||
+          !JS_SetPrototype(cx, reflector, prototype)) {
+        return;
+      }
+    } else {
+      // We want to set the custom prototype in the compartment where it was
+      // registered. We store the prototype from define() without unwrapped,
+      // hence the prototype's compartment is the compartment where it was
+      // registered.
+      // In the case that |reflector| and |prototype| are in different
+      // compartments, this will set the prototype on the |reflector|'s wrapper
+      // and thus only visible in the wrapper's compartment, since we know
+      // reflector's principal does not subsume prototype's in this case.
+      ac.emplace(cx, prototype);
+      if (!JS_WrapObject(cx, &reflector) ||
+          !JS_SetPrototype(cx, reflector, prototype)) {
         return;
       }
     }
-  } // Leave prototype's compartment.
+  }
 
-  // Enqueuing the created callback will set the CustomElementData on the
-  // element, causing prototype swizzling to occur in Element::WrapObject.
   EnqueueLifecycleCallback(nsIDocument::eCreated, aElement, nullptr, aDefinition);
 }
 
@@ -918,7 +925,11 @@ CustomElementReactionsStack::PopAndInvokeElementQueue()
              "Reaction stack shouldn't be empty");
 
   ElementQueue& elementQueue = mReactionsStack.LastElement();
-  InvokeReactions(elementQueue);
+  // Check element queue size in order to reduce function call overhead.
+  if (!elementQueue.IsEmpty()) {
+    InvokeReactions(elementQueue);
+  }
+
   DebugOnly<bool> isRemovedElement = mReactionsStack.RemoveElement(elementQueue);
   MOZ_ASSERT(isRemovedElement,
              "Reaction stack should have an element queue to remove");
@@ -936,23 +947,20 @@ void
 CustomElementReactionsStack::Enqueue(Element* aElement,
                                      CustomElementReaction* aReaction)
 {
+  RefPtr<CustomElementData> elementData = aElement->GetCustomElementData();
+  MOZ_ASSERT(elementData, "CustomElementData should exist");
+
   // Add element to the current element queue.
   if (!mReactionsStack.IsEmpty()) {
     mReactionsStack.LastElement().AppendElement(do_GetWeakReference(aElement));
-    ReactionQueue* reactionQueue =
-      mElementReactionQueueMap.LookupOrAdd(aElement);
-    reactionQueue->AppendElement(aReaction);
-
+    elementData->mReactionQueue.AppendElement(aReaction);
     return;
   }
 
   // If the custom element reactions stack is empty, then:
   // Add element to the backup element queue.
   mBackupQueue.AppendElement(do_GetWeakReference(aElement));
-
-  ReactionQueue* reactionQueue =
-    mElementReactionQueueMap.LookupOrAdd(aElement);
-  reactionQueue->AppendElement(aReaction);
+  elementData->mReactionQueue.AppendElement(aReaction);
 
   if (mIsBackupQueueProcessing) {
     return;
@@ -967,7 +975,10 @@ CustomElementReactionsStack::Enqueue(Element* aElement,
 void
 CustomElementReactionsStack::InvokeBackupQueue()
 {
-  InvokeReactions(mBackupQueue);
+  // Check backup queue size in order to reduce function call overhead.
+  if (!mBackupQueue.IsEmpty()) {
+    InvokeReactions(mBackupQueue);
+  }
 }
 
 void
@@ -980,16 +991,15 @@ CustomElementReactionsStack::InvokeReactions(ElementQueue& aElementQueue)
       continue;
     }
 
-    nsAutoPtr<ReactionQueue> reactions;
-    mElementReactionQueueMap.RemoveAndForget(element, reactions);
+    RefPtr<CustomElementData> elementData = element->GetCustomElementData();
+    MOZ_ASSERT(elementData, "CustomElementData should exist");
 
-    MOZ_ASSERT(reactions,
-               "Associated ReactionQueue must be found in mElementReactionQueueMap");
-
-    for (uint32_t j = 0; j < reactions->Length(); ++j) {
-      nsAutoPtr<CustomElementReaction>& reaction = reactions->ElementAt(j);
-      reaction->Invoke(element);
+    nsTArray<nsAutoPtr<CustomElementReaction>>& reactions =
+      elementData->mReactionQueue;
+    for (uint32_t j = 0; j < reactions.Length(); ++j) {
+      reactions.ElementAt(j)->Invoke(element);
     }
+    reactions.Clear();
   }
   aElementQueue.Clear();
 }

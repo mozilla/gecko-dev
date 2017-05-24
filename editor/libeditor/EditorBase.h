@@ -7,7 +7,6 @@
 #define mozilla_EditorBase_h
 
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc.
-#include "mozilla/FlushType.h"          // for FlushType enum
 #include "mozilla/OwningNonNull.h"      // for OwningNonNull
 #include "mozilla/SelectionState.h"     // for RangeUpdater, etc.
 #include "mozilla/StyleSheet.h"   // for StyleSheet
@@ -16,10 +15,8 @@
 #include "nsCOMPtr.h"                   // for already_AddRefed, nsCOMPtr
 #include "nsCycleCollectionParticipant.h"
 #include "nsGkAtoms.h"
-#include "nsIEditor.h"                  // for nsIEditor::EDirection, etc.
-#include "nsIEditorIMESupport.h"        // for NS_DECL_NSIEDITORIMESUPPORT, etc.
+#include "nsIEditor.h"                  // for nsIEditor, etc.
 #include "nsIObserver.h"                // for NS_DECL_NSIOBSERVER, etc.
-#include "nsIPhonetic.h"                // for NS_DECL_NSIPHONETIC, etc.
 #include "nsIPlaintextEditor.h"         // for nsIPlaintextEditor, etc.
 #include "nsISelectionController.h"     // for nsISelectionController constants
 #include "nsISupportsImpl.h"            // for EditorBase::Release, etc.
@@ -146,9 +143,8 @@ struct IMEState;
  * delegate the actual commands to the editor independent of the XPFE
  * implementation.
  */
-class EditorBase : public nsIEditorIMESupport
+class EditorBase : public nsIEditor
                  , public nsSupportsWeakReference
-                 , public nsIPhonetic
 {
 public:
   typedef dom::Element Element;
@@ -197,12 +193,6 @@ public:
 
   // nsIEditor methods
   NS_DECL_NSIEDITOR
-
-  // nsIEditorIMESupport methods
-  NS_DECL_NSIEDITORIMESUPPORT
-
-  // nsIPhonetic
-  NS_DECL_NSIPHONETIC
 
 public:
   virtual bool IsModifiableNode(nsINode* aNode);
@@ -984,14 +974,6 @@ public:
    */
   void HideCaret(bool aHide);
 
-  void FlushFrames()
-  {
-    nsCOMPtr<nsIDocument> doc = GetDocument();
-    if (doc) {
-      doc->FlushPendingNotifications(FlushType::Frames);
-    }
-  }
-
 protected:
   enum Tristate
   {
@@ -1023,7 +1005,6 @@ protected:
   nsIAtom* mPlaceHolderName;
   // Saved selection state for placeholder transaction batching.
   mozilla::UniquePtr<SelectionState> mSelState;
-  nsString* mPhonetic;
   // IME composition this is not null between compositionstart and
   // compositionend.
   RefPtr<TextComposition> mComposition;
@@ -1082,6 +1063,8 @@ protected:
   bool mIsInEditAction;
   // Whether caret is hidden forcibly.
   bool mHidingCaret;
+  // Whether spellchecker dictionary is initialized after focused.
+  bool mSpellCheckerDictionaryUpdated;
 
   friend bool NSCanUnload(nsISupports* serviceMgr);
   friend class AutoRules;

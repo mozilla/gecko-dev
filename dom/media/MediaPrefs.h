@@ -7,7 +7,7 @@
 #define MEDIA_PREFS_H
 
 #ifdef MOZ_WIDGET_ANDROID
-#include "AndroidBridge.h"
+#include "GeneratedJNIWrappers.h"
 #endif
 
 #include "mozilla/Atomics.h"
@@ -114,6 +114,7 @@ private:
 #ifdef MOZ_WIDGET_ANDROID
   DECL_MEDIA_PREF("media.android-media-codec.enabled",        PDMAndroidMediaCodecEnabled, bool, false);
   DECL_MEDIA_PREF("media.android-media-codec.preferred",      PDMAndroidMediaCodecPreferred, bool, false);
+  DECL_MEDIA_PREF("media.navigator.hardware.vp8_encode.acceleration_remote_enabled", RemoteMediaCodecVP8EncoderEnabled, bool, false);
 #endif
 #ifdef MOZ_FFMPEG
   DECL_MEDIA_PREF("media.ffmpeg.enabled",                     PDMFFmpegEnabled, bool, true);
@@ -143,6 +144,10 @@ private:
   DECL_MEDIA_PREF("media.eme.audio.blank",                    EMEBlankAudio, bool, false);
   DECL_MEDIA_PREF("media.eme.video.blank",                    EMEBlankVideo, bool, false);
   DECL_MEDIA_PREF("media.eme.chromium-api.enabled",           EMEChromiumAPIEnabled, bool, false);
+  DECL_MEDIA_PREF("media.eme.chromium-api.video-shmems",
+                  EMEChromiumAPIVideoShmemCount,
+                  uint32_t,
+                  3);
 
   // MediaDecoderStateMachine
   DECL_MEDIA_PREF("media.suspend-bkgnd-video.enabled",        MDSMSuspendBackgroundVideoEnabled, bool, false);
@@ -170,6 +175,19 @@ private:
   DECL_MEDIA_PREF("media.rust.test_mode",                     RustTestMode, bool, false);
 #endif
 
+#if defined(MOZ_WIDGET_GTK)
+  DECL_MEDIA_PREF("media.rust.mp4parser",                     EnableRustMP4Parser, bool, true);
+#else
+  DECL_MEDIA_PREF("media.rust.mp4parser",                     EnableRustMP4Parser, bool, false);
+#endif
+
+  DECL_MEDIA_PREF("media.mp4.enabled",                        MP4Enabled, bool, false);
+
+  // Error/warning handling, Decoder Doctor
+  DECL_MEDIA_PREF("media.playback.warnings-as-errors",        MediaWarningsAsErrors, bool, false);
+  DECL_MEDIA_PREF("media.playback.warnings-as-errors.stagefright-vs-rust",
+                                                              MediaWarningsAsErrorsStageFrightVsRust, bool, false);
+
 public:
   // Manage the singleton:
   static MediaPrefs& GetSingleton();
@@ -183,8 +201,7 @@ private:
   static int32_t MediaDecoderLimitDefault()
   {
 #ifdef MOZ_WIDGET_ANDROID
-    if (AndroidBridge::Bridge() &&
-        AndroidBridge::Bridge()->GetAPIVersion() < 18) {
+    if (jni::GetAPIVersion() < 18) {
       // Older Android versions have broken support for multiple simultaneous
       // decoders, see bug 1278574.
       return 1;

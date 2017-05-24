@@ -25,37 +25,90 @@ namespace image {
 // AnimationState implementation.
 ///////////////////////////////////////////////////////////////////////////////
 
-void
-AnimationState::NotifyDecodeComplete()
+const gfx::IntRect
+AnimationState::UpdateState(bool aAnimationFinished,
+                            RasterImage *aImage,
+                            const gfx::IntSize& aSize)
 {
-  // If we weren't discarded before the decode finished then mark ourselves as
-  // currently decoded.
-  if (!mDiscarded) {
-    mIsCurrentlyDecoded = true;
+  LookupResult result =
+    SurfaceCache::Lookup(ImageKey(aImage),
+                         RasterSurfaceKey(aSize,
+                                          DefaultSurfaceFlags(),
+                                          PlaybackType::eAnimated));
 
+  return UpdateStateInternal(result, aAnimationFinished, aSize);
+}
+
+const gfx::IntRect
+AnimationState::UpdateStateInternal(LookupResult& aResult,
+                                    bool aAnimationFinished,
+                                    const gfx::IntSize& aSize)
+{
+  // Update mDiscarded and mIsCurrentlyDecoded.
+  if (aResult.Type() == MatchType::NOT_FOUND) {
+    // no frames, we've either been discarded, or never been decoded before.
+    mDiscarded = mHasBeenDecoded;
+    mIsCurrentlyDecoded = false;
+  } else if (aResult.Type() == MatchType::PENDING) {
+    // no frames yet, but a decoder is or will be working on it.
+    mDiscarded = false;
+    mIsCurrentlyDecoded = false;
+  } else {
+    MOZ_ASSERT(aResult.Type() == MatchType::EXACT);
+    mDiscarded = false;
+
+    // If mHasBeenDecoded is true then we know the true total frame count and
+    // we can use it to determine if we have all the frames now so we know if
+    // we are currently fully decoded.
+    // If mHasBeenDecoded is false then we'll get another UpdateState call
+    // when the decode finishes.
+    if (mHasBeenDecoded) {
+      Maybe<uint32_t> frameCount = FrameCount();
+      MOZ_ASSERT(frameCount.isSome());
+      if (NS_SUCCEEDED(aResult.Surface().Seek(*frameCount - 1)) &&
+          aResult.Surface()->IsFinished()) {
+        mIsCurrentlyDecoded = true;
+      } else {
+        mIsCurrentlyDecoded = false;
+      }
+    }
+  }
+
+  gfx::IntRect ret;
+
+  // Update the value of mCompositedFrameInvalid.
+  if (mIsCurrentlyDecoded || aAnimationFinished) {
     // Animated images that have finished their animation (ie because it is a
     // finite length animation) don't have RequestRefresh called on them, and so
     // mCompositedFrameInvalid would never get cleared. We clear it here (and
     // also in RasterImage::Decode when we create a decoder for an image that
     // has finished animated so it can display sooner than waiting until the
-    // decode completes). This is safe to do for images that aren't finished
-    // animating because before we paint the refresh driver will call into us
-    // to advance to the correct frame, and that will succeed because we have
-    // all the frames.
+    // decode completes). We also do it if we are fully decoded. This is safe
+    // to do for images that aren't finished animating because before we paint
+    // the refresh driver will call into us to advance to the correct frame,
+    // and that will succeed because we have all the frames.
+    if (mCompositedFrameInvalid) {
+      // Invalidate if we are marking the composited frame valid.
+      ret.SizeTo(aSize);
+    }
     mCompositedFrameInvalid = false;
+  } else if (aResult.Type() == MatchType::NOT_FOUND ||
+             aResult.Type() == MatchType::PENDING) {
+    if (mHasBeenDecoded) {
+      MOZ_ASSERT(gfxPrefs::ImageMemAnimatedDiscardable());
+      mCompositedFrameInvalid = true;
+    }
   }
-  mHasBeenDecoded = true;
+  // Otherwise don't change the value of mCompositedFrameInvalid, it will be
+  // updated by RequestRefresh.
+
+  return ret;
 }
 
 void
-AnimationState::SetDiscarded(bool aDiscarded)
+AnimationState::NotifyDecodeComplete()
 {
-  if (aDiscarded) {
-    MOZ_ASSERT(gfxPrefs::ImageMemAnimatedDiscardable());
-    mIsCurrentlyDecoded = false;
-    mCompositedFrameInvalid = true;
-  }
-  mDiscarded = aDiscarded;
+  mHasBeenDecoded = true;
 }
 
 void
@@ -307,7 +360,9 @@ FrameAnimator::AdvanceFrame(AnimationState& aState,
 }
 
 RefreshResult
-FrameAnimator::RequestRefresh(AnimationState& aState, const TimeStamp& aTime)
+FrameAnimator::RequestRefresh(AnimationState& aState,
+                              const TimeStamp& aTime,
+                              bool aAnimationFinished)
 {
   // By default, an empty RefreshResult.
   RefreshResult ret;
@@ -326,11 +381,10 @@ FrameAnimator::RequestRefresh(AnimationState& aState, const TimeStamp& aTime)
                                           DefaultSurfaceFlags(),
                                           PlaybackType::eAnimated));
 
-  if (!result) {
-    if (result.Type() == MatchType::NOT_FOUND) {
-      // No surface, and nothing pending, must have been discarded but
-      // we haven't been notified yet.
-      aState.SetDiscarded(true);
+  ret.mDirtyRect = aState.UpdateStateInternal(result, aAnimationFinished, mSize);
+  if (aState.IsDiscarded() || !result) {
+    if (!ret.mDirtyRect.IsEmpty()) {
+      ret.mFrameAdvanced = true;
     }
     return ret;
   }
@@ -371,6 +425,7 @@ FrameAnimator::RequestRefresh(AnimationState& aState, const TimeStamp& aTime)
   // Advanced to the correct frame, the composited frame is now valid to be drawn.
   if (*currentFrameEndTime > aTime) {
     aState.mCompositedFrameInvalid = false;
+    ret.mDirtyRect = IntRect(IntPoint(0,0), mSize);
   }
 
   MOZ_ASSERT(!aState.mIsCurrentlyDecoded || !aState.mCompositedFrameInvalid);
@@ -381,11 +436,20 @@ FrameAnimator::RequestRefresh(AnimationState& aState, const TimeStamp& aTime)
 LookupResult
 FrameAnimator::GetCompositedFrame(AnimationState& aState)
 {
+  LookupResult result =
+    SurfaceCache::Lookup(ImageKey(mImage),
+                         RasterSurfaceKey(mSize,
+                                          DefaultSurfaceFlags(),
+                                          PlaybackType::eAnimated));
+
   if (aState.mCompositedFrameInvalid) {
     MOZ_ASSERT(gfxPrefs::ImageMemAnimatedDiscardable());
     MOZ_ASSERT(aState.GetHasBeenDecoded());
     MOZ_ASSERT(!aState.GetIsCurrentlyDecoded());
-    return LookupResult(MatchType::NOT_FOUND);
+    if (result.Type() == MatchType::NOT_FOUND) {
+      return result;
+    }
+    return LookupResult(MatchType::PENDING);
   }
 
   // If we have a composited version of this frame, return that.
@@ -397,11 +461,6 @@ FrameAnimator::GetCompositedFrame(AnimationState& aState)
 
   // Otherwise return the raw frame. DoBlend is required to ensure that we only
   // hit this case if the frame is not paletted and doesn't require compositing.
-  LookupResult result =
-    SurfaceCache::Lookup(ImageKey(mImage),
-                         RasterSurfaceKey(mSize,
-                                          DefaultSurfaceFlags(),
-                                          PlaybackType::eAnimated));
   if (!result) {
     return result;
   }
@@ -409,7 +468,10 @@ FrameAnimator::GetCompositedFrame(AnimationState& aState)
   // Seek to the appropriate frame. If seeking fails, it means that we couldn't
   // get the frame we're looking for; treat this as if the lookup failed.
   if (NS_FAILED(result.Surface().Seek(aState.mCurrentAnimationFrameIndex))) {
-    return LookupResult(MatchType::NOT_FOUND);
+    if (result.Type() == MatchType::NOT_FOUND) {
+      return result;
+    }
+    return LookupResult(MatchType::PENDING);
   }
 
   MOZ_ASSERT(!result.Surface()->GetIsPaletted(),

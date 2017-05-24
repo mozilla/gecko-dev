@@ -14,7 +14,6 @@
 #include "mozilla/CSSStyleSheet.h"
 
 #include "mozAutoDocUpdate.h"
-#include "nsMediaList.h"
 #include "NullPrincipal.h"
 
 namespace mozilla {
@@ -86,7 +85,12 @@ StyleSheet::UnlinkInner()
   while (child) {
     MOZ_ASSERT(child->mParent == this, "We have a unique inner!");
     child->mParent = nullptr;
-    child->mDocument = nullptr;
+    // We (and child) might still think we're owned by a document, because
+    // unlink order is non-deterministic, so the document's unlink, which would
+    // tell us it does't own us anymore, may not have happened yet.  But if
+    // we're being unlinked, clearly we're not owned by a document anymore
+    // conceptually!
+    child->SetAssociatedDocument(nullptr, NotOwnedByDocument);
 
     RefPtr<StyleSheet> next;
     // Null out child->mNext, but don't let it die yet
@@ -118,6 +122,7 @@ StyleSheet::TraverseInner(nsCycleCollectionTraversalCallback &cb)
 // QueryInterface implementation for StyleSheet
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(StyleSheet)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
+  NS_INTERFACE_MAP_ENTRY(nsICSSLoaderObserver)
   NS_INTERFACE_MAP_ENTRY(nsIDOMStyleSheet)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCSSStyleSheet)
 NS_INTERFACE_MAP_END
@@ -504,6 +509,9 @@ StyleSheet::UnparentChildren()
        child = child->mNext) {
     if (child->mParent == this) {
       child->mParent = nullptr;
+      MOZ_ASSERT(child->mDocumentAssociationMode == NotOwnedByDocument,
+                 "How did we get to the destructor, exactly, if we're owned "
+                 "by a document?");
       child->mDocument = nullptr;
     }
   }
@@ -614,7 +622,7 @@ StyleSheet::AppendStyleSheet(StyleSheet* aSheet)
   // This is not reference counted. Our parent tells us when
   // it's going away.
   aSheet->mParent = this;
-  aSheet->mDocument = mDocument;
+  aSheet->SetAssociatedDocument(mDocument, mDocumentAssociationMode);
   DidDirty();
 }
 
@@ -691,7 +699,7 @@ dom::MediaList*
 StyleSheet::Media()
 {
   if (!mMedia) {
-    mMedia = new nsMediaList();
+    mMedia = dom::MediaList::Create(mType, nsString());
     mMedia->SetStyleSheet(this);
   }
 

@@ -13,10 +13,11 @@ this.EXPORTED_SYMBOLS = [
 
 var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
-Cu.import("resource://services-common/async.js");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/JSONFile.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
-Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-common/observers.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/record.js");
@@ -25,6 +26,8 @@ Cu.import("resource://services-sync/util.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
   "resource://gre/modules/FxAccounts.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm");
 
 /*
  * Trackers are associated with a single engine and deal with
@@ -968,7 +971,7 @@ SyncEngine.prototype = {
   _syncStartup() {
 
     // Determine if we need to wipe on outdated versions
-    let metaGlobal = this.service.recordManager.get(this.metaURL);
+    let metaGlobal = Async.promiseSpinningly(this.service.recordManager.get(this.metaURL));
     let engines = metaGlobal.payload.engines || {};
     let engineData = engines[this.name] || {};
 
@@ -1233,7 +1236,7 @@ SyncEngine.prototype = {
 
     // Only bother getting data from the server if there's new things
     if (this.lastModified == null || this.lastModified > this.lastSync) {
-      let resp = newitems.getBatched();
+      let resp = Async.promiseSpinningly(newitems.getBatched());
       doApplyBatchAndPersistFailed.call(this);
       if (!resp.success) {
         resp.failureCode = ENGINE_DOWNLOAD_FAIL;
@@ -1256,7 +1259,7 @@ SyncEngine.prototype = {
       // index: Orders by the sortindex descending (highest weight first).
       guidColl.sort  = "index";
 
-      let guids = guidColl.get();
+      let guids = Async.promiseSpinningly(guidColl.get());
       if (!guids.success)
         throw guids;
 
@@ -1289,7 +1292,7 @@ SyncEngine.prototype = {
       newitems.ids = fetchBatch.slice(0, batchSize);
 
       // Reuse the existing record handler set earlier
-      let resp = newitems.get();
+      let resp = Async.promiseSpinningly(newitems.get());
       if (!resp.success) {
         resp.failureCode = ENGINE_DOWNLOAD_FAIL;
         throw resp;
@@ -1358,6 +1361,13 @@ SyncEngine.prototype = {
    */
   _findDupe(item) {
     // By default, assume there's no dupe items for the engine
+  },
+
+  /**
+   * Called before a remote record is discarded due to failed reconciliation.
+   * Used by bookmark sync to note the child ordering of special folders.
+   */
+  beforeRecordDiscard(record) {
   },
 
   // Called when the server has a record marked as deleted, but locally we've
@@ -1569,6 +1579,9 @@ SyncEngine.prototype = {
     // opportunity to merge the records. Bug 720592 tracks this feature.
     this._log.warn("DATA LOSS: Both local and remote changes to record: " +
                    item.id);
+    if (!remoteIsNewer) {
+      this.beforeRecordDiscard(item);
+    }
     return remoteIsNewer;
   },
 
@@ -1750,7 +1763,7 @@ SyncEngine.prototype = {
     let doDelete = Utils.bind2(this, function(key, val) {
       let coll = new Collection(this.engineURL, this._recordObj, this.service);
       coll[key] = val;
-      coll.delete();
+      Async.promiseSpinningly(coll.delete());
     });
 
     for (let [key, val] of Object.entries(this._delete)) {
@@ -1816,7 +1829,7 @@ SyncEngine.prototype = {
     // Any failure fetching/decrypting will just result in false
     try {
       this._log.trace("Trying to decrypt a record from the server..");
-      test.get();
+      Async.promiseSpinningly(test.get());
     } catch (ex) {
       if (Async.isShutdownException(ex)) {
         throw ex;
@@ -1834,14 +1847,14 @@ SyncEngine.prototype = {
   },
 
   wipeServer() {
-    let response = this.service.resource(this.engineURL).delete();
+    let response = Async.promiseSpinningly(this.service.resource(this.engineURL).delete());
     if (response.status != 200 && response.status != 404) {
       throw response;
     }
     this._resetClient();
   },
 
-  removeClientData() {
+  async removeClientData() {
     // Implement this method in engines that store client specific data
     // on the server.
   },

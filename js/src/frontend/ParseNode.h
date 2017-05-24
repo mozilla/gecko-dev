@@ -16,7 +16,7 @@ namespace js {
 namespace frontend {
 
 class ParseContext;
-class FullParseHandler;
+class FullParseHandlerBase;
 class FunctionBox;
 class ObjectBox;
 
@@ -610,7 +610,7 @@ class ParseNode
      */
     static ParseNode*
     appendOrCreateList(ParseNodeKind kind, JSOp op, ParseNode* left, ParseNode* right,
-                       FullParseHandler* handler, ParseContext* pc);
+                       FullParseHandlerBase* handler, ParseContext* pc);
 
     inline PropertyName* name() const;
     inline JSAtom* atom() const;
@@ -1311,8 +1311,9 @@ struct ClassNames : public BinaryNode {
 };
 
 struct ClassNode : public TernaryNode {
-    ClassNode(ParseNode* names, ParseNode* heritage, ParseNode* methodsOrBlock)
-      : TernaryNode(PNK_CLASS, JSOP_NOP, names, heritage, methodsOrBlock)
+    ClassNode(ParseNode* names, ParseNode* heritage, ParseNode* methodsOrBlock,
+              const TokenPos& pos)
+      : TernaryNode(PNK_CLASS, JSOP_NOP, names, heritage, methodsOrBlock, pos)
     {
         MOZ_ASSERT_IF(names, names->is<ClassNames>());
         MOZ_ASSERT(methodsOrBlock->is<LexicalScopeNode>() ||

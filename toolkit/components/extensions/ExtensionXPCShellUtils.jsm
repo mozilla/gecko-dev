@@ -9,7 +9,6 @@ this.EXPORTED_SYMBOLS = ["ExtensionTestUtils"];
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Components.utils.import("resource://gre/modules/ExtensionUtils.jsm");
-Components.utils.import("resource://gre/modules/Task.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
@@ -55,12 +54,9 @@ let BASE_MANIFEST = Object.freeze({
 
 
 function frameScript() {
-  Components.utils.import("resource://gre/modules/ExtensionContent.jsm");
+  Components.utils.import("resource://gre/modules/Services.jsm");
 
-  ExtensionContent.init(this);
-  this.addEventListener("unload", () => { // eslint-disable-line mozilla/balanced-listeners
-    ExtensionContent.uninit(this);
-  });
+  Services.obs.notifyObservers(this, "tab-content-frameloader-created");
 }
 
 const FRAME_SCRIPT = `data:text/javascript,(${encodeURI(frameScript)}).call(this)`;
@@ -191,6 +187,7 @@ class ExtensionWrapper {
 
     if (extension) {
       this.id = extension.id;
+      this.uuid = extension.uuid;
       this.attachExtension(extension);
     }
   }
@@ -412,7 +409,7 @@ class AOMExtensionWrapper extends ExtensionWrapper {
 
     for (let file of this.cleanupFiles.splice(0)) {
       try {
-        Services.obs.notifyObservers(file, "flush-cache-entry", null);
+        Services.obs.notifyObservers(file, "flush-cache-entry");
         file.remove(false);
       } catch (e) {
         Cu.reportError(e);
@@ -560,8 +557,8 @@ class AOMExtensionWrapper extends ExtensionWrapper {
 var ExtensionTestUtils = {
   BASE_MANIFEST,
 
-  normalizeManifest: Task.async(function* (manifest, baseManifest = BASE_MANIFEST) {
-    yield Management.lazyInit();
+  async normalizeManifest(manifest, baseManifest = BASE_MANIFEST) {
+    await Management.lazyInit();
 
     let errors = [];
     let context = {
@@ -580,7 +577,7 @@ var ExtensionTestUtils = {
     normalized.errors = errors;
 
     return normalized;
-  }),
+  },
 
   currentScope: null,
 

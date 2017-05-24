@@ -242,6 +242,22 @@ public:
     return bytes.forget();
   }
 
+  already_AddRefed<MediaByteBuffer> CachedReadAt(int64_t aOffset, uint32_t aCount)
+  {
+    RefPtr<MediaByteBuffer> bytes = new MediaByteBuffer();
+    bool ok = bytes->SetLength(aCount, fallible);
+    NS_ENSURE_TRUE(ok, nullptr);
+    char* curr = reinterpret_cast<char*>(bytes->Elements());
+    nsresult rv = ReadFromCache(curr, aOffset, aCount);
+    NS_ENSURE_SUCCESS(rv, nullptr);
+    return bytes.forget();
+  }
+
+  // Pass true to limit the amount of readahead data (specified by
+  // "media.cache_readahead_limit") or false to read as much as the
+  // cache size allows.
+  virtual void ThrottleReadahead(bool bThrottle) { }
+
   // Report the current offset in bytes from the start of the stream.
   // This is used to approximate where we currently are in the playback of a
   // media.
@@ -316,7 +332,9 @@ public:
    * Create a resource, reading data from the channel. Call on main thread only.
    * The caller must follow up by calling resource->Open().
    */
-  static already_AddRefed<MediaResource> Create(MediaResourceCallback* aCallback, nsIChannel* aChannel);
+  static already_AddRefed<MediaResource>
+  Create(MediaResourceCallback* aCallback,
+         nsIChannel* aChannel, bool aIsPrivateBrowsing);
 
   /**
    * Open the stream. This creates a stream listener and returns it in
@@ -511,7 +529,8 @@ public:
   ChannelMediaResource(MediaResourceCallback* aDecoder,
                        nsIChannel* aChannel,
                        nsIURI* aURI,
-                       const MediaContainerType& aContainerType);
+                       const MediaContainerType& aContainerType,
+                       bool aIsPrivateBrowsing = false);
   ~ChannelMediaResource();
 
   // These are called on the main thread by MediaCache. These must
@@ -541,6 +560,8 @@ public:
   nsresult CacheClientSuspend();
   // Resume the current load since data is wanted again
   nsresult CacheClientResume();
+
+  void ThrottleReadahead(bool bThrottle) override;
 
   // Ensure that the media cache writes any data held in its partial block.
   // Called on the main thread.
@@ -658,12 +679,17 @@ protected:
 
   void DoNotifyDataReceived();
 
-  static nsresult CopySegmentToCache(nsIInputStream *aInStream,
-                                     void *aClosure,
-                                     const char *aFromSegment,
+  static nsresult CopySegmentToCache(nsIInputStream* aInStream,
+                                     void* aClosure,
+                                     const char* aFromSegment,
                                      uint32_t aToOffset,
                                      uint32_t aCount,
-                                     uint32_t *aWriteCount);
+                                     uint32_t* aWriteCount);
+
+  nsresult CopySegmentToCache(nsIPrincipal* aPrincipal,
+                              const char* aFromSegment,
+                              uint32_t aCount,
+                              uint32_t* aWriteCount);
 
   // Main thread access only
   int64_t            mOffset;

@@ -103,16 +103,18 @@ _MOBILE_UPSTREAM_ARTIFACTS_SIGNED_MULTI = [
 UPSTREAM_ARTIFACT_UNSIGNED_PATHS = {
     'linux64-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US,
     'linux-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US,
+    'linux64-devedition-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US,
+    'linux-devedition-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US,
     'android-x86-nightly': _MOBILE_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US,
     'android-api-15-nightly': _MOBILE_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US,
-    'macosx64-nightly': [],
+    'macosx64-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US,
 
     'linux64-nightly-l10n': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N,
     'linux-nightly-l10n': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N,
     'android-x86-nightly-multi': _MOBILE_UPSTREAM_ARTIFACTS_UNSIGNED_MULTI,
     'android-api-15-nightly-l10n': ["balrog_props.json"],
     'android-api-15-nightly-multi': _MOBILE_UPSTREAM_ARTIFACTS_UNSIGNED_MULTI,
-    'macosx64-nightly-l10n': [],
+    'macosx64-nightly-l10n': _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N,
 }
 UPSTREAM_ARTIFACT_SIGNED_PATHS = {
     'linux64-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_SIGNED_EN_US + [
@@ -123,9 +125,20 @@ UPSTREAM_ARTIFACT_SIGNED_PATHS = {
         "target.tar.bz2",
         "target.tar.bz2.asc",
     ],
+    'linux64-devedition-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_SIGNED_EN_US + [
+        "target.tar.bz2",
+        "target.tar.bz2.asc",
+    ],
+    'linux-devedition-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_SIGNED_EN_US + [
+        "target.tar.bz2",
+        "target.tar.bz2.asc",
+    ],
     'android-x86-nightly': ["en-US/target.apk"],
     'android-api-15-nightly': ["en-US/target.apk"],
-    'macosx64-nightly': [],
+    'macosx64-nightly': _DESKTOP_UPSTREAM_ARTIFACTS_SIGNED_EN_US + [
+        "target.dmg",
+        "target.dmg.asc",
+    ],
 
     'linux64-nightly-l10n': _DESKTOP_UPSTREAM_ARTIFACTS_SIGNED_L10N + [
         "target.tar.bz2",
@@ -138,7 +151,10 @@ UPSTREAM_ARTIFACT_SIGNED_PATHS = {
     'android-x86-nightly-multi': ["target.apk"],
     'android-api-15-nightly-l10n': ["target.apk"],
     'android-api-15-nightly-multi': ["target.apk"],
-    'macosx64-nightly-l10n': [],
+    'macosx64-nightly-l10n': _DESKTOP_UPSTREAM_ARTIFACTS_SIGNED_L10N + [
+        "target.dmg",
+        "target.dmg.asc",
+    ],
 }
 
 # Voluptuous uses marker objects as dictionary *keys*, but they are not
@@ -206,6 +222,7 @@ def make_task_description(config, jobs):
 
         attributes = {
             'nightly': dep_job.attributes.get('nightly', False),
+            'signed': dep_job.attributes.get('signed', False),
             'build_platform': dep_job.attributes.get('build_platform'),
             'build_type': dep_job.attributes.get('build_type'),
         }

@@ -43,7 +43,7 @@ NS_QUERYFRAME_HEAD(nsDateTimeControlFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 nsDateTimeControlFrame::nsDateTimeControlFrame(nsStyleContext* aContext)
-  : nsContainerFrame(aContext)
+  : nsContainerFrame(aContext, LayoutFrameType::DateTimeControl)
 {
 }
 
@@ -383,8 +383,8 @@ nsDateTimeControlFrame::AttributeChanged(int32_t aNameSpaceID,
       auto contentAsInputElem = static_cast<dom::HTMLInputElement*>(mContent);
       // If script changed the <input>'s type before setting these attributes
       // then we don't need to do anything since we are going to be reframed.
-      if (contentAsInputElem->GetType() == NS_FORM_INPUT_TIME ||
-          contentAsInputElem->GetType() == NS_FORM_INPUT_DATE) {
+      if (contentAsInputElem->ControlType() == NS_FORM_INPUT_TIME ||
+          contentAsInputElem->ControlType() == NS_FORM_INPUT_DATE) {
         nsCOMPtr<nsIDateTimeInputArea> inputAreaContent =
           do_QueryInterface(mInputAreaContent);
         if (aAttribute == nsGkAtoms::value) {
@@ -423,10 +423,4 @@ nsDateTimeControlFrame::ContentStatesChanged(EventStates aStates)
   if (aStates.HasState(NS_EVENT_STATE_DISABLED)) {
     nsContentUtils::AddScriptRunner(new SyncDisabledStateEvent(this));
   }
-}
-
-nsIAtom*
-nsDateTimeControlFrame::GetType() const
-{
-  return nsGkAtoms::dateTimeControlFrame;
 }

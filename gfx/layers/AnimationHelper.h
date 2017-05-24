@@ -84,12 +84,19 @@ class CompositorAnimationStorage final
 public:
 
   /**
-   * Set the animation transform based on the unique id
+   * Set the animation transform based on the unique id and also
+   * set up |aFrameTransform| and |aData| for OMTA testing
    */
   void SetAnimatedValue(uint64_t aId,
                         gfx::Matrix4x4&& aTransformInDevSpace,
                         gfx::Matrix4x4&& aFrameTransform,
                         const TransformData& aData);
+
+  /**
+   * Set the animation transform in device pixel based on the unique id
+   */
+  void SetAnimatedValue(uint64_t aId,
+                        gfx::Matrix4x4&& aTransformInDevSpace);
 
   /**
    * Set the animation opacity based on the unique id
@@ -102,6 +109,19 @@ public:
   AnimatedValue* GetAnimatedValue(const uint64_t& aId) const;
 
   /**
+   * Return the iterator of animated value table
+   */
+  AnimatedValueTable::Iterator ConstAnimatedValueTableIter() const
+  {
+    return mAnimatedValues.ConstIter();
+  }
+
+  uint32_t AnimatedValueCount() const
+  {
+    return mAnimatedValues.Count();
+  }
+
+  /**
    * Set the animations based on the unique id
    */
   void SetAnimations(uint64_t aId, const AnimationArray& aAnimations);
@@ -112,10 +132,24 @@ public:
   AnimationArray* GetAnimations(const uint64_t& aId) const;
 
   /**
+   * Return the iterator of animations table
+   */
+  AnimationsTable::Iterator ConstAnimationsTableIter() const
+  {
+    return mAnimations.ConstIter();
+  }
+
+  uint32_t AnimationsCount() const
+  {
+    return mAnimations.Count();
+  }
+
+  /**
    * Clear AnimatedValues and Animations data
    */
   void Clear();
 
+  void ClearById(const uint64_t& aId);
 private:
   ~CompositorAnimationStorage() { Clear(); };
 
@@ -127,18 +161,53 @@ private:
 class AnimationHelper
 {
 public:
+
+
+  /*
+   * TODO Bug 1356509 Once we decouple the compositor animations and layers
+   * in parent side, the API will be called inside SampleAnimations.
+   * Before this, we expose this API for AsyncCompositionManager.
+   *
+   * Sample animations based on a given time stamp for a element(layer) with
+   * its animation data.
+   * Returns true if there exists compositor animation, and stores corresponding
+   * animated value in |aAnimationValue|.
+   */
   static bool
-  SampleAnimationForEachNode(TimeStamp aPoint,
+  SampleAnimationForEachNode(TimeStamp aTime,
                              AnimationArray& aAnimations,
                              InfallibleTArray<AnimData>& aAnimationData,
                              StyleAnimationValue& aAnimationValue,
                              bool& aHasInEffectAnimations);
-
+  /*
+   * TODO Bug 1356509 Once we decouple the compositor animations and layers
+   * in parent side, the API will be called inside SampleAnimations.
+   * Before this, we expose this API for AsyncCompositionManager.
+   *
+   * Populates AnimData stuctures into |aAnimData| based on |aAnimations|
+   */
   static void
   SetAnimations(AnimationArray& aAnimations,
                 InfallibleTArray<AnimData>& aAnimData,
                 StyleAnimationValue& aBaseAnimationStyle);
+
+  /*
+   * Get a unique id to represent the compositor animation between child
+   * and parent side. This id will be used as a key to store animation
+   * data in the CompositorAnimationStorage per compositor.
+   * Each layer on the content side calls this when it gets new animation
+   * data.
+   */
   static uint64_t GetNextCompositorAnimationsId();
+
+  /*
+   * Sample animation based a given time stamp |aTime| and the animation
+   * data inside CompositorAnimationStorage |aStorage|. The animated values
+   * after sampling will be stored in CompositorAnimationStorage as well.
+   */
+  static void
+  SampleAnimations(CompositorAnimationStorage* aStorage,
+                   TimeStamp aTime);
 };
 
 } // namespace layers

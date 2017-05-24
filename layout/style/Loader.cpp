@@ -53,6 +53,7 @@
 #include "nsGkAtoms.h"
 #include "nsIThreadInternal.h"
 #include "nsINetworkPredictor.h"
+#include "mozilla/dom/MediaList.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/URL.h"
 #include "mozilla/AsyncEventDispatcher.h"
@@ -66,7 +67,6 @@
 #include "nsXULPrototypeCache.h"
 #endif
 
-#include "nsMediaList.h"
 #include "nsIDOMStyleSheet.h"
 #include "nsError.h"
 
@@ -1281,24 +1281,18 @@ void
 Loader::PrepareSheet(StyleSheet* aSheet,
                      const nsSubstring& aTitle,
                      const nsSubstring& aMediaString,
-                     nsMediaList* aMediaList,
+                     MediaList* aMediaList,
                      Element* aScopeElement,
                      bool aIsAlternate)
 {
   NS_PRECONDITION(aSheet, "Must have a sheet!");
 
-  RefPtr<nsMediaList> mediaList(aMediaList);
+  RefPtr<MediaList> mediaList(aMediaList);
 
   if (!aMediaString.IsEmpty()) {
     NS_ASSERTION(!aMediaList,
                  "must not provide both aMediaString and aMediaList");
-    mediaList = new nsMediaList();
-
-    nsCSSParser mediumParser(this);
-
-    // We have aMediaString only when linked from link elements, style
-    // elements, or PIs, so pass true.
-    mediumParser.ParseMediaList(aMediaString, nullptr, 0, mediaList);
+    mediaList = MediaList::Create(GetStyleBackendType(), aMediaString);
   }
 
   aSheet->SetMedia(mediaList);
@@ -1411,24 +1405,21 @@ nsresult
 Loader::InsertChildSheet(StyleSheet* aSheet,
                          StyleSheet* aParentSheet,
                          ImportRule* aGeckoParentRule,
-                         const RawServoImportRule* aServoParentRule)
+                         const RawServoStyleSheet* aServoChildSheet)
 {
   LOG(("css::Loader::InsertChildSheet"));
   MOZ_ASSERT(aSheet, "Nothing to insert");
   MOZ_ASSERT(aParentSheet, "Need a parent to insert into");
-  MOZ_ASSERT_IF(aSheet->IsGecko(), aGeckoParentRule && !aServoParentRule);
-  MOZ_ASSERT_IF(aSheet->IsServo(), aServoParentRule && !aGeckoParentRule);
+  MOZ_ASSERT_IF(aSheet->IsGecko(), aGeckoParentRule && !aServoChildSheet);
+  MOZ_ASSERT_IF(aSheet->IsServo(), aServoChildSheet && !aGeckoParentRule);
   if (aSheet->IsGecko()) {
     // child sheets should always start out enabled, even if they got
     // cloned off of top-level sheets which were disabled
     aSheet->AsGecko()->SetEnabled(true);
     aGeckoParentRule->SetSheet(aSheet->AsGecko()); // This sets the ownerRule on the sheet
   } else {
-    // No matter what, consume the sheet, but we might not use it.
-    RefPtr<RawServoStyleSheet> sheet =
-      Servo_ImportRule_GetSheet(aServoParentRule).Consume();
     if (!aSheet->AsServo()->RawSheet()) {
-      aSheet->AsServo()->SetSheetForImport(sheet);
+      aSheet->AsServo()->SetSheetForImport(aServoChildSheet);
     }
   }
   aParentSheet->AppendStyleSheet(aSheet);
@@ -1693,7 +1684,7 @@ Loader::LoadSheet(SheetLoadData* aLoadData,
     if (referrerURI) {
       rv = httpChannel->SetReferrerWithPolicy(referrerURI,
                                               aLoadData->mSheet->GetReferrerPolicy());
-      NS_ENSURE_SUCCESS(rv, rv);
+      Unused << NS_WARN_IF(NS_FAILED(rv));
     }
 
     nsCOMPtr<nsIHttpChannelInternal> internalChannel = do_QueryInterface(httpChannel);
@@ -1789,7 +1780,8 @@ Loader::ParseSheet(const nsAString& aInput,
       aLoadData->mSheet->AsServo()->ParseSheet(this,
                                                aInput, sheetURI, baseURI,
                                                aLoadData->mSheet->Principal(),
-                                               aLoadData->mLineNumber);
+                                               aLoadData->mLineNumber,
+                                               GetCompatibilityMode());
   }
 
   mParsingDatas.RemoveElementAt(mParsingDatas.Length() - 1);
@@ -2205,9 +2197,9 @@ HaveAncestorDataWithURI(SheetLoadData *aData, nsIURI *aURI)
 nsresult
 Loader::LoadChildSheet(StyleSheet* aParentSheet,
                        nsIURI* aURL,
-                       nsMediaList* aMedia,
+                       dom::MediaList* aMedia,
                        ImportRule* aGeckoParentRule,
-                       const RawServoImportRule* aServoParentRule,
+                       const RawServoStyleSheet* aServoChildSheet,
                        LoaderReusableStyleSheets* aReusableSheets)
 {
   LOG(("css::Loader::LoadChildSheet"));
@@ -2216,8 +2208,8 @@ Loader::LoadChildSheet(StyleSheet* aParentSheet,
 
   // Servo doesn't support reusable sheets.
   MOZ_ASSERT_IF(aReusableSheets, aParentSheet->IsGecko());
-  MOZ_ASSERT_IF(aParentSheet->IsGecko(), aGeckoParentRule && !aServoParentRule);
-  MOZ_ASSERT_IF(aParentSheet->IsServo(), aServoParentRule && !aGeckoParentRule);
+  MOZ_ASSERT_IF(aParentSheet->IsGecko(), aGeckoParentRule && !aServoChildSheet);
+  MOZ_ASSERT_IF(aParentSheet->IsServo(), aServoChildSheet && !aGeckoParentRule);
 
   if (!mEnabled) {
     LOG_WARN(("  Not enabled"));
@@ -2272,10 +2264,7 @@ Loader::LoadChildSheet(StyleSheet* aParentSheet,
     LOG(("  No parent load; must be CSSOM"));
     // No parent load data, so the sheet will need to be notified when
     // we finish, if it can be, if we do the load asynchronously.
-    // XXXheycam ServoStyleSheet doesn't implement nsICSSLoaderObserver yet.
-    MOZ_ASSERT(aParentSheet->IsGecko(),
-               "stylo: ServoStyleSheets don't support child sheet loading yet");
-    observer = aParentSheet->AsGecko();
+    observer = aParentSheet;
   }
 
   // Now that we know it's safe to load this (passes security check and not a
@@ -2303,7 +2292,7 @@ Loader::LoadChildSheet(StyleSheet* aParentSheet,
   }
 
   rv = InsertChildSheet(sheet, aParentSheet, aGeckoParentRule,
-                        aServoParentRule);
+                        aServoChildSheet);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (state == eSheetComplete) {

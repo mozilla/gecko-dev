@@ -29,6 +29,11 @@ XPCOMUtils.defineLazyServiceGetter(this, "gELS",
   "@mozilla.org/eventlistenerservice;1", "nsIEventListenerService");
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
                                   "resource://gre/modules/LightweightThemeManager.jsm");
+XPCOMUtils.defineLazyPreferenceGetter(this, "gPhotonStructure", "browser.photon.structure.enabled", false,
+  (pref, oldValue, newValue) => {
+    CustomizableUIInternal._updateAreasForPhoton();
+    CustomizableUIInternal.notifyListeners("onPhotonChanged");
+  });
 
 const kNSXUL = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
@@ -38,7 +43,6 @@ const kPrefCustomizationState        = "browser.uiCustomization.state";
 const kPrefCustomizationAutoAdd      = "browser.uiCustomization.autoAdd";
 const kPrefCustomizationDebug        = "browser.uiCustomization.debug";
 const kPrefDrawInTitlebar            = "browser.tabs.drawInTitlebar";
-const kPrefWebIDEInNavbar            = "devtools.webide.widget.inNavbarByDefault";
 
 const kExpectedWindowURL = "chrome://browser/content/browser.xul";
 
@@ -155,6 +159,8 @@ var gUIStateBeforeReset = {
   currentTheme: null,
 };
 
+var gDefaultPanelPlacements = null;
+
 XPCOMUtils.defineLazyGetter(this, "log", () => {
   let scope = {};
   Cu.import("resource://gre/modules/Console.jsm", scope);
@@ -227,12 +233,8 @@ var CustomizableUIInternal = {
       }
     }
 
-    this.registerArea(CustomizableUI.AREA_PANEL, {
-      anchor: "PanelUI-menu-button",
-      type: CustomizableUI.TYPE_MENU_PANEL,
-      defaultPlacements: panelPlacements
-    }, true);
-    PanelWideWidgetTracker.init();
+    gDefaultPanelPlacements = panelPlacements;
+    this._updateAreasForPhoton();
 
     let navbarPlacements = [
       "urlbar-container",
@@ -244,10 +246,6 @@ var CustomizableUIInternal = {
 
     if (AppConstants.MOZ_DEV_EDITION) {
       navbarPlacements.splice(2, 0, "developer-button");
-    }
-
-    if (Services.prefs.getBoolPref(kPrefWebIDEInNavbar)) {
-      navbarPlacements.push("webide-button");
     }
 
     // Place this last, when createWidget is called for pocket, it will
@@ -301,6 +299,34 @@ var CustomizableUIInternal = {
       defaultPlacements: ["addonbar-closebutton", "status-bar"],
       defaultCollapsed: false,
     }, true);
+  },
+
+  _updateAreasForPhoton() {
+    if (gPhotonStructure) {
+      if (gAreas.has(CustomizableUI.AREA_PANEL)) {
+        this.unregisterArea(CustomizableUI.AREA_PANEL, true);
+      }
+      this.registerArea(CustomizableUI.AREA_FIXED_OVERFLOW_PANEL, {
+        type: CustomizableUI.TYPE_MENU_PANEL,
+        defaultPlacements: [],
+      }, true);
+    } else {
+      if (gAreas.has(CustomizableUI.AREA_FIXED_OVERFLOW_PANEL)) {
+        this.unregisterArea(CustomizableUI.AREA_FIXED_OVERFLOW_PANEL, true);
+      }
+      // In tests we destroy some widgets. Those should be removed from the
+      // default placements when re-registering the panel.
+      let placementsToUse = Array.from(gDefaultPanelPlacements);
+      if (!gPalette.has("e10s-button") && placementsToUse.includes("e10s-button")) {
+        placementsToUse.splice(placementsToUse.indexOf("e10s-button"), 1);
+      }
+      this.registerArea(CustomizableUI.AREA_PANEL, {
+        anchor: "PanelUI-menu-button",
+        type: CustomizableUI.TYPE_MENU_PANEL,
+        defaultPlacements: placementsToUse,
+      }, true);
+      PanelWideWidgetTracker.init();
+    }
   },
 
   get _builtinToolbars() {
@@ -897,9 +923,8 @@ var CustomizableUIInternal = {
     return [null, null];
   },
 
-  registerMenuPanel(aPanelContents) {
-    if (gBuildAreas.has(CustomizableUI.AREA_PANEL) &&
-        gBuildAreas.get(CustomizableUI.AREA_PANEL).has(aPanelContents)) {
+  registerMenuPanel(aPanelContents, aArea) {
+    if (gBuildAreas.has(aArea) && gBuildAreas.get(aArea).has(aPanelContents)) {
       return;
     }
 
@@ -910,9 +935,9 @@ var CustomizableUIInternal = {
 
     this.addPanelCloseListeners(this._getPanelForNode(aPanelContents));
 
-    let placements = gPlacements.get(CustomizableUI.AREA_PANEL);
-    this.buildArea(CustomizableUI.AREA_PANEL, placements, aPanelContents);
-    this.notifyListeners("onAreaNodeRegistered", CustomizableUI.AREA_PANEL, aPanelContents);
+    let placements = gPlacements.get(aArea);
+    this.buildArea(aArea, placements, aPanelContents);
+    this.notifyListeners("onAreaNodeRegistered", aArea, aPanelContents);
 
     for (let child of aPanelContents.children) {
       if (child.localName != "toolbarbutton") {
@@ -925,7 +950,7 @@ var CustomizableUIInternal = {
       child.setAttribute("wrap", "true");
     }
 
-    this.registerBuildArea(CustomizableUI.AREA_PANEL, aPanelContents);
+    this.registerBuildArea(aArea, aPanelContents);
   },
 
   onWidgetAdded(aWidgetId, aArea, aPosition) {
@@ -1489,10 +1514,12 @@ var CustomizableUIInternal = {
     } else if (aWidget.type == "view") {
       let ownerWindow = aNode.ownerGlobal;
       let area = this.getPlacementOfWidget(aNode.id).area;
+      let areaType = CustomizableUI.getAreaType(area);
       let anchor = aNode;
-      if (area != CustomizableUI.AREA_PANEL) {
+      if (areaType != CustomizableUI.TYPE_MENU_PANEL) {
         let wrapper = this.wrapWidget(aWidget.id).forWindow(ownerWindow);
-        if (wrapper && wrapper.anchor) {
+
+        if (wrapper && !wrapper.overflowed && wrapper.anchor) {
           this.hidePanelForNode(aNode);
           anchor = wrapper.anchor;
         }
@@ -2150,7 +2177,8 @@ var CustomizableUIInternal = {
       let addToDefaultPlacements = false;
       let area = gAreas.get(widget.defaultArea);
       if (!CustomizableUI.isBuiltinToolbar(widget.defaultArea) &&
-          widget.defaultArea != CustomizableUI.AREA_PANEL) {
+          widget.defaultArea != CustomizableUI.AREA_PANEL &&
+          widget.defaultArea != CustomizableUI.AREA_FIXED_OVERFLOW_PANEL) {
         addToDefaultPlacements = true;
       }
 
@@ -2824,6 +2852,11 @@ this.CustomizableUI = {
    */
   AREA_ADDONBAR: "addon-bar",
   /**
+   * Constant reference to the ID of the non-dymanic (fixed) list in the overflow panel.
+   */
+  AREA_FIXED_OVERFLOW_PANEL: "widget-overflow-fixed-list",
+
+  /**
    * Constant indicating the area is a menu panel.
    */
   TYPE_MENU_PANEL: "menu-panel",
@@ -3044,10 +3077,11 @@ this.CustomizableUI = {
   /**
    * Register the menu panel node. This method should not be called by anyone
    * apart from the built-in PanelUI.
-   * @param aPanel the panel DOM node being registered.
+   * @param aPanelContents the panel contents DOM node being registered.
+   * @param aArea the area for which to register this node.
    */
-  registerMenuPanel(aPanel) {
-    CustomizableUIInternal.registerMenuPanel(aPanel);
+  registerMenuPanel(aPanelContents, aArea) {
+    CustomizableUIInternal.registerMenuPanel(aPanelContents, aArea);
   },
   /**
    * Unregister a customizable area. The inverse of registerArea.
@@ -3717,7 +3751,7 @@ this.CustomizableUI = {
     while (node && !place) {
       if (node.localName == "toolbar")
         place = "toolbar";
-      else if (node.id == CustomizableUI.AREA_PANEL)
+      else if (node.id == CustomizableUI.AREA_PANEL || node.id == CustomizableUI.AREA_FIXED_OVERFLOW_PANEL)
         place = "panel";
       else if (node.id == "customization-palette")
         place = "palette";
@@ -4013,7 +4047,7 @@ function OverflowableToolbar(aToolbarNode) {
   if (window.gBrowserInit.delayedStartupFinished) {
     this.init();
   } else {
-    Services.obs.addObserver(this, "browser-delayed-startup-finished", false);
+    Services.obs.addObserver(this, "browser-delayed-startup-finished");
   }
 }
 
@@ -4118,7 +4152,9 @@ OverflowableToolbar.prototype = {
     return new Promise(resolve => {
       let doc = this._panel.ownerDocument;
       this._panel.hidden = false;
-      let contextMenu = doc.getElementById(this._panel.getAttribute("context"));
+      let mainViewId = this._panel.querySelector("panelmultiview").getAttribute("mainViewId");
+      let mainView = doc.getElementById(mainViewId);
+      let contextMenu = doc.getElementById(mainView.getAttribute("context"));
       gELS.addSystemEventListener(contextMenu, "command", this, true);
       let anchor = doc.getAnonymousElementByAttribute(this._chevron, "class", "toolbarbutton-icon");
       this._panel.openPopup(anchor || this._chevron);
@@ -4137,7 +4173,7 @@ OverflowableToolbar.prototype = {
     if (this._chevron.open) {
       this._panel.hidePopup();
       this._chevron.open = false;
-    } else {
+    } else if (this._panel.state != "hiding") {
       this.show();
     }
   },
@@ -4147,8 +4183,11 @@ OverflowableToolbar.prototype = {
     this._panel.removeEventListener("dragover", this);
     this._panel.removeEventListener("dragend", this);
     let doc = aEvent.target.ownerDocument;
-    let contextMenu = doc.getElementById(this._panel.getAttribute("context"));
-    gELS.removeSystemEventListener(contextMenu, "command", this, true);
+    let contextMenuId = this._panel.getAttribute("context");
+    if (contextMenuId) {
+      let contextMenu = doc.getElementById(contextMenuId);
+      gELS.removeSystemEventListener(contextMenu, "command", this, true);
+    }
   },
 
   onOverflow(aEvent) {
@@ -4215,7 +4254,10 @@ OverflowableToolbar.prototype = {
       let inserted = false;
       for (; beforeNodeIndex < placements.length; beforeNodeIndex++) {
         let beforeNode = this._target.getElementsByAttribute("id", placements[beforeNodeIndex])[0];
-        if (beforeNode) {
+        // Unfortunately, XUL add-ons can mess with nodes after they are inserted,
+        // and this breaks the following code if the button isn't where we expect
+        // it to be (ie not a child of the target). In this case, ignore the node.
+        if (beforeNode && this._target == beforeNode.parentElement) {
           this._target.insertBefore(child, beforeNode);
           inserted = true;
           break;
@@ -4380,7 +4422,7 @@ OverflowableToolbar.prototype = {
 
   _hideTimeoutId: null,
   _showWithTimeout() {
-    this.show().then(function() {
+    this.show().then(() => {
       let window = this._toolbar.ownerGlobal;
       if (this._hideTimeoutId) {
         window.clearTimeout(this._hideTimeoutId);
@@ -4390,7 +4432,7 @@ OverflowableToolbar.prototype = {
           this._panel.hidePopup();
         }
       }, OVERFLOW_PANEL_HIDE_DELAY_MS);
-    }.bind(this));
+    });
   },
 };
 

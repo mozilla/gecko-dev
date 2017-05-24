@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
-/* globals Components */
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
@@ -15,7 +14,10 @@ Cu.import("resource://gre/modules/Timer.jsm"); /* globals setTimeout, clearTimeo
 Cu.import("resource://shield-recipe-client/lib/LogManager.jsm");
 Cu.import("resource://shield-recipe-client/lib/Storage.jsm");
 Cu.import("resource://shield-recipe-client/lib/Heartbeat.jsm");
-Cu.import("resource://shield-recipe-client/lib/EnvExpressions.jsm");
+Cu.import("resource://shield-recipe-client/lib/FilterExpressions.jsm");
+Cu.import("resource://shield-recipe-client/lib/ClientEnvironment.jsm");
+Cu.import("resource://shield-recipe-client/lib/PreferenceExperiments.jsm");
+Cu.import("resource://shield-recipe-client/lib/Sampling.jsm");
 
 const {generateUUID} = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
 
@@ -24,7 +26,7 @@ this.EXPORTED_SYMBOLS = ["NormandyDriver"];
 const log = LogManager.getLogger("normandy-driver");
 const actionLog = LogManager.getLogger("normandy-driver.actions");
 
-this.NormandyDriver = function(sandboxManager, extraContext = {}) {
+this.NormandyDriver = function(sandboxManager) {
   if (!sandboxManager) {
     throw new Error("sandboxManager is required");
   }
@@ -34,11 +36,17 @@ this.NormandyDriver = function(sandboxManager, extraContext = {}) {
     testing: false,
 
     get locale() {
-      return Services.locale.getAppLocaleAsLangTag();
+      if (Services.locale.getAppLocaleAsLangTag) {
+        return Services.locale.getAppLocaleAsLangTag();
+      }
+
+      return Cc["@mozilla.org/chrome/chrome-registry;1"]
+        .getService(Ci.nsIXULChromeRegistry)
+        .getSelectedLocale("global");
     },
 
     get userId() {
-      return EnvExpressions.getUserId();
+      return ClientEnvironment.getEnvironment().userId;
     },
 
     log(message, level = "debug") {
@@ -75,11 +83,12 @@ this.NormandyDriver = function(sandboxManager, extraContext = {}) {
         syncSetup: Preferences.isSet("services.sync.username"),
         syncDesktopDevices: Preferences.get("services.sync.clients.devices.desktop", 0),
         syncMobileDevices: Preferences.get("services.sync.clients.devices.mobile", 0),
-        syncTotalDevices: Preferences.get("services.sync.numClients", 0),
+        syncTotalDevices: null,
         plugins: {},
         doNotTrack: Preferences.get("privacy.donottrackheader.enabled", false),
         distribution: Preferences.get("distribution.id", "default"),
       };
+      appinfo.syncTotalDevices = appinfo.syncDesktopDevices + appinfo.syncMobileDevices;
 
       const searchEnginePromise = new Promise(resolve => {
         Services.search.init(rv => {
@@ -125,11 +134,6 @@ this.NormandyDriver = function(sandboxManager, extraContext = {}) {
       return storage;
     },
 
-    location() {
-      const location = Cu.cloneInto({countryCode: extraContext.country}, sandbox);
-      return sandbox.Promise.resolve(location);
-    },
-
     setTimeout(cb, time) {
       if (typeof cb !== "function") {
         throw new sandbox.Error(`setTimeout must be called with a function, got "${typeof cb}"`);
@@ -145,6 +149,19 @@ this.NormandyDriver = function(sandboxManager, extraContext = {}) {
     clearTimeout(token) {
       clearTimeout(token);
       sandboxManager.removeHold(`setTimeout-${token}`);
+    },
+
+    // Sampling
+    ratioSample: sandboxManager.wrapAsync(Sampling.ratioSample),
+
+    // Preference Experiment API
+    preferenceExperiments: {
+      start: sandboxManager.wrapAsync(PreferenceExperiments.start, {cloneArguments: true}),
+      markLastSeen: sandboxManager.wrapAsync(PreferenceExperiments.markLastSeen),
+      stop: sandboxManager.wrapAsync(PreferenceExperiments.stop),
+      get: sandboxManager.wrapAsync(PreferenceExperiments.get, {cloneInto: true}),
+      getAllActive: sandboxManager.wrapAsync(PreferenceExperiments.getAllActive, {cloneInto: true}),
+      has: sandboxManager.wrapAsync(PreferenceExperiments.has),
     },
   };
 };

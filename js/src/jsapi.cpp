@@ -71,6 +71,7 @@
 #include "js/StructuredClone.h"
 #include "js/Utility.h"
 #include "vm/AsyncFunction.h"
+#include "vm/AsyncIteration.h"
 #include "vm/DateObject.h"
 #include "vm/Debugger.h"
 #include "vm/EnvironmentObject.h"
@@ -565,6 +566,12 @@ JS_GetParentRuntime(JSContext* cx)
     return cx->runtime()->parentRuntime ? cx->runtime()->parentRuntime : cx->runtime();
 }
 
+JS_PUBLIC_API(JSRuntime*)
+JS_GetRuntime(JSContext* cx)
+{
+    return cx->runtime();
+}
+
 JS_PUBLIC_API(void)
 JS::SetSingleThreadedExecutionCallbacks(JSContext* cx,
                                         BeginSingleThreadedExecutionCallback begin,
@@ -673,18 +680,6 @@ JS_SetSizeOfIncludingThisCompartmentCallback(JSContext* cx,
                                              JSSizeOfIncludingThisCompartmentCallback callback)
 {
     cx->runtime()->sizeOfIncludingThisCompartmentCallback = callback;
-}
-
-JS_PUBLIC_API(void)
-JS_SetDestroyZoneCallback(JSContext* cx, JSZoneCallback callback)
-{
-    cx->runtime()->destroyZoneCallback = callback;
-}
-
-JS_PUBLIC_API(void)
-JS_SetSweepZoneCallback(JSContext* cx, JSZoneCallback callback)
-{
-    cx->runtime()->sweepZoneCallback = callback;
 }
 
 JS_PUBLIC_API(void)
@@ -1498,6 +1493,15 @@ JS_NewExternalString(JSContext* cx, const char16_t* chars, size_t length,
     return s;
 }
 
+JS_PUBLIC_API(JSString*)
+JS_NewMaybeExternalString(JSContext* cx, const char16_t* chars, size_t length,
+                          const JSStringFinalizer* fin, bool* allocatedExternal)
+{
+    AssertHeapIsIdle();
+    CHECK_REQUEST(cx);
+    return NewMaybeExternalString(cx, chars, length, fin, allocatedExternal);
+}
+
 extern JS_PUBLIC_API(bool)
 JS_IsExternalString(JSString* str)
 {
@@ -1885,8 +1889,8 @@ JS_GlobalObjectTraceHook(JSTracer* trc, JSObject* global)
         return;
 
     // Trace the compartment for any GC things that should only stick around if
-    // we know the compartment is live.
-    global->compartment()->trace(trc);
+    // we know the global is live.
+    global->compartment()->traceGlobal(trc);
 
     if (JSTraceOp trace = global->compartment()->creationOptions().getTrace())
         trace(trc, global);
@@ -3615,6 +3619,11 @@ CloneFunctionObject(JSContext* cx, HandleObject funobj, HandleObject env, Handle
         return nullptr;
     }
 
+    if (IsWrappedAsyncGenerator(fun)) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_CANT_CLONE_OBJECT);
+        return nullptr;
+    }
+
     if (CanReuseScriptForClone(cx->compartment(), fun, env)) {
         // If the script is to be reused, either the script can already handle
         // non-syntactic scopes, or there is only the standard global lexical
@@ -3867,6 +3876,7 @@ JS::TransitiveCompileOptions::copyPODTransitiveOptions(const TransitiveCompileOp
     introductionLineno = rhs.introductionLineno;
     introductionOffset = rhs.introductionOffset;
     hasIntroductionInfo = rhs.hasIntroductionInfo;
+    isProbablySystemOrAddonCode = rhs.isProbablySystemOrAddonCode;
 };
 
 void
@@ -3875,6 +3885,7 @@ JS::ReadOnlyCompileOptions::copyPODOptions(const ReadOnlyCompileOptions& rhs)
     copyPODTransitiveOptions(rhs);
     lineno = rhs.lineno;
     column = rhs.column;
+    sourceStartColumn = rhs.sourceStartColumn;
     isRunOnce = rhs.isRunOnce;
     noScriptRval = rhs.noScriptRval;
 }
@@ -3979,6 +3990,7 @@ JS::CompileOptions::CompileOptions(JSContext* cx, JSVersion version)
     strictOption = cx->options().strictMode();
     extraWarningsOption = cx->compartment()->behaviors().extraWarnings(cx);
     forEachStatementOption = cx->options().forEachStatement();
+    isProbablySystemOrAddonCode = cx->compartment()->isProbablySystemOrAddonCode();
     werrorOption = cx->options().werror();
     if (!cx->options().asmJS())
         asmJSOption = AsmJSOption::Disabled;
@@ -4198,8 +4210,18 @@ JS::DecodeOffThreadScript(JSContext* cx, const ReadOnlyCompileOptions& options,
                           mozilla::Vector<uint8_t>& buffer /* TranscodeBuffer& */, size_t cursor,
                           OffThreadCompileCallback callback, void* callbackData)
 {
-    MOZ_ASSERT(CanCompileOffThread(cx, options, buffer.length() - cursor));
-    return StartOffThreadDecodeScript(cx, options, buffer, cursor, callback, callbackData);
+    JS::TranscodeRange range(buffer.begin() + cursor, buffer.length() - cursor);
+    MOZ_ASSERT(CanCompileOffThread(cx, options, range.length()));
+    return StartOffThreadDecodeScript(cx, options, range, callback, callbackData);
+}
+
+JS_PUBLIC_API(bool)
+JS::DecodeOffThreadScript(JSContext* cx, const ReadOnlyCompileOptions& options,
+                          const mozilla::Range<uint8_t>& range /* TranscodeRange& */,
+                          OffThreadCompileCallback callback, void* callbackData)
+{
+    MOZ_ASSERT(CanCompileOffThread(cx, options, range.length()));
+    return StartOffThreadDecodeScript(cx, options, range, callback, callbackData);
 }
 
 JS_PUBLIC_API(JSScript*)
@@ -4253,10 +4275,10 @@ JS_BufferIsCompilableUnit(JSContext* cx, HandleObject obj, const char* utf8, siz
     frontend::UsedNameTracker usedNames(cx);
     if (!usedNames.init())
         return false;
-    frontend::Parser<frontend::FullParseHandler> parser(cx, cx->tempLifoAlloc(),
-                                                        options, chars, length,
-                                                        /* foldConstants = */ true,
-                                                        usedNames, nullptr, nullptr);
+    frontend::Parser<frontend::FullParseHandler, char16_t> parser(cx, cx->tempLifoAlloc(),
+                                                                  options, chars, length,
+                                                                  /* foldConstants = */ true,
+                                                                  usedNames, nullptr, nullptr);
     JS::WarningReporter older = JS::SetWarningReporter(cx, nullptr);
     if (!parser.checkOptions() || !parser.parse()) {
         // We ran into an error. If it was because we ran out of source, we
@@ -4569,6 +4591,23 @@ JS::CloneAndExecuteScript(JSContext* cx, HandleScript scriptArg,
     return ExecuteScript(cx, globalLexical, script, rval.address());
 }
 
+JS_PUBLIC_API(bool)
+JS::CloneAndExecuteScript(JSContext* cx, JS::AutoObjectVector& envChain,
+                          HandleScript scriptArg,
+                          JS::MutableHandleValue rval)
+{
+    CHECK_REQUEST(cx);
+    RootedScript script(cx, scriptArg);
+    if (script->compartment() != cx->compartment()) {
+        script = CloneGlobalScript(cx, ScopeKind::NonSyntactic, script);
+        if (!script)
+            return false;
+
+        js::Debugger::onNewScript(cx, script);
+    }
+    return ExecuteScript(cx, envChain, script, rval.address());
+}
+
 static const unsigned LARGE_SCRIPT_LENGTH = 500*1024;
 
 static bool
@@ -4584,9 +4623,8 @@ Evaluate(JSContext* cx, ScopeKind scopeKind, HandleObject env,
     MOZ_ASSERT_IF(!IsGlobalLexicalEnvironment(env), scopeKind == ScopeKind::NonSyntactic);
 
     options.setIsRunOnce(true);
-    SourceCompressionTask sct(cx);
     RootedScript script(cx, frontend::CompileGlobalScript(cx, cx->tempLifoAlloc(),
-                                                          scopeKind, options, srcBuf, &sct));
+                                                          scopeKind, options, srcBuf));
     if (!script)
         return false;
 
@@ -4594,8 +4632,6 @@ Evaluate(JSContext* cx, ScopeKind scopeKind, HandleObject env,
 
     bool result = Execute(cx, script, *env,
                           options.noScriptRval ? nullptr : rval.address());
-    if (!sct.complete())
-        result = false;
 
     // After evaluation, the compiled script will not be run again.
     // script->ensureRanAnalysis allocated 1 analyze::Bytecode for every opcode
@@ -4837,34 +4873,37 @@ JS_ResetInterruptCallback(JSContext* cx, bool enable)
 JS_PUBLIC_API(void)
 JS::SetGetIncumbentGlobalCallback(JSContext* cx, JSGetIncumbentGlobalCallback callback)
 {
-    cx->runtime()->getIncumbentGlobalCallback = callback;
+    cx->getIncumbentGlobalCallback = callback;
 }
 
 JS_PUBLIC_API(void)
 JS::SetEnqueuePromiseJobCallback(JSContext* cx, JSEnqueuePromiseJobCallback callback,
                                  void* data /* = nullptr */)
 {
-    cx->runtime()->enqueuePromiseJobCallback = callback;
-    cx->runtime()->enqueuePromiseJobCallbackData = data;
+    cx->enqueuePromiseJobCallback = callback;
+    cx->enqueuePromiseJobCallbackData = data;
 }
 
 extern JS_PUBLIC_API(void)
 JS::SetPromiseRejectionTrackerCallback(JSContext* cx, JSPromiseRejectionTrackerCallback callback,
                                        void* data /* = nullptr */)
 {
-    cx->runtime()->promiseRejectionTrackerCallback = callback;
-    cx->runtime()->promiseRejectionTrackerCallbackData = data;
+    cx->promiseRejectionTrackerCallback = callback;
+    cx->promiseRejectionTrackerCallbackData = data;
 }
 
 JS_PUBLIC_API(JSObject*)
 JS::NewPromiseObject(JSContext* cx, HandleObject executor, HandleObject proto /* = nullptr */)
 {
     MOZ_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
-    MOZ_ASSERT(IsCallable(executor));
     AssertHeapIsIdle();
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, executor, proto);
 
+    if (!executor)
+        return PromiseObject::createSkippingExecutor(cx);
+
+    MOZ_ASSERT(IsCallable(executor));
     return PromiseObject::create(cx, executor, proto);
 }
 
@@ -4891,9 +4930,13 @@ JS::GetPromisePrototype(JSContext* cx)
 }
 
 JS_PUBLIC_API(JS::PromiseState)
-JS::GetPromiseState(JS::HandleObject promise)
+JS::GetPromiseState(JS::HandleObject promiseObj_)
 {
-    return promise->as<PromiseObject>().state();
+    JSObject* promiseObj = CheckedUnwrap(promiseObj_);
+    if (!promiseObj || !promiseObj->is<PromiseObject>())
+        return JS::PromiseState::Pending;
+
+    return promiseObj->as<PromiseObject>().state();
 }
 
 JS_PUBLIC_API(uint64_t)
@@ -4966,60 +5009,114 @@ JS::CallOriginalPromiseReject(JSContext* cx, JS::HandleValue rejectionValue)
     return promise;
 }
 
-JS_PUBLIC_API(bool)
-JS::ResolvePromise(JSContext* cx, JS::HandleObject promiseObj, JS::HandleValue resolutionValue)
+static bool
+ResolveOrRejectPromise(JSContext* cx, JS::HandleObject promiseObj, JS::HandleValue resultOrReason_,
+                       bool reject)
 {
     AssertHeapIsIdle();
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, promiseObj, resolutionValue);
+    assertSameCompartment(cx, promiseObj, resultOrReason_);
 
-    Handle<PromiseObject*> promise = promiseObj.as<PromiseObject>();
-    return PromiseObject::resolve(cx, promise, resolutionValue);
+    mozilla::Maybe<AutoCompartment> ac;
+    Rooted<PromiseObject*> promise(cx);
+    RootedValue resultOrReason(cx, resultOrReason_);
+    if (IsWrapper(promiseObj)) {
+        JSObject* unwrappedPromiseObj = CheckedUnwrap(promiseObj);
+        if (!unwrappedPromiseObj) {
+            ReportAccessDenied(cx);
+            return false;
+        }
+        promise = &unwrappedPromiseObj->as<PromiseObject>();
+        ac.emplace(cx, promise);
+        if (!cx->compartment()->wrap(cx, &resultOrReason))
+            return false;
+    } else {
+        promise = promiseObj.as<PromiseObject>();
+    }
+
+    return reject
+           ? PromiseObject::reject(cx, promise, resultOrReason)
+           : PromiseObject::resolve(cx, promise, resultOrReason);
+}
+
+JS_PUBLIC_API(bool)
+JS::ResolvePromise(JSContext* cx, JS::HandleObject promiseObj, JS::HandleValue resolutionValue)
+{
+    return ResolveOrRejectPromise(cx, promiseObj, resolutionValue, false);
 }
 
 JS_PUBLIC_API(bool)
 JS::RejectPromise(JSContext* cx, JS::HandleObject promiseObj, JS::HandleValue rejectionValue)
 {
+    return ResolveOrRejectPromise(cx, promiseObj, rejectionValue, true);
+}
+
+static bool
+CallOriginalPromiseThenImpl(JSContext* cx, JS::HandleObject promiseObj,
+                            JS::HandleObject onResolvedObj_, JS::HandleObject onRejectedObj_,
+                            JS::MutableHandleObject resultObj, bool createDependent)
+{
     AssertHeapIsIdle();
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, promiseObj, rejectionValue);
+    assertSameCompartment(cx, promiseObj, onResolvedObj_, onRejectedObj_);
 
-    Handle<PromiseObject*> promise = promiseObj.as<PromiseObject>();
-    return PromiseObject::reject(cx, promise, rejectionValue);
+    MOZ_ASSERT_IF(onResolvedObj_, IsCallable(onResolvedObj_));
+    MOZ_ASSERT_IF(onRejectedObj_, IsCallable(onRejectedObj_));
+
+    {
+        mozilla::Maybe<AutoCompartment> ac;
+        Rooted<PromiseObject*> promise(cx);
+        RootedObject onResolvedObj(cx, onResolvedObj_);
+        RootedObject onRejectedObj(cx, onRejectedObj_);
+        if (IsWrapper(promiseObj)) {
+            JSObject* unwrappedPromiseObj = CheckedUnwrap(promiseObj);
+            if (!unwrappedPromiseObj) {
+                ReportAccessDenied(cx);
+                return false;
+            }
+            promise = &unwrappedPromiseObj->as<PromiseObject>();
+            ac.emplace(cx, promise);
+            if (!cx->compartment()->wrap(cx, &onResolvedObj) ||
+                !cx->compartment()->wrap(cx, &onRejectedObj))
+            {
+                return false;
+            }
+        } else {
+            promise = promiseObj.as<PromiseObject>();
+        }
+
+        RootedValue onFulfilled(cx, ObjectOrNullValue(onResolvedObj));
+        RootedValue onRejected(cx, ObjectOrNullValue(onRejectedObj));
+        if (!OriginalPromiseThen(cx, promise, onFulfilled, onRejected, resultObj, createDependent))
+            return false;
+    }
+
+    if (resultObj) {
+        if (!cx->compartment()->wrap(cx, resultObj))
+            return false;
+    }
+    return true;
+
 }
 
 JS_PUBLIC_API(JSObject*)
 JS::CallOriginalPromiseThen(JSContext* cx, JS::HandleObject promiseObj,
-                            JS::HandleObject onResolveObj, JS::HandleObject onRejectObj)
+                            JS::HandleObject onResolvedObj, JS::HandleObject onRejectedObj)
 {
-    AssertHeapIsIdle();
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, promiseObj, onResolveObj, onRejectObj);
-
-    MOZ_ASSERT_IF(onResolveObj, IsCallable(onResolveObj));
-    MOZ_ASSERT_IF(onRejectObj, IsCallable(onRejectObj));
-
-    Rooted<PromiseObject*> promise(cx, &promiseObj->as<PromiseObject>());
-    RootedValue onFulfilled(cx, ObjectOrNullValue(onResolveObj));
-    RootedValue onRejected(cx, ObjectOrNullValue(onRejectObj));
-    return OriginalPromiseThen(cx, promise, onFulfilled, onRejected);
+    RootedObject resultPromise(cx);
+    if (!CallOriginalPromiseThenImpl(cx, promiseObj, onResolvedObj, onRejectedObj, &resultPromise, true))
+        return nullptr;
+    return resultPromise;
 }
 
 JS_PUBLIC_API(bool)
 JS::AddPromiseReactions(JSContext* cx, JS::HandleObject promiseObj,
                         JS::HandleObject onResolvedObj, JS::HandleObject onRejectedObj)
 {
-    AssertHeapIsIdle();
-    CHECK_REQUEST(cx);
-    assertSameCompartment(cx, promiseObj, onResolvedObj, onRejectedObj);
-
-    MOZ_ASSERT(IsCallable(onResolvedObj));
-    MOZ_ASSERT(IsCallable(onRejectedObj));
-
-    Rooted<PromiseObject*> promise(cx, &promiseObj->as<PromiseObject>());
-    RootedValue onResolved(cx, ObjectValue(*onResolvedObj));
-    RootedValue onRejected(cx, ObjectValue(*onRejectedObj));
-    return EnqueuePromiseReactions(cx, promise, nullptr, onResolved, onRejected);
+    RootedObject resultPromise(cx);
+    bool result = CallOriginalPromiseThenImpl(cx, promiseObj, onResolvedObj, onRejectedObj, &resultPromise, false);
+    MOZ_ASSERT(!resultPromise);
+    return result;
 }
 
 /**
@@ -5999,8 +6096,8 @@ JS_NewRegExpObject(JSContext* cx, const char* bytes, size_t length, unsigned fla
     if (!chars)
         return nullptr;
 
-    RegExpObject* reobj = RegExpObject::create(cx, chars, length,
-                                               RegExpFlag(flags), nullptr, cx->tempLifoAlloc());
+    RegExpObject* reobj = RegExpObject::create(cx, chars, length, RegExpFlag(flags),
+                                               nullptr, nullptr, cx->tempLifoAlloc());
     return reobj;
 }
 
@@ -6009,8 +6106,8 @@ JS_NewUCRegExpObject(JSContext* cx, const char16_t* chars, size_t length, unsign
 {
     AssertHeapIsIdle();
     CHECK_REQUEST(cx);
-    return RegExpObject::create(cx, chars, length,
-                                RegExpFlag(flags), nullptr, cx->tempLifoAlloc());
+    return RegExpObject::create(cx, chars, length, RegExpFlag(flags),
+                                nullptr, nullptr, cx->tempLifoAlloc());
 }
 
 JS_PUBLIC_API(bool)
@@ -6098,10 +6195,10 @@ JS_GetRegExpFlags(JSContext* cx, HandleObject obj)
     AssertHeapIsIdle();
     CHECK_REQUEST(cx);
 
-    RegExpGuard shared(cx);
+    RootedRegExpShared shared(cx);
     if (!RegExpToShared(cx, obj, &shared))
         return false;
-    return shared.re()->getFlags();
+    return shared->getFlags();
 }
 
 JS_PUBLIC_API(JSString*)
@@ -6110,10 +6207,10 @@ JS_GetRegExpSource(JSContext* cx, HandleObject obj)
     AssertHeapIsIdle();
     CHECK_REQUEST(cx);
 
-    RegExpGuard shared(cx);
+    RootedRegExpShared shared(cx);
     if (!RegExpToShared(cx, obj, &shared))
         return nullptr;
-    return shared.re()->getSource();
+    return shared->getSource();
 }
 
 /************************************************************************/
@@ -6962,6 +7059,15 @@ JS::DecodeScript(JSContext* cx, TranscodeBuffer& buffer, JS::MutableHandleScript
 }
 
 JS_PUBLIC_API(JS::TranscodeResult)
+JS::DecodeScript(JSContext* cx, const TranscodeRange& range, JS::MutableHandleScript scriptp)
+{
+    XDRDecoder decoder(cx, range);
+    decoder.codeScript(scriptp);
+    MOZ_ASSERT(bool(scriptp) == (decoder.resultCode() == TranscodeResult_Ok));
+    return decoder.resultCode();
+}
+
+JS_PUBLIC_API(JS::TranscodeResult)
 JS::DecodeInterpretedFunction(JSContext* cx, TranscodeBuffer& buffer,
                               JS::MutableHandleFunction funp,
                               size_t cursorIndex)
@@ -7035,11 +7141,10 @@ JS::DeserializeWasmModule(PRFileDesc* bytecode, PRFileDesc* maybeCompiled,
 }
 
 JS_PUBLIC_API(void)
-JS::SetLargeAllocationFailureCallback(JSContext* cx, JS::LargeAllocationFailureCallback lafc,
-                                      void* data)
+JS::SetProcessLargeAllocationFailureCallback(JS::LargeAllocationFailureCallback lafc)
 {
-    cx->runtime()->largeAllocationFailureCallback = lafc;
-    cx->runtime()->largeAllocationFailureCallbackData = data;
+    MOZ_ASSERT(!OnLargeAllocationFailure);
+    OnLargeAllocationFailure = lafc;
 }
 
 JS_PUBLIC_API(void)

@@ -7,10 +7,12 @@ use euclid::size::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
-use style::media_queries::{Device, MediaType};
-use style::parser::{ParserContext, ParserContextExtraData};
+use style::context::QuirksMode;
+use style::media_queries::{Device, MediaList, MediaType};
+use style::parser::{PARSING_MODE_DEFAULT, Parse, ParserContext};
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::{Stylesheet, Origin};
+use style::stylearc::Arc;
+use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
@@ -23,15 +25,16 @@ macro_rules! stylesheet {
         stylesheet!($css, $origin, $error_reporter, SharedRwLock::new())
     };
     ($css:expr, $origin:ident, $error_reporter:expr, $shared_lock:expr) => {
-        Box::new(Stylesheet::from_str(
+        Arc::new(Stylesheet::from_str(
             $css,
             ServoUrl::parse("http://localhost").unwrap(),
             Origin::$origin,
-            Default::default(),
+            Arc::new($shared_lock.wrap(MediaList::empty())),
             $shared_lock,
             None,
             &$error_reporter,
-            ParserContextExtraData::default()
+            QuirksMode::NoQuirks,
+            0u64
         ))
     }
 }
@@ -266,7 +269,7 @@ fn multiple_stylesheets_cascading() {
                     Author, error_reporter, shared_lock.clone())
     ];
 
-    let declarations = Cascade::from_stylesheets(&stylesheets, &shared_lock.read(), &device).finish();
+    let declarations = Cascade::from_stylesheets(stylesheets.iter(), &shared_lock.read(), &device).finish();
     assert_decl_len!(declarations == 3);
     assert_decl_eq!(&declarations[0], UserAgent, Zoom: Zoom::Number(1.));
     assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px));
@@ -280,7 +283,7 @@ fn multiple_stylesheets_cascading() {
         stylesheet!("@viewport { min-width: 300px !important; min-height: 300px !important; zoom: 3 !important; }",
                     Author, error_reporter, shared_lock.clone())
     ];
-    let declarations = Cascade::from_stylesheets(&stylesheets, &shared_lock.read(), &device).finish();
+    let declarations = Cascade::from_stylesheets(stylesheets.iter(), &shared_lock.read(), &device).finish();
     assert_decl_len!(declarations == 3);
     assert_decl_eq!(&declarations[0], UserAgent, MinWidth: viewport_length!(100., px), !important);
     assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px), !important);
@@ -291,19 +294,21 @@ fn multiple_stylesheets_cascading() {
 fn constrain_viewport() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
-    let context = ParserContext::new(Origin::Author, &url, &reporter);
+    let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Viewport),
+                                     PARSING_MODE_DEFAULT,
+                                     QuirksMode::NoQuirks);
 
     macro_rules! from_css {
         ($css:expr) => {
-            &ViewportRule::parse(&mut Parser::new($css), &context).unwrap()
+            &ViewportRule::parse(&context, &mut Parser::new($css)).unwrap()
         }
     }
 
     let initial_viewport = TypedSize2D::new(800., 600.);
     let device = Device::new(MediaType::Screen, initial_viewport);
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("")), None);
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!(""), QuirksMode::NoQuirks), None);
 
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto")),
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto"), QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: initial_viewport,
 
@@ -315,7 +320,7 @@ fn constrain_viewport() {
                    orientation: Orientation::Auto
                }));
 
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto")),
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto"), QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: initial_viewport,
 
@@ -327,10 +332,12 @@ fn constrain_viewport() {
                    orientation: Orientation::Auto
                }));
 
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 800px; height: 600px;\
-                                                                     zoom: 1;\
-                                                                     user-zoom: zoom;\
-                                                                     orientation: auto;")),
+    assert_eq!(ViewportConstraints::maybe_new(&device,
+                                              from_css!("width: 800px; height: 600px;\
+                                                         zoom: 1;\
+                                                         user-zoom: zoom;\
+                                                         orientation: auto;"),
+                                              QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: initial_viewport,
 
@@ -344,7 +351,7 @@ fn constrain_viewport() {
 
     let initial_viewport = TypedSize2D::new(200., 150.);
     let device = Device::new(MediaType::Screen, initial_viewport);
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto")),
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto"), QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: TypedSize2D::new(320., 240.),
 

@@ -19,6 +19,7 @@
 #include "AlternateServices.h"
 #include "ARefBase.h"
 #include "nsWeakReference.h"
+#include "TCPFastOpen.h"
 
 #include "nsIObserver.h"
 #include "nsITimer.h"
@@ -63,7 +64,7 @@ public:
 
     nsHttpConnectionMgr();
 
-    MOZ_MUST_USE nsresult Init(uint16_t maxUrgentStartQ,
+    MOZ_MUST_USE nsresult Init(uint16_t maxUrgentExcessiveConns,
                                uint16_t maxConnections,
                                uint16_t maxPersistentConnectionsPerHost,
                                uint16_t maxPersistentConnectionsPerProxy,
@@ -93,6 +94,14 @@ public:
     // added to the connection manager via AddTransaction.
     MOZ_MUST_USE nsresult RescheduleTransaction(nsHttpTransaction *,
                                                 int32_t priority);
+
+    // tells the transaction to stop receiving the response when |throttle|
+    // is true.  to start receiving again, this must be called with |throttle|
+    // set to false.  calling multiple times with the same value of |throttle|
+    // has no effect.  called by nsHttpChannels with the Throttleable class set
+    // and controlled by net::ThrottlingService.
+    // there is nothing to do when this fails, hence the void result.
+    void ThrottleTransaction(nsHttpTransaction *, bool throttle);
 
     // cancels a transaction w/ the given reason.
     MOZ_MUST_USE nsresult CancelTransaction(nsHttpTransaction *,
@@ -184,6 +193,7 @@ public:
     // the idle connection list. It is called when the idle connection detects
     // that the network peer has closed the transport.
     MOZ_MUST_USE nsresult CloseIdleConnection(nsHttpConnection *);
+    MOZ_MUST_USE nsresult RemoveIdleConnection(nsHttpConnection *);
 
     // The connection manager needs to know when a normal HTTP connection has been
     // upgraded to SPDY because the dispatch and idle semantics are a little
@@ -221,7 +231,15 @@ private:
 
         RefPtr<nsHttpConnectionInfo> mConnInfo;
         nsTArray<RefPtr<PendingTransactionInfo> > mUrgentStartQ;// the urgent start transaction queue
-        nsTArray<RefPtr<PendingTransactionInfo> > mPendingQ;    // pending transaction queue
+
+        // This table provides a mapping from top level outer content window id
+        // to a queue of pending transaction information.
+        // The transaction's order in pending queue is decided by whether it's a
+        // blocking transaction and its priority.
+        // Note that the window id could be 0 if the http request
+        // is initialized without a window.
+        nsClassHashtable<nsUint64HashKey,
+                         nsTArray<RefPtr<PendingTransactionInfo>>> mPendingTransactionTable;
         nsTArray<RefPtr<nsHttpConnection> >  mActiveConns; // active connections
         nsTArray<RefPtr<nsHttpConnection> >  mIdleConns;   // idle persistent connections
         nsTArray<nsHalfOpenSocket*>  mHalfOpens;   // half open connections
@@ -237,12 +255,8 @@ private:
 
         // Spdy sometimes resolves the address in the socket manager in order
         // to re-coalesce sharded HTTP hosts. The dotted decimal address is
-        // combined with the Anonymous flag from the connection information
+        // combined with the Anonymous flag and OA from the connection information
         // to build the hash key for hosts in the same ip pool.
-        //
-        // When a set of hosts are coalesced together one of them is marked
-        // mSpdyPreferred. The mapping is maintained in the connection mananger
-        // mSpdyPreferred hash.
         //
         nsTArray<nsCString> mCoalescingKeys;
 
@@ -250,8 +264,6 @@ private:
         // entry has done NPN=spdy/* at some point. It does not mean every
         // connection is currently using spdy.
         bool mUsingSpdy : 1;
-
-        bool mInPreferredHash : 1;
 
         // Flags to remember our happy-eyeballs decision.
         // Reset only by Ctrl-F5 reload.
@@ -265,14 +277,45 @@ private:
         // True if this connection entry has initiated a socket
         bool mUsedForConnection : 1;
 
+        // Try using TCP Fast Open.
+        bool mUseFastOpen : 1;
+
         // Set the IP family preference flags according the connected family
         void RecordIPFamilyPreference(uint16_t family);
         // Resets all flags to their default values
         void ResetIPFamilyPreference();
+
+        // Return the count of pending transactions for all window ids.
+        size_t PendingQLength() const;
+
+        // Add a transaction information into the pending queue in
+        // |mPendingTransactionTable| according to the transaction's
+        // top level outer content window id.
+        void InsertTransaction(PendingTransactionInfo *info);
+
+        // Append transactions to the |result| whose window id
+        // is equal to |windowId|.
+        // NOTE: maxCount == 0 will get all transactions in the queue.
+        void AppendPendingQForFocusedWindow(
+            uint64_t windowId,
+            nsTArray<RefPtr<PendingTransactionInfo>> &result,
+            uint32_t maxCount = 0);
+
+        // Append transactions whose window id isn't equal to |windowId|.
+        // NOTE: windowId == 0 will get all transactions for both
+        // focused and non-focused windows.
+        void AppendPendingQForNonFocusedWindows(
+            uint64_t windowId,
+            nsTArray<RefPtr<PendingTransactionInfo>> &result,
+            uint32_t maxCount = 0);
+
+        // Remove the empty pendingQ in |mPendingTransactionTable|.
+        void RemoveEmptyPendingQ();
     };
 
 public:
     static nsAHttpConnection *MakeConnectionHandle(nsHttpConnection *aWrapped);
+    void RegisterOriginCoalescingKey(nsHttpConnection *, const nsACString &host, int32_t port);
 
 private:
 
@@ -283,7 +326,8 @@ private:
                                    public nsITransportEventSink,
                                    public nsIInterfaceRequestor,
                                    public nsITimerCallback,
-                                   public nsSupportsWeakReference
+                                   public nsSupportsWeakReference,
+                                   public TCPFastOpen
     {
         ~nsHalfOpenSocket();
 
@@ -297,7 +341,9 @@ private:
 
         nsHalfOpenSocket(nsConnectionEntry *ent,
                          nsAHttpTransaction *trans,
-                         uint32_t caps);
+                         uint32_t caps,
+                         bool speculative,
+                         bool isFromPredictor);
 
         MOZ_MUST_USE nsresult SetupStreams(nsISocketTransport **,
                                            nsIAsyncInputStream **,
@@ -315,10 +361,8 @@ private:
         nsAHttpTransaction *Transaction() { return mTransaction; }
 
         bool IsSpeculative() { return mSpeculative; }
-        void SetSpeculative(bool val) { mSpeculative = val; }
 
         bool IsFromPredictor() { return mIsFromPredictor; }
-        void SetIsFromPredictor(bool val) { mIsFromPredictor = val; }
 
         bool Allow1918() { return mAllow1918; }
         void SetAllow1918(bool val) { mAllow1918 = val; }
@@ -326,9 +370,34 @@ private:
         bool HasConnected() { return mHasConnected; }
 
         void PrintDiagnostics(nsCString &log);
+
+        bool Claim();
+        void Unclaim();
+
+        bool FastOpenEnabled() override;
+        nsresult StartFastOpen() override;
+        void SetFastOpenConnected(nsresult) override;
+        void FastOpenNotSupported() override;
+        void SetFastOpenStatus(uint8_t tfoStatus) override;
+
+        bool IsFastOpenBackupHalfOpen()
+        {
+            return mConnectionNegotiatingFastOpen;
+        }
+
+        void CancelFastOpenConnection();
     private:
+        nsresult SetupConn(nsIAsyncOutputStream *out,
+                           bool aFastOpen);
+
+        // To find out whether |mTransaction| is still in the connection entry's
+        // pending queue. If the transaction is found and |removeWhenFound| is
+        // true, the transaction will be removed from the pending queue.
+        already_AddRefed<PendingTransactionInfo>
+        FindTransactionHelper(bool removeWhenFound);
+
         nsConnectionEntry              *mEnt;
-        RefPtr<nsAHttpTransaction>   mTransaction;
+        RefPtr<nsAHttpTransaction>     mTransaction;
         bool                           mDispatchedMTransaction;
         nsCOMPtr<nsISocketTransport>   mSocketTransport;
         nsCOMPtr<nsIAsyncOutputStream> mStreamOut;
@@ -366,6 +435,16 @@ private:
 
         bool                           mPrimaryConnectedOK;
         bool                           mBackupConnectedOK;
+
+        // A nsHalfOpenSocket can be made for a concrete non-null transaction,
+        // but the transaction can be dispatch to another connection. In that
+        // case we can free this transaction to be claimed by other
+        // transactions.
+        bool                           mFreeToUse;
+        nsresult                       mPrimaryStreamStatus;
+
+        bool                           mUsingFastOpen;
+        RefPtr<nsHttpConnection>       mConnectionNegotiatingFastOpen;
     };
     friend class nsHalfOpenSocket;
 
@@ -406,7 +485,7 @@ private:
     nsCOMPtr<nsIEventTarget>     mSocketThreadTarget;
 
     // connection limits
-    uint16_t mMaxUrgentStartQ;
+    uint16_t mMaxUrgentExcessiveConns;
     uint16_t mMaxConns;
     uint16_t mMaxPersistConnsPerHost;
     uint16_t mMaxPersistConnsPerProxy;
@@ -419,10 +498,18 @@ private:
 
     MOZ_MUST_USE bool ProcessPendingQForEntry(nsConnectionEntry *,
                                               bool considerAll);
-    void DispatchPendingQ(nsTArray<RefPtr<PendingTransactionInfo>> &pendingQ,
+    bool DispatchPendingQ(nsTArray<RefPtr<PendingTransactionInfo>> &pendingQ,
                                    nsConnectionEntry *ent,
-                                   bool &dispatchedSuccessfully,
                                    bool considerAll);
+
+    // Return total active connection count, which is the sum of
+    // active connections and unconnected half open connections.
+    uint32_t TotalActiveConnections(nsConnectionEntry *ent) const;
+
+    // Return |mMaxPersistConnsPerProxy| or |mMaxPersistConnsPerHost|,
+    // depending whether the proxy is used.
+    uint32_t MaxPersistConnections(nsConnectionEntry *ent) const;
+
     bool     AtActiveConnectionLimit(nsConnectionEntry *, uint32_t caps);
     MOZ_MUST_USE nsresult TryDispatchTransaction(nsConnectionEntry *ent,
                                                  bool onlyReusedConnection,
@@ -464,16 +551,14 @@ private:
     MOZ_MUST_USE nsresult MakeNewConnection(nsConnectionEntry *ent,
                                             PendingTransactionInfo *pendingTransInfo);
 
-    // Manage the preferred spdy connection entry for this address
-    nsConnectionEntry *GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry);
-    nsConnectionEntry *LookupPreferredHash(nsConnectionEntry *ent);
-    void               StorePreferredHash(nsConnectionEntry *ent);
-    void               RemovePreferredHash(nsConnectionEntry *ent);
-    nsHttpConnection  *GetSpdyPreferredConn(nsConnectionEntry *ent);
-    nsDataHashtable<nsCStringHashKey, nsConnectionEntry *>   mSpdyPreferredHash;
-    nsConnectionEntry *LookupConnectionEntry(nsHttpConnectionInfo *ci,
-                                             nsHttpConnection *conn,
-                                             nsHttpTransaction *trans);
+    // Manage h2 connection coalescing
+    // The hashtable contains arrays of weak pointers to nsHttpConnections
+    nsClassHashtable<nsCStringHashKey, nsTArray<nsWeakPtr> > mCoalescingHash;
+
+    nsHttpConnection *FindCoalescableConnection(nsConnectionEntry *ent, bool justKidding);
+    nsHttpConnection *FindCoalescableConnectionByHashKey(nsConnectionEntry *ent, const nsCString &key, bool justKidding);
+    void UpdateCoalescingForNewConn(nsHttpConnection *conn, nsConnectionEntry *ent);
+    nsHttpConnection *GetSpdyActiveConn(nsConnectionEntry *ent);
 
     void               ProcessSpdyPendingQ(nsConnectionEntry *ent);
     void               DispatchSpdyPendingQ(nsTArray<RefPtr<PendingTransactionInfo>> &pendingQ,
@@ -484,11 +569,20 @@ private:
                                     int32_t             iparam = 0,
                                     ARefBase            *vparam = nullptr);
 
+    // Used to close all transactions in the |pendingQ| with the given |reason|.
+    // Note that the |pendingQ| will be also cleared.
+    void CancelTransactionsHelper(
+        nsTArray<RefPtr<PendingTransactionInfo>> &pendingQ,
+        const nsHttpConnectionInfo *ci,
+        const nsConnectionEntry *ent,
+        nsresult reason);
+
     // message handlers
     void OnMsgShutdown             (int32_t, ARefBase *);
     void OnMsgShutdownConfirm      (int32_t, ARefBase *);
     void OnMsgNewTransaction       (int32_t, ARefBase *);
     void OnMsgReschedTransaction   (int32_t, ARefBase *);
+    void OnMsgThrottleTransaction  (int32_t, ARefBase *);
     void OnMsgCancelTransaction    (int32_t, ARefBase *);
     void OnMsgCancelTransactions   (int32_t, ARefBase *);
     void OnMsgProcessPendingQ      (int32_t, ARefBase *);

@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-spidermonkey-js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A collection of rules that help enforce JavaScript coding standard in the Mozilla SpiderMonkey project.",
   "keywords": [
     "eslint",
@@ -20,6 +20,8 @@
   "author": "Mozilla",
   "main": "lib/index.js",
   "dependencies": {
+  },
+  "devDependencies": {
   },
   "engines": {
     "node": ">=6.9.1"

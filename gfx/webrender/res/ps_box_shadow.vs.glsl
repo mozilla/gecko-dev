@@ -12,7 +12,8 @@ void main(void) {
                                  prim.local_clip_rect,
                                  prim.z,
                                  prim.layer,
-                                 prim.task);
+                                 prim.task,
+                                 prim.local_rect.p0);
 
     RenderTaskData child_task = fetch_render_task(prim.user_data.x);
     vUv.z = child_task.data1.x;
@@ -25,8 +26,10 @@ void main(void) {
     vUv.xy = (vi.local_pos - prim.local_rect.p0) / patch_size;
     vMirrorPoint = 0.5 * prim.local_rect.size / patch_size;
 
-    vec2 texture_size = vec2(textureSize(sCache, 0));
+    vec2 texture_size = vec2(textureSize(sCacheRGBA8, 0));
     vCacheUvRectCoords = vec4(patch_origin, patch_origin + patch_size_device_pixels) / texture_size.xyxy;
 
     vColor = bs.color;
+
+    write_clip(vi.screen_pos, prim.clip_area);
 }

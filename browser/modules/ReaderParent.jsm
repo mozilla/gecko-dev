@@ -11,7 +11,6 @@ this.EXPORTED_SYMBOLS = [ "ReaderParent" ];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils", "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode", "resource://gre/modules/ReaderMode.jsm");
@@ -20,21 +19,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "UITour", "resource:///modules/UITour.js
 const gStringBundle = Services.strings.createBundle("chrome://global/locale/aboutReader.properties");
 
 var ReaderParent = {
-  _readerModeInfoPanelOpen: false,
-
-  MESSAGES: [
-    "Reader:ArticleGet",
-    "Reader:FaviconRequest",
-    "Reader:UpdateReaderButton",
-  ],
-
-  init() {
-    let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
-    for (let msg of this.MESSAGES) {
-      mm.addMessageListener(msg, this);
-    }
-  },
-
+  // Listeners are added in nsBrowserGlue.js
   receiveMessage(message) {
     switch (message.name) {
       case "Reader:ArticleGet":
@@ -108,20 +93,6 @@ var ReaderParent = {
       command.setAttribute("accesskey", gStringBundle.GetStringFromName("readerView.enter.accesskey"));
       key.setAttribute("disabled", !browser.isArticle);
     }
-
-    let currentUriHost = browser.currentURI && browser.currentURI.asciiHost;
-    if (browser.isArticle &&
-        !Services.prefs.getBoolPref("browser.reader.detectedFirstArticle") &&
-        currentUriHost && !currentUriHost.endsWith("mozilla.org")) {
-      this.showReaderModeInfoPanel(browser);
-      Services.prefs.setBoolPref("browser.reader.detectedFirstArticle", true);
-      this._readerModeInfoPanelOpen = true;
-    } else if (this._readerModeInfoPanelOpen) {
-      if (UITour.isInfoOnTarget(win, "readerMode-urlBar")) {
-        UITour.hideInfo(win);
-      }
-      this._readerModeInfoPanelOpen = false;
-    }
   },
 
   forceShowReaderIcon(browser) {
@@ -143,29 +114,6 @@ var ReaderParent = {
   },
 
   /**
-   * Shows an info panel from the UITour for Reader Mode.
-   *
-   * @param browser The <browser> that the tour should be started for.
-   */
-  showReaderModeInfoPanel(browser) {
-    let win = browser.ownerGlobal;
-    let targetPromise = UITour.getTarget(win, "readerMode-urlBar");
-    targetPromise.then(target => {
-      let browserBundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
-      let icon = "chrome://browser/skin/";
-      if (win.devicePixelRatio > 1) {
-        icon += "reader-tour@2x.png";
-      } else {
-        icon += "reader-tour.png";
-      }
-      UITour.showInfo(win, target,
-                      browserBundle.GetStringFromName("readingList.promo.firstUse.readerView.title"),
-                      browserBundle.GetStringFromName("readingList.promo.firstUse.readerView.body"),
-                      icon);
-    });
-  },
-
-  /**
    * Gets an article for a given URL. This method will download and parse a document.
    *
    * @param url The article URL.
@@ -173,8 +121,8 @@ var ReaderParent = {
    * @return {Promise}
    * @resolves JS object representing the article, or null if no article is found.
    */
-  _getArticle: Task.async(function* (url, browser) {
-    return yield ReaderMode.downloadAndParseDocument(url).catch(e => {
+  async _getArticle(url, browser) {
+    return await ReaderMode.downloadAndParseDocument(url).catch(e => {
       if (e && e.newURL) {
         // Pass up the error so we can navigate the browser in question to the new URL:
         throw e;
@@ -182,5 +130,5 @@ var ReaderParent = {
       Cu.reportError("Error downloading and parsing document: " + e);
       return null;
     });
-  })
+  }
 };

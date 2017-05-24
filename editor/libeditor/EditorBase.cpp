@@ -128,7 +128,6 @@ using namespace widget;
 EditorBase::EditorBase()
   : mPlaceHolderName(nullptr)
   , mSelState(nullptr)
-  , mPhonetic(nullptr)
   , mModCount(0)
   , mFlags(0)
   , mUpdateCount(0)
@@ -145,6 +144,7 @@ EditorBase::EditorBase()
   , mDispatchInputEvent(true)
   , mIsInEditAction(false)
   , mHidingCaret(false)
+  , mSpellCheckerDictionaryUpdated(true)
 {
 }
 
@@ -159,8 +159,6 @@ EditorBase::~EditorBase()
   // If this editor is still hiding the caret, we need to restore it.
   HideCaret(false);
   mTxnMgr = nullptr;
-
-  delete mPhonetic;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(EditorBase)
@@ -200,9 +198,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(EditorBase)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(EditorBase)
- NS_INTERFACE_MAP_ENTRY(nsIPhonetic)
  NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
- NS_INTERFACE_MAP_ENTRY(nsIEditorIMESupport)
  NS_INTERFACE_MAP_ENTRY(nsIEditor)
  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIEditor)
 NS_INTERFACE_MAP_END
@@ -327,7 +323,7 @@ EditorBase::PostCreate()
     rv = GetPreferredIMEState(&newState);
     NS_ENSURE_SUCCESS(rv, NS_OK);
     nsCOMPtr<nsIContent> content = GetFocusedContentForIME();
-    IMEStateManager::UpdateIMEState(newState, content, this);
+    IMEStateManager::UpdateIMEState(newState, content, *this);
   }
 
   // FYI: This call might cause destroying this editor.
@@ -522,7 +518,7 @@ EditorBase::SetFlags(uint32_t aFlags)
       // NOTE: When the enabled state isn't going to be modified, this method
       // is going to do nothing.
       nsCOMPtr<nsIContent> content = GetFocusedContentForIME();
-      IMEStateManager::UpdateIMEState(newState, content, this);
+      IMEStateManager::UpdateIMEState(newState, content, *this);
     }
   }
 
@@ -734,7 +730,8 @@ EditorBase::DoTransaction(nsITransaction* aTxn)
 
     nsresult rv;
     if (mTxnMgr) {
-      rv = mTxnMgr->DoTransaction(aTxn);
+      RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
+      rv = txnMgr->DoTransaction(aTxn);
     } else {
       rv = aTxn->DoTransaction();
     }
@@ -809,8 +806,9 @@ EditorBase::Undo(uint32_t aCount)
     return NS_OK;
   }
 
+  RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
   for (uint32_t i = 0; i < aCount; ++i) {
-    nsresult rv = mTxnMgr->UndoTransaction();
+    nsresult rv = txnMgr->UndoTransaction();
     NS_ENSURE_SUCCESS(rv, rv);
 
     DoAfterUndoTransaction();
@@ -848,8 +846,9 @@ EditorBase::Redo(uint32_t aCount)
     return NS_OK;
   }
 
+  RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
   for (uint32_t i = 0; i < aCount; ++i) {
-    nsresult rv = mTxnMgr->RedoTransaction();
+    nsresult rv = txnMgr->RedoTransaction();
     NS_ENSURE_SUCCESS(rv, rv);
 
     DoAfterRedoTransaction();
@@ -880,7 +879,8 @@ EditorBase::BeginTransaction()
   BeginUpdateViewBatch();
 
   if (mTxnMgr) {
-    mTxnMgr->BeginBatch(nullptr);
+    RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
+    txnMgr->BeginBatch(nullptr);
   }
 
   return NS_OK;
@@ -890,7 +890,8 @@ NS_IMETHODIMP
 EditorBase::EndTransaction()
 {
   if (mTxnMgr) {
-    mTxnMgr->EndBatch(false);
+    RefPtr<nsTransactionManager> txnMgr = mTxnMgr;
+    txnMgr->EndBatch(false);
   }
 
   EndUpdateViewBatch();
@@ -1339,6 +1340,11 @@ EditorBase::SyncRealTimeSpell()
   GetInlineSpellChecker(enable, getter_AddRefs(spellChecker));
 
   if (mInlineSpellChecker) {
+    if (!mSpellCheckerDictionaryUpdated && enable) {
+      mInlineSpellChecker->UpdateCurrentDictionary();
+      mSpellCheckerDictionaryUpdated = true;
+    }
+
     // We might have a mInlineSpellChecker even if there are no dictionaries
     // available since we don't destroy the mInlineSpellChecker when the last
     // dictionariy is removed, but in that case spellChecker is null
@@ -2078,9 +2084,6 @@ EditorBase::BeginIMEComposition(WidgetCompositionEvent* aCompositionEvent)
   if (!EnsureComposition(aCompositionEvent)) {
     return NS_OK;
   }
-  if (mPhonetic) {
-    mPhonetic->Truncate(0);
-  }
   return NS_OK;
 }
 
@@ -2114,18 +2117,6 @@ EditorBase::EndIMEComposition()
 
   // notify editor observers of action
   NotifyEditorObservers(eNotifyEditorObserversOfEnd);
-}
-
-NS_IMETHODIMP
-EditorBase::GetPhonetic(nsAString& aPhonetic)
-{
-  if (mPhonetic) {
-    aPhonetic = *mPhonetic;
-  } else {
-    aPhonetic.Truncate(0);
-  }
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -2437,6 +2428,18 @@ EditorBase::InsertTextImpl(const nsAString& aStringToInsert,
   // text node if there is.
   FindBetterInsertionPoint(node, offset);
 
+  // If a neighboring text node already exists, use that
+  if (!node->IsNodeOfType(nsINode::eTEXT)) {
+    if (offset && node->GetChildAt(offset - 1)->IsNodeOfType(nsINode::eTEXT)) {
+      node = node->GetChildAt(offset - 1);
+      offset = node->Length();
+    } else if (offset < static_cast<int32_t>(node->Length()) &&
+               node->GetChildAt(offset)->IsNodeOfType(nsINode::eTEXT)) {
+      node = node->GetChildAt(offset);
+      offset = 0;
+    }
+  }
+
   if (ShouldHandleIMEComposition()) {
     CheckedInt<int32_t> newOffset;
     if (!node->IsNodeOfType(nsINode::eTEXT)) {
@@ -2500,22 +2503,6 @@ EditorBase::InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert,
       mIMETextNode = &aTextNode;
       mIMETextOffset = aOffset;
     }
-    // Modify mPhonetic with raw text input clauses.
-    const TextRangeArray* ranges = mComposition->GetRanges();
-    for (uint32_t i = 0; i < (ranges ? ranges->Length() : 0); ++i) {
-      const TextRange& textRange = ranges->ElementAt(i);
-      if (!textRange.Length() ||
-          textRange.mRangeType != TextRangeType::eRawClause) {
-        continue;
-      }
-      if (!mPhonetic) {
-        mPhonetic = new nsString();
-      }
-      nsAutoString stringToInsert(aStringToInsert);
-      stringToInsert.Mid(*mPhonetic,
-                         textRange.mStartOffset, textRange.Length());
-    }
-
     transaction = CreateTxnForComposition(aStringToInsert);
     isIMETransaction = true;
     // All characters of the composition string will be replaced with
@@ -3468,64 +3455,6 @@ EditorBase::IsContainer(nsIDOMNode* aNode)
   return aNode ? true : false;
 }
 
-static inline bool
-IsElementVisible(Element* aElement)
-{
-  if (aElement->GetPrimaryFrame()) {
-    // It's visible, for our purposes
-    return true;
-  }
-
-  nsIContent *cur = aElement;
-  for (;;) {
-    // Walk up the tree looking for the nearest ancestor with a frame.
-    // The state of the child right below it will determine whether
-    // we might possibly have a frame or not.
-    bool haveLazyBitOnChild = cur->HasFlag(NODE_NEEDS_FRAME);
-    cur = cur->GetFlattenedTreeParent();
-    if (!cur) {
-      if (!haveLazyBitOnChild) {
-        // None of our ancestors have lazy bits set, so we shouldn't
-        // have a frame
-        return false;
-      }
-
-      // The root has a lazy frame construction bit.  We need to check
-      // our style.
-      break;
-    }
-
-    if (cur->GetPrimaryFrame()) {
-      if (!haveLazyBitOnChild) {
-        // Our ancestor directly under |cur| doesn't have lazy bits;
-        // that means we won't get a frame
-        return false;
-      }
-
-      if (cur->GetPrimaryFrame()->IsLeaf()) {
-        // Nothing under here will ever get frames
-        return false;
-      }
-
-      // Otherwise, we might end up with a frame when that lazy bit is
-      // processed.  Figure out our actual style.
-      break;
-    }
-  }
-
-  // Now it might be that we have no frame because we're in a
-  // display:none subtree, or it might be that we're just dealing with
-  // lazy frame construction and it hasn't happened yet.  Check which
-  // one it is.
-  RefPtr<nsStyleContext> styleContext =
-    nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement,
-                                                         nullptr, nullptr);
-  if (styleContext) {
-    return styleContext->StyleDisplay()->mDisplay != StyleDisplay::None;
-  }
-  return false;
-}
-
 bool
 EditorBase::IsEditable(nsIDOMNode* aNode)
 {
@@ -3543,18 +3472,10 @@ EditorBase::IsEditable(nsINode* aNode)
     return false;
   }
 
-  // see if it has a frame.  If so, we'll edit it.
-  // special case for textnodes: frame must have width.
-  if (aNode->IsElement() && !IsElementVisible(aNode->AsElement())) {
-    // If the element has no frame, it's not editable.  Note that we
-    // need to check IsElement() here, because some of our tests
-    // rely on frameless textnodes being visible.
-    return false;
-  }
   switch (aNode->NodeType()) {
     case nsIDOMNode::ELEMENT_NODE:
     case nsIDOMNode::TEXT_NODE:
-      return true; // element or text node; not invisible
+      return true;
     default:
       return false;
   }
@@ -3850,9 +3771,9 @@ EditorBase::IsPreformatted(nsIDOMNode* aNode,
     content = content->GetParent();
   }
   if (content && content->IsElement()) {
-    elementStyle = nsComputedDOMStyle::GetStyleContextForElementNoFlush(content->AsElement(),
-                                                                        nullptr,
-                                                                        ps);
+    elementStyle =
+      nsComputedDOMStyle::GetStyleContextNoFlush(content->AsElement(),
+                                                 nullptr, ps);
   }
 
   if (!elementStyle) {
@@ -5199,8 +5120,10 @@ void
 EditorBase::OnFocus(nsIDOMEventTarget* aFocusEventTarget)
 {
   InitializeSelection(aFocusEventTarget);
-  if (mInlineSpellChecker) {
+  mSpellCheckerDictionaryUpdated = false;
+  if (mInlineSpellChecker && CanEnableSpellCheck()) {
     mInlineSpellChecker->UpdateCurrentDictionary();
+    mSpellCheckerDictionaryUpdated = true;
   }
 }
 

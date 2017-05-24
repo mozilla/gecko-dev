@@ -1,44 +1,45 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* globals URLSearchParams */
 
 "use strict";
 
 const {utils: Cu, classes: Cc, interfaces: Ci} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/CanonicalJSON.jsm");
 Cu.import("resource://shield-recipe-client/lib/LogManager.jsm");
-Cu.importGlobalProperties(["fetch"]); /* globals fetch */
+Cu.import("resource://shield-recipe-client/lib/Utils.jsm");
+Cu.importGlobalProperties(["fetch", "URL"]); /* globals fetch, URL */
 
 this.EXPORTED_SYMBOLS = ["NormandyApi"];
 
 const log = LogManager.getLogger("normandy-api");
 const prefs = Services.prefs.getBranch("extensions.shield-recipe-client.");
 
+let indexPromise = null;
+
 this.NormandyApi = {
+  clearIndexCache() {
+    indexPromise = null;
+  },
+
   apiCall(method, endpoint, data = {}) {
-    const api_url = prefs.getCharPref("api_url");
-    let url = `${api_url}/${endpoint}`;
+    const url = new URL(endpoint);
     method = method.toLowerCase();
 
-    if (method === "get") {
-      if (data === {}) {
-        const paramObj = new URLSearchParams();
-        for (const key in data) {
-          paramObj.append(key, data[key]);
+    let body = undefined;
+    if (data) {
+      if (method === "get") {
+        for (const key of Object.keys(data)) {
+          url.searchParams.set(key, data[key]);
         }
-        url += "?" + paramObj.toString();
+      } else if (method === "post") {
+        body = JSON.stringify(data);
       }
-      data = undefined;
     }
 
     const headers = {"Accept": "application/json"};
-    return fetch(url, {
-      body: JSON.stringify(data),
-      headers,
-    });
+    return fetch(url.href, {method, body, headers});
   },
 
   get(endpoint, data) {
@@ -49,9 +50,34 @@ this.NormandyApi = {
     return this.apiCall("post", endpoint, data);
   },
 
-  fetchRecipes: Task.async(function* (filters = {}) {
-    const recipeResponse = yield this.get("recipe/signed/", filters);
-    const rawText = yield recipeResponse.text();
+  absolutify(url) {
+    const apiBase = prefs.getCharPref("api_url");
+    const server = new URL(apiBase).origin;
+    if (url.startsWith("http")) {
+      return url;
+    } else if (url.startsWith("/")) {
+      return server + url;
+    }
+    throw new Error("Can't use relative urls");
+  },
+
+  async getApiUrl(name) {
+    const apiBase = prefs.getCharPref("api_url");
+    if (!indexPromise) {
+      indexPromise = this.get(apiBase).then(res => res.json());
+    }
+    const index = await indexPromise;
+    if (!(name in index)) {
+      throw new Error(`API endpoint with name "${name}" not found.`);
+    }
+    const url = index[name];
+    return this.absolutify(url);
+  },
+
+  async fetchRecipes(filters = {enabled: true}) {
+    const signedRecipesUrl = await this.getApiUrl("recipe-signed");
+    const recipesResponse = await this.get(signedRecipesUrl, filters);
+    const rawText = await recipesResponse.text();
     const recipesWithSigs = JSON.parse(rawText);
 
     const verifiedRecipes = [];
@@ -63,38 +89,61 @@ this.NormandyApi = {
         throw new Error("Canonical recipe serialization does not match!");
       }
 
-      const certChainResponse = yield fetch(x5u);
-      const certChain = yield certChainResponse.text();
+      const certChainResponse = await fetch(this.absolutify(x5u));
+      const certChain = await certChainResponse.text();
       const builtSignature = `p384ecdsa=${signature}`;
 
       const verifier = Cc["@mozilla.org/security/contentsignatureverifier;1"]
         .createInstance(Ci.nsIContentSignatureVerifier);
 
-      if (!verifier.verifyContentSignature(serialized, builtSignature, certChain, "normandy.content-signature.mozilla.org")) {
+      const valid = verifier.verifyContentSignature(
+        serialized,
+        builtSignature,
+        certChain,
+        "normandy.content-signature.mozilla.org"
+      );
+      if (!valid) {
         throw new Error("Recipe signature is not valid");
       }
       verifiedRecipes.push(recipe);
     }
 
-    log.debug(`Fetched ${verifiedRecipes.length} recipes from the server:`, verifiedRecipes.map(r => r.name).join(", "));
+    log.debug(
+      `Fetched ${verifiedRecipes.length} recipes from the server:`,
+      verifiedRecipes.map(r => r.name).join(", ")
+    );
 
     return verifiedRecipes;
-  }),
+  },
 
   /**
    * Fetch metadata about this client determined by the server.
    * @return {object} Metadata specified by the server
    */
-  classifyClient() {
-    return this.get("classify_client/")
-      .then(response => response.json())
-      .then(clientData => {
-        clientData.request_time = new Date(clientData.request_time);
-        return clientData;
-      });
+  async classifyClient() {
+    const classifyClientUrl = await this.getApiUrl("classify-client");
+    const response = await this.get(classifyClientUrl);
+    const clientData = await response.json();
+    clientData.request_time = new Date(clientData.request_time);
+    return clientData;
   },
 
-  fetchAction(name) {
-    return this.get(`action/${name}/`).then(req => req.json());
+  /**
+   * Fetch an array of available actions from the server.
+   * @resolves {Array}
+   */
+  async fetchActions() {
+    const actionApiUrl = await this.getApiUrl("action-list");
+    const res = await this.get(actionApiUrl);
+    return await res.json();
+  },
+
+  async fetchImplementation(action) {
+    const response = await fetch(action.implementation_url);
+    if (response.ok) {
+      return await response.text();
+    }
+
+    throw new Error(`Failed to fetch action implementation for ${action.name}: ${response.status}`);
   },
 };

@@ -257,7 +257,13 @@ public:
    */
   void ScrollToRestoredPosition();
 
-  bool PageIsStillLoading();
+  enum class LoadingState {
+    Loading,
+    Stopped,
+    Loaded
+  };
+
+  LoadingState GetPageLoadingState();
 
   /**
    * GetSnapPointForDestination determines which point to snap to after
@@ -405,7 +411,7 @@ public:
   bool DecideScrollableLayer(nsDisplayListBuilder* aBuilder,
                              nsRect* aDirtyRect,
                              bool aAllowCreateDisplayPort);
-  void NotifyApproximateFrameVisibilityUpdate();
+  void NotifyApproximateFrameVisibilityUpdate(bool aIgnoreDisplayPort);
   bool GetDisplayPortAtLastApproximateFrameVisibilityUpdate(nsRect* aDisplayPort);
 
   bool AllowDisplayPortExpiration();
@@ -943,8 +949,8 @@ public:
                                      bool aAllowCreateDisplayPort) override {
     return mHelper.DecideScrollableLayer(aBuilder, aDirtyRect, aAllowCreateDisplayPort);
   }
-  virtual void NotifyApproximateFrameVisibilityUpdate() override {
-    mHelper.NotifyApproximateFrameVisibilityUpdate();
+  virtual void NotifyApproximateFrameVisibilityUpdate(bool aIgnoreDisplayPort) override {
+    mHelper.NotifyApproximateFrameVisibilityUpdate(aIgnoreDisplayPort);
   }
   virtual bool GetDisplayPortAtLastApproximateFrameVisibilityUpdate(nsRect* aDisplayPort) override {
     return mHelper.GetDisplayPortAtLastApproximateFrameVisibilityUpdate(aDisplayPort);
@@ -964,13 +970,6 @@ public:
     mHelper.RestoreState(aState);
     return NS_OK;
   }
-
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::scrollFrame
-   */
-  virtual nsIAtom* GetType() const override;
 
   // nsIScrollbarMediator
   virtual void ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection,
@@ -1060,7 +1059,13 @@ public:
 #endif
 
 protected:
-  nsHTMLScrollFrame(nsStyleContext* aContext, bool aIsRoot);
+  nsHTMLScrollFrame(nsStyleContext* aContext, bool aIsRoot)
+    : nsHTMLScrollFrame(aContext, mozilla::LayoutFrameType::Scroll, aIsRoot)
+  {}
+
+  nsHTMLScrollFrame(nsStyleContext* aContext,
+                    mozilla::LayoutFrameType aType,
+                    bool aIsRoot);
   void SetSuppressScrollbarUpdate(bool aSuppress) {
     mHelper.mSupppressScrollbarUpdate = aSuppress;
   }
@@ -1386,13 +1391,6 @@ public:
     return NS_OK;
   }
 
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::scrollFrame
-   */
-  virtual nsIAtom* GetType() const override;
-  
   virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     // Override bogus IsFrameOfType in nsBoxFrame.
@@ -1463,8 +1461,8 @@ public:
                                      bool aAllowCreateDisplayPort) override {
     return mHelper.DecideScrollableLayer(aBuilder, aDirtyRect, aAllowCreateDisplayPort);
   }
-  virtual void NotifyApproximateFrameVisibilityUpdate() override {
-    mHelper.NotifyApproximateFrameVisibilityUpdate();
+  virtual void NotifyApproximateFrameVisibilityUpdate(bool aIgnoreDisplayPort) override {
+    mHelper.NotifyApproximateFrameVisibilityUpdate(aIgnoreDisplayPort);
   }
   virtual bool GetDisplayPortAtLastApproximateFrameVisibilityUpdate(nsRect* aDisplayPort) override {
     return mHelper.GetDisplayPortAtLastApproximateFrameVisibilityUpdate(aDisplayPort);

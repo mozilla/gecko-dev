@@ -441,7 +441,7 @@ function _setupDebuggerServer(breakpointFiles, callback) {
   };
 
   for (let topic of TOPICS) {
-    obsSvc.addObserver(observe, topic, false);
+    obsSvc.addObserver(observe, topic);
   }
   return DebuggerServer;
 }
@@ -538,13 +538,13 @@ function _execute_test() {
       run_next_test();
     }
 
-    if (coverageCollector != null) {
-      coverageCollector.recordTestCoverage(_TEST_FILE[0]);
-    }
-
     do_test_finished("MAIN run_test");
     _do_main();
     _PromiseTestUtils.assertNoUncaughtRejections();
+
+    if (coverageCollector != null) {
+      coverageCollector.recordTestCoverage(_TEST_FILE[0]);
+    }
   } catch (e) {
     _passed = false;
     // do_check failures are already logged and set _quit to true and throw
@@ -621,10 +621,10 @@ function _execute_test() {
     // the end of the current test, to ensure correct cleanup on shutdown.
     let obs = Components.classes["@mozilla.org/observer-service;1"]
                         .getService(Components.interfaces.nsIObserverService);
-    obs.notifyObservers(null, "profile-change-net-teardown", null);
-    obs.notifyObservers(null, "profile-change-teardown", null);
-    obs.notifyObservers(null, "profile-before-change", null);
-    obs.notifyObservers(null, "profile-before-change-qm", null);
+    obs.notifyObservers(null, "profile-change-net-teardown");
+    obs.notifyObservers(null, "profile-change-teardown");
+    obs.notifyObservers(null, "profile-before-change");
+    obs.notifyObservers(null, "profile-before-change-qm");
 
     _profileInitialized = false;
   }
@@ -697,7 +697,7 @@ function do_execute_soon(callback, aName) {
   var tm = Components.classes["@mozilla.org/thread-manager;1"]
                      .getService(Components.interfaces.nsIThreadManager);
 
-  tm.mainThread.dispatch({
+  tm.dispatchToMainThread({
     run: function() {
       try {
         callback();
@@ -722,7 +722,7 @@ function do_execute_soon(callback, aName) {
         do_test_finished(funcName);
       }
     }
-  }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+  });
 }
 
 /**
@@ -1605,11 +1605,11 @@ try {
     prefs.setCharPref("media.gmp-manager.url.override", "http://%(server)s/dummy-gmp-manager.xml");
     prefs.setCharPref("media.gmp-manager.updateEnabled", false);
     prefs.setCharPref("extensions.systemAddon.update.url", "http://%(server)s/dummy-system-addons.xml");
-    prefs.setCharPref("browser.selfsupport.url", "https://%(server)s/selfsupport-dummy/");
     prefs.setCharPref("extensions.shield-recipe-client.api_url",
                       "https://%(server)s/selfsupport-dummy/");
     prefs.setCharPref("toolkit.telemetry.server", "https://%(server)s/telemetry-dummy");
     prefs.setCharPref("browser.search.geoip.url", "https://%(server)s/geoip-dummy");
+    prefs.setCharPref("browser.safebrowsing.downloads.remote.url", "https://%(server)s/safebrowsing-dummy");
   }
 } catch (e) { }
 

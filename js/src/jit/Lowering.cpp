@@ -244,6 +244,14 @@ LIRGenerator::visitNewArrayDynamicLength(MNewArrayDynamicLength* ins)
 }
 
 void
+LIRGenerator::visitNewArrayIterator(MNewArrayIterator* ins)
+{
+    LNewArrayIterator* lir = new(alloc()) LNewArrayIterator(temp());
+    define(lir, ins);
+    assignSafepoint(lir, ins);
+}
+
+void
 LIRGenerator::visitNewTypedArray(MNewTypedArray* ins)
 {
     LNewTypedArray* lir = new(alloc()) LNewTypedArray(temp(), temp());
@@ -576,9 +584,10 @@ LIRGenerator::visitApplyArgs(MApplyArgs* apply)
         tempFixed(CallTempReg1),  // object register
         tempFixed(CallTempReg2)); // stack counter register
 
-    // Bailout is only needed in the case of possible non-JSFunction callee.
-    if (!apply->getSingleTarget())
-        assignSnapshot(lir, Bailout_NonJSFunctionCallee);
+    // Bailout is needed in the case of possible non-JSFunction callee or too
+    // many values in the arguments array.  I'm going to use NonJSFunctionCallee
+    // for the code even if that is not an adequate description.
+    assignSnapshot(lir, Bailout_NonJSFunctionCallee);
 
     defineReturn(lir, apply);
     assignSafepoint(lir, apply);
@@ -1206,6 +1215,22 @@ void
 LIRGenerator::visitToAsync(MToAsync* ins)
 {
     LToAsync* lir = new(alloc()) LToAsync(useRegisterAtStart(ins->input()));
+    defineReturn(lir, ins);
+    assignSafepoint(lir, ins);
+}
+
+void
+LIRGenerator::visitToAsyncGen(MToAsyncGen* ins)
+{
+    LToAsyncGen* lir = new(alloc()) LToAsyncGen(useRegisterAtStart(ins->input()));
+    defineReturn(lir, ins);
+    assignSafepoint(lir, ins);
+}
+
+void
+LIRGenerator::visitToAsyncIter(MToAsyncIter* ins)
+{
+    LToAsyncIter* lir = new(alloc()) LToAsyncIter(useRegisterAtStart(ins->input()));
     defineReturn(lir, ins);
     assignSafepoint(lir, ins);
 }
@@ -1894,9 +1919,16 @@ LIRGenerator::visitMod(MMod* ins)
         MOZ_ASSERT(ins->lhs()->type() == MIRType::Double);
         MOZ_ASSERT(ins->rhs()->type() == MIRType::Double);
 
+        // Ion does an unaligned ABI call and thus needs a temp register. Wasm
+        // doesn't.
+        LDefinition maybeTemp = gen->compilingWasm()
+                                ? LDefinition::BogusTemp()
+                                : tempFixed(CallTempReg0);
+
         // Note: useRegisterAtStart is safe here, the temp is not a FP register.
-        LModD* lir = new(alloc()) LModD(useRegisterAtStart(ins->lhs()), useRegisterAtStart(ins->rhs()),
-                                        tempFixed(CallTempReg0));
+        LModD* lir = new(alloc()) LModD(useRegisterAtStart(ins->lhs()),
+                                        useRegisterAtStart(ins->rhs()),
+                                        maybeTemp);
         defineReturn(lir, ins);
         return;
     }
@@ -2212,8 +2244,7 @@ LIRGenerator::visitTruncateToInt32(MTruncateToInt32* truncate)
     MDefinition* opd = truncate->input();
 
     switch (opd->type()) {
-      case MIRType::Value:
-      {
+      case MIRType::Value: {
         LValueToInt32* lir = new(alloc()) LValueToInt32(useBox(opd), tempDouble(), temp(),
                                                         LValueToInt32::TRUNCATE);
         assignSnapshot(lir, Bailout_NonPrimitiveInput);
@@ -2233,10 +2264,14 @@ LIRGenerator::visitTruncateToInt32(MTruncateToInt32* truncate)
         break;
 
       case MIRType::Double:
+        // May call into JS::ToInt32() on the slow OOL path.
+        gen->setNeedsStaticStackAlignment();
         lowerTruncateDToInt32(truncate);
         break;
 
       case MIRType::Float32:
+        // May call into JS::ToInt32() on the slow OOL path.
+        gen->setNeedsStaticStackAlignment();
         lowerTruncateFToInt32(truncate);
         break;
 
@@ -3670,12 +3705,11 @@ LIRGenerator::visitGetNameCache(MGetNameCache* ins)
 {
     MOZ_ASSERT(ins->envObj()->type() == MIRType::Object);
 
-    // Set the performs-call flag so that we don't omit the overrecursed check.
-    // This is necessary because the cache can attach a scripted getter stub
-    // that calls this script recursively.
-    gen->setPerformsCall();
+    // Emit an overrecursed check: this is necessary because the cache can
+    // attach a scripted getter stub that calls this script recursively.
+    gen->setNeedsOverrecursedCheck();
 
-    LGetNameCache* lir = new(alloc()) LGetNameCache(useRegister(ins->envObj()));
+    LGetNameCache* lir = new(alloc()) LGetNameCache(useRegister(ins->envObj()), temp());
     defineBox(lir, ins);
     assignSafepoint(lir, ins);
 }
@@ -3701,10 +3735,9 @@ LIRGenerator::visitGetPropertyCache(MGetPropertyCache* ins)
                id->type() == MIRType::Value);
 
     if (ins->monitoredResult()) {
-        // Set the performs-call flag so that we don't omit the overrecursed
-        // check. This is necessary because the cache can attach a scripted
-        // getter stub that calls this script recursively.
-        gen->setPerformsCall();
+        // Emit an overrecursed check: this is necessary because the cache can
+        // attach a scripted getter stub that calls this script recursively.
+        gen->setNeedsOverrecursedCheck();
     }
 
     // If this is a GETPROP, the id is a constant string. Allow passing it as a
@@ -3781,7 +3814,7 @@ LIRGenerator::visitBindNameCache(MBindNameCache* ins)
     MOZ_ASSERT(ins->environmentChain()->type() == MIRType::Object);
     MOZ_ASSERT(ins->type() == MIRType::Object);
 
-    LBindNameCache* lir = new(alloc()) LBindNameCache(useRegister(ins->environmentChain()));
+    LBindNameCache* lir = new(alloc()) LBindNameCache(useRegister(ins->environmentChain()), temp());
     define(lir, ins);
     assignSafepoint(lir, ins);
 }
@@ -3976,16 +4009,15 @@ LIRGenerator::visitSetPropertyCache(MSetPropertyCache* ins)
     bool useConstId = id->type() == MIRType::String || id->type() == MIRType::Symbol;
     bool useConstValue = IsNonNurseryConstant(ins->value());
 
-    // Set the performs-call flag so that we don't omit the overrecursed check.
-    // This is necessary because the cache can attach a scripted setter stub
-    // that calls this script recursively.
-    gen->setPerformsCall();
+    // Emit an overrecursed check: this is necessary because the cache can
+    // attach a scripted setter stub that calls this script recursively.
+    gen->setNeedsOverrecursedCheck();
 
     // We need a double/float32 temp register for typed array stubs if this is
-    // a SETELEM.
+    // a SETELEM or INITELEM op.
     LDefinition tempD = LDefinition::BogusTemp();
     LDefinition tempF32 = LDefinition::BogusTemp();
-    if (IsSetElemPC(ins->resumePoint()->pc())) {
+    if (IsElemPC(ins->resumePoint()->pc())) {
         tempD = tempDouble();
         tempF32 = hasUnaliasedDouble() ? tempFloat32() : LDefinition::BogusTemp();
     }
@@ -4016,8 +4048,10 @@ LIRGenerator::visitCallSetElement(MCallSetElement* ins)
 void
 LIRGenerator::visitCallInitElementArray(MCallInitElementArray* ins)
 {
-    LCallInitElementArray* lir = new(alloc()) LCallInitElementArray(useRegisterAtStart(ins->object()),
-                                                                    useBoxAtStart(ins->value()));
+    LCallInitElementArray* lir =
+        new(alloc()) LCallInitElementArray(useRegisterAtStart(ins->object()),
+                                           useRegisterOrConstantAtStart(ins->index()),
+                                           useBoxAtStart(ins->value()));
     add(lir, ins);
     assignSafepoint(lir, ins);
 }
@@ -4147,16 +4181,40 @@ LIRGenerator::visitThrow(MThrow* ins)
 }
 
 void
-LIRGenerator::visitIn(MIn* ins)
+LIRGenerator::visitInCache(MInCache* ins)
 {
     MDefinition* lhs = ins->lhs();
     MDefinition* rhs = ins->rhs();
 
-    MOZ_ASSERT(lhs->type() == MIRType::Value);
+    MOZ_ASSERT(lhs->type() == MIRType::String ||
+               lhs->type() == MIRType::Symbol ||
+               lhs->type() == MIRType::Int32 ||
+               lhs->type() == MIRType::Value);
     MOZ_ASSERT(rhs->type() == MIRType::Object);
 
-    LIn* lir = new(alloc()) LIn(useBoxAtStart(lhs), useRegisterAtStart(rhs));
-    defineReturn(lir, ins);
+    LInCache* lir = new(alloc()) LInCache(useBoxOrTyped(lhs), useRegister(rhs), temp());
+    define(lir, ins);
+    assignSafepoint(lir, ins);
+}
+
+void
+LIRGenerator::visitHasOwnCache(MHasOwnCache* ins)
+{
+    MDefinition* value = ins->value();
+    MOZ_ASSERT(value->type() == MIRType::Object || value->type() == MIRType::Value);
+
+    MDefinition* id = ins->idval();
+    MOZ_ASSERT(id->type() == MIRType::String ||
+               id->type() == MIRType::Symbol ||
+               id->type() == MIRType::Int32 ||
+               id->type() == MIRType::Value);
+
+    // Emit an overrecursed check: this is necessary because the cache can
+    // attach a scripted getter stub that calls this script recursively.
+    gen->setNeedsOverrecursedCheck();
+
+    LHasOwnCache* lir = new(alloc()) LHasOwnCache(useBoxOrTyped(value), useBoxOrTyped(id));
+    define(lir, ins);
     assignSafepoint(lir, ins);
 }
 
@@ -4407,8 +4465,6 @@ LIRGenerator::visitWasmStackArg(MWasmStackArg* ins)
 void
 LIRGenerator::visitWasmCall(MWasmCall* ins)
 {
-    gen->setPerformsCall();
-
     LAllocation* args = gen->allocate<LAllocation>(ins->numOperands());
     if (!args) {
         abort(AbortReason::Alloc, "Couldn't allocate for MWasmCall");
@@ -4874,8 +4930,10 @@ LIRGenerator::visitInstruction(MInstruction* ins)
         return false;
     ins->accept(this);
 
-    if (ins->possiblyCalls())
-        gen->setPerformsCall();
+    if (ins->possiblyCalls()) {
+        gen->setNeedsStaticStackAlignment();
+        gen->setNeedsOverrecursedCheck();
+    }
 
     if (ins->resumePoint())
         updateResumeState(ins);

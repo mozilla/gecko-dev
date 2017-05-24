@@ -33,7 +33,15 @@ class DrawTarget;
 
 namespace layers {
 class ImageContainer;
+class StackingContextHelper;
+class WebRenderDisplayItemLayer;
+class WebRenderParentCommand;
+class LayerManager;
 } // namespace layers
+
+namespace wr {
+class DisplayListBuilder;
+} // namespace wr
 
 enum class PaintBorderFlags : uint8_t
 {
@@ -98,6 +106,7 @@ struct nsCSSRendering {
   typedef mozilla::gfx::Rect Rect;
   typedef mozilla::gfx::Size Size;
   typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
+  typedef mozilla::layers::LayerManager LayerManager;
   typedef mozilla::image::DrawResult DrawResult;
   typedef nsIFrame::Sides Sides;
 
@@ -116,7 +125,7 @@ struct nsCSSRendering {
                                   RectCornerRadii& aOutInnerRadii);
   static nsRect GetBoxShadowInnerPaddingRect(nsIFrame* aFrame,
                                              const nsRect& aFrameArea);
-  static bool CanPaintBoxShadowInner(nsIFrame* aFrame);
+  static bool ShouldPaintBoxShadowInner(nsIFrame* aFrame);
   static void PaintBoxShadowInner(nsPresContext* aPresContext,
                                   nsRenderingContext& aRenderingContext,
                                   nsIFrame* aForFrame,
@@ -332,6 +341,23 @@ struct nsCSSRendering {
                                    nsIFrame** aAttachedToFrame,
                                    bool* aOutTransformedFixed);
 
+  // Implementation of the formula for computation of background-repeat round
+  // See http://dev.w3.org/csswg/css3-background/#the-background-size
+  // This function returns the adjusted size of the background image.
+  static nscoord
+  ComputeRoundedSize(nscoord aCurrentSize, nscoord aPositioningSize);
+
+  /* ComputeBorderSpacedRepeatSize
+  * aImageDimension: the image width/height
+  * aAvailableSpace: the background positioning area width/height
+  * aSpace: the space between each image
+  * Returns the image size plus gap size of app units for use as spacing
+  */
+  static nscoord
+  ComputeBorderSpacedRepeatSize(nscoord aImageDimension,
+                                nscoord aAvailableSpace,
+                                nscoord& aSpace);
+
   static nsBackgroundLayerState
   PrepareImageLayer(nsPresContext* aPresContext,
                     nsIFrame* aForFrame,
@@ -402,7 +428,6 @@ struct nsCSSRendering {
 
   struct PaintBGParams {
     nsPresContext& presCtx;
-    nsRenderingContext& renderingCtx;
     nsRect dirtyRect;
     nsRect borderArea;
     nsIFrame* frame;
@@ -415,14 +440,12 @@ struct nsCSSRendering {
     float opacity;
 
     static PaintBGParams ForAllLayers(nsPresContext& aPresCtx,
-                                      nsRenderingContext& aRenderingCtx,
                                       const nsRect& aDirtyRect,
                                       const nsRect& aBorderArea,
                                       nsIFrame *aFrame,
                                       uint32_t aPaintFlags,
                                       float aOpacity = 1.0);
     static PaintBGParams ForSingleLayer(nsPresContext& aPresCtx,
-                                        nsRenderingContext& aRenderingCtx,
                                         const nsRect& aDirtyRect,
                                         const nsRect& aBorderArea,
                                         nsIFrame *aFrame,
@@ -433,7 +456,6 @@ struct nsCSSRendering {
 
   private:
     PaintBGParams(nsPresContext& aPresCtx,
-                  nsRenderingContext& aRenderingCtx,
                   const nsRect& aDirtyRect,
                   const nsRect& aBorderArea,
                   nsIFrame* aFrame,
@@ -442,7 +464,6 @@ struct nsCSSRendering {
                   CompositionOp aCompositionOp,
                   float aOpacity)
      : presCtx(aPresCtx),
-       renderingCtx(aRenderingCtx),
        dirtyRect(aDirtyRect),
        borderArea(aBorderArea),
        frame(aFrame),
@@ -452,8 +473,8 @@ struct nsCSSRendering {
        opacity(aOpacity) {}
   };
 
-  static DrawResult PaintStyleImageLayer(const PaintBGParams& aParams);
-
+  static DrawResult PaintStyleImageLayer(const PaintBGParams& aParams,
+                                         nsRenderingContext& aRenderingCtx);
 
   /**
    * Same as |PaintStyleImageLayer|, except using the provided style structs.
@@ -469,8 +490,28 @@ struct nsCSSRendering {
    * layer's composition mode) will be used.
    */
   static DrawResult PaintStyleImageLayerWithSC(const PaintBGParams& aParams,
+                                               nsRenderingContext& aRenderingCtx,
                                                nsStyleContext *mBackgroundSC,
                                                const nsStyleBorder& aBorder);
+
+  static bool CanBuildWebRenderDisplayItemsForStyleImageLayer(LayerManager* aManager,
+                                                              nsPresContext& aPresCtx,
+                                                              nsIFrame *aFrame,
+                                                              const nsStyleBackground* aBackgroundStyle,
+                                                              int32_t aLayer);
+  static DrawResult BuildWebRenderDisplayItemsForStyleImageLayer(const PaintBGParams& aParams,
+                                                                 mozilla::wr::DisplayListBuilder& aBuilder,
+                                                                 const mozilla::layers::StackingContextHelper& aSc,
+                                                                 nsTArray<mozilla::layers::WebRenderParentCommand>& aParentCommands,
+                                                                 mozilla::layers::WebRenderDisplayItemLayer* aLayer);
+
+  static DrawResult BuildWebRenderDisplayItemsForStyleImageLayerWithSC(const PaintBGParams& aParams,
+                                                                       mozilla::wr::DisplayListBuilder& aBuilder,
+                                                                       const mozilla::layers::StackingContextHelper& aSc,
+                                                                       nsTArray<mozilla::layers::WebRenderParentCommand>& aParentCommands,
+                                                                       mozilla::layers::WebRenderDisplayItemLayer* aLayer,
+                                                                       nsStyleContext *mBackgroundSC,
+                                                                       const nsStyleBorder& aBorder);
 
   /**
    * Returns the rectangle covered by the given background layer image, taking

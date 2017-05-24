@@ -63,9 +63,6 @@
 #include "nsAccessibilityService.h"
 #endif
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG 1 /* Allow logging in the release build */
-#endif /* MOZ_LOGGING */
 #include "mozilla/Logging.h"
 
 #ifdef XP_MACOSX
@@ -148,7 +145,7 @@ protected:
 };
 
 nsPluginFrame::nsPluginFrame(nsStyleContext* aContext)
-  : nsFrame(aContext)
+  : nsFrame(aContext, LayoutFrameType::Object)
   , mInstanceOwner(nullptr)
   , mOuterView(nullptr)
   , mInnerView(nullptr)
@@ -243,12 +240,6 @@ nsPluginFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   nsFrame::DidSetStyleContext(aOldStyleContext);
 }
 
-nsIAtom*
-nsPluginFrame::GetType() const
-{
-  return nsGkAtoms::objectFrame; 
-}
-
 #ifdef DEBUG_FRAME_DUMP
 nsresult
 nsPluginFrame::GetFrameName(nsAString& aResult) const
@@ -299,6 +290,17 @@ nsPluginFrame::PrepForDrawing(nsIWidget *aWidget)
       return NS_ERROR_FAILURE;
     }
 
+    // We can already have mInnerView if our instance owner went away and then
+    // came back. So clear the old one before creating a new one.
+    if (mInnerView) {
+      if (mInnerView->GetWidget()) {
+        // The widget listener should have already been cleared by
+        // SetInstanceOwner (with a null instance owner).
+        MOZ_RELEASE_ASSERT(mInnerView->GetWidget()->GetWidgetListener() == nullptr);
+      }
+      mInnerView->Destroy();
+      mInnerView = nullptr;
+    }
     mInnerView = viewMan->CreateView(GetContentRectRelativeToSelf(), view);
     if (!mInnerView) {
       NS_ERROR("Could not create inner view");
@@ -1652,8 +1654,10 @@ nsPluginFrame::HandleEvent(nsPresContext* aPresContext,
   }
   else if (anEvent->mMessage == ePluginFocus) {
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (fm)
-      return fm->FocusPlugin(GetContent());
+    if (fm) {
+      nsCOMPtr<nsIContent> content = GetContent();
+      return fm->FocusPlugin(content);
+    }
   }
 
   if (mInstanceOwner->SendNativeEvents() &&

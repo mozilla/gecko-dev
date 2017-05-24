@@ -10,6 +10,7 @@
 
 #include "jsapi.h"
 #include "jscntxt.h"
+#include "jsiter.h"
 #include "jsmath.h"
 #include "jsobj.h"
 #include "jsstr.h"
@@ -1366,6 +1367,34 @@ RNewArray::recover(JSContext* cx, SnapshotIterator& iter) const
 }
 
 bool
+MNewArrayIterator::writeRecoverData(CompactBufferWriter& writer) const
+{
+    MOZ_ASSERT(canRecoverOnBailout());
+    writer.writeUnsigned(uint32_t(RInstruction::Recover_NewArrayIterator));
+    return true;
+}
+
+RNewArrayIterator::RNewArrayIterator(CompactBufferReader& reader)
+{
+}
+
+bool
+RNewArrayIterator::recover(JSContext* cx, SnapshotIterator& iter) const
+{
+    RootedObject templateObject(cx, &iter.read().toObject());
+    RootedValue result(cx);
+
+
+    JSObject* resultObject = NewArrayIteratorObject(cx);
+    if (!resultObject)
+        return false;
+
+    result.setObject(*resultObject);
+    iter.storeInstructionResult(result);
+    return true;
+}
+
+bool
 MNewDerivedTypedObject::writeRecoverData(CompactBufferWriter& writer) const
 {
     MOZ_ASSERT(canRecoverOnBailout());
@@ -1439,6 +1468,35 @@ RLambda::recover(JSContext* cx, SnapshotIterator& iter) const
     RootedFunction fun(cx, &iter.read().toObject().as<JSFunction>());
 
     JSObject* resultObject = js::Lambda(cx, fun, scopeChain);
+    if (!resultObject)
+        return false;
+
+    RootedValue result(cx);
+    result.setObject(*resultObject);
+    iter.storeInstructionResult(result);
+    return true;
+}
+
+bool
+MLambdaArrow::writeRecoverData(CompactBufferWriter& writer) const
+{
+    MOZ_ASSERT(canRecoverOnBailout());
+    writer.writeUnsigned(uint32_t(RInstruction::Recover_LambdaArrow));
+    return true;
+}
+
+RLambdaArrow::RLambdaArrow(CompactBufferReader& reader)
+{
+}
+
+bool
+RLambdaArrow::recover(JSContext* cx, SnapshotIterator& iter) const
+{
+    RootedObject scopeChain(cx, &iter.read().toObject());
+    RootedValue newTarget(cx, iter.read());
+    RootedFunction fun(cx, &iter.read().toObject().as<JSFunction>());
+
+    JSObject* resultObject = js::LambdaArrow(cx, fun, scopeChain, newTarget);
     if (!resultObject)
         return false;
 

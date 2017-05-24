@@ -21,7 +21,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetrySend",
 const gIsWindows = AppConstants.platform == "win";
 const gIsMac = AppConstants.platform == "macosx";
 const gIsAndroid = AppConstants.platform == "android";
-const gIsGonk = AppConstants.platform == "gonk";
 const gIsLinux = AppConstants.platform == "linux";
 
 const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
@@ -87,8 +86,7 @@ const PingServer = {
     const deferred = this._defers[this._currentDeferred++];
     // Send the ping to the consumer on the next tick, so that the completion gets
     // signaled to Telemetry.
-    return new Promise(r => Services.tm.currentThread.dispatch(() => r(deferred.promise),
-                                                               Ci.nsIThread.DISPATCH_NORMAL));
+    return new Promise(r => Services.tm.dispatchToMainThread(() => r(deferred.promise)));
   },
 
   promiseNextPing() {
@@ -309,9 +307,17 @@ if (runningInParent) {
   Services.prefs.setBoolPref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
   // FHR uploads should be enabled.
   Services.prefs.setBoolPref("datareporting.healthreport.uploadEnabled", true);
+  // Many tests expect the shutdown ping to not be sent on shutdown and will fail
+  // if receive an unexpected ping. Let's globally disable the shutdown ping sender:
+  // the relevant tests will enable this pref when needed.
+  Services.prefs.setBoolPref("toolkit.telemetry.shutdownPingSender.enabled", false);
+  // Ensure browser experiments are also disabled, to avoid network activity
+  // when toggling PREF_ENABLED.
+  Services.prefs.setBoolPref("experiments.enabled", false);
+
 
   fakePingSendTimer((callback, timeout) => {
-    Services.tm.mainThread.dispatch(() => callback(), Ci.nsIThread.DISPATCH_NORMAL);
+    Services.tm.dispatchToMainThread(() => callback());
   },
   () => {});
 

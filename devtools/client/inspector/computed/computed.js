@@ -223,7 +223,6 @@ function CssComputedView(inspector, document, pageStyle) {
 
   // Add the tooltips and highlightersoverlay
   this.tooltips = new TooltipsOverlay(this);
-  this.tooltips.addToView();
 
   this.highlighters.addToView(this);
 }
@@ -618,20 +617,27 @@ CssComputedView.prototype = {
    */
   createBoxModelView: function () {
     let {
+      setSelectedNode,
+      onShowBoxModelHighlighterForNode,
+    } = this.inspector.getCommonComponentProps();
+
+    let {
       onHideBoxModelHighlighter,
       onShowBoxModelEditor,
       onShowBoxModelHighlighter,
       onToggleGeometryEditor,
-    } = this.inspector.boxmodel.getComponentProps();
+    } = this.inspector.getPanel("boxmodel").getComponentProps();
 
     let provider = createElement(
       Provider,
       { store: this.store },
       BoxModelApp({
+        setSelectedNode,
         showBoxModelProperties: false,
         onHideBoxModelHighlighter,
         onShowBoxModelEditor,
         onShowBoxModelHighlighter,
+        onShowBoxModelHighlighterForNode,
         onToggleGeometryEditor,
       })
     );

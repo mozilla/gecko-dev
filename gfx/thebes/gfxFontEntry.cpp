@@ -141,6 +141,8 @@ gfxFontEntry::gfxFontEntry(const nsAString& aName, bool aIsStandardFace) :
 
 gfxFontEntry::~gfxFontEntry()
 {
+    // Should not be dropped by stylo
+    MOZ_ASSERT(NS_IsMainThread());
     if (mCOLR) {
         hb_blob_destroy(mCOLR);
     }
@@ -346,12 +348,12 @@ gfxFontEntry::GetSVGGlyphExtents(DrawTarget* aDrawTarget, uint32_t aGlyphId,
     return mSVGGlyphs->GetGlyphExtents(aGlyphId, svgToAppSpace, aResult);
 }
 
-bool
+void
 gfxFontEntry::RenderSVGGlyph(gfxContext *aContext, uint32_t aGlyphId,
                              SVGContextPaint* aContextPaint)
 {
     NS_ASSERTION(mSVGInitialized, "SVG data has not yet been loaded. TryGetSVGData() first.");
-    return mSVGGlyphs->RenderGlyph(aContext, aGlyphId, aContextPaint);
+    mSVGGlyphs->RenderGlyph(aContext, aGlyphId, aContextPaint);
 }
 
 bool
@@ -1534,6 +1536,13 @@ gfxFontFamily::SearchAllFontsForChar(GlobalFontMatch *aMatchData)
             }
         }
     }
+}
+
+/*virtual*/
+gfxFontFamily::~gfxFontFamily()
+{
+    // Should not be dropped by stylo
+    MOZ_ASSERT(NS_IsMainThread());
 }
 
 /*static*/ void

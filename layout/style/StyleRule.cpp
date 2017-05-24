@@ -1062,6 +1062,7 @@ public:
   virtual DeclarationBlock* GetCSSDeclaration(Operation aOperation) override;
   virtual nsresult SetCSSDeclaration(DeclarationBlock* aDecl) override;
   virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) override;
+  nsDOMCSSDeclaration::ServoCSSParsingEnvironment GetServoCSSParsingEnvironment() const final;
   virtual nsIDocument* DocToUpdate() override;
 
   // Override |AddRef| and |Release| for being owned by StyleRule.  Also, we
@@ -1118,6 +1119,12 @@ void
 DOMCSSDeclarationImpl::GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv)
 {
   GetCSSParsingEnvironmentForRule(mRule, aCSSParseEnv);
+}
+
+nsDOMCSSDeclaration::ServoCSSParsingEnvironment
+DOMCSSDeclarationImpl::GetServoCSSParsingEnvironment() const
+{
+  MOZ_CRASH("GetURLData shouldn't be calling on a Gecko rule");
 }
 
 NS_IMETHODIMP

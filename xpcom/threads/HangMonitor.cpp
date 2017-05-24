@@ -15,6 +15,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "nsReadableUtils.h"
+#include "nsThreadUtils.h"
 #include "mozilla/StackWalk.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
@@ -182,7 +183,7 @@ GetChromeHangReport(Telemetry::ProcessedStack& aStack,
 
   // Record Firefox uptime (in minutes) at the time of the hang
   bool error;
-  TimeStamp processCreation = TimeStamp::ProcessCreation(error);
+  TimeStamp processCreation = TimeStamp::ProcessCreation(&error);
   if (!error) {
     TimeDuration td = TimeStamp::Now() - processCreation;
     aFirefoxUptime = (static_cast<int32_t>(td.ToSeconds()) - (gTimeout * 2)) / 60;
@@ -197,7 +198,7 @@ void
 ThreadMain(void*)
 {
   AutoProfilerRegister registerThread("Hang Monitor");
-  PR_SetCurrentThreadName("Hang Monitor");
+  NS_SetCurrentThreadName("Hang Monitor");
 
   MonitorAutoLock lock(*gMonitor);
 

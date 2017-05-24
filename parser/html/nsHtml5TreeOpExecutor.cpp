@@ -7,10 +7,10 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/nsCSPService.h"
+#include "mozilla/dom/ScriptLoader.h"
 
 #include "nsError.h"
 #include "nsHtml5TreeOpExecutor.h"
-#include "nsScriptLoader.h"
 #include "nsIContentViewer.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIDocShellTreeItem.h"
@@ -238,9 +238,14 @@ nsHtml5TreeOpExecutor::MarkAsBroken(nsresult aReason)
   // We are under memory pressure, but let's hope the following allocation
   // works out so that we get to terminate and clean up the parser from
   // a safer point.
-  if (mParser) { // can mParser ever be null here?
-    MOZ_ALWAYS_SUCCEEDS(
-      NS_DispatchToMainThread(NewRunnableMethod(GetParser(), &nsHtml5Parser::Terminate)));
+  if (mParser && mDocument) { // can mParser ever be null here?
+    nsCOMPtr<nsIRunnable> terminator =
+      NewRunnableMethod(GetParser(), &nsHtml5Parser::Terminate);
+    if (NS_FAILED(mDocument->Dispatch("nsHtml5Parser::Terminate",
+                                      TaskCategory::Network,
+                                      terminator.forget()))) {
+      NS_WARNING("failed to dispatch executor flush event");
+    }
   }
   return aReason;
 }
@@ -264,9 +269,9 @@ void
 nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync()
 {
   if (!mDocument || !mDocument->IsInBackgroundWindow()) {
-    nsCOMPtr<nsIRunnable> flusher = new nsHtml5ExecutorReflusher(this);  
+    nsCOMPtr<nsIRunnable> flusher = new nsHtml5ExecutorReflusher(this);
     if (NS_FAILED(mDocument->Dispatch("nsHtml5ExecutorReflusher",
-                                      TaskCategory::Other,
+                                      TaskCategory::Network,
                                       flusher.forget()))) {
       NS_WARNING("failed to dispatch executor flush event");
     }
@@ -953,8 +958,8 @@ nsHtml5TreeOpExecutor::PreloadScript(const nsAString& aURL,
     return;
   }
   mDocument->ScriptLoader()->PreloadURI(uri, aCharset, aType, aCrossOrigin,
-                                        aIntegrity, aScriptFromHead,
-                                        mSpeculationReferrerPolicy);
+                                           aIntegrity, aScriptFromHead,
+                                           mSpeculationReferrerPolicy);
 }
 
 void
@@ -984,14 +989,10 @@ nsHtml5TreeOpExecutor::PreloadImage(const nsAString& aURL,
   if (uri && ShouldPreloadURI(uri)) {
     // use document wide referrer policy
     mozilla::net::ReferrerPolicy referrerPolicy = mSpeculationReferrerPolicy;
-    // if enabled in preferences, use the referrer attribute from the image, if provided
-    bool referrerAttributeEnabled = Preferences::GetBool("network.http.enablePerElementReferrer", true);
-    if (referrerAttributeEnabled) {
-      mozilla::net::ReferrerPolicy imageReferrerPolicy =
-        mozilla::net::AttributeReferrerPolicyFromString(aImageReferrerPolicy);
-      if (imageReferrerPolicy != mozilla::net::RP_Unset) {
-        referrerPolicy = imageReferrerPolicy;
-      }
+    mozilla::net::ReferrerPolicy imageReferrerPolicy =
+      mozilla::net::AttributeReferrerPolicyFromString(aImageReferrerPolicy);
+    if (imageReferrerPolicy != mozilla::net::RP_Unset) {
+      referrerPolicy = imageReferrerPolicy;
     }
 
     mDocument->MaybePreLoadImage(uri, aCrossOrigin, referrerPolicy);

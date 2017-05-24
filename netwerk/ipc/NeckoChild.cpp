@@ -23,7 +23,9 @@
 #include "mozilla/dom/network/TCPServerSocketChild.h"
 #include "mozilla/dom/network/UDPSocketChild.h"
 #include "mozilla/net/AltDataOutputStreamChild.h"
+#ifdef MOZ_WEBRTC
 #include "mozilla/net/StunAddrsRequestChild.h"
+#endif
 
 #ifdef NECKO_PROTOCOL_rtsp
 #include "mozilla/net/RtspControllerChild.h"
@@ -102,8 +104,10 @@ NeckoChild::AllocPStunAddrsRequestChild()
 bool
 NeckoChild::DeallocPStunAddrsRequestChild(PStunAddrsRequestChild* aActor)
 {
+#ifdef MOZ_WEBRTC
   StunAddrsRequestChild* p = static_cast<StunAddrsRequestChild*>(aActor);
   p->ReleaseIPDLReference();
+#endif
   return true;
 }
 
@@ -226,6 +230,20 @@ bool
 NeckoChild::DeallocPDataChannelChild(PDataChannelChild* child)
 {
   // NB: See DataChannelChild::ActorDestroy.
+  return true;
+}
+
+PFileChannelChild*
+NeckoChild::AllocPFileChannelChild(const uint32_t& channelId)
+{
+  MOZ_ASSERT_UNREACHABLE("Should never get here");
+  return nullptr;
+}
+
+bool
+NeckoChild::DeallocPFileChannelChild(PFileChannelChild* child)
+{
+  // NB: See FileChannelChild::ActorDestroy.
   return true;
 }
 

@@ -381,6 +381,7 @@ class BuildOptionParser(object):
         'debug-artifact': 'builds/releng_sub_%s_configs/%s_debug_artifact.py',
         'qr-debug': 'builds/releng_sub_%s_configs/%s_qr_debug.py',
         'qr-opt': 'builds/releng_sub_%s_configs/%s_qr_opt.py',
+        'devedition': 'builds/releng_sub_%s_configs/%s_devedition.py',
     }
     build_pool_cfg_file = 'builds/build_pool_specifics.py'
     branch_cfg_file = 'builds/branch_specifics.py'
@@ -749,9 +750,8 @@ or run without that action (ie: --no-{action})"
             app_ini_path = dirs['abs_app_ini_path']
         if (os.path.exists(print_conf_setting_path) and
                 os.path.exists(app_ini_path)):
-            python = self.query_exe('python2.7')
             cmd = [
-                python, os.path.join(dirs['abs_src_dir'], 'mach'), 'python',
+                sys.executable, os.path.join(dirs['abs_src_dir'], 'mach'), 'python',
                 print_conf_setting_path, app_ini_path,
                 'App', prop
             ]
@@ -1037,21 +1037,6 @@ or run without that action (ie: --no-{action})"
 
         return post_upload_cmd
 
-    def _ccache_z(self):
-        """clear ccache stats."""
-        dirs = self.query_abs_dirs()
-        env = self.query_build_env()
-        self.run_command(command=['ccache', '-z'],
-                         cwd=dirs['base_work_dir'],
-                         env=env)
-
-    def _ccache_s(self):
-        """print ccache stats. only done for unix like platforms"""
-        dirs = self.query_abs_dirs()
-        env = self.query_build_env()
-        cmd = ['ccache', '-s']
-        self.run_command(cmd, cwd=dirs['abs_src_dir'], env=env)
-
     def _rm_old_package(self):
         """rm the old package."""
         c = self.config
@@ -1121,36 +1106,40 @@ or run without that action (ie: --no-{action})"
             return fn
 
     def _run_tooltool(self):
+        env = self.query_build_env()
+        env.update(self.query_mach_build_env())
+
         self._assert_cfg_valid_for_action(
-            ['tooltool_script', 'tooltool_bootstrap', 'tooltool_url'],
+            ['tooltool_script', 'tooltool_url'],
             'build'
         )
         c = self.config
         dirs = self.query_abs_dirs()
         if not c.get('tooltool_manifest_src'):
             return self.warning(ERROR_MSGS['tooltool_manifest_undetermined'])
-        fetch_script_path = os.path.join(dirs['abs_tools_dir'],
-                                         'scripts',
-                                         'tooltool',
-                                         'tooltool_wrapper.sh')
         tooltool_manifest_path = os.path.join(dirs['abs_src_dir'],
                                               c['tooltool_manifest_src'])
         cmd = [
-            'sh',
-            fetch_script_path,
+            sys.executable, '-u',
+            os.path.join(dirs['abs_src_dir'], 'mach'),
+            'artifact',
+            'toolchain',
+            '-v',
+            '--retry', '4',
+            '--tooltool-manifest',
             tooltool_manifest_path,
+            '--tooltool-url',
             c['tooltool_url'],
-            c['tooltool_bootstrap'],
         ]
-        cmd.extend(c['tooltool_script'])
         auth_file = self._get_tooltool_auth_file()
         if auth_file:
             cmd.extend(['--authentication-file', auth_file])
         cache = c['env'].get('TOOLTOOL_CACHE')
         if cache:
-            cmd.extend(['-c', cache])
+            cmd.extend(['--cache-dir', cache])
         self.info(str(cmd))
-        self.run_command_m(cmd, cwd=dirs['abs_src_dir'], halt_on_failure=True)
+        self.run_command_m(cmd, cwd=dirs['abs_src_dir'], halt_on_failure=True,
+                           env=env)
 
     def query_revision(self, source_path=None):
         """ returns the revision of the build
@@ -1299,9 +1288,8 @@ or run without that action (ie: --no-{action})"
                                             dirs['abs_app_ini_path']),
                      level=error_level)
         self.info("Setting properties found in: %s" % dirs['abs_app_ini_path'])
-        python = self.query_exe('python2.7')
         base_cmd = [
-            python, os.path.join(dirs['abs_src_dir'], 'mach'), 'python',
+            sys.executable, os.path.join(dirs['abs_src_dir'], 'mach'), 'python',
             print_conf_setting_path, dirs['abs_app_ini_path'], 'App'
         ]
         properties_needed = [
@@ -1407,6 +1395,7 @@ or run without that action (ie: --no-{action})"
             routes.append(template.format(**fmt))
         self.info("Using routes: %s" % routes)
 
+        taskid = self.buildbot_config['properties'].get('upload_to_task_id')
         tc = Taskcluster(
             branch=self.branch,
             rank=pushinfo.pushdate, # Use pushdate as the rank
@@ -1415,10 +1404,13 @@ or run without that action (ie: --no-{action})"
             log_obj=self.log_obj,
             # `upload_to_task_id` is used by mozci to have access to where the artifacts
             # will be uploaded
-            task_id=self.buildbot_config['properties'].get('upload_to_task_id'),
+            task_id=taskid,
         )
 
-        task = tc.create_task(routes)
+        if taskid:
+            task = tc.get_task(taskid)
+        else:
+            task = tc.create_task(routes)
         tc.claim_task(task)
 
         # Only those files uploaded with valid extensions are processed.
@@ -1593,9 +1585,6 @@ or run without that action (ie: --no-{action})"
 
     def preflight_build(self):
         """set up machine state for a complete build."""
-        c = self.config
-        if c.get('enable_ccache'):
-            self._ccache_z()
         if not self.query_is_nightly():
             # the old package should live in source dir so we don't need to do
             # this for nighties since we clobber the whole work_dir in
@@ -1628,12 +1617,8 @@ or run without that action (ie: --no-{action})"
                 buildprops,
                 os.path.join(dirs['abs_work_dir'], 'buildprops.json'))
 
-        # use mh config override for mach build wrapper, if it exists
-        python = self.query_exe('python2.7')
-        default_mach_build = [python, 'mach', '--log-no-times', 'build', '-v']
-        mach_build = self.query_exe('mach-build', default=default_mach_build)
         return_code = self.run_command_m(
-            command=mach_build,
+            command=[sys.executable, 'mach', '--log-no-times', 'build', '-v'],
             cwd=dirs['abs_src_dir'],
             env=env,
             output_timeout=self.config.get('max_build_output_timeout', 60 * 40)
@@ -1681,7 +1666,7 @@ or run without that action (ie: --no-{action})"
             multil10n_path = '%s/scripts/scripts/multil10n.py' % base_work_dir,
 
         cmd = [
-            self.query_exe('python'),
+            sys.executable,
             multil10n_path,
             '--config-file',
             'multi_locale/%s_%s.json' % (branch, multi_config_pf),
@@ -1743,9 +1728,6 @@ or run without that action (ie: --no-{action})"
         """grabs properties from post build and calls ccache -s"""
         self.generate_build_props(console_output=console_output,
                                   halt_on_failure=True)
-        if self.config.get('enable_ccache'):
-            self._ccache_s()
-
         # A list of argument lists.  Better names gratefully accepted!
         mach_commands = self.config.get('postflight_build_mach_commands', [])
         for mach_command in mach_commands:
@@ -1754,9 +1736,8 @@ or run without that action (ie: --no-{action})"
     def _execute_postflight_build_mach_command(self, mach_command_args):
         env = self.query_build_env()
         env.update(self.query_mach_build_env())
-        python = self.query_exe('python2.7')
 
-        command = [python, 'mach', '--log-no-times']
+        command = [sys.executable, 'mach', '--log-no-times']
         command.extend(mach_command_args)
 
         self.run_command_m(
@@ -1773,11 +1754,10 @@ or run without that action (ie: --no-{action})"
         """generates source archives and uploads them"""
         env = self.query_build_env()
         env.update(self.query_mach_build_env())
-        python = self.query_exe('python2.7')
         dirs = self.query_abs_dirs()
 
         self.run_command_m(
-            command=[python, 'mach', '--log-no-times', 'configure'],
+            command=[sys.executable, 'mach', '--log-no-times', 'configure'],
             cwd=dirs['abs_src_dir'],
             env=env, output_timeout=60*3, halt_on_failure=True,
         )
@@ -1829,18 +1809,19 @@ or run without that action (ie: --no-{action})"
         env = self.query_build_env()
         env.update(self.query_check_test_env())
 
-        if c.get('enable_pymake'):  # e.g. windows
-            pymake_path = os.path.join(dirs['abs_src_dir'], 'build',
-                                       'pymake', 'make.py')
-            cmd = ['python', pymake_path]
-        else:
-            cmd = ['make']
-        cmd.extend(['-k', 'check'])
+        cmd = [
+            sys.executable, 'mach',
+            '--log-no-times',
+            'build',
+            '-v',
+            '--keep-going',
+            'check',
+        ]
 
         parser = CheckTestCompleteParser(config=c,
                                          log_obj=self.log_obj)
         return_code = self.run_command_m(command=cmd,
-                                         cwd=dirs['abs_obj_dir'],
+                                         cwd=dirs['abs_src_dir'],
                                          env=env,
                                          output_parser=parser)
         tbpl_status = parser.evaluate_parser(return_code)
@@ -1851,8 +1832,8 @@ or run without that action (ie: --no-{action})"
                 return_code,  self.return_code,
                 AUTOMATION_EXIT_CODES[::-1]
             )
-            self.error("'make -k check' did not run successfully. Please check "
-                       "log for errors.")
+            self.error("'mach build check' did not run successfully. Please "
+                       "check log for errors.")
 
     def _load_build_resources(self):
         p = self.config.get('build_resources_path') % self.query_abs_dirs()
@@ -1884,11 +1865,45 @@ or run without that action (ie: --no-{action})"
 
         return data
 
-    def get_firefox_version(self):
-        versionFilePath = os.path.join(
-            self.query_abs_dirs()['abs_src_dir'], 'browser/config/version.txt')
-        with open(versionFilePath, 'r') as versionFile:
-            return versionFile.readline().strip()
+
+    def _load_sccache_stats(self):
+        stats_file = os.path.join(
+            self.query_abs_dirs()['abs_obj_dir'], 'sccache-stats.json'
+        )
+        if not os.path.exists(stats_file):
+            self.info('%s does not exist; not loading sccache stats' % stats_file)
+            return
+
+        with open(stats_file, 'rb') as fh:
+            stats = json.load(fh)
+
+        total = stats['stats']['requests_executed']
+        hits = stats['stats']['cache_hits']
+        if total > 0:
+            hits /= float(total)
+
+        yield {
+            'name': 'sccache hit rate',
+            'value': hits,
+            'extraOptions': self.perfherder_resource_options(),
+            'subtests': [],
+        }
+
+        yield {
+            'name': 'sccache cache_write_errors',
+            'value': stats['stats']['cache_write_errors'],
+            'extraOptions': self.perfherder_resource_options(),
+            'alertThreshold': 50.0,
+            'subtests': [],
+        }
+
+        yield {
+            'name': 'sccache requests_not_cacheable',
+            'value': stats['stats']['requests_not_cacheable'],
+            'extraOptions': self.perfherder_resource_options(),
+            'alertThreshold': 50.0,
+            'subtests': [],
+        }
 
     def generate_build_stats(self):
         """grab build stats following a compile.
@@ -1920,17 +1935,9 @@ or run without that action (ie: --no-{action})"
         # then assume we are using MOZ_SIMPLE_PACKAGE_NAME, which means the
         # package is named one of target.{tar.bz2,zip,dmg}.
         if not packageName:
-            firefox_version = self.get_firefox_version()
             dist_dir = os.path.join(dirs['abs_obj_dir'], 'dist')
             for ext in ['apk', 'dmg', 'tar.bz2', 'zip']:
                 name = 'target.' + ext
-                if os.path.exists(os.path.join(dist_dir, name)):
-                    packageName = name
-                    break
-                # if we are not using MOZ_SIMPLE_PACKAGE_NAME, check for the
-                # default package naming convention
-                name = 'firefox-{}.en-US.{}.{}'.format(
-                    firefox_version, c.get('platform'), ext)
                 if os.path.exists(os.path.join(dist_dir, name)):
                     packageName = name
                     break
@@ -1987,24 +1994,55 @@ or run without that action (ie: --no-{action})"
             },
             "suites": [],
         }
-        if installer_size or size_measurements:
-            perfherder_data["suites"].append({
-                "name": "installer size",
-                "value": installer_size,
-                "alertThreshold": 0.25,
-                "subtests": size_measurements
+        if (installer_size or size_measurements) and not c.get('debug_build'):
+            if installer.endswith('.apk'): # Android
+                perfherder_data["suites"].append({
+                    "name": "installer size",
+                    "value": installer_size,
+                    "alertChangeType": "absolute",
+                    "alertThreshold": (200 * 1024),
+                    "subtests": size_measurements
+                })
+            else:
+                perfherder_data["suites"].append({
+                    "name": "installer size",
+                    "value": installer_size,
+                    "alertThreshold": 1.0,
+                    "subtests": size_measurements
+                })
+
+        # Extract compiler warnings count.
+        warnings = self.get_output_from_command(
+            command=[sys.executable, 'mach', 'warnings-list'],
+            cwd=self.query_abs_dirs()['abs_src_dir'],
+            env=self.query_build_env(),
+            # No need to pollute the log.
+            silent=True,
+            # Fail fast.
+            halt_on_failure=True)
+
+        if warnings is not None:
+            perfherder_data['suites'].append({
+                'name': 'compiler warnings',
+                'value': len(warnings.strip().splitlines()),
+                'alertThreshold': 1.0,
+                'subtests': [],
             })
 
         build_metrics = self._load_build_resources()
         if build_metrics:
             perfherder_data['suites'].append(build_metrics)
+        perfherder_data['suites'].extend(self._load_sccache_stats())
+
+        # Ensure all extra options for this configuration are present.
+        for opt in self.config.get('perfherder_extra_options', []):
+            for suite in perfherder_data['suites']:
+                if opt not in suite.get('extraOptions', []):
+                    suite.setdefault('extraOptions', []).append(opt)
 
         if self.query_is_nightly():
             for suite in perfherder_data['suites']:
-                if 'extraOptions' in suite:
-                    suite['extraOptions'] = ['nightly'] + suite['extraOptions']
-                else:
-                    suite['extraOptions'] = ['nightly']
+                suite.setdefault('extraOptions', []).insert(0, 'nightly')
 
         if perfherder_data["suites"]:
             self.info('PERFHERDER_DATA: %s' % json.dumps(perfherder_data))
@@ -2126,25 +2164,14 @@ or run without that action (ie: --no-{action})"
             self.generate_balrog_props(props_path)
             return
 
-        if not self.config.get("balrog_servers"):
-            self.fatal("balrog_servers not set; skipping balrog submission.")
-            return
-
-        if self.submit_balrog_updates():
-            # set the build to orange so it is at least caught
-            self.return_code = self.worst_level(
-                EXIT_STATUS_DICT[TBPL_WARNING], self.return_code,
-                AUTOMATION_EXIT_CODES[::-1]
-            )
 
     def valgrind_test(self):
         '''Execute mach's valgrind-test for memory leaks'''
         env = self.query_build_env()
         env.update(self.query_mach_build_env())
 
-        python = self.query_exe('python2.7')
         return_code = self.run_command_m(
-            command=[python, 'mach', 'valgrind-test'],
+            command=[sys.executable, 'mach', 'valgrind-test'],
             cwd=self.query_abs_dirs()['abs_src_dir'],
             env=env, output_timeout=self.config.get('max_build_output_timeout', 60 * 40)
         )

@@ -5,13 +5,14 @@
 //! Common handling for the specified value CSS url() values.
 
 use cssparser::CssStringWriter;
-use gecko_bindings::structs::ServoBundledURI;
-use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
+use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
+use gecko_bindings::structs::root::mozilla::css::ImageValue;
+use gecko_bindings::sugar::refptr::RefPtr;
 use parser::ParserContext;
 use std::borrow::Cow;
 use std::fmt::{self, Write};
-use std::sync::Arc;
 use style_traits::ToCss;
+use stylearc::Arc;
 
 /// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
 #[derive(Clone, Debug, PartialEq)]
@@ -22,12 +23,12 @@ pub struct SpecifiedUrl {
     /// really large.
     serialization: Arc<String>,
 
-    /// The base URI.
-    pub base: GeckoArcURI,
-    /// The referrer.
-    pub referrer: GeckoArcURI,
-    /// The principal that originated this URI.
-    pub principal: GeckoArcPrincipal,
+    /// The URL extra data.
+    pub extra_data: RefPtr<URLExtraData>,
+
+    /// Cache ImageValue, if any, so that we can reuse it while rematching a
+    /// a property with this specified url value.
+    pub image_value: Option<RefPtr<ImageValue>>,
 }
 
 impl SpecifiedUrl {
@@ -38,20 +39,10 @@ impl SpecifiedUrl {
     pub fn parse_from_string<'a>(url: Cow<'a, str>,
                                  context: &ParserContext)
                                  -> Result<Self, ()> {
-        let extra = &context.extra_data;
-        if extra.base.is_none() || extra.referrer.is_none() || extra.principal.is_none() {
-            // FIXME(heycam) should ensure we always have a principal, etc.,
-            // when parsing style attributes and re-parsing due to CSS
-            // Variables.
-            warn!("stylo: skipping declaration without ParserContextExtraData");
-            return Err(())
-        }
-
         Ok(SpecifiedUrl {
             serialization: Arc::new(url.into_owned()),
-            base: extra.base.as_ref().unwrap().clone(),
-            referrer: extra.referrer.as_ref().unwrap().clone(),
-            principal: extra.principal.as_ref().unwrap().clone(),
+            extra_data: context.url_data.clone(),
+            image_value: None,
         })
     }
 
@@ -88,9 +79,22 @@ impl SpecifiedUrl {
         ServoBundledURI {
             mURLString: ptr,
             mURLStringLength: len as u32,
-            mBaseURI: self.base.get(),
-            mReferrer: self.referrer.get(),
-            mPrincipal: self.principal.get(),
+            mExtraData: self.extra_data.get(),
+        }
+    }
+
+    /// Build and carry an image value on request.
+    pub fn build_image_value(&mut self) {
+        use gecko_bindings::bindings::Gecko_ImageValue_Create;
+
+        debug_assert_eq!(self.image_value, None);
+        self.image_value = {
+            unsafe {
+                let ptr = Gecko_ImageValue_Create(self.for_ffi());
+                // We do not expect Gecko_ImageValue_Create returns null.
+                debug_assert!(!ptr.is_null());
+                Some(RefPtr::from_addrefed(ptr))
+            }
         }
     }
 }

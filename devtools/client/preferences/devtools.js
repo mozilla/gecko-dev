@@ -62,7 +62,7 @@ pref("devtools.inspector.showUserAgentStyles", false);
 // Show all native anonymous content (like controls in <video> tags)
 pref("devtools.inspector.showAllAnonymousContent", false);
 // Enable the MDN docs tooltip
-pref("devtools.inspector.mdnDocsTooltip.enabled", true);
+pref("devtools.inspector.mdnDocsTooltip.enabled", false);
 // Enable the new color widget
 pref("devtools.inspector.colorWidget.enabled", false);
 
@@ -150,6 +150,9 @@ pref("devtools.netmonitor.enabled", true);
 pref("devtools.netmonitor.panes-network-details-width", 550);
 pref("devtools.netmonitor.panes-network-details-height", 450);
 pref("devtools.netmonitor.filters", "[\"all\"]");
+pref("devtools.netmonitor.hiddenColumns",
+  "[\"cookies\",\"duration\",\"endTime\",\"latency\",\"protocol\",\"remoteip\",\"responseTime\",\"scheme\",\"setCookies\",\"startTime\"]"
+);
 
 // The default Network monitor HAR export setting
 pref("devtools.netmonitor.har.defaultLogDir", "");
@@ -180,7 +183,7 @@ pref("devtools.scratchpad.editorFontSize", 12);
 pref("devtools.scratchpad.enableAutocompletion", true);
 
 // Enable the Storage Inspector
-pref("devtools.storage.enabled", false);
+pref("devtools.storage.enabled", true);
 
 // Enable the Style Editor.
 pref("devtools.styleeditor.enabled", true);
@@ -300,13 +303,6 @@ pref("devtools.webconsole.new-frontend-enabled", true);
 #else
 pref("devtools.webconsole.new-frontend-enabled", false);
 #endif
-
-// Enable the server-side mapping service for source maps in console (deprecated)
-// NOTE: This approach to source maps uses server-side source maps, which we are
-// replacing with client-side source maps.  Do not use this in new code paths.
-// To be removed in bug 1349354.  Read more about ongoing work with source maps:
-// https://docs.google.com/document/d/19TKnMJD3CMBzwByNE4aBBVWnl-AEan8Sf4hxi6J-eps/edit
-pref("devtools.source-map.locations.enabled", false);
 
 // Enable client-side mapping service for source maps
 pref("devtools.source-map.client-service.enabled", true);

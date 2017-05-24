@@ -7,15 +7,26 @@
 #define MOZILLA_GFX_WEBRENDERTEXTUREHOST_H
 
 #include "mozilla/layers/TextureHost.h"
+#include "mozilla/webrender/WebRenderTypes.h"
 
 namespace mozilla {
 namespace layers {
 
+class SurfaceDescriptor;
+
+// This textureHost is specialized for WebRender usage. With WebRender, there is
+// no Compositor during composition. Instead, we use RendererOGL for composition.
+// So, there are some UNREACHABLE asserts for the original Compositor related
+// code path in this class. Furthermore, the RendererOGL runs at RenderThead
+// instead of Compositor thread. This class is also creating the corresponding
+// RenderXXXTextureHost used by RendererOGL at RenderThread.
 class WebRenderTextureHost : public TextureHost
 {
 public:
-  WebRenderTextureHost(TextureFlags aFlags,
-                       TextureHost* aTexture);
+  WebRenderTextureHost(const SurfaceDescriptor& aDesc,
+                       TextureFlags aFlags,
+                       TextureHost* aTexture,
+                       wr::ExternalImageId& aExternalImageId);
   virtual ~WebRenderTextureHost();
 
   virtual void DeallocateDeviceData() override {}
@@ -27,6 +38,12 @@ public:
   virtual void Unlock() override;
 
   virtual gfx::SurfaceFormat GetFormat() const override;
+
+  // Return the format used for reading the texture. Some hardware specific
+  // textureHosts use their special data representation internally, but we could
+  // treat these textureHost as the read-format when we read them.
+  // Please check TextureHost::GetReadFormat().
+  virtual gfx::SurfaceFormat GetReadFormat() const override;
 
   virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) override;
 
@@ -42,14 +59,23 @@ public:
 
   virtual WebRenderTextureHost* AsWebRenderTextureHost() override { return this; }
 
-  uint64_t GetExternalImageKey() { return mExternalImageId; }
+  wr::ExternalImageId GetExternalImageKey() { return mExternalImageId; }
 
   int32_t GetRGBStride();
-protected:
-  RefPtr<TextureHost> mWrappedTextureHost;
-  uint64_t mExternalImageId;
 
-  static uint64_t sSerialCounter;
+  bool IsWrappingNativeHandle() { return mIsWrappingNativeHandle; }
+
+  virtual void AddWRImage(wr::WebRenderAPI* aAPI,
+                          Range<const wr::ImageKey>& aImageKeys,
+                          const wr::ExternalImageId& aExtID) override;
+
+protected:
+  void CreateRenderTextureHost(const SurfaceDescriptor& aDesc, TextureHost* aTexture);
+
+  RefPtr<TextureHost> mWrappedTextureHost;
+  wr::ExternalImageId mExternalImageId;
+
+  bool mIsWrappingNativeHandle;
 };
 
 } // namespace layers

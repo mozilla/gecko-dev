@@ -33,6 +33,7 @@ protected:
   nsresult SetCSSDeclaration(DeclarationBlock* aDecl) final;
   nsIDocument* DocToUpdate() final;
   void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) final;
+  ServoCSSParsingEnvironment GetServoCSSParsingEnvironment() const final;
 
 private:
   // For accessing the constructor.
@@ -43,6 +44,7 @@ private:
   ~ServoStyleRuleDeclaration();
 
   inline ServoStyleRule* Rule();
+  inline const ServoStyleRule* Rule() const;
 
   RefPtr<ServoDeclarationBlock> mDecls;
 };
@@ -51,18 +53,19 @@ class ServoStyleRule final : public BindingStyleRule
                            , public nsIDOMCSSStyleRule
 {
 public:
-  explicit ServoStyleRule(already_AddRefed<RawServoStyleRule> aRawRule);
+  ServoStyleRule(already_AddRefed<RawServoStyleRule> aRawRule,
+                 uint32_t aLine, uint32_t aColumn);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(ServoStyleRule,
                                                          css::Rule)
-  virtual bool IsCCLeaf() const override MOZ_MUST_OVERRIDE;
+  virtual bool IsCCLeaf() const final MOZ_MUST_OVERRIDE;
   NS_DECL_NSIDOMCSSSTYLERULE
 
   // WebIDL interface
-  uint16_t Type() const override;
-  void GetCssTextImpl(nsAString& aCssText) const override;
-  virtual nsICSSDeclaration* Style() override;
+  uint16_t Type() const final;
+  void GetCssTextImpl(nsAString& aCssText) const final;
+  virtual nsICSSDeclaration* Style() final;
 
   RawServoStyleRule* Raw() const { return mRawRule; }
 
@@ -88,8 +91,15 @@ private:
 ServoStyleRule*
 ServoStyleRuleDeclaration::Rule()
 {
-  return reinterpret_cast<ServoStyleRule*>(reinterpret_cast<uint8_t*>(this) -
-                                           offsetof(ServoStyleRule, mDecls));
+  return reinterpret_cast<ServoStyleRule*>(
+    reinterpret_cast<uint8_t*>(this) - offsetof(ServoStyleRule, mDecls));
+}
+
+const ServoStyleRule*
+ServoStyleRuleDeclaration::Rule() const
+{
+  return reinterpret_cast<const ServoStyleRule*>(
+    reinterpret_cast<const uint8_t*>(this) - offsetof(ServoStyleRule, mDecls));
 }
 
 } // namespace mozilla

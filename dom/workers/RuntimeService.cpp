@@ -32,6 +32,7 @@
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/CycleCollectedJSContext.h"
+#include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/asmjscache/AsmJSCache.h"
@@ -255,7 +256,7 @@ GetWorkerPref(const nsACString& aPref,
 // "name|scriptSpec^key1=val1&key2=val2&key3=val3"
 void
 GenerateSharedWorkerKey(const nsACString& aScriptSpec,
-                        const nsACString& aName,
+                        const nsAString& aName,
                         const OriginAttributes& aAttrs,
                         nsCString& aKey)
 {
@@ -264,7 +265,7 @@ GenerateSharedWorkerKey(const nsACString& aScriptSpec,
 
   aKey.Truncate();
   aKey.SetCapacity(aName.Length() + aScriptSpec.Length() + suffix.Length() + 2);
-  aKey.Append(aName);
+  aKey.Append(NS_ConvertUTF16toUTF8(aName));
   aKey.Append('|');
   aKey.Append(aScriptSpec);
   aKey.Append(suffix);
@@ -1046,60 +1047,29 @@ static const JSWrapObjectCallbacks WrapObjectCallbacks = {
   nullptr,
 };
 
-class MOZ_STACK_CLASS WorkerJSContext final : public mozilla::CycleCollectedJSContext
+class WorkerJSRuntime final : public mozilla::CycleCollectedJSRuntime
 {
 public:
   // The heap size passed here doesn't matter, we will change it later in the
   // call to JS_SetGCParameter inside InitJSContextForWorker.
-  explicit WorkerJSContext(WorkerPrivate* aWorkerPrivate)
-    : mWorkerPrivate(aWorkerPrivate)
+  explicit WorkerJSRuntime(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
+    : CycleCollectedJSRuntime(aCx)
+    , mWorkerPrivate(aWorkerPrivate)
   {
+    MOZ_COUNT_CTOR_INHERITED(WorkerJSRuntime, CycleCollectedJSRuntime);
     MOZ_ASSERT(aWorkerPrivate);
   }
 
-  ~WorkerJSContext()
+  void Shutdown(JSContext* cx) override
   {
-    JSContext* cx = MaybeContext();
-    if (!cx) {
-      return;   // Initialize() must have failed
-    }
-
-    delete static_cast<WorkerThreadContextPrivate*>(JS_GetContextPrivate(cx));
-    JS_SetContextPrivate(cx, nullptr);
-
-    // The worker global should be unrooted and the shutdown cycle collection
-    // should break all remaining cycles. The superclass destructor will run
-    // the GC one final time and finalize any JSObjects that were participating
-    // in cycles that were broken during CC shutdown.
-    nsCycleCollector_shutdown();
-
     // The CC is shut down, and the superclass destructor will GC, so make sure
     // we don't try to CC again.
     mWorkerPrivate = nullptr;
   }
 
-  nsresult Initialize(JSRuntime* aParentRuntime)
+  ~WorkerJSRuntime()
   {
-    nsresult rv =
-      CycleCollectedJSContext::Initialize(aParentRuntime,
-                                          WORKER_DEFAULT_RUNTIME_HEAPSIZE,
-                                          WORKER_DEFAULT_NURSERY_SIZE);
-     if (NS_WARN_IF(NS_FAILED(rv))) {
-       return rv;
-     }
-
-    JSContext* cx = Context();
-
-    JS_SetContextPrivate(cx, new WorkerThreadContextPrivate(mWorkerPrivate));
-
-    js::SetPreserveWrapperCallback(cx, PreserveWrapper);
-    JS_InitDestroyPrincipalsCallback(cx, DestroyWorkerPrincipals);
-    JS_SetWrapObjectCallbacks(cx, &WrapObjectCallbacks);
-    if (mWorkerPrivate->IsDedicatedWorker()) {
-      JS_SetFutexCanWait(cx);
-    }
-
-    return NS_OK;
+    MOZ_COUNT_DTOR_INHERITED(WorkerJSRuntime, CycleCollectedJSRuntime);
   }
 
   virtual void
@@ -1138,6 +1108,73 @@ public:
     if (aStatus == JSGC_END) {
       nsCycleCollector_collect(nullptr);
     }
+  }
+
+private:
+  WorkerPrivate* mWorkerPrivate;
+};
+
+class MOZ_STACK_CLASS WorkerJSContext final : public mozilla::CycleCollectedJSContext
+{
+public:
+  // The heap size passed here doesn't matter, we will change it later in the
+  // call to JS_SetGCParameter inside InitJSContextForWorker.
+  explicit WorkerJSContext(WorkerPrivate* aWorkerPrivate)
+    : mWorkerPrivate(aWorkerPrivate)
+  {
+    MOZ_COUNT_CTOR_INHERITED(WorkerJSContext, CycleCollectedJSContext);
+    MOZ_ASSERT(aWorkerPrivate);
+  }
+
+  ~WorkerJSContext()
+  {
+    MOZ_COUNT_DTOR_INHERITED(WorkerJSContext, CycleCollectedJSContext);
+    JSContext* cx = MaybeContext();
+    if (!cx) {
+      return;   // Initialize() must have failed
+    }
+
+    delete static_cast<WorkerThreadContextPrivate*>(JS_GetContextPrivate(cx));
+    JS_SetContextPrivate(cx, nullptr);
+
+    // The worker global should be unrooted and the shutdown cycle collection
+    // should break all remaining cycles. The superclass destructor will run
+    // the GC one final time and finalize any JSObjects that were participating
+    // in cycles that were broken during CC shutdown.
+    nsCycleCollector_shutdown();
+
+    // The CC is shut down, and the superclass destructor will GC, so make sure
+    // we don't try to CC again.
+    mWorkerPrivate = nullptr;
+  }
+
+  CycleCollectedJSRuntime* CreateRuntime(JSContext* aCx) override
+  {
+    return new WorkerJSRuntime(aCx, mWorkerPrivate);
+  }
+
+  nsresult Initialize(JSRuntime* aParentRuntime)
+  {
+    nsresult rv =
+      CycleCollectedJSContext::Initialize(aParentRuntime,
+                                          WORKER_DEFAULT_RUNTIME_HEAPSIZE,
+                                          WORKER_DEFAULT_NURSERY_SIZE);
+     if (NS_WARN_IF(NS_FAILED(rv))) {
+       return rv;
+     }
+
+    JSContext* cx = Context();
+
+    JS_SetContextPrivate(cx, new WorkerThreadContextPrivate(mWorkerPrivate));
+
+    js::SetPreserveWrapperCallback(cx, PreserveWrapper);
+    JS_InitDestroyPrincipalsCallback(cx, DestroyWorkerPrincipals);
+    JS_SetWrapObjectCallbacks(cx, &WrapObjectCallbacks);
+    if (mWorkerPrivate->IsDedicatedWorker()) {
+      JS_SetFutexCanWait(cx);
+    }
+
+    return NS_OK;
   }
 
   virtual void AfterProcessTask(uint32_t aRecursionDepth) override
@@ -1648,7 +1685,7 @@ RuntimeService::RegisterWorker(WorkerPrivate* aWorkerPrivate)
     }
 
     if (isSharedWorker) {
-      const nsCString& sharedWorkerName = aWorkerPrivate->WorkerName();
+      const nsString& sharedWorkerName(aWorkerPrivate->WorkerName());
       nsAutoCString key;
       GenerateSharedWorkerKey(sharedWorkerScriptSpec, sharedWorkerName,
                               aWorkerPrivate->GetOriginAttributes(), key);
@@ -2395,7 +2432,7 @@ RuntimeService::ResumeWorkersForWindow(nsPIDOMWindowInner* aWindow)
 nsresult
 RuntimeService::CreateSharedWorker(const GlobalObject& aGlobal,
                                    const nsAString& aScriptURL,
-                                   const nsACString& aName,
+                                   const nsAString& aName,
                                    SharedWorker** aSharedWorker)
 {
   AssertIsOnMainThread();
@@ -2420,7 +2457,7 @@ nsresult
 RuntimeService::CreateSharedWorkerFromLoadInfo(JSContext* aCx,
                                                WorkerLoadInfo* aLoadInfo,
                                                const nsAString& aScriptURL,
-                                               const nsACString& aName,
+                                               const nsAString& aName,
                                                SharedWorker** aSharedWorker)
 {
   AssertIsOnMainThread();
@@ -2465,7 +2502,8 @@ RuntimeService::CreateSharedWorkerFromLoadInfo(JSContext* aCx,
   if (!workerPrivate) {
     workerPrivate =
       WorkerPrivate::Constructor(aCx, aScriptURL, false,
-                                 WorkerTypeShared, aName, aLoadInfo, rv);
+                                 WorkerTypeShared, aName, NullCString(),
+                                 aLoadInfo, rv);
     NS_ENSURE_TRUE(workerPrivate, rv.StealNSResult());
 
     created = true;
@@ -2676,6 +2714,13 @@ RuntimeService::MemoryPressureAllWorkers()
 uint32_t
 RuntimeService::ClampedHardwareConcurrency() const
 {
+  // The Firefox Hardware Report says 70% of Firefox users have exactly 2 cores.
+  // When the resistFingerprinting pref is set, we want to blend into the crowd
+  // so spoof navigator.hardwareConcurrency = 2 to reduce user uniqueness.
+  if (MOZ_UNLIKELY(nsContentUtils::ShouldResistFingerprinting())) {
+    return 2;
+  }
+
   // This needs to be atomic, because multiple workers, and even mainthread,
   // could race to initialize it at once.
   static Atomic<uint32_t> clampedHardwareConcurrency;
@@ -2792,7 +2837,7 @@ WorkerThreadPrimaryRunnable::Run()
 
   char stackBaseGuess;
 
-  PR_SetCurrentThreadName("DOM Worker");
+  NS_SetCurrentThreadName("DOM Worker");
 
   nsAutoCString threadName;
   threadName.AssignLiteral("DOM Worker '");

@@ -114,10 +114,14 @@ class MediaPipeline : public sigslot::has_slots<> {
                          RefPtr<TransportFlow> rtcp_transport,
                          nsAutoPtr<MediaPipelineFilter> filter);
 
+  // Used only for testing; adds RTP header extension for RTP Stream Id with
+  // the given id.
+  void AddRIDExtension_m(size_t extension_id);
+  void AddRIDExtension_s(size_t extension_id);
   // Used only for testing; installs a MediaPipelineFilter that filters
-  // everything but the nth ssrc
-  void SelectSsrc_m(size_t ssrc_index);
-  void SelectSsrc_s(uint32_t ssrc);
+  // everything but the given RID
+  void AddRIDFilter_m(const std::string& rid);
+  void AddRIDFilter_s(const std::string& rid);
 
   virtual Direction direction() const { return direction_; }
   virtual const std::string& trackid() const { return track_id_; }
@@ -264,8 +268,6 @@ class MediaPipeline : public sigslot::has_slots<> {
   int32_t rtcp_packets_received_;
   int64_t rtp_bytes_sent_;
   int64_t rtp_bytes_received_;
-
-  std::vector<uint32_t> ssrcs_received_;
 
   // Written on Init. Read on STS thread.
   std::string pc_;

@@ -7,7 +7,6 @@
  "{firefox}\\omni.ja": {"mincount": 0, "maxcount": 46, "minbytes": 0, "maxbytes": 3014656},
  "{firefox}\\browser\\omni.ja": {"mincount": 0, "maxcount": 28, "minbytes": 0, "maxbytes": 1835008},
  "{firefox}\\browser\\features\\aushelper@mozilla.org.xpi": {"mincount": 0, "maxcount": 100, "minbytes": 0, "maxbytes": 10000000},
- "{firefox}\\browser\\features\\deployment-checker@mozilla.org.xpi": {"mincount": 0, "maxcount": 100, "minbytes": 0, "maxbytes": 10000000},
  "{firefox}\\browser\\features\\e10srollout@mozilla.org.xpi": {"mincount": 0, "maxcount": 100, "minbytes": 0, "maxbytes": 10000000},
  "{firefox}\\browser\\features\\flyweb@mozilla.org.xpi": {"mincount": 0, "maxcount": 100, "minbytes": 0, "maxbytes": 10000000},
  "{firefox}\\browser\\features\\formautofill@mozilla.org.xpi": {"mincount": 0, "maxcount": 100, "minbytes": 0, "maxbytes": 10000000},
@@ -18,6 +17,7 @@
  "{firefox}\\browser\\features\\webcompat-reporter@mozilla.org.xpi": {"mincount": 0, "maxcount": 100, "minbytes": 0, "maxbytes": 10000000},
  "{firefox}\\browser\\features\\shield-recipe-client@mozilla.org.xpi": {"mincount": 0, "maxcount": 100, "minbytes": 0, "maxbytes": 10000000},
  "{firefox}\\browser\\features\\activity-stream@mozilla.org.xpi": {"mincount": 0, "maxcount": 100, "minbytes": 0, "maxbytes": 10000000},
+ "{firefox}\\browser\\features\\screenshots@mozilla.org.xpi": {"mincount": 0, "maxcount": 100, "minbytes": 0, "maxbytes": 10000000},
  "{talos}\\talos\\tests\\tp5n\\tp5n.manifest": {"mincount": 0, "maxcount": 8, "minbytes": 0, "maxbytes": 32786},
  "{talos}\\talos\\tests\\tp5n\\tp5n.manifest.develop": {"mincount": 0, "maxcount": 8, "minbytes": 0, "maxbytes": 32786},
  "{profile}\\localstore.rdf": {"mincount": 2, "maxcount": 2, "minbytes": 8192, "maxbytes": 8192},
@@ -52,5 +52,8 @@
  "{firefox}\\defaults\\pref\\channel-prefs.js": {"mincount": 4, "maxcount": 4, "minbytes": 1432, "maxbytes": 1432},
  "{profile}\\cert8.db": {"mincount": 0, "maxcount": 12, "minbytes": 0, "maxbytes": 65536},
  "{profile}\\key3.db": {"mincount": 0, "maxcount": 12, "minbytes": 0, "maxbytes": 32768},
- "{appdata}\\local\\temp": {"mincount": 0, "maxcount": 4, "minbytes": 0, "maxbytes": 278528}
+ "{appdata}\\local\\temp": {"mincount": 0, "maxcount": 4, "minbytes": 0, "maxbytes": 278528},
+ "{profile}\\favicons.sqlite": {"mincount": 8, "maxcount": 12, "minbytes": 196808, "maxbytes": 393216},
+ "{profile}\\favicons.sqlite-shm": {"mincount": 0, "maxcount": 4, "minbytes": 65536, "maxbytes": 131072},
+ "{profile}\\favicons.sqlite-wal": {"mincount": 0, "maxcount": 32, "minbytes": 0, "maxbytes": 131072},
 }

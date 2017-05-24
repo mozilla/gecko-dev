@@ -317,7 +317,8 @@ class imgRequestMainThreadCancel : public Runnable
 {
 public:
   imgRequestMainThreadCancel(imgRequest* aImgRequest, nsresult aStatus)
-    : mImgRequest(aImgRequest)
+    : Runnable("imgRequestMainThreadCancel")
+    , mImgRequest(aImgRequest)
     , mStatus(aStatus)
   {
     MOZ_ASSERT(!NS_IsMainThread(), "Create me off main thread only!");
@@ -367,7 +368,8 @@ class imgRequestMainThreadEvict : public Runnable
 {
 public:
   explicit imgRequestMainThreadEvict(imgRequest* aImgRequest)
-    : mImgRequest(aImgRequest)
+    : Runnable("imgRequestMainThreadEvict")
+    , mImgRequest(aImgRequest)
   {
     MOZ_ASSERT(!NS_IsMainThread(), "Create me off main thread only!");
     MOZ_ASSERT(aImgRequest);
@@ -541,10 +543,48 @@ imgRequest::AdjustPriority(imgRequestProxy* proxy, int32_t delta)
     return;
   }
 
+  AdjustPriorityInternal(delta);
+}
+
+void
+imgRequest::AdjustPriorityInternal(int32_t aDelta)
+{
   nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(mChannel);
   if (p) {
-    p->AdjustPriority(delta);
+    p->AdjustPriority(aDelta);
   }
+}
+
+void
+imgRequest::BoostPriority(uint32_t aCategory)
+{
+  uint32_t newRequestedCategory =
+    (mBoostCategoriesRequested & aCategory) ^ aCategory;
+  if (!newRequestedCategory) {
+    // priority boost for each category can only apply once.
+    return;
+  }
+
+  MOZ_LOG(gImgLog, LogLevel::Debug,
+         ("[this=%p] imgRequest::BoostPriority for category %x",
+          this, newRequestedCategory));
+
+  int32_t delta = 0;
+
+  if (newRequestedCategory & imgIRequest::CATEGORY_FRAME_INIT) {
+    --delta;
+  }
+
+  if (newRequestedCategory & imgIRequest::CATEGORY_SIZE_QUERY) {
+    --delta;
+  }
+
+  if (newRequestedCategory & imgIRequest::CATEGORY_DISPLAY) {
+    delta += nsISupportsPriority::PRIORITY_HIGH;
+  }
+
+  AdjustPriorityInternal(delta);
+  mBoostCategoriesRequested |= newRequestedCategory;
 }
 
 bool
@@ -1015,7 +1055,8 @@ class FinishPreparingForNewPartRunnable final : public Runnable
 public:
   FinishPreparingForNewPartRunnable(imgRequest* aImgRequest,
                                     NewPartResult&& aResult)
-    : mImgRequest(aImgRequest)
+    : Runnable("FinishPreparingForNewPartRunnable")
+    , mImgRequest(aImgRequest)
     , mResult(aResult)
   {
     MOZ_ASSERT(aImgRequest);

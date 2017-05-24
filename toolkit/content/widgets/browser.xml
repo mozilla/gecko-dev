@@ -390,10 +390,11 @@
       <method name="getTabBrowser">
         <body>
           <![CDATA[
-            var tabBrowser = this.parentNode;
-            while (tabBrowser && tabBrowser.localName != "tabbrowser")
-              tabBrowser = tabBrowser.parentNode;
-            return tabBrowser;
+            for (let node = this.parentNode; node instanceof Element; node = node.parentNode) {
+              if (node.localName == "tabbrowser")
+                return node;
+            }
+            return null;
           ]]>
         </body>
       </method>
@@ -550,6 +551,13 @@
         <setter><![CDATA[
           this.markupDocumentViewer.textZoom = val;
         ]]></setter>
+      </property>
+
+      <property name="effectiveTextZoom"
+                readonly="true">
+        <getter><![CDATA[
+          return this.markupDocumentViewer.effectiveTextZoom;
+        ]]></getter>
       </property>
 
       <property name="isSyntheticDocument">
@@ -840,26 +848,6 @@
         </setter>
       </property>
 
-      <!-- increases or decreases the browser's network priority -->
-      <method name="adjustPriority">
-        <parameter name="adjustment"/>
-        <body><![CDATA[
-          let loadGroup = this.webNavigation.QueryInterface(Components.interfaces.nsIDocumentLoader)
-                              .loadGroup.QueryInterface(Components.interfaces.nsISupportsPriority);
-          loadGroup.adjustPriority(adjustment);
-        ]]></body>
-      </method>
-
-      <!-- sets the browser's network priority to a discrete value -->
-      <method name="setPriority">
-        <parameter name="priority"/>
-        <body><![CDATA[
-          let loadGroup = this.webNavigation.QueryInterface(Components.interfaces.nsIDocumentLoader)
-                              .loadGroup.QueryInterface(Components.interfaces.nsISupportsPriority);
-          loadGroup.priority = priority;
-        ]]></body>
-      </method>
-
       <field name="urlbarChangeTracker">
         ({
           _startedLoadSinceLastUserTyping: false,
@@ -1081,7 +1069,7 @@
               this._selectParentHelper.populate(menulist, data.options, data.selectedIndex, this._fullZoom,
                                                 data.uaBackgroundColor, data.uaColor,
                                                 data.uaSelectBackgroundColor, data.uaSelectColor,
-                                                data.selectBackgroundColor, data.selectColor);
+                                                data.selectBackgroundColor, data.selectColor, data.selectTextShadow);
               this._selectParentHelper.open(this, menulist, data.rect, data.isOpenedViaTouch);
               break;
             }

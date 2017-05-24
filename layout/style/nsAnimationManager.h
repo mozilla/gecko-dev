@@ -10,6 +10,7 @@
 #include "mozilla/EventForwards.h"
 #include "AnimationCommon.h"
 #include "mozilla/dom/Animation.h"
+#include "mozilla/Keyframe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
 
@@ -19,6 +20,7 @@ struct nsStyleDisplay;
 struct ServoComputedValues;
 
 namespace mozilla {
+struct ServoComputedValuesWithParent;
 namespace css {
 class Declaration;
 } /* namespace css */
@@ -329,9 +331,8 @@ public:
    */
   void UpdateAnimations(
     mozilla::dom::Element* aElement,
-    nsIAtom* aPseudoTagOrNull,
-    const ServoComputedValues* aComputedValues,
-    const ServoComputedValues* aParentComputedValus);
+    mozilla::CSSPseudoElementType aPseudoType,
+    const mozilla::ServoComputedValuesWithParent& aServoValues);
 
   /**
    * Add a pending event.
@@ -356,6 +357,39 @@ public:
   }
   void SortEvents()      { mEventDispatcher.SortEvents(); }
   void ClearEventQueue() { mEventDispatcher.ClearEventQueue(); }
+
+  // Utility function to walk through |aIter| to find the Keyframe with
+  // matching offset and timing function but stopping as soon as the offset
+  // differs from |aOffset| (i.e. it assumes a sorted iterator).
+  //
+  // If a matching Keyframe is found,
+  //   Returns true and sets |aIndex| to the index of the matching Keyframe
+  //   within |aIter|.
+  //
+  // If no matching Keyframe is found,
+  //   Returns false and sets |aIndex| to the index in the iterator of the
+  //   first Keyframe with an offset differing to |aOffset| or, if the end
+  //   of the iterator is reached, sets |aIndex| to the index after the last
+  //   Keyframe.
+  template <class IterType, class TimingFunctionType>
+  static bool FindMatchingKeyframe(
+    IterType&& aIter,
+    double aOffset,
+    const TimingFunctionType& aTimingFunctionToMatch,
+    size_t& aIndex)
+  {
+    aIndex = 0;
+    for (mozilla::Keyframe& keyframe : aIter) {
+      if (keyframe.mOffset.value() != aOffset) {
+        break;
+      }
+      if (keyframe.mTimingFunction == aTimingFunctionToMatch) {
+        return true;
+      }
+      ++aIndex;
+    }
+    return false;
+  }
 
 protected:
   ~nsAnimationManager() override = default;

@@ -6,7 +6,6 @@
 
 #include "nsGenericHTMLFrameElement.h"
 
-#include "mozilla/dom/BrowserElementAudioChannel.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/Preferences.h"
@@ -36,7 +35,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsGenericHTMLFrameElement,
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFrameLoader)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOpenerWindow)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowserElementAPI)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowserElementAudioChannels)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsGenericHTMLFrameElement,
@@ -48,7 +46,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsGenericHTMLFrameElement,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mFrameLoader)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOpenerWindow)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mBrowserElementAPI)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mBrowserElementAudioChannels)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ADDREF_INHERITED(nsGenericHTMLFrameElement, nsGenericHTMLElement)
@@ -386,7 +383,7 @@ PrincipalAllowsBrowserFrame(nsIPrincipal* aPrincipal)
 /* virtual */ nsresult
 nsGenericHTMLFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                         const nsAttrValue* aValue,
-                                        bool aNotify)
+                                        const nsAttrValue* aOldValue, bool aNotify)
 {
   if (aName == nsGkAtoms::scrolling && aNameSpaceID == kNameSpaceID_None) {
     if (mFrameLoader) {
@@ -418,7 +415,7 @@ nsGenericHTMLFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   }
 
   return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue,
-                                            aNotify);
+                                            aOldValue, aNotify);
 }
 
 void
@@ -433,9 +430,10 @@ nsGenericHTMLFrameElement::DestroyContent()
 }
 
 nsresult
-nsGenericHTMLFrameElement::CopyInnerTo(Element* aDest)
+nsGenericHTMLFrameElement::CopyInnerTo(Element* aDest,
+                                       bool aPreallocateChildren)
 {
-  nsresult rv = nsGenericHTMLElement::CopyInnerTo(aDest);
+  nsresult rv = nsGenericHTMLElement::CopyInnerTo(aDest, aPreallocateChildren);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsIDocument* doc = aDest->OwnerDoc();

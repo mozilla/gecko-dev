@@ -72,7 +72,6 @@ public:
   NS_IMETHOD SetUserInput(const nsAString& aInput) override;
 
   // nsIFormControl
-  NS_IMETHOD_(uint32_t) GetType() const override { return NS_FORM_TEXTAREA; }
   NS_IMETHOD Reset() override;
   NS_IMETHOD SubmitNamesValues(HTMLFormSubmission* aFormSubmission) override;
   NS_IMETHOD SaveState() override;
@@ -104,8 +103,15 @@ public:
   NS_IMETHOD_(Element*) GetRootEditorNode() override;
   NS_IMETHOD_(Element*) CreatePlaceholderNode() override;
   NS_IMETHOD_(Element*) GetPlaceholderNode() override;
-  NS_IMETHOD_(void) UpdatePlaceholderVisibility(bool aNotify) override;
+  NS_IMETHOD_(Element*) CreatePreviewNode() override;
+  NS_IMETHOD_(Element*) GetPreviewNode() override;
+  NS_IMETHOD_(void) UpdateOverlayTextVisibility(bool aNotify) override;
   NS_IMETHOD_(bool) GetPlaceholderVisibility() override;
+  NS_IMETHOD_(bool) GetPreviewVisibility() override;
+  NS_IMETHOD_(void) SetPreviewValue(const nsAString& aValue) override;
+  NS_IMETHOD_(void) GetPreviewValue(nsAString& aValue) override;
+  NS_IMETHOD_(void) EnablePreview() override;
+  NS_IMETHOD_(bool) IsPreviewEnabled() override;
   NS_IMETHOD_(void) InitializeKeyboardEventListeners() override;
   NS_IMETHOD_(void) OnValueChanged(bool aNotify, bool aWasInteractiveUserChange) override;
   virtual void GetValueFromSetRangeText(nsAString& aValue) override;
@@ -139,9 +145,10 @@ public:
   virtual void DoneAddingChildren(bool aHaveNotified) override;
   virtual bool IsDoneAddingChildren() override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
-  nsresult CopyInnerTo(Element* aDest);
+  nsresult CopyInnerTo(Element* aDest, bool aPreallocateChildren);
 
   /**
    * Called when an attribute is about to be changed
@@ -323,6 +330,7 @@ protected:
   bool                     mCanShowInvalidUI;
   /** Whether we should make :-moz-ui-valid apply on the element. **/
   bool                     mCanShowValidUI;
+  bool                     mIsPreviewEnabled;
 
   void FireChangeEventIfNeeded();
 
@@ -357,7 +365,9 @@ protected:
   void ContentChanged(nsIContent* aContent);
 
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom *aName,
-                                const nsAttrValue* aValue, bool aNotify) override;
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                bool aNotify) override;
 
   /**
    * Return if an element should have a specific validity UI

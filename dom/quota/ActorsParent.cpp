@@ -19,6 +19,7 @@
 #include "nsISimpleEnumerator.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsISupportsPrimitives.h"
 #include "nsITimer.h"
 #include "nsIURI.h"
 #include "nsPIDOMWindow.h"
@@ -368,6 +369,23 @@ public:
 
 private:
   ~DirectoryLockImpl();
+};
+
+class QuotaObject::StoragePressureRunnable final
+  : public Runnable
+{
+  const uint64_t mUsage;
+
+public:
+  explicit StoragePressureRunnable(uint64_t aUsage)
+    : mUsage(aUsage)
+  { }
+
+private:
+  ~StoragePressureRunnable()
+  { }
+
+  NS_DECL_NSIRUNNABLE
 };
 
 class QuotaManager::CreateRunnable final
@@ -2813,6 +2831,18 @@ ShutdownObserver::Observe(nsISupports* aSubject,
   MOZ_ASSERT(!strcmp(aTopic, PROFILE_BEFORE_CHANGE_QM_OBSERVER_ID));
   MOZ_ASSERT(gInstance);
 
+  nsCOMPtr<nsIObserverService> observerService =
+    mozilla::services::GetObserverService();
+  if (NS_WARN_IF(!observerService)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // Unregister ourselves from the observer service first to make sure the
+  // nested event loop below will not cause re-entrancy issues.
+  Unused <<
+    observerService->RemoveObserver(this,
+                                    PROFILE_BEFORE_CHANGE_QM_OBSERVER_ID);
+
   QuotaManagerService* qms = QuotaManagerService::Get();
   MOZ_ASSERT(qms);
 
@@ -2828,12 +2858,7 @@ ShutdownObserver::Observe(nsISupports* aSubject,
   MOZ_ALWAYS_SUCCEEDS(
     mBackgroundThread->Dispatch(shutdownRunnable, NS_DISPATCH_NORMAL));
 
-  nsIThread* currentThread = NS_GetCurrentThread();
-  MOZ_ASSERT(currentThread);
-
-  while (!done) {
-    MOZ_ALWAYS_TRUE(NS_ProcessNextEvent(currentThread));
-  }
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return done; }));
 
   return NS_OK;
 }
@@ -2841,6 +2866,30 @@ ShutdownObserver::Observe(nsISupports* aSubject,
 /*******************************************************************************
  * Quota object
  ******************************************************************************/
+
+NS_IMETHODIMP
+QuotaObject::
+StoragePressureRunnable::Run()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
+  if (NS_WARN_IF(!obsSvc)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsISupportsPRUint64> wrapper =
+    do_CreateInstance(NS_SUPPORTS_PRUINT64_CONTRACTID);
+  if (NS_WARN_IF(!wrapper)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  wrapper->SetData(mUsage);
+
+  obsSvc->NotifyObservers(wrapper, "QuotaManager::StoragePressure", u"");
+
+  return NS_OK;
+}
 
 void
 QuotaObject::AddRef()
@@ -2982,8 +3031,14 @@ QuotaObject::MaybeUpdateSize(int64_t aSize, bool aTruncate)
       quotaManager->LockedCollectOriginsForEviction(delta, locks);
 
     if (!sizeToBeFreed) {
-      // XXX prompt for asking to delete persistent origins if there is any
-      // persistent origin.
+      MutexAutoUnlock autoUnlock(quotaManager->mQuotaMutex);
+
+      // Notify pressure event.
+      RefPtr<StoragePressureRunnable> storagePressureRunnable =
+        new StoragePressureRunnable(quotaManager->mTemporaryStorageUsage);
+
+      MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(storagePressureRunnable));
+
       return false;
     }
 

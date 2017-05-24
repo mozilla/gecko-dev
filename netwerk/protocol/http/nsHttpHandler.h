@@ -28,13 +28,12 @@ class nsIRequestContextService;
 class nsISiteSecurityService;
 class nsIStreamConverterService;
 class nsIThrottlingService;
-class nsIUUIDGenerator;
 
 
 namespace mozilla {
 namespace net {
 
-extern Atomic<PRThread*, Relaxed> gSocketThread;
+bool OnSocketThread();
 
 class ATokenBucketEvent;
 class EventTokenBucket;
@@ -124,6 +123,7 @@ public:
     bool           AllowPush()   { return mAllowPush; }
     bool           AllowAltSvc() { return mEnableAltSvc; }
     bool           AllowAltSvcOE() { return mEnableAltSvcOE; }
+    bool           AllowOriginExtension() { return mEnableOriginExtension; }
     uint32_t       ConnectTimeout()  { return mConnectTimeout; }
     uint32_t       ParallelSpeculativeConnectLimit() { return mParallelSpeculativeConnectLimit; }
     bool           CriticalRequestPrioritization() { return mCriticalRequestPrioritization; }
@@ -164,6 +164,27 @@ public:
       return mTCPKeepaliveLongLivedIdleTimeS;
     }
 
+    bool UseFastOpen()
+    {
+        return mUseFastOpen && mFastOpenSupported &&
+               mFastOpenConsecutiveFailureCounter < mFastOpenConsecutiveFailureLimit;
+    }
+    // If one of tcp connections return PR_NOT_TCP_SOCKET_ERROR while trying
+    // fast open, it means that Fast Open is turned off so we will not try again
+    // until a restart. This is only on Linux.
+    // For windows 10 we can only check whether a version of windows support
+    // Fast Open at run time, so if we get error PR_NOT_IMPLEMENTED_ERROR it
+    // means that Fast Open is not supported and we will set mFastOpenSupported
+    // to false.
+    void SetFastOpenNotSupported() { mFastOpenSupported = false; }
+
+    void IncrementFastOpenConsecutiveFailureCounter();
+
+    void ResetFastOpenConsecutiveFailureCounter()
+    {
+        mFastOpenConsecutiveFailureCounter = 0;
+    }
+
     // returns the HTTP framing check level preference, as controlled with
     // network.http.enforce-framing.http1 and network.http.enforce-framing.soft
     FrameCheckLevel GetEnforceH1Framing() { return mEnforceH1Framing; }
@@ -202,6 +223,12 @@ public:
                                                 int32_t priority)
     {
         return mConnMgr->RescheduleTransaction(trans, priority);
+    }
+
+    void ThrottleTransaction(nsHttpTransaction *trans,
+                                              bool throttle)
+    {
+        mConnMgr->ThrottleTransaction(trans, throttle);
     }
 
     // Called to cancel a transaction, which may or may not be assigned to
@@ -330,12 +357,6 @@ public:
     // returns true in between Init and Shutdown states
     bool Active() { return mHandlerActive; }
 
-    // When the disk cache is responding slowly its use is suppressed
-    // for 1 minute for most requests. Callable from main thread only.
-    TimeStamp GetCacheSkippedUntil() { return mCacheSkippedUntil; }
-    void SetCacheSkippedUntil(TimeStamp arg) { mCacheSkippedUntil = arg; }
-    void ClearCacheSkippedUntil() { mCacheSkippedUntil = TimeStamp(); }
-
     nsIRequestContextService *GetRequestContextService()
     {
         return mRequestContextService.get();
@@ -358,6 +379,11 @@ public:
         return mMaxHttpResponseHeaderSize;
     }
 
+    float FocusedWindowTransactionRatio() const
+    {
+        return mFocusedWindowTransactionRatio;
+    }
+
 private:
     virtual ~nsHttpHandler();
 
@@ -369,13 +395,16 @@ private:
     void     PrefsChanged(nsIPrefBranch *prefs, const char *pref);
 
     MOZ_MUST_USE nsresult SetAccept(const char *);
-    MOZ_MUST_USE nsresult SetAcceptLanguages(const char *);
+    MOZ_MUST_USE nsresult SetAcceptLanguages();
     MOZ_MUST_USE nsresult SetAcceptEncodings(const char *, bool mIsSecure);
 
     MOZ_MUST_USE nsresult InitConnectionMgr();
 
     void     NotifyObservers(nsIHttpChannel *chan, const char *event);
 
+    void SetFastOpenOSSupport();
+
+    void EnsureUAOverridesInit();
 private:
 
     // cached services
@@ -417,7 +446,7 @@ private:
     uint16_t mIdleSynTimeout;
 
     bool     mH2MandatorySuiteEnabled;
-    uint16_t mMaxUrgentStartQ;
+    uint16_t mMaxUrgentExcessiveConns;
     uint16_t mMaxConnections;
     uint8_t  mMaxPersistentConnectionsPerServer;
     uint8_t  mMaxPersistentConnectionsPerProxy;
@@ -463,6 +492,7 @@ private:
     nsCString      mUserAgent;
     nsXPIDLCString mUserAgentOverride;
     bool           mUserAgentIsDirty; // true if mUserAgent should be rebuilt
+    bool           mAcceptLanguagesIsDirty;
 
 
     bool           mPromptTempRedirect;
@@ -498,6 +528,7 @@ private:
     uint32_t           mAllowPush : 1;
     uint32_t           mEnableAltSvc : 1;
     uint32_t           mEnableAltSvcOE : 1;
+    uint32_t           mEnableOriginExtension : 1;
 
     // Try to use SPDY features instead of HTTP/1.1 over SSL
     SpdyInformation    mSpdyInfo;
@@ -528,10 +559,6 @@ private:
     // Whether or not to block requests for non head js/css items (e.g. media)
     // while those elements load.
     bool           mCriticalRequestPrioritization;
-
-    // When the disk cache is responding slowly its use is suppressed
-    // for 1 minute for most requests.
-    TimeStamp      mCacheSkippedUntil;
 
     // TCP Keepalive configuration values.
 
@@ -566,6 +593,14 @@ private:
     // The max size (in bytes) for received Http response header.
     uint32_t mMaxHttpResponseHeaderSize;
 
+    // The ratio for dispatching transactions from the focused window.
+    float mFocusedWindowTransactionRatio;
+
+    Atomic<bool, Relaxed> mUseFastOpen;
+    Atomic<bool, Relaxed> mFastOpenSupported;
+    uint32_t mFastOpenConsecutiveFailureLimit;
+    uint32_t mFastOpenConsecutiveFailureCounter;
+
 private:
     // For Rate Pacing Certain Network Events. Only assign this pointer on
     // socket thread.
@@ -577,7 +612,7 @@ public:
     MOZ_MUST_USE nsresult SubmitPacedRequest(ATokenBucketEvent *event,
                                              nsICancelable **cancel)
     {
-        MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+        MOZ_ASSERT(OnSocketThread(), "not on socket thread");
         if (!mRequestTokenBucket) {
             return NS_ERROR_NOT_AVAILABLE;
         }
@@ -587,13 +622,13 @@ public:
     // Socket thread only
     void SetRequestTokenBucket(EventTokenBucket *aTokenBucket)
     {
-        MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+        MOZ_ASSERT(OnSocketThread(), "not on socket thread");
         mRequestTokenBucket = aTokenBucket;
     }
 
     void StopRequestTokenBucket()
     {
-        MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+        MOZ_ASSERT(OnSocketThread(), "not on socket thread");
         if (mRequestTokenBucket) {
             mRequestTokenBucket->Stop();
             mRequestTokenBucket = nullptr;
@@ -611,11 +646,12 @@ private:
                                nsIInterfaceRequestor *aCallbacks,
                                bool anonymous);
 
-    // UUID generator for channelIds
-    nsCOMPtr<nsIUUIDGenerator> mUUIDGen;
+    // State for generating channelIds
+    uint32_t mProcessId;
+    uint32_t mNextChannelId;
 
 public:
-    MOZ_MUST_USE nsresult NewChannelId(nsID *channelId);
+    MOZ_MUST_USE nsresult NewChannelId(uint64_t& channelId);
 };
 
 extern nsHttpHandler *gHttpHandler;

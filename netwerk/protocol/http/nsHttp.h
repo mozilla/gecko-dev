@@ -96,6 +96,10 @@ typedef uint8_t nsHttpVersion;
 // Transactions with this flag should be processed first.
 #define NS_HTTP_URGENT_START         (1<<12)
 
+// A sticky connection of the transaction is explicitly allowed to be restarted
+// on ERROR_NET_RESET.
+#define NS_HTTP_CONNECTION_RESTARTABLE  (1<<13)
+
 //-----------------------------------------------------------------------------
 // some default values
 //-----------------------------------------------------------------------------
@@ -145,6 +149,10 @@ struct nsHttp
     static inline bool IsValidToken(const nsACString &s) {
         return IsValidToken(s.BeginReading(), s.EndReading());
     }
+
+    // Strip the leading or trailing HTTP whitespace per fetch spec section 2.2.
+    static void TrimHTTPWhitespace(const nsACString& aSource,
+                                   nsACString& aDest);
 
     // Returns true if the specified value is reasonable given the defintion
     // in RFC 2616 section 4.2.  Full strict validation is not performed

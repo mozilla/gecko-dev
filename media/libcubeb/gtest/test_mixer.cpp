@@ -8,6 +8,7 @@
 #include "cubeb/cubeb.h"
 #include "cubeb_mixer.h"
 #include "common.h"
+#include <memory>
 #include <vector>
 
 using std::vector;
@@ -133,7 +134,11 @@ downmix_test(float const * data, cubeb_channel_layout in_layout, cubeb_channel_l
     }
   }
 
-  cubeb_downmix_float(in.data(), inframes, out.data(), in_params.channels, out_params.channels, in_params.layout, out_params.layout);
+  // Create a mixer for downmix only.
+  std::unique_ptr<cubeb_mixer, decltype(&cubeb_mixer_destroy)>
+    mixer(cubeb_mixer_create(in_params.format, CUBEB_MIXER_DIRECTION_DOWNMIX), cubeb_mixer_destroy);
+
+  cubeb_mixer_mix(mixer.get(), in.data(), inframes, out.data(), &in_params, &out_params);
 
   uint32_t in_layout_mask = 0;
   for (unsigned int i = 0 ; i < in_params.channels; ++i) {
@@ -153,7 +158,7 @@ downmix_test(float const * data, cubeb_channel_layout in_layout, cubeb_channel_l
         out_layout >= CUBEB_LAYOUT_MONO && out_layout <= CUBEB_LAYOUT_2F2_LFE) {
       auto & downmix_results = DOWNMIX_3F2_RESULTS[in_layout - CUBEB_LAYOUT_3F2][out_layout - CUBEB_LAYOUT_MONO];
       fprintf(stderr, "[3f2] Expect: %lf, Get: %lf\n", downmix_results[index], out[index]);
-      ASSERT_EQ(out[index], downmix_results[index]);
+      ASSERT_EQ(downmix_results[index], out[index]);
       continue;
     }
 
@@ -161,21 +166,21 @@ downmix_test(float const * data, cubeb_channel_layout in_layout, cubeb_channel_l
     if (out_layout_mask & in_layout_mask) {
       uint32_t mask = 1 << CHANNEL_INDEX_TO_ORDER[out_layout][index];
       fprintf(stderr, "[map channels] Expect: %lf, Get: %lf\n", (mask & in_layout_mask) ? audio_inputs[out_layout].data[index] : 0, out[index]);
-      ASSERT_EQ(out[index], (mask & in_layout_mask) ? audio_inputs[out_layout].data[index] : 0);
+      ASSERT_EQ((mask & in_layout_mask) ? audio_inputs[out_layout].data[index] : 0, out[index]);
       continue;
     }
 
     // downmix_fallback
     fprintf(stderr, "[fallback] Expect: %lf, Get: %lf\n", audio_inputs[in_layout].data[index], out[index]);
-    ASSERT_EQ(out[index], audio_inputs[in_layout].data[index]);
+    ASSERT_EQ(audio_inputs[in_layout].data[index], out[index]);
   }
 }
 
-TEST(cubeb, run_mixing_test)
+TEST(cubeb, mixer)
 {
-  for (unsigned int i = 0 ; i < ARRAY_LENGTH(audio_inputs) ; ++i) {
-    for (unsigned int j = 0 ; j < ARRAY_LENGTH(layout_infos) ; ++j) {
-      downmix_test(audio_inputs[i].data, audio_inputs[i].layout, layout_infos[j].layout);
+  for (auto audio_input : audio_inputs) {
+    for (auto audio_output : layout_infos) {
+      downmix_test(audio_input.data, audio_input.layout, audio_output.layout);
     }
   }
 }

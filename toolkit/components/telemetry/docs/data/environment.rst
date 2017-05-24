@@ -101,8 +101,9 @@ Structure:
               <string>,
               ...
               // as applicable:
-              // "MMX", "SSE", "SSE2", "SSE3", "SSSE3", "SSE4A", "SSE4_1",
-              // "SSE4_2", "AVX", "AVX2", "EDSP", "ARMv6", "ARMv7", "NEON"
+              // "hasMMX", "hasSSE", "hasSSE2", "hasSSE3", "hasSSSE3",
+              // "hasSSE4A", "hasSSE4_1", "hasSSE4_2", "hasAVX", "hasAVX2",
+              // "hasAES", "hasEDSP", "hasARMv6", "hasARMv7", "hasNEON"
             ],
         },
         device: { // This section is only available on mobile devices.
@@ -114,7 +115,7 @@ Structure:
         os: {
             name: <string>, // "Windows_NT" or null on failure
             version: <string>, // e.g. "6.1", null on failure
-            kernelVersion: <string>, // android/b2g only or null on failure
+            kernelVersion: <string>, // android only or null on failure
             servicePackMajor: <number>, // windows only or null on failure
             servicePackMinor: <number>, // windows only or null on failure
             windowsBuildNumber: <number>, // windows only or null on failure
@@ -213,6 +214,8 @@ Structure:
             updateDay: <number>, // days since UNIX epoch, 0 on failure
             signedState: <integer>, // whether the add-on is signed by AMO, only present for extensions
             isSystem: <bool>, // true if this is a System Add-on
+            isWebExtension: <bool>, // true if this is a WebExtension
+            multiprocessCompatible: <bool>, // true if this add-on does *not* require e10s shims
           },
           ...
         },
@@ -255,7 +258,7 @@ Structure:
             id: <string>, // id
             branch: <string>, // branch name
         },
-        persona: <string>, // id of the current persona, null on GONK
+        persona: <string>, // id of the current persona
       },
       experiments: {
         "<experiment id>": { branch: "<branch>" },
@@ -363,7 +366,7 @@ This object contains operating system information.
 
 - ``name``: the name of the OS.
 - ``version``: a string representing the OS version.
-- ``kernelVersion``: an Android/B2G only string representing the kernel version.
+- ``kernelVersion``: an Android only string representing the kernel version.
 - ``servicePackMajor``: the Windows only major version number for the installed service pack.
 - ``servicePackMinor``: the Windows only minor version number for the installed service pack.
 - ``windowsBuildNumber``: the Windows build number.

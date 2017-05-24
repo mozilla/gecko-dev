@@ -59,7 +59,7 @@ function registerTableUpdate(aTable, aFilename) {
   });
 }
 
-add_task(function* test_setup() {
+add_task(async function test_setup() {
   // Set up a local HTTP server to return bad verdicts.
   Services.prefs.setCharPref(appRepURLPref,
                              "http://localhost:4444/download");
@@ -91,11 +91,11 @@ add_task(function* test_setup() {
   gHttpServ.start(4444);
 
   do_register_cleanup(function() {
-    return Task.spawn(function* () {
-      yield new Promise(resolve => {
+    return (async function() {
+      await new Promise(resolve => {
         gHttpServ.stop(resolve);
       });
-    });
+    })();
   });
 });
 
@@ -330,12 +330,9 @@ add_test(function test_redirect_on_blocklist() {
   let secman = Services.scriptSecurityManager;
   let badRedirects = Cc["@mozilla.org/array;1"]
                        .createInstance(Ci.nsIMutableArray);
-  badRedirects.appendElement(secman.createCodebasePrincipal(exampleURI, {}),
-                             false);
-  badRedirects.appendElement(secman.createCodebasePrincipal(blocklistedURI, {}),
-                             false);
-  badRedirects.appendElement(secman.createCodebasePrincipal(whitelistedURI, {}),
-                             false);
+  badRedirects.appendElement(secman.createCodebasePrincipal(exampleURI, {}));
+  badRedirects.appendElement(secman.createCodebasePrincipal(blocklistedURI, {}));
+  badRedirects.appendElement(secman.createCodebasePrincipal(whitelistedURI, {}));
   gAppRep.queryReputation({
     sourceURI: whitelistedURI,
     referrerURI: exampleURI,

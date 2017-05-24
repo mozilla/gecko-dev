@@ -139,20 +139,8 @@ partial interface HTMLMediaElement {
   // it is equal to the media duration.
   readonly attribute double mozFragmentEnd;
 
-  // Mozilla extension: an audio channel type for media elements.
-  // Read AudioChannel.webidl for more information about this attribute.
-  [SetterThrows, Pref="media.useAudioChannelAPI"]
-  attribute AudioChannel mozAudioChannelType;
-
-  // In addition the media element has this new events:
-  // * onmozinterruptbegin - called when the media element is interrupted
-  //   because of the audiochannel manager.
-  // * onmozinterruptend - called when the interruption is concluded
-  [Pref="media.useAudioChannelAPI"]
-  attribute EventHandler onmozinterruptbegin;
-
-  [Pref="media.useAudioChannelAPI"]
-  attribute EventHandler onmozinterruptend;
+  [ChromeOnly]
+  void reportCanPlayTelemetry();
 };
 
 // Encrypted Media Extensions

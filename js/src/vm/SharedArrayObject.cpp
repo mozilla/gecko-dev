@@ -98,10 +98,24 @@ SharedArrayMappedSize(uint32_t allocSize)
 static mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> numLive;
 static const uint32_t maxLive = 1000;
 
+#ifdef DEBUG
+static mozilla::Atomic<int32_t> liveBuffers_;
+#endif
+
 static uint32_t
 SharedArrayAllocSize(uint32_t length)
 {
     return AlignBytes(length + gc::SystemPageSize(), gc::SystemPageSize());
+}
+
+int32_t
+SharedArrayRawBuffer::liveBuffers()
+{
+#ifdef DEBUG
+    return liveBuffers_;
+#else
+    return 0;
+#endif
 }
 
 SharedArrayRawBuffer*
@@ -123,9 +137,8 @@ SharedArrayRawBuffer::New(JSContext* cx, uint32_t length)
         // Test >= to guard against the case where multiple extant runtimes
         // race to allocate.
         if (++numLive >= maxLive) {
-            JSRuntime* rt = cx->runtime();
-            if (rt->largeAllocationFailureCallback)
-                rt->largeAllocationFailureCallback(rt->largeAllocationFailureCallbackData);
+            if (OnLargeAllocationFailure)
+                OnLargeAllocationFailure();
             if (numLive >= maxLive) {
                 numLive--;
                 return nullptr;
@@ -162,25 +175,46 @@ SharedArrayRawBuffer::New(JSContext* cx, uint32_t length)
     uint8_t* base = buffer - sizeof(SharedArrayRawBuffer);
     SharedArrayRawBuffer* rawbuf = new (base) SharedArrayRawBuffer(buffer, length, preparedForAsmJS);
     MOZ_ASSERT(rawbuf->length == length); // Deallocation needs this
+#ifdef DEBUG
+    liveBuffers_++;
+#endif
     return rawbuf;
 }
 
-void
+bool
 SharedArrayRawBuffer::addReference()
 {
-    MOZ_ASSERT(this->refcount_ > 0);
-    ++this->refcount_; // Atomic.
+    MOZ_RELEASE_ASSERT(this->refcount_ > 0);
+
+    // Be careful never to overflow the refcount field.
+    for (;;) {
+        uint32_t old_refcount = this->refcount_;
+        uint32_t new_refcount = old_refcount+1;
+        if (new_refcount == 0)
+            return false;
+        if (this->refcount_.compareExchange(old_refcount, new_refcount))
+            return true;
+    }
 }
 
 void
 SharedArrayRawBuffer::dropReference()
 {
+    // Normally if the refcount is zero then the memory will have been unmapped
+    // and this test may just crash, but if the memory has been retained for any
+    // reason we will catch the underflow here.
+    MOZ_RELEASE_ASSERT(this->refcount_ > 0);
+
     // Drop the reference to the buffer.
     uint32_t refcount = --this->refcount_; // Atomic.
     if (refcount)
         return;
 
     // If this was the final reference, release the buffer.
+
+#ifdef DEBUG
+    liveBuffers_--;
+#endif
 
     SharedMem<uint8_t*> p = this->dataPointerShared() - gc::SystemPageSize();
     MOZ_ASSERT(p.asValue() % gc::SystemPageSize() == 0);

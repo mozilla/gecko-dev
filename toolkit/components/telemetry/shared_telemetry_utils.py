@@ -22,6 +22,11 @@ KNOWN_PROCESS_FLAGS = {
 PROCESS_ENUM_PREFIX = "mozilla::Telemetry::Common::RecordedProcessType::"
 
 
+# This is thrown by the different probe parsers.
+class ParserError(Exception):
+    pass
+
+
 def is_valid_process_name(name):
     return (name in KNOWN_PROCESS_FLAGS)
 
@@ -90,7 +95,8 @@ class StringTable:
         f.write("const char %s[] = {\n" % name)
         for (string, offset) in entries:
             if "*/" in string:
-                raise ValueError("String in string table contains unexpected sequence '*/': %s" % string)
+                raise ValueError("String in string table contains unexpected sequence '*/': %s" %
+                                 string)
 
             e = explodeToCharArray(string)
             if e:

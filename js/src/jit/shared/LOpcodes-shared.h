@@ -67,6 +67,7 @@
     _(NewArray)                     \
     _(NewArrayCopyOnWrite)          \
     _(NewArrayDynamicLength)        \
+    _(NewArrayIterator)             \
     _(NewTypedArray)                \
     _(NewTypedArrayDynamicLength)   \
     _(NewObject)                    \
@@ -363,6 +364,8 @@
     _(Rest)                         \
     _(TypeOfV)                      \
     _(ToAsync)                      \
+    _(ToAsyncGen)                   \
+    _(ToAsyncIter)                  \
     _(ToIdV)                        \
     _(Floor)                        \
     _(FloorF)                       \
@@ -372,8 +375,9 @@
     _(RoundF)                       \
     _(NearbyInt)                    \
     _(NearbyIntF)                   \
-    _(In)                           \
+    _(InCache)                      \
     _(InArray)                      \
+    _(HasOwnCache)                  \
     _(InstanceOfO)                  \
     _(InstanceOfV)                  \
     _(CallInstanceOf)               \

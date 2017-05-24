@@ -72,6 +72,22 @@ struct ParamTraits<mozilla::wr::FontKey>
 };
 
 template<>
+struct ParamTraits<mozilla::wr::ExternalImageId>
+{
+  static void
+  Write(Message* aMsg, const mozilla::wr::ExternalImageId& aParam)
+  {
+    WriteParam(aMsg, aParam.mHandle);
+  }
+
+  static bool
+  Read(const Message* aMsg, PickleIterator* aIter, mozilla::wr::ExternalImageId* aResult)
+  {
+    return ReadParam(aMsg, aIter, &aResult->mHandle);
+  }
+};
+
+template<>
 struct ParamTraits<mozilla::wr::PipelineId>
 {
   static void
@@ -163,34 +179,16 @@ struct ParamTraits<WrBuiltDisplayListDescriptor>
   Write(Message* aMsg, const WrBuiltDisplayListDescriptor& aParam)
   {
     WriteParam(aMsg, aParam.display_list_items_size);
+    WriteParam(aMsg, aParam.builder_start_time);
+    WriteParam(aMsg, aParam.builder_finish_time);
   }
 
   static bool
   Read(const Message* aMsg, PickleIterator* aIter, WrBuiltDisplayListDescriptor* aResult)
   {
-    return ReadParam(aMsg, aIter, &aResult->display_list_items_size);
-  }
-};
-
-template<>
-struct ParamTraits<WrAuxiliaryListsDescriptor>
-{
-  static void
-  Write(Message* aMsg, const WrAuxiliaryListsDescriptor& aParam)
-  {
-    WriteParam(aMsg, aParam.gradient_stops_size);
-    WriteParam(aMsg, aParam.complex_clip_regions_size);
-    WriteParam(aMsg, aParam.filters_size);
-    WriteParam(aMsg, aParam.glyph_instances_size);
-  }
-
-  static bool
-  Read(const Message* aMsg, PickleIterator* aIter, WrAuxiliaryListsDescriptor* aResult)
-  {
-    return ReadParam(aMsg, aIter, &aResult->gradient_stops_size)
-        && ReadParam(aMsg, aIter, &aResult->complex_clip_regions_size)
-        && ReadParam(aMsg, aIter, &aResult->filters_size)
-        && ReadParam(aMsg, aIter, &aResult->glyph_instances_size);
+    return ReadParam(aMsg, aIter, &aResult->display_list_items_size)
+        && ReadParam(aMsg, aIter, &aResult->builder_start_time)
+        && ReadParam(aMsg, aIter, &aResult->builder_finish_time);
   }
 };
 

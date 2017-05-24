@@ -266,7 +266,7 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
     root = mRoot;
     rootFrame = root->GetPrimaryFrame();
     if (rootFrame) {
-      if (rootFrame->GetType() == nsGkAtoms::scrollFrame) {
+      if (rootFrame->IsScrollFrame()) {
         nsIScrollableFrame* scrollFrame = do_QueryFrame(rootFrame);
         rootRect = nsLayoutUtils::TransformFrameRectToAncestor(
           rootFrame,
@@ -289,7 +289,12 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
           if (!presContext) {
             break;
           }
-          rootFrame = presContext->PresShell()->GetRootScrollFrame();
+          nsIFrame* rootScrollFrame = presContext->PresShell()->GetRootScrollFrame();
+          if (rootScrollFrame) {
+            rootFrame = rootScrollFrame;
+          } else {
+            break;
+          }
         }
         root = rootFrame->GetContent()->AsElement();
         nsIScrollableFrame* scrollFrame = do_QueryFrame(rootFrame);
@@ -348,7 +353,7 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
 
       nsIFrame* containerFrame = nsLayoutUtils::GetCrossDocParentFrame(targetFrame);
       while (containerFrame && containerFrame != rootFrame) {
-        if (containerFrame->GetType() == nsGkAtoms::scrollFrame) {
+        if (containerFrame->IsScrollFrame()) {
           nsIScrollableFrame* scrollFrame = do_QueryFrame(containerFrame);
           nsRect subFrameRect = scrollFrame->GetScrollPortRect();
           nsRect intersectionRectRelativeToContainer =

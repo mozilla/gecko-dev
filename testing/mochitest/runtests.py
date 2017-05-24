@@ -14,6 +14,7 @@ sys.path.insert(0, SCRIPT_DIR)
 
 from argparse import Namespace
 from collections import defaultdict
+from contextlib import closing
 import ctypes
 import glob
 import json
@@ -391,8 +392,14 @@ class MochitestServer(object):
         self._profileDir = options['profilePath']
         self.webServer = options['webServer']
         self.httpPort = options['httpPort']
+        if options.get('remoteWebServer') == "10.0.2.2":
+            # probably running an Android emulator and 10.0.2.2 will
+            # not be visible from host
+            shutdownServer = "127.0.0.1"
+        else:
+            shutdownServer = self.webServer
         self.shutdownURL = "http://%(server)s:%(port)s/server/shutdown" % {
-            "server": self.webServer,
+            "server": shutdownServer,
             "port": self.httpPort}
         self.testPrefix = "undefined"
 
@@ -482,7 +489,7 @@ class MochitestServer(object):
 
     def stop(self):
         try:
-            with urllib2.urlopen(self.shutdownURL) as c:
+            with closing(urllib2.urlopen(self.shutdownURL)) as c:
                 c.read()
 
             # TODO: need ProcessHandler.poll()
@@ -495,6 +502,8 @@ class MochitestServer(object):
                 # self._process.terminate()
                 self._process.proc.terminate()
         except:
+            self._log.info("Failed to stop web server on %s" % self.shutdownURL)
+            traceback.print_exc()
             self._process.kill()
 
 
@@ -986,6 +995,8 @@ class MochitestDesktop(object):
                 self.urlOpts.append("interactiveDebugger=true")
             if options.jscov_dir_prefix:
                 self.urlOpts.append("jscovDirPrefix=%s" % options.jscov_dir_prefix)
+            if options.cleanupCrashes:
+                self.urlOpts.append("cleanupCrashes=true")
 
     def normflavor(self, flavor):
         """
@@ -1554,7 +1565,7 @@ toolbar#nav-bar {
 
     def buildBrowserEnv(self, options, debugger=False, env=None):
         """build the environment variables for the specific test and operating system"""
-        if mozinfo.info["asan"]:
+        if mozinfo.info["asan"] and mozinfo.isLinux and mozinfo.bits == 64:
             lsanPath = SCRIPT_DIR
         else:
             lsanPath = None
@@ -1565,6 +1576,9 @@ toolbar#nav-bar {
             debugger=debugger,
             dmdPath=options.dmdPath,
             lsanPath=lsanPath)
+
+        if hasattr(options, "topsrcdir"):
+            browserEnv["MOZ_DEVELOPER_REPO_DIR"] = options.topsrcdir
 
         # These variables are necessary for correct application startup; change
         # via the commandline at your own risk.
@@ -2029,7 +2043,7 @@ toolbar#nav-bar {
             else:
                 shutdownLeaks = None
 
-            if mozinfo.info["asan"] and (mozinfo.isLinux or mozinfo.isMac):
+            if mozinfo.info["asan"] and mozinfo.isLinux and mozinfo.bits == 64:
                 lsanLeaks = LSANLeaks(self.log)
             else:
                 lsanLeaks = None
@@ -2451,6 +2465,7 @@ toolbar#nav-bar {
                 'symbols_path': options.symbolsPath,
                 'socket_timeout': options.marionette_socket_timeout,
                 'port_timeout': options.marionette_port_timeout,
+                'startup_timeout': options.marionette_startup_timeout,
             }
 
             if options.marionette:
@@ -2696,8 +2711,11 @@ toolbar#nav-bar {
             return message
 
         def fix_stack(self, message):
-            if message['action'] == 'log' and self.stackFixerFunction:
-                message['message'] = self.stackFixerFunction(message['message'])
+            if self.stackFixerFunction:
+                if message['action'] == 'log':
+                    message['message'] = self.stackFixerFunction(message['message'])
+                elif message['action'] == 'process_output':
+                    message['data'] = self.stackFixerFunction(message['data'])
             return message
 
         def record_last_test(self, message):
@@ -2721,8 +2739,9 @@ toolbar#nav-bar {
             return message
 
         def trackLSANLeaks(self, message):
-            if self.lsanLeaks and message['action'] == 'log':
-                self.lsanLeaks.log(message['message'])
+            if self.lsanLeaks and message['action'] in ('log', 'process_output'):
+                line = message['message'] if message['action'] == 'log' else message['data']
+                self.lsanLeaks.log(line)
             return message
 
         def trackShutdownLeaks(self, message):

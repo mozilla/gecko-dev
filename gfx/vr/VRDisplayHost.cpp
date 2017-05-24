@@ -26,10 +26,6 @@ VRDisplayHost::VRDisplayHost(VRDeviceType aType)
   mDisplayInfo.mType = aType;
   mDisplayInfo.mDisplayID = VRSystemManager::AllocateDisplayID();
   mDisplayInfo.mIsPresenting = false;
-
-  for (int i = 0; i < kMaxLatencyFrames; i++) {
-    mLastSensorState[i].Clear();
-  }
 }
 
 VRDisplayHost::~VRDisplayHost()
@@ -174,6 +170,18 @@ uint64_t
 VRControllerHost::GetButtonPressed()
 {
   return mButtonPressed;
+}
+
+void
+VRControllerHost::SetButtonTouched(uint64_t aBit)
+{
+  mButtonTouched = aBit;
+}
+
+uint64_t
+VRControllerHost::GetButtonTouched()
+{
+  return mButtonTouched;
 }
 
 void

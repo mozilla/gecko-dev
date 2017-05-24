@@ -23,6 +23,7 @@
 #include "mozilla/Telemetry.h"
 #include "nsArray.h"
 #include "nsArrayUtils.h"
+#include "nsCRT.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsClientAuthRemember.h"
 #include "nsContentUtils.h"
@@ -472,10 +473,10 @@ nsNSSSocketInfo::IsAcceptableForHost(const nsACString& hostname, bool* _retval)
 }
 
 NS_IMETHODIMP
-nsNSSSocketInfo::JoinConnection(const nsACString& npnProtocol,
-                                const nsACString& hostname,
-                                int32_t port,
-                                bool* _retval)
+nsNSSSocketInfo::TestJoinConnection(const nsACString& npnProtocol,
+                                    const nsACString& hostname,
+                                    int32_t port,
+                                    bool* _retval)
 {
   *_retval = false;
 
@@ -493,13 +494,22 @@ nsNSSSocketInfo::JoinConnection(const nsACString& npnProtocol,
     return NS_OK;
   }
 
-  IsAcceptableForHost(hostname, _retval);
+  IsAcceptableForHost(hostname, _retval); // sets _retval
+  return NS_OK;
+}
 
-  if (*_retval) {
+NS_IMETHODIMP
+nsNSSSocketInfo::JoinConnection(const nsACString& npnProtocol,
+                                const nsACString& hostname,
+                                int32_t port,
+                                bool* _retval)
+{
+  nsresult rv = TestJoinConnection(npnProtocol, hostname, port, _retval);
+  if (NS_SUCCEEDED(rv) && *_retval) {
     // All tests pass - this is joinable
     mJoined = true;
   }
-  return NS_OK;
+  return rv;
 }
 
 bool
@@ -2180,8 +2190,7 @@ ClientAuthDataRunnable::RunOnTargetThread()
   } else { // Not Auto => ask
     // Get the SSL Certificate
 
-    nsXPIDLCString hostname;
-    mSocketInfo->GetHostName(getter_Copies(hostname));
+    const nsACString& hostname = mSocketInfo->GetHostName();
 
     RefPtr<nsClientAuthRememberService> cars =
       mSocketInfo->SharedState().GetClientAuthRememberService();

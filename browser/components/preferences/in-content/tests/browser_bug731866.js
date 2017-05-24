@@ -4,6 +4,10 @@
 Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
+const storageManagerDisabled = !SpecialPowers.getBoolPref("browser.storageManager.enabled");
+const offlineGroupDisabled = !SpecialPowers.getBoolPref("browser.preferences.offlineGroup.enabled");
+const browserContainersGroupDisabled = !SpecialPowers.getBoolPref("privacy.userContext.ui.enabled");
+
 function test() {
   waitForExplicitFinish();
   open_preferences(runTest);
@@ -20,6 +24,27 @@ function checkElements(expectedPane) {
         element.id === "drmGroup") {
       continue;
     }
+    // The siteDataGroup in the Storage Management project is currently only pref-on on Nightly for testing purpose.
+    // During the test and the transition period, we have to check the pref to see if the siteDataGroup
+    // should be hidden always. This would be a bit bothersome, same as the offlineGroup as below.
+    // However, this checking is necessary to make sure we don't leak the siteDataGroup into beta/release build
+    if (element.id == "siteDataGroup" && storageManagerDisabled) {
+      is_element_hidden(element, "Disabled siteDataGroup should be hidden");
+      continue;
+    }
+    // The siteDataGroup in the Storage Management project will replace the offlineGroup eventually,
+    // so during the transition period, we have to check the pref to see if the offlineGroup
+    // should be hidden always. See the bug 1354530 for the details.
+    if (element.id == "offlineGroup" && offlineGroupDisabled) {
+      is_element_hidden(element, "Disabled offlineGroup should be hidden");
+      continue;
+    }
+    // The browserContainersGroup is still only pref-on on Nightly
+    if (element.id == "browserContainersGroup" && browserContainersGroupDisabled) {
+      is_element_hidden(element, "Disabled browserContainersGroup should be hidden");
+      continue;
+    }
+
     let attributeValue = element.getAttribute("data-category");
     let suffix = " (id=" + element.id + ")";
     if (attributeValue == "pane" + expectedPane) {
@@ -37,8 +62,8 @@ function runTest(win) {
   gElements = tab.getElementById("mainPrefPane").children;
 
   let panes = [
-    "General", "Search", "Content", "Applications",
-    "Privacy", "Security", "Sync", "Advanced",
+    "General", "Applications",
+    "Privacy", "Sync", "Advanced",
   ];
 
   for (let pane of panes) {

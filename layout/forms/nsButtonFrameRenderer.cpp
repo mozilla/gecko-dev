@@ -141,11 +141,13 @@ public:
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
   virtual void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                        WebRenderDisplayItemLayer* aLayer) override;
   NS_DISPLAY_DECL_NAME("ButtonBorderBackground", TYPE_BUTTON_BORDER_BACKGROUND)
 private:
   nsButtonFrameRenderer* mBFR;
+  Maybe<nsCSSBorderRenderer> mBorderRenderer;
 };
 
 nsDisplayItemGeometry*
@@ -159,7 +161,36 @@ nsDisplayButtonBorder::GetLayerState(nsDisplayListBuilder* aBuilder,
                                      LayerManager* aManager,
                                      const ContainerLayerParameters& aParameters)
 {
-  if (gfxPrefs::LayersAllowDisplayButtonBorder()) {
+  if (ShouldUseAdvancedLayer(aManager, gfxPrefs::LayersAllowDisplayButtonBorder)) {
+    // TODO: Figure out what to do with sync decode images
+    if (aBuilder->ShouldSyncDecodeImages()) {
+      return LAYER_NONE;
+    }
+
+    nsPoint offset = ToReferenceFrame();
+    if (!nsDisplayBoxShadowInner::CanCreateWebRenderCommands(aBuilder,
+                                                             mFrame,
+                                                             offset)) {
+      return LAYER_NONE;
+    }
+
+    Maybe<nsCSSBorderRenderer> br =
+    nsCSSRendering::CreateBorderRenderer(mFrame->PresContext(),
+                                         nullptr,
+                                         mFrame,
+                                         nsRect(),
+                                         nsRect(offset, mFrame->GetSize()),
+                                         mFrame->StyleContext(),
+                                         mFrame->GetSkipSides());
+    if (!br) {
+      return LAYER_NONE;
+    }
+
+    if (!br->CanCreateWebRenderCommands()) {
+      return LAYER_NONE;
+    }
+
+    mBorderRenderer = br;
     return LAYER_ACTIVE;
   }
 
@@ -176,42 +207,20 @@ nsDisplayButtonBorder::BuildLayer(nsDisplayListBuilder* aBuilder,
 
 void
 nsDisplayButtonBorder::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                               const StackingContextHelper& aSc,
                                                nsTArray<WebRenderParentCommand>& aCommands,
                                                WebRenderDisplayItemLayer* aLayer)
 {
+  MOZ_ASSERT(mBorderRenderer);
   // This is really a combination of paint box shadow inner +
   // paint border.
   nsRect buttonRect = nsRect(ToReferenceFrame(), mFrame->GetSize());
-  //nsRect dirtyRect = mVisibleRect;
-
-  // TODO: Figure out what to do with sync decode images
-  /*
-  PaintBorderFlags borderFlags = aBuilder->ShouldSyncDecodeImages()
-                               ? PaintBorderFlags::SYNC_DECODE_IMAGES
-                               : PaintBorderFlags();
-                               */
-
   nsDisplayBoxShadowInner::CreateInsetBoxShadowWebRenderCommands(aBuilder,
+                                                                 aSc,
                                                                  aLayer,
                                                                  mFrame,
                                                                  buttonRect);
-
-  nsPoint offset = ToReferenceFrame();
-  Maybe<nsCSSBorderRenderer> br =
-    nsCSSRendering::CreateBorderRenderer(mFrame->PresContext(),
-                                         nullptr,
-                                         mFrame,
-                                         nsRect(),
-                                         nsRect(offset, mFrame->GetSize()),
-                                         mFrame->StyleContext(),
-                                         mFrame->GetSkipSides());
-
-  if (!br) {
-    NS_WARNING("Could not create border renderer during nsDisplayButtonBorder");
-    return;
-  }
-
-  br->CreateWebRenderCommands(aBuilder, aLayer);
+  mBorderRenderer->CreateWebRenderCommands(aBuilder, aSc, aLayer);
 }
 
 void
@@ -280,6 +289,7 @@ public:
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
    virtual void CreateWebRenderCommands(wr::DisplayListBuilder& aBuilder,
+                                        const StackingContextHelper& aSc,
                                         nsTArray<WebRenderParentCommand>& aParentCommands,
                                         WebRenderDisplayItemLayer* aLayer) override;
   NS_DISPLAY_DECL_NAME("ButtonForeground", TYPE_BUTTON_FOREGROUND)
@@ -336,7 +346,7 @@ nsDisplayButtonForeground::GetLayerState(nsDisplayListBuilder* aBuilder,
 {
   Maybe<nsCSSBorderRenderer> br;
 
-  if (gfxPrefs::LayersAllowButtonForegroundLayers()) {
+  if (ShouldUseAdvancedLayer(aManager, gfxPrefs::LayersAllowButtonForegroundLayers)) {
     nsPresContext *presContext = mFrame->PresContext();
     const nsStyleDisplay *disp = mFrame->StyleDisplay();
     if (!mFrame->IsThemed(disp) ||
@@ -346,7 +356,7 @@ nsDisplayButtonForeground::GetLayerState(nsDisplayListBuilder* aBuilder,
     }
   }
 
-  if (!br) {
+  if (!br || !br->CanCreateWebRenderCommands()) {
     return LAYER_NONE;
   }
 
@@ -365,11 +375,12 @@ nsDisplayButtonForeground::BuildLayer(nsDisplayListBuilder* aBuilder,
 
 void
 nsDisplayButtonForeground::CreateWebRenderCommands(wr::DisplayListBuilder& aBuilder,
+                                                   const StackingContextHelper& aSc,
                                                    nsTArray<WebRenderParentCommand>& aParentCommands,
                                                    mozilla::layers::WebRenderDisplayItemLayer* aLayer)
 {
   MOZ_ASSERT(mBorderRenderer.isSome());
-  mBorderRenderer->CreateWebRenderCommands(aBuilder, aLayer);
+  mBorderRenderer->CreateWebRenderCommands(aBuilder, aSc, aLayer);
 }
 
 nsresult

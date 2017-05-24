@@ -180,12 +180,6 @@ WMFAudioMFTManager::Init()
   hr = outputType->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 32);
   NS_ENSURE_TRUE(SUCCEEDED(hr), false);
 
-  hr = outputType->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, mAudioChannels);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), false);
-
-  hr = outputType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, 1);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), false);
-
   hr = decoder->SetMediaTypes(inputType, outputType);
   NS_ENSURE_TRUE(SUCCEEDED(hr), false);
 
@@ -199,7 +193,7 @@ WMFAudioMFTManager::Input(MediaRawData* aSample)
 {
   return mDecoder->Input(aSample->Data(),
                          uint32_t(aSample->Size()),
-                         aSample->mTime);
+                         aSample->mTime.ToMicroseconds());
 }
 
 HRESULT
@@ -262,8 +256,9 @@ WMFAudioMFTManager::Output(int64_t aStreamOffset,
       LOG("Reporting telemetry AUDIO_MFT_OUTPUT_NULL_SAMPLES");
       Telemetry::Accumulate(Telemetry::HistogramID::AUDIO_MFT_OUTPUT_NULL_SAMPLES, 1);
     });
-    // Non-DocGroup version of AbstractThread::MainThread is fine for Telemetry.
-    AbstractThread::MainThread()->Dispatch(task.forget());
+    SystemGroup::Dispatch("WMFAudioMFTManager::Output()::report_telemetry",
+                          TaskCategory::Other,
+                          task.forget());
     return E_FAIL;
   }
 
@@ -341,8 +336,8 @@ WMFAudioMFTManager::Output(int64_t aStreamOffset,
   NS_ENSURE_TRUE(duration.IsValid(), E_FAIL);
 
   aOutData = new AudioData(aStreamOffset,
-                           timestamp.ToMicroseconds(),
-                           duration.ToMicroseconds(),
+                           timestamp,
+                           duration,
                            numFrames,
                            Move(audioData),
                            mAudioChannels,

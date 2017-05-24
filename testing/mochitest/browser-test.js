@@ -11,9 +11,6 @@ Cu.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ContentSearch",
   "resource:///modules/ContentSearch.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "SelfSupportBackend",
-  "resource:///modules/SelfSupportBackend.jsm");
-
 const SIMPLETEST_OVERRIDES =
   ["ok", "is", "isnot", "todo", "todo_is", "todo_isnot", "info", "expectAssertions", "requestCompleteLog"];
 
@@ -33,8 +30,8 @@ var TabDestroyObserver = {
   promiseResolver: null,
 
   init: function() {
-    Services.obs.addObserver(this, "message-manager-close", false);
-    Services.obs.addObserver(this, "message-manager-disconnect", false);
+    Services.obs.addObserver(this, "message-manager-close");
+    Services.obs.addObserver(this, "message-manager-disconnect");
   },
 
   destroy: function() {
@@ -97,8 +94,8 @@ function testInit() {
     };
 
     var listener = 'data:,function doLoad(e) { var data=e.detail&&e.detail.data;removeEventListener("contentEvent", function (e) { doLoad(e); }, false, true);sendAsyncMessage("chromeEvent", {"data":data}); };addEventListener("contentEvent", function (e) { doLoad(e); }, false, true);';
-    messageManager.loadFrameScript(listener, true);
     messageManager.addMessageListener("chromeEvent", messageHandler);
+    messageManager.loadFrameScript(listener, true);
   }
   if (gConfig.e10s) {
     e10s_init();
@@ -167,7 +164,7 @@ function Tester(aTests, structuredLogger, aCallback) {
   this._coverageCollector = null;
 
   this._toleratedUncaughtRejections = null;
-  this._uncaughtErrorObserver = function({message, date, fileName, stack, lineNumber}) {
+  this._uncaughtErrorObserver = ({message, date, fileName, stack, lineNumber}) => {
     let error = message;
     if (fileName || lineNumber) {
       error = {
@@ -195,7 +192,7 @@ function Tester(aTests, structuredLogger, aCallback) {
         /*error*/error,
         /*known*/tolerate,
         /*stack*/stack));
-    }.bind(this);
+    };
 }
 Tester.prototype = {
   EventUtils: {},
@@ -486,6 +483,23 @@ Tester.prototype = {
 
       yield new Promise(resolve => SpecialPowers.flushPrefEnv(resolve));
 
+      if (gConfig.cleanupCrashes) {
+        let gdir = Services.dirsvc.get("UAppData", Ci.nsIFile);
+        gdir.append("Crash Reports");
+        gdir.append("pending");
+        if (gdir.exists()) {
+          let entries = gdir.directoryEntries;
+          while (entries.hasMoreElements()) {
+            let entry = entries.getNext().QueryInterface(Ci.nsIFile);
+            if (entry.isFile()) {
+              entry.remove(false);
+              let msg = "this test left a pending crash report; deleted " + entry.path;
+              this.structuredLogger.info(msg);
+            }
+          }
+        }
+      }
+
       // Notify a long running test problem if it didn't end up in a timeout.
       if (this.currentTest.unexpectedTimeouts && !this.currentTest.timedOut) {
         let msg = "This test exceeded the timeout threshold. It should be " +
@@ -564,7 +578,7 @@ Tester.prototype = {
     // Check the window state for the current test before moving to the next one.
     // This also causes us to check before starting any tests, since nextTest()
     // is invoked to start the tests.
-    this.waitForWindowsState((function () {
+    this.waitForWindowsState(() => {
       if (this.done) {
         if (this._coverageCollector) {
           this._coverageCollector.finalize();
@@ -585,7 +599,6 @@ Tester.prototype = {
             sidebar.docShell.createAboutBlankContentViewer(null);
             sidebar.setAttribute("src", "about:blank");
 
-            SelfSupportBackend.uninit();
             SocialShare.uninit();
           }
 
@@ -627,7 +640,7 @@ Tester.prototype = {
         let barrier = new AsyncShutdown.Barrier(
           "ShutdownLeaks: Wait for cleanup to be finished before checking for leaks");
         Services.obs.notifyObservers({wrappedJSObject: barrier},
-          "shutdown-leaks-before-check", null);
+          "shutdown-leaks-before-check");
 
         barrier.client.addBlocker("ShutdownLeaks: Wait for tabs to finish closing",
                                   TabDestroyObserver.wait());
@@ -653,7 +666,7 @@ Tester.prototype = {
 
       this.currentTestIndex++;
       this.execTest();
-    }).bind(this));
+    });
   }),
 
   execTest: function Tester_execTest() {
@@ -932,11 +945,11 @@ function testScope(aTester, aTest, expected) {
   };
 
   this.executeSoon = function test_executeSoon(func) {
-    Services.tm.mainThread.dispatch({
+    Services.tm.dispatchToMainThread({
       run: function() {
         func();
       }
-    }, Ci.nsIThread.DISPATCH_NORMAL);
+    });
   };
 
   this.waitForExplicitFinish = function test_waitForExplicitFinish() {

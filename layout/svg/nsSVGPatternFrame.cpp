@@ -34,7 +34,8 @@ using namespace mozilla::image;
 // Implementation
 
 nsSVGPatternFrame::nsSVGPatternFrame(nsStyleContext* aContext)
-  : nsSVGPaintServerFrame(aContext)
+  : nsSVGPaintServerFrame(aContext, LayoutFrameType::SVGPattern)
+  , mSource(nullptr)
   , mLoopFlag(false)
   , mNoHRefURI(false)
 {
@@ -88,12 +89,6 @@ nsSVGPatternFrame::Init(nsIContent*       aContent,
   nsSVGPaintServerFrame::Init(aContent, aParent, aPrevInFlow);
 }
 #endif /* DEBUG */
-
-nsIAtom*
-nsSVGPatternFrame::GetType() const
-{
-  return nsGkAtoms::svgPatternFrame;
-}
 
 //----------------------------------------------------------------------
 // nsSVGContainerFrame methods:
@@ -218,7 +213,8 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
                                 nsIFrame *aSource,
                                 nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                                 float aGraphicOpacity,
-                                const gfxRect *aOverrideBounds)
+                                const gfxRect *aOverrideBounds,
+                                imgDrawingParams& aImgParams)
 {
   /*
    * General approach:
@@ -234,7 +230,8 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
 
   nsSVGPatternFrame* patternWithChildren = GetPatternWithChildren();
   if (!patternWithChildren) {
-    return nullptr; // Either no kids or a bad reference
+    // Either no kids or a bad reference
+    return nullptr;
   }
   nsIFrame* firstKid = patternWithChildren->mFrames.FirstChild();
 
@@ -380,7 +377,7 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
   // Delay checking NS_FRAME_DRAWING_AS_PAINTSERVER bit until here so we can
   // give back a clear surface if there's a loop
   if (!(patternWithChildren->GetStateBits() & NS_FRAME_DRAWING_AS_PAINTSERVER)) {
-    patternWithChildren->AddStateBits(NS_FRAME_DRAWING_AS_PAINTSERVER);
+    AutoSetRestorePaintServerState paintServer(patternWithChildren);
     for (nsIFrame* kid = firstKid; kid;
          kid = kid->GetNextSibling()) {
       // The CTM of each frame referencing us can be different
@@ -393,12 +390,9 @@ nsSVGPatternFrame::PaintPattern(const DrawTarget* aDrawTarget,
         tm = static_cast<nsSVGElement*>(kid->GetContent())->
                PrependLocalTransformsTo(tm, eUserSpaceToParent);
       }
-      DrawResult result = nsSVGUtils::PaintFrameWithEffects(kid, *ctx, tm);
-      if (result != DrawResult::SUCCESS) {
-        return nullptr;
-      }
+
+      nsSVGUtils::PaintFrameWithEffects(kid, *ctx, tm, aImgParams);
     }
-    patternWithChildren->RemoveStateBits(NS_FRAME_DRAWING_AS_PAINTSERVER);
   }
 
   patternWithChildren->mSource = nullptr;
@@ -619,8 +613,8 @@ nsSVGPatternFrame::GetReferencedPattern()
   if (!result)
     return nullptr;
 
-  nsIAtom* frameType = result->GetType();
-  if (frameType != nsGkAtoms::svgPatternFrame)
+  LayoutFrameType frameType = result->Type();
+  if (frameType != LayoutFrameType::SVGPattern)
     return nullptr;
 
   return static_cast<nsSVGPatternFrame*>(result);
@@ -722,25 +716,24 @@ nsSVGPatternFrame::ConstructCTM(const nsSVGViewBox& aViewBox,
 
 //----------------------------------------------------------------------
 // nsSVGPaintServerFrame methods:
-
 already_AddRefed<gfxPattern>
 nsSVGPatternFrame::GetPaintServerPattern(nsIFrame *aSource,
                                          const DrawTarget* aDrawTarget,
                                          const gfxMatrix& aContextMatrix,
                                          nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                                          float aGraphicOpacity,
+                                         imgDrawingParams& aImgParams,
                                          const gfxRect *aOverrideBounds)
 {
   if (aGraphicOpacity == 0.0f) {
-    RefPtr<gfxPattern> pattern = new gfxPattern(Color());
-    return pattern.forget();
+    return do_AddRef(new gfxPattern(Color()));
   }
 
   // Paint it!
   Matrix pMatrix;
   RefPtr<SourceSurface> surface =
     PaintPattern(aDrawTarget, &pMatrix, ToMatrix(aContextMatrix), aSource,
-                 aFillOrStroke, aGraphicOpacity, aOverrideBounds);
+                 aFillOrStroke, aGraphicOpacity, aOverrideBounds, aImgParams);
 
   if (!surface) {
     return nullptr;
@@ -748,8 +741,9 @@ nsSVGPatternFrame::GetPaintServerPattern(nsIFrame *aSource,
 
   RefPtr<gfxPattern> pattern = new gfxPattern(surface, pMatrix);
 
-  if (!pattern)
+  if (!pattern) {
     return nullptr;
+  }
 
   pattern->SetExtend(ExtendMode::REPEAT);
   return pattern.forget();

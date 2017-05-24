@@ -521,8 +521,7 @@ nsCSSProps::LookupProperty(const nsACString& aProperty,
 {
   MOZ_ASSERT(gPropertyTable, "no lookup table, needs addref");
 
-  if (nsLayoutUtils::CSSVariablesEnabled() &&
-      IsCustomPropertyName(aProperty)) {
+  if (IsCustomPropertyName(aProperty)) {
     return eCSSPropertyExtra_variable;
   }
 
@@ -552,8 +551,7 @@ nsCSSProps::LookupProperty(const nsACString& aProperty,
 nsCSSPropertyID
 nsCSSProps::LookupProperty(const nsAString& aProperty, EnabledState aEnabled)
 {
-  if (nsLayoutUtils::CSSVariablesEnabled() &&
-      IsCustomPropertyName(aProperty)) {
+  if (IsCustomPropertyName(aProperty)) {
     return eCSSPropertyExtra_variable;
   }
 
@@ -744,8 +742,8 @@ const KTableEntry nsCSSProps::kAnimationPlayStateKTable[] = {
 };
 
 const KTableEntry nsCSSProps::kAppearanceKTable[] = {
-  { eCSSKeyword_auto,    NS_THEME_AUTO },
   { eCSSKeyword_none,    NS_THEME_NONE },
+  { eCSSKeyword_auto,    NS_THEME_AUTO },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -1968,8 +1966,10 @@ const KTableEntry nsCSSProps::kScrollSnapTypeKTable[] = {
 };
 
 const KTableEntry nsCSSProps::kStackSizingKTable[] = {
-  { eCSSKeyword_ignore, NS_STYLE_STACK_SIZING_IGNORE },
-  { eCSSKeyword_stretch_to_fit, NS_STYLE_STACK_SIZING_STRETCH_TO_FIT },
+  { eCSSKeyword_ignore, StyleStackSizing::Ignore },
+  { eCSSKeyword_stretch_to_fit, StyleStackSizing::StretchToFit },
+  { eCSSKeyword_ignore_horizontal, StyleStackSizing::IgnoreHorizontal },
+  { eCSSKeyword_ignore_vertical, StyleStackSizing::IgnoreVertical },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -2030,7 +2030,6 @@ const KTableEntry nsCSSProps::kTextDecorationLineKTable[] = {
   { eCSSKeyword_overline, NS_STYLE_TEXT_DECORATION_LINE_OVERLINE },
   { eCSSKeyword_line_through, NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH },
   { eCSSKeyword_blink, NS_STYLE_TEXT_DECORATION_LINE_BLINK },
-  { eCSSKeyword__moz_anchor_decoration, NS_STYLE_TEXT_DECORATION_LINE_PREF_ANCHORS },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 

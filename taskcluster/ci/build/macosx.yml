@@ -6,7 +6,7 @@ macosx64/debug:
     treeherder:
         platform: osx-10-7/debug
         symbol: tc(B)
-        tier: 2
+        tier: 1
     worker-type: aws-provisioner-v1/gecko-{level}-b-macosx64
     worker:
         implementation: docker-worker
@@ -23,7 +23,7 @@ macosx64/debug:
         tooltool-downloads: internal
 
 macosx64/opt:
-    description: "MacOS X x64 Cross-compile"
+    description: "MacOS X x64"
     index:
         product: firefox
         job-name: macosx64-opt
@@ -31,15 +31,14 @@ macosx64/opt:
         platform: osx-10-7/opt
         symbol: tc(B)
         tier: 2
-    worker-type: aws-provisioner-v1/gecko-{level}-b-macosx64
+    worker-type: buildbot-bridge/buildbot-bridge
     worker:
-        implementation: docker-worker
-        max-run-time: 36000
+        implementation: buildbot-bridge
     run:
         using: mozharness
         actions: [get-secrets build generate-build-stats update]
         config:
-            - builds/releng_base_mac_64_cross_builds.py
+            - builds/releng_base_mac_64_builds.py
             - balrog/production.py
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
@@ -119,3 +118,31 @@ macosx64-add-on-devel/opt:
        custom-build-variant-cfg: add-on-devel
        tooltool-downloads: internal
     run-on-projects: [ 'mozilla-beta', 'mozilla-release', 'mozilla-esr45' ]
+
+macosx64-nightly/opt:
+    description: "MacOS X x64 Cross-compile Nightly"
+    attributes:
+        nightly: true
+    index:
+        product: firefox
+        job-name: macosx64-opt
+        type: nightly
+    treeherder:
+        platform: osx-10-7/opt
+        symbol: tc(N)
+        tier: 2
+    worker-type: aws-provisioner-v1/gecko-{level}-b-macosx64
+    worker:
+        implementation: docker-worker
+        max-run-time: 36000
+    run:
+        using: mozharness
+        actions: [get-secrets build generate-build-stats update]
+        config:
+            - builds/releng_base_mac_64_cross_builds.py
+            - disable_signing.py
+            - taskcluster_nightly.py
+        script: "mozharness/scripts/fx_desktop_build.py"
+        secrets: true
+        tooltool-downloads: internal
+    run-on-projects: []

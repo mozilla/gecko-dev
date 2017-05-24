@@ -13,9 +13,8 @@ function checkStateRead(aSubject, aTopic, aData) {
   ok(!gSSService.isSecureURI(
        Ci.nsISiteSecurityService.HEADER_HSTS,
        Services.io.newURI("https://nonexistent.example.com"), 0));
-  // bugzilla.mozilla.org is preloaded
   ok(gSSService.isSecureURI(Ci.nsISiteSecurityService.HEADER_HSTS,
-                            Services.io.newURI("https://bugzilla.mozilla.org"),
+                            Services.io.newURI("https://includesubdomains.preloaded.test"),
                             0));
   // notexpired.example.com is an HSTS host in a different test - we
   // want to make sure that test hasn't interfered with this one.
@@ -36,7 +35,7 @@ function run_test() {
   ok(stateFile.exists());
   // Initialize nsISiteSecurityService after do_get_profile() so it
   // can read the state file.
-  Services.obs.addObserver(checkStateRead, "data-storage-ready", false);
+  Services.obs.addObserver(checkStateRead, "data-storage-ready");
   do_test_pending();
   gSSService = Cc["@mozilla.org/ssservice;1"]
                  .getService(Ci.nsISiteSecurityService);

@@ -36,13 +36,16 @@ class nsIAtom;
 class nsIChannel;
 class nsIContent;
 class nsNodeInfoManager;
-class nsScriptLoader;
 class nsIApplicationCache;
 
 namespace mozilla {
 namespace css {
 class Loader;
 } // namespace css
+
+namespace dom {
+class ScriptLoader;
+} // namespace dom
 } // namespace mozilla
 
 #ifdef DEBUG
@@ -56,11 +59,11 @@ extern mozilla::LazyLogModule gContentSinkLogModuleInfo;
 #define SINK_LOG_TEST(_lm, _bit) (int((_lm)->Level()) & (_bit))
 
 #define SINK_TRACE(_lm, _bit, _args) \
-  PR_BEGIN_MACRO                     \
+  do {                     \
     if (SINK_LOG_TEST(_lm, _bit)) {  \
-      PR_LogPrint _args;             \
+      printf_stderr _args;             \
     }                                \
-  PR_END_MACRO
+  } while(0)
 
 #else
 #define SINK_TRACE(_lm, _bit, _args)
@@ -276,7 +279,7 @@ protected:
   nsCOMPtr<nsIDocShell>         mDocShell;
   RefPtr<mozilla::css::Loader> mCSSLoader;
   RefPtr<nsNodeInfoManager>   mNodeInfoManager;
-  RefPtr<nsScriptLoader>      mScriptLoader;
+  RefPtr<mozilla::dom::ScriptLoader> mScriptLoader;
 
   // back off timer notification after count
   int32_t mBackoffCount;

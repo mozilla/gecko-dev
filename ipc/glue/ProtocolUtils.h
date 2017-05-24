@@ -24,6 +24,7 @@
 #include "mozilla/ipc/MessageLink.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/MozPromise.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/UniquePtr.h"
@@ -190,6 +191,12 @@ public:
     // aActor.
     void SetEventTargetForActor(IProtocol* aActor, nsIEventTarget* aEventTarget);
 
+    // Replace the event target for the messages of aActor. There must not be
+    // any messages of aActor in the task queue, or we might run into some
+    // unexpected behavior.
+    void ReplaceEventTargetForActor(IProtocol* aActor,
+                                    nsIEventTarget* aEventTarget);
+
     // Returns the event target set by SetEventTargetForActor() if available.
     virtual nsIEventTarget* GetActorEventTarget();
 
@@ -201,6 +208,9 @@ protected:
     void SetIPCChannel(MessageChannel* aChannel) { mChannel = aChannel; }
 
     virtual void SetEventTargetForActorInternal(IProtocol* aActor, nsIEventTarget* aEventTarget);
+    virtual void ReplaceEventTargetForActorInternal(
+      IProtocol* aActor,
+      nsIEventTarget* aEventTarget);
 
     virtual already_AddRefed<nsIEventTarget>
     GetActorEventTargetInternal(IProtocol* aActor);
@@ -375,11 +385,26 @@ public:
     virtual nsIEventTarget*
     GetActorEventTarget();
 
+    virtual void OnChannelReceivedMessage(const Message& aMsg) {}
+
+    bool IsMainThreadProtocol() const { return mIsMainThreadProtocol; }
+    void SetIsMainThreadProtocol() { mIsMainThreadProtocol = NS_IsMainThread(); }
+
 protected:
+    // Override this method in top-level protocols to change the event target
+    // for a new actor (and its sub-actors).
     virtual already_AddRefed<nsIEventTarget>
     GetConstructedEventTarget(const Message& aMsg) { return nullptr; }
 
+    // Override this method in top-level protocols to change the event target
+    // for specific messages.
+    virtual already_AddRefed<nsIEventTarget>
+    GetSpecificMessageEventTarget(const Message& aMsg) { return nullptr; }
+
     virtual void SetEventTargetForActorInternal(IProtocol* aActor, nsIEventTarget* aEventTarget);
+    virtual void ReplaceEventTargetForActorInternal(
+      IProtocol* aActor,
+      nsIEventTarget* aEventTarget);
 
     virtual already_AddRefed<nsIEventTarget>
     GetActorEventTargetInternal(IProtocol* aActor);
@@ -392,6 +417,7 @@ protected:
     int32_t mLastRouteId;
     IDMap<Shmem::SharedMemory*> mShmemMap;
     Shmem::id_t mLastShmemId;
+    bool mIsMainThreadProtocol;
 
     Mutex mEventTargetMutex;
     IDMap<nsCOMPtr<nsIEventTarget>> mEventTargetMap;

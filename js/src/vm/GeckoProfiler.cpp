@@ -19,6 +19,8 @@
 #include "jit/JitFrames.h"
 #include "vm/StringBuffer.h"
 
+#include "jsgcinlines.h"
+
 using namespace js;
 
 using mozilla::DebugOnly;
@@ -47,7 +49,7 @@ GeckoProfiler::init()
 }
 
 void
-GeckoProfiler::setProfilingStack(ProfileEntry* stack, uint32_t* size, uint32_t max)
+GeckoProfiler::setProfilingStack(ProfileEntry* stack, mozilla::Atomic<uint32_t>* size, uint32_t max)
 {
     MOZ_ASSERT_IF(size_ && *size_ != 0, !enabled());
     MOZ_ASSERT(strings.lock()->initialized());
@@ -198,8 +200,8 @@ GeckoProfiler::markEvent(const char* event)
 bool
 GeckoProfiler::enter(JSContext* cx, JSScript* script, JSFunction* maybeFun)
 {
-    const char* str = profileString(script, maybeFun);
-    if (str == nullptr) {
+    const char* dynamicString = profileString(script, maybeFun);
+    if (dynamicString == nullptr) {
         ReportOutOfMemory(cx);
         return false;
     }
@@ -215,7 +217,7 @@ GeckoProfiler::enter(JSContext* cx, JSScript* script, JSFunction* maybeFun)
     }
 #endif
 
-    push(str, nullptr, script, script->code(), /* copy = */ true);
+    push("", dynamicString, /* sp = */ nullptr, script, script->code());
     return true;
 }
 
@@ -227,59 +229,58 @@ GeckoProfiler::exit(JSScript* script, JSFunction* maybeFun)
 #ifdef DEBUG
     /* Sanity check to make sure push/pop balanced */
     if (*size_ < max_) {
-        const char* str = profileString(script, maybeFun);
+        const char* dynamicString = profileString(script, maybeFun);
         /* Can't fail lookup because we should already be in the set */
-        MOZ_ASSERT(str != nullptr);
+        MOZ_ASSERT(dynamicString != nullptr);
 
         // Bug 822041
         if (!stack_[*size_].isJs()) {
             fprintf(stderr, "--- ABOUT TO FAIL ASSERTION ---\n");
-            fprintf(stderr, " stack=%p size=%d/%d\n", (void*) stack_, *size_, max_);
+            fprintf(stderr, " stack=%p size=%d/%d\n", (void*) stack_, size(), max_);
             for (int32_t i = *size_; i >= 0; i--) {
                 if (stack_[i].isJs())
-                    fprintf(stderr, "  [%d] JS %s\n", i, stack_[i].label());
+                    fprintf(stderr, "  [%d] JS %s\n", i, stack_[i].dynamicString());
                 else
-                    fprintf(stderr, "  [%d] C line %d %s\n", i, stack_[i].line(), stack_[i].label());
+                    fprintf(stderr, "  [%d] C line %d %s\n", i, stack_[i].line(), stack_[i].dynamicString());
             }
         }
 
         MOZ_ASSERT(stack_[*size_].isJs());
         MOZ_ASSERT(stack_[*size_].script() == script);
-        MOZ_ASSERT(strcmp((const char*) stack_[*size_].label(), str) == 0);
-        stack_[*size_].setLabel(nullptr);
+        MOZ_ASSERT(strcmp((const char*) stack_[*size_].dynamicString(), dynamicString) == 0);
+        stack_[*size_].setDynamicString(nullptr);
         stack_[*size_].setPC(nullptr);
     }
 #endif
 }
 
 void
-GeckoProfiler::beginPseudoJS(const char* string, void* sp)
+GeckoProfiler::beginPseudoJS(const char* label, void* sp)
 {
     /* these operations cannot be re-ordered, so volatile-ize operations */
     volatile ProfileEntry* stack = stack_;
-    volatile uint32_t* size = size_;
-    uint32_t current = *size;
+    uint32_t current = *size_;
 
     MOZ_ASSERT(installed());
     if (current < max_) {
-        stack[current].setLabel(string);
+        stack[current].setLabel(label);
         stack[current].initCppFrame(sp, 0);
         stack[current].setFlag(ProfileEntry::BEGIN_PSEUDO_JS);
     }
-    *size = current + 1;
+    *size_ = current + 1;
 }
 
 void
-GeckoProfiler::push(const char* string, void* sp, JSScript* script, jsbytecode* pc, bool copy,
-                  ProfileEntry::Category category)
+GeckoProfiler::push(const char* label, const char* dynamicString, void* sp, JSScript* script,
+                    jsbytecode* pc, ProfileEntry::Category category)
 {
+    MOZ_ASSERT(label[0] == '\0' || !dynamicString);
     MOZ_ASSERT_IF(sp != nullptr, script == nullptr && pc == nullptr);
     MOZ_ASSERT_IF(sp == nullptr, script != nullptr && pc != nullptr);
 
     /* these operations cannot be re-ordered, so volatile-ize operations */
     volatile ProfileEntry* stack = stack_;
-    volatile uint32_t* size = size_;
-    uint32_t current = *size;
+    uint32_t current = *size_;
 
     MOZ_ASSERT(installed());
     if (current < max_) {
@@ -294,17 +295,11 @@ GeckoProfiler::push(const char* string, void* sp, JSScript* script, jsbytecode* 
             MOZ_ASSERT(entry.flags() == 0);
         }
 
-        entry.setLabel(string);
-        entry.setDynamicString(nullptr);
+        entry.setLabel(label);
+        entry.setDynamicString(dynamicString);
         entry.setCategory(category);
-
-        // Track if mLabel needs a copy.
-        if (copy)
-            entry.setFlag(js::ProfileEntry::FRAME_LABEL_COPY);
-        else
-            entry.unsetFlag(js::ProfileEntry::FRAME_LABEL_COPY);
     }
-    *size = current + 1;
+    *size_ = current + 1;
 }
 
 void
@@ -373,7 +368,7 @@ void
 GeckoProfiler::trace(JSTracer* trc)
 {
     if (stack_) {
-        size_t limit = Min(*size_, max_);
+        size_t limit = Min(uint32_t(*size_), max_);
         for (size_t i = 0; i < limit; i++)
             stack_[i].trace(trc);
     }
@@ -435,7 +430,8 @@ GeckoProfilerEntryMarker::GeckoProfilerEntryMarker(JSRuntime* rt,
     size_before = *profiler->size_;
     // We want to push a CPP frame so the profiler can correctly order JS and native stacks.
     profiler->beginPseudoJS("js::RunScript", this);
-    profiler->push("js::RunScript", nullptr, script, script->code(), /* copy = */ false);
+    profiler->push("js::RunScript", /* dynamicString = */ nullptr, /* sp = */ nullptr, script,
+                   script->code());
 }
 
 GeckoProfilerEntryMarker::~GeckoProfilerEntryMarker()
@@ -460,7 +456,8 @@ AutoGeckoProfilerEntry::AutoGeckoProfilerEntry(JSRuntime* rt, const char* label,
     }
     sizeBefore_ = *profiler_->size_;
     profiler_->beginPseudoJS(label, this);
-    profiler_->push(label, this, nullptr, nullptr, /* copy = */ false, category);
+    profiler_->push(label, /* dynamicString = */ nullptr, /* sp = */ this, /* script = */ nullptr,
+                    /* pc = */ nullptr, category);
 }
 
 AutoGeckoProfilerEntry::~AutoGeckoProfilerEntry()
@@ -552,7 +549,7 @@ ProfileEntry::setPC(jsbytecode* pc) volatile
 }
 
 JS_FRIEND_API(void)
-js::SetContextProfilingStack(JSContext* cx, ProfileEntry* stack, uint32_t* size, uint32_t max)
+js::SetContextProfilingStack(JSContext* cx, ProfileEntry* stack, mozilla::Atomic<uint32_t>* size, uint32_t max)
 {
     cx->runtime()->geckoProfiler().setProfilingStack(stack, size, max);
 }
@@ -569,12 +566,6 @@ js::RegisterContextProfilingEventMarker(JSContext* cx, void (*fn)(const char*))
 {
     MOZ_ASSERT(cx->runtime()->geckoProfiler().enabled());
     cx->runtime()->geckoProfiler().setEventMarker(fn);
-}
-
-JS_FRIEND_API(jsbytecode*)
-js::ProfilingGetPC(JSContext* cx, JSScript* script, void* ip)
-{
-    return cx->runtime()->geckoProfiler().ipToPC(script, size_t(ip));
 }
 
 AutoSuppressProfilerSampling::AutoSuppressProfilerSampling(JSContext* cx

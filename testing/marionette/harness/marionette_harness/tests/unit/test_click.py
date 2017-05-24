@@ -4,11 +4,9 @@
 
 import urllib
 
-from marionette_driver.by import By
-from marionette_driver import errors
-from marionette_driver.wait import Wait
+from marionette_driver import By, errors
 
-from marionette_harness import MarionetteTestCase
+from marionette_harness import MarionetteTestCase, run_if_e10s, skip_if_mobile
 
 
 def inline(doc):
@@ -97,8 +95,7 @@ class TestLegacyClick(MarionetteTestCase):
         test_html = self.marionette.absolute_url("clicks.html")
         self.marionette.navigate(test_html)
         self.marionette.find_element(By.LINK_TEXT, "333333").click()
-        Wait(self.marionette, timeout=30, ignored_exceptions=errors.NoSuchElementException).until(
-            lambda m: m.find_element(By.ID, "username"))
+        self.marionette.find_element(By.ID, "username")
         self.assertEqual(self.marionette.title, "XHTML Test Page")
 
     def test_clicking_an_element_that_is_not_displayed_raises(self):
@@ -112,7 +109,8 @@ class TestLegacyClick(MarionetteTestCase):
         test_html = self.marionette.absolute_url("clicks.html")
         self.marionette.navigate(test_html)
         self.marionette.find_element(By.ID, "overflowLink").click()
-        self.wait_for_condition(lambda mn: self.marionette.title == "XHTML Test Page")
+        self.marionette.find_element(By.ID, "username")
+        self.assertEqual(self.marionette.title, "XHTML Test Page")
 
     def test_scroll_into_view_near_end(self):
         self.marionette.navigate(fixed_overlay)
@@ -252,3 +250,110 @@ class TestClick(TestLegacyClick):
         with self.assertRaises(errors.ElementClickInterceptedException):
             obscured.click()
         self.assertFalse(self.marionette.execute_script("return window.clicked", sandbox=None))
+
+    def test_pointer_events_none(self):
+        self.marionette.navigate(inline("""
+            <button style="pointer-events: none">click me</button>
+            <script>
+              window.clicked = false;
+              let button = document.querySelector("button");
+              button.addEventListener("click", () => window.clicked = true);
+            </script>
+        """))
+        button = self.marionette.find_element(By.TAG_NAME, "button")
+        self.assertEqual("none", button.value_of_css_property("pointer-events"))
+
+        with self.assertRaisesRegexp(errors.ElementClickInterceptedException,
+                                     "does not have pointer events enabled"):
+            button.click()
+        self.assertFalse(self.marionette.execute_script("return window.clicked", sandbox=None))
+
+    def test_inclusive_descendant(self):
+        self.marionette.navigate(inline("""
+            <select multiple>
+              <option>first
+              <option>second
+              <option>third
+             </select>"""))
+        select = self.marionette.find_element(By.TAG_NAME, "select")
+
+        # This tests that the pointer-interactability test does not
+        # cause an ElementClickInterceptedException.
+        #
+        # At a <select multiple>'s in-view centre point, you might
+        # find a fully rendered <option>.  Marionette should test that
+        # the paint tree at this point _contains_ <option>, not that the
+        # first element of the paint tree is _equal_ to <select>.
+        select.click()
+
+
+class TestClickNavigation(MarionetteTestCase):
+
+    def setUp(self):
+        super(TestClickNavigation, self).setUp()
+
+        self.test_page = self.marionette.absolute_url("clicks.html")
+        self.marionette.navigate(self.test_page)
+
+    def close_notification(self):
+        try:
+            with self.marionette.using_context("chrome"):
+                popup = self.marionette.find_element(
+                    By.CSS_SELECTOR, "#notification-popup popupnotification")
+                popup.find_element(By.ANON_ATTRIBUTE,
+                                   {"anonid": "closebutton"}).click()
+        except errors.NoSuchElementException:
+            pass
+
+    def test_click_link_page_load(self):
+        self.marionette.find_element(By.LINK_TEXT, "333333").click()
+        self.assertNotEqual(self.marionette.get_url(), self.test_page)
+        self.assertEqual(self.marionette.title, "XHTML Test Page")
+
+    @skip_if_mobile("Bug 1325738 - Modal dialogs block execution of code for Fennec")
+    def test_click_link_page_load_aborted_by_beforeunload(self):
+        page = self.marionette.absolute_url("beforeunload.html")
+        self.marionette.navigate(page)
+        self.marionette.find_element(By.TAG_NAME, "a").click()
+
+        # click returns immediately when a beforeunload handler is invoked
+        alert = self.marionette.switch_to_alert()
+        alert.dismiss()
+
+        self.assertEqual(self.marionette.get_url(), page)
+
+    def test_click_link_anchor(self):
+        self.marionette.find_element(By.ID, "anchor").click()
+        self.assertEqual(self.marionette.get_url(), "{}#".format(self.test_page))
+
+    def test_click_link_install_addon(self):
+        try:
+            self.marionette.find_element(By.ID, "install-addon").click()
+            self.assertEqual(self.marionette.get_url(), self.test_page)
+        finally:
+            self.close_notification()
+
+    def test_click_no_link(self):
+        self.marionette.find_element(By.ID, "showbutton").click()
+        self.assertEqual(self.marionette.get_url(), self.test_page)
+
+    def test_click_option_navigate(self):
+        self.marionette.find_element(By.ID, "option").click()
+        self.marionette.find_element(By.ID, "delay")
+
+    @run_if_e10s("Requires e10s mode enabled")
+    def test_click_remoteness_change(self):
+        self.marionette.navigate("about:robots")
+        self.marionette.navigate(self.test_page)
+        self.marionette.find_element(By.ID, "anchor")
+
+        self.marionette.navigate("about:robots")
+        with self.assertRaises(errors.NoSuchElementException):
+            self.marionette.find_element(By.ID, "anchor")
+
+        self.marionette.go_back()
+        self.marionette.find_element(By.ID, "anchor")
+
+        self.marionette.find_element(By.ID, "history-back").click()
+        with self.assertRaises(errors.NoSuchElementException):
+            self.marionette.find_element(By.ID, "anchor")

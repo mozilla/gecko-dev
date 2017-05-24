@@ -50,15 +50,8 @@ public class DownloadAction extends BaseAction {
     public void perform(Context context, DownloadContentCatalog catalog) {
         Log.d(LOGTAG, "Downloading content..");
 
-        if (!isConnectedToNetwork(context)) {
-            Log.d(LOGTAG, "No connected network available. Postponing download.");
-            // TODO: Reschedule download (bug 1209498)
-            return;
-        }
-
-        if (isActiveNetworkMetered(context)) {
-            Log.d(LOGTAG, "Network is metered. Postponing download.");
-            // TODO: Reschedule download (bug 1209498)
+        if (!catalog.hasScheduledDownloads()) {
+            Log.d(LOGTAG, "No scheduled downloads. Nothing to do.");
             return;
         }
 
@@ -68,10 +61,25 @@ public class DownloadAction extends BaseAction {
             File temporaryFile = null;
 
             try {
+                if (!isConnectedToNetwork(context)) {
+                    Log.d(LOGTAG, "No connected network available. Postponing download.");
+                    // TODO: Reschedule download (bug 1209498)
+                    DownloadContentTelemetry.eventDownloadFailure(content, DownloadContentTelemetry.ERROR_NO_NETWORK);
+                    return;
+                }
+
+                if (isActiveNetworkMetered(context)) {
+                    Log.d(LOGTAG, "Network is metered. Postponing download.");
+                    // TODO: Reschedule download (bug 1209498)
+                    DownloadContentTelemetry.eventDownloadFailure(content, DownloadContentTelemetry.ERROR_NETWORK_METERED);
+                    return;
+                }
+
                 File destinationFile = getDestinationFile(context, content);
                 if (destinationFile.exists() && verify(destinationFile, content.getChecksum())) {
                     Log.d(LOGTAG, "Content already exists and is up-to-date.");
                     catalog.markAsDownloaded(content);
+                    DownloadContentTelemetry.eventDownloadSuccess(content);
                     continue;
                 }
 
@@ -79,6 +87,7 @@ public class DownloadAction extends BaseAction {
 
                 if (!hasEnoughDiskSpace(content, destinationFile, temporaryFile)) {
                     Log.d(LOGTAG, "Not enough disk space to save content. Skipping download.");
+                    DownloadContentTelemetry.eventDownloadFailure(content, DownloadContentTelemetry.ERROR_DISK_SPACE);
                     continue;
                 }
 
@@ -92,18 +101,22 @@ public class DownloadAction extends BaseAction {
                 if (!verify(temporaryFile, content.getDownloadChecksum())) {
                     Log.w(LOGTAG, "Wrong checksum after download, content=" + content.getId());
                     temporaryFile.delete();
+                    DownloadContentTelemetry.eventDownloadFailure(content, DownloadContentTelemetry.ERROR_CHECKSUM);
                     continue;
                 }
 
                 if (!content.isAssetArchive()) {
                     Log.e(LOGTAG, "Downloaded content is not of type 'asset-archive': " + content.getType());
                     temporaryFile.delete();
+                    DownloadContentTelemetry.eventDownloadFailure(content, DownloadContentTelemetry.ERROR_LOGIC);
                     continue;
                 }
 
                 extract(temporaryFile, destinationFile, content.getChecksum());
 
                 catalog.markAsDownloaded(content);
+
+                DownloadContentTelemetry.eventDownloadSuccess(content);
 
                 Log.d(LOGTAG, "Successfully downloaded: " + content);
 
@@ -121,6 +134,8 @@ public class DownloadAction extends BaseAction {
                     catalog.rememberFailure(content, e.getErrorType());
                 }
 
+                DownloadContentTelemetry.eventDownloadFailure(content, e);
+
                 // TODO: Reschedule download (bug 1209498)
             } catch (UnrecoverableDownloadContentException e) {
                 Log.w(LOGTAG, "Downloading content failed (Unrecoverable): " + content, e);
@@ -130,6 +145,8 @@ public class DownloadAction extends BaseAction {
                 if (temporaryFile != null && temporaryFile.exists()) {
                     temporaryFile.delete();
                 }
+
+                DownloadContentTelemetry.eventDownloadFailure(content, DownloadContentTelemetry.ERROR_UNRECOVERABLE);
             }
         }
 
@@ -198,6 +215,7 @@ public class DownloadAction extends BaseAction {
     protected void extract(File sourceFile, File destinationFile, String checksum)
             throws UnrecoverableDownloadContentException, RecoverableDownloadContentException {
         InputStream inputStream = null;
+        InputStream gzInputStream = null;
         OutputStream outputStream = null;
         File temporaryFile = null;
 
@@ -209,13 +227,15 @@ public class DownloadAction extends BaseAction {
 
             temporaryFile = new File(destinationDirectory, destinationFile.getName() + ".tmp");
 
-            inputStream = new GZIPInputStream(new BufferedInputStream(new FileInputStream(sourceFile)));
+            // We have to have keep a handle to the BufferedInputStream: the GZIPInputStream
+            // constructor can fail e.g. if the stream isn't a GZIP stream. If we didn't keep
+            // a reference to that stream we wouldn't be able to close it if GZInputStream throws.
+            // (The BufferedInputStream constructor doesn't throw, so we don't need to care about it.)
+            inputStream = new BufferedInputStream(new FileInputStream(sourceFile));
+            gzInputStream = new GZIPInputStream(inputStream);
             outputStream = new BufferedOutputStream(new FileOutputStream(temporaryFile));
 
-            IOUtils.copy(inputStream, outputStream);
-
-            inputStream.close();
-            outputStream.close();
+            IOUtils.copy(gzInputStream, outputStream);
 
             if (!verify(temporaryFile, checksum)) {
                 Log.w(LOGTAG, "Checksum of extracted file does not match.");
@@ -227,6 +247,7 @@ public class DownloadAction extends BaseAction {
             // We could not extract to the destination: Keep temporary file and try again next time we run.
             throw new RecoverableDownloadContentException(RecoverableDownloadContentException.DISK_IO, e);
         } finally {
+            IOUtils.safeStreamClose(gzInputStream);
             IOUtils.safeStreamClose(inputStream);
             IOUtils.safeStreamClose(outputStream);
 

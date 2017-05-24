@@ -15,9 +15,15 @@
 #include "mozilla/gfx/GraphicsMessages.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/CompositorThread.h"
+#include "mozilla/layers/DeviceAttachmentsD3D11.h"
 #include "nsIGfxInfo.h"
 #include <d3d11.h>
 #include <ddraw.h>
+
+#ifdef MOZ_CRASHREPORTER
+#include "nsExceptionHandler.h"
+#include "nsPrintfCString.h"
+#endif
 
 namespace mozilla {
 namespace gfx {
@@ -135,7 +141,12 @@ DeviceManagerDx::CreateCompositorDevices()
   mD3D11Module.disown();
 
   MOZ_ASSERT(mCompositorDevice);
-  return d3d11.IsEnabled();
+  if (!d3d11.IsEnabled()) {
+    return false;
+  }
+
+  PreloadAttachmentsOnCompositorThread();
+  return true;
 }
 
 void
@@ -602,6 +613,7 @@ DeviceManagerDx::ResetDevices()
   MutexAutoLock lock(mDeviceLock);
 
   mAdapter = nullptr;
+  mCompositorAttachments = nullptr;
   mCompositorDevice = nullptr;
   mContentDevice = nullptr;
   mDeviceStatus = Nothing();
@@ -620,6 +632,13 @@ DeviceManagerDx::MaybeResetAndReacquireDevices()
   if (resetReason != DeviceResetReason::FORCED_RESET) {
     Telemetry::Accumulate(Telemetry::DEVICE_RESET_REASON, uint32_t(resetReason));
   }
+
+#ifdef MOZ_CRASHREPORTER
+  nsPrintfCString reasonString("%d", int(resetReason));
+  CrashReporter::AnnotateCrashReport(
+    NS_LITERAL_CSTRING("DeviceResetReason"),
+    reasonString);
+#endif
 
   bool createCompositorDevice = !!mCompositorDevice;
   bool createContentDevice = !!mContentDevice;
@@ -822,6 +841,17 @@ DeviceManagerDx::CanInitializeKeyedMutexTextures()
 }
 
 bool
+DeviceManagerDx::HasCrashyInitData()
+{
+  MutexAutoLock lock(mDeviceLock);
+  if (!mDeviceStatus) {
+    return false;
+  }
+
+  return (mDeviceStatus->adapter().VendorId == 0x8086 && !IsWin10OrLater());
+}
+
+bool
 DeviceManagerDx::CheckRemotePresentSupport()
 {
   MOZ_ASSERT(XRE_IsParentProcess());
@@ -898,6 +928,62 @@ IDirectDraw7*
 DeviceManagerDx::GetDirectDraw()
 {
   return mDirectDraw;
+}
+
+void
+DeviceManagerDx::GetCompositorDevices(RefPtr<ID3D11Device>* aOutDevice,
+                                      RefPtr<layers::DeviceAttachmentsD3D11>* aOutAttachments)
+{
+  MOZ_ASSERT(layers::CompositorThreadHolder::IsInCompositorThread());
+
+  RefPtr<ID3D11Device> device;
+  {
+    MutexAutoLock lock(mDeviceLock);
+    if (!mCompositorDevice) {
+      return;
+    }
+    if (mCompositorAttachments) {
+      *aOutDevice = mCompositorDevice;
+      *aOutAttachments = mCompositorAttachments;
+      return;
+    }
+
+    // Otherwise, we'll try to create attachments outside the lock.
+    device = mCompositorDevice;
+  }
+
+  // We save the attachments object even if it fails to initialize, so the
+  // compositor can grab the failure ID.
+  RefPtr<layers::DeviceAttachmentsD3D11> attachments =
+    layers::DeviceAttachmentsD3D11::Create(device);
+  {
+    MutexAutoLock lock(mDeviceLock);
+    if (device != mCompositorDevice) {
+      return;
+    }
+    mCompositorAttachments = attachments;
+  }
+
+  *aOutDevice = device;
+  *aOutAttachments = attachments;
+}
+
+/* static */ void
+DeviceManagerDx::PreloadAttachmentsOnCompositorThread()
+{
+  MessageLoop* loop = layers::CompositorThreadHolder::Loop();
+  if (!loop) {
+    return;
+  }
+
+  RefPtr<Runnable> task = NS_NewRunnableFunction([]() -> void {
+    if (DeviceManagerDx* dm = DeviceManagerDx::Get()) {
+      RefPtr<ID3D11Device> device;
+      RefPtr<layers::DeviceAttachmentsD3D11> attachments;
+      dm->GetCompositorDevices(&device, &attachments);
+    }
+  });
+  loop->PostTask(task.forget());
 }
 
 } // namespace gfx

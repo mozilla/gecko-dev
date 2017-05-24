@@ -273,7 +273,7 @@ static bool GetFilenameAndExtensionFromChannel(nsIChannel* aChannel,
  * Obtains the directory to use.  This tends to vary per platform, and
  * needs to be consistent throughout our codepaths. For platforms where
  * helper apps use the downloads directory, this should be kept in
- * sync with nsDownloadManager.cpp
+ * sync with DownloadIntegration.jsm.
  *
  * Optionally skip availability of the directory and storage.
  */
@@ -468,6 +468,9 @@ static const nsDefaultMimeTypeEntry defaultMimeEntries[] =
   { "application/xhtml+xml", "xhtml" },
   { "application/xhtml+xml", "xht" },
   { TEXT_PLAIN, "txt" },
+  { APPLICATION_JSON, "json" },
+  { APPLICATION_XJAVASCRIPT, "js" },
+  { APPLICATION_XJAVASCRIPT, "jsm" },
   { VIDEO_OGG, "ogv" },
   { VIDEO_OGG, "ogg" },
   { APPLICATION_OGG, "ogg" },
@@ -476,6 +479,9 @@ static const nsDefaultMimeTypeEntry defaultMimeEntries[] =
   { APPLICATION_PDF, "pdf" },
   { VIDEO_WEBM, "webm" },
   { AUDIO_WEBM, "webm" },
+  { IMAGE_ICO, "ico" },
+  { TEXT_PLAIN, "properties" },
+  { TEXT_PLAIN, "locale" },
 #if defined(MOZ_WMF)
   { VIDEO_MP4, "mp4" },
   { AUDIO_MP4, "m4a" },
@@ -840,6 +846,8 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
   nsAutoCString buf;
   mimeInfo->GetPrimaryExtension(buf);
 
+  // NB: ExternalHelperAppParent depends on this listener always being an
+  // nsExternalAppHandler. If this changes, make sure to update that code.
   nsExternalAppHandler * handler = new nsExternalAppHandler(mimeInfo,
                                                             buf,
                                                             aContentContext,
@@ -1669,7 +1677,8 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
     return NS_OK;
   }
 
-  // Inform channel it is open on behalf of a download to prevent caching.
+  // Inform channel it is open on behalf of a download to throttle it during
+  // page loads and prevent its caching.
   nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(aChannel);
   if (httpInternal) {
     rv = httpInternal->SetChannelIsForDownload(true);
@@ -2418,7 +2427,7 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   // was specified in mSuggestedFileName after the download is done prior to
   // launching the helper app.  So that any existing file of that name won't be
   // overwritten we call CreateUnique().  Also note that we use the same
-  // directory as originally downloaded so nsDownload can rename in place
+  // directory as originally downloaded so the download can be renamed in place
   // later.
   nsCOMPtr<nsIFile> fileToUse;
   (void) GetDownloadDirectory(getter_AddRefs(fileToUse));
@@ -2721,14 +2730,12 @@ nsExternalHelperAppService::GetTypeFromExtension(const nsACString& aFileExt,
   }
 
   // Ask OS.
-  bool found = false;
-  nsCOMPtr<nsIMIMEInfo> mi = GetMIMEInfoFromOS(EmptyCString(), aFileExt, &found);
-  if (mi && found) {
-    return mi->GetMIMEType(aContentType);
+  if (GetMIMETypeFromOSForExtension(aFileExt, aContentType)) {
+    return NS_OK;
   }
 
   // Check extras array.
-  found = GetTypeFromExtras(aFileExt, aContentType);
+  bool found = GetTypeFromExtras(aFileExt, aContentType);
   if (found) {
     return NS_OK;
   }
@@ -2926,4 +2933,12 @@ bool nsExternalHelperAppService::GetTypeFromExtras(const nsACString& aExtension,
   }
 
   return false;
+}
+
+bool
+nsExternalHelperAppService::GetMIMETypeFromOSForExtension(const nsACString& aExtension, nsACString& aMIMEType)
+{
+  bool found = false;
+  nsCOMPtr<nsIMIMEInfo> mimeInfo = GetMIMEInfoFromOS(EmptyCString(), aExtension, &found);
+  return found && mimeInfo && NS_SUCCEEDED(mimeInfo->GetMIMEType(aMIMEType));
 }

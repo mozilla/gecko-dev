@@ -221,14 +221,16 @@ for (let test of testParams) {
   check_test_2 = () => {
     ensure_test_completed();
 
-    AddonManager.getAddonByID("addon1@tests.mozilla.org", callback_soon(function(olda1) {
+    AddonManager.getAddonByID("addon1@tests.mozilla.org", callback_soon(async function(olda1) {
+      await AddonTestUtils.loadAddonsList(true);
+
       do_check_neq(olda1, null);
       do_check_eq(olda1.version, "1.0");
       do_check_true(isExtensionInAddonsList(profileDir, olda1.id));
 
       shutdownManager();
 
-      startupManager();
+      await promiseStartupManager();
 
       do_check_true(isExtensionInAddonsList(profileDir, "addon1@tests.mozilla.org"));
 
@@ -1176,17 +1178,17 @@ for (let test of testParams) {
     });
   }
 
-  add_task(function* cleanup() {
-    let addons = yield AddonManager.getAddonsByTypes(["extension"]);
+  add_task(async function cleanup() {
+    let addons = await AddonManager.getAddonsByTypes(["extension"]);
 
     for (let addon of addons)
       addon.uninstall();
 
-    yield promiseRestartManager();
+    await promiseRestartManager();
 
     shutdownManager();
 
-    yield new Promise(do_execute_soon);
+    await new Promise(do_execute_soon);
   });
 }
 

@@ -206,7 +206,7 @@ function Editor(config) {
 
     let num = cm.getOption("indentUnit");
     if (cm.getCursor().ch !== 0) {
-      num -= 1;
+      num -= cm.getCursor().ch % num;
     }
     cm.replaceSelection(" ".repeat(num), "end", "+input");
   };
@@ -1226,6 +1226,12 @@ Editor.prototype = {
       this._prefObserver.off(DETECT_INDENT, this.reloadPreferences);
       this._prefObserver.off(ENABLE_CODE_FOLDING, this.reloadPreferences);
       this._prefObserver.destroy();
+    }
+
+    // Remove the link between the document and code-mirror.
+    let cm = editors.get(this);
+    if (cm && cm.doc) {
+      cm.doc.cm = null;
     }
 
     this.emit("destroy");

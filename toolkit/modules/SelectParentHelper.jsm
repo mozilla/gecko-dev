@@ -28,7 +28,8 @@ var usedSelectBackgroundColor;
 
 this.SelectParentHelper = {
   populate(menulist, items, selectedIndex, zoom, uaBackgroundColor, uaColor,
-           uaSelectBackgroundColor, uaSelectColor, selectBackgroundColor, selectColor) {
+           uaSelectBackgroundColor, uaSelectColor, selectBackgroundColor, selectColor,
+           selectTextShadow) {
     // Clear the current contents of the popup
     menulist.menupopup.textContent = "";
     let stylesheet = menulist.querySelector("#ContentSelectDropdownScopedStylesheet");
@@ -53,8 +54,7 @@ this.SelectParentHelper = {
     // but they don't intend to change the popup to transparent.
     if (customStylingEnabled &&
         selectBackgroundColor != uaSelectBackgroundColor &&
-        selectBackgroundColor != "rgba(0, 0, 0, 0)" &&
-        selectBackgroundColor != selectColor) {
+        selectBackgroundColor != "rgba(0, 0, 0, 0)") {
       ruleBody = `background-image: linear-gradient(${selectBackgroundColor}, ${selectBackgroundColor});`;
       usedSelectBackgroundColor = selectBackgroundColor;
     } else {
@@ -67,6 +67,11 @@ this.SelectParentHelper = {
         (selectBackgroundColor != "rgba(0, 0, 0, 0)" ||
          selectColor != uaSelectBackgroundColor)) {
       ruleBody += `color: ${selectColor};`;
+    }
+
+    if (customStylingEnabled &&
+        selectTextShadow != "none") {
+      ruleBody += `text-shadow: ${selectTextShadow};`;
     }
 
     if (ruleBody) {
@@ -181,12 +186,19 @@ this.SelectParentHelper = {
   },
 
   receiveMessage(msg) {
+    if (!currentBrowser) {
+      return;
+    }
+
     if (msg.name == "Forms:UpdateDropDown") {
       // Sanity check - we'd better know what the currently
       // opened menulist is, and what browser it belongs to...
-      if (!currentMenulist || !currentBrowser) {
+      if (!currentMenulist) {
         return;
       }
+
+      let scrollBox = currentMenulist.menupopup.scrollBox;
+      let scrollTop = scrollBox.scrollTop;
 
       let options = msg.data.options;
       let selectedIndex = msg.data.selectedIndex;
@@ -196,10 +208,16 @@ this.SelectParentHelper = {
       let uaSelectColor = msg.data.uaSelectColor;
       let selectBackgroundColor = msg.data.selectBackgroundColor;
       let selectColor = msg.data.selectColor;
+      let selectTextShadow = msg.data.selectTextShadow;
       this.populate(currentMenulist, options, selectedIndex,
                     currentZoom, uaBackgroundColor, uaColor,
                     uaSelectBackgroundColor, uaSelectColor,
-                    selectBackgroundColor, selectColor);
+                    selectBackgroundColor, selectColor, selectTextShadow);
+
+      // Restore scroll position to what it was prior to the update.
+      scrollBox.scrollTop = scrollTop;
+    } else if (msg.name == "Forms:BlurDropDown-Ping") {
+      currentBrowser.messageManager.sendAsyncMessage("Forms:BlurDropDown-Pong", {});
     }
   },
 
@@ -212,6 +230,7 @@ this.SelectParentHelper = {
     browser.ownerGlobal.addEventListener("keydown", this, true);
     browser.ownerGlobal.addEventListener("fullscreen", this, true);
     browser.messageManager.addMessageListener("Forms:UpdateDropDown", this);
+    browser.messageManager.addMessageListener("Forms:BlurDropDown-Ping", this);
   },
 
   _unregisterListeners(browser, popup) {
@@ -223,6 +242,7 @@ this.SelectParentHelper = {
     browser.ownerGlobal.removeEventListener("keydown", this, true);
     browser.ownerGlobal.removeEventListener("fullscreen", this, true);
     browser.messageManager.removeMessageListener("Forms:UpdateDropDown", this);
+    browser.messageManager.removeMessageListener("Forms:BlurDropDown-Ping", this);
   },
 
 };
@@ -271,10 +291,25 @@ function populateChildren(menulist, options, selectedIndex, zoom,
       ruleBody += `color: ${option.color};`;
     }
 
+    if (customStylingEnabled &&
+        option.textShadow) {
+      ruleBody += `text-shadow: ${option.textShadow};`;
+    }
+
     if (ruleBody) {
       sheet.insertRule(`menupopup > :nth-child(${nthChildIndex}):not([_moz-menuactive="true"]) {
         ${ruleBody}
       }`, 0);
+
+      if (option.textShadow) {
+        // Need to explicitly disable the possibly inherited
+        // text-shadow rule when _moz-menuactive=true since
+        // _moz-menuactive=true disables custom option styling.
+        sheet.insertRule(`menupopup > :nth-child(${nthChildIndex})[_moz-menuactive="true"] {
+          text-shadow: none;
+        }`, 0);
+      }
+
       item.setAttribute("customoptionstyling", "true");
     } else {
       item.removeAttribute("customoptionstyling");
@@ -434,6 +469,7 @@ function onSearchFocus() {
   let menupopup = searchObj.parentElement;
   menupopup.parentElement.menuBoxObject.activeChild = null;
   menupopup.setAttribute("ignorekeys", "true");
+  currentBrowser.messageManager.sendAsyncMessage("Forms:SearchFocused", {});
 }
 
 function onSearchBlur() {

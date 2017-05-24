@@ -51,14 +51,13 @@ public:
   NS_IMETHOD SetDomain(nsIURI* aDomain) override;
   NS_IMETHOD GetBaseDomain(nsACString& aBaseDomain) override;
   NS_IMETHOD GetAddonId(nsAString& aAddonId) override;
-  nsresult GetOriginInternal(nsACString& aOrigin) override;
 
   static already_AddRefed<NullPrincipal> CreateWithInheritedAttributes(nsIPrincipal* aInheritFrom);
 
   // Create NullPrincipal with origin attributes from docshell.
   // If aIsFirstParty is true, and the pref 'privacy.firstparty.isolate' is also
   // enabled, the mFirstPartyDomain value of the origin attributes will be set
-  // to NULL_PRINCIPAL_FIRST_PARTY_DOMAIN.
+  // to an unique value.
   static already_AddRefed<NullPrincipal>
   CreateWithInheritedAttributes(nsIDocShell* aDocShell, bool aIsFirstParty = false);
 
@@ -82,6 +81,12 @@ public:
   bool MayLoadInternal(nsIURI* aURI) override;
 
   nsCOMPtr<nsIURI> mURI;
+
+private:
+  // If aIsFirstParty is true, this NullPrincipal will be initialized base on
+  // the aOriginAttributes with FirstPartyDomain set to an unique value, and this
+  // value is generated from mURI.path, with ".mozilla" appending at the end.
+  nsresult Init(const mozilla::OriginAttributes& aOriginAttributes, bool aIsFirstParty);
 };
 
 #endif // NullPrincipal_h__

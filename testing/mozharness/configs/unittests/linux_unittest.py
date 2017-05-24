@@ -116,6 +116,7 @@ config = {
                 "--use-test-media-devices",
                 "--screenshot-on-fail",
                 "--cleanup-crashes",
+                "--marionette-startup-timeout=180",
             ],
             "run_filename": "runtests.py",
             "testsdir": "mochitest"
@@ -228,9 +229,8 @@ config = {
             "tests": ["tests/reftest/tests/layout/reftests/reftest.list"]},
         "reftest-stylo": {
             "options": ["--suite=reftest",
-                        "--disable-e10s",
                         "--setpref=reftest.compareStyloToGecko=true"],
-            "tests": ["tests/reftest/tests/layout/reftests/reftest-stylo.list"],
+            "tests": ["tests/reftest/tests/layout/reftests/reftest.list"],
         },
     },
     "all_xpcshell_suites": {
@@ -292,7 +292,7 @@ config = {
     ],
     "vcs_output_timeout": 1000,
     "minidump_save_path": "%(abs_work_dir)s/../minidumps",
-    "buildbot_max_log_size": 52428800,
+    "buildbot_max_log_size": 209715200,
     "default_blob_upload_servers": [
         "https://blobupload.elasticbeanstalk.com",
     ],
@@ -308,7 +308,7 @@ config = {
     "download_minidump_stackwalk": True,
     "minidump_stackwalk_path": MINIDUMP_STACKWALK_PATH,
     "minidump_tooltool_manifest_path": TOOLTOOL_MANIFEST_PATH,
-    "tooltool_cache": "/builds/tooltool_cache",
+    "tooltool_cache": "/home/worker/tooltool-cache",
     "download_nodejs": True,
     "nodejs_path": NODEJS_PATH,
     "nodejs_tooltool_manifest_path": NODEJS_TOOLTOOL_MANIFEST_PATH,

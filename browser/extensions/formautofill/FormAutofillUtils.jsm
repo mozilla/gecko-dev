@@ -15,22 +15,47 @@ this.FormAutofillUtils = {
     XPCOMUtils.defineLazyGetter(scope, "log", () => {
       let ConsoleAPI = Cu.import("resource://gre/modules/Console.jsm", {}).ConsoleAPI;
       return new ConsoleAPI({
-        maxLogLevelPref: "browser.formautofill.loglevel",
+        maxLogLevelPref: "extensions.formautofill.loglevel",
         prefix: logPrefix,
       });
     });
   },
 
-  generateFullName(firstName, lastName, middleName) {
-    // TODO: The implementation should depend on the L10N spec, but a simplified
-    // rule is used here.
-    let fullName = firstName;
-    if (middleName) {
-      fullName += " " + middleName;
+  findLabelElements(element) {
+    let document = element.ownerDocument;
+    let labels = [];
+    // TODO: querySelectorAll is inefficient here. However, bug 1339726 is for
+    // a more efficient implementation from DOM API perspective. This function
+    // should be refined after input.labels API landed.
+    for (let label of document.querySelectorAll("label[for]")) {
+      if (element.id == label.htmlFor) {
+        labels.push(label);
+      }
     }
-    if (lastName) {
-      fullName += " " + lastName;
+
+    if (labels.length > 0) {
+      log.debug("Label found by ID", element.id);
+      return labels;
     }
-    return fullName;
+
+    let parent = element.parentNode;
+    if (!parent) {
+      return [];
+    }
+    do {
+      if (parent.tagName == "LABEL" &&
+          parent.control == element &&
+          !parent.hasAttribute("for")) {
+        log.debug("Label found in input's parent or ancestor.");
+        return [parent];
+      }
+      parent = parent.parentNode;
+    } while (parent);
+
+    return [];
   },
 };
+
+this.log = null;
+this.FormAutofillUtils.defineLazyLogGetter(this, this.EXPORTED_SYMBOLS[0]);
+

@@ -1073,6 +1073,7 @@ class ICStubCompiler
     // performing a tail call. This is required for the return address
     // to pc mapping to work.
     void enterStubFrame(MacroAssembler& masm, Register scratch);
+    void assumeStubFrame(MacroAssembler& masm);
     void leaveStubFrame(MacroAssembler& masm, bool calledIntoIon = false);
 
     // Some stubs need to emit Gecko Profiler updates.  This emits the guarding
@@ -1206,9 +1207,8 @@ class ICMonitoredFallbackStub : public ICFallbackStub
         fallbackMonitorStub_(nullptr) {}
 
   public:
-    MOZ_MUST_USE bool initMonitoringChain(JSContext* cx, ICStubSpace* space,
-                                          ICStubCompiler::Engine engine);
-    MOZ_MUST_USE bool addMonitorStubForValue(JSContext* cx, SharedStubInfo* info, HandleValue val);
+    MOZ_MUST_USE bool initMonitoringChain(JSContext* cx, ICStubSpace* space);
+    MOZ_MUST_USE bool addMonitorStubForValue(JSContext* cx, BaselineFrame* frame, HandleValue val);
 
     inline ICTypeMonitor_Fallback* fallbackMonitorStub() const {
         return fallbackMonitorStub_;
@@ -1303,9 +1303,9 @@ class TypeCheckPrimitiveSetStub : public ICStub
         }
 
       public:
-        Compiler(JSContext* cx, Kind kind, Engine engine_, TypeCheckPrimitiveSetStub* existingStub,
+        Compiler(JSContext* cx, Kind kind, TypeCheckPrimitiveSetStub* existingStub,
                  JSValueType type)
-          : ICStubCompiler(cx, kind, engine_),
+          : ICStubCompiler(cx, kind, Engine::Baseline),
             existingStub_(existingStub),
             flags_((existingStub ? existingStub->typeFlags() : 0) | TypeToFlag(type))
         {
@@ -1468,7 +1468,7 @@ class ICTypeMonitor_Fallback : public ICStub
 
     // Create a new monitor stub for the type of the given value, and
     // add it to this chain.
-    MOZ_MUST_USE bool addMonitorStubForValue(JSContext* cx, SharedStubInfo* info, HandleValue val);
+    MOZ_MUST_USE bool addMonitorStubForValue(JSContext* cx, BaselineFrame* frame, HandleValue val);
 
     void resetMonitorStubChain(Zone* zone);
 
@@ -1481,14 +1481,14 @@ class ICTypeMonitor_Fallback : public ICStub
         MOZ_MUST_USE bool generateStubCode(MacroAssembler& masm);
 
       public:
-        Compiler(JSContext* cx, Engine engine, ICMonitoredFallbackStub* mainFallbackStub)
-            : ICStubCompiler(cx, ICStub::TypeMonitor_Fallback, engine),
+        Compiler(JSContext* cx, ICMonitoredFallbackStub* mainFallbackStub)
+          : ICStubCompiler(cx, ICStub::TypeMonitor_Fallback, Engine::Baseline),
             mainFallbackStub_(mainFallbackStub),
             argumentIndex_(BYTECODE_INDEX)
         { }
 
-        Compiler(JSContext* cx, Engine engine, uint32_t argumentIndex)
-          : ICStubCompiler(cx, ICStub::TypeMonitor_Fallback, engine),
+        Compiler(JSContext* cx, uint32_t argumentIndex)
+          : ICStubCompiler(cx, ICStub::TypeMonitor_Fallback, Engine::Baseline),
             mainFallbackStub_(nullptr),
             argumentIndex_(argumentIndex)
         { }
@@ -1514,9 +1514,9 @@ class ICTypeMonitor_PrimitiveSet : public TypeCheckPrimitiveSetStub
         MOZ_MUST_USE bool generateStubCode(MacroAssembler& masm);
 
       public:
-        Compiler(JSContext* cx, Engine engine, ICTypeMonitor_PrimitiveSet* existingStub,
+        Compiler(JSContext* cx, ICTypeMonitor_PrimitiveSet* existingStub,
                  JSValueType type)
-          : TypeCheckPrimitiveSetStub::Compiler(cx, TypeMonitor_PrimitiveSet, engine, existingStub,
+          : TypeCheckPrimitiveSetStub::Compiler(cx, TypeMonitor_PrimitiveSet, existingStub,
                                                 type)
         {}
 
@@ -2298,6 +2298,9 @@ void
 StripPreliminaryObjectStubs(JSContext* cx, ICFallbackStub* stub);
 
 MOZ_MUST_USE bool
+CheckHasNoSuchOwnProperty(JSContext* cx, JSObject* obj, jsid id);
+
+MOZ_MUST_USE bool
 CheckHasNoSuchProperty(JSContext* cx, JSObject* obj, jsid id,
                        JSObject** lastProto = nullptr, size_t* protoChainDepthOut = nullptr);
 
@@ -2346,13 +2349,8 @@ class ICGetProp_Fallback : public ICMonitoredFallbackStub
     }
 
     class Compiler : public ICStubCompiler {
-      public:
-        static const int32_t BASELINE_KEY =
-            (static_cast<int32_t>(Engine::Baseline)) |
-            (static_cast<int32_t>(ICStub::GetProp_Fallback) << 1);
-
       protected:
-        uint32_t returnOffset_;
+        CodeOffset bailoutReturnOffset_;
         MOZ_MUST_USE bool generateStubCode(MacroAssembler& masm);
         void postGenerateStubCode(MacroAssembler& masm, Handle<JitCode*> code);
 
@@ -2363,7 +2361,7 @@ class ICGetProp_Fallback : public ICMonitoredFallbackStub
 
         ICStub* getStub(ICStubSpace* space) {
             ICGetProp_Fallback* stub = newStub<ICGetProp_Fallback>(space, getStubCode());
-            if (!stub || !stub->initMonitoringChain(cx, space, engine_))
+            if (!stub || !stub->initMonitoringChain(cx, space))
                 return nullptr;
             return stub;
         }

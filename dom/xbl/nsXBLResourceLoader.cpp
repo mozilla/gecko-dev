@@ -221,7 +221,8 @@ nsXBLResourceLoader::NotifyBoundElements()
   uint32_t eltCount = mBoundElements.Count();
   for (uint32_t j = 0; j < eltCount; j++) {
     nsCOMPtr<nsIContent> content = mBoundElements.ObjectAt(j);
-    
+    MOZ_ASSERT(content->IsElement());
+
     bool ready = false;
     xblService->BindingReady(content, bindingURI, &ready);
 
@@ -229,7 +230,7 @@ nsXBLResourceLoader::NotifyBoundElements()
       // We need the document to flush out frame construction and
       // such, so we want to use the current document.
       nsIDocument* doc = content->GetUncomposedDoc();
-    
+
       if (doc) {
         // Flush first to make sure we can get the frame for content
         doc->FlushPendingNotifications(FlushType::Frames);
@@ -247,12 +248,17 @@ nsXBLResourceLoader::NotifyBoundElements()
         if (shell) {
           nsIFrame* childFrame = content->GetPrimaryFrame();
           if (!childFrame) {
-            // Check to see if it's in the undisplayed content map.
+            // Check to see if it's in the undisplayed content map, or the
+            // display: contents map.
             nsStyleContext* sc =
               shell->FrameManager()->GetUndisplayedContent(content);
 
             if (!sc) {
-              shell->RecreateFramesFor(content);
+              sc = shell->FrameManager()->GetDisplayContentsStyleFor(content);
+            }
+
+            if (!sc) {
+              shell->PostRecreateFramesFor(content->AsElement());
             }
           }
         }

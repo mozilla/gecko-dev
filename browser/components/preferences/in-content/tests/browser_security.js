@@ -15,13 +15,25 @@ registerCleanupFunction(function() {
   Services.prefs.setCharPref("urlclassifier.malwareTable", originalMalwareTable);
 });
 
+// This test only opens the Preferences once, and then reloads the page
+// each time that it wants to test various preference combinations. We
+// only use one tab (instead of opening/closing for each test) for all
+// to help improve test times on debug builds.
+add_task(async function setup() {
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
+  registerCleanupFunction(async function() {
+    await BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  });
+});
+
 // test the safebrowsing preference
-add_task(function*() {
-  function* checkPrefSwitch(val1, val2) {
+add_task(async function() {
+  async function checkPrefSwitch(val1, val2) {
     Services.prefs.setBoolPref("browser.safebrowsing.phishing.enabled", val1);
     Services.prefs.setBoolPref("browser.safebrowsing.malware.enabled", val2);
 
-    yield openPreferencesViaOpenPreferencesAPI("security", undefined, { leaveOpen: true });
+    gBrowser.reload();
+    await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 
     let doc = gBrowser.selectedBrowser.contentDocument;
     let checkbox = doc.getElementById("enableSafeBrowsing");
@@ -33,7 +45,8 @@ add_task(function*() {
     is(blockDownloads.hasAttribute("disabled"), !checked, "block downloads checkbox is set correctly");
     is(blockUncommon.hasAttribute("disabled"), !checked, "block uncommon checkbox is set correctly");
 
-    // click the checkbox
+    // scroll the checkbox into the viewport and click checkbox
+    checkbox.scrollIntoView();
     EventUtils.synthesizeMouseAtCenter(checkbox, {}, gBrowser.selectedBrowser.contentWindow);
 
     // check that both settings are now turned on or off
@@ -46,22 +59,21 @@ add_task(function*() {
     checked = checkbox.checked;
     is(blockDownloads.hasAttribute("disabled"), !checked, "block downloads checkbox is set correctly");
     is(blockUncommon.hasAttribute("disabled"), !checked || !blockDownloads.checked, "block uncommon checkbox is set correctly");
-
-    yield BrowserTestUtils.removeTab(gBrowser.selectedTab);
   }
 
-  yield* checkPrefSwitch(true, true);
-  yield* checkPrefSwitch(false, true);
-  yield* checkPrefSwitch(true, false);
-  yield* checkPrefSwitch(false, false);
+  await checkPrefSwitch(true, true);
+  await checkPrefSwitch(false, true);
+  await checkPrefSwitch(true, false);
+  await checkPrefSwitch(false, false);
 });
 
 // test the download protection preference
-add_task(function*() {
-  function* checkPrefSwitch(val) {
+add_task(async function() {
+  async function checkPrefSwitch(val) {
     Services.prefs.setBoolPref("browser.safebrowsing.downloads.enabled", val);
 
-    yield openPreferencesViaOpenPreferencesAPI("security", undefined, { leaveOpen: true });
+    gBrowser.reload();
+    await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 
     let doc = gBrowser.selectedBrowser.contentDocument;
     let checkbox = doc.getElementById("blockDownloads");
@@ -71,7 +83,8 @@ add_task(function*() {
     // should be disabled when val is false (= pref is turned off)
     is(blockUncommon.hasAttribute("disabled"), !val, "block uncommon checkbox is set correctly");
 
-    // click the checkbox
+    // scroll the checkbox into view, otherwise the synthesizeMouseAtCenter will be ignored, and click it
+    checkbox.scrollIntoView();
     EventUtils.synthesizeMouseAtCenter(checkbox, {}, gBrowser.selectedBrowser.contentWindow);
 
     // check that setting is now turned on or off
@@ -81,27 +94,28 @@ add_task(function*() {
     // check if the uncommon warning checkbox has updated
     is(blockUncommon.hasAttribute("disabled"), val, "block uncommon checkbox is set correctly");
 
-    yield BrowserTestUtils.removeTab(gBrowser.selectedTab);
   }
 
-  yield* checkPrefSwitch(true);
-  yield* checkPrefSwitch(false);
+  await checkPrefSwitch(true);
+  await checkPrefSwitch(false);
 });
 
 // test the unwanted/uncommon software warning preference
-add_task(function*() {
-  function* checkPrefSwitch(val1, val2) {
+add_task(async function() {
+  async function checkPrefSwitch(val1, val2) {
     Services.prefs.setBoolPref("browser.safebrowsing.downloads.remote.block_potentially_unwanted", val1);
     Services.prefs.setBoolPref("browser.safebrowsing.downloads.remote.block_uncommon", val2);
 
-    yield openPreferencesViaOpenPreferencesAPI("security", undefined, { leaveOpen: true });
+    gBrowser.reload();
+    await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 
     let doc = gBrowser.selectedBrowser.contentDocument;
     let checkbox = doc.getElementById("blockUncommonUnwanted");
     let checked = checkbox.checked;
     is(checked, val1 && val2, "unwanted/uncommon preference is initialized correctly");
 
-    // click the checkbox
+    // scroll the checkbox into view, otherwise the synthesizeMouseAtCenter will be ignored, and click it
+    checkbox.scrollIntoView();
     EventUtils.synthesizeMouseAtCenter(checkbox, {}, gBrowser.selectedBrowser.contentWindow);
 
     // check that both settings are now turned on or off
@@ -120,11 +134,10 @@ add_task(function*() {
     sortedMalware.sort();
     Assert.deepEqual(malwareTable, sortedMalware, "malware table has been sorted");
 
-    yield BrowserTestUtils.removeTab(gBrowser.selectedTab);
   }
 
-  yield* checkPrefSwitch(true, true);
-  yield* checkPrefSwitch(false, true);
-  yield* checkPrefSwitch(true, false);
-  yield* checkPrefSwitch(false, false);
+  await checkPrefSwitch(true, true);
+  await checkPrefSwitch(false, true);
+  await checkPrefSwitch(true, false);
+  await checkPrefSwitch(false, false);
 });

@@ -561,9 +561,10 @@ HTMLCanvasElement::GetOriginalCanvas()
 }
 
 nsresult
-HTMLCanvasElement::CopyInnerTo(Element* aDest)
+HTMLCanvasElement::CopyInnerTo(Element* aDest,
+                               bool aPreallocateChildren)
 {
-  nsresult rv = nsGenericHTMLElement::CopyInnerTo(aDest);
+  nsresult rv = nsGenericHTMLElement::CopyInnerTo(aDest, aPreallocateChildren);
   NS_ENSURE_SUCCESS(rv, rv);
   if (aDest->OwnerDoc()->IsStaticDocument()) {
     HTMLCanvasElement* dest = static_cast<HTMLCanvasElement*>(aDest);
@@ -644,11 +645,11 @@ void
 HTMLCanvasElement::ToDataURL(JSContext* aCx, const nsAString& aType,
                              JS::Handle<JS::Value> aParams,
                              nsAString& aDataURL,
-                             CallerType aCallerType,
                              ErrorResult& aRv)
 {
   // do a trust check if this is a write-only canvas
-  if (mWriteOnly && aCallerType != CallerType::System) {
+  if (mWriteOnly &&
+      !nsContentUtils::CallerHasPermission(aCx, NS_LITERAL_STRING("<all_urls>"))) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
@@ -827,11 +828,11 @@ HTMLCanvasElement::ToBlob(JSContext* aCx,
                           BlobCallback& aCallback,
                           const nsAString& aType,
                           JS::Handle<JS::Value> aParams,
-                          CallerType aCallerType,
                           ErrorResult& aRv)
 {
   // do a trust check if this is a write-only canvas
-  if (mWriteOnly && aCallerType != CallerType::System) {
+  if (mWriteOnly &&
+      !nsContentUtils::CallerHasPermission(aCx, NS_LITERAL_STRING("<all_urls>"))) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
@@ -1308,12 +1309,12 @@ HTMLCanvasElement::SetFrameCapture(already_AddRefed<SourceSurface> aSurface,
 }
 
 already_AddRefed<SourceSurface>
-HTMLCanvasElement::GetSurfaceSnapshot(bool* aPremultAlpha)
+HTMLCanvasElement::GetSurfaceSnapshot(gfxAlphaType* const aOutAlphaType)
 {
   if (!mCurrentContext)
     return nullptr;
 
-  return mCurrentContext->GetSurfaceSnapshot(aPremultAlpha);
+  return mCurrentContext->GetSurfaceSnapshot(aOutAlphaType);
 }
 
 AsyncCanvasRenderer*
@@ -1473,6 +1474,11 @@ HTMLCanvasElement::InvalidateFromAsyncCanvasRenderer(AsyncCanvasRenderer *aRende
 void
 HTMLCanvasElement::StartVRPresentation()
 {
+  if (GetCurrentContextType() != CanvasContextType::WebGL1 &&
+      GetCurrentContextType() != CanvasContextType::WebGL2) {
+    return;
+  }
+
   WebGLContext* webgl = static_cast<WebGLContext*>(GetContextAtIndex(0));
   if (!webgl) {
     return;

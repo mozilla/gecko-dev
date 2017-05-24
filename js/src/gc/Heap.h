@@ -109,6 +109,7 @@ enum class AllocKind {
     SYMBOL,
     JITCODE,
     SCOPE,
+    REGEXP_SHARED,
     LIMIT,
     LAST = LIMIT - 1
 };
@@ -116,38 +117,39 @@ enum class AllocKind {
 // Macro to enumerate the different allocation kinds supplying information about
 // the trace kind, C++ type and allocation size.
 #define FOR_EACH_OBJECT_ALLOCKIND(D) \
- /* AllocKind              TraceKind    TypeName           SizedType */ \
-    D(FUNCTION,            Object,      JSObject,          JSFunction) \
-    D(FUNCTION_EXTENDED,   Object,      JSObject,          FunctionExtended) \
-    D(OBJECT0,             Object,      JSObject,          JSObject_Slots0) \
-    D(OBJECT0_BACKGROUND,  Object,      JSObject,          JSObject_Slots0) \
-    D(OBJECT2,             Object,      JSObject,          JSObject_Slots2) \
-    D(OBJECT2_BACKGROUND,  Object,      JSObject,          JSObject_Slots2) \
-    D(OBJECT4,             Object,      JSObject,          JSObject_Slots4) \
-    D(OBJECT4_BACKGROUND,  Object,      JSObject,          JSObject_Slots4) \
-    D(OBJECT8,             Object,      JSObject,          JSObject_Slots8) \
-    D(OBJECT8_BACKGROUND,  Object,      JSObject,          JSObject_Slots8) \
-    D(OBJECT12,            Object,      JSObject,          JSObject_Slots12) \
-    D(OBJECT12_BACKGROUND, Object,      JSObject,          JSObject_Slots12) \
-    D(OBJECT16,            Object,      JSObject,          JSObject_Slots16) \
-    D(OBJECT16_BACKGROUND, Object,      JSObject,          JSObject_Slots16)
+ /* AllocKind              TraceKind      TypeName           SizedType */ \
+    D(FUNCTION,            Object,        JSObject,          JSFunction) \
+    D(FUNCTION_EXTENDED,   Object,        JSObject,          FunctionExtended) \
+    D(OBJECT0,             Object,        JSObject,          JSObject_Slots0) \
+    D(OBJECT0_BACKGROUND,  Object,        JSObject,          JSObject_Slots0) \
+    D(OBJECT2,             Object,        JSObject,          JSObject_Slots2) \
+    D(OBJECT2_BACKGROUND,  Object,        JSObject,          JSObject_Slots2) \
+    D(OBJECT4,             Object,        JSObject,          JSObject_Slots4) \
+    D(OBJECT4_BACKGROUND,  Object,        JSObject,          JSObject_Slots4) \
+    D(OBJECT8,             Object,        JSObject,          JSObject_Slots8) \
+    D(OBJECT8_BACKGROUND,  Object,        JSObject,          JSObject_Slots8) \
+    D(OBJECT12,            Object,        JSObject,          JSObject_Slots12) \
+    D(OBJECT12_BACKGROUND, Object,        JSObject,          JSObject_Slots12) \
+    D(OBJECT16,            Object,        JSObject,          JSObject_Slots16) \
+    D(OBJECT16_BACKGROUND, Object,        JSObject,          JSObject_Slots16)
 
 #define FOR_EACH_NONOBJECT_ALLOCKIND(D) \
- /* AllocKind              TraceKind    TypeName           SizedType */ \
-    D(SCRIPT,              Script,      JSScript,          JSScript) \
-    D(LAZY_SCRIPT,         LazyScript,  js::LazyScript,    js::LazyScript) \
-    D(SHAPE,               Shape,       js::Shape,         js::Shape) \
-    D(ACCESSOR_SHAPE,      Shape,       js::AccessorShape, js::AccessorShape) \
-    D(BASE_SHAPE,          BaseShape,   js::BaseShape,     js::BaseShape) \
-    D(OBJECT_GROUP,        ObjectGroup, js::ObjectGroup,   js::ObjectGroup) \
-    D(FAT_INLINE_STRING,   String,      JSFatInlineString, JSFatInlineString) \
-    D(STRING,              String,      JSString,          JSString) \
-    D(EXTERNAL_STRING,     String,      JSExternalString,  JSExternalString) \
-    D(FAT_INLINE_ATOM,     String,      js::FatInlineAtom, js::FatInlineAtom) \
-    D(ATOM,                String,      js::NormalAtom,    js::NormalAtom) \
-    D(SYMBOL,              Symbol,      JS::Symbol,        JS::Symbol) \
-    D(JITCODE,             JitCode,     js::jit::JitCode,  js::jit::JitCode) \
-    D(SCOPE,               Scope,       js::Scope,         js::Scope)
+ /* AllocKind              TraceKind      TypeName           SizedType */ \
+    D(SCRIPT,              Script,        JSScript,          JSScript) \
+    D(LAZY_SCRIPT,         LazyScript,    js::LazyScript,    js::LazyScript) \
+    D(SHAPE,               Shape,         js::Shape,         js::Shape) \
+    D(ACCESSOR_SHAPE,      Shape,         js::AccessorShape, js::AccessorShape) \
+    D(BASE_SHAPE,          BaseShape,     js::BaseShape,     js::BaseShape) \
+    D(OBJECT_GROUP,        ObjectGroup,   js::ObjectGroup,   js::ObjectGroup) \
+    D(FAT_INLINE_STRING,   String,        JSFatInlineString, JSFatInlineString) \
+    D(STRING,              String,        JSString,          JSString) \
+    D(EXTERNAL_STRING,     String,        JSExternalString,  JSExternalString) \
+    D(FAT_INLINE_ATOM,     String,        js::FatInlineAtom, js::FatInlineAtom) \
+    D(ATOM,                String,        js::NormalAtom,    js::NormalAtom) \
+    D(SYMBOL,              Symbol,        JS::Symbol,        JS::Symbol) \
+    D(JITCODE,             JitCode,       js::jit::JitCode,  js::jit::JitCode) \
+    D(SCOPE,               Scope,         js::Scope,         js::Scope) \
+    D(REGEXP_SHARED,       RegExpShared,  js::RegExpShared,  js::RegExpShared)
 
 #define FOR_EACH_ALLOCKIND(D) \
     FOR_EACH_OBJECT_ALLOCKIND(D) \
@@ -259,6 +261,8 @@ struct Cell
     // May be overridden by GC thing kinds that have a compartment pointer.
     inline JSCompartment* maybeCompartment() const { return nullptr; }
 
+    // The StoreBuffer used to record incoming pointers from the tenured heap.
+    // This will return nullptr for a tenured cell.
     inline StoreBuffer* storeBuffer() const;
 
     inline JS::TraceKind getTraceKind() const;
@@ -321,24 +325,39 @@ class TenuredCell : public Cell
 #endif
 };
 
-/* Cells are aligned to CellShift, so the largest tagged null pointer is: */
-const uintptr_t LargestTaggedNullCellPointer = (1 << CellShift) - 1;
+/* Cells are aligned to CellAlignShift, so the largest tagged null pointer is: */
+const uintptr_t LargestTaggedNullCellPointer = (1 << CellAlignShift) - 1;
+
+/*
+ * The minimum cell size ends up as twice the cell alignment because the mark
+ * bitmap contains one bit per CellBytesPerMarkBit bytes (which is equal to
+ * CellAlignBytes) and we need two mark bits per cell.
+ */
+const size_t MarkBitsPerCell = 2;
+const size_t MinCellSize = CellBytesPerMarkBit * MarkBitsPerCell;
 
 constexpr size_t
 DivideAndRoundUp(size_t numerator, size_t divisor) {
     return (numerator + divisor - 1) / divisor;
 }
 
-const size_t ArenaCellCount = ArenaSize / CellSize;
-static_assert(ArenaSize % CellSize == 0, "Arena size must be a multiple of cell size");
+static_assert(ArenaSize % CellAlignBytes == 0,
+              "Arena size must be a multiple of cell alignment");
 
 /*
- * The mark bitmap has one bit per each GC cell. For multi-cell GC things this
- * wastes space but allows to avoid expensive devisions by thing's size when
- * accessing the bitmap. In addition this allows to use some bits for colored
- * marking during the cycle GC.
+ * We sometimes use an index to refer to a cell in an arena. The index for a
+ * cell is found by dividing by the cell alignment so not all indicies refer to
+ * valid cells.
  */
-const size_t ArenaBitmapBits = ArenaCellCount;
+const size_t ArenaCellIndexBytes = CellAlignBytes;
+const size_t MaxArenaCellIndex = ArenaSize / CellAlignBytes;
+
+/*
+ * The mark bitmap has one bit per each possible cell start position. This
+ * wastes some space for larger GC things but allows us to avoid division by the
+ * cell's size when accessing the bitmap.
+ */
+const size_t ArenaBitmapBits = ArenaSize / CellBytesPerMarkBit;
 const size_t ArenaBitmapBytes = DivideAndRoundUp(ArenaBitmapBits, 8);
 const size_t ArenaBitmapWords = DivideAndRoundUp(ArenaBitmapBits, JS_BITS_PER_WORD);
 
@@ -767,25 +786,26 @@ FreeSpan::checkRange(uintptr_t first, uintptr_t last, const Arena* arena) const
  */
 struct ChunkTrailer
 {
-    /* Construct a Nursery ChunkTrailer. */
+    // Construct a Nursery ChunkTrailer.
     ChunkTrailer(JSRuntime* rt, StoreBuffer* sb)
       : location(ChunkLocation::Nursery), storeBuffer(sb), runtime(rt)
     {}
 
-    /* Construct a Tenured heap ChunkTrailer. */
+    // Construct a Tenured heap ChunkTrailer.
     explicit ChunkTrailer(JSRuntime* rt)
       : location(ChunkLocation::TenuredHeap), storeBuffer(nullptr), runtime(rt)
     {}
 
   public:
-    /* The index the chunk in the nursery, or LocationTenuredHeap. */
+    // The index of the chunk in the nursery, or LocationTenuredHeap.
     ChunkLocation   location;
     uint32_t        padding;
 
-    /* The store buffer for writes to things in this chunk or nullptr. */
+    // The store buffer for pointers from tenured things to things in this
+    // chunk. Will be non-null only for nursery chunks.
     StoreBuffer*    storeBuffer;
 
-    /* This provides quick access to the runtime from absolutely anywhere. */
+    // Provide quick access to the runtime from absolutely anywhere.
     JSRuntime*      runtime;
 };
 
@@ -1114,7 +1134,7 @@ AssertValidColor(const TenuredCell* thing, uint32_t color)
 {
 #ifdef DEBUG
     Arena* arena = thing->arena();
-    MOZ_ASSERT(color < arena->getThingSize() / CellSize);
+    MOZ_ASSERT(color < arena->getThingSize() / CellBytesPerMarkBit);
 #endif
 }
 
@@ -1150,7 +1170,7 @@ inline uintptr_t
 Cell::address() const
 {
     uintptr_t addr = uintptr_t(this);
-    MOZ_ASSERT(addr % CellSize == 0);
+    MOZ_ASSERT(addr % CellAlignBytes == 0);
     MOZ_ASSERT(Chunk::withinValidRange(addr));
     return addr;
 }
@@ -1159,7 +1179,7 @@ Chunk*
 Cell::chunk() const
 {
     uintptr_t addr = uintptr_t(this);
-    MOZ_ASSERT(addr % CellSize == 0);
+    MOZ_ASSERT(addr % CellAlignBytes == 0);
     addr &= ~ChunkMask;
     return reinterpret_cast<Chunk*>(addr);
 }

@@ -226,8 +226,6 @@ class MacroAssemblerNone : public Assembler
     CodeOffset toggledCall(JitCode*, bool) { MOZ_CRASH(); }
     static size_t ToggledCallSize(uint8_t*) { MOZ_CRASH(); }
 
-    void writePrebarrierOffset(CodeOffset) { MOZ_CRASH(); }
-
     void finish() { MOZ_CRASH(); }
 
     template <typename T, typename S> void moveValue(T, S) { MOZ_CRASH(); }
@@ -415,7 +413,6 @@ class MacroAssemblerNone : public Assembler
     void buildFakeExitFrame(Register, uint32_t*) { MOZ_CRASH(); }
     bool buildOOLFakeExitFrame(void*) { MOZ_CRASH(); }
     void loadWasmGlobalPtr(uint32_t, Register) { MOZ_CRASH(); }
-    void loadWasmActivationFromTls(Register) { MOZ_CRASH(); }
     void loadWasmPinnedRegsFromTls() { MOZ_CRASH(); }
 
     void setPrinter(Sprinter*) { MOZ_CRASH(); }

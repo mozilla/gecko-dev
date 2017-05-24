@@ -30,6 +30,7 @@ namespace gfx {
 class GradientStops;
 } // namespace gfx
 namespace layers {
+class StackingContextHelper;
 class WebRenderDisplayItemLayer;
 } // namespace layers
 } // namespace mozilla
@@ -105,8 +106,9 @@ public:
   // draw the entire border
   void DrawBorders();
 
-  bool CanCreateWebrenderCommands();
+  bool CanCreateWebRenderCommands();
   void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                               const mozilla::layers::StackingContextHelper& aSc,
                                mozilla::layers::WebRenderDisplayItemLayer* aLayer);
 
   // utility function used for background painting as well as borders
@@ -353,7 +355,7 @@ static inline void PrintAsStringNewline(const char *s = nullptr) {
   fflush (stderr);
 }
 
-static inline void PrintAsFormatString(const char *fmt, ...) {
+static inline MOZ_FORMAT_PRINTF(1, 2) void PrintAsFormatString(const char *fmt, ...) {
   va_list vl;
   va_start(vl, fmt);
   vfprintf (stderr, fmt, vl);
@@ -367,7 +369,7 @@ static inline void PrintAsString(const mozilla::gfx::Rect& r) {}
 static inline void PrintAsString(const mozilla::gfx::Float f) {}
 static inline void PrintAsString(const char *s) {}
 static inline void PrintAsStringNewline(const char *s = nullptr) {}
-static inline void PrintAsFormatString(const char *fmt, ...) {}
+static inline MOZ_FORMAT_PRINTF(1, 2) void PrintAsFormatString(const char *fmt, ...) {}
 #endif
 
 } // namespace mozilla

@@ -41,9 +41,7 @@ let windowListener = {
 };
 
 function startup() {
-  // Besides this pref, we'll need dom.forms.autocomplete.experimental enabled
-  // as well to make sure form autocomplete works correctly.
-  if (!Services.prefs.getBoolPref("browser.formautofill.experimental")) {
+  if (!Services.prefs.getBoolPref("extensions.formautofill.experimental")) {
     return;
   }
 
@@ -59,7 +57,10 @@ function startup() {
 
   Services.wm.addListener(windowListener);
 
-  parent.init();
+  parent.init().catch(Cu.reportError);
+  Services.ppmm.loadProcessScript("data:,new " + function() {
+    Components.utils.import("resource://formautofill/FormAutofillContent.jsm");
+  }, true);
   Services.mm.loadFrameScript("chrome://formautofill/content/FormAutofillFrameScript.js", true);
 }
 

@@ -2,7 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from contextlib import closing
 import sys
+import logging
 import os
 import time
 import tempfile
@@ -58,8 +60,14 @@ class ReftestServer:
         self.scriptDir = scriptDir
         self.pidFile = options.pidFile
         self._httpdPath = os.path.abspath(options.httpdPath)
+        if options.remoteWebServer == "10.0.2.2":
+            # probably running an Android emulator and 10.0.2.2 will
+            # not be visible from host
+            shutdownServer = "127.0.0.1"
+        else:
+            shutdownServer = self.webServer
         self.shutdownURL = "http://%(server)s:%(port)s/server/shutdown" % {
-                           "server": self.webServer, "port": self.httpPort}
+                           "server": shutdownServer, "port": self.httpPort}
 
     def start(self):
         "Run the Refest server, returning the process ID of the server."
@@ -119,14 +127,16 @@ class ReftestServer:
     def stop(self):
         if hasattr(self, '_process'):
             try:
-                c = urllib2.urlopen(self.shutdownURL)
-                c.read()
-                c.close()
+                with closing(urllib2.urlopen(self.shutdownURL)) as c:
+                    c.read()
 
                 rtncode = self._process.poll()
                 if (rtncode is None):
                     self._process.terminate()
             except:
+                self.automation.log.info("Failed to shutdown server at %s" %
+                                         self.shutdownURL)
+                traceback.print_exc()
                 self._process.kill()
 
 
@@ -226,12 +236,15 @@ class RemoteReftest(RefTest):
     def stopWebServer(self, options):
         self.server.stop()
 
-    def createReftestProfile(self, options, manifest):
+    def createReftestProfile(self, options, manifest, startAfter=None):
         profile = RefTest.createReftestProfile(self,
                                                options,
                                                manifest,
                                                server=options.remoteWebServer,
                                                port=options.httpPort)
+        if startAfter is not None:
+            print ("WARNING: Continuing after a crash is not supported for remote "
+                   "reftest yet.")
         profileDir = profile.profile
 
         prefs = {}
@@ -308,7 +321,7 @@ class RemoteReftest(RefTest):
                                         debuggerInfo=debuggerInfo,
                                         symbolsPath=symbolsPath,
                                         timeout=timeout)
-        return status
+        return status, None
 
     def cleanup(self, profileDir):
         # Pull results back from device
@@ -340,6 +353,8 @@ def run_test_harness(parser, options):
     dm_args['adbPath'] = options.adb_path
     if not dm_args['host']:
         dm_args['deviceSerial'] = options.deviceSerial
+    if options.log_tbpl_level == 'debug' or options.log_mach_level == 'debug':
+        dm_args['logLevel'] = logging.DEBUG
 
     try:
         dm = mozdevice.DroidADB(**dm_args)
@@ -384,8 +399,9 @@ def run_test_harness(parser, options):
         return retVal
 
     procName = options.app.split('/')[-1]
-    if (dm.processExist(procName)):
-        dm.killProcess(procName)
+    dm.killProcess(procName)
+    if dm.processExist(procName):
+        print "unable to kill %s before starting tests!" % procName
 
     if options.printDeviceInfo:
         reftest.printDeviceInfo()

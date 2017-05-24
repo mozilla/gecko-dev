@@ -1,4 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,6 +19,9 @@
 #include "nsHashKeys.h"
 #include "nsCOMArray.h"
 #include "nsDataHashtable.h"
+#include "nsIRunnable.h"
+#include "nsRefPtrHashtable.h"
+#include "mozilla/MozPromise.h"
 
 namespace mozilla {
 class OriginAttributesPattern;
@@ -73,6 +77,8 @@ public:
   public:
     static PermissionKey* CreateFromPrincipal(nsIPrincipal* aPrincipal,
                                               nsresult& aResult);
+    static PermissionKey* CreateFromURI(nsIURI* aURI,
+                                        nsresult& aResult);
 
     explicit PermissionKey(const nsACString& aOrigin)
       : mOrigin(aOrigin)
@@ -227,6 +233,27 @@ public:
    * See `nsIPermissionManager::GetPermissionsWithKey` for more info on
    * permission keys.
    *
+   * Get the permission key corresponding to the given Principal and type. This
+   * method is intentionally infallible, as we want to provide an permission key
+   * to every principal. Principals which don't have meaningful URIs with
+   * http://, https://, or ftp:// schemes are given the default "" Permission
+   * Key.
+   *
+   * This method is different from GetKeyForPrincipal in that it also takes
+   * permissions which must be sent down before loading a document into account.
+   *
+   * @param aPrincipal  The Principal which the key is to be extracted from.
+   * @param aType  The type of the permission to get the key for.
+   * @param aPermissionKey  A string which will be filled with the permission key.
+   */
+  static void GetKeyForPermission(nsIPrincipal* aPrincipal,
+                                  const char* aType,
+                                  nsACString& aPermissionKey);
+
+  /**
+   * See `nsIPermissionManager::GetPermissionsWithKey` for more info on
+   * permission keys.
+   *
    * Get all permissions keys which could correspond to the given principal.
    * This method, like GetKeyForPrincipal, is infallible and should always
    * produce at least one key.
@@ -249,12 +276,36 @@ private:
   PermissionHashKey* GetPermissionHashKey(nsIPrincipal* aPrincipal,
                                           uint32_t      aType,
                                           bool          aExactHostMatch);
+  PermissionHashKey* GetPermissionHashKey(nsIURI*       aURI,
+                                          uint32_t      aType,
+                                          bool          aExactHostMatch);
 
   nsresult CommonTestPermission(nsIPrincipal* aPrincipal,
-                                const char *aType,
-                                uint32_t   *aPermission,
+                                const char  * aType,
+                                uint32_t    * aPermission,
+                                bool          aExactHostMatch,
+                                bool          aIncludingSession)
+  {
+    return CommonTestPermissionInternal(aPrincipal, nullptr, aType,
+                                        aPermission, aExactHostMatch,
+                                        aIncludingSession);
+  }
+  nsresult CommonTestPermission(nsIURI    * aURI,
+                                const char* aType,
+                                uint32_t  * aPermission,
                                 bool        aExactHostMatch,
-                                bool        aIncludingSession);
+                                bool        aIncludingSession)
+  {
+    return CommonTestPermissionInternal(nullptr, aURI, aType, aPermission,
+                                        aExactHostMatch, aIncludingSession);
+  }
+  // Only one of aPrincipal or aURI is allowed to be passed in.
+  nsresult CommonTestPermissionInternal(nsIPrincipal* aPrincipal,
+                                        nsIURI      * aURI,
+                                        const char  * aType,
+                                        uint32_t    * aPermission,
+                                        bool          aExactHostMatch,
+                                        bool          aIncludingSession);
 
   nsresult OpenDatabase(nsIFile* permissionsFile);
   nsresult InitDB(bool aRemoveFile);
@@ -293,6 +344,17 @@ private:
   nsresult
   RemoveAllModifiedSince(int64_t aModificationTime);
 
+  /**
+   * Returns false if this permission manager wouldn't have the permission
+   * requested avaliable.
+   *
+   * If aType is nullptr, checks that the permission manager would have all
+   * permissions avaliable for the given principal.
+   */
+  bool PermissionAvaliable(nsIPrincipal* aPrincipal, const char* aType);
+
+  nsRefPtrHashtable<nsCStringHashKey, mozilla::GenericPromise::Private> mPermissionKeyPromiseMap;
+
   nsCOMPtr<mozIStorageConnection> mDBConn;
   nsCOMPtr<mozIStorageAsyncStatement> mStmtInsert;
   nsCOMPtr<mozIStorageAsyncStatement> mStmtDelete;
@@ -306,9 +368,6 @@ private:
 
   // An array to store the strings identifying the different types.
   nsTArray<nsCString>          mTypeArray;
-
-  // The base domains which have their permissions loaded in the current process.
-  nsTHashtable<nsCStringHashKey> mAvailablePermissionKeys;
 
   // Initially, |false|. Set to |true| once shutdown has started, to avoid
   // reopening the database.

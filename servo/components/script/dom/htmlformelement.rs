@@ -45,7 +45,7 @@ use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
@@ -73,7 +73,7 @@ pub struct HTMLFormElement {
 
 impl HTMLFormElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -86,7 +86,7 @@ impl HTMLFormElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLFormElement> {
         Node::reflect_node(box HTMLFormElement::new_inherited(local_name, prefix, document),
                            document,
@@ -345,7 +345,7 @@ impl HTMLFormElement {
         let _target = submitter.target();
         // TODO: Handle browsing contexts, partially loaded documents (step 16-17)
 
-        let mut load_data = LoadData::new(action_components, doc.get_referrer_policy(), Some(doc.url()));
+        let mut load_data = LoadData::new(action_components, None, doc.get_referrer_policy(), Some(doc.url()));
 
         // Step 18
         match (&*scheme, method) {
@@ -384,12 +384,12 @@ impl HTMLFormElement {
     fn mutate_action_url(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData, encoding: EncodingRef) {
         let charset = &*encoding.whatwg_name().unwrap();
 
-        if let Some(ref mut url) = load_data.url.as_mut_url() {
-            url.query_pairs_mut().clear()
-               .encoding_override(Some(self.pick_encoding()))
-               .extend_pairs(form_data.into_iter()
-                                      .map(|field| (field.name.clone(), field.replace_value(charset))));
-        }
+        load_data.url
+            .as_mut_url()
+            .query_pairs_mut().clear()
+            .encoding_override(Some(self.pick_encoding()))
+            .extend_pairs(form_data.into_iter()
+                                    .map(|field| (field.name.clone(), field.replace_value(charset))));
 
         self.plan_to_navigate(load_data);
     }
@@ -403,13 +403,12 @@ impl HTMLFormElement {
                 let charset = &*encoding.whatwg_name().unwrap();
                 load_data.headers.set(ContentType::form_url_encoded());
 
-
-                if let Some(ref mut url) = load_data.url.as_mut_url() {
-                    url.query_pairs_mut().clear()
-                       .encoding_override(Some(self.pick_encoding()))
-                       .extend_pairs(form_data.into_iter()
-                       .map(|field| (field.name.clone(), field.replace_value(charset))));
-                }
+                load_data.url
+                    .as_mut_url()
+                    .query_pairs_mut().clear()
+                    .encoding_override(Some(self.pick_encoding()))
+                    .extend_pairs(form_data.into_iter()
+                    .map(|field| (field.name.clone(), field.replace_value(charset))));
 
                 load_data.url.query().unwrap_or("").to_string().into_bytes()
             }

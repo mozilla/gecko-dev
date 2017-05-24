@@ -98,7 +98,7 @@ with Files("DynamicsCompressorNode.webidl"):
     BUG_COMPONENT = ("Core", "Web Audio")
 
 with Files("DesktopNotification.webidl"):
-    BUG_COMPONENT = ("Toolkit", "Notification and Alerts")
+    BUG_COMPONENT = ("Toolkit", "Notifications and Alerts")
 
 with Files("FakePluginTagInit.webidl"):
     BUG_COMPONENT = ("Core", "Plug-ins")
@@ -418,7 +418,6 @@ WEBIDL_FILES = [
     'BoxObject.webidl',
     'BroadcastChannel.webidl',
     'BrowserElement.webidl',
-    'BrowserElementAudioChannel.webidl',
     'BrowserElementDictionaries.webidl',
     'Cache.webidl',
     'CacheStorage.webidl',
@@ -475,7 +474,6 @@ WEBIDL_FILES = [
     'CSSValue.webidl',
     'CSSValueList.webidl',
     'CustomElementRegistry.webidl',
-    'DataContainerEvent.webidl',
     'DataTransfer.webidl',
     'DataTransferItem.webidl',
     'DataTransferItemList.webidl',
@@ -900,7 +898,6 @@ WEBIDL_FILES = [
     'SVGViewElement.webidl',
     'SVGZoomAndPan.webidl',
     'SVGZoomAndPanValues.webidl',
-    'SVGZoomEvent.webidl',
     'TCPServerSocket.webidl',
     'TCPServerSocketEvent.webidl',
     'TCPSocket.webidl',
@@ -975,11 +972,6 @@ WEBIDL_FILES = [
     'XULElement.webidl',
 ]
 
-if CONFIG['MOZ_AUDIO_CHANNEL_MANAGER']:
-    WEBIDL_FILES += [
-        'AudioChannelManager.webidl',
-    ]
-
 if CONFIG['MOZ_WEBRTC']:
     WEBIDL_FILES += [
         'DataChannel.webidl',
@@ -1049,10 +1041,9 @@ if CONFIG['MOZ_SECUREELEMENT']:
          'SecureElementManager.webidl',
     ]
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
-    WEBIDL_FILES += [
-        'InstallTrigger.webidl',
-    ]
+WEBIDL_FILES += [
+    'InstallTrigger.webidl',
+]
 
 if CONFIG['FUZZING']:
     WEBIDL_FILES += [
@@ -1062,7 +1053,6 @@ if CONFIG['FUZZING']:
 GENERATED_EVENTS_WEBIDL_FILES = [
     'AddonEvent.webidl',
     'AnimationPlaybackEvent.webidl',
-    'AutocompleteErrorEvent.webidl',
     'BlobEvent.webidl',
     'CaretStateChangedEvent.webidl',
     'CloseEvent.webidl',
@@ -1078,6 +1068,7 @@ GENERATED_EVENTS_WEBIDL_FILES = [
     'HashChangeEvent.webidl',
     'HiddenPluginEvent.webidl',
     'ImageCaptureErrorEvent.webidl',
+    'MediaQueryListEvent.webidl',
     'MediaStreamEvent.webidl',
     'MediaStreamTrackEvent.webidl',
     'OfflineAudioCompletionEvent.webidl',
@@ -1089,6 +1080,7 @@ GENERATED_EVENTS_WEBIDL_FILES = [
     'PresentationConnectionAvailableEvent.webidl',
     'PresentationConnectionCloseEvent.webidl',
     'ProgressEvent.webidl',
+    'PromiseRejectionEvent.webidl',
     'RecordErrorEvent.webidl',
     'ScrollViewChangeEvent.webidl',
     'StyleRuleChangeEvent.webidl',

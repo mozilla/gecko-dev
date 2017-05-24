@@ -31,8 +31,8 @@ function setupActions() {
 /**
  * Prepare the store for use in testing.
  */
-function setupStore(input) {
-  const store = configureStore();
+function setupStore(input, hud) {
+  const store = configureStore(hud);
 
   // Add the messages from the input commands to the store.
   input.forEach((cmd) => {
@@ -59,9 +59,17 @@ function shallowRenderComponent(component, props) {
   return renderer.getRenderOutput();
 }
 
+/**
+ * Create deep copy of given packet object.
+ */
+function clonePacket(packet) {
+  return JSON.parse(JSON.stringify(packet));
+}
+
 module.exports = {
   setupActions,
   setupStore,
   renderComponent,
-  shallowRenderComponent
+  shallowRenderComponent,
+  clonePacket
 };

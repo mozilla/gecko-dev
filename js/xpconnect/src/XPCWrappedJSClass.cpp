@@ -106,8 +106,8 @@ private:
 already_AddRefed<nsXPCWrappedJSClass>
 nsXPCWrappedJSClass::GetNewOrUsed(JSContext* cx, REFNSIID aIID, bool allowNonScriptable)
 {
-    XPCJSContext* xpccx = nsXPConnect::GetContextInstance();
-    IID2WrappedJSClassMap* map = xpccx->GetWrappedJSClassMap();
+    XPCJSRuntime* xpcrt = nsXPConnect::GetRuntimeInstance();
+    IID2WrappedJSClassMap* map = xpcrt->GetWrappedJSClassMap();
     RefPtr<nsXPCWrappedJSClass> clasp = map->Find(aIID);
 
     if (!clasp) {
@@ -130,13 +130,13 @@ nsXPCWrappedJSClass::GetNewOrUsed(JSContext* cx, REFNSIID aIID, bool allowNonScr
 
 nsXPCWrappedJSClass::nsXPCWrappedJSClass(JSContext* cx, REFNSIID aIID,
                                          nsIInterfaceInfo* aInfo)
-    : mContext(nsXPConnect::GetContextInstance()),
+    : mRuntime(nsXPConnect::GetRuntimeInstance()),
       mInfo(aInfo),
       mName(nullptr),
       mIID(aIID),
       mDescriptors(nullptr)
 {
-    mContext->GetWrappedJSClassMap()->Add(this);
+    mRuntime->GetWrappedJSClassMap()->Add(this);
 
     uint16_t methodCount;
     if (NS_SUCCEEDED(mInfo->GetMethodCount(&methodCount))) {
@@ -169,8 +169,8 @@ nsXPCWrappedJSClass::~nsXPCWrappedJSClass()
 {
     if (mDescriptors && mDescriptors != &zero_methods_descriptor)
         delete [] mDescriptors;
-    if (mContext)
-        mContext->GetWrappedJSClassMap()->Remove(this);
+    if (mRuntime)
+        mRuntime->GetWrappedJSClassMap()->Remove(this);
 
     if (mName)
         free(mName);
@@ -210,7 +210,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
         return nullptr;
 
     // check upfront for the existence of the function property
-    HandleId funid = mContext->GetStringID(XPCJSContext::IDX_QUERY_INTERFACE);
+    HandleId funid = mRuntime->GetStringID(XPCJSContext::IDX_QUERY_INTERFACE);
     if (!JS_GetPropertyById(cx, jsobj, funid, &fun) || fun.isPrimitive())
         return nullptr;
 
@@ -781,7 +781,7 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
     nsCOMPtr<nsIException> xpc_exception = aSyntheticException;
     /* this one would be set by our error reporter */
 
-    XPCJSContext* xpccx = XPCJSContext::Get();
+    XPCJSContext* xpccx = ccx.GetContext();
 
     // Get this right away in case we do something below to cause JS code
     // to run.
@@ -988,7 +988,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     AutoValueVector args(cx);
     AutoScriptEvaluate scriptEval(cx);
 
-    XPCJSContext* xpccx = XPCJSContext::Get();
+    XPCJSContext* xpccx = ccx.GetContext();
     AutoSavePendingResult apr(xpccx);
 
     // XXX ASSUMES that retval is last arg. The xpidl compiler ensures this.
@@ -1045,7 +1045,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
                         nsIXPCFunctionThisTranslator* translator;
 
                         IID2ThisTranslatorMap* map =
-                            mContext->GetThisTranslatorMap();
+                            mRuntime->GetThisTranslatorMap();
 
                         translator = map->Find(mIID);
 
@@ -1176,7 +1176,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
 
             if (param.IsIn()) {
                 if (!JS_SetPropertyById(cx, out_obj,
-                                        mContext->GetStringID(XPCJSContext::IDX_VALUE),
+                                        mRuntime->GetStringID(XPCJSContext::IDX_VALUE),
                                         val)) {
                     goto pre_call_clean_up;
                 }
@@ -1220,16 +1220,14 @@ pre_call_clean_up:
                     NS_ERROR_XPC_JSOBJECT_HAS_NO_FUNCTION_NAMED;
             static const char format[] = "%s \"%s\"";
             const char * msg;
-            char* sz = nullptr;
+            UniqueChars sz;
 
             if (nsXPCException::NameAndFormatForNSResult(code, nullptr, &msg) && msg)
                 sz = JS_smprintf(format, msg, name);
 
-            XPCConvert::ConstructException(code, sz, GetInterfaceName(), name,
+            XPCConvert::ConstructException(code, sz.get(), GetInterfaceName(), name,
                                            nullptr, getter_AddRefs(syntheticException),
                                            nullptr, nullptr);
-            if (sz)
-                JS_smprintf_free(sz);
             success = false;
         }
     }
@@ -1238,7 +1236,7 @@ pre_call_clean_up:
         return CheckForException(ccx, aes, name, GetInterfaceName(),
                                  syntheticException);
 
-    XPCJSContext::Get()->SetPendingException(nullptr); // XXX necessary?
+    xpccx->SetPendingException(nullptr); // XXX necessary?
 
     // convert out args and result
     // NOTE: this is the total number of native params, not just the args
@@ -1276,7 +1274,7 @@ pre_call_clean_up:
         else {
             RootedObject obj(cx, &argv[i].toObject());
             if (!JS_GetPropertyById(cx, obj,
-                                    mContext->GetStringID(XPCJSContext::IDX_VALUE),
+                                    mRuntime->GetStringID(XPCJSContext::IDX_VALUE),
                                     &val))
                 break;
         }
@@ -1323,7 +1321,7 @@ pre_call_clean_up:
             else {
                 RootedObject obj(cx, &argv[i].toObject());
                 if (!JS_GetPropertyById(cx, obj,
-                                        mContext->GetStringID(XPCJSContext::IDX_VALUE),
+                                        mRuntime->GetStringID(XPCJSContext::IDX_VALUE),
                                         &val))
                     break;
             }
@@ -1439,7 +1437,7 @@ nsXPCWrappedJSClass::DebugDump(int16_t depth)
             XPC_LOG_ALWAYS(("ConstantCount = %d", i));
             XPC_LOG_OUTDENT();
         }
-        XPC_LOG_ALWAYS(("mContext @ %p", mContext));
+        XPC_LOG_ALWAYS(("mRuntime @ %p", mRuntime));
         XPC_LOG_ALWAYS(("mDescriptors @ %p count = %d", mDescriptors, methodCount));
         if (depth && mDescriptors && methodCount) {
             depth--;

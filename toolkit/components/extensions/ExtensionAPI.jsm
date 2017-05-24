@@ -14,21 +14,31 @@ Cu.import("resource://gre/modules/ExtensionManagement.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPI",
+                                  "resource://gre/modules/Console.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "EventEmitter",
-                                  "resource://devtools/shared/event-emitter.js");
+                                  "resource://gre/modules/EventEmitter.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Schemas",
                                   "resource://gre/modules/Schemas.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 
 const global = this;
 
 class ExtensionAPI {
   constructor(extension) {
     this.extension = extension;
+
+    extension.once("shutdown", () => {
+      if (this.onShutdown) {
+        this.onShutdown(extension.shutdownReason);
+      }
+      this.extension = null;
+    });
   }
 
   destroy() {
+  }
+
+  onManifestEntry(entry) {
   }
 
   getAPI(context) {
@@ -57,6 +67,11 @@ var ExtensionAPIs = {
     });
 
     api.sandbox.ExtensionAPI = ExtensionAPI;
+
+    // Create a console getter which lazily provide a ConsoleAPI instance.
+    XPCOMUtils.defineLazyGetter(api.sandbox, "console", () => {
+      return new ConsoleAPI({prefix: addonId});
+    });
 
     Services.scriptloader.loadSubScript(script, api.sandbox, "UTF-8");
 

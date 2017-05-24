@@ -56,6 +56,7 @@
 #include "mozilla/dom/HTMLSummaryElement.h"
 #include "mozilla/StyleSetHandle.h"
 #include "mozilla/StyleSetHandleInlines.h"
+#include "mozilla/Telemetry.h"
 
 #include "nsBidiPresUtils.h"
 
@@ -459,17 +460,11 @@ nsBlockFrame::GetDebugStateBits() const
 }
 #endif
 
-nsIAtom*
-nsBlockFrame::GetType() const
-{
-  return nsGkAtoms::blockFrame;
-}
-
 void
 nsBlockFrame::InvalidateFrame(uint32_t aDisplayItemKey)
 {
   if (nsSVGUtils::IsInSVGTextSubtree(this)) {
-    NS_ASSERTION(GetParent()->GetType() == nsGkAtoms::svgTextFrame,
+    NS_ASSERTION(GetParent()->IsSVGTextFrame(),
                  "unexpected block frame in SVG text");
     GetParent()->InvalidateFrame();
     return;
@@ -481,7 +476,7 @@ void
 nsBlockFrame::InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey)
 {
   if (nsSVGUtils::IsInSVGTextSubtree(this)) {
-    NS_ASSERTION(GetParent()->GetType() == nsGkAtoms::svgTextFrame,
+    NS_ASSERTION(GetParent()->IsSVGTextFrame(),
                  "unexpected block frame in SVG text");
     GetParent()->InvalidateFrame();
     return;
@@ -1020,7 +1015,7 @@ CalculateContainingBlockSizeForAbsolutes(WritingMode aWM,
   cbSize.BSize(aWM) -= border.BStartEnd(aWM);
 
   if (frame->GetParent()->GetContent() == frame->GetContent() &&
-      frame->GetParent()->GetType() != nsGkAtoms::canvasFrame) {
+      !frame->GetParent()->IsCanvasFrame()) {
     // We are a wrapped frame for the content (and the wrapper is not the
     // canvas frame, whose size is not meaningful here).
     // Use the container's dimensions, if they have been precomputed.
@@ -1037,7 +1032,7 @@ CalculateContainingBlockSizeForAbsolutes(WritingMode aWM,
     const ReflowInput* lastButOneRI = &aReflowInput;
     while (aLastRI->mParentReflowInput &&
            aLastRI->mParentReflowInput->mFrame->GetContent() == frame->GetContent() &&
-           aLastRI->mParentReflowInput->mFrame->GetType() != nsGkAtoms::fieldSetFrame) {
+           !aLastRI->mParentReflowInput->mFrame->IsFieldSetFrame()) {
       lastButOneRI = aLastRI;
       aLastRI = aLastRI->mParentReflowInput;
     }
@@ -1458,7 +1453,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     }
   }
 
-  FinishAndStoreOverflow(&aMetrics);
+  FinishAndStoreOverflow(&aMetrics, reflowInput->mStyleDisplay);
 
   aStatus = state.mReflowStatus;
 
@@ -1510,6 +1505,53 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
                    delta, perLineDelta, numLines, ectc - ctc);
     printf("%s\n", buf);
   }
+#endif
+
+#ifdef EARLY_BETA_OR_EARLIER
+  // Bug 1358299 START: Remove this code after the 56 merge date.
+  static bool sIsTelemetryEnabled;
+  static bool sTelemetryPrefCached = false;
+
+  if (!sTelemetryPrefCached) {
+    sTelemetryPrefCached = true;
+    Preferences::AddBoolVarCache(&sIsTelemetryEnabled,
+                                 "toolkit.telemetry.enabled");
+  }
+
+  if (sIsTelemetryEnabled) {
+    // Collect data for the BOX_ALIGN_PROPS_IN_BLOCKS_FLAG probe.
+    auto IsStyleNormalOrAuto = [](uint16_t value)->bool {
+      return ((value == NS_STYLE_ALIGN_NORMAL) ||
+              (value == NS_STYLE_ALIGN_AUTO));
+    };
+
+    // First check this frame for non-default values of the css-align properties
+    // that apply to block containers.
+    // Note: we check here for non-default "justify-items", though technically
+    // that'd only affect rendering if some child has "justify-self:auto".
+    // (It's safe to assume that's likely, since it's the default value that
+    // a child would have.) We also pass in nullptr for the parent style context
+    // because an accurate parameter is slower and only necessary to detect a
+    // narrow edge case with the "legacy" keyword.
+    const nsStylePosition* stylePosition = reflowInput->mStylePosition;
+    if (!IsStyleNormalOrAuto(stylePosition->mJustifyContent) ||
+        !IsStyleNormalOrAuto(stylePosition->mAlignContent) ||
+        !IsStyleNormalOrAuto(stylePosition->ComputedJustifyItems(nullptr))) {
+      Telemetry::Accumulate(Telemetry::BOX_ALIGN_PROPS_IN_BLOCKS_FLAG, true);
+    } else {
+      // If not already flagged by the parent, now check justify-self of the
+      // block-level child frames.
+      for (nsBlockFrame::LineIterator line = LinesBegin();
+           line != LinesEnd(); ++line) {
+        if (line->IsBlock() &&
+            !IsStyleNormalOrAuto(line->mFirstChild->StylePosition()->mJustifySelf)) {
+          Telemetry::Accumulate(Telemetry::BOX_ALIGN_PROPS_IN_BLOCKS_FLAG, true);
+          break;
+        }
+      }
+    }
+  }
+  // Bug 1358299 END
 #endif
 
   NS_FRAME_SET_TRUNCATION(aStatus, (*reflowInput), aMetrics);
@@ -1610,7 +1652,7 @@ nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
   }
 
   if (NS_UNCONSTRAINEDSIZE != aReflowInput.ComputedBSize()
-      && (GetParent()->GetType() != nsGkAtoms::columnSetFrame ||
+      && (!GetParent()->IsColumnSetFrame() ||
           aReflowInput.mParentReflowInput->AvailableBSize() == NS_UNCONSTRAINEDSIZE)) {
     ComputeFinalBSize(aReflowInput, &aState.mReflowStatus,
                       aState.mBCoord + nonCarriedOutBDirMargin,
@@ -2832,6 +2874,26 @@ nsBlockFrame::ReflowLine(BlockReflowInput& aState,
   } else {
     aLine->SetLineWrapped(false);
     ReflowInlineFrames(aState, aLine, aKeepReflowGoing);
+
+    // Store the line's float edges for text-overflow analysis if needed.
+    aLine->ClearFloatEdges();
+    if (aState.mFlags.mCanHaveTextOverflow) {
+      WritingMode wm = aLine->mWritingMode;
+      nsFlowAreaRect r = aState.GetFloatAvailableSpaceForBSize(aLine->BStart(),
+                                                               aLine->BSize(),
+                                                               nullptr);
+      if (r.mHasFloats) {
+        LogicalRect so =
+          aLine->GetOverflowArea(eScrollableOverflow, wm, aLine->mContainerSize);
+        nscoord s = r.mRect.IStart(wm);
+        nscoord e = r.mRect.IEnd(wm);
+        if (so.IEnd(wm) > e || so.IStart(wm) < s) {
+          // This line is overlapping a float - store the edges marking the area
+          // between the floats for text-overflow analysis.
+          aLine->SetFloatEdges(s, e);
+        }
+      }
+    }
   }
 }
 
@@ -3018,10 +3080,10 @@ nsBlockFrame::AttributeChanged(int32_t         aNameSpaceID,
       // XXXldb I think that's a bad assumption.
       nsContainerFrame* ancestor = GetParent();
       for (; ancestor; ancestor = ancestor->GetParent()) {
-        auto frameType = ancestor->GetType();
-        if (frameType == nsGkAtoms::blockFrame ||
-            frameType == nsGkAtoms::flexContainerFrame ||
-            frameType == nsGkAtoms::gridContainerFrame) {
+        auto frameType = ancestor->Type();
+        if (frameType == LayoutFrameType::Block ||
+            frameType == LayoutFrameType::FlexContainer ||
+            frameType == LayoutFrameType::GridContainer) {
           break;
         }
       }
@@ -4256,7 +4318,7 @@ nsBlockFrame::ReflowInlineFrame(BlockReflowInput& aState,
     // don't split the line and don't stop the line reflow...
     // But if we are going to stop anyways we'd better split the line.
     if ((!frameReflowStatus.FirstLetterComplete() &&
-         nsGkAtoms::placeholderFrame != aFrame->GetType()) ||
+         !aFrame->IsPlaceholderFrame()) ||
         *aLineReflowStatus == LineReflowStatus::Stop) {
       // Split line after the current frame
       *aLineReflowStatus = LineReflowStatus::Stop;
@@ -5099,8 +5161,7 @@ nsBlockFrame::GetInsideBullet() const
   }
   NS_ASSERTION(!HasOutsideBullet(), "invalid bullet state");
   nsBulletFrame* frame = Properties().Get(InsideBulletProperty());
-  NS_ASSERTION(frame && frame->GetType() == nsGkAtoms::bulletFrame,
-               "bogus inside bullet frame");
+  NS_ASSERTION(frame && frame->IsBulletFrame(), "bogus inside bullet frame");
   return frame;
 }
 
@@ -5122,7 +5183,7 @@ nsBlockFrame::GetOutsideBulletList() const
   nsFrameList* list =
     Properties().Get(OutsideBulletProperty());
   NS_ASSERTION(list && list->GetLength() == 1 &&
-               list->FirstChild()->GetType() == nsGkAtoms::bulletFrame,
+               list->FirstChild()->IsBulletFrame(),
                "bogus outside bullet list");
   return list;
 }
@@ -5292,12 +5353,12 @@ nsBlockFrame::RemoveFrame(ChildListID aListID,
 static bool
 ShouldPutNextSiblingOnNewLine(nsIFrame* aLastFrame)
 {
-  nsIAtom* type = aLastFrame->GetType();
-  if (type == nsGkAtoms::brFrame) {
+  LayoutFrameType type = aLastFrame->Type();
+  if (type == LayoutFrameType::Br) {
     return true;
   }
   // XXX the TEXT_OFFSETS_NEED_FIXING check is a wallpaper for bug 822910.
-  if (type == nsGkAtoms::textFrame &&
+  if (type == LayoutFrameType::Text &&
       !(aLastFrame->GetStateBits() & TEXT_OFFSETS_NEED_FIXING)) {
     return aLastFrame->HasSignificantTerminalNewline();
   }
@@ -5392,7 +5453,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
     nsIFrame* newFrame = e.get();
     NS_ASSERTION(!aPrevSibling || aPrevSibling->GetNextSibling() == newFrame,
                  "Unexpected aPrevSibling");
-    NS_ASSERTION(newFrame->GetType() != nsGkAtoms::placeholderFrame ||
+    NS_ASSERTION(!newFrame->IsPlaceholderFrame() ||
                  (!newFrame->IsAbsolutelyPositioned() &&
                   !newFrame->IsFloating()),
                  "Placeholders should not float or be positioned");
@@ -6170,7 +6231,7 @@ nsBlockFrame::AdjustFloatAvailableSpace(BlockReflowInput& aState,
 
   if (availBSize != NS_UNCONSTRAINEDSIZE &&
       !aState.mFlags.mFloatFragmentsInsideColumnEnabled &&
-      nsLayoutUtils::GetClosestFrameOfType(this, nsGkAtoms::columnSetFrame)) {
+      nsLayoutUtils::GetClosestFrameOfType(this, LayoutFrameType::ColumnSet)) {
     // Tell the float it has unrestricted block-size, so it won't break.
     // If the float doesn't actually fit in the column it will fail to be
     // placed, and either move to the block-start of the next column or just
@@ -6289,7 +6350,7 @@ nsBlockFrame::ReflowFloat(BlockReflowInput& aState,
     aState.mReflowStatus.SetNextInFlowNeedsReflow();
   }
 
-  if (aFloat->GetType() == nsGkAtoms::letterFrame) {
+  if (aFloat->IsLetterFrame()) {
     // We never split floating first letters; an incomplete state for
     // such frames simply means that there is more content to be
     // reflowed on the line.
@@ -6958,9 +7019,9 @@ nsBlockFrame::SetInitialChildList(ChildListID     aListID,
        pseudo == nsCSSAnonBoxes::buttonContent ||
        pseudo == nsCSSAnonBoxes::columnContent ||
        (pseudo == nsCSSAnonBoxes::scrolledContent &&
-        GetParent()->GetType() != nsGkAtoms::listControlFrame) ||
+        !GetParent()->IsListControlFrame()) ||
        pseudo == nsCSSAnonBoxes::mozSVGText) &&
-      GetType() != nsGkAtoms::comboboxControlFrame &&
+      !IsComboboxControlFrame() &&
       !IsFrameOfType(eMathML) &&
       RefPtr<nsStyleContext>(GetFirstLetterStyle(PresContext())) != nullptr;
     NS_ASSERTION(haveFirstLetterStyle ==
@@ -6994,7 +7055,7 @@ nsBlockFrame::SetInitialChildList(ChildListID     aListID,
         !GetPrevInFlow()) {
       // Resolve style for the bullet frame
       const nsStyleList* styleList = StyleList();
-      CounterStyle* style = styleList->GetCounterStyle();
+      CounterStyle* style = styleList->mCounterStyle;
 
       CreateBulletFrameForListItem(
         style->IsBullet(),
@@ -7049,7 +7110,7 @@ nsBlockFrame::BulletIsEmpty() const
                mozilla::StyleDisplay::ListItem && HasOutsideBullet(),
                "should only care when we have an outside bullet");
   const nsStyleList* list = StyleList();
-  return list->GetCounterStyle()->IsNone() &&
+  return list->mCounterStyle->IsNone() &&
          !list->GetListStyleImage();
 }
 
@@ -7192,9 +7253,10 @@ nsBlockFrame::DoCollectFloats(nsIFrame* aFrame, nsFrameList& aList,
   while (aFrame) {
     // Don't descend into float containing blocks.
     if (!aFrame->IsFloatContainingBlock()) {
-      nsIFrame *outOfFlowFrame =
-        aFrame->GetType() == nsGkAtoms::placeholderFrame ?
-          nsLayoutUtils::GetFloatFromPlaceholder(aFrame) : nullptr;
+      nsIFrame* outOfFlowFrame =
+        aFrame->IsPlaceholderFrame()
+          ? nsLayoutUtils::GetFloatFromPlaceholder(aFrame)
+          : nullptr;
       while (outOfFlowFrame && outOfFlowFrame->GetParent() == this) {
         RemoveFloat(outOfFlowFrame);
         // Remove the IS_PUSHED_FLOAT bit, in case |outOfFlowFrame| came from
@@ -7295,7 +7357,7 @@ nsBlockFrame::IsMarginRoot(bool* aBStartMarginRoot, bool* aBEndMarginRoot)
       *aBEndMarginRoot = false;
       return;
     }
-    if (parent->GetType() == nsGkAtoms::columnSetFrame) {
+    if (parent->IsColumnSetFrame()) {
       *aBStartMarginRoot = GetPrevInFlow() == nullptr;
       *aBEndMarginRoot = GetNextInFlow() == nullptr;
       return;

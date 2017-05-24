@@ -76,6 +76,25 @@ protected:
   virtual bool
   DeallocPBlobChild(PBlobChild* aActor) override;
 
+  virtual PMemoryStreamChild*
+  AllocPMemoryStreamChild(const uint64_t& aSize) override;
+
+  virtual bool
+  DeallocPMemoryStreamChild(PMemoryStreamChild* aActor) override;
+
+  virtual PPendingIPCBlobChild*
+  AllocPPendingIPCBlobChild(const IPCBlob& aBlob) override;
+
+  virtual bool
+  DeallocPPendingIPCBlobChild(PPendingIPCBlobChild* aActor) override;
+
+  virtual PIPCBlobInputStreamChild*
+  AllocPIPCBlobInputStreamChild(const nsID& aID,
+                                const uint64_t& aSize) override;
+
+  virtual bool
+  DeallocPIPCBlobInputStreamChild(PIPCBlobInputStreamChild* aActor) override;
+
   virtual PFileDescriptorSetChild*
   AllocPFileDescriptorSetChild(const FileDescriptor& aFileDescriptor)
                                override;
@@ -184,6 +203,17 @@ protected:
 
   virtual bool
   DeallocPGamepadTestChannelChild(PGamepadTestChannelChild* aActor) override;
+
+#ifdef EARLY_BETA_OR_EARLIER
+  virtual void
+  OnChannelReceivedMessage(const Message& aMsg) override;
+#endif
+
+  virtual PWebAuthnTransactionChild*
+  AllocPWebAuthnTransactionChild() override;
+
+  virtual bool
+  DeallocPWebAuthnTransactionChild(PWebAuthnTransactionChild* aActor) override;
 };
 
 class BackgroundChildImpl::ThreadLocal final

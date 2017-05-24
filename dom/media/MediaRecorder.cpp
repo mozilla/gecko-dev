@@ -825,11 +825,6 @@ private:
       }
       mInputStream = nullptr;
     }
-    for (RefPtr<MediaInputPort>& inputPort : mInputPorts) {
-      MOZ_ASSERT(inputPort);
-      inputPort->Destroy();
-    }
-    mInputPorts.Clear();
 
     if (mTrackUnionStream) {
       if (mEncoder) {
@@ -854,6 +849,12 @@ private:
       mTrackUnionStream->Destroy();
       mTrackUnionStream = nullptr;
     }
+
+    for (RefPtr<MediaInputPort>& inputPort : mInputPorts) {
+      MOZ_ASSERT(inputPort);
+      inputPort->Destroy();
+    }
+    mInputPorts.Clear();
 
     if (mMediaStream) {
       mMediaStream->UnregisterTrackListener(this);
@@ -1136,7 +1137,7 @@ MediaRecorder::Resume(ErrorResult& aResult)
 void
 MediaRecorder::RequestData(ErrorResult& aResult)
 {
-  if (mState != RecordingState::Recording) {
+  if (mState == RecordingState::Inactive) {
     aResult.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }

@@ -151,11 +151,9 @@ static const char kDirectoryServiceContractID[] = "@mozilla.org/file/directory_s
 
 #define kPluginRegistryFilename NS_LITERAL_CSTRING("pluginreg.dat")
 
-#ifdef PLUGIN_LOGGING
 LazyLogModule nsPluginLogging::gNPNLog(NPN_LOG_NAME);
 LazyLogModule nsPluginLogging::gNPPLog(NPP_LOG_NAME);
 LazyLogModule nsPluginLogging::gPluginLog(PLUGIN_LOG_NAME);
-#endif
 
 // #defines for plugin cache and prefs
 #define NS_PREF_MAX_NUM_CACHED_INSTANCES "browser.plugins.max_num_cached_plugins"
@@ -511,7 +509,6 @@ nsresult nsPluginHost::PostURL(nsISupports* pluginInst,
                                const char* url,
                                uint32_t postDataLen,
                                const char* postData,
-                               bool isFile,
                                const char* target,
                                nsNPAPIPluginStreamListener* streamListener,
                                const char* altHost,
@@ -531,44 +528,23 @@ nsresult nsPluginHost::PostURL(nsISupports* pluginInst,
   nsNPAPIPluginInstance* instance = static_cast<nsNPAPIPluginInstance*>(pluginInst);
 
   nsCOMPtr<nsIInputStream> postStream;
-  if (isFile) {
-    nsCOMPtr<nsIFile> file;
-    rv = CreateTempFileToPost(postData, getter_AddRefs(file));
-    if (NS_FAILED(rv))
-      return rv;
+  char *dataToPost;
+  uint32_t newDataToPostLen;
+  ParsePostBufferToFixHeaders(postData, postDataLen, &dataToPost, &newDataToPostLen);
+  if (!dataToPost)
+    return NS_ERROR_UNEXPECTED;
 
-    nsCOMPtr<nsIInputStream> fileStream;
-    rv = NS_NewLocalFileInputStream(getter_AddRefs(fileStream),
-                                    file,
-                                    PR_RDONLY,
-                                    0600,
-                                    nsIFileInputStream::DELETE_ON_CLOSE |
-                                    nsIFileInputStream::CLOSE_ON_EOF);
-    if (NS_FAILED(rv))
-      return rv;
-
-    rv = NS_NewBufferedInputStream(getter_AddRefs(postStream), fileStream, 8192);
-    if (NS_FAILED(rv))
-      return rv;
-  } else {
-    char *dataToPost;
-    uint32_t newDataToPostLen;
-    ParsePostBufferToFixHeaders(postData, postDataLen, &dataToPost, &newDataToPostLen);
-    if (!dataToPost)
-      return NS_ERROR_UNEXPECTED;
-
-    nsCOMPtr<nsIStringInputStream> sis = do_CreateInstance("@mozilla.org/io/string-input-stream;1", &rv);
-    if (!sis) {
-      free(dataToPost);
-      return rv;
-    }
-
-    // data allocated by ParsePostBufferToFixHeaders() is managed and
-    // freed by the string stream.
-    postDataLen = newDataToPostLen;
-    sis->AdoptData(dataToPost, postDataLen);
-    postStream = sis;
+  nsCOMPtr<nsIStringInputStream> sis = do_CreateInstance("@mozilla.org/io/string-input-stream;1", &rv);
+  if (!sis) {
+    free(dataToPost);
+    return rv;
   }
+
+  // data allocated by ParsePostBufferToFixHeaders() is managed and
+  // freed by the string stream.
+  postDataLen = newDataToPostLen;
+  sis->AdoptData(dataToPost, postDataLen);
+  postStream = sis;
 
   if (target) {
     RefPtr<nsPluginInstanceOwner> owner = instance->GetOwner();
@@ -1035,6 +1011,15 @@ nsPluginHost::HavePluginForExtension(const nsACString & aExtension,
                                      /* out */ nsACString & aMimeType,
                                      PluginFilter aFilter)
 {
+  // As of FF 52, we only support flash and test plugins, so if the extension types
+  // don't match for that, exit before we start loading plugins.
+  //
+  // XXX: Remove tst case when bug 1351885 lands.
+  if (!aExtension.LowerCaseEqualsLiteral("swf") &&
+      !aExtension.LowerCaseEqualsLiteral("tst")) {
+    return false;
+  }
+
   bool checkEnabled = aFilter & eExcludeDisabled;
   bool allowFake = !(aFilter & eExcludeFake);
   return FindNativePluginForExtension(aExtension, aMimeType, checkEnabled) ||
@@ -1176,6 +1161,12 @@ nsPluginHost::FindNativePluginForType(const nsACString & aMimeType,
     return nullptr;
   }
 
+  // As of FF 52, we only support flash and test plugins, so if the mime types
+  // don't match for that, exit before we start loading plugins.
+  if (!nsPluginHost::CanUsePluginForMIMEType(aMimeType)) {
+    return nullptr;
+  }
+
   LoadPlugins();
 
   InfallibleTArray<nsPluginTag*> matchingPlugins;
@@ -1301,7 +1292,10 @@ nsPluginHost::GetPluginForContentProcess(uint32_t aPluginId, nsNPAPIPlugin** aPl
 class nsPluginUnloadRunnable : public Runnable
 {
 public:
-  explicit nsPluginUnloadRunnable(uint32_t aPluginId) : mPluginId(aPluginId) {}
+  explicit nsPluginUnloadRunnable(uint32_t aPluginId) :
+    Runnable("nsPluginUnloadRunnable"),
+    mPluginId(aPluginId)
+  {}
 
   NS_IMETHOD Run() override
   {
@@ -1733,9 +1727,7 @@ nsPluginHost::SiteHasData(nsIPluginTag* plugin, const nsACString& domain,
   rv = library->NPP_GetSitesWithData(nsCOMPtr<nsIGetSitesWithDataCallback>(do_QueryInterface(closure)));
   NS_ENSURE_SUCCESS(rv, rv);
   // Spin the event loop while we wait for the async call to GetSitesWithData
-  while (closure->keepWaiting) {
-    NS_ProcessNextEvent(nullptr, true);
-  }
+  SpinEventLoopUntil([&]() { return !closure->keepWaiting; });
   *result = closure->result;
   return closure->retVal;
 }
@@ -1913,40 +1905,39 @@ struct CompareFilesByTime
 
 } // namespace
 
+static
 bool
-nsPluginHost::ShouldAddPlugin(nsPluginTag* aPluginTag)
+ShouldAddPlugin(const nsPluginInfo& info, bool flashOnly)
 {
-#if defined(XP_WIN) && (defined(__x86_64__) || defined(_M_X64))
-  // On 64-bit Windows, the only plugin we should load is Flash. Use library
-  // filename and MIME type to check.
-  if (StringBeginsWith(aPluginTag->FileName(), NS_LITERAL_CSTRING("NPSWF"), nsCaseInsensitiveCStringComparator()) &&
-      (aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-shockwave-flash")) ||
-       aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-shockwave-flash-test")))) {
-    return true;
+  if (!info.fName || (strcmp(info.fName, "Shockwave Flash") != 0 && flashOnly)) {
+    return false;
   }
-
-  // Accept the test plugin MIME types, so mochitests still work.
-  if (aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-test")) ||
-      aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-Second-Test")) ||
-      aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-java-test"))) {
-    return true;
+  for (uint32_t i = 0; i < info.fVariantCount; ++i) {
+    if (info.fMimeTypeArray[i] &&
+        (!strcmp(info.fMimeTypeArray[i], "application/x-shockwave-flash") ||
+         !strcmp(info.fMimeTypeArray[i], "application/x-shockwave-flash-test"))) {
+      return true;
+    }
+    if (flashOnly) {
+      continue;
+    }
+    if (info.fMimeTypeArray[i] &&
+        (!strcmp(info.fMimeTypeArray[i], "application/x-test") ||
+         !strcmp(info.fMimeTypeArray[i], "application/x-Second-Test") ||
+         !strcmp(info.fMimeTypeArray[i], "application/x-java-test"))) {
+      return true;
+    }
   }
 #ifdef PLUGIN_LOGGING
   PLUGIN_LOG(PLUGIN_LOG_NORMAL,
              ("ShouldAddPlugin : Ignoring non-flash plugin library %s\n", aPluginTag->FileName().get()));
 #endif // PLUGIN_LOGGING
   return false;
-#else
-  return true;
-#endif // defined(XP_WIN) && (defined(__x86_64__) || defined(_M_X64))
 }
 
 void
 nsPluginHost::AddPluginTag(nsPluginTag* aPluginTag)
 {
-  if (!ShouldAddPlugin(aPluginTag)) {
-    return;
-  }
   aPluginTag->mNext = mPlugins;
   mPlugins = aPluginTag;
 
@@ -1960,22 +1951,6 @@ nsPluginHost::AddPluginTag(nsPluginTag* aPluginTag)
       }
     }
   }
-}
-
-static bool
-PluginInfoIsFlash(const nsPluginInfo& info)
-{
-  if (!info.fName || strcmp(info.fName, "Shockwave Flash") != 0) {
-    return false;
-  }
-  for (uint32_t i = 0; i < info.fVariantCount; ++i) {
-    if (info.fMimeTypeArray[i] &&
-        (!strcmp(info.fMimeTypeArray[i], "application/x-shockwave-flash") ||
-         !strcmp(info.fMimeTypeArray[i], "application/x-shockwave-flash-test"))) {
-      return true;
-    }
-  }
-  return false;
 }
 
 typedef NS_NPAPIPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
@@ -2103,7 +2078,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
       }
       // if we don't have mime type don't proceed, this is not a plugin
       if (NS_FAILED(res) || !info.fMimeTypeArray ||
-          (flashOnly && !PluginInfoIsFlash(info))) {
+          (!ShouldAddPlugin(info, flashOnly))) {
         RefPtr<nsInvalidPluginTag> invalidTag = new nsInvalidPluginTag(filePath.get(),
                                                                          fileModTime);
         pluginFile.FreePluginInfo(info);
@@ -3063,10 +3038,6 @@ nsPluginHost::ReadPluginInfo()
     MOZ_LOG(nsPluginLogging::gPluginLog, PLUGIN_LOG_BASIC,
       ("LoadCachedPluginsInfo : Loading Cached plugininfo for %s\n", tag->FileName().get()));
 
-    if (!ShouldAddPlugin(tag)) {
-      continue;
-    }
-
     tag->mNext = mCachedPlugins;
     mCachedPlugins = tag;
   }
@@ -3593,107 +3564,6 @@ nsPluginHost::ParsePostBufferToFixHeaders(const char *inPostData, uint32_t inPos
 }
 
 nsresult
-nsPluginHost::CreateTempFileToPost(const char *aPostDataURL, nsIFile **aTmpFile)
-{
-  nsresult rv;
-  int64_t fileSize;
-  nsAutoCString filename;
-
-  // stat file == get size & convert file:///c:/ to c: if needed
-  nsCOMPtr<nsIFile> inFile;
-  rv = NS_GetFileFromURLSpec(nsDependentCString(aPostDataURL),
-                             getter_AddRefs(inFile));
-  if (NS_FAILED(rv)) {
-    nsCOMPtr<nsIFile> localFile;
-    rv = NS_NewNativeLocalFile(nsDependentCString(aPostDataURL), false,
-                               getter_AddRefs(localFile));
-    if (NS_FAILED(rv)) return rv;
-    inFile = localFile;
-  }
-  rv = inFile->GetFileSize(&fileSize);
-  if (NS_FAILED(rv)) return rv;
-  rv = inFile->GetNativePath(filename);
-  if (NS_FAILED(rv)) return rv;
-
-  if (fileSize != 0) {
-    nsCOMPtr<nsIInputStream> inStream;
-    rv = NS_NewLocalFileInputStream(getter_AddRefs(inStream), inFile);
-    if (NS_FAILED(rv)) return rv;
-
-    // Create a temporary file to write the http Content-length:
-    // %ld\r\n\" header and "\r\n" == end of headers for post data to
-
-    nsCOMPtr<nsIFile> tempFile;
-    rv = GetPluginTempDir(getter_AddRefs(tempFile));
-    if (NS_FAILED(rv))
-      return rv;
-
-    nsAutoCString inFileName;
-    inFile->GetNativeLeafName(inFileName);
-    // XXX hack around bug 70083
-    inFileName.Insert(NS_LITERAL_CSTRING("post-"), 0);
-    rv = tempFile->AppendNative(inFileName);
-
-    if (NS_FAILED(rv))
-      return rv;
-
-    // make it unique, and mode == 0600, not world-readable
-    rv = tempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
-    if (NS_FAILED(rv))
-      return rv;
-
-    nsCOMPtr<nsIOutputStream> outStream;
-    if (NS_SUCCEEDED(rv)) {
-      rv = NS_NewLocalFileOutputStream(getter_AddRefs(outStream),
-        tempFile,
-        (PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE),
-        0600); // 600 so others can't read our form data
-    }
-    NS_ASSERTION(NS_SUCCEEDED(rv), "Post data file couldn't be created!");
-    if (NS_FAILED(rv))
-      return rv;
-
-    char buf[1024];
-    uint32_t br, bw;
-    bool firstRead = true;
-    while (true) {
-      // Read() mallocs if buffer is null
-      rv = inStream->Read(buf, 1024, &br);
-      if (NS_FAILED(rv) || (int32_t)br <= 0)
-        break;
-      if (firstRead) {
-        //"For protocols in which the headers must be distinguished from the body,
-        // such as HTTP, the buffer or file should contain the headers, followed by
-        // a blank line, then the body. If no custom headers are required, simply
-        // add a blank line ('\n') to the beginning of the file or buffer.
-
-        char *parsedBuf;
-        // assuming first 1K (or what we got) has all headers in,
-        // lets parse it through nsPluginHost::ParsePostBufferToFixHeaders()
-        ParsePostBufferToFixHeaders((const char *)buf, br, &parsedBuf, &bw);
-        rv = outStream->Write(parsedBuf, bw, &br);
-        free(parsedBuf);
-        if (NS_FAILED(rv) || (bw != br))
-          break;
-
-        firstRead = false;
-        continue;
-      }
-      bw = br;
-      rv = outStream->Write(buf, bw, &br);
-      if (NS_FAILED(rv) || (bw != br))
-        break;
-    }
-
-    inStream->Close();
-    outStream->Close();
-    if (NS_SUCCEEDED(rv))
-      tempFile.forget(aTmpFile);
-  }
-  return rv;
-}
-
-nsresult
 nsPluginHost::NewPluginNativeWindow(nsPluginNativeWindow ** aPluginNativeWindow)
 {
   return PLUG_NewPluginNativeWindow(aPluginNativeWindow);
@@ -3957,22 +3827,41 @@ nsPluginHost::DestroyRunningInstances(nsPluginTag* aPluginTag)
   }
 }
 
+/* static */
+bool
+nsPluginHost::CanUsePluginForMIMEType(const nsACString& aMIMEType)
+{
+  // We only support flash as a plugin, so if the mime types don't match for
+  // those, exit before we start loading plugins.
+  //
+  // XXX: Remove test/java cases when bug 1351885 lands.
+  if (nsPluginHost::GetSpecialType(aMIMEType) == nsPluginHost::eSpecialType_Flash ||
+      aMIMEType.LowerCaseEqualsLiteral("application/x-test") ||
+      aMIMEType.LowerCaseEqualsLiteral("application/x-second-test") ||
+      aMIMEType.LowerCaseEqualsLiteral("application/x-third-test") ||
+      aMIMEType.LowerCaseEqualsLiteral("application/x-java-test")) {
+    return true;
+  }
+
+  return false;
+}
+
 // Runnable that does an async destroy of a plugin.
 
 class nsPluginDestroyRunnable : public Runnable,
-                                public PRCList
+                                public mozilla::LinkedListElement<nsPluginDestroyRunnable>
 {
 public:
   explicit nsPluginDestroyRunnable(nsNPAPIPluginInstance *aInstance)
-    : mInstance(aInstance)
+    : Runnable("nsPluginDestroyRunnable"),
+      mInstance(aInstance)
   {
-    PR_INIT_CLIST(this);
-    PR_APPEND_LINK(this, &sRunnableListHead);
+    sRunnableList.insertBack(this);
   }
 
   ~nsPluginDestroyRunnable() override
   {
-    PR_REMOVE_LINK(this);
+    this->remove();
   }
 
   NS_IMETHOD Run() override
@@ -3990,16 +3879,12 @@ public:
       return NS_OK;
     }
 
-    nsPluginDestroyRunnable *r =
-      static_cast<nsPluginDestroyRunnable*>(PR_NEXT_LINK(&sRunnableListHead));
-
-    while (r != &sRunnableListHead) {
+    for (auto r : sRunnableList) {
       if (r != this && r->mInstance == instance) {
         // There's another runnable scheduled to tear down
         // instance. Let it do the job.
         return NS_OK;
       }
-      r = static_cast<nsPluginDestroyRunnable*>(PR_NEXT_LINK(r));
     }
 
     PLUGIN_LOG(PLUGIN_LOG_NORMAL,
@@ -4018,14 +3903,12 @@ public:
 protected:
   RefPtr<nsNPAPIPluginInstance> mInstance;
 
-  static PRCList sRunnableListHead;
+  static mozilla::LinkedList<nsPluginDestroyRunnable> sRunnableList;
 };
 
-PRCList nsPluginDestroyRunnable::sRunnableListHead =
-  PR_INIT_STATIC_CLIST(&nsPluginDestroyRunnable::sRunnableListHead);
+mozilla::LinkedList<nsPluginDestroyRunnable> nsPluginDestroyRunnable::sRunnableList;
 
-PRCList PluginDestructionGuard::sListHead =
-  PR_INIT_STATIC_CLIST(&PluginDestructionGuard::sListHead);
+mozilla::LinkedList<PluginDestructionGuard> PluginDestructionGuard::sList;
 
 PluginDestructionGuard::PluginDestructionGuard(nsNPAPIPluginInstance *aInstance)
   : mInstance(aInstance)
@@ -4049,7 +3932,7 @@ PluginDestructionGuard::~PluginDestructionGuard()
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on the main thread");
 
-  PR_REMOVE_LINK(this);
+  this->remove();
 
   if (mDelayedDestroy) {
     // We've attempted to destroy the plugin instance we're holding on
@@ -4072,16 +3955,12 @@ PluginDestructionGuard::DelayDestroy(nsNPAPIPluginInstance *aInstance)
   // Find the first guard on the stack and make it do a delayed
   // destroy upon destruction.
 
-  PluginDestructionGuard *g =
-    static_cast<PluginDestructionGuard*>(PR_LIST_HEAD(&sListHead));
-
-  while (g != &sListHead) {
+  for (auto g : sList) {
     if (g->mInstance == aInstance) {
       g->mDelayedDestroy = true;
 
       return true;
     }
-    g = static_cast<PluginDestructionGuard*>(PR_NEXT_LINK(g));
   }
 
   return false;

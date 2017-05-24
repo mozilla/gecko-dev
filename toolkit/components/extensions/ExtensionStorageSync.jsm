@@ -77,8 +77,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
                                   "resource://gre/modules/Sqlite.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Svc",
                                   "resource://services-sync/util.js");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Utils",
                                   "resource://services-sync/util.js");
 XPCOMUtils.defineLazyPreferenceGetter(this, "prefPermitsStorageSync",
@@ -103,6 +101,12 @@ const log = Log.repository.getLogger("Sync.Engine.Extension-Storage");
 let _fxaService = null;
 if (AppConstants.platform != "android") {
   _fxaService = fxAccounts;
+}
+
+class ServerKeyringDeleted extends Error {
+  constructor() {
+    super("server keyring appears to have disappeared; we were called to decrypt null");
+  }
 }
 
 /**
@@ -145,8 +149,8 @@ function ciphertextHMAC(keyBundle, id, IV, ciphertext) {
  *     current user.
  * @returns {string} sha256 of the user's kB as a hex string
  */
-const getKBHash = Task.async(function* (fxaService) {
-  const signedInUser = yield fxaService.getSignedInUser();
+const getKBHash = async function(fxaService) {
+  const signedInUser = await fxaService.getSignedInUser();
   if (!signedInUser) {
     throw new Error("User isn't signed in!");
   }
@@ -160,7 +164,7 @@ const getKBHash = Task.async(function* (fxaService) {
       .createInstance(Ci.nsICryptoHash);
   hasher.init(hasher.SHA256);
   return CommonUtils.bytesAsHex(CryptoUtils.digestBytes(signedInUser.uid + kBbytes, hasher));
-});
+};
 
 /**
  * A "remote transformer" that the Kinto library will use to
@@ -170,76 +174,70 @@ const getKBHash = Task.async(function* (fxaService) {
  * getKeys() to use it.
  */
 class EncryptionRemoteTransformer {
-  encode(record) {
-    const self = this;
-    return Task.spawn(function* () {
-      const keyBundle = yield self.getKeys();
-      if (record.ciphertext) {
-        throw new Error("Attempt to reencrypt??");
-      }
-      let id = yield self.getEncodedRecordId(record);
-      if (!id) {
-        throw new Error("Record ID is missing or invalid");
-      }
+  async encode(record) {
+    const keyBundle = await this.getKeys();
+    if (record.ciphertext) {
+      throw new Error("Attempt to reencrypt??");
+    }
+    let id = await this.getEncodedRecordId(record);
+    if (!id) {
+      throw new Error("Record ID is missing or invalid");
+    }
 
-      let IV = Svc.Crypto.generateRandomIV();
-      let ciphertext = Svc.Crypto.encrypt(JSON.stringify(record),
-                                          keyBundle.encryptionKeyB64, IV);
-      let hmac = ciphertextHMAC(keyBundle, id, IV, ciphertext);
-      const encryptedResult = {ciphertext, IV, hmac, id};
+    let IV = Svc.Crypto.generateRandomIV();
+    let ciphertext = Svc.Crypto.encrypt(JSON.stringify(record),
+                                        keyBundle.encryptionKeyB64, IV);
+    let hmac = ciphertextHMAC(keyBundle, id, IV, ciphertext);
+    const encryptedResult = {ciphertext, IV, hmac, id};
 
-      // Copy over the _status field, so that we handle concurrency
-      // headers (If-Match, If-None-Match) correctly.
-      // DON'T copy over "deleted" status, because then we'd leak
-      // plaintext deletes.
-      encryptedResult._status = record._status == "deleted" ? "updated" : record._status;
-      if (record.hasOwnProperty("last_modified")) {
-        encryptedResult.last_modified = record.last_modified;
-      }
+    // Copy over the _status field, so that we handle concurrency
+    // headers (If-Match, If-None-Match) correctly.
+    // DON'T copy over "deleted" status, because then we'd leak
+    // plaintext deletes.
+    encryptedResult._status = record._status == "deleted" ? "updated" : record._status;
+    if (record.hasOwnProperty("last_modified")) {
+      encryptedResult.last_modified = record.last_modified;
+    }
 
-      return encryptedResult;
-    });
+    return encryptedResult;
   }
 
-  decode(record) {
-    const self = this;
-    return Task.spawn(function* () {
-      if (!record.ciphertext) {
-        // This can happen for tombstones if a record is deleted.
-        if (record.deleted) {
-          return record;
-        }
-        throw new Error("No ciphertext: nothing to decrypt?");
+  async decode(record) {
+    if (!record.ciphertext) {
+      // This can happen for tombstones if a record is deleted.
+      if (record.deleted) {
+        return record;
       }
-      const keyBundle = yield self.getKeys();
-      // Authenticate the encrypted blob with the expected HMAC
-      let computedHMAC = ciphertextHMAC(keyBundle, record.id, record.IV, record.ciphertext);
+      throw new Error("No ciphertext: nothing to decrypt?");
+    }
+    const keyBundle = await this.getKeys();
+    // Authenticate the encrypted blob with the expected HMAC
+    let computedHMAC = ciphertextHMAC(keyBundle, record.id, record.IV, record.ciphertext);
 
-      if (computedHMAC != record.hmac) {
-        Utils.throwHMACMismatch(record.hmac, computedHMAC);
-      }
+    if (computedHMAC != record.hmac) {
+      Utils.throwHMACMismatch(record.hmac, computedHMAC);
+    }
 
-      // Handle invalid data here. Elsewhere we assume that cleartext is an object.
-      let cleartext = Svc.Crypto.decrypt(record.ciphertext,
-                                         keyBundle.encryptionKeyB64, record.IV);
-      let jsonResult = JSON.parse(cleartext);
-      if (!jsonResult || typeof jsonResult !== "object") {
-        throw new Error("Decryption failed: result is <" + jsonResult + ">, not an object.");
-      }
+    // Handle invalid data here. Elsewhere we assume that cleartext is an object.
+    let cleartext = Svc.Crypto.decrypt(record.ciphertext,
+                                       keyBundle.encryptionKeyB64, record.IV);
+    let jsonResult = JSON.parse(cleartext);
+    if (!jsonResult || typeof jsonResult !== "object") {
+      throw new Error("Decryption failed: result is <" + jsonResult + ">, not an object.");
+    }
 
-      if (record.hasOwnProperty("last_modified")) {
-        jsonResult.last_modified = record.last_modified;
-      }
+    if (record.hasOwnProperty("last_modified")) {
+      jsonResult.last_modified = record.last_modified;
+    }
 
-      // _status: deleted records were deleted on a client, but
-      // uploaded as an encrypted blob so we don't leak deletions.
-      // If we get such a record, flag it as deleted.
-      if (jsonResult._status == "deleted") {
-        jsonResult.deleted = true;
-      }
+    // _status: deleted records were deleted on a client, but
+    // uploaded as an encrypted blob so we don't leak deletions.
+    // If we get such a record, flag it as deleted.
+    if (jsonResult._status == "deleted") {
+      jsonResult.deleted = true;
+    }
 
-      return jsonResult;
-    });
+    return jsonResult;
   }
 
   /**
@@ -279,8 +277,8 @@ class KeyRingEncryptionRemoteTransformer extends EncryptionRemoteTransformer {
   getKeys() {
     throwIfNoFxA(this._fxaService, "encrypting chrome.storage.sync records");
     const self = this;
-    return Task.spawn(function* () {
-      const user = yield self._fxaService.getSignedInUser();
+    return (async function() {
+      const user = await self._fxaService.getSignedInUser();
       // FIXME: we should permit this if the user is self-hosting
       // their storage
       if (!user) {
@@ -299,22 +297,41 @@ class KeyRingEncryptionRemoteTransformer extends EncryptionRemoteTransformer {
       // [encryptionKey, hmacKey]
       bundle.keyPair = [keyMaterial.slice(0, 32), keyMaterial.slice(32, 64)];
       return bundle;
-    });
+    })();
   }
   // Pass through the kbHash field from the unencrypted record. If
   // encryption fails, we can use this to try to detect whether we are
   // being compromised or if the record here was encoded with a
   // different kB.
-  encode(record) {
-    const encodePromise = super.encode(record);
-    return Task.spawn(function* () {
-      const encoded = yield encodePromise;
-      encoded.kbHash = record.kbHash;
-      return encoded;
-    });
+  async encode(record) {
+    const encoded = await super.encode(record);
+    encoded.kbHash = record.kbHash;
+    return encoded;
   }
 
   async decode(record) {
+    if (record === null) {
+      // XXX: This is a hack that detects a situation that should
+      // never happen by using a technique that shouldn't actually
+      // work. See
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=1359879 for
+      // the whole gory story.
+      //
+      // For reasons that aren't clear yet,
+      // sometimes the server-side keyring is deleted. When we try
+      // to sync our copy of the keyring, we get a conflict with the
+      // deleted version. Due to a bug in kinto.js, we are called to
+      // decode the deleted version, which is represented as
+      // null. For now, try to handle this by throwing a specific
+      // kind of exception which we can catch and recover from the
+      // same way we would do with any other kind of undecipherable
+      // keyring -- wiping the bucket and reuploading everything.
+      //
+      // Eventually we will probably fix the bug in kinto.js, and
+      // this will have to move somewhere else, probably in the code
+      // that detects a resolved conflict.
+      throw new ServerKeyringDeleted();
+    }
     try {
       return await super.decode(record);
     } catch (e) {
@@ -355,11 +372,11 @@ global.KeyRingEncryptionRemoteTransformer = KeyRingEncryptionRemoteTransformer;
  * - kinto: a KintoBase object, suitable for using in Firefox. All
  *   collections in this database will use the same Sqlite connection.
  */
-const storageSyncInit = Task.spawn(function* () {
+const storageSyncInit = (async function() {
   const path = "storage-sync.sqlite";
   const opts = {path, sharedMemoryCache: false};
-  const connection = yield Sqlite.openConnection(opts);
-  yield FirefoxAdapter._init(connection);
+  const connection = await Sqlite.openConnection(opts);
+  await FirefoxAdapter._init(connection);
   return {
     connection,
     kinto: new Kinto({
@@ -368,15 +385,15 @@ const storageSyncInit = Task.spawn(function* () {
       timeout: KINTO_REQUEST_TIMEOUT,
     }),
   };
-});
+})();
 
 AsyncShutdown.profileBeforeChange.addBlocker(
   "ExtensionStorageSync: close Sqlite handle",
-  Task.async(function* () {
-    const ret = yield storageSyncInit;
+  async function() {
+    const ret = await storageSyncInit;
     const {connection} = ret;
-    yield connection.close();
-  })
+    await connection.close();
+  }
 );
 // Kinto record IDs have two condtions:
 //
@@ -654,18 +671,15 @@ let CollectionKeyEncryptionRemoteTransformer = class extends EncryptionRemoteTra
     this.extensionId = extensionId;
   }
 
-  getKeys() {
-    const self = this;
-    return Task.spawn(function* () {
-      // FIXME: cache the crypto record for the duration of a sync cycle?
-      const collectionKeys = yield self.cryptoCollection.getKeyRing();
-      if (!collectionKeys.hasKeysFor([self.extensionId])) {
-        // This should never happen. Keys should be created (and
-        // synced) at the beginning of the sync cycle.
-        throw new Error(`tried to encrypt records for ${this.extensionId}, but key is not present`);
-      }
-      return collectionKeys.keyForCollection(self.extensionId);
-    });
+  async getKeys() {
+    // FIXME: cache the crypto record for the duration of a sync cycle?
+    const collectionKeys = await this.cryptoCollection.getKeyRing();
+    if (!collectionKeys.hasKeysFor([this.extensionId])) {
+      // This should never happen. Keys should be created (and
+      // synced) at the beginning of the sync cycle.
+      throw new Error(`tried to encrypt records for ${this.extensionId}, but key is not present`);
+    }
+    return collectionKeys.keyForCollection(this.extensionId);
   }
 
   getEncodedRecordId(record) {
@@ -706,6 +720,7 @@ function cleanUpForContext(extension, context) {
 /**
  * Generate a promise that produces the Collection for an extension.
  *
+ * @param {CryptoCollection} cryptoCollection
  * @param {Extension} extension
  *                    The extension whose collection needs to
  *                    be opened.
@@ -715,16 +730,16 @@ function cleanUpForContext(extension, context) {
  *                  close.
  * @returns {Promise<Collection>}
  */
-const openCollection = Task.async(function* (cryptoCollection, extension, context) {
+const openCollection = async function(cryptoCollection, extension, context) {
   let collectionId = extension.id;
-  const {kinto} = yield storageSyncInit;
+  const {kinto} = await storageSyncInit;
   const remoteTransformers = [new CollectionKeyEncryptionRemoteTransformer(cryptoCollection, extension.id)];
   const coll = kinto.collection(collectionId, {
     idSchema: storageSyncIdSchema,
     remoteTransformers,
   });
   return coll;
-});
+};
 
 class ExtensionStorageSync {
   /**
@@ -808,13 +823,18 @@ class ExtensionStorageSync {
       };
     }
     for (const conflict of syncResults.resolved) {
-      // FIXME: Should we even send a notification? If so, what
-      // best values for "old" and "new"? This might violate
-      // client code's assumptions, since from their perspective,
-      // we were in state L, but this diff is from R -> L.
-      changes[conflict.remote.key] = {
-        oldValue: conflict.local.data,
-        newValue: conflict.remote.data,
+      // FIXME: We can't send a "changed" notification because
+      // kinto.js only provides the newly-resolved value. But should
+      // we even send a notification? We use CLIENT_WINS so nothing
+      // has really "changed" on this end. (The change will come on
+      // the other end when it pulls down the update, which is handled
+      // by the "updated" case above.) If we are going to send a
+      // notification, what best values for "old" and "new"?  This
+      // might violate client code's assumptions, since from their
+      // perspective, we were in state L, but this diff is from R ->
+      // L.
+      changes[conflict.key] = {
+        newValue: conflict.data,
       };
     }
     if (Object.keys(changes).length > 0) {
@@ -876,6 +896,7 @@ class ExtensionStorageSync {
    * @returns {Promise<void>}
    */
   async _deleteBucket() {
+    log.error("Deleting default bucket and everything in it");
     return await this._requestWithToken("Clearing server", async function(token) {
       const headers = {Authorization: "Bearer " + token};
       const kintoHttp = new KintoHttpClient(prefStorageSyncServerURL, {
@@ -938,6 +959,7 @@ class ExtensionStorageSync {
       return collectionKeys;
     }
 
+    log.info(`Need to create keys and/or salts for ${JSON.stringify(extIds)}`);
     const kbHash = await getKBHash(this._fxaService);
     const newKeys = await collectionKeys.ensureKeysFor(extIds);
     const newSalts = await this.ensureSaltsFor(keysRecord, extIds);
@@ -1046,11 +1068,13 @@ class ExtensionStorageSync {
       // No conflicts, or conflict was just someone else adding keys.
       return result;
     } catch (e) {
-      if (KeyRingEncryptionRemoteTransformer.isOutdatedKB(e)) {
+      if (KeyRingEncryptionRemoteTransformer.isOutdatedKB(e) ||
+          e instanceof ServerKeyringDeleted) {
         // Check if our token is still valid, or if we got locked out
         // between starting the sync and talking to Kinto.
         const isSessionValid = await this._fxaService.sessionStatus();
         if (isSessionValid) {
+          log.error("Couldn't decipher old keyring; deleting the default bucket and resetting sync status");
           await this._deleteBucket();
           await this.cryptoCollection.resetSyncStatus();
 

@@ -18,7 +18,7 @@
 
 // This is the schema version. Update it at any schema change and add a
 // corresponding migrateVxx method below.
-#define DATABASE_SCHEMA_VERSION 36
+#define DATABASE_SCHEMA_VERSION 37
 
 // Fired after Places inited.
 #define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
@@ -216,6 +216,15 @@ protected:
                             bool* aNewDatabaseCreated);
 
   /**
+   * Initializes the favicons database file.  If it does not exist or is
+   * corrupt, a new one is created.
+   *
+   * @param aStorage
+   *        mozStorage service instance.
+   */
+  nsresult InitFaviconsDatabaseFile(nsCOMPtr<mozIStorageService>& aStorage);
+
+  /**
    * Creates a database backup and replaces the original file with a new
    * one.
    *
@@ -223,6 +232,12 @@ protected:
    *        mozStorage service instance.
    */
   nsresult BackupAndReplaceDatabaseFile(nsCOMPtr<mozIStorageService>& aStorage);
+
+  /**
+   * This should be used as a last resort in case the database is corrupt and
+   * there's no way to fix it in-place.
+   */
+  nsresult ForceCrashAndReplaceDatabase(const nsCString& aReason);
 
   /**
    * Initializes the database.  This performs any necessary migrations for the
@@ -272,6 +287,7 @@ protected:
   nsresult MigrateV34Up();
   nsresult MigrateV35Up();
   nsresult MigrateV36Up();
+  nsresult MigrateV37Up();
 
   nsresult UpdateBookmarkRootTitles();
 

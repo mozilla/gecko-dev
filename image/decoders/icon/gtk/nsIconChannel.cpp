@@ -12,9 +12,7 @@
 #include "mozilla/EndianUtils.h"
 #include <algorithm>
 
-#ifdef MOZ_ENABLE_GIO
 #include <gio/gio.h>
-#endif
 
 #include <gtk/gtk.h>
 
@@ -30,6 +28,7 @@
 #include "NullPrincipal.h"
 #include "nsIURL.h"
 #include "prlink.h"
+#include "gfxPlatform.h"
 
 NS_IMPL_ISUPPORTS(nsIconChannel,
                   nsIRequest,
@@ -167,7 +166,6 @@ moz_gtk_icon_size(const char* name)
   return GTK_ICON_SIZE_MENU;
 }
 
-#ifdef MOZ_ENABLE_GIO
 static int32_t
 GetIconSize(nsIMozIconURI* aIconURI)
 {
@@ -300,7 +298,6 @@ nsIconChannel::InitWithGIO(nsIMozIconURI* aIconURI)
   g_object_unref(buf);
   return rv;
 }
-#endif // MOZ_ENABLE_GIO
 
 nsresult
 nsIconChannel::Init(nsIURI* aURI)
@@ -308,14 +305,14 @@ nsIconChannel::Init(nsIURI* aURI)
   nsCOMPtr<nsIMozIconURI> iconURI = do_QueryInterface(aURI);
   NS_ASSERTION(iconURI, "URI is not an nsIMozIconURI");
 
+  if (gfxPlatform::IsHeadless()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   nsAutoCString stockIcon;
   iconURI->GetStockIcon(stockIcon);
   if (stockIcon.IsEmpty()) {
-#ifdef MOZ_ENABLE_GIO
     return InitWithGIO(iconURI);
-#else
-    return NS_ERROR_NOT_AVAILABLE;
-#endif
   }
 
   // Search for stockIcon

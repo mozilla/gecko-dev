@@ -28,6 +28,11 @@
     <command id="Browser:SendLink"
              oncommand="MailIntegration.sendLinkForBrowser(gBrowser.selectedBrowser);"/>
 
+    <command id="PageAction:copyURL"
+             oncommand="gPageActionButton.copyURL();"/>
+    <command id="PageAction:emailLink"
+             oncommand="gPageActionButton.emailLink();"/>
+
     <command id="cmd_pageSetup" oncommand="PrintUtils.showPageSetup();"/>
     <command id="cmd_print" oncommand="PrintUtils.printWindow(window.gBrowser.selectedBrowser.outerWindowID, window.gBrowser.selectedBrowser);"/>
     <command id="cmd_printPreview" oncommand="PrintUtils.printPreview(PrintPreviewListener);"/>
@@ -93,7 +98,7 @@
     <command id="Browser:OpenLocation" oncommand="openLocation();"/>
     <command id="Browser:RestoreLastSession" oncommand="restoreLastSession();" disabled="true"/>
     <command id="Browser:NewUserContextTab" oncommand="openNewUserContextTab(event.sourceEvent);"/>
-    <command id="Browser:OpenAboutContainers" oncommand="openPreferences('paneContainers');"/>
+    <command id="Browser:OpenAboutContainers" oncommand="openPreferences('paneContainers', {origin: 'ContainersCommand'});"/>
 
     <command id="Tools:Search" oncommand="BrowserSearch.webSearch();"/>
     <command id="Tools:Downloads" oncommand="BrowserDownloadsUI();"/>

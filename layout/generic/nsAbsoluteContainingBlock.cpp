@@ -113,7 +113,7 @@ nsAbsoluteContainingBlock::RemoveFrame(nsIFrame*       aDelegatingFrame,
 void
 nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
                                   nsPresContext*           aPresContext,
-                                  const ReflowInput& aReflowInput,
+                                  const ReflowInput&       aReflowInput,
                                   nsReflowStatus&          aReflowStatus,
                                   const nsRect&            aContainingBlock,
                                   AbsPosReflowFlags        aFlags,
@@ -130,11 +130,37 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
       FrameDependsOnContainer(kidFrame,
                               !!(aFlags & AbsPosReflowFlags::eCBWidthChanged),
                               !!(aFlags & AbsPosReflowFlags::eCBHeightChanged));
+    nscoord availBSize = aReflowInput.AvailableBSize();
+    const nsRect& cb = isGrid ? nsGridContainerFrame::GridItemCB(kidFrame)
+                              : aContainingBlock;
+    WritingMode containerWM = aReflowInput.GetWritingMode();
+    if (!kidNeedsReflow && availBSize != NS_UNCONSTRAINEDSIZE) {
+      // If we need to redo pagination on the kid, we need to reflow it.
+      // This can happen either if the available height shrunk and the
+      // kid (or its overflow that creates overflow containers) is now
+      // too large to fit in the available height, or if the available
+      // height has increased and the kid has a next-in-flow that we
+      // might need to pull from.
+      WritingMode kidWM = kidFrame->GetWritingMode();
+      if (containerWM.GetBlockDir() != kidWM.GetBlockDir()) {
+        // Not sure what the right test would be here.
+        kidNeedsReflow = true;
+      } else {
+        nscoord kidBEnd = kidFrame->GetLogicalRect(cb.Size()).BEnd(kidWM);
+        nscoord kidOverflowBEnd =
+          LogicalRect(containerWM,
+                      kidFrame->GetScrollableOverflowRectRelativeToParent(),
+                      aContainingBlock.Size()).BEnd(containerWM);
+        MOZ_ASSERT(kidOverflowBEnd >= kidBEnd);
+        if (kidOverflowBEnd > availBSize ||
+            (kidBEnd < availBSize && kidFrame->GetNextInFlow())) {
+          kidNeedsReflow = true;
+        }
+      }
+    }
     if (kidNeedsReflow && !aPresContext->HasPendingInterrupt()) {
       // Reflow the frame
       nsReflowStatus kidStatus;
-      const nsRect& cb = isGrid ? nsGridContainerFrame::GridItemCB(kidFrame)
-                                : aContainingBlock;
       ReflowAbsoluteFrame(aDelegatingFrame, aPresContext, aReflowInput, cb,
                           aFlags, kidFrame, kidStatus, aOverflowAreas);
       nsIFrame* nextFrame = kidFrame->GetNextInFlow();
@@ -425,15 +451,15 @@ OffsetToAlignedStaticPos(const ReflowInput& aKidReflowInput,
                         ? GetOrthogonalAxis(aAbsPosCBAxis)
                         : aAbsPosCBAxis);
 
-  nsIAtom* parentType = aPlaceholderContainer->GetType();
+  LayoutFrameType parentType = aPlaceholderContainer->Type();
   LogicalSize alignAreaSize(pcWM);
-  if (parentType == nsGkAtoms::flexContainerFrame) {
+  if (parentType == LayoutFrameType::FlexContainer) {
     // The alignment container is the flex container's content box:
     alignAreaSize = aPlaceholderContainer->GetLogicalSize(pcWM);
     LogicalMargin pcBorderPadding =
       aPlaceholderContainer->GetLogicalUsedBorderAndPadding(pcWM);
     alignAreaSize -= pcBorderPadding.Size(pcWM);
-  } else if (parentType == nsGkAtoms::gridContainerFrame) {
+  } else if (parentType == LayoutFrameType::GridContainer) {
     // This abspos elem's parent is a grid container. Per CSS Grid 10.1 & 10.2:
     //  - If the grid container *also* generates the abspos containing block (a
     // grid area) for this abspos child, we use that abspos containing block as
@@ -686,7 +712,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   bool constrainBSize = (aReflowInput.AvailableBSize() != NS_UNCONSTRAINEDSIZE)
     && (aFlags & AbsPosReflowFlags::eConstrainHeight)
        // Don't split if told not to (e.g. for fixed frames)
-    && (aDelegatingFrame->GetType() != nsGkAtoms::inlineFrame)
+    && !aDelegatingFrame->IsInlineFrame()
        //XXX we don't handle splitting frames for inline absolute containing blocks yet
     && (aKidFrame->GetLogicalRect(aContainingBlock.Size()).BStart(wm) <=
         aReflowInput.AvailableBSize());

@@ -20,6 +20,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
                                   "resource://gre/modules/AppConstants.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
+                                  "resource://gre/modules/Preferences.jsm");
 
 const Telemetry = Services.telemetry;
 const bundle = Services.strings.createBundle(
@@ -240,7 +242,13 @@ var Settings = {
         } else {
           // Show the data choices preferences on desktop.
           let mainWindow = getMainWindowWithPreferencesPane();
-          mainWindow.openAdvancedPreferences("dataChoicesTab");
+          // The advanced subpanes are only supported in the old organization, which will
+          // be removed by bug 1349689.
+          if (Preferences.get("browser.preferences.useOldOrganization", false)) {
+            mainWindow.openAdvancedPreferences("dataChoicesTab", {origin: "aboutTelemetry"});
+          } else {
+            mainWindow.openPreferences("paneAdvanced", {origin: "aboutTelemetry"});
+          }
         }
       });
     }
@@ -1180,8 +1188,7 @@ var ThreadHangStats = {
       let hangDiv = Histogram.render(
         div, hangName, hang.histogram, {exponential: true}, true);
       let stackDiv = document.createElement("div");
-      let stack = hang.nativeStack || hang.stack;
-      stack.forEach((frame) => {
+      hang.stack.forEach((frame) => {
         stackDiv.appendChild(document.createTextNode(frame));
         // Leave an extra <br> at the end of the stack listing
         stackDiv.appendChild(document.createElement("br"));

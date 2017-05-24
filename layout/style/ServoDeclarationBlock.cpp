@@ -13,14 +13,13 @@ namespace mozilla {
 
 /* static */ already_AddRefed<ServoDeclarationBlock>
 ServoDeclarationBlock::FromCssText(const nsAString& aCssText,
-                                   const GeckoParserExtraData& aExtraData)
+                                   URLExtraData* aExtraData,
+                                   nsCompatibility aMode)
 {
   NS_ConvertUTF16toUTF8 value(aCssText);
-  nsCString baseString;
   // FIXME (bug 1343964): Figure out a better solution for sending the base uri to servo
-  aExtraData.mBaseURI->get()->GetSpec(baseString);
   RefPtr<RawServoDeclarationBlock>
-    raw = Servo_ParseStyleAttribute(&value, &baseString, &aExtraData).Consume();
+    raw = Servo_ParseStyleAttribute(&value, aExtraData, aMode).Consume();
   RefPtr<ServoDeclarationBlock> decl = new ServoDeclarationBlock(raw.forget());
   return decl.forget();
 }

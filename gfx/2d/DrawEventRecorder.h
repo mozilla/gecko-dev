@@ -103,6 +103,8 @@ private:
   std::ofstream mOutputFile;
 };
 
+// WARNING: This should not be used in its existing state because
+// it is likely to OOM because of large continguous allocations.
 class DrawEventRecorderMemory final : public DrawEventRecorderPrivate
 {
 public:

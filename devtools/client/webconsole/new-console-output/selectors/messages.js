@@ -7,7 +7,8 @@
 
 const { l10n } = require("devtools/client/webconsole/new-console-output/utils/messages");
 const { getAllFilters } = require("devtools/client/webconsole/new-console-output/selectors/filters");
-const { getLogLimit } = require("devtools/client/webconsole/new-console-output/selectors/prefs");
+const { getGripPreviewItems } = require("devtools/client/shared/components/reps/reps");
+const { getSourceNames } = require("devtools/client/shared/source-utils");
 const {
   MESSAGE_TYPE,
   MESSAGE_SOURCE
@@ -15,29 +16,25 @@ const {
 
 function getAllMessages(state) {
   let messages = getAllMessagesById(state);
-  let logLimit = getLogLimit(state);
   let filters = getAllFilters(state);
 
   let groups = getAllGroupsById(state);
   let messagesUI = getAllMessagesUiById(state);
 
-  return prune(
-    messages.filter(message => {
-      return (
-        isInOpenedGroup(message, groups, messagesUI)
-        && (
-          isUnfilterable(message)
-          || (
-            matchLevelFilters(message, filters)
-            && matchCssFilters(message, filters)
-            && matchNetworkFilters(message, filters)
-            && matchSearchFilters(message, filters)
-          )
+  return messages.filter(message => {
+    return (
+      isInOpenedGroup(message, groups, messagesUI)
+      && (
+        isUnfilterable(message)
+        || (
+          matchLevelFilters(message, filters)
+          && matchCssFilters(message, filters)
+          && matchNetworkFilters(message, filters)
+          && matchSearchFilters(message, filters)
         )
-      );
-    }),
-    logLimit
-  );
+      )
+    );
+  });
 }
 
 function getAllMessagesById(state) {
@@ -108,74 +105,132 @@ function matchSearchFilters(message, filters) {
   let text = filters.text || "";
   return (
     text === ""
-    // @TODO currently we return true for any object grip. We should find a way to
-    // search object grips.
-    || (message.parameters !== null && !Array.isArray(message.parameters))
+    // Look for a match in parameters.
+    || isTextInParameters(text, message.parameters)
     // Look for a match in location.
     || isTextInFrame(text, message.frame)
-    // Look for a match in stacktrace.
-    || (
-      Array.isArray(message.stacktrace) &&
-      message.stacktrace.some(frame => isTextInFrame(text,
-        // isTextInFrame expect the properties of the frame object to be in the same
-        // order they are rendered in the Frame component.
-        {
-          functionName: frame.functionName ||
-            l10n.getStr("stacktrace.anonymousFunction"),
-          filename: frame.filename,
-          lineNumber: frame.lineNumber,
-          columnNumber: frame.columnNumber
-        }))
-    )
+    // Look for a match in net events.
+    || isTextInNetEvent(text, message.request)
+    // Look for a match in stack-trace.
+    || isTextInStackTrace(text, message.stacktrace)
     // Look for a match in messageText.
-    || (message.messageText !== null
-          && message.messageText.toLocaleLowerCase().includes(text.toLocaleLowerCase()))
-    // Look for a match in parameters. Currently only checks value grips.
-    || (message.parameters !== null
-        && message.parameters.join("").toLocaleLowerCase()
-            .includes(text.toLocaleLowerCase()))
+    || isTextInMessageText(text, message.messageText)
     // Look for a match in notes.
-    || (Array.isArray(message.notes) && message.notes.some(note =>
-          // Look for a match in location.
-          isTextInFrame(text, note.frame)
-          // Look for a match in messageBody.
-          || (note.messageBody !== null
-                && note.messageBody.toLocaleLowerCase()
-                     .includes(text.toLocaleLowerCase()))
-        ))
+    || isTextInNotes(text, message.notes)
   );
 }
 
+/**
+ * Returns true if given text is included in provided stack frame.
+ */
 function isTextInFrame(text, frame) {
   if (!frame) {
     return false;
   }
-  // @TODO Change this to Object.values once it's supported in Node's version of V8
-  return Object.keys(frame)
-    .map(key => frame[key])
-    .join(":")
+
+  const { short } = getSourceNames(frame.source);
+  return `${short}:${frame.line}:${frame.column}`
     .toLocaleLowerCase()
     .includes(text.toLocaleLowerCase());
 }
 
-function prune(messages, logLimit) {
-  let messageCount = messages.count();
-  if (messageCount > logLimit) {
-    // If the second non-pruned message is in a group,
-    // we want to return the group as the first non-pruned message.
-    let firstIndex = messages.size - logLimit;
-    let groupId = messages.get(firstIndex + 1).groupId;
-
-    if (groupId) {
-      return messages.splice(0, firstIndex + 1)
-        .unshift(
-          messages.findLast((message) => message.id === groupId)
-        );
-    }
-    return messages.splice(0, firstIndex);
+/**
+ * Returns true if given text is included in provided parameters.
+ */
+function isTextInParameters(text, parameters) {
+  if (!parameters) {
+    return false;
   }
 
-  return messages;
+  text = text.toLocaleLowerCase();
+  return getAllProps(parameters).find(prop =>
+    (prop + "").toLocaleLowerCase().includes(text)
+  );
+}
+
+/**
+ * Returns true if given text is included in provided net event grip.
+ */
+function isTextInNetEvent(text, request) {
+  if (!request) {
+    return false;
+  }
+
+  text = text.toLocaleLowerCase();
+
+  let method = request.method.toLocaleLowerCase();
+  let url = request.url.toLocaleLowerCase();
+  return method.includes(text) || url.includes(text);
+}
+
+/**
+ * Returns true if given text is included in provided stack trace.
+ */
+function isTextInStackTrace(text, stacktrace) {
+  if (!Array.isArray(stacktrace)) {
+    return false;
+  }
+
+  // isTextInFrame expect the properties of the frame object to be in the same
+  // order they are rendered in the Frame component.
+  return stacktrace.some(frame => isTextInFrame(text, {
+    functionName: frame.functionName || l10n.getStr("stacktrace.anonymousFunction"),
+    filename: frame.filename,
+    lineNumber: frame.lineNumber,
+    columnNumber: frame.columnNumber
+  }));
+}
+
+/**
+ * Returns true if given text is included in `messageText` field.
+ */
+function isTextInMessageText(text, messageText) {
+  if (!messageText) {
+    return false;
+  }
+
+  return messageText.toLocaleLowerCase().includes(text.toLocaleLowerCase());
+}
+
+/**
+ * Returns true if given text is included in notes.
+ */
+function isTextInNotes(text, notes) {
+  if (!Array.isArray(notes)) {
+    return false;
+  }
+
+  return notes.some(note =>
+    // Look for a match in location.
+    isTextInFrame(text, note.frame) ||
+    // Look for a match in messageBody.
+    (note.messageBody &&
+        note.messageBody.toLocaleLowerCase()
+          .includes(text.toLocaleLowerCase()))
+  );
+}
+
+/**
+ * Get a flat array of all the grips and their properties.
+ *
+ * @param {Array} Grips
+ * @return {Array} Flat array of the grips and their properties.
+ */
+function getAllProps(grips) {
+  let result = grips.reduce((res, grip) => {
+    let previewItems = getGripPreviewItems(grip);
+    let allProps = previewItems.length > 0 ? getAllProps(previewItems) : [];
+    return [...res, grip, grip.class, ...allProps];
+  }, []);
+
+  // We are interested only in primitive props (to search for)
+  // not in objects and undefined previews.
+  result = result.filter(grip =>
+    typeof grip != "object" &&
+    typeof grip != "undefined"
+  );
+
+  return [...new Set(result)];
 }
 
 exports.getAllMessages = getAllMessages;

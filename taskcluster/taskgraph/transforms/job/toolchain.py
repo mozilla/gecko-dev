@@ -116,6 +116,9 @@ def docker_worker_toolchain(config, job, taskdesc):
 
     worker['command'] = [
         '/home/worker/bin/run-task',
+        # Various caches/volumes are default owned by root:root.
+        '--chown-recursive', '/home/worker/workspace',
+        '--chown-recursive', '/home/worker/tooltool-cache',
         '--vcs-checkout=/home/worker/workspace/build/src',
         '--',
         'bash',
@@ -145,7 +148,7 @@ def windows_toolchain(config, job, taskdesc):
     svn_cache = 'level-{}-toolchain-clang-cl-build-svn'.format(config.params['level'])
     worker['mounts'] = [{
         'cache-name': svn_cache,
-        'path': r'llvm-sources',
+        'directory': r'llvm-sources',
     }]
     taskdesc['scopes'].extend([
         'generic-worker:cache:' + svn_cache,

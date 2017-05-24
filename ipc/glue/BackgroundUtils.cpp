@@ -18,7 +18,7 @@
 #include "mozilla/LoadInfo.h"
 #include "ContentPrincipal.h"
 #include "NullPrincipal.h"
-#include "nsServiceManagerUtils.h"
+#include "nsContentUtils.h"
 #include "nsString.h"
 #include "nsTArray.h"
 
@@ -43,8 +43,8 @@ PrincipalInfoToPrincipal(const PrincipalInfo& aPrincipalInfo,
   nsresult& rv = aOptionalResult ? *aOptionalResult : stackResult;
 
   nsCOMPtr<nsIScriptSecurityManager> secMan =
-    do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+    nsContentUtils::GetSecurityManager();
+  if (!secMan) {
     return nullptr;
   }
 
@@ -89,8 +89,7 @@ PrincipalInfoToPrincipal(const PrincipalInfo& aPrincipalInfo,
         attrs = info.attrs();
       }
       principal = BasePrincipal::CreateCodebasePrincipal(uri, attrs);
-      rv = principal ? NS_OK : NS_ERROR_FAILURE;
-      if (NS_WARN_IF(NS_FAILED(rv))) {
+      if (NS_WARN_IF(!principal)) {
         return nullptr;
       }
 
@@ -172,15 +171,14 @@ PrincipalToPrincipalInfo(nsIPrincipal* aPrincipal,
     return NS_OK;
   }
 
-  nsresult rv;
   nsCOMPtr<nsIScriptSecurityManager> secMan =
-    do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
+    nsContentUtils::GetSecurityManager();
+  if (!secMan) {
+    return NS_ERROR_FAILURE;
   }
 
   bool isSystemPrincipal;
-  rv = secMan->IsSystemPrincipal(aPrincipal, &isSystemPrincipal);
+  nsresult rv = secMan->IsSystemPrincipal(aPrincipal, &isSystemPrincipal);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

@@ -142,6 +142,8 @@ public:
     return GetOwner();
   }
 
+  virtual void DisconnectFromOwner() override;
+
   void Shutdown(); // idempotent
 
   JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
@@ -151,12 +153,6 @@ public:
   // Constructor for regular AudioContext
   static already_AddRefed<AudioContext>
   Constructor(const GlobalObject& aGlobal, ErrorResult& aRv);
-
-  // Constructor for regular AudioContext. A default audio channel is needed.
-  static already_AddRefed<AudioContext>
-  Constructor(const GlobalObject& aGlobal,
-              AudioChannel aChannel,
-              ErrorResult& aRv);
 
   // Constructor for offline AudioContext
   static already_AddRefed<AudioContext>
@@ -310,10 +306,6 @@ public:
 
   JSObject* GetGlobalJSObject() const;
 
-  AudioChannel MozAudioChannelType() const;
-
-  AudioChannel TestAudioChannelInAudioNodeStream();
-
   void RegisterNode(AudioNode* aNode);
   void UnregisterNode(AudioNode* aNode);
 
@@ -321,10 +313,9 @@ public:
 
   BasicWaveFormCache* GetBasicWaveFormCache();
 
-  IMPL_EVENT_HANDLER(mozinterruptbegin)
-  IMPL_EVENT_HANDLER(mozinterruptend)
-
   bool CheckClosed(ErrorResult& aRv);
+
+  void Dispatch(already_AddRefed<nsIRunnable>&& aRunnable);
 
 private:
   void DisconnectFromWindow();
@@ -372,6 +363,7 @@ private:
   bool mCloseCalled;
   // Suspend has been called with no following resume.
   bool mSuspendCalled;
+  bool mIsDisconnecting;
 };
 
 static const dom::AudioContext::AudioContextId NO_AUDIO_CONTEXT = 0;

@@ -14,18 +14,18 @@
 class gfxContext;
 class nsSVGDisplayableFrame;
 
-class nsSVGClipPathFrame : public nsSVGContainerFrame
+class nsSVGClipPathFrame final : public nsSVGContainerFrame
 {
   friend nsIFrame*
   NS_NewSVGClipPathFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
   typedef mozilla::gfx::Matrix Matrix;
   typedef mozilla::gfx::SourceSurface SourceSurface;
-  typedef mozilla::image::DrawResult DrawResult;
+  typedef mozilla::image::imgDrawingParams imgDrawingParams;
 
 protected:
   explicit nsSVGClipPathFrame(nsStyleContext* aContext)
-    : nsSVGContainerFrame(aContext)
+    : nsSVGContainerFrame(aContext, mozilla::LayoutFrameType::SVGClipPath)
     , mIsBeingProcessed(false)
   {
     AddStateBits(NS_FRAME_IS_NONDISPLAY);
@@ -77,7 +77,7 @@ public:
    * @param [in, optional] aExtraMasksTransform The transform to use with
    *   aExtraMask. Should be passed when aExtraMask is passed.
    */
-  mozilla::Pair<DrawResult, RefPtr<SourceSurface>>
+  already_AddRefed<SourceSurface>
   GetClipMask(gfxContext& aReferenceContext, nsIFrame* aClippedFrame,
               const gfxMatrix& aMatrix, Matrix* aMaskTransform,
               SourceSurface* aExtraMask = nullptr,
@@ -98,7 +98,7 @@ public:
    * @param [in, optional] aExtraMasksTransform The transform to use with
    *   aExtraMask. Should be passed when aExtraMask is passed.
    */
-  DrawResult
+  void
   PaintClipMask(gfxContext& aMaskContext, nsIFrame* aClippedFrame,
                 const gfxMatrix& aMatrix, Matrix* aMaskTransform,
                 SourceSurface* aExtraMask, const Matrix& aExtraMasksTransform);
@@ -124,13 +124,6 @@ public:
                     nsContainerFrame* aParent,
                     nsIFrame*         aPrevInFlow) override;
 
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgClipPathFrame
-   */
-  virtual nsIAtom* GetType() const override;
-
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override
   {
@@ -138,8 +131,8 @@ public:
   }
 #endif
 
-  SVGBBox 
-  GetBBoxForClipPathFrame(const SVGBBox &aBBox, const gfxMatrix &aMatrix);
+  SVGBBox GetBBoxForClipPathFrame(const SVGBBox& aBBox,
+                                  const gfxMatrix& aMatrix);
 
   /**
    * If the clipPath element transforms its children due to
@@ -157,8 +150,8 @@ private:
   already_AddRefed<DrawTarget> CreateClipMask(gfxContext& aReferenceContext,
                                               mozilla::gfx::IntPoint& aOffset);
 
-  DrawResult PaintFrameIntoMask(nsIFrame *aFrame, nsIFrame* aClippedFrame,
-                                gfxContext& aTarget, const gfxMatrix& aMatrix);
+  void PaintFrameIntoMask(nsIFrame *aFrame, nsIFrame* aClippedFrame,
+                          gfxContext& aTarget, const gfxMatrix& aMatrix);
 
   // Set, during a GetClipMask() call, to the transform that still needs to be
   // concatenated to the transform of the DrawTarget that was passed to

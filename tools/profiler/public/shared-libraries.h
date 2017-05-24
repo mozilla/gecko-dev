@@ -144,6 +144,11 @@ public:
     return mEntries[i];
   }
 
+  SharedLibrary& GetMutableEntry(size_t i)
+  {
+    return mEntries[i];
+  }
+
   // Removes items in the range [first, last)
   // i.e. element at the "last" index is not removed
   void RemoveEntries(size_t first, size_t last)

@@ -129,9 +129,9 @@ XPCOMUtils.defineLazyGetter(this, "ALL_BUILTIN_ITEMS", function() {
   const SPECIAL_CASES = [
     "back-button",
     "forward-button",
-    "urlbar-stop-button",
+    "stop-button",
     "urlbar-go-button",
-    "urlbar-reload-button",
+    "reload-button",
     "searchbar",
     "cut-button",
     "copy-button",
@@ -191,9 +191,9 @@ this.BrowserUITelemetry = {
     UITelemetry.addSimpleMeasureFunction("syncstate",
                                          this.getSyncState.bind(this));
 
-    Services.obs.addObserver(this, "sessionstore-windows-restored", false);
-    Services.obs.addObserver(this, "browser-delayed-startup-finished", false);
-    Services.obs.addObserver(this, "autocomplete-did-enter-text", false);
+    Services.obs.addObserver(this, "sessionstore-windows-restored");
+    Services.obs.addObserver(this, "browser-delayed-startup-finished");
+    Services.obs.addObserver(this, "autocomplete-did-enter-text");
     CustomizableUI.addListener(this);
   },
 

@@ -91,6 +91,7 @@ nsExtProtocolChannel::nsExtProtocolChannel(nsIURI* aURI,
   : mUrl(aURI)
   , mOriginalURI(aURI)
   , mStatus(NS_OK)
+  , mLoadFlags(nsIRequest::LOAD_NORMAL)
   , mWasOpened(false)
   , mConnectedParent(false)
   , mLoadInfo(aLoadInfo)
@@ -242,6 +243,11 @@ NS_IMETHODIMP nsExtProtocolChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
 {
   mLoadFlags = aLoadFlags;
   return NS_OK;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::GetIsDocument(bool *aIsDocument)
+{
+  return NS_GetIsDocumentChannel(this, aIsDocument);
 }
 
 NS_IMETHODIMP nsExtProtocolChannel::GetContentType(nsACString &aContentType)

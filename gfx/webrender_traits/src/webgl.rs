@@ -63,14 +63,17 @@ pub enum WebGLCommand {
     FramebufferRenderbuffer(u32, u32, u32, Option<WebGLRenderbufferId>),
     FramebufferTexture2D(u32, u32, u32, Option<WebGLTextureId>, i32),
     GetBufferParameter(u32, u32, MsgSender<WebGLResult<WebGLParameter>>),
+    GetExtensions(MsgSender<String>),
     GetParameter(u32, MsgSender<WebGLResult<WebGLParameter>>),
     GetProgramParameter(WebGLProgramId, u32, MsgSender<WebGLResult<WebGLParameter>>),
     GetShaderParameter(WebGLShaderId, u32, MsgSender<WebGLResult<WebGLParameter>>),
+    GetShaderPrecisionFormat(u32, u32, MsgSender<WebGLResult<(i32, i32, i32)>>),
     GetActiveAttrib(WebGLProgramId, u32, MsgSender<WebGLResult<(i32, u32, String)>>),
     GetActiveUniform(WebGLProgramId, u32, MsgSender<WebGLResult<(i32, u32, String)>>),
     GetAttribLocation(WebGLProgramId, String, MsgSender<Option<i32>>),
     GetUniformLocation(WebGLProgramId, String, MsgSender<Option<i32>>),
     GetVertexAttrib(u32, u32, MsgSender<WebGLResult<WebGLParameter>>),
+    GetVertexAttribOffset(u32, u32, MsgSender<WebGLResult<isize>>),
     GetShaderInfoLog(WebGLShaderId, MsgSender<String>),
     GetProgramInfoLog(WebGLProgramId, MsgSender<String>),
     PolygonOffset(f32, f32),
@@ -123,12 +126,15 @@ pub enum WebGLCommand {
     Finish(MsgSender<()>),
     Flush,
     GenerateMipmap(u32),
+    CreateVertexArray(MsgSender<Option<WebGLVertexArrayId>>),
+    DeleteVertexArray(WebGLVertexArrayId),
+    BindVertexArray(Option<WebGLVertexArrayId>),
 }
 
 #[cfg(feature = "nightly")]
 macro_rules! define_resource_id_struct {
     ($name:ident) => {
-        #[derive(Clone, Copy, PartialEq)]
+        #[derive(Clone, Copy, Eq, Hash, PartialEq)]
         pub struct $name(NonZero<u32>);
 
         impl $name {
@@ -149,7 +155,7 @@ macro_rules! define_resource_id_struct {
 #[cfg(not(feature = "nightly"))]
 macro_rules! define_resource_id_struct {
     ($name:ident) => {
-        #[derive(Clone, Copy, PartialEq)]
+        #[derive(Clone, Copy, Eq, Hash, PartialEq)]
         pub struct $name(u32);
 
         impl $name {
@@ -219,9 +225,14 @@ define_resource_id!(WebGLRenderbufferId);
 define_resource_id!(WebGLTextureId);
 define_resource_id!(WebGLProgramId);
 define_resource_id!(WebGLShaderId);
+define_resource_id!(WebGLVertexArrayId);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct WebGLContextId(pub usize);
+
+impl ::heapsize::HeapSizeOf for WebGLContextId {
+    fn heap_size_of_children(&self) -> usize { 0 }
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum WebGLError {
@@ -312,9 +323,11 @@ impl fmt::Debug for WebGLCommand {
             FramebufferRenderbuffer(..) => "FramebufferRenderbuffer",
             FramebufferTexture2D(..) => "FramebufferTexture2D",
             GetBufferParameter(..) => "GetBufferParameter",
+            GetExtensions(..) => "GetExtensions",
             GetParameter(..) => "GetParameter",
             GetProgramParameter(..) => "GetProgramParameter",
             GetShaderParameter(..) => "GetShaderParameter",
+            GetShaderPrecisionFormat(..) => "GetShaderPrecisionFormat",
             GetActiveAttrib(..) => "GetActiveAttrib",
             GetActiveUniform(..) => "GetActiveUniform",
             GetAttribLocation(..) => "GetAttribLocation",
@@ -322,6 +335,7 @@ impl fmt::Debug for WebGLCommand {
             GetShaderInfoLog(..) => "GetShaderInfoLog",
             GetProgramInfoLog(..) => "GetProgramInfoLog",
             GetVertexAttrib(..) => "GetVertexAttrib",
+            GetVertexAttribOffset(..) => "GetVertexAttribOffset",
             PolygonOffset(..) => "PolygonOffset",
             ReadPixels(..) => "ReadPixels",
             RenderbufferStorage(..) => "RenderbufferStorage",
@@ -372,6 +386,9 @@ impl fmt::Debug for WebGLCommand {
             Finish(..) => "Finish",
             Flush => "Flush",
             GenerateMipmap(..) => "GenerateMipmap",
+            CreateVertexArray(..) => "CreateVertexArray",
+            DeleteVertexArray(..) => "DeleteVertexArray",
+            BindVertexArray(..) => "BindVertexArray"
         };
 
         write!(f, "CanvasWebGLMsg::{}(..)", name)
@@ -484,6 +501,8 @@ impl WebGLCommand {
                 Self::attrib_location(ctx.gl(), program_id, name, chan),
             WebGLCommand::GetVertexAttrib(index, pname, chan) =>
                 Self::vertex_attrib(ctx.gl(), index, pname, chan),
+            WebGLCommand::GetVertexAttribOffset(index, pname, chan) =>
+                Self::vertex_attrib_offset(ctx.gl(), index, pname, chan),
             WebGLCommand::GetBufferParameter(target, param_id, chan) =>
                 Self::buffer_parameter(ctx.gl(), target, param_id, chan),
             WebGLCommand::GetParameter(param_id, chan) =>
@@ -492,6 +511,10 @@ impl WebGLCommand {
                 Self::program_parameter(ctx.gl(), program_id, param_id, chan),
             WebGLCommand::GetShaderParameter(shader_id, param_id, chan) =>
                 Self::shader_parameter(ctx.gl(), shader_id, param_id, chan),
+            WebGLCommand::GetShaderPrecisionFormat(shader_type, precision_type, chan) =>
+                Self::shader_precision_format(ctx.gl(), shader_type, precision_type, chan),
+            WebGLCommand::GetExtensions(chan) =>
+                Self::get_extensions(ctx.gl(), chan),
             WebGLCommand::GetUniformLocation(program_id, name, chan) =>
                 Self::uniform_location(ctx.gl(), program_id, name, chan),
             WebGLCommand::GetShaderInfoLog(shader_id, chan) =>
@@ -602,6 +625,12 @@ impl WebGLCommand {
                 ctx.gl().flush(),
             WebGLCommand::GenerateMipmap(target) =>
                 ctx.gl().generate_mipmap(target),
+            WebGLCommand::CreateVertexArray(chan) =>
+                Self::create_vertex_array(ctx.gl(), chan),
+            WebGLCommand::DeleteVertexArray(id) =>
+                ctx.gl().delete_vertex_arrays(&[id.get()]),
+            WebGLCommand::BindVertexArray(id) =>
+                ctx.gl().bind_vertex_array(id.map_or(0, WebGLVertexArrayId::get)),
         }
 
         // FIXME: Use debug_assertions once tests are run with them
@@ -659,20 +688,20 @@ impl WebGLCommand {
                  chan: MsgSender<WebGLResult<WebGLParameter>>) {
         let result = match param_id {
             gl::ACTIVE_TEXTURE |
-            //gl::ALPHA_BITS |
+            gl::ALPHA_BITS |
             gl::BLEND_DST_ALPHA |
             gl::BLEND_DST_RGB |
             gl::BLEND_EQUATION_ALPHA |
             gl::BLEND_EQUATION_RGB |
             gl::BLEND_SRC_ALPHA |
             gl::BLEND_SRC_RGB |
-            //gl::BLUE_BITS |
+            gl::BLUE_BITS |
             gl::CULL_FACE_MODE |
-            //gl::DEPTH_BITS |
+            gl::DEPTH_BITS |
             gl::DEPTH_FUNC |
             gl::FRONT_FACE |
             //gl::GENERATE_MIPMAP_HINT |
-            //gl::GREEN_BITS |
+            gl::GREEN_BITS |
             //gl::IMPLEMENTATION_COLOR_READ_FORMAT |
             //gl::IMPLEMENTATION_COLOR_READ_TYPE |
             gl::MAX_COMBINED_TEXTURE_IMAGE_UNITS |
@@ -686,7 +715,7 @@ impl WebGLCommand {
             gl::MAX_VERTEX_TEXTURE_IMAGE_UNITS |
             //gl::MAX_VERTEX_UNIFORM_VECTORS |
             gl::PACK_ALIGNMENT |
-            //gl::RED_BITS |
+            gl::RED_BITS |
             gl::SAMPLE_BUFFERS |
             gl::SAMPLES |
             gl::STENCIL_BACK_FAIL |
@@ -696,7 +725,7 @@ impl WebGLCommand {
             gl::STENCIL_BACK_REF |
             gl::STENCIL_BACK_VALUE_MASK |
             gl::STENCIL_BACK_WRITEMASK |
-            //gl::STENCIL_BITS |
+            gl::STENCIL_BITS |
             gl::STENCIL_CLEAR_VALUE |
             gl::STENCIL_FAIL |
             gl::STENCIL_FUNC |
@@ -807,6 +836,18 @@ impl WebGLCommand {
         chan.send(result).unwrap();
     }
 
+    fn vertex_attrib_offset(gl: &gl::Gl,
+                            index: u32,
+                            pname: u32,
+                            chan: MsgSender<WebGLResult<isize>>) {
+        let result = match pname {
+                gl::VERTEX_ATTRIB_ARRAY_POINTER => Ok(gl.get_vertex_attrib_pointer_v(index, pname)),
+                _ => Err(WebGLError::InvalidEnum),
+        };
+
+        chan.send(result).unwrap();
+    }
+
     fn buffer_parameter(gl: &gl::Gl,
                         target: u32,
                         param_id: u32,
@@ -854,6 +895,32 @@ impl WebGLCommand {
         };
 
         chan.send(result).unwrap();
+    }
+
+    fn shader_precision_format(gl: &gl::Gl,
+                               shader_type: u32,
+                               precision_type: u32,
+                               chan: MsgSender<WebGLResult<(i32, i32, i32)>>) {
+       
+        let result = match precision_type {
+            gl::LOW_FLOAT |
+            gl::MEDIUM_FLOAT |
+            gl::HIGH_FLOAT |
+            gl::LOW_INT |
+            gl::MEDIUM_INT |
+            gl::HIGH_INT => {
+                Ok(gl.get_shader_precision_format(shader_type, precision_type))
+            },
+            _=> {
+                Err(WebGLError::InvalidEnum)
+            }
+        };
+
+        chan.send(result).unwrap();
+    }
+
+    fn get_extensions(gl: &gl::Gl, chan: MsgSender<String>) {
+        chan.send(gl.get_string(gl::EXTENSIONS)).unwrap();
     }
 
     fn uniform_location(gl: &gl::Gl,
@@ -941,6 +1008,16 @@ impl WebGLCommand {
             Some(unsafe { WebGLShaderId::new(shader) })
         };
         chan.send(shader).unwrap();
+    }
+
+    fn create_vertex_array(gl: &gl::Gl, chan: MsgSender<Option<WebGLVertexArrayId>>) {
+        let vao = gl.gen_vertex_arrays(1)[0];
+        let vao = if vao == 0 {
+            None
+        } else {
+            Some(unsafe { WebGLVertexArrayId::new(vao) })
+        };
+        chan.send(vao).unwrap();
     }
 
     #[inline]

@@ -126,15 +126,15 @@ nsStyleContext::nsStyleContext(nsStyleContext* aParent,
   }
 
   mSource.AsGeckoRuleNode()->SetUsedDirectly(); // before ApplyStyleFixups()!
-  FinishConstruction(aSkipParentDisplayBasedStyleFixup);
+  FinishConstruction();
+  ApplyStyleFixups(aSkipParentDisplayBasedStyleFixup);
 }
 
 nsStyleContext::nsStyleContext(nsStyleContext* aParent,
                                nsPresContext* aPresContext,
                                nsIAtom* aPseudoTag,
                                CSSPseudoElementType aPseudoType,
-                               already_AddRefed<ServoComputedValues> aComputedValues,
-                               bool aSkipParentDisplayBasedStyleFixup)
+                               already_AddRefed<ServoComputedValues> aComputedValues)
   : nsStyleContext(aParent, OwningStyleContextSource(Move(aComputedValues)),
                    aPseudoTag, aPseudoType)
 {
@@ -142,11 +142,14 @@ nsStyleContext::nsStyleContext(nsStyleContext* aParent,
   mPresContext = aPresContext;
 #endif
 
-  FinishConstruction(aSkipParentDisplayBasedStyleFixup);
+  FinishConstruction();
+
+  // No need to call ApplyStyleFixups here, since fixups are handled by Servo when
+  // producing the ServoComputedValues.
 }
 
 void
-nsStyleContext::FinishConstruction(bool aSkipParentDisplayBasedStyleFixup)
+nsStyleContext::FinishConstruction()
 {
   // This check has to be done "backward", because if it were written the
   // more natural way it wouldn't fail even when it needed to.
@@ -169,13 +172,10 @@ nsStyleContext::FinishConstruction(bool aSkipParentDisplayBasedStyleFixup)
   }
 
   SetStyleBits();
-  if (!mSource.IsServoComputedValues()) {
-    ApplyStyleFixups(aSkipParentDisplayBasedStyleFixup);
-  }
 
   #define eStyleStruct_LastItem (nsStyleStructID_Length - 1)
-  NS_ASSERTION(NS_STYLE_INHERIT_MASK & NS_STYLE_INHERIT_BIT(LastItem),
-               "NS_STYLE_INHERIT_MASK must be bigger, and other bits shifted");
+  static_assert(NS_STYLE_INHERIT_MASK & NS_STYLE_INHERIT_BIT(LastItem),
+                "NS_STYLE_INHERIT_MASK must be bigger, and other bits shifted");
   #undef eStyleStruct_LastItem
 }
 
@@ -702,34 +702,40 @@ ShouldBlockifyChildren(const nsStyleDisplay* aStyleDisp)
 void
 nsStyleContext::SetStyleBits()
 {
-  // XXXbholley: We should get this information directly from the
-  // ServoComputedValues rather than computing it here. This setup for
-  // ServoComputedValues-backed nsStyleContexts is probably not something
-  // we should ship.
-  //
-  // For example, NS_STYLE_IS_TEXT_COMBINED is still set in ApplyStyleFixups,
-  // which isn't called for ServoComputedValues.
+  // Here we set up various style bits for both the Gecko and Servo paths.
+  // _Only_ change the bits here.  For fixups of the computed values, you can
+  // add to ApplyStyleFixups in Gecko and StyleAdjuster as part of Servo's
+  // cascade.
 
   // See if we have any text decorations.
   // First see if our parent has text decorations.  If our parent does, then we inherit the bit.
   if (mParent && mParent->HasTextDecorationLines()) {
-    mBits |= NS_STYLE_HAS_TEXT_DECORATION_LINES;
+    AddStyleBit(NS_STYLE_HAS_TEXT_DECORATION_LINES);
   } else {
     // We might have defined a decoration.
     if (StyleTextReset()->HasTextDecorationLines()) {
-      mBits |= NS_STYLE_HAS_TEXT_DECORATION_LINES;
+      AddStyleBit(NS_STYLE_HAS_TEXT_DECORATION_LINES);
     }
   }
 
   if ((mParent && mParent->HasPseudoElementData()) || IsPseudoElement()) {
-    mBits |= NS_STYLE_HAS_PSEUDO_ELEMENT_DATA;
+    AddStyleBit(NS_STYLE_HAS_PSEUDO_ELEMENT_DATA);
   }
 
   // Set the NS_STYLE_IN_DISPLAY_NONE_SUBTREE bit
   const nsStyleDisplay* disp = StyleDisplay();
   if ((mParent && mParent->IsInDisplayNoneSubtree()) ||
       disp->mDisplay == mozilla::StyleDisplay::None) {
-    mBits |= NS_STYLE_IN_DISPLAY_NONE_SUBTREE;
+    AddStyleBit(NS_STYLE_IN_DISPLAY_NONE_SUBTREE);
+  }
+
+  // Mark text combined for text-combine-upright, as needed.
+  if (mPseudoTag == nsCSSAnonBoxes::mozText && mParent &&
+      mParent->StyleVisibility()->mWritingMode !=
+        NS_STYLE_WRITING_MODE_HORIZONTAL_TB &&
+      mParent->StyleText()->mTextCombineUpright ==
+        NS_STYLE_TEXT_COMBINE_UPRIGHT_ALL) {
+    AddStyleBit(NS_STYLE_IS_TEXT_COMBINED);
   }
 }
 
@@ -793,7 +799,6 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
                "incorrectly based on the old writing mode value");
     nsStyleVisibility* mutableVis = GET_UNIQUE_STYLE_DATA(Visibility);
     mutableVis->mWritingMode = NS_STYLE_WRITING_MODE_HORIZONTAL_TB;
-    AddStyleBit(NS_STYLE_IS_TEXT_COMBINED);
   }
 
   // CSS 2.1 10.1: Propagate the root element's 'direction' to the ICB.
@@ -1027,11 +1032,28 @@ nsStyleContext::CalcStyleDifferenceInternal(StyleContextLike* aNewContext,
 
   DebugOnly<int> styleStructCount = 1;  // count Variables already
 
+  // Servo's optimization to stop the cascade when there are no style changes
+  // that children need to be recascade for relies on comparing all of the
+  // structs, not just those that are returned from PeekStyleData, although
+  // if PeekStyleData does return null we still don't want to accumulate
+  // any change hints for those structs.
+  bool checkUnrequestedServoStructs = mSource.IsServoComputedValues();
+
 #define DO_STRUCT_DIFFERENCE(struct_)                                         \
   PR_BEGIN_MACRO                                                              \
     const nsStyle##struct_* this##struct_ = PeekStyle##struct_();             \
+    bool unrequestedStruct;                                                   \
     if (this##struct_) {                                                      \
+      unrequestedStruct = false;                                              \
       structsFound |= NS_STYLE_INHERIT_BIT(struct_);                          \
+    } else if (checkUnrequestedServoStructs) {                                \
+      this##struct_ =                                                         \
+        Servo_GetStyle##struct_(mSource.AsServoComputedValues());             \
+      unrequestedStruct = true;                                               \
+    } else {                                                                  \
+      unrequestedStruct = false;                                              \
+    }                                                                         \
+    if (this##struct_) {                                                      \
       const nsStyle##struct_* other##struct_ = aNewContext->Style##struct_(); \
       if (this##struct_ == other##struct_) {                                  \
         /* The very same struct, so we know that there will be no */          \
@@ -1040,7 +1062,9 @@ nsStyleContext::CalcStyleDifferenceInternal(StyleContextLike* aNewContext,
       } else {                                                                \
         nsChangeHint difference =                                             \
           this##struct_->CalcDifference(*other##struct_ EXTRA_DIFF_ARGS);     \
-        hint |= difference;                                                   \
+        if (!unrequestedStruct) {                                             \
+          hint |= difference;                                                 \
+        }                                                                     \
         if (!difference) {                                                    \
           *aEqualStructs |= NS_STYLE_INHERIT_BIT(struct_);                    \
         }                                                                     \
@@ -1180,8 +1204,8 @@ nsStyleContext::CalcStyleDifferenceInternal(StyleContextLike* aNewContext,
     // only need to return the hint if the overall computation of
     // whether we establish a containing block has changed.
 
-    // This depends on data in nsStyleDisplay and nsStyleEffects, so we
-    // do it here.
+    // This depends on data in nsStyleDisplay, nsStyleEffects and
+    // nsStyleSVGReset, so we do it here.
 
     // Note that it's perhaps good for this test to be last because it
     // doesn't use Peek* functions to get the structs on the old
@@ -1389,13 +1413,12 @@ NS_NewStyleContext(nsStyleContext* aParentContext,
                    nsPresContext* aPresContext,
                    nsIAtom* aPseudoTag,
                    CSSPseudoElementType aPseudoType,
-                   already_AddRefed<ServoComputedValues> aComputedValues,
-                   bool aSkipParentDisplayBasedStyleFixup)
+                   already_AddRefed<ServoComputedValues> aComputedValues)
 {
   RefPtr<nsStyleContext> context =
     new (aPresContext)
     nsStyleContext(aParentContext, aPresContext, aPseudoTag, aPseudoType,
-                   Move(aComputedValues), aSkipParentDisplayBasedStyleFixup);
+                   Move(aComputedValues));
   return context.forget();
 }
 

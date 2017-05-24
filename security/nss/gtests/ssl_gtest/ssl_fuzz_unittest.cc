@@ -17,9 +17,6 @@ namespace nss_test {
 #else
 #define FUZZ_F(c, f) TEST_F(c, DISABLED_Fuzz_##f)
 #define FUZZ_P(c, f) TEST_P(c, DISABLED_Fuzz_##f)
-// RNG_ResetForFuzzing() isn't exported from the shared libraries, rather than
-// fail to link to it, make it fail (we're not running it anyway).
-#define RNG_ResetForFuzzing() SECFailure
 #endif
 
 const uint8_t kShortEmptyFinished[8] = {0};
@@ -48,28 +45,6 @@ class TlsApplicationDataRecorder : public TlsRecordFilter {
   DataBuffer buffer_;
 };
 
-// Damages an SKE or CV signature.
-class TlsSignatureDamager : public TlsHandshakeFilter {
- public:
-  TlsSignatureDamager(uint8_t type) : type_(type) {}
-  virtual PacketFilter::Action FilterHandshake(
-      const TlsHandshakeFilter::HandshakeHeader& header,
-      const DataBuffer& input, DataBuffer* output) {
-    if (header.handshake_type() != type_) {
-      return KEEP;
-    }
-
-    *output = input;
-
-    // Modify the last byte of the signature.
-    output->data()[output->len() - 1]++;
-    return CHANGE;
-  }
-
- private:
-  uint8_t type_;
-};
-
 // Ensure that ssl_Time() returns a constant value.
 FUZZ_F(TlsFuzzTest, SSL_Time_Constant) {
   PRUint32 now = ssl_Time();
@@ -91,7 +66,7 @@ FUZZ_P(TlsConnectGeneric, DeterministicExporter) {
   DisableECDHEServerKeyReuse();
 
   // Reset the RNG state.
-  EXPECT_EQ(SECSuccess, RNG_ResetForFuzzing());
+  EXPECT_EQ(SECSuccess, RNG_RandomUpdate(NULL, 0));
   Connect();
 
   // Export a key derived from the MS and nonces.
@@ -105,7 +80,7 @@ FUZZ_P(TlsConnectGeneric, DeterministicExporter) {
   DisableECDHEServerKeyReuse();
 
   // Reset the RNG state.
-  EXPECT_EQ(SECSuccess, RNG_ResetForFuzzing());
+  EXPECT_EQ(SECSuccess, RNG_RandomUpdate(NULL, 0));
   Connect();
 
   // Export another key derived from the MS and nonces.
@@ -135,7 +110,7 @@ FUZZ_P(TlsConnectGeneric, DeterministicTranscript) {
     server_->SetPacketFilter(std::make_shared<TlsConversationRecorder>(buffer));
 
     // Reset the RNG state.
-    EXPECT_EQ(SECSuccess, RNG_ResetForFuzzing());
+    EXPECT_EQ(SECSuccess, RNG_RandomUpdate(NULL, 0));
     Connect();
 
     // Ensure the filters go away before |buffer| does.
@@ -212,7 +187,7 @@ FUZZ_P(TlsConnectGeneric, BogusServerAuthSignature) {
   uint8_t msg_type = version_ == SSL_LIBRARY_VERSION_TLS_1_3
                          ? kTlsHandshakeCertificateVerify
                          : kTlsHandshakeServerKeyExchange;
-  server_->SetPacketFilter(std::make_shared<TlsSignatureDamager>(msg_type));
+  server_->SetPacketFilter(std::make_shared<TlsLastByteDamager>(msg_type));
   Connect();
   SendReceive();
 }
@@ -223,7 +198,7 @@ FUZZ_P(TlsConnectGeneric, BogusClientAuthSignature) {
   client_->SetupClientAuth();
   server_->RequestClientAuth(true);
   client_->SetPacketFilter(
-      std::make_shared<TlsSignatureDamager>(kTlsHandshakeCertificateVerify));
+      std::make_shared<TlsLastByteDamager>(kTlsHandshakeCertificateVerify));
   Connect();
 }
 

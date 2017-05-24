@@ -9,6 +9,7 @@
 #include <queue>
 
 #include "mozilla/layers/TextureHost.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "nsClassHashtable.h"
 
@@ -28,16 +29,46 @@ class WebRenderCompositableHolder final
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WebRenderCompositableHolder)
 
-  explicit WebRenderCompositableHolder();
+  explicit WebRenderCompositableHolder(uint32_t aIdNamespace);
 
 protected:
   ~WebRenderCompositableHolder();
 
 public:
   void AddPipeline(const wr::PipelineId& aPipelineId);
-  void RemovePipeline(const wr::PipelineId& aPipelineId);
+  void RemovePipeline(const wr::PipelineId& aPipelineId, const wr::Epoch& aEpoch);
   void HoldExternalImage(const wr::PipelineId& aPipelineId, const wr::Epoch& aEpoch, WebRenderTextureHost* aTexture);
   void Update(const wr::PipelineId& aPipelineId, const wr::Epoch& aEpoch);
+
+  TimeStamp GetCompositionTime() const {
+    return mCompositionTime;
+  }
+  void SetCompositionTime(TimeStamp aTimeStamp) {
+    mCompositionTime = aTimeStamp;
+    if (!mCompositionTime.IsNull() && !mCompositeUntilTime.IsNull() &&
+        mCompositionTime >= mCompositeUntilTime) {
+      mCompositeUntilTime = TimeStamp();
+    }
+  }
+  void CompositeUntil(TimeStamp aTimeStamp) {
+    if (mCompositeUntilTime.IsNull() ||
+        mCompositeUntilTime < aTimeStamp) {
+      mCompositeUntilTime = aTimeStamp;
+    }
+  }
+  TimeStamp GetCompositeUntilTime() const {
+    return mCompositeUntilTime;
+  }
+
+  uint32_t GetNextResourceId() { return ++mResourceId; }
+  uint32_t GetNamespace() { return mIdNamespace; }
+  wr::ImageKey GetImageKey()
+  {
+    wr::ImageKey key;
+    key.mNamespace = GetNamespace();
+    key.mHandle = GetNextResourceId();
+    return key;
+  }
 
 private:
 
@@ -53,9 +84,20 @@ private:
   struct PipelineTexturesHolder {
     // Holds forwarding WebRenderTextureHosts.
     std::queue<ForwardingTextureHost> mTextureHosts;
+    Maybe<wr::Epoch> mDestroyedEpoch;
   };
 
+  uint32_t mIdNamespace;
+  uint32_t mResourceId;
   nsClassHashtable<nsUint64HashKey, PipelineTexturesHolder> mPipelineTexturesHolders;
+
+  // Render time for the current composition.
+  TimeStamp mCompositionTime;
+
+  // When nonnull, during rendering, some compositable indicated that it will
+  // change its rendering at this time. In order not to miss it, we composite
+  // on every vsync until this time occurs (this is the latest such time).
+  TimeStamp mCompositeUntilTime;
 };
 
 } // namespace layers

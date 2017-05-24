@@ -325,6 +325,10 @@ public:
     return nullptr;
   }
 
+  virtual void AddWRImage(wr::WebRenderAPI* aAPI,
+                          Range<const wr::ImageKey>& aImageKeys,
+                          const wr::ExternalImageId& aExtID) override;
+
 protected:
   bool LockInternal();
   void UnlockInternal();
@@ -333,6 +337,7 @@ protected:
 
   bool OpenSharedHandle();
 
+  RefPtr<ID3D11Device> mDevice;
   RefPtr<ID3D11Texture2D> mTexture;
   RefPtr<DataTextureSourceD3D11> mTextureSource;
   gfx::IntSize mSize;
@@ -368,6 +373,10 @@ public:
   {
     return nullptr;
   }
+
+  virtual void AddWRImage(wr::WebRenderAPI* aAPI,
+                          Range<const wr::ImageKey>& aImageKeys,
+                          const wr::ExternalImageId& aExtID) override;
 
 protected:
   RefPtr<ID3D11Device> GetDevice();

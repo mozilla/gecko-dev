@@ -2,21 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-this.EXPORTED_SYMBOLS = ["XPCOMUtils", "Services", "Utils", "Async", "Svc", "Str"];
+this.EXPORTED_SYMBOLS = ["Utils", "Svc"];
 
 var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
-Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/observers.js");
 Cu.import("resource://services-common/utils.js");
-Cu.import("resource://services-common/async.js", this);
 Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://gre/modules/Preferences.jsm");
-Cu.import("resource://gre/modules/Services.jsm", this);
-Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
-Cu.import("resource://gre/modules/osfile.jsm", this);
-Cu.import("resource://gre/modules/Task.jsm", this);
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "OS",
+                                  "resource://gre/modules/osfile.jsm");
 
 // FxAccountsCommon.js doesn't use a "namespace", so create one here.
 XPCOMUtils.defineLazyGetter(this, "FxAccountsCommon", function() {
@@ -216,11 +214,6 @@ this.Utils = {
     }
   },
 
-  lazyStrings: function Weave_lazyStrings(name) {
-    return () => Services.strings.createBundle(
-      `chrome://weave/locale/${name}.properties`);
-  },
-
   deepEquals: function eq(a, b) {
     // If they're triple equals, then it must be equals!
     if (a === b)
@@ -303,7 +296,7 @@ this.Utils = {
    * N.B., salt should be base64 encoded, even though we have to decode
    * it later!
    */
-  derivePresentableKeyFromPassphrase : function derivePresentableKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
+  derivePresentableKeyFromPassphrase: function derivePresentableKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
     let k = CryptoUtils.deriveKeyFromPassphrase(passphrase, salt, keyLength,
                                                 forceJS);
     return Utils.encodeKeyBase32(k);
@@ -313,7 +306,7 @@ this.Utils = {
    * N.B., salt should be base64 encoded, even though we have to decode
    * it later!
    */
-  deriveEncodedKeyFromPassphrase : function deriveEncodedKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
+  deriveEncodedKeyFromPassphrase: function deriveEncodedKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
     let k = CryptoUtils.deriveKeyFromPassphrase(passphrase, salt, keyLength,
                                                 forceJS);
     return Utils.base64Key(k);
@@ -324,7 +317,7 @@ this.Utils = {
    * uppercase alphanumeric characters, separated by hyphens.
    * A.K.A. base64-to-base32 encoding.
    */
-  presentEncodedKeyAsSyncKey : function presentEncodedKeyAsSyncKey(encodedKey) {
+  presentEncodedKeyAsSyncKey: function presentEncodedKeyAsSyncKey(encodedKey) {
     return Utils.encodeKeyBase32(atob(encodedKey));
   },
 
@@ -345,7 +338,7 @@ this.Utils = {
    *        Function to process json object as its first argument. If the file
    *        could not be loaded, the first argument will be undefined.
    */
-  jsonLoad: Task.async(function*(filePath, that, callback) {
+  async jsonLoad(filePath, that, callback) {
     let path = Utils.jsonFilePath(filePath);
 
     if (that._log) {
@@ -355,7 +348,7 @@ this.Utils = {
     let json;
 
     try {
-      json = yield CommonUtils.readJSON(path);
+      json = await CommonUtils.readJSON(path);
     } catch (e) {
       if (e instanceof OS.File.Error && e.becauseNoSuchFile) {
         // Ignore non-existent files, but explicitly return null.
@@ -369,7 +362,7 @@ this.Utils = {
       callback.call(that, json);
     }
     return json;
-  }),
+  },
 
   /**
    * Save a json-able object to disk in the profile directory.
@@ -387,14 +380,14 @@ this.Utils = {
    *        constant on error or null if no error was encountered (and
    *        the file saved successfully).
    */
-  jsonSave: Task.async(function*(filePath, that, obj, callback) {
+  async jsonSave(filePath, that, obj, callback) {
     let path = OS.Path.join(OS.Constants.Path.profileDir, "weave",
                             ...(filePath + ".json").split("/"));
     let dir = OS.Path.dirname(path);
     let error = null;
 
     try {
-      yield OS.File.makeDir(dir, { from: OS.Constants.Path.profileDir });
+      await OS.File.makeDir(dir, { from: OS.Constants.Path.profileDir });
 
       if (that._log) {
         that._log.trace("Saving json to disk: " + path);
@@ -402,7 +395,7 @@ this.Utils = {
 
       let json = typeof obj == "function" ? obj.call(that) : obj;
 
-      yield CommonUtils.writeJSON(json, path);
+      await CommonUtils.writeJSON(json, path);
     } catch (e) {
       error = e
     }
@@ -410,7 +403,7 @@ this.Utils = {
     if (typeof callback == "function") {
       callback.call(that, error);
     }
-  }),
+  },
 
   /**
    * Move a json file in the profile directory. Will fail if a file exists at the
@@ -456,19 +449,6 @@ this.Utils = {
       that._log.trace("Deleting " + path);
     }
     return OS.File.remove(path, { ignoreAbsent: true });
-  },
-
-  getErrorString: function Utils_getErrorString(error, args) {
-    try {
-      if (args) {
-        return Str.errors.formatStringFromName(error, args, args.length);
-      } else {
-        return Str.errors.GetStringFromName(error);
-      }
-    } catch (e) {}
-
-    // basically returns "Unknown Error"
-    return Str.errors.GetStringFromName('error.reason.unknown');
   },
 
   /**
@@ -572,7 +552,8 @@ this.Utils = {
   arraySub: function arraySub(minuend, subtrahend) {
     if (!minuend.length || !subtrahend.length)
       return minuend;
-    return minuend.filter(i => subtrahend.indexOf(i) == -1);
+    let setSubtrahend = new Set(subtrahend);
+    return minuend.filter(i => !setSubtrahend.has(i));
   },
 
   /**
@@ -690,13 +671,6 @@ this.Utils = {
       "chrome://branding/locale/brand.properties");
     let brandName = brand.GetStringFromName("brandShortName");
 
-    let appName;
-    try {
-      let syncStrings = Services.strings.createBundle("chrome://browser/locale/sync.properties");
-      appName = syncStrings.formatStringFromName("sync.defaultAccountApplication", [brandName], 1);
-    } catch (ex) {}
-    appName = appName || brandName;
-
     let system =
       // 'device' is defined on unix systems
       Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2).get("device") ||
@@ -705,7 +679,8 @@ this.Utils = {
       // fall back on ua info string
       Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).oscpu;
 
-    return Str.sync.formatStringFromName("client.name2", [user, appName, system], 3);
+    let syncStrings = Services.strings.createBundle("chrome://weave/locale/sync.properties");
+    return syncStrings.formatStringFromName("client.name2", [user, brandName, system], 3);
   },
 
   getDeviceName() {
@@ -747,21 +722,7 @@ XPCOMUtils.defineLazyGetter(Utils, "_utf8Converter", function() {
  */
 this.Svc = {};
 Svc.Prefs = new Preferences(PREFS_BRANCH);
-Svc.DefaultPrefs = new Preferences({branch: PREFS_BRANCH, defaultBranch: true});
 Svc.Obs = Observers;
-
-var _sessionCID = Services.appinfo.ID == SEAMONKEY_ID ?
-  "@mozilla.org/suite/sessionstore;1" :
-  "@mozilla.org/browser/sessionstore;1";
-
-[
- ["Idle", "@mozilla.org/widget/idleservice;1", "nsIIdleService"],
- ["Session", _sessionCID, "nsISessionStore"]
-].forEach(function([name, contract, iface]) {
-  XPCOMUtils.defineLazyServiceGetter(Svc, name, contract, iface);
-});
-
-XPCOMUtils.defineLazyModuleGetter(Svc, "FormHistory", "resource://gre/modules/FormHistory.jsm");
 
 Svc.__defineGetter__("Crypto", function() {
   let cryptoSvc;
@@ -770,11 +731,6 @@ Svc.__defineGetter__("Crypto", function() {
   cryptoSvc = new ns.WeaveCrypto();
   delete Svc.Crypto;
   return Svc.Crypto = cryptoSvc;
-});
-
-this.Str = {};
-["errors", "sync"].forEach(function(lazy) {
-  XPCOMUtils.defineLazyGetter(Str, lazy, Utils.lazyStrings(lazy));
 });
 
 Svc.Obs.add("xpcom-shutdown", function() {

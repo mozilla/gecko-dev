@@ -237,7 +237,8 @@ XDRRelazificationInfo(XDRState<mode>* xdr, HandleFunction fun, HandleScript scri
     {
         uint32_t begin = script->sourceStart();
         uint32_t end = script->sourceEnd();
-        uint32_t preludeStart = script->preludeStart();
+        uint32_t toStringStart = script->toStringStart();
+        uint32_t toStringEnd = script->toStringEnd();
         uint32_t lineno = script->lineno();
         uint32_t column = script->column();
 
@@ -245,7 +246,8 @@ XDRRelazificationInfo(XDRState<mode>* xdr, HandleFunction fun, HandleScript scri
             packedFields = lazy->packedFields();
             MOZ_ASSERT(begin == lazy->begin());
             MOZ_ASSERT(end == lazy->end());
-            MOZ_ASSERT(preludeStart == lazy->preludeStart());
+            MOZ_ASSERT(toStringStart == lazy->toStringStart());
+            MOZ_ASSERT(toStringEnd == lazy->toStringEnd());
             MOZ_ASSERT(lineno == lazy->lineno());
             MOZ_ASSERT(column == lazy->column());
             // We can assert we have no inner functions because we don't
@@ -260,7 +262,11 @@ XDRRelazificationInfo(XDRState<mode>* xdr, HandleFunction fun, HandleScript scri
         if (mode == XDR_DECODE) {
             RootedScriptSource sourceObject(cx, &script->scriptSourceUnwrap());
             lazy.set(LazyScript::Create(cx, fun, script, enclosingScope, sourceObject,
-                                        packedFields, begin, end, preludeStart, lineno, column));
+                                        packedFields, begin, end, toStringStart, lineno, column));
+            if (!lazy)
+                return false;
+
+            lazy->setToStringEnd(toStringEnd);
 
             // As opposed to XDRLazyScript, we need to restore the runtime bits
             // of the script, as we are trying to match the fact this function
@@ -499,9 +505,10 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
 
         // When loading from the bytecode cache, we get the CompileOption from
         // the document, which specify the version to use. If the version does
-        // not match, then we should fail.
+        // not match, then we should fail. This only applies to the top-level,
+        // and not its inner functions.
         mozilla::Maybe<CompileOptions> options;
-        if (xdr->hasOptions()) {
+        if (xdr->hasOptions() && (scriptBits & (1 << OwnSource))) {
             options.emplace(xdr->cx(), xdr->options());
             if (options->version != version_ ||
                 options->noScriptRval != !!(scriptBits & (1 << NoScriptRval)) ||
@@ -510,9 +517,8 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
                 return xdr->fail(JS::TranscodeResult_Failure_WrongCompileOption);
             }
         } else {
-            options.emplace(xdr->cx());
-            (*options).setVersion(version_)
-                      .setNoScriptRval(!!(scriptBits & (1 << NoScriptRval)))
+            options.emplace(xdr->cx(), version_);
+            (*options).setNoScriptRval(!!(scriptBits & (1 << NoScriptRval)))
                       .setSelfHostingMode(!!(scriptBits & (1 << SelfHosted)));
         }
 
@@ -545,7 +551,7 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
             }
         }
 
-        script = JSScript::Create(cx, *options, sourceObject, 0, 0, 0);
+        script = JSScript::Create(cx, *options, sourceObject, 0, 0, 0, 0);
         if (!script)
             return false;
 
@@ -634,7 +640,9 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
         return false;
     if (!xdr->codeUint32(&script->sourceEnd_))
         return false;
-    if (!xdr->codeUint32(&script->preludeStart_))
+    if (!xdr->codeUint32(&script->toStringStart_))
+        return false;
+    if (!xdr->codeUint32(&script->toStringEnd_))
         return false;
 
     if (!xdr->codeUint32(&lineno) ||
@@ -955,7 +963,8 @@ js::XDRLazyScript(XDRState<mode>* xdr, HandleScope enclosingScope,
     {
         uint32_t begin;
         uint32_t end;
-        uint32_t preludeStart;
+        uint32_t toStringStart;
+        uint32_t toStringEnd;
         uint32_t lineno;
         uint32_t column;
         uint64_t packedFields;
@@ -969,14 +978,16 @@ js::XDRLazyScript(XDRState<mode>* xdr, HandleScope enclosingScope,
 
             begin = lazy->begin();
             end = lazy->end();
-            preludeStart = lazy->preludeStart();
+            toStringStart = lazy->toStringStart();
+            toStringEnd = lazy->toStringEnd();
             lineno = lazy->lineno();
             column = lazy->column();
             packedFields = lazy->packedFields();
         }
 
         if (!xdr->codeUint32(&begin) || !xdr->codeUint32(&end) ||
-            !xdr->codeUint32(&preludeStart) ||
+            !xdr->codeUint32(&toStringStart) ||
+            !xdr->codeUint32(&toStringEnd) ||
             !xdr->codeUint32(&lineno) || !xdr->codeUint32(&column) ||
             !xdr->codeUint64(&packedFields))
         {
@@ -985,9 +996,10 @@ js::XDRLazyScript(XDRState<mode>* xdr, HandleScope enclosingScope,
 
         if (mode == XDR_DECODE) {
             lazy.set(LazyScript::Create(cx, fun, nullptr, enclosingScope, sourceObject,
-                                        packedFields, begin, end, preludeStart, lineno, column));
+                                        packedFields, begin, end, toStringStart, lineno, column));
             if (!lazy)
                 return false;
+            lazy->setToStringEnd(toStringEnd);
             fun->initLazyScript(lazy);
         }
     }
@@ -1029,6 +1041,15 @@ JSScript::setSourceObject(JSObject* object)
 {
     MOZ_ASSERT(compartment() == object->compartment());
     sourceObject_ = object;
+}
+
+void
+JSScript::setDefaultClassConstructorSpan(JSObject* sourceObject, uint32_t start, uint32_t end)
+{
+    MOZ_ASSERT(isDefaultClassConstructor());
+    setSourceObject(sourceObject);
+    toStringStart_ = start;
+    toStringEnd_ = end;
 }
 
 js::ScriptSourceObject&
@@ -1459,10 +1480,10 @@ JSScript::sourceData(JSContext* cx, HandleScript script)
 }
 
 /* static */ JSFlatString*
-JSScript::sourceDataWithPrelude(JSContext* cx, HandleScript script)
+JSScript::sourceDataForToString(JSContext* cx, HandleScript script)
 {
     MOZ_ASSERT(script->scriptSource()->hasSourceData());
-    return script->scriptSource()->substring(cx, script->preludeStart(), script->sourceEnd());
+    return script->scriptSource()->substring(cx, script->toStringStart(), script->toStringEnd());
 }
 
 UncompressedSourceCache::AutoHoldEntry::AutoHoldEntry()
@@ -1624,6 +1645,45 @@ ScriptSource::chunkChars(JSContext* cx, UncompressedSourceCache::AutoHoldEntry& 
     return ret;
 }
 
+ScriptSource::PinnedChars::PinnedChars(JSContext* cx, ScriptSource* source,
+                                       UncompressedSourceCache::AutoHoldEntry& holder,
+                                       size_t begin, size_t len)
+  : source_(source)
+{
+    chars_ = source->chars(cx, holder, begin, len);
+    if (chars_) {
+        stack_ = &source->pinnedCharsStack_;
+        prev_ = *stack_;
+        *stack_ = this;
+    }
+}
+
+ScriptSource::PinnedChars::~PinnedChars()
+{
+    if (chars_) {
+        MOZ_ASSERT(*stack_ == this);
+        *stack_ = prev_;
+        if (!prev_)
+            source_->movePendingCompressedSource();
+    }
+}
+
+void
+ScriptSource::movePendingCompressedSource()
+{
+    if (!pendingCompressed_)
+        return;
+
+    MOZ_ASSERT(data.is<Missing>() || data.is<Uncompressed>());
+    MOZ_ASSERT_IF(data.is<Uncompressed>(),
+                  data.as<Uncompressed>().string.length() ==
+                  pendingCompressed_->uncompressedLength);
+
+    data = SourceType(Compressed(mozilla::Move(pendingCompressed_->raw),
+                                 pendingCompressed_->uncompressedLength));
+    pendingCompressed_ = mozilla::Nothing();
+}
+
 const char16_t*
 ScriptSource::chars(JSContext* cx, UncompressedSourceCache::AutoHoldEntry& holder,
                     size_t begin, size_t len)
@@ -1711,10 +1771,10 @@ ScriptSource::substring(JSContext* cx, size_t start, size_t stop)
     MOZ_ASSERT(start <= stop);
     size_t len = stop - start;
     UncompressedSourceCache::AutoHoldEntry holder;
-    const char16_t* chars = this->chars(cx, holder, start, len);
-    if (!chars)
+    PinnedChars chars(cx, this, holder, start, len);
+    if (!chars.get())
         return nullptr;
-    return NewStringCopyN<CanGC>(cx, chars, len);
+    return NewStringCopyN<CanGC>(cx, chars.get(), len);
 }
 
 JSFlatString*
@@ -1723,10 +1783,10 @@ ScriptSource::substringDontDeflate(JSContext* cx, size_t start, size_t stop)
     MOZ_ASSERT(start <= stop);
     size_t len = stop - start;
     UncompressedSourceCache::AutoHoldEntry holder;
-    const char16_t* chars = this->chars(cx, holder, start, len);
-    if (!chars)
+    PinnedChars chars(cx, this, holder, start, len);
+    if (!chars.get())
         return nullptr;
-    return NewStringCopyNDontDeflate<CanGC>(cx, chars, len);
+    return NewStringCopyNDontDeflate<CanGC>(cx, chars.get(), len);
 }
 
 JSFlatString*
@@ -1761,6 +1821,50 @@ ScriptSource::setSource(SharedImmutableTwoByteString&& string)
     data = SourceType(Uncompressed(mozilla::Move(string)));
 }
 
+bool
+ScriptSource::tryCompressOffThread(JSContext* cx)
+{
+    if (!data.is<Uncompressed>())
+        return true;
+
+    // There are several cases where source compression is not a good idea:
+    //  - If the script is tiny, then compression will save little or no space.
+    //  - If there is only one core, then compression will contend with JS
+    //    execution (which hurts benchmarketing).
+    //
+    // Otherwise, enqueue a compression task to be processed when a major
+    // GC is requested.
+
+    bool canCompressOffThread =
+        HelperThreadState().cpuCount > 1 &&
+        HelperThreadState().threadCount >= 2 &&
+        CanUseExtraThreads();
+    const size_t TINY_SCRIPT = 256;
+    if (TINY_SCRIPT > length() || !canCompressOffThread)
+        return true;
+
+    // The SourceCompressionTask needs to record the major GC number for
+    // scheduling. If we're parsing off thread, this number is not safe to
+    // access.
+    //
+    // When parsing on the main thread, the attempts made to compress off
+    // thread in BytecodeCompiler will succeed.
+    //
+    // When parsing off-thread, the above attempts will fail and the attempt
+    // made in ParseTask::finish will succeed.
+    if (!CurrentThreadCanAccessRuntime(cx->runtime()))
+        return true;
+
+    // Heap allocate the task. It will be freed upon compression
+    // completing in AttachFinishedCompressedSources.
+    auto task = MakeUnique<SourceCompressionTask>(cx->runtime(), this);
+    if (!task) {
+        ReportOutOfMemory(cx);
+        return false;
+    }
+    return EnqueueOffThreadCompression(cx, Move(task));
+}
+
 MOZ_MUST_USE bool
 ScriptSource::setCompressedSource(JSContext* cx,
                                   mozilla::UniquePtr<char[], JS::FreePolicy>&& raw,
@@ -1784,56 +1888,29 @@ ScriptSource::setCompressedSource(SharedImmutableString&& raw, size_t uncompress
     MOZ_ASSERT(data.is<Missing>() || data.is<Uncompressed>());
     MOZ_ASSERT_IF(data.is<Uncompressed>(),
                   data.as<Uncompressed>().string.length() == uncompressedLength);
-
-    data = SourceType(Compressed(mozilla::Move(raw), uncompressedLength));
+    if (pinnedCharsStack_)
+        pendingCompressed_ = mozilla::Some(Compressed(mozilla::Move(raw), uncompressedLength));
+    else
+        data = SourceType(Compressed(mozilla::Move(raw), uncompressedLength));
 }
 
 bool
-ScriptSource::setSourceCopy(JSContext* cx, SourceBufferHolder& srcBuf,
-                            SourceCompressionTask* task)
+ScriptSource::setSourceCopy(JSContext* cx, SourceBufferHolder& srcBuf)
 {
     MOZ_ASSERT(!hasSourceData());
 
-    auto& cache = cx->zone()->runtimeFromAnyThread()->sharedImmutableStrings();
+    JSRuntime* runtime = cx->zone()->runtimeFromAnyThread();
+    auto& cache = runtime->sharedImmutableStrings();
     auto deduped = cache.getOrCreate(srcBuf.get(), srcBuf.length(), [&]() {
         return srcBuf.ownsChars()
-            ? mozilla::UniquePtr<char16_t[], JS::FreePolicy>(srcBuf.take())
-            : DuplicateString(srcBuf.get(), srcBuf.length());
+               ? mozilla::UniquePtr<char16_t[], JS::FreePolicy>(srcBuf.take())
+               : DuplicateString(srcBuf.get(), srcBuf.length());
     });
     if (!deduped) {
         ReportOutOfMemory(cx);
         return false;
     }
     setSource(mozilla::Move(*deduped));
-
-    // There are several cases where source compression is not a good idea:
-    //  - If the script is tiny, then compression will save little or no space.
-    //  - If there is only one core, then compression will contend with JS
-    //    execution (which hurts benchmarketing).
-    //  - If the source contains a giant string, then parsing will finish much
-    //    faster than compression which increases latency (this case is handled
-    //    in Parser::stringLiteral).
-    //
-    // Lastly, since the parsing thread will eventually perform a blocking wait
-    // on the compression task's thread, require that there are at least 2
-    // helper threads:
-    //  - If we are on a helper thread, there must be another helper thread to
-    //    execute our compression task.
-    //  - If we are on the active thread, there must be at least two helper
-    //    threads since at most one helper thread can be blocking on the active
-    //    thread (see HelperThreadState::canStartParseTask) which would cause a
-    //    deadlock if there wasn't a second helper thread that could make
-    //    progress on our compression task.
-    bool canCompressOffThread =
-        HelperThreadState().cpuCount > 1 &&
-        HelperThreadState().threadCount >= 2 &&
-        CanUseExtraThreads();
-    const size_t TINY_SCRIPT = 256;
-    if (TINY_SCRIPT <= srcBuf.length() && canCompressOffThread) {
-        task->ss = this;
-        if (!StartOffThreadCompression(cx, task))
-            return false;
-    }
 
     return true;
 }
@@ -1851,31 +1928,35 @@ reallocUniquePtr(UniquePtr<char[], JS::FreePolicy>& unique, size_t size)
     return true;
 }
 
-SourceCompressionTask::ResultType
+void
 SourceCompressionTask::work()
 {
-    MOZ_ASSERT(ss->data.is<ScriptSource::Uncompressed>());
+    if (shouldCancel())
+        return;
+
+    ScriptSource* source = sourceHolder_.get();
+    MOZ_ASSERT(source->data.is<ScriptSource::Uncompressed>());
 
     // Try to keep the maximum memory usage down by only allocating half the
     // size of the string, first.
-    size_t inputBytes = ss->length() * sizeof(char16_t);
+    size_t inputBytes = source->length() * sizeof(char16_t);
     size_t firstSize = inputBytes / 2;
     mozilla::UniquePtr<char[], JS::FreePolicy> compressed(js_pod_malloc<char>(firstSize));
     if (!compressed)
-        return OOM;
+        return;
 
-    const char16_t* chars = ss->data.as<ScriptSource::Uncompressed>().string.chars();
+    const char16_t* chars = source->data.as<ScriptSource::Uncompressed>().string.chars();
     Compressor comp(reinterpret_cast<const unsigned char*>(chars),
                     inputBytes);
     if (!comp.init())
-        return OOM;
+        return;
 
     comp.setOutput(reinterpret_cast<unsigned char*>(compressed.get()), firstSize);
     bool cont = true;
     bool reallocated = false;
     while (cont) {
-        if (abort_)
-            return Aborted;
+        if (shouldCancel())
+            return;
 
         switch (comp.compressMore()) {
           case Compressor::CONTINUE:
@@ -1883,13 +1964,13 @@ SourceCompressionTask::work()
           case Compressor::MOREOUTPUT: {
             if (reallocated) {
                 // The compressed string is longer than the original string.
-                return Aborted;
+                return;
             }
 
             // The compressed output is greater than half the size of the
             // original string. Reallocate to the full size.
             if (!reallocUniquePtr(compressed, inputBytes))
-                return OOM;
+                return;
 
             comp.setOutput(reinterpret_cast<unsigned char*>(compressed.get()), inputBytes);
             reallocated = true;
@@ -1899,7 +1980,7 @@ SourceCompressionTask::work()
             cont = false;
             break;
           case Compressor::OOM:
-            return OOM;
+            return;
         }
     }
 
@@ -1907,16 +1988,24 @@ SourceCompressionTask::work()
 
     // Shrink the buffer to the size of the compressed data.
     if (!reallocUniquePtr(compressed, totalBytes))
-        return OOM;
+        return;
 
     comp.finish(compressed.get(), totalBytes);
 
-    auto& strings = cx->sharedImmutableStrings();
-    resultString = strings.getOrCreate(mozilla::Move(compressed), totalBytes);
-    if (!resultString)
-        return OOM;
+    if (shouldCancel())
+        return;
 
-    return Success;
+    auto& strings = runtime_->sharedImmutableStrings();
+    resultString_ = strings.getOrCreate(mozilla::Move(compressed), totalBytes);
+}
+
+void
+SourceCompressionTask::complete()
+{
+    if (!shouldCancel() && resultString_) {
+        ScriptSource* source = sourceHolder_.get();
+        source->setCompressedSource(mozilla::Move(*resultString_), source->length());
+    }
 }
 
 void
@@ -2184,6 +2273,7 @@ ScriptSource::initFromOptions(JSContext* cx, const ReadOnlyCompileOptions& optio
 
     introductionType_ = options.introductionType;
     setIntroductionOffset(options.introductionOffset);
+    startColumn_ = options.sourceStartColumn;
     parameterListEnd_ = parameterListEnd.isSome() ? parameterListEnd.value() : 0;
 
     if (options.hasIntroductionInfo) {
@@ -2525,9 +2615,15 @@ JSScript::initCompartment(JSContext* cx)
 /* static */ JSScript*
 JSScript::Create(JSContext* cx, const ReadOnlyCompileOptions& options,
                  HandleObject sourceObject, uint32_t bufStart, uint32_t bufEnd,
-                 uint32_t preludeStart)
+                 uint32_t toStringStart, uint32_t toStringEnd)
 {
+    // bufStart and bufEnd specify the range of characters parsed by the
+    // Parser to produce this script. toStringStart and toStringEnd specify
+    // the range of characters to be returned for Function.prototype.toString.
     MOZ_ASSERT(bufStart <= bufEnd);
+    MOZ_ASSERT(toStringStart <= toStringEnd);
+    MOZ_ASSERT(toStringStart <= bufStart);
+    MOZ_ASSERT(toStringEnd >= bufEnd);
 
     RootedScript script(cx, Allocate<JSScript>(cx));
     if (!script)
@@ -2547,7 +2643,8 @@ JSScript::Create(JSContext* cx, const ReadOnlyCompileOptions& options,
     script->setSourceObject(sourceObject);
     script->sourceStart_ = bufStart;
     script->sourceEnd_ = bufEnd;
-    script->preludeStart_ = preludeStart;
+    script->toStringStart_ = toStringStart;
+    script->toStringEnd_ = toStringEnd;
 
 #ifdef MOZ_VTUNE
     script->vtuneMethodId_ = vtune::GenerateUniqueMethodID();
@@ -3256,6 +3353,8 @@ CloneInnerInterpretedFunction(JSContext* cx, HandleScope enclosingScope, HandleF
         flags |= JSFunction::Flags::EXTENDED;
     }
     RootedAtom atom(cx, srcFun->displayAtom());
+    if (atom)
+        cx->markAtom(atom);
     RootedFunction clone(cx, NewFunctionWithProto(cx, nullptr, srcFun->nargs(),
                                                   JSFunction::Flags(flags), nullptr, atom,
                                                   cloneProto, allocKind, TenuredObject));
@@ -3495,7 +3594,7 @@ CreateEmptyScriptForClone(JSContext* cx, HandleScript src)
            .setVersion(src->getVersion());
 
     return JSScript::Create(cx, options, sourceObject, src->sourceStart(), src->sourceEnd(),
-                            src->preludeStart());
+                            src->toStringStart(), src->toStringEnd());
 }
 
 JSScript*
@@ -4048,7 +4147,7 @@ JSScript::formalLivesInArgumentsObject(unsigned argSlot)
 
 LazyScript::LazyScript(JSFunction* fun, void* table, uint64_t packedFields,
                        uint32_t begin, uint32_t end,
-                       uint32_t preludeStart,  uint32_t lineno, uint32_t column)
+                       uint32_t toStringStart, uint32_t lineno, uint32_t column)
   : script_(nullptr),
     function_(fun),
     enclosingScope_(nullptr),
@@ -4057,11 +4156,13 @@ LazyScript::LazyScript(JSFunction* fun, void* table, uint64_t packedFields,
     packedFields_(packedFields),
     begin_(begin),
     end_(end),
-    preludeStart_(preludeStart),
+    toStringStart_(toStringStart),
+    toStringEnd_(end),
     lineno_(lineno),
     column_(column)
 {
     MOZ_ASSERT(begin <= end);
+    MOZ_ASSERT(toStringStart <= begin);
 }
 
 void
@@ -4107,7 +4208,7 @@ LazyScript::maybeForwardedScriptSource() const
 /* static */ LazyScript*
 LazyScript::CreateRaw(JSContext* cx, HandleFunction fun,
                       uint64_t packedFields, uint32_t begin, uint32_t end,
-                      uint32_t preludeStart, uint32_t lineno, uint32_t column)
+                      uint32_t toStringStart, uint32_t lineno, uint32_t column)
 {
     union {
         PackedView p;
@@ -4136,7 +4237,7 @@ LazyScript::CreateRaw(JSContext* cx, HandleFunction fun,
     cx->compartment()->scheduleDelazificationForDebugger();
 
     return new (res) LazyScript(fun, table.forget(), packed, begin, end,
-                                preludeStart, lineno, column);
+                                toStringStart, lineno, column);
 }
 
 /* static */ LazyScript*
@@ -4145,7 +4246,7 @@ LazyScript::Create(JSContext* cx, HandleFunction fun,
                    Handle<GCVector<JSFunction*, 8>> innerFunctions,
                    JSVersion version,
                    uint32_t begin, uint32_t end,
-                   uint32_t preludeStart, uint32_t lineno, uint32_t column)
+                   uint32_t toStringStart, uint32_t lineno, uint32_t column)
 {
     union {
         PackedView p;
@@ -4169,7 +4270,7 @@ LazyScript::Create(JSContext* cx, HandleFunction fun,
     p.isDerivedClassConstructor = false;
     p.needsHomeObject = false;
 
-    LazyScript* res = LazyScript::CreateRaw(cx, fun, packedFields, begin, end, preludeStart,
+    LazyScript* res = LazyScript::CreateRaw(cx, fun, packedFields, begin, end, toStringStart,
                                             lineno, column);
     if (!res)
         return nullptr;
@@ -4191,7 +4292,7 @@ LazyScript::Create(JSContext* cx, HandleFunction fun,
                    HandleScript script, HandleScope enclosingScope,
                    HandleScriptSource sourceObject,
                    uint64_t packedFields, uint32_t begin, uint32_t end,
-                   uint32_t preludeStart, uint32_t lineno, uint32_t column)
+                   uint32_t toStringStart, uint32_t lineno, uint32_t column)
 {
     // Dummy atom which is not a valid property name.
     RootedAtom dummyAtom(cx, cx->names().comma);
@@ -4200,7 +4301,7 @@ LazyScript::Create(JSContext* cx, HandleFunction fun,
     // holding this lazy script.
     HandleFunction dummyFun = fun;
 
-    LazyScript* res = LazyScript::CreateRaw(cx, fun, packedFields, begin, end, preludeStart,
+    LazyScript* res = LazyScript::CreateRaw(cx, fun, packedFields, begin, end, toStringStart,
                                             lineno, column);
     if (!res)
         return nullptr;
@@ -4362,16 +4463,16 @@ LazyScriptHashPolicy::match(JSScript* script, const Lookup& lookup)
 
     size_t scriptBegin = script->sourceStart();
     size_t length = script->sourceEnd() - scriptBegin;
-    const char16_t* scriptChars = script->scriptSource()->chars(cx, holder, scriptBegin, length);
-    if (!scriptChars)
+    ScriptSource::PinnedChars scriptChars(cx, script->scriptSource(), holder, scriptBegin, length);
+    if (!scriptChars.get())
         return false;
 
     MOZ_ASSERT(scriptBegin == lazy->begin());
-    const char16_t* lazyChars = lazy->scriptSource()->chars(cx, holder, scriptBegin, length);
-    if (!lazyChars)
+    ScriptSource::PinnedChars lazyChars(cx, lazy->scriptSource(), holder, scriptBegin, length);
+    if (!lazyChars.get())
         return false;
 
-    return !memcmp(scriptChars, lazyChars, length);
+    return !memcmp(scriptChars.get(), lazyChars.get(), length);
 }
 
 void

@@ -137,6 +137,21 @@ config = {
                 'src_mozconfig': 'browser/config/mozconfigs/win64/beta',
                 'force_clobber': True,
             },
+            'linux-devedition': {
+                "update_channel": "aurora",
+            },
+            'linux64-devedition': {
+                "update_channel": "aurora",
+            },
+            'macosx64-devedition': {
+                "update_channel": "aurora",
+            },
+            'win32-devedition': {
+                "update_channel": "aurora",
+            },
+            'win64-devedition': {
+                "update_channel": "aurora",
+            },
             'linux-debug': {
                 'update_channel': 'default',
             },
@@ -194,9 +209,6 @@ config = {
         'repo_path': 'try',
         'clone_by_revision': True,
         'clone_with_purge': True,
-        # FUTURE this should be a unified repo because Try pushes may e.g.
-        # be on Aurora or Beta revisions.
-        'clone_upstream_url': 'https://hg.mozilla.org/mozilla-central',
         'tinderbox_build_dir': '%(who)s-%(got_revision)s',
         'to_tinderbox_dated': False,
         'include_post_upload_builddir': True,
@@ -309,6 +321,21 @@ config = {
             },
             'win64-debug': {
                 'update_channel': 'default',
+            },
+            'linux-devedition': {
+                "update_channel": "aurora-dev",
+            },
+            'linux64-devedition': {
+                "update_channel": "aurora-dev",
+            },
+            'macosx64-devedition': {
+                "update_channel": "aurora-dev",
+            },
+            'win32-devedition': {
+                "update_channel": "aurora-dev",
+            },
+            'win64-devedition': {
+                "update_channel": "aurora-dev",
             },
         },
         'stage_server': 'upload.ffxbld.productdelivery.prod.mozaws.net',

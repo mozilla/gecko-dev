@@ -26,7 +26,7 @@ use boxes::{BoxType, FourCC};
 mod tests;
 
 // Arbitrary buffer size limit used for raw read_bufs on a box.
-const BUF_SIZE_LIMIT: u64 = 1024 * 1024;
+const BUF_SIZE_LIMIT: usize = 1024 * 1024;
 
 static DEBUG_MODE: std::sync::atomic::AtomicBool = std::sync::atomic::ATOMIC_BOOL_INIT;
 
@@ -437,22 +437,6 @@ impl <T> std::ops::Add for TrackScaledTime<T> where T: Num {
     }
 }
 
-/// A fragmented file contains no sample data in stts, stsc, and stco.
-#[derive(Debug, Default)]
-pub struct EmptySampleTableBoxes {
-    // TODO: Track has stts, stsc and stco, this structure can be discarded.
-    pub empty_stts: bool,
-    pub empty_stsc: bool,
-    pub empty_stco: bool,
-}
-
-/// Check boxes contain data.
-impl EmptySampleTableBoxes {
-    pub fn all_empty(&self) -> bool {
-        self.empty_stts & self.empty_stsc & self.empty_stco
-    }
-}
-
 #[derive(Debug, Default)]
 pub struct Track {
     pub id: usize,
@@ -463,7 +447,6 @@ pub struct Track {
     pub duration: Option<TrackScaledTime<u64>>,
     pub track_id: Option<u32>,
     pub codec_type: CodecType,
-    pub empty_sample_boxes: EmptySampleTableBoxes,
     pub data: Option<SampleEntry>,
     pub tkhd: Option<TrackHeaderBox>, // TODO(kinetik): find a nicer way to export this.
     pub stts: Option<TimeToSampleBox>,
@@ -892,13 +875,11 @@ fn read_stbl<T: Read>(f: &mut BMFFBox<T>, track: &mut Track) -> Result<()> {
             BoxType::TimeToSampleBox => {
                 let stts = read_stts(&mut b)?;
                 log!("{:?}", stts);
-                track.empty_sample_boxes.empty_stts = stts.samples.is_empty();
                 track.stts = Some(stts);
             }
             BoxType::SampleToChunkBox => {
                 let stsc = read_stsc(&mut b)?;
                 log!("{:?}", stsc);
-                track.empty_sample_boxes.empty_stsc = stsc.samples.is_empty();
                 track.stsc = Some(stsc);
             }
             BoxType::SampleSizeBox => {
@@ -908,7 +889,6 @@ fn read_stbl<T: Read>(f: &mut BMFFBox<T>, track: &mut Track) -> Result<()> {
             }
             BoxType::ChunkOffsetBox => {
                 let stco = read_stco(&mut b)?;
-                track.empty_sample_boxes.empty_stco = stco.offsets.is_empty();
                 log!("{:?}", stco);
                 track.stco = Some(stco);
             }
@@ -1326,14 +1306,16 @@ fn find_descriptor(data: &[u8], esds: &mut ES_Descriptor) -> Result<()> {
         let des = &mut Cursor::new(remains);
         let tag = des.read_u8()?;
 
-        let extend_or_len = des.read_u8()?;
-        // extension tag start from 0x80.
-        let end = if extend_or_len >= 0x80 {
-            // Extension found, skip remaining extension.
-            skip(des, 2)?;
-            des.read_u8()? as u64 + des.position()
-        } else {
-            extend_or_len as u64 + des.position()
+        let mut end = 0;
+        // Extension descriptor could be variable size from 0x80 to
+        // 0x80 0x80 0x80, the descriptor length is the byte after that,
+        // so it loops four times.
+        for _ in 0..4 {
+            let extend_or_len = des.read_u8()?;
+            if extend_or_len < 0x80 {
+                end = extend_or_len + des.position() as u8;
+                break;
+            }
         };
 
         if end as usize > remains.len() {
@@ -1510,9 +1492,6 @@ fn read_esds<T: Read>(src: &mut BMFFBox<T>) -> Result<ES_Descriptor> {
     let (_, _) = read_fullbox_extra(src)?;
 
     let esds_size = src.head.size - src.head.offset - 4;
-    if esds_size > BUF_SIZE_LIMIT {
-        return Err(Error::InvalidData("esds box exceeds BUF_SIZE_LIMIT"));
-    }
     let esds_array = read_buf(src, esds_size as usize)?;
 
     let mut es_data = ES_Descriptor::default();
@@ -1648,8 +1627,8 @@ fn read_hdlr<T: Read>(src: &mut BMFFBox<T>) -> Result<HandlerBox> {
     // Skip uninteresting fields.
     skip(src, 12)?;
 
-    let bytes_left = src.bytes_left();
-    let _name = read_null_terminated_string(src, bytes_left)?;
+    // Skip name.
+    skip_box_remain(src)?;
 
     Ok(HandlerBox {
         handler_type: handler_type,
@@ -1679,12 +1658,7 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<(CodecType, 
     let height = be_u16(src)?;
 
     // Skip uninteresting fields.
-    skip(src, 14)?;
-
-    let _compressorname = read_fixed_length_pascal_string(src, 32)?;
-
-    // Skip uninteresting fields.
-    skip(src, 4)?;
+    skip(src, 50)?;
 
     // Skip clap/pasp/etc. for now.
     let mut codec_specific = None;
@@ -1700,9 +1674,6 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<(CodecType, 
                         return Err(Error::InvalidData("malformed video sample entry"));
                     }
                 let avcc_size = b.head.size - b.head.offset;
-                if avcc_size > BUF_SIZE_LIMIT {
-                    return Err(Error::InvalidData("avcC box exceeds BUF_SIZE_LIMIT"));
-                }
                 let avcc = read_buf(&mut b.content, avcc_size as usize)?;
                 log!("{:?} (avcc)", avcc);
                 // TODO(kinetik): Parse avcC box?  For now we just stash the data.
@@ -1993,49 +1964,15 @@ fn skip<T: Read>(src: &mut T, mut bytes: usize) -> Result<()> {
 
 /// Read size bytes into a Vector or return error.
 fn read_buf<T: ReadBytesExt>(src: &mut T, size: usize) -> Result<Vec<u8>> {
+    if size > BUF_SIZE_LIMIT {
+        return Err(Error::InvalidData("read_buf size exceeds BUF_SIZE_LIMIT"));
+    }
     let mut buf = vec![0; size];
     let r = src.read(&mut buf)?;
     if r != size {
         return Err(Error::InvalidData("failed buffer read"));
     }
     Ok(buf)
-}
-
-// TODO(kinetik): Find a copy of ISO/IEC 14496-1 to confirm various string encodings.
-// XXX(kinetik): definition of "null-terminated" string is fuzzy, we have:
-// - zero or more byte strings, with a single null terminating the string.
-// - zero byte strings with no null terminator (i.e. zero space in the box for the string)
-// - length-prefixed strings with no null terminator (e.g. bear_rotate_0.mp4)
-// - multiple byte strings where more than one byte is a null.
-fn read_null_terminated_string<T: ReadBytesExt>(src: &mut T, mut size: usize) -> Result<String> {
-    let mut buf = Vec::new();
-    while size > 0 {
-        let c = src.read_u8()?;
-        size -= 1;
-        if c == 0 {
-            break;
-        }
-        buf.push(c);
-    }
-    skip(src, size)?;
-    String::from_utf8(buf).map_err(From::from)
-}
-
-#[allow(dead_code)]
-fn read_pascal_string<T: ReadBytesExt>(src: &mut T) -> Result<String> {
-    let len = src.read_u8()?;
-    let buf = read_buf(src, len as usize)?;
-    String::from_utf8(buf).map_err(From::from)
-}
-
-// Weird string encoding with a length prefix and a fixed sized buffer which
-// contains padding if the string doesn't fill the buffer.
-fn read_fixed_length_pascal_string<T: Read>(src: &mut T, size: usize) -> Result<String> {
-    assert!(size > 0);
-    let len = cmp::min(src.read_u8()? as usize, size - 1);
-    let buf = read_buf(src, len)?;
-    skip(src, size - 1 - buf.len())?;
-    String::from_utf8(buf).map_err(From::from)
 }
 
 fn be_i16<T: ReadBytesExt>(src: &mut T) -> Result<i16> {

@@ -36,6 +36,8 @@ struct LookAndFeelInt;
 namespace mozilla {
 class RemoteSpellcheckEngineChild;
 
+using mozilla::loader::PScriptCacheChild;
+
 namespace ipc {
 class OptionalURIParams;
 class URIParams;
@@ -158,18 +160,23 @@ public:
     Endpoint<PCompositorBridgeChild>&& aCompositor,
     Endpoint<PImageBridgeChild>&& aImageBridge,
     Endpoint<PVRManagerChild>&& aVRBridge,
-    Endpoint<PVideoDecoderManagerChild>&& aVideoManager) override;
+    Endpoint<PVideoDecoderManagerChild>&& aVideoManager,
+    nsTArray<uint32_t>&& namespaces) override;
 
   mozilla::ipc::IPCResult
   RecvReinitRendering(
     Endpoint<PCompositorBridgeChild>&& aCompositor,
     Endpoint<PImageBridgeChild>&& aImageBridge,
     Endpoint<PVRManagerChild>&& aVRBridge,
-    Endpoint<PVideoDecoderManagerChild>&& aVideoManager) override;
+    Endpoint<PVideoDecoderManagerChild>&& aVideoManager,
+    nsTArray<uint32_t>&& namespaces) override;
+
+  mozilla::ipc::IPCResult RecvReinitRenderingForDeviceReset() override;
 
   virtual mozilla::ipc::IPCResult RecvSetProcessSandbox(const MaybeFileDesc& aBroker) override;
 
   virtual PBrowserChild* AllocPBrowserChild(const TabId& aTabId,
+                                            const TabId& aSameTabGroupAs,
                                             const IPCTabContext& aContext,
                                             const uint32_t& aChromeFlags,
                                             const ContentParentId& aCpID,
@@ -181,6 +188,19 @@ public:
   AllocPBlobChild(const BlobConstructorParams& aParams) override;
 
   virtual bool DeallocPBlobChild(PBlobChild* aActor) override;
+
+  virtual PMemoryStreamChild*
+  AllocPMemoryStreamChild(const uint64_t& aSize) override;
+
+  virtual bool
+  DeallocPMemoryStreamChild(PMemoryStreamChild* aActor) override;
+
+  virtual PIPCBlobInputStreamChild*
+  AllocPIPCBlobInputStreamChild(const nsID& aID,
+                                const uint64_t& aSize) override;
+
+  virtual bool
+  DeallocPIPCBlobInputStreamChild(PIPCBlobInputStreamChild* aActor) override;
 
   virtual PHalChild* AllocPHalChild() override;
   virtual bool DeallocPHalChild(PHalChild*) override;
@@ -223,6 +243,17 @@ public:
 
   virtual mozilla::ipc::IPCResult RecvPTestShellConstructor(PTestShellChild*) override;
 
+  virtual PScriptCacheChild*
+  AllocPScriptCacheChild(const FileDescOrError& cacheFile,
+                         const bool& wantCacheData) override;
+
+  virtual bool DeallocPScriptCacheChild(PScriptCacheChild*) override;
+
+  virtual mozilla::ipc::IPCResult
+  RecvPScriptCacheConstructor(PScriptCacheChild*,
+                              const FileDescOrError& cacheFile,
+                              const bool& wantCacheData) override;
+
   jsipc::CPOWManager* GetCPOWManager() override;
 
   virtual PNeckoChild* AllocPNeckoChild() override;
@@ -241,13 +272,6 @@ public:
 
   virtual PParentToChildStreamChild* AllocPParentToChildStreamChild() override;
   virtual bool DeallocPParentToChildStreamChild(PParentToChildStreamChild*) override;
-
-  virtual PScreenManagerChild*
-  AllocPScreenManagerChild(uint32_t* aNumberOfScreens,
-                           float* aSystemDefaultScale,
-                           bool* aSuccess) override;
-
-  virtual bool DeallocPScreenManagerChild(PScreenManagerChild*) override;
 
   virtual PPSMContentDownloaderChild*
   AllocPPSMContentDownloaderChild( const uint32_t& aCertType) override;
@@ -364,6 +388,9 @@ public:
 
   virtual mozilla::ipc::IPCResult RecvUpdateDictionaryList(InfallibleTArray<nsString>&& aDictionaries) override;
 
+  virtual mozilla::ipc::IPCResult RecvUpdateAppLocales(nsTArray<nsCString>&& aAppLocales) override;
+  virtual mozilla::ipc::IPCResult RecvUpdateRequestedLocales(nsTArray<nsCString>&& aRequestedLocales) override;
+
   virtual mozilla::ipc::IPCResult RecvAddPermission(const IPC::Permission& permission) override;
 
   virtual mozilla::ipc::IPCResult RecvFlushMemory(const nsString& reason) override;
@@ -477,6 +504,9 @@ public:
 
   virtual mozilla::ipc::IPCResult RecvParentActivated(PBrowserChild* aTab, const bool& aActivated) override;
 
+  mozilla::ipc::IPCResult
+  RecvRefreshScreens(nsTArray<ScreenDetails>&& aScreens) override;
+
   // Get the directory for IndexedDB files. We query the parent for this and
   // cache the value
   nsString &GetIndexedDBPath();
@@ -493,6 +523,9 @@ public:
   SendPBlobConstructor(PBlobChild* actor,
                        const BlobConstructorParams& params) override;
 
+  virtual PMemoryStreamChild*
+  SendPMemoryStreamConstructor(const uint64_t& aSize) override;
+
   virtual PFileDescriptorSetChild*
   SendPFileDescriptorSetConstructor(const FileDescriptor&) override;
 
@@ -504,6 +537,7 @@ public:
 
   virtual bool SendPBrowserConstructor(PBrowserChild* actor,
                                        const TabId& aTabId,
+                                       const TabId& aSameTabGroupAs,
                                        const IPCTabContext& context,
                                        const uint32_t& chromeFlags,
                                        const ContentParentId& aCpID,
@@ -511,6 +545,7 @@ public:
 
   virtual mozilla::ipc::IPCResult RecvPBrowserConstructor(PBrowserChild* aCctor,
                                                           const TabId& aTabId,
+                                                          const TabId& aSameTabGroupAs,
                                                           const IPCTabContext& aContext,
                                                           const uint32_t& aChromeFlags,
                                                           const ContentParentId& aCpID,
@@ -564,7 +599,7 @@ public:
                        const GetFilesResponseResult& aResult) override;
 
   virtual mozilla::ipc::IPCResult
-  RecvBlobURLRegistration(const nsCString& aURI, PBlobChild* aBlobChild,
+  RecvBlobURLRegistration(const nsCString& aURI, const IPCBlob& aBlob,
                           const IPC::Principal& aPrincipal) override;
 
   virtual mozilla::ipc::IPCResult
@@ -605,12 +640,20 @@ public:
     return mFontFamilies;
   }
 
+  // PURLClassifierChild
   virtual PURLClassifierChild*
   AllocPURLClassifierChild(const Principal& aPrincipal,
                            const bool& aUseTrackingProtection,
                            bool* aSuccess) override;
   virtual bool
   DeallocPURLClassifierChild(PURLClassifierChild* aActor) override;
+
+  // PURLClassifierLocalChild
+  virtual PURLClassifierLocalChild*
+  AllocPURLClassifierLocalChild(const URIParams& aUri,
+                                const nsCString& aTables) override;
+  virtual bool
+  DeallocPURLClassifierLocalChild(PURLClassifierLocalChild* aActor) override;
 
   nsTArray<LookAndFeelInt>&
   LookAndFeelCache() {
@@ -636,7 +679,7 @@ public:
                       bool aExistenceCheck, bool aIsFromNsIFile);
 
   typedef std::function<void(PRFileDesc*)> AnonymousTemporaryFileCallback;
-  nsresult AsyncOpenAnonymousTemporaryFile(AnonymousTemporaryFileCallback aCallback);
+  nsresult AsyncOpenAnonymousTemporaryFile(const AnonymousTemporaryFileCallback& aCallback);
 
 private:
   static void ForceKillTimerCallback(nsITimer* aTimer, void* aClosure);
@@ -648,6 +691,8 @@ private:
 
   virtual already_AddRefed<nsIEventTarget>
   GetConstructedEventTarget(const Message& aMsg) override;
+
+  void GatherProfile(bool aIsExitProfile);
 
   InfallibleTArray<nsAutoPtr<AlertObserver> > mAlertObservers;
   RefPtr<ConsoleListener> mConsoleListener;

@@ -5,6 +5,13 @@
 Components.utils.import("resource://gre/modules/LoadContextInfo.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+/* import-globals-from ../../../../toolkit/content/globalOverlay.js */
+/* import-globals-from ../../../../toolkit/content/contentAreaUtils.js */
+/* import-globals-from ../../../../toolkit/content/treeUtils.js */
+/* import-globals-from feeds.js */
+/* import-globals-from permissions.js */
+/* import-globals-from security.js */
+
 // define a js object to implement nsITreeView
 function pageInfoTreeView(treeid, copycol) {
   // copycol is the index number for the column that we want to add to
@@ -329,7 +336,7 @@ function onLoadPageInfo() {
   loadTab(args);
   Components.classes["@mozilla.org/observer-service;1"]
             .getService(Components.interfaces.nsIObserverService)
-            .notifyObservers(window, "page-info-dialog-loaded", null);
+            .notifyObservers(window, "page-info-dialog-loaded");
 }
 
 function loadPageInfo(frameOuterWindowID, imageElement, browser) {
@@ -592,7 +599,7 @@ function addImage(imageViewRow) {
       document.getElementById("mediaTab").hidden = false;
       Components.classes["@mozilla.org/observer-service;1"]
                 .getService(Components.interfaces.nsIObserverService)
-                .addObserver(imagePermissionObserver, "perm-changed", false);
+                .addObserver(imagePermissionObserver, "perm-changed");
     }
   } else {
     var i = gImageHash[url][type][alt];

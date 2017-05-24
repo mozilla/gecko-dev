@@ -12,6 +12,7 @@
 #include "nsINetworkInterceptController.h"
 #include "nsIOutputStream.h"
 #include "nsIScriptError.h"
+#include "nsITimedChannel.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsIUnicodeEncoder.h"
 #include "nsContentPolicyUtils.h"
@@ -108,6 +109,12 @@ NS_IMETHODIMP
 CancelChannelRunnable::Run()
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+  // TODO: When bug 1204254 is implemented, this time marker should be moved to
+  // the point where the body of the network request is complete.
+  mChannel->SetHandleFetchEventEnd(TimeStamp::Now());
+  mChannel->SaveTimeStamps();
+
   mChannel->Cancel(mStatus);
   mRegistration->MaybeScheduleUpdate();
   return NS_OK;
@@ -229,6 +236,11 @@ public:
       mChannel->Cancel(NS_ERROR_INTERCEPTION_FAILED);
       return NS_OK;
     }
+
+    TimeStamp timeStamp = TimeStamp::Now();
+    mChannel->SetHandleFetchEventEnd(timeStamp);
+    mChannel->SetFinishSynthesizedResponseEnd(timeStamp);
+    mChannel->SaveTimeStamps();
 
     nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
     if (obsService) {
@@ -544,6 +556,7 @@ void
 RespondWithHandler::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue)
 {
   AutoCancel autoCancel(this, mRequestURL);
+  mInterceptedChannel->SetFinishResponseStart(TimeStamp::Now());
 
   if (!aValue.isObject()) {
     NS_WARNING("FetchEvent::RespondWith was passed a promise resolved to a non-Object value");
@@ -710,6 +723,8 @@ RespondWithHandler::RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu
   uint32_t column = mRespondWithColumnNumber;
   nsString valueString;
 
+  mInterceptedChannel->SetFinishResponseStart(TimeStamp::Now());
+
   ExtractErrorValues(aCx, aValue, sourceSpec, &line, &column, valueString);
 
   ::AsyncLog(mInterceptedChannel, sourceSpec, line, column,
@@ -833,7 +848,7 @@ public:
 
   WaitUntilHandler(WorkerPrivate* aWorkerPrivate, JSContext* aCx)
     : mWorkerPrivate(aWorkerPrivate)
-    , mScope(mWorkerPrivate->WorkerName())
+    , mScope(mWorkerPrivate->ServiceWorkerScope())
     , mLine(0)
     , mColumn(0)
   {

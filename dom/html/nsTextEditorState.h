@@ -135,10 +135,23 @@ class nsTextEditorState : public mozilla::SupportsWeakPtr<nsTextEditorState> {
 public:
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(nsTextEditorState)
   explicit nsTextEditorState(nsITextControlElement* aOwningElement);
+  static nsTextEditorState*
+  Construct(nsITextControlElement* aOwningElement,
+            nsTextEditorState** aReusedState);
   ~nsTextEditorState();
 
   void Traverse(nsCycleCollectionTraversalCallback& cb);
   void Unlink();
+
+  void PrepareForReuse()
+  {
+    Unlink();
+    mValue.reset();
+    mCachedValue.Truncate();
+    mValueBeingSet.Truncate();
+    mTextCtrlElement = nullptr;
+    MOZ_ASSERT(!mMutationObserver);
+  }
 
   nsIEditor* GetEditor();
   nsISelectionController* GetSelectionController() const;
@@ -160,22 +173,34 @@ public:
     // Whether the value change should be notified to the frame/contet nor not.
     eSetValue_Notify                = 1 << 2,
     // Whether to move the cursor to end of the value (in the case when we have
-    // cached selection offsets).  If this is not set, the cached selection
-    // offsets will simply be clamped to be within the length of the new value.
-    eSetValue_MoveCursorToEnd       = 1 << 3,
+    // cached selection offsets), in the case when the value has changed.  If
+    // this is not set, the cached selection offsets will simply be clamped to
+    // be within the length of the new value.  In either case, if the value has
+    // not changed the cursor won't move.
+    eSetValue_MoveCursorToEndIfValueChanged = 1 << 3,
   };
   MOZ_MUST_USE bool SetValue(const nsAString& aValue, uint32_t aFlags);
   void GetValue(nsAString& aValue, bool aIgnoreWrap) const;
+  bool HasNonEmptyValue();
+  // The following methods are for textarea element to use whether default
+  // value or not.
+  // XXX We might have to add assertion when it is into editable,
+  // or reconsider fixing bug 597525 to remove these.
   void EmptyValue() { if (mValue) mValue->Truncate(); }
   bool IsEmpty() const { return mValue ? mValue->IsEmpty() : true; }
 
   nsresult CreatePlaceholderNode();
+  nsresult CreatePreviewNode();
+  mozilla::dom::Element* CreateEmptyDivNode();
 
   mozilla::dom::Element* GetRootNode() {
     return mRootNode;
   }
   mozilla::dom::Element* GetPlaceholderNode() {
     return mPlaceholderDiv;
+  }
+  mozilla::dom::Element* GetPreviewNode() {
+    return mPreviewDiv;
   }
 
   bool IsSingleLineTextControl() const {
@@ -200,19 +225,27 @@ public:
     return mTextCtrlElement->GetRows();
   }
 
+  void UpdateOverlayTextVisibility(bool aNotify);
+
   // placeholder methods
-  void UpdatePlaceholderVisibility(bool aNotify);
   bool GetPlaceholderVisibility() {
     return mPlaceholderVisibility;
   }
   void UpdatePlaceholderText(bool aNotify);
+
+  // preview methods
+  void SetPreviewText(const nsAString& aValue, bool aNotify);
+  void GetPreviewText(nsAString& aValue);
+  bool GetPreviewVisibility() {
+    return mPreviewVisibility;
+  }
 
   /**
    * Get the maxlength attribute
    * @param aMaxLength the value of the max length attr
    * @returns false if attr not defined
    */
-  bool GetMaxLength(int32_t* aMaxLength);
+  int32_t GetMaxLength();
 
   void ClearValueCache() { mCachedValue.Truncate(); }
 
@@ -254,10 +287,15 @@ public:
         mIsDirty = true;
         mDirection = value;
       }
-      // return true only if mStart, mEnd, or mDirection have been modified
+      // return true only if mStart, mEnd, or mDirection have been modified,
+      // or if SetIsDirty() was explicitly called.
       bool IsDirty() const
       {
         return mIsDirty;
+      }
+      void SetIsDirty()
+      {
+        mIsDirty = true;
       }
     private:
       uint32_t mStart, mEnd;
@@ -401,13 +439,14 @@ private:
 
   // The text control element owns this object, and ensures that this object
   // has a smaller lifetime.
-  nsITextControlElement* const MOZ_NON_OWNING_REF mTextCtrlElement;
+  nsITextControlElement* MOZ_NON_OWNING_REF mTextCtrlElement;
   // mSelCon is non-null while we have an mBoundFrame.
   RefPtr<nsTextInputSelectionImpl> mSelCon;
   RefPtr<RestoreSelectionState> mRestoringSelection;
   nsCOMPtr<nsIEditor> mEditor;
   nsCOMPtr<mozilla::dom::Element> mRootNode;
   nsCOMPtr<mozilla::dom::Element> mPlaceholderDiv;
+  nsCOMPtr<mozilla::dom::Element> mPreviewDiv;
   nsTextControlFrame* mBoundFrame;
   RefPtr<nsTextInputListener> mTextListener;
   mozilla::Maybe<nsString> mValue;
@@ -426,6 +465,7 @@ private:
   bool mSelectionCached; // Whether mSelectionProperties is valid
   mutable bool mSelectionRestoreEagerInit; // Whether we're eager initing because of selection restore
   bool mPlaceholderVisibility;
+  bool mPreviewVisibility;
   bool mIsCommittingComposition;
 };
 

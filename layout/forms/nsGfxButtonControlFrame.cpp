@@ -18,8 +18,8 @@
 
 using namespace mozilla;
 
-nsGfxButtonControlFrame::nsGfxButtonControlFrame(nsStyleContext* aContext):
-  nsHTMLButtonControlFrame(aContext)
+nsGfxButtonControlFrame::nsGfxButtonControlFrame(nsStyleContext* aContext)
+  : nsHTMLButtonControlFrame(aContext, LayoutFrameType::GfxButtonControl)
 {
 }
 
@@ -35,12 +35,6 @@ void nsGfxButtonControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   nsContentUtils::DestroyAnonymousContent(&mTextContent);
   nsHTMLButtonControlFrame::DestroyFrom(aDestructRoot);
-}
-
-nsIAtom*
-nsGfxButtonControlFrame::GetType() const
-{
-  return nsGkAtoms::gfxButtonControlFrame;
 }
 
 #ifdef DEBUG_FRAME_DUMP
@@ -94,7 +88,7 @@ nsGfxButtonControlFrame::GetDefaultLabel(nsXPIDLString& aString) const
   nsCOMPtr<nsIFormControl> form = do_QueryInterface(mContent);
   NS_ENSURE_TRUE(form, NS_ERROR_UNEXPECTED);
 
-  int32_t type = form->GetType();
+  int32_t type = form->ControlType();
   const char *prop;
   if (type == NS_FORM_INPUT_RESET) {
     prop = "Reset";

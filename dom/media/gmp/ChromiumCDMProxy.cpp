@@ -355,8 +355,11 @@ ChromiumCDMProxy::Shutdown()
     cdm.swap(mCDM);
   }
   if (cdm) {
+    // We need to keep this proxy alive until the parent has finished its
+    // Shutdown (as it may still try to use the proxy until then).
+    RefPtr<ChromiumCDMProxy> self(this);
     nsCOMPtr<nsIRunnable> task =
-      NewRunnableMethod(mCDM, &gmp::ChromiumCDMParent::Shutdown);
+      NS_NewRunnableFunction([self, cdm]() { cdm->Shutdown(); });
     mGMPThread->Dispatch(task.forget());
   }
 }
@@ -554,7 +557,7 @@ ChromiumCDMProxy::Decrypt(MediaRawData* aSample)
 {
   RefPtr<gmp::ChromiumCDMParent> cdm = GetCDMParent();
   if (!cdm) {
-    return DecryptPromise::CreateAndReject(DecryptResult(AbortedErr, aSample),
+    return DecryptPromise::CreateAndReject(DecryptResult(eme::AbortedErr, aSample),
                                            __func__);
   }
   RefPtr<MediaRawData> sample = aSample;

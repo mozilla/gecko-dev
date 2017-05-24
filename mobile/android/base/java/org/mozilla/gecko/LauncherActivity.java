@@ -7,11 +7,15 @@ package org.mozilla.gecko;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.customtabs.CustomTabsIntent;
+import android.util.Log;
 
+import org.mozilla.gecko.home.HomeConfig;
 import org.mozilla.gecko.webapps.WebAppActivity;
+import org.mozilla.gecko.webapps.WebAppIndexer;
 import org.mozilla.gecko.customtabs.CustomTabsActivity;
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.mozglue.SafeIntent;
@@ -19,10 +23,27 @@ import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.tabqueue.TabQueueHelper;
 import org.mozilla.gecko.tabqueue.TabQueueService;
 
+import static org.mozilla.gecko.BrowserApp.ACTIVITY_REQUEST_PREFERENCES;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.DEEP_LINK_SCHEME;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_BOOKMARK_LIST;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_DEFAULT_BROWSER;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_HISTORY_LIST;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_PREFERENCES;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_PREFERENCES_ACCESSIBILITY;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_PREFERENCES_NOTIFICATIONS;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_PREFERENCES_PRIAVACY;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_PREFERENCES_SEARCH;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_SAVE_AS_PDF;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.LINK_SIGN_UP;
+import static org.mozilla.gecko.deeplink.DeepLinkContract.SUMO_DEFAULT_BROWSER;
+
 /**
  * Activity that receives incoming Intents and dispatches them to the appropriate activities (e.g. browser, custom tabs, web app).
  */
 public class LauncherActivity extends Activity {
+
+    private static final String TAG = LauncherActivity.class.getSimpleName();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,8 +52,12 @@ public class LauncherActivity extends Activity {
 
         final SafeIntent safeIntent = new SafeIntent(getIntent());
 
+        // Is this deep link?
+        if (isDeepLink(safeIntent)) {
+            dispatchDeepLink(safeIntent);
+
         // Is this web app?
-        if (isWebAppIntent(safeIntent)) {
+        } else if (isWebAppIntent(safeIntent)) {
             dispatchWebAppIntent();
 
         // If it's not a view intent, it won't be a custom tabs intent either. Just launch!
@@ -79,6 +104,16 @@ public class LauncherActivity extends Activity {
         startActivity(intent);
     }
 
+    private void dispatchUrlIntent(@NonNull String url) {
+        Intent intent = new Intent(getIntent());
+        intent.setData(Uri.parse(url));
+        intent.setClassName(getApplicationContext(), AppConstants.MOZ_ANDROID_BROWSER_INTENT_CLASS);
+
+        filterFlags(intent);
+
+        startActivity(intent);
+    }
+
     private void dispatchCustomTabsIntent() {
         Intent intent = new Intent(getIntent());
         intent.setClassName(getApplicationContext(), CustomTabsActivity.class.getName());
@@ -89,11 +124,11 @@ public class LauncherActivity extends Activity {
     }
 
     private void dispatchWebAppIntent() {
-        Intent intent = new Intent(getIntent());
-        intent.setClassName(getApplicationContext(), WebAppActivity.class.getName());
-
-        filterFlags(intent);
-
+        final Intent intent = new Intent(getIntent());
+        final String manifestPath = getIntent().getStringExtra(WebAppActivity.MANIFEST_PATH);
+        final int index = WebAppIndexer.getInstance().getIndexForManifest(manifestPath, this);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setClassName(this, WebAppIndexer.WEBAPP_CLASS + index);
         startActivity(intent);
     }
 
@@ -125,4 +160,70 @@ public class LauncherActivity extends Activity {
     private boolean isCustomTabsEnabled() {
         return GeckoSharedPrefs.forApp(this).getBoolean(GeckoPreferences.PREFS_CUSTOM_TABS, false);
     }
+
+    private boolean isDeepLink(SafeIntent intent) {
+        if (intent == null || intent.getData() == null || intent.getData().getScheme() == null
+                || intent.getAction() == null) {
+            return false;
+        }
+        boolean schemeMatched = intent.getData().getScheme().equalsIgnoreCase(DEEP_LINK_SCHEME);
+        boolean actionMatched = intent.getAction().equals(Intent.ACTION_VIEW);
+        return schemeMatched && actionMatched;
+    }
+
+    private void dispatchDeepLink(SafeIntent intent) {
+        if (intent == null || intent.getData() == null || intent.getData().getHost() == null) {
+            return;
+        }
+        final String host = intent.getData().getHost();
+
+        switch (host) {
+            case LINK_DEFAULT_BROWSER:
+                GeckoSharedPrefs.forApp(this).edit().putBoolean(GeckoPreferences.PREFS_DEFAULT_BROWSER, true).apply();
+
+                if (AppConstants.Versions.feature24Plus) {
+                    // We are special casing the link to set the default browser here: On old Android versions we
+                    // link to a SUMO page but on new Android versions we can link to the default app settings where
+                    // the user can actually set a default browser (Bug 1312686).
+                    final Intent changeDefaultApps = new Intent("android.settings.MANAGE_DEFAULT_APPS_SETTINGS");
+                    startActivity(changeDefaultApps);
+                } else {
+                    dispatchUrlIntent(SUMO_DEFAULT_BROWSER);
+                }
+                break;
+            case LINK_SAVE_AS_PDF:
+                EventDispatcher.getInstance().dispatch("SaveAs:PDF", null);
+                break;
+            case LINK_BOOKMARK_LIST:
+                String bookmarks = AboutPages.getURLForBuiltinPanelType(HomeConfig.PanelType.BOOKMARKS);
+                dispatchUrlIntent(bookmarks);
+                break;
+            case LINK_HISTORY_LIST:
+                String history = AboutPages.getURLForBuiltinPanelType(HomeConfig.PanelType.COMBINED_HISTORY);
+                dispatchUrlIntent(history);
+                break;
+            case LINK_SIGN_UP:
+                dispatchUrlIntent(AboutPages.ACCOUNTS + "?action=signup");
+                break;
+            case LINK_PREFERENCES:
+                Intent settingsIntent = new Intent(this, GeckoPreferences.class);
+
+                // We want to know when the Settings activity returns, because
+                // we might need to redisplay based on a locale change.
+                startActivityForResult(settingsIntent, ACTIVITY_REQUEST_PREFERENCES);
+                break;
+            case LINK_PREFERENCES_PRIAVACY:
+            case LINK_PREFERENCES_SEARCH:
+            case LINK_PREFERENCES_NOTIFICATIONS:
+            case LINK_PREFERENCES_ACCESSIBILITY:
+                settingsIntent = new Intent(this, GeckoPreferences.class);
+                GeckoPreferences.setResourceToOpen(settingsIntent, host);
+                startActivityForResult(settingsIntent, ACTIVITY_REQUEST_PREFERENCES);
+                break;
+            default:
+                Log.w(TAG, "unrecognized deep links");
+        }
+
+    }
+
 }

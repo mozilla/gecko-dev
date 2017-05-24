@@ -5,38 +5,35 @@
 #ifndef MOZ_PROFILE_GATHERER_H
 #define MOZ_PROFILE_GATHERER_H
 
-#include "mozilla/dom/Promise.h"
 #include "nsIFile.h"
-#include "platform.h"
+#include "ProfileJSONWriter.h"
+#include "mozilla/MozPromise.h"
 
 namespace mozilla {
 
-class ProfileGatherer final : public nsIObserver
+// This class holds the state for an async profile-gathering request.
+class ProfileGatherer final : public nsISupports
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
+
+  typedef MozPromise<nsCString, nsresult, false> ProfileGatherPromise;
 
   explicit ProfileGatherer();
   void WillGatherOOPProfile();
-  void GatheredOOPProfile(PSLockRef aLock);
-  void Start(PSLockRef aLock, double aSinceTime,
-             mozilla::dom::Promise* aPromise);
-  void Start(PSLockRef aLock, double aSinceTime, const nsACString& aFileName);
-  void Cancel();
-  void OOPExitProfile(const nsCString& aProfile);
+  void GatheredOOPProfile(const nsACString& aProfile);
+  RefPtr<ProfileGatherPromise> Start(double aSinceTime);
+  void OOPExitProfile(const nsACString& aProfile);
 
 private:
-  ~ProfileGatherer() {};
-  void Finish(PSLockRef aLock);
+  ~ProfileGatherer();
+  void Cancel();
+  void Finish();
   void Reset();
-  void Start2(PSLockRef aLock, double aSinceTime);
 
   nsTArray<nsCString> mExitProfiles;
-  RefPtr<mozilla::dom::Promise> mPromise;
-  nsCOMPtr<nsIFile> mFile;
-  bool mIsCancelled;
-  double mSinceTime;
+  Maybe<MozPromiseHolder<ProfileGatherPromise>> mPromiseHolder;
+  Maybe<SpliceableChunkedJSONWriter> mWriter;
   uint32_t mPendingProfiles;
   bool mGathering;
 };

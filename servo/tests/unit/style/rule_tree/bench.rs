@@ -5,21 +5,27 @@
 use cssparser::{Parser, SourcePosition};
 use rayon;
 use servo_url::ServoUrl;
-use std::sync::Arc;
+use style::context::QuirksMode;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::MediaList;
-use style::parser::ParserContextExtraData;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::SharedRwLock;
+use style::stylearc::Arc;
 use style::stylesheets::{Origin, Stylesheet, CssRule};
 use test::{self, Bencher};
 
 struct ErrorringErrorReporter;
 impl ParseErrorReporter for ErrorringErrorReporter {
-    fn report_error(&self, _input: &mut Parser, position: SourcePosition, message: &str,
-        url: &ServoUrl) {
-        panic!("CSS error: {}\t\n{:?} {}", url.as_str(), position, message);
+    fn report_error(&self,
+                    input: &mut Parser,
+                    position: SourcePosition,
+                    message: &str,
+                    url: &ServoUrl,
+                    line_number_offset: u64) {
+        let location = input.source_location(position);
+        let line_offset = location.line + line_number_offset as usize;
+        panic!("CSS error: {}\t\n{}:{} {}", url.as_str(), line_offset, location.column, message);
     }
 }
 
@@ -33,21 +39,28 @@ impl<'a> AutoGCRuleTree<'a> {
 
 impl<'a> Drop for AutoGCRuleTree<'a> {
     fn drop(&mut self) {
-        unsafe { self.0.gc() }
+        unsafe {
+            self.0.gc();
+            assert!(::std::thread::panicking() ||
+                    !self.0.root().has_children_for_testing(),
+                    "No rule nodes other than the root shall remain!");
+        }
     }
 }
 
 fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
+    let lock = SharedRwLock::new();
+    let media = Arc::new(lock.wrap(MediaList::empty()));
+
     let s = Stylesheet::from_str(css,
                                  ServoUrl::parse("http://localhost").unwrap(),
                                  Origin::Author,
-                                 MediaList {
-                                     media_queries: vec![],
-                                 },
-                                 SharedRwLock::new(),
+                                 media,
+                                 lock,
                                  None,
                                  &ErrorringErrorReporter,
-                                 ParserContextExtraData {});
+                                 QuirksMode::NoQuirks,
+                                 0u64);
     let guard = s.shared_lock.read();
     let rules = s.rules.read_with(&guard);
     rules.0.iter().filter_map(|rule| {

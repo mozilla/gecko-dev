@@ -23,6 +23,7 @@
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
 #include "jsfriendapi.h"
+#include "ThreadAnnotation.h"
 
 #ifdef XP_WIN
 #include "mozilla/TlsAllocationTracker.h"
@@ -115,6 +116,13 @@ using google_breakpad::PageAllocator;
 #endif
 using namespace mozilla;
 using mozilla::ipc::CrashReporterClient;
+
+// From toolkit/library/rust/shared/lib.rs
+extern "C" {
+  void install_rust_panic_hook();
+  bool get_rust_panic_reason(char** reason, size_t* length);
+}
+
 
 namespace CrashReporter {
 
@@ -375,6 +383,7 @@ patched_SetUnhandledExceptionFilter (LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExce
   return nullptr;
 }
 
+#ifdef _WIN64
 static LPTOP_LEVEL_EXCEPTION_FILTER sUnhandledExceptionFilter = nullptr;
 
 static long
@@ -386,6 +395,15 @@ JitExceptionHandler(void *exceptionRecord, void *context)
     };
     return sUnhandledExceptionFilter(&pointers);
 }
+
+static void
+SetJitExceptionHandler()
+{
+  sUnhandledExceptionFilter = GetUnhandledExceptionFilter();
+  if (sUnhandledExceptionFilter)
+      js::SetJitExceptionHandler(JitExceptionHandler);
+}
+#endif
 
 /**
  * Reserve some VM space. In the event that we crash because VM space is
@@ -1023,9 +1041,8 @@ bool MinidumpCallback(
     WriteString(lastCrashFile, crashTimeString);
   }
 
-  bool ignored = false;
-  double uptimeTS = (TimeStamp::NowLoRes()-
-                     TimeStamp::ProcessCreation(ignored)).ToSecondsSigDigits();
+  double uptimeTS = (TimeStamp::NowLoRes() -
+                     TimeStamp::ProcessCreation()).ToSecondsSigDigits();
   char uptimeTSString[64];
   SimpleNoCLibDtoA(uptimeTS, uptimeTSString, sizeof(uptimeTSString));
 
@@ -1131,7 +1148,17 @@ bool MinidumpCallback(
     WriteGlobalMemoryStatus(&apiData, &eventFile);
 #endif // XP_WIN
 
-    if (gMozCrashReason) {
+    char* rust_panic_reason;
+    size_t rust_panic_len;
+    if (get_rust_panic_reason(&rust_panic_reason, &rust_panic_len)) {
+      // rust_panic_reason is not null-terminated.
+      WriteLiteral(apiData, "MozCrashReason=");
+      apiData.WriteBuffer(rust_panic_reason, rust_panic_len);
+      WriteLiteral(apiData, "\n");
+      WriteLiteral(eventFile, "MozCrashReason=");
+      eventFile.WriteBuffer(rust_panic_reason, rust_panic_len);
+      WriteLiteral(eventFile, "\n");
+    } else if (gMozCrashReason) {
       WriteAnnotation(apiData, "MozCrashReason", gMozCrashReason);
       WriteAnnotation(eventFile, "MozCrashReason", gMozCrashReason);
     }
@@ -1167,6 +1194,19 @@ bool MinidumpCallback(
       WriteLiteral(apiData, "ContainsMemoryReport=1\n");
       WriteLiteral(eventFile, "ContainsMemoryReport=1\n");
     }
+
+    std::function<void(const char*)> getThreadAnnotationCB =
+      [&] (const char * aAnnotation) -> void {
+      if (aAnnotation) {
+        WriteLiteral(apiData, "ThreadIdNameMapping=");
+        WriteLiteral(eventFile, "ThreadIdNameMapping=");
+        WriteString(apiData, aAnnotation);
+        WriteString(eventFile, aAnnotation);
+        WriteLiteral(apiData, "\n");
+        WriteLiteral(eventFile, "\n");
+      }
+    };
+    GetFlatThreadAnnotation(getThreadAnnotationCB);
   }
 
   if (!doReport) {
@@ -1396,6 +1436,16 @@ PrepareChildExceptionTimeAnnotations()
     WriteAnnotation(apiData, "TlsAllocations", tlsAllocations);
   }
 #endif
+
+  std::function<void(const char*)> getThreadAnnotationCB =
+    [&] (const char * aAnnotation) -> void {
+    if (aAnnotation) {
+      WriteLiteral(apiData, "ThreadIdNameMapping=");
+      WriteString(apiData, aAnnotation);
+      WriteLiteral(apiData, "\n");
+    }
+  };
+  GetFlatThreadAnnotation(getThreadAnnotationCB);
 }
 
 #ifdef XP_WIN
@@ -1485,8 +1535,8 @@ MINIDUMP_TYPE GetMinidumpType()
         minidump_type = MiniDumpWithFullMemoryInfo;
       }
 #ifdef NIGHTLY_BUILD
-      // TODO: Remove the NIGHTLY_BUILD wrapping if the increased size is
-      // accetable.
+      // This is Nightly only because this doubles the size of minidumps based
+      // on the experimental data.
       if (major > 5 || (major == 5 && minor > 1)) {
         minidump_type = static_cast<MINIDUMP_TYPE>(minidump_type |
             MiniDumpWithUnloadedModules |
@@ -1576,6 +1626,8 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
 {
   if (gExceptionHandler)
     return NS_ERROR_ALREADY_INITIALIZED;
+
+  install_rust_panic_hook();
 
 #if !defined(DEBUG) || defined(MOZ_WIDGET_GONK)
   // In non-debug builds, enable the crash reporter by default, and allow
@@ -1758,9 +1810,7 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
 
 #ifdef _WIN64
   // Tell JS about the new filter before we disable SetUnhandledExceptionFilter
-  sUnhandledExceptionFilter = GetUnhandledExceptionFilter();
-  if (sUnhandledExceptionFilter)
-      js::SetJitExceptionHandler(JitExceptionHandler);
+  SetJitExceptionHandler();
 #endif
 
   // protect the crash reporter from being unloaded
@@ -1812,6 +1862,8 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   mozalloc_set_oom_abort_handler(AnnotateOOMAllocationSize);
 
   oldTerminateHandler = std::set_terminate(&TerminateHandler);
+
+  InitThreadAnnotation();
 
   return NS_OK;
 }
@@ -1957,6 +2009,53 @@ EnsureDirectoryExists(nsIFile* dir)
   return NS_OK;
 }
 
+// Creates a directory that will be accessible by the crash reporter. The
+// directory will live under Firefox default data directory and will use the
+// specified name. The directory path will be passed to the crashreporter via
+// the specified environment variable.
+static nsresult
+SetupCrashReporterDirectory(nsIFile* aAppDataDirectory,
+                            const char* aDirName,
+                            const XP_CHAR* aEnvVarName,
+                            nsIFile** aDirectory = nullptr)
+{
+  nsCOMPtr<nsIFile> directory;
+  nsresult rv = aAppDataDirectory->Clone(getter_AddRefs(directory));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = directory->AppendNative(nsDependentCString(aDirName));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  EnsureDirectoryExists(directory);
+
+  xpstring dirEnv(aEnvVarName);
+  dirEnv.append(XP_TEXT("="));
+
+  xpstring* directoryPath = CreatePathFromFile(directory);
+
+  if (!directoryPath) {
+    return NS_ERROR_FAILURE;
+  }
+
+  dirEnv.append(*directoryPath);
+  delete directoryPath;
+
+#if defined(XP_WIN32)
+  _wputenv(dirEnv.c_str());
+#else
+  XP_CHAR* str = new XP_CHAR[dirEnv.size() + 1];
+  strncpy(str, dirEnv.c_str(), dirEnv.size() + 1);
+  // |PR_SetEnv| requires str to leak.
+  PR_SetEnv(str);
+#endif
+
+  if (aDirectory) {
+    directory.forget(aDirectory);
+  }
+
+  return NS_OK;
+}
+
 // Annotate the crash report with a Unique User ID and time
 // since install.  Also do some prep work for recording
 // time since last crash, which must be calculated at
@@ -1966,39 +2065,26 @@ nsresult SetupExtraData(nsIFile* aAppDataDirectory,
                         const nsACString& aBuildID)
 {
   nsCOMPtr<nsIFile> dataDirectory;
-  nsresult rv = aAppDataDirectory->Clone(getter_AddRefs(dataDirectory));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsresult rv = SetupCrashReporterDirectory(
+    aAppDataDirectory,
+    "Crash Reports",
+    XP_TEXT("MOZ_CRASHREPORTER_DATA_DIRECTORY"),
+    getter_AddRefs(dataDirectory)
+  );
 
-  rv = dataDirectory->AppendNative(NS_LITERAL_CSTRING("Crash Reports"));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
 
-  EnsureDirectoryExists(dataDirectory);
+  rv = SetupCrashReporterDirectory(
+    aAppDataDirectory,
+    "Pending Pings",
+    XP_TEXT("MOZ_CRASHREPORTER_PING_DIRECTORY")
+  );
 
-#if defined(XP_WIN32)
-  nsAutoString dataDirEnv(NS_LITERAL_STRING("MOZ_CRASHREPORTER_DATA_DIRECTORY="));
-
-  nsAutoString dataDirectoryPath;
-  rv = dataDirectory->GetPath(dataDirectoryPath);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  dataDirEnv.Append(dataDirectoryPath);
-
-  _wputenv(dataDirEnv.get());
-#else
-  // Save this path in the environment for the crash reporter application.
-  nsAutoCString dataDirEnv("MOZ_CRASHREPORTER_DATA_DIRECTORY=");
-
-  nsAutoCString dataDirectoryPath;
-  rv = dataDirectory->GetNativePath(dataDirectoryPath);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  dataDirEnv.Append(dataDirectoryPath);
-
-  char* env = ToNewCString(dataDirEnv);
-  NS_ENSURE_TRUE(env, NS_ERROR_OUT_OF_MEMORY);
-
-  PR_SetEnv(env);
-#endif
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
 
   nsAutoCString data;
   if(NS_SUCCEEDED(GetOrInit(dataDirectory,
@@ -2148,6 +2234,8 @@ nsresult UnsetExceptionHandler()
     free(memoryReportPath);
     memoryReportPath = nullptr;
   }
+
+  ShutdownThreadAnnotation();
 
   if (!gExceptionHandler)
     return NS_ERROR_NOT_INITIALIZED;
@@ -3126,9 +3214,8 @@ WriteExtraData(nsIFile* extraFile,
                     nsDependentCString("CrashTime"),
                     nsDependentCString(crashTimeString));
 
-    bool ignored = false;
-    double uptimeTS = (TimeStamp::NowLoRes()-
-                       TimeStamp::ProcessCreation(ignored)).ToSecondsSigDigits();
+    double uptimeTS = (TimeStamp::NowLoRes() -
+                       TimeStamp::ProcessCreation()).ToSecondsSigDigits();
     char uptimeTSString[64];
     SimpleNoCLibDtoA(uptimeTS, uptimeTSString, sizeof(uptimeTSString));
 
@@ -3453,7 +3540,7 @@ OOPInit()
 #if defined(XP_WIN)
   childCrashNotifyPipe =
     mozilla::Smprintf("\\\\.\\pipe\\gecko-crash-server-pipe.%i",
-               static_cast<int>(::GetCurrentProcessId()));
+               static_cast<int>(::GetCurrentProcessId())).release();
 
   const std::wstring dumpPath = gExceptionHandler->dump_path();
   crashServer = new CrashGenerationServer(
@@ -3483,7 +3570,7 @@ OOPInit()
 #elif defined(XP_MACOSX)
   childCrashNotifyPipe =
     mozilla::Smprintf("gecko-crash-server-pipe.%i",
-               static_cast<int>(getpid()));
+               static_cast<int>(getpid())).release();
   const std::string dumpPath = gExceptionHandler->dump_path();
 
   crashServer = new CrashGenerationServer(
@@ -3531,7 +3618,7 @@ OOPDeinit()
   delete pidToMinidump;
   pidToMinidump = nullptr;
 
-#if defined(XP_WIN)
+#if defined(XP_WIN) || defined(XP_MACOSX)
   mozilla::SmprintfFree(childCrashNotifyPipe);
   childCrashNotifyPipe = nullptr;
 #endif
@@ -3725,6 +3812,10 @@ SetRemoteExceptionHandler(const nsACString& crashPipe)
                      NS_ConvertASCIItoUTF16(crashPipe).get(),
                      nullptr);
   gExceptionHandler->set_handle_debug_exceptions(true);
+
+#ifdef _WIN64
+  SetJitExceptionHandler();
+#endif
 
   mozalloc_set_oom_abort_handler(AnnotateOOMAllocationSize);
 

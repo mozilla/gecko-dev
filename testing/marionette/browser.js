@@ -67,7 +67,7 @@ browser.getTabBrowser = function (win) {
  * Creates a browsing context wrapper.
  *
  * Browsing contexts handle interactions with the browser, according to
- * the current environment (desktop, B2G, Fennec, &c).
+ * the current environment (Firefox, Fennec).
  *
  * @param {nsIDOMWindow} win
  *     The window whose browser needs to be accessed.
@@ -91,9 +91,6 @@ browser.Context = class {
     this.tabBrowser = browser.getTabBrowser(win);
 
     this.knownFrames = [];
-
-    // Used in B2G to identify the homescreen content page
-    this.mainContentId = null;
 
     // Used to set curFrameId upon new session
     this.newSession = true;
@@ -119,9 +116,20 @@ browser.Context = class {
     this.frameManager.addMessageManagerListeners(driver.mm);
     this.getIdForBrowser = driver.getIdForBrowser.bind(driver);
     this.updateIdForBrowser = driver.updateIdForBrowser.bind(driver);
-    this._curFrameId = null;
     this._browserWasRemote = null;
     this._hasRemotenessChange = false;
+  }
+
+  /**
+   * Returns the content browser for the currently selected tab.
+   * If there is no tab selected, null will be returned.
+   */
+  get contentBrowser() {
+    if (this.tab) {
+      return browser.getBrowserForTab(this.tab);
+    }
+
+    return null;
   }
 
   /**
@@ -131,18 +139,10 @@ browser.Context = class {
    */
   get curFrameId() {
     let rv = null;
-    if (this.driver.appName == "B2G") {
-      rv = this._curFrameId;
-    } else if (this.tab) {
-      rv = this.getIdForBrowser(browser.getBrowserForTab(this.tab));
+    if (this.tab) {
+      rv = this.getIdForBrowser(this.contentBrowser);
     }
     return rv;
-  }
-
-  set curFrameId(id) {
-    if (this.driver.appName != "Firefox") {
-      this._curFrameId = id;
-    }
   }
 
   /**
@@ -150,7 +150,7 @@ browser.Context = class {
    * associated with the currently selected tab.
    */
   getTabModalUI() {
-    let br = browser.getBrowserForTab(this.tab);
+    let br = this.contentBrowser;
     if (!br.hasAttribute("tabmodalPromptShowing")) {
       return null;
     }
@@ -276,7 +276,7 @@ browser.Context = class {
     }
 
     if (this.driver.appName == "Firefox") {
-      this._browserWasRemote = browser.getBrowserForTab(this.tab).isRemoteBrowser;
+      this._browserWasRemote = this.contentBrowser.isRemoteBrowser;
       this._hasRemotenessChange = false;
     }
   }
@@ -300,13 +300,9 @@ browser.Context = class {
           this.switchToTab();
         }
 
-        if (target == browser.getBrowserForTab(this.tab)) {
-          this.updateIdForBrowser(browser.getBrowserForTab(this.tab), uid);
-          this.mainContentId = uid;
+        if (target === this.contentBrowser) {
+          this.updateIdForBrowser(this.contentBrowser, uid);
         }
-      } else {
-        this._curFrameId = uid;
-        this.mainContentId = uid;
       }
     }
 
@@ -321,11 +317,11 @@ browser.Context = class {
    * script. This function does the necessary bookkeeping.
    */
   hasRemotenessChange() {
-    // None of these checks are relevant on b2g or if we don't have a tab yet,
+    // None of these checks are relevant if we don't have a tab yet,
     // and may not apply on Fennec.
     if (this.driver.appName != "Firefox" ||
         this.tab === null ||
-        browser.getBrowserForTab(this.tab) === null) {
+        this.contentBrowser === null) {
       return false;
     }
 
@@ -333,7 +329,7 @@ browser.Context = class {
       return true;
     }
 
-    let currentIsRemote = browser.getBrowserForTab(this.tab).isRemoteBrowser;
+    let currentIsRemote = this.contentBrowser.isRemoteBrowser;
     this._hasRemotenessChange = this._browserWasRemote !== currentIsRemote;
     this._browserWasRemote = currentIsRemote;
     return this._hasRemotenessChange;

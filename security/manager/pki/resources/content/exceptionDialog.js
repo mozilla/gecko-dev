@@ -266,7 +266,7 @@ function updateCertStatus() {
     // Notify observers about the availability of the certificate
     Components.classes["@mozilla.org/observer-service;1"]
               .getService(Components.interfaces.nsIObserverService)
-              .notifyObservers(null, "cert-exception-ui-ready", null);
+              .notifyObservers(null, "cert-exception-ui-ready");
   } else if (gChecking) {
     shortDesc = "addExceptionCheckingShort";
     longDesc  = "addExceptionCheckingLong2";
@@ -299,6 +299,8 @@ function updateCertStatus() {
     setText("status3Description", gPKIBundle.getString(shortDesc3));
     setText("status3LongDescription", gPKIBundle.getString(longDesc3));
   }
+
+  window.sizeToContent();
 
   gNeedReset = true;
 }

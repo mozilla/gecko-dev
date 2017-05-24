@@ -39,7 +39,6 @@ class Compartment
 {
     InstanceVector instances_;
     volatile bool  mutatingInstances_;
-    size_t         interruptedCount_;
 
     friend class js::WasmActivation;
 
@@ -58,7 +57,6 @@ class Compartment
   public:
     explicit Compartment(Zone* zone);
     ~Compartment();
-    void trace(JSTracer* trc);
 
     // Before a WasmInstanceObject can be considered fully constructed and
     // valid, it must be registered with the Compartment. If this method fails,
@@ -79,19 +77,7 @@ class Compartment
     // This methods returns the wasm::Code containing the given pc, if any
     // exists in the compartment.
 
-    Code* lookupCode(const void* pc) const;
-
-    // Currently, there is one Code per Instance so it is also possible to
-    // lookup a Instance given a pc. However, the goal is to share one Code
-    // between multiple Instances at which point in time this method will be
-    // removed.
-
-    Instance* lookupInstanceDeprecated(const void* pc) const;
-
-    // The wasm::Compartment must be notified when execution is interrupted
-    // while executing in wasm code in this compartment.
-
-    void setInterrupted(bool interrupted);
+    const Code* lookupCode(const void* pc) const;
 
     // Ensure all Instances in this JSCompartment have profiling labels created.
 

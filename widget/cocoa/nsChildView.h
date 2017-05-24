@@ -262,6 +262,10 @@ class WidgetRenderingContext;
 - (void)setUsingOMTCompositor:(BOOL)aUseOMTC;
 
 - (NSEvent*)lastKeyDownEvent;
+
++ (uint32_t)sUniqueKeyEventId;
+
++ (NSMutableDictionary*)sNativeKeyEventsMap;
 @end
 
 class ChildViewMouseTracker {
@@ -375,6 +379,8 @@ public:
 
   virtual bool HasPendingInputEvent() override;
 
+  bool              SendEventToNativeMenuSystem(NSEvent* aEvent);
+  virtual void      PostHandleKeyEvent(mozilla::WidgetKeyboardEvent* aEvent) override;
   virtual nsresult  ActivateNativeMenuItemAt(const nsAString& indexString) override;
   virtual nsresult  ForceUpdateNativeMenuAt(const nsAString& indexString) override;
   virtual MOZ_MUST_USE nsresult
@@ -386,18 +392,15 @@ public:
   virtual TextEventDispatcherListener*
     GetNativeTextEventDispatcherListener() override;
   virtual MOZ_MUST_USE nsresult AttachNativeKeyEvent(mozilla::WidgetKeyboardEvent& aEvent) override;
-  virtual bool ExecuteNativeKeyBinding(
-                      NativeKeyBindingsType aType,
-                      const mozilla::WidgetKeyboardEvent& aEvent,
-                      DoCommandCallback aCallback,
-                      void* aCallbackData) override;
-  bool ExecuteNativeKeyBindingRemapped(
-                      NativeKeyBindingsType aType,
-                      const mozilla::WidgetKeyboardEvent& aEvent,
-                      DoCommandCallback aCallback,
-                      void* aCallbackData,
-                      uint32_t aGeckoKeyCode,
-                      uint32_t aCocoaKeyCode);
+  virtual void GetEditCommands(
+                 NativeKeyBindingsType aType,
+                 const mozilla::WidgetKeyboardEvent& aEvent,
+                 nsTArray<mozilla::CommandInt>& aCommands) override;
+  void GetEditCommandsRemapped(NativeKeyBindingsType aType,
+                               const mozilla::WidgetKeyboardEvent& aEvent,
+                               nsTArray<mozilla::CommandInt>& aCommands,
+                               uint32_t aGeckoKeyCode,
+                               uint32_t aCocoaKeyCode);
 
   virtual nsTransparencyMode GetTransparencyMode() override;
   virtual void                SetTransparencyMode(nsTransparencyMode aMode) override;
@@ -493,6 +496,9 @@ public:
   }
   LayoutDeviceIntPoint CocoaPointsToDevPixels(const NSPoint& aPt) const {
     return nsCocoaUtils::CocoaPointsToDevPixels(aPt, BackingScaleFactor());
+  }
+  LayoutDeviceIntPoint CocoaPointsToDevPixelsRoundDown(const NSPoint& aPt) const {
+    return nsCocoaUtils::CocoaPointsToDevPixelsRoundDown(aPt, BackingScaleFactor());
   }
   LayoutDeviceIntRect CocoaPointsToDevPixels(const NSRect& aRect) const {
     return nsCocoaUtils::CocoaPointsToDevPixels(aRect, BackingScaleFactor());

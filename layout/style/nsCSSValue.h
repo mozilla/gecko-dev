@@ -12,11 +12,9 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/SheetType.h"
 #include "mozilla/StyleComplexColor.h"
+#include "mozilla/URLExtraData.h"
 #include "mozilla/UniquePtr.h"
 
-#include "nsIPrincipal.h"
-#include "nsIURI.h"
-#include "nsCOMPtr.h"
 #include "nsCSSKeywords.h"
 #include "nsCSSPropertyID.h"
 #include "nsCSSProps.h"
@@ -101,19 +99,15 @@ protected:
   // over.
 
   // For both constructors aString must not be null.
-  // For both constructors aOriginPrincipal must not be null.
+  // For both constructors principal of aExtraData must not be null.
   // Construct with a base URI; this will create the actual URI lazily from
-  // aString and aBaseURI.
-  URLValueData(nsStringBuffer* aString,
-               already_AddRefed<PtrHolder<nsIURI>> aBaseURI,
-               already_AddRefed<PtrHolder<nsIURI>> aReferrer,
-               already_AddRefed<PtrHolder<nsIPrincipal>> aOriginPricinpal);
+  // aString and aExtraData.
+  URLValueData(const nsAString& aString,
+               already_AddRefed<URLExtraData> aExtraData);
   // Construct with the actual URI.
   URLValueData(already_AddRefed<PtrHolder<nsIURI>> aURI,
-               nsStringBuffer* aString,
-               already_AddRefed<PtrHolder<nsIURI>> aBaseURI,
-               already_AddRefed<PtrHolder<nsIURI>> aReferrer,
-               already_AddRefed<PtrHolder<nsIPrincipal>> aOriginPrincipal);
+               const nsAString& aString,
+               already_AddRefed<URLExtraData> aExtraData);
 
 public:
   // Returns true iff all fields of the two URLValueData objects are equal.
@@ -137,9 +131,17 @@ public:
 
   nsIURI* GetURI() const;
 
-  bool IsLocalRef() const { return mIsLocalRef; }
+  bool IsLocalRef() const;
 
   bool HasRef() const;
+
+  // This function takes a guess whether the URL has a fragment, by searching
+  // for a hash character. It definitely returns false if we know it can't
+  // have a fragment because it has no hash character.
+  //
+  // MightHaveRef can be used in any thread, whereas HasRef can only be used
+  // in the main thread.
+  bool MightHaveRef() const;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(URLValueData)
 
@@ -159,14 +161,13 @@ private:
   // invalid, even once resolved.
   mutable PtrHandle<nsIURI> mURI;
 public:
-  PtrHandle<nsIURI> mBaseURI;
-  RefPtr<nsStringBuffer> mString;
-  PtrHandle<nsIURI> mReferrer;
-  PtrHandle<nsIPrincipal> mOriginPrincipal;
+  nsString mString;
+  RefPtr<URLExtraData> mExtraData;
 private:
   mutable bool mURIResolved;
   // mIsLocalRef is set when url starts with a U+0023 number sign(#) character.
-  bool mIsLocalRef;
+  mutable Maybe<bool> mIsLocalRef;
+  mutable Maybe<bool> mMightHaveRef;
 
 protected:
   virtual ~URLValueData() = default;
@@ -181,18 +182,15 @@ private:
 struct URLValue final : public URLValueData
 {
   // These two constructors are safe to call only on the main thread.
-  URLValue(nsStringBuffer* aString, nsIURI* aBaseURI, nsIURI* aReferrer,
+  URLValue(const nsAString& aString, nsIURI* aBaseURI, nsIURI* aReferrer,
            nsIPrincipal* aOriginPrincipal);
-  URLValue(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aBaseURI,
+  URLValue(nsIURI* aURI, const nsAString& aString, nsIURI* aBaseURI,
            nsIURI* aReferrer, nsIPrincipal* aOriginPrincipal);
 
   // This constructor is safe to call from any thread.
-  URLValue(nsStringBuffer* aString,
-           already_AddRefed<PtrHolder<nsIURI>> aBaseURI,
-           already_AddRefed<PtrHolder<nsIURI>> aReferrer,
-           already_AddRefed<PtrHolder<nsIPrincipal>> aOriginPrincipal)
-    : URLValueData(aString, Move(aBaseURI), Move(aReferrer),
-                   Move(aOriginPrincipal)) {}
+  URLValue(const nsAString& aString,
+           already_AddRefed<URLExtraData> aExtraData)
+    : URLValueData(aString, Move(aExtraData)) {}
 
   URLValue(const URLValue&) = delete;
   URLValue& operator=(const URLValue&) = delete;
@@ -205,19 +203,16 @@ struct ImageValue final : public URLValueData
   // Not making the constructor and destructor inline because that would
   // force us to include imgIRequest.h, which leads to REQUIRES hell, since
   // this header is included all over.
-  // aString must not be null.
   //
   // This constructor is only safe to call from the main thread.
-  ImageValue(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aBaseURI,
-             nsIURI* aReferrer, nsIPrincipal* aOriginPrincipal,
+  ImageValue(nsIURI* aURI, const nsAString& aString,
+             already_AddRefed<URLExtraData> aExtraData,
              nsIDocument* aDocument);
 
   // This constructor is safe to call from any thread, but Initialize
   // must be called later for the object to be useful.
-  ImageValue(nsStringBuffer* aString,
-             already_AddRefed<PtrHolder<nsIURI>> aBaseURI,
-             already_AddRefed<PtrHolder<nsIURI>> aReferrer,
-             already_AddRefed<PtrHolder<nsIPrincipal>> aOriginPrincipal);
+  ImageValue(const nsAString& aString,
+             already_AddRefed<URLExtraData> aExtraData);
 
   ImageValue(const ImageValue&) = delete;
   ImageValue& operator=(const ImageValue&) = delete;
@@ -235,9 +230,7 @@ public:
   nsRefPtrHashtable<nsPtrHashKey<nsIDocument>, imgRequestProxy> mRequests;
 
 private:
-#ifdef DEBUG
-  bool mInitialized = false;
-#endif
+  bool mLoadedImage = false;
 };
 
 struct GridNamedArea {
@@ -282,7 +275,7 @@ struct GridTemplateAreasValue final {
     return !(*this == aOther);
   }
 
-  NS_INLINE_DECL_REFCOUNTING(GridTemplateAreasValue)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GridTemplateAreasValue)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -443,9 +436,9 @@ enum nsCSSUnit {
   eCSSUnit_Font_Format  = 16,     // (char16_t*) a font format name
   eCSSUnit_Element      = 17,     // (char16_t*) an element id
 
-  eCSSUnit_Counter      = 20,     // (nsCSSValue::ThreadSafeArray*) a counter(string,[string]) value
-  eCSSUnit_Counters     = 21,     // (nsCSSValue::ThreadSafeArray*) a counters(string,string[,string]) value
-  eCSSUnit_Array        = 22,     // (nsCSSValue::Array*) a list of values
+  eCSSUnit_Array        = 20,     // (nsCSSValue::Array*) a list of values
+  eCSSUnit_Counter      = 21,     // (nsCSSValue::Array*) a counter(string,[string]) value
+  eCSSUnit_Counters     = 22,     // (nsCSSValue::Array*) a counters(string,string[,string]) value
   eCSSUnit_Cubic_Bezier = 23,     // (nsCSSValue::Array*) a list of float values
   eCSSUnit_Steps        = 24,     // (nsCSSValue::Array*) a list of (integer, enumerated)
   eCSSUnit_Symbols      = 25,     // (nsCSSValue::Array*) a symbols(enumerated, symbols) value
@@ -582,8 +575,6 @@ class nsCSSValue {
 public:
   struct Array;
   friend struct Array;
-  struct ThreadSafeArray;
-  friend struct ThreadSafeArray;
 
   friend struct mozilla::css::URLValueData;
 
@@ -681,8 +672,6 @@ public:
 
   bool      UnitHasStringValue() const
     { return eCSSUnit_String <= mUnit && mUnit <= eCSSUnit_Element; }
-  bool      UnitHasThreadSafeArrayValue() const
-    { return eCSSUnit_Counter <= mUnit && mUnit <= eCSSUnit_Counters; }
   bool      UnitHasArrayValue() const
     { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Divided; }
 
@@ -787,12 +776,6 @@ public:
     return mValue.mArray;
   }
 
-  ThreadSafeArray* GetThreadSafeArrayValue() const
-  {
-    MOZ_ASSERT(UnitHasThreadSafeArrayValue(), "not a threadsafe array value");
-    return mValue.mThreadSafeArray;
-  }
-
   nsIURI* GetURLValue() const
   {
     MOZ_ASSERT(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
@@ -870,9 +853,9 @@ public:
   {
     MOZ_ASSERT(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
                "not a URL value");
-    return GetBufferValue(mUnit == eCSSUnit_URL ?
-                            mValue.mURL->mString :
-                            mValue.mImage->mString);
+    return mUnit == eCSSUnit_URL ?
+             mValue.mURL->mString.get() :
+             mValue.mImage->mString.get();
   }
 
   // Not making this inline because that would force us to include
@@ -920,6 +903,7 @@ public:
   void SetPercentValue(float aValue);
   void SetFloatValue(float aValue, nsCSSUnit aUnit);
   void SetStringValue(const nsString& aValue, nsCSSUnit aUnit);
+  void SetAtomIdentValue(already_AddRefed<nsIAtom> aValue);
   void SetColorValue(nscolor aValue);
   void SetIntegerColorValue(nscolor aValue, nsCSSUnit aUnit);
   // converts the nscoord to pixels
@@ -932,7 +916,6 @@ public:
   void SetComplexColorValue(
     already_AddRefed<mozilla::css::ComplexColorValue> aValue);
   void SetArrayValue(nsCSSValue::Array* aArray, nsCSSUnit aUnit);
-  void SetThreadSafeArrayValue(nsCSSValue::ThreadSafeArray* aArray, nsCSSUnit aUnit);
   void SetURLValue(mozilla::css::URLValue* aURI);
   void SetImageValue(mozilla::css::ImageValue* aImage);
   void SetGradientValue(nsCSSValueGradient* aGradient);
@@ -1033,7 +1016,6 @@ protected:
     nscolor    mColor;
     nsIAtom* MOZ_OWNING_REF mAtom;
     Array* MOZ_OWNING_REF mArray;
-    ThreadSafeArray* MOZ_OWNING_REF mThreadSafeArray;
     mozilla::css::URLValue* MOZ_OWNING_REF mURL;
     mozilla::css::ImageValue* MOZ_OWNING_REF mImage;
     mozilla::css::GridTemplateAreasValue* MOZ_OWNING_REF mGridTemplateAreas;
@@ -1053,103 +1035,91 @@ protected:
   } mValue;
 };
 
-// We use this macro to declare equivalent logic for Array and ThreadSafeArray.
-// It would be much nicer to use a superclass, but the dynamically-sized nature
-// of the interesting part of the class makes that tricky.
-#define DECLARE_CSS_ARRAY(className, refcntMacro)                             \
-struct nsCSSValue::className final {                                          \
-                                                                              \
-  /* return this class with reference count of zero */                        \
-  static className* Create(size_t aItemCount) {                               \
-    return new (aItemCount) className(aItemCount);                            \
-  }                                                                           \
-                                                                              \
-  nsCSSValue& operator[](size_t aIndex) {                                     \
-    MOZ_ASSERT(aIndex < mCount, "out of range");                              \
-    return mArray[aIndex];                                                    \
-  }                                                                           \
-                                                                              \
-  const nsCSSValue& operator[](size_t aIndex) const {                         \
-    MOZ_ASSERT(aIndex < mCount, "out of range");                              \
-    return mArray[aIndex];                                                    \
-  }                                                                           \
-                                                                              \
-  nsCSSValue& Item(size_t aIndex) { return (*this)[aIndex]; }                 \
-  const nsCSSValue& Item(size_t aIndex) const { return (*this)[aIndex]; }     \
-                                                                              \
-  size_t Count() const { return mCount; }                                     \
-                                                                              \
-  /* callers depend on the items being contiguous */                          \
-  nsCSSValue* ItemStorage() {                                                 \
-    return this->First();                                                     \
-  }                                                                           \
-                                                                              \
-  bool operator==(const className& aOther) const                              \
-  {                                                                           \
-    if (mCount != aOther.mCount)                                              \
-      return false;                                                           \
-    for (size_t i = 0; i < mCount; ++i)                                       \
-      if ((*this)[i] != aOther[i])                                            \
-        return false;                                                         \
-    return true;                                                              \
-  }                                                                           \
-                                                                              \
-  refcntMacro(className);                                                     \
-private:                                                                      \
-                                                                              \
-  const size_t mCount;                                                        \
-  /* This must be the last sub-object, since we extend this array to  */      \
-  /* be of size mCount; it needs to be a sub-object so it gets proper */      \
-  /* alignment. */                                                            \
-  nsCSSValue mArray[1];                                                       \
-                                                                              \
-  void* operator new(size_t aSelfSize, size_t aItemCount) CPP_THROW_NEW {     \
-    MOZ_ASSERT(aItemCount > 0, "cannot have a 0 item count");                 \
-    return ::operator new(aSelfSize + sizeof(nsCSSValue) * (aItemCount - 1)); \
-  }                                                                           \
-                                                                              \
-  void operator delete(void* aPtr) { ::operator delete(aPtr); }               \
-                                                                              \
-  nsCSSValue* First() { return mArray; }                                      \
-                                                                              \
-  const nsCSSValue* First() const { return mArray; }                          \
-                                                                              \
-  explicit className(size_t aItemCount)                                       \
-    : mCount(aItemCount)                                                      \
-  {                                                                           \
-    for (nsCSSValue *val = First() + 1, *val_end = First() + mCount;          \
-         val != val_end; ++val)                                               \
-    {                                                                         \
-      new (val) nsCSSValue();                                                 \
-    }                                                                         \
-  }                                                                           \
-                                                                              \
-  ~className()                                                                \
-  {                                                                           \
-    for (nsCSSValue *val = First() + 1, *val_end = First() + mCount;          \
-         val != val_end; ++val)                                               \
-    {                                                                         \
-      val->~nsCSSValue();                                                     \
-    }                                                                         \
-  }                                                                           \
-                                                                              \
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const       \
-  {                                                                           \
-    size_t n = aMallocSizeOf(this);                                           \
-    for (size_t i = 0; i < mCount; i++) {                                     \
-      n += mArray[i].SizeOfExcludingThis(aMallocSizeOf);                      \
-    }                                                                         \
-    return n;                                                                 \
-  }                                                                           \
-                                                                              \
-private:                                                                      \
-  className(const className& aOther) = delete;                                \
-  className& operator=(const className& aOther) = delete;                     \
-};
+struct nsCSSValue::Array final {
 
-DECLARE_CSS_ARRAY(Array, NS_INLINE_DECL_REFCOUNTING)
-DECLARE_CSS_ARRAY(ThreadSafeArray, NS_INLINE_DECL_THREADSAFE_REFCOUNTING)
-#undef DECLARE_CSS_ARRAY
+  // return |Array| with reference count of zero
+  static Array* Create(size_t aItemCount) {
+    return new (aItemCount) Array(aItemCount);
+  }
+
+  nsCSSValue& operator[](size_t aIndex) {
+    MOZ_ASSERT(aIndex < mCount, "out of range");
+    return mArray[aIndex];
+  }
+
+  const nsCSSValue& operator[](size_t aIndex) const {
+    MOZ_ASSERT(aIndex < mCount, "out of range");
+    return mArray[aIndex];
+  }
+
+  nsCSSValue& Item(size_t aIndex) { return (*this)[aIndex]; }
+  const nsCSSValue& Item(size_t aIndex) const { return (*this)[aIndex]; }
+
+  size_t Count() const { return mCount; }
+
+  // callers depend on the items being contiguous
+  nsCSSValue* ItemStorage() {
+    return this->First();
+  }
+
+  bool operator==(const Array& aOther) const
+  {
+    if (mCount != aOther.mCount)
+      return false;
+    for (size_t i = 0; i < mCount; ++i)
+      if ((*this)[i] != aOther[i])
+        return false;
+    return true;
+  }
+
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Array);
+private:
+
+  const size_t mCount;
+  // This must be the last sub-object, since we extend this array to
+  // be of size mCount; it needs to be a sub-object so it gets proper
+  // alignment.
+  nsCSSValue mArray[1];
+
+  void* operator new(size_t aSelfSize, size_t aItemCount) CPP_THROW_NEW {
+    MOZ_ASSERT(aItemCount > 0, "cannot have a 0 item count");
+    return ::operator new(aSelfSize + sizeof(nsCSSValue) * (aItemCount - 1));
+  }
+
+  void operator delete(void* aPtr) { ::operator delete(aPtr); }
+
+  nsCSSValue* First() { return mArray; }
+
+  const nsCSSValue* First() const { return mArray; }
+
+#define CSSVALUE_LIST_FOR_EXTRA_VALUES(var)                                   \
+  for (nsCSSValue *var = First() + 1, *var##_end = First() + mCount;          \
+       var != var##_end; ++var)
+
+  explicit Array(size_t aItemCount)
+    : mRefCnt(0)
+    , mCount(aItemCount)
+  {
+    CSSVALUE_LIST_FOR_EXTRA_VALUES(val) {
+      new (val) nsCSSValue();
+    }
+  }
+
+  ~Array()
+  {
+    CSSVALUE_LIST_FOR_EXTRA_VALUES(val) {
+      val->~nsCSSValue();
+    }
+  }
+
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+#undef CSSVALUE_LIST_FOR_EXTRA_VALUES
+
+private:
+  Array(const Array& aOther) = delete;
+  Array& operator=(const Array& aOther) = delete;
+};
 
 // Prefer nsCSSValue::Array for lists of fixed size.
 struct nsCSSValueList {
@@ -1660,7 +1630,11 @@ struct nsCSSValueGradient final {
   // true if gradient is radial, false if it is linear
   bool mIsRadial;
   bool mIsRepeating;
-  bool mIsLegacySyntax;
+  bool mIsLegacySyntax; // If true, serialization should use a vendor prefix.
+  // XXXdholbert This will hopefully be going away soon, if bug 1337655 sticks:
+  bool mIsMozLegacySyntax; // (Only makes sense when mIsLegacySyntax is true.)
+                           // If true, serialization should use -moz prefix.
+                           // Else, serialization should use -webkit prefix.
   bool mIsExplicitSize;
   // line position and angle
   nsCSSValuePair mBgPos;
@@ -1718,6 +1692,7 @@ public:
     if (mIsRadial != aOther.mIsRadial ||
         mIsRepeating != aOther.mIsRepeating ||
         mIsLegacySyntax != aOther.mIsLegacySyntax ||
+        mIsMozLegacySyntax != aOther.mIsMozLegacySyntax ||
         mIsExplicitSize != aOther.mIsExplicitSize ||
         mBgPos != aOther.mBgPos ||
         mAngle != aOther.mAngle ||

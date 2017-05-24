@@ -793,6 +793,28 @@ gfxPlatformFontList::GetStandardFamilyName(const nsAString& aFontName, nsAString
     return true;
 }
 
+gfxFontFamily*
+gfxPlatformFontList::GetDefaultFontFamily(const nsACString& aLangGroup,
+                                          const nsACString& aGenericFamily)
+{
+    if (NS_WARN_IF(aLangGroup.IsEmpty()) ||
+        NS_WARN_IF(aGenericFamily.IsEmpty())) {
+        return nullptr;
+    }
+
+    AutoTArray<nsString,4> names;
+    gfxFontUtils::AppendPrefsFontList(
+        NameListPref(aGenericFamily, aLangGroup).get(), names);
+
+    for (nsString& name : names) {
+        gfxFontFamily* fontFamily = FindFamily(name);
+        if (fontFamily) {
+            return fontFamily;
+        }
+    }
+    return nullptr;
+}
+
 gfxCharacterMap*
 gfxPlatformFontList::FindCharMap(gfxCharacterMap *aCmap)
 {
@@ -844,18 +866,12 @@ gfxPlatformFontList::ResolveGenericFontNames(
     AutoTArray<nsString,4> genericFamilies;
 
     // load family for "font.name.generic.lang"
-    nsAutoCString prefFontName("font.name.");
-    prefFontName.Append(generic);
-    prefFontName.Append('.');
-    prefFontName.Append(langGroupStr);
-    gfxFontUtils::AppendPrefsFontList(prefFontName.get(), genericFamilies);
+    gfxFontUtils::AppendPrefsFontList(
+        NamePref(generic, langGroupStr).get(), genericFamilies);
 
     // load fonts for "font.name-list.generic.lang"
-    nsAutoCString prefFontListName("font.name-list.");
-    prefFontListName.Append(generic);
-    prefFontListName.Append('.');
-    prefFontListName.Append(langGroupStr);
-    gfxFontUtils::AppendPrefsFontList(prefFontListName.get(), genericFamilies);
+    gfxFontUtils::AppendPrefsFontList(
+        NameListPref(generic, langGroupStr).get(), genericFamilies);
 
     nsIAtom* langGroup = GetLangGroupForPrefLang(aPrefLang);
     NS_ASSERTION(langGroup, "null lang group for pref lang");
@@ -1225,12 +1241,18 @@ gfxPlatformFontList::GetFontFamilyNames(nsTArray<nsString>& aFontFamilyNames)
     }
 }
 
-nsILanguageAtomService*
-gfxPlatformFontList::GetLangService()
+void
+gfxPlatformFontList::InitLangService()
 {
     if (!mLangService) {
         mLangService = do_GetService(NS_LANGUAGEATOMSERVICE_CONTRACTID);
     }
+}
+
+nsILanguageAtomService*
+gfxPlatformFontList::GetLangService()
+{
+    InitLangService();
     NS_ASSERTION(mLangService, "no language service!");
     return mLangService;
 }

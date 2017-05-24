@@ -89,9 +89,14 @@ already_AddRefed<nsStyleContext>
 StyleSetHandle::Ptr::ResolveStyleFor(dom::Element* aElement,
                                      nsStyleContext* aParentContext,
                                      LazyComputeBehavior aMayCompute,
-                                     TreeMatchContext& aTreeMatchContext)
+                                     TreeMatchContext* aTreeMatchContext)
 {
-  FORWARD(ResolveStyleFor, (aElement, aParentContext, aMayCompute, aTreeMatchContext));
+  if (IsGecko()) {
+    MOZ_ASSERT(aTreeMatchContext);
+    return AsGecko()->ResolveStyleFor(aElement, aParentContext, aMayCompute, *aTreeMatchContext);
+  } else {
+    return AsServo()->ResolveStyleFor(aElement, aParentContext, aMayCompute);
+  }
 }
 
 already_AddRefed<nsStyleContext>
@@ -123,14 +128,11 @@ StyleSetHandle::Ptr::ResolvePseudoElementStyle(dom::Element* aParentElement,
                                       aPseudoElement));
 }
 
-// aFlags is an nsStyleSet flags bitfield
 already_AddRefed<nsStyleContext>
 StyleSetHandle::Ptr::ResolveInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag,
-                                                        nsStyleContext* aParentContext,
-                                                        uint32_t aFlags)
+                                                        nsStyleContext* aParentContext)
 {
-  FORWARD(ResolveInheritingAnonymousBoxStyle, (aPseudoTag, aParentContext,
-                                               aFlags));
+  FORWARD(ResolveInheritingAnonymousBoxStyle, (aPseudoTag, aParentContext));
 }
 
 already_AddRefed<nsStyleContext>
@@ -188,7 +190,7 @@ StyleSetHandle::Ptr::InsertStyleSheetBefore(SheetType aType,
   FORWARD_CONCRETE(
     InsertStyleSheetBefore,
     (aType, aNewSheet->AsGecko(), aReferenceSheet->AsGecko()),
-    (aType, aReferenceSheet->AsServo(), aReferenceSheet->AsServo()));
+    (aType, aNewSheet->AsServo(), aReferenceSheet->AsServo()));
 }
 
 int32_t
@@ -231,11 +233,17 @@ already_AddRefed<nsStyleContext>
 StyleSetHandle::Ptr::ProbePseudoElementStyle(dom::Element* aParentElement,
                                              CSSPseudoElementType aType,
                                              nsStyleContext* aParentContext,
-                                             TreeMatchContext& aTreeMatchContext,
+                                             TreeMatchContext* aTreeMatchContext,
                                              dom::Element* aPseudoElement)
 {
-  FORWARD(ProbePseudoElementStyle, (aParentElement, aType, aParentContext,
-                                    aTreeMatchContext, aPseudoElement));
+  if (IsGecko()) {
+    MOZ_ASSERT(aTreeMatchContext);
+    return AsGecko()->ProbePseudoElementStyle(aParentElement, aType, aParentContext,
+                                              *aTreeMatchContext, aPseudoElement);
+  } else {
+    return AsServo()->ProbePseudoElementStyle(aParentElement, aType, aParentContext,
+                                              aPseudoElement);
+  }
 }
 
 nsRestyleHint
@@ -273,6 +281,19 @@ StyleSetHandle::Ptr::RootStyleContextRemoved()
   } else {
     // Not needed.
   }
+}
+
+bool
+StyleSetHandle::Ptr::
+AppendFontFaceRules(nsTArray<nsFontFaceRuleContainer>& aArray)
+{
+  FORWARD(AppendFontFaceRules, (aArray));
+}
+
+nsCSSCounterStyleRule*
+StyleSetHandle::Ptr::CounterStyleRuleForName(nsIAtom* aName)
+{
+  FORWARD(CounterStyleRuleForName, (aName));
 }
 
 } // namespace mozilla

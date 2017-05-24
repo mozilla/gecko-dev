@@ -35,6 +35,8 @@ from voluptuous import (
 
 import copy
 import logging
+import requests
+from collections import defaultdict
 
 WORKER_TYPE = {
     # default worker types keyed by instance-size
@@ -42,11 +44,13 @@ WORKER_TYPE = {
     'xlarge': 'aws-provisioner-v1/gecko-t-linux-xlarge',
     'legacy': 'aws-provisioner-v1/gecko-t-linux-medium',
     'default': 'aws-provisioner-v1/gecko-t-linux-large',
-    # windows worker types keyed by test-platform
+    # windows / os x worker types keyed by test-platform
     'windows7-32-vm': 'aws-provisioner-v1/gecko-t-win7-32',
     'windows7-32': 'aws-provisioner-v1/gecko-t-win7-32-gpu',
     'windows10-64-vm': 'aws-provisioner-v1/gecko-t-win10-64',
-    'windows10-64': 'aws-provisioner-v1/gecko-t-win10-64-gpu'
+    'windows10-64': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
+    'windows10-64-asan': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
+    'macosx64': 'scl3-puppet/os-x-10-10-gw'
 }
 
 logger = logging.getLogger(__name__)
@@ -72,11 +76,9 @@ test_description_schema = Schema({
         basestring),
 
     # the name by which this test suite is addressed in try syntax; defaults to
-    # the test-name
-    Optional('unittest-try-name'): basestring,
-
-    # the name by which this talos test is addressed in try syntax
-    Optional('talos-try-name'): basestring,
+    # the test-name.  This will translate to the `unittest_try_name` or
+    # `talos_try_name` attribute.
+    Optional('try-name'): basestring,
 
     # additional tags to mark up this type of test
     Optional('tags'): {basestring: object},
@@ -97,9 +99,13 @@ test_description_schema = Schema({
     # The `run_on_projects` attribute, defaulting to "all".  This dictates the
     # projects on which this task should be included in the target task set.
     # See the attributes documentation for details.
-    Optional('run-on-projects', default=['all']): optionally_keyed_by(
+    #
+    # Note that the special case 'built-projects', the default, uses the parent
+    # build task's run-on-projects, meaning that tests run only on platforms
+    # that are built.
+    Optional('run-on-projects', default='built-projects'): optionally_keyed_by(
         'test-platform',
-        [basestring]),
+        Any([basestring], 'built-projects')),
 
     # the sheriffing tier for this task (default: set based on test platform)
     Optional('tier'): optionally_keyed_by(
@@ -124,6 +130,9 @@ test_description_schema = Schema({
     Required('e10s', default='both'): optionally_keyed_by(
         'test-platform', 'project',
         Any(bool, 'both')),
+
+    # Whether the task should run with WebRender enabled or not.
+    Optional('webrender', default=False): bool,
 
     # The EC2 instance size to run these tests on.
     Required('instance-size', default='default'): optionally_keyed_by(
@@ -266,6 +275,9 @@ test_description_schema = Schema({
     # the label of the build task generating the materials to test
     'build-label': basestring,
 
+    # the build's attributes
+    'build-attributes': {basestring: object},
+
     # the platform on which the tests will run
     'test-platform': basestring,
 
@@ -322,9 +334,20 @@ def set_defaults(config, tests):
         else:
             test['allow-software-gl-layers'] = False
 
+        # Enable WebRender by default on the QuantumRender test platform, since
+        # the whole point of QuantumRender is to run with WebRender enabled.
+        # If other *-qr test platforms are added they should also be checked for
+        # here; currently linux64-qr is the only one.
+        if test['test-platform'].startswith('linux64-qr'):
+            test['webrender'] = True
+        else:
+            test.setdefault('webrender', False)
+
+        test.setdefault('try-name', test['test-name'])
+
         test.setdefault('os-groups', [])
         test.setdefault('chunks', 1)
-        test.setdefault('run-on-projects', ['all'])
+        test.setdefault('run-on-projects', 'built-projects')
         test.setdefault('instance-size', 'default')
         test.setdefault('max-run-time', 3600)
         test.setdefault('reboot', True)
@@ -337,9 +360,20 @@ def set_target(config, tests):
     for test in tests:
         build_platform = test['build-platform']
         if build_platform.startswith('macosx'):
-            target = 'target.dmg'
+            if build_platform.split('/')[1] == 'opt':
+                target = 'firefox-{}.en-US.{}.dmg'.format(
+                    get_firefox_version(),
+                    'mac',
+                )
+            else:
+                target = 'target.dmg'
         elif build_platform.startswith('android'):
-            target = 'target.apk'
+            if 'geckoview' in test['test-name']:
+                target = 'geckoview_example.apk'
+            else:
+                target = 'target.apk'
+        elif build_platform.startswith('win'):
+            target = 'target.zip'
         else:
             target = 'target.tar.bz2'
         test['mozharness']['build-artifact-name'] = 'public/build/' + target
@@ -356,6 +390,7 @@ def set_treeherder_machine_platform(config, tests):
         'linux64-pgo/opt': 'linux64/pgo',
         'macosx64/debug': 'osx-10-10/debug',
         'macosx64/opt': 'osx-10-10/opt',
+        'win64-asan/opt': 'windows10-64/asan',
         # The build names for Android platforms have partially evolved over the
         # years and need to be translated.
         'android-api-15/debug': 'android-4-3-armv7-api15/debug',
@@ -370,31 +405,22 @@ def set_treeherder_machine_platform(config, tests):
 
 
 @transforms.add
-def set_asan_docker_image(config, tests):
-    """Set the appropriate task.extra.treeherder.docker-image"""
-    # Linux64-asan has many leaks with running mochitest-media jobs
-    # on Ubuntu 16.04, please remove this when bug 1289209 is resolved
-    for test in tests:
-        if test['suite'] == 'mochitest/mochitest-media' and \
-           test['build-platform'] == 'linux64-asan/opt':
-            test['docker-image'] = {"in-tree": "desktop-test"}
-        yield test
-
-
-@transforms.add
 def set_worker_implementation(config, tests):
     """Set the worker implementation based on the test platform."""
-    use_tc_worker = config.config['args'].taskcluster_worker
     for test in tests:
-        if test['test-platform'].startswith('macosx'):
-            test['worker-implementation'] = \
-                'native-engine' if use_tc_worker else 'buildbot-bridge'
+        test_platform = test['test-platform']
+        if test_platform.startswith('macosx'):
+            if config.config['args'].taskcluster_worker:
+                test['worker-implementation'] = 'native-engine'
+            else:
+                test['worker-implementation'] = 'generic-worker'
         elif test.get('suite', '') == 'talos':
             test['worker-implementation'] = 'buildbot-bridge'
-        elif test['test-platform'].startswith('win'):
+        elif test_platform.startswith('win'):
             test['worker-implementation'] = 'generic-worker'
         else:
             test['worker-implementation'] = 'docker-worker'
+
         yield test
 
 
@@ -420,8 +446,7 @@ def set_tier(config, tests):
                                          'android-4.3-arm7-api-15/debug',
                                          'android-4.2-x86/opt']:
                 test['tier'] = 1
-            elif test['test-platform'].startswith('windows') \
-                    or test['worker-implementation'] == 'native-engine':
+            elif test['worker-implementation'] == 'native-engine':
                 test['tier'] = 3
             else:
                 test['tier'] = 2
@@ -449,7 +474,8 @@ def set_download_symbols(config, tests):
     for test in tests:
         if test['test-platform'].split('/')[-1] == 'debug':
             test['mozharness']['download-symbols'] = True
-        elif test['build-platform'] == 'linux64-asan/opt':
+        elif test['build-platform'] == 'linux64-asan/opt' or \
+                test['build-platform'] == 'windows10-64-asan/opt':
             if 'download-symbols' in test['mozharness']:
                 del test['mozharness']['download-symbols']
         else:
@@ -495,6 +521,15 @@ def enable_code_coverage(config, tests):
 
 
 @transforms.add
+def handle_run_on_projects(config, tests):
+    """Handle translating `built-projects` appropriately"""
+    for test in tests:
+        if test['run-on-projects'] == 'built-projects':
+            test['run-on-projects'] = test['build-attributes'].get('run_on_projects', ['all'])
+        yield test
+
+
+@transforms.add
 def split_e10s(config, tests):
     for test in tests:
         e10s = test['e10s']
@@ -508,13 +543,19 @@ def split_e10s(config, tests):
             e10s = True
         if e10s:
             test['test-name'] += '-e10s'
+            test['try-name'] += '-e10s'
             test['e10s'] = True
             test['attributes']['e10s'] = True
             group, symbol = split_symbol(test['treeherder-symbol'])
             if group != '?':
                 group += '-e10s'
             test['treeherder-symbol'] = join_symbol(group, symbol)
-            test['mozharness']['extra-options'].append('--e10s')
+            if test['suite'] == 'talos':
+                for i, option in enumerate(test['mozharness']['extra-options']):
+                    if option.startswith('--suite='):
+                        test['mozharness']['extra-options'][i] += '-e10s'
+            else:
+                test['mozharness']['extra-options'].append('--e10s')
         yield test
 
 
@@ -561,6 +602,20 @@ def allow_software_gl_layers(config, tests):
 
 
 @transforms.add
+def enable_webrender(config, tests):
+    """
+    Handle the "webrender" property by passing a flag to mozharness if it is
+    enabled.
+    """
+    for test in tests:
+        if test.get('webrender'):
+            test['mozharness'].setdefault('extra-options', [])\
+                              .append("--enable-webrender")
+
+        yield test
+
+
+@transforms.add
 def set_retry_exit_status(config, tests):
     """Set the retry exit status to TBPL_RETRY, the value returned by mozharness
        scripts to indicate a transient failure that should be retried."""
@@ -574,7 +629,7 @@ def set_profile(config, tests):
     """Set profiling mode for tests."""
     for test in tests:
         if config.config['args'].profile and test['suite'] == 'talos':
-            test['mozharness']['extra-options'].append('--spsProfile')
+            test['mozharness']['extra-options'].append('--geckoProfile')
         yield test
 
 
@@ -593,9 +648,9 @@ def remove_linux_pgo_try_talos(config, tests):
     """linux64-pgo talos tests don't run on try."""
     def predicate(test):
         return not(
-            test['test-platform'] == 'linux64-pgo/opt'
-            and (test['suite'] == 'talos' or test['suite'] == 'awsy')
-            and config.params['project'] == 'try'
+            test['test-platform'] == 'linux64-pgo/opt' and
+            (test['suite'] == 'talos' or test['suite'] == 'awsy') and
+            config.params['project'] == 'try'
         )
     for test in filter(predicate, tests):
         yield test
@@ -611,6 +666,62 @@ def set_test_type(config, tests):
 
 
 @transforms.add
+def parallel_stylo_tests(config, tests):
+    """Ensure that any stylo tests running with e10s enabled also test
+    parallel traversal in the style system."""
+
+    for test in tests:
+        if (not test['test-platform'].startswith('linux64-stylo/')) and \
+           (not test['test-platform'].startswith('linux64-stylo-sequential/')):
+            yield test
+            continue
+
+        e10s = test['e10s']
+        # We should have already handled 'both' in an earlier transform.
+        assert e10s != 'both'
+        if not e10s:
+            yield test
+            continue
+
+        # Bug 1356122 - Run Stylo tests in sequential mode
+        if test['test-platform'].startswith('linux64-stylo-sequential/'):
+            yield test
+
+        if test['test-platform'].startswith('linux64-stylo/'):
+            # add parallel stylo tests
+            test['mozharness'].setdefault('extra-options', [])\
+                              .append('--parallel-stylo-traversal')
+            yield test
+
+
+@transforms.add
+def allocate_to_bbb(config, tests):
+    """Make the load balancing between taskcluster and buildbot"""
+    j = get_load_balacing_settings()
+
+    tests_set = defaultdict(list)
+    for test in tests:
+        tests_set[test['test-platform']].append(test)
+
+    # Make the load balancing between taskcluster and buildbot
+    for test_platform, t in tests_set.iteritems():
+        # We sort the list to make the order of the tasks deterministic
+        t.sort(key=lambda x: (x['test-name'], x.get('this_chunk', 1)))
+        # The json file tells the percentage of tasks that run on
+        # taskcluster. The logic here is inverted, as tasks have been
+        # previously assigned to taskcluster. Therefore we assign the
+        # 1-p tasks to buildbot-bridge.
+        n = j.get(test_platform, 1.0)
+        if not (test_platform.startswith('mac')
+                and config.config['args'].taskcluster_worker):
+            for i in range(int(n * len(t)), len(t)):
+                t[i]['worker-implementation'] = 'buildbot-bridge'
+
+        for y in t:
+            yield y
+
+
+@transforms.add
 def make_job_description(config, tests):
     """Convert *test* descriptions to *job* descriptions (input to
     taskgraph.transforms.job)"""
@@ -622,11 +733,10 @@ def make_job_description(config, tests):
 
         build_label = test['build-label']
 
-        if 'talos-try-name' in test:
-            try_name = test['talos-try-name']
+        try_name = test['try-name']
+        if test['suite'] == 'talos':
             attr_try_name = 'talos_try_name'
         else:
-            try_name = test.get('unittest-try-name', test['test-name'])
             attr_try_name = 'unittest_try_name'
 
         attr_build_platform, attr_build_type = test['build-platform'].split('/', 1)
@@ -641,8 +751,7 @@ def make_job_description(config, tests):
         attributes.update({
             'build_platform': attr_build_platform,
             'build_type': attr_build_type,
-            # only keep the first portion of the test platform
-            'test_platform': test['test-platform'].split('/')[0],
+            'test_platform': test['test-platform'],
             'test_chunk': str(test['this-chunk']),
             'unittest_suite': suite,
             'unittest_flavor': flavor,
@@ -659,7 +768,7 @@ def make_job_description(config, tests):
         jobdesc['dependencies'] = {'build': build_label}
         jobdesc['expires-after'] = test['expires-after']
         jobdesc['routes'] = []
-        jobdesc['run-on-projects'] = test.get('run-on-projects', ['all'])
+        jobdesc['run-on-projects'] = test['run-on-projects']
         jobdesc['scopes'] = []
         jobdesc['tags'] = test.get('tags', {})
         jobdesc['optimizations'] = [['seta']]  # always run SETA for tests
@@ -711,3 +820,11 @@ def normpath(path):
 def get_firefox_version():
     with open('browser/config/version.txt', 'r') as f:
         return f.readline().strip()
+
+
+def get_load_balacing_settings():
+    url = "https://s3.amazonaws.com/taskcluster-graph-scheduling/tests-load.json"
+    try:
+        return requests.get(url).json()
+    except Exception:
+        return {}

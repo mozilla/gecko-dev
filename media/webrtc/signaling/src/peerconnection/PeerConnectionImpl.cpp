@@ -18,6 +18,7 @@
 #include "pk11pub.h"
 
 #include "nsNetCID.h"
+#include "nsILoadContext.h"
 #include "nsIProperty.h"
 #include "nsIPropertyBag2.h"
 #include "nsIServiceManager.h"
@@ -59,6 +60,7 @@
 #include "nsIDocument.h"
 #include "nsGlobalWindow.h"
 #include "nsDOMDataChannel.h"
+#include "mozilla/dom/Location.h"
 #include "mozilla/dom/Performance.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Telemetry.h"
@@ -73,7 +75,6 @@
 #include "nsNetUtil.h"
 #include "nsIURLParser.h"
 #include "nsIDOMDataChannel.h"
-#include "nsIDOMLocation.h"
 #include "NullPrincipal.h"
 #include "mozilla/PeerIdentity.h"
 #include "mozilla/dom/RTCCertificate.h"
@@ -608,9 +609,10 @@ PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
 
   nsAutoCString locationCStr;
 
-  if (nsCOMPtr<nsIDOMLocation> location = mWindow->GetLocation()) {
+  if (RefPtr<Location> location = mWindow->GetLocation()) {
     nsAutoString locationAStr;
-    location->ToString(locationAStr);
+    res = location->ToString(locationAStr);
+    NS_ENSURE_SUCCESS(res, res);
 
     CopyUTF16toUTF8(locationAStr, locationCStr);
   }
@@ -2347,9 +2349,8 @@ PeerConnectionImpl::AddTrack(MediaStreamTrack& aTrack,
   return NS_OK;
 }
 
-nsresult
-PeerConnectionImpl::SelectSsrc(MediaStreamTrack& aRecvTrack,
-                               unsigned short aSsrcIndex)
+RefPtr<MediaPipeline>
+PeerConnectionImpl::GetMediaPipelineForTrack(MediaStreamTrack& aRecvTrack)
 {
   for (size_t i = 0; i < mMedia->RemoteStreamsLength(); ++i) {
     if (mMedia->GetRemoteStreamByIndex(i)->GetMediaStream()->
@@ -2358,9 +2359,32 @@ PeerConnectionImpl::SelectSsrc(MediaStreamTrack& aRecvTrack,
       std::string trackId = PeerConnectionImpl::GetTrackId(aRecvTrack);
       auto it = pipelines.find(trackId);
       if (it != pipelines.end()) {
-        it->second->SelectSsrc_m(aSsrcIndex);
+        return it->second;
       }
     }
+  }
+
+  return nullptr;
+}
+
+nsresult
+PeerConnectionImpl::AddRIDExtension(MediaStreamTrack& aRecvTrack,
+                                    unsigned short aExtensionId)
+{
+  RefPtr<MediaPipeline> pipeline = GetMediaPipelineForTrack(aRecvTrack);
+  if (pipeline) {
+    pipeline->AddRIDExtension_m(aExtensionId);
+  }
+  return NS_OK;
+}
+
+nsresult
+PeerConnectionImpl::AddRIDFilter(MediaStreamTrack& aRecvTrack,
+                                 const nsAString& aRid)
+{
+  RefPtr<MediaPipeline> pipeline = GetMediaPipelineForTrack(aRecvTrack);
+  if (pipeline) {
+    pipeline->AddRIDFilter_m(NS_ConvertUTF16toUTF8(aRid).get());
   }
   return NS_OK;
 }
@@ -3639,7 +3663,9 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
             s.mPacketsReceived.Construct(packetsReceived);
             s.mBytesReceived.Construct(bytesReceived);
             s.mPacketsLost.Construct(packetsLost);
-            s.mMozRtt.Construct(rtt);
+            if (rtt > 0) {
+              s.mRoundTripTime.Construct(rtt);
+            }
             query->report->mInboundRTPStreamStats.Value().AppendElement(s,
                                                                         fallible);
           }
@@ -3659,6 +3685,17 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
           s.mPacketsSent.Construct(mp.rtp_packets_sent());
           s.mBytesSent.Construct(mp.rtp_bytes_sent());
 
+          // Fill in packet type statistics
+          webrtc::RtcpPacketTypeCounter counters;
+          if (mp.Conduit()->GetSendPacketTypeStats(&counters)) {
+            s.mNackCount.Construct(counters.nack_packets);
+            // Fill in video only packet type stats
+            if (!isAudio) {
+              s.mFirCount.Construct(counters.fir_packets);
+              s.mPliCount.Construct(counters.pli_packets);
+            }
+          }
+
           // Lastly, fill in video encoder stats if this is video
           if (!isAudio) {
             double framerateMean;
@@ -3666,16 +3703,19 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
             double bitrateMean;
             double bitrateStdDev;
             uint32_t droppedFrames;
+            uint32_t framesEncoded;
             if (mp.Conduit()->GetVideoEncoderStats(&framerateMean,
                                                    &framerateStdDev,
                                                    &bitrateMean,
                                                    &bitrateStdDev,
-                                                   &droppedFrames)) {
+                                                   &droppedFrames,
+                                                   &framesEncoded)) {
               s.mFramerateMean.Construct(framerateMean);
               s.mFramerateStdDev.Construct(framerateStdDev);
               s.mBitrateMean.Construct(bitrateMean);
               s.mBitrateStdDev.Construct(bitrateStdDev);
               s.mDroppedFrames.Construct(droppedFrames);
+              s.mFramesEncoded.Construct(framesEncoded);
             }
           }
           query->report->mOutboundRTPStreamStats.Value().AppendElement(s,
@@ -3745,6 +3785,16 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
                                        &avSyncDelta)) {
             s.mMozJitterBufferDelay.Construct(jitterBufferDelay);
             s.mMozAvSyncDelay.Construct(avSyncDelta);
+          }
+        }
+        // Fill in packet type statistics
+        webrtc::RtcpPacketTypeCounter counters;
+        if (mp.Conduit()->GetRecvPacketTypeStats(&counters)) {
+          s.mNackCount.Construct(counters.nack_packets);
+          // Fill in video only packet type stats
+          if (!isAudio) {
+            s.mFirCount.Construct(counters.fir_packets);
+            s.mPliCount.Construct(counters.pli_packets);
           }
         }
         // Lastly, fill in video decoder stats if this is video

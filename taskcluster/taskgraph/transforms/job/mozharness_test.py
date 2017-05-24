@@ -169,56 +169,39 @@ def mozharness_test_on_docker(config, job, taskdesc):
 
 
 @run_job_using('generic-worker', 'mozharness-test', schema=mozharness_test_run_schema)
-def mozharness_test_on_windows(config, job, taskdesc):
+def mozharness_test_on_generic_worker(config, job, taskdesc):
     test = taskdesc['run']['test']
     mozharness = test['mozharness']
     worker = taskdesc['worker']
 
     artifacts = [
         {
-            'path': 'public\\logs\\localconfig.json',
-            'type': 'file'
-        },
-        {
-            'path': 'public\\logs\\log_critical.log',
-            'type': 'file'
-        },
-        {
-            'path': 'public\\logs\\log_error.log',
-            'type': 'file'
-        },
-        {
-            'path': 'public\\logs\\log_fatal.log',
-            'type': 'file'
-        },
-        {
-            'path': 'public\\logs\\log_info.log',
-            'type': 'file'
-        },
-        {
-            'path': 'public\\logs\\log_raw.log',
-            'type': 'file'
-        },
-        {
-            'path': 'public\\logs\\log_warning.log',
-            'type': 'file'
-        },
-        {
-            'path': 'public\\test_info',
+            'name': 'public/logs',
+            'path': 'logs',
             'type': 'directory'
-        }
+        },
     ]
 
+    # jittest doesn't have blob_upload_dir
+    if test['test-name'] != 'jittest':
+        artifacts.append({
+            'name': 'public/test_info',
+            'path': 'build/blobber_upload_dir',
+            'type': 'directory'
+        })
+
     build_platform = taskdesc['attributes']['build_platform']
+    build_type = taskdesc['attributes']['build_type']
 
-    target = 'firefox-{}.en-US.{}'.format(get_firefox_version(), build_platform)
+    if build_platform == 'macosx64' and build_type == 'opt':
+        target = 'firefox-{}.en-US.{}'.format(get_firefox_version(), 'mac')
+    else:
+        target = 'target'
 
-    installer_url = get_artifact_url(
-        '<build>', 'public/build/{}.zip'.format(target))
+    installer_url = get_artifact_url('<build>', mozharness['build-artifact-name'])
+
     test_packages_url = get_artifact_url(
         '<build>', 'public/build/{}.test_packages.json'.format(target))
-    mozharness_url = get_artifact_url(
-        '<build>', 'public/build/mozharness.zip')
 
     taskdesc['scopes'].extend(
         ['generic-worker:os-group:{}'.format(group) for group in test['os-groups']])
@@ -228,14 +211,48 @@ def mozharness_test_on_windows(config, job, taskdesc):
     worker['max-run-time'] = test['max-run-time']
     worker['artifacts'] = artifacts
 
-    # assemble the command line
-    mh_command = [
-        'c:\\mozilla-build\\python\\python.exe',
-        '-u',
-        'mozharness\\scripts\\' + normpath(mozharness['script'])
-    ]
+    # this list will get cleaned up / reduced / removed in bug 1354088
+    if build_platform.startswith('macosx'):
+        worker['env'] = {
+            'IDLEIZER_DISABLE_SHUTDOWN': 'true',
+            'LANG': 'en_US.UTF-8',
+            'LC_ALL': 'en_US.UTF-8',
+            'MOZ_HIDE_RESULTS_TABLE': '1',
+            'MOZ_NODE_PATH': '/usr/local/bin/node',
+            'MOZ_NO_REMOTE': '1',
+            'NO_EM_RESTART': '1',
+            'NO_FAIL_ON_TEST_ERRORS': '1',
+            'PATH': '/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
+            'SHELL': '/bin/bash',
+            'XPCOM_DEBUG_BREAK': 'warn',
+            'XPC_FLAGS': '0x0',
+            'XPC_SERVICE_NAME': '0'
+        }
+
+    if build_platform.startswith('macosx'):
+        mh_command = [
+            'python2.7',
+            '-u',
+            'mozharness/scripts/' + mozharness['script']
+        ]
+    elif build_platform.startswith('win'):
+        mh_command = [
+            'c:\\mozilla-build\\python\\python.exe',
+            '-u',
+            'mozharness\\scripts\\' + normpath(mozharness['script'])
+        ]
+    else:
+        mh_command = [
+            'python',
+            '-u',
+            'mozharness/scripts/' + mozharness['script']
+        ]
+
     for mh_config in mozharness['config']:
-        mh_command.extend(['--cfg', 'mozharness\\configs\\' + normpath(mh_config)])
+        cfg_path = 'mozharness/configs/' + mh_config
+        if build_platform.startswith('win'):
+            cfg_path = normpath(cfg_path)
+        mh_command.extend(['--cfg', cfg_path])
     mh_command.extend(mozharness.get('extra-options', []))
     if mozharness.get('no-read-buildbot-config'):
         mh_command.append('--no-read-buildbot-config')
@@ -246,6 +263,9 @@ def mozharness_test_on_windows(config, job, taskdesc):
             mh_command.extend(['--download-symbols', mozharness['download-symbols']])
         else:
             mh_command.extend(['--download-symbols', 'true'])
+    if mozharness.get('include-blob-upload-branch'):
+        mh_command.append('--blob-upload-branch=' + config.params['project'])
+    mh_command.extend(mozharness.get('extra-options', []))
 
     # TODO: remove the need for run['chunked']
     if mozharness.get('chunked') or test['chunks'] > 1:
@@ -259,16 +279,28 @@ def mozharness_test_on_windows(config, job, taskdesc):
                 if isinstance(c, basestring) and c.startswith('--test-suite'):
                     mh_command[i] += suffix
 
-    # bug 1311966 - symlink to artifacts until generic worker supports virtual artifact paths
-    artifact_link_commands = ['mklink /d %cd%\\public\\test_info %cd%\\build\\blobber_upload_dir']
-    for link in [a['path'] for a in artifacts if a['path'].startswith('public\\logs\\')]:
-        artifact_link_commands.append('mklink %cd%\\{} %cd%\\{}'.format(link, link[7:]))
+    worker['mounts'] = [{
+        'directory': '.',
+        'content': {
+            'artifact': 'public/build/mozharness.zip',
+            'task-id': {
+                'task-reference': '<build>'
+            }
+        },
+        'format': 'zip'
+    }]
 
-    worker['command'] = artifact_link_commands + [
-        {'task-reference': 'c:\\mozilla-build\\wget\\wget.exe {}'.format(mozharness_url)},
-        'c:\\mozilla-build\\info-zip\\unzip.exe mozharness.zip',
-        {'task-reference': ' '.join(mh_command)}
-    ]
+    if build_platform.startswith('win'):
+        worker['command'] = [
+            {'task-reference': ' '.join(mh_command)}
+        ]
+    else:
+        mh_command_task_ref = []
+        for token in mh_command:
+            mh_command_task_ref.append({'task-reference': token})
+        worker['command'] = [
+            mh_command_task_ref
+        ]
 
 
 @run_job_using('native-engine', 'mozharness-test', schema=mozharness_test_run_schema)
@@ -277,9 +309,14 @@ def mozharness_test_on_native_engine(config, job, taskdesc):
     mozharness = test['mozharness']
     worker = taskdesc['worker']
 
+    build_platform = taskdesc['attributes']['build_platform']
+    build_type = taskdesc['attributes']['build_type']
+    target = 'firefox-{}.en-US.{}'.format(get_firefox_version(), 'mac') \
+        if build_platform == 'macosx64' and build_type == 'opt' else 'target'
+
     installer_url = get_artifact_url('<build>', mozharness['build-artifact-name'])
     test_packages_url = get_artifact_url('<build>',
-                                         'public/build/target.test_packages.json')
+                                         'public/build/{}.test_packages.json'.format(target))
     mozharness_url = get_artifact_url('<build>',
                                       'public/build/mozharness.zip')
 
@@ -346,7 +383,7 @@ def mozharness_test_buildbot_bridge(config, job, taskdesc):
 
     branch = config.params['project']
     platform, build_type = test['build-platform'].split('/')
-    test_name = test.get('talos-try-name', test['test-name'])
+    test_name = test.get('try-name', test['test-name'])
     mozharness = test['mozharness']
 
     # mochitest e10s follows the pattern mochitest-e10s-<suffix>
@@ -358,13 +395,7 @@ def mozharness_test_buildbot_bridge(config, job, taskdesc):
         'mochitest-gpu',
         'mochitest-e10s',
     ]
-    test_name = test.get(
-                    'talos-try-name',
-                    test.get(
-                        'unittest-try-name',
-                        test['test-name']
-                    )
-                )
+    test_name = test.get('try-name', test['test-name'])
     if test['e10s'] and 'e10s' not in test_name:
         test_name += '-e10s'
 
@@ -394,12 +425,25 @@ def mozharness_test_buildbot_bridge(config, job, taskdesc):
         variant = ''
         if m and m.group(1):
             variant = m.group(1) + ' '
-        buildername = '{} {} {}talos {}'.format(
-            BUILDER_NAME_PREFIX[platform],
-            branch,
-            variant,
-            test_name
-        )
+        # On beta and release, we run nightly builds on-push; the talos
+        # builders need to run against non-nightly buildernames
+        if variant == 'nightly ':
+            variant = ''
+        # this variant name has branch after the variant type in BBB bug 1338871
+        if variant == 'stylo ' or 'stylo-sequential':
+            buildername = '{} {}{} talos {}'.format(
+                BUILDER_NAME_PREFIX[platform],
+                variant,
+                branch,
+                test_name
+            )
+        else:
+            buildername = '{} {} {}talos {}'.format(
+                BUILDER_NAME_PREFIX[platform],
+                branch,
+                variant,
+                test_name
+            )
         if buildername.startswith('Ubuntu'):
             buildername = buildername.replace('VM', 'HW')
     else:

@@ -587,13 +587,14 @@ TextureClient::SerializeReadLock(ReadLockDescriptor& aDescriptor)
     // Take a read lock on behalf of the TextureHost. The latter will unlock
     // after the shared data is available again for drawing.
     mReadLock->ReadLock();
-    mReadLock->Serialize(aDescriptor, GetAllocator()->GetParentPid());
     mUpdated = false;
-    return true;
-  } else {
-    aDescriptor = null_t();
-    return false;
+    if (mReadLock->Serialize(aDescriptor, GetAllocator()->GetParentPid())) {
+      return true;
+    }
   }
+
+  aDescriptor = null_t();
+  return false;
 }
 
 TextureClient::~TextureClient()
@@ -880,6 +881,13 @@ TextureClient::InitIPDLActor(CompositableForwarder* aForwarder)
         gfxCriticalError() << "Attempt to move a texture to different compositor backend.";
         return false;
       }
+      if (ShadowLayerForwarder* forwarder = aForwarder->AsLayerForwarder()) {
+        // Do the DOM labeling.
+        if (nsIEventTarget* target = forwarder->GetEventTarget()) {
+          forwarder->GetCompositorBridgeChild()->ReplaceEventTargetForActor(
+            mActor, target);
+        }
+      }
       mActor->mCompositableForwarder = aForwarder;
     }
     return true;
@@ -891,11 +899,23 @@ TextureClient::InitIPDLActor(CompositableForwarder* aForwarder)
     return false;
   }
 
+  // Try external image id allocation.
+  mExternalImageId = aForwarder->GetTextureForwarder()->GetNextExternalImageId();
+
+  nsIEventTarget* target = nullptr;
+  // Get the layers id if the forwarder is a ShadowLayerForwarder.
+  if (ShadowLayerForwarder* forwarder = aForwarder->AsLayerForwarder()) {
+    target = forwarder->GetEventTarget();
+  }
+
   PTextureChild* actor = aForwarder->GetTextureForwarder()->CreateTexture(
     desc,
     aForwarder->GetCompositorBackendType(),
     GetFlags(),
-    mSerial);
+    mSerial,
+    mExternalImageId,
+    target);
+
   if (!actor) {
     gfxCriticalNote << static_cast<int32_t>(desc.type()) << ", "
                     << static_cast<int32_t>(aForwarder->GetCompositorBackendType()) << ", "
@@ -947,11 +967,15 @@ TextureClient::InitIPDLActor(KnowsCompositor* aForwarder)
     return false;
   }
 
+  // Try external image id allocation.
+  mExternalImageId = aForwarder->GetTextureForwarder()->GetNextExternalImageId();
+
   PTextureChild* actor = fwd->CreateTexture(
     desc,
     aForwarder->GetCompositorBackendType(),
     GetFlags(),
-    mSerial);
+    mSerial,
+    mExternalImageId);
   if (!actor) {
     gfxCriticalNote << static_cast<int32_t>(desc.type()) << ", "
                     << static_cast<int32_t>(aForwarder->GetCompositorBackendType()) << ", "
@@ -1350,7 +1374,8 @@ TextureClient::PrintInfo(std::stringstream& aStream, const char* aPrefix)
   AppendToString(aStream, mFlags, " [flags=", "]");
 
 #ifdef MOZ_DUMP_PAINTING
-  if (gfxPrefs::LayersDumpTexture() || profiler_feature_active("layersdump")) {
+  if (gfxPrefs::LayersDumpTexture() ||
+      profiler_feature_active(ProfilerFeature::LayersDump)) {
     nsAutoCString pfx(aPrefix);
     pfx += "  ";
 
@@ -1438,32 +1463,41 @@ class CrossProcessSemaphoreReadLock : public TextureReadLock
 {
 public:
   CrossProcessSemaphoreReadLock()
-    : mSemaphore("TextureReadLock", 1)
+    : mSemaphore(CrossProcessSemaphore::Create("TextureReadLock", 1))
   {}
   explicit CrossProcessSemaphoreReadLock(CrossProcessSemaphoreHandle aHandle)
-    : mSemaphore(aHandle)
+    : mSemaphore(CrossProcessSemaphore::Create(aHandle))
   {}
 
   virtual bool ReadLock() override
   {
-    return mSemaphore.Wait();
+    if (!IsValid()) {
+      return false;
+    }
+    return mSemaphore->Wait();
   }
   virtual bool TryReadLock(TimeDuration aTimeout) override
   {
-    return mSemaphore.Wait(Some(aTimeout));
+    if (!IsValid()) {
+      return false;
+    }
+    return mSemaphore->Wait(Some(aTimeout));
   }
   virtual int32_t ReadUnlock() override
   {
-    mSemaphore.Signal();
+    if (!IsValid()) {
+      return 1;
+    }
+    mSemaphore->Signal();
     return 1;
   }
-  virtual bool IsValid() const override { return true; }
+  virtual bool IsValid() const override { return !!mSemaphore; }
 
   virtual bool Serialize(ReadLockDescriptor& aOutput, base::ProcessId aOther) override;
 
   virtual LockType GetType() override { return TYPE_CROSS_PROCESS_SEMAPHORE; }
 
-  CrossProcessSemaphore mSemaphore;
+  UniquePtr<CrossProcessSemaphore> mSemaphore;
 };
 
 // static
@@ -1645,8 +1679,12 @@ ShmemTextureReadLock::GetReadCount() {
 bool
 CrossProcessSemaphoreReadLock::Serialize(ReadLockDescriptor& aOutput, base::ProcessId aOther)
 {
-  aOutput = ReadLockDescriptor(CrossProcessSemaphoreDescriptor(mSemaphore.ShareToProcess(aOther)));
-  return true;
+  if (IsValid()) {
+    aOutput = ReadLockDescriptor(CrossProcessSemaphoreDescriptor(mSemaphore->ShareToProcess(aOther)));
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void

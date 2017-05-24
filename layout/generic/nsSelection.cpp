@@ -316,7 +316,8 @@ public:
 
       nsPoint pt = mPoint -
         frame->GetOffsetTo(mPresContext->PresShell()->FrameManager()->GetRootFrame());
-      mFrameSelection->HandleDrag(frame, pt);
+      RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+      frameSelection->HandleDrag(frame, pt);
       if (!frame.IsAlive()) {
         return NS_OK;
       }
@@ -1169,7 +1170,7 @@ nsFrameSelection::MoveCaret(nsDirection       aDirection,
     // Collapse selection if PeekOffset failed, we either
     //  1. bumped into the BRFrame, bug 207623
     //  2. had select-all in a text input (DIV range), bug 352759.
-    bool isBRFrame = frame->GetType() == nsGkAtoms::brFrame;
+    bool isBRFrame = frame->IsBrFrame();
     sel->Collapse(sel->GetFocusNode(), sel->FocusOffset());
     // Note: 'frame' might be dead here.
     if (!isBRFrame) {
@@ -1407,11 +1408,11 @@ nsFrameSelection::GetPrevNextBidiLevels(nsIContent*        aNode,
   // If not jumping lines, disregard br frames, since they might be positioned incorrectly.
   // XXX This could be removed once bug 339786 is fixed.
   if (!aJumpLines) {
-    if (currentFrame->GetType() == nsGkAtoms::brFrame) {
+    if (currentFrame->IsBrFrame()) {
       currentFrame = nullptr;
       currentLevel = currentBidi.baseLevel;
     }
-    if (newFrame && newFrame->GetType() == nsGkAtoms::brFrame) {
+    if (newFrame && newFrame->IsBrFrame()) {
       newFrame = nullptr;
       newLevel = currentBidi.baseLevel;
     }
@@ -2294,7 +2295,7 @@ nsFrameSelection::PhysicalMove(int16_t aDirection, int16_t aAmount,
         // Using different direction for horizontal-in-vertical would
         // make it hard to navigate via keyboard. Inherit the moving
         // direction from its parent.
-        MOZ_ASSERT(frame->GetType() == nsGkAtoms::textFrame);
+        MOZ_ASSERT(frame->IsTextFrame());
         wm = frame->GetParent()->GetWritingMode();
         MOZ_ASSERT(wm.IsVertical(), "Text combined "
                    "can only appear in vertical text");
@@ -3489,6 +3490,7 @@ Selection::Selection()
   : mCachedOffsetForFrame(nullptr)
   , mDirection(eDirNext)
   , mSelectionType(SelectionType::eNormal)
+  , mCustomColors(nullptr)
   , mUserInitiated(false)
   , mCalledByJS(false)
   , mSelectionChangeBlockerCount(0)
@@ -3500,6 +3502,7 @@ Selection::Selection(nsFrameSelection* aList)
   , mCachedOffsetForFrame(nullptr)
   , mDirection(eDirNext)
   , mSelectionType(SelectionType::eNormal)
+  , mCustomColors(nullptr)
   , mUserInitiated(false)
   , mCalledByJS(false)
   , mSelectionChangeBlockerCount(0)
@@ -4075,7 +4078,7 @@ Selection::RemoveItem(nsRange* aItem)
     }
   }
   if (idx < 0)
-    return NS_ERROR_INVALID_ARG;
+    return NS_ERROR_DOM_NOT_FOUND_ERR;
 
   mRanges.RemoveElementAt(idx);
   aItem->SetSelection(nullptr);
@@ -4473,7 +4476,7 @@ Selection::SelectAllFramesForContent(nsIContentIterator* aInnerIter,
   {
     // First select frame of content passed in
     frame = aContent->GetPrimaryFrame();
-    if (frame && frame->GetType() == nsGkAtoms::textFrame) {
+    if (frame && frame->IsTextFrame()) {
       nsTextFrame* textFrame = static_cast<nsTextFrame*>(frame);
       textFrame->SetSelectedRange(0, aContent->GetText()->GetLength(),
                                   aSelected, mSelectionType);
@@ -4485,7 +4488,7 @@ Selection::SelectAllFramesForContent(nsIContentIterator* aInnerIter,
 
       frame = innercontent->GetPrimaryFrame();
       if (frame) {
-        if (frame->GetType() == nsGkAtoms::textFrame) {
+        if (frame->IsTextFrame()) {
           nsTextFrame* textFrame = static_cast<nsTextFrame*>(frame);
           textFrame->SetSelectedRange(0, innercontent->GetText()->GetLength(),
                                       aSelected, mSelectionType);
@@ -4542,7 +4545,7 @@ Selection::selectFrames(nsPresContext* aPresContext, nsRange* aRange,
   if (content->IsNodeOfType(nsINode::eTEXT)) {
     nsIFrame* frame = content->GetPrimaryFrame();
     // The frame could be an SVG text frame, in which case we'll ignore it.
-    if (frame && frame->GetType() == nsGkAtoms::textFrame) {
+    if (frame && frame->IsTextFrame()) {
       nsTextFrame* textFrame = static_cast<nsTextFrame*>(frame);
       uint32_t startOffset = aRange->StartOffset();
       uint32_t endOffset;
@@ -4573,7 +4576,7 @@ Selection::selectFrames(nsPresContext* aPresContext, nsRange* aRange,
     if (content->IsNodeOfType(nsINode::eTEXT)) {
       nsIFrame* frame = content->GetPrimaryFrame();
       // The frame could be an SVG text frame, in which case we'll ignore it.
-      if (frame && frame->GetType() == nsGkAtoms::textFrame) {
+      if (frame && frame->IsTextFrame()) {
         nsTextFrame* textFrame = static_cast<nsTextFrame*>(frame);
         textFrame->SetSelectedRange(0, aRange->EndOffset(), aSelect,
                                     mSelectionType);
@@ -4794,8 +4797,10 @@ Selection::GetAncestorLimiter(nsIContent** aContent)
 NS_IMETHODIMP
 Selection::SetAncestorLimiter(nsIContent* aContent)
 {
-  if (mFrameSelection)
-    mFrameSelection->SetAncestorLimiter(aContent);
+  if (mFrameSelection) {
+    RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+    frameSelection->SetAncestorLimiter(aContent);
+  }
   return NS_OK;
 }
 
@@ -4952,11 +4957,12 @@ Selection::RemoveAllRanges(ErrorResult& aRv)
   }
 
   // Turn off signal for table selection
-  mFrameSelection->ClearTableCellSelection();
+  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+  frameSelection->ClearTableCellSelection();
 
   // Be aware, this instance may be destroyed after this call.
   // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  result = mFrameSelection->NotifySelectionListeners(GetType());
+  result = frameSelection->NotifySelectionListeners(GetType());
 
   // Also need to notify the frames!
   // PresShell::CharacterDataChanged should do that on DocumentChanged
@@ -5044,7 +5050,8 @@ Selection::AddRangeInternal(nsRange& aRange, nsIDocument* aDocument,
 
   // Be aware, this instance may be destroyed after this call.
   // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  result = mFrameSelection->NotifySelectionListeners(GetType());
+  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+  result = frameSelection->NotifySelectionListeners(GetType());
   if (NS_FAILED(result)) {
     aRv.Throw(result);
   }
@@ -5141,7 +5148,8 @@ Selection::RemoveRange(nsRange& aRange, ErrorResult& aRv)
 
   // Be aware, this instance may be destroyed after this call.
   // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  rv = mFrameSelection->NotifySelectionListeners(GetType());
+  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+  rv = frameSelection->NotifySelectionListeners(GetType());
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
   }
@@ -5166,11 +5174,15 @@ Selection::CollapseNative(nsINode* aParentNode, int32_t aOffset)
 }
 
 void
-Selection::CollapseJS(nsINode& aNode, uint32_t aOffset, ErrorResult& aRv)
+Selection::CollapseJS(nsINode* aNode, uint32_t aOffset, ErrorResult& aRv)
 {
   AutoRestore<bool> calledFromJSRestorer(mCalledByJS);
   mCalledByJS = true;
-  Collapse(aNode, aOffset, aRv);
+  if (!aNode) {
+    RemoveAllRanges(aRv);
+    return;
+  }
+  Collapse(*aNode, aOffset, aRv);
 }
 
 nsresult
@@ -5194,8 +5206,9 @@ Selection::Collapse(nsINode& aParentNode, uint32_t aOffset, ErrorResult& aRv)
 
   nsCOMPtr<nsINode> parentNode = &aParentNode;
 
-  mFrameSelection->InvalidateDesiredPos();
-  if (!IsValidSelectionPoint(mFrameSelection, parentNode)) {
+  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+  frameSelection->InvalidateDesiredPos();
+  if (!IsValidSelectionPoint(frameSelection, parentNode)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -5211,10 +5224,10 @@ Selection::Collapse(nsINode& aParentNode, uint32_t aOffset, ErrorResult& aRv)
   Clear(presContext);
 
   // Turn off signal for table selection
-  mFrameSelection->ClearTableCellSelection();
+  frameSelection->ClearTableCellSelection();
 
   // Hack to display the caret on the right line (bug 1237236).
-  if (mFrameSelection->GetHint() != CARET_ASSOCIATE_AFTER &&
+  if (frameSelection->GetHint() != CARET_ASSOCIATE_AFTER &&
       parentNode->IsContent()) {
     int32_t frameOffset;
     nsTextFrame* f =
@@ -5225,7 +5238,7 @@ Selection::Collapse(nsINode& aParentNode, uint32_t aOffset, ErrorResult& aRv)
            f->GetContentEnd() == int32_t(aOffset)) ||
           (parentNode == f->GetContent()->GetParentNode() &&
            parentNode->IndexOf(f->GetContent()) + 1 == int32_t(aOffset))) {
-        mFrameSelection->SetHint(CARET_ASSOCIATE_AFTER);
+        frameSelection->SetHint(CARET_ASSOCIATE_AFTER);
       }
     }
   }
@@ -5262,7 +5275,7 @@ Selection::Collapse(nsINode& aParentNode, uint32_t aOffset, ErrorResult& aRv)
 
   // Be aware, this instance may be destroyed after this call.
   // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  result = mFrameSelection->NotifySelectionListeners(GetType());
+  result = frameSelection->NotifySelectionListeners(GetType());
   if (NS_FAILED(result)) {
     aRv.Throw(result);
   }
@@ -5845,7 +5858,8 @@ Selection::Extend(nsINode& aParentNode, uint32_t aOffset, ErrorResult& aRv)
 
   // Be aware, this instance may be destroyed after this call.
   // XXX Why doesn't this call Selection::NotifySelectionListener() directly?
-  res = mFrameSelection->NotifySelectionListeners(GetType());
+  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+  res = frameSelection->NotifySelectionListeners(GetType());
   if (NS_FAILED(res)) {
     aRv.Throw(res);
   }
@@ -6455,8 +6469,9 @@ Selection::NotifySelectionListeners()
     }
   }
 
-  if (mFrameSelection->GetBatching()) {
-    mFrameSelection->SetDirty();
+  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+  if (frameSelection->GetBatching()) {
+    frameSelection->SetDirty();
     return NS_OK;
   }
   nsCOMArray<nsISelectionListener> selectionListeners(mSelectionListeners);
@@ -6471,7 +6486,7 @@ Selection::NotifySelectionListeners()
     domdoc = do_QueryInterface(ps->GetDocument());
   }
 
-  short reason = mFrameSelection->PopReason();
+  short reason = frameSelection->PopReason();
   for (int32_t i = 0; i < cnt; i++) {
     selectionListeners[i]->NotifySelectionChanged(domdoc, this, reason);
   }
@@ -6481,9 +6496,10 @@ Selection::NotifySelectionListeners()
 NS_IMETHODIMP
 Selection::StartBatchChanges()
 {
-  if (mFrameSelection)
-    mFrameSelection->StartBatchChanges();
-
+  if (mFrameSelection) {
+    RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+    frameSelection->StartBatchChanges();
+  }
   return NS_OK;
 }
 
@@ -6499,7 +6515,8 @@ nsresult
 Selection::EndBatchChangesInternal(int16_t aReason)
 {
   if (mFrameSelection) {
-    mFrameSelection->EndBatchChanges(aReason);
+    RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+    frameSelection->EndBatchChanges(aReason);
   }
   return NS_OK;
 }
@@ -6538,7 +6555,8 @@ Selection::DeleteFromDocument(ErrorResult& aRv)
 {
   if (!mFrameSelection)
     return;//nothing to do
-  nsresult rv = mFrameSelection->DeleteFromDocument();
+  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+  nsresult rv = frameSelection->DeleteFromDocument();
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
   }
@@ -6645,14 +6663,15 @@ Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
   // direction, but we just ignore this error unless it's a line move, in which
   // case we call nsISelectionController::CompleteMove to move the cursor to
   // the beginning/end of the line.
-  rv = mFrameSelection->MoveCaret(forward ? eDirNext : eDirPrevious,
-                                  extend, amount,
-                                  visual ? nsFrameSelection::eVisual
-                                         : nsFrameSelection::eLogical);
+  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+  rv = frameSelection->MoveCaret(forward ? eDirNext : eDirPrevious,
+                                 extend, amount,
+                                 visual ? nsFrameSelection::eVisual
+                                        : nsFrameSelection::eLogical);
 
   if (aGranularity.LowerCaseEqualsLiteral("line") && NS_FAILED(rv)) {
     nsCOMPtr<nsISelectionController> shell =
-      do_QueryInterface(mFrameSelection->GetShell());
+      do_QueryInterface(frameSelection->GetShell());
     if (!shell)
       return;
     shell->CompleteMove(forward, extend);
@@ -6730,13 +6749,15 @@ Selection::SelectionLanguageChange(bool aLangRTL)
   if (!mFrameSelection)
     return NS_ERROR_NOT_INITIALIZED; // Can't do selection
 
+  RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
+
   // if the direction of the language hasn't changed, nothing to do
   nsBidiLevel kbdBidiLevel = aLangRTL ? NSBIDI_RTL : NSBIDI_LTR;
-  if (kbdBidiLevel == mFrameSelection->mKbdBidiLevel) {
+  if (kbdBidiLevel == frameSelection->mKbdBidiLevel) {
     return NS_OK;
   }
 
-  mFrameSelection->mKbdBidiLevel = kbdBidiLevel;
+  frameSelection->mKbdBidiLevel = kbdBidiLevel;
 
   nsresult result;
   nsIFrame *focusFrame = 0;
@@ -6767,7 +6788,7 @@ Selection::SelectionLanguageChange(bool aLangRTL)
     // the cursor is at a frame boundary, so use GetPrevNextBidiLevels to find the level of the characters
     //  before and after the cursor
     nsCOMPtr<nsIContent> focusContent = do_QueryInterface(GetFocusNode());
-    nsPrevNextBidiLevels levels = mFrameSelection->
+    nsPrevNextBidiLevels levels = frameSelection->
       GetPrevNextBidiLevels(focusContent, focusOffset, false);
       
     levelBefore = levels.mLevelBefore;
@@ -6782,24 +6803,120 @@ Selection::SelectionLanguageChange(bool aLangRTL)
     if ((level != levelBefore) && (level != levelAfter))
       level = std::min(levelBefore, levelAfter);
     if (IS_SAME_DIRECTION(level, kbdBidiLevel))
-      mFrameSelection->SetCaretBidiLevel(level);
+      frameSelection->SetCaretBidiLevel(level);
     else
-      mFrameSelection->SetCaretBidiLevel(level + 1);
+      frameSelection->SetCaretBidiLevel(level + 1);
   }
   else {
     // if cursor is between characters with opposite orientations, changing the keyboard language must change
     //  the cursor level to that of the adjacent character with the orientation corresponding to the new language.
     if (IS_SAME_DIRECTION(levelBefore, kbdBidiLevel))
-      mFrameSelection->SetCaretBidiLevel(levelBefore);
+      frameSelection->SetCaretBidiLevel(levelBefore);
     else
-      mFrameSelection->SetCaretBidiLevel(levelAfter);
+      frameSelection->SetCaretBidiLevel(levelAfter);
   }
   
   // The caret might have moved, so invalidate the desired position
   // for future usages of up-arrow or down-arrow
-  mFrameSelection->InvalidateDesiredPos();
+  frameSelection->InvalidateDesiredPos();
   
   return NS_OK;
+}
+
+NS_IMETHODIMP
+Selection::SetColors(const nsAString& aForegroundColor,
+                     const nsAString& aBackgroundColor,
+                     const nsAString& aAltForegroundColor,
+                     const nsAString& aAltBackgroundColor)
+{
+  ErrorResult result;
+  SetColors(aForegroundColor, aBackgroundColor,
+            aAltForegroundColor, aAltBackgroundColor, result);
+  return result.StealNSResult();
+}
+
+void
+Selection::SetColors(const nsAString& aForegroundColor,
+                     const nsAString& aBackgroundColor,
+                     const nsAString& aAltForegroundColor,
+                     const nsAString& aAltBackgroundColor,
+                     ErrorResult& aRv)
+{
+  if (mSelectionType != SelectionType::eFind) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+
+  mCustomColors.reset(new SelectionCustomColors);
+
+  NS_NAMED_LITERAL_STRING(currentColorStr, "currentColor");
+  NS_NAMED_LITERAL_STRING(transparentStr, "transparent");
+
+  if (!aForegroundColor.Equals(currentColorStr)) {
+    nscolor foregroundColor;
+    nsAttrValue aForegroundColorValue;
+    aForegroundColorValue.ParseColor(aForegroundColor);
+    if (!aForegroundColorValue.GetColorValue(foregroundColor)) {
+      aRv.Throw(NS_ERROR_INVALID_ARG);
+      return;
+    }
+    mCustomColors->mForegroundColor = Some(foregroundColor);
+  } else {
+    mCustomColors->mForegroundColor = Nothing();
+  }
+
+  if (!aBackgroundColor.Equals(transparentStr)) {
+    nscolor backgroundColor;
+    nsAttrValue aBackgroundColorValue;
+    aBackgroundColorValue.ParseColor(aBackgroundColor);
+    if (!aBackgroundColorValue.GetColorValue(backgroundColor)) {
+      aRv.Throw(NS_ERROR_INVALID_ARG);
+      return;
+    }
+    mCustomColors->mBackgroundColor = Some(backgroundColor);
+  } else {
+    mCustomColors->mBackgroundColor = Nothing();
+  }
+
+  if (!aAltForegroundColor.Equals(currentColorStr)) {
+    nscolor altForegroundColor;
+    nsAttrValue aAltForegroundColorValue;
+    aAltForegroundColorValue.ParseColor(aAltForegroundColor);
+    if (!aAltForegroundColorValue.GetColorValue(altForegroundColor)) {
+      aRv.Throw(NS_ERROR_INVALID_ARG);
+      return;
+    }
+    mCustomColors->mAltForegroundColor = Some(altForegroundColor);
+  } else {
+    mCustomColors->mAltForegroundColor = Nothing();
+  }
+
+  if (!aAltBackgroundColor.Equals(transparentStr)) {
+    nscolor altBackgroundColor;
+    nsAttrValue aAltBackgroundColorValue;
+    aAltBackgroundColorValue.ParseColor(aAltBackgroundColor);
+    if (!aAltBackgroundColorValue.GetColorValue(altBackgroundColor)) {
+      aRv.Throw(NS_ERROR_INVALID_ARG);
+      return;
+    }
+    mCustomColors->mAltBackgroundColor = Some(altBackgroundColor);
+  } else {
+    mCustomColors->mAltBackgroundColor = Nothing();
+  }
+}
+
+NS_IMETHODIMP
+Selection::ResetColors()
+{
+  ErrorResult result;
+  ResetColors(result);
+  return result.StealNSResult();
+}
+
+void
+Selection::ResetColors(ErrorResult& aRv)
+{
+  mCustomColors = nullptr;
 }
 
 NS_IMETHODIMP_(nsDirection)
@@ -7053,7 +7170,7 @@ SelectionChangeListener::NotifySelectionChanged(nsIDOMDocument* aDoc,
     // anonymous subtree of the node we want to fire the event on. We need to
     // climb up the parent chain to escape the native anonymous subtree, and then
     // fire the event.
-    if (nsFrameSelection* fs = sel->GetFrameSelection()) {
+    if (const nsFrameSelection* fs = sel->GetFrameSelection()) {
       if (nsCOMPtr<nsIContent> root = fs->GetLimiter()) {
         while (root && root->IsInNativeAnonymousSubtree()) {
           root = root->GetParent();
@@ -7075,7 +7192,7 @@ SelectionChangeListener::NotifySelectionChanged(nsIDOMDocument* aDoc,
       asyncDispatcher->PostDOMEvent();
     }
   } else {
-    if (nsFrameSelection* fs = sel->GetFrameSelection()) {
+    if (const nsFrameSelection* fs = sel->GetFrameSelection()) {
       if (nsCOMPtr<nsIContent> root = fs->GetLimiter()) {
         if (root->IsInNativeAnonymousSubtree()) {
           return NS_OK;

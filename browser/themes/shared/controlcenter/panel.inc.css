@@ -16,6 +16,7 @@
 #identity-popup[connection=secure] [when-connection~=secure],
 #identity-popup[connection=chrome] [when-connection~=chrome],
 #identity-popup[connection=file] [when-connection~=file],
+#identity-popup[connection=extension] [when-connection~=extension],
 /* Show insecure login forms messages when needed. */
 #identity-popup[loginforms=insecure] [when-loginforms=insecure],
 /* Show weak cipher messages when needed. */
@@ -141,14 +142,10 @@
 
 .identity-popup-expander > .button-box {
   padding: 0;
-  -moz-appearance: none;
-  border-style: none;
-  border-left: 1px solid var(--panel-separator-color);
 }
 
-.identity-popup-expander:-moz-focusring > .button-box,
-.identity-popup-expander[panel-multiview-anchor] > .button-box {
-  border-style: none;
+.identity-popup-expander:not([panel-multiview-anchor]) > .button-box {
+  border-left: 1px solid var(--panel-separator-color);
 }
 
 .identity-popup-expander:hover {
@@ -243,7 +240,9 @@
 
 #identity-popup[connection=secure-cert-user-overridden] #identity-popup-securityView,
 #identity-popup[connection=secure-cert-user-overridden] #identity-popup-security-content {
-  background-image: url(chrome://browser/skin/connection-mixed-passive-loaded.svg#icon);
+  background-image: url(chrome://browser/skin/connection-mixed-passive-loaded.svg);
+  -moz-context-properties: fill;
+  fill: GrayText;
 }
 
 #identity-popup[loginforms=insecure] #identity-popup-securityView,
@@ -251,6 +250,13 @@
 #identity-popup[mixedcontent~=active-loaded][isbroken] #identity-popup-securityView,
 #identity-popup[mixedcontent~=active-loaded][isbroken] #identity-popup-security-content {
   background-image: url(chrome://browser/skin/controlcenter/mcb-disabled.svg);
+}
+
+#identity-popup[connection=extension] #identity-popup-securityView,
+#identity-popup[connection=extension] #identity-popup-security-content {
+  background-image: url(chrome://browser/skin/controlcenter/extension.svg);
+  -moz-context-properties: fill;
+  fill: #60bf4c;
 }
 
 #identity-popup-security-descriptions > description {
@@ -415,7 +421,6 @@ description#identity-popup-content-verifier,
 
 .identity-popup-permission-remove-button > .button-box {
   padding: 0;
-  -moz-appearance: none;
 }
 
 .identity-popup-permission-remove-button > .button-box > .button-icon {

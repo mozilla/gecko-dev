@@ -20,7 +20,9 @@
 #include "mozilla/layers/LayersTypes.h"  // for LayerRenderState, etc
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/mozalloc.h"           // for operator delete
+#include "mozilla/Range.h"
 #include "mozilla/UniquePtr.h"          // for UniquePtr
+#include "mozilla/webrender/WebRenderTypes.h"
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_RUNTIMEABORT
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
@@ -35,6 +37,10 @@ namespace ipc {
 class Shmem;
 } // namespace ipc
 
+namespace wr {
+class WebRenderAPI;
+}
+
 namespace layers {
 
 class BufferDescriptor;
@@ -46,6 +52,7 @@ class CompositorBridgeParent;
 class SurfaceDescriptor;
 class HostIPCAllocator;
 class ISurfaceAllocator;
+class MacIOSurfaceTextureHostOGL;
 class TextureHostOGL;
 class TextureReadLock;
 class TextureSourceOGL;
@@ -385,7 +392,8 @@ public:
     const SurfaceDescriptor& aDesc,
     ISurfaceAllocator* aDeallocator,
     LayersBackend aBackend,
-    TextureFlags aFlags);
+    TextureFlags aFlags,
+    wr::MaybeExternalImageId& aExternalImageId);
 
   /**
    * Lock the texture host for compositing.
@@ -518,7 +526,8 @@ public:
                                          const SurfaceDescriptor& aSharedData,
                                          LayersBackend aLayersBackend,
                                          TextureFlags aFlags,
-                                         uint64_t aSerial);
+                                         uint64_t aSerial,
+                                         const wr::MaybeExternalImageId& aExternalImageId);
   static bool DestroyIPDLActor(PTextureParent* actor);
 
   /**
@@ -584,8 +593,17 @@ public:
   TextureReadLock* GetReadLock() { return mReadLock; }
 
   virtual BufferTextureHost* AsBufferTextureHost() { return nullptr; }
-
+  virtual MacIOSurfaceTextureHostOGL* AsMacIOSurfaceTextureHost() { return nullptr; }
   virtual WebRenderTextureHost* AsWebRenderTextureHost() { return nullptr; }
+
+  // Add all necessary textureHost informations to WebrenderAPI. Then, WR could
+  // use these informations to compose this textureHost.
+  virtual void AddWRImage(wr::WebRenderAPI* aAPI,
+                          Range<const wr::ImageKey>& aImageKeys,
+                          const wr::ExternalImageId& aExtID)
+  {
+    MOZ_ASSERT_UNREACHABLE("No AddWRImage() implementation for this TextureHost type.");
+  }
 
 protected:
   void ReadUnlock();
@@ -597,7 +615,7 @@ protected:
   /**
    * Called when mCompositableCount becomes 0.
    */
-  void NotifyNotUsed();
+  virtual void NotifyNotUsed();
 
   // for Compositor.
   void CallNotifyNotUsed();
@@ -673,6 +691,10 @@ public:
   virtual BufferTextureHost* AsBufferTextureHost() override { return this; }
 
   const BufferDescriptor& GetBufferDescriptor() const { return mDescriptor; }
+
+  virtual void AddWRImage(wr::WebRenderAPI* aAPI,
+                          Range<const wr::ImageKey>& aImageKeys,
+                          const wr::ExternalImageId& aExtID) override;
 
 protected:
   bool Upload(nsIntRegion *aRegion = nullptr);

@@ -10,7 +10,12 @@
 #include "mozilla/RefPtr.h"
 #include "prio.h"
 
+class nsIEventTarget;
+
 namespace mozilla {
+
+class TaskQueue;
+
 namespace dom {
 
 class Blob;
@@ -39,7 +44,8 @@ public:
     eCouldBeInTemporaryFile,
   };
 
-  explicit MutableBlobStorage(MutableBlobStorageType aType);
+  explicit MutableBlobStorage(MutableBlobStorageType aType,
+                              nsIEventTarget* aEventTarget = nullptr);
 
   nsresult Append(const void* aData, uint32_t aLength);
 
@@ -58,6 +64,12 @@ public:
 
   void ErrorPropagated(nsresult aRv);
 
+  nsIEventTarget* EventTarget()
+  {
+    MOZ_ASSERT(mEventTarget);
+    return mEventTarget;
+  }
+
 private:
   ~MutableBlobStorage();
 
@@ -67,7 +79,7 @@ private:
 
   nsresult MaybeCreateTemporaryFile();
 
-  static nsresult DispatchToIOThread(Runnable* aRunnable);
+  void DispatchToIOThread(already_AddRefed<nsIRunnable> aRunnable);
 
   // All these variables are touched on the main thread only.
 
@@ -88,6 +100,9 @@ private:
   PRFileDesc* mFD;
 
   nsresult mErrorResult;
+
+  RefPtr<TaskQueue> mTaskQueue;
+  nsCOMPtr<nsIEventTarget> mEventTarget;
 };
 
 } // namespace dom

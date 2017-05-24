@@ -443,11 +443,6 @@ var DebuggerServer = {
       constructor: "DeviceActor",
       type: { global: true }
     });
-    this.registerModule("devtools/server/actors/director-registry", {
-      prefix: "directorRegistry",
-      constructor: "DirectorRegistryActor",
-      type: { global: true }
-    });
     this.registerModule("devtools/server/actors/heap-snapshot-file", {
       prefix: "heapSnapshotFile",
       constructor: "HeapSnapshotFileActor",
@@ -548,11 +543,6 @@ var DebuggerServer = {
       prefix: "timeline",
       constructor: "TimelineActor",
       type: { tab: true }
-    });
-    this.registerModule("devtools/server/actors/director-manager", {
-      prefix: "directorManager",
-      constructor: "DirectorManagerActor",
-      type: { global: false, tab: true }
     });
     if ("nsIProfiler" in Ci) {
       this.registerModule("devtools/server/actors/profiler", {
@@ -799,7 +789,7 @@ var DebuggerServer = {
       }
     });
     Services.obs.addObserver(onMessageManagerClose,
-                             "message-manager-close", false);
+                             "message-manager-close");
 
     events.on(connection, "closed", onClose);
 
@@ -1019,7 +1009,7 @@ var DebuggerServer = {
    *         A promise object that is resolved once the connection is
    *         established.
    */
-  connectToChild(connection, frame, onDestroy) {
+  connectToChild(connection, frame, onDestroy, {addonId} = {}) {
     let deferred = SyncPromise.defer();
 
     // Get messageManager from XUL browser (which might be a specialized tunnel for RDM)
@@ -1132,6 +1122,9 @@ var DebuggerServer = {
     };
 
     let destroy = DevToolsUtils.makeInfallible(function () {
+      events.off(connection, "closed", destroy);
+      Services.obs.removeObserver(onMessageManagerClose, "message-manager-close");
+
       // provides hook to actor modules that need to exchange messages
       // between e10s parent and child processes
       parentModules.forEach(mod => {
@@ -1178,8 +1171,6 @@ var DebuggerServer = {
 
       // Cleanup all listeners
       untrackMessageManager();
-      Services.obs.removeObserver(onMessageManagerClose, "message-manager-close");
-      events.off(connection, "closed", destroy);
     });
 
     // Listen for various messages and frame events
@@ -1192,13 +1183,13 @@ var DebuggerServer = {
       }
     };
     Services.obs.addObserver(onMessageManagerClose,
-                             "message-manager-close", false);
+                             "message-manager-close");
 
     // Listen for connection close to cleanup things
     // when user unplug the device or we lose the connection somehow.
     events.on(connection, "closed", destroy);
 
-    mm.sendAsyncMessage("debug:connect", { prefix });
+    mm.sendAsyncMessage("debug:connect", { prefix, addonId });
 
     return deferred.promise;
   },

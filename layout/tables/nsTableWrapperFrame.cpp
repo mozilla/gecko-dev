@@ -43,7 +43,7 @@ nsTableWrapperFrame::GetLogicalBaseline(WritingMode aWritingMode) const
 }
 
 nsTableWrapperFrame::nsTableWrapperFrame(nsStyleContext* aContext)
-  : nsContainerFrame(aContext)
+  : nsContainerFrame(aContext, LayoutFrameType::TableWrapper)
 {
 }
 
@@ -101,7 +101,7 @@ nsTableWrapperFrame::SetInitialChildList(ChildListID     aListID,
     MOZ_ASSERT(kPrincipalList != aListID ||
                (aChildList.FirstChild() &&
                 aChildList.FirstChild() == aChildList.LastChild() &&
-                nsGkAtoms::tableFrame == aChildList.FirstChild()->GetType()),
+                aChildList.FirstChild()->IsTableFrame()),
                "expected a single table frame in principal child list");
     nsContainerFrame::SetInitialChildList(aListID, aChildList);
   }
@@ -190,7 +190,11 @@ nsTableWrapperFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   // Now we have to sort everything by content order, since the caption
   // may be somewhere inside the table
-  set.SortAllByContentOrder(GetContent());
+  set.BlockBorderBackgrounds()->SortByContentOrder(GetContent());
+  set.Floats()->SortByContentOrder(GetContent());
+  set.Content()->SortByContentOrder(GetContent());
+  set.PositionedDescendants()->SortByContentOrder(GetContent());
+  set.Outlines()->SortByContentOrder(GetContent());
   set.MoveTo(aLists);
 }
 
@@ -396,9 +400,8 @@ nsTableWrapperFrame::ChildShrinkWrapISize(nsRenderingContext* aRenderingContext,
   // Shrink-wrap aChildFrame by default, except if we're a stretched grid item.
   auto flags = ComputeSizeFlags::eShrinkWrap;
   auto parent = GetParent();
-  nsIAtom* parentFrameType = parent ? parent->GetType() : nullptr;
-  bool isGridItem = (parentFrameType == nsGkAtoms::gridContainerFrame &&
-                     !HasAnyStateBits(NS_FRAME_OUT_OF_FLOW));
+  bool isGridItem = parent && parent->IsGridContainerFrame() &&
+                    !HasAnyStateBits(NS_FRAME_OUT_OF_FLOW);
   if (MOZ_UNLIKELY(isGridItem) &&
       !StyleMargin()->HasInlineAxisAuto(aWM)) {
     auto inlineAxisAlignment = aWM.IsOrthogonalTo(parent->GetWritingMode()) ?
@@ -1056,12 +1059,6 @@ nsTableWrapperFrame::Reflow(nsPresContext*           aPresContext,
   // Return our desired rect
 
   NS_FRAME_SET_TRUNCATION(aStatus, aOuterRI, aDesiredSize);
-}
-
-nsIAtom*
-nsTableWrapperFrame::GetType() const
-{
-  return nsGkAtoms::tableWrapperFrame;
 }
 
 /* ----- global methods ----- */

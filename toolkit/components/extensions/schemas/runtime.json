@@ -341,7 +341,7 @@
             "type": "object",
             "name": "options",
             "properties": {
-              "includeTlsChannelId": { "type": "boolean", "optional": true, "description": "Whether the TLS channel ID will be passed into onMessageExternal for processes that are listening for the connection event." },
+              "includeTlsChannelId": { "type": "boolean", "optional": true, "unsupported": true, "description": "Whether the TLS channel ID will be passed into onMessageExternal for processes that are listening for the connection event." },
               "toProxyScript": { "type": "boolean", "optional": true, "description": "If true, the message will be directed to the extension's proxy sandbox."}
             },
             "optional": true
@@ -474,6 +474,10 @@
                 "type": "string",
                 "optional": true,
                 "description": "Indicates the previous version of the extension, which has just been updated. This is present only if 'reason' is 'update'."
+              },
+              "temporary": {
+                "type": "boolean",
+                "description": "Indicates whether the addon is installed as a temporary extension."
               },
               "id": {
                 "type": "string",

@@ -325,6 +325,11 @@ void RtpHeaderParser::ParseOneByteExtensionHeader(
     // number of bytes - 1.
     const int id = (*ptr & 0xf0) >> 4;
     const int len = (*ptr & 0x0f);
+    if (ptr + len + 1 > ptrRTPDataExtensionEnd) {
+      LOG(LS_WARNING)
+          << "RTP extension header length out of bounds. Terminate parsing.";
+      return;
+    }
     ptr++;
 
     if (id == 15) {
@@ -439,12 +444,9 @@ void RtpHeaderParser::ParseOneByteExtensionHeader(
             return;
           }
 
-          // TODO(jesup) - avoid allocating on each packet - high watermark the
-          // RID buffer?
-          char* ptrRID = new char[len + 2];
-          memcpy(ptrRID, ptr, len + 1);
-          ptrRID[len + 1] = '\0';
-          header->extension.rid = ptrRID;
+          header->extension.rid.reset(new char[len + 2]);
+          memcpy(header->extension.rid.get(), ptr, len + 1);
+          header->extension.rid.get()[len + 1] = '\0';
           header->extension.hasRID = true;
           break;
         }

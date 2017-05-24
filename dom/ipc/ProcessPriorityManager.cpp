@@ -14,7 +14,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/Unused.h"
-#include "AudioChannelService.h"
 #include "mozilla/Logging.h"
 #include "nsPrintfCString.h"
 #include "nsXULAppAPI.h"
@@ -313,7 +312,6 @@ public:
    */
   const nsAutoCString& NameWithComma();
 
-  bool HasAppType(const char* aAppType);
   bool IsExpectingSystemMessage();
 
   void OnAudioChannelProcessChanged(nsISupports* aSubject);
@@ -1002,22 +1000,6 @@ ParticularProcessPriorityManager::Notify(nsITimer* aTimer)
 }
 
 bool
-ParticularProcessPriorityManager::HasAppType(const char* aAppType)
-{
-  const ManagedContainer<PBrowserParent>& browsers =
-    mContentParent->ManagedPBrowserParent();
-  for (auto iter = browsers.ConstIter(); !iter.Done(); iter.Next()) {
-    nsAutoString appType;
-    TabParent::GetFrom(iter.Get()->GetKey())->GetAppType(appType);
-    if (appType.EqualsASCII(aAppType)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool
 ParticularProcessPriorityManager::IsExpectingSystemMessage()
 {
   const ManagedContainer<PBrowserParent>& browsers =
@@ -1042,11 +1024,6 @@ ParticularProcessPriorityManager::CurrentPriority()
 ProcessPriority
 ParticularProcessPriorityManager::ComputePriority()
 {
-  if ((mHoldsCPUWakeLock || mHoldsHighPriorityWakeLock) &&
-      HasAppType("critical")) {
-    return PROCESS_PRIORITY_FOREGROUND_HIGH;
-  }
-
   bool isVisible = false;
   const ManagedContainer<PBrowserParent>& browsers =
     mContentParent->ManagedPBrowserParent();
@@ -1063,11 +1040,6 @@ ParticularProcessPriorityManager::ComputePriority()
 
   if ((mHoldsCPUWakeLock || mHoldsHighPriorityWakeLock) &&
       IsExpectingSystemMessage()) {
-    return PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE;
-  }
-
-  RefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
-  if (service && service->ProcessContentOrNormalChannelIsActive(ChildID())) {
     return PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE;
   }
 

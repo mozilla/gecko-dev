@@ -30,7 +30,9 @@
 #include "nsNPAPIPlugin.h"
 #include "nsPrintfCString.h"
 #include "prsystem.h"
+#include "prclist.h"
 #include "PluginQuirks.h"
+#include "gfxPlatform.h"
 #ifdef MOZ_GECKO_PROFILER
 #include "CrossProcessProfilerController.h"
 #endif
@@ -154,7 +156,8 @@ class mozilla::plugins::FinishInjectorInitTask : public mozilla::CancelableRunna
 {
 public:
     FinishInjectorInitTask()
-        : mMutex("FlashInjectorInitTask::mMutex")
+        : CancelableRunnable("FinishInjectorInitTask")
+        , mMutex("FlashInjectorInitTask::mMutex")
         , mParent(nullptr)
         , mMainThreadMsgLoop(MessageLoop::current())
     {
@@ -2777,7 +2780,8 @@ PluginModuleParent::NPP_NewInternal(NPMIMEType pluginType, NPP instance,
         // For all builds that use async rendering force use of the accelerated
         // direct path for flash objects that have wmode=window or no wmode
         // specified.
-        if (supportsAsyncRender && supportsForceDirect) {
+        if (supportsAsyncRender && supportsForceDirect &&
+            gfxWindowsPlatform::GetPlatform()->SupportsPluginDirectDXGIDrawing()) {
             ForceDirect(names, values);
         }
 #endif
@@ -3260,11 +3264,12 @@ PluginModuleChromeParent::OnCrash(DWORD processID)
 #endif // MOZ_CRASHREPORTER_INJECTOR
 
 mozilla::ipc::IPCResult
-PluginModuleChromeParent::RecvProfile(const nsCString& aProfile)
+PluginModuleChromeParent::RecvProfile(const nsCString& aProfile,
+                                      const bool& aIsExitProfile)
 {
 #ifdef MOZ_GECKO_PROFILER
     if (mProfilerController) {
-        mProfilerController->RecvProfile(aProfile);
+        mProfilerController->RecvProfile(aProfile, aIsExitProfile);
     }
 #endif
     return IPC_OK();

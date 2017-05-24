@@ -168,8 +168,21 @@ const int MixBlendMode_Color       = 14;
 const int MixBlendMode_Luminosity  = 15;
 
 void main(void) {
-    vec4 Cb = texture(sCache, vUv0);
-    vec4 Cs = texture(sCache, vUv1);
+    vec4 Cb = texture(sCacheRGBA8, vUv0);
+    vec4 Cs = texture(sCacheRGBA8, vUv1);
+
+    // The mix-blend-mode functions assume no premultiplied alpha
+    Cb.rgb /= Cb.a;
+    Cs.rgb /= Cs.a;
+
+    if (Cb.a == 0.0) {
+        oFragColor = Cs;
+        return;
+    }
+    if (Cs.a == 0.0) {
+        oFragColor = vec4(0.0, 0.0, 0.0, 0.0);
+        return;
+    }
 
     // Return yellow if none of the branches match (shouldn't happen).
     vec4 result = vec4(1.0, 1.0, 0.0, 1.0);

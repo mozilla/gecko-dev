@@ -50,7 +50,6 @@
 #include "mozilla/dom/WebAuthentication.h"
 #include "mozilla/dom/workers/RuntimeService.h"
 #include "mozilla/Hal.h"
-#include "nsISiteSpecificUserAgent.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/SSE.h"
 #include "mozilla/StaticPtr.h"
@@ -70,13 +69,10 @@
 #include "nsStreamUtils.h"
 #include "WidgetUtils.h"
 #include "nsIPresentationService.h"
+#include "nsIScriptError.h"
 
 #include "mozilla/dom/MediaDevices.h"
 #include "MediaManager.h"
-
-#ifdef MOZ_AUDIO_CHANNEL_MANAGER
-#include "AudioChannelManager.h"
-#endif
 
 #include "nsIDOMGlobalPropertyInitializer.h"
 #include "nsJSUtils.h"
@@ -100,6 +96,7 @@
 
 #include "mozilla/EMEUtils.h"
 #include "mozilla/DetailedPromise.h"
+#include "mozilla/Unused.h"
 
 namespace mozilla {
 namespace dom {
@@ -208,9 +205,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mConnection)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStorageManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAuthentication)
-#ifdef MOZ_AUDIO_CHANNEL_MANAGER
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAudioChannelManager)
-#endif
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaDevices)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTimeManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mServiceWorkerContainer)
@@ -272,12 +266,6 @@ Navigator::Invalidate()
 
   mMediaDevices = nullptr;
 
-#ifdef MOZ_AUDIO_CHANNEL_MANAGER
-  if (mAudioChannelManager) {
-    mAudioChannelManager = nullptr;
-  }
-#endif
-
   if (mTimeManager) {
     mTimeManager = nullptr;
   }
@@ -314,7 +302,6 @@ void
 Navigator::GetUserAgent(nsAString& aUserAgent, CallerType aCallerType,
                         ErrorResult& aRv) const
 {
-  nsCOMPtr<nsIURI> codebaseURI;
   nsCOMPtr<nsPIDOMWindowInner> window;
 
   if (mWindow) {
@@ -328,15 +315,10 @@ Navigator::GetUserAgent(nsAString& aUserAgent, CallerType aCallerType,
         aUserAgent = customUserAgent;
         return;
       }
-
-      nsIDocument* doc = mWindow->GetExtantDoc();
-      if (doc) {
-        doc->NodePrincipal()->GetURI(getter_AddRefs(codebaseURI));
-      }
     }
   }
 
-  nsresult rv = GetUserAgent(window, codebaseURI,
+  nsresult rv = GetUserAgent(window,
                              aCallerType == CallerType::System,
                              aUserAgent);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -1229,12 +1211,6 @@ Navigator::SendBeaconInternal(const nsAString& aUrl,
       return false;
     }
 
-    if (aType == eBeaconTypeArrayBuffer) {
-      MOZ_ASSERT(contentTypeWithCharset.IsEmpty());
-      MOZ_ASSERT(charset.IsEmpty());
-      contentTypeWithCharset.Assign("application/octet-stream");
-    }
-
     nsCOMPtr<nsIUploadChannel2> uploadChannel = do_QueryInterface(channel);
     if (!uploadChannel) {
       aRv.Throw(NS_ERROR_FAILURE);
@@ -1581,6 +1557,10 @@ Navigator::NotifyActiveVRDisplaysChanged()
 VRServiceTest*
 Navigator::RequestVRServiceTest()
 {
+  // Ensure that the Mock VR devices are not released prematurely
+  nsGlobalWindow* win = nsGlobalWindow::Cast(mWindow);
+  win->NotifyVREventListenerAdded();
+
   if (!mVRServiceTest) {
     mVRServiceTest = VRServiceTest::CreateTestService(mWindow);
   }
@@ -1695,23 +1675,6 @@ Navigator::CheckPermission(nsPIDOMWindowInner* aWindow, const char* aType)
   uint32_t permission = GetPermission(aWindow, aType);
   return permission == nsIPermissionManager::ALLOW_ACTION;
 }
-
-#ifdef MOZ_AUDIO_CHANNEL_MANAGER
-system::AudioChannelManager*
-Navigator::GetMozAudioChannelManager(ErrorResult& aRv)
-{
-  if (!mAudioChannelManager) {
-    if (!mWindow) {
-      aRv.Throw(NS_ERROR_UNEXPECTED);
-      return nullptr;
-    }
-    mAudioChannelManager = new system::AudioChannelManager();
-    mAudioChannelManager->Init(mWindow);
-  }
-
-  return mAudioChannelManager;
-}
-#endif
 
 JSObject*
 Navigator::WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
@@ -1885,7 +1848,7 @@ Navigator::ClearUserAgentCache()
 }
 
 nsresult
-Navigator::GetUserAgent(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
+Navigator::GetUserAgent(nsPIDOMWindowInner* aWindow,
                         bool aIsCallerChrome,
                         nsAString& aUserAgent)
 {
@@ -1916,19 +1879,28 @@ Navigator::GetUserAgent(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
 
   CopyASCIItoUTF16(ua, aUserAgent);
 
-  if (!aWindow || !aURI) {
+  if (!aWindow) {
     return NS_OK;
   }
 
-  MOZ_ASSERT(aWindow->GetDocShell());
-
-  nsCOMPtr<nsISiteSpecificUserAgent> siteSpecificUA =
-    do_GetService("@mozilla.org/dom/site-specific-user-agent;1");
-  if (!siteSpecificUA) {
+  // Copy the User-Agent header from the document channel which has already been
+  // subject to UA overrides.
+  nsCOMPtr<nsIDocument> doc = aWindow->GetExtantDoc();
+  if (!doc) {
     return NS_OK;
   }
-
-  return siteSpecificUA->GetUserAgentForURIAndWindow(aURI, aWindow, aUserAgent);
+  nsCOMPtr<nsIHttpChannel> httpChannel =
+    do_QueryInterface(doc->GetChannel());
+  if (httpChannel) {
+    nsAutoCString userAgent;
+    rv = httpChannel->GetRequestHeader(NS_LITERAL_CSTRING("User-Agent"),
+                                       userAgent);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+    CopyASCIItoUTF16(userAgent, aUserAgent);
+  }
+  return NS_OK;
 }
 
 static nsCString
@@ -2021,14 +1993,17 @@ ToCString(const MediaKeySystemConfiguration& aConfig)
 }
 
 static nsCString
-RequestKeySystemAccessLogString(const nsAString& aKeySystem,
-                                const Sequence<MediaKeySystemConfiguration>& aConfigs)
+RequestKeySystemAccessLogString(
+  const nsAString& aKeySystem,
+  const Sequence<MediaKeySystemConfiguration>& aConfigs,
+  bool aIsSecureContext)
 {
   nsCString str;
   str.AppendPrintf("Navigator::RequestMediaKeySystemAccess(keySystem='%s' options=",
                    NS_ConvertUTF16toUTF8(aKeySystem).get());
   str.Append(ToCString(aConfigs));
-  str.AppendLiteral(")");
+  str.AppendLiteral(") secureContext=");
+  str.AppendInt(aIsSecureContext);
   return str;
 }
 
@@ -2037,7 +2012,29 @@ Navigator::RequestMediaKeySystemAccess(const nsAString& aKeySystem,
                                        const Sequence<MediaKeySystemConfiguration>& aConfigs,
                                        ErrorResult& aRv)
 {
-  EME_LOG("%s", RequestKeySystemAccessLogString(aKeySystem, aConfigs).get());
+  EME_LOG("%s",
+          RequestKeySystemAccessLogString(
+            aKeySystem, aConfigs, mWindow->IsSecureContext())
+            .get());
+
+  Telemetry::Accumulate(Telemetry::MEDIA_EME_SECURE_CONTEXT,
+                        mWindow->IsSecureContext());
+
+  if (!mWindow->IsSecureContext()) {
+    nsIDocument* doc = mWindow->GetExtantDoc();
+    nsString uri;
+    if (doc) {
+      Unused << doc->GetDocumentURI(uri);
+    }
+    const char16_t* params[] = { uri.get() };
+    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                    NS_LITERAL_CSTRING("Media"),
+                                    doc,
+                                    nsContentUtils::eDOM_PROPERTIES,
+                                    "MediaEMEInsecureContextDeprecatedWarning",
+                                    params,
+                                    ArrayLength(params));
+  }
 
   nsCOMPtr<nsIGlobalObject> go = do_QueryInterface(mWindow);
   RefPtr<DetailedPromise> promise =

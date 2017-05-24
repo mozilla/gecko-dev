@@ -11,6 +11,7 @@
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/SystemGroup.h"
 #include "mozilla/Unused.h"
 #include "nsComponentManagerUtils.h"
 #include "nsITimer.h"
@@ -21,6 +22,8 @@
 using mozilla::StaticMutex;
 using mozilla::StaticMutexAutoLock;
 using mozilla::StaticAutoPtr;
+using mozilla::SystemGroup;
+using mozilla::TaskCategory;
 using mozilla::Telemetry::Accumulation;
 using mozilla::Telemetry::KeyedAccumulation;
 using mozilla::Telemetry::ScalarActionType;
@@ -41,6 +44,7 @@ const uint32_t kBatchTimeoutMs = 2000;
 // drain the probe accumulation arrays, we request an immediate flush if the
 // arrays manage to reach certain high water mark of elements.
 const size_t kHistogramAccumulationsArrayHighWaterMark = 5 * 1024;
+const size_t kScalarActionsArrayHighWaterMark = 10000;
 // With the current limits, events cost us about 1100 bytes each.
 // This limits memory use to about 10MB.
 const size_t kEventsArrayHighWaterMark = 10000;
@@ -77,6 +81,9 @@ DoArmIPCTimerMainThread(const StaticMutexAutoLock& lock)
   }
   if (!gIPCTimer) {
     CallCreateInstance(NS_TIMER_CONTRACTID, &gIPCTimer);
+    if (gIPCTimer) {
+      gIPCTimer->SetTarget(SystemGroup::EventTargetFor(TaskCategory::Other));
+    }
   }
   if (gIPCTimer) {
     gIPCTimer->InitWithNamedFuncCallback(TelemetryIPCAccumulator::IPCTimerFired,
@@ -106,6 +113,16 @@ ArmIPCTimer(const StaticMutexAutoLock& lock)
   }
 }
 
+void
+DispatchIPCTimerFired()
+{
+  TelemetryIPCAccumulator::DispatchToMainThread(
+    NS_NewRunnableFunction("TelemetryIPCAccumulator::IPCTimerFired",
+                           []() -> void {
+      TelemetryIPCAccumulator::IPCTimerFired(nullptr, nullptr);
+    }));
+}
+
 } // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////
@@ -122,9 +139,7 @@ TelemetryIPCAccumulator::AccumulateChildHistogram(mozilla::Telemetry::HistogramI
     gHistogramAccumulations = new nsTArray<Accumulation>();
   }
   if (gHistogramAccumulations->Length() == kHistogramAccumulationsArrayHighWaterMark) {
-    TelemetryIPCAccumulator::DispatchToMainThread(NS_NewRunnableFunction([]() -> void {
-      TelemetryIPCAccumulator::IPCTimerFired(nullptr, nullptr);
-    }));
+    DispatchIPCTimerFired();
   }
   gHistogramAccumulations->AppendElement(Accumulation{aId, aSample});
   ArmIPCTimer(locker);
@@ -139,9 +154,7 @@ TelemetryIPCAccumulator::AccumulateChildKeyedHistogram(mozilla::Telemetry::Histo
     gKeyedHistogramAccumulations = new nsTArray<KeyedAccumulation>();
   }
   if (gKeyedHistogramAccumulations->Length() == kHistogramAccumulationsArrayHighWaterMark) {
-    TelemetryIPCAccumulator::DispatchToMainThread(NS_NewRunnableFunction([]() -> void {
-      TelemetryIPCAccumulator::IPCTimerFired(nullptr, nullptr);
-    }));
+    DispatchIPCTimerFired();
   }
   gKeyedHistogramAccumulations->AppendElement(KeyedAccumulation{aId, aSample, aKey});
   ArmIPCTimer(locker);
@@ -155,6 +168,9 @@ TelemetryIPCAccumulator::RecordChildScalarAction(mozilla::Telemetry::ScalarID aI
   // Make sure to have the storage.
   if (!gChildScalarsActions) {
     gChildScalarsActions = new nsTArray<ScalarAction>();
+  }
+  if (gChildScalarsActions->Length() == kScalarActionsArrayHighWaterMark) {
+    DispatchIPCTimerFired();
   }
   // Store the action.
   gChildScalarsActions->AppendElement(ScalarAction{aId, aAction, Some(aValue)});
@@ -171,6 +187,9 @@ TelemetryIPCAccumulator::RecordChildKeyedScalarAction(mozilla::Telemetry::Scalar
   // Make sure to have the storage.
   if (!gChildKeyedScalarsActions) {
     gChildKeyedScalarsActions = new nsTArray<KeyedScalarAction>();
+  }
+  if (gChildKeyedScalarsActions->Length() == kScalarActionsArrayHighWaterMark) {
+    DispatchIPCTimerFired();
   }
   // Store the action.
   gChildKeyedScalarsActions->AppendElement(
@@ -193,9 +212,7 @@ TelemetryIPCAccumulator::RecordChildEvent(const mozilla::TimeStamp& timestamp,
   }
 
   if (gChildEvents->Length() == kEventsArrayHighWaterMark) {
-    TelemetryIPCAccumulator::DispatchToMainThread(NS_NewRunnableFunction([]() -> void {
-      TelemetryIPCAccumulator::IPCTimerFired(nullptr, nullptr);
-    }));
+    DispatchIPCTimerFired();
   }
 
   // Store the event.
@@ -310,12 +327,6 @@ TelemetryIPCAccumulator::DeInitializeGlobalState()
 void
 TelemetryIPCAccumulator::DispatchToMainThread(already_AddRefed<nsIRunnable>&& aEvent)
 {
-  nsCOMPtr<nsIRunnable> event(aEvent);
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = NS_GetMainThread(getter_AddRefs(thread));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("NS_FAILED DispatchToMainThread. Maybe we're shutting down?");
-    return;
-  }
-  thread->Dispatch(event, 0);
+  SystemGroup::EventTargetFor(TaskCategory::Other)->Dispatch(Move(aEvent),
+                                                             nsIEventTarget::DISPATCH_NORMAL);
 }

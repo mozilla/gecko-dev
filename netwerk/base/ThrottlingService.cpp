@@ -22,10 +22,16 @@ namespace net{
 
 static const char kEnabledPref[] = "network.throttle.enable";
 static const bool kDefaultEnabled = true;
+
+// During a page load presure, every channel that is marked as Throttleable
+// is being periodically suspended and resumed for the suspend-for and
+// resume-for intervals respectively.  This gives more bandwidth to other
+// more priority responses.
+
 static const char kSuspendPeriodPref[] = "network.throttle.suspend-for";
-static const uint32_t kDefaultSuspendPeriod = 2000;
+static const uint32_t kDefaultSuspendPeriod = 3000;
 static const char kResumePeriodPref[] = "network.throttle.resume-for";
-static const uint32_t kDefaultResumePeriod = 2000;
+static const uint32_t kDefaultResumePeriod = 200;
 
 NS_IMPL_ISUPPORTS(ThrottlingService, nsIThrottlingService, nsIObserver, nsITimerCallback)
 
@@ -131,19 +137,13 @@ ThrottlingService::AddChannel(nsIHttpChannel *channel)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsAutoCString strKey;
-  nsresult rv = channel->GetChannelId(strKey);
+  uint64_t key;
+  nsresult rv = channel->GetChannelId(&key);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  nsID key;
-  if (!key.Parse(strKey.get())) {
-    return NS_ERROR_UNEXPECTED;
-  }
 
   if (mChannelHash.Get(key, nullptr)) {
     // We already have this channel under our control, not adding it again.
-    MOZ_ASSERT(false, "Trying to throttle an already-throttled channel");
-    return NS_ERROR_ILLEGAL_VALUE;
+    return NS_OK;
   }
 
   if (!mIteratingHash) {
@@ -178,14 +178,9 @@ ThrottlingService::RemoveChannel(nsIHttpChannel *channel)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsAutoCString strKey;
-  nsresult rv = channel->GetChannelId(strKey);
+  uint64_t key;
+  nsresult rv = channel->GetChannelId(&key);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  nsID key;
-  if (!key.Parse(strKey.get())) {
-    return NS_ERROR_UNEXPECTED;
-  }
 
   if (!mChannelHash.Get(key, nullptr)) {
     // TODO - warn?

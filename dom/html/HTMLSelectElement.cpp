@@ -117,9 +117,10 @@ SafeOptionListMutation::~SafeOptionListMutation()
 
 HTMLSelectElement::HTMLSelectElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
                                      FromParser aFromParser)
-  : nsGenericHTMLFormElementWithState(aNodeInfo),
+  : nsGenericHTMLFormElementWithState(aNodeInfo, NS_FORM_SELECT),
     mOptions(new HTMLOptionsCollection(this)),
     mAutocompleteAttrState(nsContentUtils::eAutocompleteAttrState_Unknown),
+    mAutocompleteInfoState(nsContentUtils::eAutocompleteAttrState_Unknown),
     mIsDoneAddingChildren(!aFromParser),
     mDisabledChanged(false),
     mMutating(false),
@@ -207,9 +208,10 @@ void
 HTMLSelectElement::GetAutocompleteInfo(AutocompleteInfo& aInfo)
 {
   const nsAttrValue* attributeVal = GetParsedAttr(nsGkAtoms::autocomplete);
-  mAutocompleteAttrState =
+  mAutocompleteInfoState =
     nsContentUtils::SerializeAutocompleteAttribute(attributeVal, aInfo,
-                                                   mAutocompleteAttrState);
+                                                   mAutocompleteInfoState,
+                                                   true);
 }
 
 NS_IMETHODIMP
@@ -1070,7 +1072,7 @@ HTMLSelectElement::SetOptionsSelectedByIndex(int32_t aStartIndex,
   }
 
   // Make sure something is selected unless we were set to -1 (none)
-  if (optionsDeselected && aStartIndex != -1) {
+  if (optionsDeselected && aStartIndex != -1 && !(aOptionsMask & NO_RESELECT)) {
     optionsSelected =
       CheckSelectSomething(aOptionsMask & NOTIFY) || optionsSelected;
   }
@@ -1310,7 +1312,8 @@ HTMLSelectElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 
 nsresult
 HTMLSelectElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify)
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue, bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::disabled) {
@@ -1318,13 +1321,15 @@ HTMLSelectElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
     } else if (aName == nsGkAtoms::required) {
       UpdateValueMissingValidityState();
     } else if (aName == nsGkAtoms::autocomplete) {
-      // Clear the cached @autocomplete attribute state
+      // Clear the cached @autocomplete attribute and autocompleteInfo state.
       mAutocompleteAttrState = nsContentUtils::eAutocompleteAttrState_Unknown;
+      mAutocompleteInfoState = nsContentUtils::eAutocompleteAttrState_Unknown;
     }
   }
 
   return nsGenericHTMLFormElementWithState::AfterSetAttr(aNameSpaceID, aName,
-                                                         aValue, aNotify);
+                                                         aValue, aOldValue,
+                                                         aNotify);
 }
 
 nsresult
@@ -1643,13 +1648,14 @@ HTMLSelectElement::Reset()
       // Reset the option to its default value
       //
 
-      uint32_t mask = SET_DISABLED | NOTIFY;
+      uint32_t mask = SET_DISABLED | NOTIFY | NO_RESELECT;
       if (option->DefaultSelected()) {
         mask |= IS_SELECTED;
         numSelected++;
       }
 
       SetOptionsSelectedByIndex(i, i, mask);
+      option->SetSelectedChanged(false);
     }
   }
 
@@ -1929,6 +1935,26 @@ HTMLSelectElement::SetOpenInParentProcess(bool aVal)
   nsIComboboxControlFrame* comboFrame = do_QueryFrame(formControlFrame);
   if (comboFrame) {
     comboFrame->SetOpenInParentProcess(aVal);
+  }
+}
+
+void
+HTMLSelectElement::GetPreviewValue(nsAString& aValue)
+{
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
+  nsIComboboxControlFrame* comboFrame = do_QueryFrame(formControlFrame);
+  if (comboFrame) {
+    comboFrame->GetPreviewText(aValue);
+  }
+}
+
+void
+HTMLSelectElement::SetPreviewValue(const nsAString& aValue)
+{
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(false);
+  nsIComboboxControlFrame* comboFrame = do_QueryFrame(formControlFrame);
+  if (comboFrame) {
+    comboFrame->SetPreviewText(aValue);
   }
 }
 

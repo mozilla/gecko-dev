@@ -19,7 +19,6 @@
 #include "AnimationCommon.h" // For GetLayerAnimationInfo
 #include "FrameLayerBuilder.h"
 #include "GeckoProfiler.h"
-#include "LayerAnimationInfo.h" // For LayerAnimationInfo::sRecords
 #include "nsAutoPtr.h"
 #include "nsStyleChangeList.h"
 #include "nsRuleProcessorData.h"
@@ -50,7 +49,6 @@
 #include "nsSMILAnimationController.h"
 #include "nsCSSRuleProcessor.h"
 #include "ChildIterator.h"
-#include "Layers.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -91,7 +89,6 @@ GeckoRestyleManager::GeckoRestyleManager(nsPresContext* aPresContext)
   , mHavePendingNonAnimationRestyles(false)
   , mRebuildAllExtraHint(nsChangeHint(0))
   , mRebuildAllRestyleHint(nsRestyleHint(0))
-  , mAnimationGeneration(0)
   , mReframingStyleContexts(nullptr)
   , mPendingRestyles(ELEMENT_HAS_PENDING_RESTYLE |
                      ELEMENT_IS_POTENTIAL_RESTYLE_ROOT |
@@ -248,6 +245,8 @@ GeckoRestyleManager::AttributeChanged(Element* aElement,
                                       int32_t aModType,
                                       const nsAttrValue* aOldValue)
 {
+  MOZ_ASSERT(!mInStyleRefresh);
+
   // Hold onto the PresShell to prevent ourselves from being destroyed.
   // XXXbz how, exactly, would this attribute change cause us to be
   // destroyed from inside this function?
@@ -331,13 +330,6 @@ GeckoRestyleManager::AttributeChanged(Element* aElement,
                                            aOldValue,
                                            rsdata);
   PostRestyleEvent(aElement, rshint, hint, &rsdata);
-}
-
-/* static */ uint64_t
-GeckoRestyleManager::GetAnimationGenerationForFrame(nsIFrame* aFrame)
-{
-  EffectSet* effectSet = EffectSet::GetEffectSet(aFrame);
-  return effectSet ? effectSet->GetAnimationGeneration() : 0;
 }
 
 void
@@ -605,6 +597,24 @@ GeckoRestyleManager::UpdateOnlyAnimationStyles()
 }
 
 void
+GeckoRestyleManager::PostRestyleEventInternal()
+{
+  // Make sure we're not in a style refresh; if we are, we still have
+  // a call to ProcessPendingRestyles coming and there's no need to
+  // add ourselves as a refresh observer until then.
+  nsIPresShell* presShell = PresContext()->PresShell();
+  if (!mInStyleRefresh) {
+    presShell->ObserveStyleFlushes();
+  }
+
+  // Unconditionally flag our document as needing a flush.  The other
+  // option here would be a dedicated boolean to track whether we need
+  // to do so (set here and unset in ProcessPendingRestyles).
+  presShell->SetNeedStyleFlush();
+}
+
+
+void
 GeckoRestyleManager::PostRestyleEvent(Element* aElement,
                                       nsRestyleHint aRestyleHint,
                                       nsChangeHint aMinChangeHint,
@@ -631,7 +641,7 @@ GeckoRestyleManager::PostRestyleEvent(Element* aElement,
     mHavePendingNonAnimationRestyles = true;
   }
 
-  PostRestyleEventInternal(false);
+  PostRestyleEventInternal();
 }
 
 void
@@ -650,7 +660,7 @@ GeckoRestyleManager::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
   mRebuildAllRestyleHint |= aRestyleHint;
 
   // Get a restyle event posted if necessary
-  PostRestyleEventInternal(false);
+  PostRestyleEventInternal();
 }
 
 // aContent must be the content for the frame in question, which may be
@@ -697,7 +707,7 @@ ElementForStyleContext(nsIContent* aParentContent,
   }
 
   if (aPseudoType == CSSPseudoElementType::firstLetter) {
-    NS_ASSERTION(aFrame->GetType() == nsGkAtoms::letterFrame,
+    NS_ASSERTION(aFrame->IsLetterFrame(),
                  "firstLetter pseudoTag without a nsFirstLetterFrame");
     nsBlockFrame* block = nsBlockFrame::GetNearestAncestorBlock(aFrame);
     return block->GetContent()->AsElement();
@@ -709,7 +719,7 @@ ElementForStyleContext(nsIContent* aParentContent,
                "Color swatch frame should have a parent & grandparent");
 
     nsIFrame* grandparentFrame = aFrame->GetParent()->GetParent();
-    MOZ_ASSERT(grandparentFrame->GetType() == nsGkAtoms::colorControlFrame,
+    MOZ_ASSERT(grandparentFrame->IsColorControlFrame(),
                "Color swatch's grandparent should be nsColorControlFrame");
 
     return grandparentFrame->GetContent()->AsElement();
@@ -723,7 +733,7 @@ ElementForStyleContext(nsIContent* aParentContent,
     // Get content for nearest nsNumberControlFrame:
     nsIFrame* f = aFrame->GetParent();
     MOZ_ASSERT(f);
-    while (f->GetType() != nsGkAtoms::numberControlFrame) {
+    while (!f->IsNumberControlFrame()) {
       f = f->GetParent();
       MOZ_ASSERT(f);
     }
@@ -851,8 +861,8 @@ GetPrevContinuationWithSameStyle(nsIFrame* aFrame)
 nsresult
 GeckoRestyleManager::ReparentStyleContext(nsIFrame* aFrame)
 {
-  nsIAtom* frameType = aFrame->GetType();
-  if (frameType == nsGkAtoms::placeholderFrame) {
+  LayoutFrameType frameType = aFrame->Type();
+  if (frameType == LayoutFrameType::Placeholder) {
     // Also reparent the out-of-flow and all its continuations.
     nsIFrame* outOfFlow =
       nsPlaceholderFrame::GetRealFrameForPlaceholder(aFrame);
@@ -860,7 +870,7 @@ GeckoRestyleManager::ReparentStyleContext(nsIFrame* aFrame)
     do {
       ReparentStyleContext(outOfFlow);
     } while ((outOfFlow = outOfFlow->GetNextContinuation()));
-  } else if (frameType == nsGkAtoms::backdropFrame) {
+  } else if (frameType == LayoutFrameType::Backdrop) {
     // Style context of backdrop frame has no parent style context, and
     // thus we do not need to reparent it.
     return NS_OK;
@@ -982,7 +992,7 @@ GeckoRestyleManager::ReparentStyleContext(nsIFrame* aFrame)
           if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
               child != providerChild) {
 #ifdef DEBUG
-            if (nsGkAtoms::placeholderFrame == child->GetType()) {
+            if (child->IsPlaceholderFrame()) {
               nsIFrame* outOfFlowFrame =
                 nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
               NS_ASSERTION(outOfFlowFrame, "no out-of-flow frame");
@@ -1164,9 +1174,16 @@ ElementRestyler::ElementRestyler(ParentContextFromChildFrame,
 #endif
 {
   MOZ_ASSERT_IF(mContent, !mContent->IsStyledByServo());
-  MOZ_ASSERT(!(mHintsHandledByAncestors & nsChangeHint_ReconstructFrame),
-             "why restyle descendants if we are reconstructing the frame for "
-             "an ancestor?");
+
+  // We would assert here that we're not restyling a child provider frame if
+  // mHintsHandledByAncestors includes nsChangeHint_ReconstructFrame, but
+  // we do actually do this if the ReconstructFrame hint came from the
+  // RestyleTracker, rather than generated from CalcDifference.  (We could
+  // even try to avoid restyling the child provider frame, by returning
+  // early in ElementRestyler::Restyle if we grab out a ReconstructFrame
+  // hint from the RestyleTracker, but it's trickier to verify its correctness
+  // with all of the tree patching that happens currently, so for now we just
+  // skip the assertion.)
 }
 
 ElementRestyler::ElementRestyler(nsPresContext* aPresContext,
@@ -1205,54 +1222,6 @@ ElementRestyler::ElementRestyler(nsPresContext* aPresContext,
   MOZ_ASSERT(!(mHintsHandledByAncestors & nsChangeHint_ReconstructFrame),
              "why restyle descendants if we are reconstructing the frame for "
              "an ancestor?");
-}
-
-void
-ElementRestyler::AddLayerChangesForAnimation()
-{
-  uint64_t frameGeneration =
-    GeckoRestyleManager::GetAnimationGenerationForFrame(mFrame);
-
-  nsChangeHint hint = nsChangeHint(0);
-  for (const LayerAnimationInfo::Record& layerInfo :
-         LayerAnimationInfo::sRecords) {
-    Layer* layer =
-      FrameLayerBuilder::GetDedicatedLayer(mFrame, layerInfo.mLayerType);
-    if (layer && frameGeneration != layer->GetAnimationGeneration()) {
-      // If we have a transform layer but don't have any transform style, we
-      // probably just removed the transform but haven't destroyed the layer
-      // yet. In this case we will add the appropriate change hint
-      // (nsChangeHint_UpdateContainingBlock) when we compare style contexts
-      // so we can skip adding any change hint here. (If we *were* to add
-      // nsChangeHint_UpdateTransformLayer, ApplyRenderingChangeToTree would
-      // complain that we're updating a transform layer without a transform).
-      if (layerInfo.mLayerType == nsDisplayItem::TYPE_TRANSFORM &&
-          !mFrame->StyleDisplay()->HasTransformStyle()) {
-        continue;
-      }
-      hint |= layerInfo.mChangeHint;
-    }
-
-    // We consider it's the first paint for the frame if we have an animation
-    // for the property but have no layer.
-    // Note that in case of animations which has properties preventing running
-    // on the compositor, e.g., width or height, corresponding layer is not
-    // created at all, but even in such cases, we normally set valid change
-    // hint for such animations in each tick, i.e. restyles in each tick. As
-    // a result, we usually do restyles for such animations in every tick on
-    // the main-thread.  The only animations which will be affected by this
-    // explicit change hint are animations that have opacity/transform but did
-    // not have those properies just before. e.g,  setting transform by
-    // setKeyframes or changing target element from other target which prevents
-    // running on the compositor, etc.
-    if (!layer &&
-        nsLayoutUtils::HasEffectiveAnimation(mFrame, layerInfo.mProperty)) {
-      hint |= layerInfo.mChangeHint;
-    }
-  }
-  if (hint) {
-    mChangeList->AppendChange(mFrame, mContent, hint);
-  }
 }
 
 void
@@ -1423,7 +1392,7 @@ ElementRestyler::ConditionallyRestyleContentChildren(nsIFrame* aFrame,
         if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
             !GetPrevContinuationWithSameStyle(child)) {
           // only do frames that are in flow
-          if (child->GetType() == nsGkAtoms::placeholderFrame) { // placeholder
+          if (child->IsPlaceholderFrame()) { // placeholder
             // get out of flow frame and recur there
             nsIFrame* outOfFlowFrame =
               nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
@@ -1636,16 +1605,15 @@ ElementRestyler::MoveStyleContextsForContentChildren(
       }
       // Bail out if we have placeholder frames.
       // FIXME: It is probably safe to just continue here instead of bailing out.
-      if (nsGkAtoms::placeholderFrame == child->GetType()) {
+      if (child->IsPlaceholderFrame()) {
         return false;
       }
       nsStyleContext* sc = child->StyleContext();
       if (sc->GetParent() != aOldContext) {
         return false;
       }
-      nsIAtom* type = child->GetType();
-      if (type == nsGkAtoms::letterFrame ||
-          type == nsGkAtoms::lineFrame) {
+      LayoutFrameType type = child->Type();
+      if (type == LayoutFrameType::Letter || type == LayoutFrameType::Line) {
         return false;
       }
       if (sc->HasChildThatUsesGrandancestorStyle()) {
@@ -1861,7 +1829,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   // Some changes to animations don't affect the computed style and yet still
   // require the layer to be updated. For example, pausing an animation via
   // the Web Animations API won't affect an element's style but still
-  // requires us to pull the animation off the layer.
+  // requires to update the animation on the layer.
   //
   // Although we only expect this code path to be called when computed style
   // is not changing, we can sometimes reach this at the end of a transition
@@ -1869,7 +1837,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   // AddLayerChangesForAnimation checks if mFrame has a transform style or not,
   // we need to call it *after* calling RestyleSelf to ensure the animated
   // transform has been removed first.
-  AddLayerChangesForAnimation();
+  RestyleManager::AddLayerChangesForAnimation(mFrame, mContent, *mChangeList);
 
   if (haveMoreContinuations && hintToRestore) {
     // If we have more continuations with different style (e.g., because
@@ -2052,16 +2020,16 @@ ElementRestyler::ComputeRestyleResultFromFrame(nsIFrame* aSelf,
   // content).  Continue restyling to the children of the nsLetterFrame so
   // that they get the correct style context parent.  Similarly for
   // nsLineFrames.
-  nsIAtom* type = aSelf->GetType();
+  LayoutFrameType type = aSelf->Type();
 
-  if (type == nsGkAtoms::letterFrame) {
+  if (type == LayoutFrameType::Letter) {
     LOG_RESTYLE_CONTINUE("frame is a letter frame");
     aRestyleResult = RestyleResult::eContinue;
     aCanStopWithStyleChange = false;
     return;
   }
 
-  if (type == nsGkAtoms::lineFrame) {
+  if (type == LayoutFrameType::Line) {
     LOG_RESTYLE_CONTINUE("frame is a line frame");
     aRestyleResult = RestyleResult::eContinue;
     aCanStopWithStyleChange = false;
@@ -2483,7 +2451,7 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
     LOG_RESTYLE("using previous continuation's context");
     newContext = prevContinuationContext;
   } else if (pseudoTag == nsCSSAnonBoxes::mozText) {
-    MOZ_ASSERT(aSelf->GetType() == nsGkAtoms::textFrame);
+    MOZ_ASSERT(aSelf->IsTextFrame());
     newContext =
       styleSet->ResolveStyleForText(aSelf->GetContent(), parentContext);
   } else if (pseudoTag == nsCSSAnonBoxes::firstLetterContinuation) {
@@ -3037,15 +3005,10 @@ ElementRestyler::ComputeStyleChangeFor(nsIFrame*          aFrame,
                                        nsTArray<RefPtr<nsStyleContext>>&
                                          aSwappedStructOwners)
 {
-  nsIContent* content = aFrame->GetContent();
-  std::string elemDesc;
-  if (profiler_is_active() && content) {
-    elemDesc = ToString(*content);
-  }
+  PROFILER_LABEL("ElementRestyler", "ComputeStyleChangeFor",
+                 js::ProfileEntry::Category::CSS);
 
-  PROFILER_LABEL_DYNAMIC("ElementRestyler", "ComputeStyleChangeFor",
-                         js::ProfileEntry::Category::CSS,
-                         content ? elemDesc.c_str() : "<unknown>");
+  nsIContent* content = aFrame->GetContent();
   if (aMinChange) {
     aChangeList->AppendChange(aFrame, content, aMinChange);
   }
@@ -3157,7 +3120,7 @@ ElementRestyler::RestyleUndisplayedNodes(nsRestyleHint      aChildRestyleHint,
 {
   nsIContent* undisplayedParent = aUndisplayedParent;
   UndisplayedNode* undisplayed = aUndisplayed;
-  TreeMatchContext::AutoAncestorPusher pusher(mTreeMatchContext);
+  TreeMatchContext::AutoAncestorPusher pusher(&mTreeMatchContext);
   if (undisplayed) {
     pusher.PushAncestorAndStyleScope(undisplayedParent);
   }
@@ -3177,7 +3140,7 @@ ElementRestyler::RestyleUndisplayedNodes(nsRestyleHint      aChildRestyleHint,
     // children element. Push the children element as an ancestor here because it does
     // not have a frame and would not otherwise be pushed as an ancestor.
     nsIContent* parent = undisplayed->mContent->GetParent();
-    TreeMatchContext::AutoAncestorPusher insertionPointPusher(mTreeMatchContext);
+    TreeMatchContext::AutoAncestorPusher insertionPointPusher(&mTreeMatchContext);
     if (parent && nsContentUtils::IsContentInsertionPoint(parent)) {
       insertionPointPusher.PushAncestorAndStyleScope(parent);
     }
@@ -3317,14 +3280,14 @@ ElementRestyler::MustReframeForPseudo(CSSPseudoElementType aPseudoType,
     // Check for a ::before pseudo style and the absence of a ::before content,
     // but only if aFrame is null or is the first continuation/ib-split.
     if ((aFrame && !nsLayoutUtils::IsFirstContinuationOrIBSplitSibling(aFrame)) ||
-        nsLayoutUtils::GetBeforeFrameForContent(aGenConParentFrame, aContent)) {
+        nsLayoutUtils::GetBeforeFrame(aContent)) {
       return false;
     }
   } else {
     // Similarly for ::after, but check for being the last continuation/
     // ib-split.
     if ((aFrame && nsLayoutUtils::GetNextContinuationOrIBSplitSibling(aFrame)) ||
-        nsLayoutUtils::GetAfterFrameForContent(aGenConParentFrame, aContent)) {
+        nsLayoutUtils::GetAfterFrame(aContent)) {
       return false;
     }
   }
@@ -3385,7 +3348,7 @@ ElementRestyler::RestyleContentChildren(nsIFrame* aParent,
   LOG_RESTYLE("RestyleContentChildren");
 
   nsIFrame::ChildListIterator lists(aParent);
-  TreeMatchContext::AutoAncestorPusher ancestorPusher(mTreeMatchContext);
+  TreeMatchContext::AutoAncestorPusher ancestorPusher(&mTreeMatchContext);
   if (!lists.IsDone()) {
     ancestorPusher.PushAncestorAndStyleScope(mContent);
   }
@@ -3403,13 +3366,13 @@ ElementRestyler::RestyleContentChildren(nsIFrame* aParent,
         // Check if the frame has a content because |child| may be a
         // nsPageFrame that does not have a content.
         nsIContent* parent = child->GetContent() ? child->GetContent()->GetParent() : nullptr;
-        TreeMatchContext::AutoAncestorPusher insertionPointPusher(mTreeMatchContext);
+        TreeMatchContext::AutoAncestorPusher insertionPointPusher(&mTreeMatchContext);
         if (parent && nsContentUtils::IsContentInsertionPoint(parent)) {
           insertionPointPusher.PushAncestorAndStyleScope(parent);
         }
 
         // only do frames that are in flow
-        if (nsGkAtoms::placeholderFrame == child->GetType()) { // placeholder
+        if (child->IsPlaceholderFrame()) { // placeholder
           // get out of flow frame and recur there
           nsIFrame* outOfFlowFrame =
             nsPlaceholderFrame::GetRealFrameForPlaceholder(child);

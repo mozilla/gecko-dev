@@ -139,17 +139,23 @@ protected:
               const OptionalHttpResponseHead& aSynthesizedResponseHead,
               const nsCString&           aSecurityInfoSerialization,
               const uint32_t&            aCacheKey,
-              const nsCString&           aRequestContextID,
+              const uint64_t&            aRequestContextID,
               const OptionalCorsPreflightArgs& aCorsPreflightArgs,
               const uint32_t&            aInitialRwin,
               const bool&                aBlockAuthPrompt,
               const bool&                aSuspendAfterSynthesizeResponse,
               const bool&                aAllowStaleCacheContent,
               const nsCString&           aContentTypeHint,
-              const nsCString&           aChannelId,
+              const uint64_t&            aChannelId,
               const uint64_t&            aContentWindowId,
               const nsCString&           aPreferredAlternativeType,
-              const uint64_t&            aTopLevelOuterContentWindowId);
+              const uint64_t&            aTopLevelOuterContentWindowId,
+              const TimeStamp&           aLaunchServiceWorkerStart,
+              const TimeStamp&           aLaunchServiceWorkerEnd,
+              const TimeStamp&           aDispatchFetchEventStart,
+              const TimeStamp&           aDispatchFetchEventEnd,
+              const TimeStamp&           aHandleFetchEventStart,
+              const TimeStamp&           aHandleFetchEventEnd);
 
   virtual mozilla::ipc::IPCResult RecvSetPriority(const int16_t& priority) override;
   virtual mozilla::ipc::IPCResult RecvSetClassOfService(const uint32_t& cos) override;

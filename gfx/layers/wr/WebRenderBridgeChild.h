@@ -24,7 +24,30 @@ namespace layers {
 
 class CompositableClient;
 class CompositorBridgeChild;
+class StackingContextHelper;
 class TextureForwarder;
+
+class UnscaledFontHashKey : public PLDHashEntryHdr
+{
+public:
+  typedef gfx::UnscaledFont* KeyType;
+  typedef const gfx::UnscaledFont* KeyTypePointer;
+
+  explicit UnscaledFontHashKey(KeyTypePointer aKey) : mKey(const_cast<KeyType>(aKey)) {}
+
+  KeyType GetKey() const { return mKey; }
+  bool KeyEquals(KeyTypePointer aKey) const { return aKey == mKey; }
+
+  static KeyTypePointer KeyToPointer(KeyType aKey) { return aKey; }
+  static PLDHashNumber HashKey(KeyTypePointer aKey)
+  {
+    return NS_PTR_TO_UINT32(aKey) >> 2;
+  }
+  enum { ALLOW_MEMMOVE = true };
+
+private:
+  WeakPtr<gfx::UnscaledFont> mKey;
+};
 
 class WebRenderBridgeChild final : public PWebRenderBridgeChild
                                  , public CompositableForwarder
@@ -38,7 +61,9 @@ public:
   void AddWebRenderParentCommands(const nsTArray<WebRenderParentCommand>& aCommands);
 
   bool DPBegin(const  gfx::IntSize& aSize);
-  void DPEnd(wr::DisplayListBuilder &aBuilder, const gfx::IntSize& aSize, bool aIsSync, uint64_t aTransactionId);
+  void DPEnd(wr::DisplayListBuilder &aBuilder, const gfx::IntSize& aSize,
+             bool aIsSync, uint64_t aTransactionId,
+             const WebRenderScrollData& aScrollData);
 
   CompositorBridgeChild* GetCompositorBridgeChild();
 
@@ -48,9 +73,9 @@ public:
   TextureForwarder* GetTextureForwarder() override;
   LayersIPCActor* GetLayersIPCActor() override;
 
-  uint64_t AllocExternalImageId(const CompositableHandle& aHandle);
-  uint64_t AllocExternalImageIdForCompositable(CompositableClient* aCompositable);
-  void DeallocExternalImageId(uint64_t aImageId);
+  wr::ExternalImageId AllocExternalImageId(const CompositableHandle& aHandle);
+  wr::ExternalImageId AllocExternalImageIdForCompositable(CompositableClient* aCompositable);
+  void DeallocExternalImageId(wr::ExternalImageId& aImageId);
 
   /**
    * Clean this up, finishing with SendShutDown() which will cause __delete__
@@ -67,12 +92,21 @@ public:
     mIdNamespace = aIdNamespace;
   }
 
+  void PushGlyphs(wr::DisplayListBuilder& aBuilder, const nsTArray<GlyphArray>& aGlyphs,
+                  gfx::ScaledFont* aFont, const StackingContextHelper& aSc,
+                  const LayerRect& aBounds, const LayerRect& aClip);
+
+  wr::FontKey GetFontKeyForScaledFont(gfx::ScaledFont* aScaledFont);
+
+  void RemoveExpiredFontKeys();
+  void ClearReadLocks();
+
 private:
   friend class CompositorBridgeChild;
 
   ~WebRenderBridgeChild() {}
 
-  uint64_t GetNextExternalImageId();
+  wr::ExternalImageId GetNextExternalImageId();
 
   // CompositableForwarder
   void Connect(CompositableClient* aCompositable,
@@ -123,6 +157,9 @@ private:
 
   bool mIPCOpen;
   bool mDestroyed;
+
+  uint32_t mFontKeysDeleted;
+  nsDataHashtable<UnscaledFontHashKey, wr::FontKey> mFontKeys;
 };
 
 } // namespace layers

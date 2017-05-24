@@ -327,8 +327,10 @@ nsresult CacheIOThread::DispatchInternal(already_AddRefed<nsIRunnable> aRunnable
 {
   nsCOMPtr<nsIRunnable> runnable(aRunnable);
 #ifdef MOZ_TASK_TRACER
-  runnable = tasktracer::CreateTracedRunnable(runnable.forget());
-  (static_cast<tasktracer::TracedRunnable*>(runnable.get()))->DispatchTask();
+  if (tasktracer::IsStartLogging()) {
+      runnable = tasktracer::CreateTracedRunnable(runnable.forget());
+      (static_cast<tasktracer::TracedRunnable*>(runnable.get()))->DispatchTask();
+  }
 #endif
 
   if (NS_WARN_IF(!runnable))
@@ -440,7 +442,8 @@ void CacheIOThread::ThreadFunc(void* aClosure)
 {
   // XXXmstange We'd like to register this thread with the profiler, but doing
   // so causes leaks, see bug 1323100.
-  PR_SetCurrentThreadName("Cache2 I/O");
+  NS_SetCurrentThreadName("Cache2 I/O");
+
   mozilla::IOInterposer::RegisterCurrentThread();
   CacheIOThread* thread = static_cast<CacheIOThread*>(aClosure);
   thread->ThreadFunc();

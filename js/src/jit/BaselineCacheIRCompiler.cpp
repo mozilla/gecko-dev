@@ -207,10 +207,6 @@ BaselineCacheIRCompiler::compile()
         return nullptr;
     }
 
-    // All barriers are emitted off-by-default, enable them if needed.
-    if (cx_->zone()->needsIncrementalBarrier())
-        newStubCode->togglePreBarriers(true, DontReprotect);
-
     return newStubCode;
 }
 
@@ -247,6 +243,22 @@ BaselineCacheIRCompiler::emitGuardGroup()
 }
 
 bool
+BaselineCacheIRCompiler::emitGuardGroupHasUnanalyzedNewScript()
+{
+    Address addr(stubAddress(reader.stubOffset()));
+    AutoScratchRegister scratch1(allocator, masm);
+    AutoScratchRegister scratch2(allocator, masm);
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure))
+        return false;
+
+    masm.loadPtr(addr, scratch1);
+    masm.guardGroupHasUnanalyzedNewScript(scratch1, scratch2, failure->label());
+    return true;
+}
+
+bool
 BaselineCacheIRCompiler::emitGuardProto()
 {
     Register obj = allocator.useRegister(masm, reader.objOperandId());
@@ -266,7 +278,7 @@ bool
 BaselineCacheIRCompiler::emitGuardCompartment()
 {
     Register obj = allocator.useRegister(masm, reader.objOperandId());
-    reader.stubOffset(); // Read global.
+    reader.stubOffset(); // Read global wrapper.
     AutoScratchRegister scratch(allocator, masm);
 
     FailurePath* failure;
@@ -656,6 +668,32 @@ BaselineCacheIRCompiler::emitCallProxyGetByValueResult()
     return true;
 }
 
+typedef bool (*ProxyHasOwnFn)(JSContext*, HandleObject, HandleValue, MutableHandleValue);
+static const VMFunction ProxyHasOwnInfo = FunctionInfo<ProxyHasOwnFn>(ProxyHasOwn, "ProxyHasOwn");
+
+bool
+BaselineCacheIRCompiler::emitCallProxyHasOwnResult()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    ValueOperand idVal = allocator.useValueRegister(masm, reader.valOperandId());
+
+    AutoScratchRegister scratch(allocator, masm);
+
+    allocator.discardStack(masm);
+
+    AutoStubFrame stubFrame(*this);
+    stubFrame.enter(masm, scratch);
+
+    masm.Push(idVal);
+    masm.Push(obj);
+
+    if (!callVM(masm, ProxyHasOwnInfo))
+        return false;
+
+    stubFrame.leave(masm);
+    return true;
+}
+
 bool
 BaselineCacheIRCompiler::emitLoadUnboxedPropertyResult()
 {
@@ -796,6 +834,17 @@ BaselineCacheIRCompiler::emitLoadEnvironmentDynamicSlotResult()
 
     // Load the value.
     masm.loadValue(slot, output.valueReg());
+    return true;
+}
+
+bool
+BaselineCacheIRCompiler::emitLoadStringResult()
+{
+    AutoOutputRegister output(*this);
+    AutoScratchRegisterMaybeOutput scratch(allocator, masm, output);
+
+    masm.loadPtr(stubAddress(reader.stubOffset()), scratch);
+    masm.tagValue(JSVAL_TYPE_STRING, scratch, output.valueReg());
     return true;
 }
 
@@ -1784,8 +1833,8 @@ BaselineCacheIRCompiler::emitLoadDOMExpandoValueGuardGeneration()
     if (!addFailurePath(&failure))
         return false;
 
-    masm.loadPtr(Address(obj, ProxyObject::offsetOfValues()), scratch);
-    Address expandoAddr(scratch, ProxyObject::offsetOfExtraSlotInValues(GetDOMProxyExpandoSlot()));
+    masm.loadPtr(Address(obj, ProxyObject::offsetOfReservedSlots()), scratch);
+    Address expandoAddr(scratch, detail::ProxyReservedSlots::offsetOfPrivateSlot());
 
     // Load the ExpandoAndGeneration* in the output scratch register and guard
     // it matches the proxy's ExpandoAndGeneration.
@@ -1821,12 +1870,14 @@ BaselineCacheIRCompiler::init(CacheKind kind)
 
     switch (kind) {
       case CacheKind::GetProp:
+      case CacheKind::TypeOf:
         MOZ_ASSERT(numInputs == 1);
         allocator.initInputLocation(0, R0);
         break;
       case CacheKind::GetElem:
       case CacheKind::SetProp:
       case CacheKind::In:
+      case CacheKind::HasOwn:
         MOZ_ASSERT(numInputs == 2);
         allocator.initInputLocation(0, R0);
         allocator.initInputLocation(1, R1);
@@ -1838,10 +1889,11 @@ BaselineCacheIRCompiler::init(CacheKind kind)
         allocator.initInputLocation(2, BaselineFrameSlot(0));
         break;
       case CacheKind::GetName:
+      case CacheKind::BindName:
         MOZ_ASSERT(numInputs == 1);
         allocator.initInputLocation(0, R0.scratchReg(), JSVAL_TYPE_OBJECT);
 #if defined(JS_NUNBOX32)
-        // availableGeneralRegs can't know that GetName is only using
+        // availableGeneralRegs can't know that GetName/BindName is only using
         // the payloadReg and not typeReg on x86.
         available.add(R0.typeReg());
 #endif
@@ -1882,6 +1934,9 @@ jit::AttachBaselineCacheIRStub(JSContext* cx, const CacheIRWriter& writer,
     CacheIRStubKind stubKind;
     switch (kind) {
       case CacheKind::In:
+      case CacheKind::HasOwn:
+      case CacheKind::BindName:
+      case CacheKind::TypeOf:
         stubDataOffset = sizeof(ICCacheIR_Regular);
         stubKind = CacheIRStubKind::Regular;
         break;
@@ -1898,12 +1953,12 @@ jit::AttachBaselineCacheIRStub(JSContext* cx, const CacheIRWriter& writer,
         break;
     }
 
-    JitCompartment* jitCompartment = cx->compartment()->jitCompartment();
+    JitZone* jitZone = cx->zone()->jitZone();
 
     // Check if we already have JitCode for this stub.
     CacheIRStubInfo* stubInfo;
     CacheIRStubKey::Lookup lookup(kind, engine, writer.codeStart(), writer.codeLength());
-    JitCode* code = jitCompartment->getCacheIRStubCode(lookup, &stubInfo);
+    JitCode* code = jitZone->getBaselineCacheIRStubCode(lookup, &stubInfo);
     if (!code) {
         // We have to generate stub code.
         JitContext jctx(cx, nullptr);
@@ -1915,16 +1970,17 @@ jit::AttachBaselineCacheIRStub(JSContext* cx, const CacheIRWriter& writer,
         if (!code)
             return nullptr;
 
-        // Allocate the shared CacheIRStubInfo. Note that the putCacheIRStubCode
-        // call below will transfer ownership to the stub code HashMap, so we
-        // don't have to worry about freeing it below.
+        // Allocate the shared CacheIRStubInfo. Note that the
+        // putBaselineCacheIRStubCode call below will transfer ownership
+        // to the stub code HashMap, so we don't have to worry about freeing
+        // it below.
         MOZ_ASSERT(!stubInfo);
         stubInfo = CacheIRStubInfo::New(kind, engine, comp.makesGCCalls(), stubDataOffset, writer);
         if (!stubInfo)
             return nullptr;
 
         CacheIRStubKey key(stubInfo);
-        if (!jitCompartment->putCacheIRStubCode(lookup, key, code))
+        if (!jitZone->putBaselineCacheIRStubCode(lookup, key, code))
             return nullptr;
     }
 

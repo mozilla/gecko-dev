@@ -22,6 +22,7 @@ const DEBUGGERLOG_PREF = "devtools.debugger.log";
 const CACHES_ON_HTTP_PREF = "dom.caches.testing.enabled";
 const PATH = "browser/devtools/client/storage/test/";
 const MAIN_DOMAIN = "http://test1.example.org/" + PATH;
+const MAIN_DOMAIN_WITH_PORT = "http://test1.example.org:8000/" + PATH;
 const ALT_DOMAIN = "http://sectest1.example.org/" + PATH;
 const ALT_DOMAIN_SECURED = "https://sectest1.example.org:443/" + PATH;
 
@@ -620,9 +621,8 @@ function getRowCells(id, includeHidden = false) {
                                " .table-widget-cell[value='" + id + "']");
 
   if (!item) {
-    ok(false, "Row id '" + id + "' exists");
-
-    showAvailableIds();
+    ok(false, `The row id '${id}' that was passed to getRowCells() does not ` +
+              `exist. ${getAvailableIds()}`);
   }
 
   let index = table.columns.get(table.uniqueId).cellNodes.indexOf(item);
@@ -639,18 +639,27 @@ function getRowCells(id, includeHidden = false) {
 }
 
 /**
- * Show available ids.
+ * Get available ids... useful for error reporting.
  */
-function showAvailableIds() {
+function getAvailableIds() {
   let doc = gPanelWindow.document;
   let table = gUI.table;
 
-  info("Available ids:");
+  let out = "Available ids:\n";
   let cells = doc.querySelectorAll(".table-widget-column#" + table.uniqueId +
                                    " .table-widget-cell");
   for (let cell of cells) {
-    info("  - " + cell.getAttribute("value"));
+    out += `  - ${cell.getAttribute("value")}\n`;
   }
+
+  return out;
+}
+
+/**
+ * Show available ids.
+ */
+function showAvailableIds() {
+  info(getAvailableIds);
 }
 
 /**
@@ -666,6 +675,19 @@ function showAvailableIds() {
  */
 function getCellValue(id, column) {
   let row = getRowValues(id, true);
+
+  if (typeof row[column] === "undefined") {
+    let out = "";
+    for (let key in row) {
+      let value = row[key];
+
+      out += `  - ${key} = ${value}\n`;
+    }
+
+    ok(false, `The column name '${column}' that was passed to ` +
+              `getCellValue() does not exist. Current column names and row ` +
+              `values are:\n${out}`);
+  }
 
   return row[column];
 }
@@ -753,6 +775,20 @@ function showColumn(id, state) {
   } else {
     column.wrapper.setAttribute("hidden", true);
   }
+}
+
+/**
+ * Toggle sort direction on a column by clicking on the column header.
+ *
+ * @param  {String} id
+ *         The uniqueId of the given column.
+ */
+function clickColumnHeader(id) {
+  let columns = gUI.table.columns;
+  let column = columns.get(id);
+  let header = column.header;
+
+  header.click();
 }
 
 /**
@@ -926,4 +962,40 @@ function toggleSidebar() {
 
 function sidebarToggleVisible() {
   return !gUI.sidebarToggleBtn.hidden;
+}
+
+/**
+ * Add an item.
+ * @param  {Array} store
+ *         An array containing the path to the store to which we wish to add an
+ *         item.
+ */
+function* performAdd(store) {
+  let storeName = store.join(" > ");
+  let toolbar = gPanelWindow.document.getElementById("storage-toolbar");
+  let type = store[0];
+
+  yield selectTreeItem(store);
+
+  let menuAdd = toolbar.querySelector(
+    "#add-button");
+
+  if (menuAdd.hidden) {
+    is(menuAdd.hidden, false,
+       `performAdd called for ${storeName} but it is not supported`);
+    return;
+  }
+
+  let eventEdit = gUI.table.once("row-edit");
+  let eventWait = gUI.once("store-objects-updated");
+
+  menuAdd.click();
+
+  let rowId = yield eventEdit;
+  yield eventWait;
+
+  let key = type === "cookies" ? "uniqueKey" : "name";
+  let value = getCellValue(rowId, key);
+
+  is(rowId, value, `Row '${rowId}' was successfully added.`);
 }

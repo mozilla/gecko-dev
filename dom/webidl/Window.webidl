@@ -35,8 +35,8 @@ interface nsIDOMCrypto;
    CrossOriginReadable] readonly attribute Window self;
   [Unforgeable, StoreInSlot, Pure] readonly attribute Document? document;
   [Throws] attribute DOMString name;
-  [PutForwards=href, Unforgeable, Throws,
-   CrossOriginReadable, CrossOriginWritable] readonly attribute Location? location;
+  [PutForwards=href, Unforgeable, BinaryName="getLocation",
+   CrossOriginReadable, CrossOriginWritable] readonly attribute Location location;
   [Throws] readonly attribute History history;
   [Func="CustomElementRegistry::IsCustomElementEnabled"]
   readonly attribute CustomElementRegistry customElements;
@@ -67,7 +67,7 @@ interface nsIDOMCrypto;
   getter object (DOMString name);
 
   // the user agent
-  [Throws] readonly attribute Navigator navigator;
+  readonly attribute Navigator navigator;
 #ifdef HAVE_SIDEBAR
   [Replaceable, Throws] readonly attribute External external;
 #endif
@@ -281,11 +281,11 @@ partial interface Window {
   [Replaceable, Throws] readonly attribute long   scrollMaxX;
   [Replaceable, Throws] readonly attribute long   scrollMaxY;
 
-  [Throws, UnsafeInPrerendering] attribute boolean            fullScreen;
+  [Throws, UnsafeInPrerendering] attribute boolean fullScreen;
 
-  [Throws, ChromeOnly, UnsafeInPrerendering] void             back();
-  [Throws, ChromeOnly, UnsafeInPrerendering] void             forward();
-  [Throws, ChromeOnly, UnsafeInPrerendering] void             home();
+  [Throws, ChromeOnly, UnsafeInPrerendering] void back();
+  [Throws, ChromeOnly, UnsafeInPrerendering] void forward();
+  [Throws, ChromeOnly, UnsafeInPrerendering, NeedsSubjectPrincipal] void home();
 
   // XXX Should this be in nsIDOMChromeWindow?
   void                      updateCommands(DOMString action,
@@ -490,10 +490,10 @@ Window implements ChromeWindow;
 Window implements WindowOrWorkerGlobalScope;
 
 partial interface Window {
-  [Throws, Pref="dom.requestIdleCallback.enabled"]
+  [Throws, Func="nsGlobalWindow::IsRequestIdleCallbackEnabled"]
   unsigned long requestIdleCallback(IdleRequestCallback callback,
                                     optional IdleRequestOptions options);
-  [Pref="dom.requestIdleCallback.enabled"]
+  [Func="nsGlobalWindow::IsRequestIdleCallbackEnabled"]
   void          cancelIdleCallback(unsigned long handle);
 };
 

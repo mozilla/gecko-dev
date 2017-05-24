@@ -24,6 +24,8 @@
 #include "vm/ArrayObject.h"
 #include "vm/Debugger.h"
 #include "vm/EnvironmentObject.h"
+#include "vm/RegExpObject.h"
+#include "vm/RegExpShared.h"
 #include "vm/Scope.h"
 #include "vm/Shape.h"
 #include "vm/Symbol.h"
@@ -443,6 +445,14 @@ js::TraceNullableEdge(JSTracer* trc, WriteBarrieredBase<T>* thingp, const char* 
 }
 
 template <typename T>
+void
+js::TraceNullableEdge(JSTracer* trc, ReadBarriered<T>* thingp, const char* name)
+{
+    if (InternalBarrierMethods<T>::isMarkable(thingp->unbarrieredGet()))
+        DispatchToTracer(trc, ConvertToBase(thingp->unsafeGet()), name);
+}
+
+template <typename T>
 JS_PUBLIC_API(void)
 JS::TraceEdge(JSTracer* trc, JS::Heap<T>* thingp, const char* name)
 {
@@ -559,6 +569,7 @@ js::TraceRootRange(JSTracer* trc, size_t len, T* vec, const char* name)
     template void js::TraceEdge<type>(JSTracer*, WriteBarrieredBase<type>*, const char*); \
     template void js::TraceEdge<type>(JSTracer*, ReadBarriered<type>*, const char*); \
     template void js::TraceNullableEdge<type>(JSTracer*, WriteBarrieredBase<type>*, const char*); \
+    template void js::TraceNullableEdge<type>(JSTracer*, ReadBarriered<type>*, const char*); \
     template void js::TraceManuallyBarrieredEdge<type>(JSTracer*, type*, const char*); \
     template void js::TraceWeakEdge<type>(JSTracer*, WeakRef<type>*, const char*); \
     template void js::TraceRoot<type>(JSTracer*, type*, const char*); \
@@ -875,6 +886,7 @@ js::GCMarker::markAndTraceChildren(T* thing)
 namespace js {
 template <> void GCMarker::traverse(BaseShape* thing) { markAndTraceChildren(thing); }
 template <> void GCMarker::traverse(JS::Symbol* thing) { markAndTraceChildren(thing); }
+template <> void GCMarker::traverse(RegExpShared* thing) { markAndTraceChildren(thing); }
 } // namespace js
 
 // Strings, LazyScripts, Shapes, and Scopes are extremely common, but have
@@ -1811,7 +1823,10 @@ GCMarker::saveValueRanges()
             HeapSlot* vp = obj->getDenseElementsAllowCopyOnWrite();
             if (array.end == vp + obj->getDenseInitializedLength()) {
                 MOZ_ASSERT(array.start >= vp);
-                index = array.start - vp;
+                // Add the number of shifted elements here (and subtract in
+                // restoreValueArray) to ensure shift() calls on the array
+                // are handled correctly.
+                index = obj->unshiftedIndex(array.start - vp);
                 kind = HeapSlot::Element;
             } else {
                 HeapSlot* vp = obj->fixedSlots();
@@ -1849,10 +1864,12 @@ GCMarker::restoreValueArray(const MarkStack::SavedValueArray& array,
 
     uintptr_t start = array.index;
     if (array.kind == HeapSlot::Element) {
-        if (!obj->is<ArrayObject>())
-            return false;
-
         uint32_t initlen = obj->getDenseInitializedLength();
+
+        // Account for shifted elements.
+        uint32_t numShifted = obj->getElementsHeader()->numShiftedElements();
+        start = (numShifted < start) ? start - numShifted : 0;
+
         HeapSlot* vp = obj->getDenseElementsAllowCopyOnWrite();
         if (start < initlen) {
             *vpp = vp + start;
@@ -1933,7 +1950,7 @@ MarkStack::TaggedPtr::TaggedPtr(Tag tag, Cell* ptr)
   : bits(tag | uintptr_t(ptr))
 {
     MOZ_ASSERT(tag <= LastTag);
-    MOZ_ASSERT((uintptr_t(ptr) & CellMask) == 0);
+    MOZ_ASSERT((uintptr_t(ptr) & CellAlignMask) == 0);
 }
 
 inline MarkStack::Tag
@@ -2506,7 +2523,7 @@ bool
 GCMarker::markDelayedChildren(SliceBudget& budget)
 {
     GCRuntime& gc = runtime()->gc;
-    gcstats::AutoPhase ap(gc.stats(), gc.state() == State::Mark, gcstats::PHASE_MARK_DELAYED);
+    gcstats::AutoPhase ap(gc.stats(), gc.state() == State::Mark, gcstats::PhaseKind::MARK_DELAYED);
 
     MOZ_ASSERT(unmarkedArenaStackTop);
     do {
@@ -2575,17 +2592,6 @@ GCMarker::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
 }
 
 #ifdef DEBUG
-
-static bool
-IsCrossCompartmentEdge(JSObject* source, const Cell* target)
-{
-    if (!source->is<ProxyObject>())
-        return false;
-
-    const Value& priv = source->as<ProxyObject>().private_();
-    return priv.isGCThing() && priv.toGCThing() == target;
-}
-
 Zone*
 GCMarker::stackContainsCrossZonePointerTo(const Cell* target) const
 {
@@ -2602,7 +2608,7 @@ GCMarker::stackContainsCrossZonePointerTo(const Cell* target) const
         if (sourceZone == targetZone)
             continue;
 
-        if (IsCrossCompartmentEdge(source, target) ||
+        if ((source->is<ProxyObject>() && source->as<ProxyObject>().target() == target) ||
             Debugger::isDebuggerCrossCompartmentEdge(source, target))
         {
             return sourceZone;
@@ -2688,8 +2694,11 @@ js::gc::StoreBuffer::SlotsEdge::trace(TenuringTracer& mover) const
 
     if (kind() == ElementKind) {
         int32_t initLen = obj->getDenseInitializedLength();
-        int32_t clampedStart = Min(start_, initLen);
-        int32_t clampedEnd = Min(start_ + count_, initLen);
+        int32_t numShifted = obj->getElementsHeader()->numShiftedElements();
+        int32_t clampedStart = Min(Max(0, start_ - numShifted), initLen);
+        int32_t clampedEnd = Min(Max(0, start_ + count_ - numShifted), initLen);
+        MOZ_ASSERT(clampedStart >= 0);
+        MOZ_ASSERT(clampedStart <= clampedEnd);
         mover.traceSlots(static_cast<HeapSlot*>(obj->getDenseElements() + clampedStart)
                             ->unsafeUnbarrieredForTracing(), clampedEnd - clampedStart);
     } else {
@@ -2734,9 +2743,9 @@ template <typename T>
 static void
 TraceBufferedCells(TenuringTracer& mover, Arena* arena, ArenaCellSet* cells)
 {
-    for (size_t i = 0; i < ArenaCellCount; i++) {
+    for (size_t i = 0; i < MaxArenaCellIndex; i++) {
         if (cells->hasCell(i)) {
-            auto cell = reinterpret_cast<T*>(uintptr_t(arena) + CellSize * i);
+            auto cell = reinterpret_cast<T*>(uintptr_t(arena) + ArenaCellIndexBytes * i);
             TraceWholeCell(mover, cell);
         }
     }
@@ -2964,7 +2973,10 @@ js::TenuringTracer::moveObjectToTenured(JSObject* dst, JSObject* src, AllocKind 
     } else if (src->is<ArgumentsObject>()) {
         tenuredSize += ArgumentsObject::objectMovedDuringMinorGC(this, dst, src);
     } else if (src->is<ProxyObject>()) {
-        tenuredSize += ProxyObject::objectMovedDuringMinorGC(this, dst, src);
+        // Objects in the nursery are never swapped so the proxy must have an
+        // inline ProxyValueArray.
+        MOZ_ASSERT(src->as<ProxyObject>().usingInlineValueArray());
+        dst->as<ProxyObject>().setInlineValueArray();
     } else if (JSObjectMovedOp op = dst->getClass()->extObjectMovedOp()) {
         op(dst, src);
     } else if (src->getClass()->hasFinalize()) {
@@ -3010,30 +3022,35 @@ js::TenuringTracer::moveElementsToTenured(NativeObject* dst, NativeObject* src, 
     if (src->hasEmptyElements() || src->denseElementsAreCopyOnWrite())
         return 0;
 
-    Zone* zone = src->zone();
-    ObjectElements* srcHeader = src->getElementsHeader();
-    ObjectElements* dstHeader;
+    void* srcAllocatedHeader = src->getUnshiftedElementsHeader();
 
     /* TODO Bug 874151: Prefer to put element data inline if we have space. */
-    if (!nursery().isInside(srcHeader)) {
+    if (!nursery().isInside(srcAllocatedHeader)) {
         MOZ_ASSERT(src->elements_ == dst->elements_);
-        nursery().removeMallocedBuffer(srcHeader);
+        nursery().removeMallocedBuffer(srcAllocatedHeader);
         return 0;
     }
 
-    size_t nslots = ObjectElements::VALUES_PER_HEADER + srcHeader->capacity;
+    ObjectElements* srcHeader = src->getElementsHeader();
+
+    // Shifted elements are copied too.
+    uint32_t numShifted = srcHeader->numShiftedElements();
+    size_t nslots = srcHeader->numAllocatedElements();
 
     /* Unlike other objects, Arrays can have fixed elements. */
     if (src->is<ArrayObject>() && nslots <= GetGCKindSlots(dstKind)) {
         dst->as<ArrayObject>().setFixedElements();
-        dstHeader = dst->as<ArrayObject>().getElementsHeader();
-        js_memcpy(dstHeader, srcHeader, nslots * sizeof(HeapSlot));
-        nursery().setElementsForwardingPointer(srcHeader, dstHeader, nslots);
+        js_memcpy(dst->getElementsHeader(), srcAllocatedHeader, nslots * sizeof(HeapSlot));
+        dst->elements_ += numShifted;
+        nursery().setElementsForwardingPointer(srcHeader, dst->getElementsHeader(),
+                                               srcHeader->capacity);
         return nslots * sizeof(HeapSlot);
     }
 
     MOZ_ASSERT(nslots >= 2);
 
+    Zone* zone = src->zone();
+    ObjectElements* dstHeader;
     {
         AutoEnterOOMUnsafeRegion oomUnsafe;
         dstHeader = reinterpret_cast<ObjectElements*>(zone->pod_malloc<HeapSlot>(nslots));
@@ -3043,9 +3060,10 @@ js::TenuringTracer::moveElementsToTenured(NativeObject* dst, NativeObject* src, 
         }
     }
 
-    js_memcpy(dstHeader, srcHeader, nslots * sizeof(HeapSlot));
-    nursery().setElementsForwardingPointer(srcHeader, dstHeader, nslots);
-    dst->elements_ = dstHeader->elements();
+    js_memcpy(dstHeader, srcAllocatedHeader, nslots * sizeof(HeapSlot));
+    dst->elements_ = dstHeader->elements() + numShifted;
+    nursery().setElementsForwardingPointer(srcHeader, dst->getElementsHeader(),
+                                           srcHeader->capacity);
     return nslots * sizeof(HeapSlot);
 }
 
@@ -3068,6 +3086,7 @@ CheckIsMarkedThing(T* thingp)
     JSRuntime* rt = (*thingp)->runtimeFromAnyThread();
     MOZ_ASSERT_IF(!ThingIsPermanentAtomOrWellKnownSymbol(*thingp),
                   CurrentThreadCanAccessRuntime(rt) ||
+                  CurrentThreadCanAccessZone((*thingp)->zoneFromAnyThread()) ||
                   (JS::CurrentThreadIsHeapCollecting() && rt->gc.state() == State::Sweep));
 #endif
 }
@@ -3079,12 +3098,17 @@ IsMarkedInternalCommon(T* thingp)
     CheckIsMarkedThing(thingp);
     MOZ_ASSERT(!IsInsideNursery(*thingp));
 
-    Zone* zone = (*thingp)->asTenured().zoneFromAnyThread();
+    TenuredCell& thing = (*thingp)->asTenured();
+    Zone* zone = thing.zoneFromAnyThread();
     if (!zone->isCollectingFromAnyThread() || zone->isGCFinished())
         return true;
-    if (zone->isGCCompacting() && IsForwarded(*thingp))
+
+    if (zone->isGCCompacting() && IsForwarded(*thingp)) {
         *thingp = Forwarded(*thingp);
-    return (*thingp)->asTenured().isMarked();
+        return true;
+    }
+
+    return thing.isMarked() || thing.arena()->allocatedDuringIncremental;
 }
 
 template <typename T>
@@ -3151,8 +3175,8 @@ IsAboutToBeFinalizedInternal(T** thingp)
         return false;
 
     if (IsInsideNursery(thing)) {
-        MOZ_ASSERT(JS::CurrentThreadIsHeapMinorCollecting());
-        return !Nursery::getForwardedPointer(reinterpret_cast<JSObject**>(thingp));
+        return JS::CurrentThreadIsHeapMinorCollecting() &&
+               !Nursery::getForwardedPointer(reinterpret_cast<JSObject**>(thingp));
     }
 
     Zone* zone = thing->asTenured().zoneFromAnyThread();
@@ -3228,6 +3252,13 @@ EdgeNeedsSweep(JS::Heap<T>* thingp)
     return IsAboutToBeFinalizedInternal(ConvertToBase(thingp->unsafeGet()));
 }
 
+template <typename T>
+JS_PUBLIC_API(bool)
+EdgeNeedsSweepUnbarrieredSlow(T* thingp)
+{
+    return IsAboutToBeFinalizedInternal(ConvertToBase(thingp));
+}
+
 // Instantiate a copy of the Tracing templates for each derived type.
 #define INSTANTIATE_ALL_VALID_TRACE_FUNCTIONS(type) \
     template bool IsMarkedUnbarriered<type>(JSRuntime*, type*);                \
@@ -3236,7 +3267,8 @@ EdgeNeedsSweep(JS::Heap<T>* thingp)
     template bool IsAboutToBeFinalized<type>(WriteBarrieredBase<type>*); \
     template bool IsAboutToBeFinalized<type>(ReadBarrieredBase<type>*);
 #define INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS(type) \
-    template JS_PUBLIC_API(bool) EdgeNeedsSweep<type>(JS::Heap<type>*);
+    template JS_PUBLIC_API(bool) EdgeNeedsSweep<type>(JS::Heap<type>*); \
+    template JS_PUBLIC_API(bool) EdgeNeedsSweepUnbarrieredSlow<type>(type*);
 FOR_EACH_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_TRACE_FUNCTIONS)
 FOR_EACH_PUBLIC_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
 FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
@@ -3374,8 +3406,8 @@ TypedUnmarkGrayCellRecursively(T* t)
     MOZ_ASSERT(!JS::CurrentThreadIsHeapCycleCollecting());
 
     UnmarkGrayTracer unmarker(rt);
-    gcstats::AutoPhase outerPhase(rt->gc.stats(), gcstats::PHASE_BARRIER);
-    gcstats::AutoPhase innerPhase(rt->gc.stats(), gcstats::PHASE_UNMARK_GRAY);
+    gcstats::AutoPhase outerPhase(rt->gc.stats(), gcstats::PhaseKind::BARRIER);
+    gcstats::AutoPhase innerPhase(rt->gc.stats(), gcstats::PhaseKind::UNMARK_GRAY);
     unmarker.unmark(JS::GCCellPtr(t, MapTypeToTraceKind<T>::kind));
     return unmarker.unmarkedAny;
 }

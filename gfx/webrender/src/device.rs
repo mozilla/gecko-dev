@@ -45,12 +45,26 @@ static SHADER_PREAMBLE: &'static str = "shared";
 #[repr(u32)]
 pub enum DepthFunction {
     Less = gl::LESS,
+    LessEqual = gl::LEQUAL,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TextureTarget {
     Default,
     Array,
+    Rect,
+    External,
+}
+
+impl TextureTarget {
+    pub fn to_gl_target(&self) -> gl::GLuint {
+        match *self {
+            TextureTarget::Default => gl::TEXTURE_2D,
+            TextureTarget::Array => gl::TEXTURE_2D_ARRAY,
+            TextureTarget::Rect => gl::TEXTURE_RECTANGLE,
+            TextureTarget::External => gl::TEXTURE_EXTERNAL_OES,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -304,10 +318,10 @@ impl TextureId {
         gl.bind_texture(self.target, self.name);
     }
 
-    pub fn new(name: gl::GLuint) -> TextureId {
+    pub fn new(name: gl::GLuint, texture_target: TextureTarget) -> TextureId {
         TextureId {
             name: name,
-            target: gl::TEXTURE_2D,
+            target: texture_target.to_gl_target(),
         }
     }
 
@@ -435,10 +449,10 @@ impl Program {
         self.gl.link_program(self.id);
         if self.gl.get_program_iv(self.id, gl::LINK_STATUS) == (0 as gl::GLint) {
             let error_log = self.gl.get_program_info_log(self.id);
-            println!("Failed to link shader program: {}", error_log);
+            println!("Failed to link shader program: {:?}\n{}", self.name, error_log);
             self.gl.detach_shader(self.id, vs_id);
             self.gl.detach_shader(self.id, fs_id);
-            return Err(ShaderError::Link(error_log));
+            return Err(ShaderError::Link(self.name.clone(), error_log));
         }
 
         Ok(())
@@ -665,10 +679,10 @@ impl<T> GpuProfiler<T> {
         GpuProfiler {
             next_frame: 0,
             frames: [
-                      GpuFrameProfile::new(gl.clone()),
-                      GpuFrameProfile::new(gl.clone()),
-                      GpuFrameProfile::new(gl.clone()),
-                      GpuFrameProfile::new(gl.clone()),
+                      GpuFrameProfile::new(Rc::clone(gl)),
+                      GpuFrameProfile::new(Rc::clone(gl)),
+                      GpuFrameProfile::new(Rc::clone(gl)),
+                      GpuFrameProfile::new(Rc::clone(gl)),
                     ],
         }
     }
@@ -710,12 +724,12 @@ impl GpuMarker {
             gl::GlType::Gl =>  {
                 gl.push_group_marker_ext(message);
                 GpuMarker{
-                    gl: gl.clone(),
+                    gl: Rc::clone(gl),
                 }
             }
             gl::GlType::Gles => {
                 GpuMarker{
-                    gl: gl.clone(),
+                    gl: Rc::clone(gl),
                 }
             }
         }
@@ -846,7 +860,7 @@ pub struct Capabilities {
 #[derive(Clone, Debug)]
 pub enum ShaderError {
     Compilation(String, String), // name, error mssage
-    Link(String), // error message
+    Link(String, String), // name, error message
 }
 
 pub struct Device {
@@ -921,9 +935,9 @@ impl Device {
             default_read_fbo: 0,
             default_draw_fbo: 0,
 
-            textures: HashMap::with_hasher(Default::default()),
-            programs: HashMap::with_hasher(Default::default()),
-            vaos: HashMap::with_hasher(Default::default()),
+            textures: HashMap::default(),
+            programs: HashMap::default(),
+            vaos: HashMap::default(),
 
             shader_preamble: shader_preamble,
 
@@ -962,7 +976,7 @@ impl Device {
         let mut s = String::new();
         s.push_str(get_shader_version(gl));
         for prefix in shader_preamble {
-            s.push_str(&prefix);
+            s.push_str(prefix);
         }
         s.push_str(source_str);
 
@@ -1090,19 +1104,14 @@ impl Device {
         let id_list = self.gl.gen_textures(count);
         let mut texture_ids = Vec::new();
 
-        let target = match target {
-            TextureTarget::Default => gl::TEXTURE_2D,
-            TextureTarget::Array => gl::TEXTURE_2D_ARRAY,
-        };
-
         for id in id_list {
             let texture_id = TextureId {
                 name: id,
-                target: target,
+                target: target.to_gl_target(),
             };
 
             let texture = Texture {
-                gl: self.gl.clone(),
+                gl: Rc::clone(&self.gl),
                 id: id,
                 width: 0,
                 height: 0,
@@ -1445,7 +1454,7 @@ impl Device {
         }
 
         let program = Program {
-            gl: self.gl.clone(),
+            gl: Rc::clone(&self.gl),
             name: base_filename.to_owned(),
             id: pid,
             u_transform: -1,
@@ -1547,14 +1556,17 @@ impl Device {
         if u_color_2 != -1 {
             self.gl.uniform_1i(u_color_2, TextureSampler::Color2 as i32);
         }
-        let u_mask = self.gl.get_uniform_location(program.id, "sMask");
-        if u_mask != -1 {
-            self.gl.uniform_1i(u_mask, TextureSampler::Mask as i32);
+        let u_noise = self.gl.get_uniform_location(program.id, "sDither");
+        if u_noise != -1 {
+            self.gl.uniform_1i(u_noise, TextureSampler::Dither as i32);
         }
-
-        let u_cache = self.gl.get_uniform_location(program.id, "sCache");
-        if u_cache != -1 {
-            self.gl.uniform_1i(u_cache, TextureSampler::Cache as i32);
+        let u_cache_a8 = self.gl.get_uniform_location(program.id, "sCacheA8");
+        if u_cache_a8 != -1 {
+            self.gl.uniform_1i(u_cache_a8, TextureSampler::CacheA8 as i32);
+        }
+        let u_cache_rgba8 = self.gl.get_uniform_location(program.id, "sCacheRGBA8");
+        if u_cache_rgba8 != -1 {
+            self.gl.uniform_1i(u_cache_rgba8, TextureSampler::CacheRGBA8 as i32);
         }
 
         let u_layers = self.gl.get_uniform_location(program.id, "sLayers");
@@ -1600,6 +1612,11 @@ impl Device {
         let u_gradients = self.gl.get_uniform_location(program.id, "sGradients");
         if u_gradients != -1 {
             self.gl.uniform_1i(u_gradients, TextureSampler::Gradients as i32);
+        }
+
+        let u_split_geometry = self.gl.get_uniform_location(program.id, "sSplitGeometry");
+        if u_split_geometry != -1 {
+            self.gl.uniform_1i(u_split_geometry, TextureSampler::SplitGeometry as i32);
         }
 
         Ok(())
@@ -1696,12 +1713,7 @@ impl Device {
         let (gl_format, bpp, data) = match self.textures.get(&texture_id).unwrap().format {
             ImageFormat::A8 => {
                 if cfg!(any(target_arch="arm", target_arch="aarch64")) {
-                    for byte in data {
-                        expanded_data.push(*byte);
-                        expanded_data.push(*byte);
-                        expanded_data.push(*byte);
-                        expanded_data.push(*byte);
-                    }
+                    expanded_data.extend(data.iter().flat_map(|byte| repeat(*byte).take(4)));
                     (get_gl_format_bgra(self.gl()), 4, expanded_data.as_slice())
                 } else {
                     (GL_FORMAT_A, 1, data)
@@ -1709,6 +1721,7 @@ impl Device {
             }
             ImageFormat::RGB8 => (gl::RGB, 3, data),
             ImageFormat::RGBA8 => (get_gl_format_bgra(self.gl()), 4, data),
+            ImageFormat::RG8 => (gl::RG, 2, data),
             ImageFormat::Invalid | ImageFormat::RGBAF32 => unreachable!(),
         };
 
@@ -1720,8 +1733,6 @@ impl Device {
         // Take the stride into account for all rows, except the last one.
         let len = bpp * row_length * (height - 1)
                 + width * bpp;
-
-        assert!(data.len() as u32 >= len);
         let data = &data[0..len as usize];
 
         if let Some(..) = stride {
@@ -1781,7 +1792,7 @@ impl Device {
         ibo_id.bind(self.gl()); // force it to be a part of VAO
 
         let vao = VAO {
-            gl: self.gl.clone(),
+            gl: Rc::clone(&self.gl),
             id: vao_id,
             ibo_id: ibo_id,
             main_vbo_id: main_vbo_id,
@@ -1837,7 +1848,7 @@ impl Device {
         debug_assert_eq!(self.bound_vao, vao_id);
 
         vao.main_vbo_id.bind(self.gl());
-        gl::buffer_data(self.gl(), gl::ARRAY_BUFFER, &vertices, usage_hint.to_gl());
+        gl::buffer_data(self.gl(), gl::ARRAY_BUFFER, vertices, usage_hint.to_gl());
     }
 
     pub fn update_vao_instances<V>(&mut self,
@@ -1851,7 +1862,7 @@ impl Device {
         debug_assert_eq!(vao.instance_stride as usize, mem::size_of::<V>());
 
         vao.instance_vbo_id.bind(self.gl());
-        gl::buffer_data(self.gl(), gl::ARRAY_BUFFER, &instances, usage_hint.to_gl());
+        gl::buffer_data(self.gl(), gl::ARRAY_BUFFER, instances, usage_hint.to_gl());
     }
 
     pub fn update_vao_indices<I>(&mut self,
@@ -1864,7 +1875,7 @@ impl Device {
         debug_assert_eq!(self.bound_vao, vao_id);
 
         vao.ibo_id.bind(self.gl());
-        gl::buffer_data(self.gl(), gl::ELEMENT_ARRAY_BUFFER, &indices, usage_hint.to_gl());
+        gl::buffer_data(self.gl(), gl::ELEMENT_ARRAY_BUFFER, indices, usage_hint.to_gl());
     }
 
     pub fn draw_triangles_u16(&mut self, first_vertex: i32, index_count: i32) {
@@ -2041,9 +2052,8 @@ impl Device {
     }
 
     pub fn set_blend_mode_alpha(&self) {
-        //self.gl.blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         self.gl.blend_func_separate(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA,
-                                     gl::ONE, gl::ONE);
+                                    gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
         self.gl.blend_equation(gl::FUNC_ADD);
     }
 
@@ -2075,6 +2085,7 @@ impl Drop for Device {
     }
 }
 
+/// return (gl_internal_format, gl_format)
 fn gl_texture_formats_for_image_format(gl: &gl::Gl, format: ImageFormat) -> (gl::GLint, gl::GLuint) {
     match format {
         ImageFormat::A8 => {
@@ -2096,6 +2107,7 @@ fn gl_texture_formats_for_image_format(gl: &gl::Gl, format: ImageFormat) -> (gl:
             }
         }
         ImageFormat::RGBAF32 => (gl::RGBA32F as gl::GLint, gl::RGBA),
+        ImageFormat::RG8 => (gl::RG8 as gl::GLint, gl::RG),
         ImageFormat::Invalid => unreachable!(),
     }
 }

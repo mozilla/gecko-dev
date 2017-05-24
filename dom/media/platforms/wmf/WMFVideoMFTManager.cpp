@@ -41,6 +41,7 @@ using mozilla::layers::Image;
 using mozilla::layers::IMFYCbCrImage;
 using mozilla::layers::LayerManager;
 using mozilla::layers::LayersBackend;
+using mozilla::media::TimeUnit;
 
 #if WINVER_MAXVER < 0x0A00
 // Windows 10+ SDK has VP80 and VP90 defines
@@ -157,8 +158,9 @@ WMFVideoMFTManager::~WMFVideoMFTManager()
     Telemetry::Accumulate(Telemetry::HistogramID::VIDEO_MFT_OUTPUT_NULL_SAMPLES,
                           telemetry);
   });
-  // Non-DocGroup version of AbstractThread::MainThread is fine for Telemetry.
-  AbstractThread::MainThread()->Dispatch(task.forget());
+  SystemGroup::Dispatch("~WMFVideoMFTManager::report_telemetry",
+                        TaskCategory::Other,
+                        task.forget());
 }
 
 const GUID&
@@ -667,12 +669,12 @@ WMFVideoMFTManager::Input(MediaRawData* aSample)
   RefPtr<IMFSample> inputSample;
   HRESULT hr = mDecoder->CreateInputSample(aSample->Data(),
                                            uint32_t(aSample->Size()),
-                                           aSample->mTime,
+                                           aSample->mTime.ToMicroseconds(),
                                            &inputSample);
   NS_ENSURE_TRUE(SUCCEEDED(hr) && inputSample != nullptr, hr);
 
-  mLastDuration = aSample->mDuration;
-  mLastTime = aSample->mTime;
+  mLastDuration = aSample->mDuration.ToMicroseconds();
+  mLastTime = aSample->mTime.ToMicroseconds();
   mSamplesCount++;
 
   // Forward sample data to the decoder.
@@ -825,9 +827,9 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
   b.mPlanes[2].mOffset = 0;
   b.mPlanes[2].mSkip = 0;
 
-  media::TimeUnit pts = GetSampleTime(aSample);
+  TimeUnit pts = GetSampleTime(aSample);
   NS_ENSURE_TRUE(pts.IsValid(), E_FAIL);
-  media::TimeUnit duration = GetSampleDuration(aSample);
+  TimeUnit duration = GetSampleDuration(aSample);
   NS_ENSURE_TRUE(duration.IsValid(), E_FAIL);
   nsIntRect pictureRegion = mVideoInfo.ScaledImageRect(videoWidth, videoHeight);
 
@@ -837,11 +839,11 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
       VideoData::CreateAndCopyData(mVideoInfo,
                                    mImageContainer,
                                    aStreamOffset,
-                                   pts.ToMicroseconds(),
-                                   duration.ToMicroseconds(),
+                                   pts,
+                                   duration,
                                    b,
                                    false,
-                                   -1,
+                                   TimeUnit::FromMicroseconds(-1),
                                    pictureRegion);
     if (twoDBuffer) {
       twoDBuffer->Unlock2D();
@@ -864,11 +866,11 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
   RefPtr<VideoData> v =
     VideoData::CreateFromImage(mVideoInfo.mDisplay,
                                aStreamOffset,
-                               pts.ToMicroseconds(),
-                               duration.ToMicroseconds(),
+                               pts,
+                               duration,
                                image.forget(),
                                false,
-                               -1);
+                               TimeUnit::FromMicroseconds(-1));
 
   v.forget(aOutVideoData);
   return S_OK;
@@ -896,17 +898,17 @@ WMFVideoMFTManager::CreateD3DVideoFrame(IMFSample* aSample,
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   NS_ENSURE_TRUE(image, E_FAIL);
 
-  media::TimeUnit pts = GetSampleTime(aSample);
+  TimeUnit pts = GetSampleTime(aSample);
   NS_ENSURE_TRUE(pts.IsValid(), E_FAIL);
-  media::TimeUnit duration = GetSampleDuration(aSample);
+  TimeUnit duration = GetSampleDuration(aSample);
   NS_ENSURE_TRUE(duration.IsValid(), E_FAIL);
   RefPtr<VideoData> v = VideoData::CreateFromImage(mVideoInfo.mDisplay,
                                                    aStreamOffset,
-                                                   pts.ToMicroseconds(),
-                                                   duration.ToMicroseconds(),
+                                                   pts,
+                                                   duration,
                                                    image.forget(),
                                                    false,
-                                                   -1);
+                                                   TimeUnit::FromMicroseconds(-1));
 
   NS_ENSURE_TRUE(v, E_FAIL);
   v.forget(aOutVideoData);
@@ -930,8 +932,8 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset,
     mDraining = false;
   }
 
-  media::TimeUnit pts;
-  media::TimeUnit duration;
+  TimeUnit pts;
+  TimeUnit duration;
 
   // Loop until we decode a sample, or an unexpected error that we can't
   // handle occurs.
@@ -992,14 +994,14 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset,
       if (!pts.IsValid() || !duration.IsValid()) {
         return E_FAIL;
       }
-      if (wasDraining && sampleCount == 1 && pts == media::TimeUnit()) {
+      if (wasDraining && sampleCount == 1 && pts == TimeUnit::Zero()) {
         // WMF is unable to calculate a duration if only a single sample
         // was parsed. Additionally, the pts always comes out at 0 under those
         // circumstances.
         // Seeing that we've only fed the decoder a single frame, the pts
         // and duration are known, it's of the last sample.
-        pts = media::TimeUnit::FromMicroseconds(mLastTime);
-        duration = media::TimeUnit::FromMicroseconds(mLastDuration);
+        pts = TimeUnit::FromMicroseconds(mLastTime);
+        duration = TimeUnit::FromMicroseconds(mLastDuration);
       }
       if (mSeekTargetThreshold.isSome()) {
         if ((pts + duration) < mSeekTargetThreshold.ref()) {
@@ -1031,8 +1033,8 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset,
 
   aOutData = frame;
   // Set the potentially corrected pts and duration.
-  aOutData->mTime = pts.ToMicroseconds();
-  aOutData->mDuration = duration.ToMicroseconds();
+  aOutData->mTime = pts;
+  aOutData->mDuration = duration;
 
   if (mNullOutputCount) {
     mGotValidOutputAfterNullOutput = true;

@@ -17,9 +17,6 @@ RequestBase::RequestBase()
   : mResultCode(NS_OK)
   , mHaveResultOrErrorCode(false)
 {
-#ifdef DEBUG
-  mOwningThread = PR_GetCurrentThread();
-#endif
   AssertIsOnOwningThread();
 }
 
@@ -28,9 +25,6 @@ RequestBase::RequestBase(nsIPrincipal* aPrincipal)
   , mResultCode(NS_OK)
   , mHaveResultOrErrorCode(false)
 {
-#ifdef DEBUG
-  mOwningThread = PR_GetCurrentThread();
-#endif
   AssertIsOnOwningThread();
 }
 
@@ -39,8 +33,7 @@ RequestBase::RequestBase(nsIPrincipal* aPrincipal)
 void
 RequestBase::AssertIsOnOwningThread() const
 {
-  MOZ_ASSERT(mOwningThread);
-  MOZ_ASSERT(PR_GetCurrentThread() == mOwningThread);
+  NS_ASSERT_OWNINGTHREAD(RequestBase);
 }
 
 #endif // DEBUG
@@ -164,9 +157,7 @@ UsageRequest::GetResult(nsIVariant** aResult)
     return NS_ERROR_FAILURE;
   }
 
-  MOZ_ASSERT(mResult);
-
-  NS_ADDREF(*aResult = mResult);
+  NS_IF_ADDREF(*aResult = mResult);
   return NS_OK;
 }
 
@@ -261,9 +252,7 @@ Request::GetResult(nsIVariant** aResult)
     return NS_ERROR_FAILURE;
   }
 
-  MOZ_ASSERT(mResult);
-
-  NS_ADDREF(*aResult = mResult);
+  NS_IF_ADDREF(*aResult = mResult);
   return NS_OK;
 }
 

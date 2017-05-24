@@ -18,6 +18,7 @@
 # include "mozilla/gfx/DeviceManagerDx.h"
 #endif
 #include "mozilla/ipc/CrashReporterHost.h"
+#include "mozilla/layers/LayerTreeOwnerTracker.h"
 #include "mozilla/Unused.h"
 #ifdef MOZ_GECKO_PROFILER
 #include "CrossProcessProfilerController.h"
@@ -25,6 +26,8 @@
 
 namespace mozilla {
 namespace gfx {
+
+using namespace layers;
 
 GPUChild::GPUChild(GPUProcessHost* aHost)
  : mHost(aHost),
@@ -65,12 +68,17 @@ GPUChild::Init()
   devicePrefs.oglCompositing() = gfxConfig::GetValue(Feature::OPENGL_COMPOSITING);
   devicePrefs.useD2D1() = gfxConfig::GetValue(Feature::DIRECT2D);
 
-  SendInit(prefs, updates, devicePrefs);
+  nsTArray<LayerTreeIdMapping> mappings;
+  LayerTreeOwnerTracker::Get()->Iterate([&](uint64_t aLayersId, base::ProcessId aProcessId) {
+    mappings.AppendElement(LayerTreeIdMapping(aLayersId, aProcessId));
+  });
+
+  SendInit(prefs, updates, devicePrefs, mappings);
 
   gfxVars::AddReceiver(this);
 
-#ifdef MOZ_ENABLE_PROFILER_SPS
-  mProfilerController = CrossProcessProfilerController::ForProtocol(this);
+#ifdef MOZ_GECKO_PROFILER
+  mProfilerController = MakeUnique<CrossProcessProfilerController>(this);
 #endif
 }
 
@@ -80,19 +88,22 @@ GPUChild::OnVarChanged(const GfxVarUpdate& aVar)
   SendUpdateVar(aVar);
 }
 
-void
+bool
 GPUChild::EnsureGPUReady()
 {
   if (mGPUReady) {
-    return;
+    return true;
   }
 
   GPUDeviceData data;
-  SendGetDeviceStatus(&data);
+  if (!SendGetDeviceStatus(&data)) {
+    return false;
+  }
 
   gfxPlatform::GetPlatform()->ImportGPUDeviceData(data);
   Telemetry::AccumulateTimeDelta(Telemetry::GPU_PROCESS_LAUNCH_TIME_MS_2, mHost->GetLaunchTime());
   mGPUReady = true;
+  return true;
 }
 
 mozilla::ipc::IPCResult
@@ -187,18 +198,19 @@ GPUChild::RecvRecordChildEvents(nsTArray<mozilla::Telemetry::ChildEventData>&& a
 }
 
 mozilla::ipc::IPCResult
-GPUChild::RecvNotifyDeviceReset()
+GPUChild::RecvNotifyDeviceReset(const GPUDeviceData& aData)
 {
+  gfxPlatform::GetPlatform()->ImportGPUDeviceData(aData);
   mHost->mListener->OnProcessDeviceReset(mHost);
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult
-GPUChild::RecvProfile(const nsCString& aProfile)
+GPUChild::RecvProfile(const nsCString& aProfile, const bool& aIsExitProfile)
 {
 #ifdef MOZ_GECKO_PROFILER
   if (mProfilerController) {
-    mProfilerController->RecvProfile(aProfile);
+    mProfilerController->RecvProfile(aProfile, aIsExitProfile);
   }
 #endif
   return IPC_OK();
@@ -283,7 +295,7 @@ GPUChild::ActorDestroy(ActorDestroyReason aWhy)
 
   }
 
-#ifdef MOZ_ENABLE_PROFILER_SPS
+#ifdef MOZ_GECKO_PROFILER
   mProfilerController = nullptr;
 #endif
 

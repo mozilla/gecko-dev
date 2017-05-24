@@ -18,9 +18,9 @@
   --in-content-box-background-active: #dadada;
   --in-content-box-border-color: #c1c1c1;
   --in-content-item-hover: rgba(0,149,221,0.25);
-  --in-content-item-selected: #0095dd;
+  --in-content-item-selected: #0a84ff;
   --in-content-border-highlight: #ff9500;
-  --in-content-border-focus: #0095dd;
+  --in-content-border-focus: #0a84ff;
   --in-content-border-color: #c1c1c1;
   --in-content-category-text: #c1c1c1;
   --in-content-category-border-focus: 1px dotted #fff;
@@ -29,15 +29,15 @@
   --in-content-category-background-hover: #5e6972;
   --in-content-category-background-active: #343f48;
   --in-content-tab-color: #424f5a;
-  --in-content-link-color: #0095dd;
-  --in-content-link-color-hover: #178ce5;
+  --in-content-link-color: #0a84ff;
+  --in-content-link-color-hover: #0060df;
   --in-content-link-color-active: #ff9500;
   --in-content-link-color-visited: #551a8b;
-  --in-content-primary-button-background: #0095dd;
-  --in-content-primary-button-background-hover: #008acb;
-  --in-content-primary-button-background-active: #006b9d;
+  --in-content-primary-button-background: #0a84ff;
+  --in-content-primary-button-background-hover: #0060df;
+  --in-content-primary-button-background-active: #003EAA;
   --in-content-table-border-dark-color: #d1d1d1;
-  --in-content-table-header-background: #0095dd;
+  --in-content-table-header-background: #0a84ff;
 }
 
 html|html,
@@ -196,7 +196,7 @@ xul|menulist {
 }
 
 html|button:enabled:hover,
-html|select:enabled:hover,
+html|select:not([size]):not([multiple]):enabled:hover,
 xul|button:not([disabled="true"]):hover,
 xul|colorpicker[type="button"]:not([disabled="true"]):hover,
 xul|menulist:not([disabled="true"]):hover {
@@ -204,7 +204,7 @@ xul|menulist:not([disabled="true"]):hover {
 }
 
 html|button:enabled:hover:active,
-html|select:enabled:hover:active,
+html|select:not([size]):not([multiple]):enabled:hover:active,
 xul|button:not([disabled="true"]):hover:active,
 xul|colorpicker[type="button"]:not([disabled="true"]):hover:active,
 xul|menulist[open="true"]:not([disabled="true"]) {
@@ -517,6 +517,7 @@ html|a:hover:active,
 
 xul|checkbox {
   margin-inline-start: 0;
+  -moz-appearance: none;
 }
 
 xul|*.checkbox-check,
@@ -529,8 +530,7 @@ html|input[type="checkbox"] {
   margin: 0;
   margin-inline-end: 10px;
   background-color: #f1f1f1;
-  /* !important needed to override toolkit checked !important rule */
-  background-image: linear-gradient(#fff, rgba(255,255,255,0.8)) !important;
+  background-image: linear-gradient(#fff, rgba(255,255,255,0.8));
   background-position: center center;
   background-repeat: no-repeat;
   box-shadow: 0 1px 1px 0 #fff, inset 0 2px 0 0 rgba(0,0,0,0.03);
@@ -546,7 +546,7 @@ xul|*.checkbox-check[checked] {
 }
 
 html|input[type="checkbox"]:checked {
-  background-image: url("chrome://global/skin/in-content/check.svg#check"), linear-gradient(#fff, rgba(255,255,255,0.8)) !important;
+  background-image: url("chrome://global/skin/in-content/check.svg#check"), linear-gradient(#fff, rgba(255,255,255,0.8));
 }
 
 xul|checkbox[disabled="true"] > xul|*.checkbox-check,
@@ -565,6 +565,7 @@ html|*.toggle-container-with-text {
 
 xul|radio {
   margin-inline-start: 0;
+  -moz-appearance: none;
 }
 
 xul|*.radio-check {
@@ -712,6 +713,7 @@ xul|filefield + xul|button {
 
 /* List boxes */
 
+html|select[size][multiple],
 xul|richlistbox,
 xul|listbox {
   -moz-appearance: none;
@@ -721,6 +723,7 @@ xul|listbox {
   color: var(--in-content-text-color);
 }
 
+html|select[size][multiple] > html|option,
 xul|treechildren::-moz-tree-row,
 xul|listbox xul|listitem {
   padding: 0.3em;
@@ -730,6 +733,7 @@ xul|listbox xul|listitem {
   background-image: none;
 }
 
+html|select[size][multiple] > html|option:hover,
 xul|treechildren::-moz-tree-row(hover),
 xul|listbox xul|listitem:hover {
   background-color: var(--in-content-item-hover);

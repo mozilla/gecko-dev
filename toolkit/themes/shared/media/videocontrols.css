@@ -22,6 +22,10 @@ audio > xul|videocontrols {
   display: none;
 }
 
+.controlsSpacer[hideCursor] {
+  cursor: none;
+}
+
 .controlsContainer,
 .progressContainer {
   position: relative;
@@ -41,7 +45,7 @@ audio > xul|videocontrols {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: rgb(80,80,80);
+  background-color: rgb(80,80,80, .85);
 }
 
 .controlsOverlay {
@@ -92,22 +96,26 @@ audio > xul|videocontrols {
 }
 
 .playButton {
-  background-image: url(chrome://global/skin/media/pauseButton.svg#pause);
+  background-image: url(chrome://global/skin/media/pauseButton.svg);
+  -moz-context-properties: fill;
+  fill: #ffffff;
 }
 .playButton:hover {
-  background-image: url(chrome://global/skin/media/pauseButton.svg#pause-hover);
+  fill: #48a0f7;
 }
 .playButton:hover:active {
-  background-image: url(chrome://global/skin/media/pauseButton.svg#pause-active);
+  fill: #2d89e6;
 }
 .playButton[paused] {
-  background-image: url(chrome://global/skin/media/playButton.svg#play);
+  background-image: url(chrome://global/skin/media/playButton.svg);
+  -moz-context-properties: fill;
+  fill: #ffffff;
 }
 .playButton[paused]:hover {
-  background-image: url(chrome://global/skin/media/playButton.svg#play-hover);
+  fill: #48a0f7;
 }
 .playButton[paused]:hover:active {
-  background-image: url(chrome://global/skin/media/playButton.svg#play-active);
+  fill: #2d89e6;
 }
 
 .muteButton {
@@ -389,11 +397,13 @@ audio > xul|videocontrols {
   min-width: 48px;
   min-height: 48px;
   border-radius: 50%;
-  background-image: url(chrome://global/skin/media/playButton.svg#play);
+  background-image: url(chrome://global/skin/media/playButton.svg);
   background-repeat: no-repeat;
   background-position: 54% 50%;
   background-size: 40% 40%;
   background-color: #1a1a1a;
+  -moz-context-properties: fill;
+  fill: #ffffff;
   opacity: 0.8;
   position: relative;
   top: 20px;
@@ -473,20 +483,11 @@ audio > xul|videocontrols {
   display: inline;
 }
 
-/* For high contrast theme in Windows */
 %ifdef XP_WIN
-.controlsSpacer,
-.clickToPlay {
-  background-color: transparent;
-}
-
-@media (-moz-windows-default-theme) {
-  .controlsSpacer {
-    background-color: rgba(255,255,255,.4);
-  }
-
+@media (-moz-windows-default-theme: 0) {
+  .controlsSpacer,
   .clickToPlay {
-    background-color: #1a1a1a;
+    background-color: transparent;
   }
 }
 %endif

@@ -55,7 +55,9 @@
 #include "nsGlobalWindow.h"
 #include "nsPIWindowRoot.h"
 #include "nsLayoutUtils.h"
+#include "nsMappedAttributes.h"
 #include "nsView.h"
+#include "nsBaseWidget.h"
 #include "GroupedSHistory.h"
 #include "PartialSHistory.h"
 
@@ -1073,6 +1075,16 @@ class MOZ_RAII AutoResetInShow {
     ~AutoResetInShow() { mFrameLoader->mInShow = false; }
 };
 
+static bool
+ParentWindowIsActive(nsIDocument* aDoc)
+{
+  nsCOMPtr<nsPIWindowRoot> root = nsContentUtils::GetWindowRoot(aDoc);
+  if (root) {
+    nsPIDOMWindowOuter* rootWin = root->GetWindow();
+    return rootWin && rootWin->IsActive();
+  }
+  return false;
+}
 
 bool
 nsFrameLoader::Show(int32_t marginWidth, int32_t marginHeight,
@@ -1203,11 +1215,27 @@ nsFrameLoader::MarginsChanged(uint32_t aMarginWidth,
   mDocShell->SetMarginWidth(aMarginWidth);
   mDocShell->SetMarginHeight(aMarginHeight);
 
+  // There's a cached property declaration block
+  // that needs to be updated
+  if (nsIDocument* doc = mDocShell->GetDocument()) {
+    // We don't need to do anything for Gecko here because
+    // we plan to RebuildAllStyleData anyway.
+    if (doc->GetStyleBackendType() == StyleBackendType::Servo) {
+      for (nsINode* cur = doc; cur; cur = cur->GetNextNode()) {
+        if (cur->IsHTMLElement(nsGkAtoms::body)) {
+          static_cast<HTMLBodyElement*>(cur)->ClearMappedServoStyle();
+        }
+      }
+    }
+  }
+
   // Trigger a restyle if there's a prescontext
   // FIXME: This could do something much less expensive.
   RefPtr<nsPresContext> presContext;
   mDocShell->GetPresContext(getter_AddRefs(presContext));
   if (presContext)
+    // rebuild, because now the same nsMappedAttributes* will produce
+    // a different style
     presContext->RebuildAllStyleData(nsChangeHint(0), eRestyle_Subtree);
 }
 
@@ -1232,24 +1260,23 @@ nsFrameLoader::ShowRemoteFrame(const ScreenIntSize& size,
       return false;
     }
 
-    RefPtr<layers::LayerManager> layerManager =
-      nsContentUtils::LayerManagerForDocument(mOwnerContent->GetComposedDoc());
-    if (!layerManager) {
+    // We never want to host remote frameloaders in simple popups, like menus.
+    nsIWidget* widget = nsContentUtils::WidgetForContent(mOwnerContent);
+    if (!widget || static_cast<nsBaseWidget*>(widget)->IsSmallPopup()) {
+      return false;
+    }
+
+    RenderFrameParent* rfp = GetCurrentRenderFrame();
+    if (!rfp) {
+      return false;
+    }
+
+    if (!rfp->AttachLayerManager()) {
       // This is just not going to work.
       return false;
     }
 
-    nsPIDOMWindowOuter* win = mOwnerContent->OwnerDoc()->GetWindow();
-    bool parentIsActive = false;
-    if (win) {
-      nsCOMPtr<nsPIWindowRoot> windowRoot =
-        nsGlobalWindow::Cast(win)->GetTopWindowRoot();
-      if (windowRoot) {
-        nsPIDOMWindowOuter* topWin = windowRoot->GetWindow();
-        parentIsActive = topWin && topWin->IsActive();
-      }
-    }
-    mRemoteBrowser->Show(size, parentIsActive);
+    mRemoteBrowser->Show(size, ParentWindowIsActive(mOwnerContent->OwnerDoc()));
     mRemoteBrowserShown = true;
 
     nsCOMPtr<nsIObserverService> os = services::GetObserverService();
@@ -1448,6 +1475,12 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
   mRemoteBrowser->SetOwnerElement(otherContent);
   aOther->mRemoteBrowser->SetOwnerElement(ourContent);
 
+  // Update window activation state for the swapped owner content.
+  Unused << mRemoteBrowser->Manager()->AsContentParent()->SendParentActivated(
+    mRemoteBrowser, ParentWindowIsActive(otherContent->OwnerDoc()));
+  Unused << aOther->mRemoteBrowser->Manager()->AsContentParent()->SendParentActivated(
+    aOther->mRemoteBrowser, ParentWindowIsActive(ourContent->OwnerDoc()));
+
   MaybeUpdatePrimaryTabParent(eTabParentChanged);
   aOther->MaybeUpdatePrimaryTabParent(eTabParentChanged);
 
@@ -1473,9 +1506,6 @@ nsFrameLoader::SwapWithOtherRemoteLoader(nsFrameLoader* aOther,
 
   ourShell->BackingScaleFactorChanged();
   otherShell->BackingScaleFactorChanged();
-
-  ourDoc->FlushPendingNotifications(FlushType::Layout);
-  otherDoc->FlushPendingNotifications(FlushType::Layout);
 
   // Initialize browser API if needed now that owner content has changed.
   InitializeBrowserAPI();
@@ -1916,9 +1946,6 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
   // backing scale factor may have changed. (Bug 822266)
   ourShell->BackingScaleFactorChanged();
   otherShell->BackingScaleFactorChanged();
-
-  ourParentDocument->FlushPendingNotifications(FlushType::Layout);
-  otherParentDocument->FlushPendingNotifications(FlushType::Layout);
 
   // Initialize browser API if needed now that owner content has changed
   InitializeBrowserAPI();
@@ -2816,28 +2843,30 @@ nsFrameLoader::SetClampScrollPosition(bool aClamp)
 }
 
 static
-ContentParent*
+Tuple<ContentParent*, TabParent*>
 GetContentParent(Element* aBrowser)
 {
+  using ReturnTuple = Tuple<ContentParent*, TabParent*>;
+
   nsCOMPtr<nsIBrowser> browser = do_QueryInterface(aBrowser);
   if (!browser) {
-    return nullptr;
+    return ReturnTuple(nullptr, nullptr);
   }
 
   nsCOMPtr<nsIFrameLoader> otherLoader;
   browser->GetSameProcessAsFrameLoader(getter_AddRefs(otherLoader));
   if (!otherLoader) {
-    return nullptr;
+    return ReturnTuple(nullptr, nullptr);
   }
 
   TabParent* tabParent = TabParent::GetFrom(otherLoader);
   if (tabParent &&
       tabParent->Manager() &&
       tabParent->Manager()->IsContentParent()) {
-    return tabParent->Manager()->AsContentParent();
+    return MakeTuple(tabParent->Manager()->AsContentParent(), tabParent);
   }
 
-  return nullptr;
+  return ReturnTuple(nullptr, nullptr);
 }
 
 bool
@@ -2872,7 +2901,8 @@ nsFrameLoader::TryRemoteBrowser()
   }
 
   TabParent* openingTab = TabParent::GetFrom(parentDocShell->GetOpener());
-  ContentParent* openerContentParent = nullptr;
+  RefPtr<ContentParent> openerContentParent;
+  RefPtr<TabParent> sameTabGroupAs;
 
   if (openingTab &&
       openingTab->Manager() &&
@@ -2916,7 +2946,7 @@ nsFrameLoader::TryRemoteBrowser()
     }
 
     // Try to get the related content parent from our browser element.
-    openerContentParent = GetContentParent(mOwnerContent);
+    Tie(openerContentParent, sameTabGroupAs) = GetContentParent(mOwnerContent);
   }
 
   uint32_t chromeFlags = 0;
@@ -2937,8 +2967,26 @@ nsFrameLoader::TryRemoteBrowser()
   nsresult rv = GetNewTabContext(&context);
   NS_ENSURE_SUCCESS(rv, false);
 
+  uint64_t nextTabParentId = 0;
+  if (mOwnerContent) {
+    nsAutoString nextTabParentIdAttr;
+    mOwnerContent->GetAttr(kNameSpaceID_None, nsGkAtoms::nextTabParentId,
+                           nextTabParentIdAttr);
+    nextTabParentId = strtoull(NS_ConvertUTF16toUTF8(nextTabParentIdAttr).get(),
+                               nullptr, 10);
+
+    // We may be in a window that was just opened, so try the
+    // nsIBrowserDOMWindow API as a backup.
+    if (!nextTabParentId && window) {
+      Unused << window->GetNextTabParentId(&nextTabParentId);
+    }
+  }
+
   nsCOMPtr<Element> ownerElement = mOwnerContent;
-  mRemoteBrowser = ContentParent::CreateBrowser(context, ownerElement, openerContentParent);
+  mRemoteBrowser = ContentParent::CreateBrowser(context, ownerElement,
+                                                openerContentParent,
+                                                sameTabGroupAs,
+                                                nextTabParentId);
   if (!mRemoteBrowser) {
     return false;
   }
@@ -3105,7 +3153,7 @@ public:
     // Since bug 1126089, messages can arrive even when the docShell is destroyed.
     // Here we make sure that those messages are not delivered.
     if (tabChild && tabChild->GetInnerManager() && mFrameLoader->GetExistingDocShell()) {
-      nsCOMPtr<nsIXPConnectJSObjectHolder> kungFuDeathGrip(tabChild->GetGlobal());
+      JS::Rooted<JSObject*> kungFuDeathGrip(dom::RootingCx(), tabChild->GetGlobal());
       ReceiveMessage(static_cast<EventTarget*>(tabChild), mFrameLoader,
                      tabChild->GetInnerManager());
     }

@@ -27,7 +27,7 @@
 #define kMinUnwrittenChanges   300
 #define kMinDumpInterval       20000 // in milliseconds
 #define kMaxBufSize            16384
-#define kIndexVersion          0x00000004
+#define kIndexVersion          0x00000005
 #define kUpdateIndexStartDelay 50000 // in milliseconds
 
 #define INDEX_NAME      "index"
@@ -746,6 +746,12 @@ CacheIndex::InitEntry(const SHA1Sum::Hash *aHash,
       MOZ_ASSERT(entry);
       MOZ_ASSERT(entry->IsFresh());
 
+      if (!entry) {
+        LOG(("CacheIndex::InitEntry() - Entry was not found in mIndex!"));
+        NS_WARNING(("CacheIndex::InitEntry() - Entry was not found in mIndex!"));
+        return NS_ERROR_UNEXPECTED;
+      }
+
       if (IsCollision(entry, aOriginAttrsHash, aAnonymous)) {
         index->mIndexNeedsUpdate = true; // TODO Does this really help in case of collision?
         reinitEntry = true;
@@ -760,6 +766,14 @@ CacheIndex::InitEntry(const SHA1Sum::Hash *aHash,
 
       MOZ_ASSERT(updated || !removed);
       MOZ_ASSERT(updated || entry);
+
+      if (!updated && !entry) {
+        LOG(("CacheIndex::InitEntry() - Entry was found neither in mIndex nor "
+             "in mPendingUpdates!"));
+        NS_WARNING(("CacheIndex::InitEntry() - Entry was found neither in "
+                    "mIndex nor in mPendingUpdates!"));
+        return NS_ERROR_UNEXPECTED;
+      }
 
       if (updated) {
         MOZ_ASSERT(updated->IsFresh());
@@ -918,13 +932,18 @@ CacheIndex::UpdateEntry(const SHA1Sum::Hash *aHash,
                         const uint32_t      *aFrecency,
                         const uint32_t      *aExpirationTime,
                         const bool          *aHasAltData,
+                        const uint16_t      *aOnStartTime,
+                        const uint16_t      *aOnStopTime,
                         const uint32_t      *aSize)
 {
   LOG(("CacheIndex::UpdateEntry() [hash=%08x%08x%08x%08x%08x, "
-       "frecency=%s, expirationTime=%s, hasAltData=%s, size=%s]", LOGSHA1(aHash),
+       "frecency=%s, expirationTime=%s, hasAltData=%s, onStartTime=%s, "
+       "onStopTime=%s, size=%s]", LOGSHA1(aHash),
        aFrecency ? nsPrintfCString("%u", *aFrecency).get() : "",
        aExpirationTime ? nsPrintfCString("%u", *aExpirationTime).get() : "",
        aHasAltData ? (*aHasAltData ? "true" : "false") : "",
+       aOnStartTime ? nsPrintfCString("%u", *aOnStartTime).get() : "",
+       aOnStopTime ? nsPrintfCString("%u", *aOnStopTime).get() : "",
        aSize ? nsPrintfCString("%u", *aSize).get() : ""));
 
   MOZ_ASSERT(CacheFileIOManager::IsOnIOThread());
@@ -955,7 +974,14 @@ CacheIndex::UpdateEntry(const SHA1Sum::Hash *aHash,
       MOZ_ASSERT(index->mPendingUpdates.Count() == 0);
       MOZ_ASSERT(entry);
 
-      if (!HasEntryChanged(entry, aFrecency, aExpirationTime, aHasAltData, aSize)) {
+      if (!entry) {
+        LOG(("CacheIndex::UpdateEntry() - Entry was not found in mIndex!"));
+        NS_WARNING(("CacheIndex::UpdateEntry() - Entry was not found in mIndex!"));
+        return NS_ERROR_UNEXPECTED;
+      }
+
+      if (!HasEntryChanged(entry, aFrecency, aExpirationTime, aHasAltData,
+                           aOnStartTime, aOnStopTime, aSize)) {
         return NS_OK;
       }
 
@@ -969,6 +995,18 @@ CacheIndex::UpdateEntry(const SHA1Sum::Hash *aHash,
 
       if (aExpirationTime) {
         entry->SetExpirationTime(*aExpirationTime);
+      }
+
+      if (aHasAltData) {
+        entry->SetHasAltData(*aHasAltData);
+      }
+
+      if (aOnStartTime) {
+        entry->SetOnStartTime(*aOnStartTime);
+      }
+
+      if (aOnStopTime) {
+        entry->SetOnStopTime(*aOnStopTime);
       }
 
       if (aSize) {
@@ -987,7 +1025,7 @@ CacheIndex::UpdateEntry(const SHA1Sum::Hash *aHash,
                "nor in mPendingUpdates!"));
           NS_WARNING(("CacheIndex::UpdateEntry() - Entry was found neither in "
                       "mIndex nor in mPendingUpdates!"));
-          return NS_ERROR_NOT_AVAILABLE;
+          return NS_ERROR_UNEXPECTED;
         }
 
         // make a copy of a read-only entry
@@ -1005,6 +1043,18 @@ CacheIndex::UpdateEntry(const SHA1Sum::Hash *aHash,
 
       if (aExpirationTime) {
         updated->SetExpirationTime(*aExpirationTime);
+      }
+
+      if (aHasAltData) {
+        updated->SetHasAltData(*aHasAltData);
+      }
+
+      if (aOnStartTime) {
+        updated->SetOnStartTime(*aOnStartTime);
+      }
+
+      if (aOnStopTime) {
+        updated->SetOnStopTime(*aOnStopTime);
       }
 
       if (aSize) {
@@ -1114,7 +1164,8 @@ CacheIndex::RemoveAll()
 
 // static
 nsresult
-CacheIndex::HasEntry(const nsACString &aKey, EntryStatus *_retval, bool *_pinned)
+CacheIndex::HasEntry(const nsACString &aKey, EntryStatus *_retval,
+                     const std::function<void(const CacheIndexEntry*)> &aCB)
 {
   LOG(("CacheIndex::HasEntry() [key=%s]", PromiseFlatCString(aKey).get()));
 
@@ -1123,12 +1174,13 @@ CacheIndex::HasEntry(const nsACString &aKey, EntryStatus *_retval, bool *_pinned
   sum.update(aKey.BeginReading(), aKey.Length());
   sum.finish(hash);
 
-  return HasEntry(hash, _retval, _pinned);
+  return HasEntry(hash, _retval, aCB);
 }
 
 // static
 nsresult
-CacheIndex::HasEntry(const SHA1Sum::Hash &hash, EntryStatus *_retval, bool *_pinned)
+CacheIndex::HasEntry(const SHA1Sum::Hash &hash, EntryStatus *_retval,
+                     const std::function<void(const CacheIndexEntry*)> &aCB)
 {
   StaticMutexAutoLock lock(sLock);
 
@@ -1140,10 +1192,6 @@ CacheIndex::HasEntry(const SHA1Sum::Hash &hash, EntryStatus *_retval, bool *_pin
 
   if (!index->IsIndexUsable()) {
     return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  if (_pinned) {
-    *_pinned = false;
   }
 
   const CacheIndexEntry *entry = nullptr;
@@ -1180,8 +1228,8 @@ CacheIndex::HasEntry(const SHA1Sum::Hash &hash, EntryStatus *_retval, bool *_pin
       }
     } else {
       *_retval = EXISTS;
-      if (_pinned && entry->IsPinned()) {
-        *_pinned = true;
+      if (aCB) {
+        aCB(entry);
       }
     }
   }
@@ -1514,6 +1562,8 @@ CacheIndex::HasEntryChanged(CacheIndexEntry *aEntry,
                             const uint32_t  *aFrecency,
                             const uint32_t  *aExpirationTime,
                             const bool      *aHasAltData,
+                            const uint16_t  *aOnStartTime,
+                            const uint16_t  *aOnStopTime,
                             const uint32_t  *aSize)
 {
   if (aFrecency && *aFrecency != aEntry->GetFrecency()) {
@@ -1525,6 +1575,14 @@ CacheIndex::HasEntryChanged(CacheIndexEntry *aEntry,
   }
 
   if (aHasAltData && *aHasAltData != aEntry->GetHasAltData()) {
+    return true;
+  }
+
+  if (aOnStartTime && *aOnStartTime != aEntry->GetOnStartTime()) {
+    return true;
+  }
+
+  if (aOnStopTime && *aOnStopTime != aEntry->GetOnStopTime()) {
     return true;
   }
 
@@ -2671,6 +2729,20 @@ CacheIndex::InitEntryFromDiskData(CacheIndexEntry *aEntry,
     return NS_ERROR_FAILURE;
   }
   aEntry->SetHasAltData(hasAltData);
+
+  static auto getUint16MetaData = [&aMetaData](const char *key) -> uint16_t {
+    const char* s64 = aMetaData->GetElement(key);
+    if (s64) {
+      nsresult rv;
+      uint64_t n64 = nsCString(s64).ToInteger64(&rv);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      return n64 <= kIndexTimeOutOfBound ? n64 : kIndexTimeOutOfBound;
+    }
+    return kIndexTimeNotAvailable;
+  };
+
+  aEntry->SetOnStartTime(getUint16MetaData("net-response-time-onstart"));
+  aEntry->SetOnStopTime(getUint16MetaData("net-response-time-onstop"));
 
   aEntry->SetFileSize(static_cast<uint32_t>(
                         std::min(static_cast<int64_t>(PR_UINT32_MAX),

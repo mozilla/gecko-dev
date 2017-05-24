@@ -28,6 +28,7 @@
 #include "mozilla/gfx/2D.h"
 #include "gfx2DGlue.h"
 #include "gfxGradientCache.h"
+#include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/layers/WebRenderDisplayItemLayer.h"
 #include <algorithm>
 
@@ -3333,8 +3334,8 @@ nsCSSBorderRenderer::DrawBorders()
   if (allBordersSame && mCompositeColors[0] != nullptr && !mNoBorderRadius)
     forceSeparateCorners = true;
 
-  PrintAsString(" mOuterRect: "), PrintAsString(mOuterRect), PrintAsStringNewline();
-  PrintAsString(" mInnerRect: "), PrintAsString(mInnerRect), PrintAsStringNewline();
+  PrintAsString(" mOuterRect: "); PrintAsString(mOuterRect); PrintAsStringNewline();
+  PrintAsString(" mInnerRect: "); PrintAsString(mInnerRect); PrintAsStringNewline();
   PrintAsFormatString(" mBorderColors: 0x%08x 0x%08x 0x%08x 0x%08x\n", mBorderColors[0], mBorderColors[1], mBorderColors[2], mBorderColors[3]);
 
   // if conditioning the outside rect failed, then bail -- the outside
@@ -3532,7 +3533,7 @@ nsCSSBorderRenderer::DrawBorders()
 }
 
 bool
-nsCSSBorderRenderer::CanCreateWebrenderCommands()
+nsCSSBorderRenderer::CanCreateWebRenderCommands()
 {
   NS_FOR_CSS_SIDES(i) {
     if (mCompositeColors[i] != nullptr) {
@@ -3551,20 +3552,22 @@ nsCSSBorderRenderer::CanCreateWebrenderCommands()
 
 void
 nsCSSBorderRenderer::CreateWebRenderCommands(wr::DisplayListBuilder& aBuilder,
+                                             const layers::StackingContextHelper& aSc,
                                              layers::WebRenderDisplayItemLayer* aLayer)
 {
-  Rect outlineTransformedRect = aLayer->RelativeToParent(mOuterRect);
+  LayoutDeviceRect outerRect = LayoutDeviceRect::FromUnknownRect(mOuterRect);
+  WrRect transformedRect = aSc.ToRelativeWrRect(outerRect);
   WrBorderSide side[4];
   NS_FOR_CSS_SIDES(i) {
     side[i] = wr::ToWrBorderSide(ToDeviceColor(mBorderColors[i]), mBorderStyles[i]);
   }
 
-  WrClipRegion clipRegion = aBuilder.BuildClipRegion(wr::ToWrRect(outlineTransformedRect));
+  WrClipRegionToken clipRegion = aBuilder.PushClipRegion(transformedRect);
   WrBorderRadius borderRadius = wr::ToWrBorderRadius(LayerSize(mBorderRadii[0].width, mBorderRadii[0].height),
                                                      LayerSize(mBorderRadii[1].width, mBorderRadii[1].height),
                                                      LayerSize(mBorderRadii[3].width, mBorderRadii[3].height),
                                                      LayerSize(mBorderRadii[2].width, mBorderRadii[2].height));
-  aBuilder.PushBorder(wr::ToWrRect(outlineTransformedRect),
+  aBuilder.PushBorder(transformedRect,
                       clipRegion,
                       wr::ToWrBorderWidths(mBorderWidths[0], mBorderWidths[1], mBorderWidths[2], mBorderWidths[3]),
                       side[0], side[1], side[2], side[3],
@@ -3581,8 +3584,6 @@ nsCSSBorderImageRenderer::CreateBorderImageRenderer(nsPresContext* aPresContext,
                                                     uint32_t aFlags,
                                                     DrawResult* aDrawResult)
 {
-  NS_PRECONDITION(aStyleBorder.IsBorderImageLoaded(),
-                  "drawing border image that isn't successfully loaded");
   MOZ_ASSERT(aDrawResult);
 
   if (aDirtyRect.IsEmpty()) {

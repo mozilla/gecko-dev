@@ -39,10 +39,9 @@ namespace net {
 #define SUBRESOURCE_AUTH_DIALOG_DISALLOW_CROSS_ORIGIN 1
 #define SUBRESOURCE_AUTH_DIALOG_ALLOW_ALL 2
 
-#define HTTP_AUTH_DIALOG_TOP_LEVEL_DOC 0
-#define HTTP_AUTH_DIALOG_SAME_ORIGIN_SUBRESOURCE 1
-#define HTTP_AUTH_DIALOG_CROSS_ORIGIN_SUBRESOURCE 2
-#define HTTP_AUTH_DIALOG_XHR 3
+#define HTTP_AUTH_DIALOG_TOP_LEVEL_DOC 29
+#define HTTP_AUTH_DIALOG_SAME_ORIGIN_SUBRESOURCE 30
+#define HTTP_AUTH_DIALOG_SAME_ORIGIN_XHR 31
 
 #define HTTP_AUTH_BASIC_INSECURE 0
 #define HTTP_AUTH_BASIC_SECURE 1
@@ -52,6 +51,9 @@ namespace net {
 #define HTTP_AUTH_NTLM_SECURE 5
 #define HTTP_AUTH_NEGOTIATE_INSECURE 6
 #define HTTP_AUTH_NEGOTIATE_SECURE 7
+
+#define MAX_DISPLAYED_USER_LENGTH 64
+#define MAX_DISPLAYED_HOST_LENGTH 64
 
 static void
 GetOriginAttributesSuffix(nsIChannel* aChan, nsACString &aSuffix)
@@ -92,6 +94,8 @@ nsHttpChannelAuthProvider::~nsHttpChannelAuthProvider()
 uint32_t nsHttpChannelAuthProvider::sAuthAllowPref =
     SUBRESOURCE_AUTH_DIALOG_ALLOW_ALL;
 
+bool nsHttpChannelAuthProvider::sImgCrossOriginAuthAllowPref = true;
+
 void
 nsHttpChannelAuthProvider::InitializePrefs()
 {
@@ -99,6 +103,9 @@ nsHttpChannelAuthProvider::InitializePrefs()
   mozilla::Preferences::AddUintVarCache(&sAuthAllowPref,
                                         "network.auth.subresource-http-auth-allow",
                                         SUBRESOURCE_AUTH_DIALOG_ALLOW_ALL);
+  mozilla::Preferences::AddBoolVarCache(&sImgCrossOriginAuthAllowPref,
+                                        "network.auth.subresource-img-cross-origin-http-auth-allow",
+                                        true);
 }
 
 NS_IMETHODIMP
@@ -780,6 +787,11 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
     if (entry)
         sessionStateGrip = entry->mMetaData;
 
+    // remember if we already had the continuation state.  it means we are in
+    // the middle of the authentication exchange and the connection must be
+    // kept sticky then (and only then).
+    bool authAtProgress = !!*continuationState;
+
     // for digest auth, maybe our cached nonce value simply timed out...
     bool identityInvalid;
     nsISupports *sessionState = sessionStateGrip;
@@ -803,22 +815,27 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
         rv = mAuthChannel->CloseStickyConnection();
         MOZ_ASSERT(NS_SUCCEEDED(rv));
         if (!proxyAuth) {
-          // We must clear proxy ident in the following scenario + explanation:
-          // - we are authenticating to an NTLM proxy and an NTLM server
-          // - we successfully authenticated to the proxy, mProxyIdent keeps
-          //   the user name/domain and password, the identity has also been cached
-          // - we just threw away the connection because we are now asking for
-          //   creds for the server (WWW auth)
-          // - hence, we will have to auth to the proxy again as well
-          // - if we didn't clear the proxy identity, it would be considered
-          //   as non-valid and we would ask the user again ; clearing it forces
-          //   use of the cached identity and not asking the user again
-          mProxyIdent.Clear();
+            // We must clear proxy ident in the following scenario + explanation:
+            // - we are authenticating to an NTLM proxy and an NTLM server
+            // - we successfully authenticated to the proxy, mProxyIdent keeps
+            //   the user name/domain and password, the identity has also been cached
+            // - we just threw away the connection because we are now asking for
+            //   creds for the server (WWW auth)
+            // - hence, we will have to auth to the proxy again as well
+            // - if we didn't clear the proxy identity, it would be considered
+            //   as non-valid and we would ask the user again ; clearing it forces
+            //   use of the cached identity and not asking the user again
+            mProxyIdent.Clear();
         }
-        mConnectionBased = false;
     }
 
     mConnectionBased = !!(authFlags & nsIHttpAuthenticator::CONNECTION_BASED);
+
+    // It's legal if the peer closes the connection after the first 401/7.
+    // Making the connection sticky will prevent its restart giving the user
+    // a 'network reset' error every time.  Hence, we mark the connection
+    // as restartable.
+    mAuthChannel->ConnectionRestartable(mConnectionBased && !authAtProgress);
 
     if (identityInvalid) {
         if (entry) {
@@ -895,8 +912,8 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
             // BlockPrompt will set mCrossOrigin parameter as well.
             if (BlockPrompt()) {
                 LOG(("nsHttpChannelAuthProvider::GetCredentialsForChallenge: "
-                     "Prompt is blocked [this=%p pref=%d]\n",
-                      this, sAuthAllowPref));
+                     "Prompt is blocked [this=%p pref=%d img-pref=%d]\n",
+                      this, sAuthAllowPref, sImgCrossOriginAuthAllowPref));
                 return NS_ERROR_ABORT;
             }
 
@@ -997,17 +1014,19 @@ nsHttpChannelAuthProvider::BlockPrompt()
 
     if (gHttpHandler->IsTelemetryEnabled()) {
         if (topDoc) {
-            Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS,
+            Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS_2,
                                   HTTP_AUTH_DIALOG_TOP_LEVEL_DOC);
-        } else if (xhr) {
-            Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS,
-                                  HTTP_AUTH_DIALOG_XHR);
         } else if (!mCrossOrigin) {
-            Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS,
-                                  HTTP_AUTH_DIALOG_SAME_ORIGIN_SUBRESOURCE);
+            if (xhr) {
+                Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS_2,
+                                      HTTP_AUTH_DIALOG_SAME_ORIGIN_XHR);
+            } else {
+                Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS_2,
+                                      HTTP_AUTH_DIALOG_SAME_ORIGIN_SUBRESOURCE);
+            }
         } else {
-            Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS,
-                                  HTTP_AUTH_DIALOG_CROSS_ORIGIN_SUBRESOURCE);
+            Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS_2,
+                                  loadInfo->GetExternalContentPolicyType());
         }
     }
 
@@ -1021,7 +1040,16 @@ nsHttpChannelAuthProvider::BlockPrompt()
         // the sub-resources only if they are not cross-origin.
         return !topDoc && !xhr && mCrossOrigin;
     case SUBRESOURCE_AUTH_DIALOG_ALLOW_ALL:
-        // Allow the http-authentication dialog.
+        // Allow the http-authentication dialog for subresources.
+        // If pref network.auth.subresource-img-cross-origin-http-auth-allow
+        // is set, http-authentication dialog for image subresources is
+        // blocked.
+        if (!sImgCrossOriginAuthAllowPref &&
+            loadInfo &&
+            ((loadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_IMAGE) ||
+             (loadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_IMAGESET))) {
+            return true;
+        }
         return false;
     default:
         // This is an invalid value.
@@ -1529,6 +1557,33 @@ nsHttpChannelAuthProvider::ConfirmAuth(const nsString &bundleKey,
         return true;
 
     NS_ConvertUTF8toUTF16 ucsHost(host), ucsUser(user);
+
+    size_t userLength = ucsUser.Length();
+    if (userLength > MAX_DISPLAYED_USER_LENGTH) {
+      size_t desiredLength = MAX_DISPLAYED_USER_LENGTH;
+      // Don't cut off right before a low surrogate. Just include it.
+      if (NS_IS_LOW_SURROGATE(ucsUser[desiredLength])) {
+        desiredLength++;
+      }
+      ucsUser.Replace(desiredLength, userLength - desiredLength,
+                      nsContentUtils::GetLocalizedEllipsis());
+    }
+
+    size_t hostLen = ucsHost.Length();
+    if (hostLen > MAX_DISPLAYED_HOST_LENGTH) {
+      size_t cutPoint = hostLen - MAX_DISPLAYED_HOST_LENGTH;
+      // Likewise, don't cut off right before a low surrogate here.
+      // Keep the low surrogate
+      if (NS_IS_LOW_SURROGATE(ucsHost[cutPoint])) {
+        cutPoint--;
+      }
+      // It's possible cutPoint was 1 and is now 0. Only insert the ellipsis
+      // if we're actually removing anything.
+      if (cutPoint > 0) {
+        ucsHost.Replace(0, cutPoint, nsContentUtils::GetLocalizedEllipsis());
+      }
+    }
+
     const char16_t *strs[2] = { ucsHost.get(), ucsUser.get() };
 
     nsXPIDLString msg;

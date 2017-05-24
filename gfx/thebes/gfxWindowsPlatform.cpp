@@ -71,6 +71,7 @@
 #include "DriverCrashGuard.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
+#include "mozilla/layers/DeviceAttachmentsD3D11.h"
 #include "D3D11Checks.h"
 
 using namespace mozilla;
@@ -592,11 +593,13 @@ gfxWindowsPlatform::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
 
         if (aTarget->GetBackendType() == BackendType::CAIRO) {
           return Factory::CreateScaledFontWithCairo(nativeFont,
+                                                    font->GetUnscaledFont(),
                                                     font->GetAdjustedSize(),
                                                     font->GetCairoScaledFont());
         }
 
         return Factory::CreateScaledFontForNativeFont(nativeFont,
+                                                      font->GetUnscaledFont(),
                                                       font->GetAdjustedSize());
     }
 
@@ -611,11 +614,14 @@ gfxWindowsPlatform::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
 
     if (aTarget->GetBackendType() == BackendType::CAIRO) {
       return Factory::CreateScaledFontWithCairo(nativeFont,
+                                                aFont->GetUnscaledFont(),
                                                 aFont->GetAdjustedSize(),
                                                 aFont->GetCairoScaledFont());
     }
 
-    return Factory::CreateScaledFontForNativeFont(nativeFont, aFont->GetAdjustedSize());
+    return Factory::CreateScaledFontForNativeFont(nativeFont,
+                                                  aFont->GetUnscaledFont(),
+                                                  aFont->GetAdjustedSize());
 }
 
 static const char kFontAparajita[] = "Aparajita";
@@ -1570,7 +1576,11 @@ gfxWindowsPlatform::InitGPUProcessSupport()
   }
 
   if (!gfxConfig::IsEnabled(Feature::D3D11_COMPOSITING)) {
-    // Don't use the GPU process if not using D3D11.
+    // Don't use the GPU process if not using D3D11, unless software
+    // compositor is allowed
+    if (gfxPrefs::GPUProcessAllowSoftware()) {
+      return gpuProc.IsEnabled();
+    }
     gpuProc.Disable(
       FeatureStatus::Unavailable,
       "Not using GPU Process since D3D11 is unavailable",

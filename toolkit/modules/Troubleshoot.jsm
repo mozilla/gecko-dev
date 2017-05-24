@@ -29,18 +29,10 @@ const PREFS_WHITELIST = [
   "browser.display.",
   "browser.download.folderList",
   "browser.download.hide_plugins_without_extensions",
-  "browser.download.importedFromSqlite",
   "browser.download.lastDir.savePerSite",
   "browser.download.manager.addToRecentDocs",
   "browser.download.manager.alertOnEXEOpen",
-  "browser.download.manager.closeWhenDone",
-  "browser.download.manager.displayedHistoryDays",
-  "browser.download.manager.quitBehavior",
   "browser.download.manager.resumeOnWakeDelay",
-  "browser.download.manager.retention",
-  "browser.download.manager.scanWhenDone",
-  "browser.download.manager.showAlertOnComplete",
-  "browser.download.manager.showWhenStarting",
   "browser.download.preferred.",
   "browser.download.useDownloadDir",
   "browser.fixup.",
@@ -151,8 +143,7 @@ this.Troubleshoot = {
       snapshot[providerName] = providerData;
       if (--numPending == 0)
         // Ensure that done is always and truly called asynchronously.
-        Services.tm.mainThread.dispatch(done.bind(null, snapshot),
-                                        Ci.nsIThread.DISPATCH_NORMAL);
+        Services.tm.dispatchToMainThread(done.bind(null, snapshot));
     }
     for (let name in dataProviders) {
       try {
@@ -495,7 +486,7 @@ var dataProviders = {
 
         // //
 
-        let ext = gl.getExtension("MOZ_debug_get");
+        let ext = gl.getExtension("MOZ_debug");
         // This extension is unconditionally available to chrome. No need to check.
         let vendor = ext.getParameter(gl.VENDOR);
         let renderer = ext.getParameter(gl.RENDERER);

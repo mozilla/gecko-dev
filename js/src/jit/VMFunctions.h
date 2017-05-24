@@ -282,6 +282,7 @@ template <> struct TypeToDataType<NamedLambdaObject*> { static const DataType re
 template <> struct TypeToDataType<LexicalEnvironmentObject*> { static const DataType result = Type_Object; };
 template <> struct TypeToDataType<ArrayObject*> { static const DataType result = Type_Object; };
 template <> struct TypeToDataType<TypedArrayObject*> { static const DataType result = Type_Object; };
+template <> struct TypeToDataType<ArrayIteratorObject*> { static const DataType result = Type_Object; };
 template <> struct TypeToDataType<JSString*> { static const DataType result = Type_Object; };
 template <> struct TypeToDataType<JSFlatString*> { static const DataType result = Type_Object; };
 template <> struct TypeToDataType<HandleObject> { static const DataType result = Type_Handle; };
@@ -595,8 +596,12 @@ class AutoDetectInvalidation
         disabled_ = true;
     }
 
+    bool shouldSetReturnOverride() const {
+        return !disabled_ && ionScript_->invalidated();
+    }
+
     ~AutoDetectInvalidation() {
-        if (!disabled_ && ionScript_->invalidated())
+        if (MOZ_UNLIKELY(shouldSetReturnOverride()))
             setReturnOverride();
     }
 };
@@ -851,12 +856,18 @@ template <bool HandleMissing>
 bool
 GetNativeDataPropertyByValue(JSContext* cx, JSObject* obj, Value* vp);
 
+bool
+HasOwnNativeDataProperty(JSContext* cx, JSObject* obj, Value* vp);
+
 template <bool NeedsTypeBarrier>
 bool
 SetNativeDataProperty(JSContext* cx, JSObject* obj, PropertyName* name, Value* val);
 
 bool
 ObjectHasGetterSetter(JSContext* cx, JSObject* obj, Shape* propShape);
+
+JSString*
+TypeOfObject(JSObject* obj, JSRuntime* rt);
 
 } // namespace jit
 } // namespace js

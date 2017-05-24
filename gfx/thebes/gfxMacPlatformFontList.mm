@@ -75,7 +75,7 @@
 #include <dlfcn.h>
 
 using namespace mozilla;
-
+using namespace mozilla::gfx;
 using mozilla::dom::FontFamilyListEntry;
 
 // indexes into the NSArray objects that the Cocoa font manager returns
@@ -216,6 +216,15 @@ MacOSFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
                 charmap->ClearRange(sr->rangeStart, sr->rangeEnd);
             }
         }
+
+        // Bug 1360309: several of Apple's Chinese fonts have spurious blank
+        // glyphs for obscure Tibetan codepoints. Blacklist these so that font
+        // fallback will not use them.
+        if (mRequiresAAT && (FamilyName().EqualsLiteral("Songti SC") ||
+                             FamilyName().EqualsLiteral("Songti TC") ||
+                             FamilyName().EqualsLiteral("STSong"))) {
+            charmap->ClearRange(0x0f8c, 0x0f8f);
+        }
     }
 
     mHasCmapTable = NS_SUCCEEDED(rv);
@@ -244,7 +253,29 @@ MacOSFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
 gfxFont*
 MacOSFontEntry::CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold)
 {
-    return new gfxMacFont(this, aFontStyle, aNeedsBold);
+    RefPtr<UnscaledFontMac> unscaledFont =
+        static_cast<UnscaledFontMac*>(mUnscaledFont.get());
+    if (!unscaledFont) {
+        CGFontRef baseFont = GetFontRef();
+        if (!baseFont) {
+            return nullptr;
+        }
+        unscaledFont = new UnscaledFontMac(baseFont);
+        mUnscaledFont = unscaledFont;
+    }
+
+    return new gfxMacFont(unscaledFont, this, aFontStyle, aNeedsBold);
+}
+
+bool
+MacOSFontEntry::HasVariations()
+{
+    if (!mHasVariationsInitialized) {
+        mHasVariationsInitialized = true;
+        mHasVariations = HasFontTable(TRUETYPE_TAG('f','v','a','r'));
+    }
+
+    return mHasVariations;
 }
 
 bool
@@ -268,7 +299,9 @@ MacOSFontEntry::MacOSFontEntry(const nsAString& aPostscriptName,
       mFontRefInitialized(false),
       mRequiresAAT(false),
       mIsCFF(false),
-      mIsCFFInitialized(false)
+      mIsCFFInitialized(false),
+      mHasVariations(false),
+      mHasVariationsInitialized(false)
 {
     mWeight = aWeight;
 }
@@ -285,7 +318,9 @@ MacOSFontEntry::MacOSFontEntry(const nsAString& aPostscriptName,
       mFontRefInitialized(false),
       mRequiresAAT(false),
       mIsCFF(false),
-      mIsCFFInitialized(false)
+      mIsCFFInitialized(false),
+      mHasVariations(false),
+      mHasVariationsInitialized(false)
 {
     mFontRef = aFontRef;
     mFontRefInitialized = true;

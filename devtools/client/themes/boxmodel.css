@@ -7,11 +7,10 @@
  */
 
 .boxmodel-container {
-  /* The view will grow bigger as the window gets resized, until 400px */
-  max-width: 400px;
-  margin: 0px auto;
-  padding: 0;
   overflow: auto;
+  padding-bottom: 4px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 /* Header */
@@ -33,9 +32,11 @@
   position: relative;
   color: var(--theme-selection-color);
   /* Make sure there is some space between the window's edges and the regions */
-  margin: 14px 14px 4px 14px;
+  margin: 14px auto;
   width: calc(100% - 2 * 14px);
   min-width: 240px;
+  /* The view will grow bigger as the window gets resized, until 400px */
+  max-width: 400px;
 }
 
 .boxmodel-box {
@@ -114,7 +115,8 @@
 
 .boxmodel-main > p > span,
 .boxmodel-main > p > input,
-.boxmodel-content {
+.boxmodel-content,
+.boxmodel-size > span {
   vertical-align: middle;
   pointer-events: auto;
 }
@@ -242,7 +244,7 @@
 .boxmodel-position.boxmodel-top,
 .boxmodel-position.boxmodel-bottom {
   border-left: 1px solid var(--theme-highlight-purple);
-  left: calc(50% - 1px);
+  left: calc(50% - 2px);
   padding-left: 1px;
 }
 
@@ -316,10 +318,59 @@
 /* Box Model Properties: contains a list of relevant box model properties */
 
 .boxmodel-properties-header {
-  display: flex;
-  padding: 2px 0;
+  padding: 2px 3px;
+}
+
+.boxmodel-properties-expander {
+  vertical-align: middle;
+  display: inline-block;
 }
 
 .boxmodel-properties-wrapper {
-  padding: 0 9px;
+  column-width: 250px;
+  column-gap: 20px;
+  column-rule: 1px solid var(--theme-splitter-color);
+}
+
+.boxmodel-properties-wrapper .property-view {
+  padding-inline-start: 17px;
+}
+
+.boxmodel-properties-wrapper .property-name-container {
+  flex: 1;
+}
+
+.boxmodel-properties-wrapper .property-value-container {
+  flex: 1;
+  display: block;
+}
+
+.boxmodel-container .reference-element {
+  margin-inline-start: 14px;
+  margin-block-start: 4px;
+  display: block;
+}
+
+/* Tag displayed next to DOM Node previews (used to display reference elements) */
+
+.boxmodel-container .reference-element-type {
+  background: var(--theme-highlight-purple);
+  color: white;
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-size: 9px;
+  margin-inline-end: 5px;
+}
+
+.theme-dark .boxmodel-container .reference-element-type {
+  color: black;
+}
+
+/* Box Model Main - Offset Parent */
+
+.boxmodel-offset-parent {
+  position: absolute;
+  top: -20px;
+  right: -10px;
+  color: var(--theme-highlight-purple);
 }

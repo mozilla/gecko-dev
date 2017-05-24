@@ -67,6 +67,8 @@ class SandboxBrokerPolicyFactory;
 
 class PreallocatedProcessManagerImpl;
 
+using mozilla::loader::PScriptCacheParent;
+
 namespace embedding {
 class PrintingParent;
 }
@@ -188,7 +190,9 @@ public:
   static TabParent*
   CreateBrowser(const TabContext& aContext,
                 Element* aFrameElement,
-                ContentParent* aOpenerContentParent);
+                ContentParent* aOpenerContentParent,
+                TabParent* aSameTabGroupAs,
+                uint64_t aNextTabParentId);
 
   static void GetAll(nsTArray<ContentParent*>& aArray);
 
@@ -277,9 +281,9 @@ public:
   virtual mozilla::ipc::IPCResult RecvCreateChildProcess(const IPCTabContext& aContext,
                                                          const hal::ProcessPriority& aPriority,
                                                          const TabId& aOpenerTabId,
+                                                         const TabId& aTabId,
                                                          ContentParentId* aCpId,
-                                                         bool* aIsForBrowser,
-                                                         TabId* aTabId) override;
+                                                         bool* aIsForBrowser) override;
 
   virtual mozilla::ipc::IPCResult RecvBridgeToChildProcess(const ContentParentId& aCpId,
                                                            Endpoint<PContentBridgeParent>* aEndpoint) override;
@@ -348,15 +352,10 @@ public:
 
   jsipc::CPOWManager* GetCPOWManager() override;
 
-  static TabId
-  AllocateTabId(const TabId& aOpenerTabId,
-                const IPCTabContext& aContext,
-                const ContentParentId& aCpId);
-
   static void
-  DeallocateTabId(const TabId& aTabId,
-                  const ContentParentId& aCpId,
-                  bool aMarkedDestroying);
+  UnregisterRemoteFrame(const TabId& aTabId,
+                        const ContentParentId& aCpId,
+                        bool aMarkedDestroying);
 
   void ReportChildAlreadyBlocked();
 
@@ -446,14 +445,6 @@ public:
   virtual bool
   DeallocPParentToChildStreamParent(PParentToChildStreamParent* aActor) override;
 
-  virtual PScreenManagerParent*
-  AllocPScreenManagerParent(uint32_t* aNumberOfScreens,
-                            float* aSystemDefaultScale,
-                            bool* aSuccess) override;
-
-  virtual bool
-  DeallocPScreenManagerParent(PScreenManagerParent* aActor) override;
-
   virtual PHalParent* AllocPHalParent() override;
 
   virtual mozilla::ipc::IPCResult RecvPHalConstructor(PHalParent* aActor) override
@@ -495,14 +486,9 @@ public:
   SendPBlobConstructor(PBlobParent* aActor,
                        const BlobConstructorParams& aParams) override;
 
-  virtual mozilla::ipc::IPCResult RecvAllocateTabId(const TabId& aOpenerTabId,
-                                                    const IPCTabContext& aContext,
-                                                    const ContentParentId& aCpId,
-                                                    TabId* aTabId) override;
-
-  virtual mozilla::ipc::IPCResult RecvDeallocateTabId(const TabId& aTabId,
-                                                      const ContentParentId& aCpId,
-                                                      const bool& aMarkedDestroying) override;
+  virtual mozilla::ipc::IPCResult RecvUnregisterRemoteFrame(const TabId& aTabId,
+                                                            const ContentParentId& aCpId,
+                                                            const bool& aMarkedDestroying) override;
 
   virtual mozilla::ipc::IPCResult RecvNotifyTabDestroying(const TabId& aTabId,
                                                           const ContentParentId& aCpId) override;
@@ -562,7 +548,8 @@ public:
                    InfallibleTArray<FrameScriptInfo>* aFrameScripts,
                    nsCString* aURLToLoad,
                    layers::TextureFactoryIdentifier* aTextureFactoryIdentifier,
-                   uint64_t* aLayersId) override;
+                   uint64_t* aLayersId,
+                   mozilla::layers::CompositorOptions* aCompositorOptions) override;
 
   virtual mozilla::ipc::IPCResult RecvCreateWindowInDifferentProcess(
     PBrowserParent* aThisTab,
@@ -590,7 +577,7 @@ public:
 
   virtual mozilla::ipc::IPCResult
   RecvStoreAndBroadcastBlobURLRegistration(const nsCString& aURI,
-                                           PBlobParent* aBlobParent,
+                                           const IPCBlob& aBlob,
                                            const Principal& aPrincipal) override;
 
   virtual mozilla::ipc::IPCResult
@@ -607,8 +594,13 @@ public:
   virtual mozilla::ipc::IPCResult
   RecvGetA11yContentId(uint32_t* aContentId) override;
 
+  virtual mozilla::ipc::IPCResult
+  RecvA11yHandlerControl(const uint32_t& aPid,
+                         const IHandlerControlHolder& aHandlerControl) override;
+
   virtual int32_t Pid() const override;
 
+  // PURLClassifierParent.
   virtual PURLClassifierParent*
   AllocPURLClassifierParent(const Principal& aPrincipal,
                             const bool& aUseTrackingProtection,
@@ -618,6 +610,15 @@ public:
                                 const Principal& aPrincipal,
                                 const bool& aUseTrackingProtection,
                                 bool* aSuccess) override;
+
+  // PURLClassifierLocalParent.
+  virtual PURLClassifierLocalParent*
+  AllocPURLClassifierLocalParent(const URIParams& aURI,
+                                 const nsCString& aTables) override;
+  virtual mozilla::ipc::IPCResult
+  RecvPURLClassifierLocalConstructor(PURLClassifierLocalParent* aActor,
+                                     const URIParams& aURI,
+                                     const nsCString& aTables) override;
 
   virtual bool SendActivate(PBrowserParent* aTab) override
   {
@@ -636,6 +637,9 @@ public:
   }
 
   virtual bool
+  DeallocPURLClassifierLocalParent(PURLClassifierLocalParent* aActor) override;
+
+  virtual bool
   DeallocPURLClassifierParent(PURLClassifierParent* aActor) override;
 
   virtual mozilla::ipc::IPCResult
@@ -644,12 +648,21 @@ public:
                     nsresult* aRv,
                     nsTArray<nsCString>* aResults) override;
 
+  virtual mozilla::ipc::IPCResult
+  RecvAllocPipelineId(RefPtr<AllocPipelineIdPromise>&& aPromise) override;
+
   // Use the PHangMonitor channel to ask the child to repaint a tab.
   void ForceTabPaint(TabParent* aTabParent, uint64_t aLayerObserverEpoch);
 
-  nsresult TransmitPermissionsFor(nsIChannel* aChannel);
+  // This function is called when we are about to load a document from an
+  // HTTP(S), FTP or wyciwyg channel for a content process.  It is a useful
+  // place to start to kick off work as early as possible in response to such
+  // document loads.
+  nsresult AboutToLoadHttpFtpWyciwygDocumentForChild(nsIChannel* aChannel);
 
   nsresult TransmitPermissionsForPrincipal(nsIPrincipal* aPrincipal);
+
+  void OnCompositorDeviceReset() override;
 
 protected:
   void OnChannelConnected(int32_t pid) override;
@@ -682,13 +695,14 @@ private:
   static ContentBridgeParent* CreateContentBridgeParent(const TabContext& aContext,
                                                         const hal::ProcessPriority& aPriority,
                                                         const TabId& aOpenerTabId,
-                                                        /*out*/ TabId* aTabId);
+                                                        const TabId& aTabId);
 
   // Hide the raw constructor methods since we don't want client code
   // using them.
   virtual PBrowserParent* SendPBrowserConstructor(
       PBrowserParent* actor,
       const TabId& aTabId,
+      const TabId& aSameTabGroupsAs,
       const IPCTabContext& context,
       const uint32_t& chromeFlags,
       const ContentParentId& aCpId,
@@ -707,6 +721,7 @@ private:
                      const nsCString& aBaseURI,
                      const OriginAttributes& aOpenerOriginAttributes,
                      const float& aFullZoom,
+                     uint64_t aNextTabParentId,
                      nsresult& aResult,
                      nsCOMPtr<nsITabParent>& aNewTabParent,
                      bool* aWindowIsNew);
@@ -821,6 +836,7 @@ private:
   DeallocPRemoteSpellcheckEngineParent(PRemoteSpellcheckEngineParent*) override;
 
   virtual PBrowserParent* AllocPBrowserParent(const TabId& aTabId,
+                                              const TabId& aSameTabGroupAs,
                                               const IPCTabContext& aContext,
                                               const uint32_t& aChromeFlags,
                                               const ContentParentId& aCpId,
@@ -832,6 +848,23 @@ private:
   AllocPBlobParent(const BlobConstructorParams& aParams) override;
 
   virtual bool DeallocPBlobParent(PBlobParent* aActor) override;
+
+  virtual PMemoryStreamParent*
+  AllocPMemoryStreamParent(const uint64_t& aSize) override;
+
+  virtual bool DeallocPMemoryStreamParent(PMemoryStreamParent* aActor) override;
+
+  virtual PIPCBlobInputStreamParent*
+  SendPIPCBlobInputStreamConstructor(PIPCBlobInputStreamParent* aActor,
+                                     const nsID& aID,
+                                     const uint64_t& aSize) override;
+
+  virtual PIPCBlobInputStreamParent*
+  AllocPIPCBlobInputStreamParent(const nsID& aID,
+                                 const uint64_t& aSize) override;
+
+  virtual bool
+  DeallocPIPCBlobInputStreamParent(PIPCBlobInputStreamParent* aActor) override;
 
   virtual mozilla::ipc::IPCResult
   RecvPBlobConstructor(PBlobParent* aActor,
@@ -879,6 +912,12 @@ private:
   virtual PTestShellParent* AllocPTestShellParent() override;
 
   virtual bool DeallocPTestShellParent(PTestShellParent* shell) override;
+
+  virtual PScriptCacheParent*
+  AllocPScriptCacheParent(const FileDescOrError& cacheFile,
+                          const bool& wantCacheData) override;
+
+  virtual bool DeallocPScriptCacheParent(PScriptCacheParent* shell) override;
 
   virtual bool DeallocPNeckoParent(PNeckoParent* necko) override;
 
@@ -1029,13 +1068,6 @@ private:
 
   virtual mozilla::ipc::IPCResult RecvFirstIdle() override;
 
-  virtual mozilla::ipc::IPCResult RecvAudioChannelChangeDefVolChannel(const int32_t& aChannel,
-                                                                      const bool& aHidden) override;
-
-  virtual mozilla::ipc::IPCResult RecvAudioChannelServiceStatus(const bool& aTelephonyChannel,
-                                                                const bool& aContentOrNormalChannel,
-                                                                const bool& aAnyChannel) override;
-
   virtual mozilla::ipc::IPCResult RecvKeywordToURI(const nsCString& aKeyword,
                                                    nsString* aProviderName,
                                                    OptionalIPCStream* aPostData,
@@ -1099,7 +1131,8 @@ private:
   virtual mozilla::ipc::IPCResult RecvUpdateDropEffect(const uint32_t& aDragAction,
                                                        const uint32_t& aDropEffect) override;
 
-  virtual mozilla::ipc::IPCResult RecvProfile(const nsCString& aProfile) override;
+  virtual mozilla::ipc::IPCResult RecvProfile(const nsCString& aProfile,
+                                              const bool& aIsExitProfile) override;
 
   virtual mozilla::ipc::IPCResult RecvGetGraphicsDeviceInitData(ContentDeviceData* aOut) override;
 
@@ -1243,6 +1276,9 @@ private:
 #ifdef MOZ_CRASHREPORTER
   UniquePtr<mozilla::ipc::CrashReporterHost> mCrashReporter;
 #endif
+
+  static uint64_t sNextTabParentId;
+  static nsDataHashtable<nsUint64HashKey, TabParent*> sNextTabParents;
 };
 
 } // namespace dom

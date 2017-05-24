@@ -9,6 +9,9 @@ use parser::ParserContext;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fmt::{self, Write};
+// Note: We use std::sync::Arc rather than stylearc::Arc here because the
+// nonzero optimization is important in keeping the size of SpecifiedUrl below
+// the threshold.
 use std::sync::Arc;
 use style_traits::ToCss;
 
@@ -42,7 +45,7 @@ impl SpecifiedUrl {
                                  context: &ParserContext)
                                  -> Result<Self, ()> {
         let serialization = Arc::new(url.into_owned());
-        let resolved = context.base_url.join(&serialization).ok();
+        let resolved = context.url_data.join(&serialization).ok();
         Ok(SpecifiedUrl {
             original: Some(serialization),
             resolved: resolved,

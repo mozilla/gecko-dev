@@ -19,6 +19,8 @@ ConsoleCommand.propTypes = {
   message: PropTypes.object.isRequired,
   autoscroll: PropTypes.bool.isRequired,
   indent: PropTypes.number.isRequired,
+  timestampsVisible: PropTypes.bool.isRequired,
+  serviceContainer: PropTypes.object,
 };
 
 ConsoleCommand.defaultProps = {
@@ -29,7 +31,14 @@ ConsoleCommand.defaultProps = {
  * Displays input from the console.
  */
 function ConsoleCommand(props) {
-  const { autoscroll, indent, message } = props;
+  const {
+    autoscroll,
+    indent,
+    message,
+    timestampsVisible,
+    serviceContainer,
+  } = props;
+
   const {
     source,
     type,
@@ -37,11 +46,7 @@ function ConsoleCommand(props) {
     messageText: messageBody,
   } = message;
 
-  const {
-    serviceContainer,
-  } = props;
-
-  const childProps = {
+  return Message({
     source,
     type,
     level,
@@ -49,9 +54,9 @@ function ConsoleCommand(props) {
     messageBody,
     scrollToMessage: autoscroll,
     serviceContainer,
-    indent: indent,
-  };
-  return Message(childProps);
+    indent,
+    timestampsVisible,
+  });
 }
 
 module.exports = ConsoleCommand;

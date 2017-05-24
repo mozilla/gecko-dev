@@ -141,13 +141,16 @@ GPUParent::NotifyDeviceReset()
 
   // Notify the main process that there's been a device reset
   // and that they should reset their compositors and repaint
-  Unused << SendNotifyDeviceReset();
+  GPUDeviceData data;
+  RecvGetDeviceStatus(&data);
+  Unused << SendNotifyDeviceReset(data);
 }
 
 mozilla::ipc::IPCResult
 GPUParent::RecvInit(nsTArray<GfxPrefSetting>&& prefs,
                     nsTArray<GfxVarUpdate>&& vars,
-                    const DevicePrefs& devicePrefs)
+                    const DevicePrefs& devicePrefs,
+                    nsTArray<LayerTreeIdMapping>&& aMappings)
 {
   const nsTArray<gfxPrefs::Pref*>& globalPrefs = gfxPrefs::all();
   for (auto& setting : prefs) {
@@ -163,6 +166,10 @@ GPUParent::RecvInit(nsTArray<GfxPrefSetting>&& prefs,
   gfxConfig::Inherit(Feature::D3D11_COMPOSITING, devicePrefs.d3d11Compositing());
   gfxConfig::Inherit(Feature::OPENGL_COMPOSITING, devicePrefs.oglCompositing());
   gfxConfig::Inherit(Feature::DIRECT2D, devicePrefs.useD2D1());
+
+  for (const LayerTreeIdMapping& map : aMappings) {
+    LayerTreeOwnerTracker::Get()->Map(map.layersId(), map.ownerId());
+  }
 
 #if defined(XP_WIN)
   if (gfxConfig::IsEnabled(Feature::D3D11_COMPOSITING)) {
@@ -227,9 +234,9 @@ GPUParent::RecvInitVRManager(Endpoint<PVRManagerParent>&& aEndpoint)
 }
 
 mozilla::ipc::IPCResult
-GPUParent::RecvInitUiCompositorController(Endpoint<PUiCompositorControllerParent>&& aEndpoint)
+GPUParent::RecvInitUiCompositorController(const uint64_t& aRootLayerTreeId, Endpoint<PUiCompositorControllerParent>&& aEndpoint)
 {
-  UiCompositorControllerParent::Start(Move(aEndpoint));
+  UiCompositorControllerParent::Start(aRootLayerTreeId, Move(aEndpoint));
   return IPC_OK();
 }
 
@@ -350,11 +357,9 @@ GPUParent::RecvNewContentVideoDecoderManager(Endpoint<PVideoDecoderManagerParent
 }
 
 mozilla::ipc::IPCResult
-GPUParent::RecvAddLayerTreeIdMapping(nsTArray<LayerTreeIdMapping>&& aMappings)
+GPUParent::RecvAddLayerTreeIdMapping(const LayerTreeIdMapping& aMapping)
 {
-  for (const LayerTreeIdMapping& map : aMappings) {
-    LayerTreeOwnerTracker::Get()->Map(map.layersId(), map.ownerId());
-  }
+  LayerTreeOwnerTracker::Get()->Map(aMapping.layersId(), aMapping.ownerId());
   return IPC_OK();
 }
 
@@ -380,19 +385,12 @@ GPUParent::RecvNotifyGpuObservers(const nsCString& aTopic)
 mozilla::ipc::IPCResult
 GPUParent::RecvStartProfiler(const ProfilerInitParams& params)
 {
-  nsTArray<const char*> featureArray;
-  for (size_t i = 0; i < params.features().Length(); ++i) {
-    featureArray.AppendElement(params.features()[i].get());
+  nsTArray<const char*> filterArray;
+  for (size_t i = 0; i < params.filters().Length(); ++i) {
+    filterArray.AppendElement(params.filters()[i].get());
   }
-
-  nsTArray<const char*> threadNameFilterArray;
-  for (size_t i = 0; i < params.threadFilters().Length(); ++i) {
-    threadNameFilterArray.AppendElement(params.threadFilters()[i].get());
-  }
-  profiler_start(params.entries(), params.interval(),
-                 featureArray.Elements(), featureArray.Length(),
-                 threadNameFilterArray.Elements(),
-                 threadNameFilterArray.Length());
+  profiler_start(params.entries(), params.interval(), params.features(),
+                 filterArray.Elements(), filterArray.Length());
 
  return IPC_OK();
 }
@@ -425,7 +423,7 @@ GPUParent::RecvGatherProfile()
     profileCString = nsDependentCString(profile.get());
   }
 
-  Unused << SendProfile(profileCString);
+  Unused << SendProfile(profileCString, false /* aIsExitProfile */);
   return IPC_OK();
 }
 

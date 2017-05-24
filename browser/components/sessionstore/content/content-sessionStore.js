@@ -15,6 +15,9 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Timer.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
+  "resource://gre/modules/TelemetryStopwatch.jsm");
+
 function debug(msg) {
   Services.console.logStringMessage("SessionStoreContent: " + msg);
 }
@@ -46,7 +49,7 @@ XPCOMUtils.defineLazyGetter(this, "gContentRestore",
 var gCurrentEpoch = 0;
 
 // A bound to the size of data to store for DOM Storage.
-const DOM_STORAGE_MAX_CHARS = 10000000; // 10M characters
+const DOM_STORAGE_LIMIT_PREF = "browser.sessionstore.dom_storage_limit";
 
 // This pref controls whether or not we send updates to the parent on a timeout
 // or not, and should only be used for tests or debugging.
@@ -144,6 +147,11 @@ var MessageListener = {
         this.restoreHistory(data);
         break;
       case "SessionStore:restoreTabContent":
+        if (data.isRemotenessUpdate) {
+          let histogram = Services.telemetry.getKeyedHistogramById("FX_TAB_REMOTE_NAVIGATION_DELAY_MS");
+          histogram.add("SessionStore:restoreTabContent",
+                        Services.telemetry.msSystemNow() - data.requestTime);
+        }
         this.restoreTabContent(data);
         break;
       case "SessionStore:resetRestore":
@@ -179,7 +187,7 @@ var MessageListener = {
 
       onLoadStarted() {
         // Notify the parent that the tab is no longer pending.
-        sendSyncMessage("SessionStore:restoreTabContentStarted", {epoch});
+        sendAsyncMessage("SessionStore:restoreTabContentStarted", {epoch});
       },
 
       onLoadFinished() {
@@ -189,13 +197,21 @@ var MessageListener = {
       }
     });
 
-    // When restoreHistory finishes, we send a synchronous message to
-    // SessionStore.jsm so that it can run SSTabRestoring. Users of
-    // SSTabRestoring seem to get confused if chrome and content are out of
-    // sync about the state of the restore (particularly regarding
-    // docShell.currentURI). Using a synchronous message is the easiest way
-    // to temporarily synchronize them.
-    sendSyncMessage("SessionStore:restoreHistoryComplete", {epoch, isRemotenessUpdate});
+    if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_DEFAULT) {
+      // For non-remote tabs, when restoreHistory finishes, we send a synchronous
+      // message to SessionStore.jsm so that it can run SSTabRestoring. Users of
+      // SSTabRestoring seem to get confused if chrome and content are out of
+      // sync about the state of the restore (particularly regarding
+      // docShell.currentURI). Using a synchronous message is the easiest way
+      // to temporarily synchronize them.
+      //
+      // For remote tabs, because all nsIWebProgress notifications are sent
+      // asynchronously using messages, we get the same-order guarantees of the
+      // message manager, and can use an async message.
+      sendSyncMessage("SessionStore:restoreHistoryComplete", {epoch, isRemotenessUpdate});
+    } else {
+      sendAsyncMessage("SessionStore:restoreHistoryComplete", {epoch, isRemotenessUpdate});
+    }
   },
 
   restoreTabContent({loadArguments, isRemotenessUpdate, reason}) {
@@ -326,20 +342,24 @@ var SessionHistoryListener = {
   },
 
   OnHistoryNewEntry(newURI, oldIndex) {
+    // We ought to collect the previously current entry as well, see bug 1350567.
     this.collectFrom(oldIndex);
   },
 
   OnHistoryGoBack(backURI) {
+    // We ought to collect the previously current entry as well, see bug 1350567.
     this.collectFrom(kLastIndex);
     return true;
   },
 
   OnHistoryGoForward(forwardURI) {
+    // We ought to collect the previously current entry as well, see bug 1350567.
     this.collectFrom(kLastIndex);
     return true;
   },
 
   OnHistoryGotoIndex(index, gotoURI) {
+    // We ought to collect the previously current entry as well, see bug 1350567.
     this.collectFrom(kLastIndex);
     return true;
   },
@@ -461,8 +481,8 @@ var FormDataListener = {
  */
 var PageStyleListener = {
   init() {
-    Services.obs.addObserver(this, "author-style-disabled-changed", false);
-    Services.obs.addObserver(this, "style-sheet-applicable-state-changed", false);
+    Services.obs.addObserver(this, "author-style-disabled-changed");
+    Services.obs.addObserver(this, "style-sheet-applicable-state-changed");
     gFrameTree.addObserver(this);
   },
 
@@ -540,7 +560,7 @@ var DocShellCapabilitiesListener = {
 var SessionStorageListener = {
   init() {
     addEventListener("MozSessionStorageChanged", this, true);
-    Services.obs.addObserver(this, "browser:purge-domain-data", false);
+    Services.obs.addObserver(this, "browser:purge-domain-data");
     gFrameTree.addObserver(this);
   },
 
@@ -560,37 +580,6 @@ var SessionStorageListener = {
     setTimeout(() => this.collect(), 0);
   },
 
-  // Before DOM Storage can be written to disk, it needs to be serialized
-  // for sending across frames/processes, then again to be sent across
-  // threads, then again to be put in a buffer for the disk. Each of these
-  // serializations is an opportunity to OOM and (depending on the site of
-  // the OOM), either crash, lose all data for the frame or lose all data
-  // for the application.
-  //
-  // In order to avoid this, compute an estimate of the size of the
-  // object, and block SessionStorage items that are too large. As
-  // we also don't want to cause an OOM here, we use a quick and memory-
-  // efficient approximation: we compute the total sum of string lengths
-  // involved in this object.
-  estimateStorageSize(collected) {
-    if (!collected) {
-      return 0;
-    }
-
-    let size = 0;
-    for (let host of Object.keys(collected)) {
-      size += host.length;
-      let perHost = collected[host];
-      for (let key of Object.keys(perHost)) {
-        size += key.length;
-        let perKey = perHost[key];
-        size += perKey.length;
-      }
-    }
-
-    return size;
-  },
-
   // We don't want to send all the session storage data for all the frames
   // for every change. So if only a few value changed we send them over as
   // a "storagechange" event. If however for some reason before we send these
@@ -603,55 +592,56 @@ var SessionStorageListener = {
   },
 
   collectFromEvent(event) {
-    // TODO: we should take browser.sessionstore.dom_storage_limit into an account here.
-    if (docShell) {
-      let {url, key, newValue} = event;
-      let uri = Services.io.newURI(url);
-      let domain = uri.prePath;
-      if (!this._changes) {
-        this._changes = {};
-      }
-      if (!this._changes[domain]) {
-        this._changes[domain] = {};
-      }
-      this._changes[domain][key] = newValue;
-
-      MessageQueue.push("storagechange", () => {
-        let tmp = this._changes;
-        // If there were multiple changes we send them merged.
-        // First one will collect all the changes the rest of
-        // these messages will be ignored.
-        this.resetChanges();
-        return tmp;
-      });
+    if (!docShell) {
+      return;
     }
+
+    // How much data does DOMSessionStorage contain?
+    let usage = content.QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIDOMWindowUtils)
+                       .getStorageUsage(event.storageArea);
+    Services.telemetry.getHistogramById("FX_SESSION_RESTORE_DOM_STORAGE_SIZE_ESTIMATE_CHARS").add(usage);
+
+    // Don't store any data if we exceed the limit. Wipe any data we previously
+    // collected so that we don't confuse websites with partial state.
+    if (usage > Preferences.get(DOM_STORAGE_LIMIT_PREF)) {
+      MessageQueue.push("storage", () => null);
+      return;
+    }
+
+    let {url, key, newValue} = event;
+    let uri = Services.io.newURI(url);
+    let domain = uri.prePath;
+    if (!this._changes) {
+      this._changes = {};
+    }
+    if (!this._changes[domain]) {
+      this._changes[domain] = {};
+    }
+    this._changes[domain][key] = newValue;
+
+    MessageQueue.push("storagechange", () => {
+      let tmp = this._changes;
+      // If there were multiple changes we send them merged.
+      // First one will collect all the changes the rest of
+      // these messages will be ignored.
+      this.resetChanges();
+      return tmp;
+    });
   },
 
   collect() {
-    if (docShell) {
-      // We need the entire session storage, let's reset the pending individual change
-      // messages.
-      this.resetChanges();
-      MessageQueue.push("storage", () => {
-        let collected = SessionStorage.collect(docShell, gFrameTree);
-
-        if (collected == null) {
-          return collected;
-        }
-
-        let size = this.estimateStorageSize(collected);
-
-        MessageQueue.push("telemetry", () => ({ FX_SESSION_RESTORE_DOM_STORAGE_SIZE_ESTIMATE_CHARS: size }));
-        if (size > Preferences.get("browser.sessionstore.dom_storage_limit", DOM_STORAGE_MAX_CHARS)) {
-          // Rather than keeping the old storage, which wouldn't match the rest
-          // of the state of the page, empty the storage. DOM storage will be
-          // recollected the next time and stored if it is now small enough.
-          return {};
-        }
-
-        return collected;
-      });
+    if (!docShell) {
+      return;
     }
+
+    // We need the entire session storage, let's reset the pending individual change
+    // messages.
+    this.resetChanges();
+
+    MessageQueue.push("storage", () => {
+      return SessionStorage.collect(docShell, gFrameTree);
+    });
   },
 
   onFrameTreeCollected() {
@@ -754,7 +744,7 @@ var MessageQueue = {
     this.timeoutDisabled =
       Services.prefs.getBoolPref(TIMEOUT_DISABLED_PREF);
 
-    Services.prefs.addObserver(TIMEOUT_DISABLED_PREF, this, false);
+    Services.prefs.addObserver(TIMEOUT_DISABLED_PREF, this);
   },
 
   uninit() {
@@ -809,42 +799,39 @@ var MessageQueue = {
     }
 
     let flushID = (options && options.flushID) || 0;
-
-    let durationMs = Date.now();
+    let histID = "FX_SESSION_RESTORE_CONTENT_COLLECT_DATA_MS";
 
     let data = {};
-    let telemetry = {};
     for (let [key, func] of this._data) {
+      if (key != "isPrivate") {
+        TelemetryStopwatch.startKeyed(histID, key);
+      }
+
       let value = func();
-      if (key == "telemetry") {
-        for (let histogramId of Object.keys(value)) {
-          telemetry[histogramId] = value[histogramId];
-        }
-      } else if (value || (key != "storagechange" && key != "historychange")) {
+
+      if (key != "isPrivate") {
+        TelemetryStopwatch.finishKeyed(histID, key);
+      }
+
+      if (value || (key != "storagechange" && key != "historychange")) {
         data[key] = value;
       }
     }
 
     this._data.clear();
 
-    durationMs = Date.now() - durationMs;
-    telemetry.FX_SESSION_RESTORE_CONTENT_COLLECT_DATA_LONGEST_OP_MS = durationMs;
-
     try {
       // Send all data to the parent process.
       sendAsyncMessage("SessionStore:update", {
-        data, telemetry, flushID,
+        data, flushID,
         isFinal: options.isFinal || false,
         epoch: gCurrentEpoch
       });
     } catch (ex) {
-        if (ex && ex.result == Cr.NS_ERROR_OUT_OF_MEMORY) {
-          sendAsyncMessage("SessionStore:error", {
-            telemetry: {
-              FX_SESSION_RESTORE_SEND_UPDATE_CAUSED_OOM: 1
-            }
-          });
-        }
+      if (ex && ex.result == Cr.NS_ERROR_OUT_OF_MEMORY) {
+        Services.telemetry.getHistogramById("FX_SESSION_RESTORE_SEND_UPDATE_CAUSED_OOM").add(1);
+        sendAsyncMessage("SessionStore:error");
+      }
     }
   },
 };

@@ -16,11 +16,8 @@ const Cr = Components.results;
 const {nsIHttpActivityObserver, nsISocketTransport} = Ci;
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
-                                  "resource://gre/modules/BrowserUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ExtensionUtils",
                                   "resource://gre/modules/ExtensionUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "WebRequestCommon",
@@ -29,6 +26,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "WebRequestUpload",
                                   "resource://gre/modules/WebRequestUpload.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "ExtensionError", () => ExtensionUtils.ExtensionError);
+
+let WebRequestListener = Components.Constructor("@mozilla.org/webextensions/webRequestListener;1",
+                                                "nsIWebRequestListener", "init");
 
 function attachToChannel(channel, key, data) {
   if (channel instanceof Ci.nsIWritablePropertyBag2) {
@@ -67,7 +67,7 @@ var RequestId = {
 };
 
 function runLater(job) {
-  Services.tm.currentThread.dispatch(job, Ci.nsIEventTarget.DISPATCH_NORMAL);
+  Services.tm.dispatchToMainThread(job);
 }
 
 function parseFilter(filter) {
@@ -124,13 +124,13 @@ class HeaderChanger {
 
     this.originalHeaders = new Map();
     this.visitHeaders((name, value) => {
-      this.originalHeaders.set(name.toLowerCase(), value);
+      this.originalHeaders.set(name.toLowerCase(), {name, value});
     });
   }
 
   toArray() {
     return Array.from(this.originalHeaders,
-                      ([name, value]) => ({name, value}));
+                      ([key, {name, value}]) => ({name, value}));
   }
 
   validateHeaders(headers) {
@@ -176,7 +176,8 @@ class HeaderChanger {
       if (binaryValue) {
         value = String.fromCharCode(...binaryValue);
       }
-      if (value !== this.originalHeaders.get(name.toLowerCase())) {
+      let original = this.originalHeaders.get(name.toLowerCase());
+      if (!original || value !== original.value) {
         this.setHeader(name, value);
       }
     }
@@ -287,7 +288,7 @@ var ContentPolicyManager = {
 
   runChannelListener(kind, data) {
     let listeners = HttpObserverManager.listeners[kind];
-    let uri = BrowserUtils.makeURI(data.url);
+    let uri = Services.io.newURI(data.url);
     let policyType = data.type;
     for (let [callback, opts] of listeners.entries()) {
       if (!HttpObserverManager.shouldRunListener(policyType, uri, opts.filter)) {
@@ -325,10 +326,10 @@ var ContentPolicyManager = {
 };
 ContentPolicyManager.init();
 
-function StartStopListener(manager, loadContext) {
+function StartStopListener(manager, channel, loadContext) {
   this.manager = manager;
   this.loadContext = loadContext;
-  this.orig = null;
+  new WebRequestListener(this, channel);
 }
 
 StartStopListener.prototype = {
@@ -337,20 +338,10 @@ StartStopListener.prototype = {
 
   onStartRequest: function(request, context) {
     this.manager.onStartRequest(request, this.loadContext);
-    this.orig.onStartRequest(request, context);
   },
 
   onStopRequest(request, context, statusCode) {
-    try {
-      this.orig.onStopRequest(request, context, statusCode);
-    } catch (e) {
-      Cu.reportError(e);
-    }
     this.manager.onStopRequest(request, this.loadContext);
-  },
-
-  onDataAvailable(...args) {
-    return this.orig.onDataAvailable(...args);
   },
 };
 
@@ -557,7 +548,7 @@ HttpObserverManager = {
     let needModify = this.listeners.opening.size || this.listeners.modify.size || this.listeners.afterModify.size;
     if (needModify && !this.modifyInitialized) {
       this.modifyInitialized = true;
-      Services.obs.addObserver(this, "http-on-modify-request", false);
+      Services.obs.addObserver(this, "http-on-modify-request");
     } else if (!needModify && this.modifyInitialized) {
       this.modifyInitialized = false;
       Services.obs.removeObserver(this, "http-on-modify-request");
@@ -572,9 +563,9 @@ HttpObserverManager = {
 
     if (needExamine && !this.examineInitialized) {
       this.examineInitialized = true;
-      Services.obs.addObserver(this, "http-on-examine-response", false);
-      Services.obs.addObserver(this, "http-on-examine-cached-response", false);
-      Services.obs.addObserver(this, "http-on-examine-merged-response", false);
+      Services.obs.addObserver(this, "http-on-examine-response");
+      Services.obs.addObserver(this, "http-on-examine-cached-response");
+      Services.obs.addObserver(this, "http-on-examine-merged-response");
     } else if (!needExamine && this.examineInitialized) {
       this.examineInitialized = false;
       Services.obs.removeObserver(this, "http-on-examine-response");
@@ -889,7 +880,7 @@ HttpObserverManager = {
                              requestHeaders, responseHeaders);
   },
 
-  applyChanges: Task.async(function* (kind, channel, loadContext, handlerResults, requestHeaders, responseHeaders) {
+  async applyChanges(kind, channel, loadContext, handlerResults, requestHeaders, responseHeaders) {
     let asyncHandlers = handlerResults.filter(({result}) => isThenable(result));
     let isAsync = asyncHandlers.length > 0;
     let shouldResume = false;
@@ -900,7 +891,7 @@ HttpObserverManager = {
 
         for (let value of asyncHandlers) {
           try {
-            value.result = yield value.result;
+            value.result = await value.result;
           } catch (e) {
             Cu.reportError(e);
             value.result = {};
@@ -925,7 +916,7 @@ HttpObserverManager = {
           try {
             this.maybeResume(channel);
 
-            channel.redirectTo(BrowserUtils.makeURI(result.redirectUrl));
+            channel.redirectTo(Services.io.newURI(result.redirectUrl));
             return;
           } catch (e) {
             Cu.reportError(e);
@@ -957,9 +948,9 @@ HttpObserverManager = {
       }
 
       if (kind === "opening") {
-        yield this.runChannelListener(channel, loadContext, "modify");
+        await this.runChannelListener(channel, loadContext, "modify");
       } else if (kind === "modify") {
-        yield this.runChannelListener(channel, loadContext, "afterModify");
+        await this.runChannelListener(channel, loadContext, "afterModify");
       }
     } catch (e) {
       Cu.reportError(e);
@@ -969,7 +960,7 @@ HttpObserverManager = {
     if (shouldResume) {
       this.maybeResume(channel);
     }
-  }),
+  },
 
   shouldHookListener(listener, channel) {
     if (listener.size == 0) {
@@ -999,9 +990,7 @@ HttpObserverManager = {
         let responseStatus = channel.responseStatus;
         // skip redirections, https://bugzilla.mozilla.org/show_bug.cgi?id=728901#c8
         if (responseStatus < 300 || responseStatus >= 400) {
-          let listener = new StartStopListener(this, loadContext);
-          let orig = channel.setNewListener(listener);
-          listener.orig = orig;
+          new StartStopListener(this, channel, loadContext);
           channelData.hasListener = true;
         }
       }

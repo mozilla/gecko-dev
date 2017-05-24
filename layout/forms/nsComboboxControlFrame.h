@@ -97,11 +97,6 @@ public:
 
   void PaintFocus(DrawTarget& aDrawTarget, nsPoint aPt);
 
-  // XXXbz this is only needed to prevent the quirk percent height stuff from
-  // leaking out of the combobox.  We may be able to get rid of this as more
-  // things move to IsFrameOfType.
-  virtual nsIAtom* GetType() const override;
-
   virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsBlockFrame::IsFrameOfType(aFlags &
@@ -181,6 +176,12 @@ public:
   {
     mIsOpenInParentProcess = aVal;
   }
+
+  void GetPreviewText(nsAString& aValue) override
+  {
+    aValue = mPreviewText;
+  }
+  void SetPreviewText(const nsAString& aValue) override;
 
   // nsISelectControlFrame
   NS_IMETHOD AddOption(int32_t index) override;
@@ -276,7 +277,7 @@ protected:
   bool ShowList(bool aShowList);
   void CheckFireOnChange();
   void FireValueChangeEvent();
-  nsresult RedisplayText(int32_t aIndex);
+  nsresult RedisplayText();
   void HandleRedisplayTextEvent();
   void ActuallyDisplayText(bool aNotify);
 
@@ -302,7 +303,8 @@ protected:
 
   int32_t               mRecentSelectedIndex;
   int32_t               mDisplayedIndex;
-  nsString              mDisplayedOptionText;
+  nsString              mDisplayedOptionTextOrPreview;
+  nsString              mPreviewText;
 
   // make someone to listen to the button. If its programmatically pressed by someone like Accessibility
   // then open or close the combo box.

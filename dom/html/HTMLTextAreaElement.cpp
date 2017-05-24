@@ -53,7 +53,7 @@ namespace dom {
 
 HTMLTextAreaElement::HTMLTextAreaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
                                          FromParser aFromParser)
-  : nsGenericHTMLFormElementWithState(aNodeInfo),
+  : nsGenericHTMLFormElementWithState(aNodeInfo, NS_FORM_TEXTAREA),
     mValueChanged(false),
     mLastValueChangeWasInteractive(false),
     mHandlingSelect(false),
@@ -62,6 +62,7 @@ HTMLTextAreaElement::HTMLTextAreaElement(already_AddRefed<mozilla::dom::NodeInfo
     mDisabledChanged(false),
     mCanShowInvalidUI(true),
     mCanShowValidUI(true),
+    mIsPreviewEnabled(false),
     mState(this)
 {
   AddMutationObserver(this);
@@ -101,14 +102,15 @@ NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLFormElementWithState)
 // nsIDOMHTMLTextAreaElement
 
 nsresult
-HTMLTextAreaElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
+HTMLTextAreaElement::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                           bool aPreallocateChildren) const
 {
   *aResult = nullptr;
   already_AddRefed<mozilla::dom::NodeInfo> ni =
     RefPtr<mozilla::dom::NodeInfo>(aNodeInfo).forget();
   RefPtr<HTMLTextAreaElement> it = new HTMLTextAreaElement(ni);
 
-  nsresult rv = const_cast<HTMLTextAreaElement*>(this)->CopyInnerTo(it);
+  nsresult rv = const_cast<HTMLTextAreaElement*>(this)->CopyInnerTo(it, aPreallocateChildren);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mValueChanged) {
@@ -309,15 +311,64 @@ HTMLTextAreaElement::GetPlaceholderNode()
 }
 
 NS_IMETHODIMP_(void)
-HTMLTextAreaElement::UpdatePlaceholderVisibility(bool aNotify)
+HTMLTextAreaElement::UpdateOverlayTextVisibility(bool aNotify)
 {
-  mState.UpdatePlaceholderVisibility(aNotify);
+  mState.UpdateOverlayTextVisibility(aNotify);
 }
 
 NS_IMETHODIMP_(bool)
 HTMLTextAreaElement::GetPlaceholderVisibility()
 {
   return mState.GetPlaceholderVisibility();
+}
+
+NS_IMETHODIMP_(Element*)
+HTMLTextAreaElement::CreatePreviewNode()
+{
+  NS_ENSURE_SUCCESS(mState.CreatePreviewNode(), nullptr);
+  return mState.GetPreviewNode();
+}
+
+NS_IMETHODIMP_(Element*)
+HTMLTextAreaElement::GetPreviewNode()
+{
+  return mState.GetPreviewNode();
+}
+
+NS_IMETHODIMP_(void)
+HTMLTextAreaElement::SetPreviewValue(const nsAString& aValue)
+{
+  mState.SetPreviewText(aValue, true);
+}
+
+NS_IMETHODIMP_(void)
+HTMLTextAreaElement::GetPreviewValue(nsAString& aValue)
+{
+  mState.GetPreviewText(aValue);
+}
+
+NS_IMETHODIMP_(void)
+HTMLTextAreaElement::EnablePreview()
+{
+  if (mIsPreviewEnabled) {
+    return;
+  }
+
+  mIsPreviewEnabled = true;
+  // Reconstruct the frame to append an anonymous preview node
+  nsLayoutUtils::PostRestyleEvent(this, nsRestyleHint(0), nsChangeHint_ReconstructFrame);
+}
+
+NS_IMETHODIMP_(bool)
+HTMLTextAreaElement::IsPreviewEnabled()
+{
+  return mIsPreviewEnabled;
+}
+
+NS_IMETHODIMP_(bool)
+HTMLTextAreaElement::GetPreviewVisibility()
+{
+  return mState.GetPreviewVisibility();
 }
 
 nsresult
@@ -353,9 +404,10 @@ HTMLTextAreaElement::SetValue(const nsAString& aValue)
   GetValueInternal(currentValue, true);
 
   nsresult rv =
-    SetValueInternal(aValue, nsTextEditorState::eSetValue_ByContent |
-                             nsTextEditorState::eSetValue_Notify |
-                             nsTextEditorState::eSetValue_MoveCursorToEnd);
+    SetValueInternal(aValue,
+      nsTextEditorState::eSetValue_ByContent |
+      nsTextEditorState::eSetValue_Notify |
+      nsTextEditorState::eSetValue_MoveCursorToEndIfValueChanged);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mFocusedValue.Equals(currentValue)) {
@@ -369,9 +421,9 @@ NS_IMETHODIMP
 HTMLTextAreaElement::SetUserInput(const nsAString& aValue)
 {
   return SetValueInternal(aValue,
-                          nsTextEditorState::eSetValue_BySetUserInput |
-                          nsTextEditorState::eSetValue_Notify|
-                          nsTextEditorState::eSetValue_MoveCursorToEnd);
+    nsTextEditorState::eSetValue_BySetUserInput |
+    nsTextEditorState::eSetValue_Notify|
+    nsTextEditorState::eSetValue_MoveCursorToEndIfValueChanged);
 }
 
 NS_IMETHODIMP
@@ -1047,7 +1099,8 @@ HTMLTextAreaElement::ContentChanged(nsIContent* aContent)
 
 nsresult
 HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                  const nsAttrValue* aValue, bool aNotify)
+                                  const nsAttrValue* aValue,
+                                  const nsAttrValue* aOldValue, bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::required || aName == nsGkAtoms::disabled ||
@@ -1066,13 +1119,14 @@ HTMLTextAreaElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   }
 
   return nsGenericHTMLFormElementWithState::AfterSetAttr(aNameSpaceID, aName, aValue,
-                                                         aNotify);
+                                                         aOldValue, aNotify);
   }
 
 nsresult
-HTMLTextAreaElement::CopyInnerTo(Element* aDest)
+HTMLTextAreaElement::CopyInnerTo(Element* aDest, bool aPreallocateChildren)
 {
-  nsresult rv = nsGenericHTMLFormElementWithState::CopyInnerTo(aDest);
+  nsresult rv = nsGenericHTMLFormElementWithState::CopyInnerTo(aDest,
+                                                               aPreallocateChildren);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aDest->OwnerDoc()->IsStaticDocument()) {

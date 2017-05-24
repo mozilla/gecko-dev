@@ -158,6 +158,14 @@ enum class StyleShapeSourceType : uint8_t {
   Box,
 };
 
+// -moz-stack-sizing
+enum class StyleStackSizing : uint8_t {
+  Ignore,
+  StretchToFit,
+  IgnoreHorizontal,
+  IgnoreVertical,
+};
+
 // text-justify
 enum class StyleTextJustify : uint8_t {
   None,
@@ -221,10 +229,6 @@ enum class StyleOrient : uint8_t {
   Horizontal,
   Vertical,
 };
-
-// stack-sizing
-#define NS_STYLE_STACK_SIZING_IGNORE         0
-#define NS_STYLE_STACK_SIZING_STRETCH_TO_FIT 1
 
 // Azimuth - See nsStyleAural
 #define NS_STYLE_AZIMUTH_LEFT_SIDE        0x00
@@ -860,10 +864,9 @@ enum class StyleGridTrackBreadth : uint8_t {
 #define NS_STYLE_TEXT_DECORATION_LINE_OVERLINE     0x02
 #define NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH 0x04
 #define NS_STYLE_TEXT_DECORATION_LINE_BLINK        0x08
-#define NS_STYLE_TEXT_DECORATION_LINE_PREF_ANCHORS 0x10
 // OVERRIDE_ALL does not occur in stylesheets; it only comes from HTML
 // attribute mapping (and thus appears in computed data)
-#define NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL 0x20
+#define NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL 0x10
 #define NS_STYLE_TEXT_DECORATION_LINE_LINES_MASK   (NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE | NS_STYLE_TEXT_DECORATION_LINE_OVERLINE | NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH)
 
 // See nsStyleText
@@ -1053,6 +1056,10 @@ enum class StyleGridTrackBreadth : uint8_t {
 #define NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE    4
 
 // See nsStyleSVG
+
+// -moz-context-properties
+#define NS_STYLE_CONTEXT_PROPERTY_FILL          (1 << 0)
+#define NS_STYLE_CONTEXT_PROPERTY_STROKE        (1 << 1)
 
 // dominant-baseline
 #define NS_STYLE_DOMINANT_BASELINE_AUTO              0

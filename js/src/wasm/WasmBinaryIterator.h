@@ -436,13 +436,13 @@ class MOZ_STACK_CLASS OpIter : private Policy
     }
 
     // Return the offset within the entire module of the last-read op.
-    size_t errorOffset() const {
+    size_t lastOpcodeOffset() const {
         return offsetOfLastReadOp_ ? offsetOfLastReadOp_ : d_.currentOffset();
     }
 
-    // Return a TrapOffset describing where the current op should be reported to trap.
-    TrapOffset trapOffset() const {
-        return TrapOffset(errorOffset());
+    // Return a BytecodeOffset describing where the current op should be reported to trap/call.
+    BytecodeOffset bytecodeOffset() const {
+        return BytecodeOffset(lastOpcodeOffset());
     }
 
     // Test whether the iterator has reached the end of the buffer.
@@ -612,7 +612,7 @@ template <typename Policy>
 inline bool
 OpIter<Policy>::fail(const char* msg)
 {
-    return d_.fail(errorOffset(), msg);
+    return d_.fail(lastOpcodeOffset(), msg);
 }
 
 // This function pops exactly one value from the stack, yielding Any types in
@@ -1080,6 +1080,9 @@ OpIter<Policy>::readBrTable(Uint32Vector* depths, uint32_t* defaultDepth,
     uint32_t tableLength;
     if (!readVarU32(&tableLength))
         return fail("unable to read br_table table length");
+
+    if (tableLength > MaxBrTableElems)
+        return fail("br_table too big");
 
     if (!popWithType(ValType::I32, index))
         return false;

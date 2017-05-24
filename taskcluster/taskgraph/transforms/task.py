@@ -11,13 +11,16 @@ complexities of worker implementations, scopes, and treeherder annotations.
 from __future__ import absolute_import, print_function, unicode_literals
 
 import json
+import os
 import time
+from copy import deepcopy
 
 from taskgraph.util.treeherder import split_symbol
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import validate_schema, Schema
 from taskgraph.util.scriptworker import get_release_config
 from voluptuous import Any, Required, Optional, Extra
+from taskgraph import GECKO
 
 from .gecko_v2_whitelist import JOB_NAME_WHITELIST, JOB_NAME_WHITELIST_ERROR
 
@@ -89,7 +92,7 @@ task_description_schema = Schema({
     # if omitted, the build will not be indexed.
     Optional('index'): {
         # the name of the product this build produces
-        'product': Any('firefox', 'mobile', 'static-analysis'),
+        'product': Any('firefox', 'mobile', 'static-analysis', 'devedition'),
 
         # the names to use for this job in the TaskCluster index
         'job-name': basestring,
@@ -201,20 +204,28 @@ task_description_schema = Schema({
         # environment variables
         Required('env', default={}): {basestring: taskref_or_string},
 
-        # the command to run
-        'command': [taskref_or_string],
+        # the command to run; if not given, docker-worker will default to the
+        # command in the docker image
+        Optional('command'): [taskref_or_string],
 
         # the maximum time to run, in seconds
-        'max-run-time': int,
+        Required('max-run-time'): int,
 
         # the exit status code that indicates the task should be retried
         Optional('retry-exit-status'): int,
 
     }, {
+        # see http://schemas.taskcluster.net/generic-worker/v1/payload.json
+        # and https://docs.taskcluster.net/reference/workers/generic-worker/payload
         Required('implementation'): 'generic-worker',
 
         # command is a list of commands to run, sequentially
-        'command': [taskref_or_string],
+        # on Windows, each command is a string, on OS X and Linux, each command is
+        # a string array
+        Required('command'): Any(
+            [taskref_or_string],   # Windows
+            [[taskref_or_string]]  # Linux / OS X
+        ),
 
         # artifacts to extract from the task image after completion; note that artifacts
         # for the generic worker cannot have names
@@ -222,40 +233,76 @@ task_description_schema = Schema({
             # type of artifact -- simple file, or recursive directory
             'type': Any('file', 'directory'),
 
-            # task image path from which to read artifact
+            # filesystem path from which to read artifact
             'path': basestring,
+
+            # if not specified, path is used for artifact name
+            Optional('name'): basestring
         }],
 
-        # directories and/or files to be mounted
+        # Directories and/or files to be mounted.
+        # The actual allowed combinations are stricter than the model below,
+        # but this provides a simple starting point.
+        # See https://docs.taskcluster.net/reference/workers/generic-worker/payload
         Optional('mounts'): [{
-            # a unique name for the cache volume
-            'cache-name': basestring,
+            # A unique name for the cache volume, implies writable cache directory
+            # (otherwise mount is a read-only file or directory).
+            Optional('cache-name'): basestring,
+            # Optional content for pre-loading cache, or mandatory content for
+            # read-only file or directory. Pre-loaded content can come from either
+            # a task artifact or from a URL.
+            Optional('content'): {
 
-            # task image path for the cache
-            'path': basestring,
+                # *** Either (artifact and task-id) or url must be specified. ***
+
+                # Artifact name that contains the content.
+                Optional('artifact'): basestring,
+                # Task ID that has the artifact that contains the content.
+                Optional('task-id'): taskref_or_string,
+                # URL that supplies the content in response to an unauthenticated
+                # GET request.
+                Optional('url'): basestring
+            },
+
+            # *** Either file or directory must be specified. ***
+
+            # If mounting a cache or read-only directory, the filesystem location of
+            # the directory should be specified as a relative path to the task
+            # directory here.
+            Optional('directory'): basestring,
+            # If mounting a file, specify the relative path within the task
+            # directory to mount the file (the file will be read only).
+            Optional('file'): basestring,
+            # Required if and only if `content` is specified and mounting a
+            # directory (not a file). This should be the archive format of the
+            # content (either pre-loaded cache or read-only directory).
+            Optional('format'): Any('rar', 'tar.bz2', 'tar.gz', 'zip')
         }],
 
         # environment variables
         Required('env', default={}): {basestring: taskref_or_string},
 
         # the maximum time to run, in seconds
-        'max-run-time': int,
+        Required('max-run-time'): int,
 
         # os user groups for test task workers
         Optional('os-groups', default=[]): [basestring],
+
+        # optional features
+        Required('chain-of-trust', default=False): bool,
     }, {
         Required('implementation'): 'buildbot-bridge',
 
         # see
         # https://github.com/mozilla/buildbot-bridge/blob/master/bbb/schemas/payload.yml
-        'buildername': basestring,
-        'sourcestamp': {
+        Required('buildername'): basestring,
+        Required('sourcestamp'): {
             'branch': basestring,
             Optional('revision'): basestring,
             Optional('repository'): basestring,
             Optional('project'): basestring,
         },
-        'properties': {
+        Required('properties'): {
             'product': basestring,
             Extra: basestring,  # additional properties are allowed
         },
@@ -344,6 +391,29 @@ task_description_schema = Schema({
             # Paths to the artifacts to sign
             Required('paths'): [basestring],
         }],
+    }, {
+        Required('implementation'): 'push-apk-breakpoint',
+        Required('payload'): object,
+
+    }, {
+        Required('implementation'): 'push-apk',
+
+        # list of artifact URLs for the artifacts that should be beetmoved
+        Required('upstream-artifacts'): [{
+            # taskId of the task with the artifact
+            Required('taskId'): taskref_or_string,
+
+            # type of signing task (for CoT)
+            Required('taskType'): basestring,
+
+            # Paths to the artifacts to sign
+            Required('paths'): [basestring],
+        }],
+
+        # "Invalid" is a noop for try and other non-supported branches
+        Required('google-play-track'): Any('production', 'beta', 'alpha', 'rollout', 'invalid'),
+        Required('dry-run', default=True): bool,
+        Optional('rollout-percentage'): int,
     }),
 })
 
@@ -369,6 +439,7 @@ GROUP_NAMES = {
     'tc-X': 'Xpcshell tests executed by TaskCluster',
     'tc-X-e10s': 'Xpcshell tests executed by TaskCluster with e10s',
     'tc-L10n': 'Localised Repacks executed by Taskcluster',
+    'tc-L10n-Rpk': 'Localized Repackaged Repacks executed by Taskcluster',
     'tc-BM-L10n': 'Beetmover for locales executed by Taskcluster',
     'tc-Up': 'Balrog submission of updates, executed by Taskcluster',
     'tc-cs': 'Checksum signing executed by Taskcluster',
@@ -381,6 +452,7 @@ GROUP_NAMES = {
     'TW32': 'Toolchain builds for Windows 32-bits',
     'TW64': 'Toolchain builds for Windows 64-bits',
     'SM-tc': 'Spidermonkey builds',
+    'pub': 'APK publishing',
 }
 UNKNOWN_GROUP_NAME = "Treeherder group {} has no name; add it to " + __file__
 
@@ -533,19 +605,26 @@ def build_generic_worker_payload(config, task, task_def):
     artifacts = []
 
     for artifact in worker['artifacts']:
-        artifacts.append({
+        a = {
             'path': artifact['path'],
             'type': artifact['type'],
             'expires': task_def['expires'],  # always expire with the task
-        })
+        }
+        if 'name' in artifact:
+            a['name'] = artifact['name']
+        artifacts.append(a)
 
-    mounts = []
-
-    for mount in worker.get('mounts', []):
-        mounts.append({
-            'cacheName': mount['cache-name'],
-            'directory': mount['path']
-        })
+    # Need to copy over mounts, but rename keys to respect naming convention
+    #   * 'cache-name' -> 'cacheName'
+    #   * 'task-id'    -> 'taskId'
+    # All other key names are already suitable, and don't need renaming.
+    mounts = deepcopy(worker.get('mounts', []))
+    for mount in mounts:
+        if 'cache-name' in mount:
+            mount['cacheName'] = mount.pop('cache-name')
+        if 'content' in mount:
+            if 'task-id' in mount['content']:
+                mount['content']['taskId'] = mount['content'].pop('task-id')
 
     task_def['payload'] = {
         'command': worker['command'],
@@ -560,6 +639,15 @@ def build_generic_worker_payload(config, task, task_def):
 
     if 'retry-exit-status' in worker:
         raise Exception("retry-exit-status not supported in generic-worker")
+
+    # currently only support one feature (chain of trust) but this will likely grow
+    features = {}
+
+    if worker.get('chain-of-trust'):
+        features['chainOfTrust'] = True
+
+    if features:
+        task_def['payload']['features'] = features
 
 
 @payload_builder('scriptworker-signing')
@@ -595,6 +683,25 @@ def build_balrog_payload(config, task, task_def):
     task_def['payload'] = {
         'upstreamArtifacts':  worker['upstream-artifacts']
     }
+
+
+@payload_builder('push-apk')
+def build_push_apk_payload(config, task, task_def):
+    worker = task['worker']
+
+    task_def['payload'] = {
+        'dry_run': worker['dry-run'],
+        'upstreamArtifacts':  worker['upstream-artifacts'],
+        'google_play_track': worker['google-play-track'],
+    }
+
+    if worker.get('rollout-percentage', None):
+        task_def['payload']['rollout_percentage'] = worker['rollout-percentage']
+
+
+@payload_builder('push-apk-breakpoint')
+def build_push_apk_breakpoint_payload(config, task, task_def):
+    task_def['payload'] = task['worker']['payload']
 
 
 @payload_builder('native-engine')
@@ -851,6 +958,18 @@ def build_task(config, tasks):
         attributes = task.get('attributes', {})
         attributes['run_on_projects'] = task.get('run-on-projects', ['all'])
 
+        # Set MOZ_AUTOMATION on all jobs.
+        if task['worker']['implementation'] in (
+            'generic-worker',
+            'docker-engine',
+            'native-engine',
+            'docker-worker',
+        ):
+            payload = task_def.get('payload')
+            if payload:
+                env = payload.setdefault('env', {})
+                env['MOZ_AUTOMATION'] = '1'
+
         yield {
             'label': task['label'],
             'task': task_def,
@@ -864,7 +983,7 @@ def build_task(config, tasks):
 # go away once Mozharness builds are no longer performed in Buildbot, and the
 # Mozharness code referencing routes.json is deleted.
 def check_v2_routes():
-    with open("testing/mozharness/configs/routes.json", "rb") as f:
+    with open(os.path.join(GECKO, "testing/mozharness/configs/routes.json"), "rb") as f:
         routes_json = json.load(f)
 
     for key in ('routes', 'nightly', 'l10n'):

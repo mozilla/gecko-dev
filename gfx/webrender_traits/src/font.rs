@@ -3,15 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::Point2D;
-use {ColorU, ColorF};
+use {ColorU, ColorF, LayoutPoint};
 
+#[cfg(target_os = "macos")] use core_foundation::string::CFString;
 #[cfg(target_os = "macos")] use core_graphics::font::CGFont;
+#[cfg(target_os = "macos")] use serde::de::{self, Deserialize, Deserializer};
+#[cfg(target_os = "macos")] use serde::ser::{Serialize, Serializer};
 #[cfg(target_os = "windows")] use dwrote::FontDescriptor;
 
 
 #[cfg(target_os = "macos")]
-pub type NativeFontHandle = CGFont;
+#[derive(Clone)]
+pub struct NativeFontHandle(pub CGFont);
+
+#[cfg(target_os = "macos")]
+impl Serialize for NativeFontHandle {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        let postscript_name = self.0.postscript_name().to_string();
+        postscript_name.serialize(serializer)
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl Deserialize for NativeFontHandle {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer {
+        let postscript_name: String = try!(Deserialize::deserialize(deserializer));
+
+        match CGFont::from_name(&CFString::new(&*postscript_name)) {
+            Ok(font) => Ok(NativeFontHandle(font)),
+            _ => Err(de::Error::custom("Couldn't find a font with that PostScript name!")),
+        }
+    }
+}
 
 /// Native fonts are not used on Linux; all fonts are raw.
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -47,6 +70,14 @@ pub enum FontRenderMode {
     Subpixel,
 }
 
+const FIXED16_SHIFT: i32 = 16;
+
+// This matches the behaviour of SkScalarToFixed
+fn f32_truncate_to_fixed16(x: f32) -> i32 {
+    let fixed1 = (1 << FIXED16_SHIFT) as f32;
+    (x * fixed1) as i32
+}
+
 impl FontRenderMode {
     // Skia quantizes subpixel offets into 1/4 increments.
     // Given the absolute position, return the quantized increment
@@ -55,14 +86,18 @@ impl FontRenderMode {
             return SubpixelOffset::Zero;
         }
 
-        const SUBPIXEL_ROUNDING :f32 = 0.125; // Skia chosen value.
-        let fraction = (pos + SUBPIXEL_ROUNDING).fract();
+        const SUBPIXEL_BITS: i32 = 2;
+        const SUBPIXEL_FIXED16_MASK: i32 = ((1 << SUBPIXEL_BITS) - 1) << (FIXED16_SHIFT - SUBPIXEL_BITS);
+
+        const SUBPIXEL_ROUNDING: f32 = 0.5 / (1 << SUBPIXEL_BITS) as f32;
+        let pos = pos + SUBPIXEL_ROUNDING;
+        let fraction = (f32_truncate_to_fixed16(pos) & SUBPIXEL_FIXED16_MASK) >> (FIXED16_SHIFT - SUBPIXEL_BITS);
 
         match fraction {
-            0.0...0.25 => SubpixelOffset::Zero,
-            0.25...0.5 => SubpixelOffset::Quarter,
-            0.5...0.75 => SubpixelOffset::Half,
-            0.75...1.0 => SubpixelOffset::ThreeQuarters,
+            0 => SubpixelOffset::Zero,
+            1 => SubpixelOffset::Quarter,
+            2 => SubpixelOffset::Half,
+            3 => SubpixelOffset::ThreeQuarters,
             _ => panic!("Should only be given the fractional part"),
         }
     }
@@ -95,7 +130,7 @@ pub struct SubpixelPoint {
 }
 
 impl SubpixelPoint {
-    pub fn new(point: Point2D<f32>,
+    pub fn new(point: LayoutPoint,
                render_mode: FontRenderMode) -> SubpixelPoint {
         SubpixelPoint {
             x: render_mode.subpixel_quantize_offset(point.x),
@@ -104,10 +139,10 @@ impl SubpixelPoint {
     }
 
     pub fn to_f64(&self) -> (f64, f64) {
-        return (self.x.into(), self.y.into());
+        (self.x.into(), self.y.into())
     }
 
-    pub fn set_offset(&mut self, point: Point2D<f32>, render_mode: FontRenderMode) {
+    pub fn set_offset(&mut self, point: LayoutPoint, render_mode: FontRenderMode) {
         self.x = render_mode.subpixel_quantize_offset(point.x);
         self.y = render_mode.subpixel_quantize_offset(point.y);
     }
@@ -132,7 +167,7 @@ impl GlyphKey {
                size: Au,
                color: ColorF,
                index: u32,
-               point: Point2D<f32>,
+               point: LayoutPoint,
                render_mode: FontRenderMode) -> GlyphKey {
         GlyphKey {
             font_key: font_key,
@@ -148,5 +183,5 @@ impl GlyphKey {
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GlyphInstance {
     pub index: u32,
-    pub point: Point2D<f32>,
+    pub point: LayoutPoint,
 }

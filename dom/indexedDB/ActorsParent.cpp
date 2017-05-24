@@ -21,7 +21,9 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Casting.h"
+#include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/EndianUtils.h"
+#include "mozilla/ErrorNames.h"
 #include "mozilla/LazyIdleThread.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Preferences.h"
@@ -72,6 +74,7 @@
 #include "nsEscape.h"
 #include "nsHashKeys.h"
 #include "nsNetUtil.h"
+#include "nsIAsyncInputStream.h"
 #include "nsISimpleEnumerator.h"
 #include "nsIEventTarget.h"
 #include "nsIFile.h"
@@ -1297,17 +1300,17 @@ UpgradeSchemaFrom4To5(mozIStorageConnection* aConnection)
   {
     mozStorageStatementScoper scoper(stmt);
 
-    rv = stmt->BindStringParameter(0, name);
+    rv = stmt->BindStringByIndex(0, name);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
 
-    rv = stmt->BindInt32Parameter(1, intVersion);
+    rv = stmt->BindInt32ByIndex(1, intVersion);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
 
-    rv = stmt->BindInt64Parameter(2, dataVersion);
+    rv = stmt->BindInt64ByIndex(2, dataVersion);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -6803,47 +6806,16 @@ public:
 
   /**
    * If mBlobImpl is non-null (implying the contents of this file have not yet
-   * been written to disk), then return an input stream that is guaranteed to
-   * block on reads and never return NS_BASE_STREAM_WOULD_BLOCK.  If mBlobImpl
+   * been written to disk), then return an input stream. Otherwise, if mBlobImpl
    * is null (because the contents have been written to disk), returns null.
-   *
-   * Because this method does I/O, it should only be called on a database I/O
-   * thread, not on PBackground.  Note that we actually open the stream on this
-   * thread, where previously it was opened on PBackground.  This is safe and
-   * equally efficient because blob implementations are thread-safe and blobs in
-   * the parent are fully populated.  (This would not be efficient in the child
-   * where the open request would have to be dispatched back to the PBackground
-   * thread because of the need to potentially interact with actors.)
-   *
-   * We enforce this guarantee by wrapping the stream in a blocking pipe unless
-   * either is true:
-   * - The stream is already a blocking stream.  (AKA it's not non-blocking.)
-   *   This is the case for nsFileStreamBase-derived implementations and
-   *   appropriately configured nsPipes (but not PSendStream-generated pipes).
-   * - The stream already contains the entire contents of the Blob.  For
-   *   example, nsStringInputStreams report as non-blocking, but also have their
-   *   entire contents synchronously available, so they will never return
-   *   NS_BASE_STREAM_WOULD_BLOCK.  There is no need to wrap these in a pipe.
-   *   (It's also very common for SendStream-based Blobs to have their contents
-   *   entirely streamed into the parent process by the time this call is
-   *   issued.)
-   *
-   * This additional logic is necessary because our database operations all
-   * are written in such a way that the operation is assumed to have completed
-   * when they yield control-flow, and:
-   * - When memory-backed blobs cross a certain threshold (1MiB at the time of
-   *   writing), they will be sent up from the child via PSendStream in chunks
-   *   to a non-blocking pipe that will return NS_BASE_STREAM_WOULD_BLOCK.
-   * - Other Blob types could potentially be non-blocking.  (We're not making
-   *   any assumptions.)
    */
   already_AddRefed<nsIInputStream>
-  GetBlockingInputStream(ErrorResult &rv) const;
+  GetInputStream(ErrorResult &rv) const;
 
   /**
-   * To be called upon successful copying of the stream GetBlockingInputStream()
+   * To be called upon successful copying of the stream GetInputStream()
    * returned so that we won't try and redundantly write the file to disk in the
-   * future.  This is a separate step from GetBlockingInputStream() because
+   * future.  This is a separate step from GetInputStream() because
    * the write could fail due to quota errors that happen now but that might
    * not happen in a future attempt.
    */
@@ -6884,7 +6856,7 @@ private:
 };
 
 already_AddRefed<nsIInputStream>
-DatabaseFile::GetBlockingInputStream(ErrorResult &rv) const
+DatabaseFile::GetInputStream(ErrorResult &rv) const
 {
   // We should only be called from our DB connection thread, not the background
   // thread.
@@ -6898,60 +6870,6 @@ DatabaseFile::GetBlockingInputStream(ErrorResult &rv) const
   mBlobImpl->GetInternalStream(getter_AddRefs(inputStream), rv);
   if (rv.Failed()) {
     return nullptr;
-  }
-
-  // If it's non-blocking we may need a pipe.
-  bool pipeNeeded;
-  rv = inputStream->IsNonBlocking(&pipeNeeded);
-  if (rv.Failed()) {
-    return nullptr;
-  }
-
-  // We don't need a pipe if all the bytes might already be available.
-  if (pipeNeeded) {
-    uint64_t available;
-    rv = inputStream->Available(&available);
-    if (rv.Failed()) {
-      return nullptr;
-    }
-
-    uint64_t blobSize = mBlobImpl->GetSize(rv);
-    if (rv.Failed()) {
-      return nullptr;
-    }
-
-    if (available == blobSize) {
-      pipeNeeded = false;
-    }
-  }
-
-  if (pipeNeeded) {
-    nsCOMPtr<nsIEventTarget> target =
-      do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
-    if (!target) {
-      rv.Throw(NS_ERROR_UNEXPECTED);
-      return nullptr;
-    }
-
-    nsCOMPtr<nsIInputStream> pipeInputStream;
-    nsCOMPtr<nsIOutputStream> pipeOutputStream;
-
-    rv = NS_NewPipe(
-      getter_AddRefs(pipeInputStream),
-      getter_AddRefs(pipeOutputStream),
-      0, 0, // default buffering is fine;
-      false, // we absolutely want a blocking input stream
-      true); // we don't need the writer to block
-    if (rv.Failed()) {
-      return nullptr;
-    }
-
-    rv = NS_AsyncCopy(inputStream, pipeOutputStream, target);
-    if (rv.Failed()) {
-      return nullptr;
-    }
-
-    inputStream = pipeInputStream;
   }
 
   return inputStream.forget();
@@ -9467,6 +9385,7 @@ class Maintenance final
   RefPtr<DirectoryLock> mDirectoryLock;
   nsTArray<DirectoryInfo> mDirectoryInfos;
   nsDataHashtable<nsStringHashKey, DatabaseMaintenance*> mDatabaseMaintenances;
+  nsresult mResultCode;
   Atomic<bool> mAborted;
   State mState;
 
@@ -9474,6 +9393,7 @@ public:
   explicit Maintenance(QuotaClient* aQuotaClient)
     : mQuotaClient(aQuotaClient)
     , mStartTime(PR_Now())
+    , mResultCode(NS_OK)
     , mAborted(false)
     , mState(State::Initial)
   {
@@ -9859,6 +9779,9 @@ class MOZ_STACK_CLASS FileHelper final
   nsCOMPtr<nsIFile> mFileDirectory;
   nsCOMPtr<nsIFile> mJournalDirectory;
 
+  class ReadCallback;
+  RefPtr<ReadCallback> mReadCallback;
+
 public:
   explicit FileHelper(FileManager* aFileManager)
     : mFileManager(aFileManager)
@@ -9900,6 +9823,12 @@ private:
            nsIOutputStream* aOutputStream,
            char* aBuffer,
            uint32_t aBufferSize);
+
+  nsresult
+  SyncRead(nsIInputStream* aInputStream,
+           char* aBuffer,
+           uint32_t aBufferSize,
+           uint32_t* aRead);
 };
 
 /*******************************************************************************
@@ -12603,12 +12532,7 @@ ConnectionPool::Shutdown()
     return;
   }
 
-  nsIThread* currentThread = NS_GetCurrentThread();
-  MOZ_ASSERT(currentThread);
-
-  while (!mShutdownComplete) {
-    MOZ_ALWAYS_TRUE(NS_ProcessNextEvent(currentThread));
-  }
+  MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return mShutdownComplete; }));
 }
 
 void
@@ -13565,7 +13489,7 @@ ThreadRunnable::Run()
                    "ConnectionPool::ThreadRunnable::Run",
                    js::ProfileEntry::Category::STORAGE);
 
-    nsIThread* currentThread = NS_GetCurrentThread();
+    DebugOnly<nsIThread*> currentThread = NS_GetCurrentThread();
     MOZ_ASSERT(currentThread);
 
 #ifdef DEBUG
@@ -13587,8 +13511,10 @@ ThreadRunnable::Run()
     }
 #endif // DEBUG
 
-    while (mContinueRunning) {
-      MOZ_ALWAYS_TRUE(NS_ProcessNextEvent(currentThread));
+    DebugOnly<bool> b = SpinEventLoopUntil([&]() -> bool {
+        if (!mContinueRunning) {
+          return true;
+        }
 
 #ifdef DEBUG
       if (kDEBUGTransactionThreadSleepMS) {
@@ -13597,7 +13523,14 @@ ThreadRunnable::Run()
             PR_SUCCESS);
       }
 #endif // DEBUG
-    }
+
+      return false;
+    });
+    // MSVC can't stringify lambdas, so we have to separate the expression
+    // generating the value from the assert itself.
+#if DEBUG
+    MOZ_ALWAYS_TRUE(b);
+#endif
   }
 
   return NS_OK;
@@ -18637,21 +18570,32 @@ Maintenance::DirectoryWork()
   QuotaManager* quotaManager = QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
-  if (NS_WARN_IF(NS_FAILED(quotaManager->EnsureStorageIsInitialized()))) {
-    return NS_ERROR_FAILURE;
+  nsresult rv = quotaManager->EnsureStorageIsInitialized();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
   }
 
   nsCOMPtr<nsIFile> storageDir = GetFileForPath(quotaManager->GetStoragePath());
-  MOZ_ASSERT(storageDir);
+  if (NS_WARN_IF(!storageDir)) {
+    return NS_ERROR_FAILURE;
+  }
 
   bool exists;
-  MOZ_ALWAYS_SUCCEEDS(storageDir->Exists(&exists));
+  rv = storageDir->Exists(&exists);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
   if (!exists) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
   bool isDirectory;
-  MOZ_ALWAYS_SUCCEEDS(storageDir->IsDirectory(&isDirectory));
+  rv = storageDir->IsDirectory(&isDirectory);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
   if (NS_WARN_IF(!isDirectory)) {
     return NS_ERROR_FAILURE;
   }
@@ -18686,25 +18630,41 @@ Maintenance::DirectoryWork()
     }
 
     nsCOMPtr<nsIFile> persistenceDir;
-    MOZ_ALWAYS_SUCCEEDS(
-      storageDir->Clone(getter_AddRefs(persistenceDir)));
-    MOZ_ALWAYS_SUCCEEDS(
-      persistenceDir->Append(NS_ConvertASCIItoUTF16(persistenceTypeString)));
+    rv = storageDir->Clone(getter_AddRefs(persistenceDir));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
 
-    MOZ_ALWAYS_SUCCEEDS(persistenceDir->Exists(&exists));
+    rv = persistenceDir->Append(NS_ConvertASCIItoUTF16(persistenceTypeString));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    rv = persistenceDir->Exists(&exists);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
     if (!exists) {
       continue;
     }
 
-    MOZ_ALWAYS_SUCCEEDS(persistenceDir->IsDirectory(&isDirectory));
+    rv = persistenceDir->IsDirectory(&isDirectory);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
     if (NS_WARN_IF(!isDirectory)) {
       continue;
     }
 
     nsCOMPtr<nsISimpleEnumerator> persistenceDirEntries;
-    MOZ_ALWAYS_SUCCEEDS(
-      persistenceDir->GetDirectoryEntries(
-        getter_AddRefs(persistenceDirEntries)));
+    rv = persistenceDir->GetDirectoryEntries(
+                                         getter_AddRefs(persistenceDirEntries));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
     if (!persistenceDirEntries) {
       continue;
     }
@@ -18716,46 +18676,76 @@ Maintenance::DirectoryWork()
       }
 
       bool persistenceDirHasMoreEntries;
-      MOZ_ALWAYS_SUCCEEDS(
-        persistenceDirEntries->HasMoreElements(&persistenceDirHasMoreEntries));
+      rv = persistenceDirEntries->HasMoreElements(
+                                                 &persistenceDirHasMoreEntries);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
 
       if (!persistenceDirHasMoreEntries) {
         break;
       }
 
       nsCOMPtr<nsISupports> persistenceDirEntry;
-      MOZ_ALWAYS_SUCCEEDS(
-        persistenceDirEntries->GetNext(getter_AddRefs(persistenceDirEntry)));
+      rv = persistenceDirEntries->GetNext(getter_AddRefs(persistenceDirEntry));
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
 
       nsCOMPtr<nsIFile> originDir = do_QueryInterface(persistenceDirEntry);
       MOZ_ASSERT(originDir);
 
-      MOZ_ASSERT(NS_SUCCEEDED(originDir->Exists(&exists)));
+      rv = originDir->Exists(&exists);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+
       MOZ_ASSERT(exists);
 
-      MOZ_ALWAYS_SUCCEEDS(originDir->IsDirectory(&isDirectory));
+      rv = originDir->IsDirectory(&isDirectory);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+
       if (!isDirectory) {
         continue;
       }
 
       nsCOMPtr<nsIFile> idbDir;
-      MOZ_ALWAYS_SUCCEEDS(originDir->Clone(getter_AddRefs(idbDir)));
+      rv = originDir->Clone(getter_AddRefs(idbDir));
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
 
-      MOZ_ALWAYS_SUCCEEDS(idbDir->Append(idbDirName));
+      rv = idbDir->Append(idbDirName);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
 
-      MOZ_ALWAYS_SUCCEEDS(idbDir->Exists(&exists));
+      rv = idbDir->Exists(&exists);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+
       if (!exists) {
         continue;
       }
 
-      MOZ_ALWAYS_SUCCEEDS(idbDir->IsDirectory(&isDirectory));
+      rv = idbDir->IsDirectory(&isDirectory);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+
       if (NS_WARN_IF(!isDirectory)) {
         continue;
       }
 
       nsCOMPtr<nsISimpleEnumerator> idbDirEntries;
-      MOZ_ALWAYS_SUCCEEDS(
-        idbDir->GetDirectoryEntries(getter_AddRefs(idbDirEntries)));
+      rv = idbDir->GetDirectoryEntries(getter_AddRefs(idbDirEntries));
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+
       if (!idbDirEntries) {
         continue;
       }
@@ -18771,31 +18761,46 @@ Maintenance::DirectoryWork()
         }
 
         bool idbDirHasMoreEntries;
-        MOZ_ALWAYS_SUCCEEDS(
-          idbDirEntries->HasMoreElements(&idbDirHasMoreEntries));
+        rv = idbDirEntries->HasMoreElements(&idbDirHasMoreEntries);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
         if (!idbDirHasMoreEntries) {
           break;
         }
 
         nsCOMPtr<nsISupports> idbDirEntry;
-        MOZ_ALWAYS_SUCCEEDS(
-          idbDirEntries->GetNext(getter_AddRefs(idbDirEntry)));
+        rv = idbDirEntries->GetNext(getter_AddRefs(idbDirEntry));
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
         nsCOMPtr<nsIFile> idbDirFile = do_QueryInterface(idbDirEntry);
         MOZ_ASSERT(idbDirFile);
 
         nsString idbFilePath;
-        MOZ_ALWAYS_SUCCEEDS(idbDirFile->GetPath(idbFilePath));
+        rv = idbDirFile->GetPath(idbFilePath);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
 
         if (!StringEndsWith(idbFilePath, sqliteExtension)) {
           continue;
         }
 
-        MOZ_ASSERT(NS_SUCCEEDED(idbDirFile->Exists(&exists)));
+        rv = idbDirFile->Exists(&exists);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+
         MOZ_ASSERT(exists);
 
-        MOZ_ALWAYS_SUCCEEDS(idbDirFile->IsDirectory(&isDirectory));
+        rv = idbDirFile->IsDirectory(&isDirectory);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
+
         if (isDirectory) {
           continue;
         }
@@ -18924,7 +18929,18 @@ Maintenance::Finish()
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(mState == State::Finishing);
 
+  if (NS_FAILED(mResultCode)) {
+    nsCString errorName;
+    GetErrorName(mResultCode, errorName);
+
+    IDB_WARNING("Maintenance finished with error: %s", errorName.get());
+  }
+
   mDirectoryLock = nullptr;
+
+  // It can happen that we are only referenced by mCurrentMaintenance which is
+  // cleared in NoteFinishedMaintenance()
+  RefPtr<Maintenance> kungFuDeathGrip = this;
 
   mQuotaClient->NoteFinishedMaintenance(this);
 
@@ -18970,6 +18986,10 @@ Maintenance::Run()
   }
 
   if (NS_WARN_IF(NS_FAILED(rv)) && mState != State::Finishing) {
+    if (NS_SUCCEEDED(mResultCode)) {
+      mResultCode = rv;
+    }
+
     // Must set mState before dispatching otherwise we will race with the owning
     // thread.
     mState = State::Finishing;
@@ -18996,6 +19016,10 @@ Maintenance::DirectoryLockAcquired(DirectoryLock* aLock)
 
   nsresult rv = DirectoryOpen();
   if (NS_WARN_IF(NS_FAILED(rv))) {
+    if (NS_SUCCEEDED(mResultCode)) {
+      mResultCode = rv;
+    }
+
     mState = State::Finishing;
     Finish();
 
@@ -19009,6 +19033,10 @@ Maintenance::DirectoryLockFailed()
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(mState == State::DirectoryOpenPending);
   MOZ_ASSERT(!mDirectoryLock);
+
+  if (NS_SUCCEEDED(mResultCode)) {
+    mResultCode = NS_ERROR_FAILURE;
+  }
 
   mState = State::Finishing;
   Finish();
@@ -26600,7 +26628,7 @@ ObjectStoreAddOrPutRequestOp::DoDatabaseWork(DatabaseConnection* aConnection)
       //   MUST be non-null.
       // - This is a reference to a Blob that may or may not have already been
       //   written to disk.  storedFileInfo.mFileActor MUST be non-null, but
-      //   its GetBlockingInputStream may return null (so don't assert on them).
+      //   its GetInputStream may return null (so don't assert on them).
       // - It's a mutable file.  No writing will be performed.
       MOZ_ASSERT(storedFileInfo.mInputStream || storedFileInfo.mFileActor ||
                  storedFileInfo.mType == StructuredCloneFile::eMutableFile);
@@ -26612,7 +26640,7 @@ ObjectStoreAddOrPutRequestOp::DoDatabaseWork(DatabaseConnection* aConnection)
       if (!inputStream && storedFileInfo.mFileActor) {
         ErrorResult streamRv;
         inputStream =
-          storedFileInfo.mFileActor->GetBlockingInputStream(streamRv);
+          storedFileInfo.mFileActor->GetInputStream(streamRv);
         if (NS_WARN_IF(streamRv.Failed())) {
           return streamRv.StealNSResult();
         }
@@ -29720,6 +29748,103 @@ FileHelper::GetNewFileInfo()
   return mFileManager->GetNewFileInfo();
 }
 
+class FileHelper::ReadCallback final : public nsIInputStreamCallback
+{
+public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  ReadCallback()
+    : mMutex("ReadCallback::mMutex")
+    , mCondVar(mMutex, "ReadCallback::mCondVar")
+    , mInputAvailable(false)
+  {}
+
+  NS_IMETHOD
+  OnInputStreamReady(nsIAsyncInputStream* aStream) override
+  {
+    mozilla::MutexAutoLock autolock(mMutex);
+
+    mInputAvailable = true;
+    mCondVar.Notify();
+
+    return NS_OK;
+  }
+
+  nsresult
+  AsyncWait(nsIAsyncInputStream* aStream, uint32_t aBufferSize,
+            nsIEventTarget* aTarget)
+  {
+    MOZ_ASSERT(aStream);
+    mozilla::MutexAutoLock autolock(mMutex);
+
+    nsresult rv = aStream->AsyncWait(this, 0, aBufferSize, aTarget);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    mInputAvailable = false;
+    while (!mInputAvailable) {
+      mCondVar.Wait();
+    }
+
+    return NS_OK;
+  }
+
+private:
+  ~ReadCallback() = default;
+
+  mozilla::Mutex mMutex;
+  mozilla::CondVar mCondVar;
+  bool mInputAvailable;
+};
+
+NS_IMPL_ADDREF(FileHelper::ReadCallback);
+NS_IMPL_RELEASE(FileHelper::ReadCallback);
+
+NS_INTERFACE_MAP_BEGIN(FileHelper::ReadCallback)
+  NS_INTERFACE_MAP_ENTRY(nsIInputStreamCallback)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIInputStreamCallback)
+NS_INTERFACE_MAP_END
+
+nsresult
+FileHelper::SyncRead(nsIInputStream* aInputStream,
+                     char* aBuffer,
+                     uint32_t aBufferSize,
+                     uint32_t* aRead)
+{
+  MOZ_ASSERT(!IsOnBackgroundThread());
+  MOZ_ASSERT(aInputStream);
+
+  // Let's try to read, directly.
+  nsresult rv = aInputStream->Read(aBuffer, aBufferSize, aRead);
+  if (NS_SUCCEEDED(rv) || rv != NS_BASE_STREAM_WOULD_BLOCK) {
+    return rv;
+  }
+
+  // We need to proceed async.
+  nsCOMPtr<nsIAsyncInputStream> asyncStream = do_QueryInterface(aInputStream);
+  if (!asyncStream) {
+    return rv;
+  }
+
+  if (!mReadCallback) {
+    mReadCallback = new ReadCallback();
+  }
+
+  // We just need any thread with an event loop for receiving the
+  // OnInputStreamReady callback. Let's use the I/O thread.
+  nsCOMPtr<nsIEventTarget> target =
+    do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
+  MOZ_ASSERT(target);
+
+  rv = mReadCallback->AsyncWait(asyncStream, aBufferSize, target);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  return SyncRead(aInputStream, aBuffer, aBufferSize, aRead);
+}
+
 nsresult
 FileHelper::SyncCopy(nsIInputStream* aInputStream,
                      nsIOutputStream* aOutputStream,
@@ -29738,7 +29863,7 @@ FileHelper::SyncCopy(nsIInputStream* aInputStream,
 
   do {
     uint32_t numRead;
-    rv = aInputStream->Read(aBuffer, aBufferSize, &numRead);
+    rv = SyncRead(aInputStream, aBuffer, aBufferSize, &numRead);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       break;
     }

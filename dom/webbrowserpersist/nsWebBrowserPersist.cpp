@@ -14,6 +14,7 @@
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsILoadContext.h"
 #include "nsIPrivateBrowsingChannel.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIComponentRegistrar.h"
@@ -1119,6 +1120,8 @@ NS_IMETHODIMP nsWebBrowserPersist::OnStatus(
         case NS_NET_STATUS_END_FTP_TRANSACTION:
         case NS_NET_STATUS_CONNECTING_TO:
         case NS_NET_STATUS_CONNECTED_TO:
+        case NS_NET_STATUS_TLS_HANDSHAKE_STARTING:
+        case NS_NET_STATUS_TLS_HANDSHAKE_ENDED:
         case NS_NET_STATUS_SENDING_TO:
         case NS_NET_STATUS_RECEIVING_FROM:
         case NS_NET_STATUS_WAITING_FOR:
@@ -2025,7 +2028,7 @@ nsWebBrowserPersist::CalculateUniqueFilename(nsIURI *aURI)
 
             if (base.IsEmpty() || duplicateCounter > 1)
             {
-                char * tmp = mozilla::Smprintf("_%03d", duplicateCounter);
+                SmprintfPointer tmp = mozilla::Smprintf("_%03d", duplicateCounter);
                 NS_ENSURE_TRUE(tmp, NS_ERROR_OUT_OF_MEMORY);
                 if (filename.Length() < kDefaultMaxFilenameLength - 4)
                 {
@@ -2035,8 +2038,7 @@ nsWebBrowserPersist::CalculateUniqueFilename(nsIURI *aURI)
                 {
                     base.Mid(tmpBase, 0, base.Length() - 4);
                 }
-                tmpBase.Append(tmp);
-                mozilla::SmprintfFree(tmp);
+                tmpBase.Append(tmp.get());
             }
             else
             {

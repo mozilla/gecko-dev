@@ -10,16 +10,14 @@ var Cc = Components.classes;
 var Ci = Components.interfaces;
 var Cu = Components.utils;
 
-Cu.import("resource://gre/modules/PlacesUtils.jsm");
-Cu.import("resource://gre/modules/PlacesSyncUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/util.js");
-Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/PlacesBackups.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "BookmarkValidator",
                                   "resource://services-sync/bookmark_validator.js");
 XPCOMUtils.defineLazyGetter(this, "PlacesBundle", () => {
@@ -27,6 +25,12 @@ XPCOMUtils.defineLazyGetter(this, "PlacesBundle", () => {
                         .getService(Ci.nsIStringBundleService);
   return bundleService.createBundle("chrome://places/locale/places.properties");
 });
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesSyncUtils",
+                                  "resource://gre/modules/PlacesSyncUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
+                                  "resource://gre/modules/PlacesBackups.jsm");
 
 const ANNOS_TO_TRACK = [PlacesSyncUtils.bookmarks.DESCRIPTION_ANNO,
                         PlacesSyncUtils.bookmarks.SIDEBAR_ANNO,
@@ -433,14 +437,14 @@ BookmarksEngine.prototype = {
     SyncEngine.prototype._syncStartup.call(this);
 
     let cb = Async.makeSpinningCallback();
-    Task.spawn(function* () {
+    (async () => {
       // For first-syncs, make a backup for the user to restore
       if (this.lastSync == 0) {
         this._log.debug("Bookmarks backup starting.");
-        yield PlacesBackups.create(null, true);
+        await PlacesBackups.create(null, true);
         this._log.debug("Bookmarks backup done.");
       }
-    }.bind(this)).then(
+    })().then(
       cb, ex => {
         // Failure to create a backup is somewhat bad, but probably not bad
         // enough to prevent syncing of bookmarks - so just log the error and
@@ -630,6 +634,17 @@ BookmarksEngine.prototype = {
            FORBIDDEN_INCOMING_PARENT_IDS.includes(incomingItem.parentid);
   },
 
+  beforeRecordDiscard(record) {
+    let isSpecial = PlacesSyncUtils.bookmarks.ROOTS.includes(record.id);
+    if (isSpecial && record.children && !this._store._childrenToOrder[record.id]) {
+      if (this._modified.getStatus(record.id) != PlacesUtils.bookmarks.SYNC_STATUS.NEW) {
+        return;
+      }
+      this._log.debug("Recording children of " + record.id + " as " + JSON.stringify(record.children));
+      this._store._childrenToOrder[record.id] = record.children;
+    }
+  },
+
   getValidator() {
     return new BookmarkValidator();
   }
@@ -765,11 +780,11 @@ BookmarksStore.prototype = {
   //
   // See `PlacesSyncUtils.bookmarks.remove` for the implementation.
 
-  deletePending: Task.async(function* deletePending() {
-    let guidsToUpdate = yield PlacesSyncUtils.bookmarks.remove([...this._itemsToDelete]);
+  async deletePending() {
+    let guidsToUpdate = await PlacesSyncUtils.bookmarks.remove([...this._itemsToDelete]);
     this.clearPendingDeletions();
     return guidsToUpdate;
-  }),
+  },
 
   clearPendingDeletions() {
     this._itemsToDelete.clear();
@@ -834,11 +849,11 @@ BookmarksStore.prototype = {
 
   wipe: function BStore_wipe() {
     this.clearPendingDeletions();
-    Async.promiseSpinningly(Task.spawn(function* () {
+    Async.promiseSpinningly((async () => {
       // Save a backup before clearing out all bookmarks.
-      yield PlacesBackups.create(null, true);
-      yield PlacesSyncUtils.bookmarks.wipe();
-    }));
+      await PlacesBackups.create(null, true);
+      await PlacesSyncUtils.bookmarks.wipe();
+    })());
   }
 };
 
@@ -911,8 +926,8 @@ BookmarksTracker.prototype = {
 
   // Migrates tracker entries from the old JSON-based tracker to Places. This
   // is called the first time we start tracking changes.
-  _migrateOldEntries: Task.async(function* () {
-    let existingIDs = yield Utils.jsonLoad("changes/" + this.file, this);
+  async _migrateOldEntries() {
+    let existingIDs = await Utils.jsonLoad("changes/" + this.file, this);
     if (existingIDs === null) {
       // If the tracker file doesn't exist, we don't need to migrate, even if
       // the engine is enabled. It's possible we're upgrading before the first
@@ -946,9 +961,9 @@ BookmarksTracker.prototype = {
         modified: timestamp * 1000,
       });
     }
-    yield PlacesSyncUtils.bookmarks.migrateOldTrackerEntries(entries);
+    await PlacesSyncUtils.bookmarks.migrateOldTrackerEntries(entries);
     return Utils.jsonRemove("changes/" + this.file, this);
-  }),
+  },
 
   _needsMigration() {
     return this.engine && this.engineIsEnabled() && this.engine.lastSync > 0;
@@ -1120,6 +1135,14 @@ class BookmarksChangeset extends Changeset {
     // Weak changes are part of the changeset, but don't bump the change
     // counter, and aren't persisted anywhere.
     this.weakChanges = {};
+  }
+
+  getStatus(id) {
+    let change = this.changes[id];
+    if (!change) {
+      return PlacesUtils.bookmarks.SYNC_STATUS.UNKNOWN;
+    }
+    return change.status;
   }
 
   getModifiedTimestamp(id) {

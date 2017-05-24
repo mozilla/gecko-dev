@@ -199,7 +199,7 @@ gc::GCRuntime::startVerifyPreBarriers()
     for (auto chunk = allNonEmptyChunks(); !chunk.done(); chunk.next())
         chunk->bitmap.clear();
 
-    gcstats::AutoPhase ap(stats(), gcstats::PHASE_TRACE_HEAP);
+    gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::TRACE_HEAP);
 
     const size_t size = 64 * 1024 * 1024;
     trc->root = (VerifyNode*)js_malloc(size);
@@ -246,8 +246,7 @@ gc::GCRuntime::startVerifyPreBarriers()
 
     for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next()) {
         MOZ_ASSERT(!zone->usedByHelperThread());
-        PurgeJITCaches(zone);
-        zone->setNeedsIncrementalBarrier(true, Zone::UpdateJit);
+        zone->setNeedsIncrementalBarrier(true);
         zone->arenas.purge();
     }
 
@@ -341,8 +340,7 @@ gc::GCRuntime::endVerifyPreBarriers()
         if (!zone->needsIncrementalBarrier())
             compartmentCreated = true;
 
-        zone->setNeedsIncrementalBarrier(false, Zone::UpdateJit);
-        PurgeJITCaches(zone);
+        zone->setNeedsIncrementalBarrier(false);
     }
 
     /*
@@ -592,7 +590,7 @@ CheckHeapTracer::CheckHeapTracer(JSRuntime* rt)
 inline static bool
 IsValidGCThingPointer(Cell* cell)
 {
-    return (uintptr_t(cell) & CellMask) == 0;
+    return (uintptr_t(cell) & CellAlignMask) == 0;
 }
 
 void
@@ -659,7 +657,8 @@ CheckGrayMarkingTracer::checkCell(Cell* cell)
         tenuredCell->isMarked(GRAY))
     {
         failures++;
-        fprintf(stderr, "Found black to gray edge %p\n", cell);
+        fprintf(stderr, "Found black to gray edge to %s %p\n",
+                GCTraceKindToAscii(cell->getTraceKind()), cell);
         dumpCellPath();
     }
 }
@@ -674,15 +673,14 @@ CheckGrayMarkingTracer::check(AutoLockForExclusiveAccess& lock)
 }
 
 JS_FRIEND_API(bool)
-js::CheckGrayMarkingState(JSContext* cx)
+js::CheckGrayMarkingState(JSRuntime* rt)
 {
-    JSRuntime* rt = cx->runtime();
     MOZ_ASSERT(!JS::CurrentThreadIsHeapCollecting());
     MOZ_ASSERT(!rt->gc.isIncrementalGCInProgress());
     if (!rt->gc.areGrayBitsValid())
         return true;
 
-    gcstats::AutoPhase ap(rt->gc.stats(), gcstats::PHASE_TRACE_HEAP);
+    gcstats::AutoPhase ap(rt->gc.stats(), gcstats::PhaseKind::TRACE_HEAP);
     AutoTraceSession session(rt, JS::HeapState::Tracing);
     CheckGrayMarkingTracer tracer(rt);
     if (!tracer.init())

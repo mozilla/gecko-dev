@@ -19,6 +19,7 @@ the graph.
 from __future__ import absolute_import, print_function, unicode_literals
 
 import logging
+import re
 
 from slugid import nice as slugid
 from .task import Task
@@ -94,6 +95,17 @@ def derive_misc_task(task, purpose, image, taskgraph, label_to_taskid):
     return task
 
 
+# these regular expressions capture route prefixes for which we have a star
+# scope, allowing them to be summarized.  Each should correspond to a star scope
+# in each Gecko `assume:repo:hg.mozilla.org/...` role.
+SCOPE_SUMMARY_REGEXPS = [
+    re.compile(r'(index:insert-task:buildbot\.branches\.[^.]*\.).*'),
+    re.compile(r'(index:insert-task:buildbot\.revisions\.).*'),
+    re.compile(r'(index:insert-task:docker\.images\.v1\.[^.]*\.).*'),
+    re.compile(r'(index:insert-task:gecko\.v2\.[^.]*\.).*'),
+]
+
+
 def make_index_task(parent_task, taskgraph, label_to_taskid):
     index_paths = [r.split('.', 1)[1] for r in parent_task.task['routes']
                    if r.startswith('index.')]
@@ -102,12 +114,23 @@ def make_index_task(parent_task, taskgraph, label_to_taskid):
 
     task = derive_misc_task(parent_task, 'index-task', 'index-task',
                             taskgraph, label_to_taskid)
-    task.task['scopes'] = [
-        'index:insert-task:{}'.format(path) for path in index_paths]
+
+    # we need to "summarize" the scopes, otherwise a particularly
+    # namespace-heavy index task might have more scopes than can fit in a
+    # temporary credential.
+    scopes = set()
+    for path in index_paths:
+        scope = 'index:insert-task:{}'.format(path)
+        for summ_re in SCOPE_SUMMARY_REGEXPS:
+            match = summ_re.match(scope)
+            if match:
+                scope = match.group(1) + '*'
+                break
+        scopes.add(scope)
+    task.task['scopes'] = sorted(scopes)
+
     task.task['payload']['command'] = ['insert-indexes.js'] + index_paths
-    task.task['payload']['env'] = {
-        "TARGET_TASKID": parent_task.task_id,
-    }
+    task.task['payload']['env'] = {"TARGET_TASKID": parent_task.task_id}
     return task
 
 
@@ -134,7 +157,91 @@ def add_index_tasks(taskgraph, label_to_taskid):
     return taskgraph, label_to_taskid
 
 
+def make_s3_uploader_task(parent_task):
+    if parent_task.task['payload']['sourcestamp']['branch'] == 'try':
+        worker_type = 'buildbot-try'
+    else:
+        worker_type = 'buildbot'
+
+    task_def = {
+        # The null-provisioner and buildbot worker type don't actually exist.
+        # So this task doesn't actually run - we just need to create the task so
+        # we have something to attach artifacts to.
+        "provisionerId": "null-provisioner",
+        "workerType": worker_type,
+        "created": {'relative-datestamp': '0 seconds'},
+        "deadline": parent_task.task['deadline'],
+        "routes": parent_task.task['routes'],
+        "payload": {},
+        "metadata": {
+            "name": "Buildbot/mozharness S3 uploader",
+            "description": "Upload outputs of buildbot/mozharness builds to S3",
+            "owner": "mshal@mozilla.com",
+            "source": "http://hg.mozilla.org/build/mozharness/",
+        }
+    }
+    parent_task.task['routes'] = []
+    label = 's3-uploader-{}'.format(parent_task.label)
+    dependencies = {}
+    task = Task(kind='misc', label=label, attributes={}, task=task_def,
+                dependencies=dependencies)
+    task.task_id = parent_task.task['payload']['properties']['upload_to_task_id']
+    return task
+
+
+def update_test_tasks(taskid, build_taskid, taskgraph):
+    """Tests task must download artifacts from uploader task."""
+    # Notice we handle buildbot-bridge, native, and generic-worker payloads
+    # We can do better here in terms of graph searching
+    # We could do post order search and stop as soon as we
+    # reach the build task. Not worring about it because this is
+    # (supposed to be) a temporary solution.
+    for task in taskgraph.tasks.itervalues():
+        if build_taskid in task.task.get('dependencies', []):
+            payload = task.task['payload']
+            task.task['dependencies'].append(taskid)
+            taskgraph.graph.edges.add((task.task_id, taskid, 'uploader'))
+            if 'command' in payload:
+                try:
+                    payload['command'] = [
+                        cmd.replace(build_taskid, taskid) for cmd in payload['command']
+                    ]
+                except AttributeError:
+                    # generic-worker command attribute is an list of lists
+                    payload['command'] = [
+                        [cmd.replace(build_taskid, taskid) for cmd in x]
+                        for x in payload['command']
+                    ]
+            if 'mounts' in payload:
+                for mount in payload['mounts']:
+                    if mount.get('content', {}).get('taskId', '') == build_taskid:
+                        mount['content']['taskId'] = taskid
+            if 'env' in payload:
+                payload['env'] = {
+                    k: v.replace(build_taskid, taskid) for k, v in payload['env'].iteritems()
+                }
+            if 'properties' in payload:
+                payload['properties']['parent_task_id'] = taskid
+
+
+def add_s3_uploader_task(taskgraph, label_to_taskid):
+    """The S3 uploader task is used by mozharness to upload buildbot artifacts."""
+    for task in taskgraph.tasks.itervalues():
+        if 'upload_to_task_id' in task.task.get('payload', {}).get('properties', {}):
+            added = make_s3_uploader_task(task)
+            taskgraph, label_to_taskid = amend_taskgraph(
+                taskgraph, label_to_taskid, [added])
+            update_test_tasks(added.task_id, task.task_id, taskgraph)
+            logger.info('Added s3-uploader task')
+    return taskgraph, label_to_taskid
+
+
 def morph(taskgraph, label_to_taskid):
     """Apply all morphs"""
-    taskgraph, label_to_taskid = add_index_tasks(taskgraph, label_to_taskid)
+    morphs = [
+        add_index_tasks,
+        add_s3_uploader_task,
+    ]
+    for m in morphs:
+        taskgraph, label_to_taskid = m(taskgraph, label_to_taskid)
     return taskgraph, label_to_taskid

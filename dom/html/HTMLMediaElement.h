@@ -102,6 +102,8 @@ public:
 
   explicit HTMLMediaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
+  void ReportCanPlayTelemetry();
+
   /**
    * This is used when the browser is constructing a video element to play
    * a channel that we've already started loading. The src attribute and
@@ -138,6 +140,7 @@ public:
                              bool aNotify) override;
   virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                 const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
                                 bool aNotify) override;
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -385,7 +388,7 @@ public:
    */
   bool GetPlayedOrSeeked() const { return mHasPlayedOrSeeked; }
 
-  nsresult CopyInnerTo(Element* aDest);
+  nsresult CopyInnerTo(Element* aDest, bool aPreallocateChildren);
 
   /**
    * Sets the Accept header on the HTTP channel to the required
@@ -693,13 +696,6 @@ public:
 
   double MozFragmentEnd();
 
-  AudioChannel MozAudioChannelType() const
-  {
-    return mAudioChannel;
-  }
-
-  void SetMozAudioChannelType(AudioChannel aValue, ErrorResult& aRv);
-
   AudioTrackList* AudioTracks();
 
   VideoTrackList* VideoTracks();
@@ -751,9 +747,6 @@ public:
   // that will soon be gone.
   bool IsBeingDestroyed();
 
-  IMPL_EVENT_HANDLER(mozinterruptbegin)
-  IMPL_EVENT_HANDLER(mozinterruptend)
-
   // These are used for testing only
   float ComputedVolume() const;
   bool ComputedMuted() const;
@@ -781,6 +774,17 @@ public:
   void RemoveMediaTracks() override;
 
   already_AddRefed<GMPCrashHelper> CreateGMPCrashHelper() override;
+
+  // The promise resolving/rejection is queued as a "micro-task" which will be
+  // handled immediately after the current JS task and before any pending JS
+  // tasks.
+  // At the time we are going to resolve/reject a promise, the "seeking" event
+  // task should already be queued but might yet be processed, so we queue one
+  // more task to file the promise resolving/rejection micro-tasks
+  // asynchronously to make sure that the micro-tasks are processed after the
+  // "seeking" event task.
+  void AsyncResolveSeekDOMPromiseIfExists() override;
+  void AsyncRejectSeekDOMPromiseIfExists() override;
 
 protected:
   virtual ~HTMLMediaElement();
@@ -1239,9 +1243,6 @@ protected:
 
   void ReportTelemetry();
 
-  // Check the permissions for audiochannel.
-  bool CheckAudioChannelPermissions(const nsAString& aType);
-
   // Seeks to aTime seconds. aSeekType can be Exact to seek to exactly the
   // seek target, or PrevSyncPoint if a quicker but less precise seek is
   // desired, and we'll seek to the sync point (keyframe and/or start of the
@@ -1613,6 +1614,10 @@ protected:
   // True if a same-origin check has been done for the media element and resource.
   bool mMediaSecurityVerified;
 
+  // True if we should set nsIClassOfService::UrgentStart to the channel to
+  // get the response ASAP for better user responsiveness.
+  bool mUseUrgentStartForChannel = false;
+
   // The CORS mode when loading the media element
   CORSMode mCORSMode;
 
@@ -1745,6 +1750,10 @@ private:
   // participate in video decoder suspending.
   bool mHasSuspendTaint;
 
+  // True if audio tracks and video tracks are constructed and added into the
+  // track list, false if all tracks are removed from the track list.
+  bool mMediaTracksConstructed;
+
   Visibility mVisibilityState;
 
   UniquePtr<ErrorSink> mErrorSink;
@@ -1764,6 +1773,11 @@ private:
   // We keep track of these because the load algorithm resolves/rejects all
   // already-dispatched pending play promises.
   nsTArray<nsResolveOrRejectPendingPlayPromisesRunner*> mPendingPlayPromisesRunners;
+
+  // A pending seek promise which is created at Seek() method call and is
+  // resolved/rejected at AsyncResolveSeekDOMPromiseIfExists()/
+  // AsyncRejectSeekDOMPromiseIfExists() methods.
+  RefPtr<dom::Promise> mSeekDOMPromise;
 };
 
 // Check if the context is chrome or has the debugger permission

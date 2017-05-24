@@ -112,8 +112,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "ExtensionUtils",
                                   "resource://gre/modules/ExtensionUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
                                   "resource://gre/modules/PromiseUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "MessageManagerProxy",
                             () => ExtensionUtils.MessageManagerProxy);
@@ -280,8 +278,8 @@ const MESSAGE_RESPONSE = "MessageChannel:Response";
 
 this.MessageChannel = {
   init() {
-    Services.obs.addObserver(this, "message-manager-close", false);
-    Services.obs.addObserver(this, "message-manager-disconnect", false);
+    Services.obs.addObserver(this, "message-manager-close");
+    Services.obs.addObserver(this, "message-manager-disconnect");
 
     this.messageManagers = new FilteringMessageManagerMap(
       MESSAGE_MESSAGE, this._handleMessage.bind(this));
@@ -458,7 +456,10 @@ this.MessageChannel = {
    *        message by returning `false`. See `getHandlers` for the parameters.
    */
   addListener(targets, messageName, handler) {
-    for (let target of [].concat(targets)) {
+    if (!Array.isArray(targets)) {
+      targets = [targets];
+    }
+    for (let target of targets) {
       this.messageManagers.get(target).addHandler(messageName, handler);
     }
   },
@@ -474,7 +475,10 @@ this.MessageChannel = {
    *    The handler to stop dispatching to.
    */
   removeListener(targets, messageName, handler) {
-    for (let target of [].concat(targets)) {
+    if (!Array.isArray(targets)) {
+      targets = [targets];
+    }
+    for (let target of targets) {
       if (this.messageManagers.has(target)) {
         this.messageManagers.get(target).removeHandler(messageName, handler);
       }
@@ -535,6 +539,7 @@ this.MessageChannel = {
     let deferred = PromiseUtils.defer();
     deferred.sender = recipient;
     deferred.messageManager = target;
+    deferred.channelId = channelId;
 
     this._addPendingResponse(deferred);
 
@@ -636,6 +641,7 @@ this.MessageChannel = {
     let deferred = {
       sender: data.sender,
       messageManager: target,
+      channelId: data.channelId,
     };
     deferred.promise = new Promise((resolve, reject) => {
       deferred.reject = reject;

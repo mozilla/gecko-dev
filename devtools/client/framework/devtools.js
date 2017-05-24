@@ -4,11 +4,13 @@
 
 "use strict";
 
+const {Cu} = require("chrome");
 const Services = require("Services");
-const promise = require("promise");
-const defer = require("devtools/shared/defer");
+
+const {DevToolsShim} = Cu.import("chrome://devtools-shim/content/DevToolsShim.jsm", {});
 
 // Load gDevToolsBrowser toolbox lazily as they need gDevTools to be fully initialized
+loader.lazyRequireGetter(this, "TargetFactory", "devtools/client/framework/target", true);
 loader.lazyRequireGetter(this, "Toolbox", "devtools/client/framework/toolbox", true);
 loader.lazyRequireGetter(this, "ToolboxHostManager", "devtools/client/framework/toolbox-host-manager", true);
 loader.lazyRequireGetter(this, "gDevToolsBrowser", "devtools/client/framework/devtools-browser", true);
@@ -45,7 +47,12 @@ function DevTools() {
   // start registering all default tools and themes: create menuitems, keys, emit
   // related events.
   this.registerDefaults();
-};
+
+  // Register this new DevTools instance to Firefox. DevToolsShim is part of Firefox,
+  // integrating with all Firefox codebase and making the glue between code from
+  // mozilla-central and DevTools add-on on github
+  DevToolsShim.register(this);
+}
 
 DevTools.prototype = {
   // The windowtype of the main window, used in various tools. This may be set
@@ -99,7 +106,7 @@ DevTools.prototype = {
    *          markup from |url|, and also the toolbox containing the panel.
    *          And returns an instance of ToolPanel (function|required)
    */
-  registerTool: function DT_registerTool(toolDefinition) {
+  registerTool(toolDefinition) {
     let toolId = toolDefinition.id;
 
     if (!toolId || FORBIDDEN_IDS.has(toolId)) {
@@ -129,17 +136,16 @@ DevTools.prototype = {
    *        true to indicate that the call is due to app quit, so we should not
    *        cause a cascade of costly events
    */
-  unregisterTool: function DT_unregisterTool(tool, isQuitApplication) {
+  unregisterTool(tool, isQuitApplication) {
     let toolId = null;
     if (typeof tool == "string") {
       toolId = tool;
       tool = this._tools.get(tool);
-    }
-    else {
+    } else {
       let {Deprecated} = Cu.import("resource://gre/modules/Deprecated.jsm", {});
-      Deprecated.warning("Deprecation WARNING: gDevTools.unregisterTool(tool) is deprecated. " +
-                         "You should unregister a tool using its toolId: " +
-                         "gDevTools.unregisterTool(toolId).");
+      Deprecated.warning("Deprecation WARNING: gDevTools.unregisterTool(tool) is " +
+        "deprecated. You should unregister a tool using its toolId: " +
+        "gDevTools.unregisterTool(toolId).");
       toolId = tool.id;
     }
     this._tools.delete(toolId);
@@ -152,19 +158,19 @@ DevTools.prototype = {
   /**
    * Sorting function used for sorting tools based on their ordinals.
    */
-  ordinalSort: function DT_ordinalSort(d1, d2) {
+  ordinalSort(d1, d2) {
     let o1 = (typeof d1.ordinal == "number") ? d1.ordinal : MAX_ORDINAL;
     let o2 = (typeof d2.ordinal == "number") ? d2.ordinal : MAX_ORDINAL;
     return o1 - o2;
   },
 
-  getDefaultTools: function DT_getDefaultTools() {
+  getDefaultTools() {
     return DefaultTools.sort(this.ordinalSort);
   },
 
-  getAdditionalTools: function DT_getAdditionalTools() {
+  getAdditionalTools() {
     let tools = [];
-    for (let [key, value] of this._tools) {
+    for (let [, value] of this._tools) {
       if (DefaultTools.indexOf(value) == -1) {
         tools.push(value);
       }
@@ -185,7 +191,7 @@ DevTools.prototype = {
    * @return {ToolDefinition|null} tool
    *         The ToolDefinition for the id or null.
    */
-  getToolDefinition: function DT_getToolDefinition(toolId) {
+  getToolDefinition(toolId) {
     let tool = this._tools.get(toolId);
     if (!tool) {
       return null;
@@ -205,7 +211,7 @@ DevTools.prototype = {
    * @return {Map} tools
    *         A map of the the tool definitions registered in this instance
    */
-  getToolDefinitionMap: function DT_getToolDefinitionMap() {
+  getToolDefinitionMap() {
     let tools = new Map();
 
     for (let [id, definition] of this._tools) {
@@ -225,7 +231,7 @@ DevTools.prototype = {
    * @return {Array} tools
    *         A sorted array of the tool definitions registered in this instance
    */
-  getToolDefinitionArray: function DT_getToolDefinitionArray() {
+  getToolDefinitionArray() {
     let definitions = [];
 
     for (let [id, definition] of this._tools) {
@@ -259,7 +265,7 @@ DevTools.prototype = {
    *            is unapplied. The function takes the current iframe window
    *            and the new theme id as arguments (function)
    */
-  registerTheme: function DT_registerTheme(themeDefinition) {
+  registerTheme(themeDefinition) {
     let themeId = themeDefinition.id;
 
     if (!themeId) {
@@ -282,13 +288,12 @@ DevTools.prototype = {
    * @param {string|object} theme
    *        Definition or the id of the theme to unregister.
    */
-  unregisterTheme: function DT_unregisterTheme(theme) {
+  unregisterTheme(theme) {
     let themeId = null;
     if (typeof theme == "string") {
       themeId = theme;
       theme = this._themes.get(theme);
-    }
-    else {
+    } else {
       themeId = theme.id;
     }
 
@@ -322,7 +327,7 @@ DevTools.prototype = {
    * @return {ThemeDefinition|null} theme
    *         The ThemeDefinition for the id or null.
    */
-  getThemeDefinition: function DT_getThemeDefinition(themeId) {
+  getThemeDefinition(themeId) {
     let theme = this._themes.get(themeId);
     if (!theme) {
       return null;
@@ -336,7 +341,7 @@ DevTools.prototype = {
    * @return {Map} themes
    *         A map of the the theme definitions registered in this instance
    */
-  getThemeDefinitionMap: function DT_getThemeDefinitionMap() {
+  getThemeDefinitionMap() {
     let themes = new Map();
 
     for (let [id, definition] of this._themes) {
@@ -354,7 +359,7 @@ DevTools.prototype = {
    * @return {Array} themes
    *         A sorted array of the theme definitions registered in this instance
    */
-  getThemeDefinitionArray: function DT_getThemeDefinitionArray() {
+  getThemeDefinitionArray() {
     let definitions = [];
 
     for (let [id, definition] of this._themes) {
@@ -389,7 +394,6 @@ DevTools.prototype = {
   showToolbox: Task.async(function* (target, toolId, hostType, hostOptions) {
     let toolbox = this._toolboxes.get(target);
     if (toolbox) {
-
       if (hostType != null && toolbox.hostType != hostType) {
         yield toolbox.switchHost(hostType);
       }
@@ -448,7 +452,7 @@ DevTools.prototype = {
    * @return {Toolbox} toolbox
    *         The toolbox that is debugging the given target
    */
-  getToolbox: function DT_getToolbox(target) {
+  getToolbox(target) {
     return this._toolboxes.get(target);
   },
 
@@ -473,6 +477,18 @@ DevTools.prototype = {
   }),
 
   /**
+   * Wrapper on TargetFactory.forTab, constructs a Target for the provided tab.
+   *
+   * @param  {XULTab} tab
+   *         The tab to use in creating a new target.
+   *
+   * @return {TabTarget} A target object
+   */
+  getTargetForTab: function (tab) {
+    return TargetFactory.forTab(tab);
+  },
+
+  /**
    * Either the SDK Loader has been destroyed by the add-on contribution
    * workflow, or firefox is shutting down.
 
@@ -481,23 +497,27 @@ DevTools.prototype = {
    *        some cleanups to speed it up. Otherwise everything need to be
    *        cleaned up in order to be able to load devtools again.
    */
-  destroy: function ({ shuttingDown }) {
+  destroy({ shuttingDown }) {
     // Do not cleanup everything during firefox shutdown, but only when
     // devtools are reloaded via the add-on contribution workflow.
     if (!shuttingDown) {
-      for (let [target, toolbox] of this._toolboxes) {
+      for (let [, toolbox] of this._toolboxes) {
         toolbox.destroy();
       }
       AboutDevTools.unregister();
     }
 
-    for (let [key, tool] of this.getToolDefinitionMap()) {
+    for (let [key, ] of this.getToolDefinitionMap()) {
       this.unregisterTool(key, true);
     }
 
     JsonView.destroy();
 
     gDevTools.unregisterDefaults();
+
+    // Notify the DevToolsShim that DevTools are no longer available, particularly if the
+    // destroy was caused by disabling/removing the DevTools add-on.
+    DevToolsShim.unregister();
 
     // Cleaning down the toolboxes: i.e.
     //   for (let [target, toolbox] of this._toolboxes) toolbox.destroy();
@@ -507,7 +527,7 @@ DevTools.prototype = {
   /**
    * Iterator that yields each of the toolboxes.
    */
-  *[Symbol.iterator ]() {
+  * [Symbol.iterator ]() {
     for (let toolbox of this._toolboxes) {
       yield toolbox;
     }

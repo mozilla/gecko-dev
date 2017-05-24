@@ -273,6 +273,11 @@ LogCookie(nsCookie *aCookie)
 
     MOZ_LOG(gCookieLog, LogLevel::Debug,("is secure: %s\n", aCookie->IsSecure() ? "true" : "false"));
     MOZ_LOG(gCookieLog, LogLevel::Debug,("is httpOnly: %s\n", aCookie->IsHttpOnly() ? "true" : "false"));
+
+    nsAutoCString suffix;
+    aCookie->OriginAttributesRef().CreateSuffix(suffix);
+    MOZ_LOG(gCookieLog, LogLevel::Debug,("origin attributes: %s\n",
+            suffix.IsEmpty() ? "{empty}" : suffix.get()));
   }
 }
 
@@ -329,10 +334,9 @@ LogSuccess(bool aSetCookie, nsIURI *aHostURI, const nsAFlatCString &aCookieStrin
   PR_BEGIN_MACRO                                                             \
   nsresult __rv = res; /* Do not evaluate |res| more than once! */           \
   if (NS_FAILED(__rv)) {                                                     \
-    char *msg = mozilla::Smprintf("NS_ASSERT_SUCCESS(%s) failed with result 0x%" PRIX32, \
+    SmprintfPointer msg = mozilla::Smprintf("NS_ASSERT_SUCCESS(%s) failed with result 0x%" PRIX32, \
                            #res, static_cast<uint32_t>(__rv));               \
-    NS_ASSERTION(NS_SUCCEEDED(__rv), msg);                                   \
-    mozilla::SmprintfFree(msg);                                                    \
+    NS_ASSERTION(NS_SUCCEEDED(__rv), msg.get());                             \
   }                                                                          \
   PR_END_MACRO
 #else
@@ -1513,13 +1517,13 @@ nsCookieService::TryInitDB(bool aRecreateDB)
 
   rv = mDefaultDBState->dbConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
     "DELETE FROM moz_cookies "
-    "WHERE name = :name AND host = :host AND path = :path"),
+    "WHERE name = :name AND host = :host AND path = :path AND originAttributes = :originAttributes"),
     getter_AddRefs(mDefaultDBState->stmtDelete));
   NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
 
   rv = mDefaultDBState->dbConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
     "UPDATE moz_cookies SET lastAccessed = :lastAccessed "
-    "WHERE name = :name AND host = :host AND path = :path"),
+    "WHERE name = :name AND host = :host AND path = :path AND originAttributes = :originAttributes"),
     getter_AddRefs(mDefaultDBState->stmtUpdate));
   NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
 
@@ -2007,11 +2011,8 @@ nsCookieService::GetCookieStringCommon(nsIURI *aHostURI,
     NS_GetOriginAttributes(aChannel, attrs);
   }
 
-  bool isPrivate = aChannel && NS_UsePrivateBrowsing(aChannel);
-
   nsAutoCString result;
-  GetCookieStringInternal(aHostURI, isForeign, aHttpBound, attrs,
-                          isPrivate, result);
+  GetCookieStringInternal(aHostURI, isForeign, aHttpBound, attrs, result);
   *aCookie = result.IsEmpty() ? nullptr : ToNewCString(result);
   return NS_OK;
 }
@@ -2080,13 +2081,10 @@ nsCookieService::SetCookieStringCommon(nsIURI *aHostURI,
     NS_GetOriginAttributes(aChannel, attrs);
   }
 
-  bool isPrivate = aChannel && NS_UsePrivateBrowsing(aChannel);
-
   nsDependentCString cookieString(aCookieHeader);
   nsDependentCString serverTime(aServerTime ? aServerTime : "");
   SetCookieStringInternal(aHostURI, isForeign, cookieString,
-                          serverTime, aFromHttp, attrs,
-                          isPrivate, aChannel);
+                          serverTime, aFromHttp, attrs, aChannel);
   return NS_OK;
 }
 
@@ -2097,7 +2095,6 @@ nsCookieService::SetCookieStringInternal(nsIURI                 *aHostURI,
                                          const nsCString        &aServerTime,
                                          bool                    aFromHttp,
                                          const OriginAttributes &aOriginAttrs,
-                                         bool                    aIsPrivate,
                                          nsIChannel             *aChannel)
 {
   NS_ASSERTION(aHostURI, "null host!");
@@ -2108,7 +2105,7 @@ nsCookieService::SetCookieStringInternal(nsIURI                 *aHostURI,
   }
 
   AutoRestore<DBState*> savePrevDBState(mDBState);
-  mDBState = aIsPrivate ? mPrivateDBState : mDefaultDBState;
+  mDBState = (aOriginAttrs.mPrivateBrowsingId > 0) ? mPrivateDBState : mDefaultDBState;
 
   // get the base domain for the host URI.
   // e.g. for "www.bbc.co.uk", this would be "bbc.co.uk".
@@ -2358,6 +2355,31 @@ nsCookieService::GetEnumerator(nsISimpleEnumerator **aEnumerator)
     const nsCookieEntry::ArrayType& cookies = iter.Get()->GetCookies();
     for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
       cookieList.AppendObject(cookies[i]);
+    }
+  }
+
+  return NS_NewArrayEnumerator(aEnumerator, cookieList);
+}
+
+NS_IMETHODIMP
+nsCookieService::GetSessionEnumerator(nsISimpleEnumerator **aEnumerator)
+{
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  EnsureReadComplete();
+
+  nsCOMArray<nsICookie> cookieList(mDBState->cookieCount);
+  for (auto iter = mDBState->hostTable.Iter(); !iter.Done(); iter.Next()) {
+    const nsCookieEntry::ArrayType& cookies = iter.Get()->GetCookies();
+    for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
+      nsCookie* cookie = cookies[i];
+      // Filter out non-session cookies.
+      if (cookie->IsSession()) {
+        cookieList.AppendObject(cookie);
+      }
     }
   }
 
@@ -3204,7 +3226,6 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
                                          bool aIsForeign,
                                          bool aHttpBound,
                                          const OriginAttributes& aOriginAttrs,
-                                         bool aIsPrivate,
                                          nsCString &aCookieString)
 {
   NS_ASSERTION(aHostURI, "null host!");
@@ -3215,7 +3236,7 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
   }
 
   AutoRestore<DBState*> savePrevDBState(mDBState);
-  mDBState = aIsPrivate ? mPrivateDBState : mDefaultDBState;
+  mDBState = (aOriginAttrs.mPrivateBrowsingId > 0) ? mPrivateDBState : mDefaultDBState;
 
   // get the base domain, host, and path from the URI.
   // e.g. for "www.bbc.co.uk", the base domain would be "bbc.co.uk".
@@ -5008,6 +5029,12 @@ nsCookieService::RemoveCookieFromList(const nsListIter              &aIter,
                                       aIter.Cookie()->Path());
     NS_ASSERT_SUCCESS(rv);
 
+    nsAutoCString suffix;
+    aIter.Cookie()->OriginAttributesRef().CreateSuffix(suffix);
+    rv = params->BindUTF8StringByName(
+      NS_LITERAL_CSTRING("originAttributes"), suffix);
+    NS_ASSERT_SUCCESS(rv);
+
     rv = paramsArray->AddParams(params);
     NS_ASSERT_SUCCESS(rv);
 
@@ -5185,6 +5212,12 @@ nsCookieService::UpdateCookieInList(nsCookie                      *aCookie,
 
     rv = params->BindUTF8StringByName(NS_LITERAL_CSTRING("path"),
                                       aCookie->Path());
+    NS_ASSERT_SUCCESS(rv);
+
+    nsAutoCString suffix;
+    aCookie->OriginAttributesRef().CreateSuffix(suffix);
+    rv = params->BindUTF8StringByName(
+      NS_LITERAL_CSTRING("originAttributes"), suffix);
     NS_ASSERT_SUCCESS(rv);
 
     // Add our bound parameters to the array.

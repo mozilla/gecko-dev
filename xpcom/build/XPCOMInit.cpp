@@ -6,7 +6,6 @@
 
 #include "base/basictypes.h"
 
-#include "mozilla/AbstractThread.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Poison.h"
 #include "mozilla/SharedThreadPool.h"
@@ -112,6 +111,7 @@ extern nsresult nsStringInputStreamConstructor(nsISupports*, REFNSIID, void**);
 #include "mozilla/Services.h"
 #include "mozilla/Omnijar.h"
 #include "mozilla/HangMonitor.h"
+#include "mozilla/ScriptPreloader.h"
 #include "mozilla/SystemGroup.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/BackgroundHangMonitor.h"
@@ -681,9 +681,6 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
   }
   sInitializedJS = true;
   
-  // Init AbstractThread.
-  AbstractThread::InitStatics();
-
   rv = nsComponentManagerImpl::gComponentManager->Init();
   if (NS_FAILED(rv)) {
     NS_RELEASE(nsComponentManagerImpl::gComponentManager);
@@ -713,6 +710,7 @@ NS_InitXPCOM2(nsIServiceManager** aResult,
   nsCOMPtr<nsISupports> componentLoader =
     do_GetService("@mozilla.org/moz/jsloader;1");
 
+  mozilla::ScriptPreloader::GetSingleton();
   mozilla::scache::StartupCache::GetSingleton();
   mozilla::AvailableMemoryTracker::Activate();
 
@@ -791,7 +789,6 @@ NS_InitMinimalXPCOM()
     return NS_ERROR_UNEXPECTED;
   }
 
-  AbstractThread::InitStatics();
   SharedThreadPool::InitStatics();
   mozilla::Telemetry::Init();
   mozilla::HangMonitor::Startup();

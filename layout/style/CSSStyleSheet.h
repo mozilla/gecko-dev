@@ -15,12 +15,10 @@
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInfo.h"
 #include "mozilla/css/SheetParsingMode.h"
-#include "mozilla/dom/Element.h"
 
 #include "nscore.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "nsICSSLoaderObserver.h"
 #include "nsTArrayForwardDeclare.h"
 #include "nsString.h"
 #include "mozilla/CORSMode.h"
@@ -45,6 +43,7 @@ class GroupRule;
 } // namespace css
 namespace dom {
 class CSSRuleList;
+class Element;
 } // namespace dom
 
   // -------------------------------
@@ -87,7 +86,6 @@ struct CSSStyleSheetInner : public StyleSheetInfo
 
 
 class CSSStyleSheet final : public StyleSheet
-                          , public nsICSSLoaderObserver
 {
 public:
   typedef net::ReferrerPolicy ReferrerPolicy;
@@ -168,10 +166,7 @@ public:
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
 
   dom::Element* GetScopeElement() const { return mScopeElement; }
-  void SetScopeElement(dom::Element* aScopeElement)
-  {
-    mScopeElement = aScopeElement;
-  }
+  void SetScopeElement(dom::Element* aScopeElement);
 
   // WebIDL CSSStyleSheet API
   // Can't be inline because we can't include ImportRule here.  And can't be

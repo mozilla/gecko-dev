@@ -24,7 +24,12 @@ VERSION_PATH = os.path.join(GECKO, "browser", "config", "version_display.txt")
 
 """Map signing scope aliases to sets of projects.
 
-Currently m-c and m-a use nightly signing; m-b and m-r use release signing.
+Currently m-c and DevEdition on m-b use nightly signing; Beta on m-b and m-r
+use release signing. These data structures aren't set-up to handle different
+scopes on the same repo, so we use a different set of them for DevEdition, and
+callers are responsible for using the correct one (by calling the appropriate
+helper below). More context on this in https://bugzilla.mozilla.org/show_bug.cgi?id=1358601.
+
 We will need to add esr support at some point. Eventually we want to add
 nuance so certain m-b and m-r tasks use dep or nightly signing, and we only
 release sign when we have a signed-off set of candidate builds.  This current
@@ -49,6 +54,17 @@ SIGNING_SCOPE_ALIAS_TO_PROJECT = [[
 SIGNING_CERT_SCOPES = {
     'all-release-branches': 'project:releng:signing:cert:release-signing',
     'all-nightly-branches': 'project:releng:signing:cert:nightly-signing',
+    'default': 'project:releng:signing:cert:dep-signing',
+}
+
+DEVEDITION_SIGNING_SCOPE_ALIAS_TO_PROJECT = [[
+    'beta', set([
+        'mozilla-beta',
+    ])
+]]
+
+DEVEDITION_SIGNING_CERT_SCOPES = {
+    'beta': 'project:releng:signing:cert:nightly-signing',
     'default': 'project:releng:signing:cert:dep-signing',
 }
 
@@ -84,6 +100,7 @@ BEETMOVER_SCOPE_ALIAS_TO_TARGET_TASK = [[
     'all-nightly-tasks', set([
         'nightly_fennec',
         'nightly_linux',
+        'nightly_macosx',
         'mozilla_beta_tasks',
         'mozilla_release_tasks',
     ])
@@ -131,16 +148,113 @@ BALROG_SCOPE_ALIAS_TO_PROJECT = [[
     'release', set([
         'mozilla-release',
     ])
+], [
+    'esr', set([
+        'mozilla-esr52',
+    ])
 ]]
 
 """Map the balrog scope aliases to the actual scopes.
 """
 BALROG_SERVER_SCOPES = {
-    'nightly': 'project:releng:balrog:nightly',
-    'aurora': 'project:releng:balrog:nightly',
-    'beta': 'project:releng:balrog:nightly',
-    'release': 'project:releng:balrog:nightly',
-    'default': 'project:releng:balrog:nightly',
+    'nightly': 'project:releng:balrog:server:nightly',
+    'aurora': 'project:releng:balrog:server:aurora',
+    'beta': 'project:releng:balrog:server:beta',
+    'release': 'project:releng:balrog:server:release',
+    'esr': 'project:releng:balrog:server:esr',
+    'default': 'project:releng:balrog:server:dep',
+}
+
+"""Map the balrog scope aliases to the actual channel scopes.
+"""
+BALROG_CHANNEL_SCOPES = {
+    'nightly': [
+        'project:releng:balrog:channel:nightly'
+    ],
+    'aurora': [
+        'project:releng:balrog:channel:aurora'
+    ],
+    'beta': [
+        'project:releng:balrog:channel:beta',
+        'project:releng:balrog:channel:beta-localtest',
+        'project:releng:balrog:channel:beta-cdntest'
+    ],
+    'release': [
+        'project:releng:balrog:channel:release',
+        'project:releng:balrog:channel:release-localtest',
+        'project:releng:balrog:channel:release-cdntest'
+    ],
+    'esr': [
+        'project:releng:balrog:channel:esr',
+        'project:releng:balrog:channel:esr-localtest',
+        'project:releng:balrog:channel:esr-cdntest'
+    ],
+    'default': [
+        'project:releng:balrog:channel:nightly'
+        'project:releng:balrog:channel:aurora'
+        'project:releng:balrog:channel:beta',
+        'project:releng:balrog:channel:beta-localtest',
+        'project:releng:balrog:channel:beta-cdntest'
+        'project:releng:balrog:channel:release',
+        'project:releng:balrog:channel:release-localtest',
+        'project:releng:balrog:channel:release-cdntest'
+        'project:releng:balrog:channel:esr',
+        'project:releng:balrog:channel:esr-localtest',
+        'project:releng:balrog:channel:esr-cdntest'
+    ]
+}
+
+
+PUSH_APK_SCOPE_ALIAS_TO_PROJECT = [[
+    'aurora', set([
+        'mozilla-aurora',
+    ])
+], [
+    'beta', set([
+        'mozilla-beta',
+    ])
+], [
+    'release', set([
+        'mozilla-release',
+    ])
+]]
+
+
+PUSH_APK_SCOPES = {
+    'aurora': 'project:releng:googleplay:aurora',
+    'beta': 'project:releng:googleplay:beta',
+    'release': 'project:releng:googleplay:release',
+    'default': 'project:releng:googleplay:invalid',
+}
+
+# See https://github.com/mozilla-releng/pushapkscript#aurora-beta-release-vs-alpha-beta-production
+PUSH_APK_GOOGLE_PLAY_TRACT = {
+    'aurora': 'beta',
+    'beta': 'rollout',
+    'release': 'rollout',
+    'default': 'invalid',
+}
+
+PUSH_APK_BREAKPOINT_WORKER_TYPE = {
+    'aurora': 'aws-provisioner-v1/taskcluster-generic',
+    'beta': 'null-provisioner/human-breakpoint',
+    'release': 'null-provisioner/human-breakpoint',
+    'default': 'invalid/invalid',
+}
+
+PUSH_APK_DRY_RUN_OPTION = {
+    'aurora': False,
+    'beta': False,
+    'release': False,
+    'default': True,
+}
+
+PUSH_APK_ROLLOUT_PERCENTAGE = {
+    # XXX Please make sure to change PUSH_APK_GOOGLE_PLAY_TRACT to 'rollout' if you add a new
+    # supported project
+    'release': 10,
+    'beta': 10,
+    'default': None,
 }
 
 
@@ -217,6 +331,12 @@ get_signing_cert_scope = functools.partial(
     SIGNING_CERT_SCOPES
 )
 
+get_devedition_signing_cert_scope = functools.partial(
+    get_scope_from_project,
+    DEVEDITION_SIGNING_SCOPE_ALIAS_TO_PROJECT,
+    DEVEDITION_SIGNING_CERT_SCOPES
+)
+
 get_beetmover_bucket_scope = functools.partial(
     get_scope_from_target_method_and_project,
     BEETMOVER_SCOPE_ALIAS_TO_TARGET_TASK,
@@ -234,6 +354,42 @@ get_balrog_server_scope = functools.partial(
     get_scope_from_project,
     BALROG_SCOPE_ALIAS_TO_PROJECT,
     BALROG_SERVER_SCOPES
+)
+
+get_balrog_channel_scopes = functools.partial(
+    get_scope_from_project,
+    BALROG_SCOPE_ALIAS_TO_PROJECT,
+    BALROG_CHANNEL_SCOPES
+)
+
+get_push_apk_scope = functools.partial(
+    get_scope_from_project,
+    PUSH_APK_SCOPE_ALIAS_TO_PROJECT,
+    PUSH_APK_SCOPES
+)
+
+get_push_apk_track = functools.partial(
+    get_scope_from_project,
+    PUSH_APK_SCOPE_ALIAS_TO_PROJECT,
+    PUSH_APK_GOOGLE_PLAY_TRACT
+)
+
+get_push_apk_breakpoint_worker_type = functools.partial(
+    get_scope_from_project,
+    PUSH_APK_SCOPE_ALIAS_TO_PROJECT,
+    PUSH_APK_BREAKPOINT_WORKER_TYPE
+)
+
+get_push_apk_dry_run_option = functools.partial(
+    get_scope_from_project,
+    PUSH_APK_SCOPE_ALIAS_TO_PROJECT,
+    PUSH_APK_DRY_RUN_OPTION
+)
+
+get_push_apk_rollout_percentage = functools.partial(
+    get_scope_from_project,
+    PUSH_APK_SCOPE_ALIAS_TO_PROJECT,
+    PUSH_APK_ROLLOUT_PERCENTAGE
 )
 
 

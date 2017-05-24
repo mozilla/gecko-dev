@@ -6,8 +6,6 @@
 
 const Cu = Components.utils;
 
-Cu.import("resource://services-sync/record.js");
-Cu.import("resource://services-sync/main.js");
 
 this.EXPORTED_SYMBOLS = ["CollectionValidator", "CollectionProblemData"];
 
@@ -61,7 +59,7 @@ class CollectionValidator {
     return new CollectionProblemData();
   }
 
-  getServerItems(engine) {
+  async getServerItems(engine) {
     let collection = engine.itemSource();
     let collectionKey = engine.service.collectionKeys.keyForCollection(engine.name);
     collection.full = true;
@@ -70,7 +68,7 @@ class CollectionValidator {
       item.decrypt(collectionKey);
       items.push(item.cleartext);
     };
-    let resp = collection.getBatched();
+    let resp = await collection.getBatched();
     if (!resp.success) {
       throw resp;
     }

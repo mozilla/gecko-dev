@@ -183,6 +183,13 @@ protected:
   virtual mozilla::ipc::IPCResult RecvPDataChannelConstructor(PDataChannelParent* aActor,
                                                               const uint32_t& channelId) override;
 
+  virtual PFileChannelParent*
+    AllocPFileChannelParent(const uint32_t& channelId) override;
+  virtual bool DeallocPFileChannelParent(PFileChannelParent* parent) override;
+
+  virtual mozilla::ipc::IPCResult RecvPFileChannelConstructor(PFileChannelParent* aActor,
+                                                              const uint32_t& channelId) override;
+
   virtual PRtspControllerParent* AllocPRtspControllerParent() override;
   virtual bool DeallocPRtspControllerParent(PRtspControllerParent*) override;
 
@@ -227,7 +234,7 @@ protected:
                                                 const OriginAttributes& aOriginAttributes) override;
   virtual mozilla::ipc::IPCResult RecvPredReset() override;
 
-  virtual mozilla::ipc::IPCResult RecvRemoveRequestContext(const nsCString& rcid) override;
+  virtual mozilla::ipc::IPCResult RecvRemoveRequestContext(const uint64_t& rcid) override;
 
   /* Throttler messages */
   virtual mozilla::ipc::IPCResult RecvIncreaseThrottlePressure() override;

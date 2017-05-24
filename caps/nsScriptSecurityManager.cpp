@@ -307,13 +307,23 @@ nsScriptSecurityManager::GetChannelResultPrincipal(nsIChannel* aChannel,
                 if (!principalToInherit) {
                   principalToInherit = loadInfo->TriggeringPrincipal();
                 }
-                nsCOMPtr<nsIContentSecurityPolicy> originalCsp;
-                principalToInherit->GetCsp(getter_AddRefs(originalCsp));
-                // if the principalToInherit had a CSP,
-                // add it to the newly created NullPrincipal.
-                if (originalCsp) {
-                  nsresult rv = (*aPrincipal)->SetCsp(originalCsp);
-                  NS_ENSURE_SUCCESS(rv, rv);
+                nsCOMPtr<nsIContentSecurityPolicy> originalCSP;
+                principalToInherit->GetCsp(getter_AddRefs(originalCSP));
+                if (originalCSP) {
+                  // if the principalToInherit had a CSP,
+                  // add it to the newly created NullPrincipal
+                  // (unless it already has one)
+                  nsCOMPtr<nsIContentSecurityPolicy> nullPrincipalCSP;
+                  (*aPrincipal)->GetCsp(getter_AddRefs(nullPrincipalCSP));
+                  if (nullPrincipalCSP) {
+                    MOZ_ASSERT(nullPrincipalCSP == originalCSP,
+                              "There should be no other CSP here.");
+                    // CSPs are equal, no need to set it again.
+                    return NS_OK;
+                  } else {
+                    nsresult rv = (*aPrincipal)->SetCsp(originalCSP);
+                    NS_ENSURE_SUCCESS(rv, rv);
+                  }
                 }
               }
             }
@@ -338,13 +348,13 @@ nsScriptSecurityManager::GetChannelResultPrincipal(nsIChannel* aChannel,
       return NS_OK;
     }
 
-    nsSecurityFlags securityFlags = loadInfo->GetSecurityMode();
+    auto securityMode = loadInfo->GetSecurityMode();
     // The data: inheritance flags should only apply to the initial load,
     // not to loads that it might have redirected to.
     if (loadInfo->RedirectChain().IsEmpty() &&
-        (securityFlags == nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS ||
-         securityFlags == nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS ||
-         securityFlags == nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS)) {
+        (securityMode == nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS ||
+         securityMode == nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS ||
+         securityMode == nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS)) {
 
       nsCOMPtr<nsIURI> uri;
       nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
@@ -898,12 +908,21 @@ nsScriptSecurityManager::CheckLoadURIFlags(nsIURI *aSourceURI,
             }
         }
 
-        // Special-case the hidden window: it's allowed to load
-        // URI_IS_UI_RESOURCE no matter what.  Bug 1145470 tracks removing this.
-        nsAutoCString sourceSpec;
-        if (NS_SUCCEEDED(aSourceBaseURI->GetSpec(sourceSpec)) &&
-            sourceSpec.EqualsLiteral("resource://gre-resources/hiddenWindow.html")) {
-            return NS_OK;
+        static bool sCanLoadChromeInContent = false;
+        static bool sCachedCanLoadChromeInContentPref = false;
+        if (!sCachedCanLoadChromeInContentPref) {
+            sCachedCanLoadChromeInContentPref = true;
+            mozilla::Preferences::AddBoolVarCache(&sCanLoadChromeInContent,
+                "security.allow_chrome_frames_inside_content");
+        }
+        if (sCanLoadChromeInContent) {
+            // Special-case the hidden window: it's allowed to load
+            // URI_IS_UI_RESOURCE no matter what.  Bug 1145470 tracks removing this.
+            nsAutoCString sourceSpec;
+            if (NS_SUCCEEDED(aSourceBaseURI->GetSpec(sourceSpec)) &&
+                sourceSpec.EqualsLiteral("resource://gre-resources/hiddenWindow.html")) {
+                return NS_OK;
+            }
         }
 
         if (reportErrors) {
@@ -1168,8 +1187,7 @@ nsScriptSecurityManager::
 {
   NS_ENSURE_STATE(aLoadContext);
   OriginAttributes docShellAttrs;
-  bool result = aLoadContext->GetOriginAttributes(docShellAttrs);
-  NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
+  aLoadContext->GetOriginAttributes(docShellAttrs);
 
   nsCOMPtr<nsIPrincipal> prin =
     BasePrincipal::CreateCodebasePrincipal(aURI, docShellAttrs);

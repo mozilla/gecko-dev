@@ -121,12 +121,16 @@ nsTimer::Release(void)
   NS_LOG_RELEASE(this, count, "nsTimer");
 
   if (count == 1) {
-    // Last ref, held by nsTimerImpl. Make sure the cycle is broken.
-    // If there is a nsTimerEvent in a queue for this timer, the nsTimer will
-    // live until that event pops, otherwise the nsTimerImpl will go away and
-    // the nsTimer along with it.
-    mImpl->Cancel();
-    mImpl = nullptr;
+    if (!mImpl->CancelCheckIfFiring()) {
+      // Last ref, in nsTimerImpl::mITimer. Make sure the cycle is broken.
+      // (when Cancel fails, nsTimerImpl::Fire is in progress, which has grabbed
+      // another ref to the nsITimer since we checked the value of mRefCnt
+      // above)
+      // If there is a nsTimerEvent in a queue for this timer, the nsTimer will
+      // live until that event pops, otherwise the nsTimerImpl will go away and
+      // the nsTimer along with it.
+      mImpl = nullptr;
+    }
   } else if (count == 0) {
     delete this;
   }
@@ -135,6 +139,7 @@ nsTimer::Release(void)
 }
 
 nsTimerImpl::nsTimerImpl(nsITimer* aTimer) :
+  mHolder(nullptr),
   mGeneration(0),
   mDelay(0),
   mITimer(aTimer),
@@ -186,25 +191,21 @@ nsTimerImpl::Shutdown()
 
 
 nsresult
-nsTimerImpl::InitCommon(uint32_t aDelay, uint32_t aType)
+nsTimerImpl::InitCommon(uint32_t aDelay, uint32_t aType, Callback&& newCallback)
 {
   mMutex.AssertCurrentThreadOwns();
-  nsresult rv;
 
   if (NS_WARN_IF(!gThread)) {
     return NS_ERROR_NOT_INITIALIZED;
   }
+
   if (!mEventTarget) {
     NS_ERROR("mEventTarget is NULL");
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  rv = gThread->Init();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
   gThread->RemoveTimer(this);
+  mCallback.swap(newCallback);
   ++mGeneration;
 
   mType = (uint8_t)aType;
@@ -232,9 +233,7 @@ nsTimerImpl::InitWithFuncCallbackCommon(nsTimerCallbackFunc aFunc,
   cb.mName = aName;
 
   MutexAutoLock lock(mMutex);
-  cb.swap(mCallback);
-
-  return InitCommon(aDelay, aType);
+  return InitCommon(aDelay, aType, mozilla::Move(cb));
 }
 
 nsresult
@@ -284,9 +283,7 @@ nsTimerImpl::InitWithCallback(nsITimerCallback* aCallback,
   NS_ADDREF(cb.mCallback.i);
 
   MutexAutoLock lock(mMutex);
-  cb.swap(mCallback);
-
-  return InitCommon(aDelay, aType);
+  return InitCommon(aDelay, aType, mozilla::Move(cb));
 }
 
 nsresult
@@ -302,13 +299,11 @@ nsTimerImpl::Init(nsIObserver* aObserver, uint32_t aDelay, uint32_t aType)
   NS_ADDREF(cb.mCallback.o);
 
   MutexAutoLock lock(mMutex);
-  cb.swap(mCallback);
-
-  return InitCommon(aDelay, aType);
+  return InitCommon(aDelay, aType, mozilla::Move(cb));
 }
 
-nsresult
-nsTimerImpl::Cancel()
+bool
+nsTimerImpl::CancelCheckIfFiring()
 {
   Callback cb;
 
@@ -321,6 +316,16 @@ nsTimerImpl::Cancel()
   cb.swap(mCallback);
   ++mGeneration;
 
+  if (mCallbackDuringFire.mType != Callback::Type::Unknown) {
+    return true;
+  }
+  return false;
+}
+
+nsresult
+nsTimerImpl::Cancel()
+{
+  (void)CancelCheckIfFiring();
   return NS_OK;
 }
 
@@ -674,6 +679,12 @@ nsTimerImpl::GetName(nsACString& aName)
       aName.AssignLiteral("Canceled_timer");
       break;
   }
+}
+
+void
+nsTimerImpl::SetHolder(nsTimerImplHolder* aHolder)
+{
+  mHolder = aHolder;
 }
 
 nsTimer::~nsTimer()

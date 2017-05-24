@@ -676,7 +676,7 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
         }
   #endif
 
-        mDocument->ContentRemoved(containerElm, textNode);
+        mDocument->ContentRemoved(textAcc);
         continue;
       }
 
@@ -795,10 +795,6 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   // modification are done.
   mDocument->ProcessInvalidationList();
 
-  // We cannot rely on DOM tree to keep aria-owns relations updated. Make
-  // a validation to remove dead links.
-  mDocument->ValidateARIAOwned();
-
   // Process relocation list.
   for (uint32_t idx = 0; idx < mRelocations.Length(); idx++) {
     if (mRelocations[idx]->IsInDocument()) {
@@ -867,7 +863,7 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
         continue;
       }
 
-      ipcDoc = new DocAccessibleChild(childDoc);
+      ipcDoc = new DocAccessibleChild(childDoc, parentIPCDoc->Manager());
       childDoc->SetIPCDoc(ipcDoc);
 
 #if defined(XP_WIN)

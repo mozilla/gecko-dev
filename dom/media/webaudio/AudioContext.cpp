@@ -10,6 +10,7 @@
 
 #include "mozilla/ErrorResult.h"
 #include "mozilla/OwningNonNull.h"
+#include "mozilla/RefPtr.h"
 
 #include "mozilla/dom/AnalyserNode.h"
 #include "mozilla/dom/AnalyserNodeBinding.h"
@@ -140,6 +141,7 @@ AudioContext::AudioContext(nsPIDOMWindowInner* aWindow,
   , mIsShutDown(false)
   , mCloseCalled(false)
   , mSuspendCalled(false)
+  , mIsDisconnecting(false)
 {
   bool mute = aWindow->AddAudioContext(this);
 
@@ -196,23 +198,15 @@ AudioContext::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 AudioContext::Constructor(const GlobalObject& aGlobal,
                           ErrorResult& aRv)
 {
-  return AudioContext::Constructor(aGlobal,
-                                   AudioChannelService::GetDefaultAudioChannel(),
-                                   aRv);
-}
-
-/* static */ already_AddRefed<AudioContext>
-AudioContext::Constructor(const GlobalObject& aGlobal,
-                          AudioChannel aChannel,
-                          ErrorResult& aRv)
-{
   nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal.GetAsSupports());
   if (!window) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
   }
 
-  RefPtr<AudioContext> object = new AudioContext(window, false, aChannel);
+  RefPtr<AudioContext> object =
+    new AudioContext(window, false,
+                     AudioChannelService::GetDefaultAudioChannel());
   aRv = object->Init();
   if (NS_WARN_IF(aRv.Failed())) {
      return nullptr;
@@ -260,7 +254,9 @@ AudioContext::Constructor(const GlobalObject& aGlobal,
 
 bool AudioContext::CheckClosed(ErrorResult& aRv)
 {
-  if (mAudioContextState == AudioContextState::Closed) {
+  if (mAudioContextState == AudioContextState::Closed ||
+      mIsShutDown ||
+      mIsDisconnecting) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return true;
   }
@@ -640,21 +636,31 @@ AudioContext::CurrentTime() const
   return stream->StreamTimeToSeconds(stream->GetCurrentTime());
 }
 
+void AudioContext::DisconnectFromOwner()
+{
+  mIsDisconnecting = true;
+  Shutdown();
+  DOMEventTargetHelper::DisconnectFromOwner();
+}
+
 void
 AudioContext::Shutdown()
 {
   mIsShutDown = true;
 
-  if (!mIsOffline) {
-    ErrorResult dummy;
-    RefPtr<Promise> ignored = Close(dummy);
-  }
+  // We don't want to touch promises if the global is going away soon.
+  if (!mIsDisconnecting) {
+    if (!mIsOffline) {
+      IgnoredErrorResult dummy;
+      RefPtr<Promise> ignored = Close(dummy);
+    }
 
-  for (auto p : mPromiseGripArray) {
-    p->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
-  }
+    for (auto p : mPromiseGripArray) {
+      p->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+    }
 
-  mPromiseGripArray.Clear();
+    mPromiseGripArray.Clear();
+  }
 
   // Release references to active nodes.
   // Active AudioNodes don't unregister in destructors, at which point the
@@ -670,7 +676,8 @@ AudioContext::Shutdown()
 StateChangeTask::StateChangeTask(AudioContext* aAudioContext,
                                  void* aPromise,
                                  AudioContextState aNewState)
-  : mAudioContext(aAudioContext)
+  : Runnable("dom::StateChangeTask")
+  , mAudioContext(aAudioContext)
   , mPromise(aPromise)
   , mAudioNodeStream(nullptr)
   , mNewState(aNewState)
@@ -682,7 +689,8 @@ StateChangeTask::StateChangeTask(AudioContext* aAudioContext,
 StateChangeTask::StateChangeTask(AudioNodeStream* aStream,
                                  void* aPromise,
                                  AudioContextState aNewState)
-  : mAudioContext(nullptr)
+  : Runnable("dom::StateChangeTask")
+  , mAudioContext(nullptr)
   , mPromise(aPromise)
   , mAudioNodeStream(aStream)
   , mNewState(aNewState)
@@ -723,7 +731,8 @@ class OnStateChangeTask final : public Runnable
 {
 public:
   explicit OnStateChangeTask(AudioContext* aAudioContext)
-    : mAudioContext(aAudioContext)
+    : Runnable("dom::OnStateChangeTask")
+    , mAudioContext(aAudioContext)
   {}
 
   NS_IMETHODIMP
@@ -748,6 +757,24 @@ public:
 private:
   RefPtr<AudioContext> mAudioContext;
 };
+
+
+void
+AudioContext::Dispatch(already_AddRefed<nsIRunnable>&& aRunnable)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  nsCOMPtr<nsIGlobalObject> parentObject =
+    do_QueryInterface(GetParentObject());
+  // It can happen that this runnable took a long time to reach the main thread,
+  // and the global is not valid anymore.
+  if (parentObject) {
+    parentObject->AbstractMainThreadFor(TaskCategory::Other)
+                ->Dispatch(std::move(aRunnable));
+  } else {
+    RefPtr<nsIRunnable> runnable(aRunnable);
+    runnable = nullptr;
+  }
+}
 
 void
 AudioContext::OnStateChanged(void* aPromise, AudioContextState aNewState)
@@ -813,9 +840,8 @@ AudioContext::OnStateChanged(void* aPromise, AudioContextState aNewState)
   }
 
   if (mAudioContextState != aNewState) {
-    RefPtr<OnStateChangeTask> onStateChangeTask =
-      new OnStateChangeTask(this);
-    NS_DispatchToMainThread(onStateChangeTask);
+    RefPtr<OnStateChangeTask> task = new OnStateChangeTask(this);
+    Dispatch(task.forget());
   }
 
   mAudioContextState = aNewState;
@@ -1033,21 +1059,6 @@ AudioContext::Unmute() const
   if (mDestination) {
     mDestination->Unmute();
   }
-}
-
-AudioChannel
-AudioContext::MozAudioChannelType() const
-{
-  return mDestination->MozAudioChannelType();
-}
-
-AudioChannel
-AudioContext::TestAudioChannelInAudioNodeStream()
-{
-  MediaStream* stream = mDestination->Stream();
-  MOZ_ASSERT(stream);
-
-  return stream->AudioChannelType();
 }
 
 size_t

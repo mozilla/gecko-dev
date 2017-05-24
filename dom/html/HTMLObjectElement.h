@@ -69,11 +69,6 @@ public:
   virtual IMEState GetDesiredIMEState() override;
 
   // Overriden nsIFormControl methods
-  NS_IMETHOD_(uint32_t) GetType() const override
-  {
-    return NS_FORM_OBJECT;
-  }
-
   NS_IMETHOD Reset() override;
   NS_IMETHOD SubmitNamesValues(HTMLFormSubmission *aFormSubmission) override;
 
@@ -94,9 +89,10 @@ public:
   // nsObjectLoadingContent
   virtual uint32_t GetCapabilities() const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
-  nsresult CopyInnerTo(Element* aDest);
+  nsresult CopyInnerTo(Element* aDest, bool aPreallocateChildren);
 
   void StartObjectLoad() { StartObjectLoad(true, false); }
 

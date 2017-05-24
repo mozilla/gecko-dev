@@ -135,15 +135,14 @@ NS_NewImageFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 
 NS_IMPL_FRAMEARENA_HELPERS(nsImageFrame)
 
-
-nsImageFrame::nsImageFrame(nsStyleContext* aContext) :
-  nsAtomicContainerFrame(aContext),
-  mComputedSize(0, 0),
-  mIntrinsicRatio(0, 0),
-  mDisplayingIcon(false),
-  mFirstFrameComplete(false),
-  mReflowCallbackPosted(false),
-  mForceSyncDecoding(false)
+nsImageFrame::nsImageFrame(nsStyleContext* aContext, LayoutFrameType aType)
+  : nsAtomicContainerFrame(aContext, aType)
+  , mComputedSize(0, 0)
+  , mIntrinsicRatio(0, 0)
+  , mDisplayingIcon(false)
+  , mFirstFrameComplete(false)
+  , mReflowCallbackPosted(false)
+  , mForceSyncDecoding(false)
 {
   EnableVisibilityTracking();
 
@@ -283,9 +282,17 @@ nsImageFrame::Init(nsIContent*       aContent,
   nsCOMPtr<imgIRequest> currentRequest;
   imageLoader->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
                           getter_AddRefs(currentRequest));
-  nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(currentRequest);
-  if (p)
-    p->AdjustPriority(-1);
+
+  if (currentRequest) {
+    uint32_t categoryToBoostPriority = imgIRequest::CATEGORY_FRAME_INIT;
+
+    // Increase load priority further if intrinsic size might be important for layout.
+    if (!HaveSpecifiedSize(StylePosition())) {
+      categoryToBoostPriority |= imgIRequest::CATEGORY_SIZE_QUERY;
+    }
+
+    currentRequest->BoostPriority(categoryToBoostPriority);
+  }
 }
 
 bool
@@ -1041,7 +1048,7 @@ nsImageFrame::Reflow(nsPresContext*          aPresContext,
     // to request a decode.
     MaybeDecodeForPredictedSize();
   }
-  FinishAndStoreOverflow(&aMetrics);
+  FinishAndStoreOverflow(&aMetrics, aReflowInput.mStyleDisplay);
 
   if ((GetStateBits() & NS_FRAME_FIRST_REFLOW) && !mReflowCallbackPosted) {
     nsIPresShell* shell = PresContext()->PresShell();
@@ -1575,7 +1582,8 @@ nsDisplayImage::GetLayerState(nsDisplayListBuilder* aBuilder,
                               LayerManager* aManager,
                               const ContainerLayerParameters& aParameters)
 {
-  if (!nsDisplayItem::ForceActiveLayers() && !gfxPrefs::LayersAllowImageLayers()) {
+  if (!nsDisplayItem::ForceActiveLayers() &&
+      !ShouldUseAdvancedLayer(aManager, gfxPrefs::LayersAllowImageLayers)) {
     bool animated = false;
     if (!nsLayoutUtils::AnimatedImageLayersEnabled() ||
         mImage->GetType() != imgIContainer::TYPE_RASTER ||
@@ -1698,11 +1706,14 @@ nsImageFrame::PaintImage(nsRenderingContext& aRenderingContext, nsPoint aPt,
     flags |= imgIContainer::FLAG_SYNC_DECODE;
   }
 
+  Maybe<SVGImageContext> svgContext;
+  SVGImageContext::MaybeStoreContextPaint(svgContext, this, aImage);
+
   DrawResult result =
     nsLayoutUtils::DrawSingleImage(*aRenderingContext.ThebesContext(),
       PresContext(), aImage,
       nsLayoutUtils::GetSamplingFilterForFrame(this), dest, aDirtyRect,
-      /* no SVGImageContext */ Nothing(), flags, &anchorPoint);
+      svgContext, flags, &anchorPoint);
 
   nsImageMap* map = GetImageMap();
   if (map) {
@@ -1780,6 +1791,10 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         currentRequest->GetImageStatus(&status);
         if (!(status & imgIRequest::STATUS_DECODE_COMPLETE)) {
           MaybeDecodeForPredictedSize();
+        }
+        // Increase loading priority if the image is ready to be displayed.
+        if (!(status & imgIRequest::STATUS_LOAD_COMPLETE)){
+          currentRequest->BoostPriority(imgIRequest::CATEGORY_DISPLAY);
         }
       }
     } else {
@@ -2113,12 +2128,6 @@ nsImageFrame::OnVisibilityChange(Visibility aNewVisibility,
   nsAtomicContainerFrame::OnVisibilityChange(aNewVisibility, aNonvisibleAction);
 }
 
-nsIAtom*
-nsImageFrame::GetType() const
-{
-  return nsGkAtoms::imageFrame;
-}
-
 #ifdef DEBUG_FRAME_DUMP
 nsresult
 nsImageFrame::GetFrameName(nsAString& aResult) const
@@ -2221,6 +2230,7 @@ nsImageFrame::LoadIcon(const nsAString& aSpec,
                        nullptr,
                        contentPolicyType,
                        EmptyString(),
+                       false,        /* aUseUrgentStartForChannel */
                        aRequest);
 }
 

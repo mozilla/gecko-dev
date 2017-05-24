@@ -10,10 +10,6 @@
 #  error Should not compile this file when replace-malloc is disabled
 #endif
 
-#ifdef MOZ_SYSTEM_JEMALLOC
-#  error Should not compile this file when we want to use native jemalloc
-#endif
-
 #include "mozmemory_wrap.h"
 
 /* Declare all je_* functions */
@@ -274,6 +270,17 @@ jemalloc_free_dirty_pages_impl()
     je_jemalloc_free_dirty_pages();
   else
     replace_jemalloc_free_dirty_pages();
+}
+
+void
+jemalloc_thread_local_arena_impl(jemalloc_bool enabled)
+{
+  if (MOZ_UNLIKELY(!replace_malloc_initialized))
+    init();
+  if (MOZ_LIKELY(!replace_jemalloc_thread_local_arena))
+    je_jemalloc_thread_local_arena(enabled);
+  else
+    replace_jemalloc_thread_local_arena(enabled);
 }
 
 /* The following comment and definitions are from jemalloc.c: */

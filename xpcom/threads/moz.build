@@ -39,7 +39,6 @@ EXPORTS.mozilla += [
     'BlockingResourceBase.h',
     'CondVar.h',
     'DeadlockDetector.h',
-    'Dispatcher.h',
     'HangAnnotations.h',
     'HangMonitor.h',
     'LazyIdleThread.h',
@@ -48,6 +47,7 @@ EXPORTS.mozilla += [
     'MozPromise.h',
     'Mutex.h',
     'ReentrantMonitor.h',
+    'SchedulerGroup.h',
     'SharedThreadPool.h',
     'StateMirroring.h',
     'StateWatching.h',
@@ -63,7 +63,6 @@ UNIFIED_SOURCES += [
     'AbstractThread.cpp',
     'BackgroundHangMonitor.cpp',
     'BlockingResourceBase.cpp',
-    'Dispatcher.cpp',
     'HangAnnotations.cpp',
     'HangMonitor.cpp',
     'LazyIdleThread.cpp',
@@ -78,6 +77,7 @@ UNIFIED_SOURCES += [
     'nsThreadPool.cpp',
     'nsThreadUtils.cpp',
     'nsTimerImpl.cpp',
+    'SchedulerGroup.cpp',
     'SharedThreadPool.cpp',
     'SystemGroup.cpp',
     'TaskQueue.cpp',
@@ -94,11 +94,9 @@ LOCAL_INCLUDES += [
 
 # BHR disabled for Release builds because of bug 965392.
 # BHR disabled for debug builds because of bug 979069.
-# BHR disabled on gonk because of bug 1180533
 # BHR disabled for TSan builds because of bug 1121216.
 if CONFIG['MOZ_UPDATE_CHANNEL'] not in ('release') and \
    not CONFIG['MOZ_DEBUG'] and \
-   not CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and \
    not CONFIG['MOZ_TSAN']:
     DEFINES['MOZ_ENABLE_BACKGROUND_HANG_MONITOR'] = 1
 

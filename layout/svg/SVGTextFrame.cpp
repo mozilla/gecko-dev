@@ -2733,6 +2733,8 @@ public:
  */
 class SVGTextDrawPathCallbacks : public nsTextFrame::DrawPathCallbacks
 {
+  typedef mozilla::image::imgDrawingParams imgDrawingParams;
+
 public:
   /**
    * Constructs an SVGTextDrawPathCallbacks.
@@ -2769,7 +2771,7 @@ private:
 
   bool IsClipPathChild() const {
     return nsLayoutUtils::GetClosestFrameOfType
-             (mFrame->GetParent(), nsGkAtoms::svgTextFrame)->GetStateBits() &
+             (mFrame->GetParent(), LayoutFrameType::SVGText)->GetStateBits() &
              NS_STATE_SVG_CLIPPATH_CHILD;
   }
 
@@ -2783,7 +2785,8 @@ private:
    * Sets the gfxContext paint to the appropriate color or pattern
    * for filling text geometry.
    */
-  void MakeFillPattern(GeneralPattern* aOutPattern);
+  void MakeFillPattern(GeneralPattern* aOutPattern,
+                       imgDrawingParams& aImgParams);
 
   /**
    * Fills and strokes a piece of text geometry, using group opacity
@@ -2828,7 +2831,9 @@ SVGTextDrawPathCallbacks::NotifySelectionBackgroundNeedsFill(
   mColor = aColor; // currently needed by MakeFillPattern
 
   GeneralPattern fillPattern;
-  MakeFillPattern(&fillPattern);
+  // XXX cku Bug 1362417 we should pass imgDrawingParams from nsTextFrame.
+  imgDrawingParams imgParams;
+  MakeFillPattern(&fillPattern, imgParams);
   if (fillPattern.GetPattern()) {
     DrawOptions drawOptions(aColor == NS_40PERCENT_FOREGROUND_COLOR ? 0.4 : 1.0);
     aDrawTarget.FillRect(aBackgroundRect, fillPattern, drawOptions);
@@ -2925,11 +2930,12 @@ SVGTextDrawPathCallbacks::HandleTextGeometry()
 }
 
 void
-SVGTextDrawPathCallbacks::MakeFillPattern(GeneralPattern* aOutPattern)
+SVGTextDrawPathCallbacks::MakeFillPattern(GeneralPattern* aOutPattern,
+                                          imgDrawingParams& aImgParams)
 {
   if (mColor == NS_SAME_AS_FOREGROUND_COLOR ||
       mColor == NS_40PERCENT_FOREGROUND_COLOR) {
-    nsSVGUtils::MakeFillPatternFor(mFrame, gfx, aOutPattern);
+    nsSVGUtils::MakeFillPatternFor(mFrame, gfx, aOutPattern, aImgParams);
     return;
   }
 
@@ -2978,7 +2984,9 @@ void
 SVGTextDrawPathCallbacks::FillGeometry()
 {
   GeneralPattern fillPattern;
-  MakeFillPattern(&fillPattern);
+  // XXX cku Bug 1362417 we should pass imgDrawingParams from nsTextFrame.
+  imgDrawingParams imgParams;
+  MakeFillPattern(&fillPattern, imgParams);
   if (fillPattern.GetPattern()) {
     RefPtr<Path> path = gfx->GetPath();
     FillRule fillRule = nsSVGUtils::ToFillRule(IsClipPathChild() ?
@@ -3000,7 +3008,10 @@ SVGTextDrawPathCallbacks::StrokeGeometry()
       mColor == NS_40PERCENT_FOREGROUND_COLOR) {
     if (nsSVGUtils::HasStroke(mFrame, /*aContextPaint*/ nullptr)) {
       GeneralPattern strokePattern;
-      nsSVGUtils::MakeStrokePatternFor(mFrame, gfx, &strokePattern, /*aContextPaint*/ nullptr);
+      // XXX cku Bug 1362417 we should pass imgDrawingParams from nsTextFrame.
+      imgDrawingParams imgParams;
+      nsSVGUtils::MakeStrokePatternFor(mFrame, gfx, &strokePattern, imgParams,
+                                       /*aContextPaint*/ nullptr);
       if (strokePattern.GetPattern()) {
         if (!mFrame->GetParent()->GetContent()->IsSVGElement()) {
           // The cast that follows would be unsafe
@@ -3120,8 +3131,11 @@ nsDisplaySVGText::Paint(nsDisplayListBuilder* aBuilder,
 
   gfxContext* ctx = aCtx->ThebesContext();
   ctx->Save();
-  DrawResult result = static_cast<SVGTextFrame*>(mFrame)->PaintSVG(*ctx, tm);
-  nsDisplayItemGenericImageGeometry::UpdateDrawResult(this, result);
+  imgDrawingParams imgParams(aBuilder->ShouldSyncDecodeImages()
+                             ? imgIContainer::FLAG_SYNC_DECODE
+                             : imgIContainer::FLAG_SYNC_DECODE_IF_FAST);
+  static_cast<SVGTextFrame*>(mFrame)->PaintSVG(*ctx, tm, imgParams);
+  nsDisplayItemGenericImageGeometry::UpdateDrawResult(this, imgParams.result);
   ctx->Restore();
 }
 
@@ -3207,12 +3221,6 @@ SVGTextFrame::AttributeChanged(int32_t aNameSpaceID,
   }
 
   return NS_OK;
-}
-
-nsIAtom *
-SVGTextFrame::GetType() const
-{
-  return nsGkAtoms::svgTextFrame;
 }
 
 void
@@ -3558,16 +3566,17 @@ ShouldPaintCaret(const TextRenderedRun& aThisRun, nsCaret* aCaret)
   return false;
 }
 
-DrawResult
+void
 SVGTextFrame::PaintSVG(gfxContext& aContext,
                        const gfxMatrix& aTransform,
+                       imgDrawingParams& aImgParams,
                        const nsIntRect *aDirtyRect)
 {
   DrawTarget& aDrawTarget = *aContext.GetDrawTarget();
-
   nsIFrame* kid = PrincipalChildList().FirstChild();
-  if (!kid)
-    return DrawResult::SUCCESS;
+  if (!kid) {
+    return;
+  }
 
   nsPresContext* presContext = PresContext();
 
@@ -3580,7 +3589,7 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
     // dirty.
     if (presContext->PresShell()->InDrawWindowNotFlushing() &&
         NS_SUBTREE_DIRTY(this)) {
-      return DrawResult::SUCCESS;
+      return;
     }
     // Text frames inside <clipPath>, <mask>, etc. will never have had
     // ReflowSVG called on them, so call UpdateGlyphPositioning to do this now.
@@ -3589,12 +3598,12 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
     // If we are asked to paint before reflow has recomputed mPositions etc.
     // directly via PaintSVG, rather than via a display list, then we need
     // to bail out here too.
-    return DrawResult::SUCCESS;
+    return;
   }
 
   if (aTransform.IsSingular()) {
     NS_WARNING("Can't render text element!");
-    return DrawResult::BAD_ARGS;
+    return;
   }
 
   gfxMatrix matrixForPaintServers = aTransform * initialMatrix;
@@ -3616,7 +3625,7 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
     nsRect canvasRect = nsLayoutUtils::RoundGfxRectToAppRect(
         GetCanvasTM().TransformBounds(frameRect), 1);
     if (!canvasRect.Intersects(dirtyRect)) {
-      return DrawResult::SUCCESS;
+      return;
     }
   }
 
@@ -3645,7 +3654,6 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
     SVGContextPaint::GetContextPaint(mContent);
 
   nsRenderingContext rendCtx(&aContext);
-
   while (run.mFrame) {
     nsTextFrame* frame = run.mFrame;
 
@@ -3660,8 +3668,8 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
     RefPtr<SVGContextPaintImpl> contextPaint = new SVGContextPaintImpl();
     DrawMode drawMode = contextPaint->Init(&aDrawTarget,
                                            aContext.CurrentMatrix(),
-                                           frame, outerContextPaint);
-
+                                           frame, outerContextPaint,
+                                           aImgParams);
     if (drawMode & DrawMode::GLYPH_STROKE) {
       // This may change the gfxContext's transform (for non-scaling stroke),
       // in which case this needs to happen before we call SetMatrix() below.
@@ -3702,8 +3710,6 @@ SVGTextFrame::PaintSVG(gfxContext& aContext,
 
     run = it.Next();
   }
-
-  return DrawResult::SUCCESS;
 }
 
 nsIFrame*
@@ -3758,13 +3764,6 @@ SVGTextFrame::GetFrameForPoint(const gfxPoint& aPoint)
     }
   }
   return hit;
-}
-
-nsRect
-SVGTextFrame::GetCoveredRegion()
-{
-  return nsSVGUtils::TransformFrameRectToOuterSVG(
-           mRect, GetCanvasTM(), PresContext());
 }
 
 void
@@ -3880,6 +3879,15 @@ SVGTextFrame::GetBBoxContribution(const gfx::Matrix &aToBBoxUserspace,
 {
   NS_ASSERTION(PrincipalChildList().FirstChild(), "must have a child frame");
   SVGBBox bbox;
+
+  if (aFlags & nsSVGUtils::eForGetClientRects) {
+    Rect rect = NSRectToRect(mRect, PresContext()->AppUnitsPerCSSPixel());
+    if (!rect.IsEmpty()) {
+      bbox = aToBBoxUserspace.TransformBounds(rect);
+    }
+    return bbox;
+  }
+
   nsIFrame* kid = PrincipalChildList().FirstChild();
   if (kid && NS_SUBTREE_DIRTY(kid)) {
     // Return an empty bbox if our kid's subtree is dirty. This may be called
@@ -5446,7 +5454,7 @@ SVGTextFrame::TransformFramePointToTextChild(const Point& aPoint,
 {
   NS_ASSERTION(aChildFrame &&
                nsLayoutUtils::GetClosestFrameOfType
-                 (aChildFrame->GetParent(), nsGkAtoms::svgTextFrame) == this,
+                 (aChildFrame->GetParent(), LayoutFrameType::SVGText) == this,
                "aChildFrame must be a descendant of this frame");
 
   UpdateGlyphPositioning();
@@ -5525,7 +5533,7 @@ SVGTextFrame::TransformFrameRectToTextChild(const gfxRect& aRect,
 {
   NS_ASSERTION(aChildFrame &&
                nsLayoutUtils::GetClosestFrameOfType
-                 (aChildFrame->GetParent(), nsGkAtoms::svgTextFrame) == this,
+                 (aChildFrame->GetParent(), LayoutFrameType::SVGText) == this,
                "aChildFrame must be a descendant of this frame");
 
   UpdateGlyphPositioning();
@@ -5606,7 +5614,7 @@ SVGTextFrame::TransformFrameRectFromTextChild(const nsRect& aRect,
 {
   NS_ASSERTION(aChildFrame &&
                nsLayoutUtils::GetClosestFrameOfType
-                 (aChildFrame->GetParent(), nsGkAtoms::svgTextFrame) == this,
+                 (aChildFrame->GetParent(), LayoutFrameType::SVGText) == this,
                "aChildFrame must be a descendant of this frame");
 
   UpdateGlyphPositioning();

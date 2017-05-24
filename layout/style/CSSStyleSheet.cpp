@@ -31,7 +31,6 @@
 #include "nsError.h"
 #include "nsCSSParser.h"
 #include "mozilla/css/Loader.h"
-#include "nsICSSLoaderObserver.h"
 #include "nsNameSpaceManager.h"
 #include "nsXMLNameSpaceMap.h"
 #include "nsCOMPtr.h"
@@ -185,17 +184,19 @@ CSSStyleSheet::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
     // double-counting the inner.  We use last instead of first since the first
     // sheet may be held in the nsXULPrototypeCache and not used in a window at
     // all.
-    if (mInner->mSheets.LastElement() == s) {
-      n += Inner()->SizeOfIncludingThis(aMallocSizeOf);
+    if (s->Inner()->mSheets.LastElement() == s) {
+      n += s->Inner()->SizeOfIncludingThis(aMallocSizeOf);
     }
 
     // Measurement of the following members may be added later if DMD finds it
     // is worthwhile:
     // - s->mRuleCollection
     // - s->mRuleProcessors
+    // - s->mStyleSets
     //
     // The following members are not measured:
     // - s->mOwnerRule, because it's non-owning
+    // - s->mScopeElement, because it's non-owning
 
     s = s->mNext ? s->mNext->AsGecko() : nullptr;
   }
@@ -442,8 +443,7 @@ CSSStyleSheet::TraverseInner(nsCycleCollectionTraversalCallback &cb)
 
 // QueryInterface implementation for CSSStyleSheet
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(CSSStyleSheet)
-  NS_INTERFACE_MAP_ENTRY(nsICSSLoaderObserver)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, StyleSheet)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMCSSStyleSheet)
   if (aIID.Equals(NS_GET_IID(CSSStyleSheet)))
     foundInterface = reinterpret_cast<nsISupports*>(this);
   else
@@ -513,6 +513,7 @@ CSSStyleSheet::UseForPresentation(nsPresContext* aPresContext,
                                   nsMediaQueryResultCacheKey& aKey) const
 {
   if (mMedia) {
+    MOZ_ASSERT(aPresContext);
     auto media = static_cast<nsMediaList*>(mMedia.get());
     return media->Matches(aPresContext, &aKey);
   }
@@ -723,6 +724,12 @@ CSSStyleSheet::RegisterNamespaceRule(css::Rule* aRule)
 
   AddNamespaceRuleToMap(aRule, Inner()->mNameSpaceMap);
   return NS_OK;
+}
+
+void
+CSSStyleSheet::SetScopeElement(dom::Element* aScopeElement)
+{
+  mScopeElement = aScopeElement;
 }
 
 css::Rule*
@@ -1024,7 +1031,7 @@ CSSStyleSheet::ReparseSheet(const nsAString& aInput)
     NS_ASSERTION(child->mParent == this, "Child sheet is not parented to this!");
     StyleSheet* next = child->mNext;
     child->mParent = nullptr;
-    child->mDocument = nullptr;
+    child->SetAssociatedDocument(nullptr, NotOwnedByDocument);
     child->mNext = nullptr;
     child = next;
   }

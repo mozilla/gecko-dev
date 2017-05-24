@@ -150,7 +150,7 @@ var openInspectorSideBar = Task.async(function* (id) {
   return {
     toolbox: toolbox,
     inspector: inspector,
-    view: inspector[id].view || inspector[id].computedView
+    view: inspector.getPanel(id).view || inspector.getPanel(id).computedView
   };
 });
 
@@ -195,7 +195,7 @@ var addTab = Task.async(function* (url) {
 
   window.focus();
 
-  let tab = gBrowser.selectedTab = gBrowser.addTab(url);
+  let tab = gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, url);
   let browser = tab.linkedBrowser;
 
   yield BrowserTestUtils.browserLoaded(browser);

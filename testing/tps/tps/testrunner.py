@@ -76,6 +76,8 @@ class TPSTestRunner(object):
         'toolkit.startup.max_resumed_crashes': -1,
         # hrm - not sure what the release/beta channels will do?
         'xpinstall.signatures.required': False,
+        'services.sync.testing.tps': True,
+        'engine.bookmarks.repair.enabled': False,
     }
 
     debug_preferences = {

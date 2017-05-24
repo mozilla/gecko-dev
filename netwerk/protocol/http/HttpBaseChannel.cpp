@@ -49,6 +49,7 @@
 #include "nsILoadGroupChild.h"
 #include "mozilla/ConsoleReportCollector.h"
 #include "LoadInfo.h"
+#include "NullPrincipal.h"
 #include "nsISSLSocketControl.h"
 #include "mozilla/Telemetry.h"
 #include "nsIURL.h"
@@ -150,7 +151,8 @@ private:
 NS_IMPL_ISUPPORTS(AddHeadersToChannelVisitor, nsIHttpHeaderVisitor)
 
 HttpBaseChannel::HttpBaseChannel()
-  : mStartPos(UINT64_MAX)
+  : mCanceled(false)
+  , mStartPos(UINT64_MAX)
   , mStatus(NS_OK)
   , mLoadFlags(LOAD_NORMAL)
   , mCaps(0)
@@ -158,7 +160,6 @@ HttpBaseChannel::HttpBaseChannel()
   , mPriority(PRIORITY_NORMAL)
   , mRedirectionLimit(gHttpHandler->RedirectionLimit())
   , mApplyConversion(true)
-  , mCanceled(false)
   , mIsPending(false)
   , mWasOpened(false)
   , mRequestObserversCalled(false)
@@ -199,6 +200,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mTransferSize(0)
   , mDecodedBodySize(0)
   , mEncodedBodySize(0)
+  , mRequestContextID(0)
   , mContentWindowId(0)
   , mTopLevelOuterContentWindowId(0)
   , mRequireCORSPreflight(false)
@@ -218,7 +220,6 @@ HttpBaseChannel::HttpBaseChannel()
 #endif
   mSelfAddr.raw.family = PR_AF_UNSPEC;
   mPeerAddr.raw.family = PR_AF_UNSPEC;
-  mRequestContextID.Clear();
 }
 
 HttpBaseChannel::~HttpBaseChannel()
@@ -264,7 +265,7 @@ HttpBaseChannel::Init(nsIURI *aURI,
                       nsProxyInfo *aProxyInfo,
                       uint32_t aProxyResolveFlags,
                       nsIURI *aProxyURI,
-                      const nsID& aChannelId)
+                      uint64_t aChannelId)
 {
   LOG(("HttpBaseChannel::Init [this=%p]\n", this));
 
@@ -532,6 +533,12 @@ HttpBaseChannel::GetLoadInfo(nsILoadInfo **aLoadInfo)
 {
   NS_IF_ADDREF(*aLoadInfo = mLoadInfo);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetIsDocument(bool *aIsDocument)
+{
+  return NS_GetIsDocumentChannel(this, aIsDocument);
 }
 
 NS_IMETHODIMP
@@ -821,11 +828,17 @@ namespace {
 
 void
 CopyComplete(void* aClosure, nsresult aStatus) {
+#ifdef DEBUG
   // Called on the STS thread by NS_AsyncCopy
+  nsCOMPtr<nsIEventTarget> sts =
+    do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
+  bool result = false;
+  sts->IsOnCurrentThread(&result);
+  MOZ_ASSERT(result, "Should only be called on the STS thread.");
+#endif
+
   auto channel = static_cast<HttpBaseChannel*>(aClosure);
-  nsCOMPtr<nsIRunnable> runnable = NewRunnableMethod<nsresult>(
-    channel, &HttpBaseChannel::EnsureUploadStreamIsCloneableComplete, aStatus);
-  NS_DispatchToMainThread(runnable.forget());
+  channel->OnCopyComplete(aStatus);
 }
 
 } // anonymous namespace
@@ -891,6 +904,18 @@ HttpBaseChannel::EnsureUploadStreamIsCloneable(nsIRunnable* aCallback)
   AddRef();
 
   return NS_OK;
+}
+
+void
+HttpBaseChannel::OnCopyComplete(nsresult aStatus)
+{
+  // Assert in parent process because we don't have to label the runnable
+  // in parent process.
+  MOZ_ASSERT(XRE_IsParentProcess());
+
+  nsCOMPtr<nsIRunnable> runnable = NewRunnableMethod<nsresult>(
+    this, &HttpBaseChannel::EnsureUploadStreamIsCloneableComplete, aStatus);
+  NS_DispatchToMainThread(runnable.forget());
 }
 
 void
@@ -1333,25 +1358,18 @@ HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
 //-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
-HttpBaseChannel::GetChannelId(nsACString& aChannelId)
+HttpBaseChannel::GetChannelId(uint64_t *aChannelId)
 {
-  char id[NSID_LENGTH];
-  mChannelId.ToProvidedString(id);
-  aChannelId.AssignASCII(id);
+  NS_ENSURE_ARG_POINTER(aChannelId);
+  *aChannelId = mChannelId;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::SetChannelId(const nsACString& aChannelId)
+HttpBaseChannel::SetChannelId(uint64_t aChannelId)
 {
-  nsID newId;
-  nsAutoCString idStr(aChannelId);
-  if (newId.Parse(idStr.get())) {
-    mChannelId = newId;
-    return NS_OK;
-  }
-
-  return NS_ERROR_FAILURE;
+  mChannelId = aChannelId;
+  return NS_OK;
 }
 
 NS_IMETHODIMP HttpBaseChannel::GetTopLevelContentWindowId(uint64_t *aWindowId)
@@ -1369,6 +1387,19 @@ NS_IMETHODIMP HttpBaseChannel::GetTopLevelContentWindowId(uint64_t *aWindowId)
     }
   }
   *aWindowId = mContentWindowId;
+  return NS_OK;
+}
+
+NS_IMETHODIMP HttpBaseChannel::SetTopLevelOuterContentWindowId(uint64_t aWindowId)
+{
+  mTopLevelOuterContentWindowId = aWindowId;
+  return NS_OK;
+}
+
+NS_IMETHODIMP HttpBaseChannel::GetTopLevelOuterContentWindowId(uint64_t *aWindowId)
+{
+  EnsureTopLevelOuterContentWindowId();
+  *aWindowId = mTopLevelOuterContentWindowId;
   return NS_OK;
 }
 
@@ -1609,36 +1640,6 @@ HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
     }
   }
 
-  // for cross-origin-based referrer changes (not just host-based), figure out
-  // if the referrer is being sent cross-origin.
-  nsCOMPtr<nsIURI> triggeringURI;
-  bool isCrossOrigin = true;
-  if (mLoadInfo) {
-    nsCOMPtr<nsIPrincipal> triggeringPrincipal = mLoadInfo->TriggeringPrincipal();
-    if (triggeringPrincipal) {
-      triggeringPrincipal->GetURI(getter_AddRefs(triggeringURI));
-    }
-  }
-  if (triggeringURI) {
-    if (LOG_ENABLED()) {
-      nsAutoCString triggeringURISpec;
-      rv = triggeringURI->GetAsciiSpec(triggeringURISpec);
-      if (!NS_FAILED(rv)) {
-        LOG(("triggeringURI=%s\n", triggeringURISpec.get()));
-      }
-    }
-    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-    rv = ssm->CheckSameOriginURI(triggeringURI, mURI, false);
-    isCrossOrigin = NS_FAILED(rv);
-  } else {
-    LOG(("no triggering principal available via loadInfo, assuming load is cross-origin"));
-  }
-
-  // Don't send referrer when the request is cross-origin and policy is "same-origin".
-  if (isCrossOrigin && mReferrerPolicy == REFERRER_POLICY_SAME_ORIGIN) {
-    return NS_OK;
-  }
-
   nsCOMPtr<nsIURI> clone;
   //
   // we need to clone the referrer, so we can:
@@ -1703,13 +1704,62 @@ HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
   rv = clone->SetUserPass(EmptyCString());
   if (NS_FAILED(rv)) return rv;
 
+  // Computing whether our URI is cross-origin may be expensive, so we only do
+  // that in cases where we're going to use this information later on.  The if
+  // condition below encodes those cases.  isCrossOrigin.isNothing() will return
+  // true otherwise.
+  Maybe<bool> isCrossOrigin;
+  if ((mReferrerPolicy == REFERRER_POLICY_SAME_ORIGIN ||
+       mReferrerPolicy == REFERRER_POLICY_ORIGIN_WHEN_XORIGIN ||
+       mReferrerPolicy == REFERRER_POLICY_STRICT_ORIGIN_WHEN_XORIGIN ||
+       // If our referrer policy is origin-only or strict-origin, we will send
+       // the origin only no matter if we are cross origin, so in those cases we
+       // can also skip checking cross-origin-ness.
+       (gHttpHandler->ReferrerXOriginTrimmingPolicy() != 0 &&
+        mReferrerPolicy != REFERRER_POLICY_ORIGIN &&
+        mReferrerPolicy != REFERRER_POLICY_STRICT_ORIGIN)) &&
+      // 2 (origin-only) is already the strictest policy which we'd adopt if we
+      // were cross-origin, so there is no point to compute whether we are or
+      // not.
+      gHttpHandler->ReferrerTrimmingPolicy() != 2) {
+    // for cross-origin-based referrer changes (not just host-based), figure out
+    // if the referrer is being sent cross-origin.
+    nsCOMPtr<nsIURI> triggeringURI;
+    if (mLoadInfo) {
+      nsCOMPtr<nsIPrincipal> triggeringPrincipal = mLoadInfo->TriggeringPrincipal();
+      if (triggeringPrincipal) {
+        triggeringPrincipal->GetURI(getter_AddRefs(triggeringURI));
+      }
+    }
+    if (triggeringURI) {
+      if (LOG_ENABLED()) {
+        nsAutoCString triggeringURISpec;
+        rv = triggeringURI->GetAsciiSpec(triggeringURISpec);
+        if (!NS_FAILED(rv)) {
+          LOG(("triggeringURI=%s\n", triggeringURISpec.get()));
+        }
+      }
+      nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+      rv = ssm->CheckSameOriginURI(triggeringURI, mURI, false);
+      isCrossOrigin.emplace(NS_FAILED(rv));
+    } else {
+      LOG(("no triggering principal available via loadInfo, assuming load is cross-origin"));
+      isCrossOrigin.emplace(true);
+    }
+  }
+
+  // Don't send referrer when the request is cross-origin and policy is "same-origin".
+  if (mReferrerPolicy == REFERRER_POLICY_SAME_ORIGIN && *isCrossOrigin) {
+    return NS_OK;
+  }
+
   nsAutoCString spec;
 
   // Apply the user cross-origin trimming policy if it's more
   // restrictive than the general one.
-  if (isCrossOrigin) {
-    int userReferrerXOriginTrimmingPolicy =
-      gHttpHandler->ReferrerXOriginTrimmingPolicy();
+  int userReferrerXOriginTrimmingPolicy =
+    gHttpHandler->ReferrerXOriginTrimmingPolicy();
+  if (userReferrerXOriginTrimmingPolicy != 0 && *isCrossOrigin) {
     userReferrerTrimmingPolicy =
       std::max(userReferrerTrimmingPolicy, userReferrerXOriginTrimmingPolicy);
   }
@@ -1724,8 +1774,9 @@ HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
   // "strict-origin-when-cross-origin" behaves the same as "origin-when-cross-origin"
   if (mReferrerPolicy == REFERRER_POLICY_ORIGIN ||
       mReferrerPolicy == REFERRER_POLICY_STRICT_ORIGIN ||
-      (isCrossOrigin && (mReferrerPolicy == REFERRER_POLICY_ORIGIN_WHEN_XORIGIN ||
-                         mReferrerPolicy == REFERRER_POLICY_STRICT_ORIGIN_WHEN_XORIGIN))) {
+      ((mReferrerPolicy == REFERRER_POLICY_ORIGIN_WHEN_XORIGIN ||
+        mReferrerPolicy == REFERRER_POLICY_STRICT_ORIGIN_WHEN_XORIGIN) &&
+        *isCrossOrigin)) {
     // We can override the user trimming preference because "origin"
     // (network.http.referer.trimmingPolicy = 2) is the strictest
     // trimming policy that users can specify.
@@ -1832,13 +1883,7 @@ HttpBaseChannel::SetRequestHeader(const nsACString& aHeader,
     return NS_ERROR_INVALID_ARG;
   }
 
-  nsHttpAtom atom = nsHttp::ResolveAtom(flatHeader.get());
-  if (!atom) {
-    NS_WARNING("failed to resolve atom");
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  return mRequestHead.SetHeader(atom, flatValue, aMerge);
+  return mRequestHead.SetHeader(aHeader, flatValue, aMerge);
 }
 
 NS_IMETHODIMP
@@ -1855,13 +1900,7 @@ HttpBaseChannel::SetEmptyRequestHeader(const nsACString& aHeader)
     return NS_ERROR_INVALID_ARG;
   }
 
-  nsHttpAtom atom = nsHttp::ResolveAtom(flatHeader.get());
-  if (!atom) {
-    NS_WARNING("failed to resolve atom");
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  return mRequestHead.SetEmptyHeader(atom);
+  return mRequestHead.SetEmptyHeader(aHeader);
 }
 
 NS_IMETHODIMP
@@ -1917,7 +1956,7 @@ HttpBaseChannel::SetResponseHeader(const nsACString& header,
 
   mResponseHeadersModified = true;
 
-  return mResponseHead->SetHeader(atom, value, merge);
+  return mResponseHead->SetHeader(header, value, merge);
 }
 
 NS_IMETHODIMP
@@ -2110,7 +2149,7 @@ HttpBaseChannel::RedirectTo(nsIURI *targetURI)
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::GetRequestContextID(nsID *aRCID)
+HttpBaseChannel::GetRequestContextID(uint64_t *aRCID)
 {
   NS_ENSURE_ARG_POINTER(aRCID);
   *aRCID = mRequestContextID;
@@ -2118,7 +2157,7 @@ HttpBaseChannel::GetRequestContextID(nsID *aRCID)
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::SetRequestContextID(const nsID aRCID)
+HttpBaseChannel::SetRequestContextID(uint64_t aRCID)
 {
   mRequestContextID = aRCID;
   return NS_OK;
@@ -3128,6 +3167,13 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     nsCOMPtr<nsILoadInfo> newLoadInfo =
       static_cast<mozilla::LoadInfo*>(mLoadInfo.get())->Clone();
 
+    nsContentPolicyType contentPolicyType = mLoadInfo->GetExternalContentPolicyType();
+    if (contentPolicyType == nsIContentPolicy::TYPE_DOCUMENT ||
+        contentPolicyType == nsIContentPolicy::TYPE_SUBDOCUMENT) {
+      nsCOMPtr<nsIPrincipal> nullPrincipalToInherit = NullPrincipal::Create();
+      newLoadInfo->SetPrincipalToInherit(nullPrincipalToInherit);
+    }
+
     // re-compute the origin attributes of the loadInfo if it's top-level load.
     bool isTopLevelDoc =
       newLoadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_DOCUMENT;
@@ -3604,6 +3650,84 @@ HttpBaseChannel::TimingAllowCheck(nsIPrincipal *aOrigin, bool *_retval)
 }
 
 NS_IMETHODIMP
+HttpBaseChannel::GetLaunchServiceWorkerStart(TimeStamp* _retval) {
+  MOZ_ASSERT(_retval);
+  *_retval = mLaunchServiceWorkerStart;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetLaunchServiceWorkerStart(TimeStamp aTimeStamp) {
+  mLaunchServiceWorkerStart = aTimeStamp;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetLaunchServiceWorkerEnd(TimeStamp* _retval) {
+  MOZ_ASSERT(_retval);
+  *_retval = mLaunchServiceWorkerEnd;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetLaunchServiceWorkerEnd(TimeStamp aTimeStamp) {
+  mLaunchServiceWorkerEnd = aTimeStamp;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetDispatchFetchEventStart(TimeStamp* _retval) {
+  MOZ_ASSERT(_retval);
+  *_retval = mDispatchFetchEventStart;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetDispatchFetchEventStart(TimeStamp aTimeStamp) {
+  mDispatchFetchEventStart = aTimeStamp;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetDispatchFetchEventEnd(TimeStamp* _retval) {
+  MOZ_ASSERT(_retval);
+  *_retval = mDispatchFetchEventEnd;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetDispatchFetchEventEnd(TimeStamp aTimeStamp) {
+  mDispatchFetchEventEnd = aTimeStamp;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetHandleFetchEventStart(TimeStamp* _retval) {
+  MOZ_ASSERT(_retval);
+  *_retval = mHandleFetchEventStart;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetHandleFetchEventStart(TimeStamp aTimeStamp) {
+  mHandleFetchEventStart = aTimeStamp;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetHandleFetchEventEnd(TimeStamp* _retval) {
+  MOZ_ASSERT(_retval);
+  *_retval = mHandleFetchEventEnd;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetHandleFetchEventEnd(TimeStamp aTimeStamp) {
+  mHandleFetchEventEnd = aTimeStamp;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetDomainLookupStart(TimeStamp* _retval) {
   *_retval = mTransactionTimings.domainLookupStart;
   return NS_OK;
@@ -3687,6 +3811,12 @@ HttpBaseChannel::Get##name##Time(PRTime* _retval) {            \
 
 IMPL_TIMING_ATTR(ChannelCreation)
 IMPL_TIMING_ATTR(AsyncOpen)
+IMPL_TIMING_ATTR(LaunchServiceWorkerStart)
+IMPL_TIMING_ATTR(LaunchServiceWorkerEnd)
+IMPL_TIMING_ATTR(DispatchFetchEventStart)
+IMPL_TIMING_ATTR(DispatchFetchEventEnd)
+IMPL_TIMING_ATTR(HandleFetchEventStart)
+IMPL_TIMING_ATTR(HandleFetchEventEnd)
 IMPL_TIMING_ATTR(DomainLookupStart)
 IMPL_TIMING_ATTR(DomainLookupEnd)
 IMPL_TIMING_ATTR(ConnectStart)
@@ -3712,7 +3842,7 @@ HttpBaseChannel::GetPerformance()
 
   // There is no point in continuing, since the performance object in the parent
   // isn't the same as the one in the child which will be reporting resource performance.
-  if (XRE_IsParentProcess() && BrowserTabsRemoteAutostart()) {
+  if (XRE_IsE10sParentProcess()) {
     return nullptr;
   }
 
@@ -3811,9 +3941,7 @@ HttpBaseChannel::GetThrottleQueue(nsIInputChannelThrottleQueue** aQueue)
 bool
 HttpBaseChannel::EnsureRequestContextID()
 {
-    nsID nullID;
-    nullID.Clear();
-    if (!mRequestContextID.Equals(nullID)) {
+    if (mRequestContextID) {
         // Already have a request context ID, no need to do the rest of this work
         return true;
     }

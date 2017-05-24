@@ -574,6 +574,14 @@ nsViewSourceChannel::SetLoadInfo(nsILoadInfo* aLoadInfo)
 }
 
 NS_IMETHODIMP
+nsViewSourceChannel::GetIsDocument(bool *aIsDocument)
+{
+    NS_ENSURE_TRUE(mChannel, NS_ERROR_FAILURE);
+
+    return mChannel->GetIsDocument(aIsDocument);
+}
+
+NS_IMETHODIMP
 nsViewSourceChannel::GetNotificationCallbacks(nsIInterfaceRequestor* *aNotificationCallbacks)
 {
     NS_ENSURE_TRUE(mChannel, NS_ERROR_FAILURE);
@@ -712,14 +720,15 @@ nsViewSourceChannel::OnDataAvailable(nsIRequest *aRequest, nsISupports* aContext
 // to override GetRequestHeader and VisitHeaders. The reason is that we don't
 // want various headers like Link: and Refresh: applying to view-source.
 NS_IMETHODIMP
-nsViewSourceChannel::GetChannelId(nsACString& aChannelId)
+nsViewSourceChannel::GetChannelId(uint64_t *aChannelId)
 {
+    NS_ENSURE_ARG_POINTER(aChannelId);
   return !mHttpChannel ? NS_ERROR_NULL_POINTER :
       mHttpChannel->GetChannelId(aChannelId);
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::SetChannelId(const nsACString& aChannelId)
+nsViewSourceChannel::SetChannelId(uint64_t aChannelId)
 {
   return !mHttpChannel ? NS_ERROR_NULL_POINTER :
       mHttpChannel->SetChannelId(aChannelId);
@@ -737,6 +746,20 @@ nsViewSourceChannel::SetTopLevelContentWindowId(uint64_t aWindowId)
 {
   return !mHttpChannel ? NS_ERROR_NULL_POINTER :
       mHttpChannel->SetTopLevelContentWindowId(aWindowId);
+}
+
+NS_IMETHODIMP
+nsViewSourceChannel::GetTopLevelOuterContentWindowId(uint64_t *aWindowId)
+{
+  return !mHttpChannel ? NS_ERROR_NULL_POINTER :
+      mHttpChannel->GetTopLevelOuterContentWindowId(aWindowId);
+}
+
+NS_IMETHODIMP
+nsViewSourceChannel::SetTopLevelOuterContentWindowId(uint64_t aWindowId)
+{
+  return !mHttpChannel ? NS_ERROR_NULL_POINTER :
+      mHttpChannel->SetTopLevelOuterContentWindowId(aWindowId);
 }
 
 NS_IMETHODIMP
@@ -988,14 +1011,14 @@ nsViewSourceChannel::RedirectTo(nsIURI *uri)
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::GetRequestContextID(nsID *_retval)
+nsViewSourceChannel::GetRequestContextID(uint64_t *_retval)
 {
     return !mHttpChannel ? NS_ERROR_NULL_POINTER :
         mHttpChannel->GetRequestContextID(_retval);
 }
 
 NS_IMETHODIMP
-nsViewSourceChannel::SetRequestContextID(const nsID rcid)
+nsViewSourceChannel::SetRequestContextID(uint64_t rcid)
 {
     return !mHttpChannel ? NS_ERROR_NULL_POINTER :
         mHttpChannel->SetRequestContextID(rcid);

@@ -34,15 +34,14 @@ var gAdvancedPane = {
         advancedPrefs.selectedIndex = preference.value;
 
     if (AppConstants.MOZ_UPDATER) {
-      let onUnload = function() {
+      let onUnload = () => {
         window.removeEventListener("unload", onUnload);
         Services.prefs.removeObserver("app.update.", this);
-      }.bind(this);
+      };
       window.addEventListener("unload", onUnload);
-      Services.prefs.addObserver("app.update.", this, false);
+      Services.prefs.addObserver("app.update.", this);
       this.updateReadPrefs();
     }
-    this.updateOfflineApps();
     if (AppConstants.MOZ_CRASHREPORTER) {
       this.initSubmitCrashes();
     }
@@ -53,13 +52,14 @@ var gAdvancedPane = {
     this.updateOnScreenKeyboardVisibility();
     this.updateCacheSizeInputField();
     this.updateActualCacheSize();
-    this.updateActualAppCacheSize();
 
     if (Services.prefs.getBoolPref("browser.storageManager.enabled")) {
-      Services.obs.addObserver(this, "sitedatamanager:sites-updated", false);
+      Services.obs.addObserver(this, "sitedatamanager:sites-updated");
+      Services.obs.addObserver(this, "sitedatamanager:updating-sites");
       let unload = () => {
         window.removeEventListener("unload", unload);
         Services.obs.removeObserver(this, "sitedatamanager:sites-updated");
+        Services.obs.removeObserver(this, "sitedatamanager:updating-sites");
       };
       window.addEventListener("unload", unload);
       SiteDataManager.updateSites();
@@ -70,6 +70,8 @@ var gAdvancedPane = {
 
       let url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "storage-permissions";
       document.getElementById("siteDataLearnMoreLink").setAttribute("href", url);
+      let siteDataGroup = document.getElementById("siteDataGroup");
+      siteDataGroup.hidden = false;
     }
 
     setEventListener("layers.acceleration.disabled", "change",
@@ -85,17 +87,6 @@ var gAdvancedPane = {
                      gAdvancedPane.showConnections);
     setEventListener("clearCacheButton", "command",
                      gAdvancedPane.clearCache);
-    setEventListener("clearOfflineAppCacheButton", "command",
-                     gAdvancedPane.clearOfflineAppCache);
-    setEventListener("offlineNotifyExceptions", "command",
-                     gAdvancedPane.showOfflineExceptions);
-    setEventListener("offlineAppsList", "select",
-                     gAdvancedPane.offlineAppSelected);
-    let bundlePrefs = document.getElementById("bundlePreferences");
-    document.getElementById("offlineAppsList")
-            .style.height = bundlePrefs.getString("offlineAppsList.height");
-    setEventListener("offlineAppsListRemove", "command",
-                     gAdvancedPane.removeOfflineApp);
     if (AppConstants.MOZ_UPDATER) {
       setEventListener("updateRadioGroup", "command",
                        gAdvancedPane.updateWritePrefs);
@@ -108,6 +99,24 @@ var gAdvancedPane = {
                      gAdvancedPane.showSecurityDevices);
     setEventListener("cacheSize", "change",
                      gAdvancedPane.updateCacheSizePref);
+
+    if (Services.prefs.getBoolPref("browser.preferences.offlineGroup.enabled")) {
+      this.updateOfflineApps();
+      this.updateActualAppCacheSize();
+      setEventListener("offlineNotifyExceptions", "command",
+                      gAdvancedPane.showOfflineExceptions);
+      setEventListener("offlineAppsList", "select",
+                      gAdvancedPane.offlineAppSelected);
+      setEventListener("offlineAppsListRemove", "command",
+                      gAdvancedPane.removeOfflineApp);
+      setEventListener("clearOfflineAppCacheButton", "command",
+                      gAdvancedPane.clearOfflineAppCache);
+      let bundlePrefs = document.getElementById("bundlePreferences");
+      document.getElementById("offlineAppsList")
+              .style.height = bundlePrefs.getString("offlineAppsList.height");
+      let offlineGroup = document.getElementById("offlineGroup");
+      offlineGroup.hidden = false;
+    }
 
     if (AppConstants.MOZ_WIDGET_GTK) {
       // GTK tabbox' allow the scroll wheel to change the selected tab,
@@ -353,16 +362,22 @@ var gAdvancedPane = {
     gSubDialog.open("chrome://browser/content/preferences/siteDataSettings.xul");
   },
 
-  updateTotalSiteDataSize() {
-    SiteDataManager.getTotalUsage()
-      .then(usage => {
-        let size = DownloadUtils.convertByteUnits(usage);
-        let prefStrBundle = document.getElementById("bundlePreferences");
-        let totalSiteDataSizeLabel = document.getElementById("totalSiteDataSize");
-        totalSiteDataSizeLabel.textContent = prefStrBundle.getFormattedString("totalSiteDataSize", size);
-        let siteDataGroup = document.getElementById("siteDataGroup");
-        siteDataGroup.hidden = false;
-      });
+  toggleSiteData(shouldShow) {
+    let clearButton = document.getElementById("clearSiteDataButton");
+    let settingsButton = document.getElementById("siteDataSettings");
+    clearButton.disabled = !shouldShow;
+    settingsButton.disabled = !shouldShow;
+  },
+
+  updateTotalDataSizeLabel(usage) {
+    let prefStrBundle = document.getElementById("bundlePreferences");
+    let totalSiteDataSizeLabel = document.getElementById("totalSiteDataSize");
+    if (usage < 0) {
+      totalSiteDataSizeLabel.textContent = prefStrBundle.getString("loadingSiteDataSize");
+    } else {
+      let size = DownloadUtils.convertByteUnits(usage);
+      totalSiteDataSizeLabel.textContent = prefStrBundle.getFormattedString("totalSiteDataSize", size);
+    }
   },
 
   // Retrieves the amount of space currently used by disk cache
@@ -395,32 +410,6 @@ var gAdvancedPane = {
         Components.classes["@mozilla.org/netwerk/cache-storage-service;1"]
                   .getService(Components.interfaces.nsICacheStorageService);
       cacheService.asyncGetDiskConsumption(this.observer);
-    } catch (e) {}
-  },
-
-  // Retrieves the amount of space currently used by offline cache
-  updateActualAppCacheSize() {
-    var visitor = {
-      onCacheStorageInfo(aEntryCount, aConsumption, aCapacity, aDiskDirectory) {
-        var actualSizeLabel = document.getElementById("actualAppCacheSize");
-        var sizeStrings = DownloadUtils.convertByteUnits(aConsumption);
-        var prefStrBundle = document.getElementById("bundlePreferences");
-        // The XBL binding for the string bundle may have been destroyed if
-        // the page was closed before this callback was executed.
-        if (!prefStrBundle.getFormattedString) {
-          return;
-        }
-        var sizeStr = prefStrBundle.getFormattedString("actualAppCacheSize", sizeStrings);
-        actualSizeLabel.value = sizeStr;
-      }
-    };
-
-    try {
-      var cacheService =
-        Components.classes["@mozilla.org/netwerk/cache-storage-service;1"]
-                  .getService(Components.interfaces.nsICacheStorageService);
-      var storage = cacheService.appCacheStorage(LoadContextInfo.default, null);
-      storage.asyncVisitStorage(visitor, false);
     } catch (e) {}
   },
 
@@ -475,17 +464,6 @@ var gAdvancedPane = {
     this.updateActualCacheSize();
   },
 
-  /**
-   * Clears the application cache.
-   */
-  clearOfflineAppCache() {
-    Components.utils.import("resource:///modules/offlineAppCache.jsm");
-    OfflineAppCacheHelper.clear();
-
-    this.updateActualAppCacheSize();
-    this.updateOfflineApps();
-  },
-
   clearSiteData() {
     let flags =
       Services.prompt.BUTTON_TITLE_IS_STRING * Services.prompt.BUTTON_POS_0 +
@@ -501,6 +479,45 @@ var gAdvancedPane = {
     if (result == 0) {
       SiteDataManager.removeAll();
     }
+  },
+
+  // Methods for Offline Apps(Appcache)
+
+  /**
+   * Clears the application cache.
+   */
+  clearOfflineAppCache() {
+    Components.utils.import("resource:///modules/offlineAppCache.jsm");
+    OfflineAppCacheHelper.clear();
+
+    this.updateActualAppCacheSize();
+    this.updateOfflineApps();
+  },
+
+  // Retrieves the amount of space currently used by offline cache
+  updateActualAppCacheSize() {
+    var visitor = {
+      onCacheStorageInfo(aEntryCount, aConsumption, aCapacity, aDiskDirectory) {
+        var actualSizeLabel = document.getElementById("actualAppCacheSize");
+        var sizeStrings = DownloadUtils.convertByteUnits(aConsumption);
+        var prefStrBundle = document.getElementById("bundlePreferences");
+        // The XBL binding for the string bundle may have been destroyed if
+        // the page was closed before this callback was executed.
+        if (!prefStrBundle.getFormattedString) {
+          return;
+        }
+        var sizeStr = prefStrBundle.getFormattedString("actualAppCacheSize", sizeStrings);
+        actualSizeLabel.value = sizeStr;
+      }
+    };
+
+    try {
+      var cacheService =
+        Components.classes["@mozilla.org/netwerk/cache-storage-service;1"]
+                  .getService(Components.interfaces.nsICacheStorageService);
+      var storage = cacheService.appCacheStorage(LoadContextInfo.default, null);
+      storage.asyncVisitStorage(visitor, false);
+    } catch (e) {}
   },
 
   readOfflineNotify() {
@@ -646,6 +663,7 @@ var gAdvancedPane = {
     gAdvancedPane.offlineAppSelected();
     this.updateActualAppCacheSize();
   },
+  // Methods for Offline Apps(Appcache) end
 
   // UPDATE TAB
 
@@ -783,16 +801,22 @@ var gAdvancedPane = {
   },
 
   observe(aSubject, aTopic, aData) {
-    if (AppConstants.MOZ_UPDATER) {
-      switch (aTopic) {
-        case "nsPref:changed":
-          this.updateReadPrefs();
-          break;
+    switch (aTopic) {
+      case "nsPref:changed":
+        this.updateReadPrefs();
+        break;
 
-        case "sitedatamanager:sites-updated":
-          this.updateTotalSiteDataSize();
-          break;
-      }
+      case "sitedatamanager:updating-sites":
+        // While updating, we want to disable this section and display loading message until updated
+        this.toggleSiteData(false);
+        this.updateTotalDataSizeLabel(-1);
+        break;
+
+      case "sitedatamanager:sites-updated":
+        this.toggleSiteData(true);
+        SiteDataManager.getTotalUsage()
+          .then(this.updateTotalDataSizeLabel.bind(this));
+        break;
     }
   },
 };

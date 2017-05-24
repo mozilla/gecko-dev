@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* eslint-env mozilla/browser-window */
-/* eslint no-undef: "error" */
 /* global OpenGraphBuilder:false, DynamicResizeWatcher:false */
 
 // the "exported" symbols
@@ -41,7 +40,7 @@ SocialUI = {
     mm.loadFrameScript("chrome://browser/content/content.js", true);
     mm.loadFrameScript("chrome://browser/content/social-content.js", true);
 
-    Services.obs.addObserver(this, "social:providers-changed", false);
+    Services.obs.addObserver(this, "social:providers-changed");
 
     CustomizableUI.addListener(this);
     SocialActivationListener.init();

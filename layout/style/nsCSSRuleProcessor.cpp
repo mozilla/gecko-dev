@@ -9,13 +9,6 @@
  * matching and cascading
  */
 
-#define PL_ARENA_CONST_ALIGN_MASK 7
-// We want page-sized arenas so there's no fragmentation involved.
-// Including plarena.h must come first to avoid it being included by some
-// header file thereby making PL_ARENA_CONST_ALIGN_MASK ineffective.
-#define NS_CASCADEENUMDATA_ARENA_BLOCK_SIZE (4096)
-#include "plarena.h"
-
 #include "nsCSSRuleProcessor.h"
 
 #include "nsAutoPtr.h"
@@ -47,12 +40,15 @@
 #include "nsContentUtils.h"
 #include "nsMediaList.h"
 #include "nsCSSRules.h"
+#include "nsCSSCounterStyleRule.h"
+#include "nsCSSFontFaceRule.h"
 #include "nsStyleSet.h"
 #include "mozilla/dom/Element.h"
 #include "nsNthIndexCache.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ServoStyleSet.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Likely.h"
 #include "mozilla/OperatorNewExtensions.h"
@@ -62,6 +58,8 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+
+typedef ArenaAllocator<4096, 8> CascadeAllocator;
 
 #define VISITED_PSEUDO_PREF "layout.css.visited_links_enabled"
 
@@ -896,7 +894,11 @@ struct RuleCascadeData {
   nsTArray<nsCSSCounterStyleRule*> mCounterStyleRules;
 
   nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRuleTable;
-  nsDataHashtable<nsStringHashKey, nsCSSCounterStyleRule*> mCounterStyleRuleTable;
+  // The hashtable doesn't need to hold a strong reference to the name
+  // atom, because nsCSSCounterStyleRule always does. If the name changes
+  // we need to discard this table and rebuild it anyway.
+  nsDataHashtable<nsPtrHashKey<nsIAtom>,
+                  nsCSSCounterStyleRule*> mCounterStyleRuleTable;
 
   // Looks up or creates the appropriate list in |mAttributeSelectors|.
   // Returns null only on allocation failure.
@@ -1065,13 +1067,15 @@ nsCSSRuleProcessor::Startup()
                                true);
 }
 
-static bool
-InitSystemMetrics()
+/* static */ void
+nsCSSRuleProcessor::InitSystemMetrics()
 {
-  NS_ASSERTION(!sSystemMetrics, "already initialized");
+  if (sSystemMetrics)
+    return;
+
+  MOZ_ASSERT(NS_IsMainThread());
 
   sSystemMetrics = new nsTArray< nsCOMPtr<nsIAtom> >;
-  NS_ENSURE_TRUE(sSystemMetrics, false);
 
   /***************************************************************************
    * ANY METRICS ADDED HERE SHOULD ALSO BE ADDED AS MEDIA QUERIES IN         *
@@ -1197,8 +1201,6 @@ InitSystemMetrics()
     }
   }
 #endif
-
-  return true;
 }
 
 /* static */ void
@@ -1217,9 +1219,7 @@ nsCSSRuleProcessor::Shutdown()
 /* static */ bool
 nsCSSRuleProcessor::HasSystemMetric(nsIAtom* aMetric)
 {
-  if (!sSystemMetrics && !InitSystemMetrics()) {
-    return false;
-  }
+  nsCSSRuleProcessor::InitSystemMetrics();
   return sSystemMetrics->IndexOf(aMetric) != sSystemMetrics->NoIndex;
 }
 
@@ -1227,8 +1227,7 @@ nsCSSRuleProcessor::HasSystemMetric(nsIAtom* aMetric)
 /* static */ uint8_t
 nsCSSRuleProcessor::GetWindowsThemeIdentifier()
 {
-  if (!sSystemMetrics)
-    InitSystemMetrics();
+  nsCSSRuleProcessor::InitSystemMetrics();
   return sWinThemeId;
 }
 #endif
@@ -1643,17 +1642,16 @@ StateSelectorMatches(Element* aElement,
 static inline bool
 IsSignificantChildMaybeThreadSafe(const nsIContent* aContent,
                                   bool aTextIsSignificant,
-                                  bool aWhitespaceIsSignificant,
-                                  bool aIsGecko)
+                                  bool aWhitespaceIsSignificant)
 {
-  if (aIsGecko) {
-    auto content = const_cast<nsIContent*>(aContent);
-    return IsSignificantChild(content, aTextIsSignificant, aWhitespaceIsSignificant);
-  } else {
+  if (ServoStyleSet::IsInServoTraversal()) {
     // See bug 1349100 for optimizing this
     return nsStyleUtil::ThreadSafeIsSignificantChild(aContent,
                                                      aTextIsSignificant,
                                                      aWhitespaceIsSignificant);
+  } else {
+    auto content = const_cast<nsIContent*>(aContent);
+    return IsSignificantChild(content, aTextIsSignificant, aWhitespaceIsSignificant);
   }
 }
 
@@ -1664,7 +1662,6 @@ nsCSSRuleProcessor::StringPseudoMatches(const mozilla::dom::Element* aElement,
                                         const nsIDocument* aDocument,
                                         bool aForStyling,
                                         EventStates aStateMask,
-                                        bool aIsGecko,
                                         bool* aSetSlowSelectorFlag,
                                         bool* const aDependence)
 {
@@ -1674,13 +1671,13 @@ nsCSSRuleProcessor::StringPseudoMatches(const mozilla::dom::Element* aElement,
     case CSSPseudoClassType::mozLocaleDir:
       {
         bool docIsRTL;
-        if (aIsGecko) {
+        if (ServoStyleSet::IsInServoTraversal()) {
+          docIsRTL = aDocument->ThreadSafeGetDocumentState()
+                              .HasState(NS_DOCUMENT_STATE_RTL_LOCALE);
+        } else {
           auto doc = const_cast<nsIDocument*>(aDocument);
           docIsRTL = doc->GetDocumentState()
                         .HasState(NS_DOCUMENT_STATE_RTL_LOCALE);
-        } else {
-          docIsRTL = aDocument->ThreadSafeGetDocumentState()
-                              .HasState(NS_DOCUMENT_STATE_RTL_LOCALE);
         }
 
         nsDependentString dirString(aString);
@@ -1726,7 +1723,7 @@ nsCSSRuleProcessor::StringPseudoMatches(const mozilla::dom::Element* aElement,
         do {
           child = aElement->GetChildAt(++index);
         } while (child &&
-                  (!IsSignificantChildMaybeThreadSafe(child, true, false, aIsGecko) ||
+                  (!IsSignificantChildMaybeThreadSafe(child, true, false) ||
                   (child->GetNameSpaceID() == aElement->GetNameSpaceID() &&
                     child->NodeInfo()->NameAtom()->Equals(nsDependentString(aString)))));
         if (child) {
@@ -1968,12 +1965,6 @@ static bool SelectorMatches(Element* aElement,
       }
       break;
 
-    case CSSPseudoClassType::mozBoundElement:
-      if (aTreeMatchContext.mScopedRoot != aElement) {
-        return false;
-      }
-      break;
-
     case CSSPseudoClassType::root:
       if (aElement != aElement->OwnerDoc()->GetRootElement()) {
         return false;
@@ -2178,7 +2169,6 @@ static bool SelectorMatches(Element* aElement,
                                                                aTreeMatchContext.mDocument,
                                                                aTreeMatchContext.mForStyling,
                                                                aNodeMatchContext.mStateMask,
-                                                               true,
                                                                &setSlowSelectorFlag,
                                                                aDependence);
         if (setSlowSelectorFlag) {
@@ -3133,7 +3123,7 @@ nsCSSRuleProcessor::KeyframesRuleForName(nsPresContext* aPresContext,
 
 nsCSSCounterStyleRule*
 nsCSSRuleProcessor::CounterStyleRuleForName(nsPresContext* aPresContext,
-                                            const nsAString& aName)
+                                            nsIAtom* aName)
 {
   RuleCascadeData* cascade = GetRuleCascade(aPresContext);
 
@@ -3449,10 +3439,8 @@ struct PerWeightDataListItem : public RuleSelectorPair {
 
 
   // Placement new to arena allocate the PerWeightDataListItem
-  void *operator new(size_t aSize, PLArenaPool &aArena) CPP_THROW_NEW {
-    void *mem;
-    PL_ARENA_ALLOCATE(mem, &aArena, aSize);
-    return mem;
+  void *operator new(size_t aSize, CascadeAllocator &aArena) CPP_THROW_NEW {
+    return aArena.Allocate(aSize, fallible);
   }
 
   PerWeightDataListItem *mNext;
@@ -3526,14 +3514,10 @@ struct CascadeEnumData {
       mSheetType(aSheetType),
       mMustGatherDocumentRules(aMustGatherDocumentRules)
   {
-    // Initialize our arena
-    PL_INIT_ARENA_POOL(&mArena, "CascadeEnumDataArena",
-                       NS_CASCADEENUMDATA_ARENA_BLOCK_SIZE);
   }
 
   ~CascadeEnumData()
   {
-    PL_FinishArenaPool(&mArena);
   }
 
   nsPresContext* mPresContext;
@@ -3545,7 +3529,8 @@ struct CascadeEnumData {
   nsTArray<css::DocumentRule*>& mDocumentRules;
   nsMediaQueryResultCacheKey& mCacheKey;
   nsDocumentRuleResultCacheKey& mDocumentCacheKey;
-  PLArenaPool mArena;
+  // We want page-sized arenas so there's no fragmentation involved.
+  CascadeAllocator  mArena;
   // Hooray, a manual PLDHashTable since nsClassHashtable doesn't
   // provide a getter that gives me a *reference* to the value.
   PLDHashTable mRulesByWeight; // of PerWeightDataListItem linked lists
@@ -3857,7 +3842,7 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
       for (nsTArray<nsCSSCounterStyleRule*>::size_type i = 0,
            iEnd = newCascade->mCounterStyleRules.Length(); i < iEnd; ++i) {
         nsCSSCounterStyleRule* rule = newCascade->mCounterStyleRules[i];
-        newCascade->mCounterStyleRuleTable.Put(rule->GetName(), rule);
+        newCascade->mCounterStyleRuleTable.Put(rule->Name(), rule);
       }
 
       // mMustGatherDocumentRules controls whether we build mDocumentRules

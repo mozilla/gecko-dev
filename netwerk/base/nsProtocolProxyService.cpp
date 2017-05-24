@@ -428,6 +428,7 @@ nsProtocolProxyService::nsProtocolProxyService()
     , mPACMan(nullptr)
     , mSessionStart(PR_Now())
     , mFailedProxyTimeout(30 * 60) // 30 minute default
+    , mIsShutdown(false)
 {
 }
 
@@ -518,6 +519,7 @@ nsProtocolProxyService::Observe(nsISupports     *aSubject,
                                 const char16_t *aData)
 {
     if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
+        mIsShutdown = true;
         // cleanup
         if (mHostFiltersArray.Length() > 0) {
             mHostFiltersArray.Clear();
@@ -1017,6 +1019,10 @@ nsProtocolProxyService::IsProxyDisabled(nsProxyInfo *pi)
 nsresult
 nsProtocolProxyService::SetupPACThread()
 {
+    if (mIsShutdown) {
+        return NS_ERROR_FAILURE;
+    }
+
     if (mPACMan)
         return NS_OK;
 
@@ -1053,7 +1059,8 @@ nsresult
 nsProtocolProxyService::ConfigureFromPAC(const nsCString &spec,
                                          bool forceReload)
 {
-    SetupPACThread();
+    nsresult rv = SetupPACThread();
+    NS_ENSURE_SUCCESS(rv, rv);
 
     if (mPACMan->IsPACURI(spec) && !forceReload)
         return NS_OK;
@@ -1200,6 +1207,16 @@ nsProtocolProxyService::AsyncResolveInternal(nsIChannel *channel, uint32_t flags
 
     nsCOMPtr<nsIProxyInfo> pi;
     bool usePACThread;
+
+    // adapt to realtime changes in the system proxy service
+    if (mProxyConfig == PROXYCONFIG_SYSTEM) {
+        nsCOMPtr<nsISystemProxySettings> sp2 =
+            do_GetService(NS_SYSTEMPROXYSETTINGS_CONTRACTID);
+        if (sp2 != mSystemProxySettings) {
+            mSystemProxySettings = sp2;
+            ResetPACThread();
+        }
+    }
 
     // SystemProxySettings and PAC files can block the main thread
     // but if neither of them are in use, we can just do the work
@@ -1374,6 +1391,10 @@ nsProtocolProxyService::GetFailoverForProxy(nsIProxyInfo  *aProxy,
 nsresult
 nsProtocolProxyService::InsertFilterLink(FilterLink *link, uint32_t position)
 {
+    if (mIsShutdown) {
+        return NS_ERROR_FAILURE;
+    }
+
     if (!mFilters) {
         mFilters = link;
         return NS_OK;
@@ -1410,7 +1431,11 @@ nsProtocolProxyService::RegisterFilter(nsIProtocolProxyFilter *filter,
     if (!link) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
-    return InsertFilterLink(link, position);
+    nsresult rv = InsertFilterLink(link, position);
+    if (NS_FAILED(rv)) {
+        delete link;
+    }
+    return rv;
 }
 
 NS_IMETHODIMP
@@ -1423,7 +1448,11 @@ nsProtocolProxyService::RegisterChannelFilter(nsIProtocolProxyChannelFilter *cha
     if (!link) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
-    return InsertFilterLink(link, position);
+    nsresult rv = InsertFilterLink(link, position);
+    if (NS_FAILED(rv)) {
+        delete link;
+    }
+    return rv;
 }
 
 nsresult
@@ -1473,6 +1502,10 @@ nsProtocolProxyService::GetProxyConfigType(uint32_t* aProxyConfigType)
 void
 nsProtocolProxyService::LoadHostFilters(const nsACString& aFilters)
 {
+    if (mIsShutdown) {
+        return;
+    }
+
     // check to see the owners flag? /!?/ TODO
     if (mHostFiltersArray.Length() > 0) {
         mHostFiltersArray.Clear();

@@ -9,6 +9,8 @@
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/IntegerTypeTraits.h"
+#include "mozilla/Span.h"
 
 #ifndef MOZILLA_INTERNAL_API
 #error "Using XPCOM strings is limited to code linked into libxul."
@@ -690,7 +692,7 @@ public:
    * this with floating-point values as a result.
    */
   void AppendPrintf(const char* aFormat, ...) MOZ_FORMAT_PRINTF(2, 3);
-  void AppendPrintf(const char* aFormat, va_list aAp);
+  void AppendPrintf(const char* aFormat, va_list aAp) MOZ_FORMAT_PRINTF(2, 0);
   void AppendInt(int32_t aInteger)
   {
     AppendPrintf("%" PRId32, aInteger);
@@ -922,6 +924,68 @@ public:
   }
 #endif
 
+  /**
+   * Span integration
+   */
+
+  operator mozilla::Span<char_type>()
+  {
+    return mozilla::MakeSpan(BeginWriting(), Length());
+  }
+
+  operator mozilla::Span<const char_type>() const
+  {
+    return mozilla::MakeSpan(BeginReading(), Length());
+  }
+
+  void Append(mozilla::Span<const char_type> aSpan)
+  {
+    auto len = aSpan.Length();
+    MOZ_RELEASE_ASSERT(len <= mozilla::MaxValue<size_type>::value);
+    Append(aSpan.Elements(), len);
+  }
+
+  MOZ_MUST_USE bool Append(mozilla::Span<const char_type> aSpan,
+                           const fallible_t& aFallible)
+  {
+    auto len = aSpan.Length();
+    if (len > mozilla::MaxValue<size_type>::value) {
+      return false;
+    }
+    return Append(aSpan.Elements(), len, aFallible);
+  }
+
+#if !defined(CharT_is_PRUnichar)
+  operator mozilla::Span<uint8_t>()
+  {
+    return mozilla::MakeSpan(reinterpret_cast<uint8_t*>(BeginWriting()),
+                             Length());
+  }
+
+  operator mozilla::Span<const uint8_t>() const
+  {
+    return mozilla::MakeSpan(reinterpret_cast<const uint8_t*>(BeginReading()),
+                             Length());
+  }
+
+  void Append(mozilla::Span<const uint8_t> aSpan)
+  {
+    auto len = aSpan.Length();
+    MOZ_RELEASE_ASSERT(len <= mozilla::MaxValue<size_type>::value);
+    Append(reinterpret_cast<const char*>(aSpan.Elements()), len);
+  }
+
+  MOZ_MUST_USE bool Append(mozilla::Span<const uint8_t> aSpan,
+                           const fallible_t& aFallible)
+  {
+    auto len = aSpan.Length();
+    if (len > mozilla::MaxValue<size_type>::value) {
+      return false;
+    }
+    return Append(
+      reinterpret_cast<const char*>(aSpan.Elements()), len, aFallible);
+  }
+#endif
 
   /**
    * string data is never null, but can be marked void.  if true, the
@@ -949,6 +1013,31 @@ public:
    */
 
   void StripChars(const char_type* aChars, uint32_t aOffset = 0);
+
+  /**
+   * This method is used to remove all occurrences of some characters this
+   * from this string.  The characters removed have the corresponding
+   * entries in the bool array set to true; we retain all characters
+   * with code beyond 127.
+   * THE CALLER IS RESPONSIBLE for making sure the complete boolean
+   * array, 128 entries, is properly initialized.
+   *
+   * See also: ASCIIMask class.
+   *
+   *  @param  aToStrip -- Array where each entry is true if the
+   *          corresponding ASCII character is to be stripped.  All
+   *          characters beyond code 127 are retained.  Note that this
+   *          parameter is of ASCIIMaskArray type, but we expand the typedef
+   *          to avoid having to include nsASCIIMask.h in this include file
+   *          as it brings other includes.
+   *  @param  aOffset -- where in this string to start stripping chars
+   */
+  void StripTaggedASCII(const std::array<bool, 128>& aToStrip, uint32_t aOffset = 0);
+
+  /**
+   * A shortcut to strip \r and \n.
+   */
+  void StripCRLF(uint32_t aOffset = 0);
 
   /**
    * If the string uses a shared buffer, this method
@@ -1033,6 +1122,7 @@ protected:
   nsTSubstring_CharT(char_type* aData, size_type aLength, uint32_t aFlags)
     : nsTStringRepr_CharT(aData, aLength, aFlags)
   {
+    MOZ_RELEASE_ASSERT(CheckCapacity(aLength), "String is too large.");
   }
 #endif /* DEBUG || FORCE_BUILD_REFCNT_LOGGING */
 
@@ -1272,3 +1362,22 @@ public:
     return mArray[index];
   }
 };
+
+/**
+ * Span integration
+ */
+namespace mozilla {
+
+inline Span<CharT>
+MakeSpan(nsTSubstring_CharT& aString)
+{
+  return aString;
+}
+
+inline Span<const CharT>
+MakeSpan(const nsTSubstring_CharT& aString)
+{
+  return aString;
+}
+
+} // namespace mozilla

@@ -1299,7 +1299,7 @@ WebSocketChannel::OnNetworkChanged()
       NS_DISPATCH_NORMAL);
   }
 
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   LOG(("WebSocketChannel::OnNetworkChanged() - on socket thread %p", this));
 
@@ -1500,7 +1500,7 @@ nsresult
 WebSocketChannel::ProcessInput(uint8_t *buffer, uint32_t count)
 {
   LOG(("WebSocketChannel::ProcessInput %p [%d %d]\n", this, count, mBuffered));
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   nsresult rv;
 
@@ -1551,6 +1551,14 @@ WebSocketChannel::ProcessInput(uint8_t *buffer, uint32_t count)
         break;
 
       payloadLength64 = mFramePtr[2] << 8 | mFramePtr[3];
+
+      if(payloadLength64 < 126){
+        // Section 5.2 says that the minimal number of bytes MUST
+        // be used to encode the length in all cases
+        LOG(("WebSocketChannel:: non-minimal-encoded payload length"));
+        return NS_ERROR_ILLEGAL_VALUE;
+      }
+
     } else {
       // 64 bit length
       framingLength += 8;
@@ -1566,6 +1574,14 @@ WebSocketChannel::ProcessInput(uint8_t *buffer, uint32_t count)
 
       // copy this in case it is unaligned
       payloadLength64 = NetworkEndian::readInt64(mFramePtr + 2);
+
+      if(payloadLength64 <= 0xffff){
+        // Section 5.2 says that the minimal number of bytes MUST
+        // be used to encode the length in all cases
+        LOG(("WebSocketChannel:: non-minimal-encoded payload length"));
+        return NS_ERROR_ILLEGAL_VALUE;
+      }
+
     }
 
     payload = mFramePtr + framingLength;
@@ -1989,7 +2005,7 @@ void
 WebSocketChannel::EnqueueOutgoingMessage(nsDeque &aQueue,
                                          OutboundMessage *aMsg)
 {
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   LOG(("WebSocketChannel::EnqueueOutgoingMessage %p "
        "queueing msg %p [type=%s len=%d]\n",
@@ -2023,7 +2039,7 @@ void
 WebSocketChannel::PrimeNewOutgoingMessage()
 {
   LOG(("WebSocketChannel::PrimeNewOutgoingMessage() %p\n", this));
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   MOZ_ASSERT(!mCurrentOut, "Current message in progress");
 
   nsresult rv = NS_OK;
@@ -2489,7 +2505,7 @@ WebSocketChannel::ReleaseSession()
 {
   LOG(("WebSocketChannel::ReleaseSession() %p stopped = %d\n",
        this, !!mStopped));
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   if (mStopped)
     return;
@@ -2978,7 +2994,7 @@ nsresult
 WebSocketChannel::StartPinging()
 {
   LOG(("WebSocketChannel::StartPinging() %p", this));
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   MOZ_ASSERT(mPingInterval);
   MOZ_ASSERT(!mPingTimer);
 
@@ -3227,8 +3243,7 @@ WebSocketChannel::Notify(nsITimer *timer)
 
   if (timer == mCloseTimer) {
     MOZ_ASSERT(mClientClosed, "Close Timeout without local close");
-    MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread,
-               "not socket thread");
+    MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
     mCloseTimer = nullptr;
     if (mStopped || mServerClosed)                /* no longer relevant */
@@ -3256,8 +3271,7 @@ WebSocketChannel::Notify(nsITimer *timer)
     LOG(("WebSocketChannel: connecting [this=%p] after reconnect delay", this));
     BeginOpen(false);
   } else if (timer == mPingTimer) {
-    MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread,
-               "not socket thread");
+    MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
     if (mClientClosed || mServerClosed || mRequestedClose) {
       // no point in worrying about ping now
@@ -3837,9 +3851,10 @@ WebSocketChannel::OnStartRequest(nsIRequest *aRequest,
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  // If we sent a sub protocol header, verify the response matches
-  // If it does not, set mProtocol to "" so the protocol attribute
-  // of the WebSocket JS object reflects that
+  // If we sent a sub protocol header, verify the response matches.
+  // If response contains protocol that was not in request, fail.
+  // If response contained no protocol header, set to "" so the protocol
+  // attribute of the WebSocket JS object reflects that
   if (!mProtocol.IsEmpty()) {
     nsAutoCString respProtocol;
     rv = mHttpChannel->GetResponseHeader(
@@ -3849,7 +3864,7 @@ WebSocketChannel::OnStartRequest(nsIRequest *aRequest,
       rv = NS_ERROR_ILLEGAL_VALUE;
       val = mProtocol.BeginWriting();
       while ((token = nsCRT::strtok(val, ", \t", &val))) {
-        if (PL_strcasecmp(token, respProtocol.get()) == 0) {
+        if (PL_strcmp(token, respProtocol.get()) == 0) {
           rv = NS_OK;
           break;
         }
@@ -3861,9 +3876,11 @@ WebSocketChannel::OnStartRequest(nsIRequest *aRequest,
         mProtocol = respProtocol;
       } else {
         LOG(("WebsocketChannel::OnStartRequest: "
-             "subprotocol [%s] not found - %s returned",
-             mProtocol.get(), respProtocol.get()));
+             "Server replied with non-matching subprotocol [%s]: aborting",
+             respProtocol.get()));
         mProtocol.Truncate();
+        AbortSession(NS_ERROR_ILLEGAL_VALUE);
+        return NS_ERROR_ILLEGAL_VALUE;
       }
     } else {
       LOG(("WebsocketChannel::OnStartRequest "
@@ -3925,7 +3942,7 @@ NS_IMETHODIMP
 WebSocketChannel::OnInputStreamReady(nsIAsyncInputStream *aStream)
 {
   LOG(("WebSocketChannel::OnInputStreamReady() %p\n", this));
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   if (!mSocketIn) // did we we clean up the socket after scheduling InputReady?
     return NS_OK;
@@ -3978,7 +3995,7 @@ NS_IMETHODIMP
 WebSocketChannel::OnOutputStreamReady(nsIAsyncOutputStream *aStream)
 {
   LOG(("WebSocketChannel::OnOutputStreamReady() %p\n", this));
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread, "not socket thread");
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   nsresult rv;
 
   if (!mCurrentOut)

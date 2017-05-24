@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cookie_rs;
 use core::nonzero::NonZero;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use document_loader::{DocumentLoader, LoadType};
@@ -33,7 +34,6 @@ use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
-use dom::browsingcontext::BrowsingContext;
 use dom::closeevent::CloseEvent;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
@@ -88,19 +88,19 @@ use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
+use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
-use gfx_traits::ScrollRootId;
-use html5ever_atoms::{LocalName, QualName};
+use html5ever::{LocalName, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
-use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -128,20 +128,21 @@ use std::default::Default;
 use std::iter::once;
 use std::mem;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
-use style::restyle_hints::{RestyleHint, RESTYLE_STYLE_ATTRIBUTE};
+use style::restyle_hints::{RestyleHint, RestyleReplacements, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
+use style::stylearc::Arc;
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
 use time;
 use timers::OneshotTimerCallback;
 use url::Host;
 use url::percent_encoding::percent_decode;
+use webrender_traits::ClipId;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -400,9 +401,9 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#concept-document-bc
     #[inline]
-    pub fn browsing_context(&self) -> Option<Root<BrowsingContext>> {
+    pub fn browsing_context(&self) -> Option<Root<WindowProxy>> {
         if self.has_browsing_context {
-            self.window.maybe_browsing_context()
+            self.window.maybe_window_proxy()
         } else {
             None
         }
@@ -491,6 +492,7 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
+        self.stylesheets_changed_since_reflow.get() ||
         match self.GetDocumentElement() {
             Some(root) => {
                 root.upcast::<Node>().has_dirty_descendants() ||
@@ -540,7 +542,7 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == QuirksMode::Quirks {
-            self.window.layout_chan().send(Msg::SetQuirksMode).unwrap();
+            self.window.layout_chan().send(Msg::SetQuirksMode(mode)).unwrap();
         }
     }
 
@@ -698,9 +700,11 @@ impl Document {
 
         if let Some((x, y)) = point {
             // Step 3
+            let global_scope = self.window.upcast::<GlobalScope>();
+            let webrender_pipeline_id = global_scope.pipeline_id().to_webrender();
             self.window.perform_a_scroll(x,
                                          y,
-                                         ScrollRootId::root(),
+                                         ClipId::root_scroll_node(webrender_pipeline_id),
                                          ScrollBehavior::Instant,
                                          target.r());
         }
@@ -822,6 +826,7 @@ impl Document {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn handle_mouse_event(&self,
                               js_runtime: *mut JSRuntime,
                               button: MouseButton,
@@ -837,7 +842,9 @@ impl Document {
         let node = match self.window.hit_test_query(client_point, false) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address);
-                node::from_untrusted_node_address(js_runtime, node_address)
+                unsafe {
+                    node::from_untrusted_node_address(js_runtime, node_address)
+                }
             },
             None => return,
         };
@@ -984,13 +991,16 @@ impl Document {
         *self.last_click_info.borrow_mut() = Some((now, click_pos));
     }
 
+    #[allow(unsafe_code)]
     pub fn handle_touchpad_pressure_event(&self,
                                           js_runtime: *mut JSRuntime,
                                           client_point: Point2D<f32>,
                                           pressure: f32,
                                           phase_now: TouchpadPressurePhase) {
         let node = match self.window.hit_test_query(client_point, false) {
-            Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
+            Some(node_address) => unsafe {
+                node::from_untrusted_node_address(js_runtime, node_address)
+            },
             None => return
         };
 
@@ -1085,6 +1095,7 @@ impl Document {
         event.fire(target);
     }
 
+    #[allow(unsafe_code)]
     pub fn handle_mouse_move_event(&self,
                                    js_runtime: *mut JSRuntime,
                                    client_point: Option<Point2D<f32>>,
@@ -1100,7 +1111,7 @@ impl Document {
         };
 
         let maybe_new_target = self.window.hit_test_query(client_point, true).and_then(|address| {
-            let node = node::from_untrusted_node_address(js_runtime, address);
+            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
             node.inclusive_ancestors()
                 .filter_map(Root::downcast::<Element>)
                 .next()
@@ -1182,6 +1193,7 @@ impl Document {
                            ReflowReason::MouseEvent);
     }
 
+    #[allow(unsafe_code)]
     pub fn handle_touch_event(&self,
                               js_runtime: *mut JSRuntime,
                               event_type: TouchEventType,
@@ -1198,7 +1210,9 @@ impl Document {
         };
 
         let node = match self.window.hit_test_query(point, false) {
-            Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
+            Some(node_address) => unsafe {
+                node::from_untrusted_node_address(js_runtime, node_address)
+            },
             None => return TouchEventResult::Processed(false),
         };
         let el = match node.downcast::<Element>() {
@@ -1883,9 +1897,9 @@ impl Document {
     }
 
     /// Find an iframe element in the document.
-    pub fn find_iframe(&self, frame_id: FrameId) -> Option<Root<HTMLIFrameElement>> {
+    pub fn find_iframe(&self, browsing_context_id: BrowsingContextId) -> Option<Root<HTMLIFrameElement>> {
         self.iter_iframes()
-            .find(|node| node.frame_id() == frame_id)
+            .find(|node| node.browsing_context_id() == browsing_context_id)
     }
 
     pub fn get_dom_loading(&self) -> u64 {
@@ -1941,12 +1955,8 @@ impl Document {
     }
 
     pub fn nodes_from_point(&self, client_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        let page_point =
-            Point2D::new(client_point.x + self.window.PageXOffset() as f32,
-                         client_point.y + self.window.PageYOffset() as f32);
-
         if !self.window.reflow(ReflowGoal::ForScriptQuery,
-                               ReflowQueryType::NodesFromPoint(page_point, *client_point),
+                               ReflowQueryType::NodesFromPoint(*client_point),
                                ReflowReason::Query) {
             return vec!();
         };
@@ -2131,7 +2141,21 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
-            style_shared_lock: StyleSharedRwLock::new(),
+            style_shared_lock: {
+                lazy_static! {
+                    /// Per-process shared lock for author-origin stylesheets
+                    ///
+                    /// FIXME: make it per-document or per-pipeline instead:
+                    /// https://github.com/servo/servo/issues/16027
+                    /// (Need to figure out what to do with the style attribute
+                    /// of elements adopted into another document.)
+                    static ref PER_PROCESS_AUTHOR_SHARED_LOCK: StyleSharedRwLock = {
+                        StyleSharedRwLock::new()
+                    };
+                }
+                PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
+                //StyleSharedRwLock::new()
+            },
             stylesheets: DOMRefCell::new(None),
             stylesheets_changed_since_reflow: Cell::new(false),
             stylesheet_list: MutNullableJS::new(None),
@@ -2337,7 +2361,14 @@ impl Document {
             entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
         }
         if attr.local_name() == &local_name!("style") {
-            entry.hint |= RESTYLE_STYLE_ATTRIBUTE;
+            entry.hint.insert(RestyleHint::for_replacements(RESTYLE_STYLE_ATTRIBUTE));
+        }
+
+        // FIXME(emilio): This should become something like
+        // element.is_attribute_mapped(attr.local_name()).
+        if attr.local_name() == &local_name!("width") ||
+           attr.local_name() == &local_name!("height") {
+            entry.hint.insert(RestyleHint::for_self());
         }
 
         let mut snapshot = entry.snapshot.as_mut().unwrap();
@@ -2708,7 +2739,7 @@ impl DocumentMethods for Document {
                               -> Root<HTMLCollection> {
         let ns = namespace_from_domstring(maybe_ns);
         let local = LocalName::from(tag_name);
-        let qname = QualName::new(ns, local);
+        let qname = QualName::new(None, ns, local);
         match self.tagns_map.borrow_mut().entry(qname.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
             Vacant(entry) => {
@@ -2750,8 +2781,15 @@ impl DocumentMethods for Document {
         if self.is_html_document {
             local_name.make_ascii_lowercase();
         }
-        let name = QualName::new(ns!(html), LocalName::from(local_name));
-        Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
+
+        let ns = if self.is_html_document || self.content_type == "application/xhtml+xml" {
+            ns!(html)
+        } else {
+            ns!()
+        };
+
+        let name = QualName::new(None, ns, LocalName::from(local_name));
+        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelementns
@@ -2761,8 +2799,8 @@ impl DocumentMethods for Document {
                        -> Fallible<Root<Element>> {
         let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
                                                                         &qualified_name));
-        let name = QualName::new(namespace, local_name);
-        Ok(Element::create(name, prefix, self, ElementCreator::ScriptCreated))
+        let name = QualName::new(prefix, namespace, local_name);
+        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
@@ -3015,8 +3053,8 @@ impl DocumentMethods for Document {
             match elem {
                 Some(elem) => Root::upcast::<Node>(elem),
                 None => {
-                    let name = QualName::new(ns!(svg), local_name!("title"));
-                    let elem = Element::create(name, None, self, ElementCreator::ScriptCreated);
+                    let name = QualName::new(None, ns!(svg), local_name!("title"));
+                    let elem = Element::create(name, self, ElementCreator::ScriptCreated);
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent.InsertBefore(child, parent.GetFirstChild().r())
@@ -3032,9 +3070,8 @@ impl DocumentMethods for Document {
                 None => {
                     match self.GetHead() {
                         Some(head) => {
-                            let name = QualName::new(ns!(html), local_name!("title"));
+                            let name = QualName::new(None, ns!(html), local_name!("title"));
                             let elem = Element::create(name,
-                                                       None,
                                                        self,
                                                        ElementCreator::ScriptCreated);
                             head.upcast::<Node>()
@@ -3285,15 +3322,15 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        let header = Header::parse_header(&[cookie.into()]);
-        if let Ok(SetCookie(cookies)) = header {
-            let cookies = cookies.into_iter().map(Serde).collect();
+        if let Ok(cookie_header) = SetCookie::parse_header(&vec![cookie.to_string().into_bytes()]) {
+            let cookies = cookie_header.0.into_iter().filter_map(|cookie| {
+                cookie_rs::Cookie::parse(cookie).ok().map(Serde)
+            }).collect();
             let _ = self.window
-                        .upcast::<GlobalScope>()
-                        .resource_threads()
-                        .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
+                    .upcast::<GlobalScope>()
+                    .resource_threads()
+                    .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
         }
-
         Ok(())
     }
 
@@ -3449,7 +3486,9 @@ impl DocumentMethods for Document {
             Some(untrusted_node_address) => {
                 let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
 
-                let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
+                let node = unsafe {
+                    node::from_untrusted_node_address(js_runtime, untrusted_node_address)
+                };
                 let parent_node = node.GetParentNode().unwrap();
                 let element_ref = node.downcast::<Element>().unwrap_or_else(|| {
                     parent_node.downcast::<Element>().unwrap()
@@ -3484,7 +3523,9 @@ impl DocumentMethods for Document {
         // Step 1 and Step 3
         let mut elements: Vec<Root<Element>> = self.nodes_from_point(point).iter()
             .flat_map(|&untrusted_node_address| {
-                let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
+                let node = unsafe {
+                    node::from_untrusted_node_address(js_runtime, untrusted_node_address)
+                };
                 Root::downcast::<Element>(node)
         }).collect();
 

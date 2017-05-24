@@ -2973,7 +2973,7 @@ GetTextFrameForContent(nsIContent* aContent, bool aFlushLayout)
     }
 
     nsIFrame* frame = aContent->GetPrimaryFrame();
-    if (frame && frame->GetType() == nsGkAtoms::textFrame) {
+    if (frame && frame->IsTextFrame()) {
       return static_cast<nsTextFrame*>(frame);
     }
   }
@@ -3271,7 +3271,7 @@ nsRange::AutoInvalidateSelection::~AutoInvalidateSelection()
   mIsNested = false;
   ::InvalidateAllFrames(mCommonAncestor);
   nsINode* commonAncestor = mRange->GetRegisteredCommonAncestor();
-  if (commonAncestor != mCommonAncestor) {
+  if (commonAncestor && commonAncestor != mCommonAncestor) {
     ::InvalidateAllFrames(commonAncestor);
   }
 }
@@ -3467,8 +3467,7 @@ ElementIsVisibleNoFlush(Element* aElement)
     return false;
   }
   RefPtr<nsStyleContext> sc =
-    nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement, nullptr,
-                                                         nullptr);
+    nsComputedDOMStyle::GetStyleContextNoFlush(aElement, nullptr, nullptr);
   return sc && sc->StyleVisibility()->IsVisible();
 }
 
@@ -3514,9 +3513,9 @@ GetRequiredInnerTextLineBreakCount(nsIFrame* aFrame)
 static bool
 IsLastCellOfRow(nsIFrame* aFrame)
 {
-  nsIAtom* type = aFrame->GetType();
-  if (type != nsGkAtoms::tableCellFrame &&
-      type != nsGkAtoms::bcTableCellFrame) {
+  LayoutFrameType type = aFrame->Type();
+  if (type != LayoutFrameType::TableCell &&
+      type != LayoutFrameType::BCTableCell) {
     return true;
   }
   for (nsIFrame* c = aFrame; c; c = c->GetNextContinuation()) {
@@ -3530,7 +3529,7 @@ IsLastCellOfRow(nsIFrame* aFrame)
 static bool
 IsLastRowOfRowGroup(nsIFrame* aFrame)
 {
-  if (aFrame->GetType() != nsGkAtoms::tableRowFrame) {
+  if (!aFrame->IsTableRowFrame()) {
     return true;
   }
   for (nsIFrame* c = aFrame; c; c = c->GetNextContinuation()) {
@@ -3544,7 +3543,7 @@ IsLastRowOfRowGroup(nsIFrame* aFrame)
 static bool
 IsLastNonemptyRowGroupOfTable(nsIFrame* aFrame)
 {
-  if (aFrame->GetType() != nsGkAtoms::tableRowGroupFrame) {
+  if (!aFrame->IsTableRowGroupFrame()) {
     return true;
   }
   for (nsIFrame* c = aFrame; c; c = c->GetNextContinuation()) {

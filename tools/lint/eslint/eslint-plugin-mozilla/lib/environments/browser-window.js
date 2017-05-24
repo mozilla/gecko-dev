@@ -17,13 +17,14 @@ var fs = require("fs");
 var path = require("path");
 var helpers = require("../helpers");
 var globals = require("../globals");
+var placesGlobals = require("./places-overlay").globals;
 
-const rootDir = helpers.getRootDir(module.filename);
+const rootDir = helpers.rootDir;
 
 // These are scripts not included in global-scripts.inc, but which are loaded
 // via overlays.
 const EXTRA_SCRIPTS = [
-  //"browser/base/content/nsContextMenu.js",
+  "browser/base/content/nsContextMenu.js",
   "toolkit/content/contentAreaUtils.js",
   "browser/components/places/content/editBookmarkOverlay.js",
   "browser/components/downloads/content/downloads.js",
@@ -51,11 +52,9 @@ const globalScriptsRegExp =
   /<script type=\"application\/javascript\" src=\"(.*)\"\/>/;
 
 function getGlobalScriptsIncludes() {
-  let globalScriptsPath = path.join(rootDir, "browser", "base", "content",
-                                    "global-scripts.inc");
   let fileData;
   try {
-    fileData = fs.readFileSync(globalScriptsPath, {encoding: "utf8"});
+    fileData = fs.readFileSync(helpers.globalScriptsPath, {encoding: "utf8"});
   } catch (ex) {
     // The file isn't present, so this isn't an m-c repository.
     return null;
@@ -108,13 +107,22 @@ function getScriptGlobals() {
 }
 
 function mapGlobals(fileGlobals) {
-  var globalObjects = {};
+  // placesOverlay.xul is also included in the browser scope, so include
+  // those globals here.
+  let globalObjects = Object.assign({}, placesGlobals);
   for (let global of fileGlobals) {
     globalObjects[global.name] = global.writable;
   }
   return globalObjects;
 }
 
-module.exports = {
-  globals: mapGlobals(getScriptGlobals())
-};
+function getMozillaCentralItems() {
+  return {
+    globals: mapGlobals(getScriptGlobals()),
+    browserjsScripts: getGlobalScriptsIncludes().concat(EXTRA_SCRIPTS)
+  };
+}
+
+module.exports = helpers.isMozillaCentralBased() ?
+ getMozillaCentralItems() :
+ helpers.getSavedEnvironmentItems("browser-window");

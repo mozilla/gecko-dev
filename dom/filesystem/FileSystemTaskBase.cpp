@@ -12,7 +12,6 @@
 #include "mozilla/dom/FileSystemRequestParent.h"
 #include "mozilla/dom/FileSystemUtils.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/ipc/BlobParent.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -84,7 +83,8 @@ class ErrorRunnable final : public CancelableRunnable
 {
 public:
   explicit ErrorRunnable(FileSystemTaskChildBase* aTask)
-    : mTask(aTask)
+    : CancelableRunnable("ErrorRunnable")
+    , mTask(aTask)
   {
     MOZ_ASSERT(aTask);
   }
@@ -111,12 +111,15 @@ NS_IMPL_ISUPPORTS(FileSystemTaskChildBase, nsIIPCBackgroundChildCreateCallback)
  * FileSystemTaskBase class
  */
 
-FileSystemTaskChildBase::FileSystemTaskChildBase(FileSystemBase* aFileSystem)
+FileSystemTaskChildBase::FileSystemTaskChildBase(nsIGlobalObject* aGlobalObject,
+                                                 FileSystemBase* aFileSystem)
   : mErrorValue(NS_OK)
   , mFileSystem(aFileSystem)
+  , mGlobalObject(aGlobalObject)
 {
   MOZ_ASSERT(aFileSystem, "aFileSystem should not be null.");
   aFileSystem->AssertIsOnOwningThread();
+  MOZ_ASSERT(aGlobalObject);
 }
 
 FileSystemTaskChildBase::~FileSystemTaskChildBase()
@@ -160,8 +163,7 @@ FileSystemTaskChildBase::ActorCreated(mozilla::ipc::PBackgroundChild* aActor)
   if (HasError()) {
     // In this case we don't want to use IPC at all.
     RefPtr<ErrorRunnable> runnable = new ErrorRunnable(this);
-    DebugOnly<nsresult> rv = NS_DispatchToCurrentThread(runnable);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToCurrentThread failed");
+    FileSystemUtils::DispatchRunnable(mGlobalObject, runnable.forget());
     return;
   }
 
@@ -184,11 +186,14 @@ FileSystemTaskChildBase::ActorCreated(mozilla::ipc::PBackgroundChild* aActor)
   // mozilla::ipc::BackgroundChildImpl::DeallocPFileSystemRequestChild.
   NS_ADDREF_THIS();
 
-  mozilla::ipc::PBackgroundChild* actor =
-    mozilla::ipc::BackgroundChild::GetForCurrentThread();
-  MOZ_ASSERT(actor);
+  if (NS_IsMainThread()) {
+    nsIEventTarget* target = mGlobalObject->EventTargetFor(TaskCategory::Other);
+    MOZ_ASSERT(target);
 
-  actor->SendPFileSystemRequestConstructor(this, params);
+    aActor->SetEventTargetForActor(this, target);
+  }
+
+  aActor->SendPFileSystemRequestConstructor(this, params);
 }
 
 void

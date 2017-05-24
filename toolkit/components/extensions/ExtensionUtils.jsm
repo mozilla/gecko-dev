@@ -26,14 +26,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "ExtensionManagement",
                                   "resource://gre/modules/ExtensionManagement.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "IndexedDB",
                                   "resource://gre/modules/IndexedDB.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "LanguageDetector",
-                                  "resource:///modules/translation/LanguageDetector.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Locale",
-                                  "resource://gre/modules/Locale.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "MessageChannel",
                                   "resource://gre/modules/MessageChannel.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
                                   "resource://gre/modules/Preferences.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Schemas",
@@ -61,43 +55,10 @@ function getUniqueId() {
   return `${nextId++}-${uniqueProcessID}`;
 }
 
-// The list of properties that themes are allowed to contain.
-XPCOMUtils.defineLazyGetter(this, "gAllowedThemeProperties", () => {
-  Cu.import("resource://gre/modules/ExtensionParent.jsm");
-  let propertiesInBaseManifest = ExtensionParent.baseManifestProperties;
-
-  // The properties found in the base manifest contain all of the properties that
-  // themes are allowed to have. However, the list also contains several properties
-  // that aren't allowed, so we need to filter them out first before the list can
-  // be used to validate themes.
-  return propertiesInBaseManifest.filter(prop => {
-    const propertiesToRemove = ["background", "content_scripts", "permissions"];
-    return !propertiesToRemove.includes(prop);
-  });
-});
-
-/**
- * Validates a theme to ensure it only contains static resources.
- *
- * @param {Array<string>} manifestProperties The list of top-level keys found in the
- *    the extension's manifest.
- * @returns {Array<string>} A list of invalid properties or an empty list
- *    if none are found.
- */
-function validateThemeManifest(manifestProperties) {
-  let invalidProps = [];
-  for (let propName of manifestProperties) {
-    if (propName != "theme" && !gAllowedThemeProperties.includes(propName)) {
-      invalidProps.push(propName);
-    }
-  }
-  return invalidProps;
-}
-
 let StartupCache = {
   DB_NAME: "ExtensionStartupCache",
 
-  SCHEMA_VERSION: 1,
+  SCHEMA_VERSION: 2,
 
   STORE_NAMES: Object.freeze(["locales", "manifests", "schemas"]),
 
@@ -112,7 +73,7 @@ let StartupCache = {
       } catch (e) {
         // Don't worry if the store doesn't already exist.
       }
-      db.createObjectStore(name);
+      db.createObjectStore(name, {keyPath: "key"});
     }
   },
 
@@ -164,7 +125,7 @@ let StartupCache = {
   },
 };
 
-Services.obs.addObserver(StartupCache, "startupcache-invalidate", false);
+Services.obs.addObserver(StartupCache, "startupcache-invalidate");
 
 class CacheStore {
   constructor(storeName) {
@@ -173,11 +134,11 @@ class CacheStore {
 
   async get(key, createFunc) {
     let db;
-    let value;
+    let result;
     try {
       db = await StartupCache.open();
 
-      value = await db.objectStore(this.storeName)
+      result = await db.objectStore(this.storeName)
                       .get(key);
     } catch (e) {
       Cu.reportError(e);
@@ -185,14 +146,32 @@ class CacheStore {
       return createFunc(key);
     }
 
-    if (value === undefined) {
-      value = await createFunc(key);
+    if (result === undefined) {
+      let value = await createFunc(key);
+      result = {key, value};
 
       db.objectStore(this.storeName, "readwrite")
-        .put(value, key);
+        .put(result);
     }
 
-    return value;
+    return result && result.value;
+  }
+
+  async getAll() {
+    let result = new Map();
+    try {
+      let db = await StartupCache.open();
+
+      let results = await db.objectStore(this.storeName)
+                            .getAll();
+      for (let {key, value} of results) {
+        result.set(key, value);
+      }
+    } catch (e) {
+      Cu.reportError(e);
+    }
+
+    return result;
   }
 
   async delete(key) {
@@ -344,6 +323,9 @@ class SpreadArgs extends Array {
 // Manages icon details for toolbar buttons in the |pageAction| and
 // |browserAction| APIs.
 let IconDetails = {
+  // WeakMap<Extension -> Map<url-string -> object>>
+  iconCache: new DefaultWeakMap(() => new Map()),
+
   // Normalizes the various acceptable input formats into an object
   // with icon size as key and icon URL as value.
   //
@@ -354,6 +336,24 @@ let IconDetails = {
   // If no context is specified, instead of throwing an error, this
   // function simply logs a warning message.
   normalize(details, extension, context = null) {
+    if (!details.imageData && typeof details.path === "string") {
+      let icons = this.iconCache.get(extension);
+
+      let baseURI = context ? context.uri : extension.baseURI;
+      let url = baseURI.resolve(details.path);
+
+      let icon = icons.get(url);
+      if (!icon) {
+        icon = this._normalize(details, extension, context);
+        icons.set(url, icon);
+      }
+      return icon;
+    }
+
+    return this._normalize(details, extension, context);
+  },
+
+  _normalize(details, extension, context = null) {
     let result = {};
 
     try {
@@ -465,6 +465,8 @@ let IconDetails = {
           dy = 0;
         }
 
+        canvas.width = dSize;
+        canvas.height = dSize;
         ctx.drawImage(this, 0, 0, this.width, this.height, dx, dy, dWidth, dHeight);
         resolve(canvas.toDataURL("image/png"));
       };
@@ -482,10 +484,12 @@ let IconDetails = {
 };
 
 const LISTENERS = Symbol("listeners");
+const ONCE_MAP = Symbol("onceMap");
 
 class EventEmitter {
   constructor() {
     this[LISTENERS] = new Map();
+    this[ONCE_MAP] = new WeakMap();
   }
 
   /**
@@ -521,11 +525,33 @@ class EventEmitter {
       let set = this[LISTENERS].get(event);
 
       set.delete(listener);
+      set.delete(this[ONCE_MAP].get(listener));
       if (!set.size) {
         this[LISTENERS].delete(event);
       }
     }
   }
+
+  /**
+   * Adds the given function as a listener for the given event once.
+   *
+   * @param {string} event
+   *       The name of the event to listen for.
+   * @param {function(string, ...any)} listener
+   *        The listener to call when events are emitted.
+   */
+  once(event, listener) {
+    let wrapper = (...args) => {
+      this.off(event, wrapper);
+      this[ONCE_MAP].delete(listener);
+
+      return listener(...args);
+    };
+    this[ONCE_MAP].set(listener, wrapper);
+
+    this.on(event, wrapper);
+  }
+
 
   /**
    * Triggers all listeners for the given event, and returns a promise
@@ -549,316 +575,6 @@ class EventEmitter {
     return Promise.all(promises);
   }
 }
-
-function LocaleData(data) {
-  this.defaultLocale = data.defaultLocale;
-  this.selectedLocale = data.selectedLocale;
-  this.locales = data.locales || new Map();
-  this.warnedMissingKeys = new Set();
-
-  // Map(locale-name -> Map(message-key -> localized-string))
-  //
-  // Contains a key for each loaded locale, each of which is a
-  // Map of message keys to their localized strings.
-  this.messages = data.messages || new Map();
-
-  if (data.builtinMessages) {
-    this.messages.set(this.BUILTIN, data.builtinMessages);
-  }
-}
-
-
-LocaleData.prototype = {
-  // Representation of the object to send to content processes. This
-  // should include anything the content process might need.
-  serialize() {
-    return {
-      defaultLocale: this.defaultLocale,
-      selectedLocale: this.selectedLocale,
-      messages: this.messages,
-      locales: this.locales,
-    };
-  },
-
-  BUILTIN: "@@BUILTIN_MESSAGES",
-
-  has(locale) {
-    return this.messages.has(locale);
-  },
-
-  // https://developer.chrome.com/extensions/i18n
-  localizeMessage(message, substitutions = [], options = {}) {
-    let defaultOptions = {
-      locale: this.selectedLocale,
-      defaultValue: "",
-      cloneScope: null,
-    };
-
-    options = Object.assign(defaultOptions, options);
-
-    let locales = new Set([this.BUILTIN, options.locale, this.defaultLocale]
-                          .filter(locale => this.messages.has(locale)));
-
-    // Message names are case-insensitive, so normalize them to lower-case.
-    message = message.toLowerCase();
-    for (let locale of locales) {
-      let messages = this.messages.get(locale);
-      if (messages.has(message)) {
-        let str = messages.get(message);
-
-        if (!Array.isArray(substitutions)) {
-          substitutions = [substitutions];
-        }
-
-        let replacer = (matched, index, dollarSigns) => {
-          if (index) {
-            // This is not quite Chrome-compatible. Chrome consumes any number
-            // of digits following the $, but only accepts 9 substitutions. We
-            // accept any number of substitutions.
-            index = parseInt(index, 10) - 1;
-            return index in substitutions ? substitutions[index] : "";
-          }
-          // For any series of contiguous `$`s, the first is dropped, and
-          // the rest remain in the output string.
-          return dollarSigns;
-        };
-        return str.replace(/\$(?:([1-9]\d*)|(\$+))/g, replacer);
-      }
-    }
-
-    // Check for certain pre-defined messages.
-    if (message == "@@ui_locale") {
-      return this.uiLocale;
-    } else if (message.startsWith("@@bidi_")) {
-      let registry = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry);
-      let rtl = registry.isLocaleRTL("global");
-
-      if (message == "@@bidi_dir") {
-        return rtl ? "rtl" : "ltr";
-      } else if (message == "@@bidi_reversed_dir") {
-        return rtl ? "ltr" : "rtl";
-      } else if (message == "@@bidi_start_edge") {
-        return rtl ? "right" : "left";
-      } else if (message == "@@bidi_end_edge") {
-        return rtl ? "left" : "right";
-      }
-    }
-
-    if (!this.warnedMissingKeys.has(message)) {
-      let error = `Unknown localization message ${message}`;
-      if (options.cloneScope) {
-        error = new options.cloneScope.Error(error);
-      }
-      Cu.reportError(error);
-      this.warnedMissingKeys.add(message);
-    }
-    return options.defaultValue;
-  },
-
-  // Localize a string, replacing all |__MSG_(.*)__| tokens with the
-  // matching string from the current locale, as determined by
-  // |this.selectedLocale|.
-  //
-  // This may not be called before calling either |initLocale| or
-  // |initAllLocales|.
-  localize(str, locale = this.selectedLocale) {
-    if (!str) {
-      return str;
-    }
-
-    return str.replace(/__MSG_([A-Za-z0-9@_]+?)__/g, (matched, message) => {
-      return this.localizeMessage(message, [], {locale, defaultValue: matched});
-    });
-  },
-
-  // Validates the contents of a locale JSON file, normalizes the
-  // messages into a Map of message key -> localized string pairs.
-  addLocale(locale, messages, extension) {
-    let result = new Map();
-
-    // Chrome does not document the semantics of its localization
-    // system very well. It handles replacements by pre-processing
-    // messages, replacing |$[a-zA-Z0-9@_]+$| tokens with the value of their
-    // replacements. Later, it processes the resulting string for
-    // |$[0-9]| replacements.
-    //
-    // Again, it does not document this, but it accepts any number
-    // of sequential |$|s, and replaces them with that number minus
-    // 1. It also accepts |$| followed by any number of sequential
-    // digits, but refuses to process a localized string which
-    // provides more than 9 substitutions.
-    if (!instanceOf(messages, "Object")) {
-      extension.packagingError(`Invalid locale data for ${locale}`);
-      return result;
-    }
-
-    for (let key of Object.keys(messages)) {
-      let msg = messages[key];
-
-      if (!instanceOf(msg, "Object") || typeof(msg.message) != "string") {
-        extension.packagingError(`Invalid locale message data for ${locale}, message ${JSON.stringify(key)}`);
-        continue;
-      }
-
-      // Substitutions are case-insensitive, so normalize all of their names
-      // to lower-case.
-      let placeholders = new Map();
-      if (instanceOf(msg.placeholders, "Object")) {
-        for (let key of Object.keys(msg.placeholders)) {
-          placeholders.set(key.toLowerCase(), msg.placeholders[key]);
-        }
-      }
-
-      let replacer = (match, name) => {
-        let replacement = placeholders.get(name.toLowerCase());
-        if (instanceOf(replacement, "Object") && "content" in replacement) {
-          return replacement.content;
-        }
-        return "";
-      };
-
-      let value = msg.message.replace(/\$([A-Za-z0-9@_]+)\$/g, replacer);
-
-      // Message names are also case-insensitive, so normalize them to lower-case.
-      result.set(key.toLowerCase(), value);
-    }
-
-    this.messages.set(locale, result);
-    return result;
-  },
-
-  get acceptLanguages() {
-    let result = Preferences.get("intl.accept_languages", "", Ci.nsIPrefLocalizedString);
-    return result.split(/\s*,\s*/g);
-  },
-
-
-  get uiLocale() {
-    // Return the browser locale, but convert it to a Chrome-style
-    // locale code.
-    return Locale.getLocale().replace(/-/g, "_");
-  },
-};
-
-// This is a generic class for managing event listeners. Example usage:
-//
-// new SingletonEventManager(context, "api.subAPI", fire => {
-//   let listener = (...) => {
-//     // Fire any listeners registered with addListener.
-//     fire.async(arg1, arg2);
-//   };
-//   // Register the listener.
-//   SomehowRegisterListener(listener);
-//   return () => {
-//     // Return a way to unregister the listener.
-//     SomehowUnregisterListener(listener);
-//   };
-// }).api()
-//
-// The result is an object with addListener, removeListener, and
-// hasListener methods. |context| is an add-on scope (either an
-// ExtensionContext in the chrome process or ExtensionContext in a
-// content process). |name| is for debugging. |register| is a function
-// to register the listener. |register| should return an
-// unregister function that will unregister the listener.
-function SingletonEventManager(context, name, register) {
-  this.context = context;
-  this.name = name;
-  this.register = register;
-  this.unregister = new Map();
-}
-
-SingletonEventManager.prototype = {
-  addListener(callback, ...args) {
-    if (this.unregister.has(callback)) {
-      return;
-    }
-
-    let shouldFire = () => {
-      if (this.context.unloaded) {
-        dump(`${this.name} event fired after context unloaded.\n`);
-      } else if (!this.context.active) {
-        dump(`${this.name} event fired while context is inactive.\n`);
-      } else if (this.unregister.has(callback)) {
-        return true;
-      }
-      return false;
-    };
-
-    let fire = {
-      sync: (...args) => {
-        if (shouldFire()) {
-          return this.context.runSafe(callback, ...args);
-        }
-      },
-      async: (...args) => {
-        return Promise.resolve().then(() => {
-          if (shouldFire()) {
-            return this.context.runSafe(callback, ...args);
-          }
-        });
-      },
-      raw: (...args) => {
-        if (!shouldFire()) {
-          throw new Error("Called raw() on unloaded/inactive context");
-        }
-        return callback(...args);
-      },
-      asyncWithoutClone: (...args) => {
-        return Promise.resolve().then(() => {
-          if (shouldFire()) {
-            return this.context.runSafeWithoutClone(callback, ...args);
-          }
-        });
-      },
-    };
-
-
-    let unregister = this.register(fire, ...args);
-    this.unregister.set(callback, unregister);
-    this.context.callOnClose(this);
-  },
-
-  removeListener(callback) {
-    if (!this.unregister.has(callback)) {
-      return;
-    }
-
-    let unregister = this.unregister.get(callback);
-    this.unregister.delete(callback);
-    try {
-      unregister();
-    } catch (e) {
-      Cu.reportError(e);
-    }
-    if (this.unregister.size == 0) {
-      this.context.forgetOnClose(this);
-    }
-  },
-
-  hasListener(callback) {
-    return this.unregister.has(callback);
-  },
-
-  revoke() {
-    for (let callback of this.unregister.keys()) {
-      this.removeListener(callback);
-    }
-  },
-
-  close() {
-    this.revoke();
-  },
-
-  api() {
-    return {
-      addListener: (...args) => this.addListener(...args),
-      removeListener: (...args) => this.removeListener(...args),
-      hasListener: (...args) => this.hasListener(...args),
-      [Schemas.REVOKE]: () => this.revoke(),
-    };
-  },
-};
 
 // Simple API for event listeners where events never fire.
 function ignoreEvent(context, name) {
@@ -1018,7 +734,7 @@ function promiseObserved(topic, test = () => true) {
         resolve({subject, data});
       }
     };
-    Services.obs.addObserver(observer, topic, false);
+    Services.obs.addObserver(observer, topic);
   });
 }
 
@@ -1055,18 +771,6 @@ function PlatformInfo() {
   });
 }
 
-function detectLanguage(text) {
-  return LanguageDetector.detectLanguage(text).then(result => ({
-    isReliable: result.confident,
-    languages: result.languages.map(lang => {
-      return {
-        language: lang.languageCode,
-        percentage: lang.percent,
-      };
-    }),
-  }));
-}
-
 /**
  * Convert any of several different representations of a date/time to a Date object.
  * Accepts several formats:
@@ -1086,7 +790,7 @@ function normalizeTime(date) {
 }
 
 const stylesheetMap = new DefaultMap(url => {
-  let uri = NetUtil.newURI(url);
+  let uri = Services.io.newURI(url);
   return styleSheetService.preloadSheet(uri, styleSheetService.AGENT_SHEET);
 });
 
@@ -1328,9 +1032,32 @@ class MessageManagerProxy {
   }
 }
 
+/**
+ * Classify an individual permission from a webextension manifest
+ * as a host/origin permission, an api permission, or a regular permission.
+ *
+ * @param {string} perm  The permission string to classify
+ *
+ * @returns {object}
+ *          An object with exactly one of the following properties:
+ *          "origin" to indicate this is a host/origin permission.
+ *          "api" to indicate this is an api permission
+ *                (as used for webextensions experiments).
+ *          "permission" to indicate this is a regular permission.
+ */
+function classifyPermission(perm) {
+  let match = /^(\w+)(?:\.(\w+)(?:\.\w+)*)?$/.exec(perm);
+  if (!match) {
+    return {origin: perm};
+  } else if (match[1] == "experiments" && match[2]) {
+    return {api: match[2]};
+  }
+  return {permission: perm};
+}
+
 this.ExtensionUtils = {
+  classifyPermission,
   defineLazyGetter,
-  detectLanguage,
   extend,
   findPathInObject,
   flushJarCache,
@@ -1353,16 +1080,13 @@ this.ExtensionUtils = {
   runSafeSyncWithoutClone,
   runSafeWithoutClone,
   stylesheetMap,
-  validateThemeManifest,
   DefaultMap,
   DefaultWeakMap,
   EventEmitter,
   ExtensionError,
   IconDetails,
   LimitedSet,
-  LocaleData,
   MessageManagerProxy,
-  SingletonEventManager,
   SpreadArgs,
   StartupCache,
 };

@@ -10,10 +10,9 @@
 Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/TelemetryStopwatch.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "MigrationUtils",
                                   "resource:///modules/MigrationUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "BookmarkJSONUtils",
                                   "resource://gre/modules/BookmarkJSONUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
@@ -411,21 +410,23 @@ var PlacesOrganizer = {
   populateRestoreMenu: function PO_populateRestoreMenu() {
     let restorePopup = document.getElementById("fileRestorePopup");
 
-    const dtOptions = { year: "numeric", month: "long", day: "numeric" };
-    let dateFormatter = new Intl.DateTimeFormat(undefined, dtOptions);
+    const dtOptions = {
+      dateStyle: "long"
+    };
+    let dateFormatter = Services.intl.createDateTimeFormat(undefined, dtOptions);
 
     // Remove existing menu items.  Last item is the restoreFromFile item.
     while (restorePopup.childNodes.length > 1)
       restorePopup.firstChild.remove();
 
-    Task.spawn(function* () {
-      let backupFiles = yield PlacesBackups.getBackupFiles();
+    (async function() {
+      let backupFiles = await PlacesBackups.getBackupFiles();
       if (backupFiles.length == 0)
         return;
 
       // Populate menu with backups.
       for (let i = 0; i < backupFiles.length; i++) {
-        let fileSize = (yield OS.File.stat(backupFiles[i])).size;
+        let fileSize = (await OS.File.stat(backupFiles[i])).size;
         let [size, unit] = DownloadUtils.convertByteUnits(fileSize);
         let sizeString = PlacesUtils.getFormattedString("backupFileSizeText",
                                                         [size, unit]);
@@ -453,22 +454,22 @@ var PlacesOrganizer = {
       // Add the restoreFromFile item.
       restorePopup.insertBefore(document.createElement("menuseparator"),
                                 document.getElementById("restoreFromFile"));
-    });
+    })();
   },
 
   /**
    * Called when a menuitem is selected from the restore menu.
    */
-  onRestoreMenuItemClick: Task.async(function* (aMenuItem) {
+  async onRestoreMenuItemClick(aMenuItem) {
     let backupName = aMenuItem.getAttribute("value");
-    let backupFilePaths = yield PlacesBackups.getBackupFiles();
+    let backupFilePaths = await PlacesBackups.getBackupFiles();
     for (let backupFilePath of backupFilePaths) {
       if (OS.Path.basename(backupFilePath) == backupName) {
         PlacesOrganizer.restoreBookmarksFromFile(backupFilePath);
         break;
       }
     }
-  }),
+  },
 
   /**
    * Called when 'Choose File...' is selected from the restore menu.
@@ -479,11 +480,11 @@ var PlacesOrganizer = {
                  getService(Ci.nsIProperties);
     let backupsDir = dirSvc.get("Desk", Ci.nsILocalFile);
     let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-    let fpCallback = function fpCallback_done(aResult) {
+    let fpCallback = aResult => {
       if (aResult != Ci.nsIFilePicker.returnCancel) {
         this.restoreBookmarksFromFile(fp.file.path);
       }
-    }.bind(this);
+    };
 
     fp.init(window, PlacesUIUtils.getString("bookmarksRestoreTitle"),
             Ci.nsIFilePicker.modeOpen);
@@ -513,13 +514,13 @@ var PlacesOrganizer = {
                          PlacesUIUtils.getString("bookmarksRestoreAlert")))
       return;
 
-    Task.spawn(function* () {
+    (async function() {
       try {
-        yield BookmarkJSONUtils.importFromFile(aFilePath, true);
+        await BookmarkJSONUtils.importFromFile(aFilePath, true);
       } catch (ex) {
         PlacesOrganizer._showErrorAlert(PlacesUIUtils.getString("bookmarksRestoreParseError"));
       }
-    });
+    })();
   },
 
   _showErrorAlert: function PO__showErrorAlert(aMsg) {
@@ -754,7 +755,8 @@ var PlacesSearchBox = {
     if (this._folders.length == 0) {
       this._folders.push(PlacesUtils.bookmarksMenuFolderId,
                          PlacesUtils.unfiledBookmarksFolderId,
-                         PlacesUtils.toolbarFolderId);
+                         PlacesUtils.toolbarFolderId,
+                         PlacesUtils.mobileFolderId);
     }
     return this._folders;
   },
@@ -940,7 +942,8 @@ var PlacesQueryBuilder = {
         filterCollection = "bookmarks";
         folders.push(PlacesUtils.bookmarksMenuFolderId,
                      PlacesUtils.toolbarFolderId,
-                     PlacesUtils.unfiledBookmarksFolderId);
+                     PlacesUtils.unfiledBookmarksFolderId,
+                     PlacesUtils.mobileFolderId);
         break;
       case "downloads":
         filterCollection = "downloads";

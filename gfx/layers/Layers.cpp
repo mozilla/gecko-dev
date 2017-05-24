@@ -50,7 +50,7 @@
 #include "mozilla/Compression.h"
 #include "TreeTraversal.h"              // for ForEachNode
 
-#include <deque>
+#include <list>
 #include <set>
 
 uint8_t gLayerManagerLayerBuilder;
@@ -292,8 +292,16 @@ Layer::StartPendingAnimations(const TimeStamp& aReadyTime)
           Animation& anim = layer->mAnimations[animIdx];
 
           // If the animation is play-pending, resolve the start time.
-          if (anim.startTime().IsNull() && !anim.isNotPlaying()) {
-            anim.startTime() = aReadyTime - anim.holdTime() + anim.delay();
+          // This mirrors the calculation in Animation::StartTimeFromReadyTime.
+          if (anim.startTime().type() == MaybeTimeDuration::Tnull_t &&
+              !anim.originTime().IsNull() &&
+              !anim.isNotPlaying()) {
+            TimeDuration readyTime = aReadyTime - anim.originTime();
+            anim.startTime() =
+              anim.playbackRate() == 0
+              ? readyTime
+              : readyTime - anim.holdTime().MultDouble(1.0 /
+                                                       anim.playbackRate());
             updated = true;
           }
         }
@@ -576,8 +584,7 @@ Layer::CalculateScissorRect(const RenderTargetIntRect& aCurrentScissorRect)
     return currentClip;
   }
 
-  if (GetLocalVisibleRegion().IsEmpty() &&
-      !(AsHostLayer() && AsHostLayer()->NeedToDrawCheckerboarding())) {
+  if (GetLocalVisibleRegion().IsEmpty()) {
     // When our visible region is empty, our parent may not have created the
     // intermediate surface that we would require for correct clipping; however,
     // this does not matter since we are invisible.
@@ -693,6 +700,17 @@ const LayerToParentLayerMatrix4x4
 Layer::GetLocalTransformTyped()
 {
   return ViewAs<LayerToParentLayerMatrix4x4>(GetLocalTransform());
+}
+
+bool
+Layer::HasOpacityAnimation() const
+{
+  for (uint32_t i = 0; i < mAnimations.Length(); i++) {
+    if (mAnimations[i].property() == eCSSProperty_opacity) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool
@@ -1158,8 +1176,7 @@ ContainerLayer::Collect3DContextLeaves(nsTArray<Layer*>& aToSort)
 static nsTArray<LayerPolygon>
 SortLayersWithBSPTree(nsTArray<Layer*>& aArray)
 {
-  std::deque<LayerPolygon> inputLayers;
-  nsTArray<LayerPolygon> orderedLayers;
+  std::list<LayerPolygon> inputLayers;
 
   // Build a list of polygons to be sorted.
   for (Layer* layer : aArray) {
@@ -1189,12 +1206,13 @@ SortLayersWithBSPTree(nsTArray<Layer*>& aArray)
   }
 
   if (inputLayers.empty()) {
-    return orderedLayers;
+    return nsTArray<LayerPolygon>();
   }
 
   // Build a BSP tree from the list of polygons.
   BSPTree tree(inputLayers);
-  orderedLayers = Move(tree.GetDrawOrder());
+
+  nsTArray<LayerPolygon> orderedLayers(tree.GetDrawOrder());
 
   // Transform the polygons back to layer space.
   for (LayerPolygon& layerPolygon : orderedLayers) {
@@ -1489,7 +1507,7 @@ RefLayer::FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
  * to get valid results (because the cyclic buffer was overwritten since that call).
  *
  * To determine availability of the data upon StopFrameTimeRecording:
- * - mRecording.mNextIndex increases on each PostPresent, and never resets.
+ * - mRecording.mNextIndex increases on each RecordFrame, and never resets.
  * - Cyclic buffer position is realized as mNextIndex % bufferSize.
  * - StartFrameTimeRecording returns mNextIndex. When StopFrameTimeRecording is called,
  *   the required start index is passed as an arg, and we're able to calculate the required
@@ -1545,16 +1563,6 @@ LayerManager::RecordFrame()
 }
 
 void
-LayerManager::PostPresent()
-{
-  if (!mTabSwitchStart.IsNull()) {
-    Telemetry::Accumulate(Telemetry::FX_TAB_SWITCH_TOTAL_MS,
-                          uint32_t((TimeStamp::Now() - mTabSwitchStart).ToMilliseconds()));
-    mTabSwitchStart = TimeStamp();
-  }
-}
-
-void
 LayerManager::StopFrameTimeRecording(uint32_t         aStartIndex,
                                      nsTArray<float>& aFrameIntervals)
 {
@@ -1580,12 +1588,6 @@ LayerManager::StopFrameTimeRecording(uint32_t         aStartIndex,
     }
     aFrameIntervals[i] = mRecording.mIntervals[cyclicPos];
   }
-}
-
-void
-LayerManager::BeginTabSwitch()
-{
-  mTabSwitchStart = TimeStamp::Now();
 }
 
 static void PrintInfo(std::stringstream& aStream, HostLayer* aLayerComposite);
@@ -1855,9 +1857,6 @@ Layer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
   if (GetTransformIsPerspective()) {
     aStream << " [perspective]";
   }
-  if (!GetLayerBounds().IsEmpty()) {
-    AppendToString(aStream, GetLayerBounds(), " [bounds=", "]");
-  }
   if (!mVisibleRegion.IsEmpty()) {
     AppendToString(aStream, mVisibleRegion.ToUnknownRegion(), " [visible=", "]");
   } else {
@@ -1890,10 +1889,11 @@ Layer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
   if (IsScrollbarContainer()) {
     aStream << " [scrollbar]";
   }
-  if (GetScrollbarDirection() == ScrollDirection::VERTICAL) {
+  ScrollDirection thumbDirection = GetScrollThumbData().mDirection;
+  if (thumbDirection == ScrollDirection::VERTICAL) {
     aStream << nsPrintfCString(" [vscrollbar=%" PRIu64 "]", GetScrollbarTargetContainerId()).get();
   }
-  if (GetScrollbarDirection() == ScrollDirection::HORIZONTAL) {
+  if (thumbDirection == ScrollDirection::HORIZONTAL) {
     aStream << nsPrintfCString(" [hscrollbar=%" PRIu64 "]", GetScrollbarTargetContainerId()).get();
   }
   if (GetIsFixedPosition()) {
@@ -1941,19 +1941,19 @@ DumpTransform(layerscope::LayersPacket::Layer::Matrix* aLayerMatrix, const Matri
     Matrix m = aMatrix.As2D();
     aLayerMatrix->set_isid(m.IsIdentity());
     if (!m.IsIdentity()) {
-      aLayerMatrix->add_m(m._11), aLayerMatrix->add_m(m._12);
-      aLayerMatrix->add_m(m._21), aLayerMatrix->add_m(m._22);
-      aLayerMatrix->add_m(m._31), aLayerMatrix->add_m(m._32);
+      aLayerMatrix->add_m(m._11); aLayerMatrix->add_m(m._12);
+      aLayerMatrix->add_m(m._21); aLayerMatrix->add_m(m._22);
+      aLayerMatrix->add_m(m._31); aLayerMatrix->add_m(m._32);
     }
   } else {
-    aLayerMatrix->add_m(aMatrix._11), aLayerMatrix->add_m(aMatrix._12);
-    aLayerMatrix->add_m(aMatrix._13), aLayerMatrix->add_m(aMatrix._14);
-    aLayerMatrix->add_m(aMatrix._21), aLayerMatrix->add_m(aMatrix._22);
-    aLayerMatrix->add_m(aMatrix._23), aLayerMatrix->add_m(aMatrix._24);
-    aLayerMatrix->add_m(aMatrix._31), aLayerMatrix->add_m(aMatrix._32);
-    aLayerMatrix->add_m(aMatrix._33), aLayerMatrix->add_m(aMatrix._34);
-    aLayerMatrix->add_m(aMatrix._41), aLayerMatrix->add_m(aMatrix._42);
-    aLayerMatrix->add_m(aMatrix._43), aLayerMatrix->add_m(aMatrix._44);
+    aLayerMatrix->add_m(aMatrix._11); aLayerMatrix->add_m(aMatrix._12);
+    aLayerMatrix->add_m(aMatrix._13); aLayerMatrix->add_m(aMatrix._14);
+    aLayerMatrix->add_m(aMatrix._21); aLayerMatrix->add_m(aMatrix._22);
+    aLayerMatrix->add_m(aMatrix._23); aLayerMatrix->add_m(aMatrix._24);
+    aLayerMatrix->add_m(aMatrix._31); aLayerMatrix->add_m(aMatrix._32);
+    aLayerMatrix->add_m(aMatrix._33); aLayerMatrix->add_m(aMatrix._34);
+    aLayerMatrix->add_m(aMatrix._41); aLayerMatrix->add_m(aMatrix._42);
+    aLayerMatrix->add_m(aMatrix._43); aLayerMatrix->add_m(aMatrix._44);
   }
 }
 
@@ -2039,8 +2039,9 @@ Layer::DumpPacket(layerscope::LayersPacket* aPacket, const void* aParent)
   // Component alpha
   layer->set_calpha(static_cast<bool>(GetContentFlags() & CONTENT_COMPONENT_ALPHA));
   // Vertical or horizontal bar
-  if (GetScrollbarDirection() != ScrollDirection::NONE) {
-    layer->set_direct(GetScrollbarDirection() == ScrollDirection::VERTICAL ?
+  ScrollDirection thumbDirection = GetScrollThumbData().mDirection;
+  if (thumbDirection != ScrollDirection::NONE) {
+    layer->set_direct(thumbDirection == ScrollDirection::VERTICAL ?
                       LayersPacket::Layer::VERTICAL :
                       LayersPacket::Layer::HORIZONTAL);
     layer->set_barid(GetScrollbarTargetContainerId());
@@ -2442,6 +2443,22 @@ LayerManager::DumpPacket(layerscope::LayersPacket* aPacket)
   layer->set_ptr(reinterpret_cast<uint64_t>(this));
   // Layer Tree Root
   layer->set_parentptr(0);
+}
+
+void
+LayerManager::TrackDisplayItemLayer(RefPtr<DisplayItemLayer> aLayer)
+{
+  mDisplayItemLayers.AppendElement(aLayer);
+}
+
+void
+LayerManager::ClearDisplayItemLayers()
+{
+  for (uint32_t i = 0; i < mDisplayItemLayers.Length(); i++) {
+    mDisplayItemLayers[i]->EndTransaction();
+  }
+
+  mDisplayItemLayers.Clear();
 }
 
 /*static*/ bool

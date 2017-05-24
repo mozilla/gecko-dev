@@ -11,6 +11,8 @@
 #include "mozilla/layers/Compositor.h"
 #include "TextureD3D11.h"
 #include <d3d11.h>
+#include <dxgi1_2.h>
+#include "ShaderDefinitionsD3D11.h"
 
 class nsWidget;
 
@@ -19,26 +21,8 @@ namespace layers {
 
 #define LOGD3D11(param)
 
-struct VertexShaderConstants
-{
-  float layerTransform[4][4];
-  float projection[4][4];
-  float renderTargetOffset[4];
-  gfx::Rect textureCoords;
-  gfx::Rect layerQuad;
-  float maskTransform[4][4];
-  float backdropTransform[4][4];
-};
-
-struct PixelShaderConstants
-{
-  float layerColor[4];
-  float layerOpacity[4];
-  int blendConfig[4];
-  float yuvColorMatrix[3][4];
-};
-
-struct DeviceAttachmentsD3D11;
+class DeviceAttachmentsD3D11;
+class DiagnosticsD3D11;
 
 class CompositorD3D11 : public Compositor
 {
@@ -110,12 +94,14 @@ public:
                           gfx::IntRect *aClipRectOut = nullptr,
                           gfx::IntRect *aRenderBoundsOut = nullptr) override;
 
+  void NormalDrawingDone() override;
+
   /**
    * Flush the current frame to the screen.
    */
   virtual void EndFrame() override;
 
-  virtual void CancelFrame() override;
+  virtual void CancelFrame(bool aNeedFlush = true) override;
 
   /**
    * Setup the viewport and projection matrix for rendering
@@ -206,6 +192,10 @@ private:
   void Draw(const gfx::Rect& aGeometry,
             const gfx::Rect* aTexCoords);
 
+  void GetFrameStats(GPUStats* aStats) override;
+
+  void Present();
+
   ID3D11VertexShader* GetVSForGeometry(const nsTArray<gfx::TexturedTriangle>& aTriangles,
                                        const bool aUseBlendShader,
                                        const MaskType aMaskType);
@@ -225,7 +215,8 @@ private:
 
   RefPtr<ID3D11Query> mQuery;
 
-  DeviceAttachmentsD3D11* mAttachments;
+  RefPtr<DeviceAttachmentsD3D11> mAttachments;
+  UniquePtr<DiagnosticsD3D11> mDiagnostics;
 
   LayoutDeviceIntSize mSize;
 
@@ -237,15 +228,14 @@ private:
   PixelShaderConstants mPSConstants;
   bool mDisableSequenceForNextFrame;
   bool mAllowPartialPresents;
+  bool mIsDoubleBuffered;
 
-  gfx::IntRect mInvalidRect;
+  gfx::IntRegion mFrontBufferInvalid;
+  gfx::IntRegion mBackBufferInvalid;
   // This is the clip rect applied to the default DrawTarget (i.e. the window)
   gfx::IntRect mCurrentClip;
-  nsIntRegion mInvalidRegion;
 
   bool mVerifyBuffersFailed;
-
-  size_t mMaximumTriangles;
 };
 
 }

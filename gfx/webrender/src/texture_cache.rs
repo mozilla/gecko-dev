@@ -16,7 +16,7 @@ use std::mem;
 use std::slice::Iter;
 use time;
 use util;
-use webrender_traits::{ImageData, ImageFormat, DevicePixel, DeviceIntPoint};
+use webrender_traits::{ExternalImageType, ImageData, ImageFormat, DevicePixel, DeviceIntPoint};
 use webrender_traits::{DeviceUintRect, DeviceUintSize, DeviceUintPoint};
 use webrender_traits::ImageDescriptor;
 
@@ -465,6 +465,7 @@ struct TextureCacheArena {
     pages_a8: Vec<TexturePage>,
     pages_rgb8: Vec<TexturePage>,
     pages_rgba8: Vec<TexturePage>,
+    pages_rg8: Vec<TexturePage>,
 }
 
 impl TextureCacheArena {
@@ -473,12 +474,14 @@ impl TextureCacheArena {
             pages_a8: Vec::new(),
             pages_rgb8: Vec::new(),
             pages_rgba8: Vec::new(),
+            pages_rg8: Vec::new(),
         }
     }
 
     fn texture_page_for_id(&mut self, id: CacheTextureId) -> Option<&mut TexturePage> {
         for page in self.pages_a8.iter_mut().chain(self.pages_rgb8.iter_mut())
-                                            .chain(self.pages_rgba8.iter_mut()) {
+                                            .chain(self.pages_rgba8.iter_mut())
+                                            .chain(self.pages_rg8.iter_mut()) {
             if page.texture_id == id {
                 return Some(page)
             }
@@ -546,7 +549,7 @@ impl TextureCache {
 
         TextureCache {
             cache_id_list: CacheTextureIdList::new(),
-            free_texture_levels: HashMap::with_hasher(Default::default()),
+            free_texture_levels: HashMap::default(),
             items: FreeList::new(),
             pending_updates: TextureUpdateList::new(),
             arena: TextureCacheArena::new(),
@@ -607,12 +610,13 @@ impl TextureCache {
             ImageFormat::A8 => (&mut self.arena.pages_a8, &mut profile.pages_a8),
             ImageFormat::RGBA8 => (&mut self.arena.pages_rgba8, &mut profile.pages_rgba8),
             ImageFormat::RGB8 => (&mut self.arena.pages_rgb8, &mut profile.pages_rgb8),
+            ImageFormat::RG8 => (&mut self.arena.pages_rg8, &mut profile.pages_rg8),
             ImageFormat::Invalid | ImageFormat::RGBAF32 => unreachable!(),
         };
 
         // TODO(gw): Handle this sensibly (support failing to render items that can't fit?)
-        assert!(requested_size.width < self.max_texture_size);
-        assert!(requested_size.height < self.max_texture_size);
+        assert!(requested_size.width <= self.max_texture_size);
+        assert!(requested_size.height <= self.max_texture_size);
 
         let mut page_id = None; //using ID here to please the borrow checker
         for (i, page) in page_list.iter_mut().enumerate() {
@@ -706,7 +710,8 @@ impl TextureCache {
     pub fn update(&mut self,
                   image_id: TextureCacheItemId,
                   descriptor: ImageDescriptor,
-                  data: ImageData) {
+                  data: ImageData,
+                  dirty_rect: Option<DeviceUintRect>) {
         let existing_item = self.items.get(image_id);
 
         // TODO(gw): Handle updates to size/format!
@@ -714,21 +719,38 @@ impl TextureCache {
         debug_assert_eq!(existing_item.allocated_rect.size.height, descriptor.height);
 
         let op = match data {
-            ImageData::ExternalHandle(..) | ImageData::ExternalBuffer(..)=> {
+            ImageData::External(..) => {
                 panic!("Doesn't support Update() for external image.");
             }
             ImageData::Blob(..) => {
                 panic!("The vector image should have been rasterized into a raw image.");
             }
             ImageData::Raw(bytes) => {
-                TextureUpdateOp::Update {
-                    page_pos_x: existing_item.allocated_rect.origin.x,
-                    page_pos_y: existing_item.allocated_rect.origin.y,
-                    width: descriptor.width,
-                    height: descriptor.height,
-                    data: bytes,
-                    stride: descriptor.stride,
-                    offset: descriptor.offset,
+                match dirty_rect {
+                    Some(dirty) => {
+                        let stride = descriptor.compute_stride();
+                        let offset = descriptor.offset + dirty.origin.y * stride + dirty.origin.x;
+                        TextureUpdateOp::Update {
+                            page_pos_x: existing_item.allocated_rect.origin.x + dirty.origin.x,
+                            page_pos_y: existing_item.allocated_rect.origin.y + dirty.origin.y,
+                            width: dirty.size.width,
+                            height: dirty.size.height,
+                            data: bytes,
+                            stride: Some(stride),
+                            offset: offset,
+                        }
+                    }
+                    None => {
+                        TextureUpdateOp::Update {
+                            page_pos_x: existing_item.allocated_rect.origin.x,
+                            page_pos_y: existing_item.allocated_rect.origin.y,
+                            width: descriptor.width,
+                            height: descriptor.height,
+                            data: bytes,
+                            stride: descriptor.stride,
+                            offset: descriptor.offset,
+                        }
+                    }
                 }
             }
         };
@@ -756,6 +778,13 @@ impl TextureCache {
         let format = descriptor.format;
         let stride = descriptor.stride;
 
+        if let ImageData::Raw(ref vec) = data {
+            let finish = descriptor.offset +
+                         width * format.bytes_per_pixel().unwrap_or(0) +
+                         (height-1) * descriptor.compute_stride();
+            assert!(vec.len() >= finish as usize);
+        }
+
         let result = self.allocate(image_id,
                                    width,
                                    height,
@@ -766,8 +795,28 @@ impl TextureCache {
         match result.kind {
             AllocationKind::TexturePage => {
                 match data {
-                    ImageData::ExternalHandle(..) => {
-                        panic!("External handle should not go through texture_cache.");
+                    ImageData::External(ext_image) => {
+                        match ext_image.image_type {
+                            ExternalImageType::Texture2DHandle |
+                            ExternalImageType::TextureRectHandle |
+                            ExternalImageType::TextureExternalHandle => {
+                                panic!("External texture handle should not go through texture_cache.");
+                            }
+                            ExternalImageType::ExternalBuffer => {
+                                let update_op = TextureUpdate {
+                                    id: result.item.texture_id,
+                                    op: TextureUpdateOp::UpdateForExternalBuffer {
+                                        rect: result.item.allocated_rect,
+                                        id: ext_image.id,
+                                        channel_index: ext_image.channel_index,
+                                        stride: stride,
+                                        offset: descriptor.offset,
+                                    },
+                                };
+
+                                self.pending_updates.push(update_op);
+                            }
+                        }
                     }
                     ImageData::Blob(..) => {
                         panic!("The vector image should have been rasterized.");
@@ -788,24 +837,33 @@ impl TextureCache {
 
                         self.pending_updates.push(update_op);
                     }
-                    ImageData::ExternalBuffer(id) => {
-                        let update_op = TextureUpdate {
-                            id: result.item.texture_id,
-                            op: TextureUpdateOp::UpdateForExternalBuffer {
-                                rect: result.item.allocated_rect,
-                                id: id,
-                                stride: stride,
-                            },
-                        };
-
-                        self.pending_updates.push(update_op);
-                    }
                 }
             }
             AllocationKind::Standalone => {
                 match data {
-                    ImageData::ExternalHandle(..) => {
-                        panic!("External handle should not go through texture_cache.");
+                    ImageData::External(ext_image) => {
+                        match ext_image.image_type {
+                            ExternalImageType::Texture2DHandle |
+                            ExternalImageType::TextureRectHandle |
+                            ExternalImageType::TextureExternalHandle => {
+                                panic!("External texture handle should not go through texture_cache.");
+                            }
+                            ExternalImageType::ExternalBuffer => {
+                                let update_op = TextureUpdate {
+                                    id: result.item.texture_id,
+                                    op: TextureUpdateOp::Create {
+                                        width: width,
+                                        height: height,
+                                        format: format,
+                                        filter: filter,
+                                        mode: RenderTargetMode::None,
+                                        data: Some(data),
+                                    },
+                                };
+
+                                self.pending_updates.push(update_op);
+                            }
+                        }
                     }
                     _ => {
                         let update_op = TextureUpdate {

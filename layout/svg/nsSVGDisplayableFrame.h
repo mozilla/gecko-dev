@@ -51,7 +51,7 @@ public:
   typedef mozilla::SVGAnimatedLengthList SVGAnimatedLengthList;
   typedef mozilla::SVGLengthList SVGLengthList;
   typedef mozilla::SVGUserUnitList SVGUserUnitList;
-  typedef mozilla::image::DrawResult DrawResult;
+  typedef mozilla::image::imgDrawingParams imgDrawingParams;
 
   NS_DECL_QUERYFRAME_TARGET(nsSVGDisplayableFrame)
 
@@ -79,12 +79,16 @@ public:
    *   very expensive for certain DrawTarget backends so it is best to minimize
    *   the number of transform changes.
    *
+   * @param aImgParams imagelib parameters that may be used when painting
+   *   feImage.
+   *
    * @param aDirtyRect The area being redrawn, in frame offset pixel
    *   coordinates.
    */
-  virtual DrawResult PaintSVG(gfxContext& aContext,
-                              const gfxMatrix& aTransform,
-                              const nsIntRect* aDirtyRect = nullptr) = 0;
+  virtual void PaintSVG(gfxContext& aContext,
+                        const gfxMatrix& aTransform,
+                        imgDrawingParams& aImgParams,
+                        const nsIntRect* aDirtyRect = nullptr) = 0;
 
   /**
    * Returns the frame that should handle pointer events at aPoint.  aPoint is
@@ -93,9 +97,6 @@ public:
    * called, any of its descendants or else nullptr.
    */
   virtual nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) = 0;
-
-  // Get bounds in our nsSVGOuterSVGFrame's coordinates space (in app units)
-  virtual nsRect GetCoveredRegion()=0;
 
   // Called on SVG child frames (except NS_FRAME_IS_NONDISPLAY frames)
   // to update and then invalidate their cached bounds. This method is not

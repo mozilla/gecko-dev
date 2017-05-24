@@ -23,6 +23,7 @@ NetworkEventMessage.propTypes = {
     openNetworkPanel: PropTypes.func.isRequired,
   }),
   indent: PropTypes.number.isRequired,
+  timestampsVisible: PropTypes.bool.isRequired,
 };
 
 NetworkEventMessage.defaultProps = {
@@ -33,6 +34,7 @@ function NetworkEventMessage({
   indent,
   message = {},
   serviceContainer,
+  timestampsVisible,
 }) {
   const {
     actor,
@@ -57,9 +59,9 @@ function NetworkEventMessage({
     statusInfo = `[${httpVersion} ${status} ${statusText} ${totalTime}ms]`;
   }
 
-  function openNetworkMonitor() {
-    serviceContainer.openNetworkPanel(actor);
-  }
+  const openNetworkMonitor = serviceContainer.openNetworkPanel
+    ? () => serviceContainer.openNetworkPanel(actor)
+    : null;
 
   const method = dom.span({className: "method" }, request.method);
   const xhr = isXHR
@@ -73,7 +75,7 @@ function NetworkEventMessage({
 
   const messageBody = [method, xhr, url, statusBody];
 
-  const childProps = {
+  return Message({
     source,
     type,
     level,
@@ -83,8 +85,8 @@ function NetworkEventMessage({
     messageBody,
     serviceContainer,
     request,
-  };
-  return Message(childProps);
+    timestampsVisible,
+  });
 }
 
 module.exports = NetworkEventMessage;

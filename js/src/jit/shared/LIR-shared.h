@@ -1062,6 +1062,24 @@ class LNewArrayDynamicLength : public LInstructionHelper<1, 1, 1>
     }
 };
 
+class LNewArrayIterator : public LInstructionHelper<1, 0, 1>
+{
+  public:
+    LIR_HEADER(NewArrayIterator)
+
+    explicit LNewArrayIterator(const LDefinition& temp) {
+        setTemp(0, temp);
+    }
+
+    const LDefinition* temp() {
+        return getTemp(0);
+    }
+
+    MNewArrayIterator* mir() const {
+        return mir_->toNewArrayIterator();
+    }
+};
+
 class LNewTypedArray : public LInstructionHelper<1, 0, 2>
 {
   public:
@@ -1610,6 +1628,32 @@ class LToAsync : public LCallInstructionHelper<1, 1, 0>
   public:
     LIR_HEADER(ToAsync)
     explicit LToAsync(const LAllocation& input) {
+        setOperand(0, input);
+    }
+
+    const LAllocation* unwrapped() {
+        return getOperand(0);
+    }
+};
+
+class LToAsyncGen : public LCallInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(ToAsyncGen)
+    explicit LToAsyncGen(const LAllocation& input) {
+        setOperand(0, input);
+    }
+
+    const LAllocation* unwrapped() {
+        return getOperand(0);
+    }
+};
+
+class LToAsyncIter : public LCallInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(ToAsyncIter)
+    explicit LToAsyncIter(const LAllocation& input) {
         setOperand(0, input);
     }
 
@@ -3956,6 +4000,9 @@ class LModD : public LBinaryMath<1>
     }
     bool isCall() const {
         return true;
+    }
+    MMod* mir() const {
+        return mir_->toMod();
     }
 };
 
@@ -6614,16 +6661,20 @@ class LStoreFixedSlotT : public LInstructionHelper<0, 2, 0>
 };
 
 // Note, Name ICs always return a Value. There are no V/T variants.
-class LGetNameCache : public LInstructionHelper<BOX_PIECES, 1, 0>
+class LGetNameCache : public LInstructionHelper<BOX_PIECES, 1, 1>
 {
   public:
     LIR_HEADER(GetNameCache)
 
-    explicit LGetNameCache(const LAllocation& envObj) {
+    LGetNameCache(const LAllocation& envObj, const LDefinition& temp) {
         setOperand(0, envObj);
+        setTemp(0, temp);
     }
     const LAllocation* envObj() {
         return getOperand(0);
+    }
+    const LDefinition* temp() {
+        return getTemp(0);
     }
     const MGetNameCache* mir() const {
         return mir_->toGetNameCache();
@@ -6799,16 +6850,20 @@ class LSetPropertyPolymorphicT : public LInstructionHelper<0, 2, 1>
     }
 };
 
-class LBindNameCache : public LInstructionHelper<1, 1, 0>
+class LBindNameCache : public LInstructionHelper<1, 1, 1>
 {
   public:
     LIR_HEADER(BindNameCache)
 
-    explicit LBindNameCache(const LAllocation& envChain) {
+    LBindNameCache(const LAllocation& envChain, const LDefinition& temp) {
         setOperand(0, envChain);
+        setTemp(0, temp);
     }
     const LAllocation* environmentChain() {
         return getOperand(0);
+    }
+    const LDefinition* temp() {
+        return getTemp(0);
     }
     const MBindNameCache* mir() const {
         return mir_->toBindNameCache();
@@ -7154,18 +7209,25 @@ class LCallSetElement : public LCallInstructionHelper<0, 1 + 2 * BOX_PIECES, 0>
 };
 
 // Call js::InitElementArray.
-class LCallInitElementArray : public LCallInstructionHelper<0, 1 + BOX_PIECES, 0>
+class LCallInitElementArray : public LCallInstructionHelper<0, 2 + BOX_PIECES, 0>
 {
 public:
     LIR_HEADER(CallInitElementArray)
 
-    static const size_t Value = 1;
+    static const size_t Value = 2;
 
-    LCallInitElementArray(const LAllocation& obj, const LBoxAllocation& value) {
+    LCallInitElementArray(const LAllocation& obj, const LAllocation& index,
+                          const LBoxAllocation& value) {
         setOperand(0, obj);
+        setOperand(1, index);
         setBoxOperand(Value, value);
     }
-
+    const LAllocation* object() {
+        return getOperand(0);
+    }
+    const LAllocation* index() {
+        return getOperand(1);
+    }
     const MCallInitElementArray* mir() const {
         return mir_->toCallInitElementArray();
     }
@@ -7791,13 +7853,14 @@ class LGuardSharedTypedArray : public LInstructionHelper<0, 1, 1>
     }
 };
 
-class LIn : public LCallInstructionHelper<1, BOX_PIECES+1, 0>
+class LInCache : public LInstructionHelper<1, BOX_PIECES+1, 1>
 {
   public:
-    LIR_HEADER(In)
-    LIn(const LBoxAllocation& lhs, const LAllocation& rhs) {
+    LIR_HEADER(InCache)
+    LInCache(const LBoxAllocation& lhs, const LAllocation& rhs, const LDefinition& temp) {
         setBoxOperand(LHS, lhs);
         setOperand(RHS, rhs);
+        setTemp(0, temp);
     }
 
     const LAllocation* lhs() {
@@ -7806,9 +7869,33 @@ class LIn : public LCallInstructionHelper<1, BOX_PIECES+1, 0>
     const LAllocation* rhs() {
         return getOperand(RHS);
     }
+    const LDefinition* temp() {
+        return getTemp(0);
+    }
+    const MInCache* mir() const {
+        return mir_->toInCache();
+    }
 
     static const size_t LHS = 0;
     static const size_t RHS = BOX_PIECES;
+};
+
+class LHasOwnCache : public LInstructionHelper<1, 2 * BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(HasOwnCache)
+
+    static const size_t Value = 0;
+    static const size_t Id = BOX_PIECES;
+
+    LHasOwnCache(const LBoxAllocation& value, const LBoxAllocation& id) {
+        setBoxOperand(Value, value);
+        setBoxOperand(Id, id);
+    }
+
+    const MHasOwnCache* mir() const {
+        return mir_->toHasOwnCache();
+    }
 };
 
 class LInstanceOfO : public LInstructionHelper<1, 1, 0>

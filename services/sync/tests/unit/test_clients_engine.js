@@ -58,12 +58,6 @@ function cleanup() {
 
 add_task(async function test_bad_hmac() {
   _("Ensure that Clients engine deletes corrupt records.");
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
   let deletedCollections = [];
   let deletedItems       = [];
   let callback = {
@@ -75,7 +69,7 @@ add_task(async function test_bad_hmac() {
       deletedCollections.push(coll);
     }
   }
-  let server = serverForUsers({"foo": "password"}, contents, callback);
+  let server = serverForFoo(engine, callback);
   let user   = server.user("foo");
 
   function check_clients_count(expectedCount) {
@@ -92,11 +86,11 @@ add_task(async function test_bad_hmac() {
     return !wbo || !wbo.payload;
   }
 
-  function uploadNewKeys() {
+  async function uploadNewKeys() {
     generateNewKeys(Service.collectionKeys);
     let serverKeys = Service.collectionKeys.asWBO("crypto", "keys");
     serverKeys.encrypt(Service.identity.syncKeyBundle);
-    ok(serverKeys.upload(Service.resource(Service.cryptoKeysURL)).success);
+    ok((await serverKeys.upload(Service.resource(Service.cryptoKeysURL))).success);
   }
 
   try {
@@ -126,7 +120,7 @@ add_task(async function test_bad_hmac() {
     generateNewKeys(Service.collectionKeys);
     let serverKeys = Service.collectionKeys.asWBO("crypto", "keys");
     serverKeys.encrypt(Service.identity.syncKeyBundle);
-    ok(serverKeys.upload(Service.resource(Service.cryptoKeysURL)).success);
+    ok((await serverKeys.upload(Service.resource(Service.cryptoKeysURL))).success);
 
     _("Sync.");
     engine._sync();
@@ -161,14 +155,14 @@ add_task(async function test_bad_hmac() {
     deletedItems       = [];
     check_clients_count(0);
 
-    uploadNewKeys();
+    await uploadNewKeys();
 
     // Sync once to upload a record.
     engine._sync();
     check_clients_count(1);
 
     // Generate and upload new keys, so the old client record is wrong.
-    uploadNewKeys();
+    await uploadNewKeys();
 
     // Create a new client record and new keys. Now our keys are wrong, as well
     // as the object on the server. We'll download the new keys and also delete
@@ -212,13 +206,7 @@ add_task(async function test_full_sync() {
   _("Ensure that Clients engine fetches all records for each sync.");
 
   let now = Date.now() / 1000;
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
   let user   = server.user("foo");
 
   await SyncTestingInfrastructure(server);
@@ -283,13 +271,7 @@ add_task(async function test_full_sync() {
 add_task(async function test_sync() {
   _("Ensure that Clients engine uploads a new client record once a week.");
 
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
   let user   = server.user("foo");
 
   await SyncTestingInfrastructure(server);
@@ -317,7 +299,7 @@ add_task(async function test_sync() {
     ok(engine.lastRecordUpload > lastweek);
 
     _("Remove client record.");
-    engine.removeClientData();
+    await engine.removeClientData();
     equal(clientWBO().payload, undefined);
 
     _("Time travel one day back, no record uploaded.");
@@ -369,13 +351,7 @@ add_task(async function test_last_modified() {
   _("Ensure that remote records have a sane serverLastModified attribute.");
 
   let now = Date.now() / 1000;
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
   let user   = server.user("foo");
 
   await SyncTestingInfrastructure(server);
@@ -590,13 +566,7 @@ add_task(async function test_filter_duplicate_names() {
   _("Ensure that we exclude clients with identical names that haven't synced in a week.");
 
   let now = Date.now() / 1000;
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
   let user   = server.user("foo");
 
   await SyncTestingInfrastructure(server);
@@ -747,13 +717,7 @@ add_task(async function test_command_sync() {
   engine._store.wipe();
   generateNewKeys(Service.collectionKeys);
 
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server   = serverForUsers({"foo": "password"}, contents);
+  let server   = serverForFoo(engine);
   await SyncTestingInfrastructure(server);
 
   let user     = server.user("foo");
@@ -824,16 +788,9 @@ add_task(async function test_clients_not_in_fxa_list() {
   engine._store.wipe();
   generateNewKeys(Service.collectionKeys);
 
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server   = serverForUsers({"foo": "password"}, contents);
+  let server   = serverForFoo(engine);
   await SyncTestingInfrastructure(server);
 
-  let user     = server.user("foo");
   let remoteId = Utils.makeGUID();
   let remoteId2 = Utils.makeGUID();
 
@@ -1006,13 +963,7 @@ add_task(async function test_merge_commands() {
   _("Verifies local commands for remote clients are merged with the server's");
 
   let now = Date.now() / 1000;
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
 
   await SyncTestingInfrastructure(server);
   generateNewKeys(Service.collectionKeys);
@@ -1082,13 +1033,7 @@ add_task(async function test_duplicate_remote_commands() {
   _("Verifies local commands for remote clients are sent only once (bug 1289287)");
 
   let now = Date.now() / 1000;
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
 
   await SyncTestingInfrastructure(server);
   generateNewKeys(Service.collectionKeys);
@@ -1147,13 +1092,7 @@ add_task(async function test_upload_after_reboot() {
   _("Multiple downloads, reboot, then upload (bug 1289287)");
 
   let now = Date.now() / 1000;
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
 
   await SyncTestingInfrastructure(server);
   generateNewKeys(Service.collectionKeys);
@@ -1235,13 +1174,7 @@ add_task(async function test_keep_cleared_commands_after_reboot() {
   _("Download commands, fail upload, reboot, then apply new commands (bug 1289287)");
 
   let now = Date.now() / 1000;
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
 
   await SyncTestingInfrastructure(server);
   generateNewKeys(Service.collectionKeys);
@@ -1359,13 +1292,7 @@ add_task(async function test_deleted_commands() {
   _("Verifies commands for a deleted client are discarded");
 
   let now = Date.now() / 1000;
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
 
   await SyncTestingInfrastructure(server);
   generateNewKeys(Service.collectionKeys);
@@ -1423,13 +1350,7 @@ add_task(async function test_send_uri_ack() {
   _("Ensure a sent URI is deleted when the client syncs");
 
   let now = Date.now() / 1000;
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server = serverForUsers({"foo": "password"}, contents);
+  let server = serverForFoo(engine);
 
   await SyncTestingInfrastructure(server);
   generateNewKeys(Service.collectionKeys);
@@ -1486,13 +1407,7 @@ add_task(async function test_command_sync() {
   engine._store.wipe();
   generateNewKeys(Service.collectionKeys);
 
-  let contents = {
-    meta: {global: {engines: {clients: {version: engine.version,
-                                        syncID: engine.syncID}}}},
-    clients: {},
-    crypto: {}
-  };
-  let server    = serverForUsers({"foo": "password"}, contents);
+  let server    = serverForFoo(engine);
   await SyncTestingInfrastructure(server);
 
   let collection = server.getCollection("foo", "clients");
@@ -1557,13 +1472,7 @@ add_task(async function ensureSameFlowIDs() {
   try {
     // Setup 2 clients, send them a command, and ensure we get to events
     // written, both with the same flowID.
-    let contents = {
-      meta: {global: {engines: {clients: {version: engine.version,
-                                          syncID: engine.syncID}}}},
-      clients: {},
-      crypto: {}
-    };
-    let server    = serverForUsers({"foo": "password"}, contents);
+    let server    = serverForFoo(engine);
     await SyncTestingInfrastructure(server);
 
     let remoteId   = Utils.makeGUID();

@@ -27,6 +27,7 @@
 #include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/LoadContext.h"
 #include "mozilla/MemoryReporting.h"
@@ -45,6 +46,7 @@
 #include "nsIAuthPrompt2.h"
 #include "nsIOutputStream.h"
 #include "nsISupportsPrimitives.h"
+#include "nsISupportsPriority.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsStreamUtils.h"
 #include "nsThreadUtils.h"
@@ -1971,6 +1973,13 @@ XMLHttpRequestMainThread::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     channel->SetContentType(NS_ConvertUTF16toUTF8(mOverrideMimeType));
   }
 
+  // Fallback to 'application/octet-stream'
+  nsAutoCString type;
+  channel->GetContentType(type);
+  if (type.Equals(UNKNOWN_CONTENT_TYPE)) {
+    channel->SetContentType(NS_LITERAL_CSTRING(APPLICATION_OCTET_STREAM));
+  }
+
   DetectCharset();
 
   // Set up arraybuffer
@@ -1997,7 +2006,9 @@ XMLHttpRequestMainThread::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
             mIsMappedArrayBuffer = false;
           } else {
             rv = mArrayBufferBuilder.mapToFileInPackage(file, jarFile);
-            if (NS_WARN_IF(NS_FAILED(rv))) {
+            // This can happen legitimately if there are compressed files
+            // in the jarFile. See bug #1357219. No need to warn on the error.
+            if (NS_FAILED(rv)) {
               mIsMappedArrayBuffer = false;
             } else {
               channel->SetContentType(NS_LITERAL_CSTRING("application/mem-mapped"));
@@ -2540,6 +2551,37 @@ XMLHttpRequestMainThread::CreateChannel()
   return NS_OK;
 }
 
+void
+XMLHttpRequestMainThread::MaybeLowerChannelPriority()
+{
+  nsCOMPtr<nsIDocument> doc = GetDocumentIfCurrent();
+  if (!doc) {
+    return;
+  }
+
+  AutoJSAPI jsapi;
+  if (!jsapi.Init(GetOwnerGlobal())) {
+    return;
+  }
+
+  JSContext* cx = jsapi.cx();
+  nsAutoCString fileNameString;
+  if (!nsJSUtils::GetCallingLocation(cx, fileNameString)) {
+    return;
+  }
+
+  if (!doc->IsScriptTracking(fileNameString)) {
+    return;
+  }
+
+  nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(mChannel);
+  if (!p) {
+    return;
+  }
+
+  p->SetPriority(nsISupportsPriority::PRIORITY_LOWEST);
+}
+
 nsresult
 XMLHttpRequestMainThread::InitiateFetch(nsIInputStream* aUploadStream,
                                         int64_t aUploadLength,
@@ -2650,6 +2692,12 @@ XMLHttpRequestMainThread::InitiateFetch(nsIInputStream* aUploadStream,
   nsCOMPtr<nsIClassOfService> cos(do_QueryInterface(mChannel));
   if (cos) {
     cos->AddClassFlags(nsIClassOfService::Unblocked);
+
+    // Mark channel as urgent-start if the XHR is triggered by user input
+    // events.
+    if (EventStateManager::IsHandlingUserInput()) {
+      cos->AddClassFlags(nsIClassOfService::UrgentStart);
+    }
   }
 
   // Disable Necko-internal response timeouts.
@@ -2687,12 +2735,13 @@ XMLHttpRequestMainThread::InitiateFetch(nsIInputStream* aUploadStream,
   // Since we expect XML data, set the type hint accordingly
   // if the channel doesn't know any content type.
   // This means that we always try to parse local files as XML
-  // ignoring return value, as this is not critical
+  // ignoring return value, as this is not critical. Use text/xml as fallback
+  // MIME type.
   nsAutoCString contentType;
   if (NS_FAILED(mChannel->GetContentType(contentType)) ||
       contentType.IsEmpty() ||
       contentType.Equals(UNKNOWN_CONTENT_TYPE)) {
-    mChannel->SetContentType(NS_LITERAL_CSTRING("application/xml"));
+    mChannel->SetContentType(NS_LITERAL_CSTRING("text/xml"));
   }
 
   // Set up the preflight if needed
@@ -2721,6 +2770,12 @@ XMLHttpRequestMainThread::InitiateFetch(nsIInputStream* aUploadStream,
   // Make sure to hold a strong reference so that we don't leak the wrapper.
   nsCOMPtr<nsIStreamListener> listener = new net::nsStreamListenerWrapper(this);
 
+  // Check if this XHR is created from a tracking script.
+  // If yes, lower the channel's priority.
+  if (nsContentUtils::IsLowerNetworkPriority()) {
+    MaybeLowerChannelPriority();
+  }
+
   // Start reading from the channel
   rv = mChannel->AsyncOpen2(listener);
   listener = nullptr;
@@ -2734,6 +2789,7 @@ XMLHttpRequestMainThread::InitiateFetch(nsIInputStream* aUploadStream,
 
     // Per spec, we throw on sync errors, but not async.
     if (mFlagSynchronous) {
+      mState = State::done;
       return NS_ERROR_DOM_NETWORK_ERR;
     }
   }
@@ -2824,6 +2880,7 @@ XMLHttpRequestMainThread::Send(nsIVariant* aVariant)
 void
 XMLHttpRequestMainThread::UnsuppressEventHandlingAndResume()
 {
+  MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mFlagSynchronous);
 
   if (mSuspendedDoc) {
@@ -2832,7 +2889,7 @@ XMLHttpRequestMainThread::UnsuppressEventHandlingAndResume()
   }
 
   if (mResumeTimeoutRunnable) {
-    NS_DispatchToCurrentThread(mResumeTimeoutRunnable);
+    DispatchToMainThread(mResumeTimeoutRunnable.forget());
     mResumeTimeoutRunnable = nullptr;
   }
 }
@@ -2840,6 +2897,8 @@ XMLHttpRequestMainThread::UnsuppressEventHandlingAndResume()
 nsresult
 XMLHttpRequestMainThread::SendInternal(const BodyExtractorBase* aBody)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   NS_ENSURE_TRUE(mPrincipal, NS_ERROR_NOT_INITIALIZED);
 
   // Step 1
@@ -2927,7 +2986,7 @@ XMLHttpRequestMainThread::SendInternal(const BodyExtractorBase* aBody)
 
   mIsMappedArrayBuffer = false;
   if (mResponseType == XMLHttpRequestResponseType::Arraybuffer &&
-      Preferences::GetBool("dom.mapped_arraybuffer.enabled", true)) {
+      IsMappedArrayBufferEnabled()) {
     nsCOMPtr<nsIURI> uri;
     nsAutoCString scheme;
 
@@ -2979,12 +3038,8 @@ XMLHttpRequestMainThread::SendInternal(const BodyExtractorBase* aBody)
 
     if (NS_SUCCEEDED(rv)) {
       nsAutoSyncOperation sync(mSuspendedDoc);
-      nsIThread *thread = NS_GetCurrentThread();
-      while (mFlagSyncLooping) {
-        if (!NS_ProcessNextEvent(thread)) {
-          rv = NS_ERROR_UNEXPECTED;
-          break;
-        }
+      if (!SpinEventLoopUntil([&]() { return !mFlagSyncLooping; })) {
+        rv = NS_ERROR_UNEXPECTED;
       }
 
       // Time expired... We should throw.
@@ -3018,19 +3073,52 @@ XMLHttpRequestMainThread::SendInternal(const BodyExtractorBase* aBody)
   if (!mChannel) {
     // Per spec, silently fail on async request failures; throw for sync.
     if (mFlagSynchronous) {
+      mState = State::done;
       return NS_ERROR_DOM_NETWORK_ERR;
     } else {
       // Defer the actual sending of async events just in case listeners
       // are attached after the send() method is called.
-      NS_DispatchToCurrentThread(
-        NewRunnableMethod<ProgressEventType>(this,
-          &XMLHttpRequestMainThread::CloseRequestWithError,
-          ProgressEventType::error));
-      return NS_OK;
+      return DispatchToMainThread(NewRunnableMethod<ProgressEventType>(this,
+                 &XMLHttpRequestMainThread::CloseRequestWithError,
+                 ProgressEventType::error));
     }
   }
 
   return rv;
+}
+
+/* static */
+bool
+XMLHttpRequestMainThread::IsMappedArrayBufferEnabled()
+{
+  static bool sMappedArrayBufferAdded = false;
+  static bool sIsMappedArrayBufferEnabled;
+
+  if (!sMappedArrayBufferAdded) {
+    Preferences::AddBoolVarCache(&sIsMappedArrayBufferEnabled,
+                                 "dom.mapped_arraybuffer.enabled",
+                                 true);
+    sMappedArrayBufferAdded = true;
+  }
+
+  return sIsMappedArrayBufferEnabled;
+}
+
+/* static */
+bool
+XMLHttpRequestMainThread::IsLowercaseResponseHeader()
+{
+  static bool sLowercaseResponseHeaderAdded = false;
+  static bool sIsLowercaseResponseHeaderEnabled;
+
+  if (!sLowercaseResponseHeaderAdded) {
+    Preferences::AddBoolVarCache(&sIsLowercaseResponseHeaderEnabled,
+                                 "dom.xhr.lowercase_header.enabled",
+                                 false);
+    sLowercaseResponseHeaderAdded = true;
+  }
+
+  return sIsLowercaseResponseHeaderEnabled;
 }
 
 // http://dvcs.w3.org/hg/xhr/raw-file/tip/Overview.html#dom-xmlhttprequest-setrequestheader
@@ -3049,9 +3137,8 @@ XMLHttpRequestMainThread::SetRequestHeader(const nsACString& aName,
   }
 
   // Step 3
-  nsAutoCString value(aValue);
-  static const char kHTTPWhitespace[] = "\n\t\r ";
-  value.Trim(kHTTPWhitespace);
+  nsAutoCString value;
+  NS_TrimHTTPWhitespace(aValue, value);
 
   // Step 4
   if (!NS_IsValidHTTPToken(aName) || !NS_IsReasonableHTTPHeaderValue(value)) {
@@ -3122,6 +3209,19 @@ XMLHttpRequestMainThread::SetTimerEventTarget(nsITimer* aTimer)
     nsCOMPtr<nsIEventTarget> target = global->EventTargetFor(TaskCategory::Other);
     aTimer->SetTarget(target);
   }
+}
+
+nsresult
+XMLHttpRequestMainThread::DispatchToMainThread(already_AddRefed<nsIRunnable> aRunnable)
+{
+  if (nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal()) {
+    nsCOMPtr<nsIEventTarget> target = global->EventTargetFor(TaskCategory::Other);
+    MOZ_ASSERT(target);
+
+    return target->Dispatch(Move(aRunnable), NS_DISPATCH_NORMAL);
+  }
+
+  return NS_DispatchToMainThread(Move(aRunnable));
 }
 
 void
@@ -3739,10 +3839,20 @@ NS_IMETHODIMP XMLHttpRequestMainThread::
 nsHeaderVisitor::VisitHeader(const nsACString &header, const nsACString &value)
 {
   if (mXHR.IsSafeHeader(header, mHttpChannel)) {
-    mHeaders.Append(header);
-    mHeaders.AppendLiteral(": ");
-    mHeaders.Append(value);
-    mHeaders.AppendLiteral("\r\n");
+    if (!IsLowercaseResponseHeader()) {
+      if(!mHeaderList.InsertElementSorted(HeaderEntry(header, value),
+                                          fallible)) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+      return NS_OK;
+    }
+
+    nsAutoCString lowerHeader(header);
+    ToLowerCase(lowerHeader);
+    if (!mHeaderList.InsertElementSorted(HeaderEntry(lowerHeader, value),
+                                         fallible)) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
   }
   return NS_OK;
 }
@@ -3761,7 +3871,12 @@ XMLHttpRequestMainThread::MaybeCreateBlobStorage()
       ? MutableBlobStorage::eCouldBeInTemporaryFile
       : MutableBlobStorage::eOnlyInMemory;
 
-  mBlobStorage = new MutableBlobStorage(storageType);
+  nsCOMPtr<nsIEventTarget> eventTarget;
+  if (nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal()) {
+    eventTarget = global->EventTargetFor(TaskCategory::Other);
+  }
+
+  mBlobStorage = new MutableBlobStorage(storageType, eventTarget);
 }
 
 void

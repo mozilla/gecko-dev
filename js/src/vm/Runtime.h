@@ -9,6 +9,7 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/DoublyLinkedList.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PodOperations.h"
@@ -19,7 +20,6 @@
 #include <setjmp.h>
 
 #include "jsatom.h"
-#include "jsclist.h"
 #include "jsscript.h"
 
 #ifdef XP_DARWIN
@@ -286,6 +286,7 @@ void DisableExtraThreads();
 using ScriptAndCountsVector = GCVector<ScriptAndCounts, 0, SystemAllocPolicy>;
 
 class AutoLockForExclusiveAccess;
+
 } // namespace js
 
 struct JSRuntime : public js::MallocProvider<JSRuntime>
@@ -330,6 +331,10 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
 #endif
 
   private:
+#ifdef DEBUG
+    js::WriteOnceData<bool> initialized_;
+#endif
+
     // The context for the thread which currently has exclusive access to most
     // contents of the runtime. When execution on the runtime is cooperatively
     // scheduled, this is the thread which is currently running.
@@ -461,13 +466,6 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
     void setTelemetryCallback(JSRuntime* rt, JSAccumulateTelemetryDataCallback callback);
 
   public:
-    js::ActiveThreadData<JSGetIncumbentGlobalCallback> getIncumbentGlobalCallback;
-    js::ActiveThreadData<JSEnqueuePromiseJobCallback> enqueuePromiseJobCallback;
-    js::ActiveThreadData<void*> enqueuePromiseJobCallbackData;
-
-    js::ActiveThreadData<JSPromiseRejectionTrackerCallback> promiseRejectionTrackerCallback;
-    js::ActiveThreadData<void*> promiseRejectionTrackerCallbackData;
-
     js::ActiveThreadData<JS::StartAsyncTaskCallback> startAsyncTaskCallback;
     js::UnprotectedData<JS::FinishAsyncTaskCallback> finishAsyncTaskCallback;
     js::ExclusiveData<js::PromiseTaskPtrVector> promiseTasksToDestroy;
@@ -492,12 +490,6 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
 
     /* Compartment memory reporting callback. */
     js::ActiveThreadData<JSSizeOfIncludingThisCompartmentCallback> sizeOfIncludingThisCompartmentCallback;
-
-    /* Zone destroy callback. */
-    js::ActiveThreadData<JSZoneCallback> destroyZoneCallback;
-
-    /* Zone sweep callback. */
-    js::ActiveThreadData<JSZoneCallback> sweepZoneCallback;
 
     /* Call this to get the name of a compartment. */
     js::ActiveThreadData<JSCompartmentNameCallback> compartmentNameCallback;
@@ -569,14 +561,34 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
         weakCaches().insertBack(cachep);
     }
 
+    template <typename T>
+    struct GlobalObjectWatchersSiblingAccess {
+      static T* GetNext(T* elm) {
+        return elm->onNewGlobalObjectWatchersLink.mNext;
+      }
+      static void SetNext(T* elm, T* next) {
+        elm->onNewGlobalObjectWatchersLink.mNext = next;
+      }
+      static T* GetPrev(T* elm) {
+        return elm->onNewGlobalObjectWatchersLink.mPrev;
+      }
+      static void SetPrev(T* elm, T* prev) {
+        elm->onNewGlobalObjectWatchersLink.mPrev = prev;
+      }
+    };
+
+    using WatchersList =
+        mozilla::DoublyLinkedList<js::Debugger,
+                                  GlobalObjectWatchersSiblingAccess<js::Debugger>>;
   private:
     /*
-     * Head of circular list of all enabled Debuggers that have
-     * onNewGlobalObject handler methods established.
+     * List of all enabled Debuggers that have onNewGlobalObject handler
+     * methods established.
      */
-    js::ActiveThreadData<JSCList> onNewGlobalObjectWatchers_;
+    js::ActiveThreadData<WatchersList> onNewGlobalObjectWatchers_;
+
   public:
-    JSCList& onNewGlobalObjectWatchers() { return onNewGlobalObjectWatchers_.ref(); }
+    WatchersList& onNewGlobalObjectWatchers() { return onNewGlobalObjectWatchers_.ref(); }
 
   private:
     /*
@@ -901,6 +913,7 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
     }
 
     explicit JSRuntime(JSRuntime* parentRuntime);
+    ~JSRuntime();
 
     // destroyRuntime is used instead of a destructor, to ensure the downcast
     // to JSContext remains valid. The final GC triggered here depends on this.
@@ -934,7 +947,7 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
     JS_FRIEND_API(void*) onOutOfMemory(js::AllocFunction allocator, size_t nbytes,
                                        void* reallocPtr = nullptr, JSContext* maybecx = nullptr);
 
-    /*  onOutOfMemory but can call the largeAllocationFailureCallback. */
+    /*  onOutOfMemory but can call OnLargeAllocationFailure. */
     JS_FRIEND_API(void*) onOutOfMemoryCanGC(js::AllocFunction allocator, size_t nbytes,
                                             void* reallocPtr = nullptr);
 
@@ -968,10 +981,6 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
         MOZ_ASSERT(autoWritableJitCodeActive_ != b, "AutoWritableJitCode should not be nested.");
         autoWritableJitCodeActive_ = b;
     }
-
-    /* See comment for JS::SetLargeAllocationFailureCallback in jsapi.h. */
-    js::ActiveThreadData<JS::LargeAllocationFailureCallback> largeAllocationFailureCallback;
-    js::ActiveThreadData<void*> largeAllocationFailureCallbackData;
 
     /* See comment for JS::SetOutOfMemoryCallback in jsapi.h. */
     js::ActiveThreadData<JS::OutOfMemoryCallback> oomCallback;
@@ -1024,23 +1033,6 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
     js::PerformanceMonitoring& performanceMonitoring() { return performanceMonitoring_.ref(); }
 
   private:
-    /* List of Ion compilation waiting to get linked. */
-    typedef mozilla::LinkedList<js::jit::IonBuilder> IonBuilderList;
-
-    js::HelperThreadLockData<IonBuilderList> ionLazyLinkList_;
-    js::HelperThreadLockData<size_t> ionLazyLinkListSize_;
-
-  public:
-    IonBuilderList& ionLazyLinkList();
-
-    size_t ionLazyLinkListSize() {
-        return ionLazyLinkListSize_;
-    }
-
-    void ionLazyLinkListRemove(js::jit::IonBuilder* builder);
-    void ionLazyLinkListAdd(js::jit::IonBuilder* builder);
-
-  private:
     /* The stack format for the current runtime.  Only valid on non-child
      * runtimes. */
     mozilla::Atomic<js::StackFormat, mozilla::ReleaseAcquire> stackFormat_;
@@ -1069,6 +1061,23 @@ struct JSRuntime : public js::MallocProvider<JSRuntime>
     js::ActiveThreadData<js::RuntimeCaches> caches_;
   public:
     js::RuntimeCaches& caches() { return caches_.ref(); }
+
+  private:
+    // When wasm is interrupted, the pc at which we should return if the
+    // interrupt hasn't stopped execution of the current running code. Since
+    // this is used only by the interrupt handler and the latter is not
+    // reentrant, this value can't be clobbered so there is at most one
+    // resume PC at a time.
+    js::ActiveThreadData<void*> wasmResumePC_;
+
+  public:
+    void* wasmResumePC() const {
+        return wasmResumePC_;
+    }
+    void setWasmResumePC(void* resumePC) {
+        MOZ_ASSERT(!!resumePC == !wasmResumePC_);
+        wasmResumePC_ = resumePC;
+    }
 };
 
 namespace js {
@@ -1350,6 +1359,10 @@ ZoneGroup::callAfterMinorGC(void (*thunk)(void* data), void* data)
 {
     nursery().queueSweepAction(thunk, data);
 }
+
+// This callback is set by JS::SetProcessLargeAllocationFailureCallback
+// and may be null. See comment in jsapi.h.
+extern mozilla::Atomic<JS::LargeAllocationFailureCallback> OnLargeAllocationFailure;
 
 } /* namespace js */
 

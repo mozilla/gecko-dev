@@ -9,11 +9,13 @@ use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use heapsize::HeapSizeOf;
-use net_traits::image_cache_thread::{ImageCacheThread, ImageState, CanRequestImages};
-use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
+use msg::constellation_msg::PipelineId;
+use net_traits::image_cache::{CanRequestImages, ImageCache, ImageState};
+use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
+use script_traits::UntrustedNodeAddress;
 use servo_url::ServoUrl;
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::{RefCell, RefMut};
@@ -76,11 +78,14 @@ pub fn heap_size_of_persistent_local_context() -> usize {
 
 /// Layout information shared among all workers. This must be thread-safe.
 pub struct LayoutContext<'a> {
+    /// The pipeline id of this LayoutContext.
+    pub id: PipelineId,
+
     /// Bits shared by the layout and style system.
     pub style_context: SharedStyleContext<'a>,
 
-    /// The shared image cache thread.
-    pub image_cache_thread: Mutex<ImageCacheThread>,
+    /// Reference to the script thread image cache.
+    pub image_cache: Arc<ImageCache>,
 
     /// Interface to the font cache thread.
     pub font_cache_thread: Mutex<FontCacheThread>,
@@ -92,7 +97,11 @@ pub struct LayoutContext<'a> {
 
     /// A list of in-progress image loads to be shared with the script thread.
     /// A None value means that this layout was not initiated by the script thread.
-    pub pending_images: Option<Mutex<Vec<PendingImage>>>
+    pub pending_images: Option<Mutex<Vec<PendingImage>>>,
+
+    /// A list of nodes that have just initiated a CSS transition.
+    /// A None value means that this layout was not initiated by the script thread.
+    pub newly_transitioning_nodes: Option<Mutex<Vec<UntrustedNodeAddress>>>,
 }
 
 impl<'a> Drop for LayoutContext<'a> {
@@ -126,10 +135,9 @@ impl<'a> LayoutContext<'a> {
         };
 
         // See if the image is already available
-        let result = self.image_cache_thread.lock().unwrap()
-                                            .find_image_or_metadata(url.clone(),
-                                                                    use_placeholder,
-                                                                    can_request);
+        let result = self.image_cache.find_image_or_metadata(url.clone(),
+                                                             use_placeholder,
+                                                             can_request);
         match result {
             Ok(image_or_metadata) => Some(image_or_metadata),
             // Image failed to load, so just return nothing
@@ -175,7 +183,7 @@ impl<'a> LayoutContext<'a> {
         }
 
         match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
-            Some(ImageOrMetadataAvailable::ImageAvailable(image)) => {
+            Some(ImageOrMetadataAvailable::ImageAvailable(image, _)) => {
                 let image_info = WebRenderImageInfo::from_image(&*image);
                 if image_info.key.is_none() {
                     Some(image_info)

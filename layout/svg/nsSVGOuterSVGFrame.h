@@ -21,6 +21,8 @@ class nsSVGForeignObjectFrame;
 class nsSVGOuterSVGFrame final : public nsSVGDisplayContainerFrame
                                , public nsISVGSVGFrame
 {
+  typedef mozilla::image::imgDrawingParams imgDrawingParams;
+
   friend nsContainerFrame*
   NS_NewSVGOuterSVGFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
@@ -75,13 +77,6 @@ public:
 
   virtual nsSplittableType GetSplittableType() const override;
 
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgOuterSVGFrame
-   */
-  virtual nsIAtom* GetType() const override;
-
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override
   {
@@ -96,19 +91,13 @@ public:
   virtual nsContainerFrame* GetContentInsertionFrame() override {
     // Any children must be added to our single anonymous inner frame kid.
     MOZ_ASSERT(PrincipalChildList().FirstChild() &&
-               PrincipalChildList().FirstChild()->GetType() ==
-                 nsGkAtoms::svgOuterSVGAnonChildFrame,
+               PrincipalChildList().FirstChild()->IsSVGOuterSVGAnonChildFrame(),
                "Where is our anonymous child?");
     return PrincipalChildList().FirstChild()->GetContentInsertionFrame();
   }
 
-  virtual bool IsSVGTransformed(Matrix *aOwnTransform,
-                                Matrix *aFromParentTransform) const override {
-    // Our anonymous wrapper performs the transforms. We simply
-    // return whether we are transformed here but don't apply the transforms
-    // themselves.
-    return PrincipalChildList().FirstChild()->IsSVGTransformed();
-  }
+  bool IsSVGTransformed(Matrix* aOwnTransform,
+                        Matrix* aFromParentTransform) const override;
 
   // Update the style on our anonymous box child.
   void DoUpdateStyleOfOwnedAnonBoxes(mozilla::ServoStyleSet& aStyleSet,
@@ -119,9 +108,10 @@ public:
   virtual void NotifyViewportOrTransformChanged(uint32_t aFlags) override;
 
   // nsSVGDisplayableFrame methods:
-  virtual DrawResult PaintSVG(gfxContext& aContext,
-                              const gfxMatrix& aTransform,
-                              const nsIntRect* aDirtyRect = nullptr) override;
+  virtual void PaintSVG(gfxContext& aContext,
+                        const gfxMatrix& aTransform,
+                        imgDrawingParams& aImgParams,
+                        const nsIntRect* aDirtyRect = nullptr) override;
   virtual SVGBBox GetBBoxContribution(const Matrix &aToBBoxUserspace,
                                       uint32_t aFlags) override;
 
@@ -236,14 +226,15 @@ protected:
  * example, the implementations of IsSVGTransformed and GetCanvasTM assume
  * nsSVGContainerFrame instances all the way up to the nsSVGOuterSVGFrame.
  */
-class nsSVGOuterSVGAnonChildFrame : public nsSVGDisplayContainerFrame
+class nsSVGOuterSVGAnonChildFrame final : public nsSVGDisplayContainerFrame
 {
   friend nsContainerFrame*
   NS_NewSVGOuterSVGAnonChildFrame(nsIPresShell* aPresShell,
                                   nsStyleContext* aContext);
 
   explicit nsSVGOuterSVGAnonChildFrame(nsStyleContext* aContext)
-    : nsSVGDisplayContainerFrame(aContext)
+    : nsSVGDisplayContainerFrame(aContext,
+                                 mozilla::LayoutFrameType::SVGOuterSVGAnonChild)
   {}
 
 public:
@@ -261,12 +252,8 @@ public:
   }
 #endif
 
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgOuterSVGAnonChildFrame
-   */
-  virtual nsIAtom* GetType() const override;
+  bool IsSVGTransformed(Matrix *aOwnTransform,
+                        Matrix *aFromParentTransform) const override;
 
   // nsSVGContainerFrame methods:
   virtual gfxMatrix GetCanvasTM() override {
@@ -275,8 +262,6 @@ public:
     // set on us for any CSS border or padding on our nsSVGOuterSVGFrame.
     return static_cast<nsSVGOuterSVGFrame*>(GetParent())->GetCanvasTM();
   }
-
-  virtual bool HasChildrenOnlyTransform(Matrix *aTransform) const override;
 };
 
 #endif

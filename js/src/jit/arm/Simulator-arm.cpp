@@ -415,7 +415,7 @@ Simulator::disassemble(SimInstruction* instr, size_t n)
     while (n-- > 0) {
         dasm.InstructionDecode(buffer,
                                reinterpret_cast<uint8_t*>(instr));
-        printf("  0x%08x  %s\n", uint32_t(instr), buffer.start());
+        fprintf(stderr, "  0x%08x  %s\n", uint32_t(instr), buffer.start());
         instr = reinterpret_cast<SimInstruction*>(reinterpret_cast<uint8_t*>(instr) + 4);
     }
 }
@@ -1124,7 +1124,7 @@ Simulator::Simulator(JSContext* cx)
     stackLimit_ = 0;
     pc_modified_ = false;
     icount_ = 0L;
-    resume_pc_ = 0;
+    wasm_interrupt_ = false;
     break_pc_ = nullptr;
     break_instr_ = 0;
     single_stepping_ = false;
@@ -1547,6 +1547,30 @@ Simulator::exclusiveMonitorClear()
     exclusiveMonitorHeld_ = false;
 }
 
+// The signal handler only redirects the PC to the interrupt stub when the PC is
+// in function code. However, this guard is racy for the ARM simulator since the
+// signal handler samples PC in the middle of simulating an instruction and thus
+// the current PC may have advanced once since the signal handler's guard. So we
+// re-check here.
+void
+Simulator::handleWasmInterrupt()
+{
+    void* pc = (void*)get_pc();
+    uint8_t* fp = (uint8_t*)get_register(r11);
+
+    WasmActivation* activation = wasm::MaybeActiveActivation(cx_);
+    const wasm::Code* code = activation->compartment()->wasm.lookupCode(pc);
+    if (!code || !code->segmentTier().containsFunctionPC(pc))
+        return;
+
+    // fp can be null during the prologue/epilogue of the entry function.
+    if (!fp)
+        return;
+
+    activation->startInterrupt(pc, fp);
+    set_pc(int32_t(code->segmentTier().interruptCode()));
+}
+
 // WebAssembly memories contain an extra region of guard pages (see
 // WasmArrayRawBuffer comment). The guard pages catch out-of-bounds accesses
 // using a signal handler that redirects PC to a stub that safely reports an
@@ -1556,23 +1580,25 @@ Simulator::exclusiveMonitorClear()
 bool
 Simulator::handleWasmFault(int32_t addr, unsigned numBytes)
 {
-    WasmActivation* act = cx_->wasmActivationStack();
+    WasmActivation* act = wasm::MaybeActiveActivation(cx_);
     if (!act)
         return false;
 
     void* pc = reinterpret_cast<void*>(get_pc());
-    wasm::Instance* instance = act->compartment()->wasm.lookupInstanceDeprecated(pc);
+    uint8_t* fp = reinterpret_cast<uint8_t*>(get_register(r11));
+    wasm::Instance* instance = wasm::LookupFaultingInstance(act, pc, fp);
     if (!instance || !instance->memoryAccessInGuardRegion((uint8_t*)addr, numBytes))
         return false;
 
     const wasm::MemoryAccess* memoryAccess = instance->code().lookupMemoryAccess(pc);
     if (!memoryAccess) {
-        set_pc(int32_t(instance->codeSegment().outOfBoundsCode()));
+        act->startInterrupt(pc, fp);
+        set_pc(int32_t(instance->codeSegmentTier().outOfBoundsCode()));
         return true;
     }
 
     MOZ_ASSERT(memoryAccess->hasTrapOutOfLineCode());
-    set_pc(int32_t(memoryAccess->trapOutOfLineCode(instance->codeBase())));
+    set_pc(int32_t(memoryAccess->trapOutOfLineCode(instance->codeBaseTier())));
     return true;
 }
 
@@ -1588,7 +1614,7 @@ Simulator::readQ(int32_t addr, SimInstruction* instr, UnalignedPolicy f)
     }
 
     // See the comments below in readW.
-    if (FixupFault() && wasm::IsPCInWasmCode(reinterpret_cast<void *>(get_pc()))) {
+    if (FixupFault() && wasm::InCompiledCode(reinterpret_cast<void*>(get_pc()))) {
         char* ptr = reinterpret_cast<char*>(addr);
         uint64_t value;
         memcpy(&value, ptr, sizeof(value));
@@ -1612,7 +1638,7 @@ Simulator::writeQ(int32_t addr, uint64_t value, SimInstruction* instr, Unaligned
     }
 
     // See the comments below in readW.
-    if (FixupFault() && wasm::IsPCInWasmCode(reinterpret_cast<void *>(get_pc()))) {
+    if (FixupFault() && wasm::InCompiledCode(reinterpret_cast<void*>(get_pc()))) {
         char* ptr = reinterpret_cast<char*>(addr);
         memcpy(ptr, &value, sizeof(value));
         return;
@@ -1637,7 +1663,7 @@ Simulator::readW(int32_t addr, SimInstruction* instr, UnalignedPolicy f)
     // do the right thing. Making this simulator properly emulate the behavior
     // of raising a signal is complex, so as a special-case, when in wasm code,
     // we just do the right thing.
-    if (FixupFault() && wasm::IsPCInWasmCode(reinterpret_cast<void *>(get_pc()))) {
+    if (FixupFault() && wasm::InCompiledCode(reinterpret_cast<void*>(get_pc()))) {
         char* ptr = reinterpret_cast<char*>(addr);
         int value;
         memcpy(&value, ptr, sizeof(value));
@@ -1661,7 +1687,7 @@ Simulator::writeW(int32_t addr, int value, SimInstruction* instr, UnalignedPolic
     }
 
     // See the comments above in readW.
-    if (FixupFault() && wasm::IsPCInWasmCode(reinterpret_cast<void *>(get_pc()))) {
+    if (FixupFault() && wasm::InCompiledCode(reinterpret_cast<void*>(get_pc()))) {
         char* ptr = reinterpret_cast<char*>(addr);
         memcpy(ptr, &value, sizeof(value));
         return;
@@ -1737,7 +1763,7 @@ Simulator::readHU(int32_t addr, SimInstruction* instr)
     }
 
     // See comments above in readW.
-    if (FixupFault() && wasm::IsPCInWasmCode(reinterpret_cast<void *>(get_pc()))) {
+    if (FixupFault() && wasm::InCompiledCode(reinterpret_cast<void*>(get_pc()))) {
         char* ptr = reinterpret_cast<char*>(addr);
         uint16_t value;
         memcpy(&value, ptr, sizeof(value));
@@ -1761,7 +1787,7 @@ Simulator::readH(int32_t addr, SimInstruction* instr)
     }
 
     // See comments above in readW.
-    if (FixupFault() && wasm::IsPCInWasmCode(reinterpret_cast<void *>(get_pc()))) {
+    if (FixupFault() && wasm::InCompiledCode(reinterpret_cast<void*>(get_pc()))) {
         char* ptr = reinterpret_cast<char*>(addr);
         int16_t value;
         memcpy(&value, ptr, sizeof(value));
@@ -1786,7 +1812,7 @@ Simulator::writeH(int32_t addr, uint16_t value, SimInstruction* instr)
     }
 
     // See the comments above in readW.
-    if (FixupFault() && wasm::IsPCInWasmCode(reinterpret_cast<void *>(get_pc()))) {
+    if (FixupFault() && wasm::InCompiledCode(reinterpret_cast<void*>(get_pc()))) {
         char* ptr = reinterpret_cast<char*>(addr);
         memcpy(ptr, &value, sizeof(value));
         return;
@@ -1809,7 +1835,7 @@ Simulator::writeH(int32_t addr, int16_t value, SimInstruction* instr)
     }
 
     // See the comments above in readW.
-    if (FixupFault() && wasm::IsPCInWasmCode(reinterpret_cast<void *>(get_pc()))) {
+    if (FixupFault() && wasm::InCompiledCode(reinterpret_cast<void*>(get_pc()))) {
         char* ptr = reinterpret_cast<char*>(addr);
         memcpy(ptr, &value, sizeof(value));
         return;
@@ -2445,6 +2471,7 @@ typedef int32_t (*Prototype_Int_DoubleIntInt)(double arg0, int32_t arg1, int32_t
 typedef int32_t (*Prototype_Int_IntDoubleIntInt)(int32_t arg0, double arg1, int32_t arg2,
                                                  int32_t arg3);
 typedef float (*Prototype_Float32_Float32)(float arg0);
+typedef float (*Prototype_Float32_Float32Float32)(float arg0, float arg1);
 typedef float (*Prototype_Float32_IntInt)(int arg0, int arg1);
 
 typedef double (*Prototype_DoubleInt)(double arg0, int32_t arg1);
@@ -2629,6 +2656,21 @@ Simulator::softwareInterrupt(SimInstruction* instr)
                 fval0 = mozilla::BitwiseCast<float>(arg0);
             Prototype_Float32_Float32 target = reinterpret_cast<Prototype_Float32_Float32>(external);
             float fresult = target(fval0);
+            scratchVolatileRegisters(/* scratchFloat = true */);
+            setCallResultFloat(fresult);
+            break;
+          }
+          case Args_Float32_Float32Float32: {
+            float fval0, fval1;
+            if (UseHardFpABI()) {
+                get_float_from_s_register(0, &fval0);
+                get_float_from_s_register(1, &fval1);
+            } else {
+                fval0 = mozilla::BitwiseCast<float>(arg0);
+                fval1 = mozilla::BitwiseCast<float>(arg1);
+            }
+            Prototype_Float32_Float32Float32 target = reinterpret_cast<Prototype_Float32_Float32Float32>(external);
+            float fresult = target(fval0, fval1);
             scratchVolatileRegisters(/* scratchFloat = true */);
             setCallResultFloat(fresult);
             break;
@@ -4759,12 +4801,9 @@ Simulator::execute()
             instructionDecode(instr);
             icount_++;
 
-            int32_t rpc = resume_pc_;
-            if (MOZ_UNLIKELY(rpc != 0)) {
-                // wasm signal handler ran and we have to adjust the pc.
-                JSContext::innermostWasmActivation()->setResumePC((void*)get_pc());
-                set_pc(rpc);
-                resume_pc_ = 0;
+            if (MOZ_UNLIKELY(wasm_interrupt_)) {
+                handleWasmInterrupt();
+                wasm_interrupt_ = false;
             }
         }
         program_counter = get_pc();

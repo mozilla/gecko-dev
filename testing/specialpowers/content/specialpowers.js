@@ -5,6 +5,8 @@
  * order to be used as a replacement for UniversalXPConnect
  */
 
+Components.utils.import("resource://gre/modules/Services.jsm");
+
 function SpecialPowers(window) {
   this.window = Components.utils.getWeakReference(window);
   this._windowID = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
@@ -62,7 +64,7 @@ function SpecialPowers(window) {
         ;
       }
     }
-  }, "inner-window-destroyed", false);
+  }, "inner-window-destroyed");
 }
 
 SpecialPowers.prototype = new SpecialPowersAPI();
@@ -219,7 +221,7 @@ SpecialPowers.prototype.nestedFrameSetup = function() {
       let frameScript = "SpecialPowers.prototype.IsInNestedFrame=true;";
       mm.loadFrameScript("data:," + frameScript, false);
     }
-  }, "remote-browser-shown", false);
+  }, "remote-browser-shown");
 };
 
 SpecialPowers.prototype.isServiceWorkerRegistered = function() {

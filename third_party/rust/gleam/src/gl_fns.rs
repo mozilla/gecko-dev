@@ -55,6 +55,12 @@ impl Gl for GlFns {
         drop(pointers);
     }
 
+    fn tex_buffer(&self, target: GLenum, internal_format: GLenum, buffer: GLuint) {
+        unsafe {
+            self.ffi_gl_.TexBuffer(target, internal_format, buffer);
+        }
+    }
+
     fn read_buffer(&self, mode: GLenum) {
         unsafe {
             self.ffi_gl_.ReadBuffer(mode);
@@ -1117,6 +1123,14 @@ impl Gl for GlFns {
         }
     }
 
+    fn get_vertex_attrib_pointer_v(&self, index: GLuint, pname: GLenum) -> GLsizeiptr {
+        let mut result = 0 as *mut GLvoid;
+        unsafe {
+            self.ffi_gl_.GetVertexAttribPointerv(index, pname, &mut result)
+        }
+        result as GLsizeiptr
+    }
+
     fn get_buffer_parameter_iv(&self, target: GLuint, pname: GLenum) -> GLint {
         unsafe {
             let mut result: GLint = 0 as GLint;
@@ -1154,6 +1168,28 @@ impl Gl for GlFns {
             let mut result: GLint = 0 as GLint;
             self.ffi_gl_.GetShaderiv(shader, pname, &mut result);
             return result;
+        }
+    }
+
+    fn get_shader_precision_format(&self, _shader_type: GLuint, precision_type: GLuint) -> (GLint, GLint, GLint) {
+        // gl.GetShaderPrecisionFormat is not available until OpenGL 4.1.
+        // Fallback to OpenGL standard precissions that most desktop hardware support.
+        match precision_type {
+            ffi::LOW_FLOAT | ffi::MEDIUM_FLOAT | ffi::HIGH_FLOAT => {
+                // Fallback to IEEE 754 single precision
+                // Range: from -2^127 to 2^127
+                // Significand precision: 23 bits
+                (127, 127, 23)
+            },
+            ffi::LOW_INT | ffi::MEDIUM_INT | ffi::HIGH_INT => {
+                // Fallback to single precision integer
+                // Range: from -2^24 to 2^24
+                // Precision: For integer formats this value is always 0
+                (24, 24, 0)
+            },
+            _ => {
+                (0, 0, 0)
+            }
         }
     }
 

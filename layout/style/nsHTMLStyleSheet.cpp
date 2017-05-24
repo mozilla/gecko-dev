@@ -489,11 +489,10 @@ nsHTMLStyleSheet::ImplLinkColorSetter(RefPtr<HTMLColorRule>& aRule, nscolor aCol
     return NS_OK;
   }
 
-  aRule = new HTMLColorRule();
+  aRule = new HTMLColorRule(aColor);
   if (!aRule)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  aRule->mColor = aColor;
   // Now make sure we restyle any links that might need it.  This
   // shouldn't happen often, so just rebuilding everything is ok.
   if (mDocument && mDocument->GetShell()) {
@@ -555,16 +554,18 @@ nsHTMLStyleSheet::DropMappedAttributes(nsMappedAttributes* aMapped)
 }
 
 void
-nsHTMLStyleSheet::CalculateMappedServoDeclarations()
+nsHTMLStyleSheet::CalculateMappedServoDeclarations(nsPresContext* aPresContext)
 {
-  nsPresContext* presContext = mDocument->GetShell()->GetPresContext();
+  MOZ_ASSERT_IF(mDocument->GetShell(),
+                mDocument->GetShell()->GetPresContext() == aPresContext);
+
   for (auto iter = mMappedAttrTable.Iter(); !iter.Done(); iter.Next()) {
     MappedAttrTableEntry* attr = static_cast<MappedAttrTableEntry*>(iter.Get());
     if (attr->mAttributes->GetServoStyle()) {
       // Only handle cases which haven't been filled in already
       continue;
     }
-    attr->mAttributes->LazilyResolveServoDeclaration(presContext);
+    attr->mAttributes->LazilyResolveServoDeclaration(aPresContext);
   }
 }
 

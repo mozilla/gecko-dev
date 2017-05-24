@@ -154,7 +154,7 @@ Mach commands
 -------------
 
 A number of mach subcommands are available aside from ``mach taskgraph
-decision`` to make this complex system more accesssible to those trying to
+decision`` to make this complex system more accessible to those trying to
 understand or modify it.  They allow you to run portions of the
 graph-generation process and output the results.
 
@@ -179,6 +179,15 @@ such a file on every run, and that is generally the easiest way to get a
 parameter file.  The parameter keys and values are described in
 :doc:`parameters`; using that information, you may modify an existing
 ``parameters.yml`` or create your own.
+
+By default, the above commands will only output a list of tasks. Use `-J` flag
+to output full task definitions. For example:
+
+.. code-block:: shell
+
+    $ ./mach taskgraph optimized -J -p ~/Downloads/parameters.yml
+
+See :doc:`how-tos` for further practical tips.
 
 Task Parameterization
 ---------------------

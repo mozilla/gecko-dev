@@ -24,6 +24,10 @@
 #include <sys/resource.h>
 #endif
 
+#ifdef MOZ_CRASHREPORTER
+#include "nsExceptionHandler.h"
+#endif
+
 using namespace mozilla;
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
@@ -389,6 +393,15 @@ NS_ProcessNextEvent(nsIThread* aThread, bool aMayWait)
   return NS_SUCCEEDED(aThread->ProcessNextEvent(aMayWait, &val)) && val;
 }
 
+void
+NS_SetCurrentThreadName(const char* aName)
+{
+  PR_SetCurrentThreadName(aName);
+#ifdef MOZ_CRASHREPORTER
+  CrashReporter::SetCurrentThreadName(aName);
+#endif
+}
+
 #ifdef MOZILLA_INTERNAL_API
 nsIThread*
 NS_GetCurrentThread()
@@ -437,3 +450,19 @@ nsAutoLowPriorityIO::~nsAutoLowPriorityIO()
   }
 #endif
 }
+
+namespace mozilla {
+
+PRThread*
+GetCurrentVirtualThread()
+{
+  return PR_GetCurrentThread();
+}
+
+PRThread*
+GetCurrentPhysicalThread()
+{
+  return PR_GetCurrentThread();
+}
+
+} // namespace mozilla

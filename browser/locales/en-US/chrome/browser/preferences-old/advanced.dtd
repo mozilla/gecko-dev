@@ -23,8 +23,6 @@
 <!ENTITY useAutoScroll.accesskey         "a">
 <!ENTITY useSmoothScrolling.label        "Use smooth scrolling">
 <!ENTITY useSmoothScrolling.accesskey    "m">
-<!ENTITY allowHWAccel.label              "Use hardware acceleration when available">
-<!ENTITY allowHWAccel.accesskey          "r">
 <!ENTITY checkUserSpelling.label         "Check your spelling as you type">
 <!ENTITY checkUserSpelling.accesskey     "t">
 
@@ -33,17 +31,17 @@
 <!ENTITY healthReportDesc.label          "Helps you understand your browser performance and shares data with &vendorShortName; about your browser health">
 <!ENTITY enableHealthReport.label        "Enable &brandShortName; Health Report">
 <!ENTITY enableHealthReport.accesskey    "R">
-<!ENTITY healthReportLearnMore.label     "Learn More">
+<!ENTITY healthReportLearnMore.label     "Learn more">
 
 <!ENTITY telemetryDesc.label             "Shares performance, usage, hardware and customization data about your browser with &vendorShortName; to help us make &brandShortName; better">
 <!ENTITY enableTelemetryData.label       "Share Additional Data (i.e., Telemetry)">
 <!ENTITY enableTelemetryData.accesskey   "T">
-<!ENTITY telemetryLearnMore.label        "Learn More">
+<!ENTITY telemetryLearnMore.label        "Learn more">
 
 <!ENTITY crashReporterDesc2.label         "Crash reports help &vendorShortName; fix problems and make your browser more stable and secure">
 <!ENTITY alwaysSubmitCrashReports.label   "Allow &brandShortName; to send backlogged crash reports on your behalf">
 <!ENTITY alwaysSubmitCrashReports.accesskey "c">
-<!ENTITY crashReporterLearnMore.label     "Learn More">
+<!ENTITY crashReporterLearnMore.label     "Learn more">
 
 <!ENTITY networkTab.label                "Network">
 
@@ -125,3 +123,17 @@
 <!ENTITY viewCerts.accesskey             "C">
 <!ENTITY viewSecurityDevices.label       "Security Devices">
 <!ENTITY viewSecurityDevices.accesskey   "D">
+
+<!ENTITY performance.label               "Performance">
+<!ENTITY useRecommendedPerformanceSettings.label
+                                         "Use recommended performance settings">
+<!ENTITY useRecommendedPerformanceSettings.description
+                                         "These settings are tailored to your computer’s hardware and operating system.">
+<!ENTITY useRecommendedPerformanceSettings.accesskey
+                                         "U">
+<!ENTITY limitContentProcess.label       "Content process limit">
+<!ENTITY limitContentProcess.description
+                                         "Additional content processes can improve &brandShortName; performance when using multiple tabs, but will also use more memory.">
+<!ENTITY limitContentProcess.accesskey   "L">
+<!ENTITY allowHWAccel.label              "Use hardware acceleration when available">
+<!ENTITY allowHWAccel.accesskey          "r">

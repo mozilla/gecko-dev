@@ -478,20 +478,6 @@ BaselineInspector::expectedBinaryArithSpecialization(jsbytecode* pc)
 }
 
 bool
-BaselineInspector::hasSeenNonNativeGetElement(jsbytecode* pc)
-{
-    if (!hasBaselineScript())
-        return false;
-
-    const ICEntry& entry = icEntryFromPC(pc);
-    ICStub* stub = entry.fallbackStub();
-
-    if (stub->isGetElem_Fallback())
-        return stub->toGetElem_Fallback()->hasNonNativeAccess();
-    return false;
-}
-
-bool
 BaselineInspector::hasSeenNegativeIndexGetElement(jsbytecode* pc)
 {
     if (!hasBaselineScript())
@@ -1243,7 +1229,9 @@ GetCacheIRExpectedInputType(ICCacheIR_Monitored* stub)
         JSValueType type = reader.valueType();
         return MIRTypeFromValueType(type);
     }
-    MOZ_CRASH("Unexpected instruction");
+
+    MOZ_ASSERT_UNREACHABLE("Unexpected instruction");
+    return MIRType::Value;
 }
 
 MIRType

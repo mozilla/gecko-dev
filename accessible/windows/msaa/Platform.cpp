@@ -86,7 +86,10 @@ a11y::ProxyDestroyed(ProxyAccessible* aProxy)
 {
   AccessibleWrap* wrapper =
     reinterpret_cast<AccessibleWrap*>(aProxy->GetWrapper());
-  MOZ_ASSERT(wrapper);
+
+  // If aProxy is a document that was created, but
+  // RecvPDocAccessibleConstructor failed then aProxy->GetWrapper() will be
+  // null.
   if (!wrapper)
     return;
 
@@ -126,6 +129,14 @@ a11y::ProxyTextChangeEvent(ProxyAccessible* aText, const nsString& aStr,
   AccessibleWrap* wrapper = WrapperFor(aText);
   MOZ_ASSERT(wrapper);
   if (!wrapper) {
+    return;
+  }
+
+  static const bool useHandler =
+    Preferences::GetBool("accessibility.handler.enabled", false);
+
+  if (useHandler) {
+    wrapper->DispatchTextChangeToHandler(aInsert, aStr, aStart, aLen);
     return;
   }
 

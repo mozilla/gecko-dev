@@ -501,7 +501,7 @@ nsBaseDragService::DragMoved(int32_t aX, int32_t aY)
 {
   if (mDragPopup) {
     nsIFrame* frame = mDragPopup->GetPrimaryFrame();
-    if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
+    if (frame && frame->IsMenuPopupFrame()) {
       CSSIntPoint cssPos = RoundedToInt(LayoutDeviceIntPoint(aX, aY) /
           frame->PresContext()->CSSToDevPixelScale()) - mImageOffset;
       (static_cast<nsMenuPopupFrame *>(frame))->MoveTo(cssPos, true);
@@ -588,13 +588,13 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
   if (!enableDragImages || !mHasImage) {
     // if a region was specified, set the screen rectangle to the area that
     // the region occupies
-    nsIntRect dragRect;
+    CSSIntRect dragRect;
     if (aRegion) {
       // the region's coordinates are relative to the root frame
       aRegion->GetBoundingBox(&dragRect.x, &dragRect.y, &dragRect.width, &dragRect.height);
 
       nsIFrame* rootFrame = presShell->GetRootFrame();
-      nsIntRect screenRect = rootFrame->GetScreenRect();
+      CSSIntRect screenRect = rootFrame->GetScreenRect();
       dragRect.MoveBy(screenRect.TopLeft());
     }
     else {
@@ -607,9 +607,10 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
       }
     }
 
-    dragRect = ToAppUnits(dragRect, nsPresContext::AppUnitsPerCSSPixel()).
-                          ToOutsidePixels((*aPresContext)->AppUnitsPerDevPixel());
-    aScreenDragRect->SizeTo(dragRect.width, dragRect.height);
+    nsIntRect dragRectDev =
+      ToAppUnits(dragRect, nsPresContext::AppUnitsPerCSSPixel()).
+      ToOutsidePixels((*aPresContext)->AppUnitsPerDevPixel());
+    aScreenDragRect->SizeTo(dragRectDev.width, dragRectDev.height);
     return NS_OK;
   }
 
@@ -643,7 +644,7 @@ nsBaseDragService::DrawDrag(nsIDOMNode* aDOMNode,
     // XXXndeakin this should be chrome-only
 
     nsIFrame* frame = content->GetPrimaryFrame();
-    if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
+    if (frame && frame->IsMenuPopupFrame()) {
       mDragPopup = content;
     }
   }

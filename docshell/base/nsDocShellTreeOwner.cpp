@@ -9,6 +9,7 @@
 #include "nsWebBrowser.h"
 
 // Helper Classes
+#include "nsContentUtils.h"
 #include "nsStyleCoord.h"
 #include "nsSize.h"
 #include "mozilla/ReflowInput.h"
@@ -1004,7 +1005,8 @@ nsDocShellTreeOwner::HandleEvent(nsIDOMEvent* aEvent)
           nsAutoString url;
           if (NS_SUCCEEDED(links[0]->GetUrl(url))) {
             if (!url.IsEmpty()) {
-              webnav->LoadURI(url.get(), 0, nullptr, nullptr, nullptr);
+              webnav->LoadURI(url.get(), 0, nullptr, nullptr, nullptr,
+                              nsContentUtils::GetSystemPrincipal());
             }
           }
 
@@ -1557,7 +1559,7 @@ ChromeContextMenuListener::HandleEvent(nsIDOMEvent* aMouseEvent)
 
     nsCOMPtr<nsIFormControl> formControl(do_QueryInterface(node));
     if (formControl) {
-      if (formControl->GetType() == NS_FORM_TEXTAREA) {
+      if (formControl->ControlType() == NS_FORM_TEXTAREA) {
         flags |= nsIContextMenuListener::CONTEXT_TEXT;
         flags2 |= nsIContextMenuListener2::CONTEXT_TEXT;
         targetDOMnode = node;

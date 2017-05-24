@@ -37,9 +37,8 @@ class Proxxy(ScriptMixin, LogMixin):
         "instances": [
             'proxxy1.srv.releng.use1.mozilla.com',
             'proxxy1.srv.releng.usw2.mozilla.com',
-            'proxxy1.srv.releng.scl3.mozilla.com',
         ],
-        "regions": [".use1.", ".usw2.", ".scl3"],
+        "regions": [".use1.", ".usw2."],
     }
 
     def __init__(self, config, log_obj):
@@ -127,7 +126,7 @@ class Proxxy(ScriptMixin, LogMixin):
                               exit_code=3):
         """
         Wrapper around BaseScript.download_file that understands proxies
-        retry dict is set to 3 attempts, sleeping time 30 seconds.
+        retry dict is set to 5 attempts, initial sleeping time 30 seconds.
 
             Args:
                 url (string): url to fetch
@@ -156,8 +155,8 @@ class Proxxy(ScriptMixin, LogMixin):
                 create_parent_dir=create_parent_dir, error_level=ERROR,
                 exit_code=exit_code,
                 retry_config=dict(
-                    attempts=3,
                     sleeptime=30,
+                    attempts=5,
                     error_level=INFO,
                 ))
             if retval:

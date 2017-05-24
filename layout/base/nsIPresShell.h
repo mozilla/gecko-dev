@@ -51,10 +51,6 @@
 #include "nsFrameState.h"
 #include "Units.h"
 
-#ifdef MOZ_B2G
-#include "nsIHardwareKeyHandler.h"
-#endif
-
 class nsDocShell;
 class nsIDocument;
 class nsIFrame;
@@ -553,11 +549,6 @@ public:
    */
   virtual void CreateFramesFor(nsIContent* aContent) = 0;
 
-  /**
-   * Recreates the frames for a node
-   */
-  virtual nsresult RecreateFramesFor(nsIContent* aContent) = 0;
-
   void PostRecreateFramesFor(mozilla::dom::Element* aElement);
   void RestyleForAnimation(mozilla::dom::Element* aElement,
                            nsRestyleHint aHint);
@@ -639,11 +630,21 @@ public:
            mInFlush;
   }
 
+  inline void EnsureStyleFlush();
   inline void SetNeedStyleFlush();
   inline void SetNeedLayoutFlush();
   inline void SetNeedThrottledAnimationFlush();
 
-  bool NeedStyleFlush() { return mNeedStyleFlush; }
+  bool ObservingStyleFlushes() const { return mObservingStyleFlushes; }
+  bool ObservingLayoutFlushes() const { return mObservingLayoutFlushes; }
+
+  void ObserveStyleFlushes()
+  {
+    if (!ObservingStyleFlushes())
+      DoObserveStyleFlushes();
+  }
+
+  bool NeedStyleFlush() const { return mNeedStyleFlush; }
 
   /**
    * Callbacks will be called even if reflow itself fails for
@@ -1272,9 +1273,21 @@ public:
    * canvas frame (if the FORCE_DRAW flag is passed then this check is skipped).
    * aBackstopColor is composed behind the background color of the canvas, it is
    * transparent by default.
+   * We attempt to make the background color part of the scrolled canvas (to reduce
+   * transparent layers), and if async scrolling is enabled (and the background
+   * is opaque) then we add a second, unscrolled item to handle the checkerboarding
+   * case.
+   * ADD_FOR_SUBDOC shoud be specified when calling this for a subdocument, and
+   * LayoutUseContainersForRootFrame might cause the whole list to be scrolled. In
+   * that case the second unscrolled item will be elided.
+   * APPEND_UNSCROLLED_ONLY only attempts to add the unscrolled item, so that we
+   * can add it manually after LayoutUseContainersForRootFrame has built the
+   * scrolling ContainerLayer.
    */
   enum {
-    FORCE_DRAW = 0x01
+    FORCE_DRAW = 0x01,
+    ADD_FOR_SUBDOC = 0x02,
+    APPEND_UNSCROLLED_ONLY = 0x04,
   };
   virtual void AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
                                             nsDisplayList& aList,
@@ -1701,12 +1714,26 @@ protected:
   bool RemoveRefreshObserverInternal(nsARefreshObserver* aObserver,
                                      mozilla::FlushType aFlushType);
 
+  void DoObserveStyleFlushes();
+  void DoObserveLayoutFlushes();
+
   /**
    * Do computations necessary to determine if font size inflation is enabled.
    * This value is cached after computation, as the computation is somewhat
    * expensive.
    */
   void RecomputeFontSizeInflationEnabled();
+
+  /**
+   * Does the actual work of figuring out the current state of font size inflation.
+   */
+  bool DetermineFontSizeInflationState();
+
+  /**
+   * Apply the system font scale from the corresponding pref to the PresContext,
+   * taking into account the current state of font size inflation.
+   */
+  void HandleSystemFontScale();
 
   void RecordAlloc(void* aPtr) {
 #ifdef DEBUG
@@ -1780,7 +1807,7 @@ public:
   }
 
   bool HasPendingReflow() const
-    { return mReflowScheduled || mReflowContinueTimer; }
+    { return mObservingLayoutFlushes || mReflowContinueTimer; }
 
   void SyncWindowProperties(nsView* aView);
 
@@ -1877,10 +1904,6 @@ protected:
   bool                      mIsFirstPaint : 1;
   bool                      mObservesMutationsForPrint : 1;
 
-  // If true, we have a reflow scheduled. Guaranteed to be false if
-  // mReflowContinueTimer is non-null.
-  bool                      mReflowScheduled : 1;
-
   bool                      mSuppressInterruptibleReflows : 1;
   bool                      mScrollPositionClampingScrollPortSizeSet : 1;
 
@@ -1889,6 +1912,15 @@ protected:
 
   // True if a style flush might not be a no-op
   bool mNeedStyleFlush : 1;
+
+  // True if we're observing the refresh driver for style flushes.
+  bool mObservingStyleFlushes: 1;
+
+  // True if we're observing the refresh driver for layout flushes, that is, if
+  // we have a reflow scheduled.
+  //
+  // Guaranteed to be false if mReflowContinueTimer is non-null.
+  bool mObservingLayoutFlushes: 1;
 
   // True if there are throttled animations that would be processed when
   // performing a flush with mFlushAnimations == true.
@@ -1915,10 +1947,11 @@ protected:
   bool mFontSizeInflationForceEnabled;
   bool mFontSizeInflationDisabledInMasterProcess;
   bool mFontSizeInflationEnabled;
-  bool mPaintingIsFrozen;
 
   // Dirty bit indicating that mFontSizeInflationEnabled needs to be recomputed.
   bool mFontSizeInflationEnabledIsDirty;
+
+  bool mPaintingIsFrozen;
 
   // If a document belongs to an invisible DocShell, this flag must be set
   // to true, so we can avoid any paint calls for widget related to this

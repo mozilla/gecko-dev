@@ -2312,7 +2312,7 @@ nsHTMLDocument::GetSupportedNames(nsTArray<nsString>& aNames)
     nsIdentifierMapEntry* entry = iter.Get();
     if (entry->HasNameElement() ||
         entry->HasIdElementExposedAsHTMLDocumentProperty()) {
-      aNames.AppendElement(entry->GetKey());
+      aNames.AppendElement(entry->GetKeyAsString());
     }
   }
 }
@@ -3042,6 +3042,7 @@ static const struct MidasCommand gMidasCommandTable[] = {
   { "styleWithCSS",  "cmd_setDocumentUseCSS", "", false, true },
   { "contentReadOnly", "cmd_setDocumentReadOnly", "", false, true },
   { "insertBrOnReturn", "cmd_insertBrOnReturn", "", false, true },
+  { "defaultParagraphSeparator", "cmd_defaultParagraphSeparator", "", false, false },
   { "enableObjectResizing", "cmd_enableObjectResizing", "", false, true },
   { "enableInlineTableEditing", "cmd_enableInlineTableEditing", "", false, true },
 #if 0
@@ -3299,6 +3300,14 @@ nsHTMLDocument::ExecCommand(const nsAString& commandID,
        cmdToDispatch.EqualsLiteral("cmd_paragraphState")) &&
       paramStr.IsEmpty()) {
     // Invalid value, return false
+    return false;
+  }
+
+  if (cmdToDispatch.EqualsLiteral("cmd_defaultParagraphSeparator") &&
+      !paramStr.LowerCaseEqualsLiteral("div") &&
+      !paramStr.LowerCaseEqualsLiteral("p") &&
+      !paramStr.LowerCaseEqualsLiteral("br")) {
+    // Invalid value
     return false;
   }
 
@@ -3645,13 +3654,14 @@ nsHTMLDocument::QueryCommandValue(const nsAString& commandID,
 }
 
 nsresult
-nsHTMLDocument::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
+nsHTMLDocument::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                      bool aPreallocateChildren) const
 {
   NS_ASSERTION(aNodeInfo->NodeInfoManager() == mNodeInfoManager,
                "Can't import this document into another document!");
 
   RefPtr<nsHTMLDocument> clone = new nsHTMLDocument();
-  nsresult rv = CloneDocHelper(clone.get());
+  nsresult rv = CloneDocHelper(clone.get(), aPreallocateChildren);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // State from nsHTMLDocument

@@ -8,6 +8,7 @@
 #include "nsContentUtils.h"
 #include "nsFrame.h"
 #include "nsGkAtoms.h"
+#include "nsIDOMMutationEvent.h"
 #include "nsLiteralString.h"
 #include "nsSVGEffects.h"
 #include "nsSVGFilters.h"
@@ -16,13 +17,13 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-class SVGFEImageFrame : public nsFrame
+class SVGFEImageFrame final : public nsFrame
 {
   friend nsIFrame*
   NS_NewSVGFEImageFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
   explicit SVGFEImageFrame(nsStyleContext* aContext)
-    : nsFrame(aContext)
+    : nsFrame(aContext, LayoutFrameType::SVGFEImage)
   {
     AddStateBits(NS_FRAME_SVG_LAYOUT | NS_FRAME_IS_NONDISPLAY);
 
@@ -52,13 +53,6 @@ public:
     return MakeFrameName(NS_LITERAL_STRING("SVGFEImage"), aResult);
   }
 #endif
-
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgFEImageFrame
-   */
-  virtual nsIAtom* GetType() const override;
 
   virtual nsresult AttributeChanged(int32_t  aNameSpaceID,
                                     nsIAtom* aAttribute,
@@ -122,26 +116,25 @@ SVGFEImageFrame::Init(nsIContent*       aContent,
   }
 }
 
-nsIAtom *
-SVGFEImageFrame::GetType() const
-{
-  return nsGkAtoms::svgFEImageFrame;
-}
-
 nsresult
 SVGFEImageFrame::AttributeChanged(int32_t  aNameSpaceID,
                                   nsIAtom* aAttribute,
                                   int32_t  aModType)
 {
-  SVGFEImageElement *element = static_cast<SVGFEImageElement*>(mContent);
+  SVGFEImageElement* element = static_cast<SVGFEImageElement*>(mContent);
   if (element->AttributeAffectsRendering(aNameSpaceID, aAttribute)) {
-    MOZ_ASSERT(GetParent()->GetType() == nsGkAtoms::svgFilterFrame,
+    MOZ_ASSERT(GetParent()->IsSVGFilterFrame(),
                "Observers observe the filter, so that's what we must invalidate");
     nsSVGEffects::InvalidateDirectRenderingObservers(GetParent());
   }
-  if ((aNameSpaceID == kNameSpaceID_XLink ||
-       aNameSpaceID == kNameSpaceID_None) &&
-      aAttribute == nsGkAtoms::href) {
+
+  // Currently our SMIL implementation does not modify the DOM attributes. Once
+  // we implement the SVG 2 SMIL behaviour this can be removed
+  // SVGFEImageElement::AfterSetAttr's implementation will be sufficient.
+  if (aModType == nsIDOMMutationEvent::SMIL &&
+      aAttribute == nsGkAtoms::href &&
+      (aNameSpaceID == kNameSpaceID_XLink ||
+       aNameSpaceID == kNameSpaceID_None)) {
     bool hrefIsSet =
       element->mStringAttributes[SVGFEImageElement::HREF].IsExplicitlySet() ||
       element->mStringAttributes[SVGFEImageElement::XLINK_HREF]

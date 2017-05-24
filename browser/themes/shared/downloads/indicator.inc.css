@@ -2,17 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#downloads-indicator-icon {
-  position: relative;
-}
-
 #downloads-indicator-progress-icon {
-  background: var(--downloads-indicator-image-attention) bottom no-repeat;
-  background-size: 18px;
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 0;
+  background: var(--downloads-indicator-image) bottom no-repeat;
+  -moz-context-properties: fill;
+  fill: var(--toolbarbutton-icon-fill-attention);
+  background-size: 16px;
+  margin-top: 16px;
   /* From javascript side we use animation delay from 0s to -100s to show
    * corresponding frames needed for progress.
    * animation-delay is set to a positive value to make nothing shown.
@@ -25,33 +20,32 @@
 }
 
 toolbar[brighttext] #downloads-indicator-progress-icon {
-  background-image: var(--downloads-indicator-image-attention-inverted);
   animation-name: indicatorArrowProgressDark;
 }
 
 @keyframes indicatorArrowProgress {
   0% {
-    height: 35%;
+    margin-top: 12px;
     filter: brightness(1.2);
   }
   100% {
-    height: 87%;
+    margin-top: 2px;
     filter: brightness(1);
   }
 }
 
 @keyframes indicatorArrowProgressDark {
   0% {
-    height: 35%;
+    margin-top: 12px;
     filter: brightness(0.7);
   }
   100% {
-    height: 87%;
+    margin-top: 2px;
     filter: brightness(1);
   }
 }
 
-#downloads-button[notification="start"] > #downloads-indicator-anchor {
+#downloads-button[notification="start"] > #downloads-indicator-anchor > #downloads-indicator-icon {
   animation-name: downloadsIndicatorStartJump;
   /* Upon changing the overall duration below, please keep the delay time of
      setTimeout() identical in indicator.js for this animation. */

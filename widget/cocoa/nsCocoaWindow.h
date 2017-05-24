@@ -186,9 +186,9 @@ typedef struct _nsCocoaWindowList {
 // NSWindow subclass for handling windows with toolbars.
 @interface ToolbarWindow : BaseWindow
 {
-  TitlebarAndBackgroundColor *mColor;
+  TitlebarAndBackgroundColor *mColor; // strong
   CGFloat mUnifiedToolbarHeight;
-  NSColor *mBackgroundColor;
+  NSColor *mBackgroundColor; // strong
   NSView *mTitlebarView; // strong
   NSRect mWindowButtonsRect;
   NSRect mFullScreenButtonRect;
@@ -346,11 +346,10 @@ public:
     {
       return mInputContext;
     }
-    virtual bool ExecuteNativeKeyBinding(
-                        NativeKeyBindingsType aType,
-                        const mozilla::WidgetKeyboardEvent& aEvent,
-                        DoCommandCallback aCallback,
-                        void* aCallbackData) override;
+    virtual void GetEditCommands(
+                   NativeKeyBindingsType aType,
+                   const mozilla::WidgetKeyboardEvent& aEvent,
+                   nsTArray<mozilla::CommandInt>& aCommands) override;
 
     void SetPopupWindowLevel();
 
@@ -360,7 +359,8 @@ protected:
   nsresult             CreateNativeWindow(const NSRect &aRect,
                                           nsBorderStyle aBorderStyle,
                                           bool aRectIsFrameRect);
-  nsresult             CreatePopupContentView(const LayoutDeviceIntRect &aRect);
+  nsresult             CreatePopupContentView(const LayoutDeviceIntRect &aRect,
+                                              nsWidgetInitData* aInitData);
   void                 DestroyNativeWindow();
   void                 AdjustWindowShadow();
   void                 SetWindowBackgroundBlur();

@@ -12,6 +12,7 @@ const ERRORS = new Set([
   "ElementNotInteractableError",
   "InsecureCertificateError",
   "InvalidArgumentError",
+  "InvalidCookieDomainError",
   "InvalidElementStateError",
   "InvalidSelectorError",
   "InvalidSessionIDError",
@@ -26,6 +27,7 @@ const ERRORS = new Set([
   "StaleElementReferenceError",
   "TimeoutError",
   "UnableToSetCookieError",
+  "UnexpectedAlertOpenError",
   "UnknownCommandError",
   "UnknownError",
   "UnsupportedOperationError",
@@ -48,10 +50,21 @@ this.EXPORTED_SYMBOLS = ["error"].concat(Array.from(ERRORS));
 this.error = {};
 
 /**
- * Checks if obj is an instance of the Error prototype in a safe manner.
- * Prefer using this over using instanceof since the Error prototype
- * isn't unique across browsers, and XPCOM nsIException's are special
- * snowflakes.
+ * Check if |val| is an instance of the |Error| prototype.
+ *
+ * Because error objects may originate from different globals, comparing
+ * the prototype of the left hand side with the prototype property from
+ * the right hand side, which is what |instanceof| does, will not work.
+ * If the LHS and RHS come from different globals, this check will always
+ * fail because the two objects will not have the same identity.
+ *
+ * Therefore it is not safe to use |instanceof| in any multi-global
+ * situation, e.g. in content across multiple Window objects or anywhere
+ * in chrome scope.
+ *
+ * This function also contains a special check if |val| is an XPCOM
+ * |nsIException| because they are special snowflakes and may indeed
+ * cause Firefox to crash if used with |instanceof|.
  *
  * @param {*} val
  *     Any value that should be undergo the test for errorness.
@@ -83,15 +96,24 @@ error.isWebDriverError = function (obj) {
 };
 
 /**
- * Wraps any error as a WebDriverError.  If the given error is already in
- * the WebDriverError prototype chain, this function returns it
- * unmodified.
+ * Ensures error instance is a WebDriverError.
+ *
+ * If the given error is already in the WebDriverError prototype
+ * chain, |err| is returned unmodified.  If it is not, it is wrapped
+ * in UnknownError.
+ *
+ * @param {Error} err
+ *     Error to conditionally turn into a WebDriverError.
+ *
+ * @return {WebDriverError}
+ *     If |err| is a WebDriverError, it is returned unmodified.
+ *     Otherwise an UnknownError type is returned.
  */
 error.wrap = function (err) {
   if (error.isWebDriverError(err)) {
     return err;
   }
-  return new WebDriverError(err);
+  return new UnknownError(err);
 };
 
 /**
@@ -260,10 +282,23 @@ class ElementClickInterceptedError extends WebDriverError {
     if (obscuredEl && coords) {
       const doc = obscuredEl.ownerDocument;
       const overlayingEl = doc.elementFromPoint(coords.x, coords.y);
-      msg = error.pprint`Element ${obscuredEl} is not clickable ` +
-          `at point (${coords.x},${coords.y}) ` +
-          error.pprint`because another element ${overlayingEl} ` +
-          `obscures it`;
+
+      switch (obscuredEl.style.pointerEvents) {
+        case "none":
+          msg = error.pprint`Element ${obscuredEl} is not clickable ` +
+              `at point (${coords.x},${coords.y}) ` +
+              `because it does not have pointer events enabled, ` +
+              error.pprint`and element ${overlayingEl} ` +
+              `would receive the click instead`;
+          break;
+
+        default:
+          msg = error.pprint`Element ${obscuredEl} is not clickable ` +
+              `at point (${coords.x},${coords.y}) ` +
+              error.pprint`because another element ${overlayingEl} ` +
+              `obscures it`;
+          break;
+      }
     }
 
     super(msg);
@@ -289,6 +324,13 @@ class InvalidArgumentError extends WebDriverError {
   constructor (message) {
     super(message);
     this.status = "invalid argument";
+  }
+}
+
+class InvalidCookieDomainError extends WebDriverError {
+  constructor (message) {
+    super(message);
+    this.status = "invalid cookie domain";
   }
 }
 
@@ -439,6 +481,13 @@ class UnableToSetCookieError extends WebDriverError {
   }
 }
 
+class UnexpectedAlertOpenError extends WebDriverError {
+  constructor (message) {
+    super(message);
+    this.status = "unexpected alert open";
+  }
+}
+
 class UnknownCommandError extends WebDriverError {
   constructor (message) {
     super(message);
@@ -461,9 +510,9 @@ class UnsupportedOperationError extends WebDriverError {
 }
 
 const STATUSES = new Map([
+  ["element click intercepted", ElementClickInterceptedError],
   ["element not accessible", ElementNotAccessibleError],
   ["element not interactable", ElementNotInteractableError],
-  ["element click intercepted", ElementClickInterceptedError],
   ["insecure certificate", InsecureCertificateError],
   ["invalid argument", InvalidArgumentError],
   ["invalid element state", InvalidElementStateError],
@@ -480,6 +529,7 @@ const STATUSES = new Map([
   ["stale element reference", StaleElementReferenceError],
   ["timeout", TimeoutError],
   ["unable to set cookie", UnableToSetCookieError],
+  ["unexpected alert open", UnexpectedAlertOpenError],
   ["unknown command", UnknownCommandError],
   ["unknown error", UnknownError],
   ["unsupported operation", UnsupportedOperationError],

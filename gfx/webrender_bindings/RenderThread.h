@@ -102,21 +102,33 @@ public:
   /// Can only be called from the render thread.
   void UpdateAndRender(wr::WindowId aWindowId);
 
+  void Pause(wr::WindowId aWindowId);
+  bool Resume(wr::WindowId aWindowId);
+
   void RegisterExternalImage(uint64_t aExternalImageId, RenderTextureHost* aTexture);
 
   void UnregisterExternalImage(uint64_t aExternalImageId);
 
-  RenderTextureHost* GetRenderTexture(uint64_t aExternalImageId);
+  RenderTextureHost* GetRenderTexture(WrExternalImageId aExternalImageId);
+
+  /// Can be called from any thread.
+  uint32_t GetPendingFrameCount(wr::WindowId aWindowId);
+  /// Can be called from any thread.
+  void IncPendingFrameCount(wr::WindowId aWindowId);
+  /// Can be called from any thread.
+  void DecPendingFrameCount(wr::WindowId aWindowId);
 
 private:
   explicit RenderThread(base::Thread* aThread);
 
   ~RenderThread();
 
-
   base::Thread* const mThread;
 
   std::map<wr::WindowId, UniquePtr<RendererOGL>> mRenderers;
+
+  Mutex mPendingFrameCountMapLock;
+  nsDataHashtable<nsUint64HashKey, uint32_t> mPendingFrameCounts;
 
   Mutex mRenderTextureMapLock;
   nsDataHashtable<nsUint64HashKey, RefPtr<RenderTextureHost> > mRenderTextures;

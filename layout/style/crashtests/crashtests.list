@@ -73,7 +73,7 @@ load 601439-1.html
 load 605689-1.html
 load 611922-1.html
 load 621596-1.html
-skip-if(stylo) load 622314-1.xhtml # bug 1337695
+load 622314-1.xhtml
 load 637242.xhtml
 load 645142.html
 == 645951-1.html 645951-1-ref.html
@@ -84,7 +84,7 @@ load 671799-2.html
 load 690990-1.html
 load 696188-1.html
 load 696869-1.html
-asserts-if(stylo,2) load 700116.html # bug 1324635
+load 700116.html
 load 729126-1.html
 load 729126-2.html
 load 786108-1.html
@@ -102,7 +102,7 @@ load 861489-1.html
 load 862113.html
 load 867487.html
 load 873222.html
-asserts-if(stylo,1) load 880862.html # bug 1324701
+load 880862.html
 load 894245-1.html
 load 915440.html
 load 927734-1.html
@@ -170,3 +170,5 @@ load 1328535-1.html
 load 1331272.html
 HTTP load 1333001-1.html
 pref(dom.animations-api.core.enabled,true) load 1340344.html
+load 1342316-1.html
+load 1356601-1.html

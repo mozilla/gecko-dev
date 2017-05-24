@@ -41,6 +41,7 @@
 #include "mozilla/Preferences.h"
 #include "nsTextNode.h"
 #include "nsIController.h"
+#include "mozilla/AutoRestore.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/HTMLInputElement.h"
@@ -131,6 +132,45 @@ public:
 private:
   nsTextControlFrame* mFrame;
   nsTextEditorState* mTextEditorState;
+};
+
+class MOZ_RAII AutoRestoreEditorState final
+{
+public:
+  explicit AutoRestoreEditorState(nsIEditor* aEditor,
+                                  nsIPlaintextEditor* aPlaintextEditor
+                                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    : mEditor(aEditor)
+    , mPlaintextEditor(aPlaintextEditor)
+  {
+    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    MOZ_ASSERT(mEditor);
+    MOZ_ASSERT(mPlaintextEditor);
+
+    uint32_t flags;
+    mEditor->GetFlags(&mSavedFlags);
+    flags = mSavedFlags;
+    flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
+    flags &= ~(nsIPlaintextEditor::eEditorReadonlyMask);
+    flags |= nsIPlaintextEditor::eEditorDontEchoPassword;
+    mEditor->SetFlags(flags);
+
+    mPlaintextEditor->GetMaxTextLength(&mSavedMaxLength);
+    mPlaintextEditor->SetMaxTextLength(-1);
+  }
+
+  ~AutoRestoreEditorState()
+  {
+     mPlaintextEditor->SetMaxTextLength(mSavedMaxLength);
+     mEditor->SetFlags(mSavedFlags);
+  }
+
+private:
+  nsIEditor* mEditor;
+  nsIPlaintextEditor* mPlaintextEditor;
+  uint32_t mSavedFlags;
+  int32_t mSavedMaxLength;
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 /*static*/
@@ -953,15 +993,22 @@ nsTextInputListener::HandleEvent(nsIDOMEvent* aEvent)
     mTxtCtrlElement->IsTextArea() ?
       nsIWidget::NativeKeyBindingsForMultiLineEditor :
       nsIWidget::NativeKeyBindingsForSingleLineEditor;
+
   nsIWidget* widget = keyEvent->mWidget;
   // If the event is created by chrome script, the widget is nullptr.
   if (!widget) {
     widget = mFrame->GetNearestWidget();
     NS_ENSURE_TRUE(widget, NS_OK);
   }
-                                         
-  if (widget->ExecuteNativeKeyBinding(nativeKeyBindingsType,
-                                      *keyEvent, DoCommandCallback, mFrame)) {
+
+  // WidgetKeyboardEvent::ExecuteEditCommands() requires non-nullptr mWidget.
+  // If the event is created by chrome script, it is nullptr but we need to
+  // execute native key bindings.  Therefore, we need to set widget to
+  // WidgetEvent::mWidget temporarily.
+  AutoRestore<nsCOMPtr<nsIWidget>> saveWidget(keyEvent->mWidget);
+  keyEvent->mWidget = widget;
+  if (keyEvent->ExecuteEditCommands(nativeKeyBindingsType,
+                                    DoCommandCallback, mFrame)) {
     aEvent->PreventDefault();
   }
   return NS_OK;
@@ -1067,9 +1114,39 @@ nsTextEditorState::nsTextEditorState(nsITextControlElement* aOwningElement)
   , mSelectionCached(true)
   , mSelectionRestoreEagerInit(false)
   , mPlaceholderVisibility(false)
+  , mPreviewVisibility(false)
   , mIsCommittingComposition(false)
+  // When adding more member variable initializations here, add the same
+  // also to ::Construct.
 {
   MOZ_COUNT_CTOR(nsTextEditorState);
+}
+
+nsTextEditorState*
+nsTextEditorState::Construct(nsITextControlElement* aOwningElement,
+                             nsTextEditorState** aReusedState)
+{
+  if (*aReusedState) {
+    nsTextEditorState* state = *aReusedState;
+    *aReusedState = nullptr;
+    state->mTextCtrlElement = aOwningElement;
+    state->mBoundFrame = nullptr;
+    state->mSelectionProperties = SelectionProperties();
+    state->mEverInited = false;
+    state->mEditorInitialized = false;
+    state->mInitializing = false;
+    state->mValueTransferInProgress = false;
+    state->mSelectionCached = true;
+    state->mSelectionRestoreEagerInit = false;
+    state->mPlaceholderVisibility = false;
+    state->mPreviewVisibility = false;
+    state->mIsCommittingComposition = false;
+    // When adding more member variable initializations here, add the same
+    // also to the constructor.
+    return state;
+  }
+
+  return new nsTextEditorState(aOwningElement);
 }
 
 nsTextEditorState::~nsTextEditorState()
@@ -1104,6 +1181,7 @@ void nsTextEditorState::Unlink()
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mEditor)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mRootNode)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPlaceholderDiv)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mPreviewDiv)
 }
 
 void nsTextEditorState::Traverse(nsCycleCollectionTraversalCallback& cb)
@@ -1113,6 +1191,7 @@ void nsTextEditorState::Traverse(nsCycleCollectionTraversalCallback& cb)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mEditor)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRootNode)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPlaceholderDiv)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPreviewDiv)
 }
 
 nsFrameSelection*
@@ -1430,19 +1509,16 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
     }
   }
 
-  if (shouldInitializeEditor) {
-    // Initialize the plaintext editor
-    nsCOMPtr<nsIPlaintextEditor> textEditor(do_QueryInterface(newEditor));
-    if (textEditor) {
+  // Initialize the plaintext editor
+  nsCOMPtr<nsIPlaintextEditor> textEditor = do_QueryInterface(newEditor);
+  if (textEditor) {
+    if (shouldInitializeEditor) {
       // Set up wrapping
       textEditor->SetWrapColumn(GetWrapCols());
-
-      // Set max text field length
-      int32_t maxLength;
-      if (GetMaxLength(&maxLength)) { 
-        textEditor->SetMaxTextLength(maxLength);
-      }
     }
+
+    // Set max text field length
+    textEditor->SetMaxTextLength(GetMaxLength());
   }
 
   nsCOMPtr<nsIContent> content = do_QueryInterface(mTextCtrlElement);
@@ -1979,7 +2055,7 @@ nsTextEditorState::GetParentNumberControl(nsFrame* aFrame) const
     // that situation, the type of the control has changed, but its frame has
     // not been reconstructed yet.  So we need to check the type of the input
     // control in addition to the type of the frame.
-    return (input->GetType() == NS_FORM_INPUT_NUMBER) ? input : nullptr;
+    return (input->ControlType() == NS_FORM_INPUT_NUMBER) ? input : nullptr;
   }
 
   return nullptr;
@@ -2158,6 +2234,7 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   // they're not actually destroyed.
   nsContentUtils::DestroyAnonymousContent(&mRootNode);
   nsContentUtils::DestroyAnonymousContent(&mPlaceholderDiv);
+  nsContentUtils::DestroyAnonymousContent(&mPreviewDiv);
 }
 
 nsresult
@@ -2224,6 +2301,38 @@ nsTextEditorState::InitializeRootNode()
   return mBoundFrame->UpdateValueDisplay(false);
 }
 
+Element*
+nsTextEditorState::CreateEmptyDivNode()
+{
+  MOZ_ASSERT(mBoundFrame);
+
+  nsIPresShell *shell = mBoundFrame->PresContext()->GetPresShell();
+  MOZ_ASSERT(shell);
+
+  nsIDocument *doc = shell->GetDocument();
+  MOZ_ASSERT(doc);
+
+  nsNodeInfoManager* pNodeInfoManager = doc->NodeInfoManager();
+  MOZ_ASSERT(pNodeInfoManager);
+
+  Element *element;
+
+  // Create a DIV
+  RefPtr<mozilla::dom::NodeInfo> nodeInfo;
+  nodeInfo = pNodeInfoManager->GetNodeInfo(nsGkAtoms::div, nullptr,
+                                           kNameSpaceID_XHTML,
+                                           nsIDOMNode::ELEMENT_NODE);
+
+  element = NS_NewHTMLDivElement(nodeInfo.forget());
+
+  // Create the text node for DIV
+  RefPtr<nsTextNode> textNode = new nsTextNode(pNodeInfoManager);
+
+  element->AppendChildTo(textNode, false);
+
+  return element;
+}
+
 nsresult
 nsTextEditorState::CreatePlaceholderNode()
 {
@@ -2242,35 +2351,10 @@ be called if @placeholder is the empty string when trimmed from line breaks");
 #endif // DEBUG
 
   NS_ENSURE_TRUE(!mPlaceholderDiv, NS_ERROR_UNEXPECTED);
-  NS_ENSURE_ARG_POINTER(mBoundFrame);
-
-  nsIPresShell *shell = mBoundFrame->PresContext()->GetPresShell();
-  NS_ENSURE_TRUE(shell, NS_ERROR_FAILURE);
-
-  nsIDocument *doc = shell->GetDocument();
-  NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-
-  nsNodeInfoManager* pNodeInfoManager = doc->NodeInfoManager();
-  NS_ENSURE_TRUE(pNodeInfoManager, NS_ERROR_OUT_OF_MEMORY);
-
-  nsresult rv;
 
   // Create a DIV for the placeholder
   // and add it to the anonymous content child list
-  RefPtr<mozilla::dom::NodeInfo> nodeInfo;
-  nodeInfo = pNodeInfoManager->GetNodeInfo(nsGkAtoms::div, nullptr,
-                                           kNameSpaceID_XHTML,
-                                           nsIDOMNode::ELEMENT_NODE);
-
-  rv = NS_NewHTMLElement(getter_AddRefs(mPlaceholderDiv), nodeInfo.forget(),
-                         NOT_FROM_PARSER);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Create the text node for the placeholder text before doing anything else
-  RefPtr<nsTextNode> placeholderText = new nsTextNode(pNodeInfoManager);
-
-  rv = mPlaceholderDiv->AppendChildTo(placeholderText, false);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mPlaceholderDiv = CreateEmptyDivNode();
 
   // initialize the text
   UpdatePlaceholderText(false);
@@ -2278,22 +2362,37 @@ be called if @placeholder is the empty string when trimmed from line breaks");
   return NS_OK;
 }
 
-bool
-nsTextEditorState::GetMaxLength(int32_t* aMaxLength)
+nsresult
+nsTextEditorState::CreatePreviewNode()
+{
+  NS_ENSURE_TRUE(!mPreviewDiv, NS_ERROR_UNEXPECTED);
+
+  // Create a DIV for the preview
+  // and add it to the anonymous content child list
+  mPreviewDiv = CreateEmptyDivNode();
+
+  mPreviewDiv->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                       NS_LITERAL_STRING("preview-div"), false);
+
+  return NS_OK;
+}
+
+int32_t
+nsTextEditorState::GetMaxLength()
 {
   nsCOMPtr<nsIContent> content = do_QueryInterface(mTextCtrlElement);
   nsGenericHTMLElement* element =
     nsGenericHTMLElement::FromContentOrNull(content);
-  NS_ENSURE_TRUE(element, false);
+  if (NS_WARN_IF(!element)) {
+    return -1;
+  }
 
   const nsAttrValue* attr = element->GetParsedAttr(nsGkAtoms::maxlength);
   if (attr && attr->Type() == nsAttrValue::eInteger) {
-    *aMaxLength = attr->GetIntegerValue();
-
-    return true;
+    return attr->GetIntegerValue();
   }
 
-  return false;
+  return -1;
 }
 
 void
@@ -2448,6 +2547,12 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
     }
   }
 
+  // \r is an illegal character in the dom, but people use them,
+  // so convert windows and mac platform linebreaks to \n:
+  if (!nsContentUtils::PlatformToDOMLineBreaks(newValue, fallible)) {
+    return false;
+  }
+
   if (mEditor && mBoundFrame) {
     // The InsertText call below might flush pending notifications, which
     // could lead into a scheduled PrepareEditor to be called.  That will
@@ -2473,14 +2578,6 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
     {
       ValueSetter valueSetter(mEditor);
 
-      // \r is an illegal character in the dom, but people use them,
-      // so convert windows and mac platform linebreaks to \n:
-      if (newValue.FindChar(char16_t('\r')) != -1) {
-        if (!nsContentUtils::PlatformToDOMLineBreaks(newValue, fallible)) {
-          return false;
-        }
-      }
-
       nsCOMPtr<nsIDOMDocument> domDoc;
       mEditor->GetDocument(getter_AddRefs(domDoc));
       if (!domDoc) {
@@ -2501,8 +2598,9 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
         if (domSel)
         {
           selPriv = do_QueryInterface(domSel);
-          if (selPriv)
+          if (selPriv) {
             selPriv->StartBatchChanges();
+          }
         }
 
         nsCOMPtr<nsISelectionController> kungFuDeathGrip = mSelCon.get();
@@ -2527,33 +2625,24 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
 
         valueSetter.Init();
 
-        // get the flags, remove readonly and disabled, set the value,
-        // restore flags
-        uint32_t flags, savedFlags;
-        mEditor->GetFlags(&savedFlags);
-        flags = savedFlags;
-        flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
-        flags &= ~(nsIPlaintextEditor::eEditorReadonlyMask);
-        flags |= nsIPlaintextEditor::eEditorDontEchoPassword;
-        mEditor->SetFlags(flags);
+        // get the flags, remove readonly, disabled and max-length,
+        // set the value, restore flags
+        {
+          AutoRestoreEditorState restoreState(mEditor, plaintextEditor);
 
-        mTextListener->SettingValue(true);
-        bool notifyValueChanged = !!(aFlags & eSetValue_Notify);
-        mTextListener->SetValueChanged(notifyValueChanged);
+          mTextListener->SettingValue(true);
+          bool notifyValueChanged = !!(aFlags & eSetValue_Notify);
+          mTextListener->SetValueChanged(notifyValueChanged);
 
-        // Also don't enforce max-length here
-        int32_t savedMaxLength;
-        plaintextEditor->GetMaxTextLength(&savedMaxLength);
-        plaintextEditor->SetMaxTextLength(-1);
+          if (insertValue.IsEmpty()) {
+            mEditor->DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
+          } else {
+            plaintextEditor->InsertText(insertValue);
+          }
 
-        if (insertValue.IsEmpty()) {
-          mEditor->DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
-        } else {
-          plaintextEditor->InsertText(insertValue);
+          mTextListener->SetValueChanged(true);
+          mTextListener->SettingValue(false);
         }
-
-        mTextListener->SetValueChanged(true);
-        mTextListener->SettingValue(false);
 
         if (!weakFrame.IsAlive()) {
           // If the frame was destroyed because of a flush somewhere inside
@@ -2573,43 +2662,51 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
           }
         }
 
-        plaintextEditor->SetMaxTextLength(savedMaxLength);
-        mEditor->SetFlags(savedFlags);
-        if (selPriv)
+        if (selPriv) {
           selPriv->EndBatchChanges();
+        }
       }
     }
   } else {
     if (!mValue) {
       mValue.emplace();
     }
-    nsString value;
-    if (!value.Assign(newValue, fallible)) {
-      return false;
-    }
-    if (!nsContentUtils::PlatformToDOMLineBreaks(value, fallible)) {
-      return false;
-    }
-    if (!mValue->Assign(value, fallible)) {
-      return false;
-    }
 
-    // Since we have no editor we presumably have cached selection state.
-    if (IsSelectionCached()) {
-      SelectionProperties& props = GetSelectionProperties();
-      if (aFlags & eSetValue_MoveCursorToEnd) {
-        props.SetStart(value.Length());
-        props.SetEnd(value.Length());
-      } else {
-        // Make sure our cached selection position is not outside the new value.
-        props.SetStart(std::min(props.GetStart(), value.Length()));
-        props.SetEnd(std::min(props.GetEnd(), value.Length()));
+    // We can't just early-return here if mValue->Equals(newValue), because
+    // ValueWasChanged and OnValueChanged below still need to be called.
+    if (!mValue->Equals(newValue) ||
+        !nsContentUtils::SkipCursorMoveForSameValueSet()) {
+      if (!mValue->Assign(newValue, fallible)) {
+        return false;
       }
-    }
 
-    // Update the frame display if needed
-    if (mBoundFrame) {
-      mBoundFrame->UpdateValueDisplay(true);
+      // Since we have no editor we presumably have cached selection state.
+      if (IsSelectionCached()) {
+        SelectionProperties& props = GetSelectionProperties();
+        if (aFlags & eSetValue_MoveCursorToEndIfValueChanged) {
+          props.SetStart(newValue.Length());
+          props.SetEnd(newValue.Length());
+          props.SetDirection(nsITextControlFrame::eForward);
+        } else {
+          // Make sure our cached selection position is not outside the new value.
+          props.SetStart(std::min(props.GetStart(), newValue.Length()));
+          props.SetEnd(std::min(props.GetEnd(), newValue.Length()));
+        }
+      }
+
+      // Update the frame display if needed
+      if (mBoundFrame) {
+        mBoundFrame->UpdateValueDisplay(true);
+      }
+    } else {
+      // Even if our value is not actually changing, apparently we need to mark
+      // our SelectionProperties dirty to make accessibility tests happy.
+      // Probably because they depend on the SetSelectionRange() call we make on
+      // our frame in RestoreSelectionState, but I have no idea why they do.
+      if (IsSelectionCached()) {
+        SelectionProperties& props = GetSelectionProperties();
+        props.SetIsDirty();
+      }
     }
   }
 
@@ -2621,6 +2718,23 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
                                    /* aWasInteractiveUserChange = */ false);
 
   return true;
+}
+
+bool
+nsTextEditorState::HasNonEmptyValue()
+{
+  if (mEditor && mBoundFrame && mEditorInitialized &&
+      !mIsCommittingComposition) {
+    bool empty;
+    nsresult rv = mEditor->GetDocumentIsEmpty(&empty);
+    if (NS_SUCCEEDED(rv)) {
+      return !empty;
+    }
+  }
+
+  nsAutoString value;
+  GetValue(value, true);
+  return !value.IsEmpty();
 }
 
 void
@@ -2647,7 +2761,7 @@ nsTextEditorState::InitializeKeyboardEventListeners()
 void
 nsTextEditorState::ValueWasChanged(bool aNotify)
 {
-  UpdatePlaceholderVisibility(aNotify);
+  UpdateOverlayTextVisibility(aNotify);
 }
 
 void
@@ -2670,12 +2784,47 @@ nsTextEditorState::UpdatePlaceholderText(bool aNotify)
 }
 
 void
-nsTextEditorState::UpdatePlaceholderVisibility(bool aNotify)
+nsTextEditorState::SetPreviewText(const nsAString& aValue, bool aNotify)
 {
-  nsAutoString value;
-  GetValue(value, true);
+  MOZ_ASSERT(mPreviewDiv, "This function should not be called if "
+                            "mPreviewDiv isn't set");
 
-  mPlaceholderVisibility = value.IsEmpty();
+  // If we don't have a preview div, there's nothing to do.
+  if (!mPreviewDiv)
+    return;
+
+  nsAutoString previewValue(aValue);
+
+  nsContentUtils::RemoveNewlines(previewValue);
+  MOZ_ASSERT(mPreviewDiv->GetFirstChild(), "preview div has no child");
+  mPreviewDiv->GetFirstChild()->SetText(previewValue, aNotify);
+
+  UpdateOverlayTextVisibility(aNotify);
+}
+
+void
+nsTextEditorState::GetPreviewText(nsAString& aValue)
+{
+  // If we don't have a preview div, there's nothing to do.
+  if (!mPreviewDiv)
+    return;
+
+  MOZ_ASSERT(mPreviewDiv->GetFirstChild(), "preview div has no child");
+  const nsTextFragment *text = mPreviewDiv->GetFirstChild()->GetText();
+
+  aValue.Truncate();
+  text->AppendTo(aValue);
+}
+
+void
+nsTextEditorState::UpdateOverlayTextVisibility(bool aNotify)
+{
+  nsAutoString value, previewValue;
+  bool valueIsEmpty = !HasNonEmptyValue();
+  GetPreviewText(previewValue);
+
+  mPreviewVisibility = valueIsEmpty && !previewValue.IsEmpty();
+  mPlaceholderVisibility = valueIsEmpty && previewValue.IsEmpty();
 
   if (mPlaceholderVisibility &&
       !Preferences::GetBool("dom.placeholder.show_on_focus", true)) {

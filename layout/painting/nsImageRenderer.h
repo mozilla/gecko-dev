@@ -13,6 +13,16 @@
 class gfxDrawable;
 namespace mozilla {
 
+namespace layers {
+class StackingContextHelper;
+class WebRenderParentCommand;
+class WebRenderDisplayItemLayer;
+} // namespace layers
+
+namespace wr {
+class DisplayListBuilder;
+} // namespace wr
+
 // A CSSSizeOrRatio represents a (possibly partially specified) size for use
 // in computing image sizes. Either or both of the width and height might be
 // given. A ratio of width to height may also be given. If we at least two
@@ -193,6 +203,23 @@ public:
                        float                aOpacity);
 
   /**
+   * Builds WebRender DisplayItems for an image using
+   * {background|mask}-specific arguments.
+   * @see nsLayoutUtils::DrawImage() for parameters.
+   */
+  DrawResult BuildWebRenderDisplayItemsForLayer(nsPresContext*       aPresContext,
+                                                mozilla::wr::DisplayListBuilder& aBuilder,
+                                                const mozilla::layers::StackingContextHelper& aSc,
+                                                nsTArray<layers::WebRenderParentCommand>& aParentCommands,
+                                                mozilla::layers::WebRenderDisplayItemLayer* aLayer,
+                                                const nsRect&        aDest,
+                                                const nsRect&        aFill,
+                                                const nsPoint&       aAnchor,
+                                                const nsRect&        aDirty,
+                                                const nsSize&        aRepeatSize,
+                                                float                aOpacity);
+
+  /**
    * Draw the image to a single component of a border-image style rendering.
    * aFill The destination rect to be drawn into
    * aSrc is the part of the image to be rendered into a tile (aUnitSize in
@@ -237,6 +264,8 @@ public:
   void SetMaskOp(uint8_t aMaskOp) { mMaskOp = aMaskOp; }
   void PurgeCacheForViewportChange(const mozilla::Maybe<nsSize>& aSVGViewportSize,
                                    const bool aHasRatio);
+  nsStyleImageType GetType() const { return mType; }
+  already_AddRefed<nsStyleGradient> GetGradientData();
 
 private:
   /**
@@ -255,6 +284,26 @@ private:
                   const nsSize&        aRepeatSize,
                   const mozilla::CSSIntRect& aSrc,
                   float                aOpacity = 1.0);
+
+  /**
+   * Builds WebRender DisplayItems for the image.
+   * aSrc is a rect on the source image which will be mapped to aDest; it's
+   * currently only used for gradients.
+   *
+   * @see nsLayoutUtils::DrawImage() for other parameters.
+   */
+  DrawResult BuildWebRenderDisplayItems(nsPresContext*       aPresContext,
+                                        mozilla::wr::DisplayListBuilder& aBuilder,
+                                        const mozilla::layers::StackingContextHelper& aSc,
+                                        nsTArray<layers::WebRenderParentCommand>& aParentCommands,
+                                        mozilla::layers::WebRenderDisplayItemLayer* aLayer,
+                                        const nsRect&        aDirtyRect,
+                                        const nsRect&        aDest,
+                                        const nsRect&        aFill,
+                                        const nsPoint&       aAnchor,
+                                        const nsSize&        aRepeatSize,
+                                        const mozilla::CSSIntRect& aSrc,
+                                        float                aOpacity = 1.0);
 
   /**
    * Helper method for creating a gfxDrawable from mPaintServerFrame or

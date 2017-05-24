@@ -1496,6 +1496,14 @@ extern PRInt32 ssl3_SendRecord(sslSocket *ss, ssl3CipherSpec *cwSpec,
  */
 #define SSL_LIBRARY_VERSION_NONE 0
 
+/* SSL_LIBRARY_VERSION_MIN_SUPPORTED is the minimum version that this version
+ * of libssl supports. Applications should use SSL_VersionRangeGetSupported at
+ * runtime to determine which versions are supported by the version of libssl
+ * in use.
+ */
+#define SSL_LIBRARY_VERSION_MIN_SUPPORTED_DATAGRAM SSL_LIBRARY_VERSION_TLS_1_1
+#define SSL_LIBRARY_VERSION_MIN_SUPPORTED_STREAM SSL_LIBRARY_VERSION_3_0
+
 /* SSL_LIBRARY_VERSION_MAX_SUPPORTED is the maximum version that this version
  * of libssl supports. Applications should use SSL_VersionRangeGetSupported at
  * runtime to determine which versions are supported by the version of libssl
@@ -1644,7 +1652,6 @@ extern SECStatus ssl3_SendECDHServerKeyExchange(sslSocket *ss);
 extern SECStatus ssl_ImportECDHKeyShare(
     sslSocket *ss, SECKEYPublicKey *peerKey,
     SSL3Opaque *b, PRUint32 length, const sslNamedGroupDef *curve);
-unsigned int tls13_SizeOfECDHEKeyShareKEX(const SECKEYPublicKey *pubKey);
 SECStatus tls13_EncodeECDHEKeyShareKEX(const sslSocket *ss,
                                        const SECKEYPublicKey *pubKey);
 

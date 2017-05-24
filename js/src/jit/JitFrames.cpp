@@ -348,7 +348,8 @@ CloseLiveIteratorIon(JSContext* cx, const InlineFrameIterator& frame, JSTryNote*
     for (unsigned i = 0; i < skipSlots; i++)
         si.skip();
 
-    Value v = si.read();
+    MaybeReadFallback recover(cx, cx->activation()->asJit(), &frame.frame(), MaybeReadFallback::Fallback_DoNothing);
+    Value v = si.maybeRead(recover);
     RootedObject iterObject(cx, &v.toObject());
 
     if (isDestructuring) {
@@ -2408,7 +2409,7 @@ InlineFrameIterator::findNextFrame()
             MOZ_CRASH("Couldn't deduce the number of arguments of an ionmonkey frame");
 
         // Skip over non-argument slots, as well as |this|.
-        bool skipNewTarget = JSOp(*pc_) == JSOP_NEW;
+        bool skipNewTarget = IsConstructorCallPC(pc_);
         unsigned skipCount = (si_.numAllocations() - 1) - numActualArgs_ - 1 - skipNewTarget;
         for (unsigned j = 0; j < skipCount; j++)
             si_.skip();
@@ -2572,9 +2573,9 @@ InlineFrameIterator::isConstructing() const
             return false;
 
         // In the case of a JS frame, look up the pc from the snapshot.
-        MOZ_ASSERT(IsCallPC(parent.pc()));
+        MOZ_ASSERT(IsCallPC(parent.pc()) && !IsSpreadCallPC(parent.pc()));
 
-        return (JSOp)*parent.pc() == JSOP_NEW;
+        return IsConstructorCallPC(parent.pc());
     }
 
     return frame_->isConstructing();

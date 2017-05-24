@@ -27,6 +27,7 @@
 #include "harfbuzz/hb.h"
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 using mozilla::intl::OSPreferences;
 
 #define LOG_FONTLIST(args) MOZ_LOG(gfxPlatform::GetLog(eGfxLog_fontlist), \
@@ -183,6 +184,16 @@ gfxDWriteFontFamily::FindStyleVariations(FontInfoData *aFontInfoData)
         }
         fullID.Append(' ');
         fullID.Append(faceName);
+
+        // Ignore italic style's "Meiryo" because "Meiryo (Bold) Italic" has
+        // non-italic style glyphs as Japanese characters.  However, using it
+        // causes serious problem if web pages wants some elements to be
+        // different style from others only with font-style.  For example,
+        // <em> and <i> should be rendered as italic in the default style.
+        if (fullID.EqualsLiteral("Meiryo Italic") ||
+            fullID.EqualsLiteral("Meiryo Bold Italic")) {
+            continue;
+        }
 
         gfxDWriteFontEntry *fe = new gfxDWriteFontEntry(fullID, font);
         fe->SetForceGDIClassic(mForceGDIClassic);
@@ -569,7 +580,26 @@ gfxFont *
 gfxDWriteFontEntry::CreateFontInstance(const gfxFontStyle* aFontStyle,
                                        bool aNeedsBold)
 {
-    return new gfxDWriteFont(this, aFontStyle, aNeedsBold);
+    WeakPtr<UnscaledFont>& unscaledFontPtr =
+        aNeedsBold ? mUnscaledFontBold : mUnscaledFont;
+    RefPtr<UnscaledFontDWrite> unscaledFont =
+        static_cast<UnscaledFontDWrite*>(unscaledFontPtr.get());
+    if (!unscaledFont) {
+        DWRITE_FONT_SIMULATIONS sims = DWRITE_FONT_SIMULATIONS_NONE;
+        if (aNeedsBold) {
+            sims |= DWRITE_FONT_SIMULATIONS_BOLD;
+        }
+        RefPtr<IDWriteFontFace> fontFace;
+        nsresult rv = CreateFontFace(getter_AddRefs(fontFace), sims);
+        if (NS_FAILED(rv)) {
+            return nullptr;
+        }
+
+        unscaledFont = new UnscaledFontDWrite(fontFace, sims);
+        unscaledFontPtr = unscaledFont;
+    }
+
+    return new gfxDWriteFont(unscaledFont, this, aFontStyle, aNeedsBold);
 }
 
 nsresult

@@ -132,7 +132,6 @@ const char* kPrefDevtoolsDisableAutoHide =
 
 NS_IMPL_ISUPPORTS(nsXULPopupManager,
                   nsIDOMEventListener,
-                  nsITimerCallback,
                   nsIObserver)
 
 nsXULPopupManager::nsXULPopupManager() :
@@ -263,11 +262,11 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aFlush,
     // reopen the menu.
     if ((consumeResult == ConsumeOutsideClicks_ParentOnly || noRollupOnAnchor) && pos) {
       nsMenuPopupFrame* popupFrame = item->Frame();
-      nsIntRect anchorRect;
+      CSSIntRect anchorRect;
       if (popupFrame->IsAnchored()) {
         // Check if the popup has a screen anchor rectangle. If not, get the rectangle
         // from the anchor element.
-        anchorRect = popupFrame->GetScreenAnchorRect();
+        anchorRect = CSSIntRect::FromUnknownRect(popupFrame->GetScreenAnchorRect());
         if (anchorRect.x == -1 || anchorRect.y == -1) {
           nsCOMPtr<nsIContent> anchor = popupFrame->GetAnchor();
 
@@ -299,8 +298,8 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aFlush,
       // event will get consumed, so here only a quick coordinates check is
       // done rather than a slower complete check of what is at that location.
       nsPresContext* presContext = item->Frame()->PresContext();
-      nsIntPoint posCSSPixels(presContext->DevPixelsToIntCSSPixels(pos->x),
-                              presContext->DevPixelsToIntCSSPixels(pos->y));
+      CSSIntPoint posCSSPixels(presContext->DevPixelsToIntCSSPixels(pos->x),
+                               presContext->DevPixelsToIntCSSPixels(pos->y));
       if (anchorRect.Contains(posCSSPixels)) {
         if (consumeResult == ConsumeOutsideClicks_ParentOnly) {
           consume = true;
@@ -401,20 +400,23 @@ nsXULPopupManager::GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain)
   NS_ASSERTION(aWidgetChain, "null parameter");
   nsMenuChainItem* item = GetTopVisibleMenu();
   while (item) {
-    nsCOMPtr<nsIWidget> widget = item->Frame()->GetWidget();
-    NS_ASSERTION(widget, "open popup has no widget");
-    aWidgetChain->AppendElement(widget.get());
-    // In the case when a menulist inside a panel is open, clicking in the
-    // panel should still roll up the menu, so if a different type is found,
-    // stop scanning.
     nsMenuChainItem* parent = item->GetParent();
-    if (!sameTypeCount) {
-      count++;
-      if (!parent || item->Frame()->PopupType() != parent->Frame()->PopupType() ||
-                     item->IsContextMenu() != parent->IsContextMenu()) {
-        sameTypeCount = count;
+    if (!item->IsNoAutoHide()) {
+      nsCOMPtr<nsIWidget> widget = item->Frame()->GetWidget();
+      NS_ASSERTION(widget, "open popup has no widget");
+      aWidgetChain->AppendElement(widget.get());
+      // In the case when a menulist inside a panel is open, clicking in the
+      // panel should still roll up the menu, so if a different type is found,
+      // stop scanning.
+      if (!sameTypeCount) {
+        count++;
+        if (!parent || item->Frame()->PopupType() != parent->Frame()->PopupType() ||
+                       item->IsContextMenu() != parent->IsContextMenu()) {
+          sameTypeCount = count;
+        }
       }
     }
+
     item = parent;
   }
 
@@ -763,7 +765,9 @@ nsXULPopupManager::ShowMenu(nsIContent *aMenu,
     nsCOMPtr<nsIRunnable> event =
       new nsXULPopupShowingEvent(popupFrame->GetContent(),
                                  parentIsContextMenu, aSelectFirstItem);
-    NS_DispatchToCurrentThread(event);
+    aMenu->OwnerDoc()->Dispatch("nsXULPopupShowingEvent",
+                                TaskCategory::Other,
+                                event.forget());
   }
   else {
     nsCOMPtr<nsIContent> popupContent = popupFrame->GetContent();
@@ -1047,7 +1051,13 @@ nsXULPopupManager::HidePopup(nsIContent* aPopup,
       // entire chain or the item to hide isn't the topmost popup.
       nsMenuChainItem* parent = topMenu->GetParent();
       if (parent && (aHideChain || topMenu != foundPopup)) {
-        nextPopup = parent->Content();
+        while (parent && parent->IsNoAutoHide()) {
+          parent = parent->GetParent();
+        }
+
+        if (parent) {
+          nextPopup = parent->Content();
+        }
       }
 
       lastPopup = aLastPopup ? aLastPopup : (aHideChain ? nullptr : aPopup);
@@ -1079,7 +1089,9 @@ nsXULPopupManager::HidePopup(nsIContent* aPopup,
       nsCOMPtr<nsIRunnable> event =
         new nsXULPopupHidingEvent(popupToHide, nextPopup, lastPopup,
                                   popupFrame->PopupType(), deselectMenu, aIsCancel);
-        NS_DispatchToCurrentThread(event);
+        aPopup->OwnerDoc()->Dispatch("nsXULPopupHidingEvent",
+                                     TaskCategory::Other,
+                                     event.forget());
     }
     else {
       FirePopupHidingEvent(popupToHide, nextPopup, lastPopup,
@@ -1180,6 +1192,9 @@ nsXULPopupManager::HidePopupCallback(nsIContent* aPopup,
                             &event, nullptr, &status);
   ENSURE_TRUE(weakFrame.IsAlive());
 
+  // Force any popups that might be anchored on elements within this popup to update.
+  UpdatePopupPositions(aPopupFrame->PresContext()->RefreshDriver());
+
   // if there are more popups to close, look for the next one
   if (aNextPopup && aPopup != aLastPopup) {
     nsMenuChainItem* foundMenu = nullptr;
@@ -1232,7 +1247,17 @@ nsXULPopupManager::HidePopupAfterDelay(nsMenuPopupFrame* aPopup)
 
   // Kick off the timer.
   mCloseTimer = do_CreateInstance("@mozilla.org/timer;1");
-  mCloseTimer->InitWithCallback(this, menuDelay, nsITimer::TYPE_ONE_SHOT);
+  nsIContent* content = aPopup->GetContent();
+  if (content) {
+    mCloseTimer->SetTarget(
+        content->OwnerDoc()->EventTargetFor(TaskCategory::Other));
+  }
+  mCloseTimer->InitWithNamedFuncCallback([](nsITimer* aTimer, void* aClosure) {
+    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+    if (pm) {
+      pm->KillMenuTimer();
+    }
+  }, nullptr, menuDelay, nsITimer::TYPE_ONE_SHOT, "KillMenuTimer");
 
   // the popup will call PopupDestroyed if it is destroyed, which checks if it
   // is set to mTimerMenu, so it should be safe to keep a reference to it
@@ -1396,7 +1421,9 @@ nsXULPopupManager::ExecuteMenu(nsIContent* aMenu, nsXULMenuCommandEvent* aEvent)
 
   aEvent->SetCloseMenuMode(cmm);
   nsCOMPtr<nsIRunnable> event = aEvent;
-  NS_DispatchToCurrentThread(event);
+  aMenu->OwnerDoc()->Dispatch("nsXULMenuCommandEvent",
+                              TaskCategory::Other,
+                              event.forget());
 }
 
 void
@@ -2033,15 +2060,6 @@ nsXULPopupManager::UpdateMenuItems(nsIContent* aPopup)
 //
 // The code below melds the two cases together.
 //
-nsresult
-nsXULPopupManager::Notify(nsITimer* aTimer)
-{
-  if (aTimer == mCloseTimer)
-    KillMenuTimer();
-
-  return NS_OK;
-}
-
 void
 nsXULPopupManager::KillMenuTimer()
 {
@@ -2758,7 +2776,9 @@ nsXULPopupPositionedEvent::DispatchIfNeeded(nsIContent *aPopup,
                           nsGkAtoms::arrow, eCaseMatters)) {
     nsCOMPtr<nsIRunnable> event =
       new nsXULPopupPositionedEvent(aPopup, aIsContextMenu, aSelectFirstItem);
-    NS_DispatchToCurrentThread(event);
+    aPopup->OwnerDoc()->Dispatch("nsXULPopupPositionedEvent",
+                                 TaskCategory::Other,
+                                 event.forget());
 
     return true;
   }

@@ -18,6 +18,7 @@
 #include "mozilla/net/DataChannelParent.h"
 #include "mozilla/net/AltDataOutputStreamParent.h"
 #include "mozilla/Unused.h"
+#include "mozilla/net/FileChannelParent.h"
 #ifdef NECKO_PROTOCOL_rtsp
 #include "mozilla/net/RtspControllerParent.h"
 #include "mozilla/net/RtspChannelParent.h"
@@ -25,7 +26,9 @@
 #include "mozilla/net/DNSRequestParent.h"
 #include "mozilla/net/ChannelDiverterParent.h"
 #include "mozilla/net/IPCTransportProvider.h"
+#ifdef MOZ_WEBRTC
 #include "mozilla/net/StunAddrsRequestParent.h"
+#endif
 #include "mozilla/dom/ChromeUtils.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/TabContext.h"
@@ -330,16 +333,22 @@ NeckoParent::RecvPHttpChannelConstructor(
 PStunAddrsRequestParent*
 NeckoParent::AllocPStunAddrsRequestParent()
 {
+#ifdef MOZ_WEBRTC
   StunAddrsRequestParent* p = new StunAddrsRequestParent();
   p->AddRef();
   return p;
+#else
+  return nullptr;
+#endif
 }
 
 bool
 NeckoParent::DeallocPStunAddrsRequestParent(PStunAddrsRequestParent* aActor)
 {
+#ifdef MOZ_WEBRTC
   StunAddrsRequestParent* p = static_cast<StunAddrsRequestParent*>(aActor);
   p->Release();
+#endif
   return true;
 }
 
@@ -512,6 +521,30 @@ NeckoParent::RecvPDataChannelConstructor(PDataChannelParent* actor,
                                          const uint32_t& channelId)
 {
   DataChannelParent* p = static_cast<DataChannelParent*>(actor);
+  DebugOnly<bool> rv = p->Init(channelId);
+  MOZ_ASSERT(rv);
+  return IPC_OK();
+}
+
+PFileChannelParent*
+NeckoParent::AllocPFileChannelParent(const uint32_t &channelId)
+{
+  RefPtr<FileChannelParent> p = new FileChannelParent();
+  return p.forget().take();
+}
+
+bool
+NeckoParent::DeallocPFileChannelParent(PFileChannelParent* actor)
+{
+  RefPtr<FileChannelParent> p = dont_AddRef(static_cast<FileChannelParent*>(actor));
+  return true;
+}
+
+mozilla::ipc::IPCResult
+NeckoParent::RecvPFileChannelConstructor(PFileChannelParent* actor,
+                                         const uint32_t& channelId)
+{
+  FileChannelParent* p = static_cast<FileChannelParent*>(actor);
   DebugOnly<bool> rv = p->Init(channelId);
   MOZ_ASSERT(rv);
   return IPC_OK();
@@ -900,7 +933,7 @@ NeckoParent::RecvPredReset()
 }
 
 mozilla::ipc::IPCResult
-NeckoParent::RecvRemoveRequestContext(const nsCString& rcid)
+NeckoParent::RecvRemoveRequestContext(const uint64_t& rcid)
 {
   nsCOMPtr<nsIRequestContextService> rcsvc =
     do_GetService("@mozilla.org/network/request-context-service;1");
@@ -908,9 +941,7 @@ NeckoParent::RecvRemoveRequestContext(const nsCString& rcid)
     return IPC_OK();
   }
 
-  nsID id;
-  id.Parse(rcid.BeginReading());
-  rcsvc->RemoveRequestContext(id);
+  rcsvc->RemoveRequestContext(rcid);
 
   return IPC_OK();
 }

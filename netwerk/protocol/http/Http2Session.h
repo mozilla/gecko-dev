@@ -43,13 +43,16 @@ public:
   NS_DECL_NSAHTTPSEGMENTREADER
   NS_DECL_NSAHTTPSEGMENTWRITER
 
- Http2Session(nsISocketTransport *, uint32_t version, bool attemptingEarlyData);
+  Http2Session(nsISocketTransport *, uint32_t version, bool attemptingEarlyData);
 
   MOZ_MUST_USE bool AddStream(nsAHttpTransaction *, int32_t,
                               bool, nsIInterfaceRequestor *) override;
   bool CanReuse() override { return !mShouldGoAway && !mClosed; }
   bool RoomForMoreStreams() override;
   uint32_t SpdyVersion() override;
+  bool TestJoinConnection(const nsACString &hostname, int32_t port) override;
+  bool JoinConnection(const nsACString &hostname, int32_t port) override;
+  void ThrottleResponse(bool aThrottle) override;
 
   // When the connection is active this is called up to once every 1 second
   // return the interval (in seconds) that the connection next wants to
@@ -89,7 +92,9 @@ public:
     FRAME_TYPE_WINDOW_UPDATE = 0x8,
     FRAME_TYPE_CONTINUATION  = 0x9,
     FRAME_TYPE_ALTSVC        = 0xA,
-    FRAME_TYPE_LAST          = 0xB
+    FRAME_TYPE_UNUSED        = 0xB,
+    FRAME_TYPE_ORIGIN        = 0xC,
+    FRAME_TYPE_LAST          = 0xD
   };
 
   // NO_ERROR is a macro defined on windows, so we'll name the HTTP2 goaway
@@ -185,6 +190,8 @@ public:
   static nsresult RecvWindowUpdate(Http2Session *);
   static nsresult RecvContinuation(Http2Session *);
   static nsresult RecvAltSvc(Http2Session *);
+  static nsresult RecvUnused(Http2Session *);
+  static nsresult RecvOrigin(Http2Session *);
 
   char       *EnsureOutputBuffer(uint32_t needed);
 
@@ -242,6 +249,10 @@ public:
   MOZ_MUST_USE nsresult WriteSegmentsAgain(nsAHttpSegmentWriter *, uint32_t , uint32_t *, bool *) override final;
   MOZ_MUST_USE bool Do0RTT() override final { return true; }
   MOZ_MUST_USE nsresult Finish0RTT(bool aRestart, bool aAlpnChanged) override final;
+  void SetFastOpenStatus(uint8_t aStatus) override final;
+
+  // For use by an HTTP2Stream
+  void Received421(nsHttpConnectionInfo *ci);
 
 private:
 
@@ -417,6 +428,9 @@ private:
   // the session received a GoAway frame with a valid GoAwayID
   bool                 mCleanShutdown;
 
+  // the session received the opening SETTINGS frame from the server
+  bool                 mReceivedSettings;
+
   // The TLS comlpiance checks are not done in the ctor beacuse of bad
   // exception handling - so we do them at IO time and cache the result
   bool                 mTLSProfileConfirmed;
@@ -506,7 +520,14 @@ private:
 
   bool mAttemptingEarlyData;
   // The ID(s) of the stream(s) that we are getting 0RTT data from.
-  nsTArray<uint32_t> m0RTTStreams;
+  nsTArray<WeakPtr<Http2Stream>> m0RTTStreams;
+
+  bool RealJoinConnection(const nsACString &hostname, int32_t port, bool jk);
+  bool TestOriginFrame(const nsACString &name, int32_t port);
+  bool mOriginFrameActivated;
+  nsDataHashtable<nsCStringHashKey, bool> mOriginFrame;
+
+  nsDataHashtable<nsCStringHashKey, bool> mJoinConnectionCache;
 
 private:
 /// connect tunnels

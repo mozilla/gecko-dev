@@ -15,11 +15,13 @@
 #include "nsTHashtable.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/MemoryReporting.h"
+#include "MainThreadUtils.h"
 #include "nsUnicodeScriptCodes.h"
 #include "nsDataHashtable.h"
 #include "harfbuzz/hb.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/WeakPtr.h"
 
 typedef struct gr_face gr_face;
 
@@ -101,7 +103,8 @@ public:
     typedef mozilla::gfx::DrawTarget DrawTarget;
     typedef mozilla::unicode::Script Script;
 
-    NS_INLINE_DECL_REFCOUNTING(gfxFontEntry)
+    // Used by stylo
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(gfxFontEntry)
 
     explicit gfxFontEntry(const nsAString& aName, bool aIsStandardFace = false);
 
@@ -186,7 +189,7 @@ public:
     bool HasSVGGlyph(uint32_t aGlyphId);
     bool GetSVGGlyphExtents(DrawTarget* aDrawTarget, uint32_t aGlyphId,
                             gfxRect *aResult);
-    bool RenderSVGGlyph(gfxContext *aContext, uint32_t aGlyphId,
+    void RenderSVGGlyph(gfxContext *aContext, uint32_t aGlyphId,
                         mozilla::SVGContextPaint* aContextPaint);
     // Call this when glyph geometry or rendering has changed
     // (e.g. animated SVG glyphs)
@@ -587,7 +590,8 @@ struct GlobalFontMatch {
 
 class gfxFontFamily {
 public:
-    NS_INLINE_DECL_REFCOUNTING(gfxFontFamily)
+    // Used by stylo
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(gfxFontFamily)
 
     explicit gfxFontFamily(const nsAString& aName) :
         mName(aName),
@@ -638,7 +642,7 @@ public:
     gfxFontEntry *FindFontForStyle(const gfxFontStyle& aFontStyle, 
                                    bool& aNeedsSyntheticBold);
 
-    void
+    virtual void
     FindAllFontsForStyle(const gfxFontStyle& aFontStyle,
                          nsTArray<gfxFontEntry*>& aFontEntryList,
                          bool& aNeedsSyntheticBold);
@@ -730,9 +734,7 @@ public:
 
 protected:
     // Protected destructor, to discourage deletion outside of Release():
-    virtual ~gfxFontFamily()
-    {
-    }
+    virtual ~gfxFontFamily();
 
     bool ReadOtherFamilyNamesForFace(gfxPlatformFontList *aPlatformFontList,
                                      hb_blob_t           *aNameTable,

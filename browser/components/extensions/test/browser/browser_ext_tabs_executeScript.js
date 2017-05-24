@@ -2,7 +2,7 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-add_task(function* testExecuteScript() {
+add_task(async function testExecuteScript() {
   let {ExtensionManagement} = Cu.import("resource://gre/modules/ExtensionManagement.jsm", {});
   let {MessageChannel} = Cu.import("resource://gre/modules/MessageChannel.jsm", {});
 
@@ -35,7 +35,7 @@ add_task(function* testExecuteScript() {
 
   const BASE = "http://mochi.test:8888/browser/browser/components/extensions/test/browser/";
   const URL = BASE + "file_iframe_document.html";
-  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, URL, true);
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL, true);
 
   async function background() {
     try {
@@ -147,11 +147,7 @@ add_task(function* testExecuteScript() {
         }).then(result => {
           browser.test.fail("Expected error when specifying invalid frame ID");
         }, error => {
-          let details = {
-            frame_id: Number.MAX_SAFE_INTEGER,
-            matchesHost: ["http://mochi.test/", "http://example.com/"],
-          };
-          browser.test.assertEq(`No window matching ${JSON.stringify(details)}`,
+          browser.test.assertEq(`Frame not found, or missing host permission`,
                                 error.message, "Got expected error");
         }),
 
@@ -161,10 +157,7 @@ add_task(function* testExecuteScript() {
           }).then(result => {
             browser.test.fail("Expected error when trying to execute on invalid domain");
           }, error => {
-            let details = {
-              matchesHost: ["http://mochi.test/", "http://example.com/"],
-            };
-            browser.test.assertEq(`No window matching ${JSON.stringify(details)}`,
+            browser.test.assertEq("Missing host permission for the tab",
                                   error.message, "Got expected error");
           });
 
@@ -253,13 +246,13 @@ add_task(function* testExecuteScript() {
     },
   });
 
-  yield extension.startup();
+  await extension.startup();
 
-  yield extension.awaitFinish("executeScript");
+  await extension.awaitFinish("executeScript");
 
-  yield extension.unload();
+  await extension.unload();
 
-  yield BrowserTestUtils.removeTab(tab);
+  await BrowserTestUtils.removeTab(tab);
 
   // Make sure that we're not holding on to references to closed message
   // managers.

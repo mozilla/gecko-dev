@@ -39,10 +39,9 @@ function SwatchColorPickerTooltip(document,
                                   inspector,
                                   {supportsCssColor4ColorFunction}) {
   let stylesheet = NEW_COLOR_WIDGET ?
-    null :
+    "chrome://devtools/content/shared/widgets/color-widget.css" :
     "chrome://devtools/content/shared/widgets/spectrum.css";
-  let tooltipDocument = NEW_COLOR_WIDGET ? inspector.panelDoc : document;
-  SwatchBasedEditorTooltip.call(this, tooltipDocument, stylesheet, NEW_COLOR_WIDGET);
+  SwatchBasedEditorTooltip.call(this, document, stylesheet);
 
   this.inspector = inspector;
 
@@ -72,11 +71,14 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
       node.id = "colorwidget";
       container.appendChild(node);
       widget = new ColorWidget(node, color);
+      this.tooltip.setContent(container, { width: 218, height: 320 });
     } else {
       node.id = "spectrum";
       container.appendChild(node);
       widget = new Spectrum(node, color);
+      this.tooltip.setContent(container, { width: 218, height: 224 });
     }
+    widget.inspector = this.inspector;
 
     let eyedropper = doc.createElementNS(XHTML_NS, "button");
     eyedropper.id = "eyedropper-button";
@@ -86,8 +88,6 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
      */
     eyedropper.style.pointerEvents = "auto";
     container.appendChild(eyedropper);
-
-    this.tooltip.setContent(container, { width: 218, height: 224 });
 
     // Wait for the tooltip to be shown before calling widget.show
     // as it expect to be visible in order to compute DOM element sizes.
@@ -103,6 +103,20 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
    * color.
    */
   show: Task.async(function* () {
+    // set contrast enabled for the spectrum
+    let name = this.activeSwatch.dataset.propertyName;
+
+    if (this.isContrastCompatible === undefined) {
+      let target = this.inspector.target;
+      this.isContrastCompatible = yield target.actorHasMethod(
+        "domnode",
+        "getClosestBackgroundColor"
+      );
+    }
+
+    // only enable contrast if it is compatible and if the type of property is color.
+    this.spectrum.contrastEnabled = (name === "color") && this.isContrastCompatible;
+
     // Call then parent class' show function
     yield SwatchBasedEditorTooltip.prototype.show.call(this);
 
@@ -112,6 +126,7 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
       this._originalColor = this.currentSwatchColor.textContent;
       let color = this.activeSwatch.style.backgroundColor;
       this.spectrum.off("changed", this._onSpectrumColorChange);
+
       this.spectrum.rgb = this._colorToRgba(color);
       this.spectrum.on("changed", this._onSpectrumColorChange);
       this.spectrum.updateUI();
@@ -164,7 +179,6 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
     inspector.once("color-picked", color => {
       toolbox.win.focus();
       this._selectColor(color);
-      this._onEyeDropperDone();
     });
 
     inspector.once("color-pick-canceled", () => {
@@ -179,7 +193,7 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
 
   _colorToRgba: function (color) {
     color = new colorUtils.CssColor(color, this.cssColor4);
-    let rgba = color._getRGBATuple();
+    let rgba = color.getRGBATuple();
     return [rgba.r, rgba.g, rgba.b, rgba.a];
   },
 
@@ -187,6 +201,14 @@ SwatchColorPickerTooltip.prototype = Heritage.extend(SwatchBasedEditorTooltip.pr
     let colorObj = new colorUtils.CssColor(color);
     colorObj.setAuthoredUnitFromColor(this._originalColor, this.cssColor4);
     return colorObj.toString();
+  },
+
+  /**
+   * Overriding the SwatchBasedEditorTooltip.isEditing function to consider the
+   * eyedropper.
+   */
+  isEditing: function () {
+    return this.tooltip.isVisible() || this.eyedropperOpen;
   },
 
   destroy: function () {

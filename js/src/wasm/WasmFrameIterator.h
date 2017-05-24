@@ -34,11 +34,12 @@ class CallSite;
 class Code;
 class CodeRange;
 class DebugFrame;
+class DebugState;
 class Instance;
 class SigIdDesc;
+struct Frame;
 struct FuncOffsets;
 struct CallableOffsets;
-struct TrapOffset;
 
 // Iterates over the frames of a single WasmActivation, called synchronously
 // from C++ in the thread of the asm.js.
@@ -58,11 +59,11 @@ class FrameIterator
     const Code* code_;
     const CallSite* callsite_;
     const CodeRange* codeRange_;
-    uint8_t* fp_;
+    Frame* fp_;
     Unwind unwind_;
-    bool missingFrameMessage_;
+    void** unwoundAddressOfReturnAddress_;
 
-    void settle();
+    void popFrame();
 
   public:
     explicit FrameIterator();
@@ -75,22 +76,64 @@ class FrameIterator
     JSAtom* functionDisplayAtom() const;
     unsigned lineOrBytecode() const;
     const CodeRange* codeRange() const { return codeRange_; }
-    bool hasInstance() const;
     Instance* instance() const;
+    void** unwoundAddressOfReturnAddress() const;
     bool debugEnabled() const;
     DebugFrame* debugFrame() const;
     const CallSite* debugTrapCallsite() const;
 };
 
-// An ExitReason describes the possible reasons for leaving compiled wasm code
-// or the state of not having left compiled wasm code (ExitReason::None).
-enum class ExitReason : uint32_t
+enum class SymbolicAddress;
+
+// An ExitReason describes the possible reasons for leaving compiled wasm
+// code or the state of not having left compiled wasm code
+// (ExitReason::None). It is either a known reason, or a enumeration to a native
+// function that is used for better display in the profiler.
+class ExitReason
 {
-    None,          // default state, the pc is in wasm code
-    ImportJit,     // fast-path call directly into JIT code
-    ImportInterp,  // slow-path call into C++ Invoke()
-    Trap,          // call to trap handler for the trap in WasmActivation::trap
-    DebugTrap      // call to debug trap handler
+    uint32_t payload_;
+
+  public:
+    enum class Fixed : uint32_t
+    {
+        None,          // default state, the pc is in wasm code
+        ImportJit,     // fast-path call directly into JIT code
+        ImportInterp,  // slow-path call into C++ Invoke()
+        BuiltinNative, // fast-path call directly into native C++ code
+        Trap,          // call to trap handler for the trap in WasmActivation::trap
+        DebugTrap      // call to debug trap handler
+    };
+
+    MOZ_IMPLICIT ExitReason(Fixed exitReason)
+      : payload_(0x0 | (uint32_t(exitReason) << 1))
+    {
+        MOZ_ASSERT(isFixed());
+    }
+
+    explicit ExitReason(SymbolicAddress sym)
+      : payload_(0x1 | (uint32_t(sym) << 1))
+    {
+        MOZ_ASSERT(uint32_t(sym) <= (UINT32_MAX << 1), "packing constraints");
+        MOZ_ASSERT(!isFixed());
+    }
+
+    static ExitReason None() { return ExitReason(ExitReason::Fixed::None); }
+
+    bool isFixed() const { return (payload_ & 0x1) == 0; }
+    bool isNone() const { return isFixed() && fixed() == Fixed::None; }
+    bool isNative() const { return !isFixed() || fixed() == Fixed::BuiltinNative; }
+
+    uint32_t raw() const {
+        return payload_;
+    }
+    Fixed fixed() const {
+        MOZ_ASSERT(isFixed());
+        return Fixed(payload_ >> 1);
+    }
+    SymbolicAddress symbolic() const {
+        MOZ_ASSERT(!isFixed());
+        return SymbolicAddress(payload_ >> 1);
+    }
 };
 
 // Iterates over the frames of a single WasmActivation, given an
@@ -100,7 +143,7 @@ class ProfilingFrameIterator
     const WasmActivation* activation_;
     const Code* code_;
     const CodeRange* codeRange_;
-    void* callerFP_;
+    Frame* callerFP_;
     void* callerPC_;
     void* stackAddress_;
     ExitReason exitReason_;
@@ -137,6 +180,22 @@ GenerateFunctionEpilogue(jit::MacroAssembler& masm, unsigned framePushed, FuncOf
 
 void
 TraceActivations(JSContext* cx, const CooperatingContext& target, JSTracer* trc);
+
+// Given a fault at pc with register fp, return the faulting instance if there
+// is such a plausible instance, and otherwise null.
+
+Instance*
+LookupFaultingInstance(WasmActivation* activation, void* pc, void* fp);
+
+// If the innermost (active) Activation is a WasmActivation, return it.
+
+WasmActivation*
+MaybeActiveActivation(JSContext* cx);
+
+// Return whether the given PC is in wasm code.
+
+bool
+InCompiledCode(void* pc);
 
 } // namespace wasm
 } // namespace js

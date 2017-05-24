@@ -15,6 +15,7 @@
 #endif
 #include "mozilla/media/MediaChild.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/dom/PBlobChild.h"
 #include "mozilla/dom/PFileSystemRequestChild.h"
 #include "mozilla/dom/FileSystemTaskBase.h"
@@ -23,6 +24,9 @@
 #include "mozilla/dom/indexedDB/PBackgroundIDBFactoryChild.h"
 #include "mozilla/dom/indexedDB/PBackgroundIndexedDBUtilsChild.h"
 #include "mozilla/dom/ipc/BlobChild.h"
+#include "mozilla/dom/ipc/IPCBlobInputStreamChild.h"
+#include "mozilla/dom/ipc/MemoryStreamChild.h"
+#include "mozilla/dom/ipc/PendingIPCBlobChild.h"
 #include "mozilla/dom/quota/PQuotaChild.h"
 #include "mozilla/dom/GamepadEventChannelChild.h"
 #include "mozilla/dom/GamepadTestChannelChild.h"
@@ -34,6 +38,7 @@
 #include "mozilla/layout/VsyncChild.h"
 #include "mozilla/net/PUDPSocketChild.h"
 #include "mozilla/dom/network/UDPSocketChild.h"
+#include "mozilla/dom/WebAuthnTransactionChild.h"
 #include "nsID.h"
 #include "nsTraceRefcnt.h"
 
@@ -74,6 +79,8 @@ using mozilla::dom::asmjscache::PAsmJSCacheEntryChild;
 using mozilla::dom::cache::PCacheChild;
 using mozilla::dom::cache::PCacheStorageChild;
 using mozilla::dom::cache::PCacheStreamControlChild;
+
+using mozilla::dom::WebAuthnTransactionChild;
 
 // -----------------------------------------------------------------------------
 // BackgroundChildImpl::ThreadLocal
@@ -212,6 +219,52 @@ BackgroundChildImpl::DeallocPBlobChild(PBlobChild* aActor)
   MOZ_ASSERT(aActor);
 
   mozilla::dom::BlobChild::Destroy(aActor);
+  return true;
+}
+
+PMemoryStreamChild*
+BackgroundChildImpl::AllocPMemoryStreamChild(const uint64_t& aSize)
+{
+  return new mozilla::dom::MemoryStreamChild();
+}
+
+bool
+BackgroundChildImpl::DeallocPMemoryStreamChild(PMemoryStreamChild* aActor)
+{
+  delete aActor;
+  return true;
+}
+
+PPendingIPCBlobChild*
+BackgroundChildImpl::AllocPPendingIPCBlobChild(const IPCBlob& aBlob)
+{
+  return new mozilla::dom::PendingIPCBlobChild(aBlob);
+}
+
+bool
+BackgroundChildImpl::DeallocPPendingIPCBlobChild(PPendingIPCBlobChild* aActor)
+{
+  delete aActor;
+  return true;
+}
+
+PIPCBlobInputStreamChild*
+BackgroundChildImpl::AllocPIPCBlobInputStreamChild(const nsID& aID,
+                                                   const uint64_t& aSize)
+{
+  // IPCBlobInputStreamChild is refcounted. Here it's created and in
+  // DeallocPIPCBlobInputStreamChild is released.
+
+  RefPtr<mozilla::dom::IPCBlobInputStreamChild> actor =
+    new mozilla::dom::IPCBlobInputStreamChild(aID, aSize);
+  return actor.forget().take();
+}
+
+bool
+BackgroundChildImpl::DeallocPIPCBlobInputStreamChild(PIPCBlobInputStreamChild* aActor)
+{
+  RefPtr<mozilla::dom::IPCBlobInputStreamChild> actor =
+    dont_AddRef(static_cast<mozilla::dom::IPCBlobInputStreamChild*>(aActor));
   return true;
 }
 
@@ -509,6 +562,37 @@ BackgroundChildImpl::DeallocPGamepadTestChannelChild(PGamepadTestChannelChild* a
 {
   MOZ_ASSERT(aActor);
   delete static_cast<dom::GamepadTestChannelChild*>(aActor);
+  return true;
+}
+
+#ifdef EARLY_BETA_OR_EARLIER
+void
+BackgroundChildImpl::OnChannelReceivedMessage(const Message& aMsg)
+{
+// Telemetry collection temporarily disabled in bug 1366156.
+#if 0
+  if (aMsg.type() == layout::PVsync::MessageType::Msg_Notify__ID) {
+    // Not really necessary to look at the message payload, it will be
+    // <0.5ms away from TimeStamp::Now()
+    SchedulerGroup::MarkVsyncReceived();
+  }
+#endif
+}
+#endif
+
+dom::PWebAuthnTransactionChild*
+BackgroundChildImpl::AllocPWebAuthnTransactionChild()
+{
+  MOZ_CRASH("PWebAuthnTransaction actor should be manually constructed!");
+  return nullptr;
+}
+
+bool
+BackgroundChildImpl::DeallocPWebAuthnTransactionChild(PWebAuthnTransactionChild* aActor)
+{
+  MOZ_ASSERT(aActor);
+  RefPtr<dom::WebAuthnTransactionChild> child =
+    dont_AddRef(static_cast<dom::WebAuthnTransactionChild*>(aActor));
   return true;
 }
 

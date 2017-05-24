@@ -46,7 +46,7 @@ public class TelemetryCorePingBuilder extends TelemetryPingBuilder {
     private static final String PREF_SEQ_COUNT = "telemetry-seqCount";
 
     private static final String NAME = "core";
-    private static final int VERSION_VALUE = 8; // For version history, see toolkit/components/telemetry/docs/core-ping.rst
+    private static final int VERSION_VALUE = 9; // For version history, see toolkit/components/telemetry/docs/core-ping.rst
     private static final String OS_VALUE = "Android";
 
     private static final String ARCHITECTURE = "arch";
@@ -86,7 +86,7 @@ public class TelemetryCorePingBuilder extends TelemetryPingBuilder {
         final Calendar nowCalendar = Calendar.getInstance();
         final DateFormat pingCreationDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
-        payload.put(ARCHITECTURE, AppConstants.ANDROID_CPU_ARCH);
+        payload.put(ARCHITECTURE, Build.CPU_ABI);
         payload.put(DEVICE, deviceDescriptor);
         payload.put(LOCALE, Locales.getLanguageTag(Locale.getDefault()));
         payload.put(OS_VERSION, Integer.toString(Build.VERSION.SDK_INT)); // A String for cross-platform reasons.

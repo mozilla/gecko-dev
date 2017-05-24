@@ -63,6 +63,7 @@ private:
 
   void Init();
   void Destroy();
+  void Shutdown();
 
   void DispatchVRDisplayInfoUpdate();
   void RefreshVRControllers();
@@ -82,6 +83,7 @@ private:
   Atomic<bool> mInitialized;
 
   TimeStamp mLastRefreshTime;
+  TimeStamp mLastActiveTime;
   bool mVRTestSystemCreated;
 };
 

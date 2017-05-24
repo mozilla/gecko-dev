@@ -35,7 +35,7 @@
 
 #include "nsGtkKeyUtils.h"
 #include "nsGtkCursors.h"
-#include "nsScreenGtk.h"
+#include "ScreenHelperGTK.h"
 
 #include <gtk/gtk.h>
 #if (MOZ_WIDGET_GTK == 3)
@@ -741,7 +741,7 @@ nsWindow::Destroy()
     }
 
     // dragService will be null after shutdown of the service manager.
-    nsDragService *dragService = nsDragService::GetInstance();
+    RefPtr<nsDragService> dragService = nsDragService::GetInstance();
     if (dragService && this == dragService->GetMostRecentDestWindow()) {
         dragService->ScheduleLeaveEvent();
     }
@@ -2086,13 +2086,11 @@ nsWindow::OnExposeEvent(cairo_t *cr)
     LayoutDeviceIntRegion region = exposeRegion;
     region.ScaleRoundOut(scale, scale);
 
-    ClientLayerManager *clientLayers = GetLayerManager()->AsClientLayerManager();
-
-    if (clientLayers && mCompositorSession) {
+    if (GetLayerManager()->AsKnowsCompositor() && mCompositorSession) {
         // We need to paint to the screen even if nothing changed, since if we
         // don't have a compositing window manager, our pixels could be stale.
-        clientLayers->SetNeedsComposite(true);
-        clientLayers->SendInvalidRegion(region.ToUnknownRegion());
+        GetLayerManager()->SetNeedsComposite(true);
+        GetLayerManager()->SendInvalidRegion(region.ToUnknownRegion());
     }
 
     RefPtr<nsWindow> strongThis(this);
@@ -2114,9 +2112,9 @@ nsWindow::OnExposeEvent(cairo_t *cr)
             return FALSE;
     }
 
-    if (clientLayers && clientLayers->NeedsComposite()) {
-      clientLayers->Composite();
-      clientLayers->SetNeedsComposite(false);
+    if (GetLayerManager()->AsKnowsCompositor() && GetLayerManager()->NeedsComposite()) {
+      GetLayerManager()->Composite();
+      GetLayerManager()->SetNeedsComposite(false);
     }
 
     LOGDRAW(("sending expose event [%p] %p 0x%lx (rects follow):\n",
@@ -3419,7 +3417,8 @@ nsWindow::OnDragDataReceivedEvent(GtkWidget *aWidget,
 {
     LOGDRAG(("nsWindow::OnDragDataReceived(%p)\n", (void*)this));
 
-    nsDragService::GetInstance()->
+    RefPtr<nsDragService> dragService = nsDragService::GetInstance();
+    dragService->
         TargetDataReceived(aWidget, aDragContext, aX, aY,
                            aSelectionData, aInfo, aTime);
 }
@@ -4360,10 +4359,15 @@ nsWindow::SetTransparencyMode(nsTransparencyMode aMode)
         topWindow->SetTransparencyMode(aMode);
         return;
     }
+
     bool isTransparent = aMode == eTransparencyTransparent;
 
-    if (mIsTransparent == isTransparent)
+    if (mIsTransparent == isTransparent) {
         return;
+    } else if (mWindowType != eWindowType_popup) {
+        NS_WARNING("Cannot set transparency mode on non-popup windows.");
+        return;
+    }
 
     if (!isTransparent) {
         ClearTransparencyBitmap();
@@ -4953,6 +4957,30 @@ nsWindow::PerformFullscreenTransition(FullscreenTransitionStage aStage,
                        FullscreenTransitionData::sInterval,
                        FullscreenTransitionData::TimeoutCallback,
                        transitionData, nullptr);
+}
+
+already_AddRefed<nsIScreen>
+nsWindow::GetWidgetScreen()
+{
+  nsCOMPtr<nsIScreenManager> screenManager;
+  screenManager = do_GetService("@mozilla.org/gfx/screenmanager;1");
+  if (!screenManager) {
+    return nullptr;
+  }
+
+  // GetScreenBounds() is slow for the GTK port so we override and use
+  // mBounds directly.
+  LayoutDeviceIntRect bounds = mBounds;
+  if (!mIsTopLevel) {
+      bounds.MoveTo(WidgetToScreenOffset());
+  }
+
+  DesktopIntRect deskBounds = RoundedToInt(bounds / GetDesktopToDeviceScale());
+  nsCOMPtr<nsIScreen> screen;
+  screenManager->ScreenForRect(deskBounds.x, deskBounds.y,
+                               deskBounds.width, deskBounds.height,
+                               getter_AddRefs(screen));
+  return screen.forget();
 }
 
 static bool
@@ -5947,7 +5975,8 @@ drag_motion_event_cb(GtkWidget *aWidget,
 
     LayoutDeviceIntPoint point = window->GdkPointToDevicePixels({ retx, rety });
 
-    return nsDragService::GetInstance()->
+    RefPtr<nsDragService> dragService = nsDragService::GetInstance();
+    return dragService->
         ScheduleMotionEvent(innerMostWindow, aDragContext,
                             point, aTime);
 }
@@ -5962,7 +5991,7 @@ drag_leave_event_cb(GtkWidget *aWidget,
     if (!window)
         return;
 
-    nsDragService *dragService = nsDragService::GetInstance();
+    RefPtr<nsDragService> dragService = nsDragService::GetInstance();
 
     nsWindow *mostRecentDragWindow = dragService->GetMostRecentDestWindow();
     if (!mostRecentDragWindow) {
@@ -6019,7 +6048,8 @@ drag_drop_event_cb(GtkWidget *aWidget,
 
     LayoutDeviceIntPoint point = window->GdkPointToDevicePixels({ retx, rety });
 
-    return nsDragService::GetInstance()->
+    RefPtr<nsDragService> dragService = nsDragService::GetInstance();
+    return dragService->
         ScheduleDropEvent(innerMostWindow, aDragContext,
                           point, aTime);
 }
@@ -6201,13 +6231,12 @@ nsWindow::GetNativeTextEventDispatcherListener()
     return mIMContext;
 }
 
-bool
-nsWindow::ExecuteNativeKeyBindingRemapped(NativeKeyBindingsType aType,
-                                          const WidgetKeyboardEvent& aEvent,
-                                          DoCommandCallback aCallback,
-                                          void* aCallbackData,
-                                          uint32_t aGeckoKeyCode,
-                                          uint32_t aNativeKeyCode)
+void
+nsWindow::GetEditCommandsRemapped(NativeKeyBindingsType aType,
+                                  const WidgetKeyboardEvent& aEvent,
+                                  nsTArray<CommandInt>& aCommands,
+                                  uint32_t aGeckoKeyCode,
+                                  uint32_t aNativeKeyCode)
 {
     WidgetKeyboardEvent modifiedEvent(aEvent);
     modifiedEvent.mKeyCode = aGeckoKeyCode;
@@ -6215,19 +6244,21 @@ nsWindow::ExecuteNativeKeyBindingRemapped(NativeKeyBindingsType aType,
         aNativeKeyCode;
 
     NativeKeyBindings* keyBindings = NativeKeyBindings::GetInstance(aType);
-    return keyBindings->Execute(modifiedEvent, aCallback, aCallbackData);
+    return keyBindings->GetEditCommands(modifiedEvent, aCommands);
 }
 
-bool
-nsWindow::ExecuteNativeKeyBinding(NativeKeyBindingsType aType,
-                                  const WidgetKeyboardEvent& aEvent,
-                                  DoCommandCallback aCallback,
-                                  void* aCallbackData)
+void
+nsWindow::GetEditCommands(NativeKeyBindingsType aType,
+                          const WidgetKeyboardEvent& aEvent,
+                          nsTArray<CommandInt>& aCommands)
 {
-    if (aEvent.mKeyCode >= NS_VK_LEFT && aEvent.mKeyCode <= NS_VK_DOWN) {
+    // Validate the arguments.
+    nsIWidget::GetEditCommands(aType, aEvent, aCommands);
 
+    if (aEvent.mKeyCode >= NS_VK_LEFT && aEvent.mKeyCode <= NS_VK_DOWN) {
         // Check if we're targeting content with vertical writing mode,
         // and if so remap the arrow keys.
+        // XXX This may be expensive.
         WidgetQueryContentEvent query(true, eQuerySelectedText, this);
         nsEventStatus status;
         DispatchEvent(&query, status);
@@ -6267,14 +6298,14 @@ nsWindow::ExecuteNativeKeyBinding(NativeKeyBindingsType aType,
                 break;
             }
 
-            return ExecuteNativeKeyBindingRemapped(aType, aEvent, aCallback,
-                                                   aCallbackData,
-                                                   geckoCode, gdkCode);
+            GetEditCommandsRemapped(aType, aEvent, aCommands,
+                                    geckoCode, gdkCode);
+            return;
         }
     }
 
     NativeKeyBindings* keyBindings = NativeKeyBindings::GetInstance(aType);
-    return keyBindings->Execute(aEvent, aCallback, aCallbackData);
+    keyBindings->GetEditCommands(aEvent, aCommands);
 }
 
 #if defined(MOZ_X11) && (MOZ_WIDGET_GTK == 2)
@@ -6504,7 +6535,7 @@ nsWindow::GdkScaleFactor()
     if (sGdkWindowGetScaleFactorPtr && mGdkWindow)
         return (*sGdkWindowGetScaleFactorPtr)(mGdkWindow);
 #endif
-    return nsScreenGtk::GetGtkMonitorScaleFactor();
+    return ScreenHelperGTK::GetGTKMonitorScaleFactor();
 }
 
 

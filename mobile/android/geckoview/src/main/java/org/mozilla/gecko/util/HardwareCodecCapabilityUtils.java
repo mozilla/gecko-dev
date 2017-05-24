@@ -15,6 +15,8 @@ import android.media.MediaCodecList;
 import android.os.Build;
 import android.util.Log;
 
+import java.util.Locale;
+
 public final class HardwareCodecCapabilityUtils {
   private static final String LOGTAG = "GeckoHardwareCodecCapabilityUtils";
 
@@ -37,10 +39,27 @@ public final class HardwareCodecCapabilityUtils {
     CodecCapabilities.COLOR_QCOM_FormatYUV420SemiPlanar,
     COLOR_QCOM_FORMATYUV420PackedSemiPlanar32m
   };
+  private static final String[] adaptivePlaybackBlacklist =
+  {
+    "GT-I9300",         // S3 (I9300 / I9300I)
+    "SCH-I535",         // S3
+    "SGH-M919",         // S4
+    "GT-I9505",         // S4
+    "SGH-I337",         // S4
+    "SAMSUNG-SGH-I337"  // S4
+  };
 
   @WrapForJNI
   public static boolean findDecoderCodecInfoForMimeType(String aMimeType) {
-    for (int i = 0; i < MediaCodecList.getCodecCount(); ++i) {
+    int numCodecs = 0;
+    try {
+      numCodecs = MediaCodecList.getCodecCount();
+    } catch (final RuntimeException e) {
+      Log.e(LOGTAG, "Failed to retrieve media codec count", e);
+      return false;
+    }
+
+    for (int i = 0; i < numCodecs; ++i) {
       MediaCodecInfo info = MediaCodecList.getCodecInfoAt(i);
       if (info.isEncoder()) {
         continue;
@@ -56,21 +75,42 @@ public final class HardwareCodecCapabilityUtils {
 
   @WrapForJNI
   public static boolean checkSupportsAdaptivePlayback(MediaCodec aCodec, String aMimeType) {
-      // isFeatureSupported supported on API level >= 19.
-      if (!(Build.VERSION.SDK_INT >= 19)) {
-          return false;
-      }
-
-      try {
-          MediaCodecInfo info = aCodec.getCodecInfo();
-          MediaCodecInfo.CodecCapabilities capabilities = info.getCapabilitiesForType(aMimeType);
-          return capabilities != null &&
-                 capabilities.isFeatureSupported(
-                     MediaCodecInfo.CodecCapabilities.FEATURE_AdaptivePlayback);
-      } catch (IllegalArgumentException e) {
-            Log.e(LOGTAG, "Retrieve codec information failed", e);
-      }
+    // isFeatureSupported supported on API level >= 19.
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT ||
+        isAdaptivePlaybackBlacklisted(aMimeType)) {
       return false;
+    }
+
+    try {
+      MediaCodecInfo info = aCodec.getCodecInfo();
+      MediaCodecInfo.CodecCapabilities capabilities = info.getCapabilitiesForType(aMimeType);
+      return capabilities != null &&
+             capabilities.isFeatureSupported(
+               MediaCodecInfo.CodecCapabilities.FEATURE_AdaptivePlayback);
+    } catch (IllegalArgumentException e) {
+      Log.e(LOGTAG, "Retrieve codec information failed", e);
+    }
+    return false;
+  }
+
+  // See Bug1360626 and
+  // https://codereview.chromium.org/1869103002 for details.
+  private static boolean isAdaptivePlaybackBlacklisted(String aMimeType) {
+    Log.d(LOGTAG, "The device ModelID is " + Build.MODEL);
+    if (!aMimeType.equals("video/avc") && !aMimeType.equals("video/avc1")) {
+      return false;
+    }
+
+    if (!Build.MANUFACTURER.toLowerCase(Locale.getDefault()).equals("samsung")) {
+      return false;
+    }
+
+    for (String model : adaptivePlaybackBlacklist) {
+      if (Build.MODEL.startsWith(model)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public static boolean getHWEncoderCapability() {

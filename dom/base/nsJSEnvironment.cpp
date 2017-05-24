@@ -37,7 +37,6 @@
 #include "nsXPCOMCIDInternal.h"
 #include "nsIXULRuntime.h"
 #include "nsTextFormatter.h"
-#include "ScriptSettings.h"
 #ifdef XP_WIN
 #include <process.h>
 #define getpid _getpid
@@ -60,8 +59,9 @@
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
 #include "mozilla/dom/ErrorEvent.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "nsAXPCNativeCallContext.h"
-#include "mozilla/CycleCollectedJSContext.h"
+#include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/SystemGroup.h"
 
 #include "nsJSPrincipals.h"
@@ -81,7 +81,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/asmjscache/AsmJSCache.h"
 #include "mozilla/dom/CanvasRenderingContext2DBinding.h"
-#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/ContentEvents.h"
 
 #include "nsCycleCollectionNoteRootCallback.h"
@@ -190,7 +189,6 @@ static bool sNeedsFullGC = false;
 static bool sNeedsGCAfterCC = false;
 static bool sIncrementalCC = false;
 static bool sDidPaintAfterPreviousICCSlice = false;
-static bool sUserActive = false;
 static int32_t sActiveIntersliceGCBudget = 0; // ms;
 static nsScriptNameSpaceManager *gNameSpaceManager;
 
@@ -351,12 +349,10 @@ nsJSEnvironmentObserver::Observe(nsISupports* aSubject, const char* aTopic,
       }
     }
   } else if (!nsCRT::strcmp(aTopic, "user-interaction-inactive")) {
-    sUserActive = false;
     if (sCompactOnUserInactive) {
       nsJSContext::PokeShrinkingGC();
     }
   } else if (!nsCRT::strcmp(aTopic, "user-interaction-active")) {
-    sUserActive = true;
     nsJSContext::KillShrinkingGCTimer();
     if (sIsCompactingOnUserInactive) {
       JS::AbortIncrementalGC(sContext);
@@ -1220,7 +1216,7 @@ nsJSContext::GarbageCollectNow(JS::gcreason::Reason aReason,
   if (sNeedsFullGC) {
     JS::PrepareForFullGC(sContext);
   } else {
-    CycleCollectedJSContext::Get()->PrepareWaitingZonesForGC();
+    CycleCollectedJSRuntime::Get()->PrepareWaitingZonesForGC();
   }
 
   if (aIncremental == IncrementalGC) {
@@ -1478,9 +1474,20 @@ nsJSContext::RunCycleCollectorSlice()
       TimeStamp now = TimeStamp::Now();
 
       // Only run a limited slice if we're within the max running time.
-      if (TimeBetween(gCCStats.mBeginTime, now) < kMaxICCDuration) {
-        float sliceMultiplier = std::max(TimeBetween(gCCStats.mEndSliceTime, now) / (float)kICCIntersliceDelay, 1.0f);
-        budget = js::SliceBudget(js::TimeBudget(kICCSliceBudget * sliceMultiplier));
+      uint32_t runningTime = TimeBetween(gCCStats.mBeginTime, now);
+      if (runningTime < kMaxICCDuration) {
+        // Try to make up for a delay in running this slice.
+        float sliceDelayMultiplier = TimeBetween(gCCStats.mEndSliceTime, now) / (float)kICCIntersliceDelay;
+        float delaySliceBudget = kICCSliceBudget * sliceDelayMultiplier;
+
+        // Increase slice budgets up to |maxLaterSlice| as we approach
+        // half way through the ICC, to avoid large sync CCs.
+        float percentToHalfDone = std::min(2.0f * runningTime / kMaxICCDuration, 1.0f);
+        const float maxLaterSlice = 40.0f;
+        float laterSliceBudget = maxLaterSlice * percentToHalfDone;
+
+        budget = js::SliceBudget(js::TimeBudget(std::max({delaySliceBudget,
+                  laterSliceBudget, (float)kICCSliceBudget})));
       }
     }
   }
@@ -1733,8 +1740,7 @@ void
 InterSliceGCTimerFired(nsITimer *aTimer, void *aClosure)
 {
   nsJSContext::KillInterSliceGCTimer();
-  bool e10sParent = XRE_IsParentProcess() && BrowserTabsRemoteAutostart();
-  int64_t budget = e10sParent && sUserActive && sActiveIntersliceGCBudget ?
+  int64_t budget = XRE_IsE10sParentProcess() && nsContentUtils::GetUserIsInteracting() && sActiveIntersliceGCBudget ?
     sActiveIntersliceGCBudget : NS_INTERSLICE_GC_BUDGET;
   nsJSContext::GarbageCollectNow(JS::gcreason::INTER_SLICE_GC,
                                  nsJSContext::IncrementalGC,
@@ -1941,7 +1947,7 @@ nsJSContext::PokeGC(JS::gcreason::Reason aReason,
 
   if (aObj) {
     JS::Zone* zone = JS::GetObjectZone(aObj);
-    CycleCollectedJSContext::Get()->AddZoneWaitingForGC(zone);
+    CycleCollectedJSRuntime::Get()->AddZoneWaitingForGC(zone);
   } else if (aReason != JS::gcreason::CC_WAITING) {
     sNeedsFullGC = true;
   }
@@ -2205,9 +2211,9 @@ DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress, const JS::GCDescrip
 
     case JS::GC_SLICE_END:
 
-      // The GC has more work to do, so schedule another GC slice.
+      // Schedule another GC slice if the GC has more work to do.
       nsJSContext::KillInterSliceGCTimer();
-      if (!sShuttingDown) {
+      if (!sShuttingDown && !aDesc.isComplete_) {
         CallCreateInstance("@mozilla.org/timer;1", &sInterSliceGCTimer);
         sInterSliceGCTimer->SetTarget(SystemGroup::EventTargetFor(TaskCategory::GarbageCollection));
         sInterSliceGCTimer->InitWithNamedFuncCallback(InterSliceGCTimerFired,

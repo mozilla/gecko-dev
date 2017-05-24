@@ -251,12 +251,6 @@ CheckEdgeIsNotBlackToGray(JSObject* src, const Value& dst)
     MOZ_ASSERT_IF(IsMarkedBlack(src), JS::ValueIsNotGray(dst));
 }
 
-MOZ_ALWAYS_INLINE void
-CheckEdgeIsNotBlackToGray(JSObject* src, gc::Cell* dst)
-{
-    MOZ_ASSERT_IF(IsMarkedBlack(src), JS::CellIsNotGray(dst));
-}
-
 template <typename T>
 struct InternalBarrierMethods {};
 
@@ -330,6 +324,9 @@ class BarrieredBase
   protected:
     // BarrieredBase is not directly instantiable.
     explicit BarrieredBase(const T& v) : value(v) {}
+
+    // BarrieredBase subclasses cannot be copy constructed by default.
+    BarrieredBase(const BarrieredBase<T>& other) = default;
 
     // Storage for all barrier classes. |value| must be a GC thing reference
     // type: either a direct pointer to a GC thing or a supported tagged

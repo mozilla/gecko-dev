@@ -65,7 +65,7 @@ public:
   // For each mapped presentation attribute in the cache, resolve
   // the attached ServoDeclarationBlock by running the mapping
   // and converting the ruledata to Servo specified values.
-  void CalculateMappedServoDeclarations();
+  void CalculateMappedServoDeclarations(nsPresContext* aPresContext);
 
   nsIStyleRule* LangRuleFor(const nsString& aLanguage);
 
@@ -81,7 +81,9 @@ private:
   private:
     ~HTMLColorRule() {}
   public:
-    HTMLColorRule() {}
+    explicit HTMLColorRule(nscolor aColor)
+      : mColor(aColor)
+    {}
 
     NS_DECL_ISUPPORTS
 
@@ -94,7 +96,7 @@ private:
     virtual void List(FILE* out = stdout, int32_t aIndent = 0) const override;
   #endif
 
-    nscolor             mColor;
+    nscolor mColor;
   };
 
   // Implementation of SetLink/VisitedLink/ActiveLinkColor

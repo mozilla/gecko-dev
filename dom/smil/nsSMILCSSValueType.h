@@ -16,6 +16,7 @@
 class nsAString;
 
 namespace mozilla {
+struct AnimationValue;
 namespace dom {
 class Element;
 } // namespace dom
@@ -28,6 +29,7 @@ class nsSMILCSSValueType : public nsISMILType
 {
 public:
   typedef mozilla::dom::Element Element;
+  typedef mozilla::AnimationValue AnimationValue;
 
   // Singleton for nsSMILValue objects to hold onto.
   static nsSMILCSSValueType sSingleton;
@@ -85,18 +87,31 @@ public:
                               bool* aIsContextSensitive);
 
   /**
+   * Creates an nsSMILValue to wrap the given animation value.
+   *
+   * @param aPropID         The property that |aValue| corresponds to.
+   * @param aTargetElement  The target element to which the animation value
+   *                        applies.
+   * @param aValue          The animation value to use.
+   * @return                A new nsSMILValue. On failure, returns an
+   *                        nsSMILValue with the null type (i.e. rv.IsNull()
+   *                        returns true).
+   */
+  static nsSMILValue ValueFromAnimationValue(nsCSSPropertyID aPropID,
+                                             Element* aTargetElement,
+                                             const AnimationValue& aValue);
+
+  /**
    * Creates a string representation of the given nsSMILValue.
    *
    * Note: aValue is expected to be of this type (that is, it's expected to
    * have been initialized by nsSMILCSSValueType::sSingleton).  If aValue is a
-   * freshly-initialized value, this method will succeed, though the resulting
-   * string will be empty.
+   * freshly-initialized value the resulting string will be empty.
    *
    * @param       aValue   The nsSMILValue to be converted into a string.
    * @param [out] aString  The string to be populated with the given value.
-   * @return               true on success, false on failure.
    */
-  static bool ValueToString(const nsSMILValue& aValue, nsAString& aString);
+  static void ValueToString(const nsSMILValue& aValue, nsAString& aString);
 
   /**
    * Return the CSS property animated by the specified value.

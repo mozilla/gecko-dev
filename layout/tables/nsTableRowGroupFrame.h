@@ -10,7 +10,6 @@
 #include "nsContainerFrame.h"
 #include "nsIAtom.h"
 #include "nsILineIterator.h"
-#include "nsTablePainter.h"
 #include "nsTArray.h"
 #include "nsTableFrame.h"
 #include "mozilla/WritingModes.h"
@@ -99,13 +98,6 @@ public:
 
   virtual bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) override;
 
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::tableRowGroupFrame
-   */
-  virtual nsIAtom* GetType() const override;
-
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
@@ -116,7 +108,7 @@ public:
   nsTableFrame* GetTableFrame() const
   {
     nsIFrame* parent = GetParent();
-    MOZ_ASSERT(parent && parent->GetType() == nsGkAtoms::tableFrame);
+    MOZ_ASSERT(parent && parent->IsTableFrame());
     return static_cast<nsTableFrame*>(parent);
   }
 

@@ -235,6 +235,15 @@ function waitForAnimationFrames(frameCount, onFrame) {
 }
 
 /**
+ * Promise wrapper for requestIdleCallback.
+ */
+function waitForIdle() {
+  return new Promise(resolve => {
+    requestIdleCallback(resolve);
+  });
+}
+
+/**
  * Wrapper that takes a sequence of N animations and returns:
  *
  *   Promise.all([animations[0].ready, animations[1].ready, ... animations[N-1].ready]);
@@ -252,7 +261,7 @@ function waitForAllAnimations(animations) {
  * we actually get a transition instead of that being the initial value.
  */
 function flushComputedStyle(elem) {
-  var cs = window.getComputedStyle(elem);
+  var cs = getComputedStyle(elem);
   cs.marginLeft;
 }
 
@@ -260,8 +269,6 @@ if (opener) {
   for (var funcName of ["async_test", "assert_not_equals", "assert_equals",
                         "assert_approx_equals", "assert_less_than",
                         "assert_less_than_equal", "assert_greater_than",
-                        "assert_greater_than_equal",
-                        "assert_not_exists",
                         "assert_between_inclusive",
                         "assert_true", "assert_false",
                         "assert_class_string", "assert_throws",
@@ -271,8 +278,6 @@ if (opener) {
   }
 
   window.EventWatcher = opener.EventWatcher;
-  // Used for requestLongerTimeout.
-  window.W3CTest = opener.W3CTest;
 
   function done() {
     opener.add_completion_callback(function() {
@@ -280,25 +285,6 @@ if (opener) {
     });
     opener.done();
   }
-}
-
-/**
- * Return a new MutationObserver which started observing |target| element
- * with { animations: true, subtree: |subtree| } option.
- * NOTE: This observer should be used only with takeRecords(). If any of
- * MutationRecords are observed in the callback of the MutationObserver,
- * it will raise an assertion.
- */
-function setupSynchronousObserver(t, target, subtree) {
-   var observer = new MutationObserver(records => {
-     assert_unreached("Any MutationRecords should not be observed in this " +
-                      "callback");
-   });
-  t.add_cleanup(() => {
-    observer.disconnect();
-  });
-  observer.observe(target, { animations: true, subtree: subtree });
-  return observer;
 }
 
 /*
@@ -331,4 +317,26 @@ function isOMTAEnabled() {
   const OMTAPrefKey = 'layers.offmainthreadcomposition.async-animations';
   return SpecialPowers.DOMWindowUtils.layerManagerRemote &&
          SpecialPowers.getBoolPref(OMTAPrefKey);
+}
+
+/**
+ * Append an SVG element to the target element.
+ *
+ * @param target The element which want to append.
+ * @param attrs  A array object with attribute name and values to set on
+ *               the SVG element.
+ * @return An SVG outer element.
+ */
+function addSVGElement(target, tag, attrs) {
+  if (!target) {
+    return null;
+  }
+  var element = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  if (attrs) {
+    for (var attrName in attrs) {
+      element.setAttributeNS(null, attrName, attrs[attrName]);
+    }
+  }
+  target.appendChild(element);
+  return element;
 }

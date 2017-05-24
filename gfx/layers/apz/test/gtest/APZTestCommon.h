@@ -176,6 +176,10 @@ public:
     return mInputQueue;
   }
 
+  void ClearContentController() {
+    mcc = nullptr;
+  }
+
 protected:
   AsyncPanZoomController* NewAPZCInstance(uint64_t aLayersId,
                                           GeckoContentController* aController) override;
@@ -267,6 +271,9 @@ public:
       break;
     case ScrollDirection::VERTICAL:
       EXPECT_EQ(PANNING_LOCKED_Y, mState);
+      break;
+    case ScrollDirection::SENTINEL:
+      MOZ_ASSERT(false, "Invalid value");
       break;
     }
   }

@@ -7,15 +7,11 @@
 #ifndef mozilla_ServoRestyleManager_h
 #define mozilla_ServoRestyleManager_h
 
-#include "mozilla/DocumentStyleRootIterator.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/RestyleManager.h"
-#include "mozilla/ServoBindings.h"
 #include "mozilla/ServoElementSnapshot.h"
+#include "mozilla/ServoElementSnapshotTable.h"
 #include "nsChangeHint.h"
-#include "nsHashKeys.h"
-#include "nsINode.h"
-#include "nsISupportsImpl.h"
 #include "nsPresContext.h"
 
 namespace mozilla {
@@ -37,7 +33,9 @@ namespace mozilla {
 class ServoRestyleManager : public RestyleManager
 {
   friend class ServoStyleSet;
+
 public:
+  typedef ServoElementSnapshotTable SnapshotTable;
   typedef RestyleManager base_type;
 
   explicit ServoRestyleManager(nsPresContext* aPresContext);
@@ -46,11 +44,16 @@ public:
                         nsRestyleHint aRestyleHint,
                         nsChangeHint aMinChangeHint);
   void PostRestyleEventForLazyConstruction();
+  void PostRestyleEventForCSSRuleChanges(dom::Element* aElement,
+                                         nsRestyleHint aRestyleHint,
+                                         nsChangeHint aMinChangeHint);
   void RebuildAllStyleData(nsChangeHint aExtraHint,
                            nsRestyleHint aRestyleHint);
   void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
                                     nsRestyleHint aRestyleHint);
   void ProcessPendingRestyles();
+
+  void UpdateOnlyAnimationStyles();
 
   void ContentInserted(nsINode* aContainer, nsIContent* aChild);
   void ContentAppended(nsIContent* aContainer,
@@ -92,6 +95,12 @@ public:
   static void ClearServoDataFromSubtree(Element* aElement);
 
   /**
+   * Clears HasDirtyDescendants and RestyleData from all elements in the
+   * subtree rooted at aElement.
+   */
+  static void ClearRestyleStateFromSubtree(Element* aElement);
+
+  /**
    * Posts restyle hints for animations.
    * This is only called for the second traversal for CSS animations during
    * updating CSS animations in a SequentialTask.
@@ -117,10 +126,10 @@ private:
                             ServoStyleSet* aStyleSet,
                             nsStyleChangeList& aChangeList);
 
+  struct TextPostTraversalState;
   void ProcessPostTraversalForText(nsIContent* aTextNode,
-                                   nsStyleContext* aParentContext,
-                                   ServoStyleSet* aStyleSet,
-                                   nsStyleChangeList& aChangeList);
+                                   nsStyleChangeList& aChangeList,
+                                   TextPostTraversalState& aState);
 
   inline ServoStyleSet* StyleSet() const
   {
@@ -129,6 +138,12 @@ private:
                "style backend");
     return PresContext()->StyleSet()->AsServo();
   }
+
+  const SnapshotTable& Snapshots() const { return mSnapshots; }
+  void ClearSnapshots();
+  ServoElementSnapshot& SnapshotFor(mozilla::dom::Element* aElement);
+
+  void DoProcessPendingRestyles(TraversalRestyleBehavior aRestyleBehavior);
 
   // We use a separate data structure from nsStyleChangeList because we need a
   // frame to create nsStyleChangeList entries, and the primary frame may not be
@@ -142,6 +157,25 @@ private:
   // Only non-null while processing change hints. See the comment in
   // ProcessPendingRestyles.
   ReentrantChangeList* mReentrantChanges;
+
+  // We use this flag to track if the current restyle contains any non-animation
+  // update, which triggers a normal restyle, and so there might be any new
+  // transition created later. Therefore, if this flag is true, we need to
+  // increase mAnimationGeneration before creating new transitions, so their
+  // creation sequence will be correct.
+  bool mHaveNonAnimationRestyles = false;
+
+  // Set to true when posting restyle events triggered by CSS rule changes.
+  // This flag is cleared once ProcessPendingRestyles has completed.
+  // When we process a traversal all descendants elements of the document
+  // triggered by CSS rule changes, we will need to update all elements with
+  // CSS animations.  We propagate TraversalRestyleBehavior::ForCSSRuleChanges
+  // to traversal function if this flag is set.
+  bool mRestyleForCSSRuleChanges = false;
+
+  // A hashtable with the elements that have changed state or attributes, in
+  // order to calculate restyle hints during the traversal.
+  SnapshotTable mSnapshots;
 };
 
 } // namespace mozilla

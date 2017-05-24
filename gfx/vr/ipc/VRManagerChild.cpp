@@ -279,9 +279,8 @@ VRManagerChild::RecvUpdateDisplayInfo(nsTArray<VRDisplayInfo>&& aDisplayUpdates)
     if (!window) {
       continue;
     }
-    ErrorResult result;
-    dom::Navigator* nav = window->GetNavigator(result);
-    if (NS_WARN_IF(result.Failed())) {
+    dom::Navigator* nav = window->Navigator();
+    if (!nav) {
       continue;
     }
     nav->NotifyVRDisplaysUpdated();
@@ -353,7 +352,9 @@ PTextureChild*
 VRManagerChild::CreateTexture(const SurfaceDescriptor& aSharedData,
                               LayersBackend aLayersBackend,
                               TextureFlags aFlags,
-                              uint64_t aSerial)
+                              uint64_t aSerial,
+                              wr::MaybeExternalImageId& aExternalImageId,
+                              nsIEventTarget* aTarget)
 {
   return SendPTextureConstructor(aSharedData, aLayersBackend, aFlags, aSerial);
 }
@@ -401,11 +402,26 @@ VRManagerChild::DeallocShmem(ipc::Shmem& aShmem)
 }
 
 PVRLayerChild*
-VRManagerChild::CreateVRLayer(uint32_t aDisplayID, const Rect& aLeftEyeRect, const Rect& aRightEyeRect)
+VRManagerChild::CreateVRLayer(uint32_t aDisplayID,
+                              const Rect& aLeftEyeRect,
+                              const Rect& aRightEyeRect,
+                              nsIEventTarget* aTarget)
 {
-  return SendPVRLayerConstructor(aDisplayID,
-                                 aLeftEyeRect.x, aLeftEyeRect.y, aLeftEyeRect.width, aLeftEyeRect.height,
-                                 aRightEyeRect.x, aRightEyeRect.y, aRightEyeRect.width, aRightEyeRect.height);
+  PVRLayerChild* vrLayerChild = AllocPVRLayerChild(aDisplayID, aLeftEyeRect.x,
+                                                   aLeftEyeRect.y, aLeftEyeRect.width,
+                                                   aLeftEyeRect.height, aRightEyeRect.x,
+                                                   aRightEyeRect.y, aRightEyeRect.width,
+                                                   aRightEyeRect.height);
+  // Do the DOM labeling.
+  if (aTarget) {
+    SetEventTargetForActor(vrLayerChild, aTarget);
+    MOZ_ASSERT(vrLayerChild->GetActorEventTarget());
+  }
+  return SendPVRLayerConstructor(vrLayerChild, aDisplayID, aLeftEyeRect.x,
+                                 aLeftEyeRect.y, aLeftEyeRect.width,
+                                 aLeftEyeRect.height, aRightEyeRect.x,
+                                 aRightEyeRect.y, aRightEyeRect.width,
+                                 aRightEyeRect.height);
 }
 
 

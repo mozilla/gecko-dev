@@ -37,24 +37,6 @@
         ]]></getter>
       </property>
 
-      <!-- increases or decreases the browser's network priority -->
-      <method name="adjustPriority">
-        <parameter name="adjustment"/>
-        <body><![CDATA[
-          this.messageManager.sendAsyncMessage("NetworkPrioritizer:AdjustPriority",
-                                               {adjustment});
-        ]]></body>
-      </method>
-
-      <!-- sets the browser's network priority to a discrete value -->
-      <method name="setPriority">
-        <parameter name="priority"/>
-        <body><![CDATA[
-          this.messageManager.sendAsyncMessage("NetworkPrioritizer:SetPriority",
-                                               {priority});
-        ]]></body>
-      </method>
-
       <field name="_controller">null</field>
 
       <field name="_selectParentHelper">null</field>
@@ -302,7 +284,14 @@
       <method name="permitUnload">
         <body>
         <![CDATA[
-          const kTimeout = 5000;
+          let { frameLoader } = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
+          let tabParent = frameLoader.tabParent;
+
+          if (!tabParent.hasBeforeUnload) {
+            return { permitUnload: true, timedOut: false };
+          }
+
+          const kTimeout = 1000;
 
           let finished = false;
           let responded = false;
@@ -337,7 +326,7 @@
 
           mm.sendAsyncMessage("PermitUnload", {id});
           mm.addMessageListener("PermitUnload", msgListener);
-          Services.obs.addObserver(observer, "message-manager-close", false);
+          Services.obs.addObserver(observer, "message-manager-close");
 
           let timedOut = false;
           function timeout() {
@@ -346,7 +335,7 @@
             }
 
             // Dispatch something to ensure that the main thread wakes up.
-            Services.tm.mainThread.dispatch(function() {}, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+            Services.tm.dispatchToMainThread(function() {});
           }
 
           let timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
@@ -478,7 +467,7 @@
               this._selectParentHelper.populate(menulist, data.options, data.selectedIndex,
                                                 zoom, data.uaBackgroundColor, data.uaColor,
                                                 data.uaSelectBackgroundColor, data.uaSelectColor,
-                                                data.selectBackgroundColor, data.selectColor);
+                                                data.selectBackgroundColor, data.selectColor, data.selectTextShadow);
               this._selectParentHelper.open(this, menulist, data.rect, data.isOpenedViaTouch);
               break;
             }

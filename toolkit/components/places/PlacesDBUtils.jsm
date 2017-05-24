@@ -62,7 +62,7 @@ this.PlacesDBUtils = {
       }
 
       // Notify observers that maintenance finished.
-      Services.obs.notifyObservers(null, FINISHED_MAINTENANCE_TOPIC, null);
+      Services.obs.notifyObservers(null, FINISHED_MAINTENANCE_TOPIC);
     }
   },
 
@@ -272,7 +272,8 @@ this.PlacesDBUtils = {
        WHERE type = 4
           OR anno_attribute_id IN (
          SELECT id FROM moz_anno_attributes
-         WHERE name BETWEEN 'weave/' AND 'weave0'
+         WHERE name = 'downloads/destinationFileName' OR
+               name BETWEEN 'weave/' AND 'weave0'
        )`);
     cleanupStatements.push(deleteObsoleteAnnos);
 
@@ -593,13 +594,17 @@ this.PlacesDBUtils = {
     fixEmptyNamedTags.params["tags_folder"] = PlacesUtils.tagsFolderId;
     cleanupStatements.push(fixEmptyNamedTags);
 
-    // MOZ_FAVICONS
-    // E.1 remove orphan icons
+    // MOZ_ICONS
+    // E.1 remove orphan icon entries.
+    let deleteOrphanIconPages = DBConn.createAsyncStatement(
+      `DELETE FROM moz_pages_w_icons WHERE page_url_hash NOT IN (
+         SELECT url_hash FROM moz_places
+       )`);
+    cleanupStatements.push(deleteOrphanIconPages);
+
     let deleteOrphanIcons = DBConn.createAsyncStatement(
-      `DELETE FROM moz_favicons WHERE id IN (
-         SELECT id FROM moz_favicons f
-         WHERE NOT EXISTS
-           (SELECT id FROM moz_places WHERE favicon_id = f.id LIMIT 1)
+      `DELETE FROM moz_icons WHERE root = 0 AND id NOT IN (
+         SELECT icon_id FROM moz_icons_to_pages
        )`);
     cleanupStatements.push(deleteOrphanIcons);
 
@@ -654,16 +659,6 @@ this.PlacesDBUtils = {
     cleanupStatements.push(deleteUnusedKeywords);
 
     // MOZ_PLACES
-    // L.1 fix wrong favicon ids
-    let fixInvalidFaviconIds = DBConn.createAsyncStatement(
-      `UPDATE moz_places SET favicon_id = NULL WHERE id IN (
-         SELECT id FROM moz_places h
-         WHERE favicon_id NOT NULL
-           AND NOT EXISTS
-             (SELECT id FROM moz_favicons WHERE id = h.favicon_id LIMIT 1)
-       )`);
-    cleanupStatements.push(fixInvalidFaviconIds);
-
     // L.2 recalculate visit_count and last_visit_date
     let fixVisitStats = DBConn.createAsyncStatement(
       `UPDATE moz_places
@@ -765,7 +760,7 @@ this.PlacesDBUtils = {
       Services.obs.removeObserver(arguments.callee, aTopic);
       tasks.log("+ Database cleaned up");
       PlacesDBUtils._executeTasks(tasks);
-    }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+    }, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
 
     // Force an orphans expiration step.
     expiration.observe(null, "places-debug-start-expiration", 0);

@@ -445,7 +445,7 @@ var Printing = {
     let data = message.data;
     switch (message.name) {
       case "Printing:Preview:Enter": {
-        this.enterPrintPreview(Services.wm.getOuterWindowWithId(data.windowID), data.simplifiedMode, data.defaultPrinterName);
+        this.enterPrintPreview(Services.wm.getOuterWindowWithId(data.windowID), data.simplifiedMode, data.changingBrowsers, data.defaultPrinterName);
         break;
       }
 
@@ -622,7 +622,7 @@ var Printing = {
     });
   },
 
-  enterPrintPreview(contentWindow, simplifiedMode, defaultPrinterName) {
+  enterPrintPreview(contentWindow, simplifiedMode, changingBrowsers, defaultPrinterName) {
     // We'll call this whenever we've finished reflowing the document, or if
     // we errored out while attempting to print preview (in which case, we'll
     // notify the parent that we've failed).
@@ -630,6 +630,7 @@ var Printing = {
       removeEventListener("printPreviewUpdate", onPrintPreviewReady);
       sendAsyncMessage("Printing:Preview:Entered", {
         failed: !!error,
+        changingBrowsers,
       });
     };
 
@@ -656,7 +657,7 @@ var Printing = {
       // The print preview docshell will be in a different TabGroup,
       // so we run it in a separate runnable to avoid touching a
       // different TabGroup in our own runnable.
-      Services.tm.mainThread.dispatch(() => {
+      Services.tm.dispatchToMainThread(() => {
         try {
           docShell.printPreview.printPreview(printSettings, contentWindow, this);
         } catch (error) {
@@ -665,7 +666,7 @@ var Printing = {
           Components.utils.reportError(error);
           notifyEntered(error);
         }
-      }, Ci.nsIThread.DISPATCH_NORMAL);
+      });
     } catch (error) {
       // This might fail if we, for example, attempt to print a XUL document.
       // In that case, we inform the parent to bail out of print preview.
@@ -970,9 +971,7 @@ var AudioPlaybackListener = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
 
   init() {
-    Services.obs.addObserver(this, "audio-playback", false);
-    Services.obs.addObserver(this, "AudioFocusChanged", false);
-    Services.obs.addObserver(this, "MediaControl", false);
+    Services.obs.addObserver(this, "audio-playback");
 
     addMessageListener("AudioPlayback", this);
     addEventListener("unload", () => {
@@ -982,8 +981,6 @@ var AudioPlaybackListener = {
 
   uninit() {
     Services.obs.removeObserver(this, "audio-playback");
-    Services.obs.removeObserver(this, "AudioFocusChanged");
-    Services.obs.removeObserver(this, "MediaControl");
 
     removeMessageListener("AudioPlayback", this);
   },
@@ -1039,8 +1036,6 @@ var AudioPlaybackListener = {
         }
         sendAsyncMessage(name);
       }
-    } else if (topic == "AudioFocusChanged" || topic == "MediaControl") {
-      this.handleMediaControlMessage(data);
     }
   },
 

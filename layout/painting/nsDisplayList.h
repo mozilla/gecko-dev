@@ -13,16 +13,17 @@
 #ifndef NSDISPLAYLIST_H_
 #define NSDISPLAYLIST_H_
 
+#include "mozilla/ArenaAllocator.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Array.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/TemplateLib.h" // mozilla::tl::Max
 #include "nsCOMPtr.h"
 #include "nsContainerFrame.h"
 #include "nsPoint.h"
 #include "nsRect.h"
-#include "plarena.h"
 #include "nsRegion.h"
 #include "nsDisplayListInvalidation.h"
 #include "nsRenderingContext.h"
@@ -34,6 +35,7 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/gfx/UserData.h"
+#include "mozilla/layers/LayerAttributes.h"
 #include "nsCSSRenderingBorders.h"
 
 #include <stdint.h>
@@ -58,6 +60,7 @@ namespace layers {
 class Layer;
 class ImageLayer;
 class ImageContainer;
+class StackingContextHelper;
 class WebRenderCommand;
 class WebRenderParentCommand;
 class WebRenderDisplayItemLayer;
@@ -235,7 +238,7 @@ enum class nsDisplayListBuilderMode : uint8_t {
  * This manages a display list and is passed as a parameter to
  * nsIFrame::BuildDisplayList.
  * It contains the parameters that don't change from frame to frame and manages
- * the display list memory using a PLArena. It also establishes the reference
+ * the display list memory using an arena. It also establishes the reference
  * coordinate system for all display list items. Some of the parameters are
  * available from the prescontext/presshell, but we copy them into the builder
  * for faster/more convenient access.
@@ -281,6 +284,15 @@ class nsDisplayListBuilder {
     int mAccumulatedRectLevels;
     nsRect mDirtyRect;
   };
+
+  /**
+   * A frame can be in one of three states of AGR.
+   * AGR_NO     means the frame is not an AGR for now.
+   * AGR_YES    means the frame is an AGR for now.
+   * AGR_MAYBE  means the frame is not an AGR for now, but a transition
+   *            to AGR_YES without restyling is possible.
+   */
+  enum AGRState { AGR_NO, AGR_YES, AGR_MAYBE };
 
 public:
   typedef mozilla::FrameLayerBuilder FrameLayerBuilder;
@@ -817,8 +829,9 @@ public:
           aBuilder->FindReferenceFrameFor(aForChild,
               &aBuilder->mCurrentOffsetToReferenceFrame);
       }
+      mCurrentAGRState = aBuilder->IsAnimatedGeometryRoot(aForChild);
       if (aBuilder->mCurrentFrame == aForChild->GetParent()) {
-        if (aBuilder->IsAnimatedGeometryRoot(aForChild)) {
+        if (mCurrentAGRState == AGR_YES) {
           aBuilder->mCurrentAGR = aBuilder->WrapAGRForFrame(aForChild, aBuilder->mCurrentAGR);
         }
       } else if (aForChild != aBuilder->mCurrentFrame) {
@@ -842,8 +855,10 @@ public:
       return mPrevAnimatedGeometryRoot;
     }
     bool IsAnimatedGeometryRoot() const {
-      return *mBuilder->mCurrentAGR == mBuilder->mCurrentFrame;
-
+      return mCurrentAGRState == AGR_YES;
+    }
+    bool MaybeAnimatedGeometryRoot() const {
+      return mCurrentAGRState == AGR_MAYBE;
     }
     void RestoreBuildingInvisibleItemsValue() {
       mBuilder->mBuildingInvisibleItems = mPrevBuildingInvisibleItems;
@@ -861,6 +876,7 @@ public:
     }
   private:
     nsDisplayListBuilder* mBuilder;
+    AGRState              mCurrentAGRState;
     const nsIFrame*       mPrevFrame;
     const nsIFrame*       mPrevReferenceFrame;
     nsIFrame*             mPrevAnimatedGeometryRoot;
@@ -1397,7 +1413,8 @@ private:
    * Returns whether a frame acts as an animated geometry root, optionally
    * returning the next ancestor to check.
    */
-  bool IsAnimatedGeometryRoot(nsIFrame* aFrame, nsIFrame** aParent = nullptr);
+  AGRState IsAnimatedGeometryRoot(nsIFrame* aFrame,
+                                  nsIFrame** aParent = nullptr);
 
   /**
    * Returns the nearest ancestor frame to aFrame that is considered to have
@@ -1455,7 +1472,11 @@ private:
   nsIFrame* const                mReferenceFrame;
   nsIFrame*                      mIgnoreScrollFrame;
   nsDisplayLayerEventRegions*    mLayerEventRegions;
-  PLArenaPool                    mPool;
+
+  static const size_t kArenaAlignment =
+      mozilla::tl::Max<NS_ALIGNMENT_OF(void*), NS_ALIGNMENT_OF(double)>::value;
+  mozilla::ArenaAllocator<4096, kArenaAlignment> mPool;
+
   nsCOMPtr<nsISelection>         mBoundingSelection;
   AutoTArray<PresShellState,8> mPresShellStates;
   AutoTArray<nsIFrame*,100>    mFramesMarkedForDisplay;
@@ -1588,10 +1609,13 @@ public:
   typedef mozilla::layers::FrameMetrics::ViewID ViewID;
   typedef mozilla::layers::Layer Layer;
   typedef mozilla::layers::LayerManager LayerManager;
+  typedef mozilla::layers::StackingContextHelper StackingContextHelper;
   typedef mozilla::layers::WebRenderCommand WebRenderCommand;
   typedef mozilla::layers::WebRenderParentCommand WebRenderParentCommand;
   typedef mozilla::layers::WebRenderDisplayItemLayer WebRenderDisplayItemLayer;
   typedef mozilla::LayerState LayerState;
+  typedef mozilla::image::imgDrawingParams imgDrawingParams;
+  typedef mozilla::image::DrawResult DrawResult;
   typedef class mozilla::gfx::DrawTarget DrawTarget;
 
   // This is never instantiated directly (it has pure virtual methods), so no
@@ -1931,6 +1955,7 @@ public:
     * to their parent.
     */
    virtual void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                        const StackingContextHelper& aSc,
                                         nsTArray<WebRenderParentCommand>& aParentCommands,
                                         WebRenderDisplayItemLayer* aLayer) {}
   /**
@@ -2148,6 +2173,9 @@ protected:
   friend class nsDisplayList;
 
   nsDisplayItem() { mAbove = nullptr; }
+
+  typedef bool (*PrefFunc)(void);
+  bool ShouldUseAdvancedLayer(LayerManager* aManager, PrefFunc aFunc);
 
   nsIFrame* mFrame;
   const DisplayItemClipChain* mClipChain;
@@ -2706,43 +2734,6 @@ protected:
   Type mType;
 };
 
-/**
- * Generic display item that can contain overflow. Use this in lieu of
- * nsDisplayGeneric if you have a frame that should use the visual overflow
- * rect of its frame when drawing items, instead of the frame's bounds.
- */
-class nsDisplayGenericOverflow : public nsDisplayGeneric {
-  public:
-    nsDisplayGenericOverflow(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                             PaintCallback aPaint, const char* aName, Type aType)
-      : nsDisplayGeneric(aBuilder, aFrame, aPaint, aName, aType)
-    {
-      MOZ_COUNT_CTOR(nsDisplayGenericOverflow);
-    }
-    // XXX: should be removed eventually
-    nsDisplayGenericOverflow(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                             OldPaintCallback aOldPaint, const char* aName, Type aType)
-      : nsDisplayGeneric(aBuilder, aFrame, aOldPaint, aName, aType)
-    {
-      MOZ_COUNT_CTOR(nsDisplayGenericOverflow);
-    }
-  #ifdef NS_BUILD_REFCNT_LOGGING
-    virtual ~nsDisplayGenericOverflow() {
-      MOZ_COUNT_DTOR(nsDisplayGenericOverflow);
-    }
-  #endif
-
-    /**
-     * Returns the frame's visual overflow rect instead of the frame's bounds.
-     */
-    virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                             bool* aSnap) override
-    {
-      *aSnap = false;
-      return Frame()->GetVisualOverflowRect() + ToReferenceFrame();
-    }
-};
-
 #if defined(MOZ_REFLOW_PERF_DSP) && defined(MOZ_REFLOW_PERF)
 /**
  * This class implements painting of reflow counts.  Ideally, we would simply
@@ -2840,6 +2831,7 @@ public:
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
   virtual void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                        WebRenderDisplayItemLayer* aLayer) override;
 
@@ -2871,6 +2863,7 @@ public:
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
   virtual void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                        WebRenderDisplayItemLayer* aLayer) override;
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx) override;
@@ -2890,6 +2883,7 @@ public:
 
 protected:
   void CreateBorderImageWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                          const StackingContextHelper& aSc,
                                           nsTArray<WebRenderParentCommand>& aParentCommands,
                                           WebRenderDisplayItemLayer* aLayer);
   nsRegion CalculateBounds(const nsStyleBorder& aStyleBorder);
@@ -2977,6 +2971,13 @@ public:
 #endif
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) override;
+
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager,
+                                   const ContainerLayerParameters& aParameters) override;
+  virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
+                                             LayerManager* aManager,
+                                             const ContainerLayerParameters& aContainerParameters) override;
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx) override;
 
@@ -3093,7 +3094,9 @@ public:
                                          const nsRect& aBackgroundRect,
                                          nsDisplayList* aList,
                                          bool aAllowWillPaintBorderOptimization = true,
-                                         nsStyleContext* aStyleContext = nullptr);
+                                         nsStyleContext* aStyleContext = nullptr,
+                                         const nsRect& aBackgroundOriginRect = nsRect(),
+                                         nsIFrame* aSecondaryReferenceFrame = nullptr);
 
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager,
@@ -3102,6 +3105,11 @@ public:
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
+
+  virtual void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
+                                       nsTArray<WebRenderParentCommand>& aParentCommands,
+                                       WebRenderDisplayItemLayer* aLayer) override;
 
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) override;
@@ -3159,11 +3167,14 @@ protected:
   typedef class mozilla::layers::ImageContainer ImageContainer;
   typedef class mozilla::layers::ImageLayer ImageLayer;
 
+  bool CanBuildWebRenderDisplayItems(LayerManager* aManager);
   bool TryOptimizeToImageLayer(LayerManager* aManager, nsDisplayListBuilder* aBuilder);
   nsRect GetBoundsInternal(nsDisplayListBuilder* aBuilder);
 
   void PaintInternal(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx,
                      const nsRect& aBounds, nsRect* aClipRect);
+
+  virtual nsIFrame* StyleFrame() { return mFrame; }
 
   // Determine whether we want to be separated into our own layer, independent
   // of whether this item can actually be layerized.
@@ -3188,8 +3199,58 @@ protected:
   bool mIsRasterImage;
   /* Whether the image should be treated as fixed to the viewport. */
   bool mShouldFixToViewport;
+  uint32_t mImageFlags;
 };
 
+enum class TableType : uint8_t {
+  TABLE,
+  TABLE_COL,
+  TABLE_COL_GROUP,
+  TABLE_ROW,
+  TABLE_ROW_GROUP,
+  TABLE_CELL,
+
+  TABLE_TYPE_MAX
+};
+
+enum class TableTypeBits : uint8_t {
+  COUNT = 3
+};
+
+static_assert(
+  static_cast<uint8_t>(TableType::TABLE_TYPE_MAX) < (1 << (static_cast<uint8_t>(TableTypeBits::COUNT) + 1)),
+  "TableType cannot fit with TableTypeBits::COUNT");
+TableType GetTableTypeFromFrame(nsIFrame* aFrame);
+
+/**
+ * A display item to paint background image for table. For table parts, such
+ * as row, row group, col, col group, when drawing its background, we'll
+ * create separate background image display item for its containning cell.
+ * Those background image display items will reference to same DisplayItemData
+ * if we keep the mFrame point to cell's ancestor frame. We don't want to this
+ * happened bacause share same DisplatItemData will cause many bugs. So that
+ * we let mFrame point to cell frame and store the table type of the ancestor
+ * frame. And use mFrame and table type as key to generate DisplayItemData to
+ * avoid sharing DisplayItemData.
+ *
+ * Also store ancestor frame as mStyleFrame for all rendering informations.
+ */
+class nsDisplayTableBackgroundImage : public nsDisplayBackgroundImage {
+public:
+  nsDisplayTableBackgroundImage(const InitData& aInitData, nsIFrame* aCellFrame);
+
+  virtual uint32_t GetPerFrameKey() override {
+    return (static_cast<uint8_t>(mTableType) << nsDisplayItem::TYPE_BITS) |
+           nsDisplayItem::GetPerFrameKey();
+  }
+
+  virtual bool IsInvalid(nsRect& aRect) override;
+protected:
+  virtual nsIFrame* StyleFrame() override { return mStyleFrame; }
+
+  nsIFrame* mStyleFrame;
+  TableType mTableType;
+};
 
 /**
  * A display item to paint the native theme background for a frame.
@@ -3316,6 +3377,26 @@ protected:
   mozilla::gfx::Color mColor;
 };
 
+class nsDisplayTableBackgroundColor : public nsDisplayBackgroundColor
+{
+public:
+  nsDisplayTableBackgroundColor(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                                const nsRect& aBackgroundRect,
+                                const nsStyleBackground* aBackgroundStyle,
+                                nscolor aColor,
+                                nsIFrame* aAncestorFrame)
+    : nsDisplayBackgroundColor(aBuilder, aFrame, aBackgroundRect, aBackgroundStyle, aColor)
+    , mTableType(GetTableTypeFromFrame(aAncestorFrame))
+  { }
+
+  virtual uint32_t GetPerFrameKey() override {
+    return (static_cast<uint8_t>(mTableType) << nsDisplayItem::TYPE_BITS) |
+           nsDisplayItem::GetPerFrameKey();
+  }
+protected:
+  TableType mTableType;
+};
+
 class nsDisplayClearBackground : public nsDisplayItem
 {
 public:
@@ -3414,6 +3495,7 @@ public:
 
   bool CanBuildWebRenderDisplayItems();
   virtual void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                        WebRenderDisplayItemLayer* aLayer) override;
 
@@ -3463,7 +3545,11 @@ public:
     }
   }
 
+  static bool CanCreateWebRenderCommands(nsDisplayListBuilder* aBuilder,
+                                         nsIFrame* aFrame,
+                                         nsPoint aReferencePoint);
   static void CreateInsetBoxShadowWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                                    const StackingContextHelper& aSc,
                                                     WebRenderDisplayItemLayer* aLayer,
                                                     nsIFrame* aFrame,
                                                     const nsRect aBorderRect);
@@ -3474,6 +3560,7 @@ public:
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
   virtual void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
                                        nsTArray<WebRenderParentCommand>& aParentCommand,
                                        WebRenderDisplayItemLayer* aLayer) override;
 
@@ -3503,6 +3590,7 @@ public:
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
   virtual void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+                                       const StackingContextHelper& aSc,
                                        nsTArray<WebRenderParentCommand>& aParentCommands,
                                        mozilla::layers::WebRenderDisplayItemLayer* aLayer) override;
   virtual bool IsInvisibleInRect(const nsRect& aRect) override;
@@ -3957,6 +4045,7 @@ private:
  */
 class nsDisplayOwnLayer : public nsDisplayWrapList {
 public:
+  typedef mozilla::layers::ScrollThumbData ScrollThumbData;
 
   /**
    * nsDisplayOwnLayer constructor flags
@@ -3985,7 +4074,7 @@ public:
                     const ActiveScrolledRoot* aActiveScrolledRoot,
                     uint32_t aFlags = 0,
                     ViewID aScrollTarget = mozilla::layers::FrameMetrics::NULL_SCROLL_ID,
-                    float aScrollbarThumbRatio = 0.0f,
+                    const ScrollThumbData& aThumbData = ScrollThumbData{},
                     bool aForceActive = true);
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayOwnLayer();
@@ -4010,7 +4099,11 @@ public:
 protected:
   uint32_t mFlags;
   ViewID mScrollTarget;
-  float mScrollbarThumbRatio;
+  // If this nsDisplayOwnLayer represents a scroll thumb layer, mThumbData
+  // stores information about the scroll thumb. Otherwise, mThumbData will be
+  // default-constructed (in particular with mDirection == ScrollDirection::NONE)
+  // and can be ignored.
+  ScrollThumbData mThumbData;
   bool mForceActive;
 };
 
@@ -4124,7 +4217,7 @@ public:
                                    LayerManager* aManager,
                                    const ContainerLayerParameters& aParameters) override
   {
-    return mozilla::LAYER_ACTIVE;
+    return mozilla::LAYER_ACTIVE_FORCE;
   }
   virtual bool TryMerge(nsDisplayItem* aItem) override;
 
@@ -4136,7 +4229,7 @@ public:
     return mAnimatedGeometryRootForScrollMetadata;
   }
 
-private:
+protected:
   // For background-attachment:fixed
   nsDisplayFixedPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                          nsDisplayList* aList, uint32_t aIndex);
@@ -4145,6 +4238,27 @@ private:
   AnimatedGeometryRoot* mAnimatedGeometryRootForScrollMetadata;
   uint32_t mIndex;
   bool mIsFixedBackground;
+};
+
+class nsDisplayTableFixedPosition : public nsDisplayFixedPosition
+{
+public:
+  static nsDisplayTableFixedPosition* CreateForFixedBackground(nsDisplayListBuilder* aBuilder,
+                                                               nsIFrame* aFrame,
+                                                               nsDisplayBackgroundImage* aImage,
+                                                               uint32_t aIndex,
+                                                               nsIFrame* aAncestorFrame);
+
+  virtual uint32_t GetPerFrameKey() override {
+    return (mIndex << (nsDisplayItem::TYPE_BITS + static_cast<uint8_t>(TableTypeBits::COUNT))) |
+           (static_cast<uint8_t>(mTableType) << nsDisplayItem::TYPE_BITS) |
+           nsDisplayItem::GetPerFrameKey();
+  }
+protected:
+  nsDisplayTableFixedPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                              nsDisplayList* aList, uint32_t aIndex, nsIFrame* aAncestorFrame);
+
+  TableType mTableType;
 };
 
 /**
@@ -4323,7 +4437,7 @@ public:
   /*
    * Paint mask onto aMaskContext in mFrame's coordinate space.
    */
-  bool PaintMask(nsDisplayListBuilder* aBuilder, gfxContext* aMaskContext);
+  void PaintMask(nsDisplayListBuilder* aBuilder, gfxContext* aMaskContext);
 
   const nsTArray<nsRect>& GetDestRects()
   {
@@ -4939,6 +5053,10 @@ class PaintTelemetry
    public:
     explicit AutoRecord(Metric aMetric);
     ~AutoRecord();
+
+    TimeStamp GetStart() const {
+      return mStart;
+    }
    private:
     Metric mMetric;
     mozilla::TimeStamp mStart;

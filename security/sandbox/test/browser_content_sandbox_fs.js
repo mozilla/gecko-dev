@@ -1,5 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
+ /* import-globals-from browser_content_sandbox_utils.js */
+ "use strict";
 
 var prefs = Cc["@mozilla.org/preferences-service;1"]
             .getService(Ci.nsIPrefBranch);
@@ -51,9 +53,9 @@ function readDir(path) {
     numEntries++;
   }).then(function () {
     iterator.close();
-    return {ok: true, numEntries: numEntries};
+    return {ok: true, numEntries};
   }).catch(function () {
-    return {ok: false, numEntries: numEntries};
+    return {ok: false, numEntries};
   });
   return promise;
 }
@@ -108,6 +110,23 @@ function minProfileReadSandboxLevel(level) {
       return 3;
     default:
       Assert.ok(false, "Unknown OS");
+      return 0;
+  }
+}
+
+// Returns the lowest sandbox level where blanket reading of the home
+// directory from the content process should be blocked by the sandbox.
+function minHomeReadSandboxLevel(level) {
+  switch (Services.appinfo.OS) {
+    case "WINNT":
+      return 3;
+    case "Darwin":
+      return 3;
+    case "Linux":
+      return 3;
+    default:
+      Assert.ok(false, "Unknown OS");
+      return 0;
   }
 }
 
@@ -126,7 +145,7 @@ function minProfileReadSandboxLevel(level) {
 // Tests reading various files and directories from file and web
 // content processes.
 //
-add_task(function*() {
+add_task(function* () {
   // This test is only relevant in e10s
   if (!gMultiProcessBrowser) {
     ok(false, "e10s is enabled");
@@ -197,16 +216,10 @@ function* createTempFile() {
   let browser = gBrowser.selectedBrowser;
   let path = fileInTempDir().path;
   let fileCreated = yield ContentTask.spawn(browser, path, createFile);
-  if (!fileCreated && isWin()) {
-    // TODO: fix 1329294 and enable this test for Windows.
-    // Not using todo() because this only fails on automation.
-    info("ignoring failure to write to content temp due to 1329294\n");
-  } else {
-    ok(fileCreated == true, "creating a file in content temp is permitted");
-    // now delete the file
-    let fileDeleted = yield ContentTask.spawn(browser, path, deleteFile);
-    ok(fileDeleted == true, "deleting a file in content temp is permitted");
-  }
+  ok(fileCreated == true, "creating a file in content temp is permitted");
+  // now delete the file
+  let fileDeleted = yield ContentTask.spawn(browser, path, deleteFile);
+  ok(fileDeleted == true, "deleting a file in content temp is permitted");
 }
 
 // Test reading files and dirs from web and file content processes.
@@ -234,10 +247,13 @@ function* testFileAccess() {
   if (fileContentProcessEnabled) {
     // open a tab in a file content process
     gBrowser.selectedTab =
-      gBrowser.addTab("about:blank", {preferredRemoteType: "file"});
+      BrowserTestUtils.addTab(gBrowser, "about:blank", {preferredRemoteType: "file"});
     // get the browser for the file content process tab
     fileBrowser = gBrowser.getBrowserForTab(gBrowser.selectedTab);
   }
+
+  // Current level
+  let level = prefs.getIntPref("security.sandbox.content.level");
 
   // Directories/files to test accessing from content processes.
   // For directories, we test whether a directory listing is allowed
@@ -262,6 +278,108 @@ function* testFileAccess() {
       file:     profileDir,
       minLevel: 0,
     });
+  }
+
+  let homeDir = GetHomeDir();
+  tests.push({
+    desc:     "home dir",
+    ok:       false,
+    browser:  webBrowser,
+    file:     homeDir,
+    minLevel: minHomeReadSandboxLevel(),
+  });
+  if (fileContentProcessEnabled) {
+    tests.push({
+      desc:     "home dir",
+      ok:       true,
+      browser:  fileBrowser,
+      file:     homeDir,
+      minLevel: 0,
+    });
+  }
+
+  if (isMac()) {
+    // If ~/Library/Caches/TemporaryItems exists, when level <= 2 we
+    // make sure it's readable. For level 3, we make sure it isn't.
+    let homeTempDir = GetHomeDir();
+    homeTempDir.appendRelativePath("Library/Caches/TemporaryItems");
+    if (homeTempDir.exists()) {
+      let shouldBeReadable, minLevel;
+      if (level >= minHomeReadSandboxLevel()) {
+        shouldBeReadable = false;
+        minLevel = minHomeReadSandboxLevel();
+      } else {
+        shouldBeReadable = true;
+        minLevel = 0;
+      }
+      tests.push({
+        desc:     "home library cache temp dir",
+        ok:       shouldBeReadable,
+        browser:  webBrowser,
+        file:     homeTempDir,
+        minLevel,
+      });
+    }
+  }
+
+  // Should we enable this /var test on Linux? Once we are running
+  // with read access restrictions on Linux, this todo will fail and
+  // should then be removed.
+  if (isLinux()) {
+    todo(level >= minHomeReadSandboxLevel(), "enable /var test on Linux?");
+  }
+  if (isMac()) {
+    let varDir = GetDir("/var");
+
+    // Mac sandbox rules use /private/var because /var is a symlink
+    // to /private/var on OS X. Make sure that hasn't changed.
+    varDir.normalize();
+    Assert.ok(varDir.path === "/private/var", "/var resolves to /private/var");
+
+    tests.push({
+      desc:     "/var",
+      ok:       false,
+      browser:  webBrowser,
+      file:     varDir,
+      minLevel: minHomeReadSandboxLevel(),
+    });
+    if (fileContentProcessEnabled) {
+      tests.push({
+        desc:     "/var",
+        ok:       true,
+        browser:  fileBrowser,
+        file:     varDir,
+        minLevel: 0,
+      });
+    }
+  }
+
+  if (isMac()) {
+    // Test if we can read from $TMPDIR because we expect it
+    // to be within /private/var. Reading from it should be
+    // prevented in a 'web' process.
+    let macTempDir = GetDirFromEnvVariable("TMPDIR");
+
+    macTempDir.normalize();
+    Assert.ok(macTempDir.path.startsWith("/private/var"),
+      "$TMPDIR is in /private/var");
+
+    tests.push({
+      desc:     `$TMPDIR (${macTempDir.path})`,
+      ok:       false,
+      browser:  webBrowser,
+      file:     macTempDir,
+      minLevel: minHomeReadSandboxLevel(),
+    });
+    if (fileContentProcessEnabled) {
+      tests.push({
+        desc:     `$TMPDIR (${macTempDir.path})`,
+        ok:       true,
+        browser:  fileBrowser,
+        file:     macTempDir,
+        minLevel: 0,
+      });
+    }
   }
 
   let extensionsDir = GetProfileEntry("extensions");
@@ -304,12 +422,11 @@ function* testFileAccess() {
   }
 
   // remove tests not enabled by the current sandbox level
-  let level = prefs.getIntPref("security.sandbox.content.level");
-  tests = tests.filter((test) => { return (test.minLevel <= level); });
+  tests = tests.filter((test) => (test.minLevel <= level));
 
   for (let test of tests) {
-    let testFunc = test.file.isDirectory? readDir : readFile;
-    let okString = test.ok? "allowed" : "blocked";
+    let testFunc = test.file.isDirectory ? readDir : readFile;
+    let okString = test.ok ? "allowed" : "blocked";
     let processType = test.browser === webBrowser ? "web" : "file";
 
     let result = yield ContentTask.spawn(test.browser, test.file.path,

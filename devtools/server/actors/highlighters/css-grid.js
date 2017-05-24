@@ -17,9 +17,18 @@ const {
   getCurrentZoom,
   getDisplayPixelRatio,
   setIgnoreLayoutChanges,
-  getWindowDimensions,
-  getMaxSurfaceSize,
+  getNodeBounds,
+  getViewportDimensions,
 } = require("devtools/shared/layout/utils");
+const {
+  identity,
+  apply,
+  translate,
+  multiply,
+  scale,
+  getNodeTransformationMatrix,
+  getNodeTransformOrigin
+} = require("devtools/shared/layout/dom-matrix-2d");
 const { stringifyGridFragments } = require("devtools/server/actors/utils/css-grid-utils");
 
 const CSS_GRID_ENABLED_PREF = "layout.css.grid.enabled";
@@ -57,18 +66,116 @@ const GRID_GAP_ALPHA = 0.5;
  */
 const gCachedGridPattern = new Map();
 
-// That's the maximum size we can allocate for the canvas, in bytes. See:
-// http://searchfox.org/mozilla-central/source/gfx/thebes/gfxPrefs.h#401
-// It might become accessible as user preference, but at the moment we have to hard code
-// it (see: https://bugzilla.mozilla.org/show_bug.cgi?id=1282656).
-const MAX_ALLOC_SIZE = 500000000;
-// One pixel on canvas is using 4 bytes (R, G, B and Alpha); we use this to calculate the
-// proper memory allocation below
-const BYTES_PER_PIXEL = 4;
-// The maximum allocable pixels the canvas can have
-const MAX_ALLOC_PIXELS = MAX_ALLOC_SIZE / BYTES_PER_PIXEL;
-// The maximum allocable pixels per side in a square canvas
-const MAX_ALLOC_PIXELS_PER_SIDE = Math.sqrt(MAX_ALLOC_PIXELS)|0;
+// We create a <canvas> element that has always 4096x4096 physical pixels, to displays
+// our grid's overlay.
+// Then, we move the element around when needed, to give the perception that it always
+// covers the screen (See bug 1345434).
+//
+// This canvas size value is the safest we can use because most GPUs can handle it.
+// It's also far from the maximum canvas memory allocation limit (4096x4096x4 is
+// 67.108.864 bytes, where the limit is 500.000.000 bytes, see:
+// http://searchfox.org/mozilla-central/source/gfx/thebes/gfxPrefs.h#401).
+//
+// Note:
+// Once bug 1232491 lands, we could try to refactor this code to use the values from
+// the displayport API instead.
+//
+// Using a fixed value should also solve bug 1348293.
+const CANVAS_SIZE = 4096;
+
+// This constant is used as value to draw infinite lines on canvas; since we cannot use
+// the canvas boundaries as coordinates to draw the lines, and then applying
+// transformations on top of them (the resulting coordinates might ending before reaching
+// the viewport's edges, therefore the lines won't looks as "infinite").
+const CANVAS_INFINITY = CANVAS_SIZE << 8;
+
+/**
+ * Draws a line to the context given, applying a transformation matrix if passed.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ *        The 2d canvas context.
+ * @param {Number} x1
+ *        The x-axis of the coordinate for the begin of the line.
+ * @param {Number} y1
+ *        The y-axis of the coordinate for the begin of the line.
+ * @param {Number} x2
+ *        The x-axis of the coordinate for the end of the line.
+ * @param {Number} y2
+ *        The y-axis of the coordinate for the end of the line.
+ * @param {Array} [matrix=identity()]
+ *        The transformation matrix to apply.
+ */
+function drawLine(ctx, x1, y1, x2, y2, matrix = identity()) {
+  let fromPoint = apply(matrix, [x1, y1]);
+  let toPoint = apply(matrix, [x2, y2]);
+
+  ctx.moveTo(Math.round(fromPoint[0]), Math.round(fromPoint[1]));
+  ctx.lineTo(Math.round(toPoint[0]), Math.round(toPoint[1]));
+}
+
+/**
+ * Draws a rect to the context given, applying a transformation matrix if passed.
+ * The coordinates are the start and end points of the rectangle's diagonal.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ *        The 2d canvas context.
+ * @param {Number} x1
+ *        The x-axis coordinate of the rectangle's diagonal start point.
+ * @param {Number} y1
+ *        The y-axis coordinate of the rectangle's diagonal start point.
+ * @param {Number} x2
+ *        The x-axis coordinate of the rectangle's diagonal end point.
+ * @param {Number} y2
+ *        The y-axis coordinate of the rectangle's diagonal end point.
+ * @param {Array} [matrix=identity()]
+ *        The transformation matrix to apply.
+ */
+function drawRect(ctx, x1, y1, x2, y2, matrix = identity()) {
+  let p = [
+    [x1, y1],
+    [x2, y1],
+    [x2, y2],
+    [x1, y2]
+  ].map(point => apply(matrix, point).map(Math.round));
+
+  ctx.beginPath();
+  ctx.moveTo(p[0][0], p[0][1]);
+  ctx.lineTo(p[1][0], p[1][1]);
+  ctx.lineTo(p[2][0], p[2][1]);
+  ctx.lineTo(p[3][0], p[3][1]);
+  ctx.closePath();
+}
+
+/**
+ * Utility method to draw a rounded rectangle in the provided canvas context.
+ *
+ * @param  {CanvasRenderingContext2D} ctx
+ *         The 2d canvas context.
+ * @param  {Number} x
+ *         The x-axis origin of the rectangle.
+ * @param  {Number} y
+ *         The y-axis origin of the rectangle.
+ * @param  {Number} width
+ *         The width of the rectangle.
+ * @param  {Number} height
+ *         The height of the rectangle.
+ * @param  {Number} radius
+ *         The radius of the rounding.
+ */
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + radius);
+  ctx.lineTo(x, y + height - radius);
+  ctx.arcTo(x, y + height, x + radius, y + height, radius);
+  ctx.lineTo(x + width - radius, y + height);
+  ctx.arcTo(x + width, y + height, x + width, y + height - radius, radius);
+  ctx.lineTo(x + width, y + radius);
+  ctx.arcTo(x + width, y, x + width - radius, y, radius);
+  ctx.lineTo(x + radius, y);
+  ctx.arcTo(x, y, x, y + radius, radius);
+  ctx.stroke();
+  ctx.fill();
+}
 
 /**
  * The CssGridHighlighter is the class that overlays a visual grid on top of
@@ -95,6 +202,11 @@ const MAX_ALLOC_PIXELS_PER_SIDE = Math.sqrt(MAX_ALLOC_PIXELS)|0;
  *                        columnNumber: Number }
  *     An object containing the grid fragment index, row and column numbers to the
  *     corresponding grid cell to highlight for the current grid.
+ * - showGridLineNames({ gridFragmentIndex: Number, lineNumber: Number,
+ *                       type: String })
+ *     @param  {Object} { gridFragmentIndex: Number, lineNumber: Number }
+ *     An object containing the grid fragment index and line number to the
+ *     corresponding grid line to highlight for the current grid.
  * - showGridLineNumbers(isShown)
  *     @param  {Boolean} isShown
  *     Displays the grid line numbers on the grid lines if isShown is true.
@@ -115,7 +227,7 @@ const MAX_ALLOC_PIXELS_PER_SIDE = Math.sqrt(MAX_ALLOC_PIXELS)|0;
  *     <div class="css-grid-infobar">
  *       <div class="css-grid-infobar-text">
  *         <span class="css-grid-area-infobar-name">Grid Area Name</span>
- *         <span class="css-grid-area-infobar-dimensions"Grid Area Dimensions></span>
+ *         <span class="css-grid-area-infobar-dimensions">Grid Area Dimensions></span>
  *       </div>
  *     </div>
  *   </div>
@@ -123,7 +235,14 @@ const MAX_ALLOC_PIXELS_PER_SIDE = Math.sqrt(MAX_ALLOC_PIXELS)|0;
  *     <div class="css-grid-infobar">
  *       <div class="css-grid-infobar-text">
  *         <span class="css-grid-cell-infobar-position">Grid Cell Position</span>
- *         <span class="css-grid-cell-infobar-dimensions"Grid Cell Dimensions></span>
+ *         <span class="css-grid-cell-infobar-dimensions">Grid Cell Dimensions></span>
+ *       </div>
+ *     </div>
+ *   <div class="css-grid-line-infobar-container">
+ *     <div class="css-grid-infobar">
+ *       <div class="css-grid-infobar-text">
+ *         <span class="css-grid-line-infobar-number">Grid Line Number</span>
+ *         <span class="css-grid-line-infobar-names">Grid Line Names></span>
  *       </div>
  *     </div>
  *   </div>
@@ -131,17 +250,6 @@ const MAX_ALLOC_PIXELS_PER_SIDE = Math.sqrt(MAX_ALLOC_PIXELS)|0;
  */
 function CssGridHighlighter(highlighterEnv) {
   AutoRefreshHighlighter.call(this, highlighterEnv);
-
-  this.maxCanvasSizePerSide = getMaxSurfaceSize(this.highlighterEnv.window);
-
-  // We cache the previous content's size so we're able to understand when it will
-  // change. The `width` and `height` are expressed in physical pixels in order to react
-  // also at any variation of zoom / pixel ratio.
-  // We initialize with `0` so it will check also at the first `_update()` iteration.
-  this._contentSize = {
-    width: 0,
-    height: 0
-  };
 
   this.markup = new CanvasFrameAnonymousContentHelper(this.highlighterEnv,
     this._buildMarkup.bind(this));
@@ -155,6 +263,16 @@ function CssGridHighlighter(highlighterEnv) {
 
   let { pageListenerTarget } = highlighterEnv;
   pageListenerTarget.addEventListener("pagehide", this.onPageHide);
+
+  // Initialize the <canvas> position to the top left corner of the page
+  this._canvasPosition = {
+    x: 0,
+    y: 0
+  };
+
+  // Calling `calculateCanvasPosition` anyway since the highlighter could be initialized
+  // on a page that has scrolled already.
+  this.calculateCanvasPosition();
 }
 
 CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
@@ -187,7 +305,9 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
       attributes: {
         "id": "canvas",
         "class": "canvas",
-        "hidden": "true"
+        "hidden": "true",
+        "width": CANVAS_SIZE,
+        "height": CANVAS_SIZE
       },
       prefix: this.ID_CLASS_PREFIX
     });
@@ -322,6 +442,52 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
       attributes: {
         "class": "cell-infobar-dimensions",
         "id": "cell-infobar-dimensions"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    // Building the grid line infobar markup
+    let lineInfobarContainer = createNode(this.win, {
+      parent: container,
+      attributes: {
+        "class": "line-infobar-container",
+        "id": "line-infobar-container",
+        "position": "top",
+        "hidden": "true"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    let lineInfobar = createNode(this.win, {
+      parent: lineInfobarContainer,
+      attributes: {
+        "class": "infobar"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+
+    let lineTextbox = createNode(this.win, {
+      parent: lineInfobar,
+      attributes: {
+        "class": "infobar-text"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+    createNode(this.win, {
+      nodeType: "span",
+      parent: lineTextbox,
+      attributes: {
+        "class": "line-infobar-number",
+        "id": "line-infobar-number"
+      },
+      prefix: this.ID_CLASS_PREFIX
+    });
+    createNode(this.win, {
+      nodeType: "span",
+      parent: lineTextbox,
+      attributes: {
+        "class": "line-infobar-names",
+        "id": "line-infobar-names"
       },
       prefix: this.ID_CLASS_PREFIX
     });
@@ -499,6 +665,20 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
   },
 
   /**
+   * Shows the grid line highlight for the given grid line options.
+   *
+   * @param  {Number} options.gridFragmentIndex
+   *         Index of the grid fragment to render the grid line highlight.
+   * @param  {Number} options.lineNumber
+   *         Line number of the grid line to highlight.
+   * @param  {String} options.type
+   *         The dimension type of the grid line.
+   */
+  showGridLineNames({ gridFragmentIndex, lineNumber, type }) {
+    this.renderGridLineNames(gridFragmentIndex, lineNumber, type);
+  },
+
+  /**
    * Clear the grid cell highlights.
    */
   clearGridCell() {
@@ -513,6 +693,18 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    */
   isGrid() {
     return this.currentNode.getGridFragments().length > 0;
+  },
+
+  /**
+   * Is a given grid fragment valid? i.e. does it actually have tracks? In some cases, we
+   * may have a fragment that defines column tracks but doesn't have any rows (or vice
+   * versa). In which case we do not want to draw anything for that fragment.
+   *
+   * @param {Object} fragment
+   * @return {Boolean}
+   */
+  isValidFragment(fragment) {
+    return fragment.cols.tracks.length && fragment.rows.tracks.length;
   },
 
   /**
@@ -543,20 +735,24 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     // Hide the root element and force the reflow in order to get the proper window's
     // dimensions without increasing them.
     root.setAttribute("style", "display: none");
-    this.currentNode.offsetWidth;
+    this.win.document.documentElement.offsetWidth;
 
-    let { width, height } = getWindowDimensions(this.win);
+    let { width, height } = this._winDimensions;
 
-    // Clear the canvas the grid area highlights.
-    this.clearCanvas(width, height);
+    // Updates the <canvas> element's position and size.
+    // It also clear the <canvas>'s drawing context.
+    this.updateCanvasElement();
+
+    // Clear the grid area highlights.
     this.clearGridAreas();
     this.clearGridCell();
 
+    // Update the current matrix used in our canvas' rendering
+    this.updateCurrentMatrix();
+
     // Start drawing the grid fragments.
     for (let i = 0; i < this.gridData.length; i++) {
-      let fragment = this.gridData[i];
-      let quad = this.currentQuads.content[i];
-      this.renderFragment(fragment, quad);
+      this.renderFragment(this.gridData[i]);
     }
 
     // Display the grid area highlights if needed.
@@ -569,6 +765,11 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     // Display the grid cell highlights if needed.
     if (this.options.showGridCell) {
       this.showGridCell(this.options.showGridCell);
+    }
+
+    // Display the grid line names if needed.
+    if (this.options.showGridLineNames) {
+      this.showGridLineNames(this.options.showGridLineNames);
     }
 
     this._showGrid();
@@ -606,7 +807,10 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     this.getElement("area-infobar-dimensions").setTextContent(dim);
 
     let container = this.getElement("area-infobar-container");
-    this._moveInfobar(container, x1, x2, y1, y2);
+    this._moveInfobar(container, x1, x2, y1, y2, {
+      position: "bottom",
+      hideIfOffscreen: true
+    });
   },
 
   _updateGridCellInfobar(rowNumber, columnNumber, x1, x2, y1, y2) {
@@ -621,7 +825,30 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     this.getElement("cell-infobar-dimensions").setTextContent(dim);
 
     let container = this.getElement("cell-infobar-container");
-    this._moveInfobar(container, x1, x2, y1, y2);
+    this._moveInfobar(container, x1, x2, y1, y2, {
+      position: "top",
+      hideIfOffscreen: true
+    });
+  },
+
+  /**
+   * Update the grid information displayed in the grid line info bar.
+   *
+   * @param  {String} gridLineNames
+   *         Comma-separated string of names for the grid line.
+   * @param  {Number} gridLineNumber
+   *         The grid line number.
+   * @param  {Number} x
+   *         The x-coordinate of the grid line.
+   * @param  {Number} y
+   *         The y-coordinate of the grid line.
+   */
+  _updateGridLineInfobar(gridLineNames, gridLineNumber, x, y) {
+    this.getElement("line-infobar-number").setTextContent(gridLineNumber);
+    this.getElement("line-infobar-names").setTextContent(gridLineNames);
+
+    let container = this.getElement("line-infobar-container");
+    this._moveInfobar(container, x, x, y, y);
   },
 
   /**
@@ -636,7 +863,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    * @param  {Number} y2
    *         The second y-coordinate of the grid rectangle.
    */
-  _moveInfobar(container, x1, x2, y1, y2) {
+  _moveInfobar(container, x1, x2, y1, y2, options) {
     let bounds = {
       bottom: y2,
       height: y2 - y1,
@@ -648,77 +875,148 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
       y: y1,
     };
 
-    moveInfobar(container, bounds, this.win);
+    moveInfobar(container, bounds, this.win, options);
   },
 
-  clearCanvas(width, height) {
+  /**
+   * The <canvas>'s position needs to be updated if the page scrolls too much, in order
+   * to give the illusion that it always covers the viewport.
+   */
+  _scrollUpdate() {
+    let hasPositionChanged = this.calculateCanvasPosition();
+
+    if (hasPositionChanged) {
+      this._update();
+    }
+  },
+
+  /**
+   * This method is responsible to do the math that updates the <canvas>'s position,
+   * in accordance with the page's scroll, document's size, canvas size, and
+   * viewport's size.
+   * It's called when a page's scroll is detected.
+   *
+   * @return {Boolean} `true` if the <canvas> position was updated, `false` otherwise.
+   */
+  calculateCanvasPosition() {
+    let cssCanvasSize = CANVAS_SIZE / this.win.devicePixelRatio;
+    let viewportSize = getViewportDimensions(this.win);
+    let documentSize = this._winDimensions;
+    let pageX = this._scroll.x;
+    let pageY = this._scroll.y;
+    let canvasWidth = cssCanvasSize;
+    let canvasHeight = cssCanvasSize;
+    let hasUpdated = false;
+
+    // Those values indicates the relative horizontal and vertical space the page can
+    // scroll before we have to reposition the <canvas>; they're 1/4 of the delta between
+    // the canvas' size and the viewport's size: that's because we want to consider both
+    // sides (top/bottom, left/right; so 1/2 for each side) and also we don't want to
+    // shown the edges of the canvas in case of fast scrolling (to avoid showing undraw
+    // areas, therefore another 1/2 here).
+    let bufferSizeX = (canvasWidth - viewportSize.width) >> 2;
+    let bufferSizeY = (canvasHeight - viewportSize.height) >> 2;
+
+    let { x, y } = this._canvasPosition;
+
+    // Defines the boundaries for the canvas.
+    let topBoundary = 0;
+    let bottomBoundary = documentSize.height - canvasHeight;
+    let leftBoundary = 0;
+    let rightBoundary = documentSize.width - canvasWidth;
+
+    // Defines the thresholds that triggers the canvas' position to be updated.
+    let topThreshold = pageY - bufferSizeY;
+    let bottomThreshold = pageY - canvasHeight + viewportSize.height + bufferSizeY;
+    let leftThreshold = pageX - bufferSizeX;
+    let rightThreshold = pageX - canvasWidth + viewportSize.width + bufferSizeX;
+
+    if (y < bottomBoundary && y < bottomThreshold) {
+      this._canvasPosition.y = Math.min(topThreshold, bottomBoundary);
+      hasUpdated = true;
+    } else if (y > topBoundary && y > topThreshold) {
+      this._canvasPosition.y = Math.max(bottomThreshold, topBoundary);
+      hasUpdated = true;
+    }
+
+    if (x < rightBoundary && x < rightThreshold) {
+      this._canvasPosition.x = Math.min(leftThreshold, rightBoundary);
+      hasUpdated = true;
+    } else if (x > leftBoundary && x > leftThreshold) {
+      this._canvasPosition.x = Math.max(rightThreshold, leftBoundary);
+      hasUpdated = true;
+    }
+
+    return hasUpdated;
+  },
+
+  /**
+   *  Updates the <canvas> element's style in accordance with the current window's
+   * devicePixelRatio, and the position calculated in `calculateCanvasPosition`; it also
+   * clears the drawing context.
+   */
+  updateCanvasElement() {
     let ratio = parseFloat((this.win.devicePixelRatio || 1).toFixed(2));
+    let size = CANVAS_SIZE / ratio;
+    let { x, y } = this._canvasPosition;
 
-    height *= ratio;
-    width *= ratio;
-
-    let hasResolutionChanged = false;
-    if (height !== this._contentSize.height || width !== this._contentSize.width) {
-      hasResolutionChanged = true;
-      this._contentSize.width = width;
-      this._contentSize.height = height;
-    }
-
-    let isCanvasClipped = false;
-
-    if (height > this.maxCanvasSizePerSide) {
-      height = this.maxCanvasSizePerSide;
-      isCanvasClipped = true;
-    }
-
-    if (width > this.maxCanvasSizePerSide) {
-      width = this.maxCanvasSizePerSide;
-      isCanvasClipped = true;
-    }
-
-    // `maxCanvasSizePerSide` has the maximum size per side, but we have to consider
-    // also the memory allocation limit.
-    // For example, a 16384x16384 canvas will exceeds the current MAX_ALLOC_PIXELS
-    if (width * height > MAX_ALLOC_PIXELS) {
-      isCanvasClipped = true;
-      // We want to keep more or less the same ratio of the document's size.
-      // Therefore we don't only check if `height` is greater than `width`, but also
-      // that `width` is not greater than MAX_ALLOC_PIXELS_PER_SIDE (otherwise we'll end
-      // up to reduce `height` in favor of `width`, for example).
-      if (height > width && width < MAX_ALLOC_PIXELS_PER_SIDE) {
-        height = (MAX_ALLOC_PIXELS / width) |0;
-      } else if (width > height && height < MAX_ALLOC_PIXELS_PER_SIDE) {
-        width = (MAX_ALLOC_PIXELS / height) |0;
-      } else {
-        // fallback to a square canvas with the maximum pixels per side Available
-        height = width = MAX_ALLOC_PIXELS_PER_SIDE;
-      }
-    }
-
-    // We warn the user that we had to clip the canvas, but only if resolution has
-    // changed since the last time.
-    // This is only a temporary workaround, and the warning message is supposed to be
-    // non-localized.
-    // Bug 1345434 will get rid of this.
-    if (hasResolutionChanged && isCanvasClipped) {
-      // We display the warning in the web console, so the user will be able to see it.
-      // Unfortunately that would also display the source, where if clicked , will ends
-      // in a non-existing document.
-      // It's not ideal, but from an highlighter there is no an easy way to show such
-      // notification elsewhere.
-      this.win.console.warn("The CSS Grid Highlighter could have been clipped, due " +
-                            "the size of the document inspected\n" +
-                            "See https://bugzilla.mozilla.org/show_bug.cgi?id=1343217 " +
-                            "for further information.");
-    }
-
-    // Resize the canvas taking the dpr into account so as to have crisp lines.
-    this.canvas.setAttribute("width", width);
-    this.canvas.setAttribute("height", height);
+    // Resize the canvas taking the dpr into account so as to have crisp lines, and
+    // translating it to give the perception that it always covers the viewport.
     this.canvas.setAttribute("style",
-      `width:${width / ratio}px;height:${height / ratio}px;`);
+      `width:${size}px;height:${size}px; transform: translate(${x}px, ${y}px);`);
 
-    this.ctx.clearRect(0, 0, width, height);
+    this.ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  },
+
+  /**
+   * Updates the current matrix taking in account the following transformations, in this
+   * order:
+   *   1. The scale given by the display pixel ratio.
+   *   2. The translation to the top left corner of the element.
+   *   3. The scale given by the current zoom.
+   *   4. The translation given by the top and left padding of the element.
+   *   5. Any CSS transformation applied directly to the element (only 2D
+   *      transformation; the 3D transformation are flattened, see `dom-matrix-2d` module
+   *      for further details.)
+   *
+   *  The transformations of the element's ancestors are not currently computed (see
+   *  bug 1355675).
+   */
+  updateCurrentMatrix() {
+    let origin = getNodeTransformOrigin(this.currentNode);
+    let bounds = getNodeBounds(this.win, this.currentNode);
+    let nodeMatrix = getNodeTransformationMatrix(this.currentNode);
+    let computedStyle = this.currentNode.ownerGlobal.getComputedStyle(this.currentNode);
+
+    let paddingTop = parseFloat(computedStyle.paddingTop);
+    let paddingLeft = parseFloat(computedStyle.paddingLeft);
+
+    // Subtract padding values to compensate for top/left being moved by padding.
+    let ox = origin[0] - paddingLeft;
+    let oy = origin[1] - paddingTop;
+
+    let m = identity();
+
+    // First, we scale based on the display's current pixel ratio.
+    m = multiply(m, scale(getDisplayPixelRatio(this.win)));
+    // Then we translate the origin to the node's top left corner.
+    m = multiply(m, translate(bounds.p1.x, bounds.p1.y));
+    // And scale based on the current zoom factor.
+    m = multiply(m, scale(getCurrentZoom(this.win)));
+    // Then translate the origin based on the node's padding values.
+    m = multiply(m, translate(paddingLeft, paddingTop));
+    // Finally, we can apply the current node's transformation matrix, taking in account
+    // the `transform-origin` property and the node's top and left padding.
+    if (nodeMatrix) {
+      m = multiply(m, translate(ox, oy));
+      m = multiply(m, nodeMatrix);
+      m = multiply(m, translate(-ox, -oy));
+      this.hasNodeTransformations = true;
+    } else {
+      this.hasNodeTransformations = false;
+    }
+
+    this.currentMatrix = m;
   },
 
   getFirstRowLinePos(fragment) {
@@ -756,13 +1054,25 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     return trackIndex + 1;
   },
 
-  renderFragment(fragment, quad) {
-    this.renderLines(fragment.cols, quad, COLUMNS, "left", "top", "height",
+  renderFragment(fragment) {
+    if (!this.isValidFragment(fragment)) {
+      return;
+    }
+
+    this.renderLines(fragment.cols, COLUMNS, "left", "top", "height",
                      this.getFirstRowLinePos(fragment),
                      this.getLastRowLinePos(fragment));
-    this.renderLines(fragment.rows, quad, ROWS, "top", "left", "width",
+    this.renderLines(fragment.rows, ROWS, "top", "left", "width",
                      this.getFirstColLinePos(fragment),
                      this.getLastColLinePos(fragment));
+
+    // Line numbers are rendered in a 2nd step to avoid overlapping with existing lines.
+    if (this.options.showGridLineNumbers) {
+      this.renderLineNumbers(fragment.cols, COLUMNS, "left", "top",
+                       this.getFirstRowLinePos(fragment));
+      this.renderLineNumbers(fragment.rows, ROWS, "top", "left",
+                       this.getFirstColLinePos(fragment));
+    }
   },
 
   /**
@@ -789,25 +1099,21 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    * @param  {Number} endPos
    *         The end position of the cross side of the grid dimension.
    */
-  renderLines(gridDimension, {bounds}, dimensionType, mainSide, crossSide,
+  renderLines(gridDimension, dimensionType, mainSide, crossSide,
               mainSize, startPos, endPos) {
-    let lineStartPos = (bounds[crossSide] / getCurrentZoom(this.win)) + startPos;
-    let lineEndPos = (bounds[crossSide] / getCurrentZoom(this.win)) + endPos;
+    let lineStartPos = startPos;
+    let lineEndPos = endPos;
 
     if (this.options.showInfiniteLines) {
       lineStartPos = 0;
-      lineEndPos = parseInt(this.canvas.getAttribute(mainSize), 10);
+      lineEndPos = Infinity;
     }
 
     let lastEdgeLineIndex = this.getLastEdgeLineIndex(gridDimension.tracks);
 
     for (let i = 0; i < gridDimension.lines.length; i++) {
       let line = gridDimension.lines[i];
-      let linePos = (bounds[mainSide] / getCurrentZoom(this.win)) + line.start;
-
-      if (this.options.showGridLineNumbers) {
-        this.renderGridLineNumber(line.number, linePos, lineStartPos, dimensionType);
-      }
+      let linePos = line.start;
 
       if (i == 0 || i == lastEdgeLineIndex) {
         this.renderLine(linePos, lineStartPos, lineEndPos, dimensionType, "edge");
@@ -823,6 +1129,24 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
         this.renderLine(linePos + line.breadth, lineStartPos, lineEndPos, dimensionType,
                         gridDimension.tracks[i].type);
       }
+    }
+  },
+
+  /**
+   * Render the grid lines given the grid dimension information of the
+   * column or row lines.
+   *
+   * see @param for renderLines.
+   */
+  renderLineNumbers(gridDimension, dimensionType, mainSide, crossSide,
+              startPos) {
+    let lineStartPos = startPos;
+
+    for (let i = 0; i < gridDimension.lines.length; i++) {
+      let line = gridDimension.lines[i];
+      let linePos = line.start;
+      this.renderGridLineNumber(line.number, linePos, lineStartPos, line.breadth,
+        dimensionType);
     }
   },
 
@@ -846,22 +1170,34 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     let lineWidth = getDisplayPixelRatio(this.win);
     let offset = (lineWidth / 2) % 1;
 
-    linePos = Math.round(linePos * devicePixelRatio);
-    startPos = Math.round(startPos * devicePixelRatio);
-    endPos = Math.round(endPos * devicePixelRatio);
+    let x = Math.round(this._canvasPosition.x * devicePixelRatio);
+    let y = Math.round(this._canvasPosition.y * devicePixelRatio);
+
+    linePos = Math.round(linePos);
+    startPos = Math.round(startPos);
 
     this.ctx.save();
     this.ctx.setLineDash(GRID_LINES_PROPERTIES[lineType].lineDash);
     this.ctx.beginPath();
-    this.ctx.translate(offset, offset);
+    this.ctx.translate(offset - x, offset - y);
     this.ctx.lineWidth = lineWidth;
 
     if (dimensionType === COLUMNS) {
-      this.ctx.moveTo(linePos, startPos);
-      this.ctx.lineTo(linePos, endPos);
+      if (isFinite(endPos)) {
+        endPos = Math.round(endPos);
+      } else {
+        endPos = CANVAS_INFINITY;
+        startPos = -endPos;
+      }
+      drawLine(this.ctx, linePos, startPos, linePos, endPos, this.currentMatrix);
     } else {
-      this.ctx.moveTo(startPos, linePos);
-      this.ctx.lineTo(endPos, linePos);
+      if (isFinite(endPos)) {
+        endPos = Math.round(endPos);
+      } else {
+        endPos = CANVAS_INFINITY;
+        startPos = -endPos;
+      }
+      drawLine(this.ctx, startPos, linePos, endPos, linePos, this.currentMatrix);
     }
 
     this.ctx.strokeStyle = this.color;
@@ -881,30 +1217,77 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    *         y-axis for a row grid line.
    * @param  {Number} startPos
    *         The start position of the cross side of the grid line.
+   * @param  {Number} breadth
+   *         The grid line breadth value.
    * @param  {String} dimensionType
    *         The grid dimension type which is either the constant COLUMNS or ROWS.
    */
-  renderGridLineNumber(lineNumber, linePos, startPos, dimensionType) {
-    let { devicePixelRatio } = this.win;
+  renderGridLineNumber(lineNumber, linePos, startPos, breadth, dimensionType) {
     let displayPixelRatio = getDisplayPixelRatio(this.win);
+    let { devicePixelRatio } = this.win;
+    let offset = (displayPixelRatio / 2) % 1;
 
-    linePos = Math.round(linePos * devicePixelRatio);
-    startPos = Math.round(startPos * devicePixelRatio);
+    linePos = Math.round(linePos);
+    startPos = Math.round(startPos);
+    breadth = Math.round(breadth);
+
+    if (linePos + breadth < 0) {
+      // The line is not visible on screen, don't render the line number
+      return;
+    }
 
     this.ctx.save();
+    let canvasX = Math.round(this._canvasPosition.x * devicePixelRatio);
+    let canvasY = Math.round(this._canvasPosition.y * devicePixelRatio);
+    this.ctx.translate(offset - canvasX, offset - canvasY);
 
     let fontSize = (GRID_FONT_SIZE * displayPixelRatio);
     this.ctx.font = fontSize + "px " + GRID_FONT_FAMILY;
 
     let textWidth = this.ctx.measureText(lineNumber).width;
 
+    // The width of the character 'm' approximates the height of the text.
+    let textHeight = this.ctx.measureText("m").width;
+
+    // Padding in pixels for the line number text inside of the line number container.
+    let padding = 3 * displayPixelRatio;
+
+    let boxWidth = textWidth + 2 * padding;
+    let boxHeight = textHeight + 2 * padding;
+
+    // Calculate the x & y coordinates for the line number container, so that it is
+    // centered on the line, and in the middle of the gap if there is any.
+    let x, y;
+
     if (dimensionType === COLUMNS) {
-      let yPos = Math.max(startPos, fontSize);
-      this.ctx.fillText(lineNumber, linePos, yPos);
+      x = linePos + breadth / 2;
+      y = startPos;
     } else {
-      let xPos = Math.max(startPos, textWidth);
-      this.ctx.fillText(lineNumber, xPos - textWidth, linePos);
+      x = startPos;
+      y = linePos + breadth / 2;
     }
+
+    [x, y] = apply(this.currentMatrix, [x, y]);
+
+    x -= boxWidth / 2;
+    y -= boxHeight / 2;
+
+    if (!this.hasNodeTransformations) {
+      x = Math.max(x, padding);
+      y = Math.max(y, padding);
+    }
+
+    // Draw a rounded rectangle with a border width of 2 pixels, a border color matching
+    // the grid color and a white background (the line number will be written in black).
+    this.ctx.lineWidth = 2 * displayPixelRatio;
+    this.ctx.strokeStyle = this.color;
+    this.ctx.fillStyle = "white";
+    let radius = 2 * displayPixelRatio;
+    drawRoundedRect(this.ctx, x, y, boxWidth, boxHeight, radius);
+
+    // Write the line number inside of the rectangle.
+    this.ctx.fillStyle = "black";
+    this.ctx.fillText(lineNumber, x + padding, y + textHeight + padding);
 
     this.ctx.restore();
   },
@@ -926,20 +1309,40 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    */
   renderGridGap(linePos, startPos, endPos, breadth, dimensionType) {
     let { devicePixelRatio } = this.win;
+    let displayPixelRatio = getDisplayPixelRatio(this.win);
+    let offset = (displayPixelRatio / 2) % 1;
 
-    linePos = Math.round(linePos * devicePixelRatio);
-    startPos = Math.round(startPos * devicePixelRatio);
-    endPos = Math.round(endPos * devicePixelRatio);
-    breadth = Math.round(breadth * devicePixelRatio);
+    let canvasX = Math.round(this._canvasPosition.x * devicePixelRatio);
+    let canvasY = Math.round(this._canvasPosition.y * devicePixelRatio);
+
+    linePos = Math.round(linePos);
+    startPos = Math.round(startPos);
+    breadth = Math.round(breadth);
 
     this.ctx.save();
     this.ctx.fillStyle = this.getGridGapPattern(devicePixelRatio, dimensionType);
+    this.ctx.translate(offset - canvasX, offset - canvasY);
 
     if (dimensionType === COLUMNS) {
-      this.ctx.fillRect(linePos, startPos, breadth, endPos - startPos);
+      if (isFinite(endPos)) {
+        endPos = Math.round(endPos);
+      } else {
+        endPos = this._winDimensions.height;
+        startPos = -endPos;
+      }
+      drawRect(this.ctx, linePos, startPos, linePos + breadth, endPos,
+        this.currentMatrix);
     } else {
-      this.ctx.fillRect(startPos, linePos, endPos - startPos, breadth);
+      if (isFinite(endPos)) {
+        endPos = Math.round(endPos);
+      } else {
+        endPos = this._winDimensions.width;
+        startPos = -endPos;
+      }
+      drawRect(this.ctx, startPos, linePos, endPos, linePos + breadth,
+        this.currentMatrix);
     }
+    this.ctx.fill();
     this.ctx.restore();
   },
 
@@ -983,8 +1386,8 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
         // Update and show the info bar when only displaying a single grid area.
         if (areaName) {
-          this._updateGridAreaInfobar(area, x1, x2, y1, y2);
           this._showGridAreaInfoBar();
+          this._updateGridAreaInfobar(area, x1, x2, y1, y2);
         }
       }
     }
@@ -1033,8 +1436,57 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     let cells = this.getElement("cells");
     cells.setAttribute("d", path);
 
-    this._updateGridCellInfobar(rowNumber, columnNumber, x1, x2, y1, y2);
     this._showGridCellInfoBar();
+    this._updateGridCellInfobar(rowNumber, columnNumber, x1, x2, y1, y2);
+  },
+
+  /**
+   * Render the grid line name highlight for the given grid fragment index, lineNumber,
+   * and dimensionType.
+   *
+   * @param  {Number} gridFragmentIndex
+   *         Index of the grid fragment to render the grid line highlight.
+   * @param  {Number} lineNumber
+   *         Line number of the grid line to highlight.
+   * @param  {String} dimensionType
+   *         The dimension type of the grid line.
+   */
+  renderGridLineNames(gridFragmentIndex, lineNumber, dimensionType) {
+    let fragment = this.gridData[gridFragmentIndex];
+
+    if (!fragment || !lineNumber || !dimensionType) {
+      return;
+    }
+
+    const { names } = fragment[dimensionType].lines[lineNumber - 1];
+    let linePos;
+
+    if (dimensionType === ROWS) {
+      linePos = fragment.rows.lines[lineNumber - 1];
+    } else if (dimensionType === COLUMNS) {
+      linePos = fragment.cols.lines[lineNumber - 1];
+    }
+
+    if (!linePos) {
+      return;
+    }
+
+    let currentZoom = getCurrentZoom(this.win);
+    let { bounds } = this.currentQuads.content[gridFragmentIndex];
+
+    const rowYPosition = fragment.rows.lines[0];
+    const colXPosition = fragment.rows.lines[0];
+
+    let x = dimensionType === COLUMNS
+      ? linePos.start + (bounds.left / currentZoom)
+      : colXPosition.start + (bounds.left / currentZoom);
+
+    let y = dimensionType === ROWS
+      ? linePos.start + (bounds.top / currentZoom)
+      : rowYPosition.start + (bounds.top / currentZoom);
+
+    this._showGridLineInfoBar();
+    this._updateGridLineInfobar(names.join(", "), lineNumber, x, y);
   },
 
   /**
@@ -1046,6 +1498,7 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     this._hideGridElements();
     this._hideGridAreaInfoBar();
     this._hideGridCellInfoBar();
+    this._hideGridLineInfoBar();
     setIgnoreLayoutChanges(false, this.highlighterEnv.document.documentElement);
   },
 
@@ -1079,6 +1532,14 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
   _showGridCellInfoBar() {
     this.getElement("cell-infobar-container").removeAttribute("hidden");
+  },
+
+  _hideGridLineInfoBar() {
+    this.getElement("line-infobar-container").setAttribute("hidden", "true");
+  },
+
+  _showGridLineInfoBar() {
+    this.getElement("line-infobar-container").removeAttribute("hidden");
   },
 
 });

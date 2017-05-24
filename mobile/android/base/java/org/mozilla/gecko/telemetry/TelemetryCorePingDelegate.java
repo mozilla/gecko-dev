@@ -15,6 +15,9 @@ import org.mozilla.gecko.BrowserApp;
 import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.GeckoSharedPrefs;
+import org.mozilla.gecko.GeckoThread;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.adjust.AttributionHelperListener;
 import org.mozilla.gecko.telemetry.measurements.CampaignIdMeasurements;
 import org.mozilla.gecko.delegates.BrowserAppDelegateWithReference;
@@ -37,12 +40,13 @@ public class TelemetryCorePingDelegate extends BrowserAppDelegateWithReference
     private static final String LOGTAG = StringUtils.safeSubstring(
             "Gecko" + TelemetryCorePingDelegate.class.getSimpleName(), 0, 23);
 
+    private boolean isOnResumeCalled = false;
     private TelemetryDispatcher telemetryDispatcher; // lazy
     private final SessionMeasurements sessionMeasurements = new SessionMeasurements();
 
     @Override
     public void onStart(final BrowserApp browserApp) {
-        TelemetryPreferences.initPreferenceObserver(browserApp, browserApp.getProfile().getName());
+        TelemetryPreferences.initPreferenceObserver(browserApp, GeckoThread.getActiveProfile().getName());
 
         // We don't upload in onCreate because that's only called when the Activity needs to be instantiated
         // and it's possible the system will never free the Activity from memory.
@@ -82,11 +86,17 @@ public class TelemetryCorePingDelegate extends BrowserAppDelegateWithReference
 
     @Override
     public void onResume(BrowserApp browserApp) {
+        isOnResumeCalled = true;
         sessionMeasurements.recordSessionStart();
     }
 
     @Override
     public void onPause(BrowserApp browserApp) {
+        if (!isOnResumeCalled) {
+            Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.SYSTEM, "onPauseCalledBeforeOnResume");
+            return;
+        }
+        isOnResumeCalled = false;
         // onStart/onStop is ideal over onResume/onPause. However, onStop is not guaranteed to be called and
         // dealing with that possibility adds a lot of complexity that we don't want to handle at this point.
         sessionMeasurements.recordSessionEnd(browserApp);
@@ -95,7 +105,7 @@ public class TelemetryCorePingDelegate extends BrowserAppDelegateWithReference
     @WorkerThread // via constructor
     private TelemetryDispatcher getTelemetryDispatcher(final BrowserApp browserApp) {
         if (telemetryDispatcher == null) {
-            final GeckoProfile profile = browserApp.getProfile();
+            final GeckoProfile profile = GeckoThread.getActiveProfile();
             final String profilePath = profile.getDir().getAbsolutePath();
             final String profileName = profile.getName();
             telemetryDispatcher = new TelemetryDispatcher(profilePath, profileName);
@@ -104,7 +114,7 @@ public class TelemetryCorePingDelegate extends BrowserAppDelegateWithReference
     }
 
     private SharedPreferences getSharedPreferences(final BrowserApp activity) {
-        return GeckoSharedPrefs.forProfileName(activity, activity.getProfile().getName());
+        return GeckoSharedPrefs.forProfileName(activity, GeckoThread.getActiveProfile().getName());
     }
 
     // via SearchEngineCallback - may be called from any thread.
@@ -128,7 +138,7 @@ public class TelemetryCorePingDelegate extends BrowserAppDelegateWithReference
                     return;
                 }
 
-                final GeckoProfile profile = activity.getProfile();
+                final GeckoProfile profile = GeckoThread.getActiveProfile();
                 if (!TelemetryUploadService.isUploadEnabledByProfileConfig(activity, profile)) {
                     Log.d(LOGTAG, "Core ping upload disabled by profile config. Returning.");
                     return;

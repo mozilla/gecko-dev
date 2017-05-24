@@ -8,8 +8,8 @@
 #![deny(missing_docs)]
 
 use dom::{SendElement, TElement};
-use matching::MatchMethods;
 use selectors::bloom::BloomFilter;
+use smallvec::SmallVec;
 
 /// A struct that allows us to fast-reject deep descendant selectors avoiding
 /// selector-matching.
@@ -50,6 +50,26 @@ pub struct StyleBloom<E: TElement> {
     elements: Vec<SendElement<E>>,
 }
 
+fn each_relevant_element_hash<E, F>(element: E, mut f: F)
+    where E: TElement,
+          F: FnMut(u32),
+{
+    f(element.get_local_name().get_hash());
+    f(element.get_namespace().get_hash());
+
+    if let Some(id) = element.get_id() {
+        f(id.get_hash());
+    }
+
+    // TODO: case-sensitivity depends on the document type and quirks mode.
+    //
+    // TODO(emilio): It's not clear whether that's relevant here though?
+    // Classes and ids should be normalized already I think.
+    element.each_class(|class| {
+        f(class.get_hash())
+    });
+}
+
 impl<E: TElement> StyleBloom<E> {
     /// Create an empty `StyleBloom`.
     pub fn new() -> Self {
@@ -72,15 +92,26 @@ impl<E: TElement> StyleBloom<E> {
                 assert!(element.parent_element().is_none());
             }
         }
-        element.insert_into_bloom_filter(&mut *self.filter);
+        self.push_internal(element);
+    }
+
+    /// Same as `push`, but without asserting, in order to use it from
+    /// `rebuild`.
+    fn push_internal(&mut self, element: E) {
+        each_relevant_element_hash(element, |hash| {
+            self.filter.insert_hash(hash);
+        });
         self.elements.push(unsafe { SendElement::new(element) });
     }
 
     /// Pop the last element in the bloom filter and return it.
     fn pop(&mut self) -> Option<E> {
         let popped = self.elements.pop().map(|el| *el);
+
         if let Some(popped) = popped {
-            popped.remove_from_bloom_filter(&mut self.filter);
+            each_relevant_element_hash(popped, |hash| {
+                self.filter.remove_hash(hash);
+            })
         }
 
         popped
@@ -99,18 +130,16 @@ impl<E: TElement> StyleBloom<E> {
     }
 
     /// Rebuilds the bloom filter up to the parent of the given element.
-    pub fn rebuild(&mut self, mut element: E) -> usize {
+    pub fn rebuild(&mut self, mut element: E) {
         self.clear();
 
         while let Some(parent) = element.parent_element() {
-            parent.insert_into_bloom_filter(&mut *self.filter);
-            self.elements.push(unsafe { SendElement::new(parent) });
+            self.push_internal(parent);
             element = parent;
         }
 
         // Put them in the order we expect, from root to `element`'s parent.
         self.elements.reverse();
-        return self.elements.len();
     }
 
     /// In debug builds, asserts that all the parents of `element` are in the
@@ -139,12 +168,12 @@ impl<E: TElement> StyleBloom<E> {
     /// responsible to keep around if it wants to get an effective filter.
     pub fn insert_parents_recovering(&mut self,
                                      element: E,
-                                     element_depth: Option<usize>)
-                                     -> usize
+                                     element_depth: usize)
     {
         // Easy case, we're in a different restyle, or we're empty.
         if self.elements.is_empty() {
-            return self.rebuild(element);
+            self.rebuild(element);
+            return;
         }
 
         let parent_element = match element.parent_element() {
@@ -152,23 +181,19 @@ impl<E: TElement> StyleBloom<E> {
             None => {
                 // Yay, another easy case.
                 self.clear();
-                return 0;
+                return;
             }
         };
 
         if self.elements.last().map(|el| **el) == Some(parent_element) {
             // Ta da, cache hit, we're all done.
-            return self.elements.len();
+            return;
         }
 
-        let element_depth = match element_depth {
-            Some(depth) => depth,
-            // If we don't know the depth of `element`, we'd rather don't try
-            // fixing up the bloom filter, since it's quadratic.
-            None => {
-                return self.rebuild(element);
-            }
-        };
+        if element_depth == 0 {
+            self.clear();
+            return;
+        }
 
         // We should've early exited above.
         debug_assert!(element_depth != 0,
@@ -199,7 +224,7 @@ impl<E: TElement> StyleBloom<E> {
 
         // Let's collect the parents we are going to need to insert once we've
         // found the common one.
-        let mut parents_to_insert = vec![];
+        let mut parents_to_insert = SmallVec::<[E; 8]>::new();
 
         // If the bloom filter still doesn't have enough elements, the common
         // parent is up in the dom.
@@ -221,10 +246,12 @@ impl<E: TElement> StyleBloom<E> {
         // Not-so-happy case: Parent's don't match, so we need to keep going up
         // until we find a common ancestor.
         //
-        // Gecko currently models native anonymous content that conceptually hangs
-        // off the document (such as scrollbars) as a separate subtree from the
-        // document root.  Thus it's possible with Gecko that we do not find any
-        // common ancestor.
+        // Gecko currently models native anonymous content that conceptually
+        // hangs off the document (such as scrollbars) as a separate subtree
+        // from the document root.
+        //
+        // Thus it's possible with Gecko that we do not find any common
+        // ancestor.
         while **self.elements.last().unwrap() != common_parent {
             parents_to_insert.push(common_parent);
             self.pop().unwrap();
@@ -250,6 +277,5 @@ impl<E: TElement> StyleBloom<E> {
         debug_assert_eq!(self.elements.len(), element_depth);
 
         // We're done! Easy.
-        return self.elements.len();
     }
 }

@@ -6,12 +6,15 @@
 package org.mozilla.gecko.customtabs;
 
 import android.app.PendingIntent;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.ColorInt;
 import android.support.annotation.NonNull;
+import android.support.annotation.VisibleForTesting;
 import android.support.customtabs.CustomTabsIntent;
+
+import org.mozilla.gecko.mozglue.SafeIntent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +26,10 @@ import java.util.List;
 class IntentUtil {
 
     public static final int NO_ANIMATION_RESOURCE = -1;
+
+    @VisibleForTesting
+    @ColorInt
+    protected static final int DEFAULT_ACTION_BAR_COLOR = 0xFF363b40; // default color to match design
 
     // Hidden constant values from ActivityOptions.java
     private static final String PREFIX = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
@@ -38,7 +45,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return true, if intent has all necessary information.
      */
-    static boolean hasActionButton(@NonNull Intent intent) {
+    static boolean hasActionButton(@NonNull SafeIntent intent) {
         return (getActionButtonBundle(intent) != null)
                 && (getActionButtonIcon(intent) != null)
                 && (getActionButtonDescription(intent) != null)
@@ -51,7 +58,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return true, if intent requires to add share action to menu item.
      */
-    static boolean hasShareItem(@NonNull Intent intent) {
+    static boolean hasShareItem(@NonNull SafeIntent intent) {
         return intent.getBooleanExtra(CustomTabsIntent.EXTRA_DEFAULT_SHARE_MENU_ITEM, false);
     }
 
@@ -61,9 +68,37 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return bitmap icon, if any. Otherwise, null.
      */
-    static Bitmap getActionButtonIcon(@NonNull Intent intent) {
+    static Bitmap getActionButtonIcon(@NonNull SafeIntent intent) {
         final Bundle bundle = getActionButtonBundle(intent);
         return (bundle == null) ? null : (Bitmap) bundle.getParcelable(CustomTabsIntent.KEY_ICON);
+    }
+
+    /**
+     * Only for telemetry to understand caller app's customization
+     * This method should only be called once during one usage.
+     *
+     * @param intent which to launch a Custom-Tabs-Activity
+     * @return true, if the caller customized the color.
+     */
+    static boolean hasToolbarColor(@NonNull SafeIntent intent) {
+        return intent.hasExtra(CustomTabsIntent.EXTRA_TOOLBAR_COLOR);
+    }
+
+    /**
+     * To extract color code from intent for top toolbar.
+     * It also ensure the color is not translucent.
+     *
+     * @param intent which to launch a Custom-Tabs-Activity
+     * @return color code in integer type.
+     */
+    @ColorInt
+    static int getToolbarColor(@NonNull SafeIntent intent) {
+        @ColorInt int toolbarColor = intent.getIntExtra(CustomTabsIntent.EXTRA_TOOLBAR_COLOR,
+                DEFAULT_ACTION_BAR_COLOR);
+
+        // Translucent color does not make sense for toolbar color. Ensure it is 0xFF.
+        toolbarColor = 0xFF000000 | toolbarColor;
+        return toolbarColor;
     }
 
     /**
@@ -73,7 +108,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return description, if any. Otherwise, null.
      */
-    static String getActionButtonDescription(@NonNull Intent intent) {
+    static String getActionButtonDescription(@NonNull SafeIntent intent) {
         final Bundle bundle = getActionButtonBundle(intent);
         return (bundle == null) ? null : bundle.getString(CustomTabsIntent.KEY_DESCRIPTION);
     }
@@ -84,7 +119,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return PendingIntent, if any. Otherwise, null.
      */
-    static PendingIntent getActionButtonPendingIntent(@NonNull Intent intent) {
+    static PendingIntent getActionButtonPendingIntent(@NonNull SafeIntent intent) {
         final Bundle bundle = getActionButtonBundle(intent);
         return (bundle == null)
                 ? null
@@ -97,7 +132,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return true, if Action-Button should be tinted. Default value is false.
      */
-    static boolean isActionButtonTinted(@NonNull Intent intent) {
+    static boolean isActionButtonTinted(@NonNull SafeIntent intent) {
         return intent.getBooleanExtra(CustomTabsIntent.EXTRA_TINT_ACTION_BUTTON, false);
     }
 
@@ -107,7 +142,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return bundle for Action-Button, if any. Otherwise, null.
      */
-    private static Bundle getActionButtonBundle(@NonNull Intent intent) {
+    private static Bundle getActionButtonBundle(@NonNull SafeIntent intent) {
         return intent.getBundleExtra(CustomTabsIntent.EXTRA_ACTION_BUTTON_BUNDLE);
     }
 
@@ -119,7 +154,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return package name, if the intent defined extra exit-animation bundle. Otherwise, null.
      */
-    static String getAnimationPackageName(@NonNull Intent intent) {
+    static String getAnimationPackageName(@NonNull SafeIntent intent) {
         final Bundle bundle = getAnimationBundle(intent);
         return (bundle == null) ? null : bundle.getString(KEY_PACKAGE_NAME);
     }
@@ -132,7 +167,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return A list of string as title for each menu items
      */
-    static List<String> getMenuItemsTitle(@NonNull Intent intent) {
+    static List<String> getMenuItemsTitle(@NonNull SafeIntent intent) {
         final List<Bundle> bundles = getMenuItemsBundle(intent);
         final List<String> titles = new ArrayList<>();
         for (Bundle b : bundles) {
@@ -149,7 +184,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return A list of pending-intent for each menu items
      */
-    static List<PendingIntent> getMenuItemsPendingIntent(@NonNull Intent intent) {
+    static List<PendingIntent> getMenuItemsPendingIntent(@NonNull SafeIntent intent) {
         final List<Bundle> bundles = getMenuItemsBundle(intent);
         final List<PendingIntent> intents = new ArrayList<>();
         for (Bundle b : bundles) {
@@ -165,7 +200,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return true, if the intent has necessary information.
      */
-    static boolean hasExitAnimation(@NonNull Intent intent) {
+    static boolean hasExitAnimation(@NonNull SafeIntent intent) {
         final Bundle bundle = getAnimationBundle(intent);
         return (bundle != null)
                 && (getAnimationPackageName(intent) != null)
@@ -181,7 +216,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return animation resource id if any; otherwise, NO_ANIMATION_RESOURCE;
      */
-    static int getEnterAnimationRes(@NonNull Intent intent) {
+    static int getEnterAnimationRes(@NonNull SafeIntent intent) {
         final Bundle bundle = getAnimationBundle(intent);
         return (bundle == null)
                 ? NO_ANIMATION_RESOURCE
@@ -196,7 +231,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return animation resource id if any; otherwise, NO_ANIMATION_RESOURCE.
      */
-    static int getExitAnimationRes(@NonNull Intent intent) {
+    static int getExitAnimationRes(@NonNull SafeIntent intent) {
         final Bundle bundle = getAnimationBundle(intent);
         return (bundle == null)
                 ? NO_ANIMATION_RESOURCE
@@ -209,7 +244,7 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return bundle for extra exit-animation, if any. Otherwise, null.
      */
-    private static Bundle getAnimationBundle(@NonNull Intent intent) {
+    private static Bundle getAnimationBundle(@NonNull SafeIntent intent) {
         return intent.getBundleExtra(CustomTabsIntent.EXTRA_EXIT_ANIMATION_BUNDLE);
     }
 
@@ -221,8 +256,8 @@ class IntentUtil {
      * @param intent which to launch a Custom-Tabs-Activity
      * @return bundle for menu items, if any. Otherwise, an empty list.
      */
-    private static List<Bundle> getMenuItemsBundle(@NonNull Intent intent) {
-        ArrayList<Bundle> extra = intent.getParcelableArrayListExtra(
+    private static List<Bundle> getMenuItemsBundle(@NonNull SafeIntent intent) {
+        ArrayList<Bundle> extra = intent.getUnsafe().getParcelableArrayListExtra(
                 CustomTabsIntent.EXTRA_MENU_ITEMS);
         return (extra == null) ? new ArrayList<Bundle>() : extra;
     }

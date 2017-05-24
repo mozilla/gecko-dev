@@ -33,9 +33,16 @@ typedef Vector<ZoneGroup*, 4, SystemAllocPolicy> ZoneGroupVector;
 using BlackGrayEdgeVector = Vector<TenuredCell*, 0, SystemAllocPolicy>;
 
 class AutoMaybeStartBackgroundAllocation;
-class MarkingValidator;
+class AutoRunParallelTask;
 class AutoTraceSession;
+class MarkingValidator;
 struct MovingTracer;
+
+enum IncrementalProgress
+{
+    NotFinished = 0,
+    Finished
+};
 
 class ChunkPool
 {
@@ -502,7 +509,7 @@ class GCSchedulingTunables
  *      to complement MAYBEGC triggers. We track this by counting malloced
  *      bytes; the counter gets reset at every GC since we do not always have a
  *      size at the time we call free. Because of this, the malloc heuristic
- *      is, unfortunatly, not usefully able to augment our other GC heap
+ *      is, unfortunately, not usefully able to augment our other GC heap
  *      triggers and is limited to this singular heuristic.
  *
  *          Assumptions:
@@ -769,6 +776,10 @@ class GCRuntime
 
     bool isCompactingGCEnabled() const;
 
+    bool isShrinkingGC() const { return invocationKind == GC_SHRINK; }
+
+    static bool initializeSweepActions();
+
     void setGrayRootsTracer(JSTraceDataOp traceOp, void* data);
     MOZ_MUST_USE bool addBlackRootsTracer(JSTraceDataOp traceOp, void* data);
     void removeBlackRootsTracer(JSTraceDataOp traceOp, void* data);
@@ -890,12 +901,6 @@ class GCRuntime
     static TenuredCell* refillFreeListInGC(Zone* zone, AllocKind thingKind);
 
   private:
-    enum IncrementalProgress
-    {
-        NotFinished = 0,
-        Finished
-    };
-
     enum IncrementalResult
     {
         Reset = 0,
@@ -968,24 +973,35 @@ class GCRuntime
     void bufferGrayRoots();
     void maybeDoCycleCollection();
     void markCompartments();
-    IncrementalProgress drainMarkStack(SliceBudget& sliceBudget, gcstats::Phase phase);
-    template <class CompartmentIterT> void markWeakReferences(gcstats::Phase phase);
-    void markWeakReferencesInCurrentGroup(gcstats::Phase phase);
-    template <class ZoneIterT, class CompartmentIterT> void markGrayReferences(gcstats::Phase phase);
+    IncrementalProgress drainMarkStack(SliceBudget& sliceBudget, gcstats::PhaseKind phase);
+    template <class CompartmentIterT> void markWeakReferences(gcstats::PhaseKind phase);
+    void markWeakReferencesInCurrentGroup(gcstats::PhaseKind phase);
+    template <class ZoneIterT, class CompartmentIterT> void markGrayReferences(gcstats::PhaseKind phase);
     void markBufferedGrayRoots(JS::Zone* zone);
-    void markGrayReferencesInCurrentGroup(gcstats::Phase phase);
-    void markAllWeakReferences(gcstats::Phase phase);
-    void markAllGrayReferences(gcstats::Phase phase);
+    void markGrayReferencesInCurrentGroup(gcstats::PhaseKind phase);
+    void markAllWeakReferences(gcstats::PhaseKind phase);
+    void markAllGrayReferences(gcstats::PhaseKind phase);
 
-    void beginSweepPhase(bool lastGC, AutoLockForExclusiveAccess& lock);
-    void groupZonesForSweeping(AutoLockForExclusiveAccess& lock);
+    void beginSweepPhase(JS::gcreason::Reason reason, AutoLockForExclusiveAccess& lock);
+    void groupZonesForSweeping(JS::gcreason::Reason reason, AutoLockForExclusiveAccess& lock);
     MOZ_MUST_USE bool findInterZoneEdges();
     void getNextSweepGroup();
     void endMarkingSweepGroup();
-    void beginSweepingSweepGroup(AutoLockForExclusiveAccess& lock);
+    void beginSweepingSweepGroup();
     bool shouldReleaseObservedTypes();
+    void sweepDebuggerOnMainThread(FreeOp* fop);
+    void sweepJitDataOnMainThread(FreeOp* fop);
     void endSweepingSweepGroup();
-    IncrementalProgress sweepPhase(SliceBudget& sliceBudget, AutoLockForExclusiveAccess& lock);
+    IncrementalProgress performSweepActions(SliceBudget& sliceBudget,
+                                            AutoLockForExclusiveAccess& lock);
+    static IncrementalProgress sweepTypeInformation(GCRuntime* gc, FreeOp* fop, Zone* zone,
+                                                    SliceBudget& budget, AllocKind kind);
+    static IncrementalProgress mergeSweptObjectArenas(GCRuntime* gc, FreeOp* fop, Zone* zone,
+                                                      SliceBudget& budget, AllocKind kind);
+    static IncrementalProgress finalizeAllocKind(GCRuntime* gc, FreeOp* fop, Zone* zone,
+                                                 SliceBudget& budget, AllocKind kind);
+    static IncrementalProgress sweepShapeTree(GCRuntime* gc, FreeOp* fop, Zone* zone,
+                                              SliceBudget& budget, AllocKind kind);
     void endSweepPhase(bool lastGC, AutoLockForExclusiveAccess& lock);
     bool allCCVisibleZonesWereCollected() const;
     void sweepZones(FreeOp* fop, ZoneGroup* group, bool lastGC);
@@ -1204,17 +1220,17 @@ class GCRuntime
      */
     ActiveThreadData<JS::Zone*> sweepGroups;
     ActiveThreadOrGCTaskData<JS::Zone*> currentSweepGroup;
-    ActiveThreadData<bool> sweepingTypes;
-    ActiveThreadData<unsigned> finalizePhase;
+    ActiveThreadData<size_t> sweepPhaseIndex;
     ActiveThreadData<JS::Zone*> sweepZone;
-    ActiveThreadData<AllocKind> sweepKind;
+    ActiveThreadData<size_t> sweepActionIndex;
     ActiveThreadData<bool> abortSweepAfterCurrentGroup;
 
     /*
      * Concurrent sweep infrastructure.
      */
-    void startTask(GCParallelTask& task, gcstats::Phase phase, AutoLockHelperThreadState& locked);
-    void joinTask(GCParallelTask& task, gcstats::Phase phase, AutoLockHelperThreadState& locked);
+    void startTask(GCParallelTask& task, gcstats::PhaseKind phase, AutoLockHelperThreadState& locked);
+    void joinTask(GCParallelTask& task, gcstats::PhaseKind phase, AutoLockHelperThreadState& locked);
+    friend class AutoRunParallelTask;
 
     /*
      * List head of arenas allocated during the sweep phase.
@@ -1350,9 +1366,9 @@ class GCRuntime
     }
 
     void minorGC(JS::gcreason::Reason reason,
-                 gcstats::Phase phase = gcstats::PHASE_MINOR_GC) JS_HAZ_GC_CALL;
+                 gcstats::PhaseKind phase = gcstats::PhaseKind::MINOR_GC) JS_HAZ_GC_CALL;
     void evictNursery(JS::gcreason::Reason reason = JS::gcreason::EVICT_NURSERY) {
-        minorGC(reason, gcstats::PHASE_EVICT_NURSERY);
+        minorGC(reason, gcstats::PhaseKind::EVICT_NURSERY);
     }
     void freeAllLifoBlocksAfterMinorGC(LifoAlloc* lifo);
 
@@ -1431,7 +1447,8 @@ GCRuntime::needZealousGC() {
             hasZealMode(ZealMode::IncrementalRootsThenFinish) ||
             hasZealMode(ZealMode::IncrementalMarkAllThenFinish) ||
             hasZealMode(ZealMode::IncrementalMultipleSlices) ||
-            hasZealMode(ZealMode::Compact))
+            hasZealMode(ZealMode::Compact) ||
+            hasZealMode(ZealMode::IncrementalSweepThenFinish))
         {
             nextScheduled = zealFrequency;
         }

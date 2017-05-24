@@ -46,17 +46,11 @@ var connect = Task.async(function*() {
   if (addonID) {
     let { addons } = yield gClient.listAddons();
     let addonActor = addons.filter(addon => addon.id === addonID).pop();
-    openToolbox({
-      form: addonActor,
-      chrome: true,
-      isTabActor: addonActor.isWebExtension ? true : false
-    });
+    let isTabActor = addonActor.isWebExtension;
+    openToolbox({form: addonActor, chrome: true, isTabActor});
   } else {
     let response = yield gClient.getProcess();
-    openToolbox({
-      form: response.form,
-      chrome: true
-    });
+    openToolbox({form: response.form, chrome: true});
   }
 });
 
@@ -70,7 +64,7 @@ function setPrefDefaults() {
   Services.prefs.setBoolPref("devtools.scratchpad.enabled", true);
   // Bug 1225160 - Using source maps with browser debugging can lead to a crash
   Services.prefs.setBoolPref("devtools.debugger.source-maps-enabled", false);
-  Services.prefs.setBoolPref("devtools.debugger.new-debugger-frontend", false);
+  Services.prefs.setBoolPref("devtools.debugger.new-debugger-frontend", true);
   Services.prefs.setBoolPref("devtools.debugger.client-source-maps-enabled", true);
 }
 
@@ -157,16 +151,16 @@ function bindToolboxHandlers() {
 }
 
 function setupThreadListeners(panel) {
-  updateBadgeText(panel._controller.activeThread.state == "paused");
+  updateBadgeText(panel._selectors.getPause(panel._getState()));
 
   let onPaused = updateBadgeText.bind(null, true);
   let onResumed = updateBadgeText.bind(null, false);
-  panel.target.on("thread-paused", onPaused);
-  panel.target.on("thread-resumed", onResumed);
+  gToolbox.target.on("thread-paused", onPaused);
+  gToolbox.target.on("thread-resumed", onResumed);
 
   panel.once("destroyed", () => {
-    panel.off("thread-paused", onPaused);
-    panel.off("thread-resumed", onResumed);
+    gToolbox.target.off("thread-paused", onPaused);
+    gToolbox.target.off("thread-resumed", onResumed);
   });
 }
 
@@ -210,7 +204,7 @@ function setTitle(title) {
 function quitApp() {
   let quit = Cc["@mozilla.org/supports-PRBool;1"]
              .createInstance(Ci.nsISupportsPRBool);
-  Services.obs.notifyObservers(quit, "quit-application-requested", null);
+  Services.obs.notifyObservers(quit, "quit-application-requested");
 
   let shouldProceed = !quit.data;
   if (shouldProceed) {

@@ -670,9 +670,9 @@ private:
   MakeChannel(nsHttpChannel *chan, TransactionObserver *obs, nsHttpConnectionInfo *ci,
               nsIURI *uri, uint32_t caps, nsILoadInfo *loadInfo)
   {
-    nsID channelId;
+    uint64_t channelId;
     nsLoadFlags flags;
-    if (NS_FAILED(gHttpHandler->NewChannelId(&channelId)) ||
+    if (NS_FAILED(gHttpHandler->NewChannelId(channelId)) ||
         NS_FAILED(chan->Init(uri, caps, nullptr, 0, nullptr, channelId)) ||
         NS_FAILED(chan->SetAllowAltSvc(false)) ||
         NS_FAILED(chan->SetRedirectMode(nsIHttpChannelInternal::REDIRECT_MODE_ERROR)) ||
@@ -946,7 +946,7 @@ AltSvcCache::GetAltServiceMapping(const nsACString &scheme, const nsACString &ho
     // DataStorage gives synchronous access to a memory based hash table
     // that is backed by disk where those writes are done asynchronously
     // on another thread
-    mStorage = DataStorage::Get(NS_LITERAL_STRING("AlternateServices.txt"));
+    mStorage = DataStorage::Get(DataStorageClass::AlternateServices);
     if (mStorage) {
       bool storageWillPersist = false;
       if (NS_FAILED(mStorage->Init(storageWillPersist))) {

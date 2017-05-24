@@ -90,7 +90,6 @@ class TabParent final : public PBrowserParent
                       , public nsIKeyEventInPluginCallback
                       , public nsSupportsWeakReference
                       , public TabContext
-                      , public nsAPostRefreshObserver
                       , public nsIWebBrowserPersistable
                       , public LiveResizeListener
 {
@@ -118,11 +117,6 @@ public:
   void SetOwnerElement(Element* aElement);
 
   void CacheFrameLoader(nsFrameLoader* aFrameLoader);
-
-  /**
-   * Get the mozapptype attribute from this TabParent's owner DOM element.
-   */
-  void GetAppType(nsAString& aOut);
 
   /**
    * Returns true iff this TabParent's nsIFrameLoader is visible.
@@ -158,8 +152,6 @@ public:
 
   void AddWindowListeners();
 
-  void DidRefresh() override;
-
   virtual mozilla::ipc::IPCResult RecvMoveFocus(const bool& aForward,
                                                 const bool& aForDocumentNavigation) override;
 
@@ -178,6 +170,9 @@ public:
   virtual mozilla::ipc::IPCResult
   RecvAccessKeyNotHandled(const WidgetKeyboardEvent& aEvent) override;
 
+  virtual mozilla::ipc::IPCResult
+  RecvSetHasBeforeUnload(const bool& aHasBeforeUnload) override;
+
   virtual mozilla::ipc::IPCResult RecvBrowserFrameOpenWindow(PBrowserParent* aOpener,
                                                              PRenderFrameParent* aRenderFrame,
                                                              const nsString& aURL,
@@ -185,7 +180,8 @@ public:
                                                              const nsString& aFeatures,
                                                              bool* aOutWindowOpened,
                                                              TextureFactoryIdentifier* aTextureFactoryIdentifier,
-                                                             uint64_t* aLayersId) override;
+                                                             uint64_t* aLayersId,
+                                                             CompositorOptions* aCompositorOptions) override;
 
   virtual mozilla::ipc::IPCResult
   RecvSyncMessage(const nsString& aMessage,
@@ -209,7 +205,7 @@ public:
   virtual mozilla::ipc::IPCResult
   RecvNotifyIMEFocus(const ContentCache& aContentCache,
                      const widget::IMENotification& aEventMessage,
-                     nsIMEUpdatePreference* aPreference) override;
+                     widget::IMENotificationRequests* aRequests) override;
 
   virtual mozilla::ipc::IPCResult
   RecvNotifyIMETextChange(const ContentCache& aContentCache,
@@ -397,8 +393,10 @@ public:
   LayoutDeviceToCSSScale GetLayoutDeviceToCSSScale();
 
   virtual mozilla::ipc::IPCResult
-  RecvRequestNativeKeyBindings(const mozilla::WidgetKeyboardEvent& aEvent,
-                               MaybeNativeKeyBinding* aBindings) override;
+  RecvRequestNativeKeyBindings(
+    const uint32_t& aType,
+    const mozilla::WidgetKeyboardEvent& aEvent,
+    nsTArray<mozilla::CommandInt>* aCommands) override;
 
   virtual mozilla::ipc::IPCResult
   RecvSynthesizeNativeKeyEvent(const int32_t& aNativeKeyboardLayout,
@@ -560,8 +558,6 @@ public:
 
   bool IsInitedByParent() const { return mInitedByParent; }
 
-  static TabParent* GetNextTabParent();
-
   bool SendLoadRemoteScript(const nsString& aURL,
                             const bool& aRunInGlobalScope);
 
@@ -581,15 +577,11 @@ public:
 
   layout::RenderFrameParent* GetRenderFrame();
 
-  void AudioChannelChangeNotification(nsPIDOMWindowOuter* aWindow,
-                                      AudioChannel aAudioChannel,
-                                      float aVolume,
-                                      bool aMuted);
   bool SetRenderFrame(PRenderFrameParent* aRFParent);
   bool GetRenderFrameInfo(TextureFactoryIdentifier* aTextureFactoryIdentifier,
                           uint64_t* aLayersId);
 
-  mozilla::ipc::IPCResult RecvEnsureLayersConnected() override;
+  mozilla::ipc::IPCResult RecvEnsureLayersConnected(CompositorOptions* aCompositorOptions) override;
 
   // LiveResizeListener implementation
   void LiveResizeStarted() override;
@@ -629,9 +621,6 @@ protected:
                                                     const int32_t& aCx, const int32_t& aCy) override;
 
   virtual mozilla::ipc::IPCResult RecvGetTabCount(uint32_t* aValue) override;
-
-  virtual mozilla::ipc::IPCResult RecvAudioChannelActivityNotification(const uint32_t& aAudioChannel,
-                                                                       const bool& aActive) override;
 
   virtual mozilla::ipc::IPCResult RecvSHistoryUpdate(const uint32_t& aCount,
                                                      const uint32_t& aLocalIndex,
@@ -705,13 +694,6 @@ private:
 
   TabId mTabId;
 
-  // When loading a new tab or window via window.open, the child process sends
-  // a new PBrowser to use. We store that tab in sNextTabParent and then
-  // proceed through the browser's normal paths to create a new
-  // window/tab. When it comes time to create a new TabParent, we instead use
-  // sNextTabParent.
-  static TabParent* sNextTabParent;
-
   // When loading a new tab or window via window.open, the child is
   // responsible for loading the URL it wants into the new TabChild. When the
   // parent receives the CreateWindow message, though, it sends a LoadURL
@@ -750,8 +732,6 @@ private:
   // cursor.  This happens whenever the cursor is in the tab's region.
   bool mTabSetsCursor;
 
-  RefPtr<nsIPresShell> mPresShellWithRefreshListener;
-
   bool mHasContentOpener;
 
 #ifdef DEBUG
@@ -780,6 +760,10 @@ private:
   // at least once.
   bool mHasPresented;
 
+  // True if at least one window hosted in the TabChild has added a
+  // beforeunload event listener.
+  bool mHasBeforeUnload;
+
 public:
   static TabParent* GetTabParentFromLayersId(uint64_t aLayersId);
 };
@@ -787,13 +771,11 @@ public:
 struct MOZ_STACK_CLASS TabParent::AutoUseNewTab final
 {
 public:
-  AutoUseNewTab(TabParent* aNewTab, bool* aWindowIsNew, nsCString* aURLToLoad)
-   : mNewTab(aNewTab), mWindowIsNew(aWindowIsNew), mURLToLoad(aURLToLoad)
+  AutoUseNewTab(TabParent* aNewTab, nsCString* aURLToLoad)
+   : mNewTab(aNewTab), mURLToLoad(aURLToLoad)
   {
-    MOZ_ASSERT(!TabParent::sNextTabParent);
     MOZ_ASSERT(!aNewTab->mCreatingWindow);
 
-    TabParent::sNextTabParent = aNewTab;
     aNewTab->mCreatingWindow = true;
     aNewTab->mDelayedURL.Truncate();
   }
@@ -802,17 +784,10 @@ public:
   {
     mNewTab->mCreatingWindow = false;
     *mURLToLoad = mNewTab->mDelayedURL;
-
-    if (TabParent::sNextTabParent) {
-      MOZ_ASSERT(TabParent::sNextTabParent == mNewTab);
-      TabParent::sNextTabParent = nullptr;
-      *mWindowIsNew = false;
-    }
   }
 
 private:
   TabParent* mNewTab;
-  bool* mWindowIsNew;
   nsCString* mURLToLoad;
 };
 

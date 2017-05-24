@@ -74,8 +74,9 @@ public:
   static void RemoveFromFlow(nsIFrame* aFrame);
 
 protected:
-  explicit nsSplittableFrame(nsStyleContext* aContext)
-    : nsFrame(aContext)
+  explicit nsSplittableFrame(nsStyleContext* aContext,
+                             mozilla::LayoutFrameType aType)
+    : nsFrame(aContext, aType)
     , mPrevContinuation(nullptr)
     , mNextContinuation(nullptr)
   {}

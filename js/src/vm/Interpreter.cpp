@@ -39,6 +39,7 @@
 #include "jit/Ion.h"
 #include "jit/IonAnalysis.h"
 #include "vm/AsyncFunction.h"
+#include "vm/AsyncIteration.h"
 #include "vm/Debugger.h"
 #include "vm/GeneratorObject.h"
 #include "vm/Opcodes.h"
@@ -245,10 +246,15 @@ SetPropertyOperation(JSContext* cx, JSOp op, HandleValue lval, HandleId id, Hand
 }
 
 static JSFunction*
-MakeDefaultConstructor(JSContext* cx, JSOp op, JSAtom* atom, HandleObject proto)
+MakeDefaultConstructor(JSContext* cx, HandleScript script, jsbytecode* pc, HandleObject proto)
 {
+    JSOp op = JSOp(*pc);
+    JSAtom* atom = script->getAtom(pc);
     bool derived = op == JSOP_DERIVEDCONSTRUCTOR;
     MOZ_ASSERT(derived == !!proto);
+
+    jssrcnote* classNote = GetSrcNote(cx, script, pc);
+    MOZ_ASSERT(classNote && SN_TYPE(classNote) == SRC_CLASS_SPAN);
 
     PropertyName* lookup = derived ? cx->names().DefaultDerivedClassConstructor
                                    : cx->names().DefaultBaseClassConstructor;
@@ -266,8 +272,18 @@ MakeDefaultConstructor(JSContext* cx, JSOp op, JSAtom* atom, HandleObject proto)
 
     ctor->setIsConstructor();
     ctor->setIsClassConstructor();
-
     MOZ_ASSERT(ctor->infallibleIsDefaultClassConstructor(cx));
+
+    // Create the script now, as the source span needs to be overridden for
+    // toString. Calling toString on a class constructor must not return the
+    // source for just the constructor function.
+    JSScript *ctorScript = JSFunction::getOrCreateScript(cx, ctor);
+    if (!ctorScript)
+        return nullptr;
+    uint32_t classStartOffset = GetSrcNoteOffset(classNote, 0);
+    uint32_t classEndOffset = GetSrcNoteOffset(classNote, 1);
+    ctorScript->setDefaultClassConstructorSpan(script->sourceObject(), classStartOffset,
+                                               classEndOffset);
 
     return ctor;
 }
@@ -1082,6 +1098,9 @@ js::UnwindEnvironmentToTryPc(JSScript* script, JSTryNote* tn)
     if (tn->kind == JSTRY_CATCH || tn->kind == JSTRY_FINALLY) {
         pc -= JSOP_TRY_LENGTH;
         MOZ_ASSERT(*pc == JSOP_TRY);
+    } else if (tn->kind == JSTRY_DESTRUCTURING_ITERCLOSE) {
+        pc -= JSOP_TRY_DESTRUCTURING_ITERCLOSE_LENGTH;
+        MOZ_ASSERT(*pc == JSOP_TRY_DESTRUCTURING_ITERCLOSE);
     }
     return pc;
 }
@@ -1922,10 +1941,7 @@ CASE(EnableInterruptsPseudoOpcode)
 /* Various 1-byte no-ops. */
 CASE(JSOP_NOP)
 CASE(JSOP_NOP_DESTRUCTURING)
-CASE(JSOP_UNUSED192)
-CASE(JSOP_UNUSED210)
-CASE(JSOP_UNUSED211)
-CASE(JSOP_UNUSED220)
+CASE(JSOP_TRY_DESTRUCTURING_ITERCLOSE)
 CASE(JSOP_UNUSED221)
 CASE(JSOP_UNUSED222)
 CASE(JSOP_UNUSED223)
@@ -2171,6 +2187,20 @@ CASE(JSOP_IN)
     REGS.sp[-1].setBoolean(found);
 }
 END_CASE(JSOP_IN)
+
+CASE(JSOP_HASOWN)
+{
+    HandleValue val = REGS.stackHandleAt(-1);
+    HandleValue idval = REGS.stackHandleAt(-2);
+
+    bool found;
+    if (!HasOwnProperty(cx, val, idval, &found))
+        goto error;
+
+    REGS.sp--;
+    REGS.sp[-1].setBoolean(found);
+}
+END_CASE(JSOP_HASOWN)
 
 CASE(JSOP_ITER)
 {
@@ -3566,6 +3596,29 @@ CASE(JSOP_TOASYNC)
 }
 END_CASE(JSOP_TOASYNC)
 
+CASE(JSOP_TOASYNCGEN)
+{
+    ReservedRooted<JSFunction*> unwrapped(&rootFunction0,
+                                          &REGS.sp[-1].toObject().as<JSFunction>());
+    JSObject* wrapped = WrapAsyncGenerator(cx, unwrapped);
+    if (!wrapped)
+        goto error;
+
+    REGS.sp[-1].setObject(*wrapped);
+}
+END_CASE(JSOP_TOASYNCGEN)
+
+CASE(JSOP_TOASYNCITER)
+{
+    ReservedRooted<JSObject*> iter(&rootObject1, &REGS.sp[-1].toObject());
+    JSObject* asyncIter = CreateAsyncFromSyncIterator(cx, iter);
+    if (!asyncIter)
+        goto error;
+
+    REGS.sp[-1].setObject(*asyncIter);
+}
+END_CASE(JSOP_TOASYNCITER)
+
 CASE(JSOP_SETFUNNAME)
 {
     MOZ_ASSERT(REGS.stackDepth() >= 2);
@@ -4181,8 +4234,7 @@ CASE(JSOP_DERIVEDCONSTRUCTOR)
     MOZ_ASSERT(REGS.sp[-1].isObject());
     ReservedRooted<JSObject*> proto(&rootObject0, &REGS.sp[-1].toObject());
 
-    JSFunction* constructor = MakeDefaultConstructor(cx, JSOp(*REGS.pc), script->getAtom(REGS.pc),
-                                                     proto);
+    JSFunction* constructor = MakeDefaultConstructor(cx, script, REGS.pc, proto);
     if (!constructor)
         goto error;
 
@@ -4192,8 +4244,7 @@ END_CASE(JSOP_DERIVEDCONSTRUCTOR)
 
 CASE(JSOP_CLASSCONSTRUCTOR)
 {
-    JSFunction* constructor = MakeDefaultConstructor(cx, JSOp(*REGS.pc), script->getAtom(REGS.pc),
-                                                     nullptr);
+    JSFunction* constructor = MakeDefaultConstructor(cx, script, REGS.pc, nullptr);
     if (!constructor)
         goto error;
     PUSH_OBJECT(*constructor);
@@ -5086,6 +5137,10 @@ js::ThrowCheckIsObject(JSContext* cx, CheckIsObjectKind kind)
         break;
       case CheckIsObjectKind::GetIterator:
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_GET_ITER_RETURNED_PRIMITIVE);
+        break;
+      case CheckIsObjectKind::GetAsyncIterator:
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_GET_ASYNC_ITER_RETURNED_PRIMITIVE);
         break;
       default:
         MOZ_CRASH("Unknown kind");

@@ -89,12 +89,6 @@ class FuncBytes
 typedef UniquePtr<FuncBytes> UniqueFuncBytes;
 typedef Vector<UniqueFuncBytes, 8, SystemAllocPolicy> UniqueFuncBytesVector;
 
-enum class CompileMode
-{
-    Baseline,
-    Ion
-};
-
 // FuncCompileUnit contains all the data necessary to produce and store the
 // results of a single function's compilation.
 
@@ -220,7 +214,9 @@ class MOZ_STACK_CLASS ModuleGenerator
 
     // Data that is moved into the result of finish()
     Assumptions                     assumptions_;
+    LinkDataTier*                   linkDataTier_; // Owned by linkData_
     LinkData                        linkData_;
+    MetadataTier*                   metadataTier_; // Owned by metadata_
     MutableMetadata                 metadata_;
 
     // Data scoped to the ModuleGenerator's lifetime
@@ -263,7 +259,8 @@ class MOZ_STACK_CLASS ModuleGenerator
     MOZ_MUST_USE bool finishOutstandingTask();
     MOZ_MUST_USE bool finishFuncExports();
     MOZ_MUST_USE bool finishCodegen();
-    MOZ_MUST_USE bool finishLinkData(Bytes& code);
+    MOZ_MUST_USE bool finishLinkData();
+    void generateBytecodeHash(const ShareableBytes& bytecode);
     MOZ_MUST_USE bool addFuncImport(const Sig& sig, uint32_t globalDataOffset);
     MOZ_MUST_USE bool allocateGlobalBytes(uint32_t bytes, uint32_t align, uint32_t* globalDataOff);
     MOZ_MUST_USE bool allocateGlobal(GlobalDesc* global);

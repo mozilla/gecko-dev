@@ -1,8 +1,7 @@
-commit 1327925dafa2fffea089131f71e3d455a1064999
-Merge: 0cc55bb e54c471
-Author: Leo Balter <leonardo.balter@gmail.com>
-Date:   Thu Mar 9 10:30:58 2017 -0500
+commit 5c8f4db9d72385965ff8b4fa94536649279f1470
+Author: Rick Waldron <waldron.rick@gmail.com>
+Date:   Wed May 17 15:46:04 2017 -0400
 
-    Merge pull request #892 from leobalter/generator-spread
+    Merge pull request #1040 from leobalter/remove-unnecessary-tests
     
-    Add tests for object spread on yield value
+    Remove unnecessary tests

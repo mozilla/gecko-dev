@@ -26,6 +26,7 @@
 #include "nsCRT.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/Services.h"
+#include "mozilla/ClearOnShutdown.h"
 
 #include "gfxXlibSurface.h"
 #include "gfxContext.h"
@@ -40,7 +41,7 @@
 #include "nsGtkKeyUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "gfxPlatform.h"
-#include "nsScreenGtk.h"
+#include "ScreenHelperGTK.h"
 #include "nsArrayUtils.h"
 
 using namespace mozilla;
@@ -58,7 +59,7 @@ enum {
   MOZ_GTK_DRAG_RESULT_NO_TARGET
 };
 
-static PRLogModuleInfo *sDragLm = nullptr;
+static LazyLogModule sDragLm("nsDragService");
 
 // data used for synthetic periodic motion events sent to the source widget
 // grabbing real events for the drag.
@@ -134,8 +135,6 @@ nsDragService::nsDragService()
     }
 
     // set up our logging module
-    if (!sDragLm)
-        sDragLm = PR_NewLogModule("nsDragService");
     MOZ_LOG(sDragLm, LogLevel::Debug, ("nsDragService::nsDragService"));
     mCanDrop = false;
     mTargetDragDataReceived = false;
@@ -153,13 +152,20 @@ nsDragService::~nsDragService()
 
 NS_IMPL_ISUPPORTS_INHERITED(nsDragService, nsBaseDragService, nsIObserver)
 
-/* static */ nsDragService*
+mozilla::StaticRefPtr<nsDragService> sDragServiceInstance;
+/* static */ already_AddRefed<nsDragService>
 nsDragService::GetInstance()
 {
-    static const nsIID iid = NS_DRAGSERVICE_CID;
-    nsCOMPtr<nsIDragService> dragService = do_GetService(iid);
-    return static_cast<nsDragService*>(dragService.get());
-    // We rely on XPCOM keeping a reference to the service.
+  if (gfxPlatform::IsHeadless()) {
+    return nullptr;
+  }
+  if (!sDragServiceInstance) {
+    sDragServiceInstance = new nsDragService();
+    ClearOnShutdown(&sDragServiceInstance);
+  }
+
+  RefPtr<nsDragService> service = sDragServiceInstance.get();
+  return service.forget();
 }
 
 // nsIObserver
@@ -239,7 +245,7 @@ OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
         // Update the cursor position.  The last of these recorded gets used for
         // the eDragEnd event.
         nsDragService *dragService = static_cast<nsDragService*>(user_data);
-        gint scale = nsScreenGtk::GetGtkMonitorScaleFactor();
+        gint scale = ScreenHelperGTK::GetGTKMonitorScaleFactor();
         auto p = LayoutDeviceIntPoint::Round(event->motion.x_root * scale,
                                              event->motion.y_root * scale);
         dragService->SetDragEndPoint(p);
@@ -505,7 +511,7 @@ nsDragService::SetAlphaPixmap(SourceSurface *aSurface,
         (void (*)(cairo_surface_t*,double,double))
         dlsym(RTLD_DEFAULT, "cairo_surface_set_device_scale");
     if (sCairoSurfaceSetDeviceScalePtr) {
-        gint scale = nsScreenGtk::GetGtkMonitorScaleFactor();
+        gint scale = ScreenHelperGTK::GetGTKMonitorScaleFactor();
         sCairoSurfaceSetDeviceScalePtr(surf, scale, scale);
     }
 
@@ -1417,7 +1423,7 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
         gint x, y;
         GdkDisplay* display = gdk_display_get_default();
         if (display) {
-            gint scale = nsScreenGtk::GetGtkMonitorScaleFactor();
+            gint scale = ScreenHelperGTK::GetGTKMonitorScaleFactor();
             gdk_display_get_pointer(display, nullptr, &x, &y, nullptr);
             SetDragEndPoint(LayoutDeviceIntPoint(x * scale, y * scale));
         }

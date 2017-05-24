@@ -51,7 +51,7 @@ const address = Cc["@mozilla.org/supports-cstring;1"]
                   .createInstance(Ci.nsISupportsCString);
 address.data = "127.0.0.1";
 const addresses = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-addresses.appendElement(address, false);
+addresses.appendElement(address);
 
 const mockedChannelDescription = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIPresentationChannelDescription]),
@@ -289,8 +289,11 @@ const mockedSessionTransport = {
     sendAsyncMessage('message-sent', data);
   },
   close: function(reason) {
-    sendAsyncMessage('data-transport-closed', reason);
-    this._callback.QueryInterface(Ci.nsIPresentationSessionTransportCallback).notifyTransportClosed(reason);
+    // Don't send a message after tearDown, to avoid a leak.
+    if (this._callback) {
+      sendAsyncMessage('data-transport-closed', reason);
+      this._callback.QueryInterface(Ci.nsIPresentationSessionTransportCallback).notifyTransportClosed(reason);
+    }
   },
   simulateTransportReady: function() {
     this._callback.QueryInterface(Ci.nsIPresentationSessionTransportCallback).notifyTransportReady();
@@ -405,14 +408,14 @@ addMessageListener('trigger-incoming-session-request', function(url) {
   var deviceManager = Cc['@mozilla.org/presentation-device/manager;1']
                       .getService(Ci.nsIPresentationDeviceManager);
   deviceManager.QueryInterface(Ci.nsIPresentationDeviceListener)
-	       .onSessionRequest(mockedDevice, url, sessionId, mockedControlChannel);
+               .onSessionRequest(mockedDevice, url, sessionId, mockedControlChannel);
 });
 
 addMessageListener('trigger-incoming-terminate-request', function() {
   var deviceManager = Cc['@mozilla.org/presentation-device/manager;1']
                       .getService(Ci.nsIPresentationDeviceManager);
   deviceManager.QueryInterface(Ci.nsIPresentationDeviceListener)
-	       .onTerminateRequest(mockedDevice, sessionId, mockedControlChannel, true);
+               .onTerminateRequest(mockedDevice, sessionId, mockedControlChannel, true);
 });
 
 addMessageListener('trigger-reconnected-acked', function(url) {
@@ -467,4 +470,4 @@ obs.addObserver(function observer(aSubject, aTopic, aData) {
   obs.removeObserver(observer, aTopic);
 
   requestPromise = aSubject;
-}, 'setup-request-promise', false);
+}, 'setup-request-promise');

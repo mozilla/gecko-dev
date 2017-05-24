@@ -9,6 +9,7 @@
 
 #include "nsXPLookAndFeel.h"
 #include "nsLookAndFeel.h"
+#include "HeadlessLookAndFeel.h"
 #include "nsCRT.h"
 #include "nsFont.h"
 #include "mozilla/dom/ContentChild.h"
@@ -18,6 +19,7 @@
 #include "mozilla/widget/WidgetMessageUtils.h"
 
 #include "gfxPlatform.h"
+#include "gfxPrefs.h"
 #include "qcms.h"
 
 #ifdef DEBUG
@@ -250,11 +252,11 @@ bool nsXPLookAndFeel::sUseNativeColors = true;
 bool nsXPLookAndFeel::sUseStandinsForNativeColors = false;
 bool nsXPLookAndFeel::sFindbarModalHighlight = false;
 
-nsLookAndFeel* nsXPLookAndFeel::sInstance = nullptr;
+nsXPLookAndFeel* nsXPLookAndFeel::sInstance = nullptr;
 bool nsXPLookAndFeel::sShutdown = false;
 
 // static
-nsLookAndFeel*
+nsXPLookAndFeel*
 nsXPLookAndFeel::GetInstance()
 {
   if (sInstance) {
@@ -263,7 +265,11 @@ nsXPLookAndFeel::GetInstance()
 
   NS_ENSURE_TRUE(!sShutdown, nullptr);
 
-  sInstance = new nsLookAndFeel();
+  if (gfxPlatform::IsHeadless()) {
+    sInstance = new widget::HeadlessLookAndFeel();
+  } else {
+    sInstance = new nsLookAndFeel();
+  }
   return sInstance;
 }
 
@@ -815,21 +821,25 @@ nsXPLookAndFeel::GetColorImpl(ColorID aID, bool aUseStandinsForNativeColors,
   }
 
   if (sUseNativeColors && NS_SUCCEEDED(NativeGetColor(aID, aResult))) {
-    if ((gfxPlatform::GetCMSMode() == eCMSMode_All) &&
-         !IsSpecialColor(aID, aResult)) {
-      qcms_transform *transform = gfxPlatform::GetCMSInverseRGBTransform();
-      if (transform) {
-        uint8_t color[3];
-        color[0] = NS_GET_R(aResult);
-        color[1] = NS_GET_G(aResult);
-        color[2] = NS_GET_B(aResult);
-        qcms_transform_data(transform, color, color, 1);
-        aResult = NS_RGB(color[0], color[1], color[2]);
-      }
-    }
-
     if (!mozilla::ServoStyleSet::IsInServoTraversal()) {
       MOZ_ASSERT(NS_IsMainThread());
+      // Make sure the preferences are initialized. In the normal run,
+      // they would already be, because gfxPlatform would have been created,
+      // but with some addon, that is not the case. See Bug 1357307.
+      gfxPrefs::GetSingleton();
+      if ((gfxPlatform::GetCMSMode() == eCMSMode_All) &&
+           !IsSpecialColor(aID, aResult)) {
+        qcms_transform *transform = gfxPlatform::GetCMSInverseRGBTransform();
+        if (transform) {
+          uint8_t color[3];
+          color[0] = NS_GET_R(aResult);
+          color[1] = NS_GET_G(aResult);
+          color[2] = NS_GET_B(aResult);
+          qcms_transform_data(transform, color, color, 1);
+          aResult = NS_RGB(color[0], color[1], color[2]);
+        }
+      }
+
       CACHE_COLOR(aID, aResult);
     }
     return NS_OK;

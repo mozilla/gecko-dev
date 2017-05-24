@@ -50,6 +50,12 @@ pref("security.enterprise_roots.enabled", false);
 pref("security.OCSP.enabled", 1);
 pref("security.OCSP.require", false);
 pref("security.OCSP.GET.enabled", false);
+#ifdef RELEASE_OR_BETA
+pref("security.OCSP.timeoutMilliseconds.soft", 2000);
+#else
+pref("security.OCSP.timeoutMilliseconds.soft", 1000);
+#endif
+pref("security.OCSP.timeoutMilliseconds.hard", 10000);
 
 pref("security.pki.cert_short_lifetime_in_days", 10);
 // NB: Changes to this pref affect CERT_CHAIN_SHA1_POLICY_STATUS telemetry.
@@ -88,7 +94,7 @@ pref("security.pki.netscape_step_up_policy", 2);
 // Configures Certificate Transparency support mode:
 // 0: Fully disabled.
 // 1: Only collect telemetry. CT qualification checks are not performed.
-pref("security.pki.certificate_transparency.mode", 1);
+pref("security.pki.certificate_transparency.mode", 0);
 
 pref("security.webauth.u2f", false);
 pref("security.webauth.u2f_enable_softtoken", false);

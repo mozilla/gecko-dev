@@ -74,6 +74,8 @@ public:
   HitTestingTreeNode* GetPrevSibling() const;
   HitTestingTreeNode* GetParent() const;
 
+  bool IsAncestorOf(const HitTestingTreeNode* aOther) const;
+
   /* APZC related methods */
 
   AsyncPanZoomController* GetApzc() const;
@@ -92,27 +94,30 @@ public:
   /* Scrollbar info */
 
   void SetScrollbarData(FrameMetrics::ViewID aScrollViewId,
-                        ScrollDirection aDir,
-                        int32_t aScrollThumbLength,
+                        const ScrollThumbData& aThumbData,
                         bool aIsScrollContainer);
   bool MatchesScrollDragMetrics(const AsyncDragMetrics& aDragMetrics) const;
-  LayerIntCoord GetScrollThumbLength() const;
-  bool IsScrollbarNode() const;
+  bool IsScrollbarNode() const;  // Scroll thumb or scrollbar container layer.
+  bool IsScrollThumbNode() const;  // Scroll thumb container layer.
   FrameMetrics::ViewID GetScrollTargetId() const;
+  const ScrollThumbData& GetScrollThumbData() const;
 
   /* Fixed pos info */
 
   void SetFixedPosData(FrameMetrics::ViewID aFixedPosTarget);
   FrameMetrics::ViewID GetFixedPosTarget() const;
 
-  /* Convert aPoint into the LayerPixel space for the layer corresponding to
+  /* Convert |aPoint| into the LayerPixel space for the layer corresponding to
+   * this node. |aTransform| is the complete (content + async) transform for
    * this node. */
-  Maybe<LayerPoint> Untransform(const ParentLayerPoint& aPoint) const;
+  Maybe<LayerPoint> Untransform(const ParentLayerPoint& aPoint,
+                                const LayerToParentLayerMatrix4x4& aTransform) const;
   /* Assuming aPoint is inside the clip region for this node, check which of the
    * event region spaces it falls inside. */
-  HitTestResult HitTest(const ParentLayerPoint& aPoint) const;
+  HitTestResult HitTest(const LayerPoint& aPoint) const;
   /* Returns the mOverride flag. */
   EventRegionsOverride GetEventRegionsOverride() const;
+  const CSSTransformMatrix& GetTransform() const;
 
   /* Debug helpers */
   void Dump(const char* aPrefix = "") const;
@@ -134,8 +139,7 @@ private:
   FrameMetrics::ViewID mScrollViewId;
 
   // This is set for scroll thumb Container layers only.
-  ScrollDirection mScrollDir;
-  int32_t mScrollThumbLength;
+  ScrollThumbData mScrollThumbData;
 
   // This is set for scroll track Container layers only.
   bool mIsScrollbarContainer;

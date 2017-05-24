@@ -41,7 +41,7 @@
             break
         }
         if any {
-            Ok(Longhands {
+            Ok(expanded! {
                 outline_color: unwrap_or_initial!(outline_color, color),
                 outline_style: unwrap_or_initial!(outline_style, style),
                 outline_width: unwrap_or_initial!(outline_width, width),
@@ -68,11 +68,12 @@
     for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']
 )}" products="gecko" spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)">
     use properties::shorthands;
+    use values::generics::serialize_radius_values;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         // Re-use border-radius parsing.
         shorthands::border_radius::parse_value(context, input).map(|longhands| {
-            Longhands {
+            expanded! {
                 % for corner in ["top_left", "top_right", "bottom_right", "bottom_left"]:
                 _moz_outline_radius_${corner.replace("_", "")}: longhands.border_${corner}_radius,
                 % endfor
@@ -80,19 +81,14 @@
         })
     }
 
-    // TODO: Border radius for the radius shorthand is not implemented correctly yet
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self._moz_outline_radius_topleft.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self._moz_outline_radius_topright.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self._moz_outline_radius_bottomright.to_css(dest));
-            try!(write!(dest, " "));
-
-            self._moz_outline_radius_bottomleft.to_css(dest)
+            serialize_radius_values(dest,
+                &self._moz_outline_radius_topleft.0,
+                &self._moz_outline_radius_topright.0,
+                &self._moz_outline_radius_bottomright.0,
+                &self._moz_outline_radius_bottomleft.0,
+            )
         }
     }
 </%helpers:shorthand>

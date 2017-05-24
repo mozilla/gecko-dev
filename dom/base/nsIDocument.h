@@ -31,10 +31,10 @@
 #include "nsContentListDeclarations.h"
 #include "nsExpirationTracker.h"
 #include "nsClassHashtable.h"
-#include "prclist.h"
 #include "mozilla/CORSMode.h"
 #include "mozilla/dom/DispatcherTrait.h"
 #include "mozilla/LinkedList.h"
+#include "mozilla/SegmentedVector.h"
 #include "mozilla/StyleBackendType.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/TimeStamp.h"
@@ -92,7 +92,6 @@ class nsIVariant;
 class nsViewManager;
 class nsPresContext;
 class nsRange;
-class nsScriptLoader;
 class nsSMILAnimationController;
 class nsSVGElement;
 class nsTextNode;
@@ -110,6 +109,7 @@ class EventStates;
 class PendingAnimationTracker;
 class StyleSetHandle;
 template<typename> class OwningNonNull;
+struct URLExtraData;
 
 namespace css {
 class Loader;
@@ -153,6 +153,7 @@ class NodeIterator;
 enum class OrientationType : uint8_t;
 class ProcessingInstruction;
 class Promise;
+class ScriptLoader;
 class StyleSheetList;
 class SVGDocument;
 class SVGSVGElement;
@@ -483,6 +484,15 @@ public:
   virtual already_AddRefed<nsIURI> GetBaseURI(bool aTryUseXHRDocBaseURI = false) const override;
 
   virtual void SetBaseURI(nsIURI* aURI) = 0;
+
+  /**
+   * Return the URL data which style system needs for resolving url value.
+   * This method attempts to use the cached object in mCachedURLData, but
+   * if the base URI, document URI, or principal has changed since last
+   * call to this function, or the function is called the first time for
+   * the document, a new one is created.
+   */
+  mozilla::URLExtraData* DefaultStyleAttrURLData();
 
   /**
    * Get/Set the base target of a link in a document.
@@ -1068,7 +1078,7 @@ public:
     : public nsExpirationTracker<SelectorCacheKey, 4>
   {
     public:
-      SelectorCache();
+      explicit SelectorCache(nsIEventTarget* aEventTarget);
 
       // CacheList takes ownership of aSelectorList.
       void CacheList(const nsAString& aSelector, nsCSSSelectorList* aSelectorList);
@@ -1085,18 +1095,18 @@ public:
         return mTable.Get(aSelector, aList);
       }
 
-      ~SelectorCache()
-      {
-        AgeAllGenerations();
-      }
+      ~SelectorCache();
 
     private:
       nsClassHashtable<nsStringHashKey, nsCSSSelectorList> mTable;
   };
 
-  SelectorCache& GetSelectorCache()
-  {
-    return mSelectorCache;
+  SelectorCache& GetSelectorCache() {
+    if (!mSelectorCache) {
+      mSelectorCache =
+        new SelectorCache(EventTargetFor(mozilla::TaskCategory::Other));
+    }
+    return *mSelectorCache;
   }
   // Get the root <html> element, or return null if there isn't one (e.g.
   // if the root isn't <html>)
@@ -1224,11 +1234,13 @@ public:
    * sheets for this document, returns the index that aSheet should
    * be inserted at to maintain document ordering.
    *
+   * Type T has to cast to StyleSheet*.
+   *
    * Defined in nsIDocumentInlines.h.
    */
   template<typename T>
-  size_t FindDocStyleSheetInsertionPoint(const nsTArray<RefPtr<T>>& aDocSheets,
-                                         T* aSheet);
+  size_t FindDocStyleSheetInsertionPoint(const nsTArray<T>& aDocSheets,
+                                         mozilla::StyleSheet* aSheet);
 
   /**
    * Get this document's CSSLoader.  This is guaranteed to not return null.
@@ -1356,7 +1368,7 @@ public:
   /**
    * Get the script loader for this document
    */
-  virtual nsScriptLoader* ScriptLoader() = 0;
+  virtual mozilla::dom::ScriptLoader* ScriptLoader() = 0;
 
   /**
    * Add/Remove an element to the document's id and name hashes
@@ -1864,8 +1876,8 @@ public:
   already_AddRefed<mozilla::dom::MediaQueryList>
     MatchMedia(const nsAString& aMediaQueryList);
 
-  const PRCList* MediaQueryLists() const {
-    return &mDOMMediaQueryLists;
+  mozilla::LinkedList<mozilla::dom::MediaQueryList>& MediaQueryLists() {
+    return mDOMMediaQueryLists;
   }
 
   /**
@@ -2441,9 +2453,6 @@ public:
   virtual void RemoveResponsiveContent(nsIContent* aContent) = 0;
   virtual void NotifyMediaFeatureValuesChanged() = 0;
 
-  virtual void AddMediaContent(nsIContent* aContent) = 0;
-  virtual void RemoveMediaContent(nsIContent* aContent) = 0;
-
   virtual nsresult GetStateObject(nsIVariant** aResult) = 0;
 
   virtual nsDOMNavigationTiming* GetNavigationTiming() const = 0;
@@ -2455,13 +2464,23 @@ public:
   // Add aLink to the set of links that need their status resolved.
   void RegisterPendingLinkUpdate(mozilla::dom::Link* aLink);
 
-  // Remove aLink from the set of links that need their status resolved.
-  // This function must be called when links are removed from the document.
-  void UnregisterPendingLinkUpdate(mozilla::dom::Link* aElement);
-
-  // Update state on links in mLinksToUpdate.  This function must
-  // be called prior to selector matching.
+  // Update state on links in mLinksToUpdate.  This function must be called
+  // prior to selector matching that needs to differentiate between :link and
+  // :visited.  In particular, it does _not_ need to be called before doing any
+  // selector matching that uses TreeMatchContext::eNeverMatchVisited.  The only
+  // reason we haven't moved all calls to this function entirely inside the
+  // TreeMatchContext constructor is to not call it all the time during various
+  // style system and frame construction operations (though it would likely be a
+  // no-op for all but the first call).
+  //
+  // XXXbz Does this really need to be called before selector matching?  All it
+  // will do is ensure all the links involved are registered to observe history,
+  // which won't synchronously change their state to :visited anyway!  So
+  // calling this won't affect selector matching done immediately afterward, as
+  // far as I can tell.
   void FlushPendingLinkUpdates();
+
+  void FlushPendingLinkUpdatesFromRunnable();
 
 #define DEPRECATED_OPERATION(_op) e##_op,
   enum DeprecatedOperations {
@@ -2622,7 +2641,9 @@ public:
     ImportNode(nsINode& aNode, bool aDeep, mozilla::ErrorResult& rv) const;
   nsINode* AdoptNode(nsINode& aNode, mozilla::ErrorResult& rv);
   already_AddRefed<mozilla::dom::Event>
-    CreateEvent(const nsAString& aEventType, mozilla::ErrorResult& rv) const;
+    CreateEvent(const nsAString& aEventType,
+                mozilla::dom::CallerType aCallerType,
+                mozilla::ErrorResult& rv) const;
   already_AddRefed<nsRange> CreateRange(mozilla::ErrorResult& rv);
   already_AddRefed<mozilla::dom::NodeIterator>
     CreateNodeIterator(nsINode& aRoot, uint32_t aWhatToShow,
@@ -2922,7 +2943,8 @@ protected:
 private:
   mutable std::bitset<eDeprecatedOperationCount> mDeprecationWarnedAbout;
   mutable std::bitset<eDocumentWarningCount> mDocWarningWarnedAbout;
-  SelectorCache mSelectorCache;
+  // Lazy-initialization to have mDocGroup initialized in prior to mSelectorCache.
+  nsAutoPtr<SelectorCache> mSelectorCache;
 
 protected:
   ~nsIDocument();
@@ -2970,6 +2992,13 @@ protected:
     return mId;
   }
 
+  // Update our frame request callback scheduling state, if needed.  This will
+  // schedule or unschedule them, if necessary, and update
+  // mFrameRequestCallbacksScheduled.  aOldShell should only be passed when
+  // mPresShell is becoming null; in that case it will be used to get hold of
+  // the relevant refresh driver.
+  void UpdateFrameRequestCallbackSchedulingState(nsIPresShell* aOldShell = nullptr);
+
   nsCString mReferrer;
   nsString mLastModified;
 
@@ -2978,6 +3007,11 @@ protected:
   nsCOMPtr<nsIURI> mChromeXHRDocURI;
   nsCOMPtr<nsIURI> mDocumentBaseURI;
   nsCOMPtr<nsIURI> mChromeXHRDocBaseURI;
+
+#ifdef MOZ_STYLO
+  // A lazily-constructed URL data for style system to resolve URL value.
+  RefPtr<mozilla::URLExtraData> mCachedURLData;
+#endif
 
   nsWeakPtr mDocumentLoadGroup;
 
@@ -3023,10 +3057,13 @@ protected:
   // themselves when they go away.
   nsAutoPtr<nsTHashtable<nsPtrHashKey<nsISupports> > > mActivityObservers;
 
-  // The set of all links that need their status resolved.  Links must add themselves
-  // to this set by calling RegisterPendingLinkUpdate when added to a document and must
-  // remove themselves by calling UnregisterPendingLinkUpdate when removed from a document.
-  nsTHashtable<nsPtrHashKey<mozilla::dom::Link> > mLinksToUpdate;
+  // The array of all links that need their status resolved.  Links must add themselves
+  // to this set by calling RegisterPendingLinkUpdate when added to a document.
+  static const size_t kSegmentSize = 128;
+  mozilla::SegmentedVector<nsCOMPtr<mozilla::dom::Link>,
+                           kSegmentSize,
+                           InfallibleAllocPolicy>
+    mLinksToUpdate;
 
   // SMIL Animation Controller, lazily-initialized in GetAnimationController
   RefPtr<nsSMILAnimationController> mAnimationController;
@@ -3119,6 +3156,9 @@ protected:
   // True if this document has links whose state needs updating
   bool mHasLinksToUpdate : 1;
 
+  // True is there is a pending runnable which will call FlushPendingLinkUpdates().
+  bool mHasLinksToUpdateRunnable : 1;
+
   // True if a DOMMutationObserver is perhaps attached to a node in the document.
   bool mMayHaveDOMMutationObservers : 1;
 
@@ -3186,8 +3226,17 @@ protected:
   // Do we currently have an event posted to call FlushUserFontSet?
   bool mPostedFlushUserFontSet : 1;
 
-  // True is document has ever been in a foreground window.
-  bool mEverInForeground : 1;
+  // True if we have fired the DOMContentLoaded event, or don't plan to fire one
+  // (e.g. we're not being parsed at all).
+  bool mDidFireDOMContentLoaded : 1;
+
+  // True if ReportHasScrollLinkedEffect() has been called.
+  bool mHasScrollLinkedEffect : 1;
+
+  // True if we have frame request callbacks scheduled with the refresh driver.
+  // This should generally be updated only via
+  // UpdateFrameRequestCallbackSchedulingState.
+  bool mFrameRequestCallbacksScheduled : 1;
 
   // Compatibility mode
   nsCompatibility mCompatMode;
@@ -3339,12 +3388,9 @@ protected:
   nsTArray<RefPtr<mozilla::dom::AnonymousContent>> mAnonymousContents;
 
   uint32_t mBlockDOMContentLoaded;
-  bool mDidFireDOMContentLoaded:1;
-
-  bool mHasScrollLinkedEffect:1;
 
   // Our live MediaQueryLists
-  PRCList mDOMMediaQueryLists;
+  mozilla::LinkedList<mozilla::dom::MediaQueryList> mDOMMediaQueryLists;
 
   // Flags for use counters used directly by this document.
   std::bitset<mozilla::eUseCounter_Count> mUseCounters;

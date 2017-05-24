@@ -61,36 +61,8 @@ FormAutofillHandler.prototype = {
    * Set fieldDetails from the form about fields that can be autofilled.
    */
   collectFormFields() {
-    this.fieldDetails = [];
-
-    for (let element of this.form.elements) {
-      // Exclude elements to which no autocomplete field has been assigned.
-      let info = FormAutofillHeuristics.getInfo(element);
-      if (!info) {
-        continue;
-      }
-
-      // Store the association between the field metadata and the element.
-      if (this.fieldDetails.some(f => f.section == info.section &&
-                                      f.addressType == info.addressType &&
-                                      f.contactType == info.contactType &&
-                                      f.fieldName == info.fieldName)) {
-        // A field with the same identifier already exists.
-        log.debug("Not collecting a field matching another with the same info:", info);
-        continue;
-      }
-
-      let formatWithElement = {
-        section: info.section,
-        addressType: info.addressType,
-        contactType: info.contactType,
-        fieldName: info.fieldName,
-        element, // TODO: Apply Cu.getWeakReference and use get API for strong ref.
-      };
-
-      this.fieldDetails.push(formatWithElement);
-    }
-
+    let fieldDetails = FormAutofillHeuristics.getFormInfo(this.form);
+    this.fieldDetails = fieldDetails ? fieldDetails : [];
     log.debug("Collected details on", this.fieldDetails.length, "fields");
   },
 
@@ -113,15 +85,52 @@ FormAutofillHandler.prototype = {
       // 2. a non-empty input field
       // 3. the invalid value set
 
-      if (fieldDetail.element === focusedInput ||
-          fieldDetail.element.value) {
+      let element = fieldDetail.elementWeakRef.get();
+      if (!element || element === focusedInput || element.value) {
         continue;
       }
 
       let value = profile[fieldDetail.fieldName];
       if (value) {
-        fieldDetail.element.setUserInput(value);
+        element.setUserInput(value);
       }
     }
+  },
+
+  /**
+   * Populates result to the preview layers with given profile.
+   *
+   * @param {Object} profile
+   *        A profile to be previewed with
+   */
+  previewFormFields(profile) {
+    log.debug("preview profile in autofillFormFields:", profile);
+    /*
+    for (let fieldDetail of this.fieldDetails) {
+      let value = profile[fieldDetail.fieldName] || "";
+
+      // Skip the fields that already has text entered
+      if (fieldDetail.element.value) {
+        continue;
+      }
+
+      // TODO: Set highlight style and preview text.
+    }
+    */
+  },
+
+  clearPreviewedFormFields() {
+    log.debug("clear previewed fields in:", this.form);
+    /*
+    for (let fieldDetail of this.fieldDetails) {
+      // TODO: Clear preview text
+
+      // We keep the highlight of all fields if this form has
+      // already been auto-filled with a profile.
+      if (this.filledProfileGUID == null) {
+        // TODO: Remove highlight style
+      }
+    }
+    */
   },
 };

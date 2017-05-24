@@ -16,10 +16,13 @@ void main(void) {
                          dest_origin + src_task.size,
                          aPosition.xy);
 
-    vec2 texture_size = vec2(textureSize(sCache, 0));
-    vec2 st0 = src_task.render_target_origin / texture_size;
-    vec2 st1 = (src_task.render_target_origin + src_task.size) / texture_size;
-    vUv = vec3(mix(st0, st1, aPosition.xy), src_task.render_target_layer_index);
+    vec2 texture_size = vec2(textureSize(sCacheRGBA8, 0));
+    vec2 st0 = src_task.render_target_origin;
+    vec2 st1 = src_task.render_target_origin + src_task.size;
+
+    vec2 uv = src_task.render_target_origin + aPosition.xy * src_task.size;
+    vUv = vec3(uv / texture_size, src_task.render_target_layer_index);
+    vUvBounds = vec4(st0 + 0.5, st1 - 0.5) / texture_size.xyxy;
 
     vOp = pi.sub_index;
     vAmount = float(pi.user_data.y) / 65535.0;

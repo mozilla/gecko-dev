@@ -534,15 +534,10 @@ js::SetIntegrityLevel(JSContext* cx, HandleObject obj, IntegrityLevel level)
 
         // Ordinarily ArraySetLength handles this, but we're going behind its back
         // right now, so we must do this manually.
-        //
-        // ArraySetLength also implements the capacity <= length invariant for
-        // arrays with non-writable length.  We don't need to do anything special
-        // for that, because capacity was zeroed out by preventExtensions.  (See
-        // the assertion about getDenseCapacity above.)
         if (level == IntegrityLevel::Frozen && obj->is<ArrayObject>()) {
             if (!obj->as<ArrayObject>().maybeCopyElementsForWrite(cx))
                 return false;
-            obj->as<ArrayObject>().getElementsHeader()->setNonwritableArrayLength();
+            obj->as<ArrayObject>().setNonWritableLength(cx);
         }
     } else {
         RootedId id(cx);
@@ -1125,12 +1120,14 @@ CopyProxyObject(JSContext* cx, Handle<ProxyObject*> from, Handle<ProxyObject*> t
         to->setSameCompartmentPrivate(v);
     }
 
+    MOZ_ASSERT(from->numReservedSlots() == to->numReservedSlots());
+
     RootedValue v(cx);
-    for (size_t n = 0; n < js::detail::PROXY_EXTRA_SLOTS; n++) {
-        v = GetProxyExtra(from, n);
+    for (size_t n = 0; n < from->numReservedSlots(); n++) {
+        v = GetProxyReservedSlot(from, n);
         if (!cx->compartment()->wrap(cx, &v))
             return false;
-        SetProxyExtra(to, n, v);
+        SetProxyReservedSlot(to, n, v);
     }
 
     return true;
@@ -1528,6 +1525,60 @@ JSObject::fixDictionaryShapeAfterSwap()
         as<NativeObject>().shape_->listp = &as<NativeObject>().shape_;
 }
 
+static MOZ_MUST_USE bool
+CopyProxyValuesBeforeSwap(ProxyObject* proxy, Vector<Value>& values)
+{
+    MOZ_ASSERT(values.empty());
+
+    // Remove the GCPtrValues we're about to swap from the store buffer, to
+    // ensure we don't trace bogus values.
+    StoreBuffer& sb = proxy->zone()->group()->storeBuffer();
+
+    // Reserve space for the private slot and the reserved slots.
+    if (!values.reserve(1 + proxy->numReservedSlots()))
+        return false;
+
+    js::detail::ProxyValueArray* valArray = js::detail::GetProxyDataLayout(proxy)->values();
+    sb.unputValue(&valArray->privateSlot);
+    values.infallibleAppend(valArray->privateSlot);
+
+    for (size_t i = 0; i < proxy->numReservedSlots(); i++) {
+        sb.unputValue(&valArray->reservedSlots.slots[i]);
+        values.infallibleAppend(valArray->reservedSlots.slots[i]);
+    }
+
+    return true;
+}
+
+bool
+ProxyObject::initExternalValueArrayAfterSwap(JSContext* cx, const Vector<Value>& values)
+{
+    MOZ_ASSERT(getClass()->isProxy());
+
+    size_t nreserved = numReservedSlots();
+
+    // |values| contains the private slot and the reserved slots.
+    MOZ_ASSERT(values.length() == 1 + nreserved);
+
+    size_t nbytes = js::detail::ProxyValueArray::sizeOf(nreserved);
+
+    auto* valArray =
+        reinterpret_cast<js::detail::ProxyValueArray*>(cx->zone()->pod_malloc<uint8_t>(nbytes));
+    if (!valArray)
+        return false;
+
+    valArray->privateSlot = values[0];
+
+    for (size_t i = 0; i < nreserved; i++)
+        valArray->reservedSlots.slots[i] = values[i + 1];
+
+    // Note: we allocate external slots iff the proxy had an inline
+    // ProxyValueArray, so at this point reservedSlots points into the
+    // old object and we don't have to free anything.
+    data.reservedSlots = &valArray->reservedSlots;
+    return true;
+}
+
 /* Use this method with extreme caution. It trades the guts of two objects. */
 bool
 JSObject::swap(JSContext* cx, HandleObject a, HandleObject b)
@@ -1572,6 +1623,11 @@ JSObject::swap(JSContext* cx, HandleObject a, HandleObject b)
     MOZ_ASSERT(!a->is<TypedArrayObject>() && !b->is<TypedArrayObject>());
     MOZ_ASSERT(!a->is<TypedObject>() && !b->is<TypedObject>());
 
+    bool aIsProxyWithInlineValues =
+        a->is<ProxyObject>() && a->as<ProxyObject>().usingInlineValueArray();
+    bool bIsProxyWithInlineValues =
+        b->is<ProxyObject>() && b->as<ProxyObject>().usingInlineValueArray();
+
     if (a->tenuredSizeOfThis() == b->tenuredSizeOfThis()) {
         // When both objects are the same size, just do a plain swap of their
         // contents.
@@ -1586,6 +1642,11 @@ JSObject::swap(JSContext* cx, HandleObject a, HandleObject b)
 
         a->fixDictionaryShapeAfterSwap();
         b->fixDictionaryShapeAfterSwap();
+
+        if (aIsProxyWithInlineValues)
+            b->as<ProxyObject>().setInlineValueArray();
+        if (bIsProxyWithInlineValues)
+            a->as<ProxyObject>().setInlineValueArray();
     } else {
         // Avoid GC in here to avoid confusing the tracing code with our
         // intermediate state.
@@ -1617,6 +1678,19 @@ JSObject::swap(JSContext* cx, HandleObject a, HandleObject b)
             }
         }
 
+        // Do the same for proxies storing ProxyValueArray inline.
+        ProxyObject* proxyA = a->is<ProxyObject>() ? &a->as<ProxyObject>() : nullptr;
+        ProxyObject* proxyB = b->is<ProxyObject>() ? &b->as<ProxyObject>() : nullptr;
+
+        if (aIsProxyWithInlineValues) {
+            if (!CopyProxyValuesBeforeSwap(proxyA, avals))
+                oomUnsafe.crash("CopyProxyValuesBeforeSwap");
+        }
+        if (bIsProxyWithInlineValues) {
+            if (!CopyProxyValuesBeforeSwap(proxyB, bvals))
+                oomUnsafe.crash("CopyProxyValuesBeforeSwap");
+        }
+
         // Swap the main fields of the objects, whether they are native objects or proxies.
         char tmp[sizeof(JSObject_Slots0)];
         js_memcpy(&tmp, a, sizeof tmp);
@@ -1633,6 +1707,14 @@ JSObject::swap(JSContext* cx, HandleObject a, HandleObject b)
         if (nb) {
             if (!NativeObject::fillInAfterSwap(cx, a.as<NativeObject>(), bvals, bpriv))
                 oomUnsafe.crash("fillInAfterSwap");
+        }
+        if (aIsProxyWithInlineValues) {
+            if (!b->as<ProxyObject>().initExternalValueArrayAfterSwap(cx, avals))
+                oomUnsafe.crash("initExternalValueArray");
+        }
+        if (bIsProxyWithInlineValues) {
+            if (!a->as<ProxyObject>().initExternalValueArrayAfterSwap(cx, bvals))
+                oomUnsafe.crash("initExternalValueArray");
         }
     }
 
@@ -1928,27 +2010,38 @@ js::SetClassAndProto(JSContext* cx, HandleObject obj,
         return true;
     }
 
-    if (proto.isObject()) {
-        RootedObject protoObj(cx, proto.toObject());
-        if (!JSObject::setNewGroupUnknown(cx, clasp, protoObj))
+    RootedObjectGroup oldGroup(cx, obj->group());
+
+    ObjectGroup* newGroup;
+    if (oldGroup->maybeInterpretedFunction()) {
+        // We're changing the group/proto of a scripted function. Create a new
+        // group so we can keep track of the interpreted function for Ion
+        // inlining.
+        MOZ_ASSERT(obj->is<JSFunction>());
+        newGroup = ObjectGroupCompartment::makeGroup(cx, &JSFunction::class_, proto);
+        if (!newGroup)
+            return false;
+        newGroup->setInterpretedFunction(oldGroup->maybeInterpretedFunction());
+    } else {
+        newGroup = ObjectGroup::defaultNewGroup(cx, clasp, proto);
+        if (!newGroup)
             return false;
     }
 
-    ObjectGroup* group = ObjectGroup::defaultNewGroup(cx, clasp, proto);
-    if (!group)
-        return false;
+    obj->setGroup(newGroup);
 
-    /*
-     * Setting __proto__ on an object that has escaped and may be referenced by
-     * other heap objects can only be done if the properties of both objects
-     * are unknown. Type sets containing this object will contain the original
-     * type but not the new type of the object, so we need to treat all such
-     * type sets as unknown.
-     */
-    MarkObjectGroupUnknownProperties(cx, obj->group());
-    MarkObjectGroupUnknownProperties(cx, group);
+    // Add the object's property types to the new group.
+    if (!newGroup->unknownProperties()) {
+        if (obj->isNative())
+            AddPropertyTypesAfterProtoChange(cx, &obj->as<NativeObject>(), oldGroup);
+        else
+            MarkObjectGroupUnknownProperties(cx, newGroup);
+    }
 
-    obj->setGroup(group);
+    // Type sets containing this object will contain the old group but not the
+    // new group of the object, so we need to treat all such type sets as
+    // unknown.
+    MarkObjectGroupUnknownProperties(cx, oldGroup);
 
     return true;
 }
@@ -3783,8 +3876,10 @@ JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::ClassIn
 
     if (is<NativeObject>() && as<NativeObject>().hasDynamicElements()) {
         js::ObjectElements* elements = as<NativeObject>().getElementsHeader();
-        if (!elements->isCopyOnWrite() || elements->ownerObject() == this)
-            info->objectsMallocHeapElementsNormal += mallocSizeOf(elements);
+        if (!elements->isCopyOnWrite() || elements->ownerObject() == this) {
+            void* allocatedElements = as<NativeObject>().getUnshiftedElementsHeader();
+            info->objectsMallocHeapElementsNormal += mallocSizeOf(allocatedElements);
+        }
     }
 
     // Other things may be measured in the future if DMD indicates it is worthwhile.
@@ -3849,7 +3944,7 @@ JSObject::sizeOfIncludingThisInNursery() const
         if (native.hasDynamicElements()) {
             js::ObjectElements& elements = *native.getElementsHeader();
             if (!elements.isCopyOnWrite() || elements.ownerObject() == this)
-                size += elements.capacity * sizeof(HeapSlot);
+                size += (elements.capacity + elements.numShiftedElements()) * sizeof(HeapSlot);
         }
 
         if (is<ArgumentsObject>())
@@ -4041,11 +4136,11 @@ JSObject::debugCheckNewObject(ObjectGroup* group, Shape* shape, js::gc::AllocKin
 
     MOZ_ASSERT(!group->compartment()->hasObjectPendingMetadata());
 
-    // Non-native classes cannot have reserved slots or private data, and the
-    // objects can't have any fixed slots, for compatibility with
-    // GetReservedOrProxyPrivateSlot.
+    // Non-native classes manage their own data and slots, so numFixedSlots and
+    // slotSpan are always 0. Note that proxy classes can have reserved slots
+    // but they're also not included in numFixedSlots/slotSpan.
     if (!clasp->isNative()) {
-        MOZ_ASSERT(JSCLASS_RESERVED_SLOTS(clasp) == 0);
+        MOZ_ASSERT_IF(!clasp->isProxy(), JSCLASS_RESERVED_SLOTS(clasp) == 0);
         MOZ_ASSERT(!clasp->hasPrivate());
         MOZ_ASSERT_IF(shape, shape->numFixedSlots() == 0);
         MOZ_ASSERT_IF(shape, shape->slotSpan() == 0);

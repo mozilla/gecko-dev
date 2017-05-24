@@ -132,7 +132,13 @@ HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs)
                        a.suspendAfterSynthesizeResponse(),
                        a.allowStaleCacheContent(), a.contentTypeHint(),
                        a.channelId(), a.contentWindowId(), a.preferredAlternativeType(),
-                       a.topLevelOuterContentWindowId());
+                       a.topLevelOuterContentWindowId(),
+                       a.launchServiceWorkerStart(),
+                       a.launchServiceWorkerEnd(),
+                       a.dispatchFetchEventStart(),
+                       a.dispatchFetchEventEnd(),
+                       a.handleFetchEventStart(),
+                       a.handleFetchEventEnd());
   }
   case HttpChannelCreationArgs::THttpChannelConnectArgs:
   {
@@ -321,17 +327,23 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
                                  const OptionalHttpResponseHead& aSynthesizedResponseHead,
                                  const nsCString&           aSecurityInfoSerialization,
                                  const uint32_t&            aCacheKey,
-                                 const nsCString&           aRequestContextID,
+                                 const uint64_t&            aRequestContextID,
                                  const OptionalCorsPreflightArgs& aCorsPreflightArgs,
                                  const uint32_t&            aInitialRwin,
                                  const bool&                aBlockAuthPrompt,
                                  const bool&                aSuspendAfterSynthesizeResponse,
                                  const bool&                aAllowStaleCacheContent,
                                  const nsCString&           aContentTypeHint,
-                                 const nsCString&           aChannelId,
+                                 const uint64_t&            aChannelId,
                                  const uint64_t&            aContentWindowId,
                                  const nsCString&           aPreferredAlternativeType,
-                                 const uint64_t&            aTopLevelOuterContentWindowId)
+                                 const uint64_t&            aTopLevelOuterContentWindowId,
+                                 const TimeStamp&           aLaunchServiceWorkerStart,
+                                 const TimeStamp&           aLaunchServiceWorkerEnd,
+                                 const TimeStamp&           aDispatchFetchEventStart,
+                                 const TimeStamp&           aDispatchFetchEventEnd,
+                                 const TimeStamp&           aHandleFetchEventStart,
+                                 const TimeStamp&           aHandleFetchEventEnd)
 {
   nsCOMPtr<nsIURI> uri = DeserializeURI(aURI);
   if (!uri) {
@@ -361,10 +373,8 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
     return SendFailedAsyncOpen(rv);
   }
 
-  OriginAttributes attrs;
-  rv = loadInfo->GetOriginAttributes(&attrs);
-  if (NS_FAILED(rv)) {
-    return SendFailedAsyncOpen(rv);
+  if (!loadInfo) {
+    return SendFailedAsyncOpen(NS_ERROR_UNEXPECTED);
   }
 
   nsCOMPtr<nsIChannel> channel;
@@ -542,6 +552,13 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
   mChannel->SetInitialRwin(aInitialRwin);
   mChannel->SetBlockAuthPrompt(aBlockAuthPrompt);
 
+  mChannel->SetLaunchServiceWorkerStart(aLaunchServiceWorkerStart);
+  mChannel->SetLaunchServiceWorkerEnd(aLaunchServiceWorkerEnd);
+  mChannel->SetDispatchFetchEventStart(aDispatchFetchEventStart);
+  mChannel->SetDispatchFetchEventEnd(aDispatchFetchEventEnd);
+  mChannel->SetHandleFetchEventStart(aHandleFetchEventStart);
+  mChannel->SetHandleFetchEventEnd(aHandleFetchEventEnd);
+
   nsCOMPtr<nsIApplicationCacheChannel> appCacheChan =
     do_QueryObject(mChannel);
   nsCOMPtr<nsIApplicationCacheService> appCacheService =
@@ -573,15 +590,13 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
       bool chooseAppCache = false;
       // This works because we've already called SetNotificationCallbacks and
       // done mPBOverride logic by this point.
-      chooseAppCache = NS_ShouldCheckAppCache(principal, NS_UsePrivateBrowsing(mChannel));
+      chooseAppCache = NS_ShouldCheckAppCache(principal);
 
       appCacheChan->SetChooseApplicationCache(chooseAppCache);
     }
   }
 
-  nsID requestContextID;
-  requestContextID.Parse(aRequestContextID.BeginReading());
-  mChannel->SetRequestContextID(requestContextID);
+  mChannel->SetRequestContextID(aRequestContextID);
 
   mSuspendAfterSynthesizeResponse = aSuspendAfterSynthesizeResponse;
 
@@ -838,7 +853,7 @@ HttpChannelParent::RecvMarkOfflineCacheEntryAsForeign()
   return IPC_OK();
 }
 
-class DivertDataAvailableEvent : public ChannelEvent
+class DivertDataAvailableEvent : public MainThreadChannelEvent
 {
 public:
   DivertDataAvailableEvent(HttpChannelParent* aParent,
@@ -933,7 +948,7 @@ HttpChannelParent::DivertOnDataAvailable(const nsCString& data,
   }
 }
 
-class DivertStopRequestEvent : public ChannelEvent
+class DivertStopRequestEvent : public MainThreadChannelEvent
 {
 public:
   DivertStopRequestEvent(HttpChannelParent* aParent,
@@ -994,7 +1009,7 @@ HttpChannelParent::DivertOnStopRequest(const nsresult& statusCode)
   mParentListener->OnStopRequest(mChannel, nullptr, status);
 }
 
-class DivertCompleteEvent : public ChannelEvent
+class DivertCompleteEvent : public MainThreadChannelEvent
 {
 public:
   explicit DivertCompleteEvent(HttpChannelParent* aParent)
@@ -1128,11 +1143,14 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
              "HttpChannelParent getting OnStartRequest from a different nsHttpChannel instance");
 
   // Send down any permissions which are relevant to this URL if we are
-  // performing a document load.
-  PContentParent* pcp = Manager()->Manager();
-  nsresult rv =
-    static_cast<ContentParent*>(pcp)->TransmitPermissionsFor(chan);
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
+  // performing a document load. We can't do that is mIPCClosed is set.
+  if (!mIPCClosed) {
+    PContentParent* pcp = Manager()->Manager();
+    MOZ_ASSERT(pcp, "We should have a manager if our IPC isn't closed");
+    DebugOnly<nsresult> rv =
+      static_cast<ContentParent*>(pcp)->AboutToLoadHttpFtpWyciwygDocumentForChild(chan);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+  }
 
   nsHttpResponseHead *responseHead = chan->GetResponseHead();
   nsHttpRequestHead  *requestHead = chan->GetRequestHead();
@@ -1200,7 +1218,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 
   // !!! We need to lock headers and please don't forget to unlock them !!!
   requestHead->Enter();
-  rv = NS_OK;
+  nsresult rv = NS_OK;
   if (mIPCClosed ||
       !SendOnStartRequest(channelStatus,
                           responseHead ? *responseHead : nsHttpResponseHead(),
@@ -1445,10 +1463,10 @@ HttpChannelParent::StartRedirect(uint32_t registrarId,
   // If the channel is a HTTP channel, we also want to inform the child
   // about the parent's channelId attribute, so that both parent and child
   // share the same ID. Useful for monitoring channel activity in devtools.
-  nsAutoCString channelId;
+  uint64_t channelId;
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
   if (httpChannel) {
-    nsresult rv = httpChannel->GetChannelId(channelId);
+    nsresult rv = httpChannel->GetChannelId(&channelId);
     NS_ENSURE_SUCCESS(rv, NS_BINDING_ABORTED);
   }
 

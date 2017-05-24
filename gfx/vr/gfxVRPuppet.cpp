@@ -90,8 +90,6 @@ VRDisplayPuppet::VRDisplayPuppet()
   mDisplayInfo.mSittingToStandingTransform._42 = 0.75f;
   mDisplayInfo.mSittingToStandingTransform._43 = 0.0f;
 
-  mSensorState.Clear();
-
   gfx::Quaternion rot;
 
   mSensorState.flags |= VRDisplayCapabilityFlags::Cap_Orientation;
@@ -120,8 +118,9 @@ VRDisplayPuppet::~VRDisplayPuppet()
 void
 VRDisplayPuppet::SetDisplayInfo(const VRDisplayInfo& aDisplayInfo)
 {
-  // We are only interested in the eye info of the display info.
+  // We are only interested in the eye and mount info of the display info.
   mDisplayInfo.mEyeResolution = aDisplayInfo.mEyeResolution;
+  mDisplayInfo.mIsMounted = aDisplayInfo.mIsMounted;
   memcpy(&mDisplayInfo.mEyeFOV, &aDisplayInfo.mEyeFOV,
          sizeof(mDisplayInfo.mEyeFOV[0]) * VRDisplayInfo::NumEyes);
   memcpy(&mDisplayInfo.mEyeTranslation, &aDisplayInfo.mEyeTranslation,
@@ -270,6 +269,29 @@ VRControllerPuppet::GetButtonPressState()
 }
 
 void
+VRControllerPuppet::SetButtonTouchState(uint32_t aButton, bool aTouched)
+{
+  const uint64_t buttonMask = kPuppetButtonMask[aButton];
+  uint64_t touchedBit = GetButtonTouched();
+
+  if (aTouched) {
+    touchedBit |= kPuppetButtonMask[aButton];
+  } else if (touchedBit & buttonMask) {
+    // this button was touched but is released now.
+    uint64_t mask = 0xff ^ buttonMask;
+    touchedBit &= mask;
+  }
+
+  mButtonTouchState = touchedBit;
+}
+
+uint64_t
+VRControllerPuppet::GetButtonTouchState()
+{
+  return mButtonTouchState;
+}
+
+void
 VRControllerPuppet::SetAxisMoveState(uint32_t aAxis, double aValue)
 {
   MOZ_ASSERT((sizeof(mAxisMoveState) / sizeof(float)) == kNumPuppetAxis);
@@ -323,14 +345,14 @@ VRSystemManagerPuppet::Create()
   return manager.forget();
 }
 
-bool
-VRSystemManagerPuppet::Init()
+void
+VRSystemManagerPuppet::Destroy()
 {
-  return true;
+  Shutdown();
 }
 
 void
-VRSystemManagerPuppet::Destroy()
+VRSystemManagerPuppet::Shutdown()
 {
   mPuppetHMD = nullptr;
 }
@@ -362,7 +384,8 @@ VRSystemManagerPuppet::HandleInput()
   for (uint32_t i = 0; i < mPuppetController.Length(); ++i) {
     controller = mPuppetController[i];
     for (uint32_t j = 0; j < kNumPuppetButtonMask; ++j) {
-      HandleButtonPress(i, j, kPuppetButtonMask[i], controller->GetButtonPressState());
+      HandleButtonPress(i, j, kPuppetButtonMask[i], controller->GetButtonPressState(),
+                        controller->GetButtonTouchState());
     }
     controller->SetButtonPressed(controller->GetButtonPressState());
 
@@ -377,21 +400,25 @@ void
 VRSystemManagerPuppet::HandleButtonPress(uint32_t aControllerIdx,
                                          uint32_t aButton,
                                          uint64_t aButtonMask,
-                                         uint64_t aButtonPressed)
+                                         uint64_t aButtonPressed,
+                                         uint64_t aButtonTouched)
 {
   RefPtr<impl::VRControllerPuppet> controller(mPuppetController[aControllerIdx]);
   MOZ_ASSERT(controller);
-  const uint64_t diff = (controller->GetButtonPressed() ^ aButtonPressed);
+  const uint64_t pressedDiff = (controller->GetButtonPressed() ^ aButtonPressed);
+  const uint64_t touchedDiff = (controller->GetButtonTouched() ^ aButtonTouched);
 
-  if (!diff) {
+  if (!pressedDiff && !touchedDiff) {
     return;
   }
 
-  if (diff & aButtonMask) {
-    // diff & aButtonPressed would be true while a new button press
-    // event, otherwise it is an old press event and needs to notify
+   if (pressedDiff & aButtonMask
+      || touchedDiff & aButtonMask) {
+    // diff & (aButtonPressed, aButtonTouched) would be true while a new button pressed or
+    // touched event, otherwise it is an old event and needs to notify
     // the button has been released.
     NewButtonEvent(aControllerIdx, aButton, aButtonMask & aButtonPressed,
+                   aButtonMask & aButtonPressed,
                    (aButtonMask & aButtonPressed) ? 1.0L : 0.0L);
   }
 }
@@ -451,13 +478,7 @@ VRSystemManagerPuppet::ScanForControllers()
   const uint32_t newControllerCount = 2;
 
   if (newControllerCount != mControllerCount) {
-    // controller count is changed, removing the existing gamepads first.
-    for (uint32_t i = 0; i < mPuppetController.Length(); ++i) {
-      RemoveGamepad(i);
-    }
-
-    mControllerCount = 0;
-    mPuppetController.Clear();
+    RemoveControllers();
 
     // Re-adding controllers to VRControllerManager.
     for (uint32_t i = 0; i < newControllerCount; ++i) {
@@ -476,6 +497,10 @@ VRSystemManagerPuppet::ScanForControllers()
 void
 VRSystemManagerPuppet::RemoveControllers()
 {
+  // controller count is changed, removing the existing gamepads first.
+  for (uint32_t i = 0; i < mPuppetController.Length(); ++i) {
+    RemoveGamepad(i);
+  }
   mPuppetController.Clear();
   mControllerCount = 0;
 }

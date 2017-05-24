@@ -75,6 +75,31 @@ EnsureSurfaceStored(DrawEventRecorderPrivate *aRecorder, SourceSurface *aSurface
   return;
 }
 
+class SourceSurfaceRecording : public SourceSurface
+{
+public:
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SourceSurfaceRecording)
+  SourceSurfaceRecording(SourceSurface *aFinalSurface, DrawEventRecorderPrivate *aRecorder)
+    : mFinalSurface(aFinalSurface), mRecorder(aRecorder)
+  {
+    mRecorder->AddStoredObject(this);
+  }
+
+  ~SourceSurfaceRecording()
+  {
+    mRecorder->RemoveStoredObject(this);
+    mRecorder->RecordEvent(RecordedSourceSurfaceDestruction(this));
+  }
+
+  virtual SurfaceType GetType() const { return SurfaceType::RECORDING; }
+  virtual IntSize GetSize() const { return mFinalSurface->GetSize(); }
+  virtual SurfaceFormat GetFormat() const { return mFinalSurface->GetFormat(); }
+  virtual already_AddRefed<DataSourceSurface> GetDataSurface() { return mFinalSurface->GetDataSurface(); }
+
+  RefPtr<SourceSurface> mFinalSurface;
+  RefPtr<DrawEventRecorderPrivate> mRecorder;
+};
+
 class GradientStopsRecording : public GradientStops
 {
 public:
@@ -363,32 +388,39 @@ DrawTargetRecording::FillGlyphs(ScaledFont *aFont,
 {
   EnsurePatternDependenciesStored(aPattern);
 
-  if (!aFont->GetUserData(reinterpret_cast<UserDataKey*>(mRecorder.get()))) {
-    RecordedFontData fontData(aFont);
-    RecordedFontDetails fontDetails;
-    if (fontData.GetFontDetails(fontDetails)) {
-      // Try to serialise the whole font, just in case this is a web font that
-      // is not present on the system.
-      if (!mRecorder->HasStoredFontData(fontDetails.fontDataKey)) {
-        mRecorder->RecordEvent(fontData);
-        mRecorder->AddStoredFontData(fontDetails.fontDataKey);
-      }
-      mRecorder->RecordEvent(RecordedScaledFontCreation(aFont, fontDetails));
-    } else {
-      // If that fails, record just the font description and try to load it from
-      // the system on the other side.
-      RecordedFontDescriptor fontDesc(aFont);
-      if (fontDesc.IsValid()) {
-        mRecorder->RecordEvent(fontDesc);
+  UserDataKey* userDataKey = reinterpret_cast<UserDataKey*>(mRecorder.get());
+  if (!aFont->GetUserData(userDataKey)) {
+    UnscaledFont* unscaledFont = aFont->GetUnscaledFont();
+    if (!mRecorder->HasStoredObject(unscaledFont)) {
+      RecordedFontData fontData(unscaledFont);
+      RecordedFontDetails fontDetails;
+      if (fontData.GetFontDetails(fontDetails)) {
+        // Try to serialise the whole font, just in case this is a web font that
+        // is not present on the system.
+        if (!mRecorder->HasStoredFontData(fontDetails.fontDataKey)) {
+          mRecorder->RecordEvent(fontData);
+          mRecorder->AddStoredFontData(fontDetails.fontDataKey);
+        }
+        mRecorder->RecordEvent(RecordedUnscaledFontCreation(unscaledFont, fontDetails));
       } else {
-        gfxWarning() << "DrawTargetRecording::FillGlyphs failed to serialise ScaledFont";
+        // If that fails, record just the font description and try to load it from
+        // the system on the other side.
+        RecordedFontDescriptor fontDesc(unscaledFont);
+        if (fontDesc.IsValid()) {
+          mRecorder->RecordEvent(fontDesc);
+        } else {
+          gfxWarning() << "DrawTargetRecording::FillGlyphs failed to serialise UnscaledFont";
+        }
       }
+      mRecorder->AddStoredObject(unscaledFont);
     }
+
+    mRecorder->RecordEvent(RecordedScaledFontCreation(aFont, unscaledFont));
+
     RecordingFontUserData *userData = new RecordingFontUserData;
     userData->refPtr = aFont;
     userData->recorder = mRecorder;
-    aFont->AddUserData(reinterpret_cast<UserDataKey*>(mRecorder.get()), userData, 
-                       &RecordingFontUserDataDestroyFunc);
+    aFont->AddUserData(userDataKey, userData, &RecordingFontUserDataDestroyFunc);
   }
 
   mRecorder->RecordEvent(RecordedFillGlyphs(this, aFont, aPattern, aOptions, aBuffer.mGlyphs, aBuffer.mNumGlyphs));

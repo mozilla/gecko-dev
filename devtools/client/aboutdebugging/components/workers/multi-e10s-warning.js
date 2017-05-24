@@ -20,15 +20,17 @@ loader.lazyRequireGetter(this, "DebuggerClient",
   "devtools/shared/client/main", true);
 
 const Strings = Services.strings.createBundle("chrome://devtools/locale/aboutdebugging.properties");
-const PROCESS_COUNT_PREF = "dom.ipc.processCount";
+const MULTI_OPT_OUT_PREF = "dom.ipc.multiOptOut";
 
 module.exports = createClass({
   displayName: "multiE10SWarning",
 
   onUpdatePreferenceClick() {
-    let message = Strings.GetStringFromName("multiProcessWarningConfirmUpdate");
+    let message = Strings.GetStringFromName("multiProcessWarningConfirmUpdate2");
     if (window.confirm(message)) {
-      Services.prefs.setIntPref(PROCESS_COUNT_PREF, 1);
+      // Disable multi until at least the next experiment.
+      Services.prefs.setIntPref(MULTI_OPT_OUT_PREF,
+                                Services.appinfo.E10S_MULTI_EXPERIMENT);
       // Restart the browser.
       Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
     }
@@ -46,14 +48,14 @@ module.exports = createClass({
       ),
       dom.div(
         {},
-        Strings.GetStringFromName("multiProcessWarningMessage")
+        Strings.GetStringFromName("multiProcessWarningMessage2")
       ),
       dom.button(
         {
           className: "update-button",
           onClick: this.onUpdatePreferenceClick,
         },
-        Strings.GetStringFromName("multiProcessWarningUpdateLink")
+        Strings.GetStringFromName("multiProcessWarningUpdateLink2")
       )
     );
   },

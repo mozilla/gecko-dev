@@ -62,14 +62,20 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     if CONFIG['MOZ_ENABLE_D3D10_LAYER']:
         EXPORTS.mozilla.layers += [
             'd3d11/CompositorD3D11.h',
+            'd3d11/DeviceAttachmentsD3D11.h',
+            'd3d11/DiagnosticsD3D11.h',
+            'd3d11/HelpersD3D11.h',
             'd3d11/ReadbackManagerD3D11.h',
+            'd3d11/ShaderDefinitionsD3D11.h',
             'd3d11/TextureD3D11.h',
         ]
         UNIFIED_SOURCES += [
+            'd3d11/DiagnosticsD3D11.cpp',
             'd3d11/TextureD3D11.cpp',
         ]
         SOURCES += [
             'd3d11/CompositorD3D11.cpp',
+            'd3d11/DeviceAttachmentsD3D11.cpp',
             'd3d11/ReadbackManagerD3D11.cpp',
         ]
 
@@ -132,6 +138,8 @@ EXPORTS.mozilla.layers += [
     'composite/ColorLayerComposite.h',
     'composite/ContainerLayerComposite.h',
     'composite/ContentHost.h',
+    'composite/Diagnostics.h',
+    'composite/FPSCounter.h',
     'composite/FrameUniformityData.h',
     'composite/GPUVideoTextureHost.h',
     'composite/ImageComposite.h',
@@ -173,6 +181,7 @@ EXPORTS.mozilla.layers += [
     'ipc/SynchronousTask.h',
     'ipc/TextureForwarder.h',
     'ipc/UiCompositorControllerChild.h',
+    'ipc/UiCompositorControllerMessageTypes.h',
     'ipc/UiCompositorControllerParent.h',
     'ipc/VideoBridgeChild.h',
     'ipc/VideoBridgeParent.h',
@@ -192,14 +201,20 @@ EXPORTS.mozilla.layers += [
     'TextureSourceProvider.h',
     'TextureWrapperImage.h',
     'TransactionIdAllocator.h',
+    'UpdateImageHelper.h',
+    'wr/ScrollingLayersHelper.h',
+    'wr/StackingContextHelper.h',
     'wr/WebRenderBridgeChild.h',
     'wr/WebRenderBridgeParent.h',
     'wr/WebRenderCompositableHolder.h',
     'wr/WebRenderDisplayItemLayer.h',
     'wr/WebRenderImageHost.h',
+    'wr/WebRenderLayer.h',
     'wr/WebRenderLayerManager.h',
     'wr/WebRenderLayersLogging.h',
     'wr/WebRenderMessageUtils.h',
+    'wr/WebRenderScrollData.h',
+    'wr/WebRenderScrollDataWrapper.h',
     'wr/WebRenderTextureHost.h',
 ]
 
@@ -240,6 +255,10 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     UNIFIED_SOURCES += [
         'apz/src/AndroidAPZ.cpp',
+        'apz/src/AndroidDynamicToolbarAnimator.cpp',
+    ]
+    EXPORTS.mozilla.layers += [
+        'apz/src/AndroidDynamicToolbarAnimator.h',
     ]
 
 UNIFIED_SOURCES += [
@@ -316,6 +335,7 @@ UNIFIED_SOURCES += [
     'composite/CompositableHost.cpp',
     'composite/ContainerLayerComposite.cpp',
     'composite/ContentHost.cpp',
+    'composite/Diagnostics.cpp',
     'composite/FPSCounter.cpp',
     'composite/FrameUniformityData.cpp',
     'composite/GPUVideoTextureHost.cpp',
@@ -378,6 +398,8 @@ UNIFIED_SOURCES += [
     'SourceSurfaceVolatileData.cpp',
     'TextureSourceProvider.cpp',
     'TextureWrapperImage.cpp',
+    'wr/ScrollingLayersHelper.cpp',
+    'wr/StackingContextHelper.cpp',
     'wr/WebRenderBridgeChild.cpp',
     'wr/WebRenderBridgeParent.cpp',
     'wr/WebRenderCanvasLayer.cpp',
@@ -387,11 +409,15 @@ UNIFIED_SOURCES += [
     'wr/WebRenderDisplayItemLayer.cpp',
     'wr/WebRenderImageHost.cpp',
     'wr/WebRenderImageLayer.cpp',
+    'wr/WebRenderLayer.cpp',
     'wr/WebRenderLayerManager.cpp',
     'wr/WebRenderLayersLogging.cpp',
     'wr/WebRenderPaintedLayer.cpp',
+    'wr/WebRenderPaintedLayerBlob.cpp',
+    'wr/WebRenderScrollData.cpp',
     'wr/WebRenderTextLayer.cpp',
-    'wr/WebRenderTextureHost.cpp',
+    # XXX here are some unified build error.
+    #'wr/WebRenderTextureHost.cpp'
 ]
 
 SOURCES += [
@@ -400,6 +426,7 @@ SOURCES += [
     'Layers.cpp',
     'LayerTreeInvalidation.cpp',
     'PersistentBufferProvider.cpp',
+    'wr/WebRenderTextureHost.cpp',
 ]
 
 # Disable RTTI in google protocol buffer
@@ -436,6 +463,15 @@ IPDL_SOURCES += [
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+  GENERATED_FILES = [
+      'CompositorD3D11Shaders.h',
+  ]
+
+  d3d11_shaders = GENERATED_FILES['CompositorD3D11Shaders.h']
+  d3d11_shaders.script = 'd3d11/genshaders.py'
+  d3d11_shaders.inputs = ['d3d11/shaders.manifest']
 
 LOCAL_INCLUDES += [
     '/docshell/base',  # for nsDocShell.h

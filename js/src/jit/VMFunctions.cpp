@@ -356,14 +356,35 @@ ArrayPushDense(JSContext* cx, HandleObject obj, HandleValue v, uint32_t* length)
         return result == DenseElementResult::Success;
     }
 
+    // AutoDetectInvalidation uses GetTopJitJSScript(cx)->ionScript(), but it's
+    // possible the SetOrExtendAnyBoxedOrUnboxedDenseElements call already
+    // invalidated the IonScript. JitFrameIterator::ionScript works when the
+    // script is invalidated so we use that instead.
+    JitFrameIterator it(cx);
+    MOZ_ASSERT(it.type() == JitFrame_Exit);
+    ++it;
+    IonScript* ionScript = it.ionScript();
+
     JS::AutoValueArray<3> argv(cx);
+    AutoDetectInvalidation adi(cx, argv[0], ionScript);
     argv[0].setUndefined();
     argv[1].setObject(*obj);
     argv[2].set(v);
     if (!js::array_push(cx, 1, argv.begin()))
         return false;
 
-    *length = argv[0].toInt32();
+    if (argv[0].isInt32()) {
+        *length = argv[0].toInt32();
+        return true;
+    }
+
+    // array_push changed the length to be larger than INT32_MAX. In this case
+    // OBJECT_FLAG_LENGTH_OVERFLOW was set, TI invalidated the script, and the
+    // AutoDetectInvalidation instance on the stack will replace *length with
+    // the actual return value during bailout.
+    MOZ_ASSERT(adi.shouldSetReturnOverride());
+    MOZ_ASSERT(argv[0].toDouble() == double(INT32_MAX) + 1);
+    *length = 0;
     return true;
 }
 
@@ -684,7 +705,9 @@ PostWriteElementBarrier(JSRuntime* rt, JSObject* obj, int32_t index)
 #endif
         )
     {
-        rt->gc.storeBuffer().putSlot(nobj, HeapSlot::Element, index, 1);
+        rt->gc.storeBuffer().putSlot(nobj, HeapSlot::Element,
+                                     nobj->unshiftedIndex(index),
+                                     1);
         return;
     }
 
@@ -1587,6 +1610,38 @@ GetNativeDataProperty<true>(JSContext* cx, JSObject* obj, PropertyName* name, Va
 template bool
 GetNativeDataProperty<false>(JSContext* cx, JSObject* obj, PropertyName* name, Value* vp);
 
+static MOZ_ALWAYS_INLINE bool
+ValueToAtomOrSymbol(JSContext* cx, Value& idVal, jsid* id)
+{
+    JS::AutoCheckCannotGC nogc;
+
+    if (MOZ_LIKELY(idVal.isString())) {
+        JSString* s = idVal.toString();
+        JSAtom* atom;
+        if (s->isAtom()) {
+            atom = &s->asAtom();
+        } else {
+            atom = AtomizeString(cx, s);
+            if (!atom)
+                return false;
+        }
+        *id = AtomToId(atom);
+    } else if (idVal.isSymbol()) {
+        *id = SYMBOL_TO_JSID(idVal.toSymbol());
+    } else {
+        if (!ValueToIdPure(idVal, id))
+            return false;
+    }
+
+    // Watch out for ids that may be stored in dense elements.
+    static_assert(NativeObject::MAX_DENSE_ELEMENTS_COUNT < JSID_INT_MAX,
+                  "All dense elements must have integer jsids");
+    if (MOZ_UNLIKELY(JSID_IS_INT(*id)))
+        return false;
+
+    return true;
+}
+
 template <bool HandleMissing>
 bool
 GetNativeDataPropertyByValue(JSContext* cx, JSObject* obj, Value* vp)
@@ -1598,30 +1653,8 @@ GetNativeDataPropertyByValue(JSContext* cx, JSObject* obj, Value* vp)
 
     // vp[0] contains the id, result will be stored in vp[1].
     Value idVal = vp[0];
-
     jsid id;
-    if (MOZ_LIKELY(idVal.isString())) {
-        JSString* s = idVal.toString();
-        JSAtom* atom;
-        if (s->isAtom()) {
-            atom = &s->asAtom();
-        } else {
-            atom = AtomizeString(cx, s);
-            if (!atom)
-                return false;
-        }
-        id = AtomToId(atom);
-    } else if (idVal.isSymbol()) {
-        id = SYMBOL_TO_JSID(idVal.toSymbol());
-    } else {
-        if (!ValueToIdPure(idVal, &id))
-            return false;
-    }
-
-    // Watch out for ids that may be stored in dense elements.
-    static_assert(NativeObject::MAX_DENSE_ELEMENTS_COUNT < JSID_INT_MAX,
-                  "All dense elements must have integer jsids");
-    if (MOZ_UNLIKELY(JSID_IS_INT(id)))
+    if (!ValueToAtomOrSymbol(cx, idVal, &id))
         return false;
 
     Value* res = vp + 1;
@@ -1711,6 +1744,50 @@ ObjectHasGetterSetter(JSContext* cx, JSObject* objArg, Shape* propShape)
             return false;
         nobj = &proto->as<NativeObject>();
     }
+}
+
+bool
+HasOwnNativeDataProperty(JSContext* cx, JSObject* obj, Value* vp)
+{
+    JS::AutoCheckCannotGC nogc;
+
+    // vp[0] contains the id, result will be stored in vp[1].
+    Value idVal = vp[0];
+    jsid id;
+    if (!ValueToAtomOrSymbol(cx, idVal, &id))
+        return false;
+
+    if (!obj->isNative()) {
+        if (obj->is<UnboxedPlainObject>()) {
+            bool res = obj->as<UnboxedPlainObject>().containsUnboxedOrExpandoProperty(cx, id);
+            vp[1].setBoolean(res);
+            return true;
+        }
+        return false;
+    }
+
+    NativeObject* nobj = &obj->as<NativeObject>();
+    if (nobj->lastProperty()->search(cx, id)) {
+        vp[1].setBoolean(true);
+        return true;
+    }
+
+    // Property not found. Watch out for Class hooks.
+    if (MOZ_UNLIKELY(!nobj->is<PlainObject>())) {
+        if (ClassMayResolveId(cx->names(), nobj->getClass(), id, nobj))
+            return false;
+    }
+
+    // Missing property.
+    vp[1].setBoolean(false);
+    return true;
+}
+
+JSString*
+TypeOfObject(JSObject* obj, JSRuntime* rt)
+{
+    JSType type = js::TypeOfObject(obj);
+    return TypeName(type, *rt->commonNames);
 }
 
 } // namespace jit

@@ -17,10 +17,10 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace gfx {
 
-InlineTranslator::InlineTranslator(DrawTarget* aDT, Matrix aMatrix)
+InlineTranslator::InlineTranslator(DrawTarget* aDT, void* aFontContext)
+  : mBaseDT(aDT)
+  , mFontContext(aFontContext)
 {
-  mBaseDT = aDT;
-  mBaseTransform = aMatrix;
 }
 
 bool
@@ -56,13 +56,8 @@ InlineTranslator::TranslateRecording(std::istream& aRecording)
       return false;
     }
 
-    if (recordedEvent->GetType() == RecordedEvent::SETTRANSFORM) {
-      RecordedSetTransform* event = static_cast<RecordedSetTransform*>(recordedEvent.get());
-      mBaseDT->SetTransform(event->mTransform * mBaseTransform);
-    } else {
-      if (!recordedEvent->PlayEvent(this)) {
-        return false;
-      }
+    if (!recordedEvent->PlayEvent(this)) {
+      return false;
     }
 
     ReadElement(aRecording, eventType);
@@ -77,6 +72,7 @@ InlineTranslator::CreateDrawTarget(ReferencePtr aRefPtr,
                                   gfx::SurfaceFormat aFormat)
 {
   RefPtr<DrawTarget> drawTarget = mBaseDT;
+  AddDrawTarget(aRefPtr, drawTarget);
   return drawTarget.forget();
 }
 

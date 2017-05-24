@@ -4,6 +4,8 @@
 
 "use strict";
 
+/* import-globals-from aboutDialog-appUpdater.js */
+
 // Services = object with smart getters for common XPCOM services
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/AppConstants.jsm");
@@ -49,6 +51,17 @@ function init(aEvent) {
                      : "aboutDialog.architecture.thirtyTwoBit";
   let arch = bundle.GetStringFromName(archResource);
   versionField.textContent += ` (${arch})`;
+
+  // Show a release notes link if we have a URL.
+  let relNotesLink = document.getElementById("releasenotes");
+  let relNotesPrefType = Services.prefs.getPrefType("app.releaseNotesURL");
+  if (relNotesPrefType != Services.prefs.PREF_INVALID) {
+    let relNotesURL = Services.urlFormatter.formatURLPref("app.releaseNotesURL");
+    if (relNotesURL != "about:blank") {
+      relNotesLink.href = relNotesURL;
+      relNotesLink.hidden = false;
+    }
+  }
 
   if (AppConstants.MOZ_UPDATER) {
     gAppUpdater = new appUpdater();

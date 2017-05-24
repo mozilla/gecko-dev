@@ -64,7 +64,10 @@ public:
     constexpr XrayTraits() {}
 
     static JSObject* getTargetObject(JSObject* wrapper) {
-        return js::UncheckedUnwrap(wrapper, /* stopAtWindowProxy = */ false);
+        JSObject* target = js::UncheckedUnwrap(wrapper, /* stopAtWindowProxy = */ false);
+        if (target)
+            JS::ExposeObjectToActiveJS(target);
+        return target;
     }
 
     virtual bool resolveNativeProperty(JSContext* cx, JS::HandleObject wrapper,
@@ -585,7 +588,7 @@ public:
 
     static inline JSObject* getSandboxProxy(JS::Handle<JSObject*> proxy)
     {
-        return &js::GetProxyExtra(proxy, SandboxProxySlot).toObject();
+        return &js::GetProxyReservedSlot(proxy, SandboxProxySlot).toObject();
     }
 };
 

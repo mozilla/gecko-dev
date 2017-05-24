@@ -218,7 +218,6 @@ const CustomizableWidgets = [
           while ((row = aResultSet.getNextRow())) {
             let uri = row.getResultByIndex(1);
             let title = row.getResultByIndex(2);
-            let icon = row.getResultByIndex(6);
 
             let item = doc.createElementNS(kNSXUL, "toolbarbutton");
             item.setAttribute("label", title || uri);
@@ -226,10 +225,7 @@ const CustomizableWidgets = [
             item.setAttribute("class", "subviewbutton");
             item.addEventListener("command", onItemCommand);
             item.addEventListener("click", onItemCommand);
-            if (icon) {
-              let iconURL = "moz-anno:favicon:" + icon;
-              item.setAttribute("image", iconURL);
-            }
+            item.setAttribute("image", "page-icon:" + uri);
             fragment.appendChild(item);
           }
           items.appendChild(fragment);
@@ -356,7 +352,7 @@ const CustomizableWidgets = [
     onViewShowing(aEvent) {
       let doc = aEvent.target.ownerDocument;
       this._tabsList = doc.getElementById("PanelUI-remotetabs-tabslist");
-      Services.obs.addObserver(this, SyncedTabs.TOPIC_TABS_CHANGED, false);
+      Services.obs.addObserver(this, SyncedTabs.TOPIC_TABS_CHANGED);
 
       if (SyncedTabs.isConfiguredToSyncTabs) {
         if (SyncedTabs.hasSyncedThisSession) {
@@ -446,7 +442,7 @@ const CustomizableWidgets = [
         Cu.reportError(err);
       }).then(() => {
         // an observer for tests.
-        Services.obs.notifyObservers(null, "synced-tabs-menu:test:tabs-updated", null);
+        Services.obs.notifyObservers(null, "synced-tabs-menu:test:tabs-updated");
       });
     },
     _clearTabList() {
@@ -476,7 +472,7 @@ const CustomizableWidgets = [
       clientItem.setAttribute("itemtype", "client");
       let window = doc.defaultView;
       clientItem.setAttribute("tooltiptext",
-        window.gSyncUI.formatLastSyncDate(new Date(client.lastModified)));
+        window.gSync.formatLastSyncDate(new Date(client.lastModified)));
       clientItem.textContent = client.name;
 
       attachFragment.appendChild(clientItem);
@@ -524,7 +520,12 @@ const CustomizableWidgets = [
       // respects different buttons (eg, to open in a new tab).
       item.addEventListener("click", e => {
         doc.defaultView.openUILink(tabInfo.url, e);
-        CustomizableUI.hidePanelForNode(item);
+        if (doc.defaultView.whereToOpenLink(e) != "current") {
+          e.preventDefault();
+          e.stopPropagation();
+        } else {
+          CustomizableUI.hidePanelForNode(item);
+        }
         BrowserUITelemetry.countSyncedTabEvent("open", "toolbarbutton-subview");
       });
       return item;
@@ -627,14 +628,14 @@ const CustomizableWidgets = [
           if (aWidgetId != this.id)
             return;
 
-          Services.obs.notifyObservers(null, "social:" + this.id + "-added", null);
+          Services.obs.notifyObservers(null, "social:" + this.id + "-added");
         },
 
         onWidgetRemoved: aWidgetId => {
           if (aWidgetId != this.id)
             return;
 
-          Services.obs.notifyObservers(null, "social:" + this.id + "-removed", null);
+          Services.obs.notifyObservers(null, "social:" + this.id + "-removed");
         },
 
         onWidgetInstanceRemoved: (aWidgetId, aDoc) => {
@@ -703,53 +704,65 @@ const CustomizableWidgets = [
       updateCombinedWidgetStyle(node, this.currentArea, true);
 
       let listener = {
-        onWidgetAdded: function(aWidgetId, aArea, aPosition) {
+        onWidgetAdded: (aWidgetId, aArea, aPosition) => {
           if (aWidgetId != this.id)
             return;
 
           updateCombinedWidgetStyle(node, aArea, true);
-        }.bind(this),
+        },
 
-        onWidgetRemoved: function(aWidgetId, aPrevArea) {
+        onWidgetRemoved: (aWidgetId, aPrevArea) => {
           if (aWidgetId != this.id)
             return;
 
           // When a widget is demoted to the palette ('removed'), it's visual
           // style should change.
           updateCombinedWidgetStyle(node, null, true);
-        }.bind(this),
+        },
 
-        onWidgetReset: function(aWidgetNode) {
+        onWidgetReset: aWidgetNode => {
           if (aWidgetNode != node)
             return;
           updateCombinedWidgetStyle(node, this.currentArea, true);
-        }.bind(this),
+        },
 
-        onWidgetUndoMove: function(aWidgetNode) {
+        onWidgetUndoMove: aWidgetNode => {
           if (aWidgetNode != node)
             return;
           updateCombinedWidgetStyle(node, this.currentArea, true);
-        }.bind(this),
+        },
 
-        onWidgetMoved: function(aWidgetId, aArea) {
+        onWidgetMoved: (aWidgetId, aArea) => {
           if (aWidgetId != this.id)
             return;
           updateCombinedWidgetStyle(node, aArea, true);
-        }.bind(this),
+        },
 
-        onWidgetInstanceRemoved: function(aWidgetId, aDoc) {
+        onWidgetInstanceRemoved: (aWidgetId, aDoc) => {
           if (aWidgetId != this.id || aDoc != aDocument)
             return;
 
           CustomizableUI.removeListener(listener);
-        }.bind(this),
+        },
 
-        onWidgetDrag: function(aWidgetId, aArea) {
+        onWidgetDrag: (aWidgetId, aArea) => {
           if (aWidgetId != this.id)
             return;
           aArea = aArea || this.currentArea;
           updateCombinedWidgetStyle(node, aArea, true);
-        }.bind(this)
+        },
+
+        // Hack. This can go away when the old menu panel goes away (post photon).
+        // We need it right now for the case where we re-register the old-style
+        // main menu panel if photon is disabled at runtime, and we automatically
+        // put the widgets in there, so they get the right style in the panel.
+        onAreaNodeRegistered: (aArea, aContainer) => {
+          if (aContainer.ownerDocument == node.ownerDocument &&
+              aArea == this.currentArea &&
+              aArea == CustomizableUI.AREA_PANEL) {
+            updateCombinedWidgetStyle(node, aArea, true);
+          }
+        },
       };
       CustomizableUI.addListener(listener);
 
@@ -802,50 +815,62 @@ const CustomizableWidgets = [
       updateCombinedWidgetStyle(node, this.currentArea);
 
       let listener = {
-        onWidgetAdded: function(aWidgetId, aArea, aPosition) {
+        onWidgetAdded: (aWidgetId, aArea, aPosition) => {
           if (aWidgetId != this.id)
             return;
           updateCombinedWidgetStyle(node, aArea);
-        }.bind(this),
+        },
 
-        onWidgetRemoved: function(aWidgetId, aPrevArea) {
+        onWidgetRemoved: (aWidgetId, aPrevArea) => {
           if (aWidgetId != this.id)
             return;
           // When a widget is demoted to the palette ('removed'), it's visual
           // style should change.
           updateCombinedWidgetStyle(node);
-        }.bind(this),
+        },
 
-        onWidgetReset: function(aWidgetNode) {
+        onWidgetReset: aWidgetNode => {
           if (aWidgetNode != node)
             return;
           updateCombinedWidgetStyle(node, this.currentArea);
-        }.bind(this),
+        },
 
-        onWidgetUndoMove: function(aWidgetNode) {
+        onWidgetUndoMove: aWidgetNode => {
           if (aWidgetNode != node)
             return;
           updateCombinedWidgetStyle(node, this.currentArea);
-        }.bind(this),
+        },
 
-        onWidgetMoved: function(aWidgetId, aArea) {
+        onWidgetMoved: (aWidgetId, aArea) => {
           if (aWidgetId != this.id)
             return;
           updateCombinedWidgetStyle(node, aArea);
-        }.bind(this),
+        },
 
-        onWidgetInstanceRemoved: function(aWidgetId, aDoc) {
+        onWidgetInstanceRemoved: (aWidgetId, aDoc) => {
           if (aWidgetId != this.id || aDoc != aDocument)
             return;
           CustomizableUI.removeListener(listener);
-        }.bind(this),
+        },
 
-        onWidgetDrag: function(aWidgetId, aArea) {
+        onWidgetDrag: (aWidgetId, aArea) => {
           if (aWidgetId != this.id)
             return;
           aArea = aArea || this.currentArea;
           updateCombinedWidgetStyle(node, aArea);
-        }.bind(this)
+        },
+
+        // Hack. This can go away when the old menu panel goes away (post photon).
+        // We need it right now for the case where we re-register the old-style
+        // main menu panel if photon is disabled at runtime, and we automatically
+        // put the widgets in there, so they get the right style in the panel.
+        onAreaNodeRegistered: (aArea, aContainer) => {
+          if (aContainer.ownerDocument == node.ownerDocument &&
+              aArea == this.currentArea &&
+              aArea == CustomizableUI.AREA_PANEL) {
+            updateCombinedWidgetStyle(node, aArea);
+          }
+        },
       };
       CustomizableUI.addListener(listener);
 
@@ -1005,7 +1030,6 @@ const CustomizableWidgets = [
       }
     },
     onCreated(aNode) {
-      const kPanelId = "PanelUI-popup";
       let document = aNode.ownerDocument;
 
       let updateButton = () => {
@@ -1015,27 +1039,32 @@ const CustomizableWidgets = [
           aNode.removeAttribute("disabled");
       };
 
-      if (this.currentArea == CustomizableUI.AREA_PANEL) {
-        let panel = document.getElementById(kPanelId);
-        panel.addEventListener("popupshowing", updateButton);
+      let getPanel = () => {
+        let {PanelUI} = document.ownerGlobal;
+        if (PanelUI.overflowContents) {
+          return document.getElementById("widget-overflow");
+        }
+        return PanelUI.panel;
+      }
+
+      if (CustomizableUI.getAreaType(this.currentArea) == CustomizableUI.TYPE_MENU_PANEL) {
+        getPanel().addEventListener("popupshowing", updateButton);
       }
 
       let listener = {
         onWidgetAdded: (aWidgetId, aArea) => {
           if (aWidgetId != this.id)
             return;
-          if (aArea == CustomizableUI.AREA_PANEL) {
-            let panel = document.getElementById(kPanelId);
-            panel.addEventListener("popupshowing", updateButton);
+          if (CustomizableUI.getAreaType(aArea) == CustomizableUI.TYPE_MENU_PANEL) {
+            getPanel().addEventListener("popupshowing", updateButton);
           }
         },
         onWidgetRemoved: (aWidgetId, aPrevArea) => {
           if (aWidgetId != this.id)
             return;
           aNode.removeAttribute("disabled");
-          if (aPrevArea == CustomizableUI.AREA_PANEL) {
-            let panel = document.getElementById(kPanelId);
-            panel.removeEventListener("popupshowing", updateButton);
+          if (CustomizableUI.getAreaType(aPrevArea) == CustomizableUI.TYPE_MENU_PANEL) {
+            getPanel().removeEventListener("popupshowing", updateButton);
           }
         },
         onWidgetInstanceRemoved: (aWidgetId, aDoc) => {
@@ -1043,11 +1072,13 @@ const CustomizableWidgets = [
             return;
 
           CustomizableUI.removeListener(listener);
-          let panel = aDoc.getElementById(kPanelId);
-          panel.removeEventListener("popupshowing", updateButton);
+          getPanel().removeEventListener("popupshowing", updateButton);
         }
       };
       CustomizableUI.addListener(listener);
+      this.onInit();
+    },
+    onInit() {
       if (!this.charsetInfo) {
         this.charsetInfo = CharsetMenu.getData();
       }
@@ -1149,7 +1180,7 @@ let preferencesButton = {
   defaultArea: CustomizableUI.AREA_PANEL,
   onCommand(aEvent) {
     let win = aEvent.target.ownerGlobal;
-    win.openPreferences();
+    win.openPreferences(undefined, {origin: "preferencesButton"});
   }
 };
 if (AppConstants.platform == "win") {

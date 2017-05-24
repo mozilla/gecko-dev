@@ -17,6 +17,7 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 const ID_SUFFIX              = "@personas.mozilla.org";
 const PREF_LWTHEME_TO_SELECT = "extensions.lwThemeToSelect";
 const PREF_GENERAL_SKINS_SELECTEDSKIN = "general.skins.selectedSkin";
+const PREF_SKIN_TO_SELECT             = "extensions.lastSelectedSkin";
 const ADDON_TYPE             = "theme";
 const ADDON_TYPE_WEBEXT      = "webextension-theme";
 
@@ -309,9 +310,9 @@ this.LightweightThemeManager = {
       _updateUsedThemes(usedThemes);
       if (PERSIST_ENABLED) {
         LightweightThemeImageOptimizer.purge();
-        _persistImages(aData, function() {
+        _persistImages(aData, () => {
           _notifyWindows(this.currentThemeForDisplay);
-        }.bind(this));
+        });
       }
     }
 
@@ -321,7 +322,7 @@ this.LightweightThemeManager = {
       _prefs.setCharPref("selectedThemeID", "");
 
     _notifyWindows(aData);
-    Services.obs.notifyObservers(null, "lightweight-theme-changed", null);
+    Services.obs.notifyObservers(null, "lightweight-theme-changed");
   },
 
   /**
@@ -338,7 +339,7 @@ this.LightweightThemeManager = {
       Services.prefs.clearUserPref(PREF_LWTHEME_TO_SELECT);
     }
 
-    _prefs.addObserver("", _prefObserver, false);
+    _prefs.addObserver("", _prefObserver);
   },
 
   /**
@@ -402,6 +403,9 @@ this.LightweightThemeManager = {
 
     if (id) {
       let theme = this.getUsedTheme(id);
+      // WebExtension themes have an ID, but no LWT wrapper, so bail out here.
+      if (!theme)
+        return;
       _themeIDBeingEnabled = id;
       let wrapper = new AddonWrapper(theme);
       if (aPendingRestart) {
@@ -669,6 +673,8 @@ function _setCurrentTheme(aData, aLocal) {
   Services.obs.notifyObservers(cancel, "lightweight-theme-change-requested",
                                JSON.stringify(aData));
 
+  let notify = true;
+
   if (aData) {
     let theme = LightweightThemeManager.getUsedTheme(aData.id);
     let isInstall = !theme || theme.version != aData.version;
@@ -688,10 +694,15 @@ function _setCurrentTheme(aData, aLocal) {
 
     let current = LightweightThemeManager.currentTheme;
     let usedThemes = _usedThemesExceptId(aData.id);
-    if (current && current.id != aData.id)
+    if (current && current.id != aData.id) {
       usedThemes.splice(1, 0, aData);
-    else
+    } else {
+      if (current && current.id == aData.id && !needsRestart &&
+          !Services.prefs.prefHasUserValue(PREF_SKIN_TO_SELECT)) {
+        notify = false;
+      }
       usedThemes.unshift(aData);
+    }
     _updateUsedThemes(usedThemes);
 
     if (isInstall)
@@ -701,8 +712,10 @@ function _setCurrentTheme(aData, aLocal) {
   if (cancel.data)
     return null;
 
-  AddonManagerPrivate.notifyAddonChanged(aData ? aData.id + ID_SUFFIX : null,
-                                         ADDON_TYPE, needsRestart);
+  if (notify) {
+    AddonManagerPrivate.notifyAddonChanged(aData ? aData.id + ID_SUFFIX : null,
+                                           ADDON_TYPE, needsRestart);
+  }
 
   return LightweightThemeManager.currentTheme;
 }
@@ -784,7 +797,7 @@ function _updateUsedThemes(aList) {
 
   _prefs.setStringPref("usedThemes", JSON.stringify(aList));
 
-  Services.obs.notifyObservers(null, "lightweight-theme-list-changed", null);
+  Services.obs.notifyObservers(null, "lightweight-theme-list-changed");
 }
 
 function _notifyWindows(aThemeData) {

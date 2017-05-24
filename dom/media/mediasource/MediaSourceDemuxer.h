@@ -44,12 +44,11 @@ public:
 
   bool ShouldComputeStartTime() const override { return false; }
 
-  void NotifyDataArrived() override;
-
   /* interface for TrackBuffersManager */
   void AttachSourceBuffer(TrackBuffersManager* aSourceBuffer);
   void DetachSourceBuffer(TrackBuffersManager* aSourceBuffer);
   AutoTaskQueue* GetTaskQueue() { return mTaskQueue; }
+  void NotifyInitDataArrived();
 
   // Returns a string describing the state of the MediaSource internal
   // buffered data. Used for debugging purposes.
@@ -58,7 +57,10 @@ public:
   void AddSizeOfResources(MediaSourceDecoder::ResourceSizes* aSizes);
 
   // Gap allowed between frames.
-  static const media::TimeUnit EOS_FUZZ;
+  // Due to inaccuracies in determining buffer end
+  // frames (Bug 1065207). This value is based on videos seen in the wild.
+  static constexpr media::TimeUnit EOS_FUZZ =
+    media::TimeUnit::FromMicroseconds(500000);
 
 private:
   ~MediaSourceDemuxer();

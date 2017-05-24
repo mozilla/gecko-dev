@@ -11,6 +11,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
                                   "resource://gre/modules/AppConstants.jsm");
 
+XPCOMUtils.defineLazyPreferenceGetter(this, "gPhotonStructure",
+  "browser.photon.structure.enabled", false);
+
 /**
  * Maintains the state and dispatches events for the main menu panel.
  */
@@ -27,18 +30,77 @@ const PanelUI = {
   get kElements() {
     return {
       contents: "PanelUI-contents",
-      mainView: "PanelUI-mainView",
-      multiView: "PanelUI-multiView",
+      mainView: gPhotonStructure ? "appMenu-mainView" : "PanelUI-mainView",
+      multiView: gPhotonStructure ? "appMenu-multiView" : "PanelUI-multiView",
       helpView: "PanelUI-helpView",
       menuButton: "PanelUI-menu-button",
-      panel: "PanelUI-popup",
-      scroller: "PanelUI-contents-scroller"
+      panel: gPhotonStructure ? "appMenu-popup" : "PanelUI-popup",
+      notificationPanel: "appMenu-notification-popup",
+      scroller: "PanelUI-contents-scroller",
+      addonNotificationContainer: gPhotonStructure ? "appMenu-addon-banners" : "PanelUI-footer-addons",
+
+      overflowFixedList: gPhotonStructure ? "widget-overflow-fixed-list" : "",
+      overflowPanel: gPhotonStructure ? "widget-overflow" : "",
+      navbar: "nav-bar",
     };
   },
 
   _initialized: false,
   init() {
+    this._initElements();
+
+    this.notifications = [];
+    this.menuButton.addEventListener("mousedown", this);
+    this.menuButton.addEventListener("keypress", this);
+    this._overlayScrollListenerBoundFn = this._overlayScrollListener.bind(this);
+
+    Services.obs.addObserver(this, "fullscreen-nav-toolbox");
+    Services.obs.addObserver(this, "panelUI-notification-main-action");
+    Services.obs.addObserver(this, "panelUI-notification-dismissed");
+
+    window.addEventListener("fullscreen", this);
+    window.addEventListener("activate", this);
+    window.matchMedia("(-moz-overlay-scrollbars)").addListener(this._overlayScrollListenerBoundFn);
+    CustomizableUI.addListener(this);
+
+    for (let event of this.kEvents) {
+      this.notificationPanel.addEventListener(event, this);
+    }
+
+    this._initPhotonPanel();
+
+    this._initialized = true;
+  },
+
+  reinit() {
+    this._removeEventListeners();
+    // If the Photon pref changes, we need to re-init our element references.
+    this._initElements();
+    this._initPhotonPanel();
+    delete this._readyPromise;
+    this._isReady = false;
+  },
+
+  // We do this sync on init because in order to have the overflow button show up
+  // we need to know whether anything is in the permanent panel area.
+  _initPhotonPanel() {
+    if (gPhotonStructure) {
+      this.overflowFixedList.hidden = false;
+      // Also unhide the separator. We use CSS to hide/show it based on the panel's content.
+      this.overflowFixedList.previousSibling.hidden = false;
+      CustomizableUI.registerMenuPanel(this.overflowFixedList, CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
+      this.navbar.setAttribute("photon-structure", "true");
+      this.updateOverflowStatus();
+    } else {
+      this.navbar.removeAttribute("photon-structure");
+    }
+  },
+
+  _initElements() {
     for (let [k, v] of Object.entries(this.kElements)) {
+      if (!v) {
+        continue;
+      }
       // Need to do fresh let-bindings per iteration
       let getKey = k;
       let id = v;
@@ -47,13 +109,6 @@ const PanelUI = {
         return this[getKey] = document.getElementById(id);
       });
     }
-
-    this.menuButton.addEventListener("mousedown", this);
-    this.menuButton.addEventListener("keypress", this);
-    this._overlayScrollListenerBoundFn = this._overlayScrollListener.bind(this);
-    window.matchMedia("(-moz-overlay-scrollbars)").addListener(this._overlayScrollListenerBoundFn);
-    CustomizableUI.addListener(this);
-    this._initialized = true;
   },
 
   _eventListenersAdded: false,
@@ -72,11 +127,26 @@ const PanelUI = {
     this._eventListenersAdded = true;
   },
 
-  uninit() {
+  _removeEventListeners() {
     for (let event of this.kEvents) {
       this.panel.removeEventListener(event, this);
     }
     this.helpView.removeEventListener("ViewShowing", this._onHelpViewShow);
+    this._eventListenersAdded = false;
+  },
+
+  uninit() {
+    this._removeEventListeners();
+    for (let event of this.kEvents) {
+      this.notificationPanel.removeEventListener(event, this);
+    }
+
+    Services.obs.removeObserver(this, "fullscreen-nav-toolbox");
+    Services.obs.removeObserver(this, "panelUI-notification-main-action");
+    Services.obs.removeObserver(this, "panelUI-notification-dismissed");
+
+    window.removeEventListener("fullscreen", this);
+    window.removeEventListener("activate", this);
     this.menuButton.removeEventListener("mousedown", this);
     this.menuButton.removeEventListener("keypress", this);
     window.matchMedia("(-moz-overlay-scrollbars)").removeListener(this._overlayScrollListenerBoundFn);
@@ -125,17 +195,15 @@ const PanelUI = {
    * @param aEvent the event (if any) that triggers showing the menu.
    */
   show(aEvent) {
+    if (gPhotonStructure) {
+      this._ensureShortcutsShown();
+    }
     return new Promise(resolve => {
       this.ensureReady().then(() => {
         if (this.panel.state == "open" ||
             document.documentElement.hasAttribute("customizing")) {
           resolve();
           return;
-        }
-
-        let editControlPlacement = CustomizableUI.getPlacementOfWidget("edit-controls");
-        if (editControlPlacement && editControlPlacement.area == CustomizableUI.AREA_PANEL) {
-          updateEditUIVisibility();
         }
 
         let personalBookmarksPlacement = CustomizableUI.getPlacementOfWidget("personal-bookmarks");
@@ -156,14 +224,75 @@ const PanelUI = {
           resolve();
         }, {once: true});
 
-        let iconAnchor =
-          document.getAnonymousElementByAttribute(anchor, "class",
-                                                  "toolbarbutton-icon");
-        this.panel.openPopup(iconAnchor || anchor);
+        anchor = this._getPanelAnchor(anchor);
+        this.panel.openPopup(anchor);
       }, (reason) => {
         console.error("Error showing the PanelUI menu", reason);
       });
     });
+  },
+
+  showNotification(id, mainAction, secondaryActions = [], options = {}) {
+    let notification = new PanelUINotification(id, mainAction, secondaryActions, options);
+    let existingIndex = this.notifications.findIndex(n => n.id == id);
+    if (existingIndex != -1) {
+      this.notifications.splice(existingIndex, 1);
+    }
+
+    // We don't want to clobber doorhanger notifications just to show a badge,
+    // so don't dismiss any of them and the badge will show once the doorhanger
+    // gets resolved.
+    if (!options.badgeOnly && !options.dismissed) {
+      this.notifications.forEach(n => { n.dismissed = true; });
+    }
+
+    // Since notifications are generally somewhat pressing, the ideal case is that
+    // we never have two notifications at once. However, in the event that we do,
+    // it's more likely that the older notification has been sitting around for a
+    // bit, and so we don't want to hide the new notification behind it. Thus,
+    // we want our notifications to behave like a stack instead of a queue.
+    this.notifications.unshift(notification);
+    this._updateNotifications();
+    return notification;
+  },
+
+  showBadgeOnlyNotification(id) {
+    return this.showNotification(id, null, null, { badgeOnly: true });
+  },
+
+  removeNotification(id) {
+    let notifications;
+    if (typeof id == "string") {
+      notifications = this.notifications.filter(n => n.id == id);
+    } else {
+      // If it's not a string, assume RegExp
+      notifications = this.notifications.filter(n => id.test(n.id));
+    }
+    // _updateNotifications can be expensive if it forces attachment of XBL
+    // bindings that haven't been used yet, so return early if we haven't found
+    // any notification to remove, as callers may expect this removeNotification
+    // method to be a no-op for non-existent notifications.
+    if (!notifications.length) {
+      return;
+    }
+
+    notifications.forEach(n => {
+      this._removeNotification(n);
+    });
+    this._updateNotifications();
+  },
+
+  dismissNotification(id) {
+    let notifications;
+    if (typeof id == "string") {
+      notifications = this.notifications.filter(n => n.id == id);
+    } else {
+      // If it's not a string, assume RegExp
+      notifications = this.notifications.filter(n => id.test(n.id));
+    }
+
+    notifications.forEach(n => n.dismissed = true);
+    this._updateNotifications();
   },
 
   /**
@@ -177,6 +306,24 @@ const PanelUI = {
     this.panel.hidePopup();
   },
 
+  observe(subject, topic, status) {
+    switch (topic) {
+      case "fullscreen-nav-toolbox":
+        this._updateNotifications();
+        break;
+      case "panelUI-notification-main-action":
+        if (subject != window) {
+          this.removeNotification(status);
+        }
+        break;
+      case "panelUI-notification-dismissed":
+        if (subject != window) {
+          this.dismissNotification(status);
+        }
+        break;
+    }
+  },
+
   handleEvent(aEvent) {
     // Ignore context menus and menu button menus showing and hiding:
     if (aEvent.type.startsWith("popup") &&
@@ -186,13 +333,24 @@ const PanelUI = {
     switch (aEvent.type) {
       case "popupshowing":
         this._adjustLabelsForAutoHyphens();
+        updateEditUIVisibility();
         // Fall through
       case "popupshown":
+        if (gPhotonStructure && aEvent.type == "popupshown") {
+          CustomizableUI.addPanelCloseListeners(this.panel);
+        }
         // Fall through
       case "popuphiding":
+        if (aEvent.type == "popuphiding") {
+          updateEditUIVisibility();
+        }
         // Fall through
       case "popuphidden":
+        this._updateNotifications();
         this._updatePanelButton(aEvent.target);
+        if (gPhotonStructure && aEvent.type == "popuphidden") {
+          CustomizableUI.removePanelCloseListeners(this.panel);
+        }
         break;
       case "mousedown":
         if (aEvent.button == 0)
@@ -201,11 +359,31 @@ const PanelUI = {
       case "keypress":
         this.toggle(aEvent);
         break;
+      case "fullscreen":
+      case "activate":
+        this._updateNotifications();
+        break;
     }
   },
 
   get isReady() {
     return !!this._isReady;
+  },
+
+  get isNotificationPanelOpen() {
+    let panelState = this.notificationPanel.state;
+
+    return panelState == "showing" || panelState == "open";
+  },
+
+  get activeNotification() {
+    if (this.notifications.length > 0) {
+      const doorhanger =
+        this.notifications.find(n => !n.dismissed && !n.options.badgeOnly);
+      return doorhanger || this.notifications[0];
+    }
+
+    return null;
   },
 
   /**
@@ -224,16 +402,23 @@ const PanelUI = {
     if (this._readyPromise) {
       return this._readyPromise;
     }
-    this._readyPromise = Task.spawn(function*() {
+    this._ensureEventListenersAdded();
+    if (gPhotonStructure) {
+      this.panel.hidden = false;
+      this._readyPromise = Promise.resolve();
+      this._isReady = true;
+      return this._readyPromise;
+    }
+    this._readyPromise = (async () => {
       if (!this._initialized) {
-        yield new Promise(resolve => {
+        await new Promise(resolve => {
           let delayedStartupObserver = (aSubject, aTopic, aData) => {
             if (aSubject == window) {
               Services.obs.removeObserver(delayedStartupObserver, "browser-delayed-startup-finished");
               resolve();
             }
           };
-          Services.obs.addObserver(delayedStartupObserver, "browser-delayed-startup-finished", false);
+          Services.obs.addObserver(delayedStartupObserver, "browser-delayed-startup-finished");
         });
       }
 
@@ -245,7 +430,7 @@ const PanelUI = {
         // do a bit of hackery. In particular, we calculate a new width for the
         // scroller, based on the system scrollbar width.
         this._scrollWidth =
-          (yield ScrollbarSampler.getSystemScrollbarWidth()) + "px";
+          (await ScrollbarSampler.getSystemScrollbarWidth()) + "px";
         let cstyle = window.getComputedStyle(this.scroller);
         let widthStr = cstyle.width;
         // Get the calculated padding on the left and right sides of
@@ -260,11 +445,11 @@ const PanelUI = {
       }
 
       if (aCustomizing) {
-        CustomizableUI.registerMenuPanel(this.contents);
+        CustomizableUI.registerMenuPanel(this.contents, CustomizableUI.AREA_PANEL);
       } else {
         this.beginBatchUpdate();
         try {
-          CustomizableUI.registerMenuPanel(this.contents);
+          CustomizableUI.registerMenuPanel(this.contents, CustomizableUI.AREA_PANEL);
         } finally {
           this.endBatchUpdate();
         }
@@ -272,7 +457,7 @@ const PanelUI = {
       this._updateQuitTooltip();
       this.panel.hidden = false;
       this._isReady = true;
-    }.bind(this)).then(null, Cu.reportError);
+    })().then(null, Cu.reportError);
 
     return this._readyPromise;
   },
@@ -302,7 +487,7 @@ const PanelUI = {
    * @param aAnchor the element that spawned the subview.
    * @param aPlacementArea the CustomizableUI area that aAnchor is in.
    */
-  showSubView: Task.async(function*(aViewId, aAnchor, aPlacementArea) {
+  async showSubView(aViewId, aAnchor, aPlacementArea, aAdopted = false) {
     this._ensureEventListenersAdded();
     let viewNode = document.getElementById(aViewId);
     if (!viewNode) {
@@ -315,8 +500,9 @@ const PanelUI = {
       return;
     }
 
-    if (aPlacementArea == CustomizableUI.AREA_PANEL) {
-      this.multiView.showSubView(aViewId, aAnchor);
+    let container = aAnchor.closest("panelmultiview,photonpanelmultiview");
+    if (container) {
+      container.showSubView(aViewId, aAnchor, null, aAdopted);
     } else if (!aAnchor.open) {
       aAnchor.open = true;
 
@@ -376,7 +562,7 @@ const PanelUI = {
       let cancel = evt.defaultPrevented;
       if (detail.blockers.size) {
         try {
-          let results = yield Promise.all(detail.blockers);
+          let results = await Promise.all(detail.blockers);
           cancel = cancel || results.some(val => val === false);
         } catch (e) {
           Components.utils.reportError(e);
@@ -393,16 +579,15 @@ const PanelUI = {
       CustomizableUI.addPanelCloseListeners(tempPanel);
       tempPanel.addEventListener("popuphidden", panelRemover);
 
-      let iconAnchor =
-        document.getAnonymousElementByAttribute(aAnchor, "class",
-                                                "toolbarbutton-icon");
+      let anchor = this._getPanelAnchor(aAnchor);
 
-      if (iconAnchor && aAnchor.id) {
-        iconAnchor.setAttribute("consumeanchor", aAnchor.id);
+      if (aAnchor != anchor && aAnchor.id) {
+        anchor.setAttribute("consumeanchor", aAnchor.id);
       }
-      tempPanel.openPopup(iconAnchor || aAnchor, "bottomcenter topright");
+
+      tempPanel.openPopup(anchor, "bottomcenter topright");
     }
-  }),
+  },
 
   /**
    * NB: The enable- and disableSingleSubviewPanelAnimations methods only
@@ -417,7 +602,26 @@ const PanelUI = {
     this._disableAnimations = false;
   },
 
+  onPhotonChanged() {
+    this.reinit();
+  },
+
+  updateOverflowStatus() {
+    let hasKids = this.overflowFixedList.hasChildNodes();
+    if (hasKids && !this.navbar.hasAttribute("nonemptyoverflow")) {
+      this.navbar.setAttribute("nonemptyoverflow", "true");
+      this.overflowPanel.setAttribute("hasfixeditems", "true");
+    } else if (!hasKids && this.navbar.hasAttribute("nonemptyoverflow")) {
+      this.overflowPanel.removeAttribute("hasfixeditems");
+      this.navbar.removeAttribute("nonemptyoverflow");
+    }
+  },
+
   onWidgetAfterDOMChange(aNode, aNextNode, aContainer, aWasRemoval) {
+    if (gPhotonStructure && aContainer == this.overflowFixedList) {
+      this.updateOverflowStatus();
+      return;
+    }
     if (aContainer != this.contents) {
       return;
     }
@@ -538,6 +742,233 @@ const PanelUI = {
     ScrollbarSampler.resetSystemScrollbarWidth();
     this._scrollWidth = null;
   },
+
+  _hidePopup() {
+    if (this.isNotificationPanelOpen) {
+      this.notificationPanel.hidePopup();
+    }
+  },
+
+  _updateNotifications() {
+    if (!this.notifications.length) {
+      this._clearAllNotifications();
+      this._hidePopup();
+      return;
+    }
+
+    if (window.fullScreen && FullScreen.navToolboxHidden) {
+      this._hidePopup();
+      return;
+    }
+
+    let doorhangers =
+      this.notifications.filter(n => !n.dismissed && !n.options.badgeOnly);
+
+    if (this.panel.state == "showing" || this.panel.state == "open") {
+      // If the menu is already showing, then we need to dismiss all notifications
+      // since we don't want their doorhangers competing for attention
+      doorhangers.forEach(n => { n.dismissed = true; })
+      this._hidePopup();
+      this._clearBadge();
+      if (!this.notifications[0].options.badgeOnly) {
+        this._showBannerItem(this.notifications[0]);
+      }
+    } else if (doorhangers.length > 0) {
+      // Only show the doorhanger if the window is focused and not fullscreen
+      if (window.fullScreen || Services.focus.activeWindow !== window) {
+        this._hidePopup();
+        this._showBadge(doorhangers[0]);
+        this._showBannerItem(doorhangers[0]);
+      } else {
+        this._clearBadge();
+        this._showNotificationPanel(doorhangers[0]);
+      }
+    } else {
+      this._hidePopup();
+      this._showBadge(this.notifications[0]);
+      this._showBannerItem(this.notifications[0]);
+    }
+  },
+
+  _showNotificationPanel(notification) {
+    this._refreshNotificationPanel(notification);
+
+    if (this.isNotificationPanelOpen) {
+      return;
+    }
+
+    let anchor = this._getPanelAnchor(this.menuButton);
+
+    this.notificationPanel.hidden = false;
+    this.notificationPanel.openPopup(anchor, "bottomcenter topright");
+  },
+
+  _clearNotificationPanel() {
+    for (let popupnotification of this.notificationPanel.children) {
+      popupnotification.hidden = true;
+      popupnotification.notification = null;
+    }
+  },
+
+  _clearAllNotifications() {
+    this._clearNotificationPanel();
+    this._clearBadge();
+    this._clearBannerItem();
+  },
+
+  _refreshNotificationPanel(notification) {
+    this._clearNotificationPanel();
+
+    let popupnotificationID = this._getPopupId(notification);
+    let popupnotification = document.getElementById(popupnotificationID);
+
+    popupnotification.setAttribute("id", popupnotificationID);
+    popupnotification.setAttribute("buttoncommand", "PanelUI._onNotificationButtonEvent(event, 'buttoncommand');");
+    popupnotification.setAttribute("secondarybuttoncommand",
+      "PanelUI._onNotificationButtonEvent(event, 'secondarybuttoncommand');");
+
+    popupnotification.notification = notification;
+    popupnotification.hidden = false;
+  },
+
+  _showBadge(notification) {
+    let badgeStatus = this._getBadgeStatus(notification);
+    this.menuButton.setAttribute("badge-status", badgeStatus);
+  },
+
+  // "Banner item" here refers to an item in the hamburger panel menu. They will
+  // typically show up as a colored row in the panel.
+  _showBannerItem(notification) {
+    if (!this._panelBannerItem) {
+      this._panelBannerItem = this.mainView.querySelector(".panel-banner-item");
+    }
+    let label = this._panelBannerItem.getAttribute("label-" + notification.id);
+    // Ignore items we don't know about.
+    if (!label) {
+      return;
+    }
+    this._panelBannerItem.setAttribute("notificationid", notification.id);
+    this._panelBannerItem.setAttribute("label", label);
+    this._panelBannerItem.hidden = false;
+    this._panelBannerItem.notification = notification;
+  },
+
+  _clearBadge() {
+    this.menuButton.removeAttribute("badge-status");
+  },
+
+  _clearBannerItem() {
+    if (this._panelBannerItem) {
+      this._panelBannerItem.notification = null;
+      this._panelBannerItem.hidden = true;
+    }
+  },
+
+  _removeNotification(notification) {
+    // This notification may already be removed, in which case let's just fail
+    // silently.
+    let notifications = this.notifications;
+    if (!notifications)
+      return;
+
+    var index = notifications.indexOf(notification);
+    if (index == -1)
+      return;
+
+    // Remove the notification
+    notifications.splice(index, 1);
+  },
+
+  _onNotificationButtonEvent(event, type) {
+    let notificationEl = getNotificationFromElement(event.originalTarget);
+
+    if (!notificationEl)
+      throw "PanelUI._onNotificationButtonEvent: couldn't find notification element";
+
+    if (!notificationEl.notification)
+      throw "PanelUI._onNotificationButtonEvent: couldn't find notification";
+
+    let notification = notificationEl.notification;
+
+    let action = notification.mainAction;
+
+    if (type == "secondarybuttoncommand") {
+      action = notification.secondaryActions[0];
+    }
+
+    let dismiss = true;
+    if (action) {
+      try {
+        if (action === notification.mainAction) {
+          action.callback(true);
+          this._notify(notification.id, "main-action");
+        } else {
+          action.callback();
+        }
+      } catch (error) {
+        Cu.reportError(error);
+      }
+
+      dismiss = action.dismiss;
+    }
+
+    if (dismiss) {
+      notification.dismissed = true;
+      this._notify(notification.id, "dismissed");
+    } else {
+      this._removeNotification(notification);
+    }
+    this._updateNotifications();
+  },
+
+  _onBannerItemSelected(event) {
+    let target = event.originalTarget;
+    if (!target.notification)
+      throw "menucommand target has no associated action/notification";
+
+    event.stopPropagation();
+
+    try {
+      target.notification.mainAction.callback(false);
+      this._notify(target.notification.id, "main-action");
+    } catch (error) {
+      Cu.reportError(error);
+    }
+
+    this._removeNotification(target.notification);
+    this._updateNotifications();
+  },
+
+  _getPopupId(notification) { return "appMenu-" + notification.id + "-notification"; },
+
+  _getBadgeStatus(notification) { return notification.id; },
+
+  _getPanelAnchor(candidate) {
+    let iconAnchor =
+      document.getAnonymousElementByAttribute(candidate, "class",
+                                              "toolbarbutton-icon");
+    return iconAnchor || candidate;
+  },
+
+  _addedShortcuts: false,
+  _ensureShortcutsShown() {
+    if (this._addedShortcuts) {
+      return;
+    }
+    this._addedShortcuts = true;
+    for (let button of this.mainView.querySelectorAll("toolbarbutton[key]")) {
+      let keyId = button.getAttribute("key");
+      let key = document.getElementById(keyId);
+      if (!key) {
+        continue;
+      }
+      button.setAttribute("shortcut", ShortcutUtils.prettifyShortcut(key));
+    }
+  },
+
+  _notify(status, topic) {
+    Services.obs.notifyObservers(window, "panelUI-notification-" + topic, status);
+  }
 };
 
 XPCOMUtils.defineConstant(this, "PanelUI", PanelUI);
@@ -548,4 +979,25 @@ XPCOMUtils.defineConstant(this, "PanelUI", PanelUI);
  */
 function getLocale() {
   return Services.locale.getAppLocaleAsLangTag();
+}
+
+function PanelUINotification(id, mainAction, secondaryActions = [], options = {}) {
+  this.id = id;
+  this.mainAction = mainAction;
+  this.secondaryActions = secondaryActions;
+  this.options = options;
+  this.dismissed = this.options.dismissed || false;
+}
+
+function getNotificationFromElement(aElement) {
+  // Need to find the associated notification object, which is a bit tricky
+  // since it isn't associated with the element directly - this is kind of
+  // gross and very dependent on the structure of the popupnotification
+  // binding's content.
+  let notificationEl;
+  let parent = aElement;
+  while (parent && (parent = aElement.ownerDocument.getBindingParent(parent))) {
+    notificationEl = parent;
+  }
+  return notificationEl;
 }

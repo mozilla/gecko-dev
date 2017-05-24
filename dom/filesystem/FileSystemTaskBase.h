@@ -19,7 +19,6 @@ namespace dom {
 class BlobImpl;
 class FileSystemBase;
 class FileSystemParams;
-class PBlobParent;
 
 /*
  * The base class to implement a Task class.
@@ -138,7 +137,8 @@ protected:
   /*
    * To create a task to handle the page content request.
    */
-  explicit FileSystemTaskChildBase(FileSystemBase* aFileSystem);
+  FileSystemTaskChildBase(nsIGlobalObject* aGlobalObject,
+                          FileSystemBase* aFileSystem);
 
   virtual
   ~FileSystemTaskChildBase();
@@ -169,6 +169,7 @@ protected:
 
   nsresult mErrorValue;
   RefPtr<FileSystemBase> mFileSystem;
+  nsCOMPtr<nsIGlobalObject> mGlobalObject;
 
 private:
 
@@ -187,6 +188,10 @@ private:
 class FileSystemTaskParentBase : public Runnable
 {
 public:
+  FileSystemTaskParentBase()
+    : Runnable("FileSystemTaskParentBase")
+  {}
+
   /*
    * Start the task. This must be called from the PBackground thread only.
    */

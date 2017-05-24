@@ -111,6 +111,24 @@ IsStyleCachePreservingAction(EditAction action)
          action == EditAction::insertQuotation;
 }
 
+static nsIAtom&
+ParagraphSeparatorElement(ParagraphSeparator separator)
+{
+  switch (separator) {
+    default:
+      MOZ_FALLTHROUGH_ASSERT("Unexpected paragraph separator!");
+
+    case ParagraphSeparator::div:
+      return *nsGkAtoms::div;
+
+    case ParagraphSeparator::p:
+      return *nsGkAtoms::p;
+
+    case ParagraphSeparator::br:
+      return *nsGkAtoms::br;
+  }
+}
+
 class TableCellAndListItemFunctor final : public BoolDomIterFunctor
 {
 public:
@@ -1239,17 +1257,6 @@ HTMLEditRules::WillInsertText(EditAction aAction,
     return NS_ERROR_NULL_POINTER;
   }
 
-  if (inString->IsEmpty() && aAction != EditAction::insertIMEText) {
-    // HACK: this is a fix for bug 19395
-    // I can't outlaw all empty insertions
-    // because IME transaction depend on them
-    // There is more work to do to make the
-    // world safe for IME.
-    *aCancel = true;
-    *aHandled = false;
-    return NS_OK;
-  }
-
   // initialize out param
   *aCancel = false;
   *aHandled = true;
@@ -1343,86 +1350,92 @@ HTMLEditRules::WillInsertText(EditAction aAction,
     int32_t pos = 0;
     NS_NAMED_LITERAL_STRING(newlineStr, LFSTR);
 
-    // for efficiency, break out the pre case separately.  This is because
-    // its a lot cheaper to search the input string for only newlines than
-    // it is to search for both tabs and newlines.
-    if (isPRE || IsPlaintextEditor()) {
-      while (unicodeBuf && pos != -1 &&
-             pos < static_cast<int32_t>(inString->Length())) {
-        int32_t oldPos = pos;
-        int32_t subStrLen;
-        pos = tString.FindChar(nsCRT::LF, oldPos);
+    {
+      NS_ENSURE_STATE(mHTMLEditor);
+      AutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater,
+                                address_of(selNode), &selOffset);
 
-        if (pos != -1) {
-          subStrLen = pos - oldPos;
-          // if first char is newline, then use just it
-          if (!subStrLen) {
-            subStrLen = 1;
+      // for efficiency, break out the pre case separately.  This is because
+      // its a lot cheaper to search the input string for only newlines than
+      // it is to search for both tabs and newlines.
+      if (isPRE || IsPlaintextEditor()) {
+        while (unicodeBuf && pos != -1 &&
+               pos < static_cast<int32_t>(inString->Length())) {
+          int32_t oldPos = pos;
+          int32_t subStrLen;
+          pos = tString.FindChar(nsCRT::LF, oldPos);
+
+          if (pos != -1) {
+            subStrLen = pos - oldPos;
+            // if first char is newline, then use just it
+            if (!subStrLen) {
+              subStrLen = 1;
+            }
+          } else {
+            subStrLen = tString.Length() - oldPos;
+            pos = tString.Length();
           }
-        } else {
-          subStrLen = tString.Length() - oldPos;
-          pos = tString.Length();
-        }
 
-        nsDependentSubstring subStr(tString, oldPos, subStrLen);
+          nsDependentSubstring subStr(tString, oldPos, subStrLen);
 
-        // is it a return?
-        if (subStr.Equals(newlineStr)) {
-          NS_ENSURE_STATE(mHTMLEditor);
-          nsCOMPtr<Element> br =
-            mHTMLEditor->CreateBRImpl(address_of(curNode), &curOffset,
-                                      nsIEditor::eNone);
-          NS_ENSURE_STATE(br);
-          pos++;
-        } else {
-          NS_ENSURE_STATE(mHTMLEditor);
-          rv = mHTMLEditor->InsertTextImpl(subStr, address_of(curNode),
-                                           &curOffset, doc);
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
-      }
-    } else {
-      NS_NAMED_LITERAL_STRING(tabStr, "\t");
-      NS_NAMED_LITERAL_STRING(spacesStr, "    ");
-      char specialChars[] = {TAB, nsCRT::LF, 0};
-      while (unicodeBuf && pos != -1 &&
-             pos < static_cast<int32_t>(inString->Length())) {
-        int32_t oldPos = pos;
-        int32_t subStrLen;
-        pos = tString.FindCharInSet(specialChars, oldPos);
-
-        if (pos != -1) {
-          subStrLen = pos - oldPos;
-          // if first char is newline, then use just it
-          if (!subStrLen) {
-            subStrLen = 1;
+          // is it a return?
+          if (subStr.Equals(newlineStr)) {
+            NS_ENSURE_STATE(mHTMLEditor);
+            nsCOMPtr<Element> br =
+              mHTMLEditor->CreateBRImpl(address_of(curNode), &curOffset,
+                                        nsIEditor::eNone);
+            NS_ENSURE_STATE(br);
+            pos++;
+          } else {
+            NS_ENSURE_STATE(mHTMLEditor);
+            rv = mHTMLEditor->InsertTextImpl(subStr, address_of(curNode),
+                                             &curOffset, doc);
+            NS_ENSURE_SUCCESS(rv, rv);
           }
-        } else {
-          subStrLen = tString.Length() - oldPos;
-          pos = tString.Length();
         }
+      } else {
+        NS_NAMED_LITERAL_STRING(tabStr, "\t");
+        NS_NAMED_LITERAL_STRING(spacesStr, "    ");
+        char specialChars[] = {TAB, nsCRT::LF, 0};
+        while (unicodeBuf && pos != -1 &&
+               pos < static_cast<int32_t>(inString->Length())) {
+          int32_t oldPos = pos;
+          int32_t subStrLen;
+          pos = tString.FindCharInSet(specialChars, oldPos);
 
-        nsDependentSubstring subStr(tString, oldPos, subStrLen);
-        NS_ENSURE_STATE(mHTMLEditor);
-        WSRunObject wsObj(mHTMLEditor, curNode, curOffset);
+          if (pos != -1) {
+            subStrLen = pos - oldPos;
+            // if first char is newline, then use just it
+            if (!subStrLen) {
+              subStrLen = 1;
+            }
+          } else {
+            subStrLen = tString.Length() - oldPos;
+            pos = tString.Length();
+          }
 
-        // is it a tab?
-        if (subStr.Equals(tabStr)) {
-          rv =
-            wsObj.InsertText(spacesStr, address_of(curNode), &curOffset, doc);
-          NS_ENSURE_SUCCESS(rv, rv);
-          pos++;
-        }
-        // is it a return?
-        else if (subStr.Equals(newlineStr)) {
-          nsCOMPtr<Element> br = wsObj.InsertBreak(address_of(curNode),
-                                                   &curOffset,
-                                                   nsIEditor::eNone);
-          NS_ENSURE_TRUE(br, NS_ERROR_FAILURE);
-          pos++;
-        } else {
-          rv = wsObj.InsertText(subStr, address_of(curNode), &curOffset, doc);
-          NS_ENSURE_SUCCESS(rv, rv);
+          nsDependentSubstring subStr(tString, oldPos, subStrLen);
+          NS_ENSURE_STATE(mHTMLEditor);
+          WSRunObject wsObj(mHTMLEditor, curNode, curOffset);
+
+          // is it a tab?
+          if (subStr.Equals(tabStr)) {
+            rv =
+              wsObj.InsertText(spacesStr, address_of(curNode), &curOffset, doc);
+            NS_ENSURE_SUCCESS(rv, rv);
+            pos++;
+          }
+          // is it a return?
+          else if (subStr.Equals(newlineStr)) {
+            nsCOMPtr<Element> br = wsObj.InsertBreak(address_of(curNode),
+                                                     &curOffset,
+                                                     nsIEditor::eNone);
+            NS_ENSURE_TRUE(br, NS_ERROR_FAILURE);
+            pos++;
+          } else {
+            rv = wsObj.InsertText(subStr, address_of(curNode), &curOffset, doc);
+            NS_ENSURE_SUCCESS(rv, rv);
+          }
         }
       }
     }
@@ -1525,13 +1538,60 @@ HTMLEditRules::WillInsertBreak(Selection& aSelection,
   NS_ENSURE_TRUE(blockParent, NS_ERROR_FAILURE);
 
   // If the active editing host is an inline element, or if the active editing
-  // host is the block parent itself, just append a br.
+  // host is the block parent itself and we're configured to use <br> as a
+  // paragraph separator, just append a <br>.
   nsCOMPtr<Element> host = htmlEditor->GetActiveEditingHost();
-  if (!EditorUtils::IsDescendantOf(blockParent, host)) {
+  if (NS_WARN_IF(!host)) {
+    return NS_ERROR_FAILURE;
+  }
+  ParagraphSeparator separator = mHTMLEditor->GetDefaultParagraphSeparator();
+  if (!IsBlockNode(*host) ||
+      // The nodes that can contain p and div are the same.  If the editing
+      // host is a <p> or similar, we have to just insert a newline.
+      (!mHTMLEditor->CanContainTag(*host, *nsGkAtoms::p) &&
+       // These can't contain <p> as a child, but can as a descendant, so we
+       // don't have to fall back to inserting a newline.
+       !host->IsAnyOfHTMLElements(nsGkAtoms::ol, nsGkAtoms::ul, nsGkAtoms::dl,
+                                  nsGkAtoms::table, nsGkAtoms::thead,
+                                  nsGkAtoms::tbody, nsGkAtoms::tfoot,
+                                  nsGkAtoms::tr)) ||
+      (host == blockParent && separator == ParagraphSeparator::br)) {
     nsresult rv = StandardBreakImpl(node, offset, aSelection);
     NS_ENSURE_SUCCESS(rv, rv);
     *aHandled = true;
     return NS_OK;
+  }
+  if (host == blockParent && separator != ParagraphSeparator::br) {
+    // Insert a new block first
+    MOZ_ASSERT(separator == ParagraphSeparator::div ||
+               separator == ParagraphSeparator::p);
+    nsresult rv = MakeBasicBlock(aSelection,
+                                 ParagraphSeparatorElement(separator));
+    // We warn on failure, but don't handle it, because it might be harmless.
+    // Instead we just check that a new block was actually created.
+    Unused << NS_WARN_IF(NS_FAILED(rv));
+
+    // Reinitialize node/offset in case they're not inside the new block
+    if (NS_WARN_IF(!aSelection.GetRangeAt(0) ||
+                   !aSelection.GetRangeAt(0)->GetStartParent())) {
+      return NS_ERROR_FAILURE;
+    }
+    node = *aSelection.GetRangeAt(0)->GetStartParent();
+    offset = aSelection.GetRangeAt(0)->StartOffset();
+
+    blockParent = mHTMLEditor->GetBlock(node);
+    if (NS_WARN_IF(!blockParent)) {
+      return NS_ERROR_UNEXPECTED;
+    }
+    if (NS_WARN_IF(blockParent == host)) {
+      // Didn't create a new block for some reason, fall back to <br>
+      rv = StandardBreakImpl(node, offset, aSelection);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+      *aHandled = true;
+      return NS_OK;
+    }
   }
 
   // If block is empty, populate with br.  (For example, imagine a div that
@@ -1556,7 +1616,7 @@ HTMLEditRules::WillInsertBreak(Selection& aSelection,
     ReturnInHeader(aSelection, *blockParent, node, offset);
     *aHandled = true;
     return NS_OK;
-  } else if (blockParent->IsHTMLElement(nsGkAtoms::p)) {
+  } else if (blockParent->IsAnyOfHTMLElements(nsGkAtoms::p, nsGkAtoms::div)) {
     // Paragraphs: special rules to look for <br>s
     nsresult rv =
       ReturnInParagraph(&aSelection, GetAsDOMNode(blockParent),
@@ -3222,18 +3282,18 @@ HTMLEditRules::WillMakeList(Selection* aSelection,
       curList = nullptr;
     }
 
-    // if curNode is a Break, delete it, and quit remembering prev list item
-    if (TextEditUtils::IsBreak(curNode)) {
+    // If curNode is a break, delete it, and quit remembering prev list item.
+    // If an empty inline container, delete it, but still remember the previous
+    // item.
+    NS_ENSURE_STATE(mHTMLEditor);
+    if (mHTMLEditor->IsEditable(curNode) && (TextEditUtils::IsBreak(curNode) ||
+                                             IsEmptyInline(curNode))) {
       NS_ENSURE_STATE(mHTMLEditor);
       rv = mHTMLEditor->DeleteNode(curNode);
       NS_ENSURE_SUCCESS(rv, rv);
-      prevListItem = nullptr;
-      continue;
-    } else if (IsEmptyInline(curNode)) {
-      // if curNode is an empty inline container, delete it
-      NS_ENSURE_STATE(mHTMLEditor);
-      rv = mHTMLEditor->DeleteNode(curNode);
-      NS_ENSURE_SUCCESS(rv, rv);
+      if (TextEditUtils::IsBreak(curNode)) {
+        prevListItem = nullptr;
+      }
       continue;
     }
 
@@ -3476,34 +3536,34 @@ HTMLEditRules::WillMakeBasicBlock(Selection& aSelection,
 {
   MOZ_ASSERT(aCancel && aHandled);
 
-  NS_ENSURE_STATE(mHTMLEditor);
-  RefPtr<HTMLEditor> htmlEditor(mHTMLEditor);
-
   OwningNonNull<nsIAtom> blockType = NS_Atomize(aBlockType);
 
   WillInsert(aSelection, aCancel);
   // We want to ignore result of WillInsert()
   *aCancel = false;
-  *aHandled = false;
+  *aHandled = true;
+
+  nsresult rv = MakeBasicBlock(aSelection, blockType);
+  Unused << NS_WARN_IF(NS_FAILED(rv));
+  return rv;
+}
+
+nsresult
+HTMLEditRules::MakeBasicBlock(Selection& aSelection, nsIAtom& blockType)
+{
+  NS_ENSURE_STATE(mHTMLEditor);
+  RefPtr<HTMLEditor> htmlEditor(mHTMLEditor);
 
   nsresult rv = NormalizeSelection(&aSelection);
   NS_ENSURE_SUCCESS(rv, rv);
   AutoSelectionRestorer selectionRestorer(&aSelection, htmlEditor);
   AutoTransactionsConserveSelection dontSpazMySelection(htmlEditor);
-  *aHandled = true;
 
   // Contruct a list of nodes to act on.
   nsTArray<OwningNonNull<nsINode>> arrayOfNodes;
   rv = GetNodesFromSelection(aSelection, EditAction::makeBasicBlock,
                              arrayOfNodes);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  // Remove all non-editable nodes.  Leave them be.
-  for (int32_t i = arrayOfNodes.Length() - 1; i >= 0; i--) {
-    if (!htmlEditor->IsEditable(arrayOfNodes[i])) {
-      arrayOfNodes.RemoveElementAt(i);
-    }
-  }
 
   // If nothing visible in list, make an empty block
   if (ListIsEmptyLine(arrayOfNodes)) {
@@ -3514,8 +3574,8 @@ HTMLEditRules::WillMakeBasicBlock(Selection& aSelection,
       *aSelection.GetRangeAt(0)->GetStartParent();
     int32_t offset = aSelection.GetRangeAt(0)->StartOffset();
 
-    if (blockType == nsGkAtoms::normal ||
-        blockType == nsGkAtoms::_empty) {
+    if (&blockType == nsGkAtoms::normal ||
+        &blockType == nsGkAtoms::_empty) {
       // We are removing blocks (going to "body text")
       NS_ENSURE_TRUE(htmlEditor->GetBlock(parent), NS_ERROR_NULL_POINTER);
       OwningNonNull<Element> curBlock = *htmlEditor->GetBlock(parent);
@@ -3538,7 +3598,6 @@ HTMLEditRules::WillMakeBasicBlock(Selection& aSelection,
         brNode = htmlEditor->CreateBR(curBlock->GetParentNode(), offset);
         NS_ENSURE_STATE(brNode);
         // Put selection at the split point
-        *aHandled = true;
         rv = aSelection.Collapse(curBlock->GetParentNode(), offset);
         // Don't restore the selection
         selectionRestorer.Abort();
@@ -3559,7 +3618,7 @@ HTMLEditRules::WillMakeBasicBlock(Selection& aSelection,
       rv = SplitAsNeeded(blockType, parent, offset);
       NS_ENSURE_SUCCESS(rv, rv);
       nsCOMPtr<Element> block =
-        htmlEditor->CreateNode(blockType, parent, offset);
+        htmlEditor->CreateNode(&blockType, parent, offset);
       NS_ENSURE_STATE(block);
       // Remember our new block for postprocessing
       mNewBlock = block;
@@ -3571,7 +3630,6 @@ HTMLEditRules::WillMakeBasicBlock(Selection& aSelection,
         arrayOfNodes.RemoveElementAt(0);
       }
       // Put selection in new block
-      *aHandled = true;
       rv = aSelection.Collapse(block, 0);
       // Don't restore the selection
       selectionRestorer.Abort();
@@ -3582,11 +3640,11 @@ HTMLEditRules::WillMakeBasicBlock(Selection& aSelection,
   // Okay, now go through all the nodes and make the right kind of blocks, or
   // whatever is approriate.  Woohoo!  Note: blockquote is handled a little
   // differently.
-  if (blockType == nsGkAtoms::blockquote) {
+  if (&blockType == nsGkAtoms::blockquote) {
     rv = MakeBlockquote(arrayOfNodes);
     NS_ENSURE_SUCCESS(rv, rv);
-  } else if (blockType == nsGkAtoms::normal ||
-             blockType == nsGkAtoms::_empty) {
+  } else if (&blockType == nsGkAtoms::normal ||
+             &blockType == nsGkAtoms::_empty) {
     rv = RemoveBlockStyle(arrayOfNodes);
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
@@ -6264,6 +6322,16 @@ HTMLEditRules::IsInListItem(nsINode* aNode)
   return nullptr;
 }
 
+nsIAtom&
+HTMLEditRules::DefaultParagraphSeparator()
+{
+  MOZ_ASSERT(mHTMLEditor);
+  if (!mHTMLEditor) {
+    return *nsGkAtoms::div;
+  }
+  return ParagraphSeparatorElement(mHTMLEditor->GetDefaultParagraphSeparator());
+}
+
 /**
  * ReturnInHeader: do the right thing for returns pressed in headers
  */
@@ -6319,8 +6387,12 @@ HTMLEditRules::ReturnInHeader(Selection& aSelection,
       htmlEditor->mTypeInState->ClearAllProps();
 
       // Create a paragraph
+      nsIAtom& paraAtom = DefaultParagraphSeparator();
+      // We want a wrapper element even if we separate with <br>
       nsCOMPtr<Element> pNode =
-        htmlEditor->CreateNode(nsGkAtoms::p, headerParent, offset + 1);
+        htmlEditor->CreateNode(&paraAtom == nsGkAtoms::br ? nsGkAtoms::p
+                                                           : &paraAtom,
+                                headerParent, offset + 1);
       NS_ENSURE_STATE(pNode);
 
       // Append a <br> to it
@@ -6347,6 +6419,9 @@ HTMLEditRules::ReturnInHeader(Selection& aSelection,
 
 /**
  * ReturnInParagraph() does the right thing for returns pressed in paragraphs.
+ * For our purposes, this means either <p> or <div>, which is not in keeping
+ * with the semantics of <div>, but is necessary for compatibility with other
+ * browsers.
  */
 nsresult
 HTMLEditRules::ReturnInParagraph(Selection* aSelection,
@@ -6491,10 +6566,14 @@ HTMLEditRules::SplitParagraph(nsIDOMNode *aPara,
   // split the paragraph
   NS_ENSURE_STATE(mHTMLEditor);
   NS_ENSURE_STATE(selNode->IsContent());
-  mHTMLEditor->SplitNodeDeep(*para, *selNode->AsContent(), *aOffset,
-                             HTMLEditor::EmptyContainers::yes,
-                             getter_AddRefs(leftPara),
-                             getter_AddRefs(rightPara));
+  int32_t offset =
+    mHTMLEditor->SplitNodeDeep(*para, *selNode->AsContent(), *aOffset,
+                               HTMLEditor::EmptyContainers::yes,
+                               getter_AddRefs(leftPara),
+                               getter_AddRefs(rightPara));
+  if (NS_WARN_IF(offset == -1)) {
+    return NS_ERROR_FAILURE;
+  }
   // get rid of the break, if it is visible (otherwise it may be needed to prevent an empty p)
   NS_ENSURE_STATE(mHTMLEditor);
   if (mHTMLEditor->IsVisBreak(aBRNode)) {
@@ -6584,8 +6663,12 @@ HTMLEditRules::ReturnInListItem(Selection& aSelection,
       NS_ENSURE_SUCCESS(rv, rv);
 
       // Time to insert a paragraph
+      nsIAtom& paraAtom = DefaultParagraphSeparator();
+      // We want a wrapper even if we separate with <br>
       nsCOMPtr<Element> pNode =
-        htmlEditor->CreateNode(nsGkAtoms::p, listParent, offset + 1);
+        htmlEditor->CreateNode(&paraAtom == nsGkAtoms::br ? nsGkAtoms::p
+                                                           : &paraAtom,
+                                listParent, offset + 1);
       NS_ENSURE_STATE(pNode);
 
       // Append a <br> to it
@@ -6767,6 +6850,9 @@ HTMLEditRules::RemoveBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray)
         NS_ENSURE_SUCCESS(rv, rv);
         firstNode = lastNode = curBlock = nullptr;
       }
+      if (!mHTMLEditor->IsEditable(curNode)) {
+        continue;
+      }
       // Remove current block
       nsresult rv = htmlEditor->RemoveBlockContainer(*curNode->AsContent());
       NS_ENSURE_SUCCESS(rv, rv);
@@ -6783,6 +6869,9 @@ HTMLEditRules::RemoveBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray)
         nsresult rv = RemovePartOfBlock(*curBlock, *firstNode, *lastNode);
         NS_ENSURE_SUCCESS(rv, rv);
         firstNode = lastNode = curBlock = nullptr;
+      }
+      if (!mHTMLEditor->IsEditable(curNode)) {
+        continue;
       }
       // Recursion time
       nsTArray<OwningNonNull<nsINode>> childArray;
@@ -6806,11 +6895,12 @@ HTMLEditRules::RemoveBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray)
         // Fall out and handle curNode
       }
       curBlock = htmlEditor->GetBlockNodeParent(curNode);
-      if (curBlock && HTMLEditUtils::IsFormatNode(curBlock)) {
-        firstNode = lastNode = curNode->AsContent();
-      } else {
+      if (!curBlock || !HTMLEditUtils::IsFormatNode(curBlock) ||
+          !mHTMLEditor->IsEditable(curBlock)) {
         // Not a block kind that we care about.
         curBlock = nullptr;
+      } else {
+        firstNode = lastNode = curNode->AsContent();
       }
     } else if (curBlock) {
       // Some node that is already sans block style.  Skip over it and process
@@ -6843,13 +6933,6 @@ HTMLEditRules::ApplyBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray,
   NS_ENSURE_STATE(mHTMLEditor);
   RefPtr<HTMLEditor> htmlEditor(mHTMLEditor);
 
-  // Remove all non-editable nodes.  Leave them be.
-  for (int32_t i = aNodeArray.Length() - 1; i >= 0; i--) {
-    if (!htmlEditor->IsEditable(aNodeArray[i])) {
-      aNodeArray.RemoveElementAt(i);
-    }
-  }
-
   nsCOMPtr<Element> newBlock;
 
   nsCOMPtr<Element> curBlock;
@@ -6857,8 +6940,9 @@ HTMLEditRules::ApplyBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray,
     nsCOMPtr<nsINode> curParent = curNode->GetParentNode();
     int32_t offset = curParent ? curParent->IndexOf(curNode) : -1;
 
-    // Is it already the right kind of block?
-    if (curNode->IsHTMLElement(&aBlockTag)) {
+    // Is it already the right kind of block, or an uneditable block?
+    if (curNode->IsHTMLElement(&aBlockTag) ||
+        (!mHTMLEditor->IsEditable(curNode) && IsBlockNode(curNode))) {
       // Forget any previous block used for previous inline nodes
       curBlock = nullptr;
       // Do nothing to this block
@@ -6945,6 +7029,11 @@ HTMLEditRules::ApplyBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray,
         // Remember our new block for postprocessing
         mNewBlock = curBlock;
         // Note: doesn't matter if we set mNewBlock multiple times.
+      }
+
+      if (NS_WARN_IF(!curNode->GetParentNode())) {
+        // This is possible due to mutation events, let's not assert
+        return NS_ERROR_UNEXPECTED;
       }
 
       // XXX If curNode is a br, replace it with a return if going to <pre>
@@ -7997,16 +8086,20 @@ HTMLEditRules::ConfirmSelectionInBody()
 {
   // get the body
   NS_ENSURE_STATE(mHTMLEditor);
-  nsCOMPtr<nsIDOMElement> rootElement = do_QueryInterface(mHTMLEditor->GetRoot());
-  NS_ENSURE_TRUE(rootElement, NS_ERROR_UNEXPECTED);
+  RefPtr<Element> rootElement = mHTMLEditor->GetRoot();
+  if (NS_WARN_IF(!rootElement)) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
   // get the selection
   NS_ENSURE_STATE(mHTMLEditor);
   RefPtr<Selection> selection = mHTMLEditor->GetSelection();
-  NS_ENSURE_STATE(selection);
+  if (NS_WARN_IF(!selection)) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
   // get the selection start location
-  nsCOMPtr<nsIDOMNode> selNode, temp, parent;
+  nsCOMPtr<nsINode> selNode;
   int32_t selOffset;
   nsresult rv =
     EditorBase::GetStartNodeAndOffset(selection,
@@ -8015,12 +8108,11 @@ HTMLEditRules::ConfirmSelectionInBody()
     return rv;
   }
 
-  temp = selNode;
+  nsINode* temp = selNode;
 
   // check that selNode is inside body
-  while (temp && !TextEditUtils::IsBody(temp)) {
-    temp->GetParentNode(getter_AddRefs(parent));
-    temp = parent;
+  while (temp && !temp->IsHTMLElement(nsGkAtoms::body)) {
+    temp = temp->GetParentNode();
   }
 
   // if we aren't in the body, force the issue
@@ -8028,6 +8120,7 @@ HTMLEditRules::ConfirmSelectionInBody()
 //    uncomment this to see when we get bad selections
 //    NS_NOTREACHED("selection not in body");
     selection->Collapse(rootElement, 0);
+    return NS_OK;
   }
 
   // get the selection end location
@@ -8037,9 +8130,8 @@ HTMLEditRules::ConfirmSelectionInBody()
   temp = selNode;
 
   // check that selNode is inside body
-  while (temp && !TextEditUtils::IsBody(temp)) {
-    rv = temp->GetParentNode(getter_AddRefs(parent));
-    temp = parent;
+  while (temp && !temp->IsHTMLElement(nsGkAtoms::body)) {
+    temp = temp->GetParentNode();
   }
 
   // if we aren't in the body, force the issue
@@ -8049,9 +8141,7 @@ HTMLEditRules::ConfirmSelectionInBody()
     selection->Collapse(rootElement, 0);
   }
 
-  // XXX This is the result of the last call of GetParentNode(), it doesn't
-  //     make sense...
-  return rv;
+  return NS_OK;
 }
 
 nsresult

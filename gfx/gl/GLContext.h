@@ -63,7 +63,6 @@ namespace mozilla {
         class GLReadTexImageHelper;
         class GLScreenBuffer;
         class SharedSurface;
-        class TextureGarbageBin;
         struct SurfaceCaps;
     } // namespace gl
 
@@ -1457,6 +1456,12 @@ public:
     void fPointParameterf(GLenum pname, GLfloat param) {
         BEFORE_GL_CALL;
         mSymbols.fPointParameterf(pname, param);
+        AFTER_GL_CALL;
+    }
+
+    void fPolygonMode(GLenum face, GLenum mode) {
+        BEFORE_GL_CALL;
+        mSymbols.fPolygonMode(face, mode);
         AFTER_GL_CALL;
     }
 
@@ -3456,17 +3461,6 @@ public:
     bool WorkAroundDriverBugs() const { return mWorkAroundDriverBugs; }
 
     bool IsDrawingToDefaultFramebuffer();
-
-protected:
-    RefPtr<TextureGarbageBin> mTexGarbageBin;
-
-public:
-    TextureGarbageBin* TexGarbageBin() {
-        MOZ_ASSERT(mTexGarbageBin);
-        return mTexGarbageBin;
-    }
-
-    void EmptyTexGarbageBin();
 
     bool IsOffscreenSizeAllowed(const gfx::IntSize& aSize) const;
 

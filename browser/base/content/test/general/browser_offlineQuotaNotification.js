@@ -3,8 +3,6 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-/* eslint-env mozilla/frame-script */
-
 // Test offline quota warnings - must be run as a mochitest-browser test or
 // else the test runner gets in the way of notifications due to bug 857897.
 
@@ -25,10 +23,8 @@ registerCleanupFunction(function() {
 function checkInContentPreferences(win) {
   let doc = win.document;
   let sel = doc.getElementById("categories").selectedItems[0].id;
-  let tab = doc.getElementById("advancedPrefs").selectedTab.id;
-  is(gBrowser.currentURI.spec, "about:preferences#advanced", "about:preferences loaded");
-  is(sel, "category-advanced", "Advanced pane was selected");
-  is(tab, "networkTab", "Network tab is selected");
+  is(gBrowser.currentURI.spec, "about:preferences#privacy", "about:preferences loaded");
+  is(sel, "category-privacy", "Privacy pane was selected");
   // all good, we are done.
   win.close();
   finish();
@@ -40,7 +36,7 @@ function test() {
   Services.prefs.setBoolPref("offline-apps.allow_by_default", false);
 
   // Open a new tab.
-  gBrowser.selectedTab = gBrowser.addTab(URL);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, URL);
   registerCleanupFunction(() => gBrowser.removeCurrentTab());
 
 
@@ -54,7 +50,7 @@ function test() {
     // Need a promise to keep track of when we've added our handler.
     let mm = gBrowser.selectedBrowser.messageManager;
     let onCachedAttached = BrowserTestUtils.waitForMessage(mm, "Test:OnCachedAttached");
-    let gotCached = ContentTask.spawn(gBrowser.selectedBrowser, null, function*() {
+    let gotCached = ContentTask.spawn(gBrowser.selectedBrowser, null, async function() {
       return new Promise(resolve => {
         content.window.applicationCache.oncached = function() {
           setTimeout(resolve, 0);

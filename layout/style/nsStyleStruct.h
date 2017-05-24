@@ -242,7 +242,11 @@ public:
   uint8_t mSize;   // NS_STYLE_GRADIENT_SIZE_*;
                    // not used (must be FARTHEST_CORNER) for linear shape
   bool mRepeating;
-  bool mLegacySyntax;
+  bool mLegacySyntax; // If true, serialization should use a vendor prefix.
+  // XXXdholbert This will hopefully be going away soon, if bug 1337655 sticks:
+  bool mMozLegacySyntax; // (Only makes sense when mLegacySyntax is true.)
+                         // If true, serialization should use -moz prefix.
+                         // Else, serialization should use -webkit prefix.
 
   nsStyleCoord mBgPosX; // percent, coord, calc, none
   nsStyleCoord mBgPosY; // percent, coord, calc, none
@@ -305,6 +309,8 @@ private:
 class nsStyleImageRequest
 {
 public:
+  typedef mozilla::css::URLValueData URLValueData;
+
   // Flags describing whether the imgRequestProxy must be tracked in the
   // ImageTracker, whether LockImage/UnlockImage calls will be made
   // when obtaining and releasing the imgRequestProxy, and whether
@@ -338,10 +344,7 @@ public:
   // on the main thread before get() can be used.
   nsStyleImageRequest(
       Mode aModeFlags,
-      nsStringBuffer* aURLBuffer,
-      already_AddRefed<mozilla::PtrHolder<nsIURI>> aBaseURI,
-      already_AddRefed<mozilla::PtrHolder<nsIURI>> aReferrer,
-      already_AddRefed<mozilla::PtrHolder<nsIPrincipal>> aPrincipal);
+      mozilla::css::ImageValue* aImageValue);
 
   bool Resolve(nsPresContext* aPresContext);
   bool IsResolved() const { return mResolved; }
@@ -362,7 +365,6 @@ public:
   mozilla::css::ImageValue* GetImageValue() const { return mImageValue; }
 
   already_AddRefed<nsIURI> GetImageURI() const;
-
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsStyleImageRequest);
 
 private:
@@ -388,7 +390,8 @@ enum nsStyleImageType {
   eStyleImageType_Null,
   eStyleImageType_Image,
   eStyleImageType_Gradient,
-  eStyleImageType_Element
+  eStyleImageType_Element,
+  eStyleImageType_URL
 };
 
 struct CachedBorderImageData
@@ -421,6 +424,9 @@ private:
  */
 struct nsStyleImage
 {
+  typedef mozilla::css::URLValue     URLValue;
+  typedef mozilla::css::URLValueData URLValueData;
+
   nsStyleImage();
   ~nsStyleImage();
   nsStyleImage(const nsStyleImage& aOther);
@@ -429,8 +435,9 @@ struct nsStyleImage
   void SetNull();
   void SetImageRequest(already_AddRefed<nsStyleImageRequest> aImage);
   void SetGradientData(nsStyleGradient* aGradient);
-  void SetElementId(const char16_t* aElementId);
+  void SetElementId(already_AddRefed<nsIAtom> aElementId);
   void SetCropRect(mozilla::UniquePtr<nsStyleSides> aCropRect);
+  void SetURLValue(already_AddRefed<URLValue> aData);
 
   void ResolveImage(nsPresContext* aContext) {
     MOZ_ASSERT(mType != eStyleImageType_Image || mImage);
@@ -454,7 +461,7 @@ struct nsStyleImage
     NS_ASSERTION(mType == eStyleImageType_Gradient, "Data is not a gradient!");
     return mGradient;
   }
-  const char16_t* GetElementId() const {
+  const nsIAtom* GetElementId() const {
     NS_ASSERTION(mType == eStyleImageType_Element, "Data is not an element!");
     return mElementId;
   }
@@ -465,6 +472,8 @@ struct nsStyleImage
   }
 
   already_AddRefed<nsIURI> GetImageURI() const;
+
+  URLValueData* GetURLValue() const;
 
   /**
    * Compute the actual crop rect in pixels, using the source image bounds.
@@ -549,7 +558,10 @@ private:
   union {
     nsStyleImageRequest* mImage;
     nsStyleGradient* mGradient;
-    char16_t* mElementId;
+    URLValue* mURLValue; // See the comment in SetStyleImage's 'case
+                         // eCSSUnit_URL' section to know why we need to
+                         // store URLValues separately from mImage.
+    nsIAtom* mElementId;
   };
 
   // This is _currently_ used only in conjunction with eStyleImageType_Image.
@@ -720,14 +732,6 @@ struct nsStyleImageLayers {
     typedef mozilla::StyleGeometryBox StyleGeometryBox;
 
     nsStyleImage  mImage;         // [reset]
-    RefPtr<mozilla::css::URLValueData> mSourceURI;  // [reset]
-                                  // mask-only property
-                                  // This property is used for mask layer only.
-                                  // For a background layer, it should always
-                                  // be the initial value, which is nullptr.
-                                  // Store mask-image URI so that we can resolve
-                                  // SVG mask path later.  (Might be a URLValue
-                                  // or an ImageValue.)
     mozilla::Position mPosition;  // [reset]
     Size          mSize;          // [reset]
     StyleGeometryBox  mClip;      // [reset] See nsStyleConsts.h
@@ -828,7 +832,6 @@ struct nsStyleImageLayers {
   nsChangeHint CalcDifference(const nsStyleImageLayers& aNewLayers,
                               nsStyleImageLayers::LayerType aType) const;
 
-  bool HasLayerWithImage() const;
   nsStyleImageLayers& operator=(const nsStyleImageLayers& aOther);
   nsStyleImageLayers& operator=(nsStyleImageLayers&& aOther);
   bool operator==(const nsStyleImageLayers& aOther) const;
@@ -1162,6 +1165,14 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleBorder
     }
   }
 
+  void CopyBorderColorsFrom(const nsBorderColors* aSrcBorderColors, mozilla::Side aSide) {
+    if (aSrcBorderColors) {
+      EnsureBorderColors();
+      ClearBorderColors(aSide);
+      mBorderColors[aSide] = aSrcBorderColors->Clone();
+    }
+  }
+
   // Return whether aStyle is a visible style.  Invisible styles cause
   // the relevant computed border width to be 0.
   // Note that this does *not* consider the effects of 'border-image':
@@ -1393,6 +1404,13 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleOutline
     return mActualOutlineWidth;
   }
 
+  bool ShouldPaintOutline() const
+  {
+    return mOutlineStyle == NS_STYLE_BORDER_STYLE_AUTO ||
+           (GetOutlineWidth() > 0 &&
+            mOutlineStyle != NS_STYLE_BORDER_STYLE_NONE);
+  }
+
 protected:
   // The actual value of outline-width is the computed value (an absolute
   // length, forced to zero when outline-style is none) rounded to device
@@ -1451,22 +1469,17 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleList
 
   already_AddRefed<nsIURI> GetListStyleImageURI() const;
 
-  void GetListStyleType(nsSubstring& aType) const { mCounterStyle->GetStyleName(aType); }
-  mozilla::CounterStyle* GetCounterStyle() const
+  // The following two methods are called from Servo code to maintain
+  // list-style-type off main thread.
+  void SetListStyleType(nsIAtom* aType)
   {
-    return mCounterStyle.get();
+    mListStyleType = aType;
+    mCounterStyle = nullptr;
   }
-  void SetCounterStyle(mozilla::CounterStyle* aStyle)
+  void CopyListStyleTypeFrom(const nsStyleList& aOther)
   {
-    // NB: This function is called off-main-thread during parallel restyle, but
-    // only with builtin styles that use dummy refcounting.
-    MOZ_ASSERT(NS_IsMainThread() || !aStyle->IsDependentStyle());
-    mCounterStyle = aStyle;
-  }
-  void SetListStyleType(const nsSubstring& aType,
-                        nsPresContext* aPresContext)
-  {
-    SetCounterStyle(aPresContext->CounterStyleManager()->BuildCounterStyle(aType));
+    mListStyleType = aOther.mListStyleType;
+    mCounterStyle = aOther.mCounterStyle;
   }
 
   const nsStyleQuoteValues::QuotePairArray& GetQuotePairs() const;
@@ -1478,8 +1491,16 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleList
 
   uint8_t mListStylePosition;                  // [inherited]
   RefPtr<nsStyleImageRequest> mListStyleImage; // [inherited]
+
+  // mCounterStyle is the actual field for computed list-style-type.
+  // mListStyleType is only used when we are off the main thread, so we
+  // cannot safely construct CounterStyle object. FinishStyle() will
+  // use it to setup mCounterStyle and then clear it. At any time, only
+  // one of the following two fields should be non-null.
+  nsCOMPtr<nsIAtom> mListStyleType;
+  mozilla::CounterStylePtr mCounterStyle;      // [inherited]
+
 private:
-  RefPtr<mozilla::CounterStyle> mCounterStyle; // [inherited]
   RefPtr<nsStyleQuoteValues> mQuotes;   // [inherited]
   nsStyleList& operator=(const nsStyleList& aOther) = delete;
 public:
@@ -2289,6 +2310,8 @@ struct StyleTransition
     }
   void SetUnknownProperty(nsCSSPropertyID aProperty,
                           const nsAString& aPropertyString);
+  void SetUnknownProperty(nsCSSPropertyID aProperty,
+                          nsIAtom* aPropertyString);
   void CopyPropertyFrom(const StyleTransition& aOther)
     {
       mProperty = aOther.mProperty;
@@ -3034,7 +3057,7 @@ public:
     return mContent.mString;
   }
 
-  nsCSSValue::ThreadSafeArray* GetCounters() const
+  nsCSSValue::Array* GetCounters() const
   {
     MOZ_ASSERT(mType == eStyleContentType_Counter ||
                mType == eStyleContentType_Counters);
@@ -3075,7 +3098,7 @@ public:
     mContent.mString = NS_strdup(aString);
   }
 
-  void SetCounters(nsStyleContentType aType, nsCSSValue::ThreadSafeArray* aCounters)
+  void SetCounters(nsStyleContentType aType, nsCSSValue::Array* aCounters)
   {
     MOZ_ASSERT(aType == eStyleContentType_Counter ||
                aType == eStyleContentType_Counters);
@@ -3108,9 +3131,7 @@ private:
   union {
     char16_t *mString;
     nsStyleImageRequest* mImage;
-    // NB: We need threadsafe refcounts here to enable inheritance in the
-    // parallel style traversal.
-    nsCSSValue::ThreadSafeArray* mCounters;
+    nsCSSValue::Array* mCounters;
   } mContent;
 };
 
@@ -3306,7 +3327,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleXUL
   mozilla::StyleBoxDirection mBoxDirection; // [reset]
   mozilla::StyleBoxOrient mBoxOrient;       // [reset]
   mozilla::StyleBoxPack mBoxPack;           // [reset]
-  bool          mStretchStack;          // [reset] see nsStyleConsts.h
+  mozilla::StyleStackSizing mStackSizing;   // [reset] see nsStyleConsts.h
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleColumn
@@ -3357,12 +3378,18 @@ protected:
   nscoord mTwipsPerPixel;
 };
 
-enum nsStyleSVGPaintType {
+enum nsStyleSVGPaintType : uint8_t {
   eStyleSVGPaintType_None = 1,
   eStyleSVGPaintType_Color,
   eStyleSVGPaintType_Server,
   eStyleSVGPaintType_ContextFill,
   eStyleSVGPaintType_ContextStroke
+};
+
+enum nsStyleSVGFallbackType : uint8_t {
+  eStyleSVGFallbackType_NotSet,
+  eStyleSVGFallbackType_None,
+  eStyleSVGFallbackType_Color,
 };
 
 enum nsStyleSVGOpacitySource : uint8_t {
@@ -3385,9 +3412,18 @@ public:
   void SetNone();
   void SetColor(nscolor aColor);
   void SetPaintServer(mozilla::css::URLValue* aPaintServer,
+                      nsStyleSVGFallbackType aFallbackType,
                       nscolor aFallbackColor);
+  void SetPaintServer(mozilla::css::URLValue* aPaintServer) {
+    SetPaintServer(aPaintServer, eStyleSVGFallbackType_NotSet,
+                   NS_RGB(0, 0, 0));
+  }
   void SetContextValue(nsStyleSVGPaintType aType,
+                       nsStyleSVGFallbackType aFallbackType,
                        nscolor aFallbackColor);
+  void SetContextValue(nsStyleSVGPaintType aType) {
+    SetContextValue(aType, eStyleSVGFallbackType_NotSet, NS_RGB(0, 0, 0));
+  }
 
   nscolor GetColor() const {
     MOZ_ASSERT(mType == eStyleSVGPaintType_Color);
@@ -3397,6 +3433,10 @@ public:
   mozilla::css::URLValue* GetPaintServer() const {
     MOZ_ASSERT(mType == eStyleSVGPaintType_Server);
     return mPaint.mPaintServer;
+  }
+
+  nsStyleSVGFallbackType GetFallbackType() const {
+    return mFallbackType;
   }
 
   nscolor GetFallbackColor() const {
@@ -3420,6 +3460,7 @@ private:
     mozilla::css::URLValue* mPaintServer;
   } mPaint;
   nsStyleSVGPaintType mType;
+  nsStyleSVGFallbackType mFallbackType;
   nscolor mFallbackColor;
 };
 
@@ -3449,6 +3490,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleSVG
   RefPtr<mozilla::css::URLValue> mMarkerMid;   // [inherited]
   RefPtr<mozilla::css::URLValue> mMarkerStart; // [inherited]
   nsTArray<nsStyleCoord> mStrokeDasharray;  // [inherited] coord, percent, factor
+  nsTArray<nsCOMPtr<nsIAtom>> mContextProps;
 
   nsStyleCoord     mStrokeDashoffset; // [inherited] coord, percent, factor
   nsStyleCoord     mStrokeWidth;      // [inherited] coord, percent, factor
@@ -3466,6 +3508,15 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleSVG
   uint8_t          mStrokeLinecap;    // [inherited] see nsStyleConsts.h
   uint8_t          mStrokeLinejoin;   // [inherited] see nsStyleConsts.h
   uint8_t          mTextAnchor;       // [inherited] see nsStyleConsts.h
+  uint8_t          mContextPropsBits; // [inherited] see nsStyleConsts.h.
+                                      // Stores a bitfield representation of
+                                      // the specified properties.
+
+  /// Returns true if style has been set to expose the computed values of
+  /// certain properties (such as 'fill') to the contents of any linked images.
+  bool ExposesContextProperties() const {
+    return bool(mContextPropsBits);
+  }
 
   nsStyleSVGOpacitySource FillOpacitySource() const {
     uint8_t value = (mContextFlags & FILL_OPACITY_SOURCE_MASK) >>
@@ -3625,6 +3676,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleSVGReset
   bool HasClipPath() const {
     return mClipPath.GetType() != mozilla::StyleShapeSourceType::None;
   }
+
+  bool HasMask() const;
 
   bool HasNonScalingStroke() const {
     return mVectorEffect == NS_STYLE_VECTOR_EFFECT_NON_SCALING_STROKE;

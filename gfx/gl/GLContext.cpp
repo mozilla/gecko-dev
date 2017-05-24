@@ -33,7 +33,6 @@
 #include "ScopedGLHelpers.h"
 #include "SharedSurfaceGL.h"
 #include "GfxTexturesReporter.h"
-#include "TextureGarbageBin.h"
 #include "gfx2DGlue.h"
 #include "gfxPrefs.h"
 #include "mozilla/IntegerPrintfMacros.h"
@@ -595,6 +594,7 @@ GLContext::InitWithPrefixImpl(const char* prefix, bool trygl)
             { (PRFuncPtr*) &mSymbols.fLoadIdentity, { "LoadIdentity", nullptr } },
             { (PRFuncPtr*) &mSymbols.fLoadMatrixf, { "LoadMatrixf", nullptr } },
             { (PRFuncPtr*) &mSymbols.fMatrixMode, { "MatrixMode", nullptr } },
+            { (PRFuncPtr*) &mSymbols.fPolygonMode, { "PolygonMode", nullptr } },
             { (PRFuncPtr*) &mSymbols.fTexGeni, { "TexGeni", nullptr } },
             { (PRFuncPtr*) &mSymbols.fTexGenf, { "TexGenf", nullptr } },
             { (PRFuncPtr*) &mSymbols.fTexGenfv, { "TexGenfv", nullptr } },
@@ -867,7 +867,10 @@ GLContext::InitWithPrefixImpl(const char* prefix, bool trygl)
     raw_fGetIntegerv(LOCAL_GL_MAX_VIEWPORT_DIMS, mMaxViewportDims);
 
 #ifdef XP_MACOSX
-    if (mWorkAroundDriverBugs) {
+    if (mWorkAroundDriverBugs &&
+        nsCocoaFeatures::OSXVersionMajor() == 10 &&
+        nsCocoaFeatures::OSXVersionMinor() < 12)
+    {
         if (mVendor == GLVendor::Intel) {
             // see bug 737182 for 2D textures, bug 684882 for cube map textures.
             mMaxTextureSize        = std::min(mMaxTextureSize,        4096);
@@ -946,8 +949,6 @@ GLContext::InitWithPrefixImpl(const char* prefix, bool trygl)
         mCaps.color = true;
         mCaps.alpha = false;
     }
-
-    mTexGarbageBin = new TextureGarbageBin(this);
 
     MOZ_ASSERT(IsCurrent());
 
@@ -2106,9 +2107,7 @@ GLContext::MarkDestroyed()
     mBlitHelper = nullptr;
     mReadTexImageHelper = nullptr;
 
-    if (MakeCurrent()) {
-        mTexGarbageBin->GLContextTeardown();
-    } else {
+    if (!MakeCurrent()) {
         NS_WARNING("MakeCurrent() failed during MarkDestroyed! Skipping GL object teardown.");
     }
 
@@ -2386,12 +2385,6 @@ GLContext::CleanDirtyScreen()
     BeforeGLReadCall();
     // no-op; we just want to make sure the Read FBO is updated if it needs to be
     AfterGLReadCall();
-}
-
-void
-GLContext::EmptyTexGarbageBin()
-{
-    TexGarbageBin()->EmptyGarbage();
 }
 
 bool

@@ -11,7 +11,6 @@ const Cc = Components.classes;
 const Cu = Components.utils;
 const Cr = Components.results;
 
-Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -27,77 +26,15 @@ XPCOMUtils.defineLazyGetter(this, "UUIDMap", () => {
   return UUIDMap;
 });
 
+const {appinfo} = Services;
+const isParentProcess = appinfo.processType === appinfo.PROCESS_TYPE_DEFAULT;
+
 var ExtensionManagement;
 
 /*
  * This file should be kept short and simple since it's loaded even
  * when no extensions are running.
  */
-
-// Keep track of frame IDs for content windows. Mostly we can just use
-// the outer window ID as the frame ID. However, the API specifies
-// that top-level windows have a frame ID of 0. So we need to keep
-// track of which windows are top-level. This code listens to messages
-// from ExtensionContent to do that.
-var Frames = {
-  // Window IDs of top-level content windows.
-  topWindowIds: new Set(),
-
-  init() {
-    if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
-      return;
-    }
-
-    Services.mm.addMessageListener("Extension:TopWindowID", this);
-    Services.mm.addMessageListener("Extension:RemoveTopWindowID", this, true);
-  },
-
-  isTopWindowId(windowId) {
-    return this.topWindowIds.has(windowId);
-  },
-
-  // Convert an outer window ID to a frame ID. An outer window ID of 0
-  // is invalid.
-  getId(windowId) {
-    if (this.isTopWindowId(windowId)) {
-      return 0;
-    }
-    if (windowId == 0) {
-      return -1;
-    }
-    return windowId;
-  },
-
-  // Convert an outer window ID for a parent window to a frame
-  // ID. Outer window IDs follow the same convention that
-  // |window.top.parent === window.top|. The API works differently,
-  // giving a frame ID of -1 for the the parent of a top-level
-  // window. This function handles the conversion.
-  getParentId(parentWindowId, windowId) {
-    if (parentWindowId == windowId) {
-      // We have a top-level window.
-      return -1;
-    }
-
-    // Not a top-level window. Just return the ID as normal.
-    return this.getId(parentWindowId);
-  },
-
-  receiveMessage({name, data}) {
-    switch (name) {
-      case "Extension:TopWindowID":
-        // FIXME: Need to handle the case where the content process
-        // crashes. Right now we leak its top window IDs.
-        this.topWindowIds.add(data.windowId);
-        break;
-
-      case "Extension:RemoveTopWindowID":
-        this.topWindowIds.delete(data.windowId);
-        break;
-    }
-  },
-};
-Frames.init();
 
 var APIs = {
   apis: new Map(),
@@ -175,6 +112,9 @@ var Service = {
   // Called when an extension is unloaded.
   shutdownExtension(uuid) {
     let extension = this.uuidMap.get(uuid);
+    if (!extension) {
+      return;
+    }
     this.uuidMap.delete(uuid);
     this.aps.setAddonHasPermissionCallback(extension.id, null);
     this.aps.setAddonLoadURICallback(extension.id, null);
@@ -239,88 +179,11 @@ var Service = {
   },
 };
 
-// API Levels Helpers
-
-// Find the add-on associated with this document via the
-// principal's addonId attribute. This value is computed by
-// extensionURIToAddonID, which ensures that we don't inject our
-// API into webAccessibleResources or remote web pages.
-function getAddonIdForWindow(window) {
-  return Cu.getObjectPrincipal(window).addonId;
-}
-
-const API_LEVELS = Object.freeze({
-  NO_PRIVILEGES: 0,
-  CONTENTSCRIPT_PRIVILEGES: 1,
-  FULL_PRIVILEGES: 2,
-});
-
-// Finds the API Level ("FULL_PRIVILEGES", "CONTENTSCRIPT_PRIVILEGES", "NO_PRIVILEGES")
-// with a given a window object.
-function getAPILevelForWindow(window, addonId) {
-  const {NO_PRIVILEGES, CONTENTSCRIPT_PRIVILEGES, FULL_PRIVILEGES} = API_LEVELS;
-
-  // Non WebExtension URLs and WebExtension URLs from a different extension
-  // has no access to APIs.
-  if (!addonId || getAddonIdForWindow(window) != addonId) {
-    return NO_PRIVILEGES;
-  }
-
-  if (!ExtensionManagement.isExtensionProcess) {
-    return CONTENTSCRIPT_PRIVILEGES;
-  }
-
-  let docShell = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                       .getInterface(Ci.nsIDocShell);
-
-  // Handling of ExtensionPages running inside sub-frames.
-  if (docShell.sameTypeParent) {
-    let parentWindow = docShell.sameTypeParent.QueryInterface(Ci.nsIInterfaceRequestor)
-                               .getInterface(Ci.nsIDOMWindow);
-
-    // The option page iframe embedded in the about:addons tab should have
-    // full API level privileges. (see Bug 1256282 for rationale)
-    let parentDocument = parentWindow.document;
-    let parentIsSystemPrincipal = Services.scriptSecurityManager
-                                          .isSystemPrincipal(parentDocument.nodePrincipal);
-
-    if (parentDocument.location.href == "about:addons" && parentIsSystemPrincipal) {
-      return FULL_PRIVILEGES;
-    }
-
-    // NOTE: Special handling for devtools panels using a chrome iframe here
-    // for the devtools panel, it is needed because a content iframe breaks
-    // switching between docked and undocked mode (see bug 1075490).
-    let devtoolsBrowser = parentDocument.querySelector(
-      "browser[webextension-view-type='devtools_panel']");
-    if (devtoolsBrowser && devtoolsBrowser.contentWindow === window &&
-        parentIsSystemPrincipal) {
-      return FULL_PRIVILEGES;
-    }
-
-    // The addon iframes embedded in a addon page from with the same addonId
-    // should have the same privileges of the sameTypeParent.
-    // (see Bug 1258347 for rationale)
-    let parentSameAddonPrivileges = getAPILevelForWindow(parentWindow, addonId);
-    if (parentSameAddonPrivileges > NO_PRIVILEGES) {
-      return parentSameAddonPrivileges;
-    }
-
-    // In all the other cases, WebExtension URLs loaded into sub-frame UI
-    // will have "content script API level privileges".
-    // (see Bug 1214658 for rationale)
-    return CONTENTSCRIPT_PRIVILEGES;
-  }
-
-  // WebExtension URLs loaded into top frames UI could have full API level privileges.
-  return FULL_PRIVILEGES;
-}
-
 let cacheInvalidated = 0;
 function onCacheInvalidate() {
   cacheInvalidated++;
 }
-Services.obs.addObserver(onCacheInvalidate, "startupcache-invalidate", false);
+Services.obs.addObserver(onCacheInvalidate, "startupcache-invalidate");
 
 ExtensionManagement = {
   get cacheInvalidated() {
@@ -329,9 +192,9 @@ ExtensionManagement = {
 
   get isExtensionProcess() {
     if (this.useRemoteWebExtensions) {
-      return Services.appinfo.remoteType === E10SUtils.EXTENSION_REMOTE_TYPE;
+      return appinfo.remoteType === E10SUtils.EXTENSION_REMOTE_TYPE;
     }
-    return Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
+    return isParentProcess;
   },
 
   startupExtension: Service.startupExtension.bind(Service),
@@ -340,15 +203,7 @@ ExtensionManagement = {
   registerAPI: APIs.register.bind(APIs),
   unregisterAPI: APIs.unregister.bind(APIs),
 
-  getFrameId: Frames.getId.bind(Frames),
-  getParentFrameId: Frames.getParentId.bind(Frames),
-
   getURLForExtension,
-
-  // exported API Level Helpers
-  getAddonIdForWindow,
-  getAPILevelForWindow,
-  API_LEVELS,
 
   APIs,
 };

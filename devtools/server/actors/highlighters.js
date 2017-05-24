@@ -600,7 +600,6 @@ HighlighterEnvironment.prototype = {
     };
 
     this.webProgress.addProgressListener(this.listener,
-      Ci.nsIWebProgress.NOTIFY_STATUS |
       Ci.nsIWebProgress.NOTIFY_STATE_WINDOW |
       Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
   },
@@ -725,3 +724,7 @@ exports.MeasuringToolHighlighter = MeasuringToolHighlighter;
 const { EyeDropper } = require("./highlighters/eye-dropper");
 register(EyeDropper);
 exports.EyeDropper = EyeDropper;
+
+const { PausedDebuggerOverlay } = require("./highlighters/paused-debugger");
+register(PausedDebuggerOverlay);
+exports.PausedDebuggerOverlay = PausedDebuggerOverlay;

@@ -6,6 +6,7 @@ this.EXPORTED_SYMBOLS = ["PasswordEngine", "LoginRec", "PasswordValidator"];
 
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/collection_validator.js");
@@ -325,9 +326,10 @@ PasswordTracker.prototype = {
           break;
         }
 
-        this.score += SCORE_INCREMENT_XLARGE;
-        this._log.trace(data + ": " + subject.guid);
-        this.addChangedID(subject.guid);
+        if (this.addChangedID(subject.guid)) {
+          this.score += SCORE_INCREMENT_XLARGE;
+          this._log.trace(data + ": " + subject.guid);
+        }
         break;
       case "removeAllLogins":
         this._log.trace(data);

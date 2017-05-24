@@ -36,9 +36,11 @@ const size_t ChunkShift = 20;
 const size_t ChunkSize = size_t(1) << ChunkShift;
 const size_t ChunkMask = ChunkSize - 1;
 
-const size_t CellShift = 3;
-const size_t CellSize = size_t(1) << CellShift;
-const size_t CellMask = CellSize - 1;
+const size_t CellAlignShift = 3;
+const size_t CellAlignBytes = size_t(1) << CellAlignShift;
+const size_t CellAlignMask = CellAlignBytes - 1;
+
+const size_t CellBytesPerMarkBit = CellAlignBytes;
 
 /* These are magic constants derived from actual offsets in gc/Heap.h. */
 #ifdef JS_GC_SMALL_CHUNK_SIZE
@@ -101,19 +103,29 @@ namespace shadow {
 
 struct Zone
 {
+    enum GCState : uint8_t {
+        NoGC,
+        Mark,
+        MarkGray,
+        Sweep,
+        Finished,
+        Compact
+    };
+
   protected:
     JSRuntime* const runtime_;
     JSTracer* const barrierTracer_;     // A pointer to the JSRuntime's |gcMarker|.
-
-  public:
-    bool needsIncrementalBarrier_;
+    uint32_t needsIncrementalBarrier_;
+    GCState gcState_;
 
     Zone(JSRuntime* runtime, JSTracer* barrierTracerArg)
       : runtime_(runtime),
         barrierTracer_(barrierTracerArg),
-        needsIncrementalBarrier_(false)
+        needsIncrementalBarrier_(0),
+        gcState_(NoGC)
     {}
 
+  public:
     bool needsIncrementalBarrier() const {
         return needsIncrementalBarrier_;
     }
@@ -134,6 +146,15 @@ struct Zone
     JSRuntime* runtimeFromAnyThread() const {
         return runtime_;
     }
+
+    GCState gcState() const { return gcState_; }
+    bool wasGCStarted() const { return gcState_ != NoGC; }
+    bool isGCMarkingBlack() { return gcState_ == Mark; }
+    bool isGCMarkingGray() { return gcState_ == MarkGray; }
+    bool isGCSweeping() { return gcState_ == Sweep; }
+    bool isGCFinished() { return gcState_ == Finished; }
+    bool isGCCompacting() { return gcState_ == Compact; }
+    bool isGCSweepingOrCompacting() { return gcState_ == Sweep || gcState_ == Compact; }
 
     static MOZ_ALWAYS_INLINE JS::shadow::Zone* asShadowZone(JS::Zone* zone) {
         return reinterpret_cast<JS::shadow::Zone*>(zone);
@@ -210,7 +231,11 @@ class JS_FRIEND_API(GCCellPtr)
         return reinterpret_cast<uintptr_t>(asCell());
     }
 
-    bool mayBeOwnedByOtherRuntime() const;
+    MOZ_ALWAYS_INLINE bool mayBeOwnedByOtherRuntime() const {
+        if (is<JSString>() || is<JS::Symbol>())
+            return mayBeOwnedByOtherRuntimeSlow();
+        return false;
+    }
 
   private:
     static uintptr_t checkedCast(void* p, JS::TraceKind traceKind) {
@@ -223,6 +248,8 @@ class JS_FRIEND_API(GCCellPtr)
                       (uintptr_t(traceKind) & OutOfLineTraceKindMask) == OutOfLineTraceKindMask);
         return uintptr_t(p) | (uintptr_t(traceKind) & OutOfLineTraceKindMask);
     }
+
+    bool mayBeOwnedByOtherRuntimeSlow() const;
 
     JS::TraceKind outOfLineKind() const;
 
@@ -278,7 +305,7 @@ GetGCThingMarkWordAndMask(const uintptr_t addr, uint32_t color,
                           uintptr_t** wordp, uintptr_t* maskp)
 {
     MOZ_ASSERT(addr);
-    const size_t bit = (addr & js::gc::ChunkMask) / js::gc::CellSize + color;
+    const size_t bit = (addr & js::gc::ChunkMask) / js::gc::CellBytesPerMarkBit + color;
     MOZ_ASSERT(bit < js::gc::ChunkMarkBitmapBits);
     uintptr_t* bitmap = GetGCThingMarkBitmap(addr);
     const uintptr_t nbits = sizeof(*bitmap) * CHAR_BIT;
@@ -296,15 +323,23 @@ GetGCThingZone(const uintptr_t addr)
 }
 
 static MOZ_ALWAYS_INLINE bool
+TenuredCellIsMarkedGray(const Cell* cell)
+{
+    MOZ_ASSERT(cell);
+    MOZ_ASSERT(!js::gc::IsInsideNursery(cell));
+
+    uintptr_t* word, mask;
+    js::gc::detail::GetGCThingMarkWordAndMask(uintptr_t(cell), js::gc::GRAY, &word, &mask);
+    return *word & mask;
+}
+
+static MOZ_ALWAYS_INLINE bool
 CellIsMarkedGray(const Cell* cell)
 {
     MOZ_ASSERT(cell);
     if (js::gc::IsInsideNursery(cell))
         return false;
-
-    uintptr_t* word, mask;
-    js::gc::detail::GetGCThingMarkWordAndMask(uintptr_t(cell), js::gc::GRAY, &word, &mask);
-    return *word & mask;
+    return TenuredCellIsMarkedGray(cell);
 }
 
 extern JS_PUBLIC_API(bool)

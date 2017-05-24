@@ -19,9 +19,17 @@
 #include "mozilla/TimeStamp.h"          // for mozilla::TimeStamp
 #include "nsCOMPtr.h"                   // for already_AddRefed
 
+#if defined(MOZ_WIDGET_ANDROID)
+#include "mozilla/layers/AndroidDynamicToolbarAnimator.h"
+#endif // defined(MOZ_WIDGET_ANDROID)
+
 
 namespace mozilla {
 class MultiTouchInput;
+
+namespace wr {
+class WebRenderAPI;
+}
 
 namespace layers {
 
@@ -36,6 +44,7 @@ class LayerMetricsWrapper;
 class InputQueue;
 class GeckoContentController;
 class HitTestingTreeNode;
+class WebRenderScrollData;
 
 /**
  * ****************** NOTE ON LOCK ORDERING IN APZ **************************
@@ -126,6 +135,30 @@ public:
                             bool aIsFirstPaint,
                             uint64_t aOriginatingLayersId,
                             uint32_t aPaintSequenceNumber);
+
+  /**
+   * Same as the above UpdateHitTestingTree, except slightly modified to take
+   * the scrolling data passed over PWebRenderBridge instead of the raw layer
+   * tree. This version is used when WebRender is enabled because we don't have
+   * shadow layers in that scenario.
+   */
+  void UpdateHitTestingTree(uint64_t aRootLayerTreeId,
+                            const WebRenderScrollData& aScrollData,
+                            bool aIsFirstPaint,
+                            uint64_t aOriginatingLayersId,
+                            uint32_t aPaintSequenceNumber);
+
+  /**
+   * Called when webrender is enabled, from the compositor thread. This function
+   * walks through the tree of APZC instances and tells webrender about the
+   * async scroll position. It also advances APZ animations to the specified
+   * sample time. In effect it is the webrender equivalent of (part of) the
+   * code in AsyncCompositionManager.
+   * Returns true if any APZ animations are in progress and we need to keep
+   * compositing.
+   */
+  bool PushStateToWR(wr::WebRenderAPI* aWrApi,
+                     const TimeStamp& aSampleTime);
 
   /**
    * Walk the tree of APZCs and flushes the repaint requests for all the APZCS
@@ -238,7 +271,7 @@ public:
    * some more details. This is only currently needed due to surface shifts
    * caused by the dynamic toolbar on Android.
    */
-  void AdjustScrollForSurfaceShift(const ScreenPoint& aShift) override;
+  void AdjustScrollForSurfaceShift(const ScreenPoint& aShift);
 
   /**
    * Calls Destroy() on all APZC instances attached to the tree, and resets the
@@ -421,7 +454,7 @@ public:
   RefPtr<HitTestingTreeNode> GetRootNode() const;
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint,
                                                          HitTestResult* aOutHitResult,
-                                                         bool* aOutHitScrollbar = nullptr);
+                                                         HitTestingTreeNode** aOutScrollbarNode = nullptr);
   ScreenToParentLayerMatrix4x4 GetScreenToApzcTransform(const AsyncPanZoomController *aApzc) const;
   ParentLayerToScreenMatrix4x4 GetApzcToGeckoTransform(const AsyncPanZoomController *aApzc) const;
 
@@ -436,12 +469,19 @@ private:
   typedef bool (*GuidComparator)(const ScrollableLayerGuid&, const ScrollableLayerGuid&);
 
   /* Helpers */
+  template<class ScrollNode>
+  void UpdateHitTestingTreeImpl(uint64_t aRootLayerTreeId,
+                                const ScrollNode& aRoot,
+                                bool aIsFirstPaint,
+                                uint64_t aOriginatingLayersId,
+                                uint32_t aPaintSequenceNumber);
+
   void AttachNodeToTree(HitTestingTreeNode* aNode,
                         HitTestingTreeNode* aParent,
                         HitTestingTreeNode* aNextSibling);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScrollableLayerGuid& aGuid);
   already_AddRefed<HitTestingTreeNode> GetTargetNode(const ScrollableLayerGuid& aGuid,
-                                                     GuidComparator aComparator);
+                                                     GuidComparator aComparator) const;
   HitTestingTreeNode* FindTargetNode(HitTestingTreeNode* aNode,
                                      const ScrollableLayerGuid& aGuid,
                                      GuidComparator aComparator);
@@ -449,7 +489,7 @@ private:
   AsyncPanZoomController* GetAPZCAtPoint(HitTestingTreeNode* aNode,
                                          const ParentLayerPoint& aHitTestPoint,
                                          HitTestResult* aOutHitResult,
-                                         bool* aOutHitScrollbar);
+                                         HitTestingTreeNode** aOutScrollbarNode);
   AsyncPanZoomController* FindRootApzcForLayersId(uint64_t aLayersId) const;
   AsyncPanZoomController* FindRootContentApzcForLayersId(uint64_t aLayersId) const;
   AsyncPanZoomController* FindRootContentOrRootApzc() const;
@@ -466,7 +506,8 @@ private:
   already_AddRefed<HitTestingTreeNode> RecycleOrCreateNode(TreeBuildingState& aState,
                                                            AsyncPanZoomController* aApzc,
                                                            uint64_t aLayersId);
-  HitTestingTreeNode* PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
+  template<class ScrollNode>
+  HitTestingTreeNode* PrepareNodeForLayer(const ScrollNode& aLayer,
                                           const FrameMetrics& aMetrics,
                                           uint64_t aLayersId,
                                           const gfx::Matrix4x4& aAncestorTransform,
@@ -474,10 +515,14 @@ private:
                                           HitTestingTreeNode* aNextSibling,
                                           TreeBuildingState& aState);
 
-  void PrintAPZCInfo(const LayerMetricsWrapper& aLayer,
+  template<class ScrollNode>
+  void PrintAPZCInfo(const ScrollNode& aLayer,
                      const AsyncPanZoomController* apzc);
 
   void NotifyScrollbarDragRejected(const ScrollableLayerGuid& aGuid) const;
+
+  // Requires the caller to hold mTreeLock.
+  LayerToParentLayerMatrix4x4 ComputeTransformForNode(const HitTestingTreeNode* aNode) const;
 
 protected:
   /* The input queue where input events are held until we know enough to
@@ -525,6 +570,15 @@ private:
   RefPtr<CheckerboardFlushObserver> mFlushObserver;
 
   static float sDPI;
+
+#if defined(MOZ_WIDGET_ANDROID)
+public:
+  void InitializeDynamicToolbarAnimator(const int64_t& aRootLayerTreeId);
+  AndroidDynamicToolbarAnimator* GetAndroidDynamicToolbarAnimator();
+
+private:
+  RefPtr<AndroidDynamicToolbarAnimator> mToolbarAnimator;
+#endif // defined(MOZ_WIDGET_ANDROID)
 };
 
 } // namespace layers

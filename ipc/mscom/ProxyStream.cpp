@@ -10,8 +10,10 @@
 #include "mozilla/mscom/Utils.h"
 #include "mozilla/WindowsVersion.h"
 
-#ifdef MOZ_CRASHREPORTER
+#if defined(MOZ_CRASHREPORTER)
+#include "InterfaceRegistrationAnnotator.h"
 #include "nsExceptionHandler.h"
+#include "nsPrintfCString.h"
 #endif
 
 #include <windows.h>
@@ -35,6 +37,7 @@ ProxyStream::ProxyStream(const BYTE* aInitBuf, const int aInitBufSize)
   , mGlobalLockedBuf(nullptr)
   , mHGlobal(nullptr)
   , mBufSize(aInitBufSize)
+  , mUnmarshalResult(E_UNEXPECTED)
 {
   if (!aInitBufSize) {
     // We marshaled a nullptr. Nothing else to do here.
@@ -48,8 +51,6 @@ ProxyStream::ProxyStream(const BYTE* aInitBuf, const int aInitBufSize)
     return;
   }
 
-  HRESULT unmarshalResult = S_OK;
-
   // We need to convert to an interface here otherwise we mess up const
   // correctness with IPDL. We'll request an IUnknown and then QI the
   // actual interface later.
@@ -58,10 +59,10 @@ ProxyStream::ProxyStream(const BYTE* aInitBuf, const int aInitBufSize)
   {
     // OK to forget mStream when calling into this function because the stream
     // gets released even if the unmarshaling part fails.
-    unmarshalResult =
+    mUnmarshalResult =
       ::CoGetInterfaceAndReleaseStream(mStream.forget().take(), IID_IUnknown,
                                        getter_AddRefs(mUnmarshaledProxy));
-    MOZ_ASSERT(SUCCEEDED(unmarshalResult));
+    MOZ_ASSERT(SUCCEEDED(mUnmarshalResult));
   };
 
   if (XRE_IsParentProcess()) {
@@ -74,8 +75,8 @@ ProxyStream::ProxyStream(const BYTE* aInitBuf, const int aInitBufSize)
   }
 
 #if defined(MOZ_CRASHREPORTER)
-  if (FAILED(unmarshalResult)) {
-    nsPrintfCString hrAsStr("0x%08X", unmarshalResult);
+  if (FAILED(mUnmarshalResult)) {
+    nsPrintfCString hrAsStr("0x%08X", mUnmarshalResult);
     CrashReporter::AnnotateCrashReport(
         NS_LITERAL_CSTRING("CoGetInterfaceAndReleaseStreamFailure"), hrAsStr);
   }
@@ -196,6 +197,12 @@ ProxyStream::GetInterface(REFIID aIID, void** aOutInterface) const
     return false;
   }
 
+#if defined(MOZ_CRASHREPORTER)
+  if (FAILED(mUnmarshalResult)) {
+    AnnotateInterfaceRegistration(aIID);
+  }
+#endif
+
   if (!mUnmarshaledProxy) {
     *aOutInterface = nullptr;
     return true;
@@ -268,6 +275,7 @@ ProxyStream::ProxyStream(REFIID aIID, IUnknown* aObject)
 
 #if defined(MOZ_CRASHREPORTER)
   if (FAILED(marshalResult)) {
+    AnnotateInterfaceRegistration(aIID);
     nsPrintfCString hrAsStr("0x%08X", marshalResult);
     CrashReporter::AnnotateCrashReport(
         NS_LITERAL_CSTRING("CoMarshalInterfaceFailure"), hrAsStr);

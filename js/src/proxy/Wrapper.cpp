@@ -12,6 +12,7 @@
 #include "js/Proxy.h"
 #include "vm/ErrorObject.h"
 #include "vm/ProxyObject.h"
+#include "vm/RegExpObject.h"
 #include "vm/WrapperObject.h"
 
 #include "jsobjinlines.h"
@@ -268,10 +269,10 @@ Wrapper::fun_toString(JSContext* cx, HandleObject proxy, unsigned indent) const
 }
 
 bool
-Wrapper::regexp_toShared(JSContext* cx, HandleObject proxy, RegExpGuard* g) const
+Wrapper::regexp_toShared(JSContext* cx, HandleObject proxy, MutableHandleRegExpShared shared) const
 {
     RootedObject target(cx, proxy->as<ProxyObject>().target());
-    return RegExpToShared(cx, target, g);
+    return RegExpToShared(cx, target, shared);
 }
 
 bool
@@ -328,16 +329,11 @@ Wrapper::wrapperHandler(JSObject* wrapper)
 JSObject*
 Wrapper::wrappedObject(JSObject* wrapper)
 {
-    JSObject* target = wrappedObjectMaybeGray(wrapper);
-    MOZ_ASSERT(JS::ObjectIsNotGray(target));
-    return target;
-}
-
-JSObject*
-Wrapper::wrappedObjectMaybeGray(JSObject* wrapper)
-{
     MOZ_ASSERT(wrapper->is<WrapperObject>());
-    return wrapper->as<ProxyObject>().target();
+    JSObject* target = wrapper->as<ProxyObject>().target();
+    if (target)
+        JS::ExposeObjectToActiveJS(target);
+    return target;
 }
 
 JS_FRIEND_API(JSObject*)
@@ -351,7 +347,7 @@ js::UncheckedUnwrap(JSObject* wrapped, bool stopAtWindowProxy, unsigned* flagsp)
             break;
         }
         flags |= Wrapper::wrapperHandler(wrapped)->flags();
-        wrapped = wrapped->as<ProxyObject>().target();
+        wrapped = wrapped->as<ProxyObject>().private_().toObjectOrNull();
 
         // This can be called from Wrapper::weakmapKeyDelegate() on a wrapper
         // whose referent has been moved while it is still unmarked.
@@ -378,7 +374,7 @@ JS_FRIEND_API(JSObject*)
 js::UnwrapOneChecked(JSObject* obj, bool stopAtWindowProxy)
 {
     if (!obj->is<WrapperObject>() ||
-        MOZ_UNLIKELY(IsWindowProxy(obj) && stopAtWindowProxy))
+        MOZ_UNLIKELY(stopAtWindowProxy && IsWindowProxy(obj)))
     {
         return obj;
     }

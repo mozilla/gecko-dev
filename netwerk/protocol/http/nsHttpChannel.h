@@ -16,6 +16,7 @@
 #include "nsIApplicationCacheChannel.h"
 #include "nsIChannelWithDivertableParentListener.h"
 #include "nsIProtocolProxyCallback.h"
+#include "nsIStreamTransportService.h"
 #include "nsIHttpAuthenticableChannel.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIThreadRetargetableRequest.h"
@@ -69,6 +70,7 @@ class nsHttpChannel final : public HttpBaseChannel
                           , public nsICacheEntryOpenCallback
                           , public nsITransportEventSink
                           , public nsIProtocolProxyCallback
+                          , public nsIInputAvailableCallback
                           , public nsIHttpAuthenticableChannel
                           , public nsIApplicationCacheChannel
                           , public nsIAsyncVerifyRedirectCallback
@@ -92,6 +94,7 @@ public:
     NS_DECL_NSICACHEENTRYOPENCALLBACK
     NS_DECL_NSITRANSPORTEVENTSINK
     NS_DECL_NSIPROTOCOLPROXYCALLBACK
+    NS_DECL_NSIINPUTAVAILABLECALLBACK
     NS_DECL_NSIPROXIEDCHANNEL
     NS_DECL_NSIAPPLICATIONCACHECONTAINER
     NS_DECL_NSIAPPLICATIONCACHECHANNEL
@@ -117,6 +120,7 @@ public:
     NS_IMETHOD OnAuthAvailable() override;
     NS_IMETHOD OnAuthCancelled(bool userCancel) override;
     NS_IMETHOD CloseStickyConnection() override;
+    NS_IMETHOD ConnectionRestartable(bool) override;
     // Functions we implement from nsIHttpAuthenticableChannel but are
     // declared in HttpBaseChannel must be implemented in this class. We
     // just call the HttpBaseChannel:: impls.
@@ -132,12 +136,13 @@ public:
                                        nsProxyInfo *aProxyInfo,
                                        uint32_t aProxyResolveFlags,
                                        nsIURI *aProxyURI,
-                                       const nsID& aChannelId) override;
+                                       uint64_t aChannelId) override;
 
     MOZ_MUST_USE nsresult OnPush(const nsACString &uri,
                                  Http2PushedStream *pushedStream);
 
     static bool IsRedirectStatus(uint32_t status);
+    static bool WillRedirect(nsHttpResponseHead * response);
 
 
     // Methods HttpBaseChannel didn't implement for us or that we override.
@@ -155,6 +160,7 @@ public:
     // nsIHttpChannelInternal
     NS_IMETHOD SetupFallbackChannel(const char *aFallbackKey) override;
     NS_IMETHOD ForceIntercepted(uint64_t aInterceptionID) override;
+    NS_IMETHOD SetChannelIsForDownload(bool aChannelIsForDownload) override;
     // nsISupportsPriority
     NS_IMETHOD SetPriority(int32_t value) override;
     // nsIClassOfService
@@ -306,7 +312,8 @@ private:
     // is required, this funciton will just return NS_OK and BeginConnectActual()
     // will be called when callback. See Bug 1325054 for more information.
     nsresult BeginConnect();
-
+    void     HandleBeginConnectContinue();
+    MOZ_MUST_USE nsresult BeginConnectContinue();
     MOZ_MUST_USE nsresult ContinueBeginConnectWithResult();
     void     ContinueBeginConnect();
     MOZ_MUST_USE nsresult Connect();
@@ -338,6 +345,8 @@ private:
     MOZ_MUST_USE nsresult ContinueOnStartRequest1(nsresult);
     MOZ_MUST_USE nsresult ContinueOnStartRequest2(nsresult);
     MOZ_MUST_USE nsresult ContinueOnStartRequest3(nsresult);
+
+    void OnClassOfServiceUpdated();
 
     bool InitLocalBlockList(const InitLocalBlockListCallback& aCallback);
 
@@ -407,6 +416,8 @@ private:
     MOZ_MUST_USE nsresult ContinueAsyncRedirectChannelToURI(nsresult rv);
     MOZ_MUST_USE nsresult OpenRedirectChannel(nsresult rv);
 
+    void DetermineContentLength();
+
     /**
      * A function that takes care of reading STS and PKP headers and enforcing
      * STS and PKP load rules. After a secure channel is erected, STS and PKP
@@ -465,6 +476,9 @@ private:
     // Report net vs cache time telemetry
     void ReportNetVSCacheTelemetry();
     int64_t ComputeTelemetryBucketNumber(int64_t difftime_ms);
+
+    // Report telemetry and stats to about:networking
+    void ReportRcwnStats(nsIRequest* firstResponseRequest);
 
     // Create a aggregate set of the current notification callbacks
     // and ensure the transaction is updated to use it.
@@ -533,6 +547,12 @@ private:
     uint32_t                          mOfflineCacheLastModifiedTime;
 
     mozilla::TimeStamp                mOnStartRequestTimestamp;
+    // Timestamp of the time the cnannel was suspended.
+    mozilla::TimeStamp                mSuspendTimestamp;
+    mozilla::TimeStamp                mOnCacheEntryCheckTimestamp;
+    // Total time the channel spent suspended. This value is reported to
+    // telemetry in nsHttpChannel::OnStartRequest().
+    uint32_t                          mSuspendTotalTime;
 
     // States of channel interception
     enum {
@@ -617,6 +637,13 @@ private:
     // true if an HTTP transaction is created for the socket thread
     uint32_t                          mUsedNetwork : 1;
 
+    // the next authentication request can be sent on a whole new connection
+    uint32_t                          mAuthConnectionRestartable : 1;
+
+    uint32_t                          mReqContentLengthDetermined : 1;
+
+    uint64_t                          mReqContentLength;
+
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 
     // Needed for accurate DNS timing
@@ -654,6 +681,10 @@ private:
         RESPONSE_FROM_NETWORK,      // response coming from the network
     } mFirstResponseSource = RESPONSE_PENDING;
 
+    // Determines if it's possible and advisable to race the network request
+    // with the cache fetch, and proceeds to do so.
+    nsresult MaybeRaceCacheWithNetwork();
+
     nsresult TriggerNetwork(int32_t aTimeout);
     void CancelNetworkRequest(nsresult aStatus);
     // Timer used to delay the network request, or to trigger the network
@@ -665,9 +696,8 @@ private:
     // Is true if the onCacheEntryAvailable callback has been called.
     Atomic<bool> mOnCacheAvailableCalled;
     // Will be true if the onCacheEntryAvailable callback is not called by the
-    // time we send the network request. This could also be true when we are
-    // bypassing the cache.
-    Atomic<bool> mRacingNetAndCache;
+    // time we send the network request
+    Atomic<bool> mRaceCacheWithNetwork;
 
 protected:
     virtual void DoNotifyListenerCleanup() override;

@@ -60,6 +60,7 @@
 #include "nsDOMClassInfo.h"
 #include "ipc/ErrorIPCUtils.h"
 #include "mozilla/UseCounter.h"
+#include "mozilla/dom/DocGroup.h"
 
 namespace mozilla {
 namespace dom {
@@ -2204,9 +2205,9 @@ ReparentWrapper(JSContext* aCx, JS::Handle<JSObject*> aObjArg)
   // NB: It's important to do this _after_ copying the properties to
   // propertyHolder. Otherwise, an object with |foo.x === foo| will
   // crash when JS_CopyPropertiesFrom tries to call wrap() on foo.x.
-  js::SetReservedOrProxyPrivateSlot(newobj, DOM_OBJECT_SLOT,
-                                    js::GetReservedOrProxyPrivateSlot(aObj, DOM_OBJECT_SLOT));
-  js::SetReservedOrProxyPrivateSlot(aObj, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));
+  js::SetReservedSlot(newobj, DOM_OBJECT_SLOT,
+                      js::GetReservedSlot(aObj, DOM_OBJECT_SLOT));
+  js::SetReservedSlot(aObj, DOM_OBJECT_SLOT, JS::PrivateValue(nullptr));
 
   aObj = xpc::TransplantObject(aCx, aObj, newobj);
   if (!aObj) {
@@ -3397,6 +3398,28 @@ GetDesiredProto(JSContext* aCx, const JS::CallArgs& aCallArgs,
   return true;
 }
 
+CustomElementReactionsStack*
+GetCustomElementReactionsStack(JS::Handle<JSObject*> aObj)
+{
+  // This might not be the right object, if there are wrappers. Unwrap if we can.
+  JSObject* obj = js::CheckedUnwrap(aObj);
+  if (!obj) {
+    return nullptr;
+  }
+
+  nsGlobalWindow* window = xpc::WindowGlobalOrNull(obj);
+  if (!window) {
+    return nullptr;
+  }
+
+  DocGroup* docGroup = window->AsInner()->GetDocGroup();
+  if (!docGroup) {
+    return nullptr;
+  }
+
+  return docGroup->CustomElementReactionsStack();
+}
+
 // https://html.spec.whatwg.org/multipage/dom.html#htmlconstructor
 already_AddRefed<nsGenericHTMLElement>
 CreateHTMLElement(const GlobalObject& aGlobal, const JS::CallArgs& aCallArgs,
@@ -3518,6 +3541,9 @@ CreateHTMLElement(const GlobalObject& aGlobal, const JS::CallArgs& aCallArgs,
     // Customized built-in element.
     element = CreateHTMLElement(tag, nodeInfo.forget(), NOT_FROM_PARSER);
   }
+
+  element->SetCustomElementData(
+    new CustomElementData(definition->mType, CustomElementData::State::eCustom));
 
   return element.forget();
 }

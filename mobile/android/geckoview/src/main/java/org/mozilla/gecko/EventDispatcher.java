@@ -1,3 +1,5 @@
+/* -*- Mode: Java; c-basic-offset: 4; tab-width: 4; indent-tabs-mode: nil; -*-
+ * vim: ts=4 sw=4 expandtab:
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +11,6 @@ import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.mozglue.JNIObject;
-import org.mozilla.gecko.NativeQueue.StateHolder;
 import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.EventCallback;
 import org.mozilla.gecko.util.GeckoBundle;
@@ -55,7 +56,7 @@ public final class EventDispatcher extends JNIObject {
         new HashMap<String, List<BundleEventListener>>(DEFAULT_BACKGROUND_EVENTS_COUNT);
 
     private boolean mAttachedToGecko;
-    private final StateHolder mStateHolder;
+    private final NativeQueue mNativeQueue;
 
     @ReflectionTarget
     @WrapForJNI(calledFrom = "gecko")
@@ -64,15 +65,15 @@ public final class EventDispatcher extends JNIObject {
     }
 
     /* package */ EventDispatcher() {
-        mStateHolder = GeckoThread.getStateHolder();
+        mNativeQueue = GeckoThread.getNativeQueue();
     }
 
-    /* package */ EventDispatcher(final NativeQueue.StateHolder stateHolder) {
-        mStateHolder = stateHolder;
+    /* package */ EventDispatcher(final NativeQueue queue) {
+        mNativeQueue = queue;
     }
 
     private boolean isReadyForDispatchingToGecko() {
-        return mStateHolder.isReady();
+        return mNativeQueue.isReady();
     }
 
     @WrapForJNI(dispatchTo = "gecko") @Override // JNIObject
@@ -236,7 +237,8 @@ public final class EventDispatcher extends JNIObject {
     public void dispatch(final String type, final GeckoBundle message,
                          final EventCallback callback) {
         synchronized (this) {
-            if (isReadyForDispatchingToGecko() && hasGeckoListener(type)) {
+            if (isReadyForDispatchingToGecko() && mAttachedToGecko &&
+                hasGeckoListener(type)) {
                 dispatchToGecko(type, message, JavaCallbackDelegate.wrap(callback));
                 return;
             }
@@ -294,8 +296,7 @@ public final class EventDispatcher extends JNIObject {
             // Gecko, we make a special exception to queue this event until
             // Gecko(View) is ready. This way, Gecko can first register its
             // listeners, and accept the event when it is ready.
-            NativeQueue.queueUntil(mStateHolder,
-                mStateHolder.getReadyState(), this, "dispatchToGecko",
+            mNativeQueue.queueUntilReady(this, "dispatchToGecko",
                 String.class, type,
                 GeckoBundle.class, message,
                 EventCallback.class, JavaCallbackDelegate.wrap(callback));

@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* globals Components, Services, XPCOMUtils */
 
 "use strict";
 
@@ -45,7 +44,8 @@ var PdfjsContentUtils = {
       this._mm = Cc["@mozilla.org/childprocessmessagemanager;1"].
         getService(Ci.nsISyncMessageSender);
       this._mm.addMessageListener("PDFJS:Child:refreshSettings", this);
-      Services.obs.addObserver(this, "quit-application", false);
+
+      Services.obs.addObserver(this, "quit-application");
     }
   },
 

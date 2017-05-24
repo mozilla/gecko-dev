@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* eslint-env mozilla/browser-window */
 
 var { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
@@ -26,10 +27,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
                                   "resource:///modules/RecentWindow.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
-
-const nsIDM = Ci.nsIDownloadManager;
 
 const DESTINATION_FILE_URI_ANNO  = "downloads/destinationFileURI";
 const DOWNLOAD_META_DATA_ANNO    = "downloads/metaData";
@@ -71,17 +68,17 @@ HistoryDownload.prototype = {
     }
 
     if ("state" in metaData) {
-      this.succeeded = metaData.state == nsIDM.DOWNLOAD_FINISHED;
-      this.canceled = metaData.state == nsIDM.DOWNLOAD_CANCELED ||
-                      metaData.state == nsIDM.DOWNLOAD_PAUSED;
+      this.succeeded = metaData.state == DownloadsCommon.DOWNLOAD_FINISHED;
+      this.canceled = metaData.state == DownloadsCommon.DOWNLOAD_CANCELED ||
+                      metaData.state == DownloadsCommon.DOWNLOAD_PAUSED;
       this.endTime = metaData.endTime;
 
       // Recreate partial error information from the state saved in history.
-      if (metaData.state == nsIDM.DOWNLOAD_FAILED) {
+      if (metaData.state == DownloadsCommon.DOWNLOAD_FAILED) {
         this.error = { message: "History download failed." };
-      } else if (metaData.state == nsIDM.DOWNLOAD_BLOCKED_PARENTAL) {
+      } else if (metaData.state == DownloadsCommon.DOWNLOAD_BLOCKED_PARENTAL) {
         this.error = { becauseBlockedByParentalControls: true };
-      } else if (metaData.state == nsIDM.DOWNLOAD_DIRTY) {
+      } else if (metaData.state == DownloadsCommon.DOWNLOAD_DIRTY) {
         this.error = {
           becauseBlockedByReputationCheck: true,
           reputationCheckVerdict: metaData.reputationCheckVerdict || "",
@@ -159,15 +156,15 @@ HistoryDownload.prototype = {
    * This method mimicks the "refresh" method of session downloads, except that
    * it cannot notify that the data changed to the Downloads View.
    */
-  refresh: Task.async(function* () {
+  async refresh() {
     try {
-      this.target.size = (yield OS.File.stat(this.target.path)).size;
+      this.target.size = (await OS.File.stat(this.target.path)).size;
       this.target.exists = true;
     } catch (ex) {
       // We keep the known file size from the metadata, if any.
       this.target.exists = false;
     }
-  }),
+  },
 };
 
 /**
@@ -421,9 +418,9 @@ HistoryDownloadElementShell.prototype = {
     }
   },
 
-  _checkTargetFileOnSelect: Task.async(function* () {
+  async _checkTargetFileOnSelect() {
     try {
-      yield this.download.refresh();
+      await this.download.refresh();
     } finally {
       // Do not try to check for existence again if this failed once.
       this._targetFileChecked = true;
@@ -437,7 +434,7 @@ HistoryDownloadElementShell.prototype = {
     // Ensure the interface has been updated based on the new values. We need to
     // do this because history downloads can't trigger update notifications.
     this._updateProgress();
-  }),
+  },
 };
 
 /**
@@ -911,7 +908,7 @@ DownloadsPlacesView.prototype = {
 
     let result = history.executeQueries(queries.value, queries.value.length,
                                         options.value);
-    result.addObserver(this, false);
+    result.addObserver(this);
     return val;
   },
 
@@ -943,9 +940,7 @@ DownloadsPlacesView.prototype = {
   },
 
   get selectedNodes() {
-    return [for (element of this._richlistbox.selectedItems)
-            if (element._placesNode)
-            element._placesNode];
+      return this._richlistbox.selectedItems.filter(element => element._placesNode);
   },
 
   get selectedNode() {
@@ -1093,11 +1088,11 @@ DownloadsPlacesView.prototype = {
         // first item is activated, and pass the item to the richlistbox
         // setters only at a point we know for sure the binding is attached.
         firstDownloadElement._shell.ensureActive();
-        Services.tm.mainThread.dispatch(() => {
+        Services.tm.dispatchToMainThread(() => {
           this._richlistbox.selectedItem = firstDownloadElement;
           this._richlistbox.currentItem = firstDownloadElement;
           this._initiallySelectedElement = firstDownloadElement;
-        }, Ci.nsIThread.DISPATCH_NORMAL);
+        });
       }
     }
   },
@@ -1178,8 +1173,7 @@ DownloadsPlacesView.prototype = {
   },
 
   _copySelectedDownloadsToClipboard() {
-    let urls = [for (element of this._richlistbox.selectedItems)
-                element._shell.download.source.url];
+    let urls = this._richlistbox.selectedItems.map(element => element._shell.download.source.url);
 
     Cc["@mozilla.org/widget/clipboardhelper;1"]
       .getService(Ci.nsIClipboardHelper)
@@ -1211,7 +1205,7 @@ DownloadsPlacesView.prototype = {
   },
 
   _canDownloadClipboardURL() {
-    let [url, name] = this._getURLFromClipboardData();
+    let [url /* ,name */] = this._getURLFromClipboardData();
     return url != "";
   },
 
@@ -1308,8 +1302,7 @@ DownloadsPlacesView.prototype = {
           element._shell.doDefaultCommand();
         }
       }
-    }
-    else if (aEvent.charCode == " ".charCodeAt(0)) {
+    } else if (aEvent.charCode == " ".charCodeAt(0)) {
       // Pause/Resume every selected download
       for (let element of selectedElements) {
         if (element._shell.isCommandEnabled("downloadsCmd_pauseResume")) {
@@ -1409,7 +1402,7 @@ DownloadsPlacesView.prototype = {
 };
 
 for (let methodName of ["load", "applyFilter", "selectNode", "selectItems"]) {
-  DownloadsPlacesView.prototype[methodName] = function () {
+  DownloadsPlacesView.prototype[methodName] = function() {
     throw new Error("|" + methodName +
                     "| is not implemented by the downloads view.");
   }

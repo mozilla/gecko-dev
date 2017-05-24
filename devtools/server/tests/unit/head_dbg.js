@@ -47,8 +47,9 @@ const { addDebuggerToGlobal } = Cu.import("resource://gre/modules/jsdebugger.jsm
 const systemPrincipal = Cc["@mozilla.org/systemprincipal;1"]
                         .createInstance(Ci.nsIPrincipal);
 
-var { loadSubScript } = Cc["@mozilla.org/moz/jssubscript-loader;1"]
-                        .getService(Ci.mozIJSSubScriptLoader);
+var { loadSubScript, loadSubScriptWithOptions } =
+  Cc["@mozilla.org/moz/jssubscript-loader;1"]
+  .getService(Ci.mozIJSSubScriptLoader);
 
 /**
  * Initializes any test that needs to work with add-ons.
@@ -585,9 +586,9 @@ StubTransport.prototype.send = function () {};
 StubTransport.prototype.close = function () {};
 
 function executeSoon(func) {
-  Services.tm.mainThread.dispatch({
+  Services.tm.dispatchToMainThread({
     run: DevToolsUtils.makeInfallible(func)
-  }, Ci.nsIThread.DISPATCH_NORMAL);
+  });
 }
 
 // The do_check_* family of functions expect their last argument to be an

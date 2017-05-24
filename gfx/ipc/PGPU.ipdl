@@ -52,12 +52,13 @@ parent:
   // Sent by the UI process to initiate core settings.
   async Init(GfxPrefSetting[] prefs,
              GfxVarUpdate[] vars,
-             DevicePrefs devicePrefs);
+             DevicePrefs devicePrefs,
+             LayerTreeIdMapping[] mapping);
 
   async InitVsyncBridge(Endpoint<PVsyncBridgeParent> endpoint);
   async InitImageBridge(Endpoint<PImageBridgeParent> endpoint);
   async InitVRManager(Endpoint<PVRManagerParent> endpoint);
-  async InitUiCompositorController(Endpoint<PUiCompositorControllerParent> endpoint);
+  async InitUiCompositorController(uint64_t rootLayerTreeId, Endpoint<PUiCompositorControllerParent> endpoint);
 
   // Called to update a gfx preference or variable.
   async UpdatePref(GfxPrefSetting pref);
@@ -78,7 +79,7 @@ parent:
   async NewContentVideoDecoderManager(Endpoint<PVideoDecoderManagerParent> endpoint);
 
   // Called to notify the GPU process of who owns a layersId.
-  sync AddLayerTreeIdMapping(LayerTreeIdMapping[] mapping);
+  sync AddLayerTreeIdMapping(LayerTreeIdMapping mapping);
   async RemoveLayerTreeIdMapping(LayerTreeIdMapping mapping);
 
   // Request the current DeviceStatus from the GPU process. This blocks until
@@ -124,10 +125,10 @@ child:
   async UpdateChildKeyedScalars(KeyedScalarAction[] actions);
   async RecordChildEvents(ChildEventData[] events);
 
-  async NotifyDeviceReset();
+  async NotifyDeviceReset(GPUDeviceData status);
 
   // Called in response to GatherProfile.
-  async Profile(nsCString aProfile);
+  async Profile(nsCString aProfile, bool aIsExitProfile);
   async AddMemoryReport(MemoryReport aReport);
   async FinishMemoryReport(uint32_t aGeneration);
 };

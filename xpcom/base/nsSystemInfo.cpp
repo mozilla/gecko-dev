@@ -270,6 +270,7 @@ static const struct PropItems
   { "hasSSE4_2", mozilla::supports_sse4_2 },
   { "hasAVX", mozilla::supports_avx },
   { "hasAVX2", mozilla::supports_avx2 },
+  { "hasAES", mozilla::supports_aes },
   // ARM-specific bits.
   { "hasEDSP", mozilla::supports_edsp },
   { "hasARMv6", mozilla::supports_armv6 },
@@ -340,6 +341,10 @@ GetProcessorInformation(int* physical_cpus, int* cache_size_L2, int* cache_size_
 nsresult
 nsSystemInfo::Init()
 {
+  // This uses the observer service on Windows, so for simplicity
+  // check that it is called from the main thread on all platforms.
+  MOZ_ASSERT(NS_IsMainThread());
+
   nsresult rv;
 
   static const struct
@@ -348,7 +353,6 @@ nsSystemInfo::Init()
     const char* name;
   } items[] = {
     { PR_SI_SYSNAME, "name" },
-    { PR_SI_HOSTNAME, "host" },
     { PR_SI_ARCHITECTURE, "arch" },
     { PR_SI_RELEASE, "version" }
   };

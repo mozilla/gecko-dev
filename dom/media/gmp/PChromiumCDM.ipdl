@@ -54,6 +54,10 @@ child:
 
   async Destroy();
 
+  async GiveBuffer(Shmem aShmem);
+
+  async PurgeShmems();
+
 parent:
   async __delete__();
 
@@ -87,12 +91,14 @@ parent:
   async ResolveLoadSessionPromise(uint32_t aPromiseId, bool aSuccessful);
 
   // Return values of cdm::ContentDecryptionModule8::Decrypt
-  async Decrypted(uint32_t aId, uint32_t aStatus, uint8_t[] aData);
+  async Decrypted(uint32_t aId, uint32_t aStatus, Shmem aDecryptedData);
+  async DecryptFailed(uint32_t aId, uint32_t aStatus);
 
   async OnDecoderInitDone(uint32_t aStatus);
 
   // Return values of cdm::ContentDecryptionModule8::DecryptAndDecodeFrame
-  async Decoded(CDMVideoFrame aFrame);
+  async DecodedShmem(CDMVideoFrame aFrame, Shmem aData);
+  async DecodedData(CDMVideoFrame aFrame, uint8_t[] aData);
   async DecodeFailed(uint32_t aStatus);
 
   async ResetVideoDecoderComplete();

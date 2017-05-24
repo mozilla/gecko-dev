@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::sync::Arc;
+use {DeviceUintRect, DevicePoint};
+use {TileOffset, TileSize};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -17,8 +19,25 @@ impl ImageKey {
 /// An arbitrary identifier for an external image provided by the
 /// application. It must be a unique identifier for each external
 /// image.
+#[repr(C)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct ExternalImageId(pub u64);
+
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
+pub enum ExternalImageType {
+    Texture2DHandle,        // gl TEXTURE_2D handle
+    TextureRectHandle,      // gl TEXTURE_RECT handle
+    TextureExternalHandle,  // gl TEXTURE_EXTERNAL handle
+    ExternalBuffer,
+}
+
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
+pub struct ExternalImageData {
+    pub id: ExternalImageId,
+    pub channel_index: u8,
+    pub image_type: ExternalImageType,
+}
 
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -28,6 +47,7 @@ pub enum ImageFormat {
     RGB8     = 2,
     RGBA8    = 3,
     RGBAF32  = 4,
+    RG8      = 5,
 }
 
 impl ImageFormat {
@@ -37,6 +57,7 @@ impl ImageFormat {
             ImageFormat::RGB8 => Some(3),
             ImageFormat::RGBA8 => Some(4),
             ImageFormat::RGBAF32 => Some(16),
+            ImageFormat::RG8 => Some(2),
             ImageFormat::Invalid => None,
         }
     }
@@ -72,9 +93,8 @@ impl ImageDescriptor {
 #[derive(Clone, Serialize, Deserialize)]
 pub enum ImageData {
     Raw(Arc<Vec<u8>>),
-    Blob(Arc<BlobImageData>),
-    ExternalHandle(ExternalImageId),
-    ExternalBuffer(ExternalImageId),
+    Blob(BlobImageData),
+    External(ExternalImageData),
 }
 
 impl ImageData {
@@ -87,20 +107,48 @@ impl ImageData {
     }
 
     pub fn new_blob_image(commands: Vec<u8>) -> ImageData {
-        ImageData::Blob(Arc::new(commands))
+        ImageData::Blob(commands)
     }
 
-    pub fn new_shared_blob_image(commands: Arc<Vec<u8>>) -> ImageData {
-        ImageData::Blob(commands)
+    #[inline]
+    pub fn is_blob(&self) -> bool {
+        match self {
+            &ImageData::Blob(_) => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub fn uses_texture_cache(&self) -> bool {
+        match self {
+            &ImageData::External(ext_data) => {
+                match ext_data.image_type {
+                    ExternalImageType::Texture2DHandle => false,
+                    ExternalImageType::TextureRectHandle => false,
+                    ExternalImageType::TextureExternalHandle => false,
+                    ExternalImageType::ExternalBuffer => true,
+                }
+            }
+            &ImageData::Blob(_) => true,
+            &ImageData::Raw(_) => true,
+        }
     }
 }
 
 pub trait BlobImageRenderer: Send {
-    fn request_blob_image(&mut self,
-                            key: ImageKey,
-                            data: Arc<BlobImageData>,
-                            descriptor: &BlobImageDescriptor);
-    fn resolve_blob_image(&mut self, key: ImageKey) -> BlobImageResult;
+    fn add(&mut self, key: ImageKey, data: BlobImageData, tiling: Option<TileSize>);
+
+    fn update(&mut self, key: ImageKey, data: BlobImageData);
+
+    fn delete(&mut self, key: ImageKey);
+
+    fn request(&mut self,
+               key: BlobImageRequest,
+               descriptor: &BlobImageDescriptor,
+               dirty_rect: Option<DeviceUintRect>,
+               images: &ImageStore);
+
+    fn resolve(&mut self, key: BlobImageRequest) -> BlobImageResult;
 }
 
 pub type BlobImageData = Vec<u8>;
@@ -112,8 +160,8 @@ pub type BlobImageResult = Result<RasterizedBlobImage, BlobImageError>;
 pub struct BlobImageDescriptor {
     pub width: u32,
     pub height: u32,
+    pub offset: DevicePoint,
     pub format: ImageFormat,
-    pub scale_factor: f32,
 }
 
 pub struct RasterizedBlobImage {
@@ -128,4 +176,14 @@ pub enum BlobImageError {
     InvalidKey,
     InvalidData,
     Other(String),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct BlobImageRequest {
+    pub key: ImageKey,
+    pub tile: Option<TileOffset>,
+}
+
+pub trait ImageStore {
+    fn get_image(&self, key: ImageKey) -> Option<(&ImageData, &ImageDescriptor)>;
 }

@@ -16,7 +16,7 @@
 #include "nsIReflowObserver.h"
 #include "nsISelectionListener.h"
 #include "nsIScrollObserver.h"
-#include "nsIWidget.h" // for nsIMEUpdatePreference
+#include "nsIWidget.h"
 #include "nsStubMutationObserver.h"
 #include "nsThreadUtils.h"
 #include "nsWeakReference.h"
@@ -46,6 +46,7 @@ public:
   typedef widget::IMENotification::SelectionChangeData SelectionChangeData;
   typedef widget::IMENotification::TextChangeData TextChangeData;
   typedef widget::IMENotification::TextChangeDataBase TextChangeDataBase;
+  typedef widget::IMENotificationRequests IMENotificationRequests;
   typedef widget::IMEMessage IMEMessage;
 
   IMEContentObserver();
@@ -75,6 +76,8 @@ public:
   void Init(nsIWidget* aWidget, nsPresContext* aPresContext,
             nsIContent* aContent, nsIEditor* aEditor);
   void Destroy();
+  bool Destroyed() const;
+
   /**
    * IMEContentObserver is stored by EventStateManager during observing.
    * DisconnectFromEventStateManager() is called when EventStateManager stops
@@ -98,7 +101,8 @@ public:
   bool IsEditorHandlingEventForComposition() const;
   bool KeepAliveDuringDeactive() const
   {
-    return mUpdatePreference.WantDuringDeactive();
+    return mIMENotificationRequests &&
+           mIMENotificationRequests->WantDuringDeactive();
   }
   nsIWidget* GetWidget() const { return mWidget; }
   nsIEditor* GetEditor() const { return mEditor; }
@@ -146,12 +150,14 @@ private:
   void MaybeNotifyIMEOfFocusSet();
   void PostTextChangeNotification();
   void MaybeNotifyIMEOfTextChange(const TextChangeDataBase& aTextChangeData);
+  void CancelNotifyingIMEOfTextChange();
   void PostSelectionChangeNotification();
   void MaybeNotifyIMEOfSelectionChange(bool aCausedByComposition,
                                        bool aCausedBySelectionEvent,
                                        bool aOccurredDuringComposition);
   void PostPositionChangeNotification();
   void MaybeNotifyIMEOfPositionChange();
+  void CancelNotifyingIMEOfPositionChange();
   void PostCompositionEventHandledNotification();
 
   void NotifyContentAdded(nsINode* aContainer, int32_t aStart, int32_t aEnd);
@@ -165,6 +171,16 @@ private:
    */
   void UnregisterObservers();
   void FlushMergeableNotifications();
+  bool NeedsTextChangeNotification() const
+  {
+    return mIMENotificationRequests &&
+           mIMENotificationRequests->WantTextChange();
+  }
+  bool NeedsPositionChangeNotification() const
+  {
+    return mIMENotificationRequests &&
+           mIMENotificationRequests->WantPositionChanged();
+  }
   void ClearPendingNotifications()
   {
     mNeedsToNotifyIMEOfFocusSet = false;
@@ -325,7 +341,7 @@ private:
 
   EventStateManager* mESM;
 
-  nsIMEUpdatePreference mUpdatePreference;
+  const IMENotificationRequests* mIMENotificationRequests;
   uint32_t mPreAttrChangeLength;
   uint32_t mSuppressNotifications;
   int64_t mPreCharacterDataChangeLength;

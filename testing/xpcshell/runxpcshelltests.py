@@ -660,6 +660,10 @@ class XPCShellTestThread(Thread):
         if self.test_object.get('subprocess') == 'true':
             self.env['PYTHON'] = sys.executable
 
+        if self.test_object.get('headless', False):
+            self.env["MOZ_HEADLESS"] = '1'
+            self.env["DISPLAY"] = '77' # Set a fake display.
+
         testTimeoutInterval = self.harness_timeout
         # Allow a test to request a multiple of the timeout if it is expected to take long
         if 'requesttimeoutfactor' in self.test_object:
@@ -917,6 +921,8 @@ class XPCShellTests(object):
         # enable non-local connections for the purposes of local testing.
         # Don't override the user's choice here.  See bug 1049688.
         self.env.setdefault('MOZ_DISABLE_NONLOCAL_CONNECTIONS', '1')
+        if self.mozInfo.get("topsrcdir") is not None:
+            self.env["MOZ_DEVELOPER_REPO_DIR"] = self.mozInfo["topsrcdir"].encode()
 
     def buildEnvironment(self):
         """
@@ -942,7 +948,9 @@ class XPCShellTests(object):
         usingTSan = "tsan" in self.mozInfo and self.mozInfo["tsan"]
         if usingASan or usingTSan:
             # symbolizer support
-            llvmsym = os.path.join(self.xrePath, "llvm-symbolizer")
+            llvmsym = os.path.join(
+                self.xrePath,
+                "llvm-symbolizer" + self.mozInfo["bin_suffix"].encode('ascii'))
             if os.path.isfile(llvmsym):
                 if usingASan:
                     self.env["ASAN_SYMBOLIZER_PATH"] = llvmsym

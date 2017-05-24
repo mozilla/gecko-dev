@@ -6,19 +6,49 @@
 
 <%helpers:shorthand name="overflow" sub_properties="overflow-x overflow-y"
                     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow">
-    use properties::longhands::{overflow_x, overflow_y};
+    use properties::longhands::overflow_x::parse as parse_overflow;
+    % if product == "gecko":
+        use properties::longhands::overflow_x::SpecifiedValue;
+    % endif
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        let overflow = try!(overflow_x::parse(context, input));
-        Ok(Longhands {
+        % if product == "gecko":
+            let moz_kw_found = input.try(|i| match_ignore_ascii_case! {
+                &i.expect_ident()?,
+                "-moz-scrollbars-horizontal" => {
+                    Ok(expanded! {
+                        overflow_x: SpecifiedValue::scroll,
+                        overflow_y: SpecifiedValue::hidden,
+                    })
+                }
+                "-moz-scrollbars-vertical" => {
+                    Ok(expanded! {
+                        overflow_x: SpecifiedValue::hidden,
+                        overflow_y: SpecifiedValue::scroll,
+                    })
+                }
+                "-moz-scrollbars-none" => {
+                    Ok(expanded! {
+                        overflow_x: SpecifiedValue::hidden,
+                        overflow_y: SpecifiedValue::hidden,
+                    })
+                }
+                _ => Err(())
+            });
+            if moz_kw_found.is_ok() {
+                return moz_kw_found
+            }
+        % endif
+        let overflow = try!(parse_overflow(context, input));
+        Ok(expanded! {
             overflow_x: overflow,
-            overflow_y: overflow_y::SpecifiedValue(overflow),
+            overflow_y: overflow,
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if *self.overflow_x == self.overflow_y.0 {
+            if self.overflow_x == self.overflow_y {
                 self.overflow_x.to_css(dest)
             } else {
                 Ok(())
@@ -70,19 +100,24 @@ macro_rules! try_parse_one {
             let mut ${prop} = None;
             % endfor
 
+            let mut parsed = 0;
             loop {
-                try_parse_one!(input, property, transition_property);
+                parsed += 1;
+
                 try_parse_one!(context, input, duration, transition_duration);
                 try_parse_one!(context, input, timing_function, transition_timing_function);
                 try_parse_one!(context, input, delay, transition_delay);
+                // Must check 'transition-property' after 'transition-timing-function' since
+                // 'transition-property' accepts any keyword.
+                try_parse_one!(input, property, transition_property);
 
+                parsed -= 1;
                 break
             }
 
-            if let Some(property) = property {
+            if parsed != 0 {
                 Ok(SingleTransition {
-                    transition_property: property,
-                    % for prop in "duration timing_function delay".split():
+                    % for prop in "property duration timing_function delay".split():
                     transition_${prop}: ${prop}.unwrap_or_else(transition_${prop}::single_value
                                                                                  ::get_initial_specified_value),
                     % endfor
@@ -113,7 +148,7 @@ macro_rules! try_parse_one {
             % endfor
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             % for prop in "property duration timing_function delay".split():
             transition_${prop}: transition_${prop}::SpecifiedValue(${prop}s),
             % endfor
@@ -224,7 +259,7 @@ macro_rules! try_parse_one {
             % endfor
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             % for prop in props:
             animation_${prop}: animation_${prop}::SpecifiedValue(${prop}s),
             % endfor
@@ -270,7 +305,7 @@ macro_rules! try_parse_one {
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let result = try!(scroll_snap_type_x::parse(context, input));
-        Ok(Longhands {
+        Ok(expanded! {
             scroll_snap_type_x: result,
             scroll_snap_type_y: result,
         })
@@ -285,6 +320,26 @@ macro_rules! try_parse_one {
             } else {
                 Ok(())
             }
+        }
+    }
+</%helpers:shorthand>
+
+
+<%helpers:shorthand name="-moz-transform" products="gecko"
+                    sub_properties="transform"
+                    flags="SHORTHAND_ALIAS_PROPERTY"
+                    spec="Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/transform">
+    use properties::longhands::transform;
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        Ok(expanded! {
+            transform: transform::parse_prefixed(context, input)?,
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.transform.to_css(dest)
         }
     }
 </%helpers:shorthand>

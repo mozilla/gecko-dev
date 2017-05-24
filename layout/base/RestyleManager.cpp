@@ -6,9 +6,13 @@
 
 #include "mozilla/RestyleManager.h"
 #include "mozilla/RestyleManagerInlines.h"
+
+#include "Layers.h"
+#include "LayerAnimationInfo.h" // For LayerAnimationInfo::sRecords
 #include "mozilla/StyleSetHandleInlines.h"
 #include "nsIFrame.h"
 #include "nsIPresShellInlines.h"
+
 
 namespace mozilla {
 
@@ -18,8 +22,8 @@ RestyleManager::RestyleManager(StyleBackendType aType,
   , mRestyleGeneration(1)
   , mHoverGeneration(0)
   , mType(aType)
-  , mObservingRefreshDriver(false)
   , mInStyleRefresh(false)
+  , mAnimationGeneration(0)
 {
   MOZ_ASSERT(mPresContext);
 }
@@ -331,6 +335,7 @@ RestyleManager::ContentStateChangedInternal(Element* aElement,
                                             nsChangeHint* aOutChangeHint,
                                             nsRestyleHint* aOutRestyleHint)
 {
+  MOZ_ASSERT(!mInStyleRefresh);
   MOZ_ASSERT(aOutChangeHint);
   MOZ_ASSERT(aOutRestyleHint);
 
@@ -408,8 +413,8 @@ RestyleManager::RestyleHintToString(nsRestyleHint aHint)
   bool any = false;
   const char* names[] = {
     "Self", "SomeDescendants", "Subtree", "LaterSiblings", "CSSTransitions",
-    "CSSAnimations", "SVGAttrAnimations", "StyleAttribute",
-    "StyleAttribute_Animations", "Force", "ForceDescendants"
+    "CSSAnimations", "StyleAttribute", "StyleAttribute_Animations",
+    "Force", "ForceDescendants"
   };
   uint32_t hint = aHint & ((1 << ArrayLength(names)) - 1);
   uint32_t rest = aHint & ~((1 << ArrayLength(names)) - 1);
@@ -453,7 +458,7 @@ RestyleManager::ChangeHintToString(nsChangeHint aHint)
     "NeutralChange", "InvalidateRenderingObservers",
     "ReflowChangesSizeOrPosition", "UpdateComputedBSize",
     "UpdateUsesOpacity", "UpdateBackgroundPosition",
-    "AddOrRemoveTransform"
+    "AddOrRemoveTransform", "CSSOverflowChange",
   };
   static_assert(nsChangeHint_AllHints == (1 << ArrayLength(names)) - 1,
                 "Name list doesn't match change hints.");
@@ -494,25 +499,6 @@ RestyleManager::ChangeHintToString(nsChangeHint aHint)
   return result;
 }
 #endif
-
-void
-RestyleManager::PostRestyleEventInternal(bool aForLazyConstruction)
-{
-  // Make sure we're not in a style refresh; if we are, we still have
-  // a call to ProcessPendingRestyles coming and there's no need to
-  // add ourselves as a refresh observer until then.
-  bool inRefresh = !aForLazyConstruction && mInStyleRefresh;
-  nsIPresShell* presShell = PresContext()->PresShell();
-  if (!ObservingRefreshDriver() && !inRefresh) {
-    SetObservingRefreshDriver(PresContext()->RefreshDriver()->
-        AddStyleFlushObserver(presShell));
-  }
-
-  // Unconditionally flag our document as needing a flush.  The other
-  // option here would be a dedicated boolean to track whether we need
-  // to do so (set here and unset in ProcessPendingRestyles).
-  presShell->SetNeedStyleFlush();
-}
 
 /**
  * Frame construction helpers follow.
@@ -638,7 +624,7 @@ VerifyStyleTree(nsIFrame* aFrame)
     for (nsIFrame* child : lists.CurrentList()) {
       if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
         // only do frames that are in flow
-        if (nsGkAtoms::placeholderFrame == child->GetType()) {
+        if (child->IsPlaceholderFrame()) {
           // placeholder: first recurse and verify the out of flow frame,
           // then verify the placeholder's context
           nsIFrame* outOfFlowFrame =
@@ -721,7 +707,7 @@ static void StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
 static nsIFrame*
 GetFrameForChildrenOnlyTransformHint(nsIFrame* aFrame)
 {
-  if (aFrame->GetType() == nsGkAtoms::viewportFrame) {
+  if (aFrame->IsViewportFrame()) {
     // This happens if the root-<svg> is fixed positioned, in which case we
     // can't use aFrame->GetContent() to find the primary frame, since
     // GetContent() returns nullptr for ViewportFrame.
@@ -730,9 +716,9 @@ GetFrameForChildrenOnlyTransformHint(nsIFrame* aFrame)
   // For an nsHTMLScrollFrame, this will get the SVG frame that has the
   // children-only transforms:
   aFrame = aFrame->GetContent()->GetPrimaryFrame();
-  if (aFrame->GetType() == nsGkAtoms::svgOuterSVGFrame) {
+  if (aFrame->IsSVGOuterSVGFrame()) {
     aFrame = aFrame->PrincipalChildList().FirstChild();
-    MOZ_ASSERT(aFrame->GetType() == nsGkAtoms::svgOuterSVGAnonChildFrame,
+    MOZ_ASSERT(aFrame->IsSVGOuterSVGAnonChildFrame(),
                "Where is the nsSVGOuterSVGFrame's anon child??");
   }
   MOZ_ASSERT(aFrame->IsFrameOfType(nsIFrame::eSVG | nsIFrame::eSVGContainer),
@@ -750,7 +736,7 @@ RecomputePosition(nsIFrame* aFrame)
   // the dynamic position change on the table wrapper frame, and the
   // reflow-based fallback code path also ignores positions on inner table
   // frames.
-  if (aFrame->GetType() == nsGkAtoms::tableFrame) {
+  if (aFrame->IsTableFrame()) {
     return true;
   }
 
@@ -860,7 +846,7 @@ RecomputePosition(nsIFrame* aFrame)
   Maybe<ReflowInput> cbReflowInput;
   nsIFrame* cbFrame = parentFrame->GetContainingBlock();
   if (cbFrame && (aFrame->GetContainingBlock() != parentFrame ||
-                  parentFrame->GetType() == nsGkAtoms::tableFrame)) {
+                  parentFrame->IsTableFrame())) {
     LogicalSize cbSize = cbFrame->GetLogicalSize();
     cbReflowInput.emplace(cbFrame->PresContext(), cbFrame, &rc, cbSize);
     cbReflowInput->ComputedPhysicalMargin() = cbFrame->GetUsedMargin();
@@ -965,7 +951,7 @@ FrameHasPositionedPlaceholderDescendants(nsIFrame* aFrame,
 
   for (nsIFrame::ChildListIterator lists(aFrame); !lists.IsDone(); lists.Next()) {
     for (nsIFrame* f : lists.CurrentList()) {
-      if (f->GetType() == nsGkAtoms::placeholderFrame) {
+      if (f->IsPlaceholderFrame()) {
         nsIFrame* outOfFlow =
           nsPlaceholderFrame::GetRealFrameForPlaceholder(f);
         // If SVG text frames could appear here, they could confuse us since
@@ -1097,8 +1083,8 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
         // Invalidate and reflow the entire SVGTextFrame:
         NS_ASSERTION(aFrame->GetContent()->IsSVGElement(nsGkAtoms::textPath),
                      "expected frame for a <textPath> element");
-        nsIFrame* text =
-          nsLayoutUtils::GetClosestFrameOfType(aFrame, nsGkAtoms::svgTextFrame);
+        nsIFrame* text = nsLayoutUtils::GetClosestFrameOfType(
+          aFrame, LayoutFrameType::SVGText);
         NS_ASSERTION(text, "expected to find an ancestor SVGTextFrame");
         static_cast<SVGTextFrame*>(text)->NotifyGlyphMetricsChange();
       } else {
@@ -1175,7 +1161,7 @@ SyncViewsAndInvalidateDescendants(nsIFrame* aFrame, nsChangeHint aChange)
     for (nsIFrame* child : lists.CurrentList()) {
       if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
         // only do frames that don't have placeholders
-        if (nsGkAtoms::placeholderFrame == child->GetType()) {
+        if (child->IsPlaceholderFrame()) {
           // do the out-of-flow frame and its continuations
           nsIFrame* outOfFlowFrame =
             nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
@@ -1366,6 +1352,62 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   FramePropertyTable* propTable = presContext->PropertyTable();
   nsCSSFrameConstructor* frameConstructor = presContext->FrameConstructor();
 
+  // Handle nsChangeHint_CSSOverflowChange, by either updating the
+  // scrollbars on the viewport, or upgrading the change hint to frame-reconstruct.
+  for (nsStyleChangeData& data : aChangeList) {
+    if (data.mHint & nsChangeHint_CSSOverflowChange) {
+      data.mHint &= ~nsChangeHint_CSSOverflowChange;
+      bool doReconstruct = true; // assume the worst
+
+      // Only bother with this if we're html/body, since:
+      //  (a) It'd be *expensive* to reframe these particular nodes.  They're
+      //      at the root, so reframing would mean rebuilding the world.
+      //  (b) It's often *unnecessary* to reframe for "overflow" changes on
+      //      these particular nodes.  In general, the only reason we reframe
+      //      for "overflow" changes is so we can construct (or destroy) a
+      //      scrollframe & scrollbars -- and the html/body nodes often don't
+      //      need their own scrollframe/scrollbars because they coopt the ones
+      //      on the viewport (which always exist). So depending on whether
+      //      that's happening, we can skip the reframe for these nodes.
+      if (data.mContent->IsAnyOfHTMLElements(nsGkAtoms::body,
+                                             nsGkAtoms::html)) {
+        // If the restyled element provided/provides the scrollbar styles for
+        // the viewport before and/or after this restyle, AND it's not coopting
+        // that responsibility from some other element (which would need
+        // reconstruction to make its own scrollframe now), THEN: we don't need
+        // to reconstruct - we can just reflow, because no scrollframe is being
+        // added/removed.
+        nsIContent* prevOverrideNode =
+          presContext->GetViewportScrollbarStylesOverrideNode();
+        nsIContent* newOverrideNode =
+          presContext->UpdateViewportScrollbarStylesOverride();
+
+        if (data.mContent == prevOverrideNode ||
+            data.mContent == newOverrideNode) {
+          // If we get here, the restyled element provided the scrollbar styles
+          // for viewport before this restyle, OR it will provide them after.
+          if (!prevOverrideNode || !newOverrideNode ||
+              prevOverrideNode == newOverrideNode) {
+            // If we get here, the restyled element is NOT replacing (or being
+            // replaced by) some other element as the viewport's
+            // scrollbar-styles provider. (If it were, we'd potentially need to
+            // reframe to create a dedicated scrollframe for whichever element
+            // is being booted from providing viewport scrollbar styles.)
+            //
+            // Under these conditions, we're OK to assume that this "overflow"
+            // change only impacts the root viewport's scrollframe, which
+            // already exists, so we can simply reflow instead of reframing.
+            data.mHint |= nsChangeHint_AllReflowHints;
+            doReconstruct = false;
+          }
+        }
+      }
+      if (doReconstruct) {
+        data.mHint |= nsChangeHint_ReconstructFrame;
+      }
+    }
+  }
+
   // Make sure to not rebuild quote or counter lists while we're
   // processing restyles
   frameConstructor->BeginUpdate();
@@ -1416,7 +1458,8 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       break;
     }
 
-    const nsStyleChangeData& data = aChangeList[i];
+    nsStyleChangeData& mutable_data = aChangeList[i];
+    const nsStyleChangeData& data = mutable_data;
     nsIFrame* frame = data.mFrame;
     nsIContent* content = data.mContent;
     nsChangeHint hint = data.mHint;
@@ -1427,7 +1470,11 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
                  "Reflow hint bits set without actually asking for a reflow");
 
     // skip any frame that has been destroyed due to a ripple effect
-    if (frame && !propTable->Get(frame, ChangeListProperty())) {
+    if (frame && !propTable->HasSkippingBitCheck(frame, ChangeListProperty())) {
+      // Null out the pointer since the frame was already destroyed.
+      // This is important so we don't try to delete its
+      // ChangeListProperty() below.
+      mutable_data.mFrame = nullptr;
       continue;
     }
 
@@ -1443,7 +1490,7 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     if ((hint & nsChangeHint_UpdateContainingBlock) && frame &&
         !(hint & nsChangeHint_ReconstructFrame)) {
       if (NeedToReframeForAddingOrRemovingTransform(frame) ||
-          frame->GetType() == nsGkAtoms::fieldSetFrame ||
+          frame->IsFieldSetFrame() ||
           frame->GetContentInsertionFrame() != frame) {
         // The frame has positioned children that need to be reparented, or
         // it can't easily be converted to/from being an abs-pos container correctly.
@@ -1495,6 +1542,11 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     }
 
     if (hint & nsChangeHint_ReconstructFrame) {
+      // We're about to destroy data.mFrame, so null out the pointer.
+      // This is important so we don't try to delete its
+      // ChangeListProperty() below.
+      mutable_data.mFrame = nullptr;
+
       // If we ever start passing true here, be careful of restyles
       // that involve a reframe and animations.  In particular, if the
       // restyle we're processing here is an animation restyle, but
@@ -1684,7 +1736,7 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   // is not in fact in a consistent state.
   for (const nsStyleChangeData& data : aChangeList) {
     if (data.mFrame) {
-      propTable->Delete(data.mFrame, ChangeListProperty());
+      propTable->DeleteSkippingBitCheck(data.mFrame, ChangeListProperty());
     }
 
 #ifdef DEBUG
@@ -1694,8 +1746,7 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       if (frame) {
         DebugVerifyStyleTree(frame);
       }
-    } else if (!data.mFrame ||
-               data.mFrame->GetType() != nsGkAtoms::viewportFrame) {
+    } else if (!data.mFrame || !data.mFrame->IsViewportFrame()) {
       NS_WARNING("Unable to test style tree integrity -- no content node "
                  "(and not a viewport frame)");
     }
@@ -1703,6 +1754,81 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   }
 
   aChangeList.Clear();
+}
+
+/* static */ uint64_t
+RestyleManager::GetAnimationGenerationForFrame(nsIFrame* aFrame)
+{
+  EffectSet* effectSet = EffectSet::GetEffectSet(aFrame);
+  return effectSet ? effectSet->GetAnimationGeneration() : 0;
+}
+
+void
+RestyleManager::IncrementAnimationGeneration()
+{
+  // We update the animation generation at start of each call to
+  // ProcessPendingRestyles so we should ignore any subsequent (redundant)
+  // calls that occur while we are still processing restyles.
+  if ((IsGecko() && !AsGecko()->IsProcessingRestyles()) ||
+      (IsServo() && !mInStyleRefresh)) {
+    ++mAnimationGeneration;
+  }
+}
+
+/* static */ void
+RestyleManager::AddLayerChangesForAnimation(nsIFrame* aFrame,
+                                            nsIContent* aContent,
+                                            nsStyleChangeList&
+                                              aChangeListToProcess)
+{
+  if (!aFrame || !aContent) {
+    return;
+  }
+
+  uint64_t frameGeneration =
+    RestyleManager::GetAnimationGenerationForFrame(aFrame);
+
+  nsChangeHint hint = nsChangeHint(0);
+  for (const LayerAnimationInfo::Record& layerInfo :
+         LayerAnimationInfo::sRecords) {
+    layers::Layer* layer =
+      FrameLayerBuilder::GetDedicatedLayer(aFrame, layerInfo.mLayerType);
+    if (layer && frameGeneration != layer->GetAnimationGeneration()) {
+      // If we have a transform layer but don't have any transform style, we
+      // probably just removed the transform but haven't destroyed the layer
+      // yet. In this case we will add the appropriate change hint
+      // (nsChangeHint_UpdateContainingBlock) when we compare style contexts
+      // so we can skip adding any change hint here. (If we *were* to add
+      // nsChangeHint_UpdateTransformLayer, ApplyRenderingChangeToTree would
+      // complain that we're updating a transform layer without a transform).
+      if (layerInfo.mLayerType == nsDisplayItem::TYPE_TRANSFORM &&
+          !aFrame->StyleDisplay()->HasTransformStyle()) {
+        continue;
+      }
+      hint |= layerInfo.mChangeHint;
+    }
+
+    // We consider it's the first paint for the frame if we have an animation
+    // for the property but have no layer.
+    // Note that in case of animations which has properties preventing running
+    // on the compositor, e.g., width or height, corresponding layer is not
+    // created at all, but even in such cases, we normally set valid change
+    // hint for such animations in each tick, i.e. restyles in each tick. As
+    // a result, we usually do restyles for such animations in every tick on
+    // the main-thread.  The only animations which will be affected by this
+    // explicit change hint are animations that have opacity/transform but did
+    // not have those properies just before. e.g, setting transform by
+    // setKeyframes or changing target element from other target which prevents
+    // running on the compositor, etc.
+    if (!layer &&
+        nsLayoutUtils::HasEffectiveAnimation(aFrame, layerInfo.mProperty)) {
+      hint |= layerInfo.mChangeHint;
+    }
+  }
+
+  if (hint) {
+    aChangeListToProcess.AppendChange(aFrame, aContent, hint);
+  }
 }
 
 RestyleManager::AnimationsWithDestroyedFrame::AnimationsWithDestroyedFrame(

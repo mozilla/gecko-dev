@@ -82,7 +82,6 @@ ContentPrincipal::ContentPrincipal()
   : BasePrincipal(eCodebasePrincipal)
   , mCodebaseImmutable(false)
   , mDomainImmutable(false)
-  , mInitialized(false)
 {
 }
 
@@ -96,12 +95,10 @@ ContentPrincipal::~ContentPrincipal()
 
 nsresult
 ContentPrincipal::Init(nsIURI *aCodebase,
-                       const OriginAttributes& aOriginAttributes)
+                       const OriginAttributes& aOriginAttributes,
+                       const nsACString& aOriginNoSuffix)
 {
-  NS_ENSURE_STATE(!mInitialized);
   NS_ENSURE_ARG(aCodebase);
-
-  mInitialized = true;
 
   // Assert that the URI we get here isn't any of the schemes that we know we
   // should not get here.  These schemes always either inherit their principal
@@ -118,9 +115,8 @@ ContentPrincipal::Init(nsIURI *aCodebase,
 
   mCodebase = NS_TryToMakeImmutable(aCodebase);
   mCodebaseImmutable = URIIsImmutable(mCodebase);
-  mOriginAttributes = aOriginAttributes;
 
-  FinishInit();
+  FinishInit(aOriginNoSuffix, aOriginAttributes);
 
   return NS_OK;
 }
@@ -131,14 +127,15 @@ ContentPrincipal::GetScriptLocation(nsACString &aStr)
   return mCodebase->GetSpec(aStr);
 }
 
-nsresult
-ContentPrincipal::GetOriginInternal(nsACString& aOrigin)
+/* static */ nsresult
+ContentPrincipal::GenerateOriginNoSuffixFromURI(nsIURI* aURI,
+                                                nsACString& aOriginNoSuffix)
 {
-  if (!mCodebase) {
+  if (!aURI) {
     return NS_ERROR_FAILURE;
   }
 
-  nsCOMPtr<nsIURI> origin = NS_GetInnermostURI(mCodebase);
+  nsCOMPtr<nsIURI> origin = NS_GetInnermostURI(aURI);
   if (!origin) {
     return NS_ERROR_FAILURE;
   }
@@ -146,30 +143,26 @@ ContentPrincipal::GetOriginInternal(nsACString& aOrigin)
   MOZ_ASSERT(!NS_IsAboutBlank(origin),
              "The inner URI for about:blank must be moz-safe-about:blank");
 
+  // Handle non-strict file:// uris.
   if (!nsScriptSecurityManager::GetStrictFileOriginPolicy() &&
       NS_URIIsLocalFile(origin)) {
     // If strict file origin policy is not in effect, all local files are
     // considered to be same-origin, so return a known dummy origin here.
-    aOrigin.AssignLiteral("file://UNIVERSAL_FILE_URI_ORIGIN");
+    aOriginNoSuffix.AssignLiteral("file://UNIVERSAL_FILE_URI_ORIGIN");
     return NS_OK;
   }
 
-  nsAutoCString hostPort;
 
-  // chrome: URLs don't have a meaningful origin, so make
-  // sure we just get the full spec for them.
-  // XXX this should be removed in favor of the solution in
-  // bug 160042.
-  bool isChrome;
-  nsresult rv = origin->SchemeIs("chrome", &isChrome);
-  if (NS_SUCCEEDED(rv) && !isChrome) {
-    rv = origin->GetAsciiHostPort(hostPort);
-    // Some implementations return an empty string, treat it as no support
-    // for asciiHost by that implementation.
-    if (hostPort.IsEmpty()) {
-      rv = NS_ERROR_FAILURE;
-    }
+  nsresult rv;
+// NB: This is only compiled for Thunderbird/Suite.
+#if IS_ORIGIN_IS_FULL_SPEC_DEFINED
+  bool fullSpec = false;
+  rv = NS_URIChainHasFlags(origin, nsIProtocolHandler::ORIGIN_IS_FULL_SPEC, &fullSpec);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (fullSpec) {
+    return origin->GetAsciiSpec(aOriginNoSuffix);
   }
+#endif
 
   // We want the invariant that prinA.origin == prinB.origin i.f.f.
   // prinA.equals(prinB). However, this requires that we impose certain constraints
@@ -190,21 +183,13 @@ ContentPrincipal::GetOriginInternal(nsACString& aOrigin)
        // We check for moz-safe-about:blank since origin is an innermost URI.
        !origin->GetSpecOrDefault().EqualsLiteral("moz-safe-about:blank")) ||
       (NS_SUCCEEDED(origin->SchemeIs("indexeddb", &isBehaved)) && isBehaved)) {
-    rv = origin->GetAsciiSpec(aOrigin);
+    rv = origin->GetAsciiSpec(aOriginNoSuffix);
     NS_ENSURE_SUCCESS(rv, rv);
     // These URIs could technically contain a '^', but they never should.
-    if (NS_WARN_IF(aOrigin.FindChar('^', 0) != -1)) {
-      aOrigin.Truncate();
+    if (NS_WARN_IF(aOriginNoSuffix.FindChar('^', 0) != -1)) {
+      aOriginNoSuffix.Truncate();
       return NS_ERROR_FAILURE;
     }
-    return NS_OK;
-  }
-
-  if (NS_SUCCEEDED(rv) && !isChrome) {
-    rv = origin->GetScheme(aOrigin);
-    NS_ENSURE_SUCCESS(rv, rv);
-    aOrigin.AppendLiteral("://");
-    aOrigin.Append(hostPort);
     return NS_OK;
   }
 
@@ -217,7 +202,7 @@ ContentPrincipal::GetOriginInternal(nsACString& aOrigin)
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (uriPrincipal) {
-      return uriPrincipal->GetOriginNoSuffix(aOrigin);
+      return uriPrincipal->GetOriginNoSuffix(aOriginNoSuffix);
     }
   }
 
@@ -233,21 +218,38 @@ ContentPrincipal::GetOriginInternal(nsACString& aOrigin)
     return NS_ERROR_FAILURE;
   }
 
-  rv = origin->GetAsciiSpec(aOrigin);
+  // See whether we have a useful hostPort. If we do, use that.
+  nsAutoCString hostPort;
+  bool isChrome = false;
+  rv = origin->SchemeIs("chrome", &isChrome);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!isChrome) {
+    rv = origin->GetAsciiHostPort(hostPort);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  if (!hostPort.IsEmpty()) {
+    rv = origin->GetScheme(aOriginNoSuffix);
+    NS_ENSURE_SUCCESS(rv, rv);
+    aOriginNoSuffix.AppendLiteral("://");
+    aOriginNoSuffix.Append(hostPort);
+    return NS_OK;
+  }
+
+  rv = aURI->GetAsciiSpec(aOriginNoSuffix);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // The origin, when taken from the spec, should not contain the ref part of
   // the URL.
 
-  int32_t pos = aOrigin.FindChar('?');
-  int32_t hashPos = aOrigin.FindChar('#');
+  int32_t pos = aOriginNoSuffix.FindChar('?');
+  int32_t hashPos = aOriginNoSuffix.FindChar('#');
 
   if (hashPos != kNotFound && (pos == kNotFound || hashPos < pos)) {
     pos = hashPos;
   }
 
   if (pos != kNotFound) {
-    aOrigin.Truncate(pos);
+    aOriginNoSuffix.Truncate(pos);
   }
 
   return NS_OK;
@@ -372,7 +374,7 @@ ContentPrincipal::SetDomain(nsIURI* aDomain)
 {
   mDomain = NS_TryToMakeImmutable(aDomain);
   mDomainImmutable = URIIsImmutable(mDomain);
-  mDomainSet = true;
+  SetHasExplicitDomain();
 
   // Recompute all wrappers between compartments using this principal and other
   // non-chrome compartments.
@@ -483,7 +485,11 @@ ContentPrincipal::Read(nsIObjectInputStream* aStream)
   rv = NS_ReadOptionalObject(aStream, true, getter_AddRefs(supports));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = Init(codebase, attrs);
+  nsAutoCString originNoSuffix;
+  rv = GenerateOriginNoSuffixFromURI(codebase, originNoSuffix);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = Init(codebase, attrs, originNoSuffix);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mCSP = do_QueryInterface(supports, &rv);

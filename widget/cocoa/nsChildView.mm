@@ -21,6 +21,7 @@
 #include "nsArrayUtils.h"
 #include "nsObjCExceptions.h"
 #include "nsCOMPtr.h"
+#include "nsThreadUtils.h"
 #include "nsToolkit.h"
 #include "nsCRT.h"
 
@@ -116,7 +117,7 @@ using mozilla::gfx::Matrix4x4;
 // out to the bounding-box if there are more
 #define MAX_RECTS_IN_REGION 100
 
-PRLogModuleInfo* sCocoaLog = nullptr;
+LazyLogModule sCocoaLog("nsCocoaWidgets");
 
 extern "C" {
   CG_EXTERN void CGContextResetCTM(CGContextRef);
@@ -152,6 +153,11 @@ uint32_t nsChildView::sLastInputEventCount = 0;
 static uint32_t gNumberOfWidgetsNeedingEventThread = 0;
 
 static bool sIsTabletPointerActivated = false;
+
+static uint32_t sUniqueKeyEventId = 0;
+
+static NSMutableDictionary* sNativeKeyEventsMap =
+  [NSMutableDictionary dictionary];
 
 @interface ChildView(Private)
 
@@ -201,10 +207,13 @@ static bool sIsTabletPointerActivated = false;
 #endif
 
 - (LayoutDeviceIntPoint)convertWindowCoordinates:(NSPoint)aPoint;
+- (LayoutDeviceIntPoint)convertWindowCoordinatesRoundDown:(NSPoint)aPoint;
 - (IAPZCTreeManager*)apzctm;
 
 - (BOOL)inactiveWindowAcceptsMouseEvent:(NSEvent*)aEvent;
 - (void)updateWindowDraggableState;
+
+- (bool)beginOrEndGestureForEventPhase:(NSEvent*)aEvent;
 
 - (bool)shouldConsiderStartingSwipeFromEvent:(NSEvent*)aEvent;
 
@@ -264,9 +273,6 @@ FlipCocoaScreenCoordinate(NSPoint &inPoint)
 
 void EnsureLogInitialized()
 {
-  if (!sCocoaLog) {
-    sCocoaLog = PR_NewLogModule("nsCocoaWidgets");
-  }
 }
 
 namespace {
@@ -1248,6 +1254,49 @@ static NSMenuItem* NativeMenuItemWithLocation(NSMenu* menubar, NSString* locatio
   return nil;
 }
 
+bool
+nsChildView::SendEventToNativeMenuSystem(NSEvent* aEvent)
+{
+  bool handled = false;
+  nsCocoaWindow* widget = GetXULWindowWidget();
+  if (widget) {
+    nsMenuBarX* mb = widget->GetMenuBar();
+    if (mb) {
+      // Check if main menu wants to handle the event.
+      handled = mb->PerformKeyEquivalent(aEvent);
+    }
+  }
+
+  if (!handled && sApplicationMenu) {
+    // Check if application menu wants to handle the event.
+    handled = [sApplicationMenu performKeyEquivalent:aEvent];
+  }
+
+  return handled;
+}
+
+void
+nsChildView::PostHandleKeyEvent(mozilla::WidgetKeyboardEvent* aEvent)
+{
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
+
+  // We always allow keyboard events to propagate to keyDown: but if they are
+  // not handled we give menu items a chance to act. This allows for handling of
+  // custom shortcuts. Note that existing shortcuts cannot be reassigned yet and
+  // will have been handled by keyDown: before we get here.
+  NSEvent* cocoaEvent = [sNativeKeyEventsMap objectForKey:@(aEvent->mUniqueId)];
+  if (!cocoaEvent) {
+    return;
+  }
+
+  if (SendEventToNativeMenuSystem(cocoaEvent)) {
+    aEvent->PreventDefault();
+  }
+  [sNativeKeyEventsMap removeObjectForKey:@(aEvent->mUniqueId)];
+
+  NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+
 // Used for testing native menu system structure and event handling.
 nsresult
 nsChildView::ActivateNativeMenuItemAt(const nsAString& indexString)
@@ -1371,6 +1420,14 @@ nsChildView::Invalidate(const LayoutDeviceIntRect& aRect)
 bool
 nsChildView::WidgetTypeSupportsAcceleration()
 {
+  // We need to enable acceleration in popups which contain remote layer
+  // trees, since the remote content won't be rendered at all otherwise. This
+  // causes issues with transparency and drop shadows, so it should not be
+  // used by default in release builds.
+  if (HasRemoteContent()) {
+    return true;
+  }
+
   // Don't use OpenGL for transparent windows or for popup windows.
   return mView && [[mView window] isOpaque] &&
          ![[mView window] isKindOfClass:[PopupWindow class]];
@@ -1380,8 +1437,7 @@ bool
 nsChildView::ShouldUseOffMainThreadCompositing()
 {
   // Don't use OMTC for transparent windows or for popup windows.
-  if (!mView || ![[mView window] isOpaque] ||
-      [[mView window] isKindOfClass:[PopupWindow class]])
+  if (!WidgetTypeSupportsAcceleration())
     return false;
 
   return nsBaseWidget::ShouldUseOffMainThreadCompositing();
@@ -1800,13 +1856,12 @@ nsChildView::AttachNativeKeyEvent(mozilla::WidgetKeyboardEvent& aEvent)
   return mTextInputHandler->AttachNativeKeyEvent(aEvent);
 }
 
-bool
-nsChildView::ExecuteNativeKeyBindingRemapped(NativeKeyBindingsType aType,
-                                             const WidgetKeyboardEvent& aEvent,
-                                             DoCommandCallback aCallback,
-                                             void* aCallbackData,
-                                             uint32_t aGeckoKeyCode,
-                                             uint32_t aCocoaKeyCode)
+void
+nsChildView::GetEditCommandsRemapped(NativeKeyBindingsType aType,
+                                     const WidgetKeyboardEvent& aEvent,
+                                     nsTArray<CommandInt>& aCommands,
+                                     uint32_t aGeckoKeyCode,
+                                     uint32_t aCocoaKeyCode)
 {
   NSEvent *originalEvent = reinterpret_cast<NSEvent*>(aEvent.mNativeKeyEvent);
 
@@ -1830,20 +1885,23 @@ nsChildView::ExecuteNativeKeyBindingRemapped(NativeKeyBindingsType aType,
                       keyCode:aCocoaKeyCode];
 
   NativeKeyBindings* keyBindings = NativeKeyBindings::GetInstance(aType);
-  return keyBindings->Execute(modifiedEvent, aCallback, aCallbackData);
+  keyBindings->GetEditCommands(modifiedEvent, aCommands);
 }
 
-bool
-nsChildView::ExecuteNativeKeyBinding(NativeKeyBindingsType aType,
-                                     const WidgetKeyboardEvent& aEvent,
-                                     DoCommandCallback aCallback,
-                                     void* aCallbackData)
+void
+nsChildView::GetEditCommands(NativeKeyBindingsType aType,
+                             const WidgetKeyboardEvent& aEvent,
+                             nsTArray<CommandInt>& aCommands)
 {
+  // Validate the arguments.
+  nsIWidget::GetEditCommands(aType, aEvent, aCommands);
+
   // If the key is a cursor-movement arrow, and the current selection has
   // vertical writing-mode, we'll remap so that the movement command
   // generated (in terms of characters/lines) will be appropriate for
   // the physical direction of the arrow.
   if (aEvent.mKeyCode >= NS_VK_LEFT && aEvent.mKeyCode <= NS_VK_DOWN) {
+    // XXX This may be expensive. Should use the cache in TextInputHandler.
     WidgetQueryContentEvent query(true, eQuerySelectedText, this);
     DispatchWindowEvent(query);
 
@@ -1883,14 +1941,13 @@ nsChildView::ExecuteNativeKeyBinding(NativeKeyBindingsType aType,
         break;
       }
 
-      return ExecuteNativeKeyBindingRemapped(aType, aEvent, aCallback,
-                                             aCallbackData,
-                                             geckoKey, cocoaKey);
+      GetEditCommandsRemapped(aType, aEvent, aCommands, geckoKey, cocoaKey);
+      return;
     }
   }
 
   NativeKeyBindings* keyBindings = NativeKeyBindings::GetInstance(aType);
-  return keyBindings->Execute(aEvent, aCallback, aCallbackData);
+  keyBindings->GetEditCommands(aEvent, aCommands);
 }
 
 NSView<mozView>* nsChildView::GetEditorView()
@@ -2845,14 +2902,15 @@ nsChildView::DispatchAPZWheelInputEvent(InputData& aEvent, bool aCanTriggerSwipe
   if (mAPZC) {
     uint64_t inputBlockId = 0;
     ScrollableLayerGuid guid;
+    nsEventStatus result = nsEventStatus_eIgnore;
 
-    nsEventStatus result = mAPZC->ReceiveInputEvent(aEvent, &guid, &inputBlockId);
-    if (result == nsEventStatus_eConsumeNoDefault) {
-      return;
-    }
-
-    switch(aEvent.mInputType) {
+    switch (aEvent.mInputType) {
       case PANGESTURE_INPUT: {
+        result = mAPZC->ReceiveInputEvent(aEvent, &guid, &inputBlockId);
+        if (result == nsEventStatus_eConsumeNoDefault) {
+          return;
+        }
+
         PanGestureInput& panInput = aEvent.AsPanGestureInput();
 
         event = panInput.ToWidgetWheelEvent(this);
@@ -2886,7 +2944,16 @@ nsChildView::DispatchAPZWheelInputEvent(InputData& aEvent, bool aCanTriggerSwipe
         break;
       }
       case SCROLLWHEEL_INPUT: {
+        // For wheel events on OS X, send it to APZ using the WidgetInputEvent
+        // variant of ReceiveInputEvent, because the IAPZCTreeManager version of
+        // that function has special handling (for delta multipliers etc.) that
+        // we need to run. Using the InputData variant would bypass that and
+        // go straight to the APZCTreeManager subclass.
         event = aEvent.AsScrollWheelInput().ToWidgetWheelEvent(this);
+        result = mAPZC->ReceiveInputEvent(event, &guid, &inputBlockId);
+        if (result == nsEventStatus_eConsumeNoDefault) {
+          return;
+        }
         break;
       };
       default:
@@ -2973,7 +3040,7 @@ public:
   explicit AutoBackgroundSetter(NSView* aView) {
     if (nsCocoaFeatures::OnElCapitanOrLater() &&
         [[aView window] isKindOfClass:[ToolbarWindow class]]) {
-      mWindow = (ToolbarWindow*)[aView window];
+      mWindow = [(ToolbarWindow*)[aView window] retain];
       [mWindow setTemporaryBackgroundColor];
     } else {
       mWindow = nullptr;
@@ -2983,11 +3050,12 @@ public:
   ~AutoBackgroundSetter() {
     if (mWindow) {
       [mWindow restoreBackgroundColor];
+      [mWindow release];
     }
   }
 
 private:
-  ToolbarWindow* mWindow;
+  ToolbarWindow* mWindow; // strong
 };
 
 void
@@ -4169,8 +4237,10 @@ NSEvent* gLastDragMouseDownEvent = nil;
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  if (!anEvent || !mGeckoChild)
+  if (!anEvent || !mGeckoChild ||
+      [self beginOrEndGestureForEventPhase:anEvent]) {
     return;
+  }
 
   nsAutoRetainCocoaObject kungFuDeathGrip(self);
 
@@ -4199,22 +4269,14 @@ NSEvent* gLastDragMouseDownEvent = nil;
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
-- (void)beginGestureWithEvent:(NSEvent *)anEvent
-{
-  if (!anEvent)
-    return;
-
-  mGestureState = eGestureState_StartGesture;
-  mCumulativeMagnification = 0;
-  mCumulativeRotation = 0.0;
-}
-
 - (void)magnifyWithEvent:(NSEvent *)anEvent
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  if (!anEvent || !mGeckoChild)
+  if (!anEvent || !mGeckoChild ||
+      [self beginOrEndGestureForEventPhase:anEvent]) {
     return;
+  }
 
   nsAutoRetainCocoaObject kungFuDeathGrip(self);
 
@@ -4237,16 +4299,41 @@ NSEvent* gLastDragMouseDownEvent = nil;
     return;
   }
 
-  // Setup the event.
-  WidgetSimpleGestureEvent geckoEvent(true, msg, mGeckoChild);
-  geckoEvent.mDelta = deltaZ;
-  [self convertCocoaMouseEvent:anEvent toGeckoEvent:&geckoEvent];
+  // This sends the pinch gesture value as a fake wheel event that has the
+  // control key pressed so that pages can implement custom pinch gesture
+  // handling. It may seem strange that this doesn't use a wheel event with
+  // the deltaZ property set, but this matches Chrome's behavior as described
+  // at https://code.google.com/p/chromium/issues/detail?id=289887
+  //
+  // The intent of the formula below is to produce numbers similar to Chrome's
+  // implementation of this feature. Chrome implements deltaY using the formula
+  // "-100 * log(1 + [event magnification])" which is unfortunately incorrect.
+  // All deltas for a single pinch gesture should sum to 0 if the start and end
+  // of a pinch gesture end up in the same place. This doesn't happen in Chrome
+  // because they followed Apple's misleading documentation, which implies that
+  // "1 + [event magnification]" is the scale factor. The scale factor is
+  // instead "pow(ratio, [event magnification])" so "[event magnification]" is
+  // already in log space.
+  //
+  // The multiplication by the backing scale factor below counteracts the
+  // division by the backing scale factor in WheelEvent.
+  WidgetWheelEvent geckoWheelEvent(true, EventMessage::eWheel, mGeckoChild);
+  [self convertCocoaMouseEvent:anEvent toGeckoEvent:&geckoWheelEvent];
+  double backingScale = mGeckoChild->BackingScaleFactor();
+  geckoWheelEvent.mDeltaY = -100.0 * [anEvent magnification] * backingScale;
+  geckoWheelEvent.mModifiers |= MODIFIER_CONTROL;
+  mGeckoChild->DispatchWindowEvent(geckoWheelEvent);
 
-  // Send the event.
-  mGeckoChild->DispatchWindowEvent(geckoEvent);
+  // If the fake wheel event wasn't stopped, then send a normal magnify event.
+  if (!geckoWheelEvent.mFlags.mDefaultPrevented) {
+    WidgetSimpleGestureEvent geckoEvent(true, msg, mGeckoChild);
+    geckoEvent.mDelta = deltaZ;
+    [self convertCocoaMouseEvent:anEvent toGeckoEvent:&geckoEvent];
+    mGeckoChild->DispatchWindowEvent(geckoEvent);
 
-  // Keep track of the cumulative magnification for the final "magnify" event.
-  mCumulativeMagnification += deltaZ;
+    // Keep track of the cumulative magnification for the final "magnify" event.
+    mCumulativeMagnification += deltaZ;
+  }
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
@@ -4255,7 +4342,8 @@ NSEvent* gLastDragMouseDownEvent = nil;
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  if (!anEvent || !mGeckoChild) {
+  if (!anEvent || !mGeckoChild ||
+      [self beginOrEndGestureForEventPhase:anEvent]) {
     return;
   }
 
@@ -4279,8 +4367,10 @@ NSEvent* gLastDragMouseDownEvent = nil;
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
-  if (!anEvent || !mGeckoChild)
+  if (!anEvent || !mGeckoChild ||
+      [self beginOrEndGestureForEventPhase:anEvent]) {
     return;
+  }
 
   nsAutoRetainCocoaObject kungFuDeathGrip(self);
 
@@ -4320,6 +4410,50 @@ NSEvent* gLastDragMouseDownEvent = nil;
   mCumulativeRotation += rotation;
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+
+// `beginGestureWithEvent` and `endGestureWithEvent` are not called for
+// applications that link against the macOS 10.11 or later SDK when we're
+// running on macOS 10.11 or later. For compatibility with all supported macOS
+// versions, we have to call {begin,end}GestureWithEvent ourselves based on
+// the event phase when we're handling gestures.
+- (bool)beginOrEndGestureForEventPhase:(NSEvent*)aEvent
+{
+  if (!aEvent) {
+    return false;
+  }
+
+  bool usingElCapitanOrLaterSDK = true;
+#if !defined(MAC_OS_X_VERSION_10_11) || \
+    MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_11
+  usingElCapitanOrLaterSDK = false;
+#endif
+
+  if (nsCocoaFeatures::OnElCapitanOrLater() && usingElCapitanOrLaterSDK) {
+    if (aEvent.phase == NSEventPhaseBegan) {
+      [self beginGestureWithEvent:aEvent];
+      return true;
+    }
+
+    if (aEvent.phase == NSEventPhaseEnded ||
+        aEvent.phase == NSEventPhaseCancelled) {
+      [self endGestureWithEvent:aEvent];
+      return true;
+    }
+  }
+
+  return false;
+}
+
+- (void)beginGestureWithEvent:(NSEvent*)aEvent
+{
+  if (!aEvent) {
+    return;
+  }
+
+  mGestureState = eGestureState_StartGesture;
+  mCumulativeMagnification = 0;
+  mCumulativeRotation = 0.0;
 }
 
 - (void)endGestureWithEvent:(NSEvent *)anEvent
@@ -4831,16 +4965,20 @@ AccumulateIntegerDelta(NSEvent* aEvent)
 static gfx::IntPoint
 GetIntegerDeltaForEvent(NSEvent* aEvent)
 {
-  if (nsCocoaFeatures::OnSierraOrLater()) {
+  if (nsCocoaFeatures::OnSierraOrLater() && [aEvent hasPreciseScrollingDeltas]) {
+    // Pixel scroll events (events with hasPreciseScrollingDeltas == YES)
+    // carry pixel deltas in the scrollingDeltaX/Y fields and line scroll
+    // information in the deltaX/Y fields.
+    // Prior to 10.12, these line scroll fields would be zero for most pixel
+    // scroll events and non-zero for some, whenever at least a full line
+    // worth of pixel scrolling had accumulated. That's the behavior we want.
+    // Starting with 10.12 however, pixel scroll events no longer accumulate
+    // deltaX and deltaY; they just report floating point values for every
+    // single event. So we need to do our own accumulation.
     return AccumulateIntegerDelta(aEvent);
   }
 
-  // Pre-10.12, deltaX/deltaY had the accumulation behavior that we want, and
-  // it worked more reliably than doing it on our own, so use it on pre-10.12
-  // versions. For example, with a traditional USB mouse, the first wheel
-  // "tick" would always senda line scroll of at least one line, but with our
-  // own accumulation you sometimes need to do multiple wheel ticks before one
-  // line has been accumulated.
+  // For line scrolls, or pre-10.12, just use the rounded up value of deltaX / deltaY.
   return gfx::IntPoint(RoundUp([aEvent deltaX]), RoundUp([aEvent deltaY]));
 }
 
@@ -4888,8 +5026,12 @@ GetIntegerDeltaForEvent(NSEvent* aEvent)
 
   NSPoint locationInWindow = nsCocoaUtils::EventLocationForWindow(theEvent, [self window]);
 
+  // Use convertWindowCoordinatesRoundDown when converting the position to
+  // integer screen pixels in order to ensure that coordinates which are just
+  // inside the right / bottom edges of the window don't end up outside of the
+  // window after rounding.
   ScreenPoint position = ViewAs<ScreenPixel>(
-    [self convertWindowCoordinates:locationInWindow],
+    [self convertWindowCoordinatesRoundDown:locationInWindow],
     PixelCastJustification::LayoutDeviceIsScreenForUntransformedEvent);
 
   bool usePreciseDeltas = nsCocoaUtils::HasPreciseScrollingDeltas(theEvent) &&
@@ -5463,15 +5605,20 @@ GetIntegerDeltaForEvent(NSEvent* aEvent)
 #endif // #if !defined(RELEASE_OR_BETA) || defined(DEBUG)
 
   nsAutoRetainCocoaObject kungFuDeathGrip(self);
-  bool handled = false;
-  if (mGeckoChild && mTextInputHandler) {
-    handled = mTextInputHandler->HandleKeyDownEvent(theEvent);
-  }
-
-  // We always allow keyboard events to propagate to keyDown: but if they are not
-  // handled we give special Application menu items a chance to act.
-  if (!handled && sApplicationMenu) {
-    [sApplicationMenu performKeyEquivalent:theEvent];
+  if (mGeckoChild) {
+    if (mTextInputHandler) {
+      sUniqueKeyEventId++;
+      [sNativeKeyEventsMap setObject:theEvent forKey:@(sUniqueKeyEventId)];
+      // Purge old native events, in case we're still holding on to them. We
+      // keep at most 10 references to 10 different native events.
+      [sNativeKeyEventsMap removeObjectForKey:@(sUniqueKeyEventId - 10)];
+      mTextInputHandler->HandleKeyDownEvent(theEvent, sUniqueKeyEventId);
+    } else {
+      // There was no text input handler. Offer the event to the native menu
+      // system to check if there are any registered custom shortcuts for this
+      // event.
+      mGeckoChild->SendEventToNativeMenuSystem(theEvent);
+    }
   }
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
@@ -5493,9 +5640,7 @@ GetIntegerDeltaForEvent(NSEvent* aEvent)
 - (void)insertNewline:(id)sender
 {
   if (mTextInputHandler) {
-    NSAttributedString *attrStr = [[NSAttributedString alloc] initWithString:@"\n"];
-    mTextInputHandler->InsertText(attrStr);
-    [attrStr release];
+    mTextInputHandler->InsertNewline();
   }
 }
 
@@ -5644,6 +5789,16 @@ GetIntegerDeltaForEvent(NSEvent* aEvent)
 
   NSPoint localPoint = [self convertPoint:aPoint fromView:nil];
   return mGeckoChild->CocoaPointsToDevPixels(localPoint);
+}
+
+- (LayoutDeviceIntPoint)convertWindowCoordinatesRoundDown:(NSPoint)aPoint
+{
+  if (!mGeckoChild) {
+    return LayoutDeviceIntPoint(0, 0);
+  }
+
+  NSPoint localPoint = [self convertPoint:aPoint fromView:nil];
+  return mGeckoChild->CocoaPointsToDevPixelsRoundDown(localPoint);
 }
 
 - (IAPZCTreeManager*)apzctm
@@ -6392,6 +6547,10 @@ nsChildView::GetSelectionAsPlaintext(nsAString& aResult)
 
 #endif /* ACCESSIBILITY */
 
++ (uint32_t)sUniqueKeyEventId { return sUniqueKeyEventId; }
+
++ (NSMutableDictionary*)sNativeKeyEventsMap { return sNativeKeyEventsMap; }
+
 @end
 
 #pragma mark -
@@ -6609,7 +6768,7 @@ HandleEvent(CGEventTapProxy aProxy, CGEventType aType,
 {
   char aLocal;
   profiler_register_thread("APZC Event Thread", &aLocal);
-  PR_SetCurrentThreadName("APZC Event Thread");
+  NS_SetCurrentThreadName("APZC Event Thread");
 
   mThread = [NSThread currentThread];
   ProcessSerialNumber currentProcess;

@@ -23,6 +23,7 @@ JOB_NAME_WHITELIST = set([
     'android-x86-opt',
     'browser-haz-debug',
     'linux-debug',
+    'linux-devedition',
     'linux-opt',
     'linux-pgo',
     'linux-qr-debug',
@@ -34,11 +35,10 @@ JOB_NAME_WHITELIST = set([
     'linux64-ccov-opt',
     'linux64-clang-tidy',
     'linux64-debug',
+    'linux64-devedition',
     'linux64-jsdcov-opt',
     'linux64-opt',
     'linux64-pgo',
-    'linux64-qr-debug',
-    'linux64-qr-opt',
     'linux64-st-an-debug',
     'linux64-st-an-opt',
     'linux64-stylo-debug',
@@ -84,6 +84,8 @@ JOB_NAME_WHITELIST = set([
     'win64-st-an-opt',
     'win64-qr-debug',
     'win64-qr-opt',
+    'win64-asan-debug',
+    'win64-asan-opt',
 ])
 
 JOB_NAME_WHITELIST_ERROR = """\

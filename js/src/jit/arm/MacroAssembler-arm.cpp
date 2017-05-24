@@ -4980,6 +4980,13 @@ MacroAssembler::Pop(const ValueOperand& val)
     adjustFrame(-sizeof(Value));
 }
 
+void
+MacroAssembler::PopStackPtr()
+{
+    as_dtr(IsLoad, 32, Offset, sp, DTRAddr(sp, DtrOffImm(0)));
+    adjustFrame(-sizeof(intptr_t));
+}
+
 // ===============================================================
 // Simple call functions.
 
@@ -5179,6 +5186,7 @@ MacroAssembler::popReturnAddress()
 void
 MacroAssembler::setupUnalignedABICall(Register scratch)
 {
+    MOZ_ASSERT(!IsCompilingWasm(), "wasm should only use aligned ABI calls");
     setupABICall();
     dynamicAlignment_ = true;
 
@@ -5227,29 +5235,28 @@ MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm)
 }
 
 void
-MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result)
+MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result, bool callFromWasm)
 {
     if (secondScratchReg_ != lr)
         ma_mov(secondScratchReg_, lr);
 
-    switch (result) {
-      case MoveOp::DOUBLE:
-        if (!UseHardFpABI()) {
+    // Calls to native functions in wasm pass through a thunk which already
+    // fixes up the return value for us.
+    if (!callFromWasm && !UseHardFpABI()) {
+        switch (result) {
+          case MoveOp::DOUBLE:
             // Move double from r0/r1 to ReturnFloatReg.
             ma_vxfer(r0, r1, ReturnDoubleReg);
-        }
-        break;
-      case MoveOp::FLOAT32:
-        if (!UseHardFpABI()) {
+            break;
+          case MoveOp::FLOAT32:
             // Move float32 from r0 to ReturnFloatReg.
-            ma_vxfer(r0, ReturnFloat32Reg.singleOverlay());
+            ma_vxfer(r0, ReturnFloat32Reg);
+            break;
+          case MoveOp::GENERAL:
+            break;
+          default:
+            MOZ_CRASH("unexpected callWithABI result");
         }
-        break;
-      case MoveOp::GENERAL:
-        break;
-
-      default:
-        MOZ_CRASH("unexpected callWithABI result");
     }
 
     freeStack(stackAdjust);
@@ -5580,7 +5587,7 @@ MacroAssemblerARM::wasmTruncateToInt32(FloatRegister input, Register output, MIR
 void
 MacroAssemblerARM::outOfLineWasmTruncateToIntCheck(FloatRegister input, MIRType fromType,
                                                    MIRType toType, bool isUnsigned, Label* rejoin,
-                                                   wasm::TrapOffset trapOffset)
+                                                   wasm::BytecodeOffset trapOffset)
 {
     ScratchDoubleScope scratchScope(asMasm());
     FloatRegister scratch;

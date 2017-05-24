@@ -7,13 +7,13 @@ registerCleanupFunction(function() {
     gBrowser.removeTab(gBrowser.tabs[1]);
 });
 
-add_task(function*() {
-  let prefs = yield openPreferencesViaOpenPreferencesAPI("paneContent", undefined, {leaveOpen: true});
-  is(prefs.selectedPane, "paneContent", "Content pane was selected");
+add_task(async function() {
+  let prefs = await openPreferencesViaOpenPreferencesAPI("panePrivacy", {leaveOpen: true});
+  is(prefs.selectedPane, "panePrivacy", "Privacy pane was selected");
 
   let doc = gBrowser.contentDocument;
-  let notificationsDoNotDisturbRow = doc.getElementById("notificationsDoNotDisturbRow");
-  if (notificationsDoNotDisturbRow.hidden) {
+  let notificationsDoNotDisturbBox = doc.getElementById("notificationsDoNotDisturbBox");
+  if (notificationsDoNotDisturbBox.hidden) {
     todo(false, "Do not disturb is not available on this platform");
     return;
   }
@@ -34,11 +34,11 @@ add_task(function*() {
 
   let checkboxChanged = waitForEvent(checkbox, "command")
   checkbox.click();
-  yield checkboxChanged;
+  await checkboxChanged;
   ok(alertService.manualDoNotDisturb, "Do not disturb should be enabled when checked");
 
   checkboxChanged = waitForEvent(checkbox, "command")
   checkbox.click();
-  yield checkboxChanged;
+  await checkboxChanged;
   ok(!alertService.manualDoNotDisturb, "Do not disturb should be disabled when unchecked");
 });

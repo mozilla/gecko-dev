@@ -89,6 +89,7 @@ using mozilla::Unused;
 typedef Vector<uint32_t, 0, SystemAllocPolicy> Uint32Vector;
 typedef Vector<uint8_t, 0, SystemAllocPolicy> Bytes;
 typedef UniquePtr<Bytes> UniqueBytes;
+typedef UniquePtr<const Bytes> UniqueConstBytes;
 typedef Vector<char, 0, SystemAllocPolicy> UTF8Bytes;
 
 typedef int8_t I8x16[16];
@@ -97,7 +98,8 @@ typedef int32_t I32x4[4];
 typedef float F32x4[4];
 
 class Code;
-class CodeRange;
+class DebugState;
+class GeneratedSourceMap;
 class GlobalSegment;
 class Memory;
 class Module;
@@ -820,6 +822,124 @@ struct FuncOffsets : CallableOffsets
     }
 };
 
+// A CodeRange describes a single contiguous range of code within a wasm
+// module's code segment. A CodeRange describes what the code does and, for
+// function bodies, the name and source coordinates of the function.
+
+class CodeRange
+{
+  public:
+    enum Kind {
+        Function,          // function definition
+        Entry,             // calls into wasm from C++
+        ImportJitExit,     // fast-path calling from wasm into JIT code
+        ImportInterpExit,  // slow-path calling from wasm into C++ interp
+        BuiltinThunk,      // fast-path calling from wasm into a C++ native
+        TrapExit,          // calls C++ to report and jumps to throw stub
+        DebugTrap,         // calls C++ to handle debug event
+        FarJumpIsland,     // inserted to connect otherwise out-of-range insns
+        Inline,            // stub that is jumped-to within prologue/epilogue
+        Throw,             // special stack-unwinding stub
+        Interrupt          // stub executes asynchronously to interrupt wasm
+    };
+
+  private:
+    // All fields are treated as cacheable POD:
+    uint32_t begin_;
+    uint32_t ret_;
+    uint32_t end_;
+    uint32_t funcIndex_;
+    uint32_t funcLineOrBytecode_;
+    uint8_t funcBeginToNormalEntry_;
+    Kind kind_ : 8;
+
+  public:
+    CodeRange() = default;
+    CodeRange(Kind kind, Offsets offsets);
+    CodeRange(Kind kind, CallableOffsets offsets);
+    CodeRange(uint32_t funcIndex, uint32_t lineOrBytecode, FuncOffsets offsets);
+
+    // All CodeRanges have a begin and end.
+
+    uint32_t begin() const {
+        return begin_;
+    }
+    uint32_t end() const {
+        return end_;
+    }
+
+    // Other fields are only available for certain CodeRange::Kinds.
+
+    Kind kind() const {
+        return kind_;
+    }
+
+    bool isFunction() const {
+        return kind() == Function;
+    }
+    bool isImportExit() const {
+        return kind() == ImportJitExit || kind() == ImportInterpExit || kind() == BuiltinThunk;
+    }
+    bool isTrapExit() const {
+        return kind() == TrapExit;
+    }
+    bool isInline() const {
+        return kind() == Inline;
+    }
+    bool isThunk() const {
+        return kind() == FarJumpIsland;
+    }
+
+    // Every CodeRange except entry and inline stubs are callable and have a
+    // return statement. Asynchronous frame iteration needs to know the offset
+    // of the return instruction to calculate the frame pointer.
+
+    uint32_t ret() const {
+        MOZ_ASSERT(isFunction() || isImportExit() || isTrapExit());
+        return ret_;
+    }
+
+    // Function CodeRanges have two entry points: one for normal calls (with a
+    // known signature) and one for table calls (which involves dynamic
+    // signature checking).
+
+    uint32_t funcTableEntry() const {
+        MOZ_ASSERT(isFunction());
+        return begin_;
+    }
+    uint32_t funcNormalEntry() const {
+        MOZ_ASSERT(isFunction());
+        return begin_ + funcBeginToNormalEntry_;
+    }
+    uint32_t funcIndex() const {
+        MOZ_ASSERT(isFunction());
+        return funcIndex_;
+    }
+    uint32_t funcLineOrBytecode() const {
+        MOZ_ASSERT(isFunction());
+        return funcLineOrBytecode_;
+    }
+
+    // A sorted array of CodeRanges can be looked up via BinarySearch and
+    // OffsetInCode.
+
+    struct OffsetInCode {
+        size_t offset;
+        explicit OffsetInCode(size_t offset) : offset(offset) {}
+        bool operator==(const CodeRange& rhs) const {
+            return offset >= rhs.begin() && offset < rhs.end();
+        }
+        bool operator<(const CodeRange& rhs) const {
+            return offset < rhs.begin();
+        }
+    };
+};
+
+WASM_DECLARE_POD_VECTOR(CodeRange, CodeRangeVector)
+
+extern const CodeRange*
+LookupInSorted(const CodeRangeVector& codeRanges, CodeRange::OffsetInCode target);
+
 // A wasm::Trap represents a wasm-defined trap that can occur during execution
 // which triggers a WebAssembly.RuntimeError. Generated code may jump to a Trap
 // symbolically, passing the bytecode offset to report as the trap offset. The
@@ -855,15 +975,19 @@ enum class Trap
 };
 
 // A wrapper around the bytecode offset of a wasm instruction within a whole
-// module. Trap offsets should refer to the first byte of the instruction that
-// triggered the trap and should ultimately derive from OpIter::trapOffset.
+// module, used for trap offsets or call offsets. These offsets should refer to
+// the first byte of the instruction that triggered the trap / did the call and
+// should ultimately derive from OpIter::bytecodeOffset.
 
-struct TrapOffset
+struct BytecodeOffset
 {
+    static const uint32_t INVALID = -1;
     uint32_t bytecodeOffset;
 
-    TrapOffset() = default;
-    explicit TrapOffset(uint32_t bytecodeOffset) : bytecodeOffset(bytecodeOffset) {}
+    BytecodeOffset() : bytecodeOffset(INVALID) {}
+    explicit BytecodeOffset(uint32_t bytecodeOffset) : bytecodeOffset(bytecodeOffset) {}
+
+    bool isValid() const { return bytecodeOffset != INVALID; }
 };
 
 // While the frame-pointer chain allows the stack to be unwound without
@@ -878,9 +1002,9 @@ class CallSiteDesc
     uint32_t kind_ : 3;
   public:
     enum Kind {
-        Func,      // pc-relative call to a specific function
-        Dynamic,   // dynamic callee called via register
-        Symbolic,  // call to a single symbolic callee
+        Func,       // pc-relative call to a specific function
+        Dynamic,    // dynamic callee called via register
+        Symbolic,   // call to a single symbolic callee
         TrapExit,   // call to a trap exit
         EnterFrame, // call to a enter frame handler
         LeaveFrame, // call to a leave frame handler
@@ -1019,9 +1143,6 @@ enum class SymbolicAddress
 bool
 IsRoundingFunction(SymbolicAddress callee, jit::RoundingMode* mode);
 
-void*
-AddressOf(SymbolicAddress imm);
-
 // Assumptions captures ambient state that must be the same when compiling and
 // deserializing a module for the compiled code to be valid. If it's not, then
 // the module must be recompiled from scratch.
@@ -1055,6 +1176,14 @@ enum ModuleKind
 {
     Wasm,
     AsmJS
+};
+
+// Code can be compiled either with the Baseline compiler or the Ion compiler.
+
+enum class CompileMode
+{
+    Baseline,
+    Ion
 };
 
 // Represents the resizable limits of memories and tables.
@@ -1446,20 +1575,27 @@ class MemoryAccess
 
 WASM_DECLARE_POD_VECTOR(MemoryAccess, MemoryAccessVector)
 
-// As an invariant across architectures, within wasm code:
-//   $sp % WasmStackAlignment = (sizeof(wasm::Frame) + masm.framePushed) % WasmStackAlignment
-// Thus, wasm::Frame represents the bytes pushed after the call (which occurred
-// with a WasmStackAlignment-aligned StackPointer) that are not included in
-// masm.framePushed.
+// wasm::Frame represents the bytes pushed by the call instruction and the fixed
+// prologue generated by wasm::GenerateCallablePrologue.
+//
+// Across all architectures it is assumed that, before the call instruction, the
+// stack pointer is WasmStackAlignment-aligned. Thus after the prologue, and
+// before the function has made its stack reservation, the stack alignment is
+// sizeof(Frame) % WasmStackAlignment.
+//
+// During MacroAssembler code generation, the bytes pushed after the wasm::Frame
+// are counted by masm.framePushed. Thus, the stack alignment at any point in
+// time is (sizeof(wasm::Frame) + masm.framePushed) % WasmStackAlignment.
 
 struct Frame
 {
+    // The caller's Frame*. See GenerateCallableEpilogue for why this must be
+    // the first field of wasm::Frame (in a downward-growing stack).
+    Frame* callerFP;
+
     // The saved value of WasmTlsReg on entry to the function. This is
     // effectively the callee's instance.
     TlsData* tls;
-
-    // The caller's Frame*.
-    uint8_t* callerFP;
 
     // The return address pushed by the call (in the case of ARM/MIPS the return
     // address is pushed by the first instruction of the prologue).
@@ -1512,7 +1648,9 @@ class DebugFrame
 
     // Padding so that DebugFrame has Alignment.
 #if JS_BITS_PER_WORD == 32
+  protected: // suppress clang's -Wunused-private-field warning-as-error
     void* padding_;
+  private:
 #endif
 
     // The Frame goes at the end since the stack grows down.

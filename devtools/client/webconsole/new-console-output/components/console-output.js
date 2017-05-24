@@ -30,6 +30,7 @@ const ConsoleOutput = createClass({
     serviceContainer: PropTypes.shape({
       attachRefToHud: PropTypes.func.isRequired,
       openContextMenu: PropTypes.func.isRequired,
+      sourceMapService: PropTypes.object,
     }),
     autoscroll: PropTypes.bool.isRequired,
     dispatch: PropTypes.func.isRequired,
@@ -39,7 +40,11 @@ const ConsoleOutput = createClass({
   },
 
   componentDidMount() {
-    scrollToBottom(this.outputNode);
+    // Do the scrolling in the nextTick since this could hit console startup performances.
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1355869
+    setTimeout(() => {
+      scrollToBottom(this.outputNode);
+    }, 0);
     this.props.serviceContainer.attachRefToHud("outputScroller", this.outputNode);
   },
 
@@ -97,19 +102,14 @@ const ConsoleOutput = createClass({
           tableData: messagesTableData.get(message.id),
           autoscroll,
           indent: parentGroups.length,
+          timestampsVisible,
         })
       );
     });
 
-    let classList = ["webconsole-output"];
-
-    if (!timestampsVisible) {
-      classList.push("hideTimestamps");
-    }
-
     return (
       dom.div({
-        className: classList.join(" "),
+        className: "webconsole-output",
         onContextMenu: this.onContextMenu,
         ref: node => {
           this.outputNode = node;

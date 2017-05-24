@@ -6,6 +6,7 @@
 
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 
@@ -109,7 +110,9 @@ var wrapper = {
     this.iframe.QueryInterface(Ci.nsIFrameLoaderOwner);
     let docShell = this.iframe.frameLoader.docShell;
     docShell.QueryInterface(Ci.nsIWebProgress);
-    docShell.addProgressListener(this.iframeListener, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
+    docShell.addProgressListener(this.iframeListener,
+                                 Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT |
+                                 Ci.nsIWebProgress.NOTIFY_LOCATION);
     iframe.addEventListener("load", this);
 
     // Ideally we'd just merge urlParams with new URL(url).searchParams, but our
@@ -166,10 +169,6 @@ var wrapper = {
         setErrorPage("networkError");
       }
     },
-
-    onProgressChange() {},
-    onStatusChange() {},
-    onSecurityChange() {},
   },
 
   handleEvent(evt) {
@@ -501,7 +500,7 @@ function initObservers() {
   }
 
   for (let topic of OBSERVER_TOPICS) {
-    Services.obs.addObserver(observe, topic, false);
+    Services.obs.addObserver(observe, topic);
   }
   window.addEventListener("unload", function(event) {
     log("about:accounts unloading")

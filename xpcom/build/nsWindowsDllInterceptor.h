@@ -332,6 +332,26 @@ public:
 private:
   static byteptr_t ResolveRedirectedAddress(const byteptr_t aOriginalFunction)
   {
+    // If function entry is jmp rel8 stub to the internal implementation, we
+    // resolve redirected address from the jump target.
+    if (aOriginalFunction[0] == 0xeb) {
+      int8_t offset = (int8_t)(aOriginalFunction[1]);
+      if (offset <= 0) {
+        // Bail out for negative offset: probably already patched by some
+        // third-party code.
+        return aOriginalFunction;
+      }
+
+      for (int8_t i = 0; i < offset; i++) {
+        if (aOriginalFunction[2 + i] != 0x90) {
+          // Bail out on insufficient nop space.
+          return aOriginalFunction;
+        }
+      }
+
+      return aOriginalFunction + 2 + offset;
+    }
+
     // If function entry is jmp [disp32] such as used by kernel32,
     // we resolve redirected address from import table.
     if (aOriginalFunction[0] == 0xff && aOriginalFunction[1] == 0x25) {
@@ -1042,6 +1062,47 @@ protected:
           MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");
           return;
         }
+      } else if (origBytes[nOrigBytes] == 0x80 &&
+                 origBytes[nOrigBytes + 1] == 0x3d) {
+        // cmp byte ptr [rip-relative address], imm8
+        // We'll compute the absolute address and do the cmp in r11
+
+        // push r11 (to save the old value)
+        tramp[nTrampBytes] = 0x49;
+        ++nTrampBytes;
+        tramp[nTrampBytes] = 0x53;
+        ++nTrampBytes;
+
+        byteptr_t absAddr =
+          reinterpret_cast<byteptr_t>(origBytes + nOrigBytes + 7 +
+                                      *reinterpret_cast<int32_t*>(origBytes + nOrigBytes + 2));
+        nOrigBytes += 6;
+
+        // mov r11, absolute address
+        tramp[nTrampBytes] = 0x49;
+        ++nTrampBytes;
+        tramp[nTrampBytes] = 0xbb;
+        ++nTrampBytes;
+
+        *reinterpret_cast<byteptr_t*>(tramp + nTrampBytes) = absAddr;
+        nTrampBytes += 8;
+
+        // cmp byte ptr [r11],...
+        tramp[nTrampBytes] = 0x41;
+        ++nTrampBytes;
+        tramp[nTrampBytes] = 0x80;
+        ++nTrampBytes;
+        tramp[nTrampBytes] = 0x3b;
+        ++nTrampBytes;
+
+        // ...imm8
+        COPY_CODES(1);
+
+        // pop r11 (doesn't affect the flags from the cmp)
+        tramp[nTrampBytes] = 0x49;
+        ++nTrampBytes;
+        tramp[nTrampBytes] = 0x5b;
+        ++nTrampBytes;
       } else if (origBytes[nOrigBytes] == 0x90) {
         // nop
         COPY_CODES(1);
@@ -1085,19 +1146,18 @@ protected:
         nTrampBytes = jump.GenerateJump(tramp);
         nOrigBytes += 5;
       } else if (origBytes[nOrigBytes] == 0xff) {
-        COPY_CODES(1);
-        if ((origBytes[nOrigBytes] & (kMaskMod|kMaskReg)) == 0xf0) {
+        if ((origBytes[nOrigBytes + 1] & (kMaskMod|kMaskReg)) == 0xf0) {
           // push r64
-          COPY_CODES(1);
-        } else if (origBytes[nOrigBytes] == 0x25) {
+          COPY_CODES(2);
+        } else if (origBytes[nOrigBytes + 1] == 0x25) {
           // jmp absolute indirect m32
           foundJmp = true;
-          int32_t offset = *(reinterpret_cast<int32_t*>(origBytes + nOrigBytes + 1));
-          int64_t* ptrToJmpDest = reinterpret_cast<int64_t*>(origBytes + nOrigBytes + 5 + offset);
+          int32_t offset = *(reinterpret_cast<int32_t*>(origBytes + nOrigBytes + 2));
+          int64_t* ptrToJmpDest = reinterpret_cast<int64_t*>(origBytes + nOrigBytes + 6 + offset);
           intptr_t jmpDest = static_cast<intptr_t>(*ptrToJmpDest);
           JumpPatch jump(nTrampBytes, jmpDest, JumpType::Jmp);
           nTrampBytes = jump.GenerateJump(tramp);
-          nOrigBytes += 5;
+          nOrigBytes += 6;
         } else {
           MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");
           return;
@@ -1184,6 +1244,26 @@ protected:
 
   static void* ResolveRedirectedAddress(const byteptr_t aOriginalFunction)
   {
+    // If function entry is jmp rel8 stub to the internal implementation, we
+    // resolve redirected address from the jump target.
+    if (aOriginalFunction[0] == 0xeb) {
+      int8_t offset = (int8_t)(aOriginalFunction[1]);
+      if (offset <= 0) {
+        // Bail out for negative offset: probably already patched by some
+        // third-party code.
+        return aOriginalFunction;
+      }
+
+      for (int8_t i = 0; i < offset; i++) {
+        if (aOriginalFunction[2 + i] != 0x90) {
+          // Bail out on insufficient nop space.
+          return aOriginalFunction;
+        }
+      }
+
+      return aOriginalFunction + 2 + offset;
+    }
+
 #if defined(_M_IX86)
     // If function entry is jmp [disp32] such as used by kernel32,
     // we resolve redirected address from import table.

@@ -14,8 +14,6 @@
 namespace mozilla {
 namespace dom {
 
-#define TABLE_ATTRS_DIRTY ((nsMappedAttributes*)0x1)
-
 class TableRowsCollection;
 
 class HTMLTableElement final : public nsGenericHTMLElement
@@ -191,7 +189,8 @@ public:
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
@@ -208,7 +207,9 @@ public:
    * Called when an attribute has just been changed
    */
   virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify) override;
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                bool aNotify) override;
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLTableElement,
                                            nsGenericHTMLElement)
@@ -232,8 +233,6 @@ protected:
 
   RefPtr<nsContentList> mTBodies;
   RefPtr<TableRowsCollection> mRows;
-  // Sentinel value of TABLE_ATTRS_DIRTY indicates that this is dirty and needs
-  // to be recalculated.
   nsMappedAttributes *mTableInheritedAttributes;
   void BuildInheritedAttributes();
   void ReleaseInheritedAttributes();

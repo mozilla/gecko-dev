@@ -444,10 +444,19 @@ WinUtils::Initialize()
   if (IsWin10OrLater()) {
     HMODULE user32Dll = ::GetModuleHandleW(L"user32");
     if (user32Dll) {
-      sEnableNonClientDpiScaling = (EnableNonClientDpiScalingProc)
-        ::GetProcAddress(user32Dll, "EnableNonClientDpiScaling");
-      sSetThreadDpiAwarenessContext = (SetThreadDpiAwarenessContextProc)
-        ::GetProcAddress(user32Dll, "SetThreadDpiAwarenessContext");
+      auto getThreadDpiAwarenessContext = (decltype(GetThreadDpiAwarenessContext)*)
+        ::GetProcAddress(user32Dll, "GetThreadDpiAwarenessContext");
+      auto areDpiAwarenessContextsEqual = (decltype(AreDpiAwarenessContextsEqual)*)
+        ::GetProcAddress(user32Dll, "AreDpiAwarenessContextsEqual");
+      if (getThreadDpiAwarenessContext && areDpiAwarenessContextsEqual &&
+          areDpiAwarenessContextsEqual(getThreadDpiAwarenessContext(),
+                                       DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)) {
+        // Only per-monitor v1 requires these workarounds.
+        sEnableNonClientDpiScaling = (EnableNonClientDpiScalingProc)
+          ::GetProcAddress(user32Dll, "EnableNonClientDpiScaling");
+        sSetThreadDpiAwarenessContext = (SetThreadDpiAwarenessContextProc)
+          ::GetProcAddress(user32Dll, "SetThreadDpiAwarenessContext");
+      }
     }
   }
 
@@ -463,7 +472,7 @@ LRESULT WINAPI
 WinUtils::NonClientDpiScalingDefWindowProcW(HWND hWnd, UINT msg,
                                             WPARAM wParam, LPARAM lParam)
 {
-  if (msg == WM_NCCREATE && sEnableNonClientDpiScaling) {
+  if (msg == WM_NCCREATE) {
     sEnableNonClientDpiScaling(hWnd);
   }
   return ::DefWindowProcW(hWnd, msg, wParam, lParam);
@@ -1229,7 +1238,8 @@ NS_IMETHODIMP
 AsyncFaviconDataReady::OnComplete(nsIURI *aFaviconURI,
                                   uint32_t aDataLen,
                                   const uint8_t *aData, 
-                                  const nsACString &aMimeType)
+                                  const nsACString &aMimeType,
+                                  uint16_t aWidth)
 {
   if (!aDataLen || !aData) {
     if (mURLShortcut) {
@@ -1657,7 +1667,7 @@ nsresult
                                                aIOThread, 
                                                aURLShortcut);
 
-  favIconSvc->GetFaviconDataForPage(aFaviconPageURI, callback);
+  favIconSvc->GetFaviconDataForPage(aFaviconPageURI, callback, 0);
 #endif
   return NS_OK;
 }

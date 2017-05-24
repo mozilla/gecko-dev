@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsASCIIMask.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/double-conversion.h"
 #include "mozilla/MemoryReporting.h"
@@ -21,6 +22,8 @@ nsTSubstring_CharT::nsTSubstring_CharT(char_type* aData, size_type aLength,
                                        uint32_t aFlags)
   : nsTStringRepr_CharT(aData, aLength, aFlags)
 {
+  MOZ_RELEASE_ASSERT(CheckCapacity(aLength), "String is too large.");
+
   if (aFlags & F_OWNED) {
     STRING_STAT_INCREMENT(Adopt);
     MOZ_LOG_CTOR(mData, "StringAdopt", 1);
@@ -881,7 +884,8 @@ nsTStringRepr_CharT::FindChar(char_type aChar, index_type aOffset) const
 void
 nsTSubstring_CharT::StripChar(char_type aChar, int32_t aOffset)
 {
-  if (mLength == 0 || aOffset >= int32_t(mLength)) {
+  // Note that this implicitly guarantees mLength > 0
+  if (aOffset >= int32_t(mLength)) {
     return;
   }
 
@@ -908,6 +912,7 @@ nsTSubstring_CharT::StripChar(char_type aChar, int32_t aOffset)
 void
 nsTSubstring_CharT::StripChars(const char_type* aChars, uint32_t aOffset)
 {
+  // Note that this implicitly guarantees mLength > 0
   if (aOffset >= uint32_t(mLength)) {
     return;
   }
@@ -935,6 +940,45 @@ nsTSubstring_CharT::StripChars(const char_type* aChars, uint32_t aOffset)
   }
   *to = char_type(0); // add the null
   mLength = to - mData;
+}
+
+void
+nsTSubstring_CharT::StripTaggedASCII(const ASCIIMaskArray& aToStrip,
+                                     uint32_t aOffset)
+{
+  // Note that this implicitly guarantees mLength > 0
+  if (aOffset >= uint32_t(mLength)) {
+    return;
+  }
+
+  if (!EnsureMutable()) {
+    AllocFailed(mLength);
+  }
+
+  char_type* to   = mData + aOffset;
+  char_type* from = mData + aOffset;
+  char_type* end  = mData + mLength;
+
+  while (from < end) {
+    uint32_t theChar = (uint32_t)*from++;
+    // Replacing this with a call to ASCIIMask::IsMasked
+    // regresses performance somewhat, so leaving it inlined.
+    if (!mozilla::ASCIIMask::IsMasked(aToStrip, theChar)) {
+      // Not stripped, copy this char.
+      *to++ = (char_type)theChar;
+    }
+  }
+  *to = char_type(0); // add the null
+  mLength = to - mData;
+}
+
+void
+nsTSubstring_CharT::StripCRLF(uint32_t aOffset)
+{
+  // Expanding this call to copy the code from StripTaggedASCII
+  // instead of just calling it does somewhat help with performance
+  // but it is not worth it given the duplicated code.
+  StripTaggedASCII(mozilla::ASCIIMask::MaskCRLF(), aOffset);
 }
 
 struct MOZ_STACK_CLASS PrintfAppend_CharT : public mozilla::PrintfTarget

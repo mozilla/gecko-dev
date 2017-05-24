@@ -27,64 +27,28 @@
 #define BORDER_RIGHT     2
 #define BORDER_BOTTOM    3
 
+// Border styles as defined in webrender_traits/types.rs
+#define BORDER_STYLE_NONE         0
+#define BORDER_STYLE_SOLID        1
+#define BORDER_STYLE_DOUBLE       2
+#define BORDER_STYLE_DOTTED       3
+#define BORDER_STYLE_DASHED       4
+#define BORDER_STYLE_HIDDEN       5
+#define BORDER_STYLE_GROOVE       6
+#define BORDER_STYLE_RIDGE        7
+#define BORDER_STYLE_INSET        8
+#define BORDER_STYLE_OUTSET       9
+
 #define UV_NORMALIZED    uint(0)
 #define UV_PIXEL         uint(1)
 
 #define EXTEND_MODE_CLAMP  0
 #define EXTEND_MODE_REPEAT 1
 
-uniform sampler2DArray sCache;
+uniform sampler2DArray sCacheA8;
+uniform sampler2DArray sCacheRGBA8;
 
-flat varying vec4 vClipMaskUvBounds;
-varying vec3 vClipMaskUv;
-
-#ifdef WR_VERTEX_SHADER
-
-#define VECS_PER_LAYER             13
-#define VECS_PER_RENDER_TASK        3
-#define VECS_PER_PRIM_GEOM          2
-
-uniform sampler2D sLayers;
-uniform sampler2D sRenderTasks;
-uniform sampler2D sPrimGeometry;
-
-uniform sampler2D sData16;
-uniform sampler2D sData32;
-uniform sampler2D sData64;
-uniform sampler2D sData128;
-uniform sampler2D sResourceRects;
-
-// Instanced attributes
-in int aGlobalPrimId;
-in int aPrimitiveAddress;
-in int aTaskIndex;
-in int aClipTaskIndex;
-in int aLayerIndex;
-in int aElementIndex;
-in ivec2 aUserData;
-in int aZIndex;
-
-// get_fetch_uv is a macro to work around a macOS Intel driver parsing bug.
-// TODO: convert back to a function once the driver issues are resolved, if ever.
-// https://github.com/servo/webrender/pull/623
-// https://github.com/servo/servo/issues/13953
-#define get_fetch_uv(i, vpi)  ivec2(vpi * (i % (WR_MAX_VERTEX_TEXTURE_WIDTH/vpi)), i / (WR_MAX_VERTEX_TEXTURE_WIDTH/vpi))
-
-ivec2 get_fetch_uv_1(int index) {
-    return get_fetch_uv(index, 1);
-}
-
-ivec2 get_fetch_uv_2(int index) {
-    return get_fetch_uv(index, 2);
-}
-
-ivec2 get_fetch_uv_4(int index) {
-    return get_fetch_uv(index, 4);
-}
-
-ivec2 get_fetch_uv_8(int index) {
-    return get_fetch_uv(index, 8);
-}
+uniform sampler2D sGradients;
 
 struct RectWithSize {
     vec2 p0;
@@ -128,6 +92,99 @@ vec4 clamp_rect(vec4 points, RectWithSize rect) {
 vec4 clamp_rect(vec4 points, RectWithEndpoint rect) {
     return clamp(points, rect.p0.xyxy, rect.p1.xyxy);
 }
+
+RectWithSize intersect_rect(RectWithSize a, RectWithSize b) {
+    vec4 p = clamp_rect(vec4(a.p0, a.p0 + a.size), b);
+    return RectWithSize(p.xy, max(vec2(0.0), p.zw - p.xy));
+}
+
+RectWithEndpoint intersect_rect(RectWithEndpoint a, RectWithEndpoint b) {
+    vec4 p = clamp_rect(vec4(a.p0, a.p1), b);
+    return RectWithEndpoint(p.xy, max(p.xy, p.zw));
+}
+
+float distance_to_line(vec2 p0, vec2 perp_dir, vec2 p) {
+    vec2 dir_to_p0 = p0 - p;
+    return dot(normalize(perp_dir), dir_to_p0);
+}
+
+// TODO: convert back to RectWithEndPoint if driver issues are resolved, if ever.
+flat varying vec4 vClipMaskUvBounds;
+varying vec3 vClipMaskUv;
+#ifdef WR_FEATURE_TRANSFORM
+    flat varying vec4 vLocalBounds;
+#endif
+
+#ifdef WR_VERTEX_SHADER
+
+#define VECS_PER_LAYER             13
+#define VECS_PER_RENDER_TASK        3
+#define VECS_PER_PRIM_GEOM          2
+#define VECS_PER_SPLIT_GEOM         3
+
+uniform sampler2D sLayers;
+uniform sampler2D sRenderTasks;
+uniform sampler2D sPrimGeometry;
+
+uniform sampler2D sData16;
+uniform sampler2D sData32;
+uniform sampler2D sData64;
+uniform sampler2D sData128;
+uniform sampler2D sResourceRects;
+
+// Instanced attributes
+in int aGlobalPrimId;
+in int aPrimitiveAddress;
+in int aTaskIndex;
+in int aClipTaskIndex;
+in int aLayerIndex;
+in int aElementIndex;
+in ivec2 aUserData;
+in int aZIndex;
+
+// get_fetch_uv is a macro to work around a macOS Intel driver parsing bug.
+// TODO: convert back to a function once the driver issues are resolved, if ever.
+// https://github.com/servo/webrender/pull/623
+// https://github.com/servo/servo/issues/13953
+#define get_fetch_uv(i, vpi)  ivec2(vpi * (i % (WR_MAX_VERTEX_TEXTURE_WIDTH/vpi)), i / (WR_MAX_VERTEX_TEXTURE_WIDTH/vpi))
+
+vec4 fetch_data_1(int index) {
+    ivec2 uv = get_fetch_uv(index, 1);
+    return texelFetch(sData16, uv, 0);
+}
+
+vec4[2] fetch_data_2(int index) {
+    ivec2 uv = get_fetch_uv(index, 2);
+    return vec4[2](
+        texelFetchOffset(sData32, uv, 0, ivec2(0, 0)),
+        texelFetchOffset(sData32, uv, 0, ivec2(1, 0))
+    );
+}
+
+vec4[4] fetch_data_4(int index) {
+    ivec2 uv = get_fetch_uv(index, 4);
+    return vec4[4](
+        texelFetchOffset(sData64, uv, 0, ivec2(0, 0)),
+        texelFetchOffset(sData64, uv, 0, ivec2(1, 0)),
+        texelFetchOffset(sData64, uv, 0, ivec2(2, 0)),
+        texelFetchOffset(sData64, uv, 0, ivec2(3, 0))
+    );
+}
+
+vec4[8] fetch_data_8(int index) {
+    ivec2 uv = get_fetch_uv(index, 8);
+    return vec4[8](
+        texelFetchOffset(sData128, uv, 0, ivec2(0, 0)),
+        texelFetchOffset(sData128, uv, 0, ivec2(1, 0)),
+        texelFetchOffset(sData128, uv, 0, ivec2(2, 0)),
+        texelFetchOffset(sData128, uv, 0, ivec2(3, 0)),
+        texelFetchOffset(sData128, uv, 0, ivec2(4, 0)),
+        texelFetchOffset(sData128, uv, 0, ivec2(5, 0)),
+        texelFetchOffset(sData128, uv, 0, ivec2(6, 0)),
+        texelFetchOffset(sData128, uv, 0, ivec2(7, 0))
+    );
+}
+
 
 struct Layer {
     mat4 transform;
@@ -205,6 +262,23 @@ AlphaBatchTask fetch_alpha_batch_task(int index) {
     return task;
 }
 
+struct ReadbackTask {
+    vec2 render_target_origin;
+    vec2 size;
+    float render_target_layer_index;
+};
+
+ReadbackTask fetch_readback_task(int index) {
+    RenderTaskData data = fetch_render_task(index);
+
+    ReadbackTask task;
+    task.render_target_origin = data.data0.xy;
+    task.size = data.data0.zw;
+    task.render_target_layer_index = data.data1.x;
+
+    return task;
+}
+
 struct ClipArea {
     vec4 task_bounds;
     vec4 screen_origin_target_index;
@@ -230,18 +304,13 @@ ClipArea fetch_clip_area(int index) {
 
 struct Gradient {
     vec4 start_end_point;
+    vec4 tile_size_repeat;
     vec4 extend_mode;
 };
 
 Gradient fetch_gradient(int index) {
-    Gradient gradient;
-
-    ivec2 uv = get_fetch_uv_2(index);
-
-    gradient.start_end_point = texelFetchOffset(sData32, uv, 0, ivec2(0, 0));
-    gradient.extend_mode = texelFetchOffset(sData32, uv, 0, ivec2(1, 0));
-
-    return gradient;
+    vec4 data[4] = fetch_data_4(index);
+    return Gradient(data[0], data[1], data[2]);
 }
 
 struct GradientStop {
@@ -250,30 +319,98 @@ struct GradientStop {
 };
 
 GradientStop fetch_gradient_stop(int index) {
-    GradientStop stop;
-
-    ivec2 uv = get_fetch_uv_2(index);
-
-    stop.color = texelFetchOffset(sData32, uv, 0, ivec2(0, 0));
-    stop.offset = texelFetchOffset(sData32, uv, 0, ivec2(1, 0));
-
-    return stop;
+    vec4 data[2] = fetch_data_2(index);
+    return GradientStop(data[0], data[1]);
 }
 
 struct RadialGradient {
     vec4 start_end_center;
-    vec4 start_end_radius_extend_mode;
+    vec4 start_end_radius_ratio_xy_extend_mode;
+    vec4 tile_size_repeat;
 };
 
 RadialGradient fetch_radial_gradient(int index) {
-    RadialGradient gradient;
+    vec4 data[4] = fetch_data_4(index);
+    return RadialGradient(data[0], data[1], data[2]);
+}
 
-    ivec2 uv = get_fetch_uv_2(index);
+struct Border {
+    vec4 style;
+    vec4 widths;
+    vec4 colors[4];
+    vec4 radii[2];
+};
 
-    gradient.start_end_center = texelFetchOffset(sData32, uv, 0, ivec2(0, 0));
-    gradient.start_end_radius_extend_mode = texelFetchOffset(sData32, uv, 0, ivec2(1, 0));
+vec4 get_effective_border_widths(Border border, int style) {
+    switch (style) {
+        case BORDER_STYLE_DOUBLE:
+            // Calculate the width of a border segment in a style: double
+            // border. Round to the nearest CSS pixel.
 
-    return gradient;
+            // The CSS spec doesn't define what width each of the segments
+            // in a style: double border should be. It only says that the
+            // sum of the segments should be equal to the total border
+            // width. We pick to make the segments (almost) equal thirds
+            // for now - we can adjust this if we find other browsers pick
+            // different values in some cases.
+            // SEE: https://drafts.csswg.org/css-backgrounds-3/#double
+            return floor(0.5 + border.widths / 3.0);
+        case BORDER_STYLE_GROOVE:
+        case BORDER_STYLE_RIDGE:
+            return floor(0.5 + border.widths * 0.5);
+        default:
+            return border.widths;
+    }
+}
+
+Border fetch_border(int index) {
+    vec4 data[8] = fetch_data_8(index);
+    return Border(data[0], data[1],
+                  vec4[4](data[2], data[3], data[4], data[5]),
+                  vec4[2](data[6], data[7]));
+}
+
+struct BorderCorners {
+    vec2 tl_outer;
+    vec2 tl_inner;
+    vec2 tr_outer;
+    vec2 tr_inner;
+    vec2 br_outer;
+    vec2 br_inner;
+    vec2 bl_outer;
+    vec2 bl_inner;
+};
+
+BorderCorners get_border_corners(Border border, RectWithSize local_rect) {
+    vec2 tl_outer = local_rect.p0;
+    vec2 tl_inner = tl_outer + vec2(max(border.radii[0].x, border.widths.x),
+                                    max(border.radii[0].y, border.widths.y));
+
+    vec2 tr_outer = vec2(local_rect.p0.x + local_rect.size.x,
+                         local_rect.p0.y);
+    vec2 tr_inner = tr_outer + vec2(-max(border.radii[0].z, border.widths.z),
+                                    max(border.radii[0].w, border.widths.y));
+
+    vec2 br_outer = vec2(local_rect.p0.x + local_rect.size.x,
+                         local_rect.p0.y + local_rect.size.y);
+    vec2 br_inner = br_outer - vec2(max(border.radii[1].x, border.widths.z),
+                                    max(border.radii[1].y, border.widths.w));
+
+    vec2 bl_outer = vec2(local_rect.p0.x,
+                         local_rect.p0.y + local_rect.size.y);
+    vec2 bl_inner = bl_outer + vec2(max(border.radii[1].z, border.widths.x),
+                                    -max(border.radii[1].w, border.widths.w));
+
+    return BorderCorners(
+        tl_outer,
+        tl_inner,
+        tr_outer,
+        tr_inner,
+        br_outer,
+        br_inner,
+        bl_outer,
+        bl_inner
+    );
 }
 
 struct Glyph {
@@ -281,21 +418,13 @@ struct Glyph {
 };
 
 Glyph fetch_glyph(int index) {
-    Glyph glyph;
-
-    ivec2 uv = get_fetch_uv_1(index);
-
-    glyph.offset = texelFetchOffset(sData16, uv, 0, ivec2(0, 0));
-
-    return glyph;
+    vec4 data = fetch_data_1(index);
+    return Glyph(data);
 }
 
 RectWithSize fetch_instance_geometry(int index) {
-    ivec2 uv = get_fetch_uv_1(index);
-
-    vec4 rect = texelFetchOffset(sData16, uv, 0, ivec2(0, 0));
-
-    return RectWithSize(rect.xy, rect.zw);
+    vec4 data = fetch_data_1(index);
+    return RectWithSize(data.xy, data.zw);
 }
 
 struct PrimitiveGeometry {
@@ -449,7 +578,6 @@ vec4 get_layer_pos(vec2 pos, Layer layer) {
 }
 
 struct VertexInfo {
-    RectWithEndpoint local_rect;
     vec2 local_pos;
     vec2 screen_pos;
 };
@@ -458,14 +586,13 @@ VertexInfo write_vertex(RectWithSize instance_rect,
                         RectWithSize local_clip_rect,
                         float z,
                         Layer layer,
-                        AlphaBatchTask task) {
-    RectWithEndpoint local_rect = to_rect_with_endpoint(instance_rect);
-
+                        AlphaBatchTask task,
+                        vec2 snap_ref) {
     // Select the corner of the local rect that we are processing.
-    vec2 local_pos = mix(local_rect.p0, local_rect.p1, aPosition.xy);
+    vec2 local_pos = instance_rect.p0 + instance_rect.size * aPosition.xy;
 
     // xy = top left corner of the local rect, zw = position of current vertex.
-    vec4 local_p0_pos = vec4(local_rect.p0, local_pos);
+    vec4 local_p0_pos = vec4(snap_ref, local_pos);
 
     // Clamp to the two local clip rects.
     local_p0_pos = clamp_rect(local_p0_pos, local_clip_rect);
@@ -491,7 +618,7 @@ VertexInfo write_vertex(RectWithSize instance_rect,
 
     gl_Position = uTransform * vec4(final_pos, z, 1.0);
 
-    VertexInfo vi = VertexInfo(local_rect, local_p0_pos.zw, device_p0_pos.zw);
+    VertexInfo vi = VertexInfo(local_p0_pos.zw, device_p0_pos.zw);
     return vi;
 }
 
@@ -500,7 +627,6 @@ VertexInfo write_vertex(RectWithSize instance_rect,
 struct TransformVertexInfo {
     vec3 local_pos;
     vec2 screen_pos;
-    vec4 clipped_local_rect;
 };
 
 float cross2(vec2 v0, vec2 v1) {
@@ -526,7 +652,8 @@ TransformVertexInfo write_transform_vertex(RectWithSize instance_rect,
                                            RectWithSize local_clip_rect,
                                            float z,
                                            Layer layer,
-                                           AlphaBatchTask task) {
+                                           AlphaBatchTask task,
+                                           vec2 snap_ref) {
     RectWithEndpoint local_rect = to_rect_with_endpoint(instance_rect);
 
     vec2 current_local_pos, prev_local_pos, next_local_pos;
@@ -586,7 +713,7 @@ TransformVertexInfo write_transform_vertex(RectWithSize instance_rect,
                                       adjusted_next_p1);
 
     // Calculate the snap amount based on the first vertex as a reference point.
-    vec4 world_p0 = layer.transform * vec4(local_rect.p0, 0.0, 1.0);
+    vec4 world_p0 = layer.transform * vec4(snap_ref, 0.0, 1.0);
     vec2 device_p0 = uDevicePixelRatio * world_p0.xy / world_p0.w;
     vec2 snap_delta = device_p0 - floor(device_p0 + 0.5);
 
@@ -598,9 +725,11 @@ TransformVertexInfo write_transform_vertex(RectWithSize instance_rect,
 
     gl_Position = uTransform * vec4(final_pos, z, 1.0);
 
+    vLocalBounds = vec4(local_rect.p0, local_rect.p1);
+
     vec4 layer_pos = get_layer_pos(device_pos / uDevicePixelRatio, layer);
 
-    return TransformVertexInfo(layer_pos.xyw, device_pos, vec4(instance_rect.p0, instance_rect.size));
+    return TransformVertexInfo(layer_pos.xyw, device_pos);
 }
 
 #endif //WR_FEATURE_TRANSFORM
@@ -612,7 +741,7 @@ struct ResourceRect {
 ResourceRect fetch_resource_rect(int index) {
     ResourceRect rect;
 
-    ivec2 uv = get_fetch_uv_1(index);
+    ivec2 uv = get_fetch_uv(index, 1);
 
     rect.uv_rect = texelFetchOffset(sResourceRects, uv, 0, ivec2(0, 0));
 
@@ -624,13 +753,8 @@ struct Rectangle {
 };
 
 Rectangle fetch_rectangle(int index) {
-    Rectangle rect;
-
-    ivec2 uv = get_fetch_uv_1(index);
-
-    rect.color = texelFetchOffset(sData16, uv, 0, ivec2(0, 0));
-
-    return rect;
+    vec4 data = fetch_data_1(index);
+    return Rectangle(data);
 }
 
 struct TextRun {
@@ -638,13 +762,8 @@ struct TextRun {
 };
 
 TextRun fetch_text_run(int index) {
-    TextRun text;
-
-    ivec2 uv = get_fetch_uv_1(index);
-
-    text.color = texelFetchOffset(sData16, uv, 0, ivec2(0, 0));
-
-    return text;
+    vec4 data = fetch_data_1(index);
+    return TextRun(data);
 }
 
 struct Image {
@@ -653,37 +772,17 @@ struct Image {
 };
 
 Image fetch_image(int index) {
-    Image image;
-
-    ivec2 uv = get_fetch_uv_1(index);
-
-    image.stretch_size_and_tile_spacing = texelFetchOffset(sData16, uv, 0, ivec2(0, 0));
-
-    return image;
+    vec4 data = fetch_data_1(index);
+    return Image(data);
 }
 
-// YUV color spaces
-#define YUV_REC601 1
-#define YUV_REC709 2
-
 struct YuvImage {
-    vec4 y_st_rect;
-    vec4 u_st_rect;
-    vec4 v_st_rect;
     vec2 size;
-    int color_space;
 };
 
 YuvImage fetch_yuv_image(int index) {
-    YuvImage image;
-
-    ivec2 uv = get_fetch_uv_1(index);
-
-    vec4 size_color_space = texelFetchOffset(sData16, uv, 0, ivec2(0, 0));
-    image.size = size_color_space.xy;
-    image.color_space = int(size_color_space.z);
-
-    return image;
+    vec4 data = fetch_data_1(index);
+    return YuvImage(data.xy);
 }
 
 struct BoxShadow {
@@ -694,20 +793,12 @@ struct BoxShadow {
 };
 
 BoxShadow fetch_boxshadow(int index) {
-    BoxShadow bs;
-
-    ivec2 uv = get_fetch_uv_4(index);
-
-    bs.src_rect = texelFetchOffset(sData64, uv, 0, ivec2(0, 0));
-    bs.bs_rect = texelFetchOffset(sData64, uv, 0, ivec2(1, 0));
-    bs.color = texelFetchOffset(sData64, uv, 0, ivec2(2, 0));
-    bs.border_radius_edge_size_blur_radius_inverted = texelFetchOffset(sData64, uv, 0, ivec2(3, 0));
-
-    return bs;
+    vec4 data[4] = fetch_data_4(index);
+    return BoxShadow(data[0], data[1], data[2], data[3]);
 }
 
 void write_clip(vec2 global_pos, ClipArea area) {
-    vec2 texture_size = vec2(textureSize(sCache, 0).xy);
+    vec2 texture_size = vec2(textureSize(sCacheA8, 0).xy);
     vec2 uv = global_pos + area.task_bounds.xy - area.screen_origin_target_index.xy;
     vClipMaskUvBounds = area.task_bounds / texture_size.xyxy;
     vClipMaskUv = vec3(uv / texture_size, area.screen_origin_target_index.z);
@@ -715,38 +806,29 @@ void write_clip(vec2 global_pos, ClipArea area) {
 #endif //WR_VERTEX_SHADER
 
 #ifdef WR_FRAGMENT_SHADER
+
+#ifdef WR_FEATURE_TRANSFORM
 float signed_distance_rect(vec2 pos, vec2 p0, vec2 p1) {
     vec2 d = max(p0 - pos, pos - p1);
     return length(max(vec2(0.0), d)) + min(0.0, max(d.x, d.y));
 }
 
-vec2 init_transform_fs(vec3 local_pos, vec4 local_rect, out float fragment_alpha) {
+vec2 init_transform_fs(vec3 local_pos, out float fragment_alpha) {
     fragment_alpha = 1.0;
     vec2 pos = local_pos.xy / local_pos.z;
 
-    // Because the local rect is placed on whole coordinates, but the interpolation
-    // occurs at pixel centers, we need to offset the signed distance by that amount.
-    // In the simple case of no zoom, and no transform, this is 0.5. However, we
-    // need to scale this by the amount that the local rect is changing by per
-    // fragment, based on the current zoom and transform.
-    vec2 fw = fwidth(pos.xy);
-    vec2 dxdy = 0.5 * fw;
-
-    // Now get the actual signed distance. Inset the local rect by the offset amount
-    // above to get correct distance values. This ensures that we only apply
-    // anti-aliasing when the fragment has partial coverage.
-    float d = signed_distance_rect(pos,
-                                   local_rect.xy + dxdy,
-                                   local_rect.xy + local_rect.zw - dxdy);
+    // Now get the actual signed distance.
+    float d = signed_distance_rect(pos, vLocalBounds.xy, vLocalBounds.zw);
 
     // Find the appropriate distance to apply the AA smoothstep over.
-    float afwidth = 0.5 / length(fw);
+    float afwidth = 0.5 * length(fwidth(pos.xy));
 
     // Only apply AA to fragments outside the signed distance field.
     fragment_alpha = 1.0 - smoothstep(0.0, afwidth, d);
 
     return pos;
 }
+#endif //WR_FEATURE_TRANSFORM
 
 float do_clip() {
     // anything outside of the mask is considered transparent
@@ -755,6 +837,114 @@ float do_clip() {
         vec4(vClipMaskUv.xy, vClipMaskUvBounds.zw));
     // check for the dummy bounds, which are given to the opaque objects
     return vClipMaskUvBounds.xy == vClipMaskUvBounds.zw ? 1.0:
-        all(inside) ? textureLod(sCache, vClipMaskUv, 0.0).r : 0.0;
+        all(inside) ? textureLod(sCacheA8, vClipMaskUv, 0.0).r : 0.0;
 }
+
+#ifdef WR_FEATURE_DITHERING
+vec4 dither(vec4 color) {
+    const int matrix_mask = 7;
+
+    ivec2 pos = ivec2(gl_FragCoord.xy) & ivec2(matrix_mask);
+    float noise_normalized = (texelFetch(sDither, pos, 0).r * 255.0 + 0.5) / 64.0;
+    float noise = (noise_normalized - 0.5) / 256.0; // scale down to the unit length
+
+    return color + vec4(noise, noise, noise, 0);
+}
+#else
+vec4 dither(vec4 color) {
+    return color;
+}
+#endif //WR_FEATURE_DITHERING
+
+vec4 sample_gradient(float offset, float gradient_repeat, float gradient_index, vec2 gradient_size) {
+    // Modulo the offset if the gradient repeats. We don't need to clamp non-repeating
+    // gradients because the gradient data texture is bound with CLAMP_TO_EDGE, and the
+    // first and last color entries are filled with the first and last stop colors
+    float x = mix(offset, fract(offset), gradient_repeat);
+
+    // Calculate the color entry index to use for this offset:
+    //     offsets < 0 use the first color entry, 0
+    //     offsets from [0, 1) use the color entries in the range of [1, N-1)
+    //     offsets >= 1 use the last color entry, N-1
+    //     so transform the range [0, 1) -> [1, N-1)
+    float gradient_entries = 0.5 * gradient_size.x;
+    x = x * (gradient_entries - 2.0) + 1.0;
+
+    // Calculate the texel to index into the gradient color entries:
+    //     floor(x) is the gradient color entry index
+    //     fract(x) is the linear filtering factor between start and end
+    //     so, 2 * floor(x) + 0.5 is the center of the start color
+    //     finally, add floor(x) to interpolate to end
+    x = 2.0 * floor(x) + 0.5 + fract(x);
+
+    // Gradient color entries are encoded with high bits in one row and low bits in the next
+    // So use linear filtering to mix (gradient_index + 1) with (gradient_index)
+    float y = gradient_index * 2.0 + 0.5 + 1.0 / 256.0;
+
+    // Finally sample and apply dithering
+    return dither(texture(sGradients, vec2(x, y) / gradient_size));
+}
+
+//
+// Signed distance to an ellipse.
+// Taken from http://www.iquilezles.org/www/articles/ellipsedist/ellipsedist.htm
+// Note that this fails for exact circles.
+//
+float sdEllipse( vec2 p, in vec2 ab ) {
+    p = abs( p ); if( p.x > p.y ){ p=p.yx; ab=ab.yx; }
+    float l = ab.y*ab.y - ab.x*ab.x;
+
+    float m = ab.x*p.x/l;
+    float n = ab.y*p.y/l;
+    float m2 = m*m;
+    float n2 = n*n;
+
+    float c = (m2 + n2 - 1.0)/3.0;
+    float c3 = c*c*c;
+
+    float q = c3 + m2*n2*2.0;
+    float d = c3 + m2*n2;
+    float g = m + m*n2;
+
+    float co;
+
+    if( d<0.0 )
+    {
+        float p = acos(q/c3)/3.0;
+        float s = cos(p);
+        float t = sin(p)*sqrt(3.0);
+        float rx = sqrt( -c*(s + t + 2.0) + m2 );
+        float ry = sqrt( -c*(s - t + 2.0) + m2 );
+        co = ( ry + sign(l)*rx + abs(g)/(rx*ry) - m)/2.0;
+    }
+    else
+    {
+        float h = 2.0*m*n*sqrt( d );
+        float s = sign(q+h)*pow( abs(q+h), 1.0/3.0 );
+        float u = sign(q-h)*pow( abs(q-h), 1.0/3.0 );
+        float rx = -s - u - c*4.0 + 2.0*m2;
+        float ry = (s - u)*sqrt(3.0);
+        float rm = sqrt( rx*rx + ry*ry );
+        float p = ry/sqrt(rm-rx);
+        co = (p + 2.0*g/rm - m)/2.0;
+    }
+
+    float si = sqrt( 1.0 - co*co );
+
+    vec2 r = vec2( ab.x*co, ab.y*si );
+
+    return length(r - p ) * sign(p.y-r.y);
+}
+
+float distance_to_ellipse(vec2 p, vec2 radii) {
+    // sdEllipse fails on exact circles, so handle equal
+    // radii here. The branch coherency should make this
+    // a performance win for the circle case too.
+    if (radii.x == radii.y) {
+        return length(p) - radii.x;
+    } else {
+        return sdEllipse(p, radii);
+    }
+}
+
 #endif //WR_FRAGMENT_SHADER

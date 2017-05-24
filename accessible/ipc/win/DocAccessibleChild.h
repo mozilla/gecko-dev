@@ -22,7 +22,7 @@ namespace a11y {
 class DocAccessibleChild : public DocAccessibleChildBase
 {
 public:
-  explicit DocAccessibleChild(DocAccessible* aDoc);
+  DocAccessibleChild(DocAccessible* aDoc, IProtocol* aManager);
   ~DocAccessibleChild();
 
   virtual void Shutdown() override;
@@ -33,7 +33,7 @@ public:
     RecvEmulatedWindow(const WindowsHandle& aEmulatedWindowHandle,
                        const IAccessibleHolder& aEmulatedWindowCOMProxy) override;
 
-  HWND GetEmulatedWindowHandle() const { return mEmulatedWindowHandle; }
+  HWND GetNativeWindowHandle() const;
   IAccessible* GetEmulatedWindowIAccessible() const { return mEmulatedWindowProxy.get(); }
 
   IAccessible* GetParentIAccessible() const { return mParentProxy.get(); }

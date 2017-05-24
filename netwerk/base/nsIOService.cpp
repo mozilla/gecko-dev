@@ -84,7 +84,7 @@ namespace net {
 
 nsIOService* gIOService = nullptr;
 static bool gHasWarnedUploadChannel2;
-
+static bool gCaptivePortalEnabled = false;
 static LazyLogModule gIOServiceLog("nsIOService");
 #undef LOG
 #define LOG(args)     MOZ_LOG(gIOServiceLog, LogLevel::Debug, args)
@@ -188,6 +188,9 @@ nsIOService::nsIOService()
     , mNetworkLinkServiceInitialized(false)
     , mChannelEventSinks(NS_CHANNEL_EVENT_SINK_CATEGORY)
     , mNetworkNotifyChanged(true)
+    , mTotalRequests(0)
+    , mCacheWon(0)
+    , mNetWon(0)
     , mLastOfflineStateChange(PR_IntervalNow())
     , mLastConnectivityChange(PR_IntervalNow())
     , mLastNetworkLinkChange(PR_IntervalNow())
@@ -369,10 +372,14 @@ nsresult
 nsIOService::RecheckCaptivePortal()
 {
   MOZ_ASSERT(NS_IsMainThread(), "Must be called on the main thread");
-  if (mCaptivePortalService) {
-    mCaptivePortalService->RecheckCaptivePortal();
+  if (!mCaptivePortalService) {
+    return NS_OK;
   }
-  return NS_OK;
+  nsCOMPtr<nsIRunnable> task =
+    NewRunnableMethod("nsIOService::RecheckCaptivePortal",
+                      mCaptivePortalService,
+                      &nsICaptivePortalService::RecheckCaptivePortal);
+  return NS_DispatchToMainThread(task);
 }
 
 nsresult
@@ -407,7 +414,7 @@ nsIOService::RecheckCaptivePortalIfLocalRedirect(nsIChannel* newChan)
     PRNetAddrToNetAddr(&prAddr, &netAddr);
     if (IsIPAddrLocal(&netAddr)) {
         // Redirects to local IP addresses are probably captive portals
-        mCaptivePortalService->RecheckCaptivePortal();
+        RecheckCaptivePortal();
     }
 
     return NS_OK;
@@ -542,7 +549,7 @@ nsIOService::GetProtocolHandler(const char* scheme, nsIProtocolHandler* *result)
             return rv;
         }
 
-#ifdef MOZ_ENABLE_GIO
+#ifdef MOZ_WIDGET_GTK
         // check to see whether GVFS can handle this URI scheme.  if it can
         // create a nsIURI for the "scheme:", then we assume it has support for
         // the requested protocol.  otherwise, we failover to using the default
@@ -583,6 +590,35 @@ NS_IMETHODIMP
 nsIOService::ExtractScheme(const nsACString &inURI, nsACString &scheme)
 {
     return net_ExtractURLScheme(inURI, scheme);
+}
+
+NS_IMETHODIMP
+nsIOService::HostnameIsLocalIPAddress(nsIURI *aURI, bool *aResult)
+{
+  NS_ENSURE_ARG_POINTER(aURI);
+
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
+  NS_ENSURE_ARG_POINTER(innerURI);
+
+  nsAutoCString host;
+  nsresult rv = innerURI->GetAsciiHost(host);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  *aResult = false;
+
+  PRNetAddr addr;
+  PRStatus result = PR_StringToNetAddr(host.get(), &addr);
+  if (result == PR_SUCCESS) {
+    NetAddr netAddr;
+    PRNetAddrToNetAddr(&addr, &netAddr);
+    if (IsIPAddrLocal(&netAddr)) {
+      *aResult = true;
+    }
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP 
@@ -791,9 +827,12 @@ nsIOService::NewChannelFromURIWithProxyFlagsInternal(nsIURI* aURI,
     }
     else {
         rv = handler->NewChannel2(aURI, aLoadInfo, getter_AddRefs(channel));
-        // if calling newChannel2() fails we try to fall back to
+        // if an implementation of NewChannel2() is missing we try to fall back to
         // creating a new channel by calling NewChannel().
-        if (NS_FAILED(rv)) {
+        if (rv == NS_ERROR_NOT_IMPLEMENTED ||
+            rv == NS_ERROR_XPC_JSOBJECT_HAS_NO_FUNCTION_NAMED) {
+            LOG(("NewChannel2 not implemented rv=%" PRIx32
+                 ". Falling back to NewChannel\n", static_cast<uint32_t>(rv)));
             rv = handler->NewChannel(aURI, getter_AddRefs(channel));
             if (NS_FAILED(rv)) {
                 return rv;
@@ -802,6 +841,8 @@ nsIOService::NewChannelFromURIWithProxyFlagsInternal(nsIURI* aURI,
             // maybe we need to wrap the channel (see comment in MaybeWrap
             // function).
             channel = nsSecCheckWrapChannel::MaybeWrap(channel, aLoadInfo);
+        } else if (NS_FAILED(rv)) {
+            return rv;
         }
     }
 
@@ -1158,7 +1199,7 @@ nsIOService::SetConnectivityInternal(bool aConnectivity)
     mLastConnectivityChange = PR_IntervalNow();
 
     if (mCaptivePortalService) {
-        if (aConnectivity && !xpc::AreNonLocalConnectionsDisabled()) {
+        if (aConnectivity && !xpc::AreNonLocalConnectionsDisabled() && gCaptivePortalEnabled) {
             // This will also trigger a captive portal check for the new network
             static_cast<CaptivePortalService*>(mCaptivePortalService.get())->Start();
         } else {
@@ -1300,10 +1341,9 @@ nsIOService::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
     }
 
     if (!pref || strcmp(pref, NETWORK_CAPTIVE_PORTAL_PREF) == 0) {
-        bool captivePortalEnabled;
-        nsresult rv = prefs->GetBoolPref(NETWORK_CAPTIVE_PORTAL_PREF, &captivePortalEnabled);
+        nsresult rv = prefs->GetBoolPref(NETWORK_CAPTIVE_PORTAL_PREF, &gCaptivePortalEnabled);
         if (NS_SUCCEEDED(rv) && mCaptivePortalService) {
-            if (captivePortalEnabled && !xpc::AreNonLocalConnectionsDisabled()) {
+            if (gCaptivePortalEnabled && !xpc::AreNonLocalConnectionsDisabled()) {
                 static_cast<CaptivePortalService*>(mCaptivePortalService.get())->Start();
             } else {
                 static_cast<CaptivePortalService*>(mCaptivePortalService.get())->Stop();
@@ -1790,6 +1830,13 @@ nsIOService::SpeculativeConnectInternal(nsIURI *aURI,
                                         nsIInterfaceRequestor *aCallbacks,
                                         bool aAnonymous)
 {
+    bool isHTTP, isHTTPS;
+    if (!(NS_SUCCEEDED(aURI->SchemeIs("http", &isHTTP)) && isHTTP) &&
+        !(NS_SUCCEEDED(aURI->SchemeIs("https", &isHTTPS)) && isHTTPS)) {
+        // We don't speculatively connect to non-HTTP[S] URIs.
+        return NS_OK;
+    }
+
     if (IsNeckoChild()) {
         ipc::URIParams params;
         SerializeURI(aURI, params);

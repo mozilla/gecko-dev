@@ -9,11 +9,11 @@ config = {
         'checkout-sources',
         #'setup-mock',
         'build',
+        # 'generate-build-stats',
         #'upload-files',
         #'sendchange',
         'check-test',
         'valgrind-test',
-        #'generate-build-stats',
         #'update',
     ],
     'stage_platform': 'linux64-valgrind',
@@ -28,7 +28,6 @@ releng.manifest",
     #### 64 bit build specific #####
     'env': {
         'MOZBUILD_STATE_PATH': os.path.join(os.getcwd(), '.mozbuild'),
-        'MOZ_AUTOMATION': '1',
         'DISPLAY': ':2',
         'HG_SHARE_BASE_DIR': '/builds/hg-shared',
         'MOZ_OBJDIR': 'obj-firefox',
@@ -47,4 +46,5 @@ releng.manifest",
     },
     'src_mozconfig': 'browser/config/mozconfigs/linux64/valgrind',
     #######################
+    'artifact_flag_build_variant_in_try': None,
 }

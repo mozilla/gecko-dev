@@ -6,6 +6,7 @@
 #include "mozilla/layers/Compositor.h"
 #include "base/message_loop.h"          // for MessageLoop
 #include "mozilla/layers/CompositorBridgeParent.h"  // for CompositorBridgeParent
+#include "mozilla/layers/Diagnostics.h"
 #include "mozilla/layers/Effects.h"     // for Effect, EffectChain, etc
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/layers/TextureHost.h"
@@ -301,14 +302,30 @@ GenerateTexturedTriangles(const gfx::Polygon& aPolygon,
       // Since the texture was created for non-split geometry, we need to
       // update the texture coordinates to account for the split.
       gfx::TexturedTriangle t(triangle);
-      t.width = rect.width;
-      t.height = rect.height;
       UpdateTextureCoordinates(t, rect, intersection, texRect);
       texturedTriangles.AppendElement(Move(t));
     }
   }
 
   return texturedTriangles;
+}
+
+nsTArray<TexturedVertex>
+TexturedTrianglesToVertexArray(const nsTArray<gfx::TexturedTriangle>& aTriangles)
+{
+  const auto VertexFromPoints = [](const gfx::Point& p, const gfx::Point& t) {
+    return TexturedVertex { { p.x, p.y }, { t.x, t.y } };
+  };
+
+  nsTArray<TexturedVertex> vertices;
+
+  for (const gfx::TexturedTriangle& t : aTriangles) {
+    vertices.AppendElement(VertexFromPoints(t.p1, t.textureCoords.p1));
+    vertices.AppendElement(VertexFromPoints(t.p2, t.textureCoords.p2));
+    vertices.AppendElement(VertexFromPoints(t.p3, t.textureCoords.p3));
+  }
+
+  return vertices;
 }
 
 void
@@ -637,6 +654,13 @@ Compositor::NotifyNotUsedAfterComposition(TextureHost* aTextureHost)
     return false;
   }
   return TextureSourceProvider::NotifyNotUsedAfterComposition(aTextureHost);
+}
+
+void
+Compositor::GetFrameStats(GPUStats* aStats)
+{
+  aStats->mInvalidPixels = mPixelsPerFrame;
+  aStats->mPixelsFilled = mPixelsFilled;
 }
 
 } // namespace layers

@@ -526,7 +526,7 @@ nsMediaList::SetText(const nsAString& aMediaText)
 
 bool
 nsMediaList::Matches(nsPresContext* aPresContext,
-                     nsMediaQueryResultCacheKey* aKey)
+                     nsMediaQueryResultCacheKey* aKey) const
 {
   for (int32_t i = 0, i_end = mArray.Length(); i < i_end; ++i) {
     if (mArray[i]->Matches(aPresContext, aKey)) {

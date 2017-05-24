@@ -15,6 +15,7 @@
 #include "nsDataHashtable.h"
 #include "PlatformDecoderModule.h"
 #include "ImageContainer.h"
+#include "mozilla/Span.h"
 
 namespace mozilla {
 
@@ -112,20 +113,33 @@ protected:
                                           const nsCString& aMessage) override;
   ipc::IPCResult RecvDecrypted(const uint32_t& aId,
                                const uint32_t& aStatus,
-                               nsTArray<uint8_t>&& aData) override;
+                               ipc::Shmem&& aData) override;
+  ipc::IPCResult RecvDecryptFailed(const uint32_t& aId,
+                                   const uint32_t& aStatus) override;
   ipc::IPCResult RecvOnDecoderInitDone(const uint32_t& aStatus) override;
-  ipc::IPCResult RecvDecoded(const CDMVideoFrame& aFrame) override;
+  ipc::IPCResult RecvDecodedShmem(const CDMVideoFrame& aFrame,
+                                  ipc::Shmem&& aShmem) override;
+  ipc::IPCResult RecvDecodedData(const CDMVideoFrame& aFrame,
+                                 nsTArray<uint8_t>&& aData) override;
   ipc::IPCResult RecvDecodeFailed(const uint32_t& aStatus) override;
   ipc::IPCResult RecvShutdown() override;
   ipc::IPCResult RecvResetVideoDecoderComplete() override;
   ipc::IPCResult RecvDrainComplete() override;
   void ActorDestroy(ActorDestroyReason aWhy) override;
+  bool SendBufferToCDM(uint32_t aSizeInBytes);
 
   void RejectPromise(uint32_t aPromiseId,
                      nsresult aError,
                      const nsCString& aErrorMessage);
 
   void ResolvePromise(uint32_t aPromiseId);
+
+  bool InitCDMInputBuffer(gmp::CDMInputBuffer& aBuffer, MediaRawData* aSample);
+
+  bool PurgeShmems();
+  bool EnsureSufficientShmems(size_t aVideoFrameSize);
+  already_AddRefed<VideoData> CreateVideoFrame(const CDMVideoFrame& aFrame,
+                                               Span<uint8_t> aData);
 
   const uint32_t mPluginId;
   GMPContentParent* mContentParent;
@@ -144,6 +158,14 @@ protected:
   uint64_t mLastStreamOffset = 0;
 
   MozPromiseHolder<MediaDataDecoder::FlushPromise> mFlushDecoderPromise;
+
+  size_t mVideoFrameBufferSize = 0;
+
+  // Count of the number of shmems in the set used to return decoded video
+  // frames from the CDM to Gecko.
+  uint32_t mVideoShmemsActive = 0;
+  // Maximum number of shmems to use to return decoded video frames.
+  uint32_t mVideoShmemLimit;
 
   bool mIsShutdown = false;
   bool mVideoDecoderInitialized = false;

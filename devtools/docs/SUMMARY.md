@@ -1,6 +1,14 @@
 
 # Summary
 
+* [Getting started](getting-started/README.md)
+  * [Where is the code?](getting-started/where-is-the-code.md)
+  * [Architecture overview](getting-started/architecture-overview.md)
+  * [Set up to build DevTools](getting-started/build.md)
+  * [Development profiles](getting-started/development-profiles.md)
+* [Bugs and issue trackers](bugs-issues.md)
+* [Files and directories](files/README.md)
+  * [Adding New Files](files/adding-files.md)
 * [Tool Architectures](tools/tools.md)
   * [Inspector](tools/inspector.md)
     * [Panel Architecture](tools/inspector-panel.md)
@@ -17,8 +25,10 @@
   * [Redux](frontend/redux.md)
     * [Guidelines](frontend/redux-guidelines.md)
     * [Tips](frontend/redux-tips.md)
+  * [Telemetry](frontend/telemetry.md)
 * [Backend](backend/backend.md)
   * [Remote Debugging Protocol](backend/protocol.md)
+  * [Client API](backend/client-api.md)
   * [Debugger API](backend/debugger-api.md)
   * [Backward Compatibility](backend/backward-compatibility.md)
   * Actors
@@ -27,5 +37,10 @@
     * [Writing Actors With protocol.js](backend/protocol.js.md)
     * [Registering A New Actor](backend/actor-registration.md)
     * [Actor Best Practices](backend/actor-best-practices.md)
-* Miscellaneous
-  * [Adding New Files](misc/adding-files.md)
+* [Automated tests](tests/README.md)
+  * Running tests
+    * [`xpcshell`](tests/xpcshell.md)
+    * [Chrome mochitests](tests/mochitest-chrome.md)
+    * [DevTools mochitests](tests/mochitest-devtools.md)
+  * [Writing tests](tests/writing-tests.md)
+  * [Debugging intermittent failures](tests/debugging-intermittents.md)

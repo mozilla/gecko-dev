@@ -9,10 +9,10 @@ config = {
         'checkout-sources',
         'setup-mock',
         'build',
+        # 'generate-build-stats',
         'upload-files',
         'sendchange',
         'check-test',
-        # 'generate-build-stats',
         'update',  # decided by query_is_nightly()
     ],
     'stage_platform': 'linux64-ccov',
@@ -23,7 +23,6 @@ config = {
     #### 64 bit build specific #####
     'env': {
         'MOZBUILD_STATE_PATH': os.path.join(os.getcwd(), '.mozbuild'),
-        'MOZ_AUTOMATION': '1',
         'DISPLAY': ':2',
         'HG_SHARE_BASE_DIR': '/builds/hg-shared',
         'MOZ_OBJDIR': 'obj-firefox',

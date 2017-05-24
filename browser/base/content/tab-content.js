@@ -11,7 +11,6 @@ var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/ExtensionContent.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
   "resource:///modules/E10SUtils.jsm");
@@ -603,7 +602,7 @@ function gKeywordURIFixup(fixupInfo) {
 
   sendAsyncMessage("Browser:URIFixup", data);
 }
-Services.obs.addObserver(gKeywordURIFixup, "keyword-uri-fixup", false);
+Services.obs.addObserver(gKeywordURIFixup, "keyword-uri-fixup");
 addEventListener("unload", () => {
   Services.obs.removeObserver(gKeywordURIFixup, "keyword-uri-fixup");
 }, false);
@@ -711,8 +710,8 @@ var WebBrowserChrome = {
   },
 
   // Check whether this URI should load in the current process
-  shouldLoadURI(aDocShell, aURI, aReferrer, aTriggeringPrincipal) {
-    if (!E10SUtils.shouldLoadURI(aDocShell, aURI, aReferrer)) {
+  shouldLoadURI(aDocShell, aURI, aReferrer, aHasPostData, aTriggeringPrincipal) {
+    if (!E10SUtils.shouldLoadURI(aDocShell, aURI, aReferrer, aHasPostData)) {
       E10SUtils.redirectLoad(aDocShell, aURI, aReferrer, aTriggeringPrincipal, false);
       return false;
     }
@@ -884,7 +883,7 @@ var RefreshBlocker = {
       this.enable();
     }
 
-    Services.prefs.addObserver(this.PREF, this, false);
+    Services.prefs.addObserver(this.PREF, this);
   },
 
   uninit() {
@@ -1004,7 +1003,7 @@ var RefreshBlocker = {
                           .getInterface(Ci.nsIDocShell)
                           .QueryInterface(Ci.nsIRefreshURI);
 
-      let URI = BrowserUtils.makeURI(data.URI, data.originCharset, null);
+      let URI = Services.io.newURI(data.URI, data.originCharset);
 
       refreshURI.forceRefreshURI(URI, data.delay, true);
     }
@@ -1045,9 +1044,9 @@ var UserContextIdNotifier = {
 
 UserContextIdNotifier.init();
 
-ExtensionContent.init(this);
+Services.obs.notifyObservers(this, "tab-content-frameloader-created");
+
 addEventListener("unload", () => {
-  ExtensionContent.uninit(this);
   RefreshBlocker.uninit();
 });
 

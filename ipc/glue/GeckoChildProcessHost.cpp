@@ -323,6 +323,78 @@ GeckoChildProcessHost::GetUniqueID()
   return sNextUniqueID++;
 }
 
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+
+// This is pretty much a duplicate of the function in PluginProcessParent.
+// Simply copying for now due to uplift. I will address this duplication and for
+// example the similar code in the Constructor in bug 1339105.
+static void
+AddSandboxAllowedFile(std::vector<std::wstring>& aAllowedFiles,
+                      nsIProperties* aDirSvc, const char* aDirKey,
+                      const nsAString& aSuffix = EmptyString())
+{
+  nsCOMPtr<nsIFile> ruleDir;
+  nsresult rv =
+    aDirSvc->Get(aDirKey, NS_GET_IID(nsIFile), getter_AddRefs(ruleDir));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return;
+  }
+
+  nsAutoString rulePath;
+  rv = ruleDir->GetPath(rulePath);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return;
+  }
+
+  // Convert network share path to format for sandbox policy.
+  if (Substring(rulePath, 0, 2).Equals(L"\\\\")) {
+    rulePath.InsertLiteral(u"??\\UNC", 1);
+  }
+
+  if (!aSuffix.IsEmpty()) {
+    rulePath.Append(aSuffix);
+  }
+
+  aAllowedFiles.push_back(std::wstring(rulePath.get()));
+  return;
+}
+
+static void
+AddContentSandboxAllowedFiles(int32_t aSandboxLevel,
+                              std::vector<std::wstring>& aAllowedFilesRead,
+                              std::vector<std::wstring>& aAllowedFilesReadWrite)
+{
+  if (aSandboxLevel < 1) {
+    return;
+  }
+
+  nsresult rv;
+  nsCOMPtr<nsIProperties> dirSvc =
+    do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return;
+  }
+
+  // Add rule to allow read / write access to content temp dir. If for some
+  // reason the addition of the content temp failed, this will give write access
+  // to the normal TEMP dir. However such failures should be pretty rare and
+  // without this printing will not currently work.
+  AddSandboxAllowedFile(aAllowedFilesReadWrite, dirSvc,
+                        NS_APP_CONTENT_PROCESS_TEMP_DIR,
+                        NS_LITERAL_STRING("\\*"));
+
+  if (aSandboxLevel < 2) {
+    return;
+  }
+
+  // Add rule to allow read access to installation directory. At less than
+  // level 2 we already add a global read rule.
+  AddSandboxAllowedFile(aAllowedFilesRead, dirSvc, NS_GRE_DIR,
+                        NS_LITERAL_STRING("\\*"));
+}
+
+#endif
+
 void
 GeckoChildProcessHost::PrepareLaunch()
 {
@@ -343,6 +415,11 @@ GeckoChildProcessHost::PrepareLaunch()
     mSandboxLevel = Preferences::GetInt("security.sandbox.content.level");
     mEnableSandboxLogging =
       Preferences::GetBool("security.sandbox.logging.enabled");
+
+    // This calls the directory service, which can also cause issues if called
+    // off main thread.
+    AddContentSandboxAllowedFiles(mSandboxLevel, mAllowedFilesRead,
+                                  mAllowedFilesReadWrite);
   }
 #endif
 
@@ -663,50 +740,6 @@ AddAppDirToCommandLine(std::vector<std::string>& aCmdLine)
   }
 }
 
-#if defined(XP_WIN) && defined(MOZ_SANDBOX)
-
-static void
-AddContentSandboxAllowedFiles(int32_t aSandboxLevel,
-                              std::vector<std::wstring>& aAllowedFilesRead)
-{
-  if (aSandboxLevel < 1) {
-    return;
-  }
-
-  nsCOMPtr<nsIFile> binDir;
-  nsresult rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(binDir));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  nsAutoString binDirPath;
-  rv = binDir->GetPath(binDirPath);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  // If bin directory is on a remote drive add read access.
-  wchar_t volPath[MAX_PATH];
-  if (!::GetVolumePathNameW(binDirPath.get(), volPath, MAX_PATH)) {
-    return;
-  }
-
-  if (::GetDriveTypeW(volPath) != DRIVE_REMOTE) {
-    return;
-  }
-
-  // Convert network share path to format for sandbox policy.
-  if (Substring(binDirPath, 0, 2).Equals(L"\\\\")) {
-    binDirPath.InsertLiteral(u"??\\UNC", 1);
-  }
-
-  binDirPath.AppendLiteral(u"\\*");
-
-  aAllowedFilesRead.push_back(std::wstring(binDirPath.get()));
-}
-
-#endif
-
 bool
 GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExtraOpts, base::ProcessArchitecture arch)
 {
@@ -734,7 +767,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   // and passing wstrings from one config to the other is unsafe.  So
   // we split the logic here.
 
-#if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_BSD)
+#if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_BSD) || defined(OS_SOLARIS)
   base::environment_map newEnvVars;
   ChildPrivileges privs = mPrivileges;
   if (privs == base::PRIVILEGES_DEFAULT ||
@@ -746,6 +779,11 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   if (mProcessType == GeckoProcessType_Content) {
     // disable IM module to avoid sandbox violation
     newEnvVars["GTK_IM_MODULE"] = "gtk-im-context-simple";
+
+    // Disable ATK accessibility code in content processes because it conflicts
+    // with the sandbox, and we proxy that information through the main process
+    // anyway.
+    newEnvVars["NO_AT_BRIDGE"] = "1";
   }
 #endif
 
@@ -869,7 +907,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   childArgv.push_back(pidstring);
 
 #if defined(MOZ_CRASHREPORTER)
-#  if defined(OS_LINUX) || defined(OS_BSD)
+#  if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
   int childCrashFd, childCrashRemapFd;
   if (!CrashReporter::CreateNotificationPipeForChild(
         &childCrashFd, &childCrashRemapFd))
@@ -885,7 +923,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   }
 #  elif defined(MOZ_WIDGET_COCOA)
   childArgv.push_back(CrashReporter::GetChildNotificationPipe());
-#  endif  // OS_LINUX
+#  endif  // OS_LINUX || OS_BSD || OS_SOLARIS
 #endif
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
@@ -914,7 +952,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   LaunchAndroidService(childProcessType, childArgv, mFileMap, &process);
 #else
   base::LaunchApp(childArgv, mFileMap,
-#if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_BSD)
+#if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_BSD) || defined(OS_SOLARIS)
                   newEnvVars, privs,
 #endif
                   false, &process, arch);
@@ -1043,7 +1081,6 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
         mSandboxBroker.SetSecurityLevelForContentProcess(mSandboxLevel,
                                                          mPrivileges);
         shouldSandboxCurrentProcess = true;
-        AddContentSandboxAllowedFiles(mSandboxLevel, mAllowedFilesRead);
       }
 #endif // MOZ_CONTENT_SANDBOX
       break;
@@ -1077,6 +1114,13 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
       }
       break;
     case GeckoProcessType_GPU:
+      if (mSandboxLevel > 0 && !PR_GetEnv("MOZ_DISABLE_GPU_SANDBOX")) {
+        // For now we treat every failure as fatal in SetSecurityLevelForGPUProcess
+        // and just crash there right away. Should this change in the future then we
+        // should also handle the error here.
+        mSandboxBroker.SetSecurityLevelForGPUProcess(mSandboxLevel);
+        shouldSandboxCurrentProcess = true;
+      }
       break;
     case GeckoProcessType_Default:
     default:

@@ -189,9 +189,11 @@ FeedWriter.prototype = {
   __dateFormatter: null,
   get _dateFormatter() {
     if (!this.__dateFormatter) {
-      const dtOptions = { year: "numeric", month: "long", day: "numeric",
-                          hour: "numeric", minute: "numeric" };
-      this.__dateFormatter = new Intl.DateTimeFormat(undefined, dtOptions);
+      const dtOptions = {
+        timeStyle: "short",
+        dateStyle: "long"
+      };
+      this.__dateFormatter = Services.intl.createDateTimeFormat(undefined, dtOptions);
     }
     return this.__dateFormatter;
   },
@@ -963,13 +965,13 @@ FeedWriter.prototype = {
     // Show the file picker before subscribing if the
     // choose application menuitem was chosen using the keyboard
     if (selectedItem.id == "chooseApplicationMenuItem") {
-      this._chooseClientApp(function(aResult) {
+      this._chooseClientApp(aResult => {
         if (aResult) {
           selectedItem =
             this._handlersList.selectedOptions[0];
           subscribeCallback();
         }
-      }.bind(this));
+      });
     } else {
       subscribeCallback();
     }

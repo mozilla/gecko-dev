@@ -19,7 +19,9 @@
 #include "wasm/WasmInstance.h"
 
 #include "jit/BaselineJIT.h"
+#include "jit/InlinableNatives.h"
 #include "jit/JitCommon.h"
+#include "wasm/WasmBuiltins.h"
 #include "wasm/WasmModule.h"
 
 #include "jsobjinlines.h"
@@ -125,7 +127,7 @@ bool
 Instance::callImport(JSContext* cx, uint32_t funcImportIndex, unsigned argc, const uint64_t* argv,
                      MutableHandleValue rval)
 {
-    const FuncImport& fi = metadata().funcImports[funcImportIndex];
+    const FuncImport& fi = metadataTier().funcImports[funcImportIndex];
 
     InvokeArgs args(cx);
     if (!args.init(cx, argc))
@@ -187,7 +189,7 @@ Instance::callImport(JSContext* cx, uint32_t funcImportIndex, unsigned argc, con
         return true;
 
     // The import may already have become optimized.
-    void* jitExitCode = codeBase() + fi.jitExitCodeOffset();
+    void* jitExitCode = codeBaseTier() + fi.jitExitCodeOffset();
     if (import.code == jitExitCode)
         return true;
 
@@ -317,7 +319,8 @@ Instance::currentMemory_i32(Instance* instance)
 
 Instance::Instance(JSContext* cx,
                    Handle<WasmInstanceObject*> object,
-                   UniqueCode code,
+                   SharedCode code,
+                   UniqueDebugState debug,
                    UniqueGlobalSegment globals,
                    HandleWasmMemoryObject memory,
                    SharedTableVector&& tables,
@@ -325,13 +328,14 @@ Instance::Instance(JSContext* cx,
                    const ValVector& globalImports)
   : compartment_(cx->compartment()),
     object_(object),
-    code_(Move(code)),
+    code_(code),
+    debug_(Move(debug)),
     globals_(Move(globals)),
     memory_(memory),
     tables_(Move(tables)),
     enterFrameTrapsEnabled_(false)
 {
-    MOZ_ASSERT(funcImports.length() == metadata().funcImports.length());
+    MOZ_ASSERT(funcImports.length() == metadataTier().funcImports.length());
     MOZ_ASSERT(tables_.length() == metadata().tables.length());
 
     tlsData()->cx = cx;
@@ -343,21 +347,26 @@ Instance::Instance(JSContext* cx,
 #endif
     tlsData()->stackLimit = *(void**)cx->stackLimitAddressForJitCode(JS::StackForUntrustedScript);
 
-    for (size_t i = 0; i < metadata().funcImports.length(); i++) {
+    for (size_t i = 0; i < metadataTier().funcImports.length(); i++) {
         HandleFunction f = funcImports[i];
-        const FuncImport& fi = metadata().funcImports[i];
+        const FuncImport& fi = metadataTier().funcImports[i];
         FuncImportTls& import = funcImportTls(fi);
         if (!isAsmJS() && IsExportedWasmFunction(f)) {
             WasmInstanceObject* calleeInstanceObj = ExportedFunctionToInstanceObject(f);
             const CodeRange& codeRange = calleeInstanceObj->getExportedFunctionCodeRange(f);
             Instance& calleeInstance = calleeInstanceObj->instance();
             import.tls = calleeInstance.tlsData();
-            import.code = calleeInstance.codeSegment().base() + codeRange.funcNormalEntry();
+            import.code = calleeInstance.codeBaseTier() + codeRange.funcNormalEntry();
             import.baselineScript = nullptr;
             import.obj = calleeInstanceObj;
+        } else if (void* thunk = MaybeGetBuiltinThunk(f, fi.sig(), cx)) {
+            import.tls = tlsData();
+            import.code = thunk;
+            import.baselineScript = nullptr;
+            import.obj = f;
         } else {
             import.tls = tlsData();
-            import.code = codeBase() + fi.interpExitCodeOffset();
+            import.code = codeBaseTier() + fi.interpExitCodeOffset();
             import.baselineScript = nullptr;
             import.obj = f;
         }
@@ -438,8 +447,8 @@ Instance::~Instance()
 {
     compartment_->wasm.unregisterInstance(*this);
 
-    for (unsigned i = 0; i < metadata().funcImports.length(); i++) {
-        FuncImportTls& import = funcImportTls(metadata().funcImports[i]);
+    for (unsigned i = 0; i < metadataTier().funcImports.length(); i++) {
+        FuncImportTls& import = funcImportTls(metadataTier().funcImports[i]);
         if (import.baselineScript)
             import.baselineScript->removeDependentWasmImport(*this, i);
     }
@@ -486,7 +495,7 @@ Instance::tracePrivate(JSTracer* trc)
     MOZ_ASSERT(!gc::IsAboutToBeFinalized(&object_));
     TraceEdge(trc, &object_, "wasm instance object");
 
-    for (const FuncImport& fi : metadata().funcImports)
+    for (const FuncImport& fi : metadataTier().funcImports)
         TraceNullableEdge(trc, &funcImportTls(fi).obj, "wasm import");
 
     for (const SharedTable& table : tables_)
@@ -651,7 +660,7 @@ Instance::callExport(JSContext* cx, uint32_t funcIndex, CallArgs args)
         JitActivation jitActivation(cx, /* active */ false);
 
         // Call the per-exported-function trampoline created by GenerateEntry.
-        auto funcPtr = JS_DATA_TO_FUNC_PTR(ExportFuncPtr, codeBase() + func.entryOffset());
+        auto funcPtr = JS_DATA_TO_FUNC_PTR(ExportFuncPtr, codeBaseTier() + func.entryOffset());
         if (!CALL_GENERATED_2(funcPtr, exportArgs.begin(), tlsData()))
             return false;
     }
@@ -749,6 +758,28 @@ Instance::callExport(JSContext* cx, uint32_t funcIndex, CallArgs args)
     return true;
 }
 
+bool
+Instance::getFuncName(uint32_t funcIndex, UTF8Bytes* name) const
+{
+    return metadata().getFuncName(debug_->maybeBytecode(), funcIndex, name);
+}
+
+JSAtom*
+Instance::getFuncAtom(JSContext* cx, uint32_t funcIndex) const
+{
+    UTF8Bytes name;
+    if (!getFuncName(funcIndex, &name))
+        return nullptr;
+
+    return AtomizeUTF8Chars(cx, name.begin(), name.length());
+}
+
+void
+Instance::ensureProfilingLabels(bool profilingEnabled) const
+{
+    return code_->ensureProfilingLabels(debug_->maybeBytecode(), profilingEnabled);
+}
+
 void
 Instance::onMovingGrowMemory(uint8_t* prevMemoryBase)
 {
@@ -773,9 +804,9 @@ Instance::onMovingGrowTable()
 void
 Instance::deoptimizeImportExit(uint32_t funcImportIndex)
 {
-    const FuncImport& fi = metadata().funcImports[funcImportIndex];
+    const FuncImport& fi = metadataTier().funcImports[funcImportIndex];
     FuncImportTls& import = funcImportTls(fi);
-    import.code = codeBase() + fi.interpExitCodeOffset();
+    import.code = codeBaseTier() + fi.interpExitCodeOffset();
     import.baselineScript = nullptr;
 }
 
@@ -785,7 +816,7 @@ Instance::ensureEnterFrameTrapsState(JSContext* cx, bool enabled)
     if (enterFrameTrapsEnabled_ == enabled)
         return;
 
-    code_->adjustEnterAndLeaveFrameTrapsState(cx, enabled);
+    debug_->adjustEnterAndLeaveFrameTrapsState(cx, enabled);
     enterFrameTrapsEnabled_ = enabled;
 }
 
@@ -793,16 +824,18 @@ void
 Instance::addSizeOfMisc(MallocSizeOf mallocSizeOf,
                         Metadata::SeenSet* seenMetadata,
                         ShareableBytes::SeenSet* seenBytes,
+                        Code::SeenSet* seenCode,
                         Table::SeenSet* seenTables,
                         size_t* code,
                         size_t* data) const
 {
     *data += mallocSizeOf(this) + globals_->sizeOfMisc(mallocSizeOf);
 
-    code_->addSizeOfMisc(mallocSizeOf, seenMetadata, seenBytes, code, data);
-
     for (const SharedTable& table : tables_)
          *data += table->sizeOfIncludingThisIfNotSeen(mallocSizeOf, seenTables);
+
+    debug_->addSizeOfMisc(mallocSizeOf, seenMetadata, seenBytes, seenCode, code, data);
+    code_->addSizeOfMiscIfNotSeen(mallocSizeOf, seenMetadata, seenCode, code, data);
 }
 
 /* static */ UniqueGlobalSegment

@@ -80,7 +80,7 @@ function setup() {
 
 // Reset function in helper try to simulate the behavior we restart firefox
 function reset() {
-  return classifierHelper.resetDB()
+  return classifierHelper.resetDatabase()
     .catch(err => {
       ok(false, "Couldn't update classifier. Error code: " + errorCode);
       // Abort test.
@@ -143,24 +143,6 @@ function testGethash() {
     .then(loadTestFrame)
     .then(() => {
       ok(gCurGethashCounter == gPreGethashCounter, "Gethash request is not triggered."); })
-    .then(reset);
-}
-
-// This testcase is to make sure an update request will clear completion cache:
-// 1. Add prefixes to DB.
-// 2. Load test frame, this should trigger a gethash request
-// 3. Trigger an update, completion cache should be cleared now.
-// 4. Load test frame again, since cache is cleared now, gethash request should be triggered.
-function testUpdateClearCache() {
-  return Promise.resolve()
-    .then(addPrefixToDB)
-    .then(loadTestFrame)
-    .then(() => {
-      ok(gCurGethashCounter > gPreGethashCounter, "Gethash request is triggered."); })
-    .then(updateUnusedUrl)
-    .then(loadTestFrame)
-    .then(() => {
-      ok(gCurGethashCounter > gPreGethashCounter, "Gethash request is triggered."); })
     .then(reset);
 }
 
@@ -239,7 +221,6 @@ function runTest() {
     .then(classifierHelper.waitForInit)
     .then(setup)
     .then(testGethash)
-    .then(testUpdateClearCache)
     .then(testUpdate)
     .then(testUpdateNotClearCompletions)
     .then(testUpdateCompletionsAfterReload)

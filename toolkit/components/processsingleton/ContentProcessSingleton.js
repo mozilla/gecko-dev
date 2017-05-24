@@ -14,6 +14,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageSender");
 
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryController",
+                                  "resource://gre/modules/TelemetryController.jsm");
+
 /*
  * The message manager has an upper limit on message sizes that it can
  * reliably forward to the parent so we limit the size of console log event
@@ -44,9 +47,10 @@ ContentProcessSingleton.prototype = {
   observe(subject, topic, data) {
     switch (topic) {
     case "app-startup": {
-      Services.obs.addObserver(this, "console-api-log-event", false);
-      Services.obs.addObserver(this, "xpcom-shutdown", false);
+      Services.obs.addObserver(this, "console-api-log-event");
+      Services.obs.addObserver(this, "xpcom-shutdown");
       cpmm.addMessageListener("DevTools:InitDebuggerServer", this);
+      TelemetryController.observe(null, topic, null);
       break;
     }
     case "console-api-log-event": {

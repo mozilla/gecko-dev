@@ -45,6 +45,7 @@ add_test(function test_getAppLocalesAsLangTags() {
 
 const PREF_MATCH_OS_LOCALE = "intl.locale.matchOS";
 const PREF_SELECTED_LOCALE = "general.useragent.locale";
+const PREF_OS_LOCALE       = "intl.locale.os";
 const REQ_LOC_CHANGE_EVENT = "intl:requested-locales-changed";
 
 add_test(function test_getRequestedLocales() {
@@ -67,6 +68,7 @@ add_test(function test_getRequestedLocales_matchOS() {
 
   Services.prefs.setBoolPref(PREF_MATCH_OS_LOCALE, false);
   Services.prefs.setCharPref(PREF_SELECTED_LOCALE, "ar-IR");
+  Services.prefs.setCharPref(PREF_OS_LOCALE, "en-US");
 
   const observer = {
     observe: function (aSubject, aTopic, aData) {
@@ -80,7 +82,7 @@ add_test(function test_getRequestedLocales_matchOS() {
     }
   };
 
-  Services.obs.addObserver(observer, REQ_LOC_CHANGE_EVENT, false);
+  Services.obs.addObserver(observer, REQ_LOC_CHANGE_EVENT);
   Services.prefs.setBoolPref(PREF_MATCH_OS_LOCALE, true);
 
   run_next_test();
@@ -109,8 +111,26 @@ add_test(function test_getRequestedLocales_matchOS() {
     }
   };
 
-  Services.obs.addObserver(observer, REQ_LOC_CHANGE_EVENT, false);
+  Services.obs.addObserver(observer, REQ_LOC_CHANGE_EVENT);
   Services.prefs.setCharPref(PREF_SELECTED_LOCALE, "sr-RU");
+
+  run_next_test();
+});
+
+add_test(function test_getRequestedLocale() {
+  Services.prefs.setBoolPref(PREF_MATCH_OS_LOCALE, false);
+  Services.prefs.setCharPref(PREF_SELECTED_LOCALE, "tlh");
+
+  let requestedLocale = localeService.getRequestedLocale();
+  do_check_true(requestedLocale === "tlh", "requestedLocale returns the right value");
+
+  Services.prefs.setCharPref(PREF_SELECTED_LOCALE, "");
+
+  requestedLocale = localeService.getRequestedLocale();
+  do_check_true(requestedLocale === "", "requestedLocale returns empty value value");
+
+  Services.prefs.clearUserPref(PREF_MATCH_OS_LOCALE);
+  Services.prefs.clearUserPref(PREF_SELECTED_LOCALE);
 
   run_next_test();
 });
@@ -131,7 +151,14 @@ add_test(function test_setRequestedLocales() {
   run_next_test();
 });
 
+add_test(function test_isAppLocaleRTL() {
+  do_check_true(typeof localeService.isAppLocaleRTL === 'boolean');
+
+  run_next_test();
+});
+
 do_register_cleanup(() => {
-    Services.prefs.clearUserPref(PREF_SELECTED_LOCALE);
-    Services.prefs.clearUserPref(PREF_MATCH_OS_LOCALE);
+  Services.prefs.clearUserPref(PREF_SELECTED_LOCALE);
+  Services.prefs.clearUserPref(PREF_MATCH_OS_LOCALE);
+  Services.prefs.clearUserPref(PREF_OS_LOCALE, "en-US");
 });

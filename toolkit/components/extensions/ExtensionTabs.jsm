@@ -25,6 +25,7 @@ const {
   DefaultWeakMap,
   EventEmitter,
   ExtensionError,
+  defineLazyGetter,
   getWinUtils,
 } = ExtensionUtils;
 
@@ -180,7 +181,7 @@ class TabBase {
    *        Returns true if this is a private browsing tab, false otherwise.
    *        @readonly
    */
-  get incognito() {
+  get _incognito() {
     return PrivateBrowsingUtils.isBrowserPrivate(this.browser);
   }
 
@@ -282,6 +283,15 @@ class TabBase {
    */
   get browser() {
     throw new Error("Not implemented");
+  }
+
+  /**
+   * @property {nsIFrameLoader} browser
+   *        Returns the frameloader for the given tab.
+   *        @readonly
+   */
+  get frameLoader() {
+    return this.browser.frameLoader;
   }
 
   /**
@@ -454,14 +464,16 @@ class TabBase {
    * of its properties which the extension is permitted to access, in the format
    * requried to be returned by WebExtension APIs.
    *
+   * @param {Tab} [fallbackTab]
+   *        A tab to retrieve geometry data from if the lazy geometry data for
+   *        this tab hasn't been initialized yet.
    * @returns {object}
    */
-  convert() {
+  convert(fallbackTab = null) {
     let result = {
       id: this.id,
       index: this.index,
       windowId: this.windowId,
-      selected: this.selected,
       highlighted: this.selected,
       active: this.selected,
       pinned: this.pinned,
@@ -472,6 +484,13 @@ class TabBase {
       audible: this.audible,
       mutedInfo: this.mutedInfo,
     };
+
+    // If the tab has not been fully layed-out yet, fallback to the geometry
+    // from a different tab (usually the currently active tab).
+    if (fallbackTab && (!result.width || !result.height)) {
+      result.width = fallbackTab.width;
+      result.height = fallbackTab.height;
+    }
 
     if (this.extension.hasPermission("cookies")) {
       result.cookieStoreId = this.cookieStoreId;
@@ -623,6 +642,8 @@ class TabBase {
     return this._execute(context, details, "css", "removeCSS").then(() => {});
   }
 }
+
+defineLazyGetter(TabBase.prototype, "incognito", function() { return this._incognito; });
 
 // Note: These must match the values in windows.json.
 const WINDOW_ID_NONE = -1;
@@ -898,7 +919,7 @@ class WindowBase {
    *
    * @returns {Iterator<TabBase>}
    */
-  * getTabs() {
+  getTabs() {
     throw new Error("Not implemented");
   }
   /* eslint-enable valid-jsdoc */
@@ -1633,11 +1654,15 @@ class TabManagerBase {
    *
    * @param {NativeTab} nativeTab
    *        The native tab to convert.
+   * @param {NativeTab} [fallbackTab]
+   *        A tab to retrieve geometry data from if the lazy geometry data for
+   *        this tab hasn't been initialized yet.
    *
    * @returns {Object}
    */
-  convert(nativeTab) {
-    return this.getWrapper(nativeTab).convert();
+  convert(nativeTab, fallbackTab = null) {
+    return this.getWrapper(nativeTab)
+               .convert(fallbackTab && this.getWrapper(fallbackTab));
   }
 
   // The JSDoc validator does not support @returns tags in abstract functions or
@@ -1790,7 +1815,7 @@ class WindowManagerBase {
    * @returns {Iterator<WindowBase>}
    * @abstract
    */
-  * getAll() {
+  getAll() {
     throw new Error("Not implemented");
   }
 

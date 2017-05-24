@@ -103,7 +103,7 @@ IncrementalDownload.prototype = {
              getService(Ci.nsIThreadManager);
     // Do the actual operation async to give a chance for observers
     // to add themselves.
-    tm.mainThread.dispatch(function() {
+    tm.dispatchToMainThread(() => {
       this._observer = observer.QueryInterface(Ci.nsIRequestObserver);
       this._ctxt = ctxt;
       this._observer.onStartRequest(this, this._ctxt);
@@ -129,15 +129,15 @@ IncrementalDownload.prototype = {
           // status being changed to online.
           let tm2 = Cc["@mozilla.org/thread-manager;1"].
                     getService(Ci.nsIThreadManager);
-          tm2.mainThread.dispatch(function() {
+          tm2.dispatchToMainThread(function() {
             Services.obs.notifyObservers(gAUS,
                                          "network:offline-status-changed",
                                          "online");
-          }, Ci.nsIThread.DISPATCH_NORMAL);
+          });
           break;
       }
       this._observer.onStopRequest(this, this._ctxt, status);
-    }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+    });
   },
 
   get URI() {
@@ -212,19 +212,8 @@ function run_test_pt2() {
   Services.prefs.setIntPref(PREF_APP_UPDATE_SOCKET_MAXERRORS, 2);
   Services.prefs.setIntPref(PREF_APP_UPDATE_RETRYTIMEOUT, 0);
   setResponseBody("MD5", MD5_HASH_SIMPLE_MAR);
-
-  let expectedResult;
-  if (IS_TOOLKIT_GONK) {
-    // Gonk treats interrupted downloads differently. For gonk, if the state
-    // is pending, this means that the download has completed and only the
-    // staging needs to occur. So gonk will skip the download portion which
-    // results in an NS_OK return.
-    expectedResult = Cr.NS_OK;
-  } else {
-    expectedResult = Cr.NS_ERROR_NET_RESET;
-  }
   run_test_helper_pt1("mar download with connection interruption without recovery",
-                      expectedResult, run_test_pt3);
+                      Cr.NS_ERROR_NET_RESET, run_test_pt3);
 }
 
 // Test entering offline mode while downloading

@@ -108,9 +108,10 @@ public final class IntentHelper implements BundleEventListener {
                                           String action,
                                           String title,
                                           final boolean showPromptInPrivateBrowsing) {
-        final GeckoAppShell.GeckoInterface gi = GeckoAppShell.getGeckoInterface();
-        final Context activityContext = gi != null ? gi.getActivity() : null;
-        final Context context = activityContext != null ? activityContext : GeckoAppShell.getApplicationContext();
+        final Context activityContext =
+                GeckoActivityMonitor.getInstance().getCurrentActivity();
+        final Context context = (activityContext != null) ?
+                activityContext : GeckoAppShell.getApplicationContext();
         final Intent intent = getOpenURIIntent(context, targetURI,
                                                mimeType, action, title);
 
@@ -277,6 +278,12 @@ public final class IntentHelper implements BundleEventListener {
                 intent = Intent.parseUri(targetURI, 0);
             } catch (final URISyntaxException e) {
                 Log.e(LOGTAG, "Unable to parse URI - " + e);
+                return null;
+            }
+
+            final Uri data = intent.getData();
+            if (data != null && "file".equals(data.normalizeScheme().getScheme())) {
+                Log.w(LOGTAG, "Blocked intent with \"file://\" data scheme.");
                 return null;
             }
 

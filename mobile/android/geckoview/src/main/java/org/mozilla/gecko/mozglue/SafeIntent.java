@@ -10,7 +10,6 @@ package org.mozilla.gecko.mozglue;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -26,6 +25,7 @@ public class SafeIntent {
     private final Intent intent;
 
     public SafeIntent(final Intent intent) {
+        stripDataUri(intent);
         this.intent = intent;
     }
 
@@ -68,19 +68,6 @@ public class SafeIntent {
     public String getStringExtra(final String name) {
         try {
             return intent.getStringExtra(name);
-        } catch (OutOfMemoryError e) {
-            Log.w(LOGTAG, "Couldn't get intent extras: OOM. Malformed?");
-            return null;
-        } catch (RuntimeException e) {
-            Log.w(LOGTAG, "Couldn't get intent extras.", e);
-            return null;
-        }
-    }
-
-    @Nullable
-    public Bundle getExtras() {
-        try {
-            return intent.getExtras();
         } catch (OutOfMemoryError e) {
             Log.w(LOGTAG, "Couldn't get intent extras: OOM. Malformed?");
             return null;
@@ -144,5 +131,20 @@ public class SafeIntent {
 
     public Intent getUnsafe() {
         return intent;
+    }
+
+    private static void stripDataUri(final Intent intent) {
+        // We should limit intent filters and check incoming intents against white-list
+        // But for now we just strip 'about:reader?url='
+        if (intent != null && intent.getData() != null) {
+            final String url = intent.getData().toString();
+            final String prefix = "about:reader?url=";
+            if (url != null && url.startsWith(prefix)) {
+                final String strippedUrl = url.replace(prefix, "");
+                if (strippedUrl != null) {
+                    intent.setData(Uri.parse(strippedUrl));
+                }
+            }
+        }
     }
 }

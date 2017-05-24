@@ -6,7 +6,7 @@
 <html lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>about:license</title>
+    <title>Licenses</title>
 
     <style type="text/css">
       .path {
@@ -21,7 +21,7 @@
   </head>
 
   <body id="lic-info" class="aboutPageWideContainer">
-    <h1><a id="top"></a>about:license</h1>
+    <h1><a id="top"></a>Licenses</h1>
 
     <div>
 
@@ -101,6 +101,7 @@
       <li><a href="about:license#gears">Google Gears License</a></li>
       <li><a href="about:license#gears-istumbler">Google Gears/iStumbler License</a></li>
       <li><a href="about:license#vp8">Google VP8 License</a></li>
+      <li><a href="about:license#gsl">GSL License</a></li>
       <li><a href="about:license#gyp">gyp License</a></li>
       <li><a href="about:license#halloc">halloc License</a></li>
       <li><a href="about:license#harfbuzz">HarfBuzz License</a></li>
@@ -128,6 +129,7 @@
       <li><a href="about:license#lodash">lodash License</a></li>
       <li><a href="about:license#microformatsshiv">MIT license — microformat-shiv</a></li>
       <li><a href="about:license#myspell">MySpell License</a></li>
+      <li><a href="about:license#naturalSort">naturalSort License</a></li>
       <li><a href="about:license#nicer">nICEr License</a></li>
       <li><a href="about:license#node-md5">node-md5 License</a></li>
       <li><a href="about:license#node-properties">node-properties License</a></li>
@@ -145,7 +147,9 @@
       <li><a href="about:license#praton1">praton and inet_ntop License</a></li>
       <li><a href="about:license#qcms">qcms License</a></li>
       <li><a href="about:license#qrcode-generator">QR Code Generator License</a></li>
+      <li><a href="about:license#raven-js">Raven.js License</a></li>
       <li><a href="about:license#react">React License</a></li>
+      <li><a href="about:license#react-intl">React Intl License</a></li>
       <li><a href="about:license#react-redux">React-Redux License</a></li>
       <li><a href="about:license#react-virtualized">React Virtualized License</a></li>
       <li><a href="about:license#xdg">Red Hat xdg_user_dir_lookup License</a></li>
@@ -2721,6 +2725,8 @@ WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
     <p>This license applies to parts of the code in:</p>
     <ul>
+        <li><span class="path">browser/extensions/formautofill/content/nameReferences.js</span></li>
+        <li><span class="path">browser/extensions/formautofill/FormAutofillNameUtils.jsm</span></li>
         <li><span class="path">browser/extensions/mortar/host/common/opengles2-utils.jsm</span></li>
         <li><span class="path">editor/libeditor/EditorEventListener.cpp</span></li>
         <li><span class="path">security/sandbox/</span></li>
@@ -3256,8 +3262,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <h1><a id="google-bsd"></a>Google BSD License</h1>
 
     <p>This license applies to files in the directories
-    <span class="path">toolkit/crashreporter/google-breakpad/</span> and
-    <span class="path">toolkit/components/protobuf/</span>.</p>
+    <span class="path">toolkit/crashreporter/google-breakpad/</span>,
+    <span class="path">toolkit/components/protobuf/</span> and
+    <span class="path">devtools/client/netmonitor/src/utils/filter-text-utils.js.</p>
 
 <pre>
 Copyright (c) 2006, Google Inc.
@@ -3414,6 +3421,38 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 </pre>
+
+    <hr>
+
+    <h1><a id="gsl"></a>GSL License</h1>
+
+    <p>This license applies to <span class="path">mfbt/Span.h</span> and
+    <span class="path">mfbt/tests/gtest/TestSpan.cpp</span>.</p>
+    <!-- https://github.com/Microsoft/GSL/blob/3819df6e378ffccf0e29465afe99c3b324c2aa70/LICENSE -->
+<pre>
+Copyright (c) 2015 Microsoft Corporation. All rights reserved.
+
+This code is licensed under the MIT License (MIT).
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</pre>
+
 
     <hr>
 
@@ -3722,14 +3761,12 @@ THE SOFTWARE.
 
     <p>This license applies to files in the directories
     <span class="path">memory/mozjemalloc/</span> and
-    <span class="path">memory/jemalloc/</span>.
     </p>
 
 <pre>
-Copyright (C) 2002-2012 Jason Evans &lt;jasone@canonware.com&gt;.
+Copyright (C) 2006-2008 Jason Evans &lt;jasone@canonware.com&gt;.
 All rights reserved.
-Copyright (C) 2007-2012 Mozilla Foundation.  All rights reserved.
-Copyright (C) 2009-2012 Facebook, Inc.  All rights reserved.
+Copyright (C) 2007-2017 Mozilla Foundation.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -4320,6 +4357,36 @@ SUCH DAMAGE.
 </pre>
 
 
+<hr>
+
+<h1><a id="naturalSort"></a>naturalSort License</h1>
+
+<p>This license applies to <span class="path">devtools/client/shared/natural-sort.js</span>.</p>
+
+<pre>
+The MIT License (MIT)
+
+Copyright (c) 2014 Gabriel Llamas
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</pre>
+
     <hr>
 
     <h1><a id="nicer"></a>nICEr License</h1>
@@ -4903,6 +4970,37 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 </pre>
 
+    <hr>
+
+    <h1><a id="raven-js"></a>Raven.js License</h1>
+
+    <p>This license applies to the file
+      <span class="path">browser/extensions/screenshots/webextension/build/raven.js</span>.</p>
+<pre>
+Copyright (c) 2014 Matt Robenolt and other contributors
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+  list of conditions and the following disclaimer in the documentation and/or
+  other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</pre>
 
     <hr>
 
@@ -4942,10 +5040,47 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <hr>
 
+    <h1><a id="react-intl"></a>React Intl License</h1>
+
+    <p>This license applies to the files
+    <span class="path">browser/extensions/activity-stream/vendor/react-intl.js</span>.</p>
+<pre>
+Copyright 2014 Yahoo Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+
+    * Neither the name of the Yahoo Inc. nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL YAHOO! INC. BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</pre>
+
+    <hr>
+
     <h1><a id="react-redux"></a>React-Redux License</h1>
 
-    <p>This license applies to the file
-    <span class="path">devtools/client/shared/vendor/react-redux.js</span>.</p>
+    <p>This license applies to the files
+    <span class="path">devtools/client/shared/vendor/react-redux.js</span> and
+    <span class="path">browser/extensions/activity-stream/vendor/react-redux.js</span>.</p>
 <pre>
 Copyright (c) 2015 Dan Abramov
 
@@ -5033,7 +5168,8 @@ SOFTWARE.
     <h1><a id="redux"></a>Redux License</h1>
 
     <p>This license applies to the file
-    <span class="path">devtools/client/shared/vendor/redux.js</span>.</p>
+    <span class="path">devtools/client/shared/vendor/redux.js</span> and
+    <span class="path">browser/extensions/activity-stream/vendor/Redux.jsm</span>.</p>
 <pre>
 Copyright (c) 2015 Dan Abramov
 
@@ -5061,7 +5197,8 @@ SOFTWARE.
 <h1><a id="reselect"></a>Reselect License</h1>
 
 <p>This license applies to the file
-<span class="path">devtools/client/shared/vendor/reselect.js</span>.</p>
+<span class="path">devtools/client/shared/vendor/reselect.js</span> and
+<span class="path">browser/extensions/activity-stream/vendor/reselect.js</span>.</p>
 <pre>
 The MIT License (MIT)
 

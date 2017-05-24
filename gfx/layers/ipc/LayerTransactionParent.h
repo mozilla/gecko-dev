@@ -97,17 +97,9 @@ public:
     return OtherPid();
   }
 
-  void SetPendingCompositorUpdate(uint64_t aNumber) {
-    mPendingCompositorUpdate = Some(aNumber);
-  }
-  void AcknowledgeCompositorUpdate(uint64_t aNumber) {
-    if (mPendingCompositorUpdate == Some(aNumber)) {
-      mPendingCompositorUpdate = Nothing();
-    }
-  }
-
 protected:
   virtual mozilla::ipc::IPCResult RecvShutdown() override;
+  virtual mozilla::ipc::IPCResult RecvShutdownSync() override;
 
   virtual mozilla::ipc::IPCResult RecvPaintTime(const uint64_t& aTransactionId,
                                                 const TimeDuration& aPaintTime) override;
@@ -140,6 +132,8 @@ protected:
   virtual mozilla::ipc::IPCResult RecvRequestProperty(const nsString& aProperty, float* aValue) override;
   virtual mozilla::ipc::IPCResult RecvSetConfirmedTargetAPZC(const uint64_t& aBlockId,
                                                              nsTArray<ScrollableLayerGuid>&& aTargets) override;
+  virtual mozilla::ipc::IPCResult RecvRecordPaintTimes(const PaintTiming& aTiming) override;
+  virtual mozilla::ipc::IPCResult RecvGetTextureFactoryIdentifier(TextureFactoryIdentifier* aIdentifier) override;
 
   bool SetLayerAttributes(const OpSetLayerAttributes& aOp);
 
@@ -171,6 +165,13 @@ protected:
   friend class layout::RenderFrameParent;
 
 private:
+  // This is a function so we can log or breakpoint on why hit
+  // testing tree changes are made.
+  void UpdateHitTestingTree(Layer* aLayer, const char* aWhy) {
+    mUpdateHitTestingTree = true;
+  }
+
+private:
   RefPtr<HostLayerManager> mLayerManager;
   CompositorBridgeParentBase* mCompositorBridge;
 
@@ -196,10 +197,6 @@ private:
 
   uint64_t mPendingTransaction;
 
-  // Not accepting layers updates until we receive an acknowledgement with this
-  // generation number.
-  Maybe<uint64_t> mPendingCompositorUpdate;
-
   // When the widget/frame/browser stuff in this process begins its
   // destruction process, we need to Disconnect() all the currently
   // live shadow layers, because some of them might be orphaned from
@@ -215,8 +212,11 @@ private:
   // transactions posted by the child.
 
   bool mDestroyed;
-
   bool mIPCOpen;
+
+  // This is set during RecvUpdate to track whether we'll need to update
+  // APZ's hit test regions.
+  bool mUpdateHitTestingTree;
 };
 
 } // namespace layers

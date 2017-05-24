@@ -8,7 +8,6 @@
 #include "mozilla/Attributes.h"
 #include "nscore.h"
 #include "nsContainerFrame.h"
-#include "nsTablePainter.h"
 #include "nsTableRowGroupFrame.h"
 #include "mozilla/WritingModes.h"
 
@@ -66,7 +65,7 @@ public:
   nsTableRowGroupFrame* GetTableRowGroupFrame() const
   {
     nsIFrame* parent = GetParent();
-    MOZ_ASSERT(parent && parent->GetType() == nsGkAtoms::tableRowGroupFrame);
+    MOZ_ASSERT(parent && parent->IsTableRowGroupFrame());
     return static_cast<nsTableRowGroupFrame*>(parent);
   }
 
@@ -104,13 +103,6 @@ public:
                       nsReflowStatus&          aStatus) override;
 
   void DidResize();
-
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::tableRowFrame
-   */
-  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;

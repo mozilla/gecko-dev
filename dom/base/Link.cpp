@@ -33,6 +33,8 @@ Link::Link(Element *aElement)
   , mLinkState(eLinkState_NotLink)
   , mNeedsRegistration(false)
   , mRegistered(false)
+  , mHasPendingLinkUpdate(false)
+  , mInDNSPrefetch(false)
 {
   MOZ_ASSERT(mElement, "Must have an element");
 }
@@ -43,11 +45,18 @@ Link::Link()
   , mLinkState(eLinkState_NotLink)
   , mNeedsRegistration(false)
   , mRegistered(false)
+  , mHasPendingLinkUpdate(false)
+  , mInDNSPrefetch(false)
 {
 }
 
 Link::~Link()
 {
+  // !mElement is for mock_Link.
+  MOZ_ASSERT(!mElement || !mElement->IsInComposedDoc());
+  if (IsInDNSPrefetch()) {
+    nsHTMLDNSPrefetch::LinkDestroyed(this);
+  }
   UnregisterFromHistory();
 }
 

@@ -58,10 +58,10 @@ this.SafeBrowsing = {
       return;
     }
 
-    Services.prefs.addObserver("browser.safebrowsing", this, false);
-    Services.prefs.addObserver("privacy.trackingprotection", this, false);
-    Services.prefs.addObserver("urlclassifier", this, false);
-    Services.prefs.addObserver("plugins.flashBlock.enabled", this, false);
+    Services.prefs.addObserver("browser.safebrowsing", this);
+    Services.prefs.addObserver("privacy.trackingprotection", this);
+    Services.prefs.addObserver("urlclassifier", this);
+    Services.prefs.addObserver("plugins.flashBlock.enabled", this);
 
     this.readPrefs();
     this.addMozEntries();
@@ -82,6 +82,11 @@ this.SafeBrowsing = {
     if (!providerName || !provider) {
       log("No provider info found for " + listname);
       log("Check browser.safebrowsing.provider.[google/mozilla].lists");
+      return;
+    }
+
+    if (!provider.updateURL) {
+      log("Invalid update url " + listname);
       return;
     }
 
@@ -269,6 +274,14 @@ this.SafeBrowsing = {
         "browser.safebrowsing.provider." + provider + ".gethashURL");
       updateURL = updateURL.replace("SAFEBROWSING_ID", clientID);
       gethashURL = gethashURL.replace("SAFEBROWSING_ID", clientID);
+
+      // Disable updates and gethash if the Google API key is missing.
+      let googleKey = Services.urlFormatter.formatURL("%GOOGLE_API_KEY%").trim();
+      if ((provider == "google" || provider == "google4") &&
+          (!googleKey || googleKey == "no-google-api-key")) {
+        updateURL= "";
+        gethashURL= "";
+      }
 
       log("Provider: " + provider + " updateURL=" + updateURL);
       log("Provider: " + provider + " gethashURL=" + gethashURL);
@@ -458,6 +471,6 @@ this.SafeBrowsing = {
       }
       resolve();
     };
-    Services.obs.addObserver(finished, "mozentries-update-finished", false);
+    Services.obs.addObserver(finished, "mozentries-update-finished");
   }),
 };

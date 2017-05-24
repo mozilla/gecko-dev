@@ -19,6 +19,7 @@ using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
 using RequestHeaderTuples from "mozilla/net/PHttpChannelParams.h";
 using struct nsHttpAtom from "nsHttp.h";
 using class nsHttpResponseHead from "nsHttpResponseHead.h";
+using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
 
 namespace mozilla {
 namespace net {
@@ -121,17 +122,23 @@ struct HttpChannelOpenArgs
   OptionalHttpResponseHead    synthesizedResponseHead;
   nsCString                   synthesizedSecurityInfoSerialization;
   uint32_t                    cacheKey;
-  nsCString                   requestContextID;
+  uint64_t                    requestContextID;
   OptionalCorsPreflightArgs   preflightArgs;
   uint32_t                    initialRwin;
   bool                        blockAuthPrompt;
   bool                        suspendAfterSynthesizeResponse;
   bool                        allowStaleCacheContent;
   nsCString                   contentTypeHint;
-  nsCString                   channelId;
+  uint64_t                    channelId;
   uint64_t                    contentWindowId;
   nsCString                   preferredAlternativeType;
   uint64_t                    topLevelOuterContentWindowId;
+  TimeStamp                   launchServiceWorkerStart;
+  TimeStamp                   launchServiceWorkerEnd;
+  TimeStamp                   dispatchFetchEventStart;
+  TimeStamp                   dispatchFetchEventEnd;
+  TimeStamp                   handleFetchEventStart;
+  TimeStamp                   handleFetchEventEnd;
 };
 
 struct HttpChannelConnectArgs

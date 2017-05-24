@@ -136,6 +136,9 @@ var WebProgressListener = {
     this._send("Content:StateChange", json, objects);
   },
 
+  // Note: Because the nsBrowserStatusFilter timeout runnable is
+  // SystemGroup-labeled, this method should not modify content DOM or
+  // run content JS.
   onProgressChange: function onProgressChange(aWebProgress, aRequest, aCurSelf, aMaxSelf, aCurTotal, aMaxTotal) {
     let json = this._setupJSON(aWebProgress, aRequest);
     let objects = this._setupObjects(aWebProgress, aRequest);
@@ -186,6 +189,9 @@ var WebProgressListener = {
     this._send("Content:LocationChange", json, objects);
   },
 
+  // Note: Because the nsBrowserStatusFilter timeout runnable is
+  // SystemGroup-labeled, this method should not modify content DOM or
+  // run content JS.
   onStatusChange: function onStatusChange(aWebProgress, aRequest, aStatus, aMessage) {
     let json = this._setupJSON(aWebProgress, aRequest);
     let objects = this._setupObjects(aWebProgress, aRequest);
@@ -264,6 +270,10 @@ var WebNavigation =  {
         this.gotoIndex(message.data.index);
         break;
       case "WebNavigation:LoadURI":
+        let histogram = Services.telemetry.getKeyedHistogramById("FX_TAB_REMOTE_NAVIGATION_DELAY_MS");
+        histogram.add("WebNavigation:LoadURI",
+                      Services.telemetry.msSystemNow() - message.data.requestTime);
+
         this.loadURI(message.data.uri, message.data.flags,
                      message.data.referrer, message.data.referrerPolicy,
                      message.data.postData, message.data.headers,
@@ -586,20 +596,6 @@ if (AddonsChild) {
     RemoteAddonsChild.uninit(AddonsChild);
   });
 }
-
-addMessageListener("NetworkPrioritizer:AdjustPriority", (msg) => {
-  let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
-  let loadGroup = webNav.QueryInterface(Ci.nsIDocumentLoader)
-                        .loadGroup.QueryInterface(Ci.nsISupportsPriority);
-  loadGroup.adjustPriority(msg.data.adjustment);
-});
-
-addMessageListener("NetworkPrioritizer:SetPriority", (msg) => {
-  let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
-  let loadGroup = webNav.QueryInterface(Ci.nsIDocumentLoader)
-                        .loadGroup.QueryInterface(Ci.nsISupportsPriority);
-  loadGroup.priority = msg.data.priority;
-});
 
 addMessageListener("InPermitUnload", msg => {
   let inPermitUnload = docShell.contentViewer && docShell.contentViewer.inPermitUnload;

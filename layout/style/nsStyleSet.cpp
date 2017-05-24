@@ -2083,8 +2083,7 @@ nsStyleSet::ProbePseudoElementStyle(Element* aParentElement,
 
 already_AddRefed<nsStyleContext>
 nsStyleSet::ResolveInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag,
-                                               nsStyleContext* aParentContext,
-                                               uint32_t aFlags)
+                                               nsStyleContext* aParentContext)
 {
   NS_ENSURE_FALSE(mInShutdown, nullptr);
 
@@ -2123,9 +2122,14 @@ nsStyleSet::ResolveInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag,
     }
   }
 
+  uint32_t flags = eNoFlags;
+  if (nsCSSAnonBoxes::AnonBoxSkipsParentDisplayBasedStyleFixup(aPseudoTag)) {
+    flags |= eSkipParentDisplayBasedStyleFixup;
+  }
+
   return GetContext(aParentContext, ruleWalker.CurrentNode(), nullptr,
                     aPseudoTag, CSSPseudoElementType::InheritingAnonBox,
-                    nullptr, aFlags);
+                    nullptr, flags);
 }
 
 already_AddRefed<nsStyleContext>
@@ -2172,7 +2176,7 @@ nsStyleSet::ResolveNonInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag)
 #ifdef MOZ_XUL
 already_AddRefed<nsStyleContext>
 nsStyleSet::ResolveXULTreePseudoStyle(Element* aParentElement,
-                                      nsIAtom* aPseudoTag,
+                                      nsICSSAnonBoxPseudo* aPseudoTag,
                                       nsStyleContext* aParentContext,
                                       nsICSSPseudoComparator* aComparator)
 {
@@ -2251,7 +2255,7 @@ nsStyleSet::KeyframesRuleForName(const nsString& aName)
 }
 
 nsCSSCounterStyleRule*
-nsStyleSet::CounterStyleRuleForName(const nsAString& aName)
+nsStyleSet::CounterStyleRuleForName(nsIAtom* aName)
 {
   NS_ENSURE_FALSE(mInShutdown, nullptr);
   NS_ASSERTION(mBatching == 0, "rule processors out of date");
@@ -2441,11 +2445,14 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
     flags |= eDoAnimation;
   }
 
-  if (aElement && aElement->IsRootOfAnonymousSubtree()) {
+  if ((aElement && aElement->IsRootOfAnonymousSubtree()) ||
+      (aStyleContext->IsAnonBox() &&
+       nsCSSAnonBoxes::AnonBoxSkipsParentDisplayBasedStyleFixup(
+         aStyleContext->GetPseudo()))) {
     // For anonymous subtree roots, don't tweak "display" value based on whether
     // or not the parent is styled as a flex/grid container. (If the parent
     // has anonymous-subtree kids, then we know it's not actually going to get
-    // a flex/grid container frame, anyway.)
+    // a flex/grid container frame, anyway.)  Same for certain anonymous boxes.
     flags |= eSkipParentDisplayBasedStyleFixup;
   }
 

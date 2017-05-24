@@ -182,7 +182,7 @@ this.CryptoUtils = {
    * The output is an octet string of length dkLen, which you
    * can encode as you wish.
    */
-  pbkdf2Generate : function pbkdf2Generate(P, S, c, dkLen,
+  pbkdf2Generate: function pbkdf2Generate(P, S, c, dkLen,
                        hmacAlg = Ci.nsICryptoHMAC.SHA1, hmacLen = 20) {
 
     // We don't have a default in the algo itself, as NSS does.
@@ -511,7 +511,7 @@ this.CryptoUtils = {
       artifacts.hash = hash_b64;
     }
 
-    let requestString = ("hawk.1.header" + "\n" +
+    let requestString = ("hawk.1.header\n" +
                          artifacts.ts.toString(10) + "\n" +
                          artifacts.nonce + "\n" +
                          artifacts.method + "\n" +

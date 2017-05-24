@@ -147,6 +147,21 @@
 #  define MOZ_NONNULL(...)
 #endif
 
+/**
+ * MOZ_NONNULL_RETURN tells the compiler that the function's return value is
+ * guaranteed to be a non-null pointer, which may enable the compiler to
+ * optimize better at call sites.
+ *
+ * Place this attribute at the end of a function declaration. For example,
+ *
+ *   char* foo(char *p, char *q) MOZ_NONNULL_RETURN;
+ */
+#if defined(__GNUC__) || defined(__clang__)
+#  define MOZ_NONNULL_RETURN __attribute__ ((returns_nonnull))
+#else
+#  define MOZ_NONNULL_RETURN
+#endif
+
 /*
  * MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS, specified at the end of a function
  * declaration, indicates that for the purposes of static analysis, this
@@ -627,12 +642,23 @@
  * then the annotation would be:
  *   MOZ_FORMAT_PRINTF(3, 4)
  *
+ * The second argument should be 0 for vprintf-like functions; that
+ * is, those taking a va_list argument.
+ *
  * Note that the checking is limited to standards-conforming
  * printf-likes, and in particular this should not be used for
  * PR_snprintf and friends, which are "printf-like" but which assign
  * different meanings to the various formats.
+ *
+ * MinGW requires special handling due to different format specifiers
+ * on different platforms. The macro __MINGW_PRINTF_FORMAT maps to
+ * either gnu_printf or ms_printf depending on where we are compiling
+ * to avoid warnings on format specifiers that are legal.
  */
-#ifdef __GNUC__
+#ifdef __MINGW32__
+#define MOZ_FORMAT_PRINTF(stringIndex, firstToCheck)  \
+    __attribute__ ((format (__MINGW_PRINTF_FORMAT, stringIndex, firstToCheck)))
+#elif __GNUC__
 #define MOZ_FORMAT_PRINTF(stringIndex, firstToCheck)  \
     __attribute__ ((format (printf, stringIndex, firstToCheck)))
 #else

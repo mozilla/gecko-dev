@@ -8,13 +8,14 @@
 
 define(function (require, exports, module) {
   const { render } = require("devtools/client/shared/vendor/react-dom");
-  const { createFactories } = require("devtools/client/shared/components/reps/reps");
+  const { createFactories } = require("devtools/client/shared/react-utils");
   const { MainTabbedArea } = createFactories(require("./components/main-tabbed-area"));
 
   const json = document.getElementById("json");
   const headers = document.getElementById("headers");
 
   let jsonData;
+  let prettyURL;
 
   try {
     jsonData = JSON.parse(json.textContent);
@@ -45,7 +46,10 @@ define(function (require, exports, module) {
     },
 
     onSaveJson: function () {
-      dispatchEvent("save", input.prettified ? input.jsonPretty : input.jsonText);
+      if (input.prettified && !prettyURL) {
+        prettyURL = URL.createObjectURL(new window.Blob([input.jsonPretty]));
+      }
+      dispatchEvent("save", input.prettified ? prettyURL : null);
     },
 
     onCopyHeaders: function () {
@@ -94,14 +98,6 @@ define(function (require, exports, module) {
    */
   let content = document.getElementById("content");
   let theApp = render(MainTabbedArea(input), content);
-
-  let onResize = event => {
-    window.document.body.style.height = window.innerHeight + "px";
-    window.document.body.style.width = window.innerWidth + "px";
-  };
-
-  window.addEventListener("resize", onResize);
-  onResize();
 
   // Send notification event to the window. Can be useful for
   // tests as well as extensions.

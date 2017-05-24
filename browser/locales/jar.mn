@@ -20,7 +20,6 @@
     locale/browser/aboutSearchReset.dtd            (%chrome/browser/aboutSearchReset.dtd)
     locale/browser/aboutSessionRestore.dtd         (%chrome/browser/aboutSessionRestore.dtd)
     locale/browser/aboutTabCrashed.dtd             (%chrome/browser/aboutTabCrashed.dtd)
-    locale/browser/aboutSyncTabs.dtd               (%chrome/browser/aboutSyncTabs.dtd)
     locale/browser/browser.dtd                     (%chrome/browser/browser.dtd)
     locale/browser/baseMenuOverlay.dtd             (%chrome/browser/baseMenuOverlay.dtd)
     locale/browser/browser.properties              (%chrome/browser/browser.properties)
@@ -111,6 +110,7 @@
     locale/browser/searchplugins/images/wikipedia.ico  (searchplugins/images/wikipedia.ico)
     locale/browser/searchplugins/images/yahoo.ico      (searchplugins/images/yahoo.ico)
     locale/browser/searchplugins/images/yandex-en.ico  (searchplugins/images/yandex-en.ico)
+    locale/browser/searchplugins/images/yandex-ru.ico  (searchplugins/images/yandex-ru.ico)
 % locale browser-region @AB_CD@ %locale/browser-region/
     locale/browser-region/region.properties        (%chrome/browser-region/region.properties)
 # the following files are browser-specific overrides

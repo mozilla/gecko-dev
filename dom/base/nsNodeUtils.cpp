@@ -332,7 +332,7 @@ nsNodeUtils::LastRelease(nsINode* aNode)
         aNode->HasFlag(ADDED_TO_FORM)) {
       // Tell the form (if any) this node is going away.  Don't
       // notify, since we're being destroyed in any case.
-      static_cast<nsGenericHTMLFormElement*>(aNode)->ClearForm(true);
+      static_cast<nsGenericHTMLFormElement*>(aNode)->ClearForm(true, true);
     }
 
     if (aNode->IsHTMLElement(nsGkAtoms::img) &&
@@ -473,7 +473,7 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
 
   nsCOMPtr<nsINode> clone;
   if (aClone) {
-    rv = aNode->Clone(nodeInfo, getter_AddRefs(clone));
+    rv = aNode->Clone(nodeInfo, getter_AddRefs(clone), aDeep);
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (clone->IsElement()) {
@@ -538,6 +538,9 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
           }
           if (elm->MayHaveTouchEventListener()) {
             window->SetHasTouchEventListeners();
+          }
+          if (elm->MayHaveMouseMoveEventListener()) {
+            window->SetHasMouseMoveEventListeners();
           }
           if (elm->MayHaveMouseEnterLeaveEventListener()) {
             window->SetHasMouseEnterLeaveEventListeners();

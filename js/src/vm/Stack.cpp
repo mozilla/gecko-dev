@@ -1644,16 +1644,9 @@ jit::JitActivation::traceIonRecovery(JSTracer* trc)
 
 WasmActivation::WasmActivation(JSContext* cx)
   : Activation(cx, Wasm),
-    entrySP_(nullptr),
-    resumePC_(nullptr),
     exitFP_(nullptr),
-    exitReason_(wasm::ExitReason::None)
+    exitReason_(wasm::ExitReason::Fixed::None)
 {
-    (void) entrySP_;  // silence "unused private member" warning
-
-    prevWasm_ = cx->wasmActivationStack_;
-    cx->wasmActivationStack_ = this;
-
     // Now that the WasmActivation is fully initialized, make it visible to
     // asynchronous profiling.
     registerProfiling();
@@ -1664,11 +1657,60 @@ WasmActivation::~WasmActivation()
     // Hide this activation from the profiler before is is destroyed.
     unregisterProfiling();
 
+    MOZ_ASSERT(!interrupted());
     MOZ_ASSERT(exitFP_ == nullptr);
-    MOZ_ASSERT(exitReason_ == wasm::ExitReason::None);
+    MOZ_ASSERT(exitReason_.isNone());
+}
 
-    MOZ_ASSERT(cx_->wasmActivationStack_ == this);
-    cx_->wasmActivationStack_ = prevWasm_;
+void
+WasmActivation::unwindExitFP(wasm::Frame* exitFP)
+{
+    exitFP_ = exitFP;
+    exitReason_ = wasm::ExitReason::Fixed::None;
+}
+
+void
+WasmActivation::startInterrupt(void* pc, uint8_t* fp)
+{
+    MOZ_ASSERT(pc);
+    MOZ_ASSERT(fp);
+
+    // Execution can only be interrupted in function code. Afterwards, control
+    // flow does not reenter function code and thus there should be no
+    // interrupt-during-interrupt.
+    MOZ_ASSERT(!interrupted());
+    MOZ_ASSERT(compartment()->wasm.lookupCode(pc)->lookupRange(pc)->isFunction());
+
+    cx_->runtime()->setWasmResumePC(pc);
+    exitFP_ = reinterpret_cast<wasm::Frame*>(fp);
+
+    MOZ_ASSERT(cx() == exitFP_->tls->cx);
+    MOZ_ASSERT(compartment() == exitFP_->tls->instance->compartment());
+
+    MOZ_ASSERT(interrupted());
+}
+
+void
+WasmActivation::finishInterrupt()
+{
+    MOZ_ASSERT(interrupted());
+    MOZ_ASSERT(exitFP_);
+
+    cx_->runtime()->setWasmResumePC(nullptr);
+    exitFP_ = nullptr;
+}
+
+bool
+WasmActivation::interrupted() const
+{
+    return !!cx_->runtime()->wasmResumePC();
+}
+
+void*
+WasmActivation::resumePC() const
+{
+    MOZ_ASSERT(interrupted());
+    return cx_->runtime()->wasmResumePC();
 }
 
 InterpreterFrameIterator&
@@ -1837,6 +1879,7 @@ JS::ProfilingFrameIterator::iteratorConstruct(const RegisterState& state)
     if (activation_->isWasm()) {
         new (storage()) wasm::ProfilingFrameIterator(*activation_->asWasm(), state);
         // Set savedPrevJitTop_ to the actual jitTop_ from the runtime.
+        AutoNoteSingleThreadedRegion anstr;
         savedPrevJitTop_ = activation_->cx()->jitTop;
         return;
     }

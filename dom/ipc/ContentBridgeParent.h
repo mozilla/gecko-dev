@@ -40,6 +40,7 @@ public:
   virtual PBrowserParent*
   SendPBrowserConstructor(PBrowserParent* aActor,
                           const TabId& aTabId,
+                          const TabId& aSameTabGroupAs,
                           const IPCTabContext& aContext,
                           const uint32_t& aChromeFlags,
                           const ContentParentId& aCpID,
@@ -124,6 +125,7 @@ protected:
 
   virtual PBrowserParent*
   AllocPBrowserParent(const TabId& aTabId,
+                      const TabId& aSameTabGroupAs,
                       const IPCTabContext &aContext,
                       const uint32_t& aChromeFlags,
                       const ContentParentId& aCpID,
@@ -135,6 +137,23 @@ protected:
   AllocPBlobParent(const BlobConstructorParams& aParams) override;
 
   virtual bool DeallocPBlobParent(PBlobParent*) override;
+
+  virtual PMemoryStreamParent*
+  AllocPMemoryStreamParent(const uint64_t& aSize) override;
+
+  virtual bool DeallocPMemoryStreamParent(PMemoryStreamParent*) override;
+
+  virtual PIPCBlobInputStreamParent*
+  SendPIPCBlobInputStreamConstructor(PIPCBlobInputStreamParent* aActor,
+                                     const nsID& aID,
+                                     const uint64_t& aSize) override;
+
+  virtual PIPCBlobInputStreamParent*
+  AllocPIPCBlobInputStreamParent(const nsID& aID,
+                                 const uint64_t& aSize) override;
+
+  virtual bool
+  DeallocPIPCBlobInputStreamParent(PIPCBlobInputStreamParent*) override;
 
   virtual PChildToParentStreamParent* AllocPChildToParentStreamParent() override;
 

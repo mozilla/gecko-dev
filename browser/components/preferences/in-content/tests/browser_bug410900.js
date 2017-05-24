@@ -16,13 +16,13 @@ function test() {
   var extps = Cc["@mozilla.org/uriloader/external-protocol-service;1"].
               getService(Ci.nsIExternalProtocolService);
   var info = extps.getProtocolHandlerInfo("apppanetest");
-  info.possibleApplicationHandlers.appendElement(handler, false);
+  info.possibleApplicationHandlers.appendElement(handler);
 
   var hserv = Cc["@mozilla.org/uriloader/handler-service;1"].
               getService(Ci.nsIHandlerService);
   hserv.store(info);
 
-  openPreferencesViaOpenPreferencesAPI("applications", null, {leaveOpen: true}).then(
+  openPreferencesViaOpenPreferencesAPI("applications", {leaveOpen: true}).then(
       () => runTest(gBrowser.selectedBrowser.contentWindow)
   );
 }

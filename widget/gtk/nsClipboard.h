@@ -51,6 +51,8 @@ public:
     
     NS_DECL_NSICLIPBOARD
 
+    static already_AddRefed<nsIClipboard> GetInstance();
+
     // Make sure we are initialized, called from the factory
     // constructor
     nsresult  Init              (void);

@@ -268,7 +268,6 @@ VRPose::VRPose(nsISupports* aParent)
   : Pose(aParent)
 {
   mFrameId = 0;
-  mVRState.Clear();
   mozilla::HoldJSObjects(this);
 }
 
@@ -355,6 +354,8 @@ VRDisplay::VRDisplay(nsPIDOMWindowInner* aWindow, gfx::VRDisplayClient* aClient)
   , mClient(aClient)
   , mDepthNear(0.01f) // Default value from WebVR Spec
   , mDepthFar(10000.0f) // Default value from WebVR Spec
+  , mVRNavigationEventDepth(0)
+  , mShutdown(false)
 {
   const gfx::VRDisplayInfo& info = aClient->GetDisplayInfo();
   mDisplayId = info.GetDisplayID();
@@ -366,11 +367,15 @@ VRDisplay::VRDisplay(nsPIDOMWindowInner* aWindow, gfx::VRDisplayClient* aClient)
                                              info.GetStageSize());
   }
   mozilla::HoldJSObjects(this);
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  if (MOZ_LIKELY(obs)) {
+    obs->AddObserver(this, "inner-window-destroyed", false);
+  }
 }
 
 VRDisplay::~VRDisplay()
 {
-  ExitPresentInternal();
+  MOZ_ASSERT(mShutdown);
   mozilla::DropJSObjects(this);
 }
 
@@ -379,7 +384,7 @@ VRDisplay::LastRelease()
 {
   // We don't want to wait for the CC to free up the presentation
   // for use in other documents, so we do this in LastRelease().
-  ExitPresentInternal();
+  Shutdown();
 }
 
 already_AddRefed<VREyeParameters>
@@ -451,6 +456,34 @@ VRDisplay::ResetPose()
   mClient->ZeroSensor();
 }
 
+void
+VRDisplay::StartHandlingVRNavigationEvent()
+{
+  mHandlingVRNavigationEventStart = TimeStamp::Now();
+  ++mVRNavigationEventDepth;
+}
+
+void
+VRDisplay::StopHandlingVRNavigationEvent()
+{
+  MOZ_ASSERT(mVRNavigationEventDepth > 0);
+  --mVRNavigationEventDepth;
+}
+
+bool
+VRDisplay::IsHandlingVRNavigationEvent()
+{
+  if (mVRNavigationEventDepth == 0) {
+    return false;
+  }
+  if (mHandlingVRNavigationEventStart.IsNull()) {
+    return false;
+  }
+  TimeDuration timeout = TimeDuration::FromMilliseconds(gfxPrefs::VRNavigationTimeout());
+  return timeout <= TimeDuration(0) ||
+    (TimeStamp::Now() - mHandlingVRNavigationEventStart) <= timeout;
+}
+
 already_AddRefed<Promise>
 VRDisplay::RequestPresent(const nsTArray<VRLayer>& aLayers,
                           CallerType aCallerType,
@@ -465,11 +498,9 @@ VRDisplay::RequestPresent(const nsTArray<VRLayer>& aLayers,
   RefPtr<Promise> promise = Promise::Create(global, aRv);
   NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
 
-  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-  NS_ENSURE_TRUE(obs, nullptr);
-
   if (!EventStateManager::IsHandlingUserInput() &&
       aCallerType != CallerType::System &&
+      !IsHandlingVRNavigationEvent() &&
       gfxPrefs::VRRequireGesture()) {
     // The WebVR API states that if called outside of a user gesture, the
     // promise must be rejected.  We allow VR presentations to start within
@@ -486,14 +517,7 @@ VRDisplay::RequestPresent(const nsTArray<VRLayer>& aLayers,
   } else {
     mPresentation = mClient->BeginPresentation(aLayers);
     mFrameInfo.Clear();
-
-    nsresult rv = obs->AddObserver(this, "inner-window-destroyed", false);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      mPresentation = nullptr;
-      promise->MaybeRejectWithUndefined();
-    } else {
-      promise->MaybeResolve(JS::UndefinedHandleValue);
-    }
+    promise->MaybeResolve(JS::UndefinedHandleValue);
   }
   return promise.forget();
 }
@@ -513,7 +537,7 @@ VRDisplay::Observe(nsISupports* aSubject, const char* aTopic,
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (!GetOwner() || GetOwner()->WindowID() == innerID) {
-      ExitPresentInternal();
+      Shutdown();
     }
 
     return NS_OK;
@@ -555,6 +579,17 @@ VRDisplay::ExitPresentInternal()
 }
 
 void
+VRDisplay::Shutdown()
+{
+  mShutdown = true;
+  ExitPresentInternal();
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  if (MOZ_LIKELY(obs)) {
+    obs->RemoveObserver(this, "inner-window-destroyed");
+  }
+}
+
+void
 VRDisplay::GetLayers(nsTArray<VRLayer>& result)
 {
   if (mPresentation) {
@@ -577,6 +612,10 @@ int32_t
 VRDisplay::RequestAnimationFrame(FrameRequestCallback& aCallback,
 ErrorResult& aError)
 {
+  if (mShutdown) {
+    return 0;
+  }
+
   gfx::VRManagerChild* vm = gfx::VRManagerChild::Get();
 
   int32_t handle;
@@ -821,7 +860,6 @@ VRFrameInfo::Update(const gfx::VRDisplayInfo& aInfo,
 VRFrameInfo::VRFrameInfo()
  : mTimeStampOffset(0.0f)
 {
-  mVRState.Clear();
 }
 
 bool

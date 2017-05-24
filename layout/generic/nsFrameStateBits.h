@@ -270,6 +270,13 @@ FRAME_STATE_BIT(Generic, 54, NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY)
 // a stylo tree traversal.
 FRAME_STATE_BIT(Generic, 55, NS_FRAME_OWNS_ANON_BOXES)
 
+// Frame has properties in the nsIFrame::Properties() hash.
+FRAME_STATE_BIT(Generic, 56, NS_FRAME_HAS_PROPERTIES)
+
+// The display list of the frame can be handled by the shortcut for
+// COMMON CASE.
+FRAME_STATE_BIT(Generic, 57, NS_FRAME_SIMPLE_DISPLAYLIST)
+
 // Set for all descendants of MathML sub/supscript elements (other than the
 // base frame) to indicate that the SSTY font feature should be used.
 FRAME_STATE_BIT(Generic, 58, NS_FRAME_MATHML_SCRIPT_DESCENDANT)
@@ -307,9 +314,9 @@ FRAME_STATE_BIT(Box, 61, NS_FRAME_MOUSE_THROUGH_NEVER)
 
 FRAME_STATE_GROUP(FlexContainer, nsFlexContainerFrame)
 
-// Set for a flex container whose children have been reordered due to 'order'.
-// (Means that we have to be more thorough about checking them for sortedness.)
-FRAME_STATE_BIT(FlexContainer, 20, NS_STATE_FLEX_CHILDREN_REORDERED)
+// True iff the normal flow children are already in CSS 'order' in the
+// order they occur in the child frame list.
+FRAME_STATE_BIT(FlexContainer, 20, NS_STATE_FLEX_NORMAL_FLOW_CHILDREN_IN_CSS_ORDER)
 
 // Set for a flex container that is emulating a legacy
 // 'display:-webkit-{inline-}box' container.

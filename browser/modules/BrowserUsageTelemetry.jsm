@@ -5,7 +5,11 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["BrowserUsageTelemetry", "URLBAR_SELECTED_RESULT_TYPES"];
+this.EXPORTED_SYMBOLS = [
+  "BrowserUsageTelemetry",
+  "URLBAR_SELECTED_RESULT_TYPES",
+  "URLBAR_SELECTED_RESULT_METHODS",
+ ];
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
@@ -65,6 +69,20 @@ const URLBAR_SELECTED_RESULT_TYPES = {
   visiturl: 8,
   remotetab: 9,
   extension: 10,
+  "preloaded-top-site": 11,
+};
+
+/**
+ * This maps the categories used by the FX_URLBAR_SELECTED_RESULT_METHOD and
+ * FX_SEARCHBAR_SELECTED_RESULT_METHOD histograms to their indexes in the
+ * `labels` array.  This only needs to be used by tests that need to map from
+ * category names to indexes in histogram snapshots.  Actual app code can use
+ * these category names directly when they add to a histogram.
+ */
+const URLBAR_SELECTED_RESULT_METHODS = {
+  enter: 0,
+  enterSelection: 1,
+  click: 2,
 };
 
 function getOpenTabsAndWinsCounts() {
@@ -207,6 +225,10 @@ let URICountListener = {
 };
 
 let urlbarListener = {
+
+  // This is needed for recordUrlbarSelectedResultMethod().
+  selectedIndex: -1,
+
   init() {
     Services.obs.addObserver(this, AUTOCOMPLETE_ENTER_TEXT_TOPIC, true);
   },
@@ -230,12 +252,22 @@ let urlbarListener = {
    *                                      text was entered.
    */
   _handleURLBarTelemetry(input) {
-    if (!input ||
-        input.id != "urlbar" ||
-        input.inPrivateContext ||
-        input.popup.selectedIndex < 0) {
+    if (!input || input.id != "urlbar") {
       return;
     }
+    if (input.inPrivateContext || input.popup.selectedIndex < 0) {
+      this.selectedIndex = -1;
+      return;
+    }
+
+    // Except for the history popup, the urlbar always has a selection.  The
+    // first result at index 0 is the "heuristic" result that indicates what
+    // will happen when you press the Enter key.  Treat it as no selection.
+    this.selectedIndex =
+      input.popup.selectedIndex > 0 || !input.popup._isFirstResultHeuristic ?
+      input.popup.selectedIndex :
+      -1;
+
     let controller =
       input.popup.view.QueryInterface(Ci.nsIAutoCompleteController);
     let idx = input.popup.selectedIndex;
@@ -250,7 +282,7 @@ let urlbarListener = {
     }
     if (!actionType) {
       let styles = new Set(controller.getStyleAt(idx).split(/\s+/));
-      let style = ["autofill", "tag", "bookmark"].find(s => styles.has(s));
+      let style = ["preloaded-top-site", "autofill", "tag", "bookmark"].find(s => styles.has(s));
       actionType = style || "history";
     }
 
@@ -258,16 +290,15 @@ let urlbarListener = {
             .getHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX")
             .add(idx);
 
-    // Ideally this would be a keyed histogram and we'd just add(actionType),
-    // but keyed histograms aren't currently shown on the telemetry dashboard
-    // (bug 1151756).
-    //
     // You can add values but don't change any of the existing values.
     // Otherwise you'll break our data.
     if (actionType in URLBAR_SELECTED_RESULT_TYPES) {
       Services.telemetry
               .getHistogramById("FX_URLBAR_SELECTED_RESULT_TYPE")
               .add(URLBAR_SELECTED_RESULT_TYPES[actionType]);
+      Services.telemetry
+              .getKeyedHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE")
+              .add(actionType, idx);
     } else {
       Cu.reportError("Unknown FX_URLBAR_SELECTED_RESULT_TYPE type: " +
                      actionType);
@@ -280,7 +311,7 @@ let urlbarListener = {
 
 let BrowserUsageTelemetry = {
   init() {
-    Services.obs.addObserver(this, WINDOWS_RESTORED_TOPIC, false);
+    Services.obs.addObserver(this, WINDOWS_RESTORED_TOPIC);
     urlbarListener.init();
   },
 
@@ -464,14 +495,65 @@ let BrowserUsageTelemetry = {
   },
 
   /**
+   * Records the method by which the user selected a urlbar result.
+   *
+   * @param {nsIDOMEvent} event
+   *        The event that triggered the selection.
+   */
+  recordUrlbarSelectedResultMethod(event) {
+    // The reason this method relies on urlbarListener instead of having the
+    // caller pass in an index is that by the time the urlbar handles a
+    // selection, the selection in its popup has been cleared, so it's not easy
+    // to tell which popup index was selected.  Fortunately this file already
+    // has urlbarListener, which gets notified of selections in the urlbar
+    // before the popup selection is cleared, so just use that.
+    this._recordUrlOrSearchbarSelectedResultMethod(
+      event, urlbarListener.selectedIndex,
+      "FX_URLBAR_SELECTED_RESULT_METHOD"
+    );
+  },
+
+  /**
+   * Records the method by which the user selected a searchbar result.
+   *
+   * @param {nsIDOMEvent} event
+   *        The event that triggered the selection.
+   * @param {number} highlightedIndex
+   *        The index that the user chose in the popup, or -1 if there wasn't a
+   *        selection.
+   */
+  recordSearchbarSelectedResultMethod(event, highlightedIndex) {
+    this._recordUrlOrSearchbarSelectedResultMethod(
+      event, highlightedIndex,
+      "FX_SEARCHBAR_SELECTED_RESULT_METHOD"
+    );
+  },
+
+  _recordUrlOrSearchbarSelectedResultMethod(event, highlightedIndex, histogramID) {
+    let histogram = Services.telemetry.getHistogramById(histogramID);
+    // command events are from the one-off context menu.  Treat them as clicks.
+    let isClick = event instanceof Ci.nsIDOMMouseEvent ||
+                  (event && event.type == "command");
+    let category;
+    if (isClick) {
+      category = "click";
+    } else if (highlightedIndex >= 0) {
+      category = "enterSelection";
+    } else {
+      category = "enter";
+    }
+    histogram.add(category);
+  },
+
+  /**
    * This gets called shortly after the SessionStore has finished restoring
    * windows and tabs. It counts the open tabs and adds listeners to all the
    * windows.
    */
   _setupAfterRestore() {
     // Make sure to catch new chrome windows and subsession splits.
-    Services.obs.addObserver(this, DOMWINDOW_OPENED_TOPIC, false);
-    Services.obs.addObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC, false);
+    Services.obs.addObserver(this, DOMWINDOW_OPENED_TOPIC);
+    Services.obs.addObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC);
 
     // Attach the tabopen handlers to the existing Windows.
     let browserEnum = Services.wm.getEnumerator("navigator:browser");

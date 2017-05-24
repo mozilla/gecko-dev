@@ -1184,22 +1184,22 @@ ToDisassemblySource(JSContext* cx, HandleValue v, JSAutoByteString* bytes)
         char* nbytes = QuoteString(&sprinter, v.toString(), '"');
         if (!nbytes)
             return false;
-        nbytes = JS_sprintf_append(nullptr, "%s", nbytes);
-        if (!nbytes) {
+        UniqueChars copy = JS_smprintf("%s", nbytes);
+        if (!copy) {
             ReportOutOfMemory(cx);
             return false;
         }
-        bytes->initBytes(nbytes);
+        bytes->initBytes(Move(copy));
         return true;
     }
 
     if (JS::CurrentThreadIsHeapBusy() || !cx->isAllocAllowed()) {
-        char* source = JS_sprintf_append(nullptr, "<value>");
+        UniqueChars source = JS_smprintf("<value>");
         if (!source) {
             ReportOutOfMemory(cx);
             return false;
         }
-        bytes->initBytes(source);
+        bytes->initBytes(Move(source));
         return true;
     }
 
@@ -1228,7 +1228,7 @@ ToDisassemblySource(JSContext* cx, HandleValue v, JSAutoByteString* bytes)
 static bool
 ToDisassemblySource(JSContext* cx, HandleScope scope, JSAutoByteString* bytes)
 {
-    char* source = JS_sprintf_append(nullptr, "%s {", ScopeKindString(scope->kind()));
+    UniqueChars source = JS_smprintf("%s {", ScopeKindString(scope->kind()));
     if (!source) {
         ReportOutOfMemory(cx);
         return false;
@@ -1239,7 +1239,7 @@ ToDisassemblySource(JSContext* cx, HandleScope scope, JSAutoByteString* bytes)
         if (!AtomToPrintableString(cx, bi.name(), &nameBytes))
             return false;
 
-        source = JS_sprintf_append(source, "%s: ", nameBytes.ptr());
+        source = JS_sprintf_append(Move(source), "%s: ", nameBytes.ptr());
         if (!source) {
             ReportOutOfMemory(cx);
             return false;
@@ -1248,27 +1248,27 @@ ToDisassemblySource(JSContext* cx, HandleScope scope, JSAutoByteString* bytes)
         BindingLocation loc = bi.location();
         switch (loc.kind()) {
           case BindingLocation::Kind::Global:
-            source = JS_sprintf_append(source, "global");
+            source = JS_sprintf_append(Move(source), "global");
             break;
 
           case BindingLocation::Kind::Frame:
-            source = JS_sprintf_append(source, "frame slot %u", loc.slot());
+            source = JS_sprintf_append(Move(source), "frame slot %u", loc.slot());
             break;
 
           case BindingLocation::Kind::Environment:
-            source = JS_sprintf_append(source, "env slot %u", loc.slot());
+            source = JS_sprintf_append(Move(source), "env slot %u", loc.slot());
             break;
 
           case BindingLocation::Kind::Argument:
-            source = JS_sprintf_append(source, "arg slot %u", loc.slot());
+            source = JS_sprintf_append(Move(source), "arg slot %u", loc.slot());
             break;
 
           case BindingLocation::Kind::NamedLambdaCallee:
-            source = JS_sprintf_append(source, "named lambda callee");
+            source = JS_sprintf_append(Move(source), "named lambda callee");
             break;
 
           case BindingLocation::Kind::Import:
-            source = JS_sprintf_append(source, "import");
+            source = JS_sprintf_append(Move(source), "import");
             break;
         }
 
@@ -1278,7 +1278,7 @@ ToDisassemblySource(JSContext* cx, HandleScope scope, JSAutoByteString* bytes)
         }
 
         if (!bi.isLast()) {
-            source = JS_sprintf_append(source, ", ");
+            source = JS_sprintf_append(Move(source), ", ");
             if (!source) {
                 ReportOutOfMemory(cx);
                 return false;
@@ -1286,13 +1286,13 @@ ToDisassemblySource(JSContext* cx, HandleScope scope, JSAutoByteString* bytes)
         }
     }
 
-    source = JS_sprintf_append(source, "}");
+    source = JS_sprintf_append(Move(source), "}");
     if (!source) {
         ReportOutOfMemory(cx);
         return false;
     }
 
-    bytes->initBytes(source);
+    bytes->initBytes(Move(source));
     return true;
 }
 
@@ -2027,7 +2027,11 @@ ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex)
           case JSOP_LAMBDA:
           case JSOP_LAMBDA_ARROW:
           case JSOP_TOASYNC:
+          case JSOP_TOASYNCGEN:
             return write("FUN");
+
+          case JSOP_TOASYNCITER:
+            return write("ASYNCITER");
 
           case JSOP_MOREITER:
             // For stack dump, defIndex == 0 is not used.
@@ -2071,6 +2075,7 @@ ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex)
           case JSOP_UNINITIALIZED:
             return write("UNINITIALIZED");
 
+          case JSOP_AWAIT:
           case JSOP_YIELD:
             // Printing "yield SOMETHING" is confusing since the operand doesn't
             // match to the syntax, since the stack operand for "yield 10" is

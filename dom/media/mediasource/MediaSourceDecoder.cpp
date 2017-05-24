@@ -105,12 +105,11 @@ MediaSourceDecoder::GetSeekable()
     }
 
     if (buffered.Length()) {
-      seekable +=
-        media::TimeInterval(media::TimeUnit::FromSeconds(0), buffered.GetEnd());
+      seekable += media::TimeInterval(TimeUnit::Zero(), buffered.GetEnd());
     }
   } else {
-    seekable += media::TimeInterval(media::TimeUnit::FromSeconds(0),
-                                    media::TimeUnit::FromSeconds(duration));
+    seekable += media::TimeInterval(TimeUnit::Zero(),
+                                    TimeUnit::FromSeconds(duration));
   }
   MSE_DEBUG("ranges=%s", DumpTimeRanges(seekable).get());
   return seekable;
@@ -130,7 +129,7 @@ MediaSourceDecoder::GetBuffered()
     // Media source object is shutting down.
     return TimeIntervals();
   }
-  media::TimeUnit highestEndTime;
+  TimeUnit highestEndTime;
   nsTArray<media::TimeIntervals> activeRanges;
   media::TimeIntervals buffered;
 
@@ -144,8 +143,7 @@ MediaSourceDecoder::GetBuffered()
       std::max(highestEndTime, activeRanges.LastElement().GetEnd());
   }
 
-  buffered +=
-    media::TimeInterval(media::TimeUnit::FromMicroseconds(0), highestEndTime);
+  buffered += media::TimeInterval(TimeUnit::Zero(), highestEndTime);
 
   for (auto& range : activeRanges) {
     if (mEnded && range.Length()) {
@@ -283,13 +281,12 @@ MediaSourceDecoder::NextFrameBufferedStatus()
 
   // Next frame hasn't been decoded yet.
   // Use the buffered range to consider if we have the next frame available.
-  TimeUnit currentPosition = TimeUnit::FromMicroseconds(CurrentPosition());
+  auto currentPosition = CurrentPosition();
   TimeIntervals buffered = GetBuffered();
   buffered.SetFuzz(MediaSourceDemuxer::EOS_FUZZ / 2);
   TimeInterval interval(
     currentPosition,
-    currentPosition
-    + media::TimeUnit::FromMicroseconds(DEFAULT_NEXT_FRAME_AVAILABLE_BUFFERED));
+    currentPosition + DEFAULT_NEXT_FRAME_AVAILABLE_BUFFERED);
   return buffered.ContainsStrict(ClampIntervalToEnd(interval))
          ? MediaDecoderOwner::NEXT_FRAME_AVAILABLE
          : MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE;
@@ -309,7 +306,7 @@ MediaSourceDecoder::CanPlayThrough()
     return false;
   }
   TimeUnit duration = TimeUnit::FromSeconds(mMediaSource->Duration());
-  TimeUnit currentPosition = TimeUnit::FromMicroseconds(CurrentPosition());
+  auto currentPosition = CurrentPosition();
   if (duration.IsInfinite()) {
     // We can't make an informed decision and just assume that it's a live
     // stream
@@ -354,6 +351,16 @@ MediaSourceDecoder::ClampIntervalToEnd(const TimeInterval& aInterval)
   return TimeInterval(aInterval.mStart,
                       std::min(aInterval.mEnd, duration),
                       aInterval.mFuzz);
+}
+
+void
+MediaSourceDecoder::NotifyInitDataArrived()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mDemuxer) {
+    mDemuxer->NotifyInitDataArrived();
+  }
 }
 
 #undef MSE_DEBUG

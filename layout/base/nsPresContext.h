@@ -9,6 +9,7 @@
 #define nsPresContext_h___
 
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
 #include "nsColor.h"
 #include "nsCoord.h"
@@ -45,6 +46,7 @@
 #include "mozilla/StyleBackendType.h"
 
 class nsAString;
+class nsBidi;
 class nsIPrintSettings;
 class nsDocShell;
 class nsIDocShell;
@@ -371,6 +373,9 @@ public:
                                                        GetFontPrefsForLang(lang));
   }
 
+  void ForceCacheLang(nsIAtom *aLanguage);
+  void CacheAllLangs();
+
   /** Get a cached boolean pref, by its type */
   // *  - initially created for bugs 31816, 20760, 22963
   bool GetCachedBoolPref(nsPresContext_CachedBoolPrefType aPrefType) const
@@ -535,6 +540,30 @@ public:
   nsIAtom* GetLanguageFromCharset() const { return mLanguage; }
   already_AddRefed<nsIAtom> GetContentLanguage() const;
 
+  /**
+   * Get/set a text zoom factor that is applied on top of the normal text zoom
+   * set by the front-end/user.
+   */
+  float GetSystemFontScale() const { return mSystemFontScale; }
+  void SetSystemFontScale(float aFontScale) {
+    MOZ_ASSERT(aFontScale > 0.0f, "invalid font scale");
+    if (aFontScale == mSystemFontScale || IsPrintingOrPrintPreview()) {
+      return;
+    }
+
+    mSystemFontScale = aFontScale;
+    UpdateEffectiveTextZoom();
+  }
+
+  /**
+   * Get/set the text zoom factor in use.
+   * This value should be used if you're interested in the pure text zoom value
+   * controlled by the front-end, e.g. when transferring zoom levels to a new
+   * document.
+   * Code that wants to use this value for layouting and rendering purposes
+   * should consider using EffectiveTextZoom() instead, so as to take the system
+   * font scale into account as well.
+   */
   float TextZoom() const { return mTextZoom; }
   void SetTextZoom(float aZoom) {
     MOZ_ASSERT(aZoom > 0.0f, "invalid zoom factor");
@@ -542,13 +571,22 @@ public:
       return;
 
     mTextZoom = aZoom;
-    if (HasCachedStyleData()) {
-      // Media queries could have changed, since we changed the meaning
-      // of 'em' units in them.
-      MediaFeatureValuesChanged(eRestyle_ForceDescendants,
-                                NS_STYLE_HINT_REFLOW);
-    }
+    UpdateEffectiveTextZoom();
   }
+
+protected:
+  void UpdateEffectiveTextZoom();
+
+public:
+  /**
+   * Corresponds to the product of text zoom and system font scale, limited
+   * by zoom.maxPercent and minPercent.
+   * As the system font scale is automatically set by the PresShell, code that
+   * e.g. wants to transfer zoom levels to a new document should use TextZoom()
+   * instead, which corresponds to the text zoom level that was actually set by
+   * the front-end/user.
+   */
+  float EffectiveTextZoom() const { return mEffectiveTextZoom; }
 
   /**
    * Get the minimum font size for the specified language. If aLanguage
@@ -702,7 +740,18 @@ public:
    *         it was propagated from.
    */
   nsIContent* UpdateViewportScrollbarStylesOverride();
-  const ScrollbarStyles& GetViewportScrollbarStylesOverride()
+
+  /**
+   * Returns the cached result from the last call to
+   * UpdateViewportScrollbarStylesOverride() -- i.e. return the node
+   * whose scrollbar styles we have propagated to the viewport (or nullptr if
+   * there is no such node).
+   */
+  nsIContent* GetViewportScrollbarStylesOverrideNode() const {
+    return mViewportScrollbarOverrideNode;
+  }
+
+  const ScrollbarStyles& GetViewportScrollbarStylesOverride() const
   {
     return mViewportStyleScrollbar;
   }
@@ -931,6 +980,7 @@ public:
   bool IsScreen() { return (mMedium == nsGkAtoms::screen ||
                               mType == eContext_PageLayout ||
                               mType == eContext_PrintPreview); }
+  bool IsPrintingOrPrintPreview() { return (mType == eContext_Print || mType == eContext_PrintPreview); }
 
   // Is this presentation in a chrome docshell?
   bool IsChrome() const { return mIsChrome; }
@@ -1159,6 +1209,8 @@ public:
     mHasWarnedAboutTooLargeDashedOrDottedRadius = true;
   }
 
+  nsBidi& GetBidiEngine();
+
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   void ThemeChangedInternal();
@@ -1300,7 +1352,9 @@ protected:
 
   // Base minimum font size, independent of the language-specific global preference. Defaults to 0
   int32_t               mBaseMinFontSize;
+  float                 mSystemFontScale; // Internal text zoom factor, defaults to 1.0
   float                 mTextZoom;      // Text zoom, defaults to 1.0
+  float                 mEffectiveTextZoom; // Text zoom * system font scale
   float                 mFullZoom;      // Page zoom, defaults to 1.0
   float                 mOverrideDPPX;   // DPPX overrided, defaults to 0.0
   gfxSize               mLastFontInflationScreenSize;
@@ -1312,6 +1366,8 @@ protected:
   nsCOMPtr<nsILanguageAtomService> mLangService;
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
   nsCOMPtr<nsITimer>    mPrefChangedTimer;
+
+  mozilla::UniquePtr<nsBidi> mBidiEngine;
 
   FramePropertyTable    mPropertyTable;
 
@@ -1343,7 +1399,16 @@ protected:
 
   nscolor               mBodyTextColor;
 
+  // This is a non-owning pointer. May be null. If non-null, it's guaranteed
+  // to be pointing to a node that's still alive, because we'll reset it in
+  // UpdateViewportScrollbarStylesOverride() as part of the cleanup code
+  // when this node is removed from the document. (For <body> and the root node,
+  // this call happens in nsCSSFrameConstructor::ContentRemoved(). For
+  // fullscreen elements, it happens in the fullscreen-specific cleanup
+  // invoked by Element::UnbindFromTree().)
+  nsIContent* MOZ_NON_OWNING_REF mViewportScrollbarOverrideNode;
   ScrollbarStyles       mViewportStyleScrollbar;
+
   uint8_t               mFocusRingWidth;
 
   bool mExistThrottledUpdates;
@@ -1357,6 +1422,9 @@ protected:
   // language groups, so in the worst case scenario we'll need to traverse 31
   // link items.
   LangGroupFontPrefs    mLangGroupFontPrefs;
+
+  bool mFontGroupCacheDirty;
+  nsTHashtable<nsRefPtrHashKey<nsIAtom>> mLanguagesUsed;
 
   nscoord               mBorderWidthTable[3];
 

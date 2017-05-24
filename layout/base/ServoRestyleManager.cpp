@@ -11,6 +11,10 @@
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/ChildIterator.h"
+#include "mozilla/dom/ElementInlines.h"
+#include "nsBlockFrame.h"
+#include "nsBulletFrame.h"
+#include "nsPlaceholderFrame.h"
 #include "nsContentUtils.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsPrintfCString.h"
@@ -55,11 +59,22 @@ ServoRestyleManager::PostRestyleEvent(Element* aElement,
     return;
   }
 
-  if (aRestyleHint || aMinChangeHint) {
-    Servo_NoteExplicitHints(aElement, aRestyleHint, aMinChangeHint);
+  if (aRestyleHint & ~eRestyle_AllHintsWithAnimations) {
+    mHaveNonAnimationRestyles = true;
   }
 
-  PostRestyleEventInternal(false);
+  Servo_NoteExplicitHints(aElement, aRestyleHint, aMinChangeHint);
+}
+
+void
+ServoRestyleManager::PostRestyleEventForCSSRuleChanges(
+  Element* aElement,
+  nsRestyleHint aRestyleHint,
+  nsChangeHint aMinChangeHint)
+{
+  mRestyleForCSSRuleChanges = true;
+
+  PostRestyleEvent(aElement, aRestyleHint, aMinChangeHint);
 }
 
 /* static */ void
@@ -73,12 +88,17 @@ void
 ServoRestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
                                          nsRestyleHint aRestyleHint)
 {
-  StyleSet()->RebuildData();
+   // NOTE(emilio): GeckoRestlyeManager does a sync style flush, which seems not
+   // to be needed in my testing.
+  PostRebuildAllStyleDataEvent(aExtraHint, aRestyleHint);
+}
 
-  // NOTE(emilio): GeckoRestlyeManager does a sync style flush, which seems
-  // not to be needed in my testing.
-  //
-  // If it is, we can just do a content flush and call ProcessPendingRestyles.
+void
+ServoRestyleManager::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
+                                                  nsRestyleHint aRestyleHint)
+{
+  StyleSet()->ClearDataAndMarkDeviceDirty();
+
   if (Element* root = mPresContext->Document()->GetRootElement()) {
     PostRestyleEvent(root, aRestyleHint, aExtraHint);
   }
@@ -88,17 +108,13 @@ ServoRestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
   // if we do, we need to re-selector-match them here.
 }
 
-void
-ServoRestyleManager::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
-                                                  nsRestyleHint aRestyleHint)
-{
-  NS_WARNING("stylo: ServoRestyleManager::PostRebuildAllStyleDataEvent not implemented");
-}
-
 /* static */ void
 ServoRestyleManager::ClearServoDataFromSubtree(Element* aElement)
 {
-  aElement->ClearServoData();
+  if (!aElement->HasServoData()) {
+    MOZ_ASSERT(!aElement->HasDirtyDescendantsForServo());
+    return;
+  }
 
   StyleChildrenIterator it(aElement);
   for (nsIContent* n = it.GetNextChild(); n; n = it.GetNextChild()) {
@@ -107,14 +123,13 @@ ServoRestyleManager::ClearServoDataFromSubtree(Element* aElement)
     }
   }
 
+  aElement->ClearServoData();
   aElement->UnsetHasDirtyDescendantsForServo();
 }
 
 
-// Clears HasDirtyDescendants and RestyleData from all elements in the
-// subtree rooted at aElement.
-static void
-ClearRestyleStateFromSubtree(Element* aElement)
+/* static */ void
+ServoRestyleManager::ClearRestyleStateFromSubtree(Element* aElement)
 {
   if (aElement->HasDirtyDescendantsForServo()) {
     StyleChildrenIterator it(aElement);
@@ -128,6 +143,148 @@ ClearRestyleStateFromSubtree(Element* aElement)
   Unused << Servo_TakeChangeHint(aElement);
   aElement->UnsetHasDirtyDescendantsForServo();
   aElement->UnsetFlags(NODE_DESCENDANTS_NEED_FRAMES);
+}
+
+/**
+ * This struct takes care of encapsulating some common state that text nodes may
+ * need to track during the post-traversal.
+ *
+ * This is currently used to properly compute change hints when the parent
+ * element of this node is a display: contents node, and also to avoid computing
+ * the style for text children more than once per element.
+ */
+struct ServoRestyleManager::TextPostTraversalState
+{
+  nsStyleContext& mParentContext;
+  ServoStyleSet& mStyleSet;
+  RefPtr<nsStyleContext> mStyle;
+  bool mShouldPostHints;
+  bool mShouldComputeHints;
+  nsChangeHint mComputedHint;
+
+  TextPostTraversalState(nsStyleContext& aParentContext,
+                         ServoStyleSet& aStyleSet,
+                         bool aDisplayContentsParentStyleChanged)
+    : mParentContext(aParentContext)
+    , mStyleSet(aStyleSet)
+    , mStyle(nullptr)
+    , mShouldPostHints(aDisplayContentsParentStyleChanged)
+    , mShouldComputeHints(aDisplayContentsParentStyleChanged)
+    , mComputedHint(nsChangeHint_Empty)
+  {}
+
+  nsStyleContext& ComputeStyle(nsIContent* aTextNode)
+  {
+    if (!mStyle) {
+      mStyle = mStyleSet.ResolveStyleForText(aTextNode, &mParentContext);
+    }
+    MOZ_ASSERT(mStyle);
+    return *mStyle;
+  }
+
+  void ComputeHintIfNeeded(nsIContent* aContent,
+                           nsIFrame* aTextFrame,
+                           nsStyleContext& aNewContext,
+                           nsStyleChangeList& aChangeList)
+  {
+    MOZ_ASSERT(aTextFrame);
+    MOZ_ASSERT(aNewContext.GetPseudo() == nsCSSAnonBoxes::mozText);
+
+    if (MOZ_LIKELY(!mShouldPostHints)) {
+      return;
+    }
+
+    nsStyleContext* oldContext = aTextFrame->StyleContext();
+    MOZ_ASSERT(oldContext->GetPseudo() == nsCSSAnonBoxes::mozText);
+
+    // We rely on the fact that all the text children for the same element share
+    // style to avoid recomputing style differences for all of them.
+    //
+    // TODO(emilio): The above may not be true for ::first-{line,letter}, but
+    // we'll cross that bridge when we support those in stylo.
+    if (mShouldComputeHints) {
+      mShouldComputeHints = false;
+      uint32_t equalStructs, samePointerStructs;
+      mComputedHint =
+        oldContext->CalcStyleDifference(&aNewContext,
+                                        &equalStructs,
+                                        &samePointerStructs);
+    }
+
+    if (mComputedHint) {
+      aChangeList.AppendChange(aTextFrame, aContent, mComputedHint);
+    }
+  }
+};
+
+static void
+UpdateBlockFramePseudoElements(nsBlockFrame* aFrame,
+                               ServoStyleSet& aStyleSet,
+                               nsStyleChangeList& aChangeList)
+{
+  if (nsBulletFrame* bullet = aFrame->GetBullet()) {
+    RefPtr<nsStyleContext> newContext =
+      aStyleSet.ResolvePseudoElementStyle(
+          aFrame->GetContent()->AsElement(),
+          bullet->StyleContext()->GetPseudoType(),
+          aFrame->StyleContext(),
+          /* aPseudoElement = */ nullptr);
+
+    aFrame->UpdateStyleOfOwnedChildFrame(bullet, newContext, aChangeList);
+  }
+}
+
+static void
+UpdateBackdropIfNeeded(nsIFrame* aFrame,
+                       ServoStyleSet& aStyleSet,
+                       nsStyleChangeList& aChangeList)
+{
+  const nsStyleDisplay* display = aFrame->StyleContext()->StyleDisplay();
+  if (display->mTopLayer != NS_STYLE_TOP_LAYER_TOP) {
+    return;
+  }
+
+  // Elements in the top layer are guaranteed to have absolute or fixed
+  // position per https://fullscreen.spec.whatwg.org/#new-stacking-layer.
+  MOZ_ASSERT(display->IsAbsolutelyPositionedStyle());
+
+  nsIFrame* backdropPlaceholder =
+    aFrame->GetChildList(nsIFrame::kBackdropList).FirstChild();
+  if (!backdropPlaceholder) {
+    return;
+  }
+
+  MOZ_ASSERT(backdropPlaceholder->IsPlaceholderFrame());
+  nsIFrame* backdropFrame =
+    nsPlaceholderFrame::GetRealFrameForPlaceholder(backdropPlaceholder);
+  MOZ_ASSERT(backdropFrame->IsBackdropFrame());
+  MOZ_ASSERT(backdropFrame->StyleContext()->GetPseudoType() ==
+             CSSPseudoElementType::backdrop);
+
+  RefPtr<nsStyleContext> newContext =
+    aStyleSet.ResolvePseudoElementStyle(
+        aFrame->GetContent()->AsElement(),
+        CSSPseudoElementType::backdrop,
+        aFrame->StyleContext(),
+        /* aPseudoElement = */ nullptr);
+
+  aFrame->UpdateStyleOfOwnedChildFrame(backdropFrame,
+                                       newContext,
+                                       aChangeList);
+}
+
+static void
+UpdateFramePseudoElementStyles(nsIFrame* aFrame,
+                               ServoStyleSet& aStyleSet,
+                               nsStyleChangeList& aChangeList)
+{
+  if (aFrame->IsFrameOfType(nsIFrame::eBlockFrame)) {
+    UpdateBlockFramePseudoElements(static_cast<nsBlockFrame*>(aFrame),
+                                   aStyleSet,
+                                   aChangeList);
+  }
+
+  UpdateBackdropIfNeeded(aFrame, aStyleSet, aChangeList);
 }
 
 void
@@ -147,7 +304,7 @@ ServoRestyleManager::ProcessPostTraversal(Element* aElement,
     changeHint |= nsChangeHint_ReconstructFrame;
     // The only time the primary frame is non-null is when image maps do hacky
     // SetPrimaryFrame calls.
-    MOZ_ASSERT_IF(styleFrame, styleFrame->GetType() == nsGkAtoms::imageFrame);
+    MOZ_ASSERT_IF(styleFrame, styleFrame->IsImageFrame());
     styleFrame = nullptr;
   }
 
@@ -209,9 +366,17 @@ ServoRestyleManager::ProcessPostTraversal(Element* aElement,
   RefPtr<nsStyleContext> newContext = nullptr;
   if (recreateContext) {
     MOZ_ASSERT(styleFrame || displayContentsNode);
+
+    auto pseudo = aElement->GetPseudoElementType();
+    nsIAtom* pseudoTag = pseudo == CSSPseudoElementType::NotPseudo
+      ? nullptr : nsCSSPseudoElements::GetPseudoAtom(pseudo);
+
     newContext =
-      aStyleSet->GetContext(computedValues.forget(), aParentContext, nullptr,
-                            CSSPseudoElementType::NotPseudo, aElement);
+      aStyleSet->GetContext(computedValues.forget(),
+                            aParentContext,
+                            pseudoTag,
+                            pseudo,
+                            aElement);
 
     newContext->EnsureSameStructsCached(oldStyleContext);
 
@@ -233,65 +398,39 @@ ServoRestyleManager::ProcessPostTraversal(Element* aElement,
 
     if (styleFrame) {
       styleFrame->UpdateStyleOfOwnedAnonBoxes(*aStyleSet, aChangeList, changeHint);
+      UpdateFramePseudoElementStyles(styleFrame, *aStyleSet, aChangeList);
     }
 
-    // Update pseudo-elements state if appropriate.
-    const static CSSPseudoElementType pseudosToRestyle[] = {
-      CSSPseudoElementType::before,
-      CSSPseudoElementType::after,
-    };
-
-    for (CSSPseudoElementType pseudoType : pseudosToRestyle) {
-      nsIAtom* pseudoTag = nsCSSPseudoElements::GetPseudoAtom(pseudoType);
-
-      if (nsIFrame* pseudoFrame = FrameForPseudoElement(aElement, pseudoTag)) {
-        // TODO: we could maybe make this more performant via calling into
-        // Servo just once to know which pseudo-elements we've got to restyle?
-        RefPtr<nsStyleContext> pseudoContext =
-          aStyleSet->ProbePseudoElementStyle(aElement, pseudoType, newContext);
-        MOZ_ASSERT(pseudoContext, "should have taken the ReconstructFrame path above");
-        pseudoFrame->SetStyleContext(pseudoContext);
-
-        if (pseudoFrame->GetStateBits() & NS_FRAME_OWNS_ANON_BOXES) {
-          // XXX It really would be good to pass the actual changehint for our
-          // ::before/::after here, but we never computed it!
-          pseudoFrame->UpdateStyleOfOwnedAnonBoxes(*aStyleSet, aChangeList,
-                                                   nsChangeHint_Hints_NotHandledForDescendants);
-        }
-
-        // We only care restyling text nodes, since other type of nodes
-        // (images), are still not supported. If that eventually changes, we
-        // may have to write more code here... Or not, I don't think too
-        // many inherited properties can affect those other frames.
-        StyleChildrenIterator it(pseudoFrame->GetContent());
-        for (nsIContent* n = it.GetNextChild(); n; n = it.GetNextChild()) {
-          if (n->IsNodeOfType(nsINode::eTEXT)) {
-            RefPtr<nsStyleContext> childContext =
-              aStyleSet->ResolveStyleForText(n, pseudoContext);
-            MOZ_ASSERT(n->GetPrimaryFrame(),
-                       "How? This node is created at FC time!");
-            n->GetPrimaryFrame()->SetStyleContext(childContext);
-          }
-        }
-      }
-    }
+    // Some changes to animations don't affect the computed style and yet still
+    // require the layer to be updated. For example, pausing an animation via
+    // the Web Animations API won't affect an element's style but still
+    // requires to update the animation on the layer.
+    //
+    // We can sometimes reach this when the animated style is being removed.
+    // Since AddLayerChangesForAnimation checks if |styleFrame| has a transform
+    // style or not, we need to call it *after* setting |newContext| to
+    // |styleFrame| to ensure the animated transform has been removed first.
+    AddLayerChangesForAnimation(styleFrame, aElement, aChangeList);
   }
 
-  bool descendantsNeedFrames = aElement->HasFlag(NODE_DESCENDANTS_NEED_FRAMES);
-  bool traverseElementChildren =
+  const bool descendantsNeedFrames =
+    aElement->HasFlag(NODE_DESCENDANTS_NEED_FRAMES);
+  const bool traverseElementChildren =
     aElement->HasDirtyDescendantsForServo() || descendantsNeedFrames;
-  bool traverseTextChildren = recreateContext || descendantsNeedFrames;
+  const bool traverseTextChildren = recreateContext || descendantsNeedFrames;
   if (traverseElementChildren || traverseTextChildren) {
     nsStyleContext* upToDateContext =
       recreateContext ? newContext : oldStyleContext;
 
     StyleChildrenIterator it(aElement);
+    TextPostTraversalState textState(
+        *upToDateContext, *aStyleSet, displayContentsNode && recreateContext);
     for (nsIContent* n = it.GetNextChild(); n; n = it.GetNextChild()) {
       if (traverseElementChildren && n->IsElement()) {
         ProcessPostTraversal(n->AsElement(), upToDateContext,
                              aStyleSet, aChangeList);
       } else if (traverseTextChildren && n->IsNodeOfType(nsINode::eTEXT)) {
-        ProcessPostTraversalForText(n, upToDateContext, aStyleSet, aChangeList);
+        ProcessPostTraversalForText(n, aChangeList, textState);
       }
     }
   }
@@ -301,10 +440,10 @@ ServoRestyleManager::ProcessPostTraversal(Element* aElement,
 }
 
 void
-ServoRestyleManager::ProcessPostTraversalForText(nsIContent* aTextNode,
-                                                 nsStyleContext* aParentContext,
-                                                 ServoStyleSet* aStyleSet,
-                                                 nsStyleChangeList& aChangeList)
+ServoRestyleManager::ProcessPostTraversalForText(
+    nsIContent* aTextNode,
+    nsStyleChangeList& aChangeList,
+    TextPostTraversalState& aPostTraversalState)
 {
   // Handle lazy frame construction.
   if (aTextNode->HasFlag(NODE_NEEDS_FRAME)) {
@@ -316,14 +455,51 @@ ServoRestyleManager::ProcessPostTraversalForText(nsIContent* aTextNode,
   nsIFrame* primaryFrame = aTextNode->GetPrimaryFrame();
   if (primaryFrame) {
     RefPtr<nsStyleContext> oldStyleContext = primaryFrame->StyleContext();
-    RefPtr<nsStyleContext> newContext =
-      aStyleSet->ResolveStyleForText(aTextNode, aParentContext);
+    nsStyleContext& newContext = aPostTraversalState.ComputeStyle(aTextNode);
+    aPostTraversalState.ComputeHintIfNeeded(
+        aTextNode, primaryFrame, newContext, aChangeList);
 
     for (nsIFrame* f = primaryFrame; f;
          f = GetNextContinuationWithSameStyle(f, oldStyleContext)) {
-      f->SetStyleContext(newContext);
+      f->SetStyleContext(&newContext);
     }
   }
+}
+
+void
+ServoRestyleManager::ClearSnapshots()
+{
+  for (auto iter = mSnapshots.Iter(); !iter.Done(); iter.Next()) {
+    iter.Key()->UnsetFlags(ELEMENT_HAS_SNAPSHOT | ELEMENT_HANDLED_SNAPSHOT);
+    iter.Remove();
+  }
+}
+
+ServoElementSnapshot&
+ServoRestyleManager::SnapshotFor(Element* aElement)
+{
+  MOZ_ASSERT(!mInStyleRefresh);
+
+  // NOTE(emilio): We can handle snapshots from a one-off restyle of those that
+  // we do to restyle stuff for reconstruction, for example.
+  //
+  // It seems to be the case that we always flush in between that happens and
+  // the next attribute change, so we can assert that we haven't handled the
+  // snapshot here yet. If this assertion didn't hold, we'd need to unset that
+  // flag from here too.
+  //
+  // Can't wait to make ProcessPendingRestyles the only entry-point for styling,
+  // so this becomes much easier to reason about. Today is not that day though.
+  MOZ_ASSERT(aElement->HasServoData());
+  MOZ_ASSERT(!aElement->HasFlag(ELEMENT_HANDLED_SNAPSHOT));
+
+  ServoElementSnapshot* snapshot = mSnapshots.LookupOrAdd(aElement, aElement);
+  aElement->SetFlags(ELEMENT_HAS_SNAPSHOT);
+
+  nsIPresShell* presShell = mPresContext->PresShell();
+  presShell->EnsureStyleFlush();
+
+  return *snapshot;
 }
 
 /* static */ nsIFrame*
@@ -331,25 +507,16 @@ ServoRestyleManager::FrameForPseudoElement(const nsIContent* aContent,
                                            nsIAtom* aPseudoTagOrNull)
 {
   MOZ_ASSERT_IF(aPseudoTagOrNull, aContent->IsElement());
-  nsIFrame* primaryFrame = aContent->GetPrimaryFrame();
-
   if (!aPseudoTagOrNull) {
-    return primaryFrame;
+    return aContent->GetPrimaryFrame();
   }
 
-  // FIXME(emilio): Need to take into account display: contents pseudos!
-  if (!primaryFrame) {
-    return nullptr;
-  }
-
-  // NOTE: we probably need to special-case display: contents here. Gecko's
-  // RestyleManager passes the primary frame of the parent instead.
   if (aPseudoTagOrNull == nsCSSPseudoElements::before) {
-    return nsLayoutUtils::GetBeforeFrameForContent(primaryFrame, aContent);
+    return nsLayoutUtils::GetBeforeFrame(aContent);
   }
 
   if (aPseudoTagOrNull == nsCSSPseudoElements::after) {
-    return nsLayoutUtils::GetAfterFrameForContent(primaryFrame, aContent);
+    return nsLayoutUtils::GetAfterFrame(aContent);
   }
 
   MOZ_CRASH("Unkown pseudo-element given to "
@@ -358,10 +525,12 @@ ServoRestyleManager::FrameForPseudoElement(const nsIContent* aContent,
 }
 
 void
-ServoRestyleManager::ProcessPendingRestyles()
+ServoRestyleManager::DoProcessPendingRestyles(TraversalRestyleBehavior
+                                                aRestyleBehavior)
 {
   MOZ_ASSERT(PresContext()->Document(), "No document?  Pshaw!");
   MOZ_ASSERT(!nsContentUtils::IsSafeToRunScript(), "Missing a script blocker!");
+  MOZ_ASSERT(!mInStyleRefresh, "Reentrant call?");
 
   if (MOZ_UNLIKELY(!PresContext()->PresShell()->DidInitialize())) {
     // PresShell::FlushPendingNotifications doesn't early-return in the case
@@ -379,6 +548,8 @@ ServoRestyleManager::ProcessPendingRestyles()
 
   ServoStyleSet* styleSet = StyleSet();
   nsIDocument* doc = PresContext()->Document();
+  bool animationOnly = aRestyleBehavior ==
+                         TraversalRestyleBehavior::ForAnimationOnly;
 
   // Ensure the refresh driver is active during traversal to avoid mutating
   // mActiveTimer and mMostRecentRefresh time.
@@ -389,7 +560,19 @@ ServoRestyleManager::ProcessPendingRestyles()
   // in a loop because certain rare paths in the frame constructor (like
   // uninstalling XBL bindings) can trigger additional style validations.
   mInStyleRefresh = true;
-  while (styleSet->StyleDocument()) {
+  if (mHaveNonAnimationRestyles && !animationOnly) {
+    ++mAnimationGeneration;
+  }
+
+  TraversalRestyleBehavior restyleBehavior = mRestyleForCSSRuleChanges
+    ? TraversalRestyleBehavior::ForCSSRuleChanges
+    : TraversalRestyleBehavior::Normal;
+  while (animationOnly ? styleSet->StyleDocumentForAnimationOnly()
+                       : styleSet->StyleDocument(restyleBehavior)) {
+    if (!animationOnly) {
+      ClearSnapshots();
+    }
+
     // Recreate style contexts, and queue up change hints (which also handle
     // lazy frame construction).
     nsStyleChangeList currentChanges(StyleBackendType::Servo);
@@ -409,6 +592,14 @@ ServoRestyleManager::ProcessPendingRestyles()
       ProcessRestyledFrames(currentChanges);
       MOZ_ASSERT(currentChanges.IsEmpty());
       for (ReentrantChange& change: newChanges)  {
+        if (!(change.mHint & nsChangeHint_ReconstructFrame) &&
+            !change.mContent->GetPrimaryFrame()) {
+          // SVG Elements post change hints without ensuring that the primary
+          // frame will be there after that (see bug 1366142).
+          //
+          // Just ignore those, since we can't really process them.
+          continue;
+        }
         currentChanges.AppendChange(change.mContent->GetPrimaryFrame(),
                                     change.mContent, change.mHint);
       }
@@ -419,13 +610,38 @@ ServoRestyleManager::ProcessPendingRestyles()
     IncrementRestyleGeneration();
   }
 
+  FlushOverflowChangedTracker();
+
+  if (!animationOnly) {
+    ClearSnapshots();
+    styleSet->AssertTreeIsClean();
+    mHaveNonAnimationRestyles = false;
+  }
+  mRestyleForCSSRuleChanges = false;
   mInStyleRefresh = false;
-  styleSet->AssertTreeIsClean();
 
   // Note: We are in the scope of |animationsWithDestroyedFrame|, so
   //       |mAnimationsWithDestroyedFrame| is still valid.
   MOZ_ASSERT(mAnimationsWithDestroyedFrame);
   mAnimationsWithDestroyedFrame->StopAnimationsForElementsWithoutFrames();
+}
+
+void
+ServoRestyleManager::ProcessPendingRestyles()
+{
+  DoProcessPendingRestyles(TraversalRestyleBehavior::Normal);
+}
+
+void
+ServoRestyleManager::UpdateOnlyAnimationStyles()
+{
+  // Bug 1365855: We also need to implement this for SMIL.
+  bool doCSS = PresContext()->EffectCompositor()->HasPendingStyleUpdates();
+  if (!doCSS) {
+    return;
+  }
+
+  DoProcessPendingRestyles(TraversalRestyleBehavior::ForAnimationOnly);
 }
 
 void
@@ -466,6 +682,8 @@ void
 ServoRestyleManager::ContentStateChanged(nsIContent* aContent,
                                          EventStates aChangedBits)
 {
+  MOZ_ASSERT(!mInStyleRefresh);
+
   if (!aContent->IsElement()) {
     return;
   }
@@ -473,6 +691,10 @@ ServoRestyleManager::ContentStateChanged(nsIContent* aContent,
   Element* aElement = aContent->AsElement();
   nsChangeHint changeHint;
   nsRestyleHint restyleHint;
+
+  if (!aElement->HasServoData()) {
+    return;
+  }
 
   // NOTE: restyleHint here is effectively always 0, since that's what
   // ServoStyleSet::HasStateDependentStyle returns. Servo computes on
@@ -496,12 +718,14 @@ ServoRestyleManager::ContentStateChanged(nsIContent* aContent,
   ContentStateChangedInternal(aElement, aChangedBits, &changeHint,
                               &restyleHint);
 
+  ServoElementSnapshot& snapshot = SnapshotFor(aElement);
   EventStates previousState = aElement->StyleState() ^ aChangedBits;
-  ServoElementSnapshot* snapshot = Servo_Element_GetSnapshot(aElement);
-  if (snapshot) {
-    snapshot->AddState(previousState);
-    PostRestyleEvent(aElement, restyleHint, changeHint);
+  snapshot.AddState(previousState);
+
+  if (Element* parent = aElement->GetFlattenedTreeParentElementForStyle()) {
+    parent->NoteDirtyDescendantsForServo();
   }
+  PostRestyleEvent(aElement, restyleHint, changeHint);
 }
 
 void
@@ -510,9 +734,17 @@ ServoRestyleManager::AttributeWillChange(Element* aElement,
                                          nsIAtom* aAttribute, int32_t aModType,
                                          const nsAttrValue* aNewValue)
 {
-  ServoElementSnapshot* snapshot = Servo_Element_GetSnapshot(aElement);
-  if (snapshot) {
-    snapshot->AddAttrs(aElement);
+  MOZ_ASSERT(!mInStyleRefresh);
+
+  if (!aElement->HasServoData()) {
+    return;
+  }
+
+  ServoElementSnapshot& snapshot = SnapshotFor(aElement);
+  snapshot.AddAttrs(aElement);
+
+  if (Element* parent = aElement->GetFlattenedTreeParentElementForStyle()) {
+    parent->NoteDirtyDescendantsForServo();
   }
 }
 
@@ -521,12 +753,29 @@ ServoRestyleManager::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
                                       nsIAtom* aAttribute, int32_t aModType,
                                       const nsAttrValue* aOldValue)
 {
-#ifdef DEBUG
-  ServoElementSnapshot* snapshot = Servo_Element_GetSnapshot(aElement);
-  MOZ_ASSERT_IF(snapshot, snapshot->HasAttrs());
-#endif
+  MOZ_ASSERT(!mInStyleRefresh);
+  MOZ_ASSERT_IF(mSnapshots.Get(aElement), mSnapshots.Get(aElement)->HasAttrs());
+
+  nsIFrame* primaryFrame = aElement->GetPrimaryFrame();
+  if (primaryFrame) {
+    primaryFrame->AttributeChanged(aNameSpaceID, aAttribute, aModType);
+  }
+
+  nsChangeHint hint = aElement->GetAttributeChangeHint(aAttribute, aModType);
+  if (hint) {
+    PostRestyleEvent(aElement, nsRestyleHint(0), hint);
+  }
+
   if (aAttribute == nsGkAtoms::style) {
     PostRestyleEvent(aElement, eRestyle_StyleAttribute, nsChangeHint(0));
+  }
+  // <td> is affected by the cellpadding on its ancestor table,
+  // so we should restyle the whole subtree
+  if (aAttribute == nsGkAtoms::cellpadding && aElement->IsHTMLElement(nsGkAtoms::table)) {
+    PostRestyleEvent(aElement, eRestyle_Subtree, nsChangeHint(0));
+  }
+  if (aElement->IsAttributeMapped(aAttribute)) {
+    Servo_NoteExplicitHints(aElement, eRestyle_Self, nsChangeHint(0));
   }
 }
 

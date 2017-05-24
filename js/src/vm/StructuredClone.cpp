@@ -44,6 +44,7 @@
 #include "builtin/MapObject.h"
 #include "js/Date.h"
 #include "js/GCHashTable.h"
+#include "vm/RegExpObject.h"
 #include "vm/SavedFrame.h"
 #include "vm/SharedArrayObject.h"
 #include "vm/TypedArrayObject.h"
@@ -229,6 +230,69 @@ struct BufferIterator {
     typename BufferList::IterImpl mIter;
 };
 
+SharedArrayRawBufferRefs&
+SharedArrayRawBufferRefs::operator=(SharedArrayRawBufferRefs&& other)
+{
+    takeOwnership(Move(other));
+    return *this;
+}
+
+SharedArrayRawBufferRefs::~SharedArrayRawBufferRefs()
+{
+    releaseAll();
+}
+
+bool
+SharedArrayRawBufferRefs::acquire(JSContext* cx, SharedArrayRawBuffer* rawbuf)
+{
+    if (!refs_.append(rawbuf)) {
+        ReportOutOfMemory(cx);
+        return false;
+    }
+
+    if (!rawbuf->addReference()) {
+        refs_.popBack();
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SC_SAB_REFCNT_OFLO);
+        return false;
+    }
+
+    return true;
+}
+
+bool
+SharedArrayRawBufferRefs::acquireAll(JSContext* cx, const SharedArrayRawBufferRefs& that)
+{
+    if (!refs_.reserve(refs_.length() + that.refs_.length())) {
+        ReportOutOfMemory(cx);
+        return false;
+    }
+
+    for (auto ref : that.refs_) {
+        if (!ref->addReference()) {
+            JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SC_SAB_REFCNT_OFLO);
+            return false;
+        }
+        MOZ_ALWAYS_TRUE(refs_.append(ref));
+    }
+
+    return true;
+}
+
+void
+SharedArrayRawBufferRefs::takeOwnership(SharedArrayRawBufferRefs&& other)
+{
+    MOZ_ASSERT(refs_.empty());
+    refs_ = Move(other.refs_);
+}
+
+void
+SharedArrayRawBufferRefs::releaseAll()
+{
+    for (auto ref : refs_)
+        ref->dropReference();
+    refs_.clear();
+}
+
 struct SCOutput {
   public:
     using Iter = BufferIterator<uint64_t, TempAllocPolicy>;
@@ -408,6 +472,9 @@ struct JSStructuredCloneWriter {
     bool extractBuffer(JSStructuredCloneData* data) {
         bool success = out.extractBuffer(data);
         if (success) {
+            // Move the SharedArrayRawBuf references here, SCOutput::extractBuffer
+            // moves the serialized data.
+            data->refsHeld_.takeOwnership(Move(refsHeld));
             data->setOptionalCallbacks(callbacks, closure,
                                        OwnTransferablePolicy::OwnsTransferablesIfAny);
         }
@@ -485,6 +552,9 @@ struct JSStructuredCloneWriter {
     Rooted<GCHashSet<JSObject*>> transferableObjects;
 
     const JS::CloneDataPolicy cloneDataPolicy;
+
+    // SharedArrayRawBuffers whose reference counts we have incremented.
+    SharedArrayRawBufferRefs refsHeld;
 
     friend bool JS_WriteString(JSStructuredCloneWriter* w, HandleString str);
     friend bool JS_WriteTypedArray(JSStructuredCloneWriter* w, HandleValue v);
@@ -1158,12 +1228,16 @@ JSStructuredCloneWriter::writeSharedArrayBuffer(HandleObject obj)
         return false;
     }
 
+    // We must not transfer buffer pointers cross-process.  The cloneDataPolicy
+    // should guard against this; check that it does.
+
+    MOZ_RELEASE_ASSERT(scope <= JS::StructuredCloneScope::SameProcessDifferentThread);
+
     Rooted<SharedArrayBufferObject*> sharedArrayBuffer(context(), &CheckedUnwrap(obj)->as<SharedArrayBufferObject>());
     SharedArrayRawBuffer* rawbuf = sharedArrayBuffer->rawBufferObject();
 
-    // Avoids a race condition where the parent thread frees the buffer
-    // before the child has accepted the transferable.
-    rawbuf->addReference();
+    if (!refsHeld.acquire(context(), rawbuf))
+        return false;
 
     intptr_t p = reinterpret_cast<intptr_t>(rawbuf);
     return out.writePair(SCTAG_SHARED_ARRAY_BUFFER_OBJECT, static_cast<uint32_t>(sizeof(p))) &&
@@ -1368,13 +1442,15 @@ JSStructuredCloneWriter::traverseSavedFrame(HandleObject obj)
         return false;
 
     auto name = savedFrame->getFunctionDisplayName();
-    context()->markAtom(name);
+    if (name)
+        context()->markAtom(name);
     val = name ? StringValue(name) : NullValue();
     if (!startWrite(val))
         return false;
 
     auto cause = savedFrame->getAsyncCause();
-    context()->markAtom(cause);
+    if (cause)
+        context()->markAtom(cause);
     val = cause ? StringValue(cause) : NullValue();
     if (!startWrite(val))
         return false;
@@ -1413,7 +1489,7 @@ JSStructuredCloneWriter::startWrite(HandleValue v)
             return false;
 
         if (cls == ESClass::RegExp) {
-            RegExpGuard re(context());
+            RootedRegExpShared re(context());
             if (!RegExpToShared(context(), obj, &re))
                 return false;
             return out.writePair(SCTAG_REGEXP_OBJECT, re->getFlags()) &&
@@ -1889,17 +1965,28 @@ JSStructuredCloneReader::readSharedArrayBuffer(uint32_t nbytes, MutableHandleVal
     // in any case.  Just fail at the receiving end if we can't handle it.
 
     if (!context()->compartment()->creationOptions().getSharedMemoryAndAtomicsEnabled()) {
-        // The sending side performed a reference increment before sending.
-        // Account for that here before leaving.
-        if (rawbuf)
-            rawbuf->dropReference();
-
         JS_ReportErrorNumberASCII(context(), GetErrorMessage, nullptr, JSMSG_SC_SAB_DISABLED);
         return false;
     }
 
-    // The constructor absorbs the reference count increment performed by the sender.
+    // We must not transfer buffer pointers cross-process.  The cloneDataPolicy
+    // in the sender should guard against this; check that it does.
+
+    MOZ_RELEASE_ASSERT(storedScope <= JS::StructuredCloneScope::SameProcessDifferentThread);
+
+    // The new object will have a new reference to the rawbuf.
+
+    if (!rawbuf->addReference()) {
+        JS_ReportErrorNumberASCII(context(), GetErrorMessage, nullptr, JSMSG_SC_SAB_REFCNT_OFLO);
+        return false;
+    }
+
     JSObject* obj = SharedArrayBufferObject::New(context(), rawbuf);
+
+    if (!obj) {
+        rawbuf->dropReference();
+        return false;
+    }
 
     vp.setObject(*obj);
     return true;
@@ -2039,7 +2126,7 @@ JSStructuredCloneReader::startRead(MutableHandleValue vp)
         if (!atom)
             return false;
 
-        RegExpObject* reobj = RegExpObject::create(context(), atom, flags, nullptr,
+        RegExpObject* reobj = RegExpObject::create(context(), atom, flags, nullptr, nullptr,
                                                    context()->tempLifoAlloc());
         if (!reobj)
             return false;
@@ -2586,13 +2673,14 @@ JSAutoStructuredCloneBuffer::clear(const JSStructuredCloneCallbacks* optionalCal
     if (data_.ownTransferables_ == OwnTransferablePolicy::OwnsTransferablesIfAny)
         DiscardTransferables(data_, callbacks, closure);
     data_.ownTransferables_ = OwnTransferablePolicy::NoTransferables;
+    data_.refsHeld_.releaseAll();
     data_.Clear();
     version_ = 0;
 }
 
 bool
-JSAutoStructuredCloneBuffer::copy(const JSStructuredCloneData& srcData, uint32_t version,
-                                  const JSStructuredCloneCallbacks* callbacks,
+JSAutoStructuredCloneBuffer::copy(JSContext* cx, const JSStructuredCloneData& srcData,
+                                  uint32_t version, const JSStructuredCloneCallbacks* callbacks,
                                   void* closure)
 {
     // transferable objects cannot be copied
@@ -2603,11 +2691,16 @@ JSAutoStructuredCloneBuffer::copy(const JSStructuredCloneData& srcData, uint32_t
 
     auto iter = srcData.Iter();
     while (!iter.Done()) {
-            data_.WriteBytes(iter.Data(), iter.RemainingInSegment());
-            iter.Advance(srcData, iter.RemainingInSegment());
+        if (!data_.WriteBytes(iter.Data(), iter.RemainingInSegment()))
+            return false;
+        iter.Advance(srcData, iter.RemainingInSegment());
     }
 
     version_ = version;
+
+    if (!data_.refsHeld_.acquireAll(cx, srcData.refsHeld_))
+        return false;
+
     data_.setOptionalCallbacks(callbacks, closure, OwnTransferablePolicy::NoTransferables);
     return true;
 }

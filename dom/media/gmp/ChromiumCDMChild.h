@@ -73,11 +73,17 @@ public:
   void OnDeferredInitializationDone(cdm::StreamType aStreamType,
                                     cdm::Status aDecoderStatus) override {}
   cdm::FileIO* CreateFileIO(cdm::FileIOClient* aClient) override;
+
+  void GiveBuffer(ipc::Shmem&& aBuffer);
+
 protected:
-  ~ChromiumCDMChild() {}
+  ~ChromiumCDMChild();
 
   bool IsOnMessageLoopThread();
 
+  ipc::IPCResult RecvGiveBuffer(ipc::Shmem&& aShmem) override;
+  ipc::IPCResult RecvPurgeShmems() override;
+  void PurgeShmems();
   ipc::IPCResult RecvInit(const bool& aAllowDistinctiveIdentifier,
                           const bool& aAllowPersistentState) override;
   ipc::IPCResult RecvSetServerCertificate(
@@ -109,8 +115,8 @@ protected:
   ipc::IPCResult RecvDrain() override;
   ipc::IPCResult RecvDestroy() override;
 
-  void DecryptFailed(uint32_t aId, cdm::Status aStatus);
   void ReturnOutput(WidevineVideoFrame& aFrame);
+  bool HasShmemOfSize(size_t aSize) const;
 
   GMPContentChild* mPlugin = nullptr;
   cdm::ContentDecryptionModule_8* mCDM = nullptr;
@@ -120,6 +126,7 @@ protected:
   nsTArray<uint32_t> mLoadSessionPromiseIds;
 
   cdm::Size mCodedSize;
+  nsTArray<ipc::Shmem> mBuffers;
 
   bool mDecoderInitialized = false;
   bool mPersistentStateAllowed = false;

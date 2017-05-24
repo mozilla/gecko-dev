@@ -42,6 +42,7 @@ this.SelectContentHelper = function(aElement, aOptions, aGlobal) {
   this._uaColor = null;
   this._uaSelectBackgroundColor = null;
   this._uaSelectColor = null;
+  this._closeAfterBlur = true;
   this.init();
   this.showDropDown();
   this._updateTimer = new DeferredTask(this._update.bind(this), 0);
@@ -60,9 +61,12 @@ this.SelectContentHelper.prototype = {
     this.global.addMessageListener("Forms:MouseOver", this);
     this.global.addMessageListener("Forms:MouseOut", this);
     this.global.addMessageListener("Forms:MouseUp", this);
+    this.global.addMessageListener("Forms:SearchFocused", this);
+    this.global.addMessageListener("Forms:BlurDropDown-Pong", this);
     this.global.addEventListener("pagehide", this, { mozSystemGroup: true });
     this.global.addEventListener("mozhidedropdown", this, { mozSystemGroup: true });
     this.element.addEventListener("blur", this, { mozSystemGroup: true });
+    this.element.addEventListener("transitionend", this, { mozSystemGroup: true });
     let MutationObserver = this.element.ownerGlobal.MutationObserver;
     this.mut = new MutationObserver(mutations => {
       // Something changed the <select> while it was open, so
@@ -70,7 +74,7 @@ this.SelectContentHelper.prototype = {
       // in the very near future.
       this._updateTimer.arm();
     });
-    this.mut.observe(this.element, {childList: true, subtree: true});
+    this.mut.observe(this.element, {childList: true, subtree: true, attributes: true});
   },
 
   uninit() {
@@ -80,9 +84,12 @@ this.SelectContentHelper.prototype = {
     this.global.removeMessageListener("Forms:MouseOver", this);
     this.global.removeMessageListener("Forms:MouseOut", this);
     this.global.removeMessageListener("Forms:MouseUp", this);
+    this.global.removeMessageListener("Forms:SearchFocused", this);
+    this.global.removeMessageListener("Forms:BlurDropDown-Pong", this);
     this.global.removeEventListener("pagehide", this, { mozSystemGroup: true });
     this.global.removeEventListener("mozhidedropdown", this, { mozSystemGroup: true });
     this.element.removeEventListener("blur", this, { mozSystemGroup: true });
+    this.element.removeEventListener("transitionend", this, { mozSystemGroup: true });
     this.element = null;
     this.global = null;
     this.mut.disconnect();
@@ -98,6 +105,7 @@ this.SelectContentHelper.prototype = {
     let computedStyles = getComputedStyles(this.element);
     this._selectBackgroundColor = computedStyles.backgroundColor;
     this._selectColor = computedStyles.color;
+    this._selectTextShadow = computedStyles.textShadow;
     DOMUtils.clearPseudoClassLocks(this.element);
     this.global.sendAsyncMessage("Forms:ShowDropDown", {
       direction: computedStyles.direction,
@@ -107,6 +115,7 @@ this.SelectContentHelper.prototype = {
       selectedIndex: this.element.selectedIndex,
       selectBackgroundColor: this._selectBackgroundColor,
       selectColor: this._selectColor,
+      selectTextShadow: this._selectTextShadow,
       uaBackgroundColor: this.uaBackgroundColor,
       uaColor: this.uaColor,
       uaSelectBackgroundColor: this.uaSelectBackgroundColor,
@@ -120,7 +129,10 @@ this.SelectContentHelper.prototype = {
   },
 
   _buildOptionList() {
-    return buildOptionListForChildren(this.element);
+    DOMUtils.addPseudoClassLock(this.element, ":focus");
+    let result = buildOptionListForChildren(this.element);
+    DOMUtils.clearPseudoClassLocks(this.element);
+    return result;
   },
 
   _update() {
@@ -133,12 +145,14 @@ this.SelectContentHelper.prototype = {
     let computedStyles = getComputedStyles(this.element);
     this._selectBackgroundColor = computedStyles.backgroundColor;
     this._selectColor = computedStyles.color;
+    this._selectTextShadow = computedStyles.textShadow;
     DOMUtils.clearPseudoClassLocks(this.element);
     this.global.sendAsyncMessage("Forms:UpdateDropDown", {
       options: this._buildOptionList(),
       selectedIndex: this.element.selectedIndex,
       selectBackgroundColor: this._selectBackgroundColor,
       selectColor: this._selectColor,
+      selectTextShadow: this._selectTextShadow,
       uaBackgroundColor: this.uaBackgroundColor,
       uaColor: this.uaColor,
       uaSelectBackgroundColor: this.uaSelectBackgroundColor,
@@ -260,6 +274,18 @@ this.SelectContentHelper.prototype = {
           this.dispatchMouseEvent(win, this.element, "click");
         }
         break;
+
+      case "Forms:SearchFocused":
+        this._closeAfterBlur = false;
+        break;
+
+      case "Forms:BlurDropDown-Pong":
+        if (!this._closeAfterBlur || !gOpen) {
+          return;
+        }
+        this.global.sendAsyncMessage("Forms:HideDropDown", {});
+        this.uninit();
+        break;
     }
   },
 
@@ -271,12 +297,25 @@ this.SelectContentHelper.prototype = {
           this.uninit();
         }
         break;
-      case "blur":
+      case "blur": {
+        if (this.element !== event.target) {
+          break;
+        }
+        this._closeAfterBlur = true;
+        // Send a ping-pong message to make sure that we wait for
+        // enough cycles to pass from the potential focusing of the
+        // search box to disable closing-after-blur.
+        this.global.sendAsyncMessage("Forms:BlurDropDown-Ping", {});
+        break;
+      }
       case "mozhidedropdown":
         if (this.element === event.target) {
           this.global.sendAsyncMessage("Forms:HideDropDown", {});
           this.uninit();
         }
+        break;
+      case "transitionend":
+        this._update();
         break;
     }
   }
@@ -326,6 +365,10 @@ function buildOptionListForChildren(node) {
         color: cs.color,
         children: tagName == "OPTGROUP" ? buildOptionListForChildren(child) : []
       };
+
+      if (cs.textShadow != "none") {
+        info.textShadow = cs.textShadow;
+      }
 
       // We must wait until all computedStyles have been
       // read before we clear the locks.

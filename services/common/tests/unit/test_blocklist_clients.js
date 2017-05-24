@@ -1,7 +1,5 @@
 const { Constructor: CC } = Components;
 
-const KEY_PROFILEDIR = "ProfD";
-
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/Timer.jsm");
@@ -58,9 +56,10 @@ function* clear_state() {
       yield sqliteHandle.close();
     }
 
-    // Remove profile data.
-    const path = OS.Path.join(OS.Constants.Path.profileDir, client.filename);
-    yield OS.File.remove(path, { ignoreAbsent: true });
+    // Remove JSON dumps folders in profile dir.
+    const dumpFile = OS.Path.join(OS.Constants.Path.profileDir, client.filename);
+    const folder = OS.Path.dirname(dumpFile);
+    yield OS.File.removeDir(folder, { ignoreAbsent: true });
   }
 }
 
@@ -132,7 +131,8 @@ add_task(clear_state);
 
 add_task(function* test_list_is_written_to_file_in_profile() {
   for (let {client, testData} of gBlocklistClients) {
-    const profFile = FileUtils.getFile(KEY_PROFILEDIR, client.filename.split("/"));
+    const filePath = OS.Path.join(OS.Constants.Path.profileDir, client.filename);
+    const profFile = new FileUtils.File(filePath);
     strictEqual(profFile.exists(), false);
 
     yield client.maybeSync(2000, Date.now(), {loadDump: false});
@@ -157,7 +157,8 @@ add_task(clear_state);
 add_task(function* test_update_json_file_when_addons_has_changes() {
   for (let {client, testData} of gBlocklistClients) {
     yield client.maybeSync(2000, Date.now() - 1000, {loadDump: false});
-    const profFile = FileUtils.getFile(KEY_PROFILEDIR, client.filename.split("/"));
+    const filePath = OS.Path.join(OS.Constants.Path.profileDir, client.filename);
+    const profFile = new FileUtils.File(filePath);
     const fileLastModified = profFile.lastModifiedTime = profFile.lastModifiedTime - 1000;
     const serverTime = Date.now();
 
@@ -192,7 +193,8 @@ add_task(clear_state);
 add_task(function* test_do_nothing_when_blocklist_is_up_to_date() {
   for (let {client} of gBlocklistClients) {
     yield client.maybeSync(2000, Date.now() - 1000, {loadDump: false});
-    const profFile = FileUtils.getFile(KEY_PROFILEDIR, client.filename.split("/"));
+    const filePath = OS.Path.join(OS.Constants.Path.profileDir, client.filename);
+    const profFile = new FileUtils.File(filePath);
     const fileLastModified = profFile.lastModifiedTime = profFile.lastModifiedTime - 1000;
     const serverTime = Date.now();
 
@@ -231,7 +233,16 @@ function getSampleResponse(req, port) {
         "Server: waitress"
       ],
       "status": {status: 200, statusText: "OK"},
-      "responseBody": JSON.stringify({"settings":{"batch_max_requests":25}, "url":`http://localhost:${port}/v1/`, "documentation":"https://kinto.readthedocs.org/", "version":"1.5.1", "commit":"cbc6f58", "hello":"kinto"})
+      "responseBody": JSON.stringify({
+        "settings": {
+          "batch_max_requests": 25
+        },
+        "url": `http://localhost:${port}/v1/`,
+        "documentation": "https://kinto.readthedocs.org/",
+        "version": "1.5.1",
+        "commit": "cbc6f58",
+        "hello": "kinto"
+      })
     },
     "GET:/v1/buckets/blocklists/collections/addons/records?_sort=-last_modified": {
       "sampleHeaders": [
@@ -242,7 +253,7 @@ function getSampleResponse(req, port) {
         "Etag: \"3000\""
       ],
       "status": {status: 200, statusText: "OK"},
-      "responseBody": JSON.stringify({"data":[{
+      "responseBody": JSON.stringify({"data": [{
         "prefs": [],
         "blockID": "i539",
         "last_modified": 3000,
@@ -265,7 +276,7 @@ function getSampleResponse(req, port) {
         "Etag: \"3000\""
       ],
       "status": {status: 200, statusText: "OK"},
-      "responseBody": JSON.stringify({"data":[{
+      "responseBody": JSON.stringify({"data": [{
         "matchFilename": "NPFFAddOn.dll",
         "blockID": "p28",
         "id": "7b1e0b3c-e390-a817-11b6-a6887f65f56e",
@@ -282,7 +293,7 @@ function getSampleResponse(req, port) {
         "Etag: \"3000\""
       ],
       "status": {status: 200, statusText: "OK"},
-      "responseBody": JSON.stringify({"data":[{
+      "responseBody": JSON.stringify({"data": [{
         "driverVersionComparator": "LESS_THAN_OR_EQUAL",
         "driverVersion": "8.17.12.5896",
         "vendor": "0x10de",
@@ -304,7 +315,7 @@ function getSampleResponse(req, port) {
         "Etag: \"4000\""
       ],
       "status": {status: 200, statusText: "OK"},
-      "responseBody": JSON.stringify({"data":[{
+      "responseBody": JSON.stringify({"data": [{
         "prefs": [],
         "blockID": "i808",
         "last_modified": 4000,
@@ -339,7 +350,7 @@ function getSampleResponse(req, port) {
         "Etag: \"4000\""
       ],
       "status": {status: 200, statusText: "OK"},
-      "responseBody": JSON.stringify({"data":[{
+      "responseBody": JSON.stringify({"data": [{
         "infoURL": "https://get.adobe.com/flashplayer/",
         "blockID": "p1044",
         "matchFilename": "libflashplayer\\.so",
@@ -376,7 +387,7 @@ function getSampleResponse(req, port) {
         "Etag: \"4000\""
       ],
       "status": {status: 200, statusText: "OK"},
-      "responseBody": JSON.stringify({"data":[{
+      "responseBody": JSON.stringify({"data": [{
         "vendor": "0x8086",
         "blockID": "g204",
         "feature": "WEBGL_MSAA",

@@ -840,7 +840,7 @@ class RTCPeerConnection {
           let chrome = new CreateOfferRequest(outerId, this._winID,
                                               this._globalPCListId, false);
           let request = this._win.CreateOfferRequest._create(this._win, chrome);
-          Services.obs.notifyObservers(request, "PeerConnection:request", null);
+          Services.obs.notifyObservers(request, "PeerConnection:request");
         });
       }
     }
@@ -1164,8 +1164,12 @@ class RTCPeerConnection {
     return this._receivers;
   }
 
-  mozSelectSsrc(receiver, ssrcIndex) {
-    this._impl.selectSsrc(receiver.track, ssrcIndex);
+  mozAddRIDExtension(receiver, extensionId) {
+    this._impl.addRIDExtension(receiver.track, extensionId);
+  }
+
+  mozAddRIDFilter(receiver, rid) {
+    this._impl.addRIDFilter(receiver.track, rid);
   }
 
   get localDescription() {

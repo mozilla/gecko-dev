@@ -43,7 +43,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
         '/widget/android',
     ]
     UNIFIED_SOURCES += [
-        'android/AndroidAlarm.cpp',
         'android/AndroidSensor.cpp',
         'fallback/FallbackPower.cpp',
         'linux/LinuxMemory.cpp',
@@ -52,27 +51,8 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     SOURCES += [
         'android/AndroidHal.cpp',
     ]
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    UNIFIED_SOURCES += [
-        'gonk/GonkDiskSpaceWatcher.cpp',
-        'gonk/GonkSensor.cpp',
-        'gonk/GonkSensorsHelpers.cpp',
-        'gonk/GonkSensorsInterface.cpp',
-        'gonk/GonkSensorsPollInterface.cpp',
-        'gonk/GonkSensorsRegistryInterface.cpp',
-        'gonk/GonkSwitch.cpp',
-        'gonk/SystemService.cpp',
-        'gonk/UeventPoller.cpp',
-        'linux/LinuxMemory.cpp',
-        'linux/LinuxPower.cpp',
-    ]
-    # GonkHal.cpp cannot be built in unified mode because it relies on HalImpl.h.
-    SOURCES += [
-        'gonk/GonkHal.cpp',
-    ]
 elif CONFIG['OS_TARGET'] == 'Linux':
     UNIFIED_SOURCES += [
-        'fallback/FallbackAlarm.cpp',
         'fallback/FallbackScreenConfiguration.cpp',
         'fallback/FallbackSensor.cpp',
         'fallback/FallbackVibration.cpp',
@@ -89,7 +69,6 @@ elif CONFIG['OS_TARGET'] == 'Linux':
         ]
 elif CONFIG['OS_TARGET'] == 'WINNT':
     UNIFIED_SOURCES += [
-        'fallback/FallbackAlarm.cpp',
         'fallback/FallbackMemory.cpp',
         'fallback/FallbackPower.cpp',
         'fallback/FallbackScreenConfiguration.cpp',
@@ -103,7 +82,6 @@ elif CONFIG['OS_TARGET'] == 'WINNT':
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     UNIFIED_SOURCES += [
         'cocoa/CocoaBattery.cpp',
-        'fallback/FallbackAlarm.cpp',
         'fallback/FallbackMemory.cpp',
         'fallback/FallbackPower.cpp',
         'fallback/FallbackScreenConfiguration.cpp',
@@ -111,7 +89,6 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     ]
 elif CONFIG['OS_TARGET'] in ('OpenBSD', 'NetBSD', 'FreeBSD', 'DragonFly'):
     UNIFIED_SOURCES += [
-        'fallback/FallbackAlarm.cpp',
         'fallback/FallbackMemory.cpp',
         'fallback/FallbackPower.cpp',
         'fallback/FallbackScreenConfiguration.cpp',
@@ -128,7 +105,6 @@ elif CONFIG['OS_TARGET'] in ('OpenBSD', 'NetBSD', 'FreeBSD', 'DragonFly'):
         ]
 else:
     UNIFIED_SOURCES += [
-        'fallback/FallbackAlarm.cpp',
         'fallback/FallbackBattery.cpp',
         'fallback/FallbackMemory.cpp',
         'fallback/FallbackPower.cpp',
@@ -138,18 +114,17 @@ else:
     ]
 
 # Fallbacks for backends implemented on Gonk only.
-if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
-    UNIFIED_SOURCES += [
-        'fallback/FallbackDiskSpaceWatcher.cpp',
-        'fallback/FallbackFactoryReset.cpp',
-        'fallback/FallbackProcessPriority.cpp',
-        'fallback/FallbackScreenPower.cpp',
-        'fallback/FallbackSwitch.cpp',
-        'fallback/FallbackSystemService.cpp',
-        'fallback/FallbackThreadPriority.cpp',
-        'fallback/FallbackTime.cpp',
-        'fallback/FallbackWakeLocks.cpp',
-    ]
+UNIFIED_SOURCES += [
+    'fallback/FallbackDiskSpaceWatcher.cpp',
+    'fallback/FallbackFactoryReset.cpp',
+    'fallback/FallbackProcessPriority.cpp',
+    'fallback/FallbackScreenPower.cpp',
+    'fallback/FallbackSwitch.cpp',
+    'fallback/FallbackSystemService.cpp',
+    'fallback/FallbackThreadPriority.cpp',
+    'fallback/FallbackTime.cpp',
+    'fallback/FallbackWakeLocks.cpp',
+]
 
 # Fallbacks for backends implemented on Android only.
 if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
@@ -174,16 +149,6 @@ FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '/dom/base',
 ]
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    # So that we can call nsScreenManagerGonk::GetConfiguration().
-    LOCAL_INCLUDES += [
-        '/widget',
-        '/widget/gonk',
-    ]
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    LOCAL_INCLUDES += ['%' + '%s/hardware/libhardware_legacy/include' % CONFIG['ANDROID_SOURCE']]
 
 CFLAGS += CONFIG['GLIB_CFLAGS']
 CFLAGS += CONFIG['MOZ_DBUS_GLIB_CFLAGS']

@@ -178,14 +178,13 @@ public:
 
   void ToDataURL(JSContext* aCx, const nsAString& aType,
                  JS::Handle<JS::Value> aParams,
-                 nsAString& aDataURL, CallerType aCallerType,
+                 nsAString& aDataURL,
                  ErrorResult& aRv);
 
   void ToBlob(JSContext* aCx,
               BlobCallback& aCallback,
               const nsAString& aType,
               JS::Handle<JS::Value> aParams,
-              CallerType aCallerType,
               ErrorResult& aRv);
 
   OffscreenCanvas* TransferControlToOffscreen(ErrorResult& aRv);
@@ -255,7 +254,8 @@ public:
   bool GetIsOpaque();
   virtual bool GetOpaqueAttr() override;
 
-  virtual already_AddRefed<gfx::SourceSurface> GetSurfaceSnapshot(bool* aPremultAlpha = nullptr);
+  virtual already_AddRefed<gfx::SourceSurface>
+  GetSurfaceSnapshot(gfxAlphaType* aOutAlphaType = nullptr);
 
   /*
    * Register a FrameCaptureListener with this canvas.
@@ -307,8 +307,10 @@ public:
   virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                              bool aNotify) override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
-  nsresult CopyInnerTo(mozilla::dom::Element* aDest);
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
+  nsresult CopyInnerTo(mozilla::dom::Element* aDest,
+                       bool aPreallocateChildren);
 
   virtual nsresult GetEventTargetParent(
                      mozilla::EventChainPreVisitor& aVisitor) override;

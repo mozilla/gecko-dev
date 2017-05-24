@@ -143,6 +143,7 @@
 #include "nsThemeConstants.h"
 #include "gfxConfig.h"
 #include "InProcessWinCompositorWidget.h"
+#include "ScreenHelperWin.h"
 
 #include "nsIGfxInfo.h"
 #include "nsUXThemeConstants.h"
@@ -936,6 +937,14 @@ nsWindow::Create(nsIWidget* aParent,
     nsUXThemeData::UpdateTitlebarInfo(mWnd);
   }
 
+  static bool a11yPrimed = false;
+  if (!a11yPrimed &&
+      mWindowType == eWindowType_toplevel) {
+    a11yPrimed = true;
+    if (Preferences::GetInt("accessibility.force_disabled", 0) == -1) {
+      ::PostMessage(mWnd, MOZ_WM_STARTA11Y, 0, 0);
+    }
+  }
   return NS_OK;
 }
 
@@ -1006,7 +1015,7 @@ nsWindow::RegisterWindowClass(const wchar_t* aClassName,
   }
 
   wc.style         = CS_DBLCLKS | aExtraStyle;
-  wc.lpfnWndProc   = WinUtils::NonClientDpiScalingDefWindowProcW;
+  wc.lpfnWndProc   = WinUtils::GetDefWindowProc();
   wc.cbClsExtra    = 0;
   wc.cbWndExtra    = 0;
   wc.hInstance     = nsToolkit::mDllInstance;
@@ -3022,8 +3031,9 @@ nsWindow::SetCursor(imgIContainer* aCursor,
  *
  * SECTION: nsIWidget::Get/SetTransparencyMode
  *
- * Manage the transparency mode of the top-level window
- * containing this widget.
+ * Manage the transparency mode of the window containing this
+ * widget. Only works for popup and dialog windows when the
+ * Desktop Window Manager compositor is not enabled.
  *
  **************************************************************/
 
@@ -3035,7 +3045,21 @@ nsTransparencyMode nsWindow::GetTransparencyMode()
 
 void nsWindow::SetTransparencyMode(nsTransparencyMode aMode)
 {
-  GetTopLevelWindow(true)->SetWindowTranslucencyInner(aMode);
+  nsWindow* window = GetTopLevelWindow(true);
+  MOZ_ASSERT(window);
+
+  if (!window || window->DestroyCalled()) {
+      return;
+  }
+
+  if (nsWindowType::eWindowType_toplevel == window->mWindowType &&
+      mTransparencyMode != aMode &&
+      !nsUXThemeData::CheckForCompositor()) {
+      NS_WARNING("Cannot set transparency mode on top-level windows.");
+      return;
+  }
+
+  window->SetWindowTranslucencyInner(aMode);
 }
 
 void nsWindow::UpdateOpaqueRegion(const LayoutDeviceIntRegion& aOpaqueRegion)
@@ -4239,6 +4263,13 @@ nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
                              int16_t aButton, uint16_t aInputSource,
                              WinPointerInfo* aPointerInfo)
 {
+  enum
+  {
+    eUnset,
+    ePrecise,
+    eTouch
+  };
+  static int sTouchInputActiveState = eUnset;
   bool result = false;
 
   UserActivity();
@@ -4265,6 +4296,15 @@ nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
       Telemetry::Accumulate(Telemetry::FX_TOUCH_USED, 1);
     }
 
+    // Fire an observer when the user initially touches a touch screen. Front end
+    // uses this to modify UX.
+    if (sTouchInputActiveState != eTouch) {
+      sTouchInputActiveState = eTouch;
+      nsCOMPtr<nsIObserverService> obsServ =
+        mozilla::services::GetObserverService();
+      obsServ->NotifyObservers(nullptr, "touch-input-detected", nullptr);
+    }
+
     if (mTouchWindow) {
       // If mTouchWindow is true, then we must have APZ enabled and be
       // feeding it raw touch events. In that case we don't need to
@@ -4277,6 +4317,14 @@ nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
       } else {
         return result;
       }
+    }
+  } else {
+    // Fire an observer when the user initially uses a mouse or pen.
+    if (sTouchInputActiveState != ePrecise) {
+      sTouchInputActiveState = ePrecise;
+      nsCOMPtr<nsIObserverService> obsServ =
+        mozilla::services::GetObserverService();
+      obsServ->NotifyObservers(nullptr, "precise-input-detected", nullptr);
     }
   }
 
@@ -5048,6 +5096,15 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       result = true;
       break;
 
+    case MOZ_WM_STARTA11Y:
+#if defined(ACCESSIBILITY)
+      (void*)GetAccessible();
+      result = true;
+#else
+      result = false;
+#endif
+      break;
+
     case WM_ENDSESSION:
     case MOZ_WM_APP_QUIT:
       if (msg == MOZ_WM_APP_QUIT || (wParam == TRUE && sCanQuit == TRI_TRUE))
@@ -5421,7 +5478,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
       result = DispatchMouseEvent(eMouseMove, wParam, lParam,
                                   false, WidgetMouseEvent::eLeftButton,
-                                  MOUSE_INPUT_SOURCE());
+                                  MOUSE_INPUT_SOURCE(),
+                                  mPointerEvents.GetCachedPointerInfo(msg, wParam));
       if (userMovedMouse) {
         DispatchPendingEvents();
       }
@@ -5439,7 +5497,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
     {
       result = DispatchMouseEvent(eMouseDown, wParam, lParam,
                                   false, WidgetMouseEvent::eLeftButton,
-                                  MOUSE_INPUT_SOURCE());
+                                  MOUSE_INPUT_SOURCE(),
+                                  mPointerEvents.GetCachedPointerInfo(msg, wParam));
       DispatchPendingEvents();
     }
     break;
@@ -5448,7 +5507,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
     {
       result = DispatchMouseEvent(eMouseUp, wParam, lParam,
                                   false, WidgetMouseEvent::eLeftButton,
-                                  MOUSE_INPUT_SOURCE());
+                                  MOUSE_INPUT_SOURCE(),
+                                  mPointerEvents.GetCachedPointerInfo(msg, wParam));
       DispatchPendingEvents();
     }
     break;
@@ -5599,7 +5659,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       result = DispatchMouseEvent(eMouseDown, wParam,
                                   lParam, false,
                                   WidgetMouseEvent::eRightButton,
-                                  MOUSE_INPUT_SOURCE());
+                                  MOUSE_INPUT_SOURCE(),
+                                  mPointerEvents.GetCachedPointerInfo(msg, wParam));
       DispatchPendingEvents();
       break;
 
@@ -5607,7 +5668,8 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       result = DispatchMouseEvent(eMouseUp, wParam,
                                   lParam, false,
                                   WidgetMouseEvent::eRightButton,
-                                  MOUSE_INPUT_SOURCE());
+                                  MOUSE_INPUT_SOURCE(),
+                                  mPointerEvents.GetCachedPointerInfo(msg, wParam));
       DispatchPendingEvents();
       break;
 
@@ -5711,6 +5773,12 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
         NotifySizeMoveDone();
       }
 
+      break;
+    }
+
+    case WM_DISPLAYCHANGE:
+    {
+      ScreenHelperWin::RefreshScreens();
       break;
     }
 
@@ -7757,7 +7825,7 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
     case WM_POINTERDOWN:
       {
         WinPointerEvents pointerEvents;
-        if (!pointerEvents.ShouldRollupOnPointerEvent(aWParam)) {
+        if (!pointerEvents.ShouldRollupOnPointerEvent(nativeMessage, aWParam)) {
           return false;
         }
         if (!GetPopupsToRollup(rollupListener, &popupsToRollup)) {
@@ -8173,14 +8241,18 @@ nsWindow::OnWindowedPluginKeyEvent(const NativeEventData& aKeyEventData,
 
 bool nsWindow::OnPointerEvents(UINT msg, WPARAM aWParam, LPARAM aLParam)
 {
-  if (!mPointerEvents.ShouldFireCompatibilityMouseEventsForPen(aWParam)) {
-    // We only handle WM_POINTER* when the input source is pen. This is because
-    // we need some information (e.g. tiltX, tiltY) which can't be retrieved by
-    // WM_*BUTTONDOWN. So we fire Gecko WidgetMouseEvent when handling
-    // WM_POINTER* and consume WM_POINTER* to stop Windows fire WM_*BUTTONDOWN.
+  if (!mPointerEvents.ShouldHandleWinPointerMessages(msg, aWParam)) {
     return false;
   }
-
+  if (!mPointerEvents.ShouldFirePointerEventByWinPointerMessages()) {
+    // We have to handle WM_POINTER* to fetch and cache pen related information
+    // and fire WidgetMouseEvent with the cached information the WM_*BUTTONDOWN
+    // handler. This is because Windows doesn't support ::DoDragDrop in the touch
+    // or pen message handlers.
+    mPointerEvents.ConvertAndCachePointerInfo(msg, aWParam);
+    // Don't consume the Windows WM_POINTER* messages
+    return false;
+  }
   // When dispatching mouse events with pen, there may be some
   // WM_POINTERUPDATE messages between WM_POINTERDOWN and WM_POINTERUP with
   // small movements. Those events will reset sLastMousePoint and reset
@@ -8298,4 +8370,10 @@ nsWindow::GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInitData*
   aInitData->hWnd() = reinterpret_cast<uintptr_t>(mWnd);
   aInitData->widgetKey() = reinterpret_cast<uintptr_t>(static_cast<nsIWidget*>(this));
   aInitData->transparencyMode() = mTransparencyMode;
+}
+
+bool
+nsWindow::SynchronouslyRepaintOnResize()
+{
+  return !gfxWindowsPlatform::GetPlatform()->DwmCompositionEnabled();
 }

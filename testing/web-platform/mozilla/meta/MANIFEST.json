@@ -350,6 +350,12 @@
    ]
   },
   "testharness": {
+   "dom/classList.html": [
+    [
+     "/_mozilla/dom/classList.html",
+     {}
+    ]
+   ],
    "fetch/api/redirect/redirect-referrer.https.html": [
     [
      "/_mozilla/fetch/api/redirect/redirect-referrer.https.html",
@@ -831,6 +837,10 @@
    "74e16eb87ecdfeb2dfc28f36e0c73a584abdf9c2",
    "support"
   ],
+  "dom/classList.html": [
+   "f289334e7b3486259b9aae54b4282a7211b8813e",
+   "testharness"
+  ],
   "fetch/api/redirect/redirect-referrer-mixed-content.js": [
    "f9d7ec9cf9fa8c847e45664b05482e3f8c191385",
    "support"
@@ -1220,7 +1230,7 @@
    "support"
   ],
   "wasm/js/jsapi.js": [
-   "c2ce0201a9607a35a1f535743f9b4e1e8b15a0f7",
+   "b70cc6443c64d1f8b5094a123bc25e81b97b10f8",
    "support"
   ],
   "wasm/js/labels.wast.js": [

@@ -61,12 +61,6 @@ nsSVGMarkerFrame::Init(nsIContent*       aContent,
 }
 #endif /* DEBUG */
 
-nsIAtom *
-nsSVGMarkerFrame::GetType() const
-{
-  return nsGkAtoms::svgMarkerFrame;
-}
-
 //----------------------------------------------------------------------
 // nsSVGContainerFrame methods:
 
@@ -97,35 +91,37 @@ static nsIFrame*
 GetAnonymousChildFrame(nsIFrame* aFrame)
 {
   nsIFrame* kid = aFrame->PrincipalChildList().FirstChild();
-  MOZ_ASSERT(kid && kid->GetType() == nsGkAtoms::svgMarkerAnonChildFrame,
+  MOZ_ASSERT(kid && kid->IsSVGMarkerAnonChildFrame(),
              "expected to find anonymous child of marker frame");
   return kid;
 }
 
-nsresult
+void
 nsSVGMarkerFrame::PaintMark(gfxContext& aContext,
                             const gfxMatrix& aToMarkedFrameUserSpace,
                             SVGGeometryFrame *aMarkedFrame,
-                            nsSVGMark *aMark, float aStrokeWidth)
+                            nsSVGMark *aMark, float aStrokeWidth,
+                            imgDrawingParams& aImgParams)
 {
   // If the flag is set when we get here, it means this marker frame
   // has already been used painting the current mark, and the document
   // has a marker reference loop.
-  if (mInUse)
-    return NS_OK;
+  if (mInUse) {
+    return;
+  }
 
   AutoMarkerReferencer markerRef(this, aMarkedFrame);
 
   SVGMarkerElement *marker = static_cast<SVGMarkerElement*>(mContent);
   if (!marker->HasValidDimensions()) {
-    return NS_OK;
+    return;
   }
 
   const nsSVGViewBoxRect viewBox = marker->GetViewBoxRect();
 
   if (viewBox.width <= 0.0f || viewBox.height <= 0.0f) {
     // We must disable rendering if the viewBox width or height are zero.
-    return NS_OK;
+    return;
   }
 
   mStrokeWidth = aStrokeWidth;
@@ -155,12 +151,10 @@ nsSVGMarkerFrame::PaintMark(gfxContext& aContext,
   nsSVGDisplayableFrame* SVGFrame = do_QueryFrame(kid);
   // The CTM of each frame referencing us may be different.
   SVGFrame->NotifySVGChanged(nsSVGDisplayableFrame::TRANSFORM_CHANGED);
-  DrawResult result = nsSVGUtils::PaintFrameWithEffects(kid, aContext, markTM);
+  nsSVGUtils::PaintFrameWithEffects(kid, aContext, markTM, aImgParams);
 
   if (StyleDisplay()->IsScrollableOverflow())
     aContext.Restore();
-
-  return (result == DrawResult::SUCCESS) ? NS_OK : NS_ERROR_FAILURE;
 }
 
 SVGBBox
@@ -276,14 +270,7 @@ nsSVGMarkerAnonChildFrame::Init(nsIContent*       aContent,
                                 nsContainerFrame* aParent,
                                 nsIFrame*         aPrevInFlow)
 {
-  MOZ_ASSERT(aParent->GetType() == nsGkAtoms::svgMarkerFrame,
-             "Unexpected parent");
+  MOZ_ASSERT(aParent->IsSVGMarkerFrame(), "Unexpected parent");
   nsSVGDisplayContainerFrame::Init(aContent, aParent, aPrevInFlow);
 }
 #endif
-
-nsIAtom *
-nsSVGMarkerAnonChildFrame::GetType() const
-{
-  return nsGkAtoms::svgMarkerAnonChildFrame;
-}

@@ -14,12 +14,14 @@
 #include "mozilla/Variant.h"
 #include "mozilla/XorShift128PlusRNG.h"
 
-#include "builtin/RegExp.h"
+#include <stddef.h>
+
+#include "frontend/LanguageExtensions.h"
 #include "gc/Barrier.h"
 #include "gc/NurseryAwareHashMap.h"
 #include "gc/Zone.h"
-#include "vm/GlobalObject.h"
 #include "vm/PIC.h"
+#include "vm/RegExpShared.h"
 #include "vm/SavedStacks.h"
 #include "vm/TemplateRegistry.h"
 #include "vm/Time.h"
@@ -35,6 +37,7 @@ namespace gc {
 template <typename Node, typename Derived> class ComponentFinder;
 } // namespace gc
 
+class GlobalObject;
 class LexicalEnvironmentObject;
 class ScriptSourceObject;
 struct NativeIterator;
@@ -66,7 +69,7 @@ class DtoaCache {
     }
 
 #ifdef JSGC_HASH_TABLE_CHECKS
-    void checkCacheAfterMovingGC() { MOZ_ASSERT(!s || !IsForwarded(s)); }
+    void checkCacheAfterMovingGC();
 #endif
 };
 
@@ -614,7 +617,8 @@ struct JSCompartment
         DebuggerObservesAllExecution = 1 << 1,
         DebuggerObservesAsmJS = 1 << 2,
         DebuggerObservesCoverage = 1 << 3,
-        DebuggerNeedsDelazification = 1 << 4
+        DebuggerObservesBinarySource = 1 << 4,
+        DebuggerNeedsDelazification = 1 << 5
     };
 
     unsigned debugModeBits;
@@ -623,7 +627,8 @@ struct JSCompartment
     static const unsigned DebuggerObservesMask = IsDebuggee |
                                                  DebuggerObservesAllExecution |
                                                  DebuggerObservesCoverage |
-                                                 DebuggerObservesAsmJS;
+                                                 DebuggerObservesAsmJS |
+                                                 DebuggerObservesBinarySource;
 
     void updateDebuggerObservesFlag(unsigned flag);
 
@@ -681,10 +686,10 @@ struct JSCompartment
      * This method traces data that is live iff we know that this compartment's
      * global is still live.
      */
-    void trace(JSTracer* trc);
+    void traceGlobal(JSTracer* trc);
     /*
      * This method traces JSCompartment-owned GC roots that are considered live
-     * regardless of whether the JSCompartment itself is still live.
+     * regardless of whether the compartment's global is still live.
      */
     void traceRoots(JSTracer* trc, js::gc::GCRuntime::TraceOrMarkRuntime traceOrMark);
     /*
@@ -707,7 +712,8 @@ struct JSCompartment
 
     void sweepCrossCompartmentWrappers();
     void sweepSavedStacks();
-    void sweepGlobalObject(js::FreeOp* fop);
+    void sweepTemplateLiteralMap();
+    void sweepGlobalObject();
     void sweepSelfHostingScriptSource();
     void sweepJitCompartment(js::FreeOp* fop);
     void sweepRegExps();
@@ -715,6 +721,7 @@ struct JSCompartment
     void sweepNativeIterators();
     void sweepTemplateObjects();
     void sweepVarNames();
+    void sweepWatchpoints();
 
     void purge();
     void clearTables();
@@ -858,6 +865,15 @@ struct JSCompartment
         updateDebuggerObservesFlag(DebuggerObservesAsmJS);
     }
 
+    bool debuggerObservesBinarySource() const {
+        static const unsigned Mask = IsDebuggee | DebuggerObservesBinarySource;
+        return (debugModeBits & Mask) == Mask;
+    }
+
+    void updateDebuggerObservesBinarySource() {
+        updateDebuggerObservesFlag(DebuggerObservesBinarySource);
+    }
+
     // True if this compartment's global is a debuggee of some Debugger object
     // whose collectCoverageInfo flag is true.
     bool debuggerObservesCoverage() const {
@@ -955,33 +971,18 @@ struct JSCompartment
         return jitCompartment_;
     }
 
-    enum DeprecatedLanguageExtension {
-        DeprecatedForEach = 0,              // JS 1.6+
-        // NO LONGER USING 1
-        DeprecatedLegacyGenerator = 2,      // JS 1.7+
-        DeprecatedExpressionClosure = 3,    // Added in JS 1.8
-        // NO LONGER USING 4
-        // NO LONGER USING 5
-        // NO LONGER USING 6
-        // NO LONGER USING 7
-        // NO LONGER USING 8
-        // NO LONGER USING 9
-        DeprecatedBlockScopeFunRedecl = 10,
-        DeprecatedLanguageExtensionCount
-    };
-
     js::ArgumentsObject* getOrCreateArgumentsTemplateObject(JSContext* cx, bool mapped);
 
     js::ArgumentsObject* maybeArgumentsTemplateObject(bool mapped) const;
 
   private:
     // Used for collecting telemetry on SpiderMonkey's deprecated language extensions.
-    bool sawDeprecatedLanguageExtension[DeprecatedLanguageExtensionCount];
+    bool sawDeprecatedLanguageExtension[size_t(js::DeprecatedLanguageExtension::Count)];
 
     void reportTelemetry();
 
   public:
-    void addTelemetry(const char* filename, DeprecatedLanguageExtension e);
+    void addTelemetry(const char* filename, js::DeprecatedLanguageExtension e);
 
   public:
     // Aggregated output used to collect JSScript hit counts when code coverage
@@ -1052,8 +1053,11 @@ class AutoCompartment
     JSCompartment* origin() const { return origin_; }
 
   protected:
+    inline AutoCompartment(JSContext* cx, JSCompartment* target);
+
+    // Used only for entering the atoms compartment.
     inline AutoCompartment(JSContext* cx, JSCompartment* target,
-                           AutoLockForExclusiveAccess* maybeLock = nullptr);
+                           AutoLockForExclusiveAccess& lock);
 
   private:
     AutoCompartment(const AutoCompartment&) = delete;

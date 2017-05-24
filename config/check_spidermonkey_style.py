@@ -64,6 +64,8 @@ included_inclnames_to_ignore = set([
     'double-conversion.h',      # strange MFBT case
     'javascript-trace.h',       # generated in $OBJDIR if HAVE_DTRACE is defined
     'frontend/ReservedWordsGenerated.h', # generated in $OBJDIR
+    'gc/StatsPhasesGenerated.h',         # generated in $OBJDIR
+    'gc/StatsPhasesGenerated.cpp',       # generated in $OBJDIR
     'jscustomallocator.h',      # provided by embedders;  allowed to be missing
     'js-config.h',              # generated in $OBJDIR
     'fdlibm.h',                 # fdlibm
@@ -83,6 +85,7 @@ included_inclnames_to_ignore = set([
     'unicode/timezone.h',       # ICU
     'unicode/plurrule.h',       # ICU
     'unicode/ucal.h',           # ICU
+    'unicode/uchar.h',          # ICU
     'unicode/uclean.h',         # ICU
     'unicode/ucol.h',           # ICU
     'unicode/udat.h',           # ICU
@@ -103,6 +106,8 @@ included_inclnames_to_ignore = set([
 oddly_ordered_inclnames = set([
     'ctypes/typedefs.h',        # Included multiple times in the body of ctypes/CTypes.h
     'frontend/ReservedWordsGenerated.h', # Included in the body of frontend/TokenStream.h
+    'gc/StatsPhasesGenerated.h',         # Included in the body of gc/Statistics.h
+    'gc/StatsPhasesGenerated.cpp',       # Included in the body of gc/Statistics.cpp
     'jswin.h',                  # Must be #included before <psapi.h>
     'machine/endian.h',         # Must be included after <sys/types.h> on BSD
     'winbase.h',                # Must precede other system headers(?)

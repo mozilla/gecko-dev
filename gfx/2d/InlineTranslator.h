@@ -30,13 +30,15 @@ using gfx::NativeFontResource;
 class InlineTranslator final : public Translator
 {
 public:
-  explicit InlineTranslator(DrawTarget* aDT, Matrix aMatrix);
+  explicit InlineTranslator(DrawTarget* aDT, void* aFontContext = nullptr);
 
   bool TranslateRecording(std::istream& aRecording);
 
   DrawTarget* LookupDrawTarget(ReferencePtr aRefPtr) final
   {
-    return mBaseDT;
+    DrawTarget* result = mDrawTargets.GetWeak(aRefPtr);
+    MOZ_ASSERT(result);
+    return result;
   }
 
   Path* LookupPath(ReferencePtr aRefPtr) final
@@ -74,6 +76,13 @@ public:
     return result;
   }
 
+  UnscaledFont* LookupUnscaledFont(ReferencePtr aRefPtr) final
+  {
+    UnscaledFont* result = mUnscaledFonts.GetWeak(aRefPtr);
+    MOZ_ASSERT(result);
+    return result;
+  }
+
   NativeFontResource* LookupNativeFontResource(uint64_t aKey) final
   {
     NativeFontResource* result = mNativeFontResources.GetWeak(aKey);
@@ -81,7 +90,10 @@ public:
     return result;
   }
 
-  void AddDrawTarget(ReferencePtr aRefPtr, DrawTarget *aDT) final { }
+  void AddDrawTarget(ReferencePtr aRefPtr, DrawTarget *aDT) final
+  {
+    mDrawTargets.Put(aRefPtr, aDT);
+  }
 
   void AddPath(ReferencePtr aRefPtr, Path *aPath) final
   {
@@ -108,13 +120,21 @@ public:
     mScaledFonts.Put(aRefPtr, aScaledFont);
   }
 
+  void AddUnscaledFont(ReferencePtr aRefPtr, UnscaledFont *aUnscaledFont) final
+  {
+    mUnscaledFonts.Put(aRefPtr, aUnscaledFont);
+  }
+
   void AddNativeFontResource(uint64_t aKey,
                              NativeFontResource *aScaledFontResouce) final
   {
     mNativeFontResources.Put(aKey, aScaledFontResouce);
   }
 
-  void RemoveDrawTarget(ReferencePtr aRefPtr) final { }
+  void RemoveDrawTarget(ReferencePtr aRefPtr) final
+  {
+    mDrawTargets.Remove(aRefPtr);
+  }
 
   void RemovePath(ReferencePtr aRefPtr) final
   {
@@ -141,6 +161,12 @@ public:
     mScaledFonts.Remove(aRefPtr);
   }
 
+  void RemoveUnscaledFont(ReferencePtr aRefPtr) final
+  {
+    mUnscaledFonts.Remove(aRefPtr);
+  }
+
+
   already_AddRefed<DrawTarget> CreateDrawTarget(ReferencePtr aRefPtr,
                                                 const gfx::IntSize &aSize,
                                                 gfx::SurfaceFormat aFormat) final;
@@ -149,15 +175,19 @@ public:
 
   mozilla::gfx::FontType GetDesiredFontType() final;
 
+  void* GetFontContext() final { return mFontContext; }
+
 private:
   RefPtr<DrawTarget> mBaseDT;
-  Matrix             mBaseTransform;
+  void*              mFontContext;
 
+  nsRefPtrHashtable<nsPtrHashKey<void>, DrawTarget> mDrawTargets;
   nsRefPtrHashtable<nsPtrHashKey<void>, Path> mPaths;
   nsRefPtrHashtable<nsPtrHashKey<void>, SourceSurface> mSourceSurfaces;
   nsRefPtrHashtable<nsPtrHashKey<void>, FilterNode> mFilterNodes;
   nsRefPtrHashtable<nsPtrHashKey<void>, GradientStops> mGradientStops;
   nsRefPtrHashtable<nsPtrHashKey<void>, ScaledFont> mScaledFonts;
+  nsRefPtrHashtable<nsPtrHashKey<void>, UnscaledFont> mUnscaledFonts;
   nsRefPtrHashtable<nsUint64HashKey, NativeFontResource> mNativeFontResources;
 };
 

@@ -66,9 +66,12 @@ struct nsOverflowAreas;
 namespace mozilla {
 enum class CSSPseudoElementType : uint8_t;
 class EventListenerManager;
+enum class LayoutFrameType : uint8_t;
 struct IntrinsicSize;
 struct ContainerLayerParameters;
 class WritingMode;
+class DisplayItemClip;
+class EffectSet;
 namespace dom {
 class CanvasRenderingContext2D;
 class DOMRectList;
@@ -81,6 +84,7 @@ class Selection;
 } // namespace dom
 namespace gfx {
 struct RectCornerRadii;
+enum class ShapedTextFlags : uint16_t;
 } // namespace gfx
 namespace layers {
 class Image;
@@ -286,50 +290,26 @@ public:
   static mozilla::layout::FrameChildListID GetChildListNameFor(nsIFrame* aChildFrame);
 
   /**
-   * GetBeforeFrameForContent returns the ::before frame for aContent, if
-   * one exists.  This is typically O(1).  The frame passed in must be
-   * the first-in-flow.
-   *
-   * @param aGenConParentFrame an ancestor of the ::before frame
-   * @param aContent the content whose ::before is wanted
-   * @return the ::before frame or nullptr if there isn't one
+   * Returns the ::before pseudo-element for aContent, if any.
    */
-  static nsIFrame* GetBeforeFrameForContent(nsIFrame* aGenConParentFrame,
-                                            const nsIContent* aContent);
+  static mozilla::dom::Element* GetBeforePseudo(const nsIContent* aContent);
 
   /**
-   * GetBeforeFrame returns the outermost ::before frame of the given frame, if
-   * one exists.  This is typically O(1).  The frame passed in must be
-   * the first-in-flow.
-   *
-   * @param aFrame the frame whose ::before is wanted
-   * @return the :before frame or nullptr if there isn't one
+   * Returns the frame corresponding to the ::before pseudo-element for
+   * aContent, if any.
    */
-  static nsIFrame* GetBeforeFrame(nsIFrame* aFrame);
+  static nsIFrame* GetBeforeFrame(const nsIContent* aContent);
 
   /**
-   * GetAfterFrameForContent returns the ::after frame for aContent, if one
-   * exists.  This will walk the in-flow chain of aGenConParentFrame to the
-   * last-in-flow if needed.  This function is typically O(N) in the number
-   * of child frames, following in-flows, etc.
-   *
-   * @param aGenConParentFrame an ancestor of the ::after frame
-   * @param aContent the content whose ::after is wanted
-   * @return the ::after frame or nullptr if there isn't one
+   * Returns the ::after pseudo-element for aContent, if any.
    */
-  static nsIFrame* GetAfterFrameForContent(nsIFrame* aGenConParentFrame,
-                                           const nsIContent* aContent);
+  static mozilla::dom::Element* GetAfterPseudo(const nsIContent* aContent);
 
   /**
-   * GetAfterFrame returns the outermost ::after frame of the given frame, if one
-   * exists.  This will walk the in-flow chain to the last-in-flow if
-   * needed.  This function is typically O(N) in the number of child
-   * frames, following in-flows, etc.
-   *
-   * @param aFrame the frame whose ::after is wanted
-   * @return the :after frame or nullptr if there isn't one
+   * Returns the frame corresponding to the ::after pseudo-element for aContent,
+   * if any.
    */
-  static nsIFrame* GetAfterFrame(nsIFrame* aFrame);
+  static nsIFrame* GetAfterFrame(const nsIContent* aContent);
 
   /**
    * Given a frame, search up the frame tree until we find an
@@ -342,7 +322,7 @@ public:
    *         such ancestor exists
    */
   static nsIFrame* GetClosestFrameOfType(nsIFrame* aFrame,
-                                         nsIAtom* aFrameType,
+                                         mozilla::LayoutFrameType aFrameType,
                                          nsIFrame* aStopAt = nullptr);
 
   /**
@@ -350,13 +330,10 @@ public:
    * ancestor that (or the frame itself) is a "Page" frame, if any.
    *
    * @param aFrame the frame to start at
-   * @return a frame of type nsGkAtoms::pageFrame or nullptr if no
+   * @return a frame of type mozilla::LayoutFrameType::Page or nullptr if no
    *         such ancestor exists
    */
-  static nsIFrame* GetPageFrame(nsIFrame* aFrame)
-  {
-    return GetClosestFrameOfType(aFrame, nsGkAtoms::pageFrame);
-  }
+  static nsIFrame* GetPageFrame(nsIFrame* aFrame);
 
   /**
    * Given a frame which is the primary frame for an element,
@@ -1396,6 +1373,10 @@ public:
    * width, its 'width', 'min-width', and 'max-width' properties (or 'height'
    * variations if that's what matches aAxis) and its padding, border and margin
    * in the corresponding dimension.
+   * @param aPercentageBasis an optional percentage basis (in aFrame's WM).
+   *   Pass NS_UNCONSTRAINEDSIZE if the basis is indefinite in either/both axes.
+   *   If you pass Nothing() a percentage basis will be calculated from aFrame's
+   *   ancestors' computed size in the relevant axis, if needed.
    * @param aMarginBoxMinSizeClamp make the result fit within this margin-box
    * size by reducing the *content size* (flooring at zero).  This is used for:
    * https://drafts.csswg.org/css-grid/#min-size-auto
@@ -1414,6 +1395,7 @@ public:
                    nsRenderingContext*   aRenderingContext,
                    nsIFrame*             aFrame,
                    IntrinsicISizeType    aType,
+                   const mozilla::Maybe<mozilla::LogicalSize>& aPercentageBasis = mozilla::Nothing(),
                    uint32_t              aFlags = 0,
                    nscoord               aMarginBoxMinSizeClamp = NS_MAXSIZE);
   /**
@@ -1450,13 +1432,14 @@ public:
   /**
    * This function increases an initial intrinsic size, 'aCurrent', according
    * to the given 'aPercent', such that the size-increase makes up exactly
-   * 'aPercent' percent of the returned value.  If 'aPercent' is less than
-   * or equal to zero the original 'aCurrent' value is returned. If 'aPercent'
-   * is greater than or equal to 1.0 the value nscoord_MAX is returned.
+   * 'aPercent' percent of the returned value.  If 'aPercent' or 'aCurrent' are
+   * less than or equal to zero the original 'aCurrent' value is returned.
+   * If 'aPercent' is greater than or equal to 1.0 the value nscoord_MAX is
+   * returned.
    */
   static nscoord AddPercents(nscoord aCurrent, float aPercent)
   {
-    if (aPercent > 0.0f) {
+    if (aPercent > 0.0f && aCurrent > 0) {
       return MOZ_UNLIKELY(aPercent >= 1.0f) ? nscoord_MAX
         : NSToCoordRound(float(aCurrent) / (1.0f - aPercent));
     }
@@ -1628,6 +1611,10 @@ public:
                          nsStyleContext*     aStyleContext = nullptr,
                          DrawStringFlags     aFlags = DrawStringFlags::eDefault);
 
+  static nsPoint GetBackgroundFirstTilePos(const nsPoint& aDest,
+                                           const nsPoint& aFill,
+                                           const nsSize& aRepeatSize);
+
   /**
    * Supports only LTR or RTL. Bidi (mixed direction) is not supported.
    */
@@ -1773,9 +1760,10 @@ public:
    * Draw a background image.  The image's dimensions are as specified in aDest;
    * the image itself is not consulted to determine a size.
    * See https://wiki.mozilla.org/Gecko:Image_Snapping_and_Rendering
-   *   @param aRenderingContext Where to draw the image, set up with an
+   *   @param aContext          The context to draw to, already set up with an
    *                            appropriate scale and transform for drawing in
    *                            app units.
+   *   @param aForFrame         The nsIFrame that we're drawing this image for.
    *   @param aImage            The image.
    *   @param aImageSize        The unscaled size of the image being drawn.
    *                            (This might be the image's size if no scaling
@@ -1797,6 +1785,7 @@ public:
    *   @param aExtendMode       How to extend the image over the dest rect.
    */
   static DrawResult DrawBackgroundImage(gfxContext&         aContext,
+                                        nsIFrame*           aForFrame,
                                         nsPresContext*      aPresContext,
                                         imgIContainer*      aImage,
                                         const CSSIntSize&   aImageSize,
@@ -2020,15 +2009,17 @@ public:
    * -- TEXT_OPTIMIZE_SPEED if the text-rendering CSS property and font size
    * and prefs indicate we should be optimizing for speed over quality
    */
-  static uint32_t GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
-                                          const nsStyleFont* aStyleFont,
-                                          const nsStyleText* aStyleText,
-                                          nscoord aLetterSpacing);
+  static mozilla::gfx::ShapedTextFlags
+  GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
+                          const nsStyleFont* aStyleFont,
+                          const nsStyleText* aStyleText,
+                          nscoord aLetterSpacing);
 
   /**
    * Get orientation flags for textrun construction.
    */
-  static uint32_t GetTextRunOrientFlagsForStyle(nsStyleContext* aStyleContext);
+  static mozilla::gfx::ShapedTextFlags
+  GetTextRunOrientFlagsForStyle(nsStyleContext* aStyleContext);
 
   /**
    * Takes two rectangles whose origins must be the same, and computes
@@ -2078,12 +2069,11 @@ public:
     SFE_WANT_IMAGE_SURFACE = 1 << 0,
     /* Whether to extract the first frame (as opposed to the
        current frame) in the case that the element is an image. */
-    SFE_WANT_FIRST_FRAME = 1 << 1,
+    SFE_WANT_FIRST_FRAME_IF_IMAGE = 1 << 1,
     /* Whether we should skip colorspace/gamma conversion */
     SFE_NO_COLORSPACE_CONVERSION = 1 << 2,
-    /* Specifies that the caller wants unpremultiplied pixel data.
-       If this is can be done efficiently, the result will be a
-       DataSourceSurface and mIsPremultiplied with be set to false. */
+    /* Specifies that the caller wants either OPAQUE or NON_PREMULT mAlphaType,
+       if this is can be done efficiently. */
     SFE_PREFER_NO_PREMULTIPLY_ALPHA = 1 << 3,
     /* Whether we should skip getting a surface for vector images and
        return a DirectDrawInfo containing an imgIContainer instead. */
@@ -2141,8 +2131,8 @@ public:
     bool mHasSize;
     /* Whether the element used CORS when loading. */
     bool mCORSUsed;
-    /* Whether the returned image contains premultiplied pixel data */
-    bool mIsPremultiplied;
+
+    gfxAlphaType mAlphaType;
 
     // Methods:
 
@@ -2267,6 +2257,13 @@ public:
                                      nsCSSPropertyID aProperty);
 
   /**
+   * Returns true if |aEffectSet| has an animation of |aProperty| regardless of
+   * whether the property is overridden by !important rule.
+   */
+  static bool HasAnimationOfProperty(mozilla::EffectSet* aEffectSet,
+                                     nsCSSPropertyID aProperty);
+
+  /**
    * Returns true if |aFrame| has an animation of |aProperty| which is
    * not overridden by !important rules.
    */
@@ -2335,14 +2332,6 @@ public:
    * 'true' value is enabled.
    */
   static bool IsTextAlignUnsafeValueEnabled();
-
-  /**
-   * Checks if CSS variables are currently enabled.
-   */
-  static bool CSSVariablesEnabled()
-  {
-    return sCSSVariablesEnabled;
-  }
 
   static bool InterruptibleReflowEnabled()
   {
@@ -2431,6 +2420,22 @@ public:
 
   static bool FontSizeInflationDisabledInMasterProcess() {
     return sFontSizeInflationDisabledInMasterProcess;
+  }
+
+  /**
+   * See comment above "font.size.systemFontScale" in
+   * modules/libpref/init/all.js.
+   */
+  static float SystemFontScale() {
+    return sSystemFontScale / 100.0f;
+  }
+
+  static float MaxZoom() {
+    return sZoomMaxPercent / 100.0f;
+  }
+
+  static float MinZoom() {
+    return sZoomMinPercent / 100.0f;
   }
 
   static bool SVGTransformBoxEnabled() {
@@ -2602,7 +2607,9 @@ public:
   /**
    * Helper method to transform |aBounds| from aFrame to aAncestorFrame,
    * and combine it with |aPreciseTargetDest| if it is axis-aligned, or
-   * combine it with |aImpreciseTargetDest| if not.
+   * combine it with |aImpreciseTargetDest| if not. The transformed rect is
+   * clipped to |aClip|; if |aClip| has rounded corners, that also causes
+   * the imprecise target to be used.
    */
   static void
   TransformToAncestorAndCombineRegions(
@@ -2611,7 +2618,8 @@ public:
     const nsIFrame* aAncestorFrame,
     nsRegion* aPreciseTargetDest,
     nsRegion* aImpreciseTargetDest,
-    mozilla::Maybe<Matrix4x4>* aMatrixCache);
+    mozilla::Maybe<Matrix4x4>* aMatrixCache,
+    const mozilla::DisplayItemClip* aClip);
 
   /**
    * Populate aOutSize with the size of the content viewer corresponding
@@ -2891,6 +2899,19 @@ public:
    */
   static CSSPoint GetCumulativeApzCallbackTransform(nsIFrame* aFrame);
 
+  /**
+   * Compute a rect to pre-render in cases where we want to render more of
+   * something than what is visible (usually to support async transformation).
+   * @param aDirtyRect the area that's visible
+   * @param aOverflow the total size of the thing we're rendering
+   * @param aPrerenderSize how large of an area we're willing to render
+   * @return A rectangle that includes |aDirtyRect|, is clamped to |aOverflow|,
+   *         and is no larger than |aPrerenderSize|.
+   */
+  static nsRect ComputePartialPrerenderArea(const nsRect& aDirtyRect,
+                                            const nsRect& aOverflow,
+                                            const nsSize& aPrerenderSize);
+
   /*
    * Returns whether the given document supports being rendered with a
    * Servo-backed style system.  This checks whether Stylo is enabled
@@ -2923,8 +2944,10 @@ private:
   static uint32_t sFontSizeInflationMaxRatio;
   static bool sFontSizeInflationForceEnabled;
   static bool sFontSizeInflationDisabledInMasterProcess;
+  static uint32_t sSystemFontScale;
+  static uint32_t sZoomMaxPercent;
+  static uint32_t sZoomMinPercent;
   static bool sInvalidationDebuggingIsEnabled;
-  static bool sCSSVariablesEnabled;
   static bool sInterruptibleReflowEnabled;
   static bool sSVGTransformBoxEnabled;
   static bool sTextCombineUprightDigitsEnabled;

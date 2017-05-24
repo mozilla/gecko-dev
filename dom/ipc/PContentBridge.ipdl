@@ -10,10 +10,13 @@ include protocol PContent;
 include protocol PJavaScript;
 include protocol PFileDescriptorSet;
 include protocol PChildToParentStream;
+include protocol PMemoryStream;
 include protocol PParentToChildStream;
+include protocol PIPCBlobInputStream;
 
 include DOMTypes;
 include JavaScriptTypes;
+include ProtocolTypes;
 include PTabContext;
 
 using class IPC::Principal from "mozilla/dom/PermissionMessageUtils.h";
@@ -40,7 +43,9 @@ nested(upto inside_cpow) sync protocol PContentBridge
     manages PFileDescriptorSet;
     manages PJavaScript;
     manages PChildToParentStream;
+    manages PMemoryStream;
     manages PParentToChildStream;
+    manages PIPCBlobInputStream;
 
 child:
     async PParentToChildStream();
@@ -55,6 +60,8 @@ child:
 
     async ParentActivated(PBrowser aTab, bool aActivated);
 
+    async PIPCBlobInputStream(nsID aID, uint64_t aSize);
+
 parent:
     sync SyncMessage(nsString aMessage, ClonedMessageData aData,
                      CpowEntry[] aCpows, Principal aPrincipal)
@@ -64,10 +71,13 @@ parent:
 
     async PChildToParentStream();
 
+    async PMemoryStream(uint64_t aSize);
+
 both:
     // Both the parent and the child can construct the PBrowser.
     // See the comment in PContent::PBrowser().
-    async PBrowser(TabId tabId, IPCTabContext context, uint32_t chromeFlags,
+    async PBrowser(TabId tabId, TabId sameTabGroupAs,
+                   IPCTabContext context, uint32_t chromeFlags,
                    ContentParentId cpId, bool isForBrowser);
 
     async PBlob(BlobConstructorParams params);

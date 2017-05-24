@@ -14,6 +14,31 @@
 
 using namespace js;
 
+static gc::AllocKind
+GetProxyGCObjectKind(const Class* clasp, const BaseProxyHandler* handler, const Value& priv)
+{
+    MOZ_ASSERT(clasp->isProxy());
+
+    uint32_t nreserved = JSCLASS_RESERVED_SLOTS(clasp);
+
+    // For now assert each Proxy Class has at least 1 reserved slot. This is
+    // not a hard requirement, but helps catch Classes that need an explicit
+    // JSCLASS_HAS_RESERVED_SLOTS since bug 1360523.
+    MOZ_ASSERT(nreserved > 0);
+
+    MOZ_ASSERT(js::detail::ProxyValueArray::sizeOf(nreserved) % sizeof(Value) == 0,
+               "ProxyValueArray must be a multiple of Value");
+
+    uint32_t nslots = js::detail::ProxyValueArray::sizeOf(nreserved) / sizeof(Value);
+    MOZ_ASSERT(nslots <= NativeObject::MAX_FIXED_SLOTS);
+
+    gc::AllocKind kind = gc::GetGCObjectKind(nslots);
+    if (handler->finalizeInBackground(priv))
+        kind = GetBackgroundAllocKind(kind);
+
+    return kind;
+}
+
 /* static */ ProxyObject*
 ProxyObject::New(JSContext* cx, const BaseProxyHandler* handler, HandleValue priv, TaggedProto proto_,
                  const ProxyOptions& options)
@@ -53,9 +78,7 @@ ProxyObject::New(JSContext* cx, const BaseProxyHandler* handler, HandleValue pri
         newKind = TenuredObject;
     }
 
-    gc::AllocKind allocKind = gc::GetGCObjectKind(clasp);
-    if (handler->finalizeInBackground(priv))
-        allocKind = GetBackgroundAllocKind(allocKind);
+    gc::AllocKind allocKind = GetProxyGCObjectKind(clasp, handler, priv);
 
     AutoSetNewObjectMetadata metadata(cx);
     // Note: this will initialize the object's |data| to strange values, but we
@@ -63,7 +86,11 @@ ProxyObject::New(JSContext* cx, const BaseProxyHandler* handler, HandleValue pri
     ProxyObject* proxy;
     JS_TRY_VAR_OR_RETURN_NULL(cx, proxy, create(cx, clasp, proto, allocKind, newKind));
 
-    new (proxy->data.values) detail::ProxyValueArray;
+    proxy->setInlineValueArray();
+
+    detail::ProxyValueArray* values = detail::GetProxyDataLayout(proxy)->values();
+    values->init(proxy->numReservedSlots());
+
     proxy->data.handler = handler;
     proxy->setCrossCompartmentPrivate(priv);
 
@@ -77,31 +104,14 @@ ProxyObject::New(JSContext* cx, const BaseProxyHandler* handler, HandleValue pri
 gc::AllocKind
 ProxyObject::allocKindForTenure() const
 {
-    gc::AllocKind allocKind = gc::GetGCObjectKind(group()->clasp());
-    if (data.handler->finalizeInBackground(const_cast<ProxyObject*>(this)->private_()))
-        allocKind = GetBackgroundAllocKind(allocKind);
-    return allocKind;
-}
-
-/* static */ size_t
-ProxyObject::objectMovedDuringMinorGC(TenuringTracer* trc, JSObject* dst, JSObject* src)
-{
-    ProxyObject& psrc = src->as<ProxyObject>();
-    ProxyObject& pdst = dst->as<ProxyObject>();
-
-    // We're about to sweep the nursery heap, so migrate the inline
-    // ProxyValueArray to the malloc heap if they were nursery allocated.
-    if (dst->zone()->group()->nursery().isInside(psrc.data.values))
-        pdst.data.values = js_new<detail::ProxyValueArray>(*psrc.data.values);
-    else
-        dst->zone()->group()->nursery().removeMallocedBuffer(psrc.data.values);
-    return sizeof(detail::ProxyValueArray);
+    MOZ_ASSERT(usingInlineValueArray());
+    Value priv = const_cast<ProxyObject*>(this)->private_();
+    return GetProxyGCObjectKind(getClass(), data.handler, priv);
 }
 
 void
 ProxyObject::setCrossCompartmentPrivate(const Value& priv)
 {
-    CheckEdgeIsNotBlackToGray(this, priv);
     *slotOfPrivate() = priv;
 }
 
@@ -109,20 +119,23 @@ void
 ProxyObject::setSameCompartmentPrivate(const Value& priv)
 {
     MOZ_ASSERT(IsObjectValueInCompartment(priv, compartment()));
-    CheckEdgeIsNotBlackToGray(this, priv);
     *slotOfPrivate() = priv;
 }
 
 void
 ProxyObject::nuke()
 {
+    // Select a dead proxy handler based on the properties of this wrapper.
+    // Do this before clearing the target.
+    const BaseProxyHandler* handler = SelectDeadProxyHandler(this);
+
     // Clear the target reference.
     setSameCompartmentPrivate(NullValue());
 
     // Update the handler to make this a DeadObjectProxy.
-    setHandler(&DeadObjectProxy::singleton);
+    setHandler(handler);
 
-    // The proxy's extra slots are not cleared and will continue to be
+    // The proxy's reserved slots are not cleared and will continue to be
     // traced. This avoids the possibility of triggering write barriers while
     // nuking proxies in dead compartments which could otherwise cause those
     // compartments to be kept alive. Note that these are slots cannot hold
@@ -156,12 +169,7 @@ ProxyObject::create(JSContext* cx, const Class* clasp, Handle<TaggedProto> proto
     gc::InitialHeap heap = GetInitialHeap(newKind, clasp);
     debugCheckNewObject(group, shape, allocKind, heap);
 
-    // Proxy objects overlay the |slots| field with a ProxyValueArray.
-    static_assert(sizeof(js::detail::ProxyValueArray) % sizeof(js::HeapSlot) == 0,
-                  "ProxyValueArray must be a multiple of HeapSlot");
-    static const size_t NumDynamicSlots = sizeof(js::detail::ProxyValueArray) / sizeof(HeapSlot);
-
-    JSObject* obj = js::Allocate<JSObject>(cx, allocKind, NumDynamicSlots, heap, clasp);
+    JSObject* obj = js::Allocate<JSObject>(cx, allocKind, /* numDynamicSlots = */ 0, heap, clasp);
     if (!obj)
         return cx->alreadyReportedOOM();
 

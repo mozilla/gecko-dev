@@ -5,8 +5,9 @@
 "use strict";
 
 Cu.import("resource://formautofill/FormAutofillParent.jsm");
+Cu.import("resource://formautofill/ProfileStorage.jsm");
 
-add_task(function* test_enabledStatus_init() {
+add_task(async function test_enabledStatus_init() {
   let formAutofillParent = new FormAutofillParent();
   sinon.spy(formAutofillParent, "_setStatus");
 
@@ -14,7 +15,7 @@ add_task(function* test_enabledStatus_init() {
   do_check_eq(formAutofillParent._enabled, false);
   do_check_eq(Services.ppmm.initialProcessData.autofillEnabled, undefined);
 
-  formAutofillParent.init();
+  await formAutofillParent.init();
   do_check_eq(formAutofillParent._setStatus.called, true);
   do_check_eq(Services.ppmm.initialProcessData.autofillEnabled, false);
 
@@ -30,12 +31,12 @@ add_task(function* test_enabledStatus_observe() {
   // _enabled = _getStatus() => No need to trigger onStatusChanged
   formAutofillParent._enabled = true;
   formAutofillParent._getStatus.returns(true);
-  formAutofillParent.observe(null, "nsPref:changed", "browser.formautofill.enabled");
+  formAutofillParent.observe(null, "nsPref:changed", "extensions.formautofill.addresses.enabled");
   do_check_eq(formAutofillParent._setStatus.called, false);
 
   // _enabled != _getStatus() => Need to trigger onStatusChanged
   formAutofillParent._getStatus.returns(false);
-  formAutofillParent.observe(null, "nsPref:changed", "browser.formautofill.enabled");
+  formAutofillParent.observe(null, "nsPref:changed", "extensions.formautofill.addresses.enabled");
   do_check_eq(formAutofillParent._setStatus.called, true);
 
   // profile added => Need to trigger onStatusChanged
@@ -60,29 +61,27 @@ add_task(function* test_enabledStatus_observe() {
 add_task(function* test_enabledStatus_getStatus() {
   let formAutofillParent = new FormAutofillParent();
   do_register_cleanup(function cleanup() {
-    Services.prefs.clearUserPref("browser.formautofill.enabled");
+    Services.prefs.clearUserPref("extensions.formautofill.addresses.enabled");
   });
 
-  let fakeStorage = [];
-  formAutofillParent._profileStore = {
-    getAll: () => fakeStorage,
-  };
+  sinon.stub(profileStorage.addresses, "getAll");
+  profileStorage.addresses.getAll.returns([]);
 
   // pref is enabled and profile is empty.
-  Services.prefs.setBoolPref("browser.formautofill.enabled", true);
+  Services.prefs.setBoolPref("extensions.formautofill.addresses.enabled", true);
   do_check_eq(formAutofillParent._getStatus(), false);
 
   // pref is disabled and profile is empty.
-  Services.prefs.setBoolPref("browser.formautofill.enabled", false);
+  Services.prefs.setBoolPref("extensions.formautofill.addresses.enabled", false);
   do_check_eq(formAutofillParent._getStatus(), false);
 
-  fakeStorage = ["test-profile"];
+  profileStorage.addresses.getAll.returns(["test-profile"]);
   // pref is enabled and profile is not empty.
-  Services.prefs.setBoolPref("browser.formautofill.enabled", true);
+  Services.prefs.setBoolPref("extensions.formautofill.addresses.enabled", true);
   do_check_eq(formAutofillParent._getStatus(), true);
 
   // pref is disabled and profile is not empty.
-  Services.prefs.setBoolPref("browser.formautofill.enabled", false);
+  Services.prefs.setBoolPref("extensions.formautofill.addresses.enabled", false);
   do_check_eq(formAutofillParent._getStatus(), false);
 });
 

@@ -1566,7 +1566,8 @@ TextInputHandler::~TextInputHandler()
 }
 
 bool
-TextInputHandler::HandleKeyDownEvent(NSEvent* aNativeEvent)
+TextInputHandler::HandleKeyDownEvent(NSEvent* aNativeEvent,
+                                     uint32_t aUniqueId)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN;
 
@@ -1601,7 +1602,7 @@ TextInputHandler::HandleKeyDownEvent(NSEvent* aNativeEvent)
 
   RefPtr<nsChildView> widget(mWidget);
 
-  KeyEventState* currentKeyEvent = PushKeyEvent(aNativeEvent);
+  KeyEventState* currentKeyEvent = PushKeyEvent(aNativeEvent, aUniqueId);
   AutoKeyEventStateCleaner remover(this);
 
   ComplexTextInputPanel* ctiPanel = ComplexTextInputPanel::GetSharedComplexTextInputPanel();
@@ -2354,6 +2355,140 @@ TextInputHandler::InsertText(NSAttributedString* aAttrString,
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
+void
+TextInputHandler::InsertNewline()
+{
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
+
+  if (Destroyed()) {
+    return;
+  }
+
+  KeyEventState* currentKeyEvent = GetCurrentKeyEvent();
+
+  MOZ_LOG(gLog, LogLevel::Info,
+    ("%p TextInputHandler::InsertNewline, "
+     "IsIMEComposing()=%s, IgnoreIMEComposition()=%s, "
+     "keyevent=%p, keydownHandled=%s, keypressDispatched=%s, "
+     "causedOtherKeyEvents=%s, compositionDispatched=%s",
+     this, TrueOrFalse(IsIMEComposing()), TrueOrFalse(IgnoreIMEComposition()),
+     currentKeyEvent ? currentKeyEvent->mKeyEvent : nullptr,
+     currentKeyEvent ?
+       TrueOrFalse(currentKeyEvent->mKeyDownHandled) : "N/A",
+     currentKeyEvent ?
+       TrueOrFalse(currentKeyEvent->mKeyPressDispatched) : "N/A",
+     currentKeyEvent ?
+       TrueOrFalse(currentKeyEvent->mCausedOtherKeyEvents) : "N/A",
+     currentKeyEvent ?
+       TrueOrFalse(currentKeyEvent->mCompositionDispatched) : "N/A"));
+
+  if (IgnoreIMEComposition()) {
+    return;
+  }
+
+  // If "insertNewline:" command shouldn't be handled, let's ignore it.
+  if (currentKeyEvent && !currentKeyEvent->CanHandleCommand()) {
+    return;
+  }
+
+  // If it's in composition, we cannot dispatch keypress event.
+  // Therefore, we should insert '\n' as committing composition.
+  if (IsIMEComposing()) {
+    NSAttributedString* lineBreaker =
+      [[NSAttributedString alloc] initWithString:@"\n"];
+    InsertTextAsCommittingComposition(lineBreaker, nullptr);
+    if (currentKeyEvent) {
+      currentKeyEvent->mCompositionDispatched = true;
+    }
+    [lineBreaker release];
+    return;
+  }
+
+  // Otherwise, we need to dispatch keypress event because HTMLEditor doesn't
+  // treat "\n" in composition string as a line break unless the whitespace is
+  // treated as pre (see bug 1350541).  In strictly speaking, we should
+  // dispatch keypress event as-is if it's handling NSKeyDown event or
+  // should insert it with committing composition.
+
+  RefPtr<nsChildView> widget(mWidget);
+  nsresult rv = mDispatcher->BeginNativeInputTransaction();
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    MOZ_LOG(gLog, LogLevel::Error,
+      ("%p, IMEInputHandler::InsertNewline, "
+       "FAILED, due to BeginNativeInputTransaction() failure", this));
+    return;
+  }
+
+  // TODO: If it's not Enter keypress but user customized the OS settings
+  //       to insert a line breaker with other key, we should just set
+  //       command to the keypress event and it should be handled as
+  //       Enter key press in editor.
+
+  // If it's handling actual Enter key event and hasn't cause any composition
+  // events nor other key events, we should expose actual modifier state.
+  // Otherwise, we should remove Control, Option and Command state since
+  // editor may behave differently if some of them are active.  Although,
+  // Shift+Enter and Enter are work differently in HTML editor, we should
+  // expose actual Shift state if it's caused by Enter key for compatibility
+  // with Chromium.  Chromium breaks line in HTML editor with default pargraph
+  // separator when Enter is pressed, with <br> element when Shift+Enter.
+  // Safari breaks line in HTML editor with default paragraph separator when
+  // Enter, Shift+Enter or Option+Enter.  So, we should not change Shift+Enter
+  // meaning when there was composition string or not.
+  bool dispatchFakeKeyPress =
+    !(currentKeyEvent && currentKeyEvent->IsEnterKeyEvent() &&
+      currentKeyEvent->CanDispatchKeyPressEvent());
+
+  WidgetKeyboardEvent keypressEvent(true, eKeyPress, widget);
+  if (!dispatchFakeKeyPress) {
+    // If we're acutally handling an Enter key press, we should dispatch
+    // Enter keypress event as-is.
+    currentKeyEvent->InitKeyEvent(this, keypressEvent);
+  } else {
+    // Otherwise, we should dispatch "fake" Enter keypress event.
+    // In this case, we shouldn't set code value to "Enter".
+    NSEvent* keyEvent = currentKeyEvent ? currentKeyEvent->mKeyEvent : nullptr;
+    nsCocoaUtils::InitInputEvent(keypressEvent, keyEvent);
+    keypressEvent.mKeyCode = NS_VK_RETURN;
+    keypressEvent.mKeyNameIndex = KEY_NAME_INDEX_Enter;
+    keypressEvent.mModifiers &= ~(MODIFIER_CONTROL |
+                                  MODIFIER_ALT |
+                                  MODIFIER_META);
+  }
+
+  nsEventStatus status = nsEventStatus_eIgnore;
+  bool keyPressDispatched =
+    mDispatcher->MaybeDispatchKeypressEvents(keypressEvent, status,
+                                             currentKeyEvent);
+  bool keyPressHandled = (status == nsEventStatus_eConsumeNoDefault);
+
+  // NOTE: mWidget might have become null here.
+
+  if (keyPressDispatched) {
+    // Record the keypress event state only when it dispatched actual Enter
+    // keypress event because in other cases, the keypress event just a
+    // messenger.  E.g., if it's caused by different key, keypress event for
+    // the actual key should be dispatched.
+    if (!dispatchFakeKeyPress && currentKeyEvent) {
+      currentKeyEvent->mKeyPressHandled = keyPressHandled;
+      currentKeyEvent->mKeyPressDispatched = keyPressDispatched;
+    }
+    return;
+  }
+
+  // If keypress event isn't dispatched as expected, we should fallback to
+  // using composition events.
+  NSAttributedString* lineBreaker =
+    [[NSAttributedString alloc] initWithString:@"\n"];
+  InsertTextAsCommittingComposition(lineBreaker, nullptr);
+  if (currentKeyEvent) {
+    currentKeyEvent->mCompositionDispatched = true;
+  }
+  [lineBreaker release];
+
+  NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+
 bool
 TextInputHandler::DoCommandBySelector(const char* aSelector)
 {
@@ -2373,14 +2508,26 @@ TextInputHandler::DoCommandBySelector(const char* aSelector)
      currentKeyEvent ?
        TrueOrFalse(currentKeyEvent->mCausedOtherKeyEvents) : "N/A"));
 
-  if (currentKeyEvent && currentKeyEvent->CanDispatchKeyPressEvent()) {
+  // If the command isn't caused by key operation, the command should
+  // be handled in the super class of the caller.
+  if (!currentKeyEvent) {
+    return Destroyed();
+  }
+
+  // If the key operation causes this command, should dispatch a keypress
+  // event.
+  // XXX This must be worng.  Even if this command is caused by the key
+  //     operation, its our default action can be different from the
+  //     command.  So, in this case, we should dispatch a keypress event
+  //     which have the command and editor should handle it.
+  if (currentKeyEvent->CanDispatchKeyPressEvent()) {
     nsresult rv = mDispatcher->BeginNativeInputTransaction();
     if (NS_WARN_IF(NS_FAILED(rv))) {
         MOZ_LOG(gLog, LogLevel::Error,
           ("%p IMEInputHandler::DoCommandBySelector, "
            "FAILED, due to BeginNativeInputTransaction() failure "
            "at dispatching keypress", this));
-      return false;
+      return Destroyed();
     }
 
     WidgetKeyboardEvent keypressEvent(true, eKeyPress, widget);
@@ -2397,10 +2544,17 @@ TextInputHandler::DoCommandBySelector(const char* aSelector)
        "dispatched, Destroyed()=%s, keypressHandled=%s",
        this, TrueOrFalse(Destroyed()),
        TrueOrFalse(currentKeyEvent->mKeyPressHandled)));
+    // This command is now dispatched with keypress event.
+    // So, this shouldn't be handled by nobody anymore.
+    return true;
   }
 
-  return (!Destroyed() && currentKeyEvent &&
-          currentKeyEvent->IsDefaultPrevented());
+  // If the key operation didn't cause keypress event or caused keypress event
+  // but not prevented its default, we need to honor the command.  For example,
+  // Korean IME sends "insertNewline:" when committing existing composition
+  // with Enter key press.  In such case, the key operation has been consumed
+  // by the committing composition but we still need to handle the command.
+  return Destroyed() || !currentKeyEvent->CanHandleCommand();
 }
 
 
@@ -2623,13 +2777,13 @@ IMEInputHandler::NotifyIME(TextEventDispatcher* aTextEventDispatcher,
   }
 }
 
-NS_IMETHODIMP_(nsIMEUpdatePreference)
-IMEInputHandler::GetIMEUpdatePreference()
+NS_IMETHODIMP_(IMENotificationRequests)
+IMEInputHandler::GetIMENotificationRequests()
 {
   // XXX Shouldn't we move floating window which shows composition string
   //     when plugin has focus and its parent is scrolled or the window is
   //     moved?
-  return nsIMEUpdatePreference();
+  return IMENotificationRequests();
 }
 
 NS_IMETHODIMP_(void)
@@ -2654,6 +2808,12 @@ IMEInputHandler::WillDispatchKeyboardEvent(
   KeyEventState* currentKeyEvent = static_cast<KeyEventState*>(aData);
   NSEvent* nativeEvent = currentKeyEvent->mKeyEvent;
   nsAString* insertString = currentKeyEvent->mInsertString;
+  if (aKeyboardEvent.mMessage == eKeyPress && aIndexOfKeypress == 0 &&
+      (!insertString || insertString->IsEmpty())) {
+    // Inform the child process that this is an event that we want a reply
+    // from.
+    aKeyboardEvent.mFlags.mWantReplyFromContentProcess = true;
+  }
   if (KeyboardLayoutOverrideRef().mOverrideEnabled) {
     TISInputSourceWrapper tis;
     tis.InitByLayoutID(KeyboardLayoutOverrideRef().mKeyboardLayout, true);
@@ -4553,6 +4713,7 @@ TextInputHandlerBase::KeyEventState::InitKeyEvent(
                         keyCode:[mKeyEvent keyCode]];
   }
 
+  aKeyEvent.mUniqueId = mUniqueId;
   aHandler->InitKeyEvent(nativeEvent, aKeyEvent, mInsertString);
 
   NS_OBJC_END_TRY_ABORT_BLOCK;

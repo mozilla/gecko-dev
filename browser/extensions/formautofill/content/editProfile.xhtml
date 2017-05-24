@@ -6,22 +6,27 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <title>Profile Autofill - Edit Profile</title>
-  <link rel="stylesheet" href="chrome://formautofill/content/editProfile.css" />
+  <!-- common.css and dialog.css need to be included until this file can be
+     - loaded as a stacked subdialog. -->
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+  <link rel="stylesheet" href="chrome://browser/skin/preferences/in-content/dialog.css" />
+  <link rel="stylesheet" href="chrome://formautofill-shared/skin/editProfile.css" />
+  <link rel="stylesheet" href="chrome://formautofill/skin/editProfile.css" />
   <script src="chrome://formautofill/content/editProfile.js"></script>
 </head>
 <body>
   <form>
-    <label id="first-name-container">
+    <label id="given-name-container">
       <span>First Name</span>
-      <input id="first-name" type="text"/>
+      <input id="given-name" type="text"/>
     </label>
-    <label id="middle-name-container">
+    <label id="additional-name-container">
       <span>Middle Name</span>
-      <input id="middle-name" type="text"/>
+      <input id="additional-name" type="text"/>
     </label>
-    <label id="last-name-container">
+    <label id="family-name-container">
       <span>Last Name</span>
-      <input id="last-name" type="text"/>
+      <input id="family-name" type="text"/>
     </label>
     <label id="organization-container">
       <span>Company</span>

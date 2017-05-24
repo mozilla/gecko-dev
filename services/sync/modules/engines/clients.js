@@ -27,13 +27,14 @@ this.EXPORTED_SYMBOLS = [
 
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/util.js");
-Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
   "resource://gre/modules/FxAccounts.jsm");
@@ -296,7 +297,7 @@ ClientEngine.prototype = {
   // We assume that clients not present in the FxA Device Manager list have been
   // disconnected and so are stale
   _refreshKnownStaleClients() {
-    this._log.debug('Refreshing the known stale clients list');
+    this._log.debug("Refreshing the known stale clients list");
     let localClients = Object.values(this._store._remoteClients)
                              .filter(client => client.fxaDeviceId) // iOS client records don't have fxaDeviceId
                              .map(client => client.fxaDeviceId);
@@ -304,7 +305,7 @@ ClientEngine.prototype = {
     try {
       fxaClients = Async.promiseSpinningly(this.fxAccounts.getDeviceList()).map(device => device.id);
     } catch (ex) {
-      this._log.error('Could not retrieve the FxA device list', ex);
+      this._log.error("Could not retrieve the FxA device list", ex);
       this._knownStaleFxADeviceIds = [];
       return;
     }
@@ -509,9 +510,9 @@ ClientEngine.prototype = {
     );
   },
 
-  removeClientData: function removeClientData() {
+  async removeClientData() {
     let res = this.service.resource(this.engineURL + "/" + this.localID);
-    res.delete();
+    await res.delete();
   },
 
   // Override the default behavior to delete bad records from the server.

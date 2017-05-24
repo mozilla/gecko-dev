@@ -28,14 +28,14 @@ this.WeaveCrypto = function WeaveCrypto() {
 };
 
 WeaveCrypto.prototype = {
-    prefBranch : null,
-    debug      : true,  // services.sync.log.cryptoDebug
+    prefBranch: null,
+    debug: true,  // services.sync.log.cryptoDebug
 
-    observer : {
-        _self : null,
+    observer: {
+        _self: null,
 
-        QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver,
-                                                Ci.nsISupportsWeakReference]),
+        QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                               Ci.nsISupportsWeakReference]),
 
         observe(subject, topic, data) {
             let self = this._self;
@@ -49,7 +49,7 @@ WeaveCrypto.prototype = {
     init() {
         // Preferences. Add observer so we get notified of changes.
         this.prefBranch = Services.prefs.getBranch("services.sync.log.");
-        this.prefBranch.addObserver("cryptoDebug", this.observer, false);
+        this.prefBranch.addObserver("cryptoDebug", this.observer);
         this.observer._self = this;
         this.debug = this.prefBranch.getBoolPref("cryptoDebug", false);
         XPCOMUtils.defineLazyGetter(this, "encoder", () => new TextEncoder(UTF_LABEL));

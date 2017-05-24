@@ -306,7 +306,7 @@ var testRunner = {
           let os = Cc["@mozilla.org/observer-service;1"]
                      .getService(Ci.nsIObserverService);
 
-          os.addObserver(permObserver, "perm-changed", false);
+          os.addObserver(permObserver, "perm-changed");
 
           if (testRunner._currentTest == 0) {
             is(params.tree.view.rowCount, 0, "no cookie exceptions");
@@ -334,7 +334,7 @@ var testRunner = {
         Services.prefs.clearUserPref("privacy.history.custom");
       });
 
-      openPreferencesViaOpenPreferencesAPI("panePrivacy", null, {leaveOpen: true}).then(function() {
+      openPreferencesViaOpenPreferencesAPI("panePrivacy", {leaveOpen: true}).then(function() {
         let doc = gBrowser.contentDocument;
         let historyMode = doc.getElementById("historyMode");
         historyMode.value = "custom";

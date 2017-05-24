@@ -28,13 +28,11 @@ using namespace js;
 using namespace wasm;
 
 Compartment::Compartment(Zone* zone)
-  : mutatingInstances_(false),
-    interruptedCount_(0)
+  : mutatingInstances_(false)
 {}
 
 Compartment::~Compartment()
 {
-    MOZ_ASSERT(interruptedCount_ == 0);
     MOZ_ASSERT(instances_.empty());
     MOZ_ASSERT(!mutatingInstances_);
 }
@@ -47,28 +45,16 @@ struct InstanceComparator
     int operator()(const Instance* instance) const {
         if (instance == &target)
             return 0;
-        MOZ_ASSERT(!target.codeSegment().containsCodePC(instance->codeBase()));
-        MOZ_ASSERT(!instance->codeSegment().containsCodePC(target.codeBase()));
-        return target.codeBase() < instance->codeBase() ? -1 : 1;
+
+        // Instances can share code, so the segments can be equal (though they
+        // can't partially overlap).  If the codeBases are equal, we sort by
+        // Instance address.  Thus a Code may map to many instances.
+        if (instance->codeBaseTier() == target.codeBaseTier())
+            return instance < &target ? -1 : 1;
+
+        return target.codeBaseTier() < instance->codeBaseTier() ? -1 : 1;
     }
 };
-
-void
-Compartment::trace(JSTracer* trc)
-{
-    // A WasmInstanceObject that was initially reachable when called can become
-    // unreachable while executing on the stack. When execution in a compartment
-    // is interrupted inside wasm code, wasm::TraceActivations() may miss frames
-    // due to its use of FrameIterator which assumes wasm has exited through an
-    // exit stub. This could be fixed by changing wasm::TraceActivations() to
-    // use a ProfilingFrameIterator, which inspects register state, but for now
-    // just mark everything in the compartment in this super-rare case.
-
-    if (interruptedCount_) {
-        for (Instance* i : instances_)
-            i->trace(trc);
-    }
-}
 
 bool
 Compartment::registerInstance(JSContext* cx, HandleWasmInstanceObject instanceObj)
@@ -76,7 +62,13 @@ Compartment::registerInstance(JSContext* cx, HandleWasmInstanceObject instanceOb
     Instance& instance = instanceObj->instance();
     MOZ_ASSERT(this == &instance.compartment()->wasm);
 
-    instance.code().ensureProfilingLabels(cx->runtime()->geckoProfiler().enabled());
+    instance.ensureProfilingLabels(cx->runtime()->geckoProfiler().enabled());
+
+    if (instance.debugEnabled() &&
+        instance.compartment()->debuggerObservesAllExecution())
+    {
+        instance.ensureEnterFrameTrapsState(cx, true);
+    }
 
     size_t index;
     if (BinarySearchIf(instances_, 0, instances_.length(), InstanceComparator(instance), &index))
@@ -111,25 +103,18 @@ struct PCComparator
     explicit PCComparator(const void* pc) : pc(pc) {}
 
     int operator()(const Instance* instance) const {
-        if (instance->codeSegment().containsCodePC(pc))
+        if (instance->codeSegmentTier().containsCodePC(pc))
             return 0;
-        return pc < instance->codeBase() ? -1 : 1;
+        return pc < instance->codeBaseTier() ? -1 : 1;
     }
 };
 
-Code*
+const Code*
 Compartment::lookupCode(const void* pc) const
 {
-    Instance* instance = lookupInstanceDeprecated(pc);
-    return instance ? &instance->code() : nullptr;
-}
-
-Instance*
-Compartment::lookupInstanceDeprecated(const void* pc) const
-{
-    // lookupInstanceDeprecated can be called asynchronously from the interrupt
-    // signal handler. In that case, the signal handler is just asking whether
-    // the pc is in wasm code. If instances_ is being mutated then we can't be
+    // lookupCode() can be called asynchronously from the interrupt signal
+    // handler. In that case, the signal handler is just asking whether the pc
+    // is in wasm code. If instances_ is being mutated then we can't be
     // executing wasm code so returning nullptr is fine.
     if (mutatingInstances_)
         return nullptr;
@@ -138,25 +123,14 @@ Compartment::lookupInstanceDeprecated(const void* pc) const
     if (!BinarySearchIf(instances_, 0, instances_.length(), PCComparator(pc), &index))
         return nullptr;
 
-    return instances_[index];
-}
-
-void
-Compartment::setInterrupted(bool interrupted)
-{
-    if (interrupted) {
-        interruptedCount_++;
-    } else {
-        MOZ_ASSERT(interruptedCount_ > 0);
-        interruptedCount_--;
-    }
+    return &instances_[index]->code();
 }
 
 void
 Compartment::ensureProfilingLabels(bool profilingEnabled)
 {
     for (Instance* instance : instances_)
-        instance->code().ensureProfilingLabels(profilingEnabled);
+        instance->ensureProfilingLabels(profilingEnabled);
 }
 
 void

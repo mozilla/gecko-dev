@@ -16,7 +16,14 @@ include protocol PIndexedDBPermissionRequest;
 include protocol PRenderFrame;
 include protocol PPluginWidget;
 include protocol PRemotePrintJob;
+include protocol PChildToParentStream;
+include protocol PParentToChildStream;
+include protocol PFileDescriptorSet;
+include protocol PIPCBlobInputStream;
+
 include DOMTypes;
+include IPCBlob;
+include IPCStream;
 include JavaScriptTypes;
 include URIParams;
 include PPrintingTypes;
@@ -28,7 +35,6 @@ using class mozilla::gfx::Matrix from "mozilla/gfx/Matrix.h";
 using struct gfxSize from "gfxPoint.h";
 using CSSRect from "Units.h";
 using CSSSize from "Units.h";
-using mozilla::LayoutDeviceIntRect from "Units.h";
 using mozilla::LayoutDeviceIntPoint from "Units.h";
 using mozilla::LayoutDevicePoint from "Units.h";
 using mozilla::ScreenIntPoint from "Units.h";
@@ -43,8 +49,8 @@ using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
 using mozilla::WindowsHandle from "ipc/IPCMessageUtils.h";
 using nscolor from "nsColor.h";
 using class mozilla::WidgetCompositionEvent from "ipc/nsGUIEventIPC.h";
-using struct mozilla::widget::IMENotification from "nsIWidget.h";
-using struct nsIMEUpdatePreference from "nsIWidget.h";
+using struct mozilla::widget::IMENotification from "mozilla/widget/IMEData.h";
+using struct mozilla::widget::IMENotificationRequests from "mozilla/widget/IMEData.h";
 using mozilla::gfx::IntSize from "mozilla/gfx/Point.h";
 using mozilla::gfx::IntPoint from "mozilla/gfx/Point.h";
 using mozilla::gfx::IntRect from "mozilla/gfx/Rect.h";
@@ -60,6 +66,7 @@ using class mozilla::WidgetPluginEvent from "ipc/nsGUIEventIPC.h";
 using struct mozilla::dom::RemoteDOMEvent from "mozilla/dom/TabMessageUtils.h";
 using mozilla::dom::ScreenOrientationInternal from "mozilla/dom/ScreenOrientation.h";
 using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/CompositorTypes.h";
+using mozilla::layers::CompositorOptions from "mozilla/layers/CompositorOptions.h";
 using mozilla::CSSToScreenScale from "Units.h";
 using mozilla::CommandInt from "mozilla/EventForwards.h";
 using mozilla::WritingMode from "mozilla/WritingModes.h";
@@ -79,19 +86,6 @@ using mozilla::a11y::IAccessibleHolder from "mozilla/a11y/IPCTypes.h";
 
 namespace mozilla {
 namespace dom {
-
-struct NativeKeyBinding
-{
-  CommandInt[] singleLineCommands;
-  CommandInt[] multiLineCommands;
-  CommandInt[] richTextCommands;
-};
-
-union MaybeNativeKeyBinding
-{
-  NativeKeyBinding;
-  void_t;
-};
 
 struct ShowInfo
 {
@@ -216,11 +210,11 @@ parent:
      *
      *  contentCache Cache of content
      *  notification Whole data of the notification
-     *  preference   Native widget preference for IME updates
+     *  requests     Requests of notification for IME of the native widget
      */
     nested(inside_cpow) sync NotifyIMEFocus(ContentCache contentCache,
                                             IMENotification notification)
-      returns (nsIMEUpdatePreference preference);
+      returns (IMENotificationRequests requests);
 
     /**
      * Notifies chrome that there has been a change in text content
@@ -471,7 +465,8 @@ parent:
                                 nsString aURL, nsString aName, nsString aFeatures)
       returns (bool windowOpened,
                TextureFactoryIdentifier textureFactoryIdentifier,
-               uint64_t layersId);
+               uint64_t layersId,
+               CompositorOptions compositorOptions);
 
     /**
      * Tells the containing widget whether the given input block results in a
@@ -503,8 +498,17 @@ parent:
 
     async ReplyKeyEvent(WidgetKeyboardEvent event);
 
-    sync RequestNativeKeyBindings(WidgetKeyboardEvent event)
-        returns (MaybeNativeKeyBinding bindings);
+    /**
+     * Retrieves edit commands for the key combination represented by aEvent.
+     *
+     * @param aType       One of nsIWidget::NativeKeyBindingsType.
+     * @param aEvent      KeyboardEvent which represents a key combination.
+     *                    Note that this must be a trusted event.
+     * @return            Array of edit commands which should be executed in
+     *                    editor of native applications.
+     */
+    sync RequestNativeKeyBindings(uint32_t aType, WidgetKeyboardEvent aEvent)
+        returns (CommandInt[] commands);
 
     async SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
                                    int32_t aNativeKeyCode,
@@ -547,6 +551,8 @@ parent:
 
     async AccessKeyNotHandled(WidgetKeyboardEvent event);
 
+    async SetHasBeforeUnload(bool aHasBeforeUnload);
+
 child:
     async NativeSynthesisResponse(uint64_t aObserverId, nsCString aResponse);
 
@@ -582,15 +588,12 @@ parent:
                             uint32_t stride, uint8_t format,
                             LayoutDeviceIntRect dragRect);
 
-    async AudioChannelActivityNotification(uint32_t aAudioChannel,
-                                           bool aActive);
-
     // After a compositor reset, it is necessary to reconnect each layers ID to
     // the compositor of the widget that will render those layers. Note that
     // this is sync so we can ensure that messages to the window compositor
     // arrive before the TabChild attempts to use its cross-process compositor
     // bridge.
-    sync EnsureLayersConnected();
+    sync EnsureLayersConnected() returns (CompositorOptions compositorOptions);
 
     /**
      * Notify the parent that the session history state has been updated.
@@ -628,6 +631,8 @@ child:
 
     async InitRendering(TextureFactoryIdentifier textureFactoryIdentifier,
                         uint64_t layersId,
+                        CompositorOptions compositorOptions,
+                        bool layersConnected,
                         nullable PRenderFrame renderFrame);
 
     async LoadURL(nsCString uri, ShowInfo info);
@@ -679,7 +684,7 @@ child:
      */
     async SynthMouseMoveEvent(WidgetMouseEvent event, ScrollableLayerGuid aGuid, uint64_t aInputBlockId);
     async RealMouseButtonEvent(WidgetMouseEvent event, ScrollableLayerGuid aGuid, uint64_t aInputBlockId);
-    async RealKeyEvent(WidgetKeyboardEvent event, MaybeNativeKeyBinding keyBinding);
+    async RealKeyEvent(WidgetKeyboardEvent event);
     async MouseWheelEvent(WidgetWheelEvent event, ScrollableLayerGuid aGuid, uint64_t aInputBlockId);
     async RealTouchEvent(WidgetTouchEvent aEvent,
                          ScrollableLayerGuid aGuid,
@@ -818,13 +823,6 @@ child:
      */
     async HandleAccessKey(WidgetKeyboardEvent event,
                           uint32_t[] charCodes, int32_t modifierMask);
-
-    /**
-     * Propagate a refresh to the child process
-     */
-    async AudioChannelChangeNotification(uint32_t aAudioChannel,
-                                         float aVolume,
-                                         bool aMuted);
 
     /**
      * Tells the root child docShell whether or not to use

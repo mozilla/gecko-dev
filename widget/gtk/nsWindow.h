@@ -45,10 +45,10 @@
 #include "nsTArray.h"
 #include "Units.h"
 
-extern PRLogModuleInfo *gWidgetLog;
-extern PRLogModuleInfo *gWidgetFocusLog;
-extern PRLogModuleInfo *gWidgetDragLog;
-extern PRLogModuleInfo *gWidgetDrawLog;
+extern mozilla::LazyLogModule gWidgetLog;
+extern mozilla::LazyLogModule gWidgetFocusLog;
+extern mozilla::LazyLogModule gWidgetDragLog;
+extern mozilla::LazyLogModule gWidgetDrawLog;
 
 #define LOG(args) MOZ_LOG(gWidgetLog, mozilla::LogLevel::Debug, args)
 #define LOGFOCUS(args) MOZ_LOG(gWidgetFocusLog, mozilla::LogLevel::Debug, args)
@@ -159,6 +159,7 @@ public:
                                              uint16_t aDuration,
                                              nsISupports* aData,
                                              nsIRunnable* aCallback) override;
+    virtual already_AddRefed<nsIScreen> GetWidgetScreen() override;
     virtual nsresult   MakeFullScreen(bool aFullScreen,
                                       nsIScreen* aTargetScreen = nullptr) override;
     virtual void       HideWindowChrome(bool aShouldHide) override;
@@ -292,18 +293,15 @@ public:
     virtual InputContext GetInputContext() override;
     virtual TextEventDispatcherListener*
         GetNativeTextEventDispatcherListener() override;
-    bool ExecuteNativeKeyBindingRemapped(
-                        NativeKeyBindingsType aType,
-                        const mozilla::WidgetKeyboardEvent& aEvent,
-                        DoCommandCallback aCallback,
-                        void* aCallbackData,
-                        uint32_t aGeckoKeyCode,
-                        uint32_t aNativeKeyCode);
-    virtual bool ExecuteNativeKeyBinding(
-                        NativeKeyBindingsType aType,
-                        const mozilla::WidgetKeyboardEvent& aEvent,
-                        DoCommandCallback aCallback,
-                        void* aCallbackData) override;
+    void GetEditCommandsRemapped(NativeKeyBindingsType aType,
+                                 const mozilla::WidgetKeyboardEvent& aEvent,
+                                 nsTArray<mozilla::CommandInt>& aCommands,
+                                 uint32_t aGeckoKeyCode,
+                                 uint32_t aNativeKeyCode);
+    virtual void GetEditCommands(
+                     NativeKeyBindingsType aType,
+                     const mozilla::WidgetKeyboardEvent& aEvent,
+                     nsTArray<mozilla::CommandInt>& aCommands) override;
 
     // These methods are for toplevel windows only.
     void               ResizeTransparencyBitmap();

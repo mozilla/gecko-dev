@@ -114,7 +114,14 @@
  * a single BaseShape.
  */
 
-#define JSSLOT_FREE(clasp)  JSCLASS_RESERVED_SLOTS(clasp)
+MOZ_ALWAYS_INLINE size_t
+JSSLOT_FREE(const js::Class* clasp)
+{
+    // Proxy classes have reserved slots, but proxies manage their own slot
+    // layout.
+    MOZ_ASSERT(!clasp->isProxy());
+    return JSCLASS_RESERVED_SLOTS(clasp);
+}
 
 namespace js {
 
@@ -415,7 +422,7 @@ class BaseShape : public gc::TenuredCell
     ShapeTable*      table_;
 
 #if JS_BITS_PER_WORD == 32
-    // Ensure sizeof(BaseShape) is a multiple of gc::CellSize.
+    // Ensure sizeof(BaseShape) is a multiple of gc::CellAlignBytes.
     uint32_t padding_;
 #endif
 
@@ -498,9 +505,9 @@ class BaseShape : public gc::TenuredCell
   private:
     static void staticAsserts() {
         JS_STATIC_ASSERT(offsetof(BaseShape, clasp_) == offsetof(js::shadow::BaseShape, clasp_));
-        static_assert(sizeof(BaseShape) % gc::CellSize == 0,
+        static_assert(sizeof(BaseShape) % gc::CellAlignBytes == 0,
                       "Things inheriting from gc::Cell must have a size that's "
-                      "a multiple of gc::CellSize");
+                      "a multiple of gc::CellAlignBytes");
     }
 
     void traceShapeTable(JSTracer* trc);
@@ -919,7 +926,10 @@ class Shape : public gc::TenuredCell
 
     uint32_t slotSpan(const Class* clasp) const {
         MOZ_ASSERT(!inDictionary());
-        uint32_t free = JSSLOT_FREE(clasp);
+        // Proxy classes have reserved slots, but proxies manage their own slot
+        // layout. This means all non-native object shapes have nfixed == 0 and
+        // slotSpan == 0.
+        uint32_t free = clasp->isProxy() ? 0 : JSSLOT_FREE(clasp);
         return hasMissingSlot() ? free : Max(free, maybeSlot() + 1);
     }
 
@@ -1323,11 +1333,6 @@ struct StackShape
 
     uint32_t slot() const { MOZ_ASSERT(hasSlot() && !hasMissingSlot()); return slot_; }
     uint32_t maybeSlot() const { return slot_; }
-
-    uint32_t slotSpan() const {
-        uint32_t free = JSSLOT_FREE(base->clasp_);
-        return hasMissingSlot() ? free : (maybeSlot() + 1);
-    }
 
     void setSlot(uint32_t slot) {
         MOZ_ASSERT(slot <= SHAPE_INVALID_SLOT);

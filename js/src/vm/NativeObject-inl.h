@@ -124,7 +124,8 @@ NativeObject::elementsRangeWriteBarrierPost(uint32_t start, uint32_t count)
         const Value& v = elements_[start + i];
         if (v.isObject() && IsInsideNursery(&v.toObject())) {
             zone()->group()->storeBuffer().putSlot(this, HeapSlot::Element,
-                                                   start + i, count - i);
+                                                   unshiftedIndex(start + i),
+                                                   count - i);
             return;
         }
     }
@@ -141,8 +142,12 @@ NativeObject::copyDenseElements(uint32_t dstStart, const Value* src, uint32_t co
         checkStoredValue(src[i]);
 #endif
     if (JS::shadow::Zone::asShadowZone(zone())->needsIncrementalBarrier()) {
-        for (uint32_t i = 0; i < count; ++i)
-            elements_[dstStart + i].set(this, HeapSlot::Element, dstStart + i, src[i]);
+        uint32_t numShifted = getElementsHeader()->numShiftedElements();
+        for (uint32_t i = 0; i < count; ++i) {
+            elements_[dstStart + i].set(this, HeapSlot::Element,
+                                        dstStart + i + numShifted,
+                                        src[i]);
+        }
     } else {
         memcpy(&elements_[dstStart], src, count * sizeof(HeapSlot));
         elementsRangeWriteBarrierPost(dstStart, count);
@@ -161,6 +166,36 @@ NativeObject::initDenseElements(uint32_t dstStart, const Value* src, uint32_t co
 #endif
     memcpy(&elements_[dstStart], src, count * sizeof(HeapSlot));
     elementsRangeWriteBarrierPost(dstStart, count);
+}
+
+inline bool
+NativeObject::tryShiftDenseElements(uint32_t count)
+{
+    ObjectElements* header = getElementsHeader();
+    if (header->initializedLength == count ||
+        count > ObjectElements::MaxShiftedElements ||
+        header->isCopyOnWrite() ||
+        header->isFrozen() ||
+        header->hasNonwritableArrayLength())
+    {
+        return false;
+    }
+
+    MOZ_ASSERT(count > 0);
+    MOZ_ASSERT(count < header->initializedLength);
+
+    if (MOZ_UNLIKELY(header->numShiftedElements() + count > ObjectElements::MaxShiftedElements)) {
+        unshiftElements();
+        header = getElementsHeader();
+    }
+
+    prepareElementRangeForOverwrite(0, count);
+    header->addShiftedElements(count);
+
+    elements_ += count;
+    ObjectElements* newHeader = getElementsHeader();
+    memmove(newHeader, header, sizeof(ObjectElements));
+    return true;
 }
 
 inline void
@@ -184,16 +219,17 @@ NativeObject::moveDenseElements(uint32_t dstStart, uint32_t srcStart, uint32_t c
      * the array before and after the move.
      */
     if (JS::shadow::Zone::asShadowZone(zone())->needsIncrementalBarrier()) {
+        uint32_t numShifted = getElementsHeader()->numShiftedElements();
         if (dstStart < srcStart) {
             HeapSlot* dst = elements_ + dstStart;
             HeapSlot* src = elements_ + srcStart;
             for (uint32_t i = 0; i < count; i++, dst++, src++)
-                dst->set(this, HeapSlot::Element, dst - elements_, *src);
+                dst->set(this, HeapSlot::Element, dst - elements_ + numShifted, *src);
         } else {
             HeapSlot* dst = elements_ + dstStart + count - 1;
             HeapSlot* src = elements_ + srcStart + count - 1;
             for (uint32_t i = 0; i < count; i++, dst--, src--)
-                dst->set(this, HeapSlot::Element, dst - elements_, *src);
+                dst->set(this, HeapSlot::Element, dst - elements_ + numShifted, *src);
         }
     } else {
         memmove(elements_ + dstStart, elements_ + srcStart, count * sizeof(HeapSlot));
@@ -231,12 +267,13 @@ NativeObject::ensureDenseInitializedLengthNoPackedCheck(JSContext* cx, uint32_t 
     uint32_t& initlen = getElementsHeader()->initializedLength;
 
     if (initlen < index + extra) {
+        uint32_t numShifted = getElementsHeader()->numShiftedElements();
         size_t offset = initlen;
         for (HeapSlot* sp = elements_ + initlen;
              sp != elements_ + (index + extra);
              sp++, offset++)
         {
-            sp->init(this, HeapSlot::Element, offset, MagicValue(JS_ELEMENTS_HOLE));
+            sp->init(this, HeapSlot::Element, offset + numShifted, MagicValue(JS_ELEMENTS_HOLE));
         }
         initlen = index + extra;
     }
@@ -454,6 +491,58 @@ NativeObject::create(JSContext* cx, js::gc::AllocKind kind, js::gc::InitialHeap 
     js::gc::TraceCreateObject(nobj);
 
     return nobj;
+}
+
+MOZ_ALWAYS_INLINE bool
+NativeObject::updateSlotsForSpan(JSContext* cx, size_t oldSpan, size_t newSpan)
+{
+    MOZ_ASSERT(oldSpan != newSpan);
+
+    size_t oldCount = dynamicSlotsCount(numFixedSlots(), oldSpan, getClass());
+    size_t newCount = dynamicSlotsCount(numFixedSlots(), newSpan, getClass());
+
+    if (oldSpan < newSpan) {
+        if (oldCount < newCount && !growSlots(cx, oldCount, newCount))
+            return false;
+
+        if (newSpan == oldSpan + 1)
+            initSlotUnchecked(oldSpan, UndefinedValue());
+        else
+            initializeSlotRange(oldSpan, newSpan - oldSpan);
+    } else {
+        /* Trigger write barriers on the old slots before reallocating. */
+        prepareSlotRangeForOverwrite(newSpan, oldSpan);
+        invalidateSlotRange(newSpan, oldSpan - newSpan);
+
+        if (oldCount > newCount)
+            shrinkSlots(cx, oldCount, newCount);
+    }
+
+    return true;
+}
+
+MOZ_ALWAYS_INLINE bool
+NativeObject::setLastProperty(JSContext* cx, Shape* shape)
+{
+    MOZ_ASSERT(!inDictionaryMode());
+    MOZ_ASSERT(!shape->inDictionary());
+    MOZ_ASSERT(shape->zone() == zone());
+    MOZ_ASSERT(shape->numFixedSlots() == numFixedSlots());
+    MOZ_ASSERT(shape->getObjectClass() == getClass());
+
+    size_t oldSpan = lastProperty()->slotSpan();
+    size_t newSpan = shape->slotSpan();
+
+    if (oldSpan == newSpan) {
+        shape_ = shape;
+        return true;
+    }
+
+    if (MOZ_UNLIKELY(!updateSlotsForSpan(cx, oldSpan, newSpan)))
+        return false;
+
+    shape_ = shape;
+    return true;
 }
 
 /* Make an object with pregenerated shape from a NEWOBJECT bytecode. */

@@ -16,7 +16,7 @@ struct nsCSSSelector;
 
 // Defines for various style related constants
 
-enum nsChangeHint {
+enum nsChangeHint : uint32_t {
   nsChangeHint_Empty = 0,
 
   // change was visual only (e.g., COLOR=)
@@ -222,6 +222,16 @@ enum nsChangeHint {
    */
   nsChangeHint_AddOrRemoveTransform = 1 << 27,
 
+  /**
+   * Indicates that the overflow-x and/or overflow-y property changed.
+   *
+   * In most cases, this is equivalent to nsChangeHint_ReconstructFrame. But
+   * in some special cases where the change is really targeting the viewport's
+   * scrollframe, this is instead equivalent to nsChangeHint_AllReflowHints
+   * (because the viewport always has an associated scrollframe).
+   */
+  nsChangeHint_CSSOverflowChange = 1 << 28,
+
   // IMPORTANT NOTE: When adding a new hint, you will need to add it to
   // one of:
   //
@@ -237,7 +247,7 @@ enum nsChangeHint {
   /**
    * Dummy hint value for all hints. It exists for compile time check.
    */
-  nsChangeHint_AllHints = (1 << 28) - 1,
+  nsChangeHint_AllHints = (1 << 29) - 1,
 };
 
 // Redefine these operators to return nothing. This will catch any use
@@ -326,6 +336,7 @@ inline nsChangeHint operator^=(nsChangeHint& aLeft, nsChangeHint aRight)
 #define nsChangeHint_Hints_NeverHandledForDescendants (    \
   nsChangeHint_BorderStyleNoneChange |                     \
   nsChangeHint_ChildrenOnlyTransform |                     \
+  nsChangeHint_CSSOverflowChange |                         \
   nsChangeHint_InvalidateRenderingObservers |              \
   nsChangeHint_RecomputePosition |                         \
   nsChangeHint_UpdateBackgroundPosition |                  \
@@ -472,7 +483,7 @@ NS_RemoveSubsumedHints(nsChangeHint aOurChange, nsChangeHint aHintsHandled)
  * NOTE: When adding new restyle hints, please also add them to
  * RestyleManager::RestyleHintToString.
  */
-enum nsRestyleHint {
+enum nsRestyleHint : uint32_t {
   // Rerun selector matching on the element.  If a new style context
   // results, update the style contexts of descendants.  (Irrelevant if
   // eRestyle_Subtree is also set, since that implies a superset of the
@@ -507,13 +518,6 @@ enum nsRestyleHint {
   // work.)
   eRestyle_CSSAnimations = 1 << 5,
 
-  // Replace the style data coming from SVG animations (SMIL Animations)
-  // without updating any other style data.  If a new style context
-  // results, update style contexts on the descendants.  (Irrelevant if
-  // eRestyle_Self or eRestyle_Subtree is also set, since those imply a
-  // superset of the work.)
-  eRestyle_SVGAttrAnimations = 1 << 6,
-
   // Replace the style data coming from inline style without updating
   // any other style data.  If a new style context results, update style
   // contexts on the descendants.  (Irrelevant if eRestyle_Self or
@@ -523,22 +527,22 @@ enum nsRestyleHint {
   // eRestyle_Self.
   // If the change is for the advance of a declarative animation, use
   // the value below instead.
-  eRestyle_StyleAttribute = 1 << 7,
+  eRestyle_StyleAttribute = 1 << 6,
 
   // Same as eRestyle_StyleAttribute, but for when the change results
   // from the advance of a declarative animation.
-  eRestyle_StyleAttribute_Animations = 1 << 8,
+  eRestyle_StyleAttribute_Animations = 1 << 7,
 
   // Continue the restyling process to the current frame's children even
   // if this frame's restyling resulted in no style changes.
-  eRestyle_Force = 1 << 9,
+  eRestyle_Force = 1 << 8,
 
   // Continue the restyling process to all of the current frame's
   // descendants, even if any frame's restyling resulted in no style
   // changes.  (Implies eRestyle_Force.)  Note that this is weaker than
   // eRestyle_Subtree, which makes us rerun selector matching on all
   // descendants rather than just continuing the restyling process.
-  eRestyle_ForceDescendants = 1 << 10,
+  eRestyle_ForceDescendants = 1 << 9,
 
   // Useful unions:
   eRestyle_AllHintsWithAnimations = eRestyle_CSSTransitions |

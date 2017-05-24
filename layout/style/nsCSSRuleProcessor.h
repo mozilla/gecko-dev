@@ -82,6 +82,7 @@ public:
   nsresult ClearRuleCascades();
 
   static void Startup();
+  static void InitSystemMetrics();
   static void Shutdown();
   static void FreeSystemMetrics();
   static bool HasSystemMetric(nsIAtom* aMetric);
@@ -152,7 +153,6 @@ public:
    *                    (For setting the slow selector flag)
    * @param aStateMask Mask containing states which we should exclude.
    *                   Ignored if aDependence is null
-   * @param aIsGecko Set if Gecko.
    * @param aSetSlowSelectorFlag Outparam, set if the caller is
    *                             supposed to set the slow selector flag.
    * @param aDependence Pointer to be set to true if we ignored a state due to
@@ -164,7 +164,6 @@ public:
                                   const nsIDocument* aDocument,
                                   bool aForStyling,
                                   mozilla::EventStates aStateMask,
-                                  bool aIsGecko,
                                   bool* aSetSlowSelectorFlag,
                                   bool* const aDependence = nullptr);
 
@@ -211,7 +210,7 @@ public:
                                            const nsString& aName);
 
   nsCSSCounterStyleRule* CounterStyleRuleForName(nsPresContext* aPresContext,
-                                                 const nsAString& aName);
+                                                 nsIAtom* aName);
 
   bool AppendPageRules(nsPresContext* aPresContext,
                        nsTArray<nsCSSPageRule*>& aArray);

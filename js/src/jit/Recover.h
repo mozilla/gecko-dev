@@ -102,9 +102,11 @@ namespace jit {
     _(NewObject)                                \
     _(NewTypedArray)                            \
     _(NewArray)                                 \
+    _(NewArrayIterator)                         \
     _(NewDerivedTypedObject)                    \
     _(CreateThisWithTemplate)                   \
     _(Lambda)                                   \
+    _(LambdaArrow)                              \
     _(SimdBox)                                  \
     _(ObjectState)                              \
     _(ArrayState)                               \
@@ -593,6 +595,14 @@ class RNewArray final : public RInstruction
     MOZ_MUST_USE bool recover(JSContext* cx, SnapshotIterator& iter) const override;
 };
 
+class RNewArrayIterator final : public RInstruction
+{
+  public:
+    RINSTRUCTION_HEADER_NUM_OP_(NewArrayIterator, 1)
+
+    MOZ_MUST_USE bool recover(JSContext* cx, SnapshotIterator& iter) const override;
+};
+
 class RNewDerivedTypedObject final : public RInstruction
 {
   public:
@@ -613,6 +623,14 @@ class RLambda final : public RInstruction
 {
   public:
     RINSTRUCTION_HEADER_NUM_OP_(Lambda, 2)
+
+    MOZ_MUST_USE bool recover(JSContext* cx, SnapshotIterator& iter) const override;
+};
+
+class RLambdaArrow final : public RInstruction
+{
+  public:
+    RINSTRUCTION_HEADER_NUM_OP_(LambdaArrow, 3)
 
     MOZ_MUST_USE bool recover(JSContext* cx, SnapshotIterator& iter) const override;
 };

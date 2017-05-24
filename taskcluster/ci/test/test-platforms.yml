@@ -29,13 +29,13 @@ linux32-nightly/opt:
     test-sets:
         -  linux32-tests
         -  linux32-opt-tests
-        - awsy
 
 linux64/debug:
     build-platform: linux64/debug
     test-sets:
         - common-tests
         - web-platform-tests
+        - headless
 linux64/opt:
     build-platform: linux64/opt
     test-sets:
@@ -44,6 +44,8 @@ linux64/opt:
         - opt-only-tests
         - desktop-screenshot-capture
         - talos
+        - awsy
+        - headless
 linux64-nightly/opt:
     build-platform: linux64-nightly/opt
     test-sets:
@@ -53,6 +55,7 @@ linux64-nightly/opt:
         - desktop-screenshot-capture
         - talos
         - awsy
+        - headless
 
 # TODO: use 'pgo' and 'asan' labels here, instead of -pgo/opt
 linux64-pgo/opt:
@@ -61,11 +64,13 @@ linux64-pgo/opt:
         - common-tests
         - web-platform-tests
         - talos
+        - headless
 
 linux64-asan/opt:
     build-platform: linux64-asan/opt
     test-sets:
         - common-tests
+        - headless
 
 # Stylo builds only run a subset of tests for the moment. So give them
 # their own test set.
@@ -78,16 +83,25 @@ linux64-stylo/opt:
     test-sets:
         - stylo-tests
         - talos
+linux64-stylo-sequential/debug:
+    build-platform: linux64-stylo/debug
+    test-sets:
+        - stylo-sequential-tests
+linux64-stylo-sequential/opt:
+    build-platform: linux64-stylo/opt
+    test-sets:
+        - stylo-sequential-tests
+        - talos
 
 # QR builds just run a subset right now. Note that the tests in this
 # test set are further restricted in tests.yml to run on certain projects
 # only, to avoid adding too much infra load.
 linux64-qr/opt:
-    build-platform: linux64-qr/opt
+    build-platform: linux64/opt
     test-sets:
         - qr-tests
 linux64-qr/debug:
-    build-platform: linux64-qr/debug
+    build-platform: linux64/debug
     test-sets:
         - qr-tests
 
@@ -115,16 +129,19 @@ windows7-32-vm/opt:
         - windows-vm-tests
         - external-media-tests
         - external-media-tests-slow
+        - awsy
+        - desktop-screenshot-capture
 
 # win32 gpu
-#windows7-32/debug:
-#    build-platform: win32/debug
-#    test-sets:
-#        - windows-gpu-tests
-#windows7-32/opt:
-#    build-platform: win32/opt
-#    test-sets:
-#        - windows-gpu-tests
+windows7-32/debug:
+    build-platform: win32/debug
+    test-sets:
+        - windows-gpu-tests
+windows7-32/opt:
+    build-platform: win32/opt
+    test-sets:
+        - windows-gpu-tests
+        - desktop-screenshot-capture
 
 # win64 vm
 windows10-64-vm/debug:
@@ -138,16 +155,24 @@ windows10-64-vm/opt:
         - windows-vm-tests
         - external-media-tests
         - external-media-tests-slow
+        - awsy
+        - desktop-screenshot-capture
 
 # win64 gpu
-#windows10-64/debug:
-#    build-platform: win64/debug
-#    test-sets:
-#        - windows-gpu-tests
-#windows10-64/opt:
-#    build-platform: win64/opt
-#    test-sets:
-#        - windows-gpu-tests
+windows10-64/debug:
+    build-platform: win64/debug
+    test-sets:
+        - windows-gpu-tests
+windows10-64/opt:
+    build-platform: win64/opt
+    test-sets:
+        - windows-gpu-tests
+        - desktop-screenshot-capture
+
+windows10-64-asan/opt:
+    build-platform: win64-asan/opt
+    test-sets:
+        - common-tests
 
 ##
 # MacOS X platforms (matching /macosx.*/)
@@ -157,11 +182,11 @@ macosx64/debug:
     test-sets:
         - macosx64-tests-debug
 
-# macosx64/opt:
-#     build-platform: macosx64/opt
-#     test-sets:
-#         - macosx64-tests-talos
-#         - macosx64-tests-debug
+macosx64/opt:
+    build-platform: macosx64/opt
+    test-sets:
+        - macosx64-tests-talos
+        - macosx64-tests-debug
 
 ##
 # Android platforms (matching /android.*/)

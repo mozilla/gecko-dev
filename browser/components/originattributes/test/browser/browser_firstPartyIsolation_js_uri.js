@@ -1,4 +1,4 @@
-add_task(function* setup() {
+add_task(async function setup() {
   Services.prefs.setBoolPref("privacy.firstparty.isolate", true);
 
   registerCleanupFunction(function() {
@@ -6,29 +6,31 @@ add_task(function* setup() {
   });
 });
 
-add_task(function* test_remote_window_open_js_uri() {
-  let win = yield BrowserTestUtils.openNewBrowserWindow({ remote: true });
+add_task(async function test_remote_window_open_js_uri() {
+  let win = await BrowserTestUtils.openNewBrowserWindow({ remote: true });
   let browser = win.gBrowser.selectedBrowser;
 
   Assert.ok(browser.isRemoteBrowser, "should be a remote browser");
 
   browser.loadURI(`javascript:1;`);
-  let attrs = { firstPartyDomain: "1f1841ad-0395-48ba-aec4-c98ee3f6e614.mozilla" };
-  yield ContentTask.spawn(browser, attrs, function* (expectAttrs) {
+  await ContentTask.spawn(browser, {}, async function() {
     info("origin " + content.document.nodePrincipal.origin);
 
     Assert.ok(content.document.nodePrincipal.isNullPrincipal,
               "The principal of remote javascript: should be a NullPrincipal.");
+
+    let str = content.document.nodePrincipal.originNoSuffix;
+    let expectDomain = str.substring("moz-nullprincipal:{".length, str.length - 1) + ".mozilla";
     Assert.equal(content.document.nodePrincipal.originAttributes.firstPartyDomain,
-                 expectAttrs.firstPartyDomain,
-                 "remote javascript: should have firstPartyDomain set");
+                 expectDomain,
+                 "remote javascript: should have firstPartyDomain set to " + expectDomain);
   });
 
   win.close();
 });
 
-add_task(function* test_remote_window_open_js_uri2() {
-  let win = yield BrowserTestUtils.openNewBrowserWindow({ remote: true });
+add_task(async function test_remote_window_open_js_uri2() {
+  let win = await BrowserTestUtils.openNewBrowserWindow({ remote: true });
   let browser = win.gBrowser.selectedBrowser;
 
   Assert.ok(browser.isRemoteBrowser, "should be a remote browser");
@@ -41,23 +43,27 @@ add_task(function* test_remote_window_open_js_uri2() {
     alert("connect to http://example.com");
  `);
 
-  yield BrowserTestUtils.browserLoaded(browser, true, function(url) {
+  await BrowserTestUtils.browserLoaded(browser, true, function(url) {
     info("URL:" + url);
     return url == "http://example.com/";
   });
 
-  let attrs = { firstPartyDomain: "1f1841ad-0395-48ba-aec4-c98ee3f6e614.mozilla" };
-  yield ContentTask.spawn(browser, attrs, function* (expectAttrs) {
+  await ContentTask.spawn(browser, {}, async function() {
     info("origin " + content.document.nodePrincipal.origin);
 
     Assert.ok(content.document.nodePrincipal.isNullPrincipal,
               "The principal of remote javascript: should be a NullPrincipal.");
+
+    let str = content.document.nodePrincipal.originNoSuffix;
+    let expectDomain = str.substring("moz-nullprincipal:{".length, str.length - 1) + ".mozilla";
     Assert.equal(content.document.nodePrincipal.originAttributes.firstPartyDomain,
-                 expectAttrs.firstPartyDomain,
-                 "remote javascript: should have firstPartyDomain set");
+                 expectDomain,
+                 "remote javascript: should have firstPartyDomain set to " + expectDomain);
 
     let iframe = content.document.getElementById("iframe1");
-    info("iframe principal: " + iframe.contentDocument.nodePrincipal.origin);
+    Assert.equal(iframe.contentDocument.nodePrincipal.originAttributes.firstPartyDomain,
+                 expectDomain,
+                 "iframe should have firstPartyDomain set to " + expectDomain);
   });
 
   win.close();

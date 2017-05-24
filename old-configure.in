@@ -48,7 +48,7 @@ dnl ========================================================
 MOZJPEG=62
 MOZPNG=10629
 NSPR_VERSION=4
-NSPR_MINVER=4.13.1
+NSPR_MINVER=4.14
 NSS_VERSION=3
 
 dnl Set the minimum version of toolkit libs used by mozilla
@@ -57,18 +57,16 @@ GLIB_VERSION=2.22
 # 2_26 is the earliest version we can set GLIB_VERSION_MIN_REQUIRED.
 # The macro won't be used when compiling with earlier versions anyway.
 GLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_26
-GIO_VERSION=2.22
 CAIRO_VERSION=1.10
 GTK2_VERSION=2.18.0
 GTK3_VERSION=3.4.0
 GDK_VERSION_MAX_ALLOWED=GDK_VERSION_3_4
 WINDRES_VERSION=2.14.90
 W32API_VERSION=3.14
-GNOMEUI_VERSION=2.2.0
 GCONF_VERSION=1.2.1
 STARTUP_NOTIFICATION_VERSION=0.8
 DBUS_VERSION=0.60
-SQLITE_VERSION=3.17.0
+SQLITE_VERSION=3.18.0
 
 dnl Set various checks
 dnl ========================================================
@@ -508,9 +506,11 @@ AS='$(CC)'
 AS_DASH_C_FLAG='-c'
 DLL_PREFIX=lib
 LIB_PREFIX=lib
+RUST_LIB_PREFIX=lib
 DLL_SUFFIX=.so
 OBJ_SUFFIX=o
 LIB_SUFFIX=a
+RUST_LIB_SUFFIX=a
 IMPORT_LIB_SUFFIX=
 DIRENT_INO=d_ino
 MOZ_USER_DIR=".mozilla"
@@ -554,6 +554,11 @@ fi
 if test -n "$COMPILE_ENVIRONMENT"; then
    MOZ_CONFIG_SANITIZE
 fi
+
+# Add the hardening flags from moz.configure
+CFLAGS="$CFLAGS $HARDENING_CFLAGS"
+CPPFLAGS="$CPPFLAGS $HARDENING_CFLAGS"
+CXXFLAGS="$CXXFLAGS $HARDENING_CFLAGS"
 
 dnl ========================================================
 dnl GNU specific defaults
@@ -923,6 +928,8 @@ case "$target" in
         MOZ_FIX_LINK_PATHS=
         DLL_PREFIX=
         IMPORT_LIB_SUFFIX=a
+        RUST_LIB_PREFIX=
+        RUST_LIB_SUFFIX=lib
 
         WIN32_CONSOLE_EXE_LDFLAGS=-mconsole
         WIN32_GUI_EXE_LDFLAGS=-mwindows
@@ -945,8 +952,10 @@ case "$target" in
         PKG_SKIP_STRIP=1
         OBJ_SUFFIX=obj
         LIB_SUFFIX=lib
+        RUST_LIB_SUFFIX=lib
         DLL_PREFIX=
         LIB_PREFIX=
+        RUST_LIB_PREFIX=
         IMPORT_LIB_SUFFIX=lib
         MKSHLIB='$(LINK) -NOLOGO -DLL -OUT:$@ -PDB:$(LINK_PDBFILE) $(DSO_LDOPTS)'
         MKCSHLIB='$(LINK) -NOLOGO -DLL -OUT:$@ -PDB:$(LINK_PDBFILE) $(DSO_LDOPTS)'
@@ -1180,6 +1189,10 @@ case "$target" in
     if test "$LIBRUNPATH"; then
         DSO_LDOPTS="-R$LIBRUNPATH $DSO_LDOPTS"
     fi
+    ;;
+
+*-solaris*)
+    MOZ_FIX_LINK_PATHS=
     ;;
 
 esac
@@ -2010,7 +2023,7 @@ else
    NSS_CFLAGS="-I${DIST}/include/nss"
    case "${OS_ARCH}" in
         # Only few platforms have been tested with GYP
-        WINNT|Darwin|Linux|DragonFly|FreeBSD|NetBSD|OpenBSD)
+        WINNT|Darwin|Linux|DragonFly|FreeBSD|NetBSD|OpenBSD|SunOS)
             ;;
         *)
             AC_MSG_ERROR([building in-tree NSS is not supported on this platform. Use --with-system-nss])
@@ -2199,10 +2212,8 @@ MOZ_NO_SMART_CARDS=
 NECKO_COOKIES=1
 MOZ_USE_NATIVE_POPUP_WINDOWS=
 MOZ_EXCLUDE_HYPHENATION_DICTIONARIES=
-MOZ_INSTALL_TRACKING=
 ACCESSIBILITY=1
 MOZ_TIME_MANAGER=
-MOZ_AUDIO_CHANNEL_MANAGER=
 MOZ_CONTENT_SANDBOX=
 MOZ_GMP_SANDBOX=
 MOZ_SANDBOX=1
@@ -2218,7 +2229,6 @@ esac
 
 case "${target}" in
     *-android*|*-linuxandroid*)
-        MOZ_THEME_FASTSTRIPE=1
         MOZ_RAW=1
         ;;
 
@@ -2321,14 +2331,9 @@ if test -n "$MOZ_MULET"; then
 fi
 
 # Propagate feature switches for code written in rust from confvars.sh
-if test -n "$MOZ_RUST"; then
-    if test -n "$MOZ_RUST_MP4PARSE"; then
-        AC_DEFINE(MOZ_RUST_MP4PARSE)
-    fi
-    if test -n "$MOZ_RUST_URLPARSE"; then
-        AC_DEFINE(MOZ_RUST_URLPARSE)
-        AC_SUBST(MOZ_RUST_URLPARSE)
-    fi
+if test -n "$MOZ_RUST_URLPARSE"; then
+    AC_DEFINE(MOZ_RUST_URLPARSE)
+    AC_SUBST(MOZ_RUST_URLPARSE)
 fi
 
 AC_SUBST(MOZ_PHOENIX)
@@ -2345,7 +2350,7 @@ dnl ========================================================
 if test -z "$gonkdir" ; then
     case "$MOZ_BUILD_APP" in
     mobile/android)
-        MOZ_ANDROID_SDK(23, 23.0.3 23.0.1)
+        MOZ_ANDROID_SDK(23, 23.0.3 23.0.1, 25.3.1)
         ;;
     esac
 fi
@@ -2538,48 +2543,15 @@ MOZ_ANDROID_INSTALL_TRACKING
 
 
 dnl ========================================================
-dnl = GIO and GConf support module
+dnl = GConf support module
 dnl ========================================================
 
 if test "$MOZ_X11"
 then
-    dnl build the GIO extension by default only when the
-    dnl GTK2 toolkit is in use.
     if test "$MOZ_ENABLE_GTK"
     then
-        MOZ_ENABLE_GIO=1
         MOZ_ENABLE_GCONF=1
     fi
-
-    dnl ========================================================
-    dnl = GIO support module
-    dnl ========================================================
-    MOZ_ARG_DISABLE_BOOL(gio,
-    [  --disable-gio           Disable GIO support],
-        MOZ_ENABLE_GIO=,
-        MOZ_ENABLE_GIO=force)
-
-    if test "$MOZ_ENABLE_GIO" -a "$MOZ_ENABLE_GTK"
-    then
-        if test "$MOZ_WIDGET_TOOLKIT" = gtk2
-        then
-            PKG_CHECK_MODULES(_GTKCHECK, gtk+-2.0 >= 2.14, ,
-                              [AC_MSG_ERROR([* * * Could not find gtk+-2.0 > 2.14. Required for build with gio.])])
-        fi
-        PKG_CHECK_MODULES(MOZ_GIO, gio-2.0 >= $GIO_VERSION,[
-            MOZ_GIO_LIBS=`echo $MOZ_GIO_LIBS | sed 's/-llinc\>//'`
-            MOZ_ENABLE_GIO=1
-            AC_DEFINE(MOZ_ENABLE_GIO)
-        ],[
-            if test "$MOZ_ENABLE_GIO" = "force"
-            then
-                AC_MSG_ERROR([* * * Could not find gio-2.0 >= $GIO_VERSION])
-            fi
-            MOZ_ENABLE_GIO=
-        ])
-    fi
-
-    AC_SUBST(MOZ_ENABLE_GIO)
 
     dnl ========================================================
     dnl = GConf support module
@@ -2633,38 +2605,6 @@ fi
 AC_SUBST(MOZ_ENABLE_LIBPROXY)
 
 dnl ========================================================
-dnl = libgnomeui support module
-dnl ========================================================
-
-if test "$MOZ_ENABLE_GTK"
-then
-    MOZ_ARG_ENABLE_BOOL(gnomeui,
-    [  --enable-gnomeui        Enable libgnomeui instead of GIO & GTK for icon theme support ],
-        MOZ_ENABLE_GNOMEUI=force,
-        MOZ_ENABLE_GNOMEUI=)
-
-    if test "$MOZ_ENABLE_GNOMEUI"
-    then
-        PKG_CHECK_MODULES(MOZ_GNOMEUI, libgnomeui-2.0 >= $GNOMEUI_VERSION,
-        [
-            MOZ_ENABLE_GNOMEUI=1
-        ],[
-            if test "$MOZ_ENABLE_GNOMEUI" = "force"
-            then
-                AC_MSG_ERROR([* * * Could not find libgnomeui-2.0 >= $GNOMEUI_VERSION])
-            fi
-            MOZ_ENABLE_GNOMEUI=
-        ])
-    fi
-
-    if test "$MOZ_ENABLE_GNOMEUI"; then
-        AC_DEFINE(MOZ_ENABLE_GNOMEUI)
-    fi
-fi
-
-AC_SUBST(MOZ_ENABLE_GNOMEUI)
-
-dnl ========================================================
 dnl = dbus support
 dnl ========================================================
 
@@ -2691,15 +2631,6 @@ dnl = Whether to exclude hyphenations files in the build
 dnl =========================================================
 if test -n "$MOZ_EXCLUDE_HYPHENATION_DICTIONARIES"; then
     AC_DEFINE(MOZ_EXCLUDE_HYPHENATION_DICTIONARIES)
-fi
-
-dnl ========================================================
-dnl = Include install tracking on Android
-dnl ========================================================
-if test -n "$MOZ_INSTALL_TRACKING"; then
-    if test -z "$MOZ_ADJUST_SDK_KEY"; then
-        AC_MSG_ERROR([Must specify --with-adjust-sdk-keyfile when MOZ_INSTALL_TRACKING is defined!])
-    fi
 fi
 
 dnl ========================================================
@@ -3186,7 +3117,7 @@ MOZ_ARG_DISABLE_BOOL(universalchardet,
 
 dnl ========================================================
 dnl = ANGLE OpenGL->D3D translator for WebGL
-dnl = * only applies to win32
+dnl = * only applies to win32 (and then, not MINGW)
 dnl ========================================================
 
 MOZ_ANGLE_RENDERER=
@@ -3250,7 +3181,11 @@ if test -n "$MOZ_ANGLE_RENDERER"; then
       AC_MSG_RESULT([Windows SDK not found.])
     fi
   else
-    AC_MSG_ERROR([Couldn't find Windows SDK 8.1 or higher needed for ANGLE.])
+    if test "$OS_ARCH" = "$HOST_OS_ARCH"; then
+      AC_MSG_ERROR([Couldn't find Windows SDK 8.1 or higher needed for ANGLE.])
+    else
+      AC_MSG_RESULT([Windows SDK not needed for ANGLE in Linux MinGW build.])
+    fi
   fi
 
   if test -z "$MOZ_D3DCOMPILER_VISTA_DLL_PATH"; then
@@ -3571,20 +3506,6 @@ MOZ_ARG_ENABLE_STRING(extensions,
     fi
 done],
     MOZ_EXTENSIONS="$MOZ_EXTENSIONS_DEFAULT")
-
-if test -z "$MOZ_ENABLE_GIO" -a `echo "$MOZ_EXTENSIONS" | grep -c gio` -ne 0; then
-    # Suppress warning on non-X11 platforms
-    if test -n "$MOZ_X11"; then
-        AC_MSG_WARN([Removing gio from MOZ_EXTENSIONS due to --disable-gio.])
-    fi
-    MOZ_EXTENSIONS=`echo $MOZ_EXTENSIONS | sed -e 's|gio||'`
-fi
-
-if test `echo "$MOZ_EXTENSIONS" | grep -c gio` -ne 0; then
-    MOZ_GIO_COMPONENT=1
-    MOZ_EXTENSIONS=`echo $MOZ_EXTENSIONS | sed -e 's|gio||'`
-fi
-AC_SUBST(MOZ_GIO_COMPONENT)
 
 dnl Ensure every extension exists, to avoid mostly-inscrutable error messages
 dnl when trying to build a nonexistent extension.
@@ -4018,15 +3939,6 @@ MOZ_ARG_DISABLE_BOOL(zipwriter,
 AC_SUBST(MOZ_ZIPWRITER)
 
 dnl ========================================================
-dnl = faststripe theme
-dnl ========================================================
-MOZ_ARG_ENABLE_BOOL(faststripe,
-[  --enable-faststripe     Use faststripe theme],
-    MOZ_THEME_FASTSTRIPE=1,
-    MOZ_THEME_FASTSTRIPE= )
-AC_SUBST(MOZ_THEME_FASTSTRIPE)
-
-dnl ========================================================
 dnl =
 dnl = Feature options that require extra sources to be pulled
 dnl =
@@ -4158,8 +4070,6 @@ Android|WINNT|Darwin)
 esac
 
 if test -n "$MOZ_REPLACE_MALLOC"; then
-    MOZ_SYSTEM_JEMALLOC=
-
     dnl Replace-malloc Mac linkage quirks
     if test -n "$MACOSX_DEPLOYMENT_TARGET"; then
         AC_CACHE_CHECK([how to do weak dynamic linking],
@@ -4226,18 +4136,6 @@ if test -z "$MOZ_MEMORY"; then
       ;;
   esac
 else
-  if test -n "$MOZ_JEMALLOC4" -a -z "$MOZ_REPLACE_MALLOC"; then
-    MOZ_SYSTEM_JEMALLOC=1
-    AC_CHECK_FUNCS(mallctl nallocx,,
-      [MOZ_SYSTEM_JEMALLOC=
-       break])
-    if test -n "$MOZ_SYSTEM_JEMALLOC"; then
-      AC_DEFINE(MOZ_SYSTEM_JEMALLOC)
-    fi
-  fi
-  if test "x$MOZ_DEBUG" = "x1"; then
-    AC_DEFINE(MOZ_MEMORY_DEBUG)
-  fi
   dnl The generic feature tests that determine how to compute ncpus are long and
   dnl complicated.  Therefore, simply define special cpp variables for the
   dnl platforms we have special knowledge of.
@@ -4247,7 +4145,6 @@ else
     ;;
   esac
 fi # MOZ_MEMORY
-AC_SUBST(MOZ_SYSTEM_JEMALLOC)
 AC_SUBST(MOZ_GLUE_IN_PROGRAM)
 
 # Allow the application to provide a subconfigure script.
@@ -4494,14 +4391,6 @@ if test -n "$MOZ_TIME_MANAGER"; then
     AC_DEFINE(MOZ_TIME_MANAGER)
 fi
 AC_SUBST(MOZ_TIME_MANAGER)
-
-dnl ========================================================
-dnl = Enable Support for AudioChannelManager API
-dnl ========================================================
-if test -n "$MOZ_AUDIO_CHANNEL_MANAGER"; then
-    AC_DEFINE(MOZ_AUDIO_CHANNEL_MANAGER)
-fi
-AC_SUBST(MOZ_AUDIO_CHANNEL_MANAGER)
 
 dnl ========================================================
 dnl = Enable Support for Secure Element API
@@ -5077,7 +4966,6 @@ AC_SUBST(MOZ_ANDROID_APPLICATION_CLASS)
 AC_SUBST(MOZ_ANDROID_BROWSER_INTENT_CLASS)
 AC_SUBST(MOZ_ANDROID_SEARCH_INTENT_CLASS)
 AC_SUBST(MOZ_EXCLUDE_HYPHENATION_DICTIONARIES)
-AC_SUBST(MOZ_INSTALL_TRACKING)
 AC_SUBST(ENABLE_STRIP)
 AC_SUBST(PKG_SKIP_STRIP)
 AC_SUBST(STRIP_FLAGS)
@@ -5101,11 +4989,6 @@ fi
 AC_SUBST(MOZ_REQUIRE_SIGNING)
 if test "$MOZ_REQUIRE_SIGNING" = 1; then
   AC_DEFINE(MOZ_REQUIRE_SIGNING)
-fi
-
-AC_SUBST(MOZ_JSDOWNLOADS)
-if test -n "$MOZ_JSDOWNLOADS"; then
-  AC_DEFINE(MOZ_JSDOWNLOADS)
 fi
 
 dnl ========================================================
@@ -5306,7 +5189,12 @@ dnl ICU Support
 dnl ========================================================
 
 if test "$MOZ_WIDGET_TOOLKIT" != "android" -o -z "$RELEASE_OR_BETA"; then
-    _INTL_API=yes
+    dnl Disable ICU on android/x86 for testing on tier-1 platform
+    if test "$MOZ_WIDGET_TOOLKIT" = "android" -a "$CPU_ARCH" = "x86"; then
+        _INTL_API=no
+    else
+        _INTL_API=yes
+    fi
 else
     _INTL_API=no
 fi
@@ -5410,10 +5298,12 @@ AC_SUBST(DSO_CFLAGS)
 AC_SUBST(DSO_PIC_CFLAGS)
 AC_SUBST(DSO_LDOPTS)
 AC_SUBST(LIB_PREFIX)
+AC_SUBST(RUST_LIB_PREFIX)
 AC_SUBST(DLL_PREFIX)
 AC_SUBST(DLL_SUFFIX)
 AC_DEFINE_UNQUOTED(MOZ_DLL_SUFFIX, "$DLL_SUFFIX")
 AC_SUBST(LIB_SUFFIX)
+AC_SUBST(RUST_LIB_SUFFIX)
 AC_SUBST(OBJ_SUFFIX)
 AC_SUBST(BIN_SUFFIX)
 AC_SUBST(IMPORT_LIB_SUFFIX)
@@ -5582,10 +5472,6 @@ NSS_DISABLE_LIBPKIX=1
 AC_SUBST(NSS_DISABLE_LIBPKIX)
 
 MOZ_CREATE_CONFIG_STATUS()
-
-if test "$COMPILE_ENVIRONMENT"; then
-  MOZ_SUBCONFIGURE_JEMALLOC()
-fi
 
 # Run freetype configure script
 

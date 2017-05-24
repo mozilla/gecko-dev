@@ -8,11 +8,16 @@
 
 "use strict";
 
+var path = require("path");
+
 const selfHostedRegex = /js\/src\/(?:builtin|shell)\/.*?\.js$/;
 const macroRegex = /\s*\#(if|ifdef|else|elif|endif|include|define|undef).*/;
 
 module.exports = {
-  preprocess: function(text, filename) {
+  preprocess(text, filename) {
+    if (path.win32) {
+      filename = filename.split(path.sep).join("/");
+    }
     if (!selfHostedRegex.test(filename)) {
       return [text];
     }
@@ -38,7 +43,7 @@ module.exports = {
     return [lines.join("\n")];
   },
 
-  postprocess: function(messages, filename) {
+  postprocess(messages, filename) {
     return Array.prototype.concat.apply([], messages);
   }
 };

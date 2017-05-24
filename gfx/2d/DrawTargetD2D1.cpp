@@ -8,6 +8,7 @@
 #include "FilterNodeSoftware.h"
 #include "GradientStopsD2D.h"
 #include "SourceSurfaceD2D1.h"
+#include "SourceSurfaceDual.h"
 #include "RadialGradientEffectD2D1.h"
 
 #include "HelpersD2D.h"
@@ -42,6 +43,7 @@ DrawTargetD2D1::DrawTargetD2D1()
   : mPushedLayers(1)
   , mUsedCommandListsSincePurge(0)
   , mDidComplexBlendWithListInList(false)
+  , mDeviceSeq(0)
 {
 }
 
@@ -60,7 +62,7 @@ DrawTargetD2D1::~DrawTargetD2D1()
     // mSnapshot will be cleared now.
   }
 
-  if (mDC) {
+  if (mDC && IsDeviceContextValid()) {
     // The only way mDC can be null is if Init failed, but it can happen and the
     // destructor is the only place where we need to check for it since the
     // DrawTarget will destroyed right after Init fails.
@@ -106,18 +108,20 @@ static const uint32_t kPushedLayersBeforePurge = 25;
 void
 DrawTargetD2D1::Flush()
 {
-  if ((mUsedCommandListsSincePurge >= kPushedLayersBeforePurge) &&
-      mPushedLayers.size() == 1) {
-    // It's important to pop all clips as otherwise layers can forget about
-    // their clip when doing an EndDraw. When we have layers pushed we cannot
-    // easily pop all underlying clips to delay the purge until we have no
-    // layers pushed.
-    PopAllClips();
-    mUsedCommandListsSincePurge = 0;
-    mDC->EndDraw();
-    mDC->BeginDraw();
-  } else {
-    mDC->Flush();
+  if (IsDeviceContextValid()) {
+    if ((mUsedCommandListsSincePurge >= kPushedLayersBeforePurge) &&
+        mPushedLayers.size() == 1) {
+      // It's important to pop all clips as otherwise layers can forget about
+      // their clip when doing an EndDraw. When we have layers pushed we cannot
+      // easily pop all underlying clips to delay the purge until we have no
+      // layers pushed.
+      PopAllClips();
+      mUsedCommandListsSincePurge = 0;
+      mDC->EndDraw();
+      mDC->BeginDraw();
+    } else {
+      mDC->Flush();
+    }
   }
 
   // We no longer depend on any target.
@@ -1006,6 +1010,8 @@ DrawTargetD2D1::Init(ID3D11Texture2D* aTexture, SurfaceFormat aFormat)
   if (!device) {
     gfxCriticalNote << "[D2D1.1] Failed to obtain a device for DrawTargetD2D1::Init(ID3D11Texture2D*, SurfaceFormat).";
     return false;
+  } else {
+    mDeviceSeq = Factory::GetD2D1DeviceSeq();
   }
 
   hr = device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS, getter_AddRefs(mDC));
@@ -1071,6 +1077,8 @@ DrawTargetD2D1::Init(const IntSize &aSize, SurfaceFormat aFormat)
   if (!device) {
     gfxCriticalNote << "[D2D1.1] Failed to obtain a device for DrawTargetD2D1::Init(IntSize, SurfaceFormat).";
     return false;
+  } else {
+    mDeviceSeq = Factory::GetD2D1DeviceSeq();
   }
 
   hr = device->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS, getter_AddRefs(mDC));
@@ -1870,6 +1878,21 @@ DrawTargetD2D1::GetImageForSurface(SourceSurface *aSurface, Matrix &aSourceTrans
       AddDependencyOnSource(surf);
     }
     break;
+  case SurfaceType::DUAL_DT:
+    {
+      // Sometimes we have a dual drawtarget but the underlying targets
+      // are d2d surfaces. Let's not readback and reupload in those cases.
+      SourceSurfaceDual* surface = static_cast<SourceSurfaceDual*>(aSurface);
+      SourceSurface* first = surface->GetFirstSurface();
+      if (first->GetType() == SurfaceType::D2D1_1_IMAGE) {
+        MOZ_ASSERT(surface->SameSurfaceTypes());
+        SourceSurfaceD2D1* d2dSurface = static_cast<SourceSurfaceD2D1*>(first);
+        image = d2dSurface->GetImage();
+        AddDependencyOnSource(d2dSurface); 
+        break;
+      }
+      // Otherwise fall through
+  }
   default:
     {
       RefPtr<DataSourceSurface> dataSurf = aSurface->GetDataSurface();
@@ -1935,6 +1958,11 @@ DrawTargetD2D1::PushD2DLayer(ID2D1DeviceContext *aDC, ID2D1Geometry *aGeometry, 
 
   mDC->PushLayer(D2D1::LayerParameters1(aMaxRect, aGeometry, antialias, aTransform,
                                         1.0, nullptr, options), nullptr);
+}
+
+bool
+DrawTargetD2D1::IsDeviceContextValid() {
+  return (mDeviceSeq == Factory::GetD2D1DeviceSeq()) && Factory::GetD2D1Device();
 }
 
 }

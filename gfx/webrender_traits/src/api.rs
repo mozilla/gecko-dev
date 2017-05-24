@@ -2,22 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use byteorder::{LittleEndian, WriteBytesExt};
-use channel::{self, MsgSender, PayloadHelperMethods, PayloadSender};
+use channel::{self, MsgSender, Payload, PayloadSenderHelperMethods, PayloadSender};
+#[cfg(feature = "webgl")]
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use std::cell::Cell;
 use std::fmt;
 use std::marker::PhantomData;
-use {AuxiliaryLists, AuxiliaryListsDescriptor, BuiltDisplayList, BuiltDisplayListDescriptor};
-use {ColorF, DeviceIntPoint, DeviceIntSize, DeviceUintRect, DeviceUintSize, FontKey};
-use {GlyphDimensions, GlyphKey, ImageData, ImageDescriptor, ImageKey, LayoutPoint, LayoutSize};
-use {LayoutTransform, NativeFontHandle, ScrollLayerId, WebGLCommand, WebGLContextId, WorldPoint};
+use {BuiltDisplayList, BuiltDisplayListDescriptor, ClipId, ColorF, DeviceIntPoint, DeviceIntSize};
+use {DeviceUintRect, DeviceUintSize, FontKey, GlyphDimensions, GlyphKey};
+use {ImageData, ImageDescriptor, ImageKey, LayoutPoint, LayoutSize, LayoutTransform};
+use {NativeFontHandle, WorldPoint};
+#[cfg(feature = "webgl")]
+use {WebGLCommand, WebGLContextId};
 
 pub type TileSize = u16;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum ApiMsg {
-    AddRawFont(FontKey, Vec<u8>),
+    AddRawFont(FontKey, Vec<u8>, u32),
     AddNativeFont(FontKey, NativeFontHandle),
     DeleteFont(FontKey),
     /// Gets the glyph dimensions
@@ -25,31 +27,31 @@ pub enum ApiMsg {
     /// Adds an image from the resource cache.
     AddImage(ImageKey, ImageDescriptor, ImageData, Option<TileSize>),
     /// Updates the the resource cache with the new image data.
-    UpdateImage(ImageKey, ImageDescriptor, Vec<u8>),
+    UpdateImage(ImageKey, ImageDescriptor, ImageData, Option<DeviceUintRect>),
     /// Drops an image from the resource cache.
     DeleteImage(ImageKey),
     CloneApi(MsgSender<IdNamespace>),
     /// Supplies a new frame to WebRender.
     ///
-    /// After receiving this message, WebRender will read the display list, followed by the
-    /// auxiliary lists, from the payload channel.
-    SetRootDisplayList(Option<ColorF>,
-                       Epoch,
-                       PipelineId,
-                       LayoutSize,
-                       BuiltDisplayListDescriptor,
-                       AuxiliaryListsDescriptor,
-                       bool),
+    /// After receiving this message, WebRender will read the display list from the payload channel.
+    // TODO: We should consider using named members to avoid confusion.
+    SetDisplayList(Option<ColorF>,
+                   Epoch,
+                   PipelineId,
+                   LayoutSize, // viewport_size
+                   LayoutSize, // content size
+                   BuiltDisplayListDescriptor,
+                   bool),
     SetPageZoom(ZoomFactor),
     SetPinchZoom(ZoomFactor),
     SetPan(DeviceIntPoint),
     SetRootPipeline(PipelineId),
     SetWindowParameters(DeviceUintSize, DeviceUintRect),
     Scroll(ScrollLocation, WorldPoint, ScrollEventPhase),
-    ScrollLayerWithId(LayoutPoint, ScrollLayerId),
+    ScrollNodeWithId(LayoutPoint, ClipId, ScrollClamping),
     TickScrollingBounce,
     TranslatePointToLayerSpace(WorldPoint, MsgSender<(LayoutPoint, PipelineId)>),
-    GetScrollLayerState(MsgSender<Vec<ScrollLayerState>>),
+    GetScrollNodeState(MsgSender<Vec<ScrollLayerState>>),
     RequestWebGLContext(DeviceIntSize, GLContextAttributes, MsgSender<Result<(WebGLContextId, GLLimits), String>>),
     ResizeWebGLContext(WebGLContextId, DeviceIntSize),
     WebGLCommand(WebGLContextId, WebGLCommand),
@@ -65,40 +67,58 @@ pub enum ApiMsg {
 
 impl fmt::Debug for ApiMsg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &ApiMsg::AddRawFont(..) => { write!(f, "ApiMsg::AddRawFont") }
-            &ApiMsg::AddNativeFont(..) => { write!(f, "ApiMsg::AddNativeFont") }
-            &ApiMsg::DeleteFont(..) => { write!(f, "ApiMsg::DeleteFont") }
-            &ApiMsg::GetGlyphDimensions(..) => { write!(f, "ApiMsg::GetGlyphDimensions") }
-            &ApiMsg::AddImage(..) => { write!(f, "ApiMsg::AddImage") }
-            &ApiMsg::UpdateImage(..) => { write!(f, "ApiMsg::UpdateImage") }
-            &ApiMsg::DeleteImage(..) => { write!(f, "ApiMsg::DeleteImage") }
-            &ApiMsg::CloneApi(..) => { write!(f, "ApiMsg::CloneApi") }
-            &ApiMsg::SetRootDisplayList(..) => { write!(f, "ApiMsg::SetRootDisplayList") }
-            &ApiMsg::SetRootPipeline(..) => { write!(f, "ApiMsg::SetRootPipeline") }
-            &ApiMsg::Scroll(..) => { write!(f, "ApiMsg::Scroll") }
-            &ApiMsg::ScrollLayerWithId(..) => { write!(f, "ApiMsg::ScrollLayerWithId") }
-            &ApiMsg::TickScrollingBounce => { write!(f, "ApiMsg::TickScrollingBounce") }
-            &ApiMsg::TranslatePointToLayerSpace(..) => { write!(f, "ApiMsg::TranslatePointToLayerSpace") }
-            &ApiMsg::GetScrollLayerState(..) => { write!(f, "ApiMsg::GetScrollLayerState") }
-            &ApiMsg::RequestWebGLContext(..) => { write!(f, "ApiMsg::RequestWebGLContext") }
-            &ApiMsg::ResizeWebGLContext(..) => { write!(f, "ApiMsg::ResizeWebGLContext") }
-            &ApiMsg::WebGLCommand(..) => { write!(f, "ApiMsg::WebGLCommand") }
-            &ApiMsg::GenerateFrame(..) => { write!(f, "ApiMsg::GenerateFrame") }
-            &ApiMsg::VRCompositorCommand(..) => { write!(f, "ApiMsg::VRCompositorCommand") }
-            &ApiMsg::ExternalEvent(..) => { write!(f, "ApiMsg::ExternalEvent") }
-            &ApiMsg::ShutDown => { write!(f, "ApiMsg::ShutDown") }
-            &ApiMsg::SetPageZoom(..) => { write!(f, "ApiMsg::SetPageZoom") }
-            &ApiMsg::SetPinchZoom(..) => { write!(f, "ApiMsg::SetPinchZoom") }
-            &ApiMsg::SetPan(..) => { write!(f, "ApiMsg::SetPan") }
-            &ApiMsg::SetWindowParameters(..) => { write!(f, "ApiMsg::SetWindowParameters") }
-        }
+        f.write_str(match *self {
+            ApiMsg::AddRawFont(..) => "ApiMsg::AddRawFont",
+            ApiMsg::AddNativeFont(..) => "ApiMsg::AddNativeFont",
+            ApiMsg::DeleteFont(..) => "ApiMsg::DeleteFont",
+            ApiMsg::GetGlyphDimensions(..) => "ApiMsg::GetGlyphDimensions",
+            ApiMsg::AddImage(..) => "ApiMsg::AddImage",
+            ApiMsg::UpdateImage(..) => "ApiMsg::UpdateImage",
+            ApiMsg::DeleteImage(..) => "ApiMsg::DeleteImage",
+            ApiMsg::CloneApi(..) => "ApiMsg::CloneApi",
+            ApiMsg::SetDisplayList(..) => "ApiMsg::SetDisplayList",
+            ApiMsg::SetRootPipeline(..) => "ApiMsg::SetRootPipeline",
+            ApiMsg::Scroll(..) => "ApiMsg::Scroll",
+            ApiMsg::ScrollNodeWithId(..) => "ApiMsg::ScrollNodeWithId",
+            ApiMsg::TickScrollingBounce => "ApiMsg::TickScrollingBounce",
+            ApiMsg::TranslatePointToLayerSpace(..) => "ApiMsg::TranslatePointToLayerSpace",
+            ApiMsg::GetScrollNodeState(..) => "ApiMsg::GetScrollNodeState",
+            ApiMsg::RequestWebGLContext(..) => "ApiMsg::RequestWebGLContext",
+            ApiMsg::ResizeWebGLContext(..) => "ApiMsg::ResizeWebGLContext",
+            ApiMsg::WebGLCommand(..) => "ApiMsg::WebGLCommand",
+            ApiMsg::GenerateFrame(..) => "ApiMsg::GenerateFrame",
+            ApiMsg::VRCompositorCommand(..) => "ApiMsg::VRCompositorCommand",
+            ApiMsg::ExternalEvent(..) => "ApiMsg::ExternalEvent",
+            ApiMsg::ShutDown => "ApiMsg::ShutDown",
+            ApiMsg::SetPageZoom(..) => "ApiMsg::SetPageZoom",
+            ApiMsg::SetPinchZoom(..) => "ApiMsg::SetPinchZoom",
+            ApiMsg::SetPan(..) => "ApiMsg::SetPan",
+            ApiMsg::SetWindowParameters(..) => "ApiMsg::SetWindowParameters",
+        })
     }
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Epoch(pub u32);
+
+#[cfg(not(feature = "webgl"))]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct WebGLContextId(pub usize);
+
+#[cfg(not(feature = "webgl"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GLContextAttributes([u8; 0]);
+
+#[cfg(not(feature = "webgl"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GLLimits([u8; 0]);
+
+#[cfg(not(feature = "webgl"))]
+#[derive(Clone, Deserialize, Serialize)]
+pub enum WebGLCommand {
+    Flush,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -127,6 +147,11 @@ impl ExternalEvent {
     pub fn unwrap(self) -> usize { self.raw }
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+pub enum ScrollClamping {
+    ToContentBounds,
+    NoClamping,
+}
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct RenderApiSender {
@@ -178,8 +203,8 @@ impl RenderApi {
         FontKey::new(new_id.0, new_id.1)
     }
 
-    pub fn add_raw_font(&self, key: FontKey, bytes: Vec<u8>) {
-        let msg = ApiMsg::AddRawFont(key, bytes);
+    pub fn add_raw_font(&self, key: FontKey, bytes: Vec<u8>, index: u32) {
+        let msg = ApiMsg::AddRawFont(key, bytes, index);
         self.api_sender.send(msg).unwrap();
     }
 
@@ -229,8 +254,9 @@ impl RenderApi {
     pub fn update_image(&self,
                         key: ImageKey,
                         descriptor: ImageDescriptor,
-                        bytes: Vec<u8>) {
-        let msg = ApiMsg::UpdateImage(key, descriptor, bytes);
+                        data: ImageData,
+                        dirty_rect: Option<DeviceUintRect>) {
+        let msg = ApiMsg::UpdateImage(key, descriptor, data, dirty_rect);
         self.api_sender.send(msg).unwrap();
     }
 
@@ -244,12 +270,14 @@ impl RenderApi {
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// let (mut renderer, sender) = webrender::renderer::Renderer::new(opts);
+    /// ```
+    /// # use webrender_traits::{PipelineId, RenderApiSender};
+    /// # fn example(sender: RenderApiSender) {
     /// let api = sender.create_api();
-    /// ...
-    /// let pipeline_id = PipelineId(0,0);
+    /// // ...
+    /// let pipeline_id = PipelineId(0, 0);
     /// api.set_root_pipeline(pipeline_id);
+    /// # }
     /// ```
     pub fn set_root_pipeline(&self, pipeline_id: PipelineId) {
         let msg = ApiMsg::SetRootPipeline(pipeline_id);
@@ -268,48 +296,49 @@ impl RenderApi {
     ///
     /// * `background_color`: The background color of this pipeline.
     /// * `epoch`: The unique Frame ID, monotonically increasing.
-    /// * `pipeline_id`: The ID of the pipeline that is supplying this display list.
     /// * `viewport_size`: The size of the viewport for this frame.
+    /// * `pipeline_id`: The ID of the pipeline that is supplying this display list.
+    /// * `content_size`: The total screen space size of this display list's display items.
     /// * `display_list`: The root Display list used in this frame.
-    /// * `auxiliary_lists`: Various items that the display lists and stacking contexts reference.
     /// * `preserve_frame_state`: If a previous frame exists which matches this pipeline
     ///                           id, this setting determines if frame state (such as scrolling
     ///                           position) should be preserved for this new display list.
     ///
     /// [notifier]: trait.RenderNotifier.html#tymethod.new_frame_ready
-    pub fn set_root_display_list(&self,
-                                 background_color: Option<ColorF>,
-                                 epoch: Epoch,
-                                 viewport_size: LayoutSize,
-                                 (pipeline_id, display_list, auxiliary_lists): (PipelineId, BuiltDisplayList, AuxiliaryLists),
-                                 preserve_frame_state: bool) {
-        let msg = ApiMsg::SetRootDisplayList(background_color,
-                                             epoch,
-                                             pipeline_id,
-                                             viewport_size,
-                                             display_list.descriptor().clone(),
-                                             *auxiliary_lists.descriptor(),
-                                             preserve_frame_state);
+    pub fn set_display_list(&self,
+                            background_color: Option<ColorF>,
+                            epoch: Epoch,
+                            viewport_size: LayoutSize,
+                            (pipeline_id, content_size, display_list): (PipelineId, LayoutSize, BuiltDisplayList),
+                            preserve_frame_state: bool) {
+        let (display_list_data, display_list_descriptor) = display_list.into_data();
+        let msg = ApiMsg::SetDisplayList(background_color,
+                                         epoch,
+                                         pipeline_id,
+                                         viewport_size,
+                                         content_size,
+                                         display_list_descriptor,
+                                         preserve_frame_state);
         self.api_sender.send(msg).unwrap();
 
-        let mut payload = vec![];
-        payload.write_u32::<LittleEndian>(epoch.0).unwrap();
-        payload.extend_from_slice(display_list.data());
-        payload.extend_from_slice(auxiliary_lists.data());
-        self.payload_sender.send_vec(payload).unwrap();
+        self.payload_sender.send_payload(Payload {
+            epoch: epoch,
+            pipeline_id: pipeline_id,
+            display_list_data: display_list_data,
+        }).unwrap();
     }
 
     /// Scrolls the scrolling layer under the `cursor`
     ///
-    /// Webrender looks for the layer closest to the user
+    /// WebRender looks for the layer closest to the user
     /// which has `ScrollPolicy::Scrollable` set.
     pub fn scroll(&self, scroll_location: ScrollLocation, cursor: WorldPoint, phase: ScrollEventPhase) {
         let msg = ApiMsg::Scroll(scroll_location, cursor, phase);
         self.api_sender.send(msg).unwrap();
     }
 
-    pub fn scroll_layer_with_id(&self, new_scroll_origin: LayoutPoint, id: ScrollLayerId) {
-        let msg = ApiMsg::ScrollLayerWithId(new_scroll_origin, id);
+    pub fn scroll_node_with_id(&self, origin: LayoutPoint, id: ClipId, clamp: ScrollClamping) {
+        let msg = ApiMsg::ScrollNodeWithId(origin, id, clamp);
         self.api_sender.send(msg).unwrap();
     }
 
@@ -349,9 +378,9 @@ impl RenderApi {
         rx.recv().unwrap()
     }
 
-    pub fn get_scroll_layer_state(&self) -> Vec<ScrollLayerState> {
+    pub fn get_scroll_node_state(&self) -> Vec<ScrollLayerState> {
         let (tx, rx) = channel::msg_channel().unwrap();
-        let msg = ApiMsg::GetScrollLayerState(tx);
+        let msg = ApiMsg::GetScrollNodeState(tx);
         self.api_sender.send(msg).unwrap();
         rx.recv().unwrap()
     }
@@ -431,7 +460,7 @@ pub enum ScrollEventPhase {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ScrollLayerState {
-    pub id: ScrollLayerId,
+    pub id: ClipId,
     pub scroll_offset: LayoutPoint,
 }
 
@@ -467,6 +496,15 @@ pub struct PropertyBindingId {
     uid: u32,
 }
 
+impl PropertyBindingId {
+    pub fn new(value: u64) -> Self {
+        PropertyBindingId {
+            namespace: (value>>32) as u32,
+            uid: value as u32,
+        }
+    }
+}
+
 /// A unique key that is used for connecting animated property
 /// values to bindings in the display list.
 #[repr(C)]
@@ -482,6 +520,15 @@ impl<T: Copy> PropertyBindingKey<T> {
         PropertyValue {
             key: *self,
             value: value,
+        }
+    }
+}
+
+impl<T> PropertyBindingKey<T> {
+    pub fn new(value: u64) -> Self {
+        PropertyBindingKey {
+            id: PropertyBindingId::new(value),
+            _phantom: PhantomData,
         }
     }
 }
@@ -515,7 +562,7 @@ pub struct PropertyValue<T> {
     pub value: T,
 }
 
-/// When using generate_frame(), a list of PropertyValue structures
+/// When using `generate_frame()`, a list of `PropertyValue` structures
 /// can optionally be supplied to provide the current value of any
 /// animated properties.
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -536,9 +583,9 @@ pub enum VRCompositorCommand {
 }
 
 // Trait object that handles WebVR commands.
-// Receives the texture_id associated to the WebGLContext.
+// Receives the texture id and size associated to the WebGLContext.
 pub trait VRCompositorHandler: Send {
-    fn handle(&mut self, command: VRCompositorCommand, texture_id: Option<u32>);
+    fn handle(&mut self, command: VRCompositorCommand, texture: Option<(u32, DeviceIntSize)>);
 }
 
 pub trait RenderNotifier: Send {
@@ -548,7 +595,7 @@ pub trait RenderNotifier: Send {
     fn shut_down(&mut self) {}
 }
 
-// Trait to allow dispatching functions to a specific thread or event loop.
+/// Trait to allow dispatching functions to a specific thread or event loop.
 pub trait RenderDispatcher: Send {
     fn dispatch(&self, Box<Fn() + Send>);
 }

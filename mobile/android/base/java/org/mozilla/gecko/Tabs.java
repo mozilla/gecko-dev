@@ -5,6 +5,8 @@
 
 package org.mozilla.gecko;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -12,20 +14,33 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.mozilla.gecko.annotation.JNITarget;
 import org.mozilla.gecko.annotation.RobocopTarget;
+import org.mozilla.gecko.customtabs.CustomTabsActivity;
+import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.distribution.PartnerBrowserCustomizationsClient;
 import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.mozglue.SafeIntent;
 import org.mozilla.gecko.notifications.WhatsNewReceiver;
+import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.reader.ReaderModeUtils;
 import org.mozilla.gecko.util.BundleEventListener;
 import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.FileUtils;
 import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.JavaUtil;
 import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.webapps.WebAppActivity;
+import org.mozilla.gecko.webapps.WebAppIndexer;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -40,12 +55,17 @@ import android.os.Handler;
 import android.provider.Browser;
 import android.support.annotation.UiThread;
 import android.support.v4.content.ContextCompat;
+import android.text.TextUtils;
 import android.util.Log;
 
 import static org.mozilla.gecko.Tab.TabType;
 
 public class Tabs implements BundleEventListener {
     private static final String LOGTAG = "GeckoTabs";
+
+    public static final String INTENT_EXTRA_TAB_ID = "TabId";
+    public static final String INTENT_EXTRA_SESSION_UUID = "SessionUUID";
+    private static final String PRIVATE_TAB_INTENT_EXTRA = "private_tab";
 
     // mOrder and mTabs are always of the same cardinality, and contain the same values.
     private volatile CopyOnWriteArrayList<Tab> mOrder = new CopyOnWriteArrayList<Tab>();
@@ -76,10 +96,13 @@ public class Tabs implements BundleEventListener {
     /** Indicates the tab is the first shown after Firefox is hidden and restored. */
     public static final int LOADURL_FIRST_AFTER_ACTIVITY_UNHIDDEN = 1 << 8;
     public static final int LOADURL_CUSTOMTAB    = 1 << 9;
+    public static final int LOADURL_WEBAPP = 1 << 10;
 
     private static final long PERSIST_TABS_AFTER_MILLISECONDS = 1000 * 2;
 
     public static final int INVALID_TAB_ID = -1;
+    // Used to indicate a new tab should be appended to the current tabs.
+    public static final int NEW_LAST_INDEX = -1;
 
     private static final AtomicInteger sTabId = new AtomicInteger(0);
     private volatile boolean mInitialTabsAdded;
@@ -212,7 +235,7 @@ public class Tabs implements BundleEventListener {
                 return tab.getId();
             }
         }
-        return -1;
+        return INVALID_TAB_ID;
     }
 
     // Must be synchronized to avoid racing on mBookmarksContentObserver.
@@ -259,10 +282,17 @@ public class Tabs implements BundleEventListener {
         return tab;
     }
 
-    // Return the index, among those tabs of the chosen type whose privacy setting matches
-    // isPrivate, of the tab at position index in mOrder.  Returns -1, for "new last tab",
-    // when index is -1.
+    /**
+     * Return the index, among those tabs of the chosen {@code type} whose privacy setting matches
+     * {@code isPrivate}, of the tab at position {@code index} in {@code mOrder}.  Returns
+     * {@code NEW_LAST_INDEX} when {@code index} is {@code NEW_LAST_INDEX} or no matches were
+     * found.
+     */
     private int getPrivacySpecificTabIndex(int index, boolean isPrivate, TabType type) {
+        if (index == NEW_LAST_INDEX) {
+            return NEW_LAST_INDEX;
+        }
+
         int privacySpecificIndex = -1;
         for (int i = 0; i <= index; i++) {
             final Tab tab = mOrder.get(i);
@@ -270,7 +300,7 @@ public class Tabs implements BundleEventListener {
                 privacySpecificIndex++;
             }
         }
-        return privacySpecificIndex;
+        return privacySpecificIndex > -1 ? privacySpecificIndex : NEW_LAST_INDEX;
     }
 
     public synchronized void removeTab(int id) {
@@ -283,6 +313,10 @@ public class Tabs implements BundleEventListener {
     }
 
     public synchronized Tab selectTab(int id) {
+        return selectTab(id, true);
+    }
+
+    public synchronized Tab selectTab(int id, boolean switchActivities) {
         if (!mTabs.containsKey(id))
             return null;
 
@@ -292,6 +326,14 @@ public class Tabs implements BundleEventListener {
         // This avoids a NPE below, but callers need to be careful to
         // handle this case.
         if (tab == null || oldTab == tab) {
+            return tab;
+        }
+
+        if (switchActivities && oldTab != null && oldTab.getType() != tab.getType() &&
+                !currentActivityMatchesTab(tab)) {
+            // We're in the wrong activity for this kind of tab, so launch the correct one
+            // and then try again.
+            launchActivityForTab(tab);
             return tab;
         }
 
@@ -313,12 +355,105 @@ public class Tabs implements BundleEventListener {
         return tab;
     }
 
+    /**
+     * Check whether the currently active activity matches the tab type of the passed tab.
+     */
+    public boolean currentActivityMatchesTab(Tab tab) {
+        final Activity currentActivity = GeckoActivityMonitor.getInstance().getCurrentActivity();
+
+        if (currentActivity == null) {
+            return false;
+        }
+        String currentActivityName = currentActivity.getClass().getName();
+        return currentActivityName.equals(getClassNameForTab(tab));
+    }
+
+    private void launchActivityForTab(Tab tab) {
+        final Intent intent;
+        switch (tab.getType()) {
+            case CUSTOMTAB:
+                if (tab.getCustomTabIntent() != null) {
+                    intent = tab.getCustomTabIntent().getUnsafe();
+                } else {
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(Uri.parse(tab.getURL()));
+                }
+                break;
+            case WEBAPP:
+                intent = new Intent(GeckoApp.ACTION_WEBAPP);
+                final String manifestPath = tab.getManifestPath();
+                try {
+                    intent.setData(getStartUriFromManifest(manifestPath));
+                } catch (IOException | JSONException e) {
+                    Log.e(LOGTAG, "Failed to get start URI from manifest", e);
+                    intent.setData(Uri.parse(tab.getURL()));
+                }
+                intent.putExtra(WebAppActivity.MANIFEST_PATH, manifestPath);
+                break;
+            default:
+                intent = new Intent(GeckoApp.ACTION_SWITCH_TAB);
+                break;
+        }
+
+        intent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, getClassNameForTab(tab));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(BrowserContract.SKIP_TAB_QUEUE_FLAG, true);
+        intent.putExtra(INTENT_EXTRA_TAB_ID, tab.getId());
+        intent.putExtra(INTENT_EXTRA_SESSION_UUID, GeckoApplication.getSessionUUID());
+        mAppContext.startActivity(intent);
+    }
+
+    // TODO: When things have settled down a bit, we should split this and everything similar
+    // TODO: in the WebAppActivity into a dedicated WebAppManifest class (bug 1353868).
+    private Uri getStartUriFromManifest(String manifestPath) throws IOException, JSONException {
+        File manifestFile = new File(manifestPath);
+        final JSONObject manifest = FileUtils.readJSONObjectFromFile(manifestFile);
+        final JSONObject manifestField = manifest.getJSONObject("manifest");
+
+        return Uri.parse(manifestField.getString("start_url"));
+    }
+
+    /**
+     * Get the class name of the activity that should be displaying this tab.
+     */
+    private String getClassNameForTab(Tab tab) {
+        TabType type = tab.getType();
+
+        switch (type) {
+            case CUSTOMTAB:
+                return CustomTabsActivity.class.getName();
+            case WEBAPP:
+                final int index =  WebAppIndexer.getInstance().getIndexForManifest(
+                        tab.getManifestPath(), mAppContext);
+                return WebAppIndexer.WEBAPP_CLASS + index;
+            default:
+                return AppConstants.MOZ_ANDROID_BROWSER_INTENT_CLASS;
+        }
+    }
+
     public synchronized boolean selectLastTab() {
         if (mOrder.isEmpty()) {
             return false;
         }
 
         selectTab(mOrder.get(mOrder.size() - 1).getId());
+        return true;
+    }
+
+    public synchronized boolean selectLastTab(Tab.TabType targetType) {
+        if (mOrder.isEmpty()) {
+            return false;
+        }
+
+        Tab tabToSelect = mOrder.get(mOrder.size() - 1);
+        if (tabToSelect.getType() != targetType) {
+            tabToSelect = getPreviousTabFrom(tabToSelect, false, targetType);
+            if (tabToSelect == null) {
+                return false;
+            }
+        }
+
+        selectTab(tabToSelect.getId());
         return true;
     }
 
@@ -373,7 +508,7 @@ public class Tabs implements BundleEventListener {
 
     @RobocopTarget
     public synchronized Tab getTab(int id) {
-        if (id == -1)
+        if (id == INVALID_TAB_ID)
             return null;
 
         if (mTabs.size() == 0)
@@ -405,16 +540,22 @@ public class Tabs implements BundleEventListener {
         closeTab(tab, getNextTab(tab));
     }
 
+    /** Don't switch activities even if the default next tab is of a different tab type */
+    public synchronized void closeTabNoActivitySwitch(Tab tab) {
+        closeTab(tab, getNextTab(tab), false, false);
+    }
+
     public synchronized void closeTab(Tab tab, Tab nextTab) {
-        closeTab(tab, nextTab, false);
+        closeTab(tab, nextTab, false, true);
     }
 
     public synchronized void closeTab(Tab tab, boolean showUndoToast) {
-        closeTab(tab, getNextTab(tab), showUndoToast);
+        closeTab(tab, getNextTab(tab), showUndoToast, true);
     }
 
     /** Close tab and then select nextTab */
-    public synchronized void closeTab(final Tab tab, Tab nextTab, boolean showUndoToast) {
+    public synchronized void closeTab(final Tab tab, Tab nextTab,
+                                      boolean showUndoToast, boolean switchActivities) {
         if (tab == null)
             return;
 
@@ -422,10 +563,10 @@ public class Tabs implements BundleEventListener {
         removeTab(tabId);
 
         if (nextTab == null) {
-            nextTab = loadUrl(AboutPages.HOME, LOADURL_NEW_TAB);
+            nextTab = loadUrl(getHomepageForNewTab(mAppContext), LOADURL_NEW_TAB);
         }
 
-        selectTab(nextTab.getId());
+        selectTab(nextTab.getId(), switchActivities);
 
         tab.onDestroy();
 
@@ -458,7 +599,7 @@ public class Tabs implements BundleEventListener {
         }
 
         Tab parent = getTab(tab.getParentId());
-        if (parent != null) {
+        if (parent != null && parent.getType() == type) {
             // If the next tab is a sibling, switch to it. Otherwise go back to the parent.
             if (nextTab != null && nextTab.getParentId() == tab.getParentId())
                 return nextTab;
@@ -536,7 +677,7 @@ public class Tabs implements BundleEventListener {
         }
 
         // All other events handled below should contain a tabID property
-        final int id = message.getInt("tabID", -1);
+        final int id = message.getInt("tabID", INVALID_TAB_ID);
         Tab tab = getTab(id);
 
         // "Tab:Added" is a special case because tab will be null if the tab was just added
@@ -584,7 +725,7 @@ public class Tabs implements BundleEventListener {
 
         } else if ("Tab:Select".equals(event)) {
             if (message.getBoolean("foreground", false)) {
-                GeckoAppShell.launchOrBringToFront();
+                GeckoApp.launchOrBringToFront();
             }
             selectTab(tab.getId());
 
@@ -675,7 +816,7 @@ public class Tabs implements BundleEventListener {
             }
 
         } else if ("Tab:SetParentId".equals(event)) {
-            tab.setParentId(message.getInt("parentID", -1));
+            tab.setParentId(message.getInt("parentID", INVALID_TAB_ID));
         }
     }
 
@@ -788,7 +929,6 @@ public class Tabs implements BundleEventListener {
             case SELECTED:
                 if (mLayerView != null) {
                     mLayerView.setSurfaceBackgroundColor(getTabColor(tab));
-                    mLayerView.setPaintState(LayerView.PAINT_START);
                 }
                 queuePersistAllTabs();
             case UNSELECTED:
@@ -823,6 +963,7 @@ public class Tabs implements BundleEventListener {
      *
      * @return first Tab with the given URL, or null if there is no such tab.
      */
+    @RobocopTarget
     public Tab getFirstTabForUrl(String url) {
         return getFirstTabForUrlHelper(url, null, TabType.BROWSING);
     }
@@ -916,7 +1057,7 @@ public class Tabs implements BundleEventListener {
      */
     @RobocopTarget
     public Tab loadUrl(String url, int flags) {
-        return loadUrl(url, null, -1, null, flags);
+        return loadUrl(url, null, INVALID_TAB_ID, null, flags);
     }
 
     public Tab loadUrlWithIntentExtras(final String url, final SafeIntent intent, final int flags) {
@@ -929,7 +1070,7 @@ public class Tabs implements BundleEventListener {
 
         // Note: we don't get the URL from the intent so the calling
         // method has the opportunity to change the URL if applicable.
-        return loadUrl(url, null, -1, intent, flags);
+        return loadUrl(url, null, INVALID_TAB_ID, intent, flags);
     }
 
     public Tab loadUrl(final String url, final String searchEngine, final int parentId, final int flags) {
@@ -942,7 +1083,7 @@ public class Tabs implements BundleEventListener {
      * @param url          URL of page to load, or search term used if searchEngine is given
      * @param searchEngine if given, the search engine with this name is used
      *                     to search for the url string; if null, the URL is loaded directly
-     * @param parentId     ID of this tab's parent, or -1 if it has no parent
+     * @param parentId     ID of this tab's parent, or INVALID_TAB_ID (-1) if it has no parent
      * @param intent       an intent whose extras are used to modify the request
      * @param flags        flags used to load tab
      *
@@ -957,13 +1098,15 @@ public class Tabs implements BundleEventListener {
         // delayLoad implies background tab
         boolean background = delayLoad || (flags & LOADURL_BACKGROUND) != 0;
 
-        boolean isPrivate = (flags & LOADURL_PRIVATE) != 0;
+        boolean isPrivate = (flags & LOADURL_PRIVATE) != 0 || (intent != null && intent.getBooleanExtra(PRIVATE_TAB_INTENT_EXTRA, false));
         boolean userEntered = (flags & LOADURL_USER_ENTERED) != 0;
         boolean desktopMode = (flags & LOADURL_DESKTOP) != 0;
         boolean external = (flags & LOADURL_EXTERNAL) != 0;
         final boolean isFirstShownAfterActivityUnhidden = (flags & LOADURL_FIRST_AFTER_ACTIVITY_UNHIDDEN) != 0;
         final boolean customTab = (flags & LOADURL_CUSTOMTAB) != 0;
-        final TabType type = customTab ? TabType.CUSTOMTAB : TabType.BROWSING;
+        final boolean webappTab = (flags & LOADURL_WEBAPP) != 0;
+        final TabType type = customTab ? TabType.CUSTOMTAB :
+            webappTab ? TabType.WEBAPP : TabType.BROWSING;
 
         data.putString("url", url);
         data.putString("engine", searchEngine);
@@ -1019,11 +1162,21 @@ public class Tabs implements BundleEventListener {
             String tabUrl = (url != null && Uri.parse(url).getScheme() != null) ? url : null;
 
             // Add the new tab to the end of the tab order.
-            final int tabIndex = -1;
+            final int tabIndex = NEW_LAST_INDEX;
 
             tabToSelect = addTab(tabId, tabUrl, external, parentId, url, isPrivate, tabIndex, type);
             tabToSelect.setDesktopMode(desktopMode);
             tabToSelect.setApplicationId(applicationId);
+            if (intent != null) {
+                if (customTab) {
+                    // The intent can contain all sorts of customisations, so we save it in case
+                    // we need to launch a new custom tab activity for this tab.
+                    tabToSelect.setCustomTabIntent(intent);
+                }
+                if (intent.hasExtra(WebAppActivity.MANIFEST_PATH)) {
+                    tabToSelect.setManifestPath(intent.getStringExtra(WebAppActivity.MANIFEST_PATH));
+                }
+            }
             if (isFirstShownAfterActivityUnhidden) {
                 // We just opened Firefox so we want to show
                 // the toolbar but not animate it to avoid jank.
@@ -1049,8 +1202,12 @@ public class Tabs implements BundleEventListener {
         return tabToSelect;
     }
 
+    /**
+     * Opens a new tab and loads either about:home or, if PREFS_HOMEPAGE_FOR_EVERY_NEW_TAB is set,
+     * the user's homepage.
+     */
     public Tab addTab() {
-        return loadUrl(AboutPages.HOME, Tabs.LOADURL_NEW_TAB);
+        return loadUrl(getHomepageForNewTab(mAppContext), Tabs.LOADURL_NEW_TAB);
     }
 
     public Tab addPrivateTab() {
@@ -1081,7 +1238,7 @@ public class Tabs implements BundleEventListener {
         // getSelectedTab() can return null if no tab has been created yet
         // (i.e., we're restoring a session after a crash). In these cases,
         // don't mark any tabs as a parent.
-        int parentId = -1;
+        int parentId = INVALID_TAB_ID;
         int flags = LOADURL_NEW_TAB;
 
         final Tab selectedTab = getSelectedTab();
@@ -1213,5 +1370,76 @@ public class Tabs implements BundleEventListener {
         data.putInt("toTabId", toTabId);
         data.putInt("toPosition", toPosition);
         EventDispatcher.getInstance().dispatch("Tab:Move", data);
+    }
+
+    /**
+     * @return True if the homepage preference is not empty.
+     */
+    public static boolean hasHomepage(Context context) {
+        return !TextUtils.isEmpty(getHomepage(context));
+    }
+
+    /**
+     * Note: For opening a new tab while respecting the user's preferences, just use
+     *       {@link Tabs#addTab()} instead.
+     *
+     * @return The user's homepage (falling back to about:home) if PREFS_HOMEPAGE_FOR_EVERY_NEW_TAB
+     *         is enabled, or else about:home.
+     */
+    @NonNull
+    private static String getHomepageForNewTab(Context context) {
+        final SharedPreferences preferences = GeckoSharedPrefs.forApp(context);
+        final boolean forEveryNewTab = preferences.getBoolean(GeckoPreferences.PREFS_HOMEPAGE_FOR_EVERY_NEW_TAB, false);
+
+        return forEveryNewTab ? getHomepageForStartupTab(context) : AboutPages.HOME;
+    }
+
+    /**
+     * @return The user's homepage, or about:home if none is set.
+     */
+    @NonNull
+    public static String getHomepageForStartupTab(Context context) {
+        final String homepage = Tabs.getHomepage(context);
+        return TextUtils.isEmpty(homepage) ? AboutPages.HOME : homepage;
+    }
+
+    @Nullable
+    public static String getHomepage(Context context) {
+        final SharedPreferences preferences = GeckoSharedPrefs.forProfile(context);
+        final String homepagePreference = preferences.getString(GeckoPreferences.PREFS_HOMEPAGE, AboutPages.HOME);
+
+        final boolean readFromPartnerProvider = preferences.getBoolean(
+                GeckoPreferences.PREFS_READ_PARTNER_CUSTOMIZATIONS_PROVIDER, false);
+
+        if (!readFromPartnerProvider) {
+            // Just return homepage as set by the user (or null).
+            return homepagePreference;
+        }
+
+
+        final String homepagePrevious = preferences.getString(GeckoPreferences.PREFS_HOMEPAGE_PARTNER_COPY, null);
+        if (homepagePrevious != null && !homepagePrevious.equals(homepagePreference)) {
+            // We have read the homepage once and the user has changed it since then. Just use the
+            // value the user has set.
+            return homepagePreference;
+        }
+
+        // This is the first time we read the partner provider or the value has not been altered by the user
+        final String homepagePartner = PartnerBrowserCustomizationsClient.getHomepage(context);
+
+        if (homepagePartner == null) {
+            // We didn't get anything from the provider. Let's just use what we have locally.
+            return homepagePreference;
+        }
+
+        if (!homepagePartner.equals(homepagePrevious)) {
+            // We have a new value. Update the preferences.
+            preferences.edit()
+                    .putString(GeckoPreferences.PREFS_HOMEPAGE, homepagePartner)
+                    .putString(GeckoPreferences.PREFS_HOMEPAGE_PARTNER_COPY, homepagePartner)
+                    .apply();
+        }
+
+        return homepagePartner;
     }
 }

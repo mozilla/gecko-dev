@@ -95,10 +95,11 @@ ScriptFromCalleeToken(CalleeToken token)
 // to. The exact mechanism in which frames are laid out is architecture
 // dependent.
 //
-// Two special frame types exist. Entry frames begin an ion activation, and
-// therefore there is exactly one per activation of jit::Cannon. Exit frames
-// are necessary to leave JIT code and enter C++, and thus, C++ code will
-// always begin iterating from the topmost exit frame.
+// Two special frame types exist:
+// - Entry frames begin a JitActivation, and therefore there is exactly one
+// per activation of EnterIon or EnterBaseline. These reuse JitFrameLayout.
+// - Exit frames are necessary to leave JIT code and enter C++, and thus,
+// C++ code will always begin iterating from the topmost exit frame.
 
 class LSafepoint;
 
@@ -435,15 +436,6 @@ class JitFrameLayout : public CommonFrameLayout
 
     static inline size_t Size() {
         return sizeof(JitFrameLayout);
-    }
-};
-
-// this is the layout of the frame that is used when we enter Ion code from platform ABI code
-class EntryFrameLayout : public JitFrameLayout
-{
-  public:
-    static inline size_t Size() {
-        return sizeof(EntryFrameLayout);
     }
 };
 
@@ -1035,11 +1027,8 @@ GetPcScript(JSContext* cx, JSScript** scriptRes, jsbytecode** pcRes);
 CalleeToken
 TraceCalleeToken(JSTracer* trc, CalleeToken token);
 
-// The minimum stack size is two. Two slots are needed because INITGLEXICAL
-// (stack depth 1) is compiled as a SETPROP (stack depth 2) on the global
-// lexical scope. Baseline also requires one slot for this/argument type
-// checks.
-static const uint32_t MinJITStackSize = 2;
+// Baseline requires one slot for this/argument type checks.
+static const uint32_t MinJITStackSize = 1;
 
 } /* namespace jit */
 } /* namespace js */

@@ -16,12 +16,14 @@
 #include "mozilla/PodOperations.h"
 #include "mozilla/RangedArray.h"
 #include "mozilla/RuleNodeCacheConditions.h"
+#include "mozilla/LookAndFeel.h"
 #include "mozilla/SheetType.h"
 #include "nsPresContext.h"
 #include "nsStyleStruct.h"
 
 class nsCSSPropertyIDSet;
 class nsCSSValue;
+class nsFontMetrics;
 class nsIStyleRule;
 class nsStyleContext;
 class nsStyleCoord;
@@ -797,6 +799,27 @@ public:
                                  bool aConvertListItem = false);
   static void EnsureInlineDisplay(mozilla::StyleDisplay& display);
 
+  static already_AddRefed<nsFontMetrics> GetMetricsFor(nsPresContext* aPresContext,
+                                                       bool aIsVertical,
+                                                       const nsStyleFont* aStyleFont,
+                                                       nscoord aFontSize,
+                                                       bool aUseUserFontSet);
+
+  static already_AddRefed<nsFontMetrics> GetMetricsFor(nsPresContext* aPresContext,
+                                                       nsStyleContext* aStyleContext,
+                                                       const nsStyleFont* aStyleFont,
+                                                       nscoord aFontSize,
+                                                       bool aUseUserFontSet);
+
+  /**
+   * Appropriately add the correct font if we are using DocumentFonts or
+   * overriding for XUL
+   */
+  static void FixupNoneGeneric(nsFont* aFont,
+                               const nsPresContext* aPresContext,
+                               uint8_t aGenericFontID,
+                               const nsFont* aDefaultVariableFont);
+
   // Transition never returns null; on out of memory it'll just return |this|.
   nsRuleNode* Transition(nsIStyleRule* aRule, mozilla::SheetType aLevel,
                          bool aIsImportantRule);
@@ -1072,6 +1095,11 @@ public:
 
   static void FillAllMaskLists(nsStyleImageLayers& aLayers,
                                uint32_t aMaxItemCount);
+
+  static void ComputeSystemFont(nsFont* aSystemFont,
+                                mozilla::LookAndFeel::FontID aFontID,
+                                const nsPresContext* aPresContext,
+                                const nsFont* aDefaultVariableFont);
 
 private:
 #ifdef DEBUG

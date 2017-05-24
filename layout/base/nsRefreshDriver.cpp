@@ -37,6 +37,7 @@
 #include "mozilla/Logging.h"
 #include "nsAutoPtr.h"
 #include "nsIDocument.h"
+#include "nsIXULRuntime.h"
 #include "jsapi.h"
 #include "nsContentUtils.h"
 #include "mozilla/PendingAnimationTracker.h"
@@ -485,6 +486,48 @@ private:
       MOZ_ASSERT(NS_IsMainThread());
     }
 
+    class ParentProcessVsyncNotifier final: public Runnable,
+                                            public nsIRunnablePriority
+    {
+    public:
+      ParentProcessVsyncNotifier(RefreshDriverVsyncObserver* aObserver,
+                                 TimeStamp aVsyncTimestamp)
+        : mObserver(aObserver), mVsyncTimestamp(aVsyncTimestamp) {}
+
+      NS_DECL_ISUPPORTS_INHERITED
+
+      NS_IMETHOD Run() override
+      {
+        MOZ_ASSERT(NS_IsMainThread());
+        static bool sCacheInitialized = false;
+        static bool sHighPriorityPrefValue = false;
+        if (!sCacheInitialized) {
+          sCacheInitialized = true;
+          Preferences::AddBoolVarCache(&sHighPriorityPrefValue,
+                                       "vsync.parentProcess.highPriority",
+                                       mozilla::BrowserTabsRemoteAutostart());
+        }
+        sHighPriorityEnabled = sHighPriorityPrefValue;
+
+        mObserver->TickRefreshDriver(mVsyncTimestamp);
+        return NS_OK;
+      }
+
+      NS_IMETHOD GetPriority(uint32_t* aPriority) override
+      {
+        *aPriority =
+          sHighPriorityEnabled ? nsIRunnablePriority::PRIORITY_HIGH :
+                                 nsIRunnablePriority::PRIORITY_NORMAL;
+        return NS_OK;
+      }
+
+    private:
+      ~ParentProcessVsyncNotifier() {}
+      RefPtr<RefreshDriverVsyncObserver> mObserver;
+      TimeStamp mVsyncTimestamp;
+      static mozilla::Atomic<bool> sHighPriorityEnabled;
+    };
+
     bool NotifyVsync(TimeStamp aVsyncTimestamp) override
     {
       if (!NS_IsMainThread()) {
@@ -502,9 +545,7 @@ private:
         }
 
         nsCOMPtr<nsIRunnable> vsyncEvent =
-             NewRunnableMethod<TimeStamp>(this,
-                                          &RefreshDriverVsyncObserver::TickRefreshDriver,
-                                          aVsyncTimestamp);
+          new ParentProcessVsyncNotifier(this, aVsyncTimestamp);
         NS_DispatchToMainThread(vsyncEvent);
       } else {
         mRecentVsync = aVsyncTimestamp;
@@ -515,6 +556,7 @@ private:
             mProcessedVsync = false;
             nsCOMPtr<nsIRunnable> vsyncEvent =
               NewRunnableMethod<>(
+                "RefreshDriverVsyncObserver::NormalPriorityNotify",
                 this, &RefreshDriverVsyncObserver::NormalPriorityNotify);
             NS_DispatchToMainThread(vsyncEvent);
           }
@@ -720,6 +762,16 @@ private:
   RefPtr<VsyncChild> mVsyncChild;
   TimeDuration mVsyncRate;
 }; // VsyncRefreshDriverTimer
+
+NS_IMPL_ISUPPORTS_INHERITED(VsyncRefreshDriverTimer::
+                            RefreshDriverVsyncObserver::
+                            ParentProcessVsyncNotifier,
+                            Runnable, nsIRunnablePriority)
+
+mozilla::Atomic<bool>
+VsyncRefreshDriverTimer::
+RefreshDriverVsyncObserver::
+ParentProcessVsyncNotifier::sHighPriorityEnabled(false);
 
 /**
  * Since the content process takes some time to setup
@@ -936,12 +988,6 @@ NS_IMPL_ISUPPORTS(VsyncChildCreateCallback, nsIIPCBackgroundChildCreateCallback)
 static RefreshDriverTimer* sRegularRateTimer;
 static InactiveRefreshDriverTimer* sThrottledRateTimer;
 
-#ifdef XP_WIN
-static int32_t sHighPrecisionTimerRequests = 0;
-// a bare pointer to avoid introducing a static constructor
-static nsITimer *sDisableHighPrecisionTimersTimer = nullptr;
-#endif
-
 static void
 CreateContentVsyncRefreshTimer(void*)
 {
@@ -1021,16 +1067,6 @@ nsRefreshDriver::Shutdown()
 
   sRegularRateTimer = nullptr;
   sThrottledRateTimer = nullptr;
-
-#ifdef XP_WIN
-  if (sDisableHighPrecisionTimersTimer) {
-    sDisableHighPrecisionTimersTimer->Cancel();
-    NS_RELEASE(sDisableHighPrecisionTimersTimer);
-    timeEndPeriod(1);
-  } else if (sHighPrecisionTimerRequests) {
-    timeEndPeriod(1);
-  }
-#endif
 }
 
 /* static */ int32_t
@@ -1134,7 +1170,6 @@ nsRefreshDriver::nsRefreshDriver(nsPresContext* aPresContext)
     mNeedToRecomputeVisibility(false),
     mTestControllingRefreshes(false),
     mViewManagerFlushIsPending(false),
-    mRequestedHighPrecision(false),
     mInRefresh(false),
     mWaitingForTransaction(false),
     mSkippedPaints(false),
@@ -1374,89 +1409,6 @@ nsRefreshDriver::StopTimer()
 
   mActiveTimer->RemoveRefreshDriver(this);
   mActiveTimer = nullptr;
-
-  if (mRequestedHighPrecision) {
-    SetHighPrecisionTimersEnabled(false);
-  }
-}
-
-#ifdef XP_WIN
-static void
-DisableHighPrecisionTimersCallback(nsITimer *aTimer, void *aClosure)
-{
-  timeEndPeriod(1);
-  NS_RELEASE(sDisableHighPrecisionTimersTimer);
-}
-#endif
-
-void
-nsRefreshDriver::ConfigureHighPrecision()
-{
-  bool haveUnthrottledFrameRequestCallbacks =
-    mFrameRequestCallbackDocs.Length() > 0;
-
-  // if the only change that's needed is that we need high precision,
-  // then just set that
-  if (!mThrottled && !mRequestedHighPrecision &&
-      haveUnthrottledFrameRequestCallbacks) {
-    SetHighPrecisionTimersEnabled(true);
-  } else if (mRequestedHighPrecision && !haveUnthrottledFrameRequestCallbacks) {
-    SetHighPrecisionTimersEnabled(false);
-  }
-}
-
-void
-nsRefreshDriver::SetHighPrecisionTimersEnabled(bool aEnable)
-{
-  LOG("[%p] SetHighPrecisionTimersEnabled (%s)", this, aEnable ? "true" : "false");
-
-  if (aEnable) {
-    NS_ASSERTION(!mRequestedHighPrecision, "SetHighPrecisionTimersEnabled(true) called when already requested!");
-#ifdef XP_WIN
-    if (++sHighPrecisionTimerRequests == 1) {
-      // If we had a timer scheduled to disable it, that means that it's already
-      // enabled; just cancel the timer.  Otherwise, really enable it.
-      if (sDisableHighPrecisionTimersTimer) {
-        sDisableHighPrecisionTimersTimer->Cancel();
-        NS_RELEASE(sDisableHighPrecisionTimersTimer);
-      } else {
-        timeBeginPeriod(1);
-      }
-    }
-#endif
-    mRequestedHighPrecision = true;
-  } else {
-    NS_ASSERTION(mRequestedHighPrecision, "SetHighPrecisionTimersEnabled(false) called when not requested!");
-#ifdef XP_WIN
-    if (--sHighPrecisionTimerRequests == 0) {
-      // Don't jerk us around between high precision and low precision
-      // timers; instead, only allow leaving high precision timers
-      // after 90 seconds.  This is arbitrary, but hopefully good
-      // enough.
-      NS_ASSERTION(!sDisableHighPrecisionTimersTimer, "We shouldn't have an outstanding disable-high-precision timer !");
-
-      nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID);
-      if (timer) {
-        if (nsPresContext* pc = GetPresContext()) {
-          timer->SetTarget(
-              pc->Document()->EventTargetFor(TaskCategory::Other));
-        }
-        timer.forget(&sDisableHighPrecisionTimersTimer);
-        sDisableHighPrecisionTimersTimer->
-          InitWithNamedFuncCallback(DisableHighPrecisionTimersCallback,
-                                    nullptr,
-                                    90 * 1000,
-                                    nsITimer::TYPE_ONE_SHOT,
-                                    "DisableHighPrecisionTimersCallback");
-      } else {
-        // might happen if we're shutting down XPCOM; just drop the time period down
-        // immediately
-        timeEndPeriod(1);
-      }
-    }
-#endif
-    mRequestedHighPrecision = false;
-  }
 }
 
 uint32_t
@@ -1859,7 +1811,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
           // Make sure to not process observers which might have been removed
           // during previous iterations.
           nsIPresShell* shell = observers[j - 1];
-          if (!mStyleFlushObservers.Contains(shell))
+          if (!mStyleFlushObservers.RemoveElement(shell))
             continue;
 
           if (!tracingStyleFlush) {
@@ -1868,10 +1820,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
           }
 
           nsCOMPtr<nsIPresShell> shellKungFuDeathGrip(shell);
-          mStyleFlushObservers.RemoveElement(shell);
-          RestyleManager* restyleManager =
-            shell->GetPresContext()->RestyleManager();
-          restyleManager->SetObservingRefreshDriver(false);
+          shell->mObservingStyleFlushes = false;
           shell->FlushPendingNotifications(ChangesToFlush(FlushType::Style, false));
           // Inform the FontFaceSet that we ticked, so that it can resolve its
           // ready promise if it needs to (though it might still be waiting on
@@ -1893,7 +1842,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
         // Make sure to not process observers which might have been removed
         // during previous iterations.
         nsIPresShell* shell = observers[j - 1];
-        if (!mLayoutFlushObservers.Contains(shell))
+        if (!mLayoutFlushObservers.RemoveElement(shell))
           continue;
 
         if (!tracingLayoutFlush) {
@@ -1902,8 +1851,7 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
         }
 
         nsCOMPtr<nsIPresShell> shellKungFuDeathGrip(shell);
-        mLayoutFlushObservers.RemoveElement(shell);
-        shell->mReflowScheduled = false;
+        shell->mObservingLayoutFlushes = false;
         shell->mSuppressInterruptibleReflows = false;
         FlushType flushType = HasPendingAnimations(shell)
                                ? FlushType::Layout
@@ -2061,8 +2009,6 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
     nsAPostRefreshObserver* observer = iter.GetNext();
     observer->DidRefresh();
   }
-
-  ConfigureHighPrecision();
 
   NS_ASSERTION(mInRefresh, "Still in refresh");
 
@@ -2339,7 +2285,6 @@ nsRefreshDriver::ScheduleFrameRequestCallbacks(nsIDocument* aDocument)
   }
 
   // make sure that the timer is running
-  ConfigureHighPrecision();
   EnsureTimerStarted();
 }
 
@@ -2348,7 +2293,6 @@ nsRefreshDriver::RevokeFrameRequestCallbacks(nsIDocument* aDocument)
 {
   mFrameRequestCallbackDocs.RemoveElement(aDocument);
   mThrottledFrameRequestCallbackDocs.RemoveElement(aDocument);
-  ConfigureHighPrecision();
   // No need to worry about restarting our timer in slack mode if it's already
   // running; that will happen automatically when it fires.
 }

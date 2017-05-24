@@ -591,7 +591,7 @@ private:
 bool CleaupCacheDirectoriesRunnable::Post(uint32_t aVersion, uint32_t aActive)
 {
   // CleaupCacheDirectories is called regardless what cache version is set up to use.
-  // To obtain the cache1 directory we must unfortunatelly instantiate the old cache
+  // To obtain the cache1 directory we must unfortunately instantiate the old cache
   // service despite it may not be used at all...  This also initialize nsDeleteDir.
   nsCOMPtr<nsICacheService> service = do_GetService(NS_CACHESERVICE_CONTRACTID);
   if (!service)
@@ -1634,6 +1634,48 @@ CacheStorageService::CheckStorageEntry(CacheStorage const* aStorage,
   LOG(("  %sfound in index", *aResult ? "" : "not "));
   return NS_OK;
 }
+
+nsresult
+CacheStorageService::GetCacheIndexEntryAttrs(CacheStorage const* aStorage,
+                                             const nsACString &aURI,
+                                             const nsACString &aIdExtension,
+                                             bool *aHasAltData,
+                                             uint32_t *aFileSizeKb)
+{
+  nsresult rv;
+
+  nsAutoCString contextKey;
+  CacheFileUtils::AppendKeyPrefix(aStorage->LoadInfo(), contextKey);
+
+  LOG(("CacheStorageService::GetCacheIndexEntryAttrs [uri=%s, eid=%s, contextKey=%s]",
+    aURI.BeginReading(), aIdExtension.BeginReading(), contextKey.get()));
+
+  nsAutoCString fileKey;
+  rv = CacheEntry::HashingKey(contextKey, aIdExtension, aURI, fileKey);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  *aHasAltData = false;
+  *aFileSizeKb = 0;
+  auto closure = [&aHasAltData, &aFileSizeKb](const CacheIndexEntry *entry) {
+    *aHasAltData = entry->GetHasAltData();
+    *aFileSizeKb = entry->GetFileSize();
+  };
+
+  CacheIndex::EntryStatus status;
+  rv = CacheIndex::HasEntry(fileKey, &status, closure);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  if (status != CacheIndex::EXISTS) {
+    return NS_ERROR_CACHE_KEY_NOT_FOUND;
+  }
+
+  return NS_OK;
+}
+
 
 namespace {
 

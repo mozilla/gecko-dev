@@ -55,15 +55,10 @@ struct SeekRejectValue
   MediaResult mError;
 };
 
-class MetadataHolder
+struct MetadataHolder
 {
-public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MetadataHolder)
-  MediaInfo mInfo;
-  nsAutoPtr<MetadataTags> mTags;
-
-private:
-  virtual ~MetadataHolder() { }
+  UniquePtr<MediaInfo> mInfo;
+  UniquePtr<MetadataTags> mTags;
 };
 
 // Encapsulates the decoding and reading of media data. Reading can either
@@ -82,8 +77,7 @@ class MediaDecoderReader
 public:
   using TrackSet = EnumSet<TrackInfo::TrackType>;
 
-  using MetadataPromise =
-    MozPromise<RefPtr<MetadataHolder>, MediaResult, IsExclusive>;
+  using MetadataPromise = MozPromise<MetadataHolder, MediaResult, IsExclusive>;
 
   template <typename Type>
   using DataPromise = MozPromise<RefPtr<Type>, MediaResult, IsExclusive>;
@@ -149,9 +143,10 @@ public:
   // Requests one video sample from the reader.
   //
   // If aSkipToKeyframe is true, the decode should skip ahead to the
-  // the next keyframe at or after aTimeThreshold microseconds.
+  // the next keyframe at or after aTimeThreshold.
   virtual RefPtr<VideoDataPromise>
-  RequestVideoData(bool aSkipToNextKeyframe, int64_t aTimeThreshold);
+  RequestVideoData(bool aSkipToNextKeyframe,
+                   const media::TimeUnit& aTimeThreshold);
 
   // By default, the state machine polls the reader once per second when it's
   // in buffering mode. Some readers support a promise-based mechanism by which
@@ -365,7 +360,8 @@ private:
   // (unless they're not keyframes and aKeyframeSkip is true), but will
   // not be added to the queue. This function blocks until the decode
   // is complete.
-  virtual bool DecodeVideoFrame(bool &aKeyframeSkip, int64_t aTimeThreshold)
+  virtual bool DecodeVideoFrame(bool& aKeyframeSkip,
+                                const media::TimeUnit& aTimeThreshold)
   {
     return false;
   }

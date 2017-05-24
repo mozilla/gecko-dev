@@ -24,6 +24,7 @@
 #include "jsfriendapi.h"
 #include "jsobj.h"
 #include "jsstr.h"
+#include "jsutil.h"
 
 #include "builtin/IntlTimeZoneData.h"
 #include "ds/Sort.h"
@@ -45,6 +46,7 @@
 #include "vm/Interpreter.h"
 #include "vm/SelfHosting.h"
 #include "vm/Stack.h"
+#include "vm/String.h"
 #include "vm/StringBuffer.h"
 #include "vm/Unicode.h"
 
@@ -81,8 +83,8 @@ using mozilla::RangedPtr;
  * bit rot. The following stub implementations for ICU functions make this
  * possible. The functions using them should never be called, so they assert
  * and return error codes. Signatures adapted from ICU header files locid.h,
- * numsys.h, ucal.h, ucol.h, udat.h, udatpg.h, uenum.h, unum.h; see the ICU
- * directory for license.
+ * numsys.h, ucal.h, ucol.h, udat.h, udatpg.h, uenum.h, unum.h, uloc.h;
+ * see the ICU directory for license.
  */
 
 namespace {
@@ -815,6 +817,26 @@ uplrules_select(const UPluralRules *uplrules, double number, UChar *keyword, int
     MOZ_CRASH("uplrules_select: Intl API disabled");
 }
 
+int32_t
+u_strToLower(UChar* dest, int32_t destCapacity, const UChar* src, int32_t srcLength,
+             const char* locale, UErrorCode* pErrorCode)
+{
+    MOZ_CRASH("u_strToLower: Intl API disabled");
+}
+
+int32_t
+u_strToUpper(UChar* dest, int32_t destCapacity, const UChar* src, int32_t srcLength,
+             const char* locale, UErrorCode* pErrorCode)
+{
+    MOZ_CRASH("u_strToUpper: Intl API disabled");
+}
+
+const char*
+uloc_toUnicodeLocaleType(const char* keyword, const char* value)
+{
+    MOZ_CRASH("uloc_toUnicodeLocaleType: Intl API disabled");
+}
+
 } // anonymous namespace
 
 #endif
@@ -871,11 +893,8 @@ LegacyIntlInitialize(JSContext* cx, HandleObject obj, Handle<PropertyName*> init
 
 // CountAvailable and GetAvailable describe the signatures used for ICU API
 // to determine available locales for various functionality.
-typedef int32_t
-(* CountAvailable)();
-
-typedef const char*
-(* GetAvailable)(int32_t localeIndex);
+using CountAvailable = int32_t (*)();
+using GetAvailable = const char* (*)(int32_t localeIndex);
 
 static bool
 intl_availableLocales(JSContext* cx, CountAvailable countAvailable,
@@ -886,6 +905,7 @@ intl_availableLocales(JSContext* cx, CountAvailable countAvailable,
         return false;
 
 #if ENABLE_INTL_API
+    RootedAtom a(cx);
     uint32_t count = countAvailable();
     RootedValue t(cx, BooleanValue(true));
     for (uint32_t i = 0; i < count; i++) {
@@ -896,7 +916,7 @@ intl_availableLocales(JSContext* cx, CountAvailable countAvailable,
         char* p;
         while ((p = strchr(lang.get(), '_')))
             *p = '-';
-        RootedAtom a(cx, Atomize(cx, lang.get(), strlen(lang.get())));
+        a = Atomize(cx, lang.get(), strlen(lang.get()));
         if (!a)
             return false;
         if (!DefineProperty(cx, locales, a->asPropertyName(), t, nullptr, nullptr,
@@ -1195,6 +1215,8 @@ js::intl_availableCollations(JSContext* cx, unsigned argc, Value* vp)
     if (!DefineElement(cx, collations, index++, NullHandleValue))
         return false;
 
+    RootedString jscollation(cx);
+    RootedValue element(cx);
     for (uint32_t i = 0; i < count; i++) {
         const char* collation = uenum_next(values, nullptr, &status);
         if (U_FAILURE(status)) {
@@ -1209,21 +1231,11 @@ js::intl_availableCollations(JSContext* cx, unsigned argc, Value* vp)
         if (equal(collation, "standard") || equal(collation, "search"))
             continue;
 
-        // ICU returns old-style keyword values; map them to BCP 47 equivalents
-        // (see http://bugs.icu-project.org/trac/ticket/9620).
-        if (equal(collation, "dictionary"))
-            collation = "dict";
-        else if (equal(collation, "gb2312han"))
-            collation = "gb2312";
-        else if (equal(collation, "phonebook"))
-            collation = "phonebk";
-        else if (equal(collation, "traditional"))
-            collation = "trad";
-
-        RootedString jscollation(cx, JS_NewStringCopyZ(cx, collation));
+        // ICU returns old-style keyword values; map them to BCP 47 equivalents.
+        jscollation = JS_NewStringCopyZ(cx, uloc_toUnicodeLocaleType("co", collation));
         if (!jscollation)
             return false;
-        RootedValue element(cx, StringValue(jscollation));
+        element = StringValue(jscollation);
         if (!DefineElement(cx, collations, index++, element))
             return false;
     }
@@ -1292,7 +1304,7 @@ NewUCollator(JSContext* cx, Handle<CollatorObject*> collator)
         memcpy(newLocale + index, insert, insertLen);
         memcpy(newLocale + index + insertLen, oldLocale + index, localeLen - index + 1); // '\0'
         locale.clear();
-        locale.initBytes(newLocale);
+        locale.initBytes(JS::UniqueChars(newLocale));
     } else {
         MOZ_ASSERT(StringEqualsAscii(usage, "sort"));
     }
@@ -2503,7 +2515,7 @@ static const JSFunctionSpec dateTimeFormat_static_methods[] = {
 
 static const JSFunctionSpec dateTimeFormat_methods[] = {
     JS_SELF_HOSTED_FN("resolvedOptions", "Intl_DateTimeFormat_resolvedOptions", 0, 0),
-    JS_SELF_HOSTED_FN("formatToParts", "Intl_DateTimeFormat_formatToParts", 0, 0),
+    JS_SELF_HOSTED_FN("formatToParts", "Intl_DateTimeFormat_formatToParts", 1, 0),
 #if JS_HAS_TOSOURCE
     JS_FN(js_toSource_str, dateTimeFormat_toSource, 0, 0),
 #endif
@@ -2662,19 +2674,16 @@ js::intl_DateTimeFormat_availableLocales(JSContext* cx, unsigned argc, Value* vp
     return true;
 }
 
-// ICU returns old-style keyword values; map them to BCP 47 equivalents
-// (see http://bugs.icu-project.org/trac/ticket/9620).
-static const char*
-bcp47CalendarName(const char* icuName)
+struct CalendarAlias
 {
-    if (equal(icuName, "ethiopic-amete-alem"))
-        return "ethioaa";
-    if (equal(icuName, "gregorian"))
-        return "gregory";
-    if (equal(icuName, "islamic-civil"))
-        return "islamicc";
-    return icuName;
-}
+    const char* const calendar;
+    const char* const alias;
+};
+
+const CalendarAlias calendarAliases[] = {
+    { "islamic-civil", "islamicc" },
+    { "ethioaa", "ethiopic-amete-alem" }
+};
 
 bool
 js::intl_availableCalendars(JSContext* cx, unsigned argc, Value* vp)
@@ -2707,7 +2716,8 @@ js::intl_availableCalendars(JSContext* cx, unsigned argc, Value* vp)
             return false;
         }
 
-        jscalendar = JS_NewStringCopyZ(cx, bcp47CalendarName(calendar));
+        // ICU returns old-style keyword values; map them to BCP 47 equivalents
+        jscalendar = JS_NewStringCopyZ(cx, uloc_toUnicodeLocaleType("ca", calendar));
         if (!jscalendar)
             return false;
     }
@@ -2737,12 +2747,27 @@ js::intl_availableCalendars(JSContext* cx, unsigned argc, Value* vp)
             return false;
         }
 
-        jscalendar = JS_NewStringCopyZ(cx, bcp47CalendarName(calendar));
+        // ICU returns old-style keyword values; map them to BCP 47 equivalents
+        calendar = uloc_toUnicodeLocaleType("ca", calendar);
+
+        jscalendar = JS_NewStringCopyZ(cx, calendar);
         if (!jscalendar)
             return false;
         element = StringValue(jscalendar);
         if (!DefineElement(cx, calendars, index++, element))
             return false;
+
+        // ICU doesn't return calendar aliases, append them here.
+        for (const auto& calendarAlias : calendarAliases) {
+            if (equal(calendar, calendarAlias.calendar)) {
+                jscalendar = JS_NewStringCopyZ(cx, calendarAlias.alias);
+                if (!jscalendar)
+                    return false;
+                element = StringValue(jscalendar);
+                if (!DefineElement(cx, calendars, index++, element))
+                    return false;
+            }
+        }
     }
 
     args.rval().setObject(*calendars);
@@ -2944,7 +2969,7 @@ js::SharedIntlData::ensureTimeZones(JSContext* cx)
 
 bool
 js::SharedIntlData::validateTimeZoneName(JSContext* cx, HandleString timeZone,
-                                         MutableHandleString result)
+                                         MutableHandleAtom result)
 {
     if (!ensureTimeZones(cx))
         return false;
@@ -2962,7 +2987,7 @@ js::SharedIntlData::validateTimeZoneName(JSContext* cx, HandleString timeZone,
 
 bool
 js::SharedIntlData::tryCanonicalizeTimeZoneConsistentWithIANA(JSContext* cx, HandleString timeZone,
-                                                              MutableHandleString result)
+                                                              MutableHandleAtom result)
 {
     if (!ensureTimeZones(cx))
         return false;
@@ -3033,7 +3058,7 @@ js::intl_IsValidTimeZoneName(JSContext* cx, unsigned argc, Value* vp)
     SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
 
     RootedString timeZone(cx, args[0].toString());
-    RootedString validatedTimeZone(cx);
+    RootedAtom validatedTimeZone(cx);
     if (!sharedIntlData.validateTimeZoneName(cx, timeZone, &validatedTimeZone))
         return false;
 
@@ -3059,11 +3084,12 @@ js::intl_canonicalizeTimeZone(JSContext* cx, unsigned argc, Value* vp)
     // Some time zone names are canonicalized differently by ICU -- handle
     // those first:
     RootedString timeZone(cx, args[0].toString());
-    RootedString ianaTimeZone(cx);
+    RootedAtom ianaTimeZone(cx);
     if (!sharedIntlData.tryCanonicalizeTimeZoneConsistentWithIANA(cx, timeZone, &ianaTimeZone))
         return false;
 
     if (ianaTimeZone) {
+        cx->markAtom(ianaTimeZone);
         args.rval().setString(ianaTimeZone);
         return true;
     }
@@ -3593,11 +3619,13 @@ PluralRules(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    // Step 1 (Handled by OrdinaryCreateFromConstructor fallback code).
+    // Step 1.
+    if (!ThrowIfNotConstructing(cx, args, "Intl.PluralRules"))
+        return false;
 
     // Step 2 (Inlined 9.1.14, OrdinaryCreateFromConstructor).
     RootedObject proto(cx);
-    if (args.isConstructing() && !GetPrototypeFromCallableConstructor(cx, args, &proto))
+    if (!GetPrototypeFromCallableConstructor(cx, args, &proto))
         return false;
 
     if (!proto) {
@@ -3881,6 +3909,131 @@ js::intl_GetPluralCategories(JSContext* cx, unsigned argc, Value* vp)
     } while (true);
 
     args.rval().setObject(*res);
+    return true;
+}
+
+
+/******************** String ********************/
+
+static const char*
+CaseMappingLocale(JSLinearString* locale)
+{
+    MOZ_ASSERT(locale->length() >= 2, "locale is a valid language tag");
+
+    // Lithuanian, Turkish, and Azeri have language dependent case mappings.
+    static const char languagesWithSpecialCasing[][3] = { "lt", "tr", "az" };
+
+    // All strings in |languagesWithSpecialCasing| are of length two, so we
+    // only need to compare the first two characters to find a matching locale.
+    // ES2017 Intl, §9.2.2 BestAvailableLocale
+    if (locale->length() == 2 || locale->latin1OrTwoByteChar(2) == '-') {
+        for (const auto& language : languagesWithSpecialCasing) {
+            if (locale->latin1OrTwoByteChar(0) == language[0] &&
+                locale->latin1OrTwoByteChar(1) == language[1])
+            {
+                return language;
+            }
+        }
+    }
+
+    return ""; // ICU root locale
+}
+
+static bool
+HasLanguageDependentCasing(JSLinearString* locale)
+{
+    return !equal(CaseMappingLocale(locale), "");
+}
+
+bool
+js::intl_toLocaleLowerCase(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.length() == 2);
+    MOZ_ASSERT(args[0].isString());
+    MOZ_ASSERT(args[1].isString());
+
+    RootedLinearString linear(cx, args[0].toString()->ensureLinear(cx));
+    if (!linear)
+        return false;
+
+    RootedLinearString locale(cx, args[1].toString()->ensureLinear(cx));
+    if (!locale)
+        return false;
+
+    // Call String.prototype.toLowerCase() for language independent casing.
+    if (!HasLanguageDependentCasing(locale)) {
+        JSString* str = js::StringToLowerCase(cx, linear);
+        if (!str)
+            return false;
+
+        args.rval().setString(str);
+        return true;
+    }
+
+    AutoStableStringChars inputChars(cx);
+    if (!inputChars.initTwoByte(cx, linear))
+        return false;
+    mozilla::Range<const char16_t> input = inputChars.twoByteRange();
+
+    // Maximum case mapping length is three characters.
+    static_assert(JSString::MAX_LENGTH < INT32_MAX / 3,
+                  "Case conversion doesn't overflow int32_t indices");
+
+    JSString* str = Call(cx, [&input, &locale](UChar* chars, int32_t size, UErrorCode* status) {
+        return u_strToLower(chars, size, Char16ToUChar(input.begin().get()), input.length(),
+                            CaseMappingLocale(locale), status);
+    });
+    if (!str)
+        return false;
+
+    args.rval().setString(str);
+    return true;
+}
+
+bool
+js::intl_toLocaleUpperCase(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.length() == 2);
+    MOZ_ASSERT(args[0].isString());
+    MOZ_ASSERT(args[1].isString());
+
+    RootedLinearString linear(cx, args[0].toString()->ensureLinear(cx));
+    if (!linear)
+        return false;
+
+    RootedLinearString locale(cx, args[1].toString()->ensureLinear(cx));
+    if (!locale)
+        return false;
+
+    // Call String.prototype.toUpperCase() for language independent casing.
+    if (!HasLanguageDependentCasing(locale)) {
+        JSString* str = js::StringToUpperCase(cx, linear);
+        if (!str)
+            return false;
+
+        args.rval().setString(str);
+        return true;
+    }
+
+    AutoStableStringChars inputChars(cx);
+    if (!inputChars.initTwoByte(cx, linear))
+        return false;
+    mozilla::Range<const char16_t> input = inputChars.twoByteRange();
+
+    // Maximum case mapping length is three characters.
+    static_assert(JSString::MAX_LENGTH < INT32_MAX / 3,
+                  "Case conversion doesn't overflow int32_t indices");
+
+    JSString* str = Call(cx, [&input, &locale](UChar* chars, int32_t size, UErrorCode* status) {
+        return u_strToUpper(chars, size, Char16ToUChar(input.begin().get()), input.length(),
+                            CaseMappingLocale(locale), status);
+    });
+    if (!str)
+        return false;
+
+    args.rval().setString(str);
     return true;
 }
 

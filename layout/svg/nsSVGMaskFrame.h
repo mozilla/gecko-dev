@@ -9,7 +9,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/Pair.h"
 #include "gfxPattern.h"
 #include "gfxMatrix.h"
 #include "nsSVGContainerFrame.h"
@@ -39,11 +38,11 @@ class nsSVGMaskFrame final : public nsSVGContainerFrame
 
   typedef mozilla::gfx::Matrix Matrix;
   typedef mozilla::gfx::SourceSurface SourceSurface;
-  typedef mozilla::image::DrawResult DrawResult;
+  typedef mozilla::image::imgDrawingParams imgDrawingParams;
 
 protected:
   explicit nsSVGMaskFrame(nsStyleContext* aContext)
-    : nsSVGContainerFrame(aContext)
+    : nsSVGContainerFrame(aContext, mozilla::LayoutFrameType::SVGMask)
     , mInUse(false)
   {
     AddStateBits(NS_FRAME_IS_NONDISPLAY);
@@ -59,17 +58,27 @@ public:
     float opacity;
     Matrix* maskTransform;
     uint8_t maskMode;
+    imgDrawingParams& imgParams;
 
     explicit MaskParams(gfxContext* aCtx, nsIFrame* aMaskedFrame,
                         const gfxMatrix& aToUserSpace, float aOpacity,
-                        Matrix* aMaskTransform, uint8_t aMaskMode)
+                        Matrix* aMaskTransform, uint8_t aMaskMode,
+                        imgDrawingParams& aImgParams)
     : ctx(aCtx), maskedFrame(aMaskedFrame), toUserSpace(aToUserSpace),
-      opacity(aOpacity), maskTransform(aMaskTransform), maskMode(aMaskMode)
+      opacity(aOpacity), maskTransform(aMaskTransform), maskMode(aMaskMode),
+      imgParams(aImgParams)
     { }
   };
 
   // nsSVGMaskFrame method:
-  mozilla::Pair<DrawResult, RefPtr<SourceSurface>>
+
+  /**
+   * Generate a mask surface for the target frame.
+   *
+   * The return surface can be null, it's the caller's responsibility to
+   * null-check before dereferencing.
+   */
+  already_AddRefed<SourceSurface>
   GetMaskForMaskedFrame(MaskParams& aParams);
 
   gfxRect
@@ -88,13 +97,6 @@ public:
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) override {}
-
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgMaskFrame
-   */
-  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override

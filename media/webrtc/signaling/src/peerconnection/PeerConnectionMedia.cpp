@@ -465,7 +465,7 @@ PeerConnectionMedia::EnsureTransport_s(size_t aLevel, size_t aComponentCount)
     std::ostringstream os;
     os << mParentName << " aLevel=" << aLevel;
     RefPtr<NrIceMediaStream> stream =
-      mIceCtxHdlr->CreateStream(os.str().c_str(),
+      mIceCtxHdlr->CreateStream(os.str(),
                                 aComponentCount);
 
     if (!stream) {
@@ -510,7 +510,8 @@ PeerConnectionMedia::ActivateOrRemoveTransports(const JsepSession& aSession,
       candidates.erase(std::remove_if(candidates.begin(),
                                       candidates.end(),
                                       [](const std::string & s) {
-                                        return s.find(" UDP "); }),
+                                        return s.find(" UDP ") != std::string::npos ||
+                                               s.find(" udp ") != std::string::npos; }),
                        candidates.end());
     }
 

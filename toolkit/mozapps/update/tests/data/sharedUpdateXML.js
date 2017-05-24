@@ -37,14 +37,23 @@ const STATE_SUCCEEDED       = "succeeded";
 const STATE_DOWNLOAD_FAILED = "download-failed";
 const STATE_FAILED          = "failed";
 
-const LOADSOURCE_ERROR_WRONG_SIZE      = 2;
-const CRC_ERROR                        = 4;
-const READ_ERROR                       = 6;
-const WRITE_ERROR                      = 7;
-const MAR_CHANNEL_MISMATCH_ERROR       = 22;
-const VERSION_DOWNGRADE_ERROR          = 23;
-const INVALID_APPLYTO_DIR_STAGED_ERROR = 72;
-const INVALID_APPLYTO_DIR_ERROR        = 74;
+const LOADSOURCE_ERROR_WRONG_SIZE              = 2;
+const CRC_ERROR                                = 4;
+const READ_ERROR                               = 6;
+const WRITE_ERROR                              = 7;
+const MAR_CHANNEL_MISMATCH_ERROR               = 22;
+const VERSION_DOWNGRADE_ERROR                  = 23;
+const SERVICE_COULD_NOT_COPY_UPDATER           = 49;
+const SERVICE_INVALID_APPLYTO_DIR_STAGED_ERROR = 52;
+const SERVICE_INVALID_APPLYTO_DIR_ERROR        = 54;
+const SERVICE_INVALID_INSTALL_DIR_PATH_ERROR   = 55;
+const SERVICE_INVALID_WORKING_DIR_PATH_ERROR   = 56;
+const INVALID_APPLYTO_DIR_STAGED_ERROR         = 72;
+const INVALID_APPLYTO_DIR_ERROR                = 74;
+const INVALID_INSTALL_DIR_PATH_ERROR           = 75;
+const INVALID_WORKING_DIR_PATH_ERROR           = 76;
+const INVALID_CALLBACK_PATH_ERROR              = 77;
+const INVALID_CALLBACK_DIR_ERROR               = 78;
 
 const STATE_FAILED_DELIMETER = ": ";
 
@@ -60,10 +69,28 @@ const STATE_FAILED_MAR_CHANNEL_MISMATCH_ERROR =
   STATE_FAILED + STATE_FAILED_DELIMETER + MAR_CHANNEL_MISMATCH_ERROR;
 const STATE_FAILED_VERSION_DOWNGRADE_ERROR =
   STATE_FAILED + STATE_FAILED_DELIMETER + VERSION_DOWNGRADE_ERROR;
+const STATE_FAILED_SERVICE_COULD_NOT_COPY_UPDATER =
+  STATE_FAILED + STATE_FAILED_DELIMETER + SERVICE_COULD_NOT_COPY_UPDATER
+const STATE_FAILED_SERVICE_INVALID_APPLYTO_DIR_STAGED_ERROR =
+  STATE_FAILED + STATE_FAILED_DELIMETER + SERVICE_INVALID_APPLYTO_DIR_STAGED_ERROR;
+const STATE_FAILED_SERVICE_INVALID_APPLYTO_DIR_ERROR =
+  STATE_FAILED + STATE_FAILED_DELIMETER + SERVICE_INVALID_APPLYTO_DIR_ERROR;
+const STATE_FAILED_SERVICE_INVALID_INSTALL_DIR_PATH_ERROR =
+  STATE_FAILED + STATE_FAILED_DELIMETER + SERVICE_INVALID_INSTALL_DIR_PATH_ERROR;
+const STATE_FAILED_SERVICE_INVALID_WORKING_DIR_PATH_ERROR =
+  STATE_FAILED + STATE_FAILED_DELIMETER + SERVICE_INVALID_WORKING_DIR_PATH_ERROR;
 const STATE_FAILED_INVALID_APPLYTO_DIR_STAGED_ERROR =
   STATE_FAILED + STATE_FAILED_DELIMETER + INVALID_APPLYTO_DIR_STAGED_ERROR;
 const STATE_FAILED_INVALID_APPLYTO_DIR_ERROR =
   STATE_FAILED + STATE_FAILED_DELIMETER + INVALID_APPLYTO_DIR_ERROR;
+const STATE_FAILED_INVALID_INSTALL_DIR_PATH_ERROR =
+  STATE_FAILED + STATE_FAILED_DELIMETER + INVALID_INSTALL_DIR_PATH_ERROR;
+const STATE_FAILED_INVALID_WORKING_DIR_PATH_ERROR =
+  STATE_FAILED + STATE_FAILED_DELIMETER + INVALID_WORKING_DIR_PATH_ERROR;
+const STATE_FAILED_INVALID_CALLBACK_PATH_ERROR =
+  STATE_FAILED + STATE_FAILED_DELIMETER + INVALID_CALLBACK_PATH_ERROR;
+const STATE_FAILED_INVALID_CALLBACK_DIR_ERROR =
+  STATE_FAILED + STATE_FAILED_DELIMETER + INVALID_CALLBACK_DIR_ERROR;
 
 /**
  * Constructs a string representing a remote update xml file.
@@ -231,8 +258,8 @@ function getLocalPatchString(aType, aURL, aHashFunction, aHashValue, aSize,
  *         If not specified it will default to '20080811053724'.
  * @param  aDetailsURL (optional)
  *         The update's details url.
- *         If not specified it will default to 'http://test_details/' due to due
- *         to bug 470244.
+ *         If not specified it will default to
+ *         URL_HTTP_UPDATE_SJS + "?uiURL=DETAILS" due to bug 470244.
  * @param  aShowPrompt (optional)
  *         Whether to show the prompt for the update when auto update is
  *         enabled.
@@ -273,7 +300,7 @@ function getUpdateString(aType, aName, aDisplayVersion, aAppVersion, aBuildID,
 //   let detailsURL = aDetailsURL ? "detailsURL=\"" + aDetailsURL + "\" " : "";
   let detailsURL = "detailsURL=\"" +
                    (aDetailsURL ? aDetailsURL
-                                : "http://test_details/") + "\" ";
+                                : URL_HTTP_UPDATE_SJS + "?uiURL=DETAILS") + "\" ";
   let showPrompt = aShowPrompt ? "showPrompt=\"" + aShowPrompt + "\" " : "";
   let showNeverForVersion = aShowNeverForVersion ? "showNeverForVersion=\"" +
                                                    aShowNeverForVersion + "\" "

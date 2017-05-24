@@ -66,6 +66,8 @@ nsView::~nsView()
 {
   MOZ_COUNT_DTOR(nsView);
 
+  bool printRelated = mViewManager && mViewManager->GetPrintRelated();
+
   while (GetFirstChild())
   {
     nsView* child = GetFirstChild();
@@ -117,6 +119,11 @@ nsView::~nsView()
   DestroyWidget();
 
   delete mDirtyRegion;
+
+  if (MOZ_UNLIKELY(mFrame)) {
+    gfxCriticalNoteOnce << "~nsView mFrame printRelated " << (printRelated ? "true" : "false");
+  }
+  MOZ_RELEASE_ASSERT(!mFrame);
 }
 
 class DestroyWidgetRunnable : public Runnable {
@@ -1035,8 +1042,7 @@ nsView::WindowResized(nsIWidget* aWidget, int32_t aWidth, int32_t aHeight)
 bool
 nsView::RequestWindowClose(nsIWidget* aWidget)
 {
-  if (mFrame && IsPopupWidget(aWidget) &&
-      mFrame->GetType() == nsGkAtoms::menuPopupFrame) {
+  if (mFrame && IsPopupWidget(aWidget) && mFrame->IsMenuPopupFrame()) {
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm) {
       pm->HidePopup(mFrame->GetContent(), false, true, false, false);
@@ -1082,8 +1088,9 @@ nsView::DidCompositeWindow(uint64_t aTransactionId,
 
     nsPresContext* context = presShell->GetPresContext();
     nsRootPresContext* rootContext = context->GetRootPresContext();
-    MOZ_ASSERT(rootContext, "rootContext must be valid.");
-    rootContext->NotifyDidPaintForSubtree(aTransactionId, aCompositeEnd);
+    if (rootContext) {
+      rootContext->NotifyDidPaintForSubtree(aTransactionId, aCompositeEnd);
+    }
 
     // If the two timestamps are identical, this was likely a fake composite
     // event which wouldn't be terribly useful to display.

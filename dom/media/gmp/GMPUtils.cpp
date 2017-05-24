@@ -239,4 +239,23 @@ GetGMPAbstractThread()
   return service ? service->GetAbstractGMPThread() : nullptr;
 }
 
+static size_t
+Align16(size_t aNumber)
+{
+  const size_t mask = 15; // Alignment - 1.
+  return (aNumber + mask) & ~mask;
+}
+
+size_t
+I420FrameBufferSizePadded(int32_t aWidth, int32_t aHeight)
+{
+  if (aWidth <= 0 || aHeight <= 0 || aWidth > MAX_VIDEO_WIDTH ||
+      aHeight > MAX_VIDEO_HEIGHT) {
+    return 0;
+  }
+
+  size_t ySize = Align16(aWidth) * Align16(aHeight);
+  return ySize + (ySize / 4) * 2;
+}
+
 } // namespace mozilla

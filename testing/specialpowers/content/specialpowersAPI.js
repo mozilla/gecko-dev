@@ -343,9 +343,9 @@ SPConsoleListener.prototype = {
 
     // Run in a separate runnable since console listeners aren't
     // supposed to touch content and this one might.
-    Services.tm.mainThread.dispatch(() => {
+    Services.tm.dispatchToMainThread(() => {
       this.callback.call(undefined, m);
-    }, Ci.nsIThread.DISPATCH_NORMAL);
+    });
 
     if (!m.isScriptError && m.message === "SENTINEL")
       Services.console.unregisterListener(this);
@@ -694,6 +694,14 @@ SpecialPowersAPI.prototype = {
     return crashDumpFiles;
   },
 
+  removePendingCrashDumpFiles: function() {
+    var message = {
+      op: "delete-pending-crash-dump-files"
+    };
+    var removed = this._sendSyncMessage("SPProcessCrashService", message)[0];
+    return removed;
+  },
+
   _setTimeout: function(callback) {
     // for mochitest-browser
     if (typeof window != 'undefined')
@@ -725,7 +733,7 @@ SpecialPowersAPI.prototype = {
      we will revert the permission back to the original.
 
      inPermissions is an array of objects where each object has a type, action, context, ex:
-     [{'type': 'SystemXHR', 'allow': 1, 'context': document}, 
+     [{'type': 'SystemXHR', 'allow': 1, 'context': document},
       {'type': 'SystemXHR', 'allow': Ci.nsIPermissionManager.PROMPT_ACTION, 'context': document}]
 
      Allow can be a boolean value of true/false or ALLOW_ACTION/DENY_ACTION/PROMPT_ACTION/UNKNOWN_ACTION
@@ -817,7 +825,7 @@ SpecialPowersAPI.prototype = {
         // main-process) and get signals from it.
         if (this.isMainProcess()) {
           this.permissionObserverProxy._specialPowersAPI = this;
-          Services.obs.addObserver(this.permissionObserverProxy, "perm-changed", false);
+          Services.obs.addObserver(this.permissionObserverProxy, "perm-changed");
         } else {
           this.registerObservers("perm-changed");
           // bind() is used to set 'this' to SpecialPowersAPI itself.
@@ -1165,7 +1173,7 @@ SpecialPowersAPI.prototype = {
         // Now apply any prefs that may have been queued while we were applying
         self._applyPrefs();
       });
-    }, false);
+    });
 
     for (var idx in pendingActions) {
       var pref = pendingActions[idx];
@@ -1181,9 +1189,6 @@ SpecialPowersAPI.prototype = {
     "specialpowers-http-notify-request": function(aMessage) {
       let uri = aMessage.json.uri;
       Services.obs.notifyObservers(null, "specialpowers-http-notify-request", uri);
-    },
-    "specialpowers-browser-fullZoom:zoomReset": function() {
-      Services.obs.notifyObservers(null, "specialpowers-browser-fullZoom:zoomReset", null);
     },
   },
 
@@ -1229,13 +1234,13 @@ SpecialPowersAPI.prototype = {
       obs.observe = wrapCallback(obs.observe);
     }
     let asyncObs = (...args) => {
-      Services.tm.mainThread.dispatch(() => {
+      Services.tm.dispatchToMainThread(() => {
         if (typeof obs == 'function') {
           obs.call(undefined, ...args);
         } else {
           obs.observe.call(undefined, ...args);
         }
-      }, Ci.nsIThread.DISPATCH_NORMAL);
+      });
     };
     this._asyncObservers.set(obs, asyncObs);
     Services.obs.addObserver(asyncObs, notification, weak);
@@ -1993,6 +1998,7 @@ SpecialPowersAPI.prototype = {
           resolveStartup();
         } else if (msg.data.type == "extensionSetId") {
           extension.id = msg.data.args[0];
+          extension.uuid = msg.data.args[1];
         } else if (msg.data.type == "extensionFailed") {
           state = "failed";
           rejectStartup("startup failed");
@@ -2131,17 +2137,37 @@ SpecialPowersAPI.prototype = {
       Cc["@mozilla.org/url-classifier/dbservice;1"].getService(Ci.nsIURIClassifier);
 
     let wrapCallback = (...args) => {
-      Services.tm.mainThread.dispatch(() => {
+      Services.tm.dispatchToMainThread(() => {
         if (typeof callback == 'function') {
           callback.call(undefined, ...args);
         } else {
           callback.onClassifyComplete.call(undefined, ...args);
         }
-      }, Ci.nsIThread.DISPATCH_NORMAL);
+      });
     };
 
     return classifierService.classify(unwrapIfWrapped(principal), eventTarget,
                                       tpEnabled, wrapCallback);
+  },
+
+  // TODO: Bug 1353701 - Supports custom event target for labelling.
+  doUrlClassifyLocal(uri, tables, callback) {
+    let classifierService =
+      Cc["@mozilla.org/url-classifier/dbservice;1"].getService(Ci.nsIURIClassifier);
+
+    let wrapCallback = (...args) => {
+      Services.tm.dispatchToMainThread(() => {
+        if (typeof callback == 'function') {
+          callback.call(undefined, ...args);
+        } else {
+          callback.onClassifyComplete.call(undefined, ...args);
+        }
+      });
+    };
+
+    return classifierService.asyncClassifyLocalWithTables(unwrapIfWrapped(uri),
+                                                          tables,
+                                                          wrapCallback);
   },
 
 };
