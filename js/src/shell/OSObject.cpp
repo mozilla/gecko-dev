@@ -123,7 +123,7 @@ ResolvePath(JSContext* cx, HandleString filenameStr, PathResolutionMode resolveM
     if (strcmp(scriptFilename.get(), "-e") == 0 || strcmp(scriptFilename.get(), "typein") == 0)
         resolveMode = RootRelative;
 
-    static char buffer[PATH_MAX+1];
+    char buffer[PATH_MAX+1];
     if (resolveMode == ScriptRelative) {
 #ifdef XP_WIN
         // The docs say it can return EINVAL, but the compiler says it's void
