@@ -813,11 +813,12 @@ bool nsIDNService::isLabelSafe(const nsAString &label)
       ch = SURROGATE_TO_UCS4(ch, *current++);
     }
 
-    // Check for restricted characters; aspirational scripts are permitted
+    // Check for restricted characters; aspirational scripts are NOT permitted,
+    // in anticipation of the category being merged into Limited-Use scripts
+    // in the upcoming (Unicode 10.0-based) revision of UAX #31.
     XidmodType xm = GetIdentifierModification(ch);
     if (xm != XIDMOD_RECOMMENDED &&
-        xm != XIDMOD_INCLUSION &&
-        xm != XIDMOD_ASPIRATIONAL) {
+        xm != XIDMOD_INCLUSION) {
       return false;
     }
 
