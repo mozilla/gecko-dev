@@ -470,8 +470,8 @@ js::IsCrossCompartmentWrapper(JSObject* obj)
            !!(Wrapper::wrapperHandler(obj)->flags() & Wrapper::CROSS_COMPARTMENT);
 }
 
-void
-js::NukeCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper)
+static void
+NukeRemovedCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper)
 {
     MOZ_ASSERT(wrapper->is<CrossCompartmentWrapperObject>());
 
@@ -480,6 +480,16 @@ js::NukeCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper)
     wrapper->as<ProxyObject>().nuke();
 
     MOZ_ASSERT(IsDeadProxyObject(wrapper));
+}
+
+void
+js::NukeCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper)
+{
+    JSCompartment* comp = wrapper->compartment();
+    auto ptr = comp->lookupWrapper(ObjectValue(*Wrapper::wrappedObject(wrapper)));
+    if (ptr)
+        comp->removeWrapper(ptr);
+    NukeRemovedCrossCompartmentWrapper(cx, wrapper);
 }
 
 /*
@@ -528,7 +538,7 @@ js::NukeCrossCompartmentWrappers(JSContext* cx,
             if (targetFilter.match(wrapped->compartment())) {
                 // We found a wrapper to nuke.
                 e.removeFront();
-                NukeCrossCompartmentWrapper(cx, wobj);
+                NukeRemovedCrossCompartmentWrapper(cx, wobj);
             }
         }
     }
