@@ -1,6 +1,6 @@
 [Desktop Entry]
 Version=1.0
-Name=Firefox
+Name=Firefox Wayland
 GenericName=Web Browser
 GenericName[ca]=Navegador web
 GenericName[cs]=Webový prohlížeč
@@ -42,7 +42,7 @@ Comment[pt]=Navegue na Internet
 Comment[pt_BR]=Navegue na Internet
 Comment[sk]=Prehliadanie internetu
 Comment[sv]=Surfa på webben
-Exec=firefox %u
+Exec=firefox-wayland %u
 Icon=firefox
 Terminal=false
 Type=Application
@@ -160,7 +160,7 @@ Name[zh-CN]=新建窗口
 Name[zh-TW]=開新視窗
 
 
-Exec=firefox %u
+Exec=firefox-wayland %u
 
 [Desktop Action new-private-window]
 Name=Open a New Private Window
@@ -268,5 +268,5 @@ Name[wo]=Panlanteeru biir bu bees
 Name[xh]=Ifestile yangasese entsha
 Name[zh-CN]=新建隐私浏览窗口
 Name[zh-TW]=新增隱私視窗
-Exec=firefox --private-window %u
+Exec=firefox-wayland --private-window %u
 
