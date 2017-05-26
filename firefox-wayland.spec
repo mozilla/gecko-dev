@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        55.4
+Version:        55.5
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -257,6 +257,10 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Fri May 26 2017 Martin Stransky <stransky@redhat.com> 55.5-1
+- Don't crash when we're missing clipboard data, rhbz#1455915
+  (stransky@redhat.com)
+
 * Thu May 25 2017 Martin Stransky <stransky@redhat.com> 55.4-1
 - Fixed desktop file (stransky@redhat.com)
 
