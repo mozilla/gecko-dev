@@ -384,6 +384,14 @@ nsRetrievalContextWayland::GetClipboardContent(const char* aMimeType,
 {
     NS_ASSERTION(mDataOffer, "Requested data without valid data offer!");
 
+    if (!mDataOffer) {
+        // TODO
+        // Something went wrong. We're requested to provide clipboard data
+        // but we haven't got any from wayland. Looks like rhbz#1455915.
+        // Return NS_ERROR_FAILURE to avoid crash.
+        return NS_ERROR_FAILURE;
+    }
+
     int pipe_fd[2];
     if (pipe(pipe_fd) == -1)
         return NS_ERROR_FAILURE;
