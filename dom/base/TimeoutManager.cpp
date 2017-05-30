@@ -306,7 +306,7 @@ TimeoutManager::TimeoutManager(nsGlobalWindow& aWindow)
     mRunningTimeout(nullptr),
     mIdleCallbackTimeoutCounter(1),
     mBackPressureDelayMS(0),
-    mThrottleTrackingTimeouts(gTrackingTimeoutThrottlingDelay <= 0)
+    mThrottleTrackingTimeouts(false)
 {
   MOZ_DIAGNOSTIC_ASSERT(aWindow.IsInnerWindow());
 
@@ -1572,14 +1572,19 @@ TimeoutManager::StartThrottlingTrackingTimeouts()
 void
 TimeoutManager::OnDocumentLoaded()
 {
-  MaybeStartThrottleTrackingTimout();
+  // The load event may be firing again if we're coming back to the page by
+  // navigating through the session history, so we need to ensure to only call
+  // this when mThrottleTrackingTimeouts hasn't been set yet.
+  if (!mThrottleTrackingTimeouts) {
+    MaybeStartThrottleTrackingTimout();
+  }
 }
 
 void
 TimeoutManager::MaybeStartThrottleTrackingTimout()
 {
   if (gTrackingTimeoutThrottlingDelay <= 0 ||
-      mWindow.AsInner()->InnerObjectsFreed()) {
+      mWindow.AsInner()->InnerObjectsFreed() || mWindow.IsSuspended()) {
     return;
   }
 

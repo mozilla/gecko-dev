@@ -20,9 +20,6 @@ public abstract class SingleTabActivity extends GeckoApp {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         final Intent externalIntent = getIntent();
-        // We need the current activity to already be up-to-date before
-        // calling into the superclass.
-        GeckoActivityMonitor.getInstance().setCurrentActivity(this);
 
         decideTabAction(new SafeIntent(externalIntent), savedInstanceState);
 
@@ -35,17 +32,11 @@ public abstract class SingleTabActivity extends GeckoApp {
     @Override
     protected void onNewIntent(Intent externalIntent) {
         final SafeIntent intent = new SafeIntent(externalIntent);
-        // We need the current activity to already be up-to-date before
-        // calling into the superclass.
-        GeckoActivityMonitor.getInstance().setCurrentActivity(this);
 
         if (decideTabAction(intent, null)) {
             // GeckoApp will handle tab selection.
             super.onNewIntent(intent.getUnsafe());
         } else {
-            // We're not calling the superclass in this code path, so we'll
-            // have to notify the activity monitor ourselves.
-            GeckoActivityMonitor.getInstance().onActivityNewIntent(this);
             loadTabFromIntent(intent);
         }
         // Again, unlike GeckoApp's default behaviour we want to keep the intent around
@@ -76,7 +67,7 @@ public abstract class SingleTabActivity extends GeckoApp {
 
         // If the tab we've stored is still existing and valid select it...
         if (tabToSelect != null && GeckoApplication.getSessionUUID().equals(mLastSessionUUID) &&
-                tabs.currentActivityMatchesTab(tabToSelect)) {
+                tabToSelect.matchesActivity(this)) {
             tabs.selectTab(mLastSelectedTabId);
         } else {
             // ... otherwise fall back to the intent data and open a new tab.
@@ -98,7 +89,7 @@ public abstract class SingleTabActivity extends GeckoApp {
 
         if (hasGeckoTab(intent)) {
             final Tab tabToSelect = tabs.getTab(intent.getIntExtra(INTENT_EXTRA_TAB_ID, INVALID_TAB_ID));
-            if (tabs.currentActivityMatchesTab(tabToSelect)) {
+            if (tabToSelect.matchesActivity(this)) {
                 // Nothing further to do here, GeckoApp will select the correct
                 // tab from the intent.
                 return true;
@@ -125,7 +116,7 @@ public abstract class SingleTabActivity extends GeckoApp {
 
         final Tab tabToSelect = tabs.getTab(lastSelectedTabId);
         if (tabToSelect != null && GeckoApplication.getSessionUUID().equals(lastSessionUUID) &&
-                tabs.currentActivityMatchesTab(tabToSelect)) {
+                tabToSelect.matchesActivity(this)) {
             intent.getUnsafe().putExtra(INTENT_EXTRA_TAB_ID, lastSelectedTabId);
             intent.getUnsafe().putExtra(INTENT_EXTRA_SESSION_UUID, lastSessionUUID);
             return true;

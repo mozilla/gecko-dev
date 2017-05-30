@@ -144,10 +144,9 @@ nsBox::BeginXULLayout(nsBoxLayoutState& aState)
 
   // Another copy-over from ReflowInput.
   // Since we are in reflow, we don't need to store these properties anymore.
-  FrameProperties props = Properties();
-  props.Delete(UsedBorderProperty());
-  props.Delete(UsedPaddingProperty());
-  props.Delete(UsedMarginProperty());
+  DeleteProperty(UsedBorderProperty());
+  DeleteProperty(UsedPaddingProperty());
+  DeleteProperty(UsedMarginProperty());
 
 #ifdef DEBUG_LAYOUT
   PropagateDebug(aState);
@@ -176,8 +175,8 @@ nsBox::EndXULLayout(nsBoxLayoutState& aState)
 bool nsBox::gGotTheme = false;
 nsITheme* nsBox::gTheme = nullptr;
 
-nsBox::nsBox(LayoutFrameType aType)
-  : nsIFrame(aType)
+nsBox::nsBox(ClassID aID)
+  : nsIFrame(aID)
 {
   MOZ_COUNT_CTOR(nsBox);
   //mX = 0;
@@ -300,13 +299,13 @@ nsBox::GetXULBorder(nsMargin& aMargin)
   aMargin.SizeTo(0,0,0,0);
     
   const nsStyleDisplay* disp = StyleDisplay();
-  if (disp->UsedAppearance() && gTheme) {
+  if (disp->mAppearance && gTheme) {
     // Go to the theme for the border.
     nsPresContext *context = PresContext();
-    if (gTheme->ThemeSupportsWidget(context, this, disp->UsedAppearance())) {
+    if (gTheme->ThemeSupportsWidget(context, this, disp->mAppearance)) {
       nsIntMargin margin(0, 0, 0, 0);
       gTheme->GetWidgetBorder(context->DeviceContext(), this,
-                              disp->UsedAppearance(), &margin);
+                              disp->mAppearance, &margin);
       aMargin.top = context->DevPixelsToAppUnits(margin.top);
       aMargin.right = context->DevPixelsToAppUnits(margin.right);
       aMargin.bottom = context->DevPixelsToAppUnits(margin.bottom);
@@ -324,15 +323,15 @@ nsresult
 nsBox::GetXULPadding(nsMargin& aMargin)
 {
   const nsStyleDisplay *disp = StyleDisplay();
-  if (disp->UsedAppearance() && gTheme) {
+  if (disp->mAppearance && gTheme) {
     // Go to the theme for the padding.
     nsPresContext *context = PresContext();
-    if (gTheme->ThemeSupportsWidget(context, this, disp->UsedAppearance())) {
+    if (gTheme->ThemeSupportsWidget(context, this, disp->mAppearance)) {
       nsIntMargin margin(0, 0, 0, 0);
       bool useThemePadding;
 
       useThemePadding = gTheme->GetWidgetPadding(context->DeviceContext(),
-                                                 this, disp->UsedAppearance(),
+                                                 this, disp->mAppearance,
                                                  &margin);
       if (useThemePadding) {
         aMargin.top = context->DevPixelsToAppUnits(margin.top);
@@ -670,12 +669,12 @@ nsIFrame::AddXULMinSize(nsBoxLayoutState& aState, nsIFrame* aBox, nsSize& aSize,
 
     // See if a native theme wants to supply a minimum size.
     const nsStyleDisplay* display = aBox->StyleDisplay();
-    if (display->UsedAppearance()) {
+    if (display->mAppearance) {
       nsITheme *theme = aState.PresContext()->GetTheme();
-      if (theme && theme->ThemeSupportsWidget(aState.PresContext(), aBox, display->UsedAppearance())) {
+      if (theme && theme->ThemeSupportsWidget(aState.PresContext(), aBox, display->mAppearance)) {
         LayoutDeviceIntSize size;
         theme->GetMinimumWidgetSize(aState.PresContext(), aBox,
-                                    display->UsedAppearance(), &size, &canOverride);
+                                    display->mAppearance, &size, &canOverride);
         if (size.width) {
           aSize.width = aState.PresContext()->DevPixelsToAppUnits(size.width);
           aWidthSet = true;

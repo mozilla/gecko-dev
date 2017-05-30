@@ -919,7 +919,6 @@ mochitest-media:
     run-on-projects:
         by-test-platform:
             windows10.*: []
-            linux64-qr/.*: ['graphics']
             default: built-projects
     mozharness:
         by-test-platform:
@@ -951,6 +950,10 @@ mochitest-media:
                             - remove_executables.py
                 extra-options:
                     - --mochitest-suite=mochitest-media
+    tier:
+        by-test-platform:
+            linux64-qr/.*: 1
+            default: default
 
 mochitest-style:
     description: "Mochitest plain run for style system"
@@ -1305,6 +1308,7 @@ talos-g2:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
+            linux64-stylo-sequential/.*: ['try']
             default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try'] 
     e10s: true
     mozharness:
@@ -1374,6 +1378,33 @@ talos-g4:
                     - remove_executables.py
         extra-options:
             - --suite=g4
+            - --add-option
+            - --webServer,localhost
+
+talos-g5:
+    description: "Talos g5"
+    suite: talos
+    try-name: g5
+    treeherder-symbol: tc-T(g5)
+    run-on-projects:
+        by-test-platform:
+            linux64-stylo/.*: ['mozilla-central', 'try']
+            default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try'] 
+    max-run-time: 3600
+    e10s: true
+    mozharness:
+        script: talos_script.py
+        no-read-buildbot-config: true
+        config:
+            by-test-platform:
+                macosx.*:
+                    - remove_executables.py
+                    - talos/mac_config.py
+                default:
+                    - talos/linux_config.py
+                    - remove_executables.py
+        extra-options:
+            - --suite=g5
             - --add-option
             - --webServer,localhost
 

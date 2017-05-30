@@ -37,6 +37,7 @@ WebRenderLayerScrollData::Initialize(WebRenderScrollData& aOwner,
   mTransform = aLayer->GetTransform();
   mTransformIsPerspective = aLayer->GetTransformIsPerspective();
   mEventRegions = aLayer->GetEventRegions();
+  mVisibleRegion = aLayer->GetVisibleRegion();
   mReferentId = aLayer->AsRefLayer()
       ? Some(aLayer->AsRefLayer()->GetReferentId())
       : Nothing();
@@ -44,6 +45,7 @@ WebRenderLayerScrollData::Initialize(WebRenderScrollData& aOwner,
       ? aLayer->AsContainerLayer()->GetEventRegionsOverride()
       : EventRegionsOverride::NoOverride;
   mScrollThumbData = aLayer->GetScrollThumbData();
+  mScrollbarAnimationId = aLayer->GetCompositorAnimationsId();
   mScrollbarTargetContainerId = aLayer->GetScrollbarTargetContainerId();
   mIsScrollbarContainer = aLayer->IsScrollbarContainer();
   mFixedPosScrollContainerId = aLayer->GetFixedPositionScrollContainerId();
@@ -68,6 +70,12 @@ WebRenderLayerScrollData::GetScrollMetadata(const WebRenderScrollData& aOwner,
 {
   MOZ_ASSERT(aIndex < mScrollIds.Length());
   return aOwner.GetScrollMetadata(mScrollIds[aIndex]);
+}
+
+CSSTransformMatrix
+WebRenderLayerScrollData::GetTransformTyped() const
+{
+  return ViewAs<CSSTransformMatrix>(GetTransform());
 }
 
 WebRenderScrollData::WebRenderScrollData()

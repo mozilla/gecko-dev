@@ -74,7 +74,6 @@ browser/chrome/browser/content/branding/icon128.png
 browser/chrome/browser/content/branding/icon16.png
 browser/chrome/browser/content/branding/icon32.png
 browser/chrome/browser/content/branding/icon48.png
-browser/chrome/browser/content/browser/defaultthemes/5.footer.png
 browser/chrome/browser/content/browser/defaultthemes/5.header.png
 browser/chrome/browser/content/browser/extension.svg
 browser/chrome/browser/content/browser/places/bookmarkProperties.xul
@@ -230,9 +229,7 @@ chrome/toolkit/skin/classic/global/dropmarker.css
 chrome/toolkit/skin/classic/global/global.css
 chrome/toolkit/skin/classic/global/groupbox.css
 chrome/toolkit/skin/classic/global/icons/close-win7.png
-chrome/toolkit/skin/classic/global/icons/tabprompts-bgtexture.png
 chrome/toolkit/skin/classic/global/listbox.css
-chrome/toolkit/skin/classic/global/media/clicktoplay-bgtexture.png
 chrome/toolkit/skin/classic/global/menu.css
 chrome/toolkit/skin/classic/global/menulist.css
 chrome/toolkit/skin/classic/global/numberbox.css

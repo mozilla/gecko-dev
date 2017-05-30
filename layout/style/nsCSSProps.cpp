@@ -742,12 +742,6 @@ const KTableEntry nsCSSProps::kAnimationPlayStateKTable[] = {
 };
 
 const KTableEntry nsCSSProps::kAppearanceKTable[] = {
-  { eCSSKeyword_none,    NS_THEME_NONE },
-  { eCSSKeyword_auto,    NS_THEME_AUTO },
-  { eCSSKeyword_UNKNOWN, -1 }
-};
-
-const KTableEntry nsCSSProps::kMozAppearanceKTable[] = {
   { eCSSKeyword_none,                   NS_THEME_NONE },
   { eCSSKeyword_button,                 NS_THEME_BUTTON },
   { eCSSKeyword_radio,                  NS_THEME_RADIO },
@@ -904,8 +898,6 @@ KTableEntry nsCSSProps::kBackgroundClipKTable[] = {
   { eCSSKeyword_border_box, StyleGeometryBox::BorderBox },
   { eCSSKeyword_padding_box, StyleGeometryBox::PaddingBox },
   { eCSSKeyword_content_box, StyleGeometryBox::ContentBox },
-  // The next entry is controlled by the layout.css.background-clip-text.enabled
-  // pref.
   { eCSSKeyword_text, StyleGeometryBox::Text },
   { eCSSKeyword_UNKNOWN, -1 }
 };

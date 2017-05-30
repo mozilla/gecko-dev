@@ -86,6 +86,7 @@ public:
   /* Hit test related methods */
 
   void SetHitTestData(const EventRegions& aRegions,
+                      const LayerIntRegion& aVisibleRegion,
                       const CSSTransformMatrix& aTransform,
                       const Maybe<ParentLayerIntRegion>& aClipRegion,
                       const EventRegionsOverride& aOverride);
@@ -94,6 +95,7 @@ public:
   /* Scrollbar info */
 
   void SetScrollbarData(FrameMetrics::ViewID aScrollViewId,
+                        const uint64_t& aScrollbarAnimationId,
                         const ScrollThumbData& aThumbData,
                         bool aIsScrollContainer);
   bool MatchesScrollDragMetrics(const AsyncDragMetrics& aDragMetrics) const;
@@ -101,6 +103,7 @@ public:
   bool IsScrollThumbNode() const;  // Scroll thumb container layer.
   FrameMetrics::ViewID GetScrollTargetId() const;
   const ScrollThumbData& GetScrollThumbData() const;
+  const uint64_t& GetScrollbarAnimationId() const;
 
   /* Fixed pos info */
 
@@ -118,6 +121,7 @@ public:
   /* Returns the mOverride flag. */
   EventRegionsOverride GetEventRegionsOverride() const;
   const CSSTransformMatrix& GetTransform() const;
+  const LayerIntRegion& GetVisibleRegion() const;
 
   /* Debug helpers */
   void Dump(const char* aPrefix = "") const;
@@ -138,6 +142,11 @@ private:
   // represents the scroll id of the scroll frame scrolled by the scrollbar.
   FrameMetrics::ViewID mScrollViewId;
 
+  // This is only set to non-zero if WebRender is enabled, and only for HTTNs
+  // where IsScrollThumbNode() returns true. It holds the animation id that we
+  // use to move the thumb node to reflect async scrolling.
+  uint64_t mScrollbarAnimationId;
+
   // This is set for scroll thumb Container layers only.
   ScrollThumbData mScrollThumbData;
 
@@ -154,6 +163,8 @@ private:
    * This value is in L's LayerPixels.
    */
   EventRegions mEventRegions;
+
+  LayerIntRegion mVisibleRegion;
 
   /* This is the transform from layer L. This does NOT include any async
    * transforms. */

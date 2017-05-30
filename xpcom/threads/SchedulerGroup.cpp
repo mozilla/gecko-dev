@@ -41,7 +41,7 @@ public:
   {}
 
   NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSIEVENTTARGET
+  NS_DECL_NSIEVENTTARGET_FULL
 
   SchedulerGroup* Dispatcher() const { return mDispatcher; }
 
@@ -61,23 +61,17 @@ public:
     : mIsBackground(aRunnable->IsBackground())
   {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-// Telemetry collection temporarily disabled in bug 1366156.
-#if 0
 #ifdef EARLY_BETA_OR_EARLIER
     aRunnable->GetName(mKey);
     mStart = TimeStamp::Now();
 #endif
-#endif
   }
   ~AutoCollectVsyncTelemetry()
   {
-// Telemetry collection temporarily disabled in bug 1366156.
-#if 0
 #ifdef EARLY_BETA_OR_EARLIER
     if (Telemetry::CanRecordBase()) {
       CollectTelemetry();
     }
-#endif
 #endif
   }
 

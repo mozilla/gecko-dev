@@ -1811,14 +1811,16 @@ class PPAPIInstance {
         this.mm.sendAsyncMessage("ppapi.js:setFullscreen", message.fullscreen);
         break;
       case 'save':
-        this.mm.sendAsyncMessage("ppapipdf.js:save");
+        this.mm.sendAsyncMessage("ppapipdf.js:save", {
+          url: this.info.url });
         break;
       case 'setHash':
         this.mm.sendAsyncMessage("ppapipdf.js:setHash", message.hash);
         break;
       case 'startPrint':
         // We need permission for showing print dialog to get print settings
-        this.mm.sendAsyncMessage("ppapipdf.js:getPrintSettings");
+        this.mm.sendAsyncMessage("ppapipdf.js:getPrintSettings", {
+          url: this.info.url });
         break;
       case 'openLink':
         this.mm.sendAsyncMessage("ppapipdf.js:openLink", {

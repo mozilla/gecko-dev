@@ -37,8 +37,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "styleSheetService",
                                    "@mozilla.org/content/style-sheet-service;1",
                                    "nsIStyleSheetService");
 
-/* globals IDBKeyRange */
-
 function getConsole() {
   return new ConsoleAPI({
     maxLogLevelPref: "extensions.webextensions.log.level",
@@ -795,6 +793,20 @@ const stylesheetMap = new DefaultMap(url => {
 });
 
 /**
+ * Retreives the browser_style stylesheets needed for extension popups and sidebars.
+ * @returns {Array<string>} an array of stylesheets needed for the current platform.
+ */
+function extensionStylesheets() {
+  let stylesheets = ["chrome://browser/content/extension.css"];
+
+  if (AppConstants.platform === "macosx") {
+    stylesheets.push("chrome://browser/content/extension-mac.css");
+  }
+
+  return stylesheets;
+}
+
+/**
  * Defines a lazy getter for the given property on the given object. The
  * first time the property is accessed, the return value of the getter
  * is defined on the current `this` object with the given property name.
@@ -937,7 +949,7 @@ class MessageManagerProxy {
     if (this.messageManager) {
       return this.messageManager.sendAsyncMessage(...args);
     }
-    /* globals uneval */
+
     Cu.reportError(`Cannot send message: Other side disconnected: ${uneval(args)}`);
   }
 
@@ -1091,4 +1103,5 @@ this.ExtensionUtils = {
   StartupCache,
 };
 
+XPCOMUtils.defineLazyGetter(this.ExtensionUtils, "extensionStylesheets", extensionStylesheets);
 XPCOMUtils.defineLazyGetter(this.ExtensionUtils, "PlatformInfo", PlatformInfo);

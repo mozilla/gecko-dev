@@ -814,7 +814,6 @@ SyncEngine.prototype = {
   // How many records to pull at one time when specifying IDs. This is to avoid
   // URI length limitations.
   guidFetchBatchSize: DEFAULT_GUID_FETCH_BATCH_SIZE,
-  mobileGUIDFetchBatchSize: DEFAULT_MOBILE_GUID_FETCH_BATCH_SIZE,
 
   // How many records to process in a single batch.
   applyIncomingBatchSize: DEFAULT_STORE_BATCH_SIZE,
@@ -1056,7 +1055,6 @@ SyncEngine.prototype = {
 
     // Figure out how many total items to fetch this sync; do less on mobile.
     let batchSize = this.downloadLimit || Infinity;
-    let isMobile = (Svc.Prefs.get("client.type") == "mobile");
 
     if (!newitems) {
       newitems = this.itemSource();
@@ -1066,9 +1064,6 @@ SyncEngine.prototype = {
       newitems.sort = this._defaultSort;
     }
 
-    if (isMobile) {
-      batchSize = MOBILE_BATCH_SIZE;
-    }
     newitems.newer = this.lastSync;
     newitems.full  = true;
     newitems.limit = batchSize;
@@ -1281,8 +1276,7 @@ SyncEngine.prototype = {
     // Process any backlog of GUIDs.
     // At this point we impose an upper limit on the number of items to fetch
     // in a single request, even for desktop, to avoid hitting URI limits.
-    batchSize = isMobile ? this.mobileGUIDFetchBatchSize :
-                           this.guidFetchBatchSize;
+    batchSize = this.guidFetchBatchSize;
 
     while (fetchBatch.length && !aborting) {
       // Reuse the original query, but get rid of the restricting params
@@ -1365,9 +1359,9 @@ SyncEngine.prototype = {
 
   /**
    * Called before a remote record is discarded due to failed reconciliation.
-   * Used by bookmark sync to note the child ordering of special folders.
+   * Used by bookmark sync to merge folder child orders.
    */
-  beforeRecordDiscard(record) {
+  beforeRecordDiscard(localRecord, remoteRecord, remoteIsNewer) {
   },
 
   // Called when the server has a record marked as deleted, but locally we've
@@ -1580,7 +1574,7 @@ SyncEngine.prototype = {
     this._log.warn("DATA LOSS: Both local and remote changes to record: " +
                    item.id);
     if (!remoteIsNewer) {
-      this.beforeRecordDiscard(item);
+      this.beforeRecordDiscard(localRecord, item, remoteIsNewer);
     }
     return remoteIsNewer;
   },

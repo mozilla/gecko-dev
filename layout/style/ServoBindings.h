@@ -43,6 +43,9 @@ namespace mozilla {
     struct URLValue;
     struct ImageValue;
   };
+  namespace dom {
+    enum class IterationCompositeOperation : uint8_t;
+  };
   enum class UpdateAnimationsTasks : uint8_t;
   struct LangGroupFontPrefs;
   class ServoStyleSheet;
@@ -271,8 +274,16 @@ void Gecko_CopyImageOrientationFrom(nsStyleVisibility* aDst,
                                     const nsStyleVisibility* aSrc);
 
 // Counter style.
-void Gecko_SetListStyleType(nsStyleList* style_struct, nsIAtom* name);
-void Gecko_CopyListStyleTypeFrom(nsStyleList* dst, const nsStyleList* src);
+// This function takes an already addrefed nsIAtom
+void Gecko_SetCounterStyleToName(mozilla::CounterStylePtr* ptr, nsIAtom* name);
+void Gecko_SetCounterStyleToSymbols(mozilla::CounterStylePtr* ptr,
+                                    uint8_t symbols_type,
+                                    nsACString const* const* symbols,
+                                    uint32_t symbols_count);
+void Gecko_SetCounterStyleToString(mozilla::CounterStylePtr* ptr,
+                                   const nsACString* symbol);
+void Gecko_CopyCounterStyle(mozilla::CounterStylePtr* dst,
+                            const mozilla::CounterStylePtr* src);
 
 // background-image style.
 void Gecko_SetNullImageValue(nsStyleImage* image);
@@ -307,7 +318,8 @@ void Gecko_CopyCursorArrayFrom(nsStyleUserInterface* dest,
 
 void Gecko_SetContentDataImageValue(nsStyleContentData* aList,
                                     mozilla::css::ImageValue* aImageValue);
-void Gecko_SetContentDataArray(nsStyleContentData* content_data, nsStyleContentType type, uint32_t len);
+nsStyleContentData::CounterFunction* Gecko_SetCounterFunction(
+    nsStyleContentData* content_data, nsStyleContentType type);
 
 // Dirtiness tracking.
 uint32_t Gecko_GetNodeFlags(RawGeckoNodeBorrowed node);
@@ -438,6 +450,8 @@ void Gecko_nsStyleSVGPaint_Reset(nsStyleSVGPaint* paint);
 
 void Gecko_nsStyleSVG_SetDashArrayLength(nsStyleSVG* svg, uint32_t len);
 void Gecko_nsStyleSVG_CopyDashArray(nsStyleSVG* dst, const nsStyleSVG* src);
+void Gecko_nsStyleSVG_SetContextPropertiesLength(nsStyleSVG* svg, uint32_t len);
+void Gecko_nsStyleSVG_CopyContextProperties(nsStyleSVG* dst, const nsStyleSVG* src);
 
 mozilla::css::URLValue* Gecko_NewURLValue(ServoBundledURI uri);
 NS_DECL_THREADSAFE_FFI_REFCOUNTING(mozilla::css::URLValue, CSSURLValue);
@@ -493,6 +507,8 @@ void Gecko_nsStyleFont_SetLang(nsStyleFont* font, nsIAtom* atom);
 void Gecko_nsStyleFont_CopyLangFrom(nsStyleFont* aFont, const nsStyleFont* aSource);
 void Gecko_nsStyleFont_FixupNoneGeneric(nsStyleFont* font,
                                         RawGeckoPresContextBorrowed pres_context);
+void Gecko_nsStyleFont_FixupMinFontSize(nsStyleFont* font,
+                                        RawGeckoPresContextBorrowed pres_context);
 FontSizePrefs Gecko_GetBaseSize(nsIAtom* lang);
 
 struct GeckoFontMetrics
@@ -509,6 +525,7 @@ GeckoFontMetrics Gecko_GetFontMetrics(RawGeckoPresContextBorrowed pres_context,
 int32_t Gecko_GetAppUnitsPerPhysicalInch(RawGeckoPresContextBorrowed pres_context);
 void InitializeServo();
 void ShutdownServo();
+void AssertIsMainThreadOrServoLangFontPrefsCacheLocked();
 
 const nsMediaFeature* Gecko_GetMediaFeatures();
 nsCSSKeyword Gecko_LookupCSSKeyword(const uint8_t* string, uint32_t len);

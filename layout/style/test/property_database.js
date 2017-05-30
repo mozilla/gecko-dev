@@ -1028,6 +1028,14 @@ var gCSSProperties = {
     other_values: [ "cubic-bezier(0.25, 0.1, 0.25, 1.0)", "linear", "ease-in", "ease-out", "ease-in-out", "linear, ease-in, cubic-bezier(0.1, 0.2, 0.8, 0.9)", "cubic-bezier(0.5, 0.5, 0.5, 0.5)", "cubic-bezier(0.25, 1.5, 0.75, -0.5)", "step-start", "step-end", "steps(1)", "steps(2, start)", "steps(386)", "steps(3, end)", "frames(2)", "frames(1000)", "frames( 2 )" ],
     invalid_values: [ "none", "auto", "cubic-bezier(0.25, 0.1, 0.25)", "cubic-bezier(0.25, 0.1, 0.25, 0.25, 1.0)", "cubic-bezier(-0.5, 0.5, 0.5, 0.5)", "cubic-bezier(1.5, 0.5, 0.5, 0.5)", "cubic-bezier(0.5, 0.5, -0.5, 0.5)", "cubic-bezier(0.5, 0.5, 1.5, 0.5)", "steps(2, step-end)", "steps(0)", "steps(-2)", "steps(0, step-end, 1)", "frames(1)", "frames(-2)", "frames", "frames()", "frames(,)", "frames(a)", "frames(2.0)", "frames(2.5)", "frames(2 3)" ]
   },
+  "-moz-appearance": {
+    domProp: "MozAppearance",
+    inherited: false,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: [ "none" ],
+    other_values: [ "radio", "menulist" ],
+    invalid_values: []
+  },
   "-moz-binding": {
     domProp: "MozBinding",
     inherited: false,
@@ -2196,21 +2204,31 @@ var gCSSProperties = {
       "radial-gradient(at 10% bottom, #ffffff, black) scroll no-repeat",
       "repeating-radial-gradient(at 10% bottom, #ffffff, black) scroll no-repeat",
       "-moz-element(#test) lime",
-        /* multiple backgrounds */
-        "url(404.png), url(404.png)",
-        "url(404.png), url(404.png) transparent",
-        "url(404.png), url(404.png) red",
-        "repeat-x, fixed, none",
-        "0% top url(404.png), url(404.png) 0% top",
-        "fixed repeat-y top left url(404.png), repeat-x green",
-        "top left / contain, bottom right / cover",
-        /* test cases with clip+origin in the shorthand */
-        "url(404.png) green padding-box",
-        "url(404.png) border-box transparent",
-        "content-box url(404.png) blue",
-        "url(404.png) green padding-box padding-box",
-        "url(404.png) green padding-box border-box",
-        "content-box border-box url(404.png) blue",
+      /* multiple backgrounds */
+      "url(404.png), url(404.png)",
+      "url(404.png), url(404.png) transparent",
+      "url(404.png), url(404.png) red",
+      "repeat-x, fixed, none",
+      "0% top url(404.png), url(404.png) 0% top",
+      "fixed repeat-y top left url(404.png), repeat-x green",
+      "top left / contain, bottom right / cover",
+      /* test cases with clip+origin in the shorthand */
+      "url(404.png) green padding-box",
+      "url(404.png) border-box transparent",
+      "content-box url(404.png) blue",
+      "url(404.png) green padding-box padding-box",
+      "url(404.png) green padding-box border-box",
+      "content-box border-box url(404.png) blue",
+      "url(404.png) green padding-box text",
+      "content-box text url(404.png) blue",
+      /* clip and origin separated in the shorthand */
+      "url(404.png) padding-box green border-box",
+      "url(404.png) padding-box green padding-box",
+      "transparent padding-box url(404.png) border-box",
+      "transparent padding-box url(404.png) padding-box",
+      /* text */
+      "text",
+      "text border-box",
     ],
     invalid_values: [
       /* mixes with keywords have to be in correct order */
@@ -2232,16 +2250,9 @@ var gCSSProperties = {
       "url(404.png) rgba(0, 0, 0, 0), url(404.png) rgba(0, 0, 0, 0)",
       "url(404.png) rgba(0, 0, 0, 0) rgb(255, 0, 0), url(404.png) rgba(0, 0, 0, 0) rgb(255, 0, 0)",
       "url(404.png) rgb(255, 0, 0), url(404.png) rgb(255, 0, 0)",
-      /* clip and origin separated in the shorthand */
-      "url(404.png) padding-box green border-box",
-      "url(404.png) padding-box green padding-box",
-      "transparent padding-box url(404.png) border-box",
-      "transparent padding-box url(404.png) padding-box",
       /* error inside functions */
       "-moz-image-rect(url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==), rubbish, 50%, 30%, 0) transparent",
       "-moz-element(#a rubbish) black",
-      "text",
-      "text border-box",
       "content-box text text",
       "padding-box text url(404.png) text",
     ]
@@ -2263,7 +2274,7 @@ var gCSSProperties = {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     initial_values: [ "border-box" ],
-    other_values: [ "content-box", "padding-box", "border-box, padding-box", "padding-box, padding-box, padding-box", "border-box, border-box" ],
+    other_values: [ "content-box", "padding-box", "border-box, padding-box", "padding-box, padding-box, padding-box", "border-box, border-box", "text", "content-box, text", "text, border-box", "text, text" ],
     invalid_values: [ "margin-box", "border-box border-box", "fill-box", "stroke-box", "view-box", "no-clip" ]
   },
   "background-color": {
@@ -4358,7 +4369,7 @@ var gCSSProperties = {
     inherited: true,
     type: CSS_TYPE_LONGHAND,
     initial_values: [ "none", "context-value" ],
-    other_values: [ "5px,3px,2px", "5px 3px 2px", "  5px ,3px\t, 2px ", "1px", "5%", "3em" ],
+    other_values: [ "5px,3px,2px", "5px 3px 2px", "  5px ,3px\t, 2px ", "1px", "5%", "3em", "0.0002" ],
     invalid_values: [ "-5px,3px,2px", "5px,3px,-2px" ]
   },
   "stroke-dashoffset": {
@@ -4366,7 +4377,7 @@ var gCSSProperties = {
     inherited: true,
     type: CSS_TYPE_LONGHAND,
     initial_values: [ "0", "-0px", "0em", "context-value" ],
-    other_values: [ "3px", "3%", "1em" ],
+    other_values: [ "3px", "3%", "1em", "0.0002" ],
     invalid_values: []
   },
   "stroke-linecap": {
@@ -4406,7 +4417,7 @@ var gCSSProperties = {
     inherited: true,
     type: CSS_TYPE_LONGHAND,
     initial_values: [ "1px", "context-value" ],
-    other_values: [ "0", "0px", "-0em", "17px", "0.2em" ],
+    other_values: [ "0", "0px", "-0em", "17px", "0.2em", "0.0002" ],
     invalid_values: [ "-0.1px", "-3px" ]
   },
   "text-anchor": {
@@ -7053,6 +7064,8 @@ if (SupportsMaskShorthand()) {
       "url(404.png) alpha padding-box padding-box",
       "url(404.png) alpha padding-box border-box",
       "content-box border-box url(404.png)",
+      "alpha padding-box url(404.png) border-box",
+      "alpha padding-box url(404.png) padding-box",
     ],
     invalid_values: [
       /* mixes with keywords have to be in correct order */
@@ -7063,8 +7076,6 @@ if (SupportsMaskShorthand()) {
       "linear-gradient(red -99, yellow, green, blue 120%)",
       /* bug 258080: don't accept background-position separated */
       "left url(404.png) top", "top url(404.png) left",
-      "alpha padding-box url(404.png) border-box",
-      "alpha padding-box url(404.png) padding-box",
       "-moz-element(#a rubbish)",
       "left top / match-source"
     ]
@@ -7838,63 +7849,8 @@ if (IsCSSPropertyPrefEnabled("layout.css.float-logical-values.enabled")) {
   gCSSProperties["clear"].invalid_values.push("inline-end");
 }
 
-if (IsCSSPropertyPrefEnabled("layout.css.background-clip-text.enabled")) {
-  gCSSProperties["background-clip"].other_values.push(
-    "text",
-    "content-box, text",
-    "text, border-box",
-    "text, text"
-  );
-  gCSSProperties["background"].other_values.push(
-    "url(404.png) green padding-box text",
-    "content-box text url(404.png) blue"
-  );
-} else {
-  gCSSProperties["background-clip"].invalid_values.push(
-    "text",
-    "content-box, text",
-    "text, border-box",
-    "text, text"
-  );
-  gCSSProperties["background"].invalid_values.push(
-    "url(404.png) green padding-box text",
-    "content-box text url(404.png) blue"
-  );
-}
-
 if (IsCSSPropertyPrefEnabled("layout.css.display-flow-root.enabled")) {
   gCSSProperties["display"].other_values.push("flow-root");
-}
-
-if (IsCSSPropertyPrefEnabled("layout.css.appearance.enabled")) {
-  gCSSProperties["appearance"] = {
-    domProp: "appearance",
-    inherited: false,
-    type: CSS_TYPE_LONGHAND,
-    initial_values: [ "none" ],
-    other_values: [ "auto" ],
-    invalid_values: [ "button" ]
-  };
-  gCSSProperties["-webkit-appearance"] = {
-    domProp: "webkitAppearance",
-    inherited: false,
-    type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
-    alias_for: "appearance",
-    subproperties: [ "appearance" ],
-  };
-}
-if (IsCSSPropertyPrefEnabled("layout.css.moz-appearance.enabled")) {
-  gCSSProperties["-moz-appearance"] = {
-    domProp: "MozAppearance",
-    inherited: false,
-    type: CSS_TYPE_LONGHAND,
-    initial_values: [ "none" ],
-    other_values: [ "radio", "menulist", "button", "checkbox", "textfield",
-                    "textfield-multiline", "meterbar", "progressbar", "range",
-                    "range-thumb", "spinner-upbutton", "spinner-downbutton",
-                    "number-input", "listbox", "menulist-button" ],
-    invalid_values: [ "auto" ]
-  };
 }
 
 // Copy aliased properties' fields from their alias targets.

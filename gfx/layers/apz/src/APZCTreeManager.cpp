@@ -86,7 +86,7 @@ struct APZCTreeManager::TreeBuildingState {
   // This map is populated as we place APZCs into the new tree. Its purpose is
   // to facilitate re-using the same APZC for different layers that scroll
   // together (and thus have the same ScrollableLayerGuid).
-  std::map<ScrollableLayerGuid, AsyncPanZoomController*> mApzcMap;
+  std::unordered_map<ScrollableLayerGuid, AsyncPanZoomController*, ScrollableLayerGuidHash> mApzcMap;
 };
 
 class APZCTreeManager::CheckerboardFlushObserver : public nsIObserver {
@@ -367,12 +367,20 @@ APZCTreeManager::UpdateHitTestingTree(uint64_t aRootLayerTreeId,
 
 bool
 APZCTreeManager::PushStateToWR(wr::WebRenderAPI* aWrApi,
-                               const TimeStamp& aSampleTime)
+                               const TimeStamp& aSampleTime,
+                               nsTArray<WrTransformProperty>& aTransformArray)
 {
   APZThreadUtils::AssertOnCompositorThread();
   MOZ_ASSERT(aWrApi);
 
   MutexAutoLock lock(mTreeLock);
+
+  // During the first pass through the tree, we build a cache of guid->HTTN so
+  // that we can find the relevant APZC instances quickly in subsequent passes,
+  // such as the one below to generate scrollbar transforms. Without this, perf
+  // could end up being O(n^2) instead of O(n log n) because we'd have to search
+  // the tree to find the corresponding APZC every time we hit a thumb node.
+  std::unordered_map<ScrollableLayerGuid, HitTestingTreeNode*, ScrollableLayerGuidHash> httnMap;
 
   bool activeAnimations = false;
   uint64_t lastLayersId = -1;
@@ -396,11 +404,21 @@ APZCTreeManager::PushStateToWR(wr::WebRenderAPI* aWrApi,
         if (aNode->GetLayersId() != lastLayersId) {
           // If we walked into or out of a subtree, we need to get the new
           // pipeline id.
-          lastLayersId = aNode->GetLayersId();
-          const LayerTreeState* state = CompositorBridgeParent::GetIndirectShadowTree(lastLayersId);
-          MOZ_ASSERT(state && state->mWrBridge);
+          const LayerTreeState* state = CompositorBridgeParent::GetIndirectShadowTree(aNode->GetLayersId());
+          if (!(state && state->mWrBridge)) {
+            // During shutdown we might have layer tree information for stuff
+            // that has already been torn down. In that case just skip over
+            // those layers.
+            return;
+          }
           lastPipelineId = state->mWrBridge->PipelineId();
+          lastLayersId = aNode->GetLayersId();
         }
+
+        // Use a 0 presShellId because when we do a lookup in this map for the
+        // scrollbar below we don't have (or care about) the presShellId.
+        ScrollableLayerGuid guid(lastLayersId, 0, apzc->GetGuid().mScrollId);
+        httnMap.emplace(guid, aNode);
 
         ParentLayerPoint layerTranslation = apzc->GetCurrentAsyncTransform(
             AsyncPanZoomController::RESPECT_FORCE_DISABLE).mTranslation;
@@ -414,6 +432,45 @@ APZCTreeManager::PushStateToWR(wr::WebRenderAPI* aWrApi,
 
         apzc->ReportCheckerboard(aSampleTime);
         activeAnimations |= apzc->AdvanceAnimations(aSampleTime);
+      });
+
+  // Now we iterate over the nodes again, and generate the transforms needed
+  // for scrollbar thumbs. Although we *could* do this as part of the previous
+  // iteration, it's cleaner and more efficient to do it as a separate pass
+  // because now we have a populated httnMap which allows O(log n) lookup here,
+  // resulting in O(n log n) runtime.
+  ForEachNode<ReverseIterator>(mRootNode.get(),
+      [&](HitTestingTreeNode* aNode)
+      {
+        if (!aNode->IsScrollThumbNode()) {
+          return;
+        }
+        ScrollableLayerGuid guid(aNode->GetLayersId(), 0, aNode->GetScrollTargetId());
+        auto it = httnMap.find(guid);
+        if (it == httnMap.end()) {
+          // A scrollbar for content which didn't have an APZC. Possibly the
+          // content isn't layerized. Regardless, we can't async-scroll it so
+          // we can skip the async transform on the scrollbar.
+          return;
+        }
+
+        HitTestingTreeNode* scrollTargetNode = it->second;
+        AsyncPanZoomController* scrollTargetApzc = scrollTargetNode->GetApzc();
+        MOZ_ASSERT(scrollTargetApzc);
+        LayerToParentLayerMatrix4x4 transform = scrollTargetApzc->CallWithLastContentPaintMetrics(
+            [&](const FrameMetrics& aMetrics) {
+                return AsyncCompositionManager::ComputeTransformForScrollThumb(
+                    aNode->GetTransform() * AsyncTransformMatrix(),
+                    scrollTargetNode->GetTransform().ToUnknownMatrix(),
+                    scrollTargetApzc,
+                    aMetrics,
+                    aNode->GetScrollThumbData(),
+                    scrollTargetNode->IsAncestorOf(aNode),
+                    nullptr);
+            });
+        aTransformArray.AppendElement(wr::ToWrTransformProperty(
+            aNode->GetScrollbarAnimationId(),
+            transform));
       });
 
   return activeAnimations;
@@ -480,6 +537,8 @@ GetEventRegions(const ScrollNode& aLayer)
   }
   return aLayer.GetEventRegions();
 }
+
+
 
 already_AddRefed<HitTestingTreeNode>
 APZCTreeManager::RecycleOrCreateNode(TreeBuildingState& aState,
@@ -569,10 +628,12 @@ APZCTreeManager::PrepareNodeForLayer(const ScrollNode& aLayer,
     AttachNodeToTree(node, aParent, aNextSibling);
     node->SetHitTestData(
         GetEventRegions(aLayer),
+        aLayer.GetVisibleRegion(),
         aLayer.GetTransformTyped(),
         aLayer.GetClipRect() ? Some(ParentLayerIntRegion(*aLayer.GetClipRect())) : Nothing(),
         GetEventRegionsOverride(aParent, aLayer));
     node->SetScrollbarData(aLayer.GetScrollbarTargetContainerId(),
+                           aLayer.GetScrollbarAnimationId(),
                            aLayer.GetScrollThumbData(),
                            aLayer.IsScrollbarContainer());
     node->SetFixedPosData(aLayer.GetFixedPositionScrollContainerId());
@@ -679,6 +740,7 @@ APZCTreeManager::PrepareNodeForLayer(const ScrollNode& aLayer,
     ParentLayerIntRegion clipRegion = ComputeClipRegion(state->mController, aLayer);
     node->SetHitTestData(
         GetEventRegions(aLayer),
+        aLayer.GetVisibleRegion(),
         aLayer.GetTransformTyped(),
         Some(clipRegion),
         GetEventRegionsOverride(aParent, aLayer));
@@ -753,6 +815,7 @@ APZCTreeManager::PrepareNodeForLayer(const ScrollNode& aLayer,
     ParentLayerIntRegion clipRegion = ComputeClipRegion(state->mController, aLayer);
     node->SetHitTestData(
         GetEventRegions(aLayer),
+        aLayer.GetVisibleRegion(),
         aLayer.GetTransformTyped(),
         Some(clipRegion),
         GetEventRegionsOverride(aParent, aLayer));
@@ -762,6 +825,7 @@ APZCTreeManager::PrepareNodeForLayer(const ScrollNode& aLayer,
   // LayerTransactionParent.cpp must ensure that APZ will be notified
   // when those properties change.
   node->SetScrollbarData(aLayer.GetScrollbarTargetContainerId(),
+                         aLayer.GetScrollbarAnimationId(),
                          aLayer.GetScrollThumbData(),
                          aLayer.IsScrollbarContainer());
   node->SetFixedPosData(aLayer.GetFixedPositionScrollContainerId());
@@ -872,51 +936,60 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
           apzc, targetConfirmed,
           mouseInput, aOutInputBlockId);
 
-        // Under some conditions, we can confirm the drag block right away.
-        // Otherwise, we have to wait for a main-thread confirmation.
-        if (apzDragEnabled && gfxPrefs::APZDragInitiationEnabled() &&
-            startsDrag && hitScrollbarNode &&
+        // If we're starting an async scrollbar drag
+        if (apzDragEnabled && startsDrag && hitScrollbarNode &&
             hitScrollbarNode->IsScrollThumbNode() &&
             hitScrollbarNode->GetScrollThumbData().mIsAsyncDraggable &&
-            // check that the scrollbar's target scroll frame is layerized
-            hitScrollbarNode->GetScrollTargetId() == apzc->GetGuid().mScrollId &&
-            !apzc->IsScrollInfoLayer() && mInputQueue->GetCurrentDragBlock()) {
+            mInputQueue->GetCurrentDragBlock()) {
           DragBlockState* dragBlock = mInputQueue->GetCurrentDragBlock();
-          uint64_t dragBlockId = dragBlock->GetBlockId();
           const ScrollThumbData& thumbData = hitScrollbarNode->GetScrollThumbData();
-          // AsyncPanZoomController::HandleInputEvent() will call
-          // TransformToLocal() on the event, but we need its mLocalOrigin now
-          // to compute a drag start offset for the AsyncDragMetrics.
-          mouseInput.TransformToLocal(apzc->GetTransformToThis());
-          CSSCoord dragStart = apzc->ConvertScrollbarPoint(
-              mouseInput.mLocalOrigin, thumbData);
-          // ConvertScrollbarPoint() got the drag start offset relative to
-          // the scroll track. Now get it relative to the thumb.
-          // ScrollThumbData::mThumbStart stores the offset of the thumb
-          // relative to the scroll track at the time of the last paint.
-          // Since that paint, the thumb may have acquired an async transform
-          // due to async scrolling, so look that up and apply it.
-          LayerToParentLayerMatrix4x4 thumbTransform;
-          {
-            MutexAutoLock lock(mTreeLock);
-            thumbTransform = ComputeTransformForNode(hitScrollbarNode);
+
+          // Record the thumb's position at the start of the drag.
+          // We snap back to this position if, during the drag, the mouse
+          // gets sufficiently far away from the scrollbar.
+          dragBlock->SetInitialThumbPos(thumbData.mThumbStart);
+
+          // Under some conditions, we can confirm the drag block right away.
+          // Otherwise, we have to wait for a main-thread confirmation.
+          if (gfxPrefs::APZDragInitiationEnabled() &&
+              // check that the scrollbar's target scroll frame is layerized
+              hitScrollbarNode->GetScrollTargetId() == apzc->GetGuid().mScrollId &&
+              !apzc->IsScrollInfoLayer()) {
+            uint64_t dragBlockId = dragBlock->GetBlockId();
+            // AsyncPanZoomController::HandleInputEvent() will call
+            // TransformToLocal() on the event, but we need its mLocalOrigin now
+            // to compute a drag start offset for the AsyncDragMetrics.
+            mouseInput.TransformToLocal(apzc->GetTransformToThis());
+            CSSCoord dragStart = apzc->ConvertScrollbarPoint(
+                mouseInput.mLocalOrigin, thumbData);
+            // ConvertScrollbarPoint() got the drag start offset relative to
+            // the scroll track. Now get it relative to the thumb.
+            // ScrollThumbData::mThumbStart stores the offset of the thumb
+            // relative to the scroll track at the time of the last paint.
+            // Since that paint, the thumb may have acquired an async transform
+            // due to async scrolling, so look that up and apply it.
+            LayerToParentLayerMatrix4x4 thumbTransform;
+            {
+              MutexAutoLock lock(mTreeLock);
+              thumbTransform = ComputeTransformForNode(hitScrollbarNode);
+            }
+            // Only consider the translation, since we do not support both
+            // zooming and scrollbar dragging on any platform.
+            CSSCoord thumbStart = thumbData.mThumbStart
+                                + ((thumbData.mDirection == ScrollDirection::HORIZONTAL)
+                                   ? thumbTransform._41 : thumbTransform._42);
+            dragStart -= thumbStart;
+            mInputQueue->ConfirmDragBlock(
+                dragBlockId, apzc,
+                AsyncDragMetrics(apzc->GetGuid().mScrollId,
+                                 apzc->GetGuid().mPresShellId,
+                                 dragBlockId,
+                                 dragStart,
+                                 thumbData.mDirection));
+            // Content can't prevent scrollbar dragging with preventDefault(),
+            // so we don't need to wait for a content response.
+            dragBlock->SetContentResponse(false);
           }
-          // Only consider the translation, since we do not support both
-          // zooming and scrollbar dragging on any platform.
-          CSSCoord thumbStart = thumbData.mThumbStart
-                              + ((thumbData.mDirection == ScrollDirection::HORIZONTAL)
-                                 ? thumbTransform._41 : thumbTransform._42);
-          dragStart -= thumbStart;
-          mInputQueue->ConfirmDragBlock(
-              dragBlockId, apzc,
-              AsyncDragMetrics(apzc->GetGuid().mScrollId,
-                               apzc->GetGuid().mPresShellId,
-                               dragBlockId,
-                               dragStart,
-                               thumbData.mDirection));
-          // Content can't prevent scrollbar dragging with preventDefault(),
-          // so we don't need to wait for a content response.
-          dragBlock->SetContentResponse(false);
         }
 
         if (result == nsEventStatus_eConsumeDoDefault) {
@@ -1863,7 +1936,7 @@ APZCTreeManager::SetLongTapEnabled(bool aLongTapEnabled)
 }
 
 RefPtr<HitTestingTreeNode>
-APZCTreeManager::FindScrollNode(const AsyncDragMetrics& aDragMetrics)
+APZCTreeManager::FindScrollThumbNode(const AsyncDragMetrics& aDragMetrics)
 {
   MutexAutoLock lock(mTreeLock);
 

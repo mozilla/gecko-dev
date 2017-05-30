@@ -131,9 +131,11 @@
                                          "These settings are tailored to your computer’s hardware and operating system.">
 <!ENTITY useRecommendedPerformanceSettings.accesskey
                                          "U">
-<!ENTITY limitContentProcess.label       "Content process limit">
-<!ENTITY limitContentProcess.description
-                                         "Additional content processes can improve &brandShortName; performance when using multiple tabs, but will also use more memory.">
-<!ENTITY limitContentProcess.accesskey   "L">
+<!ENTITY performanceSettingsLearnMore.label
+                                         "Learn more">
+<!ENTITY limitContentProcessOption.label "Content process limit">
+<!ENTITY limitContentProcessOption.description
+                                         "Additional content processes can improve performance when using multiple tabs, but will also use more memory.">
+<!ENTITY limitContentProcessOption.accesskey   "L">
 <!ENTITY allowHWAccel.label              "Use hardware acceleration when available">
 <!ENTITY allowHWAccel.accesskey          "r">

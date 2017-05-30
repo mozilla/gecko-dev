@@ -48,7 +48,7 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
-use style::computed_values::{background_repeat, background_size, border_style, cursor};
+use style::computed_values::{background_repeat, border_style, cursor};
 use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
 use style::computed_values::filter::Filter;
 use style::computed_values::text_shadow::TextShadow;
@@ -61,6 +61,7 @@ use style::values::{Either, RGBA};
 use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
 use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
 use style::values::computed::image::{EndingShape, LineDirection};
+use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndingShape};
 use style::values::generics::image::{GradientItem as GenericGradientItem, GradientKind};
 use style::values::generics::image::{Image, ShapeExtent};
@@ -917,43 +918,29 @@ impl FragmentDisplayListBuilding for Fragment {
                                          Au::from_px(image.height as i32));
         let background_size = get_cyclic(&style.get_background().background_size.0, index).clone();
         match (background_size, image_aspect_ratio < bounds_aspect_ratio) {
-            (background_size::single_value::T::Contain, false) |
-            (background_size::single_value::T::Cover, true) => {
+            (BackgroundSize::Contain, false) | (BackgroundSize::Cover, true) => {
                 Size2D::new(bounds.size.width,
                             Au::from_f64_px(bounds.size.width.to_f64_px() / image_aspect_ratio))
             }
 
-            (background_size::single_value::T::Contain, true) |
-            (background_size::single_value::T::Cover, false) => {
+            (BackgroundSize::Contain, true) | (BackgroundSize::Cover, false) => {
                 Size2D::new(Au::from_f64_px(bounds.size.height.to_f64_px() * image_aspect_ratio),
                             bounds.size.height)
             }
 
-            (background_size::single_value::T::Explicit(background_size::single_value
-                                                                       ::ExplicitSize {
-                width,
-                height: LengthOrPercentageOrAuto::Auto,
-            }), _) => {
+            (BackgroundSize::Explicit { width, height: LengthOrPercentageOrAuto::Auto }, _) => {
                 let width = MaybeAuto::from_style(width, bounds.size.width)
                                       .specified_or_default(intrinsic_size.width);
                 Size2D::new(width, Au::from_f64_px(width.to_f64_px() / image_aspect_ratio))
             }
 
-            (background_size::single_value::T::Explicit(background_size::single_value
-                                                                       ::ExplicitSize {
-                width: LengthOrPercentageOrAuto::Auto,
-                height
-            }), _) => {
+            (BackgroundSize::Explicit { width: LengthOrPercentageOrAuto::Auto, height }, _) => {
                 let height = MaybeAuto::from_style(height, bounds.size.height)
                                        .specified_or_default(intrinsic_size.height);
                 Size2D::new(Au::from_f64_px(height.to_f64_px() * image_aspect_ratio), height)
             }
 
-            (background_size::single_value::T::Explicit(background_size::single_value
-                                                                       ::ExplicitSize {
-                width,
-                height
-            }), _) => {
+            (BackgroundSize::Explicit { width, height }, _) => {
                 Size2D::new(MaybeAuto::from_style(width, bounds.size.width)
                                  .specified_or_default(intrinsic_size.width),
                        MaybeAuto::from_style(height, bounds.size.height)
@@ -1429,8 +1416,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                             url.clone(),
                                                                             UsePlaceholder::No);
                     if let Some(webrender_image) = webrender_image {
-                        // The corners array is guaranteed to be len=4 by the css parser.
-                        let corners = &border_style_struct.border_image_slice.corners;
+                        let corners = &border_style_struct.border_image_slice.offsets;
 
                         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                             base: base,
@@ -1438,10 +1424,10 @@ impl FragmentDisplayListBuilding for Fragment {
                             details: BorderDetails::Image(ImageBorder {
                                 image: webrender_image,
                                 fill: border_style_struct.border_image_slice.fill,
-                                slice: SideOffsets2D::new(corners[0].resolve(webrender_image.height),
-                                                          corners[1].resolve(webrender_image.width),
-                                                          corners[2].resolve(webrender_image.height),
-                                                          corners[3].resolve(webrender_image.width)),
+                                slice: SideOffsets2D::new(corners.top.resolve(webrender_image.height),
+                                                          corners.right.resolve(webrender_image.width),
+                                                          corners.bottom.resolve(webrender_image.height),
+                                                          corners.left.resolve(webrender_image.width)),
                                 // TODO(gw): Support border-image-outset
                                 outset: SideOffsets2D::zero(),
                                 repeat_horizontal: convert_repeat_mode(border_style_struct.border_image_repeat.0),

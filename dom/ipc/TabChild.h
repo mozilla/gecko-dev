@@ -503,7 +503,15 @@ public:
 
   bool IsTransparent() const { return mIsTransparent; }
 
-  void GetMaxTouchPoints(uint32_t* aTouchPoints);
+  void GetMaxTouchPoints(uint32_t* aTouchPoints)
+  {
+    *aTouchPoints = mMaxTouchPoints;
+  }
+
+  void SetMaxTouchPoints(uint32_t aMaxTouchPoints)
+  {
+    mMaxTouchPoints = aMaxTouchPoints;
+  }
 
   ScreenOrientationInternal GetOrientation() const { return mOrientation; }
 
@@ -611,6 +619,12 @@ public:
 #ifdef XP_WIN
   nsresult CreatePluginWidget(nsIWidget* aParent, nsIWidget** aOut);
 #endif
+
+  virtual PPaymentRequestChild*
+  AllocPPaymentRequestChild() override;
+
+  virtual bool
+  DeallocPPaymentRequestChild(PPaymentRequestChild* aActor) override;
 
   LayoutDeviceIntPoint GetClientOffset() const { return mClientOffset; }
   LayoutDeviceIntPoint GetChromeDisplacement() const { return mChromeDisp; };
@@ -787,6 +801,7 @@ private:
   RefPtr<nsIContentChild> mManager;
   RefPtr<TabChildSHistoryListener> mHistoryListener;
   uint32_t mChromeFlags;
+  uint32_t mMaxTouchPoints;
   int32_t mActiveSuppressDisplayport;
   uint64_t mLayersId;
   int64_t mBeforeUnloadListeners;

@@ -795,7 +795,6 @@ nsBidiPresUtils::ResolveParagraph(BidiParagraphData* aBpd)
   nsIContent* content = nullptr;
   int32_t     contentTextLength = 0;
 
-  FramePropertyTable* propTable = aBpd->mPresContext->PropertyTable();
   nsLineBox* currentLine = nullptr;
   
 #ifdef DEBUG
@@ -851,7 +850,7 @@ nsBidiPresUtils::ResolveParagraph(BidiParagraphData* aBpd)
     }
     precedingControl = kBidiLevelNone;
     lastEmbedingLevel = embeddingLevel;
-    propTable->Set(frame, nsIFrame::BidiDataProperty(), bidiData);
+    frame->SetProperty(nsIFrame::BidiDataProperty(), bidiData);
   };
 
   for (; ;) {
@@ -1316,6 +1315,14 @@ nsBidiPresUtils::ChildListMayRequireBidi(nsIFrame*    aFirstChild,
 
     if (IsBidiLeaf(frame)) {
       if (frame->IsTextFrame()) {
+        // If the frame already has a BidiDataProperty, we know we need to
+        // perform bidi resolution (even if no bidi content is NOW present --
+        // we might need to remove the property set by a previous reflow, if
+        // content has changed; see bug 1366623).
+        if (frame->HasProperty(nsIFrame::BidiDataProperty())) {
+          return true;
+        }
+
         // Check whether the text frame has any RTL characters; if so, bidi
         // resolution will be needed.
         nsIContent* content = frame->GetContent();
@@ -1874,7 +1881,7 @@ nsBidiPresUtils::RemoveBidiContinuation(BidiParagraphData *aBpd,
     if (frame != NS_BIDI_CONTROL_FRAME) {
       // Make the frame and its continuation ancestors fluid,
       // so they can be reused or deleted by normal reflow code
-      frame->Properties().Set(nsIFrame::BidiDataProperty(), bidiData);
+      frame->SetProperty(nsIFrame::BidiDataProperty(), bidiData);
       frame->AddStateBits(NS_FRAME_IS_BIDI);
       while (frame) {
         nsIFrame* prev = frame->GetPrevContinuation();

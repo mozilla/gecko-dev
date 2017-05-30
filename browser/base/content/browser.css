@@ -224,7 +224,7 @@ toolbar[customizing] > .overflow-button {
   display: none;
 }
 
-#nav-bar[nonemptyoverflow] > .overflow-button,
+window:not([chromehidden~="toolbar"]) #nav-bar[nonemptyoverflow] > .overflow-button,
 #nav-bar[customizing][photon-structure] > .overflow-button {
   display: -moz-box;
 }
@@ -611,12 +611,12 @@ html|input.urlbar-input[textoverflow]:not([focused]) {
 }
 
 #PopupAutoCompleteRichResult > deck[anonid="search-suggestions-notification"] {
-  visibility: collapse;
+  display: none;
   transition: margin-top 100ms;
 }
 
 #PopupAutoCompleteRichResult.showSearchSuggestionsNotification > deck[anonid="search-suggestions-notification"] {
-  visibility: visible;
+  display: -moz-deck;
 }
 
 #PopupAutoCompleteRichResult > richlistbox {
@@ -1133,6 +1133,29 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > #downloads-
   }
 }
 
+#customization-container {
+  -moz-box-orient: horizontal;
+}
+
+#customization-container[photon] {
+  display: flex;
+  flex-direction: column;
+}
+
+#customization-container[photon] > #customization-content-container {
+  display: flex;
+  flex-grow: 1; /* Grow so there isn't empty space below the footer */
+  min-height: 0; /* Allow this to shrink so the footer doesn't get pushed out. */
+}
+
+#customization-container[photon] > #customization-content-container > #customization-palette-container {
+  flex-grow: 1;
+}
+
+#customization-panelHolder > #widget-overflow-fixed-list {
+  padding-bottom: 50px; /* Make sure there's always space to drop stuff. */
+}
+
 #customization-panelHolder {
   overflow-y: hidden;
 }
@@ -1308,6 +1331,13 @@ toolbarpaletteitem[place="palette"][hidden] {
   -moz-appearance: none;
   opacity: 0.65;
   -moz-window-shadow: none;
+}
+
+/* Page action menu */
+#page-action-sendToDeviceView-body[signedin] > #page-action-sendToDevice-fxa-button,
+#page-action-sendToDeviceView-body:not([signedin]) > #page-action-no-devices-button,
+#page-action-sendToDeviceView-body[hasdevices] > #page-action-no-devices-button {
+  display: none;
 }
 
 %include theme-vars.inc.css

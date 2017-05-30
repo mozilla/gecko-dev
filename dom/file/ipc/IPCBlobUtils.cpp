@@ -10,9 +10,15 @@
 #include "IPCBlobInputStreamParent.h"
 #include "IPCBlobInputStreamStorage.h"
 #include "mozilla/dom/IPCBlob.h"
+#include "mozilla/dom/nsIContentParent.h"
+#include "mozilla/ipc/IPCStreamUtils.h"
+#include "StreamBlobImpl.h"
 #include "prtime.h"
 
 namespace mozilla {
+
+using namespace ipc;
+
 namespace dom {
 namespace IPCBlobUtils {
 
@@ -64,6 +70,8 @@ Deserialize(const IPCBlob& aIPCBlob)
     blobImpl->SetFullPath(file.fullPath());
     blobImpl->SetIsDirectory(file.isDirectory());
   }
+
+  blobImpl->SetFileId(aIPCBlob.fileId());
 
   return blobImpl.forget();
 }
@@ -177,6 +185,8 @@ SerializeInternal(BlobImpl* aBlobImpl, M* aManager, IPCBlob& aIPCBlob)
 
     aIPCBlob.file() = file;
   }
+
+  aIPCBlob.fileId() = aBlobImpl->GetFileId();
 
   nsCOMPtr<nsIInputStream> inputStream;
   aBlobImpl->GetInternalStream(getter_AddRefs(inputStream), rv);

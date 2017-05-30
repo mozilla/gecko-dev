@@ -48,6 +48,7 @@ headers = [
     "gfxFontConstants.h",
     "nsThemeConstants.h",
     "mozilla/dom/AnimationEffectReadOnlyBinding.h",
+    "mozilla/dom/KeyframeEffectBinding.h",
     "mozilla/AnimationPropertySegment.h",
     "mozilla/ComputedTiming.h",
     "mozilla/ComputedTimingFunction.h",
@@ -85,6 +86,7 @@ bitfield-enums = [
 constified-enums = [
     "UpdateAnimationsTasks",
     "ParsingMode",
+    "ThemeWidgetType",
 ]
 constified-enum-variants = [
     { enum = "nsCSSPropertyID", variants = ["eCSSProperty_COUNT.*"] },
@@ -118,6 +120,7 @@ whitelist-types = [
     "mozilla::CSSPseudoClassType",
     "mozilla::css::SheetParsingMode",
     "mozilla::css::URLMatchingFunction",
+    "mozilla::dom::IterationCompositeOperation",
     "mozilla::HalfCorner",
     "mozilla::PropertyStyleAnimationValuePair",
     "mozilla::TraversalRestyleBehavior",
@@ -126,6 +129,7 @@ whitelist-types = [
     "mozilla::StyleGrid.*",
     "mozilla::UpdateAnimationsTasks",
     "mozilla::LookAndFeel",
+    "mozilla::gfx::FontVariation",
     ".*ThreadSafe.*Holder",
     "AnonymousContent",
     "AudioContext",
@@ -242,19 +246,22 @@ whitelist-types = [
     "StyleGeometryBox",
     "StyleShapeSource",
     "StyleTransition",
+    "ThemeWidgetType",
     "mozilla::UniquePtr",
     "mozilla::DefaultDelete",
     "mozilla::Side",
     "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
     "mozilla::ParsingMode",
     "mozilla::InheritTarget",
+    "mozilla::StyleRuleInclusion",
 ]
 opaque-types = [
     "std::pair__PCCP",
     "std::namespace::atomic___base", "std::atomic__My_base",
     "std::atomic",
     "std::atomic___base",
-    "mozilla::gfx::.*",
+    # We want everything but FontVariation to be opaque but we don't have negative regexes ;_;
+    "mozilla::gfx::(.{0,12}|.{14,}|([^F][^o][^n][^t][^V][^a][^r][^i][^a][^t][^i][^o][^n]))",
     "FallibleTArray",
     "mozilla::dom::Sequence",
     "mozilla::dom::Optional",
@@ -274,6 +281,7 @@ opaque-types = [
     "nsTHashtable",  # <- Inheriting from inner typedefs that clang
                      #    doesn't expose properly.
     "nsRefPtrHashtable", "nsDataHashtable", "nsClassHashtable",  # <- Ditto
+    "nsInterfaceHashtable",  # <- Ditto
     "nsIDocument_SelectorCache",  # <- Inherits from nsExpirationTracker<.., 4>
     "nsIPresShell_ScrollAxis",  # <- For some reason the alignment of this is 4
                                 # for clang.
@@ -338,10 +346,12 @@ structs-types = [
     "TraversalRestyleBehavior",
     "TraversalRootBehavior",
     "ComputedTimingFunction_BeforeFlag",
+    "CounterStylePtr",
     "FontFamilyList",
     "FontFamilyType",
     "FontSizePrefs",
     "GeckoFontMetrics",
+    "IterationCompositeOperation",
     "Keyframe",
     "ServoBundledURI",
     "ServoElementSnapshot",
@@ -373,6 +383,7 @@ structs-types = [
     "nsStyleColumn",
     "nsStyleContent",
     "nsStyleContentData",
+    "nsStyleContentData_CounterFunction",
     "nsStyleContentType",
     "nsStyleContext",
     "nsStyleCoord",
@@ -421,6 +432,7 @@ structs-types = [
     "ParsingMode",
     "InheritTarget",
     "URLMatchingFunction",
+    "StyleRuleInclusion",
 ]
 array-types = [
     { cpp-type = "uintptr_t", rust-type = "usize" },

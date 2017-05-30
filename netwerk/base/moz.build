@@ -87,6 +87,7 @@ XPIDL_SOURCES += [
     'nsIProxyInfo.idl',
     'nsIRandomGenerator.idl',
     'nsIRedirectChannelRegistrar.idl',
+    'nsIRedirectHistoryEntry.idl',
     'nsIRedirectResultListener.idl',
     'nsIRequest.idl',
     'nsIRequestContext.idl',
@@ -117,7 +118,6 @@ XPIDL_SOURCES += [
     'nsIThreadRetargetableRequest.idl',
     'nsIThreadRetargetableStreamListener.idl',
     'nsIThrottledInputChannel.idl',
-    'nsIThrottlingService.idl',
     'nsITimedChannel.idl',
     'nsITLSServerSocket.idl',
     'nsITraceableChannel.idl',
@@ -167,6 +167,7 @@ EXPORTS.mozilla += [
     'LoadContextInfo.h',
     'LoadInfo.h',
     'LoadTainting.h',
+    'nsRedirectHistoryEntry.h',
 ]
 
 EXPORTS.mozilla.net += [
@@ -219,6 +220,7 @@ UNIFIED_SOURCES += [
     'nsPreloadedStream.cpp',
     'nsProtocolProxyService.cpp',
     'nsProxyInfo.cpp',
+    'nsRedirectHistoryEntry.cpp',
     'nsRequestObserverProxy.cpp',
     'nsSecCheckWrapChannel.cpp',
     'nsSerializationHelper.cpp',
@@ -250,7 +252,6 @@ UNIFIED_SOURCES += [
     'StreamingProtocolService.cpp',
     'TCPFastOpenLayer.cpp',
     'ThrottleQueue.cpp',
-    'ThrottlingService.cpp',
     'Tickler.cpp',
     'TLSServerSocket.cpp',
 ]

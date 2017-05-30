@@ -66,7 +66,7 @@ W32API_VERSION=3.14
 GCONF_VERSION=1.2.1
 STARTUP_NOTIFICATION_VERSION=0.8
 DBUS_VERSION=0.60
-SQLITE_VERSION=3.18.0
+SQLITE_VERSION=3.19.2
 
 dnl Set various checks
 dnl ========================================================
@@ -5087,7 +5087,20 @@ if test -z "$MOZ_APP_VERSION_DISPLAY"; then
 fi
 
 if test -z "$ANDROID_PACKAGE_NAME" ; then
-   ANDROID_PACKAGE_NAME="org.mozilla.$MOZ_APP_NAME"
+   # When we got rid of the Aurora channel we decided to replace the old
+   # Nightly ANDROID_PACKAGE_NAME with Aurora. To make sure this is inherited
+   # by all mozilla-central based branches we make this the new "default"
+   # for Fennec. Non mozilla-central based branches set ANDROID_PACKAGE_NAME
+   # in their mozconfig, so they will never get this. If there are ever
+   # non-Fennec builds for Android, they will fall into the else block
+   # and use their own default name.
+   # https://bugzilla.mozilla.org/show_bug.cgi?id=1357808 has additional
+   # background on this.
+   if test "$MOZ_APP_NAME" = "fennec"; then
+      ANDROID_PACKAGE_NAME="org.mozilla.fennec_aurora"
+   else
+      ANDROID_PACKAGE_NAME="org.mozilla.$MOZ_APP_NAME"
+   fi
 fi
 
 # Mozilla released Firefox for Android {Release,Beta} and {Aurora,Nightly} to
@@ -5472,36 +5485,6 @@ NSS_DISABLE_LIBPKIX=1
 AC_SUBST(NSS_DISABLE_LIBPKIX)
 
 MOZ_CREATE_CONFIG_STATUS()
-
-# Run freetype configure script
-
-if test "$MOZ_TREE_FREETYPE"; then
-   export CFLAGS="$CFLAGS $MOZ_DEBUG_FLAGS -std=c99"
-   export CPPFLAGS="$CPPFLAGS $MOZ_DEBUG_FLAGS"
-   export CXXFLAGS="$CXXFLAGS $MOZ_DEBUG_FLAGS"
-   export LDFLAGS="$LDFLAGS $MOZ_DEBUG_LDFLAGS"
-   # Spaces in the *_CFLAGS and *_LIBS variables are intentionally placed
-   # to force freetype to use our settings rather than autodetecting
-   if test -n "$MOZ_SYSTEM_PNG"; then
-     export LIBPNG_CFLAGS="$MOZ_PNG_CFLAGS "
-   else
-     export LIBPNG_CFLAGS="-I$_objdir/dist/include"
-   fi
-   export LIBPNG_LIBS="$MOZ_PNG_LIBS "
-   export ZLIB_CFLAGS="$MOZ_ZLIB_CFLAGS "
-   export ZLIB_LIBS="$MOZ_ZLIB_LIBS "
-   export CONFIG_FILES="unix-cc.mk:unix-cc.in unix-def.mk:unix-def.in freetype-config freetype2.pc:freetype2.in"
-   ac_configure_args="$ac_configure_args --host=$target --disable-shared --with-pic=yes --with-zlib=yes --without-bzip2 --with-png=yes --without-harfbuzz"
-
-   if ! test -e modules; then
-     mkdir modules
-   fi
-   # Only export CC, CXX and RANLIB for the subconfigure, and avoid spilling
-   # that further down the road.
-   (export CC CXX RANLIB;
-    AC_OUTPUT_SUBDIRS(modules/freetype2)
-   ) || exit 1
-fi
 
 if test -z "$direct_nspr_config"; then
     dnl ========================================================

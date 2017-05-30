@@ -1015,13 +1015,13 @@ ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
 
   // Convert the offsets to physical coordinates and store them on the frame
   aComputedOffsets = offsets.GetPhysicalMargin(aWM);
-  FrameProperties props = aFrame->Properties();
-  nsMargin* physicalOffsets = props.Get(nsIFrame::ComputedOffsetProperty());
+  nsMargin* physicalOffsets =
+    aFrame->GetProperty(nsIFrame::ComputedOffsetProperty());
   if (physicalOffsets) {
     *physicalOffsets = aComputedOffsets;
   } else {
-    props.Set(nsIFrame::ComputedOffsetProperty(),
-              new nsMargin(aComputedOffsets));
+    aFrame->AddProperty(nsIFrame::ComputedOffsetProperty(),
+                        new nsMargin(aComputedOffsets));
   }
 }
 
@@ -1031,21 +1031,22 @@ ReflowInput::ApplyRelativePositioning(nsIFrame* aFrame,
                                             nsPoint* aPosition)
 {
   if (!aFrame->IsRelativelyPositioned()) {
-    NS_ASSERTION(!aFrame->Properties().Get(nsIFrame::NormalPositionProperty()),
+    NS_ASSERTION(!aFrame->GetProperty(nsIFrame::NormalPositionProperty()),
                  "We assume that changing the 'position' property causes "
                  "frame reconstruction.  If that ever changes, this code "
                  "should call "
-                 "props.Delete(nsIFrame::NormalPositionProperty())");
+                 "aFrame->DeleteProperty(nsIFrame::NormalPositionProperty())");
     return;
   }
 
   // Store the normal position
-  FrameProperties props = aFrame->Properties();
-  nsPoint* normalPosition = props.Get(nsIFrame::NormalPositionProperty());
+  nsPoint* normalPosition =
+    aFrame->GetProperty(nsIFrame::NormalPositionProperty());
   if (normalPosition) {
     *normalPosition = *aPosition;
   } else {
-    props.Set(nsIFrame::NormalPositionProperty(), new nsPoint(*aPosition));
+    aFrame->AddProperty(nsIFrame::NormalPositionProperty(),
+                        new nsPoint(*aPosition));
   }
 
   const nsStyleDisplay* display = aFrame->StyleDisplay();
@@ -1224,20 +1225,29 @@ ReflowInput::CalculateBorderPaddingMargin(
  * Returns true iff a pre-order traversal of the normal child
  * frames rooted at aFrame finds no non-empty frame before aDescendant.
  */
-static bool AreAllEarlierInFlowFramesEmpty(nsIFrame* aFrame,
-  nsIFrame* aDescendant, bool* aFound) {
+static bool
+AreAllEarlierInFlowFramesEmpty(nsIFrame* aFrame,
+                               nsIFrame* aDescendant,
+                               bool* aFound)
+{
   if (aFrame == aDescendant) {
     *aFound = true;
     return true;
   }
-  if (!aFrame->IsSelfEmpty()) {
-    *aFound = false;
-    return false;
-  }
-  for (nsIFrame* f : aFrame->PrincipalChildList()) {
-    bool allEmpty = AreAllEarlierInFlowFramesEmpty(f, aDescendant, aFound);
-    if (*aFound || !allEmpty) {
-      return allEmpty;
+  if (aFrame->IsPlaceholderFrame()) {
+    auto ph = static_cast<nsPlaceholderFrame*>(aFrame);
+    MOZ_ASSERT(ph->IsSelfEmpty() && ph->PrincipalChildList().IsEmpty());
+    ph->SetLineIsEmptySoFar(true);
+  } else {
+    if (!aFrame->IsSelfEmpty()) {
+      *aFound = false;
+      return false;
+    }
+    for (nsIFrame* f : aFrame->PrincipalChildList()) {
+      bool allEmpty = AreAllEarlierInFlowFramesEmpty(f, aDescendant, aFound);
+      if (*aFound || !allEmpty) {
+        return allEmpty;
+      }
     }
   }
   *aFound = false;
@@ -1256,7 +1266,7 @@ static bool AreAllEarlierInFlowFramesEmpty(nsIFrame* aFrame,
 void
 ReflowInput::CalculateHypotheticalPosition(
   nsPresContext* aPresContext,
-  nsIFrame* aPlaceholderFrame,
+  nsPlaceholderFrame* aPlaceholderFrame,
   const ReflowInput* cbrs,
   nsHypotheticalPosition& aHypotheticalPos,
   LayoutFrameType aFrameType) const
@@ -1389,15 +1399,31 @@ ReflowInput::CalculateHypotheticalPosition(
         // XXXbz the line box is not fully reflowed yet if our
         // containing block is relatively positioned...
         if (lineBox != iter.End()) {
-          nsIFrame * firstFrame = lineBox->mFirstChild;
-          bool found = false;
-          bool allEmpty = true;
-          while (firstFrame) { // See bug 223064
-            allEmpty = AreAllEarlierInFlowFramesEmpty(firstFrame,
-              aPlaceholderFrame, &found);
-            if (found || !allEmpty)
-              break;
-            firstFrame = firstFrame->GetNextSibling();
+          nsIFrame* firstFrame = lineBox->mFirstChild;
+          bool allEmpty = false;
+          if (firstFrame == aPlaceholderFrame) {
+            aPlaceholderFrame->SetLineIsEmptySoFar(true);
+            allEmpty = true;
+          } else {
+            auto prev = aPlaceholderFrame->GetPrevSibling();
+            if (prev && prev->IsPlaceholderFrame()) {
+              auto ph = static_cast<nsPlaceholderFrame*>(prev);
+              if (ph->GetLineIsEmptySoFar(&allEmpty)) {
+                aPlaceholderFrame->SetLineIsEmptySoFar(allEmpty);
+              }
+            }
+          }
+          if (!allEmpty) {
+            bool found = false;
+            while (firstFrame) { // See bug 223064
+              allEmpty = AreAllEarlierInFlowFramesEmpty(firstFrame,
+                aPlaceholderFrame, &found);
+              if (found || !allEmpty) {
+                break;
+              }
+              firstFrame = firstFrame->GetNextSibling();
+            }
+            aPlaceholderFrame->SetLineIsEmptySoFar(allEmpty);
           }
           NS_ASSERTION(firstFrame, "Couldn't find placeholder!");
 
@@ -1581,9 +1607,9 @@ ReflowInput::InitAbsoluteConstraints(nsPresContext* aPresContext,
   // have been if it had been in the flow
   nsHypotheticalPosition hypotheticalPos;
   if ((iStartIsAuto && iEndIsAuto) || (bStartIsAuto && bEndIsAuto)) {
-    nsIFrame* placeholderFrame =
+    nsPlaceholderFrame* placeholderFrame =
       aPresContext->PresShell()->GetPlaceholderFrameFor(mFrame);
-    NS_ASSERTION(placeholderFrame, "no placeholder frame");
+    MOZ_ASSERT(placeholderFrame, "no placeholder frame");
 
     if (placeholderFrame->HasAnyStateBits(
           PLACEHOLDER_STATICPOS_NEEDS_CSSALIGN)) {
@@ -2483,20 +2509,20 @@ ReflowInput::InitConstraints(nsPresContext* aPresContext,
 }
 
 static void
-UpdateProp(FrameProperties& aProps,
+UpdateProp(nsIFrame* aFrame,
            const FramePropertyDescriptor<nsMargin>* aProperty,
            bool aNeeded,
            nsMargin& aNewValue)
 {
   if (aNeeded) {
-    nsMargin* propValue = aProps.Get(aProperty);
+    nsMargin* propValue = aFrame->GetProperty(aProperty);
     if (propValue) {
       *propValue = aNewValue;
     } else {
-      aProps.Set(aProperty, new nsMargin(aNewValue));
+      aFrame->AddProperty(aProperty, new nsMargin(aNewValue));
     }
   } else {
-    aProps.Delete(aProperty);
+    aFrame->DeleteProperty(aProperty);
   }
 }
 
@@ -2514,8 +2540,7 @@ SizeComputationInput::InitOffsets(WritingMode aWM,
   // Since we are in reflow, we don't need to store these properties anymore
   // unless they are dependent on width, in which case we store the new value.
   nsPresContext *presContext = mFrame->PresContext();
-  FrameProperties props(presContext->PropertyTable(), mFrame);
-  props.Delete(nsIFrame::UsedBorderProperty());
+  mFrame->DeleteProperty(nsIFrame::UsedBorderProperty());
 
   // Compute margins from the specified margin style information. These
   // become the default computed values, and may be adjusted below
@@ -2526,7 +2551,7 @@ SizeComputationInput::InitOffsets(WritingMode aWM,
   // ... but if we did that, we'd need to fix nsFrame::GetUsedMargin
   // to use it even when the margins are all zero (since sometimes
   // they get treated as auto)
-  ::UpdateProp(props, nsIFrame::UsedMarginProperty(), needMarginProp,
+  ::UpdateProp(mFrame, nsIFrame::UsedMarginProperty(), needMarginProp,
                ComputedPhysicalMargin());
 
 
@@ -2536,7 +2561,7 @@ SizeComputationInput::InitOffsets(WritingMode aWM,
   nsIntMargin widget;
   if (isThemed &&
       presContext->GetTheme()->GetWidgetPadding(presContext->DeviceContext(),
-                                                mFrame, disp->UsedAppearance(),
+                                                mFrame, disp->mAppearance,
                                                 &widget)) {
     ComputedPhysicalPadding().top = presContext->DevPixelsToAppUnits(widget.top);
     ComputedPhysicalPadding().right = presContext->DevPixelsToAppUnits(widget.right);
@@ -2562,7 +2587,7 @@ SizeComputationInput::InitOffsets(WritingMode aWM,
   auto ApplyBaselinePadding = [this, &needPaddingProp]
          (LogicalAxis aAxis, Prop aProp) {
     bool found;
-    nscoord val = mFrame->Properties().Get(aProp, &found);
+    nscoord val = mFrame->GetProperty(aProp, &found);
     if (found) {
       NS_ASSERTION(val != nscoord(0), "zero in this property is useless");
       WritingMode wm = GetWritingMode();
@@ -2587,7 +2612,7 @@ SizeComputationInput::InitOffsets(WritingMode aWM,
   if (isThemed) {
     nsIntMargin widget;
     presContext->GetTheme()->GetWidgetBorder(presContext->DeviceContext(),
-                                             mFrame, disp->UsedAppearance(),
+                                             mFrame, disp->mAppearance,
                                              &widget);
     ComputedPhysicalBorderPadding().top =
       presContext->DevPixelsToAppUnits(widget.top);
@@ -2635,7 +2660,7 @@ SizeComputationInput::InitOffsets(WritingMode aWM,
       ComputedPhysicalBorderPadding().SizeTo(0,0,0,0);
     }
   }
-  ::UpdateProp(props, nsIFrame::UsedPaddingProperty(), needPaddingProp,
+  ::UpdateProp(mFrame, nsIFrame::UsedPaddingProperty(), needPaddingProp,
                ComputedPhysicalPadding());
 }
 

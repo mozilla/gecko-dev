@@ -31,6 +31,7 @@ abstract class MediaPlaybackTest extends BaseTest {
     private JavascriptBridge mJs;
 
     private static final int UI_CHANGED_WAIT_MS = 6000;
+    private static final int MEDIA_PLAYBACK_CHANGED_WAIT_MS = 15000;
 
     protected final void info(String msg) {
         mAsserter.dumpLog(msg);
@@ -95,19 +96,6 @@ abstract class MediaPlaybackTest extends BaseTest {
     /**
      * Use these methods to wait the tab playing related states changed.
      */
-    protected final void waitUntilTabMediaStarted(final Tab tab) {
-        if (tab.isMediaPlaying()) {
-            return;
-        }
-        // Tab:MediaPlaybackChange would be dispatched when media started or
-        // ended, but it won't be dispatched when we pause/resume media via
-        // media control.
-        Actions.EventExpecter contentEventExpecter =
-                mActions.expectGlobalEvent(Actions.EventType.UI, "Tab:MediaPlaybackChange");
-        contentEventExpecter.blockForEvent();
-        contentEventExpecter.unregisterListener();
-    }
-
     private final void waitUntilTabAudioPlayingStateChanged(final Tab tab,
                                                             final boolean isTabPlaying) {
         if (tab.isAudioPlaying() == isTabPlaying) {
@@ -118,7 +106,7 @@ abstract class MediaPlaybackTest extends BaseTest {
             public boolean isSatisfied() {
                 return tab.isAudioPlaying() == isTabPlaying;
             }
-        }, MAX_WAIT_MS);
+        }, MEDIA_PLAYBACK_CHANGED_WAIT_MS);
     }
 
     private final void waitUntilTabMediaPlaybackChanged(final Tab tab,
@@ -131,7 +119,7 @@ abstract class MediaPlaybackTest extends BaseTest {
             public boolean isSatisfied() {
                 return tab.isMediaPlaying() == isTabPlaying;
             }
-        }, MAX_WAIT_MS);
+        }, MEDIA_PLAYBACK_CHANGED_WAIT_MS);
     }
 
     /**

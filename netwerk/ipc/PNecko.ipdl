@@ -18,7 +18,6 @@ include protocol PTCPServerSocket;
 include protocol PUDPSocket;
 include protocol PDNSRequest;
 include protocol PChannelDiverter;
-include protocol PBlob; //FIXME: bug #792908
 include protocol PFileDescriptorSet;
 include protocol PDataChannel;
 include protocol PTransportProvider;
@@ -125,12 +124,6 @@ parent:
   async PAltDataOutputStream(nsCString type, PHttpChannel channel);
 
   async PStunAddrsRequest();
-
-  /**
-   * Throttling of channels
-   */
-  async IncreaseThrottlePressure();
-  async DecreaseThrottlePressure();
 
   prio(high) async NotifyCurrentTopLevelOuterContentWindowId(uint64_t windowId);
 

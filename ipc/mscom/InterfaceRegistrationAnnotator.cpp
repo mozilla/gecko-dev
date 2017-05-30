@@ -11,6 +11,7 @@
 #include "mozilla/NotNull.h"
 #include "nsExceptionHandler.h"
 #include "nsWindowsHelpers.h"
+#include "nsXULAppAPI.h"
 
 #include <oleauto.h>
 
@@ -70,19 +71,20 @@ GetStringValue(HKEY aBaseKey, const nsAString& aStrSubKey,
   const nsString& flatValueName = PromiseFlatString(aValueName);
   LPCWSTR valueName = aValueName.IsEmpty() ? nullptr : flatValueName.get();
 
+  DWORD type = 0;
   DWORD numBytes = 0;
   LONG result = RegGetValue(aBaseKey, flatSubKey.get(), valueName,
-                            RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ, nullptr,
-                            nullptr, &numBytes);
-  if (result != ERROR_SUCCESS) {
+                            RRF_RT_ANY, &type, nullptr, &numBytes);
+  if (result != ERROR_SUCCESS || (type != REG_SZ && type != REG_EXPAND_SZ)) {
     return false;
   }
 
   int numChars = (numBytes + 1) / sizeof(wchar_t);
   aOutput.SetLength(numChars);
 
-  result = RegGetValue(aBaseKey, flatSubKey.get(), valueName,
-                       RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ,
+  DWORD acceptFlag = type == REG_SZ ? RRF_RT_REG_SZ : RRF_RT_REG_EXPAND_SZ;
+
+  result = RegGetValue(aBaseKey, flatSubKey.get(), valueName, acceptFlag,
                        nullptr, aOutput.BeginWriting(), &numBytes);
   if (result == ERROR_SUCCESS) {
     // Truncate null terminator
@@ -354,7 +356,14 @@ AnnotateInterfaceRegistration(REFIID aIid)
 
   json.End();
 
-  CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("InterfaceRegistrationInfo"),
+  nsAutoCString annotationKey;
+  annotationKey.AppendLiteral("InterfaceRegistrationInfo");
+  if (XRE_IsParentProcess()) {
+    annotationKey.AppendLiteral("Parent");
+  } else {
+    annotationKey.AppendLiteral("Child");
+  }
+  CrashReporter::AnnotateCrashReport(annotationKey,
                                      static_cast<CStringWriter*>(json.WriteFunc())->Get());
 }
 

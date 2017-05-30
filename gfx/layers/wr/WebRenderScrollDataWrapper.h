@@ -257,6 +257,19 @@ public:
     return EventRegions();
   }
 
+  LayerIntRegion GetVisibleRegion() const
+  {
+    MOZ_ASSERT(IsValid());
+
+    if (AtBottomLayer()) {
+      return mLayer->GetVisibleRegion();
+    }
+
+    return ViewAs<LayerPixel>(
+        TransformBy(mLayer->GetTransformTyped(), mLayer->GetVisibleRegion()),
+        PixelCastJustification::MovingDownToChildren);
+  }
+
   Maybe<uint64_t> GetReferentId() const
   {
     MOZ_ASSERT(IsValid());
@@ -283,6 +296,12 @@ public:
   {
     MOZ_ASSERT(IsValid());
     return mLayer->GetScrollThumbData();
+  }
+
+  uint64_t GetScrollbarAnimationId() const
+  {
+    MOZ_ASSERT(IsValid());
+    return mLayer->GetScrollbarAnimationId();
   }
 
   FrameMetrics::ViewID GetScrollbarTargetContainerId() const

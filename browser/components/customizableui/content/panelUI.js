@@ -10,6 +10,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
                                   "resource://gre/modules/ShortcutUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
                                   "resource://gre/modules/AppConstants.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AppMenuNotifications",
+                                  "resource://gre/modules/AppMenuNotifications.jsm");
 
 XPCOMUtils.defineLazyPreferenceGetter(this, "gPhotonStructure",
   "browser.photon.structure.enabled", false);
@@ -46,17 +48,17 @@ const PanelUI = {
   },
 
   _initialized: false,
+  _notifications: null,
+
   init() {
     this._initElements();
 
-    this.notifications = [];
     this.menuButton.addEventListener("mousedown", this);
     this.menuButton.addEventListener("keypress", this);
     this._overlayScrollListenerBoundFn = this._overlayScrollListener.bind(this);
 
     Services.obs.addObserver(this, "fullscreen-nav-toolbox");
-    Services.obs.addObserver(this, "panelUI-notification-main-action");
-    Services.obs.addObserver(this, "panelUI-notification-dismissed");
+    Services.obs.addObserver(this, "appMenu-notifications");
 
     window.addEventListener("fullscreen", this);
     window.addEventListener("activate", this);
@@ -68,6 +70,8 @@ const PanelUI = {
     }
 
     this._initPhotonPanel();
+    this._updateContextMenuLabels();
+    Services.obs.notifyObservers(null, "appMenu-notifications-request", "refresh");
 
     this._initialized = true;
   },
@@ -77,6 +81,7 @@ const PanelUI = {
     // If the Photon pref changes, we need to re-init our element references.
     this._initElements();
     this._initPhotonPanel();
+    this._updateContextMenuLabels();
     delete this._readyPromise;
     this._isReady = false;
   },
@@ -111,6 +116,32 @@ const PanelUI = {
     }
   },
 
+  _updateContextMenuLabels() {
+    const kContextMenus = [
+      "customizationPanelItemContextMenu",
+      "customizationPaletteItemContextMenu",
+      "toolbar-context-menu",
+    ];
+    for (let menuId of kContextMenus) {
+      let menu = document.getElementById(menuId);
+      if (gPhotonStructure) {
+        let items = menu.querySelectorAll("menuitem[photonlabel]");
+        for (let item of items) {
+          item.setAttribute("nonphotonlabel", item.getAttribute("label"));
+          item.setAttribute("nonphotonaccesskey", item.getAttribute("accesskey"));
+          item.setAttribute("label", item.getAttribute("photonlabel"));
+          item.setAttribute("accesskey", item.getAttribute("photonaccesskey"));
+        }
+      } else {
+        let items = menu.querySelectorAll("menuitem[nonphotonlabel]");
+        for (let item of items) {
+          item.setAttribute("label", item.getAttribute("nonphotonlabel"));
+          item.setAttribute("accesskey", item.getAttribute("nonphotonaccesskey"));
+        }
+      }
+    }
+  },
+
   _eventListenersAdded: false,
   _ensureEventListenersAdded() {
     if (this._eventListenersAdded)
@@ -142,8 +173,7 @@ const PanelUI = {
     }
 
     Services.obs.removeObserver(this, "fullscreen-nav-toolbox");
-    Services.obs.removeObserver(this, "panelUI-notification-main-action");
-    Services.obs.removeObserver(this, "panelUI-notification-dismissed");
+    Services.obs.removeObserver(this, "appMenu-notifications");
 
     window.removeEventListener("fullscreen", this);
     window.removeEventListener("activate", this);
@@ -232,69 +262,6 @@ const PanelUI = {
     });
   },
 
-  showNotification(id, mainAction, secondaryActions = [], options = {}) {
-    let notification = new PanelUINotification(id, mainAction, secondaryActions, options);
-    let existingIndex = this.notifications.findIndex(n => n.id == id);
-    if (existingIndex != -1) {
-      this.notifications.splice(existingIndex, 1);
-    }
-
-    // We don't want to clobber doorhanger notifications just to show a badge,
-    // so don't dismiss any of them and the badge will show once the doorhanger
-    // gets resolved.
-    if (!options.badgeOnly && !options.dismissed) {
-      this.notifications.forEach(n => { n.dismissed = true; });
-    }
-
-    // Since notifications are generally somewhat pressing, the ideal case is that
-    // we never have two notifications at once. However, in the event that we do,
-    // it's more likely that the older notification has been sitting around for a
-    // bit, and so we don't want to hide the new notification behind it. Thus,
-    // we want our notifications to behave like a stack instead of a queue.
-    this.notifications.unshift(notification);
-    this._updateNotifications();
-    return notification;
-  },
-
-  showBadgeOnlyNotification(id) {
-    return this.showNotification(id, null, null, { badgeOnly: true });
-  },
-
-  removeNotification(id) {
-    let notifications;
-    if (typeof id == "string") {
-      notifications = this.notifications.filter(n => n.id == id);
-    } else {
-      // If it's not a string, assume RegExp
-      notifications = this.notifications.filter(n => id.test(n.id));
-    }
-    // _updateNotifications can be expensive if it forces attachment of XBL
-    // bindings that haven't been used yet, so return early if we haven't found
-    // any notification to remove, as callers may expect this removeNotification
-    // method to be a no-op for non-existent notifications.
-    if (!notifications.length) {
-      return;
-    }
-
-    notifications.forEach(n => {
-      this._removeNotification(n);
-    });
-    this._updateNotifications();
-  },
-
-  dismissNotification(id) {
-    let notifications;
-    if (typeof id == "string") {
-      notifications = this.notifications.filter(n => n.id == id);
-    } else {
-      // If it's not a string, assume RegExp
-      notifications = this.notifications.filter(n => id.test(n.id));
-    }
-
-    notifications.forEach(n => n.dismissed = true);
-    this._updateNotifications();
-  },
-
   /**
    * If the menu panel is being shown, hide it.
    */
@@ -309,17 +276,17 @@ const PanelUI = {
   observe(subject, topic, status) {
     switch (topic) {
       case "fullscreen-nav-toolbox":
-        this._updateNotifications();
-        break;
-      case "panelUI-notification-main-action":
-        if (subject != window) {
-          this.removeNotification(status);
+        if (this._notifications) {
+          this._updateNotifications(false);
         }
         break;
-      case "panelUI-notification-dismissed":
-        if (subject != window) {
-          this.dismissNotification(status);
+      case "appMenu-notifications":
+        // Don't initialize twice.
+        if (status == "init" && this._notifications) {
+          break;
         }
+        this._notifications = AppMenuNotifications.notifications;
+        this._updateNotifications(true);
         break;
     }
   },
@@ -374,16 +341,6 @@ const PanelUI = {
     let panelState = this.notificationPanel.state;
 
     return panelState == "showing" || panelState == "open";
-  },
-
-  get activeNotification() {
-    if (this.notifications.length > 0) {
-      const doorhanger =
-        this.notifications.find(n => !n.dismissed && !n.options.badgeOnly);
-      return doorhanger || this.notifications[0];
-    }
-
-    return null;
   },
 
   /**
@@ -612,6 +569,9 @@ const PanelUI = {
       this.navbar.setAttribute("nonemptyoverflow", "true");
       this.overflowPanel.setAttribute("hasfixeditems", "true");
     } else if (!hasKids && this.navbar.hasAttribute("nonemptyoverflow")) {
+      if (this.overflowPanel.state != "closed") {
+        this.overflowPanel.hidePopup();
+      }
       this.overflowPanel.removeAttribute("hasfixeditems");
       this.navbar.removeAttribute("nonemptyoverflow");
     }
@@ -749,20 +709,23 @@ const PanelUI = {
     }
   },
 
-  _updateNotifications() {
-    if (!this.notifications.length) {
-      this._clearAllNotifications();
-      this._hidePopup();
+  _updateNotifications(notificationsChanged) {
+    let notifications = this._notifications;
+    if (!notifications || !notifications.length) {
+      if (notificationsChanged) {
+        this._clearAllNotifications();
+        this._hidePopup();
+      }
       return;
     }
 
-    if (window.fullScreen && FullScreen.navToolboxHidden) {
+    if ((window.fullScreen && FullScreen.navToolboxHidden) || document.fullscreenElement) {
       this._hidePopup();
       return;
     }
 
     let doorhangers =
-      this.notifications.filter(n => !n.dismissed && !n.options.badgeOnly);
+      notifications.filter(n => !n.dismissed && !n.options.badgeOnly);
 
     if (this.panel.state == "showing" || this.panel.state == "open") {
       // If the menu is already showing, then we need to dismiss all notifications
@@ -770,12 +733,14 @@ const PanelUI = {
       doorhangers.forEach(n => { n.dismissed = true; })
       this._hidePopup();
       this._clearBadge();
-      if (!this.notifications[0].options.badgeOnly) {
-        this._showBannerItem(this.notifications[0]);
+      if (!notifications[0].options.badgeOnly) {
+        this._showBannerItem(notifications[0]);
       }
     } else if (doorhangers.length > 0) {
+      let autoHideFullScreen = Services.prefs.getBoolPref("browser.fullscreen.autohide", false) &&
+                               Services.appinfo.OS !== "Darwin";
       // Only show the doorhanger if the window is focused and not fullscreen
-      if (window.fullScreen || Services.focus.activeWindow !== window) {
+      if ((window.fullScreen && autoHideFullScreen) || Services.focus.activeWindow !== window) {
         this._hidePopup();
         this._showBadge(doorhangers[0]);
         this._showBannerItem(doorhangers[0]);
@@ -785,8 +750,8 @@ const PanelUI = {
       }
     } else {
       this._hidePopup();
-      this._showBadge(this.notifications[0]);
-      this._showBannerItem(this.notifications[0]);
+      this._showBadge(notifications[0]);
+      this._showBannerItem(notifications[0]);
     }
   },
 
@@ -795,6 +760,10 @@ const PanelUI = {
 
     if (this.isNotificationPanelOpen) {
       return;
+    }
+
+    if (notification.options.beforeShowDoorhanger) {
+      notification.options.beforeShowDoorhanger(document);
     }
 
     let anchor = this._getPanelAnchor(this.menuButton);
@@ -864,21 +833,6 @@ const PanelUI = {
     }
   },
 
-  _removeNotification(notification) {
-    // This notification may already be removed, in which case let's just fail
-    // silently.
-    let notifications = this.notifications;
-    if (!notifications)
-      return;
-
-    var index = notifications.indexOf(notification);
-    if (index == -1)
-      return;
-
-    // Remove the notification
-    notifications.splice(index, 1);
-  },
-
   _onNotificationButtonEvent(event, type) {
     let notificationEl = getNotificationFromElement(event.originalTarget);
 
@@ -890,35 +844,11 @@ const PanelUI = {
 
     let notification = notificationEl.notification;
 
-    let action = notification.mainAction;
-
     if (type == "secondarybuttoncommand") {
-      action = notification.secondaryActions[0];
-    }
-
-    let dismiss = true;
-    if (action) {
-      try {
-        if (action === notification.mainAction) {
-          action.callback(true);
-          this._notify(notification.id, "main-action");
-        } else {
-          action.callback();
-        }
-      } catch (error) {
-        Cu.reportError(error);
-      }
-
-      dismiss = action.dismiss;
-    }
-
-    if (dismiss) {
-      notification.dismissed = true;
-      this._notify(notification.id, "dismissed");
+      AppMenuNotifications.callSecondaryAction(window, notification);
     } else {
-      this._removeNotification(notification);
+      AppMenuNotifications.callMainAction(window, notification, true);
     }
-    this._updateNotifications();
   },
 
   _onBannerItemSelected(event) {
@@ -927,16 +857,7 @@ const PanelUI = {
       throw "menucommand target has no associated action/notification";
 
     event.stopPropagation();
-
-    try {
-      target.notification.mainAction.callback(false);
-      this._notify(target.notification.id, "main-action");
-    } catch (error) {
-      Cu.reportError(error);
-    }
-
-    this._removeNotification(target.notification);
-    this._updateNotifications();
+    AppMenuNotifications.callMainAction(window, target.notification, false);
   },
 
   _getPopupId(notification) { return "appMenu-" + notification.id + "-notification"; },
@@ -965,10 +886,6 @@ const PanelUI = {
       button.setAttribute("shortcut", ShortcutUtils.prettifyShortcut(key));
     }
   },
-
-  _notify(status, topic) {
-    Services.obs.notifyObservers(window, "panelUI-notification-" + topic, status);
-  }
 };
 
 XPCOMUtils.defineConstant(this, "PanelUI", PanelUI);
@@ -979,14 +896,6 @@ XPCOMUtils.defineConstant(this, "PanelUI", PanelUI);
  */
 function getLocale() {
   return Services.locale.getAppLocaleAsLangTag();
-}
-
-function PanelUINotification(id, mainAction, secondaryActions = [], options = {}) {
-  this.id = id;
-  this.mainAction = mainAction;
-  this.secondaryActions = secondaryActions;
-  this.options = options;
-  this.dismissed = this.options.dismissed || false;
 }
 
 function getNotificationFromElement(aElement) {

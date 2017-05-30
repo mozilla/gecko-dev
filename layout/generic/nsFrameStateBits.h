@@ -270,8 +270,8 @@ FRAME_STATE_BIT(Generic, 54, NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY)
 // a stylo tree traversal.
 FRAME_STATE_BIT(Generic, 55, NS_FRAME_OWNS_ANON_BOXES)
 
-// Frame has properties in the nsIFrame::Properties() hash.
-FRAME_STATE_BIT(Generic, 56, NS_FRAME_HAS_PROPERTIES)
+// ** currently unused Generic bit **
+// FRAME_STATE_BIT(Generic, 56, ...)
 
 // The display list of the frame can be handled by the shortcut for
 // COMMON CASE.
@@ -624,6 +624,10 @@ FRAME_STATE_BIT(Placeholder, 24, PLACEHOLDER_FOR_TOPLAYER)
 // resolve the actual static position using the alignment properties.
 FRAME_STATE_BIT(Placeholder, 25, PLACEHOLDER_STATICPOS_NEEDS_CSSALIGN)
 
+// Are all earlier frames on the same block line empty?
+FRAME_STATE_BIT(Placeholder, 26, PLACEHOLDER_LINE_IS_EMPTY_SO_FAR)
+// Does the above bit have a valid value?
+FRAME_STATE_BIT(Placeholder, 27, PLACEHOLDER_HAVE_LINE_IS_EMPTY_SO_FAR)
 
 // == Frame state bits that apply to table cell frames ========================
 

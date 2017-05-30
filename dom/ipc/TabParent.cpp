@@ -19,6 +19,7 @@
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/indexedDB/ActorsParent.h"
 #include "mozilla/dom/IPCBlobUtils.h"
+#include "mozilla/dom/PaymentRequestParent.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
@@ -2296,18 +2297,6 @@ TabParent::RecvGetWidgetRounding(int32_t* aValue)
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-TabParent::RecvGetMaxTouchPoints(uint32_t* aTouchPoints)
-{
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (widget) {
-    *aTouchPoints = widget->GetMaxTouchPoints();
-  } else {
-    *aTouchPoints = 0;
-  }
-  return IPC_OK();
-}
-
 already_AddRefed<nsIWidget>
 TabParent::GetTopLevelWidget()
 {
@@ -2589,7 +2578,8 @@ TabParent::RecvBrowserFrameOpenWindow(PBrowserParent* aOpener,
                                       bool* aOutWindowOpened,
                                       TextureFactoryIdentifier* aTextureFactoryIdentifier,
                                       uint64_t* aLayersId,
-                                      CompositorOptions* aCompositorOptions)
+                                      CompositorOptions* aCompositorOptions,
+                                      uint32_t* aMaxTouchPoints)
 {
   BrowserElementParent::OpenWindowResult opened =
     BrowserElementParent::OpenWindowOOP(TabParent::GetFrom(aOpener),
@@ -2597,6 +2587,8 @@ TabParent::RecvBrowserFrameOpenWindow(PBrowserParent* aOpener,
                                         aTextureFactoryIdentifier, aLayersId);
   *aCompositorOptions = static_cast<RenderFrameParent*>(aRenderFrame)->GetCompositorOptions();
   *aOutWindowOpened = (opened == BrowserElementParent::OPEN_WINDOW_ADDED);
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  *aMaxTouchPoints = widget ? widget->GetMaxTouchPoints() : 0;
   if (!*aOutWindowOpened) {
     Destroy();
   }
@@ -2865,6 +2857,21 @@ bool
 TabParent::DeallocPPluginWidgetParent(mozilla::plugins::PPluginWidgetParent* aActor)
 {
   delete aActor;
+  return true;
+}
+
+PPaymentRequestParent*
+TabParent::AllocPPaymentRequestParent()
+{
+  RefPtr<PaymentRequestParent> actor = new PaymentRequestParent(GetTabId());
+  return actor.forget().take();
+}
+
+bool
+TabParent::DeallocPPaymentRequestParent(PPaymentRequestParent* aActor)
+{
+  RefPtr<PaymentRequestParent> actor =
+    dont_AddRef(static_cast<PaymentRequestParent*>(aActor));
   return true;
 }
 
@@ -3265,52 +3272,6 @@ void
 TabParent::LiveResizeStopped()
 {
   SuppressDisplayport(false);
-}
-
-void
-TabParent::DispatchTabChildNotReadyEvent()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsCOMPtr<mozilla::dom::EventTarget> target = do_QueryInterface(mFrameElement);
-  if (!target) {
-    NS_WARNING("Could not locate target for tab child not ready event.");
-    return;
-  }
-
-  if (mHasPresented) {
-    // We shouldn't dispatch this event because clearly the
-    // TabChild _became_ ready by the time we were told to
-    // dispatch.
-    return;
-  }
-
-  if (!mDocShellIsActive) {
-    return;
-  }
-
-  RefPtr<nsFrameLoader> frameLoader = GetFrameLoader(true);
-  if (!frameLoader) {
-    return;
-  }
-
-  nsCOMPtr<Element> frameElement(mFrameElement);
-  nsCOMPtr<nsIFrameLoaderOwner> owner = do_QueryInterface(frameElement);
-  if (!owner) {
-    return;
-  }
-
-  RefPtr<nsFrameLoader> currentFrameLoader = owner->GetFrameLoader();
-  if (currentFrameLoader != frameLoader) {
-    return;
-  }
-
-  RefPtr<Event> event = NS_NewDOMEvent(mFrameElement, nullptr, nullptr);
-  event->InitEvent(NS_LITERAL_STRING("MozTabChildNotReady"), true, false);
-  event->SetTrusted(true);
-  event->WidgetEventPtr()->mFlags.mOnlyChromeDispatch = true;
-  bool dummy;
-  mFrameElement->DispatchEvent(event, &dummy);
 }
 
 NS_IMETHODIMP

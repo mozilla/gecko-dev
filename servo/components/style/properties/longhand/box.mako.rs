@@ -1596,28 +1596,28 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "rotate" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse_with_unitless(context,input));
+                        let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::Rotate(theta));
                         Ok(())
                     }))
                 },
                 "rotatex" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse_with_unitless(context,input));
+                        let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::RotateX(theta));
                         Ok(())
                     }))
                 },
                 "rotatey" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse_with_unitless(context,input));
+                        let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::RotateY(theta));
                         Ok(())
                     }))
                 },
                 "rotatez" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse_with_unitless(context,input));
+                        let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::RotateZ(theta));
                         Ok(())
                     }))
@@ -1630,7 +1630,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         try!(input.expect_comma());
                         let az = try!(specified::parse_number(context, input));
                         try!(input.expect_comma());
-                        let theta = try!(specified::Angle::parse_with_unitless(context,input));
+                        let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         // TODO(gw): Check the axis can be normalized!!
                         result.push(SpecifiedOperation::Rotate3D(ax, ay, az, theta));
                         Ok(())
@@ -1650,14 +1650,14 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 },
                 "skewx" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta_x = try!(specified::Angle::parse_with_unitless(context,input));
+                        let theta_x = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::SkewX(theta_x));
                         Ok(())
                     }))
                 },
                 "skewy" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta_y = try!(specified::Angle::parse_with_unitless(context,input));
+                        let theta_y = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::SkewY(theta_y));
                         Ok(())
                     }))
@@ -2219,6 +2219,7 @@ ${helpers.single_keyword("transform-style",
 // like `content`(layout style paint) in gecko. We should implement `size` and `content`,
 // also update the glue once they are implemented in gecko.
 <%helpers:longhand name="contain" animation_value_type="none" products="gecko" need_clone="True"
+                   flags="FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -2310,15 +2311,6 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
-${helpers.single_keyword("appearance",
-                         "auto none",
-                         gecko_ffi_name="mAppearance",
-                         gecko_constant_prefix="NS_THEME",
-                         products="gecko",
-                         spec="https://drafts.csswg.org/css-ui-4/#appearance-switching",
-                         alias="-webkit-appearance",
-                         animation_value_type="none")}
-
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
@@ -2347,8 +2339,8 @@ ${helpers.single_keyword("-moz-appearance",
                             -moz-window-frame-bottom -moz-window-frame-left -moz-window-frame-right -moz-window-titlebar
                             -moz-window-titlebar-maximized
                          """,
-                         gecko_ffi_name="mMozAppearance",
-                         gecko_constant_prefix="NS_THEME",
+                         gecko_ffi_name="mAppearance",
+                         gecko_constant_prefix="ThemeWidgetType_NS_THEME",
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
                          animation_value_type="none")}

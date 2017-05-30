@@ -14,6 +14,7 @@ this.EXPORTED_SYMBOLS = ["FormAutofillContent"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr, manager: Cm} = Components;
 
+Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://formautofill/FormAutofillUtils.jsm");
@@ -305,27 +306,66 @@ var FormAutofillContent = {
     Services.cpmm.addMessageListener("FormAutofill:savedFieldNames", this);
     Services.obs.addObserver(this, "earlyformsubmit");
 
-    if (Services.cpmm.initialProcessData.autofillEnabled) {
+    let autofillEnabled = Services.cpmm.initialProcessData.autofillEnabled;
+    if (autofillEnabled ||
+        // If storage hasn't be initialized yet autofillEnabled is undefined but we need to ensure
+        // autocomplete is registered before the focusin so register it in this case as long as the
+        // pref is true.
+        (autofillEnabled === undefined &&
+         Services.prefs.getBoolPref("extensions.formautofill.addresses.enabled"))) {
       ProfileAutocomplete.ensureRegistered();
     }
 
     this.savedFieldNames =
-      Services.cpmm.initialProcessData.autofillSavedFieldNames || new Set();
+      Services.cpmm.initialProcessData.autofillSavedFieldNames;
   },
 
-  _onFormSubmit(handler) {
-    // TODO: Handle form submit event for profile saving(bug 990219) and metrics(bug 1341569).
+  /**
+   * Send the profile to parent for doorhanger and storage saving/updating.
+   *
+   * @param {Object} profile Submitted form's address/creditcard guid and record.
+   */
+  _onFormSubmit(profile) {
+    Services.cpmm.sendAsyncMessage("FormAutofill:OnFormSubmit", profile);
   },
 
-  notify(formElement) {
-    this.log.debug("notified for form early submission");
+  /**
+   * Handle earlyformsubmit event and early return when:
+   * 1. In private browsing mode.
+   * 2. Could not map any autofill handler by form element.
+   * 3. Number of filled fields is less than autofill threshold
+   *
+   * @param {HTMLElement} formElement Root element which receives earlyformsubmit event.
+   * @param {Object} domWin Content window
+   * @returns {boolean} Should always return true so form submission isn't canceled.
+   */
+  notify(formElement, domWin) {
+    this.log.debug("Notifying form early submission");
+
+    if (domWin && PrivateBrowsingUtils.isContentWindowPrivate(domWin)) {
+      this.log.debug("Ignoring submission in a private window");
+      return true;
+    }
 
     let handler = this._formsDetails.get(formElement);
     if (!handler) {
       this.log.debug("Form element could not map to an existing handler");
-    } else {
-      this._onFormSubmit(handler);
+      return true;
     }
+
+    let pendingAddress = handler.createProfile();
+    if (Object.keys(pendingAddress).length < AUTOFILL_FIELDS_THRESHOLD) {
+      this.log.debug(`Not saving since there are only ${Object.keys(pendingAddress).length} usable fields`);
+      return true;
+    }
+
+    this._onFormSubmit({
+      address: {
+        guid: handler.filledProfileGUID,
+        record: pendingAddress,
+      },
+      // creditCard: {}
+    });
 
     return true;
   },
@@ -400,6 +440,12 @@ var FormAutofillContent = {
 
   identifyAutofillFields(doc) {
     this.log.debug("identifyAutofillFields:", "" + doc.location);
+
+    if (!this.savedFieldNames) {
+      this.log.debug("identifyAutofillFields: savedFieldNames are not known yet");
+      Services.cpmm.sendAsyncMessage("FormAutofill:InitStorage");
+    }
+
     let forms = [];
 
     // Collects root forms from inputs.

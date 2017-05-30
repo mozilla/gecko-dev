@@ -475,13 +475,16 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                 guard.declarations().iter().rev().map(|&(ref decl, _importance)| decl)
             };
 
+            // This currently ignores visited styles, which seems acceptable,
+            // as existing browsers don't appear to animate visited styles.
             let computed =
-                properties::apply_declarations(&context.stylist.device,
+                properties::apply_declarations(context.stylist.device(),
                                                /* is_root = */ false,
                                                iter,
                                                previous_style,
                                                previous_style,
                                                /* cascade_info = */ None,
+                                               /* visited_style = */ None,
                                                &*context.error_reporter,
                                                font_metrics_provider,
                                                CascadeFlags::empty(),

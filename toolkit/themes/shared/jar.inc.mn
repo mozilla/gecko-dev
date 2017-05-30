@@ -32,6 +32,7 @@ toolkit.jar:
   skin/classic/global/icons/input-clear.svg                (../../shared/icons/input-clear.svg)
   skin/classic/global/icons/loading.png                    (../../shared/icons/loading.png)
   skin/classic/global/icons/loading@2x.png                 (../../shared/icons/loading@2x.png)
+  skin/classic/global/icons/search-textbox.svg             (../../shared/icons/search-textbox.svg)
   skin/classic/global/icons/spinner-arrows.svg             (../../shared/icons/spinner-arrows.svg)
   skin/classic/global/icons/menubutton-dropmarker.svg      (../../shared/icons/menubutton-dropmarker.svg)
   skin/classic/global/icons/warning.svg                    (../../shared/incontent-icons/warning.svg)
@@ -78,8 +79,6 @@ toolkit.jar:
   skin/classic/global/media/error.png                      (../../shared/media/error.png)
   skin/classic/global/media/throbber.png                   (../../shared/media/throbber.png)
   skin/classic/global/media/stalled.png                    (../../shared/media/stalled.png)
-  skin/classic/global/media/clicktoplay-bgtexture.png      (../../shared/media/clicktoplay-bgtexture.png)
-  skin/classic/global/media/videoClickToPlayButton.svg     (../../shared/media/videoClickToPlayButton.svg)
 #ifdef MOZ_PLACES
   skin/classic/mozapps/places/defaultFavicon.svg           (../../shared/places/defaultFavicon.svg)
 #endif

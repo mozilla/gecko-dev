@@ -112,7 +112,7 @@ impl FontRelativeLength {
 
         let reference_font_size = base_size.resolve(context);
 
-        let root_font_size = context.style().root_font_size;
+        let root_font_size = context.device.root_font_size();
         match *self {
             FontRelativeLength::Em(length) => reference_font_size.scale_by(length),
             FontRelativeLength::Ex(length) => {
@@ -734,6 +734,12 @@ impl Percentage {
     pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
         Self::parse_with_clamping_mode(input, AllowedNumericType::NonNegative)
     }
+
+    /// 100%
+    #[inline]
+    pub fn hundred() -> Self {
+        Percentage(1.)
+    }
 }
 
 impl Parse for Percentage {
@@ -1179,6 +1185,12 @@ impl LengthOrNumber {
         }
 
         Length::parse_non_negative(context, input).map(Either::First)
+    }
+
+    /// Returns `0`.
+    #[inline]
+    pub fn zero() -> Self {
+        Either::Second(Number::new(0.))
     }
 }
 

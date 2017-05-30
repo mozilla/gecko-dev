@@ -30,7 +30,10 @@ use values::specified::calc::CalcNode;
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
+pub use self::background::BackgroundSize;
+pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageWidthSide};
 pub use self::color::Color;
+pub use self::rect::LengthOrNumberRect;
 pub use super::generics::grid::GridLine;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientItem, GradientKind, Image, ImageRect, ImageLayer};
@@ -43,13 +46,16 @@ pub use self::position::{Position, PositionComponent};
 
 #[cfg(feature = "gecko")]
 pub mod align;
+pub mod background;
 pub mod basic_shape;
+pub mod border;
 pub mod calc;
 pub mod color;
 pub mod grid;
 pub mod image;
 pub mod length;
 pub mod position;
+pub mod rect;
 
 /// Common handling for the specified value CSS url() values.
 pub mod url {

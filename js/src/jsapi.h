@@ -841,6 +841,8 @@ class MOZ_STACK_CLASS SourceBufferHolder final
     bool ownsChars_;
 };
 
+struct TranscodeSource;
+
 } /* namespace JS */
 
 /************************************************************************/
@@ -4301,6 +4303,17 @@ FinishOffThreadScriptDecoder(JSContext* cx, void* token);
 extern JS_PUBLIC_API(void)
 CancelOffThreadScriptDecoder(JSContext* cx, void* token);
 
+extern JS_PUBLIC_API(bool)
+DecodeMultiOffThreadScripts(JSContext* cx, const ReadOnlyCompileOptions& options,
+                            mozilla::Vector<TranscodeSource>& sources,
+                            OffThreadCompileCallback callback, void* callbackData);
+
+extern JS_PUBLIC_API(bool)
+FinishMultiOffThreadScriptsDecoder(JSContext* cx, void* token, JS::MutableHandle<JS::ScriptVector> scripts);
+
+extern JS_PUBLIC_API(void)
+CancelMultiOffThreadScriptsDecoder(JSContext* cx, void* token);
+
 /**
  * Compile a function with envChain plus the global as its scope chain.
  * envChain must contain objects in the current compartment of cx.  The actual
@@ -6187,6 +6200,19 @@ class MOZ_RAII AutoHideScriptedCaller
 typedef mozilla::Vector<uint8_t> TranscodeBuffer;
 typedef mozilla::Range<uint8_t> TranscodeRange;
 
+struct TranscodeSource
+{
+    TranscodeSource(const TranscodeRange& range_, const char* file, uint32_t line)
+        : range(range_), filename(file), lineno(line)
+    {}
+
+    const TranscodeRange range;
+    const char* filename;
+    const uint32_t lineno;
+};
+
+typedef mozilla::Vector<JS::TranscodeSource> TranscodeSources;
+
 enum TranscodeResult
 {
     // Successful encoding / decoding.
@@ -6231,15 +6257,14 @@ DecodeInterpretedFunction(JSContext* cx, TranscodeBuffer& buffer, JS::MutableHan
 // an out-param of any of the |Compile| functions, or the result of
 // |FinishOffThreadScript|.
 //
-// The |buffer| argument should not be used before until
-// |FinishIncrementalEncoding| is called on the same script, and returns
-// successfully. If any of these functions failed, the |buffer| content is
-// undefined.
+// The |buffer| argument of |FinishIncrementalEncoding| is used for appending
+// the encoded bytecode into the buffer. If any of these functions failed, the
+// content of |buffer| would be undefined.
 extern JS_PUBLIC_API(bool)
-StartIncrementalEncoding(JSContext* cx, TranscodeBuffer& buffer, JS::HandleScript script);
+StartIncrementalEncoding(JSContext* cx, JS::HandleScript script);
 
 extern JS_PUBLIC_API(bool)
-FinishIncrementalEncoding(JSContext* cx, JS::HandleScript script);
+FinishIncrementalEncoding(JSContext* cx, JS::HandleScript script, TranscodeBuffer& buffer);
 
 } /* namespace JS */
 

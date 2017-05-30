@@ -443,6 +443,30 @@ nsRuleNode::FixupNoneGeneric(nsFont* aFont,
   }
 }
 
+/* static */
+void
+nsRuleNode::ApplyMinFontSize(nsStyleFont* aFont,
+                             const nsPresContext* aPresContext,
+                             nscoord aMinFontSize)
+{
+  nscoord fontSize = aFont->mSize;
+
+  // enforce the user' specified minimum font-size on the value that we expose
+  // (but don't change font-size:0, since that would unhide hidden text)
+  if (fontSize > 0) {
+    if (aMinFontSize < 0) {
+      aMinFontSize = 0;
+    } else {
+      aMinFontSize = (aMinFontSize * aFont->mMinFontSizeRatio) / 100;
+    }
+    if (fontSize < aMinFontSize && !aPresContext->IsChrome()) {
+      // override the minimum font-size constraint
+      fontSize = aMinFontSize;
+    }
+  }
+  aFont->mFont.size = fontSize;
+}
+
 static nsSize CalcViewportUnitsScale(nsPresContext* aPresContext)
 {
   // The caller is making use of viewport units, so notify the pres context
@@ -4041,23 +4065,8 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   NS_ASSERTION(aFont->mScriptUnconstrainedSize <= aFont->mSize,
                "scriptminsize should never be making things bigger");
 
-  nscoord fontSize = aFont->mSize;
-
-  // enforce the user' specified minimum font-size on the value that we expose
-  // (but don't change font-size:0, since that would unhide hidden text)
-  if (fontSize > 0) {
-    nscoord minFontSize = aPresContext->MinFontSize(aFont->mLanguage);
-    if (minFontSize < 0) {
-      minFontSize = 0;
-    } else {
-      minFontSize = (minFontSize * aFont->mMinFontSizeRatio) / 100;
-    }
-    if (fontSize < minFontSize && !aPresContext->IsChrome()) {
-      // override the minimum font-size constraint
-      fontSize = minFontSize;
-    }
-  }
-  aFont->mFont.size = fontSize;
+  nsRuleNode::ApplyMinFontSize(aFont, aPresContext,
+                               aPresContext->MinFontSize(aFont->mLanguage));
 
   // font-size-adjust: number, none, inherit, initial, -moz-system-font
   const nsCSSValue* sizeAdjustValue = aRuleData->ValueForFontSizeAdjust();
@@ -6068,14 +6077,7 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
   // See ReflowInput::CalculateHypotheticalBox
   display->mOriginalDisplay = display->mDisplay;
 
-  // -moz-appearance: enum, inherit, initial
-  SetValue(*aRuleData->ValueForMozAppearance(),
-           display->mMozAppearance, conditions,
-           SETVAL_ENUMERATED | SETVAL_UNSET_INITIAL,
-           parentDisplay->mMozAppearance,
-           NS_THEME_NONE);
-
-  // appearance: none | auto
+  // appearance: enum, inherit, initial
   SetValue(*aRuleData->ValueForAppearance(),
            display->mAppearance, conditions,
            SETVAL_ENUMERATED | SETVAL_UNSET_INITIAL,
@@ -7303,6 +7305,12 @@ nsRuleNode::FillAllBackgroundLists(nsStyleImageLayers& aImage,
   FillImageLayerList(aImage.mLayers,
                      &nsStyleImageLayers::Layer::mSize,
                      aImage.mSizeCount, fillCount);
+  FillImageLayerList(aImage.mLayers,
+                     &nsStyleImageLayers::Layer::mMaskMode,
+                     aImage.mMaskModeCount, fillCount);
+  FillImageLayerList(aImage.mLayers,
+                     &nsStyleImageLayers::Layer::mComposite,
+                     aImage.mCompositeCount, fillCount);
 }
 
 const void*
@@ -8903,7 +8911,26 @@ nsRuleNode::ComputeContentData(void* aStartStruct,
           nsStyleContentType type =
             unit == eCSSUnit_Counter ? eStyleContentType_Counter
                                      : eStyleContentType_Counters;
-          data.SetCounters(type, value.GetArrayValue());
+          RefPtr<nsStyleContentData::CounterFunction>
+            counterFunc = new nsStyleContentData::CounterFunction();
+          nsCSSValue::Array* arrayValue = value.GetArrayValue();
+          arrayValue->Item(0).GetStringValue(counterFunc->mIdent);
+          if (unit == eCSSUnit_Counters) {
+            arrayValue->Item(1).GetStringValue(counterFunc->mSeparator);
+          }
+          const nsCSSValue& style =
+            value.GetArrayValue()->Item(unit == eCSSUnit_Counters ? 2 : 1);
+          if (style.GetUnit() == eCSSUnit_AtomIdent) {
+            counterFunc->mCounterStyle = mPresContext->
+              CounterStyleManager()->BuildCounterStyle(style.GetAtomValue());
+          } else if (style.GetUnit() == eCSSUnit_Symbols) {
+            counterFunc->mCounterStyle =
+              new AnonymousCounterStyle(style.GetArrayValue());
+          } else {
+            MOZ_ASSERT_UNREACHABLE("Unknown counter style");
+            counterFunc->mCounterStyle = CounterStyleManager::GetDecimalStyle();
+          }
+          data.SetCounters(type, counterFunc.forget());
           break;
         }
         case eCSSUnit_Enumerated:
@@ -8972,14 +8999,9 @@ nsRuleNode::ComputeContentData(void* aStartStruct,
 
     count = 0;
     for (const nsCSSValuePairList* p = ourIncrement; p; p = p->mNext, count++) {
-      int32_t increment;
-      if (p->mYValue.GetUnit() == eCSSUnit_Integer) {
-        increment = p->mYValue.GetIntValue();
-      } else {
-        increment = 1;
-      }
+      MOZ_ASSERT(p->mYValue.GetUnit() == eCSSUnit_Integer);
       p->mXValue.GetStringValue(buffer);
-      content->SetCounterIncrementAt(count, buffer, increment);
+      content->SetCounterIncrementAt(count, buffer, p->mYValue.GetIntValue());
     }
     break;
   }
@@ -9020,14 +9042,9 @@ nsRuleNode::ComputeContentData(void* aStartStruct,
     content->AllocateCounterResets(count);
     count = 0;
     for (const nsCSSValuePairList* p = ourReset; p; p = p->mNext, count++) {
-      int32_t reset;
-      if (p->mYValue.GetUnit() == eCSSUnit_Integer) {
-        reset = p->mYValue.GetIntValue();
-      } else {
-        reset = 0;
-      }
+      MOZ_ASSERT(p->mYValue.GetUnit() == eCSSUnit_Integer);
       p->mXValue.GetStringValue(buffer);
-      content->SetCounterResetAt(count, buffer, reset);
+      content->SetCounterResetAt(count, buffer, p->mYValue.GetIntValue());
     }
     break;
   }

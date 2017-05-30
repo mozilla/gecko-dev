@@ -3,19 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::SourceLocation;
+use euclid::TypedSize2D;
 use html5ever::LocalName;
 use selectors::parser::LocalName as LocalNameSelector;
 use selectors::parser::Selector;
 use servo_atoms::Atom;
+use style::context::QuirksMode;
+use style::media_queries::{Device, MediaType};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
 use style::rule_tree::CascadeLevel;
+use style::selector_map::{self, SelectorMap};
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::StyleRule;
-use style::stylist;
-use style::stylist::{Rule, SelectorMap};
+use style::stylist::{Stylist, Rule};
 use style::stylist::needs_revalidation;
 use style::thread_state;
 
@@ -172,22 +175,22 @@ fn test_rule_ordering_same_specificity() {
 #[test]
 fn test_get_id_name() {
     let (rules_list, _) = get_mock_rules(&[".intro", "#top"]);
-    assert_eq!(stylist::get_id_name(&rules_list[0][0].selector.inner), None);
-    assert_eq!(stylist::get_id_name(&rules_list[1][0].selector.inner), Some(Atom::from("top")));
+    assert_eq!(selector_map::get_id_name(&rules_list[0][0].selector.inner), None);
+    assert_eq!(selector_map::get_id_name(&rules_list[1][0].selector.inner), Some(Atom::from("top")));
 }
 
 #[test]
 fn test_get_class_name() {
     let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
-    assert_eq!(stylist::get_class_name(&rules_list[0][0].selector.inner), Some(Atom::from("foo")));
-    assert_eq!(stylist::get_class_name(&rules_list[1][0].selector.inner), None);
+    assert_eq!(selector_map::get_class_name(&rules_list[0][0].selector.inner), Some(Atom::from("foo")));
+    assert_eq!(selector_map::get_class_name(&rules_list[1][0].selector.inner), None);
 }
 
 #[test]
 fn test_get_local_name() {
     let (rules_list, _) = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
     let check = |i: usize, names: Option<(&str, &str)>| {
-        assert!(stylist::get_local_name(&rules_list[i][0].selector.inner)
+        assert!(selector_map::get_local_name(&rules_list[i][0].selector.inner)
                 == names.map(|(name, lower_name)| LocalNameSelector {
                         name: LocalName::from(name),
                         lower_name: LocalName::from(lower_name) }))
@@ -217,4 +220,24 @@ fn test_get_universal_rules() {
     let decls = map.get_universal_rules(CascadeLevel::UserNormal);
 
     assert_eq!(decls.len(), 1, "{:?}", decls);
+}
+
+fn mock_stylist() -> Stylist {
+    let device = Device::new(MediaType::Screen, TypedSize2D::new(0f32, 0f32));
+    Stylist::new(device, QuirksMode::NoQuirks)
+}
+
+#[test]
+fn test_stylist_device_accessors() {
+    let stylist = mock_stylist();
+    assert_eq!(stylist.device().media_type(), MediaType::Screen);
+    let mut stylist_mut = mock_stylist();
+    assert_eq!(stylist_mut.device_mut().media_type(), MediaType::Screen);
+}
+
+#[test]
+fn test_stylist_rule_tree_accessors() {
+    let stylist = mock_stylist();
+    stylist.rule_tree();
+    stylist.rule_tree().root();
 }

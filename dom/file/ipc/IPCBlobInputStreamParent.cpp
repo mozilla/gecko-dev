@@ -6,6 +6,7 @@
 
 #include "IPCBlobInputStreamParent.h"
 #include "IPCBlobInputStreamStorage.h"
+#include "mozilla/ipc/IPCStreamUtils.h"
 #include "nsContentUtils.h"
 
 namespace mozilla {
@@ -57,6 +58,23 @@ IPCBlobInputStreamParent::ActorDestroy(IProtocol::ActorDestroyReason aReason)
   mPBackgroundManager = nullptr;
 
   IPCBlobInputStreamStorage::Get()->ForgetStream(mID);
+
+  RefPtr<IPCBlobInputStreamParentCallback> callback;
+  mCallback.swap(callback);
+
+  if (callback) {
+    callback->ActorDestroyed(mID);
+  }
+}
+
+void
+IPCBlobInputStreamParent::SetCallback(
+                                    IPCBlobInputStreamParentCallback* aCallback)
+{
+  MOZ_ASSERT(aCallback);
+  MOZ_ASSERT(!mCallback);
+
+  mCallback = aCallback;
 }
 
 mozilla::ipc::IPCResult
@@ -74,7 +92,7 @@ IPCBlobInputStreamParent::RecvStreamNeeded()
     return IPC_OK();
   }
 
-  AutoIPCStream ipcStream;
+  mozilla::ipc::AutoIPCStream ipcStream;
   bool ok = false;
 
   if (mContentManager) {

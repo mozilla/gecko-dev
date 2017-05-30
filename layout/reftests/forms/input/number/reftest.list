@@ -27,24 +27,24 @@ fuzzy-if(skiaContent,2,13) == show-value.html show-value-ref.html
 == number-auto-width-1.html number-auto-width-1-ref.html
 
 # min-height/max-height tests:
-pref(layout.css.moz-appearance.enabled,true) skip-if(Android) == number-min-height-1.html number-min-height-1-ref.html
-pref(layout.css.moz-appearance.enabled,true) skip-if(Android) == number-min-height-2.html number-min-height-2-ref.html
-pref(layout.css.moz-appearance.enabled,true) skip-if(Android) == number-max-height-1.html number-max-height-1-ref.html
-pref(layout.css.moz-appearance.enabled,true) skip-if(Android) == number-max-height-2.html number-max-height-2-ref.html
+skip-if(Android) == number-min-height-1.html number-min-height-1-ref.html
+skip-if(Android) == number-min-height-2.html number-min-height-2-ref.html
+skip-if(Android) == number-max-height-1.html number-max-height-1-ref.html
+skip-if(Android) == number-max-height-2.html number-max-height-2-ref.html
 
 # number of significant fractional digits:
 == number-significant-fractional-digits.html number-significant-fractional-digits-ref.html
 
 # focus
-fuzzy-if(skiaContent,2,5) needs-focus skip-if(stylo) == focus-handling.html focus-handling-ref.html
+fuzzy-if(skiaContent,2,5) needs-focus skip-if(styloVsGecko||stylo) == focus-handling.html focus-handling-ref.html
 
 # select
-fuzzy-if(skiaContent,1,1) skip-if(stylo) == number-selected.html number-selected-ref.html
+fuzzy-if(skiaContent,1,1) skip-if(styloVsGecko) == number-selected.html number-selected-ref.html
 
 # pseudo-elements not usable from content:
 == number-pseudo-elements.html number-pseudo-elements-ref.html
 
-fails-if(stylo) == number-placeholder.html number-placeholder-ref.html
+== number-placeholder.html number-placeholder-ref.html
 
 # check that if the anonymous text control is reframed, we reframe the whole
 # number control (the fuzzy is for the top-right and bottom-left of the border
@@ -54,4 +54,4 @@ fuzzy(128,4) == number-reframe-anon-text-field.html number-reframe-anon-text-fie
 == pseudo-classes.html about:blank
 
 # Style inheritance:
-pref(layout.css.moz-appearance.enabled,true) == number-style-inheritance.html number-style-inheritance-ref.html
+== number-style-inheritance.html number-style-inheritance-ref.html

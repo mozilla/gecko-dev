@@ -151,7 +151,7 @@ nsImageBoxFrame::AttributeChanged(int32_t aNameSpaceID,
 }
 
 nsImageBoxFrame::nsImageBoxFrame(nsStyleContext* aContext)
-  : nsLeafBoxFrame(aContext, LayoutFrameType::ImageBox)
+  : nsLeafBoxFrame(aContext, kClassID)
   , mIntrinsicSize(0, 0)
   , mLoadFlags(nsIRequest::LOAD_NORMAL)
   , mRequestRegistered(false)
@@ -260,7 +260,7 @@ nsImageBoxFrame::UpdateImage()
   } else {
     // Only get the list-style-image if we aren't being drawn
     // by a native theme.
-    uint8_t appearance = StyleDisplay()->UsedAppearance();
+    uint8_t appearance = StyleDisplay()->mAppearance;
     if (!(appearance && nsBox::gTheme &&
           nsBox::gTheme->ThemeSupportsWidget(nullptr, this, appearance))) {
       // get the list-style-image
@@ -537,8 +537,8 @@ nsImageBoxFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 
   // If we're using a native theme implementation, we shouldn't draw anything.
   const nsStyleDisplay* disp = StyleDisplay();
-  if (disp->UsedAppearance() && nsBox::gTheme &&
-      nsBox::gTheme->ThemeSupportsWidget(nullptr, this, disp->UsedAppearance()))
+  if (disp->mAppearance && nsBox::gTheme &&
+      nsBox::gTheme->ThemeSupportsWidget(nullptr, this, disp->mAppearance))
     return;
 
   // If list-style-image changes, we have a new image.

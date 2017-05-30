@@ -85,8 +85,6 @@ public class CustomTabsActivity extends SingleTabActivity implements Tabs.OnTabs
         actionBarPresenter.displayUrlOnly(intent.getDataString());
         actionBarPresenter.setBackgroundColor(IntentUtil.getToolbarColor(intent), getWindow());
         actionBarPresenter.setTextLongClickListener(new UrlCopyListener());
-
-        Tabs.registerOnTabsChangedListener(this);
     }
 
     @Override
@@ -183,12 +181,6 @@ public class CustomTabsActivity extends SingleTabActivity implements Tabs.OnTabs
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
-        Tabs.unregisterOnTabsChangedListener(this);
-    }
-
-    @Override
     public int getLayout() {
         return R.layout.customtabs_activity;
     }
@@ -200,6 +192,8 @@ public class CustomTabsActivity extends SingleTabActivity implements Tabs.OnTabs
 
     @Override
     public void onTabChanged(Tab tab, TabEvents msg, String data) {
+        super.onTabChanged(tab, msg, data);
+
         if (!Tabs.getInstance().isSelectedTab(tab) ||
                 tab.getType() != Tab.TabType.CUSTOMTAB) {
             return;
@@ -349,8 +343,8 @@ public class CustomTabsActivity extends SingleTabActivity implements Tabs.OnTabs
                 onDone();
                 final Tabs tabs = Tabs.getInstance();
                 final Tab tab = tabs.getSelectedTab();
-                tabs.closeTabNoActivitySwitch(tab);
-                mCheckTabSelectionOnResume = true;
+                mSuppressActivitySwitch = true;
+                tabs.closeTab(tab);
             }
         });
     }
@@ -415,6 +409,12 @@ public class CustomTabsActivity extends SingleTabActivity implements Tabs.OnTabs
         }
 
         menuItemControl = geckoMenu.findItem(R.id.custom_tabs_menu_control);
+        // on some configurations(ie. Android 5.1.1 + Nexus 5), no idea why the state not be enabled
+        // if the Drawable is a LevelListDrawable, then the icon color is incorrect.
+        final Drawable icon = menuItemControl.getIcon();
+        if (icon != null && !icon.isStateful()) {
+            icon.setState(new int[]{android.R.attr.state_enabled});
+        }
 
         geckoMenu.addFooterView(
                 getLayoutInflater().inflate(R.layout.customtabs_options_menu_footer, geckoMenu, false),

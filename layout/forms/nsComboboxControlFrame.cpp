@@ -223,7 +223,7 @@ static int32_t gReflowInx = -1;
 //------------------------------------------------------
 
 nsComboboxControlFrame::nsComboboxControlFrame(nsStyleContext* aContext)
-  : nsBlockFrame(aContext, LayoutFrameType::ComboboxControl)
+  : nsBlockFrame(aContext, kClassID)
   , mDisplayFrame(nullptr)
   , mButtonFrame(nullptr)
   , mDropdownFrame(nullptr)
@@ -782,7 +782,7 @@ nsComboboxControlFrame::GetIntrinsicISize(nsRenderingContext* aRenderingContext,
   const nsStyleDisplay* disp = StyleDisplay();
   if ((!IsThemed(disp) ||
        presContext->GetTheme()->ThemeNeedsComboboxDropmarker()) &&
-      disp->UsedAppearance() != NS_THEME_NONE) {
+      disp->mAppearance != NS_THEME_NONE) {
     displayISize += scrollbarWidth;
   }
 
@@ -855,7 +855,7 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
   nscoord buttonISize;
   const nsStyleDisplay *disp = StyleDisplay();
   if ((IsThemed(disp) && !aPresContext->GetTheme()->ThemeNeedsComboboxDropmarker()) ||
-      StyleDisplay()->UsedAppearance() == NS_THEME_NONE) {
+      StyleDisplay()->mAppearance == NS_THEME_NONE) {
     buttonISize = 0;
   }
   else {
@@ -1282,11 +1282,11 @@ nsComboboxControlFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElement
 // need to revisit this.
 class nsComboboxDisplayFrame : public nsBlockFrame {
 public:
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(nsComboboxDisplayFrame)
 
   nsComboboxDisplayFrame(nsStyleContext* aContext,
                          nsComboboxControlFrame* aComboBox)
-    : nsBlockFrame(aContext, LayoutFrameType::ComboboxDisplay)
+    : nsBlockFrame(aContext, kClassID)
     , mComboBox(aComboBox)
   {}
 
@@ -1578,7 +1578,7 @@ nsComboboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       nsPresContext *presContext = PresContext();
       const nsStyleDisplay *disp = StyleDisplay();
       if ((!IsThemed(disp) ||
-           !presContext->GetTheme()->ThemeDrawsFocusForWidget(disp->UsedAppearance())) &&
+           !presContext->GetTheme()->ThemeDrawsFocusForWidget(disp->mAppearance)) &&
           mDisplayFrame && IsVisibleForPainting(aBuilder)) {
         aLists.Content()->AppendNewToTop(
           new (aBuilder) nsDisplayComboboxFocus(aBuilder, this));

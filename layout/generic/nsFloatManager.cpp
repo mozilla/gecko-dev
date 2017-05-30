@@ -23,22 +23,6 @@ int32_t nsFloatManager::sCachedFloatManagerCount = 0;
 void* nsFloatManager::sCachedFloatManagers[NS_FLOAT_MANAGER_CACHE_SIZE];
 
 /////////////////////////////////////////////////////////////////////////////
-
-// PresShell Arena allocate callback (for nsIntervalSet use below)
-static void*
-PSArenaAllocCB(size_t aSize, void* aClosure)
-{
-  return static_cast<nsIPresShell*>(aClosure)->AllocateMisc(aSize);
-}
-
-// PresShell Arena free callback (for nsIntervalSet use below)
-static void
-PSArenaFreeCB(size_t aSize, void* aPtr, void* aClosure)
-{
-  static_cast<nsIPresShell*>(aClosure)->FreeMisc(aSize, aPtr);
-}
-
-/////////////////////////////////////////////////////////////////////////////
 // nsFloatManager
 
 nsFloatManager::nsFloatManager(nsIPresShell* aPresShell,
@@ -48,7 +32,7 @@ nsFloatManager::nsFloatManager(nsIPresShell* aPresShell,
     mWritingMode(aWM),
 #endif
     mLineLeft(0), mBlockStart(0),
-    mFloatDamage(PSArenaAllocCB, PSArenaFreeCB, aPresShell),
+    mFloatDamage(aPresShell),
     mPushedLeftFloatPastBreak(false),
     mPushedRightFloatPastBreak(false),
     mSplitLeftFloatAcrossBreak(false),
@@ -335,7 +319,7 @@ nsFloatManager::GetRegionFor(WritingMode aWM, nsIFrame* aFloat,
                              const nsSize& aContainerSize)
 {
   LogicalRect region = aFloat->GetLogicalRect(aWM, aContainerSize);
-  void* storedRegion = aFloat->Properties().Get(FloatRegionProperty());
+  void* storedRegion = aFloat->GetProperty(FloatRegionProperty());
   if (storedRegion) {
     nsMargin margin = *static_cast<nsMargin*>(storedRegion);
     region.Inflate(aWM, LogicalMargin(aWM, margin));
@@ -350,15 +334,14 @@ nsFloatManager::StoreRegionFor(WritingMode aWM, nsIFrame* aFloat,
 {
   nsRect region = aRegion.GetPhysicalRect(aWM, aContainerSize);
   nsRect rect = aFloat->GetRect();
-  FrameProperties props = aFloat->Properties();
   if (region.IsEqualEdges(rect)) {
-    props.Delete(FloatRegionProperty());
+    aFloat->DeleteProperty(FloatRegionProperty());
   }
   else {
-    nsMargin* storedMargin = props.Get(FloatRegionProperty());
+    nsMargin* storedMargin = aFloat->GetProperty(FloatRegionProperty());
     if (!storedMargin) {
       storedMargin = new nsMargin();
-      props.Set(FloatRegionProperty(), storedMargin);
+      aFloat->SetProperty(FloatRegionProperty(), storedMargin);
     }
     *storedMargin = region - rect;
   }

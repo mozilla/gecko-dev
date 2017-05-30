@@ -27,7 +27,6 @@
 #include "nsStyleAutoArray.h"
 #include "nsStyleCoord.h"
 #include "nsStyleConsts.h"
-#include "nsThemeConstants.h"
 #include "nsChangeHint.h"
 #include "nsPresContext.h"
 #include "nsCOMPtr.h"
@@ -1469,19 +1468,6 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleList
 
   already_AddRefed<nsIURI> GetListStyleImageURI() const;
 
-  // The following two methods are called from Servo code to maintain
-  // list-style-type off main thread.
-  void SetListStyleType(nsIAtom* aType)
-  {
-    mListStyleType = aType;
-    mCounterStyle = nullptr;
-  }
-  void CopyListStyleTypeFrom(const nsStyleList& aOther)
-  {
-    mListStyleType = aOther.mListStyleType;
-    mCounterStyle = aOther.mCounterStyle;
-  }
-
   const nsStyleQuoteValues::QuotePairArray& GetQuotePairs() const;
 
   void SetQuotesInherit(const nsStyleList* aOther);
@@ -1492,12 +1478,6 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleList
   uint8_t mListStylePosition;                  // [inherited]
   RefPtr<nsStyleImageRequest> mListStyleImage; // [inherited]
 
-  // mCounterStyle is the actual field for computed list-style-type.
-  // mListStyleType is only used when we are off the main thread, so we
-  // cannot safely construct CounterStyle object. FinishStyle() will
-  // use it to setup mCounterStyle and then clear it. At any time, only
-  // one of the following two fields should be non-null.
-  nsCOMPtr<nsIAtom> mListStyleType;
   mozilla::CounterStylePtr mCounterStyle;      // [inherited]
 
 private:
@@ -2684,20 +2664,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay
                                            //         otherwise equal to
                                            //         mDisplay
   uint8_t mContain;             // [reset] see nsStyleConsts.h NS_STYLE_CONTAIN_*
-private:
-  friend class nsComputedDOMStyle;
-  friend class nsRuleNode;
-  uint8_t mMozAppearance;       // [reset]
   uint8_t mAppearance;          // [reset]
-public:
-  MOZ_MUST_USE uint8_t UsedAppearance() const {
-    if (mAppearance == NS_THEME_NONE) {
-      return NS_THEME_NONE;
-    }
-    MOZ_ASSERT(mAppearance == NS_THEME_AUTO);
-    return mMozAppearance; // use the -moz-appearance value
-  }
-
   uint8_t mPosition;            // [reset] see nsStyleConsts.h
 
   // [reset] See StyleFloat in nsStyleConsts.h.
@@ -3057,10 +3024,29 @@ public:
     return mContent.mString;
   }
 
-  nsCSSValue::Array* GetCounters() const
+  struct CounterFunction
+  {
+    nsString mIdent;
+    // This is only used when it is a counters() function.
+    nsString mSeparator;
+    mozilla::CounterStylePtr mCounterStyle;
+
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CounterFunction)
+
+    bool operator==(const CounterFunction& aOther) const;
+    bool operator!=(const CounterFunction& aOther) const {
+      return !(*this == aOther);
+    }
+  private:
+    ~CounterFunction() {}
+  };
+
+  CounterFunction* GetCounters() const
   {
     MOZ_ASSERT(mType == eStyleContentType_Counter ||
                mType == eStyleContentType_Counters);
+    MOZ_ASSERT(mContent.mCounters->mCounterStyle.IsResolved(),
+               "Counter style should have been resolved");
     return mContent.mCounters;
   }
 
@@ -3098,17 +3084,16 @@ public:
     mContent.mString = NS_strdup(aString);
   }
 
-  void SetCounters(nsStyleContentType aType, nsCSSValue::Array* aCounters)
+  void SetCounters(nsStyleContentType aType,
+                   already_AddRefed<CounterFunction> aCounterFunction)
   {
     MOZ_ASSERT(aType == eStyleContentType_Counter ||
                aType == eStyleContentType_Counters);
-    MOZ_ASSERT(aCounters);
-    MOZ_ASSERT(aCounters->Count() == 2 || aCounters->Count() == 3);
     MOZ_ASSERT(mType == eStyleContentType_Uninitialized,
                "should only initialize nsStyleContentData once");
     mType = aType;
-    mContent.mCounters = aCounters;
-    mContent.mCounters->AddRef();
+    mContent.mCounters = aCounterFunction.take();
+    MOZ_ASSERT(mContent.mCounters);
   }
 
   void SetImageRequest(already_AddRefed<nsStyleImageRequest> aRequest)
@@ -3120,18 +3105,14 @@ public:
     MOZ_ASSERT(mContent.mImage);
   }
 
-  void Resolve(nsPresContext* aPresContext) {
-    if (mType == eStyleContentType_Image && !mContent.mImage->IsResolved()) {
-      mContent.mImage->Resolve(aPresContext);
-    }
-  }
+  void Resolve(nsPresContext* aPresContext);
 
 private:
   nsStyleContentType mType;
   union {
     char16_t *mString;
     nsStyleImageRequest* mImage;
-    nsCSSValue::Array* mCounters;
+    CounterFunction* mCounters;
   } mContent;
 };
 

@@ -37,8 +37,11 @@ use servo_config::prefs::PREFS;
 #[cfg(not(feature = "gecko"))]
 use servo_url::ServoUrl;
 use shared_lock::{SharedRwLock, Locked, ToCssWithGuard, SharedRwLockReadGuard};
+use std::borrow::Borrow;
 use std::cell::Cell;
 use std::fmt;
+use std::mem::align_of;
+use std::os::raw::c_void;
 use std::sync::atomic::{AtomicBool, Ordering};
 use str::starts_with_ignore_ascii_case;
 use style_traits::ToCss;
@@ -91,11 +94,62 @@ pub enum Origin {
 }
 
 /// A set of namespaces applying to a given stylesheet.
-#[derive(Default, Debug)]
+#[derive(Clone, Default, Debug)]
 #[allow(missing_docs)]
 pub struct Namespaces {
     pub default: Option<Namespace>,
     pub prefixes: FnvHashMap<Prefix , Namespace>,
+}
+
+/// Like gecko_bindings::structs::MallocSizeOf, but without the Option<> wrapper. Note that
+/// functions of this type should not be called via do_malloc_size_of(), rather than directly.
+pub type MallocSizeOfFn = unsafe extern "C" fn(ptr: *const c_void) -> usize;
+
+/// Call malloc_size_of on ptr, first checking that the allocation isn't empty.
+pub unsafe fn do_malloc_size_of<T>(malloc_size_of: MallocSizeOfFn, ptr: *const T) -> usize {
+    if ptr as usize <= align_of::<T>() {
+        0
+    } else {
+        malloc_size_of(ptr as *const c_void)
+    }
+}
+
+/// Trait for measuring the size of heap data structures.
+pub trait MallocSizeOf {
+    /// Measure the size of any heap-allocated structures that hang off this value, but not the
+    /// space taken up by the value itself.
+    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize;
+}
+
+/// Like MallocSizeOf, but operates with the global SharedRwLockReadGuard locked.
+pub trait MallocSizeOfWithGuard {
+    /// Like MallocSizeOf::malloc_size_of_children, but with a |guard| argument.
+    fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
+                               malloc_size_of: MallocSizeOfFn) -> usize;
+}
+
+impl<A: MallocSizeOf, B: MallocSizeOf> MallocSizeOf for (A, B) {
+    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+        self.0.malloc_size_of_children(malloc_size_of) +
+            self.1.malloc_size_of_children(malloc_size_of)
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for Vec<T> {
+    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+        self.iter().fold(
+            unsafe { do_malloc_size_of(malloc_size_of, self.as_ptr()) },
+            |n, elem| n + elem.malloc_size_of_children(malloc_size_of))
+    }
+}
+
+impl<T: MallocSizeOfWithGuard> MallocSizeOfWithGuard for Vec<T> {
+    fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
+                               malloc_size_of: MallocSizeOfFn) -> usize {
+        self.iter().fold(
+            unsafe { do_malloc_size_of(malloc_size_of, self.as_ptr()) },
+            |n, elem| n + elem.malloc_size_of_children(guard, malloc_size_of))
+    }
 }
 
 /// A list of CSS rules.
@@ -106,6 +160,22 @@ impl CssRules {
     /// Whether this CSS rules is empty.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    /// Creates a deep clone where each CssRule has also been cloned with
+    /// the provided lock.
+    fn deep_clone_with_lock(&self,
+                            lock: &SharedRwLock) -> CssRules {
+        CssRules(
+            self.0.iter().map(|ref x| x.deep_clone_with_lock(lock)).collect()
+        )
+    }
+}
+
+impl MallocSizeOfWithGuard for CssRules {
+    fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
+                               malloc_size_of: MallocSizeOfFn) -> usize {
+        self.0.malloc_size_of_children(guard, malloc_size_of)
     }
 }
 
@@ -244,8 +314,8 @@ impl CssRulesHelpers for Arc<Locked<CssRules>> {
 
         Ok(new_rule)
     }
-
 }
+
 
 /// The structure servo uses to represent a stylesheet.
 #[derive(Debug)]
@@ -271,6 +341,13 @@ pub struct Stylesheet {
     pub quirks_mode: QuirksMode,
 }
 
+impl MallocSizeOfWithGuard for Stylesheet {
+    fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
+                               malloc_size_of: MallocSizeOfFn) -> usize {
+        // Measurement of other fields may be added later.
+        self.rules.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
+    }
+}
 
 /// This structure holds the user-agent and user stylesheets.
 pub struct UserAgentStylesheets {
@@ -303,6 +380,28 @@ pub enum CssRule {
     Supports(Arc<Locked<SupportsRule>>),
     Page(Arc<Locked<PageRule>>),
     Document(Arc<Locked<DocumentRule>>),
+}
+
+impl MallocSizeOfWithGuard for CssRule {
+    fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
+                               malloc_size_of: MallocSizeOfFn) -> usize {
+        match *self {
+            CssRule::Style(ref lock) => {
+                lock.read_with(guard).malloc_size_of_children(guard, malloc_size_of)
+            },
+            // Measurement of these fields may be added later.
+            CssRule::Import(_) => 0,
+            CssRule::Media(_) => 0,
+            CssRule::FontFace(_) => 0,
+            CssRule::CounterStyle(_) => 0,
+            CssRule::Keyframes(_) => 0,
+            CssRule::Namespace(_) => 0,
+            CssRule::Viewport(_) => 0,
+            CssRule::Supports(_) => 0,
+            CssRule::Page(_) => 0,
+            CssRule::Document(_)  => 0,
+        }
+    }
 }
 
 #[allow(missing_docs)]
@@ -469,6 +568,64 @@ impl CssRule {
             }
         }
     }
+
+    /// Deep clones this CssRule.
+    fn deep_clone_with_lock(&self,
+                            lock: &SharedRwLock) -> CssRule {
+        let guard = lock.read();
+        match *self {
+            CssRule::Namespace(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::Namespace(Arc::new(lock.wrap(rule.clone())))
+            },
+            CssRule::Import(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::Import(Arc::new(lock.wrap(rule.clone())))
+            },
+            CssRule::Style(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::Style(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock))))
+            },
+            CssRule::Media(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::Media(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock))))
+            },
+            CssRule::FontFace(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::FontFace(Arc::new(lock.wrap(rule.clone())))
+            },
+            CssRule::CounterStyle(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::CounterStyle(Arc::new(lock.wrap(rule.clone())))
+            },
+            CssRule::Viewport(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::Viewport(Arc::new(lock.wrap(rule.clone())))
+            },
+            CssRule::Keyframes(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::Keyframes(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock))))
+            },
+            CssRule::Supports(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::Supports(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock))))
+            },
+            CssRule::Page(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::Page(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock))))
+            },
+            CssRule::Document(ref arc) => {
+                let rule = arc.read_with(&guard);
+                CssRule::Document(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock))))
+            },
+        }
+    }
 }
 
 impl ToCssWithGuard for CssRule {
@@ -500,7 +657,7 @@ fn get_location_with_offset(location: SourceLocation, offset: u64)
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[allow(missing_docs)]
 pub struct NamespaceRule {
     /// `None` for the default Namespace
@@ -538,6 +695,16 @@ pub struct ImportRule {
     /// It contains an empty list of rules and namespace set that is updated
     /// when it loads.
     pub stylesheet: Arc<Stylesheet>,
+}
+
+impl Clone for ImportRule {
+    fn clone(&self) -> ImportRule {
+        let stylesheet: &Stylesheet = self.stylesheet.borrow();
+        ImportRule {
+            url: self.url.clone(),
+            stylesheet: Arc::new(stylesheet.clone()),
+        }
+    }
 }
 
 impl ToCssWithGuard for ImportRule {
@@ -604,6 +771,23 @@ impl KeyframesRule {
     }
 }
 
+impl KeyframesRule {
+    /// Deep clones this KeyframesRule.
+    fn deep_clone_with_lock(&self,
+                            lock: &SharedRwLock) -> KeyframesRule {
+        let guard = lock.read();
+        KeyframesRule {
+            name: self.name.clone(),
+            keyframes: self.keyframes.iter()
+                .map(|ref x| Arc::new(lock.wrap(
+                    x.read_with(&guard).deep_clone_with_lock(lock))))
+                .collect(),
+            vendor_prefix: self.vendor_prefix.clone(),
+            source_location: self.source_location.clone(),
+        }
+    }
+}
+
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct MediaRule {
@@ -625,6 +809,21 @@ impl ToCssWithGuard for MediaRule {
             try!(rule.to_css(guard, dest));
         }
         dest.write_str(" }")
+    }
+}
+
+impl MediaRule {
+    /// Deep clones this MediaRule.
+    fn deep_clone_with_lock(&self,
+                            lock: &SharedRwLock) -> MediaRule {
+        let guard = lock.read();
+        let media_queries = self.media_queries.read_with(&guard);
+        let rules = self.rules.read_with(&guard);
+        MediaRule {
+            media_queries: Arc::new(lock.wrap(media_queries.clone())),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock))),
+            source_location: self.source_location.clone(),
+        }
     }
 }
 
@@ -656,6 +855,20 @@ impl ToCssWithGuard for SupportsRule {
     }
 }
 
+impl SupportsRule {
+    fn deep_clone_with_lock(&self,
+                            lock: &SharedRwLock) -> SupportsRule {
+        let guard = lock.read();
+        let rules = self.rules.read_with(&guard);
+        SupportsRule {
+            condition: self.condition.clone(),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock))),
+            enabled: self.enabled,
+            source_location: self.source_location.clone(),
+        }
+    }
+}
+
 /// A [`@page`][page] rule.  This implements only a limited subset of the CSS 2.2 syntax.  In this
 /// subset, [page selectors][page-selectors] are not implemented.
 ///
@@ -682,12 +895,31 @@ impl ToCssWithGuard for PageRule {
     }
 }
 
+impl PageRule {
+    fn deep_clone_with_lock(&self,
+                            lock: &SharedRwLock) -> PageRule {
+        let guard = lock.read();
+        PageRule {
+            block: Arc::new(lock.wrap(self.block.read_with(&guard).clone())),
+            source_location: self.source_location.clone(),
+        }
+    }
+}
+
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct StyleRule {
     pub selectors: SelectorList<SelectorImpl>,
     pub block: Arc<Locked<PropertyDeclarationBlock>>,
     pub source_location: SourceLocation,
+}
+
+impl MallocSizeOfWithGuard for StyleRule {
+    fn malloc_size_of_children(&self, guard: &SharedRwLockReadGuard,
+                               malloc_size_of: MallocSizeOfFn) -> usize {
+        // Measurement of other fields may be added later.
+        self.block.read_with(guard).malloc_size_of_children(malloc_size_of)
+    }
 }
 
 impl ToCssWithGuard for StyleRule {
@@ -708,6 +940,19 @@ impl ToCssWithGuard for StyleRule {
         // Step 5
         try!(dest.write_str("}"));
         Ok(())
+    }
+}
+
+impl StyleRule {
+    /// Deep clones this StyleRule.
+    fn deep_clone_with_lock(&self,
+                            lock: &SharedRwLock) -> StyleRule {
+        let guard = lock.read();
+        StyleRule {
+            selectors: self.selectors.clone(),
+            block: Arc::new(lock.wrap(self.block.read_with(&guard).clone())),
+            source_location: self.source_location.clone(),
+        }
     }
 }
 
@@ -741,6 +986,20 @@ impl ToCssWithGuard for DocumentRule {
             try!(rule.to_css(guard, dest));
         }
         dest.write_str(" }")
+    }
+}
+
+impl DocumentRule {
+    /// Deep clones this DocumentRule.
+    fn deep_clone_with_lock(&self,
+                            lock: &SharedRwLock) -> DocumentRule {
+        let guard = lock.read();
+        let rules = self.rules.read_with(&guard);
+        DocumentRule {
+            condition: self.condition.clone(),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock))),
+            source_location: self.source_location.clone(),
+        }
     }
 }
 
@@ -898,6 +1157,35 @@ impl Stylesheet {
     /// added to the Stylist.
     pub fn set_disabled(&self, disabled: bool) -> bool {
         self.disabled.swap(disabled, Ordering::SeqCst) != disabled
+    }
+}
+
+impl Clone for Stylesheet {
+    fn clone(&self) -> Stylesheet {
+        // Create a new lock for our clone.
+        let lock = self.shared_lock.clone();
+        let guard = self.shared_lock.read();
+
+        // Make a deep clone of the rules, using the new lock.
+        let rules = self.rules.read_with(&guard);
+        let cloned_rules = rules.deep_clone_with_lock(&lock);
+
+        // Make a deep clone of the media, using the new lock.
+        let media = self.media.read_with(&guard);
+        let cloned_media = media.clone();
+
+        Stylesheet {
+            rules: Arc::new(lock.wrap(cloned_rules)),
+            media: Arc::new(lock.wrap(cloned_media)),
+            origin: self.origin,
+            url_data: self.url_data.clone(),
+            shared_lock: lock,
+            namespaces: RwLock::new((*self.namespaces.read()).clone()),
+            dirty_on_viewport_size_change: AtomicBool::new(
+                self.dirty_on_viewport_size_change.load(Ordering::SeqCst)),
+            disabled: AtomicBool::new(self.disabled.load(Ordering::SeqCst)),
+            quirks_mode: self.quirks_mode,
+        }
     }
 }
 

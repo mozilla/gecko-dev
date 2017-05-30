@@ -17,7 +17,7 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::point::Point2D;
 use euclid::size::{Size2D, TypedSize2D};
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, PipelineId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
@@ -86,7 +86,7 @@ pub enum ScriptMsg {
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(IpcSender<String>),
-    /// Get the frame id for a given pipeline.
+    /// Get the browsing context id for a given pipeline.
     GetBrowsingContextId(PipelineId, IpcSender<Option<BrowsingContextId>>),
     /// Get the parent info for a given pipeline.
     GetParentInfo(PipelineId, IpcSender<Option<(PipelineId, FrameType)>>),
@@ -104,9 +104,9 @@ pub enum ScriptMsg {
     /// The first PipelineId is for the parent, the second is for the originating pipeline.
     MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back traversal.
-    TraverseHistory(Option<PipelineId>, TraversalDirection),
+    TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Gets the length of the joint session history from the constellation.
-    JointSessionHistoryLength(PipelineId, IpcSender<u32>),
+    JointSessionHistoryLength(TopLevelBrowsingContextId, IpcSender<u32>),
     /// Favicon detected
     NewFavicon(ServoUrl),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
@@ -148,7 +148,7 @@ pub enum ScriptMsg {
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// A log entry, with the top-level browsing context id and thread name
-    LogEntry(Option<BrowsingContextId>, Option<String>, LogEntry),
+    LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited(PipelineId),
     /// Send messages from postMessage calls from serviceworker

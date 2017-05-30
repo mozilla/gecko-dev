@@ -866,6 +866,18 @@ protected:
         } else if (origBytes[nOrigBytes] == 0x05) {
           // syscall
           COPY_CODES(1);
+        } else if (origBytes[nOrigBytes] == 0x10 ||
+                   origBytes[nOrigBytes] == 0x11) {
+          // SSE: movups xmm, xmm/m128
+          //      movups xmm/m128, xmm
+          COPY_CODES(1);
+          int nModRmSibBytes = CountModRmSib(&origBytes[nOrigBytes]);
+          if (nModRmSibBytes < 0) {
+            MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");
+            return;
+          } else {
+            COPY_CODES(nModRmSibBytes);
+          }
         } else if (origBytes[nOrigBytes] == 0x84) {
           // je rel32
           JumpPatch jump(nTrampBytes - 1,  // overwrite the 0x0f we copied above
@@ -1008,6 +1020,10 @@ protected:
             MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");
             return;
           }
+        } else if (origBytes[nOrigBytes] == 0x63 &&
+                   (origBytes[nOrigBytes + 1] & kMaskMod) == kModReg) {
+          // movsxd r64, r32 (move + sign extend)
+          COPY_CODES(2);
         } else {
           // not support yet!
           MOZ_ASSERT_UNREACHABLE("Unrecognized opcode sequence");
@@ -1106,8 +1122,8 @@ protected:
       } else if (origBytes[nOrigBytes] == 0x90) {
         // nop
         COPY_CODES(1);
-      } else if (origBytes[nOrigBytes] == 0xb8) {
-        // MOV 0xB8: http://ref.x86asm.net/coder32.html#xB8
+      } else if ((origBytes[nOrigBytes] & 0xf8) == 0xb8) {
+        // MOV r32, imm32
         COPY_CODES(5);
       } else if (origBytes[nOrigBytes] == 0x33) {
         // xor r32, r/m32

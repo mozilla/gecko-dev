@@ -155,7 +155,6 @@ using namespace mozilla::gfx;
 #define DISPLAY_FLOW_ROOT_ENABLED_PREF_NAME "layout.css.display-flow-root.enabled"
 #define TEXT_ALIGN_UNSAFE_ENABLED_PREF_NAME "layout.css.text-align-unsafe-value.enabled"
 #define FLOAT_LOGICAL_VALUES_ENABLED_PREF_NAME "layout.css.float-logical-values.enabled"
-#define BG_CLIP_TEXT_ENABLED_PREF_NAME "layout.css.background-clip-text.enabled"
 
 // The time in number of frames that we estimate for a refresh driver
 // to be quiescent
@@ -440,39 +439,6 @@ FloatLogicalValuesEnabledPrefChangeCallback(const char* aPrefName,
   MOZ_ASSERT(sIndexOfInlineEndInClearTable >= 0);
   nsCSSProps::kClearKTable[sIndexOfInlineEndInClearTable].mKeyword =
     isFloatLogicalValuesEnabled ? eCSSKeyword_inline_end : eCSSKeyword_UNKNOWN;
-}
-
-
-// When the pref "layout.css.background-clip-text.enabled" changes, this
-// function is invoked to let us update kBackgroundClipKTable, to selectively
-// disable or restore the entries for "text" in that table.
-static void
-BackgroundClipTextEnabledPrefChangeCallback(const char* aPrefName,
-                                            void* aClosure)
-{
-  NS_ASSERTION(strcmp(aPrefName, BG_CLIP_TEXT_ENABLED_PREF_NAME) == 0,
-               "Did you misspell " BG_CLIP_TEXT_ENABLED_PREF_NAME " ?");
-
-  static bool sIsBGClipKeywordIndexInitialized;
-  static int32_t sIndexOfTextInBGClipTable;
-  bool isBGClipTextEnabled =
-    Preferences::GetBool(BG_CLIP_TEXT_ENABLED_PREF_NAME, false);
-
-  if (!sIsBGClipKeywordIndexInitialized) {
-    // First run: find the position of "text" in kBackgroundClipKTable.
-    sIndexOfTextInBGClipTable =
-      nsCSSProps::FindIndexOfKeyword(eCSSKeyword_text,
-                                     nsCSSProps::kBackgroundClipKTable);
-
-    sIsBGClipKeywordIndexInitialized = true;
-  }
-
-  // OK -- now, stomp on or restore the "text" entry in kBackgroundClipKTable,
-  // depending on whether the pref is enabled vs. disabled.
-  if (sIndexOfTextInBGClipTable >= 0) {
-    nsCSSProps::kBackgroundClipKTable[sIndexOfTextInBGClipTable].mKeyword =
-      isBGClipTextEnabled ? eCSSKeyword_text : eCSSKeyword_UNKNOWN;
-  }
 }
 
 template<typename TestType>
@@ -2151,13 +2117,13 @@ NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(ScrollbarThumbLayerized, bool)
 /* static */ void
 nsLayoutUtils::SetScrollbarThumbLayerization(nsIFrame* aThumbFrame, bool aLayerize)
 {
-  aThumbFrame->Properties().Set(ScrollbarThumbLayerized(), aLayerize);
+  aThumbFrame->SetProperty(ScrollbarThumbLayerized(), aLayerize);
 }
 
 bool
 nsLayoutUtils::IsScrollbarThumbLayerized(nsIFrame* aThumbFrame)
 {
-  return aThumbFrame->Properties().Get(ScrollbarThumbLayerized());
+  return aThumbFrame->GetProperty(ScrollbarThumbLayerized());
 }
 
 // static
@@ -4556,7 +4522,7 @@ nsLayoutUtils::GetNextContinuationOrIBSplitSibling(nsIFrame *aFrame)
     // frame in the continuation chain. Walk back to find that frame now.
     aFrame = aFrame->FirstContinuation();
 
-    return aFrame->Properties().Get(nsIFrame::IBSplitSibling());
+    return aFrame->GetProperty(nsIFrame::IBSplitSibling());
   }
 
   return nullptr;
@@ -4569,7 +4535,7 @@ nsLayoutUtils::FirstContinuationOrIBSplitSibling(nsIFrame *aFrame)
   if (result->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) {
     while (true) {
       nsIFrame* f =
-        result->Properties().Get(nsIFrame::IBSplitPrevSibling());
+        result->GetProperty(nsIFrame::IBSplitPrevSibling());
       if (!f)
         break;
       result = f;
@@ -4585,10 +4551,10 @@ nsLayoutUtils::LastContinuationOrIBSplitSibling(nsIFrame *aFrame)
   nsIFrame *result = aFrame->FirstContinuation();
   if (result->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) {
     while (true) {
-      nsIFrame* f =
-        result->Properties().Get(nsIFrame::IBSplitSibling());
-      if (!f)
+      nsIFrame* f = result->GetProperty(nsIFrame::IBSplitSibling());
+      if (!f) {
         break;
+      }
       result = f;
     }
   }
@@ -4605,7 +4571,7 @@ nsLayoutUtils::IsFirstContinuationOrIBSplitSibling(nsIFrame *aFrame)
     return false;
   }
   if ((aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) &&
-      aFrame->Properties().Get(nsIFrame::IBSplitPrevSibling())) {
+      aFrame->GetProperty(nsIFrame::IBSplitPrevSibling())) {
     return false;
   }
 
@@ -5143,7 +5109,7 @@ AddIntrinsicSizeOffset(nsRenderingContext* aRenderingContext,
     LayoutDeviceIntSize devSize;
     bool canOverride = true;
     nsPresContext* pc = aFrame->PresContext();
-    pc->GetTheme()->GetMinimumWidgetSize(pc, aFrame, disp->UsedAppearance(),
+    pc->GetTheme()->GetMinimumWidgetSize(pc, aFrame, disp->mAppearance,
                                          &devSize, &canOverride);
     nscoord themeSize =
       pc->DevPixelsToAppUnits(aAxis == eAxisVertical ? devSize.height
@@ -7070,10 +7036,10 @@ nsLayoutUtils::GetFrameTransparency(nsIFrame* aBackgroundFrame,
   if (HasNonZeroCorner(aCSSRootFrame->StyleBorder()->mBorderRadius))
     return eTransparencyTransparent;
 
-  if (aCSSRootFrame->StyleDisplay()->UsedAppearance() == NS_THEME_WIN_GLASS)
+  if (aCSSRootFrame->StyleDisplay()->mAppearance == NS_THEME_WIN_GLASS)
     return eTransparencyGlass;
 
-  if (aCSSRootFrame->StyleDisplay()->UsedAppearance() == NS_THEME_WIN_BORDERLESS_GLASS)
+  if (aCSSRootFrame->StyleDisplay()->mAppearance == NS_THEME_WIN_BORDERLESS_GLASS)
     return eTransparencyBorderlessGlass;
 
   nsITheme::Transparency transparency;
@@ -7816,8 +7782,6 @@ static const PrefCallbacks kPrefCallbacks[] = {
     DisplayFlowRootEnabledPrefChangeCallback },
   { FLOAT_LOGICAL_VALUES_ENABLED_PREF_NAME,
     FloatLogicalValuesEnabledPrefChangeCallback },
-  { BG_CLIP_TEXT_ENABLED_PREF_NAME,
-    BackgroundClipTextEnabledPrefChangeCallback },
 };
 
 /* static */
@@ -9375,15 +9339,6 @@ nsLayoutUtils::ComputePartialPrerenderArea(const nsRect& aDirtyRect,
   nsRect result = aDirtyRect;
   result.Inflate(xExcess / 2, yExcess / 2);
   return result.MoveInsideAndClamp(aOverflow);
-}
-
-
-/* static */ bool
-nsLayoutUtils::SupportsServoStyleBackend(nsIDocument* aDocument)
-{
-  return StyloEnabled() &&
-         (aDocument->IsHTMLOrXHTML() || aDocument->IsSVGDocument()) &&
-         static_cast<nsDocument*>(aDocument)->IsContentDocument();
 }
 
 static

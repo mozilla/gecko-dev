@@ -35,7 +35,7 @@ use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
 use style_traits::{HasViewportPercentage, ToCss};
-use stylesheets::{CssRuleType, Origin, UrlExtraData};
+use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::computed;
 use cascade_info::CascadeInfo;
@@ -63,6 +63,44 @@ pub mod declaration_block;
 pub trait MaybeBoxed<Out> {
     /// Convert
     fn maybe_boxed(self) -> Out;
+}
+
+
+/// This is where we store extra font data while
+/// while computing font sizes.
+#[derive(Clone, Debug)]
+pub struct FontComputationData {
+    /// font-size keyword values (and font-size-relative values applied
+    /// to keyword values) need to preserve their identity as originating
+    /// from keywords and relative font sizes. We store this information
+    /// out of band in the ComputedValues. When None, the font size on the
+    /// current struct was computed from a value that was not a keyword
+    /// or a chain of font-size-relative values applying to successive parents
+    /// terminated by a keyword. When Some, this means the font-size was derived
+    /// from a keyword value or a keyword value on some ancestor with only
+    /// font-size-relative keywords and regular inheritance in between. The
+    /// integer stores the final ratio of the chain of font size relative values.
+    /// and is 1 when there was just a keyword and no relative values.
+    ///
+    /// When this is Some, we compute font sizes by computing the keyword against
+    /// the generic font, and then multiplying it by the ratio.
+   pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>
+}
+
+
+impl FontComputationData{
+        /// Assigns values for variables in struct FontComputationData
+    pub fn new(font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>) -> Self {
+        FontComputationData {
+            font_size_keyword: font_size_keyword
+        }
+    }
+        /// Assigns default values for variables in struct FontComputationData
+   pub fn default_values() -> Self {
+        FontComputationData{
+            font_size_keyword: Some((Default::default(), 1.))
+        }
+    }
 }
 
 impl<T> MaybeBoxed<T> for T {
@@ -133,55 +171,6 @@ pub mod shorthands {
     use cssparser::Parser;
     use parser::{Parse, ParserContext};
     use values::specified;
-
-    /// Parses a property for four different sides per CSS syntax.
-    ///
-    ///  * Zero or more than four values is invalid.
-    ///  * One value sets them all
-    ///  * Two values set (top, bottom) and (left, right)
-    ///  * Three values set top, (left, right) and bottom
-    ///  * Four values set them in order
-    ///
-    /// returns the values in (top, right, bottom, left) order.
-    pub fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
-        where F: Fn(&mut Parser) -> Result<T, ()>,
-              T: Clone,
-    {
-        let top = try!(parse_one(input));
-        let right;
-        let bottom;
-        let left;
-        match input.try(|i| parse_one(i)) {
-            Err(()) => {
-                right = top.clone();
-                bottom = top.clone();
-                left = top.clone();
-            }
-            Ok(value) => {
-                right = value;
-                match input.try(|i| parse_one(i)) {
-                    Err(()) => {
-                        bottom = top.clone();
-                        left = right.clone();
-                    }
-                    Ok(value) => {
-                        bottom = value;
-                        match input.try(|i| parse_one(i)) {
-                            Err(()) => {
-                                left = right.clone();
-                            }
-                            Ok(value) => {
-                                left = value;
-                            }
-                        }
-
-                    }
-                }
-
-            }
-        }
-        Ok((top, right, bottom, left))
-    }
 
     <%include file="/shorthand/serialize.mako.rs" />
     <%include file="/shorthand/background.mako.rs" />
@@ -575,6 +564,58 @@ impl LonghandId {
                     PropertyFlags::empty(),
             % endfor
         }
+    }
+
+    /// Only a few properties are allowed to depend on the visited state of
+    /// links. When cascading visited styles, we can save time by only
+    /// processing these properties.
+    fn is_visited_dependent(&self) -> bool {
+        matches!(*self,
+            % if product == "gecko":
+            LonghandId::ColumnRuleColor |
+            LonghandId::TextEmphasisColor |
+            LonghandId::WebkitTextFillColor |
+            LonghandId::WebkitTextStrokeColor |
+            LonghandId::TextDecorationColor |
+            LonghandId::Fill |
+            LonghandId::Stroke |
+            LonghandId::CaretColor |
+            % endif
+            LonghandId::Color |
+            LonghandId::BackgroundColor |
+            LonghandId::BorderTopColor |
+            LonghandId::BorderRightColor |
+            LonghandId::BorderBottomColor |
+            LonghandId::BorderLeftColor |
+            LonghandId::OutlineColor
+        )
+    }
+
+    /// The computed value of some properties depends on the (sometimes
+    /// computed) value of *other* properties.
+    ///
+    /// So we classify properties into "early" and "other", such that the only
+    /// dependencies can be from "other" to "early".
+    ///
+    /// Unfortunately, it’s not easy to check that this classification is
+    /// correct.
+    fn is_early_property(&self) -> bool {
+        matches!(*self,
+            % if product == 'gecko':
+            LonghandId::TextOrientation |
+            LonghandId::AnimationName |
+            LonghandId::TransitionProperty |
+            LonghandId::XLang |
+            LonghandId::MozScriptLevel |
+            LonghandId::MozMinFontSizeRatio |
+            % endif
+            LonghandId::FontSize |
+            LonghandId::FontFamily |
+            LonghandId::Color |
+            LonghandId::TextDecorationLine |
+            LonghandId::WritingMode |
+            LonghandId::Direction
+        )
     }
 }
 
@@ -1130,6 +1171,14 @@ impl ToCss for PropertyDeclaration {
     % endif
 </%def>
 
+impl MallocSizeOf for PropertyDeclaration {
+    fn malloc_size_of_children(&self, _malloc_size_of: MallocSizeOfFn) -> usize {
+        // The variants of PropertyDeclaration mostly (entirely?) contain
+        // scalars, so this is reasonable.
+        0
+    }
+}
+
 impl PropertyDeclaration {
     /// Given a property declaration, return the property declaration id.
     pub fn id(&self) -> PropertyDeclarationId {
@@ -1484,6 +1533,7 @@ pub mod style_structs {
     use super::longhands;
     use std::hash::{Hash, Hasher};
     use logical_geometry::WritingMode;
+    use media_queries::Device;
 
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
@@ -1594,14 +1644,15 @@ pub mod style_structs {
 
                 /// (Servo does not handle MathML, so this just calls copy_font_size_from)
                 pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                              _: Option<Au>) -> bool {
+                                              _: Option<Au>, _: &Device) -> bool {
                     self.copy_font_size_from(parent);
                     false
                 }
                 /// (Servo does not handle MathML, so this just calls set_font_size)
                 pub fn apply_font_size(&mut self,
                                        v: longhands::font_size::computed_value::T,
-                                       _: &Self) -> Option<Au> {
+                                       _: &Self,
+                                       _: &Device) -> Option<Au> {
                     self.set_font_size(v);
                     None
                 }
@@ -1739,10 +1790,13 @@ pub struct ComputedValues {
     custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
     /// The writing mode of this computed values struct.
     pub writing_mode: WritingMode,
-    /// The root element's computed font size.
-    pub root_font_size: Au,
     /// The keyword behind the current font-size property, if any
-    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    pub font_computation_data: FontComputationData,
+
+    /// The element's computed values if visited, only computed if there's a
+    /// relevant link for this element. A element's "relevant link" is the
+    /// element being matched if it is a link or the nearest ancestor link.
+    visited_style: Option<Arc<ComputedValues>>,
 }
 
 #[cfg(feature = "servo")]
@@ -1750,8 +1804,8 @@ impl ComputedValues {
     /// Construct a `ComputedValues` instance.
     pub fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
                writing_mode: WritingMode,
-               root_font_size: Au,
                font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+               visited_style: Option<Arc<ComputedValues>>,
             % for style_struct in data.active_style_structs():
                ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
             % endfor
@@ -1759,8 +1813,8 @@ impl ComputedValues {
         ComputedValues {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
-            root_font_size: root_font_size,
-            font_size_keyword: font_size_keyword,
+            font_computation_data: FontComputationData::new(font_size_keyword),
+            visited_style: visited_style,
         % for style_struct in data.active_style_structs():
             ${style_struct.ident}: ${style_struct.ident},
         % endfor
@@ -1796,6 +1850,23 @@ impl ComputedValues {
         }
     % endfor
 
+    /// Gets a reference to the visited computed values, if any.
+    pub fn get_visited_style(&self) -> Option<<&Arc<ComputedValues>> {
+        self.visited_style.as_ref()
+    }
+
+    /// Gets a reference to the visited computed values. Panic if the element
+    /// does not have visited computed values.
+    pub fn visited_style(&self) -> &Arc<ComputedValues> {
+        self.get_visited_style().unwrap()
+    }
+
+    /// Clone the visited computed values Arc.  Used for inheriting parent styles
+    /// in StyleBuilder::for_inheritance.
+    pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
+        self.visited_style.clone()
+    }
+
     /// Get the custom properties map if necessary.
     ///
     /// Cloning the Arc here is fine because it only happens in the case where
@@ -1820,9 +1891,8 @@ impl ComputedValues {
     pub fn ineffective_content_property(&self) -> bool {
         use properties::longhands::content::computed_value::T;
         match self.get_counters().content {
-            T::normal |
-            T::none => true,
-            T::Content(ref items) => items.is_empty(),
+            T::Normal | T::None => true,
+            T::Items(ref items) => items.is_empty(),
         }
     }
 
@@ -2180,10 +2250,12 @@ pub struct StyleBuilder<'a> {
     ///
     /// TODO(emilio): Make private.
     pub writing_mode: WritingMode,
-    /// The font size of the root element.
-    pub root_font_size: Au,
     /// The keyword behind the current font-size property, if any.
     pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    /// The element's style if visited, only computed if there's a relevant link
+    /// for this element.  A element's "relevant link" is the element being
+    /// matched if it is a link or the nearest ancestor link.
+    visited_style: Option<Arc<ComputedValues>>,
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: StyleStructRef<'a, style_structs::${style_struct.name}>,
     % endfor
@@ -2194,8 +2266,8 @@ impl<'a> StyleBuilder<'a> {
     pub fn new(
         custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
         writing_mode: WritingMode,
-        root_font_size: Au,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        visited_style: Option<Arc<ComputedValues>>,
         % for style_struct in data.active_style_structs():
             ${style_struct.ident}: &'a Arc<style_structs::${style_struct.name}>,
         % endfor
@@ -2203,8 +2275,8 @@ impl<'a> StyleBuilder<'a> {
         StyleBuilder {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
-            root_font_size: root_font_size,
             font_size_keyword: font_size_keyword,
+            visited_style: visited_style,
         % for style_struct in data.active_style_structs():
             ${style_struct.ident}: StyleStructRef::Borrowed(${style_struct.ident}),
         % endfor
@@ -2222,8 +2294,8 @@ impl<'a> StyleBuilder<'a> {
     pub fn for_inheritance(parent: &'a ComputedValues, default: &'a ComputedValues) -> Self {
         Self::new(parent.custom_properties(),
                   parent.writing_mode,
-                  parent.root_font_size,
-                  parent.font_size_keyword,
+                  parent.font_computation_data.font_size_keyword,
+                  parent.clone_visited_style(),
                   % for style_struct in data.active_style_structs():
                   % if style_struct.inherited:
                   parent.${style_struct.name_lower}_arc(),
@@ -2295,8 +2367,8 @@ impl<'a> StyleBuilder<'a> {
     pub fn build(self) -> ComputedValues {
         ComputedValues::new(self.custom_properties,
                             self.writing_mode,
-                            self.root_font_size,
                             self.font_size_keyword,
+                            self.visited_style,
                             % for style_struct in data.active_style_structs():
                             self.${style_struct.ident}.build(),
                             % endfor
@@ -2321,7 +2393,7 @@ pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
 mod lazy_static_module {
     use logical_geometry::WritingMode;
     use stylearc::Arc;
-    use super::{ComputedValues, longhands, style_structs};
+    use super::{ComputedValues, longhands, style_structs, FontComputationData};
 
     /// The initial values for all style structs as defined by the specification.
     lazy_static! {
@@ -2338,8 +2410,8 @@ mod lazy_static_module {
             % endfor
             custom_properties: None,
             writing_mode: WritingMode::empty(),
-            root_font_size: longhands::font_size::get_initial_value(),
-            font_size_keyword: Some((Default::default(), 1.)),
+            font_computation_data: FontComputationData::default_values(),
+            visited_style: None,
         };
     }
 }
@@ -2371,6 +2443,17 @@ bitflags! {
         /// Whether to skip any root element and flex/grid item display style
         /// fixup.
         const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 0x02,
+        /// Whether to only cascade properties that are visited dependent.
+        const VISITED_DEPENDENT_ONLY = 0x04,
+        /// Should we modify the device's root font size
+        /// when computing the root?
+        ///
+        /// Not set for native anonymous content since some NAC
+        /// form their own root, but share the device.
+        ///
+        /// ::backdrop and all NAC will resolve rem units against
+        /// the toplevel root element now.
+        const ALLOW_SET_ROOT_FONT_SIZE = 0x08,
     }
 }
 
@@ -2393,6 +2476,7 @@ pub fn cascade(device: &Device,
                guards: &StylesheetGuards,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
+               visited_style: Option<Arc<ComputedValues>>,
                cascade_info: Option<<&mut CascadeInfo>,
                error_reporter: &ParseErrorReporter,
                font_metrics_provider: &FontMetricsProvider,
@@ -2439,6 +2523,7 @@ pub fn cascade(device: &Device,
                        iter_declarations,
                        inherited_style,
                        layout_parent_style,
+                       visited_style,
                        cascade_info,
                        error_reporter,
                        font_metrics_provider,
@@ -2454,6 +2539,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
+                                    visited_style: Option<Arc<ComputedValues>>,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
                                     error_reporter: &ParseErrorReporter,
                                     font_metrics_provider: &FontMetricsProvider,
@@ -2482,8 +2568,8 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     let builder = if !flags.contains(INHERIT_ALL) {
         StyleBuilder::new(custom_properties,
                           WritingMode::empty(),
-                          inherited_style.root_font_size,
-                          inherited_style.font_size_keyword,
+                          inherited_style.font_computation_data.font_size_keyword,
+                          visited_style,
                           % for style_struct in data.active_style_structs():
                               % if style_struct.inherited:
                                   inherited_style.${style_struct.name_lower}_arc(),
@@ -2495,8 +2581,8 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     } else {
         StyleBuilder::new(custom_properties,
                           WritingMode::empty(),
-                          inherited_style.root_font_size,
-                          inherited_style.font_size_keyword,
+                          inherited_style.font_computation_data.font_size_keyword,
+                          visited_style,
                           % for style_struct in data.active_style_structs():
                               inherited_style.${style_struct.name_lower}_arc(),
                           % endfor
@@ -2545,37 +2631,19 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                 PropertyDeclarationId::Custom(..) => continue,
             };
 
-            // The computed value of some properties depends on the
-            // (sometimes computed) value of *other* properties.
-            //
-            // So we classify properties into "early" and "other", such that
-            // the only dependencies can be from "other" to "early".
-            //
-            // We iterate applicable_declarations twice, first cascading
-            // "early" properties then "other".
-            //
-            // Unfortunately, it’s not easy to check that this
-            // classification is correct.
-            let is_early_property = matches!(longhand_id,
-                LonghandId::FontSize |
-                LonghandId::FontFamily |
-                LonghandId::Color |
-                LonghandId::TextDecorationLine |
-                LonghandId::WritingMode |
-                LonghandId::Direction
-                % if product == 'gecko':
-                    | LonghandId::TextOrientation
-                    | LonghandId::AnimationName
-                    | LonghandId::TransitionProperty
-                    | LonghandId::XLang
-                    | LonghandId::MozScriptLevel
-                % endif
-            );
+            // Only a few properties are allowed to depend on the visited state
+            // of links.  When cascading visited styles, we can save time by
+            // only processing these properties.
+            if flags.contains(VISITED_DEPENDENT_ONLY) &&
+               !longhand_id.is_visited_dependent() {
+                continue
+            }
+
             if
                 % if category_to_cascade_now == "early":
                     !
                 % endif
-                is_early_property
+                longhand_id.is_early_property()
             {
                 continue
             }
@@ -2650,6 +2718,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             // scriptlevel changes.
             } else if seen.contains(LonghandId::XLang) ||
                       seen.contains(LonghandId::MozScriptLevel) ||
+                      seen.contains(LonghandId::MozMinFontSizeRatio) ||
                       font_family.is_some() {
                 let discriminant = LonghandId::FontSize as usize;
                 let size = PropertyDeclaration::CSSWideKeyword(
@@ -2665,9 +2734,9 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             % endif
             }
 
-            if is_root_element {
+            if is_root_element && flags.contains(ALLOW_SET_ROOT_FONT_SIZE) {
                 let s = context.style.get_font().clone_font_size();
-                context.style.root_font_size = s;
+                context.device.set_root_font_size(s);
             }
         % endif
     % endfor

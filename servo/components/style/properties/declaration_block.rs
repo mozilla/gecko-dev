@@ -11,12 +11,28 @@ use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
 use parser::{PARSING_MODE_DEFAULT, ParsingMode, ParserContext, log_css_error};
+use shared_lock::Locked;
 use std::fmt;
 use std::slice::Iter;
 use style_traits::ToCss;
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
+use stylesheets::{MallocSizeOf, MallocSizeOfFn};
 use super::*;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;
+
+/// The animation rules.
+///
+/// The first one is for Animation cascade level, and the second one is for
+/// Transition cascade level.
+pub struct AnimationRules<'a>(pub Option<&'a Arc<Locked<PropertyDeclarationBlock>>>,
+                              pub Option<&'a Arc<Locked<PropertyDeclarationBlock>>>);
+
+impl<'a> AnimationRules<'a> {
+    /// Returns whether these animation rules represents an actual rule or not.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_none() && self.1.is_none()
+    }
+}
 
 /// A declaration [importance][importance].
 ///
@@ -29,6 +45,12 @@ pub enum Importance {
 
     /// Indicates a declaration with `!important`.
     Important,
+}
+
+impl MallocSizeOf for Importance {
+    fn malloc_size_of_children(&self, _malloc_size_of: MallocSizeOfFn) -> usize {
+        0
+    }
 }
 
 impl Importance {
@@ -53,6 +75,12 @@ pub struct PropertyDeclarationBlock {
     important_count: usize,
 
     longhands: LonghandIdSet,
+}
+
+impl MallocSizeOf for PropertyDeclarationBlock {
+    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+        self.declarations.malloc_size_of_children(malloc_size_of)
+    }
 }
 
 /// Iterator for PropertyDeclaration to be generated from PropertyDeclarationBlock.

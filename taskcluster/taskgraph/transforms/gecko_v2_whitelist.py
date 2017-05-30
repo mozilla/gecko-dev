@@ -16,11 +16,14 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 # please keep me in lexical order
 JOB_NAME_WHITELIST = set([
+    'android-aarch64-opt',
     'android-api-15-debug',
     'android-api-15-gradle-dependencies-opt',
     'android-api-15-gradle-opt',
     'android-api-15-opt',
+    'android-api-15-old-id-opt',
     'android-x86-opt',
+    'android-x86-old-id-opt',
     'browser-haz-debug',
     'linux-debug',
     'linux-devedition',

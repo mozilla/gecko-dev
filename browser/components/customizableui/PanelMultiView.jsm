@@ -171,20 +171,6 @@ this.PanelMultiView = class {
     return this.node.getAttribute("mainViewIsSubView") == "true";
   }
 
-  get ignoreMutations() {
-    return this._ignoreMutations;
-  }
-  set ignoreMutations(val) {
-    this._ignoreMutations = val;
-    if (!val && this._panel.state == "open") {
-      if (this.showingSubView) {
-        this._syncContainerWithSubView();
-      } else {
-        this._syncContainerWithMainView();
-      }
-    }
-  }
-
   get _transitioning() {
     return this.__transitioning;
   }
@@ -232,8 +218,12 @@ this.PanelMultiView = class {
     return this.__keyNavigationMap;
   }
 
-  constructor(xulNode) {
+  constructor(xulNode, testMode = false) {
     this.node = xulNode;
+    // If `testMode` is `true`, the consumer is only interested in accessing the
+    // methods of this instance. (E.g. in unit tests.)
+    if (testMode)
+      return;
 
     this._currentSubView = this._anchorElement = this._subViewObserver = null;
     this._mainViewHeight = 0;
@@ -264,13 +254,6 @@ this.PanelMultiView = class {
     } else {
       this._panel.addEventListener("popupshown", this);
       this._clickCapturer.addEventListener("click", this);
-      this._subViews.addEventListener("overflow", this);
-      this._mainViewContainer.addEventListener("overflow", this);
-
-      // Get a MutationObserver ready to react to subview size changes. We
-      // only attach this MutationObserver when a subview is being displayed.
-      this._subViewObserver = new window.MutationObserver(this._syncContainerWithSubView.bind(this));
-      this._mainViewObserver = new window.MutationObserver(this._syncContainerWithMainView.bind(this));
 
       this._mainViewContainer.setAttribute("panelid", this._panel.id);
 
@@ -290,7 +273,8 @@ this.PanelMultiView = class {
         set: (val) => this[property] = val
       });
     });
-    ["goBack", "setHeightToFit", "setMainView", "showMainView", "showSubView"].forEach(method => {
+    ["goBack", "descriptionHeightWorkaround", "setMainView", "showMainView",
+     "showSubView"].forEach(method => {
       Object.defineProperty(this.node, method, {
         enumerable: true,
         value: (...args) => this[method](...args)
@@ -305,10 +289,6 @@ this.PanelMultiView = class {
     if (this.panelViews) {
       this.panelViews.clear();
     } else {
-      this._mainViewObserver.disconnect();
-      this._subViewObserver.disconnect();
-      this._subViews.removeEventListener("overflow", this);
-      this._mainViewContainer.removeEventListener("overflow", this);
       this._clickCapturer.removeEventListener("click", this);
     }
     this._panel.removeEventListener("popupshowing", this);
@@ -345,7 +325,6 @@ this.PanelMultiView = class {
       }
     } else {
       if (this._mainView) {
-        this._mainViewObserver.disconnect();
         this._subViews.appendChild(this._mainView);
         this._mainView.removeAttribute("mainview");
       }
@@ -364,14 +343,11 @@ this.PanelMultiView = class {
         let evt = new this.window.CustomEvent("ViewHiding", { bubbles: true, cancelable: true });
         viewNode.dispatchEvent(evt);
 
-        viewNode.removeAttribute("current");
-        this._currentSubView = null;
-
-        this._subViewObserver.disconnect();
-
-        this._setViewContainerHeight(this._mainViewHeight);
-
-        this.node.setAttribute("viewtype", "main");
+        this._transitionHeight(() => {
+          viewNode.removeAttribute("current");
+          this._currentSubView = null;
+          this.node.setAttribute("viewtype", "main");
+        });
       }
 
       this._shiftMainView();
@@ -406,11 +382,20 @@ this.PanelMultiView = class {
         dwu = this._dwu;
         previousRect = previousViewNode.__lastKnownBoundingRect =
           dwu.getBoundsWithoutFlushing(previousViewNode);
-        if (this.panelViews && !this._mainViewWidth) {
-          this._mainViewWidth = previousRect.width;
-          let top = dwu.getBoundsWithoutFlushing(previousViewNode.firstChild).top;
-          let bottom = dwu.getBoundsWithoutFlushing(previousViewNode.lastChild).bottom;
-          this._viewVerticalPadding = previousRect.height - (bottom - top);
+        if (this.panelViews) {
+          // Here go the measures that have the same caching lifetime as the width
+          // of the main view, i.e. 'forever', during the instance lifetime.
+          if (!this._mainViewWidth) {
+            this._mainViewWidth = previousRect.width;
+            let top = dwu.getBoundsWithoutFlushing(previousViewNode.firstChild).top;
+            let bottom = dwu.getBoundsWithoutFlushing(previousViewNode.lastChild).bottom;
+            this._viewVerticalPadding = previousRect.height - (bottom - top);
+          }
+          // Here go the measures that have the same caching lifetime as the height
+          // of the main view, i.e. whilst the panel is shown and/ or visible.
+          if (!this._mainViewHeight) {
+            this._mainViewHeight = previousRect.height;
+          }
         }
       }
 
@@ -470,9 +455,9 @@ this.PanelMultiView = class {
       //
       // All three of these actions make use of CSS transformations, so they
       // should all occur simultaneously.
-      this.node.setAttribute("viewtype", "subview");
-
       if (this.panelViews && playTransition) {
+        this.node.setAttribute("viewtype", "subview");
+
         // Sliding the next subview in means that the previous panelview stays
         // where it is and the active panelview slides in from the left in LTR
         // mode, right in RTL mode.
@@ -491,7 +476,7 @@ this.PanelMultiView = class {
 
         if (aAnchor)
           aAnchor.setAttribute("open", true);
-        this._viewContainer.style.height = previousRect.height + "px";
+        this._viewContainer.style.height = Math.max(previousRect.height, this._mainViewHeight) + "px";
         this._viewContainer.style.width = previousRect.width + "px";
 
         this._transitioning = true;
@@ -538,7 +523,7 @@ this.PanelMultiView = class {
 
           // Set the viewContainer dimensions to make sure only the current view
           // is visible.
-          this._viewContainer.style.height = viewRect.height + "px";
+          this._viewContainer.style.height = Math.max(viewRect.height, this._mainViewHeight) + "px";
           this._viewContainer.style.width = viewRect.width + "px";
 
           // The 'magic' part: build up the amount of pixels to move right or left.
@@ -551,75 +536,133 @@ this.PanelMultiView = class {
           nodeToAnimate.style.width = viewRect.width + "px";
 
           let listener;
-          let seen = 0;
           this._viewContainer.addEventListener("transitionend", listener = ev => {
-            if (ev.target == this._viewContainer && ev.propertyName == "height") {
-              // Myeah, panel layout auto-resizing is a funky thing. We'll wait
-              // another few milliseconds to remove the width and height 'fixtures',
-              // to be sure we don't flicker annoyingly.
-              // NB: HACK! Bug 1363756 is there to fix this.
-              window.setTimeout(() => {
+            // It's quite common that `height` on the view container doesn't need
+            // to transition, so we make sure to do all the work on the transform
+            // transition-end, because that is guaranteed to happen.
+            if (ev.target != nodeToAnimate || ev.propertyName != "transform")
+              return;
+
+            this._viewContainer.removeEventListener("transitionend", listener);
+            onTransitionEnd();
+            this._transitioning = false;
+            this._resetKeyNavigation(previousViewNode);
+
+            // Myeah, panel layout auto-resizing is a funky thing. We'll wait
+            // another few milliseconds to remove the width and height 'fixtures',
+            // to be sure we don't flicker annoyingly.
+            // NB: HACK! Bug 1363756 is there to fix this.
+            window.setTimeout(() => {
+              // Only remove the height when the view is larger than the main
+              // view, otherwise it'll snap back to its own height.
+              if (viewRect.height > this._mainViewHeight)
                 this._viewContainer.style.removeProperty("height");
-                this._viewContainer.style.removeProperty("width");
-              }, 500);
-              ++seen;
-            } else if (ev.target == nodeToAnimate && ev.propertyName == "transform") {
-              onTransitionEnd();
-              this._transitioning = false;
-              this._resetKeyNavigation(previousViewNode);
+              this._viewContainer.style.removeProperty("width");
+            }, 500);
 
-              // Take another breather, just like before, to wait for the 'current'
-              // attribute removal to take effect. This prevents a flicker.
-              // The cleanup we do doesn't affect the display anymore, so we're not
-              // too fussed about the timing here.
-              window.addEventListener("MozAfterPaint", () => {
-                nodeToAnimate.style.removeProperty("border-inline-start");
-                nodeToAnimate.style.removeProperty("transition");
-                nodeToAnimate.style.removeProperty("transform");
-                nodeToAnimate.style.removeProperty("width");
+            // Take another breather, just like before, to wait for the 'current'
+            // attribute removal to take effect. This prevents a flicker.
+            // The cleanup we do doesn't affect the display anymore, so we're not
+            // too fussed about the timing here.
+            window.addEventListener("MozAfterPaint", () => {
+              nodeToAnimate.style.removeProperty("border-inline-start");
+              nodeToAnimate.style.removeProperty("transition");
+              nodeToAnimate.style.removeProperty("transform");
+              nodeToAnimate.style.removeProperty("width");
 
-                if (!reverse)
-                  viewNode.style.removeProperty("margin-inline-start");
-                if (aAnchor)
-                  aAnchor.removeAttribute("open");
+              if (!reverse)
+                viewNode.style.removeProperty("margin-inline-start");
+              if (aAnchor)
+                aAnchor.removeAttribute("open");
 
-                this._viewContainer.removeAttribute("transition-reverse");
-              }, { once: true });
-              ++seen;
-            }
-            if (seen == 2)
-              this._viewContainer.removeEventListener("transitionend", listener);
+              this._viewContainer.removeAttribute("transition-reverse");
+
+              evt = new window.CustomEvent("ViewShown", { bubbles: true, cancelable: false });
+              viewNode.dispatchEvent(evt);
+            }, { once: true });
           });
         }, { once: true });
       } else if (!this.panelViews) {
-        this._shiftMainView(aAnchor);
-
-        this._mainViewHeight = this._viewStack.clientHeight;
-
-        let newHeight = this._heightOfSubview(viewNode, this._subViews);
-        this._setViewContainerHeight(newHeight);
-
-        this._subViewObserver.observe(viewNode, {
-          attributes: true,
-          characterData: true,
-          childList: true,
-          subtree: true
+        this._transitionHeight(() => {
+          viewNode.setAttribute("current", true);
+          this.node.setAttribute("viewtype", "subview");
+          // Now that the subview is visible, we can check the height of the
+          // description elements it contains.
+          this.descriptionHeightWorkaround(viewNode);
         });
+        this._shiftMainView(aAnchor);
       }
     })();
   }
 
-  _setViewContainerHeight(aHeight) {
-    let container = this._viewContainer;
-    this._transitioning = true;
+  /**
+   * Applies the height transition for which <panelmultiview> is designed.
+   *
+   * The height transition involves two elements, the viewContainer and its only
+   * immediate child the viewStack. In order for this to work correctly, the
+   * viewContainer must have "overflow: hidden;" and the two elements must have
+   * no margins or padding. This means that the height of the viewStack is never
+   * limited by the viewContainer, but when the height of the container is not
+   * constrained it matches the height of the viewStack.
+   *
+   * @param changeFn
+   *        This synchronous function is called to make the DOM changes
+   *        that will result in a new height of the viewStack.
+   */
+  _transitionHeight(changeFn) {
+    if (this._panel.state != "open") {
+      changeFn();
+      return;
+    }
 
-    let onTransitionEnd = () => {
-      container.removeEventListener("transitionend", onTransitionEnd);
-      this._transitioning = false;
-    };
+    // Lock the dimensions of the window that hosts the popup panel. This
+    // in turn constrains the height of the viewContainer.
+    let rect = this._panel.popupBoxObject.getOuterScreenRect();
+    this._panel.setAttribute("width", rect.width);
+    this._panel.setAttribute("height", rect.height);
 
-    container.addEventListener("transitionend", onTransitionEnd);
-    container.style.height = `${aHeight}px`;
+    // Read the current height of the viewStack. If we are in the middle
+    // of a transition, this is the actual height of the element at this
+    // point in time.
+    let oldHeight = this._dwu.getBoundsWithoutFlushing(this._viewStack).height;
+
+    // Make the necessary DOM changes, and remove the "height" property of the
+    // viewStack to ensure that we read its final value even if we are in the
+    // middle of a transition. To avoid flickering, we have to prevent the panel
+    // from being painted in this temporary state, which requires a synchronous
+    // layout when reading the new height.
+    this._viewStack.style.removeProperty("height");
+    changeFn();
+    let newHeight = this._viewStack.getBoundingClientRect().height;
+
+    // Now we can allow the popup panel to resize again. This must occur
+    // in the same tick as the code below, but we can do this before
+    // setting the starting height in case the transition is not needed.
+    this._panel.removeAttribute("width");
+    this._panel.removeAttribute("height");
+
+    if (oldHeight != newHeight) {
+      // Height transitions can only occur between two numeric values, and
+      // cannot start if the height is not set. In case a transition is
+      // needed, we have to set the height to the old value, then force a
+      // synchronous layout so the panel won't resize unexpectedly.
+      this._viewStack.style.height = oldHeight + "px";
+      this._viewStack.getBoundingClientRect().height;
+
+      // We can now set the new height to start the transition, but
+      // before doing that we set up a listener to reset the height to
+      // "auto" at the end, so that DOM changes made after the
+      // transition ends are still reflected by the height of the panel.
+      let onTransitionEnd = event => {
+        if (event.target != this._viewStack) {
+          return;
+        }
+        this._viewStack.removeEventListener("transitionend", onTransitionEnd);
+        this._viewStack.style.removeProperty("height");
+      };
+      this._viewStack.addEventListener("transitionend", onTransitionEnd);
+      this._viewStack.style.height = newHeight + "px";
+    }
   }
 
   _shiftMainView(aAnchor) {
@@ -675,16 +718,6 @@ this.PanelMultiView = class {
       case "mousemove":
         this._resetKeyNavigation();
         break;
-      case "overflow":
-        if (!this.panelViews && aEvent.target.localName == "vbox") {
-          // Resize the right view on the next tick.
-          if (this.showingSubView) {
-            this.window.setTimeout(this._syncContainerWithSubView.bind(this), 0);
-          } else if (!this.transitioning) {
-            this.window.setTimeout(this._syncContainerWithMainView.bind(this), 0);
-          }
-        }
-        break;
       case "popupshowing":
         this.node.setAttribute("panelopen", "true");
         // Bug 941196 - The panel can get taller when opening a subview. Disabling
@@ -693,33 +726,50 @@ this.PanelMultiView = class {
         // direction that the panel originally opened in. This property resets
         // every time the popup closes, which is why we have to set it each time.
         this._panel.autoPosition = false;
-
-        if (!this.panelViews) {
-          this._syncContainerWithMainView();
-          this._mainViewObserver.observe(this._mainView, {
-            attributes: true,
-            characterData: true,
-            childList: true,
-            subtree: true
-          });
-        } else {
+        if (this.panelViews) {
           this.window.addEventListener("keydown", this);
           this._panel.addEventListener("mousemove", this);
         }
         break;
       case "popupshown":
-        this._setMaxHeight();
+        // Now that the main view is visible, we can check the height of the
+        // description elements it contains.
+        this.descriptionHeightWorkaround();
+        // Now that the panel has opened, we can compute the distance from its
+        // anchor to the available margin of the screen, based on whether the
+        // panel actually opened towards the top or the bottom. We use this to
+        // limit its maximum height, which is relevant when opening a subview.
+        let maxHeight;
+        if (this._panel.alignmentPosition.startsWith("before_")) {
+          maxHeight = this._panel.getOuterScreenRect().bottom -
+                      this.window.screen.availTop;
+        } else {
+          maxHeight = this.window.screen.availTop +
+                      this.window.screen.availHeight -
+                      this._panel.getOuterScreenRect().top;
+        }
+        // To go from the maximum height of the panel to the maximum height of
+        // the view stack, we start by subtracting the height of the arrow box.
+        // We don't need to trigger a new layout because this does not change.
+        let arrowBox = this.document.getAnonymousElementByAttribute(
+                                        this._panel, "anonid", "arrowbox");
+        maxHeight -= this._dwu.getBoundsWithoutFlushing(arrowBox).height;
+        // We subtract a fixed margin to account for variable borders. We don't
+        // try to measure this accurately so it's faster, we don't depend on
+        // the arrowpanel structure, and we don't hit rounding errors. Instead,
+        // we use a value that is much greater than the typical borders and
+        // makes sense visually.
+        const EXTRA_MARGIN_PX = 8;
+        this._viewStack.style.maxHeight = (maxHeight - EXTRA_MARGIN_PX) + "px";
         break;
       case "popuphidden":
         this.node.removeAttribute("panelopen");
-        this._mainView.style.removeProperty("height");
         this.showMainView();
-        if (!this.panelViews) {
-          this._mainViewObserver.disconnect();
-        } else {
+        if (this.panelViews) {
           this.window.removeEventListener("keydown", this);
           this._panel.removeEventListener("mousemove", this);
           this._resetKeyNavigation();
+          this._mainViewHeight = 0;
         }
         break;
     }
@@ -780,15 +830,15 @@ this.PanelMultiView = class {
         let maxIdx = buttons.length - 1;
         let buttonIndex = isDown ? 0 : maxIdx;
         if (typeof navMap.selected == "number") {
-          if (isDown) {
-            buttonIndex = ++navMap.selected;
-            if (buttonIndex > maxIdx)
-              buttonIndex = 0;
-          } else {
-            buttonIndex = --navMap.selected;
-            if (buttonIndex < 0)
-              buttonIndex = maxIdx;
-          }
+          // Buttons may get selected whilst the panel is shown, so add an extra
+          // check here.
+          do {
+            buttonIndex = navMap.selected = (navMap.selected + (isDown ? 1 : -1));
+          } while (buttons[buttonIndex] && buttons[buttonIndex].disabled)
+          if (isDown && buttonIndex > maxIdx)
+            buttonIndex = 0;
+          else if (!isDown && buttonIndex < 0)
+            buttonIndex = maxIdx;
         }
         let button = buttons[buttonIndex];
         button.focus();
@@ -856,136 +906,54 @@ this.PanelMultiView = class {
     let buttons = Array.from(view.querySelectorAll(".subviewbutton:not([disabled])"));
     if (this._canGoBack(view))
       buttons.unshift(view.backButton);
-    return buttons;
-  }
-
-  _shouldSetPosition() {
-    return this.node.getAttribute("nosubviews") == "true";
-  }
-
-  _shouldSetHeight() {
-    return this.node.getAttribute("nosubviews") != "true";
-  }
-
-  _setMaxHeight() {
-    if (!this._shouldSetHeight())
-      return;
-
-    // Ignore the mutation that'll fire when we set the height of
-    // the main view.
-    this.ignoreMutations = true;
-    this._mainView.style.height = this.node.getBoundingClientRect().height + "px";
-    this.ignoreMutations = false;
-  }
-
-  _adjustContainerHeight() {
-    if (!this.ignoreMutations && !this.showingSubView && !this._transitioning) {
-      let height;
-      if (this.showingSubViewAsMainView) {
-        height = this._heightOfSubview(this._mainView);
-      } else {
-        height = this._mainView.scrollHeight;
-      }
-      this._viewContainer.style.height = height + "px";
-    }
-  }
-
-  _syncContainerWithSubView() {
-    // Check that this panel is still alive:
-    if (!this._panel || !this._panel.parentNode) {
-      return;
-    }
-
-    if (!this.ignoreMutations && this.showingSubView) {
-      let newHeight = this._heightOfSubview(this._currentSubView, this._subViews);
-      this._viewContainer.style.height = newHeight + "px";
-    }
-  }
-
-  _syncContainerWithMainView() {
-    // Check that this panel is still alive:
-    if (!this._panel || !this._panel.parentNode) {
-      return;
-    }
-
-    if (this._shouldSetPosition()) {
-      this._panel.adjustArrowPosition();
-    }
-
-    if (this._shouldSetHeight()) {
-      this._adjustContainerHeight();
-    }
+    let dwu = this._dwu;
+    return buttons.filter(button => {
+      let bounds = dwu.getBoundsWithoutFlushing(button);
+      return bounds.width > 0 && bounds.height > 0;
+    });
   }
 
   /**
-   * Call this when the height of one of your views (the main view or a
-   * subview) changes and you want the heights of the multiview and panel
-   * to be the same as the view's height.
-   * If the caller can give a hint of the expected height change with the
-   * optional aExpectedChange parameter, it prevents flicker.
+   * If the main view or a subview contains wrapping elements, the attribute
+   * "descriptionheightworkaround" should be set on the view to force all the
+   * "description" elements to a fixed height. If the attribute is set and the
+   * visibility, contents, or width of any of these elements changes, this
+   * function should be called to refresh the calculated heights.
+   *
+   * @note While both "label" and "description" elements may contain wrapping
+   *       text, only "description" elements are used that way in panels.
+   *
+   * @param viewNode
+   *        Indicates the node to scan for descendant elements. This is the main
+   *        view if omitted.
    */
-  setHeightToFit(aExpectedChange) {
-    // Set the max-height to zero, wait until the height is actually
-    // updated, and then remove it.  If it's not removed, weird things can
-    // happen, like widgets in the panel won't respond to clicks even
-    // though they're visible.
-    const {window} = this;
-    let count = 5;
-    let height = window.getComputedStyle(this.node).height;
-    if (aExpectedChange)
-      this.node.style.maxHeight = (parseInt(height, 10) + aExpectedChange) + "px";
-    else
-      this.node.style.maxHeight = "0";
-    let interval = window.setInterval(() => {
-      if (height != window.getComputedStyle(this.node).height || --count == 0) {
-        window.clearInterval(interval);
-        this.node.style.removeProperty("max-height");
-      }
-    }, 0);
-  }
+  descriptionHeightWorkaround(viewNode = this._mainView) {
+    if (!this.node.hasAttribute("descriptionheightworkaround")) {
+      // This view does not require the workaround.
+      return;
+    }
 
-  _heightOfSubview(aSubview, aContainerToCheck) {
-    function getFullHeight(element) {
-      // XXXgijs: unfortunately, scrollHeight rounds values, and there's no alternative
-      // that works with overflow: auto elements. Fortunately for us,
-      // we have exactly 1 (potentially) scrolling element in here (the subview body),
-      // and rounding 1 value is OK - rounding more than 1 and adding them means we get
-      // off-by-1 errors. Now we might be off by a subpixel, but we care less about that.
-      // So, use scrollHeight *only* if the element is vertically scrollable.
-      let height;
-      let elementCS;
-      if (element.scrollTopMax) {
-        height = element.scrollHeight;
-        // Bounding client rects include borders, scrollHeight doesn't:
-        elementCS = win.getComputedStyle(element);
-        height += parseFloat(elementCS.borderTopWidth) +
-                  parseFloat(elementCS.borderBottomWidth);
-      } else {
-        height = element.getBoundingClientRect().height;
-        if (height > 0) {
-          elementCS = win.getComputedStyle(element);
-        }
+    // We batch DOM changes together in order to reduce synchronous layouts.
+    // First we reset any change we may have made previously. The first time
+    // this is called, and in the best case scenario, this has no effect.
+    let items = [];
+    for (let element of viewNode.getElementsByTagName("description")) {
+      element.style.removeProperty("height");
+      items.push({ element });
+    }
+    // We now read the computed style to store the height of any element that
+    // may contain wrapping text, which will be zero if the element is hidden.
+    // This might trigger a synchronous layout, but if this function was called
+    // from a _transitionHeight callback and there are no description elements
+    // visible, then _transitionHeight will not trigger a layout again.
+    for (let item of items) {
+      item.height = item.element.getBoundingClientRect().height;
+    }
+    // Now we can make all the necessary DOM changes at once.
+    for (let item of items) {
+      if (item.height) {
+        item.element.style.height = item.height + "px";
       }
-      if (elementCS) {
-        // Include margins - but not borders or paddings because they
-        // were dealt with above.
-        height += parseFloat(elementCS.marginTop) + parseFloat(elementCS.marginBottom);
-      }
-      return height;
     }
-    let win = aSubview.ownerGlobal;
-    let body = aSubview.querySelector(".panel-subview-body");
-    let height = getFullHeight(body || aSubview);
-    if (body) {
-      let header = aSubview.querySelector(".panel-subview-header");
-      let footer = aSubview.querySelector(".panel-subview-footer");
-      height += (header ? getFullHeight(header) : 0) +
-                (footer ? getFullHeight(footer) : 0);
-    }
-    if (aContainerToCheck) {
-      let containerCS = win.getComputedStyle(aContainerToCheck);
-      height += parseFloat(containerCS.paddingTop) + parseFloat(containerCS.paddingBottom);
-    }
-    return Math.ceil(height);
   }
 }

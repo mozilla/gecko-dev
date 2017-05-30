@@ -9,8 +9,10 @@
 
 #include "nsIAsyncInputStream.h"
 #include "nsICloneableInputStream.h"
+#include "nsIFileStreams.h"
 #include "nsIIPCSerializableInputStream.h"
 #include "nsISeekableStream.h"
+#include "nsCOMPtr.h"
 
 namespace mozilla {
 namespace dom {
@@ -22,6 +24,7 @@ class IPCBlobInputStream final : public nsIAsyncInputStream
                                , public nsICloneableInputStream
                                , public nsIIPCSerializableInputStream
                                , public nsISeekableStream
+                               , public nsIFileMetadata
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -31,6 +34,7 @@ public:
   NS_DECL_NSICLONEABLEINPUTSTREAM
   NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
   NS_DECL_NSISEEKABLESTREAM
+  NS_DECL_NSIFILEMETADATA
 
   explicit IPCBlobInputStream(IPCBlobInputStreamChild* aActor);
 
@@ -46,6 +50,9 @@ private:
 
   bool
   IsSeekableStream() const;
+
+  bool
+  IsFileMetadata() const;
 
   RefPtr<IPCBlobInputStreamChild> mActor;
 

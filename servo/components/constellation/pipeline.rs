@@ -15,7 +15,7 @@ use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
@@ -51,6 +51,9 @@ pub struct Pipeline {
 
     /// The ID of the browsing context that contains this Pipeline.
     pub browsing_context_id: BrowsingContextId,
+
+    /// The ID of the top-level browsing context that contains this Pipeline.
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
 
     /// The parent pipeline of this one. `None` if this is a root pipeline.
     /// Note that because of mozbrowser iframes, even top-level pipelines
@@ -104,7 +107,7 @@ pub struct InitialPipelineState {
     pub browsing_context_id: BrowsingContextId,
 
     /// The ID of the top-level browsing context that contains this Pipeline.
-    pub top_level_browsing_context_id: BrowsingContextId,
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
 
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
@@ -201,6 +204,7 @@ impl Pipeline {
                     parent_info: state.parent_info,
                     new_pipeline_id: state.id,
                     browsing_context_id: state.browsing_context_id,
+                    top_level_browsing_context_id: state.top_level_browsing_context_id,
                     load_data: state.load_data,
                     window_size: window_size,
                     pipeline_port: pipeline_port,
@@ -281,6 +285,7 @@ impl Pipeline {
 
         Ok(Pipeline::new(state.id,
                          state.browsing_context_id,
+                         state.top_level_browsing_context_id,
                          state.parent_info,
                          script_chan,
                          pipeline_chan,
@@ -294,6 +299,7 @@ impl Pipeline {
     /// spawned.
     pub fn new(id: PipelineId,
                browsing_context_id: BrowsingContextId,
+               top_level_browsing_context_id: TopLevelBrowsingContextId,
                parent_info: Option<(PipelineId, FrameType)>,
                event_loop: Rc<EventLoop>,
                layout_chan: IpcSender<LayoutControlMsg>,
@@ -305,6 +311,7 @@ impl Pipeline {
         let pipeline = Pipeline {
             id: id,
             browsing_context_id: browsing_context_id,
+            top_level_browsing_context_id: top_level_browsing_context_id,
             parent_info: parent_info,
             event_loop: event_loop,
             layout_chan: layout_chan,
@@ -371,6 +378,7 @@ impl Pipeline {
     pub fn to_sendable(&self) -> CompositionPipeline {
         CompositionPipeline {
             id: self.id.clone(),
+            top_level_browsing_context_id: self.top_level_browsing_context_id.clone(),
             script_chan: self.event_loop.sender(),
             layout_chan: self.layout_chan.clone(),
         }
@@ -393,7 +401,7 @@ impl Pipeline {
     /// This will cause an event to be fired on an iframe in the document,
     /// or on the `Window` if no frame is given.
     pub fn trigger_mozbrowser_event(&self,
-                                     child_id: Option<BrowsingContextId>,
+                                     child_id: Option<TopLevelBrowsingContextId>,
                                      event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
@@ -433,8 +441,8 @@ impl Pipeline {
 #[derive(Deserialize, Serialize)]
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
+    top_level_browsing_context_id: TopLevelBrowsingContextId,
     browsing_context_id: BrowsingContextId,
-    top_level_browsing_context_id: BrowsingContextId,
     parent_info: Option<(PipelineId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -491,7 +499,7 @@ impl UnprivilegedPipelineContent {
         }, self.load_data.clone());
 
         LTF::create(self.id,
-                    Some(self.top_level_browsing_context_id),
+                    self.top_level_browsing_context_id,
                     self.load_data.url,
                     self.parent_info.is_some(),
                     layout_pair,
