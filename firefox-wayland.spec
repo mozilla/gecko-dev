@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        55.6
+Version:        55.7
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -257,6 +257,11 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Wed May 31 2017 Martin Stransky <stransky@redhat.com> 55.7-1
+- Fixed fullscreen on Weston (stransky@redhat.com)
+- Fixed clipboard crashes after browser start, rhbz#1455915
+  (stransky@redhat.com)
+
 * Tue May 30 2017 Martin Stransky <stransky@redhat.com> 55.6-1
 - Updated to latest upstream
 * Fri May 26 2017 Martin Stransky <stransky@redhat.com> 55.5-1
