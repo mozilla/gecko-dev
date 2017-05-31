@@ -127,6 +127,9 @@ using namespace mozilla::widget;
 #include "WindowSurfaceX11SHM.h"
 #include "WindowSurfaceXRender.h"
 #endif // MOZ_X11
+#ifdef MOZ_WAYLAND
+#include "nsIClipboard.h"
+#endif
 
 #include "nsShmImage.h"
 
@@ -457,6 +460,17 @@ nsWindow::nsWindow()
 
         // It's OK if either of these fail, but it may not be one day.
         initialize_prefs();
+
+#ifdef MOZ_WAYLAND
+        // Wayland provides clipboard data to application on focus-in event
+        // so we need to init our clipboard hooks before we create window
+        // and get focus.
+        if (!mIsX11Display) {
+            nsCOMPtr<nsIClipboard> clipboard =
+                do_GetService("@mozilla.org/widget/clipboard;1");
+            NS_ASSERTION(clipboard, "Failed to init clipboard!");
+        }
+#endif
     }
 
     mLastMotionPressure = 0;
