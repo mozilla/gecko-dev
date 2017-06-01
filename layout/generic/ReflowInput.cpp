@@ -391,6 +391,12 @@ ReflowInput::Init(nsPresContext*     aPresContext,
   mStyleText = mFrame->StyleText();
 
   LayoutFrameType type = mFrame->Type();
+  if (type == mozilla::LayoutFrameType::Placeholder) {
+    // Placeholders have a no-op Reflow method that doesn't need the rest of
+    // this initialization, so we bail out early.
+    ComputedBSize() = ComputedISize() = 0;
+    return;
+  }
 
   InitFrameType(type);
   InitCBReflowInput();
@@ -1607,8 +1613,7 @@ ReflowInput::InitAbsoluteConstraints(nsPresContext* aPresContext,
   // have been if it had been in the flow
   nsHypotheticalPosition hypotheticalPos;
   if ((iStartIsAuto && iEndIsAuto) || (bStartIsAuto && bEndIsAuto)) {
-    nsPlaceholderFrame* placeholderFrame =
-      aPresContext->PresShell()->GetPlaceholderFrameFor(mFrame);
+    nsPlaceholderFrame* placeholderFrame = mFrame->GetPlaceholderFrame();
     MOZ_ASSERT(placeholderFrame, "no placeholder frame");
 
     if (placeholderFrame->HasAnyStateBits(

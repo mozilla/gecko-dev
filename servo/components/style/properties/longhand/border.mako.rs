@@ -22,7 +22,8 @@
                               spec=maybe_logical_spec(side, "color"),
                               animation_value_type="IntermediateColor",
                               logical=side[1],
-                              allow_quirks=not side[1])}
+                              allow_quirks=not side[1],
+                              ignored_when_colors_disabled=True)}
 
     ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",
@@ -46,8 +47,8 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 
 // FIXME(#4126): when gfx supports painting it, make this Size2D<LengthOrPercentage>
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
-    ${helpers.predefined_type("border-" + corner + "-radius", "BorderRadiusSize",
-                              "computed::BorderRadiusSize::zero()",
+    ${helpers.predefined_type("border-" + corner + "-radius", "BorderCornerRadius",
+                              "computed::LengthOrPercentage::zero().into()",
                               "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
@@ -59,7 +60,8 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 % for side in PHYSICAL_SIDES:
     <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="none"
                        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
-                       products="gecko">
+                       products="gecko"
+                       ignored_when_colors_disabled="True">
         use std::fmt;
         use style_traits::ToCss;
         use values::specified::CSSColor;
@@ -181,7 +183,7 @@ ${helpers.single_keyword("box-decoration-break", "slice clone",
                          gecko_enum_prefix="StyleBoxDecorationBreak",
                          gecko_inexhaustive=True,
                          spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
-                         products="gecko", animation_value_type="none")}
+                         products="gecko", animation_value_type="discrete")}
 
 ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          gecko_ffi_name="mFloatEdge",
@@ -189,7 +191,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          gecko_inexhaustive=True,
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 ${helpers.predefined_type("border-image-source", "ImageLayer",
     initial_value="Either::First(None_)",

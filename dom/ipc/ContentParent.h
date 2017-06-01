@@ -30,7 +30,6 @@
 #include "nsIDOMGeoPositionErrorCallback.h"
 #include "nsRefPtrHashtable.h"
 #include "PermissionMessageUtils.h"
-#include "ProfilerControllingProcess.h"
 #include "DriverCrashGuard.h"
 
 #define CHILD_PROCESS_SHUTDOWN_MESSAGE NS_LITERAL_STRING("child-process-shutdown")
@@ -56,9 +55,6 @@ class nsIWidget;
 
 namespace mozilla {
 class PRemoteSpellcheckEngineParent;
-#ifdef MOZ_GECKO_PROFILER
-class CrossProcessProfilerController;
-#endif
 
 #if defined(XP_LINUX) && defined(MOZ_CONTENT_SANDBOX)
 class SandboxBroker;
@@ -114,7 +110,6 @@ class ContentParent final : public PContentParent
                           , public mozilla::LinkedListElement<ContentParent>
                           , public gfx::GPUProcessListener
                           , public mozilla::MemoryReportingProcess
-                          , public mozilla::ProfilerControllingProcess
 {
   typedef mozilla::ipc::GeckoChildProcessHost GeckoChildProcessHost;
   typedef mozilla::ipc::OptionalURIParams OptionalURIParams;
@@ -311,11 +306,6 @@ public:
   virtual mozilla::ipc::IPCResult RecvRemovePermission(const IPC::Principal& aPrincipal,
                                                        const nsCString& aPermissionType,
                                                        nsresult* aRv) override;
-
-  void SendStartProfiler(const ProfilerInitParams& aParams) override;
-  void SendStopProfiler() override;
-  void SendPauseProfiler(const bool& aPause) override;
-  void SendGatherProfile() override;
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(ContentParent, nsIObserver)
 
@@ -643,9 +633,6 @@ public:
                     nsresult* aRv,
                     nsTArray<nsCString>* aResults) override;
 
-  virtual mozilla::ipc::IPCResult
-  RecvAllocPipelineId(RefPtr<AllocPipelineIdPromise>&& aPromise) override;
-
   // Use the PHangMonitor channel to ask the child to repaint a tab.
   void ForceTabPaint(TabParent* aTabParent, uint64_t aLayerObserverEpoch);
 
@@ -743,12 +730,6 @@ private:
   // should be send from this function. This function should only be
   // called after the process has been transformed to browser.
   void ForwardKnownInfo();
-
-  // Set the child process's priority and then check whether the child is
-  // still alive.  Returns true if the process is still alive, and false
-  // otherwise.  If you pass a FOREGROUND* priority here, it's (hopefully)
-  // unlikely that the process will be killed after this point.
-  bool SetPriorityAndCheckIsAlive(hal::ProcessPriority aPriority);
 
   /**
    * Decide whether the process should be kept alive even when it would normally
@@ -1112,8 +1093,7 @@ private:
   virtual mozilla::ipc::IPCResult RecvUpdateDropEffect(const uint32_t& aDragAction,
                                                        const uint32_t& aDropEffect) override;
 
-  virtual mozilla::ipc::IPCResult RecvProfile(const nsCString& aProfile,
-                                              const bool& aIsExitProfile) override;
+  virtual mozilla::ipc::IPCResult RecvShutdownProfile(const nsCString& aProfile) override;
 
   virtual mozilla::ipc::IPCResult RecvGetGraphicsDeviceInitData(ContentDeviceData* aOut) override;
 
@@ -1229,10 +1209,6 @@ private:
 #endif
 
   PProcessHangMonitorParent* mHangMonitorActor;
-
-#ifdef MOZ_GECKO_PROFILER
-  UniquePtr<mozilla::CrossProcessProfilerController> mProfilerController;
-#endif
 
   UniquePtr<gfx::DriverCrashGuard> mDriverCrashGuard;
   UniquePtr<MemoryReportRequestHost> mMemoryReportRequest;

@@ -7,13 +7,10 @@
 
 use counter_style::{Symbols, parse_counter_style_name};
 use cssparser::Parser;
-use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{HasViewportPercentage, OneOrMoreCommaSeparated, ToCss};
+use style_traits::{OneOrMoreCommaSeparated, ToCss};
 use super::CustomIdent;
-
-pub use self::basic_shape::serialize_radius_values;
 
 pub mod background;
 pub mod basic_shape;
@@ -22,47 +19,7 @@ pub mod grid;
 pub mod image;
 pub mod position;
 pub mod rect;
-
-#[derive(Clone, Debug, PartialEq, ToComputedValue)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// A type for representing CSS `width` and `height` values.
-pub struct BorderRadiusSize<L>(pub Size2D<L>);
-
-impl<L> HasViewportPercentage for BorderRadiusSize<L> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool { false }
-}
-
-impl<L: Clone> From<L> for BorderRadiusSize<L> {
-    fn from(other: L) -> Self {
-        Self::new(other.clone(), other)
-    }
-}
-
-impl<L> BorderRadiusSize<L> {
-    #[inline]
-    /// Create a new `BorderRadiusSize` for an area of given width and height.
-    pub fn new(width: L, height: L) -> BorderRadiusSize<L> {
-        BorderRadiusSize(Size2D::new(width, height))
-    }
-}
-
-impl<L: Clone> BorderRadiusSize<L> {
-    #[inline]
-    /// Create a new `BorderRadiusSize` for a circle of given radius.
-    pub fn circle(radius: L) -> BorderRadiusSize<L> {
-        BorderRadiusSize(Size2D::new(radius.clone(), radius))
-    }
-}
-
-impl<L: ToCss> ToCss for BorderRadiusSize<L> {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.width.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.0.height.to_css(dest)
-    }
-}
+pub mod transform;
 
 // https://drafts.csswg.org/css-counter-styles/#typedef-symbols-type
 define_css_keyword_enum! { SymbolsType:
@@ -181,12 +138,12 @@ impl<T> OneOrMoreCommaSeparated for FontSettingTag<T> {}
 
 impl<T: ToCss> ToCss for FontSettingTag<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use byteorder::{WriteBytesExt, BigEndian};
+        use byteorder::{BigEndian, ByteOrder};
         use cssparser::serialize_string;
         use std::str;
 
-        let mut raw: Vec<u8> = vec!();
-        raw.write_u32::<BigEndian>(self.tag).unwrap();
+        let mut raw = [0u8; 4];
+        BigEndian::write_u32(&mut raw, self.tag);
         serialize_string(str::from_utf8(&raw).unwrap_or_default(), dest)?;
 
         self.value.to_css(dest)
@@ -310,5 +267,3 @@ impl ToCss for FontSettingTagFloat {
         self.0.to_css(dest)
     }
 }
-
-

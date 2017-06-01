@@ -37,12 +37,13 @@ use std::fmt;
 use style_traits::ToCss;
 use super::ComputedValues;
 use values::CSSFloat;
-use values::{Auto, Either, generics};
+use values::{Auto, Either};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{BorderRadiusSize, ClipRect};
+use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::{MaxLength, MozLength};
 use values::computed::ToComputedValue;
+use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::position as generic_position;
 
 
@@ -349,7 +350,7 @@ impl AnimatedProperty {
                     AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
                         // https://w3c.github.io/web-animations/#discrete-animation-type
                         % if prop.animation_value_type == "discrete":
-                            let value = if progress < 0.5 { *from } else { *to };
+                            let value = if progress < 0.5 { from.clone() } else { to.clone() };
                         % else:
                             let value = match from.interpolate(to, progress) {
                                 Ok(value) => value,
@@ -591,9 +592,9 @@ impl Animatable for AnimationValue {
                      &AnimationValue::${prop.camel_case}(ref to)) => {
                         % if prop.animation_value_type == "discrete":
                             if self_portion > other_portion {
-                                Ok(AnimationValue::${prop.camel_case}(*from))
+                                Ok(AnimationValue::${prop.camel_case}(from.clone()))
                             } else {
-                                Ok(AnimationValue::${prop.camel_case}(*to))
+                                Ok(AnimationValue::${prop.camel_case}(to.clone()))
                             }
                         % else:
                             from.add_weighted(to, self_portion, other_portion)
@@ -874,10 +875,10 @@ impl<T: Animatable + Copy> Animatable for Point2D<T> {
     }
 }
 
-impl Animatable for BorderRadiusSize {
+impl Animatable for BorderCornerRadius {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        self.0.add_weighted(&other.0, self_portion, other_portion).map(generics::BorderRadiusSize)
+        self.0.add_weighted(&other.0, self_portion, other_portion).map(GenericBorderCornerRadius)
     }
 
     #[inline]

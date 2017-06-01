@@ -56,7 +56,7 @@ ordered-float = "0.4"
 parking_lot = "0.3.3"
 pdqsort = "0.1.0"
 precomputed-hash = "0.1"
-rayon = "0.7"
+rayon = "0.7.1"
 selectors = { path = "../selectors" }
 serde = {version = "0.9", optional = true}
 serde_derive = {version = "0.9", optional = true}
@@ -67,7 +67,7 @@ style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url", optional = true}
 time = "0.1"
-unicode-bidi = {version = "0.3", features = ["with_serde"]}
+unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 
 [target.'cfg(windows)'.dependencies]
@@ -76,7 +76,7 @@ kernel32-sys = "0.2"
 [build-dependencies]
 lazy_static = "0.2"
 log = "0.3"
-bindgen = { version = "0.25.1", optional = true }
+bindgen = { version = "0.25.3", optional = true }
 regex = {version = "0.2", optional = true}
 walkdir = "1.0"
 toml = {version = "0.2.1", optional = true, default-features = false}

@@ -17,6 +17,7 @@ ${helpers.predefined_type("opacity",
 <%helpers:vector_longhand name="box-shadow" allow_empty="True"
                           animation_value_type="IntermediateBoxShadowList"
                           extra_prefixes="webkit"
+                          ignored_when_colors_disabled="True"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
     use std::fmt;
     use style_traits::ToCss;
@@ -428,100 +429,10 @@ ${helpers.predefined_type("clip",
     }
 </%helpers:longhand>
 
-pub struct OriginParseResult {
-    pub horizontal: Option<specified::LengthOrPercentage>,
-    pub vertical: Option<specified::LengthOrPercentage>,
-    pub depth: Option<specified::NoCalcLength>
-}
-
-pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {
-    use values::specified::{LengthOrPercentage, Percentage};
-    let (mut horizontal, mut vertical, mut depth, mut horizontal_is_center) = (None, None, None, false);
-    loop {
-        if let Err(_) = input.try(|input| {
-            let token = try!(input.expect_ident());
-            match_ignore_ascii_case! {
-                &token,
-                "left" => {
-                    if horizontal.is_none() {
-                        horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.0)))
-                    } else if horizontal_is_center && vertical.is_none() {
-                        vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)));
-                        horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.0)));
-                    } else {
-                        return Err(())
-                    }
-                },
-                "center" => {
-                    if horizontal.is_none() {
-                        horizontal_is_center = true;
-                        horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.5)))
-                    } else if vertical.is_none() {
-                        vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)))
-                    } else {
-                        return Err(())
-                    }
-                },
-                "right" => {
-                    if horizontal.is_none() {
-                        horizontal = Some(LengthOrPercentage::Percentage(Percentage(1.0)))
-                    } else if horizontal_is_center && vertical.is_none() {
-                        vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)));
-                        horizontal = Some(LengthOrPercentage::Percentage(Percentage(1.0)));
-                    } else {
-                        return Err(())
-                    }
-                },
-                "top" => {
-                    if vertical.is_none() {
-                        vertical = Some(LengthOrPercentage::Percentage(Percentage(0.0)))
-                    } else {
-                        return Err(())
-                    }
-                },
-                "bottom" => {
-                    if vertical.is_none() {
-                        vertical = Some(LengthOrPercentage::Percentage(Percentage(1.0)))
-                    } else {
-                        return Err(())
-                    }
-                },
-                _ => return Err(())
-            }
-            Ok(())
-        }) {
-            match input.try(|input| LengthOrPercentage::parse(context, input)) {
-                Ok(value) => {
-                    if horizontal.is_none() {
-                        horizontal = Some(value);
-                    } else if vertical.is_none() {
-                        vertical = Some(value);
-                    } else if let LengthOrPercentage::Length(length) = value {
-                        depth = Some(length);
-                    } else {
-                        break;
-                    }
-                }
-                _ => break,
-            }
-        }
-    }
-
-    if horizontal.is_some() || vertical.is_some() {
-        Ok(OriginParseResult {
-            horizontal: horizontal,
-            vertical: vertical,
-            depth: depth,
-        })
-    } else {
-        Err(())
-    }
-}
-
 ${helpers.single_keyword("mix-blend-mode",
                          """normal multiply screen overlay darken lighten color-dodge
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          flags="CREATES_STACKING_CONTEXT",
                          spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode")}

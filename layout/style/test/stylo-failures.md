@@ -33,18 +33,11 @@ to mochitest command.
   * "layout.css.prefixes.device-pixel-ratio-webkit" support bug 1366956
     * test_media_queries.html `-device-pixel-ratio` [27]
     * test_webkit_device_pixel_ratio.html [3]
-  * test_media_queries_dynamic.html `restyle count`: support elementsRestyled [6]
+  * test_media_queries_dynamic.html `restyle`: bug 1357461 [4]
   * test_media_queries_dynamic_xbl.html: xbl support bug 1290276 [2]
 * Animation support:
-  * OMTA
-    * test_animations_omta.html: bug 1361938, bug 1340005 [*]
   * SMIL Animation
     * test_restyles_in_smil_animation.html [2]
-* CSSOM support:
-  * \@import bug 1352968
-    * test_bug221428.html [1]
-    * test_css_eof_handling.html [1]
-* test_bug397427.html: @import issue bug 1331291 and CSSOM support of @import [1]
 * console support bug 1352669
   * test_bug413958.html `monitorConsole` [3]
   * test_parser_diagnostics_unprintables.html [550]
@@ -60,7 +53,6 @@ to mochitest command.
   * test_font_loading_api.html `weight` [1]
 * @namespace support:
   * test_namespace_rule.html: bug 1355715 [6]
-* test_dont_use_document_colors.html: support of disabling document color bug 1355716 [21]
 * test_font_feature_values_parsing.html: \@font-feature-values support bug 1355721 [107]
 * Grid support bug 1341802
   * test_grid_computed_values.html [4]
@@ -139,15 +131,10 @@ to mochitest command.
 ## Need Gecko change
 
 * Servo is correct but Gecko is wrong
-  * flex-basis should be 0px when omitted in flex shorthand bug 1331530
-    * test_flexbox_flex_shorthand.html `flex-basis` [10]
   * Gecko rejects calc() in -webkit-gradient bug 1363349
     * test_property_syntax_errors.html `-webkit-gradient` [20]
-* test_property_syntax_errors.html `linear-gradient(0,`: unitless zero as degree bug 1363292 [10]
 * test_specified_value_serialization.html `-webkit-radial-gradient`: bug 1367299 [1]
 * test_variables.html `var(--var6)`: irrelevant test for stylo bug 1367306 [1]
-* Difference in rect serialization bug 1367028
-  * test_shorthand_property_getters.html `5 5 5 5` [1]
 
 ## Unknown / Unsure
 

@@ -17,7 +17,6 @@ use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger, RGBA};
-use super::generics::BorderRadiusSize as GenericBorderRadiusSize;
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::TrackList as GenericTrackList;
 use super::specified;
@@ -26,6 +25,7 @@ pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageWidthSide};
+pub use self::border::{BorderRadius, BorderCornerRadius};
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
 pub use self::rect::LengthOrNumberRect;
 pub use super::{Auto, Either, None_};
@@ -38,6 +38,7 @@ pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrP
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::Position;
+pub use self::transform::TransformOrigin;
 
 pub mod background;
 pub mod basic_shape;
@@ -46,6 +47,7 @@ pub mod image;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod transform;
 
 /// A `Context` is all the data a specified value could ever need to compute
 /// itself and be transformed to a computed value.
@@ -461,20 +463,6 @@ impl ComputedValueAsSpecified for specified::AlignJustifyContent {}
 #[cfg(feature = "gecko")]
 impl ComputedValueAsSpecified for specified::AlignJustifySelf {}
 impl ComputedValueAsSpecified for specified::BorderStyle {}
-
-/// The computed value of `BorderRadiusSize`
-pub type BorderRadiusSize = GenericBorderRadiusSize<LengthOrPercentage>;
-
-impl BorderRadiusSize {
-    /// Create a null value.
-    #[inline]
-    pub fn zero() -> BorderRadiusSize {
-        let zero = LengthOrPercentage::zero();
-        GenericBorderRadiusSize(Size2D::new(zero.clone(), zero))
-    }
-}
-
-impl Copy for BorderRadiusSize {}
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

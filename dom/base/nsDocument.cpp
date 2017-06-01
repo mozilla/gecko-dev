@@ -3145,7 +3145,7 @@ nsIDocument::PrerenderHref(nsIURI* aHref)
   tabChild->GetWebBrowserChrome(getter_AddRefs(wbc3));
   NS_ENSURE_TRUE(wbc3, false);
 
-  rv = wbc3->StartPrerenderingDocument(aHref, referrer);
+  rv = wbc3->StartPrerenderingDocument(aHref, referrer, NodePrincipal());
   NS_ENSURE_SUCCESS(rv, false);
 
   return true;
@@ -6734,7 +6734,7 @@ already_AddRefed<nsRange>
 nsIDocument::CreateRange(ErrorResult& rv)
 {
   RefPtr<nsRange> range = new nsRange(this);
-  nsresult res = range->Set(this, 0, this, 0);
+  nsresult res = range->CollapseTo(this, 0);
   if (NS_FAILED(res)) {
     rv.Throw(res);
     return nullptr;
@@ -10010,9 +10010,9 @@ nsIDocument::RegisterPendingLinkUpdate(Link* aLink)
   if (!mHasLinksToUpdateRunnable) {
     nsCOMPtr<nsIRunnable> event =
       NewRunnableMethod(this, &nsIDocument::FlushPendingLinkUpdatesFromRunnable);
+    // Do this work in a second in the worst case.
     nsresult rv =
-      Dispatch("nsIDocument::FlushPendingLinkUpdatesFromRunnable",
-               TaskCategory::Other, event.forget());
+      NS_IdleDispatchToCurrentThread(event.forget(), 1000);
     if (NS_FAILED(rv)) {
       // If during shutdown posting a runnable doesn't succeed, we probably
       // don't need to update link states.
@@ -12338,7 +12338,8 @@ nsIDocument::DocAddSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
                                        &aWindowSizes->mLayoutPresShellSize,
                                        &aWindowSizes->mLayoutStyleSetsSize,
                                        &aWindowSizes->mLayoutTextRunsSize,
-                                       &aWindowSizes->mLayoutPresContextSize);
+                                       &aWindowSizes->mLayoutPresContextSize,
+                                       &aWindowSizes->mLayoutFramePropertiesSize);
   }
 
   aWindowSizes->mPropertyTablesSize +=

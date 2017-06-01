@@ -203,6 +203,7 @@
 #include "mozilla/dom/Gamepad.h"
 #include "mozilla/dom/GamepadManager.h"
 
+#include "gfxVR.h"
 #include "mozilla/dom/VRDisplay.h"
 #include "mozilla/dom/VRDisplayEvent.h"
 #include "mozilla/dom/VRDisplayEventBinding.h"
@@ -867,7 +868,11 @@ nsGlobalWindow::ExecuteIdleRequest(TimeStamp aDeadline)
   mIdleRequestExecutor->MaybeUpdateIdlePeriodLimit();
   nsresult result = RunIdleRequest(request, deadline, false);
 
-  mIdleRequestExecutor->MaybeDispatch();
+  // Running the idle callback could've suspended the window, in which
+  // case mIdleRequestExecutor will be null.
+  if (mIdleRequestExecutor) {
+    mIdleRequestExecutor->MaybeDispatch();
+  }
   return result;
 }
 
@@ -1568,6 +1573,7 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
     mFocusByKeyOccurred(false),
     mHasGamepad(false),
     mHasVREvents(false),
+    mHasVRDisplayActivateEvents(false),
     mHasSeenGamepadInput(false),
     mNotifiedIDDestroyed(false),
     mAllowScriptsToClose(false),
@@ -1997,6 +2003,7 @@ nsGlobalWindow::CleanUp()
     mHasGamepad = false;
     DisableVRUpdates();
     mHasVREvents = false;
+    mHasVRDisplayActivateEvents = false;
 #ifdef MOZ_B2G
     DisableTimeChangeNotifications();
 #endif
@@ -2004,6 +2011,7 @@ nsGlobalWindow::CleanUp()
   } else {
     MOZ_ASSERT(!mHasGamepad);
     MOZ_ASSERT(!mHasVREvents);
+    MOZ_ASSERT(!mHasVRDisplayActivateEvents);
   }
 
   if (mCleanMessageManager) {
@@ -2166,6 +2174,7 @@ nsGlobalWindow::FreeInnerObjects()
   mGamepads.Clear();
   DisableVRUpdates();
   mHasVREvents = false;
+  mHasVRDisplayActivateEvents = false;
   mVRDisplays.Clear();
 
   if (mTabChild) {
@@ -13519,6 +13528,10 @@ nsGlobalWindow::EventListenerAdded(nsIAtom* aType)
     NotifyVREventListenerAdded();
   }
 
+  if (aType == nsGkAtoms::onvrdisplayactivate) {
+    mHasVRDisplayActivateEvents = true;
+  }
+
   if (aType == nsGkAtoms::onbeforeunload &&
       mTabChild &&
       (!mDoc || !(mDoc->GetSandboxFlags() & SANDBOXED_MODALS))) {
@@ -13562,7 +13575,30 @@ nsGlobalWindow::HasUsedVR() const
 {
   MOZ_ASSERT(IsInnerWindow());
 
+  // Returns true only if any WebVR API call or related event
+  // has been used
   return mHasVREvents;
+}
+
+bool
+nsGlobalWindow::IsVRContentDetected() const
+{
+  MOZ_ASSERT(IsInnerWindow());
+
+  // Returns true only if the content will respond to
+  // the VRDisplayActivate event.
+  return mHasVRDisplayActivateEvents;
+}
+
+bool
+nsGlobalWindow::IsVRContentPresenting() const
+{
+  for (auto display : mVRDisplays) {
+    if (display->IsAnyPresenting(gfx::kVRGroupAll)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void
@@ -13759,7 +13795,7 @@ nsGlobalWindow::DispatchVRDisplayActivate(uint32_t aDisplayID,
   for (auto display : mVRDisplays) {
     if (display->DisplayId() == aDisplayID) {
       if (aReason != VRDisplayEventReason::Navigation &&
-          display->IsAnyPresenting()) {
+          display->IsAnyPresenting(gfx::kVRGroupContent)) {
         // We only want to trigger this event if nobody is presenting to the
         // display already or when a page is loaded by navigating away
         // from a page with an active VR Presentation.

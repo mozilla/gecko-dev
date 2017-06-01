@@ -86,6 +86,9 @@ private:
 
   // This is where DECL_MEDIA_PREF for each of the preferences should go.
 
+  // Cache sizes.
+  DECL_MEDIA_PREF("media.cache.resource-index",               MediaResourceIndexCache, uint32_t, 8192);
+
   // AudioSink
   DECL_MEDIA_PREF("accessibility.monoaudio.enable",           MonoAudio, bool, false);
   DECL_MEDIA_PREF("media.resampling.enabled",                 AudioSinkResampling, bool, false);
@@ -164,6 +167,15 @@ private:
 
   DECL_MEDIA_PREF("media.num-decode-threads",                 MediaThreadPoolDefaultCount, uint32_t, 4);
   DECL_MEDIA_PREF("media.decoder.limit",                      MediaDecoderLimit, int32_t, MediaDecoderLimitDefault());
+
+#if defined(RELEASE_OR_BETA)
+  DECL_MEDIA_PREF("media.audio-max-decode-error",             MaxAudioDecodeError, uint32_t, 3);
+  DECL_MEDIA_PREF("media.video-max-decode-error",             MaxVideoDecodeError, uint32_t, 2);
+#else
+  // Take zero tolerance of decoding error in debug for any decoder regression.
+  DECL_MEDIA_PREF("media.audio-max-decode-error",             MaxAudioDecodeError, uint32_t, 0);
+  DECL_MEDIA_PREF("media.video-max-decode-error",             MaxVideoDecodeError, uint32_t, 0);
+#endif
 
   // Ogg
   DECL_MEDIA_PREF("media.ogg.enabled",                        OggEnabled, bool, true);

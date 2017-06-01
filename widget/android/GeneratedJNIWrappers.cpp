@@ -1923,6 +1923,150 @@ auto GeckoAudioInfo::Rate() const -> int32_t
     return mozilla::jni::Field<Rate_t>::Get(GeckoAudioInfo::mCtx, nullptr);
 }
 
+const char GeckoHlsDemuxerWrapper::name[] =
+        "org/mozilla/gecko/media/GeckoHlsDemuxerWrapper";
+
+constexpr char GeckoHlsDemuxerWrapper::Create_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::Create_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::Create(mozilla::jni::Object::Param a0, mozilla::jni::Object::Param a1) -> GeckoHlsDemuxerWrapper::LocalRef
+{
+    return mozilla::jni::Method<Create_t>::Call(GeckoHlsDemuxerWrapper::Context(), nullptr, a0, a1);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::Destroy_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::Destroy_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::Destroy() const -> void
+{
+    return mozilla::jni::Method<Destroy_t>::Call(GeckoHlsDemuxerWrapper::mCtx, nullptr);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::GetAudioInfo_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::GetAudioInfo_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::GetAudioInfo(int32_t a0) const -> mozilla::jni::Object::LocalRef
+{
+    return mozilla::jni::Method<GetAudioInfo_t>::Call(GeckoHlsDemuxerWrapper::mCtx, nullptr, a0);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::GetBuffered_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::GetBuffered_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::GetBuffered() const -> int64_t
+{
+    return mozilla::jni::Method<GetBuffered_t>::Call(GeckoHlsDemuxerWrapper::mCtx, nullptr);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::GetNextKeyFrameTime_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::GetNextKeyFrameTime_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::GetNextKeyFrameTime() const -> int64_t
+{
+    return mozilla::jni::Method<GetNextKeyFrameTime_t>::Call(GeckoHlsDemuxerWrapper::mCtx, nullptr);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::GetNumberOfTracks_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::GetNumberOfTracks_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::GetNumberOfTracks(int32_t a0) const -> int32_t
+{
+    return mozilla::jni::Method<GetNumberOfTracks_t>::Call(GeckoHlsDemuxerWrapper::mCtx, nullptr, a0);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::GetSamples_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::GetSamples_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::GetSamples(int32_t a0, int32_t a1) const -> mozilla::jni::ObjectArray::LocalRef
+{
+    return mozilla::jni::Method<GetSamples_t>::Call(GeckoHlsDemuxerWrapper::mCtx, nullptr, a0, a1);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::GetVideoInfo_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::GetVideoInfo_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::GetVideoInfo(int32_t a0) const -> mozilla::jni::Object::LocalRef
+{
+    return mozilla::jni::Method<GetVideoInfo_t>::Call(GeckoHlsDemuxerWrapper::mCtx, nullptr, a0);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::IsLiveStream_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::IsLiveStream_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::IsLiveStream() const -> bool
+{
+    return mozilla::jni::Method<IsLiveStream_t>::Call(GeckoHlsDemuxerWrapper::mCtx, nullptr);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::Seek_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::Seek_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::Seek(int64_t a0) const -> bool
+{
+    return mozilla::jni::Method<Seek_t>::Call(GeckoHlsDemuxerWrapper::mCtx, nullptr, a0);
+}
+
+const char GeckoHlsDemuxerWrapper::HlsDemuxerCallbacks::name[] =
+        "org/mozilla/gecko/media/GeckoHlsDemuxerWrapper$HlsDemuxerCallbacks";
+
+constexpr char GeckoHlsDemuxerWrapper::HlsDemuxerCallbacks::New_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::HlsDemuxerCallbacks::New_t::signature[];
+
+auto GeckoHlsDemuxerWrapper::HlsDemuxerCallbacks::New() -> HlsDemuxerCallbacks::LocalRef
+{
+    return mozilla::jni::Constructor<New_t>::Call(HlsDemuxerCallbacks::Context(), nullptr);
+}
+
+constexpr char GeckoHlsDemuxerWrapper::HlsDemuxerCallbacks::OnError_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::HlsDemuxerCallbacks::OnError_t::signature[];
+
+constexpr char GeckoHlsDemuxerWrapper::HlsDemuxerCallbacks::OnInitialized_t::name[];
+constexpr char GeckoHlsDemuxerWrapper::HlsDemuxerCallbacks::OnInitialized_t::signature[];
+
+const char GeckoHlsResourceWrapper::name[] =
+        "org/mozilla/gecko/media/GeckoHlsResourceWrapper";
+
+constexpr char GeckoHlsResourceWrapper::GetPlayer_t::name[];
+constexpr char GeckoHlsResourceWrapper::GetPlayer_t::signature[];
+
+auto GeckoHlsResourceWrapper::GetPlayer() const -> mozilla::jni::Object::LocalRef
+{
+    return mozilla::jni::Method<GetPlayer_t>::Call(GeckoHlsResourceWrapper::mCtx, nullptr);
+}
+
+constexpr char GeckoHlsResourceWrapper::Create_t::name[];
+constexpr char GeckoHlsResourceWrapper::Create_t::signature[];
+
+auto GeckoHlsResourceWrapper::Create(mozilla::jni::String::Param a0, mozilla::jni::Object::Param a1) -> GeckoHlsResourceWrapper::LocalRef
+{
+    return mozilla::jni::Method<Create_t>::Call(GeckoHlsResourceWrapper::Context(), nullptr, a0, a1);
+}
+
+constexpr char GeckoHlsResourceWrapper::Destroy_t::name[];
+constexpr char GeckoHlsResourceWrapper::Destroy_t::signature[];
+
+auto GeckoHlsResourceWrapper::Destroy() const -> void
+{
+    return mozilla::jni::Method<Destroy_t>::Call(GeckoHlsResourceWrapper::mCtx, nullptr);
+}
+
+const char GeckoHlsResourceWrapper::HlsResourceCallbacks::name[] =
+        "org/mozilla/gecko/media/GeckoHlsResourceWrapper$HlsResourceCallbacks";
+
+constexpr char GeckoHlsResourceWrapper::HlsResourceCallbacks::New_t::name[];
+constexpr char GeckoHlsResourceWrapper::HlsResourceCallbacks::New_t::signature[];
+
+auto GeckoHlsResourceWrapper::HlsResourceCallbacks::New() -> HlsResourceCallbacks::LocalRef
+{
+    return mozilla::jni::Constructor<New_t>::Call(HlsResourceCallbacks::Context(), nullptr);
+}
+
+constexpr char GeckoHlsResourceWrapper::HlsResourceCallbacks::OnDataArrived_t::name[];
+constexpr char GeckoHlsResourceWrapper::HlsResourceCallbacks::OnDataArrived_t::signature[];
+
+constexpr char GeckoHlsResourceWrapper::HlsResourceCallbacks::OnError_t::name[];
+constexpr char GeckoHlsResourceWrapper::HlsResourceCallbacks::OnError_t::signature[];
+
 const char GeckoHlsSample::name[] =
         "org/mozilla/gecko/media/GeckoHlsSample";
 

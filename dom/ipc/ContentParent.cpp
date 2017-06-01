@@ -24,9 +24,6 @@
 #include "chrome/common/process_watcher.h"
 
 #include "mozilla/a11y/PDocAccessible.h"
-#ifdef MOZ_GECKO_PROFILER
-#include "CrossProcessProfilerController.h"
-#endif
 #include "GeckoProfiler.h"
 #include "GMPServiceParent.h"
 #include "HandlerServiceParent.h"
@@ -187,6 +184,7 @@
 #include "nsHostObjectProtocolHandler.h"
 #include "nsICaptivePortalService.h"
 #include "nsIObjectLoadingContent.h"
+#include "ProfilerParent.h"
 
 #include "nsIBidiKeyboard.h"
 
@@ -231,10 +229,13 @@
 #include "mozilla/dom/SpeechSynthesisParent.h"
 #endif
 
-#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_LINUX)
+#if defined(MOZ_CONTENT_SANDBOX)
+#include "mozilla/SandboxSettings.h"
+#if defined(XP_LINUX)
 #include "mozilla/SandboxInfo.h"
 #include "mozilla/SandboxBroker.h"
 #include "mozilla/SandboxBrokerPolicyFactory.h"
+#endif
 #endif
 
 #ifdef MOZ_TOOLKIT_SEARCH
@@ -252,6 +253,10 @@
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
+#endif
+
+#ifdef MOZ_GECKO_PROFILER
+#include "nsIProfiler.h"
 #endif
 
 // For VP9Benchmark::sBenchmarkFpsPref
@@ -1075,38 +1080,6 @@ ContentParent::RecvRemovePermission(const IPC::Principal& aPrincipal,
   return IPC_OK();
 }
 
-void
-ContentParent::SendStartProfiler(const ProfilerInitParams& aParams)
-{
-  if (mSubprocess && mIsAlive) {
-    Unused << PContentParent::SendStartProfiler(aParams);
-  }
-}
-
-void
-ContentParent::SendStopProfiler()
-{
-  if (mSubprocess && mIsAlive) {
-    Unused << PContentParent::SendStopProfiler();
-  }
-}
-
-void
-ContentParent::SendPauseProfiler(const bool& aPause)
-{
-  if (mSubprocess && mIsAlive) {
-    Unused << PContentParent::SendPauseProfiler(aPause);
-  }
-}
-
-void
-ContentParent::SendGatherProfile()
-{
-  if (mSubprocess && mIsAlive) {
-    Unused << PContentParent::SendGatherProfile();
-  }
-}
-
 mozilla::ipc::IPCResult
 ContentParent::RecvConnectPluginBridge(const uint32_t& aPluginId,
                                        nsresult* aRv,
@@ -1361,7 +1334,7 @@ ContentParent::Init()
 #endif
 
 #ifdef MOZ_GECKO_PROFILER
-  mProfilerController = MakeUnique<CrossProcessProfilerController>(this);
+  Unused << SendInitProfiler(ProfilerParent::CreateForProcess(OtherPid()));
 #endif
 
   // Ensure that the default set of permissions are avaliable in the content
@@ -1414,30 +1387,6 @@ RemoteWindowContext::OpenURI(nsIURI* aURI)
 }
 
 } // namespace
-
-bool
-ContentParent::SetPriorityAndCheckIsAlive(ProcessPriority aPriority)
-{
-  ProcessPriorityManager::SetProcessPriority(this, aPriority);
-
-  // Now that we've set this process's priority, check whether the process is
-  // still alive.  Hopefully we've set the priority to FOREGROUND*, so the
-  // process won't unexpectedly crash after this point!
-  //
-  // Bug 943174: use waitid() with WNOWAIT so that, if the process
-  // did exit, we won't consume its zombie and confuse the
-  // GeckoChildProcessHost dtor.
-#ifdef MOZ_WIDGET_GONK
-  siginfo_t info;
-  info.si_pid = 0;
-  if (waitid(P_PID, Pid(), &info, WNOWAIT | WNOHANG | WEXITED) == 0
-    && info.si_pid != 0) {
-    return false;
-  }
-#endif
-
-  return true;
-}
 
 void
 ContentParent::ShutDownProcess(ShutDownMethod aMethod)
@@ -1757,10 +1706,6 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
   RecvRemoveGeolocationListener();
 
   mConsoleService = nullptr;
-
-#ifdef MOZ_GECKO_PROFILER
-  mProfilerController = nullptr;
-#endif
 
   if (obs) {
     RefPtr<nsHashPropertyBag> props = new nsHashPropertyBag();
@@ -2373,7 +2318,7 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
   // purpose. If the decision is made to permanently rely on the pref, this
   // should be changed so that it is required to restart firefox for the change
   // of value to take effect.
-  shouldSandbox = (Preferences::GetInt("security.sandbox.content.level") > 0) &&
+  shouldSandbox = (GetEffectiveContentSandboxLevel() > 0) &&
     !PR_GetEnv("MOZ_DISABLE_CONTENT_SANDBOX");
 
   if (shouldSandbox) {
@@ -4647,12 +4592,11 @@ ContentParent::RecvCreateWindowInDifferentProcess(
 }
 
 mozilla::ipc::IPCResult
-ContentParent::RecvProfile(const nsCString& aProfile, const bool& aIsExitProfile)
+ContentParent::RecvShutdownProfile(const nsCString& aProfile)
 {
 #ifdef MOZ_GECKO_PROFILER
-  if (mProfilerController) {
-    mProfilerController->RecvProfile(aProfile, aIsExitProfile);
-  }
+  nsCOMPtr<nsIProfiler> profiler(do_GetService("@mozilla.org/tools/profiler;1"));
+  profiler->ReceiveShutdownProfile(aProfile);
 #endif
   return IPC_OK();
 }
@@ -5212,18 +5156,6 @@ ContentParent::RecvClassifyLocal(const URIParams& aURI, const nsCString& aTables
     return IPC_FAIL_NO_REASON(this);
   }
   *aRv = uriClassifier->ClassifyLocalWithTables(uri, aTables, *aResults);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult
-ContentParent::RecvAllocPipelineId(RefPtr<AllocPipelineIdPromise>&& aPromise)
-{
-  GPUProcessManager* pm = GPUProcessManager::Get();
-  if (!pm) {
-    aPromise->Reject(PromiseRejectReason::HandlerRejected, __func__);
-    return IPC_OK();
-  }
-  aPromise->Resolve(wr::AsPipelineId(pm->AllocateLayerTreeId()), __func__);
   return IPC_OK();
 }
 

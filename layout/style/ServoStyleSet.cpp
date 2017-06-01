@@ -130,10 +130,8 @@ ServoStyleSet::Shutdown()
 void
 ServoStyleSet::InvalidateStyleForCSSRuleChanges()
 {
-  if (Element* root = mPresContext->Document()->GetRootElement()) {
-    mPresContext->RestyleManager()->PostRestyleEventForCSSRuleChanges(
-        root, eRestyle_Subtree, nsChangeHint(0));
-  }
+  MOZ_ASSERT(StylistNeedsUpdate());
+  mPresContext->RestyleManager()->AsServo()->PostRestyleEventForCSSRuleChanges();
 }
 
 size_t
@@ -167,17 +165,7 @@ ServoStyleSet::SetAuthorStyleDisabled(bool aStyleDisabled)
   }
 
   mAuthorStyleDisabled = aStyleDisabled;
-
-  // If we've just disabled, we have to note the stylesheets have changed and
-  // call flush directly, since the PresShell won't.
-  if (mAuthorStyleDisabled) {
-    NoteStyleSheetsChanged();
-  }
-  // If we've just enabled, then PresShell will trigger the notification and
-  // later flush when the stylesheet objects are enabled in JS.
-  //
-  // TODO(emilio): Users can have JS disabled, can't they? Will that affect that
-  // notification on content documents?
+  ForceAllStyleDirty();
 
   return NS_OK;
 }
@@ -975,10 +963,31 @@ ServoStyleSet::StyleSubtreeForReconstruct(Element* aRoot)
 }
 
 void
-ServoStyleSet::NoteStyleSheetsChanged()
+ServoStyleSet::ForceAllStyleDirty()
 {
   SetStylistStyleSheetsDirty();
   Servo_StyleSet_NoteStyleSheetsChanged(mRawSet.get(), mAuthorStyleDisabled);
+}
+
+void
+ServoStyleSet::RecordStyleSheetChange(
+    ServoStyleSheet* aSheet,
+    StyleSheet::ChangeType aChangeType)
+{
+  SetStylistStyleSheetsDirty();
+  switch (aChangeType) {
+    case StyleSheet::ChangeType::RuleAdded:
+    case StyleSheet::ChangeType::RuleRemoved:
+    case StyleSheet::ChangeType::RuleChanged:
+      // FIXME(emilio): We can presumably do better in a bunch of these.
+      return ForceAllStyleDirty();
+    case StyleSheet::ChangeType::ApplicableStateChanged:
+    case StyleSheet::ChangeType::Added:
+    case StyleSheet::ChangeType::Removed:
+      // Do nothing, we've already recorded the change in the
+      // Append/Remove/Replace methods, etc, and will act consequently.
+      return;
+  }
 }
 
 #ifdef DEBUG
@@ -1084,7 +1093,6 @@ ServoStyleSet::RebuildData()
 {
   ClearNonInheritingStyleContexts();
   Servo_StyleSet_RebuildData(mRawSet.get());
-  mStylistState = StylistState::NotDirty;
 }
 
 void
@@ -1092,7 +1100,7 @@ ServoStyleSet::ClearDataAndMarkDeviceDirty()
 {
   ClearNonInheritingStyleContexts();
   Servo_StyleSet_Clear(mRawSet.get());
-  mStylistState = StylistState::FullyDirty;
+  mStylistState |= StylistState::FullyDirty;
 }
 
 already_AddRefed<ServoComputedValues>
@@ -1194,10 +1202,30 @@ void
 ServoStyleSet::UpdateStylist()
 {
   MOZ_ASSERT(StylistNeedsUpdate());
-  if (mStylistState == StylistState::FullyDirty) {
+  if (mStylistState & StylistState::FullyDirty) {
     RebuildData();
+
+    if (mStylistState & StylistState::StyleSheetsDirty) {
+      // Normally, whoever was in charge of posting a RebuildAllStyleDataEvent,
+      // would also be in charge of posting a restyle/change hint according to
+      // it.
+      //
+      // However, other stylesheets may have been added to the document in the
+      // same period, so when both bits are set, we need to do a full subtree
+      // update, because we can no longer reason about the state of the style
+      // data.
+      //
+      // We could not clear the invalidations when rebuilding the data and
+      // process them here... But it's not clear if that complexity is worth
+      // to handle this edge case more efficiently.
+      if (Element* root = mPresContext->Document()->GetDocumentElement()) {
+        Servo_NoteExplicitHints(root, eRestyle_Subtree, nsChangeHint(0));
+      }
+    }
   } else {
-    Servo_StyleSet_FlushStyleSheets(mRawSet.get());
+    MOZ_ASSERT(mStylistState & StylistState::StyleSheetsDirty);
+    Element* root = mPresContext->Document()->GetDocumentElement();
+    Servo_StyleSet_FlushStyleSheets(mRawSet.get(), root);
   }
   mStylistState = StylistState::NotDirty;
 }

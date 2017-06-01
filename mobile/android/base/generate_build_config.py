@@ -39,7 +39,6 @@ def _defines():
     for var in ('MOZ_ANDROID_ACTIVITY_STREAM'
                 'MOZ_ANDROID_ANR_REPORTER',
                 'MOZ_ANDROID_BEAM',
-                'MOZ_ANDROID_CUSTOM_TABS',
                 'MOZ_ANDROID_DOWNLOADS_INTEGRATION',
                 'MOZ_ANDROID_DOWNLOAD_CONTENT_SERVICE',
                 'MOZ_ANDROID_EXCLUDE_FONTS',
@@ -103,6 +102,10 @@ def _defines():
     # leak the value to build logs.
     if CONFIG['MOZ_INSTALL_TRACKING']:
         DEFINES['MOZ_INSTALL_TRACKING_ADJUST_SDK_APP_TOKEN'] = CONFIG['MOZ_ADJUST_SDK_KEY']
+
+    if CONFIG['MOZ_ANDROID_MMA']:
+        DEFINES['MOZ_LEANPLUM_SDK_KEY'] = CONFIG['MOZ_LEANPLUM_SDK_KEY']
+        DEFINES['MOZ_LEANPLUM_SDK_CLIENTID'] = CONFIG['MOZ_LEANPLUM_SDK_CLIENTID']
 
     DEFINES['MOZ_BUILDID'] = open(os.path.join(buildconfig.topobjdir, 'buildid.h')).readline().split()[2]
 

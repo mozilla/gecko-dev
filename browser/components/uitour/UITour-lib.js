@@ -42,8 +42,8 @@ if (typeof Mozilla == "undefined") {
     var event = new CustomEvent("mozUITour", {
       bubbles: true,
       detail: {
-	action,
-	data: data || {}
+        action,
+        data: data || {}
       }
     });
 
@@ -179,48 +179,6 @@ if (typeof Mozilla == "undefined") {
     _sendEvent("registerPageID", {
       pageID
     });
-  };
-
-  /**
-   * Show a global notification bar with a prompt and optional buttons.
-   *
-   * Only intended for use by Self Support.
-   *
-   * @deprecated Use Heartbeat from
-   * {@link https://wiki.mozilla.org/Firefox/Shield/Heartbeat|Shield} instead.
-   *
-   * @param {String} message - Text to show in the notification bar before an action is taken.
-   * @param {String} thankyouMessage - Text to show in the notification bar after a vote.
-   * @param {String} flowId - An identifier for this rating flow. Please note that this is only used
-   *                          to identify the notification box.
-   * @param {String} engagementURL - URL to open in a new tab once the user has engaged.
-   * @param {String} learnMoreLabel - The label of the learn more link. No link will be shown if
-   *                                  this is null.
-   * @param {String} learnMoreURL - URL to open when clicking on the learn more link. No link will be
-   *                                shown if this is an invalid URL.
-   * @param {Object} options - Options to control behavior.
-   */
-  Mozilla.UITour.showHeartbeat = function(message, thankyouMessage, flowId, engagementURL,
-					  learnMoreLabel, learnMoreURL, options) {
-    var args = {
-      message,
-      thankyouMessage,
-      flowId,
-      engagementURL,
-      learnMoreLabel,
-      learnMoreURL,
-    };
-
-    if (options) {
-      for (var option in options) {
-	if (!options.hasOwnProperty(option)) {
-	  continue;
-	}
-	args[option] = options[option];
-      }
-    }
-
-    _sendEvent("showHeartbeat", args);
   };
 
   /**
@@ -746,7 +704,9 @@ if (typeof Mozilla == "undefined") {
 
   /**
    * @param {String} pane - Pane to open/switch the preferences to.
-   * Valid values match fragments on about:preferences and are subject to change e.g.:<ul>
+   * Valid values match fragments on about:preferences and are subject to change e.g.:
+   * <ul>
+   * For the old Preferences
    * <li>general
    * <li>search
    * <li>content
@@ -756,6 +716,22 @@ if (typeof Mozilla == "undefined") {
    * <li>sync
    * <li>advanced
    * </ul>
+   *
+   * <ul>
+   * For the new Preferences
+   * <li>general
+   * <li>applications
+   * <li>sync
+   * <li>privacy
+   * <li>advanced
+   * </ul>
+   *
+   * The mapping between the old and the new Preferences:
+   * To open to the options of sending telemetry, health report, crach reports,
+   * that is, the advanced pane > dataChoicesTab on the old and the privcacy pane > reports on the new.
+   * Please call `Mozilla.UITour.openPreferences("privacy-reports")`.
+   * UITour would do route mapping automatically.
+   *
    * @since 42
    */
   Mozilla.UITour.openPreferences = function(pane) {

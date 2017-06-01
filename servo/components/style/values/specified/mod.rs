@@ -9,7 +9,6 @@
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{self, Parser, Token};
-use euclid::size::Size2D;
 use itoa;
 use parser::{ParserContext, Parse};
 use self::grid::TrackSizeOrRepeat;
@@ -23,7 +22,6 @@ use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use super::computed::{self, Context};
 use super::computed::{Shadow as ComputedShadow, ToComputedValue};
-use super::generics::BorderRadiusSize as GenericBorderRadiusSize;
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::TrackList as GenericTrackList;
 use values::specified::calc::CalcNode;
@@ -31,7 +29,8 @@ use values::specified::calc::CalcNode;
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::background::BackgroundSize;
-pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageWidthSide};
+pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
+pub use self::border::{BorderImageWidthSide, BorderRadius};
 pub use self::color::Color;
 pub use self::rect::LengthOrNumberRect;
 pub use super::generics::grid::GridLine;
@@ -43,6 +42,7 @@ pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercent
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength};
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::{Position, PositionComponent};
+pub use self::transform::TransformOrigin;
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -56,6 +56,7 @@ pub mod image;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod transform;
 
 /// Common handling for the specified value CSS url() values.
 pub mod url {
@@ -178,6 +179,15 @@ impl CSSColor {
             authored: None,
         })
     }
+
+    /// Returns false if the color is completely transparent, and
+    /// true otherwise.
+    pub fn is_non_transparent(&self) -> bool {
+        match self.parsed {
+            Color::RGBA(rgba) if rgba.alpha == 0 => false,
+            _ => true,
+        }
+    }
 }
 
 no_viewport_percentage!(CSSColor);
@@ -278,19 +288,6 @@ pub fn parse_number_with_clamping_mode(context: &ParserContext,
             })
         }
         _ => Err(())
-    }
-}
-
-/// The specified value of `BorderRadiusSize`
-pub type BorderRadiusSize = GenericBorderRadiusSize<LengthOrPercentage>;
-
-impl Parse for BorderRadiusSize {
-    #[inline]
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let first = try!(LengthOrPercentage::parse_non_negative(context, input));
-        let second = input.try(|i| LengthOrPercentage::parse_non_negative(context, i))
-            .unwrap_or_else(|()| first.clone());
-        Ok(GenericBorderRadiusSize(Size2D::new(first, second)))
     }
 }
 
@@ -434,21 +431,6 @@ impl Angle {
 }
 
 #[allow(missing_docs)]
-pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Result<BorderRadiusSize, ()> {
-    input.try(|i| BorderRadiusSize::parse(context, i)).or_else(|_| {
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
-            "thin" => Ok(BorderRadiusSize::circle(
-                             LengthOrPercentage::Length(NoCalcLength::from_px(1.)))),
-            "medium" => Ok(BorderRadiusSize::circle(
-                               LengthOrPercentage::Length(NoCalcLength::from_px(3.)))),
-            "thick" => Ok(BorderRadiusSize::circle(
-                              LengthOrPercentage::Length(NoCalcLength::from_px(5.)))),
-            _ => Err(())
-        }
-    })
-}
-
-#[allow(missing_docs)]
 pub fn parse_border_width(context: &ParserContext, input: &mut Parser) -> Result<Length, ()> {
     input.try(|i| Length::parse_non_negative(context, i)).or_else(|()| {
         match_ignore_ascii_case! { &try!(input.expect_ident()),
@@ -559,7 +541,7 @@ impl BorderStyle {
 }
 
 /// A time in seconds according to CSS-VALUES § 6.2.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Time {
     seconds: CSSFloat,
@@ -1177,7 +1159,11 @@ impl ToComputedValue for SVGPaintKind {
             SVGPaintKind::ContextStroke => super::computed::SVGPaintKind::ContextStroke,
             SVGPaintKind::ContextFill => super::computed::SVGPaintKind::ContextFill,
             SVGPaintKind::Color(ref color) => {
-                super::computed::SVGPaintKind::Color(color.to_computed_value(context))
+                let color = match color.parsed {
+                    Color::CurrentColor => cssparser::Color::RGBA(context.style().get_color().clone_color()),
+                    _ => color.to_computed_value(context),
+                };
+                super::computed::SVGPaintKind::Color(color)
             }
             SVGPaintKind::PaintServer(ref server) => {
                 super::computed::SVGPaintKind::PaintServer(server.to_computed_value(context))

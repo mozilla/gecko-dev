@@ -110,8 +110,11 @@
 #endif
 #endif
 
-#if (defined(XP_WIN) || defined(XP_MACOSX)) && defined(MOZ_CONTENT_SANDBOX)
+#if defined(MOZ_CONTENT_SANDBOX)
+#include "mozilla/SandboxSettings.h"
+#if (defined(XP_WIN) || defined(XP_MACOSX))
 #include "nsIUUIDGenerator.h"
+#endif
 #endif
 
 #ifdef ACCESSIBILITY
@@ -4206,7 +4209,7 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
 void AddSandboxAnnotations()
 {
   // Include the sandbox content level, regardless of platform
-  int level = Preferences::GetInt("security.sandbox.content.level");
+  int level = GetEffectiveContentSandboxLevel();
 
   nsAutoCString levelString;
   levelString.AppendInt(level);

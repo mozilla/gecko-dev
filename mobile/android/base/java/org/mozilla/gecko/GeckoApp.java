@@ -20,6 +20,7 @@ import org.mozilla.gecko.home.HomeConfig.PanelType;
 import org.mozilla.gecko.menu.GeckoMenu;
 import org.mozilla.gecko.menu.GeckoMenuInflater;
 import org.mozilla.gecko.menu.MenuPanel;
+import org.mozilla.gecko.mma.MmaDelegate;
 import org.mozilla.gecko.notifications.NotificationHelper;
 import org.mozilla.gecko.util.IntentUtils;
 import org.mozilla.gecko.mozglue.SafeIntent;
@@ -121,6 +122,8 @@ import java.util.concurrent.TimeUnit;
 import static org.mozilla.gecko.Tabs.INTENT_EXTRA_SESSION_UUID;
 import static org.mozilla.gecko.Tabs.INTENT_EXTRA_TAB_ID;
 import static org.mozilla.gecko.Tabs.INVALID_TAB_ID;
+import static org.mozilla.gecko.mma.MmaDelegate.DOWNLOAD_VIDEOS_OR_ANY_OTHER_MEDIA;
+import static org.mozilla.gecko.mma.MmaDelegate.LOADS_ARTICLES;
 
 public abstract class GeckoApp extends GeckoActivity
                                implements AnchoredPopup.OnVisibilityChangeListener,
@@ -870,7 +873,15 @@ public abstract class GeckoApp extends GeckoActivity
             final SharedPreferences prefs = getSharedPreferences();
             int count = prefs.getInt(PREFS_FLASH_USAGE, 0);
             prefs.edit().putInt(PREFS_FLASH_USAGE, ++count).apply();
+
+        } else if ("Mma:reader_available".equals(event)) {
+            MmaDelegate.track(LOADS_ARTICLES);
+
+        } else if ("Mma:web_save_media".equals(event) || "Mma:web_save_image".equals(event)) {
+            MmaDelegate.track(DOWNLOAD_VIDEOS_OR_ANY_OTHER_MEDIA);
+
         }
+
     }
 
     /**
@@ -1268,8 +1279,6 @@ public abstract class GeckoApp extends GeckoActivity
             Class.forName("android.os.AsyncTask");
         } catch (ClassNotFoundException e) { }
 
-        MemoryMonitor.getInstance().init(getApplicationContext());
-
         // GeckoAppShell is tightly coupled to us, rather than
         // the app context, because various parts of Fennec (e.g.,
         // GeckoScreenOrientation) use GAS to access the Activity in
@@ -1396,6 +1405,9 @@ public abstract class GeckoApp extends GeckoActivity
             "DevToolsAuth:Scan",
             "DOMFullScreen:Start",
             "DOMFullScreen:Stop",
+            "Mma:reader_available",
+            "Mma:web_save_image",
+            "Mma:web_save_media",
             "Permissions:Data",
             "PrivateBrowsing:Data",
             "RuntimePermissions:Check",
@@ -1406,7 +1418,7 @@ public abstract class GeckoApp extends GeckoActivity
             "ToggleChrome:Show",
             null);
 
-        Tabs.getInstance().attachToContext(this, mLayerView);
+        Tabs.getInstance().attachToContext(this, mLayerView, getAppEventDispatcher());
         Tabs.registerOnTabsChangedListener(this);
 
         // Use global layout state change to kick off additional initialization
@@ -1500,7 +1512,7 @@ public abstract class GeckoApp extends GeckoActivity
 
                 // If we are doing a restore, send the parsed session data to Gecko.
                 if (!mIsRestoringActivity) {
-                    EventDispatcher.getInstance().dispatch("Session:Restore", restoreMessage);
+                    getAppEventDispatcher().dispatch("Session:Restore", restoreMessage);
                 }
 
                 // Make sure sessionstore.old is either updated or deleted as necessary.
@@ -2444,6 +2456,9 @@ public abstract class GeckoApp extends GeckoActivity
             "DevToolsAuth:Scan",
             "DOMFullScreen:Start",
             "DOMFullScreen:Stop",
+            "Mma:reader_available",
+            "Mma:web_save_image",
+            "Mma:web_save_media",
             "Permissions:Data",
             "PrivateBrowsing:Data",
             "RuntimePermissions:Check",
@@ -2474,6 +2489,7 @@ public abstract class GeckoApp extends GeckoActivity
         super.onDestroy();
 
         Tabs.unregisterOnTabsChangedListener(this);
+        Tabs.getInstance().detachFromContext();
 
         if (mShutdownOnDestroy) {
             GeckoApplication.shutdown(!mRestartOnShutdown ? null : new Intent(

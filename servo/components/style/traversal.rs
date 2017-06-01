@@ -11,7 +11,7 @@ use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
 use matching::{ChildCascadeRequirement, MatchMethods};
 use restyle_hints::{HintComputationContext, RestyleHint};
 use selector_parser::RestyleDamage;
-use sharing::StyleSharingBehavior;
+use sharing::{StyleSharingBehavior, StyleSharingTarget};
 #[cfg(feature = "servo")] use servo_config::opts;
 use smallvec::SmallVec;
 use std::borrow::BorrowMut;
@@ -351,7 +351,8 @@ pub trait DomTraversal<E: TElement> : Sync {
                 None => return false,
             };
             return data.get_restyle()
-                       .map_or(false, |r| r.hint.has_animation_hint() || r.recascade);
+                       .map_or(false, |r| r.hint.has_animation_hint() ||
+                                          r.hint.has_recascade_self());
         }
 
         // If the dirty descendants bit is set, we need to traverse no
@@ -381,7 +382,7 @@ pub trait DomTraversal<E: TElement> : Sync {
             // since that can return true even if we have a restyle hint
             // indicating that the element's descendants (but not necessarily
             // the element) need restyling.
-            if !r.hint.is_empty() || r.recascade {
+            if !r.hint.is_empty() {
                 return true;
             }
         }
@@ -696,17 +697,23 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
     // Now that matching and cascading is done, clear the bits corresponding to
     // those operations and compute the propagated restyle hint.
-    let propagated_hint = match data.get_restyle_mut() {
+    let mut propagated_hint = match data.get_restyle_mut() {
         None => StoredRestyleHint::empty(),
         Some(r) => {
             debug_assert!(context.shared.traversal_flags.for_animation_only() ||
                           !r.hint.has_animation_hint(),
                           "animation restyle hint should be handled during \
                            animation-only restyles");
-            r.recascade = false;
             r.hint.propagate(&context.shared.traversal_flags)
         },
     };
+
+    if inherited_style_changed {
+        // FIXME(bholley): Need to handle explicitly-inherited reset properties
+        // somewhere.
+        propagated_hint.insert(StoredRestyleHint::recascade_self());
+    }
+
     trace!("propagated_hint={:?}, inherited_style_changed={:?}, \
             is_display_none={:?}, implementing_pseudo={:?}",
            propagated_hint, inherited_style_changed,
@@ -730,8 +737,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
                                           &data,
                                           DontLog) &&
         (has_dirty_descendants_for_this_restyle ||
-         !propagated_hint.is_empty() ||
-         inherited_style_changed) {
+         !propagated_hint.is_empty()) {
         let damage_handled = data.get_restyle().map_or(RestyleDamage::empty(), |r| {
             r.damage_handled() | r.damage.handled_for_descendants()
         });
@@ -740,8 +746,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
                                     traversal_data,
                                     element,
                                     propagated_hint,
-                                    damage_handled,
-                                    inherited_style_changed);
+                                    damage_handled);
     }
 
     // If we are in a restyle for reconstruction, drop the existing restyle
@@ -795,9 +800,9 @@ fn compute_style<E, D>(_traversal: &D,
     // First, try the style sharing cache. If we get a match we can skip the rest
     // of the work.
     if let MatchAndCascade = kind {
-        let sharing_result = unsafe {
-            element.share_style_if_possible(context, data)
-        };
+        let target = StyleSharingTarget::new(element);
+        let sharing_result = target.share_style_if_possible(context, data);
+
         if let StyleWasShared(index, had_damage) = sharing_result {
             context.thread_local.statistics.styles_shared += 1;
             context.thread_local.style_sharing_candidate_cache.touch(index);
@@ -844,8 +849,7 @@ fn preprocess_children<E, D>(context: &mut StyleContext<E>,
                              parent_traversal_data: &PerLevelTraversalData,
                              element: E,
                              mut propagated_hint: StoredRestyleHint,
-                             damage_handled: RestyleDamage,
-                             parent_inherited_style_changed: bool)
+                             damage_handled: RestyleDamage)
     where E: TElement,
           D: DomTraversal<E>,
 {
@@ -888,17 +892,14 @@ fn preprocess_children<E, D>(context: &mut StyleContext<E>,
         // If the child doesn't have pre-existing RestyleData and we don't have
         // any reason to create one, avoid the useless allocation and move on to
         // the next child.
-        if propagated_hint.is_empty() && !parent_inherited_style_changed &&
-           damage_handled.is_empty() && !child_data.has_restyle() {
+        if propagated_hint.is_empty() && damage_handled.is_empty() && !child_data.has_restyle() {
             continue;
         }
 
         let mut restyle_data = child_data.ensure_restyle();
 
         // Propagate the parent and sibling restyle hint.
-        if !propagated_hint.is_empty() {
-            restyle_data.hint.insert_from(&propagated_hint);
-        }
+        restyle_data.hint.insert_from(&propagated_hint);
 
         if later_siblings {
             propagated_hint.insert(RestyleHint::subtree().into());
@@ -906,15 +907,6 @@ fn preprocess_children<E, D>(context: &mut StyleContext<E>,
 
         // Store the damage already handled by ancestors.
         restyle_data.set_damage_handled(damage_handled);
-
-        // If properties that we inherited from the parent changed, we need to
-        // recascade.
-        //
-        // FIXME(bholley): Need to handle explicitly-inherited reset properties
-        // somewhere.
-        if parent_inherited_style_changed {
-            restyle_data.recascade = true;
-        }
     }
 }
 

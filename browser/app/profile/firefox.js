@@ -232,6 +232,10 @@ pref("general.autoScroll", false);
 pref("general.autoScroll", true);
 #endif
 
+// UI density of the browser chrome. This mostly affects toolbarbutton
+// and urlbar spacing. The possible values are 0=normal, 1=compact, 2=touch.
+pref("browser.uidensity", 0);
+
 // At startup, check if we're the default browser and prompt user if not.
 pref("browser.shell.checkDefaultBrowser", true);
 pref("browser.shell.shortcutFavicons",true);
@@ -659,6 +663,12 @@ pref("accessibility.loadedInLastSession", false);
 pref("plugins.click_to_play", true);
 pref("plugins.testmode", false);
 
+// Should plugins that are hidden show the infobar UI?
+pref("plugins.show_infobar", true);
+
+// Should dismissing the hidden plugin infobar suppress it permanently?
+pref("plugins.remember_infobar_dismissal", false);
+
 pref("plugin.default.state", 1);
 
 // Plugins bundled in XPIs are enabled by default.
@@ -690,6 +700,13 @@ pref("browser.preferences.instantApply", true);
 
 // Toggling Search bar on and off in about:preferences
 pref("browser.preferences.search", false);
+
+// Use the new in-content about:preferences in Nightly only for now
+#if defined(NIGHTLY_BUILD)
+pref("browser.preferences.useOldOrganization", false);
+#else
+pref("browser.preferences.useOldOrganization", true);
+#endif
 
 // Once the Storage Management is completed.
 // (The Storage Management-related prefs are browser.storageManager.* )
@@ -1026,7 +1043,7 @@ pref("security.sandbox.gpu.level", 0);
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX) && defined(MOZ_CONTENT_SANDBOX)
 // This pref is discussed in bug 1083344, the naming is inspired from its
 // Windows counterpart, but on Mac it's an integer which means:
-// 0 -> "no sandbox"
+// 0 -> "no sandbox" (nightly only)
 // 1 -> "preliminary content sandboxing enabled: write access to
 //       home directory is prevented"
 // 2 -> "preliminary content sandboxing enabled with profile protection:
@@ -1455,6 +1472,8 @@ pref("browser.translation.engine", "bing");
 pref("toolkit.telemetry.archive.enabled", true);
 // Enables sending the shutdown ping when Firefox shuts down.
 pref("toolkit.telemetry.shutdownPingSender.enabled", true);
+// Enables sending the 'new-profile' ping on new profiles.
+pref("toolkit.telemetry.newProfilePing.enabled", true);
 
 // Telemetry experiments settings.
 pref("experiments.enabled", true);
@@ -1585,6 +1604,7 @@ pref("browser.migrate.automigrate.enabled", false);
 // hidden the 4th day, so it will actually be shown on 3 different days.
 pref("browser.migrate.automigrate.daysToOfferUndo", 4);
 pref("browser.migrate.automigrate.ui.enabled", true);
+pref("browser.migrate.automigrate.inpage.ui.enabled", false);
 
 // See comments in bug 1340115 on how we got to these numbers.
 pref("browser.migrate.chrome.history.limit", 2000);
@@ -1639,6 +1659,7 @@ pref("extensions.formautofill.experimental", true);
 pref("extensions.formautofill.experimental", false);
 #endif
 pref("extensions.formautofill.addresses.enabled", true);
+pref("extensions.formautofill.heuristics.enabled", false);
 pref("extensions.formautofill.loglevel", "Warn");
 
 // Whether or not to restore a session with lazy-browser tabs.
@@ -1651,3 +1672,6 @@ pref("urlclassifier.phishTable", "goog-phish-shavar,goog-phish-proto,test-phish-
 #endif
 
 pref("browser.suppress_first_window_animation", true);
+
+// Preferences for Photon onboarding system extension
+pref("browser.onboarding.disabled", false);

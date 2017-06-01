@@ -11,7 +11,6 @@ var Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/TelemetryTimestamps.jsm");
 Cu.import("resource://gre/modules/TelemetryController.jsm");
-Cu.import("resource://gre/modules/TelemetrySession.jsm");
 Cu.import("resource://gre/modules/TelemetryArchive.jsm");
 Cu.import("resource://gre/modules/TelemetryUtils.jsm");
 Cu.import("resource://gre/modules/TelemetryLog.jsm");
@@ -61,12 +60,8 @@ function isRTL() {
   return (documentRTLMode == "rtl");
 }
 
-function isArray(arg) {
-  return Object.prototype.toString.call(arg) === "[object Array]";
-}
-
 function isFlatArray(obj) {
-  if (!isArray(obj)) {
+  if (!Array.isArray(obj)) {
     return false;
   }
   return !obj.some(e => typeof(e) == "object");
@@ -84,7 +79,7 @@ function flattenObject(obj, map, path, array) {
     } else if (isFlatArray(v)) {
       map.set(newPath.join("."), "[" + v.join(", ") + "]");
     } else {
-      flattenObject(v, map, newPath, isArray(v));
+      flattenObject(v, map, newPath, Array.isArray(v));
     }
   }
 }
@@ -110,7 +105,6 @@ function filterObject(obj, filterOut) {
   }
   return ret;
 }
-
 
 /**
  * This turns a JSON object into a "flat" stringified form, separated into top-level sections.
@@ -244,7 +238,7 @@ var Settings = {
           let mainWindow = getMainWindowWithPreferencesPane();
           // The advanced subpanes are only supported in the old organization, which will
           // be removed by bug 1349689.
-          if (Preferences.get("browser.preferences.useOldOrganization", false)) {
+          if (Preferences.get("browser.preferences.useOldOrganization")) {
             mainWindow.openAdvancedPreferences("dataChoicesTab", {origin: "aboutTelemetry"});
           } else {
             mainWindow.openPreferences("paneAdvanced", {origin: "aboutTelemetry"});
@@ -2088,6 +2082,14 @@ function displayPingData(ping, updatePayloadList = false) {
   let pre = document.getElementById("raw-ping-data");
   pre.textContent = JSON.stringify(gPingData, null, 2);
 
+  try {
+    displayRichPingData(ping, updatePayloadList);
+  } catch (err) {
+    PingPicker._showRawPingData();
+  }
+}
+
+function displayRichPingData(ping, updatePayloadList) {
   // Update the structured data rendering.
   const keysHeader = bundle.GetStringFromName("keysHeader");
   const valuesHeader = bundle.GetStringFromName("valuesHeader");

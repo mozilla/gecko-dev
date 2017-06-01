@@ -83,7 +83,6 @@ var asyncChrome = proxy.toChromeAsync({
 });
 var syncChrome = proxy.toChrome(sendSyncMessage.bind(this));
 var cookies = new Cookies(() => curContainer.frame.document, syncChrome);
-var importedScripts = new evaluate.ScriptStorageServiceClient(syncChrome);
 
 Cu.import("resource://gre/modules/Log.jsm");
 var logger = Log.repository.getLogger("Marionette");
@@ -469,7 +468,6 @@ var getElementTextFn = dispatch(getElementText);
 var getElementTagNameFn = dispatch(getElementTagName);
 var getElementRectFn = dispatch(getElementRect);
 var isElementEnabledFn = dispatch(isElementEnabled);
-var getCurrentUrlFn = dispatch(getCurrentUrl);
 var findElementContentFn = dispatch(findElementContent);
 var findElementsContentFn = dispatch(findElementsContent);
 var isElementSelectedFn = dispatch(isElementSelected);
@@ -508,7 +506,6 @@ function startListeners() {
   addMessageListenerId("Marionette:get", get);
   addMessageListenerId("Marionette:waitForPageLoaded", waitForPageLoaded);
   addMessageListenerId("Marionette:cancelRequest", cancelRequest);
-  addMessageListenerId("Marionette:getCurrentUrl", getCurrentUrlFn);
   addMessageListenerId("Marionette:getTitle", getTitleFn);
   addMessageListenerId("Marionette:getPageSource", getPageSourceFn);
   addMessageListenerId("Marionette:goBack", goBack);
@@ -587,7 +584,6 @@ function deleteSession(msg) {
   removeMessageListenerId("Marionette:cancelRequest", cancelRequest);
   removeMessageListenerId("Marionette:getTitle", getTitleFn);
   removeMessageListenerId("Marionette:getPageSource", getPageSourceFn);
-  removeMessageListenerId("Marionette:getCurrentUrl", getCurrentUrlFn);
   removeMessageListenerId("Marionette:goBack", goBack);
   removeMessageListenerId("Marionette:goForward", goForward);
   removeMessageListenerId("Marionette:refresh", refresh);
@@ -735,7 +731,6 @@ function checkForInterrupted() {
 
 function* execute(script, args, timeout, opts) {
   opts.timeout = timeout;
-  script = importedScripts.for("content").concat(script);
 
   let sb = sandbox.createMutable(curContainer.frame);
   let wargs = evaluate.fromJSON(
@@ -747,7 +742,6 @@ function* execute(script, args, timeout, opts) {
 
 function* executeInSandbox(script, args, timeout, opts) {
   opts.timeout = timeout;
-  script = importedScripts.for("content").concat(script);
 
   let sb = sandboxes.get(opts.sandboxName, opts.newSandbox);
   if (opts.sandboxName) {
@@ -769,7 +763,6 @@ function* executeInSandbox(script, args, timeout, opts) {
 function* executeSimpleTest(script, args, timeout, opts) {
   opts.timeout = timeout;
   let win = curContainer.frame;
-  script = importedScripts.for("content").concat(script);
 
   let harness = new simpletest.Harness(
       win,
@@ -1220,13 +1213,6 @@ function refresh(msg) {
   } catch (e) {
     sendError(e, command_id);
   }
-}
-
-/**
- * Get URL of the top-level browsing context.
- */
-function getCurrentUrl() {
-  return content.location.href;
 }
 
 /**

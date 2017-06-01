@@ -320,17 +320,6 @@ TabParent::RemoveWindowListeners()
   }
 }
 
-bool
-TabParent::IsVisible() const
-{
-  RefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
-  if (!frameLoader) {
-    return false;
-  }
-
-  return frameLoader->GetVisible();
-}
-
 void
 TabParent::DestroyInternal()
 {
@@ -526,7 +515,8 @@ TabParent::RecvSizeShellTo(const uint32_t& aFlags, const int32_t& aWidth, const 
 }
 
 mozilla::ipc::IPCResult
-TabParent::RecvDropLinks(nsTArray<nsString>&& aLinks)
+TabParent::RecvDropLinks(nsTArray<nsString>&& aLinks,
+                         const PrincipalInfo& aTriggeringPrincipalInfo)
 {
   nsCOMPtr<nsIBrowser> browser = do_QueryInterface(mFrameElement);
   if (browser) {
@@ -535,7 +525,12 @@ TabParent::RecvDropLinks(nsTArray<nsString>&& aLinks)
     for (uint32_t i = 0; i < aLinks.Length(); i++) {
       links[i] = aLinks[i].get();
     }
-    browser->DropLinks(aLinks.Length(), links.get());
+    nsCOMPtr<nsIPrincipal> triggeringPrincipal =
+      PrincipalInfoToPrincipal(aTriggeringPrincipalInfo);
+    if (nsContentUtils::IsSystemPrincipal(triggeringPrincipal)) {
+      return IPC_FAIL(this, "Invalid triggeringPrincipal");
+    }
+    browser->DropLinks(aLinks.Length(), links.get(), triggeringPrincipal);
   }
   return IPC_OK();
 }
