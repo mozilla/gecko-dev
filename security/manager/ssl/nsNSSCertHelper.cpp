@@ -155,9 +155,8 @@ GetDefaultOIDFormat(SECItem *oid,
                     nsAString &outString,
                     char separator)
 {
-  char buf[300];
-  unsigned int len = 0;
-  int written, invalidCount = 0;
+  outString.Truncate();
+  int invalidCount = 0;
     
   unsigned int i;
   unsigned long val  = 0;
@@ -197,26 +196,20 @@ GetDefaultOIDFormat(SECItem *oid,
         unsigned long one = std::min(val/40, 2UL); // never > 2
         unsigned long two = val - (one * 40);
 
-        written = snprintf(&buf[len], sizeof(buf) - len, "%lu%c%lu",
-                           one, separator, two);
+        outString.AppendPrintf("%lu%c%lu", one, separator, two);
       }
       else {
-        written = snprintf(&buf[len], sizeof(buf) - len, "%c%lu",
-                           separator, val);
+        outString.AppendPrintf("%c%lu", separator, val);
       }
     }
     else {
+      if (!first) {
+        outString.AppendPrintf("%c", separator);
+      }
       nsAutoString unknownText;
       nssComponent->GetPIPNSSBundleString("CertUnknown", 
                                           unknownText);
-      if (first) {
-        written = snprintf(&buf[len], sizeof(buf) - len, "%s",
-                           NS_ConvertUTF16toUTF8(unknownText).get());
-      }
-      else {
-        written = snprintf(&buf[len], sizeof(buf) - len, "%c%s",
-                           separator, NS_ConvertUTF16toUTF8(unknownText).get());
-      }
+      outString.Append(unknownText);
 
       if (++invalidCount > 3) {
         // Allow only 3 occurences of Unknown in OID display string to
@@ -225,17 +218,11 @@ GetDefaultOIDFormat(SECItem *oid,
       }
     }
 
-    if (written < 0)
-      return NS_ERROR_FAILURE;
-
-    len += written;
-    NS_ASSERTION(len < sizeof(buf), "OID data to big to display in 300 chars.");
     val = 0;      
     invalid = false;
     first = false;
   }
 
-  CopyASCIItoUTF16(buf, outString);
   return NS_OK; 
 }
 
