@@ -528,7 +528,11 @@ add_task(function* test_subprocess_pathSearch() {
 
 add_task(function* test_subprocess_workdir() {
   let procDir = yield OS.File.getCurrentDirectory();
-  let tmpDir = OS.Constants.Path.tmpDir;
+  let tmpDirFile = Components.classes["@mozilla.org/file/local;1"]
+                     .createInstance(Components.interfaces.nsILocalFile);
+  tmpDirFile.initWithPath(OS.Constants.Path.tmpDir);
+  tmpDirFile.normalize();
+  let tmpDir = tmpDirFile.path;
 
   notEqual(procDir, tmpDir,
            "Current process directory must not be the current temp directory");
