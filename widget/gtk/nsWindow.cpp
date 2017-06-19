@@ -3715,15 +3715,17 @@ nsWindow::Create(nsIWidget* aParent,
             else {
                 switch (aInitData->mPopupHint) {
                     case ePopupTypeMenu:
-                        gtkTypeHint = GDK_WINDOW_TYPE_HINT_POPUP_MENU;
+                        // Use GDK_WINDOW_TYPE_HINT_UTILITY on Wayland which
+                        // guides Gtk to create the popup as subsurface
+                        // instead of xdg_shell popup (rhbz#1457201).
+                        gtkTypeHint = mIsX11Display ? GDK_WINDOW_TYPE_HINT_POPUP_MENU :
+                                                      GDK_WINDOW_TYPE_HINT_UTILITY;
                         break;
                     case ePopupTypeTooltip:
                         gtkTypeHint = GDK_WINDOW_TYPE_HINT_TOOLTIP;
                         break;
                     default:
-                        gtkTypeHint = GDK_WINDOW_TYPE_HINT_POPUP_MENU;
-                        //gtkTypeHint = GDK_WINDOW_TYPE_HINT_TOOLTIP;
-                        //gtkTypeHint = GDK_WINDOW_TYPE_HINT_UTILITY;
+                        gtkTypeHint = GDK_WINDOW_TYPE_HINT_UTILITY;
                         break;
                 }
             }
