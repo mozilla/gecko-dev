@@ -4210,7 +4210,8 @@ nsWindow::NativeShow(bool aAction)
                 SetUserTimeAndStartupIDForActivatedWindow(mShell);
             }
 
-            // TODO
+            // Untill https://bugzilla.gnome.org/show_bug.cgi?id=783957 is fixed
+            // we can't use gdk_seat_grab() here.
             if (0 && mWindowType == eWindowType_popup) {
                 mRetryPointerGrab = false;
                 //sRetryGrabTime = aTime;
