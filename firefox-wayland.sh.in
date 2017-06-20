@@ -240,7 +240,7 @@ do
 done
 
 # Set to run on wayland
-if [ -z $GDK_BACKEND ]
+if [ -z $GDK_BACKEND ]; then
     export GDK_BACKEND="wayland"
 fi
 
