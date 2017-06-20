@@ -50,11 +50,11 @@ esac
 
 MOZ_FIREFOX_FILE="firefox"
 
-if [ ! -r $MOZ_LIB_DIR/firefox/$MOZ_FIREFOX_FILE ]; then
-    if [ ! -r $SECONDARY_LIB_DIR/firefox/$MOZ_FIREFOX_FILE ]; then
-	echo "Error: $MOZ_LIB_DIR/firefox/$MOZ_FIREFOX_FILE not found"
+if [ ! -r $MOZ_LIB_DIR/firefox-wayland/$MOZ_FIREFOX_FILE ]; then
+    if [ ! -r $SECONDARY_LIB_DIR/firefox-wayland/$MOZ_FIREFOX_FILE ]; then
+	echo "Error: $MOZ_LIB_DIR/firefox-wayland/$MOZ_FIREFOX_FILE not found"
 	if [ -d $SECONDARY_LIB_DIR ]; then
-	    echo "       $SECONDARY_LIB_DIR/firefox/$MOZ_FIREFOX_FILE not found"
+	    echo "       $SECONDARY_LIB_DIR/firefox-wayland/$MOZ_FIREFOX_FILE not found"
 	fi
 	exit 1
     fi
@@ -98,7 +98,7 @@ export MOZ_PLUGIN_PATH
 ##
 ## Set MOZ_APP_LAUNCHER for gnome-session
 ##
-export MOZ_APP_LAUNCHER="/usr/bin/firefox"
+export MOZ_APP_LAUNCHER="/usr/bin/firefox-wayland"
 
 ##
 ## Set FONTCONFIG_PATH for Xft/fontconfig
@@ -238,6 +238,11 @@ do
       ;;
   esac
 done
+
+# Set to run on wayland
+if [ -z $GDK_BACKEND ]
+    export GDK_BACKEND="wayland"
+fi
 
 # Run the browser
 debugging=0
