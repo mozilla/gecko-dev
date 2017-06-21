@@ -17,13 +17,13 @@
 :root {
   --titlebar-text-color: inherit;
 
-  --space-above-tabbar: 15px;
-
   --toolbarbutton-vertical-text-padding: calc(var(--toolbarbutton-inner-padding) - 1px);
 
 %ifdef MOZ_PHOTON_THEME
   --toolbarbutton-border-radius: 2px;
 %else
+  --space-above-tabbar: 15px;
+
   --toolbarbutton-border-radius: 1px;
 
   --toolbarbutton-hover-background: rgba(0,0,0,.1);
@@ -37,9 +37,9 @@
 
   --toolbarbutton-active-bordercolor: rgba(0,0,0,.3);
   --toolbarbutton-active-boxshadow: 0 0 0 1px rgba(0,0,0,.15) inset;
-%endif
 
   --toolbarbutton-checkedhover-backgroundcolor: rgba(0,0,0,.1);
+%endif
 
   --urlbar-dropmarker-url: url("chrome://browser/skin/urlbar-history-dropmarker.png");
   --urlbar-dropmarker-region: rect(0px, 11px, 14px, 0px);
@@ -64,6 +64,7 @@
   }
 }
 
+%ifndef MOZ_PHOTON_THEME
 toolbar[brighttext] {
   --toolbarbutton-hover-background: rgba(255,255,255,.25);
   --toolbarbutton-hover-bordercolor: rgba(255,255,255,.5);
@@ -74,7 +75,7 @@ toolbar[brighttext] {
 
   --toolbarbutton-checkedhover-backgroundcolor: rgba(255,255,255,.3);
 }
-
+%endif
 #menubar-items {
   -moz-box-orient: vertical; /* for flex hack */
 }
@@ -89,6 +90,7 @@ toolbar[brighttext] {
   display: none;
 }
 
+%ifndef MOZ_PHOTON_THEME
 /* We want a 4px gap between the TabsToolbar and the toolbar-menubar when the
    toolbar-menu is displayed, and a 16px gap when it is not. 1px is taken care
    of by the (light) outer shadow of the tab, the remaining 3/15 are these margins. */
@@ -101,7 +103,7 @@ toolbar[brighttext] {
 #main-window[tabsintitlebar][sizemode="normal"]:not([inFullscreen]) #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar {
   margin-top: var(--space-above-tabbar);
 }
-
+%endif
 #navigator-toolbox,
 #navigator-toolbox > toolbar {
   -moz-appearance: none;
@@ -1075,11 +1077,13 @@ treechildren.searchbar-treebody::-moz-tree-row(selected) {
 }
 
 .ac-type-icon[type=bookmark] {
-  list-style-image: url("chrome://browser/skin/urlbar-star.svg#star");
+  list-style-image: url("chrome://browser/skin/bookmark.svg");
+  -moz-context-properties: fill;
+  fill: #b2b2b2;
 }
 
 .ac-type-icon[type=bookmark][selected][current] {
-  list-style-image: url("chrome://browser/skin/urlbar-star.svg#star-inverted");
+  fill: white;
 }
 
 .ac-type-icon[type=keyword],
@@ -1096,12 +1100,14 @@ treechildren.searchbar-treebody::-moz-tree-row(selected) {
 
 .ac-type-icon[type=switchtab],
 .ac-type-icon[type=remotetab] {
-  list-style-image: url("chrome://browser/skin/urlbar-tab.svg#tab");
+  list-style-image: url("chrome://browser/skin/urlbar-tab.svg");
+  -moz-context-properties: fill;
+  fill: #b2b2b2;
 }
 
 .ac-type-icon[type=switchtab][selected],
 .ac-type-icon[type=remotetab][selected] {
-  list-style-image: url("chrome://browser/skin/urlbar-tab.svg#tab-inverted");
+  fill: white;
 }
 
 .autocomplete-treebody::-moz-tree-cell-text(treecolAutoCompleteComment) {
@@ -1375,6 +1381,14 @@ treechildren.searchbar-treebody::-moz-tree-row(selected) {
   background-color: Window;
 }
 
+#sidebar-header {
+  border-bottom: 1px solid ThreeDLightShadow;
+}
+
+.sidebar-splitter {
+  border-color: ThreeDLightShadow;
+}
+
 .browserContainer > findbar {
   background-color: -moz-dialog;
   color: -moz-DialogText;
@@ -1504,10 +1518,6 @@ treechildren.searchbar-treebody::-moz-tree-row(selected) {
   list-style-image: url("chrome://browser/skin/toolbarbutton-dropdown-arrow-inverted.png");
 }
 
-#alltabs-button > .toolbarbutton-menu-dropmarker {
-  display: none;
-}
-
 /* All tabs menupopup */
 .alltabs-item > .menu-iconic-left > .menu-iconic-icon {
   list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.svg");
@@ -1595,9 +1605,25 @@ html|*.addon-webext-perm-list {
   margin-inline-start: 0;
 }
 
-.popup-notification-description[popupid="addon-webext-permissions"] {
-  margin: 0;
-  padding: 0;
+.popup-notification-description[popupid="addon-webext-permissions"],
+.popup-notification-description[popupid="addon-installed"] {
+  display: none;
+}
+
+.addon-webext-perm-notification-content,
+.addon-installed-notification-content {
+  margin-top: 0;
+}
+
+#addon-webext-perm-header {
+  /* Align the text more closely with the icon by clearing some top line height. */
+  margin-top: -1px;
+  margin-inline-start: 0;
+}
+
+#addon-installed-notification-header {
+  /* Align the text more closely with the icon by clearing some top line height. */
+  margin-top: -1px;
 }
 
 .addon-webext-name {
@@ -1606,16 +1632,20 @@ html|*.addon-webext-perm-list {
   margin: 0;
 }
 
-.addon-addon-icon {
+.addon-addon-icon,
+.addon-toolbar-icon {
   width: 14px;
   height: 14px;
+  vertical-align: bottom;
+  margin-bottom: 1px;
+}
+
+.addon-addon-icon {
   list-style-image: url("chrome://browser/skin/menuPanel.svg");
   -moz-image-region: rect(0px, 288px, 32px, 256px);
 }
 
 .addon-toolbar-icon {
-  width: 14px;
-  height: 14px;
   list-style-image: url("chrome://browser/skin/menu.svg");
   -moz-context-properties: fill;
   fill: var(--toolbarbutton-icon-fill);

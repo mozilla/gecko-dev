@@ -1,14 +1,6 @@
 "use strict";
 
 module.exports = {
-  "globals": {
-    "addMessageListener": false,
-    "removeMessageListener": false,
-    "sendAsyncMessage": false,
-    "TextDecoder": false,
-    "TextEncoder": false,
-  },
-
   "rules": {
     // Rules from the mozilla plugin
     "mozilla/balanced-listeners": "error",
@@ -39,9 +31,6 @@ module.exports = {
 
     // No space padding in parentheses
     "space-in-parens": ["error", "never"],
-
-    // Commas at the end of the line not the start
-    "comma-style": "error",
 
     // Require braces around blocks that start a new line
     "curly": ["error", "all"],
@@ -98,9 +87,6 @@ module.exports = {
     // Disallow using the console API.
     "no-console": "error",
 
-    // Disallow control characters in regular expressions.
-    "no-control-regex": "error",
-
     // Disallow fallthrough of case statements, except if there is a comment.
     "no-fallthrough": "error",
 
@@ -120,9 +106,6 @@ module.exports = {
     // Disallow throwing literals (eg. throw "error" instead of
     // throw new Error("error")).
     "no-throw-literal": "error",
-
-    // Disallow the use of Boolean literals in conditional expressions.
-    "no-unneeded-ternary": "error",
 
     // Disallow padding within blocks.
     "padded-blocks": ["warn", "never"],

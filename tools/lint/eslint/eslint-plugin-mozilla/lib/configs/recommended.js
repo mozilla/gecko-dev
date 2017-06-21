@@ -7,6 +7,7 @@ module.exports = {
   },
 
   "globals": {
+    "AddonManagerPermissions": false,
     "BroadcastChannel": false,
     "BrowserFeedWriter": false,
     "CSSPrimitiveValue": false,
@@ -29,6 +30,9 @@ module.exports = {
     // https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/InternalError
     "InternalError": true,
     "KeyEvent": false,
+    "MatchGlob": false,
+    "MatchPattern": false,
+    "MatchPatternSet": false,
     "MenuBoxObject": false,
     // Specific to Firefox (Chrome code only).
     "MozSelfSupport": false,
@@ -37,7 +41,10 @@ module.exports = {
     // Note: StopIteration will likely be removed as part of removing legacy
     // generators, see bug 968038.
     "StopIteration": false,
+    "StructuredCloneHolder": false,
     "WebAssembly": false,
+    "WebExtensionContentScript": false,
+    "WebExtensionPolicy": false,
     "WebrtcGlobalInformation": false,
     // Non-standard, specific to Firefox.
     "XULElement": false,
@@ -78,7 +85,7 @@ module.exports = {
     "comma-spacing": ["error", {"after": true, "before": false}],
 
     // Commas at the end of the line not the start
-    // "comma-style": "error",
+    "comma-style": "error",
 
     // Warn about cyclomatic complexity in functions.
     // XXX Get this down to 20?
@@ -145,6 +152,9 @@ module.exports = {
 
     // Disallow assignment operators in conditional statements
     "no-cond-assign": "error",
+
+    // Disallow control characters in regular expressions.
+    "no-control-regex": "error",
 
     // Disallow the use of debugger
     "no-debugger": "error",
@@ -267,6 +277,9 @@ module.exports = {
 
     // Error on newline where a semicolon is needed
     "no-unexpected-multiline": "error",
+
+    // Disallow the use of Boolean literals in conditional expressions.
+    "no-unneeded-ternary": "error",
 
     // No unreachable statements
     "no-unreachable": "error",

@@ -24,7 +24,6 @@ Cu.import("resource://gre/modules/ExtensionUtils.jsm");
 
 var {
   DefaultWeakMap,
-  extensionStylesheets,
   promiseEvent,
 } = ExtensionUtils;
 
@@ -162,7 +161,7 @@ class BasePopup {
     let sheets = [];
 
     if (this.browserStyle) {
-      sheets.push(...extensionStylesheets);
+      sheets.push(...ExtensionParent.extensionStylesheets);
     }
     if (!this.fixedWidth) {
       sheets.push(...standaloneStylesheets);
@@ -228,6 +227,7 @@ class BasePopup {
     browser.setAttribute("webextension-view-type", "popup");
     browser.setAttribute("tooltip", "aHTMLTooltip");
     browser.setAttribute("contextmenu", "contentAreaContextMenu");
+    browser.setAttribute("autocompletepopup", "PopupAutoComplete");
 
     if (this.extension.remote) {
       browser.setAttribute("remote", "true");

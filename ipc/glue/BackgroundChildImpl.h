@@ -14,7 +14,7 @@
 namespace mozilla {
 namespace dom {
 
-class FileHandleBase;
+class IDBFileHandle;
 
 namespace indexedDB {
 
@@ -202,6 +202,12 @@ protected:
 
   virtual bool
   DeallocPWebAuthnTransactionChild(PWebAuthnTransactionChild* aActor) override;
+
+  virtual PHttpBackgroundChannelChild*
+  AllocPHttpBackgroundChannelChild(const uint64_t& aChannelId) override;
+
+  virtual bool
+  DeallocPHttpBackgroundChannelChild(PHttpBackgroundChannelChild* aActor) override;
 };
 
 class BackgroundChildImpl::ThreadLocal final
@@ -210,7 +216,7 @@ class BackgroundChildImpl::ThreadLocal final
 
 public:
   nsAutoPtr<mozilla::dom::indexedDB::ThreadLocal> mIndexedDBThreadLocal;
-  mozilla::dom::FileHandleBase* mCurrentFileHandle;
+  mozilla::dom::IDBFileHandle* mCurrentFileHandle;
 
 public:
   ThreadLocal();

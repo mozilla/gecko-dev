@@ -15,21 +15,21 @@
 #include "mozilla/AnimationUtils.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/EffectSet.h"
+#include "mozilla/GeckoStyleContext.h"
 #include "mozilla/FloatingPoint.h" // For IsFinite
 #include "mozilla/LookAndFeel.h" // For LookAndFeel::GetInt
 #include "mozilla/KeyframeUtils.h"
 #include "mozilla/ServoBindings.h"
-#include "mozilla/ServoComputedValuesWithParent.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TypeTraits.h"
 #include "Layers.h" // For Layer
 #include "nsComputedDOMStyle.h" // nsComputedDOMStyle::GetStyleContext
-#include "nsContentUtils.h"  // nsContentUtils::ReportToConsole
 #include "nsCSSPropertyIDSet.h"
 #include "nsCSSProps.h" // For nsCSSProps::PropHasFlags
 #include "nsCSSPseudoElements.h" // For CSSPseudoElementType
 #include "nsIPresShell.h"
 #include "nsIScriptError.h"
+#include "nsStyleContextInlines.h"
 
 namespace mozilla {
 
@@ -199,40 +199,34 @@ KeyframeEffectReadOnly::SetKeyframes(nsTArray<Keyframe>&& aKeyframes,
 void
 KeyframeEffectReadOnly::SetKeyframes(
   nsTArray<Keyframe>&& aKeyframes,
-  const ServoComputedValuesWithParent& aServoValues)
+  const ServoComputedValues* aComputedValues)
 {
-  DoSetKeyframes(Move(aKeyframes), aServoValues);
+  DoSetKeyframes(Move(aKeyframes), aComputedValues);
 }
 
 template<typename StyleType>
 void
 KeyframeEffectReadOnly::DoSetKeyframes(nsTArray<Keyframe>&& aKeyframes,
-                                       StyleType&& aStyle)
+                                       StyleType* aStyle)
 {
-  static_assert(IsSame<StyleType, nsStyleContext*>::value ||
-                IsSame<StyleType, const ServoComputedValuesWithParent&>::value,
+  static_assert(IsSame<StyleType, nsStyleContext>::value ||
+                IsSame<StyleType, const ServoComputedValues>::value,
                 "StyleType should be nsStyleContext* or "
-                "const ServoComputedValuesWithParent&");
+                "const ServoComputedValues*");
 
   if (KeyframesEqualIgnoringComputedOffsets(aKeyframes, mKeyframes)) {
     return;
   }
 
   mKeyframes = Move(aKeyframes);
-  // Apply distribute spacing irrespective of the spacing mode. We will apply
-  // the specified spacing mode when we generate computed animation property
-  // values from the keyframes since both operations require a style context
-  // and need to be performed whenever the style context changes.
-  KeyframeUtils::ApplyDistributeSpacing(mKeyframes);
+  KeyframeUtils::DistributeKeyframes(mKeyframes);
 
   if (mAnimation && mAnimation->IsRelevant()) {
     nsNodeUtils::AnimationChanged(mAnimation);
   }
 
-  // We need to call UpdateProperties() if the StyleType is
-  // 'const ServoComputedValuesWithParent&' (i.e. not a pointer) or
-  // nsStyleContext* is not nullptr.
-  if (!IsPointer<StyleType>::value || aStyle) {
+  // We need to call UpdateProperties() if the StyleType is not nullptr.
+  if (aStyle) {
     UpdateProperties(aStyle);
     MaybeUpdateFrameForCompositor();
   }
@@ -308,29 +302,23 @@ KeyframeEffectReadOnly::UpdateProperties(nsStyleContext* aStyleContext)
   }
 
   const ServoComputedValues* currentStyle =
-    aStyleContext->StyleSource().AsServoComputedValues();
-  // FIXME: Remove GetParentAllowServo() in Bug 1349004.
-  const ServoComputedValues* parentStyle =
-    aStyleContext->GetParentAllowServo()
-      ? aStyleContext->GetParentAllowServo()->StyleSource().AsServoComputedValues()
-      : nullptr;
+    aStyleContext->ComputedValues();
 
-  const ServoComputedValuesWithParent servoValues = { currentStyle, parentStyle };
-  DoUpdateProperties(servoValues);
+  DoUpdateProperties(currentStyle);
 }
 
 void
 KeyframeEffectReadOnly::UpdateProperties(
-  const ServoComputedValuesWithParent& aServoValues)
+  const ServoComputedValues* aComputedValues)
 {
-  DoUpdateProperties(aServoValues);
+  DoUpdateProperties(aComputedValues);
 }
 
 template<typename StyleType>
 void
-KeyframeEffectReadOnly::DoUpdateProperties(StyleType&& aStyle)
+KeyframeEffectReadOnly::DoUpdateProperties(StyleType* aStyle)
 {
-  MOZ_ASSERT_IF(IsPointer<StyleType>::value, aStyle);
+  MOZ_ASSERT(aStyle);
 
   // Skip updating properties when we are composing style.
   // FIXME: Bug 1324966. Drop this check once we have a function to get
@@ -341,8 +329,7 @@ KeyframeEffectReadOnly::DoUpdateProperties(StyleType&& aStyle)
     return;
   }
 
-  nsTArray<AnimationProperty> properties =
-    BuildProperties(Forward<StyleType>(aStyle));
+  nsTArray<AnimationProperty> properties = BuildProperties(aStyle);
 
   // We need to update base styles even if any properties are not changed at all
   // since base styles might have been changed due to parent style changes, etc.
@@ -362,7 +349,7 @@ KeyframeEffectReadOnly::DoUpdateProperties(StyleType&& aStyle)
   }
 
   mProperties = Move(properties);
-  UpadateEffectSet();
+  UpdateEffectSet();
 
   for (AnimationProperty& property : mProperties) {
     property.mIsRunningOnCompositor =
@@ -511,7 +498,7 @@ KeyframeEffectReadOnly::EnsureBaseStyle(
 
 void
 KeyframeEffectReadOnly::EnsureBaseStyles(
-  const ServoComputedValuesWithParent& aServoValues,
+  const ServoComputedValues* aComputedValues,
   const nsTArray<AnimationProperty>& aProperties)
 {
   if (!mTarget) {
@@ -798,27 +785,20 @@ KeyframeEffectOptionsFromUnion(
 template <class OptionsType>
 static KeyframeEffectParams
 KeyframeEffectParamsFromUnion(const OptionsType& aOptions,
-                              nsAString& aInvalidPacedProperty,
-                              CallerType aCallerType,
-                              ErrorResult& aRv)
+                              CallerType aCallerType)
 {
   KeyframeEffectParams result;
-  if (!aOptions.IsUnrestrictedDouble()) {
-    const KeyframeEffectOptions& options =
-      KeyframeEffectOptionsFromUnion(aOptions);
-    KeyframeEffectParams::ParseSpacing(options.mSpacing,
-                                       result.mSpacingMode,
-                                       result.mPacedProperty,
-                                       aInvalidPacedProperty,
-                                       aCallerType,
-                                       aRv);
-    // Ignore iterationComposite if the Web Animations API is not enabled,
-    // then the default value 'Replace' will be used.
-    if (AnimationUtils::IsCoreAPIEnabledForCaller(aCallerType)) {
-      result.mIterationComposite = options.mIterationComposite;
-      result.mComposite = options.mComposite;
-    }
+  if (aOptions.IsUnrestrictedDouble() ||
+      // Ignore iterationComposite if the Web Animations API is not enabled,
+      // then the default value 'Replace' will be used.
+      !AnimationUtils::IsCoreAPIEnabledForCaller(aCallerType)) {
+    return result;
   }
+
+  const KeyframeEffectOptions& options =
+    KeyframeEffectOptionsFromUnion(aOptions);
+  result.mIterationComposite = options.mIterationComposite;
+  result.mComposite = options.mComposite;
   return result;
 }
 
@@ -867,23 +847,8 @@ KeyframeEffectReadOnly::ConstructKeyframeEffect(
     return nullptr;
   }
 
-  nsAutoString invalidPacedProperty;
   KeyframeEffectParams effectOptions =
-    KeyframeEffectParamsFromUnion(aOptions, invalidPacedProperty,
-                                  aGlobal.CallerType(), aRv);
-  if (aRv.Failed()) {
-    return nullptr;
-  }
-
-  if (!invalidPacedProperty.IsEmpty()) {
-    const char16_t* params[] = { invalidPacedProperty.get() };
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                    NS_LITERAL_CSTRING("Animation"),
-                                    doc,
-                                    nsContentUtils::eDOM_PROPERTIES,
-                                    "UnanimatablePacedProperty",
-                                    params, ArrayLength(params));
-  }
+    KeyframeEffectParamsFromUnion(aOptions, aGlobal.CallerType());
 
   Maybe<OwningAnimationTarget> target = ConvertTarget(aTarget);
   RefPtr<KeyframeEffectType> effect =
@@ -936,12 +901,12 @@ KeyframeEffectReadOnly::ConstructKeyframeEffect(const GlobalObject& aGlobal,
 
 template<typename StyleType>
 nsTArray<AnimationProperty>
-KeyframeEffectReadOnly::BuildProperties(StyleType&& aStyle)
+KeyframeEffectReadOnly::BuildProperties(StyleType* aStyle)
 {
-  static_assert(IsSame<StyleType, nsStyleContext*>::value ||
-                IsSame<StyleType, const ServoComputedValuesWithParent&>::value,
+  static_assert(IsSame<StyleType, nsStyleContext>::value ||
+                IsSame<StyleType, const ServoComputedValues>::value,
                 "StyleType should be nsStyleContext* or "
-                "const ServoComputedValuesWithParent&");
+                "const ServoComputedValues*");
 
   MOZ_ASSERT(aStyle);
 
@@ -959,24 +924,11 @@ KeyframeEffectReadOnly::BuildProperties(StyleType&& aStyle)
   // make a copy of |mKeyframes| first and iterate over that instead.
   auto keyframesCopy(mKeyframes);
 
-  nsTArray<ComputedKeyframeValues> computedValues =
-    KeyframeUtils::GetComputedKeyframeValues(keyframesCopy,
-                                             mTarget->mElement,
-                                             aStyle);
-
-  // FIXME: Bug 1332633: we have to implement ComputeDistance for
-  //        RawServoAnimationValue.
-  if (mEffectOptions.mSpacingMode == SpacingMode::paced &&
-      !mDocument->IsStyledByServo()) {
-    KeyframeUtils::ApplySpacing(keyframesCopy, SpacingMode::paced,
-                                mEffectOptions.mPacedProperty,
-                                computedValues, aStyle);
-  }
-
   result =
     KeyframeUtils::GetAnimationPropertiesFromKeyframes(
       keyframesCopy,
-      computedValues,
+      mTarget->mElement,
+      aStyle,
       mEffectOptions.mComposite);
 
 #ifdef DEBUG
@@ -1009,7 +961,7 @@ KeyframeEffectReadOnly::UpdateTargetRegistration()
     EffectSet* effectSet =
       EffectSet::GetOrCreateEffectSet(mTarget->mElement, mTarget->mPseudoType);
     effectSet->AddEffect(*this);
-    UpadateEffectSet(effectSet);
+    UpdateEffectSet(effectSet);
   } else {
     UnregisterTarget();
   }
@@ -1693,7 +1645,7 @@ CreateStyleContextForAnimationValue(nsCSSPropertyID aProperty,
 
   // We need to call StyleData to generate cached data for the style context.
   // Otherwise CalcStyleDifference returns no meaningful result.
-  styleContext->StyleData(nsCSSProps::kSIDTable[aProperty]);
+  styleContext->AsGecko()->StyleData(nsCSSProps::kSIDTable[aProperty]);
 
   return styleContext.forget();
 }
@@ -1880,7 +1832,7 @@ KeyframeEffectReadOnly::ContainsAnimatedScale(const nsIFrame* aFrame) const
 }
 
 void
-KeyframeEffectReadOnly::UpadateEffectSet(EffectSet* aEffectSet) const
+KeyframeEffectReadOnly::UpdateEffectSet(EffectSet* aEffectSet) const
 {
   EffectSet* effectSet =
     aEffectSet ? aEffectSet

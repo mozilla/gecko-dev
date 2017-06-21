@@ -496,7 +496,7 @@ PlacesViewBase.prototype = {
     if (elt.localName == "menupopup")
       elt = elt.parentNode;
 
-    elt.setAttribute("scheme", PlacesUIUtils.guessUrlSchemeForUI(aURIString));
+    elt.setAttribute("scheme", PlacesUIUtils.guessUrlSchemeForUI(aPlacesNode.uri));
   },
 
   nodeIconChanged: function PVB_nodeIconChanged(aPlacesNode) {
@@ -596,7 +596,7 @@ PlacesViewBase.prototype = {
            child != popup._endMarker;
            child = child.nextSibling) {
         if (child._placesNode && child._placesNode.uri == aPlacesNode.uri) {
-          if (aCount)
+          if (aPlacesNode.accessCount)
             child.setAttribute("visited", "true");
           else
             child.removeAttribute("visited");
@@ -1642,7 +1642,7 @@ PlacesToolbar.prototype = {
     let dropPoint = this._getDropPoint(aEvent);
     if (dropPoint && dropPoint.ip) {
       PlacesControllerDragHelper.onDrop(dropPoint.ip, aEvent.dataTransfer)
-                                .then(null, Components.utils.reportError);
+                                .catch(Components.utils.reportError);
       aEvent.preventDefault();
     }
 

@@ -52,6 +52,12 @@ class CollectionValidator {
     this.name = name;
     this.props = props;
     this.idProp = idProp;
+
+    // This property deals with the fact that form history records are never
+    // deleted from the server. The FormValidator subclass needs to ignore the
+    // client missing records, and it uses this property to achieve it -
+    // (Bug 1354016).
+    this.ignoresMissingClients = false;
   }
 
   // Should a custom ProblemData type be needed, return it here.
@@ -63,16 +69,14 @@ class CollectionValidator {
     let collection = engine.itemSource();
     let collectionKey = engine.service.collectionKeys.keyForCollection(engine.name);
     collection.full = true;
-    let items = [];
-    collection.recordHandler = function(item) {
-      item.decrypt(collectionKey);
-      items.push(item.cleartext);
-    };
-    let resp = await collection.getBatched();
-    if (!resp.success) {
-      throw resp;
+    let result = await collection.getBatched();
+    if (!result.response.success) {
+      throw result.response;
     }
-    return items;
+    return result.records.map(record => {
+      record.decrypt(collectionKey);
+      return record.cleartext;
+    });
   }
 
   // Should return a promise that resolves to an array of client items.
@@ -177,7 +181,7 @@ class CollectionValidator {
       if (!client && !server) {
         throw new Error("Impossible: no client or server record for " + id);
       } else if (server && !client) {
-        if (server.understood) {
+        if (!this.ignoresMissingClients && server.understood) {
           problems.clientMissing.push(id);
         }
       } else if (client && !server) {

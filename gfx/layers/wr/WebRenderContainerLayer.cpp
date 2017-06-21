@@ -107,14 +107,23 @@ WebRenderContainerLayer::RenderLayer(wr::DisplayListBuilder& aBuilder,
     transformForSC = nullptr;
   }
 
+  if (transformForSC && transform.IsIdentity()) {
+    // If the transform is an identity transform, strip it out so that WR
+    // doesn't turn this stacking context into a reference frame, as it
+    // affects positioning. Bug 1345577 tracks a better fix.
+    transformForSC = nullptr;
+  }
+
+  nsTArray<WrFilterOp> filters;
+  for (const CSSFilter& filter : this->GetFilterChain()) {
+    filters.AppendElement(wr::ToWrFilterOp(filter));
+  }
+
   ScrollingLayersHelper scroller(this, aBuilder, aSc);
-  StackingContextHelper sc(aSc, aBuilder, this, animationsId, opacityForSC, transformForSC);
+  StackingContextHelper sc(aSc, aBuilder, this, animationsId, opacityForSC, transformForSC, filters);
 
   LayerRect rect = Bounds();
   DumpLayerInfo("ContainerLayer", rect);
-
-  Maybe<WrImageMask> mask = BuildWrMaskLayer(&sc);
-  aBuilder.PushClip(sc.ToRelativeWrRect(rect), mask.ptrOr(nullptr));
 
   for (LayerPolygon& child : children) {
     if (child.layer->IsBackfaceHidden()) {
@@ -122,7 +131,6 @@ WebRenderContainerLayer::RenderLayer(wr::DisplayListBuilder& aBuilder,
     }
     ToWebRenderLayer(child.layer)->RenderLayer(aBuilder, sc);
   }
-  aBuilder.PopClip();
 }
 
 void

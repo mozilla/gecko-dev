@@ -10,6 +10,7 @@
 
 #include "Units.h"
 #include "mozilla/gfx/Point.h"          // for IntPoint
+#include "mozilla/Maybe.h"
 #include "mozilla/TypedEnumBits.h"
 #include "nsRegion.h"
 
@@ -33,6 +34,8 @@ template <typename T> struct ParamTraits;
 namespace android {
 class MOZ_EXPORT GraphicBuffer;
 } // namespace android
+
+struct nsStyleFilter;
 
 namespace mozilla {
 namespace layers {
@@ -214,6 +217,8 @@ typedef Array<LayerSize, 4> BorderCorners;
 typedef Array<LayerCoord, 4> BorderWidths;
 typedef Array<uint8_t, 4> BorderStyles;
 
+typedef Maybe<LayerRect> MaybeLayerRect;
+
 // This is used to communicate Layers across IPC channels. The Handle is valid
 // for layers in the same PLayerTransaction. Handles are created by ClientLayerManager,
 // and are cached in LayerTransactionParent on first use.
@@ -305,6 +310,25 @@ enum class ScrollDirection : uint32_t {
   HORIZONTAL,
   SENTINEL /* for IPC serialization */
 };
+
+enum class CSSFilterType : int8_t {
+  BLUR,
+  BRIGHTNESS,
+  CONTRAST,
+  GRAYSCALE,
+  HUE_ROTATE,
+  INVERT,
+  OPACITY,
+  SATURATE,
+  SEPIA,
+};
+
+struct CSSFilter {
+  CSSFilterType type;
+  float argument;
+};
+
+CSSFilter ToCSSFilter(const nsStyleFilter& filter);
 
 } // namespace layers
 } // namespace mozilla

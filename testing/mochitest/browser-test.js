@@ -778,13 +778,25 @@ Tester.prototype = {
             try {
               yield task();
             } catch (ex) {
-              currentTest.addResult(new testResult({
-                name: "Uncaught exception",
-                pass: this.SimpleTest.isExpectingUncaughtException(),
-                ex,
-                stack: (typeof ex == "object" && "stack" in ex) ? ex.stack : null,
-                allowFailure: currentTest.allowFailure,
-              }));
+              if (currentTest.timedOut) {
+                currentTest.addResult(new testResult({
+                  name: "Uncaught exception received from previously timed out test",
+                  pass: false,
+                  ex,
+                  stack: (typeof ex == "object" && "stack" in ex) ? ex.stack : null,
+                  allowFailure: currentTest.allowFailure,
+                }));
+                // We timed out, so we've already cleaned up for this test, just get outta here.
+                return;
+              } else {
+                currentTest.addResult(new testResult({
+                  name: "Uncaught exception",
+                  pass: this.SimpleTest.isExpectingUncaughtException(),
+                  ex,
+                  stack: (typeof ex == "object" && "stack" in ex) ? ex.stack : null,
+                  allowFailure: currentTest.allowFailure,
+                }));
+              }
             }
             PromiseTestUtils.assertNoUncaughtRejections();
             this.SimpleTest.info("Leaving test " + task.name);
@@ -1032,6 +1044,9 @@ function testScope(aTester, aTest, expected) {
 
   this.ignoreAllUncaughtExceptions = function test_ignoreAllUncaughtExceptions(aIgnoring) {
     self.SimpleTest.ignoreAllUncaughtExceptions(aIgnoring);
+  };
+
+  this.thisTestLeaksUncaughtRejectionsAndShouldBeFixed = function(...rejections) {
   };
 
   this.expectAssertions = function test_expectAssertions(aMin, aMax) {

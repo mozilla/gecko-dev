@@ -14,14 +14,15 @@
  * macro_rules! pseudo_class_macro{
  *     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
  *      string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+ *      keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
  *         // do stuff
  *     }
  * }
  * apply_non_ts_list!(pseudo_class_macro)
  * ```
  *
- * The string variables will be applied to pseudoclasses that are of the form
- * of a function with a string argument.
+ * The `string` and `keyword` variables will be applied to pseudoclasses that are of the form of
+ * functions with string or keyword arguments.
  *
  * Pending pseudo-classes:
  *
@@ -71,6 +72,10 @@ macro_rules! apply_non_ts_list {
                 ("-moz-broken", MozBroken, mozBroken, IN_BROKEN_STATE, _),
                 ("-moz-loading", MozLoading, mozLoading, IN_LOADING_STATE, _),
                 ("-moz-suppressed", MozSuppressed, mozSuppressed, IN_SUPPRESSED_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-has-dir-attr", MozHasDirAttr, mozHasDirAttr, IN_HAS_DIR_ATTR_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-dir-attr-ltr", MozDirAttrLTR, mozDirAttrLTR, IN_HAS_DIR_ATTR_LTR_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-dir-attr-rtl", MozDirAttrRTL, mozDirAttrRTL, IN_HAS_DIR_ATTR_RTL_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-dir-attr-like-auto", MozDirAttrLikeAuto, mozDirAttrLikeAuto, IN_HAS_DIR_ATTR_LIKE_AUTO_STATE, PSEUDO_CLASS_INTERNAL),
                 ("-moz-autofill", MozAutofill, mozAutofill, IN_AUTOFILL_STATE, PSEUDO_CLASS_INTERNAL),
                 ("-moz-autofill-preview", MozAutofillPreview, mozAutofillPreview, IN_AUTOFILL_PREVIEW_STATE, PSEUDO_CLASS_INTERNAL),
 
@@ -106,16 +111,19 @@ macro_rules! apply_non_ts_list {
                 ("-moz-last-node", MozLastNode, lastNode, _, _),
                 ("-moz-only-whitespace", MozOnlyWhitespace, mozOnlyWhitespace, _, _),
                 ("-moz-native-anonymous", MozNativeAnonymous, mozNativeAnonymous, _, PSEUDO_CLASS_INTERNAL),
+                ("-moz-use-shadow-tree-root", MozUseShadowTreeRoot, mozUseShadowTreeRoot, _, PSEUDO_CLASS_INTERNAL),
                 ("-moz-is-html", MozIsHTML, mozIsHTML, _, _),
                 ("-moz-placeholder", MozPlaceholder, mozPlaceholder, _, _),
             ],
             string: [
                 ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, PSEUDO_CLASS_INTERNAL),
-                ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, PSEUDO_CLASS_INTERNAL),
                 ("-moz-empty-except-children-with-localname", MozEmptyExceptChildrenWithLocalname,
                  mozEmptyExceptChildrenWithLocalname, _, PSEUDO_CLASS_INTERNAL),
-                ("dir", Dir, dir, _, _),
                 ("lang", Lang, lang, _, _),
+            ],
+            keyword: [
+                ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, _),
+                ("dir", Dir, dir, _, _),
             ]
         }
     }

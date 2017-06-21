@@ -38,7 +38,7 @@ JS::Zone::Zone(JSRuntime* rt, ZoneGroup* group)
     weakCaches_(group),
     gcWeakKeys_(group, SystemAllocPolicy(), rt->randomHashCodeScrambler()),
     gcSweepGroupEdges_(group),
-    typeDescrObjects_(group, this, SystemAllocPolicy()),
+    typeDescrObjects_(group, this),
     markedAtoms_(group),
     atomCache_(group),
     externalStringCache_(group),
@@ -46,8 +46,8 @@ JS::Zone::Zone(JSRuntime* rt, ZoneGroup* group)
     threshold(),
     gcDelayBytes(0),
     propertyTree_(group, this),
-    baseShapes_(group, this, BaseShapeSet()),
-    initialShapes_(group, this, InitialShapeSet()),
+    baseShapes_(group, this),
+    initialShapes_(group, this),
     data(group, nullptr),
     isSystem(group, false),
 #ifdef DEBUG
@@ -251,8 +251,8 @@ Zone::discardJitCode(FreeOp* fop, bool discardBaselineCode)
 void
 JS::Zone::checkUniqueIdTableAfterMovingGC()
 {
-    for (UniqueIdMap::Enum e(uniqueIds()); !e.empty(); e.popFront())
-        js::gc::CheckGCThingAfterMovingGC(e.front().key());
+    for (auto r = uniqueIds().all(); !r.empty(); r.popFront())
+        js::gc::CheckGCThingAfterMovingGC(r.front().key());
 }
 #endif
 
@@ -466,7 +466,7 @@ ZoneList::clear()
 }
 
 JS_PUBLIC_API(void)
-JS::shadow::RegisterWeakCache(JS::Zone* zone, WeakCache<void*>* cachep)
+JS::shadow::RegisterWeakCache(JS::Zone* zone, detail::WeakCacheBase* cachep)
 {
     zone->registerWeakCache(cachep);
 }

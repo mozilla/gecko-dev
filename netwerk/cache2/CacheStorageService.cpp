@@ -210,7 +210,8 @@ protected:
   virtual ~WalkCacheRunnable()
   {
     if (mCallback) {
-      ProxyReleaseMainThread(mCallback);
+      ProxyReleaseMainThread(
+        "WalkCacheRunnable::mCallback", mCallback);
     }
   }
 
@@ -321,7 +322,8 @@ private:
   virtual ~WalkMemoryCacheRunnable()
   {
     if (mCallback)
-      ProxyReleaseMainThread(mCallback);
+      ProxyReleaseMainThread(
+        "WalkMemoryCacheRunnable::mCallback", mCallback);
   }
 
   virtual void OnEntryInfo(const nsACString & aURISpec, const nsACString & aIdEnhance,
@@ -1706,7 +1708,8 @@ private:
 CacheEntryDoomByKeyCallback::~CacheEntryDoomByKeyCallback()
 {
   if (mCallback)
-    ProxyReleaseMainThread(mCallback);
+    ProxyReleaseMainThread(
+      "CacheEntryDoomByKeyCallback::mCallback", mCallback);
 }
 
 NS_IMETHODIMP CacheEntryDoomByKeyCallback::OnFileDoomed(CacheFileHandle *aHandle,
@@ -2086,7 +2089,7 @@ uint32_t CacheStorageService::CacheQueueSize(bool highPriority)
   return thread->QueueSize(highPriority);
 }
 
-// Telementry collection
+// Telemetry collection
 
 namespace {
 

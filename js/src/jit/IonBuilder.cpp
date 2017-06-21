@@ -1216,6 +1216,11 @@ IonBuilder::addOsrValueTypeBarrier(uint32_t slot, MInstruction** def_,
         osrBlock->insertBefore(osrBlock->lastIns(), barrier);
         osrBlock->rewriteSlot(slot, barrier);
         def = barrier;
+
+        // If the TypeSet is more precise than |type|, adjust |type| for the
+        // code below.
+        if (type == MIRType::Value)
+            type = barrier->type();
     } else if (type == MIRType::Null ||
                type == MIRType::Undefined ||
                type == MIRType::MagicOptimizedArguments)
@@ -1491,8 +1496,12 @@ IonBuilder::visitBlock(const CFGBlock* cfgblock, MBasicBlock* mblock)
         mblock->setHitCount(script()->getHitCount(mblock->pc()));
 
     // Optimization to move a predecessor that only has this block as successor
-    // just before this block.
-    if (mblock->numPredecessors() == 1 && mblock->getPredecessor(0)->numSuccessors() == 1) {
+    // just before this block.  Skip this optimization if the previous block is
+    // not part of the same function, as we might have to backtrack on inlining
+    // failures.
+    if (mblock->numPredecessors() == 1 && mblock->getPredecessor(0)->numSuccessors() == 1 &&
+        !mblock->getPredecessor(0)->outerResumePoint())
+    {
         graph().removeBlockFromList(mblock->getPredecessor(0));
         graph().addBlock(mblock->getPredecessor(0));
     }
@@ -2023,7 +2032,6 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_CALL_IGNORES_RV:
       case JSOP_CALLITER:
       case JSOP_NEW:
-      case JSOP_SUPERCALL:
         MOZ_TRY(jsop_call(GET_ARGC(pc), (JSOp)*pc == JSOP_NEW || (JSOp)*pc == JSOP_SUPERCALL,
                           (JSOp)*pc == JSOP_CALL_IGNORES_RV));
         if (op == JSOP_CALLITER) {
@@ -2327,6 +2335,17 @@ IonBuilder::inspectOpcode(JSOp op)
         pushConstant(BooleanValue(false));
         return Ok();
       }
+
+#ifdef DEBUG
+      // Most of the infrastructure for these exists in Ion, but needs review
+      // and testing before these are enabled. Once other opcodes that are used
+      // in derived classes are supported in Ion, this can be better validated
+      // with testcases. Pay special attention to bailout and other areas where
+      // JSOP_NEW has special handling.
+      case JSOP_SPREADSUPERCALL:
+      case JSOP_SUPERCALL:
+        break;
+#endif
 
       default:
         break;
@@ -4843,6 +4862,9 @@ IonBuilder::createThisScriptedBaseline(MDefinition* callee)
 
     JSFunction* target = inspector->getSingleCallee(pc);
     if (!target || !target->hasScript())
+        return nullptr;
+
+    if (target->isBoundFunction() || target->isDerivedClassConstructor())
         return nullptr;
 
     JSObject* templateObject = inspector->getTemplateObject(pc);

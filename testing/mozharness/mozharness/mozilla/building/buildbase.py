@@ -351,6 +351,7 @@ class BuildOptionParser(object):
         'cross-debug': 'builds/releng_sub_%s_configs/%s_cross_debug.py',
         'cross-debug-st-an': 'builds/releng_sub_%s_configs/%s_cross_debug_st_an.py',
         'cross-debug-artifact': 'builds/releng_sub_%s_configs/%s_cross_debug_artifact.py',
+        'cross-noopt-debug': 'builds/releng_sub_%s_configs/%s_cross_noopt_debug.py',
         'cross-opt-st-an': 'builds/releng_sub_%s_configs/%s_cross_opt_st_an.py',
         'cross-artifact': 'builds/releng_sub_%s_configs/%s_cross_artifact.py',
         'debug': 'builds/releng_sub_%s_configs/%s_debug.py',
@@ -361,6 +362,7 @@ class BuildOptionParser(object):
         'source': 'builds/releng_sub_%s_configs/%s_source.py',
         'stylo': 'builds/releng_sub_%s_configs/%s_stylo.py',
         'stylo-debug': 'builds/releng_sub_%s_configs/%s_stylo_debug.py',
+        'noopt-debug': 'builds/releng_sub_%s_configs/%s_noopt_debug.py',
         'api-15-gradle-dependencies': 'builds/releng_sub_%s_configs/%s_api_15_gradle_dependencies.py',
         'api-15': 'builds/releng_sub_%s_configs/%s_api_15.py',
         'api-15-old-id': 'builds/releng_sub_%s_configs/%s_api_15_old_id.py',
@@ -1115,10 +1117,13 @@ or run without that action (ie: --no-{action})"
         )
         c = self.config
         dirs = self.query_abs_dirs()
-        if not c.get('tooltool_manifest_src'):
+        manifest_src = os.environ.get('TOOLTOOL_MANIFEST')
+        if not manifest_src:
+            manifest_src = c.get('tooltool_manifest_src')
+        if not manifest_src:
             return self.warning(ERROR_MSGS['tooltool_manifest_undetermined'])
         tooltool_manifest_path = os.path.join(dirs['abs_src_dir'],
-                                              c['tooltool_manifest_src'])
+                                              manifest_src)
         cmd = [
             sys.executable, '-u',
             os.path.join(dirs['abs_src_dir'], 'mach'),
@@ -1617,8 +1622,18 @@ or run without that action (ie: --no-{action})"
                 buildprops,
                 os.path.join(dirs['abs_work_dir'], 'buildprops.json'))
 
+        if 'MOZILLABUILD' in os.environ:
+            # We found many issues with intermittent build failures when not invoking mach via bash.
+            # See bug 1364651 before considering changing.
+            mach = [
+                os.path.join(os.environ['MOZILLABUILD'], 'msys', 'bin', 'bash.exe'),
+                os.path.join(dirs['abs_src_dir'], 'mach')
+            ]
+        else:
+            mach = [sys.executable, 'mach']
+
         return_code = self.run_command_m(
-            command=[sys.executable, 'mach', '--log-no-times', 'build', '-v'],
+            command=mach + ['--log-no-times', 'build', '-v'],
             cwd=dirs['abs_src_dir'],
             env=env,
             output_timeout=self.config.get('max_build_output_timeout', 60 * 40)
@@ -1630,6 +1645,9 @@ or run without that action (ie: --no-{action})"
             )
             self.fatal("'mach build' did not run successfully. Please check "
                        "log for errors.")
+
+        self.generate_build_props(console_output=True, halt_on_failure=True)
+        self._generate_build_stats()
 
     def multi_l10n(self):
         if not self.query_is_nightly():
@@ -1724,10 +1742,8 @@ or run without that action (ie: --no-{action})"
         self._taskcluster_upload(abs_files, self.routes_json['l10n'],
                                  locale='multi')
 
-    def postflight_build(self, console_output=True):
+    def postflight_build(self):
         """grabs properties from post build and calls ccache -s"""
-        self.generate_build_props(console_output=console_output,
-                                  halt_on_failure=True)
         # A list of argument lists.  Better names gratefully accepted!
         mach_commands = self.config.get('postflight_build_mach_commands', [])
         for mach_command in mach_commands:
@@ -1835,6 +1851,38 @@ or run without that action (ie: --no-{action})"
             self.error("'mach build check' did not run successfully. Please "
                        "check log for errors.")
 
+    def _is_configuration_shipped(self):
+        """Determine if the current build configuration is shipped to users.
+
+        This is used to drive alerting so we don't see alerts for build
+        configurations we care less about.
+        """
+        # Ideally this would be driven by a config option. However, our
+        # current inheritance mechanism of using a base config and then
+        # one-off configs for variants isn't conducive to this since derived
+        # configs we need to be reset and we don't like requiring boilerplate
+        # in derived configs.
+
+        # All PGO builds are shipped. This takes care of Linux and Windows.
+        if self.config.get('pgo_build'):
+            return True
+
+        # Debug builds are never shipped.
+        if self.config.get('debug_build'):
+            return False
+
+        # OS X opt builds without a variant are shipped.
+        if self.config.get('platform') == 'macosx64':
+            if not self.config.get('build_variant'):
+                return True
+
+        # Android opt builds without a variant are shipped.
+        if self.config.get('platform') == 'android':
+            if not self.config.get('build_variant'):
+                return True
+
+        return False
+
     def _load_build_resources(self):
         p = self.config.get('build_resources_path') % self.query_abs_dirs()
         if not os.path.exists(p):
@@ -1905,28 +1953,9 @@ or run without that action (ie: --no-{action})"
             'subtests': [],
         }
 
-    def generate_build_stats(self):
-        """grab build stats following a compile.
-
-        This action handles all statistics from a build: 'count_ctors'
-        and then posts to graph server the results.
-        We only post to graph server for non nightly build
-        """
-        if self.config.get('forced_artifact_build'):
-            self.info('Skipping due to forced artifact build.')
-            return
-
+    def _get_package_metrics(self):
         import tarfile
         import zipfile
-        c = self.config
-
-        if c.get('enable_count_ctors'):
-            self.info("counting ctors...")
-            self._count_ctors()
-        else:
-            self.info("ctors counts are disabled for this build.")
-
-        # Report some important file sizes for display in treeherder
 
         dirs = self.query_abs_dirs()
         packageName = self.query_buildbot_property('packageFilename')
@@ -1981,12 +2010,64 @@ or run without that action (ie: --no-{action})"
                                     subtests[name] = size
                 for name in subtests:
                     if subtests[name] is not None:
-                        self.info('TinderboxPrint: Size of %s<br/>%s bytes\n' % (
-                            name, subtests[name]))
-                        size_measurements.append({'name': name, 'value': subtests[name]})
+                        self.info('TinderboxPrint: Size of %s<br/>%s bytes\n' %
+                                  (name, subtests[name]))
+                        size_measurements.append(
+                            {'name': name, 'value': subtests[name]})
             except:
                 self.info('Unable to search %s for component sizes.' % installer)
                 size_measurements = []
+
+        if not installer_size and not size_measurements:
+            return
+
+        # We want to always collect metrics. But alerts for installer size are
+        # only use for builds with ship. So nix the alerts for builds we don't
+        # ship.
+        def filter_alert(alert):
+            if not self._is_configuration_shipped():
+                alert['shouldAlert'] = False
+
+            return alert
+
+        if installer.endswith('.apk'): # Android
+            yield filter_alert({
+                "name": "installer size",
+                "value": installer_size,
+                "alertChangeType": "absolute",
+                "alertThreshold": (200 * 1024),
+                "subtests": size_measurements
+            })
+        else:
+            yield filter_alert({
+                "name": "installer size",
+                "value": installer_size,
+                "alertThreshold": 1.0,
+                "subtests": size_measurements
+            })
+
+    def _generate_build_stats(self):
+        """grab build stats following a compile.
+
+        This action handles all statistics from a build: 'count_ctors'
+        and then posts to graph server the results.
+        We only post to graph server for non nightly build
+        """
+        self.info('Collecting build metrics')
+
+        if self.config.get('forced_artifact_build'):
+            self.info('Skipping due to forced artifact build.')
+            return
+
+        c = self.config
+
+        if c.get('enable_count_ctors'):
+            self.info("counting ctors...")
+            self._count_ctors()
+        else:
+            self.info("ctors counts are disabled for this build.")
+
+        # Report some important file sizes for display in treeherder
 
         perfherder_data = {
             "framework": {
@@ -1994,22 +2075,9 @@ or run without that action (ie: --no-{action})"
             },
             "suites": [],
         }
-        if (installer_size or size_measurements) and not c.get('debug_build'):
-            if installer.endswith('.apk'): # Android
-                perfherder_data["suites"].append({
-                    "name": "installer size",
-                    "value": installer_size,
-                    "alertChangeType": "absolute",
-                    "alertThreshold": (200 * 1024),
-                    "subtests": size_measurements
-                })
-            else:
-                perfherder_data["suites"].append({
-                    "name": "installer size",
-                    "value": installer_size,
-                    "alertThreshold": 1.0,
-                    "subtests": size_measurements
-                })
+
+        if not c.get('debug_build') and not c.get('disable_package_metrics'):
+            perfherder_data['suites'].extend(self._get_package_metrics())
 
         # Extract compiler warnings count.
         warnings = self.get_output_from_command(
@@ -2036,6 +2104,11 @@ or run without that action (ie: --no-{action})"
 
         # Ensure all extra options for this configuration are present.
         for opt in self.config.get('perfherder_extra_options', []):
+            for suite in perfherder_data['suites']:
+                if opt not in suite.get('extraOptions', []):
+                    suite.setdefault('extraOptions', []).append(opt)
+
+        for opt in os.environ.get('PERFHERDER_EXTRA_OPTIONS', '').split():
             for suite in perfherder_data['suites']:
                 if opt not in suite.get('extraOptions', []):
                     suite.setdefault('extraOptions', []).append(opt)

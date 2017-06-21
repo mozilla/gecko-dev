@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use context::QuirksMode;
-use cssparser::{CssStringWriter, Parser, RGBA, Token};
+use cssparser::{CssStringWriter, Parser, RGBA, Token, BasicParseError};
 use euclid::Size2D;
 use font_metrics::get_metrics_provider_for_product;
 use gecko::values::convert_nscolor_to_rgba;
@@ -19,11 +19,12 @@ use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
 use properties::longhands::font_size;
+use selectors::parser::SelectorParseError;
 use std::fmt::{self, Write};
-use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::viewport::ViewportConstraints;
 use stylearc::Arc;
 use values::{CSSFloat, specified};
@@ -47,6 +48,9 @@ pub struct Device {
     /// the parent to compute everything else. So it is correct to just use
     /// a relaxed atomic here.
     root_font_size: AtomicIsize,
+    /// Whether any styles computed in the document relied on the root font-size
+    /// by using rem units.
+    used_root_font_size: AtomicBool,
 }
 
 unsafe impl Sync for Device {}
@@ -61,6 +65,7 @@ impl Device {
             default_values: ComputedValues::default_values(unsafe { &*pres_context }),
             viewport_override: None,
             root_font_size: AtomicIsize::new(font_size::get_initial_value().0 as isize), // FIXME(bz): Seems dubious?
+            used_root_font_size: AtomicBool::new(false),
         }
     }
 
@@ -91,12 +96,26 @@ impl Device {
 
     /// Get the font size of the root element (for rem)
     pub fn root_font_size(&self) -> Au {
+        self.used_root_font_size.store(true, Ordering::Relaxed);
         Au::new(self.root_font_size.load(Ordering::Relaxed) as i32)
     }
 
     /// Set the font size of the root element (for rem)
     pub fn set_root_font_size(&self, size: Au) {
         self.root_font_size.store(size.0 as isize, Ordering::Relaxed)
+    }
+
+    /// Recreates the default computed values.
+    pub fn reset_computed_values(&mut self) {
+        // NB: A following stylesheet flush will populate this if appropriate.
+        self.viewport_override = None;
+        self.default_values = ComputedValues::default_values(unsafe { &*self.pres_context });
+        self.used_root_font_size.store(false, Ordering::Relaxed);
+    }
+
+    /// Returns whether we ever looked up the root font size of the Device.
+    pub fn used_root_font_size(&self) -> bool {
+        self.used_root_font_size.load(Ordering::Relaxed)
     }
 
     /// Recreates all the temporary state that the `Device` stores.
@@ -106,7 +125,7 @@ impl Device {
     pub fn reset(&mut self) {
         // NB: A following stylesheet flush will populate this if appropriate.
         self.viewport_override = None;
-        self.default_values = ComputedValues::default_values(unsafe { &*self.pres_context });
+        self.reset_computed_values();
     }
 
     /// Returns the current media type of the device.
@@ -210,24 +229,24 @@ impl Resolution {
         }
     }
 
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
-        let (value, unit) = match try!(input.next()) {
-            Token::Dimension(value, unit) => {
-                (value.value, unit)
+    fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let (value, unit) = match input.next()? {
+            Token::Dimension { value, unit, .. } => {
+                (value, unit)
             },
-            _ => return Err(()),
+            t => return Err(BasicParseError::UnexpectedToken(t).into()),
         };
 
         if value <= 0. {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
 
-        Ok(match_ignore_ascii_case! { &unit,
-            "dpi" => Resolution::Dpi(value),
-            "dppx" => Resolution::Dppx(value),
-            "dpcm" => Resolution::Dpcm(value),
-            _ => return Err(())
-        })
+        (match_ignore_ascii_case! { &unit,
+            "dpi" => Ok(Resolution::Dpi(value)),
+            "dppx" => Ok(Resolution::Dppx(value)),
+            "dpcm" => Ok(Resolution::Dpcm(value)),
+            _ => Err(())
+        }).map_err(|()| StyleParseError::UnexpectedDimension(unit).into())
     }
 }
 
@@ -441,44 +460,51 @@ impl Expression {
     /// ```
     /// (media-feature: media-value)
     /// ```
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        try!(input.expect_parenthesis_block());
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<Self, ParseError<'i>> {
+        input.expect_parenthesis_block()?;
         input.parse_nested_block(|input| {
-            let ident = try!(input.expect_ident());
+            let ident = input.expect_ident()?;
 
             let mut flags = 0;
-            let mut feature_name = &*ident;
+            let result = {
+                let mut feature_name = &*ident;
 
-            // TODO(emilio): this is under a pref in Gecko.
-            if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
-                feature_name = &feature_name[8..];
-                flags |= nsMediaFeature_RequirementFlags::eHasWebkitPrefix as u8;
-            }
+                // TODO(emilio): this is under a pref in Gecko.
+                if starts_with_ignore_ascii_case(feature_name, "-webkit-") {
+                    feature_name = &feature_name[8..];
+                    flags |= nsMediaFeature_RequirementFlags::eHasWebkitPrefix as u8;
+                }
 
-            let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
-                feature_name = &feature_name[4..];
-                nsMediaExpression_Range::eMin
-            } else if starts_with_ignore_ascii_case(feature_name, "max-") {
-                feature_name = &feature_name[4..];
-                nsMediaExpression_Range::eMax
-            } else {
-                nsMediaExpression_Range::eEqual
-            };
-
-            let atom = Atom::from(feature_name);
-            let feature =
-                match find_feature(|f| atom.as_ptr() == unsafe { *f.mName }) {
-                    Some(f) => f,
-                    None => return Err(()),
+                let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
+                    feature_name = &feature_name[4..];
+                    nsMediaExpression_Range::eMin
+                } else if starts_with_ignore_ascii_case(feature_name, "max-") {
+                    feature_name = &feature_name[4..];
+                    nsMediaExpression_Range::eMax
+                } else {
+                    nsMediaExpression_Range::eEqual
                 };
 
+                let atom = Atom::from(feature_name);
+                match find_feature(|f| atom.as_ptr() == unsafe { *f.mName }) {
+                    Some(f) => Ok((f, range)),
+                    None => Err(()),
+                }
+            };
+
+            let (feature, range) = match result {
+                Ok((feature, range)) => (feature, range),
+                Err(()) => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
+            };
+
             if (feature.mReqFlags & !flags) != 0 {
-                return Err(());
+                return Err(SelectorParseError::UnexpectedIdent(ident).into());
             }
 
             if range != nsMediaExpression_Range::eEqual &&
                 feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed {
-                return Err(());
+                return Err(SelectorParseError::UnexpectedIdent(ident).into());
             }
 
             // If there's no colon, this is a media query of the form
@@ -488,7 +514,7 @@ impl Expression {
             // reject them here too.
             if input.try(|i| i.expect_colon()).is_err() {
                 if range != nsMediaExpression_Range::eEqual {
-                    return Err(())
+                    return Err(StyleParseError::RangedExpressionWithNoValue.into())
                 }
                 return Ok(Expression::new(feature, None, range));
             }
@@ -501,14 +527,14 @@ impl Expression {
                 nsMediaFeature_ValueType::eInteger => {
                     let i = input.expect_integer()?;
                     if i < 0 {
-                        return Err(())
+                        return Err(StyleParseError::UnspecifiedError.into())
                     }
                     MediaExpressionValue::Integer(i as u32)
                 }
                 nsMediaFeature_ValueType::eBoolInteger => {
                     let i = input.expect_integer()?;
                     if i < 0 || i > 1 {
-                        return Err(())
+                        return Err(StyleParseError::UnspecifiedError.into())
                     }
                     MediaExpressionValue::BoolInteger(i == 1)
                 }
@@ -518,14 +544,14 @@ impl Expression {
                 nsMediaFeature_ValueType::eIntRatio => {
                     let a = input.expect_integer()?;
                     if a <= 0 {
-                        return Err(())
+                        return Err(StyleParseError::UnspecifiedError.into())
                     }
 
                     input.expect_delim('/')?;
 
                     let b = input.expect_integer()?;
                     if b <= 0 {
-                        return Err(())
+                        return Err(StyleParseError::UnspecifiedError.into())
                     }
                     MediaExpressionValue::IntRatio(a as u32, b as u32)
                 }
@@ -548,7 +574,7 @@ impl Expression {
                             Some((_kw, value)) => {
                                 value
                             }
-                            None => return Err(()),
+                            None => return Err(StyleParseError::UnspecifiedError.into()),
                         };
 
                     MediaExpressionValue::Enumerated(value)

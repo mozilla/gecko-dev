@@ -25,6 +25,7 @@ Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/engines/clients.js");
+Cu.import("resource://services-sync/main.js");
 Cu.import("resource://services-sync/policies.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/resource.js");
@@ -153,7 +154,7 @@ Sync11Service.prototype = {
     let ok = false;
 
     try {
-      let iv = Svc.Crypto.generateRandomIV();
+      let iv = Weave.Crypto.generateRandomIV();
       if (iv.length == 24)
         ok = true;
 
@@ -308,6 +309,7 @@ Sync11Service.prototype = {
 
     Svc.Obs.add("weave:service:setup-complete", this);
     Svc.Obs.add("sync:collection_changed", this); // Pulled from FxAccountsCommon
+    Svc.Obs.add("fxaccounts:device_disconnected", this);
     Services.prefs.addObserver(PREFS_BRANCH + "engine.", this);
 
     this.scheduler = new SyncScheduler(this);
@@ -409,6 +411,12 @@ Sync11Service.prototype = {
         // clients engine.
         if (data.includes("clients") && !Svc.Prefs.get("testing.tps", false)) {
           this.sync([]); // [] = clients collection only
+        }
+        break;
+      case "fxaccounts:device_disconnected":
+        data = JSON.parse(data);
+        if (!data.isLocalDevice) {
+          this.clientsEngine.updateKnownStaleClients();
         }
         break;
       case "weave:service:setup-complete":

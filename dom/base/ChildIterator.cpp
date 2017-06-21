@@ -370,24 +370,8 @@ AllChildrenIterator::Seek(nsIContent* aChildToFind)
 void
 AllChildrenIterator::AppendNativeAnonymousChildren()
 {
-  AppendNativeAnonymousChildrenFromFrame(mOriginalContent->GetPrimaryFrame());
-
-  // The root scroll frame is not the primary frame of the root element.
-  // Detect and handle this case.
-  if (!(mFlags & nsIContent::eSkipDocumentLevelNativeAnonymousContent) &&
-      mOriginalContent == mOriginalContent->OwnerDoc()->GetRootElement()) {
-    nsContentUtils::AppendDocumentLevelNativeAnonymousContentTo(
-        mOriginalContent->OwnerDoc(), mAnonKids);
-  }
-}
-
-void
-AllChildrenIterator::AppendNativeAnonymousChildrenFromFrame(nsIFrame* aFrame)
-{
-  nsIAnonymousContentCreator* ac = do_QueryFrame(aFrame);
-  if (ac) {
-    ac->AppendAnonymousContentTo(mAnonKids, mFlags);
-  }
+  nsContentUtils::AppendNativeAnonymousChildren(
+      mOriginalContent, mAnonKids, mFlags);
 }
 
 nsIContent*
@@ -530,7 +514,6 @@ StyleChildrenIterator::IsNeeded(const Element* aElement)
 
   return false;
 }
-
 
 nsIContent*
 StyleChildrenIterator::GetNextChild()

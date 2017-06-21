@@ -105,6 +105,12 @@ typedef DPI_AWARENESS_CONTEXT(WINAPI * SetThreadDpiAwarenessContextProc)(DPI_AWA
 typedef BOOL(WINAPI * EnableNonClientDpiScalingProc)(HWND);
 
 namespace mozilla {
+#if defined(ACCESSIBILITY)
+namespace a11y {
+class Accessible;
+} // namespace a11y
+#endif // defined(ACCESSIBILITY)
+
 namespace widget {
 
 // Windows message debugging data
@@ -463,16 +469,16 @@ public:
   static uint32_t GetMaxTouchPoints();
 
   /**
-   * Detect if path is within the Users folder and Users is actually a junction
-   * point to another folder.
-   * If this is detected it will change the path to the actual path.
+   * Fully resolves a path to its final path name. So if path contains
+   * junction points or symlinks to other folders, we'll resolve the path
+   * fully to the actual path that the links target.
    *
    * @param aPath path to be resolved.
    * @return true if successful, including if nothing needs to be changed.
    *         false if something failed or aPath does not exist, aPath will
    *               remain unchanged.
    */
-  static bool ResolveMovedUsersFolder(std::wstring& aPath);
+  static bool ResolveJunctionPointsAndSymLinks(std::wstring& aPath);
 
   static void Initialize();
 
@@ -492,6 +498,8 @@ public:
 
 #ifdef ACCESSIBILITY
   static void SetAPCPending();
+
+  static a11y::Accessible* GetRootAccessibleForHWND(HWND aHwnd);
 #endif
 
 private:
@@ -573,6 +581,7 @@ private:
 
   int32_t mIcoNoDeleteSeconds;
   bool mIgnoreRecent;
+  nsCOMPtr<nsIFile> mJumpListCacheDir;
 };
 
 class FaviconHelper

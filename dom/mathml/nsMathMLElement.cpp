@@ -9,6 +9,7 @@
 #include "base/compiler_specific.h"
 #include "mozilla/ArrayUtils.h"
 #include "nsGkAtoms.h"
+#include "nsITableCellLayout.h" // for MAX_COLSPAN / MAX_ROWSPAN
 #include "nsCRT.h"
 #include "nsLayoutStylesheetCache.h"
 #include "nsRuleData.h"
@@ -146,8 +147,10 @@ nsMathMLElement::ParseAttribute(int32_t aNamespaceID,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult)
 {
+  MOZ_ASSERT(IsMathMLElement());
+
   if (aNamespaceID == kNameSpaceID_None) {
-    if (IsMathMLElement(nsGkAtoms::math) && aAttribute == nsGkAtoms::mode) {
+    if (mNodeInfo->Equals(nsGkAtoms::math) && aAttribute == nsGkAtoms::mode) {
       WarnDeprecated(nsGkAtoms::mode->GetUTF16String(),
                      nsGkAtoms::display->GetUTF16String(), OwnerDoc());
     }
@@ -160,6 +163,16 @@ nsMathMLElement::ParseAttribute(int32_t aNamespaceID,
         aAttribute == nsGkAtoms::background ||
         aAttribute == nsGkAtoms::mathbackground_) {
       return aResult.ParseColor(aValue);
+    }
+    if (mNodeInfo->Equals(nsGkAtoms::mtd_)) {
+      if (aAttribute == nsGkAtoms::columnspan_) {
+        aResult.ParseClampedNonNegativeInt(aValue, 1, 1, MAX_COLSPAN);
+        return true;
+      }
+      if (aAttribute == nsGkAtoms::rowspan) {
+        aResult.ParseClampedNonNegativeInt(aValue, 1, 0, MAX_ROWSPAN);
+        return true;
+      }
     }
   }
 
@@ -205,6 +218,8 @@ static Element::MappedAttributeEntry sDirStyles[] = {
 bool
 nsMathMLElement::IsAttributeMapped(const nsIAtom* aAttribute) const
 {
+  MOZ_ASSERT(IsMathMLElement());
+
   static const MappedAttributeEntry* const mtableMap[] = {
     sMtableStyles,
     sCommonPresStyles
@@ -236,10 +251,10 @@ nsMathMLElement::IsAttributeMapped(const nsIAtom* aAttribute) const
   if (IsAnyOfMathMLElements(nsGkAtoms::mstyle_, nsGkAtoms::math))
     return FindAttributeDependence(aAttribute, mstyleMap);
 
-  if (IsMathMLElement(nsGkAtoms::mtable_))
+  if (mNodeInfo->Equals(nsGkAtoms::mtable_))
     return FindAttributeDependence(aAttribute, mtableMap);
 
-  if (IsMathMLElement(nsGkAtoms::mrow_))
+  if (mNodeInfo->Equals(nsGkAtoms::mrow_))
     return FindAttributeDependence(aAttribute, mrowMap);
 
   if (IsAnyOfMathMLElements(nsGkAtoms::maction_,
@@ -1068,50 +1083,27 @@ nsMathMLElement::GetHrefURI() const
 }
 
 nsresult
-nsMathMLElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                         nsIAtom* aPrefix, const nsAString& aValue,
-                         bool aNotify)
+nsMathMLElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+                              const nsAttrValue* aValue,
+                              const nsAttrValue* aOldValue, bool aNotify)
 {
-  nsresult rv = nsMathMLElementBase::SetAttr(aNameSpaceID, aName, aPrefix,
-                                           aValue, aNotify);
-
-  // The ordering of the parent class's SetAttr call and Link::ResetLinkState
-  // is important here!  The attribute is not set until SetAttr returns, and
-  // we will need the updated attribute value because notifying the document
+  // It is important that this be done after the attribute is set/unset.
+  // We will need the updated attribute value because notifying the document
   // that content states have changed will call IntrinsicState, which will try
   // to get updated information about the visitedness from Link.
   if (aName == nsGkAtoms::href &&
       (aNameSpaceID == kNameSpaceID_None ||
        aNameSpaceID == kNameSpaceID_XLink)) {
-    if (aNameSpaceID == kNameSpaceID_XLink) {
+    if (aValue && aNameSpaceID == kNameSpaceID_XLink) {
       WarnDeprecated(u"xlink:href", u"href", OwnerDoc());
     }
-    Link::ResetLinkState(!!aNotify, true);
+    // Note: When unsetting href, there may still be another href since there
+    // are 2 possible namespaces.
+    Link::ResetLinkState(aNotify, aValue || Link::ElementHasHref());
   }
 
-  return rv;
-}
-
-nsresult
-nsMathMLElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr,
-                           bool aNotify)
-{
-  nsresult rv = nsMathMLElementBase::UnsetAttr(aNameSpaceID, aAttr, aNotify);
-
-  // The ordering of the parent class's UnsetAttr call and Link::ResetLinkState
-  // is important here!  The attribute is not unset until UnsetAttr returns, and
-  // we will need the updated attribute value because notifying the document
-  // that content states have changed will call IntrinsicState, which will try
-  // to get updated information about the visitedness from Link.
-  if (aAttr == nsGkAtoms::href &&
-      (aNameSpaceID == kNameSpaceID_None ||
-       aNameSpaceID == kNameSpaceID_XLink)) {
-    // Note: just because we removed a single href attr doesn't mean there's no href,
-    // since there are 2 possible namespaces.
-    Link::ResetLinkState(!!aNotify, Link::ElementHasHref());
-  }
-
-  return rv;
+  return nsMathMLElementBase::AfterSetAttr(aNameSpaceID, aName, aValue,
+                                           aOldValue, aNotify);
 }
 
 JSObject*

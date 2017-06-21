@@ -2,6 +2,7 @@
 
 #include "IPDLUnitTests.h"      // fail etc.
 
+#include "mozilla/AbstractThread.h"
 #include "mozilla/Unused.h"
 
 namespace mozilla {
@@ -26,10 +27,7 @@ TestAsyncReturnsParent::~TestAsyncReturnsParent()
 void
 TestAsyncReturnsParent::Main()
 {
-  if (!AbstractThread::MainThread()) {
-    fail("AbstractThread not initalized");
-  }
-  SendNoReturn()->Then(AbstractThread::MainThread(), __func__,
+  SendNoReturn()->Then(MessageLoop::current()->SerialEventTarget(), __func__,
                        [](bool unused) {
                          fail("resolve handler should not be called");
                        },
@@ -41,7 +39,7 @@ TestAsyncReturnsParent::Main()
                          }
                          passed("reject handler called on channel close");
                        });
-  SendPing()->Then(AbstractThread::MainThread(), __func__,
+  SendPing()->Then(MessageLoop::current()->SerialEventTarget(), __func__,
                    [this](bool one) {
                      if (one) {
                        passed("take one argument");
@@ -57,9 +55,9 @@ TestAsyncReturnsParent::Main()
 
 
 mozilla::ipc::IPCResult
-TestAsyncReturnsParent::RecvPong(RefPtr<PongPromise>&& aPromise)
+TestAsyncReturnsParent::RecvPong(PongResolver&& aResolve)
 {
-  aPromise->Resolve(MakeTuple(sMagic1, sMagic2), __func__);
+  aResolve(MakeTuple(sMagic1, sMagic2));
   return IPC_OK();
 }
 
@@ -78,27 +76,23 @@ TestAsyncReturnsChild::~TestAsyncReturnsChild()
 }
 
 mozilla::ipc::IPCResult
-TestAsyncReturnsChild::RecvNoReturn(RefPtr<NoReturnPromise>&& aPromise)
+TestAsyncReturnsChild::RecvNoReturn(NoReturnResolver&& aResolve)
 {
-  // Leak the promise intentionally
-  Unused << do_AddRef(aPromise);
+  // Not resolving the promise intentionally
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult
-TestAsyncReturnsChild::RecvPing(RefPtr<PingPromise>&& aPromise)
+TestAsyncReturnsChild::RecvPing(PingResolver&& aResolve)
 {
-  if (!AbstractThread::MainThread()) {
-    fail("AbstractThread not initalized");
-  }
-  SendPong()->Then(AbstractThread::MainThread(), __func__,
-                   [aPromise](const Tuple<uint32_t, uint32_t>& aParam) {
+  SendPong()->Then(MessageLoop::current()->SerialEventTarget(), __func__,
+                   [aResolve](const Tuple<uint32_t, uint32_t>& aParam) {
                      if (Get<0>(aParam) == sMagic1 && Get<1>(aParam) == sMagic2) {
                        passed("take two arguments");
                      } else {
                        fail("get two argument but has wrong value");
                      }
-                     aPromise->Resolve(true, __func__);
+                     aResolve(true);
                    },
                    [](PromiseRejectReason aReason) {
                      fail("sending Pong");

@@ -117,16 +117,16 @@
         <vbox id="PanelUI-remotetabs-main" observes="sync-syncnow-state">
           <vbox id="PanelUI-remotetabs-buttons">
             <toolbarbutton id="PanelUI-remotetabs-view-sidebar"
-                           class="subviewbutton"
+                           class="subviewbutton subviewbutton-iconic"
                            observes="viewTabsSidebar"
                            label="&appMenuRemoteTabs.sidebar.label;"/>
             <toolbarbutton id="PanelUI-remotetabs-view-managedevices"
-                           class="subviewbutton"
+                           class="subviewbutton subviewbutton-iconic"
                            label="&appMenuRemoteTabs.managedevices.label;"
                            oncommand="gSync.openDevicesManagementPage('syncedtabs-menupanel');"/>
             <toolbarbutton id="PanelUI-remotetabs-syncnow"
                            observes="sync-status"
-                           class="subviewbutton"
+                           class="subviewbutton subviewbutton-iconic"
                            oncommand="gSync.doSync();"
                            closemenu="none"/>
             <menuseparator id="PanelUI-remotetabs-separator"/>
@@ -340,18 +340,25 @@
        type="arrow"
        noautofocus="true"
        position="bottomcenter topright"
+#ifndef MOZ_PHOTON_THEME
+       context="toolbar-context-menu"
+#endif
        hidden="true">
+#ifdef MOZ_PHOTON_THEME
   <panelmultiview mainViewId="widget-overflow-mainView">
     <panelview id="widget-overflow-mainView"
                context="toolbar-context-menu">
+#endif
       <vbox id="widget-overflow-scroller">
         <vbox id="widget-overflow-list" class="widget-overflow-list"
               overflowfortoolbar="nav-bar"/>
         <toolbarseparator id="widget-overflow-fixed-separator" hidden="true"/>
         <vbox id="widget-overflow-fixed-list" class="widget-overflow-list" hidden="true"/>
       </vbox>
+#ifdef MOZ_PHOTON_THEME
     </panelview>
   </panelmultiview>
+#endif
 </panel>
 
 <panel id="customization-tipPanel"
@@ -517,7 +524,7 @@
                        oncommand="PanelUI._onBannerItemSelected(event)"
                        wrap="true"
                        hidden="true"/>
-        <toolbaritem id="appMenu-fxa-container">
+        <toolbaritem id="appMenu-fxa-container" class="toolbaritem-combined-buttons">
           <hbox id="appMenu-fxa-status"
                 flex="1"
                 defaultlabel="&fxaSignIn.label;"
@@ -532,7 +539,7 @@
                            label="&fxaSignIn.label;"
                            fxabrandname="&syncBrand.fxAccount.label;"/>
           </hbox>
-          <toolbarseparator/>
+          <toolbarseparator orient="vertical"/>
           <toolbarbutton id="appMenu-fxa-icon"
                          class="subviewbutton subviewbutton-iconic"
                          oncommand="gSync.doSync();"
@@ -552,6 +559,31 @@
                        label="&newPrivateWindow.label;"
                        key="key_privatebrowsing"
                        command="Tools:PrivateBrowsing"/>
+        <toolbarseparator/>
+        <toolbaritem id="appMenu-zoom-controls" class="toolbaritem-combined-buttons">
+          <label value="&fullZoom.label;"/>
+          <toolbarbutton id="appMenu-zoomReduce-button"
+                         class="subviewbutton subviewbutton-iconic"
+                         command="cmd_fullZoomReduce"
+                         closemenu="none"
+                         tooltip="dynamic-shortcut-tooltip"/>
+          <toolbarbutton id="appMenu-zoomReset-button"
+                         class="subviewbutton"
+                         command="cmd_fullZoomReset"
+                         closemenu="none"
+                         tooltip="dynamic-shortcut-tooltip"/>
+          <toolbarbutton id="appMenu-zoomEnlarge-button"
+                         class="subviewbutton subviewbutton-iconic"
+                         command="cmd_fullZoomEnlarge"
+                         closemenu="none"
+                         tooltip="dynamic-shortcut-tooltip"/>
+          <toolbarseparator orient="vertical"/>
+          <toolbarbutton id="appMenu-fullscreen-button"
+                         class="subviewbutton subviewbutton-iconic"
+                         observes="View:FullScreen"
+                         type="checkbox"
+                         tooltip="dynamic-shortcut-tooltip"/>
+        </toolbaritem>
         <toolbarseparator/>
         <toolbaritem id="appMenu-edit-controls" class="toolbaritem-combined-buttons" closemenu="none">
           <label value="&editMenu.label;"/>

@@ -278,13 +278,19 @@ ClientEngine.prototype = {
   },
 
   _addClientCommand(clientId, command) {
-    const allCommands = this._readCommands();
-    const clientCommands = allCommands[clientId] || [];
+    const localCommands = this._readCommands();
+    const localClientCommands = localCommands[clientId] || [];
+    const remoteClient = this._store._remoteClients[clientId];
+    let remoteClientCommands = []
+    if (remoteClient && remoteClient.commands) {
+      remoteClientCommands = remoteClient.commands;
+    }
+    const clientCommands = localClientCommands.concat(remoteClientCommands);
     if (hasDupeCommand(clientCommands, command)) {
       return false;
     }
-    allCommands[clientId] = clientCommands.concat(command);
-    this._saveCommands(allCommands);
+    localCommands[clientId] = localClientCommands.concat(command);
+    this._saveCommands(localCommands);
     return true;
   },
 
@@ -292,6 +298,17 @@ ClientEngine.prototype = {
     const allCommands = this._readCommands();
     delete allCommands[clientId];
     this._saveCommands(allCommands);
+  },
+
+  updateKnownStaleClients() {
+    this._log.debug("Updating the known stale clients");
+    this._refreshKnownStaleClients();
+    for (let client of Object.values(this._store._remoteClients)) {
+      if (client.fxaDeviceId && this._knownStaleFxADeviceIds.includes(client.fxaDeviceId)) {
+        this._log.info(`Hiding stale client ${client.id} - in known stale clients list`);
+        client.stale = true;
+      }
+    }
   },
 
   // We assume that clients not present in the FxA Device Manager list have been
@@ -313,6 +330,7 @@ ClientEngine.prototype = {
   },
 
   _syncStartup() {
+    this.isFirstSync = !this.lastRecordUpload;
     // Reupload new client record periodically.
     if (Date.now() / 1000 - this.lastRecordUpload > CLIENTS_TTL_REFRESH) {
       this._tracker.addChangedID(this.localID);
@@ -327,7 +345,8 @@ ClientEngine.prototype = {
     this._incomingClients = {};
     try {
       SyncEngine.prototype._processIncoming.call(this);
-      // Refresh the known stale clients list once per browser restart
+      // Refresh the known stale clients list at startup and when we receive
+      // "device connected/disconnected" push notifications.
       if (!this._knownStaleFxADeviceIds) {
         this._refreshKnownStaleClients();
       }
@@ -396,6 +415,10 @@ ClientEngine.prototype = {
     for (let id of succeeded) {
       const commandChanges = this._currentlySyncingCommands[id];
       if (id == this.localID) {
+        if (this.isFirstSync) {
+          this._log.info("Uploaded our client record for the first time, notifying other clients.");
+          this._notifyCollectionChanged();
+        }
         if (this.localCommands) {
           this.localCommands = this.localCommands.filter(command => !hasDupeCommand(commandChanges, command));
         }
@@ -433,11 +456,11 @@ ClientEngine.prototype = {
       return fxaDeviceId ? acc.concat(fxaDeviceId) : acc;
     }, []);
     if (idsToNotify.length > 0) {
-      this._notifyCollectionChanged(idsToNotify);
+      this._notifyCollectionChanged(idsToNotify, NOTIFY_TAB_SENT_TTL_SECS);
     }
   },
 
-  _notifyCollectionChanged(ids) {
+  async _notifyCollectionChanged(ids = null, ttl = 0) {
     const message = {
       version: 1,
       command: "sync:collection_changed",
@@ -445,7 +468,16 @@ ClientEngine.prototype = {
         collections: ["clients"]
       }
     };
-    this.fxAccounts.notifyDevices(ids, message, NOTIFY_TAB_SENT_TTL_SECS);
+    let excludedIds = null;
+    if (!ids) {
+      const localFxADeviceId = await fxAccounts.getDeviceId();
+      excludedIds = [localFxADeviceId];
+    }
+    try {
+      await this.fxAccounts.notifyDevices(ids, excludedIds, message, ttl);
+    } catch (e) {
+      this._log.error("Could not notify of changes in the collection", e);
+    }
   },
 
   _syncFinish() {

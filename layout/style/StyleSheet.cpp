@@ -10,6 +10,7 @@
 #include "mozilla/dom/CSSRuleList.h"
 #include "mozilla/dom/MediaList.h"
 #include "mozilla/dom/ShadowRoot.h"
+#include "mozilla/ServoCSSRuleList.h"
 #include "mozilla/ServoStyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
 #include "mozilla/CSSStyleSheet.h"
@@ -34,10 +35,11 @@ StyleSheet::StyleSheet(StyleBackendType aType, css::SheetParsingMode aParsingMod
 }
 
 StyleSheet::StyleSheet(const StyleSheet& aCopy,
+                       StyleSheet* aParentToUse,
                        dom::CSSImportRule* aOwnerRuleToUse,
                        nsIDocument* aDocumentToUse,
                        nsINode* aOwningNodeToUse)
-  : mParent(nullptr)
+  : mParent(aParentToUse)
   , mTitle(aCopy.mTitle)
   , mDocument(aDocumentToUse)
   , mOwningNode(aOwningNodeToUse)
@@ -45,8 +47,8 @@ StyleSheet::StyleSheet(const StyleSheet& aCopy,
   , mParsingMode(aCopy.mParsingMode)
   , mType(aCopy.mType)
   , mDisabled(aCopy.mDisabled)
-    // We only use this constructor during cloning.  It's the cloner's
-    // responsibility to notify us if we end up being owned by a document.
+  // We only use this constructor during cloning.  It's the cloner's
+  // responsibility to notify us if we end up being owned by a document.
   , mDocumentAssociationMode(NotOwnedByDocument)
   , mInner(aCopy.mInner) // Shallow copy, but concrete subclasses will fix up.
   , mDirty(aCopy.mDirty)
@@ -63,8 +65,22 @@ StyleSheet::StyleSheet(const StyleSheet& aCopy,
 
 StyleSheet::~StyleSheet()
 {
+  MOZ_ASSERT(!mInner, "Inner should have been dropped in LastRelease");
+}
+
+void
+StyleSheet::LastRelease()
+{
   MOZ_ASSERT(mInner, "Should have an mInner at time of destruction.");
   MOZ_ASSERT(mInner->mSheets.Contains(this), "Our mInner should include us.");
+
+  UnparentChildren();
+  if (IsGecko()) {
+    AsGecko()->LastRelease();
+  } else {
+    AsServo()->LastRelease();
+  }
+
   mInner->RemoveSheet(this);
   mInner = nullptr;
 
@@ -134,7 +150,12 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(StyleSheet)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(StyleSheet)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(StyleSheet)
+// We want to disconnect from our inner as soon as our refcount drops to zero,
+// without waiting for async deletion by the cycle collector.  Otherwise we
+// might end up cloning the inner if someone mutates another sheet that shares
+// it with us, even though there is only one such sheet and we're about to go
+// away.  This situation arises easily with sheet preloading.
+NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_LAST_RELEASE(StyleSheet, LastRelease())
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(StyleSheet)
 
@@ -477,7 +498,7 @@ StyleSheet::GetCssRules(nsIPrincipal& aSubjectPrincipal,
   if (!AreRulesAvailable(aSubjectPrincipal, aRv)) {
     return nullptr;
   }
-  FORWARD_INTERNAL(GetCssRulesInternal, (aRv))
+  FORWARD_INTERNAL(GetCssRulesInternal, ())
 }
 
 css::Rule*
@@ -608,8 +629,10 @@ StyleSheet::SubjectSubsumesInnerPrincipal(nsIPrincipal& aSubjectPrincipal,
     return;
   }
 
-  // Allow access only if CORS mode is not NONE
-  if (GetCORSMode() == CORS_NONE) {
+  // Allow access only if CORS mode is not NONE and the security flag
+  // is not turned off.
+  if (GetCORSMode() == CORS_NONE &&
+      !nsContentUtils::BypassCSSOMOriginCheck()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
@@ -665,7 +688,7 @@ void
 StyleSheet::SetAssociatedDocument(nsIDocument* aDocument,
                                   DocumentAssociationMode aAssociationMode)
 {
-  MOZ_ASSERT_IF(!aDocument, aAssociationMode == NotOwnedByDocument);
+  MOZ_ASSERT(aDocument || aAssociationMode == NotOwnedByDocument);
 
   // not ref counted
   mDocument = aDocument;

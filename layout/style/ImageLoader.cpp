@@ -84,6 +84,7 @@ ImageLoader::AssociateRequestToFrame(imgIRequest* aRequest,
 
     mFrameToRequestMap.Put(aFrame, newRequestSet);
     requestSet = newRequestSet.forget();
+    aFrame->SetHasImageRequest(true);
   }
 
   // Add these to the sets, but only if they're not already there.
@@ -135,12 +136,9 @@ ImageLoader::DeregisterCSSImage(ImageLoader::Image* aImage)
 }
 
 void
-ImageLoader::DisassociateRequestFromFrame(imgIRequest* aRequest,
-                                          nsIFrame* aFrame)
+ImageLoader::RemoveRequestToFrameMapping(imgIRequest* aRequest,
+                                         nsIFrame*    aFrame)
 {
-  FrameSet* frameSet = nullptr;
-  RequestSet* requestSet = nullptr;
-
 #ifdef DEBUG
   {
     nsCOMPtr<imgINotificationObserver> observer;
@@ -149,47 +147,57 @@ ImageLoader::DisassociateRequestFromFrame(imgIRequest* aRequest,
   }
 #endif
 
-  mRequestToFrameMap.Get(aRequest, &frameSet);
-  mFrameToRequestMap.Get(aFrame, &requestSet);
-
-  if (frameSet) {
+  if (auto entry = mRequestToFrameMap.Lookup(aRequest)) {
+    FrameSet* frameSet = entry.Data();
+    MOZ_ASSERT(frameSet, "This should never be null");
     frameSet->RemoveElementSorted(aFrame);
-  }
-  if (requestSet) {
-    requestSet->RemoveElementSorted(aRequest);
-  }
-
-  if (frameSet && !frameSet->Length()) {
-    mRequestToFrameMap.Remove(aRequest);
-
-    nsPresContext* presContext = GetPresContext();
-    if (presContext) {
-      nsLayoutUtils::DeregisterImageRequest(presContext,
-                                            aRequest,
-                                            nullptr);
+    if (frameSet->IsEmpty()) {
+      nsPresContext* presContext = GetPresContext();
+      if (presContext) {
+        nsLayoutUtils::DeregisterImageRequest(presContext, aRequest, nullptr);
+      }
+      entry.Remove();
     }
   }
+}
 
-  if (requestSet && !requestSet->Length()) {
-    mFrameToRequestMap.Remove(aFrame);
+void
+ImageLoader::RemoveFrameToRequestMapping(imgIRequest* aRequest,
+                                         nsIFrame*    aFrame)
+{
+  if (auto entry = mFrameToRequestMap.Lookup(aFrame)) {
+    RequestSet* requestSet = entry.Data();
+    MOZ_ASSERT(requestSet, "This should never be null");
+    requestSet->RemoveElementSorted(aRequest);
+    if (requestSet->IsEmpty()) {
+      aFrame->SetHasImageRequest(false);
+      entry.Remove();
+    }
   }
+}
+
+void
+ImageLoader::DisassociateRequestFromFrame(imgIRequest* aRequest,
+                                          nsIFrame*    aFrame)
+{
+  MOZ_ASSERT(aFrame->HasImageRequest(), "why call me?");
+  RemoveRequestToFrameMapping(aRequest, aFrame);
+  RemoveFrameToRequestMapping(aRequest, aFrame);
 }
 
 void
 ImageLoader::DropRequestsForFrame(nsIFrame* aFrame)
 {
-  RequestSet* requestSet = nullptr;
-  if (!mFrameToRequestMap.Get(aFrame, &requestSet)) {
+  MOZ_ASSERT(aFrame->HasImageRequest(), "why call me?");
+  nsAutoPtr<RequestSet> requestSet;
+  mFrameToRequestMap.RemoveAndForget(aFrame, requestSet);
+  aFrame->SetHasImageRequest(false);
+  if (MOZ_UNLIKELY(!requestSet)) {
+    MOZ_ASSERT_UNREACHABLE("HasImageRequest was lying");
     return;
   }
-
-  NS_ASSERTION(requestSet, "This should never be null");
-
-  RequestSet frozenRequestSet(*requestSet);
-  for (RequestSet::size_type i = frozenRequestSet.Length(); i != 0; --i) {
-    imgIRequest* request = frozenRequestSet.ElementAt(i - 1);
-
-    DisassociateRequestFromFrame(request, aFrame);
+  for (imgIRequest* request : *requestSet) {
+    RemoveRequestToFrameMapping(request, aFrame);
   }
 }
 

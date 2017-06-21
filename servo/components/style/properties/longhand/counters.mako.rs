@@ -8,12 +8,13 @@
 
 <%helpers:longhand name="content" boxed="True" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-content">
-    use cssparser::Token;
     use values::computed::ComputedValueAsSpecified;
     #[cfg(feature = "gecko")]
     use values::generics::CounterStyleOrNone;
     #[cfg(feature = "gecko")]
     use values::specified::url::SpecifiedUrl;
+    #[cfg(feature = "gecko")]
+    use values::specified::Attr;
 
     #[cfg(feature = "servo")]
     use super::list_style_type;
@@ -36,6 +37,9 @@
         #[cfg(feature = "gecko")]
         type CounterStyleType = ::values::generics::CounterStyleOrNone;
 
+        #[cfg(feature = "gecko")]
+        use values::specified::Attr;
+
         #[derive(Debug, PartialEq, Eq, Clone)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum ContentItem {
@@ -56,7 +60,7 @@
 
             % if product == "gecko":
                 /// `attr([namespace? `|`]? ident)`
-                Attr(Option<String>, String),
+                Attr(Attr),
                 /// `url(url)`
                 Url(SpecifiedUrl),
             % endif
@@ -65,23 +69,21 @@
         impl ToCss for ContentItem {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    ContentItem::String(ref s) => {
-                        cssparser::serialize_string(&**s, dest)
-                    }
+                    ContentItem::String(ref s) => s.to_css(dest),
                     ContentItem::Counter(ref s, ref counter_style) => {
-                        try!(dest.write_str("counter("));
-                        try!(cssparser::serialize_identifier(&**s, dest));
-                        try!(dest.write_str(", "));
-                        try!(counter_style.to_css(dest));
+                        dest.write_str("counter(")?;
+                        cssparser::serialize_identifier(&**s, dest)?;
+                        dest.write_str(", ")?;
+                        counter_style.to_css(dest)?;
                         dest.write_str(")")
                     }
                     ContentItem::Counters(ref s, ref separator, ref counter_style) => {
-                        try!(dest.write_str("counters("));
-                        try!(cssparser::serialize_identifier(&**s, dest));
-                        try!(dest.write_str(", "));
-                        try!(cssparser::serialize_string(&**separator, dest));
-                        try!(dest.write_str(", "));
-                        try!(counter_style.to_css(dest));
+                        dest.write_str("counters(")?;
+                        cssparser::serialize_identifier(&**s, dest)?;
+                        dest.write_str(", ")?;
+                        separator.to_css(dest)?;
+                        dest.write_str(", ")?;
+                        counter_style.to_css(dest)?;
                         dest.write_str(")")
                     }
                     ContentItem::OpenQuote => dest.write_str("open-quote"),
@@ -90,14 +92,8 @@
                     ContentItem::NoCloseQuote => dest.write_str("no-close-quote"),
 
                     % if product == "gecko":
-                        ContentItem::Attr(ref ns, ref attr) => {
-                            dest.write_str("attr(")?;
-                            if let Some(ref ns) = *ns {
-                                cssparser::Token::Ident((&**ns).into()).to_css(dest)?;
-                                dest.write_str("|")?;
-                            }
-                            cssparser::Token::Ident((&**attr).into()).to_css(dest)?;
-                            dest.write_str(")")
+                        ContentItem::Attr(ref attr) => {
+                            attr.to_css(dest)
                         }
                         ContentItem::Url(ref url) => url.to_css(dest),
                     % endif
@@ -125,10 +121,10 @@
                     % endif
                     T::Items(ref content) => {
                         let mut iter = content.iter();
-                        try!(iter.next().unwrap().to_css(dest));
+                        iter.next().unwrap().to_css(dest)?;
                         for c in iter {
-                            try!(dest.write_str(" "));
-                            try!(c.to_css(dest));
+                            dest.write_str(" ")?;
+                            c.to_css(dest)?;
                         }
                         Ok(())
                     }
@@ -160,8 +156,8 @@
     // normal | none | [ <string> | <counter> | open-quote | close-quote | no-open-quote |
     // no-close-quote ]+
     // TODO: <uri>, attr(<identifier>)
-    pub fn parse(context: &ParserContext, input: &mut Parser)
-                 -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             return Ok(SpecifiedValue::Normal)
         }
@@ -188,67 +184,50 @@
                     content.push(ContentItem::String(value.into_owned()))
                 }
                 Ok(Token::Function(name)) => {
-                    content.push(try!(match_ignore_ascii_case! { &name,
-                        "counter" => input.parse_nested_block(|input| {
-                            let name = try!(input.expect_ident()).into_owned();
+                    let result = match_ignore_ascii_case! { &name,
+                        "counter" => Some(input.parse_nested_block(|input| {
+                            let name = input.expect_ident()?.into_owned();
                             let style = parse_counter_style(context, input);
                             Ok(ContentItem::Counter(name, style))
-                        }),
-                        "counters" => input.parse_nested_block(|input| {
-                            let name = try!(input.expect_ident()).into_owned();
-                            try!(input.expect_comma());
-                            let separator = try!(input.expect_string()).into_owned();
+                        })),
+                        "counters" => Some(input.parse_nested_block(|input| {
+                            let name = input.expect_ident()?.into_owned();
+                            input.expect_comma()?;
+                            let separator = input.expect_string()?.into_owned();
                             let style = parse_counter_style(context, input);
                             Ok(ContentItem::Counters(name, separator, style))
-                        }),
+                        })),
                         % if product == "gecko":
-                            "attr" => input.parse_nested_block(|input| {
-                                // Syntax is `[namespace? `|`]? ident`
-                                // no spaces allowed
-                                // FIXME (bug 1346693) we should be checking that
-                                // this is a valid namespace and encoding it as a namespace
-                                // number from the map
-                                let first = input.try(|i| i.expect_ident()).ok().map(|i| i.into_owned());
-                                if let Ok(token) = input.try(|i| i.next_including_whitespace()) {
-                                    match token {
-                                        Token::Delim('|') => {
-                                            // must be followed by an ident
-                                            let tok2 = input.next_including_whitespace()?;
-                                            if let Token::Ident(second) = tok2 {
-                                                return Ok(ContentItem::Attr(first, second.into_owned()))
-                                            } else {
-                                                return Err(())
-                                            }
-                                        }
-                                        _ => return Err(())
-                                    }
-                                }
-                                if let Some(first) = first {
-                                    Ok(ContentItem::Attr(None, first))
-                                } else {
-                                    Err(())
-                                }
-                            }),
+                            "attr" => Some(input.parse_nested_block(|input| {
+                                Ok(ContentItem::Attr(Attr::parse_function(context, input)?))
+                            })),
                         % endif
-                        _ => return Err(())
-                    }));
+                        _ => None
+                    };
+                    match result {
+                        Some(result) => content.push(result?),
+                        None => return Err(StyleParseError::UnexpectedFunction(name).into())
+                    }
                 }
                 Ok(Token::Ident(ident)) => {
-                    match_ignore_ascii_case! { &ident,
-                        "open-quote" => content.push(ContentItem::OpenQuote),
-                        "close-quote" => content.push(ContentItem::CloseQuote),
-                        "no-open-quote" => content.push(ContentItem::NoOpenQuote),
-                        "no-close-quote" => content.push(ContentItem::NoCloseQuote),
+                    let valid = match_ignore_ascii_case! { &ident,
+                        "open-quote" => { content.push(ContentItem::OpenQuote); true },
+                        "close-quote" => { content.push(ContentItem::CloseQuote); true },
+                        "no-open-quote" => { content.push(ContentItem::NoOpenQuote); true },
+                        "no-close-quote" => { content.push(ContentItem::NoCloseQuote); true },
 
-                        _ => return Err(())
+                        _ => false,
+                    };
+                    if !valid {
+                        return Err(SelectorParseError::UnexpectedIdent(ident).into())
                     }
                 }
                 Err(_) => break,
-                _ => return Err(())
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into())
             }
         }
         if content.is_empty() {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         Ok(SpecifiedValue::Items(content))
     }
@@ -259,8 +238,6 @@
     use std::fmt;
     use style_traits::ToCss;
     use values::CustomIdent;
-
-    use cssparser::Token;
 
     #[derive(Debug, Clone, PartialEq)]
     pub struct SpecifiedValue(pub Vec<(CustomIdent, specified::Integer)>);
@@ -342,11 +319,13 @@
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         parse_common(context, 1, input)
     }
 
-    pub fn parse_common(context: &ParserContext, default_value: i32, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse_common<'i, 't>(context: &ParserContext, default_value: i32, input: &mut Parser<'i, 't>)
+                                -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -355,7 +334,7 @@
         loop {
             let counter_name = match input.next() {
                 Ok(Token::Ident(ident)) => CustomIdent::from_ident(ident, &["none"])?,
-                Ok(_) => return Err(()),
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
                 Err(_) => break,
             };
             let counter_delta = input.try(|input| specified::parse_integer(context, input))
@@ -366,7 +345,7 @@
         if !counters.is_empty() {
             Ok(SpecifiedValue(counters))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -376,7 +355,8 @@
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::parse_common;
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         parse_common(context, 0, input)
     }
 </%helpers:longhand>

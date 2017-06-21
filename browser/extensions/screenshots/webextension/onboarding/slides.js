@@ -46,6 +46,8 @@ this.slides = (function() {
           doc.documentElement
         );
         doc.addEventListener("keyup", onKeyUp);
+        doc.documentElement.dir = browser.i18n.getMessage("@@bidi_dir");
+        doc.documentElement.lang = browser.i18n.getMessage("@@ui_locale");
         localizeText(doc);
         activateSlide(doc);
         resolve();
@@ -150,6 +152,12 @@ this.slides = (function() {
     doc.querySelector("#privacy").addEventListener("click", watchFunction(assertIsTrusted((event) => {
       event.preventDefault();
       callBackground("openPrivacyPage");
+    })));
+    doc.querySelector("#slide-overlay").addEventListener("click", watchFunction(assertIsTrusted((event) => {
+      if (event.target == doc.querySelector("#slide-overlay")) {
+        shooter.sendEvent("cancel-slides", "background-click");
+        callbacks.onEnd();
+      }
     })));
     setSlide(1);
   }

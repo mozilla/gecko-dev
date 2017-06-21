@@ -61,6 +61,23 @@ GeckoProfiler::setEventMarker(void (*fn)(const char*))
     eventMarker_ = fn;
 }
 
+/* Get a pointer to the top-most profiling frame, given the exit frame pointer. */
+static void*
+GetTopProfilingJitFrame(Activation* act)
+{
+    if (!act || !act->isJit())
+        return nullptr;
+
+    // For null exitFrame, there is no previous exit frame, just return.
+    uint8_t* exitFP = act->asJit()->exitFP();
+    if (!exitFP)
+        return nullptr;
+
+    jit::JitProfilingFrameIterator iter(exitFP);
+    MOZ_ASSERT(!iter.done());
+    return iter.fp();
+}
+
 bool
 GeckoProfiler::enable(bool enabled)
 {
@@ -119,14 +136,16 @@ GeckoProfiler::enable(bool enabled)
         if (target.context()->jitActivation) {
             // Walk through all activations, and set their lastProfilingFrame appropriately.
             if (enabled) {
-                void* lastProfilingFrame = GetTopProfilingJitFrame(target.context()->jitTop);
+                Activation* act = target.context()->activation();
+                void* lastProfilingFrame = GetTopProfilingJitFrame(act);
+
                 jit::JitActivation* jitActivation = target.context()->jitActivation;
                 while (jitActivation) {
                     jitActivation->setLastProfilingFrame(lastProfilingFrame);
                     jitActivation->setLastProfilingCallSite(nullptr);
 
-                    lastProfilingFrame = GetTopProfilingJitFrame(jitActivation->prevJitTop());
                     jitActivation = jitActivation->prevJitActivation();
+                    lastProfilingFrame = GetTopProfilingJitFrame(jitActivation);
                 }
             } else {
                 jit::JitActivation* jitActivation = target.context()->jitActivation;
@@ -239,7 +258,7 @@ GeckoProfiler::exit(JSScript* script, JSFunction* maybeFun)
                             uint32_t(pseudoStack_->stackPointer),
                             PseudoStack::MaxEntries);
             for (int32_t i = sp; i >= 0; i--) {
-                volatile ProfileEntry& entry = pseudoStack_->entries[i];
+                ProfileEntry& entry = pseudoStack_->entries[i];
                 if (entry.isJs())
                     fprintf(stderr, "  [%d] JS %s\n", i, entry.dynamicString());
                 else
@@ -247,7 +266,7 @@ GeckoProfiler::exit(JSScript* script, JSFunction* maybeFun)
             }
         }
 
-        volatile ProfileEntry& entry = pseudoStack_->entries[sp];
+        ProfileEntry& entry = pseudoStack_->entries[sp];
         MOZ_ASSERT(entry.isJs());
         MOZ_ASSERT(entry.script() == script);
         MOZ_ASSERT(strcmp((const char*) entry.dynamicString(), dynamicString) == 0);
@@ -310,7 +329,7 @@ GeckoProfiler::allocProfileString(JSScript* script, JSFunction* maybeFun)
 }
 
 void
-GeckoProfiler::trace(JSTracer* trc) volatile
+GeckoProfiler::trace(JSTracer* trc)
 {
     if (pseudoStack_) {
         size_t size = pseudoStack_->stackSize();
@@ -353,7 +372,7 @@ GeckoProfiler::checkStringsMapAfterMovingGC()
 #endif
 
 void
-ProfileEntry::trace(JSTracer* trc) volatile
+ProfileEntry::trace(JSTracer* trc)
 {
     if (isJs()) {
         JSScript* s = rawScript();
@@ -375,9 +394,10 @@ GeckoProfilerEntryMarker::GeckoProfilerEntryMarker(JSRuntime* rt,
     spBefore_ = profiler->stackPointer();
 
     // We want to push a CPP frame so the profiler can correctly order JS and native stacks.
+    // Only the sp value is important.
     profiler->pseudoStack_->pushCppFrame(
-        "js::RunScript", /* dynamicString = */ nullptr, /* sp = */ this, /* line = */ 0,
-        js::ProfileEntry::Category::OTHER, js::ProfileEntry::BEGIN_PSEUDO_JS);
+        /* label = */ "", /* dynamicString = */ nullptr, /* sp = */ this, /* line = */ 0,
+        ProfileEntry::Kind::CPP_MARKER_FOR_JS, ProfileEntry::Category::OTHER);
 
     profiler->pseudoStack_->pushJsFrame(
         "js::RunScript", /* dynamicString = */ nullptr, script, script->code());
@@ -406,7 +426,8 @@ AutoGeckoProfilerEntry::AutoGeckoProfilerEntry(JSRuntime* rt, const char* label,
     spBefore_ = profiler_->stackPointer();
 
     profiler_->pseudoStack_->pushCppFrame(
-        label, /* dynamicString = */ nullptr, /* sp = */ this, /* line = */ 0, category);
+        label, /* dynamicString = */ nullptr, /* sp = */ this, /* line = */ 0,
+        ProfileEntry::Kind::CPP_NORMAL, category);
 }
 
 AutoGeckoProfilerEntry::~AutoGeckoProfilerEntry()
@@ -438,9 +459,9 @@ GeckoProfilerBaselineOSRMarker::GeckoProfilerBaselineOSRMarker(JSRuntime* rt, bo
     if (sp == 0)
         return;
 
-    volatile ProfileEntry& entry = profiler->pseudoStack_->entries[sp - 1];
-    MOZ_ASSERT(entry.isJs());
-    entry.setOSR();
+    ProfileEntry& entry = profiler->pseudoStack_->entries[sp - 1];
+    MOZ_ASSERT(entry.kind() == ProfileEntry::Kind::JS_NORMAL);
+    entry.setKind(ProfileEntry::Kind::JS_OSR);
 }
 
 GeckoProfilerBaselineOSRMarker::~GeckoProfilerBaselineOSRMarker()
@@ -453,13 +474,13 @@ GeckoProfilerBaselineOSRMarker::~GeckoProfilerBaselineOSRMarker()
     if (sp == 0)
         return;
 
-    volatile ProfileEntry& entry = profiler->stack()[sp - 1];
-    MOZ_ASSERT(entry.isJs());
-    entry.unsetOSR();
+    ProfileEntry& entry = profiler->stack()[sp - 1];
+    MOZ_ASSERT(entry.kind() == ProfileEntry::Kind::JS_OSR);
+    entry.setKind(ProfileEntry::Kind::JS_NORMAL);
 }
 
 JS_PUBLIC_API(JSScript*)
-ProfileEntry::script() const volatile
+ProfileEntry::script() const
 {
     MOZ_ASSERT(isJs());
     auto script = reinterpret_cast<JSScript*>(spOrScript);
@@ -482,7 +503,7 @@ ProfileEntry::script() const volatile
 }
 
 JS_FRIEND_API(jsbytecode*)
-ProfileEntry::pc() const volatile
+ProfileEntry::pc() const
 {
     MOZ_ASSERT(isJs());
     if (lineOrPcOffset == NullPCOffset)
@@ -498,7 +519,7 @@ ProfileEntry::pcToOffset(JSScript* aScript, jsbytecode* aPc) {
 }
 
 void
-ProfileEntry::setPC(jsbytecode* pc) volatile
+ProfileEntry::setPC(jsbytecode* pc)
 {
     MOZ_ASSERT(isJs());
     JSScript* script = this->script();
@@ -541,16 +562,4 @@ AutoSuppressProfilerSampling::~AutoSuppressProfilerSampling()
 {
     if (previouslyEnabled_)
         cx_->enableProfilerSampling();
-}
-
-void*
-js::GetTopProfilingJitFrame(uint8_t* exitFramePtr)
-{
-    // For null exitFrame, there is no previous exit frame, just return.
-    if (!exitFramePtr)
-        return nullptr;
-
-    jit::JitProfilingFrameIterator iter(exitFramePtr);
-    MOZ_ASSERT(!iter.done());
-    return iter.fp();
 }

@@ -27,6 +27,7 @@ var FormAutofillFrameScript = {
     addEventListener("focusin", this);
     addMessageListener("FormAutofill:PreviewProfile", this);
     addMessageListener("FormAutoComplete:PopupClosed", this);
+    addMessageListener("FormAutoComplete:PopupOpened", this);
   },
 
   handleEvent(evt) {
@@ -41,10 +42,20 @@ var FormAutofillFrameScript = {
     switch (evt.type) {
       case "focusin": {
         let element = evt.target;
+        let doc = element.ownerDocument;
+
         if (!FormAutofillUtils.isFieldEligibleForAutofill(element)) {
           return;
         }
-        FormAutofillContent.identifyAutofillFields(element.ownerDocument);
+
+        let doIdentifyAutofillFields =
+          () => setTimeout(() => FormAutofillContent.identifyAutofillFields(element));
+
+        if (doc.readyState === "loading") {
+          doc.addEventListener("DOMContentLoaded", doIdentifyAutofillFields, {once: true});
+        } else {
+          doIdentifyAutofillFields();
+        }
         break;
       }
     }
@@ -55,11 +66,24 @@ var FormAutofillFrameScript = {
       return;
     }
 
+    const doc = content.document;
+    const {chromeEventHandler} = doc.ownerGlobal.getInterface(Ci.nsIDocShell);
+
     switch (message.name) {
-      case "FormAutofill:PreviewProfile":
-      case "FormAutoComplete:PopupClosed":
-        FormAutofillContent._previewProfile(content.document);
+      case "FormAutofill:PreviewProfile": {
+        FormAutofillContent._previewProfile(doc);
         break;
+      }
+      case "FormAutoComplete:PopupClosed": {
+        FormAutofillContent._previewProfile(doc);
+        chromeEventHandler.removeEventListener("keydown", FormAutofillContent._onKeyDown,
+                                               {capturing: true});
+        break;
+      }
+      case "FormAutoComplete:PopupOpened": {
+        chromeEventHandler.addEventListener("keydown", FormAutofillContent._onKeyDown,
+                                            {capturing: true});
+      }
     }
   },
 };

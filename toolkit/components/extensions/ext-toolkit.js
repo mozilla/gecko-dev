@@ -1,5 +1,17 @@
 "use strict";
 
+// These are defined on "global" which is used for the same scopes as the other
+// ext-*.js files.
+/* exported getCookieStoreIdForTab, getCookieStoreIdForContainer,
+            getContainerForCookieStoreId,
+            isValidCookieStoreId, isContainerCookieStoreId,
+            SingletonEventManager */
+/* global getCookieStoreIdForTab:false, getCookieStoreIdForContainer:false,
+          getContainerForCookieStoreId: false,
+          isValidCookieStoreId:false, isContainerCookieStoreId:false,
+          isDefaultCookieStoreId: false, isPrivateCookieStoreId:false,
+          SingletonEventManager: false */
+
 XPCOMUtils.defineLazyModuleGetter(this, "ContextualIdentityService",
                                   "resource://gre/modules/ContextualIdentityService.jsm");
 
@@ -77,6 +89,14 @@ extensions.registerModules({
     url: "chrome://extensions/content/ext-backgroundPage.js",
     scopes: ["addon_parent"],
     manifest: ["background"],
+  },
+  browserSettings: {
+    url: "chrome://extensions/content/ext-browserSettings.js",
+    schema: "chrome://extensions/content/schemas/browser_settings.json",
+    scopes: ["addon_parent"],
+    paths: [
+      ["browserSettings"],
+    ],
   },
   contextualIdentities: {
     url: "chrome://extensions/content/ext-contextualIdentities.js",

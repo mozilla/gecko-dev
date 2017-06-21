@@ -29,10 +29,10 @@ class nsICSSDeclaration;
 class nsIDocShell;
 class nsIDocShellLoadInfo;
 class nsIDocument;
-class nsIEventTarget;
 class nsIIdleObserver;
 class nsIPrincipal;
 class nsIScriptTimeoutHandler;
+class nsISerialEventTarget;
 class nsIURI;
 class nsPIDOMWindowInner;
 class nsPIDOMWindowOuter;
@@ -179,11 +179,7 @@ public:
     mIsActive = aActive;
   }
 
-  virtual void SetIsBackground(bool aIsBackground)
-  {
-    MOZ_ASSERT(IsOuterWindow());
-    mIsBackground = aIsBackground;
-  }
+  virtual void SetIsBackground(bool aIsBackground) = 0;
 
   mozilla::dom::EventTarget* GetChromeEventHandler() const
   {
@@ -613,7 +609,7 @@ public:
 
   mozilla::dom::DocGroup* GetDocGroup() const;
 
-  virtual nsIEventTarget*
+  virtual nsISerialEventTarget*
   EventTargetFor(mozilla::TaskCategory aCategory) const = 0;
 
 protected:
@@ -672,7 +668,6 @@ protected:
   bool                   mMayHavePaintEventListener;
   bool                   mMayHaveTouchEventListener;
   bool                   mMayHaveMouseEnterLeaveEventListener;
-  bool                   mMayHaveMouseMoveEventListener;
   bool                   mMayHavePointerEnterLeaveEventListener;
 
   // Used to detect whether we have called FreeInnerObjects() (e.g. to ensure
@@ -820,24 +815,6 @@ public:
 
   /**
    * Call this to check whether some node (this window, its document,
-   * or content in that document) has or had a mousemove event listener.
-   */
-  bool HasMouseMoveEventListeners()
-  {
-    return mMayHaveMouseMoveEventListener;
-  }
-
-  /**
-   * Call this to indicate that some node (this window, its document,
-   * or content in that document) has or had a mousemove event listener.
-   */
-  void SetHasMouseMoveEventListeners()
-  {
-    mMayHaveMouseMoveEventListener = true;
-  }
-
-  /**
-   * Call this to check whether some node (this window, its document,
    * or content in that document) has a mouseenter/leave event listener.
    */
   bool HasMouseEnterLeaveEventListeners()
@@ -917,6 +894,16 @@ public:
   mozilla::dom::TimeoutManager& TimeoutManager();
 
   bool IsRunningTimeout();
+
+  // Increase/Decrease the number of active IndexedDB transactions/databases for
+  // the decision making of timer-throttling.
+  void UpdateActiveIndexedDBTransactionCount(int32_t aDelta);
+  void UpdateActiveIndexedDBDatabaseCount(int32_t aDelta);
+
+  // Return true if there is any active IndexedDB trasnsaction/databases in any
+  // window of the same tab.
+  bool HasActiveIndexedDBTransactions();
+  bool HasActiveIndexedDBDatabases();
 
 protected:
   void CreatePerformanceObjectIfNeeded();

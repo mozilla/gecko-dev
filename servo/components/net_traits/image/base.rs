@@ -4,9 +4,10 @@
 
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{self, DynamicImage, ImageFormat};
+use std::fmt;
 use webrender_traits;
 
-#[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
 pub enum PixelFormat {
     /// Luminance channel only
     K8,
@@ -15,7 +16,7 @@ pub enum PixelFormat {
     /// RGB, 8 bits per channel
     RGB8,
     /// RGB + alpha, 8 bits per channel
-    RGBA8,
+    BGRA8,
 }
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
@@ -29,7 +30,14 @@ pub struct Image {
     pub id: Option<webrender_traits::ImageKey>,
 }
 
-#[derive(Clone, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
+impl fmt::Debug for Image {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
+               self.width, self.height, self.format, self.id)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
 pub struct ImageMetadata {
     pub width: u32,
     pub height: u32,
@@ -42,7 +50,7 @@ pub struct ImageMetadata {
 fn byte_swap_and_premultiply(data: &mut [u8]) {
     let length = data.len();
 
-    for i in (0..length).step_by(4) {
+    for i in Iterator::step_by(0..length, 4) {
         let r = data[i + 2];
         let g = data[i + 1];
         let b = data[i + 0];
@@ -75,7 +83,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                     Some(Image {
                         width: rgba.width(),
                         height: rgba.height(),
-                        format: PixelFormat::RGBA8,
+                        format: PixelFormat::BGRA8,
                         bytes: IpcSharedMemory::from_bytes(&*rgba),
                         id: None,
                     })

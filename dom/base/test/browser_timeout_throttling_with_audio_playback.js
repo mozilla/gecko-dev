@@ -16,12 +16,13 @@ var testURLs = [
 
 // We want to ensure that while audio is being played back, a background tab is
 // treated the same as a foreground tab as far as timeout throttling is concerned.
-// So we use a 10ms minimum timeout value for foreground tabs and a 100,000 second
-// minimum timeout value for background tabs.  This means that in case the test
-// fails, it will time out in practice, but just for sanity the test condition
-// ensures that the observed timeout delay falls in this range.
-const kMinTimeoutForeground = 10;
+// So we use a 100,000 second minimum timeout value for background tabs.  This
+// means that in case the test fails, it will time out in practice, but just for
+// sanity the test condition ensures that the observed timeout delay falls in
+// this range.
 const kMinTimeoutBackground = 100 * 1000 * 1000;
+
+const kDelay = 10;
 
 Services.scriptloader.loadSubScript(kPluginJS, this);
 
@@ -38,19 +39,16 @@ function* runTest(url) {
   // Put the tab in the background.
   yield BrowserTestUtils.switchTab(gBrowser, currentTab);
 
-  let timeout = yield ContentTask.spawn(newBrowser, {}, function() {
+  let timeout = yield ContentTask.spawn(newBrowser, kDelay, function(delay) {
     return new Promise(resolve => {
       let before = new Date();
       content.window.setTimeout(function() {
         let after = new Date();
-        // Sometimes due to rounding errors, we may get a result of 9ms here, so
-        // let's round up by 1 to protect against such intermittent failures.
-        resolve(after - before + 1);
-      }, 0);
+        resolve(after - before);
+      }, delay);
     });
   });
-  ok(timeout >= kMinTimeoutForeground &&
-     timeout <  kMinTimeoutBackground, `Got the correct timeout (${timeout})`);
+  ok(timeout <= kMinTimeoutBackground, `Got the correct timeout (${timeout})`);
 
   // All done.
   yield BrowserTestUtils.removeTab(newTab);
@@ -58,7 +56,6 @@ function* runTest(url) {
 
 add_task(function* setup() {
   yield SpecialPowers.pushPrefEnv({"set": [
-    ["dom.min_timeout_value", kMinTimeoutForeground],
     ["dom.min_background_timeout_value", kMinTimeoutBackground],
   ]});
 });

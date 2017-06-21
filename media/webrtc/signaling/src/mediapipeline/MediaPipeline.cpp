@@ -56,6 +56,8 @@
 
 #include "webrtc/common_types.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
+#include "webrtc/common_video/include/video_frame_buffer.h"
+#include "webrtc/base/bind.h"
 
 #include "nsThreadUtils.h"
 
@@ -63,10 +65,10 @@
 
 // Max size given stereo is 480*2*2 = 1920 (10ms of 16-bits stereo audio at
 // 48KHz)
-#define AUDIO_SAMPLE_BUFFER_MAX 480*2*2
+#define AUDIO_SAMPLE_BUFFER_MAX_BYTES 480*2*2
 static_assert((WEBRTC_DEFAULT_SAMPLE_RATE/100)*sizeof(uint16_t) * 2
-               <= AUDIO_SAMPLE_BUFFER_MAX,
-               "AUDIO_SAMPLE_BUFFER_MAX is not large enough");
+               <= AUDIO_SAMPLE_BUFFER_MAX_BYTES,
+               "AUDIO_SAMPLE_BUFFER_MAX_BYTES is not large enough");
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -98,7 +100,7 @@ protected:
 };
 
 // I420 buffer size macros
-#define YSIZE(x,y) ((x)*(y))
+#define YSIZE(x,y) (CheckedInt<int>(x)*(y))
 #define CRSIZE(x,y) ((((x)+1) >> 1) * (((y)+1) >> 1))
 #define I420SIZE(x,y) (YSIZE((x),(y)) + 2 * CRSIZE((x),(y)))
 
@@ -236,19 +238,45 @@ protected:
     MOZ_COUNT_DTOR(VideoFrameConverter);
   }
 
-  void VideoFrameConverted(unsigned char* aVideoFrame,
+  static void DeleteBuffer(uint8 *data)
+  {
+    delete[] data;
+  }
+
+  // This takes ownership of the buffer and attached it to the VideoFrame we send
+  // to the listeners
+  void VideoFrameConverted(UniquePtr<uint8[]> aBuffer,
                            unsigned int aVideoFrameLength,
                            unsigned short aWidth,
                            unsigned short aHeight,
                            VideoType aVideoType,
                            uint64_t aCaptureTime)
   {
-    MutexAutoLock lock(mMutex);
-
-    for (RefPtr<VideoConverterListener>& listener : mListeners) {
-      listener->OnVideoFrameConverted(aVideoFrame, aVideoFrameLength,
-                                      aWidth, aHeight, aVideoType, aCaptureTime);
+    // check for parameter sanity
+    if (!aBuffer || aVideoFrameLength == 0 || aWidth == 0 || aHeight == 0) {
+      MOZ_MTLOG(ML_ERROR, __FUNCTION__ << " Invalid Parameters ");
+      MOZ_ASSERT(false);
+      return;
     }
+    MOZ_ASSERT(aVideoType == VideoType::kVideoI420);
+
+    const int stride_y = aWidth;
+    const int stride_uv = (aWidth + 1) / 2;
+
+    const uint8_t* buffer_y = aBuffer.get();
+    const uint8_t* buffer_u = buffer_y + stride_y * aHeight;
+    const uint8_t* buffer_v = buffer_u + stride_uv * ((aHeight + 1) / 2);
+    rtc::scoped_refptr<webrtc::WrappedI420Buffer> video_frame_buffer(
+      new rtc::RefCountedObject<webrtc::WrappedI420Buffer>(
+        aWidth, aHeight,
+        buffer_y, stride_y,
+        buffer_u, stride_uv,
+        buffer_v, stride_uv,
+        rtc::Bind(&DeleteBuffer, aBuffer.release())));
+
+    webrtc::VideoFrame video_frame(video_frame_buffer, aCaptureTime,
+                                   aCaptureTime, webrtc::kVideoRotation_0); // XXX
+    VideoFrameConverted(video_frame);
   }
 
   void VideoFrameConverted(webrtc::VideoFrame& aVideoFrame)
@@ -267,92 +295,32 @@ protected:
 
     if (aForceBlack) {
       IntSize size = aImage->GetSize();
-      uint32_t yPlaneLen = YSIZE(size.width, size.height);
-      uint32_t cbcrPlaneLen = 2 * CRSIZE(size.width, size.height);
-      uint32_t length = yPlaneLen + cbcrPlaneLen;
+      CheckedInt<int> yPlaneLen = YSIZE(size.width, size.height);
+      // doesn't need to be CheckedInt, any overflow will be caught by YSIZE
+      int cbcrPlaneLen = 2 * CRSIZE(size.width, size.height);
+      CheckedInt<int> length = yPlaneLen + cbcrPlaneLen;
+
+      if (!yPlaneLen.isValid() || !length.isValid()) {
+        return;
+      }
 
       // Send a black image.
-      auto pixelData = MakeUniqueFallible<uint8_t[]>(length);
+      auto pixelData = MakeUniqueFallible<uint8_t[]>(length.value());
       if (pixelData) {
         // YCrCb black = 0x10 0x80 0x80
-        memset(pixelData.get(), 0x10, yPlaneLen);
+        memset(pixelData.get(), 0x10, yPlaneLen.value());
         // Fill Cb/Cr planes
-        memset(pixelData.get() + yPlaneLen, 0x80, cbcrPlaneLen);
+        memset(pixelData.get() + yPlaneLen.value(), 0x80, cbcrPlaneLen);
 
         MOZ_MTLOG(ML_DEBUG, "Sending a black video frame");
-        VideoFrameConverted(pixelData.get(), length, size.width, size.height,
+        VideoFrameConverted(Move(pixelData), length.value(),
+                            size.width, size.height,
                             mozilla::kVideoI420, 0);
       }
       return;
     }
 
     ImageFormat format = aImage->GetFormat();
-#ifdef WEBRTC_GONK
-    GrallocImage* nativeImage = aImage->AsGrallocImage();
-    if (nativeImage) {
-      android::sp<android::GraphicBuffer> graphicBuffer = nativeImage->GetGraphicBuffer();
-      int pixelFormat = graphicBuffer->getPixelFormat(); /* PixelFormat is an enum == int */
-      mozilla::VideoType destFormat;
-      switch (pixelFormat) {
-        case HAL_PIXEL_FORMAT_YV12:
-          // all android must support this
-          destFormat = mozilla::kVideoYV12;
-          break;
-        case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP:
-          destFormat = mozilla::kVideoNV21;
-          break;
-        case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_P:
-          destFormat = mozilla::kVideoI420;
-          break;
-        default:
-          // XXX Bug NNNNNNN
-          // use http://dxr.mozilla.org/mozilla-central/source/content/media/omx/I420ColorConverterHelper.cpp
-          // to convert unknown types (OEM-specific) to I420
-          MOZ_MTLOG(ML_ERROR, "Un-handled GRALLOC buffer type:" << pixelFormat);
-          MOZ_CRASH();
-      }
-      void *basePtr;
-      graphicBuffer->lock(android::GraphicBuffer::USAGE_SW_READ_MASK, &basePtr);
-      uint32_t width = graphicBuffer->getWidth();
-      uint32_t height = graphicBuffer->getHeight();
-      // XXX gralloc buffer's width and stride could be different depends on implementations.
-
-      if (destFormat != mozilla::kVideoI420) {
-        unsigned char *video_frame = static_cast<unsigned char*>(basePtr);
-        webrtc::VideoFrame i420_frame;
-        int stride_y = width;
-        int stride_uv = (width + 1) / 2;
-        int target_width = width;
-        int target_height = height;
-        if (i420_frame.CreateEmptyFrame(target_width,
-                                        abs(target_height),
-                                        stride_y,
-                                        stride_uv, stride_uv) < 0) {
-          MOZ_ASSERT(false, "Can't allocate empty i420frame");
-          return;
-        }
-        webrtc::VideoType commonVideoType =
-          webrtc::RawVideoTypeToCommonVideoVideoType(
-            static_cast<webrtc::RawVideoType>((int)destFormat));
-        if (ConvertToI420(commonVideoType, video_frame, 0, 0, width, height,
-                          I420SIZE(width, height), webrtc::kVideoRotation_0,
-                          &i420_frame)) {
-          MOZ_ASSERT(false, "Can't convert video type for sending to I420");
-          return;
-        }
-        i420_frame.set_ntp_time_ms(0);
-        VideoFrameConverted(i420_frame);
-      } else {
-        VideoFrameConverted(static_cast<unsigned char*>(basePtr),
-                            I420SIZE(width, height),
-                            width,
-                            height,
-                            destFormat, 0);
-      }
-      graphicBuffer->unlock();
-      return;
-    } else
-#endif
     if (format == ImageFormat::PLANAR_YCBCR) {
       // Cast away constness b/c some of the accessors are non-const
       PlanarYCbCrImage* yuv = const_cast<PlanarYCbCrImage *>(
@@ -368,15 +336,18 @@ protected:
         uint32_t width = yuv->GetSize().width;
         uint32_t height = yuv->GetSize().height;
 
-        webrtc::VideoFrame i420_frame;
-        int rv = i420_frame.CreateFrame(y, cb, cr, width, height,
-                                        yStride, cbCrStride, cbCrStride,
-                                        webrtc::kVideoRotation_0);
-        if (rv != 0) {
-          NS_ERROR("Creating an I420 frame failed");
-          return;
-        }
+        rtc::Callback0<void> callback_unused;
+        rtc::scoped_refptr<webrtc::WrappedI420Buffer> video_frame_buffer(
+          new rtc::RefCountedObject<webrtc::WrappedI420Buffer>(
+            width, height,
+            y, yStride,
+            cb, cbCrStride,
+            cr, cbCrStride,
+            callback_unused));
 
+        webrtc::VideoFrame i420_frame(video_frame_buffer,
+                                      0, 0, // not setting timestamps
+                                      webrtc::kVideoRotation_0);
         MOZ_MTLOG(ML_DEBUG, "Sending an I420 video frame");
         VideoFrameConverted(i420_frame);
         return;
@@ -398,11 +369,17 @@ protected:
     }
 
     IntSize size = aImage->GetSize();
+    // these don't need to be CheckedInt, any overflow will be caught by YSIZE
     int half_width = (size.width + 1) >> 1;
     int half_height = (size.height + 1) >> 1;
     int c_size = half_width * half_height;
-    int buffer_size = YSIZE(size.width, size.height) + 2 * c_size;
-    auto yuv_scoped = MakeUniqueFallible<uint8[]>(buffer_size);
+    CheckedInt<int> buffer_size = YSIZE(size.width, size.height) + 2 * c_size;
+
+    if (!buffer_size.isValid()) {
+      return;
+    }
+
+    auto yuv_scoped = MakeUniqueFallible<uint8[]>(buffer_size.value());
     if (!yuv_scoped) {
       return;
     }
@@ -417,7 +394,7 @@ protected:
     }
 
     int rv;
-    int cb_offset = YSIZE(size.width, size.height);
+    int cb_offset = YSIZE(size.width, size.height).value();
     int cr_offset = cb_offset + c_size;
     switch (surf->GetFormat()) {
       case SurfaceFormat::B8G8R8A8:
@@ -448,7 +425,7 @@ protected:
     }
     MOZ_MTLOG(ML_DEBUG, "Sending an I420 video frame converted from " <<
                         Stringify(surf->GetFormat()));
-    VideoFrameConverted(yuv, buffer_size, size.width, size.height, mozilla::kVideoI420, 0);
+    VideoFrameConverted(Move(yuv_scoped), buffer_size.value(), size.width, size.height, mozilla::kVideoI420, 0);
   }
 
   Atomic<int32_t, Relaxed> mLength;
@@ -548,12 +525,8 @@ public:
     while (packetizer_->PacketsAvailable()) {
       uint32_t samplesPerPacket = packetizer_->PacketSize() *
                                   packetizer_->Channels();
-      // We know that webrtc.org's code going to copy the samples down the line,
-      // so we can just use a stack buffer here instead of malloc-ing.
-      int16_t packet[AUDIO_SAMPLE_BUFFER_MAX];
-
-      packetizer_->Output(packet);
-      mConduit->SendAudioFrame(packet, samplesPerPacket, rate, 0);
+      packetizer_->Output(packet_);
+      mConduit->SendAudioFrame(packet_, samplesPerPacket, rate, 0);
     }
   }
 
@@ -572,7 +545,8 @@ protected:
     // Conduits must be released on MainThread, and we might have the last reference
     // We don't need to worry about runnables still trying to access the conduit, since
     // the runnables hold a ref to AudioProxyThread.
-    NS_ReleaseOnMainThread(mConduit.forget());
+    NS_ReleaseOnMainThread(
+      "AudioProxyThread::mConduit", mConduit.forget());
     MOZ_COUNT_DTOR(AudioProxyThread);
   }
 
@@ -580,6 +554,8 @@ protected:
   nsCOMPtr<nsIEventTarget> mThread;
   // Only accessed on mThread
   nsAutoPtr<AudioPacketizer<int16_t, int16_t>> packetizer_;
+  // A buffer to hold a single packet of audio.
+  int16_t packet_[AUDIO_SAMPLE_BUFFER_MAX_BYTES / sizeof(int16_t)];
 };
 
 static char kDTLSExporterLabel[] = "EXTRACTOR-dtls_srtp";
@@ -2038,7 +2014,7 @@ public:
     // This comparison is done in total time to avoid accumulated roundoff errors.
     while (source_->TicksToTimeRoundDown(WEBRTC_DEFAULT_SAMPLE_RATE,
                                          played_ticks_) < desired_time) {
-      int16_t scratch_buffer[AUDIO_SAMPLE_BUFFER_MAX];
+      int16_t scratch_buffer[AUDIO_SAMPLE_BUFFER_MAX_BYTES / sizeof(int16_t)];
 
       int samples_length;
 
@@ -2061,7 +2037,7 @@ public:
         PodArrayZero(scratch_buffer);
       }
 
-      MOZ_ASSERT(samples_length * sizeof(uint16_t) < AUDIO_SAMPLE_BUFFER_MAX);
+      MOZ_ASSERT(samples_length * sizeof(uint16_t) < AUDIO_SAMPLE_BUFFER_MAX_BYTES);
 
       MOZ_MTLOG(ML_DEBUG, "Audio conduit returned buffer of length "
                 << samples_length);
@@ -2218,38 +2194,44 @@ public:
     height_ = height;
   }
 
-  void RenderVideoFrame(const unsigned char* buffer,
-                        size_t buffer_size,
+  void RenderVideoFrame(const webrtc::VideoFrameBuffer& buffer,
                         uint32_t time_stamp,
                         int64_t render_time,
                         const RefPtr<layers::Image>& video_image)
   {
-    RenderVideoFrame(buffer, buffer_size, width_, (width_ + 1) >> 1,
+    RenderVideoFrame(buffer.DataY(),
+                     buffer.StrideY(),
+                     buffer.DataU(),
+                     buffer.StrideU(),
+                     buffer.DataV(),
+                     buffer.StrideV(),
                      time_stamp, render_time, video_image);
   }
 
-  void RenderVideoFrame(const unsigned char* buffer,
-                        size_t buffer_size,
+  void RenderVideoFrame(const uint8_t* buffer_y,
                         uint32_t y_stride,
-                        uint32_t cbcr_stride,
+                        const uint8_t* buffer_u,
+                        uint32_t u_stride,
+                        const uint8_t* buffer_v,
+                        uint32_t v_stride,
                         uint32_t time_stamp,
                         int64_t render_time,
                         const RefPtr<layers::Image>& video_image)
   {
     ReentrantMonitorAutoEnter enter(monitor_);
 
-    if (buffer) {
+    if (buffer_y) {
       // Create a video frame using |buffer|.
       RefPtr<PlanarYCbCrImage> yuvImage = image_container_->CreatePlanarYCbCrImage();
-      uint8_t* frame = const_cast<uint8_t*>(static_cast<const uint8_t*> (buffer));
 
       PlanarYCbCrData yuvData;
-      yuvData.mYChannel = frame;
+      yuvData.mYChannel = const_cast<uint8_t*>(buffer_y);
       yuvData.mYSize = IntSize(y_stride, height_);
       yuvData.mYStride = y_stride;
-      yuvData.mCbCrStride = cbcr_stride;
-      yuvData.mCbChannel = frame + height_ * yuvData.mYStride;
-      yuvData.mCrChannel = yuvData.mCbChannel + ((height_ + 1) >> 1) * yuvData.mCbCrStride;
+      MOZ_ASSERT(u_stride == v_stride);
+      yuvData.mCbCrStride = u_stride;
+      yuvData.mCbChannel = const_cast<uint8_t*>(buffer_u);
+      yuvData.mCrChannel = const_cast<uint8_t*>(buffer_v);
       yuvData.mCbCrSize = IntSize(yuvData.mCbCrStride, (height_ + 1) >> 1);
       yuvData.mPicX = 0;
       yuvData.mPicY = 0;
@@ -2276,7 +2258,7 @@ private:
                                       // - Reading from the MSG thread
 };
 
-class MediaPipelineReceiveVideo::PipelineRenderer : public VideoRenderer
+class MediaPipelineReceiveVideo::PipelineRenderer : public mozilla::VideoRenderer
 {
 public:
   explicit PipelineRenderer(MediaPipelineReceiveVideo *pipeline) :
@@ -2292,27 +2274,29 @@ public:
     pipeline_->listener_->FrameSizeChange(width, height, number_of_streams);
   }
 
-  void RenderVideoFrame(const unsigned char* buffer,
-                        size_t buffer_size,
+  void RenderVideoFrame(const webrtc::VideoFrameBuffer& buffer,
                         uint32_t time_stamp,
                         int64_t render_time,
                         const ImageHandle& handle) override
   {
-    pipeline_->listener_->RenderVideoFrame(buffer, buffer_size,
+    pipeline_->listener_->RenderVideoFrame(buffer,
                                            time_stamp, render_time,
                                            handle.GetImage());
   }
 
-  void RenderVideoFrame(const unsigned char* buffer,
-                        size_t buffer_size,
+  void RenderVideoFrame(const uint8_t* buffer_y,
                         uint32_t y_stride,
-                        uint32_t cbcr_stride,
+                        const uint8_t* buffer_u,
+                        uint32_t u_stride,
+                        const uint8_t* buffer_v,
+                        uint32_t v_stride,
                         uint32_t time_stamp,
                         int64_t render_time,
                         const ImageHandle& handle) override
   {
-    pipeline_->listener_->RenderVideoFrame(buffer, buffer_size,
-                                           y_stride, cbcr_stride,
+    pipeline_->listener_->RenderVideoFrame(buffer_y, y_stride,
+                                           buffer_u, u_stride,
+                                           buffer_v, v_stride,
                                            time_stamp, render_time,
                                            handle.GetImage());
   }

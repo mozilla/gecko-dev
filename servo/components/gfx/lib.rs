@@ -33,7 +33,7 @@ extern crate bitflags;
 extern crate euclid;
 extern crate fnv;
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(target_os = "linux")]
 extern crate fontconfig;
 extern crate fontsan;
 #[cfg(any(target_os = "linux", target_os = "android"))]
@@ -56,10 +56,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;
 extern crate range;
-#[cfg(target_os = "macos")]
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_geometry;
 extern crate servo_url;
 #[macro_use] extern crate servo_atoms;
@@ -73,6 +70,8 @@ extern crate unicode_bidi;
 extern crate unicode_script;
 extern crate webrender_traits;
 extern crate xi_unicode;
+#[cfg(target_os = "android")]
+extern crate xml5ever;
 
 #[deny(unsafe_code)]
 pub mod display_list;

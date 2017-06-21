@@ -5,11 +5,21 @@
 //! Helper types and traits for the handling of CSS values.
 
 use app_units::Au;
-use cssparser::UnicodeRange;
+use cssparser::{UnicodeRange, serialize_string};
 use std::fmt;
 
-/// The real `ToCss` trait can't be implemented for types in crates that don't
-/// depend on each other.
+/// Serialises a value according to its CSS representation.
+///
+/// This trait is implemented for `str` and its friends, serialising the string
+/// contents as a CSS quoted string.
+///
+/// This trait is derivable with `#[derive(ToCss)]`, with the following behaviour:
+/// * unit variants get serialised as the `snake-case` representation
+///   of their name;
+/// * unit variants whose name starts with "Moz" or "Webkit" are prepended
+///   with a "-";
+/// * variants with fields get serialised as the space-separated serialisations
+///   of their fields.
 pub trait ToCss {
     /// Serialize `self` in CSS syntax, writing to `dest`.
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write;
@@ -31,24 +41,80 @@ impl<'a, T> ToCss for &'a T where T: ToCss + ?Sized {
     }
 }
 
-/// Marker trait to automatically implement ToCss for Vec<T>.
-pub trait OneOrMoreCommaSeparated {}
+impl ToCss for str {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        serialize_string(self, dest)
+    }
+}
 
-impl OneOrMoreCommaSeparated for UnicodeRange {}
+impl ToCss for String {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        serialize_string(self, dest)
+    }
+}
 
-impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreCommaSeparated {
+/// Type used as the associated type in the `OneOrMoreSeparated` trait on a
+/// type to indicate that a serialized list of elements of this type is
+/// separated by commas.
+pub struct CommaSeparator;
+
+/// Type used as the associated type in the `OneOrMoreSeparated` trait on a
+/// type to indicate that a serialized list of elements of this type is
+/// separated by spaces.
+pub struct SpaceSeparator;
+
+/// A trait satisfied by the types corresponding to separators.
+pub trait Separator {
+    /// The separator string that the satisfying separator type corresponds to.
+    fn separator() -> &'static str;
+}
+
+impl Separator for CommaSeparator {
+    fn separator() -> &'static str {
+        ", "
+    }
+}
+
+impl Separator for SpaceSeparator {
+    fn separator() -> &'static str {
+        " "
+    }
+}
+
+/// Trait that indicates that satisfying separator types are comma separators.
+/// This seems kind of redundant, but we aren't able to express type equality
+/// constraints yet.
+/// https://github.com/rust-lang/rust/issues/20041
+pub trait IsCommaSeparator {}
+
+impl IsCommaSeparator for CommaSeparator {}
+
+/// Marker trait on T to automatically implement ToCss for Vec<T> when T's are
+/// separated by some delimiter `delim`.
+pub trait OneOrMoreSeparated {
+    /// Associated type indicating which separator is used.
+    type S: Separator;
+}
+
+impl OneOrMoreSeparated for UnicodeRange {
+    type S = CommaSeparator;
+}
+
+impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreSeparated {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         let mut iter = self.iter();
         iter.next().unwrap().to_css(dest)?;
         for item in iter {
-            dest.write_str(", ")?;
+            dest.write_str(<T as OneOrMoreSeparated>::S::separator())?;
             item.to_css(dest)?;
         }
         Ok(())
     }
 }
 
-impl<T: ToCss> ToCss for Box<T> {
+impl<T> ToCss for Box<T> where T: ?Sized + ToCss {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
@@ -147,9 +213,13 @@ macro_rules! __define_css_keyword_enum__actual {
 
         impl $name {
             /// Parse this property from a CSS input stream.
-            pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
+            pub fn parse<'i, 't>(input: &mut ::cssparser::Parser<'i, 't>)
+                                 -> Result<$name, $crate::ParseError<'i>> {
                 let ident = input.expect_ident()?;
                 Self::from_ident(&ident)
+                    .map_err(|()| ::cssparser::ParseError::Basic(
+                        ::cssparser::BasicParseError::UnexpectedToken(
+                            ::cssparser::Token::Ident(ident))))
             }
 
             /// Parse this property from an already-tokenized identifier.
@@ -176,6 +246,7 @@ macro_rules! __define_css_keyword_enum__actual {
 
 /// Helper types for the handling of specified values.
 pub mod specified {
+    use ParsingMode;
     use app_units::Au;
     use std::cmp;
 
@@ -200,7 +271,10 @@ pub mod specified {
     impl AllowedLengthType {
         /// Whether value is valid for this allowed length type.
         #[inline]
-        pub fn is_ok(&self, value: f32) -> bool {
+        pub fn is_ok(&self, parsing_mode: ParsingMode, value: f32) -> bool {
+            if parsing_mode.allows_all_numeric_values() {
+                return true;
+            }
             match *self {
                 AllowedLengthType::All => true,
                 AllowedLengthType::NonNegative => value >= 0.,
@@ -233,7 +307,10 @@ pub mod specified {
     impl AllowedNumericType {
         /// Whether the value fits the rules of this numeric type.
         #[inline]
-        pub fn is_ok(&self, val: f32) -> bool {
+        pub fn is_ok(&self, parsing_mode: ParsingMode, val: f32) -> bool {
+            if parsing_mode.allows_all_numeric_values() {
+                return true;
+            }
             match *self {
                 AllowedNumericType::All => true,
                 AllowedNumericType::NonNegative => val >= 0.0,

@@ -14,15 +14,18 @@
 //! style system it's kind of pointless in the Stylo case, and only Servo forces
 //! the separation between the style system implementation and everything else.
 
+use CaseSensitivityExt;
 use app_units::Au;
+use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::AtomicRefCell;
 use context::{QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{self, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::ElementState;
-use error_reporting::RustLogReporter;
+use error_reporting::create_error_reporter;
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
+use gecko::data::PerDocumentStyleData;
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
@@ -35,18 +38,22 @@ use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
+use gecko_bindings::bindings::Gecko_GetActiveLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetExtraContentStyleDeclarations;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetSMILOverrideDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
+use gecko_bindings::bindings::Gecko_GetUnvisitedLinkAttrDeclarationBlock;
+use gecko_bindings::bindings::Gecko_GetVisitedLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_IsSignificantChild;
+use gecko_bindings::bindings::Gecko_MatchLang;
 use gecko_bindings::bindings::Gecko_MatchStringArgPseudo;
 use gecko_bindings::bindings::Gecko_UnsetDirtyStyleAttr;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
-use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
+use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, RawGeckoXBLBinding};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsINode_BooleanFlag, nsStyleContext};
 use gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
 use gecko_bindings::structs::ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
@@ -55,20 +62,23 @@ use gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
-use gecko_bindings::sugar::ownership::HasArcFFI;
+use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
-use properties::animated_properties::{AnimationValue, AnimationValueMap, TransitionProperty};
+use properties::animated_properties::{AnimatableLonghand, AnimationValue, AnimationValueMap};
+use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
-use selector_parser::ElementExt;
+use selector_parser::{AttrValue, ElementExt, PseudoClassStringArg};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, RelevantLinkStatus};
+use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
+use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
 use shared_lock::Locked;
 use sink::Push;
+use smallvec::VecLike;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -79,7 +89,6 @@ use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use stylearc::Arc;
 use stylesheets::UrlExtraData;
-use stylist::ApplicableDeclarationBlock;
 
 /// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.
 ///
@@ -197,6 +206,22 @@ impl<'ln> GeckoNode<'ln> {
         true
     }
 
+    fn flattened_tree_parent(&self) -> Option<Self> {
+        let fast_path = self.flattened_tree_parent_is_parent();
+        debug_assert!(fast_path == unsafe { bindings::Gecko_FlattenedTreeParentIsParent(self.0) });
+        if fast_path {
+            unsafe { self.0.mParent.as_ref().map(GeckoNode) }
+        } else {
+            unsafe { bindings::Gecko_GetFlattenedTreeParentNode(self.0).map(GeckoNode) }
+        }
+    }
+
+    /// This logic is duplicated in Gecko's nsIContent::IsRootOfNativeAnonymousSubtree.
+    fn is_root_of_native_anonymous_subtree(&self) -> bool {
+        use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+        return self.flags() & (NODE_IS_NATIVE_ANONYMOUS_ROOT as u32) != 0
+    }
+
     fn contains_non_whitespace_content(&self) -> bool {
         unsafe { Gecko_IsSignificantChild(self.0, true, false) }
     }
@@ -227,12 +252,31 @@ impl<'ln> TNode for GeckoNode<'ln> {
         GeckoNode(&*(n.0 as *mut RawGeckoNode))
     }
 
-    fn children(self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
+    fn parent_node(&self) -> Option<Self> {
+        unsafe { self.0.mParent.as_ref().map(GeckoNode) }
+    }
+
+    fn children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
+        LayoutIterator(self.dom_children())
+    }
+
+    fn traversal_parent(&self) -> Option<GeckoElement<'ln>> {
+        self.flattened_tree_parent().and_then(|n| n.as_element())
+    }
+
+    fn traversal_children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
         let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.0) };
         if let Some(iter) = maybe_iter.into_owned_opt() {
             LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter))
         } else {
-            LayoutIterator(GeckoChildrenIterator::Current(self.first_child()))
+            LayoutIterator(self.dom_children())
+        }
+    }
+
+    fn children_and_traversal_children_might_differ(&self) -> bool {
+        match self.as_element() {
+            Some(e) => e.xbl_binding_anonymous_content().is_some(),
+            None => false,
         }
     }
 
@@ -262,16 +306,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     unsafe fn set_can_be_fragmented(&self, _value: bool) {
         // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
         // Maybe this isn’t useful for Gecko?
-    }
-
-    fn parent_node(&self) -> Option<Self> {
-        let fast_path = self.flattened_tree_parent_is_parent();
-        debug_assert!(fast_path == unsafe { bindings::Gecko_FlattenedTreeParentIsParent(self.0) });
-        if fast_path {
-            unsafe { self.0.mParent.as_ref().map(GeckoNode) }
-        } else {
-            unsafe { bindings::Gecko_GetParentNode(self.0).map(GeckoNode) }
-        }
     }
 
     fn is_in_doc(&self) -> bool {
@@ -336,16 +370,71 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
     }
 }
 
+/// A Simple wrapper over a non-null Gecko `nsXBLBinding` pointer.
+pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
+
+impl<'lb> GeckoXBLBinding<'lb> {
+    fn base_binding(&self) -> Option<GeckoXBLBinding> {
+        unsafe { self.0.mNextBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
+    }
+
+    fn anon_content(&self) -> *const nsIContent {
+        unsafe { self.0.mContent.raw::<nsIContent>() }
+    }
+
+    fn inherits_style(&self) -> bool {
+        unsafe { bindings::Gecko_XBLBinding_InheritsStyle(self.0) }
+    }
+
+    // Implements Gecko's nsXBLBinding::WalkRules().
+    fn get_declarations_for<E, V>(&self,
+                                  element: &E,
+                                  pseudo_element: Option<&PseudoElement>,
+                                  applicable_declarations: &mut V)
+        where E: TElement,
+              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
+        if let Some(base_binding) = self.base_binding() {
+            base_binding.get_declarations_for(element, pseudo_element, applicable_declarations);
+        }
+
+        let raw_data = unsafe { bindings::Gecko_XBLBinding_GetRawServoStyleSet(self.0) };
+        if let Some(raw_data) = raw_data {
+            let data = PerDocumentStyleData::from_ffi(&*raw_data).borrow();
+            data.stylist.push_applicable_declarations_as_xbl_only_stylist(element,
+                                                                          pseudo_element,
+                                                                          applicable_declarations);
+        }
+    }
+}
+
 /// A simple wrapper over a non-null Gecko `Element` pointer.
 #[derive(Clone, Copy)]
 pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
 
 impl<'le> fmt::Debug for GeckoElement<'le> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "<{}", self.get_local_name()));
+        write!(f, "<{}", self.get_local_name())?;
         if let Some(id) = self.get_id() {
-            try!(write!(f, " id={}", id));
+            write!(f, " id={}", id)?;
         }
+
+        let mut first = true;
+        let mut any = false;
+        self.each_class(|c| {
+            if first {
+                first = false;
+                any = true;
+                let _ = f.write_str(" class=\"");
+            } else {
+                let _ = f.write_str(" ");
+            }
+            let _ = write!(f, "{}", c);
+        });
+
+        if any {
+            f.write_str("\"")?;
+        }
+
         write!(f, "> ({:#x})", self.as_node().opaque().0)
     }
 }
@@ -355,7 +444,7 @@ impl<'le> GeckoElement<'le> {
     pub fn parse_style_attribute(value: &str,
                                  url_data: &UrlExtraData,
                                  quirks_mode: QuirksMode) -> PropertyDeclarationBlock {
-        parse_style_attribute(value, url_data, &RustLogReporter, quirks_mode)
+        parse_style_attribute(value, url_data, &create_error_reporter(), quirks_mode)
     }
 
     fn flags(&self) -> u32 {
@@ -387,6 +476,14 @@ impl<'le> GeckoElement<'le> {
     fn get_dom_slots(&self) -> Option<&structs::FragmentOrElement_nsDOMSlots> {
         let slots = self.as_node().0.mSlots as *const structs::FragmentOrElement_nsDOMSlots;
         unsafe { slots.as_ref() }
+    }
+
+    fn get_xbl_binding(&self) -> Option<GeckoXBLBinding> {
+        unsafe { bindings::Gecko_GetXBLBinding(self.0).map(GeckoXBLBinding) }
+    }
+
+    fn get_xbl_binding_parent(&self) -> Option<Self> {
+        unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) }
     }
 
     /// Clear the element data for a given element.
@@ -464,6 +561,25 @@ impl<'le> GeckoElement<'le> {
     #[inline]
     fn may_have_class(&self) -> bool {
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementMayHaveClass)
+    }
+
+    #[inline]
+    fn has_properties(&self) -> bool {
+        use gecko_bindings::structs::NODE_HAS_PROPERTIES;
+
+        (self.flags() & NODE_HAS_PROPERTIES as u32) != 0
+    }
+
+    #[inline]
+    fn get_before_or_after_pseudo(&self, is_before: bool) -> Option<Self> {
+        if !self.has_properties() {
+            return None;
+        }
+
+        unsafe {
+            bindings::Gecko_GetBeforeOrAfterPseudo(self.0, is_before)
+                .map(GeckoElement)
+        }
     }
 
     #[inline]
@@ -592,9 +708,44 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn inheritance_parent(&self) -> Option<Self> {
         if self.is_native_anonymous() {
-            return self.closest_non_native_anonymous_ancestor();
+            self.closest_non_native_anonymous_ancestor()
+        } else {
+            self.as_node().flattened_tree_parent().and_then(|n| n.as_element())
         }
-        return self.parent_element();
+    }
+
+    fn before_pseudo_element(&self) -> Option<Self> {
+        self.get_before_or_after_pseudo(/* is_before = */ true)
+    }
+
+    fn after_pseudo_element(&self) -> Option<Self> {
+        self.get_before_or_after_pseudo(/* is_before = */ false)
+    }
+
+    /// Execute `f` for each anonymous content child element (apart from
+    /// ::before and ::after) whose originating element is `self`.
+    fn each_anonymous_content_child<F>(&self, mut f: F)
+    where
+        F: FnMut(Self),
+    {
+        let array: *mut structs::nsTArray<*mut nsIContent> =
+            unsafe { bindings::Gecko_GetAnonymousContentForElement(self.0) };
+
+        if array.is_null() {
+            return;
+        }
+
+        for content in unsafe { &**array } {
+            let node = GeckoNode::from_content(unsafe { &**content });
+            let element = match node.as_element() {
+                Some(e) => e,
+                None => continue,
+            };
+
+            f(element);
+        }
+
+        unsafe { bindings::Gecko_DestroyAnonymousContentList(array) };
     }
 
     fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
@@ -674,14 +825,20 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    #[inline]
-    fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
-        unsafe {
-            bindings::Gecko_AttrEquals(self.0,
-                                       namespace.0.as_ptr(),
-                                       attr.as_ptr(),
-                                       val.as_ptr(),
-                                       /* ignoreCase = */ false)
+    fn get_id(&self) -> Option<Atom> {
+        if !self.has_id() {
+            return None
+        }
+
+        let ptr = unsafe {
+            bindings::Gecko_AtomAttrValue(self.0,
+                                          atom!("id").as_ptr())
+        };
+
+        if ptr.is_null() {
+            None
+        } else {
+            Some(Atom::from(ptr))
         }
     }
 
@@ -770,6 +927,10 @@ impl<'le> TElement for GeckoElement<'le> {
             return None;
         }
 
+        if !self.has_properties() {
+            return None;
+        }
+
         let pseudo_type =
             unsafe { bindings::Gecko_GetImplementedPseudo(self.0) };
         PseudoElement::from_pseudo_type(pseudo_type)
@@ -822,20 +983,12 @@ impl<'le> TElement for GeckoElement<'le> {
             computed_data.as_ref().map(|d| d.styles().primary.values());
         let computed_values_opt =
             computed_values.map(|v| *HasArcFFI::arc_as_borrowed(v));
-        let parent_element = self.parent_element();
-        let parent_data =
-            parent_element.as_ref().and_then(|e| e.borrow_data());
-        let parent_values =
-            parent_data.as_ref().map(|d| d.styles().primary.values());
-        let parent_values_opt =
-            parent_values.map(|v| *HasArcFFI::arc_as_borrowed(v));
         let before_change_values =
             before_change_style.as_ref().map(|v| *HasArcFFI::arc_as_borrowed(v));
         unsafe {
             Gecko_UpdateAnimations(self.0,
                                    before_change_values,
                                    computed_values_opt,
-                                   parent_values_opt,
                                    tasks.bits());
         }
     }
@@ -850,6 +1003,59 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn has_css_transitions(&self) -> bool {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
+    }
+
+    // Implements Gecko's nsBindingManager::WalkRules(). Returns whether to cut off the
+    // inheritance.
+    fn get_declarations_from_xbl_bindings<V>(&self,
+                                             pseudo_element: Option<&PseudoElement>,
+                                             applicable_declarations: &mut V)
+                                             -> bool
+        where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
+        // Walk the binding scope chain, starting with the binding attached to our content, up
+        // till we run out of scopes or we get cut off.
+        let mut current = Some(*self);
+
+        while let Some(element) = current {
+            if let Some(binding) = element.get_xbl_binding() {
+                binding.get_declarations_for(self,
+                                             pseudo_element,
+                                             applicable_declarations);
+
+                // If we're not looking at our original element, allow the binding to cut off
+                // style inheritance.
+                if element != *self {
+                    if !binding.inherits_style() {
+                        // Go no further; we're not inheriting style from anything above here.
+                        break;
+                    }
+                }
+            }
+
+            if element.as_node().is_root_of_native_anonymous_subtree() {
+                // Deliberately cut off style inheritance here.
+                break;
+            }
+
+            current = element.get_xbl_binding_parent();
+        }
+
+        // If current has something, this means we cut off inheritance at some point in the
+        // loop.
+        current.is_some()
+    }
+
+    fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
+        if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
+            return None;
+        }
+
+        let anon_content = match self.get_xbl_binding() {
+            Some(binding) => binding.anon_content(),
+            None => return None,
+        };
+
+        unsafe { anon_content.as_ref().map(GeckoNode::from_content) }
     }
 
     fn get_css_transitions_info(&self)
@@ -910,7 +1116,6 @@ impl<'le> TElement for GeckoElement<'le> {
                                 after_change_style: &ComputedValues)
                                 -> bool {
         use gecko_bindings::structs::nsCSSPropertyID;
-        use properties::{PropertyId, animated_properties};
         use std::collections::HashSet;
 
         debug_assert!(self.might_need_transitions_update(Some(before_change_style),
@@ -945,6 +1150,8 @@ impl<'le> TElement for GeckoElement<'le> {
                 continue;
             }
 
+            let transition_property: TransitionProperty = property.into();
+
             let mut property_check_helper = |property: &TransitionProperty| -> bool {
                 if self.needs_transitions_update_per_property(property,
                                                               combined_duration,
@@ -961,26 +1168,25 @@ impl<'le> TElement for GeckoElement<'le> {
                 }
                 false
             };
-            if property == nsCSSPropertyID::eCSSPropertyExtra_all_properties {
-                if TransitionProperty::any(property_check_helper) {
-                    return true;
-                }
-            } else {
-                let is_shorthand = PropertyId::from_nscsspropertyid(property).ok().map_or(false, |p| {
-                        p.as_shorthand().is_ok()
-                });
-                if is_shorthand {
-                    let shorthand: TransitionProperty = property.into();
+
+            match transition_property {
+                TransitionProperty::All => {
+                    if TransitionProperty::any(property_check_helper) {
+                        return true;
+                    }
+                },
+                TransitionProperty::Unsupported(_) => { },
+                ref shorthand if shorthand.is_shorthand() => {
                     if shorthand.longhands().iter().any(|p| property_check_helper(p)) {
                         return true;
                     }
-                } else {
-                    if animated_properties::nscsspropertyid_is_animatable(property) &&
-                       property_check_helper(&property.into()) {
+                },
+                ref longhand => {
+                    if property_check_helper(longhand) {
                         return true;
                     }
-                }
-            }
+                },
+            };
         }
 
         // Check if we have to cancel the running transition because this is not a matching
@@ -1000,24 +1206,52 @@ impl<'le> TElement for GeckoElement<'le> {
                                              -> bool {
         use properties::animated_properties::AnimatedProperty;
 
-        // We don't allow transitions on properties that are not interpolable.
-        if property.is_discrete() {
-            return false;
-        }
+        // |property| should be an animatable longhand
+        let animatable_longhand = AnimatableLonghand::from_transition_property(property).unwrap();
 
         if existing_transitions.contains_key(property) {
             // If there is an existing transition, update only if the end value differs.
             // If the end value has not changed, we should leave the currently running
             // transition as-is since we don't want to interrupt its timing function.
             let after_value =
-                Arc::new(AnimationValue::from_computed_values(property, after_change_style));
+                Arc::new(AnimationValue::from_computed_values(&animatable_longhand,
+                                                              after_change_style));
             return existing_transitions.get(property).unwrap() != &after_value;
         }
 
         combined_duration > 0.0f32 &&
-        AnimatedProperty::from_transition_property(property,
+        AnimatedProperty::from_animatable_longhand(&animatable_longhand,
                                                    before_change_style,
                                                    after_change_style).does_animate()
+    }
+
+    #[inline]
+    fn lang_attr(&self) -> Option<AttrValue> {
+        let ptr = unsafe { bindings::Gecko_LangValue(self.0) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { Atom::from_addrefed(ptr) })
+        }
+    }
+
+    fn match_element_lang(&self,
+                          override_lang: Option<Option<AttrValue>>,
+                          value: &PseudoClassStringArg)
+                          -> bool
+    {
+        // Gecko supports :lang() from CSS Selectors 3, which only accepts a
+        // single language tag, and which performs simple dash-prefix matching
+        // on it.
+        debug_assert!(value.len() > 0 && value[value.len() - 1] == 0,
+                      "expected value to be null terminated");
+        let override_lang_ptr = match &override_lang {
+            &Some(Some(ref atom)) => atom.as_ptr(),
+            _ => ptr::null_mut(),
+        };
+        unsafe {
+            Gecko_MatchLang(self.0, override_lang_ptr, override_lang.is_some(), value.as_ptr())
+        }
     }
 }
 
@@ -1036,7 +1270,9 @@ impl<'le> Hash for GeckoElement<'le> {
 }
 
 impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
+                                                                visited_handling: VisitedHandlingMode,
+                                                                hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>,
     {
         use properties::longhands::_x_lang::SpecifiedValue as SpecifiedLang;
@@ -1098,6 +1334,41 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             );
         }
 
+        // Support for link, vlink, and alink presentation hints on <body>
+        if self.is_link() {
+            // Unvisited vs. visited styles are computed up-front based on the
+            // visited mode (not the element's actual state).
+            let declarations = match visited_handling {
+                VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                    unreachable!("We should never try to selector match with \
+                                 AllLinksVisitedAndUnvisited");
+                },
+                VisitedHandlingMode::AllLinksUnvisited => unsafe {
+                    Gecko_GetUnvisitedLinkAttrDeclarationBlock(self.0)
+                },
+                VisitedHandlingMode::RelevantLinkVisited => unsafe {
+                    Gecko_GetVisitedLinkAttrDeclarationBlock(self.0)
+                },
+            };
+            let declarations = declarations.and_then(|s| s.as_arc_opt());
+            if let Some(decl) = declarations {
+                hints.push(
+                    ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
+                );
+            }
+
+            let active = self.get_state().intersects(NonTSPseudoClass::Active.state_flag());
+            if active {
+                let declarations = unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0) };
+                let declarations = declarations.and_then(|s| s.as_arc_opt());
+                if let Some(decl) = declarations {
+                    hints.push(
+                        ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
+                    );
+                }
+            }
+        }
+
         // xml:lang has precedence over lang, which can be
         // set by Gecko_GetHTMLPresentationAttrDeclarationBlock
         //
@@ -1128,6 +1399,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     type Impl = SelectorImpl;
 
     fn parent_element(&self) -> Option<Self> {
+        // FIXME(emilio): This will need to jump across if the parent node is a
+        // shadow root to get the shadow host.
         let parent_node = self.as_node().parent_node();
         parent_node.and_then(|n| n.as_element())
     }
@@ -1212,30 +1485,35 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::DashMatch => bindings::Gecko_AttrDashEquals(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Prefix => bindings::Gecko_AttrHasPrefix(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Suffix => bindings::Gecko_AttrHasSuffix(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Substring => bindings::Gecko_AttrHasSubstring(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                     }
                 }
@@ -1269,7 +1547,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
-                                    context: &mut MatchingContext,
+                                    context: &mut LocalMatchingContext<Self::Impl>,
                                     relevant_link: &RelevantLinkStatus,
                                     flags_setter: &mut F)
                                     -> bool
@@ -1277,10 +1555,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     {
         use selectors::matching::*;
         match *pseudo_class {
-            NonTSPseudoClass::AnyLink |
-            NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
-            NonTSPseudoClass::Hover |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
@@ -1320,14 +1595,25 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozMeterOptimum |
             NonTSPseudoClass::MozMeterSubOptimum |
             NonTSPseudoClass::MozMeterSubSubOptimum |
+            NonTSPseudoClass::MozHasDirAttr |
+            NonTSPseudoClass::MozDirAttrLTR |
+            NonTSPseudoClass::MozDirAttrRTL |
+            NonTSPseudoClass::MozDirAttrLikeAuto |
             NonTSPseudoClass::MozAutofill |
             NonTSPseudoClass::MozAutofillPreview => {
-                // NB: It's important to use `intersect` instead of `contains`
-                // here, to handle `:any-link` correctly.
                 self.get_state().intersects(pseudo_class.state_flag())
             },
-            NonTSPseudoClass::Link => relevant_link.is_unvisited(self, context),
-            NonTSPseudoClass::Visited => relevant_link.is_visited(self, context),
+            NonTSPseudoClass::AnyLink => self.is_link(),
+            NonTSPseudoClass::Link => relevant_link.is_unvisited(self, context.shared),
+            NonTSPseudoClass::Visited => relevant_link.is_visited(self, context.shared),
+            NonTSPseudoClass::Active |
+            NonTSPseudoClass::Hover => {
+                if context.active_hover_quirk_matches() && !self.is_link() {
+                    false
+                } else {
+                    self.get_state().contains(pseudo_class.state_flag())
+                }
+            },
             NonTSPseudoClass::MozFirstNode => {
                 flags_setter(self, HAS_EDGE_CHILD_SELECTOR);
                 let mut elem = self.as_node();
@@ -1359,7 +1645,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozTableBorderNonzero |
             NonTSPseudoClass::MozBrowserFrame |
-            NonTSPseudoClass::MozNativeAnonymous => unsafe {
+            NonTSPseudoClass::MozNativeAnonymous |
+            NonTSPseudoClass::MozUseShadowTreeRoot => unsafe {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
             },
             NonTSPseudoClass::MozIsHTML => {
@@ -1367,15 +1654,21 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {
-                sels.iter().any(|s| {
-                    matches_complex_selector(s, self, context, flags_setter)
-                })
+                let old_value = context.hover_active_quirk_disabled;
+                context.hover_active_quirk_disabled = true;
+                let result = sels.iter().any(|s| {
+                    matches_complex_selector(s.iter(), self, context, flags_setter)
+                });
+                context.hover_active_quirk_disabled = old_value;
+                result
+            }
+            NonTSPseudoClass::Lang(ref lang_arg) => {
+                self.match_element_lang(None, lang_arg)
             }
             NonTSPseudoClass::MozSystemMetric(ref s) |
             NonTSPseudoClass::MozLocaleDir(ref s) |
             NonTSPseudoClass::MozEmptyExceptChildrenWithLocalname(ref s) |
-            NonTSPseudoClass::Dir(ref s) |
-            NonTSPseudoClass::Lang(ref s) => {
+            NonTSPseudoClass::Dir(ref s) => {
                 unsafe {
                     let mut set_slow_selector = false;
                     let matches = Gecko_MatchStringArgPseudo(self.0,
@@ -1406,37 +1699,33 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn is_link(&self) -> bool {
-        let mut context = MatchingContext::new(MatchingMode::Normal, None);
-        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
-                                       &mut context,
-                                       &RelevantLinkStatus::default(),
-                                       &mut |_, _| {})
+        self.get_state().intersects(NonTSPseudoClass::AnyLink.state_flag())
     }
 
-    fn get_id(&self) -> Option<Atom> {
+    fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         if !self.has_id() {
-            return None;
+            return false
         }
 
-        let ptr = unsafe {
-            bindings::Gecko_AtomAttrValue(self.0,
-                                          atom!("id").as_ptr())
-        };
+        unsafe {
+            let ptr = bindings::Gecko_AtomAttrValue(self.0, atom!("id").as_ptr());
 
-        if ptr.is_null() {
-            None
-        } else {
-            Some(Atom::from(ptr))
+            if ptr.is_null() {
+                false
+            } else {
+                case_sensitivity.eq_atom(WeakAtom::new(ptr), id)
+            }
         }
     }
 
-    fn has_class(&self, name: &Atom) -> bool {
+    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         if !self.may_have_class() {
             return false;
         }
 
         snapshot_helpers::has_class(self.0,
                                     name,
+                                    case_sensitivity,
                                     Gecko_ClassOrClassList)
     }
 
@@ -1445,6 +1734,24 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         let node_info = node.node_info();
         node_info.mInner.mNamespaceID == (structs::root::kNameSpaceID_XHTML as i32) &&
         node.owner_doc().mType == structs::root::nsIDocument_Type::eHTML
+    }
+
+    fn blocks_ancestor_combinators(&self) -> bool {
+        use gecko_bindings::structs::NODE_IS_ANONYMOUS_ROOT;
+        if self.flags() & (NODE_IS_ANONYMOUS_ROOT as u32) == 0 {
+            return false
+        }
+
+        match self.parent_element() {
+            Some(e) => {
+                // If this element is the shadow root of an use-element shadow
+                // tree, according to the spec, we should not match rules
+                // cross the shadow DOM boundary.
+                e.get_local_name() == &*local_name!("use") &&
+                e.get_namespace() == &*ns!("http://www.w3.org/2000/svg")
+            },
+            None => false,
+        }
     }
 }
 

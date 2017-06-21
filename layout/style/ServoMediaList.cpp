@@ -56,6 +56,9 @@ ServoMediaList::IndexedGetter(uint32_t aIndex, bool& aFound,
                               nsAString& aReturn)
 {
   aFound = Servo_MediaList_GetMediumAt(mRawList, aIndex, &aReturn);
+  if (!aFound) {
+    SetDOMStringToNull(aReturn);
+  }
 }
 
 nsresult
@@ -82,9 +85,10 @@ ServoMediaList::Delete(const nsAString& aOldMedium)
 bool
 ServoMediaList::Matches(nsPresContext* aPresContext) const
 {
-  const RawServoStyleSet& rawSet =
+  const RawServoStyleSet* rawSet =
     aPresContext->StyleSet()->AsServo()->RawSet();
-  return Servo_MediaList_Matches(mRawList, &rawSet);
+  MOZ_ASSERT(rawSet, "The RawServoStyleSet should be valid!");
+  return Servo_MediaList_Matches(mRawList, rawSet);
 }
 
 } // namespace mozilla

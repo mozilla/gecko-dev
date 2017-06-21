@@ -150,12 +150,11 @@ DOMIntersectionObserver::GetThresholds(nsTArray<double>& aRetVal)
 void
 DOMIntersectionObserver::Observe(Element& aTarget)
 {
-  if (mObservationTargets.Contains(&aTarget)) {
-    return;
+  if (mObservationTargets.EnsureInserted(&aTarget)) {
+    // A new entry was created.
+    aTarget.RegisterIntersectionObserver(this);
+    Connect();
   }
-  aTarget.RegisterIntersectionObserver(this);
-  mObservationTargets.PutEntry(&aTarget);
-  Connect();
 }
 
 void
@@ -173,14 +172,11 @@ DOMIntersectionObserver::Unobserve(Element& aTarget)
 void
 DOMIntersectionObserver::UnlinkTarget(Element& aTarget)
 {
-    if (!mObservationTargets.Contains(&aTarget)) {
-        return;
-    }
-
-    mObservationTargets.RemoveEntry(&aTarget);
-    if (mObservationTargets.Count() == 0) {
-        Disconnect();
-    }
+  if (mObservationTargets.EnsureRemoved(&aTarget) &&
+      mObservationTargets.Count() == 0) {
+    // We removed the last entry.
+    Disconnect();
+  }
 }
 
 void
@@ -330,6 +326,7 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
     nsIFrame* targetFrame = target->GetPrimaryFrame();
     nsRect targetRect;
     Maybe<nsRect> intersectionRect;
+    bool isSameDoc = root && root->GetComposedDoc() == target->GetComposedDoc();
 
     if (rootFrame && targetFrame) {
       // If mRoot is set we are testing intersection with a container element
@@ -338,7 +335,7 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
         // Skip further processing of this target if it is not in the same
         // Document as the intersection root, e.g. if root is an element of
         // the main document and target an element from an embedded iframe.
-        if (target->GetComposedDoc() != root->GetComposedDoc()) {
+        if (!isSameDoc) {
           continue;
         }
         // Skip further processing of this target if is not a descendant of the
@@ -355,7 +352,7 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
         nsLayoutUtils::GetContainingBlockForClientRect(targetFrame),
         nsLayoutUtils::RECTS_ACCOUNT_FOR_TRANSFORMS
       );
-      intersectionRect = Some(targetFrame->GetVisualOverflowRect());
+      intersectionRect = Some(targetFrame->GetRectRelativeToSelf());
 
       nsIFrame* containerFrame = nsLayoutUtils::GetCrossDocParentFrame(targetFrame);
       while (containerFrame && containerFrame != rootFrame) {
@@ -410,12 +407,14 @@ DOMIntersectionObserver::Update(nsIDocument* aDocument, DOMHighResTimeStamp time
         intersectionRectRelativeToRoot,
         rootIntersectionRect
       );
-      if (intersectionRect.isSome()) {
-        intersectionRect = Some(nsLayoutUtils::TransformFrameRectToAncestor(
-          nsLayoutUtils::GetContainingBlockForClientRect(rootFrame),
-          intersectionRect.value(),
-          targetFrame->PresContext()->PresShell()->GetRootScrollFrame()
-        ));
+      if (intersectionRect.isSome() && !isSameDoc) {
+        nsRect rect = intersectionRect.value();
+        nsPresContext* presContext = targetFrame->PresContext();
+        nsIFrame* rootScrollFrame = presContext->PresShell()->GetRootScrollFrame();
+        if (rootScrollFrame) {
+          nsLayoutUtils::TransformRect(rootFrame, rootScrollFrame, rect);
+        }
+        intersectionRect = Some(rect);
       }
     }
 

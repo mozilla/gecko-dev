@@ -1747,9 +1747,9 @@ imgLoader::ValidateRequestWithNewChannel(imgRequest* request,
 
   mozilla::net::PredictorLearn(aURI, aInitialDocumentURI,
                                nsINetworkPredictor::LEARN_LOAD_SUBRESOURCE, aLoadGroup);
-
   rv = newChannel->AsyncOpen2(listener);
   if (NS_WARN_IF(NS_FAILED(rv))) {
+    req->CancelAndForgetObserver(rv);
     return false;
   }
 
@@ -1904,9 +1904,8 @@ imgLoader::RemoveFromCache(const ImageCacheKey& aKey)
   imgCacheQueue& queue = GetCacheQueue(aKey);
 
   RefPtr<imgCacheEntry> entry;
-  if (cache.Get(aKey, getter_AddRefs(entry)) && entry) {
-    cache.Remove(aKey);
-
+  cache.Remove(aKey, getter_AddRefs(entry));
+  if (entry) {
     MOZ_ASSERT(!entry->Evicted(), "Evicting an already-evicted cache entry!");
 
     // Entries with no proxies are in the tracker.

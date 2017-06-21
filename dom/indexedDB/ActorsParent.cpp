@@ -5129,15 +5129,15 @@ private:
 
 #ifdef DEBUG
   uint32_t mDEBUGSavepointCount;
-  PRThread* mDEBUGThread;
 #endif
+
+  NS_DECL_OWNINGTHREAD
 
 public:
   void
   AssertIsOnConnectionThread() const
   {
-    MOZ_ASSERT(mDEBUGThread);
-    MOZ_ASSERT(PR_GetCurrentThread() == mDEBUGThread);
+    NS_ASSERT_OWNINGTHREAD(DatabaseConnection);
   }
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DatabaseConnection)
@@ -5470,20 +5470,14 @@ private:
   bool mShutdownRequested;
   bool mShutdownComplete;
 
-#ifdef DEBUG
-  PRThread* mDEBUGOwningThread;
-#endif
-
 public:
   ConnectionPool();
 
   void
   AssertIsOnOwningThread() const
-#ifdef DEBUG
-  ;
-#else
-  { }
-#endif
+  {
+    NS_ASSERT_OWNINGTHREAD(ConnectionPool);
+  }
 
   nsresult
   GetOrCreateConnection(const Database* aDatabase,
@@ -5576,7 +5570,7 @@ class ConnectionPool::ConnectionRunnable
 {
 protected:
   DatabaseInfo* mDatabaseInfo;
-  nsCOMPtr<nsIEventTarget> mOwningThread;
+  nsCOMPtr<nsIEventTarget> mOwningEventTarget;
 
   explicit
   ConnectionRunnable(DatabaseInfo* aDatabaseInfo);
@@ -5663,7 +5657,7 @@ struct ConnectionPool::DatabaseInfo final
   AssertIsOnConnectionThread() const
   {
     MOZ_ASSERT(mDEBUGConnectionThread);
-    MOZ_ASSERT(PR_GetCurrentThread() == mDEBUGConnectionThread);
+    MOZ_ASSERT(GetCurrentPhysicalThread() == mDEBUGConnectionThread);
   }
 
   uint64_t
@@ -5719,7 +5713,7 @@ class ConnectionPool::FinishCallbackWrapper final
 {
   RefPtr<ConnectionPool> mConnectionPool;
   RefPtr<FinishCallback> mCallback;
-  nsCOMPtr<nsIEventTarget> mOwningThread;
+  nsCOMPtr<nsIEventTarget> mOwningEventTarget;
   uint64_t mTransactionId;
   bool mHasRunOnce;
 
@@ -5917,7 +5911,7 @@ protected:
 
   typedef nsDataHashtable<nsUint64HashKey, bool> UniqueIndexTable;
 
-  nsCOMPtr<nsIEventTarget> mOwningThread;
+  nsCOMPtr<nsIEventTarget> mOwningEventTarget;
   const nsID mBackgroundChildLoggingId;
   const uint64_t mLoggingSerialNumber;
   nsresult mResultCode;
@@ -5932,10 +5926,10 @@ public:
   bool
   IsOnOwningThread() const
   {
-    MOZ_ASSERT(mOwningThread);
+    MOZ_ASSERT(mOwningEventTarget);
 
     bool current;
-    return NS_SUCCEEDED(mOwningThread->IsOnCurrentThread(&current)) && current;
+    return NS_SUCCEEDED(mOwningEventTarget->IsOnCurrentThread(&current)) && current;
   }
 
   void
@@ -6000,7 +5994,7 @@ public:
 protected:
   DatabaseOperationBase(const nsID& aBackgroundChildLoggingId,
                         uint64_t aLoggingSerialNumber)
-    : mOwningThread(NS_GetCurrentThread())
+    : mOwningEventTarget(GetCurrentThreadEventTarget())
     , mBackgroundChildLoggingId(aBackgroundChildLoggingId)
     , mLoggingSerialNumber(aLoggingSerialNumber)
     , mResultCode(NS_OK)
@@ -7631,6 +7625,7 @@ protected:
   virtual nsresult
   DispatchToWorkThread() = 0;
 
+  // Should only be called by Run().
   virtual void
   SendResults() = 0;
 
@@ -10645,7 +10640,6 @@ DatabaseConnection::DatabaseConnection(
   , mInWriteTransaction(false)
 #ifdef DEBUG
   , mDEBUGSavepointCount(0)
-  , mDEBUGThread(PR_GetCurrentThread())
 #endif
 {
   AssertIsOnConnectionThread();
@@ -12125,9 +12119,6 @@ ConnectionPool::ConnectionPool()
   , mTotalThreadCount(0)
   , mShutdownRequested(false)
   , mShutdownComplete(false)
-#ifdef DEBUG
-  , mDEBUGOwningThread(PR_GetCurrentThread())
-#endif
 {
   AssertIsOnOwningThread();
   AssertIsOnBackgroundThread();
@@ -12149,17 +12140,6 @@ ConnectionPool::~ConnectionPool()
   MOZ_ASSERT(mShutdownRequested);
   MOZ_ASSERT(mShutdownComplete);
 }
-
-#ifdef DEBUG
-
-void
-ConnectionPool::AssertIsOnOwningThread() const
-{
-  MOZ_ASSERT(mDEBUGOwningThread);
-  MOZ_ASSERT(PR_GetCurrentThread() == mDEBUGOwningThread);
-}
-
-#endif // DEBUG
 
 // static
 void
@@ -12277,7 +12257,7 @@ ConnectionPool::GetOrCreateConnection(const Database* aDatabase,
                    NS_ConvertUTF16toUTF8(aDatabase->FilePath()).get()));
 
 #ifdef DEBUG
-    dbInfo->mDEBUGConnectionThread = PR_GetCurrentThread();
+    dbInfo->mDEBUGConnectionThread = GetCurrentPhysicalThread();
 #endif
   }
 
@@ -13204,13 +13184,13 @@ ConnectionPool::CloseDatabaseWhenIdleInternal(const nsACString& aDatabaseId)
 ConnectionPool::
 ConnectionRunnable::ConnectionRunnable(DatabaseInfo* aDatabaseInfo)
   : mDatabaseInfo(aDatabaseInfo)
-  , mOwningThread(do_GetCurrentThread())
+  , mOwningEventTarget(GetCurrentThreadEventTarget())
 {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aDatabaseInfo);
   MOZ_ASSERT(aDatabaseInfo->mConnectionPool);
   aDatabaseInfo->mConnectionPool->AssertIsOnOwningThread();
-  MOZ_ASSERT(mOwningThread);
+  MOZ_ASSERT(mOwningEventTarget);
 }
 
 NS_IMPL_ISUPPORTS_INHERITED0(ConnectionPool::IdleConnectionRunnable,
@@ -13224,7 +13204,7 @@ IdleConnectionRunnable::Run()
   MOZ_ASSERT(!mDatabaseInfo->mIdle);
 
   nsCOMPtr<nsIEventTarget> owningThread;
-  mOwningThread.swap(owningThread);
+  mOwningEventTarget.swap(owningThread);
 
   if (owningThread) {
     mDatabaseInfo->AssertIsOnConnectionThread();
@@ -13270,11 +13250,11 @@ CloseConnectionRunnable::Run()
                  "ConnectionPool::CloseConnectionRunnable::Run",
                  js::ProfileEntry::Category::STORAGE);
 
-  if (mOwningThread) {
+  if (mOwningEventTarget) {
     MOZ_ASSERT(mDatabaseInfo->mClosing);
 
     nsCOMPtr<nsIEventTarget> owningThread;
-    mOwningThread.swap(owningThread);
+    mOwningEventTarget.swap(owningThread);
 
     // The connection could be null if EnsureConnection() didn't run or was not
     // successful in TransactionDatabaseOperationBase::RunOnConnectionThread().
@@ -13371,14 +13351,14 @@ FinishCallbackWrapper::FinishCallbackWrapper(ConnectionPool* aConnectionPool,
                                              FinishCallback* aCallback)
   : mConnectionPool(aConnectionPool)
   , mCallback(aCallback)
-  , mOwningThread(do_GetCurrentThread())
+  , mOwningEventTarget(GetCurrentThreadEventTarget())
   , mTransactionId(aTransactionId)
   , mHasRunOnce(false)
 {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aConnectionPool);
   MOZ_ASSERT(aCallback);
-  MOZ_ASSERT(mOwningThread);
+  MOZ_ASSERT(mOwningEventTarget);
 }
 
 ConnectionPool::
@@ -13396,7 +13376,7 @@ FinishCallbackWrapper::Run()
 {
   MOZ_ASSERT(mConnectionPool);
   MOZ_ASSERT(mCallback);
-  MOZ_ASSERT(mOwningThread);
+  MOZ_ASSERT(mOwningEventTarget);
 
   PROFILER_LABEL("IndexedDB",
                  "ConnectionPool::FinishCallbackWrapper::Run",
@@ -13410,7 +13390,7 @@ FinishCallbackWrapper::Run()
     Unused << mCallback->Run();
 
     MOZ_ALWAYS_SUCCEEDS(
-      mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL));
+      mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL));
 
     return NS_OK;
   }
@@ -18142,7 +18122,7 @@ QuotaClient::StartIdleMaintenance()
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(!mShutdownRequested);
 
-  mBackgroundThread = do_GetCurrentThread();
+  mBackgroundThread = GetCurrentThreadEventTarget();
 
   RefPtr<Maintenance> maintenance = new Maintenance(this);
 
@@ -21034,14 +21014,14 @@ FactoryOp::Open()
 
   if (permission == PermissionRequestBase::kPermissionPrompt) {
     mState = State::PermissionChallenge;
-    MOZ_ALWAYS_SUCCEEDS(mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL));
     return NS_OK;
   }
 
   MOZ_ASSERT(permission == PermissionRequestBase::kPermissionAllowed);
 
   mState = State::FinishOpen;
-  MOZ_ALWAYS_SUCCEEDS(mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL));
+  MOZ_ALWAYS_SUCCEEDS(mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL));
 
   return NS_OK;
 }
@@ -21098,7 +21078,7 @@ FactoryOp::RetryCheckPermission()
   MOZ_ASSERT(permission == PermissionRequestBase::kPermissionAllowed);
 
   mState = State::FinishOpen;
-  MOZ_ALWAYS_SUCCEEDS(mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL));
+  MOZ_ALWAYS_SUCCEEDS(mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL));
 
   return NS_OK;
 }
@@ -21579,6 +21559,11 @@ FactoryOp::NoteDatabaseBlocked(Database* aDatabase)
 
 NS_IMPL_ISUPPORTS_INHERITED0(FactoryOp, DatabaseOperationBase)
 
+// Run() assumes that the caller holds a strong reference to the object that
+// can't be cleared while Run() is being executed.
+// So if you call Run() directly (as opposed to dispatching to an event queue)
+// you need to make sure there's such a reference.
+// See bug 1356824 for more details.
 NS_IMETHODIMP
 FactoryOp::Run()
 {
@@ -21641,7 +21626,7 @@ FactoryOp::Run()
     if (IsOnOwningThread()) {
       SendResults();
     } else {
-      MOZ_ALWAYS_SUCCEEDS(mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL));
+      MOZ_ALWAYS_SUCCEEDS(mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL));
     }
   }
 
@@ -21663,8 +21648,11 @@ FactoryOp::DirectoryLockAcquired(DirectoryLock* aLock)
       mResultCode = rv;
     }
 
+    // The caller holds a strong reference to us, no need for a self reference
+    // before calling Run().
+
     mState = State::SendingResults;
-    SendResults();
+    MOZ_ALWAYS_SUCCEEDS(Run());
 
     return;
   }
@@ -21682,8 +21670,11 @@ FactoryOp::DirectoryLockFailed()
     mResultCode = NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
   }
 
+  // The caller holds a strong reference to us, no need for a self reference
+  // before calling Run().
+
   mState = State::SendingResults;
-  SendResults();
+  MOZ_ALWAYS_SUCCEEDS(Run());
 }
 
 void
@@ -21922,7 +21913,7 @@ OpenDatabaseOp::DoDatabaseWork()
            State::SendingResults :
            State::BeginVersionChange;
 
-  rv = mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL);
+  rv = mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -22475,12 +22466,18 @@ OpenDatabaseOp::NoteDatabaseClosed(Database* aDatabase)
     rv = NS_OK;
   }
 
+  // We are being called with an assumption that mWaitingFactoryOp holds
+  // a strong reference to us.
+  RefPtr<OpenDatabaseOp> kungFuDeathGrip;
+
   if (mMaybeBlockedDatabases.RemoveElement(aDatabase) &&
       mMaybeBlockedDatabases.IsEmpty()) {
     if (actorDestroyed) {
       DatabaseActorInfo* info;
       MOZ_ALWAYS_TRUE(gLiveDatabaseHashtable->Get(mDatabaseId, &info));
       MOZ_ASSERT(info->mWaitingFactoryOp == this);
+      kungFuDeathGrip =
+        static_cast<OpenDatabaseOp*>(info->mWaitingFactoryOp.get());
       info->mWaitingFactoryOp = nullptr;
     } else {
       WaitForTransactions();
@@ -22491,6 +22488,9 @@ OpenDatabaseOp::NoteDatabaseClosed(Database* aDatabase)
     if (NS_SUCCEEDED(mResultCode)) {
       mResultCode = rv;
     }
+
+    // A strong reference is held in kungFuDeathGrip, so it's safe to call Run()
+    // directly.
 
     mState = State::SendingResults;
     MOZ_ALWAYS_SUCCEEDS(Run());
@@ -22611,17 +22611,15 @@ OpenDatabaseOp::SendResults()
 
   mMaybeBlockedDatabases.Clear();
 
-  // Only needed if we're being called from within NoteDatabaseDone() since this
-  // OpenDatabaseOp is only held alive by the gLiveDatabaseHashtable.
-  RefPtr<OpenDatabaseOp> kungFuDeathGrip;
-
   DatabaseActorInfo* info;
   if (gLiveDatabaseHashtable &&
       gLiveDatabaseHashtable->Get(mDatabaseId, &info) &&
       info->mWaitingFactoryOp) {
     MOZ_ASSERT(info->mWaitingFactoryOp == this);
-    kungFuDeathGrip =
-      static_cast<OpenDatabaseOp*>(info->mWaitingFactoryOp.get());
+    // SendResults() should only be called by Run() and Run() should only be
+    // called if there's a strong reference to the object that can't be cleared
+    // here, so it's safe to clear mWaitingFactoryOp without adding additional
+    // strong reference.
     info->mWaitingFactoryOp = nullptr;
   }
 
@@ -23200,7 +23198,7 @@ DeleteDatabaseOp::DoDatabaseWork()
     mState = State::SendingResults;
   }
 
-  rv = mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL);
+  rv = mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -23295,12 +23293,18 @@ DeleteDatabaseOp::NoteDatabaseClosed(Database* aDatabase)
     rv = NS_OK;
   }
 
+  // We are being called with an assumption that mWaitingFactoryOp holds
+  // a strong reference to us.
+  RefPtr<OpenDatabaseOp> kungFuDeathGrip;
+
   if (mMaybeBlockedDatabases.RemoveElement(aDatabase) &&
       mMaybeBlockedDatabases.IsEmpty()) {
     if (actorDestroyed) {
       DatabaseActorInfo* info;
       MOZ_ALWAYS_TRUE(gLiveDatabaseHashtable->Get(mDatabaseId, &info));
       MOZ_ASSERT(info->mWaitingFactoryOp == this);
+      kungFuDeathGrip =
+        static_cast<OpenDatabaseOp*>(info->mWaitingFactoryOp.get());
       info->mWaitingFactoryOp = nullptr;
     } else {
       WaitForTransactions();
@@ -23311,6 +23315,9 @@ DeleteDatabaseOp::NoteDatabaseClosed(Database* aDatabase)
     if (NS_SUCCEEDED(mResultCode)) {
       mResultCode = rv;
     }
+
+    // A strong reference is held in kungFuDeathGrip, so it's safe to call Run()
+    // directly.
 
     mState = State::SendingResults;
     MOZ_ALWAYS_SUCCEEDS(Run());
@@ -23575,7 +23582,7 @@ VersionChangeOp::RunOnIOThread()
                              mDeleteDatabaseOp->mOrigin,
                              databaseName);
 
-  rv = mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL);
+  rv = mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -23637,6 +23644,8 @@ VersionChangeOp::RunOnOwningThread()
     }
   }
 
+  // We hold a strong ref to the deleteOp, so it's safe to call Run() directly.
+
   deleteOp->mState = State::SendingResults;
   MOZ_ALWAYS_SUCCEEDS(deleteOp->Run());
 
@@ -23666,7 +23675,7 @@ VersionChangeOp::Run()
       mResultCode = rv;
     }
 
-    MOZ_ALWAYS_SUCCEEDS(mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL));
   }
 
   return NS_OK;
@@ -23828,7 +23837,7 @@ TransactionDatabaseOperationBase::RunOnConnectionThread()
     mInternalState = InternalState::SendingResults;
   }
 
-  MOZ_ALWAYS_SUCCEEDS(mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL));
+  MOZ_ALWAYS_SUCCEEDS(mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL));
 }
 
 bool
@@ -23850,6 +23859,11 @@ TransactionDatabaseOperationBase::NoteContinueReceived()
   MOZ_ASSERT(mInternalState == InternalState::WaitingForContinue);
 
   mInternalState = InternalState::SendingResults;
+
+  // This TransactionDatabaseOperationBase can only be held alive by the IPDL.
+  // Run() can end up with clearing that last reference. So we need to add
+  // a self reference here.
+  RefPtr<TransactionDatabaseOperationBase> kungFuDeathGrip = this;
 
   Unused << this->Run();
 }
@@ -23896,11 +23910,6 @@ TransactionDatabaseOperationBase::SendPreprocessInfoOrResults(
              mInternalState == InternalState::SendingResults);
   MOZ_ASSERT(mTransaction);
 
-  // Only needed if we're being called from within NoteContinueReceived() since
-  // this TransactionDatabaseOperationBase is only held alive by the IPDL.
-  // SendSuccessResult/SendFailureResult releases that last reference.
-  RefPtr<TransactionDatabaseOperationBase> kungFuDeathGrip;
-
   if (NS_WARN_IF(IsActorDestroyed())) {
     // Don't send any notifications if the actor was destroyed already.
     if (NS_SUCCEEDED(mResultCode)) {
@@ -23908,10 +23917,6 @@ TransactionDatabaseOperationBase::SendPreprocessInfoOrResults(
       mResultCode = NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
   } else {
-    if (!aSendPreprocessInfo) {
-      kungFuDeathGrip = this;
-    }
-
     if (mTransaction->IsInvalidated() || mTransaction->IsAborted()) {
       // Aborted transactions always see their requests fail with ABORT_ERR,
       // even if the request succeeded or failed with another error.
@@ -24354,7 +24359,7 @@ DatabaseOp::Run()
     // thread.
     mState = State::SendingResults;
 
-    MOZ_ALWAYS_SUCCEEDS(mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL));
   }
 
   return NS_OK;
@@ -24475,7 +24480,7 @@ CreateFileOp::DoDatabaseWork()
   // thread.
   mState = State::SendingResults;
 
-  rv = mOwningThread->Dispatch(this, NS_DISPATCH_NORMAL);
+  rv = mOwningEventTarget->Dispatch(this, NS_DISPATCH_NORMAL);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -25240,6 +25245,7 @@ static const JSClassOps sNormalJSContextGlobalClassOps = {
   /* getProperty */ nullptr,
   /* setProperty */ nullptr,
   /* enumerate */ nullptr,
+  /* newEnumerate */ nullptr,
   /* resolve */ nullptr,
   /* mayResolve */ nullptr,
   /* finalize */ nullptr,

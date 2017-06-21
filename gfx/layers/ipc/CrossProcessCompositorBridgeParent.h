@@ -28,18 +28,11 @@ class CrossProcessCompositorBridgeParent final : public CompositorBridgeParentBa
   friend class CompositorBridgeParent;
 
 public:
-  explicit CrossProcessCompositorBridgeParent()
-    : mNotifyAfterRemotePaint(false)
+  explicit CrossProcessCompositorBridgeParent(CompositorManagerParent* aManager)
+    : CompositorBridgeParentBase(aManager)
+    , mNotifyAfterRemotePaint(false)
     , mDestroyCalled(false)
   {
-    MOZ_ASSERT(NS_IsMainThread());
-  }
-
-  void Bind(Endpoint<PCompositorBridgeParent>&& aEndpoint) {
-    if (!aEndpoint.Bind(this)) {
-      return;
-    }
-    mSelfRef = this;
   }
 
   virtual void ActorDestroy(ActorDestroyReason aWhy) override;
@@ -105,7 +98,7 @@ public:
   virtual CompositorAnimationStorage*
     GetAnimationStorage(const uint64_t& aId) override;
   virtual void FlushApzRepaints(const uint64_t& aLayersId) override;
-  virtual void GetAPZTestData(const LayerTransactionParent* aLayerTree,
+  virtual void GetAPZTestData(const uint64_t& aLayersId,
                               APZTestData* aOutData) override;
   virtual void SetConfirmedTargetAPZC(const uint64_t& aLayersId,
                                       const uint64_t& aInputBlockId,
@@ -158,10 +151,6 @@ public:
     return true;
   }
 
-protected:
-  void OnChannelConnected(int32_t pid) override {
-    mCompositorThreadHolder = CompositorThreadHolder::GetSingleton();
-  }
 private:
   // Private destructor, to discourage deletion outside of Release():
   virtual ~CrossProcessCompositorBridgeParent();
@@ -173,7 +162,6 @@ private:
   // ourself.  This is released (deferred) in ActorDestroy().
   RefPtr<CrossProcessCompositorBridgeParent> mSelfRef;
 
-  RefPtr<CompositorThreadHolder> mCompositorThreadHolder;
   // If true, we should send a RemotePaintIsReady message when the layer transaction
   // is received
   bool mNotifyAfterRemotePaint;

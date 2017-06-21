@@ -84,6 +84,7 @@
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/dom/quota/QuotaManager.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/layers/FrameUniformityData.h"
 #include "mozilla/layers/ShadowLayers.h"
 #include "nsPrintfCString.h"
@@ -3893,6 +3894,10 @@ nsDOMWindowUtils::GetContentAPZTestData(JSContext* aContext,
       if (!clm->GetAPZTestData().ToJS(aOutContentTestData, aContext)) {
         return NS_ERROR_FAILURE;
       }
+    } else if (WebRenderLayerManager* wrlm = lm->AsWebRenderLayerManager()) {
+      if (!wrlm->GetAPZTestData().ToJS(aOutContentTestData, aContext)) {
+        return NS_ERROR_FAILURE;
+      }
     }
   }
 
@@ -3908,12 +3913,19 @@ nsDOMWindowUtils::GetCompositorAPZTestData(JSContext* aContext,
     if (!lm) {
       return NS_OK;
     }
+    APZTestData compositorSideData;
     if (ClientLayerManager* clm = lm->AsClientLayerManager()) {
-      APZTestData compositorSideData;
       clm->GetCompositorSideAPZTestData(&compositorSideData);
-      if (!compositorSideData.ToJS(aOutCompositorTestData, aContext)) {
+    } else if (WebRenderLayerManager* wrlm = lm->AsWebRenderLayerManager()) {
+      if (!wrlm->WrBridge()) {
+        return NS_ERROR_UNEXPECTED;
+      }
+      if (!wrlm->WrBridge()->SendGetAPZTestData(&compositorSideData)) {
         return NS_ERROR_FAILURE;
       }
+    }
+    if (!compositorSideData.ToJS(aOutCompositorTestData, aContext)) {
+      return NS_ERROR_FAILURE;
     }
   }
 
@@ -4120,6 +4132,22 @@ nsDOMWindowUtils::LeaveChaosMode()
 }
 
 NS_IMETHODIMP
+nsDOMWindowUtils::TriggerDeviceReset()
+{
+  ContentChild* cc = ContentChild::GetSingleton();
+  if (cc) {
+    cc->SendDeviceReset();
+    return NS_OK;
+  }
+
+  GPUProcessManager* pm = GPUProcessManager::Get();
+  if (pm) {
+    pm->TriggerDeviceResetForTesting();
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDOMWindowUtils::ForceUseCounterFlush(nsIDOMNode *aNode)
 {
   NS_ENSURE_ARG_POINTER(aNode);
@@ -4290,6 +4318,27 @@ nsDOMWindowUtils::GetStorageUsage(nsIDOMStorage* aStorage, int64_t* aRetval)
 
   *aRetval = storage->GetOriginQuotaUsage();
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetDirectionFromText(const nsAString& aString, int32_t* aRetval)
+{
+  Directionality dir = ::GetDirectionFromText(aString.BeginReading(), aString.Length(), nullptr);
+  switch (dir) {
+    case eDir_NotSet:
+      *aRetval = nsIDOMWindowUtils::DIRECTION_NOT_SET;
+      break;
+    case eDir_RTL:
+      *aRetval = nsIDOMWindowUtils::DIRECTION_RTL;
+      break;
+    case eDir_LTR:
+      *aRetval = nsIDOMWindowUtils::DIRECTION_LTR;
+      break;
+    case eDir_Auto:
+      MOZ_ASSERT_UNREACHABLE("GetDirectionFromText should never return this value");
+      return NS_ERROR_FAILURE;
+  }
   return NS_OK;
 }
 

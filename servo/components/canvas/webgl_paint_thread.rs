@@ -4,7 +4,7 @@
 
 use canvas_traits::{CanvasCommonMsg, CanvasData, CanvasMsg, CanvasImageData};
 use canvas_traits::{FromLayoutMsg, FromScriptMsg, byte_swap};
-use euclid::size::Size2D;
+use euclid::Size2D;
 use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits};
@@ -56,11 +56,11 @@ impl GLContextWrapper {
     fn resize(&mut self, size: Size2D<i32>) -> Result<Size2D<i32>, &'static str> {
         match *self {
             GLContextWrapper::Native(ref mut ctx) => {
-                try!(ctx.resize(size));
+                ctx.resize(size)?;
                 Ok(ctx.borrow_draw_buffer().unwrap().size())
             }
             GLContextWrapper::OSMesa(ref mut ctx) => {
-                try!(ctx.resize(size));
+                ctx.resize(size)?;
                 Ok(ctx.borrow_draw_buffer().unwrap().size())
             }
         }
@@ -115,7 +115,7 @@ fn create_readback_painter(size: Size2D<i32>,
                            webrender_api: webrender_traits::RenderApi,
                            gl_type: gl::GlType)
     -> Result<(WebGLPaintThread, GLLimits), String> {
-    let context = try!(GLContextWrapper::new(size, attrs, gl_type));
+    let context = GLContextWrapper::new(size, attrs, gl_type)?;
     let limits = context.get_limits();
     let painter = WebGLPaintThread {
         size: size,
@@ -254,7 +254,7 @@ impl WebGLPaintThread {
                     width: width as u32,
                     height: height as u32,
                     stride: None,
-                    format: webrender_traits::ImageFormat::RGBA8,
+                    format: webrender_traits::ImageFormat::BGRA8,
                     offset: 0,
                     is_opaque: false,
                 };
@@ -291,13 +291,17 @@ impl WebGLPaintThread {
     #[allow(unsafe_code)]
     fn recreate(&mut self, size: Size2D<i32>) -> Result<(), &'static str> {
         match self.data {
-            WebGLPaintTaskData::Readback(ref mut context, _, _) => {
+            WebGLPaintTaskData::Readback(ref mut context, ref webrender_api, ref mut image_key) => {
                 if size.width > self.size.width ||
                    size.height > self.size.height {
-                    self.size = try!(context.resize(size));
+                    self.size = context.resize(size)?;
                 } else {
                     self.size = size;
                     context.gl().scissor(0, 0, size.width, size.height);
+                }
+                // Webrender doesn't let images change size, so we clear the webrender image key.
+                if let Some(image_key) = image_key.take() {
+                    webrender_api.delete_image(image_key);
                 }
             }
             WebGLPaintTaskData::WebRender(ref api, id) => {

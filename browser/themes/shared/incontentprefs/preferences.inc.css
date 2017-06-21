@@ -272,6 +272,11 @@ description > html|a {
   margin-inline-start: 0;
 }
 
+groupbox {
+  /* Give more available space for displaying tooltip on scrollable groupbox */
+  margin-top: 15px !important;
+}
+
 #tabsElement {
   margin-inline-end: 4px; /* add the 4px end-margin of other elements */
 }
@@ -294,12 +299,15 @@ description > html|a {
  * Dialog
  */
 
-#dialogOverlay {
-  background-color: rgba(0,0,0,0.5);
+.dialogOverlay {
   visibility: hidden;
 }
 
-#dialogBox {
+.dialogOverlay[topmost="true"] {
+  background-color: rgba(0,0,0,0.5);
+}
+
+.dialogBox {
   background-color: #fbfbfb;
   background-clip: content-box;
   color: #424e5a;
@@ -314,20 +322,20 @@ description > html|a {
   padding: 0;
 }
 
-#dialogBox[resizable="true"] {
+.dialogBox[resizable="true"] {
   resize: both;
   overflow: hidden;
   min-height: 20em;
   min-width: 66ch;
 }
 
-#dialogBox > .groupbox-title {
+.dialogBox > .groupbox-title {
   padding: 3.5px 0;
   background-color: #F1F1F1;
   border-bottom: 1px solid #C1C1C1;
 }
 
-#dialogTitle {
+.dialogTitle {
   text-align: center;
   -moz-user-select: none;
 }
@@ -342,12 +350,12 @@ description > html|a {
   min-width: 0;
 }
 
-#dialogBox > .groupbox-body {
+.dialogBox > .groupbox-body {
   -moz-appearance: none;
   padding: 20px;
 }
 
-#dialogFrame {
+.dialogFrame {
   -moz-box-flex: 1;
   /* Default dialog dimensions */
   width: 66ch;
@@ -611,11 +619,16 @@ description > html|a {
 }
 
 .search-tooltip {
+  font-size: 1.25rem;
   position: absolute;
-  pointer-events: none;
   padding: 0 10px;
   bottom: 100%;
   background-color: #ffe900;
+}
+
+.search-tooltip:hover,
+.search-tooltip:hover::before {
+  filter: opacity(10%);
 }
 
 .search-tooltip::before {
@@ -629,4 +642,18 @@ description > html|a {
 
 .search-tooltip-parent {
   position: relative;
+}
+
+menulist[indicator=true] > menupopup menuitem:not([image]) > .menu-iconic-left {
+  display: -moz-box;
+  width: 10px;
+  min-width: auto; /* Override the min-width defined in menu.css */
+  height: 10px;
+  margin-inline-end: 6px;
+}
+
+menulist[indicator=true] > menupopup menuitem[indicator=true]:not([image]) > .menu-iconic-left {
+  background-image: url(chrome://global/skin/icons/search-arrow-indicator.svg);
+  background-repeat: no-repeat;
+  background-size: 12px 10px;
 }

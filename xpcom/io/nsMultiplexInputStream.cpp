@@ -501,7 +501,10 @@ nsMultiplexInputStream::Seek(int32_t aWhence, int64_t aOffset)
         }
       } else {
         NS_ASSERTION(remaining == streamPos, "Huh?");
+        MOZ_ASSERT(remaining != 0, "Zero remaining should be handled earlier");
         remaining = 0;
+        mCurrentStream = i;
+        mStartedReadingCurrent = true;
       }
     }
 
@@ -720,7 +723,8 @@ public:
 
 // This helper class processes an array of nsIAsyncInputStreams, calling
 // AsyncWait() for each one of them. When all of them have answered, this helper
-// dispatches a AsyncWaitRunnable object.
+// dispatches a AsyncWaitRunnable object. If there is an error calling
+// AsyncWait(), AsyncWaitRunnable is not dispatched.
 class AsyncStreamHelper final : public nsIInputStreamCallback
 {
 public:
@@ -765,7 +769,7 @@ private:
         mPendingStreams[i]->AsyncWait(this, aFlags, aRequestedCount,
                                       mEventTarget);
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        mValid = true;
+        mValid = false;
         return rv;
       }
     }

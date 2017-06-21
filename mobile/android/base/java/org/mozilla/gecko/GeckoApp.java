@@ -128,7 +128,6 @@ import static org.mozilla.gecko.mma.MmaDelegate.LOADS_ARTICLES;
 public abstract class GeckoApp extends GeckoActivity
                                implements AnchoredPopup.OnVisibilityChangeListener,
                                           BundleEventListener,
-                                          ContextGetter,
                                           GeckoMenu.Callback,
                                           GeckoMenu.MenuPresenter,
                                           GeckoView.ContentListener,
@@ -393,12 +392,6 @@ public abstract class GeckoApp extends GeckoActivity
 
     void focusChrome() { }
 
-    @Override
-    public Context getContext() {
-        return this;
-    }
-
-    @Override
     public SharedPreferences getSharedPreferences() {
         return GeckoSharedPrefs.forApp(this);
     }
@@ -1079,6 +1072,11 @@ public abstract class GeckoApp extends GeckoActivity
     @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
     private static native void onFullScreenPluginHidden(View view);
 
+    @WrapForJNI(calledFrom = "gecko")
+    private static Context getPluginContext() {
+        return GeckoActivityMonitor.getInstance().getCurrentActivity();
+    }
+
     private void showSetImageResult(final boolean success, final int message, final String path) {
         ThreadUtils.postToUiThread(new Runnable() {
             @Override
@@ -1279,13 +1277,6 @@ public abstract class GeckoApp extends GeckoActivity
             Class.forName("android.os.AsyncTask");
         } catch (ClassNotFoundException e) { }
 
-        // GeckoAppShell is tightly coupled to us, rather than
-        // the app context, because various parts of Fennec (e.g.,
-        // GeckoScreenOrientation) use GAS to access the Activity in
-        // the guise of fetching a Context.
-        // When that's fixed, `this` can change to
-        // `(GeckoApplication) getApplication()` here.
-        GeckoAppShell.setContextGetter(this);
         GeckoAppShell.setScreenOrientationDelegate(this);
 
         // Tell Stumbler to register a local broadcast listener to listen for preference intents.
@@ -1555,7 +1546,7 @@ public abstract class GeckoApp extends GeckoActivity
                 final Locale osLocale = Locale.getDefault();
 
                 // Both of these are Java-format locale strings: "en_US", not "en-US".
-                final String osLocaleString = osLocale.toString();
+                final String osLocaleString = osLocale.getLanguage() + "_" + osLocale.getCountry();
                 String appLocaleString = localeManager.getAndApplyPersistedLocale(GeckoApp.this);
                 Log.d(LOGTAG, "OS locale is " + osLocaleString + ", app locale is " + appLocaleString);
 
@@ -1841,7 +1832,7 @@ public abstract class GeckoApp extends GeckoActivity
             startActivity(settingsIntent);
         }
 
-        mPromptService = new PromptService(this);
+        mPromptService = new PromptService(this, getAppEventDispatcher());
 
         // Trigger the completion of the telemetry timer that wraps activity startup,
         // then grab the duration to give to FHR.

@@ -170,7 +170,7 @@ ArraySetLength(JSContext* cx, Handle<ArrayObject*> obj, HandleId id,
  * to the next element and moving the ObjectElements header in memory (so it's
  * stored where the shifted Value used to be).
  *
- * Shifted elements can be unshifted when we grow the array, when the array is
+ * Shifted elements can be moved when we grow the array, when the array is
  * frozen (for simplicity, shifted elements are not supported on objects that
  * are frozen, have copy-on-write elements, or on arrays with non-writable
  * length).
@@ -205,7 +205,7 @@ class ObjectElements
     };
 
     // The flags word stores both the flags and the number of shifted elements.
-    // Allow shifting 2047 elements before unshifting.
+    // Allow shifting 2047 elements before actually moving the elements.
     static const size_t NumShiftedElementsBits = 11;
     static const size_t MaxShiftedElements = (1 << NumShiftedElementsBits) - 1;
     static const size_t NumShiftedElementsShift = 32 - NumShiftedElementsBits;
@@ -283,6 +283,16 @@ class ObjectElements
         capacity -= count;
         initializedLength -= count;
     }
+    void unshiftShiftedElements(uint32_t count) {
+        MOZ_ASSERT(count > 0);
+        MOZ_ASSERT(!(flags & (NONWRITABLE_ARRAY_LENGTH | FROZEN | COPY_ON_WRITE)));
+        uint32_t numShifted = numShiftedElements();
+        MOZ_ASSERT(count <= numShifted);
+        numShifted -= count;
+        flags = (numShifted << NumShiftedElementsShift) | (flags & FlagsMask);
+        capacity += count;
+        initializedLength += count;
+    }
     void clearShiftedElements() {
         flags &= FlagsMask;
         MOZ_ASSERT(numShiftedElements() == 0);
@@ -344,11 +354,6 @@ class ObjectElements
         MOZ_ASSERT(!isFrozen());
         MOZ_ASSERT(!isCopyOnWrite());
         flags |= FROZEN;
-    }
-    void markNotFrozen() {
-        MOZ_ASSERT(isFrozen());
-        MOZ_ASSERT(!isCopyOnWrite());
-        flags &= ~FROZEN;
     }
 
     uint8_t elementAttributes() const {
@@ -736,9 +741,7 @@ class NativeObject : public ShapedObject
     bool hasDynamicSlots() const { return !!slots_; }
 
     /* Compute dynamicSlotsCount() for this object. */
-    uint32_t numDynamicSlots() const {
-        return dynamicSlotsCount(numFixedSlots(), slotSpan(), getClass());
-    }
+    MOZ_ALWAYS_INLINE uint32_t numDynamicSlots() const;
 
     bool empty() const {
         return lastProperty()->isEmptyShape();
@@ -788,19 +791,20 @@ class NativeObject : public ShapedObject
      * after calling object-parameter-free shape methods, avoiding coupling
      * logic across the object vs. shape module wall.
      */
-    static bool allocSlot(JSContext* cx, HandleNativeObject obj, uint32_t* slotp);
+    static bool allocDictionarySlot(JSContext* cx, HandleNativeObject obj, uint32_t* slotp);
     void freeSlot(JSContext* cx, uint32_t slot);
 
   private:
-    static Shape* getChildProperty(JSContext* cx, HandleNativeObject obj,
-                                   HandleShape parent, MutableHandle<StackShape> child);
+    static MOZ_ALWAYS_INLINE Shape* getChildProperty(JSContext* cx, HandleNativeObject obj,
+                                                     HandleShape parent,
+                                                     MutableHandle<StackShape> child);
 
   public:
     /* Add a property whose id is not yet in this scope. */
-    static Shape* addProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
-                              JSGetterOp getter, JSSetterOp setter,
-                              uint32_t slot, unsigned attrs, unsigned flags,
-                              bool allowDictionary = true);
+    static MOZ_ALWAYS_INLINE Shape* addProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
+                                                JSGetterOp getter, JSSetterOp setter,
+                                                uint32_t slot, unsigned attrs, unsigned flags,
+                                                bool allowDictionary = true);
 
     /* Add a data property whose id is not yet in this scope. */
     static Shape* addDataProperty(JSContext* cx, HandleNativeObject obj,
@@ -898,36 +902,36 @@ class NativeObject : public ShapedObject
         return getSlotAddressUnchecked(slot);
     }
 
-    HeapSlot& getSlotRef(uint32_t slot) {
+    MOZ_ALWAYS_INLINE HeapSlot& getSlotRef(uint32_t slot) {
         MOZ_ASSERT(slotInRange(slot));
         return *getSlotAddress(slot);
     }
 
-    const HeapSlot& getSlotRef(uint32_t slot) const {
+    MOZ_ALWAYS_INLINE const HeapSlot& getSlotRef(uint32_t slot) const {
         MOZ_ASSERT(slotInRange(slot));
         return *getSlotAddress(slot);
     }
 
     // Check requirements on values stored to this object.
-    inline void checkStoredValue(const Value& v) {
+    MOZ_ALWAYS_INLINE void checkStoredValue(const Value& v) {
         MOZ_ASSERT(IsObjectValueInCompartment(v, compartment()));
         MOZ_ASSERT(AtomIsMarked(zoneFromAnyThread(), v));
     }
 
-    void setSlot(uint32_t slot, const Value& value) {
+    MOZ_ALWAYS_INLINE void setSlot(uint32_t slot, const Value& value) {
         MOZ_ASSERT(slotInRange(slot));
         checkStoredValue(value);
         getSlotRef(slot).set(this, HeapSlot::Slot, slot, value);
     }
 
-    void initSlot(uint32_t slot, const Value& value) {
+    MOZ_ALWAYS_INLINE void initSlot(uint32_t slot, const Value& value) {
         MOZ_ASSERT(getSlot(slot).isUndefined());
         MOZ_ASSERT(slotInRange(slot));
         checkStoredValue(value);
         initSlotUnchecked(slot, value);
     }
 
-    void initSlotUnchecked(uint32_t slot, const Value& value) {
+    MOZ_ALWAYS_INLINE void initSlotUnchecked(uint32_t slot, const Value& value) {
         getSlotAddressUnchecked(slot)->init(this, HeapSlot::Slot, slot, value);
     }
 
@@ -955,34 +959,36 @@ class NativeObject : public ShapedObject
             getSlotAddressUnchecked(i)->HeapSlot::~HeapSlot();
     }
 
+    inline void shiftDenseElementsUnchecked(uint32_t count);
+
   public:
     static bool rollbackProperties(JSContext* cx, HandleNativeObject obj,
                                    uint32_t slotSpan);
 
-    inline void setSlotWithType(JSContext* cx, Shape* shape,
-                                const Value& value, bool overwriting = true);
+    MOZ_ALWAYS_INLINE void setSlotWithType(JSContext* cx, Shape* shape,
+                                           const Value& value, bool overwriting = true);
 
-    inline const Value& getReservedSlot(uint32_t index) const {
+    MOZ_ALWAYS_INLINE const Value& getReservedSlot(uint32_t index) const {
         MOZ_ASSERT(index < JSSLOT_FREE(getClass()));
         return getSlot(index);
     }
 
-    const HeapSlot& getReservedSlotRef(uint32_t index) const {
+    MOZ_ALWAYS_INLINE const HeapSlot& getReservedSlotRef(uint32_t index) const {
         MOZ_ASSERT(index < JSSLOT_FREE(getClass()));
         return getSlotRef(index);
     }
 
-    HeapSlot& getReservedSlotRef(uint32_t index) {
+    MOZ_ALWAYS_INLINE HeapSlot& getReservedSlotRef(uint32_t index) {
         MOZ_ASSERT(index < JSSLOT_FREE(getClass()));
         return getSlotRef(index);
     }
 
-    void initReservedSlot(uint32_t index, const Value& v) {
+    MOZ_ALWAYS_INLINE void initReservedSlot(uint32_t index, const Value& v) {
         MOZ_ASSERT(index < JSSLOT_FREE(getClass()));
         initSlot(index, v);
     }
 
-    void setReservedSlot(uint32_t index, const Value& v) {
+    MOZ_ALWAYS_INLINE void setReservedSlot(uint32_t index, const Value& v) {
         MOZ_ASSERT(index < JSSLOT_FREE(getClass()));
         setSlot(index, v);
     }
@@ -1017,10 +1023,9 @@ class NativeObject : public ShapedObject
      * capacity is not stored explicitly, and the allocated size of the slot
      * array is kept in sync with this count.
      */
-    static uint32_t dynamicSlotsCount(uint32_t nfixed, uint32_t span, const Class* clasp);
-    static uint32_t dynamicSlotsCount(Shape* shape) {
-        return dynamicSlotsCount(shape->numFixedSlots(), shape->slotSpan(), shape->getObjectClass());
-    }
+    static MOZ_ALWAYS_INLINE uint32_t dynamicSlotsCount(uint32_t nfixed, uint32_t span,
+                                                        const Class* clasp);
+    static MOZ_ALWAYS_INLINE uint32_t dynamicSlotsCount(Shape* shape);
 
     /* Elements accessors. */
 
@@ -1074,11 +1079,15 @@ class NativeObject : public ShapedObject
     // Try to shift |count| dense elements, see the "Shifted elements" comment.
     inline bool tryShiftDenseElements(uint32_t count);
 
-    // Unshift all shifted elements so that numShiftedElements is 0.
-    void unshiftElements();
+    // Try to make space for |count| dense elements at the start of the array.
+    bool tryUnshiftDenseElements(uint32_t count);
 
-    // If this object has many shifted elements, unshift them.
-    void maybeUnshiftElements();
+    // Move the elements header and all shifted elements to the start of the
+    // allocated elements space, so that numShiftedElements is 0 afterwards.
+    void moveShiftedElements();
+
+    // If this object has many shifted elements call moveShiftedElements.
+    void maybeMoveShiftedElements();
 
     static bool goodElementsAllocationAmount(JSContext* cx, uint32_t reqAllocated,
                                              uint32_t length, uint32_t* goodAmount);

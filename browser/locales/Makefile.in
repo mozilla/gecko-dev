@@ -101,9 +101,14 @@ libs-%:
 ifndef RELEASE_OR_BETA
 	@$(MAKE) -C ../extensions/formautofill/locale AB_CD=$* XPI_NAME=locale-$*
 endif
+ifdef NIGHTLY_BUILD
+	@$(MAKE) -C ../extensions/onboarding/locales AB_CD=$* XPI_NAME=locale-$*
+endif
 	@$(MAKE) -C ../extensions/pocket/locale AB_CD=$* XPI_NAME=locale-$*
 ifndef RELEASE_OR_BETA
 	@$(MAKE) -C ../extensions/presentation/locale AB_CD=$* XPI_NAME=locale-$*
+endif
+ifneq '$(or $(MOZ_DEV_EDITION),$(NIGHTLY_BUILD))' ''
 	@$(MAKE) -C ../extensions/webcompat-reporter/locales AB_CD=$* XPI_NAME=locale-$*
 endif
 	@$(MAKE) -C ../../intl/locales AB_CD=$* XPI_NAME=locale-$*

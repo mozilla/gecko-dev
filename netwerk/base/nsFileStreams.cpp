@@ -325,6 +325,17 @@ nsFileStreamBase::DoOpen()
     PRFileDesc* fd;
     nsresult rv;
 
+    if (mOpenParams.ioFlags & PR_CREATE_FILE) {
+        nsCOMPtr<nsIFile> parent;
+        mOpenParams.localFile->GetParent(getter_AddRefs(parent));
+
+        // Result doesn't need to be checked. If the file's parent path does not
+        // exist, make it. If it does exist, do nothing.
+        if (parent) {
+            Unused << parent->Create(nsIFile::DIRECTORY_TYPE, 0644);
+        }
+    }
+
 #ifdef XP_WIN
     if (mBehaviorFlags & nsIFileInputStream::SHARE_DELETE) {
       nsCOMPtr<nsILocalFileWin> file = do_QueryInterface(mOpenParams.localFile);
@@ -793,6 +804,9 @@ nsAtomicFileOutputStream::DoOpen()
     nsCOMPtr<nsIFile> file;
     file.swap(mOpenParams.localFile);
 
+    if (!file) {
+        return NS_ERROR_NOT_INITIALIZED;
+    }
     nsresult rv = file->Exists(&mTargetFileExists);
     if (NS_FAILED(rv)) {
         NS_ERROR("Can't tell if target file exists");

@@ -58,8 +58,6 @@ linux64-nightly/opt:
         - web-platform-tests
         - opt-only-tests
         - desktop-screenshot-capture
-        - talos
-        - awsy
         - headless
 linux64-devedition/opt:
     build-platform: linux64-devedition-nightly/opt
@@ -68,7 +66,6 @@ linux64-devedition/opt:
         - web-platform-tests
         - opt-only-tests
         - desktop-screenshot-capture
-        - awsy
         - headless
 
 # TODO: use 'pgo' and 'asan' labels here, instead of -pgo/opt
@@ -122,7 +119,10 @@ linux64-qr/debug:
 linux64-ccov/opt:
     build-platform: linux64-ccov/opt
     test-sets:
-        - ccov-code-coverage-tests
+        - common-tests
+        - web-platform-tests
+        - awsy
+        - headless
 linux64-jsdcov/opt:
     build-platform: linux64-jsdcov/opt
     test-sets:
@@ -198,6 +198,12 @@ macosx64/debug:
 
 macosx64/opt:
     build-platform: macosx64/opt
+    test-sets:
+        - macosx64-tests-talos
+        - macosx64-tests-debug
+
+macosx64-devedition/opt:
+    build-platform: macosx64-devedition/opt
     test-sets:
         - macosx64-tests-talos
         - macosx64-tests-debug

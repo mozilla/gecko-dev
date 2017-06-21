@@ -45,6 +45,7 @@ EXPORTS.mozilla += [
     '!TelemetryHistogramEnums.h',
     '!TelemetryProcessEnums.h',
     '!TelemetryScalarEnums.h',
+    'CombinedStacks.h',
     'ipc/TelemetryComms.h',
     'ipc/TelemetryIPC.h',
     'ProcessedStack.h',
@@ -53,6 +54,8 @@ EXPORTS.mozilla += [
 ]
 
 SOURCES += [
+    'CombinedStacks.cpp',
+    'HangReports.cpp',
     'ipc/TelemetryIPC.cpp',
     'ipc/TelemetryIPCAccumulator.cpp',
     'Telemetry.cpp',
@@ -62,6 +65,12 @@ SOURCES += [
     'TelemetryScalar.cpp',
     'WebrtcTelemetry.cpp',
 ]
+
+# KeyedStackCapturer entirely relies on profiler to be enabled.
+if CONFIG['MOZ_GECKO_PROFILER']:
+    SOURCES += [
+      'KeyedStackCapturer.cpp'
+    ]
 
 EXTRA_COMPONENTS += [
     'TelemetryStartup.js',

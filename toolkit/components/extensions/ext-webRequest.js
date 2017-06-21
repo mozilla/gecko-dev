@@ -1,9 +1,12 @@
 "use strict";
 
-XPCOMUtils.defineLazyModuleGetter(this, "ExtensionManagement",
-                                  "resource://gre/modules/ExtensionManagement.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "MatchPattern",
-                                  "resource://gre/modules/MatchPattern.jsm");
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-toolkit.js */
+
+// This file expectes tabTracker to be defined in the global scope (e.g.
+// by ext-utils.js).
+/* global tabTracker */
+
 XPCOMUtils.defineLazyModuleGetter(this, "WebRequest",
                                   "resource://gre/modules/WebRequest.jsm");
 
@@ -22,13 +25,13 @@ function WebRequestEventManager(context, eventName) {
 
       // Check hosts permissions for both the resource being requested,
       const hosts = context.extension.whiteListedHosts;
-      if (!hosts.matchesIgnoringPath(Services.io.newURI(data.url))) {
+      if (!hosts.matches(Services.io.newURI(data.url))) {
         return;
       }
       // and the origin that is loading the resource.
       const origin = data.documentUrl;
       const own = origin && origin.startsWith(context.extension.getURL());
-      if (origin && !own && !hosts.matchesIgnoringPath(Services.io.newURI(origin))) {
+      if (origin && !own && !hosts.matches(Services.io.newURI(origin))) {
         return;
       }
 
@@ -52,8 +55,8 @@ function WebRequestEventManager(context, eventName) {
         tabId: browserData.tabId,
         type: data.type,
         timeStamp: Date.now(),
-        frameId: data.type == "main_frame" ? 0 : data.windowId,
-        parentFrameId: data.type == "main_frame" ? -1 : data.parentWindowId,
+        frameId: data.windowId,
+        parentFrameId: data.parentWindowId,
       };
 
       const maybeCached = ["onResponseStarted", "onBeforeRedirect", "onCompleted", "onErrorOccurred"];
@@ -78,8 +81,12 @@ function WebRequestEventManager(context, eventName) {
 
     let filter2 = {};
     if (filter.urls) {
-      filter2.urls = new MatchPattern(filter.urls);
-      if (!filter2.urls.overlapsPermissions(context.extension.whiteListedHosts, context.extension.optionalOrigins)) {
+      let perms = new MatchPatternSet([...context.extension.whiteListedHosts.patterns,
+                                       ...context.extension.optionalOrigins.patterns]);
+
+      filter2.urls = new MatchPatternSet(filter.urls);
+
+      if (!perms.overlapsAll(filter2.urls)) {
         Cu.reportError("The webRequest.addListener filter doesn't overlap with host permissions.");
       }
     }

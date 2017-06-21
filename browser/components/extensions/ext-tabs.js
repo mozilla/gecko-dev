@@ -2,12 +2,13 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-utils.js */
+
 XPCOMUtils.defineLazyServiceGetter(this, "aboutNewTabService",
                                    "@mozilla.org/browser/aboutnewtab-service;1",
                                    "nsIAboutNewTabService");
 
-XPCOMUtils.defineLazyModuleGetter(this, "MatchPattern",
-                                  "resource://gre/modules/MatchPattern.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
@@ -478,7 +479,7 @@ this.tabs = class extends ExtensionAPI {
             }
 
             queryInfo = Object.assign({}, queryInfo);
-            queryInfo.url = new MatchPattern(queryInfo.url);
+            queryInfo.url = new MatchPatternSet([].concat(queryInfo.url));
           }
 
           return Array.from(tabManager.query(queryInfo, context),

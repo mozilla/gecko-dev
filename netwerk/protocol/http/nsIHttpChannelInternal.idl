@@ -272,6 +272,13 @@ interface nsIHttpChannelInternal : nsISupports
     [must_use] readonly attribute nsIURI topWindowURI;
 
     /**
+     * Set top-level window URI to this channel only when the topWindowURI
+     * is null and there is no window associated to this channel.
+     * Note that the current usage of this method is only for xpcshell test.
+     */
+    [must_use] void setTopWindowURIIfUnknown(in nsIURI topWindowURI);
+
+    /**
      * The network interface id that's associated with this channel.
      */
     [must_use] attribute ACString networkInterfaceId;
@@ -307,4 +314,12 @@ interface nsIHttpChannelInternal : nsISupports
      * The connection info's hash key. We use it to test connection separation.
      */
     [must_use] readonly attribute ACString connectionInfoHashKey;
+
+    /**
+     * If this channel was created as the result of a redirect, then this
+     * value will reflect the redirect flags passed to the
+     * SetupReplacementChannel() method.
+     */
+    [noscript, infallible]
+    attribute unsigned long lastRedirectFlags;
 };

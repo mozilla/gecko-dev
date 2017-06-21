@@ -11,7 +11,6 @@ config = {
         'checkout-sources',
         'setup-mock',
         'build',
-        'generate-build-stats',
         'upload-files',
         'sendchange',
         'multi-l10n',
@@ -113,6 +112,5 @@ config = {
                       'ant', 'ant-apache-regexp'
                       ],
     'src_mozconfig': 'mobile/android/config/mozconfigs/android/nightly',
-    'tooltool_manifest_src': "mobile/android/config/tooltool-manifests/android/releng.manifest",
     #########################################################################
 }

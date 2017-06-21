@@ -53,6 +53,7 @@ class StyleSheet : public nsIDOMCSSStyleSheet
 protected:
   StyleSheet(StyleBackendType aType, css::SheetParsingMode aParsingMode);
   StyleSheet(const StyleSheet& aCopy,
+             StyleSheet* aParentToUse,
              dom::CSSImportRule* aOwnerRuleToUse,
              nsIDocument* aDocumentToUse,
              nsINode* aOwningNodeToUse);
@@ -290,6 +291,8 @@ protected:
   };
 
   void UnparentChildren();
+
+  void LastRelease();
 
   // Return success if the subject principal subsumes the principal of our
   // inner, error otherwise.  This will also succeed if the subject has

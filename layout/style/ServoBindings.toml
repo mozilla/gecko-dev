@@ -47,6 +47,7 @@ headers = [
     "mozilla/StyleAnimationValue.h",
     "gfxFontConstants.h",
     "nsThemeConstants.h",
+    "mozilla/css/Loader.h",
     "mozilla/dom/AnimationEffectReadOnlyBinding.h",
     "mozilla/dom/KeyframeEffectBinding.h",
     "mozilla/AnimationPropertySegment.h",
@@ -63,6 +64,7 @@ headers = [
     "nsCSSFontFaceRule.h",
     "nsMediaFeatures.h",
     "nsMediaList.h",
+    "nsXBLBinding.h",
 ]
 raw-lines = [
     # FIXME(emilio): Incrementally remove these "pub use"s. Probably
@@ -129,6 +131,7 @@ whitelist-types = [
     "mozilla::StyleGrid.*",
     "mozilla::UpdateAnimationsTasks",
     "mozilla::LookAndFeel",
+    "mozilla::gfx::Float",
     "mozilla::gfx::FontVariation",
     ".*ThreadSafe.*Holder",
     "AnonymousContent",
@@ -254,14 +257,16 @@ whitelist-types = [
     "mozilla::ParsingMode",
     "mozilla::InheritTarget",
     "mozilla::StyleRuleInclusion",
+    "nsStyleTransformMatrix::MatrixTransformOperator",
 ]
 opaque-types = [
     "std::pair__PCCP",
     "std::namespace::atomic___base", "std::atomic__My_base",
     "std::atomic",
     "std::atomic___base",
-    # We want everything but FontVariation to be opaque but we don't have negative regexes ;_;
-    "mozilla::gfx::(.{0,12}|.{14,}|([^F][^o][^n][^t][^V][^a][^r][^i][^a][^t][^i][^o][^n]))",
+    # We want everything but FontVariation and Float to be opaque but we don't
+    # have negative regexes.
+    "mozilla::gfx::(.{0,4}|.{6,12}|.{14,}|([^F][^o][^n][^t][^V][^a][^r][^i][^a][^t][^i][^o][^n])|([^F][^l][^o][^a][^t]))",
     "FallibleTArray",
     "mozilla::dom::Sequence",
     "mozilla::dom::Optional",
@@ -280,7 +285,7 @@ opaque-types = [
     "nsTObserverArray",  # <- Inherits from nsAutoTObserverArray<T, 0>
     "nsTHashtable",  # <- Inheriting from inner typedefs that clang
                      #    doesn't expose properly.
-    "nsRefPtrHashtable", "nsDataHashtable", "nsClassHashtable",  # <- Ditto
+    "nsBaseHashtable", "nsRefPtrHashtable", "nsDataHashtable", "nsClassHashtable",  # <- Ditto
     "nsInterfaceHashtable",  # <- Ditto
     "nsIDocument_SelectorCache",  # <- Inherits from nsExpirationTracker<.., 4>
     "nsIPresShell_ScrollAxis",  # <- For some reason the alignment of this is 4
@@ -312,6 +317,7 @@ hide-types = [
 ]
 raw-lines = [
     "pub use nsstring::{nsACString, nsAString, nsString, nsStringRepr};",
+    "use gecko_bindings::structs::nsStyleTransformMatrix;",
     "use gecko_bindings::structs::nsTArray;",
     "type nsACString_internal = nsACString;",
     "type nsAString_internal = nsAString;",
@@ -323,6 +329,7 @@ structs-types = [
     "mozilla::css::URLValue",
     "mozilla::MallocSizeOf",
     "mozilla::Side",
+    "nsIContent",
     "RawGeckoAnimationPropertySegment",
     "RawGeckoComputedTiming",
     "RawGeckoCSSPropertyIDList",
@@ -332,8 +339,8 @@ structs-types = [
     "RawGeckoComputedKeyframeValuesList",
     "RawGeckoFontFaceRuleList",
     "RawGeckoNode",
-    "RawGeckoAnimationValueList",
     "RawServoAnimationValue",
+    "RawGeckoServoAnimationValueList",
     "RawServoDeclarationBlock",
     "RawServoStyleRule",
     "RawGeckoPresContext",
@@ -341,6 +348,7 @@ structs-types = [
     "RawGeckoStyleAnimationList",
     "RawGeckoServoStyleRuleList",
     "RawGeckoURLExtraData",
+    "RawGeckoXBLBinding",
     "RefPtr",
     "CSSPseudoClassType",
     "CSSPseudoElementType",
@@ -427,6 +435,7 @@ structs-types = [
     "nscoord",
     "nsresult",
     "Loader",
+    "LoaderReusableStyleSheets",
     "ServoStyleSheet",
     "EffectCompositor_CascadeLevel",
     "UpdateAnimationsTasks",
@@ -434,6 +443,8 @@ structs-types = [
     "InheritTarget",
     "URLMatchingFunction",
     "StyleRuleInclusion",
+    "nsStyleTransformMatrix::MatrixTransformOperator",
+    "RawGeckoGfxMatrix4x4",
 ]
 array-types = [
     { cpp-type = "uintptr_t", rust-type = "usize" },
@@ -451,19 +462,20 @@ servo-immutable-borrow-types = [
     "RawServoDeclarationBlockStrong",
     "RawGeckoPresContext",
     "RawGeckoStyleAnimationList",
+    "RawGeckoXBLBinding",
 ]
 servo-borrow-types = [
     "nsCSSPropertyIDSet",
     "nsCSSValue",
     "nsTimingFunction",
     "RawGeckoAnimationPropertySegment",
-    "RawGeckoAnimationValueList",
     "RawGeckoComputedTiming",
     "RawGeckoCSSPropertyIDList",
     "RawGeckoKeyframeList",
     "RawGeckoComputedKeyframeValuesList",
     "RawGeckoFontFaceRuleList",
     "RawGeckoServoStyleRuleList",
+    "RawGeckoServoAnimationValueList",
 ]
 fixups = [
     # hack for gecko-owned string

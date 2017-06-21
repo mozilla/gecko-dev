@@ -7,8 +7,7 @@ use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
 use compositing::compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use euclid::scale_factor::ScaleFactor;
-use euclid::size::TypedSize2D;
+use euclid::{TypedSize2D, ScaleFactor};
 use event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::Error;
@@ -69,7 +68,7 @@ pub struct Pipeline {
     pub layout_chan: IpcSender<LayoutControlMsg>,
 
     /// A channel to the compositor.
-    pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
+    pub compositor_proxy: CompositorProxy,
 
     /// The most recently loaded URL in this pipeline.
     /// Note that this URL can change, for example if the page navigates
@@ -123,7 +122,7 @@ pub struct InitialPipelineState {
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     /// A channel to the compositor.
-    pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
+    pub compositor_proxy: CompositorProxy,
 
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -274,7 +273,7 @@ impl Pipeline {
                 //
                 // Yes, that's all there is to it!
                 if opts::multiprocess() {
-                    let _ = try!(unprivileged_pipeline_content.spawn_multiprocess());
+                    let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
                 } else {
                     unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
                 }
@@ -303,7 +302,7 @@ impl Pipeline {
                parent_info: Option<(PipelineId, FrameType)>,
                event_loop: Rc<EventLoop>,
                layout_chan: IpcSender<LayoutControlMsg>,
-               compositor_proxy: Box<CompositorProxy + 'static + Send>,
+               compositor_proxy: CompositorProxy,
                is_private: bool,
                url: ServoUrl,
                visible: bool)
@@ -564,7 +563,7 @@ impl UnprivilegedPipelineContent {
         }
 
         let (_receiver, sender) = server.accept().expect("Server failed to accept.");
-        try!(sender.send(self));
+        sender.send(self)?;
 
         Ok(())
     }

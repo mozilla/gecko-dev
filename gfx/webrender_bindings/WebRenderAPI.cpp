@@ -72,6 +72,7 @@ public:
 
     WrRenderer* wrRenderer = nullptr;
     if (!wr_window_new(aWindowId, mSize.width, mSize.height, gl.get(),
+                       aRenderThread.ThreadPool().Raw(),
                        this->mEnableProfiler, mWrApi, &wrRenderer)) {
       // wr_window_new puts a message into gfxCriticalNote if it returns false
       return;
@@ -216,6 +217,7 @@ WebRenderAPI::SetRootDisplayList(gfx::Color aBgColor,
                                  size_t dl_size)
 {
     wr_api_set_root_display_list(mWrApi,
+                                 ToWrColor(aBgColor),
                                  aEpoch,
                                  aViewportSize.width, aViewportSize.height,
                                  pipeline_id,
@@ -555,7 +557,8 @@ DisplayListBuilder::PushStackingContext(const WrRect& aBounds,
                                         const uint64_t& aAnimationId,
                                         const float* aOpacity,
                                         const gfx::Matrix4x4* aTransform,
-                                        const WrMixBlendMode& aMixBlendMode)
+                                        const WrMixBlendMode& aMixBlendMode,
+                                        const nsTArray<WrFilterOp>& aFilters)
 {
   WrMatrix matrix;
   if (aTransform) {
@@ -565,17 +568,8 @@ DisplayListBuilder::PushStackingContext(const WrRect& aBounds,
   WRDL_LOG("PushStackingContext b=%s t=%s\n", Stringify(aBounds).c_str(),
       aTransform ? Stringify(*aTransform).c_str() : "none");
   wr_dp_push_stacking_context(mWrState, aBounds, aAnimationId, aOpacity,
-                              maybeTransform, aMixBlendMode);
-}
-
-void
-DisplayListBuilder::PushStackingContext(const WrRect& aBounds,
-                                        const float aOpacity,
-                                        const gfx::Matrix4x4& aTransform,
-                                        const WrMixBlendMode& aMixBlendMode)
-{
-  PushStackingContext(aBounds, 0, &aOpacity,
-                      &aTransform, aMixBlendMode);
+                              maybeTransform, aMixBlendMode,
+                              aFilters.Elements(), aFilters.Length());
 }
 
 void
@@ -589,14 +583,18 @@ void
 DisplayListBuilder::PushClip(const WrRect& aClipRect,
                              const WrImageMask* aMask)
 {
-  WRDL_LOG("PushClip r=%s m=%p\n", Stringify(aClipRect).c_str(), aMask);
-  wr_dp_push_clip(mWrState, aClipRect, aMask);
+  uint64_t clip_id = wr_dp_push_clip(mWrState, aClipRect, aMask);
+  WRDL_LOG("PushClip id=%" PRIu64 " r=%s m=%p b=%s\n", clip_id,
+      Stringify(aClipRect).c_str(), aMask,
+      aMask ? Stringify(aMask->rect).c_str() : "none");
+  mClipIdStack.push_back(WrClipId { clip_id });
 }
 
 void
 DisplayListBuilder::PopClip()
 {
-  WRDL_LOG("PopClip\n");
+  WRDL_LOG("PopClip id=%" PRIu64 "\n", mClipIdStack.back().id);
+  mClipIdStack.pop_back();
   wr_dp_pop_clip(mWrState);
 }
 
@@ -616,13 +614,39 @@ DisplayListBuilder::PushScrollLayer(const layers::FrameMetrics::ViewID& aScrollI
   WRDL_LOG("PushScrollLayer id=%" PRIu64 " co=%s cl=%s\n",
       aScrollId, Stringify(aContentRect).c_str(), Stringify(aClipRect).c_str());
   wr_dp_push_scroll_layer(mWrState, aScrollId, aContentRect, aClipRect);
+  if (!mScrollIdStack.empty()) {
+    auto it = mScrollParents.insert({aScrollId, mScrollIdStack.back()});
+    if (!it.second) { // aScrollId was already a key in mScrollParents
+                      // so check that the parent value is the same.
+      MOZ_ASSERT(it.first->second == mScrollIdStack.back());
+    }
+  }
+  mScrollIdStack.push_back(aScrollId);
 }
 
 void
 DisplayListBuilder::PopScrollLayer()
 {
-  WRDL_LOG("PopScrollLayer\n");
+  WRDL_LOG("PopScrollLayer id=%" PRIu64 "\n", mScrollIdStack.back());
+  mScrollIdStack.pop_back();
   wr_dp_pop_scroll_layer(mWrState);
+}
+
+void
+DisplayListBuilder::PushClipAndScrollInfo(const layers::FrameMetrics::ViewID& aScrollId,
+                                          const WrClipId* aClipId)
+{
+  WRDL_LOG("PushClipAndScroll s=%" PRIu64 " c=%s\n", aScrollId,
+      aClipId ? Stringify(aClipId->id).c_str() : "none");
+  wr_dp_push_clip_and_scroll_info(mWrState, aScrollId,
+      aClipId ? &(aClipId->id) : nullptr);
+}
+
+void
+DisplayListBuilder::PopClipAndScrollInfo()
+{
+  WRDL_LOG("PopClipAndScroll\n");
+  wr_dp_pop_clip_and_scroll_info(mWrState);
 }
 
 void
@@ -703,7 +727,8 @@ DisplayListBuilder::PushYCbCrPlanarImage(const WrRect& aBounds,
                                          wr::ImageKey aImageChannel0,
                                          wr::ImageKey aImageChannel1,
                                          wr::ImageKey aImageChannel2,
-                                         WrYuvColorSpace aColorSpace)
+                                         WrYuvColorSpace aColorSpace,
+                                         wr::ImageRendering aRendering)
 {
   wr_dp_push_yuv_planar_image(mWrState,
                               aBounds,
@@ -711,7 +736,8 @@ DisplayListBuilder::PushYCbCrPlanarImage(const WrRect& aBounds,
                               aImageChannel0,
                               aImageChannel1,
                               aImageChannel2,
-                              aColorSpace);
+                              aColorSpace,
+                              aRendering);
 }
 
 void
@@ -719,27 +745,31 @@ DisplayListBuilder::PushNV12Image(const WrRect& aBounds,
                                   const WrClipRegionToken aClip,
                                   wr::ImageKey aImageChannel0,
                                   wr::ImageKey aImageChannel1,
-                                  WrYuvColorSpace aColorSpace)
+                                  WrYuvColorSpace aColorSpace,
+                                  wr::ImageRendering aRendering)
 {
   wr_dp_push_yuv_NV12_image(mWrState,
                             aBounds,
                             aClip,
                             aImageChannel0,
                             aImageChannel1,
-                            aColorSpace);
+                            aColorSpace,
+                            aRendering);
 }
 
 void
 DisplayListBuilder::PushYCbCrInterleavedImage(const WrRect& aBounds,
                                               const WrClipRegionToken aClip,
                                               wr::ImageKey aImageChannel0,
-                                              WrYuvColorSpace aColorSpace)
+                                              WrYuvColorSpace aColorSpace,
+                                              wr::ImageRendering aRendering)
 {
   wr_dp_push_yuv_interleaved_image(mWrState,
                                    aBounds,
                                    aClip,
                                    aImageChannel0,
-                                   aColorSpace);
+                                   aColorSpace,
+                                   aRendering);
 }
 
 void
@@ -847,7 +877,8 @@ WrClipRegionToken
 DisplayListBuilder::PushClipRegion(const WrRect& aMain,
                                    const WrImageMask* aMask)
 {
-  WRDL_LOG("PushClipRegion r=%s m=%p\n", Stringify(aMain).c_str(), aMask);
+  WRDL_LOG("PushClipRegion r=%s m=%p b=%s\n", Stringify(aMain).c_str(), aMask,
+      aMask ? Stringify(aMask->rect).c_str() : "none");
   return wr_dp_push_clip_region(mWrState,
                                 aMain,
                                 nullptr, 0,
@@ -859,12 +890,29 @@ DisplayListBuilder::PushClipRegion(const WrRect& aMain,
                                    const nsTArray<WrComplexClipRegion>& aComplex,
                                    const WrImageMask* aMask)
 {
-  WRDL_LOG("PushClipRegion r=%s cl=%d m=%p\n", Stringify(aMain).c_str(),
-      (int)aComplex.Length(), aMask);
+  WRDL_LOG("PushClipRegion r=%s cl=%d m=%p b=%s\n", Stringify(aMain).c_str(),
+      (int)aComplex.Length(), aMask,
+      aMask ? Stringify(aMask->rect).c_str() : "none");
   return wr_dp_push_clip_region(mWrState,
                                 aMain,
                                 aComplex.Elements(), aComplex.Length(),
                                 aMask);
+}
+
+Maybe<WrClipId>
+DisplayListBuilder::TopmostClipId()
+{
+  if (mClipIdStack.empty()) {
+    return Nothing();
+  }
+  return Some(mClipIdStack.back());
+}
+
+Maybe<layers::FrameMetrics::ViewID>
+DisplayListBuilder::ParentScrollIdFor(layers::FrameMetrics::ViewID aScrollId)
+{
+  auto it = mScrollParents.find(aScrollId);
+  return (it == mScrollParents.end() ? Nothing() : Some(it->second));
 }
 
 } // namespace wr

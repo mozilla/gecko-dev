@@ -40,7 +40,6 @@
 #include "CamerasChild.h"
 
 // WebRTC library includes follow
-#include "webrtc/common.h"
 // Audio Engine
 #include "webrtc/voice_engine/include/voe_base.h"
 #include "webrtc/voice_engine/include/voe_codec.h"
@@ -153,6 +152,7 @@ public:
   virtual int GetRecordingDeviceName(int aIndex, char (&aStrNameUTF8)[128],
                                      char aStrGuidUTF8[128]) = 0;
   virtual int GetRecordingDeviceStatus(bool& aIsAvailable) = 0;
+  virtual int GetChannelCount(int aDeviceIndex, uint32_t& aChannels) = 0;
   virtual void StartRecording(SourceMediaStream *aStream, AudioDataListener *aListener) = 0;
   virtual void StopRecording(SourceMediaStream *aStream) = 0;
   virtual int SetRecordingDevice(int aIndex) = 0;
@@ -208,6 +208,7 @@ public:
         aIndex = mDefaultDevice;
       }
     }
+    MOZ_ASSERT(mDeviceIndexes);
     if (aIndex < 0 || aIndex >= (int) mDeviceIndexes->Length()) {
       return -1;
     }
@@ -260,6 +261,25 @@ public:
     // With cubeb, we only expose devices of type CUBEB_DEVICE_TYPE_INPUT,
     // so unless it was removed, say it's available
     aIsAvailable = true;
+    return 0;
+  }
+
+  int GetChannelCount(int aDeviceIndex, uint32_t& aChannels)
+  {
+    return GetDeviceMaxChannels(aDeviceIndex, aChannels);
+  }
+
+  static int GetDeviceMaxChannels(int aDeviceIndex, uint32_t& aChannels)
+  {
+#ifdef MOZ_WIDGET_ANDROID
+    aChannels = 1;
+#else
+    int32_t devindex = DeviceIndex(aDeviceIndex);
+    if (mDevices.count == 0 || devindex < 0) {
+      return 1;
+    }
+    aChannels = mDevices.device[devindex].max_channels;
+#endif
     return 0;
   }
 
@@ -361,6 +381,12 @@ public:
       return 1;
     }
     ptrVoEHw->GetRecordingDeviceStatus(aIsAvailable);
+    return 0;
+  }
+
+  int GetChannelCount(int aDeviceIndex, uint32_t& aChannels)
+  {
+    aChannels = 1; // default to mono
     return 0;
   }
 
@@ -614,11 +640,8 @@ private:
   // gUM runnables can e.g. Enumerate from multiple threads
   Mutex mMutex;
   webrtc::VoiceEngine* mVoiceEngine;
-  webrtc::Config mConfig;
   RefPtr<mozilla::AudioInput> mAudioInput;
   bool mFullDuplex;
-  bool mExtendedFilter;
-  bool mDelayAgnostic;
   bool mHasTabVideoSource;
 
   // Store devices we've already seen in a hashtable for quick return.

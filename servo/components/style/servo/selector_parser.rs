@@ -6,23 +6,25 @@
 
 //! Servo's selector parser.
 
-use {Atom, Prefix, Namespace, LocalName};
+use {Atom, Prefix, Namespace, LocalName, CaseSensitivityExt};
 use attr::{AttrIdentifier, AttrValue};
-use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
+use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CompactCowStr};
 use dom::{OpaqueNode, TElement, TNode};
 use element_state::ElementState;
 use fnv::FnvHashMap;
-use restyle_hints::ElementSnapshot;
-use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
+use invalidation::element::element_wrapper::ElementSnapshot;
+use selector_parser::{AttrValue as SelectorAttrValue, ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::Element;
-use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::parser::SelectorMethods;
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
+use selectors::parser::{SelectorMethods, SelectorParseError};
 use selectors::visitor::SelectorVisitor;
+use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use style_traits::{ParseError, StyleParseError};
 
 /// A pseudo-element, both public and private.
 ///
@@ -159,6 +161,9 @@ impl PseudoElement {
     }
 }
 
+/// The type used for storing pseudo-class string arguments.
+pub type PseudoClassStringArg = Box<str>;
+
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -174,7 +179,7 @@ pub enum NonTSPseudoClass {
     Fullscreen,
     Hover,
     Indeterminate,
-    Lang(Box<str>),
+    Lang(PseudoClassStringArg),
     Link,
     PlaceholderShown,
     ReadWrite,
@@ -268,6 +273,12 @@ impl NonTSPseudoClass {
     pub fn needs_cache_revalidation(&self) -> bool {
         self.state_flag().is_empty()
     }
+
+    /// Returns true if the evaluation of the pseudo-class depends on the
+    /// element's attributes.
+    pub fn is_attr_based(&self) -> bool {
+        matches!(*self, NonTSPseudoClass::Lang(..))
+    }
 }
 
 /// The abstract struct we implement the selector parser implementation on top
@@ -288,12 +299,20 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type NamespaceUrl = Namespace;
     type BorrowedLocalName = LocalName;
     type BorrowedNamespaceUrl = Namespace;
+
+    #[inline]
+    fn is_active_or_hover(pseudo_class: &Self::NonTSPseudoClass) -> bool {
+        matches!(*pseudo_class, NonTSPseudoClass::Active |
+                                NonTSPseudoClass::Hover)
+    }
 }
 
-impl<'a> ::selectors::Parser for SelectorParser<'a> {
+impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
+    type Error = StyleParseError<'i>;
 
-    fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_pseudo_class(&self, name: CompactCowStr<'i>)
+                                 -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
             "active" => Active,
@@ -313,20 +332,21 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             "visited" => Visited,
             "-servo-nonzero-border" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(());
+                    return Err(SelectorParseError::UnexpectedIdent(
+                        "-servo-nonzero-border".into()).into());
                 }
                 ServoNonZeroBorder
             },
-            _ => return Err(())
+            _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into()),
         };
 
         Ok(pseudo_class)
     }
 
-    fn parse_non_ts_functional_pseudo_class(&self,
-                                            name: Cow<str>,
-                                            parser: &mut CssParser)
-                                            -> Result<NonTSPseudoClass, ()> {
+    fn parse_non_ts_functional_pseudo_class<'t>(&self,
+                                                name: CompactCowStr<'i>,
+                                                parser: &mut CssParser<'i, 't>)
+                                                -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case!{ &name,
             "lang" => {
@@ -334,18 +354,17 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             }
             "-servo-case-sensitive-type-attr" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(());
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into());
                 }
-                ServoCaseSensitiveTypeAttr(Atom::from(parser.expect_ident()?))
+                ServoCaseSensitiveTypeAttr(Atom::from(Cow::from(parser.expect_ident()?)))
             }
-            _ => return Err(())
+            _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
         };
 
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(&self, name: Cow<str>)
-                            -> Result<PseudoElement, ()> {
+    fn parse_pseudo_element(&self, name: CompactCowStr<'i>) -> Result<PseudoElement, ParseError<'i>> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { &name,
             "before" => Before,
@@ -353,88 +372,89 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             "selection" => Selection,
             "-servo-details-summary" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 DetailsSummary
             },
             "-servo-details-content" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 DetailsContent
             },
             "-servo-text" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoText
             },
             "-servo-input-text" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoInputText
             },
             "-servo-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoTableWrapper
             },
             "-servo-anonymous-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTableWrapper
             },
             "-servo-anonymous-table" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTable
             },
             "-servo-anonymous-table-row" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTableRow
             },
             "-servo-anonymous-table-cell" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousTableCell
             },
             "-servo-anonymous-block" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoAnonymousBlock
             },
             "-servo-inline-block-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoInlineBlockWrapper
             },
             "-servo-input-absolute" => {
                 if !self.in_user_agent_stylesheet() {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 ServoInlineAbsolute
             },
-            _ => return Err(())
+            _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
+
         };
 
         Ok(pseudo_element)
     }
 
     fn default_namespace(&self) -> Option<Namespace> {
-        self.namespaces.default.clone()
+        self.namespaces.default.as_ref().map(|&(ref ns, _)| ns.clone())
     }
 
     fn namespace_for_prefix(&self, prefix: &Prefix) -> Option<Namespace> {
-        self.namespaces.prefixes.get(prefix).cloned()
+        self.namespaces.prefixes.get(prefix).map(|&(ref ns, _)| ns.clone())
     }
 }
 
@@ -525,6 +545,12 @@ pub struct ServoElementSnapshot {
     pub attrs: Option<Vec<(AttrIdentifier, AttrValue)>>,
     /// Whether this element is an HTML element in an HTML document.
     pub is_html_element_in_html_document: bool,
+    /// Whether the class attribute changed or not.
+    pub class_changed: bool,
+    /// Whether the id attribute changed or not.
+    pub id_changed: bool,
+    /// Whether other attributes other than id or class changed or not.
+    pub other_attributes_changed: bool,
 }
 
 impl ServoElementSnapshot {
@@ -534,7 +560,25 @@ impl ServoElementSnapshot {
             state: None,
             attrs: None,
             is_html_element_in_html_document: is_html_element_in_html_document,
+            class_changed: false,
+            id_changed: false,
+            other_attributes_changed: false,
         }
+    }
+
+    /// Returns whether the id attribute changed or not.
+    pub fn id_changed(&self) -> bool {
+        self.id_changed
+    }
+
+    /// Returns whether the class attribute changed or not.
+    pub fn class_changed(&self) -> bool {
+        self.class_changed
+    }
+
+    /// Returns whether other attributes other than id or class changed or not.
+    pub fn other_attr_changed(&self) -> bool {
+        self.other_attributes_changed
     }
 
     fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue> {
@@ -564,9 +608,9 @@ impl ElementSnapshot for ServoElementSnapshot {
         self.get_attr(&ns!(), &local_name!("id")).map(|v| v.as_atom().clone())
     }
 
-    fn has_class(&self, name: &Atom) -> bool {
+    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         self.get_attr(&ns!(), &local_name!("class"))
-            .map_or(false, |v| v.as_tokens().iter().any(|atom| atom == name))
+            .map_or(false, |v| v.as_tokens().iter().any(|atom| case_sensitivity.eq_atom(atom, name)))
     }
 
     fn each_class<F>(&self, mut callback: F)
@@ -577,6 +621,12 @@ impl ElementSnapshot for ServoElementSnapshot {
                 callback(class);
             }
         }
+    }
+
+    fn lang_attr(&self) -> Option<SelectorAttrValue> {
+        self.get_attr(&ns!(xml), &local_name!("lang"))
+            .or_else(|| self.get_attr(&ns!(), &local_name!("lang")))
+            .map(|v| String::from(v as &str))
     }
 }
 
@@ -604,4 +654,56 @@ impl<E: Element<Impl=SelectorImpl> + Debug> ElementExt for E {
     fn matches_user_and_author_rules(&self) -> bool {
         true
     }
+}
+
+/// Returns whether the language is matched, as defined by
+/// [RFC 4647](https://tools.ietf.org/html/rfc4647#section-3.3.2).
+pub fn extended_filtering(tag: &str, range: &str) -> bool {
+    range.split(',').any(|lang_range| {
+        // step 1
+        let mut range_subtags = lang_range.split('\x2d');
+        let mut tag_subtags = tag.split('\x2d');
+
+        // step 2
+        // Note: [Level-4 spec](https://drafts.csswg.org/selectors/#lang-pseudo) check for wild card
+        if let (Some(range_subtag), Some(tag_subtag)) = (range_subtags.next(), tag_subtags.next()) {
+            if !(range_subtag.eq_ignore_ascii_case(tag_subtag) || range_subtag.eq_ignore_ascii_case("*")) {
+                return false;
+            }
+        }
+
+        let mut current_tag_subtag = tag_subtags.next();
+
+        // step 3
+        for range_subtag in range_subtags {
+            // step 3a
+            if range_subtag == "*" {
+                continue;
+            }
+            match current_tag_subtag.clone() {
+                Some(tag_subtag) => {
+                    // step 3c
+                    if range_subtag.eq_ignore_ascii_case(tag_subtag) {
+                        current_tag_subtag = tag_subtags.next();
+                        continue;
+                    }
+                    // step 3d
+                    if tag_subtag.len() == 1 {
+                        return false;
+                    }
+                    // else step 3e - continue with loop
+                    current_tag_subtag = tag_subtags.next();
+                    if current_tag_subtag.is_none() {
+                        return false;
+                    }
+                },
+                // step 3b
+                None => {
+                    return false;
+                }
+            }
+        }
+        // step 4
+        true
+    })
 }

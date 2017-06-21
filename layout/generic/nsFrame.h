@@ -265,18 +265,18 @@ public:
   bool IsSelfEmpty() override;
 
   void MarkIntrinsicISizesDirty() override;
-  nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
-  nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
-  void AddInlineMinISize(nsRenderingContext *aRenderingContext,
+  nscoord GetMinISize(gfxContext *aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext *aRenderingContext) override;
+  void AddInlineMinISize(gfxContext *aRenderingContext,
                          InlineMinISizeData *aData) override;
-  void AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+  void AddInlinePrefISize(gfxContext *aRenderingContext,
                           InlinePrefISizeData *aData) override;
   IntrinsicISizeOffsetData IntrinsicISizeOffsets() override;
   mozilla::IntrinsicSize GetIntrinsicSize() override;
   nsSize GetIntrinsicRatio() override;
 
   mozilla::LogicalSize
-  ComputeSize(nsRenderingContext*         aRenderingContext,
+  ComputeSize(gfxContext*                 aRenderingContext,
               mozilla::WritingMode        aWM,
               const mozilla::LogicalSize& aCBSize,
               nscoord                     aAvailableISize,
@@ -291,7 +291,7 @@ public:
    */
   mozilla::LogicalSize
   ComputeSizeWithIntrinsicDimensions(
-              nsRenderingContext*           aRenderingContext,
+              gfxContext*                   aRenderingContext,
               mozilla::WritingMode          aWM,
               const mozilla::IntrinsicSize& aIntrinsicSize,
               nsSize                        aIntrinsicRatio,
@@ -321,7 +321,7 @@ public:
    * to be unused.
    */
   virtual mozilla::LogicalSize
-  ComputeAutoSize(nsRenderingContext*         aRenderingContext,
+  ComputeAutoSize(gfxContext*                 aRenderingContext,
                   mozilla::WritingMode        aWM,
                   const mozilla::LogicalSize& aCBSize,
                   nscoord                     aAvailableISize,
@@ -334,7 +334,7 @@ public:
    * Utility function for ComputeAutoSize implementations.  Return
    * max(GetMinISize(), min(aISizeInCB, GetPrefISize()))
    */
-  nscoord ShrinkWidthToFit(nsRenderingContext* aRenderingContext,
+  nscoord ShrinkWidthToFit(gfxContext*         aRenderingContext,
                            nscoord             aISizeInCB,
                            ComputeSizeFlags    aFlags);
 
@@ -646,6 +646,7 @@ public:
           type == mozilla::LayoutFrameType::BCTableCell ||
           type == mozilla::LayoutFrameType::SVGOuterSVG ||
           type == mozilla::LayoutFrameType::SVGInnerSVG ||
+          type == mozilla::LayoutFrameType::SVGSymbol ||
           type == mozilla::LayoutFrameType::SVGForeignObject) {
         return true;
       }
@@ -701,18 +702,11 @@ protected:
   // Fire DOM event. If no aContent argument use frame's mContent.
   void FireDOMEvent(const nsAString& aDOMEventName, nsIContent *aContent = nullptr);
 
-  // A helper for implementing UpdateStyleOfOwnedAnonBoxes for the specific case
-  // of the owned anon box being a child of this frame.
-  void UpdateStyleOfChildAnonBox(nsIFrame* aChildFrame,
-                                 mozilla::ServoStyleSet& aStyleSet,
-                                 nsStyleChangeList& aChangeList,
-                                 nsChangeHint aHintForThisFrame);
-
 private:
   void BoxReflow(nsBoxLayoutState& aState,
                  nsPresContext*    aPresContext,
                  ReflowOutput&     aDesiredSize,
-                 nsRenderingContext* aRenderingContext,
+                 gfxContext*       aRenderingContext,
                  nscoord aX,
                  nscoord aY,
                  nscoord aWidth,

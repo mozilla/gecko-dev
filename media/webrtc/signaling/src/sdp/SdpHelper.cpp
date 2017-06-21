@@ -168,7 +168,7 @@ SdpHelper::DisableMsection(Sdp* sdp, SdpMediaSection* msection)
       msection->AddCodec("120", "VP8", 90000, 1);
       break;
     case SdpMediaSection::kApplication:
-      msection->AddDataChannel("rejected", 0, 0);
+      msection->AddDataChannel("rejected", 0, 0, 0);
       break;
     default:
       // We need to have something here to fit the grammar, this seems safe
@@ -490,10 +490,9 @@ SdpHelper::GetIdsFromMsid(const Sdp& sdp,
         *trackId = i->appdata;
         found = true;
       } else if ((*streamId != i->identifier) || (*trackId != i->appdata)) {
-        SDP_SET_ERROR("Found multiple different webrtc msids in m-section "
-                       << msection.GetLevel() << ". The behavior here is "
-                       "undefined.");
-        return NS_ERROR_INVALID_ARG;
+        MOZ_MTLOG(ML_WARNING, "Found multiple different webrtc msids in "
+                       "m-section " << msection.GetLevel() << ". The "
+                       "behavior w/o transceivers is undefined.");
       }
     }
   }

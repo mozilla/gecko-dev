@@ -1231,14 +1231,14 @@ WebSocketChannel::~WebSocketChannel()
   while ((mCurrentOut = (OutboundMessage *) mOutgoingMessages.PopFront()))
     delete mCurrentOut;
 
-  NS_ReleaseOnMainThread(mURI.forget());
-  NS_ReleaseOnMainThread(mOriginalURI.forget());
+  NS_ReleaseOnMainThread("WebSocketChannel::mURI", mURI.forget());
+  NS_ReleaseOnMainThread("WebSocketChannel::mOriginalURI", mOriginalURI.forget());
 
   mListenerMT = nullptr;
 
-  NS_ReleaseOnMainThread(mLoadGroup.forget());
-  NS_ReleaseOnMainThread(mLoadInfo.forget());
-  NS_ReleaseOnMainThread(mService.forget());
+  NS_ReleaseOnMainThread("WebSocketChannel::mLoadGroup", mLoadGroup.forget());
+  NS_ReleaseOnMainThread("WebSocketChannel::mLoadInfo", mLoadInfo.forget());
+  NS_ReleaseOnMainThread("WebSocketChannel::mService", mService.forget());
 }
 
 NS_IMETHODIMP
@@ -2366,10 +2366,10 @@ WebSocketChannel::StopSession(nsresult reason)
 
   if (!mOpenedHttpChannel) {
     // The HTTP channel information will never be used in this case
-    NS_ReleaseOnMainThread(mChannel.forget());
-    NS_ReleaseOnMainThread(mHttpChannel.forget());
-    NS_ReleaseOnMainThread(mLoadGroup.forget());
-    NS_ReleaseOnMainThread(mCallbacks.forget());
+    NS_ReleaseOnMainThread("WebSocketChannel::mChannel", mChannel.forget());
+    NS_ReleaseOnMainThread("WebSocketChannel::mHttpChannel", mHttpChannel.forget());
+    NS_ReleaseOnMainThread("WebSocketChannel::mLoadGroup", mLoadGroup.forget());
+    NS_ReleaseOnMainThread("WebSocketChannel::mCallbacks", mCallbacks.forget());
   }
 
   if (mCloseTimer) {
@@ -2891,11 +2891,10 @@ WebSocketChannel::DoAdmissionDNS()
     mPort = (mEncrypted ? kDefaultWSSPort : kDefaultWSPort);
   nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIThread> mainThread;
-  NS_GetMainThread(getter_AddRefs(mainThread));
+  nsCOMPtr<nsIEventTarget> main = GetMainThreadEventTarget();
   MOZ_ASSERT(!mCancelable);
   return dns->AsyncResolveNative(hostName, 0, this,
-                                 mainThread, mLoadInfo->GetOriginAttributes(),
+                                 main, mLoadInfo->GetOriginAttributes(),
                                  getter_AddRefs(mCancelable));
 }
 
@@ -3342,7 +3341,7 @@ WebSocketChannel::AsyncOpen(nsIURI *aURI,
 
   // Ensure target thread is set.
   if (!mTargetThread) {
-    mTargetThread = do_GetMainThread();
+    mTargetThread = GetMainThreadEventTarget();
   }
 
   mSocketThread = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);

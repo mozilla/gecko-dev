@@ -1,11 +1,14 @@
 "use strict";
 
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-toolkit.js */
+
 XPCOMUtils.defineLazyModuleGetter(this, "EventEmitter",
                                   "resource://gre/modules/EventEmitter.jsm");
 
 var {
   ignoreEvent,
-} = ExtensionUtils;
+} = ExtensionCommon;
 
 // WeakMap[Extension -> Map[id -> Notification]]
 let notificationsMap = new WeakMap();

@@ -8,13 +8,14 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Vector2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
-use style::computed_values::filter::{self, Filter};
+use style::computed_values::filter;
 use style::values::computed::BorderStyle;
+use style::values::generics::effects::Filter;
 use webrender_traits::{self, DisplayListBuilder, ExtendMode};
 use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
 
@@ -86,9 +87,19 @@ trait ToPointF {
     fn to_pointf(&self) -> webrender_traits::LayoutPoint;
 }
 
+trait ToVectorF {
+    fn to_vectorf(&self) -> webrender_traits::LayoutVector2D;
+}
+
 impl ToPointF for Point2D<Au> {
     fn to_pointf(&self) -> webrender_traits::LayoutPoint {
         webrender_traits::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
+    }
+}
+
+impl ToVectorF for Vector2D<Au> {
+    fn to_vectorf(&self) -> webrender_traits::LayoutVector2D {
+        webrender_traits::LayoutVector2D::new(self.x.to_f32_px(), self.y.to_f32_px())
     }
 }
 
@@ -193,8 +204,8 @@ trait ToFilterOps {
 
 impl ToFilterOps for filter::T {
     fn to_filter_ops(&self) -> Vec<webrender_traits::FilterOp> {
-        let mut result = Vec::with_capacity(self.filters.len());
-        for filter in self.filters.iter() {
+        let mut result = Vec::with_capacity(self.0.len());
+        for filter in self.0.iter() {
             match *filter {
                 Filter::Blur(radius) => result.push(webrender_traits::FilterOp::Blur(radius)),
                 Filter::Brightness(amount) => result.push(webrender_traits::FilterOp::Brightness(amount)),
@@ -205,6 +216,7 @@ impl ToFilterOps for filter::T {
                 Filter::Opacity(amount) => result.push(webrender_traits::FilterOp::Opacity(amount.into())),
                 Filter::Saturate(amount) => result.push(webrender_traits::FilterOp::Saturate(amount)),
                 Filter::Sepia(amount) => result.push(webrender_traits::FilterOp::Sepia(amount)),
+                Filter::DropShadow(ref shadow) => match *shadow {},
             }
         }
         result
@@ -450,7 +462,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_box_shadow(rect,
                                         clip,
                                         box_bounds,
-                                        item.offset.to_pointf(),
+                                        item.offset.to_vectorf(),
                                         item.color,
                                         item.blur_radius.to_f32_px(),
                                         item.spread_radius.to_f32_px(),

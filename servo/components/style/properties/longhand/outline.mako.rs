@@ -10,13 +10,13 @@
                          additional_methods=[Method("outline_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`
-${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::CurrentColor",
-                          initial_specified_value="specified::CSSColor::currentcolor()",
-                          animation_value_type="IntermediateColor", complex_color=True, need_clone=True,
+${helpers.predefined_type("outline-color", "Color", "computed_value::T::currentcolor()",
+                          initial_specified_value="specified::Color::currentcolor()",
+                          animation_value_type="IntermediateColor", need_clone=True,
                           ignored_when_colors_disabled=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 
-<%helpers:longhand name="outline-style" need_clone="True" animation_value_type="none"
+<%helpers:longhand name="outline-style" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-ui/#propdef-outline-style">
     use values::specified::BorderStyle;
 
@@ -46,14 +46,15 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
         pub type T = super::SpecifiedValue;
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         SpecifiedValue::parse(context, input)
             .and_then(|result| {
                 if let Either::Second(BorderStyle::hidden) = result {
                     // The outline-style property accepts the same values as
                     // border-style, except that 'hidden' is not a legal outline
                     // style.
-                    Err(())
+                    Err(SelectorParseError::UnexpectedIdent("hidden".into()).into())
                 } else {
                     Ok(result)
                 }
@@ -61,59 +62,21 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="outline-width" animation_value_type="ComputedValue"
-                   spec="https://drafts.csswg.org/css-ui/#propdef-outline-width">
-    use std::fmt;
-    use style_traits::ToCss;
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        specified::parse_border_width(context, input).map(SpecifiedValue)
-    }
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub specified::Length);
-
-    pub mod computed_value {
-        use app_units::Au;
-        pub type T = Au;
-    }
-
-    pub use super::border_top_width::get_initial_value;
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(specified::Length::NoCalc(specified::NoCalcLength::medium()))
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            self.0.to_computed_value(context)
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(ToComputedValue::from_computed_value(computed))
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("outline-width",
+                          "BorderSideWidth",
+                          "Au::from_px(3)",
+                          initial_specified_value="specified::BorderSideWidth::Medium",
+                          computed_type="::app_units::Au",
+                          animation_value_type="ComputedValue",
+                          spec="https://drafts.csswg.org/css-ui/#propdef-outline-width")}
 
 // The -moz-outline-radius-* properties are non-standard and not on a standards track.
-// TODO: Should they animate?
 % for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
     ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderCornerRadius",
         "computed::LengthOrPercentage::zero().into()",
         products="gecko",
         boxed=True,
-        animation_value_type="none",
+        animation_value_type="ComputedValue",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor
 

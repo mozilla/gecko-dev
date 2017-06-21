@@ -469,17 +469,6 @@ public:
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true) override;
 
-  MOZ_ALWAYS_INLINE // Avoid a crashy hook from Avast 10 Beta
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, bool aNotify)
-  {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
-  }
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                           nsIAtom* aPrefix, const nsAString& aValue,
-                           bool aNotify) override;
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                             bool aNotify) override;
   virtual bool IsFocusableInternal(int32_t *aTabIndex, bool aWithMouse) override
   {
     bool isFocusable = false;
@@ -862,6 +851,12 @@ public:
   }
 
   virtual bool IsLabelable() const override;
+
+  static bool MatchLabelsElement(Element* aElement, int32_t aNamespaceID,
+                                 nsIAtom* aAtom, void* aData);
+
+  already_AddRefed<nsINodeList> Labels();
+
   virtual bool IsInteractiveHTMLContent(bool aIgnoreTabindex) const override;
 
   static bool TouchEventsEnabled(JSContext* /* unused */, JSObject* /* unused */);
@@ -942,6 +937,9 @@ private:
   void RegUnRegAccessKey(bool aDoReg);
 
 protected:
+  virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
+                                 const nsAttrValueOrString* aValue,
+                                 bool aNotify) override;
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
                                 const nsAttrValue* aValue,
                                 const nsAttrValue* aOldValue,

@@ -68,7 +68,8 @@ function getIntPref(aPref, aDefaultValue) {
 
 function isDefaultHandler() {
   if (Services.appinfo.processType !== Services.appinfo.PROCESS_TYPE_DEFAULT) {
-    throw new Error("isDefaultHandler should only get called in the parent process.");
+    throw new Error("isDefaultHandler should only get called in the parent " +
+                    "process.");
   }
   return PdfjsChromeUtils.isDefaultHandlerApp();
 }
@@ -144,7 +145,7 @@ Factory.prototype = {
       registrar.unregisterFactory(this._classID2, this._factory);
     }
     this._factory = null;
-  }
+  },
 };
 
 var PdfJs = {
@@ -269,8 +270,10 @@ var PdfJs = {
 
   // nsIObserver
   observe: function observe(aSubject, aTopic, aData) {
-    if (Services.appinfo.processType !== Services.appinfo.PROCESS_TYPE_DEFAULT) {
-      throw new Error("Only the parent process should be observing PDF handler changes.");
+    if (Services.appinfo.processType !==
+        Services.appinfo.PROCESS_TYPE_DEFAULT) {
+      throw new Error("Only the parent process should be observing PDF " +
+                      "handler changes.");
     }
 
     this.updateRegistration();
@@ -344,6 +347,6 @@ var PdfJs = {
     delete this._pdfStreamConverterFactory;
 
     this._registered = false;
-  }
+  },
 };
 

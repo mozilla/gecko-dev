@@ -4,9 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef ACCESSIBILITY
+#if defined(ACCESSIBILITY)
 #include "mozilla/mscom/Registration.h"
+#if defined(MOZILLA_INTERNAL_API)
 #include "nsTArray.h"
+#endif
 #endif
 
 #include "mozilla/mscom/Utils.h"
@@ -83,7 +85,7 @@ GUIDToString(REFGUID aGuid, nsAString& aOutString)
   // to include curly braces and dashes.
   const int kBufLenWithNul = 39;
   aOutString.SetLength(kBufLenWithNul);
-  int result = StringFromGUID2(aGuid, wwc(aOutString.BeginWriting()), kBufLenWithNul);
+  int result = StringFromGUID2(aGuid, char16ptr_t(aOutString.BeginWriting()), kBufLenWithNul);
   MOZ_ASSERT(result);
   if (result) {
     // Truncate the terminator
@@ -138,6 +140,8 @@ IsVtableIndexFromParentInterface(REFIID aInterface, unsigned long aVtableIndex)
   typeInfo->ReleaseTypeAttr(typeAttr);
   return result;
 }
+
+#if defined(MOZILLA_INTERNAL_API)
 
 bool
 IsInterfaceEqualToOrInheritedFrom(REFIID aInterface, REFIID aFrom,
@@ -222,6 +226,8 @@ IsInterfaceEqualToOrInheritedFrom(REFIID aInterface, REFIID aFrom,
 
   return false;
 }
+
+#endif // defined(MOZILLA_INTERNAL_API)
 
 #endif // defined(ACCESSIBILITY)
 

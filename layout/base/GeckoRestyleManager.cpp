@@ -11,7 +11,9 @@
 #include "mozilla/GeckoRestyleManager.h"
 
 #include <algorithm> // For std::max
+#include "gfxContext.h"
 #include "mozilla/EffectSet.h"
+#include "mozilla/GeckoStyleContext.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/ViewportFrame.h"
 #include "mozilla/css/StyleRule.h" // For nsCSSSelector
@@ -22,6 +24,7 @@
 #include "nsAutoPtr.h"
 #include "nsStyleChangeList.h"
 #include "nsRuleProcessorData.h"
+#include "nsStyleContextInlines.h"
 #include "nsStyleSet.h"
 #include "nsStyleUtil.h"
 #include "nsCSSFrameConstructor.h"
@@ -31,7 +34,6 @@
 #include "nsAnimationManager.h"
 #include "nsTransitionManager.h"
 #include "nsViewManager.h"
-#include "nsRenderingContext.h"
 #include "nsSVGIntegrationUtils.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsContainerFrame.h"
@@ -741,17 +743,9 @@ ElementForStyleContext(nsIContent* aParentContent,
   }
 
   Element* frameElement = aFrame->GetContent()->AsElement();
-  if (frameElement->IsNativeAnonymous() &&
-      nsCSSPseudoElements::PseudoElementIsJSCreatedNAC(aPseudoType)) {
+  if (frameElement->IsNativeAnonymous()) {
     // NAC-implemented pseudos use the closest non-NAC element as their
     // element to inherit from.
-    //
-    // FIXME(heycam): In theory we shouldn't need to limit this only to
-    // JS-created pseudo-implementing NAC, as all pseudo-implementing
-    // should use the closest non-native anonymous ancestor element as
-    // its originating element.  But removing that part of the condition
-    // reveals some bugs in style resultion with display:contents and
-    // XBL.  See bug 1345809.
     Element* originatingElement =
       nsContentUtils::GetClosestNonNativeAnonymousAncestor(frameElement);
     if (originatingElement) {
@@ -1087,7 +1081,7 @@ ElementRestyler::ElementRestyler(nsPresContext* aPresContext,
   , mLoggingDepth(aRestyleTracker.LoggingDepth() + 1)
 #endif
 {
-  MOZ_ASSERT_IF(mContent, !mContent->IsStyledByServo());
+  MOZ_ASSERT(!mContent || !mContent->IsStyledByServo());
   MOZ_ASSERT(!(mHintsHandledByAncestors & nsChangeHint_ReconstructFrame),
              "why restyle descendants if we are reconstructing the frame for "
              "an ancestor?");
@@ -1136,7 +1130,7 @@ ElementRestyler::ElementRestyler(const ElementRestyler& aParentRestyler,
   , mLoggingDepth(aParentRestyler.mLoggingDepth + 1)
 #endif
 {
-  MOZ_ASSERT_IF(mContent, !mContent->IsStyledByServo());
+  MOZ_ASSERT(!mContent || !mContent->IsStyledByServo());
   MOZ_ASSERT(!(mHintsHandledByAncestors & nsChangeHint_ReconstructFrame),
              "why restyle descendants if we are reconstructing the frame for "
              "an ancestor?");
@@ -1172,7 +1166,7 @@ ElementRestyler::ElementRestyler(ParentContextFromChildFrame,
   , mLoggingDepth(aParentRestyler.mLoggingDepth + 1)
 #endif
 {
-  MOZ_ASSERT_IF(mContent, !mContent->IsStyledByServo());
+  MOZ_ASSERT(!mContent || !mContent->IsStyledByServo());
 
   // We would assert here that we're not restyling a child provider frame if
   // mHintsHandledByAncestors includes nsChangeHint_ReconstructFrame, but
@@ -1775,7 +1769,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
                                   eRestyle_Subtree |
                                   eRestyle_ForceDescendants));
 
-  RefPtr<nsStyleContext> oldContext = mFrame->StyleContext();
+  RefPtr<GeckoStyleContext> oldContext = mFrame->StyleContext()->AsGecko();
 
   nsTArray<SwapInstruction> swaps;
 
@@ -1924,7 +1918,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     for (SwapInstruction& swap : swaps) {
       LOG_RESTYLE("swapping style structs between %p and %p",
                   swap.mOldContext.get(), swap.mNewContext.get());
-      swap.mOldContext->SwapStyleData(swap.mNewContext, swap.mStructsToSwap);
+      swap.mOldContext->AsGecko()->SwapStyleData(swap.mNewContext->AsGecko(), swap.mStructsToSwap);
       swappedStructs |= swap.mStructsToSwap;
     }
     swaps.Clear();
@@ -2759,7 +2753,7 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
           } else {
             LOG_RESTYLE("swapping style structs between %p and %p",
                         oldContext.get(), newContext.get());
-            oldContext->SwapStyleData(newContext, equalStructs);
+            oldContext->AsGecko()->SwapStyleData(newContext->AsGecko(), equalStructs);
             *aSwappedStructs |= equalStructs;
           }
 #ifdef RESTYLE_LOGGING
@@ -2767,9 +2761,9 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
           if (structs) {
             LOG_RESTYLE_INDENT();
             LOG_RESTYLE("old style context now has: %s",
-                        oldContext->GetCachedStyleDataAsString(structs).get());
+                        oldContext->AsGecko()->GetCachedStyleDataAsString(structs).get());
             LOG_RESTYLE("new style context now has: %s",
-                        newContext->GetCachedStyleDataAsString(structs).get());
+                        newContext->AsGecko()->GetCachedStyleDataAsString(structs).get());
           }
 #endif
         }
@@ -3451,7 +3445,7 @@ ClearCachedInheritedStyleDataOnDescendants(
   for (size_t i = 0; i < aContextsToClear.Length(); i++) {
     auto& entry = aContextsToClear[i];
     if (!entry.mStyleContext->HasSingleReference()) {
-      entry.mStyleContext->ClearCachedInheritedStyleDataOnDescendants(
+      entry.mStyleContext->AsGecko()->ClearCachedInheritedStyleDataOnDescendants(
           entry.mStructs);
     }
     entry.mStyleContext = nullptr;

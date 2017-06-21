@@ -1,6 +1,24 @@
 # This file contains a definition of the scalar probes that are recorded in Telemetry.
 # They are submitted with the "main" pings and can be inspected in about:telemetry.
 
+# The following section contains the accessibility scalars.
+a11y:
+  instantiators:
+    bug_numbers:
+      - 1323069
+    description: >
+      The leaf name and version number of the binary for the process responsible
+      for remotely instantiating a11y.
+    expires: "61"
+    kind: string
+    notification_emails:
+      - dbolter@mozilla.com
+    record_in_processes:
+      - 'main'
+    release_channel_collection: opt-out
+    keyed: false
+    cpp_guard: 'ACCESSIBILITY'
+
 # The following section contains the aushelper system add-on scalars.
 aushelper:
   websense_reg_version:
@@ -283,6 +301,22 @@ services.sync:
     record_in_processes:
       - main
 
+security:
+  pkcs11_modules_loaded:
+    bug_numbers:
+      - 1369911
+    description: >
+      A keyed boolean indicating the library names of the PKCS#11 modules that
+      have been loaded by the browser.
+    expires: "62"
+    kind: boolean
+    keyed: true
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+
 # The following section contains WebRTC nICEr scalars
 # For more info on ICE, see https://tools.ietf.org/html/rfc5245
 # For more info on STUN, see https://tools.ietf.org/html/rfc5389
@@ -422,6 +456,19 @@ devtools.copy.full.css.selector:
       - 1352115
     description: Number of times the DevTools copy full CSS selector has been used.
     expires: "57"
+    kind: uint
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
+devtools.copy.xpath:
+  opened:
+    bug_numbers:
+      - 987877
+    description: Number of times the DevTools copy XPath has been used.
+    expires: "58"
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org

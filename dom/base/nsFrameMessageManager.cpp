@@ -9,6 +9,7 @@
 #include "nsFrameMessageManager.h"
 
 #include "ContentChild.h"
+#include "GeckoProfiler.h"
 #include "nsASCIIMask.h"
 #include "nsContentUtils.h"
 #include "nsDOMClassInfoID.h"
@@ -1520,6 +1521,13 @@ void
 nsMessageManagerScriptExecutor::LoadScriptInternal(const nsAString& aURL,
                                                    bool aRunInGlobalScope)
 {
+#ifdef MOZ_GECKO_PROFILER
+  NS_LossyConvertUTF16toASCII urlCStr(aURL);
+  PROFILER_LABEL_DYNAMIC("nsMessageManagerScriptExecutor", "LoadScriptInternal",
+                          js::ProfileEntry::Category::OTHER,
+                          urlCStr.get());
+#endif
+
   if (!mGlobal || !sCachedScripts) {
     return;
   }
@@ -2033,8 +2041,7 @@ nsFrameMessageManager::MarkForCC()
 
 nsSameProcessAsyncMessageBase::nsSameProcessAsyncMessageBase(JS::RootingContext* aRootingCx,
                                                              JS::Handle<JSObject*> aCpows)
-  : mRootingCx(aRootingCx)
-  , mCpows(aRootingCx, aCpows)
+  : mCpows(aRootingCx, aCpows)
 #ifdef DEBUG
   , mCalledInit(false)
 #endif
@@ -2068,7 +2075,7 @@ nsSameProcessAsyncMessageBase::ReceiveMessage(nsISupports* aTarget,
   // Make sure that we have called Init() and it has succeeded.
   MOZ_ASSERT(mCalledInit);
   if (aManager) {
-    SameProcessCpowHolder cpows(mRootingCx, mCpows);
+    SameProcessCpowHolder cpows(RootingCx(), mCpows);
 
     RefPtr<nsFrameMessageManager> mm = aManager;
     mm->ReceiveMessage(aTarget, aTargetFrameLoader, mMessage, false, &mData,

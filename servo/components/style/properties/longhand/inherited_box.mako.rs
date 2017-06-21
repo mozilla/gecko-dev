@@ -82,7 +82,7 @@ ${helpers.single_keyword("image-rendering",
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if let Some(angle) = self.angle {
-                try!(angle.to_css(dest));
+                angle.to_css(dest)?;
                 if self.flipped {
                     dest.write_str(" flip")
                 } else {
@@ -163,9 +163,9 @@ ${helpers.single_keyword("image-rendering",
             match *self {
                 computed_value::T::FromImage => dest.write_str("from-image"),
                 computed_value::T::AngleWithFlipped(angle, flipped) => {
-                    try!(angle.to_css(dest));
+                    angle.to_css(dest)?;
                     if flipped {
-                        try!(dest.write_str(" flip"));
+                        dest.write_str(" flip")?;
                     }
                     Ok(())
                 },
@@ -174,7 +174,8 @@ ${helpers.single_keyword("image-rendering",
     }
 
     // from-image | <angle> | [<angle>? flip]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("from-image")).is_ok() {
             // Handle from-image
             Ok(SpecifiedValue { angle: None, flipped: false })
@@ -185,7 +186,7 @@ ${helpers.single_keyword("image-rendering",
             // Handle <angle> | <angle> flip
             let angle = input.try(|input| Angle::parse(context, input)).ok();
             if angle.is_none() {
-                return Err(());
+                return Err(StyleParseError::UnspecifiedError.into());
             }
 
             let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();

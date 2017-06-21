@@ -87,7 +87,7 @@ XBLEnumerate(JSContext *cx, JS::Handle<JSObject*> obj)
 
 static const JSClassOps gPrototypeJSClassOps = {
     nullptr, nullptr, nullptr, nullptr,
-    XBLEnumerate, nullptr,
+    XBLEnumerate, nullptr, nullptr,
     nullptr, XBLFinalize,
     nullptr, nullptr, nullptr, nullptr
 };
@@ -869,6 +869,12 @@ nsXBLBinding::WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc, void* aData)
   nsIStyleRuleProcessor *rules = mPrototypeBinding->GetRuleProcessor();
   if (rules)
     (*aFunc)(rules, aData);
+}
+
+const ServoStyleSet*
+nsXBLBinding::GetServoStyleSet() const
+{
+  return mPrototypeBinding->GetServoStyleSet();
 }
 
 // Internal helper methods ////////////////////////////////////////////////////////////////

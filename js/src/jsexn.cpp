@@ -180,6 +180,7 @@ static const ClassOps ErrorObjectClassOps = {
     nullptr,                 /* getProperty */
     nullptr,                 /* setProperty */
     nullptr,                 /* enumerate */
+    nullptr,                 /* newEnumerate */
     nullptr,                 /* resolve */
     nullptr,                 /* mayResolve */
     exn_finalize,
@@ -789,7 +790,7 @@ ErrorReport::~ErrorReport()
 }
 
 void
-ErrorReport::ReportAddonExceptionToTelementry(JSContext* cx)
+ErrorReport::ReportAddonExceptionToTelemetry(JSContext* cx)
 {
     MOZ_ASSERT(exnObject);
     RootedObject unwrapped(cx, UncheckedUnwrap(exnObject));
@@ -869,8 +870,8 @@ ErrorReport::init(JSContext* cx, HandleValue exn,
         }
 
         // Let's see if the exception is from add-on code, if so, it should be reported
-        // to telementry.
-        ReportAddonExceptionToTelementry(cx);
+        // to telemetry.
+        ReportAddonExceptionToTelemetry(cx);
     }
 
 

@@ -348,6 +348,33 @@ nsIContent::LookupNamespaceURIInternal(const nsAString& aNamespacePrefix,
   return NS_ERROR_FAILURE;
 }
 
+nsIAtom*
+nsIContent::GetLang() const
+{
+  for (const auto* content = this; content; content = content->GetParent()) {
+    if (!content->GetAttrCount() || !content->IsElement()) {
+      continue;
+    }
+
+    auto* element = content->AsElement();
+
+    // xml:lang has precedence over lang on HTML elements (see
+    // XHTML1 section C.7).
+    const nsAttrValue* attr =
+      element->GetParsedAttr(nsGkAtoms::lang, kNameSpaceID_XML);
+    if (!attr && element->SupportsLangAttr()) {
+      attr = element->GetParsedAttr(nsGkAtoms::lang);
+    }
+    if (attr) {
+      MOZ_ASSERT(attr->Type() == nsAttrValue::eAtom);
+      MOZ_ASSERT(attr->GetAtomValue());
+      return attr->GetAtomValue();
+    }
+  }
+
+  return nullptr;
+}
+
 already_AddRefed<nsIURI>
 nsIContent::GetBaseURI(bool aTryUseXHRDocBaseURI) const
 {
@@ -677,6 +704,9 @@ FragmentOrElement::nsDOMSlots::Traverse(nsCycleCollectionTraversalCallback &cb, 
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mSlots->mChildrenList");
   cb.NoteXPCOMChild(NS_ISUPPORTS_CAST(nsIDOMNodeList*, mChildrenList));
 
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mSlots->mLabelsList");
+  cb.NoteXPCOMChild(NS_ISUPPORTS_CAST(nsIDOMNodeList*, mLabelsList));
+
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mSlots->mClassList");
   cb.NoteXPCOMChild(mClassList.get());
 
@@ -711,6 +741,7 @@ FragmentOrElement::nsDOMSlots::Unlink(bool aIsXUL)
   mShadowRoot = nullptr;
   mContainingShadow = nullptr;
   mChildrenList = nullptr;
+  mLabelsList = nullptr;
   mCustomElementData = nullptr;
   mClassList = nullptr;
   mRegisteredIntersectionObservers.Clear();

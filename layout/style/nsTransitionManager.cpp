@@ -23,7 +23,6 @@
 #include "mozilla/EffectSet.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/ServoBindings.h"
-#include "mozilla/ServoComputedValuesWithParent.h"
 #include "mozilla/StyleAnimationValue.h"
 #include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/Element.h"
@@ -446,8 +445,7 @@ ExtractNonDiscreteComputedValue(nsCSSPropertyID aProperty,
 
 static inline bool
 ExtractNonDiscreteComputedValue(nsCSSPropertyID aProperty,
-                                const ServoComputedValuesWithParent&
-                                  aComputedStyle,
+                                const ServoComputedValues* aComputedStyle,
                                 AnimationValue& aAnimationValue)
 {
   if (Servo_Property_IsDiscreteAnimatable(aProperty) &&
@@ -456,7 +454,7 @@ ExtractNonDiscreteComputedValue(nsCSSPropertyID aProperty,
   }
 
   aAnimationValue.mServo =
-    Servo_ComputedValues_ExtractAnimationValue(aComputedStyle.mCurrentStyle,
+    Servo_ComputedValues_ExtractAnimationValue(aComputedStyle,
                                                aProperty).Consume();
   return !!aAnimationValue.mServo;
 }
@@ -626,8 +624,8 @@ bool
 nsTransitionManager::UpdateTransitions(
   dom::Element *aElement,
   CSSPseudoElementType aPseudoType,
-  const ServoComputedValuesWithParent& aOldStyle,
-  const ServoComputedValuesWithParent& aNewStyle)
+  const ServoComputedValues* aOldStyle,
+  const ServoComputedValues* aNewStyle)
 {
   if (!mPresContext->IsDynamic()) {
     // For print or print preview, ignore transitions.
@@ -636,7 +634,7 @@ nsTransitionManager::UpdateTransitions(
 
   CSSTransitionCollection* collection =
     CSSTransitionCollection::GetAnimationCollection(aElement, aPseudoType);
-  const nsStyleDisplay *disp = Servo_GetStyleDisplay(aNewStyle.mCurrentStyle);
+  const nsStyleDisplay *disp = Servo_GetStyleDisplay(aNewStyle);
   return DoUpdateTransitions(disp,
                              aElement, aPseudoType,
                              collection,
@@ -793,18 +791,21 @@ AppendKeyframe(double aOffset,
 {
   Keyframe& frame = *aKeyframes.AppendElement();
   frame.mOffset.emplace(aOffset);
-  PropertyValuePair& pv = *frame.mPropertyValues.AppendElement();
-  pv.mProperty = aProperty;
 
   if (aValue.mServo) {
-    pv.mServoDeclarationBlock =
+    RefPtr<RawServoDeclarationBlock> decl =
       Servo_AnimationValue_Uncompute(aValue.mServo).Consume();
+    frame.mPropertyValues.AppendElement(
+      Move(PropertyValuePair(aProperty, Move(decl))));
   } else {
+    nsCSSValue propertyValue;
     DebugOnly<bool> uncomputeResult =
       StyleAnimationValue::UncomputeValue(aProperty, Move(aValue.mGecko),
-                                          pv.mValue);
+                                          propertyValue);
     MOZ_ASSERT(uncomputeResult,
                "Unable to get specified value from computed value");
+    frame.mPropertyValues.AppendElement(
+      Move(PropertyValuePair(aProperty, Move(propertyValue))));
   }
   return frame;
 }
@@ -830,12 +831,13 @@ GetTransitionKeyframes(nsCSSPropertyID aProperty,
 }
 
 static bool
-IsAnimatable(nsCSSPropertyID aProperty, bool aIsServo)
+IsTransitionable(nsCSSPropertyID aProperty, bool aIsServo)
 {
   if (aIsServo) {
-    return Servo_Property_IsAnimatable(aProperty);
+    return Servo_Property_IsTransitionable(aProperty);
   }
 
+  // FIXME: This should also exclude discretely-animated properties.
   return nsCSSProps::kAnimTypeTable[aProperty] != eStyleAnimType_None;
 }
 
@@ -873,7 +875,7 @@ nsTransitionManager::ConsiderInitiatingTransition(
     return;
   }
 
-  if (!IsAnimatable(aProperty, aElement->IsStyledByServo())) {
+  if (!IsTransitionable(aProperty, aElement->IsStyledByServo())) {
     return;
   }
 

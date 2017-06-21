@@ -121,6 +121,7 @@
 #include "nsAccessibilityService.h"
 #if defined(XP_WIN)
 #include "mozilla/a11y/Compatibility.h"
+#include "mozilla/a11y/Platform.h"
 #endif
 #endif
 
@@ -222,6 +223,10 @@
 #include "SandboxBroker.h"
 #include "SandboxPermissions.h"
 #endif
+#endif
+
+#ifdef MOZ_CODE_COVERAGE
+#include "mozilla/CodeCoverageHandler.h"
 #endif
 
 extern uint32_t gRestartMode;
@@ -961,6 +966,18 @@ nsXULAppInfo::GetAccessibilityEnabled(bool* aResult)
 {
 #ifdef ACCESSIBILITY
   *aResult = GetAccService() != nullptr;
+#else
+  *aResult = false;
+#endif
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULAppInfo::GetAccessibleHandlerUsed(bool* aResult)
+{
+#if defined(ACCESSIBILITY) && defined(XP_WIN)
+  *aResult = Preferences::GetBool("accessibility.handler.enabled", false) &&
+    a11y::IsHandlerRegistered();
 #else
   *aResult = false;
 #endif
@@ -3365,9 +3382,7 @@ XREMain::XRE_mainInit(bool* aExitFlag)
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
   if (mAppData->sandboxBrokerServices) {
     SandboxBroker::Initialize(mAppData->sandboxBrokerServices);
-    Telemetry::Accumulate(Telemetry::SANDBOX_BROKER_INITIALIZED, true);
   } else {
-    Telemetry::Accumulate(Telemetry::SANDBOX_BROKER_INITIALIZED, false);
 #if defined(MOZ_CONTENT_SANDBOX)
     // If we're sandboxing content and we fail to initialize, then crashing here
     // seems like the sensible option.
@@ -4292,6 +4307,10 @@ XREMain::XRE_mainRun()
   CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("FramePoisonSize"),
                                      nsPrintfCString("%" PRIu32, uint32_t(gMozillaPoisonSize)));
 
+  bool includeContextHeap =
+    Preferences::GetBool("toolkit.crashreporter.include_context_heap", false);
+  CrashReporter::SetIncludeContextHeap(includeContextHeap);
+
 #ifdef XP_WIN
   PR_CreateThread(PR_USER_THREAD, AnnotateSystemManufacturer_ThreadStart, 0,
                   PR_PRIORITY_LOW, PR_GLOBAL_THREAD, PR_UNJOINABLE_THREAD, 0);
@@ -4645,8 +4664,12 @@ XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig)
   SandboxInfo::ThreadingCheck();
 #endif
 
+#ifdef MOZ_CODE_COVERAGE
+  CodeCoverageHandler::Init();
+#endif
+
   char aLocal;
-  GeckoProfilerInitRAII profilerGuard(&aLocal);
+  AutoProfilerInit profilerInit(&aLocal);
 
   PROFILER_LABEL("Startup", "XRE_Main",
     js::ProfileEntry::Category::OTHER);
@@ -5034,40 +5057,38 @@ MultiprocessBlockPolicy() {
     return gMultiprocessBlockPolicy;
   }
 
-#if defined(XP_WIN)
-  // These checks are currently only in use under WinXP
-  if (false) { // !IsVistaOrLater()
-    bool disabledForA11y = false;
-    /**
-      * Avoids enabling e10s if accessibility has recently loaded. Performs the
-      * following checks:
-      * 1) Checks a pref indicating if a11y loaded in the last session. This pref
-      * is set in nsBrowserGlue.js. If a11y was loaded in the last session we
-      * do not enable e10s in this session.
-      * 2) Accessibility stores a last run date (PR_IntervalNow) when it is
-      * initialized (see nsBaseWidget.cpp). We check if this pref exists and
-      * compare it to now. If a11y hasn't run in an extended period of time or
-      * if the date pref does not exist we load e10s.
-      */
-    disabledForA11y = Preferences::GetBool(kAccessibilityLoadedLastSessionPref, false);
-    if (!disabledForA11y  &&
-        Preferences::HasUserValue(kAccessibilityLastRunDatePref)) {
-      #define ONE_WEEK_IN_SECONDS (60*60*24*7)
-      uint32_t a11yRunDate = Preferences::GetInt(kAccessibilityLastRunDatePref, 0);
-      MOZ_ASSERT(0 != a11yRunDate);
-      // If a11y hasn't run for a period of time, clear the pref and load e10s
-      uint32_t now = PRTimeToSeconds(PR_Now());
-      uint32_t difference = now - a11yRunDate;
-      if (difference > ONE_WEEK_IN_SECONDS || !a11yRunDate) {
-        Preferences::ClearUser(kAccessibilityLastRunDatePref);
-      } else {
-        disabledForA11y = true;
-      }
+#if defined(XP_WIN) && defined(RELEASE_OR_BETA)
+  bool disabledForA11y = false;
+  /**
+    * Avoids enabling e10s if accessibility has recently loaded. Performs the
+    * following checks:
+    * 1) Checks a pref indicating if a11y loaded in the last session. This pref
+    * is set in nsBrowserGlue.js. If a11y was loaded in the last session we
+    * do not enable e10s in this session.
+    * 2) Accessibility stores a last run date (PR_IntervalNow) when it is
+    * initialized (see nsBaseWidget.cpp). We check if this pref exists and
+    * compare it to now. If a11y hasn't run in an extended period of time or
+    * if the date pref does not exist we load e10s.
+    */
+  disabledForA11y = Preferences::GetBool(kAccessibilityLoadedLastSessionPref, false);
+  if (!disabledForA11y  &&
+      Preferences::HasUserValue(kAccessibilityLastRunDatePref)) {
+    #define ONE_WEEK_IN_SECONDS (60*60*24*7)
+    uint32_t a11yRunDate = Preferences::GetInt(kAccessibilityLastRunDatePref, 0);
+    MOZ_ASSERT(0 != a11yRunDate);
+    // If a11y hasn't run for a period of time, clear the pref and load e10s
+    uint32_t now = PRTimeToSeconds(PR_Now());
+    uint32_t difference = now - a11yRunDate;
+    if (difference > ONE_WEEK_IN_SECONDS || !a11yRunDate) {
+      Preferences::ClearUser(kAccessibilityLastRunDatePref);
+    } else {
+      disabledForA11y = true;
     }
-    if (disabledForA11y) {
-      gMultiprocessBlockPolicy = kE10sDisabledForAccessibility;
-      return gMultiprocessBlockPolicy;
-    }
+  }
+
+  if (disabledForA11y) {
+    gMultiprocessBlockPolicy = kE10sDisabledForAccessibility;
+    return gMultiprocessBlockPolicy;
   }
 #endif
 

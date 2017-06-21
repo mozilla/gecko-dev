@@ -25,7 +25,7 @@
   <prefpane id="FontsDialogPane"
             class="largeDialogContainer"
             helpTopic="prefs-fonts-and-colors">
-  
+
     <preferences id="fontPreferences">
       <preference id="font.language.group"  name="font.language.group"  type="wstring"/>
       <preference id="browser.display.use_document_fonts"
@@ -33,7 +33,7 @@
                   type="int"/>
       <preference id="intl.charset.fallback.override" name="intl.charset.fallback.override" type="string"/>
     </preferences>
-    
+
     <stringbundle id="bundlePreferences" src="chrome://browser/locale/preferences/preferences.properties"/>
     <script type="application/javascript" src="chrome://mozapps/content/preferences/fontbuilder.js"/>
     <script type="application/javascript" src="chrome://browser/content/preferences/fonts.js"/>
@@ -79,7 +79,7 @@
           </menupopup>
         </menulist>
       </caption>
-      
+
       <grid>
         <columns>
           <column/>
@@ -87,7 +87,7 @@
           <column/>
           <column/>
         </columns>
-        
+
         <rows>
           <row>
             <separator class="thin"/>
@@ -104,10 +104,9 @@
               </menupopup>
             </menulist>
             <hbox align="center" pack="end">
-              <label value="&size.label;"
-                     accesskey="&sizeProportional.accesskey;"
-                     control="sizeVar"/>
-            </hbox>  
+              <label accesskey="&sizeProportional.accesskey;"
+                     control="sizeVar">&size.label;</label>
+            </hbox>
             <menulist id="sizeVar" delayprefsave="true">
               <menupopup>
                 <menuitem value="9" label="9"/>
@@ -142,58 +141,65 @@
             <hbox align="center" pack="end">
               <label accesskey="&serif.accesskey;" control="serif">&serif.label;</label>
             </hbox>
-            <menulist id="serif" flex="1" style="width: 0px;" delayprefsave="true"
-                      onsyncfrompreference="return FontBuilder.readFontSelection(this);"/>
+            <hbox>
+              <menulist id="serif" flex="1" style="width: 0px;" delayprefsave="true"
+                        onsyncfrompreference="return FontBuilder.readFontSelection(this);"/>
+            </hbox>
             <spacer/>
           </row>
           <row align="center">
             <hbox align="center" pack="end">
               <label accesskey="&sans-serif.accesskey;" control="sans-serif">&sans-serif.label;</label>
             </hbox>
-            <menulist id="sans-serif" flex="1" style="width: 0px;" delayprefsave="true"
-                      onsyncfrompreference="return FontBuilder.readFontSelection(this);"/>
+            <hbox>
+              <menulist id="sans-serif" flex="1" style="width: 0px;" delayprefsave="true"
+                        onsyncfrompreference="return FontBuilder.readFontSelection(this);"/>
+            </hbox>
             <spacer/>
           </row>
           <row align="center">
             <hbox align="center" pack="end">
               <label accesskey="&monospace.accesskey;" control="monospace">&monospace.label;</label>
             </hbox>
-            <menulist id="monospace" flex="1" style="width: 0px;" crop="right" delayprefsave="true"
-                      onsyncfrompreference="return FontBuilder.readFontSelection(this);"/>
+            <hbox>
+              <menulist id="monospace" flex="1" style="width: 0px;" crop="right" delayprefsave="true"
+                        onsyncfrompreference="return FontBuilder.readFontSelection(this);"/>
+            </hbox>
             <hbox align="center" pack="end">
-              <label value="&size.label;"
-                     accesskey="&sizeMonospace.accesskey;"
-                     control="sizeMono"/>
-            </hbox>  
-            <menulist id="sizeMono" delayprefsave="true">
-              <menupopup>
-                <menuitem value="9" label="9"/>
-                <menuitem value="10" label="10"/>
-                <menuitem value="11" label="11"/>
-                <menuitem value="12" label="12"/>
-                <menuitem value="13" label="13"/>
-                <menuitem value="14" label="14"/>
-                <menuitem value="15" label="15"/>
-                <menuitem value="16" label="16"/>
-                <menuitem value="17" label="17"/>
-                <menuitem value="18" label="18"/>
-                <menuitem value="20" label="20"/>
-                <menuitem value="22" label="22"/>
-                <menuitem value="24" label="24"/>
-                <menuitem value="26" label="26"/>
-                <menuitem value="28" label="28"/>
-                <menuitem value="30" label="30"/>
-                <menuitem value="32" label="32"/>
-                <menuitem value="34" label="34"/>
-                <menuitem value="36" label="36"/>
-                <menuitem value="40" label="40"/>
-                <menuitem value="44" label="44"/>
-                <menuitem value="48" label="48"/>
-                <menuitem value="56" label="56"/>
-                <menuitem value="64" label="64"/>
-                <menuitem value="72" label="72"/>
-              </menupopup>
-            </menulist>
+              <label accesskey="&sizeMonospace.accesskey;"
+                     control="sizeMono">&size.label;</label>
+            </hbox>
+            <hbox>
+              <menulist id="sizeMono" delayprefsave="true">
+                <menupopup>
+                  <menuitem value="9" label="9"/>
+                  <menuitem value="10" label="10"/>
+                  <menuitem value="11" label="11"/>
+                  <menuitem value="12" label="12"/>
+                  <menuitem value="13" label="13"/>
+                  <menuitem value="14" label="14"/>
+                  <menuitem value="15" label="15"/>
+                  <menuitem value="16" label="16"/>
+                  <menuitem value="17" label="17"/>
+                  <menuitem value="18" label="18"/>
+                  <menuitem value="20" label="20"/>
+                  <menuitem value="22" label="22"/>
+                  <menuitem value="24" label="24"/>
+                  <menuitem value="26" label="26"/>
+                  <menuitem value="28" label="28"/>
+                  <menuitem value="30" label="30"/>
+                  <menuitem value="32" label="32"/>
+                  <menuitem value="34" label="34"/>
+                  <menuitem value="36" label="36"/>
+                  <menuitem value="40" label="40"/>
+                  <menuitem value="44" label="44"/>
+                  <menuitem value="48" label="48"/>
+                  <menuitem value="56" label="56"/>
+                  <menuitem value="64" label="64"/>
+                  <menuitem value="72" label="72"/>
+                </menupopup>
+              </menulist>
+            </hbox>
           </row>
         </rows>
       </grid>
@@ -237,7 +243,7 @@
       <separator/>
       <separator class="groove"/>
       <hbox>
-        <checkbox id="useDocumentFonts" 
+        <checkbox id="useDocumentFonts"
                   label="&allowPagesToUseOwn.label;" accesskey="&allowPagesToUseOwn.accesskey;"
                   preference="browser.display.use_document_fonts"
                   onsyncfrompreference="return gFontsDialog.readUseDocumentFonts();"
@@ -247,12 +253,11 @@
 
     <!-- Text Encoding -->
     <groupbox>
-      <caption label="&languages.customize.Fallback2.grouplabel;"/>
+      <caption><label>&languages.customize.Fallback2.grouplabel;</label></caption>
       <description>&languages.customize.Fallback2.desc;</description>
       <hbox align="center">
-        <label value="&languages.customize.Fallback2.label;"
-               accesskey="&languages.customize.Fallback2.accesskey;"
-               control="DefaultCharsetList"/>
+        <label accesskey="&languages.customize.Fallback2.accesskey;"
+               control="DefaultCharsetList">&languages.customize.Fallback2.label;</label>
         <menulist id="DefaultCharsetList" preference="intl.charset.fallback.override">
           <menupopup>
             <menuitem label="&languages.customize.Fallback.auto;"        value=""/>
@@ -260,6 +265,8 @@
             <menuitem label="&languages.customize.Fallback.baltic;"      value="windows-1257"/>
             <menuitem label="&languages.customize.Fallback.ceiso;"       value="ISO-8859-2"/>
             <menuitem label="&languages.customize.Fallback.cewindows;"   value="windows-1250"/>
+            <!-- Using gbk instead of GBK for compat with previously-stored prefs.
+                 The value gets normalized in dom/encoding/FallbackEncoding.cpp. -->
             <menuitem label="&languages.customize.Fallback.simplified;"  value="gbk"/>
             <menuitem label="&languages.customize.Fallback.traditional;" value="Big5"/>
             <menuitem label="&languages.customize.Fallback.cyrillic;"    value="windows-1251"/>

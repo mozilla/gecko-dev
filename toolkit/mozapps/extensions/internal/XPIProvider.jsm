@@ -11,6 +11,8 @@ const Cu = Components.utils;
 
 this.EXPORTED_SYMBOLS = ["XPIProvider", "XPIInternal"];
 
+/* globals WebExtensionPolicy */
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/AddonManager.jsm");
@@ -26,8 +28,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "ChromeManifestParser",
                                   "resource://gre/modules/ChromeManifestParser.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
                                   "resource://gre/modules/LightweightThemeManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "ExtensionManagement",
-                                  "resource://gre/modules/ExtensionManagement.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Locale",
                                   "resource://gre/modules/Locale.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
@@ -242,20 +242,6 @@ const BOOTSTRAP_REASONS = {
   ADDON_UPGRADE: 7,
   ADDON_DOWNGRADE: 8
 };
-
-// Map new string type identifiers to old style nsIUpdateItem types
-// Type 32 was previously used for multipackage xpi files so it should
-// not be re-used since old files with that type may be floating around.
-const TYPES = {
-  extension: 2,
-  theme: 4,
-  locale: 8,
-  dictionary: 64,
-  experiment: 128,
-};
-
-if (!AppConstants.RELEASE_OR_BETA)
-  TYPES.apiextension = 256;
 
 // Some add-on types that we track internally are presented as other types
 // externally
@@ -565,7 +551,7 @@ function writeStringToFile(file, string) {
     stream.init(file, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE |
                             FileUtils.MODE_TRUNCATE, FileUtils.PERMS_FILE,
                            0);
-    converter.init(stream, "UTF-8", 0, 0x0000);
+    converter.init(stream, "UTF-8");
     converter.writeString(string);
   } finally {
     converter.close();
@@ -905,7 +891,7 @@ function isUsableAddon(aAddon) {
   }
 
   if (!AddonSettings.ALLOW_LEGACY_EXTENSIONS &&
-      aAddon.type == "extension" && !aAddon.isSystem &&
+      aAddon.type == "extension" && !aAddon._installLocation.isSystem &&
       aAddon.signedState !== AddonManager.SIGNEDSTATE_PRIVILEGED) {
     logger.warn(`disabling legacy extension ${aAddon.id}`);
     return false;
@@ -5232,10 +5218,11 @@ AddonWrapper.prototype = {
         // DB and should be a relative URL.  However, extensions with
         // options pages installed before bug 1293721 was fixed got absolute
         // URLs in the addons db.  This code handles both cases.
-        let base = ExtensionManagement.getURLForExtension(addon.id);
-        if (!base) {
+        let policy = WebExtensionPolicy.getByID(addon.id);
+        if (!policy) {
           return null;
         }
+        let base = policy.getURL();
         return new URL(addon.optionsURL, base).href;
       }
       return addon.optionsURL;
@@ -6063,7 +6050,7 @@ class MutableDirectoryInstallLocation extends DirectoryInstallLocation {
 
     OS.File.makeDir(this._directory.path);
     let stagepath = OS.Path.join(this._directory.path, DIR_STAGE);
-    return this._stagingDirPromise = OS.File.makeDir(stagepath).then(null, (e) => {
+    return this._stagingDirPromise = OS.File.makeDir(stagepath).catch((e) => {
       if (e instanceof OS.File.Error && e.becauseExists)
         return;
       logger.error("Failed to create staging directory", e);

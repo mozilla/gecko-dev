@@ -400,10 +400,12 @@ PROT_ListManager.prototype.makeUpdateRequest_ = function(updateUrl, tableData) {
         return;
       }
       let tableName = line.substring(0, p);
-      let metadata = line.substring(p + 1).split(":");
-      let stateBase64 = metadata[0];
-      log(tableName + " ==> " + stateBase64);
-      tableState[tableName] = stateBase64;
+      if (tableName in streamerMap.tableNames) {
+        let metadata = line.substring(p + 1).split(":");
+        let stateBase64 = metadata[0];
+        log(tableName + " ==> " + stateBase64);
+        tableState[tableName] = stateBase64;
+      }
     });
 
     // The state is a byte stream which server told us from the
@@ -599,6 +601,27 @@ PROT_ListManager.prototype.downloadError_ = function(table, updateUrl, status) {
 
   Services.obs.notifyObservers(null, "safebrowsing-update-finished",
                                "download error: " + status);
+}
+
+/**
+ * Get back-off time for the given provider.
+ * Return 0 if we are not in back-off mode.
+ */
+PROT_ListManager.prototype.getBackOffTime = function(provider) {
+  let updateUrl = "";
+  for (var table in this.tablesData) {
+    if (this.tablesData[table].provider == provider) {
+      updateUrl = this.tablesData[table].updateUrl;
+      break;
+    }
+  }
+
+  if (!updateUrl || !this.requestBackoffs_[updateUrl]) {
+    return 0;
+  }
+
+  let delay = this.requestBackoffs_[updateUrl].nextRequestDelay();
+  return delay == 0 ? 0 : Date.now() + delay;
 }
 
 PROT_ListManager.prototype.QueryInterface = function(iid) {

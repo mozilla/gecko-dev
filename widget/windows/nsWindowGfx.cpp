@@ -179,16 +179,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
 
     gfxWindowsPlatform::GetPlatform()->UpdateRenderMode();
 
-    nsTArray<nsWindow*> windows = EnumAllWindows();
-    for (nsWindow* window : windows) {
-      window->OnRenderingDeviceReset();
-    }
-
-    nsTArray<mozilla::dom::ContentParent*> children;
-    mozilla::dom::ContentParent::GetAll(children);
-    for (const auto& child : children) {
-      child->OnCompositorDeviceReset();
-    }
+    GPUProcessManager::Get()->OnInProcessDeviceReset();
 
     gfxCriticalNote << "(nsWindow) Finished device reset.";
     return false;
@@ -234,7 +225,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
   if (GetLayerManager()->AsKnowsCompositor() && !mBounds.IsEqualEdges(mLastPaintBounds)) {
     // Do an early async composite so that we at least have something on the
     // screen in the right place, even if the content is out of date.
-    GetLayerManager()->Composite();
+    GetLayerManager()->ScheduleComposite();
   }
   mLastPaintBounds = mBounds;
 
@@ -301,7 +292,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
   }
 
   if (GetLayerManager()->AsKnowsCompositor() && GetLayerManager()->NeedsComposite()) {
-    GetLayerManager()->Composite();
+    GetLayerManager()->ScheduleComposite();
     GetLayerManager()->SetNeedsComposite(false);
   }
 
@@ -410,7 +401,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
         break;
       case LayersBackend::LAYERS_WR:
       {
-        GetLayerManager()->Composite();
+        GetLayerManager()->ScheduleComposite();
         break;
       }
       default:
@@ -681,7 +672,7 @@ HBITMAP nsWindowGfx::DataToBitmap(uint8_t* aImageData,
   head.biYPelsPerMeter = 0;
   head.biClrUsed = 0;
   head.biClrImportant = 0;
-  
+
   BITMAPINFO& bi = *(BITMAPINFO*)reserved_space;
 
   if (aDepth == 1) {

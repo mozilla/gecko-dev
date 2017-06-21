@@ -108,6 +108,10 @@ case $cmd in
     cp -pPR \
         ${TOPSRCDIR}/python \
         ${tgtpath}
+    ${MKDIR} -p ${tgtpath}/third_party
+    cp -pPR \
+        ${TOPSRCDIR}/third_party/python \
+        ${tgtpath}/third_party
     ${MKDIR} -p ${tgtpath}/dom/bindings
     cp -pPR \
         ${TOPSRCDIR}/dom/bindings/mozwebidlcodegen \
@@ -153,6 +157,10 @@ case $cmd in
 
     # remove *.pyc and *.pyo files if any
     find ${tgtpath} -type f -name "*.pyc" -o -name "*.pyo" |xargs rm -f
+
+    # Remove non-JS Cargo.toml files (for example, the invalid Cargo.toml files
+    # used for some testing).
+    find ${tgtpath} -type f -name Cargo.toml | grep -v js | xargs rm -f
 
     # copy or create INSTALL
     if [ -e ${STAGING}/INSTALL ]; then

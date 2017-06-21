@@ -184,11 +184,17 @@ NS_NewChannelInternal(nsIChannel           **outChannel,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+#ifdef DEBUG
+  nsLoadFlags channelLoadFlags = 0;
+  channel->GetLoadFlags(&channelLoadFlags);
+  // Will be removed when we remove LOAD_REPLACE altogether
+  // This check is trying to catch protocol handlers that still
+  // try to set the LOAD_REPLACE flag.
+  MOZ_DIAGNOSTIC_ASSERT(!(channelLoadFlags & nsIChannel::LOAD_REPLACE));
+#endif
+
   if (aLoadFlags != nsIRequest::LOAD_NORMAL) {
-    // Retain the LOAD_REPLACE load flag if set.
-    nsLoadFlags normalLoadFlags = 0;
-    channel->GetLoadFlags(&normalLoadFlags);
-    rv = channel->SetLoadFlags(aLoadFlags | (normalLoadFlags & nsIChannel::LOAD_REPLACE));
+    rv = channel->SetLoadFlags(aLoadFlags);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -263,11 +269,17 @@ NS_NewChannelInternal(nsIChannel           **outChannel,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+#ifdef DEBUG
+  nsLoadFlags channelLoadFlags = 0;
+  channel->GetLoadFlags(&channelLoadFlags);
+  // Will be removed when we remove LOAD_REPLACE altogether
+  // This check is trying to catch protocol handlers that still
+  // try to set the LOAD_REPLACE flag.
+  MOZ_DIAGNOSTIC_ASSERT(!(channelLoadFlags & nsIChannel::LOAD_REPLACE));
+#endif
+
   if (aLoadFlags != nsIRequest::LOAD_NORMAL) {
-    // Retain the LOAD_REPLACE load flag if set.
-    nsLoadFlags normalLoadFlags = 0;
-    channel->GetLoadFlags(&normalLoadFlags);
-    rv = channel->SetLoadFlags(aLoadFlags | (normalLoadFlags & nsIChannel::LOAD_REPLACE));
+    rv = channel->SetLoadFlags(aLoadFlags);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -384,7 +396,7 @@ NS_GetIsDocumentChannel(nsIChannel * aChannel, bool *aIsDocument)
   if (NS_FAILED(rv)) {
       return rv;
   }
-  if (nsContentUtils::HtmlObjectContentTypeForMIMEType(mimeType, nullptr) ==
+  if (nsContentUtils::HtmlObjectContentTypeForMIMEType(mimeType, false, nullptr) ==
       nsIObjectLoadingContent::TYPE_DOCUMENT) {
       *aIsDocument = true;
       return NS_OK;
@@ -1585,11 +1597,10 @@ NS_GetOriginAttributes(nsIChannel *aChannel,
                        mozilla::OriginAttributes &aAttributes)
 {
     nsCOMPtr<nsILoadInfo> loadInfo = aChannel->GetLoadInfo();
-    if (!loadInfo) {
-        return false;
+    // For some channels, they might not have loadInfo, like ExternalHelperAppParent..
+    if (loadInfo) {
+        loadInfo->GetOriginAttributes(&aAttributes);
     }
-
-    loadInfo->GetOriginAttributes(&aAttributes);
 
     bool isPrivate = false;
     nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel = do_QueryInterface(aChannel);
@@ -1887,12 +1898,15 @@ nsresult
 NS_GetFinalChannelURI(nsIChannel *channel, nsIURI **uri)
 {
     *uri = nullptr;
-    nsLoadFlags loadFlags = 0;
-    nsresult rv = channel->GetLoadFlags(&loadFlags);
-    NS_ENSURE_SUCCESS(rv, rv);
 
-    if (loadFlags & nsIChannel::LOAD_REPLACE) {
-        return channel->GetURI(uri);
+    nsCOMPtr<nsILoadInfo> loadInfo = channel->GetLoadInfo();
+    if (loadInfo) {
+        nsCOMPtr<nsIURI> resultPrincipalURI;
+        loadInfo->GetResultPrincipalURI(getter_AddRefs(resultPrincipalURI));
+        if (resultPrincipalURI) {
+            resultPrincipalURI.forget(uri);
+            return NS_OK;
+        }
     }
 
     return channel->GetOriginalURI(uri);
@@ -2570,6 +2584,14 @@ NS_ShouldSecureUpgrade(nsIURI* aURI,
         aShouldUpgrade = true;
         return NS_OK;
       }
+
+      if (aLoadInfo->GetForceHSTSPriming()) {
+        // don't log requests which might be upgraded due to HSTS Priming
+        // they get logged in nsHttpChannel::OnHSTSPrimingSucceeded or
+        // nsHttpChannel::OnHSTSPrimingFailed if the load is allowed to proceed.
+        aShouldUpgrade = false;
+        return NS_OK;
+      }
     }
 
     // enforce Strict-Transport-Security
@@ -2577,9 +2599,10 @@ NS_ShouldSecureUpgrade(nsIURI* aURI,
     NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
 
     bool isStsHost = false;
+    uint32_t hstsSource = 0;
     uint32_t flags = aPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
     rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, aURI, flags,
-                          aOriginAttributes, nullptr, &isStsHost);
+                          aOriginAttributes, nullptr, &hstsSource, &isStsHost);
 
     // if the SSS check fails, it's likely because this load is on a
     // malformed URI or something else in the setup is wrong, so any error
@@ -2591,6 +2614,22 @@ NS_ShouldSecureUpgrade(nsIURI* aURI,
       if (aAllowSTS) {
         Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 3);
         aShouldUpgrade = true;
+        switch (hstsSource) {
+          case nsISiteSecurityService::SOURCE_PRELOAD_LIST:
+              Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 0);
+              break;
+          case nsISiteSecurityService::SOURCE_ORGANIC_REQUEST:
+              Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 1);
+              break;
+          case nsISiteSecurityService::SOURCE_HSTS_PRIMING:
+              Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 2);
+              break;
+          case nsISiteSecurityService::SOURCE_UNKNOWN:
+          default:
+              // record this as an organic request
+              Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 1);
+              break;
+        }
         return NS_OK;
       } else {
         Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 2);
@@ -2599,6 +2638,21 @@ NS_ShouldSecureUpgrade(nsIURI* aURI,
       Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 1);
     }
   } else {
+    if (aLoadInfo) {
+      if (aLoadInfo->GetIsHSTSPriming()) {
+        // don't log HSTS priming requests
+        aShouldUpgrade = false;
+        return NS_OK;
+      }
+
+      if (aLoadInfo->GetIsHSTSPrimingUpgrade()) {
+        // if the upgrade occured due to HSTS priming, it was logged in
+        // nsHttpChannel::OnHSTSPrimingSucceeded before redirect
+        aShouldUpgrade = false;
+        return NS_OK;
+      }
+    }
+
     Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 0);
   }
   aShouldUpgrade = false;

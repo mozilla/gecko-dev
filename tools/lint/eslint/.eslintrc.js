@@ -17,7 +17,6 @@ module.exports = {
   "rules": {
     "camelcase": "error",
     "comma-dangle": ["error", "never"],
-    "comma-style": ["error", "last"],
     "curly": ["error", "multi-line"],
     "handle-callback-err": ["error", "er"],
     "indent": ["error", 2, {"SwitchCase": 1}],
@@ -31,16 +30,5 @@ module.exports = {
     "operator-linebreak": ["error", "after"],
     "semi": ["error", "always"],
     "strict": ["error", "global"],
-  },
-
-  // Globals accessible within node modules.
-  "globals": {
-    "DTRACE_HTTP_CLIENT_REQUEST": true,
-    "DTRACE_HTTP_CLIENT_RESPONSE": true,
-    "DTRACE_HTTP_SERVER_REQUEST": true,
-    "DTRACE_HTTP_SERVER_RESPONSE": true,
-    "DTRACE_NET_SERVER_CONNECTION": true,
-    "DTRACE_NET_STREAM_END": true,
-    "Intl": true,
   },
 };

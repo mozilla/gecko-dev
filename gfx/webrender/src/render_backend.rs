@@ -4,8 +4,9 @@
 
 use frame::Frame;
 use frame_builder::FrameBuilderConfig;
-use internal_types::{FontTemplate, SourceTexture, ResultMsg, RendererFrame};
-use profiler::{BackendProfileCounters, TextureCacheProfileCounters};
+use gpu_cache::GpuCache;
+use internal_types::{SourceTexture, ResultMsg, RendererFrame};
+use profiler::{BackendProfileCounters, GpuCacheProfileCounters, TextureCacheProfileCounters};
 use record::ApiRecordingReceiver;
 use resource_cache::ResourceCache;
 use scene::Scene;
@@ -23,6 +24,7 @@ use webrender_traits::{ApiMsg, BlobImageRenderer, BuiltDisplayList, DeviceIntPoi
 use webrender_traits::{DeviceUintPoint, DeviceUintRect, DeviceUintSize, IdNamespace, ImageData};
 use webrender_traits::{LayerPoint, PipelineId, RenderDispatcher, RenderNotifier};
 use webrender_traits::{VRCompositorCommand, VRCompositorHandler, WebGLCommand, WebGLContextId};
+use webrender_traits::{FontTemplate};
 
 #[cfg(feature = "webgl")]
 use offscreen_gl_context::GLContextDispatcher;
@@ -49,6 +51,7 @@ pub struct RenderBackend {
     inner_rect: DeviceUintRect,
     next_namespace_id: IdNamespace,
 
+    gpu_cache: GpuCache,
     resource_cache: ResourceCache,
 
     scene: Scene,
@@ -97,6 +100,7 @@ impl RenderBackend {
             pinch_zoom_factor: 1.0,
             pan: DeviceIntPoint::zero(),
             resource_cache: resource_cache,
+            gpu_cache: GpuCache::new(),
             scene: Scene::new(),
             frame: Frame::new(config),
             next_namespace_id: IdNamespace(1),
@@ -253,9 +257,10 @@ impl RenderBackend {
                             profile_scope!("Scroll");
                             let frame = {
                                 let counters = &mut profile_counters.resources.texture_cache;
+                                let gpu_cache_counters = &mut profile_counters.resources.gpu_cache;
                                 profile_counters.total_time.profile(|| {
                                     if self.frame.scroll(delta, cursor, move_phase) {
-                                        Some(self.render(counters))
+                                        Some(self.render(counters, gpu_cache_counters))
                                     } else {
                                         None
                                     }
@@ -274,9 +279,10 @@ impl RenderBackend {
                             profile_scope!("ScrollNodeWithScrollId");
                             let frame = {
                                 let counters = &mut profile_counters.resources.texture_cache;
+                                let gpu_cache_counters = &mut profile_counters.resources.gpu_cache;
                                 profile_counters.total_time.profile(|| {
                                     if self.frame.scroll_node(origin, id, clamp) {
-                                        Some(self.render(counters))
+                                        Some(self.render(counters, gpu_cache_counters))
                                     } else {
                                         None
                                     }
@@ -296,9 +302,10 @@ impl RenderBackend {
                             profile_scope!("TickScrollingBounce");
                             let frame = {
                                 let counters = &mut profile_counters.resources.texture_cache;
+                                let gpu_cache_counters = &mut profile_counters.resources.gpu_cache;
                                 profile_counters.total_time.profile(|| {
                                     self.frame.tick_scrolling_bounce_animations();
-                                    self.render(counters)
+                                    self.render(counters, gpu_cache_counters)
                                 })
                             };
 
@@ -408,8 +415,9 @@ impl RenderBackend {
 
                             let frame = {
                                 let counters = &mut profile_counters.resources.texture_cache;
+                                let gpu_cache_counters = &mut profile_counters.resources.gpu_cache;
                                 profile_counters.total_time.profile(|| {
-                                    self.render(counters)
+                                    self.render(counters, gpu_cache_counters)
                                 })
                             };
                             if self.scene.root_pipeline_id.is_some() {
@@ -483,16 +491,19 @@ impl RenderBackend {
     }
 
     fn render(&mut self,
-              texture_cache_profile: &mut TextureCacheProfileCounters)
+              texture_cache_profile: &mut TextureCacheProfileCounters,
+              gpu_cache_profile: &mut GpuCacheProfileCounters)
               -> RendererFrame {
         let accumulated_scale_factor = self.accumulated_scale_factor();
         let pan = LayerPoint::new(self.pan.x as f32 / accumulated_scale_factor,
                                   self.pan.y as f32 / accumulated_scale_factor);
         let frame = self.frame.build(&mut self.resource_cache,
+                                     &mut self.gpu_cache,
                                      &self.scene.display_lists,
                                      accumulated_scale_factor,
                                      pan,
-                                     texture_cache_profile);
+                                     texture_cache_profile,
+                                     gpu_cache_profile);
         frame
     }
 
@@ -530,7 +541,7 @@ impl RenderBackend {
     fn handle_vr_compositor_command(&mut self, ctx_id: WebGLContextId, cmd: VRCompositorCommand) {
         let texture = match cmd {
             VRCompositorCommand::SubmitFrame(..) => {
-                    match self.resource_cache.get_webgl_texture(&ctx_id).texture_id {
+                    match self.resource_cache.get_webgl_texture(&ctx_id).id {
                         SourceTexture::WebGL(texture_id) => {
                             let size = self.resource_cache.get_webgl_texture_size(&ctx_id);
                             Some((texture_id, size))

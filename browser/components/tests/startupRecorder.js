@@ -2,10 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const {classes: Cc, utils: Cu, interfaces: Ci} = Components;
+const {classes: Cc, utils: Cu, interfaces: Ci, manager: Cm} = Components;
+Cm.QueryInterface(Ci.nsIServiceManager);
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
+
+let firstPaintNotification = "widget-first-paint";
+// widget-first-paint fires much later than expected on Linux.
+if (AppConstants.platform == "linux")
+  firstPaintNotification = "xul-window-visible";
 
 /**
   * The startupRecorder component observes notifications at various stages of
@@ -29,7 +36,15 @@ startupRecorder.prototype = {
   record(name) {
     this.data[name] = {
       components: this.loader.loadedComponents(),
-      modules: this.loader.loadedModules()
+      modules: this.loader.loadedModules(),
+      services: Object.keys(Cc).filter(c => {
+        try {
+          Cm.isServiceInstantiatedByContractID(c, Ci.nsISupports);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      })
     };
   },
 
@@ -42,7 +57,7 @@ startupRecorder.prototype = {
       let topics = [
         "profile-do-change", // This catches stuff loaded during app-startup
         "toplevel-window-ready", // Catches stuff from final-ui-startup
-        "widget-first-paint",
+        firstPaintNotification,
         "sessionstore-windows-restored",
       ];
       for (let t of topics)
@@ -61,8 +76,8 @@ startupRecorder.prototype = {
       const topicsToNames = {
         "profile-do-change": "before profile selection",
         "toplevel-window-ready": "before opening first browser window",
-        "widget-first-paint": "before first paint",
       };
+      topicsToNames[firstPaintNotification] = "before first paint";
       this.record(topicsToNames[topic]);
     }
   }

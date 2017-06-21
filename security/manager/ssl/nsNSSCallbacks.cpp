@@ -565,7 +565,7 @@ nsHTTPListener::~nsHTTPListener()
   }
 
   if (mLoader) {
-    NS_ReleaseOnMainThread(mLoader.forget());
+    NS_ReleaseOnMainThread("nsHTTPListener::mLoader", mLoader.forget());
   }
 }
 
@@ -1132,7 +1132,7 @@ DetermineEVAndCTStatusAndSetNewCert(RefPtr<nsSSLStatus> sslStatus,
     sctsFromTLSExtension,
     mozilla::pkix::Now(),
     infoObject,
-    infoObject->GetHostNameRaw(),
+    infoObject->GetHostName(),
     unusedBuiltChain,
     &peerCertChain,
     saveIntermediates,

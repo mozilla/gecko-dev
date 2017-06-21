@@ -39,6 +39,9 @@
 #include "nsXULAppAPI.h"
 #include "WrapperFactory.h"
 
+#include "AutoMemMap.h"
+#include "ScriptPreloader-inl.h"
+
 #include "mozilla/AddonPathService.h"
 #include "mozilla/scache/StartupCache.h"
 #include "mozilla/scache/StartupCacheUtils.h"
@@ -51,6 +54,7 @@
 
 using namespace mozilla;
 using namespace mozilla::scache;
+using namespace mozilla::loader;
 using namespace xpc;
 using namespace JS;
 
@@ -420,10 +424,6 @@ mozJSComponentLoader::LoadModule(FileLocation& aFile)
     // Cache this module for later
     mModules.Put(spec, entry);
 
-    // Set the location information for the new global, so that tools like
-    // about:memory may use that information
-    xpc::SetLocationForGlobal(entryObj, spec);
-
     // The hash owns the ModuleEntry now, forget about it
     return entry.forget();
 }
@@ -461,6 +461,7 @@ mozJSComponentLoader::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
 
 void
 mozJSComponentLoader::CreateLoaderGlobal(JSContext* aCx,
+                                         nsACString& aLocation,
                                          JSAddonId* aAddonID,
                                          MutableHandleObject aGlobal)
 {
@@ -503,27 +504,12 @@ mozJSComponentLoader::CreateLoaderGlobal(JSContext* aCx,
         return;
     }
 
+    // Set the location information for the new global, so that tools like
+    // about:memory may use that information
+    xpc::SetLocationForGlobal(global, aLocation);
+
     aGlobal.set(global);
 }
-
-// Some stack based classes for cleaning up on early return
-class FileAutoCloser
-{
- public:
-    explicit FileAutoCloser(PRFileDesc* file) : mFile(file) {}
-    ~FileAutoCloser() { PR_Close(mFile); }
- private:
-    PRFileDesc* mFile;
-};
-
-class FileMapAutoCloser
-{
- public:
-    explicit FileMapAutoCloser(PRFileMap* map) : mMap(map) {}
-    ~FileMapAutoCloser() { PR_CloseFileMap(mMap); }
- private:
-    PRFileMap* mMap;
-};
 
 JSObject*
 mozJSComponentLoader::PrepareObjectForLocation(JSContext* aCx,
@@ -531,9 +517,12 @@ mozJSComponentLoader::PrepareObjectForLocation(JSContext* aCx,
                                                nsIURI* aURI,
                                                bool* aRealFile)
 {
+    nsAutoCString nativePath;
+    NS_ENSURE_SUCCESS(aURI->GetSpec(nativePath), nullptr);
+
     RootedObject globalObj(aCx);
 
-    CreateLoaderGlobal(aCx, MapURIToAddonID(aURI), &globalObj);
+    CreateLoaderGlobal(aCx, nativePath, MapURIToAddonID(aURI), &globalObj);
 
     // |thisObj| is the object we set properties on for a particular .jsm.
     // XXX Right now, thisObj is always globalObj, but if we start
@@ -572,10 +561,6 @@ mozJSComponentLoader::PrepareObjectForLocation(JSContext* aCx,
                 return nullptr;
         }
     }
-
-    nsAutoCString nativePath;
-    rv = aURI->GetSpec(nativePath);
-    NS_ENSURE_SUCCESS(rv, nullptr);
 
     // Expose the URI from which the script was imported through a special
     // variable that we insert into the JSM.
@@ -671,54 +656,13 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo& aInfo,
                .setSourceIsLazy(!!cache);
 
         if (realFile) {
-            int64_t fileSize;
-            rv = aComponentFile->GetFileSize(&fileSize);
-            if (NS_FAILED(rv)) {
-                return rv;
-            }
-
-            int64_t maxSize = UINT32_MAX;
-            if (fileSize > maxSize) {
-                NS_ERROR("file too large");
-                return NS_ERROR_FAILURE;
-            }
-
-            PRFileDesc* fileHandle;
-            rv = aComponentFile->OpenNSPRFileDesc(PR_RDONLY, 0, &fileHandle);
-            if (NS_FAILED(rv)) {
-                return NS_ERROR_FILE_NOT_FOUND;
-            }
-
-            // Make sure the file is closed, no matter how we return.
-            FileAutoCloser fileCloser(fileHandle);
-
-            // We don't provide the file size here.  If we did, PR_CreateFileMap
-            // would simply stat() the file to verify that the size we provided
-            // didn't require extending the file.  We know that the file doesn't
-            // need to be extended, so skip the extra work by not providing the
-            // size.
-            PRFileMap* map = PR_CreateFileMap(fileHandle, 0, PR_PROT_READONLY);
-            if (!map) {
-                NS_ERROR("Failed to create file map");
-                return NS_ERROR_FAILURE;
-            }
-
-            // Make sure the file map is closed, no matter how we return.
-            FileMapAutoCloser mapCloser(map);
-
-            uint32_t fileSize32 = fileSize;
-
-            char* buf = static_cast<char*>(PR_MemMap(map, 0, fileSize32));
-            if (!buf) {
-                NS_WARNING("Failed to map file");
-                return NS_ERROR_FAILURE;
-            }
+            AutoMemMap map;
+            MOZ_TRY(map.init(aComponentFile));
 
             // Note: exceptions will get handled further down;
             // don't early return for them here.
-            Compile(cx, options, buf, fileSize32, &script);
-
-            PR_MemUnmap(buf, fileSize32);
+            auto buf = map.get<char>();
+            Compile(cx, options, buf.get(), map.size(), &script);
         } else {
             rv = aInfo.EnsureScriptChannel();
             NS_ENSURE_SUCCESS(rv, rv);
@@ -1046,10 +990,6 @@ mozJSComponentLoader::ImportInto(const nsACString& aLocation,
             // Something failed, but we don't know what it is, guess.
             return NS_ERROR_FILE_NOT_FOUND;
         }
-
-        // Set the location information for the new global, so that tools like
-        // about:memory may use that information
-        xpc::SetLocationForGlobal(newEntry->obj, aLocation);
 
         mod = newEntry;
     }

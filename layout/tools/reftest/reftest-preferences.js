@@ -22,6 +22,8 @@ user_pref("app.update.staging.enabled", false);
 user_pref("app.update.url.android", "");
 // Ensure we can load the reftest extension
 user_pref("extensions.allow-non-mpc-extensions", true);
+user_pref("extensions.legacy.enabled", true);
+user_pref("security.turn_off_all_security_so_that_viruses_can_take_over_this_computer", true);
 // Disable addon updates and prefetching so we don't leak them
 user_pref("extensions.update.enabled", false);
 user_pref("extensions.systemAddon.update.url", "http://localhost/dummy-system-addons.xml");
@@ -75,6 +77,9 @@ user_pref("dom.allow_XUL_XBL_for_file", true);
 // Allow view-source URIs to be opened from URIs that share
 // their protocol with the inner URI of the view-source URI
 user_pref("security.view-source.reachable-from-inner-protocol", true);
+
+// Skip data reporting policy notifications.
+user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
 
 // Ensure that telemetry is disabled, so we don't connect to the telemetry
 // server in the middle of the tests.

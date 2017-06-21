@@ -112,6 +112,9 @@ public:
       int32_t offset;
       ok &= NS_SUCCEEDED(info->Offset(&offset));
 
+      int32_t size;
+      ok &= NS_SUCCEEDED(info->Size(&size));
+
       int64_t presentationTimeUs;
       ok &= NS_SUCCEEDED(info->PresentationTimeUs(&presentationTimeUs));
 
@@ -130,7 +133,7 @@ public:
         return;
       }
 
-      if (ok && presentationTimeUs >= 0) {
+      if (ok && (size > 0 || presentationTimeUs >= 0)) {
         RefPtr<layers::Image> img = new SurfaceTextureImage(
           mDecoder->mSurfaceHandle, inputInfo.mImageSize, false /* NOT continuous */,
           gl::OriginPos::BottomLeft);
@@ -173,14 +176,20 @@ public:
   {
   }
 
+  ~RemoteVideoDecoder() {
+    if (mSurface) {
+      SurfaceAllocator::DisposeSurface(mSurface);
+    }
+  }
+
   RefPtr<InitPromise> Init() override
   {
-    GeckoSurface::LocalRef surf = GeckoSurface::LocalRef(SurfaceAllocator::AcquireSurface(mConfig.mImage.width, mConfig.mImage.height, false));
-    if (!surf) {
+    mSurface = GeckoSurface::LocalRef(SurfaceAllocator::AcquireSurface(mConfig.mImage.width, mConfig.mImage.height, false));
+    if (!mSurface) {
       return InitPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR, __func__);
     }
 
-    mSurfaceHandle = surf->GetHandle();
+    mSurfaceHandle = mSurface->GetHandle();
 
     // Register native methods.
     JavaCallbacksSupport::Init();
@@ -191,7 +200,7 @@ public:
 
     mJavaDecoder = CodecProxy::Create(false, // false indicates to create a decoder and true denotes encoder
                                       mFormat,
-                                      surf,
+                                      mSurface,
                                       mJavaCallbacks,
                                       mDrmStubId);
     if (mJavaDecoder == nullptr) {
@@ -231,6 +240,7 @@ public:
 private:
   layers::ImageContainer* mImageContainer;
   const VideoInfo mConfig;
+  GeckoSurface::GlobalRef mSurface;
   AndroidSurfaceTextureHandle mSurfaceHandle;
   SimpleMap<InputInfo> mInputInfos;
   bool mIsCodecSupportAdaptivePlayback = false;

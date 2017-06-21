@@ -1543,11 +1543,15 @@ ResolvePrototypeOrConstructor(JSContext* cx, JS::Handle<JSObject*> wrapper,
   {
     JSAutoCompartment ac(cx, global);
     ProtoAndIfaceCache& protoAndIfaceCache = *GetProtoAndIfaceCache(global);
+    // This function is called when resolving the "constructor" and "prototype"
+    // properties of Xrays for DOM prototypes and constructors respectively.
+    // This means the relevant Xray exists, which means its _target_ exists.
+    // And that means we managed to successfullly create the prototype or
+    // constructor, respectively, and hence must have managed to create the
+    // thing it's pointing to as well.  So our entry slot must exist.
     JSObject* protoOrIface =
-      protoAndIfaceCache.EntrySlotIfExists(protoAndIfaceCacheIndex);
-    if (!protoOrIface) {
-      return false;
-    }
+      protoAndIfaceCache.EntrySlotMustExist(protoAndIfaceCacheIndex);
+    MOZ_RELEASE_ASSERT(protoOrIface, "How can this object not exist?");
 
     cacheOnHolder = true;
 
@@ -1980,6 +1984,7 @@ const js::ClassOps sBoringInterfaceObjectClassClassOps = {
     nullptr,               /* getProperty */
     nullptr,               /* setProperty */
     nullptr,               /* enumerate */
+    nullptr,               /* newEnumerate */
     nullptr,               /* resolve */
     nullptr,               /* mayResolve */
     nullptr,               /* finalize */
@@ -2000,7 +2005,6 @@ const js::ObjectOps sInterfaceObjectClassObjectOps = {
   nullptr, /* watch */
   nullptr, /* unwatch */
   nullptr, /* getElements */
-  nullptr, /* enumerate */
   InterfaceObjectToString, /* funToString */
 };
 
@@ -2717,13 +2721,15 @@ MayResolveGlobal(const JSAtomState& aNames, jsid aId, JSObject* aMaybeObj)
 }
 
 bool
-EnumerateGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj)
+EnumerateGlobal(JSContext* aCx, JS::HandleObject aObj,
+                JS::AutoIdVector& aProperties, bool aEnumerableOnly)
 {
   MOZ_ASSERT(JS_IsGlobalObject(aObj),
              "Should have a global here, since we plan to enumerate standard "
              "classes!");
 
-  return JS_EnumerateStandardClasses(aCx, aObj);
+  return JS_NewEnumerateStandardClasses(aCx, aObj, aProperties,
+                                        aEnumerableOnly);
 }
 
 bool
@@ -3220,7 +3226,7 @@ bool
 SystemGlobalEnumerate(JSContext* cx, JS::Handle<JSObject*> obj)
 {
   bool ignored = false;
-  return EnumerateGlobal(cx, obj) &&
+  return JS_EnumerateStandardClasses(cx, obj) &&
          ResolveSystemBinding(cx, obj, JSID_VOIDHANDLE, &ignored);
 }
 
@@ -3622,7 +3628,7 @@ private:
   }
 
   void
-  RunBackOnWorkerThread() override
+  RunBackOnWorkerThreadForCleanup() override
   {}
 };
 

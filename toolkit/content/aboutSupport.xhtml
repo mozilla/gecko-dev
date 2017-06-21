@@ -470,6 +470,7 @@
         </tbody>
       </table>
 
+#ifndef ANDROID
       <!-- - - - - - - - - - - - - - - - - - - - - -->
 
       <h2 class="major-section">
@@ -490,6 +491,7 @@
           </td>
         </tr>
       </table>
+#endif
 
       <!-- - - - - - - - - - - - - - - - - - - - - -->
       <h2 class="major-section">
@@ -532,6 +534,16 @@
             <td id="a11y-force-disabled">
             </td>
           </tr>
+#if defined(XP_WIN)
+          <tr>
+            <th class="column">
+              &aboutSupport.a11yHandlerUsed;
+            </th>
+
+            <td id="a11y-handler-used">
+            </td>
+          </tr>
+#endif
         </tbody>
       </table>
 

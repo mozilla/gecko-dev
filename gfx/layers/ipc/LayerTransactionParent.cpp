@@ -149,7 +149,7 @@ LayerTransactionParent::RecvInitReadLocks(ReadLockArray&& aReadLocks)
 mozilla::ipc::IPCResult
 LayerTransactionParent::RecvUpdate(const TransactionInfo& aInfo)
 {
-  GeckoProfilerTracingRAII tracer("Paint", "LayerTransaction");
+  AutoProfilerTracing tracing("Paint", "LayerTransaction");
   PROFILER_LABEL("LayerTransactionParent", "RecvUpdate",
     js::ProfileEntry::Category::GRAPHICS);
 
@@ -273,8 +273,7 @@ LayerTransactionParent::RecvUpdate(const TransactionInfo& aInfo)
       break;
     }
     case Edit::TOpSetDiagnosticTypes: {
-      mLayerManager->GetCompositor()->SetDiagnosticTypes(
-        edit.get_OpSetDiagnosticTypes().diagnostics());
+      mLayerManager->SetDiagnosticTypes(edit.get_OpSetDiagnosticTypes().diagnostics());
       break;
     }
     case Edit::TOpWindowOverlayChanged: {
@@ -400,9 +399,7 @@ LayerTransactionParent::RecvUpdate(const TransactionInfo& aInfo)
       if (!Attach(AsLayer(op.layer()), host, false)) {
         return IPC_FAIL_NO_REASON(this);
       }
-      if (mLayerManager->GetCompositor()) {
-        host->SetCompositorID(mLayerManager->GetCompositor()->GetCompositorID());
-      }
+      host->SetCompositorBridgeID(mLayerManager->GetCompositorBridgeID());
       break;
     }
     case Edit::TOpAttachAsyncCompositable: {
@@ -423,9 +420,7 @@ LayerTransactionParent::RecvUpdate(const TransactionInfo& aInfo)
       if (!Attach(AsLayer(op.layer()), host, true)) {
         return IPC_FAIL_NO_REASON(this);
       }
-      if (mLayerManager->GetCompositor()) {
-        host->SetCompositorID(mLayerManager->GetCompositor()->GetCompositorID());
-      }
+      host->SetCompositorBridgeID(mLayerManager->GetCompositorBridgeID());
       break;
     }
     default:
@@ -849,7 +844,7 @@ LayerTransactionParent::RecvFlushApzRepaints()
 mozilla::ipc::IPCResult
 LayerTransactionParent::RecvGetAPZTestData(APZTestData* aOutData)
 {
-  mCompositorBridge->GetAPZTestData(this, aOutData);
+  mCompositorBridge->GetAPZTestData(GetId(), aOutData);
   return IPC_OK();
 }
 
@@ -987,11 +982,14 @@ LayerTransactionParent::NotifyNotUsed(PTextureParent* aTexture, uint64_t aTransa
 bool
 LayerTransactionParent::BindLayerToHandle(RefPtr<Layer> aLayer, const LayerHandle& aHandle)
 {
-  if (!aHandle || !aLayer || mLayerMap.Contains(aHandle.Value())) {
+  if (!aHandle || !aLayer) {
     return false;
   }
-
-  mLayerMap.Put(aHandle.Value(), aLayer);
+  if (auto entry = mLayerMap.LookupForAdd(aHandle.Value())) {
+    return false;
+  } else {
+    entry.OrInsert([&aLayer] () { return aLayer; });
+  }
   return true;
 }
 
@@ -1001,7 +999,7 @@ LayerTransactionParent::AsLayer(const LayerHandle& aHandle)
   if (!aHandle) {
     return nullptr;
   }
-  return mLayerMap.Get(aHandle.Value()).get();
+  return mLayerMap.GetWeak(aHandle.Value());
 }
 
 mozilla::ipc::IPCResult
@@ -1016,15 +1014,11 @@ LayerTransactionParent::RecvNewCompositable(const CompositableHandle& aHandle, c
 mozilla::ipc::IPCResult
 LayerTransactionParent::RecvReleaseLayer(const LayerHandle& aHandle)
 {
-  if (!aHandle || !mLayerMap.Contains(aHandle.Value())) {
+  RefPtr<Layer> layer;
+  if (!aHandle || !mLayerMap.Remove(aHandle.Value(), getter_AddRefs(layer))) {
     return IPC_FAIL_NO_REASON(this);
   }
-
-  Maybe<RefPtr<Layer>> maybeLayer = mLayerMap.GetAndRemove(aHandle.Value());
-  if (maybeLayer) {
-    (*maybeLayer)->Disconnect();
-  }
-
+  layer->Disconnect();
   return IPC_OK();
 }
 

@@ -21,10 +21,9 @@
 #include "nsReadableUtils.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsError.h"
-#include "nsIUnicodeDecoder.h"
-#include "mozilla/dom/EncodingUtils.h"
+#include "mozilla/Encoding.h"
 
-using mozilla::dom::EncodingUtils;
+using mozilla::Encoding;
 
 // static functions declared below are moved from mailnews/mime/src/comi18n.cpp
   
@@ -101,15 +100,14 @@ nsMIMEHeaderParamImpl::DoGetParameter(const nsACString& aHeaderVal,
 
     if (!aFallbackCharset.IsEmpty())
     {
-        nsAutoCString charset;
-        EncodingUtils::FindEncodingForLabel(aFallbackCharset, charset);
+        const Encoding* encoding = Encoding::ForLabel(aFallbackCharset);
         nsAutoCString str2;
         nsCOMPtr<nsIUTF8ConverterService> 
           cvtUTF8(do_GetService(NS_UTF8CONVERTERSERVICE_CONTRACTID));
         if (cvtUTF8 &&
             NS_SUCCEEDED(cvtUTF8->ConvertStringToUTF8(str1, 
                 PromiseFlatCString(aFallbackCharset).get(), false,
-                                   !charset.EqualsLiteral("UTF-8"),
+                                   encoding != UTF_8_ENCODING,
                                    1, str2))) {
           CopyUTF8toUTF16(str2, aResult);
           return NS_OK;
@@ -187,7 +185,7 @@ class Continuation {
     }
     Continuation() {
       // empty constructor needed for nsTArray
-      value = 0L;
+      value = nullptr;
       length = 0;
       needsPercentDecoding = false;
       wasQuotedString = false;
@@ -972,7 +970,7 @@ nsMIMEHeaderParamImpl::DecodeParameter(const nsACString& aParamValue,
 // static
 char *DecodeQ(const char *in, uint32_t length)
 {
-  char *out, *dest = 0;
+  char *out, *dest = nullptr;
 
   out = dest = (char *)PR_Calloc(length + 1, sizeof(char));
   if (dest == nullptr)
@@ -1187,7 +1185,7 @@ nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset,
   // safe because we don't use a raw *char any more.
   aResult.SetCapacity(3 * strlen(aHeader));
 
-  while ((p = PL_strstr(begin, "=?")) != 0) {
+  while ((p = PL_strstr(begin, "=?")) != nullptr) {
     if (isLastEncodedWord) {
       // See if it's all whitespace.
       for (q = begin; q < p; ++q) {
@@ -1215,7 +1213,7 @@ nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset,
 
     // Get charset info
     charsetStart = p;
-    charsetEnd = 0;
+    charsetEnd = nullptr;
     for (q = p; *q != '?'; q++) {
       if (*q <= ' ' || PL_strchr(especials, *q)) {
         goto badsyntax;

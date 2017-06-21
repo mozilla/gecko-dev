@@ -2,6 +2,11 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
+/* exported WindowEventManager, makeWidgetId */
+/* global EventEmitter:false, TabContext:false, WindowEventManager:false,
+          makeWidgetId:false, tabTracker:true, windowTracker:true */
+/* import-globals-from ../../../toolkit/components/extensions/ext-toolkit.js */
+
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 
@@ -232,7 +237,7 @@ class TabTracker extends TabTrackerBase {
           // Copy the ID from the old tab to the new.
           this.setId(nativeTab, this.getId(adoptedTab));
 
-          adoptedTab.linkedBrowser.messageManager.sendAsyncMessage("Extension:SetTabAndWindowId", {
+          adoptedTab.linkedBrowser.messageManager.sendAsyncMessage("Extension:SetFrameData", {
             windowId: windowTracker.getId(nativeTab.ownerGlobal),
           });
         }

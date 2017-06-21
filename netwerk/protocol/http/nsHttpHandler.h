@@ -224,10 +224,10 @@ public:
         return mConnMgr->RescheduleTransaction(trans, priority);
     }
 
-    void ThrottleTransaction(nsHttpTransaction *trans,
-                                              bool throttle)
+    void UpdateClassOfServiceOnTransaction(nsHttpTransaction *trans,
+                                           uint32_t classOfService)
     {
-        mConnMgr->ThrottleTransaction(trans, throttle);
+        mConnMgr->UpdateClassOfServiceOnTransaction(trans, classOfService);
     }
 
     // Called to cancel a transaction, which may or may not be assigned to
@@ -448,6 +448,11 @@ private:
     uint8_t  mMaxPersistentConnectionsPerServer;
     uint8_t  mMaxPersistentConnectionsPerProxy;
 
+    bool mThrottleEnabled;
+    uint32_t mThrottleSuspendFor;
+    uint32_t mThrottleResumeFor;
+    uint32_t mThrottleResumeIn;
+
     uint8_t  mRedirectionLimit;
 
     // we'll warn the user if we load an URL containing a userpass field
@@ -487,6 +492,7 @@ private:
     nsCString      mDeviceModelId;
 
     nsCString      mUserAgent;
+    nsCString      mSpoofedUserAgent;
     nsXPIDLCString mUserAgentOverride;
     bool           mUserAgentIsDirty; // true if mUserAgent should be rebuilt
     bool           mAcceptLanguagesIsDirty;

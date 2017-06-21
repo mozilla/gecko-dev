@@ -16,9 +16,10 @@ function test() {
   UITourTest();
 }
 
+const oldState = UIState.get();
 registerCleanupFunction(async function() {
   await signOut();
-  gSync.updateAllUI(UIState.get());
+  gSync.updateAllUI(oldState);
 });
 
 var tests = [
@@ -35,11 +36,13 @@ var tests = [
     await setSignedInUser();
     let userData = await fxAccounts.getSignedInUser();
     isnot(userData, null, "Logged in now");
-    gSync.updateAllUI(UIState.get());
+    gSync.updateAllUI({ status: UIState. STATUS_SIGNED_IN, email: "foo@example.com" });
     await showMenuPromise("appMenu");
     await showHighlightPromise("accountStatus");
     let highlight = document.getElementById("UITourHighlightContainer");
-    is(highlight.popupBoxObject.anchorNode.id, "PanelUI-fxa-avatar", "Anchored on avatar");
+    let photon = Services.prefs.getBoolPref("browser.photon.structure.enabled");
+    let expectedTarget = photon ? "appMenu-fxa-avatar" : "PanelUI-fxa-avatar";
+    is(highlight.popupBoxObject.anchorNode.id, expectedTarget, "Anchored on avatar");
     is(highlight.getAttribute("targetName"), "accountStatus", "Correct highlight target");
   }),
 ];

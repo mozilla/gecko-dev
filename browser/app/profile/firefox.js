@@ -72,7 +72,7 @@ pref("extensions.startupScanScopes", 0);
 // This is where the profiler WebExtension API will look for breakpad symbols.
 // NOTE: deliberately http right now since https://symbols.mozilla.org is not supported.
 pref("extensions.geckoProfiler.symbols.url", "http://symbols.mozilla.org/");
-pref("extensions.geckoProfiler.acceptedExtensionIds", "geckoprofiler@mozilla.com");
+pref("extensions.geckoProfiler.acceptedExtensionIds", "geckoprofiler@mozilla.com,quantum-foxfooding@mozilla.com");
 #if defined(XP_LINUX) || defined (XP_MACOSX)
 pref("extensions.geckoProfiler.getSymbolRules", "localBreakpad,remoteBreakpad,nm");
 #else // defined(XP_WIN)
@@ -159,7 +159,11 @@ pref("app.update.silent", false);
 
 // If set to true, the Update Service will apply updates in the background
 // when it finishes downloading them.
+#ifdef XP_WIN
+pref("app.update.staging.enabled", false);
+#else
 pref("app.update.staging.enabled", true);
+#endif
 
 // Update service URL:
 pref("app.update.url", "https://aus5.mozilla.org/update/6/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%SYSTEM_CAPABILITIES%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
@@ -195,6 +199,7 @@ pref("extensions.dss.switchPending", false);    // Non-dynamic switch pending af
 pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.name", "chrome://browser/locale/browser.properties");
 pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.description", "chrome://browser/locale/browser.properties");
 
+pref("extensions.webextensions.themes.enabled", true);
 pref("extensions.webextensions.themes.icons.buttons", "back,forward,reload,stop,bookmark_star,bookmark_menu,downloads,home,app_menu,cut,copy,paste,new_window,new_private_window,save_page,print,history,full_screen,find,options,addons,developer,synced_tabs,open_file,sidebars,share_page,subscribe,text_encoding,email_link,forget,pocket");
 
 pref("lightweightThemes.update.enabled", true);
@@ -235,6 +240,13 @@ pref("general.autoScroll", true);
 // UI density of the browser chrome. This mostly affects toolbarbutton
 // and urlbar spacing. The possible values are 0=normal, 1=compact, 2=touch.
 pref("browser.uidensity", 0);
+// Whether Firefox will automatically override the uidensity to "touch"
+// while the user is in a touch environment (such as Windows tablet mode).
+#ifdef MOZ_PHOTON_THEME
+pref("browser.touchmode.auto", true);
+#else
+pref("browser.touchmode.auto", false);
+#endif
 
 // At startup, check if we're the default browser and prompt user if not.
 pref("browser.shell.checkDefaultBrowser", true);
@@ -403,6 +415,12 @@ pref("browser.search.context.loadInBackground", false);
 // comma seperated list of of engines to hide in the search panel.
 pref("browser.search.hiddenOneOffs", "");
 
+// Mirrors whether the search-container widget is in the navigation toolbar. The
+// default value of this preference must match the DEFAULT_AREA_PLACEMENTS of
+// UITelemetry.jsm, the navbarPlacements of CustomizableUI.jsm, and the
+// position and attributes of the search-container element in browser.xul.
+pref("browser.search.widget.inNavBar", true);
+
 #ifndef RELEASE_OR_BETA
 pref("browser.search.reset.enabled", true);
 #endif
@@ -437,7 +455,11 @@ pref("browser.link.open_newwindow.disabled_in_fullscreen", true);
 pref("browser.link.open_newwindow.disabled_in_fullscreen", false);
 #endif
 
+#ifdef NIGHTLY_BUILD
+pref("browser.photon.structure.enabled", true);
+#else
 pref("browser.photon.structure.enabled", false);
+#endif
 
 // Tabbed browser
 pref("browser.tabs.closeWindowWithLastTab", true);
@@ -667,7 +689,7 @@ pref("plugins.testmode", false);
 pref("plugins.show_infobar", true);
 
 // Should dismissing the hidden plugin infobar suppress it permanently?
-pref("plugins.remember_infobar_dismissal", false);
+pref("plugins.remember_infobar_dismissal", true);
 
 pref("plugin.default.state", 1);
 
@@ -677,20 +699,26 @@ pref("plugin.defaultXpi.state", 2);
 // Java is Click-to-Activate by default on all channels.
 pref("plugin.state.java", 1);
 
-// Flash is Click-to-Activate by default on Nightly,
-// Always-Activate on other channels.
+// Flash is Click-to-Activate by default on Nightly.
+// On other channels, it will be controlled by a
+// rollout system addon.
 #ifdef NIGHTLY_BUILD
-pref("plugins.flashBlock.enabled", true);
 pref("plugin.state.flash", 1);
+#else
+pref("plugin.state.flash", 2);
+#endif
+
+// Enables the download and use of the flash blocklists.
+pref("plugins.flashBlock.enabled", true);
 
 // Prefer HTML5 video over Flash content, and don't
 // load plugin instances with no src declared.
 // These prefs are documented in details on all.js.
+// With the "follow-ctp" setting, this will only
+// apply to users that have plugin.state.flash = 1.
 pref("plugins.favorfallback.mode", "follow-ctp");
 pref("plugins.favorfallback.rules", "nosrc,video");
-#else
-pref("plugin.state.flash", 2);
-#endif
+
 
 #ifdef XP_WIN
 pref("browser.preferences.instantApply", false);
@@ -699,7 +727,7 @@ pref("browser.preferences.instantApply", true);
 #endif
 
 // Toggling Search bar on and off in about:preferences
-pref("browser.preferences.search", false);
+pref("browser.preferences.search", true);
 
 // Use the new in-content about:preferences in Nightly only for now
 #if defined(NIGHTLY_BUILD)
@@ -990,10 +1018,6 @@ pref("browser.flash-protected-mode-flip.done", false);
 
 pref("dom.ipc.shims.enabledWarnings", false);
 
-// Start the browser in e10s mode
-pref("browser.tabs.remote.autostart", false);
-pref("browser.tabs.remote.desktopbehavior", true);
-
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 // Controls whether and how the Windows NPAPI plugin process is sandboxed.
 // To get a different setting for a particular plugin replace "default", with
@@ -1207,8 +1231,6 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 // fetching these icons to show remote tabs may leak information about that
 // user's tabs and bookmarks. Note this pref is also synced.
 pref("services.sync.syncedTabs.showRemoteIcons", true);
-
-pref("services.sync.sendTabToDevice.enabled", true);
 
 // Developer edition preferences
 #ifdef MOZ_DEV_EDITION
@@ -1510,7 +1532,11 @@ pref("privacy.usercontext.about_newtab_segregation.enabled", false);
 pref("privacy.userContext.longPressBehavior", 0);
 #endif
 
-#ifndef RELEASE_OR_BETA
+// Start the browser in e10s mode
+pref("browser.tabs.remote.autostart", false);
+pref("browser.tabs.remote.desktopbehavior", true);
+
+#if !defined(RELEASE_OR_BETA) || defined(MOZ_DEV_EDITION)
 // At the moment, autostart.2 is used, while autostart.1 is unused.
 // We leave it here set to false to reset users' defaults and allow
 // us to change everybody to true in the future, when desired.
@@ -1621,15 +1647,12 @@ pref("signon.schemeUpgrades", true);
 // in toolkit.
 //
 // This feature is only enabled on Nightly for Linux until bug 1306295 is fixed.
-// For non-Linux, this feature is only enabled up to early Beta.
 #ifdef UNIX_BUT_NOT_MAC
 #if defined(NIGHTLY_BUILD)
 pref("print.use_simplify_page", true);
 #endif
 #else
-#if defined(EARLY_BETA_OR_EARLIER)
 pref("print.use_simplify_page", true);
-#endif
 #endif
 
 // Space separated list of URLS that are allowed to send objects (instead of
@@ -1659,19 +1682,34 @@ pref("extensions.formautofill.experimental", true);
 pref("extensions.formautofill.experimental", false);
 #endif
 pref("extensions.formautofill.addresses.enabled", true);
-pref("extensions.formautofill.heuristics.enabled", false);
+pref("extensions.formautofill.firstTimeUse", true);
+pref("extensions.formautofill.heuristics.enabled", true);
 pref("extensions.formautofill.loglevel", "Warn");
 
 // Whether or not to restore a session with lazy-browser tabs.
 pref("browser.sessionstore.restore_tabs_lazily", true);
 
 // Enable safebrowsing v4 tables (suffixed by "-proto") update.
-#ifdef NIGHTLY_BUILD
-pref("urlclassifier.malwareTable", "goog-malware-shavar,goog-unwanted-shavar,goog-malware-proto,goog-unwanted-proto,test-malware-simple,test-unwanted-simple");
-pref("urlclassifier.phishTable", "goog-phish-shavar,goog-phish-proto,test-phish-simple");
-#endif
+pref("urlclassifier.malwareTable", "goog-malware-proto,goog-unwanted-proto,test-malware-simple,test-unwanted-simple");
+pref("urlclassifier.phishTable", "goog-phish-proto,test-phish-simple");
 
 pref("browser.suppress_first_window_animation", true);
 
 // Preferences for Photon onboarding system extension
-pref("browser.onboarding.disabled", false);
+pref("browser.onboarding.enabled", true);
+pref("browser.onboarding.hidden", false);
+// On the Activity-Stream page, the snippet's position overlaps with our notification.
+// So use `browser.onboarding.notification.finished` to let the AS page know
+// if our notification is finished and safe to show their snippet.
+pref("browser.onboarding.notification.finished", false);
+
+// Preferences for the Screenshots feature:
+// Temporarily disable Screenshots in Beta & Release, so that we can gradually
+// roll out the feature using SHIELD pref flipping.
+#ifdef NIGHTLY_BUILD
+pref("extensions.screenshots.system-disabled", false);
+#else
+pref("extensions.screenshots.system-disabled", true);
+#endif
+// Permanent pref that allows individual users to disable Screenshots.
+pref("extensions.screenshots.disabled", false);

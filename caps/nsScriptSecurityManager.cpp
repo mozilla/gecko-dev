@@ -63,6 +63,8 @@
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "nsILoadInfo.h"
+#include "nsIDOMXULCommandDispatcher.h"
+#include "nsITreeSelection.h"
 
 // This should be probably defined on some other place... but I couldn't find it
 #define WEBAPPS_PERM_NAME "webapps-manage"
@@ -1105,20 +1107,14 @@ nsScriptSecurityManager::GetSystemPrincipal(nsIPrincipal **result)
 }
 
 NS_IMETHODIMP
-nsScriptSecurityManager::GetNoAppCodebasePrincipal(nsIURI* aURI,
-                                                   nsIPrincipal** aPrincipal)
-{
-  OriginAttributes attrs;
-  nsCOMPtr<nsIPrincipal> prin = BasePrincipal::CreateCodebasePrincipal(aURI, attrs);
-  prin.forget(aPrincipal);
-  return *aPrincipal ? NS_OK : NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
 nsScriptSecurityManager::GetCodebasePrincipal(nsIURI* aURI,
                                               nsIPrincipal** aPrincipal)
 {
-  return GetNoAppCodebasePrincipal(aURI, aPrincipal);
+  OriginAttributes attrs;
+  nsCOMPtr<nsIPrincipal> prin =
+    BasePrincipal::CreateCodebasePrincipal(aURI, attrs);
+  prin.forget(aPrincipal);
+  return *aPrincipal ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -1162,21 +1158,6 @@ nsScriptSecurityManager::CreateNullPrincipal(JS::Handle<JS::Value> aOriginAttrib
   nsCOMPtr<nsIPrincipal> prin = NullPrincipal::Create(attrs);
   prin.forget(aPrincipal);
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsScriptSecurityManager::GetAppCodebasePrincipal(nsIURI* aURI,
-                                                 uint32_t aAppId,
-                                                 bool aInIsolatedMozBrowser,
-                                                 nsIPrincipal** aPrincipal)
-{
-  NS_ENSURE_TRUE(aAppId != nsIScriptSecurityManager::UNKNOWN_APP_ID,
-                 NS_ERROR_INVALID_ARG);
-
-  OriginAttributes attrs(aAppId, aInIsolatedMozBrowser);
-  nsCOMPtr<nsIPrincipal> prin = BasePrincipal::CreateCodebasePrincipal(aURI, attrs);
-  prin.forget(aPrincipal);
-  return *aPrincipal ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -1229,7 +1210,8 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
     }
 
     // We give remote-XUL whitelisted domains a free pass here. See bug 932906.
-    if (!xpc::AllowContentXBLScope(js::GetContextCompartment(cx)))
+    JSCompartment* contextCompartment = js::GetContextCompartment(cx);
+    if (!xpc::AllowContentXBLScope(contextCompartment))
     {
         return NS_OK;
     }
@@ -1237,6 +1219,20 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
     if (nsContentUtils::IsCallerChrome())
     {
         return NS_OK;
+    }
+
+    // We want to expose nsIDOMXULCommandDispatcher and nsITreeSelection implementations
+    // in XBL scopes.
+    if (xpc::IsContentXBLScope(contextCompartment)) {
+      nsCOMPtr<nsIDOMXULCommandDispatcher> dispatcher = do_QueryInterface(aObj);
+      if (dispatcher) {
+        return NS_OK;
+      }
+
+      nsCOMPtr<nsITreeSelection> treeSelection = do_QueryInterface(aObj);
+      if (treeSelection) {
+        return NS_OK;
+      }
     }
 
     //-- Access denied, report an error

@@ -167,6 +167,8 @@ private:
 protected:
   virtual ~CSSStyleSheet();
 
+  void LastRelease();
+
   void ClearRuleCascades();
 
   // Add the namespace mapping from this @namespace rule to our namespace map
@@ -187,7 +189,7 @@ protected:
 
 protected:
   // Internal methods which do not have security check and completeness check.
-  dom::CSSRuleList* GetCssRulesInternal(ErrorResult& aRv);
+  dom::CSSRuleList* GetCssRulesInternal();
   uint32_t InsertRuleInternal(const nsAString& aRule,
                               uint32_t aIndex, ErrorResult& aRv);
   void DeleteRuleInternal(uint32_t aIndex, ErrorResult& aRv);

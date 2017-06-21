@@ -14,7 +14,6 @@
 #include "nsIFileStreams.h"
 #include "mozilla/RefPtr.h"
 #include "nsUrlClassifierPrefixSet.h"
-#include "SBTelemetryUtils.h"
 #include "VariableLengthPrefixSet.h"
 #include "mozilla/Logging.h"
 #include "mozilla/TypedEnumBits.h"
@@ -30,8 +29,7 @@ class LookupResult {
 public:
   LookupResult() : mNoise(false), mProtocolConfirmed(false),
                    mPartialHashLength(0), mConfirmed(false),
-                   mProtocolV2(true),
-                   mMatchResult(MatchResult::eTelemetryDisabled) {}
+                   mProtocolV2(true) {}
 
   // The fragment that matched in the LookupCache
   union {
@@ -78,10 +76,8 @@ public:
   // True as long as this lookup is complete and hasn't expired.
   bool mConfirmed;
 
+  // TODO : Is this necessary
   bool mProtocolV2;
-
-  // This is only used by telemetry to record the match result.
-  MatchResult mMatchResult;
 };
 
 typedef nsTArray<LookupResult> LookupResultArray;
@@ -199,12 +195,15 @@ public:
   // Called when update to clear expired entries.
   void InvalidateExpiredCacheEntries();
 
-  // Clear completions retrieved from gethash request.
+  // Copy fullhash cache from another LookupCache.
+  void CopyFullHashCache(const LookupCache* aSource);
+
+  // Clear fullhash cache from fullhash/gethash response.
   void ClearCache();
 
   // Check if completions can be found in cache.
   // Currently this is only used by testcase.
-  bool IsInCache(uint32_t key) { return mCache.Get(key); };
+  bool IsInCache(uint32_t key) { return mFullHashCache.Get(key); };
 
 #if DEBUG
   void DumpCache();
@@ -254,8 +253,8 @@ protected:
   // For gtest to inspect private members.
   friend class PerProviderDirectoryTestUtils;
 
-  // Cache gethash result.
-  FullHashResponseMap mCache;
+  // Cache stores fullhash response(V4)/gethash response(V2)
+  FullHashResponseMap mFullHashCache;
 };
 
 class LookupCacheV2 final : public LookupCache

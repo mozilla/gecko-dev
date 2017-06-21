@@ -324,6 +324,17 @@ var snapshotFormatters = {
       }
     }
 
+    if ((AppConstants.NIGHTLY_BUILD || AppConstants.MOZ_DEV_EDITION) && AppConstants.platform != "macosx") {
+      let gpuDeviceResetButton = $.new("button");
+
+      gpuDeviceResetButton.addEventListener("click", function() {
+        windowUtils.triggerDeviceReset();
+      });
+
+      gpuDeviceResetButton.textContent = strings.GetStringFromName("gpuDeviceResetButton");
+      addRow("diagnostics", "Device Reset", [gpuDeviceResetButton]);
+    }
+
     // graphics-failures-tbody tbody
     if ("failures" in data) {
       // If indices is there, it should be the same length as failures,
@@ -564,6 +575,10 @@ var snapshotFormatters = {
   accessibility: function accessibility(data) {
     $("a11y-activated").textContent = data.isActive;
     $("a11y-force-disabled").textContent = data.forceDisabled || 0;
+    let a11yHandlerUsed = $("a11y-handler-used");
+    if (a11yHandlerUsed) {
+      a11yHandlerUsed.textContent = data.handlerUsed;
+    }
   },
 
   libraryVersions: function libraryVersions(data) {
@@ -611,8 +626,8 @@ var snapshotFormatters = {
         continue;
       }
       if (key === "syscallLog") {
-	// Not in this table.
-	continue;
+        // Not in this table.
+        continue;
       }
       tbody.appendChild($.new("tr", [
         $.new("th", strings.GetStringFromName(key), "column"),
@@ -620,25 +635,27 @@ var snapshotFormatters = {
       ]));
     }
 
-    let syscallBody = $("sandbox-syscalls-tbody");
-    let argsHead = $("sandbox-syscalls-argshead");
-    for (let syscall of data.syscallLog) {
-      if (argsHead.colSpan < syscall.args.length) {
-	argsHead.colSpan = syscall.args.length;
+    if ("syscallLog" in data) {
+      let syscallBody = $("sandbox-syscalls-tbody");
+      let argsHead = $("sandbox-syscalls-argshead");
+      for (let syscall of data.syscallLog) {
+        if (argsHead.colSpan < syscall.args.length) {
+          argsHead.colSpan = syscall.args.length;
+        }
+        let cells = [
+          $.new("td", syscall.index, "integer"),
+          $.new("td", syscall.msecAgo / 1000),
+          $.new("td", syscall.pid, "integer"),
+          $.new("td", syscall.tid, "integer"),
+          $.new("td", strings.GetStringFromName("sandboxProcType." +
+                                                syscall.procType)),
+          $.new("td", syscall.syscall, "integer"),
+        ];
+        for (let arg of syscall.args) {
+          cells.push($.new("td", arg, "integer"));
+        }
+        syscallBody.appendChild($.new("tr", cells));
       }
-      let cells = [
-	$.new("td", syscall.index, "integer"),
-	$.new("td", syscall.msecAgo / 1000),
-	$.new("td", syscall.pid, "integer"),
-	$.new("td", syscall.tid, "integer"),
-	$.new("td", strings.GetStringFromName("sandboxProcType." +
-					      syscall.procType)),
-	$.new("td", syscall.syscall, "integer"),
-      ];
-      for (let arg of syscall.args) {
-	cells.push($.new("td", arg, "integer"));
-      }
-      syscallBody.appendChild($.new("tr", cells));
     }
   },
 };
@@ -991,7 +1008,7 @@ function populateActionBox() {
     $("reset-box").style.display = "block";
     $("action-box").style.display = "block";
   }
-  if (!Services.appinfo.inSafeMode) {
+  if (!Services.appinfo.inSafeMode && AppConstants.platform !== "android") {
     $("safe-mode-box").style.display = "block";
     $("action-box").style.display = "block";
   }
@@ -1011,13 +1028,31 @@ function safeModeRestart() {
  * Set up event listeners for buttons.
  */
 function setupEventListeners() {
-  $("show-update-history-button").addEventListener("click", function(event) {
-    var prompter = Cc["@mozilla.org/updates/update-prompt;1"].createInstance(Ci.nsIUpdatePrompt);
+  if (AppConstants.platform !== "android") {
+    $("show-update-history-button").addEventListener("click", function(event) {
+      var prompter = Cc["@mozilla.org/updates/update-prompt;1"].createInstance(Ci.nsIUpdatePrompt);
       prompter.showUpdateHistory(window);
-  });
-  $("reset-box-button").addEventListener("click", function(event) {
-    ResetProfile.openConfirmationDialog(window);
-  });
+    });
+    $("reset-box-button").addEventListener("click", function(event) {
+      ResetProfile.openConfirmationDialog(window);
+    });
+    $("restart-in-safe-mode-button").addEventListener("click", function(event) {
+      if (Services.obs.enumerateObservers("restart-in-safe-mode").hasMoreElements()) {
+        Services.obs.notifyObservers(null, "restart-in-safe-mode");
+      } else {
+        safeModeRestart();
+      }
+    });
+    $("verify-place-integrity-button").addEventListener("click", function(event) {
+      PlacesDBUtils.checkAndFixDatabase().then((tasksStatusMap) => {
+        let msg = PlacesDBUtils.getLegacyLog(tasksStatusMap).join("\n");
+        $("verify-place-result").style.display = "block";
+        $("verify-place-result").classList.remove("no-copy");
+        $("verify-place-result").textContent = msg;
+      });
+    });
+  }
+
   $("copy-raw-data-to-clipboard").addEventListener("click", function(event) {
     copyRawDataToClipboard(this);
   });
@@ -1026,20 +1061,5 @@ function setupEventListeners() {
   });
   $("profile-dir-button").addEventListener("click", function(event) {
     openProfileDirectory();
-  });
-  $("restart-in-safe-mode-button").addEventListener("click", function(event) {
-    if (Services.obs.enumerateObservers("restart-in-safe-mode").hasMoreElements()) {
-      Services.obs.notifyObservers(null, "restart-in-safe-mode");
-    } else {
-      safeModeRestart();
-    }
-  });
-  $("verify-place-integrity-button").addEventListener("click", function(event) {
-    PlacesDBUtils.checkAndFixDatabase().then((tasksStatusMap) => {
-      let msg = PlacesDBUtils.getLegacyLog(tasksStatusMap).join("\n");
-      $("verify-place-result").style.display = "block";
-      $("verify-place-result").classList.remove("no-copy");
-      $("verify-place-result").textContent = msg;
-    });
   });
 }

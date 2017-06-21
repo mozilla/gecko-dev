@@ -25,12 +25,12 @@ def mock_runner(runner, mock_marionette, monkeypatch):
     self.marionette and other properties,
     to enable testing runner.run_tests().
     """
-    runner.driverclass = mock_marionette
-    for attr in ['run_test_set', '_capabilities']:
+    runner.driverclass = Mock(return_value=mock_marionette)
+    for attr in ['run_test', '_capabilities']:
         setattr(runner, attr, Mock())
     runner._appName = 'fake_app'
     # simulate that browser runs with e10s by default
-    runner._appinfo = {'browserTabsRemoteAutostart': True}
+    runner._e10s_from_browser = True
     monkeypatch.setattr('marionette_harness.runner.base.mozversion', Mock())
     return runner
 
@@ -282,8 +282,8 @@ def test_add_test_module(runner):
 def test_add_test_directory(runner):
     test_dir = 'path/to/tests'
     dir_contents = [
-        (test_dir, ('subdir',), ('test_a.py', 'test_a.js', 'bad_test_a.py', 'bad_test_a.js')),
-        (test_dir + '/subdir', (), ('test_b.py', 'test_b.js', 'bad_test_b.py', 'bad_test_b.js')),
+        (test_dir, ('subdir',), ('test_a.py', 'bad_test_a.py')),
+        (test_dir + '/subdir', (), ('test_b.py', 'bad_test_b.py')),
     ]
     tests = list(dir_contents[0][2] + dir_contents[1][2])
     assert len(runner.tests) == 0
@@ -294,7 +294,7 @@ def test_add_test_directory(runner):
     assert isdir.called and walk.called
     for test in runner.tests:
         assert test_dir in test['filepath']
-    assert len(runner.tests) == 4
+    assert len(runner.tests) == 2
 
 
 @pytest.mark.parametrize("test_files_exist", [True, False])
@@ -403,11 +403,40 @@ def test_add_tests(mock_runner):
         assert added_test['filepath'].endswith(test_name)
 
 
+def test_repeat(mock_runner):
+    def update_result(test, expected):
+        mock_runner.failed += 1
+
+    fake_tests = ["test_1.py"]
+    mock_runner.repeat = 4
+    mock_runner.run_test = Mock(side_effect=update_result)
+    mock_runner.run_tests(fake_tests)
+
+    assert mock_runner.failed == 5
+    assert mock_runner.passed == 0
+    assert mock_runner.todo == 0
+
+
+def test_run_until_failure(mock_runner):
+    def update_result(test, expected):
+        mock_runner.failed += 1
+
+    fake_tests = ["test_1.py"]
+    mock_runner.run_until_failure = True
+    mock_runner.repeat = 4
+    mock_runner.run_test = Mock(side_effect=update_result)
+    mock_runner.run_tests(fake_tests)
+
+    assert mock_runner.failed == 1
+    assert mock_runner.passed == 0
+    assert mock_runner.todo == 0
+
+
 def test_catch_invalid_test_names(runner):
-    good_tests = [u'test_ok.py', u'test_is_ok.py', u'test_is_ok.js', u'testIsOk.js']
-    bad_tests = [u'bad_test.py', u'testbad.py', u'_test_bad.py', u'testBad.notjs',
-                 u'test_bad.notpy', u'test_bad', u'testbad.js', u'badtest.js',
-                 u'test.py', u'test_.py', u'test.js', u'test_.js']
+    good_tests = [u'test_ok.py', u'test_is_ok.py']
+    bad_tests = [u'bad_test.py', u'testbad.py', u'_test_bad.py',
+                 u'test_bad.notpy', u'test_bad',
+                 u'test.py', u'test_.py']
     with pytest.raises(Exception) as exc:
         runner._add_tests(good_tests + bad_tests)
     msg = exc.value.message
@@ -417,8 +446,9 @@ def test_catch_invalid_test_names(runner):
     for good_name in good_tests:
         assert good_name not in msg
 
+
 @pytest.mark.parametrize('e10s', (True, False))
-def test_e10s_option_sets_prefs(mach_parsed_kwargs, e10s):
+def test_option_e10s_sets_prefs(mach_parsed_kwargs, e10s):
     mach_parsed_kwargs['e10s'] = e10s
     runner = MarionetteTestRunner(**mach_parsed_kwargs)
     e10s_prefs = {
@@ -431,11 +461,50 @@ def test_e10s_option_sets_prefs(mach_parsed_kwargs, e10s):
             continue
         assert runner.prefs.get(k, False) == (v and e10s)
 
-def test_e10s_option_clash_raises(mock_runner):
-    mock_runner.e10s = False
+
+def test_option_e10s_clash_raises(mock_runner):
+    mock_runner._e10s_from_browser = False
+
     with pytest.raises(AssertionError) as e:
         mock_runner.run_tests([u'test_fake_thing.py'])
         assert "configuration (self.e10s) does not match browser appinfo" in e.value.message
+
+
+@pytest.mark.parametrize('repeat', (None, 0, 42, -1))
+def test_option_repeat(mach_parsed_kwargs, repeat):
+    if repeat is not None:
+        mach_parsed_kwargs['repeat'] = repeat
+    runner = MarionetteTestRunner(**mach_parsed_kwargs)
+
+    if repeat is None:
+        assert runner.repeat == 0
+    else:
+        assert runner.repeat == repeat
+
+
+@pytest.mark.parametrize('repeat', (None, 42))
+@pytest.mark.parametrize('run_until_failure', (None, True))
+def test_option_run_until_failure(mach_parsed_kwargs, repeat, run_until_failure):
+    if run_until_failure is not None:
+        mach_parsed_kwargs['run_until_failure'] = run_until_failure
+    if repeat is not None:
+        mach_parsed_kwargs['repeat'] = repeat
+    runner = MarionetteTestRunner(**mach_parsed_kwargs)
+
+    if run_until_failure is None:
+        assert runner.run_until_failure is False
+        if repeat is None:
+            assert runner.repeat == 0
+        else:
+            assert runner.repeat == repeat
+
+    else:
+        assert runner.run_until_failure == run_until_failure
+        if repeat is None:
+            assert runner.repeat == 30
+        else:
+            assert runner.repeat == repeat
+
 
 if __name__ == '__main__':
     import sys

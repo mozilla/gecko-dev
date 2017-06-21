@@ -21,7 +21,6 @@
 class nsIEventTarget;
 class nsIPrincipal;
 class nsPIDOMWindowInner;
-struct PRThread;
 
 namespace mozilla {
 
@@ -61,9 +60,10 @@ class IDBFactory final
 
   nsAutoPtr<PrincipalInfo> mPrincipalInfo;
 
-  // If this factory lives on a window then mWindow must be non-null. Otherwise
-  // mOwningObject must be non-null.
+  // If this factory lives on a window then m(Top)Window must be non-null.
+  // Otherwise mOwningObject must be non-null.
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
+  nsCOMPtr<nsPIDOMWindowInner> mTopWindow;
   JS::Heap<JSObject*> mOwningObject;
 
   // This will only be set if the factory belongs to a window in a child
@@ -78,10 +78,6 @@ class IDBFactory final
   // Otherwise, it must either be set to SystemGroup on main thread or
   // NS_GetCurrentThread() off main thread.
   nsCOMPtr<nsIEventTarget> mEventTarget;
-
-#ifdef DEBUG
-  PRThread* mOwningThread;
-#endif
 
   uint64_t mInnerWindowID;
 
@@ -112,17 +108,11 @@ public:
   AllowedForPrincipal(nsIPrincipal* aPrincipal,
                       bool* aIsSystemPrincipal = nullptr);
 
-#ifdef DEBUG
-  void
-  AssertIsOnOwningThread() const;
-
-  PRThread*
-  OwningThread() const;
-#else
   void
   AssertIsOnOwningThread() const
-  { }
-#endif
+  {
+    NS_ASSERT_OWNINGTHREAD(IDBFactory);
+  }
 
   nsIEventTarget*
   EventTarget() const
@@ -139,6 +129,20 @@ public:
 
     mBackgroundActor = nullptr;
   }
+
+  // Increase/Decrease the number of active transactions for the decision
+  // making of preemption and throttling.
+  // Note: If the state of its actor is not committed or aborted, it could block
+  // IDB operations in other window.
+  void
+  UpdateActiveTransactionCount(int32_t aDelta);
+
+  // Increase/Decrease the number of active databases and IDBOpenRequests for
+  // the decision making of preemption and throttling.
+  // Note: A non-closed database or a pending IDBOpenRequest could block
+  // IDB operations in other window.
+  void
+  UpdateActiveDatabaseCount(int32_t aDelta);
 
   void
   IncrementParentLoggingRequestSerialNumber();

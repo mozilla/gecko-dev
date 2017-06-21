@@ -69,6 +69,7 @@ def exponential_buckets(dmin, dmax, n_buckets):
         ret_array[bucket_index] = current
     return ret_array
 
+
 always_allowed_keys = ['kind', 'description', 'cpp_guard', 'expires_in_version',
                        'alert_emails', 'keyed', 'releaseChannelCollection',
                        'bug_numbers', 'record_in_processes']
@@ -120,6 +121,7 @@ symbol that should guard C/C++ definitions associated with the histogram."""
         self._keyed = definition.get('keyed', False)
         self._expiration = definition.get('expires_in_version')
         self._labels = definition.get('labels', [])
+        self._record_in_processes = definition.get('record_in_processes')
 
         self.compute_bucket_parameters(definition)
         self.set_nsITelemetry_kind()
@@ -179,11 +181,11 @@ associated with the histogram.  Returns None if no guarding is necessary."""
 
     def record_in_processes(self):
         """Returns a list of processes this histogram is permitted to record in."""
-        return self.definition['record_in_processes']
+        return self._record_in_processes
 
     def record_in_processes_enum(self):
         """Get the non-empty list of flags representing the processes to record data in"""
-        return [utils.process_name_to_enum(p) for p in self.record_in_processes]
+        return [utils.process_name_to_enum(p) for p in self.record_in_processes()]
 
     def ranges(self):
         """Return an array of lower bounds for each bucket in the histogram."""
@@ -441,6 +443,8 @@ associated with the histogram.  Returns None if no guarding is necessary."""
                                   ' {2}.'.format(key, name, nice_type_name(key_type)))
 
     def check_keys(self, name, definition, allowed_keys):
+        if not self._strict_type_checks:
+            return
         for key in definition.iterkeys():
             if key not in allowed_keys:
                 raise ParserError('Key "%s" is not allowed for histogram "%s".' % (key, name))
@@ -576,6 +580,7 @@ def from_nsDeprecatedOperationList(filename, strict_type_checks):
             add_counter('page')
 
     return histograms
+
 
 FILENAME_PARSERS = {
     'Histograms.json': from_Histograms_json,

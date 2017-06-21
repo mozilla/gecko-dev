@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::Matrix4D;
+use euclid::Transform3D;
 use fnv::FnvHasher;
 use gleam::gl;
 use internal_types::{PackedVertex, RenderTargetMode, TextureSampler, DEFAULT_TEXTURE};
@@ -16,6 +16,7 @@ use std::hash::BuildHasherDefault;
 use std::io::Read;
 use std::iter::repeat;
 use std::mem;
+use std::ops::Add;
 use std::path::PathBuf;
 use std::rc::Rc;
 //use std::sync::mpsc::{channel, Sender};
@@ -23,8 +24,22 @@ use std::rc::Rc;
 use webrender_traits::{ColorF, ImageFormat};
 use webrender_traits::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DeviceUintSize};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Ord, Eq, PartialOrd)]
 pub struct FrameId(usize);
+
+impl FrameId {
+    pub fn new(value: usize) -> FrameId {
+        FrameId(value)
+    }
+}
+
+impl Add<usize> for FrameId {
+    type Output = FrameId;
+
+    fn add(self, other: usize) -> FrameId {
+        FrameId(self.0 + other)
+    }
+}
 
 #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
 const GL_FORMAT_A: gl::GLuint = gl::RED;
@@ -261,6 +276,7 @@ impl VertexFormat {
                                      ClipAttribute::LayerIndex,
                                      ClipAttribute::DataIndex,
                                      ClipAttribute::SegmentIndex,
+                                     ClipAttribute::ResourceAddress,
                                     ].into_iter().enumerate() {
                     gl.enable_vertex_attrib_array(attrib as gl::GLuint);
                     gl.vertex_attrib_divisor(attrib as gl::GLuint, 1);
@@ -396,6 +412,7 @@ impl Program {
                 self.gl.bind_attrib_location(self.id, ClipAttribute::LayerIndex as gl::GLuint, "aClipLayerIndex");
                 self.gl.bind_attrib_location(self.id, ClipAttribute::DataIndex as gl::GLuint, "aClipDataIndex");
                 self.gl.bind_attrib_location(self.id, ClipAttribute::SegmentIndex as gl::GLuint, "aClipSegmentIndex");
+                self.gl.bind_attrib_location(self.id, ClipAttribute::ResourceAddress as gl::GLuint, "aClipResourceAddress");
             }
         }
 
@@ -491,10 +508,11 @@ pub struct GpuFrameProfile<T> {
     next_query: usize,
     pending_query: gl::GLuint,
     frame_id: FrameId,
+    inside_frame: bool,
 }
 
 impl<T> GpuFrameProfile<T> {
-    fn new(gl: Rc<gl::Gl>) -> GpuFrameProfile<T> {
+    fn new(gl: Rc<gl::Gl>) -> Self {
         match gl.get_type() {
             gl::GlType::Gl => {
                 let queries = gl.gen_queries(MAX_EVENTS_PER_FRAME as gl::GLint);
@@ -505,6 +523,7 @@ impl<T> GpuFrameProfile<T> {
                     next_query: 0,
                     pending_query: 0,
                     frame_id: FrameId(0),
+                    inside_frame: false,
                 }
             }
             gl::GlType::Gles => {
@@ -515,6 +534,7 @@ impl<T> GpuFrameProfile<T> {
                     next_query: 0,
                     pending_query: 0,
                     frame_id: FrameId(0),
+                    inside_frame: false,
                 }
             }
         }
@@ -525,9 +545,11 @@ impl<T> GpuFrameProfile<T> {
         self.next_query = 0;
         self.pending_query = 0;
         self.samples.clear();
+        self.inside_frame = true;
     }
 
     fn end_frame(&mut self) {
+        self.inside_frame = false;
         match self.gl.get_type() {
             gl::GlType::Gl => {
                 if self.pending_query != 0 {
@@ -540,6 +562,7 @@ impl<T> GpuFrameProfile<T> {
 
     fn add_marker(&mut self, tag: T) -> GpuMarker
     where T: NamedTag {
+        debug_assert!(self.inside_frame);
         match self.gl.get_type() {
             gl::GlType::Gl => {
                 self.add_marker_gl(tag)
@@ -588,6 +611,7 @@ impl<T> GpuFrameProfile<T> {
     }
 
     fn build_samples(&mut self) -> Vec<GpuSample<T>> {
+        debug_assert!(!self.inside_frame);
         match self.gl.get_type() {
             gl::GlType::Gl => {
                 self.build_samples_gl()
@@ -1037,7 +1061,7 @@ impl Device {
 
     pub fn bind_program(&mut self,
                         program_id: ProgramId,
-                        projection: &Matrix4D<f32>) {
+                        projection: &Transform3D<f32>) {
         debug_assert!(self.inside_frame);
 
         if self.bound_program != program_id {
@@ -1532,44 +1556,14 @@ impl Device {
             self.gl.uniform_1i(u_tasks, TextureSampler::RenderTasks as i32);
         }
 
-        let u_prim_geom = self.gl.get_uniform_location(program.id, "sPrimGeometry");
-        if u_prim_geom != -1 {
-            self.gl.uniform_1i(u_prim_geom, TextureSampler::Geometry as i32);
-        }
-
-        let u_data16 = self.gl.get_uniform_location(program.id, "sData16");
-        if u_data16 != -1 {
-            self.gl.uniform_1i(u_data16, TextureSampler::Data16 as i32);
-        }
-
         let u_data32 = self.gl.get_uniform_location(program.id, "sData32");
         if u_data32 != -1 {
             self.gl.uniform_1i(u_data32, TextureSampler::Data32 as i32);
         }
 
-        let u_data64 = self.gl.get_uniform_location(program.id, "sData64");
-        if u_data64 != -1 {
-            self.gl.uniform_1i(u_data64, TextureSampler::Data64 as i32);
-        }
-
-        let u_data128 = self.gl.get_uniform_location(program.id, "sData128");
-        if u_data128 != -1 {
-            self.gl.uniform_1i(u_data128, TextureSampler::Data128    as i32);
-        }
-
-        let u_resource_rects = self.gl.get_uniform_location(program.id, "sResourceRects");
-        if u_resource_rects != -1 {
-            self.gl.uniform_1i(u_resource_rects, TextureSampler::ResourceRects as i32);
-        }
-
-        let u_gradients = self.gl.get_uniform_location(program.id, "sGradients");
-        if u_gradients != -1 {
-            self.gl.uniform_1i(u_gradients, TextureSampler::Gradients as i32);
-        }
-
-        let u_split_geometry = self.gl.get_uniform_location(program.id, "sSplitGeometry");
-        if u_split_geometry != -1 {
-            self.gl.uniform_1i(u_split_geometry, TextureSampler::SplitGeometry as i32);
+        let u_resource_cache = self.gl.get_uniform_location(program.id, "sResourceCache");
+        if u_resource_cache != -1 {
+            self.gl.uniform_1i(u_resource_cache, TextureSampler::ResourceCache as i32);
         }
 
         Ok(())
@@ -1625,30 +1619,13 @@ impl Device {
 
     fn set_uniforms(&self,
                     program: &Program,
-                    transform: &Matrix4D<f32>,
+                    transform: &Transform3D<f32>,
                     device_pixel_ratio: f32) {
         debug_assert!(self.inside_frame);
         self.gl.uniform_matrix_4fv(program.u_transform,
                                false,
                                &transform.to_row_major_array());
         self.gl.uniform_1f(program.u_device_pixel_ratio, device_pixel_ratio);
-    }
-
-    fn update_image_for_2d_texture(&mut self,
-                                   target: gl::GLuint,
-                                   x0: gl::GLint,
-                                   y0: gl::GLint,
-                                   width: gl::GLint,
-                                   height: gl::GLint,
-                                   format: gl::GLuint,
-                                   data: &[u8]) {
-        self.gl.tex_sub_image_2d(target,
-                                  0,
-                                  x0, y0,
-                                  width, height,
-                                  format,
-                                  gl::UNSIGNED_BYTE,
-                                  data);
     }
 
     pub fn update_texture(&mut self,
@@ -1663,19 +1640,20 @@ impl Device {
 
         let mut expanded_data = Vec::new();
 
-        let (gl_format, bpp, data) = match self.textures.get(&texture_id).unwrap().format {
+        let (gl_format, bpp, data, data_type) = match self.textures.get(&texture_id).unwrap().format {
             ImageFormat::A8 => {
                 if cfg!(any(target_arch="arm", target_arch="aarch64")) {
                     expanded_data.extend(data.iter().flat_map(|byte| repeat(*byte).take(4)));
-                    (get_gl_format_bgra(self.gl()), 4, expanded_data.as_slice())
+                    (get_gl_format_bgra(self.gl()), 4, expanded_data.as_slice(), gl::UNSIGNED_BYTE)
                 } else {
-                    (GL_FORMAT_A, 1, data)
+                    (GL_FORMAT_A, 1, data, gl::UNSIGNED_BYTE)
                 }
             }
-            ImageFormat::RGB8 => (gl::RGB, 3, data),
-            ImageFormat::RGBA8 => (get_gl_format_bgra(self.gl()), 4, data),
-            ImageFormat::RG8 => (gl::RG, 2, data),
-            ImageFormat::Invalid | ImageFormat::RGBAF32 => unreachable!(),
+            ImageFormat::RGB8 => (gl::RGB, 3, data, gl::UNSIGNED_BYTE),
+            ImageFormat::BGRA8 => (get_gl_format_bgra(self.gl()), 4, data, gl::UNSIGNED_BYTE),
+            ImageFormat::RG8 => (gl::RG, 2, data, gl::UNSIGNED_BYTE),
+            ImageFormat::RGBAF32 => (gl::RGBA, 16, data, gl::FLOAT),
+            ImageFormat::Invalid => unreachable!(),
         };
 
         let row_length = match stride {
@@ -1693,13 +1671,16 @@ impl Device {
         }
 
         self.bind_texture(DEFAULT_TEXTURE, texture_id);
-        self.update_image_for_2d_texture(texture_id.target,
-                                         x0 as gl::GLint,
-                                         y0 as gl::GLint,
-                                         width as gl::GLint,
-                                         height as gl::GLint,
-                                         gl_format,
-                                         data);
+
+        self.gl.tex_sub_image_2d(texture_id.target,
+                                 0,
+                                 x0 as gl::GLint,
+                                 y0 as gl::GLint,
+                                 width as gl::GLint,
+                                 height as gl::GLint,
+                                 gl_format,
+                                 data_type,
+                                 data);
 
         // Reset row length to 0, otherwise the stride would apply to all texture uploads.
         if let Some(..) = stride {
@@ -2049,7 +2030,7 @@ fn gl_texture_formats_for_image_format(gl: &gl::Gl, format: ImageFormat) -> (gl:
             }
         },
         ImageFormat::RGB8 => (gl::RGB as gl::GLint, gl::RGB),
-        ImageFormat::RGBA8 => {
+        ImageFormat::BGRA8 => {
             match gl.get_type() {
                 gl::GlType::Gl =>  {
                     (gl::RGBA as gl::GLint, get_gl_format_bgra(gl))

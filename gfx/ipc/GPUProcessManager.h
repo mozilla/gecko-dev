@@ -29,8 +29,10 @@ class CompositorOptions;
 class CompositorSession;
 class CompositorUpdateObserver;
 class PCompositorBridgeChild;
+class PCompositorManagerChild;
 class PImageBridgeChild;
 class RemoteCompositorSession;
+class InProcessCompositorSession;
 class UiCompositorControllerChild;
 } // namespace layers
 namespace widget {
@@ -58,6 +60,7 @@ class VsyncIOThreadHolder;
 class GPUProcessManager final : public GPUProcessHost::Listener
 {
   friend class layers::RemoteCompositorSession;
+  friend class layers::InProcessCompositorSession;
 
   typedef layers::CompositorOptions CompositorOptions;
   typedef layers::CompositorSession CompositorSession;
@@ -65,8 +68,10 @@ class GPUProcessManager final : public GPUProcessHost::Listener
   typedef layers::IAPZCTreeManager IAPZCTreeManager;
   typedef layers::LayerManager LayerManager;
   typedef layers::PCompositorBridgeChild PCompositorBridgeChild;
+  typedef layers::PCompositorManagerChild PCompositorManagerChild;
   typedef layers::PImageBridgeChild PImageBridgeChild;
   typedef layers::RemoteCompositorSession RemoteCompositorSession;
+  typedef layers::InProcessCompositorSession InProcessCompositorSession;
   typedef layers::UiCompositorControllerChild UiCompositorControllerChild;
 
 public:
@@ -94,7 +99,7 @@ public:
 
   bool CreateContentBridges(
     base::ProcessId aOtherProcess,
-    ipc::Endpoint<PCompositorBridgeChild>* aOutCompositor,
+    ipc::Endpoint<PCompositorManagerChild>* aOutCompositor,
     ipc::Endpoint<PImageBridgeChild>* aOutImageBridge,
     ipc::Endpoint<PVRManagerChild>* aOutVRBridge,
     ipc::Endpoint<dom::PVideoDecoderManagerChild>* aOutVideoManager,
@@ -139,7 +144,10 @@ public:
 
   void OnProcessLaunchComplete(GPUProcessHost* aHost) override;
   void OnProcessUnexpectedShutdown(GPUProcessHost* aHost) override;
-  void OnProcessDeviceReset(GPUProcessHost* aHost) override;
+  void TriggerDeviceResetForTesting();
+  void OnInProcessDeviceReset();
+  void OnRemoteProcessDeviceReset(GPUProcessHost* aHost) override;
+  void NotifyListenersOnCompositeDeviceReset();
 
   // Notify the GPUProcessManager that a top-level PGPU protocol has been
   // terminated. This may be called from any thread.
@@ -176,8 +184,8 @@ private:
   // Called from our xpcom-shutdown observer.
   void OnXPCOMShutdown();
 
-  bool CreateContentCompositorBridge(base::ProcessId aOtherProcess,
-                                     ipc::Endpoint<PCompositorBridgeChild>* aOutEndpoint);
+  bool CreateContentCompositorManager(base::ProcessId aOtherProcess,
+                                      ipc::Endpoint<PCompositorManagerChild>* aOutEndpoint);
   bool CreateContentImageBridge(base::ProcessId aOtherProcess,
                                 ipc::Endpoint<PImageBridgeChild>* aOutEndpoint);
   bool CreateContentVRManager(base::ProcessId aOtherProcess,
@@ -187,10 +195,16 @@ private:
 
   // Called from RemoteCompositorSession. We track remote sessions so we can
   // notify their owning widgets that the session must be restarted.
-  void RegisterSession(RemoteCompositorSession* aSession);
-  void UnregisterSession(RemoteCompositorSession* aSession);
+  void RegisterRemoteProcessSession(RemoteCompositorSession* aSession);
+  void UnregisterRemoteProcessSession(RemoteCompositorSession* aSession);
+
+  // Called from InProcessCompositorSession. We track in process sessino so we can
+  // notify their owning widgets that the session must be restarted
+  void RegisterInProcessSession(InProcessCompositorSession* aSession);
+  void UnregisterInProcessSession(InProcessCompositorSession* aSession);
 
   void RebuildRemoteSessions();
+  void RebuildInProcessSessions();
 
 private:
   GPUProcessManager();
@@ -207,6 +221,7 @@ private:
   void EnsureVsyncIOThread();
   void ShutdownVsyncIOThread();
 
+  void EnsureCompositorManagerChild();
   void EnsureImageBridgeChild();
   void EnsureVRManager();
 
@@ -250,6 +265,7 @@ private:
   uint32_t mNumProcessAttempts;
 
   nsTArray<RefPtr<RemoteCompositorSession>> mRemoteSessions;
+  nsTArray<RefPtr<InProcessCompositorSession>> mInProcessSessions;
   nsTArray<GPUProcessListener*> mListeners;
 
   uint32_t mDeviceResetCount;

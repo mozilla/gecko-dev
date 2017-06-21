@@ -20,16 +20,19 @@ StackingContextHelper::StackingContextHelper()
 StackingContextHelper::StackingContextHelper(const StackingContextHelper& aParentSC,
                                              wr::DisplayListBuilder& aBuilder,
                                              WebRenderLayer* aLayer,
-                                             const Maybe<gfx::Matrix4x4>& aTransform)
+                                             const Maybe<gfx::Matrix4x4>& aTransform,
+                                             const nsTArray<WrFilterOp>& aFilters)
   : mBuilder(&aBuilder)
 {
   WrRect scBounds = aParentSC.ToRelativeWrRect(aLayer->BoundsForStackingContext());
   Layer* layer = aLayer->GetLayer();
   mTransform = aTransform.valueOr(layer->GetTransform());
-  mBuilder->PushStackingContext(scBounds,
-                                1.0f,
-                                mTransform,
-                                wr::ToWrMixBlendMode(layer->GetMixBlendMode()));
+
+  float opacity = 1.0f;
+  mBuilder->PushStackingContext(scBounds, 0, &opacity,
+                                mTransform.IsIdentity() ? nullptr : &mTransform,
+                                wr::ToWrMixBlendMode(layer->GetMixBlendMode()),
+                                aFilters);
   mOrigin = aLayer->Bounds().TopLeft();
 }
 
@@ -38,18 +41,21 @@ StackingContextHelper::StackingContextHelper(const StackingContextHelper& aParen
                                              WebRenderLayer* aLayer,
                                              uint64_t aAnimationsId,
                                              float* aOpacityPtr,
-                                             gfx::Matrix4x4* aTransformPtr)
+                                             gfx::Matrix4x4* aTransformPtr,
+                                             const nsTArray<WrFilterOp>& aFilters)
   : mBuilder(&aBuilder)
 {
   WrRect scBounds = aParentSC.ToRelativeWrRect(aLayer->BoundsForStackingContext());
   if (aTransformPtr) {
     mTransform = *aTransformPtr;
   }
+
   mBuilder->PushStackingContext(scBounds,
                                 aAnimationsId,
                                 aOpacityPtr,
                                 aTransformPtr,
-                                wr::ToWrMixBlendMode(aLayer->GetLayer()->GetMixBlendMode()));
+                                wr::ToWrMixBlendMode(aLayer->GetLayer()->GetMixBlendMode()),
+                                aFilters);
   mOrigin = aLayer->Bounds().TopLeft();
 }
 
@@ -82,14 +88,6 @@ WrRect
 StackingContextHelper::ToRelativeWrRectRounded(const LayoutDeviceRect& aRect) const
 {
   return wr::ToWrRect(RoundedToInt(ViewAs<LayerPixel>(aRect, PixelCastJustification::WebRenderHasUnitResolution) - mOrigin));
-}
-
-gfx::Matrix4x4
-StackingContextHelper::TransformToRoot() const
-{
-  gfx::Matrix4x4 inv = mTransform.Inverse();
-  inv.PostTranslate(-mOrigin.x, -mOrigin.y, 0);
-  return inv;
 }
 
 } // namespace layers

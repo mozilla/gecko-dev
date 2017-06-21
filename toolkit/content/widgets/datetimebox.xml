@@ -127,7 +127,11 @@
           }
 
           if (!aFromInputElement) {
-            this.mInputElement.setUserInput("");
+            if (this.mInputElement.value) {
+              this.mInputElement.setUserInput("");
+            } else {
+              this.mInputElement.updateValidityState();
+            }
           }
         ]]>
         </body>
@@ -154,63 +158,25 @@
         </body>
       </method>
 
-      <method name="getDaysInMonth">
-        <parameter name="aMonth"/>
-        <parameter name="aYear"/>
-        <body>
-        <![CDATA[
-          // Javascript's month is 0-based, so this means last day of the
-          // previous month.
-          return new Date(aYear, aMonth, 0).getDate();
-        ]]>
-        </body>
-      </method>
-
-      <method name="isFieldInvalid">
-        <parameter name="aField"/>
-        <body>
-          <![CDATA[
-            let value = this.getFieldValue(aField);
-            if (this.isEmpty(value)) {
-              return true;
-            }
-
-            let min = Number(aField.getAttribute("min"));
-            let max = Number(aField.getAttribute("max"));
-
-            if (value < min || value > max) {
-              return true;
-            }
-
-            return false;
-          ]]>
-        </body>
-      </method>
-
       <method name="setInputValueFromFields">
         <body>
         <![CDATA[
-          if (!this.isAnyValueAvailable(false)) {
-            this.mInputElement.setUserInput("");
-            return;
-          }
-
-          if (this.isFieldInvalid(this.mYearField) ||
-              this.isFieldInvalid(this.mMonthField) ||
-              this.isFieldInvalid(this.mDayField)) {
+          if (this.isAnyFieldEmpty()) {
+            // Clear input element's value if any of the field has been cleared,
+            // otherwise update the validity state, since it may become "not"
+            // invalid if fields are not complete.
+            if (this.mInputElement.value) {
+              this.mInputElement.setUserInput("");
+            } else {
+              this.mInputElement.updateValidityState();
+            }
             // We still need to notify picker in case any of the field has
-            // changed. If we can set input element value, then notifyPicker
-            // will be called in setFieldsFromInputValue().
+            // changed.
             this.notifyPicker();
             return;
           }
 
           let { year, month, day } = this.getCurrentValue();
-          if (day > this.getDaysInMonth(month, year)) {
-            // Don't set invalid date, otherwise input element's value will be
-            // set to empty.
-            return;
-          }
 
           // Convert to a valid date string according to:
           // https://html.spec.whatwg.org/multipage/infrastructure.html#valid-date-string
@@ -220,7 +186,12 @@
 
           let date = [year, month, day].join("-");
 
+          if (date == this.mInputElement.value) {
+            return;
+          }
+
           this.log("setInputValueFromFields: " + date);
+          this.notifyPicker();
           this.mInputElement.setUserInput(date);
         ]]>
         </body>
@@ -245,6 +216,9 @@
           if (!this.isEmpty(day)) {
             this.setFieldValue(this.mDayField, day);
           }
+
+          // Update input element's .value if needed.
+          this.setInputValueFromFields();
         ]]>
         </body>
       </method>
@@ -422,7 +396,7 @@
         </body>
       </method>
 
-      <method name="isAnyValueAvailable">
+      <method name="isAnyFieldAvailable">
         <parameter name="aForPicker"/>
         <body>
         <![CDATA[
@@ -430,6 +404,17 @@
 
           return !this.isEmpty(year) || !this.isEmpty(month) ||
                  !this.isEmpty(day);
+        ]]>
+        </body>
+      </method>
+
+      <method name="isAnyFieldEmpty">
+        <body>
+        <![CDATA[
+          let { year, month, day } = this.getCurrentValue();
+
+          return (this.isEmpty(year) || this.isEmpty(month) ||
+                  this.isEmpty(day));
         ]]>
         </body>
       </method>
@@ -697,24 +682,23 @@
       <method name="setInputValueFromFields">
         <body>
         <![CDATA[
-          if (!this.isAnyValueAvailable(false)) {
-            this.mInputElement.setUserInput("");
+          if (this.isAnyFieldEmpty()) {
+            // Clear input element's value if any of the field has been cleared,
+            // otherwise update the validity state, since it may become "not"
+            // invalid if fields are not complete.
+            if (this.mInputElement.value) {
+              this.mInputElement.setUserInput("");
+            } else {
+              this.mInputElement.updateValidityState();
+            }
+            // We still need to notify picker in case any of the field has
+            // changed.
+            this.notifyPicker();
             return;
           }
 
           let { hour, minute, second, millisecond } = this.getCurrentValue();
           let dayPeriod = this.getDayPeriodValue();
-
-          if (this.isEmpty(hour) || this.isEmpty(minute) ||
-              (this.mDayPeriodField && this.isEmpty(dayPeriod)) ||
-              (this.mSecondField && this.isEmpty(second)) ||
-              (this.mMillisecField && this.isEmpty(millisecond))) {
-            // We still need to notify picker in case any of the field has
-            // changed. If we can set input element value, then notifyPicker
-            // will be called in setFieldsFromInputValue().
-            this.notifyPicker();
-            return;
-          }
 
           // Convert to a valid time string according to:
           // https://html.spec.whatwg.org/multipage/infrastructure.html#valid-time-string
@@ -743,7 +727,12 @@
             time += "." + millisecond;
           }
 
+          if (time == this.mInputElement.value) {
+            return;
+          }
+
           this.log("setInputValueFromFields: " + time);
+          this.notifyPicker();
           this.mInputElement.setUserInput(time);
         ]]>
         </body>
@@ -768,6 +757,9 @@
           if (!this.isEmpty(minute)) {
             this.setFieldValue(this.mMinuteField, minute);
           }
+
+          // Update input element's .value if needed.
+          this.setInputValueFromFields();
         ]]>
         </body>
        </method>
@@ -808,7 +800,11 @@
           }
 
           if (!aFromInputElement) {
-            this.mInputElement.setUserInput("");
+            if (this.mInputElement.value) {
+              this.mInputElement.setUserInput("");
+            } else {
+              this.mInputElement.updateValidityState();
+            }
           }
         ]]>
         </body>
@@ -1027,7 +1023,7 @@
         </body>
       </method>
 
-      <method name="isAnyValueAvailable">
+      <method name="isAnyFieldAvailable">
         <parameter name="aForPicker"/>
         <body>
         <![CDATA[
@@ -1047,6 +1043,20 @@
           return (this.mDayPeriodField && !this.isEmpty(dayPeriod)) ||
                  (this.mSecondField && !this.isEmpty(second)) ||
                  (this.mMillisecField && !this.isEmpty(millisecond));
+        ]]>
+        </body>
+      </method>
+
+      <method name="isAnyFieldEmpty">
+        <body>
+        <![CDATA[
+          let { hour, minute, second, millisecond } = this.getCurrentValue();
+          let dayPeriod = this.getDayPeriodValue();
+
+          return (this.isEmpty(hour) || this.isEmpty(minute) ||
+                  (this.mDayPeriodField && this.isEmpty(dayPeriod)) ||
+                  (this.mSecondField && this.isEmpty(second)) ||
+                  (this.mMillisecField && this.isEmpty(millisecond)));
         ]]>
         </body>
       </method>
@@ -1224,9 +1234,11 @@
             field.setAttribute("maxlength", aMaxLength);
 
             if (this.mIsRTL) {
-              // Override the numeric field with "ltr", so that it stays in the
-              // same order even when it's empty (with placeholder).
-              field.style.unicodeBidi = "bidi-override";
+              // Force the direction to be "ltr", so that the field stays in the
+              // same order even when it's empty (with placeholder). By using
+              // "embed", the text inside the element is still displayed based
+              // on its directionality.
+              field.style.unicodeBidi = "embed";
               field.style.direction = "ltr";
             }
           }
@@ -1239,7 +1251,7 @@
       <method name="updateResetButtonVisibility">
         <body>
           <![CDATA[
-            if (this.isAnyValueAvailable(false)) {
+            if (this.isAnyFieldAvailable(false)) {
               this.mResetButton.style.visibility = "visible";
             } else {
               this.mResetButton.style.visibility = "hidden";
@@ -1306,6 +1318,25 @@
         <body>
         <![CDATA[
           this.setFieldsFromPicker(aValue);
+        ]]>
+        </body>
+      </method>
+
+      <method name="hasBadInput">
+        <body>
+        <![CDATA[
+          // Incomplete field does not imply bad input.
+          if (this.isAnyFieldEmpty()) {
+            return false;
+          }
+
+          // All fields are available but input element's value is empty implies
+          // it has been sanitized.
+          if (!this.mInputElement.value) {
+            return true;
+          }
+
+          return false;
         ]]>
         </body>
       </method>
@@ -1503,7 +1534,7 @@
         </body>
       </method>
 
-      <method name="isAnyValueAvailable">
+      <method name="isAnyFieldAvailable">
         <body>
           throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
         </body>
@@ -1512,7 +1543,7 @@
       <method name="notifyPicker">
         <body>
         <![CDATA[
-          if (this.mIsPickerOpen && this.isAnyValueAvailable(true)) {
+          if (this.mIsPickerOpen && this.isAnyFieldAvailable(true)) {
             this.mInputElement.updateDateTimePicker(this.getCurrentValue());
           }
         ]]>
@@ -1607,10 +1638,6 @@
           this.log("onBlur originalTarget: " + aEvent.originalTarget +
             " target: " + aEvent.target);
 
-          if (document.activeElement == this.mInputElement) {
-            return;
-          }
-
           if (aEvent.target == this.mInputElement && this.mIsPickerOpen) {
             this.mInputElement.closeDateTimePicker();
           }
@@ -1649,7 +1676,7 @@
             }
             case "ArrowRight":
             case "ArrowLeft": {
-              this.advanceToNextField(aEvent.key == "ArrowRight" ? false : true);
+              this.advanceToNextField(!(aEvent.key == "ArrowRight"));
               aEvent.preventDefault();
               break;
             }

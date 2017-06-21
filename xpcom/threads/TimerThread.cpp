@@ -597,42 +597,67 @@ TimerThread::FindNextFireTimeForCurrentThread(TimeStamp aDefault, uint32_t aSear
   TimeStamp timeStamp = aDefault;
   uint32_t index = 0;
 
-  for (auto timers = mTimers.begin(); timers != mTimers.end(); ++timers) {
-    nsTimerImpl* timer = (*timers)->Value();
+#ifdef DEBUG
+  TimeStamp firstTimeStamp;
+  Entry* initialFirstEntry = nullptr;
+  if (!mTimers.IsEmpty()) {
+    initialFirstEntry = mTimers[0].get();
+    firstTimeStamp = mTimers[0]->Timeout();
+  }
+#endif
 
-    if (!timer) {
-      continue;
+  auto end = mTimers.end();
+  while(end != mTimers.begin()) {
+    nsTimerImpl* timer = mTimers[0]->Value();
+    if (timer) {
+      if (timer->mTimeout > aDefault) {
+        timeStamp = aDefault;
+        break;
+      }
+
+      // Don't yield to timers created with the *_LOW_PRIORITY type.
+      if (!timer->IsLowPriority()) {
+        bool isOnCurrentThread = false;
+        nsresult rv = timer->mEventTarget->IsOnCurrentThread(&isOnCurrentThread);
+        if (NS_SUCCEEDED(rv) && isOnCurrentThread) {
+          timeStamp = timer->mTimeout;
+          break;
+        }
+      }
+
+      if (++index > aSearchBound) {
+        // Track the currently highest timeout so that we can bail out when we
+        // reach the bound or when we find a timer for the current thread.
+        // This won't give accurate information if we stop before finding
+        // any timer for the current thread, but at least won't report too
+        // long idle period.
+        timeStamp = timer->mTimeout;
+        break;
+      }
     }
 
-    if (timer->mTimeout > aDefault) {
-      timeStamp = aDefault;
-      break;
-    }
+    std::pop_heap(mTimers.begin(), end, Entry::UniquePtrLessThan);
+    --end;
+  }
 
-    // Don't yield to timers created with the *_LOW_PRIORITY type.
-    if (timer->IsLowPriority()) {
-      continue;
-    }
+  while (end != mTimers.end()) {
+    ++end;
+    std::push_heap(mTimers.begin(), end, Entry::UniquePtrLessThan);
+  }
 
-    // Track the currently highest timeout so that we can bail when we
-    // reach the bound or when we find a timer for the current thread.
-    timeStamp = timer->mTimeout;
-
-    bool isOnCurrentThread = false;
-    nsresult rv = timer->mEventTarget->IsOnCurrentThread(&isOnCurrentThread);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      continue;
-    }
-
-    if (isOnCurrentThread) {
-
-      break;
-    }
-
-    if (++index > aSearchBound) {
-      break;
+#ifdef DEBUG
+  if (!mTimers.IsEmpty()) {
+    if (firstTimeStamp != mTimers[0]->Timeout()) {
+      TimeStamp now = TimeStamp::Now();
+      printf_stderr("firstTimeStamp %f, mTimers[0]->Timeout() %f, "
+                    "initialFirstTimer %p, current first %p\n",
+                    (firstTimeStamp - now).ToMilliseconds(),
+                    (mTimers[0]->Timeout() - now).ToMilliseconds(),
+                    initialFirstEntry, mTimers[0].get());
     }
   }
+  MOZ_ASSERT_IF(!mTimers.IsEmpty(), firstTimeStamp == mTimers[0]->Timeout());
+#endif
 
   return timeStamp;
 }

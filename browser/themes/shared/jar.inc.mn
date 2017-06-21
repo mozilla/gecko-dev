@@ -66,11 +66,19 @@
   skin/classic/browser/info.svg                                (../shared/info.svg)
 * skin/classic/browser/menuPanel.svg                           (../shared/menuPanel.svg)
 * skin/classic/browser/menuPanel-small.svg                     (../shared/menuPanel-small.svg)
-* skin/classic/browser/notification-icons.svg                  (../shared/notification-icons.svg)
+  skin/classic/browser/notification-icons.svg                  (../shared/notification-icons.svg)
   skin/classic/browser/tracking-protection-16.svg              (../shared/identity-block/tracking-protection-16.svg)
   skin/classic/browser/newtab/close.png                        (../shared/newtab/close.png)
   skin/classic/browser/newtab/controls.svg                     (../shared/newtab/controls.svg)
-  skin/classic/browser/panel-icons.svg                         (../shared/panel-icons.svg)
+  skin/classic/browser/panel-icon-arrow-left.svg               (../shared/panel-icon-arrow-left.svg)
+  skin/classic/browser/panel-icon-arrow-right.svg              (../shared/panel-icon-arrow-right.svg)
+  skin/classic/browser/panel-icon-cancel.svg                   (../shared/panel-icon-cancel.svg)
+#ifndef XP_MACOSX
+  skin/classic/browser/panel-icon-folder.svg                   (../shared/panel-icon-folder.svg)
+#else
+  skin/classic/browser/panel-icon-magnifier.svg                (../shared/panel-icon-magnifier.svg)
+#endif
+  skin/classic/browser/panel-icon-retry.svg                    (../shared/panel-icon-retry.svg)
   skin/classic/browser/preferences/in-content-new/favicon.ico      (../shared/incontentprefs/favicon.ico)
   skin/classic/browser/preferences/in-content-new/icons.svg        (../shared/incontentprefs/icons.svg)
   skin/classic/browser/preferences/in-content-new/search.css       (../shared/incontentprefs/search.css)
@@ -110,7 +118,11 @@
   skin/classic/browser/developer.svg                  (../shared/icons/developer.svg)
   skin/classic/browser/device-mobile.svg              (../shared/icons/device-mobile.svg)
   skin/classic/browser/device-desktop.svg             (../shared/icons/device-desktop.svg)
+#ifdef MOZ_PHOTON_THEME
+  skin/classic/browser/download-arrow-with-bar.svg    (../shared/icons/download-arrow-with-bar.svg)
+#else
   skin/classic/browser/download.svg                   (../shared/icons/download.svg)
+#endif
   skin/classic/browser/edit-copy.svg                  (../shared/icons/edit-copy.svg)
   skin/classic/browser/edit-cut.svg                   (../shared/icons/edit-cut.svg)
   skin/classic/browser/edit-paste.svg                 (../shared/icons/edit-paste.svg)
@@ -120,6 +132,8 @@
   skin/classic/browser/forget.svg                     (../shared/icons/forget.svg)
   skin/classic/browser/forward.svg                    (../shared/icons/forward.svg)
   skin/classic/browser/fullscreen.svg                 (../shared/icons/fullscreen.svg)
+  skin/classic/browser/fullscreen-enter.svg           (../shared/icons/fullscreen-enter.svg)
+  skin/classic/browser/fullscreen-exit.svg            (../shared/icons/fullscreen-exit.svg)
   skin/classic/browser/help.svg                       (../shared/icons/help.svg)
   skin/classic/browser/history.svg                    (../shared/icons/history.svg)
   skin/classic/browser/home.svg                       (../shared/icons/home.svg)
@@ -141,6 +155,7 @@
   skin/classic/browser/sidebars.svg                   (../shared/icons/sidebars.svg)
   skin/classic/browser/stop.svg                       (../shared/icons/stop.svg)
   skin/classic/browser/sync.svg                       (../shared/icons/sync.svg)
+  skin/classic/browser/synced-tabs.svg                (../shared/icons/synced-tabs.svg)
   skin/classic/browser/webIDE.svg                     (../shared/icons/webIDE.svg)
   skin/classic/browser/zoom-in.svg                    (../shared/icons/zoom-in.svg)
   skin/classic/browser/zoom-out.svg                   (../shared/icons/zoom-out.svg)
@@ -203,5 +218,4 @@
   skin/classic/browser/compacttheme/loading-inverted.png (../shared/compacttheme/loading-inverted.png)
   skin/classic/browser/compacttheme/loading-inverted@2x.png (../shared/compacttheme/loading-inverted@2x.png)
   skin/classic/browser/compacttheme/urlbar-history-dropmarker.svg (../shared/compacttheme/urlbar-history-dropmarker.svg)
-  skin/classic/browser/urlbar-star.svg                         (../shared/urlbar-star.svg)
   skin/classic/browser/urlbar-tab.svg                          (../shared/urlbar-tab.svg)

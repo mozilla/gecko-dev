@@ -208,6 +208,9 @@ include font-matching/reftest.list
 # forms
 include forms/reftest.list
 
+# frameset
+include frameset/reftest.list
+
 # gfx
 include ../../gfx/tests/reftest/reftest.list
 
@@ -375,6 +378,9 @@ include unicode/reftest.list
 include usercss/reftest.list
 
 include view-source/reftest.list
+
+# vr
+include ../../dom/vr/test/reftest/reftest.list
 
 # web-animations
 include web-animations/reftest.list

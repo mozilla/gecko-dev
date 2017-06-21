@@ -176,6 +176,16 @@ var TabsInTitlebar = {
 
       // Begin setting CSS properties which will cause a reflow
 
+      if (AppConstants.MOZ_PHOTON_THEME &&
+          AppConstants.isPlatformAndVersionAtLeast("win", "10.0")) {
+        if (!menuHeight) {
+          titlebarContentHeight = Math.max(titlebarContentHeight, fullTabsHeight);
+          $("titlebar-buttonbox").style.height = titlebarContentHeight + "px";
+        } else {
+          $("titlebar-buttonbox").style.removeProperty("height");
+        }
+      }
+
       // If the menubar is around (menuHeight is non-zero), try to adjust
       // its full height (i.e. including margins) to match the titlebar,
       // by changing the menubar's bottom padding
@@ -221,9 +231,9 @@ var TabsInTitlebar = {
       }
 
       // Then add a negative margin to the titlebar, so that the following elements
-      // will overlap it by the lesser of the titlebar height or the tabstrip+menu.
-      let minTitlebarOrTabsHeight = Math.min(titlebarContentHeight, tabAndMenuHeight);
-      titlebar.style.marginBottom = "-" + minTitlebarOrTabsHeight + "px";
+      // will overlap it by the greater of the titlebar height or the tabstrip+menu.
+      let maxTitlebarOrTabsHeight = Math.max(titlebarContentHeight, tabAndMenuHeight);
+      titlebar.style.marginBottom = "-" + maxTitlebarOrTabsHeight + "px";
 
       // Finally, size the placeholders:
       if (AppConstants.platform == "macosx") {

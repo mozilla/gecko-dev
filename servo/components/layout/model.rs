@@ -7,7 +7,7 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
-use euclid::{Matrix4D, SideOffsets2D, Size2D};
+use euclid::{Transform3D, SideOffsets2D, Size2D};
 use fragment::Fragment;
 use std::cmp::{max, min};
 use std::fmt;
@@ -144,7 +144,7 @@ impl MarginCollapseInfo {
                         LengthOrPercentageOrAuto::Auto => true,
                         LengthOrPercentageOrAuto::Length(Au(v)) => v == 0,
                         LengthOrPercentageOrAuto::Percentage(v) => {
-                            v == 0. || containing_block_size.is_none()
+                            v.0 == 0. || containing_block_size.is_none()
                         }
                         LengthOrPercentageOrAuto::Calc(_) => false,
                     };
@@ -154,7 +154,7 @@ impl MarginCollapseInfo {
                         LengthOrPercentage::Length(Au(0)) => {
                             FinalMarginState::MarginsCollapseThrough
                         },
-                        LengthOrPercentage::Percentage(v) if v == 0. => {
+                        LengthOrPercentage::Percentage(v) if v.0 == 0. => {
                             FinalMarginState::MarginsCollapseThrough
                         },
                         _ => {
@@ -408,7 +408,7 @@ impl MaybeAuto {
         match length {
             LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
             LengthOrPercentageOrAuto::Percentage(percent) => {
-                MaybeAuto::Specified(containing_length.scale_by(percent))
+                MaybeAuto::Specified(containing_length.scale_by(percent.0))
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
                 MaybeAuto::from_option(calc.to_used_value(Some(containing_length)))
@@ -509,12 +509,12 @@ pub fn specified_margin_from_style(style: &ServoComputedValues,
 }
 
 pub trait ToGfxMatrix {
-    fn to_gfx_matrix(&self) -> Matrix4D<f32>;
+    fn to_gfx_matrix(&self) -> Transform3D<f32>;
 }
 
 impl ToGfxMatrix for ComputedMatrix {
-    fn to_gfx_matrix(&self) -> Matrix4D<f32> {
-        Matrix4D::row_major(
+    fn to_gfx_matrix(&self) -> Transform3D<f32> {
+        Transform3D::row_major(
             self.m11 as f32, self.m12 as f32, self.m13 as f32, self.m14 as f32,
             self.m21 as f32, self.m22 as f32, self.m23 as f32, self.m24 as f32,
             self.m31 as f32, self.m32 as f32, self.m33 as f32, self.m34 as f32,

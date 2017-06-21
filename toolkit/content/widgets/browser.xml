@@ -1372,6 +1372,7 @@
               "_documentContentType",
               "_contentTitle",
               "_characterSet",
+              "_mayEnableCharacterEncodingMenu",
               "_contentPrincipal",
               "_imageDocument",
               "_fullZoom",
@@ -1478,7 +1479,6 @@
       <method name="dropLinks">
         <parameter name="aLinksCount"/>
         <parameter name="aLinks"/>
-        <parameter name="aTriggeringPrincipal"/>
         <body><![CDATA[
           if (!this.droppedLinkHandler) {
             return false;
@@ -1491,7 +1491,7 @@
               type: aLinks[i + 2],
             });
           }
-          this.droppedLinkHandler(null, links, aTriggeringPrincipal);
+          this.droppedLinkHandler(null, links);
           return true;
         ]]></body>
       </method>

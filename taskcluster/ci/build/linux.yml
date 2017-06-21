@@ -9,9 +9,11 @@ linux64/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py
@@ -31,10 +33,12 @@ linux64/pgo:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     coalesce-name: linux64-pgo
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         options: [enable-pgo]
         config:
             - builds/releng_base_linux_64_builds.py
@@ -55,9 +59,11 @@ linux64/debug:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py
@@ -81,9 +87,11 @@ linux64-devedition-nightly/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - disable_signing.py
@@ -94,6 +102,57 @@ linux64-devedition-nightly/opt:
         need-xvfb: true
         custom-build-variant-cfg: devedition
     run-on-projects: [ 'mozilla-beta', ]
+
+linux64-base-toolchains/opt:
+    description: "Linux64 base toolchains Opt"
+    index:
+        product: firefox
+        job-name: linux64-base-toolchains-opt
+    treeherder:
+        platform: linux64/opt
+        symbol: tc(Bb)
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        max-run-time: 36000
+        env:
+            PERFHERDER_EXTRA_OPTIONS: base-toolchains
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/base-toolchains.manifest"
+    run:
+        using: mozharness
+        actions: [get-secrets build check-test update]
+        config:
+            - builds/releng_base_linux_64_builds.py
+            - balrog/production.py
+        script: "mozharness/scripts/fx_desktop_build.py"
+        secrets: true
+        tooltool-downloads: public
+        need-xvfb: true
+
+linux64-base-toolchains/debug:
+    description: "Linux64 base toolchains Debug"
+    index:
+        product: firefox
+        job-name: linux64-base-toolchains-debug
+    treeherder:
+        platform: linux64/debug
+        symbol: tc(Bb)
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        max-run-time: 36000
+        env:
+            PERFHERDER_EXTRA_OPTIONS: base-toolchains
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/base-toolchains.manifest"
+    run:
+        using: mozharness
+        actions: [get-secrets build check-test update]
+        config:
+            - builds/releng_base_linux_64_builds.py
+            - balrog/production.py
+        script: "mozharness/scripts/fx_desktop_build.py"
+        secrets: true
+        custom-build-variant-cfg: debug
+        tooltool-downloads: public
+        need-xvfb: true
 
 linux/opt:
     description: "Linux32 Opt"
@@ -106,10 +165,12 @@ linux/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux32/releng.manifest"
     coalesce-name: opt_linux32
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_32_builds.py
             - balrog/production.py
@@ -129,10 +190,12 @@ linux/debug:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux32/releng.manifest"
     coalesce-name: dbg_linux32
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_32_builds.py
             - balrog/production.py
@@ -153,10 +216,12 @@ linux/pgo:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux32/releng.manifest"
     coalesce-name: linux32-pgo
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         options: [enable-pgo]
         config:
             - builds/releng_base_linux_32_builds.py
@@ -180,9 +245,11 @@ linux-devedition-nightly/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux32/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_32_builds.py
             - disable_signing.py
@@ -208,9 +275,11 @@ linux-nightly/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux32/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_32_builds.py
             - disable_signing.py
@@ -231,10 +300,13 @@ linux64-asan/opt:
         symbol: tc(Bo)
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
+        env:
+            PERFHERDER_EXTRA_OPTIONS: "opt asan"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/asan.manifest"
         max-run-time: 36000
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py
@@ -255,10 +327,13 @@ linux64-asan-fuzzing/opt:
         symbol: tc(Bof)
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
+        env:
+            PERFHERDER_EXTRA_OPTIONS: asan-fuzzing
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/asan.manifest"
         max-run-time: 36000
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py
@@ -278,10 +353,13 @@ linux64-asan/debug:
         symbol: tc(Bd)
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
+        env:
+            PERFHERDER_EXTRA_OPTIONS: "debug asan"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/asan.manifest"
         max-run-time: 36000
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py
@@ -305,9 +383,11 @@ linux64-nightly/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - disable_signing.py
@@ -329,9 +409,11 @@ linux64-stylo/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 3600
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py
@@ -340,7 +422,7 @@ linux64-stylo/opt:
         custom-build-variant-cfg: stylo
         tooltool-downloads: public
         need-xvfb: true
-    run-on-projects: [ 'stylo', 'autoland', 'mozilla-inbound', 'mozilla-central', 'try' ]
+    run-on-projects: [ 'trunk', 'try' ]
 
 linux64-stylo/debug:
     description: "Linux64 Debug Stylo"
@@ -354,9 +436,11 @@ linux64-stylo/debug:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 3600
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py
@@ -365,7 +449,35 @@ linux64-stylo/debug:
         custom-build-variant-cfg: stylo-debug
         tooltool-downloads: public
         need-xvfb: true
-    run-on-projects: [ 'stylo', 'autoland', 'mozilla-inbound', 'mozilla-central', 'try' ]
+    run-on-projects: [ 'trunk', 'try' ]
+
+linux64-noopt/debug:
+    description: "Linux64 No-optimize Debug"
+    index:
+        product: firefox
+        job-name: linux64-noopt-debug
+    treeherder:
+        platform: linux64-noopt/debug
+        symbol: tc(B)
+        tier: 2
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
+    worker:
+        max-run-time: 3600
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
+    run:
+        using: mozharness
+        actions: [get-secrets build check-test update]
+        config:
+            - builds/releng_base_linux_64_builds.py
+            - balrog/production.py
+        script: "mozharness/scripts/fx_desktop_build.py"
+        secrets: true
+        custom-build-variant-cfg: noopt-debug
+        tooltool-downloads: public
+        keep-artifacts: false
+        need-xvfb: true
+    run-on-projects: [ 'trunk', 'try' ]
 
 linux64-jsdcov/opt:
     description: "Linux64-JSDCov Opt"
@@ -380,9 +492,11 @@ linux64-jsdcov/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py
@@ -405,9 +519,11 @@ linux64-ccov/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py
@@ -429,9 +545,11 @@ linux64-add-on-devel/opt:
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
     run:
         using: mozharness
-        actions: [get-secrets build generate-build-stats check-test update]
+        actions: [get-secrets build check-test update]
         config:
             - builds/releng_base_linux_64_builds.py
             - balrog/production.py

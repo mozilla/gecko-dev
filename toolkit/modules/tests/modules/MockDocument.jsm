@@ -9,6 +9,7 @@ this.EXPORTED_SYMBOLS = ["MockDocument"]
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.importGlobalProperties(["URL"]);
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 
@@ -22,8 +23,16 @@ const MockDocument = {
     parser.init();
     let parsedDoc = parser.parseFromString(aContent, aType);
 
-    for (let element of parsedDoc.forms) {
-      this.mockOwnerDocumentProperty(element, parsedDoc, aDocumentURL);
+    // Assign ownerGlobal to documentElement as well for the form-less
+    // inputs treating it as rootElement.
+    this.mockOwnerGlobalProperty(parsedDoc.documentElement);
+
+    for (let form of parsedDoc.forms) {
+      this.mockOwnerDocumentProperty(form, parsedDoc, aDocumentURL);
+      this.mockOwnerGlobalProperty(form);
+      for (let field of form.elements) {
+        this.mockOwnerGlobalProperty(field);
+      }
     }
     return parsedDoc;
   },
@@ -45,6 +54,21 @@ const MockDocument = {
     // Assign element.ownerDocument to the proxy so document.location works.
     Object.defineProperty(aElement, "ownerDocument", {
       value: document,
+    });
+  },
+
+  mockOwnerGlobalProperty(aElement) {
+    Object.defineProperty(aElement, "ownerGlobal", {
+      value: {
+        QueryInterface: XPCOMUtils.generateQI([Ci.nsIInterfaceRequestor]),
+        getInterface: () => ({
+          addManuallyManagedState() {},
+          removeManuallyManagedState() {},
+        }),
+        UIEvent: Event,
+        Event,
+      },
+      configurable: true,
     });
   },
 

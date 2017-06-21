@@ -120,7 +120,7 @@ var tests = [
     let highlight = document.getElementById("UITourHighlight");
     is_element_hidden(highlight, "Highlight should initially be hidden");
 
-    gContentAPI.showHighlight("addons");
+    gContentAPI.showHighlight("home");
     waitForElementToBeVisible(highlight, check_highlight_size, "Highlight should be shown after showHighlight()");
   },
   function test_highlight_customize_auto_open_close(done) {
@@ -159,7 +159,7 @@ var tests = [
           done();
         }, "Highlight should move to the appMenu button");
       }, "Highlight should be shown after showHighlight() for fixed panel items");
-    }).then(null, Components.utils.reportError);
+    }).catch(Components.utils.reportError);
   },
   function test_highlight_effect(done) {
     function waitForHighlightWithEffect(highlightEl, effect, next, error) {

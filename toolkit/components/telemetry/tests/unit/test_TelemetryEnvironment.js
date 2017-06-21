@@ -427,7 +427,9 @@ function checkSettingsSection(data) {
   // null or boolean on other platforms.
   if (gIsAndroid) {
     Assert.ok(!("isDefaultBrowser" in data.settings), "Must not be available on Android.");
-  } else {
+  } else if ("isDefaultBrowser" in data.settings) {
+    // isDefaultBrowser might not be available in the payload, since it's
+    // gathered after the session was restored.
     Assert.ok(checkNullOrBool(data.settings.isDefaultBrowser));
   }
 
@@ -981,7 +983,7 @@ add_task(async function test_prefDefault() {
 
 add_task(async function test_addonsWatch_InterestingChange() {
   const ADDON_INSTALL_URL = gDataRoot + "restartless.xpi";
-  const ADDON_ID = "tel-restartless-xpi@tests.mozilla.org";
+  const ADDON_ID = "tel-restartless-webext@tests.mozilla.org";
   // We only expect a single notification for each install, uninstall, enable, disable.
   const EXPECTED_NOTIFICATIONS = 4;
 
@@ -1016,10 +1018,12 @@ add_task(async function test_addonsWatch_InterestingChange() {
   Assert.ok(!(ADDON_ID in TelemetryEnvironment.currentEnvironment.addons.activeAddons));
 
   checkpointPromise = registerCheckpointPromise(3);
+  let startupPromise = AddonTestUtils.promiseWebExtensionStartup(ADDON_ID);
   addon.userDisabled = false;
   await checkpointPromise;
   assertCheckpoint(3);
   Assert.ok(ADDON_ID in TelemetryEnvironment.currentEnvironment.addons.activeAddons);
+  await startupPromise;
 
   checkpointPromise = registerCheckpointPromise(4);
   await AddonManagerTesting.uninstallAddonByID(ADDON_ID);
@@ -1117,7 +1121,7 @@ add_task(async function test_addonsWatch_NotInterestingChange() {
 
 add_task(async function test_addonsAndPlugins() {
   const ADDON_INSTALL_URL = gDataRoot + "restartless.xpi";
-  const ADDON_ID = "tel-restartless-xpi@tests.mozilla.org";
+  const ADDON_ID = "tel-restartless-webext@tests.mozilla.org";
   const ADDON_INSTALL_DATE = truncateToDays(Date.now());
   const EXPECTED_ADDON_DATA = {
     blocklisted: false,
@@ -1132,10 +1136,10 @@ add_task(async function test_addonsAndPlugins() {
     hasBinaryComponents: false,
     installDay: ADDON_INSTALL_DATE,
     updateDay: ADDON_INSTALL_DATE,
-    signedState: mozinfo.addon_signing ? AddonManager.SIGNEDSTATE_SIGNED : AddonManager.SIGNEDSTATE_NOT_REQUIRED,
+    signedState: mozinfo.addon_signing ? AddonManager.SIGNEDSTATE_PRIVILEGED : AddonManager.SIGNEDSTATE_NOT_REQUIRED,
     isSystem: false,
-    isWebExtension: false,
-    multiprocessCompatible: false,
+    isWebExtension: true,
+    multiprocessCompatible: true,
   };
   const SYSTEM_ADDON_ID = "tel-system-xpi@tests.mozilla.org";
   const EXPECTED_SYSTEM_ADDON_DATA = {
@@ -1172,7 +1176,7 @@ add_task(async function test_addonsAndPlugins() {
     hasBinaryComponents: false,
     installDay: WEBEXTENSION_ADDON_INSTALL_DATE,
     updateDay: WEBEXTENSION_ADDON_INSTALL_DATE,
-    signedState: mozinfo.addon_signing ? AddonManager.SIGNEDSTATE_SIGNED : AddonManager.SIGNEDSTATE_NOT_REQUIRED,
+    signedState: mozinfo.addon_signing ? AddonManager.SIGNEDSTATE_PRIVILEGED : AddonManager.SIGNEDSTATE_NOT_REQUIRED,
     isSystem: false,
     isWebExtension: true,
     multiprocessCompatible: true,
@@ -1270,12 +1274,14 @@ add_task(async function test_addonsAndPlugins() {
 });
 
 add_task(async function test_signedAddon() {
-  const ADDON_INSTALL_URL = gDataRoot + "signed.xpi";
-  const ADDON_ID = "tel-signed-xpi@tests.mozilla.org";
+  AddonTestUtils.useRealCertChecks = true;
+
+  const ADDON_INSTALL_URL = gDataRoot + "signed-webext.xpi";
+  const ADDON_ID = "tel-signed-webext@tests.mozilla.org";
   const ADDON_INSTALL_DATE = truncateToDays(Date.now());
   const EXPECTED_ADDON_DATA = {
     blocklisted: false,
-    description: "A signed addon which gets enabled without a reboot.",
+    description: "A signed webextension",
     name: "XPI Telemetry Signed Test",
     userDisabled: false,
     appDisabled: false,
@@ -1308,11 +1314,13 @@ add_task(async function test_signedAddon() {
   for (let f in EXPECTED_ADDON_DATA) {
     Assert.equal(targetAddon[f], EXPECTED_ADDON_DATA[f], f + " must have the correct value.");
   }
+
+  AddonTestUtils.useRealCertChecks = false;
 });
 
 add_task(async function test_addonsFieldsLimit() {
   const ADDON_INSTALL_URL = gDataRoot + "long-fields.xpi";
-  const ADDON_ID = "tel-longfields-xpi@tests.mozilla.org";
+  const ADDON_ID = "tel-longfields-webext@tests.mozilla.org";
 
   // Install the addon and wait for the TelemetryEnvironment to pick it up.
   let deferred = PromiseUtils.defer();
@@ -1349,7 +1357,7 @@ add_task(async function test_collectionWithbrokenAddonData() {
   };
 
   const ADDON_INSTALL_URL = gDataRoot + "restartless.xpi";
-  const ADDON_ID = "tel-restartless-xpi@tests.mozilla.org";
+  const ADDON_ID = "tel-restartless-webext@tests.mozilla.org";
   const ADDON_INSTALL_DATE = truncateToDays(Date.now());
   const EXPECTED_ADDON_DATA = {
     blocklisted: false,
@@ -1564,6 +1572,51 @@ add_task(async function test_defaultSearchEngine() {
   Services.obs.notifyObservers(null, "browser-search-service", "init-complete");
   data = TelemetryEnvironment.currentEnvironment;
   Assert.equal(data.settings.searchCohort, "testcohort");
+});
+
+add_task({ skip_if: () => AppConstants.MOZ_APP_NAME == "thunderbird" },
+         async function test_delayed_defaultBrowser() {
+  // Skip this test on Thunderbird since it is not a browser, so it cannot
+  // be the default browser.
+
+  // Make sure we don't have anything already cached for this test.
+  await TelemetryEnvironment.testCleanRestart().onInitialized();
+
+  let environmentData = TelemetryEnvironment.currentEnvironment;
+  checkEnvironmentData(environmentData);
+  Assert.equal(environmentData.settings.isDefaultBrowser, null,
+               "isDefaultBrowser must be null before the session is restored.");
+
+  Services.obs.notifyObservers(null, "sessionstore-windows-restored");
+
+  environmentData = TelemetryEnvironment.currentEnvironment;
+  checkEnvironmentData(environmentData);
+  Assert.ok("isDefaultBrowser" in environmentData.settings,
+            "isDefaultBrowser must be available after the session is restored.");
+  Assert.equal(typeof(environmentData.settings.isDefaultBrowser), "boolean",
+               "isDefaultBrowser must be of the right type.");
+
+  // Make sure pref-flipping doesn't overwrite the browser default state.
+  const PREF_TEST = "toolkit.telemetry.test.pref1";
+  const PREFS_TO_WATCH = new Map([
+    [PREF_TEST, {what: TelemetryEnvironment.RECORD_PREF_STATE}],
+  ]);
+  Preferences.reset(PREF_TEST);
+
+  // Watch the test preference.
+  TelemetryEnvironment.testWatchPreferences(PREFS_TO_WATCH);
+  let deferred = PromiseUtils.defer();
+  TelemetryEnvironment.registerChangeListener("testDefaultBrowser_pref", deferred.resolve);
+  // Trigger an environment change.
+  Preferences.set(PREF_TEST, 1);
+  await deferred.promise;
+  TelemetryEnvironment.unregisterChangeListener("testDefaultBrowser_pref");
+
+  // Check that the data is still available.
+  environmentData = TelemetryEnvironment.currentEnvironment;
+  checkEnvironmentData(environmentData);
+  Assert.ok("isDefaultBrowser" in environmentData.settings,
+            "isDefaultBrowser must still be available after a pref is flipped.");
 });
 
 add_task(async function test_osstrings() {

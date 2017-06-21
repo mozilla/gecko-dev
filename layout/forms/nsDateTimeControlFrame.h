@@ -56,9 +56,9 @@ public:
   }
 
   // Reflow
-  nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
+  nscoord GetMinISize(gfxContext* aRenderingContext) override;
 
-  nscoord GetPrefISize(nsRenderingContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
 
   void Reflow(nsPresContext* aPresContext,
               ReflowOutput& aDesiredSize,
@@ -78,6 +78,7 @@ public:
   void HandleFocusEvent();
   void HandleBlurEvent();
   void SetPickerState(bool aOpen);
+  bool HasBadInput();
 
 private:
   class SyncDisabledStateEvent;

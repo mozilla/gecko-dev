@@ -323,6 +323,19 @@ StringsEqual(JSContext* cx, HandleString lhs, HandleString rhs, bool* res)
 template bool StringsEqual<true>(JSContext* cx, HandleString lhs, HandleString rhs, bool* res);
 template bool StringsEqual<false>(JSContext* cx, HandleString lhs, HandleString rhs, bool* res);
 
+bool StringSplitHelper(JSContext* cx, HandleString str, HandleString sep,
+                       HandleObjectGroup group, uint32_t limit,
+                       MutableHandleValue result)
+{
+    JSObject* resultObj = str_split_string(cx, group, str, sep, limit);
+    if (!resultObj)
+        return false;
+
+    result.setObject(*resultObj);
+    return true;
+}
+
+
 bool
 ArrayPopDense(JSContext* cx, HandleObject obj, MutableHandleValue rval)
 {
@@ -810,8 +823,8 @@ bool
 DebugEpilogueOnBaselineReturn(JSContext* cx, BaselineFrame* frame, jsbytecode* pc)
 {
     if (!DebugEpilogue(cx, frame, pc, true)) {
-        // DebugEpilogue popped the frame by updating jitTop, so run the stop event
-        // here before we enter the exception handler.
+        // DebugEpilogue popped the frame by updating exitFP, so run the stop
+        // event here before we enter the exception handler.
         TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx);
         TraceLogStopEvent(logger, TraceLogger_Baseline);
         TraceLogStopEvent(logger, TraceLogger_Scripts);
@@ -837,9 +850,8 @@ DebugEpilogue(JSContext* cx, BaselineFrame* frame, jsbytecode* pc, bool ok)
     frame->setOverridePc(script->lastPC());
 
     if (!ok) {
-        // Pop this frame by updating jitTop, so that the exception handling
+        // Pop this frame by updating exitFP, so that the exception handling
         // code will start at the previous frame.
-
         JitFrameLayout* prefix = frame->framePrefix();
         EnsureBareExitFrame(cx, prefix);
         return false;
@@ -1060,6 +1072,14 @@ HandleDebugTrap(JSContext* cx, BaselineFrame* frame, uint8_t* retAddr, bool* mus
 
     RootedScript script(cx, frame->script());
     jsbytecode* pc = script->baselineScript()->icEntryFromReturnAddress(retAddr).pc(script);
+
+    if (*pc == JSOP_DEBUGAFTERYIELD) {
+        // JSOP_DEBUGAFTERYIELD will set the frame's debuggee flag, but if we
+        // set a breakpoint there we have to do it now.
+        MOZ_ASSERT(!frame->isDebuggee());
+        if (!DebugAfterYield(cx, frame))
+            return false;
+    }
 
     MOZ_ASSERT(frame->isDebuggee());
     MOZ_ASSERT(script->stepModeEnabled() || script->hasBreakpointsAt(pc));
@@ -1413,15 +1433,15 @@ MarkValueFromIon(JSRuntime* rt, Value* vp)
 void
 MarkStringFromIon(JSRuntime* rt, JSString** stringp)
 {
-    if (*stringp)
-        TraceManuallyBarrieredEdge(&rt->gc.marker, stringp, "write barrier");
+    MOZ_ASSERT(*stringp);
+    TraceManuallyBarrieredEdge(&rt->gc.marker, stringp, "write barrier");
 }
 
 void
 MarkObjectFromIon(JSRuntime* rt, JSObject** objp)
 {
-    if (*objp)
-        TraceManuallyBarrieredEdge(&rt->gc.marker, objp, "write barrier");
+    MOZ_ASSERT(*objp);
+    TraceManuallyBarrieredEdge(&rt->gc.marker, objp, "write barrier");
 }
 
 void
@@ -1475,6 +1495,12 @@ bool
 BaselineThrowUninitializedThis(JSContext* cx, BaselineFrame* frame)
 {
     return ThrowUninitializedThis(cx, frame);
+}
+
+bool
+BaselineThrowInitializedThis(JSContext* cx, BaselineFrame* frame)
+{
+    return ThrowInitializedThis(cx, frame);
 }
 
 
@@ -1789,21 +1815,6 @@ TypeOfObject(JSObject* obj, JSRuntime* rt)
     JSType type = js::TypeOfObject(obj);
     return TypeName(type, *rt->commonNames);
 }
-
-bool
-ConcatStringsPure(JSContext* cx, JSString* lhs, JSString* rhs, JSString** res)
-{
-    JS::AutoCheckCannotGC nogc;
-
-    // ConcatStrings without GC or throwing. If this fails, we set result to
-    // nullptr and let caller do a bailout. Return true to indicate no exception
-    // thrown.
-    *res = ConcatStrings<NoGC>(cx, lhs, rhs);
-
-    MOZ_ASSERT(!cx->isExceptionPending());
-    return true;
-}
-
 
 } // namespace jit
 } // namespace js

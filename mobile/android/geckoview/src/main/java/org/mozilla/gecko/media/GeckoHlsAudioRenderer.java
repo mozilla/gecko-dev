@@ -7,8 +7,9 @@ package org.mozilla.gecko.media;
 import android.media.MediaCodec;
 import android.media.MediaCodec.BufferInfo;
 import android.media.MediaCodec.CryptoInfo;
-import android.os.Handler;
 import android.util.Log;
+
+import org.mozilla.gecko.AppConstants;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
@@ -28,7 +29,7 @@ public class GeckoHlsAudioRenderer extends GeckoHlsRendererBase {
         super(C.TRACK_TYPE_AUDIO, eventDispatcher);
         assertTrue(Versions.feature16Plus);
         LOGTAG = getClass().getSimpleName();
-        DEBUG = false;
+        DEBUG = AppConstants.NIGHTLY_BUILD || AppConstants.DEBUG_BUILD;;
     }
 
     @Override
@@ -109,7 +110,7 @@ public class GeckoHlsAudioRenderer extends GeckoHlsRendererBase {
     @Override
     protected void handleEndOfStream(DecoderInputBuffer bufferForRead) {
         mInputStreamEnded = true;
-        mDemuxedInputSamples.offer(GeckoHlsSample.EOS);
+        mDemuxedInputSamples.offer(GeckoHLSSample.EOS);
     }
 
     @Override
@@ -132,14 +133,14 @@ public class GeckoHlsAudioRenderer extends GeckoHlsRendererBase {
         assertTrue(mFormats.size() >= 0);
         // We add a new format in the list once format changes, so the formatIndex
         // should indicate to the last(latest) format.
-        GeckoHlsSample sample = GeckoHlsSample.create(buffer,
+        GeckoHLSSample sample = GeckoHLSSample.create(buffer,
                                                       bufferInfo,
                                                       cryptoInfo,
                                                       mFormats.size() - 1);
 
         mDemuxedInputSamples.offer(sample);
 
-        if (DEBUG) {
+        if (AppConstants.DEBUG_BUILD) {
             Log.d(LOGTAG, "Demuxed sample PTS : " +
                           sample.info.presentationTimeUs + ", duration :" +
                           sample.duration + ", formatIndex(" +

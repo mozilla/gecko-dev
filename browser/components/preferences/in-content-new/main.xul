@@ -183,11 +183,9 @@
               name="layout.spellcheckDefault"
               type="int"/>
 
-#ifdef MOZ_TELEMETRY_REPORTING
   <preference id="toolkit.telemetry.enabled"
               name="toolkit.telemetry.enabled"
               type="bool"/>
-#endif
 
   <preference id="browser.preferences.defaultPerformanceSettings.enabled"
               name="browser.preferences.defaultPerformanceSettings.enabled"
@@ -323,7 +321,7 @@
 
 <!-- Default Search Engine -->
 <groupbox id="defaultEngineGroup" data-category="paneGeneral" data-subcategory="search">
-  <caption label="&defaultSearchEngine.label;"/>
+  <caption><label>&defaultSearchEngine.label;</label></caption>
   <label>&chooseYourDefaultSearchEngine.label;</label>
   <box align="start">
     <menulist id="defaultEngine">
@@ -346,7 +344,7 @@
 </groupbox>
 
 <groupbox id="oneClickSearchProvidersGroup" data-category="paneGeneral" data-subcategory="search">
-  <caption label="&oneClickSearchEngines.label;"/>
+  <caption><label>&oneClickSearchEngines.label;</label></caption>
   <label>&chooseWhichOneToDisplay.label;</label>
 
   <tree id="engineList" flex="1" rows="8" hidecolumnpicker="true" editable="true"
@@ -658,6 +656,7 @@
         </menupopup>
       </menulist>
     </hbox>
-    <description>&limitContentProcessOption.description;</description>
+    <description id="contentProcessCountEnabledDescription">&limitContentProcessOption.description;</description>
+    <description id="contentProcessCountDisabledDescription">&limitContentProcessOption.disabledDescription;<label class="text-link" href="https://wiki.mozilla.org/Electrolysis">&limitContentProcessOption.disabledDescriptionLink;</label></description>
   </vbox>
 </groupbox>

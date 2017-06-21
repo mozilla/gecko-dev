@@ -146,6 +146,9 @@ Telemetry.prototype = {
     copyfullcssselector: {
       scalar: "devtools.copy.full.css.selector.opened",
     },
+    copyxpath: {
+      scalar: "devtools.copy.xpath.opened",
+    },
     developertoolbar: {
       histogram: "DEVTOOLS_DEVELOPERTOOLBAR_OPENED_COUNT",
       timerHistogram: "DEVTOOLS_DEVELOPERTOOLBAR_TIME_ACTIVE_SECONDS"
@@ -157,13 +160,6 @@ Telemetry.prototype = {
     webide: {
       histogram: "DEVTOOLS_WEBIDE_OPENED_COUNT",
       timerHistogram: "DEVTOOLS_WEBIDE_TIME_ACTIVE_SECONDS"
-    },
-    webideProjectEditor: {
-      histogram: "DEVTOOLS_WEBIDE_PROJECT_EDITOR_OPENED_COUNT",
-      timerHistogram: "DEVTOOLS_WEBIDE_PROJECT_EDITOR_TIME_ACTIVE_SECONDS"
-    },
-    webideProjectEditorSave: {
-      histogram: "DEVTOOLS_WEBIDE_PROJECT_EDITOR_SAVE_COUNT",
     },
     webideNewProject: {
       histogram: "DEVTOOLS_WEBIDE_NEW_PROJECT_COUNT",

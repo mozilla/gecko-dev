@@ -34,6 +34,7 @@
 
 namespace mozilla {
 namespace plugins {
+class FakePluginTag;
 class PluginAsyncSurrogate;
 class PluginTag;
 } // namespace plugins
@@ -118,6 +119,7 @@ public:
 
   nsresult FindPluginsForContent(uint32_t aPluginEpoch,
                                  nsTArray<mozilla::plugins::PluginTag>* aPlugins,
+                                 nsTArray<mozilla::plugins::FakePluginTag>* aFakePlugins,
                                  uint32_t* aNewPluginEpoch);
 
   nsresult GetURL(nsISupports* pluginInst,
@@ -250,6 +252,10 @@ public:
                              InfallibleTArray<nsCString>& result,
                              bool firstMatchOnly);
 
+  nsresult SendPluginsToContent();
+  nsresult SetPluginsInContent(uint32_t aPluginEpoch,
+                               nsTArray<mozilla::plugins::PluginTag>& aPlugins,
+                               nsTArray<mozilla::plugins::FakePluginTag>& aFakePlugins);
 private:
   friend class nsPluginUnloadRunnable;
 
@@ -298,8 +304,6 @@ private:
 
   nsresult
   FindStoppedPluginForURL(nsIURI* aURL, nsIPluginInstanceOwner *aOwner);
-
-  nsresult FindPluginsInContent(bool aCreatePluginList, bool * aPluginsChanged);
 
   nsresult
   FindPlugins(bool aCreatePluginList, bool * aPluginsChanged);
@@ -365,6 +369,8 @@ private:
   void SetChromeEpochForContent(uint32_t aEpoch);
 
   void UpdateInMemoryPluginInfo(nsPluginTag* aPluginTag);
+
+  nsresult ActuallyReloadPlugins();
 
   RefPtr<nsPluginTag> mPlugins;
   RefPtr<nsPluginTag> mCachedPlugins;

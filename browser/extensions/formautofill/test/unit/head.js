@@ -2,7 +2,9 @@
  * Provides infrastructure for automated formautofill components tests.
  */
 
-/* exported getTempFile, loadFormAutofillContent, runHeuristicsTest, sinon */
+/* exported getTempFile, loadFormAutofillContent, runHeuristicsTest, sinon,
+ *          initProfileStorage
+ */
 
 "use strict";
 
@@ -11,6 +13,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/FormLikeFactory.jsm");
 Cu.import("resource://testing-common/MockDocument.jsm");
 Cu.import("resource://testing-common/TestUtils.jsm");
 
@@ -21,11 +24,25 @@ XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
 
 do_get_profile();
 
-// Setup the environment for sinon.
+// ================================================
+// Load mocking/stubbing library, sinon
+// docs: http://sinonjs.org/releases/v2.3.2/
 Cu.import("resource://gre/modules/Timer.jsm");
-let self = {}; // eslint-disable-line no-unused-vars
-var sinon;
-Services.scriptloader.loadSubScript("resource://testing-common/sinon-1.16.1.js");
+const {Loader} = Cu.import("resource://gre/modules/commonjs/toolkit/loader.js", {});
+const loader = new Loader.Loader({
+  paths: {
+    "": "resource://testing-common/",
+  },
+  globals: {
+    setTimeout,
+    setInterval,
+    clearTimeout,
+    clearInterval,
+  },
+});
+const require = Loader.Require(loader, {id: ""});
+const sinon = require("sinon-2.3.2");
+// ================================================
 
 // Load our bootstrap extension manifest so we can access our chrome/resource URIs.
 const EXTENSION_ID = "formautofill@mozilla.org";
@@ -79,8 +96,27 @@ function getTempFile(leafName) {
   return file;
 }
 
+async function initProfileStorage(fileName, records) {
+  let {ProfileStorage} = Cu.import("resource://formautofill/ProfileStorage.jsm", {});
+  let path = getTempFile(fileName).path;
+  let profileStorage = new ProfileStorage(path);
+  await profileStorage.initialize();
+
+  if (!records || !Array.isArray(records)) {
+    return profileStorage;
+  }
+
+  let onChanged = TestUtils.topicObserved("formautofill-storage-changed",
+                                          (subject, data) => data == "add");
+  for (let record of records) {
+    do_check_true(profileStorage.addresses.add(record));
+    await onChanged;
+  }
+  await profileStorage._saveImmediately();
+  return profileStorage;
+}
+
 function runHeuristicsTest(patterns, fixturePathPrefix) {
-  Cu.import("resource://gre/modules/FormLikeFactory.jsm");
   Cu.import("resource://formautofill/FormAutofillHeuristics.jsm");
   Cu.import("resource://formautofill/FormAutofillUtils.jsm");
 
@@ -115,7 +151,7 @@ function runHeuristicsTest(patterns, fixturePathPrefix) {
   });
 }
 
-add_task(function* head_initialize() {
+add_task(async function head_initialize() {
   Services.prefs.setBoolPref("extensions.formautofill.experimental", true);
   Services.prefs.setBoolPref("extensions.formautofill.heuristics.enabled", true);
   Services.prefs.setBoolPref("dom.forms.autocomplete.experimental", true);

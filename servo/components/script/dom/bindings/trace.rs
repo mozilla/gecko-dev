@@ -43,10 +43,8 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
 use encoding::types::EncodingRef;
-use euclid::{Matrix2D, Matrix4D, Point2D};
-use euclid::length::Length as EuclidLength;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, Size2D};
+use euclid::Length as EuclidLength;
 use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::IncompleteUtf8;
@@ -95,16 +93,15 @@ use std::time::{SystemTime, Instant};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::element_state::*;
-use style::keyframes::Keyframe;
 use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::stylearc::Arc as StyleArc;
 use style::stylesheets::{CssRules, FontFaceRule, KeyframesRule, MediaRule};
-use style::stylesheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule};
+use style::stylesheets::{NamespaceRule, StyleRule, ImportRule, SupportsRule, ViewportRule};
+use style::stylesheets::keyframes_rule::Keyframe;
 use style::values::specified::Length;
-use style::viewport::ViewportRule;
 use time::Duration;
 use uuid::Uuid;
 use webrender_traits::{WebGLBufferId, WebGLError, WebGLFramebufferId, WebGLProgramId};
@@ -408,7 +405,7 @@ unsafe impl<A, B> JSTraceable for fn(A) -> B {
     }
 }
 
-unsafe impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
+unsafe impl<T> JSTraceable for IpcSender<T> where T: for<'de> Deserialize<'de> + Serialize {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -430,7 +427,7 @@ unsafe impl JSTraceable for () {
     }
 }
 
-unsafe impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
+unsafe impl<T> JSTraceable for IpcReceiver<T> where T: for<'de> Deserialize<'de> + Serialize {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -458,14 +455,14 @@ unsafe impl<T: Send> JSTraceable for Sender<T> {
     }
 }
 
-unsafe impl JSTraceable for Matrix2D<f32> {
+unsafe impl JSTraceable for Transform2D<f32> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }
 
-unsafe impl JSTraceable for Matrix4D<f64> {
+unsafe impl JSTraceable for Transform3D<f64> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
@@ -473,6 +470,13 @@ unsafe impl JSTraceable for Matrix4D<f64> {
 }
 
 unsafe impl JSTraceable for Point2D<f32> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Vector2D<f32> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

@@ -14,8 +14,7 @@ use std::borrow::ToOwned;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
-use style::error_reporting::ParseErrorReporter;
-use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
+use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
 use style::properties::Importance;
 use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
@@ -25,6 +24,7 @@ use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
+use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::values::{KeyframesName, CustomIdent};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage, PositionComponent};
 
@@ -70,13 +70,13 @@ fn test_parse_stylesheet() {
     let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
                                           None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
     let mut namespaces = Namespaces::default();
-    namespaces.default = Some(ns!(html));
+    namespaces.default = Some((ns!(html), ()));
     let expected = Stylesheet {
         origin: Origin::UserAgent,
         media: Arc::new(stylesheet.shared_lock.wrap(MediaList::empty())),
         shared_lock: stylesheet.shared_lock.clone(),
         namespaces: RwLock::new(namespaces),
-        url_data: url,
+        url_data: RwLock::new(url),
         dirty_on_viewport_size_change: AtomicBool::new(false),
         disabled: AtomicBool::new(false),
         quirks_mode: QuirksMode::NoQuirks,
@@ -90,26 +90,23 @@ fn test_parse_stylesheet() {
                 },
             }))),
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
-                selectors: SelectorList(vec![
-                    Selector::new_for_unit_testing(
-                        SelectorInner::from_vec(vec![
-                            Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
-                            Component::LocalName(LocalName {
-                                name: local_name!("input"),
-                                lower_name: local_name!("input"),
-                            }),
-                            Component::AttributeInNoNamespace {
-                                local_name: local_name!("type"),
-                                local_name_lower: local_name!("type"),
-                                operator: AttrSelectorOperator::Equal,
-                                value: "hidden".to_owned(),
-                                case_sensitivity: ParsedCaseSensitivity::AsciiCaseInsensitive,
-                                never_matches: false,
-                            }
-                        ]),
-                        (0 << 20) + (1 << 10) + (1 << 0)
-                    ),
-                ]),
+                selectors: SelectorList::from_vec(vec!(
+                    Selector::from_vec(vec!(
+                        Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
+                        Component::LocalName(LocalName {
+                            name: local_name!("input"),
+                            lower_name: local_name!("input"),
+                        }),
+                        Component::AttributeInNoNamespace {
+                            local_name: local_name!("type"),
+                            local_name_lower: local_name!("type"),
+                            operator: AttrSelectorOperator::Equal,
+                            value: "hidden".to_owned(),
+                            case_sensitivity: ParsedCaseSensitivity::AsciiCaseInsensitive,
+                            never_matches: false,
+                        }
+                    ), (0 << 20) + (1 << 10) + (1 << 0))
+                )),
                 block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
                     (PropertyDeclaration::Display(longhands::display::SpecifiedValue::none),
                      Importance::Important),
@@ -119,59 +116,51 @@ fn test_parse_stylesheet() {
                 ]))),
                 source_location: SourceLocation {
                     line: 3,
-                    column: 31,
+                    column: 9,
                 },
             }))),
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
-                selectors: SelectorList(vec![
-                    Selector::new_for_unit_testing(
-                        SelectorInner::from_vec(vec![
+                selectors: SelectorList::from_vec(vec!(
+                    Selector::from_vec(vec!(
                             Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
                             Component::LocalName(LocalName {
                                 name: local_name!("html"),
                                 lower_name: local_name!("html"),
                             }),
-                        ]),
-                        (0 << 20) + (0 << 10) + (1 << 0)
+                        ), (0 << 20) + (0 << 10) + (1 << 0)),
+                    Selector::from_vec(vec!(
+                        Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
+                        Component::LocalName(LocalName {
+                            name: local_name!("body"),
+                            lower_name: local_name!("body"),
+                        })
+                        ), (0 << 20) + (0 << 10) + (1 << 0)
                     ),
-                    Selector::new_for_unit_testing(
-                        SelectorInner::from_vec(vec![
-                            Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
-                            Component::LocalName(LocalName {
-                                name: local_name!("body"),
-                                lower_name: local_name!("body"),
-                            }),
-                        ]),
-                        (0 << 20) + (0 << 10) + (1 << 0)
-                    ),
-                ]),
+                )),
                 block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
                     (PropertyDeclaration::Display(longhands::display::SpecifiedValue::block),
                      Importance::Normal),
                 ]))),
                 source_location: SourceLocation {
                     line: 11,
-                    column: 27,
+                    column: 9,
                 },
             }))),
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
-                selectors: SelectorList(vec![
-                    Selector::new_for_unit_testing(
-                        SelectorInner::from_vec(vec![
-                            Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
-                            Component::ID(Atom::from("d1")),
-                            Component::Combinator(Combinator::Child),
-                            Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
-                            Component::Class(Atom::from("ok")),
-                        ]),
-                        (1 << 20) + (1 << 10) + (0 << 0)
-                    ),
-                ]),
+                selectors: SelectorList::from_vec(vec!(
+                    Selector::from_vec(vec!(
+                        Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
+                        Component::ID(Atom::from("d1")),
+                        Component::Combinator(Combinator::Child),
+                        Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
+                        Component::Class(Atom::from("ok"))
+                    ), (1 << 20) + (1 << 10) + (0 << 0))
+                )),
                 block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
                     (PropertyDeclaration::BackgroundColor(
-                        longhands::background_color::SpecifiedValue {
+                        longhands::background_color::SpecifiedValue::Numeric {
                             authored: Some("blue".to_owned().into_boxed_str()),
-                            parsed: cssparser::Color::RGBA(cssparser::RGBA::new(0, 0, 255, 255)),
+                            parsed: cssparser::RGBA::new(0, 0, 255, 255),
                         }
                      ),
                      Importance::Normal),
@@ -216,7 +205,7 @@ fn test_parse_stylesheet() {
                 ]))),
                 source_location: SourceLocation {
                     line: 15,
-                    column: 20,
+                    column: 9,
                 },
             }))),
             CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
@@ -260,8 +249,8 @@ fn test_parse_stylesheet() {
 
 struct CSSError {
     pub url : ServoUrl,
-    pub line: usize,
-    pub column: usize,
+    pub line: u32,
+    pub column: u32,
     pub message: String
 }
 
@@ -278,15 +267,15 @@ impl CSSInvalidErrorReporterTest {
 }
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
-    fn report_error(&self,
-                    input: &mut CssParser,
-                    position: SourcePosition,
-                    message: &str,
-                    url: &ServoUrl,
-                    line_number_offset: u64) {
+    fn report_error<'a>(&self,
+                        input: &mut CssParser,
+                        position: SourcePosition,
+                        error: ContextualParseError<'a>,
+                        url: &ServoUrl,
+                        line_number_offset: u64) {
 
         let location = input.source_location(position);
-        let line_offset = location.line + line_number_offset as usize;
+        let line_offset = location.line + line_number_offset as u32;
 
         let mut errors = self.errors.lock().unwrap();
         errors.push(
@@ -294,7 +283,7 @@ impl ParseErrorReporter for CSSInvalidErrorReporterTest {
                 url: url.clone(),
                 line: line_offset,
                 column: location.column,
-                message: message.to_owned()
+                message: error.to_string()
             }
         );
     }
@@ -323,12 +312,13 @@ fn test_report_error_stylesheet() {
     let mut errors = errors.lock().unwrap();
 
     let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: 'invalid: true;'", error.message);
+    assert_eq!("Unsupported property declaration: 'invalid: true;', found unexpected identifier true", error.message);
     assert_eq!(10, error.line);
     assert_eq!(9, error.column);
 
     let error = errors.pop().unwrap();
-    assert_eq!("Unsupported property declaration: 'display: invalid;'", error.message);
+    assert_eq!("Unsupported property declaration: 'display: invalid;', \
+                Custom(PropertyDeclaration(InvalidValue))", error.message);
     assert_eq!(9, error.line);
     assert_eq!(9, error.column);
 

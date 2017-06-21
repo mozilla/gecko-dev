@@ -82,7 +82,7 @@ public:
    * Right now only supports a null tag, before or after. If the pseudo-element
    * is not null, the content needs to be an element.
    */
-  static nsIFrame* FrameForPseudoElement(const nsIContent* aContent,
+  static nsIFrame* FrameForPseudoElement(const Element* aElement,
                                          nsIAtom* aPseudoTagOrNull);
 
   /**
@@ -107,6 +107,7 @@ public:
    * traversal of the same restyling process.
    */
   static void PostRestyleEventForAnimations(dom::Element* aElement,
+                                            CSSPseudoElementType aPseudoType,
                                             nsRestyleHint aRestyleHint);
 protected:
   ~ServoRestyleManager() override
@@ -116,15 +117,22 @@ protected:
 
 private:
   /**
-   * Performs post-Servo-traversal processing on this element and its descendants.
+   * Performs post-Servo-traversal processing on this element and its
+   * descendants.
+   *
+   * Returns whether any style did actually change. There may be cases where we
+   * didn't need to change any style after all, for example, when a content
+   * attribute changes that happens not to have any effect on the style of that
+   * element or any descendant or sibling.
    */
-  void ProcessPostTraversal(Element* aElement,
+  bool ProcessPostTraversal(Element* aElement,
                             nsStyleContext* aParentContext,
                             ServoStyleSet* aStyleSet,
-                            nsStyleChangeList& aChangeList);
+                            nsStyleChangeList& aChangeList,
+                            nsChangeHint aChangesHandledForDescendants);
 
   struct TextPostTraversalState;
-  void ProcessPostTraversalForText(nsIContent* aTextNode,
+  bool ProcessPostTraversalForText(nsIContent* aTextNode,
                                    nsStyleChangeList& aChangeList,
                                    TextPostTraversalState& aState);
 

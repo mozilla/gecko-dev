@@ -14,7 +14,6 @@ config = {
         'checkout-sources',
         'setup-mock',
         'build',
-        'generate-build-stats',
         'upload-files',
         'sendchange',
         'check-test',
@@ -131,7 +130,5 @@ config = {
         'freetype-devel-2.3.11-6.el6_1.8.x86_64'
     ],
     'src_mozconfig': 'browser/config/mozconfigs/linux64/nightly',
-    'tooltool_manifest_src': "browser/config/tooltool-manifests/linux64/\
-releng.manifest",
     #########################################################################
 }

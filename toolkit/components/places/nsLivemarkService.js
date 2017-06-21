@@ -207,16 +207,16 @@ LivemarkService.prototype = {
       let id = await PlacesUtils.promiseItemId(folder.guid);
 
       // Create the internal Livemark object.
-      let livemark = new Livemark({ id
-                                  , title:        folder.title
-                                  , parentGuid:   folder.parentGuid
-                                  , parentId:     await PlacesUtils.promiseItemId(folder.parentGuid)
-                                  , index:        folder.index
-                                  , feedURI:      aLivemarkInfo.feedURI
-                                  , siteURI:      aLivemarkInfo.siteURI
-                                  , guid:         folder.guid
-                                  , dateAdded:    toPRTime(folder.dateAdded)
-                                  , lastModified: toPRTime(folder.lastModified)
+      let livemark = new Livemark({ id,
+                                    title:        folder.title,
+                                    parentGuid:   folder.parentGuid,
+                                    parentId:     await PlacesUtils.promiseItemId(folder.parentGuid),
+                                    index:        folder.index,
+                                    feedURI:      aLivemarkInfo.feedURI,
+                                    siteURI:      aLivemarkInfo.siteURI,
+                                    guid:         folder.guid,
+                                    dateAdded:    toPRTime(folder.dateAdded),
+                                    lastModified: toPRTime(folder.lastModified)
                                   });
 
       livemark.writeFeedURI(aLivemarkInfo.feedURI, aLivemarkInfo.source);
@@ -393,11 +393,11 @@ LivemarkService.prototype = {
   _xpcom_factory: XPCOMUtils.generateSingletonFactory(LivemarkService),
 
   QueryInterface: XPCOMUtils.generateQI([
-    Ci.mozIAsyncLivemarks
-  , Ci.nsINavBookmarkObserver
-  , Ci.nsINavHistoryObserver
-  , Ci.nsIObserver
-  , Ci.nsISupportsWeakReference
+    Ci.mozIAsyncLivemarks,
+    Ci.nsINavBookmarkObserver,
+    Ci.nsINavHistoryObserver,
+    Ci.nsIObserver,
+    Ci.nsISupportsWeakReference
   ])
 };
 
@@ -663,8 +663,10 @@ Livemark.prototype = {
    *        Whether the nodes should be set as visited.
    */
   updateURIVisitedStatus(aURI, aVisitedStatus) {
+    let wasVisited = false;
     for (let child of this.children) {
       if (!aURI || child.uri.equals(aURI)) {
+        wasVisited = child.visited;
         child.visited = aVisitedStatus;
       }
     }
@@ -675,7 +677,7 @@ Livemark.prototype = {
         for (let node of nodes) {
           if (!aURI || node.uri == aURI.spec) {
             Services.tm.dispatchToMainThread(() => {
-              observer.nodeHistoryDetailsChanged(node, 0, aVisitedStatus);
+              observer.nodeHistoryDetailsChanged(node, node.time, wasVisited);
             });
           }
         }
@@ -864,10 +866,10 @@ LivemarkLoadListener.prototype = {
 
   // nsISupports
   QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIFeedResultListener
-  , Ci.nsIStreamListener
-  , Ci.nsIRequestObserver
-  , Ci.nsIInterfaceRequestor
+    Ci.nsIFeedResultListener,
+    Ci.nsIStreamListener,
+    Ci.nsIRequestObserver,
+    Ci.nsIInterfaceRequestor
   ])
 }
 

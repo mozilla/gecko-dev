@@ -1414,6 +1414,11 @@ static const VMFunction ThrowUninitializedThisInfo =
     FunctionInfo<ThrowUninitializedThisFn>(BaselineThrowUninitializedThis,
                                            "BaselineThrowUninitializedThis");
 
+typedef bool (*ThrowInitializedThisFn)(JSContext*, BaselineFrame* frame);
+static const VMFunction ThrowInitializedThisInfo =
+    FunctionInfo<ThrowInitializedThisFn>(BaselineThrowInitializedThis,
+                                         "BaselineThrowInitializedThis");
+
 bool
 BaselineCompiler::emit_JSOP_CHECKTHIS()
 {
@@ -1424,18 +1429,35 @@ BaselineCompiler::emit_JSOP_CHECKTHIS()
 }
 
 bool
-BaselineCompiler::emitCheckThis(ValueOperand val)
+BaselineCompiler::emit_JSOP_CHECKTHISREINIT()
+{
+    frame.syncStack(0);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R0);
+
+    return emitCheckThis(R0, /* reinit = */true);
+}
+
+bool
+BaselineCompiler::emitCheckThis(ValueOperand val, bool reinit)
 {
     Label thisOK;
-    masm.branchTestMagic(Assembler::NotEqual, val, &thisOK);
+    if (reinit)
+        masm.branchTestMagic(Assembler::Equal, val, &thisOK);
+    else
+        masm.branchTestMagic(Assembler::NotEqual, val, &thisOK);
 
     prepareVMCall();
 
     masm.loadBaselineFramePtr(BaselineFrameReg, val.scratchReg());
     pushArg(val.scratchReg());
 
-    if (!callVM(ThrowUninitializedThisInfo))
-        return false;
+    if (reinit) {
+        if (!callVM(ThrowInitializedThisInfo))
+            return false;
+    } else {
+        if (!callVM(ThrowUninitializedThisInfo))
+            return false;
+    }
 
     masm.bind(&thisOK);
     return true;
@@ -4144,6 +4166,136 @@ BaselineCompiler::emit_JSOP_CALLEE()
     return true;
 }
 
+void
+BaselineCompiler::getThisEnvironmentCallee(Register reg)
+{
+    // Directly load callee from frame if we have a HomeObject
+    if (function() && function()->allowSuperProperty()) {
+        masm.loadFunctionFromCalleeToken(frame.addressOfCalleeToken(), reg);
+        return;
+    }
+
+    // Locate environment chain
+    masm.loadPtr(frame.addressOfEnvironmentChain(), reg);
+
+    // Walk environment chain until first non-arrow CallObject
+    for (ScopeIter si(script->innermostScope(pc)); si; si++) {
+
+        // Find first non-arrow FunctionScope
+        if (si.hasSyntacticEnvironment() && si.scope()->is<FunctionScope>()) {
+            JSFunction* fn = si.scope()->as<FunctionScope>().canonicalFunction();
+
+            if (!fn->isArrow())
+                break;
+        }
+
+        // Traverse environment chain
+        if (si.scope()->hasEnvironment()) {
+            Address nextAddr(reg, EnvironmentObject::offsetOfEnclosingEnvironment());
+            masm.unboxObject(nextAddr, reg);
+        }
+    }
+
+    // Load callee
+    masm.unboxObject(Address(reg, CallObject::offsetOfCallee()), reg);
+}
+
+typedef JSObject* (*HomeObjectSuperBaseFn)(JSContext*, HandleObject);
+static const VMFunction HomeObjectSuperBaseInfo =
+    FunctionInfo<HomeObjectSuperBaseFn>(HomeObjectSuperBase, "HomeObjectSuperBase");
+
+bool
+BaselineCompiler::emit_JSOP_SUPERBASE()
+{
+    frame.syncStack(0);
+
+    Register scratch = R0.scratchReg();
+    Register proto = R1.scratchReg();
+
+    // Lookup callee object of environment containing [[ThisValue]]
+    getThisEnvironmentCallee(scratch);
+
+    // Load [[HomeObject]]
+    Address homeObjAddr(scratch, FunctionExtended::offsetOfMethodHomeObjectSlot());
+#ifdef DEBUG
+    Label isObject;
+    masm.branchTestObject(Assembler::Equal, homeObjAddr, &isObject);
+    masm.assumeUnreachable("[[HomeObject]] must be Object");
+    masm.bind(&isObject);
+#endif
+    masm.unboxObject(homeObjAddr, scratch);
+
+    // Load prototype from [[HomeObject]]
+    masm.loadObjProto(scratch, proto);
+
+    Label hasProto;
+    MOZ_ASSERT(uintptr_t(TaggedProto::LazyProto) == 1);
+    masm.branchPtr(Assembler::Above, proto, ImmWord(1), &hasProto);
+
+    // Use VMCall for missing or lazy proto
+    prepareVMCall();
+    pushArg(scratch);  // [[HomeObject]]
+    if (!callVM(HomeObjectSuperBaseInfo))
+        return false;
+    masm.movePtr(ReturnReg, proto);
+
+    // Box prototype and return
+    masm.bind(&hasProto);
+    masm.tagValue(JSVAL_TYPE_OBJECT, proto, R1);
+    frame.push(R1);
+    return true;
+}
+
+typedef JSObject* (*SuperFunOperationFn)(JSContext*, HandleObject);
+static const VMFunction SuperFunOperationInfo =
+    FunctionInfo<SuperFunOperationFn>(SuperFunOperation, "SuperFunOperation");
+
+bool
+BaselineCompiler::emit_JSOP_SUPERFUN()
+{
+    frame.syncStack(0);
+
+    Register callee = R0.scratchReg();
+    Register proto = R1.scratchReg();
+    Register scratch = R2.scratchReg();
+
+    // Lookup callee object of environment containing [[ThisValue]]
+    getThisEnvironmentCallee(callee);
+
+    // Load prototype of callee
+    masm.loadObjProto(callee, proto);
+
+    // Use VMCall for missing or lazy proto
+    Label needVMCall;
+    MOZ_ASSERT(uintptr_t(TaggedProto::LazyProto) == 1);
+    masm.branchPtr(Assembler::BelowOrEqual, proto, ImmWord(1), &needVMCall);
+
+    // Use VMCall for non-JSFunction objects (eg. Proxy)
+    masm.branchTestObjClass(Assembler::NotEqual, proto, scratch, &JSFunction::class_, &needVMCall);
+
+    // Use VMCall if not constructor
+    masm.load16ZeroExtend(Address(proto, JSFunction::offsetOfFlags()), scratch);
+    masm.branchTest32(Assembler::Zero, scratch, Imm32(JSFunction::CONSTRUCTOR), &needVMCall);
+
+    // Valid constructor
+    Label hasSuperFun;
+    masm.jump(&hasSuperFun);
+
+    // Slow path VM Call
+    masm.bind(&needVMCall);
+    prepareVMCall();
+    pushArg(callee);
+    if (!callVM(SuperFunOperationInfo))
+        return false;
+    masm.movePtr(ReturnReg, proto);
+
+    // Box prototype and return
+    masm.bind(&hasSuperFun);
+    masm.tagValue(JSVAL_TYPE_OBJECT, proto, R1);
+    frame.push(R1);
+    return true;
+}
+
 typedef bool (*NewArgumentsObjectFn)(JSContext*, BaselineFrame*, MutableHandleValue);
 static const VMFunction NewArgumentsObjectInfo =
     FunctionInfo<NewArgumentsObjectFn>(jit::NewArgumentsObject, "NewArgumentsObject");
@@ -4693,5 +4845,161 @@ BaselineCompiler::emit_JSOP_JUMPTARGET()
     PCCounts* counts = script->maybeGetPCCounts(pc);
     uint64_t* counterAddr = &counts->numExec();
     masm.inc64(AbsoluteAddress(counterAddr));
+    return true;
+}
+
+typedef bool (*CheckClassHeritageOperationFn)(JSContext*, HandleValue);
+static const VMFunction CheckClassHeritageOperationInfo =
+    FunctionInfo<CheckClassHeritageOperationFn>(js::CheckClassHeritageOperation,
+                                                "CheckClassHeritageOperation");
+
+bool
+BaselineCompiler::emit_JSOP_CHECKCLASSHERITAGE()
+{
+    frame.syncStack(0);
+
+    // Leave the heritage value on the stack.
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R0);
+
+    prepareVMCall();
+    pushArg(R0);
+    return callVM(CheckClassHeritageOperationInfo);
+}
+
+bool
+BaselineCompiler::emit_JSOP_INITHOMEOBJECT()
+{
+    frame.syncStack(0);
+
+    // Load HomeObject off stack
+    unsigned skipOver = GET_UINT8(pc);
+    MOZ_ASSERT(frame.stackDepth() >= skipOver + 2);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-2 - skipOver)), R0);
+
+    // Load function off stack
+    Register func = R2.scratchReg();
+    masm.unboxObject(frame.addressOfStackValue(frame.peek(-1)), func);
+
+    // Set HOMEOBJECT_SLOT
+    Address addr(func, FunctionExtended::offsetOfMethodHomeObjectSlot());
+#ifdef DEBUG
+    Label isUndefined;
+    masm.branchTestUndefined(Assembler::Equal, addr, &isUndefined);
+    masm.assumeUnreachable("INITHOMEOBJECT expects undefined slot");
+    masm.bind(&isUndefined);
+#endif
+    masm.storeValue(R0, addr);
+
+    Register temp = R1.scratchReg();
+    Label skipBarrier;
+    masm.branchPtrInNurseryChunk(Assembler::Equal, func, temp, &skipBarrier);
+    masm.branchValueIsNurseryObject(Assembler::NotEqual, R0, temp, &skipBarrier);
+    masm.call(&postBarrierSlot_);
+    masm.bind(&skipBarrier);
+
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_BUILTINPROTO()
+{
+    // The builtin prototype is a constant for a given global.
+    RootedObject builtin(cx);
+    JSProtoKey key = static_cast<JSProtoKey>(GET_UINT8(pc));
+    MOZ_ASSERT(key < JSProto_LIMIT);
+    if (!GetBuiltinPrototype(cx, key, &builtin))
+        return false;
+    frame.push(ObjectValue(*builtin));
+    return true;
+}
+
+typedef JSObject* (*ObjectWithProtoOperationFn)(JSContext*, HandleValue);
+static const VMFunction ObjectWithProtoOperationInfo =
+    FunctionInfo<ObjectWithProtoOperationFn>(js::ObjectWithProtoOperation,
+                                             "ObjectWithProtoOperationInfo");
+
+bool
+BaselineCompiler::emit_JSOP_OBJWITHPROTO()
+{
+    frame.syncStack(0);
+
+    // Leave the proto value on the stack for the decompiler
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R0);
+
+    prepareVMCall();
+    pushArg(R0);
+    if (!callVM(ObjectWithProtoOperationInfo))
+        return false;
+
+    masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
+    frame.pop();
+    frame.push(R0);
+    return true;
+}
+
+typedef JSObject* (*FunWithProtoFn)(JSContext*, HandleFunction, HandleObject, HandleObject);
+static const VMFunction FunWithProtoInfo =
+    FunctionInfo<FunWithProtoFn>(js::FunWithProtoOperation, "FunWithProtoOperation");
+
+bool
+BaselineCompiler::emit_JSOP_FUNWITHPROTO()
+{
+    frame.popRegsAndSync(1);
+
+    masm.unboxObject(R0, R0.scratchReg());
+    masm.loadPtr(frame.addressOfEnvironmentChain(), R1.scratchReg());
+
+    prepareVMCall();
+    pushArg(R0.scratchReg());
+    pushArg(R1.scratchReg());
+    pushArg(ImmGCPtr(script->getFunction(GET_UINT32_INDEX(pc))));
+    if (!callVM(FunWithProtoInfo))
+        return false;
+
+    masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
+    frame.push(R0);
+    return true;
+}
+
+typedef JSFunction* (*MakeDefaultConstructorFn)(JSContext*, HandleScript,
+                                                jsbytecode*, HandleObject);
+static const VMFunction MakeDefaultConstructorInfo =
+    FunctionInfo<MakeDefaultConstructorFn>(js::MakeDefaultConstructor,
+                                           "MakeDefaultConstructor");
+
+bool
+BaselineCompiler::emit_JSOP_CLASSCONSTRUCTOR()
+{
+    frame.syncStack(0);
+
+    // Pass nullptr as prototype to MakeDefaultConstructor
+    prepareVMCall();
+    pushArg(ImmPtr(nullptr));
+    pushArg(ImmPtr(pc));
+    pushArg(ImmGCPtr(script));
+    if (!callVM(MakeDefaultConstructorInfo))
+        return false;
+
+    masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
+    frame.push(R0);
+    return true;
+}
+
+bool
+BaselineCompiler::emit_JSOP_DERIVEDCONSTRUCTOR()
+{
+    frame.popRegsAndSync(1);
+
+    masm.unboxObject(R0, R0.scratchReg());
+
+    prepareVMCall();
+    pushArg(R0.scratchReg());
+    pushArg(ImmPtr(pc));
+    pushArg(ImmGCPtr(script));
+    if (!callVM(MakeDefaultConstructorInfo))
+        return false;
+
+    masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
+    frame.push(R0);
     return true;
 }

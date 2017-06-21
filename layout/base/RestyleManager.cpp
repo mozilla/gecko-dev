@@ -459,6 +459,7 @@ RestyleManager::ChangeHintToString(nsChangeHint aHint)
     "ReflowChangesSizeOrPosition", "UpdateComputedBSize",
     "UpdateUsesOpacity", "UpdateBackgroundPosition",
     "AddOrRemoveTransform", "CSSOverflowChange",
+    "UpdateWidgetProperties"
   };
   static_assert(nsChangeHint_AllHints == (1 << ArrayLength(names)) - 1,
                 "Name list doesn't match change hints.");
@@ -821,8 +822,8 @@ RecomputePosition(nsIFrame* aFrame)
   // the frame, and then get the offsets and size from it. If the frame's size
   // doesn't need to change, we can simply update the frame position. Otherwise
   // we fall back to a reflow.
-  nsRenderingContext rc(
-    aFrame->PresContext()->PresShell()->CreateReferenceRenderingContext());
+  RefPtr<gfxContext> rc =
+    aFrame->PresContext()->PresShell()->CreateReferenceRenderingContext();
 
   // Construct a bogus parent reflow state so that there's a usable
   // containing block reflow state.
@@ -832,7 +833,7 @@ RecomputePosition(nsIFrame* aFrame)
   LogicalSize parentSize = parentFrame->GetLogicalSize();
 
   nsFrameState savedState = parentFrame->GetStateBits();
-  ReflowInput parentReflowInput(aFrame->PresContext(), parentFrame, &rc,
+  ReflowInput parentReflowInput(aFrame->PresContext(), parentFrame, rc,
                                 parentSize);
   parentFrame->RemoveStateBits(~nsFrameState(0));
   parentFrame->AddStateBits(savedState);
@@ -846,7 +847,7 @@ RecomputePosition(nsIFrame* aFrame)
   if (cbFrame && (aFrame->GetContainingBlock() != parentFrame ||
                   parentFrame->IsTableFrame())) {
     LogicalSize cbSize = cbFrame->GetLogicalSize();
-    cbReflowInput.emplace(cbFrame->PresContext(), cbFrame, &rc, cbSize);
+    cbReflowInput.emplace(cbFrame->PresContext(), cbFrame, rc, cbSize);
     cbReflowInput->ComputedPhysicalMargin() = cbFrame->GetUsedMargin();
     cbReflowInput->ComputedPhysicalPadding() = cbFrame->GetUsedPadding();
     cbReflowInput->ComputedPhysicalBorderPadding() =
@@ -1447,8 +1448,8 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       }
     }
     for (size_t j = lazyRangeStart; j < i; ++j) {
-      MOZ_ASSERT_IF(aChangeList[j].mContent->GetPrimaryFrame(),
-                    !aChangeList[j].mContent->HasFlag(NODE_NEEDS_FRAME));
+      MOZ_ASSERT(!aChangeList[j].mContent->GetPrimaryFrame() ||
+                 !aChangeList[j].mContent->HasFlag(NODE_NEEDS_FRAME));
     }
     if (i == aChangeList.Length()) {
       break;
@@ -1712,6 +1713,9 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       if ((hint & nsChangeHint_UpdateCursor) && !didUpdateCursor) {
         presContext->PresShell()->SynthesizeMouseMove(false);
         didUpdateCursor = true;
+      }
+      if (hint & nsChangeHint_UpdateWidgetProperties) {
+        frame->UpdateWidgetProperties();
       }
     }
   }

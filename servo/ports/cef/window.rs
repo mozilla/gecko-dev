@@ -17,12 +17,9 @@ use render_handler::CefRenderHandlerExtensions;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
 use wrappers::CefWrap;
 
-use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
+use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{WindowEvent, WindowMethods};
-use euclid::point::{Point2D, TypedPoint2D};
-use euclid::rect::TypedRect;
-use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::{Point2D, TypedPoint2D, TypedRect, Size2D, TypedSize2D, ScaleFactor};
 use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
@@ -295,13 +292,17 @@ impl WindowMethods for Window {
         }
     }
 
-    fn create_compositor_channel(&self)
-                                 -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
-        let (sender, receiver) = channel();
-        (box CefCompositorProxy {
-             sender: sender,
-         } as Box<CompositorProxy+Send>,
-         box receiver as Box<CompositorReceiver>)
+    fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
+        struct CefEventLoopWaker;
+        impl EventLoopWaker for CefEventLoopWaker {
+            fn wake(&self) {
+                app_wakeup();
+            }
+            fn clone(&self) -> Box<EventLoopWaker + Send> {
+                box CefEventLoopWaker
+            }
+        }
+        box CefEventLoopWaker
     }
 
     fn prepare_for_composite(&self, width: usize, height: usize) -> bool {
@@ -497,23 +498,6 @@ impl WindowMethods for Window {
 
     fn supports_clipboard(&self) -> bool {
         false
-    }
-}
-
-struct CefCompositorProxy {
-    sender: Sender<compositor_thread::Msg>,
-}
-
-impl CompositorProxy for CefCompositorProxy {
-    fn send(&self, msg: compositor_thread::Msg) {
-        self.sender.send(msg).unwrap();
-        app_wakeup();
-    }
-
-    fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
-        box CefCompositorProxy {
-            sender: self.sender.clone(),
-        } as Box<CompositorProxy+Send>
     }
 }
 

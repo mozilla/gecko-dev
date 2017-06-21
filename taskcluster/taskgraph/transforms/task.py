@@ -504,7 +504,6 @@ BRANCH_PRIORITIES = {
     'comm-beta': 'high',
     'mozilla-central': 'medium',
     'comm-central': 'medium',
-    'mozilla-aurora': 'medium',
     'comm-aurora': 'medium',
     'autoland': 'low',
     'mozilla-inbound': 'low',
@@ -538,6 +537,7 @@ def payload_builder(name):
         payload_builders[name] = func
         return func
     return wrap
+
 
 # define a collection of index builders, depending on the type implementation
 index_builders = {}

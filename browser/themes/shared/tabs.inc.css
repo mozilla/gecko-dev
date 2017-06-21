@@ -112,6 +112,8 @@
   /* 16px of the icon + 6px of margin-inline-end of .tab-icon-image */
   margin-inline-start: -22px;
   position: relative;
+  -moz-context-properties: fill;
+  fill: rgb(224, 41, 29);
 }
 
 .tab-sharing-icon-overlay[sharing="camera"] {
@@ -522,6 +524,15 @@
 
 .tabs-newtab-button {
   width: calc(36px + var(--tab-curve-width));
+}
+
+.tabs-newtab-button > .toolbarbutton-menu-dropmarker {
+  display: none;
+}
+
+.tabs-newtab-button > .toolbarbutton-icon {
+  /* override drop marker image padding */
+  margin-inline-end: 0;
 }
 
 @media (min-resolution: 1.1dppx) {

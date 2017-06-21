@@ -181,11 +181,19 @@ NativeObject::tryShiftDenseElements(uint32_t count)
         return false;
     }
 
+    shiftDenseElementsUnchecked(count);
+    return true;
+}
+
+inline void
+NativeObject::shiftDenseElementsUnchecked(uint32_t count)
+{
+    ObjectElements* header = getElementsHeader();
     MOZ_ASSERT(count > 0);
     MOZ_ASSERT(count < header->initializedLength);
 
     if (MOZ_UNLIKELY(header->numShiftedElements() + count > ObjectElements::MaxShiftedElements)) {
-        unshiftElements();
+        moveShiftedElements();
         header = getElementsHeader();
     }
 
@@ -195,7 +203,6 @@ NativeObject::tryShiftDenseElements(uint32_t count)
     elements_ += count;
     ObjectElements* newHeader = getElementsHeader();
     memmove(newHeader, header, sizeof(ObjectElements));
-    return true;
 }
 
 inline void
@@ -413,7 +420,7 @@ NativeObject::copy(JSContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
     return obj;
 }
 
-inline void
+MOZ_ALWAYS_INLINE void
 NativeObject::setSlotWithType(JSContext* cx, Shape* shape,
                               const Value& value, bool overwriting)
 {
@@ -491,6 +498,36 @@ NativeObject::create(JSContext* cx, js::gc::AllocKind kind, js::gc::InitialHeap 
     js::gc::TraceCreateObject(nobj);
 
     return nobj;
+}
+
+MOZ_ALWAYS_INLINE uint32_t
+NativeObject::numDynamicSlots() const
+{
+    return dynamicSlotsCount(numFixedSlots(), slotSpan(), getClass());
+}
+
+/* static */ MOZ_ALWAYS_INLINE uint32_t
+NativeObject::dynamicSlotsCount(uint32_t nfixed, uint32_t span, const Class* clasp)
+{
+    if (span <= nfixed)
+        return 0;
+    span -= nfixed;
+
+    // Increase the slots to SLOT_CAPACITY_MIN to decrease the likelihood
+    // the dynamic slots need to get increased again. ArrayObjects ignore
+    // this because slots are uncommon in that case.
+    if (clasp != &ArrayObject::class_ && span <= SLOT_CAPACITY_MIN)
+        return SLOT_CAPACITY_MIN;
+
+    uint32_t slots = mozilla::RoundUpPow2(span);
+    MOZ_ASSERT(slots >= span);
+    return slots;
+}
+
+/* static */ MOZ_ALWAYS_INLINE uint32_t
+NativeObject::dynamicSlotsCount(Shape* shape)
+{
+    return dynamicSlotsCount(shape->numFixedSlots(), shape->slotSpan(), shape->getObjectClass());
 }
 
 MOZ_ALWAYS_INLINE bool
@@ -672,28 +709,6 @@ CallResolveOp(JSContext* cx, HandleNativeObject obj, HandleId id,
     return true;
 }
 
-static MOZ_ALWAYS_INLINE bool
-ClassMayResolveId(const JSAtomState& names, const Class* clasp, jsid id, JSObject* maybeObj)
-{
-    MOZ_ASSERT_IF(maybeObj, maybeObj->getClass() == clasp);
-
-    if (!clasp->getResolve()) {
-        // Sanity check: we should only have a mayResolve hook if we have a
-        // resolve hook.
-        MOZ_ASSERT(!clasp->getMayResolve(), "Class with mayResolve hook but no resolve hook");
-        return false;
-    }
-
-    if (JSMayResolveOp mayResolve = clasp->getMayResolve()) {
-        // Tell the analysis our mayResolve hooks won't trigger GC.
-        JS::AutoSuppressGCAnalysis nogc;
-        if (!mayResolve(names, id, maybeObj))
-            return false;
-    }
-
-    return true;
-}
-
 template <AllowGC allowGC>
 static MOZ_ALWAYS_INLINE bool
 LookupOwnPropertyInline(JSContext* cx,
@@ -724,8 +739,9 @@ LookupOwnPropertyInline(JSContext* cx,
         }
     }
 
-    // Check for a native property.
-    if (Shape* shape = obj->lookup(cx, id)) {
+    // Check for a native property. Call Shape::search directly (instead of
+    // NativeObject::lookup) because it's inlined.
+    if (Shape* shape = obj->lastProperty()->search(cx, id)) {
         propp.setNativeProperty(shape);
         *donep = true;
         return true;

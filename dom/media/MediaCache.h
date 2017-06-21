@@ -198,15 +198,16 @@ public:
   MediaCacheStream(ChannelMediaResource* aClient, bool aIsPrivateBrowsing);
   ~MediaCacheStream();
 
-  // Set up this stream with the cache. Can fail on OOM. One
-  // of InitAsClone or Init must be called before any other method on
-  // this class. Does nothing if already initialized.
-  nsresult Init();
+  // Set up this stream with the cache. Can fail on OOM.
+  // aContentLength is the content length if known, otherwise -1.
+  // Exactly one of InitAsClone or Init must be called before any other method
+  // on this class. Does nothing if already initialized.
+  nsresult Init(int64_t aContentLength);
 
   // Set up this stream with the cache, assuming it's for the same data
-  // as the aOriginal stream. Can fail on OOM. Exactly one
-  // of InitAsClone or Init must be called before any other method on
-  // this class. Does nothing if already initialized.
+  // as the aOriginal stream. Can fail on OOM.
+  // Exactly one of InitAsClone or Init must be called before any other method
+  // on this class. Does nothing if already initialized.
   nsresult InitAsClone(MediaCacheStream* aOriginal);
 
   // These are called on the main thread.
@@ -334,17 +335,12 @@ public:
   // These methods must be called on a different thread from the main
   // thread. They should always be called on the same thread for a given
   // stream.
-  // This can fail when aWhence is NS_SEEK_END and no stream length
-  // is known.
-  nsresult Seek(int32_t aWhence, int64_t aOffset);
   int64_t Tell();
+  // Seeks to aOffset in the stream then performs a Read operation.
   // *aBytes gets the number of bytes that were actually read. This can
   // be less than aCount. If the first byte of data is not in the cache,
   // this will block until the data is available or the stream is
   // closed, otherwise it won't block.
-  nsresult Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes);
-  // Seeks to aOffset in the stream then performs a Read operation. See
-  // 'Read' for argument and return details.
   nsresult ReadAt(int64_t aOffset, char* aBuffer,
                   uint32_t aCount, uint32_t* aBytes);
 
@@ -438,11 +434,19 @@ private:
   // Update mPrincipal given that data has been received from aPrincipal
   bool UpdatePrincipal(nsIPrincipal* aPrincipal);
 
+  nsresult SeekInternal(int64_t aOffset);
+  // *aBytes gets the number of bytes that were actually read. This can
+  // be less than aCount. If the first byte of data is not in the cache,
+  // this will block until the data is available or the stream is
+  // closed, otherwise it won't block.
+  nsresult ReadInternal(char* aBuffer, uint32_t aCount, uint32_t* aBytes);
+
+  // Instance of MediaCache to use with this MediaCacheStream.
+  RefPtr<MediaCache> mMediaCache;
+
   // These fields are main-thread-only.
   ChannelMediaResource*  mClient;
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  // Set to true when Init or InitAsClone has been called
-  bool                   mInitialized;
   // Set to true when MediaCache::Update() has finished while this stream
   // was present.
   bool                   mHasHadUpdate;

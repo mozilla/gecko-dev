@@ -153,8 +153,7 @@ public:
                                                   const int32_t& aShellItemWidth,
                                                   const int32_t& aShellItemHeight) override;
 
-  virtual mozilla::ipc::IPCResult RecvDropLinks(nsTArray<nsString>&& aLinks,
-                                                const PrincipalInfo& aTriggeringPrincipalInfo) override;
+  virtual mozilla::ipc::IPCResult RecvDropLinks(nsTArray<nsString>&& aLinks) override;
 
   virtual mozilla::ipc::IPCResult RecvEvent(const RemoteDOMEvent& aEvent) override;
 
@@ -363,6 +362,8 @@ public:
 
   void UpdateDimensions(const nsIntRect& aRect, const ScreenIntSize& aSize);
 
+  DimensionInfo GetDimensionInfo();
+
   void SizeModeChanged(const nsSizeMode& aSizeMode);
 
   void UIResolutionChanged();
@@ -507,6 +508,12 @@ public:
   bool SendPasteTransferable(const IPCDataTransfer& aDataTransfer,
                              const bool& aIsPrivateData,
                              const IPC::Principal& aRequestingPrincipal);
+
+  /**
+   * OnDestroyTextComposition() should be called when TextComposition instance
+   * which dispatched composition events to this instance is being destroyed.
+   */
+  void OnDestroyTextComposition();
 
   static TabParent* GetFrom(nsFrameLoader* aFrameLoader);
 

@@ -144,7 +144,7 @@ class BuildProgressFooter(object):
     def clear(self):
         """Removes the footer from the current terminal."""
         self._fh.write(self._t.move_x(0))
-        self._fh.write(self._t.clear_eos())
+        self._fh.write(self._t.clear_eol())
 
     def draw(self):
         """Draws this footer in the terminal."""
@@ -480,19 +480,13 @@ class Build(MachCommandBase):
                 # until we suppress them for real.
                 # TODO remove entries/feature once we stop generating warnings
                 # in these directories.
-                LOCAL_SUPPRESS_DIRS = (
-                    'gfx/angle',
-                    'gfx/cairo',
-                    'intl/icu/source',
-                    'js/src/ctypes/libffi',
-                    'media/libtheora',
-                    'media/mtransport/third_party/nICEr',
-                    'media/mtransport/third_party/nrappkit',
-                    'media/webrtc/trunk/webrtc',
-                    'netwerk/sctp/src/netinet',
-                    'nsprpub',
-                    'security/nss',
-                )
+                pathToThirdparty = os.path.join(self.topsrcdir,
+                                                "tools",
+                                               "rewriting",
+                                               "ThirdPartyPaths.txt")
+                with open(pathToThirdparty) as f:
+                    # Normalize the path (no trailing /)
+                    LOCAL_SUPPRESS_DIRS = tuple(d.rstrip('/') for d in f.read().splitlines())
 
                 suppressed_by_dir = collections.Counter()
 
@@ -1748,9 +1742,6 @@ class PackageFrontend(MachCommandBase):
             for b in from_build:
                 user_value = b
 
-                if '/' not in b:
-                    b = '{}/opt'.format(b)
-
                 if not b.startswith('toolchain-'):
                     b = 'toolchain-{}'.format(b)
 
@@ -1760,8 +1751,8 @@ class PackageFrontend(MachCommandBase):
                              'Could not find a toolchain build named `{build}`')
                     return 1
 
-                optimized, task_id = optimize_task(task, {})
-                if not optimized:
+                task_id = optimize_task(task, {})
+                if task_id in (True, False):
                     self.log(logging.ERROR, 'artifact', {'build': user_value},
                              'Could not find artifacts for a toolchain build '
                              'named `{build}`')
@@ -1945,11 +1936,16 @@ class Repackage(MachCommandBase):
     '''
     @Command('repackage', category='misc',
              description='Repackage artifacts into different formats.')
+    def repackage(self):
+        print("Usage: ./mach repackage [dmg|installer|mar] [args...]")
+
+    @SubCommand('repackage', 'dmg',
+                description='Repackage a tar file into a .dmg for OSX')
     @CommandArgument('--input', '-i', type=str, required=True,
         help='Input filename')
     @CommandArgument('--output', '-o', type=str, required=True,
         help='Output filename')
-    def repackage(self, input, output):
+    def repackage_dmg(self, input, output):
         if not os.path.exists(input):
             print('Input file does not exist: %s' % input)
             return 1
@@ -1959,10 +1955,31 @@ class Repackage(MachCommandBase):
                   'prior to |mach repackage|.')
             return 1
 
-        if output.endswith('.dmg'):
-            from mozbuild.repackaging.dmg import repackage_dmg
-            repackage_dmg(input, output)
-        else:
-            print("Repackaging into output '%s' is not yet supported." % output)
-            return 1
-        return 0
+        from mozbuild.repackaging.dmg import repackage_dmg
+        repackage_dmg(input, output)
+
+    @SubCommand('repackage', 'installer',
+                description='Repackage into a Windows installer exe')
+    @CommandArgument('--tag', type=str, required=True,
+        help='The .tag file used to build the installer')
+    @CommandArgument('--setupexe', type=str, required=True,
+        help='setup.exe file inside the installer')
+    @CommandArgument('--package', type=str, required=False,
+        help='Optional package .zip for building a full installer')
+    @CommandArgument('--output', '-o', type=str, required=True,
+        help='Output filename')
+    def repackage_installer(self, tag, setupexe, package, output):
+        from mozbuild.repackaging.installer import repackage_installer
+        repackage_installer(self.topsrcdir, tag, setupexe, package, output)
+
+    @SubCommand('repackage', 'mar',
+                description='Repackage into complete MAR file')
+    @CommandArgument('--input', '-i', type=str, required=True,
+        help='Input filename')
+    @CommandArgument('--mar', type=str, required=True,
+        help='Mar binary path')
+    @CommandArgument('--output', '-o', type=str, required=True,
+        help='Output filename')
+    def repackage_mar(self, input, mar, output):
+        from mozbuild.repackaging.mar import repackage_mar
+        repackage_mar(self.topsrcdir, input, mar, output)

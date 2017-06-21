@@ -9,7 +9,6 @@ import android.net.Uri;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.Surface;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -19,8 +18,6 @@ import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.RendererCapabilities;
 import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.decoder.DecoderCounters;
-import com.google.android.exoplayer2.mediacodec.MediaCodecSelector;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
@@ -35,18 +32,33 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
+import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.Util;
 
+import org.mozilla.gecko.annotation.ReflectionTarget;
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.GeckoAppShell;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class GeckoHlsPlayer implements ExoPlayer.EventListener {
+@ReflectionTarget
+public class GeckoHlsPlayer implements BaseHlsPlayer, ExoPlayer.EventListener {
     private static final String LOGTAG = "GeckoHlsPlayer";
     private static final DefaultBandwidthMeter BANDWIDTH_METER = new DefaultBandwidthMeter();
     private static final int MAX_TIMELINE_ITEM_LINES = 3;
-    private static boolean DEBUG = false;
+    private static boolean DEBUG = AppConstants.NIGHTLY_BUILD || AppConstants.DEBUG_BUILD;
+
+    private static AtomicInteger sPlayerId = new AtomicInteger(0);
+    /*
+     *  Because we treat GeckoHlsPlayer as a source data provider.
+     *  It will be created and initialized with a URL by HLSResource in
+     *  Gecko media pipleine (in cpp). Once HLSDemuxer is created later, we
+     *  need to bridge this HLSResource to the created demuxer. And they share
+     *  the same GeckoHlsPlayer.
+     *  mPlayerId is a token used for Gecko media pipeline to obtain corresponding player.
+     */
+    private final int mPlayerId;
 
     private DataSource.Factory mMediaDataSourceFactory;
 
@@ -83,6 +95,8 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
         private int mNumAudioTracks = 0;
         private boolean mVideoInfoUpdated = false;
         private boolean mAudioInfoUpdated = false;
+        private boolean mVideoDataArrived = false;
+        private boolean mAudioDataArrived = false;
         HlsMediaTracksInfo(int numVideoTracks, int numAudioTracks) {
             this.mNumVideoTracks = numVideoTracks;
             this.mNumAudioTracks = numAudioTracks;
@@ -93,66 +107,27 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
         public int getNumOfAudioTracks() { return mNumAudioTracks; }
         public void onVideoInfoUpdated() { mVideoInfoUpdated = true; }
         public void onAudioInfoUpdated() { mAudioInfoUpdated = true; }
+        public void onDataArrived(int trackType) {
+            if (trackType == C.TRACK_TYPE_VIDEO) {
+                mVideoDataArrived = true;
+            } else if (trackType == C.TRACK_TYPE_AUDIO) {
+                mAudioDataArrived = true;
+            }
+        }
         public boolean videoReady() {
-            return hasVideo() ? mVideoInfoUpdated : true;
+            return !hasVideo() || (mVideoInfoUpdated && mVideoDataArrived);
         }
         public boolean audioReady() {
-            return hasAudio() ? mAudioInfoUpdated : true;
+            return !hasAudio() || (mAudioInfoUpdated && mAudioDataArrived);
         }
     }
     private HlsMediaTracksInfo mTracksInfo = null;
 
     private boolean mIsPlayerInitDone = false;
     private boolean mIsDemuxerInitDone = false;
-    private DemuxerCallbacks mDemuxerCallbacks;
-    private ResourceCallbacks mResourceCallbacks;
 
-    public enum TrackType {
-        UNDEFINED,
-        AUDIO,
-        VIDEO,
-        TEXT,
-    }
-
-    public enum ResourceError {
-        BASE(-100),
-        UNKNOWN(-101),
-        PLAYER(-102),
-        UNSUPPORTED(-103);
-
-        private int mNumVal;
-        private ResourceError(int numVal) {
-            mNumVal = numVal;
-        }
-        public int code() {
-            return mNumVal;
-        }
-    }
-
-    public enum DemuxerError {
-        BASE(-200),
-        UNKNOWN(-201),
-        PLAYER(-202),
-        UNSUPPORTED(-203);
-
-        private int mNumVal;
-        private DemuxerError(int numVal) {
-            mNumVal = numVal;
-        }
-        public int code() {
-            return mNumVal;
-        }
-    }
-
-    public interface DemuxerCallbacks {
-        void onInitialized(boolean hasAudio, boolean hasVideo);
-        void onError(int errorCode);
-    }
-
-    public interface ResourceCallbacks {
-        void onDataArrived();
-        void onError(int errorCode);
-    }
+    private BaseHlsPlayer.DemuxerCallbacks mDemuxerCallbacks;
+    private BaseHlsPlayer.ResourceCallbacks mResourceCallbacks;
 
     private static void assertTrue(boolean condition) {
       if (DEBUG && !condition) {
@@ -160,12 +135,13 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
       }
     }
 
-    public void checkInitDone() {
-        assertTrue(mDemuxerCallbacks != null);
-        assertTrue(mTracksInfo != null);
+    protected void checkInitDone() {
         if (mIsDemuxerInitDone) {
             return;
         }
+        assertTrue(mDemuxerCallbacks != null);
+        assertTrue(mTracksInfo != null);
+
         if (DEBUG) {
             Log.d(LOGTAG, "[checkInitDone] VReady:" + mTracksInfo.videoReady() +
                     ",AReady:" + mTracksInfo.audioReady() +
@@ -179,7 +155,7 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
     }
 
     public final class ComponentEventDispatcher {
-        public void onDataArrived() {
+        public void onDataArrived(final int trackType) {
             assertTrue(mMainHandler != null);
             assertTrue(mComponentListener != null);
             if (!mIsPlayerInitDone) {
@@ -189,7 +165,7 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
                 mMainHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        mComponentListener.onDataArrived();
+                        mComponentListener.onDataArrived(trackType);
                     }
                 });
             }
@@ -231,65 +207,76 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
     public final class ComponentListener {
 
         // General purpose implementation
-        public void onDataArrived() {
+        public synchronized void onDataArrived(int trackType) {
+            if (DEBUG) { Log.d(LOGTAG, "[CB][onDataArrived] id " + mPlayerId); }
+            if (!mIsPlayerInitDone) {
+                return;
+            }
             assertTrue(mResourceCallbacks != null);
-            Log.d(LOGTAG, "[CB][onDataArrived]");
+            assertTrue(mTracksInfo != null);
+            mTracksInfo.onDataArrived(trackType);
             mResourceCallbacks.onDataArrived();
+            checkInitDone();
         }
 
-        public void onVideoInputFormatChanged(Format format) {
-            assertTrue(mTracksInfo != null);
+        public synchronized void onVideoInputFormatChanged(Format format) {
             if (DEBUG) {
                 Log.d(LOGTAG, "[CB] onVideoInputFormatChanged [" + format + "]");
                 Log.d(LOGTAG, "[CB] SampleMIMEType [" +
                               format.sampleMimeType + "], ContainerMIMEType [" +
-                              format.containerMimeType + "]");
+                              format.containerMimeType + "], id : " + mPlayerId);
             }
+            if (!mIsPlayerInitDone) {
+                return;
+            }
+            assertTrue(mTracksInfo != null);
             mTracksInfo.onVideoInfoUpdated();
             checkInitDone();
         }
 
-        public void onAudioInputFormatChanged(Format format) {
+        public synchronized void onAudioInputFormatChanged(Format format) {
+            if (DEBUG) { Log.d(LOGTAG, "[CB] onAudioInputFormatChanged [" + format + "], mPlayerId :" + mPlayerId); }
+            if (!mIsPlayerInitDone) {
+                return;
+            }
             assertTrue(mTracksInfo != null);
-            if (DEBUG) { Log.d(LOGTAG, "[CB] onAudioInputFormatChanged [" + format + "]"); }
             mTracksInfo.onAudioInfoUpdated();
             checkInitDone();
         }
     }
 
-    public DataSource.Factory buildDataSourceFactory(Context ctx, DefaultBandwidthMeter bandwidthMeter) {
+    private DataSource.Factory buildDataSourceFactory(Context ctx, DefaultBandwidthMeter bandwidthMeter) {
         return new DefaultDataSourceFactory(ctx, bandwidthMeter,
                 buildHttpDataSourceFactory(bandwidthMeter));
     }
 
-    public HttpDataSource.Factory buildHttpDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
+    private HttpDataSource.Factory buildHttpDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
         return new DefaultHttpDataSourceFactory(AppConstants.USER_AGENT_FENNEC_MOBILE, bandwidthMeter);
     }
 
-    private MediaSource buildMediaSource(Uri uri, String overrideExtension) {
-        if (DEBUG) { Log.d(LOGTAG, "buildMediaSource uri[" + uri + "]" + ", overridedExt[" + overrideExtension + "]"); }
-        int type = Util.inferContentType(TextUtils.isEmpty(overrideExtension)
-                                         ? uri.getLastPathSegment()
-                                         : "." + overrideExtension);
-        switch (type) {
-            case C.TYPE_HLS:
-                return new HlsMediaSource(uri, mMediaDataSourceFactory, mMainHandler, null);
-            default:
-                mResourceCallbacks.onError(ResourceError.UNSUPPORTED.code());
-                throw new IllegalArgumentException("Unsupported type: " + type);
-        }
+    // To make sure that each player has a unique id, GeckoHlsPlayer should be
+    // created only from synchronized APIs in GeckoPlayerFactory.
+    public GeckoHlsPlayer() {
+        mPlayerId = sPlayerId.incrementAndGet();
+        if (DEBUG) { Log.d(LOGTAG, " construct player with id(" + mPlayerId + ")"); }
     }
 
-    GeckoHlsPlayer() {
-        if (DEBUG) { Log.d(LOGTAG, " construct"); }
+    // Should be only called by GeckoPlayerFactory and GeckoHLSResourceWrapper.
+    // The mPlayerId is used to make sure that the same GeckoHlsPlayer is used by
+    // corresponding HLSResource and HLSDemuxer for each media playback.
+    @Override
+    public int getId() {
+        return mPlayerId;
     }
 
-    void addResourceWrapperCallbackListener(ResourceCallbacks callback) {
+    @Override
+    public void addResourceWrapperCallbackListener(BaseHlsPlayer.ResourceCallbacks callback) {
         if (DEBUG) { Log.d(LOGTAG, " addResourceWrapperCallbackListener ..."); }
         mResourceCallbacks = callback;
     }
 
-    void addDemuxerWrapperCallbackListener(DemuxerCallbacks callback) {
+    @Override
+    public void addDemuxerWrapperCallbackListener(BaseHlsPlayer.DemuxerCallbacks callback) {
         if (DEBUG) { Log.d(LOGTAG, " addDemuxerWrapperCallbackListener ..."); }
         mDemuxerCallbacks = callback;
     }
@@ -299,7 +286,7 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
         if (DEBUG) { Log.d(LOGTAG, "loading [" + isLoading + "]"); }
         if (!isLoading) {
             // To update buffered position.
-            mComponentEventDispatcher.onDataArrived();
+            mComponentEventDispatcher.onDataArrived(C.TRACK_TYPE_DEFAULT);
         }
     }
 
@@ -506,9 +493,10 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
       }
 
     // =======================================================================
-    // API for GeckoHlsResourceWrapper
+    // API for GeckoHLSResourceWrapper
     // =======================================================================
-    synchronized void init(String url) {
+    @Override
+    public synchronized void init(String url) {
         if (DEBUG) { Log.d(LOGTAG, " init"); }
         assertTrue(mResourceCallbacks != null);
         if (mIsPlayerInitDone) {
@@ -539,37 +527,51 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
 
         Uri uri = Uri.parse(url);
         mMediaDataSourceFactory = buildDataSourceFactory(ctx, BANDWIDTH_METER);
-        mMediaSource = buildMediaSource(uri, null);
+        mMediaSource = new HlsMediaSource(uri, mMediaDataSourceFactory, mMainHandler, null);
+        if (DEBUG) {
+            Log.d(LOGTAG, "Uri is " + uri +
+                          ", ContentType is " + Util.inferContentType(uri.getLastPathSegment()));
+        }
 
         mPlayer.prepare(mMediaSource);
         mIsPlayerInitDone = true;
     }
 
+    @Override
     public boolean isLiveStream() {
         return !mIsTimelineStatic;
     }
 
     // =======================================================================
-    // API for GeckoHlsDemuxerWrapper
+    // API for GeckoHLSDemuxerWrapper
     // =======================================================================
-    public ConcurrentLinkedQueue<GeckoHlsSample> getVideoSamples(int number) {
-        return mVRenderer != null ? mVRenderer.getQueuedSamples(number) :
-                                    new ConcurrentLinkedQueue<GeckoHlsSample>();
+    @Override
+    public ConcurrentLinkedQueue<GeckoHLSSample> getSamples(TrackType trackType,
+                                                            int number) {
+        if (trackType == TrackType.VIDEO) {
+            return mVRenderer != null ? mVRenderer.getQueuedSamples(number) :
+                                        new ConcurrentLinkedQueue<GeckoHLSSample>();
+        } else if (trackType == TrackType.AUDIO) {
+            return mARenderer != null ? mARenderer.getQueuedSamples(number) :
+                                        new ConcurrentLinkedQueue<GeckoHLSSample>();
+        } else {
+            return new ConcurrentLinkedQueue<GeckoHLSSample>();
+        }
     }
 
-    public ConcurrentLinkedQueue<GeckoHlsSample> getAudioSamples(int number) {
-        return mARenderer != null ? mARenderer.getQueuedSamples(number) :
-                                    new ConcurrentLinkedQueue<GeckoHlsSample>();
-    }
-
+    @Override
     public long getDuration() {
         assertTrue(mPlayer != null);
+        if (isLiveStream()) {
+            return 0L;
+        }
         // Value returned by getDuration() is in milliseconds.
         long duration = mPlayer.getDuration() * 1000;
         if (DEBUG) { Log.d(LOGTAG, "getDuration : " + duration  + "(Us)"); }
         return duration;
     }
 
+    @Override
     public long getBufferedPosition() {
         assertTrue(mPlayer != null);
         // Value returned by getBufferedPosition() is in milliseconds.
@@ -578,8 +580,9 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
         return bufferedPos;
     }
 
+    @Override
     public synchronized int getNumberOfTracks(TrackType trackType) {
-        if (DEBUG) { Log.d(LOGTAG, "getNumberOfTracks"); }
+        if (DEBUG) { Log.d(LOGTAG, "getNumberOfTracks : type " + trackType); }
         assertTrue(mTracksInfo != null);
 
         if (trackType == TrackType.VIDEO) {
@@ -590,20 +593,55 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
         return 0;
     }
 
-    public Format getVideoTrackFormat(int index) {
-        if (DEBUG) { Log.d(LOGTAG, "getVideoTrackFormat"); }
+    @Override
+    public GeckoVideoInfo getVideoInfo(int index) {
+        if (DEBUG) { Log.d(LOGTAG, "getVideoInfo"); }
         assertTrue(mVRenderer != null);
         assertTrue(mTracksInfo != null);
-        return mTracksInfo.hasVideo() ? mVRenderer.getFormat(index) : null;
+        if (!mTracksInfo.hasVideo()) {
+            return null;
+        }
+        Format fmt = mVRenderer.getFormat(index);
+        if (fmt == null) {
+            return null;
+        }
+        GeckoVideoInfo vInfo = new GeckoVideoInfo(fmt.width, fmt.height,
+                                                  fmt.width, fmt.height,
+                                                  fmt.rotationDegrees, fmt.stereoMode,
+                                                  getDuration(), fmt.sampleMimeType,
+                                                  null, null);
+        return vInfo;
     }
 
-    public Format getAudioTrackFormat(int index) {
-        if (DEBUG) { Log.d(LOGTAG, "getAudioTrackFormat"); }
+    @Override
+    public GeckoAudioInfo getAudioInfo(int index) {
+        if (DEBUG) { Log.d(LOGTAG, "getAudioInfo"); }
         assertTrue(mARenderer != null);
         assertTrue(mTracksInfo != null);
-        return mTracksInfo.hasAudio() ? mARenderer.getFormat(index) : null;
+        if (!mTracksInfo.hasAudio()) {
+            return null;
+        }
+        Format fmt = mARenderer.getFormat(index);
+        if (fmt == null) {
+            return null;
+        }
+        /* According to https://github.com/google/ExoPlayer/blob
+         * /d979469659861f7fe1d39d153b90bdff1ab479cc/library/core/src/main
+         * /java/com/google/android/exoplayer2/audio/MediaCodecAudioRenderer.java#L221-L224,
+         * if the input audio format is not raw, exoplayer would assure that
+         * the sample's pcm encoding bitdepth is 16.
+         * For HLS content, it should always be 16.
+         */
+        assertTrue(!MimeTypes.AUDIO_RAW.equals(fmt.sampleMimeType));
+        // For HLS content, csd-0 is enough.
+        byte[] csd = fmt.initializationData.isEmpty() ? null : fmt.initializationData.get(0);
+        GeckoAudioInfo aInfo = new GeckoAudioInfo(fmt.sampleRate, fmt.channelCount,
+                                                  16, 0, getDuration(),
+                                                  fmt.sampleMimeType, csd);
+        return aInfo;
     }
 
+    @Override
     public boolean seek(long positionUs) {
         // positionUs : microseconds.
         // NOTE : 1) It's not possible to seek media by tracktype via ExoPlayer Interface.
@@ -634,6 +672,7 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
         return true;
     }
 
+    @Override
     public long getNextKeyFrameTime() {
         long nextKeyFrameTime = mVRenderer != null
             ? mVRenderer.getNextKeyFrameTime()
@@ -641,8 +680,9 @@ public class GeckoHlsPlayer implements ExoPlayer.EventListener {
         return nextKeyFrameTime;
     }
 
-    public void release() {
-        if (DEBUG) { Log.d(LOGTAG, "releasing  ..."); }
+    @Override
+    public synchronized void release() {
+        if (DEBUG) { Log.d(LOGTAG, "releasing  ... id : " + mPlayerId); }
         if (mPlayer != null) {
             mPlayer.removeListener(this);
             mPlayer.stop();

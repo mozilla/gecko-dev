@@ -41,7 +41,7 @@ from servo.util import delete
 
 PACKAGES = {
     'android': [
-        'target/arm-linux-androideabi/release/servo.apk',
+        'target/armv7-linux-androideabi/release/servo.apk',
     ],
     'linux': [
         'target/release/servo-tech-demo.tar.gz',
@@ -274,7 +274,11 @@ class PackageCommands(CommandBase):
                 os.remove(dmg_path)
 
             try:
-                subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
+                subprocess.check_call(['hdiutil', 'create',
+                                       '-volname', 'Servo',
+                                       '-megabytes', '900',
+                                       dmg_path,
+                                       '-srcfolder', dir_to_dmg])
             except subprocess.CalledProcessError as e:
                 print("Packaging MacOS dmg exited with return value %d" % e.returncode)
                 return e.returncode

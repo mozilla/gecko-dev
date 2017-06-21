@@ -27,15 +27,19 @@ void set_radii(int style,
         case BORDER_STYLE_RIDGE:
         case BORDER_STYLE_GROOVE:
             vRadii1.xy = radii - adjusted_widths;
-            vRadii1.zw = -widths;
+            // See comment in default branch
+            vRadii1.zw = vec2(-100.0);
             break;
         case BORDER_STYLE_DOUBLE:
             vRadii1.xy = get_radii(radii - adjusted_widths, -widths);
             vRadii1.zw = get_radii(radii - widths + adjusted_widths, -widths);
             break;
         default:
-            vRadii1.xy = -widths;
-            vRadii1.zw = -widths;
+            // These aren't needed, so we set them to some reasonably large
+            // negative value so later computations will discard them. This
+            // avoids branches and numerical issues in the fragment shader.
+            vRadii1.xy = vec2(-100.0);
+            vRadii1.zw = vec2(-100.0);
             break;
     }
 }
@@ -113,7 +117,7 @@ int select_style(int color_select, vec2 fstyle) {
 
 void main(void) {
     Primitive prim = load_primitive();
-    Border border = fetch_border(prim.prim_index);
+    Border border = fetch_border(prim.specific_prim_address);
     int sub_part = prim.user_data0;
     BorderCorners corners = get_border_corners(border, prim.local_rect);
 
@@ -267,14 +271,14 @@ void main(void) {
                                                     prim.z,
                                                     prim.layer,
                                                     prim.task,
-                                                    prim.local_rect.p0);
+                                                    prim.local_rect);
 #else
     VertexInfo vi = write_vertex(segment_rect,
                                  prim.local_clip_rect,
                                  prim.z,
                                  prim.layer,
                                  prim.task,
-                                 prim.local_rect.p0);
+                                 prim.local_rect);
 #endif
 
     vLocalPos = vi.local_pos;

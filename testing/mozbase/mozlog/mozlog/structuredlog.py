@@ -97,6 +97,7 @@ def set_default_logger(default_logger):
 
     _default_logger_name = default_logger.name
 
+
 log_levels = dict((k.upper(), v) for v, k in
                   enumerate(["critical", "error", "warning", "info", "debug"]))
 
@@ -111,6 +112,9 @@ def log_actions():
 class LoggerState(object):
 
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.handlers = []
         self.running_tests = set()
         self.suite_started = False
@@ -153,6 +157,13 @@ class StructuredLogger(object):
     def remove_handler(self, handler):
         """Remove a handler from the current logger"""
         self._state.handlers.remove(handler)
+
+    def reset_state(self):
+        """Resets the logger to a brand new state. This means all handlers
+        are removed, running tests are discarded and components are reset.
+        """
+        self._state.reset()
+        self._component_state = self._state.component_states[self.component] = ComponentState()
 
     def send_message(self, topic, command, *args):
         """Send a message to each handler configured for this logger. This
@@ -244,8 +255,9 @@ class StructuredLogger(object):
     def _ensure_suite_state(self, action, data):
         if action == 'suite_start':
             if self._state.suite_started:
+                # limit data to reduce unnecessary log bloat
                 self.error("Got second suite_start message before suite_end. " +
-                           "Logged with data: {}".format(json.dumps(data)))
+                           "Logged with data: {}".format(json.dumps(data)[:100]))
                 return False
             self._state.suite_started = True
         elif action == 'suite_end':

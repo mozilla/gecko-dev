@@ -11,7 +11,6 @@
 #include "nsPluginsDir.h"
 #include "nsPluginHost.h"
 #include "nsIBlocklistService.h"
-#include "nsIUnicodeDecoder.h"
 #include "nsIPlatformCharset.h"
 #include "nsPluginLogging.h"
 #include "nsNPAPIPlugin.h"
@@ -20,11 +19,10 @@
 #include "mozilla/Unused.h"
 #include "nsNetUtil.h"
 #include <cctype>
-#include "mozilla/dom/EncodingUtils.h"
+#include "mozilla/Encoding.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/FakePluginTagInitBinding.h"
 
-using mozilla::dom::EncodingUtils;
 using mozilla::dom::FakePluginTagInit;
 using namespace mozilla;
 
@@ -445,24 +443,10 @@ nsPluginTag::InitSandboxLevel()
 }
 
 #if !defined(XP_WIN) && !defined(XP_MACOSX)
-static nsresult ConvertToUTF8(nsIUnicodeDecoder *aUnicodeDecoder,
-                              nsAFlatCString& aString)
+static void
+ConvertToUTF8(nsAFlatCString& aString)
 {
-  int32_t numberOfBytes = aString.Length();
-  int32_t outUnicodeLen;
-  nsAutoString buffer;
-  nsresult rv = aUnicodeDecoder->GetMaxLength(aString.get(), numberOfBytes,
-                                              &outUnicodeLen);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!buffer.SetLength(outUnicodeLen, fallible))
-    return NS_ERROR_OUT_OF_MEMORY;
-  rv = aUnicodeDecoder->Convert(aString.get(), &numberOfBytes,
-                                buffer.BeginWriting(), &outUnicodeLen);
-  NS_ENSURE_SUCCESS(rv, rv);
-  buffer.SetLength(outUnicodeLen);
-  CopyUTF16toUTF8(buffer, aString);
-
-  return NS_OK;
+  Unused << UTF_8_ENCODING->DecodeWithoutBOMHandling(aString, aString);
 }
 #endif
 
@@ -471,34 +455,12 @@ nsresult nsPluginTag::EnsureMembersAreUTF8()
 #if defined(XP_WIN) || defined(XP_MACOSX)
   return NS_OK;
 #else
-  nsresult rv;
-
-  nsCOMPtr<nsIPlatformCharset> pcs =
-  do_GetService(NS_PLATFORMCHARSET_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIUnicodeDecoder> decoder;
-
-  nsAutoCString charset;
-  rv = pcs->GetCharset(kPlatformCharsetSel_FileName, charset);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!charset.LowerCaseEqualsLiteral("utf-8")) {
-    decoder = EncodingUtils::DecoderForEncoding(charset);
-    ConvertToUTF8(decoder, mFileName);
-    ConvertToUTF8(decoder, mFullPath);
-  }
-
-  // The description of the plug-in and the various MIME type descriptions
-  // should be encoded in the standard plain text file encoding for this system.
-  // XXX should we add kPlatformCharsetSel_PluginResource?
-  rv = pcs->GetCharset(kPlatformCharsetSel_PlainTextInFile, charset);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!charset.LowerCaseEqualsLiteral("utf-8")) {
-    decoder = EncodingUtils::DecoderForEncoding(charset);
-    ConvertToUTF8(decoder, mName);
-    ConvertToUTF8(decoder, mDescription);
-    for (uint32_t i = 0; i < mMimeDescriptions.Length(); ++i) {
-      ConvertToUTF8(decoder, mMimeDescriptions[i]);
-    }
+  ConvertToUTF8(mFileName);
+  ConvertToUTF8(mFullPath);
+  ConvertToUTF8(mName);
+  ConvertToUTF8(mDescription);
+  for (uint32_t i = 0; i < mMimeDescriptions.Length(); ++i) {
+    ConvertToUTF8(mMimeDescriptions[i]);
   }
   return NS_OK;
 #endif
@@ -818,10 +780,31 @@ bool nsPluginTag::IsFromExtension() const
 
 /* nsFakePluginTag */
 
+uint32_t nsFakePluginTag::sNextId;
+
 nsFakePluginTag::nsFakePluginTag()
-  : mState(nsPluginTag::ePluginState_Disabled)
+  : mId(sNextId++),
+    mState(nsPluginTag::ePluginState_Disabled)
 {
 }
+
+nsFakePluginTag::nsFakePluginTag(uint32_t aId,
+                                 already_AddRefed<nsIURI>&& aHandlerURI,
+                                 const char* aName,
+                                 const char* aDescription,
+                                 const nsTArray<nsCString>& aMimeTypes,
+                                 const nsTArray<nsCString>& aMimeDescriptions,
+                                 const nsTArray<nsCString>& aExtensions,
+                                 const nsCString& aNiceName,
+                                 const nsString& aSandboxScript)
+  : nsIInternalPluginTag(aName, aDescription, nullptr, nullptr,
+                         aMimeTypes, aMimeDescriptions, aExtensions),
+    mId(aId),
+    mHandlerURI(aHandlerURI),
+    mNiceName(aNiceName),
+    mSandboxScript(aSandboxScript),
+    mState(nsPluginTag::ePluginState_Enabled)
+{}
 
 nsFakePluginTag::~nsFakePluginTag()
 {
@@ -845,6 +828,7 @@ nsresult
 nsFakePluginTag::Create(const FakePluginTagInit& aInitDictionary,
                         nsFakePluginTag** aPluginTag)
 {
+  NS_ENSURE_TRUE(sNextId <= PR_INT32_MAX, NS_ERROR_OUT_OF_MEMORY);
   NS_ENSURE_TRUE(!aInitDictionary.mMimeEntries.IsEmpty(), NS_ERROR_INVALID_ARG);
 
   RefPtr<nsFakePluginTag> tag = new nsFakePluginTag();
@@ -858,6 +842,7 @@ nsFakePluginTag::Create(const FakePluginTagInit& aInitDictionary,
   CopyUTF16toUTF8(aInitDictionary.mDescription, tag->mDescription);
   CopyUTF16toUTF8(aInitDictionary.mFileName, tag->mFileName);
   CopyUTF16toUTF8(aInitDictionary.mVersion, tag->mVersion);
+  tag->mSandboxScript = aInitDictionary.mSandboxScript;
 
   for (const FakePluginMimeEntry& mimeEntry : aInitDictionary.mMimeEntries) {
     CopyUTF16toUTF8(mimeEntry.mType, *tag->mMimeTypes.AppendElement());
@@ -881,6 +866,13 @@ NS_IMETHODIMP
 nsFakePluginTag::GetHandlerURI(nsIURI **aResult)
 {
   NS_IF_ADDREF(*aResult = mHandlerURI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFakePluginTag::GetSandboxScript(nsAString& aSandboxScript)
+{
+  aSandboxScript = mSandboxScript;
   return NS_OK;
 }
 
@@ -1038,5 +1030,12 @@ NS_IMETHODIMP
 nsFakePluginTag::GetLoaded(bool* ret)
 {
   *ret = true;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFakePluginTag::GetId(uint32_t* aId)
+{
+  *aId = mId;
   return NS_OK;
 }

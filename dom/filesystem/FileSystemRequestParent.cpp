@@ -86,7 +86,7 @@ public:
     , mActor(aActor)
     , mTask(aTask)
     , mPath(aPath)
-    , mBackgroundEventTarget(NS_GetCurrentThread())
+    , mBackgroundEventTarget(GetCurrentThreadEventTarget())
   {
     AssertIsInMainProcess();
     AssertIsOnBackgroundThread();
@@ -131,7 +131,8 @@ public:
 private:
   ~CheckPermissionRunnable()
   {
-     NS_ProxyRelease(mBackgroundEventTarget, mActor.forget());
+     NS_ProxyRelease(
+       "CheckPermissionRunnable::mActor", mBackgroundEventTarget, mActor.forget());
   }
 
   RefPtr<ContentParent> mContentParent;

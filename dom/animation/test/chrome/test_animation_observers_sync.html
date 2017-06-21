@@ -77,7 +77,8 @@ function assert_equals_records(actual, expected, desc) {
 // Create a pseudo element
 function createPseudo(test, element, type) {
   addStyle(test, { '@keyframes anim': '',
-                   ['.pseudo::' + type]: 'animation: anim 10s;' });
+                   ['.pseudo::' + type]: 'animation: anim 10s; ' +
+                                         'content: \'\';'  });
   element.classList.add('pseudo');
   var anims = document.getAnimations();
   assert_true(anims.length >= 1);
@@ -407,73 +408,6 @@ function runTest() {
         [{ added: [], changed: [], removed: [anim] }],
         "records after replacing effects");
     }, "replace_effect_targeting_on_the_same_element_not_in_effect");
-
-    test(t => {
-      var div = addDiv(t);
-      var observer =
-        setupSynchronousObserver(t,
-                                 aOptions.subtree ? div.parentNode : div,
-                                 aOptions.subtree);
-
-      var anim = div.animate([ { marginLeft: "0px" },
-                               { marginLeft: "-20px" },
-                               { marginLeft: "100px" },
-                               { marginLeft: "50px" } ],
-                             { duration: 100 * MS_PER_SEC });
-      assert_equals_records(observer.takeRecords(),
-        [{ added: [anim], changed: [], removed: [] }],
-        "records after animation is added");
-
-      anim.effect.spacing = "paced(margin-left)";
-      assert_equals_records(observer.takeRecords(),
-        [{ added: [], changed: [anim], removed: [] }],
-        "records after animation is changed");
-    }, "set_spacing");
-
-    test(t => {
-      var div = addDiv(t);
-      var observer =
-        setupSynchronousObserver(t,
-                                 aOptions.subtree ? div.parentNode : div,
-                                 aOptions.subtree);
-
-      var anim = div.animate([ { marginLeft: "0px" },
-                               { marginLeft: "-20px" },
-                               { marginLeft: "100px" },
-                               { marginLeft: "50px" } ],
-                             { duration: 100 * MS_PER_SEC,
-                               spacing: "paced(margin-left)" });
-      assert_equals_records(observer.takeRecords(),
-        [{ added: [anim], changed: [], removed: [] }],
-        "records after animation is added");
-
-      anim.effect.spacing = "paced(animation-duration)";
-      assert_equals_records(observer.takeRecords(),
-        [{ added: [], changed: [anim], removed: [] }],
-        "records after setting a non-animatable paced property");
-    }, "set_spacing_on_a_non-animatable_property");
-
-    test(t => {
-      var div = addDiv(t);
-      var observer =
-        setupSynchronousObserver(t,
-                                 aOptions.subtree ? div.parentNode : div,
-                                 aOptions.subtree);
-
-      var anim = div.animate([ { marginLeft: "0px" },
-                               { marginLeft: "-20px" },
-                               { marginLeft: "100px" },
-                               { marginLeft: "50px" } ],
-                             { duration: 100 * MS_PER_SEC,
-                               spacing: "paced(margin-left)" });
-      assert_equals_records(observer.takeRecords(),
-        [{ added: [anim], changed: [], removed: [] }],
-        "records after animation is added");
-
-      anim.effect.spacing = "paced(margin-left)";
-      assert_equals_records(observer.takeRecords(),
-        [], "no record after setting the same spacing");
-    }, "set_the_same_spacing");
 
     test(t => {
       var div = addDiv(t);

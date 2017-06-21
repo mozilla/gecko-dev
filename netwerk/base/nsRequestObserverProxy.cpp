@@ -176,8 +176,10 @@ NS_IMETHODIMP
 nsRequestObserverProxy::Init(nsIRequestObserver *observer, nsISupports *context)
 {
     NS_ENSURE_ARG_POINTER(observer);
-    mObserver = new nsMainThreadPtrHolder<nsIRequestObserver>(observer);
-    mContext = new nsMainThreadPtrHolder<nsISupports>(context);
+    mObserver = new nsMainThreadPtrHolder<nsIRequestObserver>(
+      "nsRequestObserverProxy::mObserver", observer);
+    mContext = new nsMainThreadPtrHolder<nsISupports>(
+      "nsRequestObserverProxy::mContext", context);
 
     return NS_OK;
 }
@@ -189,7 +191,7 @@ nsRequestObserverProxy::Init(nsIRequestObserver *observer, nsISupports *context)
 nsresult
 nsRequestObserverProxy::FireEvent(nsARequestObserverEvent *event)
 {
-    nsCOMPtr<nsIEventTarget> mainThread(do_GetMainThread());
+    nsCOMPtr<nsIEventTarget> mainThread(GetMainThreadEventTarget());
     return mainThread->Dispatch(event, NS_DISPATCH_NORMAL);
 }
 

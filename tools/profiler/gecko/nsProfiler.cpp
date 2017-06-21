@@ -23,8 +23,9 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/TypedArray.h"
-#include "ProfileGatherer.h"
 #include "nsLocalFile.h"
+#include "nsThreadUtils.h"
+#include "ProfilerParent.h"
 #include "platform.h"
 
 using namespace mozilla;
@@ -37,13 +38,9 @@ NS_IMPL_ISUPPORTS(nsProfiler, nsIProfiler)
 
 nsProfiler::nsProfiler()
   : mLockedForPrivateBrowsing(false)
+  , mPendingProfiles(0)
+  , mGathering(false)
 {
-  // If MOZ_PROFILER_STARTUP is set, the profiler will already be running. We
-  // need to create a ProfileGatherer in that case.
-  // XXX: this is probably not the best approach. See bug 1356694 for details.
-  if (profiler_is_active()) {
-    mGatherer = new ProfileGatherer();
-  }
 }
 
 nsProfiler::~nsProfiler()
@@ -125,10 +122,9 @@ nsProfiler::StartProfiler(uint32_t aEntries, double aInterval,
 
   #undef ADD_FEATURE_BIT
 
-  profiler_start(aEntries, aInterval, features, aFilters, aFilterCount);
+  ResetGathering();
 
-  // Do this after profiler_start().
-  mGatherer = new ProfileGatherer();
+  profiler_start(aEntries, aInterval, features, aFilters, aFilterCount);
 
   return NS_OK;
 }
@@ -136,8 +132,12 @@ nsProfiler::StartProfiler(uint32_t aEntries, double aInterval,
 NS_IMETHODIMP
 nsProfiler::StopProfiler()
 {
-  // Do this before profiler_stop().
-  mGatherer = nullptr;
+  // If we have a Promise in flight, we should reject it.
+  if (mPromiseHolder.isSome()) {
+    mPromiseHolder->RejectIfExists(NS_ERROR_DOM_ABORT_ERR, __func__);
+  }
+  mExitProfiles.Clear();
+  ResetGathering();
 
   profiler_stop();
 
@@ -253,7 +253,7 @@ nsProfiler::GetProfileDataAsync(double aSinceTime, JSContext* aCx,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!mGatherer) {
+  if (!profiler_is_active()) {
     return NS_ERROR_FAILURE;
   }
 
@@ -274,8 +274,8 @@ nsProfiler::GetProfileDataAsync(double aSinceTime, JSContext* aCx,
     return result.StealNSResult();
   }
 
-  mGatherer->Start(aSinceTime)->Then(
-    AbstractThread::MainThread(), __func__,
+  StartGathering(aSinceTime)->Then(
+    GetMainThreadSerialEventTarget(), __func__,
     [promise](nsCString aResult) {
       AutoJSAPI jsapi;
       if (NS_WARN_IF(!jsapi.Init(promise->GlobalJSObject()))) {
@@ -321,7 +321,7 @@ nsProfiler::GetProfileDataAsArrayBuffer(double aSinceTime, JSContext* aCx,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!mGatherer) {
+  if (!profiler_is_active()) {
     return NS_ERROR_FAILURE;
   }
 
@@ -342,8 +342,8 @@ nsProfiler::GetProfileDataAsArrayBuffer(double aSinceTime, JSContext* aCx,
     return result.StealNSResult();
   }
 
-  mGatherer->Start(aSinceTime)->Then(
-    AbstractThread::MainThread(), __func__,
+  StartGathering(aSinceTime)->Then(
+    GetMainThreadSerialEventTarget(), __func__,
     [promise](nsCString aResult) {
       AutoJSAPI jsapi;
       if (NS_WARN_IF(!jsapi.Init(promise->GlobalJSObject()))) {
@@ -377,14 +377,14 @@ nsProfiler::DumpProfileToFileAsync(const nsACString& aFilename,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!mGatherer) {
+  if (!profiler_is_active()) {
     return NS_ERROR_FAILURE;
   }
 
   nsCString filename(aFilename);
 
-  mGatherer->Start(aSinceTime)->Then(
-    AbstractThread::MainThread(), __func__,
+  StartGathering(aSinceTime)->Then(
+    GetMainThreadSerialEventTarget(), __func__,
     [filename](const nsCString& aResult) {
       nsCOMPtr<nsIFile> file = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
       nsresult rv = file->InitWithNativePath(filename);
@@ -418,13 +418,12 @@ nsProfiler::IsActive(bool *aIsActive)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsProfiler::GetFeatures(uint32_t* aCount, char*** aFeatureList)
+static void
+GetArrayOfStringsForFeatures(uint32_t aFeatures,
+                             uint32_t* aCount, char*** aFeatureList)
 {
-  uint32_t features = profiler_get_available_features();
-
   #define COUNT_IF_SET(n_, str_, Name_) \
-    if (ProfilerFeature::Has##Name_(features)) { \
+    if (ProfilerFeature::Has##Name_(aFeatures)) { \
       len++; \
     }
 
@@ -437,7 +436,7 @@ nsProfiler::GetFeatures(uint32_t* aCount, char*** aFeatureList)
   auto featureList = static_cast<char**>(moz_xmalloc(len * sizeof(char*)));
 
   #define DUP_IF_SET(n_, str_, Name_) \
-    if (ProfilerFeature::Has##Name_(features)) { \
+    if (ProfilerFeature::Has##Name_(aFeatures)) { \
       size_t strLen = strlen(str_); \
       featureList[i] = static_cast<char*>( \
         nsMemory::Clone(str_, (strLen + 1) * sizeof(char))); \
@@ -448,10 +447,24 @@ nsProfiler::GetFeatures(uint32_t* aCount, char*** aFeatureList)
   size_t i = 0;
   PROFILER_FOR_EACH_FEATURE(DUP_IF_SET)
 
-  #undef STRDUP_IF_SET
+  #undef DUP_IF_SET
 
   *aFeatureList = featureList;
   *aCount = len;
+}
+
+NS_IMETHODIMP
+nsProfiler::GetFeatures(uint32_t* aCount, char*** aFeatureList)
+{
+  uint32_t features = profiler_get_available_features();
+  GetArrayOfStringsForFeatures(features, aCount, aFeatureList);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsProfiler::GetAllFeatures(uint32_t* aCount, char*** aFeatureList)
+{
+  GetArrayOfStringsForFeatures((uint32_t)-1, aCount, aFeatureList);
   return NS_OK;
 }
 
@@ -496,21 +509,156 @@ nsProfiler::GatheredOOPProfile(const nsACString& aProfile)
 {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
-  if (!mGatherer) {
+  if (!profiler_is_active()) {
     return;
   }
 
-  mGatherer->GatheredOOPProfile(aProfile);
+  if (!mGathering) {
+    // If we're not actively gathering, then we don't actually care that we
+    // gathered a profile here. This can happen for processes that exit while
+    // profiling.
+    return;
+  }
+
+  MOZ_RELEASE_ASSERT(mWriter.isSome(),
+                     "Should always have a writer if mGathering is true");
+
+  if (!aProfile.IsEmpty()) {
+    mWriter->Splice(PromiseFlatCString(aProfile).get());
+  }
+
+  mPendingProfiles--;
+
+  if (mPendingProfiles == 0) {
+    // We've got all of the async profiles now. Let's
+    // finish off the profile and resolve the Promise.
+    FinishGathering();
+  }
 }
+
+// When a subprocess exits before we've gathered profiles, we'll store profiles
+// for those processes until gathering starts. We'll only store up to
+// MAX_SUBPROCESS_EXIT_PROFILES. The buffer is circular, so as soon as we
+// receive another exit profile, we'll bump the oldest one out of the buffer.
+static const uint32_t MAX_SUBPROCESS_EXIT_PROFILES = 5;
 
 void
 nsProfiler::ReceiveShutdownProfile(const nsCString& aProfile)
 {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
-  if (!mGatherer) {
+  if (!profiler_is_active()) {
     return;
   }
 
-  mGatherer->OOPExitProfile(aProfile);
+  // Append the exit profile to mExitProfiles so that it can be picked up the
+  // next time a profile is requested. If we're currently gathering a profile,
+  // do not add this exit profile to it; chances are that we already have a
+  // profile from the exiting process and we don't want another one.
+  // We only keep around at most MAX_SUBPROCESS_EXIT_PROFILES exit profiles.
+  if (mExitProfiles.Length() >= MAX_SUBPROCESS_EXIT_PROFILES) {
+    mExitProfiles.RemoveElementAt(0);
+  }
+  mExitProfiles.AppendElement(aProfile);
 }
+
+RefPtr<nsProfiler::GatheringPromise>
+nsProfiler::StartGathering(double aSinceTime)
+{
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
+  if (mGathering) {
+    // If we're already gathering, return a rejected promise - this isn't
+    // going to end well.
+    return GatheringPromise::CreateAndReject(NS_ERROR_NOT_AVAILABLE, __func__);
+  }
+
+  mGathering = true;
+
+  // Request profiles from the other processes. This will trigger asynchronous
+  // calls to ProfileGatherer::GatheredOOPProfile as the profiles arrive.
+  //
+  // Do this before the call to profiler_stream_json_for_this_process() because
+  // that call is slow and we want to let the other processes grab their
+  // profiles as soon as possible.
+  nsTArray<RefPtr<ProfilerParent::SingleProcessProfilePromise>> profiles =
+    ProfilerParent::GatherProfiles();
+
+  mWriter.emplace();
+
+  // Start building up the JSON result and grab the profile from this process.
+  mWriter->Start(SpliceableJSONWriter::SingleLineStyle);
+  if (!profiler_stream_json_for_this_process(*mWriter, aSinceTime)) {
+    // The profiler is inactive. This either means that it was inactive even
+    // at the time that ProfileGatherer::Start() was called, or that it was
+    // stopped on a different thread since that call. Either way, we need to
+    // reject the promise and stop gathering.
+    return GatheringPromise::CreateAndReject(NS_ERROR_NOT_AVAILABLE, __func__);
+  }
+
+  mWriter->StartArrayProperty("processes");
+
+  // If we have any process exit profiles, add them immediately, and clear
+  // mExitProfiles.
+  for (size_t i = 0; i < mExitProfiles.Length(); ++i) {
+    if (!mExitProfiles[i].IsEmpty()) {
+      mWriter->Splice(mExitProfiles[i].get());
+    }
+  }
+  mExitProfiles.Clear();
+
+  mPromiseHolder.emplace();
+  RefPtr<GatheringPromise> promise = mPromiseHolder->Ensure(__func__);
+
+  // Keep the array property "processes" and the root object in mWriter open
+  // until FinishGathering() is called. As profiles from the other processes
+  // come in, they will be inserted and end up in the right spot.
+  // FinishGathering() will close the array and the root object.
+
+  mPendingProfiles = profiles.Length();
+  RefPtr<nsProfiler> self = this;
+  for (auto profile : profiles) {
+    profile->Then(GetMainThreadSerialEventTarget(), __func__,
+      [self](const nsCString& aResult) {
+        self->GatheredOOPProfile(aResult);
+      },
+      [self](ipc::PromiseRejectReason aReason) {
+        self->GatheredOOPProfile(NS_LITERAL_CSTRING(""));
+      });
+  }
+  if (!mPendingProfiles) {
+    FinishGathering();
+  }
+
+  return promise;
+}
+
+void
+nsProfiler::FinishGathering()
+{
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(mWriter.isSome());
+  MOZ_RELEASE_ASSERT(mPromiseHolder.isSome());
+
+  // Close the "processes" array property.
+  mWriter->EndArray();
+
+  // Close the root object of the generated JSON.
+  mWriter->End();
+
+  UniquePtr<char[]> buf = mWriter->WriteFunc()->CopyData();
+  nsCString result(buf.get());
+  mPromiseHolder->Resolve(result, __func__);
+
+  ResetGathering();
+}
+
+void
+nsProfiler::ResetGathering()
+{
+  mPromiseHolder.reset();
+  mPendingProfiles = 0;
+  mGathering = false;
+  mWriter.reset();
+}
+

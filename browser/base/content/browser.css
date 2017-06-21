@@ -113,7 +113,8 @@ panelview:not([mainview]):not([current]) {
   visibility: collapse;
 }
 
-panelview[mainview] > .panel-header {
+panelview[mainview] > .panel-header,
+panelview:not([title]) > .panel-header {
   display: none;
 }
 
@@ -135,16 +136,6 @@ tabbrowser {
 
 #tabbrowser-tabs:not([overflow="true"])[using-closing-tabs-spacer] ~ #alltabs-button {
   visibility: hidden; /* temporary space to keep a tab's close button under the cursor */
-}
-
-.tabs-newtab-button > .toolbarbutton-menu-dropmarker,
-#new-tab-button > .toolbarbutton-menu-dropmarker {
-  display: none;
-}
-
-/* override drop marker image padding */
-.tabs-newtab-button > .toolbarbutton-icon {
-  margin-inline-end: 0;
 }
 
 .tabbrowser-tab {
@@ -1063,7 +1054,54 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > #downloads-
   -moz-image-region: auto;
 }
 
-%ifndef MOZ_WIDGET_GTK
+%ifdef MOZ_WIDGET_COCOA
+
+/* On Mac, use the properties "-moz-window-transform" and "-moz-window-opacity"
+   instead of "transform" and "opacity" for these animations.
+   The -moz-window* properties apply to the whole window including the window's
+   shadow, and they don't affect the window's "shape", so the system doesn't
+   have to recompute the shadow shape during the animation. This makes them a
+   lot faster. In fact, Gecko no longer triggers shadow shape recomputations
+   for repaints.
+   These properties are not implemented on other platforms. */
+#BMB_bookmarksPopup {
+  -moz-window-transform: scale(.4);
+  -moz-window-opacity: 0;
+  transition-property: -moz-window-transform, -moz-window-opacity;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-out;
+}
+
+#BMB_bookmarksPopup[animate="open"] {
+  -moz-window-transform: none;
+  -moz-window-opacity: 1.0;
+}
+
+#BMB_bookmarksPopup[animate="cancel"] {
+  -moz-window-transform: none;
+}
+
+#BMB_bookmarksPopup[arrowposition="after_start"]:-moz-locale-dir(ltr),
+#BMB_bookmarksPopup[arrowposition="after_end"]:-moz-locale-dir(rtl) {
+  -moz-window-transform-origin: 20px top;
+}
+
+#BMB_bookmarksPopup[arrowposition="after_end"]:-moz-locale-dir(ltr),
+#BMB_bookmarksPopup[arrowposition="after_start"]:-moz-locale-dir(rtl) {
+  -moz-window-transform-origin: calc(100% - 20px) top;
+}
+
+#BMB_bookmarksPopup[arrowposition="before_start"]:-moz-locale-dir(ltr),
+#BMB_bookmarksPopup[arrowposition="before_end"]:-moz-locale-dir(rtl) {
+  -moz-window-transform-origin: 20px bottom;
+}
+
+#BMB_bookmarksPopup[arrowposition="before_end"]:-moz-locale-dir(ltr),
+#BMB_bookmarksPopup[arrowposition="before_start"]:-moz-locale-dir(rtl) {
+  -moz-window-transform-origin: calc(100% - 20px) bottom;
+}
+
+%elifndef MOZ_WIDGET_GTK
 
 #BMB_bookmarksPopup {
   transform: scale(.4);
@@ -1101,7 +1139,6 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > #downloads-
 #BMB_bookmarksPopup[arrowposition="before_start"]:-moz-locale-dir(rtl) {
   transform-origin: calc(100% - 20px) bottom;
 }
-
 %endif
 
 /* Customize mode */
@@ -1334,9 +1371,9 @@ toolbarpaletteitem[place="palette"][hidden] {
 }
 
 /* Page action menu */
-#page-action-sendToDeviceView-body[signedin] > #page-action-sendToDevice-fxa-button,
-#page-action-sendToDeviceView-body:not([signedin]) > #page-action-no-devices-button,
-#page-action-sendToDeviceView-body[hasdevices] > #page-action-no-devices-button {
+#page-action-sendToDeviceView-body:not([state="notsignedin"]) > #page-action-sendToDevice-fxa-button,
+#page-action-sendToDeviceView-body:not([state="nodevice"]) > #page-action-no-devices-button,
+#page-action-sendToDeviceView-body:not([state="notready"]) > #page-action-sync-not-ready-button {
   display: none;
 }
 

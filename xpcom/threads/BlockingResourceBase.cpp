@@ -301,11 +301,12 @@ BlockingResourceBase::CheckAcquire()
     out.AppendLiteral("\nDeadlock may happen for some other execution\n\n");
   }
 
-  // XXX can customize behavior on whether we /think/ deadlock is
-  // XXX about to happen.  for example:
-  // XXX   if (maybeImminent)
-  //           NS_RUNTIMEABORT(out.get());
-  NS_ERROR(out.get());
+  // Only error out if we think a deadlock is imminent.
+  if (maybeImminent) {
+    NS_ERROR(out.get());
+  } else {
+    NS_WARNING(out.get());
+  }
 }
 
 
@@ -506,7 +507,7 @@ ReentrantMonitor::Wait(PRIntervalTime aInterval)
   nsresult rv;
 #if defined(MOZILLA_INTERNAL_API)
   {
-    GeckoProfilerThreadSleepRAII sleep;
+    AutoProfilerThreadSleep sleep;
 #endif //MOZILLA_INTERNAL_API
 
     // give up the monitor until we're back from Wait()

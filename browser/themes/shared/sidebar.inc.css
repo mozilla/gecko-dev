@@ -4,22 +4,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 %endif
 
-#sidebar-box {
-  --header-background-color: #F2F2F2;
-  --header-background-color-hover: rgba(204, 204, 204, 0.6);
-}
-
 .sidebar-header,
 #sidebar-header {
-  padding: 4px;
-  background-color: var(--header-background-color);
+  font-size: 1.333em;
+  font-weight: lighter;
+  padding: 8px;
   color: -moz-dialogText;
   text-shadow: none;
 }
 
 .sidebar-splitter {
   -moz-appearance: none;
-  border: 0 solid #ccc;
+  border: 0 solid;
   border-inline-end-width: 1px;
   min-width: 1px;
   width: 3px;
@@ -29,7 +25,7 @@
   position: relative;
 }
 
-#appcontent ~ .sidebar-splitter {
+.sidebar-splitter[overlapend] {
   border-inline-end-width: 0;
   border-inline-start-width: 1px;
   margin-inline-start: 0;
@@ -55,7 +51,6 @@
   padding-inline-end: 4px;
 }
 
-#sidebar-icon,
 #sidebar-switcher-arrow,
 #sidebar-close > .toolbarbutton-icon {
   -moz-context-properties: fill;
@@ -74,18 +69,36 @@
   list-style-image: url(chrome://browser/skin/sidebar/close.svg);
   margin: 0;
   padding: 4px;
+  border-radius: 4px;
 }
 
 #sidebar-switcher-target {
   -moz-appearance: none;
-  padding: 4px;
   color: inherit;
+  margin-inline-end: 4px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  padding: 2px 4px;
 }
 
-#sidebar-box #sidebar-switcher-target:hover,
-#sidebar-switcher-target.active,
+#sidebar-switcher-target:hover,
 #sidebar-close:hover {
-  background: var(--header-background-color-hover);
+  background: hsla(240, 5%, 5%, 0.05);
+}
+
+#sidebar-switcher-target:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+#sidebar-close:hover:active,
+#sidebar-switcher-target:hover:active,
+#sidebar-switcher-target.active {
+  background: hsla(240, 5%, 5%, 0.1);
+}
+
+#sidebar-switcher-target:hover:active,
+#sidebar-switcher-target.active {
+  border-color: rgba(0, 0, 0, 0.25);
 }
 
 #sidebarMenu-popup .subviewbutton {
@@ -106,19 +119,31 @@
 }
 %endif
 
-/* Use bookmarks star as default icon for the sidebar box (including when opening a web page) */
+
+#sidebar-box[sidebarcommand="viewWebPanelsSidebar"] > #sidebar-header > #sidebar-switcher-target > #sidebar-icon {
+  list-style-image: url(chrome://mozapps/skin/places/defaultFavicon.svg);
+}
+
 #sidebar-switcher-bookmarks > .toolbarbutton-icon,
-#sidebar-box[sidebarcommand="viewWebPanelsSidebar"] > #sidebar-header > #sidebar-switcher-target > #sidebar-icon,
 #sidebar-box[sidebarcommand="viewBookmarksSidebar"] > #sidebar-header > #sidebar-switcher-target > #sidebar-icon {
   list-style-image: url(chrome://browser/skin/bookmark.svg);
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.8;
 }
 
 #sidebar-switcher-history > .toolbarbutton-icon,
 #sidebar-box[sidebarcommand="viewHistorySidebar"] > #sidebar-header > #sidebar-switcher-target > #sidebar-icon {
   list-style-image: url(chrome://browser/skin/history.svg);
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.8;
 }
 
 #sidebar-switcher-tabs > .toolbarbutton-icon,
 #sidebar-box[sidebarcommand="viewTabsSidebar"] > #sidebar-header > #sidebar-switcher-target > #sidebar-icon {
-  list-style-image: url(chrome://browser/skin/sync.svg);
+  list-style-image: url(chrome://browser/skin/synced-tabs.svg);
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.8;
 }

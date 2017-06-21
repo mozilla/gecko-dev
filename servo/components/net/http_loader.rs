@@ -53,7 +53,7 @@ use unicase::UniCase;
 use uuid;
 
 fn read_block<R: Read>(reader: &mut R) -> Result<Data, ()> {
-    let mut buf = vec![0; 1024];
+    let mut buf = vec![0; 32768];
 
     match reader.read(&mut buf) {
         Ok(len) if len > 0 => {
@@ -317,7 +317,7 @@ impl StreamedResponse {
     fn from_http_response(response: WrappedHttpResponse) -> io::Result<StreamedResponse> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
-                Decoder::Gzip(try!(GzDecoder::new(response)))
+                Decoder::Gzip(GzDecoder::new(response)?)
             }
             Some(Encoding::Deflate) => {
                 Decoder::Deflate(DeflateDecoder::new(response))
@@ -674,14 +674,14 @@ pub fn http_fetch(request: &mut Request,
 }
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
-fn http_redirect_fetch(request: &mut Request,
-                       cache: &mut CorsCache,
-                       response: Response,
-                       cors_flag: bool,
-                       target: Target,
-                       done_chan: &mut DoneChannel,
-                       context: &FetchContext)
-                       -> Response {
+pub fn http_redirect_fetch(request: &mut Request,
+                           cache: &mut CorsCache,
+                           response: Response,
+                           cors_flag: bool,
+                           target: Target,
+                           done_chan: &mut DoneChannel,
+                           context: &FetchContext)
+                           -> Response {
     // Step 1
     assert!(response.return_internal);
 
@@ -749,8 +749,10 @@ fn http_redirect_fetch(request: &mut Request,
     // Step 12
     // TODO implement referrer policy
 
+    let recursive_flag = request.redirect_mode != RedirectMode::Manual;
+
     // Step 13
-    main_fetch(request, cache, cors_flag, true, target, done_chan, context)
+    main_fetch(request, cache, cors_flag, recursive_flag, target, done_chan, context)
 }
 
 fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<HyperOrigin> {
@@ -1108,6 +1110,7 @@ fn http_network_fetch(request: &Request,
                                 res.response.status_raw().1.as_bytes().to_vec()));
     response.headers = res.response.headers.clone();
     response.referrer = request.referrer.to_url().cloned();
+    response.referrer_policy = request.referrer_policy.clone();
 
     let res_body = response.body.clone();
 
@@ -1337,7 +1340,7 @@ fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
     let origin = response.headers.get::<AccessControlAllowOrigin>().cloned();
 
     // Step 2
-    let origin = try!(origin.ok_or(()));
+    let origin = origin.ok_or(())?;
 
     // Step 3
     if request.credentials_mode != CredentialsMode::Include &&

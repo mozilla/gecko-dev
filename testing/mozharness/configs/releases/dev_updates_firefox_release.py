@@ -21,7 +21,7 @@ config = {
     "previous_archive_prefix": "https://archive.mozilla.org/pub",
     "download_domain": "download.mozilla.org",
     "balrog_url": "http://ec2-54-241-39-23.us-west-1.compute.amazonaws.com",
-    "balrog_username": "stage-ffxbld",
+    "balrog_username": "balrog-stage-ffxbld",
     "update_channels": {
         "beta-dev": {
             "version_regex": r"^(\d+\.\d+(b\d+)?)$",
@@ -33,7 +33,8 @@ config = {
             ],
             "channel_names": ["beta-dev", "beta-dev-localtest", "beta-dev-cdntest"],
             "rules_to_update": ["firefox-beta-dev-cdntest", "firefox-beta-dev-localtest"],
-             "publish_rules": ["firefox-beta"],
+            "publish_rules": ["firefox-beta"],
+            "schedule_asap": True,
         },
         "release-dev": {
             "version_regex": r"^\d+\.\d+(\.\d+)?$",

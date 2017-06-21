@@ -817,11 +817,11 @@
                   this.mBrowser.mIconURL = null;
                 }
 
-                let unifiedComplete = this.mTabBrowser._unifiedComplete;
                 let userContextId = this.mBrowser.getAttribute("usercontextid") || 0;
                 if (this.mBrowser.registeredOpenURI) {
-                  unifiedComplete.unregisterOpenPage(this.mBrowser.registeredOpenURI,
-                                                     userContextId);
+                  this.mTabBrowser._unifiedComplete
+                                  .unregisterOpenPage(this.mBrowser.registeredOpenURI,
+                                                      userContextId);
                   delete this.mBrowser.registeredOpenURI;
                 }
                 // Tabs in private windows aren't registered as "Open" so
@@ -829,7 +829,8 @@
                 if (!isBlankPageURL(aLocation.spec) &&
                     (!PrivateBrowsingUtils.isWindowPrivate(window) ||
                     PrivateBrowsingUtils.permanentPrivateBrowsing)) {
-                  unifiedComplete.registerOpenPage(aLocation, userContextId);
+                  this.mTabBrowser._unifiedComplete
+                                  .registerOpenPage(aLocation, userContextId);
                   this.mBrowser.registeredOpenURI = aLocation;
                 }
               }
@@ -1444,12 +1445,41 @@
         <parameter name="aTitle"/>
         <parameter name="aOptions"/>
         <body><![CDATA[
-          if (aTitle) {
+          // If we don't have the content title yet, aTitle is a URI. Set its hostname
+          // as the label so that the tab isn't empty while the content is loading.
+          const label = aOptions && aOptions.isContentTitle
+                        ? aTitle
+                        : getHostnameWithoutWWW(aTitle, this.mURIFixup);
+
+          if (label) {
             // Don't replace the set label with the empty tab label or the URL
             // while the tab is loading.
             aTab._suppressTransientPlaceholderLabel = true;
 
-            this._setTabLabel(aTab, aTitle, aOptions);
+            this._setTabLabel(aTab, label, aOptions);
+          }
+
+          function getHostnameWithoutWWW(uri, URIFixup) {
+            // about: pages don't have hostnames, so we can bail early here.
+            if (uri.startsWith("about:")) {
+              return uri;
+            }
+
+            // Some tests pass in values that are not valid URLs, such as
+            // "example.com" with no scheme. Just show whatever was passed in
+            // until we know the page's actual title.
+            let hostname;
+            try {
+              const fixedURI = URIFixup.createFixupURI(uri, URIFixup.FIXUP_FLAG_NONE);
+              hostname = fixedURI.host;
+            } catch (e) {
+            }
+
+            if (!hostname) {
+              return uri;
+            }
+
+            return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
           }
         ]]></body>
       </method>
@@ -1514,7 +1544,12 @@
               return false;
             }
 
+            let dwu = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                            .getInterface(Ci.nsIDOMWindowUtils);
+            let isRTL = dwu.getDirectionFromText(aLabel) == Ci.nsIDOMWindowUtils.DIRECTION_RTL;
+
             aTab.setAttribute("label", aLabel);
+            aTab.setAttribute("labeldirection", isRTL ? "rtl" : "ltr");
             aTab._labelIsContentTitle = aOptions && aOptions.isContentTitle;
 
             // Dispatch TabAttrModified event unless we're setting the label
@@ -1558,6 +1593,7 @@
             var aCreateLazyBrowser;
             var aNextTabParentId;
             var aFocusUrlBar;
+            var aName;
             if (arguments.length == 2 &&
                 typeof arguments[1] == "object" &&
                 !(arguments[1] instanceof Ci.nsIURI)) {
@@ -1584,6 +1620,7 @@
               aCreateLazyBrowser        = params.createLazyBrowser;
               aNextTabParentId          = params.nextTabParentId;
               aFocusUrlBar              = params.focusUrlBar;
+              aName                     = params.name;
             }
 
             var bgLoad = (aLoadInBackground != null) ? aLoadInBackground :
@@ -1612,7 +1649,8 @@
                                   opener: aOpener,
                                   isPrerendered: aIsPrerendered,
                                   nextTabParentId: aNextTabParentId,
-                                  focusUrlBar: aFocusUrlBar });
+                                  focusUrlBar: aFocusUrlBar,
+                                  name: aName });
             if (!bgLoad)
               this.selectedTab = tab;
 
@@ -2058,6 +2096,14 @@
               b.sameProcessAsFrameLoader = aParams.sameProcessAsFrameLoader;
             }
 
+            // This will be used by gecko to control the name of the opened
+            // window.
+            if (aParams.name) {
+              // XXX: The `name` property is special in HTML and XUL. Should
+              // we use a different attribute name for this?
+              b.setAttribute("name", aParams.name);
+            }
+
             // Create the browserStack container
             var stack = document.createElementNS(NS_XUL, "stack");
             stack.className = "browserStack";
@@ -2318,6 +2364,7 @@
             var aNextTabParentId;
             var aNoInitialLabel;
             var aFocusUrlBar;
+            var aName;
             if (arguments.length == 2 &&
                 typeof arguments[1] == "object" &&
                 !(arguments[1] instanceof Ci.nsIURI)) {
@@ -2348,6 +2395,7 @@
               aNextTabParentId          = params.nextTabParentId;
               aNoInitialLabel           = params.noInitialLabel;
               aFocusUrlBar              = params.focusUrlBar;
+              aName                     = params.name;
             }
 
             // if we're adding tabs, we're past interrupt mode, ditch the owner
@@ -2474,7 +2522,8 @@
                                         sameProcessAsFrameLoader: aSameProcessAsFrameLoader,
                                         opener: aOpener,
                                         isPrerendered: aIsPrerendered,
-                                        nextTabParentId: aNextTabParentId });
+                                        nextTabParentId: aNextTabParentId,
+                                        name: aName });
             }
 
             t.linkedBrowser = b;
@@ -2862,7 +2911,7 @@
             }
 
             // Mute audio immediately to improve perceived speed of tab closure.
-            if (aTab.hasAttribute("soundplaying")) {
+            if (!aAdoptedByTab && aTab.hasAttribute("soundplaying")) {
               // Don't persist the muted state as this wasn't a user action.
               // This lets undo-close-tab return it to an unmuted state.
               aTab.linkedBrowser.mute(true);
@@ -5594,6 +5643,16 @@
             return;
 
           let browser = event.originalTarget;
+
+          // Preloaded browsers do not actually have any tabs. If one crashes,
+          // it should be released and removed.
+          if (browser === this._preloadedBrowser) {
+            // Calling _getPreloadedBrowser is necessary to actually consume the preloaded browser
+            let preloaded = this._getPreloadedBrowser();
+            preloaded.remove();
+            return;
+          }
+
           let icon = browser.mIconURL;
           let tab = this.getTabForBrowser(browser);
 
@@ -7222,7 +7281,7 @@
                      class="tab-icon-overlay"
                      role="presentation"/>
           <xul:hbox class="tab-label-container"
-                    xbl:inherits="pinned,selected=visuallyselected"
+                    xbl:inherits="pinned,selected=visuallyselected,labeldirection"
                     onoverflow="this.setAttribute('textoverflow', 'true');"
                     onunderflow="this.removeAttribute('textoverflow');"
                     flex="1">

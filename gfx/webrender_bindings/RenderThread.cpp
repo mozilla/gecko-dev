@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "base/task.h"
+#include "GeckoProfiler.h"
 #include "RenderThread.h"
 #include "nsThreadUtils.h"
 #include "mozilla/layers/CompositorThread.h"
@@ -11,7 +13,6 @@
 #include "mozilla/webrender/RendererOGL.h"
 #include "mozilla/webrender/RenderTextureHost.h"
 #include "mozilla/widget/CompositorWidget.h"
-#include "base/task.h"
 
 namespace mozilla {
 namespace wr {
@@ -178,6 +179,7 @@ NotifyDidRender(layers::CompositorBridgeParentBase* aBridge,
 void
 RenderThread::UpdateAndRender(wr::WindowId aWindowId)
 {
+  AutoProfilerTracing tracing("Paint", "Composite");
   MOZ_ASSERT(IsInRenderThread());
 
   auto it = mRenderers.find(aWindowId);
@@ -275,11 +277,13 @@ RenderThread::DecPendingFrameCount(wr::WindowId aWindowId)
 }
 
 void
-RenderThread::RegisterExternalImage(uint64_t aExternalImageId, RenderTextureHost* aTexture)
+RenderThread::RegisterExternalImage(uint64_t aExternalImageId, already_AddRefed<RenderTextureHost> aTexture)
 {
   MutexAutoLock lock(mRenderTextureMapLock);
-  MOZ_ASSERT(!mRenderTextures.Get(aExternalImageId));
-  mRenderTextures.Put(aExternalImageId, aTexture);
+
+  MOZ_ASSERT(!mRenderTextures.Get(aExternalImageId).get());
+  RefPtr<RenderTextureHost> texture(aTexture);
+  mRenderTextures.Put(aExternalImageId, Move(texture));
 }
 
 void
@@ -287,15 +291,48 @@ RenderThread::UnregisterExternalImage(uint64_t aExternalImageId)
 {
   MutexAutoLock lock(mRenderTextureMapLock);
   MOZ_ASSERT(mRenderTextures.Get(aExternalImageId).get());
-  mRenderTextures.Remove(aExternalImageId);
+  if (!IsInRenderThread()) {
+    // The RenderTextureHost should be released in render thread. So, post the
+    // deletion task here.
+    // The shmem and raw buffer are owned by compositor ipc channel. It's
+    // possible that RenderTextureHost is still exist after the shmem/raw buffer
+    // deletion. Then the buffer in RenderTextureHost becomes invalid. It's fine
+    // for this situation. Gecko will only release the buffer if WR doesn't need
+    // it. So, no one will access the invalid buffer in RenderTextureHost.
+    RefPtr<RenderTextureHost> texture = mRenderTextures.Get(aExternalImageId);
+    mRenderTextures.Remove(aExternalImageId);
+    Loop()->PostTask(NewRunnableMethod<RefPtr<RenderTextureHost>>(
+      this, &RenderThread::DeferredRenderTextureHostDestroy, Move(texture)
+    ));
+  } else {
+    mRenderTextures.Remove(aExternalImageId);
+  }
+}
+
+void
+RenderThread::DeferredRenderTextureHostDestroy(RefPtr<RenderTextureHost>)
+{
+  // Do nothing. Just decrease the ref-count of RenderTextureHost.
 }
 
 RenderTextureHost*
 RenderThread::GetRenderTexture(WrExternalImageId aExternalImageId)
 {
+  MOZ_ASSERT(IsInRenderThread());
+
   MutexAutoLock lock(mRenderTextureMapLock);
   MOZ_ASSERT(mRenderTextures.Get(aExternalImageId.mHandle).get());
   return mRenderTextures.Get(aExternalImageId.mHandle).get();
+}
+
+WebRenderThreadPool::WebRenderThreadPool()
+{
+  mThreadPool = wr_thread_pool_new();
+}
+
+WebRenderThreadPool::~WebRenderThreadPool()
+{
+  wr_thread_pool_delete(mThreadPool);
 }
 
 } // namespace wr

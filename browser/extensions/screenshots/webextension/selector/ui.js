@@ -104,6 +104,8 @@ this.ui = (function() { // eslint-disable-line no-unused-vars
             if (this.addClassName) {
               this.document.body.className = this.addClassName;
             }
+            this.document.documentElement.dir = browser.i18n.getMessage("@@bidi_dir");
+            this.document.documentElement.lang = browser.i18n.getMessage("@@ui_locale");
             resolve();
           });
           document.body.appendChild(this.element);
@@ -246,6 +248,8 @@ this.ui = (function() { // eslint-disable-line no-unused-vars
             if (this.addClassName) {
               this.document.body.className = this.addClassName;
             }
+            this.document.documentElement.dir = browser.i18n.getMessage("@@bidi_dir");
+            this.document.documentElement.lang = browser.i18n.getMessage("@@ui_locale");
             const overlay = this.document.querySelector(".preview-overlay");
             overlay.querySelector(".preview-instructions").textContent = browser.i18n.getMessage("screenshotInstructions");
             overlay.querySelector(".myshots-link").textContent = browser.i18n.getMessage("myShotsLink");
@@ -268,6 +272,11 @@ this.ui = (function() { // eslint-disable-line no-unused-vars
     },
 
     updateElementSize() {
+      if (!this.element) {
+        // This can happen if the selector is unloaded during the resize adjustment
+        // time-delay
+        return;
+      }
       this.element.style.height = window.innerHeight + "px";
       this.element.style.width = window.innerWidth + "px";
     },
@@ -425,7 +434,6 @@ this.ui = (function() { // eslint-disable-line no-unused-vars
       } else {
         this.el.classList.remove("left-selection");
       }
-
       this.el.style.top = (pos.top - bodyRect.top) + "px";
       this.el.style.left = (pos.left - bodyRect.left) + "px";
       this.el.style.height = (pos.bottom - pos.top - bodyRect.top) + "px";
@@ -446,6 +454,18 @@ this.ui = (function() { // eslint-disable-line no-unused-vars
       this.bgRight.style.height = pos.bottom - pos.top + "px";
       this.bgRight.style.left = (pos.right - bodyRect.left) + "px";
       this.bgRight.style.width = docWidth - (pos.right - bodyRect.left) + "px";
+
+      if (!(this.isElementInViewport(this.buttons))) {
+        this.cancel.style.position = this.download.style.position = this.save.style.position = "fixed";
+        this.cancel.style.left = (pos.left - bodyRect.left - 50) + "px";
+        this.download.style.left = ((pos.left - bodyRect.left - 100)) + "px";
+        this.save.style.left = ((pos.left - bodyRect.left) - 190) + "px";
+        this.cancel.style.top = this.download.style.top = this.save.style.top = (pos.top - bodyRect.top) + "px";
+      } else {
+        this.cancel.style.position = this.download.style.position = this.save.style.position = "initial";
+        this.cancel.style.top = this.download.style.top = this.save.style.top = 0;
+        this.cancel.style.left = this.download.style.left = this.save.style.left = 0;
+      }
     },
 
     remove() {
@@ -474,6 +494,7 @@ this.ui = (function() { // eslint-disable-line no-unused-vars
       save.textContent = browser.i18n.getMessage("saveScreenshotSelectedArea");
       save.title = browser.i18n.getMessage("saveScreenshotSelectedArea");
       buttons.appendChild(save);
+      this.buttons = buttons;
       this.cancel = cancel;
       this.download = download;
       this.save = save;
@@ -535,6 +556,15 @@ this.ui = (function() { // eslint-disable-line no-unused-vars
         target = target.parentNode;
       }
       return false;
+    },
+
+    isElementInViewport(el) {
+      let rect = el.getBoundingClientRect();
+      return (rect.right <= window.innerWidth);
+    },
+
+    clearSaveDisabled() {
+      this.save.removeAttribute("disabled");
     },
 
     el: null,

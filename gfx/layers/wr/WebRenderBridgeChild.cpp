@@ -120,22 +120,35 @@ WebRenderBridgeChild::DPEnd(wr::DisplayListBuilder &aBuilder,
   mIsInTransaction = false;
 }
 
+void
+WebRenderBridgeChild::ProcessWebRenderParentCommands()
+{
+  if (mParentCommands.IsEmpty()) {
+    return;
+  }
+  this->SendParentCommands(mParentCommands);
+  mParentCommands.Clear();
+}
+
+void
+WebRenderBridgeChild::AddPipelineIdForAsyncCompositable(const wr::PipelineId& aPipelineId,
+                                                        const CompositableHandle& aHandle)
+{
+  SendAddPipelineIdForAsyncCompositable(aPipelineId, aHandle);
+}
+
+void
+WebRenderBridgeChild::RemovePipelineIdForAsyncCompositable(const wr::PipelineId& aPipelineId)
+{
+  SendRemovePipelineIdForAsyncCompositable(aPipelineId);
+}
+
 wr::ExternalImageId
 WebRenderBridgeChild::GetNextExternalImageId()
 {
   wr::MaybeExternalImageId id = GetCompositorBridgeChild()->GetNextExternalImageId();
   MOZ_RELEASE_ASSERT(id.isSome());
   return id.value();
-}
-
-wr::ExternalImageId
-WebRenderBridgeChild::AllocExternalImageId(const CompositableHandle& aHandle)
-{
-  MOZ_ASSERT(!mDestroyed);
-
-  wr::ExternalImageId imageId = GetNextExternalImageId();
-  SendAddExternalImageId(imageId, aHandle);
-  return imageId;
 }
 
 wr::ExternalImageId
@@ -224,7 +237,7 @@ WebRenderBridgeChild::GetFontKeyForScaledFont(gfx::ScaledFont* aScaledFont)
              (aScaledFont->GetType() == gfx::FontType::MAC) ||
              (aScaledFont->GetType() == gfx::FontType::FONTCONFIG));
 
-  RefPtr<UnscaledFont> unscaled = aScaledFont->GetUnscaledFont();
+  RefPtr<gfx::UnscaledFont> unscaled = aScaledFont->GetUnscaledFont();
   MOZ_ASSERT(unscaled);
 
   wr::FontKey key = {0, 0};
@@ -251,7 +264,7 @@ WebRenderBridgeChild::GetFontKeyForScaledFont(gfx::ScaledFont* aScaledFont)
 void
 WebRenderBridgeChild::RemoveExpiredFontKeys()
 {
-  uint32_t counter = UnscaledFont::DeletionCounter();
+  uint32_t counter = gfx::UnscaledFont::DeletionCounter();
   if (mFontKeysDeleted != counter) {
     mFontKeysDeleted = counter;
     for (auto iter = mFontKeys.Iter(); !iter.Done(); iter.Next()) {

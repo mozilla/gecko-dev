@@ -173,12 +173,49 @@ struct ParamTraits<WrPoint>
 };
 
 template<>
+struct ParamTraits<WrImageMask>
+{
+  static void
+  Write(Message* aMsg, const WrImageMask& aParam)
+  {
+    WriteParam(aMsg, aParam.image);
+    WriteParam(aMsg, aParam.rect);
+    WriteParam(aMsg, aParam.repeat);
+  }
+
+  static bool
+  Read(const Message* aMsg, PickleIterator* aIter, WrImageMask* aResult)
+  {
+    return ReadParam(aMsg, aIter, &aResult->image)
+        && ReadParam(aMsg, aIter, &aResult->rect)
+        && ReadParam(aMsg, aIter, &aResult->repeat);
+  }
+};
+
+template<>
+struct ParamTraits<WrImageRendering>
+  : public ContiguousEnumSerializer<
+        WrImageRendering,
+        WrImageRendering::Auto,
+        WrImageRendering::Sentinel>
+{
+};
+
+template<>
+struct ParamTraits<WrMixBlendMode>
+  : public ContiguousEnumSerializer<
+        WrMixBlendMode,
+        WrMixBlendMode::Normal,
+        WrMixBlendMode::Sentinel>
+{
+};
+
+template<>
 struct ParamTraits<WrBuiltDisplayListDescriptor>
 {
   static void
   Write(Message* aMsg, const WrBuiltDisplayListDescriptor& aParam)
   {
-    WriteParam(aMsg, aParam.display_list_items_size);
     WriteParam(aMsg, aParam.builder_start_time);
     WriteParam(aMsg, aParam.builder_finish_time);
   }
@@ -186,8 +223,7 @@ struct ParamTraits<WrBuiltDisplayListDescriptor>
   static bool
   Read(const Message* aMsg, PickleIterator* aIter, WrBuiltDisplayListDescriptor* aResult)
   {
-    return ReadParam(aMsg, aIter, &aResult->display_list_items_size)
-        && ReadParam(aMsg, aIter, &aResult->builder_start_time)
+    return ReadParam(aMsg, aIter, &aResult->builder_start_time)
         && ReadParam(aMsg, aIter, &aResult->builder_finish_time);
   }
 };

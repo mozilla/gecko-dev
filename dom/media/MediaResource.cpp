@@ -6,6 +6,7 @@
 
 #include "mozilla/DebugOnly.h"
 
+#include "DecoderTraits.h"
 #include "MediaResource.h"
 #include "MediaResourceCallback.h"
 
@@ -31,6 +32,10 @@
 #include <algorithm>
 #include "nsProxyRelease.h"
 #include "nsIContentPolicy.h"
+
+#ifdef MOZ_ANDROID_HLS_SUPPORT
+#include "HLSResource.h"
+#endif
 
 using mozilla::media::TimeUnit;
 
@@ -73,19 +78,38 @@ NS_IMPL_ADDREF(MediaResource)
 NS_IMPL_RELEASE_WITH_DESTROY(MediaResource, Destroy())
 NS_IMPL_QUERY_INTERFACE0(MediaResource)
 
-ChannelMediaResource::ChannelMediaResource(MediaResourceCallback* aCallback,
-                                           nsIChannel* aChannel,
-                                           nsIURI* aURI,
-                                           const MediaContainerType& aContainerType,
-                                           bool aIsPrivateBrowsing)
-  : BaseMediaResource(aCallback, aChannel, aURI, aContainerType),
-    mOffset(0),
-    mReopenOnError(false),
-    mIgnoreClose(false),
-    mCacheStream(this, aIsPrivateBrowsing),
-    mLock("ChannelMediaResource.mLock"),
-    mIgnoreResume(false),
-    mSuspendAgent(mChannel)
+ChannelMediaResource::ChannelMediaResource(
+  MediaResourceCallback* aCallback,
+  nsIChannel* aChannel,
+  nsIURI* aURI,
+  const MediaContainerType& aContainerType,
+  bool aIsPrivateBrowsing)
+  : BaseMediaResource(aCallback, aChannel, aURI, aContainerType)
+  , mOffset(0)
+  , mReopenOnError(false)
+  , mIgnoreClose(false)
+  , mCacheStream(this, aIsPrivateBrowsing)
+  , mLock("ChannelMediaResource.mLock")
+  , mIgnoreResume(false)
+  , mSuspendAgent(mChannel)
+{
+}
+
+ChannelMediaResource::ChannelMediaResource(
+  MediaResourceCallback* aCallback,
+  nsIChannel* aChannel,
+  nsIURI* aURI,
+  const MediaContainerType& aContainerType,
+  const MediaChannelStatistics& aStatistics)
+  : BaseMediaResource(aCallback, aChannel, aURI, aContainerType)
+  , mOffset(0)
+  , mReopenOnError(false)
+  , mIgnoreClose(false)
+  , mCacheStream(this, /* aIsPrivateBrowsing = */ false)
+  , mLock("ChannelMediaResource.mLock")
+  , mChannelStatistics(aStatistics)
+  , mIgnoreResume(false)
+  , mSuspendAgent(mChannel)
 {
 }
 
@@ -309,7 +333,7 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
 
   {
     MutexAutoLock lock(mLock);
-    mChannelStatistics->Start();
+    mChannelStatistics.Start();
   }
 
   mReopenOnError = false;
@@ -385,7 +409,7 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
 
   {
     MutexAutoLock lock(mLock);
-    mChannelStatistics->Stop();
+    mChannelStatistics.Stop();
   }
 
   // Note that aStatus might have succeeded --- this might be a normal close
@@ -440,8 +464,6 @@ ChannelMediaResource::CopySegmentToCache(nsIPrincipal* aPrincipal,
                                          uint32_t aCount,
                                          uint32_t* aWriteCount)
 {
-  mCallback->NotifyDataArrived();
-
   // Keep track of where we're up to.
   LOG("CopySegmentToCache at mOffset [%" PRId64 "] add "
       "[%d] bytes for decoder[%p]",
@@ -480,7 +502,7 @@ ChannelMediaResource::OnDataAvailable(nsIRequest* aRequest,
 
   {
     MutexAutoLock lock(mLock);
-    mChannelStatistics->AddBytes(aCount);
+    mChannelStatistics.AddBytes(aCount);
   }
 
   CopySegmentClosure closure;
@@ -508,11 +530,17 @@ nsresult ChannelMediaResource::Open(nsIStreamListener **aStreamListener)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
 
-  if (!mChannelStatistics) {
-    mChannelStatistics = new MediaChannelStatistics();
+  int64_t cl = -1;
+  if (mChannel) {
+    nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(mChannel);
+    if (hc) {
+      if (NS_FAILED(hc->GetContentLength(&cl))) {
+        cl = -1;
+      }
+    }
   }
 
-  nsresult rv = mCacheStream.Init();
+  nsresult rv = mCacheStream.Init(cl);
   if (NS_FAILED(rv))
     return rv;
   NS_ASSERTION(mOffset == 0, "Who set mOffset already?");
@@ -630,11 +658,8 @@ already_AddRefed<MediaResource> ChannelMediaResource::CloneData(MediaResourceCal
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   NS_ASSERTION(mCacheStream.IsAvailableForSharing(), "Stream can't be cloned");
 
-  RefPtr<ChannelMediaResource> resource =
-    new ChannelMediaResource(aCallback,
-                             nullptr,
-                             mURI,
-                             GetContentType());
+  RefPtr<ChannelMediaResource> resource = new ChannelMediaResource(
+    aCallback, nullptr, mURI, GetContentType(), mChannelStatistics);
   if (resource) {
     // Initially the clone is treated as suspended by the cache, because
     // we don't have a channel. If the cache needs to read data from the clone
@@ -644,8 +669,7 @@ already_AddRefed<MediaResource> ChannelMediaResource::CloneData(MediaResourceCal
     // and perform a useless HTTP transaction.
     resource->mSuspendAgent.Suspend();
     resource->mCacheStream.InitAsClone(&mCacheStream);
-    resource->mChannelStatistics = new MediaChannelStatistics(mChannelStatistics);
-    resource->mChannelStatistics->Stop();
+    resource->mChannelStatistics.Stop();
   }
   return resource.forget();
 }
@@ -656,7 +680,7 @@ void ChannelMediaResource::CloseChannel()
 
   {
     MutexAutoLock lock(mLock);
-    mChannelStatistics->Stop();
+    mChannelStatistics.Stop();
   }
 
   if (mListener) {
@@ -697,31 +721,6 @@ nsresult ChannelMediaResource::ReadAt(int64_t aOffset,
     DispatchBytesConsumed(*aBytes, aOffset);
   }
   return rv;
-}
-
-already_AddRefed<MediaByteBuffer>
-ChannelMediaResource::MediaReadAt(int64_t aOffset, uint32_t aCount)
-{
-  NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
-
-  RefPtr<MediaByteBuffer> bytes = new MediaByteBuffer();
-  bool ok = bytes->SetLength(aCount, fallible);
-  NS_ENSURE_TRUE(ok, nullptr);
-  char* curr = reinterpret_cast<char*>(bytes->Elements());
-  const char* start = curr;
-  while (aCount > 0) {
-    uint32_t bytesRead;
-    nsresult rv = mCacheStream.ReadAt(aOffset, curr, aCount, &bytesRead);
-    NS_ENSURE_SUCCESS(rv, nullptr);
-    if (!bytesRead) {
-      break;
-    }
-    aOffset += bytesRead;
-    aCount -= bytesRead;
-    curr += bytesRead;
-  }
-  bytes->SetLength(curr - start);
-  return bytes.forget();
 }
 
 void
@@ -766,7 +765,7 @@ void ChannelMediaResource::Suspend(bool aCloseImmediately)
     if (mChannel) {
       {
         MutexAutoLock lock(mLock);
-        mChannelStatistics->Stop();
+        mChannelStatistics.Stop();
       }
       element->DownloadSuspended();
     }
@@ -793,7 +792,7 @@ void ChannelMediaResource::Resume()
       // Just wake up our existing channel
       {
         MutexAutoLock lock(mLock);
-        mChannelStatistics->Start();
+        mChannelStatistics.Start();
       }
       // if an error occurs after Resume, assume it's because the server
       // timed out the connection and we should reopen it.
@@ -875,7 +874,7 @@ void
 ChannelMediaResource::DoNotifyDataReceived()
 {
   mDataReceivedEvent.Revoke();
-  mCallback->NotifyBytesDownloaded();
+  mCallback->NotifyDataArrived();
 }
 
 void
@@ -1049,7 +1048,7 @@ double
 ChannelMediaResource::GetDownloadRate(bool* aIsReliable)
 {
   MutexAutoLock lock(mLock);
-  return mChannelStatistics->GetRate(aIsReliable);
+  return mChannelStatistics.GetRate(aIsReliable);
 }
 
 int64_t
@@ -1166,7 +1165,8 @@ public:
   void     SetPlaybackRate(uint32_t aBytesPerSecond) override {}
   nsresult ReadAt(int64_t aOffset, char* aBuffer,
                   uint32_t aCount, uint32_t* aBytes) override;
-  already_AddRefed<MediaByteBuffer> MediaReadAt(int64_t aOffset, uint32_t aCount) override;
+  // (Probably) file-based, caching recommended.
+  bool ShouldCacheReads() override { return true; }
   int64_t  Tell() override;
 
   // Any thread
@@ -1457,15 +1457,6 @@ nsresult FileMediaResource::ReadAt(int64_t aOffset, char* aBuffer,
 }
 
 already_AddRefed<MediaByteBuffer>
-FileMediaResource::MediaReadAt(int64_t aOffset, uint32_t aCount)
-{
-  NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
-
-  MutexAutoLock lock(mLock);
-  return UnsafeMediaReadAt(aOffset, aCount);
-}
-
-already_AddRefed<MediaByteBuffer>
 FileMediaResource::UnsafeMediaReadAt(int64_t aOffset, uint32_t aCount)
 {
   RefPtr<MediaByteBuffer> bytes = new MediaByteBuffer();
@@ -1533,6 +1524,13 @@ MediaResource::Create(MediaResourceCallback* aCallback,
   }
 
   RefPtr<MediaResource> resource;
+
+#ifdef MOZ_ANDROID_HLS_SUPPORT
+  if (DecoderTraits::IsHttpLiveStreamingType(containerType.value())) {
+    resource = new HLSResource(aCallback, aChannel, uri, *containerType);
+    return resource.forget();
+  }
+#endif
 
   // Let's try to create a FileMediaResource in case the channel is a nsIFile
   nsCOMPtr<nsIFileChannel> fc = do_QueryInterface(aChannel);

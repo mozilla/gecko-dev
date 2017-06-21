@@ -11,7 +11,6 @@
 #include "mozilla/EffectCompositor.h"
 #include "mozilla/EffectSet.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/ServoComputedValuesWithParent.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/StyleAnimationValue.h"
 #include "mozilla/dom/DocumentTimeline.h"
@@ -405,11 +404,8 @@ ResolvedStyleCache::Get(nsPresContext *aPresContext,
 
 class MOZ_STACK_CLASS ServoCSSAnimationBuilder final {
 public:
-  ServoCSSAnimationBuilder(
-    const ServoComputedValues* aComputedValues,
-    const ServoComputedValues* aParentComputedValues)
+  explicit ServoCSSAnimationBuilder(const ServoComputedValues* aComputedValues)
     : mComputedValues(aComputedValues)
-    , mParentComputedValues(aParentComputedValues)
   {
     MOZ_ASSERT(aComputedValues);
   }
@@ -429,13 +425,11 @@ public:
   void SetKeyframes(KeyframeEffectReadOnly& aEffect,
                     nsTArray<Keyframe>&& aKeyframes)
   {
-    aEffect.SetKeyframes(Move(aKeyframes),
-                         { mComputedValues, mParentComputedValues });
+    aEffect.SetKeyframes(Move(aKeyframes), mComputedValues);
   }
 
 private:
   const ServoComputedValues* mComputedValues;
-  const ServoComputedValues* mParentComputedValues;
 };
 
 class MOZ_STACK_CLASS GeckoCSSAnimationBuilder final {
@@ -862,23 +856,22 @@ GeckoCSSAnimationBuilder::GetKeyframePropertyValues(
       continue;
     }
 
-    PropertyValuePair pair;
-    pair.mProperty = prop;
-
     StyleAnimationValue computedValue;
     if (!StyleAnimationValue::ExtractComputedValue(prop, styleContext,
                                                    computedValue)) {
       continue;
     }
+
+    nsCSSValue propertyValue;
     DebugOnly<bool> uncomputeResult =
       StyleAnimationValue::UncomputeValue(prop, Move(computedValue),
-                                          pair.mValue);
+                                          propertyValue);
     MOZ_ASSERT(uncomputeResult,
                "Unable to get specified value from computed value");
-    MOZ_ASSERT(pair.mValue.GetUnit() != eCSSUnit_Null,
+    MOZ_ASSERT(propertyValue.GetUnit() != eCSSUnit_Null,
                "Not expecting to read invalid properties");
 
-    result.AppendElement(Move(pair));
+    result.AppendElement(Move(PropertyValuePair(prop, Move(propertyValue))));
     aAnimatedProperties.AddProperty(prop);
   }
 
@@ -947,13 +940,13 @@ GeckoCSSAnimationBuilder::FillInMissingKeyframeValues(
     }
 
     if (startKeyframe && !aPropertiesSetAtStart.HasProperty(prop)) {
-      PropertyValuePair propertyValue;
-      propertyValue.mProperty = prop;
+      // An uninitialized nsCSSValue represents the underlying value.
+      PropertyValuePair propertyValue(prop, Move(nsCSSValue()));
       startKeyframe->mPropertyValues.AppendElement(Move(propertyValue));
     }
     if (endKeyframe && !aPropertiesSetAtEnd.HasProperty(prop)) {
-      PropertyValuePair propertyValue;
-      propertyValue.mProperty = prop;
+      // An uninitialized nsCSSValue represents the underlying value.
+      PropertyValuePair propertyValue(prop, Move(nsCSSValue()));
       endKeyframe->mPropertyValues.AppendElement(Move(propertyValue));
     }
   }
@@ -1023,7 +1016,7 @@ void
 nsAnimationManager::UpdateAnimations(
   dom::Element* aElement,
   CSSPseudoElementType aPseudoType,
-  const ServoComputedValuesWithParent& aServoValues)
+  const ServoComputedValues* aComputedValues)
 {
   MOZ_ASSERT(mPresContext->IsDynamic(),
              "Should not update animations for print or print preview");
@@ -1031,7 +1024,7 @@ nsAnimationManager::UpdateAnimations(
              "Should not update animations that are not attached to the "
              "document tree");
 
-  if (!aServoValues.mCurrentStyle) {
+  if (!aComputedValues) {
     // If we are in a display:none subtree we will have no computed values.
     // Since CSS animations should not run in display:none subtrees we should
     // stop (actually, destroy) any animations on this element here.
@@ -1040,11 +1033,10 @@ nsAnimationManager::UpdateAnimations(
   }
 
   NonOwningAnimationTarget target(aElement, aPseudoType);
-  ServoCSSAnimationBuilder builder(aServoValues.mCurrentStyle,
-                                   aServoValues.mParentStyle);
+  ServoCSSAnimationBuilder builder(aComputedValues);
 
   const nsStyleDisplay *disp =
-    Servo_GetStyleDisplay(aServoValues.mCurrentStyle);
+    Servo_GetStyleDisplay(aComputedValues);
   DoUpdateAnimations(target, *disp, builder);
 }
 

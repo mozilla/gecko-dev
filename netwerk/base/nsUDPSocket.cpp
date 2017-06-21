@@ -531,7 +531,8 @@ nsUDPSocket::OnSocketDetached(PRFileDesc *fd)
 
     if (listener) {
       listener->OnStopListening(this, mCondition);
-      NS_ProxyRelease(mListenerTarget, listener.forget());
+      NS_ProxyRelease(
+        "nsUDPSocket::mListener", mListenerTarget, listener.forget());
     }
   }
 }
@@ -846,8 +847,9 @@ class SocketListenerProxy final : public nsIUDPSocketListener
 
 public:
   explicit SocketListenerProxy(nsIUDPSocketListener* aListener)
-    : mListener(new nsMainThreadPtrHolder<nsIUDPSocketListener>(aListener))
-    , mTargetThread(do_GetCurrentThread())
+    : mListener(new nsMainThreadPtrHolder<nsIUDPSocketListener>(
+        "SocketListenerProxy::mListener", aListener))
+    , mTarget(GetCurrentThreadEventTarget())
   { }
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -893,7 +895,7 @@ public:
 
 private:
   nsMainThreadPtrHandle<nsIUDPSocketListener> mListener;
-  nsCOMPtr<nsIEventTarget> mTargetThread;
+  nsCOMPtr<nsIEventTarget> mTarget;
 };
 
 NS_IMPL_ISUPPORTS(SocketListenerProxy,
@@ -905,7 +907,7 @@ SocketListenerProxy::OnPacketReceived(nsIUDPSocket* aSocket,
 {
   RefPtr<OnPacketReceivedRunnable> r =
     new OnPacketReceivedRunnable(mListener, aSocket, aMessage);
-  return mTargetThread->Dispatch(r, NS_DISPATCH_NORMAL);
+  return mTarget->Dispatch(r, NS_DISPATCH_NORMAL);
 }
 
 NS_IMETHODIMP
@@ -914,7 +916,7 @@ SocketListenerProxy::OnStopListening(nsIUDPSocket* aSocket,
 {
   RefPtr<OnStopListeningRunnable> r =
     new OnStopListeningRunnable(mListener, aSocket, aStatus);
-  return mTargetThread->Dispatch(r, NS_DISPATCH_NORMAL);
+  return mTarget->Dispatch(r, NS_DISPATCH_NORMAL);
 }
 
 NS_IMETHODIMP
@@ -952,7 +954,7 @@ class SocketListenerProxyBackground final : public nsIUDPSocketListener
 public:
   explicit SocketListenerProxyBackground(nsIUDPSocketListener* aListener)
     : mListener(aListener)
-    , mTargetThread(do_GetCurrentThread())
+    , mTarget(GetCurrentThreadEventTarget())
   { }
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -998,7 +1000,7 @@ public:
 
 private:
   nsCOMPtr<nsIUDPSocketListener> mListener;
-  nsCOMPtr<nsIEventTarget> mTargetThread;
+  nsCOMPtr<nsIEventTarget> mTarget;
 };
 
 NS_IMPL_ISUPPORTS(SocketListenerProxyBackground,
@@ -1010,7 +1012,7 @@ SocketListenerProxyBackground::OnPacketReceived(nsIUDPSocket* aSocket,
 {
   RefPtr<OnPacketReceivedRunnable> r =
     new OnPacketReceivedRunnable(mListener, aSocket, aMessage);
-  return mTargetThread->Dispatch(r, NS_DISPATCH_NORMAL);
+  return mTarget->Dispatch(r, NS_DISPATCH_NORMAL);
 }
 
 NS_IMETHODIMP
@@ -1019,7 +1021,7 @@ SocketListenerProxyBackground::OnStopListening(nsIUDPSocket* aSocket,
 {
   RefPtr<OnStopListeningRunnable> r =
     new OnStopListeningRunnable(mListener, aSocket, aStatus);
-  return mTargetThread->Dispatch(r, NS_DISPATCH_NORMAL);
+  return mTarget->Dispatch(r, NS_DISPATCH_NORMAL);
 }
 
 NS_IMETHODIMP
@@ -1174,7 +1176,7 @@ nsUDPSocket::AsyncListen(nsIUDPSocketListener *aListener)
   NS_ENSURE_TRUE(mListener == nullptr, NS_ERROR_IN_PROGRESS);
   {
     MutexAutoLock lock(mLock);
-    mListenerTarget = NS_GetCurrentThread();
+    mListenerTarget = GetCurrentThreadEventTarget();
     if (NS_IsMainThread()) {
       // PNecko usage
       mListener = new SocketListenerProxy(aListener);

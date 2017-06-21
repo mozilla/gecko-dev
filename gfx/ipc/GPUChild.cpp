@@ -20,7 +20,10 @@
 #include "mozilla/ipc/CrashReporterHost.h"
 #include "mozilla/layers/LayerTreeOwnerTracker.h"
 #include "mozilla/Unused.h"
+
+#ifdef MOZ_GECKO_PROFILER
 #include "ProfilerParent.h"
+#endif
 
 namespace mozilla {
 namespace gfx {
@@ -199,7 +202,7 @@ mozilla::ipc::IPCResult
 GPUChild::RecvNotifyDeviceReset(const GPUDeviceData& aData)
 {
   gfxPlatform::GetPlatform()->ImportGPUDeviceData(aData);
-  mHost->mListener->OnProcessDeviceReset(mHost);
+  mHost->mListener->OnRemoteProcessDeviceReset(mHost);
   return IPC_OK();
 }
 

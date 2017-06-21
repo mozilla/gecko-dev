@@ -12,44 +12,31 @@
 use computed_values::{font_feature_settings, font_stretch, font_style, font_weight};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::SourceLocation;
+use cssparser::{SourceLocation, CompactCowStr};
+use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
 use parser::{ParserContext, log_css_error, Parse};
+use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use style_traits::{ToCss, OneOrMoreCommaSeparated};
+use style_traits::{ToCss, OneOrMoreSeparated, CommaSeparator, ParseError, StyleParseError};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
-#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub enum Source {
     /// A `url()` source.
     Url(UrlSource),
     /// A `local()` source.
+    #[css(function)]
     Local(FamilyName),
 }
 
-impl ToCss for Source {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        match *self {
-            Source::Url(ref url) => {
-                try!(dest.write_str("url(\""));
-                try!(url.to_css(dest));
-            },
-            Source::Local(ref family) => {
-                try!(dest.write_str("local(\""));
-                try!(family.to_css(dest));
-            },
-        }
-        dest.write_str("\")")
-    }
+impl OneOrMoreSeparated for Source {
+    type S = CommaSeparator;
 }
-
-impl OneOrMoreCommaSeparated for Source {}
 
 /// A `UrlSource` represents a font-face source that has been specified with a
 /// `url()` function.
@@ -68,7 +55,7 @@ impl ToCss for UrlSource {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        dest.write_str(self.url.as_str())
+        self.url.to_css(dest)
     }
 }
 
@@ -97,11 +84,11 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser, locati
         };
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
-            if let Err(range) = declaration {
-                let pos = range.start;
-                let message = format!("Unsupported @font-face descriptor declaration: '{}'",
-                                      iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message, context);
+            if let Err(err) = declaration {
+                let pos = err.span.start;
+                let error = ContextualParseError::UnsupportedFontFaceDescriptor(
+                    iter.input.slice(err.span), err.error);
+                log_css_error(iter.input, pos, error, context);
             }
         }
     }
@@ -154,13 +141,15 @@ struct FontFaceRuleParser<'a, 'b: 'a> {
 }
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser for FontFaceRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ();
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
 impl Parse for Source {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Source, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Source, ParseError<'i>> {
         if input.try(|input| input.expect_function_matching("local")).is_ok() {
             return input.parse_nested_block(|input| {
                 FamilyName::parse(context, input)
@@ -247,11 +236,13 @@ macro_rules! font_face_descriptors_common {
             }
         }
 
-       impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
-            type Declaration = ();
+       impl<'a, 'b, 'i> DeclarationParser<'i> for FontFaceRuleParser<'a, 'b> {
+           type Declaration = ();
+           type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-            fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
-                match_ignore_ascii_case! { name,
+           fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
+                              -> Result<(), ParseError<'i>> {
+                match_ignore_ascii_case! { &*name,
                     $(
                         $name => {
                             // DeclarationParser also calls parse_entirely
@@ -262,7 +253,7 @@ macro_rules! font_face_descriptors_common {
                             self.rule.$ident = Some(value)
                         }
                     )*
-                    _ => return Err(())
+                    _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 Ok(())
             }

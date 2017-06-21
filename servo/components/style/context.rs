@@ -33,6 +33,8 @@ use time;
 use timer::Timer;
 use traversal::{DomTraversal, TraversalFlags};
 
+pub use selectors::matching::QuirksMode;
+
 /// This structure is used to create a local style context from a shared one.
 #[cfg(feature = "servo")]
 pub struct ThreadLocalStyleContextCreationInfo {
@@ -47,20 +49,6 @@ impl ThreadLocalStyleContextCreationInfo {
             new_animations_sender: animations_sender,
         }
     }
-}
-
-/// Which quirks mode is this document in.
-///
-/// See: https://quirks.spec.whatwg.org/
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum QuirksMode {
-    /// Quirks mode.
-    Quirks,
-    /// Limited quirks mode.
-    LimitedQuirks,
-    /// No quirks mode.
-    NoQuirks,
 }
 
 /// A global options structure for the style system. We use this instead of
@@ -232,22 +220,22 @@ impl<'a> Add for &'a TraversalStatistics {
 impl fmt::Display for TraversalStatistics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         debug_assert!(self.traversal_time_ms != 0.0, "should have set traversal time");
-        try!(writeln!(f, "[PERF] perf block start"));
-        try!(writeln!(f, "[PERF],traversal,{}", if self.is_parallel.unwrap() {
+        writeln!(f, "[PERF] perf block start")?;
+        writeln!(f, "[PERF],traversal,{}", if self.is_parallel.unwrap() {
             "parallel"
         } else {
             "sequential"
-        }));
-        try!(writeln!(f, "[PERF],elements_traversed,{}", self.elements_traversed));
-        try!(writeln!(f, "[PERF],elements_styled,{}", self.elements_styled));
-        try!(writeln!(f, "[PERF],elements_matched,{}", self.elements_matched));
-        try!(writeln!(f, "[PERF],styles_shared,{}", self.styles_shared));
-        try!(writeln!(f, "[PERF],selectors,{}", self.selectors));
-        try!(writeln!(f, "[PERF],revalidation_selectors,{}", self.revalidation_selectors));
-        try!(writeln!(f, "[PERF],dependency_selectors,{}", self.dependency_selectors));
-        try!(writeln!(f, "[PERF],declarations,{}", self.declarations));
-        try!(writeln!(f, "[PERF],stylist_rebuilds,{}", self.stylist_rebuilds));
-        try!(writeln!(f, "[PERF],traversal_time_ms,{}", self.traversal_time_ms));
+        })?;
+        writeln!(f, "[PERF],elements_traversed,{}", self.elements_traversed)?;
+        writeln!(f, "[PERF],elements_styled,{}", self.elements_styled)?;
+        writeln!(f, "[PERF],elements_matched,{}", self.elements_matched)?;
+        writeln!(f, "[PERF],styles_shared,{}", self.styles_shared)?;
+        writeln!(f, "[PERF],selectors,{}", self.selectors)?;
+        writeln!(f, "[PERF],revalidation_selectors,{}", self.revalidation_selectors)?;
+        writeln!(f, "[PERF],dependency_selectors,{}", self.dependency_selectors)?;
+        writeln!(f, "[PERF],declarations,{}", self.declarations)?;
+        writeln!(f, "[PERF],stylist_rebuilds,{}", self.stylist_rebuilds)?;
+        writeln!(f, "[PERF],traversal_time_ms,{}", self.traversal_time_ms)?;
         writeln!(f, "[PERF] perf block end")
     }
 }
@@ -262,7 +250,8 @@ impl TraversalStatistics {
         self.traversal_time_ms = (time::precise_time_s() - start) * 1000.0;
         self.selectors = traversal.shared_context().stylist.num_selectors() as u32;
         self.revalidation_selectors = traversal.shared_context().stylist.num_revalidation_selectors() as u32;
-        self.dependency_selectors = traversal.shared_context().stylist.num_dependencies() as u32;
+        self.dependency_selectors =
+            traversal.shared_context().stylist.invalidation_map().len() as u32;
         self.declarations = traversal.shared_context().stylist.num_declarations() as u32;
         self.stylist_rebuilds = traversal.shared_context().stylist.num_rebuilds() as u32;
     }
@@ -349,7 +338,7 @@ pub struct SelectorFlagsMap<E: TElement> {
     map: FnvHashMap<SendElement<E>, ElementSelectorFlags>,
     /// An LRU cache to avoid hashmap lookups, which can be slow if the map
     /// gets big.
-    cache: LRUCache<(SendElement<E>, ElementSelectorFlags)>,
+    cache: LRUCache<[(SendElement<E>, ElementSelectorFlags); 4 + 1]>,
 }
 
 #[cfg(debug_assertions)]
@@ -364,7 +353,7 @@ impl<E: TElement> SelectorFlagsMap<E> {
     pub fn new() -> Self {
         SelectorFlagsMap {
             map: FnvHashMap::default(),
-            cache: LRUCache::new(4),
+            cache: LRUCache::new(),
         }
     }
 

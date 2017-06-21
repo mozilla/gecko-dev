@@ -127,7 +127,7 @@ def using_ccache(ccache, ccache_is_sccache):
 
 @depends_if(ccache, ccache_is_sccache)
 def using_sccache(ccache, ccache_is_sccache):
-    return True
+    return ccache and ccache_is_sccache
 
 set_config('MOZ_USING_CCACHE', using_ccache)
 set_config('MOZ_USING_SCCACHE', using_sccache)
@@ -873,6 +873,20 @@ host_cxx_compiler = compiler('C++', host, c_compiler=host_c_compiler,
 non_msvc_compiler = depends(c_compiler)(lambda info: info.type != 'msvc')
 building_with_gcc = depends(c_compiler)(lambda info: info.type == 'gcc')
 
+@depends(c_compiler)
+def msvs_version(info):
+    # clang-cl emulates the same version scheme as cl. And MSVS_VERSION needs to
+    # be set for GYP on Windows.
+    if info.type in ('clang-cl', 'msvc'):
+        if info.version >= '19.10':
+            return '2017'
+        elif info.version >= '19.00':
+            return '2015'
+
+    return ''
+
+set_config('MSVS_VERSION', msvs_version)
+
 include('compile-checks.configure')
 
 @depends(have_64_bit,
@@ -1027,3 +1041,8 @@ def security_hardening_cflags(value, c_compiler):
 
 add_old_configure_assignment('HARDENING_CFLAGS', security_hardening_cflags)
 imply_option('--enable-pie', depends_if('--enable-hardening')(lambda v: v))
+
+option(env='RUSTFLAGS',
+       nargs=1,
+       help='Rust compiler flags')
+set_config('RUSTFLAGS', depends('RUSTFLAGS')(lambda flags: flags))

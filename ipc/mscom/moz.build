@@ -11,7 +11,9 @@ EXPORTS.mozilla.mscom += [
     'COMApartmentRegion.h',
     'COMPtrHolder.h',
     'EnsureMTA.h',
+    'MainThreadClientInfo.h',
     'MainThreadRuntime.h',
+    'Objref.h',
     'ProxyStream.h',
     'Ptr.h',
     'Utils.h',
@@ -20,7 +22,9 @@ EXPORTS.mozilla.mscom += [
 UNIFIED_SOURCES += [
     'AgileReference.cpp',
     'EnsureMTA.cpp',
+    'MainThreadClientInfo.cpp',
     'MainThreadRuntime.cpp',
+    'Objref.cpp',
     'ProxyStream.cpp',
     'Utils.cpp',
 ]
@@ -69,6 +73,8 @@ LOCAL_INCLUDES += [
     '/xpcom/base',
     '/xpcom/build',
 ]
+
+DEFINES['MOZ_MSCOM_REMARSHAL_NO_HANDLER'] = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 

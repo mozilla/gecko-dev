@@ -100,6 +100,11 @@ class TestTryOptionSyntax(unittest.TestCase):
         self.assertEqual(tos.build_types, [])
         self.assertEqual(tos.jobs, None)
 
+    def test_apostrophe_in_message(self):
+        "apostrophe does not break parsing"
+        tos = TryOptionSyntax('Increase spammy log\'s log level. try: -b do', graph_with_jobs)
+        self.assertEqual(sorted(tos.build_types), ['debug', 'opt'])
+
     def test_b_do(self):
         "-b do should produce both build_types"
         tos = TryOptionSyntax('try: -b do', graph_with_jobs)
@@ -318,6 +323,7 @@ class TestTryOptionSyntax(unittest.TestCase):
         "--no-retry sets no_retry to true"
         tos = TryOptionSyntax('try: --no-retry', graph_with_jobs)
         self.assertTrue(tos.no_retry)
+
 
 if __name__ == '__main__':
     main()

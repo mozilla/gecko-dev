@@ -173,7 +173,7 @@ ICStub::NonCacheIRStubMakesGCCalls(Kind kind)
       case Call_ScriptedApplyArray:
       case Call_ScriptedApplyArguments:
       case Call_ScriptedFunCall:
-      case Call_StringSplit:
+      case Call_ConstStringSplit:
       case WarmUpCounter_Fallback:
       case RetSub_Fallback:
       // These two fallback stubs don't actually make non-tail calls,
@@ -259,8 +259,8 @@ ICStub::trace(JSTracer* trc)
         TraceNullableEdge(trc, &callStub->templateObject(), "baseline-callclasshook-template");
         break;
       }
-      case ICStub::Call_StringSplit: {
-        ICCall_StringSplit* callStub = toCall_StringSplit();
+      case ICStub::Call_ConstStringSplit: {
+        ICCall_ConstStringSplit* callStub = toCall_ConstStringSplit();
         TraceEdge(trc, &callStub->templateObject(), "baseline-callstringsplit-template");
         TraceEdge(trc, &callStub->expectedSep(), "baseline-callstringsplit-sep");
         TraceEdge(trc, &callStub->expectedStr(), "baseline-callstringsplit-str");
@@ -2386,6 +2386,7 @@ DoTypeMonitorFallback(JSContext* cx, BaselineFrame* frame, ICTypeMonitor_Fallbac
         MOZ_ASSERT(frame->isFunctionFrame() || frame->isEvalFrame());
         MOZ_ASSERT(stub->monitorsThis() ||
                    *GetNextPc(pc) == JSOP_CHECKTHIS ||
+                   *GetNextPc(pc) == JSOP_CHECKTHISREINIT ||
                    *GetNextPc(pc) == JSOP_CHECKRETURN);
         if (stub->monitorsThis())
             TypeScript::SetThis(cx, script, TypeSet::UnknownType());

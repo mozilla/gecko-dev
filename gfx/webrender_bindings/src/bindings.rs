@@ -2,16 +2,20 @@ use std::collections::HashSet;
 use std::ffi::CString;
 use std::{mem, slice};
 use std::path::PathBuf;
-use std::os::raw::{c_void, c_char};
-use std::collections::HashMap;
+use std::sync::Arc;
+use std::os::raw::{c_void, c_char, c_float};
 use gleam::gl;
 
 use webrender_traits::*;
 use webrender::renderer::{ReadPixelsFormat, Renderer, RendererOptions};
 use webrender::renderer::{ExternalImage, ExternalImageHandler, ExternalImageSource};
 use webrender::{ApiRecordingReceiver, BinaryRecorder};
+use thread_profiler::register_thread_with_profiler;
+use moz2d_renderer::Moz2dImageRenderer;
 use app_units::Au;
-use euclid::{TypedPoint2D, TypedSize2D, TypedRect, TypedMatrix4D, SideOffsets2D};
+use euclid::{TypedPoint2D, TypedSize2D, TypedRect, TypedTransform3D, SideOffsets2D};
+use euclid::TypedVector2D;
+use rayon;
 
 extern crate webrender_traits;
 
@@ -58,6 +62,27 @@ type WrYuvColorSpace = YuvColorSpace;
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct WrExternalImageId(pub u64);
+
+#[repr(u32)]
+#[derive(Copy, Clone)]
+pub enum WrFilterOpType {
+  Blur = 0,
+  Brightness = 1,
+  Contrast = 2,
+  Grayscale = 3,
+  HueRotate = 4,
+  Invert = 5,
+  Opacity = 6,
+  Saturate = 7,
+  Sepia = 8,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct WrFilterOp {
+    filter_type: WrFilterOpType,
+    argument: c_float,
+}
 
 impl Into<ExternalImageId> for WrExternalImageId {
     fn into(self) -> ExternalImageId {
@@ -153,6 +178,12 @@ impl<U> Into<TypedPoint2D<f32, U>> for WrPoint {
     }
 }
 
+impl<U> Into<TypedVector2D<f32, U>> for WrPoint {
+    fn into(self) -> TypedVector2D<f32, U> {
+        TypedVector2D::new(self.x, self.y)
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct WrSize {
@@ -208,44 +239,44 @@ pub struct WrMatrix {
     values: [f32; 16],
 }
 
-impl<'a, U, E> Into<TypedMatrix4D<f32, U, E>> for &'a WrMatrix {
-    fn into(self) -> TypedMatrix4D<f32, U, E> {
-        TypedMatrix4D::row_major(self.values[0],
-                                 self.values[1],
-                                 self.values[2],
-                                 self.values[3],
-                                 self.values[4],
-                                 self.values[5],
-                                 self.values[6],
-                                 self.values[7],
-                                 self.values[8],
-                                 self.values[9],
-                                 self.values[10],
-                                 self.values[11],
-                                 self.values[12],
-                                 self.values[13],
-                                 self.values[14],
-                                 self.values[15])
+impl<'a, U, E> Into<TypedTransform3D<f32, U, E>> for &'a WrMatrix {
+    fn into(self) -> TypedTransform3D<f32, U, E> {
+        TypedTransform3D::row_major(self.values[0],
+                                    self.values[1],
+                                    self.values[2],
+                                    self.values[3],
+                                    self.values[4],
+                                    self.values[5],
+                                    self.values[6],
+                                    self.values[7],
+                                    self.values[8],
+                                    self.values[9],
+                                    self.values[10],
+                                    self.values[11],
+                                    self.values[12],
+                                    self.values[13],
+                                    self.values[14],
+                                    self.values[15])
     }
 }
-impl<U, E> Into<TypedMatrix4D<f32, U, E>> for WrMatrix {
-    fn into(self) -> TypedMatrix4D<f32, U, E> {
-        TypedMatrix4D::row_major(self.values[0],
-                                 self.values[1],
-                                 self.values[2],
-                                 self.values[3],
-                                 self.values[4],
-                                 self.values[5],
-                                 self.values[6],
-                                 self.values[7],
-                                 self.values[8],
-                                 self.values[9],
-                                 self.values[10],
-                                 self.values[11],
-                                 self.values[12],
-                                 self.values[13],
-                                 self.values[14],
-                                 self.values[15])
+impl<U, E> Into<TypedTransform3D<f32, U, E>> for WrMatrix {
+    fn into(self) -> TypedTransform3D<f32, U, E> {
+        TypedTransform3D::row_major(self.values[0],
+                                    self.values[1],
+                                    self.values[2],
+                                    self.values[3],
+                                    self.values[4],
+                                    self.values[5],
+                                    self.values[6],
+                                    self.values[7],
+                                    self.values[8],
+                                    self.values[9],
+                                    self.values[10],
+                                    self.values[11],
+                                    self.values[12],
+                                    self.values[13],
+                                    self.values[14],
+                                    self.values[15])
     }
 }
 
@@ -844,12 +875,34 @@ pub unsafe extern "C" fn wr_rendered_epochs_delete(pipeline_epochs: *mut WrRende
     Box::from_raw(pipeline_epochs);
 }
 
+pub struct WrThreadPool(Arc<rayon::ThreadPool>);
+
+#[no_mangle]
+pub unsafe extern "C" fn wr_thread_pool_new() -> *mut WrThreadPool {
+    let worker_config = rayon::Configuration::new()
+        .thread_name(|idx|{ format!("WebRender:Worker#{}", idx) })
+        .start_handler(|idx| {
+            register_thread_with_profiler(format!("WebRender:Worker#{}", idx));
+        });
+
+    let workers = Arc::new(rayon::ThreadPool::new(worker_config).unwrap());        
+
+    Box::into_raw(Box::new(WrThreadPool(workers)))
+}
+
+/// cbindgen:postfix=WR_DESTRUCTOR_SAFE_FUNC
+#[no_mangle]
+pub unsafe extern "C" fn wr_thread_pool_delete(thread_pool: *mut WrThreadPool) {
+    Box::from_raw(thread_pool);
+}
+
 // Call MakeCurrent before this.
 #[no_mangle]
 pub extern "C" fn wr_window_new(window_id: WrWindowId,
                                 window_width: u32,
                                 window_height: u32,
                                 gl_context: *mut c_void,
+                                thread_pool: *mut WrThreadPool,
                                 enable_profiler: bool,
                                 out_api: &mut *mut WrAPI,
                                 out_renderer: &mut *mut WrRenderer)
@@ -875,12 +928,18 @@ pub extern "C" fn wr_window_new(window_id: WrWindowId,
 
     println!("WebRender - OpenGL version new {}", version);
 
+    let workers = unsafe {
+        Arc::clone(&(*thread_pool).0)
+    };
+
     let opts = RendererOptions {
         enable_aa: true,
         enable_subpixel_aa: true,
         enable_profiler: enable_profiler,
         recorder: recorder,
-        blob_image_renderer: Some(Box::new(Moz2dImageRenderer::new())),
+        blob_image_renderer: Some(Box::new(Moz2dImageRenderer::new(workers.clone()))),
+        workers: Some(workers.clone()),
+        cache_expiry_frames: 60, // see https://github.com/servo/webrender/pull/1294#issuecomment-304318800
         ..Default::default()
     };
 
@@ -1009,6 +1068,7 @@ pub extern "C" fn wr_api_set_window_parameters(api: &mut WrAPI,
 
 #[no_mangle]
 pub unsafe extern "C" fn wr_api_set_root_display_list(api: &mut WrAPI,
+                                                      color: WrColor,
                                                       epoch: WrEpoch,
                                                       viewport_width: f32,
                                                       viewport_height: f32,
@@ -1017,7 +1077,11 @@ pub unsafe extern "C" fn wr_api_set_root_display_list(api: &mut WrAPI,
                                                       dl_descriptor: WrBuiltDisplayListDescriptor,
                                                       dl_data: *mut u8,
                                                       dl_size: usize) {
-    let root_background_color = ColorF::new(0.3, 0.0, 0.0, 1.0);
+    let color = if color.a == 0.0 {
+        None
+    } else {
+        Some(color.into())
+    };
     // See the documentation of set_display_list in api.rs. I don't think
     // it makes a difference in gecko at the moment(until APZ is figured out)
     // but I suppose it is a good default.
@@ -1029,7 +1093,7 @@ pub unsafe extern "C" fn wr_api_set_root_display_list(api: &mut WrAPI,
     dl_vec.extend_from_slice(dl_slice);
     let dl = BuiltDisplayList::from_data(dl_vec, dl_descriptor);
 
-    api.set_display_list(Some(root_background_color),
+    api.set_display_list(color,
                          epoch,
                          LayoutSize::new(viewport_width, viewport_height),
                          (pipeline_id, content_size.into(), dl),
@@ -1040,11 +1104,10 @@ pub unsafe extern "C" fn wr_api_set_root_display_list(api: &mut WrAPI,
 pub unsafe extern "C" fn wr_api_clear_root_display_list(api: &mut WrAPI,
                                                         epoch: WrEpoch,
                                                         pipeline_id: WrPipelineId) {
-    let root_background_color = ColorF::new(0.3, 0.0, 0.0, 1.0);
     let preserve_frame_state = true;
     let frame_builder = WebRenderFrameBuilder::new(pipeline_id, WrSize::zero());
 
-    api.set_display_list(Some(root_background_color),
+    api.set_display_list(None,
                          epoch,
                          LayoutSize::new(0.0, 0.0),
                          frame_builder.dl_builder.finalize(),
@@ -1167,7 +1230,7 @@ pub struct WrState {
 #[no_mangle]
 pub extern "C" fn wr_state_new(pipeline_id: WrPipelineId,
                                content_size: WrSize) -> *mut WrState {
-    assert!(unsafe { is_in_main_thread() });
+    assert!(unsafe { !is_in_render_thread() });
 
     let state = Box::new(WrState {
                              pipeline_id: pipeline_id,
@@ -1181,7 +1244,7 @@ pub extern "C" fn wr_state_new(pipeline_id: WrPipelineId,
 /// cbindgen:postfix=WR_DESTRUCTOR_SAFE_FUNC
 #[no_mangle]
 pub extern "C" fn wr_state_delete(state: *mut WrState) {
-    assert!(unsafe { is_in_main_thread() });
+    assert!(unsafe { !is_in_render_thread() });
 
     unsafe {
         Box::from_raw(state);
@@ -1192,7 +1255,7 @@ pub extern "C" fn wr_state_delete(state: *mut WrState) {
 pub extern "C" fn wr_dp_begin(state: &mut WrState,
                               width: u32,
                               height: u32) {
-    assert!(unsafe { is_in_main_thread() });
+    assert!(unsafe { !is_in_render_thread() });
     state.frame_builder.dl_builder.data.clear();
 
     let bounds = LayoutRect::new(LayoutPoint::new(0.0, 0.0),
@@ -1211,7 +1274,7 @@ pub extern "C" fn wr_dp_begin(state: &mut WrState,
 
 #[no_mangle]
 pub extern "C" fn wr_dp_end(state: &mut WrState) {
-    assert!(unsafe { is_in_main_thread() });
+    assert!(unsafe { !is_in_render_thread() });
     state.frame_builder.dl_builder.pop_stacking_context();
 }
 
@@ -1222,7 +1285,7 @@ pub extern "C" fn wr_dp_push_clip_region(state: &mut WrState,
                                          complex_count: usize,
                                          image_mask: *const WrImageMask)
                                          -> WrClipRegionToken {
-    assert!(unsafe { is_in_main_thread() });
+    assert!(unsafe { !is_in_render_thread() });
 
     let main = main.into();
     let complex_slice = make_slice(complex, complex_count);
@@ -1240,12 +1303,28 @@ pub extern "C" fn wr_dp_push_stacking_context(state: &mut WrState,
                                               animation_id: u64,
                                               opacity: *const f32,
                                               transform: *const WrMatrix,
-                                              mix_blend_mode: WrMixBlendMode) {
-    assert!(unsafe { is_in_main_thread() });
+                                              mix_blend_mode: WrMixBlendMode,
+                                              filters: *const WrFilterOp,
+                                              filter_count: usize) {
+    assert!(unsafe { !is_in_render_thread() });
 
     let bounds = bounds.into();
 
-    let mut filters: Vec<FilterOp> = Vec::new();
+    let c_filters = make_slice(filters, filter_count);
+    let mut filters : Vec<FilterOp> = c_filters.iter().map(|c_filter| {
+        match c_filter.filter_type {
+            WrFilterOpType::Blur => FilterOp::Blur(Au::from_f32_px(c_filter.argument)),
+            WrFilterOpType::Brightness => FilterOp::Brightness(c_filter.argument),
+            WrFilterOpType::Contrast => FilterOp::Contrast(c_filter.argument),
+            WrFilterOpType::Grayscale => FilterOp::Grayscale(c_filter.argument),
+            WrFilterOpType::HueRotate => FilterOp::HueRotate(c_filter.argument),
+            WrFilterOpType::Invert => FilterOp::Invert(c_filter.argument),
+            WrFilterOpType::Opacity => FilterOp::Opacity(PropertyBinding::Value(c_filter.argument)),
+            WrFilterOpType::Saturate => FilterOp::Saturate(c_filter.argument),
+            WrFilterOpType::Sepia => FilterOp::Sepia(c_filter.argument),
+        }
+    }).collect();
+
     let opacity = unsafe { opacity.as_ref() };
     if let Some(opacity) = opacity {
         if *opacity < 1.0 {
@@ -1256,16 +1335,19 @@ pub extern "C" fn wr_dp_push_stacking_context(state: &mut WrState,
     }
 
     let transform = unsafe { transform.as_ref() };
-    let transform_binding = match transform {
-        Some(transform) => PropertyBinding::Value(transform.into()),
-        None => PropertyBinding::Binding(PropertyBindingKey::new(animation_id)),
+    let transform_binding = match animation_id {
+        0 => match transform {
+            Some(transform) => Some(PropertyBinding::Value(transform.into())),
+            None => None,
+        },
+        _ => Some(PropertyBinding::Binding(PropertyBindingKey::new(animation_id))),
     };
 
     state.frame_builder
          .dl_builder
          .push_stacking_context(webrender_traits::ScrollPolicy::Scrollable,
                                 bounds,
-                                Some(transform_binding),
+                                transform_binding,
                                 TransformStyle::Flat,
                                 None,
                                 mix_blend_mode,
@@ -1274,24 +1356,45 @@ pub extern "C" fn wr_dp_push_stacking_context(state: &mut WrState,
 
 #[no_mangle]
 pub extern "C" fn wr_dp_pop_stacking_context(state: &mut WrState) {
-    assert!(unsafe { is_in_main_thread() });
+    assert!(unsafe { !is_in_render_thread() });
     state.frame_builder.dl_builder.pop_stacking_context();
 }
 
 #[no_mangle]
 pub extern "C" fn wr_dp_push_clip(state: &mut WrState,
-                                  clip_rect: WrRect,
-                                  mask: *const WrImageMask) {
+                                  rect: WrRect,
+                                  mask: *const WrImageMask)
+                                  -> u64 {
     assert!(unsafe { is_in_main_thread() });
-    let clip_rect = clip_rect.into();
-    let mask = unsafe { mask.as_ref() }.map(|x| x.into());
+    let content_rect: LayoutRect = rect.into();
+
+    // Both the clip rect and mask rect need to be relative to the
+    // content rect when the clip region is being used as part of a clip item.
+    // Since the clip_rect is the same as the content_rect we can just set the
+    // origin to zero.
+    let clip_rect = LayoutRect::new(LayoutPoint::zero(), content_rect.size);
+    let mut mask : Option<ImageMask> = unsafe { mask.as_ref() }.map(|x| x.into());
+    if let Some(ref mut m) = mask {
+        m.rect.origin = m.rect.origin - content_rect.origin.to_vector();
+    }
+
     let clip_region = state.frame_builder.dl_builder.push_clip_region(&clip_rect, vec![], mask);
-    state.frame_builder.dl_builder.push_clip_node(clip_rect, clip_region, None);
+    let clip_id = state.frame_builder.dl_builder.define_clip(content_rect, clip_region, None);
+    state.frame_builder.dl_builder.push_clip_id(clip_id);
+    // return the u64 id value from inside the ClipId::Clip(..)
+    match clip_id {
+        ClipId::Clip(id, nesting_index, pipeline_id) => {
+            assert!(pipeline_id == state.pipeline_id);
+            assert!(nesting_index == 0);
+            id
+        },
+        _ => panic!("Got unexpected clip id type"),
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn wr_dp_pop_clip(state: &mut WrState) {
-    assert!(unsafe { is_in_main_thread() });
+    assert!(unsafe { !is_in_render_thread() });
     state.frame_builder.dl_builder.pop_clip_node();
 }
 
@@ -1305,8 +1408,14 @@ pub extern "C" fn wr_dp_push_scroll_layer(state: &mut WrState,
     // Avoid defining multiple scroll clips with the same clip id, as that
     // results in undefined behaviour or assertion failures.
     if !state.frame_builder.scroll_clips_defined.contains(&clip_id) {
-        let content_rect = content_rect.into();
-        let clip_rect = clip_rect.into();
+        let content_rect: LayoutRect = content_rect.into();
+
+        // Both the clip rect and mask rect need to be relative to the
+        // content_rect when the clip region is being used as part of a clip
+        // item. In this case there is no mask rect so that's a no-op.
+        let mut clip_rect: LayoutRect = clip_rect.into();
+        clip_rect.origin = clip_rect.origin - content_rect.origin.to_vector();
+
         let clip_region = state.frame_builder.dl_builder.push_clip_region(&clip_rect, vec![], None);
         state.frame_builder.dl_builder.define_clip(content_rect, clip_region, Some(clip_id));
         state.frame_builder.scroll_clips_defined.insert(clip_id);
@@ -1331,6 +1440,28 @@ pub extern "C" fn wr_scroll_layer_with_id(api: &mut WrAPI,
 }
 
 #[no_mangle]
+pub extern "C" fn wr_dp_push_clip_and_scroll_info(state: &mut WrState,
+                                                  scroll_id: u64,
+                                                  clip_id: *const u64) {
+    assert!(unsafe { is_in_main_thread() });
+    let scroll_id = ClipId::new(scroll_id, state.pipeline_id);
+    let info = if let Some(&id) = unsafe { clip_id.as_ref() } {
+        ClipAndScrollInfo::new(
+            scroll_id,
+            ClipId::Clip(id, 0, state.pipeline_id))
+    } else {
+        ClipAndScrollInfo::simple(scroll_id)
+    };
+    state.frame_builder.dl_builder.push_clip_and_scroll_info(info);
+}
+
+#[no_mangle]
+pub extern "C" fn wr_dp_pop_clip_and_scroll_info(state: &mut WrState) {
+    assert!(unsafe { is_in_main_thread() });
+    state.frame_builder.dl_builder.pop_clip_id();
+}
+
+#[no_mangle]
 pub extern "C" fn wr_dp_push_iframe(state: &mut WrState,
                                     rect: WrRect,
                                     clip: WrClipRegionToken,
@@ -1345,7 +1476,7 @@ pub extern "C" fn wr_dp_push_rect(state: &mut WrState,
                                   rect: WrRect,
                                   clip: WrClipRegionToken,
                                   color: WrColor) {
-    assert!(unsafe { is_in_main_thread() });
+    assert!(unsafe { !is_in_render_thread() });
 
     state.frame_builder.dl_builder.push_rect(rect.into(), clip.into(), color.into());
 }
@@ -1358,7 +1489,7 @@ pub extern "C" fn wr_dp_push_image(state: &mut WrState,
                                    tile_spacing: WrSize,
                                    image_rendering: WrImageRendering,
                                    key: WrImageKey) {
-    assert!(unsafe { is_in_main_thread() });
+    assert!(unsafe { is_in_main_thread() || is_in_compositor_thread() });
 
     state.frame_builder
          .dl_builder
@@ -1378,15 +1509,17 @@ pub extern "C" fn wr_dp_push_yuv_planar_image(state: &mut WrState,
                                               image_key_0: WrImageKey,
                                               image_key_1: WrImageKey,
                                               image_key_2: WrImageKey,
-                                              color_space: WrYuvColorSpace) {
-    assert!(unsafe { is_in_main_thread() });
+                                              color_space: WrYuvColorSpace,
+                                              image_rendering: WrImageRendering) {
+    assert!(unsafe { is_in_main_thread() || is_in_compositor_thread() });
 
     state.frame_builder
          .dl_builder
          .push_yuv_image(bounds.into(),
                          clip.into(),
                          YuvData::PlanarYCbCr(image_key_0, image_key_1, image_key_2),
-                         color_space);
+                         color_space,
+                         image_rendering);
 }
 
 /// Push a 2 planar NV12 image.
@@ -1396,15 +1529,17 @@ pub extern "C" fn wr_dp_push_yuv_NV12_image(state: &mut WrState,
                                             clip: WrClipRegionToken,
                                             image_key_0: WrImageKey,
                                             image_key_1: WrImageKey,
-                                            color_space: WrYuvColorSpace) {
-    assert!(unsafe { is_in_main_thread() });
+                                            color_space: WrYuvColorSpace,
+                                            image_rendering: WrImageRendering) {
+    assert!(unsafe { is_in_main_thread() || is_in_compositor_thread() });
 
     state.frame_builder
          .dl_builder
          .push_yuv_image(bounds.into(),
                          clip.into(),
                          YuvData::NV12(image_key_0, image_key_1),
-                         color_space);
+                         color_space,
+                         image_rendering);
 }
 
 /// Push a yuv interleaved image.
@@ -1413,15 +1548,17 @@ pub extern "C" fn wr_dp_push_yuv_interleaved_image(state: &mut WrState,
                                                    bounds: WrRect,
                                                    clip: WrClipRegionToken,
                                                    image_key_0: WrImageKey,
-                                                   color_space: WrYuvColorSpace) {
-    assert!(unsafe { is_in_main_thread() });
+                                                   color_space: WrYuvColorSpace,
+                                                   image_rendering: WrImageRendering) {
+    assert!(unsafe { is_in_main_thread() || is_in_compositor_thread() });
 
     state.frame_builder
          .dl_builder
          .push_yuv_image(bounds.into(),
                          clip.into(),
                          YuvData::InterleavedYCbCr(image_key_0),
-                         color_space);
+                         color_space,
+                         image_rendering);
 }
 
 #[no_mangle]
@@ -1673,65 +1810,7 @@ pub unsafe extern "C" fn wr_dp_push_built_display_list(state: &mut WrState,
 
     let dl = BuiltDisplayList::from_data(dl_vec, dl_descriptor);
 
-    state.frame_builder.dl_builder.push_built_display_list(dl);
-}
-
-struct Moz2dImageRenderer {
-    images: HashMap<ImageKey, BlobImageData>,
-
-    // The images rendered in the current frame (not kept here between frames)
-    rendered_images: HashMap<BlobImageRequest, BlobImageResult>,
-}
-
-impl BlobImageRenderer for Moz2dImageRenderer {
-    fn add(&mut self, key: ImageKey, data: BlobImageData, _tiling: Option<TileSize>) {
-        self.images.insert(key, data);
-    }
-
-    fn update(&mut self, key: ImageKey, data: BlobImageData) {
-        self.images.insert(key, data);
-    }
-
-    fn delete(&mut self, key: ImageKey) {
-        self.images.remove(&key);
-    }
-
-    fn request(&mut self,
-               request: BlobImageRequest,
-               descriptor: &BlobImageDescriptor,
-               _dirty_rect: Option<DeviceUintRect>,
-               _images: &ImageStore) {
-        let data = self.images.get(&request.key).unwrap();
-        let buf_size = (descriptor.width * descriptor.height * descriptor.format.bytes_per_pixel().unwrap()) as usize;
-        let mut output = vec![255u8; buf_size];
-
-        unsafe {
-            if wr_moz2d_render_cb(WrByteSlice::new(&data[..]),
-                                  descriptor.width,
-                                  descriptor.height,
-                                  descriptor.format,
-                                  MutByteSlice::new(output.as_mut_slice())) {
-                self.rendered_images.insert(request,
-                                            Ok(RasterizedBlobImage {
-                              width: descriptor.width,
-                              height: descriptor.height,
-                              data: output,
-                          }));
-            }
-        }
-    }
-    fn resolve(&mut self, request: BlobImageRequest) -> BlobImageResult {
-        self.rendered_images.remove(&request).unwrap_or(Err(BlobImageError::InvalidKey))
-    }
-}
-
-impl Moz2dImageRenderer {
-    fn new() -> Self {
-        Moz2dImageRenderer {
-            images: HashMap::new(),
-            rendered_images: HashMap::new()
-        }
-    }
+    state.frame_builder.dl_builder.push_nested_display_list(&dl);
 }
 
 // TODO: nical
@@ -1739,10 +1818,10 @@ impl Moz2dImageRenderer {
 //
 extern "C" {
      // TODO: figure out the API for tiled blob images.
-     fn wr_moz2d_render_cb(blob: WrByteSlice,
-                           width: u32,
-                           height: u32,
-                           format: WrImageFormat,
-                           output: MutByteSlice)
-                           -> bool;
+     pub fn wr_moz2d_render_cb(blob: WrByteSlice,
+                               width: u32,
+                               height: u32,
+                               format: WrImageFormat,
+                               output: MutByteSlice)
+                               -> bool;
 }

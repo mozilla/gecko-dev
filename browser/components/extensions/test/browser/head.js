@@ -18,7 +18,7 @@
  *          awaitExtensionPanel awaitPopupResize
  *          promiseContentDimensions alterContent
  *          promisePrefChangeObserved openContextMenuInFrame
- *          promiseAnimationFrame
+ *          promiseAnimationFrame getCustomizableUIPanelID
  */
 
 // There are shutdown issues for which multiple rejections are left uncaught.
@@ -211,6 +211,11 @@ var awaitExtensionPanel = async function(extension, win = window, awaitLoad = tr
   return browser;
 };
 
+function getCustomizableUIPanelID() {
+  return gPhotonStructure ? CustomizableUI.AREA_FIXED_OVERFLOW_PANEL
+                          : CustomizableUI.AREA_PANEL;
+}
+
 function getBrowserActionWidget(extension) {
   return CustomizableUI.getWidget(makeWidgetId(extension.id) + "-browser-action");
 }
@@ -221,7 +226,7 @@ function getBrowserActionPopup(extension, win = window) {
   if (group.areaType == CustomizableUI.TYPE_TOOLBAR) {
     return win.document.getElementById("customizationui-widget-panel");
   }
-  return win.PanelUI.panel;
+  return gPhotonStructure ? win.PanelUI.overflowPanel : win.PanelUI.panel;
 }
 
 var showBrowserAction = async function(extension, win = window) {
@@ -231,7 +236,14 @@ var showBrowserAction = async function(extension, win = window) {
   if (group.areaType == CustomizableUI.TYPE_TOOLBAR) {
     ok(!widget.overflowed, "Expect widget not to be overflowed");
   } else if (group.areaType == CustomizableUI.TYPE_MENU_PANEL) {
-    await win.PanelUI.show();
+    // Show the right panel. After Photon is turned on permanently, this
+    // can be re-simplified. This is unfortunately easier than getting
+    // and using the panel (area) ID out of CustomizableUI for the widget.
+    if (gPhotonStructure) {
+      await win.document.getElementById("nav-bar").overflowable.show();
+    } else {
+      await win.PanelUI.show();
+    }
   }
 };
 
@@ -319,7 +331,7 @@ async function closeExtensionContextMenu(itemToSelect, modifiers = {}) {
   let contentAreaContextMenu = document.getElementById("contentAreaContextMenu");
   let popupHiddenPromise = BrowserTestUtils.waitForEvent(contentAreaContextMenu, "popuphidden");
   EventUtils.synthesizeMouseAtCenter(itemToSelect, modifiers);
-  await popupHiddenPromise;
+  return popupHiddenPromise;
 }
 
 async function openChromeContextMenu(menuId, target, win = window) {

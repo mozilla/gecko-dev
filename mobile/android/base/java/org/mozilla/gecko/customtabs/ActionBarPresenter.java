@@ -6,8 +6,6 @@
 package org.mozilla.gecko.customtabs;
 
 import android.content.res.Resources;
-import android.content.res.TypedArray;
-import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
@@ -223,7 +221,7 @@ public class ActionBarPresenter {
     private void updateCustomView(final String title, final String url, final int securityStatus) {
         if (securityStatus == GeckoView.ProgressListener.STATE_IS_SECURE) {
             mIconView.setVisibility(View.VISIBLE);
-            mIconView.setImageLevel(SecurityModeUtil.Mode.LOCK_SECURE.ordinal());
+            mIconView.setImageLevel(SecurityModeUtil.getImageLevel(SecurityModeUtil.IconType.LOCK_SECURE));
             // Lock-Secure is special case. Keep its original green color.
             DrawableCompat.setTintList(mIconView.getDrawable(), null);
         } else {

@@ -2,22 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "logging.h"
-
-#include "webrtc/config.h"
 #include "signaling/src/jsep/JsepSessionImpl.h"
+
 #include <string>
 #include <set>
 #include <bitset>
 #include <stdlib.h>
 
+#include "plarena.h"
 #include "nspr.h"
 #include "nss.h"
 #include "pk11pub.h"
 #include "nsDebug.h"
+#include "logging.h"
 
-#include <mozilla/Move.h>
-#include <mozilla/UniquePtr.h>
+#include "mozilla/Move.h"
+#include "mozilla/UniquePtr.h"
+
+#include "webrtc/config.h"
 
 #include "signaling/src/jsep/JsepTrack.h"
 #include "signaling/src/jsep/JsepTrack.h"
@@ -1022,6 +1024,10 @@ JsepSessionImpl::CreateAnswerMSection(const JsepAnswerOptions& options,
 nsresult
 JsepSessionImpl::SetRecvonlySsrc(SdpMediaSection* msection)
 {
+  if (msection->GetMediaType() == SdpMediaSection::kApplication) {
+    return NS_OK;
+  }
+
   // If previous m-sections are disabled, we do not call this function for them
   while (mRecvonlySsrcs.size() <= msection->GetLevel()) {
     uint32_t ssrc;
@@ -1471,9 +1477,11 @@ JsepSessionImpl::MakeNegotiatedTrackPair(const SdpMediaSection& remote,
 
   trackPairOut->mLevel = local.GetLevel();
 
-  MOZ_ASSERT(mRecvonlySsrcs.size() > local.GetLevel(),
-             "Failed to set the default ssrc for an active m-section");
-  trackPairOut->mRecvonlySsrc = mRecvonlySsrcs[local.GetLevel()];
+  if (local.GetMediaType() != SdpMediaSection::kApplication) {
+    MOZ_ASSERT(mRecvonlySsrcs.size() > local.GetLevel(),
+               "Failed to set the default ssrc for an active m-section");
+    trackPairOut->mRecvonlySsrc = mRecvonlySsrcs[local.GetLevel()];
+  }
 
   if (usingBundle) {
     trackPairOut->SetBundleLevel(transportLevel);
@@ -2362,7 +2370,10 @@ JsepSessionImpl::SetupDefaultCodecs()
   mSupportedCodecs.values.push_back(new JsepApplicationCodecDescription(
       "webrtc-datachannel",
       WEBRTC_DATACHANNEL_STREAMS_DEFAULT,
-      5000
+      WEBRTC_DATACHANNEL_PORT_DEFAULT,
+      // TODO: Bug 979417 needs to change this to
+      // WEBRTC_DATACHANELL_MAX_MESSAGE_SIZE_DEFAULT
+      0
       ));
 
   // Update the redundant encodings for the RED codec with the supported

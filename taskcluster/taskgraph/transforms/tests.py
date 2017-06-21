@@ -53,7 +53,10 @@ WINDOWS_WORKER_TYPES = {
     'windows10-64-vm': 'aws-provisioner-v1/gecko-t-win10-64',
     'windows10-64': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
     'windows10-64-asan': 'aws-provisioner-v1/gecko-t-win10-64-gpu',
-    'macosx64': 'scl3-puppet/os-x-10-10-gw'
+}
+
+MACOSX_WORKER_TYPES = {
+    'macosx64': 'releng-hardware/gecko-t-osx-1010',
 }
 
 logger = logging.getLogger(__name__)
@@ -439,6 +442,10 @@ def set_tier(config, tests):
                                          'linux64-pgo/opt',
                                          'linux64-devedition/opt',
                                          'linux64-asan/opt',
+                                         'windows7-32/debug',
+                                         'windows7-32-vm/debug',
+                                         'macosx64/opt',
+                                         'macosx64/debug',
                                          'android-4.3-arm7-api-15/opt',
                                          'android-4.3-arm7-api-15/debug',
                                          'android-4.2-x86/opt']:
@@ -509,9 +516,9 @@ def enable_code_coverage(config, tests):
             test['mozharness'].setdefault('extra-options', []).append('--code-coverage')
             test['when'] = {}
             test['instance-size'] = 'xlarge'
-            test['run-on-projects'] = []
+            test['run-on-projects'] = ['mozilla-central']
         elif test['build-platform'] == 'linux64-jsdcov/opt':
-            test['run-on-projects'] = []
+            test['run-on-projects'] = ['mozilla-central']
         yield test
 
 
@@ -698,7 +705,7 @@ def set_worker_type(config, tests):
         test_platform = test['test-platform']
         if test_platform.startswith('macosx'):
             # note that some portion of these will be allocated to BBB below
-            test['worker-type'] = 'tc-worker-provisioner/gecko-t-osx-10-10'
+            test['worker-type'] = MACOSX_WORKER_TYPES['macosx64']
         elif test_platform.startswith('win'):
             if test.get('suite', '') == 'talos':
                 test['worker-type'] = 'buildbot-bridge/buildbot-bridge'

@@ -45,6 +45,7 @@ Structure:
           ReleaseChannel: <channel>,
           Version: <version number>,
           BuildID: "YYYYMMDDHHMMSS",
+          AsyncShutdownTimeout: <json>, // Optional, present when a shutdown blocker failed to respond within a reasonable amount of time
           AvailablePageFile: <size>, // Windows-only, available paging file
           AvailablePhysicalMemory: <size>, // Windows-only, available physical memory
           AvailableVirtualMemory: <size>, // Windows-only, available virtual memory
@@ -56,7 +57,9 @@ Structure:
           IsGarbageCollecting: 1, // Optional, present only if set to 1
           MozCrashReason: <reason>, // Optional, contains the string passed to MOZ_CRASH()
           OOMAllocationSize: <size>, // Size of the allocation that caused an OOM
+          RemoteType: <type>, // Optional, type of content process, see below for a list of types
           SecondsSinceLastCrash: <duration>, // Seconds elapsed since the last crash occurred
+          ShutdownProgress: <phase>, // Optional, contains the shutdown phase in which the crash occurred
           SystemMemoryUsePercentage: <percentage>, // Windows-only, percent of memory in use
           TelemetrySessionId: <id>, // Active telemetry session ID when the crash was recorded
           TextureUsage: <usage>, // Optional, usage of texture memory in bytes
@@ -91,6 +94,23 @@ are sent only for the ones below:
 +---------------+---------------------------------------------------+
 | gpu           | GPU process                                       |
 +---------------+---------------------------------------------------+
+
+Remote Process Types
+--------------------
+
+The optional ``remoteType`` field contains the type of the content process that
+crashed. As such it is present only if ``processType`` contains the ``content``
+value. The following content process types are currently defined:
+
++-----------+--------------------------------------------------------+
+| Type      | Description                                            |
++===========+========================================================+
+| web       | The content process was running code from a web page   |
++-----------+--------------------------------------------------------+
+| file      | The content process was running code from a local file |
++-----------+--------------------------------------------------------+
+| extension | The content process was running code from an extension |
++-----------+--------------------------------------------------------+
 
 Stack Traces
 ------------

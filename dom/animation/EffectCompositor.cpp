@@ -15,6 +15,7 @@
 #include "mozilla/AnimationUtils.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/EffectSet.h"
+#include "mozilla/GeckoStyleContext.h"
 #include "mozilla/LayerAnimationInfo.h"
 #include "mozilla/RestyleManager.h"
 #include "mozilla/RestyleManagerInlines.h"
@@ -33,6 +34,7 @@
 #include "nsLayoutUtils.h"
 #include "nsRuleNode.h" // For nsRuleNode::ComputePropertiesOverridingAnimation
 #include "nsRuleProcessorData.h" // For ElementRuleProcessorData etc.
+#include "nsStyleContextInlines.h"
 #include "nsTArray.h"
 #include <bitset>
 #include <initializer_list>
@@ -168,7 +170,7 @@ FindAnimationsForCompositor(const nsIFrame* aFrame,
     EffectCompositor::GetAnimationElementAndPseudoForFrame(aFrame);
   if (pseudoElement) {
     StyleBackendType backend =
-      aFrame->StyleContext()->StyleSource().IsServoComputedValues()
+      aFrame->StyleContext()->IsServo()
       ? StyleBackendType::Servo
       : StyleBackendType::Gecko;
     EffectCompositor::MaybeUpdateCascadeResults(backend,
@@ -266,9 +268,7 @@ EffectCompositor::RequestRestyle(dom::Element* aElement,
   PseudoElementHashEntry::KeyType key = { aElement, aPseudoType };
 
   if (aRestyleType == RestyleType::Throttled) {
-    if (!elementsToRestyle.Contains(key)) {
-      elementsToRestyle.Put(key, false);
-    }
+    elementsToRestyle.LookupForAdd(key).OrInsert([]() { return false; });
     mPresContext->PresShell()->SetNeedThrottledAnimationFlush();
   } else {
     // Get() returns 0 if the element is not found. It will also return
@@ -355,7 +355,7 @@ EffectCompositor::PostRestyleForThrottledAnimations()
 
 template<typename StyleType>
 void
-EffectCompositor::UpdateEffectProperties(StyleType&& aStyleType,
+EffectCompositor::UpdateEffectProperties(StyleType* aStyleType,
                                          Element* aElement,
                                          CSSPseudoElementType aPseudoType)
 {
@@ -370,7 +370,7 @@ EffectCompositor::UpdateEffectProperties(StyleType&& aStyleType,
   effectSet->MarkCascadeNeedsUpdate();
 
   for (KeyframeEffectReadOnly* effect : *effectSet) {
-    effect->UpdateProperties(Forward<StyleType>(aStyleType));
+    effect->UpdateProperties(aStyleType);
   }
 }
 
@@ -801,7 +801,7 @@ EffectCompositor::GetOverriddenProperties(StyleBackendType aBackendType,
       break;
     case StyleBackendType::Gecko:
       nsRuleNode::ComputePropertiesOverridingAnimation(propertiesToTrack,
-                                                       aStyleContext,
+                                                       aStyleContext->AsGecko(),
                                                        result);
       break;
 
@@ -1042,6 +1042,7 @@ EffectCompositor::PreTraverseInSubtree(Element* aRoot,
       // middle of the servo traversal.
       mPresContext->RestyleManager()->AsServo()->
         PostRestyleEventForAnimations(target.mElement,
+                                      target.mPseudoType,
                                       cascadeLevel == CascadeLevel::Transitions
                                         ? eRestyle_CSSTransitions
                                         : eRestyle_CSSAnimations);
@@ -1108,6 +1109,7 @@ EffectCompositor::PreTraverse(dom::Element* aElement,
 
     mPresContext->RestyleManager()->AsServo()->
       PostRestyleEventForAnimations(aElement,
+                                    aPseudoType,
                                     cascadeLevel == CascadeLevel::Transitions
                                       ? eRestyle_CSSTransitions
                                       : eRestyle_CSSAnimations);
@@ -1239,15 +1241,15 @@ EffectCompositor::AnimationStyleRuleProcessor::SizeOfIncludingThis(
 
 template
 void
-EffectCompositor::UpdateEffectProperties<RefPtr<nsStyleContext>&>(
-  RefPtr<nsStyleContext>& aStyleContext,
+EffectCompositor::UpdateEffectProperties(
+  nsStyleContext* aStyleContext,
   Element* aElement,
   CSSPseudoElementType aPseudoType);
 
 template
 void
-EffectCompositor::UpdateEffectProperties<const ServoComputedValuesWithParent&>(
-  const ServoComputedValuesWithParent& aServoValues,
+EffectCompositor::UpdateEffectProperties(
+  const ServoComputedValues* aServoValues,
   Element* aElement,
   CSSPseudoElementType aPseudoType);
 

@@ -20,35 +20,35 @@ ${helpers.single_keyword("vector-effect", "none non-scaling-stroke",
 // Section 13 - Gradients and Patterns
 
 ${helpers.predefined_type(
-    "stop-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
+    "stop-color", "RGBAColor",
+    "RGBA::new(0, 0, 0, 255)",
     products="gecko",
-    animation_value_type="none",
+    animation_value_type="IntermediateRGBA",
     spec="https://www.w3.org/TR/SVGTiny12/painting.html#StopColorProperty")}
 
 ${helpers.predefined_type("stop-opacity", "Opacity", "1.0",
                           products="gecko",
-                          animation_value_type="none",
+                          animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVGTiny12/painting.html#propdef-stop-opacity")}
 
 // Section 15 - Filter Effects
 
 ${helpers.predefined_type(
-    "flood-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
+    "flood-color", "RGBAColor",
+    "RGBA::new(0, 0, 0, 255)",
     products="gecko",
-    animation_value_type="none",
+    animation_value_type="IntermediateRGBA",
     spec="https://www.w3.org/TR/SVG/filters.html#FloodColorProperty")}
 
 ${helpers.predefined_type("flood-opacity", "Opacity",
-                          "1.0", products="gecko", animation_value_type="none",
+                          "1.0", products="gecko", animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG/filters.html#FloodOpacityProperty")}
 
 ${helpers.predefined_type(
-    "lighting-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA::new(255, 255, 255, 255))",
+    "lighting-color", "RGBAColor",
+    "RGBA::new(255, 255, 255, 255)",
     products="gecko",
-    animation_value_type="none",
+    animation_value_type="IntermediateRGBA",
     spec="https://www.w3.org/TR/SVG/filters.html#LightingColorProperty")}
 
 // CSS Masking Module Level 1
@@ -129,7 +129,8 @@ ${helpers.single_keyword("mask-origin",
         background_size::get_initial_value()
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         background_size::parse(context, input)
     }
 </%helpers:longhand>

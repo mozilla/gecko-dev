@@ -40,10 +40,7 @@ extern crate style;
 extern crate webrender_traits;
 
 use app_units::Au;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::scale_factor::ScaleFactor;
-use euclid::size::Size2D;
+use euclid::{Point2D, Rect, Size2D, ScaleFactor};
 use fnv::FnvHashMap;
 use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
@@ -90,6 +87,7 @@ use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress};
+use script_traits::PaintWorkletExecutor;
 use selectors::Element;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -110,9 +108,9 @@ use std::thread;
 use style::animation::Animation;
 use style::context::{QuirksMode, ReflowGoal, SharedStyleContext};
 use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
-use style::data::StoredRestyleHint;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::{NullReporter, RustLogReporter};
+use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::SnapshotMap;
@@ -225,6 +223,9 @@ pub struct LayoutThread {
 
     webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder),
                                                  WebRenderImageInfo>>>,
+    /// The executor for paint worklets.
+    /// Will be None if the script thread hasn't added any paint worklet modules.
+    paint_worklet_executor: Option<Arc<PaintWorkletExecutor>>,
 
     /// Webrender interface.
     webrender_api: webrender_traits::RenderApi,
@@ -439,7 +440,11 @@ impl LayoutThread {
 
         let configuration =
             rayon::Configuration::new().num_threads(layout_threads);
-        let parallel_traversal = rayon::ThreadPool::new(configuration).ok();
+        let parallel_traversal = if layout_threads > 1 {
+            Some(rayon::ThreadPool::new(configuration).expect("ThreadPool creation failed"))
+        } else {
+            None
+        };
         debug!("Possible layout Threads: {}", layout_threads);
 
         // Create the channel on which new animations can be sent.
@@ -477,6 +482,7 @@ impl LayoutThread {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
+            paint_worklet_executor: None,
             image_cache: image_cache.clone(),
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
@@ -574,6 +580,7 @@ impl LayoutThread {
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
             newly_transitioning_nodes: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
+            paint_worklet_executor: self.paint_worklet_executor.clone(),
         }
     }
 
@@ -688,6 +695,11 @@ impl LayoutThread {
             }
             Msg::SetFinalUrl(final_url) => {
                 self.url = final_url;
+            },
+            Msg::SetPaintWorkletExecutor(executor) => {
+                debug!("Setting the paint worklet executor");
+                debug_assert!(self.paint_worklet_executor.is_none());
+                self.paint_worklet_executor = Some(executor);
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -895,7 +907,7 @@ impl LayoutThread {
                 || {
             flow::mut_base(layout_root).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
-                                                             self.viewport_size);
+                                                             self.viewport_size).to_vector();
 
             flow::mut_base(layout_root).clip = data.page_clip_rect;
 
@@ -1063,7 +1075,7 @@ impl LayoutThread {
 
         debug!("layout: processing reflow request for: {:?} ({}) (query={:?})",
                element, self.url, data.query_type);
-        debug!("{:?}", ShowSubtree(element.as_node()));
+        trace!("{:?}", ShowSubtree(element.as_node()));
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_viewport_size = self.viewport_size;
@@ -1104,7 +1116,7 @@ impl LayoutThread {
                         let el = node.as_element().unwrap();
                         if let Some(mut d) = element.mutate_data() {
                             if d.has_styles() {
-                                d.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
+                                d.restyle.hint.insert(RestyleHint::restyle_subtree());
                             }
                         }
                         if let Some(p) = el.parent_element() {
@@ -1140,7 +1152,7 @@ impl LayoutThread {
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
                 if d.has_styles() {
-                    d.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
+                    d.restyle.hint.insert(RestyleHint::restyle_subtree());
                 }
             }
         }
@@ -1185,12 +1197,11 @@ impl LayoutThread {
             }
 
             let mut style_data = style_data.borrow_mut();
-            let mut restyle_data = style_data.ensure_restyle();
 
             // Stash the data on the element for processing by the style system.
-            restyle_data.hint.insert(restyle.hint.into());
-            restyle_data.damage = restyle.damage;
-            debug!("Noting restyle for {:?}: {:?}", el, restyle_data);
+            style_data.restyle.hint.insert(restyle.hint.into());
+            style_data.restyle.damage = restyle.damage;
+            debug!("Noting restyle for {:?}: {:?}", el, style_data.restyle);
         }
 
         // Create a layout context for use throughout the following passes.
@@ -1651,7 +1662,7 @@ fn get_root_flow_background_color(flow: &mut Flow) -> webrender_traits::ColorF {
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     fn parse_ua_stylesheet(shared_lock: &SharedRwLock, filename: &'static str)
                            -> Result<Stylesheet, &'static str> {
-        let res = try!(read_resource_file(filename).map_err(|_| filename));
+        let res = read_resource_file(filename).map_err(|_| filename)?;
         Ok(Stylesheet::from_bytes(
             &res,
             ServoUrl::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
@@ -1670,7 +1681,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
     for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-        user_or_user_agent_stylesheets.push(try!(parse_ua_stylesheet(&shared_lock, filename)));
+        user_or_user_agent_stylesheets.push(parse_ua_stylesheet(&shared_lock, filename)?);
     }
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
@@ -1678,7 +1689,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             shared_lock.clone(), None, &RustLogReporter, QuirksMode::NoQuirks));
     }
 
-    let quirks_mode_stylesheet = try!(parse_ua_stylesheet(&shared_lock, "quirks-mode.css"));
+    let quirks_mode_stylesheet = parse_ua_stylesheet(&shared_lock, "quirks-mode.css")?;
 
     Ok(UserAgentStylesheets {
         shared_lock: shared_lock,

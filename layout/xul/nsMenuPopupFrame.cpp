@@ -118,6 +118,7 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsStyleContext* aContext)
   , mInContentShell(true)
   , mIsMenuLocked(false)
   , mMouseTransparent(false)
+  , mIsOffset(false)
   , mHFlip(false)
   , mVFlip(false)
   , mAnchorType(MenuPopupAnchorType_Node)
@@ -456,6 +457,15 @@ nsMenuPopupFrame::IsLeafDynamic() const
 }
 
 void
+nsMenuPopupFrame::UpdateWidgetProperties()
+{
+  if (nsIWidget* widget = GetWidget()) {
+    widget->SetWindowOpacity(StyleUIReset()->mWindowOpacity);
+    widget->SetWindowTransform(ComputeWidgetTransform());
+  }
+}
+
+void
 nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
                               nsIFrame* aAnchor, bool aSizedToPopup)
 {
@@ -601,7 +611,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
 bool
 nsMenuPopupFrame::ReflowFinished()
 {
-  SetPopupPosition(mReflowCallbackData.mAnchor, false, mReflowCallbackData.mSizedToPopup, false);
+  SetPopupPosition(mReflowCallbackData.mAnchor, false, mReflowCallbackData.mSizedToPopup, true);
 
   mReflowCallbackData.Clear();
 
@@ -1558,10 +1568,14 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
 #endif // #ifdef XP_MACOSX
   }
 
-  // If a panel is being moved or has flip="none", don't constrain or flip it. But always do this for
+  nscoord oldAlignmentOffset = mAlignmentOffset;
+
+  // If a panel is being moved or has flip="none", don't constrain or flip it, in order to avoid
+  // visual noise when moving windows between screens. However, if a panel is already constrained
+  // or flipped (mIsOffset), then we want to continue to calculate this. Also, always do this for
   // content shells, so that the popup doesn't extend outside the containing frame.
   if (mInContentShell || (mFlip != FlipType_None &&
-                          (!aIsMove || mPopupType != ePopupTypePanel))) {
+                          (!aIsMove || mIsOffset || mPopupType != ePopupTypePanel))) {
     int32_t appPerDev = presContext->AppUnitsPerDevPixel();
     LayoutDeviceIntRect anchorRectDevPix =
       LayoutDeviceIntRect::FromAppUnitsToNearest(anchorRect, appPerDev);
@@ -1602,6 +1616,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
     bool endAligned = IsDirectionRTL() ?
       mPopupAlignment == POPUPALIGNMENT_TOPLEFT || mPopupAlignment == POPUPALIGNMENT_BOTTOMLEFT :
       mPopupAlignment == POPUPALIGNMENT_TOPRIGHT || mPopupAlignment == POPUPALIGNMENT_BOTTOMRIGHT;
+    nscoord preOffsetScreenPoint = screenPoint.x;
     if (slideHorizontal) {
       mRect.width = SlideOrResize(screenPoint.x, mRect.width, screenRect.x,
                                   screenRect.XMost(), &mAlignmentOffset);
@@ -1611,9 +1626,11 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
                                  margin.left, margin.right, offsetForContextMenu.x, hFlip,
                                  endAligned, &mHFlip);
     }
+    mIsOffset = preOffsetScreenPoint != screenPoint.x;
 
     endAligned = mPopupAlignment == POPUPALIGNMENT_BOTTOMLEFT ||
                  mPopupAlignment == POPUPALIGNMENT_BOTTOMRIGHT;
+    preOffsetScreenPoint = screenPoint.y;
     if (slideVertical) {
       mRect.height = SlideOrResize(screenPoint.y, mRect.height, screenRect.y,
                                   screenRect.YMost(), &mAlignmentOffset);
@@ -1623,6 +1640,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
                                   margin.top, margin.bottom, offsetForContextMenu.y, vFlip,
                                   endAligned, &mVFlip);
     }
+    mIsOffset = mIsOffset || (preOffsetScreenPoint != screenPoint.y);
 
     NS_ASSERTION(screenPoint.x >= screenRect.x && screenPoint.y >= screenRect.y &&
                  screenPoint.x + mRect.width <= screenRect.XMost() &&
@@ -1669,7 +1687,8 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   // or size changed, dispatch a popuppositioned event if the popup wants it.
   nsIntRect newRect(screenPoint.x, screenPoint.y, mRect.width, mRect.height);
   if (mPopupState == ePopupPositioning ||
-      (mPopupState == ePopupShown && !newRect.IsEqualEdges(mUsedScreenRect))) {
+      (mPopupState == ePopupShown && !newRect.IsEqualEdges(mUsedScreenRect)) ||
+      (mPopupState == ePopupShown && oldAlignmentOffset != mAlignmentOffset)) {
     mUsedScreenRect = newRect;
     if (aNotify) {
       nsXULPopupPositionedEvent::DispatchIfNeeded(mContent, false, false);

@@ -100,6 +100,10 @@ using namespace mozilla::layers;
 
 uint8_t gNotifySubDocInvalidationData;
 
+// This preference was first introduced in Bug 232227, in order to prevent
+// system colors from being exposed to CSS or canvas.
+constexpr char kUseStandinsForNativeColors[] = "ui.use_standins_for_native_colors";
+
 /**
  * Layer UserData for ContainerLayers that want to be notified
  * of local invalidations of them and their descendant layers.
@@ -381,6 +385,9 @@ nsPresContext::Destroy()
   Preferences::UnregisterCallback(nsPresContext::PrefChangedCallback,
                                   "nglayout.debug.paint_flashing_chrome",
                                   this);
+  Preferences::UnregisterCallback(nsPresContext::PrefChangedCallback,
+                                  kUseStandinsForNativeColors,
+                                  this);
 
   mRefreshDriver = nullptr;
 }
@@ -468,11 +475,17 @@ nsPresContext::GetDocumentColorPreferences()
   bool isChromeDocShell = false;
   static int32_t sDocumentColorsSetting;
   static bool sDocumentColorsSettingPrefCached = false;
+  static bool sUseStandinsForNativeColors = false;
   if (!sDocumentColorsSettingPrefCached) {
     sDocumentColorsSettingPrefCached = true;
     Preferences::AddIntVarCache(&sDocumentColorsSetting,
                                 "browser.display.document_color_use",
                                 0);
+
+    // The preference "ui.use_standins_for_native_colors" also affects
+    // default foreground and background colors.
+    Preferences::AddBoolVarCache(&sUseStandinsForNativeColors,
+                                 kUseStandinsForNativeColors);
   }
 
   nsIDocument* doc = mDocument->GetDisplayDocument();
@@ -501,7 +514,14 @@ nsPresContext::GetDocumentColorPreferences()
       !Preferences::GetBool("browser.display.use_system_colors", false);
   }
 
-  if (usePrefColors) {
+  if (sUseStandinsForNativeColors) {
+    // Once the preference "ui.use_standins_for_native_colors" is enabled,
+    // use fixed color values instead of prefered colors and system colors.
+    mDefaultColor = LookAndFeel::GetColorUsingStandins(
+        LookAndFeel::eColorID_windowtext, NS_RGB(0x00, 0x00, 0x00));
+    mBackgroundColor = LookAndFeel::GetColorUsingStandins(
+        LookAndFeel::eColorID_window, NS_RGB(0xff, 0xff, 0xff));
+  } else if (usePrefColors) {
     nsAdoptingString colorStr =
       Preferences::GetString("browser.display.foreground_color");
 
@@ -924,6 +944,9 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
   Preferences::RegisterCallback(nsPresContext::PrefChangedCallback,
                                 "nglayout.debug.paint_flashing_chrome",
                                 this);
+  Preferences::RegisterCallback(nsPresContext::PrefChangedCallback,
+                                kUseStandinsForNativeColors,
+                                this);
 
   nsresult rv = mEventManager->Init();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1187,6 +1210,11 @@ nsPresContext::CompatibilityModeChanged()
     return;
   }
 
+  StyleSetHandle styleSet = mShell->StyleSet();
+  if (styleSet->IsServo()) {
+    styleSet->AsServo()->CompatibilityModeChanged();
+  }
+
   if (doc->IsSVGDocument()) {
     // SVG documents never load quirk.css.
     return;
@@ -1197,7 +1225,6 @@ nsPresContext::CompatibilityModeChanged()
     return;
   }
 
-  StyleSetHandle styleSet = mShell->StyleSet();
   auto cache = nsLayoutStylesheetCache::For(styleSet->BackendType());
   StyleSheet* sheet = cache->QuirkSheet();
 
@@ -1979,9 +2006,7 @@ nsPresContext::ForceCacheLang(nsIAtom *aLanguage)
 {
   // force it to be cached
   GetDefaultFont(kPresContext_DefaultVariableFont_ID, aLanguage);
-  if (!mLanguagesUsed.Contains(aLanguage)) {
-    mLanguagesUsed.PutEntry(aLanguage);
-  }
+  mLanguagesUsed.PutEntry(aLanguage);
 }
 
 void
@@ -2070,26 +2095,19 @@ nsPresContext::MediaFeatureValuesChanged(nsRestyleHint aRestyleHint,
   mPendingMediaFeatureValuesChanged = false;
 
   // MediumFeaturesChanged updates the applied rules, so it always gets called.
-  if (mShell) {
-    // XXXheycam ServoStyleSets don't support responding to medium
-    // changes yet.
-    if (mShell->StyleSet()->IsGecko()) {
-      if (mShell->StyleSet()->AsGecko()->MediumFeaturesChanged()) {
-        aRestyleHint |= eRestyle_Subtree;
-      }
-    } else {
-      NS_WARNING("stylo: ServoStyleSets don't support responding to medium "
-                 "changes yet. See bug 1290228.");
-      aRestyleHint |= eRestyle_Subtree;
-    }
+  if (mShell && mShell->StyleSet()->MediumFeaturesChanged()) {
+    aRestyleHint |= eRestyle_Subtree;
   }
 
-  if (mUsesViewportUnits && mPendingViewportChange) {
+  if (mPendingViewportChange &&
+      (mUsesViewportUnits || mDocument->IsStyledByServo())) {
     // Rebuild all style data without rerunning selector matching.
     //
-    // TODO(emilio, bug 1328652): We don't set mUsesViewportUnits in stylo yet.
-    // This is wallpapered given we assume medium feature changes
-    // unconditionally, but we need to fix this.
+    // FIXME(emilio, bug 1328652): We don't set mUsesViewportUnits in stylo yet,
+    // so assume the worst.
+    //
+    // Also, in this case we don't need to do a rebuild of the style data, only
+    // post a restyle.
     aRestyleHint |= eRestyle_ForceDescendants;
   }
 

@@ -307,7 +307,7 @@ GetContainingBlockSize(const ReflowInput& aOuterRI)
 }
 
 /* virtual */ nscoord
-nsTableWrapperFrame::GetMinISize(nsRenderingContext *aRenderingContext)
+nsTableWrapperFrame::GetMinISize(gfxContext *aRenderingContext)
 {
   nscoord iSize = nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
                     InnerTableFrame(), nsLayoutUtils::MIN_ISIZE);
@@ -329,7 +329,7 @@ nsTableWrapperFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 }
 
 /* virtual */ nscoord
-nsTableWrapperFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
+nsTableWrapperFrame::GetPrefISize(gfxContext *aRenderingContext)
 {
   nscoord maxISize;
   DISPLAY_PREF_WIDTH(this, maxISize);
@@ -376,7 +376,7 @@ nsTableWrapperFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 }
 
 nscoord
-nsTableWrapperFrame::ChildShrinkWrapISize(nsRenderingContext* aRenderingContext,
+nsTableWrapperFrame::ChildShrinkWrapISize(gfxContext*         aRenderingContext,
                                           nsIFrame*           aChildFrame,
                                           WritingMode         aWM,
                                           LogicalSize         aCBSize,
@@ -425,7 +425,7 @@ nsTableWrapperFrame::ChildShrinkWrapISize(nsRenderingContext* aRenderingContext,
 
 /* virtual */
 LogicalSize
-nsTableWrapperFrame::ComputeAutoSize(nsRenderingContext* aRenderingContext,
+nsTableWrapperFrame::ComputeAutoSize(gfxContext*         aRenderingContext,
                                      WritingMode         aWM,
                                      const LogicalSize&  aCBSize,
                                      nscoord             aAvailableISize,
@@ -1036,9 +1036,12 @@ nsTableWrapperFrame::Reflow(nsPresContext*           aPresContext,
                     wm, innerOrigin, containerSize, 0);
   innerRI.reset();
 
-  nsTableFrame::InvalidateTableFrame(InnerTableFrame(), origInnerRect,
-                                     origInnerVisualOverflow,
-                                     innerFirstReflow);
+  if (InnerTableFrame()->IsBorderCollapse()) {
+    nsTableFrame::InvalidateTableFrame(InnerTableFrame(), origInnerRect,
+                                       origInnerVisualOverflow,
+                                       innerFirstReflow);
+  }
+
   if (mCaptionFrames.NotEmpty()) {
     nsTableFrame::InvalidateTableFrame(mCaptionFrames.FirstChild(),
                                        origCaptionRect,

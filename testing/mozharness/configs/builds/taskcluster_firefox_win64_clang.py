@@ -25,7 +25,7 @@ config = {
         'virtualenv': [
             sys.executable,
             os.path.join(
-                os.getcwd(), 'build', 'src', 'python', 'virtualenv', 'virtualenv.py'
+                os.getcwd(), 'build', 'src', 'third_party', 'python', 'virtualenv', 'virtualenv.py'
             )
         ],
     },
@@ -69,7 +69,6 @@ config = {
         'MINIDUMP_SAVE_PATH': '%(base_work_dir)s\\minidumps',
     },
     'src_mozconfig': 'browser\\config\\mozconfigs\\win64\\clang',
-    'tooltool_manifest_src': 'browser\\config\\tooltool-manifests\\win64\\clang.manifest',
     'artifact_flag_build_variant_in_try': None,
     #########################################################################
 }

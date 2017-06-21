@@ -828,23 +828,34 @@ DXGITextureHostD3D11::LockInternal()
     return false;
   }
 
-  if (!mTextureSource) {
-    if (!mTexture && !OpenSharedHandle()) {
-      DeviceManagerDx::Get()->ForceDeviceReset(ForcedDeviceResetReason::OPENSHAREDHANDLE);
-      return false;
-    }
-
-    if (mProvider) {
-      MOZ_RELEASE_ASSERT(mProvider->IsValid());
-      mTextureSource = new DataTextureSourceD3D11(mFormat, mProvider, mTexture);
-    } else {
-      mTextureSource = new DataTextureSourceD3D11(mDevice, mFormat, mTexture);
-    }
+  if (!EnsureTextureSource()) {
+    return false;
   }
 
   mIsLocked = LockD3DTexture(mTextureSource->GetD3D11Texture());
 
   return mIsLocked;
+}
+
+bool
+DXGITextureHostD3D11::EnsureTextureSource()
+{
+  if (mTextureSource) {
+    return true;
+  }
+
+  if (!mTexture && !OpenSharedHandle()) {
+    DeviceManagerDx::Get()->ForceDeviceReset(ForcedDeviceResetReason::OPENSHAREDHANDLE);
+    return false;
+  }
+
+  if (mProvider) {
+    MOZ_RELEASE_ASSERT(mProvider->IsValid());
+    mTextureSource = new DataTextureSourceD3D11(mFormat, mProvider, mTexture);
+  } else {
+    mTextureSource = new DataTextureSourceD3D11(mDevice, mFormat, mTexture);
+  }
+  return true;
 }
 
 void
@@ -859,8 +870,24 @@ DXGITextureHostD3D11::BindTextureSource(CompositableTextureSourceRef& aTexture)
   MOZ_ASSERT(mIsLocked);
   // If Lock was successful we must have a valid TextureSource.
   MOZ_ASSERT(mTextureSource);
+  return AcquireTextureSource(aTexture);
+}
+
+bool
+DXGITextureHostD3D11::AcquireTextureSource(CompositableTextureSourceRef& aTexture)
+{
+  if (!EnsureTextureSource()) {
+    return false;
+  }
   aTexture = mTextureSource;
-  return !!aTexture;
+  return true;
+}
+
+void
+DXGITextureHostD3D11::GetWRImageKeys(nsTArray<wr::ImageKey>& aImageKeys,
+                                     const std::function<wr::ImageKey()>& aImageKeyAllocator)
+{
+  MOZ_ASSERT_UNREACHABLE("No GetWRImageKeys() implementation for this DXGITextureHostD3D11 type.");
 }
 
 void
@@ -869,6 +896,16 @@ DXGITextureHostD3D11::AddWRImage(wr::WebRenderAPI* aAPI,
                                  const wr::ExternalImageId& aExtID)
 {
   MOZ_ASSERT_UNREACHABLE("No AddWRImage() implementation for this DXGITextureHostD3D11 type.");
+}
+
+void
+DXGITextureHostD3D11::PushExternalImage(wr::DisplayListBuilder& aBuilder,
+                                        const WrRect& aBounds,
+                                        const WrClipRegionToken aClip,
+                                        wr::ImageRendering aFilter,
+                                        Range<const wr::ImageKey>& aImageKeys)
+{
+  MOZ_ASSERT_UNREACHABLE("No PushExternalImage() implementation for this DXGITextureHostD3D11 type.");
 }
 
 DXGIYCbCrTextureHostD3D11::DXGIYCbCrTextureHostD3D11(TextureFlags aFlags,
@@ -954,6 +991,20 @@ DXGIYCbCrTextureHostD3D11::SetTextureSourceProvider(TextureSourceProvider* aProv
 bool
 DXGIYCbCrTextureHostD3D11::Lock()
 {
+  if (!EnsureTextureSource()) {
+    return false;
+  }
+
+  mIsLocked = LockD3DTexture(mTextureSources[0]->GetD3D11Texture()) &&
+              LockD3DTexture(mTextureSources[1]->GetD3D11Texture()) &&
+              LockD3DTexture(mTextureSources[2]->GetD3D11Texture());
+
+  return mIsLocked;
+}
+
+bool
+DXGIYCbCrTextureHostD3D11::EnsureTextureSource()
+{
   if (!mProvider) {
     NS_WARNING("no suitable compositor");
     return false;
@@ -976,12 +1027,7 @@ DXGIYCbCrTextureHostD3D11::Lock()
     mTextureSources[0]->SetNextSibling(mTextureSources[1]);
     mTextureSources[1]->SetNextSibling(mTextureSources[2]);
   }
-
-  mIsLocked = LockD3DTexture(mTextureSources[0]->GetD3D11Texture()) &&
-              LockD3DTexture(mTextureSources[1]->GetD3D11Texture()) &&
-              LockD3DTexture(mTextureSources[2]->GetD3D11Texture());
-
-  return mIsLocked;
+  return true;
 }
 
 void
@@ -1005,11 +1051,38 @@ DXGIYCbCrTextureHostD3D11::BindTextureSource(CompositableTextureSourceRef& aText
 }
 
 void
+DXGIYCbCrTextureHostD3D11::GetWRImageKeys(nsTArray<wr::ImageKey>& aImageKeys,
+                                          const std::function<wr::ImageKey()>& aImageKeyAllocator)
+{
+  MOZ_ASSERT_UNREACHABLE("No GetWRImageKeys() implementation for this DXGIYCbCrTextureHostD3D11 type.");
+}
+
+void
 DXGIYCbCrTextureHostD3D11::AddWRImage(wr::WebRenderAPI* aAPI,
                                       Range<const wr::ImageKey>& aImageKeys,
                                       const wr::ExternalImageId& aExtID)
 {
   MOZ_ASSERT_UNREACHABLE("No AddWRImage() implementation for this DXGIYCbCrTextureHostD3D11 type.");
+}
+
+void
+DXGIYCbCrTextureHostD3D11::PushExternalImage(wr::DisplayListBuilder& aBuilder,
+                                             const WrRect& aBounds,
+                                             const WrClipRegionToken aClip,
+                                             wr::ImageRendering aFilter,
+                                             Range<const wr::ImageKey>& aImageKeys)
+{
+  MOZ_ASSERT_UNREACHABLE("No PushExternalImage() implementation for this DXGIYCbCrTextureHostD3D11 type.");
+}
+
+bool
+DXGIYCbCrTextureHostD3D11::AcquireTextureSource(CompositableTextureSourceRef& aTexture)
+{
+  if (!EnsureTextureSource()) {
+    return false;
+  }
+  aTexture = mTextureSources[0].get();
+  return !!aTexture;
 }
 
 bool
@@ -1140,6 +1213,13 @@ DataTextureSourceD3D11::GetD3D11Texture() const
 {
   return mIterating ? mTileTextures[mCurrentTile]
                     : mTexture;
+}
+
+RefPtr<TextureSource>
+DataTextureSourceD3D11::ExtractCurrentTile()
+{
+  MOZ_ASSERT(mIterating);
+  return new DataTextureSourceD3D11(mDevice, mFormat, mTileTextures[mCurrentTile]);
 }
 
 ID3D11ShaderResourceView*

@@ -3,9 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "DateTimeFormat.h"
 #include "nsIndexedToHTML.h"
-#include "mozilla/dom/EncodingUtils.h"
+
+#include "DateTimeFormat.h"
+#include "mozilla/Encoding.h"
 #include "mozilla/intl/LocaleService.h"
 #include "nsNetUtil.h"
 #include "netCore.h"
@@ -500,9 +501,8 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
       encoding.AssignLiteral("UTF-8");
     }
 
-    nsXPIDLString unEscapeSpec;
-    rv = mTextToSubURI->UnEscapeAndConvert(encoding, titleUri.get(),
-                                           getter_Copies(unEscapeSpec));
+    nsAutoString unEscapeSpec;
+    rv = mTextToSubURI->UnEscapeAndConvert(encoding, titleUri, unEscapeSpec);
     // unescape may fail because
     // 1. file URL may be encoded in platform charset for backward compatibility
     // 2. query part may not be encoded in UTF-8 (see bug 261929)
@@ -514,8 +514,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
         rv = platformCharset->GetCharset(kPlatformCharsetSel_FileName, charset);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        rv = mTextToSubURI->UnEscapeAndConvert(charset.get(), titleUri.get(),
-                                               getter_Copies(unEscapeSpec));
+        rv = mTextToSubURI->UnEscapeAndConvert(charset, titleUri, unEscapeSpec);
     }
     if (NS_FAILED(rv)) return rv;
 

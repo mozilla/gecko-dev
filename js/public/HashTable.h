@@ -915,11 +915,11 @@ class HashTable : private AllocPolicy
         {}
 
         bool isValid() const {
-            return !entry_;
+            return !!entry_;
         }
 
         bool found() const {
-            if (isValid())
+            if (!isValid())
                 return false;
 #ifdef JS_DEBUG
             MOZ_ASSERT(generation == table_->generation());
@@ -1613,6 +1613,7 @@ class HashTable : private AllocPolicy
     {
         METER(stats.rehashes++);
         removedCount = 0;
+        gen++;
         for (size_t i = 0; i < capacity(); ++i)
             table[i].unsetCollision();
 
@@ -1789,12 +1790,16 @@ class HashTable : private AllocPolicy
     {
         mozilla::ReentrancyGuard g(*this);
         MOZ_ASSERT(table);
+        MOZ_ASSERT_IF(p.isValid(), p.table_ == this);
         MOZ_ASSERT(!p.found());
         MOZ_ASSERT(!(p.keyHash & sCollisionBit));
 
         // Check for error from ensureHash() here.
-        if (p.isValid())
+        if (!p.isValid())
             return false;
+
+        MOZ_ASSERT(p.generation == generation());
+        MOZ_ASSERT(p.mutationCount == mutationCount);
 
         // Changing an entry from removed to live does not affect whether we
         // are overloaded and can be handled separately.
@@ -1859,7 +1864,7 @@ class HashTable : private AllocPolicy
     MOZ_MUST_USE bool relookupOrAdd(AddPtr& p, const Lookup& l, Args&&... args)
     {
         // Check for error from ensureHash() here.
-        if (p.isValid())
+        if (!p.isValid())
             return false;
 
 #ifdef JS_DEBUG
@@ -1879,6 +1884,7 @@ class HashTable : private AllocPolicy
         MOZ_ASSERT(table);
         mozilla::ReentrancyGuard g(*this);
         MOZ_ASSERT(p.found());
+        MOZ_ASSERT(p.generation == generation());
         remove(*p.entry_);
         checkUnderloaded();
     }
@@ -1888,6 +1894,7 @@ class HashTable : private AllocPolicy
         MOZ_ASSERT(table);
         mozilla::ReentrancyGuard g(*this);
         MOZ_ASSERT(p.found());
+        MOZ_ASSERT(p.generation == generation());
         typename HashTableEntry<T>::NonConstT t(mozilla::Move(*p));
         HashPolicy::setKey(t, const_cast<Key&>(k));
         remove(*p.entry_);

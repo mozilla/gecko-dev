@@ -410,9 +410,11 @@ imply_option('--enable-fmp4', ffmpeg, '--enable-ffmpeg')
 option('--enable-av1',
         help='Enable libaom for av1 video support')
 
-@depends('--enable-av1')
-def av1(value):
+@depends('--enable-av1', target, milestone)
+def av1(value, target, milestone):
     enabled = bool(value)
+    if value.origin == 'default' and milestone.is_nightly:
+        enabled = target.os not in ('Android', 'WINNT')
     if enabled:
         return True
 
@@ -747,6 +749,7 @@ def stylo(stylo_config, bindgen_config_paths, bindgen_enabled):
 
 set_config('MOZ_STYLO', stylo.build)
 set_define('MOZ_STYLO', stylo.build)
+set_config('MOZ_STYLO_ENABLE', stylo_config.enable)
 set_define('MOZ_STYLO_ENABLE', stylo_config.enable)
 
 set_config('MOZ_LIBCLANG_PATH', stylo.libclang_path)
@@ -792,6 +795,22 @@ def webrender(value, milestone):
 set_config('MOZ_BUILD_WEBRENDER', webrender.build)
 set_define('MOZ_BUILD_WEBRENDER', webrender.build)
 set_config('MOZ_ENABLE_WEBRENDER', webrender.enable)
+
+# SIMD acceleration for Rust code (currently just encoding_rs)
+
+option('--enable-rust-simd', env='MOZ_RUST_SIMD',
+       help='Enable explicit SIMD in Rust code.')
+
+@depends('--enable-rust-simd', target)
+def rust_simd(value, target):
+    # As of 2017-06-13, the simd crate only works on aarch64,
+    # x86 and x86_64. It's meant to work on 32-bit ARM, too,
+    # but currently does not.
+    if target.cpu in ('aarch64', 'x86', 'x86_64') and value:
+        return True
+
+set_config('MOZ_RUST_SIMD', rust_simd)
+set_define('MOZ_RUST_SIMD', rust_simd)
 
 # Printing
 # ==============================================================
@@ -1112,6 +1131,10 @@ def geckodriver(enable, automation, compile_env, cross_compile, hazard, target):
     default on supported CI build platforms.
     """
     if enable:
+        if not compile_env:
+            die("--enable-geckodriver is not available without a compile "
+                "environment. A geckodriver binary will be downloaded during "
+                "an artifact build by default where available.")
         return True
 
     if enable.origin == 'default':

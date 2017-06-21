@@ -6,6 +6,7 @@
 
 /* container for a document and its presentation */
 
+#include "gfxContext.h"
 #include "mozilla/ServoRestyleManager.h"
 #include "mozilla/ServoStyleSet.h"
 #include "nsAutoPtr.h"
@@ -40,8 +41,8 @@
 #include "mozilla/a11y/DocAccessible.h"
 #endif
 #include "mozilla/BasicEvents.h"
+#include "mozilla/Encoding.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/dom/EncodingUtils.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
@@ -82,7 +83,6 @@
 
 #include "nsIScrollableFrame.h"
 #include "nsStyleSheetService.h"
-#include "nsRenderingContext.h"
 #include "nsILoadContext.h"
 
 #include "nsIPrompt.h"
@@ -409,6 +409,8 @@ protected:
   bool mInitializedForPrintPreview;
   bool mHidden;
   bool mPrintRelated; // Only use for asserts.
+  bool mPresShellDestroyed; // Only use for asserts.
+  bool mDestroyWasFull; // Only use for asserts.
 };
 
 namespace mozilla {
@@ -543,7 +545,9 @@ nsDocumentViewer::nsDocumentViewer()
     mIsPageMode(false),
     mInitializedForPrintPreview(false),
     mHidden(false),
-    mPrintRelated(false)
+    mPrintRelated(false),
+    mPresShellDestroyed(true),
+    mDestroyWasFull(false)
 {
   PrepareToStartLoad();
 }
@@ -580,15 +584,30 @@ nsDocumentViewer::~nsDocumentViewer()
     mDocument->Destroy();
   }
 
+  nsIFrame* vmRootFrame =
+    mViewManager && mViewManager->GetRootView()
+      ? mViewManager->GetRootView()->GetFrame()
+      : nullptr;
+  nsIFrame* psRootFrame = mPresShell ? mPresShell->GetRootFrame() : nullptr;
+  MOZ_RELEASE_ASSERT(vmRootFrame == psRootFrame);
+
   NS_ASSERTION(!mPresShell && !mPresContext,
                "User did not call nsIContentViewer::Destroy");
   if (mPresShell || mPresContext) {
     // Make sure we don't hand out a reference to the content viewer to
     // the SHEntry!
     mSHEntry = nullptr;
-
+    mDestroyWasFull = false;
     Destroy();
+    MOZ_RELEASE_ASSERT(mDestroyWasFull);
   }
+
+  MOZ_RELEASE_ASSERT(mPresShellDestroyed);
+
+  MOZ_RELEASE_ASSERT(!mPresShell || !mPresShell->GetRootFrame());
+  MOZ_RELEASE_ASSERT(!mViewManager || !mViewManager->GetRootView() ||
+    (!mViewManager->GetRootView()->GetFrame() &&
+     !mViewManager->GetRootView()->GetFirstChild()));
 
   if (mSelectionListener) {
     mSelectionListener->Disconnect();
@@ -708,6 +727,7 @@ nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow)
     styleSet->Delete();
     return NS_ERROR_FAILURE;
   }
+  mPresShellDestroyed = false;
 
   // We're done creating the style set
   styleSet->EndUpdate();
@@ -1795,6 +1815,8 @@ nsDocumentViewer::Destroy()
   mWindow = nullptr;
   mViewManager = nullptr;
   mContainer = WeakPtr<nsDocShell>();
+
+  mDestroyWasFull = true;
 
   return NS_OK;
 }
@@ -3360,17 +3382,20 @@ nsDocumentViewer::SetForceCharacterSet(const nsACString& aForceCharacterSet)
   // than a canonical name. However, in case where the input is a canonical
   // name, "replacement" doesn't survive label resolution. Additionally, the
   // empty string means no hint.
-  nsAutoCString encoding;
+  const Encoding* encoding = nullptr;
   if (!aForceCharacterSet.IsEmpty()) {
     if (aForceCharacterSet.EqualsLiteral("replacement")) {
-      encoding.AssignLiteral("replacement");
-    } else if (!EncodingUtils::FindEncodingForLabel(aForceCharacterSet,
-                                                    encoding)) {
+      encoding = REPLACEMENT_ENCODING;
+    } else if (!(encoding = Encoding::ForLabel(aForceCharacterSet))) {
       // Reject unknown labels
       return NS_ERROR_INVALID_ARG;
     }
   }
-  mForceCharacterSet = encoding;
+  if (encoding) {
+    encoding->Name(mForceCharacterSet);
+  } else {
+    mForceCharacterSet.Truncate();
+  }
   // now set the force char set on all children of mContainer
   CallChildren(SetChildForceCharacterSet, (void*) &aForceCharacterSet);
   return NS_OK;
@@ -3427,17 +3452,20 @@ nsDocumentViewer::SetHintCharacterSet(const nsACString& aHintCharacterSet)
   // than a canonical name. However, in case where the input is a canonical
   // name, "replacement" doesn't survive label resolution. Additionally, the
   // empty string means no hint.
-  nsAutoCString encoding;
+  const Encoding* encoding = nullptr;
   if (!aHintCharacterSet.IsEmpty()) {
     if (aHintCharacterSet.EqualsLiteral("replacement")) {
-      encoding.AssignLiteral("replacement");
-    } else if (!EncodingUtils::FindEncodingForLabel(aHintCharacterSet,
-                                                    encoding)) {
+      encoding = REPLACEMENT_ENCODING;
+    } else if (!(encoding = Encoding::ForLabel(aHintCharacterSet))) {
       // Reject unknown labels
       return NS_ERROR_INVALID_ARG;
     }
   }
-  mHintCharset = encoding;
+  if (encoding) {
+    encoding->Name(mHintCharset);
+  } else {
+    mHintCharset.Truncate();
+  }
   // now set the hint char set on all children of mContainer
   CallChildren(SetChildHintCharacterSet, (void*) &aHintCharacterSet);
   return NS_OK;
@@ -3505,8 +3533,8 @@ nsDocumentViewer::GetContentSizeInternal(int32_t* aWidth, int32_t* aHeight,
 
   nscoord prefWidth;
   {
-    nsRenderingContext rcx(presShell->CreateReferenceRenderingContext());
-    prefWidth = root->GetPrefISize(&rcx);
+    RefPtr<gfxContext> rcx(presShell->CreateReferenceRenderingContext());
+    prefWidth = root->GetPrefISize(rcx);
   }
   if (prefWidth > aMaxWidth) {
     prefWidth = aMaxWidth;
@@ -4599,15 +4627,6 @@ NS_IMETHODIMP nsDocumentViewer::SetPageMode(bool aPageMode, nsIPrintSettings* aP
   mViewManager  = nullptr;
   mWindow       = nullptr;
 
-  // We're creating a new presentation context for an existing document.
-  // Drop any associated Servo data.
-#ifdef MOZ_STYLO
-  Element* root = mDocument->GetRootElement();
-  if (root && root->IsStyledByServo()) {
-    ServoRestyleManager::ClearServoDataFromSubtree(root);
-  }
-#endif
-
   NS_ENSURE_STATE(mDocument);
   if (aPageMode)
   {    
@@ -4657,6 +4676,13 @@ nsDocumentViewer::SetIsHidden(bool aHidden)
 void
 nsDocumentViewer::DestroyPresShell()
 {
+  nsIFrame* vmRootFrame =
+    mViewManager && mViewManager->GetRootView()
+      ? mViewManager->GetRootView()->GetFrame()
+      : nullptr;
+  nsIFrame* psRootFrame = mPresShell ? mPresShell->GetRootFrame() : nullptr;
+  MOZ_RELEASE_ASSERT(vmRootFrame == psRootFrame);
+
   // Break circular reference (or something)
   mPresShell->EndObservingDocument();
 
@@ -4665,7 +4691,18 @@ nsDocumentViewer::DestroyPresShell()
     selection->RemoveSelectionListener(mSelectionListener);
 
   nsAutoScriptBlocker scriptBlocker;
+  bool hadRootFrame = !!mPresShell->GetRootFrame();
   mPresShell->Destroy();
+  mPresShellDestroyed = true;
+  MOZ_RELEASE_ASSERT(!mPresShell->GetRootFrame());
+  // destroying the frame tree via presshell destroy should have done this
+  if (hadRootFrame) {
+    MOZ_RELEASE_ASSERT(!mViewManager || !mViewManager->GetRootView());
+  }
+  MOZ_RELEASE_ASSERT(!mViewManager || !mViewManager->GetRootView() ||
+    (!mViewManager->GetRootView()->GetFrame() &&
+     !mViewManager->GetRootView()->GetFirstChild()));
+
   mPresShell = nullptr;
 }
 

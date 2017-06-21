@@ -17,7 +17,6 @@
 #include "jsapi.h"
 #include "jsatom.h"
 #include "jsfriendapi.h"
-#include "jspropertytree.h"
 #include "jstypes.h"
 #include "NamespaceImports.h"
 
@@ -124,6 +123,95 @@ JSSLOT_FREE(const js::Class* clasp)
 }
 
 namespace js {
+
+class Shape;
+struct StackShape;
+
+struct ShapeHasher : public DefaultHasher<Shape*> {
+    typedef Shape* Key;
+    typedef StackShape Lookup;
+
+    static MOZ_ALWAYS_INLINE HashNumber hash(const Lookup& l);
+    static MOZ_ALWAYS_INLINE bool match(Key k, const Lookup& l);
+};
+
+typedef HashSet<Shape*, ShapeHasher, SystemAllocPolicy> KidsHash;
+
+class KidsPointer {
+  private:
+    enum {
+        SHAPE = 0,
+        HASH  = 1,
+        TAG   = 1
+    };
+
+    uintptr_t w;
+
+  public:
+    bool isNull() const { return !w; }
+    void setNull() { w = 0; }
+
+    bool isShape() const { return (w & TAG) == SHAPE && !isNull(); }
+    Shape* toShape() const {
+        MOZ_ASSERT(isShape());
+        return reinterpret_cast<Shape*>(w & ~uintptr_t(TAG));
+    }
+    void setShape(Shape* shape) {
+        MOZ_ASSERT(shape);
+        MOZ_ASSERT((reinterpret_cast<uintptr_t>(static_cast<Shape*>(shape)) & TAG) == 0);
+        w = reinterpret_cast<uintptr_t>(static_cast<Shape*>(shape)) | SHAPE;
+    }
+
+    bool isHash() const { return (w & TAG) == HASH; }
+    KidsHash* toHash() const {
+        MOZ_ASSERT(isHash());
+        return reinterpret_cast<KidsHash*>(w & ~uintptr_t(TAG));
+    }
+    void setHash(KidsHash* hash) {
+        MOZ_ASSERT(hash);
+        MOZ_ASSERT((reinterpret_cast<uintptr_t>(hash) & TAG) == 0);
+        w = reinterpret_cast<uintptr_t>(hash) | HASH;
+    }
+
+#ifdef DEBUG
+    void checkConsistency(Shape* aKid) const;
+#endif
+};
+
+class PropertyTree
+{
+    friend class ::JSFunction;
+
+#ifdef DEBUG
+    JS::Zone* zone_;
+#endif
+
+    bool insertChild(JSContext* cx, Shape* parent, Shape* child);
+
+    PropertyTree();
+
+  public:
+    /*
+     * Use a lower limit for objects that are accessed using SETELEM (o[x] = y).
+     * These objects are likely used as hashmaps and dictionary mode is more
+     * efficient in this case.
+     */
+    enum {
+        MAX_HEIGHT = 512,
+        MAX_HEIGHT_WITH_ELEMENTS_ACCESS = 128
+    };
+
+    explicit PropertyTree(JS::Zone* zone)
+#ifdef DEBUG
+      : zone_(zone)
+#endif
+    {
+    }
+
+    MOZ_ALWAYS_INLINE Shape* inlinedGetChild(JSContext* cx, Shape* parent,
+                                             JS::Handle<StackShape> child);
+    Shape* getChild(JSContext* cx, Shape* parent, JS::Handle<StackShape> child);
+};
 
 class TenuringTracer;
 
@@ -389,7 +477,7 @@ class BaseShape : public gc::TenuredCell
         DELEGATE            =    0x8,
         NOT_EXTENSIBLE      =   0x10,
         INDEXED             =   0x20,
-        /* (0x40 is unused) */
+        HAS_INTERESTING_SYMBOL = 0x40,
         HAD_ELEMENTS_ACCESS =   0x80,
         WATCHED             =  0x100,
         ITERATED_SINGLETON  =  0x200,
@@ -593,9 +681,9 @@ struct DefaultHasher<jsid>
     }
 };
 
-using BaseShapeSet = JS::GCHashSet<ReadBarriered<UnownedBaseShape*>,
-                                   StackBaseShape,
-                                   SystemAllocPolicy>;
+using BaseShapeSet = JS::WeakCache<JS::GCHashSet<ReadBarriered<UnownedBaseShape*>,
+                                                 StackBaseShape,
+                                                 SystemAllocPolicy>>;
 
 class Shape : public gc::TenuredCell
 {
@@ -1279,7 +1367,9 @@ struct InitialShapeEntry
     }
 };
 
-using InitialShapeSet = JS::GCHashSet<InitialShapeEntry, InitialShapeEntry, SystemAllocPolicy>;
+using InitialShapeSet = JS::WeakCache<JS::GCHashSet<InitialShapeEntry,
+                                                    InitialShapeEntry,
+                                                    SystemAllocPolicy>>;
 
 struct StackShape
 {

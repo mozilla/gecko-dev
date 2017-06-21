@@ -18,7 +18,8 @@ class UniqueStacks;
 class ProfilerBacktrace
 {
 public:
-  ProfilerBacktrace(const char* aName, int aThreadId, ProfileBuffer* aBuffer);
+  ProfilerBacktrace(const char* aName, int aThreadId,
+                    mozilla::UniquePtr<ProfileBuffer> aBuffer);
   ~ProfilerBacktrace();
 
   // ProfilerBacktraces' stacks are deduplicated in the context of the
@@ -28,7 +29,7 @@ public:
   // frame, and string tables. They should instead reuse their parent
   // profile's tables.
   void StreamJSON(SpliceableJSONWriter& aWriter,
-                  const mozilla::TimeStamp& aStartTime,
+                  const mozilla::TimeStamp& aProcessStartTime,
                   UniqueStacks& aUniqueStacks);
 
 private:
@@ -37,7 +38,7 @@ private:
 
   mozilla::UniqueFreePtr<char> mName;
   int mThreadId;
-  ProfileBuffer* mBuffer;
+  mozilla::UniquePtr<ProfileBuffer> mBuffer;
 };
 
 #endif // __PROFILER_BACKTRACE_H

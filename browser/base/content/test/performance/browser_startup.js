@@ -28,9 +28,9 @@ const startupPhases = {
       "MainProcessSingleton.js",
 
       // Bugs to fix: The following components shouldn't be initialized that early.
-      "WebContentConverter.js",
-      "nsSessionStartup.js",
-      "PushComponents.js",
+      "WebContentConverter.js", // bug 1369443
+      "nsSessionStartup.js", // bug 1369456
+      "PushComponents.js", // bug 1369436
     ]),
     modules: new Set([
       "resource://gre/modules/AppConstants.jsm",
@@ -38,12 +38,9 @@ const startupPhases = {
       "resource://gre/modules/Services.jsm",
 
       // Bugs to fix: Probably loaded too early, needs investigation.
-      "resource://gre/modules/Log.jsm",
-      "resource://gre/modules/AsyncPrefs.jsm",
-      "resource://gre/modules/RemotePageManager.jsm",
-      "resource://gre/modules/TelemetryStopwatch.jsm",
-      "resource://gre/modules/PrivateBrowsingUtils.jsm",
-      "resource://gre/modules/Promise.jsm"
+      "resource://gre/modules/AsyncPrefs.jsm", // bug 1369460
+      "resource://gre/modules/RemotePageManager.jsm", // bug 1369466
+      "resource://gre/modules/Promise.jsm" // bug 1368456
     ])
   }},
 
@@ -52,20 +49,53 @@ const startupPhases = {
   // We are at this phase after creating the first browser window (ie. after final-ui-startup).
   "before opening first browser window": {blacklist: {
     components: new Set([
-      "nsSearchService.js",
+      "nsAsyncShutdown.js",
+    ]),
+    modules: new Set([
+      "resource://gre/modules/PlacesBackups.jsm",
+      "resource://gre/modules/PlacesUtils.jsm",
     ])
   }},
 
   // We reach this phase right after showing the first browser window.
   // This means that anything already loaded at this point has been loaded
   // before first paint and delayed it.
-  "before first paint": {},
+  "before first paint": {blacklist: {
+    components: new Set([
+      "PageIconProtocolHandler.js",
+      "PlacesCategoriesStarter.js",
+      "UnifiedComplete.js",
+      "nsPlacesExpiration.js",
+      "nsSearchService.js",
+    ]),
+    modules: new Set([
+      "resource:///modules/AboutNewTab.jsm",
+      "resource:///modules/DirectoryLinksProvider.jsm",
+      "resource://gre/modules/BookmarkHTMLUtils.jsm",
+      "resource://gre/modules/Bookmarks.jsm",
+      "resource://gre/modules/ContextualIdentityService.jsm",
+      "resource://gre/modules/NewTabUtils.jsm",
+      "resource://gre/modules/PageThumbs.jsm",
+      "resource://gre/modules/PlacesSyncUtils.jsm",
+      "resource://gre/modules/Sqlite.jsm",
+    ]),
+    services: new Set([
+      "@mozilla.org/browser/annotation-service;1",
+      "@mozilla.org/browser/favicon-service;1",
+      "@mozilla.org/browser/nav-bookmarks-service;1",
+      "@mozilla.org/browser/search-service;1",
+    ])
+  }},
 
   // We are at this phase once we are ready to handle user events.
   // Anything loaded at this phase or before gets in the way of the user
   // interacting with the first browser window.
-  "before handling user events": {},
-}
+  "before handling user events": {blacklist: {
+    modules: new Set([
+      "resource://gre/modules/LoginManagerContextMenu.jsm",
+    ]),
+  }},
+};
 
 function test() {
   if (!AppConstants.NIGHTLY_BUILD && !AppConstants.DEBUG) {
@@ -104,7 +134,7 @@ function test() {
     let loadedList = data[phase];
     let whitelist = startupPhases[phase].whitelist || null;
     if (whitelist) {
-      for (let scriptType in loadedList) {
+      for (let scriptType in whitelist) {
         loadedList[scriptType] = loadedList[scriptType].filter(c => {
           if (!whitelist[scriptType].has(c))
             return true;

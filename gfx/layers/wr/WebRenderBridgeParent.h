@@ -7,6 +7,8 @@
 #ifndef mozilla_layers_WebRenderBridgeParent_h
 #define mozilla_layers_WebRenderBridgeParent_h
 
+#include <unordered_set>
+
 #include "CompositableHost.h"           // for CompositableHost, ImageCompositeNotificationInfo
 #include "GLContextProvider.h"
 #include "mozilla/layers/CompositableTransactionParent.h"
@@ -34,6 +36,7 @@ class WebRenderAPI;
 namespace layers {
 
 class Compositor;
+class CompositorAnimationStorage;
 class CompositorBridgeParentBase;
 class CompositorVsyncScheduler;
 class WebRenderCompositableHolder;
@@ -49,7 +52,8 @@ public:
                         widget::CompositorWidget* aWidget,
                         CompositorVsyncScheduler* aScheduler,
                         RefPtr<wr::WebRenderAPI>&& aApi,
-                        RefPtr<WebRenderCompositableHolder>&& aHolder);
+                        RefPtr<WebRenderCompositableHolder>&& aHolder,
+                        RefPtr<CompositorAnimationStorage>&& aAnimStorage);
 
   wr::PipelineId PipelineId() { return mPipelineId; }
   wr::WebRenderAPI* GetWebRenderAPI() { return mApi; }
@@ -104,10 +108,13 @@ public:
                                         const ByteBuffer& dl,
                                         const WrBuiltDisplayListDescriptor& dlDesc,
                                         const WebRenderScrollData& aScrollData) override;
+  mozilla::ipc::IPCResult RecvParentCommands(nsTArray<WebRenderParentCommand>&& commands) override;
   mozilla::ipc::IPCResult RecvDPGetSnapshot(PTextureParent* aTexture) override;
 
-  mozilla::ipc::IPCResult RecvAddExternalImageId(const ExternalImageId& aImageId,
-                                                 const CompositableHandle& aHandle) override;
+  mozilla::ipc::IPCResult RecvAddPipelineIdForAsyncCompositable(const wr::PipelineId& aPipelineIds,
+                                                                const CompositableHandle& aHandle) override;
+  mozilla::ipc::IPCResult RecvRemovePipelineIdForAsyncCompositable(const wr::PipelineId& aPipelineId) override;
+
   mozilla::ipc::IPCResult RecvAddExternalImageIdForCompositable(const ExternalImageId& aImageId,
                                                                 const CompositableHandle& aHandle) override;
   mozilla::ipc::IPCResult RecvRemoveExternalImageId(const ExternalImageId& aImageId) override;
@@ -124,6 +131,7 @@ public:
   mozilla::ipc::IPCResult RecvSetAsyncZoom(const FrameMetrics::ViewID& aScrollId,
                                            const float& aZoom) override;
   mozilla::ipc::IPCResult RecvFlushApzRepaints() override;
+  mozilla::ipc::IPCResult RecvGetAPZTestData(APZTestData* data) override;
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
   void SetWebRenderProfilerEnabled(bool aEnabled);
@@ -177,18 +185,22 @@ public:
     return ++sIdNameSpace;
   }
 
+  void FlushRendering(bool aIsSync);
+
+  void ScheduleComposition();
+
 private:
   virtual ~WebRenderBridgeParent();
 
   uint64_t GetLayersId() const;
   void DeleteOldImages();
+  void ProcessWebRenderParentCommands(InfallibleTArray<WebRenderParentCommand>& aCommands);
   void ProcessWebRenderCommands(const gfx::IntSize &aSize,
                                 InfallibleTArray<WebRenderParentCommand>& commands,
                                 const wr::Epoch& aEpoch,
                                 const WrSize& aContentSize,
                                 const ByteBuffer& dl,
                                 const WrBuiltDisplayListDescriptor& dlDesc);
-  void ScheduleComposition();
   void ClearResources();
   uint64_t GetChildLayerObserverEpoch() const { return mChildLayerObserverEpoch; }
   bool ShouldParentObserveEpoch();
@@ -233,9 +245,16 @@ private:
   RefPtr<wr::WebRenderAPI> mApi;
   RefPtr<WebRenderCompositableHolder> mCompositableHolder;
   RefPtr<CompositorVsyncScheduler> mCompositorScheduler;
+  RefPtr<CompositorAnimationStorage> mAnimStorage;
   std::vector<wr::ImageKey> mKeysToDelete;
-  // XXX How to handle active keys of non-ExternalImages?
-  nsDataHashtable<nsUint64HashKey, wr::ImageKey> mActiveKeys;
+  // mActiveImageKeys and mFontKeys are used to avoid leaking animations when
+  // WebRenderBridgeParent is destroyed abnormally and Tab move between different windows.
+  std::unordered_set<uint64_t> mActiveImageKeys;
+  std::unordered_set<uint64_t> mFontKeys;
+  // mActiveAnimations is used to avoid leaking animations when WebRenderBridgeParent is
+  // destroyed abnormally and Tab move between different windows.
+  std::unordered_set<uint64_t> mActiveAnimations;
+  nsDataHashtable<nsUint64HashKey, RefPtr<WebRenderImageHost>> mAsyncCompositables;
   nsDataHashtable<nsUint64HashKey, RefPtr<WebRenderImageHost>> mExternalImageIds;
   nsTArray<ImageCompositeNotificationInfo> mImageCompositeNotifications;
 
@@ -252,7 +271,7 @@ private:
 
   bool mPaused;
   bool mDestroyed;
-  bool mIsSnapshotting;
+  bool mForceRendering;
 
   // Can only be accessed on the compositor thread.
   WebRenderScrollData mScrollData;

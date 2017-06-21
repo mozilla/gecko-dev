@@ -61,8 +61,7 @@ static const char* logTag = "PeerConnectionMedia";
 RefPtr<WebRtcCallWrapper>
 CreateCall()
 {
-  WebRtcCallWrapper::Config call_config;
-  return WebRtcCallWrapper::Create(call_config);
+  return WebRtcCallWrapper::Create();
 }
 
 nsresult
@@ -294,10 +293,15 @@ PeerConnectionMedia::InitLocalAddrs()
   if (XRE_IsContentProcess()) {
     CSFLogDebug(logTag, "%s: Get stun addresses via IPC",
                 mParentHandle.c_str());
+
+    nsCOMPtr<nsIEventTarget> target = mParent->GetWindow()
+      ? mParent->GetWindow()->EventTargetFor(TaskCategory::Other)
+      : nullptr;
+
     // We're in the content process, so send a request over IPC for the
     // stun address discovery.
     mStunAddrsRequest =
-        new StunAddrsRequestChild(new StunAddrsHandler(this));
+      new StunAddrsRequestChild(new StunAddrsHandler(this), target);
     mStunAddrsRequest->SendGetStunAddrs();
   } else {
     // No content process, so don't need to hold up the ice event queue
@@ -1137,6 +1141,7 @@ PeerConnectionMedia::ShutdownMediaTransport_s()
 
   mIceCtxHdlr = nullptr;
 
+  // we're holding a ref to 'this' that's released by SelfDestruct_m
   mMainThread->Dispatch(WrapRunnable(this, &PeerConnectionMedia::SelfDestruct_m),
                         NS_DISPATCH_NORMAL);
 }
@@ -1452,7 +1457,9 @@ void
 PeerConnectionMedia::RemoveTransportFlow(int aIndex, bool aRtcp)
 {
   int index_inner = GetTransportFlowIndex(aIndex, aRtcp);
-  NS_ProxyRelease(GetSTSThread(), mTransportFlows[index_inner].forget());
+  NS_ProxyRelease(
+    "PeerConnectionMedia::mTransportFlows",
+    GetSTSThread(), mTransportFlows[index_inner].forget());
 }
 
 void

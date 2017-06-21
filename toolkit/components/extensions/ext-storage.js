@@ -1,5 +1,8 @@
 "use strict";
 
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-toolkit.js */
+
 XPCOMUtils.defineLazyModuleGetter(this, "ExtensionStorage",
                                   "resource://gre/modules/ExtensionStorage.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "extensionStorageSync",
@@ -31,7 +34,7 @@ this.storage = class extends ExtensionAPI {
             return ExtensionStorage.get(extension.id, spec);
           },
           set: function(items) {
-            return ExtensionStorage.set(extension.id, items, context);
+            return ExtensionStorage.set(extension.id, items);
           },
           remove: function(keys) {
             return ExtensionStorage.remove(extension.id, keys);

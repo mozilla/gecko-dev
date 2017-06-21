@@ -9,21 +9,21 @@ use Atom;
 use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::OpaqueNode;
-use euclid::point::Point2D;
+use euclid::Point2D;
 use font_metrics::FontMetricsProvider;
-use keyframes::{KeyframesStep, KeyframesStepValue};
 use properties::{self, CascadeFlags, ComputedValues, Importance};
-use properties::animated_properties::{AnimatedProperty, TransitionProperty};
+use properties::animated_properties::{AnimatableLonghand, AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
-use properties::longhands::transition_timing_function::single_value::computed_value::StartEnd;
-use properties::longhands::transition_timing_function::single_value::computed_value::T as TransitionTimingFunction;
 use rule_tree::CascadeLevel;
 use std::sync::mpsc::Sender;
 use stylearc::Arc;
+use stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
 use timer::Timer;
 use values::computed::Time;
+use values::computed::transform::TimingFunction;
+use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
 
 /// This structure represents a keyframes animation current iteration state.
 ///
@@ -258,7 +258,7 @@ pub struct AnimationFrame {
 #[derive(Debug, Clone)]
 pub struct PropertyAnimation {
     property: AnimatedProperty,
-    timing_function: TransitionTimingFunction,
+    timing_function: TimingFunction,
     duration: Time, // TODO: isn't this just repeated?
 }
 
@@ -323,14 +323,34 @@ impl PropertyAnimation {
     }
 
     fn from_transition_property(transition_property: &TransitionProperty,
-                                timing_function: TransitionTimingFunction,
+                                timing_function: TimingFunction,
                                 duration: Time,
                                 old_style: &ComputedValues,
                                 new_style: &ComputedValues)
                                 -> Option<PropertyAnimation> {
         debug_assert!(!transition_property.is_shorthand() &&
                       transition_property != &TransitionProperty::All);
-        let animated_property = AnimatedProperty::from_transition_property(transition_property,
+
+        // We're not expecting |transition_property| to be a shorthand (including 'all') and
+        // all other transitionable properties should be animatable longhands (since transitionable
+        // is a subset of animatable).
+        let animatable_longhand =
+            AnimatableLonghand::from_transition_property(transition_property).unwrap();
+
+        PropertyAnimation::from_animatable_longhand(&animatable_longhand,
+                                                    timing_function,
+                                                    duration,
+                                                    old_style,
+                                                    new_style)
+    }
+
+    fn from_animatable_longhand(animatable_longhand: &AnimatableLonghand,
+                                timing_function: TimingFunction,
+                                duration: Time,
+                                old_style: &ComputedValues,
+                                new_style: &ComputedValues)
+                                -> Option<PropertyAnimation> {
+        let animated_property = AnimatedProperty::from_animatable_longhand(animatable_longhand,
                                                                            old_style,
                                                                            new_style);
 
@@ -349,25 +369,26 @@ impl PropertyAnimation {
 
     /// Update the given animation at a given point of progress.
     pub fn update(&self, style: &mut ComputedValues, time: f64) {
-        let timing_function = match self.timing_function {
-            TransitionTimingFunction::Keyword(keyword) =>
-                keyword.to_non_keyword_value(),
-            other => other,
+        let solve_bezier = |(p1, p2): (Point2D<_>, Point2D<_>)| {
+            let epsilon = 1. / (200. * (self.duration.seconds() as f64));
+            let bezier = Bezier::new(
+                Point2D::new(p1.x as f64, p1.y as f64),
+                Point2D::new(p2.x as f64, p2.y as f64),
+            );
+            bezier.solve(time, epsilon)
         };
-        let progress = match timing_function {
-            TransitionTimingFunction::CubicBezier(p1, p2) => {
-                // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.
-                let epsilon = 1.0 / (200.0 * (self.duration.seconds() as f64));
-                Bezier::new(Point2D::new(p1.x as f64, p1.y as f64),
-                            Point2D::new(p2.x as f64, p2.y as f64)).solve(time, epsilon)
+
+        let progress = match self.timing_function {
+            GenericTimingFunction::CubicBezier(p1, p2) => {
+                solve_bezier((p1, p2))
             },
-            TransitionTimingFunction::Steps(steps, StartEnd::Start) => {
+            GenericTimingFunction::Steps(steps, StepPosition::Start) => {
                 (time * (steps as f64)).ceil() / (steps as f64)
             },
-            TransitionTimingFunction::Steps(steps, StartEnd::End) => {
+            GenericTimingFunction::Steps(steps, StepPosition::End) => {
                 (time * (steps as f64)).floor() / (steps as f64)
             },
-            TransitionTimingFunction::Frames(frames) => {
+            GenericTimingFunction::Frames(frames) => {
                 // https://drafts.csswg.org/css-timing/#frames-timing-functions
                 let mut out = (time * (frames as f64)).floor() / ((frames - 1) as f64);
                 if out > 1.0 {
@@ -383,8 +404,8 @@ impl PropertyAnimation {
                 }
                 out
             },
-            TransitionTimingFunction::Keyword(_) => {
-                panic!("Keyword function should not appear")
+            GenericTimingFunction::Keyword(keyword) => {
+                solve_bezier(keyword.to_bezier_points())
             },
         };
 
@@ -742,22 +763,22 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
 
             let mut new_style = (*style).clone();
 
-            for transition_property in &animation.properties_changed {
+            for property in &animation.properties_changed {
                 debug!("update_style_for_animation: scanning prop {:?} for animation \"{}\"",
-                       transition_property, name);
-                match PropertyAnimation::from_transition_property(transition_property,
+                       property, name);
+                match PropertyAnimation::from_animatable_longhand(property,
                                                                   timing_function,
                                                                   Time::from_seconds(relative_duration as f32),
                                                                   &from_style,
                                                                   &target_style) {
                     Some(property_animation) => {
-                        debug!("update_style_for_animation: got property animation for prop {:?}", transition_property);
+                        debug!("update_style_for_animation: got property animation for prop {:?}", property);
                         debug!("update_style_for_animation: {:?}", property_animation);
                         property_animation.update(Arc::make_mut(&mut new_style), relative_progress);
                     }
                     None => {
                         debug!("update_style_for_animation: property animation {:?} not animating",
-                               transition_property);
+                               property);
                     }
                 }
             }

@@ -181,8 +181,6 @@ public:
   void
   Trace(const TraceCallbacks& aCallbacks, void* aClosure)
   {
-    AssertIsOnOwningThread();
-
     ConsoleCallData* tmp = this;
     for (uint32_t i = 0; i < mCopiedArguments.Length(); ++i) {
       NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mCopiedArguments[i])
@@ -337,12 +335,12 @@ public:
     mWorkerPrivate->AssertIsOnWorkerThread();
 
     if (NS_WARN_IF(!PreDispatch(aCx))) {
-      RunBackOnWorkerThread();
+      RunBackOnWorkerThreadForCleanup();
       return false;
     }
 
     if (NS_WARN_IF(!WorkerProxyToMainThreadRunnable::Dispatch())) {
-      // RunBackOnWorkerThread() will be called by
+      // RunBackOnWorkerThreadForCleanup() will be called by
       // WorkerProxyToMainThreadRunnable::Dispatch().
       return false;
     }
@@ -421,7 +419,7 @@ protected:
   }
 
   void
-  RunBackOnWorkerThread() override
+  RunBackOnWorkerThreadForCleanup() override
   {
     mWorkerPrivate->AssertIsOnWorkerThread();
     ReleaseData();
@@ -888,8 +886,10 @@ Console::Shutdown()
     }
   }
 
-  NS_ReleaseOnMainThread(mStorage.forget());
-  NS_ReleaseOnMainThread(mSandbox.forget());
+  NS_ReleaseOnMainThread(
+    "Console::mStorage", mStorage.forget());
+  NS_ReleaseOnMainThread(
+    "Console::mSandbox", mSandbox.forget());
 
   mTimerRegistry.Clear();
   mCounterRegistry.Clear();
@@ -2028,12 +2028,11 @@ Console::StartTimer(JSContext* aCx, const JS::Value& aName,
 
   aTimerLabel = label;
 
-  DOMHighResTimeStamp entry = 0;
-  if (mTimerRegistry.Get(label, &entry)) {
+  auto entry = mTimerRegistry.LookupForAdd(label);
+  if (entry) {
     return eTimerAlreadyExists;
   }
-
-  mTimerRegistry.Put(label, aTimestamp);
+  entry.OrInsert([&aTimestamp](){ return aTimestamp; });
 
   *aTimerValue = aTimestamp;
   return eTimerDone;
@@ -2085,14 +2084,16 @@ Console::StopTimer(JSContext* aCx, const JS::Value& aName,
 
   aTimerLabel = key;
 
-  DOMHighResTimeStamp entry = 0;
-  if (NS_WARN_IF(!mTimerRegistry.Get(key, &entry))) {
+  DOMHighResTimeStamp value = 0;
+  if (auto entry = mTimerRegistry.Lookup(key)) {
+    value = entry.Data();
+    entry.Remove();
+  } else {
+    NS_WARNING("mTimerRegistry entry not found");
     return eTimerDoesntExist;
   }
 
-  mTimerRegistry.Remove(key);
-
-  *aTimerDuration = aTimestamp - entry;
+  *aTimerDuration = aTimestamp - value;
   return eTimerDone;
 }
 
@@ -2192,15 +2193,19 @@ Console::IncreaseCounter(JSContext* aCx, const Sequence<JS::Value>& aArguments,
 
   aCountLabel = string;
 
-  uint32_t count = 0;
-  if (!mCounterRegistry.Get(aCountLabel, &count) &&
-      mCounterRegistry.Count() >= MAX_PAGE_COUNTERS) {
-    return MAX_PAGE_COUNTERS;
+  const bool maxCountersReached = mCounterRegistry.Count() >= MAX_PAGE_COUNTERS;
+  auto entry = mCounterRegistry.LookupForAdd(aCountLabel);
+  if (entry) {
+    ++entry.Data();
+  } else {
+    entry.OrInsert([](){ return 1; });
+    if (maxCountersReached) {
+      // oops, we speculatively added an entry even though we shouldn't
+      mCounterRegistry.Remove(aCountLabel);
+      return MAX_PAGE_COUNTERS;
+    }
   }
-
-  ++count;
-  mCounterRegistry.Put(aCountLabel, count);
-  return count;
+  return entry.Data();
 }
 
 JS::Value

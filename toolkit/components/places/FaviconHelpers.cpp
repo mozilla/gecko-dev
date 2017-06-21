@@ -504,11 +504,13 @@ AsyncFetchAndSetIconForPage::AsyncFetchAndSetIconForPage(
 , bool aFaviconLoadPrivate
 , nsIFaviconDataCallback* aCallback
 , nsIPrincipal* aLoadingPrincipal
-) : mCallback(new nsMainThreadPtrHolder<nsIFaviconDataCallback>(aCallback))
+) : mCallback(new nsMainThreadPtrHolder<nsIFaviconDataCallback>(
+      "AsyncFetchAndSetIconForPage::mCallback", aCallback))
   , mIcon(aIcon)
   , mPage(aPage)
   , mFaviconLoadPrivate(aFaviconLoadPrivate)
-  , mLoadingPrincipal(new nsMainThreadPtrHolder<nsIPrincipal>(aLoadingPrincipal))
+  , mLoadingPrincipal(new nsMainThreadPtrHolder<nsIPrincipal>(
+      "AsyncFetchAndSetIconForPage::mLoadingPrincipal", aLoadingPrincipal))
   , mCanceled(false)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -877,8 +879,6 @@ AsyncAssociateIconToPage::Run()
       NS_ENSURE_SUCCESS(rv, rv);
     } else {
       // We need to create the page entry.
-      // By default, we use the place id for the insertion. While we can't
-      // guarantee 1:1 mapping, in general it should do.
       nsCOMPtr<mozIStorageStatement> stmt;
       stmt = DB->GetStatement(
         "INSERT OR IGNORE INTO moz_pages_w_icons (page_url, page_url_hash) "
@@ -939,7 +939,8 @@ AsyncGetFaviconURLForPage::AsyncGetFaviconURLForPage(
 , uint16_t aPreferredWidth
 , nsIFaviconDataCallback* aCallback
 ) : mPreferredWidth(aPreferredWidth == 0 ? UINT16_MAX : aPreferredWidth)
-  , mCallback(new nsMainThreadPtrHolder<nsIFaviconDataCallback>(aCallback))
+  , mCallback(new nsMainThreadPtrHolder<nsIFaviconDataCallback>(
+      "AsyncGetFaviconURLForPage::mCallback", aCallback))
 {
   MOZ_ASSERT(NS_IsMainThread());
   mPageSpec.Assign(aPageSpec);
@@ -978,7 +979,8 @@ AsyncGetFaviconDataForPage::AsyncGetFaviconDataForPage(
 ,  uint16_t aPreferredWidth
 , nsIFaviconDataCallback* aCallback
 ) : mPreferredWidth(aPreferredWidth == 0 ? UINT16_MAX : aPreferredWidth)
-  , mCallback(new nsMainThreadPtrHolder<nsIFaviconDataCallback>(aCallback))
+  , mCallback(new nsMainThreadPtrHolder<nsIFaviconDataCallback>(
+      "AsyncGetFaviconDataForPage::mCallback", aCallback))
  {
   MOZ_ASSERT(NS_IsMainThread());
   mPageSpec.Assign(aPageSpec);
@@ -1372,6 +1374,101 @@ FetchAndConvertUnsupportedPayloads::StorePayload(int64_t aId,
 
   rv = stmt->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//// AsyncCopyFavicons
+
+AsyncCopyFavicons::AsyncCopyFavicons(
+  PageData& aFromPage
+, PageData& aToPage
+, nsIFaviconDataCallback* aCallback
+) : mFromPage(aFromPage)
+  , mToPage(aToPage)
+  , mCallback(new nsMainThreadPtrHolder<nsIFaviconDataCallback>(
+      "AsyncCopyFavicons::mCallback", aCallback))
+{
+  MOZ_ASSERT(NS_IsMainThread());
+}
+
+NS_IMETHODIMP
+AsyncCopyFavicons::Run()
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  IconData icon;
+
+  // Ensure we'll callback and dispatch notifications to the main-thread.
+  auto cleanup = MakeScopeExit([&] () {
+    // If we bailed out early, just return a null icon uri, since we didn't
+    // copy anything.
+    if (!(icon.status & ICON_STATUS_ASSOCIATED)) {
+      icon.spec.Truncate();
+    }
+    nsCOMPtr<nsIRunnable> event = new NotifyIconObservers(icon, mToPage, mCallback);
+    NS_DispatchToMainThread(event);
+  });
+
+  RefPtr<Database> DB = Database::GetDatabase();
+  NS_ENSURE_STATE(DB);
+
+  nsresult rv = FetchPageInfo(DB, mToPage);
+  if (rv == NS_ERROR_NOT_AVAILABLE || !mToPage.placeId) {
+    // We have never seen this page, or we can't add this page to history and
+    // and it's not a bookmark. We won't add the page.
+    return NS_OK;
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Get just one icon, to check whether the page has any, and to notify later.
+  rv = FetchIconPerSpec(DB, mFromPage.spec, EmptyCString(), icon, UINT16_MAX);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (icon.spec.IsEmpty()) {
+    // There's nothing to copy.
+    return NS_OK;
+  }
+
+  // Insert an entry in moz_pages_w_icons if needed.
+  if (!mToPage.id) {
+    // We need to create the page entry.
+    nsCOMPtr<mozIStorageStatement> stmt;
+    stmt = DB->GetStatement(
+      "INSERT OR IGNORE INTO moz_pages_w_icons (page_url, page_url_hash) "
+      "VALUES (:page_url, hash(:page_url)) "
+    );
+    NS_ENSURE_STATE(stmt);
+    mozStorageStatementScoper scoper(stmt);
+    rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mToPage.spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->Execute();
+    NS_ENSURE_SUCCESS(rv, rv);
+    // Required to to fetch the id and the guid.
+    rv = FetchPageInfo(DB, mToPage);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  // Create the relations.
+  nsCOMPtr<mozIStorageStatement> stmt = DB->GetStatement(
+    "INSERT OR IGNORE INTO moz_icons_to_pages (page_id, icon_id) "
+      "SELECT :id, icon_id "
+      "FROM moz_icons_to_pages "
+      "WHERE page_id = (SELECT id FROM moz_pages_w_icons WHERE page_url_hash = hash(:url) AND page_url = :url) "
+  );
+  NS_ENSURE_STATE(stmt);
+  mozStorageStatementScoper scoper(stmt);
+  rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("id"), mToPage.id);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("url"), mFromPage.spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Setting this will make us send pageChanged notifications.
+  // The scope exit will take care of the callback and notifications.
+  icon.status |= ICON_STATUS_ASSOCIATED;
 
   return NS_OK;
 }

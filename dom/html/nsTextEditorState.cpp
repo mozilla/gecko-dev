@@ -2492,7 +2492,8 @@ nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
 }
 
 bool
-nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
+nsTextEditorState::SetValue(const nsAString& aValue, const nsAString* aOldValue,
+                            uint32_t aFlags)
 {
   nsAutoString newValue(aValue);
 
@@ -2505,6 +2506,9 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
   // mIsCommittingComposition is set false.  See below.
   if (mIsCommittingComposition) {
     mValueBeingSet = aValue;
+    // GetValue doesn't return current text frame's content during committing.
+    // So we cannot trust this old value
+    aOldValue = nullptr;
   }
 
   // Note that if this may be called during reframe of the editor.  In such
@@ -2525,7 +2529,15 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
         // If setting value won't change current value, we shouldn't commit
         // composition for compatibility with the other browsers.
         nsAutoString currentValue;
-        mBoundFrame->GetText(currentValue);
+        if (aOldValue) {
+#ifdef DEBUG
+          mBoundFrame->GetText(currentValue);
+          MOZ_ASSERT(currentValue.Equals(*aOldValue));
+#endif
+          currentValue.Assign(*aOldValue);
+        } else {
+          mBoundFrame->GetText(currentValue);
+        }
         if (newValue == currentValue) {
           // Note that in this case, we shouldn't fire any events with setting
           // value because event handlers may try to set value recursively but
@@ -2533,6 +2545,9 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
           // script (see below).
           return true;
         }
+        // IME might commit composition, then change value, so we cannot
+        // trust old value from parameter.
+        aOldValue = nullptr;
       }
       // If there is composition, need to commit composition first because
       // other browsers do that.
@@ -2593,7 +2608,15 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
 #endif
 
     nsAutoString currentValue;
-    mBoundFrame->GetText(currentValue);
+    if (aOldValue) {
+#ifdef DEBUG
+      mBoundFrame->GetText(currentValue);
+      MOZ_ASSERT(currentValue.Equals(*aOldValue));
+#endif
+      currentValue.Assign(*aOldValue);
+    } else {
+      mBoundFrame->GetText(currentValue);
+    }
 
     AutoWeakFrame weakFrame(mBoundFrame);
 
@@ -2616,16 +2639,10 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
         AutoNoJSAPI nojsapi;
 
         nsCOMPtr<nsISelection> domSel;
-        nsCOMPtr<nsISelectionPrivate> selPriv;
         mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
                               getter_AddRefs(domSel));
-        if (domSel)
-        {
-          selPriv = do_QueryInterface(domSel);
-          if (selPriv) {
-            selPriv->StartBatchChanges();
-          }
-        }
+        SelectionBatcher selectionBatcher(domSel ? domSel->AsSelection() :
+                                                   nullptr);
 
         nsCOMPtr<nsIPlaintextEditor> plaintextEditor = do_QueryInterface(mEditor);
         if (!plaintextEditor || !weakFrame.IsAlive()) {
@@ -2667,6 +2684,11 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
             }
           } else {
             AutoDisableUndo disableUndo(mEditor);
+            if (domSel) {
+              // Since we don't use undo transaction, we don't need to store
+              // selection state.  SetText will set selection to tail.
+              domSel->RemoveAllRanges();
+            }
 
             plaintextEditor->SetText(newValue);
           }
@@ -2691,10 +2713,6 @@ nsTextEditorState::SetValue(const nsAString& aValue, uint32_t aFlags)
           if (!mCachedValue.Assign(newValue, fallible)) {
             return false;
           }
-        }
-
-        if (selPriv) {
-          selPriv->EndBatchChanges();
         }
       }
     }
@@ -2817,9 +2835,6 @@ nsTextEditorState::UpdatePlaceholderText(bool aNotify)
 void
 nsTextEditorState::SetPreviewText(const nsAString& aValue, bool aNotify)
 {
-  MOZ_ASSERT(mPreviewDiv, "This function should not be called if "
-                            "mPreviewDiv isn't set");
-
   // If we don't have a preview div, there's nothing to do.
   if (!mPreviewDiv)
     return;
@@ -2857,8 +2872,15 @@ nsTextEditorState::UpdateOverlayTextVisibility(bool aNotify)
   mPreviewVisibility = valueIsEmpty && !previewValue.IsEmpty();
   mPlaceholderVisibility = valueIsEmpty && previewValue.IsEmpty();
 
-  if (mPlaceholderVisibility &&
-      !Preferences::GetBool("dom.placeholder.show_on_focus", true)) {
+  static bool sPrefCached = false;
+  static bool sPrefShowOnFocus = true;
+  if (!sPrefCached) {
+    sPrefCached = true;
+    Preferences::AddBoolVarCache(&sPrefShowOnFocus,
+                                 "dom.placeholder.show_on_focus", true);
+  }
+
+  if (mPlaceholderVisibility && !sPrefShowOnFocus) {
     nsCOMPtr<nsIContent> content = do_QueryInterface(mTextCtrlElement);
     mPlaceholderVisibility = !nsContentUtils::IsFocusedContent(content);
   }

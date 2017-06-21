@@ -6,6 +6,7 @@
 #ifndef MOZILLA_GFX_TEXTUREHOST_H
 #define MOZILLA_GFX_TEXTUREHOST_H
 
+#include <functional>
 #include <stddef.h>                     // for size_t
 #include <stdint.h>                     // for uint64_t, uint32_t, uint8_t
 #include "gfxTypes.h"
@@ -38,6 +39,7 @@ class Shmem;
 } // namespace ipc
 
 namespace wr {
+class DisplayListBuilder;
 class WebRenderAPI;
 }
 
@@ -168,6 +170,13 @@ public:
   void ReleaseCompositableRef() {
     --mCompositableCount;
     MOZ_ASSERT(mCompositableCount >= 0);
+  }
+
+  // When iterating as a BigImage, this creates temporary TextureSources wrapping
+  // individual tiles.
+  virtual RefPtr<TextureSource> ExtractCurrentTile() {
+    NS_WARNING("Implementation does not expose tile sources");
+    return nullptr;
   }
 
   int NumCompositableRefs() const { return mCompositableCount; }
@@ -443,6 +452,14 @@ public:
   virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) = 0;
 
   /**
+   * Called when preparing the rendering pipeline for advanced-layers. This is
+   * a lockless version of BindTextureSource.
+   */
+  virtual bool AcquireTextureSource(CompositableTextureSourceRef& aTexture) {
+    return false;
+  }
+
+  /**
    * Called when another TextureHost will take over.
    */
   virtual void UnbindTextureSource();
@@ -596,6 +613,25 @@ public:
   virtual MacIOSurfaceTextureHostOGL* AsMacIOSurfaceTextureHost() { return nullptr; }
   virtual WebRenderTextureHost* AsWebRenderTextureHost() { return nullptr; }
 
+  // Create the corresponding RenderTextureHost type of this texture, and
+  // register the RenderTextureHost into render thread.
+  virtual void CreateRenderTexture(const wr::ExternalImageId& aExternalImageId)
+  {
+    MOZ_ASSERT_UNREACHABLE("No CreateRenderTexture() implementation for this TextureHost type.");
+  }
+
+  // Create all necessary image keys for this textureHost rendering.
+  // @param aImageKeys - [out] The set of ImageKeys used for this textureHost
+  // composing.
+  // @param aImageKeyAllocator - [in] The function which is used for creating
+  // the new ImageKey.
+  virtual void GetWRImageKeys(nsTArray<wr::ImageKey>& aImageKeys,
+                              const std::function<wr::ImageKey()>& aImageKeyAllocator)
+  {
+    MOZ_ASSERT(aImageKeys.IsEmpty());
+    MOZ_ASSERT_UNREACHABLE("No GetWRImageKeys() implementation for this TextureHost type.");
+  }
+
   // Add all necessary textureHost informations to WebrenderAPI. Then, WR could
   // use these informations to compose this textureHost.
   virtual void AddWRImage(wr::WebRenderAPI* aAPI,
@@ -603,6 +639,16 @@ public:
                           const wr::ExternalImageId& aExtID)
   {
     MOZ_ASSERT_UNREACHABLE("No AddWRImage() implementation for this TextureHost type.");
+  }
+
+  // Put all necessary WR commands into DisplayListBuilder for this textureHost rendering.
+  virtual void PushExternalImage(wr::DisplayListBuilder& aBuilder,
+                                 const WrRect& aBounds,
+                                 const WrClipRegionToken aClip,
+                                 wr::ImageRendering aFilter,
+                                 Range<const wr::ImageKey>& aKeys)
+  {
+    MOZ_ASSERT_UNREACHABLE("No PushExternalImage() implementation for this TextureHost type.");
   }
 
 protected:
@@ -664,6 +710,7 @@ public:
   virtual void PrepareTextureSource(CompositableTextureSourceRef& aTexture) override;
 
   virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) override;
+  virtual bool AcquireTextureSource(CompositableTextureSourceRef& aTexture) override;
 
   virtual void UnbindTextureSource() override;
 
@@ -692,13 +739,25 @@ public:
 
   const BufferDescriptor& GetBufferDescriptor() const { return mDescriptor; }
 
+  virtual void CreateRenderTexture(const wr::ExternalImageId& aExternalImageId) override;
+
+  virtual void GetWRImageKeys(nsTArray<wr::ImageKey>& aImageKeys,
+                              const std::function<wr::ImageKey()>& aImageKeyAllocator) override;
+
   virtual void AddWRImage(wr::WebRenderAPI* aAPI,
                           Range<const wr::ImageKey>& aImageKeys,
                           const wr::ExternalImageId& aExtID) override;
 
+  virtual void PushExternalImage(wr::DisplayListBuilder& aBuilder,
+                                 const WrRect& aBounds,
+                                 const WrClipRegionToken aClip,
+                                 wr::ImageRendering aFilter,
+                                 Range<const wr::ImageKey>& aImageKeys) override;
+
 protected:
   bool Upload(nsIntRegion *aRegion = nullptr);
-  bool MaybeUpload(nsIntRegion *aRegion = nullptr);
+  bool UploadIfNeeded();
+  bool MaybeUpload(nsIntRegion *aRegion);
   bool EnsureWrappingTextureSource();
 
   virtual void UpdatedInternal(const nsIntRegion* aRegion = nullptr) override;

@@ -11,7 +11,6 @@
 #include "nsUConvPropertySearch.h"
 #include "nsCOMPtr.h"
 #include "nsReadableUtils.h"
-#include "nsEncoderDecoderUtils.h"
 #if HAVE_GNU_LIBC_VERSION_H
 #include <gnu/libc-version.h>
 #endif
@@ -24,9 +23,8 @@
 #include "nsPlatformCharset.h"
 #include "prinit.h"
 #include "nsUnicharUtils.h"
-#include "mozilla/dom/EncodingUtils.h"
+#include "mozilla/Encoding.h"
 
-using mozilla::dom::EncodingUtils;
 using namespace mozilla;
 
 static constexpr nsUConvProp kUnixCharsets[] = {
@@ -127,11 +125,11 @@ nsPlatformCharset::VerifyCharset(nsCString &aCharset)
     return NS_OK;
   }
 
-  nsAutoCString encoding;
-  if (!EncodingUtils::FindEncodingForLabelNoReplacement(aCharset, encoding)) {
+  const Encoding* encoding = Encoding::ForLabelNoReplacement(aCharset);
+  if (!encoding) {
     return NS_ERROR_UCONV_NOCONV;
   }
 
-  aCharset.Assign(encoding);
+  encoding->Name(aCharset);
   return NS_OK;
 }

@@ -10,7 +10,7 @@
 #include "nsCOMPtr.h"
 #include "nsICharsetDetectionObserver.h"
 #include "nsHtml5MetaScanner.h"
-#include "nsIUnicodeDecoder.h"
+#include "mozilla/Encoding.h"
 #include "nsHtml5TreeOpExecutor.h"
 #include "nsHtml5OwningUTF16Buffer.h"
 #include "nsIInputStream.h"
@@ -18,6 +18,7 @@
 #include "mozilla/UniquePtr.h"
 #include "nsHtml5AtomTable.h"
 #include "nsHtml5Speculation.h"
+#include "nsISerialEventTarget.h"
 #include "nsITimer.h"
 #include "nsICharsetDetector.h"
 
@@ -211,9 +212,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
 
 #ifdef DEBUG
     bool IsParserThread() {
-      bool ret;
-      mThread->IsOnCurrentThread(&ret);
-      return ret;
+      return mEventTarget->IsOnCurrentThread();
     }
 #endif
 
@@ -393,7 +392,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     /**
      * The Unicode decoder
      */
-    nsCOMPtr<nsIUnicodeDecoder>   mUnicodeDecoder;
+    mozilla::UniquePtr<mozilla::Decoder> mUnicodeDecoder;
 
     /**
      * The buffer for sniffing the character encoding
@@ -518,7 +517,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     /**
      * The thread this stream parser runs on.
      */
-    nsCOMPtr<nsIThread>           mThread;
+    nsCOMPtr<nsISerialEventTarget> mEventTarget;
     
     nsCOMPtr<nsIRunnable>         mExecutorFlusher;
     

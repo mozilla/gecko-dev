@@ -119,16 +119,22 @@ function isInDevEdition() {
 }
 
 function isInNightly() {
-  return AppConstants.NIGHTLY_BUILD && !AppConstants.MOZ_DEV_EDITION;
+  return AppConstants.NIGHTLY_BUILD;
 }
 
 function isNotReleaseOrBeta() {
-  return !AppConstants.RELEASE_OR_BETA;
+  return (isInDevEdition() || isInNightly());
 }
 
 function removeNonReleaseButtons(areaPanelPlacements) {
   if (isInDevEdition() && areaPanelPlacements.includes("developer-button")) {
     areaPanelPlacements.splice(areaPanelPlacements.indexOf("developer-button"), 1);
+  }
+
+  if (AppConstants.RELEASE_OR_BETA && !AppConstants.MOZ_DEV_EDITION) {
+    if (areaPanelPlacements.includes("webcompat-reporter-button")) {
+      areaPanelPlacements.splice(areaPanelPlacements.indexOf("webcompat-reporter-button"), 1);
+    }
   }
 }
 

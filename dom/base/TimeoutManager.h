@@ -55,12 +55,7 @@ public:
   void ClearAllTimeouts();
   uint32_t GetTimeoutId(mozilla::dom::Timeout::Reason aReason);
 
-  // When timers are being throttled and we reduce the thottle delay we must
-  // reschedule.  The amount of the old throttle delay must be provided in
-  // order to bound how many timers must be examined.
-  nsresult ResetTimersForThrottleReduction();
-
-  int32_t DOMMinTimeoutValue(bool aIsTracking) const;
+  TimeDuration CalculateDelay(Timeout* aTimeout) const;
 
   // aTimeout is the timeout that we're about to start running.  This function
   // returns the current timeout.
@@ -76,6 +71,10 @@ public:
   void Resume();
   void Freeze();
   void Thaw();
+
+  // This should be called by nsGlobalWindow when the window might have moved
+  // to the background or foreground.
+  void UpdateBackgroundState();
 
   // Initialize TimeoutManager before the first time it is accessed.
   static void Initialize();
@@ -116,7 +115,6 @@ public:
   static const uint32_t InvalidFiringId;
 
 private:
-  nsresult ResetTimersForThrottleReduction(int32_t aPreviousThrottleDelayMS);
   void MaybeStartThrottleTrackingTimout();
 
   bool IsBackground() const;
@@ -128,26 +126,30 @@ private:
   DestroyFiringId(uint32_t aFiringId);
 
   bool
+  IsValidFiringId(uint32_t aFiringId) const;
+
+  bool
   IsInvalidFiringId(uint32_t aFiringId) const;
+
+  TimeDuration
+  MinSchedulingDelay() const;
 
 private:
   struct Timeouts {
-    Timeouts()
-      : mTimeoutInsertionPoint(nullptr)
+    explicit Timeouts(const TimeoutManager& aManager)
+      : mManager(aManager)
     {
     }
 
     // Insert aTimeout into the list, before all timeouts that would
-    // fire after it, but no earlier than mTimeoutInsertionPoint, if any.
+    // fire after it, but no earlier than the last Timeout with a
+    // valid FiringId.
     enum class SortBy
     {
       TimeRemaining,
       TimeWhen
     };
     void Insert(mozilla::dom::Timeout* aTimeout, SortBy aSortBy);
-    nsresult ResetTimersForThrottleReduction(int32_t aPreviousThrottleDelayMS,
-                                             const TimeoutManager& aTimeoutManager,
-                                             SortBy aSortBy);
 
     const Timeout* GetFirst() const { return mTimeoutList.getFirst(); }
     Timeout* GetFirst() { return mTimeoutList.getFirst(); }
@@ -156,15 +158,6 @@ private:
     bool IsEmpty() const { return mTimeoutList.isEmpty(); }
     void InsertFront(Timeout* aTimeout) { mTimeoutList.insertFront(aTimeout); }
     void Clear() { mTimeoutList.clear(); }
-
-    void SetInsertionPoint(Timeout* aTimeout)
-    {
-      mTimeoutInsertionPoint = aTimeout;
-    }
-    Timeout* InsertionPoint()
-    {
-      return mTimeoutInsertionPoint;
-    }
 
     template <class Callable>
     void ForEach(Callable c)
@@ -193,17 +186,15 @@ private:
     friend class OrderedTimeoutIterator;
 
   private:
+    // The TimeoutManager that owns this Timeouts structure.  This is
+    // mainly used to call state inspecting methods like IsValidFiringId().
+    const TimeoutManager&     mManager;
+
     typedef mozilla::LinkedList<RefPtr<Timeout>> TimeoutList;
 
-    // mTimeoutList is generally sorted by mWhen, unless mTimeoutInsertionPoint is
-    // non-null.  In that case, the dummy timeout pointed to by
-    // mTimeoutInsertionPoint may have a later mWhen than some of the timeouts
-    // that come after it.
+    // mTimeoutList is generally sorted by mWhen, but new values are always
+    // inserted after any Timeouts with a valid FiringId.
     TimeoutList               mTimeoutList;
-    // If mTimeoutInsertionPoint is non-null, insertions should happen after it.
-    // This is a dummy timeout at the moment; if that ever changes, the logic in
-    // ResetTimersForThrottleReduction needs to change.
-    mozilla::dom::Timeout*    mTimeoutInsertionPoint;
   };
 
   friend class OrderedTimeoutIterator;

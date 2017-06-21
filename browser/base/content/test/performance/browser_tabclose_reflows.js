@@ -10,45 +10,17 @@
  * for tips on how to do that.
  */
 const EXPECTED_REFLOWS = [
-  [
-    "_adjustFocusAfterTabSwitch@chrome://browser/content/tabbrowser.xml",
-  ],
+  /**
+   * Nothing here! Please don't add anything new!
+   */
 ];
-
-if (gMultiProcessBrowser) {
-  EXPECTED_REFLOWS.push(
-    [
-      "_adjustFocusAfterTabSwitch@chrome://browser/content/tabbrowser.xml",
-    ],
-  );
-}
 
 /*
  * This test ensures that there are no unexpected
  * uninterruptible reflows when closing new tabs.
  */
 add_task(async function() {
-  // If we've got a preloaded browser, get rid of it so that it
-  // doesn't interfere with the test if it's loading. We have to
-  // do this before we disable preloading or changing the new tab
-  // URL, otherwise _getPreloadedBrowser will return null, despite
-  // the preloaded browser existing.
-  let preloaded = gBrowser._getPreloadedBrowser();
-  if (preloaded) {
-    preloaded.remove();
-  }
-
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.newtab.preload", false]],
-  });
-
-  let aboutNewTabService = Cc["@mozilla.org/browser/aboutnewtab-service;1"]
-                             .getService(Ci.nsIAboutNewTabService);
-  aboutNewTabService.newTabURL = "about:blank";
-
-  registerCleanupFunction(() => {
-    aboutNewTabService.resetNewTabURL();
-  });
+  await ensureNoPreloadedBrowser();
 
   // Because the tab strip is a scrollable frame, we can't use the
   // default dirtying function from withReflowObserver and reliably
@@ -68,4 +40,5 @@ add_task(async function() {
         false, e => e.propertyName === "max-width");
     await switchDone;
   }, EXPECTED_REFLOWS, window, origTab);
+  is(EXPECTED_REFLOWS.length, 0, "No reflows are expected when closing a tab");
 });

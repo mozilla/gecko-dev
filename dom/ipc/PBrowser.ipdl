@@ -21,7 +21,6 @@ include protocol PFileDescriptorSet;
 include protocol PIPCBlobInputStream;
 include protocol PPaymentRequest;
 
-include PBackgroundSharedTypes;
 include DOMTypes;
 include IPCBlob;
 include IPCStream;
@@ -30,12 +29,12 @@ include URIParams;
 include PPrintingTypes;
 include PTabContext;
 
+include "mozilla/GfxMessageUtils.h";
+include "mozilla/layers/LayersMessageUtils.h";
 
 using class IPC::Principal from "mozilla/dom/PermissionMessageUtils.h";
 using class mozilla::gfx::Matrix from "mozilla/gfx/Matrix.h";
 using struct gfxSize from "gfxPoint.h";
-using CSSRect from "Units.h";
-using CSSSize from "Units.h";
 using mozilla::LayoutDeviceIntPoint from "Units.h";
 using mozilla::LayoutDevicePoint from "Units.h";
 using mozilla::ScreenIntPoint from "Units.h";
@@ -65,7 +64,6 @@ using class mozilla::WidgetSelectionEvent from "ipc/nsGUIEventIPC.h";
 using class mozilla::WidgetTouchEvent from "ipc/nsGUIEventIPC.h";
 using class mozilla::WidgetPluginEvent from "ipc/nsGUIEventIPC.h";
 using struct mozilla::dom::RemoteDOMEvent from "mozilla/dom/TabMessageUtils.h";
-using mozilla::dom::ScreenOrientationInternal from "mozilla/dom/ScreenOrientation.h";
 using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/CompositorTypes.h";
 using mozilla::layers::CompositorOptions from "mozilla/layers/CompositorOptions.h";
 using mozilla::CSSToScreenScale from "Units.h";
@@ -84,6 +82,7 @@ using mozilla::widget::CandidateWindowPosition from "ipc/nsGUIEventIPC.h";
 using class mozilla::NativeEventData from "ipc/nsGUIEventIPC.h";
 using mozilla::FontRange from "ipc/nsGUIEventIPC.h";
 using mozilla::a11y::IAccessibleHolder from "mozilla/a11y/IPCTypes.h";
+using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 
 namespace mozilla {
 namespace dom {
@@ -196,7 +195,7 @@ parent:
      *
      * aLinks A flat array of url, name, and type for each link
      */
-    async DropLinks(nsString[] aLinks, PrincipalInfo aTriggeringPrincipalInfo);
+    async DropLinks(nsString[] aLinks);
 
     async Event(RemoteDOMEvent aEvent);
 
@@ -637,10 +636,7 @@ child:
 
     async LoadURL(nsCString uri, ShowInfo info);
 
-    async UpdateDimensions(CSSRect rect, CSSSize size,
-                           ScreenOrientationInternal orientation,
-                           LayoutDeviceIntPoint clientOffset,
-                           LayoutDeviceIntPoint chromeDisp) compressall;
+    async UpdateDimensions(DimensionInfo dimensions) compressall;
 
     async SizeModeChanged(nsSizeMode sizeMode);
 
@@ -890,6 +886,17 @@ child:
      * Loads which occur until this flag is cleared will not leave the process.
      */
     async AwaitLargeAlloc();
+
+    /**
+     * Tell the TabChild to set the name of its toplevel docshell to the given name.
+     */
+    async SetWindowName(nsString aName);
+
+    /**
+     * Tell the TabChild what OriginAttributes it should inherit from. This must
+     * be called before the first non-blank document is loaded in the TabChild.
+     */
+    async SetOriginAttributes(OriginAttributes aOriginAttributes);
 
 /*
  * FIXME: write protocol!

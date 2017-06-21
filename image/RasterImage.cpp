@@ -471,6 +471,7 @@ RasterImage::OnSurfaceDiscardedInternal(bool aAnimatedFramesDiscarded)
 
   if (aAnimatedFramesDiscarded && mAnimationState) {
     MOZ_ASSERT(gfxPrefs::ImageMemAnimatedDiscardable());
+    mImageContainer = nullptr;
     gfx::IntRect rect =
       mAnimationState->UpdateState(mAnimationFinished, this, mSize);
     NotifyProgress(NoProgress, rect);
@@ -1086,6 +1087,7 @@ RasterImage::Discard()
   SurfaceCache::RemoveImage(ImageKey(this));
 
   if (mAnimationState) {
+    mImageContainer = nullptr;
     gfx::IntRect rect =
       mAnimationState->UpdateState(mAnimationFinished, this, mSize);
     NotifyProgress(NoProgress, rect);
@@ -1261,20 +1263,13 @@ RasterImage::Decode(const IntSize& aSize,
     task = DecoderFactory::CreateAnimationDecoder(mDecoderType, WrapNotNull(this),
                                                   mSourceBuffer, mSize,
                                                   decoderFlags, surfaceFlags);
-    // We may not be able to send an invalidation right here because of async
-    // notifications but that shouldn't be a problem because we shouldn't be
-    // getting a non-empty rect back from UpdateState. This is because UpdateState
-    // will only return a non-empty rect if we are currently decoded, or the
-    // animation is finished. We can't be decoded because we are creating a decoder
-    // here. If the animation is finished then the composited frame would have
-    // been valid when the animation finished, and it's not possible to mark
-    // the composited frame as invalid when the animation is finished. So
-    // the composited frame can't change from invalid to valid in this UpdateState
-    // call, and hence no rect can be returned.
+    // We pass false for aAllowInvalidation because we may be asked to use
+    // async notifications. Any potential invalidation here will be sent when
+    // RequestRefresh is called, or NotifyDecodeComplete.
 #ifdef DEBUG
     gfx::IntRect rect =
 #endif
-      mAnimationState->UpdateState(mAnimationFinished, this, mSize);
+      mAnimationState->UpdateState(mAnimationFinished, this, mSize, false);
     MOZ_ASSERT(rect.IsEmpty());
   } else {
     task = DecoderFactory::CreateDecoder(mDecoderType, WrapNotNull(this),

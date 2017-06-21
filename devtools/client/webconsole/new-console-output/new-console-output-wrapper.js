@@ -152,7 +152,7 @@ NewConsoleOutputWrapper.prototype = {
     // be removed once it's not needed anymore.
     // Can only wait for response if the action contains a valid message.
     if (waitForResponse && action.message) {
-      let messageId = action.message.get("id");
+      let messageId = action.message.id;
       return new Promise(resolve => {
         let jsterm = this.jsterm;
         jsterm.hud.on("new-messages", function onThisMessage(e, messages) {
@@ -184,11 +184,12 @@ NewConsoleOutputWrapper.prototype = {
   },
 
   dispatchMessageUpdate: function (message, res) {
-    batchedMessageAdd(actions.networkMessageUpdate(message));
-
-    // network-message-updated will emit when eventTimings message arrives
-    // which is the last one of 8 updates happening on network message update.
-    if (res.packet.updateType === "eventTimings") {
+    // network-message-updated will emit when all the update message arrives.
+    // Since we can't ensure the order of the network update, we check
+    // that networkInfo.updates has all we need.
+    const NUMBER_OF_NETWORK_UPDATE = 8;
+    if (res.networkInfo.updates.length === NUMBER_OF_NETWORK_UPDATE) {
+      batchedMessageAdd(actions.networkMessageUpdate(message));
       this.jsterm.hud.emit("network-message-updated", res);
     }
   },

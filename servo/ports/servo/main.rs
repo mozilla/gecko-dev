@@ -35,8 +35,10 @@ use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 #[cfg(target_os = "android")]
 use servo::config;
-use servo::config::opts::{self, ArgumentParsingResult};
+use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
 use servo::config::servo_version;
+use servo::servo_config::prefs::PREFS;
+use servo::servo_url::ServoUrl;
 use std::env;
 use std::panic;
 use std::process;
@@ -143,10 +145,20 @@ fn main() {
 
     let window = app::create_window(None);
 
+    // If the url is not provided, we fallback to the homepage in PREFS,
+    // or a blank page in case the homepage is not set either.
+    let cwd = env::current_dir().unwrap();
+    let cmdline_url = opts::get().url.clone();
+    let pref_url = PREFS.get("shell.homepage").as_string()
+        .and_then(|str| parse_url_or_filename(&cwd, str).ok());
+    let blank_url = ServoUrl::parse("about:blank").ok();
+
+    let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
+
     // Our wrapper around `Browser` that also implements some
     // callbacks required by the glutin window implementation.
     let mut browser = BrowserWrapper {
-        browser: Browser::new(window.clone()),
+        browser: Browser::new(window.clone(), target_url)
     };
 
     browser.browser.setup_logging();
@@ -204,7 +216,7 @@ impl app::NestedEventLoopListener for BrowserWrapper {
 #[cfg(target_os = "android")]
 fn setup_logging() {
     // Piping logs from stdout/stderr to logcat happens in android_injected_glue.
-    ::std::env::set_var("RUST_LOG", "debug");
+    ::std::env::set_var("RUST_LOG", "error");
 
     unsafe { android_injected_glue::ffi::app_dummy() };
 }

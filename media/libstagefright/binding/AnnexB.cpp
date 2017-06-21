@@ -38,7 +38,7 @@ AnnexB::ConvertSampleToAnnexB(mozilla::MediaRawData* aSample, bool aAddSPS)
 
   ByteReader reader(aSample->Data(), aSample->Size());
 
-  mozilla::Vector<uint8_t> tmp;
+  nsTArray<uint8_t> tmp;
   ByteWriter writer(tmp);
 
   while (reader.Remaining() >= 4) {
@@ -58,7 +58,7 @@ AnnexB::ConvertSampleToAnnexB(mozilla::MediaRawData* aSample, bool aAddSPS)
 
   nsAutoPtr<MediaRawDataWriter> samplewriter(aSample->CreateWriter());
 
-  if (!samplewriter->Replace(tmp.begin(), tmp.length())) {
+  if (!samplewriter->Replace(tmp.Elements(), tmp.Length())) {
     return false;
   }
 
@@ -242,7 +242,7 @@ AnnexB::ConvertSampleToAVCC(mozilla::MediaRawData* aSample)
     return true;
   }
 
-  mozilla::Vector<uint8_t> nalu;
+  nsTArray<uint8_t> nalu;
   ByteWriter writer(nalu);
   ByteReader reader(aSample->Data(), aSample->Size());
 
@@ -250,7 +250,7 @@ AnnexB::ConvertSampleToAVCC(mozilla::MediaRawData* aSample)
     return false;
   }
   nsAutoPtr<MediaRawDataWriter> samplewriter(aSample->CreateWriter());
-  if (!samplewriter->Replace(nalu.begin(), nalu.length())) {
+  if (!samplewriter->Replace(nalu.Elements(), nalu.Length())) {
     return false;
   }
   // Create the AVCC header.
@@ -277,23 +277,31 @@ AnnexB::ExtractExtraData(const mozilla::MediaRawData* aSample)
   MOZ_ASSERT(IsAVCC(aSample));
 
   RefPtr<mozilla::MediaByteBuffer> extradata = new mozilla::MediaByteBuffer;
-  if (HasSPS(aSample->mExtraData)) {
-    // We already have an explicit extradata, re-use it.
-    extradata = aSample->mExtraData;
-    return extradata.forget();
-  }
 
   // SPS content
-  mozilla::Vector<uint8_t> sps;
+  nsTArray<uint8_t> sps;
   ByteWriter spsw(sps);
   int numSps = 0;
   // PPS content
-  mozilla::Vector<uint8_t> pps;
+  nsTArray<uint8_t> pps;
   ByteWriter ppsw(pps);
   int numPps = 0;
 
   int nalLenSize = ((*aSample->mExtraData)[4] & 3) + 1;
-  ByteReader reader(aSample->Data(), aSample->Size());
+
+  size_t sampleSize = aSample->Size();
+  if (aSample->mCrypto.mValid) {
+    // The content is encrypted, we can only parse the non-encrypted data.
+    MOZ_ASSERT(aSample->mCrypto.mPlainSizes.Length() > 0);
+    if (aSample->mCrypto.mPlainSizes.Length() == 0 ||
+        aSample->mCrypto.mPlainSizes[0] > sampleSize) {
+      // This is invalid content.
+      return nullptr;
+    }
+    sampleSize = aSample->mCrypto.mPlainSizes[0];
+  }
+
+  ByteReader reader(aSample->Data(), sampleSize);
 
   // Find SPS and PPS NALUs in AVCC data
   while (reader.Remaining() > nalLenSize) {
@@ -325,17 +333,17 @@ AnnexB::ExtractExtraData(const mozilla::MediaRawData* aSample)
     }
   }
 
-  if (numSps && sps.length() > 5) {
+  if (numSps && sps.Length() > 5) {
     extradata->AppendElement(1);        // version
     extradata->AppendElement(sps[3]);   // profile
     extradata->AppendElement(sps[4]);   // profile compat
     extradata->AppendElement(sps[5]);   // level
     extradata->AppendElement(0xfc | 3); // nal size - 1
     extradata->AppendElement(0xe0 | numSps);
-    extradata->AppendElements(sps.begin(), sps.length());
+    extradata->AppendElements(sps.Elements(), sps.Length());
     extradata->AppendElement(numPps);
     if (numPps) {
-      extradata->AppendElements(pps.begin(), pps.length());
+      extradata->AppendElements(pps.Elements(), pps.Length());
     }
   }
 
@@ -366,47 +374,6 @@ AnnexB::HasSPS(const mozilla::MediaByteBuffer* aExtraData)
 }
 
 bool
-AnnexB::HasPPS(const mozilla::MediaRawData* aSample)
-{
-  return HasPPS(aSample->mExtraData);
-}
-
-bool
-AnnexB::HasPPS(const mozilla::MediaByteBuffer* aExtraData)
-{
-  if (!aExtraData) {
-    return false;
-  }
-
-  ByteReader reader(aExtraData);
-  const uint8_t* ptr = reader.Read(5);
-  if (!ptr || !reader.CanRead8()) {
-    return false;
-  }
-  uint8_t numSps = reader.ReadU8() & 0x1f;
-  // Skip over the included SPS.
-  for (uint8_t i = 0; i < numSps; i++) {
-    if (reader.Remaining() < 3) {
-      return false;
-    }
-    uint16_t length = reader.ReadU16();
-    if ((reader.PeekU8() & 0x1f) != 7) {
-      // Not an SPS NAL type.
-      return false;
-    }
-    if (!reader.Read(length)) {
-      return false;
-    }
-  }
-  if (!reader.CanRead8()) {
-    return false;
-  }
-  uint8_t numPps = reader.ReadU8();
-
-  return numPps > 0;
-}
-
-bool
 AnnexB::ConvertSampleTo4BytesAVCC(mozilla::MediaRawData* aSample)
 {
   MOZ_ASSERT(IsAVCC(aSample));
@@ -416,7 +383,7 @@ AnnexB::ConvertSampleTo4BytesAVCC(mozilla::MediaRawData* aSample)
   if (nalLenSize == 4) {
     return true;
   }
-  mozilla::Vector<uint8_t> dest;
+  nsTArray<uint8_t> dest;
   ByteWriter writer(dest);
   ByteReader reader(aSample->Data(), aSample->Size());
   while (reader.Remaining() > nalLenSize) {
@@ -437,7 +404,7 @@ AnnexB::ConvertSampleTo4BytesAVCC(mozilla::MediaRawData* aSample)
     }
   }
   nsAutoPtr<MediaRawDataWriter> samplewriter(aSample->CreateWriter());
-  return samplewriter->Replace(dest.begin(), dest.length());
+  return samplewriter->Replace(dest.Elements(), dest.Length());
 }
 
 bool

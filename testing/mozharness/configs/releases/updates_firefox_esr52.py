@@ -18,7 +18,7 @@ config = {
     "previous_archive_prefix": "https://archive.mozilla.org/pub",
     "download_domain": "download.mozilla.org",
     "balrog_url": "https://aus5.mozilla.org",
-    "balrog_username": "ffxbld",
+    "balrog_username": "balrog-ffxbld",
     "update_channels": {
         "esr": {
             "version_regex": r".*",
@@ -28,7 +28,7 @@ config = {
             "mar_channel_ids": [],
             "channel_names": ["esr", "esr-localtest", "esr-cdntest"],
             "rules_to_update": ["esr52-cdntest", "esr52-localtest"],
-            "publish_rules": ["esr52"],
+            "publish_rules": [521],
         },
     },
     "balrog_use_dummy_suffix": False,

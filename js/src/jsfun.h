@@ -341,6 +341,7 @@ class JSFunction : public js::NativeObject
         MOZ_ASSERT(atom);
         MOZ_ASSERT(!hasGuessedAtom());
         MOZ_ASSERT(!isClassConstructor());
+        MOZ_ASSERT(js::AtomIsMarked(zone(), atom));
         atom_ = atom;
         flags_ |= HAS_COMPILE_TIME_NAME;
     }
@@ -355,6 +356,7 @@ class JSFunction : public js::NativeObject
         MOZ_ASSERT(atom);
         MOZ_ASSERT(!hasCompileTimeName());
         MOZ_ASSERT(!hasGuessedAtom());
+        MOZ_ASSERT(js::AtomIsMarked(zone(), atom));
         atom_ = atom;
         flags_ |= HAS_GUESSED_ATOM;
     }
@@ -771,6 +773,9 @@ class FunctionExtended : public JSFunction
     }
     static inline size_t offsetOfArrowNewTargetSlot() {
         return offsetOfExtendedSlot(ARROW_NEWTARGET_SLOT);
+    }
+    static inline size_t offsetOfMethodHomeObjectSlot() {
+        return offsetOfExtendedSlot(METHOD_HOMEOBJECT_SLOT);
     }
 
   private:

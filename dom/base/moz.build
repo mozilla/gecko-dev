@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('*Selection*'):
+    BUG_COMPONENT = ('Core', 'Selection')
+
 with Files("**"):
     BUG_COMPONENT = ("Core", "DOM")
 
@@ -181,7 +184,6 @@ EXPORTS.mozilla.dom += [
     'IdleRequest.h',
     'ImageEncoder.h',
     'ImageTracker.h',
-    'ImportManager.h',
     'Link.h',
     'Location.h',
     'NameSpaceConstants.h',
@@ -195,7 +197,9 @@ EXPORTS.mozilla.dom += [
     'ResponsiveImageSelector.h',
     'SameProcessMessageQueue.h',
     'ScreenOrientation.h',
+    'Selection.h',
     'ShadowRoot.h',
+    'StructuredCloneBlob.h',
     'StructuredCloneHolder.h',
     'StructuredCloneTags.h',
     'StyleSheetList.h',
@@ -253,7 +257,6 @@ UNIFIED_SOURCES += [
     'IdleRequest.cpp',
     'ImageEncoder.cpp',
     'ImageTracker.cpp',
-    'ImportManager.cpp',
     'Link.cpp',
     'Location.cpp',
     'Navigator.cpp',
@@ -337,7 +340,10 @@ UNIFIED_SOURCES += [
     'ResponsiveImageSelector.cpp',
     'SameProcessMessageQueue.cpp',
     'ScreenOrientation.cpp',
+    'Selection.cpp',
+    'SelectionChangeListener.cpp',
     'ShadowRoot.cpp',
+    'StructuredCloneBlob.cpp',
     'StructuredCloneHolder.cpp',
     'StyleSheetList.cpp',
     'SubtleCrypto.cpp',
@@ -403,8 +409,6 @@ if CONFIG['INTEL_ARCHITECTURE']:
 EXTRA_COMPONENTS += [
     'contentAreaDropListener.js',
     'contentAreaDropListener.manifest',
-    'messageWakeupService.js',
-    'messageWakeupService.manifest',
     'ProcessSelector.js',
     'ProcessSelector.manifest',
     'SlowScriptDebug.js',

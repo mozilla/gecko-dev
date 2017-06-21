@@ -151,6 +151,7 @@ function onHashChange() {
 function gotoPref(aCategory) {
   let categories = document.getElementById("categories");
   const kDefaultCategoryInternalName = "paneGeneral";
+  const kDefaultCategory = "general";
   let hash = document.location.hash;
 
   let category = aCategory || hash.substr(1) || kDefaultCategoryInternalName;
@@ -165,7 +166,15 @@ function gotoPref(aCategory) {
   if (category != "paneSearchResults") {
     gSearchResultsPane.searchInput.value = "";
     gSearchResultsPane.searchResultsCategory.hidden = true;
-    gSearchResultsPane.findSelection.removeAllRanges();
+    gSearchResultsPane.getFindSelection(window).removeAllRanges();
+    gSearchResultsPane.removeAllSearchTooltips();
+    gSearchResultsPane.removeAllSearchMenuitemIndicators();
+  } else if (!gSearchResultsPane.searchInput.value) {
+    // Something tried to send us to the search results pane without
+    // a query string. Default to the General pane instead.
+    category = kDefaultCategoryInternalName;
+    document.location.hash = kDefaultCategory;
+    gSearchResultsPane.query = null;
   }
 
   // Updating the hash (below) or changing the selected category
@@ -212,7 +221,8 @@ function search(aQuery, aAttribute, aSubquery, aSubAttribute) {
     // element will not get considered during search. This
     // should only be used when an element is still under
     // development and should not be shown for any reason.
-    if (element.getAttribute("data-hidden-from-search") != "true") {
+    if (element.getAttribute("data-hidden-from-search") != "true" ||
+        element.getAttribute("data-subpanel") == "true") {
       let attributeValue = element.getAttribute(aAttribute);
       if (attributeValue == aQuery) {
         if (!element.classList.contains("header") &&

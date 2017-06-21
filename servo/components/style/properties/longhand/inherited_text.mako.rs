@@ -6,148 +6,11 @@
 <% from data import Keyword %>
 <% data.new_style_struct("InheritedText", inherited=True, gecko_name="Text") %>
 
-<%helpers:longhand name="line-height" animation_value_type="ComputedValue"
-                   spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height">
-    use std::fmt;
-    use style_traits::ToCss;
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Normal,
-        % if product == "gecko":
-            MozBlockHeight,
-        % endif
-        Number(specified::Number),
-        LengthOrPercentage(specified::LengthOrPercentage),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Normal => dest.write_str("normal"),
-                % if product == "gecko":
-                    SpecifiedValue::MozBlockHeight => dest.write_str("-moz-block-height"),
-                % endif
-                SpecifiedValue::LengthOrPercentage(ref value) => value.to_css(dest),
-                SpecifiedValue::Number(number) => number.to_css(dest),
-            }
-        }
-    }
-    /// normal | <number> | <length> | <percentage>
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        use cssparser::Token;
-        use std::ascii::AsciiExt;
-
-        // We try to parse as a Number first because, for 'line-height', we want
-        // "0" to be parsed as a plain Number rather than a Length (0px); this
-        // matches the behaviour of all major browsers
-        if let Ok(number) = input.try(|i| specified::Number::parse_non_negative(context, i)) {
-            return Ok(SpecifiedValue::Number(number))
-        }
-
-        if let Ok(lop) = input.try(|i| specified::LengthOrPercentage::parse_non_negative(context, i)) {
-            return Ok(SpecifiedValue::LengthOrPercentage(lop))
-        }
-
-
-        match try!(input.next()) {
-            Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
-                Ok(SpecifiedValue::Normal)
-            }
-            % if product == "gecko":
-            Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
-                Ok(SpecifiedValue::MozBlockHeight)
-            }
-            % endif
-            _ => Err(()),
-        }
-    }
-    pub mod computed_value {
-        use app_units::Au;
-        use values::CSSFloat;
-        #[derive(PartialEq, Copy, Clone, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Normal,
-            % if product == "gecko":
-                MozBlockHeight,
-            % endif
-            Length(Au),
-            Number(CSSFloat),
-        }
-    }
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                computed_value::T::Normal => dest.write_str("normal"),
-                % if product == "gecko":
-                    computed_value::T::MozBlockHeight => dest.write_str("-moz-block-height"),
-                % endif
-                computed_value::T::Length(length) => length.to_css(dest),
-                computed_value::T::Number(number) => write!(dest, "{}", number),
-            }
-        }
-    }
-     #[inline]
-    pub fn get_initial_value() -> computed_value::T { computed_value::T::Normal }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Normal
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::Normal => computed_value::T::Normal,
-                % if product == "gecko":
-                    SpecifiedValue::MozBlockHeight => computed_value::T::MozBlockHeight,
-                % endif
-                SpecifiedValue::Number(value) => computed_value::T::Number(value.to_computed_value(context)),
-                SpecifiedValue::LengthOrPercentage(ref value) => {
-                    match *value {
-                        specified::LengthOrPercentage::Length(ref value) =>
-                            computed_value::T::Length(value.to_computed_value(context)),
-                        specified::LengthOrPercentage::Percentage(specified::Percentage(value)) => {
-                            let fr = specified::Length::NoCalc(specified::NoCalcLength::FontRelative(
-                                specified::FontRelativeLength::Em(value)));
-                            computed_value::T::Length(fr.to_computed_value(context))
-                        },
-                        specified::LengthOrPercentage::Calc(ref calc) => {
-                            let calc = calc.to_computed_value(context);
-                            let fr = specified::FontRelativeLength::Em(calc.percentage());
-                            let fr = specified::Length::NoCalc(specified::NoCalcLength::FontRelative(fr));
-                            let length = calc.unclamped_length();
-                            computed_value::T::Length(calc.clamping_mode.clamp(length + fr.to_computed_value(context)))
-                        }
-                    }
-                }
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                computed_value::T::Normal => SpecifiedValue::Normal,
-                % if product == "gecko":
-                    computed_value::T::MozBlockHeight => SpecifiedValue::MozBlockHeight,
-                % endif
-                computed_value::T::Number(ref value) => {
-                    SpecifiedValue::Number(specified::Number::from_computed_value(value))
-                },
-                computed_value::T::Length(au) => {
-                    SpecifiedValue::LengthOrPercentage(specified::LengthOrPercentage::Length(
-                        ToComputedValue::from_computed_value(&au)
-                    ))
-                }
-            }
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("line-height",
+                          "LineHeight",
+                          "computed::LineHeight::normal()",
+                          animation_value_type="ComputedValue",
+                          spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height")}
 
 // CSS Text Module Level 3
 
@@ -155,18 +18,20 @@
 ${helpers.single_keyword("text-transform",
                          "none capitalize uppercase lowercase",
                          extra_gecko_values="full-width",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-transform")}
 
 ${helpers.single_keyword("hyphens", "manual none auto",
                          gecko_enum_prefix="StyleHyphens",
-                         products="gecko", animation_value_type="none", extra_prefixes="moz",
+                         gecko_inexhaustive=True,
+                         products="gecko", animation_value_type="discrete", extra_prefixes="moz",
                          spec="https://drafts.csswg.org/css-text/#propdef-hyphens")}
 
 // TODO: Support <percentage>
 ${helpers.single_keyword("-moz-text-size-adjust", "auto none",
                          gecko_constant_prefix="NS_STYLE_TEXT_SIZE_ADJUST",
-                         products="gecko", animation_value_type="none",
+                         gecko_ffi_name="mTextSizeAdjust",
+                         products="gecko", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-size-adjust/#adjustment-control",
                          alias="-webkit-text-size-adjust")}
 
@@ -182,7 +47,7 @@ ${helpers.predefined_type("text-indent",
 ${helpers.single_keyword("overflow-wrap",
                          "normal break-word",
                          gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
                          alias="word-wrap")}
 
@@ -190,7 +55,7 @@ ${helpers.single_keyword("overflow-wrap",
 ${helpers.single_keyword("word-break",
                          "normal break-all keep-all",
                          gecko_constant_prefix="NS_STYLE_WORDBREAK",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text/#propdef-word-break")}
 
 // TODO(pcwalton): Support `text-justify: distribute`.
@@ -199,7 +64,8 @@ ${helpers.single_keyword("word-break",
                                   extra_gecko_values="inter-character"
                                   extra_specified="${'distribute' if product == 'gecko' else ''}"
                                   gecko_enum_prefix="StyleTextJustify"
-                                  animation_value_type="none"
+                                  gecko_inexhaustive="True"
+                                  animation_value_type="discrete"
                                   spec="https://drafts.csswg.org/css-text/#propdef-text-justify">
     no_viewport_percentage!(SpecifiedValue);
 
@@ -238,11 +104,11 @@ ${helpers.single_keyword("text-align-last",
                          "auto start end left right center justify",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_TEXT_ALIGN",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-align-last")}
 
 // TODO make this a shorthand and implement text-align-last/text-align-all
-<%helpers:longhand name="text-align" animation_value_type="none" need_clone="True"
+<%helpers:longhand name="text-align" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-text/#propdef-text-align">
     no_viewport_percentage!(SpecifiedValue);
     pub mod computed_value {
@@ -313,7 +179,8 @@ ${helpers.single_keyword("text-align-last",
             MatchParent,
             MozCenterOrInherit,
         }
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             // MozCenterOrInherit cannot be parsed, only set directly on th elements
             if let Ok(key) = input.try(computed_value::T::parse) {
                 Ok(SpecifiedValue::Keyword(key))
@@ -389,163 +256,24 @@ ${helpers.single_keyword("text-align-last",
         use values::computed::ComputedValueAsSpecified;
         impl ComputedValueAsSpecified for SpecifiedValue {}
         pub use self::computed_value::T as SpecifiedValue;
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             computed_value::T::parse(input)
         }
     % endif
 </%helpers:longhand>
 
-<%helpers:longhand name="letter-spacing" animation_value_type="ComputedValue"
-                   spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::AllowQuirks;
+${helpers.predefined_type("letter-spacing",
+                          "LetterSpacing",
+                          "computed::LetterSpacing::normal()",
+                          animation_value_type="ComputedValue",
+                          spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing")}
 
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Normal,
-        Specified(specified::Length),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Specified(ref l) => l.to_css(dest),
-            }
-        }
-    }
-
-    pub mod computed_value {
-        use app_units::Au;
-        use properties::animated_properties::Animatable;
-
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<Au>);
-
-        ${helpers.impl_animatable_for_option_tuple('Au(0)')}
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                None => dest.write_str("normal"),
-                Some(l) => l.to_css(dest),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(None)
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::Normal => computed_value::T(None),
-                SpecifiedValue::Specified(ref l) =>
-                    computed_value::T(Some(l.to_computed_value(context)))
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            computed.0.map(|ref au| {
-                SpecifiedValue::Specified(ToComputedValue::from_computed_value(au))
-            }).unwrap_or(SpecifiedValue::Normal)
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            Ok(SpecifiedValue::Normal)
-        } else {
-            specified::Length::parse_quirky(context, input, AllowQuirks::Yes).map(SpecifiedValue::Specified)
-        }
-    }
-</%helpers:longhand>
-
-<%helpers:longhand name="word-spacing" animation_value_type="ComputedValue"
-                   spec="https://drafts.csswg.org/css-text/#propdef-word-spacing">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::AllowQuirks;
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Normal,
-        Specified(specified::LengthOrPercentage),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Specified(ref l) => l.to_css(dest),
-            }
-        }
-    }
-
-    pub mod computed_value {
-        use properties::animated_properties::Animatable;
-        use values::computed::LengthOrPercentage;
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<LengthOrPercentage>);
-
-        ${helpers.impl_animatable_for_option_tuple('LengthOrPercentage::zero()')}
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                None => dest.write_str("normal"),
-                Some(l) => l.to_css(dest),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(None)
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::Normal => computed_value::T(None),
-                SpecifiedValue::Specified(ref l) =>
-                    computed_value::T(Some(l.to_computed_value(context))),
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            computed.0.map(|ref lop| {
-                SpecifiedValue::Specified(ToComputedValue::from_computed_value(lop))
-            }).unwrap_or(SpecifiedValue::Normal)
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            Ok(SpecifiedValue::Normal)
-        } else {
-            specified::LengthOrPercentage::parse_quirky(context, input, AllowQuirks::Yes)
-                                          .map(SpecifiedValue::Specified)
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("word-spacing",
+                          "WordSpacing",
+                          "computed::WordSpacing::normal()",
+                          animation_value_type="ComputedValue",
+                          spec="https://drafts.csswg.org/css-text/#propdef-word-spacing")}
 
 <%helpers:longhand name="-servo-text-decorations-in-effect"
                    derived_from="display text-decoration"
@@ -635,9 +363,10 @@ ${helpers.single_keyword("text-align-last",
 <%helpers:single_keyword_computed name="white-space"
                                   values="normal pre nowrap pre-wrap pre-line"
                                   extra_gecko_values="-moz-pre-space"
-                                  gecko_constant_prefix="NS_STYLE_WHITESPACE"
+                                  gecko_enum_prefix="StyleWhiteSpace"
                                   needs_conversion="True"
-                                  animation_value_type="none"
+                                  gecko_inexhaustive="True"
+                                  animation_value_type="discrete"
                                   spec="https://drafts.csswg.org/css-text/#propdef-white-space">
     use values::computed::ComputedValueAsSpecified;
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -678,161 +407,21 @@ ${helpers.single_keyword("text-align-last",
     % endif
 </%helpers:single_keyword_computed>
 
-<%helpers:longhand name="text-shadow"
-                   animation_value_type="IntermediateTextShadowList",
-                   ignored_when_colors_disabled="True",
-                   spec="https://drafts.csswg.org/css-text-decor/#propdef-text-shadow">
-    use cssparser;
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::Shadow;
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(Vec<SpecifiedTextShadow>);
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedTextShadow {
-        pub offset_x: specified::Length,
-        pub offset_y: specified::Length,
-        pub blur_radius: specified::Length,
-        pub color: Option<specified::CSSColor>,
-    }
-
-    impl From<Shadow> for SpecifiedTextShadow {
-        fn from(shadow: Shadow) -> SpecifiedTextShadow {
-            SpecifiedTextShadow {
-                offset_x: shadow.offset_x,
-                offset_y: shadow.offset_y,
-                blur_radius: shadow.blur_radius,
-                color: shadow.color,
-            }
-        }
-    }
-
+<%helpers:vector_longhand name="text-shadow" allow_empty="True"
+                          animation_value_type="IntermediateShadowList"
+                          ignored_when_colors_disabled="True"
+                          spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
+    pub type SpecifiedValue = specified::Shadow;
     pub mod computed_value {
-        use app_units::Au;
-        use cssparser::Color;
-        use smallvec::SmallVec;
-
-        #[derive(Clone, PartialEq, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub SmallVec<[TextShadow; 1]>);
-
-        #[derive(Clone, PartialEq, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct TextShadow {
-            pub offset_x: Au,
-            pub offset_y: Au,
-            pub blur_radius: Au,
-            pub color: Color,
-        }
+        use values::computed::Shadow;
+        pub type T = Shadow;
     }
 
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut iter = self.0.iter();
-            match iter.next() {
-                Some(shadow) => shadow.to_css(dest)?,
-                None => return dest.write_str("none"),
-            }
-            for shadow in iter {
-                dest.write_str(", ")?;
-                shadow.to_css(dest)?;
-            }
-            Ok(())
-        }
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<specified::Shadow, ParseError<'i>> {
+        specified::Shadow::parse(context, input, true)
     }
-
-    impl ToCss for computed_value::TextShadow {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.offset_x.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.offset_y.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.blur_radius.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.color.to_css(dest)
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut iter = self.0.iter();
-            match iter.next() {
-                Some(shadow) => shadow.to_css(dest)?,
-                None => return dest.write_str("none"),
-            }
-            for shadow in iter {
-                dest.write_str(", ")?;
-                shadow.to_css(dest)?;
-            }
-            Ok(())
-        }
-    }
-
-    impl ToCss for SpecifiedTextShadow {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.offset_x.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.offset_y.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.blur_radius.to_css(dest)?;
-
-            if let Some(ref color) = self.color {
-                dest.write_str(" ")?;
-                color.to_css(dest)?;
-            }
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        use smallvec::SmallVec;
-        computed_value::T(SmallVec::new())
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            Ok(SpecifiedValue(Vec::new()))
-        } else {
-            input.parse_comma_separated(|i| {
-                Ok(SpecifiedTextShadow::from(Shadow::parse(context, i, true)?))
-            }).map(SpecifiedValue)
-        }
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            computed_value::T(self.0.iter().map(|value| {
-                computed_value::TextShadow {
-                    offset_x: value.offset_x.to_computed_value(context),
-                    offset_y: value.offset_y.to_computed_value(context),
-                    blur_radius: value.blur_radius.to_computed_value(context),
-                    color: value.color
-                                .as_ref()
-                                .map(|color| color.to_computed_value(context))
-                                .unwrap_or(cssparser::Color::CurrentColor),
-                }
-            }).collect())
-        }
-
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(computed.0.iter().map(|value| {
-                SpecifiedTextShadow {
-                    offset_x: ToComputedValue::from_computed_value(&value.offset_x),
-                    offset_y: ToComputedValue::from_computed_value(&value.offset_y),
-                    blur_radius: ToComputedValue::from_computed_value(&value.blur_radius),
-                    color: Some(ToComputedValue::from_computed_value(&value.color)),
-                }
-            }).collect())
-        }
-    }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 <%helpers:longhand name="text-emphasis-style" products="gecko" need_clone="True" boxed="True"
                    animation_value_type="none"
@@ -845,8 +434,8 @@ ${helpers.single_keyword("text-align-last",
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
-        #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Debug, PartialEq, ToCss)]
         pub enum T {
             Keyword(KeywordValue),
             None,
@@ -861,31 +450,12 @@ ${helpers.single_keyword("text-align-last",
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Keyword(KeywordValue),
         None,
         String(String),
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                computed_value::T::Keyword(ref keyword) => keyword.to_css(dest),
-                computed_value::T::None => dest.write_str("none"),
-                computed_value::T::String(ref string) => write!(dest, "\"{}\"", string),
-            }
-        }
-    }
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Keyword(ref keyword) => keyword.to_css(dest),
-                SpecifiedValue::None => dest.write_str("none"),
-                SpecifiedValue::String(ref string) => write!(dest, "\"{}\"", string),
-            }
-        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -900,16 +470,16 @@ ${helpers.single_keyword("text-align-last",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if let Some(fill) = self.fill() {
                 if fill {
-                    try!(dest.write_str("filled"));
+                    dest.write_str("filled")?;
                 } else {
-                    try!(dest.write_str("open"));
+                    dest.write_str("open")?;
                 }
             }
             if let Some(shape) = self.shape() {
                 if self.fill().is_some() {
-                    try!(dest.write_str(" "));
+                    dest.write_str(" ")?;
                 }
-                try!(shape.to_css(dest));
+                shape.to_css(dest)?;
             }
             Ok(())
         }
@@ -917,11 +487,11 @@ ${helpers.single_keyword("text-align-last",
     impl ToCss for computed_value::KeywordValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.fill {
-                try!(dest.write_str("filled"));
+                dest.write_str("filled")?;
             } else {
-                try!(dest.write_str("open"));
+                dest.write_str("open")?;
             }
-            try!(dest.write_str(" "));
+            dest.write_str(" ")?;
             self.shape.to_css(dest)
         }
     }
@@ -1010,7 +580,8 @@ ${helpers.single_keyword("text-align-last",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue::None);
         }
@@ -1036,15 +607,14 @@ ${helpers.single_keyword("text-align-last",
             (Some(fill), Ok(shape)) => KeywordValue::FillAndShape(fill,shape),
             (Some(fill), Err(_)) => KeywordValue::Fill(fill),
             (None, Ok(shape)) => KeywordValue::Shape(shape),
-            _ => return Err(()),
+            _ => return Err(StyleParseError::UnspecifiedError.into()),
         };
         Ok(SpecifiedValue::Keyword(keyword_value))
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="text-emphasis-position" animation_value_type="none" products="gecko"
+<%helpers:longhand name="text-emphasis-position" animation_value_type="discrete" products="gecko"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
-    use std::fmt;
     use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
 
@@ -1055,8 +625,8 @@ ${helpers.single_keyword("text-align-last",
                              "right" => Right,
                              "left" => Left);
 
-    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Debug, Clone, PartialEq, ToCss)]
     pub struct SpecifiedValue(pub HorizontalWritingModeValue, pub VerticalWritingModeValue);
 
     pub mod computed_value {
@@ -1070,23 +640,15 @@ ${helpers.single_keyword("text-align-last",
         SpecifiedValue(HorizontalWritingModeValue::Over, VerticalWritingModeValue::Right)
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
        if let Ok(horizontal) = input.try(|input| HorizontalWritingModeValue::parse(input)) {
-            let vertical = try!(VerticalWritingModeValue::parse(input));
+            let vertical = VerticalWritingModeValue::parse(input)?;
             Ok(SpecifiedValue(horizontal, vertical))
         } else {
-            let vertical = try!(VerticalWritingModeValue::parse(input));
-            let horizontal = try!(HorizontalWritingModeValue::parse(input));
+            let vertical = VerticalWritingModeValue::parse(input)?;
+            let horizontal = HorizontalWritingModeValue::parse(input)?;
             Ok(SpecifiedValue(horizontal, vertical))
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let SpecifiedValue(horizontal, vertical) = *self;
-            try!(horizontal.to_css(dest));
-            try!(dest.write_char(' '));
-            vertical.to_css(dest)
         }
     }
 
@@ -1110,15 +672,40 @@ ${helpers.single_keyword("text-align-last",
                 SpecifiedValue(horiz, vert)
             }
         }
+
+        impl From<u8> for SpecifiedValue {
+            fn from(bits: u8) -> SpecifiedValue {
+                SpecifiedValue::from_gecko_keyword(bits as u32)
+            }
+        }
+
+        impl From<SpecifiedValue> for u8 {
+            fn from(v: SpecifiedValue) -> u8 {
+                use gecko_bindings::structs;
+
+                let mut result = match v.0 {
+                    HorizontalWritingModeValue::Over => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER,
+                    HorizontalWritingModeValue::Under => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER,
+                };
+                match v.1 {
+                    VerticalWritingModeValue::Right => {
+                        result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT;
+                    }
+                    VerticalWritingModeValue::Left => {
+                        result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT;
+                    }
+                };
+                result as u8
+            }
+        }
     % endif
 </%helpers:longhand>
 
-${helpers.predefined_type("text-emphasis-color", "CSSColor",
-                          "::cssparser::Color::CurrentColor",
-                          initial_specified_value="specified::CSSColor::currentcolor()",
+${helpers.predefined_type("text-emphasis-color", "Color",
+                          "computed_value::T::currentcolor()",
+                          initial_specified_value="specified::Color::currentcolor()",
                           products="gecko", animation_value_type="IntermediateColor",
-                          complex_color=True, need_clone=True,
-                          ignored_when_colors_disabled=True,
+                          need_clone=True, ignored_when_colors_disabled=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
 
 
@@ -1126,35 +713,35 @@ ${helpers.predefined_type(
     "-moz-tab-size", "LengthOrNumber",
     "::values::Either::Second(8.0)",
     "parse_non_negative",
-    products="gecko", animation_value_type="none",
+    products="gecko", animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property")}
 
 
 // CSS Compatibility
 // https://compat.spec.whatwg.org
 ${helpers.predefined_type(
-    "-webkit-text-fill-color", "CSSColor",
-    "CSSParserColor::CurrentColor",
+    "-webkit-text-fill-color", "Color",
+    "computed_value::T::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
-    complex_color=True, need_clone=True,
-    ignored_when_colors_disabled=True,
+    need_clone=True, ignored_when_colors_disabled=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
 ${helpers.predefined_type(
-    "-webkit-text-stroke-color", "CSSColor",
-    "CSSParserColor::CurrentColor",
-    initial_specified_value="specified::CSSColor::currentcolor()",
+    "-webkit-text-stroke-color", "Color",
+    "computed_value::T::currentcolor()",
+    initial_specified_value="specified::Color::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
-    complex_color=True, need_clone=True,
-    ignored_when_colors_disabled=True,
+    need_clone=True, ignored_when_colors_disabled=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
-${helpers.predefined_type("-webkit-text-stroke-width", "BorderWidth", "Au::from_px(0)",
-                          initial_specified_value="specified::BorderWidth::from_length(specified::Length::zero())",
-                          computed_type="::app_units::Au", products="gecko",
+${helpers.predefined_type("-webkit-text-stroke-width",
+                          "BorderSideWidth",
+                          "Au::from_px(0)",
+                          initial_specified_value="specified::BorderSideWidth::Length(specified::Length::zero())",
+                          computed_type="::app_units::Au",
+                          products="gecko",
                           spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
                           animation_value_type="none")}
-
 
 // CSS Ruby Layout Module Level 1
 // https://drafts.csswg.org/css-ruby/

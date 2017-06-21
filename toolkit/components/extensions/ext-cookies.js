@@ -1,5 +1,8 @@
 "use strict";
 
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-toolkit.js */
+
 XPCOMUtils.defineLazyModuleGetter(this, "ContextualIdentityService",
                                   "resource://gre/modules/ContextualIdentityService.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
@@ -69,7 +72,7 @@ function checkSetCookiePermissions(extension, uri, cookie) {
     return false;
   }
 
-  if (!extension.whiteListedHosts.matchesIgnoringPath(uri)) {
+  if (!extension.whiteListedHosts.matches(uri)) {
     return false;
   }
 

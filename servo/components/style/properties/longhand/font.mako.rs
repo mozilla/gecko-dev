@@ -5,8 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 <% from data import Method, to_camel_case, to_rust_ident, to_camel_case_lower, SYSTEM_FONT_LONGHANDS %>
 
-<% data.new_style_struct("Font",
-                         inherited=True) %>
+<% data.new_style_struct("Font", inherited=True) %>
 
 <%def name="nongecko_unreachable()">
     %if product == "gecko":
@@ -15,6 +14,23 @@
         unreachable!()
     %endif
 </%def>
+
+#[cfg(feature = "gecko")]
+macro_rules! impl_gecko_keyword_from_trait {
+    ($name: ident, $utype: ty) => {
+        impl From<$utype> for $name {
+            fn from(bits: $utype) -> $name {
+                $name::from_gecko_keyword(bits)
+            }
+        }
+
+        impl From<$name> for $utype {
+            fn from(v: $name) -> $utype {
+                v.to_gecko_keyword()
+            }
+        }
+    };
+}
 
 // Define ToComputedValue, ToCss, and other boilerplate for a specified value
 // which is of the form `enum SpecifiedValue {Value(..), System(SystemFont)}`
@@ -75,7 +91,7 @@
         use cssparser::{CssStringWriter, Parser, serialize_identifier};
         use std::fmt::{self, Write};
         use Atom;
-        use style_traits::ToCss;
+        use style_traits::{ToCss, ParseError};
         pub use self::FontFamily as SingleComputedValue;
 
         #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -137,14 +153,14 @@
             }
 
             /// Parse a font-family value
-            pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+            pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
                 if let Ok(value) = input.try(|input| input.expect_string()) {
                     return Ok(FontFamily::FamilyName(FamilyName {
                         name: Atom::from(&*value),
                         quoted: true,
                     }))
                 }
-                let first_ident = try!(input.expect_ident());
+                let first_ident = input.expect_ident()?;
 
                 // FIXME(bholley): The fast thing to do here would be to look up the
                 // string (as lowercase) in the static atoms table. We don't have an
@@ -191,6 +207,33 @@
                     quoted: false,
                 }))
             }
+
+            #[cfg(feature = "gecko")]
+            /// Return the generic ID for a given generic font name
+            pub fn generic(name: &Atom) -> (::gecko_bindings::structs::FontFamilyType, u8) {
+                use gecko_bindings::structs::{self, FontFamilyType};
+                if *name == atom!("serif") {
+                    (FontFamilyType::eFamily_serif,
+                     structs::kGenericFont_serif)
+                } else if *name == atom!("sans-serif") {
+                    (FontFamilyType::eFamily_sans_serif,
+                     structs::kGenericFont_sans_serif)
+                } else if *name == atom!("cursive") {
+                    (FontFamilyType::eFamily_cursive,
+                     structs::kGenericFont_cursive)
+                } else if *name == atom!("fantasy") {
+                    (FontFamilyType::eFamily_fantasy,
+                     structs::kGenericFont_fantasy)
+                } else if *name == atom!("monospace") {
+                    (FontFamilyType::eFamily_monospace,
+                     structs::kGenericFont_monospace)
+                } else if *name == atom!("-moz-fixed") {
+                    (FontFamilyType::eFamily_moz_fixed,
+                     structs::kGenericFont_moz_fixed)
+                } else {
+                    panic!("Unknown generic {}", name);
+                }
+            }
         }
 
         impl ToCss for FamilyName {
@@ -228,10 +271,10 @@
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 let mut iter = self.0.iter();
-                try!(iter.next().unwrap().to_css(dest));
+                iter.next().unwrap().to_css(dest)?;
                 for family in iter {
-                    try!(dest.write_str(", "));
-                    try!(family.to_css(dest));
+                    dest.write_str(", ")?;
+                    family.to_css(dest)?;
                 }
                 Ok(())
             }
@@ -250,7 +293,8 @@
     /// <family-name>#
     /// <family-name> = <string> | [ <ident>+ ]
     /// TODO: <generic-family>
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         SpecifiedValue::parse(input)
     }
 
@@ -258,6 +302,21 @@
     pub enum SpecifiedValue {
         Values(Vec<FontFamily>),
         System(SystemFont),
+    }
+
+    #[cfg(feature = "gecko")]
+    impl SpecifiedValue {
+        /// Return the generic ID if it is a single generic font
+        pub fn single_generic(&self) -> Option<u8> {
+            if let SpecifiedValue::Values(ref values) = *self {
+                if values.len() == 1 {
+                    if let FontFamily::Generic(ref name) = values[0] {
+                        return Some(FontFamily::generic(name).1);
+                    }
+                }
+            }
+            None
+        }
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -289,7 +348,7 @@
             }
         }
 
-        pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+        pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
             input.parse_comma_separated(|input| FontFamily::parse(input)).map(SpecifiedValue::Values)
         }
     }
@@ -315,11 +374,11 @@
     /// `FamilyName::parse` is based on `FontFamily::parse` and not the other way around
     /// because we want the former to exclude generic family keywords.
     impl Parse for FamilyName {
-        fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
             match FontFamily::parse(input) {
                 Ok(FontFamily::FamilyName(name)) => Ok(name),
-                Ok(FontFamily::Generic(_)) |
-                Err(()) => Err(())
+                Ok(FontFamily::Generic(_)) => Err(StyleParseError::UnspecifiedError.into()),
+                Err(e) => Err(e)
             }
         }
     }
@@ -385,17 +444,21 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        input.try(|input| {
-            match_ignore_ascii_case! { &try!(input.expect_ident()),
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
+        let result = input.try(|input| {
+            let ident = input.expect_ident().map_err(|_| ())?;
+            match_ignore_ascii_case! { &ident,
                 "normal" => Ok(SpecifiedValue::Normal),
                 "bold" => Ok(SpecifiedValue::Bold),
                 "bolder" => Ok(SpecifiedValue::Bolder),
                 "lighter" => Ok(SpecifiedValue::Lighter),
                 _ => Err(())
             }
-        }).or_else(|()| {
+        });
+        result.or_else(|_| {
             SpecifiedValue::from_int(input.expect_integer()?)
+                .map_err(|()| StyleParseError::UnspecifiedError.into())
         })
     }
 
@@ -430,7 +493,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     /// Used in @font-face, where relative keywords are not allowed.
     impl Parse for computed_value::T {
-        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
             match parse(context, input)? {
                 % for weight in range(100, 901, 100):
                     SpecifiedValue::Weight${weight} => Ok(computed_value::T::Weight${weight}),
@@ -438,7 +501,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Normal => Ok(computed_value::T::Weight400),
                 SpecifiedValue::Bold => Ok(computed_value::T::Weight700),
                 SpecifiedValue::Bolder |
-                SpecifiedValue::Lighter => Err(()),
+                SpecifiedValue::Lighter => Err(StyleParseError::UnspecifiedError.into()),
                 SpecifiedValue::System(..) => unreachable!(),
             }
         }
@@ -624,17 +687,16 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub use self::KeywordSize::*;
 
     impl KeywordSize {
-        pub fn parse(input: &mut Parser) -> Result<Self, ()> {
-            Ok(match_ignore_ascii_case! {&*input.expect_ident()?,
-                "xx-small" => XXSmall,
-                "x-small" => XSmall,
-                "small" => Small,
-                "medium" => Medium,
-                "large" => Large,
-                "x-large" => XLarge,
-                "xx-large" => XXLarge,
-                _ => return Err(())
-            })
+        pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+            try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+                "xx-small" => Ok(XXSmall),
+                "x-small" => Ok(XSmall),
+                "small" => Ok(Small),
+                "medium" => Ok(Medium),
+                "large" => Ok(Large),
+                "x-large" => Ok(XLarge),
+                "xx-large" => Ok(XXLarge),
+            }
         }
     }
 
@@ -847,15 +909,16 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     /// <length> | <percentage> | <absolute-size> | <relative-size>
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         parse_quirky(context, input, AllowQuirks::No)
     }
 
     /// Parses a font-size, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<SpecifiedValue, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<SpecifiedValue, ParseError<'i>> {
         use self::specified::LengthOrPercentage;
         if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks)) {
             return Ok(SpecifiedValue::Length(lop))
@@ -865,10 +928,9 @@ ${helpers.single_keyword_system("font-variant-caps",
             return Ok(SpecifiedValue::Keyword(kw, 1.))
         }
 
-        match_ignore_ascii_case! {&*input.expect_ident()?,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "smaller" => Ok(SpecifiedValue::Smaller),
             "larger" => Ok(SpecifiedValue::Larger),
-            _ => Err(())
         }
     }
 
@@ -1039,26 +1101,13 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     pub mod computed_value {
         use properties::animated_properties::Animatable;
-        use std::fmt;
-        use style_traits::ToCss;
         use values::CSSFloat;
 
-        #[derive(Copy, Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Copy, Clone, Debug, PartialEq, ToCss)]
         pub enum T {
             None,
             Number(CSSFloat),
-        }
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                where W: fmt::Write,
-            {
-                match *self {
-                    T::None => dest.write_str("none"),
-                    T::Number(number) => number.to_css(dest),
-                }
-            }
         }
 
         impl T {
@@ -1076,8 +1125,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 -> Result<Self, ()> {
                 match (*self, *other) {
                     (T::Number(ref number), T::Number(ref other)) =>
-                        Ok(T::Number(try!(number.add_weighted(other,
-                                                              self_portion, other_portion)))),
+                        Ok(T::Number(number.add_weighted(other, self_portion, other_portion)?)),
                     _ => Err(()),
                 }
             }
@@ -1104,18 +1152,19 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     /// none | <number>
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         use values::specified::Number;
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue::None);
         }
 
-        Ok(SpecifiedValue::Number(try!(Number::parse_non_negative(context, input))))
+        Ok(SpecifiedValue::Number(Number::parse_non_negative(context, input)?))
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="font-synthesis" animation_value_type="none"
+<%helpers:longhand products="gecko" name="font-synthesis" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
     use std::fmt;
     use style_traits::ToCss;
@@ -1154,9 +1203,10 @@ ${helpers.single_keyword_system("font-variant-caps",
         SpecifiedValue { weight: true, style: true }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = SpecifiedValue { weight: false, style: false };
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "none" => Ok(result),
             "weight" => {
                 result.weight = true;
@@ -1172,7 +1222,34 @@ ${helpers.single_keyword_system("font-variant-caps",
                 }
                 Ok(result)
             },
-            _ => Err(())
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<u8> for SpecifiedValue {
+        fn from(bits: u8) -> SpecifiedValue {
+            use gecko_bindings::structs;
+
+            SpecifiedValue {
+                weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
+                style: bits & structs::NS_FONT_SYNTHESIS_STYLE as u8 != 0
+            }
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<SpecifiedValue> for u8 {
+        fn from(v: SpecifiedValue) -> u8 {
+            use gecko_bindings::structs;
+
+            let mut bits: u8 = 0;
+            if v.weight {
+                bits |= structs::NS_FONT_SYNTHESIS_WEIGHT as u8;
+            }
+            if v.style {
+                bits |= structs::NS_FONT_SYNTHESIS_STYLE as u8;
+            }
+            bits
         }
     }
 </%helpers:longhand>
@@ -1249,10 +1326,10 @@ ${helpers.single_keyword_system("font-kerning",
                 ($ident:ident => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
-                            try!(dest.write_str(" "));
+                            dest.write_str(" ")?;
                         }
                         has_any = true;
-                        try!(dest.write_str($str));
+                        dest.write_str($str)?;
                     }
                 }
             }
@@ -1290,15 +1367,16 @@ ${helpers.single_keyword_system("font-kerning",
     ///    swash(<feature-value-name>)               ||
     ///    ornaments(<feature-value-name>)           ||
     ///    annotation(<feature-value-name>) ]
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantAlternates::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             return Ok(SpecifiedValue::Value(result))
         }
 
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            let flag = match_ignore_ascii_case! { &ident,
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "stylistic" => STYLISTIC,
                 "historical-forms" => HISTORICAL_FORMS,
                 "styleset" => STYLESET,
@@ -1307,9 +1385,10 @@ ${helpers.single_keyword_system("font-kerning",
                 "ornaments" => ORNAMENTS,
                 "annotation" => ANNOTATION,
                 _ => return Err(()),
-            };
+            })
+        }) {
             if result.intersects(flag) {
-                return Err(())
+                return Err(StyleParseError::UnspecifiedError.into())
             }
             result.insert(flag);
         }
@@ -1317,7 +1396,7 @@ ${helpers.single_keyword_system("font-kerning",
         if !result.is_empty() {
             Ok(SpecifiedValue::Value(result))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -1333,7 +1412,7 @@ macro_rules! exclusive_value {
     }
 }
 
-<%helpers:longhand name="font-variant-east-asian" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-variant-east-asian" products="gecko" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-east-asian">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1393,10 +1472,10 @@ macro_rules! exclusive_value {
                 ($ident:ident => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
-                            try!(dest.write_str(" "));
+                            dest.write_str(" ")?;
                         }
                         has_any = true;
-                        try!(dest.write_str($str));
+                        dest.write_str($str)?;
                     }
                 }
             }
@@ -1433,15 +1512,16 @@ macro_rules! exclusive_value {
     /// <east-asian-width-values>   = [ full-width | proportional-width ]
     <% east_asian_variant_values = "JIS78 | JIS83 | JIS90 | JIS04 | SIMPLIFIED | TRADITIONAL" %>
     <% east_asian_width_values = "FULL_WIDTH | PROPORTIONAL_WIDTH" %>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantEastAsian::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             return Ok(SpecifiedValue::Value(result))
         }
 
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            let flag = match_ignore_ascii_case! { &ident,
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "jis78" =>
                     exclusive_value!((result, ${east_asian_variant_values}) => JIS78),
                 "jis83" =>
@@ -1461,19 +1541,23 @@ macro_rules! exclusive_value {
                 "ruby" =>
                     exclusive_value!((result, RUBY) => RUBY),
                 _ => return Err(()),
-            };
+            })
+        }) {
             result.insert(flag);
         }
 
         if !result.is_empty() {
             Ok(SpecifiedValue::Value(result))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
+
+    #[cfg(feature = "gecko")]
+    impl_gecko_keyword_from_trait!(VariantEastAsian, u16);
 </%helpers:longhand>
 
-<%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-ligatures">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1535,10 +1619,10 @@ macro_rules! exclusive_value {
                 ($ident:ident => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
-                            try!(dest.write_str(" "));
+                            dest.write_str(" ")?;
                         }
                         has_any = true;
-                        try!(dest.write_str($str));
+                        dest.write_str($str)?;
                     }
                 }
             }
@@ -1568,6 +1652,10 @@ macro_rules! exclusive_value {
     pub fn get_initial_specified_value() -> SpecifiedValue {
         SpecifiedValue::Value(VariantLigatures::empty())
     }
+    #[inline]
+    pub fn get_none_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Value(NONE)
+    }
 
     /// normal | none |
     /// [ <common-lig-values> ||
@@ -1582,7 +1670,8 @@ macro_rules! exclusive_value {
     <% discretionary_lig_values = "DISCRETIONARY_LIGATURES | NO_DISCRETIONARY_LIGATURES" %>
     <% historical_lig_values = "HISTORICAL_LIGATURES | NO_HISTORICAL_LIGATURES" %>
     <% contextual_alt_values = "CONTEXTUAL | NO_CONTEXTUAL" %>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantLigatures::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
@@ -1592,8 +1681,8 @@ macro_rules! exclusive_value {
             return Ok(SpecifiedValue::Value(NONE))
         }
 
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            let flag = match_ignore_ascii_case! { &ident,
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "common-ligatures" =>
                     exclusive_value!((result, ${common_lig_values}) => COMMON_LIGATURES),
                 "no-common-ligatures" =>
@@ -1611,19 +1700,23 @@ macro_rules! exclusive_value {
                 "no-contextual" =>
                     exclusive_value!((result, ${contextual_alt_values}) => NO_CONTEXTUAL),
                 _ => return Err(()),
-            };
+            })
+        }) {
             result.insert(flag);
         }
 
         if !result.is_empty() {
             Ok(SpecifiedValue::Value(result))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
+
+    #[cfg(feature = "gecko")]
+    impl_gecko_keyword_from_trait!(VariantLigatures, u16);
 </%helpers:longhand>
 
-<%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-numeric">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1682,10 +1775,10 @@ macro_rules! exclusive_value {
                 ($ident:ident => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
-                            try!(dest.write_str(" "));
+                            dest.write_str(" ")?;
                         }
                         has_any = true;
-                        try!(dest.write_str($str));
+                        dest.write_str($str)?;
                     }
                 }
             }
@@ -1728,42 +1821,47 @@ macro_rules! exclusive_value {
     <% numeric_figure_values = "LINING_NUMS | OLDSTYLE_NUMS" %>
     <% numeric_spacing_values = "PROPORTIONAL_NUMS | TABULAR_NUMS" %>
     <% numeric_fraction_values = "DIAGONAL_FRACTIONS | STACKED_FRACTIONS" %>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantNumeric::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             return Ok(SpecifiedValue::Value(result))
         }
 
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            let flag = match_ignore_ascii_case! { &ident,
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "ordinal" =>
                     exclusive_value!((result, ORDINAL) => ORDINAL),
                 "slashed-zero" =>
                     exclusive_value!((result, SLASHED_ZERO) => SLASHED_ZERO),
                 "lining-nums" =>
-                    exclusive_value!((result, ${numeric_figure_values}) => LINING_NUMS ),
+                    exclusive_value!((result, ${numeric_figure_values}) => LINING_NUMS),
                 "oldstyle-nums" =>
-                    exclusive_value!((result, ${numeric_figure_values}) => OLDSTYLE_NUMS ),
+                    exclusive_value!((result, ${numeric_figure_values}) => OLDSTYLE_NUMS),
                 "proportional-nums" =>
-                    exclusive_value!((result, ${numeric_spacing_values}) => PROPORTIONAL_NUMS ),
+                    exclusive_value!((result, ${numeric_spacing_values}) => PROPORTIONAL_NUMS),
                 "tabular-nums" =>
-                    exclusive_value!((result, ${numeric_spacing_values}) => TABULAR_NUMS ),
+                    exclusive_value!((result, ${numeric_spacing_values}) => TABULAR_NUMS),
                 "diagonal-fractions" =>
-                    exclusive_value!((result, ${numeric_fraction_values}) => DIAGONAL_FRACTIONS ),
+                    exclusive_value!((result, ${numeric_fraction_values}) => DIAGONAL_FRACTIONS),
                 "stacked-fractions" =>
-                    exclusive_value!((result, ${numeric_fraction_values}) => STACKED_FRACTIONS ),
+                    exclusive_value!((result, ${numeric_fraction_values}) => STACKED_FRACTIONS),
                 _ => return Err(()),
-            };
+            })
+        }) {
             result.insert(flag);
         }
 
         if !result.is_empty() {
             Ok(SpecifiedValue::Value(result))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
+
+    #[cfg(feature = "gecko")]
+    impl_gecko_keyword_from_trait!(VariantNumeric, u8);
 </%helpers:longhand>
 
 ${helpers.single_keyword_system("font-variant-position",
@@ -1807,7 +1905,8 @@ ${helpers.single_keyword_system("font-variant-position",
     }
 
     /// normal | <feature-tag-value>#
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         computed_value::T::parse(context, input).map(SpecifiedValue::Value)
     }
 </%helpers:longhand>
@@ -1841,12 +1940,13 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
     }
 
     /// normal | <feature-tag-value>#
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         computed_value::T::parse(context, input)
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-language-override" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-language-override" products="gecko" animation_value_type="discrete"
                    extra_prefixes="moz" boxed="True"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
     use properties::longhands::system_font::SystemFont;
@@ -1865,11 +1965,9 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            use cssparser;
             match *self {
                 SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Override(ref lang) =>
-                    cssparser::serialize_string(lang, dest),
+                SpecifiedValue::Override(ref lang) => lang.to_css(dest),
                 SpecifiedValue::System(_) => Ok(())
             }
         }
@@ -1892,7 +1990,6 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         use std::{fmt, str};
         use style_traits::ToCss;
         use byteorder::{BigEndian, ByteOrder};
-        use cssparser;
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -1907,7 +2004,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
                 } else {
                     unsafe { str::from_utf8_unchecked(&buf) }
                 };
-                cssparser::serialize_string(slice.trim_right(), dest)
+                slice.trim_right().to_css(dest)
             }
         }
 
@@ -1974,13 +2071,28 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
     }
 
     /// normal | <string>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
             input.expect_string().map(|cow| {
                 SpecifiedValue::Override(cow.into_owned())
-            })
+            }).map_err(|e| e.into())
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<u32> for computed_value::T {
+        fn from(bits: u32) -> computed_value::T {
+            computed_value::T(bits)
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<computed_value::T> for u32 {
+        fn from(v: computed_value::T) -> u32 {
+            v.0
         }
     }
 </%helpers:longhand>
@@ -2014,9 +2126,10 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         computed_value::T(atom!(""))
     }
 
-    pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         debug_assert!(false, "Should be set directly by presentation attributes only.");
-        Err(())
+        Err(StyleParseError::UnspecifiedError.into())
     }
 </%helpers:longhand>
 
@@ -2039,9 +2152,10 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         ::gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER as f32
     }
 
-    pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         debug_assert!(false, "Should be set directly by presentation attributes only.");
-        Err(())
+        Err(StyleParseError::UnspecifiedError.into())
     }
 </%helpers:longhand>
 
@@ -2112,7 +2226,8 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if let Ok(i) = input.try(|i| i.expect_integer()) {
             return Ok(SpecifiedValue::Relative(i))
         }
@@ -2149,17 +2264,14 @@ ${helpers.single_keyword("-moz-math-variant",
                    internal="True" disable_when_testing="True">
     use app_units::Au;
     use gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT;
-    use std::fmt;
-    use style_traits::ToCss;
     use values::specified::length::{AU_PER_PT, FontBaseSize, NoCalcLength};
 
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
     pub struct SpecifiedValue(pub NoCalcLength);
 
     pub mod computed_value {
         pub type T = super::Au;
     }
-
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -2185,20 +2297,15 @@ ${helpers.single_keyword("-moz-math-variant",
         }
     }
 
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)
-        }
-    }
-
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         Au((NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT as f32 * AU_PER_PT) as i32)
     }
 
-    pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         debug_assert!(false, "Should be set directly by presentation attributes only.");
-        Err(())
+        Err(StyleParseError::UnspecifiedError.into())
     }
 </%helpers:longhand>
 
@@ -2223,9 +2330,8 @@ ${helpers.single_keyword("-moz-math-variant",
         use app_units::Au;
         use cssparser::Parser;
         use properties::longhands;
-        use std::fmt;
         use std::hash::{Hash, Hasher};
-        use style_traits::ToCss;
+        use style_traits::ParseError;
         use values::computed::{ToComputedValue, Context};
         <%
             system_fonts = """caption icon menu message-box small-caption status-bar
@@ -2239,21 +2345,11 @@ ${helpers.single_keyword("-moz-math-variant",
             kw_cast = """font_style font_variant_caps font_stretch
                          font_kerning font_variant_position""".split()
         %>
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, ToCss)]
         pub enum SystemFont {
             % for font in system_fonts:
                 ${to_camel_case(font)},
             % endfor
-        }
-
-        impl ToCss for SystemFont {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                dest.write_str(match *self {
-                    % for font in system_fonts:
-                        SystemFont::${to_camel_case(font)} => "${font}",
-                    % endfor
-                })
-            }
         }
 
         // ComputedValues are compared at times
@@ -2354,13 +2450,12 @@ ${helpers.single_keyword("-moz-math-variant",
         }
 
         impl SystemFont {
-            pub fn parse(input: &mut Parser) -> Result<Self, ()> {
-                Ok(match_ignore_ascii_case! { &*input.expect_ident()?,
+            pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+                try_match_ident_ignore_ascii_case! { input.expect_ident()?,
                     % for font in system_fonts:
-                        "${font}" => SystemFont::${to_camel_case(font)},
+                        "${font}" => Ok(SystemFont::${to_camel_case(font)}),
                     % endfor
-                    _ => return Err(())
-                })
+                }
             }
         }
     }

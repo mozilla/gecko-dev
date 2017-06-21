@@ -41,6 +41,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
+                                  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AppMenuNotifications",
                                   "resource://gre/modules/AppMenuNotifications.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
@@ -426,8 +428,12 @@ this.DownloadsCommon = {
       throw new Error("aOwnerWindow must be a dom-window object");
     }
 
+    let isWindowsExe = AppConstants.platform == "win" &&
+      aFile.leafName.toLowerCase().endsWith(".exe");
+
     let promiseShouldLaunch;
-    if (aFile.isExecutable()) {
+    // Don't prompt on Windows for .exe since there will be a native prompt.
+    if (aFile.isExecutable() && !isWindowsExe) {
       // We get a prompter for the provided window here, even though anchoring
       // to the most recently active window should work as well.
       promiseShouldLaunch =
@@ -461,7 +467,7 @@ this.DownloadsCommon = {
           .getService(Ci.nsIExternalProtocolService)
           .loadUrl(NetUtil.newURI(aFile));
       }
-    }).then(null, Cu.reportError);
+    }).catch(Cu.reportError);
   },
 
   /**
@@ -668,7 +674,7 @@ DownloadsDataCtor.prototype = {
     if (!this._dataLinkInitialized) {
       let promiseList = Downloads.getList(this._isPrivate ? Downloads.PRIVATE
                                                           : Downloads.PUBLIC);
-      promiseList.then(list => list.addView(this)).then(null, Cu.reportError);
+      promiseList.then(list => list.addView(this)).catch(Cu.reportError);
       this._dataLinkInitialized = true;
     }
   },
@@ -702,7 +708,7 @@ DownloadsDataCtor.prototype = {
     let promiseList = Downloads.getList(this._isPrivate ? Downloads.PRIVATE
                                                         : Downloads.PUBLIC);
     promiseList.then(list => list.removeFinished())
-               .then(null, Cu.reportError);
+               .catch(Cu.reportError);
     let indicatorData = this._isPrivate ? PrivateDownloadsIndicatorData
                                         : DownloadsIndicatorData;
     indicatorData.attention = DownloadsCommon.ATTENTION_NONE;

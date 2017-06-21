@@ -12,7 +12,7 @@
  */
 
 interface nsIEditor;
-interface MozControllers;
+interface XULControllers;
 
 [HTMLConstructor]
 interface HTMLTextAreaElement : HTMLElement {
@@ -58,7 +58,7 @@ interface HTMLTextAreaElement : HTMLElement {
   boolean reportValidity();
   void setCustomValidity(DOMString error);
 
-  // readonly attribute NodeList labels;
+  readonly attribute NodeList labels;
 
   void select();
   [Throws]
@@ -81,7 +81,7 @@ partial interface HTMLTextAreaElement {
   // Please make sure to update this list of nsIDOMHTMLTextAreaElement changes.
 
   [Throws, ChromeOnly]
-  readonly attribute MozControllers controllers;
+  readonly attribute XULControllers controllers;
 };
 
 partial interface HTMLTextAreaElement {

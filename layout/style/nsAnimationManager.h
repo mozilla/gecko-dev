@@ -13,6 +13,7 @@
 #include "mozilla/Keyframe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TimeStamp.h"
+#include "nsRFPService.h"
 
 class nsIGlobalObject;
 class nsStyleContext;
@@ -20,7 +21,6 @@ struct nsStyleDisplay;
 struct ServoComputedValues;
 
 namespace mozilla {
-struct ServoComputedValuesWithParent;
 namespace css {
 class Declaration;
 } /* namespace css */
@@ -52,7 +52,8 @@ struct AnimationEventInfo {
   {
     // XXX Looks like nobody initialize WidgetEvent::time
     mEvent.mAnimationName = aAnimationName;
-    mEvent.mElapsedTime = aElapsedTime.ToSeconds();
+    mEvent.mElapsedTime =
+      nsRFPService::ReduceTimePrecisionAsSecs(aElapsedTime.ToSeconds());
     mEvent.mPseudoElement =
       AnimationCollection<dom::CSSAnimation>::PseudoTypeAsString(aPseudoType);
   }
@@ -332,7 +333,7 @@ public:
   void UpdateAnimations(
     mozilla::dom::Element* aElement,
     mozilla::CSSPseudoElementType aPseudoType,
-    const mozilla::ServoComputedValuesWithParent& aServoValues);
+    const ServoComputedValues* aComputedValues);
 
   /**
    * Add a pending event.

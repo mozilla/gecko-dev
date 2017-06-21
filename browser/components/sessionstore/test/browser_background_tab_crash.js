@@ -98,7 +98,7 @@ async function crashBackgroundTabs(tabs) {
   for (let tab of tabs) {
     Assert.ok(!tab.linkedBrowser.isRemoteBrowser, "tab is not remote");
     Assert.ok(!tab.linkedBrowser.hasAttribute("crashed"), "tab is not crashed");
-    Assert.ok(tab.linkedBrowser.hasAttribute("pending"), "tab is pending");
+    Assert.ok(tab.hasAttribute("pending"), "tab is pending");
   }
 }
 
@@ -218,4 +218,31 @@ add_task(async function test_background_crash_multiple() {
       await tabRestored;
     });
   });
+});
+
+// Tests that crashed preloaded tabs are removed and no unexpected errors are
+// thrown.
+add_task(async function test_preload_crash() {
+  if (!Services.prefs.getBoolPref("browser.newtab.preload")) {
+    return;
+  }
+
+  // Since new tab is only crashable for the activity-stream version,
+  // we need to flip the pref
+  await SpecialPowers.pushPrefEnv({
+    set: [[ "browser.newtabpage.activity-stream.enabled", true ]]
+  });
+
+  // Release any existing preloaded browser
+  let preloaded = gBrowser._getPreloadedBrowser();
+  if (preloaded) {
+    preloaded.remove();
+  }
+
+  // Create a fresh preloaded browser
+  gBrowser._createPreloadBrowser();
+
+  await BrowserTestUtils.crashBrowser(gBrowser._preloadedBrowser, false);
+
+  Assert.ok(!gBrowser._preloadedBrowser);
 });

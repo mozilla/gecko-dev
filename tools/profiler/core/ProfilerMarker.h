@@ -22,10 +22,11 @@ class ProfilerMarker
 
 public:
   explicit ProfilerMarker(const char* aMarkerName,
-                          ProfilerMarkerPayload* aPayload = nullptr,
+                          mozilla::UniquePtr<ProfilerMarkerPayload>
+                            aPayload = nullptr,
                           double aTime = 0)
     : mMarkerName(strdup(aMarkerName))
-    , mPayload(aPayload)
+    , mPayload(Move(aPayload))
     , mTime(aTime)
   {}
 
@@ -36,7 +37,7 @@ public:
   double GetTime() const { return mTime; }
 
   void StreamJSON(SpliceableJSONWriter& aWriter,
-                  const mozilla::TimeStamp& aStartTime,
+                  const mozilla::TimeStamp& aProcessStartTime,
                   UniqueStacks& aUniqueStacks) const
   {
     // Schema:
@@ -52,7 +53,7 @@ public:
       if (mPayload) {
         aWriter.StartObjectElement();
         {
-          mPayload->StreamPayload(aWriter, aStartTime, aUniqueStacks);
+          mPayload->StreamPayload(aWriter, aProcessStartTime, aUniqueStacks);
         }
         aWriter.EndObject();
       }

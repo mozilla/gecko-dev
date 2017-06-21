@@ -486,7 +486,8 @@ nsSocketInputStream::AsyncWait(nsIInputStreamCallback *callback,
             //
             // build event proxy
             //
-            mCallback = NS_NewInputStreamReadyEvent(callback, target);
+            mCallback = NS_NewInputStreamReadyEvent("nsSocketInputStream::AsyncWait",
+                                                    callback, target);
         }
         else
             mCallback = callback;
@@ -2544,7 +2545,7 @@ nsSocketTransport::SetSecurityCallbacks(nsIInterfaceRequestor *callbacks)
 {
     nsCOMPtr<nsIInterfaceRequestor> threadsafeCallbacks;
     NS_NewNotificationCallbacksAggregation(callbacks, nullptr,
-                                           NS_GetCurrentThread(),
+                                           GetCurrentThreadEventTarget(),
                                            getter_AddRefs(threadsafeCallbacks));
 
     nsCOMPtr<nsISupports> secinfo;

@@ -17,7 +17,6 @@ const {
   getCurrentZoom,
   getDisplayPixelRatio,
   setIgnoreLayoutChanges,
-  getNodeBounds,
   getViewportDimensions,
 } = require("devtools/shared/layout/utils");
 const {
@@ -26,10 +25,14 @@ const {
   translate,
   multiply,
   scale,
+  isIdentity,
   getNodeTransformationMatrix,
-  getNodeTransformOrigin
 } = require("devtools/shared/layout/dom-matrix-2d");
 const { stringifyGridFragments } = require("devtools/server/actors/utils/css-grid-utils");
+const { LocalizationHelper } = require("devtools/shared/l10n");
+
+const LAYOUT_STRINGS_URI = "devtools/client/locales/layout.properties";
+const LAYOUT_L10N = new LocalizationHelper(LAYOUT_STRINGS_URI);
 
 const CSS_GRID_ENABLED_PREF = "layout.css.grid.enabled";
 
@@ -40,6 +43,7 @@ const ROWS = "rows";
 
 const GRID_FONT_SIZE = 10;
 const GRID_FONT_FAMILY = "sans-serif";
+const GRID_AREA_NAME_FONT_SIZE = "20";
 
 const GRID_LINES_PROPERTIES = {
   "edge": {
@@ -53,6 +57,11 @@ const GRID_LINES_PROPERTIES = {
   "implicit": {
     lineDash: [2, 2],
     alpha: 0.5,
+  },
+  "areaEdge": {
+    lineDash: [0, 0],
+    alpha: 1,
+    lineWidth: 3,
   }
 };
 
@@ -83,11 +92,76 @@ const gCachedGridPattern = new Map();
 // Using a fixed value should also solve bug 1348293.
 const CANVAS_SIZE = 4096;
 
-// This constant is used as value to draw infinite lines on canvas; since we cannot use
-// the canvas boundaries as coordinates to draw the lines, and then applying
-// transformations on top of them (the resulting coordinates might ending before reaching
-// the viewport's edges, therefore the lines won't looks as "infinite").
-const CANVAS_INFINITY = CANVAS_SIZE << 8;
+/**
+ * Returns an array containing the four coordinates of a rectangle, given its diagonal
+ * as input; optionally applying a matrix, and a function to each of the coordinates'
+ * value.
+ *
+ * @param {Number} x1
+ *        The x-axis coordinate of the rectangle's diagonal start point.
+ * @param {Number} y1
+ *        The y-axis coordinate of the rectangle's diagonal start point.
+ * @param {Number} x2
+ *        The x-axis coordinate of the rectangle's diagonal end point.
+ * @param {Number} y2
+ *        The y-axis coordinate of the rectangle's diagonal end point.
+ * @param {Array} [matrix=identity()]
+ *        A transformation matrix to apply.
+ * @return {Array}
+ *        The rect four corners' points transformed by the matrix given.
+ */
+function getPointsFromDiagonal(x1, y1, x2, y2, matrix = identity()) {
+  return [
+    [x1, y1],
+    [x2, y1],
+    [x2, y2],
+    [x1, y2]
+  ].map(point => {
+    let transformedPoint = apply(matrix, point);
+
+    return {x: transformedPoint[0], y: transformedPoint[1]};
+  });
+}
+
+/**
+ * Takes an array of four points and returns a DOMRect-like object, represent the
+ * boundaries defined by the points given.
+ *
+ * @param {Array} points
+ *        The four points.
+ * @return {Object}
+ *         A DOMRect-like object.
+ */
+function getBoundsFromPoints(points) {
+  let bounds = {};
+
+  bounds.left = Math.min(points[0].x, points[1].x, points[2].x, points[3].x);
+  bounds.right = Math.max(points[0].x, points[1].x, points[2].x, points[3].x);
+  bounds.top = Math.min(points[0].y, points[1].y, points[2].y, points[3].y);
+  bounds.bottom = Math.max(points[0].y, points[1].y, points[2].y, points[3].y);
+
+  bounds.x = bounds.left;
+  bounds.y = bounds.top;
+  bounds.width = bounds.right - bounds.left;
+  bounds.height = bounds.bottom - bounds.top;
+
+  return bounds;
+}
+
+/**
+ * Takes an array of four points and returns a string represent a path description.
+ *
+ * @param {Array} points
+ *        The four points.
+ * @return {String}
+ *         A Path Description that can be used in svg's <path> element.
+ */
+function getPathDescriptionFromPoints(points) {
+  return "M" + points[0].x + "," + points[0].y + " " +
+         "L" + points[1].x + "," + points[1].y + " " +
+         "L" + points[2].x + "," + points[2].y + " " +
+         "L" + points[3].x + "," + points[3].y;
+}
 
 /**
  * Draws a line to the context given, applying a transformation matrix if passed.
@@ -102,15 +176,38 @@ const CANVAS_INFINITY = CANVAS_SIZE << 8;
  *        The x-axis of the coordinate for the end of the line.
  * @param {Number} y2
  *        The y-axis of the coordinate for the end of the line.
- * @param {Array} [matrix=identity()]
+ * @param {Object} [options]
+ *        The options object.
+ * @param {Array} [options.matrix=identity()]
  *        The transformation matrix to apply.
+ * @param {Array} [options.extendToBoundaries]
+ *        If set, the line will be extended to reach the boundaries specified.
  */
-function drawLine(ctx, x1, y1, x2, y2, matrix = identity()) {
-  let fromPoint = apply(matrix, [x1, y1]);
-  let toPoint = apply(matrix, [x2, y2]);
+function drawLine(ctx, x1, y1, x2, y2, options) {
+  let matrix = options.matrix || identity();
 
-  ctx.moveTo(Math.round(fromPoint[0]), Math.round(fromPoint[1]));
-  ctx.lineTo(Math.round(toPoint[0]), Math.round(toPoint[1]));
+  let p1 = apply(matrix, [x1, y1]);
+  let p2 = apply(matrix, [x2, y2]);
+
+  x1 = p1[0];
+  y1 = p1[1];
+  x2 = p2[0];
+  y2 = p2[1];
+
+  if (options.extendToBoundaries) {
+    if (p1[1] === p2[1]) {
+      x1 = options.extendToBoundaries[0];
+      x2 = options.extendToBoundaries[2];
+    } else {
+      y1 = options.extendToBoundaries[1];
+      x1 = (p2[0] - p1[0]) * (y1 - p1[1]) / (p2[1] - p1[1]) + p1[0];
+      y2 = options.extendToBoundaries[3];
+      x2 = (p2[0] - p1[0]) * (y2 - p1[1]) / (p2[1] - p1[1]) + p1[0];
+    }
+  }
+
+  ctx.moveTo(Math.round(x1), Math.round(y1));
+  ctx.lineTo(Math.round(x2), Math.round(y2));
 }
 
 /**
@@ -131,18 +228,13 @@ function drawLine(ctx, x1, y1, x2, y2, matrix = identity()) {
  *        The transformation matrix to apply.
  */
 function drawRect(ctx, x1, y1, x2, y2, matrix = identity()) {
-  let p = [
-    [x1, y1],
-    [x2, y1],
-    [x2, y2],
-    [x1, y2]
-  ].map(point => apply(matrix, point).map(Math.round));
+  let p = getPointsFromDiagonal(x1, y1, x2, y2, matrix);
 
   ctx.beginPath();
-  ctx.moveTo(p[0][0], p[0][1]);
-  ctx.lineTo(p[1][0], p[1][1]);
-  ctx.lineTo(p[2][0], p[2][1]);
-  ctx.lineTo(p[3][0], p[3][1]);
+  ctx.moveTo(Math.round(p[0].x), Math.round(p[0].y));
+  ctx.lineTo(Math.round(p[1].x), Math.round(p[1].y));
+  ctx.lineTo(Math.round(p[2].x), Math.round(p[2].y));
+  ctx.lineTo(Math.round(p[3].x), Math.round(p[3].y));
   ctx.closePath();
 }
 
@@ -197,6 +289,10 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
  * - showGridArea(areaName)
  *     @param  {String} areaName
  *     Shows the grid area highlight for the given area name.
+ * - showGridAreasOverlay(isShown)
+ *     @param  {Boolean} isShown
+ *     Displays an overlay of all the grid areas for the current grid container if
+ *     isShown is true.
  * - showGridCell({ gridFragmentIndex: Number, rowNumber: Number, columnNumber: Number })
  *     @param  {Object} { gridFragmentIndex: Number, rowNumber: Number,
  *                        columnNumber: Number }
@@ -732,10 +828,17 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     setIgnoreLayoutChanges(true);
 
     let root = this.getElement("root");
+    let cells = this.getElement("cells");
+    let areas = this.getElement("areas");
+
     // Hide the root element and force the reflow in order to get the proper window's
     // dimensions without increasing them.
     root.setAttribute("style", "display: none");
     this.win.document.documentElement.offsetWidth;
+
+    // Set the grid cells and areas fill to the current grid colour.
+    cells.setAttribute("style", `fill: ${this.color}`);
+    areas.setAttribute("style", `fill: ${this.color}`);
 
     let { width, height } = this._winDimensions;
 
@@ -787,18 +890,11 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    *
    * @param  {GridArea} area
    *         The grid area object.
-   * @param  {Number} x1
-   *         The first x-coordinate of the grid area rectangle.
-   * @param  {Number} x2
-   *         The second x-coordinate of the grid area rectangle.
-   * @param  {Number} y1
-   *         The first y-coordinate of the grid area rectangle.
-   * @param  {Number} y2
-   *         The second y-coordinate of the grid area rectangle.
+   * @param  {Object} bounds
+   *          A DOMRect-like object represent the grid area rectangle.
    */
-  _updateGridAreaInfobar(area, x1, x2, y1, y2) {
-    let width = x2 - x1;
-    let height = y2 - y1;
+  _updateGridAreaInfobar(area, bounds) {
+    let { width, height } = bounds;
     let dim = parseFloat(width.toPrecision(6)) +
               " \u00D7 " +
               parseFloat(height.toPrecision(6));
@@ -807,25 +903,35 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     this.getElement("area-infobar-dimensions").setTextContent(dim);
 
     let container = this.getElement("area-infobar-container");
-    this._moveInfobar(container, x1, x2, y1, y2, {
+    moveInfobar(container, bounds, this.win, {
       position: "bottom",
       hideIfOffscreen: true
     });
   },
 
-  _updateGridCellInfobar(rowNumber, columnNumber, x1, x2, y1, y2) {
-    let width = x2 - x1;
-    let height = y2 - y1;
+  /**
+   * Update the grid information displayed in the grid cell info bar.
+   *
+   * @param  {Number} rowNumber
+   *         The grid cell's row number.
+   * @param  {Number} columnNumber
+   *         The grid cell's column number.
+   * @param  {Object} bounds
+   *          A DOMRect-like object represent the grid cell rectangle.
+   */
+  _updateGridCellInfobar(rowNumber, columnNumber, bounds) {
+    let { width, height } = bounds;
     let dim = parseFloat(width.toPrecision(6)) +
               " \u00D7 " +
               parseFloat(height.toPrecision(6));
-    let position = `${rowNumber}\/${columnNumber}`;
+    let position = LAYOUT_L10N.getFormatStr("layout.rowColumnPositions",
+                   rowNumber, columnNumber);
 
     this.getElement("cell-infobar-position").setTextContent(position);
     this.getElement("cell-infobar-dimensions").setTextContent(dim);
 
     let container = this.getElement("cell-infobar-container");
-    this._moveInfobar(container, x1, x2, y1, y2, {
+    moveInfobar(container, bounds, this.win, {
       position: "top",
       hideIfOffscreen: true
     });
@@ -848,34 +954,8 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     this.getElement("line-infobar-names").setTextContent(gridLineNames);
 
     let container = this.getElement("line-infobar-container");
-    this._moveInfobar(container, x, x, y, y);
-  },
-
-  /**
-   * Move the given grid infobar to the right place in the highlighter.
-   *
-   * @param  {Number} x1
-   *         The first x-coordinate of the grid rectangle.
-   * @param  {Number} x2
-   *         The second x-coordinate of the grid rectangle.
-   * @param  {Number} y1
-   *         The first y-coordinate of the grid rectangle.
-   * @param  {Number} y2
-   *         The second y-coordinate of the grid rectangle.
-   */
-  _moveInfobar(container, x1, x2, y1, y2, options) {
-    let bounds = {
-      bottom: y2,
-      height: y2 - y1,
-      left: x1,
-      right: x2,
-      top: y1,
-      width: x2 - x1,
-      x: x1,
-      y: y1,
-    };
-
-    moveInfobar(container, bounds, this.win, options);
+    moveInfobar(container,
+      getBoundsFromPoints([{x, y}, {x, y}, {x, y}, {x, y}]), this.win);
   },
 
   /**
@@ -951,13 +1031,12 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
   },
 
   /**
-   *  Updates the <canvas> element's style in accordance with the current window's
+   * Updates the <canvas> element's style in accordance with the current window's
    * devicePixelRatio, and the position calculated in `calculateCanvasPosition`; it also
    * clears the drawing context.
    */
   updateCanvasElement() {
-    let ratio = parseFloat((this.win.devicePixelRatio || 1).toFixed(2));
-    let size = CANVAS_SIZE / ratio;
+    let size = CANVAS_SIZE / this.win.devicePixelRatio;
     let { x, y } = this._canvasPosition;
 
     // Resize the canvas taking the dpr into account so as to have crisp lines, and
@@ -969,8 +1048,8 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
   },
 
   /**
-   * Updates the current matrix taking in account the following transformations, in this
-   * order:
+   * Updates the current matrices for both canvas drawing and SVG, taking in account the
+   * following transformations, in this order:
    *   1. The scale given by the display pixel ratio.
    *   2. The translation to the top left corner of the element.
    *   3. The scale given by the current zoom.
@@ -983,38 +1062,31 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    *  bug 1355675).
    */
   updateCurrentMatrix() {
-    let origin = getNodeTransformOrigin(this.currentNode);
-    let bounds = getNodeBounds(this.win, this.currentNode);
-    let nodeMatrix = getNodeTransformationMatrix(this.currentNode);
     let computedStyle = this.currentNode.ownerGlobal.getComputedStyle(this.currentNode);
 
     let paddingTop = parseFloat(computedStyle.paddingTop);
     let paddingLeft = parseFloat(computedStyle.paddingLeft);
+    let borderTop = parseFloat(computedStyle.borderTopWidth);
+    let borderLeft = parseFloat(computedStyle.borderLeftWidth);
 
-    // Subtract padding values to compensate for top/left being moved by padding.
-    let ox = origin[0] - paddingLeft;
-    let oy = origin[1] - paddingTop;
+    let nodeMatrix = getNodeTransformationMatrix(this.currentNode,
+      this.win.document.documentElement);
 
     let m = identity();
 
-    // First, we scale based on the display's current pixel ratio.
-    m = multiply(m, scale(getDisplayPixelRatio(this.win)));
-    // Then we translate the origin to the node's top left corner.
-    m = multiply(m, translate(bounds.p1.x, bounds.p1.y));
-    // And scale based on the current zoom factor.
-    m = multiply(m, scale(getCurrentZoom(this.win)));
-    // Then translate the origin based on the node's padding values.
-    m = multiply(m, translate(paddingLeft, paddingTop));
-    // Finally, we can apply the current node's transformation matrix, taking in account
-    // the `transform-origin` property and the node's top and left padding.
-    if (nodeMatrix) {
-      m = multiply(m, translate(ox, oy));
-      m = multiply(m, nodeMatrix);
-      m = multiply(m, translate(-ox, -oy));
-      this.hasNodeTransformations = true;
-    } else {
+    // First, we scale based on the device pixel ratio.
+    m = multiply(m, scale(this.win.devicePixelRatio));
+    // Then, we apply the current node's transformation matrix, relative to the
+    // inspected window's root element, but only if it's not a identity matrix.
+    if (isIdentity(nodeMatrix)) {
       this.hasNodeTransformations = false;
+    } else {
+      m = multiply(m, nodeMatrix);
+      this.hasNodeTransformations = true;
     }
+
+    // Finally, we translate the origin based on the node's padding and border values.
+    m = multiply(m, translate(paddingLeft + borderLeft, paddingTop + borderTop));
 
     this.currentMatrix = m;
   },
@@ -1066,6 +1138,10 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
                      this.getFirstColLinePos(fragment),
                      this.getLastColLinePos(fragment));
 
+    if (this.options.showGridAreasOverlay) {
+      this.renderGridAreaOverlay();
+    }
+
     // Line numbers are rendered in a 2nd step to avoid overlapping with existing lines.
     if (this.options.showGridLineNumbers) {
       this.renderLineNumbers(fragment.cols, COLUMNS, "left", "top",
@@ -1073,6 +1149,122 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
       this.renderLineNumbers(fragment.rows, ROWS, "top", "left",
                        this.getFirstColLinePos(fragment));
     }
+  },
+
+  /**
+   * Renders the grid area overlay on the css grid highlighter canvas.
+   */
+  renderGridAreaOverlay() {
+    let padding = 1;
+
+    for (let i = 0; i < this.gridData.length; i++) {
+      let fragment = this.gridData[i];
+
+      for (let area of fragment.areas) {
+        let { rowStart, rowEnd, columnStart, columnEnd } = area;
+
+        // Draw the line edges for the grid area
+        const areaColStart = fragment.cols.lines[columnStart - 1];
+        const areaColEnd = fragment.cols.lines[columnEnd - 1];
+
+        const areaRowStart = fragment.rows.lines[rowStart - 1];
+        const areaRowEnd = fragment.rows.lines[rowEnd - 1];
+
+        const areaColStartLinePos = areaColStart.start + areaColStart.breadth;
+        const areaRowStartLinePos = areaRowStart.start + areaRowStart.breadth;
+
+        this.renderLine(areaColStartLinePos + padding,
+                        areaRowStartLinePos, areaRowEnd.start,
+                        COLUMNS, "areaEdge");
+        this.renderLine(areaColEnd.start - padding,
+                        areaRowStartLinePos, areaRowEnd.start,
+                        COLUMNS, "areaEdge");
+
+        this.renderLine(areaRowStartLinePos + padding,
+                        areaColStartLinePos, areaColEnd.start,
+                        ROWS, "areaEdge");
+        this.renderLine(areaRowEnd.start - padding,
+                        areaColStartLinePos, areaColEnd.start,
+                        ROWS, "areaEdge");
+
+        this.renderGridAreaName(fragment, area);
+      }
+    }
+
+    this.ctx.restore();
+  },
+
+  /**
+   * Render grid area name on the containing grid area cell.
+   *
+   * @param  {Object} fragment
+   *         The grid fragment of the grid container.
+   * @param  {Object} area
+   *         The area overlay to render on the CSS highlighter canvas.
+   */
+  renderGridAreaName(fragment, area) {
+    let { rowStart, rowEnd, columnStart, columnEnd } = area;
+    let { devicePixelRatio } = this.win;
+    let displayPixelRatio = getDisplayPixelRatio(this.win);
+    let offset = (displayPixelRatio / 2) % 1;
+    let fontSize = (GRID_AREA_NAME_FONT_SIZE * displayPixelRatio);
+
+    this.ctx.save();
+
+    let canvasX = Math.round(this._canvasPosition.x * devicePixelRatio);
+    let canvasY = Math.round(this._canvasPosition.y * devicePixelRatio);
+    this.ctx.translate(offset - canvasX, offset - canvasY);
+
+    this.ctx.font = fontSize + "px " + GRID_FONT_FAMILY;
+    this.ctx.strokeStyle = this.color;
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+
+    // Draw the text for the grid area name.
+    for (let rowNumber = rowStart; rowNumber < rowEnd; rowNumber++) {
+      for (let columnNumber = columnStart; columnNumber < columnEnd; columnNumber++) {
+        let row = fragment.rows.tracks[rowNumber - 1];
+        let column = fragment.cols.tracks[columnNumber - 1];
+
+        // Check if the font size is exceeds the bounds of the containing grid cell.
+        if (fontSize > column.breadth || fontSize > row.breadth) {
+          fontSize = (column.breadth + row.breadth) / 2;
+          this.ctx.font = fontSize + "px " + GRID_FONT_FAMILY;
+        }
+
+        let textWidth = this.ctx.measureText(area.name).width;
+
+        // The width of the character 'm' approximates the height of the text.
+        let textHeight = this.ctx.measureText("m").width;
+
+        // Padding in pixels for the line number text inside of the line number container.
+        let padding = 3 * displayPixelRatio;
+
+        let boxWidth = textWidth + 2 * padding;
+        let boxHeight = textHeight + 2 * padding;
+
+        let x = column.start + column.breadth / 2;
+        let y = row.start + row.breadth / 2;
+
+        [x, y] = apply(this.currentMatrix, [x, y]);
+
+        let rectXPos = x - boxWidth / 2;
+        let rectYPos = y - boxHeight / 2;
+
+        // Draw a rounded rectangle with a border width of 1 pixel,
+        // a border color matching the grid color, and a white background
+        this.ctx.lineWidth = 1 * displayPixelRatio;
+        this.ctx.strokeStyle = this.color;
+        this.ctx.fillStyle = "white";
+        let radius = 2 * displayPixelRatio;
+        drawRoundedRect(this.ctx, rectXPos, rectYPos, boxWidth, boxHeight, radius);
+
+        this.ctx.fillStyle = this.color;
+        this.ctx.fillText(area.name, x, y + padding);
+      }
+    }
+
+    this.ctx.restore();
   },
 
   /**
@@ -1103,11 +1295,6 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
               mainSize, startPos, endPos) {
     let lineStartPos = startPos;
     let lineEndPos = endPos;
-
-    if (this.options.showInfiniteLines) {
-      lineStartPos = 0;
-      lineEndPos = Infinity;
-    }
 
     let lastEdgeLineIndex = this.getLastEdgeLineIndex(gridDimension.tracks);
 
@@ -1175,33 +1362,35 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
 
     linePos = Math.round(linePos);
     startPos = Math.round(startPos);
+    endPos = Math.round(endPos);
 
     this.ctx.save();
     this.ctx.setLineDash(GRID_LINES_PROPERTIES[lineType].lineDash);
     this.ctx.beginPath();
     this.ctx.translate(offset - x, offset - y);
-    this.ctx.lineWidth = lineWidth;
+
+    let lineOptions = {
+      matrix: this.currentMatrix
+    };
+
+    if (this.options.showInfiniteLines) {
+      lineOptions.extendToBoundaries = [x, y, x + CANVAS_SIZE, y + CANVAS_SIZE];
+    }
 
     if (dimensionType === COLUMNS) {
-      if (isFinite(endPos)) {
-        endPos = Math.round(endPos);
-      } else {
-        endPos = CANVAS_INFINITY;
-        startPos = -endPos;
-      }
-      drawLine(this.ctx, linePos, startPos, linePos, endPos, this.currentMatrix);
+      drawLine(this.ctx, linePos, startPos, linePos, endPos, lineOptions);
     } else {
-      if (isFinite(endPos)) {
-        endPos = Math.round(endPos);
-      } else {
-        endPos = CANVAS_INFINITY;
-        startPos = -endPos;
-      }
-      drawLine(this.ctx, startPos, linePos, endPos, linePos, this.currentMatrix);
+      drawLine(this.ctx, startPos, linePos, endPos, linePos, lineOptions);
     }
 
     this.ctx.strokeStyle = this.color;
     this.ctx.globalAlpha = GRID_LINES_PROPERTIES[lineType].alpha;
+
+    if (GRID_LINES_PROPERTIES[lineType].lineWidth) {
+      this.ctx.lineWidth = GRID_LINES_PROPERTIES[lineType].lineWidth * devicePixelRatio;
+    } else {
+      this.ctx.lineWidth = lineWidth;
+    }
 
     this.ctx.stroke();
     this.ctx.restore();
@@ -1355,11 +1544,11 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
    */
   renderGridArea(areaName) {
     let paths = [];
-    let currentZoom = getCurrentZoom(this.win);
+    let { devicePixelRatio } = this.win;
+    let displayPixelRatio = getDisplayPixelRatio(this.win);
 
     for (let i = 0; i < this.gridData.length; i++) {
       let fragment = this.gridData[i];
-      let {bounds} = this.currentQuads.content[i];
 
       for (let area of fragment.areas) {
         if (areaName && areaName != area.name) {
@@ -1371,23 +1560,33 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
         let columnStart = fragment.cols.lines[area.columnStart - 1];
         let columnEnd = fragment.cols.lines[area.columnEnd - 1];
 
-        let x1 = columnStart.start + columnStart.breadth +
-          (bounds.left / currentZoom);
-        let x2 = columnEnd.start + (bounds.left / currentZoom);
-        let y1 = rowStart.start + rowStart.breadth +
-          (bounds.top / currentZoom);
-        let y2 = rowEnd.start + (bounds.top / currentZoom);
+        let x1 = columnStart.start + columnStart.breadth;
+        let y1 = rowStart.start + rowStart.breadth;
+        let x2 = columnEnd.start;
+        let y2 = rowEnd.start;
 
-        let path = "M" + x1 + "," + y1 + " " +
-                   "L" + x2 + "," + y1 + " " +
-                   "L" + x2 + "," + y2 + " " +
-                   "L" + x1 + "," + y2;
-        paths.push(path);
+        let points = getPointsFromDiagonal(x1, y1, x2, y2, this.currentMatrix);
+
+        // Scale down by `devicePixelRatio` since SVG element already take them into
+        // account.
+        let svgPoints = points.map(point => ({
+          x: Math.round(point.x / devicePixelRatio),
+          y: Math.round(point.y / devicePixelRatio)
+        }));
+
+        // Scale down by `displayPixelRatio` since infobar's HTML elements already take it
+        // into account; and the zoom scaling is handled by `moveInfobar`.
+        let bounds = getBoundsFromPoints(points.map(point => ({
+          x: Math.round(point.x / displayPixelRatio),
+          y: Math.round(point.y / displayPixelRatio)
+        })));
+
+        paths.push(getPathDescriptionFromPoints(svgPoints));
 
         // Update and show the info bar when only displaying a single grid area.
         if (areaName) {
           this._showGridAreaInfoBar();
-          this._updateGridAreaInfobar(area, x1, x2, y1, y2);
+          this._updateGridAreaInfobar(area, bounds);
         }
       }
     }
@@ -1421,23 +1620,34 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
       return;
     }
 
-    let currentZoom = getCurrentZoom(this.win);
-    let {bounds} = this.currentQuads.content[gridFragmentIndex];
+    let x1 = column.start;
+    let y1 = row.start;
+    let x2 = column.start + column.breadth;
+    let y2 = row.start + row.breadth;
 
-    let x1 = column.start + (bounds.left / currentZoom);
-    let x2 = column.start + column.breadth + (bounds.left / currentZoom);
-    let y1 = row.start + (bounds.top / currentZoom);
-    let y2 = row.start + row.breadth + (bounds.top / currentZoom);
+    let { devicePixelRatio } = this.win;
+    let displayPixelRatio = getDisplayPixelRatio(this.win);
 
-    let path = "M" + x1 + "," + y1 + " " +
-               "L" + x2 + "," + y1 + " " +
-               "L" + x2 + "," + y2 + " " +
-               "L" + x1 + "," + y2;
+    let points = getPointsFromDiagonal(x1, y1, x2, y2, this.currentMatrix);
+
+    // Scale down by `devicePixelRatio` since SVG element already take them into account.
+    let svgPoints = points.map(point => ({
+      x: Math.round(point.x / devicePixelRatio),
+      y: Math.round(point.y / devicePixelRatio)
+    }));
+
+    // Scale down by `displayPixelRatio` since infobar's HTML elements already take it
+    // into account, and the zoom scaling is handled by `moveInfobar`.
+    let bounds = getBoundsFromPoints(points.map(point => ({
+      x: Math.round(point.x / displayPixelRatio),
+      y: Math.round(point.y / displayPixelRatio)
+    })));
+
     let cells = this.getElement("cells");
-    cells.setAttribute("d", path);
+    cells.setAttribute("d", getPathDescriptionFromPoints(svgPoints));
 
     this._showGridCellInfoBar();
-    this._updateGridCellInfobar(rowNumber, columnNumber, x1, x2, y1, y2);
+    this._updateGridCellInfobar(rowNumber, columnNumber, bounds);
   },
 
   /**

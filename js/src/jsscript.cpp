@@ -664,15 +664,16 @@ js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
         script->bodyScopeIndex_ = bodyScopeIndex;
     }
 
+    if (mode == XDR_DECODE) {
+        if (!script->createScriptData(cx, length, nsrcnotes, natoms)) {
+            return false;
+        }
+    }
+
     auto scriptDataGuard = mozilla::MakeScopeExit([&] {
         if (mode == XDR_DECODE)
             script->freeScriptData();
     });
-
-    if (mode == XDR_DECODE) {
-        if (!script->createScriptData(cx, length, nsrcnotes, natoms))
-            return false;
-    }
 
     jsbytecode* code = script->code();
     if (!xdr->codeBytes(code, length) || !xdr->codeBytes(code + length, nsrcnotes)) {
@@ -1054,7 +1055,9 @@ JSScript::setDefaultClassConstructorSpan(JSObject* sourceObject, uint32_t start,
 
 js::ScriptSourceObject&
 JSScript::scriptSourceUnwrap() const {
-    return UncheckedUnwrap(sourceObject())->as<ScriptSourceObject>();
+    // This may be called off the main thread. It's OK not to expose the source
+    // object here as it doesn't escape.
+    return UncheckedUnwrapWithoutExpose(sourceObject())->as<ScriptSourceObject>();
 }
 
 js::ScriptSource*
@@ -1064,7 +1067,10 @@ JSScript::scriptSource() const {
 
 js::ScriptSource*
 JSScript::maybeForwardedScriptSource() const {
-    return UncheckedUnwrap(MaybeForwarded(sourceObject()))->as<ScriptSourceObject>().source();
+    JSObject* source = MaybeForwarded(sourceObject());
+    // This may be called during GC. It's OK not to expose the source object
+    // here as it doesn't escape.
+    return UncheckedUnwrapWithoutExpose(source)->as<ScriptSourceObject>().source();
 }
 
 bool
@@ -1376,6 +1382,7 @@ static const ClassOps ScriptSourceObjectClassOps = {
     nullptr, /* getProperty */
     nullptr, /* setProperty */
     nullptr, /* enumerate */
+    nullptr, /* newEnumerate */
     nullptr, /* resolve */
     nullptr, /* mayResolve */
     ScriptSourceObject::finalize,
@@ -2065,7 +2072,9 @@ ScriptSource::xdrEncodeFunction(JSContext* cx, HandleFunction fun, HandleScriptS
 bool
 ScriptSource::xdrFinalizeEncoder(JS::TranscodeBuffer& buffer)
 {
-    MOZ_ASSERT(hasEncoder());
+    if (!hasEncoder())
+        return false;
+
     auto cleanup = mozilla::MakeScopeExit([&] {
         xdrEncoder_.reset(nullptr);
     });
@@ -4201,7 +4210,8 @@ LazyScript::sourceObject() const
 ScriptSource*
 LazyScript::maybeForwardedScriptSource() const
 {
-    return UncheckedUnwrap(MaybeForwarded(sourceObject()))->as<ScriptSourceObject>().source();
+    JSObject* source = MaybeForwarded(sourceObject());
+    return UncheckedUnwrapWithoutExpose(source)->as<ScriptSourceObject>().source();
 }
 
 /* static */ LazyScript*

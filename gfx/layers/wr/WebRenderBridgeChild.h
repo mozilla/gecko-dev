@@ -64,6 +64,7 @@ public:
   void DPEnd(wr::DisplayListBuilder &aBuilder, const gfx::IntSize& aSize,
              bool aIsSync, uint64_t aTransactionId,
              const WebRenderScrollData& aScrollData);
+  void ProcessWebRenderParentCommands();
 
   CompositorBridgeChild* GetCompositorBridgeChild();
 
@@ -73,7 +74,10 @@ public:
   TextureForwarder* GetTextureForwarder() override;
   LayersIPCActor* GetLayersIPCActor() override;
 
-  wr::ExternalImageId AllocExternalImageId(const CompositableHandle& aHandle);
+  void AddPipelineIdForAsyncCompositable(const wr::PipelineId& aPipelineId,
+                                         const CompositableHandle& aHandlee);
+  void RemovePipelineIdForAsyncCompositable(const wr::PipelineId& aPipelineId);
+
   wr::ExternalImageId AllocExternalImageIdForCompositable(CompositableClient* aCompositable);
   void DeallocExternalImageId(wr::ExternalImageId& aImageId);
 

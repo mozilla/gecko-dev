@@ -11,6 +11,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 const PREF_APP_UPDATE_AUTO                       = "app.update.auto";
 const PREF_APP_UPDATE_BACKGROUNDERRORS           = "app.update.backgroundErrors";
 const PREF_APP_UPDATE_BACKGROUNDMAXERRORS        = "app.update.backgroundMaxErrors";
+const PREF_APP_UPDATE_CANCELATIONS               = "app.update.cancelations";
 const PREF_APP_UPDATE_CHANNEL                    = "app.update.channel";
 const PREF_APP_UPDATE_DOORHANGER                 = "app.update.doorhanger";
 const PREF_APP_UPDATE_DOWNLOADPROMPTATTEMPTS     = "app.update.download.attempts";
@@ -29,9 +30,6 @@ const PREF_APP_UPDATE_STAGING_ENABLED            = "app.update.staging.enabled";
 const PREF_APP_UPDATE_URL                        = "app.update.url";
 const PREF_APP_UPDATE_URL_DETAILS                = "app.update.url.details";
 const PREF_APP_UPDATE_URL_MANUAL                 = "app.update.url.manual";
-
-
-const PREFBRANCH_APP_UPDATE_NEVER = "app.update.never.";
 
 const PREFBRANCH_APP_PARTNER         = "app.partner.";
 const PREF_DISTRIBUTION_ID           = "distribution.id";
@@ -71,8 +69,6 @@ const UPDATE_SETTINGS_CONTENTS = "[Settings]\n" +
 const PR_RDWR        = 0x04;
 const PR_CREATE_FILE = 0x08;
 const PR_TRUNCATE    = 0x20;
-
-const DEFAULT_UPDATE_VERSION = "999999.0";
 
 var gChannel;
 

@@ -4,14 +4,13 @@
 
 //! Common handling for the specified value CSS url() values.
 
-use cssparser::CssStringWriter;
 use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
+use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::root::mozilla::css::ImageValue;
 use gecko_bindings::sugar::refptr::RefPtr;
 use parser::ParserContext;
-use std::borrow::Cow;
-use std::fmt::{self, Write};
-use style_traits::ToCss;
+use std::fmt;
+use style_traits::{ToCss, ParseError};
 use stylearc::Arc;
 
 /// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
@@ -36,11 +35,11 @@ impl SpecifiedUrl {
     /// URL.
     ///
     /// Returns `Err` in the case that extra_data is incomplete.
-    pub fn parse_from_string<'a>(url: Cow<'a, str>,
+    pub fn parse_from_string<'a>(url: String,
                                  context: &ParserContext)
-                                 -> Result<Self, ()> {
+                                 -> Result<Self, ParseError<'a>> {
         Ok(SpecifiedUrl {
-            serialization: Arc::new(url.into_owned()),
+            serialization: Arc::new(url),
             extra_data: context.url_data.clone(),
             image_value: None,
         })
@@ -51,6 +50,16 @@ impl SpecifiedUrl {
     /// use its |resolved| status.
     pub fn is_invalid(&self) -> bool {
         false
+    }
+
+    /// Convert from URLValueData to SpecifiedUrl.
+    pub unsafe fn from_url_value_data(url: &URLValueData)
+                                       -> Result<SpecifiedUrl, ()> {
+        Ok(SpecifiedUrl {
+            serialization: Arc::new(url.mString.to_string()),
+            extra_data: url.mExtraData.to_safe(),
+            image_value: None,
+        })
     }
 
     /// Returns true if this URL looks like a fragment.
@@ -101,8 +110,8 @@ impl SpecifiedUrl {
 
 impl ToCss for SpecifiedUrl {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("url(\""));
-        try!(CssStringWriter::new(dest).write_str(&*self.serialization));
-        dest.write_str("\")")
+        dest.write_str("url(")?;
+        self.serialization.to_css(dest)?;
+        dest.write_str(")")
     }
 }

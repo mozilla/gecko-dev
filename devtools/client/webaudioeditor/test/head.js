@@ -13,7 +13,9 @@ const { PromiseTestUtils } = Cu.import("resource://testing-common/PromiseTestUti
 PromiseTestUtils.whitelistRejectionsGlobally(/Component not initialized/);
 PromiseTestUtils.whitelistRejectionsGlobally(/Connection closed/);
 PromiseTestUtils.whitelistRejectionsGlobally(/destroy/);
+PromiseTestUtils.whitelistRejectionsGlobally(/File closed/);
 PromiseTestUtils.whitelistRejectionsGlobally(/is no longer, usable/);
+PromiseTestUtils.whitelistRejectionsGlobally(/NS_ERROR_FAILURE/);
 PromiseTestUtils.whitelistRejectionsGlobally(/this\._urls is null/);
 PromiseTestUtils.whitelistRejectionsGlobally(/this\.tabTarget is null/);
 PromiseTestUtils.whitelistRejectionsGlobally(/this\.toolbox is null/);

@@ -153,7 +153,8 @@ nsHttpConnection::Init(nsHttpConnectionInfo *info,
     mSocketOut = outstream;
 
     // See explanation for non-strictness of this operation in SetSecurityCallbacks.
-    mCallbacks = new nsMainThreadPtrHolder<nsIInterfaceRequestor>(callbacks, false);
+    mCallbacks = new nsMainThreadPtrHolder<nsIInterfaceRequestor>(
+      "nsHttpConnection::mCallbacks", callbacks, false);
 
     mSocketTransport->SetEventSink(this, nullptr);
     mSocketTransport->SetSecurityCallbacks(this);
@@ -663,6 +664,8 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri
         NS_ENSURE_SUCCESS(rv, rv);
         mTransaction = mTLSFilter;
     }
+
+    trans->OnActivated(false);
 
     rv = OnOutputStreamReady(mSocketOut);
 
@@ -1366,7 +1369,8 @@ nsHttpConnection::SetSecurityCallbacks(nsIInterfaceRequestor* aCallbacks)
     // callbacks, we requires that the call happen on the main thread, but
     // for C++-implemented callbacks we don't care. Use a pointer holder with
     // strict checking disabled.
-    mCallbacks = new nsMainThreadPtrHolder<nsIInterfaceRequestor>(aCallbacks, false);
+    mCallbacks = new nsMainThreadPtrHolder<nsIInterfaceRequestor>(
+      "nsHttpConnection::mCallbacks", aCallbacks, false);
 }
 
 nsresult

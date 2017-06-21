@@ -7,8 +7,6 @@
 
 #include "mozilla/ipc/MessageChannel.h"
 
-#include "MessageLoopAbstractThreadWrapper.h"
-#include "mozilla/AbstractThread.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -521,7 +519,7 @@ MessageChannel::MessageChannel(const char* aName,
     mLink(nullptr),
     mWorkerLoop(nullptr),
     mChannelErrorTask(nullptr),
-    mWorkerLoopID(-1),
+    mWorkerThread(nullptr),
     mTimeoutMs(kNoTimeout),
     mInTimeoutSecondHalf(false),
     mNextSeqno(0),
@@ -689,7 +687,7 @@ MessageChannel::WillDestroyCurrentMessageLoop()
 void
 MessageChannel::Clear()
 {
-    // Don't clear mWorkerLoopID; we use it in AssertLinkThread() and
+    // Don't clear mWorkerThread; we use it in AssertLinkThread() and
     // AssertWorkerThread().
     //
     // Also don't clear mListener.  If we clear it, then sending a message
@@ -750,23 +748,6 @@ MessageChannel::Clear()
     }
 }
 
-class AbstractThreadWrapperCleanup : public MessageLoop::DestructionObserver
-{
-public:
-    explicit AbstractThreadWrapperCleanup(already_AddRefed<AbstractThread> aWrapper)
-        : mWrapper(aWrapper)
-    {}
-    virtual ~AbstractThreadWrapperCleanup() override {}
-    virtual void WillDestroyCurrentMessageLoop() override
-    {
-        mWrapper = nullptr;
-        MessageLoop::current()->RemoveDestructionObserver(this);
-        delete this;
-    }
-private:
-    RefPtr<AbstractThread> mWrapper;
-};
-
 bool
 MessageChannel::Open(Transport* aTransport, MessageLoop* aIOLoop, Side aSide)
 {
@@ -774,16 +755,9 @@ MessageChannel::Open(Transport* aTransport, MessageLoop* aIOLoop, Side aSide)
 
     mMonitor = new RefCountedMonitor();
     mWorkerLoop = MessageLoop::current();
-    mWorkerLoopID = mWorkerLoop->id();
+    mWorkerThread = GetCurrentVirtualThread();
     mWorkerLoop->AddDestructionObserver(this);
     mListener->SetIsMainThreadProtocol();
-
-    if (!AbstractThread::GetCurrent()) {
-        mWorkerLoop->AddDestructionObserver(
-            new AbstractThreadWrapperCleanup(
-                MessageLoopAbstractThreadWrapper::Create(mWorkerLoop)));
-    }
-
 
     ProcessLink *link = new ProcessLink(this);
     link->Open(aTransport, aIOLoop, aSide); // :TODO: n.b.: sets mChild
@@ -860,15 +834,9 @@ void
 MessageChannel::CommonThreadOpenInit(MessageChannel *aTargetChan, Side aSide)
 {
     mWorkerLoop = MessageLoop::current();
-    mWorkerLoopID = mWorkerLoop->id();
+    mWorkerThread = GetCurrentVirtualThread();
     mWorkerLoop->AddDestructionObserver(this);
     mListener->SetIsMainThreadProtocol();
-
-    if (!AbstractThread::GetCurrent()) {
-        mWorkerLoop->AddDestructionObserver(
-            new AbstractThreadWrapperCleanup(
-                MessageLoopAbstractThreadWrapper::Create(mWorkerLoop)));
-    }
 
     mLink = new ThreadLink(this, aTargetChan);
     mSide = aSide;

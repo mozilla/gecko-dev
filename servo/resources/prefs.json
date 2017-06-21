@@ -1,6 +1,7 @@
 {
   "dom.bluetooth.enabled": false,
   "dom.bluetooth.testing.enabled": false,
+  "dom.customelements.enabled": false,
   "dom.forcetouch.enabled": false,
   "dom.gamepad.enabled": false,
   "dom.mouseevent.which.enabled": false,
@@ -9,6 +10,7 @@
   "dom.permissions.enabled": false,
   "dom.permissions.testing.allowed_in_nonsecure_contexts": false,
   "dom.serviceworker.timeout_seconds": 60,
+  "dom.servoparser.async_html_tokenizer.enabled": false,
   "dom.testable_crash.enabled": false,
   "dom.testbinding.enabled": false,
   "dom.webvr.enabled": false,
@@ -65,5 +67,6 @@
   "shell.homepage": "https://servo.org",
   "shell.keep_screen_on.enabled": false,
   "shell.native-orientation": "both",
-  "shell.native-titlebar.enabled": true
+  "shell.native-titlebar.enabled": true,
+  "webgl.testing.context_creation_error": false
 }

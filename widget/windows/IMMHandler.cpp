@@ -180,9 +180,9 @@ IMEContext::IMEContext(HWND aWnd)
 {
 }
 
-IMEContext::IMEContext(nsWindow* aWindow)
-  : mWnd(aWindow->GetWindowHandle())
-  , mIMC(::ImmGetContext(aWindow->GetWindowHandle()))
+IMEContext::IMEContext(nsWindowBase* aWindowBase)
+  : mWnd(aWindowBase->GetWindowHandle())
+  , mIMC(::ImmGetContext(aWindowBase->GetWindowHandle()))
 {
 }
 
@@ -195,9 +195,9 @@ IMEContext::Init(HWND aWnd)
 }
 
 void
-IMEContext::Init(nsWindow* aWindow)
+IMEContext::Init(nsWindowBase* aWindowBase)
 {
-  Init(aWindow->GetWindowHandle());
+  Init(aWindowBase->GetWindowHandle());
 }
 
 void
@@ -344,7 +344,7 @@ IMMHandler::InitKeyboardLayout(nsWindow* aWindow,
     // Add room for the terminating null character
     sIMEName.SetLength(++IMENameLength);
     IMENameLength =
-      ::ImmGetDescriptionW(aKeyboardLayout, wwc(sIMEName.BeginWriting()),
+      ::ImmGetDescriptionW(aKeyboardLayout, sIMEName.get(),
                            IMENameLength);
     // Adjust the length to ignore the terminating null character
     sIMEName.SetLength(IMENameLength);

@@ -86,6 +86,7 @@
 #include "nsAutoLayoutPhase.h"
 #include "nsStyleStructInlines.h"
 #include "nsPageContentFrame.h"
+#include "mozilla/GeckoStyleContext.h"
 #include "mozilla/RestyleManager.h"
 #include "mozilla/RestyleManagerInlines.h"
 #include "StickyScrollContainer.h"
@@ -155,6 +156,8 @@ nsIFrame*
 NS_NewSVGAFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewSVGSwitchFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+nsIFrame*
+NS_NewSVGSymbolFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewSVGTextFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
@@ -1653,7 +1656,8 @@ nsCSSFrameConstructor::NotifyDestroyingFrame(nsIFrame* aFrame)
       QuotesDirty();
   }
 
-  if (mCounterManager.DestroyNodesFor(aFrame)) {
+  if (aFrame->HasAnyStateBits(NS_FRAME_HAS_CSS_COUNTER_STYLE) &&
+      mCounterManager.DestroyNodesFor(aFrame)) {
     // Technically we don't need to update anything if we destroyed only
     // USE nodes.  However, this is unlikely to happen in the real world
     // since USE nodes generally go along with INCREMENT nodes.
@@ -2745,16 +2749,6 @@ nsCSSFrameConstructor::ConstructRootFrame()
 
   StyleSetHandle styleSet = mPresShell->StyleSet();
 
-  // Set up our style rule observer.
-  // XXXbz wouldn't this make more sense as part of presshell init?
-  if (styleSet->IsGecko()) {
-    // XXXheycam We don't support XBL bindings providing style to
-    // ServoStyleSets yet.
-    styleSet->AsGecko()->SetBindingManager(mDocument->BindingManager());
-  } else {
-    NS_WARNING("stylo: cannot get ServoStyleSheets from XBL bindings yet. See bug 1290276.");
-  }
-
   // --------- BUILD VIEWPORT -----------
   RefPtr<nsStyleContext> viewportPseudoStyle =
     styleSet->ResolveInheritingAnonymousBoxStyle(nsCSSAnonBoxes::viewport,
@@ -3809,6 +3803,9 @@ nsCSSFrameConstructor::FindObjectData(Element* aElement,
     SIMPLE_INT_CREATE(nsIObjectLoadingContent::TYPE_IMAGE,
                       NS_NewImageFrame),
     SIMPLE_INT_CREATE(nsIObjectLoadingContent::TYPE_DOCUMENT,
+                      NS_NewSubDocumentFrame),
+    // Fake plugin handlers load as documents
+    SIMPLE_INT_CREATE(nsIObjectLoadingContent::TYPE_FAKE_PLUGIN,
                       NS_NewSubDocumentFrame)
     // Nothing for TYPE_NULL so we'll construct frames by display there
   };
@@ -5583,6 +5580,7 @@ nsCSSFrameConstructor::FindSVGData(Element* aElement,
     SIMPLE_SVG_CREATE(svg, NS_NewSVGInnerSVGFrame),
     SIMPLE_SVG_CREATE(g, NS_NewSVGGFrame),
     SIMPLE_SVG_CREATE(svgSwitch, NS_NewSVGSwitchFrame),
+    SIMPLE_SVG_CREATE(symbol, NS_NewSVGSymbolFrame),
     SIMPLE_SVG_CREATE(polygon, NS_NewSVGGeometryFrame),
     SIMPLE_SVG_CREATE(polyline, NS_NewSVGGeometryFrame),
     SIMPLE_SVG_CREATE(circle, NS_NewSVGGeometryFrame),
@@ -5825,14 +5823,27 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
         aState.AddPendingBinding(newPendingBinding.forget());
       }
 
-      if (aContent->IsStyledByServo()) {
-        NS_WARNING("stylo: Skipping Unsupported binding re-resolve. This needs fixing.");
-        resolveStyle = false;
-      }
-
       if (resolveStyle) {
-        styleContext =
-          ResolveStyleContext(styleContext->GetParent(), aContent, &aState);
+        if (aContent->IsStyledByServo()) {
+          Element* element = aContent->AsElement();
+          ServoStyleSet* styleSet = mPresShell->StyleSet()->AsServo();
+
+          // XXX: We should have a better way to restyle ourselves.
+          ServoRestyleManager::ClearServoDataFromSubtree(element);
+          styleSet->StyleNewSubtree(element);
+
+          // Servo's should_traverse_children() in traversal.rs skips
+          // styling descendants of elements with a -moz-binding the
+          // first time. Thus call StyleNewChildren() again.
+          styleSet->StyleNewChildren(element);
+
+          styleContext =
+            styleSet->ResolveStyleFor(element, nullptr, LazyComputeBehavior::Allow);
+        } else {
+          styleContext =
+            ResolveStyleContext(styleContext->GetParent(), aContent, &aState);
+        }
+
         display = styleContext->StyleDisplay();
         aStyleContext = styleContext;
       }
@@ -7489,8 +7500,8 @@ nsCSSFrameConstructor::ContentAppended(nsIContent* aContainer,
                                        bool aForReconstruction,
                                        TreeMatchContext* aProvidedTreeMatchContext)
 {
-  MOZ_ASSERT_IF(aProvidedTreeMatchContext, !aAllowLazyConstruction);
-  MOZ_ASSERT_IF(aAllowLazyConstruction, !RestyleManager()->IsInStyleRefresh());
+  MOZ_ASSERT(!aProvidedTreeMatchContext || !aAllowLazyConstruction);
+  MOZ_ASSERT(!aAllowLazyConstruction || !RestyleManager()->IsInStyleRefresh());
 
   AUTO_LAYOUT_PHASE_ENTRY_POINT(mPresShell->GetPresContext(), FrameC);
   NS_PRECONDITION(mUpdateCount != 0,
@@ -7893,8 +7904,8 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent* aContainer,
                                             bool aForReconstruction,
                                             TreeMatchContext* aProvidedTreeMatchContext)
 {
-  MOZ_ASSERT_IF(aProvidedTreeMatchContext, !aAllowLazyConstruction);
-  MOZ_ASSERT_IF(aAllowLazyConstruction, !RestyleManager()->IsInStyleRefresh());
+  MOZ_ASSERT(!aProvidedTreeMatchContext || !aAllowLazyConstruction);
+  MOZ_ASSERT(!aAllowLazyConstruction || !RestyleManager()->IsInStyleRefresh());
 
   AUTO_LAYOUT_PHASE_ENTRY_POINT(mPresShell->GetPresContext(), FrameC);
   NS_PRECONDITION(mUpdateCount != 0,
@@ -10940,9 +10951,9 @@ nsCSSFrameConstructor::AddFCItemsForAnonymousContent(
   for (uint32_t i = 0; i < aAnonymousItems.Length(); ++i) {
     nsIContent* content = aAnonymousItems[i].mContent;
     // Gecko-styled nodes should have no pending restyle flags.
-    MOZ_ASSERT_IF(!content->IsStyledByServo(),
-                  !content->IsElement() ||
-                  !(content->GetFlags() & ELEMENT_ALL_RESTYLE_FLAGS));
+    MOZ_ASSERT(content->IsStyledByServo() ||
+               !content->IsElement() ||
+               !(content->GetFlags() & ELEMENT_ALL_RESTYLE_FLAGS));
     // Assert some things about this content
     MOZ_ASSERT(!(content->GetFlags() &
                  (NODE_DESCENDANTS_NEED_FRAMES | NODE_NEEDS_FRAME)),
@@ -10956,15 +10967,15 @@ nsCSSFrameConstructor::AddFCItemsForAnonymousContent(
     RefPtr<nsStyleContext> styleContext;
     Maybe<TreeMatchContext::AutoParentDisplayBasedStyleFixupSkipper>
       parentDisplayBasedStyleFixupSkipper;
-    MOZ_ASSERT_IF(!aState.mTreeMatchContext, content->IsStyledByServo());
+    MOZ_ASSERT(aState.mTreeMatchContext || content->IsStyledByServo());
     if (aState.mTreeMatchContext) {
       parentDisplayBasedStyleFixupSkipper.emplace(*aState.mTreeMatchContext);
     }
 
     // Make sure we eagerly performed the servo cascade when the anonymous
     // nodes were created.
-    MOZ_ASSERT_IF(content->IsStyledByServo() && content->IsElement(),
-                  content->AsElement()->HasServoData());
+    MOZ_ASSERT(!content->IsStyledByServo() || !content->IsElement() ||
+               content->AsElement()->HasServoData());
 
     // Determine whether this NAC is pseudo-implementing.
     nsIAtom* pseudo = nullptr;
@@ -11053,9 +11064,9 @@ nsCSSFrameConstructor::AddFCItemsForAnonymousContent(
     // The only way we can not have a style parent now is if inheritFrame is the
     // canvas frame and we're the NAC parent for all the things added via
     // nsIDocument::InsertAnonymousContent.
-    MOZ_ASSERT_IF(!styleParentFrame, inheritFrame->IsCanvasFrame());
+    MOZ_ASSERT(styleParentFrame || inheritFrame->IsCanvasFrame());
     // And that anonymous div has no pseudo.
-    MOZ_ASSERT_IF(!styleParentFrame, !pseudo);
+    MOZ_ASSERT(styleParentFrame || !pseudo);
 
     Element* originating =
       pseudo ? styleParentFrame->GetContent()->AsElement() : nullptr;
@@ -11180,7 +11191,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     // a flex/grid container frame, not just has display:flex/grid.
     Maybe<TreeMatchContext::AutoParentDisplayBasedStyleFixupSkipper>
       parentDisplayBasedStyleFixupSkipper;
-    MOZ_ASSERT_IF(!aState.mTreeMatchContext, aContent->IsStyledByServo());
+    MOZ_ASSERT(aState.mTreeMatchContext || aContent->IsStyledByServo());
     if (!isFlexOrGridContainer && aState.mTreeMatchContext) {
       parentDisplayBasedStyleFixupSkipper.emplace(*aState.mTreeMatchContext);
     }

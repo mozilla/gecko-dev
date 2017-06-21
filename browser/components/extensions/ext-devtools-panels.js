@@ -2,17 +2,21 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-devtools.js */
+/* import-globals-from ext-utils.js */
+
 Cu.import("resource://gre/modules/ExtensionParent.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
                                   "resource:///modules/E10SUtils.jsm");
 
 var {
+  IconDetails,
   watchExtensionProxyContextLoad,
 } = ExtensionParent;
 
 var {
-  IconDetails,
   promiseEvent,
 } = ExtensionUtils;
 
@@ -82,7 +86,7 @@ class ParentDevToolsPanel {
       icon: icon,
       label: title,
       tooltip: `DevTools Panel added by "${extensionName}" add-on.`,
-      invertIconForLightTheme: true,
+      invertIconForLightTheme: false,
       visibilityswitch:  `devtools.webext-${this.id}.enabled`,
       isTargetSupported: target => target.isLocalTab,
       build: (window, toolbox) => {

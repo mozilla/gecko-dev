@@ -24,9 +24,11 @@ jobs:
         worker:
             docker-image: {in-tree: desktop-build}
             max-run-time: 72000
+            env:
+                TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/linux64/releng.manifest"
         run:
             using: mozharness
-            actions: [get-secrets build generate-build-stats valgrind-test]
+            actions: [get-secrets build valgrind-test]
             custom-build-variant-cfg: valgrind
             config:
                 - builds/releng_base_linux_64_builds.py

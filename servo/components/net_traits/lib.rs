@@ -3,27 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
-#![feature(step_by)]
+#![feature(iterator_step_by)]
 
 #![deny(unsafe_code)]
 
 extern crate cookie as cookie_rs;
 extern crate heapsize;
-#[macro_use]
-extern crate heapsize_derive;
+#[macro_use] extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
 extern crate ipc_channel;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate lazy_static;
+#[macro_use] extern crate log;
 extern crate msg;
 extern crate num_traits;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_config;
 extern crate servo_url;
 extern crate url;
@@ -42,7 +37,7 @@ use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use request::{Request, RequestInit};
-use response::{HttpsState, Response};
+use response::{HttpsState, Response, ResponseInit};
 use servo_url::ServoUrl;
 use std::error::Error;
 use storage_thread::StorageThreadMsg;
@@ -270,7 +265,7 @@ pub type IpcSendResult = Result<(), IpcError>;
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
 /// XXX: If this trait will be used more in future, some auto derive might be appealing
 pub trait IpcSend<T>
-    where T: serde::Serialize + serde::Deserialize,
+    where T: serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
     /// send message T
     fn send(&self, T) -> IpcSendResult;
@@ -369,6 +364,8 @@ pub struct WebSocketConnectData {
 #[derive(Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     Fetch(RequestInit, IpcSender<FetchResponseMsg>),
+    /// Initiate a fetch in response to processing a redirection
+    FetchRedirect(RequestInit, ResponseInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a cookie for a given originating URL
@@ -435,6 +432,9 @@ pub struct Metadata {
 
     /// Referrer Url
     pub referrer: Option<ServoUrl>,
+
+    /// Referrer Policy of the Request used to obtain Response
+    pub referrer_policy: Option<ReferrerPolicy>,
 }
 
 impl Metadata {
@@ -449,6 +449,7 @@ impl Metadata {
             status: Some((200, b"OK".to_vec())),
             https_state: HttpsState::None,
             referrer: None,
+            referrer_policy: None,
         }
     }
 

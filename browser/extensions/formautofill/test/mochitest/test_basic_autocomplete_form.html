@@ -24,10 +24,12 @@ let MOCK_STORAGE = [{
   organization: "Sesame Street",
   "street-address": "123 Sesame Street.",
   tel: "1-345-345-3456",
+  country: "US",
 }, {
   organization: "Mozilla",
   "street-address": "331 E. Evelyn Avenue",
   tel: "1-650-903-0800",
+  country: "US",
 }];
 
 function expectPopup() {
@@ -45,13 +47,22 @@ function popupShownListener() {
   }
 }
 
-function checkInputFilled(element, expectedvalue) {
-  return new Promise(resolve => {
-    element.addEventListener("change", function onChange() {
-      is(element.value, expectedvalue, "Checking " + element.name + " field");
-      resolve();
-    }, {once: true});
-  });
+function checkElementFilled(element, expectedvalue) {
+  return [
+    new Promise(resolve => {
+      element.addEventListener("input", function onInput() {
+        ok(true, "Checking " + element.name + " field fires input event");
+        resolve();
+      }, {once: true});
+    }),
+    new Promise(resolve => {
+      element.addEventListener("change", function onChange() {
+        ok(true, "Checking " + element.name + " field fires change event");
+        is(element.value, expectedvalue, "Checking " + element.name + " field");
+        resolve();
+      }, {once: true});
+    }),
+  ];
 }
 
 function checkAutoCompleteInputFilled(element, expectedvalue) {
@@ -70,7 +81,7 @@ function checkFormFilled(address) {
     if (document.activeElement == element) {
       promises.push(checkAutoCompleteInputFilled(element, address[prop]));
     } else {
-      promises.push(checkInputFilled(element, address[prop]));
+      promises.push(...checkElementFilled(element, address[prop]));
     }
   }
   doKey("return");
@@ -85,7 +96,7 @@ async function setupAddressStorage() {
 async function setupFormHistory() {
   await updateFormHistory([
     {op: "add", fieldname: "tel", value: "1-234-567-890"},
-    {op: "add", fieldname: "country", value: "US"},
+    {op: "add", fieldname: "email", value: "foo@mozilla.com"},
   ]);
 }
 
@@ -93,31 +104,31 @@ async function setupFormHistory() {
 add_task(async function history_only_menu_checking() {
   await setupFormHistory();
 
-  setInput("#tel", "");
+  await setInput("#tel", "");
   doKey("down");
   await expectPopup();
-  checkMenuEntries(["1-234-567-890"]);
+  checkMenuEntries(["1-234-567-890"], false);
 });
 
 // Form with both history and address storage.
 add_task(async function check_menu_when_both_existed() {
   await setupAddressStorage();
 
-  setInput("#organization", "");
+  await setInput("#organization", "");
   doKey("down");
   await expectPopup();
   checkMenuEntries(MOCK_STORAGE.map(address =>
     JSON.stringify({primary: address.organization, secondary: address["street-address"]})
   ));
 
-  setInput("#street-address", "");
+  await setInput("#street-address", "");
   doKey("down");
   await expectPopup();
   checkMenuEntries(MOCK_STORAGE.map(address =>
     JSON.stringify({primary: address["street-address"], secondary: address.organization})
   ));
 
-  setInput("#tel", "");
+  await setInput("#tel", "");
   doKey("down");
   await expectPopup();
   checkMenuEntries(MOCK_STORAGE.map(address =>
@@ -127,15 +138,15 @@ add_task(async function check_menu_when_both_existed() {
 
 // Display history search result if no matched data in addresses.
 add_task(async function check_fallback_for_mismatched_field() {
-  setInput("#country", "");
+  await setInput("#email", "");
   doKey("down");
   await expectPopup();
-  checkMenuEntries(["US"]);
+  checkMenuEntries(["foo@mozilla.com"], false);
 });
 
 // Autofill the address from dropdown menu.
 add_task(async function check_fields_after_form_autofill() {
-  setInput("#organization", "Moz");
+  await setInput("#organization", "Moz");
   doKey("down");
   await expectPopup();
   checkMenuEntries(MOCK_STORAGE.map(address =>
@@ -147,10 +158,22 @@ add_task(async function check_fields_after_form_autofill() {
 
 // Fallback to history search after autofill address.
 add_task(async function check_fallback_after_form_autofill() {
-  setInput("#tel", "");
+  await setInput("#tel", "");
   doKey("down");
   await expectPopup();
-  checkMenuEntries(["1-234-567-890"]);
+  checkMenuEntries(["1-234-567-890"], false);
+});
+
+// Resume form autofill once all the autofilled fileds are changed.
+add_task(async function check_form_autofill_resume() {
+  document.querySelector("#tel").blur();
+  document.querySelector("#form1").reset();
+  await setInput("#tel", "");
+  doKey("down");
+  await expectPopup();
+  checkMenuEntries(MOCK_STORAGE.map(address =>
+    JSON.stringify({primary: address.tel, secondary: address["street-address"]})
+  ));
 });
 
 registerPopupShownListener(popupShownListener);
@@ -166,7 +189,11 @@ registerPopupShownListener(popupShownListener);
     <p><label>organization: <input id="organization" name="organization" autocomplete="organization" type="text"></label></p>
     <p><label>streetAddress: <input id="street-address" name="street-address" autocomplete="street-address" type="text"></label></p>
     <p><label>tel: <input id="tel" name="tel" autocomplete="tel" type="text"></label></p>
-    <p><label>country: <input id="country" name="country" autocomplete="country" type="text"></label></p>
+    <p><label>email: <input id="email" name="email" autocomplete="email" type="text"></label></p>
+    <p><label>country: <select id="country" name="country" autocomplete="country">
+      <option/>
+      <option value="US">United States</option>
+    </label></p>
   </form>
 
 </div>

@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
+use cssparser::{Parser, ParserInput};
 use media_queries::CSSErrorReporterTest;
 use parsing::parse;
 use style::context::QuirksMode;
-use style::parser::{PARSING_MODE_ALLOW_UNITLESS_LENGTH, Parse, ParserContext};
+use style::parser::{Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::Either;
 use style::values::specified::{LengthOrPercentageOrNumber, Number};
 use style::values::specified::length::{AbsoluteLength, Length, NoCalcLength};
-use style_traits::ToCss;
+use style_traits::{PARSING_MODE_ALLOW_UNITLESS_LENGTH, ToCss};
 
 #[test]
 fn test_calc() {
@@ -45,7 +45,8 @@ fn test_parsing_modes() {
     let context = ParserContext::new(Origin::Author, &url, &reporter,
                                      Some(CssRuleType::Style), PARSING_MODE_ALLOW_UNITLESS_LENGTH,
                                      QuirksMode::NoQuirks);
-    let mut parser = Parser::new("1");
+    let mut input = ParserInput::new("1");
+    let mut parser = Parser::new(&mut input);
     let result = Length::parse(&context, &mut parser);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(1.))));

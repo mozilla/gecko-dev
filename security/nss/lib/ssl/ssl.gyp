@@ -14,8 +14,10 @@
         'cmpcert.c',
         'dtlscon.c',
         'prelib.c',
+        'selfencrypt.c',
         'ssl3con.c',
         'ssl3ecc.c',
+        'ssl3encode.c',
         'ssl3ext.c',
         'ssl3exthandle.c',
         'ssl3gthr.c',
@@ -66,11 +68,6 @@
         [ 'fuzz_tls==1', {
           'defines': [
             'UNSAFE_FUZZER_MODE',
-          ],
-        }],
-        [ 'mozilla_client==1', {
-          'defines': [
-            'NSS_ENABLE_TLS13_SHORT_HEADERS',
           ],
         }],
       ],

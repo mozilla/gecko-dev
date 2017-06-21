@@ -143,7 +143,12 @@ TableWidget.prototype = {
    */
   set selectedRow(id) {
     for (let column of this.columns.values()) {
-      column.selectRow(id[this.uniqueId] || id);
+      if (id) {
+        column.selectRow(id[this.uniqueId] || id);
+      } else {
+        column.selectedRow = null;
+        column.selectRow(null);
+      }
     }
   },
 
@@ -853,7 +858,8 @@ TableWidget.prototype = {
       column.remove(item);
       column.updateZebra();
     }
-    if (this.items.size == 0) {
+    if (this.items.size === 0) {
+      this.selectedRow = null;
       this.tbody.setAttribute("empty", "empty");
     }
 
@@ -895,6 +901,8 @@ TableWidget.prototype = {
     }
     this.tbody.setAttribute("empty", "empty");
     this.setPlaceholderText(this.emptyText);
+
+    this.selectedRow = null;
 
     this.emit(EVENTS.TABLE_CLEARED, this);
   },
@@ -947,9 +955,11 @@ TableWidget.prototype = {
     // Loop through all items and hide unmatched items
     for (let [id, val] of this.items) {
       for (let prop in val) {
-        if (ignoreProps.includes(prop)) {
+        let column = this.columns.get(prop);
+        if (ignoreProps.includes(prop) || column.hidden) {
           continue;
         }
+
         let propValue = val[prop].toString().toLowerCase();
         if (propValue.includes(value)) {
           itemsToHide.splice(itemsToHide.indexOf(id), 1);
@@ -1080,6 +1090,13 @@ Column.prototype = {
    */
   get sorted() {
     return this._sortState || 0;
+  },
+
+  /**
+   * Returns a boolean indicating whether the column is hidden.
+   */
+  get hidden() {
+    return this.wrapper.hasAttribute("hidden");
   },
 
   /**
@@ -1238,15 +1255,16 @@ Column.prototype = {
    */
   selectRowAt: function (index) {
     if (this.selectedRow != null) {
-      this.cells[this.items[this.selectedRow]].toggleClass("theme-selected");
+      this.cells[this.items[this.selectedRow]].classList.remove("theme-selected");
     }
-    if (index < 0) {
-      this.selectedRow = null;
-      return;
-    }
+
     let cell = this.cells[index];
-    cell.toggleClass("theme-selected");
-    this.selectedRow = cell.id;
+    if (cell) {
+      cell.classList.add("theme-selected");
+      this.selectedRow = cell.id;
+    } else {
+      this.selectedRow = null;
+    }
   },
 
   /**
@@ -1410,7 +1428,6 @@ Column.prototype = {
     this.cells = [];
     this.items = {};
     this._itemsDirty = false;
-    this.selectedRow = null;
     while (this.header.nextSibling) {
       this.header.nextSibling.remove();
     }
@@ -1441,7 +1458,7 @@ Column.prototype = {
     }
 
     if (this.selectedRow) {
-      this.cells[this.items[this.selectedRow]].toggleClass("theme-selected");
+      this.cells[this.items[this.selectedRow]].classList.remove("theme-selected");
     }
     this.items = {};
     // Otherwise, just use the sorted array passed to update the cells value.
@@ -1451,7 +1468,7 @@ Column.prototype = {
       this.cells[i].id = item[this.uniqueId];
     });
     if (this.selectedRow) {
-      this.cells[this.items[this.selectedRow]].toggleClass("theme-selected");
+      this.cells[this.items[this.selectedRow]].classList.add("theme-selected");
     }
     this._itemsDirty = false;
     this.updateZebra();
@@ -1465,7 +1482,9 @@ Column.prototype = {
       if (!cell.hidden) {
         i++;
       }
-      cell.toggleClass("even", !(i % 2));
+
+      let even = !(i % 2);
+      cell.classList.toggle("even", even);
     }
   },
 
@@ -1601,8 +1620,8 @@ Cell.prototype = {
     return this._value;
   },
 
-  toggleClass: function (className, condition) {
-    this.label.classList.toggle(className, condition);
+  get classList() {
+    return this.label.classList;
   },
 
   /**

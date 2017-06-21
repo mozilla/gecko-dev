@@ -6,23 +6,13 @@
 //! quickly whether it's worth to share style, and whether two different
 //! elements can indeed share the same style.
 
+use Atom;
+use bloom::StyleBloom;
 use context::{SelectorFlagsMap, SharedStyleContext};
 use dom::TElement;
 use element_state::*;
-use selectors::bloom::BloomFilter;
-use selectors::matching::StyleRelations;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
 use stylearc::Arc;
-
-/// Determines, based on the results of selector matching, whether it's worth to
-/// try to share style with this element, that is, to try to insert the element
-/// in the chache.
-#[inline]
-pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
-    use selectors::matching::*;
-    !relations.intersects(AFFECTED_BY_ID_SELECTOR |
-                          AFFECTED_BY_PSEUDO_ELEMENTS)
-}
 
 /// Whether, given two elements, they have pointer-equal computed values.
 ///
@@ -102,7 +92,7 @@ pub fn have_same_state_ignoring_visitedness<E>(element: E,
 pub fn revalidate<E>(target: &mut StyleSharingTarget<E>,
                      candidate: &mut StyleSharingCandidate<E>,
                      shared_context: &SharedStyleContext,
-                     bloom: &BloomFilter,
+                     bloom: &StyleBloom<E>,
                      selector_flags_map: &mut SelectorFlagsMap<E>)
                      -> bool
     where E: TElement,
@@ -120,4 +110,29 @@ pub fn revalidate<E>(target: &mut StyleSharingTarget<E>,
     debug_assert_eq!(for_element.len(), for_candidate.len());
 
     for_element == for_candidate
+}
+
+/// Checks whether we might have rules for either of the two ids.
+#[inline]
+pub fn may_have_rules_for_ids(shared_context: &SharedStyleContext,
+                              element_id: Option<&Atom>,
+                              candidate_id: Option<&Atom>) -> bool
+{
+    // We shouldn't be called unless the ids are different.
+    debug_assert!(element_id.is_some() || candidate_id.is_some());
+    let stylist = &shared_context.stylist;
+
+    let may_have_rules_for_element = match element_id {
+        Some(id) => stylist.may_have_rules_for_id(id),
+        None => false
+    };
+
+    if may_have_rules_for_element {
+        return true;
+    }
+
+    match candidate_id {
+        Some(id) => stylist.may_have_rules_for_id(id),
+        None => false
+    }
 }

@@ -25,6 +25,7 @@
 
 class ContentUnbinder;
 class nsContentList;
+class nsLabelsNodeList;
 class nsDOMAttributeMap;
 class nsDOMTokenList;
 class nsIControllers;
@@ -60,6 +61,7 @@ public:
   // nsIWeakReference
   NS_DECL_NSIWEAKREFERENCE
   virtual size_t SizeOfOnlyThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
+  virtual bool IsAlive() const override { return mNode != nullptr; }
 
   void NoticeNodeDestruction()
   {
@@ -312,6 +314,11 @@ public:
      * An object implementing the .classList property for this element.
      */
     RefPtr<nsDOMTokenList> mClassList;
+
+    /*
+     * An object implementing the .labels property for this element.
+     */
+    RefPtr<nsLabelsNodeList> mLabelsList;
 
     /**
      * ShadowRoot bound to the element.

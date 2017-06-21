@@ -6,7 +6,7 @@ use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
 use canvas_traits::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
-use cssparser::{Parser, RGBA};
+use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -34,10 +34,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::imagedata::ImageData;
 use dom::node::{document_from_node, Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
-use euclid::matrix2d::Matrix2D;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D, vec2};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
@@ -82,7 +79,7 @@ struct CanvasContextState {
     line_cap: LineCapStyle,
     line_join: LineJoinStyle,
     miter_limit: f64,
-    transform: Matrix2D<f32>,
+    transform: Transform2D<f32>,
     shadow_offset_x: f64,
     shadow_offset_y: f64,
     shadow_blur: f64,
@@ -102,7 +99,7 @@ impl CanvasContextState {
             line_cap: LineCapStyle::Butt,
             line_join: LineJoinStyle::Miter,
             miter_limit: 10.0,
-            transform: Matrix2D::identity(),
+            transform: Transform2D::identity(),
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
@@ -434,7 +431,7 @@ impl CanvasRenderingContext2D {
 
         let image_size = Size2D::new(img.width as i32, img.height as i32);
         let image_data = match img.format {
-            PixelFormat::RGBA8 => img.bytes.to_vec(),
+            PixelFormat::BGRA8 => img.bytes.to_vec(),
             PixelFormat::K8 => panic!("K8 color type not supported"),
             PixelFormat::RGB8 => panic!("RGB8 color type not supported"),
             PixelFormat::KA8 => panic!("KA8 color type not supported"),
@@ -463,7 +460,8 @@ impl CanvasRenderingContext2D {
     }
 
     fn parse_color(&self, string: &str) -> Result<RGBA, ()> {
-        let mut parser = Parser::new(&string);
+        let mut input = ParserInput::new(string);
+        let mut parser = Parser::new(&mut input);
         let color = CSSColor::parse(&mut parser);
         if parser.is_exhausted() {
             match color {
@@ -558,7 +556,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.pre_scaled(x as f32, y as f32);
+        self.state.borrow_mut().transform = transform.pre_scale(x as f32, y as f32);
         self.update_transform()
     }
 
@@ -571,7 +569,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let (sin, cos) = (angle.sin(), angle.cos());
         let transform = self.state.borrow().transform;
         self.state.borrow_mut().transform = transform.pre_mul(
-            &Matrix2D::row_major(cos as f32, sin as f32,
+            &Transform2D::row_major(cos as f32, sin as f32,
                                  -sin as f32, cos as f32,
                                  0.0, 0.0));
         self.update_transform()
@@ -584,7 +582,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.pre_translated(x as f32, y as f32);
+        self.state.borrow_mut().transform = transform.pre_translate(vec2(x as f32, y as f32));
         self.update_transform()
     }
 
@@ -597,7 +595,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         let transform = self.state.borrow().transform;
         self.state.borrow_mut().transform = transform.pre_mul(
-            &Matrix2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32));
+            &Transform2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32));
         self.update_transform()
     }
 
@@ -609,13 +607,13 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         self.state.borrow_mut().transform =
-            Matrix2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32);
+            Transform2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32);
         self.update_transform()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
     fn ResetTransform(&self) {
-        self.state.borrow_mut().transform = Matrix2D::identity();
+        self.state.borrow_mut().transform = Transform2D::identity();
         self.update_transform()
     }
 
@@ -1078,7 +1076,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                      dirty_width: Finite<f64>,
                      dirty_height: Finite<f64>) {
         let data = imagedata.get_data_array();
-        let offset = Point2D::new(*dx, *dy);
+        let offset = Vector2D::new(*dx, *dy);
         let image_data_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
 
         let dirty_rect = Rect::new(Point2D::new(*dirty_x, *dirty_y),
@@ -1139,18 +1137,18 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
-                try!(self.fetch_image_data(image).ok_or(Error::InvalidState))
+                self.fetch_image_data(image).ok_or(Error::InvalidState)?
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(ref canvas) => {
                 let _ = canvas.get_or_init_2d_context();
 
-                try!(canvas.fetch_all_data().ok_or(Error::InvalidState))
+                canvas.fetch_all_data().ok_or(Error::InvalidState)?
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(ref context) => {
                 let canvas = context.Canvas();
                 let _ = canvas.get_or_init_2d_context();
 
-                try!(canvas.fetch_all_data().ok_or(Error::InvalidState))
+                canvas.fetch_all_data().ok_or(Error::InvalidState)?
             }
         };
 
@@ -1314,7 +1312,8 @@ impl Drop for CanvasRenderingContext2D {
 }
 
 pub fn parse_color(string: &str) -> Result<RGBA, ()> {
-    let mut parser = Parser::new(&string);
+    let mut input = ParserInput::new(string);
+    let mut parser = Parser::new(&mut input);
     match CSSColor::parse(&mut parser) {
         Ok(CSSColor::RGBA(rgba)) => {
             if parser.is_exhausted() {

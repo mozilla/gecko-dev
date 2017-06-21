@@ -11,7 +11,6 @@ config = {
         'clone-tools',
         'checkout-sources',
         'build',
-        'generate-build-stats',
         'update',  # decided by query_is_nightly()
     ],
     "buildbot_json_path": "buildprops.json",
@@ -75,7 +74,6 @@ config = {
         'MINIDUMP_SAVE_PATH': '%(base_work_dir)s/minidumps',
     },
     'src_mozconfig': 'browser/config/mozconfigs/macosx64/nightly',
-    'tooltool_manifest_src': 'browser/config/tooltool-manifests/macosx64/cross-releng.manifest',
     'artifact_flag_build_variant_in_try': 'cross-artifact',
     #########################################################################
 }

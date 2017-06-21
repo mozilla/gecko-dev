@@ -6,8 +6,8 @@
 const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-/* import-globals-from ../../../../../testing/modules/sinon-1.16.1.js */
-Services.scriptloader.loadSubScript("resource://testing-common/sinon-1.16.1.js");
+/* global sinon */
+Services.scriptloader.loadSubScript("resource://testing-common/sinon-2.3.2.js");
 
 const TEST_QUOTA_USAGE_HOST = "example.com";
 const TEST_QUOTA_USAGE_ORIGIN = "https://" + TEST_QUOTA_USAGE_HOST;
@@ -89,8 +89,6 @@ function promiseCookiesCleared() {
 
 registerCleanupFunction(function() {
   delete window.sinon;
-  delete window.setImmediate;
-  delete window.clearImmediate;
   mockOfflineAppCacheHelper.unregister();
 });
 
@@ -111,8 +109,8 @@ add_task(async function() {
   await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
   await updatedPromise;
   await openSiteDataSettingsDialog();
-  let doc = gBrowser.selectedBrowser.contentDocument;
-  let dialogFrame = doc.getElementById("dialogFrame");
+  let dialog = content.gSubDialog._topDialog;
+  let dialogFrame = dialog._frame;
   let frameDoc = dialogFrame.contentDocument;
 
   let siteItems = frameDoc.getElementsByTagName("richlistitem");
@@ -280,8 +278,8 @@ add_task(async function() {
   await updatePromise;
   await openSiteDataSettingsDialog();
 
-  let doc = gBrowser.selectedBrowser.contentDocument;
-  let dialogFrame = doc.getElementById("dialogFrame");
+  let dialog = content.gSubDialog._topDialog;
+  let dialogFrame = dialog._frame;
   let frameDoc = dialogFrame.contentDocument;
   let hostCol = frameDoc.getElementById("hostCol");
   let usageCol = frameDoc.getElementById("usageCol");
@@ -406,7 +404,7 @@ add_task(async function() {
   await openSiteDataSettingsDialog();
 
   let doc = gBrowser.selectedBrowser.contentDocument;
-  let frameDoc = doc.getElementById("dialogFrame").contentDocument;
+  let frameDoc = content.gSubDialog._topDialog._frame.contentDocument;
   let searchBox = frameDoc.getElementById("searchBox");
 
   searchBox.value = "xyz";

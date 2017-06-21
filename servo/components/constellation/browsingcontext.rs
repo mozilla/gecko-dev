@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::size::TypedSize2D;
+use euclid::TypedSize2D;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, PipelineId};
 use pipeline::Pipeline;
 use script_traits::LoadData;
@@ -95,6 +95,11 @@ impl BrowsingContext {
         self.pipeline_id = pipeline_id;
         self.instant = entry.instant;
         self.load_data = entry.load_data;
+    }
+
+    /// Is this a top-level browsing context?
+    pub fn is_top_level(&self) -> bool {
+        self.id == self.top_level_id
     }
 }
 

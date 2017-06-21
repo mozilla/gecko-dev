@@ -55,7 +55,7 @@ ToCanonicalSupports(nsISupports* aSupports)
 class nsAutoOwningThread
 {
 public:
-  nsAutoOwningThread() { mThread = PR_GetCurrentThread(); }
+  nsAutoOwningThread();
 
   // We move the actual assertion checks out-of-line to minimize code bloat,
   // but that means we have to pass a non-literal string to
@@ -960,6 +960,8 @@ NS_IMETHODIMP _class::QueryInterface(REFNSIID aIID, void** aInstancePtr)      \
   NS_INTERFACE_TABLE_END
 
 #define NS_INTERFACE_TABLE(aClass, ...)                                       \
+  static_assert(MOZ_ARG_COUNT(__VA_ARGS__) > 0,                               \
+                "Need more arguments to NS_INTERFACE_TABLE");                 \
   NS_INTERFACE_TABLE_BEGIN                                                    \
     MOZ_FOR_EACH(NS_INTERFACE_TABLE_ENTRY, (aClass,), (__VA_ARGS__))          \
     NS_INTERFACE_TABLE_ENTRY_AMBIGUOUS(aClass, nsISupports,                   \
@@ -1040,6 +1042,8 @@ NS_IMETHODIMP_(MozExternalRefCountType) Class::Release(void)                  \
 #define NS_INTERFACE_TABLE_INHERITED0(Class) /* Nothing to do here */
 
 #define NS_INTERFACE_TABLE_INHERITED(aClass, ...)                             \
+  static_assert(MOZ_ARG_COUNT(__VA_ARGS__) > 0,                               \
+                "Need more arguments to NS_INTERFACE_TABLE_INHERITED");       \
   NS_INTERFACE_TABLE_BEGIN                                                    \
     MOZ_FOR_EACH(NS_INTERFACE_TABLE_ENTRY, (aClass,), (__VA_ARGS__))          \
   NS_INTERFACE_TABLE_END

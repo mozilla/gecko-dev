@@ -8,7 +8,7 @@
 use cssparser::{Parser, serialize_identifier};
 use parser::{Parse, ParserContext};
 use std::{fmt, mem, usize};
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent};
 use values::computed::{self, ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::Integer;
@@ -24,7 +24,7 @@ pub struct GridLine {
     /// A custom identifier for named lines.
     ///
     /// https://drafts.csswg.org/css-grid/#grid-placement-slot
-    pub ident: Option<String>,
+    pub ident: Option<CustomIdent>,
     /// Denotes the nth grid line from grid item's placement.
     pub line_num: Option<Integer>,
 }
@@ -62,7 +62,7 @@ impl ToCss for GridLine {
 
         if let Some(ref s) = self.ident {
             dest.write_str(" ")?;
-            serialize_identifier(s, dest)?;
+            s.to_css(dest)?;
         }
 
         Ok(())
@@ -70,7 +70,7 @@ impl ToCss for GridLine {
 }
 
 impl Parse for GridLine {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let mut grid_line = Default::default();
         if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(grid_line)
@@ -85,7 +85,7 @@ impl Parse for GridLine {
         for _ in 0..3 {     // Maximum possible entities for <grid-line>
             if input.try(|i| i.expect_ident_matching("span")).is_ok() {
                 if grid_line.is_span {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
 
                 if grid_line.line_num.is_some() || grid_line.ident.is_some() {
@@ -95,35 +95,33 @@ impl Parse for GridLine {
                 grid_line.is_span = true;
             } else if let Ok(i) = input.try(|i| Integer::parse(context, i)) {
                 if i.value() == 0 || val_before_span || grid_line.line_num.is_some() {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
 
                 grid_line.line_num = Some(i);
             } else if let Ok(name) = input.try(|i| i.expect_ident()) {
-                if val_before_span || grid_line.ident.is_some() ||
-                   CustomIdent::from_ident((&*name).into(), &[]).is_err() {
-                    return Err(())
+                if val_before_span || grid_line.ident.is_some() {
+                    return Err(StyleParseError::UnspecifiedError.into());
                 }
-
-                grid_line.ident = Some(name.into_owned());
+                grid_line.ident = Some(CustomIdent::from_ident(name, &[])?);
             } else {
                 break
             }
         }
 
         if grid_line.is_auto() {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
 
         if grid_line.is_span {
             if let Some(i) = grid_line.line_num {
                 if i.value() <= 0 {       // disallow negative integers for grid spans
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
             } else if grid_line.ident.is_some() {       // integer could be omitted
                 grid_line.line_num = Some(Integer::new(1));
             } else {
-                return Err(())
+                return Err(StyleParseError::UnspecifiedError.into())
             }
         }
 
@@ -329,8 +327,8 @@ pub fn concat_serialize_idents<W>(prefix: &str, suffix: &str,
 /// The initial argument of the `repeat` function.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-repeat
-#[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
 pub enum RepeatCount {
     /// A positive integer. This is allowed only for `<track-repeat>` and `<fixed-repeat>`
     Number(Integer),
@@ -340,29 +338,18 @@ pub enum RepeatCount {
     AutoFit,
 }
 
-impl ToCss for RepeatCount {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            RepeatCount::Number(ref c) => c.to_css(dest),
-            RepeatCount::AutoFill => dest.write_str("auto-fill"),
-            RepeatCount::AutoFit => dest.write_str("auto-fit"),
-        }
-    }
-}
-
 impl Parse for RepeatCount {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(i) = input.try(|i| Integer::parse(context, i)) {
             if i.value() > 0 {
                 Ok(RepeatCount::Number(i))
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
         } else {
-            match_ignore_ascii_case! { &input.expect_ident()?,
+            try_match_ident_ignore_ascii_case! { input.expect_ident()?,
                 "auto-fill" => Ok(RepeatCount::AutoFill),
                 "auto-fit" => Ok(RepeatCount::AutoFit),
-                _ => Err(()),
             }
         }
     }

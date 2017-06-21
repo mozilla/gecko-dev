@@ -1400,14 +1400,13 @@ VerifyCertAtTime(nsIX509Cert* aCert,
   SECOidTag evOidPolicy;
   mozilla::pkix::Result result;
 
-  const nsCString& flatHostname = PromiseFlatCString(aHostname);
   if (!aHostname.IsVoid() && aUsage == certificateUsageSSLServer) {
     result = certVerifier->VerifySSLServerCert(nssCert,
                                                nullptr, // stapledOCSPResponse
                                                nullptr, // sctsFromTLSExtension
                                                aTime,
                                                nullptr, // Assume no context
-                                               flatHostname.get(),
+                                               aHostname,
                                                resultChain,
                                                nullptr, // no peerCertChain
                                                false, // don't save intermediates
@@ -1415,6 +1414,7 @@ VerifyCertAtTime(nsIX509Cert* aCert,
                                                OriginAttributes(),
                                                &evOidPolicy);
   } else {
+    const nsCString& flatHostname = PromiseFlatCString(aHostname);
     result = certVerifier->VerifyCert(nssCert.get(), aUsage, aTime,
                                       nullptr, // Assume no context
                                       aHostname.IsVoid() ? nullptr
@@ -1492,7 +1492,8 @@ public:
     , mFlags(aFlags)
     , mHostname(aHostname)
     , mTime(aTime)
-    , mCallback(new nsMainThreadPtrHolder<nsICertVerificationCallback>(aCallback))
+    , mCallback(new nsMainThreadPtrHolder<nsICertVerificationCallback>(
+        "nsICertVerificationCallback", aCallback))
     , mPRErrorCode(SEC_ERROR_LIBRARY_FAILURE)
     , mVerifiedCertList(nullptr)
     , mHasEVPolicy(false)

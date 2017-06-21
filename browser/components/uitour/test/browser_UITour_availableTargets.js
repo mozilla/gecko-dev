@@ -5,6 +5,10 @@ var gContentAPI;
 var gContentWindow;
 
 var hasPocket = Services.prefs.getBoolPref("extensions.pocket.enabled");
+var isPhoton = Services.prefs.getBoolPref("browser.photon.structure.enabled");
+var hasQuit = !isPhoton ||
+              AppConstants.platform != "macosx";
+var hasLibrary = isPhoton || false;
 
 requestLongerTimeout(2);
 add_task(setup_UITourTest);
@@ -18,12 +22,13 @@ add_UITour_task(async function test_availableTargets() {
     "backForward",
     "bookmarks",
     "customize",
+    "devtools",
     "help",
     "home",
-    "devtools",
+      ...(hasLibrary ? ["library"] : []),
       ...(hasPocket ? ["pocket"] : []),
     "privateWindow",
-    "quit",
+      ...(hasQuit ? ["quit"] : []),
     "readerMode-urlBar",
     "search",
     "searchIcon",
@@ -49,9 +54,10 @@ add_UITour_task(async function test_availableTargets_changeWidgets() {
     "help",
     "devtools",
     "home",
+      ...(hasLibrary ? ["library"] : []),
       ...(hasPocket ? ["pocket"] : []),
     "privateWindow",
-    "quit",
+      ...(hasQuit ? ["quit"] : []),
     "readerMode-urlBar",
     "search",
     "searchIcon",
@@ -79,12 +85,13 @@ add_UITour_task(async function test_availableTargets_exceptionFromGetTarget() {
     "backForward",
     "bookmarks",
     "customize",
+    "devtools",
     "help",
     "home",
-    "devtools",
+      ...(hasLibrary ? ["library"] : []),
       ...(hasPocket ? ["pocket"] : []),
     "privateWindow",
-    "quit",
+      ...(hasQuit ? ["quit"] : []),
     "readerMode-urlBar",
     "trackingProtection",
     "urlbar",

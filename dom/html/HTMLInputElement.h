@@ -735,6 +735,8 @@ public:
 
   // XPCOM GetCustomVisibility() is OK
 
+  already_AddRefed<nsINodeList> GetLabels();
+
   // XPCOM Select() is OK
 
   Nullable<uint32_t> GetSelectionStart(ErrorResult& aRv);
@@ -835,6 +837,12 @@ public:
    * or blurred.
    */
   void SetFocusState(bool aIsFocused);
+
+  /*
+   * Called from datetime input box binding when the the user entered value
+   * becomes valid/invalid.
+   */
+  void UpdateValidityState();
 
   HTMLInputElement* GetOwnerNumberControl();
 
@@ -940,9 +948,19 @@ protected:
    * Setting the value.
    *
    * @param aValue      String to set.
+   * @param aOldValue   Previous value before setting aValue.
+                        If previous value is unknown, aOldValue can be nullptr.
    * @param aFlags      See nsTextEditorState::SetValueFlags.
    */
-  nsresult SetValueInternal(const nsAString& aValue, uint32_t aFlags);
+  nsresult SetValueInternal(const nsAString& aValue,
+                            const nsAString* aOldValue,
+                            uint32_t aFlags);
+
+  nsresult SetValueInternal(const nsAString& aValue,
+                            uint32_t aFlags)
+  {
+    return SetValueInternal(aValue, nullptr, aFlags);
+  }
 
   // Generic getter for the value that doesn't do experimental control type
   // sanitization.
@@ -1127,7 +1145,7 @@ protected:
    */
   nsresult SetDefaultValueAsValue();
 
-  virtual void SetDirectionIfAuto(bool aAuto, bool aNotify);
+  void SetDirectionFromValue(bool aNotify);
 
   /**
    * Return if an element should have a specific validity UI
@@ -1613,7 +1631,8 @@ private:
     return IsSingleLineTextControl(false, aType) ||
            aType == NS_FORM_INPUT_RANGE ||
            aType == NS_FORM_INPUT_NUMBER ||
-           aType == NS_FORM_INPUT_TIME;
+           aType == NS_FORM_INPUT_TIME ||
+           aType == NS_FORM_INPUT_DATE;
   }
 
   /**

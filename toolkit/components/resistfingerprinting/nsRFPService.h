@@ -6,9 +6,19 @@
 #ifndef __nsRFPService_h__
 #define __nsRFPService_h__
 
+#include "mozilla/Atomics.h"
 #include "nsIObserver.h"
 
 #include "nsString.h"
+
+// Defines regarding spoofed values of Navigator object. These spoofed values
+// are returned when 'privacy.resistFingerprinting' is true.
+#define SPOOFED_APPNAME    "Netscape"
+#define SPOOFED_APPVERSION "5.0 (Windows)"
+#define SPOOFED_OSCPU      "Windows NT 6.1"
+#define SPOOFED_PLATFORM   "Win32"
+
+#define LEGACY_BUILD_ID    "20100101"
 
 namespace mozilla {
 
@@ -24,6 +34,11 @@ public:
     return sPrivacyResistFingerprinting;
   }
 
+  // The following Reduce methods can be called off main thread.
+  static double ReduceTimePrecisionAsMSecs(double aTime);
+  static double ReduceTimePrecisionAsUSecs(double aTime);
+  static double ReduceTimePrecisionAsSecs(double aTime);
+
 private:
   nsresult Init();
 
@@ -34,7 +49,7 @@ private:
   void UpdatePref();
   void StartShutdown();
 
-  static bool sPrivacyResistFingerprinting;
+  static Atomic<bool, ReleaseAcquire> sPrivacyResistFingerprinting;
 
   nsCString mInitialTZValue;
 };

@@ -27,6 +27,10 @@ pub enum Image<Gradient, ImageRect> {
     Rect(ImageRect),
     /// A `-moz-element(# <element-id>)`
     Element(Atom),
+    /// A paint worklet image.
+    /// https://drafts.css-houdini.org/css-paint-api/
+    #[cfg(feature = "servo")]
+    PaintWorklet(PaintWorklet),
 }
 
 /// A CSS gradient.
@@ -65,7 +69,7 @@ pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position> {
 }
 
 /// A radial gradient's ending shape.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum EndingShape<Length, LengthOrPercentage> {
     /// A circular gradient.
@@ -85,7 +89,7 @@ pub enum Circle<Length> {
 }
 
 /// An ellipse shape.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Ellipse<LengthOrPercentage> {
     /// An ellipse pair of radii.
@@ -108,8 +112,8 @@ impl ComputedValueAsSpecified for ShapeExtent {}
 
 /// A gradient item.
 /// https://drafts.csswg.org/css-images-4/#color-stop-syntax
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 pub enum GradientItem<Color, LengthOrPercentage> {
     /// A color stop.
     ColorStop(ColorStop<Color, LengthOrPercentage>),
@@ -126,6 +130,23 @@ pub struct ColorStop<Color, LengthOrPercentage> {
     pub color: Color,
     /// The position of this stop.
     pub position: Option<LengthOrPercentage>,
+}
+
+/// Specified values for a paint worklet.
+/// https://drafts.css-houdini.org/css-paint-api/
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct PaintWorklet {
+    /// The name the worklet was registered with.
+    pub name: Atom,
+}
+
+impl ToCss for PaintWorklet {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("paint(")?;
+        serialize_identifier(&*self.name.to_string(), dest)?;
+        dest.write_str(")")
+    }
 }
 
 /// Values for `moz-image-rect`.
@@ -150,6 +171,8 @@ impl<G, R> fmt::Debug for Image<G, R>
             Image::Url(ref url) => url.to_css(f),
             Image::Gradient(ref grad) => grad.fmt(f),
             Image::Rect(ref rect) => rect.fmt(f),
+            #[cfg(feature = "servo")]
+            Image::PaintWorklet(ref paint_worklet) => paint_worklet.fmt(f),
             Image::Element(ref selector) => {
                 f.write_str("-moz-element(#")?;
                 serialize_identifier(&selector.to_string(), f)?;
@@ -167,6 +190,8 @@ impl<G, R> ToCss for Image<G, R>
             Image::Url(ref url) => url.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest),
             Image::Rect(ref rect) => rect.to_css(dest),
+            #[cfg(feature = "servo")]
+            Image::PaintWorklet(ref paint_worklet) => paint_worklet.to_css(dest),
             Image::Element(ref selector) => {
                 dest.write_str("-moz-element(#")?;
                 serialize_identifier(&selector.to_string(), dest)?;
@@ -260,41 +285,26 @@ pub trait LineDirection {
         where W: fmt::Write;
 }
 
-impl<L, LoP> ToCss for EndingShape<L, LoP>
-    where L: ToCss, LoP: ToCss,
+impl<L> ToCss for Circle<L>
+where
+    L: ToCss,
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         match *self {
-            EndingShape::Circle(Circle::Extent(ShapeExtent::FarthestCorner)) |
-            EndingShape::Circle(Circle::Extent(ShapeExtent::Cover)) => {
+            Circle::Extent(ShapeExtent::FarthestCorner) |
+            Circle::Extent(ShapeExtent::Cover) => {
                 dest.write_str("circle")
             },
-            EndingShape::Circle(Circle::Extent(keyword)) => {
+            Circle::Extent(keyword) => {
                 dest.write_str("circle ")?;
                 keyword.to_css(dest)
             },
-            EndingShape::Circle(Circle::Radius(ref length)) => {
+            Circle::Radius(ref length) => {
                 length.to_css(dest)
             },
-            EndingShape::Ellipse(Ellipse::Extent(keyword)) => {
-                keyword.to_css(dest)
-            },
-            EndingShape::Ellipse(Ellipse::Radii(ref x, ref y)) => {
-                x.to_css(dest)?;
-                dest.write_str(" ")?;
-                y.to_css(dest)
-            },
-        }
-    }
-}
-
-impl<C, L> ToCss for GradientItem<C, L>
-    where C: ToCss, L: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            GradientItem::ColorStop(ref stop) => stop.to_css(dest),
-            GradientItem::InterpolationHint(ref hint) => hint.to_css(dest),
         }
     }
 }

@@ -314,12 +314,12 @@ public:
   virtual void MarkIntrinsicISizesDirty() override;
   // For border-collapse tables, the caller must not add padding and
   // border to the results of these functions.
-  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) override;
-  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) override;
+  virtual nscoord GetMinISize(gfxContext *aRenderingContext) override;
+  virtual nscoord GetPrefISize(gfxContext *aRenderingContext) override;
   virtual IntrinsicISizeOffsetData IntrinsicISizeOffsets() override;
 
   virtual mozilla::LogicalSize
-  ComputeSize(nsRenderingContext*         aRenderingContext,
+  ComputeSize(gfxContext*                 aRenderingContext,
               mozilla::WritingMode        aWM,
               const mozilla::LogicalSize& aCBSize,
               nscoord                     aAvailableISize,
@@ -329,7 +329,7 @@ public:
               ComputeSizeFlags            aFlags) override;
 
   virtual mozilla::LogicalSize
-  ComputeAutoSize(nsRenderingContext*         aRenderingContext,
+  ComputeAutoSize(gfxContext*                 aRenderingContext,
                   mozilla::WritingMode        aWM,
                   const mozilla::LogicalSize& aCBSize,
                   nscoord                     aAvailableISize,
@@ -342,7 +342,7 @@ public:
    * A copy of nsFrame::ShrinkWidthToFit that calls a different
    * GetPrefISize, since tables have two different ones.
    */
-  nscoord TableShrinkISizeToFit(nsRenderingContext *aRenderingContext,
+  nscoord TableShrinkISizeToFit(gfxContext *aRenderingContext,
                                 nscoord aWidthInCB);
 
   // XXXldb REWRITE THIS COMMENT!
@@ -593,12 +593,16 @@ public:
 
   virtual bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) override;
 
-  // Update the style of our table wrapper frame.
-  virtual void DoUpdateStyleOfOwnedAnonBoxes(
-    mozilla::ServoStyleSet& aStyleSet,
-    nsStyleChangeList& aChangeList,
-    nsChangeHint aHintForThisFrame) override;
+  // Return our wrapper frame.
+  void AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult) override;
+
 protected:
+  static void UpdateStyleOfOwnedAnonBoxesForTableWrapper(
+      nsIFrame* aOwningFrame,
+      nsIFrame* aWrapperFrame,
+      mozilla::ServoStyleSet& aStyleSet,
+      nsStyleChangeList& aChangeList,
+      nsChangeHint aHintForThisFrame);
 
   /** protected constructor.
     * @see NewFrame
@@ -635,7 +639,7 @@ protected:
   // This calls the col group and column reflow methods, which do two things:
   //  (1) set all the dimensions to 0
   //  (2) notify the table about colgroups or columns with hidden visibility
-  void ReflowColGroups(nsRenderingContext* aRenderingContext);
+  void ReflowColGroups(gfxContext* aRenderingContext);
 
   /** return the isize of the table taking into account visibility collapse
     * on columns and colgroups
@@ -762,6 +766,13 @@ public:
 
   bool NeedToCollapse() const;
   void SetNeedToCollapse(bool aValue);
+
+  bool NeedToCalcHasBCBorders() const;
+  void SetNeedToCalcHasBCBorders(bool aValue);
+
+  void CalcHasBCBorders();
+  bool HasBCBorders();
+  void SetHasBCBorders(bool aValue);
 
   /** The GeometryDirty bit is similar to the NS_FRAME_IS_DIRTY frame
     * state bit, which implies that all descendants are dirty.  The
@@ -903,6 +914,8 @@ protected:
     uint32_t mIStartContBCBorder:8;
     uint32_t mNeedToCollapse:1;        // rows, cols that have visibility:collapse need to be collapsed
     uint32_t mResizedColumns:1;        // have we resized columns since last reflow?
+    uint32_t mNeedToCalcHasBCBorders:1;
+    uint32_t mHasBCBorders:1;
   } mBits;
 
   std::map<int32_t, int32_t> mDeletedRowIndexRanges; // maintains ranges of row
@@ -998,6 +1011,30 @@ inline bool nsTableFrame::NeedToCalcBCBorders() const
 inline void nsTableFrame::SetNeedToCalcBCBorders(bool aValue)
 {
   mBits.mNeedToCalcBCBorders = (unsigned)aValue;
+}
+
+inline bool nsTableFrame::NeedToCalcHasBCBorders() const
+{
+  return (bool)mBits.mNeedToCalcHasBCBorders;
+}
+
+inline void nsTableFrame::SetNeedToCalcHasBCBorders(bool aValue)
+{
+  mBits.mNeedToCalcHasBCBorders = (unsigned)aValue;
+}
+
+inline bool nsTableFrame::HasBCBorders()
+{
+  if (NeedToCalcHasBCBorders()) {
+    CalcHasBCBorders();
+    SetNeedToCalcHasBCBorders(false);
+  }
+  return (bool)mBits.mHasBCBorders;
+}
+
+inline void nsTableFrame::SetHasBCBorders(bool aValue)
+{
+  mBits.mHasBCBorders = (unsigned)aValue;
 }
 
 inline nscoord

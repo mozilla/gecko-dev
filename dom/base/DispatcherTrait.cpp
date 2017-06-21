@@ -21,11 +21,10 @@ DispatcherTrait::Dispatch(const char* aName,
   return SchedulerGroup::UnlabeledDispatch(aName, aCategory, Move(aRunnable));
 }
 
-nsIEventTarget*
+nsISerialEventTarget*
 DispatcherTrait::EventTargetFor(TaskCategory aCategory) const
 {
-  nsCOMPtr<nsIEventTarget> main = do_GetMainThread();
-  return main;
+  return GetMainThreadSerialEventTarget();
 }
 
 AbstractThread*

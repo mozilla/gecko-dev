@@ -67,13 +67,12 @@
 #define PROGRESS_EXECUTE_SIZE 75.0f
 #define PROGRESS_FINISH_SIZE   5.0f
 
-// Amount of time in ms to wait for the parent process to close
-#ifdef DEBUG
-// Use a large value for debug builds since the xpcshell tests take a long time.
-#define PARENT_WAIT 30000
-#else
-#define PARENT_WAIT 10000
-#endif
+// Maximum amount of time in ms to wait for the parent process to close. The
+// value should be the same or larger than the application's watchdog timeout
+// which is 60 seconds plus 3 additional seconds (see nsTerminator.cpp). This
+// makes it so when the application has a shutdown hang it won't break launching
+// the application after it has been updated.
+#define PARENT_WAIT 70000
 
 #if defined(XP_MACOSX)
 // These functions are defined in launchchild_osx.mm
@@ -215,6 +214,34 @@ struct MARChannelStringTable {
 
   char MARChannelID[MAX_TEXT_LEN];
 };
+
+//-----------------------------------------------------------------------------
+
+#ifdef XP_MACOSX
+
+// Just a simple class that sets a umask value in its constructor and resets
+// it in its destructor.
+class UmaskContext
+{
+public:
+  explicit UmaskContext(mode_t umaskToSet);
+  ~UmaskContext();
+
+private:
+  mode_t mPreviousUmask;
+};
+
+UmaskContext::UmaskContext(mode_t umaskToSet)
+{
+  mPreviousUmask = umask(umaskToSet);
+}
+
+UmaskContext::~UmaskContext()
+{
+  umask(mPreviousUmask);
+}
+
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -2671,6 +2698,11 @@ int NS_main(int argc, NS_tchar **argv)
   const int callbackIndex = 6;
 
 #ifdef XP_MACOSX
+  // We want to control file permissions explicitly, or else we could end up
+  // corrupting installs for other users on the system. Accordingly, set the
+  // umask to 0 for all file creations below and reset it on exit. See Bug 1337007
+  UmaskContext umaskContext(0);
+
   bool isElevated =
     strstr(argv[0], "/Library/PrivilegedHelperTools/org.mozilla.updater") != 0;
   if (isElevated) {

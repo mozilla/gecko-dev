@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use {ColorU, ColorF, LayoutPoint};
+use std::sync::Arc;
 
 #[cfg(target_os = "macos")] use core_foundation::string::CFString;
 #[cfg(target_os = "macos")] use core_graphics::font::CGFont;
@@ -25,8 +26,8 @@ impl Serialize for NativeFontHandle {
 }
 
 #[cfg(target_os = "macos")]
-impl Deserialize for NativeFontHandle {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer {
+impl<'de> Deserialize<'de> for NativeFontHandle {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
         let postscript_name: String = try!(Deserialize::deserialize(deserializer));
 
         match CGFont::from_name(&CFString::new(&*postscript_name)) {
@@ -61,6 +62,13 @@ impl FontKey {
     pub fn new(key0: u32, key1: u32) -> FontKey {
         FontKey(key0, key1)
     }
+}
+
+
+#[derive(Clone)]
+pub enum FontTemplate {
+    Raw(Arc<Vec<u8>>, u32),
+    Native(NativeFontHandle),
 }
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Ord, PartialOrd)]

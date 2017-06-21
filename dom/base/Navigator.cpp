@@ -33,6 +33,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "BatteryManager.h"
+#include "mozilla/dom/CredentialsContainer.h"
 #include "mozilla/dom/GamepadServiceTest.h"
 #include "mozilla/dom/PowerManager.h"
 #include "mozilla/dom/WakeLock.h"
@@ -48,7 +49,6 @@
 #include "mozilla/dom/VRDisplay.h"
 #include "mozilla/dom/VRDisplayEvent.h"
 #include "mozilla/dom/VRServiceTest.h"
-#include "mozilla/dom/WebAuthentication.h"
 #include "mozilla/dom/workers/RuntimeService.h"
 #include "mozilla/Hal.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -61,6 +61,7 @@
 #include "nsIPermissionManager.h"
 #include "nsMimeTypes.h"
 #include "nsNetUtil.h"
+#include "nsRFPService.h"
 #include "nsStringStream.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIStringStream.h"
@@ -205,7 +206,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPowerManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mConnection)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStorageManager)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAuthentication)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCredentials)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaDevices)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTimeManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mServiceWorkerContainer)
@@ -465,6 +466,13 @@ Navigator::GetOscpu(nsAString& aOSCPU, CallerType aCallerType,
                     ErrorResult& aRv) const
 {
   if (aCallerType != CallerType::System) {
+    // If fingerprinting resistance is on, we will spoof this value. See nsRFPService.h
+    // for details about spoofed values.
+    if (nsContentUtils::ShouldResistFingerprinting()) {
+      aOSCPU.AssignLiteral(SPOOFED_OSCPU);
+      return;
+    }
+
     const nsAdoptingString& override =
       Preferences::GetString("general.oscpu.override");
 
@@ -517,7 +525,7 @@ NS_IMETHODIMP
 Navigator::GetProductSub(nsAString& aProductSub)
 {
   // Legacy build ID hardcoded for backward compatibility (bug 776376)
-  aProductSub.AssignLiteral("20100101");
+  aProductSub.AssignLiteral(LEGACY_BUILD_ID);
   return NS_OK;
 }
 
@@ -639,6 +647,12 @@ Navigator::GetBuildID(nsAString& aBuildID, CallerType aCallerType,
                       ErrorResult& aRv) const
 {
   if (aCallerType != CallerType::System) {
+    // If fingerprinting resistance is on, we will spoof this value. See nsRFPService.h
+    // for details about spoofed values.
+    if (nsContentUtils::ShouldResistFingerprinting()) {
+      aBuildID.AssignLiteral(LEGACY_BUILD_ID);
+      return;
+    }
     const nsAdoptingString& override =
       Preferences::GetString("general.buildID.override");
 
@@ -1769,6 +1783,12 @@ Navigator::GetPlatform(nsAString& aPlatform, bool aUsePrefOverriddenValue)
   MOZ_ASSERT(NS_IsMainThread());
 
   if (aUsePrefOverriddenValue) {
+    // If fingerprinting resistance is on, we will spoof this value. See nsRFPService.h
+    // for details about spoofed values.
+    if (nsContentUtils::ShouldResistFingerprinting()) {
+      aPlatform.AssignLiteral(SPOOFED_PLATFORM);
+      return NS_OK;
+    }
     const nsAdoptingString& override =
       mozilla::Preferences::GetString("general.platform.override");
 
@@ -1814,6 +1834,12 @@ Navigator::GetAppVersion(nsAString& aAppVersion, bool aUsePrefOverriddenValue)
   MOZ_ASSERT(NS_IsMainThread());
 
   if (aUsePrefOverriddenValue) {
+    // If fingerprinting resistance is on, we will spoof this value. See nsRFPService.h
+    // for details about spoofed values.
+    if (nsContentUtils::ShouldResistFingerprinting()) {
+      aAppVersion.AssignLiteral(SPOOFED_APPVERSION);
+      return NS_OK;
+    }
     const nsAdoptingString& override =
       mozilla::Preferences::GetString("general.appversion.override");
 
@@ -1851,6 +1877,13 @@ Navigator::AppName(nsAString& aAppName, bool aUsePrefOverriddenValue)
   MOZ_ASSERT(NS_IsMainThread());
 
   if (aUsePrefOverriddenValue) {
+    // If fingerprinting resistance is on, we will spoof this value. See nsRFPService.h
+    // for details about spoofed values.
+    if (nsContentUtils::ShouldResistFingerprinting()) {
+      aAppName.AssignLiteral(SPOOFED_APPNAME);
+      return;
+    }
+
     const nsAdoptingString& override =
       mozilla::Preferences::GetString("general.appname.override");
 
@@ -1876,7 +1909,10 @@ Navigator::GetUserAgent(nsPIDOMWindowInner* aWindow,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!aIsCallerChrome) {
+  // We will skip the override and pass to httpHandler to get spoofed userAgent
+  // when 'privacy.resistFingerprinting' is true.
+  if (!aIsCallerChrome &&
+      !nsContentUtils::ShouldResistFingerprinting()) {
     const nsAdoptingString& override =
       mozilla::Preferences::GetString("general.useragent.override");
 
@@ -1901,7 +1937,11 @@ Navigator::GetUserAgent(nsPIDOMWindowInner* aWindow,
 
   CopyASCIItoUTF16(ua, aUserAgent);
 
-  if (!aWindow) {
+  // When the caller is content, we will always return spoofed userAgent and
+  // ignore the User-Agent header from the document channel when
+  // 'privacy.resistFingerprinting' is true.
+  if (!aWindow ||
+      (nsContentUtils::ShouldResistFingerprinting() && !aIsCallerChrome)) {
     return NS_OK;
   }
 
@@ -2001,13 +2041,13 @@ Navigator::GetPresentation(ErrorResult& aRv)
   return mPresentation;
 }
 
-WebAuthentication*
-Navigator::Authentication()
+CredentialsContainer*
+Navigator::Credentials()
 {
-  if (!mAuthentication) {
-    mAuthentication = new WebAuthentication(GetWindow());
+  if (!mCredentials) {
+    mCredentials = new CredentialsContainer(GetWindow());
   }
-  return mAuthentication;
+  return mCredentials;
 }
 
 } // namespace dom

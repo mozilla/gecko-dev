@@ -129,7 +129,8 @@ nsFileCopyEvent::DoCopy()
 
     // Release the callback on the target thread to avoid destroying stuff on
     // the wrong thread.
-    NS_ProxyRelease(mCallbackTarget, mCallback.forget());
+    NS_ProxyRelease(
+      "nsFileCopyEvent::mCallback", mCallbackTarget, mCallback.forget());
   }
 }
 
@@ -251,7 +252,20 @@ nsFileUploadContentStream::OnCopyComplete()
 //-----------------------------------------------------------------------------
 
 nsFileChannel::nsFileChannel(nsIURI *uri) 
+  : mFileURI(uri)
 {
+}
+
+nsresult
+nsFileChannel::Init()
+{
+  NS_ENSURE_STATE(mLoadInfo);
+
+  nsresult rv;
+
+  rv = nsBaseChannel::Init();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   // If we have a link file, we should resolve its target right away.
   // This is to protect against a same origin attack where the same link file
   // can point to different resources right after the first resource is loaded.
@@ -264,24 +278,24 @@ nsFileChannel::nsFileChannel(nsIURI *uri)
 #endif
   nsCOMPtr<nsIFile> resolvedFile;
   bool symLink;
-  nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(uri);
-  if (fileURL && 
+  nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(mFileURI);
+  if (fileURL &&
       NS_SUCCEEDED(fileURL->GetFile(getter_AddRefs(file))) &&
-      NS_SUCCEEDED(file->IsSymlink(&symLink)) && 
+      NS_SUCCEEDED(file->IsSymlink(&symLink)) &&
       symLink &&
 #ifdef XP_WIN
       NS_SUCCEEDED(file->GetTarget(fileTarget)) &&
-      NS_SUCCEEDED(NS_NewLocalFile(fileTarget, PR_TRUE, 
+      NS_SUCCEEDED(NS_NewLocalFile(fileTarget, true,
                                    getter_AddRefs(resolvedFile))) &&
 #else
       NS_SUCCEEDED(file->GetNativeTarget(fileTarget)) &&
-      NS_SUCCEEDED(NS_NewNativeLocalFile(fileTarget, PR_TRUE, 
+      NS_SUCCEEDED(NS_NewNativeLocalFile(fileTarget, true,
                                          getter_AddRefs(resolvedFile))) &&
 #endif
-      NS_SUCCEEDED(NS_NewFileURI(getter_AddRefs(targetURI), 
-                   resolvedFile, nullptr))) {
+      NS_SUCCEEDED(NS_NewFileURI(getter_AddRefs(targetURI),
+                                 resolvedFile, nullptr))) {
     // Make an effort to match up the query strings.
-    nsCOMPtr<nsIURL> origURL = do_QueryInterface(uri);
+    nsCOMPtr<nsIURL> origURL = do_QueryInterface(mFileURI);
     nsCOMPtr<nsIURL> targetURL = do_QueryInterface(targetURI);
     nsAutoCString queryString;
     if (origURL && targetURL && NS_SUCCEEDED(origURL->GetQuery(queryString))) {
@@ -289,13 +303,13 @@ nsFileChannel::nsFileChannel(nsIURI *uri)
     }
 
     SetURI(targetURI);
-    SetOriginalURI(uri);
-    nsLoadFlags loadFlags = 0;
-    GetLoadFlags(&loadFlags);
-    SetLoadFlags(loadFlags | nsIChannel::LOAD_REPLACE);
+    SetOriginalURI(mFileURI);
+    mLoadInfo->SetResultPrincipalURI(targetURI);
   } else {
-    SetURI(uri);
+    SetURI(mFileURI);
   }
+
+  return NS_OK;
 }
 
 nsFileChannel::~nsFileChannel()

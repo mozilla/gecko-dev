@@ -15,7 +15,7 @@
     use properties::longhands::background_clip;
     use properties::longhands::background_clip::single_value::computed_value::T as Clip;
     use properties::longhands::background_origin::single_value::computed_value::T as Origin;
-    use values::specified::{CSSColor, Position, PositionComponent};
+    use values::specified::{Color, Position, PositionComponent};
     use parser::Parse;
 
     impl From<background_origin::single_value::SpecifiedValue> for background_clip::single_value::SpecifiedValue {
@@ -32,17 +32,18 @@
         }
     }
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut background_color = None;
 
         % for name in "image position_x position_y repeat size attachment origin clip".split():
             let mut background_${name} = background_${name}::SpecifiedValue(Vec::new());
         % endfor
-        try!(input.parse_comma_separated(|input| {
+        input.parse_comma_separated(|input| {
             // background-color can only be in the last element, so if it
             // is parsed anywhere before, the value is invalid.
             if background_color.is_some() {
-                return Err(());
+                return Err(StyleParseError::UnspecifiedError.into());
             }
 
             % for name in "image position repeat size attachment origin clip".split():
@@ -50,7 +51,7 @@
             % endfor
             loop {
                 if background_color.is_none() {
-                    if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+                    if let Ok(value) = input.try(|i| Color::parse(context, i)) {
                         background_color = Some(value);
                         continue
                     }
@@ -61,7 +62,7 @@
 
                         // Parse background size, if applicable.
                         size = input.try(|input| {
-                            try!(input.expect_delim('/'));
+                            input.expect_delim('/')?;
                             background_size::single_value::parse(context, input)
                         }).ok();
 
@@ -107,12 +108,12 @@
                 % endfor
                 Ok(())
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
-        }));
+        })?;
 
         Ok(expanded! {
-             background_color: background_color.unwrap_or(CSSColor::transparent()),
+             background_color: background_color.unwrap_or(Color::transparent()),
              background_image: background_image,
              background_position_x: background_position_x,
              background_position_y: background_position_y,
@@ -147,37 +148,37 @@
                 % endfor
 
                 if i != 0 {
-                    try!(write!(dest, ", "));
+                    write!(dest, ", ")?;
                 }
 
                 if i == len - 1 {
-                    try!(self.background_color.to_css(dest));
-                    try!(write!(dest, " "));
+                    self.background_color.to_css(dest)?;
+                    write!(dest, " ")?;
                 }
 
-                try!(image.to_css(dest));
+                image.to_css(dest)?;
                 % for name in "repeat attachment".split():
-                    try!(write!(dest, " "));
-                    try!(${name}.to_css(dest));
+                    write!(dest, " ")?;
+                    ${name}.to_css(dest)?;
                 % endfor
 
-                try!(write!(dest, " "));
+                write!(dest, " ")?;
                 Position {
                     horizontal: position_x.clone(),
                     vertical: position_y.clone()
                 }.to_css(dest)?;
 
                 if *size != background_size::single_value::get_initial_specified_value() {
-                    try!(write!(dest, " / "));
-                    try!(size.to_css(dest));
+                    write!(dest, " / ")?;
+                    size.to_css(dest)?;
                 }
 
                 if *origin != Origin::padding_box || *clip != Clip::border_box {
-                    try!(write!(dest, " "));
-                    try!(origin.to_css(dest));
+                    write!(dest, " ")?;
+                    origin.to_css(dest)?;
                     if *clip != From::from(*origin) {
-                        try!(write!(dest, " "));
-                        try!(clip.to_css(dest));
+                        write!(dest, " ")?;
+                        clip.to_css(dest)?;
                     }
                 }
             }
@@ -194,7 +195,8 @@
     use values::specified::AllowQuirks;
     use values::specified::position::Position;
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut position_x = background_position_x::SpecifiedValue(Vec::new());
         let mut position_y = background_position_y::SpecifiedValue(Vec::new());
         let mut any = false;
@@ -207,7 +209,7 @@
             Ok(())
         })?;
         if !any {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(expanded! {

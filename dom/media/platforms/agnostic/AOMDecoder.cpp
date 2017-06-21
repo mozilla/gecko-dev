@@ -221,10 +221,22 @@ AOMDecoder::IsAV1(const nsACString& aMimeType)
 
 /* static */
 bool
+AOMDecoder::IsSupportedCodec(const nsAString& aCodecType)
+{
+  // While AV1 is under development, we describe support
+  // for a specific aom commit hash so sites can check
+  // compatibility.
+  auto version = NS_ConvertASCIItoUTF16("av1.experimental.");
+  version.AppendLiteral("aadbb0251996c8ebb8310567bea330ab7ae9abe4");
+  return aCodecType.EqualsLiteral("av1") ||
+         aCodecType.Equals(version);
+}
+
+/* static */
+bool
 AOMDecoder::IsKeyframe(Span<const uint8_t> aBuffer) {
   aom_codec_stream_info_t info;
   PodZero(&info);
-  info.sz = sizeof(info);
 
   auto res = aom_codec_peek_stream_info(aom_codec_av1_dx(),
                                         aBuffer.Elements(),
@@ -243,7 +255,6 @@ nsIntSize
 AOMDecoder::GetFrameSize(Span<const uint8_t> aBuffer) {
   aom_codec_stream_info_t info;
   PodZero(&info);
-  info.sz = sizeof(info);
 
   auto res = aom_codec_peek_stream_info(aom_codec_av1_dx(),
                                         aBuffer.Elements(),

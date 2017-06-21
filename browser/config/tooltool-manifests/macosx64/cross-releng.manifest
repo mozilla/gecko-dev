@@ -24,13 +24,13 @@
     "filename": "MacOSX10.7.sdk.tar.bz2"
   },
   {
-    "version": "sccache rev d3aa1116844b50c03015266d2f48235509fa7deb",
+    "version": "sccache rev 9155425cfc038d6a60deb50816055f4e93b93ad1",
     "algorithm": "sha512",
     "visibility": "public",
     "filename": "sccache2.tar.xz",
     "unpack": true,
-    "digest": "fde0128b9a4df74f268f9d45748534d0314db0467ae22e36101df4a5374c36bb8676514e8b70254fb2e6f2a2d1224ff7ce498305223035d5f1e7e306fda2f5d5",
-    "size": 2179220
+    "digest": "da67d4a872f8d23ef0707e02a823e5a644f1988e605d2c46c787641c8c37ae4521ab7d83b1dc4c0cc52d203be6313c7f9580830845536fa7c2a521af9443f69a",
+    "size": 2192144
   },
   {
     "version": "https://github.com/mozilla/libdmg-hfsplus rev ba04b00435a0853f1499d751617177828ee8ec00",
@@ -42,9 +42,9 @@
     "filename": "dmg.tar.xz"
   },
   {
-    "version": "rustc 1.17.0 (56124baa9 2017-04-24) repack with cargo 0.19.0-beta.1 (03efb7fc8 2017-04-23)",
-    "size": 116855168,
-    "digest": "89e414870a398369c745e38e5ce757b98c8f0bbde0ea92ca9fa0a8a72d970e8575fe5493128c1b6b1134ed336c1a7265b1d1ea77fe3673e73a87d0b774f10fac",
+    "version": "rustc 1.18.0 (03fc9d622 2017-06-06) repack",
+    "size": 141005088,
+    "digest": "8c915059da3df885c4b26efa25431719a41a108adbc900f49ca51419fee30480e32ac99aeb398954722c10b72dea6d1d39fc122846c86194b12063c9b85da47d",
     "algorithm": "sha512",
     "filename": "rustc.tar.xz",
     "unpack": true

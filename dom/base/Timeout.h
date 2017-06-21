@@ -44,16 +44,11 @@ public:
   void SetWhenOrTimeRemaining(const TimeStamp& aBaseTime,
                               const TimeDuration& aDelay);
 
-  void SetDummyWhen(const TimeStamp& aWhen);
-
   // Can only be called when not frozen.
   const TimeStamp& When() const;
 
   // Can only be called when frozen.
   const TimeDuration& TimeRemaining() const;
-
-  // Can only be called when not frozen.
-  const TimeDuration& ScheduledDelay() const;
 
   // Window for which this timeout fires
   RefPtr<nsGlobalWindow> mWindow;
@@ -77,8 +72,8 @@ public:
   // Returned as value of setTimeout()
   uint32_t mTimeoutId;
 
-  // Interval in milliseconds
-  uint32_t mInterval;
+  // Interval
+  TimeDuration mInterval;
 
   // Identifies which firing level this Timeout is being processed in
   // when sync loops trigger nested firing.
@@ -102,10 +97,6 @@ private:
 
   // Remaining time to wait.  Used only when timeouts are frozen.
   TimeDuration mTimeRemaining;
-
-  // The actual interval in milliseconds.  This may be throttled to
-  // a longer delay than mInterval for a number of reasons.
-  TimeDuration mScheduledDelay;
 
   ~Timeout() = default;
 };

@@ -4,18 +4,18 @@
 
 //! Per-node data used in style calculation.
 
+use arrayvec::ArrayVec;
 use context::SharedStyleContext;
 use dom::TElement;
+use invalidation::element::restyle_hints::RestyleHint;
 use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{HintComputationContext, RestyleReplacements, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 use selectors::matching::VisitedHandlingMode;
 use shared_lock::{Locked, StylesheetGuards};
 use std::fmt;
 use stylearc::Arc;
-use traversal::TraversalFlags;
 
 /// The structure that represents the result of style computation. This is
 /// effectively a tuple of rules and computed values, that is, the rule node,
@@ -193,8 +193,8 @@ impl EagerPseudoStyles {
     }
 
     /// Returns a list of the pseudo-elements.
-    pub fn keys(&self) -> Vec<PseudoElement> {
-        let mut v = Vec::new();
+    pub fn keys(&self) -> ArrayVec<[PseudoElement; EAGER_PSEUDO_COUNT]> {
+        let mut v = ArrayVec::new();
         if let Some(ref arr) = self.0 {
             for i in 0..EAGER_PSEUDO_COUNT {
                 if arr[i].is_some() {
@@ -267,6 +267,10 @@ impl EagerPseudoStyles {
                      rules: StrongRuleNode)
                      -> bool {
         match visited_handling {
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                unreachable!("We should never try to selector match with \
+                             AllLinksVisitedAndUnvisited");
+            },
             VisitedHandlingMode::AllLinksUnvisited => {
                 self.add_unvisited_rules(&pseudo, rules)
             },
@@ -285,12 +289,36 @@ impl EagerPseudoStyles {
                         visited_handling: VisitedHandlingMode)
                         -> bool {
         match visited_handling {
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                unreachable!("We should never try to selector match with \
+                             AllLinksVisitedAndUnvisited");
+            },
             VisitedHandlingMode::AllLinksUnvisited => {
                 self.remove_unvisited_rules(&pseudo)
             },
             VisitedHandlingMode::RelevantLinkVisited => {
                 self.remove_visited_rules(&pseudo)
             },
+        }
+    }
+
+    /// Returns whether this EagerPseudoStyles has the same set of
+    /// pseudos as the given one.
+    pub fn has_same_pseudos_as(&self, other: &EagerPseudoStyles) -> bool {
+        // We could probably just compare self.keys() to other.keys(), but that
+        // seems like it'll involve a bunch more moving stuff around and
+        // whatnot.
+        match (&self.0, &other.0) {
+            (&Some(ref our_arr), &Some(ref other_arr)) => {
+                for i in 0..EAGER_PSEUDO_COUNT {
+                    if our_arr[i].is_some() != other_arr[i].is_some() {
+                        return false
+                    }
+                }
+                true
+            },
+            (&None, &None) => true,
+            _ => false,
         }
     }
 }
@@ -320,169 +348,81 @@ impl ElementStyles {
     }
 }
 
-/// Restyle hint for storing on ElementData.
-///
-/// We wrap it in a newtype to force the encapsulation of the complexity of
-/// handling the correct invalidations in this file.
-#[derive(Clone, Debug)]
-pub struct StoredRestyleHint(RestyleHint);
-
-impl StoredRestyleHint {
-    /// Propagates this restyle hint to a child element.
-    pub fn propagate(&mut self, traversal_flags: &TraversalFlags) -> Self {
-        use std::mem;
-
-        // In the middle of an animation only restyle, we don't need to
-        // propagate any restyle hints, and we need to remove ourselves.
-        if traversal_flags.for_animation_only() {
-            self.0.remove_animation_hints();
-            return Self::empty();
-        }
-
-        debug_assert!(!self.0.has_animation_hint(),
-                      "There should not be any animation restyle hints \
-                       during normal traversal");
-
-        // Else we should clear ourselves, and return the propagated hint.
-        let new_hint = mem::replace(&mut self.0, RestyleHint::empty())
-                       .propagate_for_non_animation_restyle();
-        StoredRestyleHint(new_hint)
-    }
-
-    /// Creates an empty `StoredRestyleHint`.
-    pub fn empty() -> Self {
-        StoredRestyleHint(RestyleHint::empty())
-    }
-
-    /// Creates a restyle hint that forces the whole subtree to be restyled,
-    /// including the element.
-    pub fn subtree() -> Self {
-        StoredRestyleHint(RestyleHint::subtree())
-    }
-
-    /// Creates a restyle hint that forces the element and all its later
-    /// siblings to have their whole subtrees restyled, including the elements
-    /// themselves.
-    pub fn subtree_and_later_siblings() -> Self {
-        StoredRestyleHint(RestyleHint::subtree_and_later_siblings())
-    }
-
-    /// Creates a restyle hint that indicates the element must be recascaded.
-    pub fn recascade_self() -> Self {
-        StoredRestyleHint(RestyleHint::recascade_self())
-    }
-
-    /// Returns true if the hint indicates that our style may be invalidated.
-    pub fn has_self_invalidations(&self) -> bool {
-        self.0.affects_self()
-    }
-
-    /// Returns true if the hint indicates that our sibling's style may be
-    /// invalidated.
-    pub fn has_sibling_invalidations(&self) -> bool {
-        self.0.affects_later_siblings()
-    }
-
-    /// Whether the restyle hint is empty (nothing requires to be restyled).
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    /// Insert another restyle hint, effectively resulting in the union of both.
-    pub fn insert(&mut self, other: Self) {
-        self.0.insert(other.0)
-    }
-
-    /// Contains whether the whole subtree is invalid.
-    pub fn contains_subtree(&self) -> bool {
-        self.0.contains(&RestyleHint::subtree())
-    }
-
-    /// Insert another restyle hint, effectively resulting in the union of both.
-    pub fn insert_from(&mut self, other: &Self) {
-        self.0.insert_from(&other.0)
-    }
-
-    /// Returns true if the hint has animation-only restyle.
-    pub fn has_animation_hint(&self) -> bool {
-        self.0.has_animation_hint()
-    }
-
-    /// Returns true if the hint indicates the current element must be
-    /// recascaded.
-    pub fn has_recascade_self(&self) -> bool {
-        self.0.has_recascade_self()
-    }
-}
-
-impl Default for StoredRestyleHint {
-    fn default() -> Self {
-        StoredRestyleHint::empty()
-    }
-}
-
-impl From<RestyleHint> for StoredRestyleHint {
-    fn from(hint: RestyleHint) -> Self {
-        StoredRestyleHint(hint)
+bitflags! {
+    flags RestyleFlags: u8 {
+        /// Whether the styles changed for this restyle.
+        const WAS_RESTYLED = 1 << 0,
+        /// Whether we reframed/reconstructed any ancestor or self.
+        const ANCESTOR_WAS_RECONSTRUCTED = 1 << 1,
     }
 }
 
 /// Transient data used by the restyle algorithm. This structure is instantiated
 /// either before or during restyle traversal, and is cleared at the end of node
 /// processing.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct RestyleData {
     /// The restyle hint, which indicates whether selectors need to be rematched
     /// for this element, its children, and its descendants.
-    pub hint: StoredRestyleHint,
+    pub hint: RestyleHint,
+
+    /// A few flags to have in mind.
+    flags: RestyleFlags,
 
     /// The restyle damage, indicating what kind of layout changes are required
     /// afte restyling.
     pub damage: RestyleDamage,
-
-    /// The restyle damage that has already been handled by our ancestors, and does
-    /// not need to be applied again at this element. Only non-empty during the
-    /// traversal, once ancestor damage has been calculated.
-    ///
-    /// Note that this optimization mostly makes sense in terms of Gecko's top-down
-    /// frame constructor and change list processing model. We don't bother with it
-    /// for Servo for now.
-    #[cfg(feature = "gecko")]
-    pub damage_handled: RestyleDamage,
 }
 
 impl RestyleData {
-    /// Returns true if this RestyleData might invalidate the current style.
-    pub fn has_invalidations(&self) -> bool {
-        self.hint.has_self_invalidations()
+    fn new() -> Self {
+        Self {
+            hint: RestyleHint::empty(),
+            flags: RestyleFlags::empty(),
+            damage: RestyleDamage::empty(),
+        }
     }
 
-    /// Returns true if this RestyleData might invalidate sibling styles.
-    pub fn has_sibling_invalidations(&self) -> bool {
-        self.hint.has_sibling_invalidations()
+    /// Clear all the restyle state associated with this element.
+    fn clear(&mut self) {
+        *self = Self::new();
     }
 
-    /// Returns damage handled.
-    #[cfg(feature = "gecko")]
-    pub fn damage_handled(&self) -> RestyleDamage {
-        self.damage_handled
+    /// Returns whether this element or any ancestor is going to be
+    /// reconstructed.
+    pub fn reconstructed_self_or_ancestor(&self) -> bool {
+        self.reconstructed_ancestor() ||
+        self.damage.contains(RestyleDamage::reconstruct())
     }
 
-    /// Returns damage handled (always empty for servo).
-    #[cfg(feature = "servo")]
-    pub fn damage_handled(&self) -> RestyleDamage {
-        RestyleDamage::empty()
+    /// Returns whether any ancestor of this element was restyled.
+    fn reconstructed_ancestor(&self) -> bool {
+        self.flags.contains(ANCESTOR_WAS_RECONSTRUCTED)
     }
 
-    /// Sets damage handled.
-    #[cfg(feature = "gecko")]
-    pub fn set_damage_handled(&mut self, d: RestyleDamage) {
-        self.damage_handled = d;
+    /// Sets the flag that tells us whether we've reconstructed an ancestor.
+    pub fn set_reconstructed_ancestor(&mut self) {
+        // If it weren't for animation-only traversals, we could assert
+        // `!self.reconstructed_ancestor()` here.
+        self.flags.insert(ANCESTOR_WAS_RECONSTRUCTED);
     }
 
-    /// Sets damage handled. No-op for Servo.
-    #[cfg(feature = "servo")]
-    pub fn set_damage_handled(&mut self, _: RestyleDamage) {}
+    /// Mark this element as restyled, which is useful to know whether we need
+    /// to do a post-traversal.
+    pub fn set_restyled(&mut self) {
+        self.flags.insert(WAS_RESTYLED);
+    }
+
+    /// Mark this element as restyled, which is useful to know whether we need
+    /// to do a post-traversal.
+    pub fn is_restyle(&self) -> bool {
+        self.flags.contains(WAS_RESTYLED)
+    }
+
+    /// Returns whether this element has been part of a restyle.
+    pub fn contains_restyle_data(&self) -> bool {
+        self.is_restyle() || !self.hint.is_empty() || !self.damage.is_empty()
+    }
 }
 
 /// Style system data associated with an Element.
@@ -495,78 +435,61 @@ pub struct ElementData {
     /// The computed styles for the element and its pseudo-elements.
     styles: Option<ElementStyles>,
 
-    /// Restyle tracking. We separate this into a separate allocation so that
-    /// we can drop it when no restyles are pending on the elemnt.
-    restyle: Option<Box<RestyleData>>,
+    /// Restyle state.
+    pub restyle: RestyleData,
 }
 
 /// The kind of restyle that a single element should do.
+#[derive(Debug)]
 pub enum RestyleKind {
     /// We need to run selector matching plus re-cascade, that is, a full
     /// restyle.
     MatchAndCascade,
     /// We need to recascade with some replacement rule, such as the style
     /// attribute, or animation rules.
-    CascadeWithReplacements(RestyleReplacements),
+    CascadeWithReplacements(RestyleHint),
     /// We only need to recascade, for example, because only inherited
     /// properties in the parent changed.
     CascadeOnly,
 }
 
 impl ElementData {
-    /// Computes the final restyle hint for this element, potentially allocating
-    /// a `RestyleData` if we need to.
-    ///
-    /// This expands the snapshot (if any) into a restyle hint, and handles
-    /// explicit sibling restyle hints from the stored restyle hint.
-    ///
-    /// Returns true if later siblings must be restyled.
-    pub fn compute_final_hint<'a, E: TElement>(
+    /// Borrows both styles and restyle mutably at the same time.
+    pub fn styles_and_restyle_mut(
+        &mut self
+    ) -> (&mut ElementStyles, &mut RestyleData) {
+        (self.styles.as_mut().unwrap(),
+         &mut self.restyle)
+    }
+
+    /// Invalidates style for this element, its descendants, and later siblings,
+    /// based on the snapshot of the element that we took when attributes or
+    /// state changed.
+    pub fn invalidate_style_if_needed<'a, E: TElement>(
         &mut self,
         element: E,
-        shared_context: &SharedStyleContext,
-        hint_context: HintComputationContext<'a, E>)
-        -> bool
+        shared_context: &SharedStyleContext)
     {
-        debug!("compute_final_hint: {:?}, {:?}",
-               element,
-               shared_context.traversal_flags);
+        use invalidation::element::invalidator::TreeStyleInvalidator;
 
-        let mut hint = match self.get_restyle() {
-            Some(r) => r.hint.0.clone(),
-            None => RestyleHint::empty(),
-        };
-
-        debug!("compute_final_hint: {:?}, has_snapshot: {}, handled_snapshot: {}, \
-                pseudo: {:?}",
+        debug!("invalidate_style_if_needed: {:?}, flags: {:?}, has_snapshot: {}, \
+                handled_snapshot: {}, pseudo: {:?}",
                 element,
+                shared_context.traversal_flags,
                 element.has_snapshot(),
                 element.handled_snapshot(),
                 element.implemented_pseudo_element());
 
         if element.has_snapshot() && !element.handled_snapshot() {
-            let snapshot_hint =
-                shared_context.stylist.compute_restyle_hint(&element,
-                                                            shared_context,
-                                                            hint_context);
-            hint.insert(snapshot_hint);
+            let invalidator = TreeStyleInvalidator::new(
+                element,
+                Some(self),
+                shared_context,
+            );
+            invalidator.invalidate();
             unsafe { element.set_handled_snapshot() }
             debug_assert!(element.handled_snapshot());
         }
-
-        let empty_hint = hint.is_empty();
-
-        // If the hint includes a directive for later siblings, strip it out and
-        // notify the caller to modify the base hint for future siblings.
-        let later_siblings = hint.remove_later_siblings_hint();
-
-        // Insert the hint, overriding the previous hint. This effectively takes
-        // care of removing the later siblings restyle hint.
-        if !empty_hint {
-            self.ensure_restyle().hint = hint.into();
-        }
-
-        later_siblings
     }
 
 
@@ -574,7 +497,7 @@ impl ElementData {
     pub fn new(existing: Option<ElementStyles>) -> Self {
         ElementData {
             styles: existing,
-            restyle: None,
+            restyle: RestyleData::new(),
         }
     }
 
@@ -585,31 +508,45 @@ impl ElementData {
 
     /// Returns whether we have any outstanding style invalidation.
     pub fn has_invalidations(&self) -> bool {
-        self.restyle.as_ref().map_or(false, |r| r.has_invalidations())
+        self.restyle.hint.has_self_invalidations()
     }
 
     /// Returns the kind of restyling that we're going to need to do on this
     /// element, based of the stored restyle hint.
-    pub fn restyle_kind(&self) -> RestyleKind {
+    pub fn restyle_kind(&self,
+                        shared_context: &SharedStyleContext)
+                        -> RestyleKind {
         debug_assert!(!self.has_styles() || self.has_invalidations(),
                       "Should've stopped earlier");
         if !self.has_styles() {
+            debug_assert!(!shared_context.traversal_flags.for_animation_only(),
+                          "Unstyled element shouldn't be traversed during \
+                           animation-only traversal");
             return RestyleKind::MatchAndCascade;
         }
 
-        debug_assert!(self.restyle.is_some());
-        let restyle_data = self.restyle.as_ref().unwrap();
+        let hint = self.restyle.hint;
+        if shared_context.traversal_flags.for_animation_only() {
+            // return either CascadeWithReplacements or CascadeOnly in case of
+            // animation-only restyle.
+            if hint.has_animation_hint() {
+                return RestyleKind::CascadeWithReplacements(hint & RestyleHint::for_animations());
+            }
+            return RestyleKind::CascadeOnly;
+        }
 
-        let hint = &restyle_data.hint.0;
         if hint.match_self() {
             return RestyleKind::MatchAndCascade;
         }
 
         if hint.has_replacements() {
-            return RestyleKind::CascadeWithReplacements(hint.replacements);
+            debug_assert!(!hint.has_animation_hint(),
+                          "Animation only restyle hint should have already processed");
+            return RestyleKind::CascadeWithReplacements(hint & RestyleHint::replacements());
         }
 
-        debug_assert!(hint.has_recascade_self(), "We definitely need to do something!");
+        debug_assert!(hint.has_recascade_self(),
+                      "We definitely need to do something!");
         return RestyleKind::CascadeOnly;
     }
 
@@ -632,13 +569,6 @@ impl ElementData {
     /// never been styled.
     pub fn styles_mut(&mut self) -> &mut ElementStyles {
         self.styles.as_mut().expect("Calling styles_mut() on unstyled ElementData")
-    }
-
-    /// Borrows both styles and restyle mutably at the same time.
-    pub fn styles_and_restyle_mut(&mut self) -> (&mut ElementStyles,
-                                                 Option<&mut RestyleData>) {
-        (self.styles.as_mut().unwrap(),
-         self.restyle.as_mut().map(|r| &mut **r))
     }
 
     /// Sets the computed element styles.
@@ -679,47 +609,9 @@ impl ElementData {
         important_rules != other_important_rules
     }
 
-    /// Returns true if the Element has a RestyleData.
-    pub fn has_restyle(&self) -> bool {
-        self.restyle.is_some()
-    }
-
-    /// Drops any RestyleData.
-    pub fn clear_restyle(&mut self) {
-        self.restyle = None;
-    }
-
-    /// Creates a RestyleData if one doesn't exist.
-    ///
-    /// Asserts that the Element has been styled.
-    pub fn ensure_restyle(&mut self) -> &mut RestyleData {
-        debug_assert!(self.styles.is_some(), "restyling unstyled element");
-        if self.restyle.is_none() {
-            self.restyle = Some(Box::new(RestyleData::default()));
-        }
-        self.restyle.as_mut().unwrap()
-    }
-
-    /// Gets a reference to the restyle data, if any.
-    pub fn get_restyle(&self) -> Option<&RestyleData> {
-        self.restyle.as_ref().map(|r| &**r)
-    }
-
-    /// Gets a reference to the restyle data. Panic if the element does not
-    /// have restyle data.
-    pub fn restyle(&self) -> &RestyleData {
-        self.get_restyle().expect("Calling restyle without RestyleData")
-    }
-
-    /// Gets a mutable reference to the restyle data, if any.
-    pub fn get_restyle_mut(&mut self) -> Option<&mut RestyleData> {
-        self.restyle.as_mut().map(|r| &mut **r)
-    }
-
-    /// Gets a mutable reference to the restyle data. Panic if the element does
-    /// not have restyle data.
-    pub fn restyle_mut(&mut self) -> &mut RestyleData {
-        self.get_restyle_mut().expect("Calling restyle_mut without RestyleData")
+    /// Drops any restyle state from the element.
+    pub fn clear_restyle_state(&mut self) {
+        self.restyle.clear();
     }
 
     /// Returns SMIL overriden value if exists.

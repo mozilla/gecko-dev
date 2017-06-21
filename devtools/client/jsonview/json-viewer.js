@@ -27,7 +27,7 @@ define(function (require, exports, module) {
     jsonText: json.textContent,
     jsonPretty: null,
     json: jsonData,
-    headers: window.headers,
+    headers: JSONView.headers,
     tabActive: 0,
     prettified: false
   };
@@ -100,6 +100,6 @@ define(function (require, exports, module) {
   // Send notification event to the window. Can be useful for
   // tests as well as extensions.
   let event = new CustomEvent("JSONViewInitialized", {});
-  window.jsonViewInitialized = true;
+  JSONView.initialized = true;
   window.dispatchEvent(event);
 });

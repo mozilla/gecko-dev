@@ -575,6 +575,12 @@ JS_NewDeadWrapper(JSContext* cx, JSObject* origObj)
     return NewDeadProxyObject(cx, origObj);
 }
 
+JS_FRIEND_API(bool)
+JS_IsScriptSourceObject(JSObject* obj)
+{
+    return obj->is<ScriptSourceObject>();
+}
+
 void
 js::TraceWeakMaps(WeakMapTracer* trc)
 {
@@ -1298,6 +1304,12 @@ js::GetDOMProxyShadowsCheck()
 
 bool
 js::detail::IdMatchesAtom(jsid id, JSAtom* atom)
+{
+    return id == INTERNED_STRING_TO_JSID(nullptr, atom);
+}
+
+bool
+js::detail::IdMatchesAtom(jsid id, JSString* atom)
 {
     return id == INTERNED_STRING_TO_JSID(nullptr, atom);
 }

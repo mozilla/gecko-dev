@@ -38,7 +38,6 @@ EXPORTS.mozilla += [
     'KeyframeUtils.h',
     'PendingAnimationTracker.h',
     'PseudoElementHashEntry.h',
-    'ServoComputedValuesWithParent.h',
     'TimingParams.h',
 ]
 
@@ -57,7 +56,6 @@ UNIFIED_SOURCES += [
     'EffectCompositor.cpp',
     'EffectSet.cpp',
     'KeyframeEffect.cpp',
-    'KeyframeEffectParams.cpp',
     'KeyframeEffectReadOnly.cpp',
     'KeyframeUtils.cpp',
     'PendingAnimationTracker.cpp',

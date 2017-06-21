@@ -156,6 +156,7 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
     beingDestroyed_(false),
     allowContentJS_(true),
     atoms_(nullptr),
+    atomsAddedWhileSweeping_(nullptr),
     atomsCompartment_(nullptr),
     staticStrings(nullptr),
     commonNames(nullptr),
@@ -843,6 +844,34 @@ JSRuntime::activeGCInAtomsZone()
            zone->wasGCStarted();
 }
 
+bool
+JSRuntime::createAtomsAddedWhileSweepingTable()
+{
+    MOZ_ASSERT(JS::CurrentThreadIsHeapCollecting());
+    MOZ_ASSERT(!atomsAddedWhileSweeping_);
+
+    atomsAddedWhileSweeping_ = js_new<AtomSet>();
+    if (!atomsAddedWhileSweeping_)
+        return false;
+
+    if (!atomsAddedWhileSweeping_->init()) {
+        destroyAtomsAddedWhileSweepingTable();
+        return false;
+    }
+
+    return true;
+}
+
+void
+JSRuntime::destroyAtomsAddedWhileSweepingTable()
+{
+    MOZ_ASSERT(JS::CurrentThreadIsHeapCollecting());
+    MOZ_ASSERT(atomsAddedWhileSweeping_);
+
+    js_delete(atomsAddedWhileSweeping_.ref());
+    atomsAddedWhileSweeping_ = nullptr;
+}
+
 void
 JSRuntime::setUsedByHelperThread(Zone* zone)
 {
@@ -902,7 +931,7 @@ JS::IsProfilingEnabledForContext(JSContext* cx)
 }
 
 JS_PUBLIC_API(void)
-JS::shadow::RegisterWeakCache(JSRuntime* rt, WeakCache<void*>* cachep)
+JS::shadow::RegisterWeakCache(JSRuntime* rt, detail::WeakCacheBase* cachep)
 {
     rt->registerWeakCache(cachep);
 }

@@ -9,7 +9,7 @@ awsy:
     description: "Are we slim yet"
     suite: awsy
     treeherder-symbol: tc-SY(sy)
-    run-on-projects: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
+    run-on-projects: ['release', 'trunk', 'try']
     docker-image: {"in-tree": "desktop1604-test"}
     max-run-time: 7200
     e10s: true
@@ -33,6 +33,8 @@ cppunit:
     run-on-projects:
         by-test-platform:
             windows.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             windows10-64-asan/opt: []  # as an exception to windows.*
             linux64-qr/.*: ['mozilla-central', 'try']
             default: built-projects
@@ -125,6 +127,8 @@ external-media-tests-base:
     run-on-projects:
         by-test-platform:
             windows.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             default: built-projects
     mozharness:
         script: firefox_media_tests_taskcluster.py
@@ -151,6 +155,8 @@ external-media-tests-twitch:
     run-on-projects:
         by-test-platform:
             windows.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             default: built-projects
     mozharness:
         script: firefox_media_tests_taskcluster.py
@@ -176,6 +182,8 @@ external-media-tests-youtube:
     run-on-projects:
         by-test-platform:
             windows.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             default: built-projects
     mozharness:
         script: firefox_media_tests_taskcluster.py
@@ -199,8 +207,12 @@ firefox-ui-functional-local:
     mozharness:
         script: firefox_ui_tests/functional.py
         config:
-            - firefox_ui_tests/taskcluster.py
-            - remove_executables.py
+            by-test-platform:
+                windows.*:
+                    - firefox_ui_tests/taskcluster_windows.py
+                default:
+                    - firefox_ui_tests/taskcluster.py
+                    - remove_executables.py
         extra-options:
             - "--tag"
             - "local"
@@ -215,8 +227,12 @@ firefox-ui-functional-remote:
     mozharness:
         script: firefox_ui_tests/functional.py
         config:
-            - firefox_ui_tests/taskcluster.py
-            - remove_executables.py
+            by-test-platform:
+                windows.*:
+                    - firefox_ui_tests/taskcluster_windows.py
+                default:
+                    - firefox_ui_tests/taskcluster.py
+                    - remove_executables.py
         extra-options:
             - "--tag"
             - "remote"
@@ -246,6 +262,8 @@ gtest:
     run-on-projects:
         by-test-platform:
             windows.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             linux64-qr/.*: ['mozilla-central', 'try']
             default: built-projects
     mozharness:
@@ -318,6 +336,7 @@ jsreftest:
             android-4.3-arm7-api-15/debug: 100
             android.*: 40
             windows.*: 2
+            linux64-ccov/.*: 5
             linux64-qr/.*: 4
             macosx.*: 2
             default: 3
@@ -334,6 +353,8 @@ jsreftest:
         by-test-platform:
             windows10-64-asan/opt: built-projects  # exception to windows.*, below
             windows.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             default: built-projects
     mozharness:
         by-test-platform:
@@ -397,6 +418,8 @@ marionette:
     run-on-projects:
         by-test-platform:
             windows.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             default: built-projects
     mozharness:
         by-test-platform:
@@ -464,6 +487,7 @@ mochitest:
             default: mochitest/plain-chunked
     treeherder-symbol: tc-M()
     loopback-video: true
+    docker-image: {"in-tree": "desktop1604-test"}
     instance-size:
         by-test-platform:
             linux64-jsdcov/opt: xlarge
@@ -534,6 +558,8 @@ mochitest-a11y:
     run-on-projects:
         by-test-platform:
             windows.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             linux64-qr/.*: ['mozilla-central', 'try']
             default: built-projects
     mozharness:
@@ -650,6 +676,7 @@ mochitest-chrome:
     suite: mochitest/chrome
     treeherder-symbol: tc-M(c)
     loopback-video: true
+    docker-image: {"in-tree": "desktop1604-test"}
     instance-size:
         by-test-platform:
             android.*: xlarge
@@ -696,6 +723,10 @@ mochitest-chrome:
                             - remove_executables.py
                 extra-options:
                     - --mochitest-suite=chrome
+    tier:
+        by-test-platform:
+            windows7-32.*: 2
+            default: default
 
 mochitest-chrome-style:
     description: "Mochitest chrome run for style system"
@@ -759,6 +790,10 @@ mochitest-clipboard:
                             - remove_executables.py
                 extra-options:
                     - --mochitest-suite=plain-clipboard,chrome-clipboard,browser-chrome-clipboard,jetpack-package-clipboard
+    tier:
+        by-test-platform:
+            windows7-32.*: 2
+            default: default
 
 mochitest-devtools-chrome:
     description: "Mochitest devtools-chrome run"
@@ -779,6 +814,8 @@ mochitest-devtools-chrome:
         by-test-platform:
             windows10.*: []
             windows7.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             default: built-projects
     e10s:
         by-test-platform:
@@ -875,6 +912,8 @@ mochitest-jetpack:
         by-test-platform:
             windows10-64-asan/opt: built-projects  # exception to windows.*, below
             windows.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             default: built-projects
     mozharness:
         mochitest-flavor: jetpack-package
@@ -1161,7 +1200,7 @@ reftest-stylo:
     chunks: 16
     run-on-projects:
         by-test-platform:
-            linux64-stylo/opt: [ 'stylo', 'autoland', 'mozilla-central', 'try' ] # not on mozilla-inbound
+            linux64-stylo/opt: [ 'autoland', 'mozilla-central', 'try' ] # not on mozilla-inbound
             linux64-stylo-sequential/opt: [ 'mozilla-central']
             default: built-projects
     e10s:
@@ -1188,7 +1227,7 @@ reftest-stylo:
             linux64-stylo-sequential/debug:
                 by-project:
                     mozilla-central: true
-                    default: true 
+                    default: true
     mozharness:
         script: desktop_unittest.py
         no-read-buildbot-config: true
@@ -1226,7 +1265,7 @@ talos-chrome:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
+            default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
     e10s: true
     mozharness:
@@ -1251,7 +1290,7 @@ talos-dromaeojs:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
+            default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
     e10s: true
     mozharness:
@@ -1276,8 +1315,8 @@ talos-g1:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try'] 
-    max-run-time: 3600
+            default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
+    max-run-time: 7200
     e10s: true
     mozharness:
         script: talos_script.py
@@ -1303,7 +1342,7 @@ talos-g2:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
             linux64-stylo-sequential/.*: ['try']
-            default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try'] 
+            default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     e10s: true
     mozharness:
         script: talos_script.py
@@ -1327,7 +1366,7 @@ talos-g3:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try'] 
+            default: ['mozilla-beta','mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
     e10s: true
     mozharness:
@@ -1352,7 +1391,7 @@ talos-g4:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try'] 
+            default: ['mozilla-beta','mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
     e10s: true
     mozharness:
@@ -1377,7 +1416,7 @@ talos-g5:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try'] 
+            default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
     e10s: true
     mozharness:
@@ -1404,7 +1443,7 @@ talos-other:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try'] 
+            default: ['mozilla-beta','mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
     e10s: true
     mozharness:
@@ -1450,7 +1489,7 @@ talos-svgr:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
+            default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
     e10s: true
     mozharness:
@@ -1475,7 +1514,7 @@ talos-tp5o:
     run-on-projects:
         by-test-platform:
             linux64-stylo/.*: ['mozilla-central', 'try']
-            default: ['mozilla-beta', 'mozilla-aurora', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
+            default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
     e10s: true
     mozharness:
@@ -1511,8 +1550,10 @@ web-platform-tests:
     checkout: true
     run-on-projects:
         by-test-platform:
-            windows10.*: []
+            windows10.*: ['mozilla-central', 'try']
             windows7.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             default: built-projects
     mozharness:
         script: web_platform_tests.py
@@ -1542,8 +1583,10 @@ web-platform-tests-reftests:
     checkout: true
     run-on-projects:
         by-test-platform:
-            windows10.*: []
+            windows10.*: ['mozilla-central', 'try']
             windows7.*: ['mozilla-central', 'try']
+            windows7-32-vm/debug: built-projects
+            windows7-32/debug: built-projects
             default: built-projects
     mozharness:
         script: web_platform_tests.py

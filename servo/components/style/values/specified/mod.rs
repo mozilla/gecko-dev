@@ -6,43 +6,49 @@
 //!
 //! TODO(emilio): Enhance docs.
 
-use app_units::Au;
+use Namespace;
 use context::QuirksMode;
-use cssparser::{self, Parser, Token};
-use itoa;
+use cssparser::{Parser, Token, serialize_identifier, BasicParseError};
 use parser::{ParserContext, Parse};
 use self::grid::TrackSizeOrRepeat;
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::f32;
 use std::fmt;
-use std::io::Write;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use super::computed::{self, Context};
 use super::computed::{Shadow as ComputedShadow, ToComputedValue};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::TrackList as GenericTrackList;
+use values::computed::ComputedValueAsSpecified;
 use values::specified::calc::CalcNode;
 
+pub use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
-pub use self::border::{BorderImageWidthSide, BorderRadius};
-pub use self::color::Color;
-pub use self::rect::LengthOrNumberRect;
-pub use super::generics::grid::GridLine;
+pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
+pub use self::color::{Color, RGBAColor};
+pub use self::effects::FilterList;
+pub use self::flex::FlexBasis;
+#[cfg(feature = "gecko")]
+pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientItem, GradientKind, Image, ImageRect, ImageLayer};
-pub use self::length::AbsoluteLength;
-pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
-pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
-pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength};
-pub use self::length::{MaxLength, MozLength};
+pub use self::length::{AbsoluteLength, CalcLengthOrPercentage, CharacterWidth};
+pub use self::length::{FontRelativeLength, Length, LengthOrNone, LengthOrNumber};
+pub use self::length::{LengthOrPercentage, LengthOrPercentageOrAuto};
+pub use self::length::{LengthOrPercentageOrNone, MaxLength, MozLength};
+pub use self::length::{NoCalcLength, Percentage, ViewportPercentageLength};
+pub use self::rect::LengthOrNumberRect;
 pub use self::position::{Position, PositionComponent};
-pub use self::transform::TransformOrigin;
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
+pub use self::transform::{TimingFunction, TransformOrigin};
+pub use super::generics::grid::GridLine;
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -51,17 +57,23 @@ pub mod basic_shape;
 pub mod border;
 pub mod calc;
 pub mod color;
+pub mod effects;
+pub mod flex;
+#[cfg(feature = "gecko")]
+pub mod gecko;
 pub mod grid;
 pub mod image;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod text;
 pub mod transform;
 
 /// Common handling for the specified value CSS url() values.
 pub mod url {
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use style_traits::ParseError;
 use values::computed::ComputedValueAsSpecified;
 
 #[cfg(feature = "servo")]
@@ -70,9 +82,9 @@ pub use ::servo::url::*;
 pub use ::gecko::url::*;
 
 impl Parse for SpecifiedUrl {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let url = try!(input.expect_url());
-        Self::parse_from_string(url, context)
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let url = input.expect_url()?;
+        Self::parse_from_string(url.into_owned(), context)
     }
 }
 
@@ -84,210 +96,52 @@ impl ComputedValueAsSpecified for SpecifiedUrl {}
 no_viewport_percentage!(SpecifiedUrl);
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct CSSColor {
-    pub parsed: Color,
-    pub authored: Option<Box<str>>,
-}
-
-impl Parse for CSSColor {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_quirky(context, input, AllowQuirks::No)
-    }
-}
-
-impl CSSColor {
-    /// Parse a color, with quirks.
-    ///
-    /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
-        let start_position = input.position();
-        let authored = match input.next() {
-            Ok(Token::Ident(s)) => Some(s.into_owned().into_boxed_str()),
-            _ => None,
-        };
-        input.reset(start_position);
-        if let Ok(parsed) = input.try(|i| Parse::parse(context, i)) {
-            return Ok(CSSColor {
-                parsed: parsed,
-                authored: authored,
-            });
-        }
-        if !allow_quirks.allowed(context.quirks_mode) {
-            return Err(());
-        }
-        let (number, dimension) = match input.next()? {
-            Token::Number(number) => {
-                (number, None)
-            },
-            Token::Dimension(number, dimension) => {
-                (number, Some(dimension))
-            },
-            Token::Ident(ident) => {
-                if ident.len() != 3 && ident.len() != 6 {
-                    return Err(());
-                }
-                return cssparser::Color::parse_hash(ident.as_bytes()).map(|color| {
-                    Self {
-                        parsed: color.into(),
-                        authored: None
-                    }
-                });
-            }
-            _ => {
-                return Err(());
-            },
-        };
-        let value = number.int_value.ok_or(())?;
-        if value < 0 {
-            return Err(());
-        }
-        let length = if value <= 9 {
-            1
-        } else if value <= 99 {
-            2
-        } else if value <= 999 {
-            3
-        } else if value <= 9999 {
-            4
-        } else if value <= 99999 {
-            5
-        } else if value <= 999999 {
-            6
-        } else {
-            return Err(())
-        };
-        let total = length + dimension.as_ref().map_or(0, |d| d.len());
-        if total > 6 {
-            return Err(());
-        }
-        let mut serialization = [b'0'; 6];
-        let space_padding = 6 - total;
-        let mut written = space_padding;
-        written += itoa::write(&mut serialization[written..], value).unwrap();
-        if let Some(dimension) = dimension {
-            written += (&mut serialization[written..]).write(dimension.as_bytes()).unwrap();
-        }
-        debug_assert!(written == 6);
-        Ok(CSSColor {
-            parsed: cssparser::Color::parse_hash(&serialization).map(From::from)?,
-            authored: None,
-        })
-    }
-
-    /// Returns false if the color is completely transparent, and
-    /// true otherwise.
-    pub fn is_non_transparent(&self) -> bool {
-        match self.parsed {
-            Color::RGBA(rgba) if rgba.alpha == 0 => false,
-            _ => true,
-        }
-    }
-}
-
-no_viewport_percentage!(CSSColor);
-
-impl ToCss for CSSColor {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match self.authored {
-            Some(ref s) => dest.write_str(s),
-            None => self.parsed.to_css(dest),
-        }
-    }
-}
-
-impl From<Color> for CSSColor {
-    fn from(color: Color) -> Self {
-        CSSColor {
-            parsed: color,
-            authored: None,
-        }
-    }
-}
-
-impl CSSColor {
-    #[inline]
-    /// Returns currentcolor value.
-    pub fn currentcolor() -> CSSColor {
-        Color::CurrentColor.into()
-    }
-
-    #[inline]
-    /// Returns transparent value.
-    pub fn transparent() -> CSSColor {
-        // We should probably set authored to "transparent", but maybe it doesn't matter.
-        Color::RGBA(cssparser::RGBA::transparent()).into()
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct CSSRGBA {
-    pub parsed: cssparser::RGBA,
-    pub authored: Option<Box<str>>,
-}
-
-no_viewport_percentage!(CSSRGBA);
-
-impl ToCss for CSSRGBA {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match self.authored {
-            Some(ref s) => dest.write_str(s),
-            None => self.parsed.to_css(dest),
-        }
-    }
-}
-
 /// Parse an `<integer>` value, handling `calc()` correctly.
-pub fn parse_integer(context: &ParserContext, input: &mut Parser) -> Result<Integer, ()> {
-    match try!(input.next()) {
-        Token::Number(ref value) => value.int_value.ok_or(()).map(Integer::new),
+pub fn parse_integer<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<Integer, ParseError<'i>> {
+    match input.next()? {
+        Token::Number { int_value: Some(v), .. } => Ok(Integer::new(v)),
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let result = try!(input.parse_nested_block(|i| {
+            let result = input.parse_nested_block(|i| {
                 CalcNode::parse_integer(context, i)
-            }));
+            })?;
 
             Ok(Integer::from_calc(result))
         }
-        _ => Err(())
+        t => Err(BasicParseError::UnexpectedToken(t).into())
     }
 }
 
 /// Parse a `<number>` value, handling `calc()` correctly, and without length
 /// limitations.
-pub fn parse_number(context: &ParserContext, input: &mut Parser) -> Result<Number, ()> {
+pub fn parse_number<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                            -> Result<Number, ParseError<'i>> {
     parse_number_with_clamping_mode(context, input, AllowedNumericType::All)
 }
 
 /// Parse a `<number>` value, with a given clamping mode.
-pub fn parse_number_with_clamping_mode(context: &ParserContext,
-                                       input: &mut Parser,
-                                       clamping_mode: AllowedNumericType)
-                                       -> Result<Number, ()> {
-    match try!(input.next()) {
-        Token::Number(ref value) if clamping_mode.is_ok(value.value) => {
+pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
+                                               input: &mut Parser<'i, 't>,
+                                               clamping_mode: AllowedNumericType)
+                                               -> Result<Number, ParseError<'i>> {
+    match input.next()? {
+        Token::Number { value, .. } if clamping_mode.is_ok(context.parsing_mode, value) => {
             Ok(Number {
-                value: value.value.min(f32::MAX).max(f32::MIN),
+                value: value.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: None,
             })
         },
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-            let result = try!(input.parse_nested_block(|i| {
+            let result = input.parse_nested_block(|i| {
                 CalcNode::parse_number(context, i)
-            }));
+            })?;
 
             Ok(Number {
                 value: result.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: Some(clamping_mode),
             })
         }
-        _ => Err(())
+        t => Err(BasicParseError::UnexpectedToken(t).into())
     }
 }
 
@@ -374,18 +228,17 @@ impl Angle {
 
 impl Parse for Angle {
     /// Parses an angle according to CSS-VALUES § 6.1.
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) => {
-                Angle::parse_dimension(value.value,
-                                       unit,
-                                       /* from_calc = */ false)
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let token = input.next()?;
+        match token {
+            Token::Dimension { value, ref unit, .. } => {
+                Angle::parse_dimension(value, unit, /* from_calc = */ false)
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
+                return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
             _ => Err(())
-        }
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 }
 
@@ -414,105 +267,19 @@ impl Angle {
     ///
     /// We can remove this and get back to the unified version Angle::parse once
     /// https://github.com/w3c/csswg-drafts/issues/1162 is resolved.
-    pub fn parse_with_unitless(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) => {
-                Angle::parse_dimension(value.value,
-                                       unit,
-                                       /* from_calc = */ false)
+    pub fn parse_with_unitless<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                       -> Result<Self, ParseError<'i>> {
+        let token = input.next()?;
+        match token {
+            Token::Dimension { value, ref unit, .. } => {
+                Angle::parse_dimension(value, unit, /* from_calc = */ false)
             }
-            Token::Number(ref value) if value.value == 0. => Ok(Angle::zero()),
+            Token::Number { value, .. } if value == 0. => Ok(Angle::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
+                return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
             _ => Err(())
-        }
-    }
-}
-
-#[allow(missing_docs)]
-pub fn parse_border_width(context: &ParserContext, input: &mut Parser) -> Result<Length, ()> {
-    input.try(|i| Length::parse_non_negative(context, i)).or_else(|()| {
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
-            "thin" => Ok(Length::from_px(1.)),
-            "medium" => Ok(Length::from_px(3.)),
-            "thick" => Ok(Length::from_px(5.)),
-            _ => Err(())
-        }
-    })
-}
-
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum BorderWidth {
-    Thin,
-    Medium,
-    Thick,
-    Width(Length),
-}
-
-impl Parse for BorderWidth {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<BorderWidth, ()> {
-        Self::parse_quirky(context, input, AllowQuirks::No)
-    }
-}
-
-impl BorderWidth {
-    /// Parses a border width, allowing quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<BorderWidth, ()> {
-        match input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks)) {
-            Ok(length) => Ok(BorderWidth::Width(length)),
-            Err(_) => match_ignore_ascii_case! { &try!(input.expect_ident()),
-               "thin" => Ok(BorderWidth::Thin),
-               "medium" => Ok(BorderWidth::Medium),
-               "thick" => Ok(BorderWidth::Thick),
-               _ => Err(())
-            }
-        }
-    }
-}
-
-impl BorderWidth {
-    #[allow(missing_docs)]
-    pub fn from_length(length: Length) -> Self {
-        BorderWidth::Width(length)
-    }
-}
-
-impl ToCss for BorderWidth {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            BorderWidth::Thin => dest.write_str("thin"),
-            BorderWidth::Medium => dest.write_str("medium"),
-            BorderWidth::Thick => dest.write_str("thick"),
-            BorderWidth::Width(ref length) => length.to_css(dest)
-        }
-    }
-}
-
-impl ToComputedValue for BorderWidth {
-    type ComputedValue = Au;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        // We choose the pixel length of the keyword values the same as both spec and gecko.
-        // Spec: https://drafts.csswg.org/css-backgrounds-3/#line-width
-        // Gecko: https://bugzilla.mozilla.org/show_bug.cgi?id=1312155#c0
-        match *self {
-            BorderWidth::Thin => Length::from_px(1.).to_computed_value(context),
-            BorderWidth::Medium => Length::from_px(3.).to_computed_value(context),
-            BorderWidth::Thick => Length::from_px(5.).to_computed_value(context),
-            BorderWidth::Width(ref length) => length.to_computed_value(context)
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderWidth::Width(ToComputedValue::from_computed_value(computed))
+        }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
 }
 
@@ -577,7 +344,7 @@ impl Time {
         let seconds = match_ignore_ascii_case! { unit,
             "s" => value,
             "ms" => value / 1000.0,
-            _ => return Err(()),
+            _ => return Err(())
         };
 
         Ok(Time {
@@ -594,25 +361,36 @@ impl Time {
         }
     }
 
-    fn parse_with_clamping_mode(context: &ParserContext,
-                                input: &mut Parser,
-                                clamping_mode: AllowedNumericType) -> Result<Self, ()> {
+    fn parse_with_clamping_mode<'i, 't>(context: &ParserContext,
+                                        input: &mut Parser<'i, 't>,
+                                        clamping_mode: AllowedNumericType)
+                                        -> Result<Self, ParseError<'i>> {
+        use style_traits::PARSING_MODE_DEFAULT;
+
         match input.next() {
-            Ok(Token::Dimension(ref value, ref unit)) if clamping_mode.is_ok(value.value) => {
-                Time::parse_dimension(value.value, &unit, /* from_calc = */ false)
+            // Note that we generally pass ParserContext to is_ok() to check
+            // that the ParserMode of the ParserContext allows all numeric
+            // values for SMIL regardless of clamping_mode, but in this Time
+            // value case, the value does not animate for SMIL at all, so we use
+            // PARSING_MODE_DEFAULT directly.
+            Ok(Token::Dimension { value, ref unit, .. }) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, value) => {
+                Time::parse_dimension(value, unit, /* from_calc = */ false)
+                    .map_err(|()| StyleParseError::UnspecifiedError.into())
             }
             Ok(Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {
                 match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
-                    Ok(time) if clamping_mode.is_ok(time.seconds) => Ok(time),
-                    _ => Err(()),
+                    Ok(time) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, time.seconds) => Ok(time),
+                    _ => Err(StyleParseError::UnspecifiedError.into()),
                 }
             }
-            _ => Err(())
+            Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+            Err(e) => Err(e.into())
         }
     }
 
     /// Parse <time> that values are non-negative.
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 }
@@ -633,7 +411,7 @@ impl ToComputedValue for Time {
 }
 
 impl Parse for Time {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
     }
 }
@@ -665,7 +443,7 @@ pub struct Number {
 no_viewport_percentage!(Number);
 
 impl Parse for Number {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         parse_number(context, input)
     }
 }
@@ -685,21 +463,15 @@ impl Number {
     }
 
     #[allow(missing_docs)]
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Number, ()> {
-        if context.parsing_mode.allows_all_numeric_values() {
-            parse_number(context, input)
-        } else {
-            parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
-        }
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Number, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 
     #[allow(missing_docs)]
-    pub fn parse_at_least_one(context: &ParserContext, input: &mut Parser) -> Result<Number, ()> {
-        if context.parsing_mode.allows_all_numeric_values() {
-            parse_number(context, input)
-        } else {
-            parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
-        }
+    pub fn parse_at_least_one<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Number, ParseError<'i>> {
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
     }
 }
 
@@ -735,9 +507,9 @@ impl ToCss for Number {
 
 /// <number-percentage>
 /// Accepts only non-negative numbers.
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
 pub enum NumberOrPercentage {
     Percentage(Percentage),
     Number(Number),
@@ -746,11 +518,11 @@ pub enum NumberOrPercentage {
 no_viewport_percentage!(NumberOrPercentage);
 
 impl NumberOrPercentage {
-    fn parse_with_clamping_mode(context: &ParserContext,
-                                input: &mut Parser,
-                                type_: AllowedNumericType)
-                                -> Result<Self, ()> {
-        if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(i, type_)) {
+    fn parse_with_clamping_mode<'i, 't>(context: &ParserContext,
+                                        input: &mut Parser<'i, 't>,
+                                        type_: AllowedNumericType)
+                                        -> Result<Self, ParseError<'i>> {
+        if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
             return Ok(NumberOrPercentage::Percentage(per));
         }
 
@@ -758,35 +530,27 @@ impl NumberOrPercentage {
     }
 
     /// Parse a non-negative number or percentage.
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 }
 
 impl Parse for NumberOrPercentage {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
     }
 }
 
-impl ToCss for NumberOrPercentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            NumberOrPercentage::Percentage(percentage) => percentage.to_css(dest),
-            NumberOrPercentage::Number(number) => number.to_css(dest),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, ToCss)]
 pub struct Opacity(Number);
 
 no_viewport_percentage!(Opacity);
 
 impl Parse for Opacity {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         parse_number(context, input).map(Opacity)
     }
 }
@@ -802,12 +566,6 @@ impl ToComputedValue for Opacity {
     #[inline]
     fn from_computed_value(computed: &CSSFloat) -> Self {
         Opacity(Number::from_computed_value(computed))
-    }
-}
-
-impl ToCss for Opacity {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
     }
 }
 
@@ -845,27 +603,31 @@ impl Integer {
 no_viewport_percentage!(Integer);
 
 impl Parse for Integer {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         parse_integer(context, input)
     }
 }
 
 impl Integer {
     #[allow(missing_docs)]
-    pub fn parse_with_minimum(context: &ParserContext, input: &mut Parser, min: i32) -> Result<Integer, ()> {
+    pub fn parse_with_minimum<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>, min: i32)
+                                      -> Result<Integer, ParseError<'i>> {
         match parse_integer(context, input) {
             Ok(value) if value.value() >= min => Ok(value),
-            _ => Err(()),
+            Ok(_value) => Err(StyleParseError::UnspecifiedError.into()),
+            Err(e) => Err(e),
         }
     }
 
     #[allow(missing_docs)]
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Integer, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Integer, ParseError<'i>> {
         Integer::parse_with_minimum(context, input, 0)
     }
 
     #[allow(missing_docs)]
-    pub fn parse_positive(context: &ParserContext, input: &mut Parser) -> Result<Integer, ()> {
+    pub fn parse_positive<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                  -> Result<Integer, ParseError<'i>> {
         Integer::parse_with_minimum(context, input, 1)
     }
 }
@@ -902,11 +664,11 @@ pub type IntegerOrAuto = Either<Integer, Auto>;
 
 impl IntegerOrAuto {
     #[allow(missing_docs)]
-    pub fn parse_positive(context: &ParserContext,
-                          input: &mut Parser)
-                          -> Result<IntegerOrAuto, ()> {
+    pub fn parse_positive<'i, 't>(context: &ParserContext,
+                                  input: &mut Parser<'i, 't>)
+                                  -> Result<IntegerOrAuto, ParseError<'i>> {
         match IntegerOrAuto::parse(context, input) {
-            Ok(Either::First(integer)) if integer.value() <= 0 => Err(()),
+            Ok(Either::First(integer)) if integer.value() <= 0 => Err(StyleParseError::UnspecifiedError.into()),
             result => result,
         }
     }
@@ -936,7 +698,7 @@ pub struct Shadow {
     pub offset_y: Length,
     pub blur_radius: Length,
     pub spread_radius: Length,
-    pub color: Option<CSSColor>,
+    pub color: Option<Color>,
     pub inset: bool,
 }
 
@@ -950,10 +712,8 @@ impl ToComputedValue for Shadow {
             offset_y: self.offset_y.to_computed_value(context),
             blur_radius: self.blur_radius.to_computed_value(context),
             spread_radius: self.spread_radius.to_computed_value(context),
-            color: self.color
-                        .as_ref()
-                        .map(|color| color.to_computed_value(context))
-                        .unwrap_or(cssparser::Color::CurrentColor),
+            color: self.color.as_ref().unwrap_or(&Color::CurrentColor)
+                             .to_computed_value(context),
             inset: self.inset,
         }
     }
@@ -971,10 +731,35 @@ impl ToComputedValue for Shadow {
     }
 }
 
+impl ToCss for Shadow {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.inset {
+            dest.write_str("inset ")?;
+        }
+        self.offset_x.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.offset_y.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.blur_radius.to_css(dest)?;
+        if self.spread_radius != Length::zero() {
+            dest.write_str(" ")?;
+            self.spread_radius.to_css(dest)?;
+        }
+        if let Some(ref color) = self.color {
+            dest.write_str(" ")?;
+            color.to_css(dest)?;
+        }
+        Ok(())
+    }
+}
+
 impl Shadow {
     // disable_spread_and_inset is for filter: drop-shadow(...)
     #[allow(missing_docs)]
-    pub fn parse(context: &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext,
+                         input: &mut Parser<'i, 't>,
+                         disable_spread_and_inset: bool)
+                         -> Result<Shadow, ParseError<'i>> {
         let mut lengths = [Length::zero(), Length::zero(), Length::zero(), Length::zero()];
         let mut lengths_parsed = false;
         let mut color = None;
@@ -990,7 +775,7 @@ impl Shadow {
             if !lengths_parsed {
                 if let Ok(value) = input.try(|i| Length::parse(context, i)) {
                     lengths[0] = value;
-                    lengths[1] = try!(Length::parse(context, input));
+                    lengths[1] = Length::parse(context, input)?;
                     if let Ok(value) = input.try(|i| Length::parse_non_negative(context, i)) {
                         lengths[2] = value;
                         if !disable_spread_and_inset {
@@ -1004,7 +789,7 @@ impl Shadow {
                 }
             }
             if color.is_none() {
-                if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+                if let Ok(value) = input.try(|i| Color::parse(context, i)) {
                     color = Some(value);
                     continue
                 }
@@ -1014,7 +799,7 @@ impl Shadow {
 
         // Lengths must be specified.
         if !lengths_parsed {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
 
         debug_assert!(!disable_spread_and_inset || lengths[3] == Length::zero());
@@ -1031,103 +816,11 @@ impl Shadow {
 
 no_viewport_percentage!(SVGPaint);
 
-/// An SVG paint value
-///
-/// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct SVGPaint {
-    /// The paint source
-    pub kind: SVGPaintKind,
-    /// The fallback color
-    pub fallback: Option<CSSColor>,
-}
+/// Specified SVG Paint value
+pub type SVGPaint = ::values::generics::SVGPaint<RGBAColor>;
 
-/// An SVG paint value without the fallback
-///
-/// Whereas the spec only allows PaintServer
-/// to have a fallback, Gecko lets the context
-/// properties have a fallback as well.
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum SVGPaintKind {
-    /// `none`
-    None,
-    /// `<color>`
-    Color(CSSColor),
-    /// `url(...)`
-    PaintServer(SpecifiedUrl),
-    /// `context-fill`
-    ContextFill,
-    /// `context-stroke`
-    ContextStroke,
-}
-
-impl SVGPaintKind {
-    fn parse_ident(input: &mut Parser) -> Result<Self, ()> {
-        Ok(match_ignore_ascii_case! { &input.expect_ident()?,
-            "none" => SVGPaintKind::None,
-            "context-fill" => SVGPaintKind::ContextFill,
-            "context-stroke" => SVGPaintKind::ContextStroke,
-            _ => return Err(())
-        })
-    }
-}
-
-impl Parse for SVGPaint {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
-            let fallback = input.try(|i| CSSColor::parse(context, i));
-            Ok(SVGPaint {
-                kind: SVGPaintKind::PaintServer(url),
-                fallback: fallback.ok(),
-            })
-        } else if let Ok(kind) = input.try(SVGPaintKind::parse_ident) {
-            if kind == SVGPaintKind::None {
-                Ok(SVGPaint {
-                    kind: kind,
-                    fallback: None,
-                })
-            } else {
-                let fallback = input.try(|i| CSSColor::parse(context, i));
-                Ok(SVGPaint {
-                    kind: kind,
-                    fallback: fallback.ok(),
-                })
-            }
-        } else if let Ok(color) = input.try(|i| CSSColor::parse(context, i)) {
-            Ok(SVGPaint {
-                kind: SVGPaintKind::Color(color),
-                fallback: None,
-            })
-        } else {
-            Err(())
-        }
-    }
-}
-
-impl ToCss for SVGPaintKind {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            SVGPaintKind::None => dest.write_str("none"),
-            SVGPaintKind::ContextStroke => dest.write_str("context-stroke"),
-            SVGPaintKind::ContextFill => dest.write_str("context-fill"),
-            SVGPaintKind::Color(ref color) => color.to_css(dest),
-            SVGPaintKind::PaintServer(ref server) => server.to_css(dest),
-        }
-    }
-}
-
-impl ToCss for SVGPaint {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.kind.to_css(dest)?;
-        if let Some(ref fallback) = self.fallback {
-            fallback.to_css(dest)?;
-        }
-        Ok(())
-    }
-}
-
+/// Specified SVG Paint Kind value
+pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBAColor>;
 
 impl ToComputedValue for SVGPaint {
     type ComputedValue = super::computed::SVGPaint;
@@ -1154,36 +847,12 @@ impl ToComputedValue for SVGPaintKind {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            SVGPaintKind::None => super::computed::SVGPaintKind::None,
-            SVGPaintKind::ContextStroke => super::computed::SVGPaintKind::ContextStroke,
-            SVGPaintKind::ContextFill => super::computed::SVGPaintKind::ContextFill,
-            SVGPaintKind::Color(ref color) => {
-                let color = match color.parsed {
-                    Color::CurrentColor => cssparser::Color::RGBA(context.style().get_color().clone_color()),
-                    _ => color.to_computed_value(context),
-                };
-                super::computed::SVGPaintKind::Color(color)
-            }
-            SVGPaintKind::PaintServer(ref server) => {
-                super::computed::SVGPaintKind::PaintServer(server.to_computed_value(context))
-            }
-        }
+        self.convert(|color| color.to_computed_value(context))
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            super::computed::SVGPaintKind::None => SVGPaintKind::None,
-            super::computed::SVGPaintKind::ContextStroke => SVGPaintKind::ContextStroke,
-            super::computed::SVGPaintKind::ContextFill => SVGPaintKind::ContextFill,
-            super::computed::SVGPaintKind::Color(ref color) => {
-                SVGPaintKind::Color(ToComputedValue::from_computed_value(color))
-            }
-            super::computed::SVGPaintKind::PaintServer(ref server) => {
-                SVGPaintKind::PaintServer(ToComputedValue::from_computed_value(server))
-            }
-        }
+        computed.convert(ToComputedValue::from_computed_value)
     }
 }
 
@@ -1192,7 +861,8 @@ pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 
 impl LengthOrPercentageOrNumber {
     /// parse a <length-percentage> | <number> enforcing that the contents aren't negative
-    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
         // NB: Parse numbers before Lengths so we are consistent about how to
         // recognize and serialize "0".
         if let Ok(num) = input.try(|i| Number::parse_non_negative(context, i)) {
@@ -1220,36 +890,36 @@ pub struct ClipRect {
 
 impl ToCss for ClipRect {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("rect("));
+        dest.write_str("rect(")?;
 
         if let Some(ref top) = self.top {
-            try!(top.to_css(dest));
-            try!(dest.write_str(", "));
+            top.to_css(dest)?;
+            dest.write_str(", ")?;
         } else {
-            try!(dest.write_str("auto, "));
+            dest.write_str("auto, ")?;
         }
 
         if let Some(ref right) = self.right {
-            try!(right.to_css(dest));
-            try!(dest.write_str(", "));
+            right.to_css(dest)?;
+            dest.write_str(", ")?;
         } else {
-            try!(dest.write_str("auto, "));
+            dest.write_str("auto, ")?;
         }
 
         if let Some(ref bottom) = self.bottom {
-            try!(bottom.to_css(dest));
-            try!(dest.write_str(", "));
+            bottom.to_css(dest)?;
+            dest.write_str(", ")?;
         } else {
-            try!(dest.write_str("auto, "));
+            dest.write_str("auto, ")?;
         }
 
         if let Some(ref left) = self.left {
-            try!(left.to_css(dest));
+            left.to_css(dest)?;
         } else {
-            try!(dest.write_str("auto"));
+            dest.write_str("auto")?;
         }
 
-        try!(dest.write_str(")"));
+        dest.write_str(")")?;
         Ok(())
     }
 }
@@ -1279,19 +949,19 @@ impl ToComputedValue for ClipRect {
 }
 
 impl Parse for ClipRect {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl ClipRect {
     /// Parses a rect(<top>, <left>, <bottom>, <right>), allowing quirks.
-    pub fn parse_quirky(context: &ParserContext, input: &mut Parser,
-                    allow_quirks: AllowQuirks) -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
         use values::specified::Length;
 
-        fn parse_argument(context: &ParserContext, input: &mut Parser,
-                          allow_quirks: AllowQuirks) -> Result<Option<Length>, ()> {
+        fn parse_argument<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>,
+                                  allow_quirks: AllowQuirks) -> Result<Option<Length>, ParseError<'i>> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(None)
             } else {
@@ -1299,26 +969,27 @@ impl ClipRect {
             }
         }
 
-        if !try!(input.expect_function()).eq_ignore_ascii_case("rect") {
-            return Err(())
+        let func = input.expect_function()?;
+        if !func.eq_ignore_ascii_case("rect") {
+            return Err(StyleParseError::UnexpectedFunction(func).into())
         }
 
         input.parse_nested_block(|input| {
-            let top = try!(parse_argument(context, input, allow_quirks));
+            let top = parse_argument(context, input, allow_quirks)?;
             let right;
             let bottom;
             let left;
 
             if input.try(|input| input.expect_comma()).is_ok() {
-                right = try!(parse_argument(context, input, allow_quirks));
-                try!(input.expect_comma());
-                bottom = try!(parse_argument(context, input, allow_quirks));
-                try!(input.expect_comma());
-                left = try!(parse_argument(context, input, allow_quirks));
+                right = parse_argument(context, input, allow_quirks)?;
+                input.expect_comma()?;
+                bottom = parse_argument(context, input, allow_quirks)?;
+                input.expect_comma()?;
+                left = parse_argument(context, input, allow_quirks)?;
             } else {
-                right = try!(parse_argument(context, input, allow_quirks));
-                bottom = try!(parse_argument(context, input, allow_quirks));
-                left = try!(parse_argument(context, input, allow_quirks));
+                right = parse_argument(context, input, allow_quirks)?;
+                bottom = parse_argument(context, input, allow_quirks)?;
+                left = parse_argument(context, input, allow_quirks)?;
             }
             Ok(ClipRect {
                 top: top,
@@ -1335,8 +1006,8 @@ pub type ClipRectOrAuto = Either<ClipRect, Auto>;
 
 impl ClipRectOrAuto {
     /// Parses a ClipRect or Auto, allowing quirks.
-    pub fn parse_quirky(context: &ParserContext, input: &mut Parser,
-                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks) -> Result<Self, ParseError<'i>> {
         if let Ok(v) = input.try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
             Ok(Either::First(v))
         } else {
@@ -1346,7 +1017,7 @@ impl ClipRectOrAuto {
 }
 
 /// <color> | auto
-pub type ColorOrAuto = Either<CSSColor, Auto>;
+pub type ColorOrAuto = Either<Color, Auto>;
 
 /// Whether quirks are allowed in this context.
 #[derive(Clone, Copy, PartialEq)]
@@ -1363,3 +1034,114 @@ impl AllowQuirks {
         self == AllowQuirks::Yes && quirks_mode == QuirksMode::Quirks
     }
 }
+
+#[cfg(feature = "gecko")]
+/// A namespace ID
+pub type NamespaceId = i32;
+
+
+#[cfg(feature = "servo")]
+/// A namespace ID (used by gecko only)
+pub type NamespaceId = ();
+
+/// An attr(...) rule
+///
+/// `[namespace? `|`]? ident`
+#[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Attr {
+    /// Optional namespace
+    pub namespace: Option<(Namespace, NamespaceId)>,
+    /// Attribute name
+    pub attribute: String,
+}
+
+impl Parse for Attr {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Attr, ParseError<'i>> {
+        input.expect_function_matching("attr")?;
+        input.parse_nested_block(|i| Attr::parse_function(context, i))
+    }
+}
+
+#[cfg(feature = "gecko")]
+/// Get the namespace id from the namespace map
+fn get_id_for_namespace(namespace: &Namespace, context: &ParserContext) -> Result<NamespaceId, ()> {
+    let namespaces_map = match context.namespaces {
+        Some(map) => map,
+        None => {
+            // If we don't have a namespace map (e.g. in inline styles)
+            // we can't parse namespaces
+            return Err(());
+        }
+    };
+
+    match namespaces_map.prefixes.get(&namespace.0) {
+        Some(entry) => Ok(entry.1),
+        None => Err(()),
+    }
+}
+
+#[cfg(feature = "servo")]
+/// Get the namespace id from the namespace map
+fn get_id_for_namespace(_: &Namespace, _: &ParserContext) -> Result<NamespaceId, ()> {
+    Ok(())
+}
+
+impl Attr {
+    /// Parse contents of attr() assuming we have already parsed `attr` and are
+    /// within a parse_nested_block()
+    pub fn parse_function<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                  -> Result<Attr, ParseError<'i>> {
+        // Syntax is `[namespace? `|`]? ident`
+        // no spaces allowed
+        let first = input.try(|i| i.expect_ident()).ok();
+        if let Ok(token) = input.try(|i| i.next_including_whitespace()) {
+            match token {
+                Token::Delim('|') => {}
+                t => return Err(BasicParseError::UnexpectedToken(t).into()),
+            }
+            // must be followed by an ident
+            let second_token = match input.next_including_whitespace()? {
+                Token::Ident(second) => second,
+                t => return Err(BasicParseError::UnexpectedToken(t).into()),
+            };
+
+            let ns_with_id = if let Some(ns) = first {
+                let ns = Namespace::from(Cow::from(ns));
+                let id: Result<_, ParseError> =
+                    get_id_for_namespace(&ns, context)
+                    .map_err(|()| StyleParseError::UnspecifiedError.into());
+                Some((ns, id?))
+            } else {
+                None
+            };
+            return Ok(Attr {
+                namespace: ns_with_id,
+                attribute: second_token.into_owned(),
+            })
+        }
+
+        if let Some(first) = first {
+            Ok(Attr {
+                namespace: None,
+                attribute: first.into_owned(),
+            })
+        } else {
+            Err(StyleParseError::UnspecifiedError.into())
+        }
+    }
+}
+
+impl ToCss for Attr {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("attr(")?;
+        if let Some(ref ns) = self.namespace {
+            serialize_identifier(&ns.0.to_string(), dest)?;
+            dest.write_str("|")?;
+        }
+        serialize_identifier(&self.attribute, dest)?;
+        dest.write_str(")")
+    }
+}
+
+impl ComputedValueAsSpecified for Attr {}

@@ -1,5 +1,5 @@
 use binary_space_partition::{BspNode, Plane, PlaneCut};
-use euclid::TypedPoint3D;
+use euclid::{TypedPoint3D, TypedVector3D};
 use euclid::approxeq::ApproxEq;
 use num_traits::{Float, One, Zero};
 use std::{fmt, ops};
@@ -19,11 +19,11 @@ impl<T, U> Plane for Polygon<T, U> where
 
         match self.intersect(&plane) {
             Intersection::Coplanar if dist.approx_eq(&T::zero()) => {
-                debug!("\t\tcoplanar and matching");
+                debug!("\t\tCoplanar and matching");
                 PlaneCut::Sibling(plane)
             }
             Intersection::Coplanar | Intersection::Outside => {
-                debug!("\t\tcoplanar at {:?}", dist);
+                debug!("\t\tCoplanar at {:?}", dist);
                 if dist > T::zero() {
                     PlaneCut::Cut {
                         front: vec![plane],
@@ -48,7 +48,7 @@ impl<T, U> Plane for Polygon<T, U> where
                         back.push(sub)
                     }
                 }
-                debug!("\t\tcut across {:?} by {} in front and {} in back",
+                debug!("\t\tCut across {:?} by {} in front and {} in back",
                     line, front.len(), back.len());
 
                 PlaneCut::Cut {
@@ -96,10 +96,10 @@ impl<T, U> Splitter<T, U> for BspSplitter<T, U> where
         self.tree.insert(poly);
     }
 
-    fn sort(&mut self, view: TypedPoint3D<T, U>) -> &[Polygon<T, U>] {
+    fn sort(&mut self, view: TypedVector3D<T, U>) -> &[Polygon<T, U>] {
         //debug!("\t\ttree before sorting {:?}", self.tree);
         let poly = Polygon {
-            points: [TypedPoint3D::zero(); 4],
+            points: [TypedPoint3D::origin(); 4],
             normal: -view, //Note: BSP `order()` is back to front
             offset: T::zero(),
             anchor: 0,

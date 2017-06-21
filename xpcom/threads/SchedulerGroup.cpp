@@ -27,7 +27,7 @@ namespace {
 { 0xbf4e36c8, 0x7d04, 0x4ef4, \
   { 0xbb, 0xd8, 0x11, 0x09, 0x0a, 0xdb, 0x4d, 0xf7 } }
 
-class SchedulerEventTarget final : public nsIEventTarget
+class SchedulerEventTarget final : public nsISerialEventTarget
 {
   RefPtr<SchedulerGroup> mDispatcher;
   TaskCategory mCategory;
@@ -131,7 +131,10 @@ AutoCollectVsyncTelemetry::CollectTelemetry()
 
 } // namespace
 
-NS_IMPL_ISUPPORTS(SchedulerEventTarget, SchedulerEventTarget, nsIEventTarget)
+NS_IMPL_ISUPPORTS(SchedulerEventTarget,
+                  SchedulerEventTarget,
+                  nsIEventTarget,
+                  nsISerialEventTarget)
 
 NS_IMETHODIMP
 SchedulerEventTarget::DispatchFromScript(nsIRunnable* aRunnable, uint32_t aFlags)
@@ -159,6 +162,12 @@ SchedulerEventTarget::IsOnCurrentThread(bool* aIsOnCurrentThread)
 {
   *aIsOnCurrentThread = NS_IsMainThread();
   return NS_OK;
+}
+
+NS_IMETHODIMP_(bool)
+SchedulerEventTarget::IsOnCurrentThreadInfallible()
+{
+  return NS_IsMainThread();
 }
 
 /* static */ nsresult
@@ -219,7 +228,7 @@ SchedulerGroup::Dispatch(const char* aName,
   return LabeledDispatch(aName, aCategory, Move(aRunnable));
 }
 
-nsIEventTarget*
+nsISerialEventTarget*
 SchedulerGroup::EventTargetFor(TaskCategory aCategory) const
 {
   MOZ_ASSERT(aCategory != TaskCategory::Count);
@@ -259,7 +268,7 @@ SchedulerGroup::CreateEventTargets(bool aNeedValidation)
       // The chrome TabGroup dispatches directly to the main thread. This means
       // that we don't have to worry about cyclical references when cleaning up
       // the chrome TabGroup.
-      mEventTargets[i] = do_GetMainThread();
+      mEventTargets[i] = GetMainThreadSerialEventTarget();
     } else {
       mEventTargets[i] = CreateEventTargetFor(category);
     }
@@ -274,12 +283,12 @@ SchedulerGroup::Shutdown(bool aXPCOMShutdown)
   // the ThrottledEventQueue for this TabGroup when no windows belong to it,
   // so it's safe to null out the queue here.
   for (size_t i = 0; i < size_t(TaskCategory::Count); i++) {
-    mEventTargets[i] = aXPCOMShutdown ? nullptr : do_GetMainThread();
+    mEventTargets[i] = aXPCOMShutdown ? nullptr : GetMainThreadSerialEventTarget();
     mAbstractThreads[i] = nullptr;
   }
 }
 
-already_AddRefed<nsIEventTarget>
+already_AddRefed<nsISerialEventTarget>
 SchedulerGroup::CreateEventTargetFor(TaskCategory aCategory)
 {
   RefPtr<SchedulerEventTarget> target =

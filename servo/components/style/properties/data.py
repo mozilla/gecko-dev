@@ -148,7 +148,7 @@ class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
-                 allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
+                 allowed_in_keyframe_block=True, cast_type='u8',
                  has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
                  vector=False):
@@ -169,7 +169,6 @@ class Longhand(object):
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.depend_on_viewport_size = depend_on_viewport_size
         self.derived_from = (derived_from or "").split()
-        self.complex_color = complex_color
         self.cast_type = cast_type
         self.logical = arg_to_bool(logical)
         self.alias = alias.split() if alias else []
@@ -195,12 +194,15 @@ class Longhand(object):
         self.animation_value_type = animation_value_type
 
         self.animatable = animation_value_type != "none"
+        self.transitionable = animation_value_type != "none" \
+            and animation_value_type != "discrete"
         self.is_animatable_with_computed_value = animation_value_type == "ComputedValue" \
             or animation_value_type == "discrete"
         if self.logical:
             # Logical properties will be animatable (i.e. the animation type is
             # discrete). For now, it is still non-animatable.
             self.animatable = False
+            self.transitionable = False
             self.animation_type = None
         # NB: Animatable implies clone because a property animation requires a
         # copy of the computed value.
@@ -234,6 +236,25 @@ class Shorthand(object):
         # > but does accept the `animation-play-state` property and interprets it specially.
         self.allowed_in_keyframe_block = allowed_in_keyframe_block \
             and allowed_in_keyframe_block != "False"
+
+    def get_animatable(self):
+        animatable = False
+        for sub in self.sub_properties:
+            if sub.animatable:
+                animatable = True
+                break
+        return animatable
+
+    def get_transitionable(self):
+        transitionable = False
+        for sub in self.sub_properties:
+            if sub.transitionable:
+                transitionable = True
+                break
+        return transitionable
+
+    animatable = property(get_animatable)
+    transitionable = property(get_transitionable)
 
 
 class Method(object):

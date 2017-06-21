@@ -3,7 +3,18 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+//
+// Whitelisting this test.
+// As part of bug 1077403, the leaking uncaught rejections should be fixed.
+//
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.docShell is null");
+
+// When running in a standalone directory, we get this error
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: this.doc is undefined");
+
 // Tests devtools API
+
+"use strict";
 
 const toolId1 = "test-tool-1";
 const toolId2 = "test-tool-2";
@@ -13,7 +24,7 @@ function test() {
 }
 
 // Test scenario 1: the tool definition build method returns a promise.
-function runTests1(aTab) {
+function runTests1(tab) {
   let toolDefinition = {
     id: toolId1,
     isTargetSupported: () => true,
@@ -42,18 +53,18 @@ function runTests1(aTab) {
   gDevTools.once(toolId1 + "-init", (event, toolbox, iframe) => {
     ok(iframe, "iframe argument available");
 
-    toolbox.once(toolId1 + "-init", (event, iframe) => {
-      ok(iframe, "iframe argument available");
-      events["init"] = true;
+    toolbox.once(toolId1 + "-init", (innerEvent, innerIframe) => {
+      ok(innerIframe, "innerIframe argument available");
+      events.init = true;
     });
   });
 
   gDevTools.once(toolId1 + "-ready", (event, toolbox, panel) => {
     ok(panel, "panel argument available");
 
-    toolbox.once(toolId1 + "-ready", (event, panel) => {
-      ok(panel, "panel argument available");
-      events["ready"] = true;
+    toolbox.once(toolId1 + "-ready", (innerEvent, innerPanel) => {
+      ok(innerPanel, "innerPanel argument available");
+      events.ready = true;
     });
   });
 
@@ -61,8 +72,8 @@ function runTests1(aTab) {
     is(toolbox.target, target, "toolbox target is correct");
     is(toolbox.target.tab, gBrowser.selectedTab, "targeted tab is correct");
 
-    ok(events["init"], "init event fired");
-    ok(events["ready"], "ready event fired");
+    ok(events.init, "init event fired");
+    ok(events.ready, "ready event fired");
 
     gDevTools.unregisterTool(toolId1);
 
@@ -101,27 +112,27 @@ function runTests2() {
   gDevTools.once(toolId2 + "-init", (event, toolbox, iframe) => {
     ok(iframe, "iframe argument available");
 
-    toolbox.once(toolId2 + "-init", (event, iframe) => {
-      ok(iframe, "iframe argument available");
-      events["init"] = true;
+    toolbox.once(toolId2 + "-init", (innerEvent, innerIframe) => {
+      ok(innerIframe, "innerIframe argument available");
+      events.init = true;
     });
   });
 
   gDevTools.once(toolId2 + "-build", (event, toolbox, panel, iframe) => {
     ok(panel, "panel argument available");
 
-    toolbox.once(toolId2 + "-build", (event, panel, iframe) => {
-      ok(panel, "panel argument available");
-      events["build"] = true;
+    toolbox.once(toolId2 + "-build", (innerEvent, innerPanel, innerIframe) => {
+      ok(innerPanel, "innerPanel argument available");
+      events.build = true;
     });
   });
 
   gDevTools.once(toolId2 + "-ready", (event, toolbox, panel) => {
     ok(panel, "panel argument available");
 
-    toolbox.once(toolId2 + "-ready", (event, panel) => {
-      ok(panel, "panel argument available");
-      events["ready"] = true;
+    toolbox.once(toolId2 + "-ready", (innerEvent, innerPanel) => {
+      ok(innerPanel, "innerPanel argument available");
+      events.ready = true;
     });
   });
 
@@ -129,9 +140,9 @@ function runTests2() {
     is(toolbox.target, target, "toolbox target is correct");
     is(toolbox.target.tab, gBrowser.selectedTab, "targeted tab is correct");
 
-    ok(events["init"], "init event fired");
-    ok(events["build"], "build event fired");
-    ok(events["ready"], "ready event fired");
+    ok(events.init, "init event fired");
+    ok(events.build, "build event fired");
+    ok(events.ready, "ready event fired");
 
     continueTests(toolbox);
   });
@@ -184,6 +195,7 @@ var continueTests = Task.async(function* (toolbox, panel) {
   info("Unregistering tool");
   gDevTools.unregisterTool(toolId2);
 
+  info("Destroying toolbox");
   destroyToolbox(toolbox);
 });
 

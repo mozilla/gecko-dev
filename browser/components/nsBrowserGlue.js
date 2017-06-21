@@ -19,6 +19,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "AlertsService", "@mozilla.org/alerts-s
 XPCOMUtils.defineLazyGetter(this, "WeaveService", () =>
   Cc["@mozilla.org/weave/service;1"].getService().wrappedJSObject
 );
+XPCOMUtils.defineLazyModuleGetter(this, "ContextualIdentityService",
+                                  "resource://gre/modules/ContextualIdentityService.jsm");
 
 // lazy module getters
 
@@ -365,7 +367,10 @@ BrowserGlue.prototype = {
         this._onDeviceConnected(data);
         break;
       case "fxaccounts:device_disconnected":
-        this._onDeviceDisconnected();
+        data = JSON.parse(data);
+        if (data.isLocalDevice) {
+          this._onDeviceDisconnected();
+        }
         break;
       case "weave:engine:clients:display-uris":
         this._onDisplaySyncURIs(subject);
@@ -528,9 +533,7 @@ BrowserGlue.prototype = {
     os.addObserver(this, "distribution-customization-complete");
     os.addObserver(this, "handle-xul-text-link");
     os.addObserver(this, "profile-before-change");
-    if (AppConstants.MOZ_TELEMETRY_REPORTING) {
-      os.addObserver(this, "keyword-search");
-    }
+    os.addObserver(this, "keyword-search");
     os.addObserver(this, "browser-search-engine-modified");
     os.addObserver(this, "restart-in-safe-mode");
     os.addObserver(this, "flash-plugin-hang");
@@ -540,7 +543,8 @@ BrowserGlue.prototype = {
     this._flashHangCount = 0;
     this._firstWindowReady = new Promise(resolve => this._firstWindowLoaded = resolve);
 
-    if (AppConstants.platform == "macosx") {
+    if (AppConstants.platform == "macosx" ||
+        (AppConstants.platform == "win" && AppConstants.RELEASE_OR_BETA)) {
       // Handles prompting to inform about incompatibilites when accessibility
       // and e10s are active together.
       E10SAccessibilityCheck.init();
@@ -582,9 +586,7 @@ BrowserGlue.prototype = {
       os.removeObserver(this, "places-database-locked");
     os.removeObserver(this, "handle-xul-text-link");
     os.removeObserver(this, "profile-before-change");
-    if (AppConstants.MOZ_TELEMETRY_REPORTING) {
-      os.removeObserver(this, "keyword-search");
-    }
+    os.removeObserver(this, "keyword-search");
     os.removeObserver(this, "browser-search-engine-modified");
     os.removeObserver(this, "flash-plugin-hang");
     os.removeObserver(this, "xpi-signature-changed");
@@ -600,7 +602,6 @@ BrowserGlue.prototype = {
   // runs on startup, before the first command line handler is invoked
   // (i.e. before the first window is opened)
   _finalUIStartup: function BG__finalUIStartup() {
-    this._sanitizer.onStartup();
     // check if we're in safe mode
     if (Services.appinfo.inSafeMode) {
       Services.ww.openWindow(null, "chrome://browser/content/safeMode.xul",
@@ -615,13 +616,6 @@ BrowserGlue.prototype = {
     this._migrateUI();
 
     listeners.init();
-
-    PageThumbs.init();
-
-    DirectoryLinksProvider.init();
-    NewTabUtils.init();
-    NewTabUtils.links.addProvider(DirectoryLinksProvider);
-    AboutNewTab.init();
 
     SessionStore.init();
     BrowserUsageTelemetry.init();
@@ -973,6 +967,13 @@ BrowserGlue.prototype = {
       WeaveService.init();
     }
 
+    PageThumbs.init();
+
+    DirectoryLinksProvider.init();
+    NewTabUtils.init();
+    NewTabUtils.links.addProvider(DirectoryLinksProvider);
+    AboutNewTab.init();
+
     this._firstWindowTelemetry(aWindow);
     this._firstWindowLoaded();
 
@@ -1179,6 +1180,12 @@ BrowserGlue.prototype = {
       }
     }
 
+    // Let's load the contextual identities.
+    Services.tm.mainThread.idleDispatch(() => {
+      ContextualIdentityService.load();
+    });
+
+    this._sanitizer.onStartup();
     E10SAccessibilityCheck.onWindowsRestored();
   },
 
@@ -1209,7 +1216,7 @@ BrowserGlue.prototype = {
         let newProfilePath = newProfile.rootDir.path;
         OS.File.removeDir(newProfilePath).then(() => {
           return OS.File.makeDir(newProfilePath);
-        }).then(null, e => {
+        }).catch(e => {
           Cu.reportError("Could not empty profile 'default': " + e);
         });
       }
@@ -1709,7 +1716,7 @@ BrowserGlue.prototype = {
 
   // eslint-disable-next-line complexity
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 47;
+    const UI_VERSION = 48;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul";
 
     let currentUIVersion;
@@ -2039,6 +2046,14 @@ BrowserGlue.prototype = {
       }
     }
 
+    if (currentUIVersion < 48) {
+      // Bug 1372954 - the checked value was persisted but the attribute removal wouldn't
+      // be persisted (Bug 15232). Turns out we can just not persist the value in this case.
+      // The situation was only happening for a few nightlies in 56, so this migration can
+      // be removed in version 58.
+      xulStore.removeValue(BROWSER_DOCURL, "sidebar-box", "checked");
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
@@ -2249,7 +2264,7 @@ BrowserGlue.prototype = {
           body = win.gURLBar.trimValue(body);
         }
       } else {
-        title = bundle.GetStringFromName("tabsArrivingNotification.title");
+        title = bundle.GetStringFromName("multipleTabsArrivingNotification.title");
         const allSameDevice = URIs.every(URI => URI.clientId == URIs[0].clientId);
         const unknownDevice = allSameDevice && !deviceName;
         let tabArrivingBody;
@@ -2490,8 +2505,6 @@ ContentPermissionPrompt.prototype = {
 
 var DefaultBrowserCheck = {
   get OPTIONPOPUP() { return "defaultBrowserNotificationPopup" },
-  _setAsDefaultTimer: null,
-  _setAsDefaultButtonClickStartTime: 0,
 
   closePrompt(aNode) {
     if (this._notification) {
@@ -2514,33 +2527,6 @@ var DefaultBrowserCheck = {
     }
     try {
       ShellService.setDefaultBrowser(claimAllTypes, false);
-
-      if (this._setAsDefaultTimer) {
-        this._setAsDefaultTimer.cancel();
-      }
-
-      this._setAsDefaultButtonClickStartTime = Math.floor(Date.now() / 1000);
-      this._setAsDefaultTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      this._setAsDefaultTimer.init(() => {
-        let isDefault = false;
-        let isDefaultError = false;
-        try {
-          isDefault = ShellService.isDefaultBrowser(true, false);
-        } catch (ex) {
-          isDefaultError = true;
-        }
-
-        let now = Math.floor(Date.now() / 1000);
-        let runTime = now - this._setAsDefaultButtonClickStartTime;
-        if (isDefault || runTime > 600) {
-          this._setAsDefaultTimer.cancel();
-          this._setAsDefaultTimer = null;
-          Services.telemetry.getHistogramById("BROWSER_SET_DEFAULT_TIME_TO_COMPLETION_SECONDS")
-                            .add(runTime);
-        }
-        Services.telemetry.getHistogramById("BROWSER_IS_USER_DEFAULT_ERROR")
-                          .add(isDefaultError);
-      }, 1000, Ci.nsITimer.TYPE_REPEATING_SLACK);
     } catch (ex) {
       setAsDefaultError = true;
       Cu.reportError(ex);

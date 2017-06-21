@@ -1,15 +1,15 @@
 /* globals global, documentMetadata, util, uicontrol, ui, catcher */
-/* globals domainFromUrl, randomString */
+/* globals buildSettings, domainFromUrl, randomString, shot */
 
 "use strict";
 
 this.shooter = (function() { // eslint-disable-line no-unused-vars
   let exports = {};
-  const { AbstractShot } = window.shot;
+  const { AbstractShot } = shot;
 
   const RANDOM_STRING_LENGTH = 16;
   let backend;
-  let shot;
+  let shotObject;
   let supportsDrawWindow;
   const callBackground = global.callBackground;
   const clipboard = global.clipboard;
@@ -33,11 +33,11 @@ this.shooter = (function() { // eslint-disable-line no-unused-vars
     callBackground("reportError", sanitizeError(errorObj));
   });
 
-  {
+  catcher.watchFunction(() => {
     let canvas = document.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
     let ctx = canvas.getContext('2d');
     supportsDrawWindow = !!ctx.drawWindow;
-  }
+  })();
 
   function screenshotPage(selectedPos) {
     if (!supportsDrawWindow) {
@@ -67,19 +67,35 @@ this.shooter = (function() { // eslint-disable-line no-unused-vars
     // isSaving indicates we're aleady in the middle of saving
     // we use a timeout so in the case of a failure the button will
     // still start working again
+    if (Math.floor(selectedPos.left) == Math.floor(selectedPos.right) ||
+        Math.floor(selectedPos.top) == Math.floor(selectedPos.bottom)) {
+        let exc = new Error("Empty selection");
+        exc.popupMessage = "EMPTY_SELECTION";
+        exc.noReport = true;
+        catcher.unhandled(exc);
+        return;
+    }
     const uicontrol = global.uicontrol;
     let deactivateAfterFinish = true;
     if (isSaving) {
       return;
     }
     isSaving = setTimeout(() => {
+      if (typeof ui !== "undefined") {
+        // ui might disappear while the timer is running because the save succeeded
+        ui.Box.clearSaveDisabled();
+      }
       isSaving = null;
     }, 1000);
     selectedPos = selectedPos.asJson();
-    let captureText = util.captureEnclosedText(selectedPos);
+    let captureText = "";
+    if (buildSettings.captureText) {
+      captureText = util.captureEnclosedText(selectedPos);
+    }
     let dataUrl = screenshotPage(selectedPos);
     if (dataUrl) {
-      shot.addClip({
+      shotObject.delAllClips();
+      shotObject.addClip({
         createdDate: Date.now(),
         image: {
           url: dataUrl,
@@ -103,8 +119,8 @@ this.shooter = (function() { // eslint-disable-line no-unused-vars
         innerWidth: window.innerWidth
       },
       selectedPos,
-      shotId: shot.id,
-      shot: shot.asJson()
+      shotId: shotObject.id,
+      shot: shotObject.asJson()
     }).then((url) => {
       const copied = clipboard.copy(url);
       return callBackground("openShot", { url, copied });
@@ -141,7 +157,7 @@ this.shooter = (function() { // eslint-disable-line no-unused-vars
         });
     }
     catcher.watchPromise(promise.then((dataUrl) => {
-      ui.triggerDownload(dataUrl, shot.filename);
+      ui.triggerDownload(dataUrl, shotObject.filename);
       uicontrol.deactivate();
     }));
   };
@@ -150,14 +166,16 @@ this.shooter = (function() { // eslint-disable-line no-unused-vars
     callBackground("sendEvent", ...args);
   };
 
-  shot = new AbstractShot(
-    backend,
-    randomString(RANDOM_STRING_LENGTH) + "/" + domainFromUrl(location),
-    {
-      origin: window.shot.originFromUrl(location.href)
-    }
-  );
-  shot.update(documentMetadata());
+  catcher.watchFunction(() => {
+    shotObject = new AbstractShot(
+      backend,
+      randomString(RANDOM_STRING_LENGTH) + "/" + domainFromUrl(location),
+      {
+        origin: shot.originFromUrl(location.href)
+      }
+    );
+    shotObject.update(documentMetadata());
+  })();
 
   return exports;
 })();

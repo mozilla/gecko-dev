@@ -33,9 +33,9 @@
         % endif
         #[allow(unused_variables)]
         #[inline]
-        pub fn parse(context: &ParserContext,
-                     input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(context: &ParserContext,
+                             input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             % if allow_quirks:
             specified::${type}::${parse_method}_quirky(context, input, AllowQuirks::Yes)
             % elif needs_context:
@@ -87,11 +87,15 @@
 
             pub mod single_value {
                 #[allow(unused_imports)]
-                use cssparser::Parser;
+                use cssparser::{Parser, BasicParseError};
                 #[allow(unused_imports)]
                 use parser::{Parse, ParserContext};
                 #[allow(unused_imports)]
                 use properties::ShorthandId;
+                #[allow(unused_imports)]
+                use selectors::parser::SelectorParseError;
+                #[allow(unused_imports)]
+                use style_traits::{ParseError, StyleParseError};
                 #[allow(unused_imports)]
                 use values::computed::{Context, ToComputedValue};
                 #[allow(unused_imports)]
@@ -154,17 +158,17 @@
                 {
                     let mut iter = self.0.iter();
                     if let Some(val) = iter.next() {
-                        try!(val.to_css(dest));
+                        val.to_css(dest)?;
                     } else {
                         % if allow_empty:
-                            try!(dest.write_str("none"));
+                            dest.write_str("none")?;
                         % else:
                             warn!("Found empty value for property ${name}");
                         % endif
                     }
                     for i in iter {
-                        try!(dest.write_str(", "));
-                        try!(i.to_css(dest));
+                        dest.write_str(", ")?;
+                        i.to_css(dest)?;
                     }
                     Ok(())
                 }
@@ -181,17 +185,17 @@
                 {
                     let mut iter = self.0.iter();
                     if let Some(val) = iter.next() {
-                        try!(val.to_css(dest));
+                        val.to_css(dest)?;
                     } else {
                         % if allow_empty:
-                            try!(dest.write_str("none"));
+                            dest.write_str("none")?;
                         % else:
                             warn!("Found empty value for property ${name}");
                         % endif
                     }
                     for i in iter {
-                        try!(dest.write_str(", "));
-                        try!(i.to_css(dest));
+                        dest.write_str(", ")?;
+                        i.to_css(dest)?;
                     }
                     Ok(())
                 }
@@ -207,7 +211,8 @@
                 % endif
             }
 
-            pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                 -> Result<SpecifiedValue, ParseError<'i>> {
                 #[allow(unused_imports)]
                 use parser::parse_space_or_comma_separated;
 
@@ -266,7 +271,7 @@
     pub mod ${property.ident} {
         % if not property.derived_from:
             #[allow(unused_imports)]
-            use cssparser::Parser;
+            use cssparser::{Parser, BasicParseError, Token};
             #[allow(unused_imports)]
             use parser::{Parse, ParserContext};
             #[allow(unused_imports)]
@@ -287,7 +292,11 @@
         #[allow(unused_imports)]
         use properties::style_structs;
         #[allow(unused_imports)]
+        use selectors::parser::SelectorParseError;
+        #[allow(unused_imports)]
         use stylearc::Arc;
+        #[allow(unused_imports)]
+        use style_traits::{ParseError, StyleParseError};
         #[allow(unused_imports)]
         use values::computed::{Context, ToComputedValue};
         #[allow(unused_imports)]
@@ -335,6 +344,8 @@
                         <%
                             maybe_wm = ", wm" if property.logical else ""
                             maybe_cacheable = ", cacheable" if property.has_uncacheable_values == "True" else ""
+                            props_need_device = "content list_style_type".split() if product == "gecko" else []
+                            maybe_device = ", context.device" if property.ident in props_need_device else ""
                         %>
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
@@ -366,7 +377,8 @@
                                                                                            inherited_style.get_font());
                                     % else:
                                         context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                               .set_${property.ident}(computed ${maybe_cacheable} ${maybe_wm});
+                                               .set_${property.ident}(computed ${maybe_device}
+                                                                      ${maybe_cacheable} ${maybe_wm});
                                     % endif
                                 % endif
                             }
@@ -423,12 +435,12 @@
             % endif
         }
         % if not property.derived_from:
-            pub fn parse_specified(context: &ParserContext, input: &mut Parser)
+            pub fn parse_specified<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                 % if property.boxed:
-                                   -> Result<Box<SpecifiedValue>, ()> {
+                                   -> Result<Box<SpecifiedValue>, ParseError<'i>> {
                     parse(context, input).map(|result| Box::new(result))
                 % else:
-                                   -> Result<SpecifiedValue, ()> {
+                                   -> Result<SpecifiedValue, ParseError<'i>> {
                     % if property.allow_quirks:
                         parse_quirky(context, input, specified::AllowQuirks::Yes)
                     % else:
@@ -436,11 +448,11 @@
                     % endif
                 % endif
             }
-            pub fn parse_declared(context: &ParserContext, input: &mut Parser)
-                                  -> Result<PropertyDeclaration, ()> {
+            pub fn parse_declared<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                          -> Result<PropertyDeclaration, ParseError<'i>> {
                 match input.try(|i| CSSWideKeyword::parse(context, i)) {
                     Ok(keyword) => Ok(PropertyDeclaration::CSSWideKeyword(LonghandId::${property.camel_case}, keyword)),
-                    Err(()) => {
+                    Err(_) => {
                         input.look_for_var_functions();
                         let start = input.position();
                         let specified = parse_specified(context, input);
@@ -450,8 +462,8 @@
                         let var = input.seen_var_functions();
                         if specified.is_err() && var {
                             input.reset(start);
-                            let (first_token_type, css) = try!(
-                                ::custom_properties::parse_non_custom_with_var(input));
+                            let (first_token_type, css) =
+                                ::custom_properties::parse_non_custom_with_var(input)?;
                             return Ok(PropertyDeclaration::WithVariables(LonghandId::${property.camel_case},
                                                                          Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -487,7 +499,7 @@
             use cssparser::Parser;
             use parser::{Parse, ParserContext};
 
-            use style_traits::ToCss;
+            use style_traits::{ToCss, ParseError};
             define_css_keyword_enum! { T:
                 % for value in keyword.values_for(product):
                     "${value}" => ${to_rust_ident(value)},
@@ -495,7 +507,7 @@
             }
 
             impl Parse for T {
-                fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+                fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
                     T::parse(input)
                 }
             }
@@ -518,7 +530,7 @@
             }
         }
 
-        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<SpecifiedValue, ParseError<'i>> {
             Ok(SpecifiedValue::Keyword(computed_value::T::parse(input)?))
         }
 
@@ -716,14 +728,14 @@
             SpecifiedValue::${to_rust_ident(values.split()[0])}
         }
         #[inline]
-        pub fn parse(_context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             SpecifiedValue::parse(input)
         }
         impl Parse for SpecifiedValue {
             #[inline]
-            fn parse(_context: &ParserContext, input: &mut Parser)
-                         -> Result<SpecifiedValue, ()> {
+            fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
                 SpecifiedValue::parse(input)
             }
         }
@@ -752,7 +764,7 @@
     % endif
 </%def>
 
-<%def name="shorthand(name, sub_properties, experimental=False, **kwargs)">
+<%def name="shorthand(name, sub_properties, experimental=False, derive_serialize=False, **kwargs)">
 <%
     shorthand = data.declare_shorthand(name, sub_properties.split(), experimental=experimental,
                                        **kwargs)
@@ -764,8 +776,13 @@
         use parser::ParserContext;
         use properties::{PropertyDeclaration, SourcePropertyDeclaration, MaybeBoxed};
         use properties::{ShorthandId, LonghandId, UnparsedValue, longhands};
+        #[allow(unused_imports)]
+        use selectors::parser::SelectorParseError;
+        #[allow(unused_imports)]
         use std::fmt;
         use stylearc::Arc;
+        use style_traits::{ParseError, StyleParseError};
+        #[allow(unused_imports)]
         use style_traits::ToCss;
 
         pub struct Longhands {
@@ -784,6 +801,9 @@
 
         /// Represents a serializable set of all of the longhand properties that
         /// correspond to a shorthand.
+        % if derive_serialize:
+        #[derive(ToCss)]
+        % endif
         pub struct LonghandsToSerialize<'a> {
             % for sub_property in shorthand.sub_properties:
                 pub ${sub_property.ident}:
@@ -838,8 +858,8 @@
 
         /// Parse the given shorthand and fill the result into the
         /// `declarations` vector.
-        pub fn parse_into(declarations: &mut SourcePropertyDeclaration,
-                     context: &ParserContext, input: &mut Parser) -> Result<(), ()> {
+        pub fn parse_into<'i, 't>(declarations: &mut SourcePropertyDeclaration,
+                     context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<(), ParseError<'i>> {
             input.look_for_var_functions();
             let start = input.position();
             let value = input.parse_entirely(|input| parse_value(context, input));
@@ -856,8 +876,8 @@
                 Ok(())
             } else if var {
                 input.reset(start);
-                let (first_token_type, css) = try!(
-                    ::custom_properties::parse_non_custom_with_var(input));
+                let (first_token_type, css) =
+                    ::custom_properties::parse_non_custom_with_var(input)?;
                 let unparsed = Arc::new(UnparsedValue {
                     css: css.into_owned(),
                     first_token_type: first_token_type,
@@ -872,7 +892,7 @@
                 % endfor
                 Ok(())
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
         }
 
@@ -890,7 +910,8 @@
         use values::generics::rect::Rect;
         use values::specified;
 
-        pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                   -> Result<Longhands, ParseError<'i>> {
             let rect = Rect::parse_with(context, input, |_c, i| {
             % if allow_quirks:
                 ${parser_function}_quirky(_c, i, specified::AllowQuirks::Yes)
@@ -1074,8 +1095,6 @@
                           predefined_type=length_type,
                           logical=logical,
                           **kwargs)">
-        use std::fmt;
-        use style_traits::ToCss;
         % if not logical:
             use values::specified::AllowQuirks;
         % endif
@@ -1085,8 +1104,8 @@
             pub type T = ::values::computed::${length_type};
         }
 
-        #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
         pub struct SpecifiedValue(pub ${length_type});
 
         % if length_type == "MozLength":
@@ -1116,7 +1135,8 @@
             use values::computed::${length_type};
             ${length_type}::${initial_value}
         }
-        fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
             % if logical:
             let ret = ${length_type}::parse(context, input);
             % else:
@@ -1125,16 +1145,10 @@
             // Keyword values don't make sense in the block direction; don't parse them
             % if "block" in name:
                 if let Ok(${length_type}::ExtremumLength(..)) = ret {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
             % endif
             ret.map(SpecifiedValue)
-        }
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
-            }
         }
 
         impl ToComputedValue for SpecifiedValue {

@@ -183,13 +183,6 @@ this.AppConstants = Object.freeze({
   false,
 #endif
 
-  MOZ_VERIFY_MAR_SIGNATURE:
-#ifdef MOZ_VERIFY_MAR_SIGNATURE
-  true,
-#else
-  false,
-#endif
-
   MOZ_MAINTENANCE_SERVICE:
 #ifdef MOZ_MAINTENANCE_SERVICE
   true,
@@ -316,6 +309,13 @@ this.AppConstants = Object.freeze({
   false,
 #endif
 
+  MOZ_ANDROID_MOZILLA_ONLINE:
+#ifdef MOZ_ANDROID_MOZILLA_ONLINE
+  true,
+#else
+  false,
+#endif
+
   DLL_PREFIX: "@DLL_PREFIX@",
   DLL_SUFFIX: "@DLL_SUFFIX@",
 
@@ -357,6 +357,13 @@ this.AppConstants = Object.freeze({
 
   MOZ_PHOTON_ANIMATIONS:
 #ifdef MOZ_PHOTON_ANIMATIONS
+    true,
+#else
+    false,
+#endif
+
+  MOZ_PHOTON_THEME:
+#ifdef MOZ_PHOTON_THEME
     true,
 #else
     false,

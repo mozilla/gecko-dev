@@ -9,10 +9,10 @@
 
 XPCOMUtils.defineLazyModuleGetter(this, "ExtensionParent",
                                   "resource://gre/modules/ExtensionParent.jsm");
+
 Cu.import("resource://gre/modules/ExtensionUtils.jsm");
 
 var {
-  extensionStylesheets,
   promiseEvent,
 } = ExtensionUtils;
 
@@ -32,6 +32,7 @@ function getBrowser(sidebar) {
   browser.setAttribute("webextension-view-type", "sidebar");
   browser.setAttribute("context", "contentAreaContextMenu");
   browser.setAttribute("tooltip", "aHTMLTooltip");
+  browser.setAttribute("autocompletepopup", "PopupAutoComplete");
   browser.setAttribute("onclick", "window.parent.contentAreaClick(event, true);");
 
   let readyPromise;
@@ -60,7 +61,7 @@ function getBrowser(sidebar) {
         "chrome://extensions/content/ext-browser-content.js", false);
 
       browser.messageManager.sendAsyncMessage("Extension:InitBrowser", {
-        stylesheets: extensionStylesheets,
+        stylesheets: ExtensionParent.extensionStylesheets,
       });
     }
     return browser;

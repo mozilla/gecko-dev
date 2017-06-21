@@ -8,6 +8,7 @@
 #![deny(missing_docs)]
 
 use {Atom, Namespace, LocalName};
+use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 #[cfg(feature = "gecko")] use context::UpdateAnimationsTasks;
 use data::ElementData;
@@ -17,17 +18,18 @@ use properties::{ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
-use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
-use selectors::matching::ElementSelectorFlags;
+use selector_parser::{AttrValue, ElementExt, PreExistingComputedValues};
+use selector_parser::{PseudoClassStringArg, PseudoElement};
+use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use shared_lock::Locked;
 use sink::Push;
+use smallvec::VecLike;
 use std::fmt;
 #[cfg(feature = "gecko")] use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
 use stylearc::Arc;
-use stylist::ApplicableDeclarationBlock;
 use thread_state;
 
 pub use style_traits::UnsafeNode;
@@ -106,16 +108,30 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     /// Get a node back from an `UnsafeNode`.
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self;
 
-    /// Returns an iterator over this node's children.
-    fn children(self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
-
-    /// Converts self into an `OpaqueNode`.
-    fn opaque(&self) -> OpaqueNode;
+    /// Get this node's parent node.
+    fn parent_node(&self) -> Option<Self>;
 
     /// Get this node's parent element if present.
     fn parent_element(&self) -> Option<Self::ConcreteElement> {
         self.parent_node().and_then(|n| n.as_element())
     }
+
+    /// Returns an iterator over this node's children.
+    fn children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
+
+    /// Get this node's parent element from the perspective of a restyle
+    /// traversal.
+    fn traversal_parent(&self) -> Option<Self::ConcreteElement>;
+
+    /// Get this node's children from the perspective of a restyle traversal.
+    fn traversal_children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
+
+    /// Returns whether `children()` and `traversal_children()` might return
+    /// iterators over different nodes.
+    fn children_and_traversal_children_might_differ(&self) -> bool;
+
+    /// Converts self into an `OpaqueNode`.
+    fn opaque(&self) -> OpaqueNode;
 
     /// A debug id, only useful, mm... for debugging.
     fn debug_id(self) -> usize;
@@ -135,9 +151,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
 
     /// Set whether this node can be fragmented.
     unsafe fn set_can_be_fragmented(&self, value: bool);
-
-    /// Get this node's parent node.
-    fn parent_node(&self) -> Option<Self>;
 
     /// Whether this node is in the document right now needed to clear the
     /// restyle data appropriately on some forced restyles.
@@ -167,7 +180,7 @@ impl<N: TNode> Debug for ShowDataAndPrimaryValues<N> {
 pub struct ShowSubtree<N: TNode>(pub N);
 impl<N: TNode> Debug for ShowSubtree<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(writeln!(f, "DOM Subtree:"));
+        writeln!(f, "DOM Subtree:")?;
         fmt_subtree(f, &|f, n| write!(f, "{:?}", n), self.0, 1)
     }
 }
@@ -177,7 +190,7 @@ impl<N: TNode> Debug for ShowSubtree<N> {
 pub struct ShowSubtreeData<N: TNode>(pub N);
 impl<N: TNode> Debug for ShowSubtreeData<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(writeln!(f, "DOM Subtree:"));
+        writeln!(f, "DOM Subtree:")?;
         fmt_subtree(f, &|f, n| fmt_with_data(f, n), self.0, 1)
     }
 }
@@ -187,7 +200,7 @@ impl<N: TNode> Debug for ShowSubtreeData<N> {
 pub struct ShowSubtreeDataAndPrimaryValues<N: TNode>(pub N);
 impl<N: TNode> Debug for ShowSubtreeDataAndPrimaryValues<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(writeln!(f, "DOM Subtree:"));
+        writeln!(f, "DOM Subtree:")?;
         fmt_subtree(f, &|f, n| fmt_with_data_and_primary_values(f, n), self.0, 1)
     }
 }
@@ -217,12 +230,12 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
     where F: Fn(&mut fmt::Formatter, N) -> fmt::Result
 {
     for _ in 0..indent {
-        try!(write!(f, "  "));
+        write!(f, "  ")?;
     }
-    try!(stringify(f, n));
-    for kid in n.children() {
-        try!(writeln!(f, ""));
-        try!(fmt_subtree(f, stringify, kid, indent + 1));
+    stringify(f, n)?;
+    for kid in n.traversal_children() {
+        writeln!(f, "")?;
+        fmt_subtree(f, stringify, kid, indent + 1)?;
     }
 
     Ok(())
@@ -254,7 +267,7 @@ pub unsafe fn raw_note_descendants<E, B>(element: E) -> bool
             break;
         }
         B::set(el);
-        curr = el.parent_element();
+        curr = el.traversal_parent();
     }
 
     // Note: We disable this assertion on servo because of bugs. See the
@@ -270,7 +283,9 @@ pub unsafe fn raw_note_descendants<E, B>(element: E) -> bool
 pub trait PresentationalHintsSynthesizer {
     /// Generate the proper applicable declarations due to presentational hints,
     /// and insert them into `hints`.
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
+                                                                visited_handling: VisitedHandlingMode,
+                                                                hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>;
 }
 
@@ -293,7 +308,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     fn depth(&self) -> usize {
         let mut depth = 0;
         let mut curr = *self;
-        while let Some(parent) = curr.parent_element() {
+        while let Some(parent) = curr.traversal_parent() {
             depth += 1;
             curr = parent;
         }
@@ -301,24 +316,38 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         depth
     }
 
-    /// While doing a reflow, the element at the root has no parent, as far as we're
-    /// concerned. This method returns `None` at the reflow root.
-    fn layout_parent_element(self, reflow_root: OpaqueNode) -> Option<Self> {
-        if self.as_node().opaque() == reflow_root {
-            None
-        } else {
-            self.parent_element()
-        }
+    /// Get this node's parent element from the perspective of a restyle
+    /// traversal.
+    fn traversal_parent(&self) -> Option<Self> {
+        self.as_node().traversal_parent()
     }
 
     /// Returns the parent element we should inherit from.
     ///
     /// This is pretty much always the parent element itself, except in the case
-    /// of Gecko's Native Anonymous Content, which may need to find the closest
-    /// non-NAC ancestor.
+    /// of Gecko's Native Anonymous Content, which uses the traversal parent
+    /// (i.e. the flattened tree parent) and which also may need to find the
+    /// closest non-NAC ancestor.
     fn inheritance_parent(&self) -> Option<Self> {
         self.parent_element()
     }
+
+    /// The ::before pseudo-element of this element, if it exists.
+    fn before_pseudo_element(&self) -> Option<Self> {
+        None
+    }
+
+    /// The ::after pseudo-element of this element, if it exists.
+    fn after_pseudo_element(&self) -> Option<Self> {
+        None
+    }
+
+    /// Execute `f` for each anonymous content child (apart from ::before and
+    /// ::after) whose originating element is `self`.
+    fn each_anonymous_content_child<F>(&self, _f: F)
+    where
+        F: FnMut(Self),
+    {}
 
     /// For a given NAC element, return the closest non-NAC ancestor, which is
     /// guaranteed to exist.
@@ -364,8 +393,8 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Whether this element has an attribute with a given namespace.
     fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool;
 
-    /// Whether an attribute value equals `value`.
-    fn attr_equals(&self, namespace: &Namespace, attr: &LocalName, value: &Atom) -> bool;
+    /// The ID for this element.
+    fn get_id(&self) -> Option<Atom>;
 
     /// Internal iterator for the classes of this element.
     fn each_class<F>(&self, callback: F) where F: FnMut(&Atom);
@@ -381,6 +410,20 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
                                              current_computed_values: &'a ComputedValues,
                                              pseudo: Option<&PseudoElement>)
                                              -> Option<&'a PreExistingComputedValues>;
+
+    /// Whether a given element may generate a pseudo-element.
+    ///
+    /// This is useful to avoid computing, for example, pseudo styles for
+    /// `::-first-line` or `::-first-letter`, when we know it won't affect us.
+    ///
+    /// TODO(emilio, bz): actually implement the logic for it.
+    fn may_generate_pseudo(
+        &self,
+        _pseudo: &PseudoElement,
+        _primary_style: &ComputedValues,
+    ) -> bool {
+        true
+    }
 
     /// Returns true if this element may have a descendant needing style processing.
     ///
@@ -427,7 +470,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         let mut current = Some(*self);
         while let Some(el) = current {
             if !B::has(el) { return false; }
-            current = el.parent_element();
+            current = el.traversal_parent();
         }
 
         true
@@ -444,7 +487,8 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         false
     }
 
-    /// Flag that this element has a descendant for animation-only restyle processing.
+    /// Flag that this element has a descendant for animation-only restyle
+    /// processing.
     ///
     /// Only safe to call with exclusive access to the element.
     unsafe fn set_animation_only_dirty_descendants(&self) {
@@ -540,8 +584,24 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
             Some(d) => d,
             None => return false,
         };
-        return data.get_restyle()
-                   .map_or(false, |r| r.hint.has_animation_hint());
+        return data.restyle.hint.has_animation_hint()
+    }
+
+    /// Returns the anonymous content for the current element's XBL binding,
+    /// given if any.
+    ///
+    /// This is used in Gecko for XBL and shadow DOM.
+    fn xbl_binding_anonymous_content(&self) -> Option<Self::ConcreteNode> {
+        None
+    }
+
+    /// Gets declarations from XBL bindings from the element. Only gecko element could have this.
+    fn get_declarations_from_xbl_bindings<V>(&self,
+                                             _pseudo_element: Option<&PseudoElement>,
+                                             _applicable_declarations: &mut V)
+                                             -> bool
+        where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
+        false
     }
 
     /// Gets the current existing CSS transitions, by |property, end value| pairs in a HashMap.
@@ -580,6 +640,20 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
                                              existing_transitions: &HashMap<TransitionProperty,
                                                                             Arc<AnimationValue>>)
                                              -> bool;
+
+    /// Returns the value of the `xml:lang=""` attribute (or, if appropriate,
+    /// the `lang=""` attribute) on this element.
+    fn lang_attr(&self) -> Option<AttrValue>;
+
+    /// Returns whether this element's language matches the language tag
+    /// `value`.  If `override_lang` is not `None`, it specifies the value
+    /// of the `xml:lang=""` or `lang=""` attribute to use in place of
+    /// looking at the element and its ancestors.  (This argument is used
+    /// to implement matching of `:lang()` against snapshots.)
+    fn match_element_lang(&self,
+                          override_lang: Option<Option<AttrValue>>,
+                          value: &PseudoClassStringArg)
+                          -> bool;
 }
 
 /// Trait abstracting over different kinds of dirty-descendants bits.

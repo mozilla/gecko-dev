@@ -196,3 +196,40 @@ this.DevToolsShim = {
     this.themes = [];
   },
 };
+
+/**
+ * Compatibility layer for addon-sdk. Remove when Firefox 57 hits release.
+ *
+ * The methods below are used by classes and tests from addon-sdk/
+ * If DevTools are not installed when calling one of them, the call will throw.
+ */
+
+let addonSdkMethods = [
+  "closeToolbox",
+  "connectDebuggerServer",
+  "createDebuggerClient",
+  "getTargetForTab",
+  "getToolbox",
+  "initBrowserToolboxProcessForAddon",
+  "showToolbox",
+];
+
+/**
+ * Compatibility layer for webextensions.
+ *
+ * Those methods are called only after a DevTools webextension was loaded in DevTools,
+ * therefore DevTools should always be available when they are called.
+ */
+let webExtensionsMethods = [
+  "getTheme",
+];
+
+for (let method of [...addonSdkMethods, ...webExtensionsMethods]) {
+  this.DevToolsShim[method] = function () {
+    if (!this.isInstalled()) {
+      throw new Error(`Method ${method} unavailable if DevTools are not installed`);
+    }
+
+    return this.gDevTools[method].apply(this.gDevTools, arguments);
+  };
+}

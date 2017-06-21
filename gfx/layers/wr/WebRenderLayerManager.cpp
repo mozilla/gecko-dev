@@ -6,6 +6,7 @@
 #include "WebRenderLayerManager.h"
 
 #include "gfxPrefs.h"
+#include "GeckoProfiler.h"
 #include "LayersLogging.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/StackingContextHelper.h"
@@ -32,6 +33,7 @@ WebRenderLayerManager::WebRenderLayerManager(nsIWidget* aWidget)
   , mNeedsComposite(false)
   , mIsFirstPaint(false)
   , mTarget(nullptr)
+  , mPaintSequenceNumber(0)
 {
   MOZ_COUNT_CTOR(WebRenderLayerManager);
 }
@@ -124,6 +126,13 @@ WebRenderLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
 bool
 WebRenderLayerManager::BeginTransaction()
 {
+  // Increment the paint sequence number even if test logging isn't
+  // enabled in this process; it may be enabled in the parent process,
+  // and the parent process expects unique sequence numbers.
+  ++mPaintSequenceNumber;
+  if (gfxPrefs::APZTestLoggingEnabled()) {
+    mApzTestData.StartNewPaint(mPaintSequenceNumber);
+  }
   return true;
 }
 
@@ -171,6 +180,7 @@ WebRenderLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback
                                               void* aCallbackData,
                                               EndTransactionFlags aFlags)
 {
+  AutoProfilerTracing tracing("Paint", "RenderLayers");
   mPaintedLayerCallback = aCallback;
   mPaintedLayerCallbackData = aCallbackData;
   mTransactionIncomplete = false;
@@ -200,6 +210,7 @@ WebRenderLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback
   // In this case, leave the transaction open and let a full transaction happen.
   if (mTransactionIncomplete) {
     DiscardLocalImages();
+    WrBridge()->ProcessWebRenderParentCommands();
     return false;
   }
 
@@ -209,6 +220,7 @@ WebRenderLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback
       scrollData.SetIsFirstPaint();
       mIsFirstPaint = false;
     }
+    scrollData.SetPaintSequenceNumber(mPaintSequenceNumber);
     if (mRoot) {
       PopulateScrollData(scrollData, mRoot.get());
     }
@@ -217,7 +229,11 @@ WebRenderLayerManager::EndTransactionInternal(DrawPaintedLayerCallback aCallback
   bool sync = mTarget != nullptr;
   mLatestTransactionId = mTransactionIdAllocator->GetTransactionId();
 
-  WrBridge()->DPEnd(builder, size.ToUnknownSize(), sync, mLatestTransactionId, scrollData);
+  {
+    AutoProfilerTracing
+      tracing("Paint", sync ? "ForwardDPTransactionSync":"ForwardDPTransaction");
+    WrBridge()->DPEnd(builder, size.ToUnknownSize(), sync, mLatestTransactionId, scrollData);
+  }
 
   MakeSnapshotIfRequired(size);
   mNeedsComposite = false;
@@ -464,9 +480,16 @@ WebRenderLayerManager::RemoveDidCompositeObserver(DidCompositeObserver* aObserve
 void
 WebRenderLayerManager::FlushRendering()
 {
-  CompositorBridgeChild* bridge = GetCompositorBridgeChild();
-  if (bridge) {
-    bridge->SendFlushRendering();
+  CompositorBridgeChild* cBridge = GetCompositorBridgeChild();
+  if (!cBridge) {
+    return;
+  }
+  MOZ_ASSERT(mWidget);
+
+  if (mWidget->SynchronouslyRepaintOnResize() || gfxPrefs::LayersForceSynchronousResize()) {
+    cBridge->SendFlushRendering();
+  } else {
+    cBridge->SendFlushRenderingAsync();
   }
 }
 
@@ -486,7 +509,7 @@ WebRenderLayerManager::SendInvalidRegion(const nsIntRegion& aRegion)
 }
 
 void
-WebRenderLayerManager::Composite()
+WebRenderLayerManager::ScheduleComposite()
 {
   WrBridge()->SendForceComposite();
 }

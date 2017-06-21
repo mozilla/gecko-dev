@@ -22,7 +22,17 @@ SVGImageContext::MaybeStoreContextPaint(Maybe<SVGImageContext>& aContext,
                                         nsIFrame* aFromFrame,
                                         imgIContainer* aImgContainer)
 {
-  const nsStyleSVG* style = aFromFrame->StyleSVG();
+  return MaybeStoreContextPaint(aContext,
+                                aFromFrame->StyleContext(),
+                                aImgContainer);
+}
+
+/* static */ void
+SVGImageContext::MaybeStoreContextPaint(Maybe<SVGImageContext>& aContext,
+                                        nsStyleContext* aFromStyleContext,
+                                        imgIContainer* aImgContainer)
+{
+  const nsStyleSVG* style = aFromStyleContext->StyleSVG();
 
   if (!style->ExposesContextProperties()) {
     // Content must have '-moz-context-properties' set to the names of the
@@ -48,6 +58,14 @@ SVGImageContext::MaybeStoreContextPaint(Maybe<SVGImageContext>& aContext,
       style->mStroke.Type() == eStyleSVGPaintType_Color) {
     haveContextPaint = true;
     contextPaint->SetStroke(style->mStroke.GetColor());
+  }
+  if (style->mContextPropsBits & NS_STYLE_CONTEXT_PROPERTY_FILL_OPACITY) {
+    haveContextPaint = true;
+    contextPaint->SetFillOpacity(style->mFillOpacity);
+  }
+  if (style->mContextPropsBits & NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY) {
+    haveContextPaint = true;
+    contextPaint->SetStrokeOpacity(style->mStrokeOpacity);
   }
 
   if (haveContextPaint) {

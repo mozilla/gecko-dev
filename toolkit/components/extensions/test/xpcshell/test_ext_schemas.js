@@ -1222,6 +1222,7 @@ let nestedNamespaceJson = [
         "events": [
           {
             "name": "onEvent",
+            "type": "function",
           },
         ],
         "properties": {
@@ -1286,17 +1287,105 @@ add_task(async function testNestedNamespace() {
      "Got the expected instance of the CustomType defined in the schema");
   ok(instanceOfCustomType.functionOnCustomType,
      "Got the expected method in the CustomType instance");
+  ok(instanceOfCustomType.onEvent &&
+     instanceOfCustomType.onEvent.addListener &&
+     typeof instanceOfCustomType.onEvent.addListener == "function",
+     "Got the expected event defined in the CustomType instance");
 
-  // TODO: test support events and properties in a SubModuleType defined in the schema,
+  instanceOfCustomType.functionOnCustomType("param_value");
+  verify("call", "nested.namespace.instanceOfCustomType",
+         "functionOnCustomType", ["param_value"]);
+
+  let fakeListener = () => {};
+  instanceOfCustomType.onEvent.addListener(fakeListener);
+  verify("addListener", "nested.namespace.instanceOfCustomType",
+         "onEvent", [fakeListener, []]);
+  instanceOfCustomType.onEvent.removeListener(fakeListener);
+  verify("removeListener", "nested.namespace.instanceOfCustomType",
+         "onEvent", [fakeListener]);
+
+  // TODO: test support properties in a SubModuleType defined in the schema,
   // once implemented, e.g.:
-  //
-  // ok(instanceOfCustomType.url,
-  //    "Got the expected property defined in the CustomType instance)
-  //
-  // ok(instanceOfCustomType.onEvent &&
-  //    instanceOfCustomType.onEvent.addListener &&
-  //    typeof instanceOfCustomType.onEvent.addListener == "function",
-  //    "Got the expected event defined in the CustomType instance");
+  // ok("url" in instanceOfCustomType,
+  //   "Got the expected property defined in the CustomType instance");
+});
+
+let $importJson = [
+  {
+    namespace: "from_the",
+    $import: "future",
+  },
+  {
+    namespace: "future",
+    properties: {
+      PROP1: {value: "original value"},
+      PROP2: {value: "second original"},
+    },
+    types: [
+      {
+        id: "Colour",
+        type: "string",
+        enum: ["red", "white", "blue"],
+      },
+    ],
+    functions: [
+      {
+        name: "dye",
+        type: "function",
+        parameters: [
+          {name: "arg", $ref: "Colour"},
+        ],
+      },
+    ],
+  },
+  {
+    namespace: "embrace",
+    $import: "future",
+    properties: {
+      PROP2: {value: "overridden value"},
+    },
+    types: [
+      {
+        id: "Colour",
+        type: "string",
+        enum: ["blue", "orange"],
+      },
+    ],
+  },
+];
+
+add_task(async function test_$import() {
+  let url = "data:," + JSON.stringify($importJson);
+  await Schemas.load(url);
+
+  let root = {};
+  tallied = null;
+  Schemas.inject(root, wrapper);
+  equal(tallied, null);
+
+  equal(root.from_the.PROP1, "original value", "imported property");
+  equal(root.from_the.PROP2, "second original", "second imported property");
+  equal(root.from_the.Colour.RED, "red", "imported enum type");
+  equal(typeof root.from_the.dye, "function", "imported function");
+
+  root.from_the.dye("white");
+  verify("call", "from_the", "dye", ["white"]);
+
+  Assert.throws(() => root.from_the.dye("orange"),
+                /Invalid enumeration value/,
+                "original imported argument type Colour doesn't include 'orange'");
+
+  equal(root.embrace.PROP1, "original value", "imported property");
+  equal(root.embrace.PROP2, "overridden value", "overridden property");
+  equal(root.embrace.Colour.ORANGE, "orange", "overridden enum type");
+  equal(typeof root.embrace.dye, "function", "imported function");
+
+  root.embrace.dye("orange");
+  verify("call", "embrace", "dye", ["orange"]);
+
+  Assert.throws(() => root.embrace.dye("white"),
+                /Invalid enumeration value/,
+                "overridden argument type Colour doesn't include 'white'");
 });
 
 add_task(async function testLocalAPIImplementation() {

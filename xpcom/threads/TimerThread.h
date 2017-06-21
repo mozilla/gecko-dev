@@ -53,7 +53,7 @@ public:
 
   bool IsOnTimerThread() const
   {
-    return mThread == NS_GetCurrentThread();
+    return mThread->SerialEventTarget()->IsOnCurrentThread();
   }
 
   uint32_t
@@ -115,6 +115,11 @@ private:
       // This is reversed because std::push_heap() sorts the "largest" to
       // the front of the heap.  We want that to be the earliest timer.
       return aRight->mTimeout < aLeft->mTimeout;
+    }
+
+    TimeStamp Timeout() const
+    {
+      return mTimeout;
     }
   };
 

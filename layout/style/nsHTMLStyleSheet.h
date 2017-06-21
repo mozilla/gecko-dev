@@ -14,6 +14,7 @@
 
 #include "nsColor.h"
 #include "nsCOMPtr.h"
+#include "nsIAtom.h"
 #include "nsIStyleRule.h"
 #include "nsIStyleRuleProcessor.h"
 #include "PLDHashTable.h"
@@ -23,6 +24,7 @@
 
 class nsIDocument;
 class nsMappedAttributes;
+struct RawServoDeclarationBlock;
 
 class nsHTMLStyleSheet final : public nsIStyleRuleProcessor
 {
@@ -58,6 +60,16 @@ public:
   nsresult SetActiveLinkColor(nscolor aColor);
   nsresult SetVisitedLinkColor(nscolor aColor);
 
+  const RefPtr<RawServoDeclarationBlock>& GetServoUnvisitedLinkDecl() const {
+    return mServoUnvisitedLinkDecl;
+  }
+  const RefPtr<RawServoDeclarationBlock>& GetServoVisitedLinkDecl() const {
+    return mServoVisitedLinkDecl;
+  }
+  const RefPtr<RawServoDeclarationBlock>& GetServoActiveLinkDecl() const {
+    return mServoActiveLinkDecl;
+  }
+
   // Mapped Attribute management methods
   already_AddRefed<nsMappedAttributes>
     UniqueMappedAttributes(nsMappedAttributes* aMapped);
@@ -67,9 +79,9 @@ public:
   // and converting the ruledata to Servo specified values.
   void CalculateMappedServoDeclarations(nsPresContext* aPresContext);
 
-  nsIStyleRule* LangRuleFor(const nsString& aLanguage);
+  nsIStyleRule* LangRuleFor(const nsIAtom* aLanguage);
 
-private: 
+private:
   nsHTMLStyleSheet(const nsHTMLStyleSheet& aCopy) = delete;
   nsHTMLStyleSheet& operator=(const nsHTMLStyleSheet& aCopy) = delete;
 
@@ -100,7 +112,9 @@ private:
   };
 
   // Implementation of SetLink/VisitedLink/ActiveLinkColor
-  nsresult ImplLinkColorSetter(RefPtr<HTMLColorRule>& aRule, nscolor aColor);
+  nsresult ImplLinkColorSetter(RefPtr<HTMLColorRule>& aRule,
+                               RefPtr<RawServoDeclarationBlock>& aDecl,
+                               nscolor aColor);
 
   class GenericTableRule;
   friend class GenericTableRule;
@@ -156,7 +170,7 @@ public: // for mLangRuleTable structures only
   private:
     ~LangRule() {}
   public:
-    explicit LangRule(const nsSubstring& aLang) : mLang(aLang) {}
+    explicit LangRule(nsIAtom* aLang) : mLang(aLang) {}
 
     NS_DECL_ISUPPORTS
 
@@ -169,7 +183,7 @@ public: // for mLangRuleTable structures only
     virtual void List(FILE* out = stdout, int32_t aIndent = 0) const override;
   #endif
 
-    nsString mLang;
+    nsCOMPtr<nsIAtom> mLang;
   };
 
 private:
@@ -177,6 +191,9 @@ private:
   RefPtr<HTMLColorRule> mLinkRule;
   RefPtr<HTMLColorRule> mVisitedRule;
   RefPtr<HTMLColorRule> mActiveRule;
+  RefPtr<RawServoDeclarationBlock> mServoUnvisitedLinkDecl;
+  RefPtr<RawServoDeclarationBlock> mServoVisitedLinkDecl;
+  RefPtr<RawServoDeclarationBlock> mServoActiveLinkDecl;
   RefPtr<TableQuirkColorRule> mTableQuirkColorRule;
   RefPtr<TableTHRule>   mTableTHRule;
 

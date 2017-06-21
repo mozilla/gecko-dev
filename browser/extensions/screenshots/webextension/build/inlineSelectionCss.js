@@ -172,11 +172,19 @@ window.inlineSelectionCss = `
 
 .hover-highlight {
   animation: fade-in 125ms forwards cubic-bezier(0.07, 0.95, 0, 1);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 1px;
   pointer-events: none;
   position: absolute;
   z-index: 10000000000; }
+  .hover-highlight:before {
+    border: 2px dashed rgba(255, 255, 255, 0.4);
+    bottom: 0;
+    content: '';
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0; }
 
 .mover-target.direction-topLeft {
   cursor: nwse-resize;
@@ -421,6 +429,9 @@ window.inlineSelectionCss = `
   position: absolute;
   right: 5px;
   top: 5px; }
+  html[dir="rtl"] .myshots-all-buttons-container {
+    left: 5px;
+    right: inherit; }
   .myshots-all-buttons-container .spacer {
     background-color: #c9c9c9;
     flex: 0 0 1px;

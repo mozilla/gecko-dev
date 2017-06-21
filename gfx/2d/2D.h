@@ -408,6 +408,9 @@ public:
   void *GetUserData(UserDataKey *key) {
     return mUserData.Get(key);
   }
+  void RemoveUserData(UserDataKey *key) {
+    mUserData.RemoveAndDestroy(key);
+  }
 
 protected:
   friend class DrawTargetCaptureImpl;
@@ -812,6 +815,10 @@ public:
     return mUserData.Get(key);
   }
 
+  void RemoveUserData(UserDataKey *key) {
+    mUserData.RemoveAndDestroy(key);
+  }
+
   const RefPtr<UnscaledFont>& GetUnscaledFont() const { return mUnscaledFont; }
 
 protected:
@@ -894,6 +901,11 @@ public:
    * normally return the same SourceSurface object.
    */
   virtual already_AddRefed<SourceSurface> Snapshot() = 0;
+
+  // Snapshots the contents and returns an alpha mask
+  // based on the RGB values.
+  virtual already_AddRefed<SourceSurface> IntoLuminanceSource(LuminanceType aLuminanceType,
+                                                              float aOpacity);
   virtual IntSize GetSize() = 0;
 
   /**
@@ -1408,6 +1420,7 @@ class DrawEventRecorder : public RefCounted<DrawEventRecorder>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(DrawEventRecorder)
+  virtual void Finish() = 0;
   virtual ~DrawEventRecorder() { }
 };
 
@@ -1483,7 +1496,10 @@ public:
     CreateDrawTarget(BackendType aBackend, const IntSize &aSize, SurfaceFormat aFormat);
 
   static already_AddRefed<DrawTarget>
-    CreateRecordingDrawTarget(DrawEventRecorder *aRecorder, DrawTarget *aDT);
+    CreateWrapAndRecordDrawTarget(DrawEventRecorder *aRecorder, DrawTarget *aDT);
+
+  static already_AddRefed<DrawTarget>
+    CreateRecordingDrawTarget(DrawEventRecorder *aRecorder, DrawTarget *aDT, IntSize aSize);
 
   static already_AddRefed<DrawTarget>
     CreateDrawTargetForData(BackendType aBackend, unsigned char* aData, const IntSize &aSize, int32_t aStride, SurfaceFormat aFormat, bool aUninitialized = false);

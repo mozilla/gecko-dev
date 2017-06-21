@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser as CssParser;
+use cssparser::{Parser as CssParser, ParserInput};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
@@ -32,10 +32,11 @@ use std::cell::Cell;
 use std::default::Default;
 use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
-use style::parser::{PARSING_MODE_DEFAULT, ParserContext as CssParserContext};
+use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet};
+use style_traits::PARSING_MODE_DEFAULT;
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 unsafe_no_jsmanaged_fields!(Stylesheet);
@@ -278,7 +279,8 @@ impl HTMLLinkElement {
             None => "",
         };
 
-        let mut css_parser = CssParser::new(&mq_str);
+        let mut input = ParserInput::new(&mq_str);
+        let mut css_parser = CssParser::new(&mut input);
         let win = document.window();
         let doc_url = document.url();
         let context = CssParserContext::new_for_cssom(&doc_url, win.css_error_reporter(), Some(CssRuleType::Media),

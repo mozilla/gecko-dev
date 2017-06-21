@@ -437,6 +437,7 @@ static const ClassOps StringObjectClassOps = {
     nullptr, /* getProperty */
     nullptr, /* setProperty */
     str_enumerate,
+    nullptr, /* newEnumerate */
     str_resolve,
     str_mayResolve
 };
@@ -1630,63 +1631,18 @@ FirstCharMatcherUnrolled(const TextChar* text, uint32_t n, const PatChar pat)
 static const char*
 FirstCharMatcher8bit(const char* text, uint32_t n, const char pat)
 {
-#if  defined(__clang__)
-    return FirstCharMatcherUnrolled<char, char>(text, n, pat);
-#else
     return reinterpret_cast<const char*>(memchr(text, pat, n));
-#endif
-}
-
-static const char16_t*
-FirstCharMatcher16bit(const char16_t* text, uint32_t n, const char16_t pat)
-{
-#if defined(XP_DARWIN) || defined(XP_WIN)
-    /*
-     * Performance of memchr is horrible in OSX. Windows is better,
-     * but it is still better to use UnrolledMatcher.
-     */
-    return FirstCharMatcherUnrolled<char16_t, char16_t>(text, n, pat);
-#else
-    /*
-     * For linux the best performance is obtained by slightly hacking memchr.
-     * memchr works only on 8bit char but char16_t is 16bit. So we treat char16_t
-     * in blocks of 8bit and use memchr.
-     */
-
-    const char* text8 = (const char*) text;
-    const char* pat8 = reinterpret_cast<const char*>(&pat);
-
-    MOZ_ASSERT(n < UINT32_MAX/2);
-    n *= 2;
-
-    uint32_t i = 0;
-    while (i < n) {
-        /* Find the first 8 bits of 16bit character in text. */
-        const char* pos8 = FirstCharMatcher8bit(text8 + i, n - i, pat8[0]);
-        if (pos8 == nullptr)
-            return nullptr;
-        i = static_cast<uint32_t>(pos8 - text8);
-
-        /* Incorrect match if it matches the last 8 bits of 16bit char. */
-        if (i % 2 != 0) {
-            i++;
-            continue;
-        }
-
-        /* Test if last 8 bits match last 8 bits of 16bit char. */
-        if (pat8[1] == text8[i + 1])
-            return (text + (i/2));
-
-        i += 2;
-    }
-    return nullptr;
-#endif
 }
 
 template <class InnerMatch, typename TextChar, typename PatChar>
 static int
 Matcher(const TextChar* text, uint32_t textlen, const PatChar* pat, uint32_t patlen)
 {
+    MOZ_ASSERT(patlen > 0);
+
+    if (sizeof(TextChar) == 1 && sizeof(PatChar) > 1 && pat[0] > 0xff)
+        return -1;
+
     const typename InnerMatch::Extent extent = InnerMatch::computeExtent(pat, patlen);
 
     uint32_t i = 0;
@@ -1694,12 +1650,12 @@ Matcher(const TextChar* text, uint32_t textlen, const PatChar* pat, uint32_t pat
     while (i < n) {
         const TextChar* pos;
 
-        if (sizeof(TextChar) == 2 && sizeof(PatChar) == 2)
-            pos = (TextChar*) FirstCharMatcher16bit((char16_t*)text + i, n - i, pat[0]);
-        else if (sizeof(TextChar) == 1 && sizeof(PatChar) == 1)
+        if (sizeof(TextChar) == 1) {
+            MOZ_ASSERT(pat[0] <= 0xff);
             pos = (TextChar*) FirstCharMatcher8bit((char*) text + i, n - i, pat[0]);
-        else
-            pos = (TextChar*) FirstCharMatcherUnrolled<TextChar, PatChar>(text + i, n - i, pat[0]);
+        } else {
+            pos = FirstCharMatcherUnrolled(text + i, n - i, char16_t(pat[0]));
+        }
 
         if (pos == nullptr)
             return -1;
@@ -1800,7 +1756,7 @@ StringMatch(JSLinearString* text, JSLinearString* pat, uint32_t start = 0)
     return (match == -1) ? -1 : start + match;
 }
 
-static const size_t sRopeMatchThresholdRatioLog2 = 5;
+static const size_t sRopeMatchThresholdRatioLog2 = 4;
 
 bool
 js::StringHasPattern(JSLinearString* text, const char16_t* pat, uint32_t patLen)
@@ -2950,6 +2906,67 @@ CharSplitHelper(JSContext* cx, HandleLinearString str, uint32_t limit, HandleObj
     return NewCopiedArrayTryUseGroup(cx, group, splits.begin(), splits.length());
 }
 
+template <typename TextChar>
+static MOZ_ALWAYS_INLINE JSObject*
+SplitSingleCharHelper(JSContext* cx, HandleLinearString str, const TextChar* text,
+                      uint32_t textLen, char16_t patCh, HandleObjectGroup group)
+{
+    // Count the number of occurrences of patCh within text.
+    uint32_t count = 0;
+    for (size_t index = 0; index < textLen; index++) {
+        if (static_cast<char16_t>(text[index]) == patCh)
+            count++;
+    }
+
+    // Handle zero-occurrence case - return input string in an array.
+    if (count == 0) {
+        RootedValue strValue(cx, StringValue(str.get()));
+        return NewCopiedArrayTryUseGroup(cx, group, &strValue.get(), 1);
+    }
+
+    // Reserve memory for substring values.
+    AutoValueVector splits(cx);
+    if (!splits.reserve(count + 1))
+        return nullptr;
+
+    // Add substrings.
+    size_t lastEndIndex = 0;
+    for (size_t index = 0; index < textLen; index++) {
+        if (static_cast<char16_t>(text[index]) == patCh) {
+            size_t subLength = size_t(index - lastEndIndex);
+            JSString* sub = NewDependentString(cx, str, lastEndIndex, subLength);
+            if (!sub || !splits.append(StringValue(sub)))
+                return nullptr;
+            lastEndIndex = index + 1;
+        }
+    }
+
+    // Add substring for tail of string (after last match).
+    JSString* sub = NewDependentString(cx, str, lastEndIndex, textLen - lastEndIndex);
+    if (!sub || !splits.append(StringValue(sub)))
+        return nullptr;
+
+    return NewCopiedArrayTryUseGroup(cx, group, splits.begin(), splits.length());
+}
+
+// ES 2016 draft Mar 25, 2016 21.1.3.17 steps 4, 8, 12-18.
+static JSObject*
+SplitSingleCharHelper(JSContext* cx, HandleLinearString str, char16_t ch, HandleObjectGroup group) {
+
+    // Step 12.
+    size_t strLength = str->length();
+
+    AutoStableStringChars linearChars(cx);
+    if (!linearChars.init(cx, str))
+        return nullptr;
+
+    if (linearChars.isLatin1()) {
+        return SplitSingleCharHelper(cx, str, linearChars.latin1Chars(), strLength, ch, group);
+    } else {
+        return SplitSingleCharHelper(cx, str, linearChars.twoByteChars(), strLength, ch, group);
+    }
+}
+
 // ES 2016 draft Mar 25, 2016 21.1.3.17 steps 4, 8, 12-18.
 JSObject*
 js::str_split_string(JSContext* cx, HandleObjectGroup group, HandleString str, HandleString sep, uint32_t limit)
@@ -2965,6 +2982,11 @@ js::str_split_string(JSContext* cx, HandleObjectGroup group, HandleString str, H
 
     if (linearSep->length() == 0)
         return CharSplitHelper(cx, linearStr, limit, group);
+
+    if (linearSep->length() == 1 && limit >= static_cast<uint32_t>(INT32_MAX)) {
+        char16_t ch = linearSep->latin1OrTwoByteChar(0);
+        return SplitSingleCharHelper(cx, linearStr, ch, group);
+    }
 
     return SplitHelper(cx, linearStr, limit, linearSep, group);
 }

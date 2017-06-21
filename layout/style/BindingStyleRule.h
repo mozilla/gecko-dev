@@ -18,6 +18,9 @@
 class nsICSSDeclaration;
 
 namespace mozilla {
+namespace dom {
+class Element;
+}
 
 class BindingStyleRule : public css::Rule
 {
@@ -42,6 +45,15 @@ public:
   // Likewise for this one.  We have to override our superclass, but don't
   // really need to do anything in this method.
   virtual bool IsCCLeaf() const override MOZ_MUST_OVERRIDE = 0;
+
+  virtual uint32_t GetSelectorCount() = 0;
+  virtual nsresult GetSelectorText(uint32_t aSelectorIndex, nsAString& aText) = 0;
+  virtual nsresult GetSpecificity(uint32_t aSelectorIndex,
+                                  uint64_t* aSpecificity) = 0;
+  virtual nsresult SelectorMatchesElement(dom::Element* aElement,
+                                          uint32_t aSelectorIndex,
+                                          const nsAString& aPseudo,
+                                          bool* aMatches) = 0;
 
   // WebIDL API
   // For GetSelectorText/SetSelectorText, we purposefully use a signature that

@@ -33,9 +33,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 % else:
     <%helpers:longhand name="list-style-type" animation_value_type="none" boxed="True"
                        spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type">
-        use cssparser;
-        use std::fmt;
-        use style_traits::ToCss;
         use values::CustomIdent;
         use values::computed::ComputedValueAsSpecified;
         use values::generics::CounterStyleOrNone;
@@ -46,7 +43,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             use values::generics::CounterStyleOrNone;
 
             /// <counter-style> | <string> | none
-            #[derive(Debug, Clone, PartialEq, Eq)]
+            #[derive(Debug, Clone, Eq, PartialEq, ToCss)]
             pub enum T {
                 CounterStyle(CounterStyleOrNone),
                 String(String),
@@ -55,15 +52,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
         no_viewport_percentage!(SpecifiedValue);
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    SpecifiedValue::CounterStyle(ref s) => s.to_css(dest),
-                    SpecifiedValue::String(ref s) => cssparser::serialize_string(s, dest)
-                }
-            }
-        }
 
         #[cfg(feature = "gecko")]
         impl SpecifiedValue {
@@ -75,7 +63,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             pub fn from_gecko_keyword(value: u32) -> Self {
                 use gecko_bindings::structs;
                 SpecifiedValue::CounterStyle(if value == structs::NS_STYLE_LIST_STYLE_NONE {
-                    CounterStyleOrNone::None_
+                    CounterStyleOrNone::None
                 } else {
                     <%
                         values = """disc circle square decimal lower-roman
@@ -101,7 +89,8 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             SpecifiedValue::CounterStyle(CounterStyleOrNone::disc())
         }
 
-        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             Ok(if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
                 SpecifiedValue::CounterStyle(style)
             } else {
@@ -114,29 +103,21 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 <%helpers:longhand name="list-style-image" animation_value_type="none"
                    boxed="${product == 'gecko'}"
                    spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image">
-    use std::fmt;
     use values::computed::ComputedValueAsSpecified;
     use values::specified::UrlOrNone;
     pub use self::computed_value::T as SpecifiedValue;
-    use style_traits::ToCss;
 
     pub mod computed_value {
         use values::specified::UrlOrNone;
 
-        #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Debug, Clone, PartialEq, ToCss)]
         pub struct T(pub UrlOrNone);
     }
 
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)
-        }
-    }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -146,7 +127,8 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     pub fn get_initial_specified_value() -> SpecifiedValue {
         SpecifiedValue(Either::Second(None_))
     }
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         % if product == "gecko":
         let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
         if let Either::First(ref mut url) = value {
@@ -162,8 +144,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
 <%helpers:longhand name="quotes" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-quotes">
-    use cssparser::Token;
-    use std::borrow::Cow;
+    use cssparser::serialize_string;
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
@@ -188,12 +169,12 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             let mut first = true;
             for pair in &self.0 {
                 if !first {
-                    try!(dest.write_str(" "));
+                    dest.write_str(" ")?;
                 }
                 first = false;
-                try!(Token::QuotedString(Cow::from(&*pair.0)).to_css(dest));
-                try!(dest.write_str(" "));
-                try!(Token::QuotedString(Cow::from(&*pair.1)).to_css(dest));
+                serialize_string(&*pair.0, dest)?;
+                dest.write_str(" ")?;
+                serialize_string(&*pair.1, dest)?;
             }
             Ok(())
         }
@@ -207,7 +188,8 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         ])
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -216,19 +198,20 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         loop {
             let first = match input.next() {
                 Ok(Token::QuotedString(value)) => value.into_owned(),
-                Ok(_) => return Err(()),
-                Err(()) => break,
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                Err(_) => break,
             };
             let second = match input.next() {
                 Ok(Token::QuotedString(value)) => value.into_owned(),
-                _ => return Err(()),
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                Err(e) => return Err(e.into()),
             };
             quotes.push((first, second))
         }
         if !quotes.is_empty() {
             Ok(SpecifiedValue(quotes))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -236,7 +219,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 ${helpers.predefined_type("-moz-image-region",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
-                          animation_value_type="none",
+                          animation_value_type="ComputedValue",
                           products="gecko",
                           boxed="True",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-image-region)")}

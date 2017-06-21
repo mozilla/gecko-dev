@@ -10,7 +10,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{HasViewportPercentage, ToCss};
+use style_traits::{HasViewportPercentage, ToCss, ParseError};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
@@ -50,17 +50,17 @@ define_css_keyword_enum! { Y:
 add_impls_for_keyword_enum!(Y);
 
 impl Parse for Position {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl Position {
     /// Parses a `<position>`, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<Self, ParseError<'i>> {
         match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
             Ok(x_pos @ PositionComponent::Center) => {
                 if let Ok(y_pos) = input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
@@ -104,7 +104,7 @@ impl Position {
             Err(_) => {},
         }
         let y_keyword = Y::parse(input)?;
-        let lop_and_x_pos: Result<_, ()> = input.try(|i| {
+        let lop_and_x_pos: Result<_, ParseError> = input.try(|i| {
             let y_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
             if let Ok(x_keyword) = i.try(X::parse) {
                 let x_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
@@ -167,17 +167,17 @@ impl<S> HasViewportPercentage for PositionComponent<S> {
 }
 
 impl<S: Parse> Parse for PositionComponent<S> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl<S: Parse> PositionComponent<S> {
     /// Parses a component of a CSS position, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("center")).is_ok() {
             return Ok(PositionComponent::Center);
         }
@@ -224,22 +224,22 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             PositionComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(0.5)
+                ComputedLengthOrPercentage::Percentage(Percentage(0.5))
             },
             PositionComponent::Side(ref keyword, None) => {
-                let p = if keyword.is_start() { 0. } else { 1. };
+                let p = Percentage(if keyword.is_start() { 0. } else { 1. });
                 ComputedLengthOrPercentage::Percentage(p)
             },
             PositionComponent::Side(ref keyword, Some(ref length)) if !keyword.is_start() => {
                 match length.to_computed_value(context) {
                     ComputedLengthOrPercentage::Length(length) => {
-                        ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(-length, Some(1.0)))
+                        ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(-length, Some(Percentage(1.0))))
                     },
                     ComputedLengthOrPercentage::Percentage(p) => {
-                        ComputedLengthOrPercentage::Percentage(1.0 - p)
+                        ComputedLengthOrPercentage::Percentage(Percentage(1.0 - p.0))
                     },
                     ComputedLengthOrPercentage::Calc(calc) => {
-                        let p = 1. - calc.percentage.unwrap_or(0.);
+                        let p = Percentage(1. - calc.percentage.map_or(0., |p| p.0));
                         ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(-calc.unclamped_length(), Some(p)))
                     },
                 }

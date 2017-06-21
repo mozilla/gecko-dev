@@ -92,7 +92,7 @@ use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
-use euclid::point::Point2D;
+use euclid::{Point2D, Vector2D};
 use html5ever::{LocalName, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
@@ -131,7 +131,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
-use style::restyle_hints::{RestyleHint, RESTYLE_STYLE_ATTRIBUTE};
+use style::invalidation::element::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
@@ -209,6 +209,7 @@ pub struct Document {
     is_html_document: bool,
     activity: Cell<DocumentActivity>,
     url: DOMRefCell<ServoUrl>,
+    #[ignore_heap_size_of = "defined in selectors"]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
     id_map: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
@@ -864,7 +865,7 @@ impl Document {
         if let Some(iframe) = el.downcast::<HTMLIFrameElement>() {
             if let Some(pipeline_id) = iframe.pipeline_id() {
                 let rect = iframe.upcast::<Element>().GetBoundingClientRect();
-                let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
+                let child_origin = Vector2D::new(rect.X() as f32, rect.Y() as f32);
                 let child_point = client_point - child_origin;
 
                 let event = CompositorEvent::MouseButtonEvent(mouse_event_type, button, child_point);
@@ -1019,7 +1020,7 @@ impl Document {
         if let Some(iframe) = el.downcast::<HTMLIFrameElement>() {
             if let Some(pipeline_id) = iframe.pipeline_id() {
                 let rect = iframe.upcast::<Element>().GetBoundingClientRect();
-                let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
+                let child_origin = Vector2D::new(rect.X() as f32, rect.Y() as f32);
                 let child_point = client_point - child_origin;
 
                 let event = CompositorEvent::TouchpadPressureEvent(child_point,
@@ -1123,7 +1124,7 @@ impl Document {
             if let Some(iframe) = new_target.downcast::<HTMLIFrameElement>() {
                 if let Some(pipeline_id) = iframe.pipeline_id() {
                     let rect = iframe.upcast::<Element>().GetBoundingClientRect();
-                    let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
+                    let child_origin = Vector2D::new(rect.X() as f32, rect.Y() as f32);
                     let child_point = client_point - child_origin;
 
                     let event = CompositorEvent::MouseMoveEvent(Some(child_point));
@@ -1230,7 +1231,7 @@ impl Document {
         if let Some(iframe) = el.downcast::<HTMLIFrameElement>() {
             if let Some(pipeline_id) = iframe.pipeline_id() {
                 let rect = iframe.upcast::<Element>().GetBoundingClientRect();
-                let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
+                let child_origin = Vector2D::new(rect.X() as f32, rect.Y() as f32);
                 let child_point = point - child_origin;
 
                 let event = CompositorEvent::TouchEvent(event_type, touch_id, child_point);
@@ -1453,7 +1454,7 @@ impl Document {
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
-                        try!(fragment.AppendChild(&node));
+                        fragment.AppendChild(&node)?;
                     },
                     NodeOrString::String(string) => {
                         let node = Root::upcast::<Node>(self.CreateTextNode(string));
@@ -1521,11 +1522,11 @@ impl Document {
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if PREFS.is_mozbrowser_enabled() {
             if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
-                let global_scope = self.window.upcast::<GlobalScope>();
+                let top_level_browsing_context_id = self.window.window_proxy().top_level_browsing_context_id();
                 let event = ConstellationMsg::MozBrowserEvent(parent_pipeline_id,
-                                                              global_scope.pipeline_id(),
+                                                              top_level_browsing_context_id,
                                                               event);
-                global_scope.constellation_chan().send(event).unwrap();
+                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -2375,17 +2376,24 @@ impl Document {
             entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
         }
         if attr.local_name() == &local_name!("style") {
-            entry.hint.insert(RestyleHint::for_replacements(RESTYLE_STYLE_ATTRIBUTE));
+            entry.hint.insert(RESTYLE_STYLE_ATTRIBUTE);
         }
 
         // FIXME(emilio): This should become something like
         // element.is_attribute_mapped(attr.local_name()).
         if attr.local_name() == &local_name!("width") ||
            attr.local_name() == &local_name!("height") {
-            entry.hint.insert(RestyleHint::for_self());
+            entry.hint.insert(RESTYLE_SELF);
         }
 
         let mut snapshot = entry.snapshot.as_mut().unwrap();
+        if attr.local_name() == &local_name!("id") {
+            snapshot.id_changed = true;
+        } else if attr.local_name() == &local_name!("class") {
+            snapshot.class_changed = true;
+        } else {
+            snapshot.other_attributes_changed = true;
+        }
         if snapshot.attrs.is_none() {
             let attrs = el.attrs()
                           .iter()
@@ -2811,8 +2819,8 @@ impl DocumentMethods for Document {
                        namespace: Option<DOMString>,
                        qualified_name: DOMString)
                        -> Fallible<Root<Element>> {
-        let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
-                                                                        &qualified_name));
+        let (namespace, prefix, local_name) = validate_and_extract(namespace,
+                                                                        &qualified_name)?;
         let name = QualName::new(prefix, namespace, local_name);
         Ok(Element::create(name, self, ElementCreator::ScriptCreated))
     }
@@ -2837,8 +2845,8 @@ impl DocumentMethods for Document {
                          namespace: Option<DOMString>,
                          qualified_name: DOMString)
                          -> Fallible<Root<Attr>> {
-        let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
-                                                                        &qualified_name));
+        let (namespace, prefix, local_name) = validate_and_extract(namespace,
+                                                                        &qualified_name)?;
         let value = AttrValue::String("".to_owned());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(&self.window,

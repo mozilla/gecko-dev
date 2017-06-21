@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
-use euclid::size::TypedSize2D;
+use cssparser::{Parser, ParserInput};
+use euclid::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaList, MediaType};
-use style::parser::{PARSING_MODE_DEFAULT, Parse, ParserContext};
+use style::parser::{Parse, ParserContext};
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
+use style::stylesheets::viewport_rule::*;
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
-use style::viewport::*;
-use style_traits::PinchZoomFactor;
+use style_traits::{PARSING_MODE_DEFAULT, PinchZoomFactor};
 use style_traits::viewport::*;
 
 macro_rules! stylesheet {
@@ -300,15 +300,17 @@ fn constrain_viewport() {
 
     macro_rules! from_css {
         ($css:expr) => {
-            &ViewportRule::parse(&context, &mut Parser::new($css)).unwrap()
+            &ViewportRule::parse(&context, &mut Parser::new(&mut $css)).unwrap()
         }
     }
 
     let initial_viewport = TypedSize2D::new(800., 600.);
     let device = Device::new(MediaType::Screen, initial_viewport);
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!(""), QuirksMode::NoQuirks), None);
+    let mut input = ParserInput::new("");
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!(input), QuirksMode::NoQuirks), None);
 
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto"), QuirksMode::NoQuirks),
+    let mut input = ParserInput::new("width: 320px auto");
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!(input), QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: initial_viewport,
 
@@ -320,7 +322,8 @@ fn constrain_viewport() {
                    orientation: Orientation::Auto
                }));
 
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto"), QuirksMode::NoQuirks),
+    let mut input = ParserInput::new("width: 320px auto");
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!(input), QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: initial_viewport,
 
@@ -332,11 +335,12 @@ fn constrain_viewport() {
                    orientation: Orientation::Auto
                }));
 
-    assert_eq!(ViewportConstraints::maybe_new(&device,
-                                              from_css!("width: 800px; height: 600px;\
+    let mut input = ParserInput::new("width: 800px; height: 600px;\
                                                          zoom: 1;\
                                                          user-zoom: zoom;\
-                                                         orientation: auto;"),
+                                                         orientation: auto;");
+    assert_eq!(ViewportConstraints::maybe_new(&device,
+                                              from_css!(input),
                                               QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: initial_viewport,
@@ -351,7 +355,8 @@ fn constrain_viewport() {
 
     let initial_viewport = TypedSize2D::new(200., 150.);
     let device = Device::new(MediaType::Screen, initial_viewport);
-    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto"), QuirksMode::NoQuirks),
+    let mut input = ParserInput::new("width: 320px auto");
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!(input), QuirksMode::NoQuirks),
                Some(ViewportConstraints {
                    size: TypedSize2D::new(320., 240.),
 

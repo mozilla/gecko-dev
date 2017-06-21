@@ -9,7 +9,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/File.h"
-#include "mozilla/dom/FileHandleCommon.h"
 #include "mozilla/dom/PBackgroundFileHandleParent.h"
 #include "mozilla/dom/PBackgroundFileRequestParent.h"
 #include "mozilla/dom/indexedDB/ActorsParent.h"
@@ -201,7 +200,9 @@ class FileHandle
   bool mFinishedOrAborted;
   bool mForceAborted;
 
-  DEBUGONLY(nsCOMPtr<nsIEventTarget> mThreadPoolEventTarget;)
+#ifdef DEBUG
+  nsCOMPtr<nsIEventTarget> mThreadPoolEventTarget;
+#endif
 
 public:
   void
@@ -370,7 +371,7 @@ private:
 class FileHandleOp
 {
 protected:
-  nsCOMPtr<nsIEventTarget> mOwningThread;
+  nsCOMPtr<nsIEventTarget> mOwningEventTarget;
   RefPtr<FileHandle> mFileHandle;
 
 public:
@@ -380,16 +381,16 @@ public:
   AssertIsOnOwningThread() const
   {
     AssertIsOnBackgroundThread();
-    MOZ_ASSERT(mOwningThread);
+    MOZ_ASSERT(mOwningEventTarget);
     DebugOnly<bool> current;
-    MOZ_ASSERT(NS_SUCCEEDED(mOwningThread->IsOnCurrentThread(&current)));
+    MOZ_ASSERT(NS_SUCCEEDED(mOwningEventTarget->IsOnCurrentThread(&current)));
     MOZ_ASSERT(current);
   }
 
   nsIEventTarget*
   OwningThread() const
   {
-    return mOwningThread;
+    return mOwningEventTarget;
   }
 
   void
@@ -410,7 +411,7 @@ public:
 
 protected:
   FileHandleOp(FileHandle* aFileHandle)
-    : mOwningThread(NS_GetCurrentThread())
+    : mOwningEventTarget(GetCurrentThreadSerialEventTarget())
     , mFileHandle(aFileHandle)
   {
     AssertIsOnOwningThread();
@@ -457,7 +458,9 @@ class NormalFileHandleOp
   bool mActorDestroyed;
   const bool mFileHandleIsAborted;
 
-  DEBUGONLY(bool mResponseSent;)
+#ifdef DEBUG
+  bool mResponseSent;
+#endif
 
 protected:
   nsCOMPtr<nsISupports> mFileStream;
@@ -507,7 +510,9 @@ protected:
     , mOperationMayProceed(true)
     , mActorDestroyed(false)
     , mFileHandleIsAborted(aFileHandle->IsAborted())
-    DEBUGONLY(, mResponseSent(false))
+#ifdef DEBUG
+    , mResponseSent(false)
+#endif
   {
     MOZ_ASSERT(aFileHandle);
   }
@@ -781,12 +786,12 @@ GetFileHandleThreadPoolFor(FileHandleStorage aStorage)
  ******************************************************************************/
 
 FileHandleThreadPool::FileHandleThreadPool()
-  : mOwningThread(NS_GetCurrentThread())
+  : mOwningEventTarget(GetCurrentThreadSerialEventTarget())
   , mShutdownRequested(false)
   , mShutdownComplete(false)
 {
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT(mOwningThread);
+  MOZ_ASSERT(mOwningEventTarget);
   AssertIsOnOwningThread();
 }
 
@@ -821,10 +826,10 @@ FileHandleThreadPool::Create()
 void
 FileHandleThreadPool::AssertIsOnOwningThread() const
 {
-  MOZ_ASSERT(mOwningThread);
+  MOZ_ASSERT(mOwningEventTarget);
 
   bool current;
-  MOZ_ALWAYS_SUCCEEDS(mOwningThread->IsOnCurrentThread(&current));
+  MOZ_ALWAYS_SUCCEEDS(mOwningEventTarget->IsOnCurrentThread(&current));
   MOZ_ASSERT(current);
 }
 
@@ -2069,7 +2074,9 @@ NormalFileHandleOp::SendSuccessResult()
     }
   }
 
-  DEBUGONLY(mResponseSent = true;)
+#ifdef DEBUG
+  mResponseSent = true;
+#endif
 
   return NS_OK;
 }
@@ -2087,7 +2094,9 @@ NormalFileHandleOp::SendFailureResult(nsresult aResultCode)
       PBackgroundFileRequestParent::Send__delete__(this, aResultCode);
   }
 
-  DEBUGONLY(mResponseSent = true;)
+#ifdef DEBUG
+  mResponseSent = true;
+#endif
 
   return result;
 }
@@ -2243,7 +2252,7 @@ CopyFileHandleOp::DoFileWork(FileHandle* aFileHandle)
     nsCOMPtr<nsIRunnable> runnable =
       new ProgressRunnable(this, mOffset, mSize);
 
-    mOwningThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+    mOwningEventTarget->Dispatch(runnable, NS_DISPATCH_NORMAL);
   } while (true);
 
   MOZ_ASSERT(mOffset == mSize);

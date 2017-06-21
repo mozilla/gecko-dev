@@ -86,6 +86,7 @@ const {
   promiseSetExtensionModifiedTime,
   promiseShutdownManager,
   promiseStartupManager,
+  promiseWebExtensionStartup,
   promiseWriteProxyFileToDir,
   registerDirectory,
   setExtensionModifiedTime,
@@ -1066,19 +1067,6 @@ const EXTENSIONS_DB = "extensions.json";
 var gExtensionsJSON = gProfD.clone();
 gExtensionsJSON.append(EXTENSIONS_DB);
 
-function promiseWebExtensionStartup() {
-  const {Management} = Components.utils.import("resource://gre/modules/Extension.jsm", {});
-
-  return new Promise(resolve => {
-    let listener = (evt, extension) => {
-      Management.off("ready", listener);
-      resolve(extension);
-    };
-
-    Management.on("ready", listener);
-  });
-}
-
 function promiseInstallWebExtension(aData) {
   let addonFile = createTempWebExtensionFile(aData);
 
@@ -1103,6 +1091,8 @@ Services.prefs.setBoolPref(PREF_XPI_SIGNATURES_REQUIRED, true);
 
 // Allow non-multiprocessCompatible extensions for now
 Services.prefs.setBoolPref(PREF_ALLOW_NON_MPC, true);
+
+Services.prefs.setBoolPref("extensions.legacy.enabled", true);
 
 
 // Copies blocklistFile (an nsIFile) to gProfD/blocklist.xml.
@@ -1287,7 +1277,7 @@ function saveJSON(aData, aFile) {
   let stream = FileUtils.openSafeFileOutputStream(aFile);
   let converter = AM_Cc["@mozilla.org/intl/converter-output-stream;1"].
     createInstance(AM_Ci.nsIConverterOutputStream);
-  converter.init(stream, "UTF-8", 0, 0x0000);
+  converter.init(stream, "UTF-8");
   // XXX pretty print the JSON while debugging
   converter.writeString(JSON.stringify(aData, null, 2));
   converter.flush();

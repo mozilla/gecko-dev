@@ -48,6 +48,7 @@ enum class ServoElementSnapshotFlags : uint8_t
   Attributes = 1 << 1,
   Id = 1 << 2,
   MaybeClass = 1 << 3,
+  OtherPseudoClassState = 1 << 4,
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(ServoElementSnapshotFlags)
@@ -75,6 +76,11 @@ public:
 
   bool HasState() const { return HasAny(Flags::State); }
 
+  bool HasOtherPseudoClassState() const
+  {
+    return HasAny(Flags::OtherPseudoClassState);
+  }
+
   /**
    * Captures the given state (if not previously captured).
    */
@@ -88,8 +94,19 @@ public:
 
   /**
    * Captures the given element attributes (if not previously captured).
+   *
+   * The attribute name and namespace are used to note which kind of attribute
+   * has changed.
    */
-  void AddAttrs(Element* aElement);
+  void AddAttrs(Element* aElement,
+                int32_t aNameSpaceID,
+                nsIAtom* aChangedAttribute);
+
+  /**
+   * Captures some other pseudo-class matching state not included in
+   * EventStates.
+   */
+  void AddOtherPseudoClassState(Element* aElement);
 
   /**
    * Needed methods for attribute matching.
@@ -133,12 +150,22 @@ public:
     return nullptr;
   }
 
-  bool IsInChromeDocument() const
-  {
-    return mIsInChromeDocument;
-  }
+  bool IsInChromeDocument() const { return mIsInChromeDocument; }
+  bool SupportsLangAttr() const { return mSupportsLangAttr; }
 
   bool HasAny(Flags aFlags) const { return bool(mContains & aFlags); }
+
+  bool IsTableBorderNonzero() const
+  {
+    MOZ_ASSERT(HasOtherPseudoClassState());
+    return mIsTableBorderNonzero;
+  }
+
+  bool IsMozBrowserFrame() const
+  {
+    MOZ_ASSERT(HasOtherPseudoClassState());
+    return mIsMozBrowserFrame;
+  }
 
 private:
   // TODO: Profile, a 1 or 2 element AutoTArray could be worth it, given we know
@@ -148,8 +175,14 @@ private:
   nsTArray<ServoAttrSnapshot> mAttrs;
   ServoStateType mState;
   Flags mContains;
-  bool mIsHTMLElementInHTMLDocument;
-  bool mIsInChromeDocument;
+  bool mIsHTMLElementInHTMLDocument : 1;
+  bool mIsInChromeDocument : 1;
+  bool mSupportsLangAttr : 1;
+  bool mIsTableBorderNonzero : 1;
+  bool mIsMozBrowserFrame : 1;
+  bool mClassAttributeChanged : 1;
+  bool mIdAttributeChanged : 1;
+  bool mOtherAttributeChanged : 1;
 };
 
 } // namespace mozilla

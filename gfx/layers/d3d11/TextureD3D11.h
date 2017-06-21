@@ -264,6 +264,8 @@ public:
     mCurrentTile = 0;
   }
 
+  RefPtr<TextureSource> ExtractCurrentTile() override;
+
   void Reset();
 protected:
   gfx::IntRect GetTileRect(uint32_t aIndex) const;
@@ -302,6 +304,7 @@ public:
                        const SurfaceDescriptorD3D10& aDescriptor);
 
   virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) override;
+  virtual bool AcquireTextureSource(CompositableTextureSourceRef& aTexture) override;
 
   virtual void DeallocateDeviceData() override {}
 
@@ -322,13 +325,24 @@ public:
     return nullptr;
   }
 
+  virtual void GetWRImageKeys(nsTArray<wr::ImageKey>& aImageKeys,
+                              const std::function<wr::ImageKey()>& aImageKeyAllocator) override;
+
   virtual void AddWRImage(wr::WebRenderAPI* aAPI,
                           Range<const wr::ImageKey>& aImageKeys,
                           const wr::ExternalImageId& aExtID) override;
 
+  virtual void PushExternalImage(wr::DisplayListBuilder& aBuilder,
+                                 const WrRect& aBounds,
+                                 const WrClipRegionToken aClip,
+                                 wr::ImageRendering aFilter,
+                                 Range<const wr::ImageKey>& aImageKeys) override;
+
 protected:
   bool LockInternal();
   void UnlockInternal();
+
+  bool EnsureTextureSource();
 
   RefPtr<ID3D11Device> GetDevice();
 
@@ -350,6 +364,7 @@ public:
                             const SurfaceDescriptorDXGIYCbCr& aDescriptor);
 
   virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) override;
+  virtual bool AcquireTextureSource(CompositableTextureSourceRef& aTexture) override;
 
   virtual void DeallocateDeviceData() override{}
 
@@ -371,9 +386,21 @@ public:
     return nullptr;
   }
 
+  virtual void GetWRImageKeys(nsTArray<wr::ImageKey>& aImageKeys,
+                              const std::function<wr::ImageKey()>& aImageKeyAllocator) override;
+
   virtual void AddWRImage(wr::WebRenderAPI* aAPI,
                           Range<const wr::ImageKey>& aImageKeys,
                           const wr::ExternalImageId& aExtID) override;
+
+  virtual void PushExternalImage(wr::DisplayListBuilder& aBuilder,
+                                 const WrRect& aBounds,
+                                 const WrClipRegionToken aClip,
+                                 wr::ImageRendering aFilter,
+                                 Range<const wr::ImageKey>& aImageKeys) override;
+
+private:
+  bool EnsureTextureSource();
 
 protected:
   RefPtr<ID3D11Device> GetDevice();

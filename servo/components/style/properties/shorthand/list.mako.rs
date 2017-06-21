@@ -5,12 +5,14 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="list-style"
-                    sub_properties="list-style-image list-style-position list-style-type"
+                    sub_properties="list-style-position list-style-image list-style-type"
+                    derive_serialize="True"
                     spec="https://drafts.csswg.org/css-lists/#propdef-list-style">
     use properties::longhands::{list_style_image, list_style_position, list_style_type};
     use values::{Either, None_};
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         // `none` is ambiguous until we've finished parsing the shorthands, so we count the number
         // of times we see it.
         let mut nones = 0u8;
@@ -19,7 +21,7 @@
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 nones = nones + 1;
                 if nones > 2 {
-                    return Err(())
+                    return Err(SelectorParseError::UnexpectedIdent("none".into()).into())
                 }
                 any = true;
                 continue
@@ -61,7 +63,7 @@
             list_style_type::SpecifiedValue::none
             % else:
             use values::generics::CounterStyleOrNone;
-            list_style_type::SpecifiedValue::CounterStyle(CounterStyleOrNone::None_)
+            list_style_type::SpecifiedValue::CounterStyle(CounterStyleOrNone::None)
             % endif
         }
 
@@ -104,17 +106,7 @@
                     list_style_type: unwrap_or_initial!(list_style_type),
                 })
             }
-            _ => Err(()),
-        }
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.list_style_position.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.list_style_image.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.list_style_type.to_css(dest)
+            _ => Err(StyleParseError::UnspecifiedError.into()),
         }
     }
 </%helpers:shorthand>

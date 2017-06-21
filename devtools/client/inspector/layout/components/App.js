@@ -4,6 +4,7 @@
 
 "use strict";
 
+const Services = require("Services");
 const { addons, createClass, createFactory, DOM: dom, PropTypes } =
   require("devtools/client/shared/vendor/react");
 const { connect } = require("devtools/client/shared/vendor/react-redux");
@@ -17,12 +18,16 @@ const BoxModelTypes = require("devtools/client/inspector/boxmodel/types");
 const GridTypes = require("devtools/client/inspector/grids/types");
 
 const Accordion = createFactory(require("./Accordion"));
+const LayoutPromoteBar = createFactory(require("./LayoutPromoteBar"));
 
 const BOXMODEL_STRINGS_URI = "devtools/client/locales/boxmodel.properties";
 const BOXMODEL_L10N = new LocalizationHelper(BOXMODEL_STRINGS_URI);
 
 const LAYOUT_STRINGS_URI = "devtools/client/locales/layout.properties";
 const LAYOUT_L10N = new LocalizationHelper(LAYOUT_STRINGS_URI);
+
+const BOXMODEL_OPENED_PREF = "devtools.layout.boxmodel.opened";
+const GRID_OPENED_PREF = "devtools.layout.grid.opened";
 
 const App = createClass({
 
@@ -37,6 +42,7 @@ const App = createClass({
     showBoxModelProperties: PropTypes.bool.isRequired,
     showGridOutline: PropTypes.bool.isRequired,
     onHideBoxModelHighlighter: PropTypes.func.isRequired,
+    onPromoteLearnMoreClick: PropTypes.func.isRequired,
     onSetGridOverlayColor: PropTypes.func.isRequired,
     onShowBoxModelEditor: PropTypes.func.isRequired,
     onShowBoxModelHighlighter: PropTypes.func.isRequired,
@@ -49,24 +55,37 @@ const App = createClass({
   mixins: [ addons.PureRenderMixin ],
 
   render() {
+    let { onPromoteLearnMoreClick } = this.props;
+
     return dom.div(
       {
         id: "layout-container",
         className: "devtools-monospace",
       },
+      LayoutPromoteBar({
+        onPromoteLearnMoreClick,
+      }),
       Accordion({
         items: [
-          {
-            header: BOXMODEL_L10N.getStr("boxmodel.title"),
-            component: BoxModel,
-            componentProps: this.props,
-            opened: true,
-          },
           {
             header: LAYOUT_L10N.getStr("layout.header"),
             component: Grid,
             componentProps: this.props,
-            opened: true,
+            opened: Services.prefs.getBoolPref(GRID_OPENED_PREF),
+            onToggled: () => {
+              let opened = Services.prefs.getBoolPref(GRID_OPENED_PREF);
+              Services.prefs.setBoolPref(GRID_OPENED_PREF, !opened);
+            }
+          },
+          {
+            header: BOXMODEL_L10N.getStr("boxmodel.title"),
+            component: BoxModel,
+            componentProps: this.props,
+            opened: Services.prefs.getBoolPref(BOXMODEL_OPENED_PREF),
+            onToggled: () => {
+              let opened = Services.prefs.getBoolPref(BOXMODEL_OPENED_PREF);
+              Services.prefs.setBoolPref(BOXMODEL_OPENED_PREF, !opened);
+            }
           },
         ]
       })

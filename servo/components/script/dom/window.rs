@@ -5,7 +5,7 @@
 use app_units::Au;
 use base64;
 use bluetooth_traits::BluetoothRequest;
-use cssparser::Parser;
+use cssparser::{Parser, ParserInput};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
@@ -32,6 +32,7 @@ use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::bluetooth::BluetoothExtraPermissionData;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use dom::customelementregistry::CustomElementRegistry;
 use dom::document::{AnimationFrameCallback, Document};
 use dom::element::Element;
 use dom::event::Event;
@@ -50,8 +51,9 @@ use dom::storage::Storage;
 use dom::testrunner::TestRunner;
 use dom::windowproxy::WindowProxy;
 use dom::worklet::Worklet;
+use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Vector2D, Rect, Size2D};
 use fetch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -82,7 +84,7 @@ use script_traits::{ConstellationControlMsg, DocumentState, LoadData, MozBrowser
 use script_traits::{ScriptMsg as ConstellationMsg, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use servo_atoms::Atom;
+use selectors::attr::CaseSensitivity;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, max_rect};
@@ -105,12 +107,13 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
-use style::parser::{PARSING_MODE_DEFAULT, ParserContext as CssParserContext};
+use style::parser::ParserContext as CssParserContext;
 use style::properties::PropertyId;
 use style::properties::longhands::overflow_x;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
+use style_traits::PARSING_MODE_DEFAULT;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -179,6 +182,7 @@ pub struct Window {
     window_proxy: MutNullableJS<WindowProxy>,
     document: MutNullableJS<Document>,
     history: MutNullableJS<History>,
+    custom_element_registry: MutNullableJS<CustomElementRegistry>,
     performance: MutNullableJS<Performance>,
     navigation_start: u64,
     navigation_start_precise: f64,
@@ -251,7 +255,7 @@ pub struct Window {
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
-    scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
+    scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Vector2D<f32>>>,
 
     /// All the MediaQueryLists we need to update
     media_query_lists: WeakMediaQueryListVec,
@@ -277,6 +281,8 @@ pub struct Window {
 
     /// Worklets
     test_worklet: MutNullableJS<Worklet>,
+    /// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+    paint_worklet: MutNullableJS<Worklet>,
 }
 
 impl Window {
@@ -359,7 +365,7 @@ impl Window {
     /// Sets a new list of scroll offsets.
     ///
     /// This is called when layout gives us new ones and WebRender is in use.
-    pub fn set_scroll_offsets(&self, offsets: HashMap<UntrustedNodeAddress, Point2D<f32>>) {
+    pub fn set_scroll_offsets(&self, offsets: HashMap<UntrustedNodeAddress, Vector2D<f32>>) {
         *self.scroll_offsets.borrow_mut() = offsets
     }
 
@@ -369,6 +375,14 @@ impl Window {
 
     pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
         self.webvr_thread.clone()
+    }
+
+    fn new_paint_worklet(&self) -> Root<Worklet> {
+        debug!("Creating new paint worklet.");
+        let worklet = Worklet::new(self, WorkletGlobalScopeType::Paint);
+        let executor = Arc::new(worklet.executor());
+        let _ = self.layout_chan.send(Msg::SetPaintWorkletExecutor(executor));
+        worklet
     }
 
     pub fn permission_state_invocation_results(&self) -> &DOMRefCell<HashMap<String, PermissionState>> {
@@ -531,6 +545,11 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-history
     fn History(&self) -> Root<History> {
         self.history.or_init(|| History::new(self))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-customelements
+    fn CustomElements(&self) -> Root<CustomElementRegistry> {
+        self.custom_element_registry.or_init(|| CustomElementRegistry::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
@@ -746,7 +765,7 @@ impl WindowMethods for Window {
 
         // Step 1-2, 6-8.
         // TODO(#12717): Should implement the `transfer` argument.
-        let data = try!(StructuredCloneData::write(cx, message));
+        let data = StructuredCloneData::write(cx, message)?;
 
         // Step 9.
         self.post_message(origin, data);
@@ -974,9 +993,9 @@ impl WindowMethods for Window {
 
     // check-tidy: no specs after this line
     fn OpenURLInDefaultBrowser(&self, href: DOMString) -> ErrorResult {
-        let url = try!(ServoUrl::parse(&href).map_err(|e| {
+        let url = ServoUrl::parse(&href).map_err(|e| {
             Error::Type(format!("Couldn't parse URL: {}", e))
-        }));
+        })?;
         match open::that(url.as_str()) {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::Type(format!("Couldn't open URL: {}", e))),
@@ -985,7 +1004,8 @@ impl WindowMethods for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
     fn MatchMedia(&self, query: DOMString) -> Root<MediaQueryList> {
-        let mut parser = Parser::new(&query);
+        let mut input = ParserInput::new(&query);
+        let mut parser = Parser::new(&mut input);
         let url = self.get_url();
         let quirks_mode = self.Document().quirks_mode();
         let context = CssParserContext::new_for_cssom(&url, self.css_error_reporter(), Some(CssRuleType::Media),
@@ -1002,6 +1022,11 @@ impl WindowMethods for Window {
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(&self, input: RequestOrUSVString, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
         fetch::Fetch(&self.upcast(), input, init)
+    }
+
+    // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+    fn PaintWorklet(&self) -> Root<Worklet> {
+        self.paint_worklet.or_init(|| self.new_paint_worklet())
     }
 
     fn TestRunner(&self) -> Root<TestRunner> {
@@ -1030,6 +1055,12 @@ impl Window {
         // nodes to dispose of their layout data. This messages the layout
         // thread, informing it that it can safely free the memory.
         self.Document().upcast::<Node>().teardown();
+
+        // Clean up any active promises
+        // https://github.com/servo/servo/issues/15318
+        if let Some(custom_elements) = self.custom_element_registry.get() {
+            custom_elements.teardown();
+        }
 
         // The above code may not catch all DOM objects (e.g. DOM
         // objects removed from the tree that haven't been collected
@@ -1124,7 +1155,7 @@ impl Window {
 
         self.layout_chan.send(Msg::UpdateScrollStateFromScript(ScrollState {
             scroll_root_id: scroll_root_id,
-            scroll_offset: Point2D::new(-x, -y),
+            scroll_offset: Vector2D::new(-x, -y),
         })).unwrap();
 
         // TODO (farodin91): Raise an event to stop the current_viewport
@@ -1335,7 +1366,7 @@ impl Window {
             // See http://testthewebforward.org/docs/reftests.html
             let html_element = document.GetDocumentElement();
             let reftest_wait = html_element.map_or(false, |elem| {
-                elem.has_class(&Atom::from("reftest-wait"))
+                elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
             });
 
             let ready_state = document.ReadyState();
@@ -1418,7 +1449,7 @@ impl Window {
         self.layout_rpc.node_overflow().0.unwrap()
     }
 
-    pub fn scroll_offset_query(&self, node: &Node) -> Point2D<f32> {
+    pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
         let mut node = Root::from_ref(node);
         loop {
             if let Some(scroll_offset) = self.scroll_offsets
@@ -1431,8 +1462,8 @@ impl Window {
                 None => break,
             }
         }
-        let offset = self.current_viewport.get().origin;
-        Point2D::new(offset.x.to_f32_px(), offset.y.to_f32_px())
+        let vp_origin = self.current_viewport.get().origin;
+        Vector2D::new(vp_origin.x.to_f32_px(), vp_origin.y.to_f32_px())
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
@@ -1805,6 +1836,7 @@ impl Window {
             image_cache: image_cache.clone(),
             navigator: Default::default(),
             history: Default::default(),
+            custom_element_registry: Default::default(),
             window_proxy: Default::default(),
             document: Default::default(),
             performance: Default::default(),
@@ -1842,6 +1874,7 @@ impl Window {
             pending_layout_images: DOMRefCell::new(HashMap::new()),
             unminified_js_dir: DOMRefCell::new(None),
             test_worklet: Default::default(),
+            paint_worklet: Default::default(),
         };
 
         unsafe {

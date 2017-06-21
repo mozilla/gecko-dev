@@ -1,5 +1,8 @@
 "use strict";
 
+// The ext-* files are imported into the same scopes.
+/* import-globals-from ext-utils.js */
+
 XPCOMUtils.defineLazyModuleGetter(global, "EventEmitter",
                                   "resource://gre/modules/EventEmitter.jsm");
 
@@ -112,14 +115,6 @@ extensions.registerModules({
       ["commands"],
     ],
   },
-  contextMenus: {
-    url: "chrome://browser/content/ext-contextMenus.js",
-    schema: "chrome://browser/content/schemas/context_menus.json",
-    scopes: ["addon_parent"],
-    paths: [
-      ["contextMenus"],
-    ],
-  },
   devtools: {
     url: "chrome://browser/content/ext-devtools.js",
     schema: "chrome://browser/content/schemas/devtools.json",
@@ -159,6 +154,16 @@ extensions.registerModules({
     scopes: ["addon_parent"],
     paths: [
       ["history"],
+    ],
+  },
+  // This module supports the "menus" and "contextMenus" namespaces,
+  // and because of permissions, the module name must differ from both.
+  menusInternal: {
+    url: "chrome://browser/content/ext-menus.js",
+    schema: "chrome://browser/content/schemas/menus.json",
+    scopes: ["addon_parent"],
+    paths: [
+      ["menusInternal"],
     ],
   },
   omnibox: {

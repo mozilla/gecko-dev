@@ -277,8 +277,9 @@ IMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
         ("  OnDestroyPresContext(), "
          "removing TextComposition instance from the array (index=%" PRIuSIZE ")", i));
       // there should be only one composition per presContext object.
-      sTextCompositions->ElementAt(i)->Destroy();
+      RefPtr<TextComposition> composition = sTextCompositions->ElementAt(i);
       sTextCompositions->RemoveElementAt(i);
+      composition->Destroy();
       if (sTextCompositions->IndexOf(aPresContext) !=
             TextCompositionArray::NoIndex) {
         MOZ_LOG(sISMLog, LogLevel::Error,
@@ -863,8 +864,9 @@ IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
     MOZ_LOG(sISMLog, LogLevel::Debug,
       ("  UpdateIMEState(), try to reinitialize the "
        "active IMEContentObserver"));
-    if (!sActiveIMEContentObserver->MaybeReinitialize(widget, sPresContext,
-                                                      aContent, &aEditorBase)) {
+    RefPtr<IMEContentObserver> contentObserver = sActiveIMEContentObserver;
+    if (!contentObserver->MaybeReinitialize(widget, sPresContext,
+                                            aContent, &aEditorBase)) {
       MOZ_LOG(sISMLog, LogLevel::Error,
         ("  UpdateIMEState(), failed to reinitialize the "
          "active IMEContentObserver"));
@@ -1292,10 +1294,11 @@ IMEStateManager::DispatchCompositionEvent(
     if (i != TextCompositionArray::NoIndex) {
       MOZ_LOG(sISMLog, LogLevel::Debug,
         ("  DispatchCompositionEvent(), "
-         "removing TextComposition from the array since NS_COMPOSTION_END "
+         "removing TextComposition from the array since eCompositionEnd "
          "was dispatched"));
-      sTextCompositions->ElementAt(i)->Destroy();
+      RefPtr<TextComposition> composition = sTextCompositions->ElementAt(i);
       sTextCompositions->RemoveElementAt(i);
+      composition->Destroy();
     }
   }
 }

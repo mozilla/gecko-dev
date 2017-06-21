@@ -36,7 +36,7 @@
 #include <vector>
 #include "GeckoProfiler.h"              // for GeckoProfiler
 #ifdef MOZ_GECKO_PROFILER
-#include "ProfilerMarkerPayload.h"      // for LayerTranslationPayload
+#include "ProfilerMarkerPayload.h"      // for LayerTranslationMarkerPayload
 #endif
 
 #define CULLING_LOG(...)
@@ -100,8 +100,9 @@ PrintUniformityInfo(Layer* aLayer)
   }
 
   Point translation = transform.As2D().GetTranslation();
-  LayerTranslationPayload* payload = new LayerTranslationPayload(aLayer, translation);
-  PROFILER_MARKER_PAYLOAD("LayerTranslation", payload);
+  PROFILER_MARKER_PAYLOAD(
+    "LayerTranslation",
+    MakeUnique<LayerTranslationMarkerPayload>(aLayer, translation));
 #endif
 }
 
@@ -128,7 +129,7 @@ SelectLayerGeometry(const Maybe<gfx::Polygon>& aParentGeometry,
   return Nothing();
 }
 
-static void
+void
 TransformLayerGeometry(Layer* aLayer, Maybe<gfx::Polygon>& aGeometry)
 {
   Layer* parent = aLayer;

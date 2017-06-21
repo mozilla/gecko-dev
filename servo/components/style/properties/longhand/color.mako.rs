@@ -13,34 +13,27 @@
                    ignored_when_colors_disabled="True"
                    spec="https://drafts.csswg.org/css-color/#color">
     use cssparser::RGBA;
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::{AllowQuirks, Color, CSSColor};
+    use values::specified::{AllowQuirks, Color};
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            self.0.parsed.to_computed_value(context)
+            self.0.to_computed_value(context)
+                .to_rgba(context.inherited_style.get_color().clone_color())
         }
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(Color::RGBA(*computed).into())
+            SpecifiedValue(Color::rgba(*computed).into())
         }
     }
 
-    #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub CSSColor);
+    #[derive(Clone, Debug, PartialEq, ToCss)]
+    pub struct SpecifiedValue(pub Color);
     no_viewport_percentage!(SpecifiedValue);
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)
-        }
-    }
 
     pub mod computed_value {
         use cssparser;
@@ -50,8 +43,9 @@
     pub fn get_initial_value() -> computed_value::T {
         RGBA::new(0, 0, 0, 255) // black
     }
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        CSSColor::parse_quirky(context, input, AllowQuirks::Yes).map(SpecifiedValue)
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
+        Color::parse_quirky(context, input, AllowQuirks::Yes).map(SpecifiedValue)
     }
 
     // FIXME(#15973): Add servo support for system colors
@@ -91,6 +85,9 @@
         %>
         use gecko_bindings::bindings::Gecko_GetLookAndFeelSystemColor;
         use gecko_bindings::structs::root::mozilla::LookAndFeel_ColorID;
+        use std::fmt;
+        use style_traits::ToCss;
+
         pub type SystemColor = LookAndFeel_ColorID;
 
         impl ToCss for SystemColor {
@@ -122,7 +119,7 @@
         }
 
         impl SystemColor {
-            pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+            pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
                 #[cfg(feature = "gecko")]
                 use std::ascii::AsciiExt;
                 static PARSE_ARRAY: &'static [(&'static str, SystemColor); ${len(system_colors)}] = &[
@@ -137,7 +134,7 @@
                         return Ok(color)
                     }
                 }
-                Err(())
+                Err(SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
     % endif

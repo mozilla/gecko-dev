@@ -181,6 +181,10 @@ Inspector.prototype = {
     return this._target.client.traits.getCssPath;
   },
 
+  get canGetXPath() {
+    return this._target.client.traits.getXPath;
+  },
+
   get canGetUsedFontFaces() {
     return this._target.client.traits.getUsedFontFaces;
   },
@@ -616,14 +620,12 @@ Inspector.prototype = {
       INSPECTOR_L10N.getStr("inspector.sidebar.computedViewTitle"),
       defaultTab == "computedview");
 
-    if (Services.prefs.getBoolPref("devtools.layoutview.enabled")) {
-      // Grid and layout panels aren't lazy-loaded as their module end up
-      // calling inspector.addSidebarTab
-      this.gridInspector = new GridInspector(this, this.panelWin);
+    // Grid and layout panels aren't lazy-loaded as their module end up
+    // calling inspector.addSidebarTab
+    this.gridInspector = new GridInspector(this, this.panelWin);
 
-      const LayoutView = this.browserRequire("devtools/client/inspector/layout/layout");
-      this.layoutview = new LayoutView(this, this.panelWin);
-    }
+    const LayoutView = this.browserRequire("devtools/client/inspector/layout/layout");
+    this.layoutview = new LayoutView(this, this.panelWin);
 
     if (this.target.form.animationsActor) {
       this.sidebar.addFrameTab(
@@ -1246,6 +1248,15 @@ Inspector.prototype = {
       click: () => this.copyCssPath(),
     }));
     copySubmenu.append(new MenuItem({
+      id: "node-menu-copyxpath",
+      label: INSPECTOR_L10N.getStr("inspectorCopyXPath.label"),
+      accesskey:
+        INSPECTOR_L10N.getStr("inspectorCopyXPath.accesskey"),
+      disabled: !isSelectionElement,
+      hidden: !this.canGetXPath,
+      click: () => this.copyXPath(),
+    }));
+    copySubmenu.append(new MenuItem({
       id: "node-menu-copyimagedatauri",
       label: INSPECTOR_L10N.getStr("inspectorImageDataUri.label"),
       disabled: !isSelectionElement || !markupContainer ||
@@ -1803,6 +1814,20 @@ Inspector.prototype = {
   },
 
   /**
+   * Copy the XPath of the selected Node to the clipboard.
+   */
+  copyXPath: function () {
+    if (!this.selection.isNode()) {
+      return;
+    }
+
+    this.telemetry.toolOpened("copyxpath");
+    this.selection.nodeFront.getXPath().then(path => {
+      clipboardHelper.copyString(path);
+    }).catch(e => console.error);
+  },
+
+  /**
    * Initiate gcli screenshot command on selected node.
    */
   screenshotNode: Task.async(function* () {
@@ -2006,6 +2031,24 @@ Inspector.prototype = {
     let toolbox = this.toolbox;
     toolbox.highlighterUtils.highlightNodeFront(nodeFront, options);
   },
+
+  async inspectNodeActor(nodeActor, inspectFromAnnotation) {
+    const nodeFront = await this.walker.getNodeActorFromObjectActor(nodeActor);
+    if (!nodeFront) {
+      console.error("The object cannot be linked to the inspector, the " +
+                    "corresponding nodeFront could not be found.");
+      return false;
+    }
+
+    let isAttached = await this.walker.isInDOMTree(nodeFront);
+    if (!isAttached) {
+      console.error("Selected DOMNode is not attached to the document tree.");
+      return false;
+    }
+
+    await this.selection.setNodeFront(nodeFront, inspectFromAnnotation);
+    return true;
+  },
 };
 
 /**
@@ -2109,7 +2152,7 @@ if (window.location.protocol === "chrome:" && url.search.length > 1) {
     );
     let inspectorUI = new Inspector(fakeToolbox);
     inspectorUI.init();
-  }).then(null, e => {
+  }).catch(e => {
     window.alert("Unable to start the inspector:" + e.message + "\n" + e.stack);
   });
 }

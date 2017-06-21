@@ -6,12 +6,11 @@
 
 <% data.new_style_struct("Background", inherited=False) %>
 
-${helpers.predefined_type("background-color", "CSSColor",
-    "::cssparser::Color::RGBA(::cssparser::RGBA::transparent())",
+${helpers.predefined_type("background-color", "Color",
+    "computed_value::T::transparent()",
     initial_specified_value="SpecifiedValue::transparent()",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
     animation_value_type="IntermediateColor",
-    complex_color=True,
     ignored_when_colors_disabled=True,
     allow_quirks=True)}
 
@@ -67,10 +66,10 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                 (RepeatKeyword::Repeat, RepeatKeyword::NoRepeat) => dest.write_str("repeat-x"),
                 (RepeatKeyword::NoRepeat, RepeatKeyword::Repeat) => dest.write_str("repeat-y"),
                 (horizontal, vertical) => {
-                    try!(horizontal.to_css(dest));
+                    horizontal.to_css(dest)?;
                     if horizontal != vertical {
-                        try!(dest.write_str(" "));
-                        try!(vertical.to_css(dest));
+                        dest.write_str(" ")?;
+                        vertical.to_css(dest)?;
                     }
                     Ok(())
                 },
@@ -83,10 +82,10 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                 SpecifiedValue::RepeatX => dest.write_str("repeat-x"),
                 SpecifiedValue::RepeatY => dest.write_str("repeat-y"),
                 SpecifiedValue::Other(horizontal, vertical) => {
-                    try!(horizontal.to_css(dest));
+                    horizontal.to_css(dest)?;
                     if let Some(vertical) = vertical {
-                        try!(dest.write_str(" "));
-                        try!(vertical.to_css(dest));
+                        dest.write_str(" ")?;
+                        vertical.to_css(dest)?;
                     }
                     Ok(())
                 }
@@ -129,17 +128,20 @@ ${helpers.predefined_type("background-image", "ImageLayer",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let ident = input.expect_ident()?;
-        match_ignore_ascii_case! { &ident,
+        (match_ignore_ascii_case! { &ident,
             "repeat-x" => Ok(SpecifiedValue::RepeatX),
             "repeat-y" => Ok(SpecifiedValue::RepeatY),
-            _ => {
-                let horizontal = try!(RepeatKeyword::from_ident(&ident));
-                let vertical = input.try(RepeatKeyword::parse).ok();
-                Ok(SpecifiedValue::Other(horizontal, vertical))
-            }
-        }
+            _ => Err(()),
+        }).or_else(|()| {
+            let horizontal: Result<_, ParseError> = RepeatKeyword::from_ident(&ident)
+                .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
+            let horizontal = horizontal?;
+            let vertical = input.try(RepeatKeyword::parse).ok();
+            Ok(SpecifiedValue::Other(horizontal, vertical))
+        })
     }
 </%helpers:vector_longhand>
 

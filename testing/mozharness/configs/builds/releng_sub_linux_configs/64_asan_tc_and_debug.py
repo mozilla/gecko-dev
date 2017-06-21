@@ -9,7 +9,6 @@ config = {
         'checkout-sources',
         'setup-mock',
         'build',
-        # 'generate-build-stats',
         'upload-files',
         'sendchange',
         'check-test',
@@ -19,8 +18,6 @@ config = {
     'publish_nightly_en_US_routes': False,
     'build_type': 'asan-debug',
     'debug_build': True,
-    'tooltool_manifest_src': "browser/config/tooltool-manifests/linux64/\
-asan.manifest",
     'platform_supports_post_upload_to_latest': False,
     'enable_signing': False,
     'enable_talos_sendchange': False,

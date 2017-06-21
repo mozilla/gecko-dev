@@ -23,7 +23,6 @@ module.exports = createClass({
     grids: PropTypes.arrayOf(PropTypes.shape(Types.grid)).isRequired,
     highlighterSettings: PropTypes.shape(Types.highlighterSettings).isRequired,
     setSelectedNode: PropTypes.func.isRequired,
-    showGridOutline: PropTypes.bool.isRequired,
     onHideBoxModelHighlighter: PropTypes.func.isRequired,
     onSetGridOverlayColor: PropTypes.func.isRequired,
     onShowBoxModelHighlighterForNode: PropTypes.func.isRequired,
@@ -31,6 +30,7 @@ module.exports = createClass({
     onShowGridCellHighlight: PropTypes.func.isRequired,
     onShowGridLineNamesHighlight: PropTypes.func.isRequired,
     onToggleGridHighlighter: PropTypes.func.isRequired,
+    onToggleShowGridAreas: PropTypes.func.isRequired,
     onToggleShowGridLineNumbers: PropTypes.func.isRequired,
     onToggleShowInfiniteLines: PropTypes.func.isRequired,
   },
@@ -43,15 +43,15 @@ module.exports = createClass({
       grids,
       highlighterSettings,
       setSelectedNode,
-      showGridOutline,
       onHideBoxModelHighlighter,
       onSetGridOverlayColor,
       onShowBoxModelHighlighterForNode,
+      onShowGridAreaHighlight,
+      onShowGridCellHighlight,
+      onToggleShowGridAreas,
       onToggleGridHighlighter,
       onToggleShowGridLineNumbers,
       onToggleShowInfiniteLines,
-      onShowGridAreaHighlight,
-      onShowGridCellHighlight,
     } = this.props;
 
     return grids.length ?
@@ -74,25 +74,23 @@ module.exports = createClass({
           }),
           GridDisplaySettings({
             highlighterSettings,
+            onToggleShowGridAreas,
             onToggleShowGridLineNumbers,
             onToggleShowInfiniteLines,
           })
         ),
-        showGridOutline ?
-          GridOutline({
-            grids,
-            onShowGridAreaHighlight,
-            onShowGridCellHighlight,
-          })
-          :
-          null
+        GridOutline({
+          grids,
+          onShowGridAreaHighlight,
+          onShowGridCellHighlight,
+        })
       )
       :
       dom.div(
         {
           className: "layout-no-grids",
         },
-        getStr("layout.noGrids")
+        getStr("layout.noGridsOnThisPage")
       );
   },
 

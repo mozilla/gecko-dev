@@ -28,6 +28,10 @@ const {OS} = Cu.import("resource://gre/modules/osfile.jsm", {});
 
 XPCOMUtils.defineLazyModuleGetter(this, "Extension",
                                   "resource://gre/modules/Extension.jsm");
+XPCOMUtils.defineLazyGetter(this, "Management", () => {
+  let {Management} = Cu.import("resource://gre/modules/Extension.jsm", {});
+  return Management;
+});
 
 XPCOMUtils.defineLazyServiceGetter(this, "aomStartup",
                                    "@mozilla.org/addons/addon-manager-startup;1",
@@ -215,6 +219,7 @@ var AddonTestUtils = {
   addonStartup: null,
   testUnpacked: false,
   useRealCertChecks: false,
+  usePrivilegedSignatures: true,
 
   init(testScope) {
     this.testScope = testScope;
@@ -499,6 +504,9 @@ var AddonTestUtils = {
           let id = await this.getIDFromManifest(manifestURI);
 
           let fakeCert = {commonName: id};
+          if (this.usePrivilegedSignatures) {
+            fakeCert.organizationalUnit = "Mozilla Extensions";
+          }
 
           return [callback, Cr.NS_OK, fakeCert];
         } catch (e) {
@@ -1241,6 +1249,26 @@ var AddonTestUtils = {
     } finally {
       Services.console.unregisterListener(listener);
     }
+  },
+
+  /**
+   * Helper to wait for a webextension to completely start
+   *
+   * @param {string} [id]
+   *        An optional extension id to look for.
+   *
+   * @returns {Promise<Extension>}
+   *           A promise that resolves with the extension, once it is started.
+   */
+  promiseWebExtensionStartup(id) {
+    return new Promise(resolve => {
+      Management.on("ready", function listener(event, extension) {
+        if (!id || extension.id == id) {
+          Management.off("ready", listener);
+          resolve(extension);
+        }
+      });
+    });
   },
 };
 

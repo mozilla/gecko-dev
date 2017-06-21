@@ -106,6 +106,12 @@ JS_IsDeadWrapper(JSObject* obj);
 extern JS_FRIEND_API(JSObject*)
 JS_NewDeadWrapper(JSContext* cx, JSObject* origObject = nullptr);
 
+/**
+ * Determine whether the given object is a ScriptSourceObject.
+ */
+extern JS_FRIEND_API(bool)
+JS_IsScriptSourceObject(JSObject* obj);
+
 /*
  * Used by the cycle collector to trace through a shape or object group and
  * all cycle-participating data it reaches, using bounded stack space.
@@ -1383,6 +1389,10 @@ class MOZ_STACK_CLASS JS_FRIEND_API(AutoStableStringChars)
     bool isLatin1() const { return state_ == Latin1; }
     bool isTwoByte() const { return state_ == TwoByte; }
 
+    const JS::Latin1Char* latin1Chars() const {
+        MOZ_ASSERT(state_ == Latin1);
+        return latin1Chars_;
+    }
     const char16_t* twoByteChars() const {
         MOZ_ASSERT(state_ == TwoByte);
         return twoByteChars_;
@@ -1482,8 +1492,8 @@ struct MOZ_STACK_CLASS JS_FRIEND_API(ErrorReport)
     bool populateUncaughtExceptionReportUTF8(JSContext* cx, ...);
     bool populateUncaughtExceptionReportUTF8VA(JSContext* cx, va_list ap);
 
-    // Reports exceptions from add-on scopes to telementry.
-    void ReportAddonExceptionToTelementry(JSContext* cx);
+    // Reports exceptions from add-on scopes to telemetry.
+    void ReportAddonExceptionToTelemetry(JSContext* cx);
 
     // We may have a provided JSErrorReport, so need a way to represent that.
     JSErrorReport* reportp;
@@ -2602,6 +2612,7 @@ JSID_FROM_BITS(size_t bits)
 namespace js {
 namespace detail {
 bool IdMatchesAtom(jsid id, JSAtom* atom);
+bool IdMatchesAtom(jsid id, JSString* atom);
 } // namespace detail
 } // namespace js
 
@@ -2628,6 +2639,15 @@ bool IdMatchesAtom(jsid id, JSAtom* atom);
  */
 static MOZ_ALWAYS_INLINE jsid
 NON_INTEGER_ATOM_TO_JSID(JSAtom* atom)
+{
+    MOZ_ASSERT(((size_t)atom & 0x7) == 0);
+    jsid id = JSID_FROM_BITS((size_t)atom);
+    MOZ_ASSERT(js::detail::IdMatchesAtom(id, atom));
+    return id;
+}
+
+static MOZ_ALWAYS_INLINE jsid
+NON_INTEGER_ATOM_TO_JSID(JSString* atom)
 {
     MOZ_ASSERT(((size_t)atom & 0x7) == 0);
     jsid id = JSID_FROM_BITS((size_t)atom);

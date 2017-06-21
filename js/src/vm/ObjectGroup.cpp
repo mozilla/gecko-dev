@@ -459,7 +459,7 @@ class ObjectGroupCompartment::NewTable : public JS::WeakCache<js::GCHashSet<NewE
     using Base = JS::WeakCache<Table>;
 
   public:
-    explicit NewTable(Zone* zone) : Base(zone, Table()) {}
+    explicit NewTable(Zone* zone) : Base(zone) {}
 };
 
 MOZ_ALWAYS_INLINE ObjectGroup*
@@ -1463,7 +1463,7 @@ class ObjectGroupCompartment::AllocationSiteTable
     using Base = JS::WeakCache<Table>;
 
   public:
-    explicit AllocationSiteTable(Zone* zone) : Base(zone, Table()) {}
+    explicit AllocationSiteTable(Zone* zone) : Base(zone) {}
 };
 
 /* static */ ObjectGroup*
@@ -1693,6 +1693,7 @@ ObjectGroupCompartment::~ObjectGroupCompartment()
     js_delete(arrayObjectTable);
     js_delete(plainObjectTable);
     js_delete(allocationSiteTable);
+    stringSplitStringGroup = nullptr;
 }
 
 void
@@ -1736,6 +1737,44 @@ ObjectGroupCompartment::makeGroup(JSContext* cx, const Class* clasp,
         return nullptr;
     new(group) ObjectGroup(clasp, proto, cx->compartment(), initialFlags);
 
+    return group;
+}
+
+/* static */
+ObjectGroup*
+ObjectGroupCompartment::getStringSplitStringGroup(JSContext* cx)
+{
+    ObjectGroupCompartment& groups = cx->compartment()->objectGroups;
+
+    ObjectGroup* group = groups.stringSplitStringGroup.get();
+    if (group) {
+        return group;
+    }
+
+    // The following code is a specialized version of the code
+    // for ObjectGroup::allocationSiteGroup().
+
+    const Class* clasp = GetClassForProtoKey(JSProto_Array);
+
+    RootedObject proto(cx);
+    if (!GetBuiltinPrototype(cx, JSProto_Array, &proto))
+        return nullptr;
+    Rooted<TaggedProto> tagged(cx, TaggedProto(proto));
+
+    group = makeGroup(cx, clasp, tagged, /* initialFlags = */ 0);
+    if (!group)
+        return nullptr;
+
+    if (cx->options().unboxedArrays()) {
+        PreliminaryObjectArrayWithTemplate* preliminaryObjects =
+            cx->new_<PreliminaryObjectArrayWithTemplate>(nullptr);
+        if (preliminaryObjects)
+            group->setPreliminaryObjects(preliminaryObjects);
+        else
+            cx->recoverFromOutOfMemory();
+    }
+
+    groups.stringSplitStringGroup.set(group);
     return group;
 }
 
@@ -1820,6 +1859,11 @@ ObjectGroupCompartment::sweep(FreeOp* fop)
         arrayObjectTable->sweep();
     if (plainObjectTable)
         plainObjectTable->sweep();
+    if (stringSplitStringGroup) {
+        if (JS::GCPolicy<ReadBarrieredObjectGroup>::needsSweep(&stringSplitStringGroup)) {
+            stringSplitStringGroup = nullptr;
+        }
+    }
 }
 
 void
@@ -1863,8 +1907,8 @@ ObjectGroupCompartment::checkNewTableAfterMovingGC(NewTable* table)
     if (!table || !table->initialized())
         return;
 
-    for (NewTable::Enum e(*table); !e.empty(); e.popFront()) {
-        NewEntry entry = e.front();
+    for (auto r = table->all(); !r.empty(); r.popFront()) {
+        NewEntry entry = r.front();
         CheckGCThingAfterMovingGC(entry.group.unbarrieredGet());
         TaggedProto proto = entry.group.unbarrieredGet()->proto();
         if (proto.isObject())
@@ -1877,7 +1921,7 @@ ObjectGroupCompartment::checkNewTableAfterMovingGC(NewTable* table)
 
         NewEntry::Lookup lookup(clasp, proto, entry.associated);
         auto ptr = table->lookup(lookup);
-        MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &e.front());
+        MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &r.front());
     }
 }
 

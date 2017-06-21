@@ -35,8 +35,8 @@ def mach_parsed_kwargs(logger):
         'avd': None,
         'avd_home': None,
         'binary': u'/path/to/firefox',
-        'browsermob_port' : None,
-        'browsermob_script' : None,
+        'browsermob_port': None,
+        'browsermob_script': None,
         'device_serial': None,
         'e10s': True,
         'emulator': False,
@@ -63,7 +63,8 @@ def mach_parsed_kwargs(logger):
         'prefs_files': None,
         'profile': None,
         'pydebugger': None,
-        'repeat': 0,
+        'repeat': None,
+        'run_until_failure': None,
         'server_root': None,
         'shuffle': False,
         'shuffle_seed': 2276870381009474531,
@@ -92,9 +93,9 @@ def mock_httpd(request):
 @pytest.fixture
 def mock_marionette(request):
     """ Mock marionette instance """
-    marionette_class = MagicMock(spec=Marionette)
+    marionette = MagicMock(spec=Marionette())
     if 'has_crashed' in request.funcargnames:
-        marionette_class.check_for_crash.return_value = request.getfuncargvalue(
+        marionette.check_for_crash.return_value = request.getfuncargvalue(
             'has_crashed'
         )
-    return marionette_class
+    return marionette

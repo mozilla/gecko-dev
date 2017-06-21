@@ -56,9 +56,7 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::{Point2D, Vector2D, Rect, Size2D};
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::{Prefix, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
@@ -345,13 +343,13 @@ impl<'a> Iterator for QuerySelectorIterator {
     type Item = Root<Node>;
 
     fn next(&mut self) -> Option<Root<Node>> {
-        let selectors = &self.selectors.0;
-
-        // TODO(cgaebel): Is it worth it to build a bloom filter here
-        // (instead of passing `None`)? Probably.
-        let mut ctx = MatchingContext::new(MatchingMode::Normal, None);
+        let selectors = &self.selectors;
 
         self.iterator.by_ref().filter_map(|node| {
+            // TODO(cgaebel): Is it worth it to build a bloom filter here
+            // (instead of passing `None`)? Probably.
+            let mut ctx = MatchingContext::new(MatchingMode::Normal, None,
+                node.owner_doc().quirks_mode());
             if let Some(element) = Root::downcast(node) {
                 if matches_selector_list(selectors, &element, &mut ctx) {
                     return Some(Root::upcast(element));
@@ -612,7 +610,7 @@ impl Node {
         }
     }
 
-    pub fn scroll_offset(&self) -> Point2D<f32> {
+    pub fn scroll_offset(&self) -> Vector2D<f32> {
         let document = self.owner_doc();
         let window = document.window();
         window.scroll_offset_query(self)
@@ -633,7 +631,7 @@ impl Node {
         let viable_previous_sibling = first_node_not_in(self.preceding_siblings(), &nodes);
 
         // Step 4.
-        let node = try!(self.owner_doc().node_from_nodes_and_strings(nodes));
+        let node = self.owner_doc().node_from_nodes_and_strings(nodes)?;
 
         // Step 5.
         let viable_previous_sibling = match viable_previous_sibling {
@@ -642,7 +640,7 @@ impl Node {
         };
 
         // Step 6.
-        try!(Node::pre_insert(&node, &parent, viable_previous_sibling.r()));
+        Node::pre_insert(&node, &parent, viable_previous_sibling.r())?;
 
         Ok(())
     }
@@ -662,10 +660,10 @@ impl Node {
         let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
 
         // Step 4.
-        let node = try!(self.owner_doc().node_from_nodes_and_strings(nodes));
+        let node = self.owner_doc().node_from_nodes_and_strings(nodes)?;
 
         // Step 5.
-        try!(Node::pre_insert(&node, &parent, viable_next_sibling.r()));
+        Node::pre_insert(&node, &parent, viable_next_sibling.r())?;
 
         Ok(())
     }
@@ -682,13 +680,13 @@ impl Node {
         // Step 3.
         let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
         // Step 4.
-        let node = try!(self.owner_doc().node_from_nodes_and_strings(nodes));
+        let node = self.owner_doc().node_from_nodes_and_strings(nodes)?;
         if self.parent_node == Some(&*parent) {
             // Step 5.
-            try!(parent.ReplaceChild(&node, self));
+            parent.ReplaceChild(&node, self)?;
         } else {
             // Step 6.
-            try!(Node::pre_insert(&node, &parent, viable_next_sibling.r()));
+            Node::pre_insert(&node, &parent, viable_next_sibling.r())?;
         }
         Ok(())
     }
@@ -697,7 +695,7 @@ impl Node {
     pub fn prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
-        let node = try!(doc.node_from_nodes_and_strings(nodes));
+        let node = doc.node_from_nodes_and_strings(nodes)?;
         // Step 2.
         let first_child = self.first_child.get();
         Node::pre_insert(&node, self, first_child.r()).map(|_| ())
@@ -707,7 +705,7 @@ impl Node {
     pub fn append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
-        let node = try!(doc.node_from_nodes_and_strings(nodes));
+        let node = doc.node_from_nodes_and_strings(nodes)?;
         // Step 2.
         self.AppendChild(&node).map(|_| ())
     }
@@ -717,12 +715,13 @@ impl Node {
         // Step 1.
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             // Step 2.
-            Err(()) => Err(Error::Syntax),
+            Err(_) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
-                let mut ctx = MatchingContext::new(MatchingMode::Normal, None);
+                let mut ctx = MatchingContext::new(MatchingMode::Normal, None,
+                                                   self.owner_doc().quirks_mode());
                 Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
-                    matches_selector_list(&selectors.0, element, &mut ctx)
+                    matches_selector_list(&selectors, element, &mut ctx)
                 }))
             }
         }
@@ -737,7 +736,7 @@ impl Node {
         // Step 1.
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             // Step 2.
-            Err(()) => Err(Error::Syntax),
+            Err(_) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
                 let mut descendants = self.traverse_preorder();
@@ -752,7 +751,7 @@ impl Node {
     #[allow(unsafe_code)]
     pub fn query_selector_all(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
         let window = window_from_node(self);
-        let iter = try!(self.query_selector_iter(selectors));
+        let iter = self.query_selector_iter(selectors)?;
         Ok(NodeList::new_simple_list(&window, iter))
     }
 
@@ -853,7 +852,7 @@ impl Node {
         {
             let tr_node = tr.upcast::<Node>();
             if index == -1 {
-                try!(self.InsertBefore(tr_node, None));
+                self.InsertBefore(tr_node, None)?;
             } else {
                 let items = get_items();
                 let node = match items.elements_iter()
@@ -864,7 +863,7 @@ impl Node {
                     None => return Err(Error::IndexSize),
                     Some(node) => node,
                 };
-                try!(self.InsertBefore(tr_node, node.r()));
+                self.InsertBefore(tr_node, node.r())?;
             }
         }
 
@@ -1567,7 +1566,7 @@ impl Node {
     pub fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>)
                       -> Fallible<Root<Node>> {
         // Step 1.
-        try!(Node::ensure_pre_insertion_validity(node, parent, child));
+        Node::ensure_pre_insertion_validity(node, parent, child)?;
 
         // Steps 2-3.
         let reference_child_root;

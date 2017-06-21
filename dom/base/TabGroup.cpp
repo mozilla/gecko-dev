@@ -26,7 +26,10 @@ static StaticRefPtr<TabGroup> sChromeTabGroup;
 TabGroup::TabGroup(bool aIsChrome)
  : mLastWindowLeft(false)
  , mThrottledQueuesInitialized(false)
+ , mNumOfIndexedDBTransactions(0)
+ , mNumOfIndexedDBDatabases(0)
  , mIsChrome(aIsChrome)
+ , mForegroundCount(0)
 {
   CreateEventTargets(/* aNeedValidation = */ !aIsChrome);
 
@@ -65,7 +68,7 @@ TabGroup::EnsureThrottledEventQueues()
   for (size_t i = 0; i < size_t(TaskCategory::Count); i++) {
     TaskCategory category = static_cast<TaskCategory>(i);
     if (category == TaskCategory::Worker || category == TaskCategory::Timer) {
-      nsCOMPtr<nsIEventTarget> target = ThrottledEventQueue::Create(mEventTargets[i]);
+      nsCOMPtr<nsISerialEventTarget> target = ThrottledEventQueue::Create(mEventTargets[i]);
       if (target) {
         // This may return nullptr during xpcom shutdown.  This is ok as we
         // do not guarantee a ThrottledEventQueue will be present.
@@ -100,8 +103,7 @@ TabGroup::GetFromActor(TabChild* aTabChild)
 {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
-  ContentChild* cc = ContentChild::GetSingleton();
-  nsCOMPtr<nsIEventTarget> target = cc->GetActorEventTarget(aTabChild);
+  nsCOMPtr<nsIEventTarget> target = aTabChild->Manager()->GetEventTargetFor(aTabChild);
   if (!target) {
     return nullptr;
   }
@@ -160,6 +162,11 @@ TabGroup::Join(nsPIDOMWindowOuter* aWindow, TabGroup* aTabGroup)
   MOZ_RELEASE_ASSERT(!tabGroup->mLastWindowLeft);
   MOZ_ASSERT(!tabGroup->mWindows.Contains(aWindow));
   tabGroup->mWindows.AppendElement(aWindow);
+
+  if (!aWindow->IsBackground()) {
+    tabGroup->mForegroundCount++;
+  }
+
   return tabGroup.forget();
 }
 
@@ -169,6 +176,11 @@ TabGroup::Leave(nsPIDOMWindowOuter* aWindow)
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mWindows.Contains(aWindow));
   mWindows.RemoveElement(aWindow);
+
+  if (!aWindow->IsBackground()) {
+    MOZ_DIAGNOSTIC_ASSERT(mForegroundCount > 0);
+    mForegroundCount--;
+  }
 
   // The Chrome TabGroup doesn't have cyclical references through mEventTargets
   // to itself, meaning that we don't have to worry about nulling mEventTargets
@@ -240,7 +252,7 @@ TabGroup::HashEntry::HashEntry(const nsACString* aKey)
   : nsCStringHashKey(aKey), mDocGroup(nullptr)
 {}
 
-nsIEventTarget*
+nsISerialEventTarget*
 TabGroup::EventTargetFor(TaskCategory aCategory) const
 {
   if (aCategory == TaskCategory::Worker || aCategory == TaskCategory::Timer) {
@@ -263,17 +275,36 @@ TabGroup::AbstractMainThreadForImpl(TaskCategory aCategory)
   return SchedulerGroup::AbstractMainThreadForImpl(aCategory);
 }
 
+void
+TabGroup::WindowChangedBackgroundStatus(bool aIsNowBackground)
+{
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+
+  if (aIsNowBackground) {
+    MOZ_DIAGNOSTIC_ASSERT(mForegroundCount > 0);
+    mForegroundCount -= 1;
+  } else {
+    mForegroundCount += 1;
+  }
+}
+
 bool
 TabGroup::IsBackground() const
 {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
-  for (nsPIDOMWindowOuter* outerWindow : GetTopLevelWindows()) {
-    if (!outerWindow->IsBackground()) {
-      return false;
+#ifdef DEBUG
+  uint32_t foregrounded = 0;
+  for (auto& window : mWindows) {
+    if (!window->IsBackground()) {
+      foregrounded++;
     }
   }
-  return true;
+  MOZ_ASSERT(foregrounded == mForegroundCount);
+#endif
+
+  return mForegroundCount == 0;
 }
+
 } // namespace dom
 } // namespace mozilla

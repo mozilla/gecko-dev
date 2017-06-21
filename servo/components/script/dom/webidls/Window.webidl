@@ -15,6 +15,8 @@
 
   [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
   readonly attribute History history;
+  [Pref="dom.customelements.enabled"]
+  readonly attribute CustomElementRegistry customElements;
   //[Replaceable] readonly attribute BarProp locationbar;
   //[Replaceable] readonly attribute BarProp menubar;
   //[Replaceable] readonly attribute BarProp personalbar;
@@ -202,3 +204,7 @@ partial interface Window {
    //readonly attribute EventSender eventSender;
 };
 
+// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+partial interface Window {
+    [SameObject] readonly attribute Worklet paintWorklet;
+};

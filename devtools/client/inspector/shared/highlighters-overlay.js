@@ -277,7 +277,9 @@ HighlightersOverlay.prototype = {
 
     try {
       highlighter = yield utils.getHighlighterByType(type);
-    } catch (e) {}
+    } catch (e) {
+      // Ignore any error
+    }
 
     if (!highlighter) {
       return null;
@@ -329,7 +331,7 @@ HighlightersOverlay.prototype = {
     // whether the result is truthy before installing the handler.
     let onHidden = this.highlighters[this.hoveredHighlighterShown].hide();
     if (onHidden) {
-      onHidden.then(null, e => console.error(e));
+      onHidden.catch(e => console.error(e));
     }
 
     this.hoveredHighlighterShown = null;
@@ -382,9 +384,14 @@ HighlightersOverlay.prototype = {
     }
 
     event.stopPropagation();
-    this.toggleGridHighlighter(this.inspector.selection.nodeFront, {
-      color: DEFAULT_GRID_COLOR
-    });
+
+    let { store } = this.inspector;
+    let { grids, highlighterSettings } = store.getState();
+    let grid = grids.find(g => g.nodeFront == this.inspector.selection.nodeFront);
+
+    highlighterSettings.color = grid ? grid.color : DEFAULT_GRID_COLOR;
+
+    this.toggleGridHighlighter(this.inspector.selection.nodeFront, highlighterSettings);
   },
 
   onMouseMove: function (event) {

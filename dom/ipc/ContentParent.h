@@ -22,6 +22,7 @@
 #include "mozilla/UniquePtr.h"
 
 #include "nsDataHashtable.h"
+#include "nsPluginTags.h"
 #include "nsFrameMessageManager.h"
 #include "nsHashKeys.h"
 #include "nsIObserver.h"
@@ -178,6 +179,14 @@ public:
                              ContentParent* aOpener = nullptr);
 
   /**
+   * Get or create a content process for a JS plugin. aPluginID is the id of the JS plugin
+   * (@see nsFakePlugin::mId). There is a maximum of one process per JS plugin.
+   */
+  static already_AddRefed<ContentParent>
+  GetNewOrUsedJSPluginProcess(uint32_t aPluginID,
+                              const hal::ProcessPriority& aPriority);
+
+  /**
    * Get or create a content process for the given TabContext.  aFrameElement
    * should be the frame/iframe element with which this process will
    * associated.
@@ -289,17 +298,14 @@ public:
                                                  uint32_t* aRunID,
                                                  Endpoint<PPluginModuleParent>* aEndpoint) override;
 
+  virtual mozilla::ipc::IPCResult RecvMaybeReloadPlugins() override;
+
   virtual mozilla::ipc::IPCResult RecvConnectPluginBridge(const uint32_t& aPluginId,
                                                           nsresult* aRv,
                                                           Endpoint<PPluginModuleParent>* aEndpoint) override;
 
   virtual mozilla::ipc::IPCResult RecvGetBlocklistState(const uint32_t& aPluginId,
                                                         uint32_t* aIsBlocklisted) override;
-
-  virtual mozilla::ipc::IPCResult RecvFindPlugins(const uint32_t& aPluginEpoch,
-                                                  nsresult* aRv,
-                                                  nsTArray<PluginTag>* aPlugins,
-                                                  uint32_t* aNewPluginEpoch) override;
 
   virtual mozilla::ipc::IPCResult RecvUngrabPointer(const uint32_t& aTime) override;
 
@@ -360,6 +366,10 @@ public:
   virtual bool IsForBrowser() const override
   {
     return mIsForBrowser;
+  }
+  virtual bool IsForJSPlugin() const override
+  {
+    return mJSPluginID != nsFakePluginTag::NOT_JSPLUGIN;
   }
 
   GeckoChildProcessHost* Process() const
@@ -525,7 +535,6 @@ public:
                    const bool& aSizeSpecified,
                    const nsCString& aFeatures,
                    const nsCString& aBaseURI,
-                   const OriginAttributes& aOpenerOriginAttributes,
                    const float& aFullZoom,
                    nsresult* aResult,
                    bool* aWindowIsNew,
@@ -534,7 +543,8 @@ public:
                    layers::TextureFactoryIdentifier* aTextureFactoryIdentifier,
                    uint64_t* aLayersId,
                    mozilla::layers::CompositorOptions* aCompositorOptions,
-                   uint32_t* aMaxTouchPoints) override;
+                   uint32_t* aMaxTouchPoints,
+                   DimensionInfo* aDimensions) override;
 
   virtual mozilla::ipc::IPCResult RecvCreateWindowInDifferentProcess(
     PBrowserParent* aThisTab,
@@ -545,8 +555,8 @@ public:
     const URIParams& aURIToLoad,
     const nsCString& aFeatures,
     const nsCString& aBaseURI,
-    const OriginAttributes& aOpenerOriginAttributes,
-    const float& aFullZoom) override;
+    const float& aFullZoom,
+    const nsString& aName) override;
 
   static bool AllocateLayerTreeId(TabParent* aTabParent, uint64_t* aId);
 
@@ -667,6 +677,7 @@ private:
    */
   static nsClassHashtable<nsStringHashKey, nsTArray<ContentParent*>>* sBrowserContentParents;
   static nsTArray<ContentParent*>* sPrivateContent;
+  static nsDataHashtable<nsUint32HashKey, ContentParent*> *sJSPluginContentParents;
   static StaticAutoPtr<LinkedList<ContentParent> > sContentParents;
 
   static void JoinProcessesIOThread(const nsTArray<ContentParent*>* aProcesses,
@@ -701,17 +712,26 @@ private:
                      nsIURI* aURIToLoad,
                      const nsCString& aFeatures,
                      const nsCString& aBaseURI,
-                     const OriginAttributes& aOpenerOriginAttributes,
                      const float& aFullZoom,
                      uint64_t aNextTabParentId,
+                     const nsString& aName,
                      nsresult& aResult,
                      nsCOMPtr<nsITabParent>& aNewTabParent,
                      bool* aWindowIsNew);
 
   FORWARD_SHMEM_ALLOCATOR_TO(PContentParent)
 
+  explicit ContentParent(int32_t aPluginID)
+    : ContentParent(nullptr, EmptyString(), aPluginID)
+  {}
   ContentParent(ContentParent* aOpener,
-                const nsAString& aRemoteType);
+                const nsAString& aRemoteType)
+    : ContentParent(aOpener, aRemoteType, nsFakePluginTag::NOT_JSPLUGIN)
+  {}
+
+  ContentParent(ContentParent* aOpener,
+                const nsAString& aRemoteType,
+                int32_t aPluginID);
 
   // Launch the subprocess and associated initialization.
   // Returns false if the process fails to start.
@@ -730,6 +750,17 @@ private:
   // should be send from this function. This function should only be
   // called after the process has been transformed to browser.
   void ForwardKnownInfo();
+
+  /**
+   * We might want to reuse barely used content processes if certain criteria are met.
+   */
+  bool TryToRecycle();
+
+  /**
+   * Removing it from the static array so it won't be returned for new tabs in
+   * GetNewOrUsedBrowserProcess.
+   */
+  void RemoveFromList();
 
   /**
    * Decide whether the process should be kept alive even when it would normally
@@ -1030,6 +1061,8 @@ private:
 
   virtual mozilla::ipc::IPCResult RecvFirstIdle() override;
 
+  virtual mozilla::ipc::IPCResult RecvDeviceReset() override;
+
   virtual mozilla::ipc::IPCResult RecvKeywordToURI(const nsCString& aKeyword,
                                                    nsString* aProviderName,
                                                    OptionalIPCStream* aPostData,
@@ -1049,7 +1082,8 @@ private:
                                                           const TabId& aTabId,
                                                           uint64_t* aId) override;
 
-  virtual mozilla::ipc::IPCResult RecvDeallocateLayerTreeId(const uint64_t& aId) override;
+  virtual mozilla::ipc::IPCResult RecvDeallocateLayerTreeId(const ContentParentId& aCpId,
+                                                            const uint64_t& aId) override;
 
   virtual mozilla::ipc::IPCResult RecvGraphicsError(const nsCString& aError) override;
 
@@ -1152,6 +1186,8 @@ public:
                                const bool& aMinimizeMemoryUsage,
                                const MaybeFileDesc& aDMDFile) override;
 
+  bool CanCommunicateWith(ContentParentId aOtherProcess);
+
 private:
 
   // If you add strong pointers to cycle collected objects here, be sure to
@@ -1160,12 +1196,19 @@ private:
 
   GeckoChildProcessHost* mSubprocess;
   const TimeStamp mLaunchTS; // used to calculate time to start content process
+  TimeStamp mActivateTS;
   ContentParent* mOpener;
 
   nsString mRemoteType;
 
   ContentParentId mChildID;
   int32_t mGeolocationWatchID;
+
+  // This contains the id for the JS plugin (@see nsFakePluginTag) if this is the
+  // ContentParent for a process containing iframes for that JS plugin.
+  // If this is not a ContentParent for a JS plugin then it contains the value
+  // nsFakePluginTag::NOT_JSPLUGIN.
+  int32_t mJSPluginID;
 
   nsCString mKillHardAnnotation;
 

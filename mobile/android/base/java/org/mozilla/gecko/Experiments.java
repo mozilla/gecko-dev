@@ -65,9 +65,6 @@ public class Experiments {
     // Enable Activity stream by default for users in the "opt out" group.
     public static final String ACTIVITY_STREAM_OPT_OUT = "activity-stream-opt-out";
 
-    // User in this group will enable Custom Tabs
-    public static final String CUSTOM_TABS = "custom-tabs";
-
     // Tabs tray: Arrange tabs in two columns in portrait mode
     public static final String COMPACT_TABS = "compact-tabs";
 
@@ -76,6 +73,9 @@ public class Experiments {
 
     // Enable Leanplum SDK
     public static final String LEANPLUM = "leanplum-start";
+
+    // Enable processing of background telemetry.
+    public static final String ENABLE_PROCESSING_BACKGROUND_TELEMETRY = "process-background-telemetry";
 
     /**
      * Returns if a user is in certain local experiment.

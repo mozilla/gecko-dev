@@ -32,8 +32,8 @@ class CSSStyleSheet;
 class ServoRestyleManager;
 class ServoStyleSheet;
 struct Keyframe;
-struct ServoComputedValuesWithParent;
 class ServoElementSnapshotTable;
+class ServoStyleRuleMap;
 } // namespace mozilla
 class nsCSSCounterStyleRule;
 class nsIContent;
@@ -138,10 +138,14 @@ public:
     return StylistNeedsUpdate();
   }
 
+  bool MediumFeaturesChanged() const;
+
   void InvalidateStyleForCSSRuleChanges();
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
-  const RawServoStyleSet& RawSet() const { return *mRawSet; }
+  const RawServoStyleSet* RawSet() const {
+    return mRawSet.get();
+  }
 
   bool GetAuthorStyleDisabled() const;
   nsresult SetAuthorStyleDisabled(bool aStyleDisabled);
@@ -245,6 +249,13 @@ public:
   int32_t SheetCount(SheetType aType) const;
   ServoStyleSheet* StyleSheetAt(SheetType aType, int32_t aIndex) const;
 
+  template<typename Func>
+  void EnumerateStyleSheetArrays(Func aCallback) const {
+    for (const auto& sheetArray : mSheets) {
+      aCallback(sheetArray);
+    }
+  }
+
   nsresult RemoveDocStyleSheet(ServoStyleSheet* aSheet);
   nsresult AddDocStyleSheet(ServoStyleSheet* aSheet, nsIDocument* aDocument);
 
@@ -303,6 +314,14 @@ public:
   void StyleNewChildren(dom::Element* aParent);
 
   /**
+   * Eagerly styles the children of an element that has just had an XBL
+   * binding applied to it.  Some XBL consumers attach bindings to elements
+   * that have not been styled yet, and in such cases, this will do the
+   * equivalent of StyleNewSubtree instead.
+   */
+  void StyleNewlyBoundElement(dom::Element* aElement);
+
+  /**
    * Like StyleNewSubtree, but in response to a request to reconstruct frames
    * for the given subtree, and so works on elements that already have
    * styles.  This will leave the subtree in a state just like after an initial
@@ -330,6 +349,12 @@ public:
     }
   }
 
+  /**
+   * Checks whether the rule tree has crossed its threshold for unused nodes,
+   * and if so, frees them.
+   */
+  void MaybeGCRuleTree();
+
 #ifdef DEBUG
   void AssertTreeIsClean();
 #else
@@ -342,6 +367,11 @@ public:
    * rebuild, including a device reset.
    */
   void ClearDataAndMarkDeviceDirty();
+
+  /**
+   * Notifies the Servo stylesheet that the document's compatibility mode has changed.
+   */
+  void CompatibilityModeChanged();
 
   /**
    * Resolve style for the given element, and return it as a
@@ -357,8 +387,13 @@ public:
   nsTArray<ComputedKeyframeValues>
   GetComputedKeyframeValuesFor(const nsTArray<Keyframe>& aKeyframes,
                                dom::Element* aElement,
-                               const ServoComputedValuesWithParent&
-                                 aServoValues);
+                               ServoComputedValuesBorrowed aComputedValues);
+
+  void
+  GetAnimationValues(RawServoDeclarationBlock* aDeclarations,
+                     dom::Element* aElement,
+                     ServoComputedValuesBorrowed aComputedValues,
+                     nsTArray<RefPtr<RawServoAnimationValue>>& aAnimationValues);
 
   bool AppendFontFaceRules(nsTArray<nsFontFaceRuleContainer>& aArray);
 
@@ -378,8 +413,9 @@ public:
                          RawServoDeclarationBlockBorrowed aDeclarations);
 
   already_AddRefed<RawServoAnimationValue>
-  ComputeAnimationValue(RawServoDeclarationBlock* aDeclaration,
-                        const ServoComputedValuesWithParent& aComputedValues);
+  ComputeAnimationValue(dom::Element* aElement,
+                        RawServoDeclarationBlock* aDeclaration,
+                        ServoComputedValuesBorrowed aComputedValues);
 
   void AppendTask(PostTraversalTask aTask)
   {
@@ -403,6 +439,29 @@ public:
   void SetNeedsRestyleAfterEnsureUniqueInner() {
     mNeedsRestyleAfterEnsureUniqueInner = true;
   }
+
+  // Returns the style rule map.
+  ServoStyleRuleMap* StyleRuleMap();
+
+  /**
+   * Returns true if a modification to an an attribute with the specified
+   * local name might require us to restyle the element.
+   *
+   * This function allows us to skip taking a an attribute snapshot when
+   * the modified attribute doesn't appear in an attribute selector in
+   * a style sheet.
+   */
+  bool MightHaveAttributeDependency(nsIAtom* aAttribute);
+
+  /**
+   * Returns true if a change in event state on an element might require
+   * us to restyle the element.
+   *
+   * This function allows us to skip taking a state snapshot when
+   * the changed state isn't depended upon by any pseudo-class selectors
+   * in a style sheet.
+   */
+  bool HasStateDependency(EventStates aState);
 
 private:
   // On construction, sets sInServoTraversal to the given ServoStyleSet.
@@ -554,6 +613,10 @@ private:
   // These are similar to Servo's SequentialTasks, except that they are
   // posted by C++ code running on style worker threads.
   nsTArray<PostTraversalTask> mPostTraversalTasks;
+
+  // Map from raw Servo style rule to Gecko's wrapper object.
+  // Constructed lazily when requested by devtools.
+  RefPtr<ServoStyleRuleMap> mStyleRuleMap;
 
   static ServoStyleSet* sInServoTraversal;
 };

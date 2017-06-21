@@ -63,12 +63,12 @@ public:
   virtual nsresult StealFrame(nsIFrame* aChild) override;
 
   // nsIHTMLReflow overrides
-  virtual void AddInlineMinISize(nsRenderingContext *aRenderingContext,
+  virtual void AddInlineMinISize(gfxContext *aRenderingContext,
                                  InlineMinISizeData *aData) override;
-  virtual void AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+  virtual void AddInlinePrefISize(gfxContext *aRenderingContext,
                                   InlinePrefISizeData *aData) override;
   virtual mozilla::LogicalSize
-  ComputeSize(nsRenderingContext *aRenderingContext,
+  ComputeSize(gfxContext *aRenderingContext,
               mozilla::WritingMode aWritingMode,
               const mozilla::LogicalSize& aCBSize,
               nscoord aAvailableISize,
@@ -114,12 +114,12 @@ public:
              : (!GetNextInFlow());
   }
 
-  // Update the style on the block wrappers around our non-inline-outside kids.
+  // Restyles the block wrappers around our non-inline-outside kids.
   // This will only be called when such wrappers in fact exist.
-  virtual void DoUpdateStyleOfOwnedAnonBoxes(
-    mozilla::ServoStyleSet& aStyleSet,
-    nsStyleChangeList& aChangeList,
-    nsChangeHint aHintForThisFrame) override;
+  void UpdateStyleOfOwnedAnonBoxesForIBSplit(
+      mozilla::ServoStyleSet& aStyleSet,
+      nsStyleChangeList& aChangeList,
+      nsChangeHint aHintForThisFrame);
 
 protected:
   // Additional reflow state used during our reflow methods

@@ -55,9 +55,11 @@ public:
   }
 
   void AddPendingMarker(const char* aMarkerName,
-                        ProfilerMarkerPayload* aPayload, double aTime)
+                        mozilla::UniquePtr<ProfilerMarkerPayload> aPayload,
+                        double aTime)
   {
-    ProfilerMarker* marker = new ProfilerMarker(aMarkerName, aPayload, aTime);
+    ProfilerMarker* marker =
+      new ProfilerMarker(aMarkerName, Move(aPayload), aTime);
     mPendingMarkers.insert(marker);
   }
 
@@ -204,12 +206,13 @@ private:
 
 public:
   void StreamJSON(ProfileBuffer* aBuffer, SpliceableJSONWriter& aWriter,
-                  const mozilla::TimeStamp& aStartTime, double aSinceTime);
+                  const mozilla::TimeStamp& aProcessStartTime,
+                  double aSinceTime);
 
   // Call this method when the JS entries inside the buffer are about to
   // become invalid, i.e., just before JS shutdown.
   void FlushSamplesAndMarkers(ProfileBuffer* aBuffer,
-                              const mozilla::TimeStamp& aStartTime);
+                              const mozilla::TimeStamp& aProcessStartTime);
 
   // Returns nullptr if this is not the main thread or if this thread is not
   // being profiled.
@@ -357,8 +360,8 @@ private:
     INACTIVE_REQUESTED = 3,
   } mJSSampling;
 
-  // When sampling, this holds the generation number and offset in PS::mBuffer
-  // of the most recent sample for this thread.
+  // When sampling, this holds the generation number and offset in
+  // ActivePS::mBuffer of the most recent sample for this thread.
   ProfileBuffer::LastSample mLastSample;
 };
 
@@ -366,7 +369,7 @@ void
 StreamSamplesAndMarkers(const char* aName, int aThreadId,
                         ProfileBuffer* aBuffer,
                         SpliceableJSONWriter& aWriter,
-                        const mozilla::TimeStamp& aStartTime,
+                        const mozilla::TimeStamp& aProcessStartTime,
                         double aSinceTime,
                         JSContext* aContext,
                         char* aSavedStreamedSamples,

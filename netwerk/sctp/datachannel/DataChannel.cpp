@@ -68,6 +68,8 @@ namespace mozilla {
 LazyLogModule gDataChannelLog("DataChannel");
 static LazyLogModule gSCTPLog("SCTP");
 
+#define SCTP_LOG(args) MOZ_LOG(mozilla::gSCTPLog, mozilla::LogLevel::Debug, args)
+
 class DataChannelShutdown : public nsIObserver
 {
 public:
@@ -200,7 +202,7 @@ debug_printf(const char *format, ...)
 #else
     if (VsprintfLiteral(buffer, format, ap) > 0) {
 #endif
-      PR_LogPrint("%s", buffer);
+      SCTP_LOG(("%s", buffer));
     }
     va_end(ap);
   }
@@ -233,7 +235,8 @@ DataChannelConnection::~DataChannelConnection()
     ASSERT_WEBRTC(NS_IsMainThread());
     if (mTransportFlow) {
       ASSERT_WEBRTC(mSTS);
-      NS_ProxyRelease(mSTS, mTransportFlow.forget());
+      NS_ProxyRelease(
+        "DataChannelConnection::mTransportFlow", mSTS, mTransportFlow.forget());
     }
 
     if (mInternalIOThread) {
@@ -641,7 +644,7 @@ DataChannelConnection::SctpDtlsInput(TransportFlow *flow,
     char *buf;
 
     if ((buf = usrsctp_dumppacket((void *)data, len, SCTP_DUMP_INBOUND)) != nullptr) {
-      PR_LogPrint("%s", buf);
+      SCTP_LOG(("%s", buf));
       usrsctp_freedumpbuffer(buf);
     }
   }
@@ -671,7 +674,7 @@ DataChannelConnection::SctpDtlsOutput(void *addr, void *buffer, size_t length,
     char *buf;
 
     if ((buf = usrsctp_dumppacket(buffer, length, SCTP_DUMP_OUTBOUND)) != nullptr) {
-      PR_LogPrint("%s", buf);
+      SCTP_LOG(("%s", buf));
       usrsctp_freedumpbuffer(buf);
     }
   }
@@ -2395,8 +2398,6 @@ DataChannelConnection::ReadBlob(already_AddRefed<DataChannelConnection> aThis,
   // For now as a hack, send as a single blast of queued packets which may
   // be deferred until buffer space is available.
   uint64_t len;
-  nsCOMPtr<nsIThread> mainThread;
-  NS_GetMainThread(getter_AddRefs(mainThread));
 
   // Must not let Dispatching it cause the DataChannelConnection to get
   // released on the wrong thread.  Using WrapRunnable(RefPtr<DataChannelConnection>(aThis),...
@@ -2410,7 +2411,8 @@ DataChannelConnection::ReadBlob(already_AddRefed<DataChannelConnection> aThis,
     // Bug 966602:  Doesn't return an error to the caller via onerror.
     // We must release DataChannelConnection on MainThread to avoid issues (bug 876167)
     // aThis is now owned by the runnable; release it there
-    NS_ProxyRelease(mainThread, runnable.forget());
+    NS_ReleaseOnMainThread(
+      "DataChannelBlobSendRunnable", runnable.forget());
     return;
   }
   aBlob->Close();

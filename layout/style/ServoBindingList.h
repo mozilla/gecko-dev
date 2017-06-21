@@ -40,7 +40,8 @@ SERVO_BINDING_FUNC(Servo_StyleSheet_ClearAndUpdate,
                    mozilla::ServoStyleSheet* gecko_stylesheet,
                    const nsACString* data,
                    RawGeckoURLExtraData* extra_data,
-                   uint32_t line_number_offset)
+                   uint32_t line_number_offset,
+                   mozilla::css::LoaderReusableStyleSheets* reusable_sheets)
 SERVO_BINDING_FUNC(Servo_StyleSheet_HasRules, bool,
                    RawServoStyleSheetBorrowed sheet)
 SERVO_BINDING_FUNC(Servo_StyleSheet_GetRules, ServoCssRulesStrong,
@@ -54,7 +55,11 @@ SERVO_BINDING_FUNC(Servo_StyleSet_Clear, void,
                    RawServoStyleSetBorrowed set)
 SERVO_BINDING_FUNC(Servo_StyleSet_RebuildData, void,
                    RawServoStyleSetBorrowed set)
+SERVO_BINDING_FUNC(Servo_StyleSet_MediumFeaturesChanged, bool,
+                   RawServoStyleSetBorrowed set)
 SERVO_BINDING_FUNC(Servo_StyleSet_Drop, void, RawServoStyleSetOwned set)
+SERVO_BINDING_FUNC(Servo_StyleSet_CompatModeChanged, void,
+                   RawServoStyleSetBorrowed raw_data)
 SERVO_BINDING_FUNC(Servo_StyleSet_AppendStyleSheet, void,
                    RawServoStyleSetBorrowed set,
                    RawServoStyleSheetBorrowed sheet,
@@ -91,6 +96,12 @@ SERVO_BINDING_FUNC(Servo_StyleSet_ResolveForDeclarations,
                    RawServoStyleSetBorrowed set,
                    ServoComputedValuesBorrowedOrNull parent_style,
                    RawServoDeclarationBlockBorrowed declarations)
+SERVO_BINDING_FUNC(Servo_StyleSet_MightHaveAttributeDependency, bool,
+                   RawServoStyleSetBorrowed set,
+                   nsIAtom* local_name)
+SERVO_BINDING_FUNC(Servo_StyleSet_HasStateDependency, bool,
+                   RawServoStyleSetBorrowed set,
+                   uint64_t state)
 
 // CSSRuleList
 SERVO_BINDING_FUNC(Servo_CssRules_ListTypes, void,
@@ -144,6 +155,14 @@ SERVO_BINDING_FUNC(Servo_StyleRule_SetStyle, void,
                    RawServoDeclarationBlockBorrowed declarations)
 SERVO_BINDING_FUNC(Servo_StyleRule_GetSelectorText, void,
                    RawServoStyleRuleBorrowed rule, nsAString* result)
+SERVO_BINDING_FUNC(Servo_StyleRule_GetSelectorTextAtIndex, void,
+                   RawServoStyleRuleBorrowed rule, uint32_t index,
+                   nsAString* result)
+SERVO_BINDING_FUNC(Servo_StyleRule_GetSpecificityAtIndex, void,
+                   RawServoStyleRuleBorrowed rule, uint32_t index,
+                   uint64_t* specificity)
+SERVO_BINDING_FUNC(Servo_StyleRule_GetSelectorCount, void,
+                   RawServoStyleRuleBorrowed rule, uint32_t* count)
 SERVO_BINDING_FUNC(Servo_ImportRule_GetHref, void,
                    RawServoImportRuleBorrowed rule, nsAString* result)
 SERVO_BINDING_FUNC(Servo_ImportRule_GetSheet, const RawServoStyleSheet*,
@@ -205,19 +224,17 @@ SERVO_BINDING_FUNC(Servo_ParseEasing, bool,
                    nsTimingFunctionBorrowedMut output)
 SERVO_BINDING_FUNC(Servo_GetComputedKeyframeValues, void,
                    RawGeckoKeyframeListBorrowed keyframes,
+                   RawGeckoElementBorrowed element,
                    ServoComputedValuesBorrowed style,
-                   ServoComputedValuesBorrowedOrNull parent_style,
                    RawServoStyleSetBorrowed set,
                    RawGeckoComputedKeyframeValuesListBorrowedMut result)
-SERVO_BINDING_FUNC(Servo_AnimationValueMap_Push, void,
-                   RawServoAnimationValueMapBorrowedMut,
-                   nsCSSPropertyID property,
-                   RawServoAnimationValueBorrowed value)
 SERVO_BINDING_FUNC(Servo_ComputedValues_ExtractAnimationValue,
                    RawServoAnimationValueStrong,
                    ServoComputedValuesBorrowed computed_values,
                    nsCSSPropertyID property)
 SERVO_BINDING_FUNC(Servo_Property_IsAnimatable, bool,
+                   nsCSSPropertyID property)
+SERVO_BINDING_FUNC(Servo_Property_IsTransitionable, bool,
                    nsCSSPropertyID property)
 SERVO_BINDING_FUNC(Servo_Property_IsDiscreteAnimatable, bool,
                    nsCSSPropertyID property)
@@ -225,6 +242,19 @@ SERVO_BINDING_FUNC(Servo_GetProperties_Overriding_Animation, void,
                    RawGeckoElementBorrowed,
                    RawGeckoCSSPropertyIDListBorrowed,
                    nsCSSPropertyIDSetBorrowedMut)
+SERVO_BINDING_FUNC(Servo_MatrixTransform_Operate, void,
+                   nsStyleTransformMatrix::MatrixTransformOperator
+                     matrix_operator,
+                   const RawGeckoGfxMatrix4x4* from,
+                   const RawGeckoGfxMatrix4x4* to,
+                   double progress,
+                   RawGeckoGfxMatrix4x4* result)
+SERVO_BINDING_FUNC(Servo_GetAnimationValues, void,
+                   RawServoDeclarationBlockBorrowed declarations,
+                   RawGeckoElementBorrowed element,
+                   ServoComputedValuesBorrowed style,
+                   RawServoStyleSetBorrowed style_set,
+                   RawGeckoServoAnimationValueListBorrowedMut animation_values)
 
 // AnimationValues handling
 SERVO_BINDING_FUNC(Servo_AnimationValues_Interpolate,
@@ -235,12 +265,28 @@ SERVO_BINDING_FUNC(Servo_AnimationValues_Interpolate,
 SERVO_BINDING_FUNC(Servo_AnimationValues_IsInterpolable, bool,
                    RawServoAnimationValueBorrowed from,
                    RawServoAnimationValueBorrowed to)
+SERVO_BINDING_FUNC(Servo_AnimationValues_Add,
+                   RawServoAnimationValueStrong,
+                   RawServoAnimationValueBorrowed a,
+                   RawServoAnimationValueBorrowed b)
+SERVO_BINDING_FUNC(Servo_AnimationValues_Accumulate,
+                   RawServoAnimationValueStrong,
+                   RawServoAnimationValueBorrowed a,
+                   RawServoAnimationValueBorrowed b,
+                   uint64_t count)
+SERVO_BINDING_FUNC(Servo_AnimationValues_GetZeroValue,
+                   RawServoAnimationValueStrong,
+                   RawServoAnimationValueBorrowed value_to_match)
 SERVO_BINDING_FUNC(Servo_AnimationValues_ComputeDistance, double,
                    RawServoAnimationValueBorrowed from,
                    RawServoAnimationValueBorrowed to)
 SERVO_BINDING_FUNC(Servo_AnimationValue_Serialize, void,
                    RawServoAnimationValueBorrowed value,
                    nsCSSPropertyID property,
+                   nsAString* buffer)
+SERVO_BINDING_FUNC(Servo_Shorthand_AnimationValues_Serialize, void,
+                   nsCSSPropertyID shorthand_property,
+                   RawGeckoServoAnimationValueListBorrowed values,
                    nsAString* buffer)
 SERVO_BINDING_FUNC(Servo_AnimationValue_GetOpacity, float,
                    RawServoAnimationValueBorrowed value)
@@ -255,9 +301,9 @@ SERVO_BINDING_FUNC(Servo_AnimationValue_Uncompute,
                    RawServoAnimationValueBorrowed value)
 SERVO_BINDING_FUNC(Servo_AnimationValue_Compute,
                    RawServoAnimationValueStrong,
+                   RawGeckoElementBorrowed element,
                    RawServoDeclarationBlockBorrowed declarations,
                    ServoComputedValuesBorrowed style,
-                   ServoComputedValuesBorrowedOrNull parent_style,
                    RawServoStyleSetBorrowed raw_data)
 
 // Style attribute
@@ -477,6 +523,10 @@ SERVO_BINDING_FUNC(Servo_TraverseSubtree,
 
 // Assert that the tree has no pending or unconsumed restyles.
 SERVO_BINDING_FUNC(Servo_AssertTreeIsClean, void, RawGeckoElementBorrowed root)
+
+// Checks whether the rule tree has crossed its threshold for unused rule nodes,
+// and if so, frees them.
+SERVO_BINDING_FUNC(Servo_MaybeGCRuleTree, void, RawServoStyleSetBorrowed set)
 
 // Returns computed values for the given element without any animations rules.
 SERVO_BINDING_FUNC(Servo_StyleSet_GetBaseComputedValuesForElement,
