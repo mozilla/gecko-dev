@@ -161,9 +161,9 @@ CopyScopeData(ExclusiveContext* cx, Handle<typename ConcreteScope::Data*> data)
 }
 
 template <typename ConcreteScope>
-static UniquePtr<typename ConcreteScope::Data>
-CopyScopeData(ExclusiveContext* cx, BindingIter& bi, Handle<typename ConcreteScope::Data*> data,
-              const Class* cls, uint32_t baseShapeFlags, MutableHandleShape envShape)
+static bool
+PrepareScopeData(ExclusiveContext* cx, BindingIter& bi, Handle<UniquePtr<typename ConcreteScope::Data>> data,
+                 const Class* cls, uint32_t baseShapeFlags, MutableHandleShape envShape)
 {
     // Copy a fresh BindingIter for use below.
     BindingIter freshBi(bi);
@@ -181,10 +181,10 @@ CopyScopeData(ExclusiveContext* cx, BindingIter& bi, Handle<typename ConcreteSco
         envShape.set(CreateEnvironmentShape(cx, freshBi, cls, bi.nextEnvironmentSlot(),
                                             baseShapeFlags));
         if (!envShape)
-            return nullptr;
+            return false;
     }
 
-    return CopyScopeData<ConcreteScope>(cx, data);
+    return true;
 }
 
 template <typename ConcreteScope>
@@ -495,26 +495,36 @@ LexicalScope::nextFrameSlot(Scope* scope)
 LexicalScope::create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> data,
                      uint32_t firstFrameSlot, HandleScope enclosing)
 {
+    MOZ_ASSERT(data, "LexicalScopes should not be created if there are no bindings.");
+
+    // The data that's passed in is be from the frontend and is LifoAlloc'd.
+    // Copy it now that we're creating a permanent VM scope.
+    Rooted<UniquePtr<Data>> copy(cx, CopyScopeData<LexicalScope>(cx, data));
+    if (!copy)
+        return nullptr;
+
+    return createWithData(cx, kind, &copy, firstFrameSlot, enclosing);
+}
+
+/* static */ LexicalScope*
+LexicalScope::createWithData(ExclusiveContext* cx, ScopeKind kind, MutableHandle<UniquePtr<Data>> data,
+                             uint32_t firstFrameSlot, HandleScope enclosing)
+{
     bool isNamedLambda = kind == ScopeKind::NamedLambda || kind == ScopeKind::StrictNamedLambda;
 
-    MOZ_ASSERT(data, "LexicalScopes should not be created if there are no bindings.");
     MOZ_ASSERT_IF(!isNamedLambda && firstFrameSlot != 0,
                   firstFrameSlot == nextFrameSlot(enclosing));
     MOZ_ASSERT_IF(isNamedLambda, firstFrameSlot == LOCALNO_LIMIT);
 
-    // The data that's passed in may be from the frontend and LifoAlloc'd.
-    // Copy it now that we're creating a permanent VM scope.
     RootedShape envShape(cx);
     BindingIter bi(*data, firstFrameSlot, isNamedLambda);
-    Rooted<UniquePtr<Data>> copy(cx,
-        CopyScopeData<LexicalScope>(cx, bi, data,
-                                    &LexicalEnvironmentObject::class_,
-                                    BaseShape::NOT_EXTENSIBLE | BaseShape::DELEGATE,
-                                    &envShape));
-    if (!copy)
+    if (!PrepareScopeData<LexicalScope>(cx, bi, data, &LexicalEnvironmentObject::class_,
+                                        BaseShape::NOT_EXTENSIBLE | BaseShape::DELEGATE, &envShape))
+    {
         return nullptr;
+    }
 
-    Scope* scope = Scope::create(cx, kind, enclosing, envShape, Move(copy.get()));
+    Scope* scope = Scope::create(cx, kind, enclosing, envShape, Move(data.get()));
     if (!scope)
         return nullptr;
     MOZ_ASSERT(scope->as<LexicalScope>().firstFrameSlot() == firstFrameSlot);
@@ -540,10 +550,9 @@ LexicalScope::XDR(XDRState<mode>* xdr, ScopeKind kind, HandleScope enclosing,
         return false;
 
     {
-        auto deleteOnLeave = MakeScopeExit([&data]() {
-            if (mode == XDR_DECODE)
-                DeleteScopeData(data.get());
-        });
+        Maybe<Rooted<UniquePtr<Data>>> uniqueData;
+        if (mode == XDR_DECODE)
+            uniqueData.emplace(cx, data);
 
         uint32_t firstFrameSlot;
         uint32_t nextFrameSlot;
@@ -560,7 +569,7 @@ LexicalScope::XDR(XDRState<mode>* xdr, ScopeKind kind, HandleScope enclosing,
             return false;
 
         if (mode == XDR_DECODE) {
-            scope.set(create(cx, kind, data, firstFrameSlot, enclosing));
+            scope.set(createWithData(cx, kind, &uniqueData.ref(), firstFrameSlot, enclosing));
             if (!scope)
                 return false;
 
@@ -590,41 +599,46 @@ FunctionScopeEnvShapeFlags(bool hasParameterExprs)
     return BaseShape::QUALIFIED_VAROBJ | BaseShape::DELEGATE;
 }
 
-/* static */ UniquePtr<FunctionScope::Data>
-FunctionScope::copyData(ExclusiveContext* cx, Handle<Data*> data,
-                        bool hasParameterExprs, MutableHandleShape envShape)
-{
-    if (data) {
-        BindingIter bi(*data, hasParameterExprs);
-        uint32_t shapeFlags = FunctionScopeEnvShapeFlags(hasParameterExprs);
-        return CopyScopeData<FunctionScope>(cx, bi, data,
-                                            &CallObject::class_,
-                                            shapeFlags, envShape);
-    }
-    return NewEmptyScopeData<FunctionScope>(cx);
-}
-
 /* static */ FunctionScope*
-FunctionScope::create(ExclusiveContext* cx, Handle<Data*> data,
+FunctionScope::create(ExclusiveContext* cx, Handle<Data*> dataArg,
                       bool hasParameterExprs, bool needsEnvironment,
                       HandleFunction fun, HandleScope enclosing)
 {
+    // The data that's passed in is be from the frontend and is LifoAlloc'd.
+    // Copy it now that we're creating a permanent VM scope.
+    Rooted<UniquePtr<Data>> data(cx, dataArg ? CopyScopeData<FunctionScope>(cx, dataArg)
+                                             : NewEmptyScopeData<FunctionScope>(cx));
+    if (!data)
+        return nullptr;
+
+    return createWithData(cx, &data, hasParameterExprs, needsEnvironment, fun, enclosing);
+}
+
+/* static */ FunctionScope*
+FunctionScope::createWithData(ExclusiveContext* cx, MutableHandle<UniquePtr<Data>> data,
+                              bool hasParameterExprs, bool needsEnvironment,
+                              HandleFunction fun, HandleScope enclosing)
+{
+    MOZ_ASSERT(data);
     MOZ_ASSERT(fun->isTenured());
 
     // FunctionScope::Data has GCManagedDeletePolicy because it contains a
-    // GCPtr. Destruction of |copy| below may trigger calls into the GC.
+    // GCPtr. Destruction of |data| below may trigger calls into the GC.
     Rooted<FunctionScope*> funScope(cx);
 
     {
-        // The data that's passed in may be from the frontend and LifoAlloc'd.
-        // Copy it now that we're creating a permanent VM scope.
         RootedShape envShape(cx);
-        Rooted<UniquePtr<Data>> copy(cx, copyData(cx, data, hasParameterExprs, &envShape));
-        if (!copy)
-            return nullptr;
 
-        copy->hasParameterExprs = hasParameterExprs;
-        copy->canonicalFunction.init(fun);
+        BindingIter bi(*data, hasParameterExprs);
+        uint32_t shapeFlags = FunctionScopeEnvShapeFlags(hasParameterExprs);
+        if (!PrepareScopeData<FunctionScope>(cx, bi, data, &CallObject::class_, shapeFlags,
+                                             &envShape))
+        {
+            return nullptr;
+        }
+
+        data->hasParameterExprs = hasParameterExprs;
+        data->canonicalFunction.init(fun);
 
         // An environment may be needed regardless of existence of any closed over
         // bindings:
@@ -643,7 +657,7 @@ FunctionScope::create(ExclusiveContext* cx, Handle<Data*> data,
             return nullptr;
 
         funScope = &scope->as<FunctionScope>();
-        funScope->initData(Move(copy.get()));
+        funScope->initData(Move(data.get()));
     }
 
     return funScope;
@@ -710,10 +724,9 @@ FunctionScope::XDR(XDRState<mode>* xdr, HandleFunction fun, HandleScope enclosin
         return false;
 
     {
-        auto deleteOnLeave = MakeScopeExit([&data]() {
-            if (mode == XDR_DECODE)
-                DeleteScopeData(data.get());
-        });
+        Maybe<Rooted<UniquePtr<Data>>> uniqueData;
+        if (mode == XDR_DECODE)
+            uniqueData.emplace(cx, data);
 
         uint8_t needsEnvironment;
         uint8_t hasParameterExprs;
@@ -739,11 +752,10 @@ FunctionScope::XDR(XDRState<mode>* xdr, HandleFunction fun, HandleScope enclosin
                 MOZ_ASSERT(!data->nonPositionalFormalStart);
                 MOZ_ASSERT(!data->varStart);
                 MOZ_ASSERT(!data->nextFrameSlot);
-                DeleteScopeData(data.get());
-                data = nullptr;
             }
 
-            scope.set(create(cx, data, hasParameterExprs, needsEnvironment, fun, enclosing));
+            scope.set(createWithData(cx, &uniqueData.ref(), hasParameterExprs, needsEnvironment, fun,
+                                     enclosing));
             if (!scope)
                 return false;
 
@@ -768,33 +780,43 @@ FunctionScope::XDR(XDRState<XDR_DECODE>* xdr, HandleFunction fun, HandleScope en
 static const uint32_t VarScopeEnvShapeFlags =
     BaseShape::QUALIFIED_VAROBJ | BaseShape::DELEGATE;
 
-/* static */ UniquePtr<VarScope::Data>
-VarScope::copyData(ExclusiveContext* cx, Handle<Data*> data, uint32_t firstFrameSlot,
-                   MutableHandleShape envShape)
+static UniquePtr<VarScope::Data>
+NewEmptyVarScopeData(ExclusiveContext* cx, uint32_t firstFrameSlot)
 {
-    if (data) {
-        BindingIter bi(*data, firstFrameSlot);
-        return CopyScopeData<VarScope>(cx, bi, data,
-                                       &VarEnvironmentObject::class_,
-                                       VarScopeEnvShapeFlags, envShape);
-    }
+    UniquePtr<VarScope::Data> data(NewEmptyScopeData<VarScope>(cx));
+    if (data)
+        data->nextFrameSlot = firstFrameSlot;
 
-    UniquePtr<Data> empty = NewEmptyScopeData<VarScope>(cx);
-    if (empty)
-        empty->nextFrameSlot = firstFrameSlot;
-    return empty;
+    return data;
 }
 
 /* static */ VarScope*
-VarScope::create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> data,
+VarScope::create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> dataArg,
                  uint32_t firstFrameSlot, bool needsEnvironment, HandleScope enclosing)
 {
-    // The data that's passed in may be from the frontend and LifoAlloc'd.
+    // The data that's passed in is be from the frontend and is LifoAlloc'd.
     // Copy it now that we're creating a permanent VM scope.
-    RootedShape envShape(cx);
-    Rooted<UniquePtr<Data>> copy(cx, copyData(cx, data, firstFrameSlot, &envShape));
-    if (!copy)
+    Rooted<UniquePtr<Data>> data(cx, dataArg ? CopyScopeData<VarScope>(cx, dataArg)
+                                             : NewEmptyVarScopeData(cx, firstFrameSlot));
+    if (!data)
         return nullptr;
+
+    return createWithData(cx, kind, &data, firstFrameSlot, needsEnvironment, enclosing);
+}
+
+/* static */ VarScope*
+VarScope::createWithData(ExclusiveContext* cx, ScopeKind kind, MutableHandle<UniquePtr<Data>> data,
+                         uint32_t firstFrameSlot, bool needsEnvironment, HandleScope enclosing)
+{
+    MOZ_ASSERT(data);
+
+    RootedShape envShape(cx);
+    BindingIter bi(*data, firstFrameSlot);
+    if (!PrepareScopeData<VarScope>(cx, bi, data, &VarEnvironmentObject::class_, VarScopeEnvShapeFlags,
+                                    &envShape))
+    {
+        return nullptr;
+    }
 
     // An environment may be needed regardless of existence of any closed over
     // bindings:
@@ -806,7 +828,7 @@ VarScope::create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> data,
             return nullptr;
     }
 
-    Scope* scope = Scope::create(cx, kind, enclosing, envShape, Move(copy.get()));
+    Scope* scope = Scope::create(cx, kind, enclosing, envShape, Move(data.get()));
     if (!scope)
         return nullptr;
     return &scope->as<VarScope>();
@@ -838,10 +860,9 @@ VarScope::XDR(XDRState<mode>* xdr, ScopeKind kind, HandleScope enclosing,
         return false;
 
     {
-        auto deleteOnLeave = MakeScopeExit([&data]() {
-            if (mode == XDR_DECODE)
-                DeleteScopeData(data.get());
-        });
+        Maybe<Rooted<UniquePtr<Data>>> uniqueData;
+        if (mode == XDR_DECODE)
+            uniqueData.emplace(cx, data);
 
         uint8_t needsEnvironment;
         uint32_t firstFrameSlot;
@@ -861,11 +882,10 @@ VarScope::XDR(XDRState<mode>* xdr, ScopeKind kind, HandleScope enclosing,
         if (mode == XDR_DECODE) {
             if (!data->length) {
                 MOZ_ASSERT(!data->nextFrameSlot);
-                DeleteScopeData(data.get());
-                data = nullptr;
             }
 
-            scope.set(create(cx, kind, data, firstFrameSlot, needsEnvironment, enclosing));
+            scope.set(createWithData(cx, kind, &uniqueData.ref(), firstFrameSlot, needsEnvironment,
+                                     enclosing));
             if (!scope)
                 return false;
 
@@ -887,29 +907,29 @@ template
 VarScope::XDR(XDRState<XDR_DECODE>* xdr, ScopeKind kind, HandleScope enclosing,
               MutableHandleScope scope);
 
-/* static */ UniquePtr<GlobalScope::Data>
-GlobalScope::copyData(ExclusiveContext *cx, Handle<Data*> data)
+/* static */ GlobalScope*
+GlobalScope::create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> dataArg)
 {
-    if (data) {
-        // The global scope has no environment shape. Its environment is the
-        // global lexical scope and the global object or non-syntactic objects
-        // created by embedding, all of which are not only extensible but may
-        // have names on them deleted.
-        return CopyScopeData<GlobalScope>(cx, data);
-    }
-    return NewEmptyScopeData<GlobalScope>(cx);
+    // The data that's passed in is be from the frontend and is LifoAlloc'd.
+    // Copy it now that we're creating a permanent VM scope.
+    Rooted<UniquePtr<Data>> data(cx, dataArg ? CopyScopeData<GlobalScope>(cx, dataArg)
+                                             : NewEmptyScopeData<GlobalScope>(cx));
+    if (!data)
+        return nullptr;
+
+    return createWithData(cx, kind, &data);
 }
 
 /* static */ GlobalScope*
-GlobalScope::create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> data)
+GlobalScope::createWithData(ExclusiveContext* cx, ScopeKind kind, MutableHandle<UniquePtr<Data>> data)
 {
-    // The data that's passed in may be from the frontend and LifoAlloc'd.
-    // Copy it now that we're creating a permanent VM scope.
-    Rooted<UniquePtr<Data>> copy(cx, copyData(cx, data));
-    if (!copy)
-        return nullptr;
+    MOZ_ASSERT(data);
 
-    Scope* scope = Scope::create(cx, kind, nullptr, nullptr, Move(copy.get()));
+    // The global scope has no environment shape. Its environment is the
+    // global lexical scope and the global object or non-syntactic objects
+    // created by embedding, all of which are not only extensible but may
+    // have names on them deleted.
+    Scope* scope = Scope::create(cx, kind, nullptr, nullptr, Move(data.get()));
     if (!scope)
         return nullptr;
     return &scope->as<GlobalScope>();
@@ -941,10 +961,9 @@ GlobalScope::XDR(XDRState<mode>* xdr, ScopeKind kind, MutableHandleScope scope)
         return false;
 
     {
-        auto deleteOnLeave = MakeScopeExit([&data]() {
-            if (mode == XDR_DECODE)
-                DeleteScopeData(data.get());
-        });
+        Maybe<Rooted<UniquePtr<Data>>> uniqueData;
+        if (mode == XDR_DECODE)
+            uniqueData.emplace(cx, data);
 
         if (!xdr->codeUint32(&data->letStart))
             return false;
@@ -955,11 +974,9 @@ GlobalScope::XDR(XDRState<mode>* xdr, ScopeKind kind, MutableHandleScope scope)
             if (!data->length) {
                 MOZ_ASSERT(!data->letStart);
                 MOZ_ASSERT(!data->constStart);
-                DeleteScopeData(data.get());
-                data = nullptr;
             }
 
-            scope.set(create(cx, kind, data));
+            scope.set(createWithData(cx, kind, &uniqueData.ref()));
             if (!scope)
                 return false;
         }
@@ -986,32 +1003,35 @@ WithScope::create(ExclusiveContext* cx, HandleScope enclosing)
 static const uint32_t EvalScopeEnvShapeFlags =
     BaseShape::QUALIFIED_VAROBJ | BaseShape::DELEGATE;
 
-/* static */ UniquePtr<EvalScope::Data>
-EvalScope::copyData(ExclusiveContext* cx, ScopeKind scopeKind, Handle<Data*> data,
-                    MutableHandleShape envShape)
+/* static */ EvalScope*
+EvalScope::create(ExclusiveContext* cx, ScopeKind scopeKind, Handle<Data*> dataArg,
+                  HandleScope enclosing)
 {
-    if (data) {
-        if (scopeKind == ScopeKind::StrictEval) {
-            BindingIter bi(*data, true);
-            return CopyScopeData<EvalScope>(cx, bi, data,
-                                            &VarEnvironmentObject::class_,
-                                            EvalScopeEnvShapeFlags, envShape);
-        }
-        return CopyScopeData<EvalScope>(cx, data);
-    }
-    return NewEmptyScopeData<EvalScope>(cx);
+    // The data that's passed in is be from the frontend and is LifoAlloc'd.
+    // Copy it now that we're creating a permanent VM scope.
+    Rooted<UniquePtr<Data>> data(cx, dataArg ? CopyScopeData<EvalScope>(cx, dataArg)
+                                             : NewEmptyScopeData<EvalScope>(cx));
+    if (!data)
+        return nullptr;
+
+    return createWithData(cx, scopeKind, &data, enclosing);
 }
 
 /* static */ EvalScope*
-EvalScope::create(ExclusiveContext* cx, ScopeKind scopeKind, Handle<Data*> data,
-                  HandleScope enclosing)
+EvalScope::createWithData(ExclusiveContext* cx, ScopeKind scopeKind, MutableHandle<UniquePtr<Data>> data,
+                          HandleScope enclosing)
 {
-    // The data that's passed in may be from the frontend and LifoAlloc'd.
-    // Copy it now that we're creating a permanent VM scope.
+    MOZ_ASSERT(data);
+
     RootedShape envShape(cx);
-    Rooted<UniquePtr<Data>> copy(cx, copyData(cx, scopeKind, data, &envShape));
-    if (!copy)
-        return nullptr;
+    if (scopeKind == ScopeKind::StrictEval) {
+        BindingIter bi(*data, true);
+        if (!PrepareScopeData<EvalScope>(cx, bi, data, &VarEnvironmentObject::class_,
+                                         EvalScopeEnvShapeFlags, &envShape))
+        {
+            return nullptr;
+        }
+    }
 
     // Strict eval and direct eval in parameter expressions always get their own
     // var environment even if there are no bindings.
@@ -1021,7 +1041,7 @@ EvalScope::create(ExclusiveContext* cx, ScopeKind scopeKind, Handle<Data*> data,
             return nullptr;
     }
 
-    Scope* scope = Scope::create(cx, scopeKind, enclosing, envShape, Move(copy.get()));
+    Scope* scope = Scope::create(cx, scopeKind, enclosing, envShape, Move(data.get()));
     if (!scope)
         return nullptr;
     return &scope->as<EvalScope>();
@@ -1061,22 +1081,18 @@ EvalScope::XDR(XDRState<mode>* xdr, ScopeKind kind, HandleScope enclosing,
     Rooted<Data*> data(cx);
 
     {
-        auto deleteOnLeave = MakeScopeExit([&data]() {
-            if (mode == XDR_DECODE)
-                DeleteScopeData(data.get());
-        });
+        Maybe<Rooted<UniquePtr<Data>>> uniqueData;
+        if (mode == XDR_DECODE)
+            uniqueData.emplace(cx, data);
 
         if (!XDRSizedBindingNames<EvalScope>(xdr, scope.as<EvalScope>(), &data))
             return false;
 
         if (mode == XDR_DECODE) {
-            if (!data->length) {
+            if (!data->length)
                 MOZ_ASSERT(!data->nextFrameSlot);
-                DeleteScopeData(data.get());
-                data = nullptr;
-            }
 
-            scope.set(create(cx, kind, data, enclosing));
+            scope.set(createWithData(cx, kind, &uniqueData.ref(), enclosing));
             if (!scope)
                 return false;
         }
@@ -1098,22 +1114,23 @@ EvalScope::XDR(XDRState<XDR_DECODE>* xdr, ScopeKind kind, HandleScope enclosing,
 static const uint32_t ModuleScopeEnvShapeFlags =
     BaseShape::NOT_EXTENSIBLE | BaseShape::QUALIFIED_VAROBJ | BaseShape::DELEGATE;
 
-/* static */ UniquePtr<ModuleScope::Data>
-ModuleScope::copyData(ExclusiveContext* cx, Handle<Data*> data, MutableHandleShape envShape)
+/* static */ ModuleScope*
+ModuleScope::create(ExclusiveContext* cx, Handle<Data*> dataArg,
+                    HandleModuleObject module, HandleScope enclosing)
 {
-    if (data) {
-        BindingIter bi(*data);
-        return CopyScopeData<ModuleScope>(cx, bi, data,
-                                          &ModuleEnvironmentObject::class_,
-                                          ModuleScopeEnvShapeFlags, envShape);
-    }
-    return NewEmptyScopeData<ModuleScope>(cx);
+    Rooted<UniquePtr<Data>> data(cx, dataArg ? CopyScopeData<ModuleScope>(cx, dataArg)
+                                             : NewEmptyScopeData<ModuleScope>(cx));
+    if (!data)
+        return nullptr;
+
+    return createWithData(cx, &data, module, enclosing);
 }
 
 /* static */ ModuleScope*
-ModuleScope::create(ExclusiveContext* cx, Handle<Data*> data,
-                    HandleModuleObject module, HandleScope enclosing)
+ModuleScope::createWithData(ExclusiveContext* cx, MutableHandle<UniquePtr<Data>> data,
+                            HandleModuleObject module, HandleScope enclosing)
 {
+    MOZ_ASSERT(data);
     MOZ_ASSERT(enclosing->is<GlobalScope>());
 
     // ModuleScope::Data has GCManagedDeletePolicy because it contains a
@@ -1121,12 +1138,15 @@ ModuleScope::create(ExclusiveContext* cx, Handle<Data*> data,
     Rooted<ModuleScope*> moduleScope(cx);
 
     {
-        // The data that's passed in may be from the frontend and LifoAlloc'd.
+        // The data that's passed in is be from the frontend and is LifoAlloc'd.
         // Copy it now that we're creating a permanent VM scope.
         RootedShape envShape(cx);
-        Rooted<UniquePtr<Data>> copy(cx, copyData(cx, data, &envShape));
-        if (!copy)
+        BindingIter bi(*data);
+        if (!PrepareScopeData<ModuleScope>(cx, bi, data, &ModuleEnvironmentObject::class_,
+                                           ModuleScopeEnvShapeFlags, &envShape))
+        {
             return nullptr;
+        }
 
         // Modules always need an environment object for now.
         if (!envShape) {
@@ -1139,10 +1159,10 @@ ModuleScope::create(ExclusiveContext* cx, Handle<Data*> data,
         if (!scope)
             return nullptr;
 
-        copy->module.init(module);
+        data->module.init(module);
 
         moduleScope = &scope->as<ModuleScope>();
-        moduleScope->initData(Move(copy.get()));
+        moduleScope->initData(Move(data.get()));
     }
 
     return moduleScope;
