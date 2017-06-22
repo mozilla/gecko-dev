@@ -20,6 +20,7 @@
 #include <sys/mman.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <errno.h>
 
 namespace mozilla {
 namespace widget {
@@ -236,6 +237,7 @@ WaylandShmPool::CreateTemporaryFile(int aSize)
 
   char* filename;
   int fd = -1;
+  int ret = 0;
 
   if (tmpname.GetMutableData(&filename)) {
       fd = mkstemp(filename);
@@ -255,9 +257,19 @@ WaylandShmPool::CreateTemporaryFile(int aSize)
   }
 
 #ifdef HAVE_POSIX_FALLOCATE
-  int ret = posix_fallocate(fd, 0, aSize);
+  do {
+    ret = posix_fallocate(fd, 0, aSize);
+  } while (ret == EINTR);
+  if (ret != 0) {
+      close(fd);
+  }
 #else
-  int ret = ftruncate(fd, aSize);
+  do {
+      ret = ftruncate(fd, aSize);
+  } while (ret < 0 && errno == EINTR);
+  if (ret < 0) {
+      close(fd);
+  }
 #endif
   MOZ_RELEASE_ASSERT(ret == 0, "Mapping file allocation failed.");
 
@@ -300,7 +312,7 @@ WaylandShmPool::Resize(int aSize)
   munmap(mImageData, mAllocatedSize);
 
   mImageData = mmap(nullptr, aSize,
-                     PROT_READ | PROT_WRITE, MAP_SHARED, mShmPoolFd, 0);
+                    PROT_READ | PROT_WRITE, MAP_SHARED, mShmPoolFd, 0);
   if (mImageData == MAP_FAILED)
     return false;
 
