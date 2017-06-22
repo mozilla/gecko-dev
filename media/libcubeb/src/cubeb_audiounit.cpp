@@ -597,6 +597,7 @@ audiounit_get_input_device_id(AudioDeviceID * device_id)
 
 static int audiounit_stream_get_volume(cubeb_stream * stm, float * volume);
 static int audiounit_stream_set_volume(cubeb_stream * stm, float volume);
+static int audiounit_uninstall_device_changed_callback(cubeb_stream * stm);
 
 static int
 audiounit_reinit_stream(cubeb_stream * stm)
@@ -604,6 +605,11 @@ audiounit_reinit_stream(cubeb_stream * stm)
   auto_lock context_lock(stm->context->mutex);
   if (!stm->shutdown) {
     audiounit_stream_stop_internal(stm);
+  }
+
+  int r = audiounit_uninstall_device_changed_callback(stm);
+  if (r != CUBEB_OK) {
+    LOG("(%p) Could not uninstall the device changed callback", stm);
   }
 
   {
@@ -1887,11 +1893,6 @@ audiounit_close_stream(cubeb_stream *stm)
 {
   stm->mutex.assert_current_thread_owns();
 
-  int r = audiounit_uninstall_device_changed_callback(stm);
-  if (r != CUBEB_OK) {
-    LOG("(%p) Could not uninstall the device changed callback", stm);
-  }
-
   if (stm->input_unit) {
     AudioUnitUninitialize(stm->input_unit);
     AudioComponentInstanceDispose(stm->input_unit);
@@ -1917,13 +1918,20 @@ audiounit_stream_destroy(cubeb_stream * stm)
     LOG("(%p) Could not uninstall the device changed callback", stm);
   }
 
+  r = audiounit_uninstall_device_changed_callback(stm);
+  if (r != CUBEB_OK) {
+    LOG("(%p) Could not uninstall the device changed callback", stm);
+  }
+
   auto_lock context_lock(stm->context->mutex);
   audiounit_stream_stop_internal(stm);
 
-  {
+  // Execute close in serial queue to avoid collision
+  // with reinit when un/plug devices
+  dispatch_sync(stm->context->serial_queue, ^() {
     auto_lock lock(stm->mutex);
     audiounit_close_stream(stm);
-  }
+  });
 
   assert(stm->context->active_streams >= 1);
   stm->context->active_streams -= 1;

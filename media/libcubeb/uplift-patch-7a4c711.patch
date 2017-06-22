@@ -1,0 +1,69 @@
+From 7a4c711d6e998b451326a0a87dd2e9dab5a257ef Mon Sep 17 00:00:00 2001
+From: Alex Chronopoulos <achronop@gmail.com>
+Date: Mon, 15 May 2017 16:47:26 +0300
+Subject: [PATCH] audiounit: synchronize destroy stream and reinit (Bug
+ 1361657)
+
+---
+ src/cubeb_audiounit.cpp | 22 +++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/src/cubeb_audiounit.cpp b/src/cubeb_audiounit.cpp
+index 8aa40d54..331bc735 100644
+--- a/src/cubeb_audiounit.cpp
++++ b/src/cubeb_audiounit.cpp
+@@ -603,6 +603,7 @@ audiounit_get_input_device_id(AudioDeviceID * device_id)
+ 
+ static int audiounit_stream_get_volume(cubeb_stream * stm, float * volume);
+ static int audiounit_stream_set_volume(cubeb_stream * stm, float volume);
++static int audiounit_uninstall_device_changed_callback(cubeb_stream * stm);
+ 
+ static int
+ audiounit_reinit_stream(cubeb_stream * stm)
+@@ -612,6 +613,11 @@ audiounit_reinit_stream(cubeb_stream * stm)
+     audiounit_stream_stop_internal(stm);
+   }
+ 
++  int r = audiounit_uninstall_device_changed_callback(stm);
++  if (r != CUBEB_OK) {
++    LOG("(%p) Could not uninstall the device changed callback", stm);
++  }
++
+   {
+     auto_lock lock(stm->mutex);
+     float volume = 0.0;
+@@ -2516,11 +2522,6 @@ audiounit_close_stream(cubeb_stream *stm)
+ {
+   stm->mutex.assert_current_thread_owns();
+ 
+-  int r = audiounit_uninstall_device_changed_callback(stm);
+-  if (r != CUBEB_OK) {
+-    LOG("(%p) Could not uninstall the device changed callback", stm);
+-  }
+-
+   if (stm->input_unit) {
+     AudioUnitUninitialize(stm->input_unit);
+     AudioComponentInstanceDispose(stm->input_unit);
+@@ -2554,13 +2555,20 @@ audiounit_stream_destroy(cubeb_stream * stm)
+     LOG("(%p) Could not uninstall the device changed callback", stm);
+   }
+ 
++  r = audiounit_uninstall_device_changed_callback(stm);
++  if (r != CUBEB_OK) {
++    LOG("(%p) Could not uninstall the device changed callback", stm);
++  }
++
+   auto_lock context_lock(stm->context->mutex);
+   audiounit_stream_stop_internal(stm);
+ 
+-  {
++  // Execute close in serial queue to avoid collision
++  // with reinit when un/plug devices
++  dispatch_sync(stm->context->serial_queue, ^() {
+     auto_lock lock(stm->mutex);
+     audiounit_close_stream(stm);
+-  }
++  });
+ 
+   assert(stm->context->active_streams >= 1);
+   stm->context->active_streams -= 1;
