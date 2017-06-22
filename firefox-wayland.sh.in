@@ -23,7 +23,7 @@
 ## 
 ## Usage:
 ##
-## $ firefox
+## $ firefox-wayland
 ##
 ## This script is meant to run a mozilla program from the mozilla
 ## rpm installation.
@@ -60,7 +60,7 @@ if [ ! -r $MOZ_LIB_DIR/firefox-wayland/$MOZ_FIREFOX_FILE ]; then
     fi
     MOZ_LIB_DIR="$SECONDARY_LIB_DIR"
 fi
-MOZ_DIST_BIN="$MOZ_LIB_DIR/firefox"
+MOZ_DIST_BIN="$MOZ_LIB_DIR/firefox-wayland"
 MOZ_LANGPACKS_DIR="$MOZ_DIST_BIN/langpacks"
 MOZ_EXTENSIONS_PROFILE_DIR="$HOME/.mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
 MOZ_PROGRAM="$MOZ_DIST_BIN/$MOZ_FIREFOX_FILE"
