@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        55.8
+Version:        55.9
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -257,6 +257,10 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Thu Jun 22 2017 Martin Stransky <stransky@redhat.com> 55.9-1
+- Fixed shell launcher script (stransky@redhat.com)
+- Updated to latest mozilla trunk
+
 * Tue Jun 20 2017 Martin Stransky <stransky@redhat.com> 55.8-1
 - Fixed typo in launch script (stransky@redhat.com)
 - Updated firefox-wayland launch script (stransky@redhat.com)
