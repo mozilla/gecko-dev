@@ -240,20 +240,20 @@ WaylandShmPool::CreateTemporaryFile(int aSize)
   int ret = 0;
 
   if (tmpname.GetMutableData(&filename)) {
-      fd = mkstemp(filename);
-      if (fd >= 0) {
-          int flags = fcntl(fd, F_GETFD);
-          if (flags >= 0) {
-              fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
-          }
+    fd = mkstemp(filename);
+    if (fd >= 0) {
+      int flags = fcntl(fd, F_GETFD);
+      if (flags >= 0) {
+        fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
       }
+    }
   }
 
   if (fd >= 0) {
-      unlink(tmpname.get());
+    unlink(tmpname.get());
   } else {
-      printf_stderr("Unable to create mapping file %s\n", filename);
-      MOZ_CRASH();
+    printf_stderr("Unable to create mapping file %s\n", filename);
+    MOZ_CRASH();
   }
 
 #ifdef HAVE_POSIX_FALLOCATE
@@ -261,14 +261,14 @@ WaylandShmPool::CreateTemporaryFile(int aSize)
     ret = posix_fallocate(fd, 0, aSize);
   } while (ret == EINTR);
   if (ret != 0) {
-      close(fd);
+    close(fd);
   }
 #else
   do {
-      ret = ftruncate(fd, aSize);
+    ret = ftruncate(fd, aSize);
   } while (ret < 0 && errno == EINTR);
   if (ret < 0) {
-      close(fd);
+    close(fd);
   }
 #endif
   MOZ_RELEASE_ASSERT(ret == 0, "Mapping file allocation failed.");
@@ -302,7 +302,9 @@ WaylandShmPool::Resize(int aSize)
     return false;
 
 #ifdef HAVE_POSIX_FALLOCATE
-  errno = posix_fallocate(mShmPoolFd, 0, aSize);
+  do {
+    errno = posix_fallocate(mShmPoolFd, 0, aSize);
+  } while (errno == EINTR);
   if (errno != 0)
     return false;
 #endif
