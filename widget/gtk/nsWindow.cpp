@@ -3793,7 +3793,11 @@ nsWindow::Create(nsIWidget* aParent,
         if (!shellHasCSD) {
             // Use mShell's window for drawing and events.
             gtk_widget_set_has_window(container, FALSE);
-            // Prevent GtkWindow from painting a background to flicker.
+        }
+
+        // Prevent GtkWindow from painting a background to flicker.
+        // On Wayland we need that for correct window rendering.
+        if (!shellHasCSD || !mIsX11Display) {
             gtk_widget_set_app_paintable(mShell, TRUE);
         }
 
