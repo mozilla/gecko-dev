@@ -202,7 +202,7 @@ public:
                               bool aDisallowRelativeValues,
                               nsCSSValue& aResult);
 
-  void ParseMediaList(const nsSubstring& aBuffer,
+  void ParseMediaList(const nsAString& aBuffer,
                       nsIURI* aURL, // for error reporting
                       uint32_t aLineNumber, // for error reporting
                       nsMediaList* aMediaList);
@@ -222,34 +222,34 @@ public:
                      bool* aChanged,
                      bool aIsImportant);
 
-  bool ParseFontFamilyListString(const nsSubstring& aBuffer,
+  bool ParseFontFamilyListString(const nsAString& aBuffer,
                                  nsIURI* aURL, // for error reporting
                                  uint32_t aLineNumber, // for error reporting
                                  nsCSSValue& aValue);
 
-  bool ParseColorString(const nsSubstring& aBuffer,
+  bool ParseColorString(const nsAString& aBuffer,
                         nsIURI* aURL, // for error reporting
                         uint32_t aLineNumber, // for error reporting
                         nsCSSValue& aValue,
                         bool aSuppressErrors /* false */);
 
-  bool ParseMarginString(const nsSubstring& aBuffer,
+  bool ParseMarginString(const nsAString& aBuffer,
                          nsIURI* aURL, // for error reporting
                          uint32_t aLineNumber, // for error reporting
                          nsCSSValue& aValue,
                          bool aSuppressErrors /* false */);
 
-  nsresult ParseSelectorString(const nsSubstring& aSelectorString,
+  nsresult ParseSelectorString(const nsAString& aSelectorString,
                                nsIURI* aURL, // for error reporting
                                uint32_t aLineNumber, // for error reporting
                                nsCSSSelectorList **aSelectorList);
 
   already_AddRefed<nsCSSKeyframeRule>
-  ParseKeyframeRule(const nsSubstring& aBuffer,
+  ParseKeyframeRule(const nsAString& aBuffer,
                     nsIURI*            aURL,
                     uint32_t           aLineNumber);
 
-  bool ParseKeyframeSelectorString(const nsSubstring& aSelectorString,
+  bool ParseKeyframeSelectorString(const nsAString& aSelectorString,
                                    nsIURI* aURL, // for error reporting
                                    uint32_t aLineNumber, // for error reporting
                                    InfallibleTArray<float>& aSelectorList);
@@ -505,101 +505,6 @@ protected:
   void ReleaseScanner(void);
 
   /**
-   * This is a RAII class which behaves like an "AutoRestore<>" for our parser
-   * input state. When instantiated, this class saves the current parser input
-   * state (in a CSSParserInputState object), and it restores the parser to
-   * that state when destructed, unless "DoNotRestore()" has been called.
-  */
-  class MOZ_RAII nsAutoCSSParserInputStateRestorer {
-    public:
-      explicit nsAutoCSSParserInputStateRestorer(CSSParserImpl* aParser
-                                                 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-        : mParser(aParser),
-          mShouldRestore(true)
-      {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        mParser->SaveInputState(mSavedState);
-      }
-
-      void DoNotRestore()
-      {
-        mShouldRestore = false;
-      }
-
-      ~nsAutoCSSParserInputStateRestorer()
-      {
-        if (mShouldRestore) {
-          mParser->RestoreSavedInputState(mSavedState);
-        }
-      }
-
-    private:
-      MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-      CSSParserImpl* mParser;
-      CSSParserInputState mSavedState;
-      bool mShouldRestore;
-  };
-
-  /**
-   * This is a RAII class which creates a temporary nsCSSScanner for the given
-   * string, and reconfigures aParser to use *that* scanner instead of its
-   * existing scanner, until we go out of scope.  (This allows us to rewrite
-   * a portion of a stylesheet using a temporary string, and switch to parsing
-   * that rewritten section, and then resume parsing the original stylesheet.)
-   *
-   * aParser must have a non-null nsCSSScanner (which we'll be temporarily
-   * replacing) and ErrorReporter (which this class will co-opt for the
-   * temporary parser). While we're in scope, we also suppress error reporting,
-   * so it doesn't really matter which reporter we use. We suppress reporting
-   * because this class is only used with CSS that is synthesized & didn't
-   * come directly from an author, and it would be confusing if we reported
-   * syntax errors for CSS that an author didn't provide.
-   *
-   * XXXdholbert we could also change this & report errors, if needed. Might
-   * want to customize the error reporting somehow though.
-   */
-  class MOZ_RAII nsAutoScannerChanger {
-    public:
-      nsAutoScannerChanger(CSSParserImpl* aParser,
-                           const nsAString& aStringToScan
-                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-        : mParser(aParser),
-          mOriginalScanner(aParser->mScanner),
-          mStringScanner(aStringToScan, 0),
-          mParserStateRestorer(aParser),
-          mErrorSuppresser(aParser)
-      {
-        MOZ_ASSERT(mOriginalScanner,
-                   "Shouldn't use nsAutoScannerChanger unless we already "
-                   "have a scanner");
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-
-        // Set & setup the new scanner:
-        mParser->mScanner = &mStringScanner;
-        mStringScanner.SetErrorReporter(mParser->mReporter);
-
-        // We might've had push-back on our original scanner (and if we did,
-        // that fact is saved via mParserStateRestorer).  But we don't have
-        // push-back in mStringScanner, so clear that flag.
-        mParser->mHavePushBack = false;
-      }
-
-      ~nsAutoScannerChanger()
-      {
-        // Restore original scanner. All other cleanup is done by RAII members.
-        mParser->mScanner = mOriginalScanner;
-      }
-
-    private:
-      MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-      CSSParserImpl* mParser;
-      nsCSSScanner *mOriginalScanner;
-      nsCSSScanner mStringScanner;
-      nsAutoCSSParserInputStateRestorer mParserStateRestorer;
-      nsAutoSuppressErrors mErrorSuppresser;
-  };
-
-  /**
    * Saves the current input state, which includes any currently pushed
    * back token, and the current position of the scanner.
    */
@@ -627,7 +532,7 @@ protected:
   bool ExpectSymbol(char16_t aSymbol, bool aSkipWS);
   bool ExpectEndProperty();
   bool CheckEndProperty();
-  nsSubstring* NextIdent();
+  nsAString* NextIdent();
 
   // returns true when the stop symbol is found, and false for EOF
   bool SkipUntil(char16_t aStopSymbol);
@@ -1231,21 +1136,6 @@ protected:
     MOZ_ASSERT(!(aVariantMask & VARIANT_MULTIPLE_TOKENS),
                "use ParseVariant for variants in VARIANT_MULTIPLE_TOKENS");
     CSSParseResult result = ParseVariant(aValue, aVariantMask, aKeywordTable);
-    MOZ_ASSERT(result != CSSParseResult::Error);
-    return result == CSSParseResult::Ok;
-  }
-  bool ParseSingleTokenVariantWithRestrictions(
-      nsCSSValue& aValue,
-      int32_t aVariantMask,
-      const KTableEntry aKeywordTable[],
-      uint32_t aRestrictions)
-  {
-    MOZ_ASSERT(!(aVariantMask & VARIANT_MULTIPLE_TOKENS),
-               "use ParseVariantWithRestrictions for variants in "
-               "VARIANT_MULTIPLE_TOKENS");
-    CSSParseResult result =
-      ParseVariantWithRestrictions(aValue, aVariantMask, aKeywordTable,
-                                   aRestrictions);
     MOZ_ASSERT(result != CSSParseResult::Error);
     return result == CSSParseResult::Ok;
   }
@@ -2108,7 +1998,7 @@ CSSParserImpl::ParseVariable(const nsAString& aVariableName,
 }
 
 void
-CSSParserImpl::ParseMediaList(const nsSubstring& aBuffer,
+CSSParserImpl::ParseMediaList(const nsAString& aBuffer,
                               nsIURI* aURI, // for error reporting
                               uint32_t aLineNumber, // for error reporting
                               nsMediaList* aMediaList)
@@ -2221,7 +2111,7 @@ CSSParserImpl::ParseSourceSizeList(const nsAString& aBuffer,
 }
 
 bool
-CSSParserImpl::ParseColorString(const nsSubstring& aBuffer,
+CSSParserImpl::ParseColorString(const nsAString& aBuffer,
                                 nsIURI* aURI, // for error reporting
                                 uint32_t aLineNumber, // for error reporting
                                 nsCSSValue& aValue,
@@ -2248,7 +2138,7 @@ CSSParserImpl::ParseColorString(const nsSubstring& aBuffer,
 }
 
 bool
-CSSParserImpl::ParseMarginString(const nsSubstring& aBuffer,
+CSSParserImpl::ParseMarginString(const nsAString& aBuffer,
                                  nsIURI* aURI, // for error reporting
                                  uint32_t aLineNumber, // for error reporting
                                  nsCSSValue& aValue,
@@ -2274,7 +2164,7 @@ CSSParserImpl::ParseMarginString(const nsSubstring& aBuffer,
 }
 
 bool
-CSSParserImpl::ParseFontFamilyListString(const nsSubstring& aBuffer,
+CSSParserImpl::ParseFontFamilyListString(const nsAString& aBuffer,
                                          nsIURI* aURI, // for error reporting
                                          uint32_t aLineNumber, // for error reporting
                                          nsCSSValue& aValue)
@@ -2291,7 +2181,7 @@ CSSParserImpl::ParseFontFamilyListString(const nsSubstring& aBuffer,
 }
 
 nsresult
-CSSParserImpl::ParseSelectorString(const nsSubstring& aSelectorString,
+CSSParserImpl::ParseSelectorString(const nsAString& aSelectorString,
                                    nsIURI* aURI, // for error reporting
                                    uint32_t aLineNumber, // for error reporting
                                    nsCSSSelectorList **aSelectorList)
@@ -2325,7 +2215,7 @@ CSSParserImpl::ParseSelectorString(const nsSubstring& aSelectorString,
 
 
 already_AddRefed<nsCSSKeyframeRule>
-CSSParserImpl::ParseKeyframeRule(const nsSubstring&  aBuffer,
+CSSParserImpl::ParseKeyframeRule(const nsAString&  aBuffer,
                                  nsIURI*             aURI,
                                  uint32_t            aLineNumber)
 {
@@ -2346,7 +2236,7 @@ CSSParserImpl::ParseKeyframeRule(const nsSubstring&  aBuffer,
 }
 
 bool
-CSSParserImpl::ParseKeyframeSelectorString(const nsSubstring& aSelectorString,
+CSSParserImpl::ParseKeyframeSelectorString(const nsAString& aSelectorString,
                                            nsIURI* aURI, // for error reporting
                                            uint32_t aLineNumber, // for error reporting
                                            InfallibleTArray<float>& aSelectorList)
@@ -3238,7 +3128,7 @@ CSSParserImpl::ParsePriority()
   return ePriority_Important;
 }
 
-nsSubstring*
+nsAString*
 CSSParserImpl::NextIdent()
 {
   // XXX Error reporting?
@@ -6956,34 +6846,29 @@ CSSParserImpl::ParseColorComponent(float& aComponent, const Maybe<char>& aSepara
 bool
 CSSParserImpl::ParseHue(float& aAngle)
 {
-  if (!GetToken(true)) {
-    REPORT_UNEXPECTED_EOF(PEColorHueEOF);
+  nsCSSValue value;
+  // <hue> = <number> | <angle>
+  // https://drafts.csswg.org/css-color/#typedef-hue
+  if (!ParseSingleTokenVariant(value,
+                               VARIANT_NUMBER | VARIANT_ANGLE,
+                               nullptr)) {
+    REPORT_UNEXPECTED_TOKEN(PEExpectedNumberOrAngle);
     return false;
   }
 
-  // <number>
-  if (mToken.mType == eCSSToken_Number) {
-    aAngle = mToken.mNumber;
-    return true;
-  }
-  UngetToken();
-
-  // <angle>
-  nsCSSValue angleValue;
-  // The '0' value is handled by <number> parsing, so use VARIANT_ANGLE flag
-  // instead of VARIANT_ANGLE_OR_ZERO.
-  if (ParseSingleTokenVariant(angleValue, VARIANT_ANGLE, nullptr)) {
+  float unclampedResult;
+  if (value.GetUnit() == eCSSUnit_Number) {
+    unclampedResult = value.GetFloatValue();
+  } else {
     // Convert double value of GetAngleValueInDegrees() to float.
-    aAngle = angleValue.GetAngleValueInDegrees();
-    // And then clamp it as finite values in float.
-    aAngle = mozilla::clamped(aAngle,
-                              -std::numeric_limits<float>::max(),
-                               std::numeric_limits<float>::max());
-    return true;
+    unclampedResult = value.GetAngleValueInDegrees();
   }
 
-  REPORT_UNEXPECTED_TOKEN(PEExpectedNumberOrAngle);
-  return false;
+  // Clamp it as finite values in float.
+  aAngle = mozilla::clamped(unclampedResult,
+                            -std::numeric_limits<float>::max(),
+                             std::numeric_limits<float>::max());
+  return true;
 }
 
 bool
@@ -7409,7 +7294,7 @@ bool
 CSSParserImpl::ParseEnum(nsCSSValue& aValue,
                          const KTableEntry aKeywordTable[])
 {
-  nsSubstring* ident = NextIdent();
+  nsAString* ident = NextIdent();
   if (nullptr == ident) {
     return false;
   }
@@ -7433,7 +7318,7 @@ CSSParserImpl::ParseAlignEnum(nsCSSValue& aValue,
                                             aKeywordTable) !=
                eCSSKeyword_UNKNOWN,
              "Please use ParseEnum instead");
-  nsSubstring* ident = NextIdent();
+  nsAString* ident = NextIdent();
   if (!ident) {
     return false;
   }
@@ -9242,7 +9127,7 @@ CSSParserImpl::ParseGridTemplateColumnsRows(nsCSSPropertyID aPropID)
     return true;
   }
 
-  nsSubstring* ident = NextIdent();
+  nsAString* ident = NextIdent();
   if (ident) {
     if (ident->LowerCaseEqualsLiteral("subgrid")) {
       if (!nsLayoutUtils::IsGridTemplateSubgridValueEnabled()) {
@@ -9430,7 +9315,7 @@ CSSParserImpl::ParseGridTemplate(bool aForGridShorthand)
 
   // 'subgrid' can appear either by itself,
   // or as the beginning of <'grid-template-rows'> / <'grid-template-columns'>
-  nsSubstring* ident = NextIdent();
+  nsAString* ident = NextIdent();
   if (ident) {
     if (ident->LowerCaseEqualsLiteral("subgrid")) {
       if (!nsLayoutUtils::IsGridTemplateSubgridValueEnabled()) {
@@ -18107,7 +17992,7 @@ nsCSSParser::ParseVariable(const nsAString&    aVariableName,
 }
 
 void
-nsCSSParser::ParseMediaList(const nsSubstring& aBuffer,
+nsCSSParser::ParseMediaList(const nsAString& aBuffer,
                             nsIURI*            aURI,
                             uint32_t           aLineNumber,
                             nsMediaList*       aMediaList)
@@ -18128,7 +18013,7 @@ nsCSSParser::ParseSourceSizeList(const nsAString& aBuffer,
 }
 
 bool
-nsCSSParser::ParseFontFamilyListString(const nsSubstring& aBuffer,
+nsCSSParser::ParseFontFamilyListString(const nsAString& aBuffer,
                                        nsIURI*            aURI,
                                        uint32_t           aLineNumber,
                                        nsCSSValue&        aValue)
@@ -18138,7 +18023,7 @@ nsCSSParser::ParseFontFamilyListString(const nsSubstring& aBuffer,
 }
 
 bool
-nsCSSParser::ParseColorString(const nsSubstring& aBuffer,
+nsCSSParser::ParseColorString(const nsAString& aBuffer,
                               nsIURI*            aURI,
                               uint32_t           aLineNumber,
                               nsCSSValue&        aValue,
@@ -18149,7 +18034,7 @@ nsCSSParser::ParseColorString(const nsSubstring& aBuffer,
 }
 
 bool
-nsCSSParser::ParseMarginString(const nsSubstring& aBuffer,
+nsCSSParser::ParseMarginString(const nsAString& aBuffer,
                                nsIURI*            aURI,
                                uint32_t           aLineNumber,
                                nsCSSValue&        aValue,
@@ -18160,7 +18045,7 @@ nsCSSParser::ParseMarginString(const nsSubstring& aBuffer,
 }
 
 nsresult
-nsCSSParser::ParseSelectorString(const nsSubstring&  aSelectorString,
+nsCSSParser::ParseSelectorString(const nsAString&  aSelectorString,
                                  nsIURI*             aURI,
                                  uint32_t            aLineNumber,
                                  nsCSSSelectorList** aSelectorList)
@@ -18170,7 +18055,7 @@ nsCSSParser::ParseSelectorString(const nsSubstring&  aSelectorString,
 }
 
 already_AddRefed<nsCSSKeyframeRule>
-nsCSSParser::ParseKeyframeRule(const nsSubstring& aBuffer,
+nsCSSParser::ParseKeyframeRule(const nsAString& aBuffer,
                                nsIURI*            aURI,
                                uint32_t           aLineNumber)
 {
@@ -18179,7 +18064,7 @@ nsCSSParser::ParseKeyframeRule(const nsSubstring& aBuffer,
 }
 
 bool
-nsCSSParser::ParseKeyframeSelectorString(const nsSubstring& aSelectorString,
+nsCSSParser::ParseKeyframeSelectorString(const nsAString& aSelectorString,
                                          nsIURI*            aURI,
                                          uint32_t           aLineNumber,
                                          InfallibleTArray<float>& aSelectorList)

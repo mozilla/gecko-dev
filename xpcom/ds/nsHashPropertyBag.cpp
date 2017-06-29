@@ -61,18 +61,11 @@ nsHashPropertyBagBase::SetProperty(const nsAString& aName, nsIVariant* aValue)
 NS_IMETHODIMP
 nsHashPropertyBagBase::DeleteProperty(const nsAString& aName)
 {
-  // is it too much to ask for ns*Hashtable to return
-  // a boolean indicating whether RemoveEntry succeeded
-  // or not?!?!
-  bool isFound = mPropertyHash.Get(aName, nullptr);
-  if (!isFound) {
-    return NS_ERROR_FAILURE;
+  if (auto entry = mPropertyHash.Lookup(aName)) {
+    entry.Remove();
+    return NS_OK;
   }
-
-  // then from the hash
-  mPropertyHash.Remove(aName);
-
-  return NS_OK;
+  return NS_ERROR_FAILURE;
 }
 
 
@@ -276,7 +269,8 @@ class ProxyHashtableDestructor final : public mozilla::Runnable
 public:
   using HashtableType = nsInterfaceHashtable<nsStringHashKey, nsIVariant>;
   explicit ProxyHashtableDestructor(HashtableType&& aTable)
-    : mPropertyHash(mozilla::Move(aTable))
+    : mozilla::Runnable("ProxyHashtableDestructor")
+    , mPropertyHash(mozilla::Move(aTable))
   {}
 
   NS_IMETHODIMP

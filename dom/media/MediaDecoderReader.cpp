@@ -5,17 +5,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaDecoderReader.h"
+
 #include "AbstractMediaDecoder.h"
-#include "MediaResource.h"
-#include "VideoUtils.h"
 #include "ImageContainer.h"
 #include "MediaPrefs.h"
-
-#include "nsPrintfCString.h"
-#include "mozilla/mozalloc.h"
+#include "MediaResource.h"
+#include "VideoUtils.h"
 #include "mozilla/Mutex.h"
-#include <stdint.h>
+#include "mozilla/SharedThreadPool.h"
+#include "mozilla/TaskQueue.h"
+#include "mozilla/mozalloc.h"
+#include "nsPrintfCString.h"
 #include <algorithm>
+#include <stdint.h>
 
 using namespace mozilla::media;
 
@@ -92,7 +94,10 @@ MediaDecoderReader::Init()
       mTaskQueue, this, &MediaDecoderReader::NotifyDataArrived);
   }
   // Dispatch initialization that needs to happen on that task queue.
-  mTaskQueue->Dispatch(NewRunnableMethod(this, &MediaDecoderReader::InitializationTask));
+  mTaskQueue->Dispatch(
+    NewRunnableMethod("MediaDecoderReader::InitializationTask",
+                      this,
+                      &MediaDecoderReader::InitializationTask));
   return InitInternal();
 }
 
@@ -244,7 +249,8 @@ class ReRequestVideoWithSkipTask : public Runnable
 public:
   ReRequestVideoWithSkipTask(MediaDecoderReader* aReader,
                              const media::TimeUnit& aTimeThreshold)
-    : mReader(aReader)
+    : Runnable("ReRequestVideoWithSkipTask")
+    , mReader(aReader)
     , mTimeThreshold(aTimeThreshold)
   {
   }
@@ -270,7 +276,8 @@ class ReRequestAudioTask : public Runnable
 {
 public:
   explicit ReRequestAudioTask(MediaDecoderReader* aReader)
-    : mReader(aReader)
+    : Runnable("ReRequestAudioTask")
+    , mReader(aReader)
   {
   }
 

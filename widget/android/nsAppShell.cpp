@@ -149,6 +149,7 @@ public:
     {
         struct NoOpRunnable : Runnable
         {
+            NoOpRunnable() : Runnable("NoOpRunnable") {}
             NS_IMETHOD Run() override { return NS_OK; }
         };
 
@@ -677,8 +678,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
 {
     EVLOG("nsAppShell::ProcessNextNativeEvent %d", mayWait);
 
-    PROFILER_LABEL("nsAppShell", "ProcessNextNativeEvent",
-        js::ProfileEntry::Category::EVENTS);
+    AUTO_PROFILER_LABEL("nsAppShell::ProcessNextNativeEvent", EVENTS);
 
     mozilla::UniquePtr<Event> curEvent;
 
@@ -696,8 +696,8 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
                 return true;
             }
 
-            PROFILER_LABEL("nsAppShell", "ProcessNextNativeEvent::Wait",
-                js::ProfileEntry::Category::EVENTS);
+            AUTO_PROFILER_LABEL("nsAppShell::ProcessNextNativeEvent:Wait",
+                                EVENTS);
             mozilla::HangMonitor::Suspend();
 
             curEvent = mEventQueue.Pop(/* mayWait */ true);

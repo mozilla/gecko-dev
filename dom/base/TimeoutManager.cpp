@@ -14,117 +14,12 @@
 #include "mozilla/dom/TabGroup.h"
 #include "OrderedTimeoutIterator.h"
 #include "TimeoutExecutor.h"
+#include "TimeoutBudgetManager.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
 static LazyLogModule gLog("Timeout");
-
-// Time between sampling timeout execution time.
-const uint32_t kTelemetryPeriodMS = 1000;
-
-class TimeoutTelemetry
-{
-public:
-  static TimeoutTelemetry& Get();
-  TimeoutTelemetry() : mLastCollection(TimeStamp::Now()) {}
-
-  void StartRecording(TimeStamp aNow);
-  void StopRecording();
-  void RecordExecution(TimeStamp aNow, Timeout* aTimeout, bool aIsBackground);
-  void MaybeCollectTelemetry(TimeStamp aNow);
-private:
-  struct TelemetryData
-  {
-    TimeDuration mForegroundTracking;
-    TimeDuration mForegroundNonTracking;
-    TimeDuration mBackgroundTracking;
-    TimeDuration mBackgroundNonTracking;
-  };
-
-  void Accumulate(Telemetry::HistogramID aId, TimeDuration aSample);
-
-  TelemetryData mTelemetryData;
-  TimeStamp mStart;
-  TimeStamp mLastCollection;
-};
-
-static TimeoutTelemetry gTimeoutTelemetry;
-
-/* static */ TimeoutTelemetry&
-TimeoutTelemetry::Get()
-{
-  return gTimeoutTelemetry;
-}
-
-void
-TimeoutTelemetry::StartRecording(TimeStamp aNow)
-{
-  mStart = aNow;
-}
-
-void
-TimeoutTelemetry::StopRecording()
-{
-  mStart = TimeStamp();
-}
-
-void
-TimeoutTelemetry::RecordExecution(TimeStamp aNow,
-                                  Timeout* aTimeout,
-                                  bool aIsBackground)
-{
-  if (!mStart) {
-    // If we've started a sync operation mStart might be null, in
-    // which case we should not record this piece of execution.
-    return;
-  }
-
-  TimeDuration duration = aNow - mStart;
-
-  if (aIsBackground) {
-    if (aTimeout->mIsTracking) {
-      mTelemetryData.mBackgroundTracking += duration;
-    } else {
-      mTelemetryData.mBackgroundNonTracking += duration;
-    }
-  } else {
-    if (aTimeout->mIsTracking) {
-      mTelemetryData.mForegroundTracking += duration;
-    } else {
-      mTelemetryData.mForegroundNonTracking += duration;
-    }
-  }
-}
-
-void
-TimeoutTelemetry::Accumulate(Telemetry::HistogramID aId, TimeDuration aSample)
-{
-  uint32_t sample = std::round(aSample.ToMilliseconds());
-  if (sample) {
-    Telemetry::Accumulate(aId, sample);
-  }
-}
-
-void
-TimeoutTelemetry::MaybeCollectTelemetry(TimeStamp aNow)
-{
-  if ((aNow - mLastCollection).ToMilliseconds() < kTelemetryPeriodMS) {
-    return;
-  }
-
-  Accumulate(Telemetry::TIMEOUT_EXECUTION_FG_TRACKING_MS,
-             mTelemetryData.mForegroundTracking);
-  Accumulate(Telemetry::TIMEOUT_EXECUTION_FG_MS,
-             mTelemetryData.mForegroundNonTracking);
-  Accumulate(Telemetry::TIMEOUT_EXECUTION_BG_TRACKING_MS,
-             mTelemetryData.mBackgroundTracking);
-  Accumulate(Telemetry::TIMEOUT_EXECUTION_BG_MS,
-             mTelemetryData.mBackgroundNonTracking);
-
-  mTelemetryData = TelemetryData();
-  mLastCollection = aNow;
-}
 
 static int32_t              gRunningTimeoutDepth       = 0;
 
@@ -251,6 +146,34 @@ TimeoutManager::CalculateDelay(Timeout* aTimeout) const {
   return result;
 }
 
+void
+TimeoutManager::RecordExecution(Timeout* aRunningTimeout,
+                                Timeout* aTimeout)
+{
+  if (mWindow.IsChromeWindow()) {
+    return;
+  }
+
+  TimeoutBudgetManager& budgetManager = TimeoutBudgetManager::Get();
+  TimeStamp now = TimeStamp::Now();
+
+  if (aRunningTimeout) {
+    // If we're running a timeout callback, record any execution until
+    // now.
+    budgetManager.RecordExecution(
+      now, aRunningTimeout, mWindow.IsBackgroundInternal());
+    budgetManager.MaybeCollectTelemetry(now);
+  }
+
+  if (aTimeout) {
+    // If we're starting a new timeout callback, start recording.
+    budgetManager.StartRecording(now);
+  } else {
+    // Else stop by clearing the start timestamp.
+    budgetManager.StopRecording();
+  }
+}
+
 #define TRACKING_SEPARATE_TIMEOUT_BUCKETING_STRATEGY 0 // Consider all timeouts coming from tracking scripts as tracking
 // These strategies are useful for testing.
 #define ALL_NORMAL_TIMEOUT_BUCKETING_STRATEGY        1 // Consider all timeouts as normal
@@ -274,6 +197,11 @@ namespace {
 // to run in a single event loop runnable.
 #define DEFAULT_MAX_CONSECUTIVE_CALLBACKS_MILLISECONDS 4
 uint32_t gMaxConsecutiveCallbacksMilliseconds;
+
+// Only propagate the open window click permission if the setTimeout() is equal
+// to or less than this value.
+#define DEFAULT_DISABLE_OPEN_CLICK_DELAY 0
+int32_t gDisableOpenClickDelay;
 
 } // anonymous namespace
 
@@ -335,6 +263,10 @@ TimeoutManager::Initialize()
   Preferences::AddUintVarCache(&gMaxConsecutiveCallbacksMilliseconds,
                                "dom.timeout.max_consecutive_callbacks_ms",
                                DEFAULT_MAX_CONSECUTIVE_CALLBACKS_MILLISECONDS);
+
+  Preferences::AddIntVarCache(&gDisableOpenClickDelay,
+                              "dom.disable_open_click_delay",
+                              DEFAULT_DISABLE_OPEN_CLICK_DELAY);
 }
 
 uint32_t
@@ -451,13 +383,10 @@ TimeoutManager::SetTimeout(nsITimeoutHandler* aHandler,
     // its delay (interval) is equal to or less than what
     // "dom.disable_open_click_delay" is set to (in ms).
 
-    int32_t delay =
-      Preferences::GetInt("dom.disable_open_click_delay");
-
     // This is checking |interval|, not realInterval, on purpose,
     // because our lower bound for |realInterval| could be pretty high
     // in some cases.
-    if (interval <= delay) {
+    if (interval <= gDisableOpenClickDelay) {
       timeout->mPopupState = mWindow.GetPopupControlState();
     }
   }
@@ -904,22 +833,9 @@ TimeoutManager::BeginRunningTimeout(Timeout* aTimeout)
 {
   Timeout* currentTimeout = mRunningTimeout;
   mRunningTimeout = aTimeout;
-
   ++gRunningTimeoutDepth;
 
-  if (!mWindow.IsChromeWindow()) {
-    TimeStamp now = TimeStamp::Now();
-    if (currentTimeout) {
-      // If we're already running a timeout and start running another
-      // one, record the fragment duration already collected.
-      TimeoutTelemetry::Get().RecordExecution(
-        now, currentTimeout, IsBackground());
-    }
-
-    TimeoutTelemetry::Get().MaybeCollectTelemetry(now);
-    TimeoutTelemetry::Get().StartRecording(now);
-  }
-
+  RecordExecution(currentTimeout, aTimeout);
   return currentTimeout;
 }
 
@@ -928,17 +844,7 @@ TimeoutManager::EndRunningTimeout(Timeout* aTimeout)
 {
   --gRunningTimeoutDepth;
 
-  if (!mWindow.IsChromeWindow()) {
-    TimeStamp now = TimeStamp::Now();
-    TimeoutTelemetry::Get().RecordExecution(now, mRunningTimeout, IsBackground());
-
-    if (aTimeout) {
-      // If we were running a nested timeout, restart the measurement
-      // from here.
-      TimeoutTelemetry::Get().StartRecording(now);
-    }
-  }
-
+  RecordExecution(mRunningTimeout, aTimeout);
   mRunningTimeout = aTimeout;
 }
 
@@ -1146,22 +1052,14 @@ TimeoutManager::BeginSyncOperation()
   // equivalent to the period of us spinning up a new event loop,
   // record what we have and stop recording until we reach
   // EndSyncOperation.
-  if (!mWindow.IsChromeWindow()) {
-    if (mRunningTimeout) {
-      TimeoutTelemetry::Get().RecordExecution(
-        TimeStamp::Now(), mRunningTimeout, IsBackground());
-    }
-    TimeoutTelemetry::Get().StopRecording();
-  }
+  RecordExecution(mRunningTimeout, nullptr);
 }
 
 void
 TimeoutManager::EndSyncOperation()
 {
   // If we're running a timeout, restart the measurement from here.
-  if (!mWindow.IsChromeWindow() && mRunningTimeout) {
-    TimeoutTelemetry::Get().StartRecording(TimeStamp::Now());
-  }
+  RecordExecution(nullptr, mRunningTimeout);
 }
 
 nsIEventTarget*

@@ -126,7 +126,6 @@ pub mod sharing;
 pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;
-pub mod sink;
 pub mod str;
 pub mod style_adjuster;
 pub mod stylesheet_set;
@@ -186,14 +185,6 @@ macro_rules! reexport_computed_values {
     }
 }
 longhand_properties_idents!(reexport_computed_values);
-
-/// Pointer equality
-///
-/// FIXME: Remove this and use std::ptr::eq once we require Rust 1.17
-#[inline]
-pub fn ptr_eq<T: ?Sized>(a: *const T, b: *const T) -> bool {
-    a == b
-}
 
 /// Serializes as CSS a comma-separated list of any `T` that supports being
 /// serialized as CSS.

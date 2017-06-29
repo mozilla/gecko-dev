@@ -103,7 +103,11 @@ private:
   RefPtr<nsAppStartup> mService;
 
 public:
-  explicit nsAppExitEvent(nsAppStartup *service) : mService(service) {}
+  explicit nsAppExitEvent(nsAppStartup* service)
+    : mozilla::Runnable("nsAppExitEvent")
+    , mService(service)
+  {
+  }
 
   NS_IMETHOD Run() override {
     // Tell the appshell to exit
@@ -382,7 +386,7 @@ nsAppStartup::Quit(uint32_t aMode)
       }
     }
 
-    PROFILER_MARKER("Shutdown start");
+    profiler_add_marker("Shutdown start");
     mozilla::RecordShutdownStartTimeStamp();
     mShuttingDown = true;
     if (!mRestart) {

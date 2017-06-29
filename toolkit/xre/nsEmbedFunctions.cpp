@@ -422,8 +422,7 @@ XRE_InitChildProcess(int aArgc,
   char aLocal;
   AutoProfilerInit profilerInit(&aLocal);
 
-  PROFILER_LABEL("Startup", "XRE_InitChildProcess",
-    js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("XRE_InitChildProcess", OTHER);
 
   // Ensure AbstractThread is minimally setup, so async IPC messages
   // work properly.
@@ -751,10 +750,10 @@ class MainFunctionRunnable : public Runnable
 public:
   NS_DECL_NSIRUNNABLE
 
-  MainFunctionRunnable(MainFunction aFunction,
-                       void* aData)
-  : mFunction(aFunction),
-    mData(aData)
+  MainFunctionRunnable(MainFunction aFunction, void* aData)
+    : mozilla::Runnable("MainFunctionRunnable")
+    , mFunction(aFunction)
+    , mData(aData)
   {
     NS_ASSERTION(aFunction, "Don't give me a null pointer!");
   }

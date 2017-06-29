@@ -35,8 +35,6 @@ from voluptuous import (
 
 import copy
 import logging
-import requests
-from collections import defaultdict
 
 # default worker types keyed by instance-size
 LINUX_WORKER_TYPES = {
@@ -378,13 +376,7 @@ def set_target(config, tests):
     for test in tests:
         build_platform = test['build-platform']
         if build_platform.startswith('macosx'):
-            if build_platform.split('/')[1] == 'opt':
-                target = 'firefox-{}.en-US.{}.dmg'.format(
-                    get_firefox_version(),
-                    'mac',
-                )
-            else:
-                target = 'target.dmg'
+            target = 'target.dmg'
         elif build_platform.startswith('android'):
             if 'geckoview' in test['test-name']:
                 target = 'geckoview_example.apk'
@@ -726,33 +718,6 @@ def set_worker_type(config, tests):
 
 
 @transforms.add
-def allocate_to_bbb(config, tests):
-    """Make the load balancing between taskcluster and buildbot"""
-    j = get_load_balacing_settings()
-
-    tests_set = defaultdict(list)
-    for test in tests:
-        tests_set[test['test-platform']].append(test)
-
-    # Make the load balancing between taskcluster and buildbot
-    for test_platform, t in tests_set.iteritems():
-        # We sort the list to make the order of the tasks deterministic
-        t.sort(key=lambda x: (x['test-name'], x.get('this_chunk', 1)))
-        # The json file tells the percentage of tasks that run on
-        # taskcluster. The logic here is inverted, as tasks have been
-        # previously assigned to taskcluster. Therefore we assign the
-        # 1-p tasks to buildbot-bridge.
-        n = j.get(test_platform, 1.0)
-        if not (test_platform.startswith('mac')
-                and config.config['args'].taskcluster_worker):
-            for i in range(int(n * len(t)), len(t)):
-                t[i]['worker-type'] = 'buildbot-bridge/buildbot-bridge'
-
-        for y in t:
-            yield y
-
-
-@transforms.add
 def make_job_description(config, tests):
     """Convert *test* descriptions to *job* descriptions (input to
     taskgraph.transforms.job)"""
@@ -840,11 +805,3 @@ def normpath(path):
 def get_firefox_version():
     with open('browser/config/version.txt', 'r') as f:
         return f.readline().strip()
-
-
-def get_load_balacing_settings():
-    url = "https://s3.amazonaws.com/taskcluster-graph-scheduling/tests-load.json"
-    try:
-        return requests.get(url).json()
-    except Exception:
-        return {}

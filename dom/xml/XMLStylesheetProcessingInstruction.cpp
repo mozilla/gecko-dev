@@ -63,7 +63,8 @@ XMLStylesheetProcessingInstruction::BindToTree(nsIDocument* aDocument,
 
   void (XMLStylesheetProcessingInstruction::*update)() =
     &XMLStylesheetProcessingInstruction::UpdateStyleSheetInternal;
-  nsContentUtils::AddScriptRunner(NewRunnableMethod(this, update));
+  nsContentUtils::AddScriptRunner(NewRunnableMethod(
+    "dom::XMLStylesheetProcessingInstruction::BindToTree", this, update));
 
   return rv;  
 }
@@ -114,15 +115,14 @@ XMLStylesheetProcessingInstruction::GetStyleSheetURL(bool* aIsInline)
   }
 
   nsIURI *baseURL;
-  nsAutoCString charset;
   nsIDocument *document = OwnerDoc();
   baseURL = mOverriddenBaseURI ?
             mOverriddenBaseURI.get() :
             document->GetDocBaseURI();
-  charset = document->GetDocumentCharacterSet();
+  auto encoding = document->GetDocumentCharacterSet();
 
   nsCOMPtr<nsIURI> aURI;
-  NS_NewURI(getter_AddRefs(aURI), href, charset.get(), baseURL);
+  NS_NewURI(getter_AddRefs(aURI), href, encoding, baseURL);
   return aURI.forget();
 }
 

@@ -663,7 +663,8 @@ nsJSChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports *aContext)
         name = "nsJSChannel::NotifyListener";
     }
 
-    nsresult rv = NS_DispatchToCurrentThread(mozilla::NewRunnableMethod(name, this, method));
+    nsresult rv = NS_DispatchToCurrentThread(
+      mozilla::NewRunnableMethod(name, this, method));
 
     if (NS_FAILED(rv)) {
         loadGroup->RemoveRequest(this, nullptr, rv);
@@ -1142,7 +1143,7 @@ nsJSProtocolHandler::Create(nsISupports *aOuter, REFNSIID aIID, void **aResult)
 }
 
 nsresult 
-nsJSProtocolHandler::EnsureUTF8Spec(const nsAFlatCString &aSpec, const char *aCharset, 
+nsJSProtocolHandler::EnsureUTF8Spec(const nsCString& aSpec, const char *aCharset, 
                                     nsACString &aUTF8Spec)
 {
   aUTF8Spec.Truncate();

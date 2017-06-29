@@ -50,6 +50,7 @@ EXPORTS += [
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     SOURCES += [
         'D3D11ShareHandleImage.cpp',
+        'D3D11YCbCrImage.cpp',
     ]
     UNIFIED_SOURCES += [
         'D3D9SurfaceImage.cpp',
@@ -65,12 +66,14 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
             'd3d11/DeviceAttachmentsD3D11.h',
             'd3d11/DiagnosticsD3D11.h',
             'd3d11/HelpersD3D11.h',
+            'd3d11/MLGDeviceD3D11.h',
             'd3d11/ReadbackManagerD3D11.h',
             'd3d11/ShaderDefinitionsD3D11.h',
             'd3d11/TextureD3D11.h',
         ]
         UNIFIED_SOURCES += [
             'd3d11/DiagnosticsD3D11.cpp',
+            'd3d11/MLGDeviceD3D11.cpp',
             'd3d11/TextureD3D11.cpp',
         ]
         SOURCES += [
@@ -99,6 +102,10 @@ EXPORTS.mozilla.layers += [
     'apz/src/APZUtils.h',
     'apz/src/AsyncDragMetrics.h',
     'apz/src/AsyncPanZoomAnimation.h',
+    'apz/src/FocusState.h',
+    'apz/src/FocusTarget.h',
+    'apz/src/KeyboardMap.h',
+    'apz/src/KeyboardScrollAction.h',
     'apz/src/TouchCounter.h',
     'apz/testutil/APZTestData.h',
     'apz/util/ActiveElementManager.h',
@@ -147,11 +154,13 @@ EXPORTS.mozilla.layers += [
     'composite/ImageLayerComposite.h',
     'composite/LayerManagerComposite.h',
     'composite/PaintedLayerComposite.h',
+    'composite/TextRenderer.h',
     'composite/TextureHost.h',
     'composite/TiledContentHost.h',
     'Compositor.h',
     'CompositorTypes.h',
     'D3D11ShareHandleImage.h',
+    'D3D11YCbCrImage.h',
     'D3D9SurfaceImage.h',
     'DirectionUtils.h',
     'Effects.h',
@@ -193,6 +202,13 @@ EXPORTS.mozilla.layers += [
     'LayerMetricsWrapper.h',
     'LayersHelpers.h',
     'LayersTypes.h',
+    'mlgpu/LayerManagerMLGPU.h',
+    'mlgpu/LayerMLGPU.h',
+    'mlgpu/MemoryReportingMLGPU.h',
+    'mlgpu/MLGDevice.h',
+    'mlgpu/MLGDeviceTypes.h',
+    'mlgpu/ShaderDefinitionsMLGPU.h',
+    'mlgpu/UtilityMLGPU.h',
     'opengl/CompositingRenderTargetOGL.h',
     'opengl/CompositorOGL.h',
     'opengl/MacIOSurfaceTextureClientOGL.h',
@@ -275,10 +291,16 @@ UNIFIED_SOURCES += [
     'apz/src/Axis.cpp',
     'apz/src/CheckerboardEvent.cpp',
     'apz/src/DragTracker.cpp',
+    'apz/src/FocusState.cpp',
+    'apz/src/FocusTarget.cpp',
+    'apz/src/GenericScrollAnimation.cpp',
     'apz/src/GestureEventListener.cpp',
     'apz/src/HitTestingTreeNode.cpp',
     'apz/src/InputBlockState.cpp',
     'apz/src/InputQueue.cpp',
+    'apz/src/KeyboardMap.cpp',
+    'apz/src/KeyboardScrollAction.cpp',
+    'apz/src/KeyboardScrollAnimation.cpp',
     'apz/src/OverscrollHandoffState.cpp',
     'apz/src/PotentialCheckerboardDurationTracker.cpp',
     'apz/src/QueuedInput.cpp',
@@ -392,6 +414,24 @@ UNIFIED_SOURCES += [
     'LayersLogging.cpp',
     'LayerSorter.cpp',
     'LayersTypes.cpp',
+    'mlgpu/BufferCache.cpp',
+    'mlgpu/CanvasLayerMLGPU.cpp',
+    'mlgpu/ContainerLayerMLGPU.cpp',
+    'mlgpu/FrameBuilder.cpp',
+    'mlgpu/ImageLayerMLGPU.cpp',
+    'mlgpu/LayerManagerMLGPU.cpp',
+    'mlgpu/LayerMLGPU.cpp',
+    'mlgpu/MaskOperation.cpp',
+    'mlgpu/MemoryReportingMLGPU.cpp',
+    'mlgpu/MLGDevice.cpp',
+    'mlgpu/PaintedLayerMLGPU.cpp',
+    'mlgpu/RenderPassMLGPU.cpp',
+    'mlgpu/RenderViewMLGPU.cpp',
+    'mlgpu/ShaderDefinitionsMLGPU.cpp',
+    'mlgpu/SharedBufferMLGPU.cpp',
+    'mlgpu/StagingBuffer.cpp',
+    'mlgpu/TexturedLayerMLGPU.cpp',
+    'mlgpu/TextureSourceProviderMLGPU.cpp',
     'opengl/CompositingRenderTargetOGL.cpp',
     'opengl/CompositorOGL.cpp',
     'opengl/GLBlitTextureImageHelper.cpp',
@@ -479,11 +519,15 @@ include('/ipc/chromium/chromium-config.mozbuild')
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
   GENERATED_FILES = [
       'CompositorD3D11Shaders.h',
+      'MLGShaders.h',
   ]
 
   d3d11_shaders = GENERATED_FILES['CompositorD3D11Shaders.h']
   d3d11_shaders.script = 'd3d11/genshaders.py'
   d3d11_shaders.inputs = ['d3d11/shaders.manifest']
+  mlg_shaders = GENERATED_FILES['MLGShaders.h']
+  mlg_shaders.script = 'd3d11/genshaders.py'
+  mlg_shaders.inputs = ['d3d11/mlgshaders/shaders.manifest']
 
 LOCAL_INCLUDES += [
     '/docshell/base',  # for nsDocShell.h

@@ -69,10 +69,9 @@ WebRenderPaintedLayerBlob::RenderLayer(wr::DisplayListBuilder& aBuilder,
 
     recorder->Finish();
 
-    wr::ByteBuffer bytes;
-    bytes.Allocate(recorder->RecordingSize());
-    DebugOnly<bool> ok = recorder->CopyRecording((char*)bytes.AsSlice().begin().get(), bytes.AsSlice().length());
-    MOZ_ASSERT(ok);
+    AddToValidRegion(regionToPaint);
+
+    wr::ByteBuffer bytes(recorder->mOutputStream.mLength, (uint8_t*)recorder->mOutputStream.mData);
 
     //XXX: We should switch to updating the blob image instead of adding a new one
     //     That will get rid of this discard bit
@@ -90,9 +89,8 @@ WebRenderPaintedLayerBlob::RenderLayer(wr::DisplayListBuilder& aBuilder,
   LayerRect rect = Bounds();
   DumpLayerInfo("PaintedLayer", rect);
 
-  WrClipRegionToken clip = aBuilder.PushClipRegion(sc.ToRelativeWrRect(rect));
-
-  aBuilder.PushImage(sc.ToRelativeWrRect(rect), clip, wr::ImageRendering::Auto, mImageKey.value());
+  WrRect r = sc.ToRelativeWrRect(rect);
+  aBuilder.PushImage(r, r, wr::ImageRendering::Auto, mImageKey.value());
 }
 
 } // namespace layers

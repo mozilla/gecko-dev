@@ -41,7 +41,7 @@ struct AnimationEventInfo {
   AnimationEventInfo(dom::Element* aElement,
                      CSSPseudoElementType aPseudoType,
                      EventMessage aMessage,
-                     const nsSubstring& aAnimationName,
+                     const nsAString& aAnimationName,
                      const StickyTimeDuration& aElapsedTime,
                      const TimeStamp& aTimeStamp,
                      dom::Animation* aAnimation)
@@ -76,7 +76,7 @@ class CSSAnimation final : public Animation
 {
 public:
  explicit CSSAnimation(nsIGlobalObject* aGlobal,
-                       const nsSubstring& aAnimationName)
+                       const nsAString& aAnimationName)
     : dom::Animation(aGlobal)
     , mAnimationName(aAnimationName)
     , mIsStylePaused(false)
@@ -189,7 +189,7 @@ protected:
   // This is used for setting the elapsedTime member of CSS AnimationEvents.
   TimeDuration InitialAdvance() const {
     return mEffect ?
-           std::max(TimeDuration(), mEffect->SpecifiedTiming().mDelay * -1) :
+           std::max(TimeDuration(), mEffect->SpecifiedTiming().Delay() * -1) :
            TimeDuration();
   }
 

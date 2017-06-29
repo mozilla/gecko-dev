@@ -24,14 +24,18 @@ treecol {
 
 #engineList treechildren::-moz-tree-image(engineShown, checked),
 #blocklistsTree treechildren::-moz-tree-image(selectionCol, checked) {
-  list-style-image: url("chrome://global/skin/in-content/check.svg#check");
+  list-style-image: url("chrome://global/skin/in-content/check.svg");
+  -moz-context-properties: fill, stroke;
+  fill: #2292d0;
+  stroke: none;
   width: 21px;
   height: 21px;
 }
 
 #engineList treechildren::-moz-tree-image(engineShown, checked, selected),
 #blocklistsTree treechildren::-moz-tree-image(selectionCol, checked, selected) {
-  list-style-image: url("chrome://global/skin/in-content/check.svg#check-inverted");
+  fill: white;
+  stroke: #0095dd;
 }
 
 #engineList treechildren::-moz-tree-row,
@@ -232,11 +236,8 @@ treecol {
   margin-left: 0;
 }
 
-/* This learn-more link is inserted at the end of a
-   xul:description element so it should behave like normal text. */
-#trackingProtectionLearnMore {
-  white-space: normal;
-  margin-inline-start: 0;
+#doNotTrackLearnMoreBox {
+  margin-top: 30px
 }
 
 #trackingProtectionAdvancedSettings {
@@ -624,6 +625,7 @@ groupbox {
   padding: 0 10px;
   bottom: 100%;
   background-color: #ffe900;
+  border: 1px solid #d7b600;
 }
 
 .search-tooltip:hover,
@@ -632,6 +634,15 @@ groupbox {
 }
 
 .search-tooltip::before {
+  position: absolute;
+  content: "";
+  border: 7px solid transparent;
+  border-top-color: #d7b600;
+  top: 100%;
+  offset-inline-start: calc(50% - 7px);
+}
+
+.search-tooltip::after {
   position: absolute;
   content: "";
   border: 6px solid transparent;

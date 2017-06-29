@@ -316,15 +316,15 @@ LogEvicted(nsCookie *aCookie, const char* details)
   MOZ_LOG(gCookieLog, LogLevel::Debug,("\n"));
 }
 
-// inline wrappers to make passing in nsAFlatCStrings easier
+// inline wrappers to make passing in nsCStrings easier
 static inline void
-LogFailure(bool aSetCookie, nsIURI *aHostURI, const nsAFlatCString &aCookieString, const char *aReason)
+LogFailure(bool aSetCookie, nsIURI *aHostURI, const nsCString& aCookieString, const char *aReason)
 {
   LogFailure(aSetCookie, aHostURI, aCookieString.get(), aReason);
 }
 
 static inline void
-LogSuccess(bool aSetCookie, nsIURI *aHostURI, const nsAFlatCString &aCookieString, nsCookie *aCookie, bool aReplacing)
+LogSuccess(bool aSetCookie, nsIURI *aHostURI, const nsCString& aCookieString, nsCookie *aCookie, bool aReplacing)
 {
   LogSuccess(aSetCookie, aHostURI, aCookieString.get(), aCookie, aReplacing);
 }
@@ -2494,6 +2494,9 @@ nsCookieService::AddNative(const nsACString &aHost,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  AutoRestore<DBState*> savePrevDBState(mDBState);
+  mDBState = (aOriginAttributes->mPrivateBrowsingId > 0) ? mPrivateDBState : mDefaultDBState;
+
   // first, normalize the hostname, and fail if it contains illegal characters.
   nsAutoCString host(aHost);
   nsresult rv = NormalizeHost(host);
@@ -2535,6 +2538,9 @@ nsCookieService::Remove(const nsACString& aHost, const OriginAttributes& aAttrs,
     NS_WARNING("No DBState! Profile already closed?");
     return NS_ERROR_NOT_AVAILABLE;
   }
+
+  AutoRestore<DBState*> savePrevDBState(mDBState);
+  mDBState = (aAttrs.mPrivateBrowsingId > 0) ? mPrivateDBState : mDefaultDBState;
 
   // first, normalize the hostname, and fail if it contains illegal characters.
   nsAutoCString host(aHost);
@@ -2619,25 +2625,6 @@ nsCookieService::RemoveNative(const nsACString &aHost,
   }
 
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsCookieService::UsePrivateMode(bool aIsPrivate,
-                                nsIPrivateModeCallback* aCallback)
-{
-  if (!aCallback) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  if (!mDBState) {
-    NS_WARNING("No DBState! Profile already closed?");
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  AutoRestore<DBState*> savePrevDBState(mDBState);
-  mDBState = aIsPrivate ? mPrivateDBState : mDefaultDBState;
-
-  return aCallback->Callback();
 }
 
 /******************************************************************************
@@ -3036,7 +3023,7 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
   nsAutoCString buffer, baseDomain;
   bool isMore = true;
   int32_t hostIndex, isDomainIndex, pathIndex, secureIndex, expiresIndex, nameIndex, cookieIndex;
-  nsASingleFragmentCString::char_iterator iter;
+  nsACString::char_iterator iter;
   int32_t numInts;
   int64_t expires;
   bool isDomain, isHttpOnly = false;
@@ -3112,7 +3099,7 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
     }
 
     isDomain = Substring(buffer, isDomainIndex, pathIndex - isDomainIndex - 1).EqualsLiteral(kTrue);
-    const nsASingleFragmentCString &host = Substring(buffer, hostIndex, isDomainIndex - hostIndex - 1);
+    const nsACString& host = Substring(buffer, hostIndex, isDomainIndex - hostIndex - 1);
     // check for bad legacy cookies (domain not starting with a dot, or containing a port),
     // and discard
     if ((isDomain && !host.IsEmpty() && host.First() != '.') ||
@@ -3879,13 +3866,13 @@ static inline bool istokenseparator (char c) { return isvalueseparator(c) || c =
 // Parse a single token/value pair.
 // Returns true if a cookie terminator is found, so caller can parse new cookie.
 bool
-nsCookieService::GetTokenValue(nsASingleFragmentCString::const_char_iterator &aIter,
-                               nsASingleFragmentCString::const_char_iterator &aEndIter,
+nsCookieService::GetTokenValue(nsACString::const_char_iterator &aIter,
+                               nsACString::const_char_iterator &aEndIter,
                                nsDependentCSubstring                         &aTokenString,
                                nsDependentCSubstring                         &aTokenValue,
                                bool                                          &aEqualsFound)
 {
-  nsASingleFragmentCString::const_char_iterator start, lastSpace;
+  nsACString::const_char_iterator start, lastSpace;
   // initialize value string to clear garbage
   aTokenValue.Rebind(aIter, aIter);
 
@@ -3954,8 +3941,8 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
   static const char kSecure[]  = "secure";
   static const char kHttpOnly[]  = "httponly";
 
-  nsASingleFragmentCString::const_char_iterator tempBegin, tempEnd;
-  nsASingleFragmentCString::const_char_iterator cookieStart, cookieEnd;
+  nsACString::const_char_iterator tempBegin, tempEnd;
+  nsACString::const_char_iterator cookieStart, cookieEnd;
   aCookieHeader.BeginReading(cookieStart);
   aCookieHeader.EndReading(cookieEnd);
 
@@ -4641,6 +4628,9 @@ nsCookieService::CookieExistsNative(nsICookie2* aCookie,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  AutoRestore<DBState*> savePrevDBState(mDBState);
+  mDBState = (aOriginAttributes->mPrivateBrowsingId > 0) ? mPrivateDBState : mDefaultDBState;
+
   nsAutoCString host, name, path;
   nsresult rv = aCookie->GetHost(host);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -4831,6 +4821,9 @@ nsCookieService::GetCookiesFromHost(const nsACString     &aHost,
                                   u"2");
   NS_ENSURE_SUCCESS(rv, rv);
 
+  AutoRestore<DBState*> savePrevDBState(mDBState);
+  mDBState = (attrs.mPrivateBrowsingId > 0) ? mPrivateDBState : mDefaultDBState;
+
   nsCookieKey key = nsCookieKey(baseDomain, attrs);
   EnsureReadDomain(key);
 
@@ -4878,6 +4871,10 @@ nsCookieService::GetCookiesWithOriginAttributes(
     NS_WARNING("No DBState! Profile already closed?");
     return NS_ERROR_NOT_AVAILABLE;
   }
+
+  AutoRestore<DBState*> savePrevDBState(mDBState);
+  mDBState = (aPattern.mPrivateBrowsingId.WasPassed() &&
+      aPattern.mPrivateBrowsingId.Value() > 0) ? mPrivateDBState : mDefaultDBState;
 
   nsCOMArray<nsICookie> cookies;
   for (auto iter = mDBState->hostTable.Iter(); !iter.Done(); iter.Next()) {
@@ -4932,6 +4929,10 @@ nsCookieService::RemoveCookiesWithOriginAttributes(
     NS_WARNING("No DBState! Profile already close?");
     return NS_ERROR_NOT_AVAILABLE;
   }
+
+  AutoRestore<DBState*> savePrevDBState(mDBState);
+  mDBState = (aPattern.mPrivateBrowsingId.WasPassed() &&
+      aPattern.mPrivateBrowsingId.Value() > 0) ? mPrivateDBState : mDefaultDBState;
 
   mozStorageTransaction transaction(mDBState->dbConn, false);
   // Iterate the hash table of nsCookieEntry.
@@ -5009,9 +5010,9 @@ nsCookieService::FindSecureCookie(const nsCookieKey    &aKey,
 // find an exact cookie specified by host, name, and path that hasn't expired.
 bool
 nsCookieService::FindCookie(const nsCookieKey    &aKey,
-                            const nsAFlatCString &aHost,
-                            const nsAFlatCString &aName,
-                            const nsAFlatCString &aPath,
+                            const nsCString& aHost,
+                            const nsCString& aName,
+                            const nsCString& aPath,
                             nsListIter           &aIter)
 {
   EnsureReadDomain(aKey);
@@ -5186,6 +5187,11 @@ nsCookieService::AddCookieToList(const nsCookieKey             &aKey,
                "Not writing to the DB but have a params array?");
   NS_ASSERTION(!(!aDBState->dbConn && aParamsArray),
                "Do not have a DB connection but have a params array?");
+
+  if (!aCookie) {
+    NS_WARNING("Attempting to AddCookieToList with null cookie");
+    return;
+  }
 
   nsCookieEntry *entry = aDBState->hostTable.PutEntry(aKey);
   NS_ASSERTION(entry, "can't insert element into a null entry!");

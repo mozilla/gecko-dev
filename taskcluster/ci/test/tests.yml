@@ -55,7 +55,6 @@ cppunit:
                         windows.*:
                             - unittests/win_taskcluster_unittest.py
                         macosx.*:
-                            - remove_executables.py
                             - unittests/mac_unittest.py
                         linux.*:
                             - unittests/linux_unittest.py
@@ -103,7 +102,6 @@ crashtest:
                         windows.*:
                             - unittests/win_taskcluster_unittest.py
                         macosx.*:
-                            - remove_executables.py
                             - unittests/mac_unittest.py
                         linux.*:
                             - unittests/linux_unittest.py
@@ -114,88 +112,6 @@ crashtest:
         by-test-platform:
             linux64-qr/.*: 1
             default: default
-
-external-media-tests-base:
-    description: "External Media Test run"
-    suite: external-media-tests
-    try-name: 'media-tests'
-    treeherder-symbol: tc-VP(b-m)
-    e10s: false
-    tier: 2
-    max-run-time: 5400
-    docker-image: {"in-tree": "desktop1604-test"}
-    run-on-projects:
-        by-test-platform:
-            windows.*: ['mozilla-central', 'try']
-            windows7-32-vm/debug: built-projects
-            windows7-32/debug: built-projects
-            default: built-projects
-    mozharness:
-        script: firefox_media_tests_taskcluster.py
-        config:
-            by-test-platform:
-                windows.*:
-                    - mediatests/taskcluster_windows_config.py
-                default:
-                    - mediatests/taskcluster_posix_config.py
-                    - remove_executables.py
-
-external-media-tests-twitch:
-    description: "External Media Test Twitch run"
-    suite: external-media-tests/twitch
-    treeherder-symbol: tc-VP(b-t)
-    try-name: media-twitch-tests
-    e10s: false
-    instance-size:
-        by-test-platform:
-            default: default
-    tier: 2
-    max-run-time: 5400
-    docker-image: {"in-tree": "desktop1604-test"}
-    run-on-projects:
-        by-test-platform:
-            windows.*: ['mozilla-central', 'try']
-            windows7-32-vm/debug: built-projects
-            windows7-32/debug: built-projects
-            default: built-projects
-    mozharness:
-        script: firefox_media_tests_taskcluster.py
-        config:
-            by-test-platform:
-                windows.*:
-                    - mediatests/taskcluster_windows_config.py
-                default:
-                    - mediatests/taskcluster_posix_config.py
-                    - remove_executables.py
-        extra-options:
-            - "--suite=media-twitch-tests"
-
-external-media-tests-youtube:
-    description: "External Media Test Youtube run"
-    suite: external-media-tests/youtube
-    try-name: media-youtube-tests
-    treeherder-symbol: tc-VP(b-y)
-    e10s: false
-    tier: 2
-    max-run-time: 5400
-    docker-image: {"in-tree": "desktop1604-test"}
-    run-on-projects:
-        by-test-platform:
-            windows.*: ['mozilla-central', 'try']
-            windows7-32-vm/debug: built-projects
-            windows7-32/debug: built-projects
-            default: built-projects
-    mozharness:
-        script: firefox_media_tests_taskcluster.py
-        config:
-            by-test-platform:
-                windows.*:
-                    - mediatests/taskcluster_windows_config.py
-                default:
-                    - mediatests/taskcluster_posix_config.py
-                    - remove_executables.py
-        extra-options:
-            - "--suite=media-youtube-tests"
 
 firefox-ui-functional-local:
     description: "Firefox-ui-tests functional run"
@@ -210,7 +126,9 @@ firefox-ui-functional-local:
             by-test-platform:
                 windows.*:
                     - firefox_ui_tests/taskcluster_windows.py
-                default:
+                macosx.*:
+                    - firefox_ui_tests/taskcluster.py
+                linux.*:
                     - firefox_ui_tests/taskcluster.py
                     - remove_executables.py
         extra-options:
@@ -230,7 +148,9 @@ firefox-ui-functional-remote:
             by-test-platform:
                 windows.*:
                     - firefox_ui_tests/taskcluster_windows.py
-                default:
+                macosx.*:
+                    - firefox_ui_tests/taskcluster.py
+                linux.*:
                     - firefox_ui_tests/taskcluster.py
                     - remove_executables.py
         extra-options:
@@ -274,7 +194,6 @@ gtest:
                 windows.*:
                     - unittests/win_taskcluster_unittest.py
                 macosx.*:
-                    - remove_executables.py
                     - unittests/mac_unittest.py
                 linux.*:
                     - unittests/linux_unittest.py
@@ -310,7 +229,6 @@ jittest:
                 windows.*:
                     - unittests/win_taskcluster_unittest.py
                 macosx.*:
-                    - remove_executables.py
                     - unittests/mac_unittest.py
                 linux.*:
                     - unittests/linux_unittest.py
@@ -374,7 +292,6 @@ jsreftest:
                         windows.*:
                             - unittests/win_taskcluster_unittest.py
                         macosx.*:
-                            - remove_executables.py
                             - unittests/mac_unittest.py
                         linux.*:
                             - unittests/linux_unittest.py
@@ -437,6 +354,8 @@ marionette:
                     by-test-platform:
                         windows.*:
                             - marionette/windows_taskcluster_config.py
+                        macosx.*:
+                            - marionette/prod_config.py
                         default:
                             - marionette/prod_config.py
                             - remove_executables.py
@@ -471,6 +390,8 @@ marionette-headless:
                 no-read-buildbot-config: true
                 config:
                     by-test-platform:
+                        macosx.*: 
+                            - marionette/prod_config.py
                         default:
                             - marionette/prod_config.py
                             - remove_executables.py
@@ -499,6 +420,7 @@ mochitest:
             android.*: 20
             macosx.*: 5
             windows.*: 5
+            linux32/debug: 16
             linux.*: 10
     e10s:
         by-test-platform:
@@ -536,7 +458,6 @@ mochitest:
                         windows.*:
                             - unittests/win_taskcluster_unittest.py
                         macosx.*:
-                            - remove_executables.py
                             - unittests/mac_unittest.py
                         linux.*:
                             - unittests/linux_unittest.py
@@ -572,7 +493,6 @@ mochitest-a11y:
                 windows.*:
                     - unittests/win_taskcluster_unittest.py
                 macosx.*:
-                    - remove_executables.py
                     - unittests/mac_unittest.py
                 linux.*:
                     - unittests/linux_unittest.py
@@ -622,7 +542,6 @@ mochitest-browser-chrome:
                 windows.*:
                     - unittests/win_taskcluster_unittest.py
                 macosx.*:
-                    - remove_executables.py
                     - unittests/mac_unittest.py
                 linux.*:
                     - unittests/linux_unittest.py
@@ -647,10 +566,12 @@ mochitest-browser-screenshots:
     loopback-video: true
     run-on-projects:
         by-test-platform:
-            windows.*: ['mozilla-central', 'try']
+            windows10/opt: ['mozilla-central', 'try']
+            windows7/opt: ['mozilla-central', 'try']
             linux64/opt: ['mozilla-central', 'try']
+            macosx/opt: ['mozilla-central', 'try']
             default: []
-    e10s: true
+    e10s: both
     max-run-time: 3600
     mozharness:
         mochitest-flavor: browser
@@ -661,7 +582,6 @@ mochitest-browser-screenshots:
                 windows.*:
                     - unittests/win_taskcluster_unittest.py
                 macosx.*:
-                    - remove_executables.py
                     - unittests/mac_unittest.py
                 linux.*:
                     - unittests/linux_unittest.py
@@ -741,6 +661,8 @@ mochitest-chrome-style:
         no-read-buildbot-config: true
         config:
             by-test-platform:
+                macosx.*:
+                    - unittests/mac_unittest.py
                 default:
                     - unittests/linux_unittest.py
                     - remove_executables.py
@@ -832,7 +754,6 @@ mochitest-devtools-chrome:
                 windows.*:
                     - unittests/win_taskcluster_unittest.py
                 macosx.*:
-                    - remove_executables.py
                     - unittests/mac_unittest.py
                 linux.*:
                     - unittests/linux_unittest.py
@@ -888,7 +809,6 @@ mochitest-gpu:
                         windows.*:
                             - unittests/win_taskcluster_unittest.py
                         macosx.*:
-                            - remove_executables.py
                             - unittests/mac_unittest.py
                         linux.*:
                             - unittests/linux_unittest.py
@@ -925,7 +845,6 @@ mochitest-jetpack:
                 windows.*:
                     - unittests/win_taskcluster_unittest.py
                 macosx.*:
-                    - remove_executables.py
                     - unittests/mac_unittest.py
                 linux.*:
                     - unittests/linux_unittest.py
@@ -982,7 +901,6 @@ mochitest-media:
                         windows.*:
                             - unittests/win_taskcluster_unittest.py
                         macosx.*:
-                            - remove_executables.py
                             - unittests/mac_unittest.py
                         linux.*:
                             - unittests/linux_unittest.py
@@ -1007,6 +925,8 @@ mochitest-style:
         no-read-buildbot-config: true
         config:
             by-test-platform:
+                macosx.*:
+                    - unittests/mac_unittest.py
                 default:
                     - unittests/linux_unittest.py
                     - remove_executables.py
@@ -1034,6 +954,8 @@ mochitest-valgrind:
             by-test-platform:
                 windows.*:
                     - unittests/win_taskcluster_unittest.py
+                macosx.*:
+                    - unittests/mac_unittest.py
                 linux.*:
                     - unittests/linux_unittest.py
                     - remove_executables.py
@@ -1089,7 +1011,6 @@ mochitest-webgl:
                         windows.*:
                             - unittests/win_taskcluster_unittest.py
                         macosx.*:
-                            - remove_executables.py
                             - unittests/mac_unittest.py
                         linux.*:
                             - unittests/linux_unittest.py
@@ -1150,7 +1071,6 @@ reftest:
                         windows.*:
                             - unittests/win_taskcluster_unittest.py
                         macosx.*:
-                            - remove_executables.py
                             - unittests/mac_unittest.py
                         linux.*:
                             - unittests/linux_unittest.py
@@ -1184,7 +1104,6 @@ reftest-no-accel:
                 windows.*:
                     - unittests/win_taskcluster_unittest.py
                 macosx.*:
-                    - remove_executables.py
                     - unittests/mac_unittest.py
                 linux.*:
                     - unittests/linux_unittest.py
@@ -1232,8 +1151,12 @@ reftest-stylo:
         script: desktop_unittest.py
         no-read-buildbot-config: true
         config:
-            - unittests/linux_unittest.py
-            - remove_executables.py
+            by-test-platform:
+                macosx.*:
+                    - unittests/mac_unittest.py
+                default:
+                    - unittests/linux_unittest.py
+                    - remove_executables.py
         extra-options:
             - --reftest-suite=reftest-stylo
 
@@ -1264,6 +1187,7 @@ talos-chrome:
     treeherder-symbol: tc-T(c)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
@@ -1289,6 +1213,7 @@ talos-dromaeojs:
     treeherder-symbol: tc-T(d)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
@@ -1314,6 +1239,7 @@ talos-g1:
     treeherder-symbol: tc-T(g1)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 7200
@@ -1337,11 +1263,11 @@ talos-g2:
     suite: talos
     try-name: g2
     treeherder-symbol: tc-T(g2)
-    max-run-time: 3600
+    max-run-time: 7200
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
-            linux64-stylo-sequential/.*: ['try']
             default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     e10s: true
     mozharness:
@@ -1365,6 +1291,7 @@ talos-g3:
     treeherder-symbol: tc-T(g3)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-beta','mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
@@ -1390,6 +1317,7 @@ talos-g4:
     treeherder-symbol: tc-T(g4)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-beta','mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
@@ -1415,6 +1343,7 @@ talos-g5:
     treeherder-symbol: tc-T(g5)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
@@ -1425,7 +1354,6 @@ talos-g5:
         config:
             by-test-platform:
                 macosx.*:
-                    - remove_executables.py
                     - talos/mac_config.py
                 default:
                     - talos/linux_config.py
@@ -1442,6 +1370,7 @@ talos-other:
     treeherder-symbol: tc-T(o)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-beta','mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
@@ -1467,6 +1396,7 @@ talos-perf-reftest:
     treeherder-symbol: tc-T(p)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central', 'try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
@@ -1488,6 +1418,7 @@ talos-svgr:
     treeherder-symbol: tc-T(s)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
@@ -1513,6 +1444,7 @@ talos-tp5o:
     treeherder-symbol: tc-T(tp)
     run-on-projects:
         by-test-platform:
+            linux64-stylo-sequential/.*: ['mozilla-central','try']
             linux64-stylo/.*: ['mozilla-central', 'try']
             default: ['mozilla-beta', 'mozilla-central', 'mozilla-inbound', 'autoland', 'try']
     max-run-time: 3600
@@ -1547,7 +1479,6 @@ web-platform-tests:
     max-run-time: 7200
     instance-size: xlarge
     docker-image: {"in-tree": "desktop1604-test"}
-    checkout: true
     run-on-projects:
         by-test-platform:
             windows10.*: ['mozilla-central', 'try']
@@ -1563,6 +1494,8 @@ web-platform-tests:
             by-test-platform:
                 windows.*:
                     - web_platform_tests/prod_config_windows_taskcluster.py
+                macosx.*:
+                    - web_platform_tests/prod_config.py
                 default:
                     - web_platform_tests/prod_config.py
                     - remove_executables.py
@@ -1580,7 +1513,6 @@ web-platform-tests-reftests:
             macosx.*: true
             default: both
     docker-image: {"in-tree": "desktop1604-test"}
-    checkout: true
     run-on-projects:
         by-test-platform:
             windows10.*: ['mozilla-central', 'try']
@@ -1595,6 +1527,8 @@ web-platform-tests-reftests:
             by-test-platform:
                 windows.*:
                     - web_platform_tests/prod_config_windows_taskcluster.py
+                macosx.*:
+                    - web_platform_tests/prod_config.py
                 default:
                     - web_platform_tests/prod_config.py
                     - remove_executables.py
@@ -1608,7 +1542,6 @@ web-platform-tests-wdspec:
     max-run-time: 5400
     instance-size: xlarge
     docker-image: {"in-tree": "desktop1604-test"}
-    checkout: true
     mozharness:
         script: web_platform_tests.py
         no-read-buildbot-config: true
@@ -1616,6 +1549,8 @@ web-platform-tests-wdspec:
             by-test-platform:
                 windows.*:
                     - web_platform_tests/prod_config_windows_taskcluster.py
+                macosx.*:
+                    - web_platform_tests/prod_config.py
                 default:
                     - web_platform_tests/prod_config.py
                     - remove_executables.py
@@ -1670,7 +1605,6 @@ xpcshell:
                         windows.*:
                             - unittests/win_taskcluster_unittest.py
                         macosx.*:
-                            - remove_executables.py
                             - unittests/mac_unittest.py
                         linux.*:
                             - unittests/linux_unittest.py

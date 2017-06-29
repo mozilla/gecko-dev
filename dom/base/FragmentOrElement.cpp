@@ -24,6 +24,7 @@
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/ServoRestyleManager.h"
+#include "mozilla/TextEditor.h"
 #include "mozilla/URLExtraData.h"
 #include "mozilla/dom/Attr.h"
 #include "nsDOMAttributeMap.h"
@@ -93,7 +94,6 @@
 #include "nsNodeInfoManager.h"
 #include "nsICategoryManager.h"
 #include "nsGenericHTMLElement.h"
-#include "nsIEditor.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsIControllers.h"
 #include "nsView.h"
@@ -429,7 +429,7 @@ nsIContent::GetBaseURI(bool aTryUseXHRDocBaseURI) const
     for (uint32_t i = baseAttrs.Length() - 1; i != uint32_t(-1); --i) {
       nsCOMPtr<nsIURI> newBase;
       nsresult rv = NS_NewURI(getter_AddRefs(newBase), baseAttrs[i],
-                              doc->GetDocumentCharacterSet().get(), base);
+                              doc->GetDocumentCharacterSet(), base);
       // Do a security check, almost the same as nsDocument::SetBaseURL()
       // Only need to do this on the final uri
       if (NS_SUCCEEDED(rv) && i == 0) {
@@ -2289,8 +2289,8 @@ FragmentOrElement::GetMarkup(bool aIncludeSelf, nsAString& aMarkup)
 
   if (IsEditable()) {
     nsCOMPtr<Element> elem = do_QueryInterface(this);
-    nsIEditor* editor = elem ? elem->GetEditorInternal() : nullptr;
-    if (editor && editor->OutputsMozDirty()) {
+    TextEditor* textEditor = elem ? elem->GetTextEditorInternal() : nullptr;
+    if (textEditor && textEditor->OutputsMozDirty()) {
       flags &= ~nsIDocumentEncoder::OutputIgnoreMozDirty;
     }
   }

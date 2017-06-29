@@ -13,7 +13,7 @@ use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
-use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
@@ -36,11 +36,13 @@ use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::closeevent::CloseEvent;
 use dom::comment::Comment;
+use dom::customelementregistry::CustomElementDefinition;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit};
+use dom::element::CustomElementCreationMode;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
 use dom::eventtarget::EventTarget;
@@ -703,6 +705,7 @@ impl Document {
             // Step 3
             let global_scope = self.window.upcast::<GlobalScope>();
             let webrender_pipeline_id = global_scope.pipeline_id().to_webrender();
+            self.window.update_viewport_for_scroll(x, y);
             self.window.perform_a_scroll(x,
                                          y,
                                          ClipId::root_scroll_node(webrender_pipeline_id),
@@ -1538,28 +1541,29 @@ impl Document {
         self.animation_frame_ident.set(ident);
         self.animation_frame_list.borrow_mut().push((ident, Some(callback)));
 
-        // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
-        // we're guaranteed to already be in the "animation callbacks present" state.
-        //
-        // This reduces CPU usage by avoiding needless thread wakeups in the common case of
-        // repeated rAF.
-        //
         // TODO: Should tick animation only when document is visible
-        if !self.running_animation_callbacks.get() {
-            if !self.is_faking_animation_frames() {
-                let global_scope = self.window.upcast::<GlobalScope>();
-                let event = ConstellationMsg::ChangeRunningAnimationsState(
-                    global_scope.pipeline_id(),
-                    AnimationState::AnimationCallbacksPresent);
-                global_scope.constellation_chan().send(event).unwrap();
-            } else {
-                let callback = FakeRequestAnimationFrameCallback {
-                    document: Trusted::new(self),
-                };
-                self.global()
-                    .schedule_callback(OneshotTimerCallback::FakeRequestAnimationFrame(callback),
-                                       MsDuration::new(FAKE_REQUEST_ANIMATION_FRAME_DELAY));
-            }
+
+        // If we are running 'fake' animation frames, we unconditionally
+        // set up a one-shot timer for script to execute the rAF callbacks.
+        if self.is_faking_animation_frames() {
+            let callback = FakeRequestAnimationFrameCallback {
+                document: Trusted::new(self),
+            };
+            self.global()
+                .schedule_callback(OneshotTimerCallback::FakeRequestAnimationFrame(callback),
+                                   MsDuration::new(FAKE_REQUEST_ANIMATION_FRAME_DELAY));
+        } else if !self.running_animation_callbacks.get() {
+            // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
+            // we're guaranteed to already be in the "animation callbacks present" state.
+            //
+            // This reduces CPU usage by avoiding needless thread wakeups in the common case of
+            // repeated rAF.
+
+            let global_scope = self.window.upcast::<GlobalScope>();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(
+                global_scope.pipeline_id(),
+                AnimationState::AnimationCallbacksPresent);
+            global_scope.constellation_chan().send(event).unwrap();
         }
 
         ident
@@ -1595,6 +1599,22 @@ impl Document {
         let spurious = !self.window.reflow(ReflowGoal::ForDisplay,
                                            ReflowQueryType::NoQuery,
                                            ReflowReason::RequestAnimationFrame);
+
+        if spurious && !was_faking_animation_frames {
+            // If the rAF callbacks did not mutate the DOM, then the
+            // reflow call above means that layout will not be invoked,
+            // and therefore no new frame will be sent to the compositor.
+            // If this happens, the compositor will not tick the animation
+            // and the next rAF will never be called! When this happens
+            // for several frames, then the spurious rAF detection below
+            // will kick in and use a timer to tick the callbacks. However,
+            // for the interim frames where we are deciding whether this rAF
+            // is considered spurious, we need to ensure that the layout
+            // and compositor *do* tick the animation.
+            self.window.force_reflow(ReflowGoal::ForDisplay,
+                                     ReflowQueryType::NoQuery,
+                                     ReflowReason::RequestAnimationFrame);
+        }
 
         // Only send the animation change state message after running any callbacks.
         // This means that if the animation callback adds a new callback for
@@ -1977,6 +1997,26 @@ impl Document {
         };
 
         self.window.layout().nodes_from_point_response()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition
+    pub fn lookup_custom_element_definition(&self,
+                                            local_name: LocalName,
+                                            is: Option<LocalName>)
+                                            -> Option<Rc<CustomElementDefinition>> {
+        if !PREFS.get("dom.customelements.enabled").as_boolean().unwrap_or(false) {
+            return None;
+        }
+
+        // Step 2
+        if !self.has_browsing_context {
+            return None;
+        }
+
+        // Step 3
+        let registry = self.window.CustomElements();
+
+        registry.lookup_definition(local_name, is)
     }
 }
 
@@ -2795,7 +2835,10 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement
-    fn CreateElement(&self, mut local_name: DOMString) -> Fallible<Root<Element>> {
+    fn CreateElement(&self,
+                     mut local_name: DOMString,
+                     options: &ElementCreationOptions)
+                     -> Fallible<Root<Element>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
@@ -2811,18 +2854,21 @@ impl DocumentMethods for Document {
         };
 
         let name = QualName::new(None, ns, LocalName::from(local_name));
-        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
+        let is = options.is.as_ref().map(|is| LocalName::from(&**is));
+        Ok(Element::create(name, is, self, ElementCreator::ScriptCreated, CustomElementCreationMode::Synchronous))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelementns
     fn CreateElementNS(&self,
                        namespace: Option<DOMString>,
-                       qualified_name: DOMString)
+                       qualified_name: DOMString,
+                       options: &ElementCreationOptions)
                        -> Fallible<Root<Element>> {
         let (namespace, prefix, local_name) = validate_and_extract(namespace,
                                                                         &qualified_name)?;
         let name = QualName::new(prefix, namespace, local_name);
-        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
+        let is = options.is.as_ref().map(|is| LocalName::from(&**is));
+        Ok(Element::create(name, is, self, ElementCreator::ScriptCreated, CustomElementCreationMode::Synchronous))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
@@ -3076,7 +3122,11 @@ impl DocumentMethods for Document {
                 Some(elem) => Root::upcast::<Node>(elem),
                 None => {
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
-                    let elem = Element::create(name, self, ElementCreator::ScriptCreated);
+                    let elem = Element::create(name,
+                                               None,
+                                               self,
+                                               ElementCreator::ScriptCreated,
+                                               CustomElementCreationMode::Synchronous);
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent.InsertBefore(child, parent.GetFirstChild().r())
@@ -3094,8 +3144,10 @@ impl DocumentMethods for Document {
                         Some(head) => {
                             let name = QualName::new(None, ns!(html), local_name!("title"));
                             let elem = Element::create(name,
+                                                       None,
                                                        self,
-                                                       ElementCreator::ScriptCreated);
+                                                       ElementCreator::ScriptCreated,
+                                                       CustomElementCreationMode::Synchronous);
                             head.upcast::<Node>()
                                 .AppendChild(elem.upcast())
                                 .unwrap()

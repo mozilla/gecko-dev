@@ -346,6 +346,12 @@ nsJARChannel::LookupFile(bool aAllowAsync)
     // have e.g. spaces in their filenames.
     NS_UnescapeURL(mJarEntry);
 
+    if (mJarFileOverride) {
+        mJarFile = mJarFileOverride;
+        LOG(("nsJARChannel::LookupFile [this=%p] Overriding mJarFile\n", this));
+        return NS_OK;
+    }
+
     // try to get a nsIFile directly from the url, which will often succeed.
     {
         nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(mJarBaseURI);
@@ -885,6 +891,17 @@ nsJARChannel::GetJarFile(nsIFile **aFile)
 }
 
 NS_IMETHODIMP
+nsJARChannel::SetJarFile(nsIFile *aFile)
+{
+    if (mOpened) {
+        return NS_ERROR_IN_PROGRESS;
+    }
+    mJarFileOverride = aFile;
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 nsJARChannel::GetZipEntry(nsIZipEntry **aZipEntry)
 {
     nsresult rv = LookupFile(false);
@@ -1081,7 +1098,8 @@ nsJARChannel::OnDataAvailable(nsIRequest *req, nsISupports *ctx,
             FireOnProgress(offset + count);
         } else {
             NS_DispatchToMainThread(NewRunnableMethod
-                                    <uint64_t>(this,
+                                    <uint64_t>("nsJARChannel::FireOnProgress",
+                                               this,
                                                &nsJARChannel::FireOnProgress,
                                                offset + count));
         }

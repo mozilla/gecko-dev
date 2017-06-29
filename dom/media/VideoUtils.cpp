@@ -4,26 +4,25 @@
 
 #include "VideoUtils.h"
 
-#include "mozilla/Base64.h"
-#include "mozilla/TaskQueue.h"
-#include "mozilla/Telemetry.h"
-
+#include "ImageContainer.h"
 #include "MediaContainerType.h"
 #include "MediaPrefs.h"
 #include "MediaResource.h"
 #include "TimeUnits.h"
-#include "nsMathUtils.h"
-#include "nsSize.h"
 #include "VorbisUtils.h"
-#include "ImageContainer.h"
+#include "mozilla/Base64.h"
 #include "mozilla/SharedThreadPool.h"
-#include "nsIRandomGenerator.h"
-#include "nsIServiceManager.h"
-#include "nsServiceManagerUtils.h"
-#include "nsIConsoleService.h"
-#include "nsThreadUtils.h"
+#include "mozilla/TaskQueue.h"
+#include "mozilla/Telemetry.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentTypeParser.h"
+#include "nsIConsoleService.h"
+#include "nsIRandomGenerator.h"
+#include "nsIServiceManager.h"
+#include "nsMathUtils.h"
+#include "nsServiceManagerUtils.h"
+#include "nsSize.h"
+#include "nsThreadUtils.h"
 
 #include <functional>
 #include <stdint.h>
@@ -396,8 +395,8 @@ LogToBrowserConsole(const nsAString& aMsg)
 {
   if (!NS_IsMainThread()) {
     nsString msg(aMsg);
-    nsCOMPtr<nsIRunnable> task =
-      NS_NewRunnableFunction([msg]() { LogToBrowserConsole(msg); });
+    nsCOMPtr<nsIRunnable> task = NS_NewRunnableFunction(
+      "LogToBrowserConsole", [msg]() { LogToBrowserConsole(msg); });
     SystemGroup::Dispatch("LogToBrowserConsole", TaskCategory::Other, task.forget());
     return;
   }
@@ -418,7 +417,7 @@ ParseCodecsString(const nsAString& aCodecs, nsTArray<nsString>& aOutCodecs)
   bool expectMoreTokens = false;
   nsCharSeparatedTokenizer tokenizer(aCodecs, ',');
   while (tokenizer.hasMoreTokens()) {
-    const nsSubstring& token = tokenizer.nextToken();
+    const nsAString& token = tokenizer.nextToken();
     expectMoreTokens = tokenizer.separatorAfterCurrentToken();
     aOutCodecs.AppendElement(token);
   }

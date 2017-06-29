@@ -366,6 +366,24 @@ public:
   }
 
   /**
+   * Call this to indicate that some node (this window, its document,
+   * or content in that document) has a selectionchange event listener.
+   */
+  void SetHasSelectionChangeEventListeners()
+  {
+    mMayHaveSelectionChangeEventListener = true;
+  }
+
+  /**
+   * Call this to check whether some node (this window, its document,
+   * or content in that document) has a selectionchange event listener.
+   */
+  bool HasSelectionChangeEventListeners()
+  {
+    return mMayHaveSelectionChangeEventListener;
+  }
+
+  /**
    * Moves the top-level window into fullscreen mode if aIsFullScreen is true,
    * otherwise exits fullscreen.
    *
@@ -667,6 +685,7 @@ protected:
   bool                   mIsInnerWindow;
   bool                   mMayHavePaintEventListener;
   bool                   mMayHaveTouchEventListener;
+  bool                   mMayHaveSelectionChangeEventListener;
   bool                   mMayHaveMouseEnterLeaveEventListener;
   bool                   mMayHavePointerEnterLeaveEventListener;
 
@@ -745,6 +764,18 @@ protected:
   // When there is any created alive media component, we can consider to resume
   // the media content in the window.
   bool mShouldResumeOnFirstActiveMediaComponent;
+
+  // mTopInnerWindow is only used on inner windows for tab-wise check by timeout
+  // throttling. It could be null.
+  nsCOMPtr<nsPIDOMWindowInner> mTopInnerWindow;
+
+  // The evidence that we have tried to cache mTopInnerWindow only once from
+  // SetNewDocument(). Note: We need this extra flag because mTopInnerWindow
+  // could be null and we don't want it to be set multiple times.
+  bool mHasTriedToCacheTopInnerWindow;
+
+  // The number of active IndexedDB databases. Inner window only.
+  uint32_t mNumOfIndexedDBDatabases;
 };
 
 #define NS_PIDOMWINDOWINNER_IID \
@@ -895,14 +926,17 @@ public:
 
   bool IsRunningTimeout();
 
+  // To cache top inner-window if available after constructed for tab-wised
+  // indexedDB counters.
+  void TryToCacheTopInnerWindow();
+
   // Increase/Decrease the number of active IndexedDB transactions/databases for
-  // the decision making of timer-throttling.
+  // the decision making of TabGroup scheduling and timeout-throttling.
   void UpdateActiveIndexedDBTransactionCount(int32_t aDelta);
   void UpdateActiveIndexedDBDatabaseCount(int32_t aDelta);
 
-  // Return true if there is any active IndexedDB trasnsaction/databases in any
-  // window of the same tab.
-  bool HasActiveIndexedDBTransactions();
+  // Return true if there is any active IndexedDB databases which could block
+  // timeout-throttling.
   bool HasActiveIndexedDBDatabases();
 
 protected:

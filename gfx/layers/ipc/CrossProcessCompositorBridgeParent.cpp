@@ -58,7 +58,10 @@ CrossProcessCompositorBridgeParent::ActorDestroy(ActorDestroyReason aWhy)
 
   // We must keep this object alive untill the code handling message
   // reception is finished on this thread.
-  MessageLoop::current()->PostTask(NewRunnableMethod(this, &CrossProcessCompositorBridgeParent::DeferredDestroy));
+  MessageLoop::current()->PostTask(NewRunnableMethod(
+    "layers::CrossProcessCompositorBridgeParent::DeferredDestroy",
+    this,
+    &CrossProcessCompositorBridgeParent::DeferredDestroy));
 }
 
 PLayerTransactionParent*
@@ -296,6 +299,7 @@ CrossProcessCompositorBridgeParent::ShadowLayersUpdated(
   state->mParent->NotifyShadowTreeTransaction(
     id,
     aInfo.isFirstPaint(),
+    aInfo.focusTarget(),
     aInfo.scheduleComposite(),
     aInfo.paintSequenceNumber(),
     aInfo.isRepeatTransaction(),

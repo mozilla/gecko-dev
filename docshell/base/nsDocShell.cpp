@@ -374,14 +374,15 @@ ForEachPing(nsIContent* aContent, ForEachPingCallback aCallback, void* aClosure)
   }
 
   nsIDocument* doc = aContent->OwnerDoc();
+  nsAutoCString charset;
+  doc->GetDocumentCharacterSet()->Name(charset);
 
   nsWhitespaceTokenizer tokenizer(value);
 
   while (tokenizer.hasMoreTokens()) {
     nsCOMPtr<nsIURI> uri, baseURI = aContent->GetBaseURI();
     ios->NewURI(NS_ConvertUTF16toUTF8(tokenizer.nextToken()),
-                doc->GetDocumentCharacterSet().get(),
-                baseURI, getter_AddRefs(uri));
+                charset.get(), baseURI, getter_AddRefs(uri));
     // if we can't generate a valid URI, then there is nothing to do
     if (!uri) {
       continue;
@@ -454,9 +455,12 @@ nsPingListener::StartTimeout(DocGroup* aDocGroup)
   timer->SetTarget(aDocGroup->EventTargetFor(TaskCategory::Network));
 
   if (timer) {
-    nsresult rv = timer->InitWithFuncCallback(OnPingTimeout, mLoadGroup,
-                                              PING_TIMEOUT,
-                                              nsITimer::TYPE_ONE_SHOT);
+    nsresult rv =
+      timer->InitWithNamedFuncCallback(OnPingTimeout,
+                                       mLoadGroup,
+                                       PING_TIMEOUT,
+                                       nsITimer::TYPE_ONE_SHOT,
+                                       "nsPingListener::StartTimeout");
     if (NS_SUCCEEDED(rv)) {
       mTimer = timer;
       return NS_OK;
@@ -832,6 +836,8 @@ nsDocShell::nsDocShell()
   , mDefaultLoadFlags(nsIRequest::LOAD_NORMAL)
   , mFrameType(FRAME_TYPE_REGULAR)
   , mPrivateBrowsingId(0)
+  , mForcedCharset(nullptr)
+  , mParentCharset(nullptr)
   , mParentCharsetSource(0)
   , mJSRunToCompletionDepth(0)
   , mTouchEventsOverride(nsIDocShell::TOUCHEVENTS_OVERRIDE_NONE)
@@ -1767,10 +1773,12 @@ nsDocShell::DispatchToTabGroup(const char* aName,
 NS_IMETHODIMP
 nsDocShell::DispatchLocationChangeEvent()
 {
-  return DispatchToTabGroup("nsDocShell::FireDummyOnLocationChange",
-                            TaskCategory::Other,
-                            NewRunnableMethod(this,
-                              &nsDocShell::FireDummyOnLocationChange));
+  return DispatchToTabGroup(
+    "nsDocShell::FireDummyOnLocationChange",
+    TaskCategory::Other,
+    NewRunnableMethod("nsDocShell::FireDummyOnLocationChange",
+                      this,
+                      &nsDocShell::FireDummyOnLocationChange));
 }
 
 bool
@@ -2030,7 +2038,7 @@ nsDocShell::GetCharset(nsACString& aCharset)
   NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
   nsIDocument* doc = presShell->GetDocument();
   NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-  aCharset = doc->GetDocumentCharacterSet();
+  doc->GetDocumentCharacterSet()->Name(aCharset);
   return NS_OK;
 }
 
@@ -2116,7 +2124,7 @@ NS_IMETHODIMP
 nsDocShell::SetForcedCharset(const nsACString& aCharset)
 {
   if (aCharset.IsEmpty()) {
-    mForcedCharset.Truncate();
+    mForcedCharset = nullptr;
     return NS_OK;
   }
   const Encoding* encoding = Encoding::ForLabel(aCharset);
@@ -2128,19 +2136,19 @@ nsDocShell::SetForcedCharset(const nsACString& aCharset)
     // Reject XSS hazards
     return NS_ERROR_INVALID_ARG;
   }
-  encoding->Name(mForcedCharset);
+  mForcedCharset = encoding;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocShell::GetForcedCharset(nsACString& aResult)
 {
-  aResult = mForcedCharset;
+  mForcedCharset->Name(aResult);
   return NS_OK;
 }
 
 void
-nsDocShell::SetParentCharset(const nsACString& aCharset,
+nsDocShell::SetParentCharset(const Encoding*& aCharset,
                              int32_t aCharsetSource,
                              nsIPrincipal* aPrincipal)
 {
@@ -2150,7 +2158,7 @@ nsDocShell::SetParentCharset(const nsACString& aCharset,
 }
 
 void
-nsDocShell::GetParentCharset(nsACString& aCharset,
+nsDocShell::GetParentCharset(const Encoding*& aCharset,
                              int32_t* aCharsetSource,
                              nsIPrincipal** aPrincipal)
 {
@@ -4192,7 +4200,7 @@ nsDocShell::AddChild(nsIDocShellTreeItem* aChild)
     // the actual source charset, which is what we're trying to
     // expose here.
 
-    const nsACString& parentCS = doc->GetDocumentCharacterSet();
+    const Encoding* parentCS = doc->GetDocumentCharacterSet();
     int32_t charsetSource = doc->GetDocumentCharacterSetSource();
     // set the child's parentCharset
     childAsDocShell->SetParentCharset(parentCS,
@@ -9384,8 +9392,8 @@ nsDocShell::SetupNewViewer(nsIContentViewer* aNewViewer)
                     NS_ERROR_FAILURE);
   nsCOMPtr<nsIDocShell> parent(do_QueryInterface(parentAsItem));
 
-  nsAutoCString forceCharset;
-  nsAutoCString hintCharset;
+  const Encoding* forceCharset = nullptr;
+  const Encoding* hintCharset = nullptr;
   int32_t hintCharsetSource;
   int32_t minFontSize;
   float textZoom;
@@ -9420,10 +9428,8 @@ nsDocShell::SetupNewViewer(nsIContentViewer* aNewViewer)
     if (oldCv) {
       newCv = aNewViewer;
       if (newCv) {
-        NS_ENSURE_SUCCESS(oldCv->GetForceCharacterSet(forceCharset),
-                          NS_ERROR_FAILURE);
-        NS_ENSURE_SUCCESS(oldCv->GetHintCharacterSet(hintCharset),
-                          NS_ERROR_FAILURE);
+        forceCharset = oldCv->GetForceCharset();
+        hintCharset = oldCv->GetHintCharset();
         NS_ENSURE_SUCCESS(oldCv->GetHintCharacterSetSource(&hintCharsetSource),
                           NS_ERROR_FAILURE);
         NS_ENSURE_SUCCESS(oldCv->GetMinFontSize(&minFontSize),
@@ -9490,10 +9496,8 @@ nsDocShell::SetupNewViewer(nsIContentViewer* aNewViewer)
   // If we have old state to copy, set the old state onto the new content
   // viewer
   if (newCv) {
-    NS_ENSURE_SUCCESS(newCv->SetForceCharacterSet(forceCharset),
-                      NS_ERROR_FAILURE);
-    NS_ENSURE_SUCCESS(newCv->SetHintCharacterSet(hintCharset),
-                      NS_ERROR_FAILURE);
+    newCv->SetForceCharset(forceCharset);
+    newCv->SetHintCharset(hintCharset);
     NS_ENSURE_SUCCESS(newCv->SetHintCharacterSetSource(hintCharsetSource),
                       NS_ERROR_FAILURE);
     NS_ENSURE_SUCCESS(newCv->SetMinFontSize(minFontSize),
@@ -9644,13 +9648,20 @@ public:
                     bool aLoadReplace,
                     nsIURI* aReferrer, uint32_t aReferrerPolicy,
                     nsIPrincipal* aTriggeringPrincipal,
-                    nsIPrincipal* aPrincipalToInherit, uint32_t aFlags,
-                    const char* aTypeHint, nsIInputStream* aPostData,
-                    nsIInputStream* aHeadersData, uint32_t aLoadType,
-                    nsISHEntry* aSHEntry, bool aFirstParty,
-                    const nsAString& aSrcdoc, nsIDocShell* aSourceDocShell,
-                    nsIURI* aBaseURI, bool aCheckForPrerender)
-    : mSrcdoc(aSrcdoc)
+                    nsIPrincipal* aPrincipalToInherit,
+                    uint32_t aFlags,
+                    const char* aTypeHint,
+                    nsIInputStream* aPostData,
+                    nsIInputStream* aHeadersData,
+                    uint32_t aLoadType,
+                    nsISHEntry* aSHEntry,
+                    bool aFirstParty,
+                    const nsAString& aSrcdoc,
+                    nsIDocShell* aSourceDocShell,
+                    nsIURI* aBaseURI,
+                    bool aCheckForPrerender)
+    : mozilla::Runnable("InternalLoadEvent")
+    , mSrcdoc(aSrcdoc)
     , mDocShell(aDocShell)
     , mURI(aURI)
     , mOriginalURI(aOriginalURI)
@@ -10179,16 +10190,18 @@ nsDocShell::InternalLoad(nsIURI* aURI,
         //      do nothing.
       }
 
-      // Switch to target tab if we're currently focused window.
-      // Take loadDivertedInBackground into account so the behavior would be
-      // the same as how the tab first opened.
-      bool isTargetActive = false;
-      targetDocShell->GetIsActive(&isTargetActive);
-      if (mIsActive && !isTargetActive &&
-          !Preferences::GetBool("browser.tabs.loadDivertedInBackground", false)) {
-        if (NS_FAILED(nsContentUtils::DispatchFocusChromeEvent(
-            targetDocShell->GetWindow()))) {
-          return NS_ERROR_FAILURE;
+      if (NS_SUCCEEDED(rv)) {
+        // Switch to target tab if we're currently focused window.
+        // Take loadDivertedInBackground into account so the behavior would be
+        // the same as how the tab first opened.
+        bool isTargetActive = false;
+        targetDocShell->GetIsActive(&isTargetActive);
+        nsCOMPtr<nsPIDOMWindowOuter> domWin = targetDocShell->GetWindow();
+        if (mIsActive && !isTargetActive && domWin &&
+            !Preferences::GetBool("browser.tabs.loadDivertedInBackground", false)) {
+          if (NS_FAILED(nsContentUtils::DispatchFocusChromeEvent(domWin))) {
+            return NS_ERROR_FAILURE;
+          }
         }
       }
     }
@@ -11425,7 +11438,7 @@ nsDocShell::AddHeadersToChannel(nsIInputStream* aHeadersData,
       return NS_OK;
     }
 
-    const nsCSubstring& oneHeader = StringHead(headersString, crlf);
+    const nsACString& oneHeader = StringHead(headersString, crlf);
 
     colon = oneHeader.FindChar(':');
     if (colon == kNotFound) {
@@ -11619,7 +11632,8 @@ nsDocShell::ScrollToAnchor(bool aCurHasRef, bool aNewHasRef,
       NS_ENSURE_TRUE(mContentViewer, NS_ERROR_FAILURE);
       nsIDocument* doc = mContentViewer->GetDocument();
       NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-      const nsACString& charset = doc->GetDocumentCharacterSet();
+      nsAutoCString charset;
+      doc->GetDocumentCharacterSet()->Name(charset);
 
       nsCOMPtr<nsITextToSubURI> textToSubURI =
         do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
@@ -14040,7 +14054,8 @@ OnLinkClickEvent::OnLinkClickEvent(nsDocShell* aHandler,
                                    bool aNoOpenerImplied,
                                    bool aIsTrusted,
                                    nsIPrincipal* aTriggeringPrincipal)
-  : mHandler(aHandler)
+  : mozilla::Runnable("OnLinkClickEvent")
+  , mHandler(aHandler)
   , mURI(aURI)
   , mTargetSpec(aTargetSpec)
   , mFileName(aFileName)

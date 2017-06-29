@@ -41,11 +41,6 @@ to mochitest command.
 * console support bug 1352669
   * test_bug413958.html `monitorConsole` [3]
   * test_parser_diagnostics_unprintables.html [550]
-* Unimplemented \@font-face descriptors:
-  * test_font_face_parser.html `font-language-override`: bug 1355364 [8]
-* keyword values should be preserved in \@font-face bug 1355368
-  * test_font_face_parser.html `font-weight` [4]
-  * test_font_loading_api.html `weight` [1]
 * @namespace support:
   * test_namespace_rule.html: bug 1355715 [6]
 * test_font_feature_values_parsing.html: \@font-feature-values support bug 1355721 [107]
@@ -69,8 +64,6 @@ to mochitest command.
     * test_value_storage.html `-moz-linear-gradient` [322]
     * ... `-moz-radial-gradient` [309]
     * ... `-moz-repeating-` [298]
-  * -webkit-{flex,inline-flex} for display servo/servo#15400
-    * test_webkit_flex_display.html [4]
 * Unsupported values
   * SVG-in-OpenType values not supported servo/servo#15211 bug 1355412
     * test_value_storage.html `context-` [7]
@@ -80,8 +73,6 @@ to mochitest command.
     * test_supports_rules.html [6]
     * test_condition_text.html [1]
 * Incorrect serialization
-  * color value not canonicalized servo/servo#15397
-    * test_shorthand_property_getters.html `should condense to canonical case` [2]
   * place-{content,items,self} shorthands bug 1363971
     * test_align_shorthand_serialization.html [6]
   * system font serialization with subprop specified bug 1364286
@@ -101,7 +92,6 @@ to mochitest command.
 * Unit should be preserved after parsing servo/servo#15346
   * test_units_time.html [1]
 * getComputedStyle style doesn't contain custom properties bug 1336891
-  * test_variable_serialization_computed.html [35]
   * test_variables.html `custom property name` [2]
 * test_css_supports.html: issues around @supports syntax servo/servo#15482 [2]
 * test_author_specified_style.html: support serializing color as author specified bug 1348165 [27]
@@ -120,7 +110,6 @@ to mochitest command.
   * Gecko rejects calc() in -webkit-gradient bug 1363349
     * test_property_syntax_errors.html `-webkit-gradient` [20]
 * test_specified_value_serialization.html `-webkit-radial-gradient`: bug 1367299 [1]
-* test_variables.html `var(--var6)`: irrelevant test for stylo bug 1367306 [1]
 
 ## Unknown / Unsure
 

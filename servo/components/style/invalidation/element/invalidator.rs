@@ -53,7 +53,7 @@ impl fmt::Debug for Invalidation {
         use cssparser::ToCss;
 
         f.write_str("Invalidation(")?;
-        for component in self.selector.iter_raw_rev_from(self.offset - 1) {
+        for component in self.selector.iter_raw_parse_order_from(self.offset - 1) {
             if matches!(*component, Component::Combinator(..)) {
                 break;
             }
@@ -492,7 +492,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             }
         }
 
-        sibling_invalidations.extend(new_sibling_invalidations.into_iter());
+        sibling_invalidations.extend(new_sibling_invalidations.drain());
         invalidated_self
     }
 
@@ -568,7 +568,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
                 if matches!(next_combinator, Combinator::PseudoElement) {
                     let pseudo_selector =
                         invalidation.selector
-                            .iter_raw_rev_from(next_combinator_offset - 1)
+                            .iter_raw_parse_order_from(next_combinator_offset - 1)
                             .next()
                             .unwrap();
                     let pseudo = match *pseudo_selector {

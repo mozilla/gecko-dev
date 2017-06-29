@@ -60,10 +60,9 @@ class IDBFactory final
 
   nsAutoPtr<PrincipalInfo> mPrincipalInfo;
 
-  // If this factory lives on a window then m(Top)Window must be non-null.
-  // Otherwise mOwningObject must be non-null.
+  // If this factory lives on a window then mWindow must be non-null. Otherwise
+  // mOwningObject must be non-null.
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
-  nsCOMPtr<nsPIDOMWindowInner> mTopWindow;
   JS::Heap<JSObject*> mOwningObject;
 
   // This will only be set if the factory belongs to a window in a child

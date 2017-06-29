@@ -353,6 +353,7 @@ photonpanelmultiview panelview {
 #appMenu-popup panelview,
 #customizationui-widget-multiview panelview:not([extension]) {
   min-width: @menuPanelWidth@;
+  max-width: 30em;
 }
 
 photonpanelmultiview panelview[title] {
@@ -1261,8 +1262,13 @@ photonpanelmultiview .subviewbutton > .toolbarbutton-text {
 photonpanelmultiview .subviewbutton-iconic:not(.subviewbutton-back) > .toolbarbutton-text,
 photonpanelmultiview .cui-withicon > .toolbarbutton-text,
 photonpanelmultiview .subviewbutton[image] > .toolbarbutton-text,
-photonpanelmultiview .subviewbutton[checked="true"] > .toolbarbutton-text,
+photonpanelmultiview .subviewbutton[checked="true"] > .toolbarbutton-text {
+  padding-inline-start: 8px; /* See '.subviewbutton-iconic > .toolbarbutton-text' rule above. */
+}
+
 photonpanelmultiview .panel-banner-item > .toolbarbutton-multiline-text {
+  font: menu;
+  padding: 0;
   padding-inline-start: 8px; /* See '.subviewbutton-iconic > .toolbarbutton-text' rule above. */
 }
 
@@ -1547,6 +1553,9 @@ toolbarbutton[panel-multiview-anchor="true"]:-moz-locale-dir(rtl) {
   background-position: left calc(@menuPanelButtonWidth@ / 2 - var(--panel-ui-exit-subview-gutter-width) + 2px) center;
 }
 
+toolbarpaletteitem[place="palette"] > .toolbarbutton-1 > .toolbarbutton-menu-dropmarker,
+#bookmarks-menu-button[cui-areatype="menu-panel"] > .toolbarbutton-menu-dropmarker,
+#bookmarks-menu-button[overflowedItem] > .toolbarbutton-menu-dropmarker,
 toolbarpaletteitem[place="palette"] > .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker,
 #bookmarks-menu-button[cui-areatype="menu-panel"] > .toolbarbutton-menubutton-dropmarker {
   display: none;

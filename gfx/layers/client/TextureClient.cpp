@@ -234,9 +234,11 @@ static void DestroyTextureData(TextureData* aTextureData, LayersIPCChannel* aAll
 
   if (aMainThreadOnly && !NS_IsMainThread()) {
     RefPtr<LayersIPCChannel> allocatorRef = aAllocator;
-    NS_DispatchToMainThread(NS_NewRunnableFunction([aTextureData, allocatorRef, aDeallocate]() -> void {
-      DestroyTextureData(aTextureData, allocatorRef, aDeallocate, true);
-    }));
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "layers::DestroyTextureData",
+      [aTextureData, allocatorRef, aDeallocate]() -> void {
+        DestroyTextureData(aTextureData, allocatorRef, aDeallocate, true);
+      }));
     return;
   }
 
@@ -251,7 +253,7 @@ static void DestroyTextureData(TextureData* aTextureData, LayersIPCChannel* aAll
 void
 TextureChild::ActorDestroy(ActorDestroyReason why)
 {
-  PROFILER_LABEL_FUNC(js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("TextureChild::ActorDestroy", GRAPHICS);
   MOZ_ASSERT(mIPCOpen);
   mIPCOpen = false;
 

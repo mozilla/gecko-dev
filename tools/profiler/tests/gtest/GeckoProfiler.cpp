@@ -184,10 +184,16 @@ TEST(GeckoProfiler, DifferentThreads)
     uint32_t features = ProfilerFeature::JS | ProfilerFeature::Threads;
     const char* filters[] = { "GeckoMain", "Compositor" };
 
-    thread->Dispatch(NS_NewRunnableFunction([&]() {
-      profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                    features, filters, MOZ_ARRAY_LENGTH(filters));
-    }), NS_DISPATCH_SYNC);
+    thread->Dispatch(
+      NS_NewRunnableFunction("GeckoProfiler_DifferentThreads_Test::TestBody",
+                             [&]() {
+                               profiler_start(PROFILER_DEFAULT_ENTRIES,
+                                              PROFILER_DEFAULT_INTERVAL,
+                                              features,
+                                              filters,
+                                              MOZ_ARRAY_LENGTH(filters));
+                             }),
+      NS_DISPATCH_SYNC);
 
     ASSERT_TRUE(profiler_is_active());
     ASSERT_TRUE(!profiler_feature_active(ProfilerFeature::GPU));
@@ -197,9 +203,10 @@ TEST(GeckoProfiler, DifferentThreads)
     ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
                       features, filters, MOZ_ARRAY_LENGTH(filters));
 
-    thread->Dispatch(NS_NewRunnableFunction([&]() {
-      profiler_stop();
-    }), NS_DISPATCH_SYNC);
+    thread->Dispatch(
+      NS_NewRunnableFunction("GeckoProfiler_DifferentThreads_Test::TestBody",
+                             [&]() { profiler_stop(); }),
+      NS_DISPATCH_SYNC);
 
     InactiveFeaturesAndParamsCheck();
   }
@@ -213,21 +220,29 @@ TEST(GeckoProfiler, DifferentThreads)
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
                   features, filters, MOZ_ARRAY_LENGTH(filters));
 
-    thread->Dispatch(NS_NewRunnableFunction([&]() {
-      ASSERT_TRUE(profiler_is_active());
-      ASSERT_TRUE(!profiler_feature_active(ProfilerFeature::GPU));
-      ASSERT_TRUE(!profiler_feature_active(ProfilerFeature::Privacy));
-      ASSERT_TRUE(!profiler_feature_active(ProfilerFeature::Restyle));
+    thread->Dispatch(
+      NS_NewRunnableFunction(
+        "GeckoProfiler_DifferentThreads_Test::TestBody",
+        [&]() {
+          ASSERT_TRUE(profiler_is_active());
+          ASSERT_TRUE(!profiler_feature_active(ProfilerFeature::GPU));
+          ASSERT_TRUE(!profiler_feature_active(ProfilerFeature::Privacy));
+          ASSERT_TRUE(!profiler_feature_active(ProfilerFeature::Restyle));
 
-      ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                        features, filters, MOZ_ARRAY_LENGTH(filters));
-    }), NS_DISPATCH_SYNC);
+          ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES,
+                            PROFILER_DEFAULT_INTERVAL,
+                            features,
+                            filters,
+                            MOZ_ARRAY_LENGTH(filters));
+        }),
+      NS_DISPATCH_SYNC);
 
     profiler_stop();
 
-    thread->Dispatch(NS_NewRunnableFunction([&]() {
-      InactiveFeaturesAndParamsCheck();
-    }), NS_DISPATCH_SYNC);
+    thread->Dispatch(
+      NS_NewRunnableFunction("GeckoProfiler_DifferentThreads_Test::TestBody",
+                             [&]() { InactiveFeaturesAndParamsCheck(); }),
+      NS_DISPATCH_SYNC);
   }
 
   thread->Shutdown();
@@ -376,21 +391,19 @@ TEST(GeckoProfiler, Markers)
 
   {
     AutoProfilerTracing tracing("C", "A");
-
-    profiler_log("X");  // Just a specialized form of profiler_tracing().
   }
 
   profiler_add_marker("M1");
   profiler_add_marker("M2",
                       MakeUnique<TracingMarkerPayload>("C", TRACING_EVENT));
-  PROFILER_MARKER("M3");
-  PROFILER_MARKER_PAYLOAD(
+  profiler_add_marker("M3");
+  profiler_add_marker(
     "M4",
     MakeUnique<TracingMarkerPayload>("C", TRACING_EVENT,
                                      profiler_get_backtrace()));
 
   for (int i = 0; i < 10; i++) {
-    PROFILER_MARKER_PAYLOAD("M5", MakeUnique<GTestMarkerPayload>(i));
+    profiler_add_marker("M5", MakeUnique<GTestMarkerPayload>(i));
   }
 
   // Sleep briefly to ensure a sample is taken and the pending markers are
@@ -419,7 +432,7 @@ TEST(GeckoProfiler, Markers)
   ASSERT_TRUE(GTestMarkerPayload::sNumDestroyed == 10);
 
   for (int i = 0; i < 10; i++) {
-    PROFILER_MARKER_PAYLOAD("M5", MakeUnique<GTestMarkerPayload>(i));
+    profiler_add_marker("M5", MakeUnique<GTestMarkerPayload>(i));
   }
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
@@ -542,11 +555,15 @@ TEST(GeckoProfiler, StreamJSONForThisProcessThreaded)
                 features, filters, MOZ_ARRAY_LENGTH(filters));
 
   // Call profiler_stream_json_for_this_process on a background thread.
-  thread->Dispatch(NS_NewRunnableFunction([&]() {
-    w.Start(SpliceableJSONWriter::SingleLineStyle);
-    ASSERT_TRUE(profiler_stream_json_for_this_process(w));
-    w.End();
-  }), NS_DISPATCH_SYNC);
+  thread->Dispatch(
+    NS_NewRunnableFunction(
+      "GeckoProfiler_StreamJSONForThisProcessThreaded_Test::TestBody",
+      [&]() {
+        w.Start(SpliceableJSONWriter::SingleLineStyle);
+        ASSERT_TRUE(profiler_stream_json_for_this_process(w));
+        w.End();
+      }),
+    NS_DISPATCH_SYNC);
 
   UniquePtr<char[]> profile = w.WriteFunc()->CopyData();
 
@@ -554,10 +571,14 @@ TEST(GeckoProfiler, StreamJSONForThisProcessThreaded)
 
   // Stop the profiler and call profiler_stream_json_for_this_process on a
   // background thread.
-  thread->Dispatch(NS_NewRunnableFunction([&]() {
-    profiler_stop();
-    ASSERT_TRUE(!profiler_stream_json_for_this_process(w));
-  }), NS_DISPATCH_SYNC);
+  thread->Dispatch(
+    NS_NewRunnableFunction(
+      "GeckoProfiler_StreamJSONForThisProcessThreaded_Test::TestBody",
+      [&]() {
+        profiler_stop();
+        ASSERT_TRUE(!profiler_stream_json_for_this_process(w));
+      }),
+    NS_DISPATCH_SYNC);
   thread->Shutdown();
 
   // Call profiler_stream_json_for_this_process on the main thread.
@@ -569,13 +590,11 @@ TEST(GeckoProfiler, PseudoStack)
   uint32_t features = ProfilerFeature::StackWalk;
   const char* filters[] = { "GeckoMain" };
 
-  PROFILER_LABEL("A", "B", js::ProfileEntry::Category::OTHER);
-  PROFILER_LABEL_FUNC(js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("A::B", OTHER);
 
   UniqueFreePtr<char> dynamic(strdup("dynamic"));
   {
-    PROFILER_LABEL_DYNAMIC("A", "C", js::ProfileEntry::Category::JS,
-                           dynamic.get());
+    AUTO_PROFILER_LABEL_DYNAMIC("A::C", JS, dynamic.get());
 
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
                    features, filters, MOZ_ARRAY_LENGTH(filters));
@@ -583,13 +602,11 @@ TEST(GeckoProfiler, PseudoStack)
     ASSERT_TRUE(profiler_get_backtrace());
   }
 
-#if defined(MOZ_GECKO_PROFILER)
   AutoProfilerLabel label1("A", nullptr, 888,
                            js::ProfileEntry::Category::STORAGE);
   AutoProfilerLabel label2("A", dynamic.get(), 888,
                            js::ProfileEntry::Category::NETWORK);
   ASSERT_TRUE(profiler_get_backtrace());
-#endif
 
   profiler_stop();
 

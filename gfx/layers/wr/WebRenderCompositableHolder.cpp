@@ -111,18 +111,16 @@ WebRenderCompositableHolder::RemoveAsyncImagePipeline(wr::WebRenderAPI* aApi, co
   }
 
   uint64_t id = wr::AsUint64(aPipelineId);
-  AsyncImagePipelineHolder* holder = mAsyncImagePipelineHolders.Get(id);
-  if (!holder) {
-    return;
+  if (auto entry = mAsyncImagePipelineHolders.Lookup(id)) {
+    AsyncImagePipelineHolder* holder = entry.Data();
+    ++mAsyncImageEpoch; // Update webrender epoch
+    aApi->ClearRootDisplayList(wr::NewEpoch(mAsyncImageEpoch), aPipelineId);
+    for (wr::ImageKey key : holder->mKeys) {
+      aApi->DeleteImage(key);
+    }
+    entry.Remove();
+    RemovePipeline(aPipelineId, wr::NewEpoch(mAsyncImageEpoch));
   }
-
-  ++mAsyncImageEpoch; // Update webrender epoch
-  aApi->ClearRootDisplayList(wr::NewEpoch(mAsyncImageEpoch), aPipelineId);
-  for (wr::ImageKey key : holder->mKeys) {
-    aApi->DeleteImage(key);
-  }
-  mAsyncImagePipelineHolders.Remove(id);
-  RemovePipeline(aPipelineId, wr::NewEpoch(mAsyncImageEpoch));
 }
 
 void
@@ -271,6 +269,7 @@ WebRenderCompositableHolder::ApplyAsyncImages(wr::WebRenderAPI* aApi)
                                   0,
                                   &opacity,
                                   holder->mScTransform.IsIdentity() ? nullptr : &holder->mScTransform,
+                                  WrTransformStyle::Flat,
                                   holder->mMixBlendMode,
                                   nsTArray<WrFilterOp>());
 
@@ -278,22 +277,20 @@ WebRenderCompositableHolder::ApplyAsyncImages(wr::WebRenderAPI* aApi)
       if (holder->mScaleToSize.isSome()) {
         rect = LayerRect(0, 0, holder->mScaleToSize.value().width, holder->mScaleToSize.value().height);
       }
-      WrClipRegionToken clip = builder.PushClipRegion(
-        wr::ToWrRect(rect), nullptr);
 
       if (useExternalImage) {
         MOZ_ASSERT(holder->mCurrentTexture->AsWebRenderTextureHost());
         Range<const wr::ImageKey> range_keys(&keys[0], keys.Length());
         holder->mCurrentTexture->PushExternalImage(builder,
                                                    wr::ToWrRect(rect),
-                                                   clip,
+                                                   wr::ToWrRect(rect),
                                                    holder->mFilter,
                                                    range_keys);
         HoldExternalImage(pipelineId, epoch, holder->mCurrentTexture->AsWebRenderTextureHost());
       } else {
         MOZ_ASSERT(keys.Length() == 1);
         builder.PushImage(wr::ToWrRect(rect),
-                          clip,
+                          wr::ToWrRect(rect),
                           holder->mFilter,
                           keys[0]);
       }
@@ -334,24 +331,21 @@ WebRenderCompositableHolder::Update(const wr::PipelineId& aPipelineId, const wr:
   if (mDestroyed) {
     return;
   }
-  PipelineTexturesHolder* holder = mPipelineTexturesHolders.Get(wr::AsUint64(aPipelineId));
-  if (!holder) {
-    return;
-  }
-
-  // Remove Pipeline
-  if (holder->mDestroyedEpoch.isSome() && holder->mDestroyedEpoch.ref() <= aEpoch) {
-
-    mPipelineTexturesHolders.Remove(wr::AsUint64(aPipelineId));
-    return;
-  }
-
-  // Release TextureHosts based on Epoch
-  while (!holder->mTextureHosts.empty()) {
-    if (aEpoch <= holder->mTextureHosts.front().mEpoch) {
-      break;
+  if (auto entry = mPipelineTexturesHolders.Lookup(wr::AsUint64(aPipelineId))) {
+    PipelineTexturesHolder* holder = entry.Data();
+    // Remove Pipeline
+    if (holder->mDestroyedEpoch.isSome() && holder->mDestroyedEpoch.ref() <= aEpoch) {
+      entry.Remove();
+      return;
     }
-    holder->mTextureHosts.pop();
+
+    // Release TextureHosts based on Epoch
+    while (!holder->mTextureHosts.empty()) {
+      if (aEpoch <= holder->mTextureHosts.front().mEpoch) {
+        break;
+      }
+      holder->mTextureHosts.pop();
+    }
   }
 }
 

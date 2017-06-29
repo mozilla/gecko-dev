@@ -33,6 +33,7 @@ type WrBuiltDisplayListDescriptor = BuiltDisplayListDescriptor;
 type WrImageFormat = ImageFormat;
 type WrImageRendering = ImageRendering;
 type WrMixBlendMode = MixBlendMode;
+type WrTransformStyle = TransformStyle;
 type WrRenderer = Renderer;
 type WrSideOffsets2Du32 = WrSideOffsets2D<u32>;
 type WrSideOffsets2Df32 = WrSideOffsets2D<f32>;
@@ -1303,6 +1304,7 @@ pub extern "C" fn wr_dp_push_stacking_context(state: &mut WrState,
                                               animation_id: u64,
                                               opacity: *const f32,
                                               transform: *const WrMatrix,
+                                              transform_style: WrTransformStyle,
                                               mix_blend_mode: WrMixBlendMode,
                                               filters: *const WrFilterOp,
                                               filter_count: usize) {
@@ -1348,7 +1350,7 @@ pub extern "C" fn wr_dp_push_stacking_context(state: &mut WrState,
          .push_stacking_context(webrender_traits::ScrollPolicy::Scrollable,
                                 bounds,
                                 transform_binding,
-                                TransformStyle::Flat,
+                                transform_style,
                                 None,
                                 mix_blend_mode,
                                 filters);
@@ -1803,14 +1805,16 @@ pub unsafe extern "C" fn wr_api_finalize_builder(state: &mut WrState,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn wr_dp_push_built_display_list(state: &mut WrState,
-                                                       dl_descriptor: WrBuiltDisplayListDescriptor,
-                                                       dl_data: WrVecU8) {
-    let dl_vec = dl_data.to_vec();
+pub extern "C" fn wr_dp_push_built_display_list(state: &mut WrState,
+                                                dl_descriptor: WrBuiltDisplayListDescriptor,
+                                                dl_data: &mut WrVecU8) {
+    let dl_vec = mem::replace(dl_data, WrVecU8::from_vec(Vec::new())).to_vec();
 
     let dl = BuiltDisplayList::from_data(dl_vec, dl_descriptor);
 
     state.frame_builder.dl_builder.push_nested_display_list(&dl);
+    let (data, _) = dl.into_data();
+    mem::replace(dl_data, WrVecU8::from_vec(data));
 }
 
 // TODO: nical

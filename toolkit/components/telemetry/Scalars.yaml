@@ -476,6 +476,76 @@ devtools.copy.xpath:
     record_in_processes:
       - 'main'
 
+devtools.rules.gridinspector:
+  opened:
+    bug_numbers:
+      - 1373483
+    description: >
+      Number of times the DevTools grid inspector was opened from the rules view.
+    expires: never
+    kind: uint
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
+devtools.grid.gridinspector:
+  opened:
+    bug_numbers:
+      - 1373483
+    description: >
+      Number of times the DevTools grid inspector was opened from the grid view.
+    expires: never
+    kind: uint
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
+devtools.grid.showGridAreasOverlay:
+  checked:
+    bug_numbers:
+      - 1373483
+    description: >
+      Number of times the DevTools grid inspector's "Display grid areas" was checked.
+    expires: never
+    kind: uint
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
+devtools.grid.showGridLineNumbers:
+  checked:
+    bug_numbers:
+      - 1373483
+    description: >
+      Number of times the DevTools grid inspector's "Display grid numbers" was checked.
+    expires: never
+    kind: uint
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
+devtools.grid.showInfiniteLines:
+  checked:
+    bug_numbers:
+      - 1373483
+    description: >
+      Number of times the DevTools grid inspector's "Extend grid lines infinitely" was checked.
+    expires: never
+    kind: uint
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
 navigator.storage:
   estimate_count:
     bug_numbers:
@@ -519,6 +589,86 @@ telemetry:
     notification_emails:
       - telemetry-client-dev@mozilla.com
     release_channel_collection: opt-out
+    record_in_processes:
+      - 'main'
+
+telemetry.discarded:
+  accumulations:
+    bug_numbers:
+      - 1369041
+    description: >
+      Number of discarded accumulations to histograms in child processes
+    expires: "never"
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'all_childs'
+  keyed_accumulations:
+    bug_numbers:
+      - 1369041
+    description: >
+      Number of discarded accumulations to keyed histograms in child processes
+    expires: "never"
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'all_childs'
+  scalar_actions:
+    bug_numbers:
+      - 1369041
+    description: >
+      Number of discarded actions on scalars in child processes
+    expires: "never"
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'all_childs'
+  keyed_scalar_actions:
+    bug_numbers:
+      - 1369041
+    description: >
+      Number of discarded actions on keyed scalars in child processes
+    expires: "never"
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'all_childs'
+  child_events:
+    bug_numbers:
+      - 1369041
+    description: >
+      Number of discarded events in child processes
+    expires: "never"
+    kind: uint
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    release_channel_collection: opt-out
+    record_in_processes:
+      - 'all_childs'
+
+# The following section contains graphics-related scalars.
+gfx.advanced.layers:
+  failure_id:
+    bug_numbers:
+      - 1365879
+    description: >
+      Each key is a failure for initializing Advanced Layers, and each value
+      is the number of times that failure was recorded. The failure codes
+      are unique strings present in MLGDeviceD3D11::Initialize, such that
+      a failure can be traced back to a specific Direct3D API call.
+    keyed: true
+    kind: uint
+    expires: "61"
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
     record_in_processes:
       - 'main'
 

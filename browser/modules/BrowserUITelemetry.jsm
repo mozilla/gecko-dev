@@ -76,6 +76,10 @@ XPCOMUtils.defineLazyGetter(this, "DEFAULT_AREA_PLACEMENTS", function() {
     ],
   };
 
+  if (AppConstants.MOZ_PHOTON_THEME) {
+    result["nav-bar"].push("sidebar-button");
+  }
+
   if (gPhotonStructure) {
     result["widget-overflow-fixed-list"] = [];
   } else {
@@ -155,6 +159,7 @@ XPCOMUtils.defineLazyGetter(this, "ALL_BUILTIN_ITEMS", function() {
     "BMB_bookmarksToolbarPopup",
     "search-go-button",
     "soundplaying-icon",
+    "restore-tabs-button",
   ]
   return DEFAULT_ITEMS.concat(PALETTE_ITEMS)
                       .concat(SPECIAL_CASES);

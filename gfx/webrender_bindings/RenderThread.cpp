@@ -124,9 +124,11 @@ void
 RenderThread::NewFrameReady(wr::WindowId aWindowId)
 {
   if (!IsInRenderThread()) {
-    Loop()->PostTask(NewRunnableMethod<wr::WindowId>(
-      this, &RenderThread::NewFrameReady, aWindowId
-    ));
+    Loop()->PostTask(
+      NewRunnableMethod<wr::WindowId>("wr::RenderThread::NewFrameReady",
+                                      this,
+                                      &RenderThread::NewFrameReady,
+                                      aWindowId));
     return;
   }
 
@@ -139,8 +141,11 @@ RenderThread::NewScrollFrameReady(wr::WindowId aWindowId, bool aCompositeNeeded)
 {
   if (!IsInRenderThread()) {
     Loop()->PostTask(NewRunnableMethod<wr::WindowId, bool>(
-      this, &RenderThread::NewScrollFrameReady, aWindowId, aCompositeNeeded
-    ));
+      "wr::RenderThread::NewScrollFrameReady",
+      this,
+      &RenderThread::NewScrollFrameReady,
+      aWindowId,
+      aCompositeNeeded));
     return;
   }
 
@@ -151,10 +156,13 @@ void
 RenderThread::RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aEvent)
 {
   if (!IsInRenderThread()) {
-    Loop()->PostTask(NewRunnableMethod<wr::WindowId, UniquePtr<RendererEvent>&&>(
-      this, &RenderThread::RunEvent,
-      aWindowId, Move(aEvent)
-    ));
+    Loop()->PostTask(
+      NewRunnableMethod<wr::WindowId, UniquePtr<RendererEvent>&&>(
+        "wr::RenderThread::RunEvent",
+        this,
+        &RenderThread::RunEvent,
+        aWindowId,
+        Move(aEvent)));
     return;
   }
 
@@ -281,16 +289,15 @@ RenderThread::RegisterExternalImage(uint64_t aExternalImageId, already_AddRefed<
 {
   MutexAutoLock lock(mRenderTextureMapLock);
 
-  MOZ_ASSERT(!mRenderTextures.Get(aExternalImageId).get());
-  RefPtr<RenderTextureHost> texture(aTexture);
-  mRenderTextures.Put(aExternalImageId, Move(texture));
+  MOZ_ASSERT(!mRenderTextures.GetWeak(aExternalImageId));
+  mRenderTextures.Put(aExternalImageId, Move(aTexture));
 }
 
 void
 RenderThread::UnregisterExternalImage(uint64_t aExternalImageId)
 {
   MutexAutoLock lock(mRenderTextureMapLock);
-  MOZ_ASSERT(mRenderTextures.Get(aExternalImageId).get());
+  MOZ_ASSERT(mRenderTextures.GetWeak(aExternalImageId));
   if (!IsInRenderThread()) {
     // The RenderTextureHost should be released in render thread. So, post the
     // deletion task here.
@@ -299,9 +306,10 @@ RenderThread::UnregisterExternalImage(uint64_t aExternalImageId)
     // deletion. Then the buffer in RenderTextureHost becomes invalid. It's fine
     // for this situation. Gecko will only release the buffer if WR doesn't need
     // it. So, no one will access the invalid buffer in RenderTextureHost.
-    RefPtr<RenderTextureHost> texture = mRenderTextures.Get(aExternalImageId);
-    mRenderTextures.Remove(aExternalImageId);
+    RefPtr<RenderTextureHost> texture;
+    mRenderTextures.Remove(aExternalImageId, getter_AddRefs(texture));
     Loop()->PostTask(NewRunnableMethod<RefPtr<RenderTextureHost>>(
+      "RenderThread::DeferredRenderTextureHostDestroy",
       this, &RenderThread::DeferredRenderTextureHostDestroy, Move(texture)
     ));
   } else {
@@ -321,8 +329,8 @@ RenderThread::GetRenderTexture(WrExternalImageId aExternalImageId)
   MOZ_ASSERT(IsInRenderThread());
 
   MutexAutoLock lock(mRenderTextureMapLock);
-  MOZ_ASSERT(mRenderTextures.Get(aExternalImageId.mHandle).get());
-  return mRenderTextures.Get(aExternalImageId.mHandle).get();
+  MOZ_ASSERT(mRenderTextures.GetWeak(aExternalImageId.mHandle));
+  return mRenderTextures.GetWeak(aExternalImageId.mHandle);
 }
 
 WebRenderThreadPool::WebRenderThreadPool()

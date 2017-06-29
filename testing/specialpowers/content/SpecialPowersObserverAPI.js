@@ -317,18 +317,17 @@ SpecialPowersObserverAPI.prototype = {
       case "SPPrefService": {
         let prefs = Services.prefs;
         let prefType = aMessage.json.prefType.toUpperCase();
-        let prefName = aMessage.json.prefName;
-        let prefValue = "prefValue" in aMessage.json ? aMessage.json.prefValue : null;
+        let { prefName, prefValue, iid, defaultValue } = aMessage.json;
 
         if (aMessage.json.op == "get") {
           if (!prefName || !prefType)
             throw new SpecialPowersError("Invalid parameters for get in SPPrefService");
 
           // return null if the pref doesn't exist
-          if (prefs.getPrefType(prefName) == prefs.PREF_INVALID)
+          if (defaultValue === undefined && prefs.getPrefType(prefName) == prefs.PREF_INVALID)
             return null;
         } else if (aMessage.json.op == "set") {
-          if (!prefName || !prefType || prefValue === null)
+          if (!prefName || !prefType || prefValue === undefined)
             throw new SpecialPowersError("Invalid parameters for set in SPPrefService");
         } else if (aMessage.json.op == "clear") {
           if (!prefName)
@@ -340,21 +339,33 @@ SpecialPowersObserverAPI.prototype = {
         // Now we make the call
         switch (prefType) {
           case "BOOL":
-            if (aMessage.json.op == "get")
-              return (prefs.getBoolPref(prefName));
-            return (prefs.setBoolPref(prefName, prefValue));
+            if (aMessage.json.op == "get") {
+              if (defaultValue !== undefined) {
+                return prefs.getBoolPref(prefName, defaultValue);
+              }
+              return prefs.getBoolPref(prefName);
+            }
+            return prefs.setBoolPref(prefName, prefValue);
           case "INT":
-            if (aMessage.json.op == "get")
-              return (prefs.getIntPref(prefName));
-            return (prefs.setIntPref(prefName, prefValue));
+            if (aMessage.json.op == "get") {
+              if (defaultValue !== undefined) {
+                return prefs.getIntPref(prefName, defaultValue);
+              }
+              return prefs.getIntPref(prefName);
+            }
+            return prefs.setIntPref(prefName, prefValue);
           case "CHAR":
-            if (aMessage.json.op == "get")
-              return (prefs.getCharPref(prefName));
-            return (prefs.setCharPref(prefName, prefValue));
+            if (aMessage.json.op == "get") {
+              if (defaultValue !== undefined) {
+                return prefs.getCharPref(prefName, defaultValue);
+              }
+              return prefs.getCharPref(prefName);
+            }
+            return prefs.setCharPref(prefName, prefValue);
           case "COMPLEX":
             if (aMessage.json.op == "get")
-              return (prefs.getComplexValue(prefName, prefValue[0]));
-            return (prefs.setComplexValue(prefName, prefValue[0], prefValue[1]));
+              return prefs.getComplexValue(prefName, iid);
+            return prefs.setComplexValue(prefName, iid, prefValue);
           case "":
             if (aMessage.json.op == "clear") {
               prefs.clearUserPref(prefName);
@@ -432,7 +443,7 @@ SpecialPowersObserverAPI.prototype = {
           default:
             throw new SpecialPowersError("Invalid operation for SPObserverervice");
         }
-        return undefined;	// See comment at the beginning of this function.
+        return undefined;       // See comment at the beginning of this function.
       }
 
       case "SPLoadChromeScript": {
@@ -455,7 +466,11 @@ SpecialPowersObserverAPI.prototype = {
         // and addMessageListener in order to communicate with
         // the mochitest.
         let systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-        let sb = Components.utils.Sandbox(systemPrincipal);
+        let sandboxOptions = aMessage.json.sandboxOptions;
+        if (!sandboxOptions) {
+          sandboxOptions = {}
+        }
+        let sb = Components.utils.Sandbox(systemPrincipal, sandboxOptions);
         let mm = aMessage.target
                          .QueryInterface(Ci.nsIFrameLoaderOwner)
                          .frameLoader

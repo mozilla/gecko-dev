@@ -61,7 +61,7 @@ WebRenderDisplayItemLayer::RenderLayer(wr::DisplayListBuilder& aBuilder,
     }
   }
 
-  aBuilder.PushBuiltDisplayList(Move(mBuiltDisplayList));
+  aBuilder.PushBuiltDisplayList(mBuiltDisplayList);
   WrBridge()->AddWebRenderParentCommands(mParentCommands);
 }
 
@@ -122,7 +122,7 @@ WebRenderDisplayItemLayer::PushItemAsBlobImage(wr::DisplayListBuilder& aBuilder,
 
   RefPtr<gfx::DrawEventRecorderMemory> recorder = MakeAndAddRef<gfx::DrawEventRecorderMemory>();
   RefPtr<gfx::DrawTarget> dummyDt =
-    gfx::Factory::CreateDrawTarget(gfx::BackendType::SKIA, imageSize.ToUnknownSize(), gfx::SurfaceFormat::B8G8R8X8);
+    gfx::Factory::CreateDrawTarget(gfx::BackendType::SKIA, gfx::IntSize(1, 1), gfx::SurfaceFormat::B8G8R8X8);
   RefPtr<gfx::DrawTarget> dt = gfx::Factory::CreateRecordingDrawTarget(recorder, dummyDt, imageSize.ToUnknownSize());
   LayerPoint offset = ViewAs<LayerPixel>(
       LayoutDevicePoint::FromAppUnits(mItem->ToReferenceFrame(), appUnitsPerDevPixel),
@@ -136,19 +136,15 @@ WebRenderDisplayItemLayer::PushItemAsBlobImage(wr::DisplayListBuilder& aBuilder,
     mItem->Paint(mBuilder, context);
   }
 
-  wr::ByteBuffer bytes;
-  bytes.Allocate(recorder->RecordingSize());
-  DebugOnly<bool> ok = recorder->CopyRecording((char*)bytes.AsSlice().begin().get(), bytes.AsSlice().length());
-  MOZ_ASSERT(ok);
+  wr::ByteBuffer bytes(recorder->mOutputStream.mLength, (uint8_t*)recorder->mOutputStream.mData);
 
   WrRect dest = aSc.ToRelativeWrRect(imageRect + offset);
-  WrClipRegionToken clipRegion = aBuilder.PushClipRegion(dest);
   WrImageKey key = GetImageKey();
   WrBridge()->SendAddBlobImage(key, imageSize.ToUnknownSize(), imageSize.width * 4, dt->GetFormat(), bytes);
   WrManager()->AddImageKeyForDiscard(key);
 
   aBuilder.PushImage(dest,
-                     clipRegion,
+                     dest,
                      wr::ImageRendering::Auto,
                      key);
   return true;

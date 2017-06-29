@@ -1463,7 +1463,7 @@ ScopedXPCOMStartup::~ScopedXPCOMStartup()
       appStartup->DestroyHiddenWindow();
 
     gDirServiceProvider->DoShutdown();
-    PROFILER_MARKER("Shutdown early");
+    profiler_add_marker("Shutdown early");
 
     WriteConsoleLog();
 
@@ -3168,8 +3168,8 @@ XREMain::XRE_mainInit(bool* aExitFlag)
   }
 
   if (gfxPlatform::IsHeadless()) {
-#ifdef MOZ_WIDGET_GTK
-    Output(false, "*** You are running in headless mode.\n");
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
+    printf_stderr("*** You are running in headless mode.\n");
 #else
     Output(true, "Error: headless mode is not currently supported on this platform.\n");
     return 1;
@@ -4671,8 +4671,7 @@ XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig)
   char aLocal;
   AutoProfilerInit profilerInit(&aLocal);
 
-  PROFILER_LABEL("Startup", "XRE_Main",
-    js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("XREMain::XRE_main", OTHER);
 
   nsresult rv = NS_OK;
 

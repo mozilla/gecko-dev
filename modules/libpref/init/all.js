@@ -546,9 +546,14 @@ pref("media.navigator.audio.full_duplex", true);
 pref("media.peerconnection.capture_delay", 100);
 pref("media.getusermedia.playout_delay", 100);
 pref("media.navigator.audio.full_duplex", true);
-// Whether to enable Webrtc Hardware acceleration support
+// enable Webrtc Hardware acceleration in nightly
+#ifdef NIGHTLY_BUILD
+pref("media.navigator.hardware.vp8_encode.acceleration_enabled", true);
+pref("media.navigator.hardware.vp8_encode.acceleration_remote_enabled", true);
+#else
 pref("media.navigator.hardware.vp8_encode.acceleration_enabled", false);
 pref("media.navigator.hardware.vp8_encode.acceleration_remote_enabled", false);
+#endif
 pref("media.navigator.hardware.vp8_decode.acceleration_enabled", false);
 #elif defined(XP_LINUX)
 pref("media.peerconnection.capture_delay", 70);
@@ -696,6 +701,7 @@ pref("apz.fling_min_velocity_threshold", "0.5");
 pref("apz.fling_stop_on_tap_threshold", "0.05");
 pref("apz.fling_stopped_threshold", "0.01");
 pref("apz.highlight_checkerboarded_areas", false);
+pref("apz.keyboard.enabled", false);
 pref("apz.max_velocity_inches_per_ms", "-1.0");
 pref("apz.max_velocity_queue_size", 5);
 pref("apz.min_skate_speed", "1.0");
@@ -1224,6 +1230,7 @@ pref("dom.disable_window_open_feature.menubar",     false);
 pref("dom.disable_window_open_feature.resizable",   true);
 pref("dom.disable_window_open_feature.minimizable", false);
 pref("dom.disable_window_open_feature.status",      true);
+pref("dom.disable_window_showModalDialog",          true);
 
 pref("dom.allow_scripts_to_close_windows",          false);
 
@@ -2849,6 +2856,12 @@ pref("layout.css.prefixes.webkit", true);
 // (Note: this pref has no effect if the master 'layout.css.prefixes.webkit'
 // pref is set to false.)
 pref("layout.css.prefixes.device-pixel-ratio-webkit", false);
+
+// Is support for <style scoped> enabled in content documents?
+//
+// If disabled, this will also disable the DOM API (HTMLStyleElement.scoped)
+// in chrome documents.
+pref("layout.css.scoped-style.enabled", false);
 
 // Is support for the :scope selector enabled?
 pref("layout.css.scope-pseudo.enabled", true);
@@ -4623,8 +4636,8 @@ pref("webgl.disable-DOM-blit-uploads", false);
 pref("webgl.allow-fb-invalidation", false);
 pref("webgl.webgl2-compat-mode", false);
 
-pref("webgl.max-perf-warnings", 0);
-pref("webgl.max-acceptable-fb-status-invals", 0);
+pref("webgl.perf.max-warnings", 0);
+pref("webgl.perf.max-acceptable-fb-status-invals", 0);
 
 pref("webgl.enable-webgl2", true);
 
@@ -4862,6 +4875,8 @@ pref("extensions.webextensions.identity.redirectDomain", "extensions.allizom.org
 pref("extensions.webextensions.themes.enabled", false);
 pref("extensions.webextensions.themes.icons.enabled", false);
 pref("extensions.webextensions.remote", false);
+// Whether or not the moz-extension resource loads are remoted
+pref("extensions.webextensions.protocol.remote", true);
 
 pref("layers.popups.compositing.enabled", false);
 
@@ -5218,7 +5233,7 @@ pref("urlclassifier.phishTable", "googpub-phish-shavar,test-phish-simple");
 pref("urlclassifier.downloadAllowTable", "goog-downloadwhite-proto");
 pref("urlclassifier.downloadBlockTable", "goog-badbinurl-proto");
 
-pref("urlclassifier.disallow_completions", "test-malware-simple,test-phish-simple,test-unwanted-simple,test-track-simple,test-trackwhite-simple,test-block-simple,test-flashallow-simple,testexcept-flashallow-simple,test-flash-simple,testexcept-flash-simple,test-flashsubdoc-simple,testexcept-flashsubdoc-simple,goog-downloadwhite-digest256,base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,block-flash-digest256,except-flash-digest256,allow-flashallow-digest256,except-flashallow-digest256,block-flashsubdoc-digest256,except-flashsubdoc-digest256,except-flashinfobar-digest256");
+pref("urlclassifier.disallow_completions", "test-malware-simple,test-phish-simple,test-unwanted-simple,test-track-simple,test-trackwhite-simple,test-block-simple,goog-downloadwhite-digest256,base-track-digest256,mozstd-trackwhite-digest256,content-track-digest256,mozplugin-block-digest256,mozplugin2-block-digest256,block-flash-digest256,except-flash-digest256,allow-flashallow-digest256,except-flashallow-digest256,block-flashsubdoc-digest256,except-flashsubdoc-digest256,except-flashinfobar-digest256");
 
 // The table and update/gethash URLs for Safebrowsing phishing and malware
 // checks.
@@ -5294,12 +5309,12 @@ pref("browser.safebrowsing.provider.mozilla.lists.base.description", "mozstdDesc
 pref("browser.safebrowsing.provider.mozilla.lists.content.name", "mozfullName");
 pref("browser.safebrowsing.provider.mozilla.lists.content.description", "mozfullDesc");
 
-pref("urlclassifier.flashAllowTable", "test-flashallow-simple,allow-flashallow-digest256");
-pref("urlclassifier.flashAllowExceptTable", "testexcept-flashallow-simple,except-flashallow-digest256");
-pref("urlclassifier.flashTable", "test-flash-simple,block-flash-digest256");
-pref("urlclassifier.flashExceptTable", "testexcept-flash-simple,except-flash-digest256");
-pref("urlclassifier.flashSubDocTable", "test-flashsubdoc-simple,block-flashsubdoc-digest256");
-pref("urlclassifier.flashSubDocExceptTable", "testexcept-flashsubdoc-simple,except-flashsubdoc-digest256");
+pref("urlclassifier.flashAllowTable", "allow-flashallow-digest256");
+pref("urlclassifier.flashAllowExceptTable", "except-flashallow-digest256");
+pref("urlclassifier.flashTable", "block-flash-digest256");
+pref("urlclassifier.flashExceptTable", "except-flash-digest256");
+pref("urlclassifier.flashSubDocTable", "block-flashsubdoc-digest256");
+pref("urlclassifier.flashSubDocExceptTable", "except-flashsubdoc-digest256");
 pref("urlclassifier.flashInfobarTable", "except-flashinfobar-digest256");
 
 pref("plugins.http_https_only", true);
@@ -5631,17 +5646,20 @@ pref("media.block-autoplay-until-in-foreground", false);
 pref("media.block-autoplay-until-in-foreground", true);
 #endif
 
-// Is the Servo-backed style system enabled?
+// Is Stylo CSS support built and enabled?
+// Only define this pref if Stylo support is actually built in.
+#ifdef MOZ_STYLO
 #ifdef MOZ_STYLO_ENABLE
 pref("layout.css.servo.enabled", true);
 #else
 pref("layout.css.servo.enabled", false);
 #endif
+#endif
 
 // HSTS Priming
 // If a request is mixed-content, send an HSTS priming request to attempt to
 // see if it is available over HTTPS.
-#ifdef RELEASE_OR_BETA
+#ifdef RELEASE
 // Don't change the order of evaluation of mixed-content and HSTS upgrades in
 // order to be most compatible with current standards
 pref("security.mixed_content.send_hsts_priming", false);
@@ -5654,9 +5672,9 @@ pref("security.mixed_content.use_hsts", true);
 #endif
 // Approximately 1 week default cache for HSTS priming failures, in seconds
 pref("security.mixed_content.hsts_priming_cache_timeout", 604800);
-// Force the channel to timeout in 3 seconds if we have not received
+// Force the channel to timeout in 2 seconds if we have not received
 // expects a time in milliseconds
-pref("security.mixed_content.hsts_priming_request_timeout", 3000);
+pref("security.mixed_content.hsts_priming_request_timeout", 2000);
 
 // TODO: Bug 1324406: Treat 'data:' documents as unique, opaque origins
 // If true, data: URIs will be treated as unique opaque origins, hence will use
@@ -5705,6 +5723,14 @@ pref("dom.payments.request.enabled", false);
 
 #ifdef FUZZING
 pref("fuzzing.enabled", false);
+#endif
+
+#if defined(XP_WIN)
+pref("layers.mlgpu.dev-enabled", false);
+
+// Both this and the master "enabled" pref must be on to use Advanced LAyers
+// on Windows 7.
+pref("layers.mlgpu.enable-on-windows7", false);
 #endif
 
 // Set advanced layers preferences here to have them show up in about:config or

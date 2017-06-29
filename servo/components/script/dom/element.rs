@@ -89,6 +89,7 @@ use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivit
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::matching::{RelevantLinkStatus, matches_selector_list};
+use selectors::sink::Push;
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -109,7 +110,6 @@ use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser};
 use style::selector_parser::extended_filtering;
 use style::shared_lock::{SharedRwLock, Locked};
-use style::sink::Push;
 use style::stylearc::Arc;
 use style::thread_state;
 use style::values::{CSSFloat, Either};
@@ -126,9 +126,10 @@ pub struct Element {
     local_name: LocalName,
     tag_name: TagName,
     namespace: Namespace,
-    prefix: Option<Prefix>,
+    prefix: DOMRefCell<Option<Prefix>>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
+    is: DOMRefCell<Option<LocalName>>,
     #[ignore_heap_size_of = "Arc"]
     style_attribute: DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableJS<NamedNodeMap>,
@@ -162,6 +163,11 @@ impl fmt::Debug for Root<Element> {
 pub enum ElementCreator {
     ParserCreated(u64),
     ScriptCreated,
+}
+
+pub enum CustomElementCreationMode {
+    Synchronous,
+    Asynchronous,
 }
 
 impl ElementCreator {
@@ -205,9 +211,12 @@ impl<'a> TryFrom<&'a str> for AdjacentPosition {
 //
 impl Element {
     pub fn create(name: QualName,
-                  document: &Document, creator: ElementCreator)
+                  is: Option<LocalName>,
+                  document: &Document,
+                  creator: ElementCreator,
+                  mode: CustomElementCreationMode)
                   -> Root<Element> {
-        create_element(name, document, creator)
+        create_element(name, is, document, creator, mode)
     }
 
     pub fn new_inherited(local_name: LocalName,
@@ -226,9 +235,10 @@ impl Element {
             local_name: local_name,
             tag_name: TagName::new(),
             namespace: namespace,
-            prefix: prefix,
+            prefix: DOMRefCell::new(prefix),
             attrs: DOMRefCell::new(vec![]),
             id_attribute: DOMRefCell::new(None),
+            is: DOMRefCell::new(None),
             style_attribute: DOMRefCell::new(None),
             attr_list: Default::default(),
             class_list: Default::default(),
@@ -258,6 +268,14 @@ impl Element {
         if damage == NodeDamage::OtherNodeDamage {
             restyle.damage = RestyleDamage::rebuild_and_reflow();
         }
+    }
+
+    pub fn set_is(&self, is: LocalName) {
+        *self.is.borrow_mut() = Some(is);
+    }
+
+    pub fn get_is(&self) -> Option<LocalName> {
+        self.is.borrow().clone()
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
@@ -820,8 +838,12 @@ impl Element {
         &self.namespace
     }
 
-    pub fn prefix(&self) -> Option<&Prefix> {
-        self.prefix.as_ref()
+    pub fn prefix(&self) -> Ref<Option<Prefix>> {
+        self.prefix.borrow()
+    }
+
+    pub fn set_prefix(&self, prefix: Option<Prefix>) {
+        *self.prefix.borrow_mut() = prefix;
     }
 
     pub fn attrs(&self) -> Ref<[JS<Attr>]> {
@@ -840,7 +862,9 @@ impl Element {
         // Steps 3-4.
         for element in inclusive_ancestor_elements {
             // Step 1.
-            if element.namespace() != &ns!() && element.prefix().map(|p| &**p) == prefix.as_ref().map(|p| &**p) {
+            if element.namespace() != &ns!() &&
+                element.prefix().as_ref().map(|p| &**p) == prefix.as_ref().map(|p| &**p)
+            {
                 return element.namespace().clone();
             }
 
@@ -1356,7 +1380,7 @@ impl Element {
         // Step 10 (TODO)
 
         // Step 11
-        win.scroll_node(node.to_trusted_node_address(), x, y, behavior);
+        win.scroll_node(node, x, y, behavior);
     }
 
     // https://w3c.github.io/DOM-Parsing/#parsing
@@ -1418,13 +1442,13 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-prefix
     fn GetPrefix(&self) -> Option<DOMString> {
-        self.prefix.as_ref().map(|p| DOMString::from(&**p))
+        self.prefix.borrow().as_ref().map(|p| DOMString::from(&**p))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-tagname
     fn TagName(&self) -> DOMString {
         let name = self.tag_name.or_init(|| {
-            let qualified_name = match self.prefix {
+            let qualified_name = match *self.prefix.borrow() {
                 Some(ref prefix) => {
                     Cow::Owned(format!("{}:{}", &**prefix, &*self.local_name))
                 },
@@ -1543,6 +1567,10 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenode
     fn SetAttributeNode(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        // Workaround for https://github.com/servo/servo/issues/17366
+        // This ensures that if this is an "id" attr, its value is an Atom
+        attr.swap_value(&mut self.parse_plain_attribute(attr.local_name(), attr.Value()));
+
         // Step 1.
         if let Some(owner) = attr.GetOwnerElement() {
             if &*owner != self {
@@ -1794,7 +1822,7 @@ impl ElementMethods for Element {
         // Step 10 (TODO)
 
         // Step 11
-        win.scroll_node(node.to_trusted_node_address(), self.ScrollLeft(), y, behavior);
+        win.scroll_node(node, self.ScrollLeft(), y, behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
@@ -1887,7 +1915,7 @@ impl ElementMethods for Element {
         // Step 10 (TODO)
 
         // Step 11
-        win.scroll_node(node.to_trusted_node_address(), x, self.ScrollTop(), behavior);
+        win.scroll_node(node, x, self.ScrollTop(), behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
@@ -1966,8 +1994,10 @@ impl ElementMethods for Element {
             // Step 4.
             NodeTypeId::DocumentFragment => {
                 let body_elem = Element::create(QualName::new(None, ns!(html), local_name!("body")),
+                                                None,
                                                 &context_document,
-                                                ElementCreator::ScriptCreated);
+                                                ElementCreator::ScriptCreated,
+                                                CustomElementCreationMode::Synchronous);
                 Root::upcast(body_elem)
             },
             _ => context_node.GetParentElement().unwrap()

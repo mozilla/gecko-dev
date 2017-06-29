@@ -793,6 +793,10 @@ impl LayoutThread {
     /// Shuts down the layout thread now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
     fn exit_now(&mut self) {
+        // Drop the root flow explicitly to avoid holding style data, such as
+        // rule nodes.  The `Stylist` checks when it is dropped that all rule
+        // nodes have been GCed, so we want drop anyone who holds them first.
+        self.root_flow.borrow_mut().take();
         // Drop the rayon threadpool if present.
         let _ = self.parallel_traversal.take();
     }
@@ -1249,7 +1253,7 @@ impl LayoutThread {
                 (self.layout_threads as u64);
             time::send_profile_data(time::ProfilerCategory::LayoutTextShaping,
                                     self.profiler_metadata(),
-                                    self.time_profiler_chan.clone(),
+                                    &self.time_profiler_chan,
                                     0,
                                     text_shaping_time,
                                     0,

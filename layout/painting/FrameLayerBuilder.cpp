@@ -2777,7 +2777,6 @@ PaintedLayerDataNode::FindPaintedLayerFor(const nsIntRect& aVisibleRect,
           DisplayItemClipChain::Equal(data.mClipChain, aClipChain)) {
         lowestUsableLayer = &data;
       }
-      nsIntRegion visibleRegion = data.mVisibleRegion;
       // Also check whether the event-regions intersect the visible rect,
       // unless we're in an inactive layer, in which case the event-regions
       // will be hoisted out into their own layer.
@@ -2795,7 +2794,7 @@ PaintedLayerDataNode::FindPaintedLayerFor(const nsIntRect& aVisibleRect,
       // If we're trying to minimize painted layer size and we don't
       // intersect the current visible region, then make sure we don't
       // use this painted layer.
-      if (visibleRegion.Intersects(aVisibleRect)) {
+      if (data.mVisibleRegion.Intersects(aVisibleRect)) {
         break;
       } else if (gfxPrefs::LayoutSmallerPaintedLayers()) {
         lowestUsableLayer = nullptr;
@@ -3966,8 +3965,7 @@ IsScrollThumbLayer(nsDisplayItem* aItem)
 void
 ContainerState::ProcessDisplayItems(nsDisplayList* aList)
 {
-  PROFILER_LABEL("ContainerState", "ProcessDisplayItems",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("ContainerState::ProcessDisplayItems", GRAPHICS);
 
   AnimatedGeometryRoot* lastAnimatedGeometryRoot = mContainerAnimatedGeometryRoot;
   const ActiveScrolledRoot* lastASR = mContainerASR;
@@ -4127,8 +4125,10 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList)
     // We haven't computed visibility at this point, so item->GetVisibleRect()
     // is just the dirty rect that item was initialized with. We intersect it
     // with the clipped item bounds to get a tighter visible rect.
-    itemVisibleRect = itemVisibleRect.Intersect(
-      ScaleToOutsidePixels(item->GetVisibleRect(), false));
+    if (!prerenderedTransform) {
+      itemVisibleRect = itemVisibleRect.Intersect(
+        ScaleToOutsidePixels(item->GetVisibleRect(), false));
+    }
 
     if (maxLayers != -1 && layerCount >= maxLayers) {
       forceInactive = true;
@@ -6020,11 +6020,10 @@ FrameLayerBuilder::PaintItems(nsTArray<ClippedDisplayItem>& aItems,
       continue;
 
 #ifdef MOZ_DUMP_PAINTING
-    PROFILER_LABEL_DYNAMIC("DisplayList", "Draw",
-      js::ProfileEntry::Category::GRAPHICS, cdi->mItem->Name());
+    AUTO_PROFILER_LABEL_DYNAMIC("FrameLayerBuilder::PaintItems", GRAPHICS,
+                                cdi->mItem->Name());
 #else
-    PROFILER_LABEL("DisplayList", "Draw",
-      js::ProfileEntry::Category::GRAPHICS);
+    AUTO_PROFILER_LABEL("FrameLayerBuilder::PaintItems", GRAPHICS);
 #endif
 
     // If the new desired clip state is different from the current state,
@@ -6064,10 +6063,9 @@ FrameLayerBuilder::PaintItems(nsTArray<ClippedDisplayItem>& aItems,
 #ifdef MOZ_DUMP_PAINTING
       if (gfxEnv::DumpPaintItems()) {
         DebugPaintItem(aDrawTarget, aPresContext, cdi->mItem, aBuilder);
-      } else {
-#else
-      {
+      } else
 #endif
+      {
         cdi->mItem->Paint(aBuilder, aRC);
       }
     }
@@ -6146,8 +6144,7 @@ FrameLayerBuilder::DrawPaintedLayer(PaintedLayer* aLayer,
 {
   DrawTarget& aDrawTarget = *aContext->GetDrawTarget();
 
-  PROFILER_LABEL("FrameLayerBuilder", "DrawPaintedLayer",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("FrameLayerBuilder::DrawPaintedLayer", GRAPHICS);
 
   nsDisplayListBuilder* builder = static_cast<nsDisplayListBuilder*>
     (aCallbackData);

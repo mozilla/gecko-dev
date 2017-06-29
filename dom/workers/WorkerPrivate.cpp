@@ -353,6 +353,7 @@ class MainThreadReleaseRunnable final : public Runnable
 public:
   MainThreadReleaseRunnable(nsTArray<nsCOMPtr<nsISupports>>& aDoomed,
                             nsCOMPtr<nsILoadGroup>& aLoadGroupToCancel)
+    : mozilla::Runnable("MainThreadReleaseRunnable")
   {
     mDoomed.SwapElements(aDoomed);
     mLoadGroupToCancel.swap(aLoadGroupToCancel);
@@ -427,7 +428,8 @@ class TopLevelWorkerFinishedRunnable final : public Runnable
 
 public:
   explicit TopLevelWorkerFinishedRunnable(WorkerPrivate* aFinishedWorker)
-  : mFinishedWorker(aFinishedWorker)
+    : mozilla::Runnable("TopLevelWorkerFinishedRunnable")
+    , mFinishedWorker(aFinishedWorker)
   {
     aFinishedWorker->AssertIsOnWorkerThread();
   }
@@ -1545,44 +1547,6 @@ private:
   }
 };
 
-class DummyRunnable final
-  : public WorkerRunnable
-{
-public:
-  explicit
-  DummyRunnable(WorkerPrivate* aWorkerPrivate)
-    : WorkerRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount)
-  {
-    aWorkerPrivate->AssertIsOnWorkerThread();
-  }
-
-private:
-  ~DummyRunnable()
-  {
-    mWorkerPrivate->AssertIsOnWorkerThread();
-  }
-
-  virtual bool
-  PreDispatch(WorkerPrivate* aWorkerPrivate) override
-  {
-    MOZ_ASSERT_UNREACHABLE("Should never call Dispatch on this!");
-    return true;
-  }
-
-  virtual void
-  PostDispatch(WorkerPrivate* aWorkerPrivate, bool aDispatchResult) override
-  {
-    MOZ_ASSERT_UNREACHABLE("Should never call Dispatch on this!");
-  }
-
-  virtual bool
-  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
-  {
-    // Do nothing.
-    return true;
-  }
-};
-
 PRThread*
 PRThreadFromThread(nsIThread* aThread)
 {
@@ -2578,11 +2542,13 @@ WorkerPrivate::MemoryReporter::FinishCollectRunnable::FinishCollectRunnable(
   nsISupports* aHandlerData,
   bool aAnonymize,
   const nsACString& aPath)
-  : mHandleReport(aHandleReport),
-    mHandlerData(aHandlerData),
-    mAnonymize(aAnonymize),
-    mSuccess(false),
-    mCxStats(aPath)
+  : mozilla::Runnable(
+      "dom::workers::WorkerPrivate::MemoryReporter::FinishCollectRunnable")
+  , mHandleReport(aHandleReport)
+  , mHandlerData(aHandlerData)
+  , mAnonymize(aAnonymize)
+  , mSuccess(false)
+  , mCxStats(aPath)
 { }
 
 NS_IMETHODIMP
@@ -4092,8 +4058,9 @@ class PostDebuggerMessageRunnable final : public Runnable
 public:
   PostDebuggerMessageRunnable(WorkerDebugger* aDebugger,
                               const nsAString& aMessage)
-  : mDebugger(aDebugger),
-    mMessage(aMessage)
+    : mozilla::Runnable("PostDebuggerMessageRunnable")
+    , mDebugger(aDebugger)
+    , mMessage(aMessage)
   {
   }
 
@@ -4119,12 +4086,14 @@ class ReportDebuggerErrorRunnable final : public Runnable
 
 public:
   ReportDebuggerErrorRunnable(WorkerDebugger* aDebugger,
-                              const nsAString& aFilename, uint32_t aLineno,
+                              const nsAString& aFilename,
+                              uint32_t aLineno,
                               const nsAString& aMessage)
-  : mDebugger(aDebugger),
-    mFilename(aFilename),
-    mLineno(aLineno),
-    mMessage(aMessage)
+    : mozilla::Runnable("ReportDebuggerErrorRunnable")
+    , mDebugger(aDebugger)
+    , mFilename(aFilename)
+    , mLineno(aLineno)
+    , mMessage(aMessage)
   {
   }
 

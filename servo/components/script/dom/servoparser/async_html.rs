@@ -13,14 +13,14 @@ use dom::bindings::trace::JSTraceable;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementCreator};
+use dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::virtualmethods::vtable_for;
-use html5ever::{Attribute, QualName, ExpandedName};
+use html5ever::{Attribute, LocalName, QualName, ExpandedName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::StrTendril;
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
@@ -128,18 +128,16 @@ unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<ParseNode, Sink>> {
     }
 }
 
-type ParseNodeID = usize;
+type ParseNodeId = usize;
 
 #[derive(JSTraceable, Clone, HeapSizeOf)]
 pub struct ParseNode {
-    id: ParseNodeID,
+    id: ParseNodeId,
     qual_name: Option<QualName>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
 struct ParseNodeData {
-    target: Option<String>,
-    data: Option<String>,
     contents: Option<ParseNode>,
     is_integration_point: bool,
 }
@@ -147,8 +145,6 @@ struct ParseNodeData {
 impl Default for ParseNodeData {
     fn default() -> ParseNodeData {
         ParseNodeData {
-            target: None,
-            data: None,
             contents: None,
             is_integration_point: false,
         }
@@ -156,21 +152,21 @@ impl Default for ParseNodeData {
 }
 
 enum ParseOperation {
-    GetTemplateContents(ParseNodeID, ParseNodeID),
-    CreateElement(ParseNodeID, QualName, Vec<Attribute>),
-    CreateComment(StrTendril, ParseNodeID),
+    GetTemplateContents(ParseNodeId, ParseNodeId),
+    CreateElement(ParseNodeId, QualName, Vec<Attribute>),
+    CreateComment(StrTendril, ParseNodeId),
     // sibling, node to be inserted
-    AppendBeforeSibling(ParseNodeID, NodeOrText<ParseNode>),
+    AppendBeforeSibling(ParseNodeId, NodeOrText<ParseNode>),
     // parent, node to be inserted
-    Append(ParseNodeID, NodeOrText<ParseNode>),
+    Append(ParseNodeId, NodeOrText<ParseNode>),
     AppendDoctypeToDocument(StrTendril, StrTendril, StrTendril),
-    AddAttrsIfMissing(ParseNodeID, Vec<Attribute>),
-    RemoveFromParent(ParseNodeID),
-    MarkScriptAlreadyStarted(ParseNodeID),
-    ReparentChildren(ParseNodeID, ParseNodeID),
-    AssociateWithForm(ParseNodeID, ParseNodeID),
-    CreatePI(ParseNodeID),
-    Pop(ParseNodeID),
+    AddAttrsIfMissing(ParseNodeId, Vec<Attribute>),
+    RemoveFromParent(ParseNodeId),
+    MarkScriptAlreadyStarted(ParseNodeId),
+    ReparentChildren(ParseNodeId, ParseNodeId),
+    AssociateWithForm(ParseNodeId, ParseNodeId),
+    CreatePI(ParseNodeId, StrTendril, StrTendril),
+    Pop(ParseNodeId),
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -180,9 +176,9 @@ pub struct Sink {
     document: JS<Document>,
     current_line: u64,
     script: MutNullableJS<HTMLScriptElement>,
-    parse_node_data: HashMap<ParseNodeID, ParseNodeData>,
-    next_parse_node_id: Cell<ParseNodeID>,
-    nodes: HashMap<ParseNodeID, JS<Node>>,
+    parse_node_data: HashMap<ParseNodeId, ParseNodeData>,
+    next_parse_node_id: Cell<ParseNodeId>,
+    nodes: HashMap<ParseNodeId, JS<Node>>,
     document_node: ParseNode,
 }
 
@@ -218,23 +214,23 @@ impl Sink {
         }
     }
 
-    fn insert_node(&mut self, id: ParseNodeID, node: JS<Node>) {
+    fn insert_node(&mut self, id: ParseNodeId, node: JS<Node>) {
         assert!(self.nodes.insert(id, node).is_none());
     }
 
-    fn get_node<'a>(&'a self, id: &ParseNodeID) -> &'a JS<Node> {
+    fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a JS<Node> {
         self.nodes.get(id).expect("Node not found!")
     }
 
-    fn insert_parse_node_data(&mut self, id: ParseNodeID, data: ParseNodeData) {
+    fn insert_parse_node_data(&mut self, id: ParseNodeId, data: ParseNodeData) {
         assert!(self.parse_node_data.insert(id, data).is_none());
     }
 
-    fn get_parse_node_data<'a>(&'a self, id: &'a ParseNodeID) -> &'a ParseNodeData {
+    fn get_parse_node_data<'a>(&'a self, id: &'a ParseNodeId) -> &'a ParseNodeData {
         self.parse_node_data.get(id).expect("Parse Node data not found!")
     }
 
-    fn get_parse_node_data_mut<'a>(&'a mut self, id: &'a ParseNodeID) -> &'a mut ParseNodeData {
+    fn get_parse_node_data_mut<'a>(&'a mut self, id: &'a ParseNodeId) -> &'a mut ParseNodeData {
         self.parse_node_data.get_mut(id).expect("Parse Node data not found!")
     }
 
@@ -249,8 +245,15 @@ impl Sink {
                 self.insert_node(contents, JS::from_ref(template.Content().upcast()));
             }
             ParseOperation::CreateElement(id, name, attrs) => {
-                let elem = Element::create(name, &*self.document,
-                                           ElementCreator::ParserCreated(self.current_line));
+                let is = attrs.iter()
+                              .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
+                              .map(|attr| LocalName::from(&*attr.value));
+
+                let elem = Element::create(name,
+                                           is,
+                                           &*self.document,
+                                           ElementCreator::ParserCreated(self.current_line),
+                                           CustomElementCreationMode::Synchronous);
                 for attr in attrs {
                     elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
                 }
@@ -329,15 +332,11 @@ impl Sink {
             ParseOperation::Pop(node) => {
                 vtable_for(self.get_node(&node)).pop();
             }
-            ParseOperation::CreatePI(node) => {
-                let pi;
-                {
-                    let data = self.get_parse_node_data(&node);
-                    pi = ProcessingInstruction::new(
-                        DOMString::from(data.target.clone().unwrap()),
-                        DOMString::from(data.data.clone().unwrap()),
+            ParseOperation::CreatePI(node, target, data) => {
+                let pi = ProcessingInstruction::new(
+                        DOMString::from(String::from(target)),
+                        DOMString::from(String::from(data)),
                         document);
-                }
                 self.insert_node(node, JS::from_ref(pi.upcast()));
             }
         }
@@ -411,12 +410,7 @@ impl TreeSink for Sink {
 
     fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> ParseNode {
         let node = self.new_parse_node();
-        {
-            let mut node_data = self.get_parse_node_data_mut(&node.id);
-            node_data.target = Some(String::from(target));
-            node_data.data = Some(String::from(data));
-        }
-        self.process_operation(ParseOperation::CreatePI(node.id));
+        self.process_operation(ParseOperation::CreatePI(node.id, target, data));
         node
     }
 

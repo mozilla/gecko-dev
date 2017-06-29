@@ -627,9 +627,9 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString& url,
     }
 
     const nsCString& asciiUrl = NS_LossyConvertUTF16toASCII(url);
-    PROFILER_LABEL_DYNAMIC("mozJSSubScriptLoader", "LoadSubScript",
-                           js::ProfileEntry::Category::OTHER,
-                           asciiUrl.get());
+    AUTO_PROFILER_LABEL_DYNAMIC(
+        "mozJSSubScriptLoader::DoLoadSubScriptWithOptions", OTHER,
+        asciiUrl.get());
 
     // Make sure to explicitly create the URI, since we'll need the
     // canonicalized spec.
@@ -762,9 +762,11 @@ class NotifyPrecompilationCompleteRunnable : public Runnable
 public:
     NS_DECL_NSIRUNNABLE
 
-    explicit NotifyPrecompilationCompleteRunnable(ScriptPrecompiler* aPrecompiler)
-        : mPrecompiler(aPrecompiler)
-        , mToken(nullptr)
+    explicit NotifyPrecompilationCompleteRunnable(
+      ScriptPrecompiler* aPrecompiler)
+      : mozilla::Runnable("NotifyPrecompilationCompleteRunnable")
+      , mPrecompiler(aPrecompiler)
+      , mToken(nullptr)
     {}
 
     void SetToken(void* aToken) {

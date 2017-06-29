@@ -1161,7 +1161,11 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
       let fragment = this.gridData[i];
 
       for (let area of fragment.areas) {
-        let { rowStart, rowEnd, columnStart, columnEnd } = area;
+        let { rowStart, rowEnd, columnStart, columnEnd, type } = area;
+
+        if (type === "implicit") {
+          continue;
+        }
 
         // Draw the line edges for the grid area
         const areaColStart = fragment.cols.lines[columnStart - 1];
@@ -1332,6 +1336,19 @@ CssGridHighlighter.prototype = extend(AutoRefreshHighlighter.prototype, {
     for (let i = 0; i < gridDimension.lines.length; i++) {
       let line = gridDimension.lines[i];
       let linePos = line.start;
+
+      // If you place something using negative numbers, you can trigger some implicit grid
+      // creation above and to the left of the explicit grid (assuming a horizontal-tb
+      // writing mode).
+      // The first explicit grid line gets the number of 1; any implicit grid lines
+      // before 1 get negative numbers, but do not get any positivity numbers.
+      // Since here we're rendering only the positive line numbers, we have to skip any
+      // implicit grid lines before the first tha is explicit.
+      // For such lines the API returns always 0 as line's number.
+      if (line.number === 0) {
+        continue;
+      }
+
       this.renderGridLineNumber(line.number, linePos, lineStartPos, line.breadth,
         dimensionType);
     }

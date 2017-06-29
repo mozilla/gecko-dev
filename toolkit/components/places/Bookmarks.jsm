@@ -69,8 +69,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
                                   "resource://gre/modules/Sqlite.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
@@ -540,11 +538,18 @@ var Bookmarks = Object.freeze({
         return Object.assign({}, item);
       }
       const now = new Date();
+      let lastModifiedDefault = now;
+      // In the case where `dateAdded` is specified, but `lastModified` is not,
+      // we only update `lastModified` if it is older than the new `dateAdded`.
+      if (!("lastModified" in updateInfo) &&
+          "dateAdded" in updateInfo) {
+        lastModifiedDefault = new Date(Math.max(item.lastModified, updateInfo.dateAdded));
+      }
       updateInfo = validateBookmarkObject(updateInfo,
         { url: { validIf: () => item.type == this.TYPE_BOOKMARK },
           title: { validIf: () => [ this.TYPE_BOOKMARK,
                                     this.TYPE_FOLDER ].includes(item.type) },
-          lastModified: { defaultValue: now,
+          lastModified: { defaultValue: lastModifiedDefault,
                           validIf: b => b.lastModified >= now ||
                                         b.lastModified >= (b.dateAdded || item.dateAdded) },
           dateAdded: { defaultValue: item.dateAdded }
@@ -618,6 +623,19 @@ var Bookmarks = Object.freeze({
                                                updatedItem._parentId,
                                                updatedItem.guid,
                                                updatedItem.parentGuid, "",
+                                               updatedItem.source ]);
+        }
+        if (info.hasOwnProperty("dateAdded") &&
+            updateInfo.hasOwnProperty("dateAdded") &&
+            item.dateAdded != updatedItem.dateAdded) {
+          notify(observers, "onItemChanged", [ updatedItem._id, "dateAdded",
+                                               false, `${PlacesUtils.toPRTime(updatedItem.dateAdded)}`,
+                                               PlacesUtils.toPRTime(updatedItem.lastModified),
+                                               updatedItem.type,
+                                               updatedItem._parentId,
+                                               updatedItem.guid,
+                                               updatedItem.parentGuid,
+                                               "",
                                                updatedItem.source ]);
         }
         if (updateInfo.hasOwnProperty("title")) {

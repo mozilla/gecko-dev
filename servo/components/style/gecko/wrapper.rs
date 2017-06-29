@@ -76,8 +76,8 @@ use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
+use selectors::sink::Push;
 use shared_lock::Locked;
-use sink::Push;
 use smallvec::VecLike;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -515,7 +515,7 @@ impl<'le> GeckoElement<'le> {
             Some(x) => x,
             None => {
                 debug!("Creating ElementData for {:?}", self);
-                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::new(None))));
+                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::default())));
                 self.0.mServoData.set(ptr);
                 unsafe { &* ptr }
             },
@@ -532,7 +532,7 @@ impl<'le> GeckoElement<'le> {
                 Some(mem::replace(old.borrow_mut().deref_mut(), replace_data))
             }
             (Some(old), None) => {
-                let old_data = mem::replace(old.borrow_mut().deref_mut(), ElementData::new(None));
+                let old_data = mem::replace(old.borrow_mut().deref_mut(), ElementData::default());
                 self.0.mServoData.set(ptr::null_mut());
                 Some(old_data)
             }
@@ -616,7 +616,7 @@ fn get_animation_rule(element: &GeckoElement,
                       -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
     use gecko_bindings::sugar::ownership::HasSimpleFFI;
     // Also, we should try to reuse the PDB, to avoid creating extra rule nodes.
-    let mut animation_values = AnimationValueMap::new();
+    let mut animation_values = AnimationValueMap::default();
     if unsafe { Gecko_GetAnimationRule(element.0,
                                        cascade_level,
                                        AnimationValueMap::as_ffi_mut(&mut animation_values)) } {
@@ -672,7 +672,7 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
              in_media_query: bool, device: &Device) -> FontMetricsQueryResult {
         use gecko_bindings::bindings::Gecko_GetFontMetrics;
         let gecko_metrics = unsafe {
-            Gecko_GetFontMetrics(&*device.pres_context,
+            Gecko_GetFontMetrics(device.pres_context(),
                                  wm.is_vertical() && !wm.is_sideways(),
                                  font.gecko(),
                                  font_size.0,
@@ -769,6 +769,11 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
+    }
+
+    fn owner_doc_matches_for_testing(&self, device: &Device) -> bool {
+        self.as_node().owner_doc() as *const structs::nsIDocument ==
+            device.pres_context().mDocument.raw::<structs::nsIDocument>()
     }
 
     fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
@@ -980,7 +985,7 @@ impl<'le> TElement for GeckoElement<'le> {
         // should destroy all CSS animations in display:none subtree.
         let computed_data = self.borrow_data();
         let computed_values =
-            computed_data.as_ref().map(|d| d.styles().primary.values());
+            computed_data.as_ref().map(|d| d.styles.primary());
         let computed_values_opt =
             computed_values.map(|v| *HasArcFFI::arc_as_borrowed(v));
         let before_change_values =
@@ -1014,7 +1019,9 @@ impl<'le> TElement for GeckoElement<'le> {
         where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
         // Walk the binding scope chain, starting with the binding attached to our content, up
         // till we run out of scopes or we get cut off.
-        let mut current = Some(*self);
+
+        // If we are NAC, we want to get rules from our rule_hash_target.
+        let mut current = Some(self.rule_hash_target());
 
         while let Some(element) = current {
             if let Some(binding) = element.get_xbl_binding() {

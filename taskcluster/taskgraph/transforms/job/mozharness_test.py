@@ -10,7 +10,6 @@ from taskgraph.transforms.job import run_job_using
 from taskgraph.util.schema import Schema
 from taskgraph.transforms.tests import (
     test_description_schema,
-    get_firefox_version,
     normpath
 )
 from taskgraph.transforms.job.common import (
@@ -27,6 +26,7 @@ BUILDER_NAME_PREFIX = {
     'linux64-ccov': 'Ubuntu Code Coverage VM 12.04 x64',
     'linux64-jsdcov': 'Ubuntu Code Coverage VM 12.04 x64',
     'linux64-stylo': 'Ubuntu VM 12.04 x64',
+    'linux64-devedition-nightly': 'Ubuntu VM 12.04 x64 DevEdition',
     'macosx64': 'Rev7 MacOSX Yosemite 10.10.5',
     'macosx64-devedition': 'Rev7 MacOSX Yosemite 10.10.5 DevEdition',
     'android-4.3-arm7-api-15': 'Android 4.3 armv7 API 15+',
@@ -44,16 +44,7 @@ mozharness_test_run_schema = Schema({
 
 def test_packages_url(taskdesc):
     """Account for different platforms that name their test packages differently"""
-    build_platform = taskdesc['attributes']['build_platform']
-    build_type = taskdesc['attributes']['build_type']
-
-    if build_platform.startswith('macosx64') and build_type == 'opt':
-        target = 'firefox-{}.en-US.{}'.format(get_firefox_version(), 'mac')
-    else:
-        target = 'target'
-
-    return get_artifact_url(
-        '<build>', 'public/build/{}.test_packages.json'.format(target))
+    return get_artifact_url('<build>', 'public/build/target.test_packages.json')
 
 
 @run_job_using('docker-engine', 'mozharness-test', schema=mozharness_test_run_schema)

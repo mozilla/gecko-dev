@@ -112,6 +112,7 @@
 #include "nsIFileStreams.h"
 #include "nsIMIMEInputStream.h"
 #include "nsIMultiplexInputStream.h"
+#include "../../cache2/CacheFileUtils.h"
 
 #ifdef MOZ_TASK_TRACER
 #include "GeckoTaskTracer.h"
@@ -4487,6 +4488,19 @@ nsHttpChannel::OnNormalCacheEntryAvailable(nsICacheEntry *aEntry,
         mCacheEntry = aEntry;
         mCacheEntryIsWriteOnly = aNew;
 
+        if (!aNew && !mAsyncOpenTime.IsNull()) {
+            // We use microseconds for IO operations. For consistency let's use
+            // microseconds here too.
+            uint32_t duration = (TimeStamp::Now() - mAsyncOpenTime).ToMicroseconds();
+            bool isSlow = false;
+            if ((mCacheOpenWithPriority && mCacheQueueSizeWhenOpen >= sRCWNQueueSizePriority) ||
+                (!mCacheOpenWithPriority && mCacheQueueSizeWhenOpen >= sRCWNQueueSizeNormal)) {
+                isSlow = true;
+            }
+            CacheFileUtils::CachePerfStats::AddValue(
+                CacheFileUtils::CachePerfStats::ENTRY_OPEN, duration, isSlow);
+        }
+
         if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI) {
             Telemetry::Accumulate(Telemetry::HTTP_OFFLINE_CACHE_DOCUMENT_LOAD,
                                   false);
@@ -6948,8 +6962,7 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
 {
     nsresult rv;
 
-    PROFILER_LABEL("nsHttpChannel", "OnStartRequest",
-        js::ProfileEntry::Category::NETWORK);
+    AUTO_PROFILER_LABEL("nsHttpChannel::OnStartRequest", NETWORK);
 
     if (!(mCanceled || NS_FAILED(mStatus)) && !WRONG_RACING_RESPONSE_SOURCE(request)) {
         // capture the request's status, so our consumers will know ASAP of any
@@ -7115,8 +7128,7 @@ nsHttpChannel::ContinueOnStartRequest3(nsresult result)
 NS_IMETHODIMP
 nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult status)
 {
-    PROFILER_LABEL("nsHttpChannel", "OnStopRequest",
-        js::ProfileEntry::Category::NETWORK);
+    AUTO_PROFILER_LABEL("nsHttpChannel::OnStopRequest", NETWORK);
 
     LOG(("nsHttpChannel::OnStopRequest [this=%p request=%p status=%" PRIx32 "]\n",
          this, request, static_cast<uint32_t>(status)));
@@ -7187,6 +7199,8 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
     if (conv) {
         conv->GetDecodedDataLength(&mDecodedBodySize);
     }
+
+    bool isFromNet = request == mTransactionPump;
 
     if (mTransaction) {
         // determine if we should call DoAuthRetry
@@ -7404,7 +7418,7 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         }
     }
 
-    ReportRcwnStats(request);
+    ReportRcwnStats(request, isFromNet);
 
     // Register entry to the Performance resource timing
     mozilla::dom::Performance* documentPerformance = GetPerformance();
@@ -7453,16 +7467,17 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
 class OnTransportStatusAsyncEvent : public Runnable
 {
 public:
-    OnTransportStatusAsyncEvent(nsITransportEventSink* aEventSink,
-                                nsresult aTransportStatus,
-                                int64_t aProgress,
-                                int64_t aProgressMax)
-    : mEventSink(aEventSink)
+  OnTransportStatusAsyncEvent(nsITransportEventSink* aEventSink,
+                              nsresult aTransportStatus,
+                              int64_t aProgress,
+                              int64_t aProgressMax)
+    : Runnable("net::OnTransportStatusAsyncEvent")
+    , mEventSink(aEventSink)
     , mTransportStatus(aTransportStatus)
     , mProgress(aProgress)
     , mProgressMax(aProgressMax)
-    {
-        MOZ_ASSERT(!NS_IsMainThread(), "Shouldn't be created on main thread");
+  {
+    MOZ_ASSERT(!NS_IsMainThread(), "Shouldn't be created on main thread");
     }
 
     NS_IMETHOD Run() override
@@ -7487,8 +7502,7 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
                                uint64_t offset, uint32_t count)
 {
     nsresult rv;
-    PROFILER_LABEL("nsHttpChannel", "OnDataAvailable",
-        js::ProfileEntry::Category::NETWORK);
+    AUTO_PROFILER_LABEL("nsHttpChannel::OnDataAvailable", NETWORK);
 
     LOG(("nsHttpChannel::OnDataAvailable [this=%p request=%p offset=%" PRIu64
          " count=%" PRIu32 "]\n",
@@ -8934,7 +8948,7 @@ nsHttpChannel::SetDoNotTrack()
 }
 
 void
-nsHttpChannel::ReportRcwnStats(nsIRequest* firstResponseRequest)
+nsHttpChannel::ReportRcwnStats(nsIRequest* firstResponseRequest, bool isFromNet)
 {
     if (!sRCWNEnabled) {
         return;
@@ -8954,7 +8968,7 @@ nsHttpChannel::ReportRcwnStats(nsIRequest* firstResponseRequest)
     };
 
     RaceCacheAndNetStatus rcwnStatus = kDidNotRaceUsedNetwork;
-    if (firstResponseRequest == mTransactionPump) {
+    if (isFromNet) {
         rcwnStatus = mRaceCacheWithNetwork ? kRaceUsedNetwork : kDidNotRaceUsedNetwork;
     } else if (firstResponseRequest == mCachePump) {
         rcwnStatus = mRaceCacheWithNetwork ? kRaceUsedCache : kDidNotRaceUsedCache;
@@ -9190,16 +9204,22 @@ nsHttpChannel::MaybeRaceCacheWithNetwork()
         return NS_OK;
     }
 
-    uint32_t threshold = mCacheOpenWithPriority ? sRCWNQueueSizePriority
-                                                : sRCWNQueueSizeNormal;
-    // No need to trigger to trigger the racing, since most likely the cache
-    // will be faster.
-    if (mCacheQueueSizeWhenOpen < threshold) {
-        return NS_OK;
+    uint32_t delay;
+    if (CacheFileUtils::CachePerfStats::IsCacheSlow()) {
+        // If the cache is slow, trigger the network request immediately.
+        delay = 0;
+    } else {
+        // Give cache a headstart of 3 times the average cache entry open time.
+        delay = CacheFileUtils::CachePerfStats::GetAverage(
+                CacheFileUtils::CachePerfStats::ENTRY_OPEN, true) * 3;
+        // We use microseconds in CachePerfStats but we need milliseconds
+        // for TriggerNetwork.
+        delay /= 1000;
     }
 
     MOZ_ASSERT(sRCWNEnabled, "The pref must be truned on.");
-    LOG(("nsHttpChannel::MaybeRaceCacheWithNetwork [this=%p]\n", this));
+    LOG(("nsHttpChannel::MaybeRaceCacheWithNetwork [this=%p, delay=%u]\n",
+         this, delay));
 
     if (!mOnCacheAvailableCalled) {
         // If the network was triggered before onCacheEntryAvailable was
@@ -9207,7 +9227,7 @@ nsHttpChannel::MaybeRaceCacheWithNetwork()
         mRaceCacheWithNetwork = true;
     }
 
-    return TriggerNetwork(0);
+    return TriggerNetwork(delay);
 }
 
 NS_IMETHODIMP

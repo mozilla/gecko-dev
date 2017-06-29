@@ -5,34 +5,35 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaDecoder.h"
+
+#include "AudioChannelService.h"
+#include "ImageContainer.h"
+#include "Layers.h"
+#include "MediaDecoderStateMachine.h"
+#include "MediaResource.h"
+#include "MediaShutdownManager.h"
+#include "VideoFrameContainer.h"
+#include "VideoUtils.h"
+#include "mozilla/AbstractThread.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
-#include <limits>
-#include "nsIObserver.h"
-#include "nsTArray.h"
-#include "VideoUtils.h"
-#include "MediaDecoderStateMachine.h"
-#include "ImageContainer.h"
-#include "MediaResource.h"
-#include "VideoFrameContainer.h"
-#include "nsError.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPtr.h"
-#include "nsIMemoryReporter.h"
-#include "nsComponentManagerUtils.h"
-#include <algorithm>
-#include "MediaShutdownManager.h"
-#include "AudioChannelService.h"
-#include "mozilla/AbstractThread.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/dom/AudioTrack.h"
 #include "mozilla/dom/AudioTrackList.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/VideoTrack.h"
 #include "mozilla/dom/VideoTrackList.h"
-#include "nsPrintfCString.h"
-#include "mozilla/Telemetry.h"
-#include "Layers.h"
 #include "mozilla/layers/ShadowLayers.h"
+#include "nsComponentManagerUtils.h"
+#include "nsError.h"
+#include "nsIMemoryReporter.h"
+#include "nsIObserver.h"
+#include "nsPrintfCString.h"
+#include "nsTArray.h"
+#include <algorithm>
+#include <limits>
 
 #ifdef MOZ_ANDROID_OMX
 #include "AndroidBridge.h"
@@ -43,6 +44,12 @@ using namespace mozilla::layers;
 using namespace mozilla::media;
 
 namespace mozilla {
+
+// GetCurrentTime is defined in winbase.h as zero argument macro forwarding to
+// GetTickCount() and conflicts with MediaDecoder::GetCurrentTime implementation.
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
 
 // avoid redefined macro in unified build
 #undef LOG
@@ -135,143 +142,6 @@ NS_IMPL_ISUPPORTS(MediaMemoryTracker, nsIMemoryReporter)
 
 NS_IMPL_ISUPPORTS0(MediaDecoder)
 
-MediaDecoder::ResourceCallback::ResourceCallback(AbstractThread* aMainThread)
-  : mAbstractMainThread(aMainThread)
-{
-  MOZ_ASSERT(aMainThread);
-}
-
-void
-MediaDecoder::ResourceCallback::Connect(MediaDecoder* aDecoder)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  mDecoder = aDecoder;
-  mTimer = do_CreateInstance("@mozilla.org/timer;1");
-  mTimer->SetTarget(mAbstractMainThread->AsEventTarget());
-}
-
-void
-MediaDecoder::ResourceCallback::Disconnect()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mDecoder) {
-    mDecoder = nullptr;
-    mTimer->Cancel();
-    mTimer = nullptr;
-  }
-}
-
-MediaDecoderOwner*
-MediaDecoder::ResourceCallback::GetMediaOwner() const
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  return mDecoder ? mDecoder->GetOwner() : nullptr;
-}
-
-void
-MediaDecoder::ResourceCallback::SetInfinite(bool aInfinite)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mDecoder) {
-    mDecoder->SetInfinite(aInfinite);
-  }
-}
-
-void
-MediaDecoder::ResourceCallback::NotifyNetworkError()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mDecoder) {
-    mDecoder->NetworkError();
-  }
-}
-
-/* static */ void
-MediaDecoder::ResourceCallback::TimerCallback(nsITimer* aTimer, void* aClosure)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  ResourceCallback* thiz = static_cast<ResourceCallback*>(aClosure);
-  MOZ_ASSERT(thiz->mDecoder);
-  thiz->mDecoder->NotifyDataArrivedInternal();
-  thiz->mTimerArmed = false;
-}
-
-void
-MediaDecoder::ResourceCallback::NotifyDataArrived()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (!mDecoder) {
-    return;
-  }
-
-  mDecoder->DownloadProgressed();
-
-  if (mTimerArmed) {
-    return;
-  }
-  // In situations where these notifications come from stochastic network
-  // activity, we can save significant computation by throttling the
-  // calls to MediaDecoder::NotifyDataArrived() which will update the buffer
-  // ranges of the reader.
-  mTimerArmed = true;
-  mTimer->InitWithFuncCallback(
-    TimerCallback, this, sDelay, nsITimer::TYPE_ONE_SHOT);
-}
-
-void
-MediaDecoder::ResourceCallback::NotifyDataEnded(nsresult aStatus)
-{
-  RefPtr<ResourceCallback> self = this;
-  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([=] () {
-    if (!self->mDecoder) {
-      return;
-    }
-    self->mDecoder->NotifyDownloadEnded(aStatus);
-    if (NS_SUCCEEDED(aStatus)) {
-      MediaDecoderOwner* owner = self->GetMediaOwner();
-      MOZ_ASSERT(owner);
-      owner->DownloadSuspended();
-
-      // NotifySuspendedStatusChanged will tell the element that download
-      // has been suspended "by the cache", which is true since we never
-      // download anything. The element can then transition to HAVE_ENOUGH_DATA.
-      self->mDecoder->NotifySuspendedStatusChanged();
-    }
-  });
-  mAbstractMainThread->Dispatch(r.forget());
-}
-
-void
-MediaDecoder::ResourceCallback::NotifyPrincipalChanged()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mDecoder) {
-    mDecoder->NotifyPrincipalChanged();
-  }
-}
-
-void
-MediaDecoder::ResourceCallback::NotifySuspendedStatusChanged()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mDecoder) {
-    mDecoder->NotifySuspendedStatusChanged();
-  }
-}
-
-void
-MediaDecoder::ResourceCallback::NotifyBytesConsumed(int64_t aBytes,
-                                                    int64_t aOffset)
-{
-  RefPtr<ResourceCallback> self = this;
-  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([=] () {
-    if (self->mDecoder) {
-      self->mDecoder->NotifyBytesConsumed(aBytes, aOffset);
-    }
-  });
-  mAbstractMainThread->Dispatch(r.forget());
-}
-
 void
 MediaDecoder::NotifyOwnerActivityChanged(bool aIsDocumentVisible,
                                          Visibility aElementVisibility,
@@ -359,7 +229,6 @@ MediaDecoder::MediaDecoder(MediaDecoderInit& aInit)
   : mWatchManager(this, aInit.mOwner->AbstractMainThread())
   , mLogicalPosition(0.0)
   , mDuration(std::numeric_limits<double>::quiet_NaN())
-  , mResourceCallback(new ResourceCallback(aInit.mOwner->AbstractMainThread()))
   , mCDMProxyPromise(mCDMProxyPromiseHolder.Ensure(__func__))
   , mIgnoreProgressData(false)
   , mInfiniteStream(false)
@@ -403,8 +272,6 @@ MediaDecoder::MediaDecoder(MediaDecoderInit& aInit)
   MOZ_ASSERT(mAbstractMainThread);
   MediaMemoryTracker::AddMediaDecoder(this);
 
-  mResourceCallback->Connect(this);
-
   //
   // Initialize watchers.
   //
@@ -445,8 +312,6 @@ MediaDecoder::Shutdown()
   // Unwatch all watch targets to prevent further notifications.
   mWatchManager.Shutdown();
 
-  mResourceCallback->Disconnect();
-
   mCDMProxyPromiseHolder.RejectIfExists(true, __func__);
 
   DiscardOngoingSeekIfExists();
@@ -471,10 +336,11 @@ MediaDecoder::Shutdown()
     // Ensure we always unregister asynchronously in order not to disrupt
     // the hashtable iterating in MediaShutdownManager::Shutdown().
     RefPtr<MediaDecoder> self = this;
-    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction([self] () {
-      self->mVideoFrameContainer = nullptr;
-      MediaShutdownManager::Instance().Unregister(self);
-    });
+    nsCOMPtr<nsIRunnable> r =
+      NS_NewRunnableFunction("MediaDecoder::Shutdown", [self]() {
+        self->mVideoFrameContainer = nullptr;
+        MediaShutdownManager::Instance().Unregister(self);
+      });
     mAbstractMainThread->Dispatch(r.forget());
   }
 
@@ -511,7 +377,6 @@ MediaDecoder::~MediaDecoder()
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(IsShutdown());
-  mResourceCallback->Disconnect();
   MediaMemoryTracker::RemoveMediaDecoder(this);
   UnpinForSeek();
 }
@@ -584,42 +449,6 @@ MediaDecoder::FinishShutdown()
   SetStateMachine(nullptr);
   mVideoFrameContainer = nullptr;
   MediaShutdownManager::Instance().Unregister(this);
-}
-
-MediaResourceCallback*
-MediaDecoder::GetResourceCallback() const
-{
-  return mResourceCallback;
-}
-
-nsresult
-MediaDecoder::OpenResource(nsIStreamListener** aStreamListener)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (aStreamListener) {
-    *aStreamListener = nullptr;
-  }
-  return mResource->Open(aStreamListener);
-}
-
-nsresult
-MediaDecoder::Load(nsIStreamListener** aStreamListener)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mResource, "Can't load without a MediaResource");
-
-  nsresult rv = MediaShutdownManager::Instance().Register(this);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  rv = OpenResource(aStreamListener);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  SetStateMachine(CreateStateMachine());
-  NS_ENSURE_TRUE(GetStateMachine(), NS_ERROR_FAILURE);
-
-  return InitializeStateMachine();
 }
 
 nsresult

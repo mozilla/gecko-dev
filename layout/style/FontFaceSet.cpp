@@ -1215,7 +1215,7 @@ FontFaceSet::LogMessage(gfxUserFontEntry* aUserFontEntry,
 
   char weightKeywordBuf[8]; // plenty to sprintf() a uint16_t
   const char* weightKeyword;
-  const nsAFlatCString& weightKeywordString =
+  const nsCString& weightKeywordString =
     nsCSSProps::ValueToKeyword(aUserFontEntry->Weight(),
                                nsCSSProps::kFontWeightKTable);
   if (weightKeywordString.Length() > 0) {
@@ -1498,7 +1498,9 @@ FontFaceSet::DispatchCheckLoadingFinishedAfterDelay()
   }
 
   nsCOMPtr<nsIRunnable> checkTask =
-    NewRunnableMethod(this, &FontFaceSet::CheckLoadingFinishedAfterDelay);
+    NewRunnableMethod("dom::FontFaceSet::CheckLoadingFinishedAfterDelay",
+                      this,
+                      &FontFaceSet::CheckLoadingFinishedAfterDelay);
   mDocument->Dispatch("FontFaceSet::CheckLoadingFinishedAfterDelay",
                       TaskCategory::Other, checkTask.forget());
 }

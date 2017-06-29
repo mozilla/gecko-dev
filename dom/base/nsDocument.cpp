@@ -248,7 +248,6 @@
 #include "nsWindowMemoryReporter.h"
 #include "mozilla/dom/Location.h"
 #include "mozilla/dom/FontFaceSet.h"
-#include "mozilla/dom/BoxObject.h"
 #include "gfxPrefs.h"
 #include "nsISupportsPrimitives.h"
 #include "mozilla/StyleSetHandle.h"
@@ -258,6 +257,14 @@
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/TabGroup.h"
+#ifdef MOZ_XUL
+#include "mozilla/dom/ContainerBoxObject.h"
+#include "mozilla/dom/ListBoxObject.h"
+#include "mozilla/dom/MenuBoxObject.h"
+#include "mozilla/dom/PopupBoxObject.h"
+#include "mozilla/dom/ScrollBoxObject.h"
+#include "mozilla/dom/TreeBoxObject.h"
+#endif
 #include "nsIPresShellInlines.h"
 
 #include "mozilla/DocLoadingTimelineMarker.h"
@@ -1287,7 +1294,7 @@ nsIDocument::nsIDocument()
     mBlockAllMixedContentPreloads(false),
     mUpgradeInsecureRequests(false),
     mUpgradeInsecurePreloads(false),
-    mCharacterSet(NS_LITERAL_CSTRING("windows-1252")),
+    mCharacterSet(WINDOWS_1252_ENCODING),
     mCharacterSetSource(0),
     mParentDocument(nullptr),
     mCachedRootElement(nullptr),
@@ -1343,6 +1350,7 @@ nsIDocument::nsIDocument()
     mFrameRequestCallbacksScheduled(false),
     mIsTopLevelContentDocument(false),
     mIsContentDocument(false),
+    mIsScopedStyleEnabled(eScopedStyle_Unknown),
     mCompatMode(eCompatibility_FullStandards),
     mReadyState(ReadyState::READYSTATE_UNINITIALIZED),
     mStyleBackendType(StyleBackendType::None),
@@ -3670,13 +3678,14 @@ nsDocument::GetBaseTarget(nsAString &aBaseTarget)
 }
 
 void
-nsDocument::SetDocumentCharacterSet(const nsACString& aCharSetID)
+nsDocument::SetDocumentCharacterSet(NotNull<const Encoding*> aEncoding)
 {
-  // XXX it would be a good idea to assert the sanity of the argument,
-  // but before we figure out what to do about non-Encoding Standard
-  // encodings in the charset menu and in mailnews, assertions are futile.
-  if (!mCharacterSet.Equals(aCharSetID)) {
-    mCharacterSet = aCharSetID;
+  if (mCharacterSet != aEncoding) {
+    mCharacterSet = aEncoding;
+
+    nsAutoCString charsetID;
+    aEncoding->Name(charsetID);
+    NS_ConvertASCIItoUTF16 charset16(charsetID);
 
     int32_t n = mCharSetObservers.Length();
 
@@ -3684,7 +3693,7 @@ nsDocument::SetDocumentCharacterSet(const nsACString& aCharSetID)
       nsIObserver* observer = mCharSetObservers.ElementAt(i);
 
       observer->Observe(static_cast<nsIDocument *>(this), "charset",
-                        NS_ConvertASCIItoUTF16(aCharSetID).get());
+                        charset16.get());
     }
   }
 }
@@ -3841,7 +3850,7 @@ nsDocument::SetHeaderData(nsIAtom* aHeaderField, const nsAString& aData)
 void
 nsDocument::TryChannelCharset(nsIChannel *aChannel,
                               int32_t& aCharsetSource,
-                              nsACString& aCharset,
+                              NotNull<const Encoding*>& aEncoding,
                               nsHtml5TreeOpExecutor* aExecutor)
 {
   if (aChannel) {
@@ -3850,7 +3859,7 @@ nsDocument::TryChannelCharset(nsIChannel *aChannel,
     if (NS_SUCCEEDED(rv)) {
       const Encoding* preferred = Encoding::ForLabel(charsetVal);
       if (preferred) {
-        preferred->Name(aCharset);
+        aEncoding = WrapNotNull(preferred);
         aCharsetSource = kCharsetFromChannel;
         return;
       } else if (aExecutor && !charsetVal.IsEmpty()) {
@@ -4434,8 +4443,10 @@ nsDocument::SetStyleSheetApplicableState(StyleSheet* aSheet,
 
   if (!mSSApplicableStateNotificationPending) {
     MOZ_RELEASE_ASSERT(NS_IsMainThread());
-    nsCOMPtr<nsIRunnable> notification = NewRunnableMethod(this,
-      &nsDocument::NotifyStyleSheetApplicableStateChanged);
+    nsCOMPtr<nsIRunnable> notification =
+      NewRunnableMethod("nsDocument::NotifyStyleSheetApplicableStateChanged",
+                        this,
+                        &nsDocument::NotifyStyleSheetApplicableStateChanged);
     mSSApplicableStateNotificationPending =
       NS_SUCCEEDED(
         Dispatch("nsDocument::NotifyStyleSheetApplicableStateChanged",
@@ -5050,7 +5061,9 @@ nsDocument::MaybeEndOutermostXBLUpdate()
     } else if (!mInDestructor) {
       if (!mMaybeEndOutermostXBLUpdateRunner) {
         mMaybeEndOutermostXBLUpdateRunner =
-          NewRunnableMethod(this, &nsDocument::MaybeEndOutermostXBLUpdate);
+          NewRunnableMethod("nsDocument::MaybeEndOutermostXBLUpdate",
+                            this,
+                            &nsDocument::MaybeEndOutermostXBLUpdate);
       }
       nsContentUtils::AddScriptRunner(mMaybeEndOutermostXBLUpdateRunner);
     }
@@ -5381,7 +5394,9 @@ nsDocument::UnblockDOMContentLoaded()
   if (!mSynchronousDOMContentLoaded) {
     MOZ_RELEASE_ASSERT(NS_IsMainThread());
     nsCOMPtr<nsIRunnable> ev =
-      NewRunnableMethod(this, &nsDocument::DispatchContentLoadedEvents);
+      NewRunnableMethod("nsDocument::DispatchContentLoadedEvents",
+                        this,
+                        &nsDocument::DispatchContentLoadedEvents);
     Dispatch("nsDocument::DispatchContentLoadedEvents", TaskCategory::Other, ev.forget());
   } else {
     DispatchContentLoadedEvents();
@@ -6481,7 +6496,9 @@ nsDocument::GetCharacterSet(nsAString& aCharacterSet)
 void
 nsIDocument::GetCharacterSet(nsAString& aCharacterSet) const
 {
-  CopyASCIItoUTF16(GetDocumentCharacterSet(), aCharacterSet);
+  nsAutoCString charset;
+  GetDocumentCharacterSet()->Name(charset);
+  CopyASCIItoUTF16(charset, aCharacterSet);
 }
 
 NS_IMETHODIMP
@@ -6535,9 +6552,8 @@ nsIDocument::ImportNode(nsINode& aNode, bool aDeep, ErrorResult& rv) const
     case nsIDOMNode::DOCUMENT_TYPE_NODE:
     {
       nsCOMPtr<nsINode> newNode;
-      nsCOMArray<nsINode> nodesWithProperties;
-      rv = nsNodeUtils::Clone(imported, aDeep, mNodeInfoManager,
-                              nodesWithProperties, getter_AddRefs(newNode));
+      rv = nsNodeUtils::Clone(imported, aDeep, mNodeInfoManager, nullptr,
+                              getter_AddRefs(newNode));
       if (rv.Failed()) {
         return nullptr;
       }
@@ -6579,9 +6595,7 @@ nsIDocument::LoadBindingDocument(const nsAString& aURI,
                                  ErrorResult& rv)
 {
   nsCOMPtr<nsIURI> uri;
-  rv = NS_NewURI(getter_AddRefs(uri), aURI,
-                 mCharacterSet.get(),
-                 GetDocBaseURI());
+  rv = NS_NewURI(getter_AddRefs(uri), aURI, mCharacterSet, GetDocBaseURI());
   if (rv.Failed()) {
     return;
   }
@@ -7019,7 +7033,9 @@ nsDocument::NotifyPossibleTitleChange(bool aBoundTitleElement)
 
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   RefPtr<nsRunnableMethod<nsDocument, void, false>> event =
-    NewNonOwningRunnableMethod(this, &nsDocument::DoNotifyPossibleTitleChange);
+    NewNonOwningRunnableMethod("nsDocument::DoNotifyPossibleTitleChange",
+                               this,
+                               &nsDocument::DoNotifyPossibleTitleChange);
   nsresult rv = Dispatch("nsDocument::DoNotifyPossibleTitleChange",
                          TaskCategory::Other, do_AddRef(event));
   if (NS_SUCCEEDED(rv)) {
@@ -7077,64 +7093,60 @@ nsDocument::GetBoxObjectFor(Element* aElement, ErrorResult& aRv)
   }
 
   if (!mBoxObjectTable) {
-    mBoxObjectTable = new nsInterfaceHashtable<nsPtrHashKey<nsIContent>, nsPIBoxObject>(6);
-  } else {
-    nsCOMPtr<nsPIBoxObject> boxObject = mBoxObjectTable->Get(aElement);
-    if (boxObject) {
-      return boxObject.forget().downcast<BoxObject>();
-    }
+    mBoxObjectTable = new nsRefPtrHashtable<nsPtrHashKey<nsIContent>, BoxObject>(6);
+  }
+
+  RefPtr<BoxObject> boxObject;
+  auto entry = mBoxObjectTable->LookupForAdd(aElement);
+  if (entry) {
+    boxObject = entry.Data();
+    return boxObject.forget();
   }
 
   int32_t namespaceID;
   nsCOMPtr<nsIAtom> tag = BindingManager()->ResolveTag(aElement, &namespaceID);
-
-  // XXXbz Can we just switch to using "new" directly instead of this
-  // createInstance insanity?
-  nsAutoCString contractID("@mozilla.org/layout/xul-boxobject");
+#ifdef MOZ_XUL
   if (namespaceID == kNameSpaceID_XUL) {
     if (tag == nsGkAtoms::browser ||
         tag == nsGkAtoms::editor ||
-        tag == nsGkAtoms::iframe)
-      contractID += "-container";
-    else if (tag == nsGkAtoms::menu)
-      contractID += "-menu";
-    else if (tag == nsGkAtoms::popup ||
-             tag == nsGkAtoms::menupopup ||
-             tag == nsGkAtoms::panel ||
-             tag == nsGkAtoms::tooltip)
-      contractID += "-popup";
-    else if (tag == nsGkAtoms::tree)
-      contractID += "-tree";
-    else if (tag == nsGkAtoms::listbox)
-      contractID += "-listbox";
-    else if (tag == nsGkAtoms::scrollbox)
-      contractID += "-scrollbox";
-  }
-  contractID += ";1";
-
-  nsCOMPtr<nsPIBoxObject> boxObject(do_CreateInstance(contractID.get()));
-  if (!boxObject) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
+        tag == nsGkAtoms::iframe) {
+      boxObject = new ContainerBoxObject();
+    } else if (tag == nsGkAtoms::menu) {
+      boxObject = new MenuBoxObject();
+    } else if (tag == nsGkAtoms::popup ||
+               tag == nsGkAtoms::menupopup ||
+               tag == nsGkAtoms::panel ||
+               tag == nsGkAtoms::tooltip) {
+      boxObject = new PopupBoxObject();
+    } else if (tag == nsGkAtoms::tree) {
+      boxObject = new TreeBoxObject();
+    } else if (tag == nsGkAtoms::listbox) {
+      boxObject = new ListBoxObject();
+    } else if (tag == nsGkAtoms::scrollbox) {
+      boxObject = new ScrollBoxObject();
+    } else {
+      boxObject = new BoxObject();
+    }
+  } else
+#endif // MOZ_XUL
+  {
+    boxObject = new BoxObject();
   }
 
   boxObject->Init(aElement);
+  entry.OrInsert([&boxObject]() { return boxObject; });
 
-  if (mBoxObjectTable) {
-    mBoxObjectTable->Put(aElement, boxObject.get());
-  }
-
-  return boxObject.forget().downcast<BoxObject>();
+  return boxObject.forget();
 }
 
 void
 nsDocument::ClearBoxObjectFor(nsIContent* aContent)
 {
   if (mBoxObjectTable) {
-    nsPIBoxObject *boxObject = mBoxObjectTable->GetWeak(aContent);
-    if (boxObject) {
+    if (auto entry = mBoxObjectTable->Lookup(aContent)) {
+      nsPIBoxObject* boxObject = entry.Data();
       boxObject->Clear();
-      mBoxObjectTable->Remove(aContent);
+      entry.Remove();
     }
   }
 }
@@ -7169,7 +7181,9 @@ nsDocument::InitializeFrameLoader(nsFrameLoader* aLoader)
   mInitializableFrameLoaders.AppendElement(aLoader);
   if (!mFrameLoaderRunner) {
     mFrameLoaderRunner =
-      NewRunnableMethod(this, &nsDocument::MaybeInitializeFinalizeFrameLoaders);
+      NewRunnableMethod("nsDocument::MaybeInitializeFinalizeFrameLoaders",
+                        this,
+                        &nsDocument::MaybeInitializeFinalizeFrameLoaders);
     NS_ENSURE_TRUE(mFrameLoaderRunner, NS_ERROR_OUT_OF_MEMORY);
     nsContentUtils::AddScriptRunner(mFrameLoaderRunner);
   }
@@ -7187,7 +7201,9 @@ nsDocument::FinalizeFrameLoader(nsFrameLoader* aLoader, nsIRunnable* aFinalizer)
   mFrameLoaderFinalizers.AppendElement(aFinalizer);
   if (!mFrameLoaderRunner) {
     mFrameLoaderRunner =
-      NewRunnableMethod(this, &nsDocument::MaybeInitializeFinalizeFrameLoaders);
+      NewRunnableMethod("nsDocument::MaybeInitializeFinalizeFrameLoaders",
+                        this,
+                        &nsDocument::MaybeInitializeFinalizeFrameLoaders);
     NS_ENSURE_TRUE(mFrameLoaderRunner, NS_ERROR_OUT_OF_MEMORY);
     nsContentUtils::AddScriptRunner(mFrameLoaderRunner);
   }
@@ -7211,7 +7227,9 @@ nsDocument::MaybeInitializeFinalizeFrameLoaders()
         (mInitializableFrameLoaders.Length() ||
          mFrameLoaderFinalizers.Length())) {
       mFrameLoaderRunner =
-        NewRunnableMethod(this, &nsDocument::MaybeInitializeFinalizeFrameLoaders);
+        NewRunnableMethod("nsDocument::MaybeInitializeFinalizeFrameLoaders",
+                          this,
+                          &nsDocument::MaybeInitializeFinalizeFrameLoaders);
       nsContentUtils::AddScriptRunner(mFrameLoaderRunner);
     }
     return;
@@ -8788,8 +8806,8 @@ nsDocument::BlockOnload()
       // block onload only when there are no script blockers.
       ++mAsyncOnloadBlockCount;
       if (mAsyncOnloadBlockCount == 1) {
-        nsContentUtils::AddScriptRunner(
-          NewRunnableMethod(this, &nsDocument::AsyncBlockOnload));
+        nsContentUtils::AddScriptRunner(NewRunnableMethod(
+          "nsDocument::AsyncBlockOnload", this, &nsDocument::AsyncBlockOnload));
       }
       return;
     }
@@ -8846,7 +8864,11 @@ nsDocument::UnblockOnload(bool aFireSync)
 
 class nsUnblockOnloadEvent : public Runnable {
 public:
-  explicit nsUnblockOnloadEvent(nsDocument* aDoc) : mDoc(aDoc) {}
+  explicit nsUnblockOnloadEvent(nsDocument* aDoc)
+    : mozilla::Runnable("nsUnblockOnloadEvent")
+    , mDoc(aDoc)
+  {
+  }
   NS_IMETHOD Run() override {
     mDoc->DoUnblockOnload();
     return NS_OK;
@@ -9728,6 +9750,7 @@ class nsDelayedEventDispatcher : public Runnable
 {
 public:
   explicit nsDelayedEventDispatcher(nsTArray<nsCOMPtr<nsIDocument>>& aDocuments)
+    : mozilla::Runnable("nsDelayedEventDispatcher")
   {
     mDocuments.SwapElements(aDocuments);
   }
@@ -9898,8 +9921,7 @@ nsDocument::ScrollToRef()
     // document's charset.
 
     if (NS_FAILED(rv)) {
-      const nsACString &docCharset = GetDocumentCharacterSet();
-      const Encoding* encoding = Encoding::ForName(docCharset);
+      auto encoding = GetDocumentCharacterSet();
 
       rv = encoding->DecodeWithoutBOMHandling(unescapedRef, ref);
 
@@ -9974,7 +9996,9 @@ nsIDocument::RegisterPendingLinkUpdate(Link* aLink)
 
   if (!mHasLinksToUpdateRunnable) {
     nsCOMPtr<nsIRunnable> event =
-      NewRunnableMethod(this, &nsIDocument::FlushPendingLinkUpdatesFromRunnable);
+      NewRunnableMethod("nsIDocument::FlushPendingLinkUpdatesFromRunnable",
+                        this,
+                        &nsIDocument::FlushPendingLinkUpdatesFromRunnable);
     // Do this work in a second in the worst case.
     nsresult rv =
       NS_IdleDispatchToCurrentThread(event.forget(), 1000);
@@ -10896,7 +10920,10 @@ class nsCallExitFullscreen : public Runnable
 {
 public:
   explicit nsCallExitFullscreen(nsIDocument* aDoc)
-    : mDoc(aDoc) {}
+    : mozilla::Runnable("nsCallExitFullscreen")
+    , mDoc(aDoc)
+  {
+  }
 
   NS_IMETHOD Run() override final
   {
@@ -10976,7 +11003,10 @@ class ExitFullscreenScriptRunnable : public Runnable
 {
 public:
   explicit ExitFullscreenScriptRunnable(nsCOMArray<nsIDocument>&& aDocuments)
-    : mDocuments(Move(aDocuments)) { }
+    : mozilla::Runnable("ExitFullscreenScriptRunnable")
+    , mDocuments(Move(aDocuments))
+  {
+  }
 
   NS_IMETHOD Run() override
   {
@@ -11170,7 +11200,10 @@ class nsCallRequestFullScreen : public Runnable
 {
 public:
   explicit nsCallRequestFullScreen(UniquePtr<FullscreenRequest>&& aRequest)
-    : mRequest(Move(aRequest)) { }
+    : mozilla::Runnable("nsCallRequestFullScreen")
+    , mRequest(Move(aRequest))
+  {
+  }
 
   NS_IMETHOD Run() override
   {
@@ -11900,7 +11933,8 @@ class PointerLockRequest final : public Runnable
 {
 public:
   PointerLockRequest(Element* aElement, bool aUserInputOrChromeCaller)
-    : mElement(do_GetWeakReference(aElement))
+    : mozilla::Runnable("PointerLockRequest")
+    , mElement(do_GetWeakReference(aElement))
     , mDocument(do_GetWeakReference(aElement->OwnerDoc()))
     , mUserInputOrChromeCaller(aUserInputOrChromeCaller)
   {}
@@ -12251,7 +12285,9 @@ nsDocument::GetVisibilityState() const
 nsDocument::PostVisibilityUpdateEvent()
 {
   nsCOMPtr<nsIRunnable> event =
-    NewRunnableMethod(this, &nsDocument::UpdateVisibilityState);
+    NewRunnableMethod("nsDocument::UpdateVisibilityState",
+                      this,
+                      &nsDocument::UpdateVisibilityState);
   Dispatch("nsDocument::UpdateVisibilityState", TaskCategory::Other, event.forget());
 }
 
@@ -12796,7 +12832,9 @@ nsDocument::ScheduleIntersectionObserverNotification()
   }
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   nsCOMPtr<nsIRunnable> notification =
-    NewRunnableMethod(this, &nsDocument::NotifyIntersectionObservers);
+    NewRunnableMethod("nsDocument::NotifyIntersectionObservers",
+                      this,
+                      &nsDocument::NotifyIntersectionObservers);
   Dispatch("nsDocument::IntersectionObserverNotification", TaskCategory::Other,
            notification.forget());
 }
@@ -13086,7 +13124,9 @@ nsIDocument::RebuildUserFontSet()
   if (!mPostedFlushUserFontSet) {
     MOZ_RELEASE_ASSERT(NS_IsMainThread());
     nsCOMPtr<nsIRunnable> ev =
-      NewRunnableMethod(this, &nsIDocument::HandleRebuildUserFontSet);
+      NewRunnableMethod("nsIDocument::HandleRebuildUserFontSet",
+                        this,
+                        &nsIDocument::HandleRebuildUserFontSet);
     if (NS_SUCCEEDED(Dispatch("nsIDocument::HandleRebuildUserFontSet",
                               TaskCategory::Other, ev.forget()))) {
       mPostedFlushUserFontSet = true;
@@ -13440,4 +13480,16 @@ nsDocument::IsThirdParty()
   // Fall-through. Document is not a Third-Party Document.
   mIsThirdParty.emplace(false);
   return mIsThirdParty.value();
+}
+
+bool
+nsIDocument::IsScopedStyleEnabled()
+{
+  if (mIsScopedStyleEnabled == eScopedStyle_Unknown) {
+    mIsScopedStyleEnabled = nsContentUtils::IsChromeDoc(this) ||
+                            nsContentUtils::IsScopedStylePrefEnabled()
+                              ? eScopedStyle_Enabled
+                              : eScopedStyle_Disabled;
+  }
+  return mIsScopedStyleEnabled == eScopedStyle_Enabled;
 }

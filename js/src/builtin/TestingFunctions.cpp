@@ -1262,13 +1262,13 @@ DisableTrackAllocations(JSContext* cx, unsigned argc, Value* vp)
 }
 
 static void
-FinalizeExternalString(Zone* zone, const JSStringFinalizer* fin, char16_t* chars);
+FinalizeExternalString(const JSStringFinalizer* fin, char16_t* chars);
 
 static const JSStringFinalizer ExternalStringFinalizer =
     { FinalizeExternalString };
 
 static void
-FinalizeExternalString(Zone* zone, const JSStringFinalizer* fin, char16_t* chars)
+FinalizeExternalString(const JSStringFinalizer* fin, char16_t* chars)
 {
     MOZ_ASSERT(fin == &ExternalStringFinalizer);
     js_free(chars);
@@ -2377,7 +2377,9 @@ class CloneBufferObject : public NativeObject {
             return false;
         size_t nbytes = JS_GetStringLength(args[0].toString());
         MOZ_ASSERT(nbytes % sizeof(uint64_t) == 0);
-        auto buf = js::MakeUnique<JSStructuredCloneData>(nbytes, nbytes, nbytes);
+        auto buf = js::MakeUnique<JSStructuredCloneData>(0, 0, nbytes);
+        if (!buf->Init(nbytes, nbytes))
+            return false;
         js_memcpy(buf->Start(), str, nbytes);
         JS_free(cx, str);
         obj->setData(buf.release());

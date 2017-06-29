@@ -127,10 +127,9 @@ class DXGIYCbCrTextureData : public TextureData
 {
 public:
   static DXGIYCbCrTextureData*
-  Create(TextureFlags aFlags,
-         IUnknown* aTextureY,
-         IUnknown* aTextureCb,
-         IUnknown* aTextureCr,
+  Create(IDirect3DTexture9* aTextureY,
+         IDirect3DTexture9* aTextureCb,
+         IDirect3DTexture9* aTextureCr,
          HANDLE aHandleY,
          HANDLE aHandleCb,
          HANDLE aHandleCr,
@@ -139,8 +138,7 @@ public:
          const gfx::IntSize& aSizeCbCr);
 
   static DXGIYCbCrTextureData*
-  Create(TextureFlags aFlags,
-         ID3D11Texture2D* aTextureCb,
+  Create(ID3D11Texture2D* aTextureCb,
          ID3D11Texture2D* aTextureY,
          ID3D11Texture2D* aTextureCr,
          const gfx::IntSize& aSize,
@@ -166,8 +164,11 @@ public:
     return TextureFlags::DEALLOCATE_MAIN_THREAD;
   }
 
+  ID3D11Texture2D* GetD3D11Texture(size_t index) { return mD3D11Textures[index]; }
+
 protected:
-   RefPtr<IUnknown> mHoldRefs[3];
+   RefPtr<ID3D11Texture2D> mD3D11Textures[3];
+   RefPtr<IDirect3DTexture9> mD3D9Textures[3];
    HANDLE mHandles[3];
    gfx::IntSize mSize;
    gfx::IntSize mSizeY;
@@ -238,7 +239,7 @@ public:
   virtual ID3D11ShaderResourceView* GetShaderResourceView() override;
 
   // Returns nullptr if this texture was created by a DXGI TextureHost.
-  virtual DataTextureSource* AsDataTextureSource() override { return mAllowTextureUploads ? this : false; }
+  virtual DataTextureSource* AsDataTextureSource() override { return mAllowTextureUploads ? this : nullptr; }
 
   virtual void DeallocateDeviceData() override { mTexture = nullptr; }
 
@@ -334,7 +335,7 @@ public:
 
   virtual void PushExternalImage(wr::DisplayListBuilder& aBuilder,
                                  const WrRect& aBounds,
-                                 const WrClipRegionToken aClip,
+                                 const WrRect& aClip,
                                  wr::ImageRendering aFilter,
                                  Range<const wr::ImageKey>& aImageKeys) override;
 
@@ -395,7 +396,7 @@ public:
 
   virtual void PushExternalImage(wr::DisplayListBuilder& aBuilder,
                                  const WrRect& aBounds,
-                                 const WrClipRegionToken aClip,
+                                 const WrRect& aClip,
                                  wr::ImageRendering aFilter,
                                  Range<const wr::ImageKey>& aImageKeys) override;
 
@@ -482,6 +483,31 @@ inline uint32_t GetMaxTextureSizeForFeatureLevel(D3D_FEATURE_LEVEL aFeatureLevel
 }
 
 uint32_t GetMaxTextureSizeFromDevice(ID3D11Device* aDevice);
+void ReportTextureMemoryUsage(ID3D11Texture2D* aTexture, size_t aBytes);
+
+class AutoLockD3D11Texture
+{
+public:
+  explicit AutoLockD3D11Texture(ID3D11Texture2D* aTexture);
+  ~AutoLockD3D11Texture();
+
+private:
+  RefPtr<IDXGIKeyedMutex> mMutex;
+};
+
+class D3D11MTAutoEnter
+{
+public:
+  explicit D3D11MTAutoEnter(already_AddRefed<ID3D10Multithread> aMT)
+    : mMT(aMT)
+  {
+    mMT->Enter();
+  }
+  ~D3D11MTAutoEnter() { mMT->Leave(); }
+
+private:
+  RefPtr<ID3D10Multithread> mMT;
+};
 
 } // namespace layers
 } // namespace mozilla

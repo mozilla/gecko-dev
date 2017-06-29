@@ -33,7 +33,6 @@
 #include "nsIHTMLDocument.h"
 #include "nsIViewSourceChannel.h"
 #include "xpcpublic.h"
-#include "mozilla/IdleTaskRunner.h"
 
 using namespace mozilla;
 
@@ -52,7 +51,8 @@ class nsHtml5ExecutorReflusher : public Runnable
     RefPtr<nsHtml5TreeOpExecutor> mExecutor;
   public:
     explicit nsHtml5ExecutorReflusher(nsHtml5TreeOpExecutor* aExecutor)
-      : mExecutor(aExecutor)
+      : mozilla::Runnable("nsHtml5ExecutorReflusher")
+      , mExecutor(aExecutor)
     {}
     NS_IMETHOD Run() override
     {
@@ -62,7 +62,7 @@ class nsHtml5ExecutorReflusher : public Runnable
 };
 
 static mozilla::LinkedList<nsHtml5TreeOpExecutor>* gBackgroundFlushList = nullptr;
-StaticRefPtr<IdleTaskRunner> gBackgroundFlushRunner;
+static nsITimer* gFlushTimer = nullptr;
 
 nsHtml5TreeOpExecutor::nsHtml5TreeOpExecutor()
   : nsHtml5DocumentBuilder(false)
@@ -86,9 +86,9 @@ nsHtml5TreeOpExecutor::~nsHtml5TreeOpExecutor()
     if (gBackgroundFlushList->isEmpty()) {
       delete gBackgroundFlushList;
       gBackgroundFlushList = nullptr;
-      if (gBackgroundFlushRunner) {
-        gBackgroundFlushRunner->Cancel();
-        gBackgroundFlushRunner = nullptr;
+      if (gFlushTimer) {
+        gFlushTimer->Cancel();
+        NS_RELEASE(gFlushTimer);
       }
     }
   }
@@ -239,17 +239,21 @@ nsHtml5TreeOpExecutor::MarkAsBroken(nsresult aReason)
   // We are under memory pressure, but let's hope the following allocation
   // works out so that we get to terminate and clean up the parser from
   // a safer point.
-  if (mParser) { // can mParser ever be null here?
-    MOZ_ALWAYS_SUCCEEDS(
-      NS_DispatchToMainThread(NewRunnableMethod(GetParser(), &nsHtml5Parser::Terminate)));
+  if (mParser && mDocument) { // can mParser ever be null here?
+    nsCOMPtr<nsIRunnable> terminator =
+      NewRunnableMethod("nsHtml5Parser::Terminate", GetParser(), &nsHtml5Parser::Terminate);
+    if (NS_FAILED(mDocument->Dispatch("nsHtml5Parser::Terminate",
+                                      TaskCategory::Network,
+                                      terminator.forget()))) {
+      NS_WARNING("failed to dispatch executor flush event");
+    }
   }
   return aReason;
 }
 
-static bool
-BackgroundFlushCallback(TimeStamp /*aDeadline*/)
+void
+FlushTimerCallback(nsITimer* aTimer, void* aClosure)
 {
-  NS_WARNING("Executing BackgroundFlushCallback()....");
   RefPtr<nsHtml5TreeOpExecutor> ex = gBackgroundFlushList->popFirst();
   if (ex) {
     ex->RunFlushLoop();
@@ -257,20 +261,18 @@ BackgroundFlushCallback(TimeStamp /*aDeadline*/)
   if (gBackgroundFlushList && gBackgroundFlushList->isEmpty()) {
     delete gBackgroundFlushList;
     gBackgroundFlushList = nullptr;
-    gBackgroundFlushRunner->Cancel();
-    gBackgroundFlushRunner = nullptr;
-    return true;
+    gFlushTimer->Cancel();
+    NS_RELEASE(gFlushTimer);
   }
-  return true;
 }
 
 void
 nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync()
 {
   if (!mDocument || !mDocument->IsInBackgroundWindow()) {
-    nsCOMPtr<nsIRunnable> flusher = new nsHtml5ExecutorReflusher(this);  
+    nsCOMPtr<nsIRunnable> flusher = new nsHtml5ExecutorReflusher(this);
     if (NS_FAILED(mDocument->Dispatch("nsHtml5ExecutorReflusher",
-                                      TaskCategory::Other,
+                                      TaskCategory::Network,
                                       flusher.forget()))) {
       NS_WARNING("failed to dispatch executor flush event");
     }
@@ -281,17 +283,16 @@ nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync()
     if (!isInList()) {
       gBackgroundFlushList->insertBack(this);
     }
-    if (gBackgroundFlushRunner) {
-      NS_WARNING("We've already scheduled a task for background list flush.");
-      return;
+    if (!gFlushTimer) {
+      nsCOMPtr<nsITimer> t = do_CreateInstance("@mozilla.org/timer;1");
+      t.swap(gFlushTimer);
+      // The timer value 50 should not hopefully slow down background pages too
+      // much, yet lets event loop to process enough between ticks.
+      // See bug 734015.
+      gFlushTimer->InitWithNamedFuncCallback(FlushTimerCallback, nullptr,
+                                             50, nsITimer::TYPE_REPEATING_SLACK,
+                                             "FlushTimerCallback");
     }
-    // Now we set up a repetitive idle scheduler for flushing background list.
-    gBackgroundFlushRunner =
-      IdleTaskRunner::Create(&BackgroundFlushCallback,
-                             250, // The hard deadline: 250ms.
-                             nsContentSink::sInteractiveTime / 1000, // Required budget.
-                             true, // repeating
-                             []{ return false; }); // MaybeContinueProcess
   }
 }
 
@@ -353,8 +354,7 @@ class nsHtml5FlushLoopGuard
 void
 nsHtml5TreeOpExecutor::RunFlushLoop()
 {
-  PROFILER_LABEL("nsHtml5TreeOpExecutor", "RunFlushLoop",
-    js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("nsHtml5TreeOpExecutor::RunFlushLoop", OTHER);
 
   if (mRunFlushLoopOnStack) {
     // There's already a RunFlushLoop() on the call stack.
@@ -725,7 +725,7 @@ nsHtml5TreeOpExecutor::Start()
 }
 
 void
-nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(const char* aEncoding,
+nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(NotNull<const Encoding*> aEncoding,
                                             int32_t aSource,
                                             uint32_t aLineNumber)
 {
@@ -743,7 +743,9 @@ nsHtml5TreeOpExecutor::NeedsCharsetSwitchTo(const char* aEncoding,
 
   // ask the webshellservice to load the URL
   if (NS_SUCCEEDED(wss->StopDocumentLoad())) {
-    wss->ReloadDocument(aEncoding, aSource);
+    nsAutoCString charset;
+    aEncoding->Name(charset);
+    wss->ReloadDocument(charset.get(), aSource);
   }
   // if the charset switch was accepted, wss has called Terminate() on the
   // parser by now
@@ -917,9 +919,9 @@ nsHtml5TreeOpExecutor::ConvertIfNotPreloadedYet(const nsAString& aURL)
   }
 
   nsIURI* base = BaseURIForPreload();
-  const nsCString& charset = mDocument->GetDocumentCharacterSet();
+  auto encoding = mDocument->GetDocumentCharacterSet();
   nsCOMPtr<nsIURI> uri;
-  nsresult rv = NS_NewURI(getter_AddRefs(uri), aURL, charset.get(), base);
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), aURL, encoding, base);
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to create a URI");
     return nullptr;
@@ -1021,9 +1023,9 @@ nsHtml5TreeOpExecutor::PreloadEndPicture()
 void
 nsHtml5TreeOpExecutor::AddBase(const nsAString& aURL)
 {
-  const nsCString& charset = mDocument->GetDocumentCharacterSet();
+  auto encoding = mDocument->GetDocumentCharacterSet();
   nsresult rv = NS_NewURI(getter_AddRefs(mViewSourceBaseURI), aURL,
-                                     charset.get(), GetViewSourceBaseURI());
+                          encoding, GetViewSourceBaseURI());
   if (NS_FAILED(rv)) {
     mViewSourceBaseURI = nullptr;
   }
@@ -1035,9 +1037,9 @@ nsHtml5TreeOpExecutor::SetSpeculationBase(const nsAString& aURL)
     // the first one wins
     return;
   }
-  const nsCString& charset = mDocument->GetDocumentCharacterSet();
+  auto encoding = mDocument->GetDocumentCharacterSet();
   DebugOnly<nsresult> rv = NS_NewURI(getter_AddRefs(mSpeculationBaseURI), aURL,
-                                     charset.get(), mDocument->GetDocumentURI());
+                                     encoding, mDocument->GetDocumentURI());
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to create a URI");
 }
 

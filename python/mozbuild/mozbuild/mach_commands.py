@@ -484,9 +484,14 @@ class Build(MachCommandBase):
                                                 "tools",
                                                "rewriting",
                                                "ThirdPartyPaths.txt")
-                with open(pathToThirdparty) as f:
-                    # Normalize the path (no trailing /)
-                    LOCAL_SUPPRESS_DIRS = tuple(d.rstrip('/') for d in f.read().splitlines())
+
+                if os.path.exists(pathToThirdparty):
+                    with open(pathToThirdparty) as f:
+                        # Normalize the path (no trailing /)
+                        LOCAL_SUPPRESS_DIRS = tuple(d.rstrip('/') for d in f.read().splitlines())
+                else:
+                    # For application based on gecko like thunderbird
+                    LOCAL_SUPPRESS_DIRS = ()
 
                 suppressed_by_dir = collections.Counter()
 
@@ -1542,9 +1547,6 @@ class PackageFrontend(MachCommandBase):
         '''
         pass
 
-    def _set_log_level(self, verbose):
-        self.log_manager.terminal_handler.setLevel(logging.INFO if not verbose else logging.DEBUG)
-
     def _make_artifacts(self, tree=None, job=None, skip_cache=False):
         state_dir = self._mach_context.state_dir
         cache_dir = os.path.join(state_dir, 'package-frontend')
@@ -1784,17 +1786,24 @@ class PackageFrontend(MachCommandBase):
                                                      sleeptime=60)):
                 try:
                     record.fetch_with(cache)
-                except requests.exceptions.HTTPError as e:
-                    status = e.response.status_code
-                    # The relengapi proxy likes to return error 400 bad request
-                    # which seems improbably to be due to our (simple) GET
-                    # being borked.
-                    should_retry = status >= 500 or status == 400
+                except (requests.exceptions.HTTPError,
+                        requests.exceptions.ConnectionError) as e:
+
+                    if isinstance(e, requests.exceptions.ConnectionError):
+                        should_retry = True
+                    else:
+                        # The relengapi proxy likes to return error 400 bad request
+                        # which seems improbably to be due to our (simple) GET
+                        # being borked.
+                        status = e.response.status_code
+                        should_retry = status >= 500 or status == 400
+
                     if should_retry or attempt < retry:
                         level = logging.WARN
                     else:
                         level = logging.ERROR
-                    self.log(level, 'artifact', {}, e.message)
+                    # e.message is not always a string, so convert it first.
+                    self.log(level, 'artifact', {}, str(e.message))
                     if not should_retry:
                         break
                     if attempt < retry:

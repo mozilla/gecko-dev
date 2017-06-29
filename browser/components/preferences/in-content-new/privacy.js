@@ -61,8 +61,9 @@ var gPrivacyPane = {
 
     this.trackingProtectionReadPrefs();
 
-    document.getElementById("trackingprotectionbox").hidden = false;
-    document.getElementById("trackingprotectionpbmbox").hidden = true;
+    document.getElementById("trackingProtectionExceptions").hidden = false;
+    document.getElementById("trackingProtectionBox").hidden = false;
+    document.getElementById("trackingProtectionPBMBox").hidden = true;
   },
 
   /**
@@ -189,10 +190,6 @@ var gPrivacyPane = {
       gPrivacyPane.clearPrivateDataNow(true);
       return false;
     });
-    setEventListener("doNotTrackSettings", "click", function() {
-      gPrivacyPane.showDoNotTrackSettings();
-      return false;
-    });
     setEventListener("privateBrowsingAutoStart", "command",
                      gPrivacyPane.updateAutostart);
     setEventListener("cookieExceptions", "command",
@@ -206,8 +203,6 @@ var gPrivacyPane = {
     setEventListener("trackingProtectionExceptions", "command",
                      gPrivacyPane.showTrackingProtectionExceptions);
     setEventListener("changeBlockList", "command",
-                     gPrivacyPane.showBlockLists);
-    setEventListener("changeBlockListPBM", "command",
                      gPrivacyPane.showBlockLists);
     setEventListener("browserContainersCheckbox", "command",
                      gPrivacyPane._checkBrowserContainers);
@@ -274,7 +269,6 @@ var gPrivacyPane = {
       document.getElementById("offlineAppsList")
               .style.height = bundlePrefs.getString("offlineAppsList.height");
       let offlineGroup = document.getElementById("offlineGroup");
-      offlineGroup.hidden = false;
       offlineGroup.removeAttribute("data-hidden-from-search");
     }
 
@@ -295,7 +289,6 @@ var gPrivacyPane = {
       let url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "storage-permissions";
       document.getElementById("siteDataLearnMoreLink").setAttribute("href", url);
       let siteDataGroup = document.getElementById("siteDataGroup");
-      siteDataGroup.hidden = false;
       siteDataGroup.removeAttribute("data-hidden-from-search");
     }
 

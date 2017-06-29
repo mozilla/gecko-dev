@@ -295,7 +295,7 @@ HTMLEditor::Init(nsIDOMDocument* aDoc,
     mTypeInState = new TypeInState();
 
     // init the selection listener for image resizing
-    mSelectionListenerP = new ResizerSelectionListener(this);
+    mSelectionListenerP = new ResizerSelectionListener(*this);
 
     if (!IsInteractionAllowed()) {
       // ignore any errors from this in case the file is missing
@@ -3268,8 +3268,10 @@ HTMLEditor::DoContentInserted(nsIDocument* aDocument,
   nsCOMPtr<nsIHTMLEditor> kungFuDeathGrip(this);
 
   if (ShouldReplaceRootElement()) {
-    nsContentUtils::AddScriptRunner(NewRunnableMethod(
-      this, &HTMLEditor::ResetRootElementAndEventTarget));
+    nsContentUtils::AddScriptRunner(
+      NewRunnableMethod("HTMLEditor::ResetRootElementAndEventTarget",
+                        this,
+                        &HTMLEditor::ResetRootElementAndEventTarget));
   }
   // We don't need to handle our own modifications
   else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {
@@ -3316,8 +3318,10 @@ HTMLEditor::ContentRemoved(nsIDocument* aDocument,
   nsCOMPtr<nsIHTMLEditor> kungFuDeathGrip(this);
 
   if (SameCOMIdentity(aChild, mRootElement)) {
-    nsContentUtils::AddScriptRunner(NewRunnableMethod(
-      this, &HTMLEditor::ResetRootElementAndEventTarget));
+    nsContentUtils::AddScriptRunner(
+      NewRunnableMethod("HTMLEditor::ResetRootElementAndEventTarget",
+                        this,
+                        &HTMLEditor::ResetRootElementAndEventTarget));
   }
   // We don't need to handle our own modifications
   else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {

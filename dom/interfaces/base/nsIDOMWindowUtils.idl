@@ -1417,6 +1417,11 @@ interface nsIDOMWindowUtils : nsISupports {
   readonly attribute boolean layerManagerRemote;
 
   /**
+   * True if advanced layers is enabled on this window, false otherwise.
+   */
+  readonly attribute boolean usingAdvancedLayers;
+
+  /**
    * Returns a Promise that will be resolved with a string once the capabilities
    * of the h264 decoder have been determined.
    * Success does not mean that all h264 video decoding will be done
@@ -2025,6 +2030,13 @@ interface nsIDOMWindowUtils : nsISupports {
    *         on the first-strong character found in the string.
    */
   long getDirectionFromText(in AString aString);
+
+  /**
+   * Whether the current document is styled by Servo's style engine.
+   *
+   * This calls nsIDocument::IsStyledByServo().
+   */
+  readonly attribute boolean isStyledByServo;
 
   // These consts are only for testing purposes.
   const long DEFAULT_MOUSE_POINTER_ID = 0;

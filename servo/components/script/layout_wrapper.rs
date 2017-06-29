@@ -52,6 +52,7 @@ use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayou
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, RelevantLinkStatus};
 use selectors::matching::VisitedHandlingMode;
+use selectors::sink::Push;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::fmt;
@@ -75,7 +76,6 @@ use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, PseudoClassStringArg};
 use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
-use style::sink::Push;
 use style::str::is_whitespace;
 use style::stylearc::Arc;
 
@@ -902,7 +902,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     fn parent_style(&self) -> Arc<ComputedValues> {
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
         let parent_data = parent.get_data().unwrap().borrow();
-        parent_data.styles().primary.values().clone()
+        parent_data.styles.primary().clone()
     }
 
     fn debug_id(self) -> usize {

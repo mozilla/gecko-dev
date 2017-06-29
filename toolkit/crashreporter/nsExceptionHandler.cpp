@@ -315,13 +315,15 @@ static ChildMinidumpMap* pidToMinidump;
 static uint32_t crashSequence;
 static bool OOPInitialized();
 
+static nsIThread* sMinidumpWriterThread;
+
 #ifdef MOZ_CRASHREPORTER_INJECTOR
 static nsIThread* sInjectorThread;
 
 class ReportInjectedCrash : public Runnable
 {
 public:
-  explicit ReportInjectedCrash(uint32_t pid) : mPID(pid) { }
+  explicit ReportInjectedCrash(uint32_t pid) : Runnable("ReportInjectedCrash"), mPID(pid) { }
 
   NS_IMETHOD Run();
 
@@ -3444,6 +3446,7 @@ OOPInit()
   class ProxyToMainThread : public Runnable
   {
   public:
+    ProxyToMainThread() : Runnable("nsExceptionHandler::ProxyToMainThread") {}
     NS_IMETHOD Run() override {
       OOPInit();
       return NS_OK;
@@ -3559,6 +3562,11 @@ OOPDeinit()
     NS_RELEASE(sInjectorThread);
   }
 #endif
+
+  if (sMinidumpWriterThread) {
+    sMinidumpWriterThread->Shutdown();
+    NS_RELEASE(sMinidumpWriterThread);
+  }
 
   delete crashServer;
   crashServer = nullptr;
@@ -4042,17 +4050,31 @@ bool TakeMinidump(nsIFile** aResult, bool aMoveToPending)
   return true;
 }
 
-bool
-CreateMinidumpsAndPair(ProcessHandle aTargetPid,
-                       ThreadId aTargetBlamedThread,
-                       const nsACString& aIncomingPairName,
-                       nsIFile* aIncomingDumpToPair,
-                       nsIFile** aMainDumpOut)
+inline void
+InvokeCallback(bool aAsync,
+               std::function<void()>&& aCallback,
+               RefPtr<nsIThread>&& aCallbackThread)
 {
-  if (!GetEnabled()) {
-    return false;
+  if (aAsync) {
+    MOZ_ASSERT(!!aCallbackThread);
+    Unused << aCallbackThread->Dispatch(NS_NewRunnableFunction("CrashReporter::InvokeCallback",
+                                                               Move(aCallback)),
+                                        NS_DISPATCH_SYNC);
+  } else {
+    aCallback();
   }
+}
 
+void
+CreateMinidumpsAndPairInternal(ProcessHandle aTargetPid,
+                               ThreadId aTargetBlamedThread,
+                               nsCString aIncomingPairName,
+                               nsCOMPtr<nsIFile> aIncomingDumpToPair,
+                               nsIFile** aMainDumpOut,
+                               std::function<void(bool)>&& aCallback,
+                               RefPtr<nsIThread>&& aCallbackThread,
+                               bool aAsync)
+{
   AutoIOInterposerDisable disableIOInterposition;
 
 #ifdef XP_MACOSX
@@ -4068,6 +4090,7 @@ CreateMinidumpsAndPair(ProcessHandle aTargetPid,
   dump_path = gExceptionHandler->minidump_descriptor().directory();
 #endif
 
+  std::function<void()> runnable;
   // dump the target
   nsCOMPtr<nsIFile> targetMinidump;
   if (!google_breakpad::ExceptionHandler::WriteMinidumpForChild(
@@ -4079,8 +4102,13 @@ CreateMinidumpsAndPair(ProcessHandle aTargetPid,
 #ifdef XP_WIN32
          , GetMinidumpType()
 #endif
-      ))
-    return false;
+      )) {
+    runnable = [&](){
+      aCallback(false);
+    };
+    InvokeCallback(aAsync, Move(runnable), Move(aCallbackThread));
+    return;
+  }
 
   nsCOMPtr<nsIFile> targetExtra;
   GetExtraFileForMinidump(targetMinidump, getter_AddRefs(targetExtra));
@@ -4099,24 +4127,81 @@ CreateMinidumpsAndPair(ProcessHandle aTargetPid,
         , GetMinidumpType()
 #endif
         )) {
-      targetMinidump->Remove(false);
-      targetExtra->Remove(false);
-      return false;
+      runnable = [&](){
+        targetMinidump->Remove(false);
+        targetExtra->Remove(false);
+        aCallback(false);
+      };
+      InvokeCallback(aAsync, Move(runnable), Move(aCallbackThread));
+      return;
     }
   } else {
     incomingDump = aIncomingDumpToPair;
   }
 
-  RenameAdditionalHangMinidump(incomingDump, targetMinidump, aIncomingPairName);
+  runnable = [&](){
+    RenameAdditionalHangMinidump(incomingDump, targetMinidump, aIncomingPairName);
 
-  if (ShouldReport()) {
-    MoveToPending(targetMinidump, targetExtra, nullptr);
-    MoveToPending(incomingDump, nullptr, nullptr);
+    if (ShouldReport()) {
+      MoveToPending(targetMinidump, targetExtra, nullptr);
+      MoveToPending(incomingDump, nullptr, nullptr);
+    }
+
+    targetMinidump.forget(aMainDumpOut);
+    aIncomingPairName = nullptr; // Release the ptr on the main thread.
+
+    aCallback(true);
+  };
+  InvokeCallback(aAsync, Move(runnable), Move(aCallbackThread));
+}
+
+void
+CreateMinidumpsAndPair(ProcessHandle aTargetPid,
+                       ThreadId aTargetBlamedThread,
+                       const nsACString& aIncomingPairName,
+                       nsIFile* aIncomingDumpToPair,
+                       nsIFile** aMainDumpOut,
+                       std::function<void(bool)>&& aCallback,
+                       bool aAsync)
+{
+  if (!GetEnabled()) {
+    aCallback(false);
+    return;
   }
 
-  targetMinidump.forget(aMainDumpOut);
+  if (aAsync &&
+      !sMinidumpWriterThread &&
+      NS_FAILED(NS_NewNamedThread("Minidump Writer", &sMinidumpWriterThread))) {
+    aCallback(false);
+    return;
+  }
 
-  return true;
+  nsCOMPtr<nsIFile> incomingDumpToPair = aIncomingDumpToPair;
+  nsCString incomingPairName(aIncomingPairName);
+  std::function<void(bool)> callback = Move(aCallback);
+  // Don't call do_GetCurrentThread() is this is called synchronously because
+  // 1. it's unnecessary, and 2. more importantly, it might create one if called
+  // from a native thread, and the thread will be leakded.
+  RefPtr<nsIThread> callbackThread = aAsync ? do_GetCurrentThread() : nullptr;
+
+  std::function<void()> doDump = [=]() mutable {
+    CreateMinidumpsAndPairInternal(aTargetPid,
+                                   aTargetBlamedThread,
+                                   incomingPairName,
+                                   incomingDumpToPair,
+                                   aMainDumpOut,
+                                   Move(callback),
+                                   Move(callbackThread),
+                                   aAsync);
+  };
+
+  if (aAsync) {
+    sMinidumpWriterThread->Dispatch(NS_NewRunnableFunction("CrashReporter::CreateMinidumpsAndPair",
+                                                           Move(doDump)),
+                                    nsIEventTarget::DISPATCH_NORMAL);
+  } else {
+    doDump();
+  }
 }
 
 bool

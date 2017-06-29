@@ -14,6 +14,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use data::ElementData;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
+use media_queries::Device;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
@@ -21,8 +22,8 @@ use rule_tree::CascadeLevel;
 use selector_parser::{AttrValue, ElementExt, PreExistingComputedValues};
 use selector_parser::{PseudoClassStringArg, PseudoElement};
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
+use selectors::sink::Push;
 use shared_lock::Locked;
-use sink::Push;
 use smallvec::VecLike;
 use std::fmt;
 #[cfg(feature = "gecko")] use std::collections::HashMap;
@@ -217,8 +218,7 @@ fn fmt_with_data_and_primary_values<N: TNode>(f: &mut fmt::Formatter, n: N) -> f
     if let Some(el) = n.as_element() {
         let dd = el.has_dirty_descendants();
         let data = el.borrow_data();
-        let styles = data.as_ref().and_then(|d| d.get_styles());
-        let values = styles.map(|s| s.primary.values());
+        let values = data.as_ref().and_then(|d| d.styles.get_primary());
         write!(f, "{:?} dd={} data={:?} values={:?}", el, dd, &data, values)
     } else {
         write!(f, "{:?}", n)
@@ -303,6 +303,13 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
 
     /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;
+
+    /// A debug-only check that the device's owner doc matches the actual doc
+    /// we're the root of.
+    ///
+    /// Otherwise we may set document-level state incorrectly, like the root
+    /// font-size used for rem units.
+    fn owner_doc_matches_for_testing(&self, _: &Device) -> bool { true }
 
     /// Returns the depth of this element in the DOM.
     fn depth(&self) -> usize {
@@ -419,9 +426,19 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// TODO(emilio, bz): actually implement the logic for it.
     fn may_generate_pseudo(
         &self,
-        _pseudo: &PseudoElement,
+        pseudo: &PseudoElement,
         _primary_style: &ComputedValues,
     ) -> bool {
+        // ::before/::after are always supported for now, though we could try to
+        // optimize out leaf elements.
+
+        // ::first-letter and ::first-line are only supported for block-inside
+        // things, and only in Gecko, not Servo.  Unfortunately, Gecko has
+        // block-inside things that might have any computed display value due to
+        // things like fieldsets, legends, etc.  Need to figure out how this
+        // should work.
+        debug_assert!(pseudo.is_eager(),
+                      "Someone called may_generate_pseudo with a non-eager pseudo.");
         true
     }
 
@@ -593,6 +610,21 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// This is used in Gecko for XBL and shadow DOM.
     fn xbl_binding_anonymous_content(&self) -> Option<Self::ConcreteNode> {
         None
+    }
+
+    /// Returns the rule hash target given an element.
+    fn rule_hash_target(&self) -> Self {
+        let is_implemented_pseudo =
+            self.implemented_pseudo_element().is_some();
+
+        // NB: This causes use to rule has pseudo selectors based on the
+        // properties of the originating element (which is fine, given the
+        // find_first_from_right usage).
+        if is_implemented_pseudo {
+            self.closest_non_native_anonymous_ancestor().unwrap()
+        } else {
+            *self
+        }
     }
 
     /// Gets declarations from XBL bindings from the element. Only gecko element could have this.

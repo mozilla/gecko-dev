@@ -29,6 +29,7 @@ using mozilla::PodCopy;
 using mozilla::PodEqual;
 using mozilla::RangedPtr;
 using mozilla::RoundUpPow2;
+using mozilla::Unused;
 
 using JS::AutoCheckCannotGC;
 
@@ -1515,13 +1516,13 @@ JSFlatString::dumpRepresentation(FILE* fp, int indent) const
 #endif
 
 static void
-FinalizeRepresentativeExternalString(Zone* zone, const JSStringFinalizer* fin, char16_t* chars);
+FinalizeRepresentativeExternalString(const JSStringFinalizer* fin, char16_t* chars);
 
 static const JSStringFinalizer RepresentativeExternalStringFinalizer =
     { FinalizeRepresentativeExternalString };
 
 static void
-FinalizeRepresentativeExternalString(Zone* zone, const JSStringFinalizer* fin, char16_t* chars)
+FinalizeRepresentativeExternalString(const JSStringFinalizer* fin, char16_t* chars)
 {
     // Constant chars, nothing to free.
     MOZ_ASSERT(fin == &RepresentativeExternalStringFinalizer);
@@ -1538,6 +1539,7 @@ FillWithRepresentatives(JSContext* cx, HandleArrayObject array, uint32_t* index,
         [&check](JSContext* cx, HandleArrayObject array, uint32_t* index, HandleString s)
     {
         MOZ_ASSERT(check(s));
+        Unused << check; // silence clang -Wunused-lambda-capture in opt builds
         RootedValue val(cx, StringValue(s));
         return JS_DefineElement(cx, array, (*index)++, val, 0);
     };

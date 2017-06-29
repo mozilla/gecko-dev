@@ -1886,6 +1886,11 @@ extern "C" {
                                                  before_unique_id: u64);
 }
 extern "C" {
+    pub fn Servo_StyleSet_UpdateStyleSheet(set: RawServoStyleSetBorrowed,
+                                           sheet: RawServoStyleSheetBorrowed,
+                                           unique_id: u64);
+}
+extern "C" {
     pub fn Servo_StyleSet_FlushStyleSheets(set: RawServoStyleSetBorrowed,
                                            doc_elem:
                                                RawGeckoElementBorrowedOrNull);
@@ -2649,6 +2654,8 @@ extern "C" {
     pub fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
                                     pseudo_type: CSSPseudoElementType,
                                     is_probe: bool,
+                                    inherited_style:
+                                        ServoComputedValuesBorrowedOrNull,
                                     set: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong;
 }

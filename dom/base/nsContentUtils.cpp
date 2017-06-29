@@ -301,9 +301,11 @@ bool nsContentUtils::sGetBoxQuadsEnabled = false;
 bool nsContentUtils::sSkipCursorMoveForSameValueSet = false;
 bool nsContentUtils::sRequestIdleCallbackEnabled = false;
 bool nsContentUtils::sLowerNetworkPriority = false;
+bool nsContentUtils::sShowInputPlaceholderOnFocus = true;
 #ifndef RELEASE_OR_BETA
 bool nsContentUtils::sBypassCSSOMOriginCheck = false;
 #endif
+bool nsContentUtils::sIsScopedStyleEnabled = false;
 
 bool nsContentUtils::sIsBytecodeCacheEnabled = false;
 int32_t nsContentUtils::sBytecodeCacheStrategy = 0;
@@ -517,26 +519,6 @@ class SameOriginCheckerImpl final : public nsIChannelEventSink,
   NS_DECL_NSIINTERFACEREQUESTOR
 };
 
-class CharsetDetectionObserver final : public nsICharsetDetectionObserver
-{
-public:
-  NS_DECL_ISUPPORTS
-
-  NS_IMETHOD Notify(const char *aCharset, nsDetectionConfident aConf) override
-  {
-    mCharset = aCharset;
-    return NS_OK;
-  }
-
-  const nsACString& GetResult() const
-  {
-    return mCharset;
-  }
-
-private:
-  nsCString mCharset;
-};
-
 } // namespace
 
 /**
@@ -726,8 +708,14 @@ nsContentUtils::Init()
   sBypassCSSOMOriginCheck = getenv("MOZ_BYPASS_CSSOM_ORIGIN_CHECK");
 #endif
 
+  Preferences::AddBoolVarCache(&sIsScopedStyleEnabled,
+                               "layout.css.scoped-style.enabled", false);
+
   Preferences::AddBoolVarCache(&sLowerNetworkPriority,
                                "privacy.trackingprotection.lower_network_priority", false);
+
+  Preferences::AddBoolVarCache(&sShowInputPlaceholderOnFocus,
+                               "dom.placeholder.show_on_focus", true);
 
   Preferences::AddBoolVarCache(&sIsBytecodeCacheEnabled,
                                "dom.script_loader.bytecode_cache.enabled", false);
@@ -3174,9 +3162,12 @@ nsContentUtils::NewURIWithDocumentCharset(nsIURI** aResult,
                                           nsIDocument* aDocument,
                                           nsIURI* aBaseURI)
 {
-  return NS_NewURI(aResult, aSpec,
-                   aDocument ? aDocument->GetDocumentCharacterSet().get() : nullptr,
-                   aBaseURI, sIOService);
+  if (aDocument) {
+    return NS_NewURI(aResult, aSpec,
+                     aDocument->GetDocumentCharacterSet(),
+                     aBaseURI, sIOService);
+  }
+  return NS_NewURI(aResult, aSpec, nullptr, aBaseURI, sIOService);
 }
 
 // static
@@ -3283,7 +3274,7 @@ nsContentUtils::CheckQName(const nsAString& aQualifiedName,
 //static
 nsresult
 nsContentUtils::SplitQName(const nsIContent* aNamespaceResolver,
-                           const nsAFlatString& aQName,
+                           const nsString& aQName,
                            int32_t *aNamespace, nsIAtom **aLocalName)
 {
   const char16_t* colon;
@@ -3322,7 +3313,7 @@ nsContentUtils::GetNodeInfoFromQName(const nsAString& aNamespaceURI,
                                      uint16_t aNodeType,
                                      mozilla::dom::NodeInfo** aNodeInfo)
 {
-  const nsAFlatString& qName = PromiseFlatString(aQualifiedName);
+  const nsString& qName = PromiseFlatString(aQualifiedName);
   const char16_t* colon;
   nsresult rv = nsContentUtils::CheckQName(qName, true, &colon);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -3975,7 +3966,7 @@ nsContentUtils::ReportToConsole(uint32_t aErrorFlags,
                                 const char16_t **aParams,
                                 uint32_t aParamsLength,
                                 nsIURI* aURI,
-                                const nsAFlatString& aSourceLine,
+                                const nsString& aSourceLine,
                                 uint32_t aLineNumber,
                                 uint32_t aColumnNumber)
 {
@@ -4006,7 +3997,7 @@ nsContentUtils::ReportToConsoleNonLocalized(const nsAString& aErrorText,
                                             const nsACString& aCategory,
                                             const nsIDocument* aDocument,
                                             nsIURI* aURI,
-                                            const nsAFlatString& aSourceLine,
+                                            const nsString& aSourceLine,
                                             uint32_t aLineNumber,
                                             uint32_t aColumnNumber,
                                             MissingErrorLocationMode aLocationMode)
@@ -4030,7 +4021,7 @@ nsContentUtils::ReportToConsoleByWindowID(const nsAString& aErrorText,
                                           const nsACString& aCategory,
                                           uint64_t aInnerWindowID,
                                           nsIURI* aURI,
-                                          const nsAFlatString& aSourceLine,
+                                          const nsString& aSourceLine,
                                           uint32_t aLineNumber,
                                           uint32_t aColumnNumber,
                                           MissingErrorLocationMode aLocationMode)
@@ -5322,12 +5313,16 @@ nsContentUtils::IsInSameAnonymousTree(const nsINode* aNode,
 
 class AnonymousContentDestroyer : public Runnable {
 public:
-  explicit AnonymousContentDestroyer(nsCOMPtr<nsIContent>* aContent) {
+  explicit AnonymousContentDestroyer(nsCOMPtr<nsIContent>* aContent)
+    : mozilla::Runnable("AnonymousContentDestroyer")
+  {
     mContent.swap(*aContent);
     mParent = mContent->GetParent();
     mDoc = mContent->OwnerDoc();
   }
-  explicit AnonymousContentDestroyer(nsCOMPtr<Element>* aElement) {
+  explicit AnonymousContentDestroyer(nsCOMPtr<Element>* aElement)
+    : mozilla::Runnable("AnonymousContentDestroyer")
+  {
     mContent = aElement->forget();
     mParent = mContent->GetParent();
     mDoc = mContent->OwnerDoc();
@@ -10560,9 +10555,9 @@ nsContentUtils::UserInteractionObserver::Init()
   // started yet. It will have started by the time we have the chance to spin
   // the event loop.
   RefPtr<UserInteractionObserver> self = this;
-  NS_DispatchToMainThread(NS_NewRunnableFunction([=] () {
-        HangMonitor::RegisterAnnotator(*self);
-      }));
+  NS_DispatchToMainThread(
+    NS_NewRunnableFunction("nsContentUtils::UserInteractionObserver::Init",
+                           [=]() { HangMonitor::RegisterAnnotator(*self); }));
 }
 
 void

@@ -378,7 +378,8 @@ public:
   AsyncCloseConnection(Connection *aConnection,
                        sqlite3 *aNativeConnection,
                        nsIRunnable *aCallbackEvent)
-  : mConnection(aConnection)
+  : Runnable("storage::AsyncCloseConnection")
+  , mConnection(aConnection)
   , mNativeConnection(aNativeConnection)
   , mCallbackEvent(aCallbackEvent)
   {
@@ -390,7 +391,8 @@ public:
     MOZ_ASSERT(NS_GetCurrentThread() != mConnection->threadOpenedOn);
 
     nsCOMPtr<nsIRunnable> event =
-      NewRunnableMethod(mConnection, &Connection::shutdownAsyncThread);
+      NewRunnableMethod("storage::Connection::shutdownAsyncThread",
+                        mConnection, &Connection::shutdownAsyncThread);
     MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(event));
 
     // Internal close.
@@ -622,8 +624,7 @@ Connection::initialize()
 {
   NS_ASSERTION (!mDBConn, "Initialize called on already opened database!");
   MOZ_ASSERT(!mIgnoreLockingMode, "Can't ignore locking on an in-memory db.");
-  PROFILER_LABEL("mozStorageConnection", "initialize",
-    js::ProfileEntry::Category::STORAGE);
+  AUTO_PROFILER_LABEL("Connection::initialize", STORAGE);
 
   // in memory database requested, sqlite uses a magic file name
   int srv = ::sqlite3_open_v2(":memory:", &mDBConn, mFlags, nullptr);
@@ -646,8 +647,7 @@ Connection::initialize(nsIFile *aDatabaseFile)
 {
   NS_ASSERTION (aDatabaseFile, "Passed null file!");
   NS_ASSERTION (!mDBConn, "Initialize called on already opened database!");
-  PROFILER_LABEL("mozStorageConnection", "initialize",
-    js::ProfileEntry::Category::STORAGE);
+  AUTO_PROFILER_LABEL("Connection::initialize", STORAGE);
 
   mDatabaseFile = aDatabaseFile;
 
@@ -684,8 +684,7 @@ Connection::initialize(nsIFileURL *aFileURL)
 {
   NS_ASSERTION (aFileURL, "Passed null file URL!");
   NS_ASSERTION (!mDBConn, "Initialize called on already opened database!");
-  PROFILER_LABEL("mozStorageConnection", "initialize",
-    js::ProfileEntry::Category::STORAGE);
+  AUTO_PROFILER_LABEL("Connection::initialize", STORAGE);
 
   nsCOMPtr<nsIFile> databaseFile;
   nsresult rv = aFileURL->GetFile(getter_AddRefs(databaseFile));
@@ -831,7 +830,8 @@ Connection::initializeOnAsyncThread(nsIFile* aStorageFile) {
     MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
     mAsyncExecutionThreadShuttingDown = true;
     nsCOMPtr<nsIRunnable> event =
-      NewRunnableMethod(this, &Connection::shutdownAsyncThread);
+      NewRunnableMethod("Connection::shutdownAsyncThread",
+                        this, &Connection::shutdownAsyncThread);
     Unused << NS_DispatchToMainThread(event);
   }
   return rv;
@@ -1433,8 +1433,7 @@ NS_IMETHODIMP
 Connection::AsyncClone(bool aReadOnly,
                        mozIStorageCompletionCallback *aCallback)
 {
-  PROFILER_LABEL("mozStorageConnection", "AsyncClone",
-    js::ProfileEntry::Category::STORAGE);
+  AUTO_PROFILER_LABEL("Connection::AsyncClone", STORAGE);
 
   NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_NOT_SAME_THREAD);
   if (!mDBConn)
@@ -1565,8 +1564,7 @@ Connection::Clone(bool aReadOnly,
 {
   MOZ_ASSERT(threadOpenedOn == NS_GetCurrentThread());
 
-  PROFILER_LABEL("mozStorageConnection", "Clone",
-    js::ProfileEntry::Category::STORAGE);
+  AUTO_PROFILER_LABEL("Connection::Clone", STORAGE);
 
   if (!mDBConn)
     return NS_ERROR_NOT_INITIALIZED;

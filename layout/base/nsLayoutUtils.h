@@ -189,6 +189,11 @@ public:
   static nsIScrollableFrame* FindScrollableFrameFor(ViewID aId);
 
   /**
+   * Find the ID for a given scrollable frame.
+   */
+  static ViewID FindIDForScrollableFrame(nsIScrollableFrame* aScrollable);
+
+  /**
    * Get display port for the given element, relative to the specified entity,
    * defaulting to the scrollport.
    */
@@ -1345,14 +1350,14 @@ public:
    * containing aFrame.
    */
   static nsIFrame*
-  FirstContinuationOrIBSplitSibling(nsIFrame *aFrame);
+  FirstContinuationOrIBSplitSibling(const nsIFrame *aFrame);
 
   /**
    * Get the last frame in the continuation-plus-ib-split-sibling chain
    * containing aFrame.
    */
   static nsIFrame*
-  LastContinuationOrIBSplitSibling(nsIFrame *aFrame);
+  LastContinuationOrIBSplitSibling(const nsIFrame *aFrame);
 
   /**
    * Is FirstContinuationOrIBSplitSibling(aFrame) going to return

@@ -21,6 +21,7 @@
 #include "nsISerialEventTarget.h"
 #include "nsITimer.h"
 #include "nsICharsetDetector.h"
+#include "mozilla/dom/DocGroup.h"
 
 class nsHtml5Parser;
 
@@ -101,66 +102,70 @@ enum eHtml5StreamState {
   STREAM_ENDED = 2
 };
 
-class nsHtml5StreamParser : public nsICharsetDetectionObserver {
+class nsHtml5StreamParser final : public nsICharsetDetectionObserver {
+  template <typename T> using NotNull = mozilla::NotNull<T>;
+  using Encoding = mozilla::Encoding;
 
   friend class nsHtml5RequestStopper;
   friend class nsHtml5DataAvailable;
   friend class nsHtml5StreamParserContinuation;
   friend class nsHtml5TimerKungFu;
+  friend class nsHtml5StreamParserPtr;
 
-  public:
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHtml5StreamParser,
-                                             nsICharsetDetectionObserver)
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHtml5StreamParser,
+                                           nsICharsetDetectionObserver)
 
-    static void InitializeStatics();
+  static void InitializeStatics();
 
-    nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
-                        nsHtml5Parser* aOwner,
-                        eParserMode aMode);
+  nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
+                      nsHtml5Parser* aOwner,
+                      eParserMode aMode);
 
-    // Methods that nsHtml5StreamListener calls
-    nsresult CheckListenerChain();
+  // Methods that nsHtml5StreamListener calls
+  nsresult CheckListenerChain();
 
-    nsresult OnStartRequest(nsIRequest* aRequest, nsISupports* aContext);
+  nsresult OnStartRequest(nsIRequest* aRequest, nsISupports* aContext);
 
-    nsresult OnDataAvailable(nsIRequest* aRequest,
-                             nsISupports* aContext,
-                             nsIInputStream* aInStream,
-                             uint64_t aSourceOffset,
-                             uint32_t aLength);
-
-    nsresult OnStopRequest(nsIRequest* aRequest,
+  nsresult OnDataAvailable(nsIRequest* aRequest,
                            nsISupports* aContext,
-                           nsresult status);
+                           nsIInputStream* aInStream,
+                           uint64_t aSourceOffset,
+                           uint32_t aLength);
 
-    // nsICharsetDetectionObserver
-    /**
+  nsresult OnStopRequest(nsIRequest* aRequest,
+                         nsISupports* aContext,
+                         nsresult status);
+
+  // nsICharsetDetectionObserver
+  /**
      * Chardet calls this to report the detection result
      */
-    NS_IMETHOD Notify(const char* aCharset, nsDetectionConfident aConf) override;
+  NS_IMETHOD Notify(const char* aCharset, nsDetectionConfident aConf) override;
 
-    // EncodingDeclarationHandler
-    // https://hg.mozilla.org/projects/htmlparser/file/tip/src/nu/validator/htmlparser/common/EncodingDeclarationHandler.java
-    /**
+  // EncodingDeclarationHandler
+  // https://hg.mozilla.org/projects/htmlparser/file/tip/src/nu/validator/htmlparser/common/EncodingDeclarationHandler.java
+  /**
      * Tree builder uses this to report a late <meta charset>
      */
-    bool internalEncodingDeclaration(nsHtml5String aEncoding);
+  bool internalEncodingDeclaration(nsHtml5String aEncoding);
 
-    // Not from an external interface
+  // Not from an external interface
 
-    /**
+  /**
      *  Call this method once you've created a parser, and want to instruct it
      *  about what charset to load
      *
-     *  @param   aCharset the charset of a document
+     *  @param   aEncoding the charset of a document
      *  @param   aCharsetSource the source of the charset
      */
-    inline void SetDocumentCharset(const nsACString& aCharset, int32_t aSource) {
+    inline void SetDocumentCharset(NotNull<const Encoding*> aEncoding,
+                                   int32_t aSource) {
       NS_PRECONDITION(mStreamState == STREAM_NOT_STARTED,
                       "SetDocumentCharset called too late.");
       NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-      mCharset = aCharset;
+      mEncoding = aEncoding;
       mCharsetSource = aSource;
     }
     
@@ -194,9 +199,9 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     void DropTimer();
 
     /**
-     * Sets mCharset and mCharsetSource appropriately for the XML View Source
+     * Sets mEncoding and mCharsetSource appropriately for the XML View Source
      * case if aEncoding names a supported rough ASCII superset and sets
-     * the mCharset and mCharsetSource to the UTF-8 default otherwise.
+     * the mEncoding and mCharsetSource to the UTF-8 default otherwise.
      */
     void SetEncodingFromExpat(const char16_t* aEncoding);
 
@@ -339,7 +344,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
      *                            (UTF-16BE, UTF-16LE or UTF-8; the BOM has
      *                            been swallowed)
      */
-    nsresult SetupDecodingFromBom(const char* aDecoderCharsetName);
+    nsresult SetupDecodingFromBom(NotNull<const Encoding*> aEncoding);
 
     /**
      * Become confident or resolve and encoding name to its preferred form.
@@ -349,7 +354,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
      *         aEncoding and false if the parser became confident or if
      *         the encoding name did not specify a usable encoding
      */
-    bool PreferredForInternalEncodingDecl(nsACString& aEncoding);
+    const Encoding* PreferredForInternalEncodingDecl(const nsACString& aEncoding);
 
     /**
      * Callback for mFlushTimer.
@@ -380,6 +385,13 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     {
         return mSpeculationFailureCount < 100;
     }
+
+    /**
+     * Dispatch an event to a Quantum DOM main thread-ish thread.
+     * (Not the parser thread.)
+     */
+    nsresult DispatchToMain(const char* aName,
+                            already_AddRefed<nsIRunnable>&& aRunnable);
 
     nsCOMPtr<nsIRequest>          mRequest;
     nsCOMPtr<nsIRequestObserver>  mObserver;
@@ -423,7 +435,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
     /**
      * The character encoding in use
      */
-    nsCString                     mCharset;
+    NotNull<const Encoding*>      mEncoding;
 
     /**
      * Whether reparse is forbidden
@@ -446,6 +458,11 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
      * The tree operation executor
      */
     nsHtml5TreeOpExecutor*        mExecutor;
+
+    /**
+     * The same as mExecutor->mDocument->mDocGroup.
+     */
+    RefPtr<mozilla::dom::DocGroup> mDocGroup;
 
     /**
      * The HTML5 tree builder

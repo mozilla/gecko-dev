@@ -62,7 +62,7 @@ public:
   // nsIContentSink
   NS_IMETHOD WillBuildModel(nsDTDMode aDTDMode) override;
   NS_IMETHOD DidBuildModel(bool aTerminated) override;
-  NS_IMETHOD SetDocumentCharset(nsACString& aCharset) override;
+  virtual void SetDocumentCharset(NotNull<const Encoding*> aEncoding) override;
   virtual nsISupports* GetTarget() override;
   NS_IMETHOD DidProcessATokenImpl();
 
@@ -92,11 +92,11 @@ protected:
 
   // nsContentSink overrides
   virtual nsresult ProcessStyleLink(nsIContent* aElement,
-                                    const nsSubstring& aHref,
+                                    const nsAString& aHref,
                                     bool aAlternate,
-                                    const nsSubstring& aTitle,
-                                    const nsSubstring& aType,
-                                    const nsSubstring& aMedia) override;
+                                    const nsAString& aTitle,
+                                    const nsAString& aType,
+                                    const nsAString& aMedia) override;
   nsresult LoadXSLStyleSheet(nsIURI* aUrl);
   void StartLayout();
 
@@ -173,11 +173,11 @@ nsXMLFragmentContentSink::DidBuildModel(bool aTerminated)
   return NS_OK;
 }
 
-NS_IMETHODIMP 
-nsXMLFragmentContentSink::SetDocumentCharset(nsACString& aCharset)
+void 
+nsXMLFragmentContentSink::SetDocumentCharset(
+  NotNull<const Encoding*> aEncoding)
 {
   NS_NOTREACHED("fragments shouldn't set charset");
-  return NS_OK;
 }
 
 nsISupports *
@@ -328,11 +328,11 @@ nsXMLFragmentContentSink::ReportError(const char16_t* aErrorText,
 
 nsresult
 nsXMLFragmentContentSink::ProcessStyleLink(nsIContent* aElement,
-                                           const nsSubstring& aHref,
+                                           const nsAString& aHref,
                                            bool aAlternate,
-                                           const nsSubstring& aTitle,
-                                           const nsSubstring& aType,
-                                           const nsSubstring& aMedia)
+                                           const nsAString& aTitle,
+                                           const nsAString& aType,
+                                           const nsAString& aMedia)
 {
   // don't process until moved to document
   return NS_OK;

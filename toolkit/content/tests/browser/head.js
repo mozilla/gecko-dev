@@ -2,8 +2,6 @@
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-  "resource://gre/modules/Promise.jsm");
 
 /**
  * A wrapper for the findbar's method "close", which is not synchronous
@@ -89,11 +87,11 @@ function setTestPluginEnabledState(newEnabledState, pluginName) {
     return;
   }
   var plugin = getTestPlugin(pluginName);
-  while (plugin.enabledState != newEnabledState) {
-    // Run a nested event loop to wait for the preference change to
-    // propagate to the child. Yuck!
-    SpecialPowers.Services.tm.currentThread.processNextEvent(true);
-  }
+  // Run a nested event loop to wait for the preference change to
+  // propagate to the child. Yuck!
+  SpecialPowers.Services.tm.spinEventLoopUntil(() => {
+    return plugin.enabledState == newEnabledState;
+  });
   SimpleTest.registerCleanupFunction(function() {
     SpecialPowers.setTestPluginEnabledState(oldEnabledState, pluginName);
   });

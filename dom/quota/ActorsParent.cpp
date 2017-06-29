@@ -378,7 +378,8 @@ class QuotaObject::StoragePressureRunnable final
 
 public:
   explicit StoragePressureRunnable(uint64_t aUsage)
-    : mUsage(aUsage)
+    : Runnable("dom::quota::QuotaObject::StoragePressureRunnable")
+    , mUsage(aUsage)
   { }
 
 private:
@@ -410,7 +411,8 @@ class QuotaManager::CreateRunnable final
 
 public:
   CreateRunnable()
-    : mResultCode(NS_OK)
+    : Runnable("dom::quota::QuotaManager::CreateRunnable")
+    , mResultCode(NS_OK)
     , mState(State::Initial)
   {
     AssertIsOnBackgroundThread();
@@ -455,7 +457,8 @@ class QuotaManager::ShutdownRunnable final
 
 public:
   explicit ShutdownRunnable(bool& aDone)
-    : mDone(aDone)
+    : Runnable("dom::quota::QuotaManager::ShutdownRunnable")
+    , mDone(aDone)
   {
     MOZ_ASSERT(NS_IsMainThread());
   }
@@ -789,8 +792,9 @@ public:
 
 protected:
   explicit OriginOperationBase(
-                          nsIEventTarget* aOwningThread = GetCurrentThreadEventTarget())
+        nsIEventTarget* aOwningThread = GetCurrentThreadEventTarget())
     : BackgroundThreadObject(aOwningThread)
+    , Runnable("dom::quota::OriginOperationBase")
     , mResultCode(NS_OK)
     , mState(State_Initial)
     , mActorDestroyed(false)
@@ -805,11 +809,13 @@ protected:
     MOZ_ASSERT(mActorDestroyed);
   }
 
+#ifdef DEBUG
   State
   GetState() const
   {
     return mState;
   }
+#endif
 
   void
   SetState(State aState)
@@ -1560,9 +1566,9 @@ protected:
   const bool mPersistent;
 
 public:
-  StorageDirectoryHelper(nsIFile* aDirectory,
-                         bool aPersistent)
-    : mMutex("StorageDirectoryHelper::mMutex")
+  StorageDirectoryHelper(nsIFile* aDirectory, bool aPersistent)
+    : Runnable("dom::quota::StorageDirectoryHelper")
+    , mMutex("StorageDirectoryHelper::mMutex")
     , mCondVar(mMutex, "StorageDirectoryHelper::mCondVar")
     , mMainThreadResultCode(NS_OK)
     , mWaiting(true)
@@ -3649,7 +3655,9 @@ QuotaManager::Shutdown()
   // QuotaManager on the IO thread. This should probably use
   // NewNonOwningRunnableMethod ...
   RefPtr<Runnable> runnable =
-    NewRunnableMethod(this, &QuotaManager::ReleaseIOThreadObjects);
+    NewRunnableMethod("dom::quota::QuotaManager::ReleaseIOThreadObjects",
+                      this,
+                      &QuotaManager::ReleaseIOThreadObjects);
   MOZ_ASSERT(runnable);
 
   // Give clients a chance to cleanup IO thread only objects.
@@ -5885,11 +5893,12 @@ GroupInfoPair::GetGroupInfoForPersistenceType(PersistenceType aPersistenceType)
 
 CollectOriginsHelper::CollectOriginsHelper(mozilla::Mutex& aMutex,
                                            uint64_t aMinSizeToBeFreed)
-: mMinSizeToBeFreed(aMinSizeToBeFreed),
-  mMutex(aMutex),
-  mCondVar(aMutex, "CollectOriginsHelper::mCondVar"),
-  mSizeToBeFreed(0),
-  mWaiting(true)
+  : Runnable("dom::quota::CollectOriginsHelper")
+  , mMinSizeToBeFreed(aMinSizeToBeFreed)
+  , mMutex(aMutex)
+  , mCondVar(aMutex, "CollectOriginsHelper::mCondVar")
+  , mSizeToBeFreed(0)
+  , mWaiting(true)
 {
   MOZ_ASSERT(!NS_IsMainThread(), "Wrong thread!");
   mMutex.AssertCurrentThreadOwns();
@@ -6167,8 +6176,7 @@ FinalizeOriginEvictionOp::DoDirectoryWork(QuotaManager* aQuotaManager)
 {
   AssertIsOnIOThread();
 
-  PROFILER_LABEL("Quota", "FinalizeOriginEvictionOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("FinalizeOriginEvictionOp::DoDirectoryWork", OTHER);
 
   for (RefPtr<DirectoryLockImpl>& lock : mLocks) {
     aQuotaManager->OriginClearCompleted(lock->GetPersistenceType().Value(),
@@ -6258,8 +6266,7 @@ SaveOriginAccessTimeOp::DoDirectoryWork(QuotaManager* aQuotaManager)
   MOZ_ASSERT(!mPersistenceType.IsNull());
   MOZ_ASSERT(mOriginScope.IsOrigin());
 
-  PROFILER_LABEL("Quota", "SaveOriginAccessTimeOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("SaveOriginAccessTimeOp::DoDirectoryWork", OTHER);
 
   nsCOMPtr<nsIFile> file;
   nsresult rv =
@@ -6508,7 +6515,9 @@ Quota::RecvStartIdleMaintenance()
   QuotaManager* quotaManager = QuotaManager::Get();
   if (!quotaManager) {
     nsCOMPtr<nsIRunnable> callback =
-      NewRunnableMethod(this, &Quota::StartIdleMaintenance);
+      NewRunnableMethod("dom::quota::Quota::StartIdleMaintenance",
+                        this,
+                        &Quota::StartIdleMaintenance);
 
     QuotaManager::GetOrCreate(callback);
     return IPC_OK();
@@ -6868,8 +6877,7 @@ GetUsageOp::DoDirectoryWork(QuotaManager* aQuotaManager)
 {
   AssertIsOnIOThread();
 
-  PROFILER_LABEL("Quota", "GetUsageOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("GetUsageOp::DoDirectoryWork", OTHER);
 
   nsresult rv;
 
@@ -6956,8 +6964,7 @@ GetOriginUsageOp::DoDirectoryWork(QuotaManager* aQuotaManager)
   AssertIsOnIOThread();
   MOZ_ASSERT(mUsageInfo.TotalUsage() == 0);
 
-  PROFILER_LABEL("Quota", "GetOriginUsageOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("GetOriginUsageOp::DoDirectoryWork", OTHER);
 
   nsresult rv;
 
@@ -7064,8 +7071,7 @@ InitOp::DoDirectoryWork(QuotaManager* aQuotaManager)
 {
   AssertIsOnIOThread();
 
-  PROFILER_LABEL("Quota", "InitOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("InitOp::DoDirectoryWork", OTHER);
 
   aQuotaManager->AssertStorageIsInitialized();
 
@@ -7143,8 +7149,7 @@ InitOriginOp::DoDirectoryWork(QuotaManager* aQuotaManager)
   AssertIsOnIOThread();
   MOZ_ASSERT(!mPersistenceType.IsNull());
 
-  PROFILER_LABEL("Quota", "InitOriginOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("InitOriginOp::DoDirectoryWork", OTHER);
 
   nsCOMPtr<nsIFile> directory;
   bool created;
@@ -7233,8 +7238,7 @@ ResetOrClearOp::DoDirectoryWork(QuotaManager* aQuotaManager)
 {
   AssertIsOnIOThread();
 
-  PROFILER_LABEL("Quota", "ResetOrClearOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("ResetOrClearOp::DoDirectoryWork", OTHER);
 
   if (mClear) {
     DeleteFiles(aQuotaManager);
@@ -7379,8 +7383,7 @@ ClearRequestBase::DoDirectoryWork(QuotaManager* aQuotaManager)
 {
   AssertIsOnIOThread();
 
-  PROFILER_LABEL("Quota", "OriginClearOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("ClearRequestBase::DoDirectoryWork", OTHER);
 
   if (mPersistenceType.IsNull()) {
     for (const PersistenceType type : kAllPersistenceTypes) {
@@ -7570,8 +7573,7 @@ PersistedOp::DoDirectoryWork(QuotaManager* aQuotaManager)
   MOZ_ASSERT(mPersistenceType.Value() == PERSISTENCE_TYPE_DEFAULT);
   MOZ_ASSERT(mOriginScope.IsOrigin());
 
-  PROFILER_LABEL("Quota", "PersistedOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("PersistedOp::DoDirectoryWork", OTHER);
 
   Nullable<bool> persisted =
     aQuotaManager->OriginPersisted(mGroup, mOriginScope.GetOrigin());
@@ -7644,8 +7646,7 @@ PersistOp::DoDirectoryWork(QuotaManager* aQuotaManager)
   MOZ_ASSERT(mPersistenceType.Value() == PERSISTENCE_TYPE_DEFAULT);
   MOZ_ASSERT(mOriginScope.IsOrigin());
 
-  PROFILER_LABEL("Quota", "PersistOp::DoDirectoryWork",
-                 js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("PersistOp::DoDirectoryWork", OTHER);
 
   // Update directory metadata on disk first.
   nsCOMPtr<nsIFile> directory;

@@ -70,7 +70,7 @@ public:
   NS_IMETHOD WillResume(void) override;
   NS_IMETHOD SetParser(nsParserBase* aParser) override;
   virtual void FlushPendingNotifications(mozilla::FlushType aType) override;
-  NS_IMETHOD SetDocumentCharset(nsACString& aCharset) override;
+  virtual void SetDocumentCharset(NotNull<const Encoding*> aEncoding) override;
   virtual nsISupports *GetTarget() override;
   virtual bool IsScriptExecuting() override;
   virtual void ContinueInterruptedParsingAsync() override;
@@ -146,11 +146,11 @@ protected:
   
   // nsContentSink override
   virtual nsresult ProcessStyleLink(nsIContent* aElement,
-                                    const nsSubstring& aHref,
+                                    const nsAString& aHref,
                                     bool aAlternate,
-                                    const nsSubstring& aTitle,
-                                    const nsSubstring& aType,
-                                    const nsSubstring& aMedia) override;
+                                    const nsAString& aTitle,
+                                    const nsAString& aType,
+                                    const nsAString& aMedia) override;
 
   nsresult LoadXSLStyleSheet(nsIURI* aUrl);
 

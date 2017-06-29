@@ -39,8 +39,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
                                   "resource://gre/modules/Sqlite.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
                                   "resource://gre/modules/Deprecated.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Bookmarks",
@@ -3565,10 +3563,7 @@ PlacesEditBookmarkKeywordTransaction.prototype = {
                  .then(() => done = true);
     // TODO: Until we can move to PlacesTransactions.jsm, we must spin the
     // events loop :(
-    let thread = Services.tm.currentThread;
-    while (!done) {
-      thread.processNextEvent(true);
-    }
+    Services.tm.spinEventLoopUntil(() => done);
   },
 
   undoTransaction: function EBKTXN_undoTransaction() {
@@ -3590,10 +3585,9 @@ PlacesEditBookmarkKeywordTransaction.prototype = {
                  .then(() => done = true);
     // TODO: Until we can move to PlacesTransactions.jsm, we must spin the
     // events loop :(
-    let thread = Services.tm.currentThread;
-    while (!done) {
-      thread.processNextEvent(true);
-    }
+    Services.tm.spinEventLoopUntil(() => {
+      return done;
+    });
   }
 };
 

@@ -45,14 +45,15 @@ const TESTCASES = [
     ],
     profileData: {
       "guid": "123",
-      "street-address": "2 Harrison St",
+      "street-address": "2 Harrison St line2",
+      "-moz-street-address-one-line": "2 Harrison St line2",
       "address-level2": "San Francisco",
       "country": "US",
       "email": "foo@mozilla.com",
       "tel": "1234567",
     },
     expectedResult: {
-      "street-addr": "2 Harrison St",
+      "street-addr": "2 Harrison St line2",
       "city": "San Francisco",
       "country": "US",
       "email": "foo@mozilla.com",
@@ -250,6 +251,63 @@ const TESTCASES_INPUT_UNCHANGED = [
   },
 ];
 
+const TESTCASES_US_STATES = [
+  {
+    description: "Form with US states select elements; with lower case state key",
+    document: `<form><select id="state" autocomplete="shipping address-level1">
+                 <option value=""></option>
+                 <option value="CA">California</option>
+               </select></form>`,
+    fieldDetails: [
+      {"section": "", "addressType": "shipping", "contactType": "", "fieldName": "address-level1", "element": {}},
+    ],
+    profileData: {
+      "guid": "123",
+      "country": "US",
+      "address-level1": "ca",
+    },
+    expectedResult: {
+      "state": "CA",
+    },
+  },
+  {
+    description: "Form with US states select elements; with state name and extra spaces",
+    document: `<form><select id="state" autocomplete="shipping address-level1">
+                 <option value=""></option>
+                 <option value="CA">CA</option>
+               </select></form>`,
+    fieldDetails: [
+      {"section": "", "addressType": "shipping", "contactType": "", "fieldName": "address-level1", "element": {}},
+    ],
+    profileData: {
+      "guid": "123",
+      "country": "US",
+      "address-level1": " California ",
+    },
+    expectedResult: {
+      "state": "CA",
+    },
+  },
+  {
+    description: "Form with US states select elements; with partial state key match",
+    document: `<form><select id="state" autocomplete="shipping address-level1">
+                 <option value=""></option>
+                 <option value="US-WA">WA-Washington</option>
+               </select></form>`,
+    fieldDetails: [
+      {"section": "", "addressType": "shipping", "contactType": "", "fieldName": "address-level1", "element": {}},
+    ],
+    profileData: {
+      "guid": "123",
+      "country": "US",
+      "address-level1": "WA",
+    },
+    expectedResult: {
+      "state": "US-WA",
+    },
+  },
+];
+
 function do_test(testcases, testFn) {
   for (let tc of testcases) {
     (function() {
@@ -324,6 +382,19 @@ do_test(TESTCASES_INPUT_UNCHANGED, (testcase, element) => {
       };
       element.addEventListener("change", cleaner);
       element.addEventListener("input", cleaner);
+    }),
+  ];
+});
+
+do_test(TESTCASES_US_STATES, (testcase, element) => {
+  let id = element.id;
+  return [
+    new Promise(resolve => {
+      element.addEventListener("input", () => {
+        Assert.equal(element.value, testcase.expectedResult[id],
+                    "Check the " + id + " field was filled with correct data");
+        resolve();
+      }, {once: true});
     }),
   ];
 });

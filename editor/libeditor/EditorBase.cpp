@@ -6,6 +6,7 @@
 #include "mozilla/EditorBase.h"
 
 #include "mozilla/DebugOnly.h"          // for DebugOnly
+#include "mozilla/Encoding.h"           // for Encoding
 
 #include <stdio.h>                      // for nullptr, stdout
 #include <string.h>                     // for strcmp
@@ -95,7 +96,7 @@
 #include "nsRange.h"                    // for nsRange
 #include "nsReadableUtils.h"            // for EmptyString, ToNewCString
 #include "nsString.h"                   // for nsAutoString, nsString, etc.
-#include "nsStringFwd.h"                // for nsAFlatString
+#include "nsStringFwd.h"                // for nsString
 #include "nsStyleConsts.h"              // for NS_STYLE_DIRECTION_RTL, etc.
 #include "nsStyleContext.h"             // for nsStyleContext
 #include "nsStyleStruct.h"              // for nsStyleDisplay, nsStyleText, etc.
@@ -332,7 +333,7 @@ EditorBase::PostCreate()
   }
 
   // FYI: This call might cause destroying this editor.
-  IMEStateManager::OnEditorInitialized(this);
+  IMEStateManager::OnEditorInitialized(*this);
 
   return NS_OK;
 }
@@ -442,7 +443,7 @@ EditorBase::PreDestroy(bool aDestroyingFrames)
   if (mDidPreDestroy)
     return NS_OK;
 
-  IMEStateManager::OnEditorDestroying(this);
+  IMEStateManager::OnEditorDestroying(*this);
 
   // Let spellchecker clean up its observers etc. It is important not to
   // actually free the spellchecker here, since the spellchecker could have
@@ -481,7 +482,9 @@ EditorBase::PreDestroy(bool aDestroyingFrames)
 NS_IMETHODIMP
 EditorBase::GetFlags(uint32_t* aFlags)
 {
-  *aFlags = mFlags;
+  // NOTE: If you need to override this method, you need to make Flags()
+  //       virtual.
+  *aFlags = Flags();
   return NS_OK;
 }
 
@@ -779,27 +782,63 @@ EditorBase::EnableUndo(bool aEnable)
 NS_IMETHODIMP
 EditorBase::GetNumberOfUndoItems(int32_t* aNumItems)
 {
-  *aNumItems = 0;
-  return mTxnMgr ? mTxnMgr->GetNumberOfUndoItems(aNumItems) : NS_OK;
+  *aNumItems = NumberOfUndoItems();
+  return *aNumItems >= 0 ? NS_OK : NS_ERROR_FAILURE;
+}
+
+int32_t
+EditorBase::NumberOfUndoItems() const
+{
+  if (!mTxnMgr) {
+    return 0;
+  }
+  int32_t numItems = 0;
+  if (NS_WARN_IF(NS_FAILED(mTxnMgr->GetNumberOfUndoItems(&numItems)))) {
+    return -1;
+  }
+  return numItems;
 }
 
 NS_IMETHODIMP
 EditorBase::GetNumberOfRedoItems(int32_t* aNumItems)
 {
-  *aNumItems = 0;
-  return mTxnMgr ? mTxnMgr->GetNumberOfRedoItems(aNumItems) : NS_OK;
+  *aNumItems = NumberOfRedoItems();
+  return *aNumItems >= 0 ? NS_OK : NS_ERROR_FAILURE;
+}
+
+int32_t
+EditorBase::NumberOfRedoItems() const
+{
+  if (!mTxnMgr) {
+    return 0;
+  }
+  int32_t numItems = 0;
+  if (NS_WARN_IF(NS_FAILED(mTxnMgr->GetNumberOfRedoItems(&numItems)))) {
+    return -1;
+  }
+  return numItems;
 }
 
 NS_IMETHODIMP
 EditorBase::GetTransactionManager(nsITransactionManager** aTxnManager)
 {
-  NS_ENSURE_ARG_POINTER(aTxnManager);
-
-  *aTxnManager = nullptr;
-  NS_ENSURE_TRUE(mTxnMgr, NS_ERROR_FAILURE);
-
-  NS_ADDREF(*aTxnManager = mTxnMgr);
+  // NOTE: If you need to override this method, you need to make
+  //       GetTransactionManager() virtual.
+  if (NS_WARN_IF(!aTxnManager)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  *aTxnManager = GetTransactionManager().take();
+  if (NS_WARN_IF(!*aTxnManager)) {
+    return NS_ERROR_FAILURE;
+  }
   return NS_OK;
+}
+
+already_AddRefed<nsITransactionManager>
+EditorBase::GetTransactionManager() const
+{
+  nsCOMPtr<nsITransactionManager> transactionManager = mTxnMgr.get();
+  return transactionManager.forget();
 }
 
 NS_IMETHODIMP
@@ -1142,7 +1181,7 @@ EditorBase::GetDocumentCharacterSet(nsACString& characterSet)
   if (NS_WARN_IF(!document)) {
     return NS_ERROR_UNEXPECTED;
   }
-  characterSet = document->GetDocumentCharacterSet();
+  document->GetDocumentCharacterSet()->Name(characterSet);
   return NS_OK;
 }
 
@@ -1153,7 +1192,13 @@ EditorBase::SetDocumentCharacterSet(const nsACString& characterSet)
   if (NS_WARN_IF(!document)) {
     return NS_ERROR_UNEXPECTED;
   }
-  document->SetDocumentCharacterSet(characterSet);
+  // This method is scriptable, so add-ons could pass in something other
+  // than a canonical name.
+  auto encoding = Encoding::ForLabelNoReplacement(characterSet);
+  if (!encoding) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  document->SetDocumentCharacterSet(WrapNotNull(encoding));
   return NS_OK;
 }
 
@@ -1840,7 +1885,8 @@ public:
   EditorInputEventDispatcher(EditorBase* aEditorBase,
                              nsIContent* aTarget,
                              bool aIsComposing)
-    : mEditorBase(aEditorBase)
+    : Runnable("EditorInputEventDispatcher")
+    , mEditorBase(aEditorBase)
     , mTarget(aTarget)
     , mIsComposing(aIsComposing)
   {
@@ -5231,8 +5277,12 @@ EditorBase::OnFocus(nsIDOMEventTarget* aFocusEventTarget)
 NS_IMETHODIMP
 EditorBase::GetSuppressDispatchingInputEvent(bool* aSuppressed)
 {
-  NS_ENSURE_ARG_POINTER(aSuppressed);
-  *aSuppressed = !mDispatchInputEvent;
+  // NOTE: If you need to override this method, you need to make
+  //       IsSuppressingDispatchingInputEvent() virtual.
+  if (NS_WARN_IF(aSuppressed)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  *aSuppressed = IsSuppressingDispatchingInputEvent();
   return NS_OK;
 }
 
@@ -5246,8 +5296,10 @@ EditorBase::SetSuppressDispatchingInputEvent(bool aSuppress)
 NS_IMETHODIMP
 EditorBase::GetIsInEditAction(bool* aIsInEditAction)
 {
+  // NOTE: If you need to override this method, you need to make
+  //       IsInEditAction() virtual.
   MOZ_ASSERT(aIsInEditAction, "aIsInEditAction must not be null");
-  *aIsInEditAction = mIsInEditAction;
+  *aIsInEditAction = IsInEditAction();
   return NS_OK;
 }
 

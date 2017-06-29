@@ -47,7 +47,8 @@ AsyncCanvasRenderer::NotifyElementAboutAttributesChanged()
   {
   public:
     explicit Runnable(AsyncCanvasRenderer* aRenderer)
-      : mRenderer(aRenderer)
+      : mozilla::Runnable("Runnable")
+      , mRenderer(aRenderer)
     {}
 
     NS_IMETHOD Run() override
@@ -57,11 +58,6 @@ AsyncCanvasRenderer::NotifyElementAboutAttributesChanged()
       }
 
       return NS_OK;
-    }
-
-    void Revoke()
-    {
-      mRenderer = nullptr;
     }
 
   private:
@@ -82,7 +78,8 @@ AsyncCanvasRenderer::NotifyElementAboutInvalidation()
   {
   public:
     explicit Runnable(AsyncCanvasRenderer* aRenderer)
-      : mRenderer(aRenderer)
+      : mozilla::Runnable("Runnable")
+      , mRenderer(aRenderer)
     {}
 
     NS_IMETHOD Run() override
@@ -92,11 +89,6 @@ AsyncCanvasRenderer::NotifyElementAboutInvalidation()
       }
 
       return NS_OK;
-    }
-
-    void Revoke()
-    {
-      mRenderer = nullptr;
     }
 
   private:

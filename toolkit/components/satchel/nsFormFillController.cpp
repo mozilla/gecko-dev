@@ -149,8 +149,11 @@ nsFormFillController::AttributeChanged(nsIDocument* aDocument,
     // to avoid ending up in an endless loop due to re-registering our
     // mutation observer (which would notify us again for *this* event).
     nsCOMPtr<nsIRunnable> event =
-      mozilla::NewRunnableMethod<nsCOMPtr<nsIDOMHTMLInputElement>>
-      (this, &nsFormFillController::MaybeStartControllingInput, focusedInput);
+      mozilla::NewRunnableMethod<nsCOMPtr<nsIDOMHTMLInputElement>>(
+        "nsFormFillController::MaybeStartControllingInput",
+        this,
+        &nsFormFillController::MaybeStartControllingInput,
+        focusedInput);
     NS_DispatchToCurrentThread(event);
   }
 
@@ -916,6 +919,12 @@ nsFormFillController::HandleEvent(nsIDOMEvent* aEvent)
     return KeyPress(aEvent);
   case eEditorInput:
     {
+      nsCOMPtr<nsINode> input = do_QueryInterface(
+        aEvent->InternalDOMEvent()->GetTarget());
+      if (!IsTextControl(input)) {
+        return NS_OK;
+      }
+
       bool unused = false;
       return (!mSuppressOnInput && mController && mFocusedInput) ?
              mController->HandleText(&unused) : NS_OK;
@@ -996,6 +1005,14 @@ nsFormFillController::RemoveForDocument(nsIDocument* aDoc)
   }
 }
 
+bool
+nsFormFillController::IsTextControl(nsINode* aNode)
+{
+  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aNode);
+  return formControl &&
+         formControl->IsSingleLineTextControl(false);
+}
+
 void
 nsFormFillController::MaybeStartControllingInput(nsIDOMHTMLInputElement* aInput)
 {
@@ -1004,8 +1021,7 @@ nsFormFillController::MaybeStartControllingInput(nsIDOMHTMLInputElement* aInput)
     return;
   }
 
-  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aInput);
-  if (!formControl || !formControl->IsSingleLineTextControl(false)) {
+  if (!IsTextControl(inputNode)) {
     return;
   }
 
@@ -1022,6 +1038,8 @@ nsFormFillController::MaybeStartControllingInput(nsIDOMHTMLInputElement* aInput)
   bool hasList = datalist != nullptr;
 
   bool isPwmgrInput = false;
+  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aInput);
+  MOZ_ASSERT(formControl, "If we have a text control, we have a form control!");
   if (mPwmgrInputs.Get(inputNode) ||
       formControl->ControlType() == NS_FORM_INPUT_PASSWORD) {
     isPwmgrInput = true;
@@ -1384,11 +1402,6 @@ nsFormFillController::StopControllingInput()
 
   if (mFocusedInputNode) {
     MaybeRemoveMutationObserver(mFocusedInputNode);
-
-    auto formAutoComplete = GetFormAutoComplete();
-    if (formAutoComplete) {
-      formAutoComplete->StopControllingInput(mFocusedInput);
-    }
 
     mFocusedInputNode = nullptr;
     mFocusedInput = nullptr;

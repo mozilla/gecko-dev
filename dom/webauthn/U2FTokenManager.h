@@ -34,7 +34,6 @@ class U2FTokenManager final
     bool softTokenEnabled;
     uint32_t softTokenCounter;
   };
-  typedef MozPromise<bool, nsresult, false> PrefPromise;
 public:
   enum TransactionType
   {
@@ -48,17 +47,19 @@ public:
                 const WebAuthnTransactionInfo& aTransactionInfo);
   void Sign(WebAuthnTransactionParent* aTransactionParent,
             const WebAuthnTransactionInfo& aTransactionInfo);
+  void Cancel(WebAuthnTransactionParent* aTransactionParent);
   void MaybeClearTransaction(WebAuthnTransactionParent* aParent);
   static void Initialize();
 private:
   U2FTokenManager();
   ~U2FTokenManager();
-  void Cancel(const nsresult& aError);
+  void AbortTransaction(const nsresult& aError);
+  void ClearTransaction();
   // Using a raw pointer here, as the lifetime of the IPC object is managed by
   // the PBackground protocol code. This means we cannot be left holding an
   // invalid IPC protocol object after the transaction is finished.
   WebAuthnTransactionParent* mTransactionParent;
-  RefPtr<U2FSoftTokenManager> mSoftTokenManager;
+  RefPtr<U2FTokenTransport> mTokenManagerImpl;
 };
 
 } // namespace dom

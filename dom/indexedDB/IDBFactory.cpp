@@ -162,17 +162,13 @@ IDBFactory::CreateForWindow(nsPIDOMWindowInner* aWindow,
 
   nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(aWindow);
   nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(webNav);
-  RefPtr<nsGlobalWindow> globalWindow = nsGlobalWindow::Cast(aWindow);
-  MOZ_ASSERT(globalWindow);
-  nsCOMPtr<nsPIDOMWindowOuter> topOutterWindow = globalWindow->GetScriptableTop();
-  MOZ_ASSERT(topOutterWindow);
 
   RefPtr<IDBFactory> factory = new IDBFactory();
   factory->mPrincipalInfo = Move(principalInfo);
   factory->mWindow = aWindow;
-  factory->mTopWindow = topOutterWindow->GetCurrentInnerWindow();
   factory->mTabChild = TabChild::GetFrom(aWindow);
-  factory->mEventTarget = globalWindow->EventTargetFor(TaskCategory::Other);
+  factory->mEventTarget =
+    nsGlobalWindow::Cast(aWindow)->EventTargetFor(TaskCategory::Other);
   factory->mInnerWindowID = aWindow->WindowID();
   factory->mPrivateBrowsingMode =
     loadContext && loadContext->UsePrivateBrowsing();
@@ -425,8 +421,8 @@ void
 IDBFactory::UpdateActiveTransactionCount(int32_t aDelta)
 {
   AssertIsOnOwningThread();
-  if (mTopWindow) {
-    mTopWindow->UpdateActiveIndexedDBTransactionCount(aDelta);
+  if (mWindow) {
+    mWindow->UpdateActiveIndexedDBTransactionCount(aDelta);
   }
 }
 
@@ -434,8 +430,8 @@ void
 IDBFactory::UpdateActiveDatabaseCount(int32_t aDelta)
 {
   AssertIsOnOwningThread();
-  if (mTopWindow) {
-    mTopWindow->UpdateActiveIndexedDBDatabaseCount(aDelta);
+  if (mWindow) {
+    mWindow->UpdateActiveIndexedDBDatabaseCount(aDelta);
   }
 }
 
@@ -914,14 +910,12 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(IDBFactory)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(IDBFactory)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindow)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTopWindow)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IDBFactory)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
   tmp->mOwningObject = nullptr;
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindow)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTopWindow)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(IDBFactory)

@@ -887,9 +887,9 @@ GetSubmitEncoding(nsGenericHTMLElement* aForm)
   // Get the charset from document
   nsIDocument* doc = aForm->GetComposedDoc();
   if (doc) {
-    return Encoding::ForName(doc->GetDocumentCharacterSet());
+    return doc->GetDocumentCharacterSet();
   }
-  return WrapNotNull(UTF_8_ENCODING);
+  return UTF_8_ENCODING;
 }
 
 void

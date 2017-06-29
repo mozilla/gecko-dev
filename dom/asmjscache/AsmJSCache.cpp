@@ -242,11 +242,12 @@ class FileDescriptorHolder : public Runnable
 {
 public:
   FileDescriptorHolder()
-  : mQuotaObject(nullptr),
-    mFileSize(INT64_MIN),
-    mFileDesc(nullptr),
-    mFileMap(nullptr),
-    mMappedMemory(nullptr)
+    : Runnable("dom::asmjscache::FileDescriptorHolder")
+    , mQuotaObject(nullptr)
+    , mFileSize(INT64_MIN)
+    , mFileDesc(nullptr)
+    , mFileMap(nullptr)
+    , mMappedMemory(nullptr)
   { }
 
   ~FileDescriptorHolder() override
@@ -367,6 +368,7 @@ private:
     MOZ_ASSERT(mActorDestroyed);
   }
 
+#ifdef DEBUG
   bool
   IsOnOwningThread() const
   {
@@ -375,6 +377,7 @@ private:
     bool current;
     return NS_SUCCEEDED(mOwningEventTarget->IsOnCurrentThread(&current)) && current;
   }
+#endif
 
   void
   AssertIsOnOwningThread() const

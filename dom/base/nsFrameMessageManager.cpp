@@ -604,10 +604,11 @@ nsFrameMessageManager::SendMessage(const nsAString& aMessageName,
                                    JS::MutableHandle<JS::Value> aRetval,
                                    bool aIsSync)
 {
-  NS_LossyConvertUTF16toASCII messageNameCStr(aMessageName);
-  PROFILER_LABEL_DYNAMIC("nsFrameMessageManager", "SendMessage",
-                          js::ProfileEntry::Category::EVENTS,
-                          messageNameCStr.get());
+  if (profiler_is_active()) {
+    NS_LossyConvertUTF16toASCII messageNameCStr(aMessageName);
+    AUTO_PROFILER_LABEL_DYNAMIC("nsFrameMessageManager::SendMessage", EVENTS,
+                                messageNameCStr.get());
+  }
 
   NS_ASSERTION(!IsGlobal(), "Should not call SendSyncMessage in chrome");
   NS_ASSERTION(!IsBroadcaster(), "Should not call SendSyncMessage in chrome");
@@ -1521,12 +1522,12 @@ void
 nsMessageManagerScriptExecutor::LoadScriptInternal(const nsAString& aURL,
                                                    bool aRunInGlobalScope)
 {
-#ifdef MOZ_GECKO_PROFILER
-  NS_LossyConvertUTF16toASCII urlCStr(aURL);
-  PROFILER_LABEL_DYNAMIC("nsMessageManagerScriptExecutor", "LoadScriptInternal",
-                          js::ProfileEntry::Category::OTHER,
-                          urlCStr.get());
-#endif
+  if (profiler_is_active()) {
+    NS_LossyConvertUTF16toASCII urlCStr(aURL);
+    AUTO_PROFILER_LABEL_DYNAMIC(
+      "nsMessageManagerScriptExecutor::LoadScriptInternal", OTHER,
+      urlCStr.get());
+  }
 
   if (!mGlobal || !sCachedScripts) {
     return;
@@ -1751,6 +1752,7 @@ public:
   nsAsyncMessageToSameProcessChild(JS::RootingContext* aRootingCx,
                                    JS::Handle<JSObject*> aCpows)
     : nsSameProcessAsyncMessageBase(aRootingCx, aCpows)
+    , mozilla::Runnable("nsAsyncMessageToSameProcessChild")
   { }
   NS_IMETHOD Run() override
   {

@@ -285,8 +285,9 @@ nsContentSink::ProcessHTTPHeaders(nsIChannel* aChannel)
                  "Already dispatched an event?");
 
     mProcessLinkHeaderEvent =
-      NewNonOwningRunnableMethod(this,
-        &nsContentSink::DoProcessLinkHeader);
+      NewNonOwningRunnableMethod("nsContentSink::DoProcessLinkHeader",
+                                 this,
+                                 &nsContentSink::DoProcessLinkHeader);
     rv = NS_DispatchToCurrentThread(mProcessLinkHeaderEvent.get());
     if (NS_FAILED(rv)) {
       mProcessLinkHeaderEvent.Forget();
@@ -356,7 +357,7 @@ nsContentSink::DoProcessLinkHeader()
 // see <http://tools.ietf.org/html/rfc5988#section-5.2>
 
 bool
-nsContentSink::LinkContextIsOurDocument(const nsSubstring& aAnchor)
+nsContentSink::LinkContextIsOurDocument(const nsAString& aAnchor)
 {
   if (aAnchor.IsEmpty()) {
     // anchor parameter not present or empty -> same document reference
@@ -680,10 +681,10 @@ nsContentSink::ProcessLinkHeader(const nsAString& aLinkData)
 
 
 nsresult
-nsContentSink::ProcessLink(const nsSubstring& aAnchor, const nsSubstring& aHref,
-                           const nsSubstring& aRel, const nsSubstring& aTitle,
-                           const nsSubstring& aType, const nsSubstring& aMedia,
-                           const nsSubstring& aCrossOrigin)
+nsContentSink::ProcessLink(const nsAString& aAnchor, const nsAString& aHref,
+                           const nsAString& aRel, const nsAString& aTitle,
+                           const nsAString& aType, const nsAString& aMedia,
+                           const nsAString& aCrossOrigin)
 {
   uint32_t linkTypes =
     nsStyleLinkElement::ParseLinkTypes(aRel);
@@ -734,11 +735,11 @@ nsContentSink::ProcessLink(const nsSubstring& aAnchor, const nsSubstring& aHref,
 
 nsresult
 nsContentSink::ProcessStyleLink(nsIContent* aElement,
-                                const nsSubstring& aHref,
+                                const nsAString& aHref,
                                 bool aAlternate,
-                                const nsSubstring& aTitle,
-                                const nsSubstring& aType,
-                                const nsSubstring& aMedia)
+                                const nsAString& aTitle,
+                                const nsAString& aType,
+                                const nsAString& aMedia)
 {
   if (aAlternate && aTitle.IsEmpty()) {
     // alternates must have title return without error, for now
@@ -845,10 +846,9 @@ nsContentSink::PrefetchHref(const nsAString &aHref,
   nsCOMPtr<nsIPrefetchService> prefetchService(do_GetService(NS_PREFETCHSERVICE_CONTRACTID));
   if (prefetchService) {
     // construct URI using document charset
-    const nsACString &charset = mDocument->GetDocumentCharacterSet();
+    auto encoding = mDocument->GetDocumentCharacterSet();
     nsCOMPtr<nsIURI> uri;
-    NS_NewURI(getter_AddRefs(uri), aHref,
-              charset.IsEmpty() ? nullptr : PromiseFlatCString(charset).get(),
+    NS_NewURI(getter_AddRefs(uri), aHref, encoding,
               mDocument->GetDocBaseURI());
     if (uri) {
       nsCOMPtr<nsIDOMNode> domNode = do_QueryInterface(aSource);
@@ -892,10 +892,9 @@ void
 nsContentSink::Preconnect(const nsAString& aHref, const nsAString& aCrossOrigin)
 {
   // construct URI using document charset
-  const nsACString& charset = mDocument->GetDocumentCharacterSet();
+  auto encoding = mDocument->GetDocumentCharacterSet();
   nsCOMPtr<nsIURI> uri;
-  NS_NewURI(getter_AddRefs(uri), aHref,
-            charset.IsEmpty() ? nullptr : PromiseFlatCString(charset).get(),
+  NS_NewURI(getter_AddRefs(uri), aHref, encoding,
             mDocument->GetDocBaseURI());
 
   if (uri && mDocument) {

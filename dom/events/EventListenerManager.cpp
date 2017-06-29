@@ -130,6 +130,7 @@ EventListenerManagerBase::EventListenerManagerBase()
   , mMayHavePointerEnterLeaveEventListener(false)
   , mMayHaveKeyEventListener(false)
   , mMayHaveInputOrCompositionEventListener(false)
+  , mMayHaveSelectionChangeEventListener(false)
   , mClearingListeners(false)
   , mIsMainThreadELM(NS_IsMainThread())
 {
@@ -416,6 +417,11 @@ EventListenerManager::AddEventListenerInternal(
              aTypeAtom == nsGkAtoms::oninput) {
     if (!aFlags.mInSystemGroup) {
       mMayHaveInputOrCompositionEventListener = true;
+    }
+  } else if (aEventMessage == eSelectionChange) {
+    mMayHaveSelectionChangeEventListener = true;
+     if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
+      window->SetHasSelectionChangeEventListeners();
     }
   }
 
@@ -1289,9 +1295,9 @@ EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
               nsAutoString typeStr;
               (*aDOMEvent)->GetType(typeStr);
               NS_LossyConvertUTF16toASCII typeCStr(typeStr);
-              PROFILER_LABEL_DYNAMIC("EventListenerManager", "HandleEventInternal",
-                                     js::ProfileEntry::Category::EVENTS,
-                                     typeCStr.get());
+              AUTO_PROFILER_LABEL_DYNAMIC(
+                "EventListenerManager::HandleEventInternal", EVENTS,
+                typeCStr.get());
               TimeStamp startTime = TimeStamp::Now();
 
               rv = HandleEventSubType(listener, *aDOMEvent, aCurrentTarget);
@@ -1299,12 +1305,10 @@ EventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
               TimeStamp endTime = TimeStamp::Now();
               uint16_t phase;
               (*aDOMEvent)->GetEventPhase(&phase);
-              PROFILER_MARKER_PAYLOAD(
+              profiler_add_marker(
                 "DOMEvent",
                 MakeUnique<DOMEventMarkerPayload>(typeStr, phase,
                                                   startTime, endTime));
-#else
-              MOZ_CRASH("Gecko Profiler is N/A but profiler_is_active() returned true");
 #endif
             } else {
               rv = HandleEventSubType(listener, *aDOMEvent, aCurrentTarget);
@@ -1761,6 +1765,23 @@ EventListenerManager::TraceListeners(JSTracer* aTrc)
     // We might have eWrappedJSListener, but that is the legacy type for
     // JS implemented event listeners, and trickier to handle here.
   }
+}
+
+bool
+EventListenerManager::HasUntrustedOrNonSystemGroupKeyEventListeners()
+{
+  uint32_t count = mListeners.Length();
+  for (uint32_t i = 0; i < count; ++i) {
+    Listener* listener = &mListeners.ElementAt(i);
+    if (!listener->mFlags.mInSystemGroup &&
+        listener->mFlags.mAllowUntrustedEvents &&
+        (listener->mTypeAtom == nsGkAtoms::onkeydown ||
+         listener->mTypeAtom == nsGkAtoms::onkeypress ||
+         listener->mTypeAtom == nsGkAtoms::onkeyup)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool

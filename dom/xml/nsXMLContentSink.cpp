@@ -660,11 +660,11 @@ nsXMLContentSink::LoadXSLStyleSheet(nsIURI* aUrl)
 
 nsresult
 nsXMLContentSink::ProcessStyleLink(nsIContent* aElement,
-                                   const nsSubstring& aHref,
+                                   const nsAString& aHref,
                                    bool aAlternate,
-                                   const nsSubstring& aTitle,
-                                   const nsSubstring& aType,
-                                   const nsSubstring& aMedia)
+                                   const nsAString& aTitle,
+                                   const nsAString& aType,
+                                   const nsAString& aMedia)
 {
   nsresult rv = NS_OK;
   mPrettyPrintXML = false;
@@ -731,14 +731,12 @@ nsXMLContentSink::ProcessStyleLink(nsIContent* aElement,
   return rv;
 }
 
-NS_IMETHODIMP
-nsXMLContentSink::SetDocumentCharset(nsACString& aCharset)
+void
+nsXMLContentSink::SetDocumentCharset(NotNull<const Encoding*> aEncoding)
 {
   if (mDocument) {
-    mDocument->SetDocumentCharacterSet(aCharset);
+    mDocument->SetDocumentCharacterSet(aEncoding);
   }
-
-  return NS_OK;
 }
 
 nsISupports *
@@ -1583,8 +1581,10 @@ nsXMLContentSink::ContinueInterruptedParsingIfEnabled()
 void
 nsXMLContentSink::ContinueInterruptedParsingAsync()
 {
-  nsCOMPtr<nsIRunnable> ev = NewRunnableMethod(this,
-    &nsXMLContentSink::ContinueInterruptedParsingIfEnabled);
+  nsCOMPtr<nsIRunnable> ev =
+    NewRunnableMethod("nsXMLContentSink::ContinueInterruptedParsingIfEnabled",
+                      this,
+                      &nsXMLContentSink::ContinueInterruptedParsingIfEnabled);
 
   NS_DispatchToCurrentThread(ev);
 }

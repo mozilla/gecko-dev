@@ -1412,9 +1412,12 @@ EventStateManager::CreateClickHoldTimer(nsPresContext* inPresContext,
     int32_t clickHoldDelay =
       Preferences::GetInt("ui.click_hold_context_menus.delay", 500);
     mClickHoldTimer->SetTarget(SystemGroup::EventTargetFor(TaskCategory::Other));
-    mClickHoldTimer->InitWithFuncCallback(sClickHoldCallback, this,
-                                          clickHoldDelay,
-                                          nsITimer::TYPE_ONE_SHOT);
+    mClickHoldTimer->InitWithNamedFuncCallback(
+      sClickHoldCallback,
+      this,
+      clickHoldDelay,
+      nsITimer::TYPE_ONE_SHOT,
+      "EventStateManager::CreateClickHoldTimer");
   }
 } // CreateClickHoldTimer
 
@@ -3865,8 +3868,7 @@ CreateMouseOrPointerWidgetEvent(WidgetMouseEvent* aMouseEvent,
 {
   WidgetPointerEvent* sourcePointer = aMouseEvent->AsPointerEvent();
   if (sourcePointer) {
-    PROFILER_LABEL("Input", "DispatchPointerEvent",
-      js::ProfileEntry::Category::EVENTS);
+    AUTO_PROFILER_LABEL("CreateMouseOrPointerWidgetEvent", EVENTS);
 
     nsAutoPtr<WidgetPointerEvent> newPointerEvent;
     newPointerEvent =
@@ -3933,11 +3935,6 @@ EventStateManager::DispatchMouseOrPointerEvent(WidgetMouseEvent* aMouseEvent,
   mCurrentTargetContent = aTargetContent;
 
   nsIFrame* targetFrame = nullptr;
-
-  if (aMouseEvent->AsMouseEvent()) {
-    PROFILER_LABEL("Input", "DispatchMouseEvent",
-      js::ProfileEntry::Category::EVENTS);
-  }
 
   nsEventStatus status = nsEventStatus_eIgnore;
   ESMEventCB callback(aTargetContent);
@@ -5290,7 +5287,7 @@ EventStateManager::DoContentCommandScrollEvent(
   aEvent->mSucceeded = true;
 
   nsIScrollableFrame* sf =
-    ps->GetFrameToScrollAsScrollable(nsIPresShell::eEither);
+    ps->GetScrollableFrameToScroll(nsIPresShell::eEither);
   aEvent->mIsEnabled = sf ?
     (aEvent->mScroll.mIsHorizontal ?
       WheelHandlingUtils::CanScrollOn(sf, aEvent->mScroll.mAmount, 0) :

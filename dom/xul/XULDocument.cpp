@@ -213,7 +213,7 @@ XULDocument::XULDocument(void)
       mHandlingDelayedBroadcasters(false)
 {
     // Override the default in nsDocument
-    mCharacterSet.AssignLiteral("UTF-8");
+    mCharacterSet = UTF_8_ENCODING;
 
     mDefaultElementType = kNameSpaceID_XUL;
     mType = eXUL;
@@ -1039,10 +1039,14 @@ XULDocument::AttributeChanged(nsIDocument* aDocument,
     if (ShouldPersistAttribute(aElement, aAttribute) && !persist.IsEmpty() &&
         // XXXldb This should check that it's a token, not just a substring.
         persist.Find(nsDependentAtomString(aAttribute)) >= 0) {
-        nsContentUtils::AddScriptRunner(NewRunnableMethod
-            <nsIContent*, int32_t, nsIAtom*>
-            (this, &XULDocument::DoPersist, aElement, kNameSpaceID_None,
-            aAttribute));
+      nsContentUtils::AddScriptRunner(
+        NewRunnableMethod<nsIContent*, int32_t, nsIAtom*>(
+          "dom::XULDocument::DoPersist",
+          this,
+          &XULDocument::DoPersist,
+          aElement,
+          kNameSpaceID_None,
+          aAttribute));
     }
 }
 
@@ -2021,7 +2025,7 @@ XULDocument::PrepareToLoadPrototype(nsIURI* aURI, const char* aCommand,
     parser->SetCommand(nsCRT::strcmp(aCommand, "view-source") ? eViewNormal :
                        eViewSource);
 
-    parser->SetDocumentCharset(NS_LITERAL_CSTRING("UTF-8"),
+    parser->SetDocumentCharset(UTF_8_ENCODING,
                                kCharsetFromDocTypeDefault);
     parser->SetContentSink(sink); // grabs a reference to the parser
 
@@ -3144,8 +3148,10 @@ XULDocument::MaybeBroadcast()
          mDelayedBroadcasters.Length())) {
         if (!nsContentUtils::IsSafeToRunScript()) {
             if (!mInDestructor) {
-                nsContentUtils::AddScriptRunner(
-                    NewRunnableMethod(this, &XULDocument::MaybeBroadcast));
+              nsContentUtils::AddScriptRunner(
+                NewRunnableMethod("dom::XULDocument::MaybeBroadcast",
+                                  this,
+                                  &XULDocument::MaybeBroadcast));
             }
             return;
         }

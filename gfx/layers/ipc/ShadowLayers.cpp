@@ -9,7 +9,7 @@
 #include "ShadowLayers.h"
 #include <set>                          // for _Rb_tree_const_iterator, etc
 #include <vector>                       // for vector
-#include "GeckoProfiler.h"              // for PROFILER_LABEL
+#include "GeckoProfiler.h"              // for AUTO_PROFILER_LABEL
 #include "ISurfaceAllocator.h"          // for IsSurfaceDescriptorValid
 #include "Layers.h"                     // for Layer
 #include "RenderTrace.h"                // for RenderTraceScope
@@ -208,7 +208,8 @@ struct ReleaseOnMainThreadTask : public Runnable
   UniquePtr<T> mObj;
 
   explicit ReleaseOnMainThreadTask(UniquePtr<T>& aObj)
-    : mObj(Move(aObj))
+    : Runnable("layers::ReleaseOnMainThreadTask")
+    , mObj(Move(aObj))
   {}
 
   NS_IMETHOD Run() override {
@@ -233,7 +234,9 @@ ShadowLayerForwarder::~ShadowLayerForwarder()
           nsIEventTarget::DISPATCH_NORMAL);
       } else {
         NS_DispatchToMainThread(
-          NewRunnableMethod(mShadowManager, &LayerTransactionChild::Destroy));
+          NewRunnableMethod("layers::LayerTransactionChild::Destroy",
+                            mShadowManager,
+                            &LayerTransactionChild::Destroy));
       }
     }
   }
@@ -614,8 +617,7 @@ ShadowLayerForwarder::EndTransaction(const nsIntRegion& aRegionToClear,
 
   MOZ_ASSERT(aId);
 
-  PROFILER_LABEL("ShadowLayerForwarder", "EndTransaction",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("ShadowLayerForwarder::EndTransaction", GRAPHICS);
 
   RenderTraceScope rendertrace("Foward Transaction", "000091");
   MOZ_ASSERT(!mTxn->Finished(), "forgot BeginTransaction?");
@@ -731,6 +733,7 @@ ShadowLayerForwarder::EndTransaction(const nsIntRegion& aRegionToClear,
   info.id() = aId;
   info.plugins() = mPluginWindowData;
   info.isFirstPaint() = mIsFirstPaint;
+  info.focusTarget() = mFocusTarget;
   info.scheduleComposite() = aScheduleComposite;
   info.paintSequenceNumber() = aPaintSequenceNumber;
   info.isRepeatTransaction() = aIsRepeatTransaction;
@@ -775,6 +778,7 @@ ShadowLayerForwarder::EndTransaction(const nsIntRegion& aRegionToClear,
 
   *aSent = true;
   mIsFirstPaint = false;
+  mFocusTarget = FocusTarget();
   MOZ_LAYERS_LOG(("[LayersForwarder] ... done"));
   return true;
 }

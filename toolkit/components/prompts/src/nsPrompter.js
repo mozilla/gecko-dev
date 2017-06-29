@@ -374,6 +374,10 @@ function openTabPrompt(domWin, tabPrompt, args) {
                          .getInterface(Ci.nsIDOMWindowUtils);
     winUtils.enterModalState();
 
+    let frameMM = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIContentFrameMessageManager);
+    frameMM.QueryInterface(Ci.nsIDOMEventTarget);
+
     // We provide a callback so the prompt can close itself. We don't want to
     // wait for this event loop to return... Otherwise the presence of other
     // prompts on the call stack would in this dialog appearing unresponsive
@@ -387,16 +391,25 @@ function openTabPrompt(domWin, tabPrompt, args) {
         if (newPrompt)
             tabPrompt.removePrompt(newPrompt);
 
-        domWin.removeEventListener("pagehide", pagehide);
+        frameMM.removeEventListener("pagehide", pagehide, true);
 
         winUtils.leaveModalState();
 
         PromptUtils.fireDialogEvent(domWin, "DOMModalDialogClosed");
     }
 
-    domWin.addEventListener("pagehide", pagehide);
-    function pagehide() {
-        domWin.removeEventListener("pagehide", pagehide);
+    frameMM.addEventListener("pagehide", pagehide, true);
+    function pagehide(e) {
+        // Check whether the event relates to our window or its ancestors
+        let window = domWin;
+        let eventWindow = e.target.defaultView;
+        while (window != eventWindow && window.parent != window) {
+          window = window.parent;
+        }
+        if (window != eventWindow) {
+          return;
+        }
+        frameMM.removeEventListener("pagehide", pagehide, true);
 
         if (newPrompt) {
             newPrompt.abortPrompt();
@@ -415,9 +428,7 @@ function openTabPrompt(domWin, tabPrompt, args) {
         // there's other stuff in nsWindowWatcher::OpenWindowInternal
         // that we might need to do here as well.
 
-        let thread = Services.tm.currentThread;
-        while (args.promptActive)
-            thread.processNextEvent(true);
+	Services.tm.spinEventLoopUntil(() => !args.promptActive);
         delete args.promptActive;
 
         if (args.promptAborted)
@@ -445,6 +456,9 @@ function openRemotePrompt(domWin, args, tabPrompt) {
     winUtils.enterModalState();
     let closed = false;
 
+    let frameMM = docShell.getInterface(Ci.nsIContentFrameMessageManager);
+    frameMM.QueryInterface(Ci.nsIDOMEventTarget);
+
     // It should be hard or impossible to cause a window to create multiple
     // prompts, but just in case, give our prompt an ID.
     let id = "id" + Cc["@mozilla.org/uuid-generator;1"]
@@ -456,7 +470,7 @@ function openRemotePrompt(domWin, args, tabPrompt) {
         }
 
         messageManager.removeMessageListener("Prompt:Close", listener);
-        domWin.removeEventListener("pagehide", pagehide);
+        frameMM.removeEventListener("pagehide", pagehide, true);
 
         winUtils.leaveModalState();
         PromptUtils.fireDialogEvent(domWin, "DOMModalDialogClosed");
@@ -473,9 +487,18 @@ function openRemotePrompt(domWin, args, tabPrompt) {
         closed = true;
     });
 
-    domWin.addEventListener("pagehide", pagehide);
-    function pagehide() {
-        domWin.removeEventListener("pagehide", pagehide);
+    frameMM.addEventListener("pagehide", pagehide, true);
+    function pagehide(e) {
+        // Check whether the event relates to our window or its ancestors
+        let window = domWin;
+        let eventWindow = e.target.defaultView;
+        while (window != eventWindow && window.parent != window) {
+          window = window.parent;
+        }
+        if (window != eventWindow) {
+          return;
+        }
+        frameMM.removeEventListener("pagehide", pagehide, true);
         messageManager.sendAsyncMessage("Prompt:ForceClose", { _remoteId: id });
     }
 
@@ -489,10 +512,7 @@ function openRemotePrompt(domWin, args, tabPrompt) {
 
     messageManager.sendAsyncMessage("Prompt:Open", args, {});
 
-    let thread = Services.tm.currentThread;
-    while (!closed) {
-        thread.processNextEvent(true);
-    }
+    Services.tm.spinEventLoopUntil(() => closed);
 }
 
 function ModalPrompter(domWin) {

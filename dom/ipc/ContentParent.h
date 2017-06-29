@@ -11,6 +11,7 @@
 #include "mozilla/dom/nsIContentParent.h"
 #include "mozilla/gfx/gfxVarReceiver.h"
 #include "mozilla/gfx/GPUProcessListener.h"
+#include "mozilla/ipc/CrashReporterHost.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/FileUtils.h"
@@ -75,7 +76,6 @@ class OptionalURIParams;
 class PFileDescriptorSetParent;
 class URIParams;
 class TestShellParent;
-class CrashReporterHost;
 } // namespace ipc
 
 namespace jsipc {
@@ -813,6 +813,8 @@ private:
   // Start the force-kill timer on shutdown.
   void StartForceKillTimer();
 
+  void OnGenerateMinidumpComplete(bool aDumpResult);
+
   // Ensure that the permissions for the giben Permission key are set in the
   // content process.
   //
@@ -1177,6 +1179,8 @@ private:
     InfallibleTArray<KeyedScalarAction>&& aScalarActions) override;
   virtual mozilla::ipc::IPCResult RecvRecordChildEvents(
     nsTArray<ChildEventData>&& events) override;
+  virtual mozilla::ipc::IPCResult RecvRecordDiscardedData(
+    const DiscardedData& aDiscardedData) override;
 public:
   void SendGetFilesResponseAndForget(const nsID& aID,
                                      const GetFilesResponseResult& aResult);

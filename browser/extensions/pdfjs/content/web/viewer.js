@@ -874,7 +874,6 @@ var PDFViewerApplication = {
   secondaryToolbar: null,
   eventBus: null,
   l10n: null,
-  pageRotation: 0,
   isInitialViewSet: false,
   downloadComplete: false,
   viewerPrefs: {
@@ -1100,6 +1099,9 @@ var PDFViewerApplication = {
   get pagesCount() {
     return this.pdfDocument ? this.pdfDocument.numPages : 0;
   },
+  get pageRotation() {
+    return this.pdfViewer.pagesRotation;
+  },
   set page(val) {
     this.pdfViewer.currentPageNumber = val;
   },
@@ -1206,7 +1208,6 @@ var PDFViewerApplication = {
       this.pdfDocumentProperties.setDocument(null, null);
     }
     this.store = null;
-    this.pageRotation = 0;
     this.isInitialViewSet = false;
     this.downloadComplete = false;
     this.pdfSidebar.reset();
@@ -1623,12 +1624,13 @@ var PDFViewerApplication = {
     if (!this.pdfDocument) {
       return;
     }
-    let pageNumber = this.page;
-    this.pageRotation = (this.pageRotation + 360 + delta) % 360;
-    this.pdfViewer.pagesRotation = this.pageRotation;
-    this.pdfThumbnailViewer.pagesRotation = this.pageRotation;
+    let { pdfViewer, pdfThumbnailViewer } = this;
+    let pageNumber = pdfViewer.currentPageNumber;
+    let newRotation = (pdfViewer.pagesRotation + 360 + delta) % 360;
+    pdfViewer.pagesRotation = newRotation;
+    pdfThumbnailViewer.pagesRotation = newRotation;
     this.forceRendering();
-    this.pdfViewer.currentPageNumber = pageNumber;
+    pdfViewer.currentPageNumber = pageNumber;
   },
   requestPresentationMode: function pdfViewRequestPresentationMode() {
     if (!this.pdfPresentationMode) {
@@ -4884,7 +4886,6 @@ var _dom_events = __webpack_require__(2);
 
 var _pdf_rendering_queue = __webpack_require__(3);
 
-const TEXT_LAYER_RENDER_DELAY = 200;
 class PDFPageView {
   constructor(options) {
     let container = options.container;
@@ -5024,7 +5025,7 @@ class PDFPageView {
         });
         return;
       }
-      if (!this.zoomLayer) {
+      if (!this.zoomLayer && !this.canvas.hasAttribute('hidden')) {
         this.zoomLayer = this.canvas.parentNode;
         this.zoomLayer.style.position = 'absolute';
       }
@@ -5188,10 +5189,9 @@ class PDFPageView {
     let resultPromise = paintTask.promise.then(function () {
       return finishPaintTask(null).then(function () {
         if (textLayer) {
-          pdfPage.getTextContent({ normalizeWhitespace: true }).then(function textContentResolved(textContent) {
-            textLayer.setTextContent(textContent);
-            textLayer.render(TEXT_LAYER_RENDER_DELAY);
-          });
+          let readableStream = pdfPage.streamTextContent({ normalizeWhitespace: true });
+          textLayer.setTextContentStream(readableStream);
+          textLayer.render();
         }
       });
     }, function (reason) {
@@ -7390,6 +7390,8 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
     this.textLayerDiv = options.textLayerDiv;
     this.eventBus = options.eventBus || (0, _dom_events.getGlobalEventBus)();
     this.textContent = null;
+    this.textContentItemsStr = [];
+    this.textContentStream = null;
     this.renderingDone = false;
     this.pageIdx = options.pageIndex;
     this.pageNumber = this.pageIdx + 1;
@@ -7416,7 +7418,7 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
       });
     },
     render: function TextLayerBuilder_render(timeout) {
-      if (!this.textContent || this.renderingDone) {
+      if (!(this.textContent || this.textContentStream) || this.renderingDone) {
         return;
       }
       this.cancel();
@@ -7424,9 +7426,11 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
       var textLayerFrag = document.createDocumentFragment();
       this.textLayerRenderTask = (0, _pdfjsLib.renderTextLayer)({
         textContent: this.textContent,
+        textContentStream: this.textContentStream,
         container: textLayerFrag,
         viewport: this.viewport,
         textDivs: this.textDivs,
+        textContentItemsStr: this.textContentItemsStr,
         timeout,
         enhanceTextSelection: this.enhanceTextSelection
       });
@@ -7442,6 +7446,10 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
         this.textLayerRenderTask = null;
       }
     },
+    setTextContentStream(readableStream) {
+      this.cancel();
+      this.textContentStream = readableStream;
+    },
     setTextContent: function TextLayerBuilder_setTextContent(textContent) {
       this.cancel();
       this.textContent = textContent;
@@ -7449,8 +7457,8 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
     convertMatches: function TextLayerBuilder_convertMatches(matches, matchesLength) {
       var i = 0;
       var iIndex = 0;
-      var bidiTexts = this.textContent.items;
-      var end = bidiTexts.length - 1;
+      let textContentItemsStr = this.textContentItemsStr;
+      var end = textContentItemsStr.length - 1;
       var queryLen = this.findController === null ? 0 : this.findController.state.query.length;
       var ret = [];
       if (!matches) {
@@ -7458,11 +7466,11 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
       }
       for (var m = 0, len = matches.length; m < len; m++) {
         var matchIdx = matches[m];
-        while (i !== end && matchIdx >= iIndex + bidiTexts[i].str.length) {
-          iIndex += bidiTexts[i].str.length;
+        while (i !== end && matchIdx >= iIndex + textContentItemsStr[i].length) {
+          iIndex += textContentItemsStr[i].length;
           i++;
         }
-        if (i === bidiTexts.length) {
+        if (i === textContentItemsStr.length) {
           console.error('Could not find a matching mapping');
         }
         var match = {
@@ -7476,8 +7484,8 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
         } else {
           matchIdx += queryLen;
         }
-        while (i !== end && matchIdx > iIndex + bidiTexts[i].str.length) {
-          iIndex += bidiTexts[i].str.length;
+        while (i !== end && matchIdx > iIndex + textContentItemsStr[i].length) {
+          iIndex += textContentItemsStr[i].length;
           i++;
         }
         match.end = {
@@ -7492,7 +7500,7 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
       if (matches.length === 0) {
         return;
       }
-      var bidiTexts = this.textContent.items;
+      let textContentItemsStr = this.textContentItemsStr;
       var textDivs = this.textDivs;
       var prevEnd = null;
       var pageIdx = this.pageIdx;
@@ -7510,7 +7518,7 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
       }
       function appendTextToDiv(divIdx, fromOffset, toOffset, className) {
         var div = textDivs[divIdx];
-        var content = bidiTexts[divIdx].str.substring(fromOffset, toOffset);
+        var content = textContentItemsStr[divIdx].substring(fromOffset, toOffset);
         var node = document.createTextNode(content);
         if (className) {
           var span = document.createElement('span');
@@ -7567,14 +7575,14 @@ var TextLayerBuilder = function TextLayerBuilderClosure() {
       }
       var matches = this.matches;
       var textDivs = this.textDivs;
-      var bidiTexts = this.textContent.items;
+      let textContentItemsStr = this.textContentItemsStr;
       var clearedUntilDivIdx = -1;
       for (var i = 0, len = matches.length; i < len; i++) {
         var match = matches[i];
         var begin = Math.max(clearedUntilDivIdx, match.begin.divIdx);
         for (var n = begin, end = match.end.divIdx; n <= end; n++) {
           var div = textDivs[n];
-          div.textContent = bidiTexts[n].str;
+          div.textContent = textContentItemsStr[n];
           div.className = '';
         }
         clearedUntilDivIdx = match.end.divIdx + 1;
@@ -7648,11 +7656,11 @@ exports.Toolbar = undefined;
 
 var _ui_utils = __webpack_require__(0);
 
-var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
-var SCALE_SELECT_CONTAINER_PADDING = 8;
-var SCALE_SELECT_PADDING = 22;
-var Toolbar = function ToolbarClosure() {
-  function Toolbar(options, mainContainer, eventBus, l10n = _ui_utils.NullL10n) {
+const PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
+const SCALE_SELECT_CONTAINER_PADDING = 8;
+const SCALE_SELECT_PADDING = 22;
+class Toolbar {
+  constructor(options, mainContainer, eventBus, l10n = _ui_utils.NullL10n) {
     this.toolbar = options.container;
     this.mainContainer = mainContainer;
     this.eventBus = eventBus;
@@ -7662,170 +7670,161 @@ var Toolbar = function ToolbarClosure() {
     this.reset();
     this._bindListeners();
   }
-  Toolbar.prototype = {
-    setPageNumber(pageNumber, pageLabel) {
-      this.pageNumber = pageNumber;
-      this.pageLabel = pageLabel;
-      this._updateUIState(false);
-    },
-    setPagesCount(pagesCount, hasPageLabels) {
-      this.pagesCount = pagesCount;
-      this.hasPageLabels = hasPageLabels;
-      this._updateUIState(true);
-    },
-    setPageScale(pageScaleValue, pageScale) {
-      this.pageScaleValue = pageScaleValue;
-      this.pageScale = pageScale;
-      this._updateUIState(false);
-    },
-    reset() {
-      this.pageNumber = 0;
-      this.pageLabel = null;
-      this.hasPageLabels = false;
-      this.pagesCount = 0;
-      this.pageScaleValue = _ui_utils.DEFAULT_SCALE_VALUE;
-      this.pageScale = _ui_utils.DEFAULT_SCALE;
-      this._updateUIState(true);
-    },
-    _bindListeners: function Toolbar_bindClickListeners() {
-      var eventBus = this.eventBus;
-      var self = this;
-      var items = this.items;
-      items.previous.addEventListener('click', function () {
-        eventBus.dispatch('previouspage');
+  setPageNumber(pageNumber, pageLabel) {
+    this.pageNumber = pageNumber;
+    this.pageLabel = pageLabel;
+    this._updateUIState(false);
+  }
+  setPagesCount(pagesCount, hasPageLabels) {
+    this.pagesCount = pagesCount;
+    this.hasPageLabels = hasPageLabels;
+    this._updateUIState(true);
+  }
+  setPageScale(pageScaleValue, pageScale) {
+    this.pageScaleValue = pageScaleValue;
+    this.pageScale = pageScale;
+    this._updateUIState(false);
+  }
+  reset() {
+    this.pageNumber = 0;
+    this.pageLabel = null;
+    this.hasPageLabels = false;
+    this.pagesCount = 0;
+    this.pageScaleValue = _ui_utils.DEFAULT_SCALE_VALUE;
+    this.pageScale = _ui_utils.DEFAULT_SCALE;
+    this._updateUIState(true);
+  }
+  _bindListeners() {
+    let { eventBus, items } = this;
+    let self = this;
+    items.previous.addEventListener('click', function () {
+      eventBus.dispatch('previouspage');
+    });
+    items.next.addEventListener('click', function () {
+      eventBus.dispatch('nextpage');
+    });
+    items.zoomIn.addEventListener('click', function () {
+      eventBus.dispatch('zoomin');
+    });
+    items.zoomOut.addEventListener('click', function () {
+      eventBus.dispatch('zoomout');
+    });
+    items.pageNumber.addEventListener('click', function () {
+      this.select();
+    });
+    items.pageNumber.addEventListener('change', function () {
+      eventBus.dispatch('pagenumberchanged', {
+        source: self,
+        value: this.value
       });
-      items.next.addEventListener('click', function () {
-        eventBus.dispatch('nextpage');
-      });
-      items.zoomIn.addEventListener('click', function () {
-        eventBus.dispatch('zoomin');
-      });
-      items.zoomOut.addEventListener('click', function () {
-        eventBus.dispatch('zoomout');
-      });
-      items.pageNumber.addEventListener('click', function () {
-        this.select();
-      });
-      items.pageNumber.addEventListener('change', function () {
-        eventBus.dispatch('pagenumberchanged', {
-          source: self,
-          value: this.value
-        });
-      });
-      items.scaleSelect.addEventListener('change', function () {
-        if (this.value === 'custom') {
-          return;
-        }
-        eventBus.dispatch('scalechanged', {
-          source: self,
-          value: this.value
-        });
-      });
-      items.presentationModeButton.addEventListener('click', function (e) {
-        eventBus.dispatch('presentationmode');
-      });
-      items.openFile.addEventListener('click', function (e) {
-        eventBus.dispatch('openfile');
-      });
-      items.print.addEventListener('click', function (e) {
-        eventBus.dispatch('print');
-      });
-      items.download.addEventListener('click', function (e) {
-        eventBus.dispatch('download');
-      });
-      items.scaleSelect.oncontextmenu = _ui_utils.noContextMenuHandler;
-      eventBus.on('localized', evt => {
-        this._localized();
-      });
-    },
-    _localized: function Toolbar_localized() {
-      this._wasLocalized = true;
-      this._adjustScaleWidth();
-      this._updateUIState(true);
-    },
-    _updateUIState: function Toolbar_updateUIState(resetNumPages) {
-      if (!this._wasLocalized) {
+    });
+    items.scaleSelect.addEventListener('change', function () {
+      if (this.value === 'custom') {
         return;
       }
-      let selectScaleOption = (value, scale) => {
-        let customScale = Math.round(scale * 10000) / 100;
-        this.l10n.get('page_scale_percent', { scale: customScale }, '{{scale}}%').then(msg => {
-          let options = items.scaleSelect.options;
-          let predefinedValueFound = false;
-          for (let i = 0, ii = options.length; i < ii; i++) {
-            let option = options[i];
-            if (option.value !== value) {
-              option.selected = false;
-              continue;
-            }
-            option.selected = true;
-            predefinedValueFound = true;
-          }
-          if (!predefinedValueFound) {
-            items.customScaleOption.textContent = msg;
-            items.customScaleOption.selected = true;
-          }
-        });
-      };
-      var pageNumber = this.pageNumber;
-      var scaleValue = (this.pageScaleValue || this.pageScale).toString();
-      var scale = this.pageScale;
-      var items = this.items;
-      var pagesCount = this.pagesCount;
-      if (resetNumPages) {
-        if (this.hasPageLabels) {
-          items.pageNumber.type = 'text';
-        } else {
-          items.pageNumber.type = 'number';
-          this.l10n.get('of_pages', { pagesCount }, 'of {{pagesCount}}').then(msg => {
-            items.numPages.textContent = msg;
-          });
-        }
-        items.pageNumber.max = pagesCount;
-      }
+      eventBus.dispatch('scalechanged', {
+        source: self,
+        value: this.value
+      });
+    });
+    items.presentationModeButton.addEventListener('click', function () {
+      eventBus.dispatch('presentationmode');
+    });
+    items.openFile.addEventListener('click', function () {
+      eventBus.dispatch('openfile');
+    });
+    items.print.addEventListener('click', function () {
+      eventBus.dispatch('print');
+    });
+    items.download.addEventListener('click', function () {
+      eventBus.dispatch('download');
+    });
+    items.scaleSelect.oncontextmenu = _ui_utils.noContextMenuHandler;
+    eventBus.on('localized', () => {
+      this._localized();
+    });
+  }
+  _localized() {
+    this._wasLocalized = true;
+    this._adjustScaleWidth();
+    this._updateUIState(true);
+  }
+  _updateUIState(resetNumPages = false) {
+    if (!this._wasLocalized) {
+      return;
+    }
+    let { pageNumber, pagesCount, items } = this;
+    let scaleValue = (this.pageScaleValue || this.pageScale).toString();
+    let scale = this.pageScale;
+    if (resetNumPages) {
       if (this.hasPageLabels) {
-        items.pageNumber.value = this.pageLabel;
-        this.l10n.get('page_of_pages', {
-          pageNumber,
-          pagesCount
-        }, '({{pageNumber}} of {{pagesCount}})').then(msg => {
+        items.pageNumber.type = 'text';
+      } else {
+        items.pageNumber.type = 'number';
+        this.l10n.get('of_pages', { pagesCount }, 'of {{pagesCount}}').then(msg => {
           items.numPages.textContent = msg;
         });
-      } else {
-        items.pageNumber.value = pageNumber;
       }
-      items.previous.disabled = pageNumber <= 1;
-      items.next.disabled = pageNumber >= pagesCount;
-      items.zoomOut.disabled = scale <= _ui_utils.MIN_SCALE;
-      items.zoomIn.disabled = scale >= _ui_utils.MAX_SCALE;
-      selectScaleOption(scaleValue, scale);
-    },
-    updateLoadingIndicatorState: function Toolbar_updateLoadingIndicatorState(loading) {
-      var pageNumberInput = this.items.pageNumber;
-      if (loading) {
-        pageNumberInput.classList.add(PAGE_NUMBER_LOADING_INDICATOR);
-      } else {
-        pageNumberInput.classList.remove(PAGE_NUMBER_LOADING_INDICATOR);
-      }
-    },
-    _adjustScaleWidth: function Toolbar_adjustScaleWidth() {
-      var container = this.items.scaleSelectContainer;
-      var select = this.items.scaleSelect;
-      _ui_utils.animationStarted.then(function () {
-        if (container.clientWidth === 0) {
-          container.setAttribute('style', 'display: inherit;');
-        }
-        if (container.clientWidth > 0) {
-          select.setAttribute('style', 'min-width: inherit;');
-          var width = select.clientWidth + SCALE_SELECT_CONTAINER_PADDING;
-          select.setAttribute('style', 'min-width: ' + (width + SCALE_SELECT_PADDING) + 'px;');
-          container.setAttribute('style', 'min-width: ' + width + 'px; ' + 'max-width: ' + width + 'px;');
-        }
-      });
+      items.pageNumber.max = pagesCount;
     }
-  };
-  return Toolbar;
-}();
+    if (this.hasPageLabels) {
+      items.pageNumber.value = this.pageLabel;
+      this.l10n.get('page_of_pages', {
+        pageNumber,
+        pagesCount
+      }, '({{pageNumber}} of {{pagesCount}})').then(msg => {
+        items.numPages.textContent = msg;
+      });
+    } else {
+      items.pageNumber.value = pageNumber;
+    }
+    items.previous.disabled = pageNumber <= 1;
+    items.next.disabled = pageNumber >= pagesCount;
+    items.zoomOut.disabled = scale <= _ui_utils.MIN_SCALE;
+    items.zoomIn.disabled = scale >= _ui_utils.MAX_SCALE;
+    let customScale = Math.round(scale * 10000) / 100;
+    this.l10n.get('page_scale_percent', { scale: customScale }, '{{scale}}%').then(msg => {
+      let options = items.scaleSelect.options;
+      let predefinedValueFound = false;
+      for (let i = 0, ii = options.length; i < ii; i++) {
+        let option = options[i];
+        if (option.value !== scaleValue) {
+          option.selected = false;
+          continue;
+        }
+        option.selected = true;
+        predefinedValueFound = true;
+      }
+      if (!predefinedValueFound) {
+        items.customScaleOption.textContent = msg;
+        items.customScaleOption.selected = true;
+      }
+    });
+  }
+  updateLoadingIndicatorState(loading = false) {
+    let pageNumberInput = this.items.pageNumber;
+    if (loading) {
+      pageNumberInput.classList.add(PAGE_NUMBER_LOADING_INDICATOR);
+    } else {
+      pageNumberInput.classList.remove(PAGE_NUMBER_LOADING_INDICATOR);
+    }
+  }
+  _adjustScaleWidth() {
+    let container = this.items.scaleSelectContainer;
+    let select = this.items.scaleSelect;
+    _ui_utils.animationStarted.then(function () {
+      if (container.clientWidth === 0) {
+        container.setAttribute('style', 'display: inherit;');
+      }
+      if (container.clientWidth > 0) {
+        select.setAttribute('style', 'min-width: inherit;');
+        let width = select.clientWidth + SCALE_SELECT_CONTAINER_PADDING;
+        select.setAttribute('style', 'min-width: ' + (width + SCALE_SELECT_PADDING) + 'px;');
+        container.setAttribute('style', 'min-width: ' + width + 'px; ' + 'max-width: ' + width + 'px;');
+      }
+    });
+  }
+}
 exports.Toolbar = Toolbar;
 
 /***/ }),

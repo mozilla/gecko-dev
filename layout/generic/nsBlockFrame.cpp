@@ -55,6 +55,8 @@
 #include "nsISelection.h"
 #include "mozilla/dom/HTMLDetailsElement.h"
 #include "mozilla/dom/HTMLSummaryElement.h"
+#include "mozilla/ServoRestyleManager.h"
+#include "mozilla/ServoStyleSet.h"
 #include "mozilla/StyleSetHandle.h"
 #include "mozilla/StyleSetHandleInlines.h"
 #include "mozilla/Telemetry.h"
@@ -5623,6 +5625,46 @@ nsBlockInFlowLineIterator::nsBlockInFlowLineIterator(nsBlockFrame* aFrame,
   *aFoundValidLine = FindValidLine();
 }
 
+void
+nsBlockFrame::UpdateFirstLetterStyle(nsIFrame* aLetterFrame,
+                                     ServoRestyleState& aRestyleState)
+{
+  // Figure out what the right style parent is.  This needs to match
+  // nsCSSFrameConstructor::CreateLetterFrame.
+  nsIFrame* inFlowFrame = aLetterFrame;
+  if (inFlowFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+    inFlowFrame = inFlowFrame->GetPlaceholderFrame();
+  }
+  nsIFrame* styleParent =
+    CorrectStyleParentFrame(inFlowFrame->GetParent(),
+                            nsCSSPseudoElements::firstLetter);
+  nsStyleContext* parentStyle = styleParent->StyleContext();
+  RefPtr<nsStyleContext> firstLetterStyle =
+    aRestyleState.StyleSet()
+                 .ResolvePseudoElementStyle(mContent->AsElement(),
+                                            CSSPseudoElementType::firstLetter,
+                                            parentStyle,
+                                            nullptr);
+  // Note that we don't need to worry about changehints for the continuation
+  // styles: those will be handled by the styleParent already.
+  RefPtr<nsStyleContext> continuationStyle =
+    aRestyleState.StyleSet().ResolveStyleForFirstLetterContinuation(parentStyle);
+  UpdateStyleOfOwnedChildFrame(aLetterFrame, firstLetterStyle, aRestyleState,
+                               Some(continuationStyle.get()));
+
+  // We also want to update the style on the textframe inside the first-letter.
+  // We don't need to compute a changehint for this, though, since any changes
+  // to it are handled by the first-letter anyway.
+  nsIFrame* textFrame = aLetterFrame->PrincipalChildList().FirstChild();
+  RefPtr<nsStyleContext> firstTextStyle =
+    aRestyleState.StyleSet().ResolveStyleForText(textFrame->GetContent(),
+                                                 firstLetterStyle);
+  textFrame->SetStyleContext(firstTextStyle);
+
+  // We don't need to update style for textFrame's continuations: it's already
+  // set up to inherit from parentStyle, which is what we want.
+}
+
 static nsIFrame*
 FindChildContaining(nsBlockFrame* aFrame, nsIFrame* aFindFrame)
 {
@@ -7079,14 +7121,8 @@ nsBlockFrame::CreateBulletFrameForListItem(bool aCreateBulletList,
     CSSPseudoElementType::mozListBullet :
     CSSPseudoElementType::mozListNumber;
 
-  nsStyleContext* parentStyle =
-    CorrectStyleParentFrame(this,
-                            nsCSSPseudoElements::GetPseudoAtom(pseudoType))->
-    StyleContext();
-
-  RefPtr<nsStyleContext> kidSC = shell->StyleSet()->
-    ResolvePseudoElementStyle(mContent->AsElement(), pseudoType,
-                              parentStyle, nullptr);
+  RefPtr<nsStyleContext> kidSC = ResolveBulletStyle(pseudoType,
+                                                    shell->StyleSet());
 
   // Create bullet frame
   nsBulletFrame* bullet = new (shell) nsBulletFrame(kidSC);
@@ -7517,6 +7553,45 @@ nsBlockFrame::ResolveBidi()
   }
 
   return nsBidiPresUtils::Resolve(this);
+}
+
+void
+nsBlockFrame::UpdatePseudoElementStyles(ServoRestyleState& aRestyleState)
+{
+  if (nsBulletFrame* bullet = GetBullet()) {
+    CSSPseudoElementType type = bullet->StyleContext()->GetPseudoType();
+    RefPtr<nsStyleContext> newBulletStyle =
+      ResolveBulletStyle(type, &aRestyleState.StyleSet());
+    UpdateStyleOfOwnedChildFrame(bullet, newBulletStyle, aRestyleState);
+  }
+
+  if (nsIFrame* firstLetter = GetFirstLetter()) {
+    UpdateFirstLetterStyle(firstLetter, aRestyleState);
+  }
+}
+
+already_AddRefed<nsStyleContext>
+nsBlockFrame::ResolveBulletStyle(CSSPseudoElementType aType,
+                                 StyleSetHandle aStyleSet)
+{
+  nsStyleContext* parentStyle =
+    CorrectStyleParentFrame(this,
+                            nsCSSPseudoElements::GetPseudoAtom(aType))->
+    StyleContext();
+
+  return aStyleSet->ResolvePseudoElementStyle(mContent->AsElement(), aType,
+                                              parentStyle, nullptr);
+}
+
+nsIFrame*
+nsBlockFrame::GetFirstLetter() const
+{
+  if (!(GetStateBits() & NS_BLOCK_HAS_FIRST_LETTER_STYLE)) {
+    // Certainly no first-letter frame.
+    return nullptr;
+  }
+
+  return GetProperty(FirstLetterProperty());
 }
 
 #ifdef DEBUG

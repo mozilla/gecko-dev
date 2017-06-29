@@ -36,7 +36,7 @@ asserts(2) skip-if(!cocoaWidget) HTTP(..) == 10209-3.html 10209-3-ref.html # Ass
 == 18217-zorder-4.html 18217-zorder-ref-inline-table.html
 == 18217-zorder-5.html 18217-zorder-ref-inline-table.html
 fails-if(styloVsGecko) == 23604-1.html 23604-1-ref.html
-fails-if(styloVsGecko) == 23604-2.html 23604-2-ref.html
+== 23604-2.html 23604-2-ref.html
 != 24998-1.html 24998-1-ref.html
 == 25888-1l.html 25888-1l-ref.html
 != 25888-1l.html 25888-1l-notref.html
@@ -1411,7 +1411,7 @@ fuzzy-if(Android,5,2800) == 506481-1.html 506481-1-ref.html
 == 507762-2.html 507762-2-ref.html
 == 507762-3.html 507762-1-ref.html
 == 507762-4.html 507762-2-ref.html
-random-if(cocoaWidget) == 508816-1.xul 508816-1-ref.xul # Bug 631982
+random-if(cocoaWidget||(gtkWidget&&webrender)||winWidget) == 508816-1.xul 508816-1-ref.xul # Bug 631982 and bug 1375012
 == 508816-2.html 508816-2-ref.html
 == 508908-1.xul 508908-1-ref.xul
 == 508919-1.xhtml 508919-1-ref.xhtml
@@ -2015,3 +2015,17 @@ fails-if(!stylo||styloVsGecko) == 1365162-1.html 1365162-1-ref.html
 == 1369954-1.xhtml 1369954-1-ref.xhtml
 == 1369985-1.html 1369985-1-ref.html
 == 1371130.xhtml 1371130-ref.xhtml
+== 1375315-1.html 1375315-1-ref.html
+== 1375315-2.html 1375315-2-ref.html
+== 1375315-3.html 1375315-3-ref.html
+== 1375315-4.html 1375315-4-ref.html
+== 1375315-5.html 1375315-5-ref.html
+== 1375315-6.html 1375315-6-ref.html
+== 1375315-7.html 1375315-7-ref.html
+== 1375315-8.html 1375315-8-ref.html
+== 1375315-9.html 1375315-9-ref.html
+== 1375315-10.html 1375315-10-ref.html
+== 1375315-11.html 1375315-11-ref.html
+== 1375315-12.html 1375315-12-ref.html
+== 1374062.html 1374062-ref.html
+== 1375674.html 1375674-ref.html

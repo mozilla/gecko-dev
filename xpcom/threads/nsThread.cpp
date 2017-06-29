@@ -240,10 +240,11 @@ public:
   DelayedRunnable(already_AddRefed<nsIThread> aTargetThread,
                   already_AddRefed<nsIRunnable> aRunnable,
                   uint32_t aDelay)
-    : mTargetThread(aTargetThread),
-      mWrappedRunnable(aRunnable),
-      mDelayedFrom(TimeStamp::NowLoRes()),
-      mDelay(aDelay)
+    : mozilla::Runnable("DelayedRunnable")
+    , mTargetThread(aTargetThread)
+    , mWrappedRunnable(aRunnable)
+    , mDelayedFrom(TimeStamp::NowLoRes())
+    , mDelay(aDelay)
   { }
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -1160,13 +1161,6 @@ nsThread::IdleDispatch(already_AddRefed<nsIRunnable> aEvent)
 
   mIdleEvents.PutEvent(event.take(), lock);
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsThread::IdleDispatchFromScript(nsIRunnable* aEvent)
-{
-  nsCOMPtr<nsIRunnable> event(aEvent);
-  return IdleDispatch(event.forget());
 }
 
 #ifdef MOZ_CANARY

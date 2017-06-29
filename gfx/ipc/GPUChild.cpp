@@ -67,6 +67,7 @@ GPUChild::Init()
   devicePrefs.hwCompositing() = gfxConfig::GetValue(Feature::HW_COMPOSITING);
   devicePrefs.d3d11Compositing() = gfxConfig::GetValue(Feature::D3D11_COMPOSITING);
   devicePrefs.oglCompositing() = gfxConfig::GetValue(Feature::OPENGL_COMPOSITING);
+  devicePrefs.advancedLayers() = gfxConfig::GetValue(Feature::ADVANCED_LAYERS);
   devicePrefs.useD2D1() = gfxConfig::GetValue(Feature::DIRECT2D);
 
   nsTArray<LayerTreeIdMapping> mappings;
@@ -199,6 +200,13 @@ GPUChild::RecvRecordChildEvents(nsTArray<mozilla::Telemetry::ChildEventData>&& a
 }
 
 mozilla::ipc::IPCResult
+GPUChild::RecvRecordDiscardedData(const mozilla::Telemetry::DiscardedData& aDiscardedData)
+{
+  TelemetryIPC::RecordDiscardedData(Telemetry::ProcessID::Gpu, aDiscardedData);
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
 GPUChild::RecvNotifyDeviceReset(const GPUDeviceData& aData)
 {
   gfxPlatform::GetPlatform()->ImportGPUDeviceData(aData);
@@ -265,11 +273,19 @@ GPUChild::ActorDestroy(ActorDestroyReason aWhy)
   mHost->OnChannelClosed();
 }
 
+mozilla::ipc::IPCResult
+GPUChild::RecvUpdateFeature(const Feature& aFeature, const FeatureFailure& aChange)
+{
+  gfxConfig::SetFailed(aFeature, aChange.status(), aChange.message().get(), aChange.failureId());
+  return IPC_OK();
+}
+
 class DeferredDeleteGPUChild : public Runnable
 {
 public:
   explicit DeferredDeleteGPUChild(UniquePtr<GPUChild>&& aChild)
-    : mChild(Move(aChild))
+    : Runnable("gfx::DeferredDeleteGPUChild")
+    , mChild(Move(aChild))
   {
   }
 

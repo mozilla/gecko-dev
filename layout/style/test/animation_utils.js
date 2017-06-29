@@ -371,9 +371,12 @@ function runOMTATest(aTestFunction, aOnSkip, specialPowersForPrefs) {
     SpecialPowers.DOMWindowUtils.advanceTimeAndRefresh(0);
 
     // Run test
-    generator = aTestFunc();
-    return step()
-    .catch(function(err) {
+    var promise = aTestFunc();
+    if (!promise.then) {
+      generator = promise;
+      promise = step();
+    }
+    return promise.catch(function(err) {
       ok(false, err.message);
       if (typeof aOnAbort == "function") {
         aOnAbort();
@@ -409,7 +412,7 @@ const ExpectComparisonTo = {
 // to a nearest |app_units::Au| (i.e. i32), so we might have a tiny difference
 // between the results from getOMTAStyle() and getComputedStyle().
 // Note: 1 AU ~= 60 CSS pixel unit.
-const isServo = SpecialPowers.getBoolPref('layout.css.servo.enabled');
+const isServo = SpecialPowers.getBoolPref("layout.css.servo.enabled", false);
 const toleranceForServoBackend = isServo ? 0.5 / 60.0 : 0.0;
 
 (function() {

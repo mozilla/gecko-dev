@@ -8,7 +8,6 @@ use {Atom, LocalName, Namespace};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use bit_vec::BitVec;
 use context::QuirksMode;
-use data::ComputedStyle;
 use dom::TElement;
 use element_state::ElementState;
 use error_reporting::create_error_reporter;
@@ -31,9 +30,9 @@ use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContex
 use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorAndHashes};
 use selectors::parser::{SelectorIter, SelectorMethods};
+use selectors::sink::Push;
 use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
-use sink::Push;
 use smallvec::VecLike;
 use std::fmt::Debug;
 #[cfg(feature = "servo")]
@@ -588,7 +587,7 @@ impl Stylist {
                                          parent: Option<&Arc<ComputedValues>>,
                                          cascade_flags: CascadeFlags,
                                          font_metrics: &FontMetricsProvider)
-                                         -> ComputedStyle {
+                                         -> Arc<ComputedValues> {
         debug_assert!(pseudo.is_precomputed());
 
         let rule_node = match self.precomputed_pseudo_element_decls.get(pseudo) {
@@ -628,7 +627,7 @@ impl Stylist {
                                 font_metrics,
                                 cascade_flags,
                                 self.quirks_mode);
-        ComputedStyle::new(rule_node, Arc::new(computed))
+        Arc::new(computed)
     }
 
     /// Returns the style for an anonymous box of the given type.
@@ -666,7 +665,6 @@ impl Stylist {
         }
         self.precomputed_values_for_pseudo(guards, &pseudo, Some(parent_style), cascade_flags,
                                            &ServoMetricsProvider)
-            .values.unwrap()
     }
 
     /// Computes a pseudo-element style lazily during layout.
@@ -683,14 +681,32 @@ impl Stylist {
                                                   rule_inclusion: RuleInclusion,
                                                   parent_style: &ComputedValues,
                                                   font_metrics: &FontMetricsProvider)
-                                                  -> Option<ComputedStyle>
+                                                  -> Option<Arc<ComputedValues>>
         where E: TElement,
     {
         let rule_node =
-            match self.lazy_pseudo_rules(guards, element, pseudo, rule_inclusion) {
-                Some(rule_node) => rule_node,
-                None => return None
-            };
+            self.lazy_pseudo_rules(guards, element, pseudo, rule_inclusion);
+        self.compute_pseudo_element_style_with_rulenode(rule_node.as_ref(),
+                                                        guards,
+                                                        parent_style,
+                                                        font_metrics)
+    }
+
+    /// Computes a pseudo-element style lazily using the given rulenode.  This
+    /// can be used for truly lazy pseudo-elements or to avoid redoing selector
+    /// matching for eager pseudo-elements when we need to recompute their style
+    /// with a new parent style.
+    pub fn compute_pseudo_element_style_with_rulenode(&self,
+                                                      rule_node: Option<&StrongRuleNode>,
+                                                      guards: &StylesheetGuards,
+                                                      parent_style: &ComputedValues,
+                                                      font_metrics: &FontMetricsProvider)
+                                                      -> Option<Arc<ComputedValues>>
+    {
+        let rule_node = match rule_node {
+            Some(rule_node) => rule_node,
+            None => return None
+        };
 
         // Read the comment on `precomputed_values_for_pseudo` to see why it's
         // difficult to assert that display: contents nodes never arrive here
@@ -699,7 +715,7 @@ impl Stylist {
         // Bug 1364242: We need to add visited support for lazy pseudos
         let computed =
             properties::cascade(&self.device,
-                                &rule_node,
+                                rule_node,
                                 guards,
                                 Some(parent_style),
                                 Some(parent_style),
@@ -710,7 +726,7 @@ impl Stylist {
                                 CascadeFlags::empty(),
                                 self.quirks_mode);
 
-        Some(ComputedStyle::new(rule_node, Arc::new(computed)))
+        Some(Arc::new(computed))
     }
 
     /// Computes the rule node for a lazily-cascaded pseudo-element.
@@ -959,22 +975,6 @@ impl Stylist {
         }
     }
 
-    /// Returns the rule hash target given an element.
-    fn rule_hash_target<E>(&self, element: E) -> E
-        where E: TElement
-    {
-        let is_implemented_pseudo =
-            element.implemented_pseudo_element().is_some();
-
-        // NB: This causes use to rule has pseudo selectors based on the
-        // properties of the originating element (which is fine, given the
-        // find_first_from_right usage).
-        if is_implemented_pseudo {
-            element.closest_non_native_anonymous_ancestor().unwrap()
-        } else {
-            element
-        }
-    }
 
     /// Returns the applicable CSS declarations for the given element by
     /// treating us as an XBL stylesheet-only stylist.
@@ -993,7 +993,7 @@ impl Stylist {
             Some(map) => map,
             None => return,
         };
-        let rule_hash_target = self.rule_hash_target(*element);
+        let rule_hash_target = element.rule_hash_target();
 
         // nsXBLPrototypeResources::ComputeServoStyleSet() added XBL stylesheets under author
         // (doc) level.
@@ -1039,7 +1039,7 @@ impl Stylist {
             Some(map) => map,
             None => return,
         };
-        let rule_hash_target = self.rule_hash_target(*element);
+        let rule_hash_target = element.rule_hash_target();
 
         debug!("Determining if style is shareable: pseudo: {}",
                pseudo_element.is_some());
@@ -1101,8 +1101,8 @@ impl Stylist {
 
         // Step 3b: XBL rules.
         let cut_off_inheritance =
-            rule_hash_target.get_declarations_from_xbl_bindings(pseudo_element,
-                                                                applicable_declarations);
+            element.get_declarations_from_xbl_bindings(pseudo_element,
+                                                       applicable_declarations);
         debug!("XBL: {:?}", context.relations);
 
         if rule_hash_target.matches_user_and_author_rules() && !only_default_rules {

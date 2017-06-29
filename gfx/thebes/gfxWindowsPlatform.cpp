@@ -929,7 +929,8 @@ InvalidateWindowForDeviceReset(HWND aWnd, LPARAM aMsg)
 void
 gfxWindowsPlatform::SchedulePaintIfDeviceReset()
 {
-  PROFILER_LABEL_FUNC(js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("gfxWindowsPlatform::SchedulePaintIfDeviceReset",
+                      GRAPHICS);
 
   DeviceResetReason resetReason = DeviceResetReason::OK;
   if (!DidRenderingDeviceReset(&resetReason)) {
@@ -1385,6 +1386,28 @@ gfxWindowsPlatform::InitializeD3D11Config()
     // Force D3D11 on even if we disabled it.
     d3d11.UserForceEnable("User force-enabled WARP");
   }
+
+  // Only enable Advanced Layers if D3D11 succeeded.
+  if (d3d11.IsEnabled()) {
+    FeatureState& al = gfxConfig::GetFeature(Feature::ADVANCED_LAYERS);
+
+    al.SetDefaultFromPref(
+      gfxPrefs::GetAdvancedLayersEnabledDoNotUseDirectlyPrefName(),
+      true /* aIsEnablePref */,
+      gfxPrefs::GetAdvancedLayersEnabledDoNotUseDirectlyPrefDefault());
+
+    // Windows 7 has an extra pref since it uses totally different buffer paths
+    // that haven't been performance tested yet.
+    if (al.IsEnabled() && !IsWin8OrLater()) {
+      if (gfxPrefs::AdvancedLayersEnableOnWindows7()) {
+        al.UserEnable("Enabled for Windows 7 via user-preference");
+      } else {
+        al.Disable(FeatureStatus::Disabled,
+                   "Advanced Layers is disabled on Windows 7 by default",
+                   NS_LITERAL_CSTRING("FEATURE_FAILURE_DISABLED_ON_WIN7"));
+      }
+    }
+  }
 }
 
 /* static */ void
@@ -1684,7 +1707,8 @@ public:
         }
 
         mVsyncThread->message_loop()->PostTask(
-            NewRunnableMethod(this, &D3DVsyncDisplay::VBlankLoop));
+            NewRunnableMethod("D3DVsyncDisplay::VBlankLoop",
+                              this, &D3DVsyncDisplay::VBlankLoop));
       }
 
       virtual void DisableVsync() override
@@ -1722,7 +1746,8 @@ public:
         }
 
         mVsyncThread->message_loop()->PostDelayedTask(
-            NewRunnableMethod(this, &D3DVsyncDisplay::VBlankLoop),
+            NewRunnableMethod("D3DVsyncDisplay::VBlankLoop",
+                              this, &D3DVsyncDisplay::VBlankLoop),
             delay.ToMilliseconds());
       }
 

@@ -194,7 +194,7 @@ public:
   // Must be threadsafe for StaticRefPtr/ClearOnShutdown
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SingletonThreadHolder)
 
-  explicit SingletonThreadHolder(const nsCSubstring& aName)
+  explicit SingletonThreadHolder(const nsACString& aName)
     : mName(aName)
   {
     mParentThread = NS_GetCurrentThread();
@@ -1673,7 +1673,7 @@ class NrTcpSocketIpc::TcpSocketReadyRunner: public Runnable
 {
 public:
   explicit TcpSocketReadyRunner(NrTcpSocketIpc *sck)
-    : socket_(sck) {}
+    : Runnable("NrTcpSocketIpc::TcpSocketReadyRunner"), socket_(sck) {}
 
   NS_IMETHOD Run() override {
     socket_->maybe_post_socket_ready();

@@ -865,6 +865,25 @@ nsLayoutUtils::FindScrollableFrameFor(ViewID aId)
   return scrollFrame ? scrollFrame->GetScrollTargetFrame() : nullptr;
 }
 
+ViewID
+nsLayoutUtils::FindIDForScrollableFrame(nsIScrollableFrame* aScrollable)
+{
+  if (!aScrollable) {
+    return FrameMetrics::NULL_SCROLL_ID;
+  }
+
+  nsIFrame* scrollFrame = do_QueryFrame(aScrollable);
+  nsIContent* scrollContent = scrollFrame->GetContent();
+
+  FrameMetrics::ViewID scrollId;
+  if (scrollContent &&
+      nsLayoutUtils::FindIDFor(scrollContent, &scrollId)) {
+    return scrollId;
+  }
+
+  return FrameMetrics::NULL_SCROLL_ID;
+}
+
 static nsRect
 ApplyRectMultiplier(nsRect aRect, float aMultiplier)
 {
@@ -3176,8 +3195,7 @@ struct AutoNestedPaintCount {
 nsIFrame*
 nsLayoutUtils::GetFrameForPoint(nsIFrame* aFrame, nsPoint aPt, uint32_t aFlags)
 {
-  PROFILER_LABEL("nsLayoutUtils", "GetFrameForPoint",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("nsLayoutUtils::GetFrameForPoint", GRAPHICS);
 
   nsresult rv;
   AutoTArray<nsIFrame*,8> outFrames;
@@ -3191,8 +3209,7 @@ nsLayoutUtils::GetFramesForArea(nsIFrame* aFrame, const nsRect& aRect,
                                 nsTArray<nsIFrame*> &aOutFrames,
                                 uint32_t aFlags)
 {
-  PROFILER_LABEL("nsLayoutUtils", "GetFramesForArea",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("nsLayoutUtils::GetFramesForArea", GRAPHICS);
 
   nsDisplayListBuilder builder(aFrame,
                                nsDisplayListBuilderMode::EVENT_DELIVERY,
@@ -3425,8 +3442,7 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
                           nsDisplayListBuilderMode aBuilderMode,
                           PaintFrameFlags aFlags)
 {
-  PROFILER_LABEL("nsLayoutUtils", "PaintFrame",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("nsLayoutUtils::PaintFrame", GRAPHICS);
 
 #ifdef MOZ_DUMP_PAINTING
   if (!gPaintCountStack) {
@@ -3537,8 +3553,8 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
   nsRect dirtyRect = visibleRegion.GetBounds();
 
   {
-    PROFILER_LABEL("nsLayoutUtils", "PaintFrame::BuildDisplayList",
-      js::ProfileEntry::Category::GRAPHICS);
+    AUTO_PROFILER_LABEL("nsLayoutUtils::PaintFrame:BuildDisplayList",
+                        GRAPHICS);
     AutoProfilerTracing tracing("Paint", "DisplayList");
 
     PaintTelemetry::AutoRecord record(PaintTelemetry::Metric::DisplayList);
@@ -3662,7 +3678,7 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
       // Flush stream now to avoid reordering dump output relative to
       // messages dumped by PaintRoot below.
       if (profilerNeedsDisplayList && !consoleNeedsDisplayList) {
-        profiler_log(ss->str().c_str());
+        profiler_tracing("log", ss->str().c_str());
       } else {
         fprint_stderr(gfxUtils::sDumpPaintFile, *ss);
       }
@@ -3735,7 +3751,7 @@ nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
     }
 
     if (profilerNeedsDisplayList && !consoleNeedsDisplayList) {
-      profiler_log(ss->str().c_str());
+      profiler_tracing("log", ss->str().c_str());
     } else {
       fprint_stderr(gfxUtils::sDumpPaintFile, *ss);
     }
@@ -4500,15 +4516,12 @@ nsLayoutUtils::GetNextContinuationOrIBSplitSibling(nsIFrame *aFrame)
 }
 
 nsIFrame*
-nsLayoutUtils::FirstContinuationOrIBSplitSibling(nsIFrame *aFrame)
+nsLayoutUtils::FirstContinuationOrIBSplitSibling(const nsIFrame* aFrame)
 {
-  nsIFrame *result = aFrame->FirstContinuation();
+  nsIFrame* result = aFrame->FirstContinuation();
+
   if (result->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) {
-    while (true) {
-      nsIFrame* f =
-        result->GetProperty(nsIFrame::IBSplitPrevSibling());
-      if (!f)
-        break;
+    while (auto* f = result->GetProperty(nsIFrame::IBSplitPrevSibling())) {
       result = f;
     }
   }
@@ -4517,22 +4530,17 @@ nsLayoutUtils::FirstContinuationOrIBSplitSibling(nsIFrame *aFrame)
 }
 
 nsIFrame*
-nsLayoutUtils::LastContinuationOrIBSplitSibling(nsIFrame *aFrame)
+nsLayoutUtils::LastContinuationOrIBSplitSibling(const nsIFrame* aFrame)
 {
-  nsIFrame *result = aFrame->FirstContinuation();
+  nsIFrame* result = aFrame->FirstContinuation();
+
   if (result->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) {
-    while (true) {
-      nsIFrame* f = result->GetProperty(nsIFrame::IBSplitSibling());
-      if (!f) {
-        break;
-      }
+    while (auto* f = result->GetProperty(nsIFrame::IBSplitSibling())) {
       result = f;
     }
   }
 
-  result = result->LastContinuation();
-
-  return result;
+  return result->LastContinuation();
 }
 
 bool
@@ -6850,8 +6858,7 @@ nsLayoutUtils::DrawBackgroundImage(gfxContext&         aContext,
                                    ExtendMode          aExtendMode,
                                    float               aOpacity)
 {
-  PROFILER_LABEL("layout", "nsLayoutUtils::DrawBackgroundImage",
-                 js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("nsLayoutUtils::DrawBackgroundImage", GRAPHICS);
 
   Maybe<SVGImageContext> svgContext(Some(SVGImageContext(Some(aImageSize))));
   SVGImageContext::MaybeStoreContextPaint(svgContext, aForFrame, aImage);
@@ -7931,19 +7938,23 @@ nsLayoutUtils::PostRestyleEvent(Element* aElement,
   }
 }
 
-nsSetAttrRunnable::nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,
+nsSetAttrRunnable::nsSetAttrRunnable(nsIContent* aContent,
+                                     nsIAtom* aAttrName,
                                      const nsAString& aValue)
-  : mContent(aContent),
-    mAttrName(aAttrName),
-    mValue(aValue)
+  : mozilla::Runnable("nsSetAttrRunnable")
+  , mContent(aContent)
+  , mAttrName(aAttrName)
+  , mValue(aValue)
 {
   NS_ASSERTION(aContent && aAttrName, "Missing stuff, prepare to crash");
 }
 
-nsSetAttrRunnable::nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,
+nsSetAttrRunnable::nsSetAttrRunnable(nsIContent* aContent,
+                                     nsIAtom* aAttrName,
                                      int32_t aValue)
-  : mContent(aContent),
-    mAttrName(aAttrName)
+  : mozilla::Runnable("nsSetAttrRunnable")
+  , mContent(aContent)
+  , mAttrName(aAttrName)
 {
   NS_ASSERTION(aContent && aAttrName, "Missing stuff, prepare to crash");
   mValue.AppendInt(aValue);
@@ -7957,8 +7968,9 @@ nsSetAttrRunnable::Run()
 
 nsUnsetAttrRunnable::nsUnsetAttrRunnable(nsIContent* aContent,
                                          nsIAtom* aAttrName)
-  : mContent(aContent),
-    mAttrName(aAttrName)
+  : mozilla::Runnable("nsUnsetAttrRunnable")
+  , mContent(aContent)
+  , mAttrName(aAttrName)
 {
   NS_ASSERTION(aContent && aAttrName, "Missing stuff, prepare to crash");
 }

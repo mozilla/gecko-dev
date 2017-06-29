@@ -241,8 +241,7 @@ nsStyleContext::CalcStyleDifferenceInternal(StyleContextLike* aNewContext,
                                             uint32_t* aEqualStructs,
                                             uint32_t* aSamePointerStructs)
 {
-  PROFILER_LABEL("nsStyleContext", "CalcStyleDifference",
-    js::ProfileEntry::Category::CSS);
+  AUTO_PROFILER_LABEL("nsStyleContext::CalcStyleDifferenceInternal", CSS);
 
   static_assert(nsStyleStructID_Length <= 32,
                 "aEqualStructs is not big enough");
@@ -615,9 +614,9 @@ nsStyleContext::Destroy()
     // instead. Don't call the global operator delete.
     presContext->PresShell()->
       FreeByObjectID(eArenaObjectID_GeckoStyleContext, this);
-    } else {
-      delete static_cast<ServoStyleContext*>(this);
-    }
+  } else {
+    delete static_cast<ServoStyleContext*>(this);
+  }
 }
 
 already_AddRefed<nsStyleContext>

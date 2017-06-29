@@ -998,6 +998,7 @@ nsPIDOMWindow<T>::nsPIDOMWindow(nsPIDOMWindowOuter *aOuterWindow)
   mMutationBits(0), mIsDocumentLoaded(false),
   mIsHandlingResizeEvent(false), mIsInnerWindow(aOuterWindow != nullptr),
   mMayHavePaintEventListener(false), mMayHaveTouchEventListener(false),
+  mMayHaveSelectionChangeEventListener(false),
   mMayHaveMouseEnterLeaveEventListener(false),
   mMayHavePointerEnterLeaveEventListener(false),
   mInnerObjectsFreed(false),
@@ -1012,7 +1013,9 @@ nsPIDOMWindow<T>::nsPIDOMWindow(nsPIDOMWindowOuter *aOuterWindow)
   mWindowID(NextWindowID()), mHasNotifiedGlobalCreated(false),
   mMarkedCCGeneration(0), mServiceWorkersTestingEnabled(false),
   mLargeAllocStatus(LargeAllocStatus::NONE),
-  mShouldResumeOnFirstActiveMediaComponent(false)
+  mShouldResumeOnFirstActiveMediaComponent(false),
+  mHasTriedToCacheTopInnerWindow(false),
+  mNumOfIndexedDBDatabases(0)
 {
   if (aOuterWindow) {
     mTimeoutManager =
@@ -1609,9 +1612,7 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
 #endif
     mCanSkipCCGeneration(0),
     mAutoActivateVRDisplayID(0),
-    mBeforeUnloadListenerCount(0),
-    mNumOfIndexedDBTransactions(0),
-    mNumOfIndexedDBDatabases(0)
+    mBeforeUnloadListenerCount(0)
 {
   AssertIsOnMainThread();
 
@@ -2298,6 +2299,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindow)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOuterWindow)
 
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTopInnerWindow)
+
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mListenerManager)
 
   if (tmp->mTimeoutManager) {
@@ -2387,6 +2390,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindow)
     tmp->mListenerManager->Disconnect();
     NS_IMPL_CYCLE_COLLECTION_UNLINK(mListenerManager)
   }
+
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTopInnerWindow)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mLocation)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mHistory)
@@ -3036,8 +3041,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
      happens, setting status isn't a big requirement, so don't. (Doesn't happen
      under normal circumstances, but bug 49615 describes a case.) */
 
-  nsContentUtils::AddScriptRunner(
-    NewRunnableMethod(this, &nsGlobalWindow::ClearStatus));
+  nsContentUtils::AddScriptRunner(NewRunnableMethod(
+    "nsGlobalWindow::ClearStatus", this, &nsGlobalWindow::ClearStatus));
 
   // Sometimes, WouldReuseInnerWindow() returns true even if there's no inner
   // window (see bug 776497). Be safe.
@@ -3186,6 +3191,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     }
 
     mInnerWindow = newInnerWindow->AsInner();
+    MOZ_ASSERT(mInnerWindow);
+    mInnerWindow->TryToCacheTopInnerWindow();
 
     if (!GetWrapperPreserveColor()) {
       JS::Rooted<JSObject*> outer(cx,
@@ -3347,7 +3354,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   // up with the outer. See bug 969156.
   if (createdInnerWindow) {
     nsContentUtils::AddScriptRunner(
-      NewRunnableMethod(newInnerWindow,
+      NewRunnableMethod("nsGlobalWindow::FireOnNewGlobalObject",
+                        newInnerWindow,
                         &nsGlobalWindow::FireOnNewGlobalObject));
   }
 
@@ -3361,7 +3369,9 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         nsContentUtils::IsSystemPrincipal(mDoc->NodePrincipal())) {
       newInnerWindow->mHasNotifiedGlobalCreated = true;
       nsContentUtils::AddScriptRunner(
-        NewRunnableMethod(this, &nsGlobalWindow::DispatchDOMWindowCreated));
+        NewRunnableMethod("nsGlobalWindow::DispatchDOMWindowCreated",
+                          this,
+                          &nsGlobalWindow::DispatchDOMWindowCreated));
     }
   }
 
@@ -4420,6 +4430,67 @@ bool
 nsPIDOMWindowInner::IsRunningTimeout()
 {
   return TimeoutManager().IsRunningTimeout();
+}
+
+void
+nsPIDOMWindowInner::TryToCacheTopInnerWindow()
+{
+  if (mHasTriedToCacheTopInnerWindow) {
+    return;
+  }
+
+  MOZ_ASSERT(!mInnerObjectsFreed);
+
+  mHasTriedToCacheTopInnerWindow = true;
+
+  nsGlobalWindow* window = nsGlobalWindow::Cast(AsInner());
+
+  MOZ_ASSERT(window);
+
+  if (nsCOMPtr<nsPIDOMWindowOuter> topOutter = window->GetScriptableTop()) {
+    mTopInnerWindow = topOutter->GetCurrentInnerWindow();
+  }
+}
+
+void
+nsPIDOMWindowInner::UpdateActiveIndexedDBTransactionCount(int32_t aDelta)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (aDelta == 0) {
+    return;
+  }
+
+  TabGroup()->IndexedDBTransactionCounter() += aDelta;
+}
+
+void
+nsPIDOMWindowInner::UpdateActiveIndexedDBDatabaseCount(int32_t aDelta)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (aDelta == 0) {
+    return;
+  }
+
+  // We count databases but not transactions because only active databases
+  // could block throttling.
+  uint32_t& counter = mTopInnerWindow ?
+    mTopInnerWindow->mNumOfIndexedDBDatabases : mNumOfIndexedDBDatabases;
+
+  counter+= aDelta;
+
+  TabGroup()->IndexedDBDatabaseCounter() += aDelta;
+}
+
+bool
+nsPIDOMWindowInner::HasActiveIndexedDBDatabases()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  return mTopInnerWindow ?
+    mTopInnerWindow->mNumOfIndexedDBDatabases > 0 :
+    mNumOfIndexedDBDatabases > 0;
 }
 
 void
@@ -6872,10 +6943,13 @@ class FullscreenTransitionTask : public Runnable
 {
 public:
   FullscreenTransitionTask(const FullscreenTransitionDuration& aDuration,
-                           nsGlobalWindow* aWindow, bool aFullscreen,
-                           nsIWidget* aWidget, nsIScreen* aScreen,
+                           nsGlobalWindow* aWindow,
+                           bool aFullscreen,
+                           nsIWidget* aWidget,
+                           nsIScreen* aScreen,
                            nsISupports* aTransitionData)
-    : mWindow(aWindow)
+    : mozilla::Runnable("FullscreenTransitionTask")
+    , mWindow(aWindow)
     , mWidget(aWidget)
     , mScreen(aScreen)
     , mTransitionData(aTransitionData)
@@ -6973,12 +7047,12 @@ FullscreenTransitionTask::Run()
     return NS_OK;
   }
   if (stage == eBeforeToggle) {
-    PROFILER_MARKER("Fullscreen transition start");
+    profiler_add_marker("Fullscreen transition start");
     mWidget->PerformFullscreenTransition(nsIWidget::eBeforeFullscreenToggle,
                                          mDuration.mFadeIn, mTransitionData,
                                          this);
   } else if (stage == eToggleFullscreen) {
-    PROFILER_MARKER("Fullscreen toggle start");
+    profiler_add_marker("Fullscreen toggle start");
     mFullscreenChangeStartTime = TimeStamp::Now();
     if (MOZ_UNLIKELY(mWindow->mFullScreen != mFullscreen)) {
       // This could happen in theory if several fullscreen requests in
@@ -7022,7 +7096,7 @@ FullscreenTransitionTask::Run()
                                          mDuration.mFadeOut, mTransitionData,
                                          this);
   } else if (stage == eEnd) {
-    PROFILER_MARKER("Fullscreen transition end");
+    profiler_add_marker("Fullscreen transition end");
   }
   return NS_OK;
 }
@@ -7043,7 +7117,7 @@ FullscreenTransitionTask::Observer::Observe(nsISupports* aSubject,
       // The paint notification arrives first. Cancel the timer.
       mTask->mTimer->Cancel();
       shouldContinue = true;
-      PROFILER_MARKER("Fullscreen toggle end");
+      profiler_add_marker("Fullscreen toggle end");
     }
   } else {
 #ifdef DEBUG
@@ -7054,7 +7128,7 @@ FullscreenTransitionTask::Observer::Observe(nsISupports* aSubject,
                "Should only trigger this with the timer the task created");
 #endif
     shouldContinue = true;
-    PROFILER_MARKER("Fullscreen toggle timeout");
+    profiler_add_marker("Fullscreen toggle timeout");
   }
   if (shouldContinue) {
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
@@ -9211,8 +9285,9 @@ class nsCloseEvent : public Runnable {
   RefPtr<nsGlobalWindow> mWindow;
   bool mIndirect;
 
-  nsCloseEvent(nsGlobalWindow *aWindow, bool aIndirect)
-    : mWindow(aWindow)
+  nsCloseEvent(nsGlobalWindow* aWindow, bool aIndirect)
+    : mozilla::Runnable("nsCloseEvent")
+    , mWindow(aWindow)
     , mIndirect(aIndirect)
   {}
 
@@ -9641,11 +9716,11 @@ struct BrowserCompartmentMatcher : public js::CompartmentFilter {
 class WindowDestroyedEvent final : public Runnable
 {
 public:
-  WindowDestroyedEvent(nsIDOMWindow* aWindow, uint64_t aID,
-                       const char* aTopic) :
-    mID(aID),
-    mPhase(Phase::Destroying),
-    mTopic(aTopic)
+  WindowDestroyedEvent(nsIDOMWindow* aWindow, uint64_t aID, const char* aTopic)
+    : mozilla::Runnable("WindowDestroyedEvent")
+    , mID(aID)
+    , mPhase(Phase::Destroying)
+    , mTopic(aTopic)
   {
     mWindow = do_GetWeakReference(aWindow);
   }
@@ -9658,8 +9733,7 @@ public:
 
   NS_IMETHOD Run() override
   {
-    PROFILER_LABEL("WindowDestroyedEvent", "Run",
-                   js::ProfileEntry::Category::OTHER);
+    AUTO_PROFILER_LABEL("WindowDestroyedEvent::Run", OTHER);
 
     nsCOMPtr<nsIObserverService> observerService =
       services::GetObserverService();
@@ -10121,8 +10195,12 @@ nsGlobalWindow::ShowModalDialog(JSContext* aCx, const nsAString& aUrl,
 
   JS::Rooted<JS::Value> result(aCx);
   if (retVal) {
+    JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+    if (!global) {
+      global = FastGetGlobalJSObject();
+    }
     aError = nsContentUtils::XPConnect()->VariantToJS(aCx,
-                                                      FastGetGlobalJSObject(),
+                                                      global,
                                                       retVal, aRetval);
   } else {
     aRetval.setNull();
@@ -10135,7 +10213,12 @@ public:
   ChildCommandDispatcher(nsGlobalWindow* aWindow,
                          nsITabChild* aTabChild,
                          const nsAString& aAction)
-  : mWindow(aWindow), mTabChild(aTabChild), mAction(aAction) {}
+    : mozilla::Runnable("ChildCommandDispatcher")
+    , mWindow(aWindow)
+    , mTabChild(aTabChild)
+    , mAction(aAction)
+  {
+  }
 
   NS_IMETHOD Run() override
   {
@@ -10164,7 +10247,11 @@ class CommandDispatcher : public Runnable
 public:
   CommandDispatcher(nsIDOMXULCommandDispatcher* aDispatcher,
                     const nsAString& aAction)
-  : mDispatcher(aDispatcher), mAction(aAction) {}
+    : mozilla::Runnable("CommandDispatcher")
+    , mDispatcher(aDispatcher)
+    , mAction(aAction)
+  {
+  }
 
   NS_IMETHOD Run() override
   {
@@ -10956,10 +11043,11 @@ nsGlobalWindow::PageHidden()
 class HashchangeCallback : public Runnable
 {
 public:
-  HashchangeCallback(const nsAString &aOldURL,
-                     const nsAString &aNewURL,
+  HashchangeCallback(const nsAString& aOldURL,
+                     const nsAString& aNewURL,
                      nsGlobalWindow* aWindow)
-    : mWindow(aWindow)
+    : mozilla::Runnable("HashchangeCallback")
+    , mWindow(aWindow)
   {
     MOZ_ASSERT(mWindow);
     MOZ_ASSERT(mWindow->IsInnerWindow());
@@ -11572,8 +11660,11 @@ public:
                              uint32_t aTimeInS,
                              bool aCallOnidle,
                              nsGlobalWindow* aIdleWindow)
-    : mIdleObserver(aIdleObserver), mTimeInS(aTimeInS), mIdleWindow(aIdleWindow),
-      mCallOnidle(aCallOnidle)
+    : mozilla::Runnable("NotifyIdleObserverRunnable")
+    , mIdleObserver(aIdleObserver)
+    , mTimeInS(aTimeInS)
+    , mIdleWindow(aIdleWindow)
+    , mCallOnidle(aCallOnidle)
   { }
 
   NS_IMETHOD Run() override
@@ -11681,10 +11772,12 @@ nsGlobalWindow::ScheduleNextIdleObserverCallback()
   }
 
   mIdleTimer->Cancel();
-  rv = mIdleTimer->InitWithFuncCallback(IdleObserverTimerCallback,
-                                        this,
-                                        callbackTimeMS,
-                                        nsITimer::TYPE_ONE_SHOT);
+  rv = mIdleTimer->InitWithNamedFuncCallback(
+    IdleObserverTimerCallback,
+    this,
+    callbackTimeMS,
+    nsITimer::TYPE_ONE_SHOT,
+    "nsGlobalWindow::ScheduleNextIdleObserverCallback");
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -11726,10 +11819,12 @@ nsGlobalWindow::ScheduleActiveTimerCallback()
   mIdleTimer->Cancel();
 
   uint32_t fuzzFactorInMS = GetFuzzTimeMS();
-  nsresult rv = mIdleTimer->InitWithFuncCallback(IdleActiveTimerCallback,
-                                                 this,
-                                                 fuzzFactorInMS,
-                                                 nsITimer::TYPE_ONE_SHOT);
+  nsresult rv = mIdleTimer->InitWithNamedFuncCallback(
+    IdleActiveTimerCallback,
+    this,
+    fuzzFactorInMS,
+    nsITimer::TYPE_ONE_SHOT,
+    "nsGlobalWindow::ScheduleActiveTimerCallback");
   NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
@@ -12818,7 +12913,8 @@ public:
   ~AutoUnblockScriptClosing()
   {
     void (nsGlobalWindow::*run)() = &nsGlobalWindow::UnblockScriptedClosing;
-    nsCOMPtr<nsIRunnable> caller = NewRunnableMethod(mWin, run);
+    nsCOMPtr<nsIRunnable> caller = NewRunnableMethod(
+      "AutoUnblockScriptClosing::~AutoUnblockScriptClosing", mWin, run);
     mWin->Dispatch("nsGlobalWindow::UnblockScriptedClosing",
                    TaskCategory::Other, caller.forget());
   }
@@ -13395,14 +13491,14 @@ nsGlobalWindow::SecurityCheckURL(const char *aURL)
   // used to actually kick off the load in nsWindowWatcher.cpp.
   nsCOMPtr<nsIDocument> doc = sourceWindow->GetDoc();
   nsIURI* baseURI = nullptr;
-  nsAutoCString charset(NS_LITERAL_CSTRING("UTF-8")); // default to utf-8
+  auto encoding = UTF_8_ENCODING; // default to utf-8
   if (doc) {
     baseURI = doc->GetDocBaseURI();
-    charset = doc->GetDocumentCharacterSet();
+    encoding = doc->GetDocumentCharacterSet();
   }
   nsCOMPtr<nsIURI> uri;
   nsresult rv = NS_NewURI(getter_AddRefs(uri), nsDependentCString(aURL),
-                          charset.get(), baseURI);
+                          encoding, baseURI);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -14101,6 +14197,15 @@ nsGlobalWindow::WindowState()
   }
 
   return nsIDOMChromeWindow::STATE_NORMAL;
+}
+
+bool
+nsGlobalWindow::IsFullyOccluded()
+{
+  MOZ_ASSERT(IsInnerWindow());
+
+  nsCOMPtr<nsIWidget> widget = GetMainWidget();
+  return widget && widget->IsFullyOccluded();
 }
 
 NS_IMETHODIMP
@@ -15428,56 +15533,6 @@ nsGlobalWindow::GetIntlUtils(ErrorResult& aError)
   return mIntlUtils;
 }
 #endif
-
-#define DEFINE_INDEXEDDB_COUNTER_FOR(name)                                     \
-void                                                                           \
-nsPIDOMWindowInner::UpdateActive##name##Count(int32_t aDelta)                  \
-{                                                                              \
-  nsGlobalWindow::Cast(this)->UpdateActive##name##Count(aDelta);               \
-}                                                                              \
-                                                                               \
-bool nsPIDOMWindowInner::HasActive##name##s()                                  \
-{                                                                              \
-  return nsGlobalWindow::Cast(this)->HasActive##name##s();                     \
-}                                                                              \
-                                                                               \
-void                                                                           \
-nsGlobalWindow::UpdateActive##name##Count(int32_t aDelta)                      \
-{                                                                              \
-  if (aDelta == 0) {                                                           \
-    return;                                                                    \
-  }                                                                            \
-                                                                               \
-  DebugOnly<uint32_t> count = mNumOf##name##s;                                 \
-  mNumOf##name##s += aDelta;                                                   \
-  TabGroup()->name##Counter() += aDelta;                                       \
-  MOZ_ASSERT(                                                                  \
-    aDelta > 0 ? mNumOf##name##s > count : mNumOf##name##s < count,            \
-    "The counters are either overflow or underflow!");                         \
-}                                                                              \
-                                                                               \
-bool                                                                           \
-nsGlobalWindow::HasActive##name##s()                                           \
-{                                                                              \
-  MOZ_ASSERT(NS_IsMainThread());                                               \
-  MOZ_DIAGNOSTIC_ASSERT(IsInnerWindow());                                      \
-                                                                               \
-  if (!AsInner()->IsCurrentInnerWindow())                                      \
-  {                                                                            \
-    return false;                                                              \
-  }                                                                            \
-                                                                               \
-  nsCOMPtr<nsPIDOMWindowOuter> topOutterWindow = this->GetScriptableTop();     \
-  MOZ_ASSERT(topOutterWindow);                                                 \
-  RefPtr<nsGlobalWindow> topInnerWindow =                                      \
-    nsGlobalWindow::Cast(topOutterWindow->GetCurrentInnerWindow());            \
-                                                                               \
-  return topInnerWindow ? topInnerWindow->mNumOf##name##s > 0 : false;         \
-}
-
-DEFINE_INDEXEDDB_COUNTER_FOR(IndexedDBTransaction)
-DEFINE_INDEXEDDB_COUNTER_FOR(IndexedDBDatabase)
-#undef DEFINE_INDEXEDDB_COUNTER_FOR
 
 template class nsPIDOMWindow<mozIDOMWindowProxy>;
 template class nsPIDOMWindow<mozIDOMWindow>;

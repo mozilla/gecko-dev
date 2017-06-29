@@ -151,17 +151,9 @@ static bool ConvertToMidasInternalCommand(const nsAString & inCommandID,
 // ==================================================================
 
 static bool
-IsAsciiCompatible(const nsACString& aPreferredName)
+IsAsciiCompatible(const Encoding* aEncoding)
 {
-  // HZ and UTF-7 are no longer in mozilla-central, but keeping them here
-  // just in case for the benefit of comm-central.
-  return !(aPreferredName.LowerCaseEqualsLiteral("utf-16") ||
-           aPreferredName.LowerCaseEqualsLiteral("utf-16be") ||
-           aPreferredName.LowerCaseEqualsLiteral("utf-16le") ||
-           aPreferredName.LowerCaseEqualsLiteral("replacement") ||
-           aPreferredName.LowerCaseEqualsLiteral("hz-gb-2312") ||
-           aPreferredName.LowerCaseEqualsLiteral("utf-7") ||
-           aPreferredName.LowerCaseEqualsLiteral("x-imap4-modified-utf7"));
+  return aEncoding->IsAsciiCompatible() || aEncoding == ISO_2022_JP_ENCODING;
 }
 
 nsresult
@@ -286,26 +278,25 @@ nsHTMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
 
 void
 nsHTMLDocument::TryHintCharset(nsIContentViewer* aCv,
-                               int32_t& aCharsetSource, nsACString& aCharset)
+                               int32_t& aCharsetSource,
+                               NotNull<const Encoding*>& aEncoding)
 {
   if (aCv) {
     int32_t requestCharsetSource;
     nsresult rv = aCv->GetHintCharacterSetSource(&requestCharsetSource);
 
     if(NS_SUCCEEDED(rv) && kCharsetUninitialized != requestCharsetSource) {
-      nsAutoCString requestCharset;
-      rv = aCv->GetHintCharacterSet(requestCharset);
+      auto requestCharset = aCv->GetHintCharset();
       aCv->SetHintCharacterSetSource((int32_t)(kCharsetUninitialized));
 
-      if(requestCharsetSource <= aCharsetSource)
+      if (requestCharsetSource <= aCharsetSource)
         return;
 
-      if(NS_SUCCEEDED(rv) && IsAsciiCompatible(requestCharset)) {
+      if (requestCharset && IsAsciiCompatible(requestCharset)) {
         aCharsetSource = requestCharsetSource;
-        aCharset = requestCharset;
-
-        return;
+        aEncoding = WrapNotNull(requestCharset);
       }
+      return;
     }
   }
   return;
@@ -316,42 +307,38 @@ void
 nsHTMLDocument::TryUserForcedCharset(nsIContentViewer* aCv,
                                      nsIDocShell*  aDocShell,
                                      int32_t& aCharsetSource,
-                                     nsACString& aCharset)
+                                     NotNull<const Encoding*>& aEncoding)
 {
-  nsresult rv = NS_OK;
-
   if(kCharsetFromUserForced <= aCharsetSource)
     return;
 
-  // mCharacterSet not updated yet for channel, so check aCharset, too.
-  if (WillIgnoreCharsetOverride() || !IsAsciiCompatible(aCharset)) {
+  // mCharacterSet not updated yet for channel, so check aEncoding, too.
+  if (WillIgnoreCharsetOverride() || !IsAsciiCompatible(aEncoding)) {
     return;
   }
 
-  nsAutoCString forceCharsetFromDocShell;
+  const Encoding* forceCharsetFromDocShell = nullptr;
   if (aCv) {
     // XXX mailnews-only
-    rv = aCv->GetForceCharacterSet(forceCharsetFromDocShell);
+    forceCharsetFromDocShell = aCv->GetForceCharset();
   }
 
-  if(NS_SUCCEEDED(rv) &&
-     !forceCharsetFromDocShell.IsEmpty() &&
+  if(forceCharsetFromDocShell &&
      IsAsciiCompatible(forceCharsetFromDocShell)) {
-    aCharset = forceCharsetFromDocShell;
+    aEncoding = WrapNotNull(forceCharsetFromDocShell);
     aCharsetSource = kCharsetFromUserForced;
     return;
   }
 
   if (aDocShell) {
     // This is the Character Encoding menu code path in Firefox
-    nsAutoCString charset;
-    rv = aDocShell->GetForcedCharset(charset);
+    auto encoding = nsDocShell::Cast(aDocShell)->GetForcedCharset();
 
-    if (NS_SUCCEEDED(rv) && !charset.IsEmpty()) {
-      if (!IsAsciiCompatible(charset)) {
+    if (encoding) {
+      if (!IsAsciiCompatible(encoding)) {
         return;
       }
-      aCharset = charset;
+      aEncoding = WrapNotNull(encoding);
       aCharsetSource = kCharsetFromUserForced;
       aDocShell->SetForcedCharset(NS_LITERAL_CSTRING(""));
     }
@@ -361,7 +348,7 @@ nsHTMLDocument::TryUserForcedCharset(nsIContentViewer* aCv,
 void
 nsHTMLDocument::TryCacheCharset(nsICachingChannel* aCachingChannel,
                                 int32_t& aCharsetSource,
-                                nsACString& aCharset)
+                                NotNull<const Encoding*>& aEncoding)
 {
   nsresult rv;
 
@@ -389,15 +376,14 @@ nsHTMLDocument::TryCacheCharset(nsICachingChannel* aCachingChannel,
   if (!encoding->IsAsciiCompatible() && encoding != ISO_2022_JP_ENCODING) {
     return;
   }
-  encoding->Name(cachedCharset);
-  aCharset = cachedCharset;
+  aEncoding = WrapNotNull(encoding);
   aCharsetSource = kCharsetFromCache;
 }
 
 void
 nsHTMLDocument::TryParentCharset(nsIDocShell*  aDocShell,
                                  int32_t& aCharsetSource,
-                                 nsACString& aCharset)
+                                 NotNull<const Encoding*>& aEncoding)
 {
   if (!aDocShell) {
     return;
@@ -407,22 +393,22 @@ nsHTMLDocument::TryParentCharset(nsIDocShell*  aDocShell,
   }
 
   int32_t parentSource;
-  nsAutoCString parentCharset;
+  const Encoding* parentCharset;
   nsCOMPtr<nsIPrincipal> parentPrincipal;
   aDocShell->GetParentCharset(parentCharset,
                               &parentSource,
                               getter_AddRefs(parentPrincipal));
-  if (parentCharset.IsEmpty()) {
+  if (!parentCharset) {
     return;
   }
   if (kCharsetFromParentForced == parentSource ||
       kCharsetFromUserForced == parentSource) {
     if (WillIgnoreCharsetOverride() ||
-        !IsAsciiCompatible(aCharset) || // if channel said UTF-16
+        !IsAsciiCompatible(aEncoding) || // if channel said UTF-16
         !IsAsciiCompatible(parentCharset)) {
       return;
     }
-    aCharset.Assign(parentCharset);
+    aEncoding = WrapNotNull(parentCharset);
     aCharsetSource = kCharsetFromParentForced;
     return;
   }
@@ -438,13 +424,14 @@ nsHTMLDocument::TryParentCharset(nsIDocShell*  aDocShell,
       return;
     }
 
-    aCharset.Assign(parentCharset);
+    aEncoding = WrapNotNull(parentCharset);
     aCharsetSource = kCharsetFromParentFrame;
   }
 }
 
 void
-nsHTMLDocument::TryTLD(int32_t& aCharsetSource, nsACString& aCharset)
+nsHTMLDocument::TryTLD(int32_t& aCharsetSource,
+                       NotNull<const Encoding*>& aEncoding)
 {
   if (aCharsetSource >= kCharsetFromTopLevelDomain) {
     return;
@@ -500,29 +487,32 @@ nsHTMLDocument::TryTLD(int32_t& aCharsetSource, nsACString& aCharset)
     return;
   }
   aCharsetSource = kCharsetFromTopLevelDomain;
-  FallbackEncoding::FromTopLevelDomain(tld, aCharset);
+  aEncoding = FallbackEncoding::FromTopLevelDomain(tld);
 }
 
 void
-nsHTMLDocument::TryFallback(int32_t& aCharsetSource, nsACString& aCharset)
+nsHTMLDocument::TryFallback(int32_t& aCharsetSource,
+                            NotNull<const Encoding*>& aEncoding)
 {
   if (kCharsetFromFallback <= aCharsetSource)
     return;
 
   aCharsetSource = kCharsetFromFallback;
-  FallbackEncoding::FromLocale(aCharset);
+  aEncoding = FallbackEncoding::FromLocale();
 }
 
 void
-nsHTMLDocument::SetDocumentCharacterSet(const nsACString& aCharSetID)
+nsHTMLDocument::SetDocumentCharacterSet(NotNull<const Encoding*> aEncoding)
 {
-  nsDocument::SetDocumentCharacterSet(aCharSetID);
+  nsDocument::SetDocumentCharacterSet(aEncoding);
   // Make sure to stash this charset on our channel as needed if it's a wyciwyg
   // channel.
   nsCOMPtr<nsIWyciwygChannel> wyciwygChannel = do_QueryInterface(mChannel);
   if (wyciwygChannel) {
+    nsAutoCString charset;
+    aEncoding->Name(charset);
     wyciwygChannel->SetCharsetAndSource(GetDocumentCharacterSetSource(),
-                                        aCharSetID);
+                                        charset);
   }
 }
 
@@ -671,12 +661,12 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 
   // These are the charset source and charset for our document
   int32_t charsetSource;
-  nsAutoCString charset;
+  auto encoding = UTF_8_ENCODING;
 
   // These are the charset source and charset for the parser.  This can differ
   // from that for the document if the channel is a wyciwyg channel.
   int32_t parserCharsetSource;
-  nsAutoCString parserCharset;
+  auto parserCharset = UTF_8_ENCODING;
 
   nsCOMPtr<nsIWyciwygChannel> wyciwygChannel;
 
@@ -693,16 +683,13 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 
   if (forceUtf8) {
     charsetSource = kCharsetFromUtf8OnlyMime;
-    charset.AssignLiteral("UTF-8");
     parserCharsetSource = charsetSource;
-    parserCharset = charset;
   } else if (!IsHTMLDocument() || !docShell) { // no docshell for text/html XHR
     charsetSource = IsHTMLDocument() ? kCharsetFromFallback
                                      : kCharsetFromDocTypeDefault;
-    charset.AssignLiteral("UTF-8");
-    TryChannelCharset(aChannel, charsetSource, charset, executor);
+    TryChannelCharset(aChannel, charsetSource, encoding, executor);
+    parserCharset = encoding;
     parserCharsetSource = charsetSource;
-    parserCharset = charset;
   } else {
     NS_ASSERTION(docShell, "Unexpected null value");
 
@@ -726,24 +713,24 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
       // content to a UTF-16 site such that the byte have a dangerous
       // interpretation as ASCII and the user can be lured to using the
       // charset menu.
-      TryChannelCharset(aChannel, charsetSource, charset, executor);
+      TryChannelCharset(aChannel, charsetSource, encoding, executor);
     }
 
-    TryUserForcedCharset(cv, docShell, charsetSource, charset);
+    TryUserForcedCharset(cv, docShell, charsetSource, encoding);
 
-    TryHintCharset(cv, charsetSource, charset); // XXX mailnews-only
-    TryParentCharset(docShell, charsetSource, charset);
+    TryHintCharset(cv, charsetSource, encoding); // XXX mailnews-only
+    TryParentCharset(docShell, charsetSource, encoding);
 
     if (cachingChan && !urlSpec.IsEmpty()) {
-      TryCacheCharset(cachingChan, charsetSource, charset);
+      TryCacheCharset(cachingChan, charsetSource, encoding);
     }
 
-    TryTLD(charsetSource, charset);
-    TryFallback(charsetSource, charset);
+    TryTLD(charsetSource, encoding);
+    TryFallback(charsetSource, encoding);
 
     if (wyciwygChannel) {
       // We know for sure that the parser needs to be using UTF16.
-      parserCharset = "UTF-16LE";
+      parserCharset = UTF_16LE_ENCODING;
       parserCharsetSource = charsetSource < kCharsetFromChannel ?
         kCharsetFromChannel : charsetSource;
 
@@ -752,27 +739,34 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
       rv = wyciwygChannel->GetCharsetAndSource(&cachedSource, cachedCharset);
       if (NS_SUCCEEDED(rv)) {
         if (cachedSource > charsetSource) {
-          charsetSource = cachedSource;
-          charset = cachedCharset;
+          auto cachedEncoding = Encoding::ForLabel(cachedCharset);
+          if (!cachedEncoding && cachedCharset.EqualsLiteral("replacement")) {
+            cachedEncoding = REPLACEMENT_ENCODING;
+          }
+          if (cachedEncoding) {
+            charsetSource = cachedSource;
+            encoding = WrapNotNull(cachedEncoding);
+          }
         }
       } else {
         // Don't propagate this error.
         rv = NS_OK;
       }
-
     } else {
-      parserCharset = charset;
+      parserCharset = encoding;
       parserCharsetSource = charsetSource;
     }
   }
 
   SetDocumentCharacterSetSource(charsetSource);
-  SetDocumentCharacterSet(charset);
+  SetDocumentCharacterSet(encoding);
 
   if (cachingChan) {
-    NS_ASSERTION(charset == parserCharset,
+    NS_ASSERTION(encoding == parserCharset,
                  "How did those end up different here?  wyciwyg channels are "
                  "not nsICachingChannel");
+    nsAutoCString charset;
+    encoding->Name(charset);
     rv = cachingChan->SetCacheTokenCachedCharset(charset);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "cannot SetMetaDataElement");
     rv = NS_OK; // don't propagate error
@@ -785,7 +779,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 
 #ifdef DEBUG_charset
   printf(" charset = %s source %d\n",
-        charset.get(), charsetSource);
+         charset.get(), charsetSource);
 #endif
   mParser->SetDocumentCharset(parserCharset, parserCharsetSource);
   mParser->SetCommand(aCommand);
@@ -2416,8 +2410,9 @@ nsHTMLDocument::CreateAndAddWyciwygChannel(void)
   // Note: we want to treat this like a "previous document" hint so that,
   // e.g. a <meta> tag in the document.write content can override it.
   SetDocumentCharacterSetSource(kCharsetFromHintPrevDoc);
-  mWyciwygChannel->SetCharsetAndSource(kCharsetFromHintPrevDoc,
-                                       GetDocumentCharacterSet());
+  nsAutoCString charset;
+  GetDocumentCharacterSet()->Name(charset);
+  mWyciwygChannel->SetCharsetAndSource(kCharsetFromHintPrevDoc, charset);
 
   // Inherit load flags from the original document's channel
   channel->SetLoadFlags(mLoadFlags);
@@ -2505,7 +2500,9 @@ nsHTMLDocument::MaybeEditingStateChanged()
       EditingStateChanged();
     } else if (!mInDestructor) {
       nsContentUtils::AddScriptRunner(
-        NewRunnableMethod(this, &nsHTMLDocument::MaybeEditingStateChanged));
+        NewRunnableMethod("nsHTMLDocument::MaybeEditingStateChanged",
+                          this,
+                          &nsHTMLDocument::MaybeEditingStateChanged));
     }
   }
 }
@@ -2536,9 +2533,10 @@ nsHTMLDocument::SetMayStartLayout(bool aMayStartLayout)
 class DeferredContentEditableCountChangeEvent : public Runnable
 {
 public:
-  DeferredContentEditableCountChangeEvent(nsHTMLDocument *aDoc,
-                                          nsIContent *aElement)
-    : mDoc(aDoc)
+  DeferredContentEditableCountChangeEvent(nsHTMLDocument* aDoc,
+                                          nsIContent* aElement)
+    : mozilla::Runnable("DeferredContentEditableCountChangeEvent")
+    , mDoc(aDoc)
     , mElement(aElement)
   {
   }
@@ -3742,7 +3740,8 @@ nsHTMLDocument::WillIgnoreCharsetOverride()
   if (mCharacterSetSource >= kCharsetFromByteOrderMark) {
     return true;
   }
-  if (!IsAsciiCompatible(mCharacterSet)) {
+  if (!mCharacterSet->IsAsciiCompatible() &&
+      mCharacterSet != ISO_2022_JP_ENCODING) {
     return true;
   }
   nsCOMPtr<nsIWyciwygChannel> wyciwyg = do_QueryInterface(mChannel);

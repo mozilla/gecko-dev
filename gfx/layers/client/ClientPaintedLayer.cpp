@@ -6,7 +6,7 @@
 #include "ClientPaintedLayer.h"
 #include "ClientTiledPaintedLayer.h"     // for ClientTiledPaintedLayer
 #include <stdint.h>                     // for uint32_t
-#include "GeckoProfiler.h"              // for PROFILER_LABEL
+#include "GeckoProfiler.h"              // for AUTO_PROFILER_LABEL
 #include "client/ClientLayerManager.h"  // for ClientLayerManager, etc
 #include "gfxContext.h"                 // for gfxContext
 #include "gfx2DGlue.h"
@@ -15,7 +15,6 @@
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/gfx/2D.h"             // for DrawTarget
 #include "mozilla/gfx/DrawEventRecorder.h"
-#include "mozilla/gfx/InlineTranslator.h"
 #include "mozilla/gfx/Matrix.h"         // for Matrix
 #include "mozilla/gfx/Rect.h"           // for Rect, IntRect
 #include "mozilla/gfx/Types.h"          // for Float, etc
@@ -115,8 +114,9 @@ ClientPaintedLayer::UpdatePaintRegion(PaintState& aState)
 }
 
 void
-ClientPaintedLayer::ReplayPaintedLayer(DrawEventRecorderMemory* aRecorder)
+ClientPaintedLayer::PaintOffMainThread(DrawTargetCapture* aCapture)
 {
+  MOZ_ASSERT(NS_IsMainThread());
   LayerIntRegion visibleRegion = GetVisibleRegion();
   mContentClient->BeginPaint();
 
@@ -140,13 +140,8 @@ ClientPaintedLayer::ReplayPaintedLayer(DrawEventRecorderMemory* aRecorder)
 
     SetAntialiasingFlags(this, target);
 
-    // Draw all the things into the actual content client
-    // This shouldn't exist in the future. For now, its just testing
-    // to make sure we properly record and can replay all the draw
-    // commands
-    std::istream& stream = aRecorder->GetInputStream();
-    InlineTranslator translator(target, nullptr);
-    translator.TranslateRecording(stream);
+    // Basic version, wait for the paint thread to finish painting.
+    PaintThread::Get()->PaintContents(aCapture, target);
 
     mContentClient->ReturnDrawTargetToBuffer(target);
     didUpdate = true;
@@ -182,8 +177,7 @@ ClientPaintedLayer::GetPaintFlags()
 void
 ClientPaintedLayer::PaintThebes(nsTArray<ReadbackProcessor::Update>* aReadbackUpdates)
 {
-  PROFILER_LABEL("ClientPaintedLayer", "PaintThebes",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("ClientPaintedLayer::PaintThebes", GRAPHICS);
 
   NS_ASSERTION(ClientManager()->InDrawing(),
                "Can only draw in drawing phase");
@@ -192,8 +186,7 @@ ClientPaintedLayer::PaintThebes(nsTArray<ReadbackProcessor::Update>* aReadbackUp
 
   uint32_t flags = GetPaintFlags();
 
-  PaintState state =
-    mContentClient->BeginPaintBuffer(this, flags);
+  PaintState state = mContentClient->BeginPaintBuffer(this, flags);
   if (!UpdatePaintRegion(state)) {
     return;
   }
@@ -233,8 +226,8 @@ ClientPaintedLayer::PaintThebes(nsTArray<ReadbackProcessor::Update>* aReadbackUp
   }
 }
 
-already_AddRefed<DrawEventRecorderMemory>
-ClientPaintedLayer::RecordPaintedLayer()
+already_AddRefed<DrawTargetCapture>
+ClientPaintedLayer::CapturePaintedContent()
 {
   LayerIntRegion visibleRegion = GetVisibleRegion();
   LayerIntRect bounds = visibleRegion.GetBounds();
@@ -261,25 +254,19 @@ ClientPaintedLayer::RecordPaintedLayer()
     return nullptr;
   }
 
-  // I know this is slow and we should probably use DrawTargetCapture
-  // But for now, the recording draw target / replay should actually work
-  // Replay for WR happens in Moz2DIMageRenderer
   IntSize imageSize(size.ToUnknownSize());
 
-  // DrawTargetRecording also plays back the commands while
-  // recording, hence the dummy DT. DummyDT will actually have
-  // the drawn painted layer.
-  RefPtr<DrawEventRecorderMemory> recorder =
-    MakeAndAddRef<DrawEventRecorderMemory>();
-  RefPtr<DrawTarget> dummyDt =
-    Factory::CreateDrawTarget(gfx::BackendType::SKIA, imageSize, gfx::SurfaceFormat::B8G8R8A8);
+  // DrawTargetCapture requires a reference DT
+  // That is used when some API requires a snapshot.
+  // TODO: Fixup so DrawTargetCapture lazily creates a reference DT
+  RefPtr<DrawTarget> refDT =
+    Factory::CreateDrawTarget(gfxPlatform::GetPlatform()->GetDefaultContentBackend(),
+                              imageSize, gfx::SurfaceFormat::B8G8R8A8);
 
-  RefPtr<DrawTarget> dt =
-    Factory::CreateRecordingDrawTarget(recorder, dummyDt, imageSize);
-
-  dt->ClearRect(Rect(0, 0, imageSize.width, imageSize.height));
-  dt->SetTransform(Matrix().PreTranslate(-bounds.x, -bounds.y));
-  RefPtr<gfxContext> ctx = gfxContext::CreatePreservingTransformOrNull(dt);
+  RefPtr<DrawTargetCapture> captureDT = refDT->CreateCaptureDT(imageSize);
+  captureDT->ClearRect(Rect(0, 0, imageSize.width, imageSize.height));
+  captureDT->SetTransform(Matrix().PreTranslate(-bounds.x, -bounds.y));
+  RefPtr<gfxContext> ctx = gfxContext::CreatePreservingTransformOrNull(captureDT);
   MOZ_ASSERT(ctx); // already checked the target above
 
   ClientManager()->GetPaintedLayerCallback()(this,
@@ -290,7 +277,7 @@ ClientPaintedLayer::RecordPaintedLayer()
                                              nsIntRegion(),
                                              ClientManager()->GetPaintedLayerCallbackData());
 
-  return recorder.forget();
+  return captureDT.forget();
 }
 
 void
@@ -299,13 +286,13 @@ ClientPaintedLayer::RenderLayerWithReadback(ReadbackProcessor *aReadback)
   RenderMaskLayers(this);
 
   if (CanRecordLayer(aReadback)) {
-    RefPtr<DrawEventRecorderMemory> recorder = RecordPaintedLayer();
-    if (recorder) {
+    RefPtr<DrawTargetCapture> capture = CapturePaintedContent();
+    if (capture) {
       if (!EnsureContentClient()) {
         return;
       }
 
-      ReplayPaintedLayer(recorder);
+      PaintOffMainThread(capture);
       return;
     }
   }

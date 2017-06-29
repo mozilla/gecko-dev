@@ -63,6 +63,8 @@ class TextRenderer;
 class CompositingRenderTarget;
 struct FPSState;
 class PaintCounter;
+class LayerMLGPU;
+class LayerManagerMLGPU;
 class UiCompositorControllerParent;
 
 static const int kVisualWarningDuration = 150; // ms
@@ -122,6 +124,9 @@ public:
 
   virtual HostLayerManager* AsHostLayerManager() override {
     return this;
+  }
+  virtual LayerManagerMLGPU* AsLayerManagerMLGPU() {
+    return nullptr;
   }
 
   void ExtractImageCompositeNotifications(nsTArray<ImageCompositeNotificationInfo>* aNotifications)
@@ -328,11 +333,19 @@ public:
    *   - Recomputes visible regions to account for async transforms.
    *     Each layer accumulates into |aVisibleRegion| its post-transform
    *     (including async transforms) visible region.
+   *
+   *   - aRenderTargetClip is the exact clip required for aLayer, in the coordinates
+   *     of the nearest render target (the same as GetEffectiveTransform).
+   *
+   *   - aClipFromAncestors is the approximate combined clip from all ancestors, in
+   *     the coordinate space of our parent, but maybe be an overestimate in the
+   *     presence of complex transforms.
    */
   void PostProcessLayers(nsIntRegion& aOpaqueRegion);
   void PostProcessLayers(Layer* aLayer,
                          nsIntRegion& aOpaqueRegion,
                          LayerIntRegion& aVisibleRegion,
+                         const Maybe<RenderTargetIntRect>& aRenderTargetClip,
                          const Maybe<ParentLayerIntRect>& aClipFromAncestors);
 
   /**
@@ -542,6 +555,8 @@ public:
 
   virtual Layer* GetLayer() = 0;
 
+  virtual LayerMLGPU* AsLayerMLGPU() { return nullptr; }
+
   virtual bool SetCompositableHost(CompositableHost*)
   {
     // We must handle this gracefully, see bug 967824
@@ -560,6 +575,10 @@ public:
   void SetShadowVisibleRegion(const LayerIntRegion& aRegion)
   {
     mShadowVisibleRegion = aRegion;
+  }
+  void SetShadowVisibleRegion(LayerIntRegion&& aRegion)
+  {
+    mShadowVisibleRegion = Move(aRegion);
   }
 
   void SetShadowOpacity(float aOpacity)
@@ -588,11 +607,12 @@ public:
   // These getters can be used anytime.
   float GetShadowOpacity() { return mShadowOpacity; }
   const Maybe<ParentLayerIntRect>& GetShadowClipRect() { return mShadowClipRect; }
-  const LayerIntRegion& GetShadowVisibleRegion() { return mShadowVisibleRegion; }
+  const LayerIntRegion& GetShadowVisibleRegion() const { return mShadowVisibleRegion; }
   const gfx::Matrix4x4& GetShadowBaseTransform() { return mShadowTransform; }
   gfx::Matrix4x4 GetShadowTransform();
   bool GetShadowTransformSetByAnimation() { return mShadowTransformSetByAnimation; }
   bool GetShadowOpacitySetByAnimation() { return mShadowOpacitySetByAnimation; }
+  LayerIntRegion&& GetShadowVisibleRegion() { return Move(mShadowVisibleRegion); }
 
 protected:
   HostLayerManager* mCompositorManager;

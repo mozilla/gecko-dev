@@ -902,9 +902,9 @@ ${helpers.single_keyword_system("font-variant-caps",
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-                SpecifiedValue::Length(LengthOrPercentage::Length(
-                        ToComputedValue::from_computed_value(computed)
-                ))
+            SpecifiedValue::Length(LengthOrPercentage::Length(
+                ToComputedValue::from_computed_value(computed)
+            ))
         }
     }
 
@@ -2012,7 +2012,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         // OpenType "language system" tag, so we should be able to compute
         // it and store it as a 32-bit integer
         // (see http://www.microsoft.com/typography/otspec/languagetags.htm).
-        #[derive(PartialEq, Clone, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub u32);
     }
@@ -2079,6 +2079,14 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
             input.expect_string().map(|cow| {
                 SpecifiedValue::Override(cow.into_owned())
             }).map_err(|e| e.into())
+        }
+    }
+
+    /// Used in @font-face.
+    impl Parse for SpecifiedValue {
+        fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<Self, ParseError<'i>> {
+            parse(context, input)
         }
     }
 
@@ -2388,9 +2396,12 @@ ${helpers.single_keyword("-moz-math-variant",
 
                 let mut system: nsFont = unsafe { mem::uninitialized() };
                 unsafe {
-                    bindings::Gecko_nsFont_InitSystem(&mut system, id as i32,
-                                            cx.style.get_font().gecko(),
-                                            &*cx.device.pres_context)
+                    bindings::Gecko_nsFont_InitSystem(
+                        &mut system,
+                        id as i32,
+                        cx.style.get_font().gecko(),
+                        cx.device.pres_context()
+                    )
                 }
                 let family = system.fontlist.mFontlist.iter().map(|font| {
                     use properties::longhands::font_family::computed_value::*;

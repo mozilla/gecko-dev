@@ -114,6 +114,7 @@ class AsyncLocalFileWinDone : public Runnable
 {
 public:
   AsyncLocalFileWinDone() :
+    Runnable("AsyncLocalFileWinDone"),
     mWorkerThread(do_GetCurrentThread())
   {
     // Objects of this type must only be created on worker threads
@@ -143,7 +144,8 @@ class AsyncRevealOperation : public Runnable
 {
 public:
   explicit AsyncRevealOperation(const nsAString& aResolvedPath)
-    : mResolvedPath(aResolvedPath)
+    : Runnable("AsyncRevealOperation"),
+      mResolvedPath(aResolvedPath)
   {
   }
 
@@ -547,7 +549,7 @@ struct PRFilePrivate
 // copied from nsprpub/pr/src/{io/prfile.c | md/windows/w95io.c} :
 // PR_Open and _PR_MD_OPEN
 nsresult
-OpenFile(const nsAFlatString& aName,
+OpenFile(const nsString& aName,
          int aOsflags,
          int aMode,
          bool aShareDelete,
@@ -651,7 +653,7 @@ FileTimeToPRTime(const FILETIME* aFiletime, PRTime* aPrtm)
 // copied from nsprpub/pr/src/{io/prfile.c | md/windows/w95io.c} with some
 // changes : PR_GetFileInfo64, _PR_MD_GETFILEINFO64
 static nsresult
-GetFileInfo(const nsAFlatString& aName, PRFileInfo64* aInfo)
+GetFileInfo(const nsString& aName, PRFileInfo64* aInfo)
 {
   WIN32_FILE_ATTRIBUTE_DATA fileData;
 
@@ -692,7 +694,7 @@ struct nsDir
 };
 
 static nsresult
-OpenDir(const nsAFlatString& aName, nsDir** aDir)
+OpenDir(const nsString& aName, nsDir** aDir)
 {
   if (NS_WARN_IF(!aDir)) {
     return NS_ERROR_INVALID_ARG;
@@ -1016,7 +1018,7 @@ nsLocalFile::ResolveAndStat()
     return NS_OK;
   }
 
-  PROFILER_LABEL_FUNC(js::ProfileEntry::Category::OTHER);
+  AUTO_PROFILER_LABEL("nsLocalFile::ResolveAndStat", OTHER);
   // we can't resolve/stat anything that isn't a valid NSPR addressable path
   if (mWorkingPath.IsEmpty()) {
     return NS_ERROR_FILE_INVALID_PATH;
@@ -1467,7 +1469,7 @@ nsLocalFile::AppendRelativePath(const nsAString& aNode)
 
 
 nsresult
-nsLocalFile::AppendInternal(const nsAFlatString& aNode,
+nsLocalFile::AppendInternal(const nsString& aNode,
                             bool aMultipleComponents)
 {
   if (aNode.IsEmpty()) {

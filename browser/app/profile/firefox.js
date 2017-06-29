@@ -479,6 +479,11 @@ pref("browser.tabs.drawInTitlebar", false);
 pref("browser.tabs.drawInTitlebar", true);
 #endif
 
+// false - disable the tabbar session restore button
+// true - enable the tabbar session restore button
+// To be enabled with shield
+pref("browser.tabs.restorebutton", false);
+
 // When tabs opened by links in other tabs via a combination of
 // browser.link.open_newwindow being set to 3 and target="_blank" etc are
 // closed:
@@ -1261,16 +1266,16 @@ pref("browser.newtabpage.enabled", true);
 sticky_pref("browser.newtabpage.enhanced", true);
 
 // enables Activity Stream inspired layout
-pref("browser.newtabpage.compact", false);
+pref("browser.newtabpage.compact", true);
 
 // enables showing basic placeholders for missing thumbnails
 pref("browser.newtabpage.thumbnailPlaceholder", false);
 
 // number of rows of newtab grid
-pref("browser.newtabpage.rows", 3);
+pref("browser.newtabpage.rows", 2);
 
 // number of columns of newtab grid
-pref("browser.newtabpage.columns", 5);
+pref("browser.newtabpage.columns", 6);
 
 // directory tiles download URL
 pref("browser.newtabpage.directory.source", "https://tiles.services.mozilla.com/v3/links/fetch/%LOCALE%/%CHANNEL%");
@@ -1561,7 +1566,7 @@ pref("extensions.allow-non-mpc-extensions", false);
 #endif
 
 // Enable blocking of e10s and e10s-multi for add-on users on beta/release.
-#ifdef RELEASE_OR_BETA
+#if defined(RELEASE_OR_BETA) && !defined(MOZ_DEV_EDITION)
 pref("extensions.e10sBlocksEnabling", true);
 pref("extensions.e10sMultiBlocksEnabling", true);
 #endif

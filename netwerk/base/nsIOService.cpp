@@ -1398,14 +1398,13 @@ nsIOService::GetPrefBranch(nsIPrefBranch **result)
 class nsWakeupNotifier : public Runnable
 {
 public:
-    explicit nsWakeupNotifier(nsIIOServiceInternal *ioService)
-        :mIOService(ioService)
-    { }
+  explicit nsWakeupNotifier(nsIIOServiceInternal* ioService)
+    : Runnable("net::nsWakeupNotifier")
+    , mIOService(ioService)
+  {
+  }
 
-    NS_IMETHOD Run() override
-    {
-        return mIOService->NotifyWakeup();
-    }
+  NS_IMETHOD Run() override { return mIOService->NotifyWakeup(); }
 
 private:
     virtual ~nsWakeupNotifier() { }
@@ -1825,6 +1824,8 @@ nsIOService::SpeculativeConnectInternal(nsIURI *aURI,
                                         nsIInterfaceRequestor *aCallbacks,
                                         bool aAnonymous)
 {
+    NS_ENSURE_ARG(aURI);
+
     bool isHTTP, isHTTPS;
     if (!(NS_SUCCEEDED(aURI->SchemeIs("http", &isHTTP)) && isHTTP) &&
         !(NS_SUCCEEDED(aURI->SchemeIs("https", &isHTTPS)) && isHTTPS)) {

@@ -109,7 +109,11 @@
   skin/classic/browser/back-12.svg                    (../shared/icons/back-12.svg)
   skin/classic/browser/bookmark.svg                   (../shared/icons/bookmark.svg)
   skin/classic/browser/bookmark-hollow.svg            (../shared/icons/bookmark-hollow.svg)
+#ifndef MOZ_PHOTON_THEME
   skin/classic/browser/bookmarksMenu.svg              (../shared/icons/bookmarksMenu.svg)
+#else
+  skin/classic/browser/bookmark-star-on-tray.svg      (../shared/icons/bookmark-star-on-tray.svg)
+#endif
   skin/classic/browser/characterEncoding.svg          (../shared/icons/characterEncoding.svg)
   skin/classic/browser/chevron.svg                    (../shared/icons/chevron.svg)
   skin/classic/browser/check.svg                      (../shared/icons/check.svg)
@@ -170,7 +174,6 @@
   skin/classic/browser/badge-add-engine@2x.png                 (../shared/search/badge-add-engine@2x.png)
   skin/classic/browser/search-indicator-badge-add.png          (../shared/search/search-indicator-badge-add.png)
   skin/classic/browser/search-indicator-badge-add@2x.png       (../shared/search/search-indicator-badge-add@2x.png)
-  skin/classic/browser/search-history-icon.svg                 (../shared/search/history-icon.svg)
   skin/classic/browser/search-indicator-magnifying-glass.svg   (../shared/search/search-indicator-magnifying-glass.svg)
   skin/classic/browser/search-arrow-go.svg                     (../shared/search/search-arrow-go.svg)
   skin/classic/browser/gear.svg                                (../shared/search/gear.svg)

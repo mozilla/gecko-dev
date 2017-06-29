@@ -791,7 +791,7 @@ nsHttpHandler::GenerateHostPort(const nsCString& host, int32_t port,
 // nsHttpHandler <private>
 //-----------------------------------------------------------------------------
 
-const nsAFlatCString &
+const nsCString&
 nsHttpHandler::UserAgent()
 {
     if (nsContentUtils::ShouldResistFingerprinting() &&
@@ -2309,10 +2309,11 @@ nsHttpHandler::Observe(nsISupports *subject,
     } else if (!strcmp(topic, "browser:purge-session-history")) {
         if (mConnMgr) {
             if (gSocketTransportService) {
-                nsCOMPtr<nsIRunnable> event =
-                    NewRunnableMethod(mConnMgr,
-                                      &nsHttpConnectionMgr::ClearConnectionHistory);
-                gSocketTransportService->Dispatch(event, NS_DISPATCH_NORMAL);
+              nsCOMPtr<nsIRunnable> event = NewRunnableMethod(
+                "net::nsHttpConnectionMgr::ClearConnectionHistory",
+                mConnMgr,
+                &nsHttpConnectionMgr::ClearConnectionHistory);
+              gSocketTransportService->Dispatch(event, NS_DISPATCH_NORMAL);
             }
             mConnMgr->ClearAltServiceMappings();
         }

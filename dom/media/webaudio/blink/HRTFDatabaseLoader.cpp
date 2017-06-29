@@ -111,11 +111,15 @@ size_t HRTFDatabaseLoader::sizeOfIncludingThis(mozilla::MallocSizeOf aMallocSize
 
 class HRTFDatabaseLoader::ProxyReleaseEvent final : public Runnable {
 public:
-    explicit ProxyReleaseEvent(HRTFDatabaseLoader* loader) : mLoader(loader) {}
-    NS_IMETHOD Run() override
-    {
-        mLoader->MainThreadRelease();
-        return NS_OK;
+  explicit ProxyReleaseEvent(HRTFDatabaseLoader* loader)
+    : mozilla::Runnable("WebCore::HRTFDatabaseLoader::ProxyReleaseEvent")
+    , mLoader(loader)
+  {
+  }
+  NS_IMETHOD Run() override
+  {
+    mLoader->MainThreadRelease();
+    return NS_OK;
     }
 private:
     HRTFDatabaseLoader* mLoader;
@@ -153,7 +157,7 @@ void HRTFDatabaseLoader::MainThreadRelease()
 // Asynchronously load the database in this thread.
 static void databaseLoaderEntry(void* threadData)
 {
-    AutoProfilerRegister registerThread("HRTFDatabaseLdr");
+    AutoProfilerRegisterThread registerThread("HRTFDatabaseLdr");
     NS_SetCurrentThreadName("HRTFDatabaseLdr");
 
     HRTFDatabaseLoader* loader = reinterpret_cast<HRTFDatabaseLoader*>(threadData);

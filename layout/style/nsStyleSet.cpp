@@ -1101,8 +1101,7 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
                       RuleProcessorData* aData, Element* aElement,
                       nsRuleWalker* aRuleWalker)
 {
-  PROFILER_LABEL("nsStyleSet", "FileRules",
-    js::ProfileEntry::Category::CSS);
+  AUTO_PROFILER_LABEL("nsStyleSet::FileRules", CSS);
 
   NS_ASSERTION(mBatching == 0, "rule processors out of date");
 
@@ -2010,8 +2009,7 @@ already_AddRefed<nsStyleContext>
 nsStyleSet::ProbePseudoElementStyle(Element* aParentElement,
                                     CSSPseudoElementType aType,
                                     nsStyleContext* aParentContext,
-                                    TreeMatchContext& aTreeMatchContext,
-                                    Element* aPseudoElement)
+                                    TreeMatchContext& aTreeMatchContext)
 {
   NS_ENSURE_FALSE(mInShutdown, nullptr);
 
@@ -2024,7 +2022,7 @@ nsStyleSet::ProbePseudoElementStyle(Element* aParentElement,
   aTreeMatchContext.ResetForUnvisitedMatching();
   PseudoElementRuleProcessorData data(PresContext(), aParentElement,
                                       &ruleWalker, aType, aTreeMatchContext,
-                                      aPseudoElement);
+                                      /* aPseudoElement = */ nullptr);
   WalkRestrictionRule(aType, &ruleWalker);
   // not the root if there was a restriction rule
   nsRuleNode *adjustedRoot = ruleWalker.CurrentNode();

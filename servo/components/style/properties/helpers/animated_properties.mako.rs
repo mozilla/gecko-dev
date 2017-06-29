@@ -30,7 +30,7 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 use selectors::parser::SelectorParseError;
 use smallvec::SmallVec;
 use std::cmp;
-#[cfg(feature = "gecko")] use std::collections::HashMap;
+#[cfg(feature = "gecko")] use fnv::FnvHashMap;
 use style_traits::ParseError;
 use super::ComputedValues;
 use values::{Auto, CSSFloat, CustomIdent, Either};
@@ -440,7 +440,7 @@ impl AnimatedProperty {
 /// This HashMap stores the values that are the last AnimationValue to be
 /// composed for each TransitionProperty.
 #[cfg(feature = "gecko")]
-pub type AnimationValueMap = HashMap<AnimatableLonghand, AnimationValue>;
+pub type AnimationValueMap = FnvHashMap<AnimatableLonghand, AnimationValue>;
 #[cfg(feature = "gecko")]
 unsafe impl HasFFI for AnimationValueMap {
     type FFIType = RawServoAnimationValueMap;
@@ -582,7 +582,7 @@ impl AnimationValue {
                             &variables.url_data,
                             variables.from_shorthand,
                             &custom_props,
-                            |v| {
+                            &mut |v| {
                                 let declaration = match *v {
                                     DeclaredValue::Value(value) => {
                                         PropertyDeclaration::${prop.camel_case}(value.clone())
@@ -808,30 +808,36 @@ pub trait RepeatableListAnimatable: Animatable {}
 impl RepeatableListAnimatable for LengthOrPercentage {}
 impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
 
-impl<T: RepeatableListAnimatable> Animatable for SmallVec<[T; 1]> {
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-        -> Result<Self, ()> {
-        use num_integer::lcm;
-        let len = lcm(self.len(), other.len());
-        self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
-            me.add_weighted(you, self_portion, other_portion)
-        }).collect()
-    }
+macro_rules! repeated_vec_impl {
+    ($($ty:ty),*) => {
+        $(impl<T: RepeatableListAnimatable> Animatable for $ty {
+            fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+                -> Result<Self, ()> {
+                use num_integer::lcm;
+                let len = lcm(self.len(), other.len());
+                self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
+                    me.add_weighted(you, self_portion, other_portion)
+                }).collect()
+            }
 
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sd| sd.sqrt())
-    }
+            #[inline]
+            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+                self.compute_squared_distance(other).map(|sd| sd.sqrt())
+            }
 
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        use num_integer::lcm;
-        let len = lcm(self.len(), other.len());
-        self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
-            me.compute_squared_distance(you)
-        }).collect::<Result<Vec<_>, _>>().map(|d| d.iter().sum())
-    }
+            #[inline]
+            fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                use num_integer::lcm;
+                let len = lcm(self.len(), other.len());
+                self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
+                    me.compute_squared_distance(you)
+                }).sum()
+            }
+        })*
+    };
 }
+
+repeated_vec_impl!(SmallVec<[T; 1]>, Vec<T>);
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Animatable for Au {
@@ -2765,7 +2771,7 @@ impl Animatable for IntermediateRGBA {
 
     #[inline]
     fn get_zero_value(&self) -> Option<Self> {
-        Some(IntermediateRGBA::new(0., 0., 0., 1.))
+        Some(IntermediateRGBA::transparent())
     }
 
     #[inline]
@@ -2982,6 +2988,14 @@ impl Animatable for IntermediateSVGPaint {
         Ok(self.kind.compute_squared_distance(&other.kind)? +
             self.fallback.compute_squared_distance(&other.fallback)?)
     }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> {
+        Some(IntermediateSVGPaint {
+            kind: option_try!(self.kind.get_zero_value()),
+            fallback: self.fallback.and_then(|v| v.get_zero_value()),
+        })
+    }
 }
 
 impl Animatable for IntermediateSVGPaintKind {
@@ -3012,6 +3026,18 @@ impl Animatable for IntermediateSVGPaintKind {
             _ => Err(())
         }
     }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> {
+        match self {
+            &SVGPaintKind::Color(ref color) => color.get_zero_value()
+                                                    .map(SVGPaintKind::Color),
+            &SVGPaintKind::None |
+            &SVGPaintKind::ContextFill |
+            &SVGPaintKind::ContextStroke =>  Some(self.clone()),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -3033,9 +3059,9 @@ pub struct IntermediateShadow {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 /// Intermediate type for box-shadow list and text-shadow list.
-pub struct IntermediateShadowList(pub SmallVec<[IntermediateShadow; 1]>);
+pub struct IntermediateShadowList(pub Vec<IntermediateShadow>);
 
-type ShadowList = SmallVec<[Shadow; 1]>;
+type ShadowList = Vec<Shadow>;
 
 impl From<IntermediateShadowList> for ShadowList {
     fn from(shadow_list: IntermediateShadowList) -> Self {
@@ -3152,11 +3178,7 @@ impl Animatable for IntermediateShadowList {
 
         let max_len = cmp::max(self.0.len(), other.0.len());
 
-        let mut result = if max_len > 1 {
-            SmallVec::from_vec(Vec::with_capacity(max_len))
-        } else {
-            SmallVec::new()
-        };
+        let mut result = Vec::with_capacity(max_len);
 
         for i in 0..max_len {
             let shadow = match (self.0.get(i), other.0.get(i)) {
@@ -3182,11 +3204,7 @@ impl Animatable for IntermediateShadowList {
     fn add(&self, other: &Self) -> Result<Self, ()> {
         let len = self.0.len() + other.0.len();
 
-        let mut result = if len > 1 {
-            SmallVec::from_vec(Vec::with_capacity(len))
-        } else {
-            SmallVec::new()
-        };
+        let mut result = Vec::with_capacity(len);
 
         result.extend(self.0.iter().cloned());
         result.extend(other.0.iter().cloned());
@@ -3322,11 +3340,11 @@ impl Animatable for AnimatedFilterList {
             }
         }
 
-        Ok(filters.into())
+        Ok(AnimatedFilterList(filters))
     }
 
     fn add(&self, other: &Self) -> Result<Self, ()> {
-        Ok(self.0.iter().chain(other.0.iter()).cloned().collect::<Vec<_>>().into())
+        Ok(AnimatedFilterList(self.0.iter().chain(other.0.iter()).cloned().collect()))
     }
 
     #[inline]

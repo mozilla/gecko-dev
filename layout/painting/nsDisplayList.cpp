@@ -545,17 +545,17 @@ AddAnimationForProperty(nsIFrame* aFrame, const AnimationProperty& aProperty,
 
   const ComputedTiming computedTiming =
     aAnimation->GetEffect()->GetComputedTiming();
-  animation->delay() = timing.mDelay;
-  animation->endDelay() = timing.mEndDelay;
+  animation->delay() = timing.Delay();
+  animation->endDelay() = timing.EndDelay();
   animation->duration() = computedTiming.mDuration;
   animation->iterations() = computedTiming.mIterations;
   animation->iterationStart() = computedTiming.mIterationStart;
-  animation->direction() = static_cast<uint8_t>(timing.mDirection);
+  animation->direction() = static_cast<uint8_t>(timing.Direction());
   animation->fillMode() = static_cast<uint8_t>(computedTiming.mFill);
   animation->property() = aProperty.mProperty;
   animation->playbackRate() = aAnimation->PlaybackRate();
   animation->data() = aData;
-  animation->easingFunction() = ToTimingFunction(timing.mFunction);
+  animation->easingFunction() = ToTimingFunction(timing.TimingFunction());
   animation->iterationComposite() =
     static_cast<uint8_t>(aAnimation->GetEffect()->
                          AsKeyframeEffect()->IterationComposite());
@@ -1922,8 +1922,7 @@ nsDisplayList::GetVisibleRect() const {
 bool
 nsDisplayList::ComputeVisibilityForRoot(nsDisplayListBuilder* aBuilder,
                                         nsRegion* aVisibleRegion) {
-  PROFILER_LABEL("nsDisplayList", "ComputeVisibilityForRoot",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("nsDisplayList::ComputeVisibilityForRoot", GRAPHICS);
 
   nsRegion r;
   const ActiveScrolledRoot* rootASR = nullptr;
@@ -2065,9 +2064,9 @@ nsDisplayListBuilder::GetWidgetLayerManager(nsView** aView)
  */
 already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aBuilder,
                                                         gfxContext* aCtx,
-                                                        uint32_t aFlags) {
-  PROFILER_LABEL("nsDisplayList", "PaintRoot",
-    js::ProfileEntry::Category::GRAPHICS);
+                                                        uint32_t aFlags)
+{
+  AUTO_PROFILER_LABEL("nsDisplayList::PaintRoot", GRAPHICS);
 
   RefPtr<LayerManager> layerManager;
   bool widgetTransaction = false;
@@ -2207,7 +2206,6 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
       content = document->GetDocumentElement();
     }
 
-
     if (ensureMetricsForRootId && content) {
       ViewID scrollId = nsLayoutUtils::FindOrCreateIDFor(content);
       if (nsLayoutUtils::ContainsMetricsWithId(root, scrollId)) {
@@ -2227,6 +2225,9 @@ already_AddRefed<LayerManager> nsDisplayList::PaintRoot(nsDisplayListBuilder* aB
                            root, FrameMetrics::NULL_SCROLL_ID, viewport, Nothing(),
                            isRootContent, containerParameters));
     }
+
+    // Send an updated focus target with this transaction
+    layerManager->SetFocusTarget(presShell->GetAPZFocusTarget());
 
     // NS_WARNING is debug-only, so don't even bother checking the conditions in
     // a release build.
@@ -4619,12 +4620,12 @@ nsDisplayCaret::CreateWebRenderCommands(wr::DisplayListBuilder& aBuilder,
 
   // Note, WR will pixel snap anything that is layout aligned.
   aBuilder.PushRect(caret,
-                    aBuilder.PushClipRegion(caret),
+                    caret,
                     wr::ToWrColor(color));
 
   if (!devHookRect.IsEmpty()) {
     aBuilder.PushRect(hook,
-                      aBuilder.PushClipRegion(hook),
+                      hook,
                       wr::ToWrColor(color));
   }
 }
@@ -4896,7 +4897,7 @@ nsDisplayBorder::CreateBorderImageWebRenderCommands(mozilla::wr::DisplayListBuil
       }
 
       aBuilder.PushBorderImage(dest,
-                               aBuilder.PushClipRegion(clip),
+                               clip,
                                wr::ToWrBorderWidths(widths[0], widths[1], widths[2], widths[3]),
                                key.value(),
                                wr::ToWrNinePatchDescriptor(
@@ -4929,7 +4930,7 @@ nsDisplayBorder::CreateBorderImageWebRenderCommands(mozilla::wr::DisplayListBuil
         endPoint = endPoint + ViewAs<LayerPixel>(lineEnd, PixelCastJustification::WebRenderHasUnitResolution);
 
         aBuilder.PushBorderGradient(dest,
-                                    aBuilder.PushClipRegion(clip),
+                                    clip,
                                     wr::ToWrBorderWidths(widths[0], widths[1], widths[2], widths[3]),
                                     wr::ToWrPoint(startPoint),
                                     wr::ToWrPoint(endPoint),
@@ -4938,7 +4939,7 @@ nsDisplayBorder::CreateBorderImageWebRenderCommands(mozilla::wr::DisplayListBuil
                                     wr::ToWrSideOffsets2Df32(outset[0], outset[1], outset[2], outset[3]));
       } else {
         aBuilder.PushBorderRadialGradient(dest,
-                                          aBuilder.PushClipRegion(clip),
+                                          clip,
                                           wr::ToWrBorderWidths(widths[0], widths[1], widths[2], widths[3]),
                                           wr::ToWrPoint(lineStart),
                                           wr::ToWrSize(gradientRadius),
@@ -5083,8 +5084,7 @@ nsDisplayBoxShadowOuter::Paint(nsDisplayListBuilder* aBuilder,
   AutoTArray<nsRect,10> rects;
   ComputeDisjointRectangles(mVisibleRegion, &rects);
 
-  PROFILER_LABEL("nsDisplayBoxShadowOuter", "Paint",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("nsDisplayBoxShadowOuter::Paint", GRAPHICS);
 
   for (uint32_t i = 0; i < rects.Length(); ++i) {
     nsCSSRendering::PaintBoxShadowOuter(presContext, *aCtx, mFrame,
@@ -5266,7 +5266,7 @@ nsDisplayBoxShadowOuter::CreateWebRenderCommands(wr::DisplayListBuilder& aBuilde
       float spreadRadius = float(shadow->mSpread) / float(appUnitsPerDevPixel);
 
       aBuilder.PushBoxShadow(deviceBoxRect,
-                             aBuilder.PushClipRegion(deviceClipRect),
+                             deviceClipRect,
                              deviceBoxRect,
                              wr::ToWrPoint(shadowOffset),
                              wr::ToWrColor(shadowColor),
@@ -5315,8 +5315,7 @@ nsDisplayBoxShadowInner::Paint(nsDisplayListBuilder* aBuilder,
   AutoTArray<nsRect,10> rects;
   ComputeDisjointRectangles(mVisibleRegion, &rects);
 
-  PROFILER_LABEL("nsDisplayBoxShadowInner", "Paint",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("nsDisplayBoxShadowInner::Paint", GRAPHICS);
 
   DrawTarget* drawTarget = aCtx->GetDrawTarget();
   gfxContext* gfx = aCtx;
@@ -5424,7 +5423,7 @@ nsDisplayBoxShadowInner::CreateInsetBoxShadowWebRenderCommands(mozilla::wr::Disp
       float spreadRadius = float(shadowItem->mSpread) / float(appUnitsPerDevPixel);
 
       aBuilder.PushBoxShadow(wr::ToWrRect(deviceBoxRect),
-                             aBuilder.PushClipRegion(deviceClipRect),
+                             deviceClipRect,
                              wr::ToWrRect(deviceBoxRect),
                              wr::ToWrPoint(shadowOffset),
                              wr::ToWrColor(shadowColor),
