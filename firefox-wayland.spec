@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        56.0
+Version:        56.1
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -257,6 +257,16 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Thu Jun 29 2017 Martin Stransky <stransky@redhat.com> 56.1-1
+- Don't explicitly grab on Wayland (use only implicit grab), see mozbz#1377084
+  for details (stransky@redhat.com)
+- Removed the gdk_seat_* code - let's solve
+  https://bugzilla.mozilla.org/show_bug.cgi?id=1377084 first
+  (stransky@redhat.com)
+- Specfile tweak - version up (stransky@redhat.com)
+- Don't call gdk_x11_window_get_xid() from LOG() under wayland
+  (stransky@redhat.com)
+
 * Thu Jun 29 2017 Martin Stransky <stransky@redhat.com> 56.0-1
 - Rpm version up to match Firefox version
 
