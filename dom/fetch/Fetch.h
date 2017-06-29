@@ -20,7 +20,6 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/RequestBinding.h"
-#include "mozilla/dom/workers/bindings/WorkerHolder.h"
 
 class nsIGlobalObject;
 
@@ -64,7 +63,7 @@ ExtractByteStreamFromBody(const ArrayBufferOrArrayBufferViewOrBlobOrFormDataOrUS
                           nsCString& aContentType,
                           uint64_t& aContentLength);
 
-template <class Derived> class FetchBodyWorkerHolder;
+template <class Derived> class FetchBodyWrapper;
 
 /*
  * FetchBody's body consumption uses nsIInputStreamPump to read from the
@@ -100,8 +99,13 @@ template <class Derived> class FetchBodyWorkerHolder;
  * The pump is always released on the main thread.
  */
 template <class Derived>
-class FetchBody {
+class FetchBody
+{
 public:
+  // This is not landed yet: NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
+  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) = 0;
+  NS_IMETHOD_(MozExternalRefCountType) Release(void) = 0;
+
   bool
   BodyUsed() const { return mBodyUsed; }
 
@@ -137,13 +141,15 @@ public:
 
   // Utility public methods accessed by various runnables.
   void
-  BeginConsumeBodyMainThread();
+  BeginConsumeBodyMainThread(FetchBodyWrapper<Derived>* aWrapper);
 
   void
-  ContinueConsumeBody(nsresult aStatus, uint32_t aLength, uint8_t* aResult);
+  ContinueConsumeBody(FetchBodyWrapper<Derived>* aWrapper, nsresult aStatus,
+                      uint32_t aLength, uint8_t* aResult);
 
   void
-  ContinueConsumeBlobBody(BlobImpl* aBlobImpl);
+  ContinueConsumeBlobBody(FetchBodyWrapper<Derived>* aWrapper,
+                          BlobImpl* aBlobImpl);
 
   void
   CancelPump();
@@ -156,10 +162,6 @@ public:
 
   // Always set whenever the FetchBody is created on the worker thread.
   workers::WorkerPrivate* mWorkerPrivate;
-
-  // Set when consuming the body is attempted on a worker.
-  // Unset when consumption is done/aborted.
-  nsAutoPtr<workers::WorkerHolder> mWorkerHolder;
 
 protected:
   FetchBody();
@@ -191,18 +193,6 @@ private:
   ConsumeBody(ConsumeType aType, ErrorResult& aRv);
 
   bool
-  AddRefObject();
-
-  void
-  ReleaseObject();
-
-  bool
-  RegisterWorkerHolder();
-
-  void
-  UnregisterWorkerHolder();
-
-  bool
   IsOnTargetThread()
   {
     return NS_IsMainThread() == !mWorkerPrivate;
@@ -221,9 +211,8 @@ private:
   // Only touched on target thread.
   ConsumeType mConsumeType;
   RefPtr<Promise> mConsumePromise;
-#ifdef DEBUG
-  bool mReadDone;
-#endif
+
+  bool mBodyConsumed;
 
   nsMainThreadPtrHandle<nsIInputStreamPump> mConsumeBodyPump;
 };
