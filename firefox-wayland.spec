@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        55.10
+Version:        55.11
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -257,6 +257,10 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Thu Jun 29 2017 Martin Stransky <stransky@redhat.com> 55.11-1
+- Removed double / to fix rpm build (stransky@redhat.com)
+- Merged with upstream
+
 * Fri Jun 23 2017 Martin Stransky <stransky@redhat.com> 55.10-1
 - Fixed rhbz#1464017 - [Wayland] Hamburger menu popup and other panels does not
   render transparent background (stransky@redhat.com)
