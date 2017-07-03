@@ -3650,10 +3650,14 @@ nsWindow::Create(nsIWidget* aParent,
         // which will use a Window with the override-redirect attribute
         // (for temporary windows).
         // For long-lived windows, their stacking order is managed by the
-        // window manager, as indicated by GTK_WINDOW_TOPLEVEL ...
+        // window manager, as indicated by GTK_WINDOW_TOPLEVEL.
+        // For Wayland we have to always use GTK_WINDOW_POPUP otherwise
+        // we can't control window position.
         GtkWindowType type =
-            mWindowType != eWindowType_popup || aInitData->mNoAutoHide ?
+            mWindowType != eWindowType_popup ||
+            (aInitData->mNoAutoHide && mIsX11Display) ?
               GTK_WINDOW_TOPLEVEL : GTK_WINDOW_POPUP;
+
         mShell = gtk_window_new(type);
 
         bool useAlphaVisual = (mWindowType == eWindowType_popup &&
@@ -3704,7 +3708,8 @@ nsWindow::Create(nsIWidget* aParent,
             gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup",
                                    gdk_get_program_class());
 
-            if (aInitData->mNoAutoHide) {
+            // Don't handle noautohide popups on Wayland as toplevel
+            if (aInitData->mNoAutoHide && mIsX11Display) {
                 // ... but the window manager does not decorate this window,
                 // nor provide a separate taskbar icon.
                 if (mBorderStyle == eBorderStyle_default) {
