@@ -3610,6 +3610,7 @@ nsWindow::Create(nsIWidget* aParent,
     nsWindow       *parentnsWindow = nullptr;
     GtkWidget      *eventWidget = nullptr;
     bool            shellHasCSD = false;
+    bool            drawToContainer = false;
 
     if (aParent) {
         parentnsWindow = static_cast<nsWindow*>(aParent);
@@ -3709,7 +3710,7 @@ nsWindow::Create(nsIWidget* aParent,
                                    gdk_get_program_class());
 
             // Don't handle noautohide popups on Wayland as toplevel
-            if (aInitData->mNoAutoHide && mIsX11Display) {
+            if (aInitData->mNoAutoHide) {
                 // ... but the window manager does not decorate this window,
                 // nor provide a separate taskbar icon.
                 if (mBorderStyle == eBorderStyle_default) {
@@ -3730,9 +3731,11 @@ nsWindow::Create(nsIWidget* aParent,
 #ifdef MOZ_X11
                 // ... but when the window manager offers focus through
                 // WM_TAKE_FOCUS, focus is requested on the parent window.
-                gtk_widget_realize(mShell);
-                gdk_window_add_filter(gtk_widget_get_window(mShell),
-                                      popup_take_focus_filter, nullptr);
+                if (mIsX11Display) {
+                    gtk_widget_realize(mShell);
+                    gdk_window_add_filter(gtk_widget_get_window(mShell),
+                                          popup_take_focus_filter, nullptr);
+                }
 #endif
             }
 
@@ -3788,27 +3791,22 @@ nsWindow::Create(nsIWidget* aParent,
         // We can't draw directly to top-level window when client side
         // decorations are enabled. We use container with GdkWindow instead.
         GtkStyleContext* style = gtk_widget_get_style_context(mShell);
-
-        // Always draw to mozcontainer on Wayland
         shellHasCSD = gtk_style_context_has_class(style, "csd");
-        // We use mContainer to draw on Wayland
-        if (!mIsX11Display) {
-            shellHasCSD = true;
-        }
+        drawToContainer = shellHasCSD || !mIsX11Display;
 #endif
-        if (!shellHasCSD) {
+        if (!drawToContainer) {
             // Use mShell's window for drawing and events.
             gtk_widget_set_has_window(container, FALSE);
         }
 
         // Prevent GtkWindow from painting a background to flicker.
-        // On Wayland we need that for correct window rendering.
-        if (!shellHasCSD || !mIsX11Display) {
+        // We also need that on Wayland to ensure the underlying mShell
+        // window is transparent when CSD is enabled.
+        if (!shellHasCSD) {
             gtk_widget_set_app_paintable(mShell, TRUE);
         }
 
-        // Set up event widget
-        eventWidget = shellHasCSD ? container : mShell;
+        eventWidget = drawToContainer ? container : mShell;
         gtk_widget_add_events(eventWidget, kEvents);
 
         gtk_container_add(GTK_CONTAINER(mShell), container);
@@ -3849,7 +3847,10 @@ nsWindow::Create(nsIWidget* aParent,
               cairo_rectangle_int_t rect = { 0, 0, 0, 0 };
               cairo_region_t *region = cairo_region_create_rectangle(&rect);
 
-              gdk_window_input_shape_combine_region(mGdkWindow, region, 0, 0);
+              // Popups may not have SCD enabled so we need to mask
+              // toplevel widget here.
+              GtkWidget *inputWidget = shellHasCSD ? container : mShell;
+              gtk_widget_input_shape_combine_region(inputWidget, region);
               cairo_region_destroy(region);
 #endif
             }
@@ -3969,7 +3970,7 @@ nsWindow::Create(nsIWidget* aParent,
                          G_CALLBACK(drag_data_received_event_cb), nullptr);
 
         GtkWidget *widgets[] = { GTK_WIDGET(mContainer),
-                                 !shellHasCSD ? mShell : nullptr };
+                                 !drawToContainer ? mShell : nullptr };
         for (size_t i = 0; i < ArrayLength(widgets) && widgets[i]; ++i) {
             // Visibility events are sent to the owning widget of the relevant
             // window but do not propagate to parent widgets so connect on
