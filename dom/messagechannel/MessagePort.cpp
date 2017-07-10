@@ -413,8 +413,10 @@ MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
         continue;
       }
 
+      JS::Rooted<JSObject*> object(aCx, &value.toObject());
+
       MessagePort* port = nullptr;
-      nsresult rv = UNWRAP_OBJECT(MessagePort, &value.toObject(), port);
+      nsresult rv = UNWRAP_OBJECT(MessagePort, &object, port);
       if (NS_FAILED(rv)) {
         continue;
       }

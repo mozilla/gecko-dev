@@ -1055,11 +1055,11 @@ public:
 
         if (aWorkerPrivate) {
           WorkerGlobalScope* globalScope = nullptr;
-          UNWRAP_OBJECT(WorkerGlobalScope, global, globalScope);
+          UNWRAP_OBJECT(WorkerGlobalScope, &global, globalScope);
 
           if (!globalScope) {
             WorkerDebuggerGlobalScope* globalScope = nullptr;
-            UNWRAP_OBJECT(WorkerDebuggerGlobalScope, global, globalScope);
+            UNWRAP_OBJECT(WorkerDebuggerGlobalScope, &global, globalScope);
 
             MOZ_ASSERT_IF(globalScope, globalScope->GetWrapperPreserveColor() == global);
             if (globalScope || IsDebuggerSandbox(global)) {
@@ -6739,8 +6739,9 @@ GetWorkerCrossThreadDispatcher(JSContext* aCx, const JS::Value& aWorker)
     return nullptr;
   }
 
+  JS::Rooted<JSObject*> obj(aCx, &aWorker.toObject());
   WorkerPrivate* w = nullptr;
-  UNWRAP_OBJECT(Worker, &aWorker.toObject(), w);
+  UNWRAP_OBJECT(Worker, &obj, w);
   MOZ_ASSERT(w);
   return w->GetCrossThreadDispatcher();
 }

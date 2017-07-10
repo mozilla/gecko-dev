@@ -1640,9 +1640,10 @@ XrayResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
     // be protected by read-only/non-configurable properties, and any functions
     // we end up with should _always_ be living in our own scope (the XBL scope).
     // Make sure to assert that.
+    JS::Rooted<JSObject*> maybeElement(cx, obj);
     Element* element;
     if (xpc::ObjectScope(wrapper)->IsContentXBLScope() &&
-        NS_SUCCEEDED(UNWRAP_OBJECT(Element, obj, element))) {
+        NS_SUCCEEDED(UNWRAP_OBJECT(Element, &maybeElement, element))) {
       if (!nsContentUtils::LookupBindingMember(cx, element, id, desc)) {
         return false;
       }
@@ -2210,14 +2211,15 @@ ReparentWrapper(JSContext* aCx, JS::Handle<JSObject*> aObjArg)
     }
   }
 
+  JS::Rooted<JSObject*> maybeObjLC(aCx, aObj);
   nsObjectLoadingContent* htmlobject;
-  nsresult rv = UNWRAP_OBJECT(HTMLObjectElement, aObj, htmlobject);
+  nsresult rv = UNWRAP_OBJECT(HTMLObjectElement, &maybeObjLC, htmlobject);
   if (NS_FAILED(rv)) {
     rv = UnwrapObject<prototypes::id::HTMLEmbedElement,
-                      HTMLSharedObjectElement>(aObj, htmlobject);
+                      HTMLSharedObjectElement>(&maybeObjLC, htmlobject);
     if (NS_FAILED(rv)) {
       rv = UnwrapObject<prototypes::id::HTMLAppletElement,
-                        HTMLSharedObjectElement>(aObj, htmlobject);
+                        HTMLSharedObjectElement>(&maybeObjLC, htmlobject);
       if (NS_FAILED(rv)) {
         htmlobject = nullptr;
       }
@@ -2282,8 +2284,10 @@ GlobalObject::GetAsSupports() const
   // IsWrapper bit above and the UnwrapDOMObjectToISupports in the case when
   // we're not actually an XPCWrappedNative, but this should be a rare-ish case
   // anyway.
-  mGlobalObject = xpc::UnwrapReflectorToISupports(mGlobalJSObject);
-  if (mGlobalObject) {
+  nsCOMPtr<nsISupports> supp = xpc::UnwrapReflectorToISupports(mGlobalJSObject);
+  if (supp) {
+    // See documentation for mGlobalJSObject for why this assignment is OK.
+    mGlobalObject = supp;
     return mGlobalObject;
   }
 
@@ -2798,9 +2802,16 @@ GenericBindingGetter(JSContext* cx, unsigned argc, JS::Value* vp)
   }
   JS::Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
+  // NOTE: we want to leave obj in its initial compartment, so don't want to
+  // pass it to UnwrapObject.
+  JS::Rooted<JSObject*> rootSelf(cx, obj);
   void* self;
   {
-    nsresult rv = UnwrapObject<void>(obj, self, protoID, info->depth);
+    binding_detail::MutableObjectHandleWrapper wrapper(&rootSelf);
+    nsresult rv = binding_detail::UnwrapObjectInternal<void, true>(wrapper,
+                                                                   self,
+                                                                   protoID,
+                                                                   info->depth);
     if (NS_FAILED(rv)) {
       return ThrowInvalidThis(cx, args,
                               rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO,
@@ -2830,9 +2841,16 @@ GenericBindingSetter(JSContext* cx, unsigned argc, JS::Value* vp)
   }
   JS::Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
+  // NOTE: we want to leave obj in its initial compartment, so don't want to
+  // pass it to UnwrapObject.
+  JS::Rooted<JSObject*> rootSelf(cx, obj);
   void* self;
   {
-    nsresult rv = UnwrapObject<void>(obj, self, protoID, info->depth);
+    binding_detail::MutableObjectHandleWrapper wrapper(&rootSelf);
+    nsresult rv = binding_detail::UnwrapObjectInternal<void, true>(wrapper,
+                                                                   self,
+                                                                   protoID,
+                                                                   info->depth);
     if (NS_FAILED(rv)) {
       return ThrowInvalidThis(cx, args,
                               rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO,
@@ -2865,9 +2883,16 @@ GenericBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp)
   }
   JS::Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
+  // NOTE: we want to leave obj in its initial compartment, so don't want to
+  // pass it to UnwrapObject.
+  JS::Rooted<JSObject*> rootSelf(cx, obj);
   void* self;
   {
-    nsresult rv = UnwrapObject<void>(obj, self, protoID, info->depth);
+    binding_detail::MutableObjectHandleWrapper wrapper(&rootSelf);
+    nsresult rv = binding_detail::UnwrapObjectInternal<void, true>(wrapper,
+                                                                   self,
+                                                                   protoID,
+                                                                   info->depth);
     if (NS_FAILED(rv)) {
       return ThrowInvalidThis(cx, args,
                               rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO,
@@ -2903,9 +2928,16 @@ GenericPromiseReturningBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp
   }
   JS::Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
+  // NOTE: we want to leave obj in its initial compartment, so don't want to
+  // pass it to UnwrapObject.
+  JS::Rooted<JSObject*> rootSelf(cx, obj);
   void* self;
   {
-    nsresult rv = UnwrapObject<void>(obj, self, protoID, info->depth);
+    binding_detail::MutableObjectHandleWrapper wrapper(&rootSelf);
+    nsresult rv = binding_detail::UnwrapObjectInternal<void, true>(wrapper,
+                                                                   self,
+                                                                   protoID,
+                                                                   info->depth);
     if (NS_FAILED(rv)) {
       ThrowInvalidThis(cx, args, rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO,
                        protoID);
@@ -3119,7 +3151,7 @@ UnwrapArgImpl(JS::Handle<JSObject*> src,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsISupports *iface = xpc::UnwrapReflectorToISupports(src);
+  nsCOMPtr<nsISupports> iface = xpc::UnwrapReflectorToISupports(src);
   if (iface) {
     if (NS_FAILED(iface->QueryInterface(iid, ppArg))) {
       return NS_ERROR_XPC_BAD_CONVERT_JS;
@@ -3146,6 +3178,40 @@ UnwrapArgImpl(JS::Handle<JSObject*> src,
   // nsIPropertyBag. We must use AggregatedQueryInterface in cases where
   // there is an outer to avoid nasty recursion.
   return wrappedJS->QueryInterface(iid, ppArg);
+}
+
+nsresult
+UnwrapXPConnectImpl(JSContext* cx,
+                    JS::MutableHandle<JS::Value> src,
+                    const nsIID &iid,
+                    void **ppArg)
+{
+  if (!NS_IsMainThread()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  MOZ_ASSERT(src.isObject());
+  // Unwrap ourselves, because we're going to want access to the unwrapped
+  // object.
+  JS::Rooted<JSObject*> obj(cx,
+                            js::CheckedUnwrap(&src.toObject(),
+                                              /* stopAtWindowProxy = */ false));
+  if (!obj) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsCOMPtr<nsISupports> iface = xpc::UnwrapReflectorToISupports(obj);
+  if (!iface) {
+    return NS_ERROR_XPC_BAD_CONVERT_JS;
+  }
+
+  if (NS_FAILED(iface->QueryInterface(iid, ppArg))) {
+    return NS_ERROR_XPC_BAD_CONVERT_JS;
+  }
+
+  // Now update our source to keep rooting our object.
+  src.setObject(*obj);
+  return NS_OK;
 }
 
 nsresult
