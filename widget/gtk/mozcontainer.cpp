@@ -358,6 +358,10 @@ moz_container_realize (GtkWidget *widget)
         }
 #endif
         window = gdk_window_new (parent, &attributes, attributes_mask);
+
+        /* TODO
+         * Replace with gtk_widget_register_window/gtk_widget_unregister_window
+         */
         gdk_window_set_user_data (window, widget);
 #if (MOZ_WIDGET_GTK == 2)
         /* TODO GTK3? */
@@ -383,6 +387,14 @@ moz_container_unrealize (GtkWidget *widget)
 {
   MozContainer* container = MOZ_CONTAINER(widget);
   moz_container_unmap_surface(container);
+
+  gtk_widget_set_realized(widget, FALSE);
+
+  GdkWindow* window = gtk_widget_get_window(widget);
+  gdk_window_set_user_data(window, nullptr);
+  gdk_window_destroy(window);
+
+  gtk_widget_set_window(widget, nullptr);
 }
 #endif
 
