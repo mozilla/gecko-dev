@@ -88,20 +88,27 @@ public:
     return aBuffer->mWidth == mWidth && aBuffer->mHeight == mHeight;
   }
 
+  void SetInvalidRegion(bool aFullScreen,
+                        const LayoutDeviceIntRegion& aInvalidRegion);
+
 private:
   void Create(int aWidth, int aHeight);
   void Release();
 
   // WaylandShmPool provides actual shared memory we draw into
-  WaylandShmPool      mShmPool;
+  WaylandShmPool          mShmPool;
 
   // wl_buffer is a wayland object that encapsulates the shared memory
   // and passes it to wayland compositor by wl_surface object.
-  wl_buffer*          mWaylandBuffer;
-  int                 mWidth;
-  int                 mHeight;
-  bool                mAttached;
-  nsWaylandDisplay*   mWaylandDisplay;
+  wl_buffer*              mWaylandBuffer;
+  int                     mWidth;
+  int                     mHeight;
+  bool                    mAttached;
+  nsWaylandDisplay*       mWaylandDisplay;
+
+  // Invalidate whole buffer or regions
+  bool                    mFullScreenDamage;
+  LayoutDeviceIntRegion   mInvalidRegion;
 };
 
 // WindowSurfaceWayland is an abstraction for wl_surface

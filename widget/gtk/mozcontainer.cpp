@@ -375,9 +375,6 @@ moz_container_realize (GtkWidget *widget)
 #if (MOZ_WIDGET_GTK == 2)
     widget->style = gtk_style_attach (widget->style, widget->window);
 #endif
-#if defined(MOZ_WAYLAND)
-//    moz_container_create_surface(MOZ_CONTAINER(widget));
-#endif
 }
 
 #if defined(MOZ_WAYLAND)
