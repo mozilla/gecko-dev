@@ -27,9 +27,6 @@ static void moz_container_init                (MozContainer      *container);
 static void moz_container_map                 (GtkWidget         *widget);
 static void moz_container_unmap               (GtkWidget         *widget);
 static void moz_container_realize             (GtkWidget         *widget);
-#if defined(MOZ_WAYLAND)
-static void moz_container_unrealize           (GtkWidget         *widget);
-#endif
 static void moz_container_size_allocate       (GtkWidget         *widget,
                                                GtkAllocation     *allocation);
 
@@ -216,9 +213,6 @@ moz_container_class_init (MozContainerClass *klass)
     widget_class->map = moz_container_map;
     widget_class->unmap = moz_container_unmap;
     widget_class->realize = moz_container_realize;
-#if defined(MOZ_WAYLAND)
-    widget_class->unrealize = moz_container_unrealize;
-#endif
     widget_class->size_allocate = moz_container_size_allocate;
 
     container_class->remove = moz_container_remove;
@@ -380,23 +374,6 @@ moz_container_realize (GtkWidget *widget)
     widget->style = gtk_style_attach (widget->style, widget->window);
 #endif
 }
-
-#if defined(MOZ_WAYLAND)
-static void
-moz_container_unrealize (GtkWidget *widget)
-{
-  MozContainer* container = MOZ_CONTAINER(widget);
-  moz_container_unmap_surface(container);
-
-  gtk_widget_set_realized(widget, FALSE);
-
-  GdkWindow* window = gtk_widget_get_window(widget);
-  gdk_window_set_user_data(window, nullptr);
-  gdk_window_destroy(window);
-
-  gtk_widget_set_window(widget, nullptr);
-}
-#endif
 
 void
 moz_container_size_allocate (GtkWidget     *widget,
