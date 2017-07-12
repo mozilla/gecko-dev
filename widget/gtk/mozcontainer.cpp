@@ -557,8 +557,14 @@ moz_container_add(GtkContainer *container, GtkWidget *widget)
 struct wl_surface*
 moz_container_get_wl_surface(MozContainer *container)
 {
-    if (!container->subsurface || !container->surface)
+    if (!container->subsurface || !container->surface) {
+        GdkWindow* window = gtk_widget_get_window(GTK_WIDGET(container));
+        if (!gdk_window_is_visible(window))
+            return nullptr;
+
         moz_container_map_surface(container);
+    }
+
     return container->surface;
 }
 #endif
