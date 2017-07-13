@@ -397,18 +397,6 @@ void
 WindowBackBuffer::Attach(wl_surface* aSurface)
 {
   wl_surface_attach(aSurface, mWaylandBuffer, 0, 0);
-
-  if (mFullScreenDamage) {
-    wl_surface_damage(aSurface, 0, 0, mWidth, mHeight);
-    mFullScreenDamage = false;
-  } else {
-    for (auto iter = mInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
-      const mozilla::LayoutDeviceIntRect &r = iter.Get();
-        wl_surface_damage(aSurface, r.x, r.y, r.width, r.height);
-    }
-    mInvalidRegion.SetEmpty();
-  }
-
   wl_surface_commit(aSurface);
   wl_display_flush(mWaylandDisplay->GetDisplay());
   mAttached = true;
@@ -442,15 +430,6 @@ WindowBackBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
                                               lockSize,
                                               BUFFER_BPP * mWidth,
                                               mWaylandDisplay->GetSurfaceFormat());
-}
-
-void
-WindowBackBuffer::SetInvalidRegion(bool aFullScreen,
-                                   const LayoutDeviceIntRegion& aInvalidRegion)
-{
-  mFullScreenDamage = aFullScreen;
-  if (!mFullScreenDamage)
-    mInvalidRegion = aInvalidRegion;
 }
 
 static void
@@ -569,14 +548,22 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
   wl_surface* waylandSurface = mWidget->GetWaylandSurface();
   if (!waylandSurface) {
     // Target window is already destroyed - don't bother to render there.
-    NS_WARNING("No drawing buffer available");
     return;
   }
   wl_proxy_set_queue((struct wl_proxy *)waylandSurface,
                      mWaylandDisplay->GetEventQueue());
 
-  mFrontBuffer->SetInvalidRegion(mFullScreenDamage, aInvalidRegion);
-  mFullScreenDamage = false;
+  for (auto iter = aInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
+    const mozilla::LayoutDeviceIntRect &r = iter.Get();
+    if (!mFullScreenDamage)
+      wl_surface_damage(waylandSurface, r.x, r.y, r.width, r.height);
+  }
+
+  if (mFullScreenDamage) {
+    LayoutDeviceIntRect rect = mWidget->GetBounds();
+    wl_surface_damage(waylandSurface, 0, 0, rect.width, rect.height);
+    mFullScreenDamage = false;
+  }
 
   if (mFrameCallback) {
     // Do nothing here - buffer will be commited to compositor
