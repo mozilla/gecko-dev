@@ -553,16 +553,15 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
   wl_proxy_set_queue((struct wl_proxy *)waylandSurface,
                      mWaylandDisplay->GetEventQueue());
 
-  for (auto iter = aInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
-    const mozilla::LayoutDeviceIntRect &r = iter.Get();
-    if (!mFullScreenDamage)
-      wl_surface_damage(waylandSurface, r.x, r.y, r.width, r.height);
-  }
-
   if (mFullScreenDamage) {
     LayoutDeviceIntRect rect = mWidget->GetBounds();
     wl_surface_damage(waylandSurface, 0, 0, rect.width, rect.height);
     mFullScreenDamage = false;
+  } else {
+    for (auto iter = aInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
+      const mozilla::LayoutDeviceIntRect &r = iter.Get();
+      wl_surface_damage(waylandSurface, r.x, r.y, r.width, r.height);
+    }
   }
 
   if (mFrameCallback) {
