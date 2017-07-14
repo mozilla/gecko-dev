@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        56.1
+Version:        56.2
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -257,6 +257,23 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Fri Jul 14 2017 Martin Stransky <stransky@redhat.com> 56.2-1
+- Fixed rhbz#1464916 - missing popup rendering (stransky@redhat.com)
+- Tweaked wl_surface_damage() calls (stransky@redhat.com)
+- Reverted commit 32899bf0d996dbe1008bd9abd79724a8217fb6b8 as it fixes nothing
+  (stransky@redhat.com)
+- Remove unrealize handler (rhbz#1467104) (stransky@redhat.com)
+- Destroy GdkWindow owned by mozcontainer when unrealize (rhbz#1467104)
+  (stransky@redhat.com)
+- Map Wayland subsurface only when GdkWindow is already mapped
+  (stransky@redhat.com)
+- Set damage region for wl_surface after wl_buffer attach, rhbz#1464916
+  (stransky@redhat.com)
+- Added missing gtk_widget_input_shape_combine_region linkage (rhbz#1466377),
+  thanks to Hiroshi Hatake (stransky@redhat.com)
+- Fixed mouse transparency for popups (rhbz#1466377) (stransky@redhat.com)
+- Fixed rendering of noautohide panels (rhbz#1466377) (stransky@redhat.com)
+
 * Thu Jun 29 2017 Martin Stransky <stransky@redhat.com> 56.1-1
 - Don't explicitly grab on Wayland (use only implicit grab), see mozbz#1377084
   for details (stransky@redhat.com)
