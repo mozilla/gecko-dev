@@ -123,6 +123,7 @@ private:
   WindowBackBuffer*         mFrontBuffer;
   WindowBackBuffer*         mBackBuffer;
   wl_callback*              mFrameCallback;
+  wl_surface*               mFrameCallbackSurface;
   bool                      mDelayedCommit;
   bool                      mFullScreenDamage;
   MessageLoop*              mWaylandMessageLoop;

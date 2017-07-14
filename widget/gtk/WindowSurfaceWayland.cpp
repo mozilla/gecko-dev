@@ -435,12 +435,12 @@ WindowBackBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
 static void
 frame_callback_handler(void *data, struct wl_callback *callback, uint32_t time)
 {
-    auto surface = reinterpret_cast<WindowSurfaceWayland*>(data);
-    surface->FrameCallbackHandler();
+  auto surface = reinterpret_cast<WindowSurfaceWayland*>(data);
+  surface->FrameCallbackHandler();
 }
 
 static const struct wl_callback_listener frame_listener = {
-    frame_callback_handler
+  frame_callback_handler
 };
 
 WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget)
@@ -449,6 +449,7 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget)
   , mFrontBuffer(nullptr)
   , mBackBuffer(nullptr)
   , mFrameCallback(nullptr)
+  , mFrameCallbackSurface(nullptr)
   , mDelayedCommit(false)
   , mFullScreenDamage(false)
   , mWaylandMessageLoop(MessageLoop::current())
@@ -532,8 +533,8 @@ WindowSurfaceWayland::Lock(const LayoutDeviceIntRegion& aRegion)
   LayoutDeviceIntRect rect = mWidget->GetBounds();
   WindowBackBuffer* buffer = GetBufferToDraw(rect.width,
                                              rect.height);
-  MOZ_ASSERT(buffer, "We don't have any buffer to draw to!");
   if (!buffer) {
+    NS_WARNING("No drawing buffer available");
     return nullptr;
   }
 
@@ -564,14 +565,25 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
     }
   }
 
-  if (mFrameCallback) {
-    // Do nothing here - buffer will be commited to compositor
-    // in next frame callback event.
+  // Frame callback is always connected to concrete wl_surface. When the surface
+  // is unmapped/deleted the frame callback is newer called. Unfortunatelly
+  // we don't know if the frame callback is not going to be called.
+  // But our mozcontainer code deletes wl_surface when the GdkWindow is hidden
+  // creates a new one when is visible.
+  if (mFrameCallback && mFrameCallbackSurface == waylandSurface) {
+    // Do nothing here - we have a valid wl_surface and the buffer will be
+    // commited to compositor in next frame callback event.
     mDelayedCommit = true;
     return;
   } else  {
+    if (mFrameCallback) {
+      // Delete frame callback connected to obsoleted wl_surface.
+      wl_callback_destroy(mFrameCallback);
+    }
+
     mFrameCallback = wl_surface_frame(waylandSurface);
     wl_callback_add_listener(mFrameCallback, &frame_listener, this);
+    mFrameCallbackSurface = waylandSurface;
 
     // There's no pending frame callback so we can draw immediately
     // and create frame callback for possible subsequent drawing.
@@ -586,8 +598,9 @@ WindowSurfaceWayland::FrameCallbackHandler()
   MOZ_ASSERT(mIsMainThread == NS_IsMainThread());
 
   if (mFrameCallback) {
-      wl_callback_destroy(mFrameCallback);
-      mFrameCallback = nullptr;
+    wl_callback_destroy(mFrameCallback);
+    mFrameCallback = nullptr;
+    mFrameCallbackSurface = nullptr;
   }
 
   if (mDelayedCommit) {
@@ -604,6 +617,7 @@ WindowSurfaceWayland::FrameCallbackHandler()
     // for possible subsequent drawing.
     mFrameCallback = wl_surface_frame(waylandSurface);
     wl_callback_add_listener(mFrameCallback, &frame_listener, this);
+    mFrameCallbackSurface = waylandSurface;
 
     mFrontBuffer->Attach(waylandSurface);
     mDelayedCommit = false;
