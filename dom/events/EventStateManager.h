@@ -109,8 +109,7 @@ public:
                            nsEventStatus* aStatus);
 
   void PostHandleKeyboardEvent(WidgetKeyboardEvent* aKeyboardEvent,
-                               nsEventStatus& aStatus,
-                               bool dispatchedToContentProcess);
+                               nsEventStatus& aStatus);
 
   /**
    * DispatchLegacyMouseScrollEvents() dispatches eLegacyMouseLineOrPageScroll
@@ -153,6 +152,8 @@ public:
   /**
    * TryToFlushPendingNotificationsToIME() suggests flushing pending
    * notifications to IME to IMEContentObserver.
+   * Doesn't do anything in child processes where flushing happens
+   * asynchronously.
    */
   void TryToFlushPendingNotificationsToIME();
 
@@ -196,7 +197,7 @@ public:
 
   nsresult SetCursor(int32_t aCursor, imgIContainer* aContainer,
                      bool aHaveHotspot, float aHotspotX, float aHotspotY,
-                     nsIWidget* aWidget, bool aLockCursor); 
+                     nsIWidget* aWidget, bool aLockCursor);
 
   static void StartHandlingUserInput()
   {
@@ -893,9 +894,22 @@ protected:
   dom::TabParent *GetCrossProcessTarget();
   bool IsTargetCrossProcess(WidgetGUIEvent* aEvent);
 
-  bool DispatchCrossProcessEvent(WidgetEvent* aEvent,
+  /**
+   * DispatchCrossProcessEvent() try to post aEvent to target remote process.
+   * If you need to check if the event is posted to a remote process, you
+   * can use aEvent->HasBeenPostedToRemoteProcess().
+   */
+  void DispatchCrossProcessEvent(WidgetEvent* aEvent,
                                  nsFrameLoader* aRemote,
                                  nsEventStatus *aStatus);
+  /**
+   * HandleCrossProcessEvent() may post aEvent to target remote processes.
+   * When it succeeded to post the event to at least one remote process,
+   * returns true.  Otherwise, including the case not tried to dispatch to
+   * post the event, returns false.
+   * If you need to check if the event is posted to at least one remote
+   * process, you can use aEvent->HasBeenPostedToRemoteProcess().
+   */
   bool HandleCrossProcessEvent(WidgetEvent* aEvent,
                                nsEventStatus* aStatus);
 
@@ -1003,11 +1017,11 @@ public:
   // input, decremented when we have finished handling a user
   // input. This depth is *not* reset in case of nested event loops.
   static int32_t sUserInputEventDepth;
-  
+
   static bool sNormalLMouseEventInProcess;
 
   static EventStateManager* sActiveESM;
-  
+
   static void ClearGlobalActiveContent(EventStateManager* aClearer);
 
   // Functions used for click hold context menus

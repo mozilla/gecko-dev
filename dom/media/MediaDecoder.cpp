@@ -197,13 +197,6 @@ MediaDecoder::GetDuration()
   return mDuration;
 }
 
-AbstractCanonical<media::NullableTimeUnit>*
-MediaDecoder::CanonicalDurationOrNull()
-{
-  MOZ_ASSERT(mDecoderStateMachine);
-  return mDecoderStateMachine->CanonicalDuration();
-}
-
 void
 MediaDecoder::SetInfinite(bool aInfinite)
 {
@@ -267,6 +260,7 @@ MediaDecoder::MediaDecoder(MediaDecoderInit& aInit)
   , mTelemetryReported(false)
   , mIsMediaElement(!!mOwner->GetMediaElement())
   , mElement(mOwner->GetMediaElement())
+  , mContainerType(aInit.mContainerType)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mAbstractMainThread);
@@ -638,8 +632,8 @@ MediaDecoder::EnsureTelemetryReported()
     codecs.AppendElement(mInfo->mVideo.GetAsVideoInfo()->mMimeType);
   }
   if (codecs.IsEmpty()) {
-    codecs.AppendElement(nsPrintfCString(
-      "resource; %s", mResource->GetContentType().OriginalString().Data()));
+    codecs.AppendElement(
+      nsPrintfCString("resource; %s", ContainerType().OriginalString().Data()));
   }
   for (const nsCString& codec : codecs) {
     LOG("Telemetry MEDIA_CODEC_USED= '%s'", codec.get());
@@ -1382,7 +1376,10 @@ MediaDecoder::NotifyDataArrivedInternal()
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(!IsShutdown());
-  mDataArrivedEvent.Notify();
+  mReader->OwnerThread()->Dispatch(
+    NewRunnableMethod("MediaDecoderReader::NotifyDataArrived",
+                      mReader.get(),
+                      &MediaDecoderReader::NotifyDataArrived));
 }
 
 void

@@ -24,7 +24,7 @@ const PREF_LOG_LEVEL_FALLBACK = "marionette.logging";
 
 const DEFAULT_LOG_LEVEL = "info";
 const LOG_LEVELS = new class extends Map {
-  constructor () {
+  constructor() {
     super([
       ["fatal", Log.Level.Fatal],
       ["error", Log.Level.Error],
@@ -36,7 +36,7 @@ const LOG_LEVELS = new class extends Map {
     ]);
   }
 
-  get (level) {
+  get(level) {
     let s = new String(level).toLowerCase();
     if (!this.has(s)) {
       return DEFAULT_LOG_LEVEL;
@@ -69,7 +69,7 @@ const ServerSocket = CC("@mozilla.org/network/server-socket;1",
 
 // Get preference value of |preferred|, falling back to |fallback|
 // if |preferred| is not user-modified and |fallback| exists.
-function getPref (preferred, fallback) {
+function getPref(preferred, fallback) {
   if (!Preferences.isSet(preferred) && Preferences.has(fallback)) {
     return Preferences.get(fallback, Preferences.get(preferred));
   }
@@ -82,16 +82,16 @@ function getPref (preferred, fallback) {
 //
 // This shim can be removed when Firefox 55 ships.
 const prefs = {
-  get port () {
+  get port() {
     return getPref(PREF_PORT, PREF_PORT_FALLBACK);
   },
 
-  get logLevel () {
+  get logLevel() {
     let s = getPref(PREF_LOG_LEVEL, PREF_LOG_LEVEL_FALLBACK);
     return LOG_LEVELS.get(s);
   },
 
-  readFromEnvironment (key) {
+  readFromEnvironment(key) {
     const env = Cc["@mozilla.org/process/environment;1"]
         .getService(Ci.nsIEnvironment);
 
@@ -116,7 +116,6 @@ const prefs = {
 };
 
 function MarionetteComponent() {
-  this.enabled = env.exists(ENV_ENABLED);
   this.running = false;
   this.server = null;
 
@@ -129,6 +128,11 @@ function MarionetteComponent() {
   this.finalUIStartup = false;
 
   this.logger = this.setupLogger(prefs.logLevel);
+
+  this.enabled = env.exists(ENV_ENABLED);
+  if (this.enabled) {
+    this.logger.info(`Enabled via ${ENV_ENABLED}`);
+  }
 }
 
 MarionetteComponent.prototype = {
@@ -146,28 +150,32 @@ MarionetteComponent.prototype = {
   helpInfo: "  --marionette       Enable remote control server.\n",
 };
 
-MarionetteComponent.prototype.onSocketAccepted = function (socket, transport) {
-  this.logger.info("onSocketAccepted for Marionette dummy socket");
-};
-
-MarionetteComponent.prototype.onStopListening = function (socket, status) {
-  this.logger.info(`onStopListening for Marionette dummy socket, code ${status}`);
-  socket.close();
-};
-
 // Handle -marionette flag
-MarionetteComponent.prototype.handle = function (cmdLine) {
-  if (cmdLine.handleFlag("marionette", false)) {
+MarionetteComponent.prototype.handle = function(cmdLine) {
+  if (!this.enabled && cmdLine.handleFlag("marionette", false)) {
     this.enabled = true;
+    this.logger.info("Enabled via --marionette");
   }
 };
 
-MarionetteComponent.prototype.observe = function (subject, topic, data) {
+MarionetteComponent.prototype.observe = function(subject, topic, data) {
+  this.logger.debug(`Received observer notification "${topic}"`);
+
   switch (topic) {
+    case "command-line-startup":
+      Services.obs.removeObserver(this, topic);
+      this.handle(subject);
+
     case "profile-after-change":
       // Using sessionstore-windows-restored as the xpcom category doesn't
       // seem to work, so we wait for that by adding an observer here.
       Services.obs.addObserver(this, "sessionstore-windows-restored");
+
+      // In safe mode the command line handlers are getting parsed after the
+      // safe mode dialog has been closed. To allow Marionette to start
+      // earlier, register the CLI startup observer notification for
+      // special-cased handlers, which gets fired before the dialog appears.
+      Services.obs.addObserver(this, "command-line-startup");
 
       prefs.readFromEnvironment(ENV_PRESERVE_PREFS);
 
@@ -227,17 +235,18 @@ MarionetteComponent.prototype.observe = function (subject, topic, data) {
   }
 };
 
-MarionetteComponent.prototype.setupLogger = function (level) {
+MarionetteComponent.prototype.setupLogger = function(level) {
   let logger = Log.repository.getLogger("Marionette");
   logger.level = level;
   logger.addAppender(new Log.DumpAppender());
   return logger;
 };
 
-MarionetteComponent.prototype.suppressSafeModeDialog = function (win) {
+MarionetteComponent.prototype.suppressSafeModeDialog = function(win) {
   win.addEventListener("load", () => {
     if (win.document.getElementById("safeModeDialog")) {
       // accept the dialog to start in safe-mode
+      this.logger.debug("Safe Mode detected. Going to suspress the dialog now.");
       win.setTimeout(() => {
         win.document.documentElement.getButton("accept").click();
       });
@@ -245,7 +254,7 @@ MarionetteComponent.prototype.suppressSafeModeDialog = function (win) {
   }, {once: true});
 };
 
-MarionetteComponent.prototype.init = function () {
+MarionetteComponent.prototype.init = function() {
   if (this.running || !this.enabled || !this.finalUIStartup) {
     return;
   }
@@ -270,7 +279,7 @@ MarionetteComponent.prototype.init = function () {
   });
 };
 
-MarionetteComponent.prototype.uninit = function () {
+MarionetteComponent.prototype.uninit = function() {
   if (!this.running) {
     return;
   }

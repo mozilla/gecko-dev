@@ -18,6 +18,7 @@
 #include "mozilla/webrender/webrender_ffi.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/webrender/WebRenderTypes.h"
+#include "mozilla/layers/SynchronousTask.h"
 
 namespace mozilla {
 namespace wr {
@@ -106,9 +107,6 @@ public:
   void NewFrameReady(wr::WindowId aWindowId);
 
   /// Automatically forwarded to the render thread.
-  void NewScrollFrameReady(wr::WindowId aWindowId, bool aCompositeNeeded);
-
-  /// Automatically forwarded to the render thread.
   void PipelineSizeChanged(wr::WindowId aWindowId, uint64_t aPipelineId, float aWidth, float aHeight);
 
   /// Automatically forwarded to the render thread.
@@ -143,6 +141,7 @@ private:
   explicit RenderThread(base::Thread* aThread);
 
   void DeferredRenderTextureHostDestroy(RefPtr<RenderTextureHost> aTexture);
+  void ShutDownTask(layers::SynchronousTask* aTask);
 
   ~RenderThread();
 
@@ -157,6 +156,7 @@ private:
 
   Mutex mRenderTextureMapLock;
   nsRefPtrHashtable<nsUint64HashKey, RenderTextureHost> mRenderTextures;
+  bool mHasShutdown;
 };
 
 } // namespace wr

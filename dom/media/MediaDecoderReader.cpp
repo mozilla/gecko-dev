@@ -68,19 +68,18 @@ public:
   size_t mSize;
 };
 
-MediaDecoderReader::MediaDecoderReader(AbstractMediaDecoder* aDecoder)
+MediaDecoderReader::MediaDecoderReader(const MediaDecoderReaderInit& aInit)
   : mAudioCompactor(mAudioQueue)
-  , mDecoder(aDecoder)
+  , mDecoder(aInit.mDecoder)
   , mTaskQueue(new TaskQueue(
       GetMediaThreadPool(MediaThreadType::PLAYBACK),
       "MediaDecoderReader::mTaskQueue",
       /* aSupportsTailDispatch = */ true))
-  , mWatchManager(this, mTaskQueue)
   , mBuffered(mTaskQueue, TimeIntervals(), "MediaDecoderReader::mBuffered (Canonical)")
-  , mDuration(mTaskQueue, NullableTimeUnit(), "MediaDecoderReader::mDuration (Mirror)")
   , mIgnoreAudioOutputFormat(false)
   , mHitAudioDecodeError(false)
   , mShutdown(false)
+  , mResource(aInit.mResource)
 {
   MOZ_COUNT_CTOR(MediaDecoderReader);
   MOZ_ASSERT(NS_IsMainThread());
@@ -89,30 +88,7 @@ MediaDecoderReader::MediaDecoderReader(AbstractMediaDecoder* aDecoder)
 nsresult
 MediaDecoderReader::Init()
 {
-  if (mDecoder && mDecoder->DataArrivedEvent()) {
-    mDataArrivedListener = mDecoder->DataArrivedEvent()->Connect(
-      mTaskQueue, this, &MediaDecoderReader::NotifyDataArrived);
-  }
-  // Dispatch initialization that needs to happen on that task queue.
-  mTaskQueue->Dispatch(
-    NewRunnableMethod("MediaDecoderReader::InitializationTask",
-                      this,
-                      &MediaDecoderReader::InitializationTask));
   return InitInternal();
-}
-
-void
-MediaDecoderReader::InitializationTask()
-{
-  if (!mDecoder) {
-    return;
-  }
-  if (mDecoder->CanonicalDurationOrNull()) {
-    mDuration.Connect(mDecoder->CanonicalDurationOrNull());
-  }
-
-  // Initialize watchers.
-  mWatchManager.Watch(mDuration, &MediaDecoderReader::UpdateBuffered);
 }
 
 MediaDecoderReader::~MediaDecoderReader()
@@ -143,6 +119,14 @@ size_t MediaDecoderReader::SizeOfVideoQueueInFrames()
 size_t MediaDecoderReader::SizeOfAudioQueueInFrames()
 {
   return mAudioQueue.GetSize();
+}
+
+void
+MediaDecoderReader::UpdateDuration(const media::TimeUnit& aDuration)
+{
+  MOZ_ASSERT(OnTaskQueue());
+  mDuration = Some(aDuration);
+  UpdateBuffered();
 }
 
 nsresult MediaDecoderReader::ResetDecode(TrackSet aTracks)
@@ -206,13 +190,12 @@ MediaDecoderReader::GetBuffered()
 {
   MOZ_ASSERT(OnTaskQueue());
 
-  AutoPinned<MediaResource> stream(mDecoder->GetResource());
-
-  if (!mDuration.Ref().isSome()) {
+  if (mDuration.isNothing()) {
     return TimeIntervals();
   }
 
-  return GetEstimatedBufferedTimeRanges(stream, mDuration.Ref().ref().ToMicroseconds());
+  AutoPinned<MediaResource> stream(mResource);
+  return GetEstimatedBufferedTimeRanges(stream, mDuration->ToMicroseconds());
 }
 
 RefPtr<MediaDecoderReader::MetadataPromise>
@@ -373,14 +356,8 @@ MediaDecoderReader::Shutdown()
   mBaseAudioPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_END_OF_STREAM, __func__);
   mBaseVideoPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_END_OF_STREAM, __func__);
 
-  mDataArrivedListener.DisconnectIfExists();
-
   ReleaseResources();
-  mDuration.DisconnectIfConnected();
   mBuffered.DisconnectAll();
-
-  // Shut down the watch manager before shutting down our task queue.
-  mWatchManager.Shutdown();
 
   mDecoder = nullptr;
 

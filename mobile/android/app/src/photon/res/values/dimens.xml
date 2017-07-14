@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
@@ -10,7 +11,13 @@
     <dimen name="autocomplete_min_width">200dp</dimen>
     <dimen name="autocomplete_row_height">32dp</dimen>
 
-    <dimen name="browser_toolbar_height">48dp</dimen>
+    <dimen name="browser_toolbar_height">56dp</dimen>
+    <dimen name="browser_toolbar_image_button_width">48dp</dimen>
+    <!-- ToolbarImageButton's pressed-highlight region is different from clickable region.
+         Our design is to make pressed-highlight region to be square. this vertical spacing value
+         helps drawable xml to set padding: (56 - 48) / 2 -->
+    <dimen name="browser_toolbar_image_button_v_spacing">4dp</dimen>
+
     <!-- This value is the height of the Tabs Panel header view
          (browser_toolbar_height) minus the height of the indicator
          (6dp). This value should change when the height of the view changes. -->
@@ -18,7 +25,7 @@
 
     <!-- We use two different values for browser_toolbar_height on tablet
          which is inconsistent. Temporary value until bug 1150730 is fixed. -->
-    <dimen name="browser_toolbar_height_flipper">48dp</dimen>
+    <dimen name="browser_toolbar_height_flipper">@dimen/browser_toolbar_height</dimen>
     <dimen name="browser_toolbar_button_padding">12dp</dimen>
     <dimen name="browser_toolbar_icon_width">48dp</dimen>
     <dimen name="browser_toolbar_menu_icon_height">16dp</dimen>
@@ -41,9 +48,10 @@
     <dimen name="tab_panel_divider_vertical_padding">12dp</dimen>
 
     <dimen name="tablet_tab_strip_height">48dp</dimen>
-    <dimen name="tablet_tab_strip_item_width">208dp</dimen>
-    <dimen name="tablet_tab_strip_fading_edge_size">15dp</dimen>
-    <dimen name="tablet_tab_strip_item_margin">-14dp</dimen>
+    <dimen name="tablet_tab_strip_item_width">178dp</dimen>
+    <dimen name="tablet_tab_strip_item_height">40dp</dimen>
+    <dimen name="tablet_tab_strip_fading_edge_size">0dp</dimen>
+    <dimen name="tablet_tab_strip_item_margin">0dp</dimen>
     <dimen name="tablet_tab_strip_divider_width">1dp</dimen>
     <dimen name="tablet_tab_strip_divider_height">30dp</dimen>
     <dimen name="tablet_tab_strip_divider_padding_bottom">6dp</dimen>
@@ -64,8 +72,8 @@
          database. The largest available size is always stored in the database, regardless of this
          value.-->
     <dimen name="favicon_largest_interesting_size">32dp</dimen>
-    <!-- Small favicon used in about:home(TopsitesPanel, BookmarksPanel and CombinedHistoryPanel) -->
-    <dimen name="favicon_small_size">25dp</dimen>
+    <!-- Small favicon used in about:home(TopsitesPanel, BookmarksPanel, CombinedHistoryPanel and BrowserSearch) -->
+    <dimen name="favicon_small_size">24dp</dimen>
 
     <dimen name="firstrun_content_width">300dp</dimen>
     <dimen name="firstrun_min_height">120dp</dimen>
@@ -108,7 +116,13 @@
     <dimen name="home_remote_tabs_hidden_footer_height">40dp</dimen>
 
     <!-- Search Engine Row height -->
-    <dimen name="search_row_height">48dp</dimen>
+    <dimen name="search_engine_row_min_height">42dp</dimen>
+    <dimen name="search_suggestion_item_min_height">30dp</dimen>
+    <dimen name="search_suggestion_item_padding_horizontal">8dp</dimen>
+    <dimen name="search_suggestion_item_padding_vertical">7dp</dimen>
+
+    <!-- Search Home Item Row height -->
+    <dimen name="search_item_min_height">64dp</dimen>
 
     <dimen name="doorhanger_width">300dp</dimen>
     <dimen name="doorhanger_input_width">250dp</dimen>

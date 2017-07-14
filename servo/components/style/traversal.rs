@@ -5,15 +5,15 @@
 //! Traversing the DOM tree; the bloom filter.
 
 use atomic_refcell::AtomicRefCell;
-use context::{ElementCascadeInputs, StyleContext, SharedStyleContext, ThreadLocalStyleContext};
+use context::{ElementCascadeInputs, StyleContext, SharedStyleContext};
 use data::{ElementData, ElementStyles};
-use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
+use dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use invalidation::element::restyle_hints::{RECASCADE_SELF, RECASCADE_DESCENDANTS, RestyleHint};
 use matching::{ChildCascadeRequirement, MatchMethods};
-use sharing::{StyleSharingBehavior, StyleSharingTarget};
-#[cfg(feature = "servo")] use servo_config::opts;
+use sharing::StyleSharingTarget;
 use smallvec::SmallVec;
-use std::borrow::BorrowMut;
+use style_resolver::StyleResolverForElement;
+use stylist::RuleInclusion;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -42,8 +42,6 @@ bitflags! {
         /// Traverse and update all elements with CSS animations since
         /// @keyframes rules may have changed
         const FOR_CSS_RULE_CHANGES = 0x08,
-        /// Only include user agent style sheets when selector matching.
-        const FOR_DEFAULT_STYLES = 0x10,
     }
 }
 
@@ -66,12 +64,6 @@ impl TraversalFlags {
     /// Returns true if the traversal is triggered by CSS rule changes.
     pub fn for_css_rule_changes(&self) -> bool {
         self.contains(FOR_CSS_RULE_CHANGES)
-    }
-
-    /// Returns true if the traversal is to compute the default computed styles
-    /// for an element.
-    pub fn for_default_styles(&self) -> bool {
-        self.contains(FOR_DEFAULT_STYLES)
     }
 }
 
@@ -127,6 +119,8 @@ impl TraversalDriver {
 
 #[cfg(feature = "servo")]
 fn is_servo_nonincremental_layout() -> bool {
+    use servo_config::opts;
+
     opts::get().nonincremental_layout
 }
 
@@ -138,22 +132,17 @@ fn is_servo_nonincremental_layout() -> bool {
 /// A DOM Traversal trait, that is used to generically implement styling for
 /// Gecko and Servo.
 pub trait DomTraversal<E: TElement> : Sync {
-    /// The thread-local context, used to store non-thread-safe stuff that needs
-    /// to be used in the traversal, and of which we use one per worker, like
-    /// the bloom filter, for example.
-    type ThreadLocalContext: Send + BorrowMut<ThreadLocalStyleContext<E>>;
-
     /// Process `node` on the way down, before its children have been processed.
     fn process_preorder(&self,
                         data: &PerLevelTraversalData,
-                        thread_local: &mut Self::ThreadLocalContext,
+                        context: &mut StyleContext<E>,
                         node: E::ConcreteNode);
 
     /// Process `node` on the way up, after its children have been processed.
     ///
     /// This is only executed if `needs_postorder_traversal` returns true.
     fn process_postorder(&self,
-                         thread_local: &mut Self::ThreadLocalContext,
+                         contect: &mut StyleContext<E>,
                          node: E::ConcreteNode);
 
     /// Boolean that specifies whether a bottom up traversal should be
@@ -177,7 +166,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// call durign the parallel traversal.
     fn handle_postorder_traversal(
         &self,
-        thread_local: &mut Self::ThreadLocalContext,
+        context: &mut StyleContext<E>,
         root: OpaqueNode,
         mut node: E::ConcreteNode,
         children_to_process: isize
@@ -190,7 +179,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         if children_to_process == 0 {
             // We are a leaf. Walk up the chain.
             loop {
-                self.process_postorder(thread_local, node);
+                self.process_postorder(context, node);
                 if node.opaque() == root {
                     break;
                 }
@@ -404,7 +393,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// a parameter to keep the logs tidy.
     fn should_traverse_children(
         &self,
-        thread_local: &mut ThreadLocalStyleContext<E>,
+        context: &mut StyleContext<E>,
         parent: E,
         parent_data: &ElementData,
         log: LogBehavior
@@ -442,7 +431,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // happens, we may just end up doing wasted work, since Gecko
         // recursively drops Servo ElementData when the XBL insertion parent of
         // an Element is changed.
-        if cfg!(feature = "gecko") && thread_local.is_initial_style() &&
+        if cfg!(feature = "gecko") && context.thread_local.is_initial_style() &&
            parent_data.styles.primary().has_moz_binding() {
             if log.allow() {
                 debug!("Parent {:?} has XBL binding, deferring traversal",
@@ -458,23 +447,23 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// should be enqueued for processing.
     fn traverse_children<F>(
         &self,
-        thread_local: &mut Self::ThreadLocalContext,
+        context: &mut StyleContext<E>,
         parent: E,
         mut f: F
     )
     where
-        F: FnMut(&mut Self::ThreadLocalContext, E::ConcreteNode)
+        F: FnMut(&mut StyleContext<E>, E::ConcreteNode)
     {
         // Check if we're allowed to traverse past this element.
         let should_traverse =
             self.should_traverse_children(
-                thread_local.borrow_mut(),
+                context,
                 parent,
                 &parent.borrow_data().unwrap(),
                 MayLog
             );
 
-        thread_local.borrow_mut().end_element(parent);
+        context.thread_local.end_element(parent);
         if !should_traverse {
             return;
         }
@@ -495,7 +484,7 @@ pub trait DomTraversal<E: TElement> : Sync {
                         }
                     }
                 }
-                f(thread_local, kid);
+                f(context, kid);
             }
         }
     }
@@ -517,9 +506,6 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// Return the shared style context common to all worker threads.
     fn shared_context(&self) -> &SharedStyleContext;
 
-    /// Creates a thread-local context.
-    fn create_thread_local_context(&self) -> Self::ThreadLocalContext;
-
     /// Whether we're performing a parallel traversal.
     ///
     /// NB: We do this check on runtime. We could guarantee correctness in this
@@ -529,151 +515,87 @@ pub trait DomTraversal<E: TElement> : Sync {
     fn is_parallel(&self) -> bool;
 }
 
-/// Helper for the function below.
-fn resolve_style_internal<E, F>(
-    context: &mut StyleContext<E>,
-    element: E, ensure_data: &F
-) -> Option<E>
-    where E: TElement,
-          F: Fn(E),
-{
-    ensure_data(element);
-    let mut data = element.mutate_data().unwrap();
-    let mut display_none_root = None;
-
-    // If the Element isn't styled, we need to compute its style.
-    if !data.has_styles() {
-        // Compute the parent style if necessary.
-        let parent = element.traversal_parent();
-        if let Some(p) = parent {
-            display_none_root = resolve_style_internal(context, p, ensure_data);
-        }
-
-        // Maintain the bloom filter. If it doesn't exist, we need to build it
-        // from scratch. Otherwise we just need to push the parent.
-        if context.thread_local.bloom_filter.is_empty() {
-            context.thread_local.bloom_filter.rebuild(element);
-        } else {
-            context.thread_local.bloom_filter.push(parent.unwrap());
-            context.thread_local.bloom_filter.assert_complete(element);
-        }
-
-        // Compute our style.
-        context.thread_local.begin_element(element, &data);
-        element.match_and_cascade(context,
-                                  &mut data,
-                                  StyleSharingBehavior::Disallow);
-        context.thread_local.end_element(element);
-
-        if !context.shared.traversal_flags.for_default_styles() {
-            // Conservatively mark us as having dirty descendants, since there
-            // might be other unstyled siblings we miss when walking straight up
-            // the parent chain.
-            //
-            // No need to do this if we're computing default styles, since
-            // resolve_default_style will want the tree to be left as it is.
-            unsafe { element.note_descendants::<DirtyDescendants>() };
-        }
-    }
-
-    // If we're display:none and none of our ancestors are, we're the root of a
-    // display:none subtree.
-    if display_none_root.is_none() && data.styles.is_display_none() {
-        display_none_root = Some(element);
-    }
-
-    return display_none_root
-}
-
 /// Manually resolve style by sequentially walking up the parent chain to the
 /// first styled Element, ignoring pending restyles. The resolved style is made
 /// available via a callback, and can be dropped by the time this function
 /// returns in the display:none subtree case.
-pub fn resolve_style<E, F, G, H>(context: &mut StyleContext<E>, element: E,
-                                 ensure_data: &F, clear_data: &G, callback: H)
-    where E: TElement,
-          F: Fn(E),
-          G: Fn(E),
-          H: FnOnce(&ElementStyles)
+pub fn resolve_style<E>(
+    context: &mut StyleContext<E>,
+    element: E,
+    rule_inclusion: RuleInclusion,
+) -> ElementStyles
+where
+    E: TElement,
 {
+    use style_resolver::StyleResolverForElement;
+
+    debug_assert!(rule_inclusion == RuleInclusion::DefaultOnly ||
+                  element.borrow_data().map_or(true, |d| !d.has_styles()),
+                  "Why are we here?");
+    let mut ancestors_requiring_style_resolution = SmallVec::<[E; 16]>::new();
+
     // Clear the bloom filter, just in case the caller is reusing TLS.
     context.thread_local.bloom_filter.clear();
 
-    // Resolve styles up the tree.
-    let display_none_root = resolve_style_internal(context, element, ensure_data);
-
-    // Make them available for the scope of the callback. The callee may use the
-    // argument, or perform any other processing that requires the styles to
-    // exist on the Element.
-    callback(&element.borrow_data().unwrap().styles);
-
-    // Clear any styles in display:none subtrees or subtrees not in the
-    // document, to leave the tree in a valid state.  For display:none subtrees,
-    // we leave the styles on the display:none root, but for subtrees not in the
-    // document, we clear styles all the way up to the root of the disconnected
-    // subtree.
-    let in_doc = element.as_node().is_in_doc();
-    if !in_doc || display_none_root.is_some() {
-        let mut curr = element;
-        loop {
-            unsafe {
-                curr.unset_dirty_descendants();
-                curr.unset_animation_only_dirty_descendants();
-            }
-            if in_doc && curr == display_none_root.unwrap() {
-                break;
-            }
-            clear_data(curr);
-            curr = match curr.traversal_parent() {
-                Some(parent) => parent,
-                None => break,
-            };
-        }
-    }
-}
-
-/// Manually resolve default styles for the given Element, which are the styles
-/// only taking into account user agent and user cascade levels.  The resolved
-/// style is made available via a callback, and will be dropped by the time this
-/// function returns.
-pub fn resolve_default_style<E, F, G, H>(
-    context: &mut StyleContext<E>,
-    element: E,
-    ensure_data: &F,
-    set_data: &G,
-    callback: H
-)
-where
-    E: TElement,
-    F: Fn(E),
-    G: Fn(E, Option<ElementData>) -> Option<ElementData>,
-    H: FnOnce(&ElementStyles),
-{
-    // Save and clear out element data from the element and its ancestors.
-    let mut old_data: SmallVec<[(E, Option<ElementData>); 8]> = SmallVec::new();
-    {
-        let mut e = element;
-        loop {
-            old_data.push((e, set_data(e, None)));
-            match e.traversal_parent() {
-                Some(parent) => e = parent,
-                None => break,
+    let mut style = None;
+    let mut ancestor = element.traversal_parent();
+    while let Some(current) = ancestor {
+        if rule_inclusion == RuleInclusion::All {
+            if let Some(data) = element.borrow_data() {
+                if let Some(ancestor_style) = data.styles.get_primary() {
+                    style = Some(ancestor_style.clone());
+                    break;
+                }
             }
         }
+        ancestors_requiring_style_resolution.push(current);
+        ancestor = current.traversal_parent();
     }
 
-    // Resolve styles up the tree.
-    resolve_style_internal(context, element, ensure_data);
-
-    // Make them available for the scope of the callback. The callee may use the
-    // argument, or perform any other processing that requires the styles to
-    // exist on the Element.
-    callback(&element.borrow_data().unwrap().styles);
-
-    // Swap the old element data back into the element and its ancestors.
-    for entry in old_data {
-        set_data(entry.0, entry.1);
+    if let Some(ancestor) = ancestor {
+        context.thread_local.bloom_filter.rebuild(ancestor);
+        context.thread_local.bloom_filter.push(ancestor);
     }
+
+    let mut layout_parent_style = style.clone();
+    while let Some(style) = layout_parent_style.take() {
+        if !style.is_display_contents() {
+            layout_parent_style = Some(style);
+            break;
+        }
+
+        ancestor = ancestor.unwrap().traversal_parent();
+        layout_parent_style = ancestor.map(|a| {
+            a.borrow_data().unwrap().styles.primary().clone()
+        });
+    }
+
+    for ancestor in ancestors_requiring_style_resolution.iter().rev() {
+        context.thread_local.bloom_filter.assert_complete(*ancestor);
+
+        let primary_style =
+            StyleResolverForElement::new(*ancestor, context, rule_inclusion)
+                .resolve_primary_style(
+                    style.as_ref().map(|s| &**s),
+                    layout_parent_style.as_ref().map(|s| &**s)
+                );
+
+        let is_display_contents = primary_style.style.is_display_contents();
+
+        style = Some(primary_style.style);
+        if !is_display_contents {
+            layout_parent_style = style.clone();
+        }
+
+        context.thread_local.bloom_filter.push(*ancestor);
+    }
+
+    context.thread_local.bloom_filter.assert_complete(element);
+    StyleResolverForElement::new(element, context, rule_inclusion)
+        .resolve_style(
+            style.as_ref().map(|s| &**s),
+            layout_parent_style.as_ref().map(|s| &**s)
+        )
 }
 
 /// Calculates the style for a single node.
@@ -763,7 +685,7 @@ where
     // Preprocess children, propagating restyle hints and handling sibling
     // relationships.
     let should_traverse_children = traversal.should_traverse_children(
-        &mut context.thread_local,
+        context,
         element,
         &data,
         DontLog
@@ -836,7 +758,8 @@ where
         data.restyle.set_restyled();
     }
 
-    match kind {
+    let mut important_rules_changed = false;
+    let new_styles = match kind {
         MatchAndCascade => {
             debug_assert!(!context.shared.traversal_flags.for_animation_only(),
                           "MatchAndCascade shouldn't be processed during \
@@ -861,35 +784,62 @@ where
 
             context.thread_local.statistics.elements_matched += 1;
 
+            important_rules_changed = true;
+
             // Perform the matching and cascading.
-            element.match_and_cascade(
-                context,
-                data,
-                StyleSharingBehavior::Allow
-            )
+            let new_styles =
+                StyleResolverForElement::new(element, context, RuleInclusion::All)
+                    .resolve_style_with_default_parents();
+
+            // If we previously tried to match this element against the cache,
+            // the revalidation match results will already be cached. Otherwise
+            // we'll have None, and compute them later on-demand.
+            //
+            // If we do have the results, grab them here to satisfy the borrow
+            // checker.
+            let validation_data =
+                context.thread_local
+                    .current_element_info
+                    .as_mut().unwrap()
+                    .validation_data
+                    .take();
+
+            let dom_depth = context.thread_local.bloom_filter.matching_depth();
+            context.thread_local
+                   .style_sharing_candidate_cache
+                   .insert_if_possible(
+                       &element,
+                       new_styles.primary(),
+                       validation_data,
+                       dom_depth
+                    );
+
+            new_styles
         }
         CascadeWithReplacements(flags) => {
             // Skipping full matching, load cascade inputs from previous values.
-            *context.cascade_inputs_mut() =
+            let mut cascade_inputs =
                 ElementCascadeInputs::new_from_element_data(data);
-            let important_rules_changed = element.replace_rules(flags, context);
-            element.cascade_primary_and_pseudos(
-                context,
-                data,
-                important_rules_changed
-            )
+            important_rules_changed =
+                element.replace_rules(flags, context, &mut cascade_inputs);
+            StyleResolverForElement::new(element, context, RuleInclusion::All)
+                .cascade_styles_with_default_parents(cascade_inputs)
         }
         CascadeOnly => {
             // Skipping full matching, load cascade inputs from previous values.
-            *context.cascade_inputs_mut() =
+            let cascade_inputs =
                 ElementCascadeInputs::new_from_element_data(data);
-            element.cascade_primary_and_pseudos(
-                context,
-                data,
-                /* important_rules_changed = */ false
-            )
+            StyleResolverForElement::new(element, context, RuleInclusion::All)
+                .cascade_styles_with_default_parents(cascade_inputs)
         }
-    }
+    };
+
+    element.finish_restyle(
+        context,
+        data,
+        new_styles,
+        important_rules_changed
+    )
 }
 
 fn preprocess_children<E, D>(

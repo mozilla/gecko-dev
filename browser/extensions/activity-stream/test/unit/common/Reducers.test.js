@@ -1,5 +1,5 @@
-const {reducers, INITIAL_STATE} = require("common/Reducers.jsm");
-const {TopSites, App, Prefs} = reducers;
+const {reducers, INITIAL_STATE, insertPinned} = require("common/Reducers.jsm");
+const {TopSites, App, Prefs, Dialog} = reducers;
 const {actionTypes: at} = require("common/Actions.jsm");
 
 describe("Reducers", () => {
@@ -107,6 +107,13 @@ describe("Reducers", () => {
         assert.deepEqual(nextState.rows, [{url: "foo.com"}]);
       });
     });
+    it("should insert pinned links on PINNED_SITES_UPDATED", () => {
+      const oldState = {rows: [{url: "foo.com"}, {url: "bar.com"}]};
+      const action = {type: at.PINNED_SITES_UPDATED, data: [{url: "baz.com", title: "baz"}]};
+      const nextState = TopSites(oldState, action);
+      console.log(nextState.rows);
+      assert.deepEqual(nextState.rows, [{url: "baz.com", title: "baz", isPinned: true, pinIndex: 0, pinTitle: "baz"}, {url: "foo.com"}, {url: "bar.com"}]);
+    });
   });
   describe("Prefs", () => {
     function prevState(custom = {}) {
@@ -145,6 +152,97 @@ describe("Reducers", () => {
         const state = Prefs(oldState, {type: at.PREF_CHANGED, data: {name: "foo", value: 2}});
         assert.notEqual(oldState.values, state.values);
       });
+    });
+  });
+  describe("Dialog", () => {
+    it("should return INITIAL_STATE by default", () => {
+      assert.equal(INITIAL_STATE.Dialog, Dialog(undefined, {type: "non_existent"}));
+    });
+    it("should toggle visible to true on DIALOG_OPEN", () => {
+      const action = {type: at.DIALOG_OPEN};
+      const nextState = Dialog(INITIAL_STATE.Dialog, action);
+      assert.isTrue(nextState.visible);
+    });
+    it("should pass url data on DIALOG_OPEN", () => {
+      const action = {type: at.DIALOG_OPEN, data: "some url"};
+      const nextState = Dialog(INITIAL_STATE.Dialog, action);
+      assert.equal(nextState.data, action.data);
+    });
+    it("should toggle visible to false on DIALOG_CANCEL", () => {
+      const action = {type: at.DIALOG_CANCEL, data: "some url"};
+      const nextState = Dialog(INITIAL_STATE.Dialog, action);
+      assert.isFalse(nextState.visible);
+    });
+    it("should return inital state on DELETE_HISTORY_URL", () => {
+      const action = {type: at.DELETE_HISTORY_URL};
+      const nextState = Dialog(INITIAL_STATE.Dialog, action);
+
+      assert.deepEqual(INITIAL_STATE.Dialog, nextState);
+    });
+  });
+  describe("#insertPinned", () => {
+    let links;
+
+    beforeEach(() => {
+      links =  new Array(12).fill(null).map((v, i) => ({url: `site${i}.com`}));
+    });
+
+    it("should place pinned links where they belong", () => {
+      const pinned = [
+        {"url": "http://github.com/mozilla/activity-stream", "title": "moz/a-s"},
+        {"url": "http://example.com", "title": "example"}
+      ];
+      const result = insertPinned(links, pinned);
+      for (let index of [0, 1]) {
+        assert.equal(result[index].url, pinned[index].url);
+        assert.ok(result[index].isPinned);
+        assert.equal(result[index].pinTitle, pinned[index].title);
+        assert.equal(result[index].pinIndex, index);
+      }
+      assert.deepEqual(result.slice(2), links);
+    });
+    it("should handle empty slots in the pinned list", () => {
+      const pinned = [
+        null,
+        {"url": "http://github.com/mozilla/activity-stream", "title": "moz/a-s"},
+        null,
+        null,
+        {"url": "http://example.com", "title": "example"}
+      ];
+      const result = insertPinned(links, pinned);
+      for (let index of [1, 4]) {
+        assert.equal(result[index].url, pinned[index].url);
+        assert.ok(result[index].isPinned);
+        assert.equal(result[index].pinTitle, pinned[index].title);
+        assert.equal(result[index].pinIndex, index);
+      }
+      result.splice(4, 1);
+      result.splice(1, 1);
+      assert.deepEqual(result, links);
+    });
+    it("should handle a pinned site past the end of the list of links", () => {
+      const pinned = [];
+      pinned[11] = {"url": "http://github.com/mozilla/activity-stream", "title": "moz/a-s"};
+      const result = insertPinned([], pinned);
+      assert.equal(result[11].url, pinned[11].url);
+      assert.isTrue(result[11].isPinned);
+      assert.equal(result[11].pinTitle, pinned[11].title);
+      assert.equal(result[11].pinIndex, 11);
+    });
+    it("should unpin previously pinned links no longer in the pinned list", () => {
+      const pinned = [];
+      links[2].isPinned = true;
+      links[2].pinTitle = "pinned site";
+      links[2].pinIndex = 2;
+      const result = insertPinned(links, pinned);
+      assert.notProperty(result[2], "isPinned");
+      assert.notProperty(result[2], "pinTitle");
+      assert.notProperty(result[2], "pinIndex");
+    });
+    it("should handle a link present in both the links and pinned list", () => {
+      const pinned = [links[7]];
+      const result = insertPinned(links, pinned);
+      assert.equal(links.length, result.length);
     });
   });
 });

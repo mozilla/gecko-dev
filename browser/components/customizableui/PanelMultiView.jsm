@@ -9,6 +9,8 @@ this.EXPORTED_SYMBOLS = ["PanelMultiView"];
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
+  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizableWidgets",
   "resource:///modules/CustomizableWidgets.jsm");
 
@@ -205,6 +207,15 @@ this.PanelMultiView = class {
     return this.__screenManager = Cc["@mozilla.org/gfx/screenmanager;1"]
                                     .getService(Ci.nsIScreenManager);
   }
+  /**
+   * Getter that returns the currently visible subview OR the subview that is
+   * about to be shown whilst a 'ViewShowing' event is being dispatched.
+   *
+   * @return {panelview}
+   */
+  get current() {
+    return this._viewShowing || this._currentSubView
+  }
   get _currentSubView() {
     return this.panelViews ? this.panelViews.currentView : this.__currentSubView;
   }
@@ -295,6 +306,10 @@ this.PanelMultiView = class {
         value: (...args) => this[method](...args)
       });
     });
+    Object.defineProperty(this.node, "current", {
+      enumerable: true,
+      get: () => this.current
+    });
   }
 
   destructor() {
@@ -317,9 +332,12 @@ this.PanelMultiView = class {
     } else {
       this._clickCapturer.removeEventListener("click", this);
     }
+    this._panel.removeEventListener("mousemove", this);
     this._panel.removeEventListener("popupshowing", this);
     this._panel.removeEventListener("popupshown", this);
     this._panel.removeEventListener("popuphidden", this);
+    this.window.removeEventListener("keydown", this);
+    this.node.dispatchEvent(new this.window.CustomEvent("destructed"));
     this.node = this._clickCapturer = this._viewContainer = this._mainViewContainer =
       this._subViews = this._viewStack = this.__dwu = this._panelViewCache = null;
   }
@@ -341,6 +359,16 @@ this.PanelMultiView = class {
       // XBL lists the 'children' XBL element explicitly. :-(
       if (subview.nodeName != "children")
         this._panelViewCache.appendChild(subview);
+    }
+  }
+
+  _placeSubView(viewNode) {
+    if (this.panelViews) {
+      this._viewStack.appendChild(viewNode);
+      if (!this.panelViews.includes(viewNode))
+        this.panelViews.push(viewNode);
+    } else {
+      this._subViews.appendChild(viewNode);
     }
   }
 
@@ -409,15 +437,12 @@ this.PanelMultiView = class {
       if (!viewNode) {
         viewNode = document.getElementById(aViewId);
         if (viewNode) {
-          if (this.panelViews) {
-            this._viewStack.appendChild(viewNode);
-            this.panelViews.push(viewNode);
-          } else {
-            this._subViews.appendChild(viewNode);
-          }
+          this._placeSubView(viewNode);
         } else {
           throw new Error(`Subview ${aViewId} doesn't exist!`);
         }
+      } else if (viewNode.parentNode == this._panelViewCache) {
+        this._placeSubView(viewNode);
       }
 
       let reverse = !!aPreviousView;
@@ -472,6 +497,7 @@ this.PanelMultiView = class {
       if (this.panelViews && this._mainViewWidth)
         viewNode.style.maxWidth = viewNode.style.minWidth = this._mainViewWidth + "px";
 
+      this._viewShowing = viewNode;
       let evt = new window.CustomEvent("ViewShowing", { bubbles: true, cancelable: true, detail });
       viewNode.dispatchEvent(evt);
 
@@ -491,6 +517,7 @@ this.PanelMultiView = class {
         return;
       }
 
+      this._viewShowing = null;
       this._currentSubView = viewNode;
       viewNode.setAttribute("current", true);
       if (this.panelViews) {
@@ -845,7 +872,36 @@ this.PanelMultiView = class {
         // sense for all platforms. If the arrow visuals change significantly,
         // this value will be easy to adjust.
         const EXTRA_MARGIN_PX = 20;
-        this._viewStack.style.maxHeight = (maxHeight - EXTRA_MARGIN_PX) + "px";
+        maxHeight -= EXTRA_MARGIN_PX;
+        this._viewStack.style.maxHeight = maxHeight + "px";
+
+        // When using block-in-box layout inside a scrollable frame, like in the
+        // main menu contents scroller, if we allow the contents to scroll then
+        // it will not cause its container to expand. Thus, we layout first
+        // without any scrolling (using "display: flex;"), and only if the view
+        // exceeds the available space we set the height explicitly and enable
+        // scrolling.
+        if (this._mainView.hasAttribute("blockinboxworkaround")) {
+          let blockInBoxWorkaround = () => {
+            let mainViewHeight =
+                this._dwu.getBoundsWithoutFlushing(this._mainView).height;
+            if (mainViewHeight > maxHeight) {
+              this._mainView.style.height = maxHeight + "px";
+              this._mainView.setAttribute("exceeding", "true");
+            }
+          };
+          // On Windows, we cannot measure the full height of the main view
+          // until it is visible. Unfortunately, this causes a visible jump when
+          // the view needs to scroll, but there is no easy way around this.
+          if (AppConstants.platform == "win") {
+            // We register a "once" listener so we don't need to store the value
+            // of maxHeight elsewhere on the object.
+            this._panel.addEventListener("popupshown", blockInBoxWorkaround,
+                                         { once: true });
+          } else {
+            blockInBoxWorkaround();
+          }
+        }
         break;
       case "popupshown":
         // Now that the main view is visible, we can check the height of the
@@ -866,6 +922,12 @@ this.PanelMultiView = class {
           this._panel.removeEventListener("mousemove", this);
           this._resetKeyNavigation();
           this._mainViewHeight = 0;
+        }
+        // Always try to layout the panel normally when reopening it. This is
+        // also the layout that will be used in customize mode.
+        if (this._mainView.hasAttribute("blockinboxworkaround")) {
+          this._mainView.style.removeProperty("height");
+          this._mainView.removeAttribute("exceeding");
         }
         break;
     }
@@ -1012,10 +1074,10 @@ this.PanelMultiView = class {
   /**
    * If the main view or a subview contains wrapping elements, the attribute
    * "descriptionheightworkaround" should be set on the view to force all the
-   * "description" or wrapping toolbarbutton elements to a fixed height.
-   * If the attribute is set and the visibility, contents, or width of any of
-   * these elements changes, this function should be called to refresh the
-   * calculated heights.
+   * wrapping "description", "label" or "toolbarbutton" elements to a fixed
+   * height. If the attribute is set and the visibility, contents, or width
+   * of any of these elements changes, this function should be called to
+   * refresh the calculated heights.
    *
    * This may trigger a synchronous layout.
    *
@@ -1024,7 +1086,7 @@ this.PanelMultiView = class {
    *        view if omitted.
    */
   descriptionHeightWorkaround(viewNode = this._mainView) {
-    if (!this.node.hasAttribute("descriptionheightworkaround")) {
+    if (!viewNode.hasAttribute("descriptionheightworkaround")) {
       // This view does not require the workaround.
       return;
     }
@@ -1033,8 +1095,20 @@ this.PanelMultiView = class {
     // First we reset any change we may have made previously. The first time
     // this is called, and in the best case scenario, this has no effect.
     let items = [];
-    for (let element of viewNode.querySelectorAll(
-         "description:not([hidden]):not([value]),toolbarbutton[wrap]:not([hidden])")) {
+    // Non-hidden <label> or <description> elements that also aren't empty
+    // and also don't have a value attribute can be multiline (if their
+    // text content is long enough).
+    let isMultiline = ":not(:-moz-any([hidden],[value],:empty))";
+    let selector = [
+      "description" + isMultiline,
+      "label" + isMultiline,
+      "toolbarbutton[wrap]:not([hidden])",
+    ].join(",");
+    for (let element of viewNode.querySelectorAll(selector)) {
+      // Ignore items in hidden containers.
+      if (element.closest("[hidden]")) {
+        continue;
+      }
       // Take the label for toolbarbuttons; it only exists on those elements.
       element = element.labelElement || element;
 

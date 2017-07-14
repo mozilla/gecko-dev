@@ -4,7 +4,7 @@ macosx64/debug:
         product: firefox
         job-name: macosx64-debug
     treeherder:
-        platform: osx-10-10/debug
+        platform: osx-cross/debug
         symbol: tc(B)
         tier: 1
     worker-type: aws-provisioner-v1/gecko-{level}-b-macosx64
@@ -28,7 +28,7 @@ macosx64/opt:
         product: firefox
         job-name: macosx64-opt
     treeherder:
-        platform: osx-10-10/opt
+        platform: osx-cross/opt
         symbol: tc(B)
         tier: 1
     worker-type: aws-provisioner-v1/gecko-{level}-b-macosx64
@@ -45,10 +45,35 @@ macosx64/opt:
         secrets: true
         tooltool-downloads: internal
 
+macosx64-dmd/opt:
+    description: "MacOS X x64 DMD Cross-compile"
+    index:
+        product: firefox
+        job-name: macosx64-dmd-opt
+    treeherder:
+        platform: osx-10-10-dmd/opt
+        symbol: tc(Bdmd)
+        tier: 2
+    worker-type: aws-provisioner-v1/gecko-{level}-b-macosx64
+    worker:
+        max-run-time: 36000
+        env:
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/macosx64/cross-releng.manifest"
+    run:
+        using: mozharness
+        actions: [get-secrets build update]
+        config:
+            - builds/releng_base_mac_64_cross_builds.py
+        script: "mozharness/scripts/fx_desktop_build.py"
+        custom-build-variant-cfg: dmd
+        secrets: true
+        tooltool-downloads: internal
+    run-on-projects: [ ]
+
 macosx64-devedition/opt:
     description: "MacOS X Dev Edition x64"
     index:
-        product: firefox
+        product: devedition
         job-name: macosx64-devedition-opt
     treeherder:
         platform: macosx64-devedition/opt
@@ -72,7 +97,7 @@ macosx64-noopt/debug:
         product: firefox
         job-name: macosx64-noopt-debug
     treeherder:
-        platform: osx-10-7-noopt/debug
+        platform: osx-cross-noopt/debug
         symbol: tc(B)
         tier: 2
     worker-type: aws-provisioner-v1/gecko-{level}-b-macosx64
@@ -100,7 +125,7 @@ macosx64-add-on-devel/opt:
         product: firefox
         job-name: macosx64-add-on-devel
     treeherder:
-        platform: osx-10-7-add-on-devel/opt
+        platform: osx-cross-add-on-devel/opt
         symbol: tc(B)
         tier: 2
     worker-type: aws-provisioner-v1/gecko-{level}-b-macosx64
@@ -129,9 +154,9 @@ macosx64-nightly/opt:
         job-name: macosx64-opt
         type: nightly
     treeherder:
-        platform: osx-10-10/opt
+        platform: osx-cross/opt
         symbol: tc(N)
-        tier: 2
+        tier: 1
     worker-type: aws-provisioner-v1/gecko-{level}-b-macosx64
     worker:
         max-run-time: 36000

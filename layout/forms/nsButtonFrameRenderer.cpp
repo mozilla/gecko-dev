@@ -68,7 +68,7 @@ nsButtonFrameRenderer::SetDisabled(bool aDisabled, bool notify)
 }
 
 bool
-nsButtonFrameRenderer::isDisabled() 
+nsButtonFrameRenderer::isDisabled()
 {
   return mFrame->GetContent()->AsElement()->
     State().HasState(NS_EVENT_STATE_DISABLED);
@@ -85,8 +85,8 @@ public:
   virtual ~nsDisplayButtonBoxShadowOuter() {
     MOZ_COUNT_DTOR(nsDisplayButtonBoxShadowOuter);
   }
-#endif  
-  
+#endif
+
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      gfxContext* aCtx) override;
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
@@ -140,10 +140,11 @@ public:
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
-  virtual void CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
+  virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                        const StackingContextHelper& aSc,
                                        nsTArray<WebRenderParentCommand>& aParentCommands,
-                                       WebRenderDisplayItemLayer* aLayer) override;
+                                       mozilla::layers::WebRenderLayerManager* aManager,
+                                       nsDisplayListBuilder* aDisplayListBuilder) override;
   NS_DISPLAY_DECL_NAME("ButtonBorderBackground", TYPE_BUTTON_BORDER_BACKGROUND)
 private:
   nsButtonFrameRenderer* mBFR;
@@ -205,22 +206,35 @@ nsDisplayButtonBorder::BuildLayer(nsDisplayListBuilder* aBuilder,
   return BuildDisplayItemLayer(aBuilder, aManager, aContainerParameters);
 }
 
-void
+bool
 nsDisplayButtonBorder::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                const StackingContextHelper& aSc,
-                                               nsTArray<WebRenderParentCommand>& aCommands,
-                                               WebRenderDisplayItemLayer* aLayer)
+                                               nsTArray<WebRenderParentCommand>& aParentCommands,
+                                               mozilla::layers::WebRenderLayerManager* aManager,
+                                               nsDisplayListBuilder* aDisplayListBuilder)
 {
+  if (aManager->IsLayersFreeTransaction()) {
+    ContainerLayerParameters parameter;
+    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+      return false;
+    }
+  }
+
   MOZ_ASSERT(mBorderRenderer);
+
   // This is really a combination of paint box shadow inner +
   // paint border.
   nsRect buttonRect = nsRect(ToReferenceFrame(), mFrame->GetSize());
+  bool snap;
+  nsRegion visible = GetBounds(aDisplayListBuilder, &snap);
   nsDisplayBoxShadowInner::CreateInsetBoxShadowWebRenderCommands(aBuilder,
                                                                  aSc,
-                                                                 aLayer,
+                                                                 visible,
                                                                  mFrame,
                                                                  buttonRect);
-  mBorderRenderer->CreateWebRenderCommands(aBuilder, aSc, aLayer);
+  mBorderRenderer->CreateWebRenderCommands(aBuilder, aSc);
+
+  return true;
 }
 
 void
@@ -274,7 +288,7 @@ public:
   virtual ~nsDisplayButtonForeground() {
     MOZ_COUNT_DTOR(nsDisplayButtonForeground);
   }
-#endif  
+#endif
 
   nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) override;
   void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
@@ -288,10 +302,11 @@ public:
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) override;
-   virtual void CreateWebRenderCommands(wr::DisplayListBuilder& aBuilder,
+   virtual bool CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                         const StackingContextHelper& aSc,
                                         nsTArray<WebRenderParentCommand>& aParentCommands,
-                                        WebRenderDisplayItemLayer* aLayer) override;
+                                        mozilla::layers::WebRenderLayerManager* aManager,
+                                        nsDisplayListBuilder* aDisplayListBuilder) override;
   NS_DISPLAY_DECL_NAME("ButtonForeground", TYPE_BUTTON_FOREGROUND)
 private:
   nsButtonFrameRenderer* mBFR;
@@ -373,14 +388,22 @@ nsDisplayButtonForeground::BuildLayer(nsDisplayListBuilder* aBuilder,
   return BuildDisplayItemLayer(aBuilder, aManager, aContainerParameters);
 }
 
-void
-nsDisplayButtonForeground::CreateWebRenderCommands(wr::DisplayListBuilder& aBuilder,
+bool
+nsDisplayButtonForeground::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
                                                    const StackingContextHelper& aSc,
                                                    nsTArray<WebRenderParentCommand>& aParentCommands,
-                                                   mozilla::layers::WebRenderDisplayItemLayer* aLayer)
+                                                   mozilla::layers::WebRenderLayerManager* aManager,
+                                                   nsDisplayListBuilder* aDisplayListBuilder)
 {
-  MOZ_ASSERT(mBorderRenderer.isSome());
-  mBorderRenderer->CreateWebRenderCommands(aBuilder, aSc, aLayer);
+  if (aManager->IsLayersFreeTransaction()) {
+    ContainerLayerParameters parameter;
+    if (GetLayerState(aDisplayListBuilder, aManager, parameter) != LAYER_ACTIVE) {
+      return false;
+    }
+  }
+
+  mBorderRenderer->CreateWebRenderCommands(aBuilder, aSc);
+  return true;
 }
 
 nsresult
@@ -442,7 +465,7 @@ nsButtonFrameRenderer::PaintInnerFocusBorder(
 
   DrawResult result = DrawResult::SUCCESS;
 
-  if (mInnerFocusStyle) { 
+  if (mInnerFocusStyle) {
     GetButtonInnerFocusRect(aRect, rect);
 
     result &=
@@ -543,7 +566,7 @@ nsButtonFrameRenderer::GetStyleContext(int32_t aIndex) const
   }
 }
 
-void 
+void
 nsButtonFrameRenderer::SetStyleContext(int32_t aIndex, nsStyleContext* aStyleContext)
 {
   switch (aIndex) {

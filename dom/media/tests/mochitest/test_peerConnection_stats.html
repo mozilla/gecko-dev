@@ -16,8 +16,8 @@ var statsExpectedByType = {
       "packetsReceived", "packetsLost", "bytesReceived", "jitter",],
     optional: ["roundTripTime", "remoteId", "nackCount",],
     localVideoOnly: ["discardedPackets", "framerateStdDev", "framerateMean",
-      "bitrateMean", "bitrateStdDev", "firCount", "pliCount",],
-    unimplemented: ["mediaTrackId", "transportId", "codecId", "framesDecoded",
+      "bitrateMean", "bitrateStdDev", "firCount", "pliCount", "framesDecoded",],
+    unimplemented: ["mediaTrackId", "transportId", "codecId",
       "packetsDiscarded", "associateStatsId",
       "sliCount", "qpSum", "packetsRepaired", "fractionLost",
       "burstPacketsLost", "burstLossCount", "burstDiscardCount",
@@ -258,7 +258,10 @@ var pedanticChecks = report => {
         ok(stat.discardedPackets < 100, stat.type
           + ".discardedPackets is a sane number for a short test. value="
           + stat.discardedPackets);
-
+        // framesDecoded
+        ok(stat.framesDecoded > 0 && stat.framesDecoded < 1000000, stat.type
+          + ".framesDecoded is a sane number for a short test. value="
+          + stat.framesDecoded);
         // bitrateMean
         // special exception, TODO: Bug 1341533
         if (stat.bitrateMean !== undefined) {
@@ -376,6 +379,7 @@ var pedanticChecks = report => {
           + stat.framesEncoded);
       }
     } else if (stat.type == "candidate-pair") {
+      info("candidate-pair is: " + JSON.stringify(stat));
       //
       // Required fields
       //
@@ -411,20 +415,23 @@ var pedanticChecks = report => {
         + stat.writable);
 
       // state
-      if (stat.state == "succeeded") {
+      if (stat.state == "succeeded" &&
+          stat.selected !== undefined &&
+          stat.selected) {
+        info("candidate-pair state is succeeded and selected is true");
         // nominated
         ok(stat.nominated,
           stat.type + ".nominated is true. value="
           + stat.nominated);
 
         // bytesSent
-        ok(stat.bytesSent > 20000 && stat.bytesSent < 800000,
-          stat.type + ".bytesSent is a sane number (20,000<>800,000)for a short test. value="
+        ok(stat.bytesSent > 20000,
+          stat.type + ".bytesSent is a sane number (>20,000) for a short test. value="
           + stat.bytesSent);
 
         // bytesReceived
-        ok(stat.bytesReceived > 20000 && stat.bytesReceived < 800000,
-          stat.type + ".bytesReceived is a sane number (20,000<>800,000) for a short test. value="
+        ok(stat.bytesReceived > 20000,
+          stat.type + ".bytesReceived is a sane number (>20,000) for a short test. value="
           + stat.bytesReceived);
 
         // lastPacketSentTimestamp
@@ -438,10 +445,23 @@ var pedanticChecks = report => {
           + stat.lastPacketReceivedTimestamp);
 
       } else {
+        info("candidate-pair is _not_ both state == succeeded and selected");
         // nominated
-        ok(!stat.nominated,
-          stat.type + ".nominated is false. value="
+        ok(stat.nominated !== undefined,
+          stat.type + ".nominated exists. value="
           + stat.nominated);
+        ok(stat.bytesSent !== undefined,
+          stat.type + ".bytesSent exists. value="
+          + stat.bytesSent);
+        ok(stat.bytesReceived !== undefined,
+          stat.type + ".bytesReceived exists. value="
+          + stat.bytesReceived);
+        ok(stat.lastPacketSentTimestamp !== undefined,
+          stat.type + ".lastPacketSentTimestamp exists. value="
+          + stat.lastPacketSentTimestamp);
+        ok(stat.lastPacketReceivedTimestamp !== undefined,
+          stat.type + ".lastPacketReceivedTimestamp exists. value="
+          + stat.lastPacketReceivedTimestamp);
       }
 
 
@@ -450,9 +470,10 @@ var pedanticChecks = report => {
       //
       // selected
       ok(stat.selected === undefined ||
-         ((stat.state == "succeeded" && stat.selected == true) ||
-          (stat.selected == false)),
-        stat.type + ".selected is undefined or true. value="
+         ((stat.state == "succeeded" && stat.selected) ||
+          !stat.selected),
+        stat.type + ".selected is undefined, true when state is succeeded, "
+        + "or false. value="
         + stat.selected);
 
     }

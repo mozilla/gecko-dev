@@ -19,13 +19,13 @@
 #include "FileDescriptor.h"
 #include "FileDescriptorFile.h"
 #include "LoadInfo.h"
-#include "nsContentUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIFile.h"
 #include "nsIFileChannel.h"
 #include "nsIFileStreams.h"
 #include "nsIFileURL.h"
 #include "nsIJARChannel.h"
+#include "nsIMIMEService.h"
 #include "nsIURL.h"
 #include "nsIChannel.h"
 #include "nsIInputStreamPump.h"
@@ -41,6 +41,10 @@
 
 #if defined(XP_WIN)
 #include "nsILocalFileWin.h"
+#endif
+
+#if !defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX)
+#include "mozilla/SandboxSettings.h"
 #endif
 
 #define EXTENSION_SCHEME "moz-extension"
@@ -344,6 +348,9 @@ ExtensionProtocolHandler::GetSingleton()
 
 ExtensionProtocolHandler::ExtensionProtocolHandler()
   : SubstitutingProtocolHandler(EXTENSION_SCHEME)
+#if !defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX)
+  , mAlreadyCheckedDevRepo(false)
+#endif
 {
   mUseRemoteFileChannels = IsNeckoChild() &&
     Preferences::GetBool("extensions.webextensions.protocol.remote");
@@ -498,6 +505,39 @@ ExtensionProtocolHandler::SubstituteChannel(nsIURI* aURI,
   return NS_OK;
 }
 
+#if !defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX)
+// The |aRequestedFile| argument must already be Normalize()'d
+Result<Ok, nsresult>
+ExtensionProtocolHandler::DevRepoContains(nsIFile* aRequestedFile,
+                                          bool *aResult)
+{
+  MOZ_ASSERT(!IsNeckoChild());
+  MOZ_ASSERT(aResult);
+  *aResult = false;
+
+  // On the first invocation, set mDevRepo if this is a
+  // development build with MOZ_DEVELOPER_REPO_DIR set.
+  if (!mAlreadyCheckedDevRepo) {
+    mAlreadyCheckedDevRepo = true;
+    if (mozilla::IsDevelopmentBuild()) {
+      char *developer_repo_dir = PR_GetEnv("MOZ_DEVELOPER_REPO_DIR");
+      if (developer_repo_dir) {
+        NS_TRY(NS_NewLocalFile(NS_ConvertUTF8toUTF16(developer_repo_dir),
+                               false, getter_AddRefs(mDevRepo)));
+        NS_TRY(mDevRepo->Normalize());
+      }
+    }
+  }
+
+  if (mDevRepo) {
+    // This is a development build
+    NS_TRY(mDevRepo->Contains(aRequestedFile, aResult));
+  }
+
+  return Ok();
+}
+#endif /* !defined(XP_WIN) && defined(MOZ_CONTENT_SANDBOX) */
+
 Result<nsCOMPtr<nsIInputStream>, nsresult>
 ExtensionProtocolHandler::NewStream(nsIURI* aChildURI,
                                     nsILoadInfo* aChildLoadInfo,
@@ -558,12 +598,6 @@ ExtensionProtocolHandler::NewStream(nsIURI* aChildURI,
    * channel is a file channel.
    */
 
-  nsCOMPtr<nsIPrincipal> childPrincipal;
-  NS_TRY(aChildLoadInfo->GetLoadingPrincipal(getter_AddRefs(childPrincipal)));
-  if (nsContentUtils::IsSystemPrincipal(childPrincipal)) {
-    return Err(NS_ERROR_FILE_ACCESS_DENIED);
-  }
-
   nsCOMPtr<nsIChannel> channel;
   NS_TRY(NS_NewChannelInternal(getter_AddRefs(channel),
                                aChildURI,
@@ -590,7 +624,17 @@ ExtensionProtocolHandler::NewStream(nsIURI* aChildURI,
   bool isResourceFromExtensionDir = false;
   NS_TRY(extensionDir->Contains(requestedFile, &isResourceFromExtensionDir));
   if (!isResourceFromExtensionDir) {
+#if defined(XP_WIN)
     return Err(NS_ERROR_FILE_ACCESS_DENIED);
+#elif defined(MOZ_CONTENT_SANDBOX)
+    // On a dev build, we allow an unpacked resource that isn't
+    // from the extension directory as long as it is from the repo.
+    bool isResourceFromDevRepo = false;
+    MOZ_TRY(DevRepoContains(requestedFile, &isResourceFromDevRepo));
+    if (!isResourceFromDevRepo) {
+      return Err(NS_ERROR_FILE_ACCESS_DENIED);
+    }
+#endif /* defined(XP_WIN) */
   }
 
   nsCOMPtr<nsIInputStream> inputStream;
@@ -678,8 +722,18 @@ NewSimpleChannel(nsIURI* aURI,
         ExtensionStreamGetter* getter) -> RequestOrReason {
       MOZ_TRY(getter->GetAsync(listener, channel));
       return RequestOrReason(nullptr);
-
     });
+
+  nsresult rv;
+  nsCOMPtr<nsIMIMEService> mime = do_GetService("@mozilla.org/mime;1", &rv);
+  if (NS_SUCCEEDED(rv)) {
+    nsAutoCString contentType;
+    rv = mime->GetTypeFromURI(aURI, contentType);
+    if (NS_SUCCEEDED(rv)) {
+      Unused << channel->SetContentType(contentType);
+    }
+  }
+
   channel.swap(*aRetVal);
 }
 

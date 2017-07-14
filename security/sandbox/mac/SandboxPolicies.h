@@ -30,13 +30,14 @@ static const char pluginSandboxRules[] = R"(
       (global-name "com.apple.system.logger")
       (global-name "com.apple.ls.boxd"))
   (allow file-read*
-      (regex #"^/etc$")
-      (regex #"^/dev/u?random$")
+      (literal "/etc")
+      (literal "/dev/random")
+      (literal "/dev/urandom")
       (literal "/usr/share/icu/icudt51l.dat")
-      (regex #"^/System/Library/Displays/Overrides/*")
-      (regex #"^/System/Library/CoreServices/CoreTypes.bundle/*")
-      (regex #"^/System/Library/PrivateFrameworks/*")
-      (regex #"^/usr/lib/libstdc\+\+\..*dylib$")
+      (subpath "/System/Library/Displays/Overrides")
+      (subpath "/System/Library/CoreServices/CoreTypes.bundle")
+      (subpath "/System/Library/PrivateFrameworks")
+      (regex #"^/usr/lib/libstdc\+\+\.[^/]*dylib$")
       (literal plugin-binary-path)
       (literal app-path)
       (literal app-binary-path))
@@ -54,6 +55,7 @@ static const char contentSandboxRules[] = R"(
   (define sandbox-level-2 (param "SANDBOX_LEVEL_2"))
   (define sandbox-level-3 (param "SANDBOX_LEVEL_3"))
   (define macosMinorVersion-9 (param "MAC_OS_MINOR_9"))
+  (define macosMinorVersion-min13 (param "MAC_OS_MINOR_MIN_13"))
   (define appPath (param "APP_PATH"))
   (define appBinaryPath (param "APP_BINARY_PATH"))
   (define appdir-path (param "APP_DIR"))
@@ -63,6 +65,9 @@ static const char contentSandboxRules[] = R"(
   (define home-path (param "HOME_PATH"))
   (define hasFilePrivileges (param "HAS_FILE_PRIVILEGES"))
   (define debugWriteDir (param "DEBUG_WRITE_DIR"))
+  (define testingReadPath1 (param "TESTING_READ_PATH1"))
+  (define testingReadPath2 (param "TESTING_READ_PATH2"))
+  (define testingReadPath3 (param "TESTING_READ_PATH3"))
 
   (if (string=? should-log "TRUE")
     (deny default)
@@ -102,8 +107,50 @@ static const char contentSandboxRules[] = R"(
     file-ioctl
     (literal "/dev/dtracehelper"))
 
-  ; Used to read hw.ncpu, hw.physicalcpu_max, kern.ostype, and others
-  (allow sysctl-read)
+  ; macOS 10.9 does not support the |sysctl-name| predicate, so unfortunately
+  ; we need to allow all sysctl-reads there.
+  (if (string=? macosMinorVersion-9 "TRUE")
+    (allow sysctl-read)
+    (allow sysctl-read
+      (sysctl-name-regex #"^sysctl\.")
+      (sysctl-name "kern.ostype")
+      (sysctl-name "kern.osversion")
+      (sysctl-name "kern.osrelease")
+      (sysctl-name "kern.version")
+      ; TODO: remove "kern.hostname". Without it the tests hang, but the hostname
+      ; is arguably sensitive information, so we should see what can be done about
+      ; removing it.
+      (sysctl-name "kern.hostname")
+      (sysctl-name "hw.machine")
+      (sysctl-name "hw.model")
+      (sysctl-name "hw.ncpu")
+      (sysctl-name "hw.activecpu")
+      (sysctl-name "hw.byteorder")
+      (sysctl-name "hw.pagesize_compat")
+      (sysctl-name "hw.logicalcpu_max")
+      (sysctl-name "hw.physicalcpu_max")
+      (sysctl-name "hw.busfrequency_compat")
+      (sysctl-name "hw.busfrequency_max")
+      (sysctl-name "hw.cpufrequency")
+      (sysctl-name "hw.cpufrequency_compat")
+      (sysctl-name "hw.cpufrequency_max")
+      (sysctl-name "hw.l2cachesize")
+      (sysctl-name "hw.l3cachesize")
+      (sysctl-name "hw.cachelinesize_compat")
+      (sysctl-name "hw.tbfrequency_compat")
+      (sysctl-name "hw.vectorunit")
+      (sysctl-name "hw.optional.sse2")
+      (sysctl-name "hw.optional.sse3")
+      (sysctl-name "hw.optional.sse4_1")
+      (sysctl-name "hw.optional.sse4_2")
+      (sysctl-name "hw.optional.avx1_0")
+      (sysctl-name "hw.optional.avx2_0")
+      (sysctl-name "machdep.cpu.vendor")
+      (sysctl-name "machdep.cpu.family")
+      (sysctl-name "machdep.cpu.model")
+      (sysctl-name "machdep.cpu.stepping")
+      (sysctl-name "debug.intel.gstLevelGST")
+      (sysctl-name "debug.intel.gstLoaderControl")))
 
   (define (home-regex home-relative-regex)
     (regex (string-append "^" (regex-quote home-path) home-relative-regex)))
@@ -157,6 +204,10 @@ static const char contentSandboxRules[] = R"(
       (global-name "com.apple.cmio.AppleCameraAssistant")
       (global-name "com.apple.DesktopServicesHelper"))
 
+; bug 1376163
+  (if (string=? macosMinorVersion-min13 "TRUE")
+    (allow mach-lookup (global-name "com.apple.audio.AudioComponentRegistrar")))
+
 ; bug 1312273
   (if (string=? macosMinorVersion-9 "TRUE")
      (allow mach-lookup (global-name "com.apple.xpcd")))
@@ -209,6 +260,13 @@ static const char contentSandboxRules[] = R"(
       (literal appPath)
       (literal appBinaryPath))
 
+  (when testingReadPath1
+    (allow file-read* (subpath testingReadPath1)))
+  (when testingReadPath2
+    (allow file-read* (subpath testingReadPath2)))
+  (when testingReadPath3
+    (allow file-read* (subpath testingReadPath3)))
+
   (allow file-read-metadata (home-subpath "/Library"))
 
   (allow file-read-metadata
@@ -217,10 +275,11 @@ static const char contentSandboxRules[] = R"(
 
 ; bug 1303987
   (if (string? debugWriteDir)
-    (allow file-write* (subpath debugWriteDir)))
+    (allow file-write-create file-write-data (subpath debugWriteDir)))
 
-; bug 1324610
-  (allow network-outbound (literal "/private/var/run/cupsd"))
+  ; bug 1324610
+  (allow network-outbound file-read*
+    (literal "/private/var/run/cupsd"))
 
   (allow-shared-list "org.mozilla.plugincontainer")
 
@@ -265,11 +324,8 @@ static const char contentSandboxRules[] = R"(
           ; we don't have a profile dir
           (allow file-read* (require-not (home-subpath "/Library")))))))
 
-; level 3: global read access permitted, no global write access,
-;          no read access to the home directory,
-;          no read access to /private/var (but read-metadata allowed above),
-;          no read access to /{Volumes,Network,Users}
-;          read access permitted to $PROFILE/{extensions,chrome}
+  ; level 3: no global read/write access,
+  ;          read access permitted to $PROFILE/{extensions,chrome}
   (if (string=? sandbox-level-3 "TRUE")
     (if (string=? hasFilePrivileges "TRUE")
       ; This process has blanket file read privileges
@@ -277,27 +333,9 @@ static const char contentSandboxRules[] = R"(
       ; This process does not have blanket file read privileges
       (if (string=? hasProfileDir "TRUE")
         ; we have a profile dir
-        (begin
-          (allow file-read* (require-all
-              (require-not (subpath home-path))
-              (require-not (subpath profileDir))
-              (require-not (subpath "/Volumes"))
-              (require-not (subpath "/Network"))
-              (require-not (subpath "/Users"))
-              (require-not (subpath "/private/var"))))
-          (allow file-read* (literal "/private/var/run/cupsd"))
           (allow file-read*
-              (profile-subpath "/extensions")
-              (profile-subpath "/chrome")))
-        ; we don't have a profile dir
-        (begin
-          (allow file-read* (require-all
-            (require-not (subpath home-path))
-            (require-not (subpath "/Volumes"))
-            (require-not (subpath "/Network"))
-            (require-not (subpath "/Users"))
-            (require-not (subpath "/private/var"))))
-          (allow file-read* (literal "/private/var/run/cupsd"))))))
+            (profile-subpath "/extensions")
+            (profile-subpath "/chrome")))))
 
 ; accelerated graphics
   (allow-shared-preferences-read "com.apple.opengl")
@@ -320,8 +358,8 @@ static const char contentSandboxRules[] = R"(
       (iokit-user-client-class "NVDVDContextTesla")
       (iokit-user-client-class "Gen6DVDContext"))
 
-; bug 1237847
-  (allow file-read* file-write*
+  ; bug 1237847
+  (allow file-read* file-write-create file-write-data
       (subpath appTempDir))
 )";
 

@@ -46,12 +46,17 @@
 
 #define AUTOMATIC_IMAGE_RESIZING_PREF "browser.enable_automatic_image_resizing"
 #define CLICK_IMAGE_RESIZING_PREF "browser.enable_click_image_resizing"
+
 //XXX A hack needed for Firefox's site specific zoom.
-#define SITE_SPECIFIC_ZOOM "browser.zoom.siteSpecific"
+static bool IsSiteSpecific()
+{
+  return !mozilla::Preferences::GetBool("privacy.resistFingerprinting", false) &&
+         mozilla::Preferences::GetBool("browser.zoom.siteSpecific", false);
+}
 
 namespace mozilla {
 namespace dom {
- 
+
 class ImageListener : public MediaDocumentStreamListener
 {
 public:
@@ -206,8 +211,7 @@ ImageDocument::StartDocumentLoad(const char*         aCommand,
     return rv;
   }
 
-  mOriginalZoomLevel =
-    Preferences::GetBool(SITE_SPECIFIC_ZOOM, false) ? 1.0 : GetZoomLevel();
+  mOriginalZoomLevel = IsSiteSpecific() ? 1.0 : GetZoomLevel();
 
   NS_ASSERTION(aDocListener, "null aDocListener");
   *aDocListener = new ImageListener(this);
@@ -291,8 +295,7 @@ ImageDocument::OnPageShow(bool aPersisted,
                           EventTarget* aDispatchStartTarget)
 {
   if (aPersisted) {
-    mOriginalZoomLevel =
-      Preferences::GetBool(SITE_SPECIFIC_ZOOM, false) ? 1.0 : GetZoomLevel();
+    mOriginalZoomLevel = IsSiteSpecific() ? 1.0 : GetZoomLevel();
   }
   RefPtr<ImageDocument> kungFuDeathGrip(this);
   UpdateSizeFromLayout();
@@ -367,7 +370,7 @@ ImageDocument::ShrinkToFit()
   nsCOMPtr<nsIDOMHTMLImageElement> image = do_QueryInterface(imageContent);
   image->SetWidth(std::max(1, NSToCoordFloor(GetRatio() * mImageWidth)));
   image->SetHeight(std::max(1, NSToCoordFloor(GetRatio() * mImageHeight)));
-  
+
   // The view might have been scrolled when zooming in, scroll back to the
   // origin now that we're showing a shrunk-to-window version.
   ScrollImageTo(0, 0, false);
@@ -378,9 +381,9 @@ ImageDocument::ShrinkToFit()
   }
 
   SetModeClass(eShrinkToFit);
-  
+
   mImageIsResized = true;
-  
+
   UpdateTitleAndCharset();
 }
 
@@ -434,7 +437,7 @@ ImageDocument::RestoreImage()
   nsCOMPtr<Element> imageContent = mImageContent;
   imageContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::width, true);
   imageContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::height, true);
-  
+
   if (ImageIsOverflowing()) {
     if (!mImageIsOverflowingVertically) {
       SetModeClass(eOverflowingHorizontalOnly);
@@ -445,9 +448,9 @@ ImageDocument::RestoreImage()
   else {
     SetModeClass(eNone);
   }
-  
+
   mImageIsResized = false;
-  
+
   UpdateTitleAndCharset();
 }
 
@@ -755,7 +758,7 @@ ImageDocument::CheckOverflowing(bool changeState)
   return NS_OK;
 }
 
-void 
+void
 ImageDocument::UpdateTitleAndCharset()
 {
   nsAutoCString typeStr;
@@ -765,7 +768,7 @@ ImageDocument::UpdateTitleAndCharset()
     imageLoader->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
                             getter_AddRefs(imageRequest));
   }
-    
+
   if (imageRequest) {
     nsXPIDLCString mimeType;
     imageRequest->GetMimeType(getter_Copies(mimeType));
@@ -774,7 +777,7 @@ ImageDocument::UpdateTitleAndCharset()
     mimeType.BeginReading(start);
     mimeType.EndReading(end);
     nsXPIDLCString::const_iterator iter = end;
-    if (FindInReadable(NS_LITERAL_CSTRING("IMAGE/"), start, iter) && 
+    if (FindInReadable(NS_LITERAL_CSTRING("IMAGE/"), start, iter) &&
         iter != end) {
       // strip out "X-" if any
       if (*iter == 'X') {
@@ -806,7 +809,7 @@ ImageDocument::UpdateTitleAndCharset()
                                         getter_Copies(status));
   }
 
-  static const char* const formatNames[4] = 
+  static const char* const formatNames[4] =
   {
     "ImageTitleWithNeitherDimensionsNorFile",
     "ImageTitleWithoutDimensions",

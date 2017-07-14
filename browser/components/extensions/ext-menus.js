@@ -193,7 +193,7 @@ var gMenuBuilder = {
     let label = item.title;
     if (label) {
       if (contextData.isTextSelected && label.indexOf("%s") > -1) {
-        let selection = contextData.selectionText;
+        let selection = contextData.selectionText.trim();
         // The rendering engine will truncate the title if it's longer than 64 characters.
         // But if it makes sense let's try truncate selection text only, to handle cases like
         // 'look up "%s" in MyDictionary' more elegantly.
@@ -298,7 +298,7 @@ global.actionContextMenu = function(contextData) {
   gMenuBuilder.buildActionContextMenu(contextData);
 };
 
-function getContexts(contextData) {
+const getMenuContexts = contextData => {
   let contexts = new Set();
 
   if (contextData.inFrame) {
@@ -355,7 +355,7 @@ function getContexts(contextData) {
   }
 
   return contexts;
-}
+};
 
 function MenuItem(extension, createProperties, isRoot = false) {
   this.extension = extension;
@@ -546,7 +546,7 @@ MenuItem.prototype = {
   },
 
   enabledForContext(contextData) {
-    let contexts = getContexts(contextData);
+    let contexts = getMenuContexts(contextData);
     if (!this.contexts.some(n => contexts.has(n))) {
       return false;
     }
@@ -673,9 +673,10 @@ this.menusInternal = class extends ExtensionAPI {
           }
         },
 
-        onClicked: new SingletonEventManager(context, "menusInternal.onClicked", fire => {
+        onClicked: new EventManager(context, "menusInternal.onClicked", fire => {
           let listener = (event, info, tab) => {
-            fire.async(info, tab);
+            context.withPendingBrowser(tab.linkedBrowser,
+                                       () => fire.sync(info, tab));
           };
 
           extension.on("webext-menu-menuitem-click", listener);

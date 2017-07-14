@@ -53,9 +53,8 @@ public:
   void RenderLayer(wr::DisplayListBuilder& aBuilder,
                    const StackingContextHelper& aSc) override;
 private:
-  RefPtr<ImageContainer> mImageContainer;
-  RefPtr<ImageClient> mImageClient;
   Maybe<WrImageKey> mImageKey;
+  LayerIntRect mImageBounds;
 };
 
 } // namespace layers

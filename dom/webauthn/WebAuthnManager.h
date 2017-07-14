@@ -41,6 +41,13 @@
  *
  */
 
+// Forward decl because of nsHTMLDocument.h's complex dependency on /layout/style
+class nsHTMLDocument {
+public:
+  bool IsRegistrableDomainSuffixOfOrEqualTo(const nsAString& aHostSuffixString,
+                                            const nsACString& aOrigHost);
+};
+
 namespace mozilla {
 namespace dom {
 
@@ -62,8 +69,7 @@ public:
   static WebAuthnManager* Get();
 
   void
-  FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer,
-                       nsTArray<uint8_t>& aSigBuffer);
+  FinishMakeCredential(nsTArray<uint8_t>& aRegBuffer);
 
   void
   FinishGetAssertion(nsTArray<uint8_t>& aCredentialId,

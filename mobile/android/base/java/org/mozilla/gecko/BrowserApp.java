@@ -181,9 +181,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import static org.mozilla.gecko.Tab.TabType;
-import static org.mozilla.gecko.Tabs.INVALID_TAB_ID;
-
+import static org.mozilla.gecko.mma.MmaDelegate.NEW_TAB;
 public class BrowserApp extends GeckoApp
                         implements ActionModePresenter,
                                    AnchoredPopup.OnVisibilityChangeListener,
@@ -446,11 +444,6 @@ public class BrowserApp extends GeckoApp
         super.onTabChanged(tab, msg, data);
     }
 
-    @Override
-    protected boolean saveAsLastSelectedTab(Tab tab) {
-        return tab.getType() == TabType.BROWSING;
-    }
-
     private void updateEditingModeForTab(final Tab selectedTab) {
         // (bug 1086983 comment 11) Because the tab may be selected from the gecko thread and we're
         // running this code on the UI thread, the selected tab argument may not still refer to the
@@ -627,6 +620,8 @@ public class BrowserApp extends GeckoApp
 
         final SafeIntent intent = new SafeIntent(getIntent());
         final boolean isInAutomation = IntentUtils.getIsInAutomationFromEnvironment(intent);
+
+        GeckoProfile.setIntentArgs(intent.getStringExtra("args"));
 
         if (!isInAutomation && AppConstants.MOZ_ANDROID_DOWNLOAD_CONTENT_SERVICE) {
             // Kick off download of app content as early as possible so that in the best case it's
@@ -1186,38 +1181,6 @@ public class BrowserApp extends GeckoApp
 
         for (BrowserAppDelegate delegate : delegates) {
             delegate.onResume(this);
-        }
-    }
-
-    @Override
-    protected void restoreLastSelectedTab() {
-        if (mLastSelectedTabId < 0) {
-            // Normally, session restore will select the correct tab when starting up, however this
-            // is linked to Gecko powering up. If we're not the first activity to launch, the
-            // previously running activity might have already overwritten this by selecting a tab of
-            // its own.
-            // Therefore we check whether the session file parser has left a note for us with the
-            // correct tab to be initially selected on *BrowserApp* startup.
-            SharedPreferences prefs = getSharedPreferencesForProfile();
-            mLastSelectedTabId = prefs.getInt(STARTUP_SELECTED_TAB, INVALID_TAB_ID);
-            mLastSessionUUID = prefs.getString(STARTUP_SESSION_UUID, null);
-
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.remove(STARTUP_SELECTED_TAB);
-            editor.remove(STARTUP_SESSION_UUID);
-            editor.apply();
-        }
-
-        final Tabs tabs = Tabs.getInstance();
-        final Tab tabToSelect = tabs.getTab(mLastSelectedTabId);
-
-        if (tabToSelect != null && GeckoApplication.getSessionUUID().equals(mLastSessionUUID) &&
-                tabToSelect.getType() == TabType.BROWSING) {
-            tabs.selectTab(mLastSelectedTabId);
-        } else {
-            if (!tabs.selectLastTab(TabType.BROWSING)) {
-                tabs.loadUrl(Tabs.getHomepageForStartupTab(this), Tabs.LOADURL_NEW_TAB);
-            }
         }
     }
 
@@ -2430,9 +2393,9 @@ public class BrowserApp extends GeckoApp
         final Tab tab;
 
         if (AboutPages.isAboutReader(url)) {
-            tab = tabs.getFirstReaderTabForUrl(url, selectedTab.isPrivate(), selectedTab.getType());
+            tab = tabs.getFirstReaderTabForUrl(url, selectedTab.isPrivate());
         } else {
-            tab = tabs.getFirstTabForUrl(url, selectedTab.isPrivate(), selectedTab.getType());
+            tab = tabs.getFirstTabForUrl(url, selectedTab.isPrivate());
         }
 
         if (tab == null) {
@@ -3707,8 +3670,17 @@ public class BrowserApp extends GeckoApp
             MenuUtils.safeSetVisible(aMenu, R.id.new_guest_session, false);
         }
 
+        if (SwitchBoard.isInExperiment(this, Experiments.TOP_ADDONS_MENU)) {
+            MenuUtils.safeSetVisible(aMenu, R.id.addons_top_level, true);
+            MenuUtils.safeSetVisible(aMenu, R.id.addons, false);
+        } else {
+            MenuUtils.safeSetVisible(aMenu, R.id.addons_top_level, false);
+            MenuUtils.safeSetVisible(aMenu, R.id.addons, true);
+        }
+
         if (!Restrictions.isAllowed(this, Restrictable.INSTALL_EXTENSION)) {
             MenuUtils.safeSetVisible(aMenu, R.id.addons, false);
+            MenuUtils.safeSetVisible(aMenu, R.id.addons_top_level, false);
         }
 
         // Hide panel menu items if the panels themselves are hidden.
@@ -3744,6 +3716,9 @@ public class BrowserApp extends GeckoApp
         if (TextUtils.equals(extras, "new_private_tab")) {
             // Mask private browsing
             extras = "new_tab";
+        } else {
+            // We only track opening normal tab
+            MmaDelegate.track(NEW_TAB);
         }
         Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.MENU, extras);
 
@@ -3854,7 +3829,7 @@ public class BrowserApp extends GeckoApp
             return true;
         }
 
-        if (itemId == R.id.addons) {
+        if (itemId == R.id.addons || itemId == R.id.addons_top_level) {
             Tabs.getInstance().loadUrlInTab(AboutPages.ADDONS);
             return true;
         }

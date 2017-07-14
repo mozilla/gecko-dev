@@ -384,6 +384,7 @@ gvjar.sources += [geckoview_source_dir + 'java/org/mozilla/gecko/' + x
     'GeckoThread.java',
     'GeckoView.java',
     'GeckoViewFragment.java',
+    'GeckoViewHandler.java',
     'GeckoViewSettings.java',
     'gfx/BitmapUtils.java',
     'gfx/BufferedImage.java',
@@ -403,7 +404,6 @@ gvjar.sources += [geckoview_source_dir + 'java/org/mozilla/gecko/' + x
     'gfx/PanningPerfAPI.java',
     'gfx/PanZoomController.java',
     'gfx/PointUtils.java',
-    'gfx/RectUtils.java',
     'gfx/RenderTask.java',
     'gfx/StackScroller.java',
     'gfx/SurfaceAllocator.java',
@@ -710,7 +710,6 @@ gbjar.sources += ['java/org/mozilla/gecko/' + x for x in [
     'home/SearchEngine.java',
     'home/SearchEngineAdapter.java',
     'home/SearchEngineBar.java',
-    'home/SearchEngineRow.java',
     'home/SearchLoader.java',
     'home/SimpleCursorLoader.java',
     'home/SpacingDecoration.java',
@@ -858,7 +857,6 @@ gbjar.sources += ['java/org/mozilla/gecko/' + x for x in [
     'search/SearchEngineManager.java',
     'SessionParser.java',
     'SharedPreferencesHelper.java',
-    'SingleTabActivity.java',
     'SiteIdentity.java',
     'SnackbarBuilder.java',
     'SuggestClient.java',
@@ -1012,11 +1010,14 @@ gbjar.sources += ['java/org/mozilla/gecko/' + x for x in [
 ]]
 if CONFIG['MOZ_ANDROID_PHOTON']:
     gbjar.sources += ['../app/src/photon/java/org/mozilla/gecko/' + x for x in [
+        'home/SearchEngineRow.java',
+        'home/SuggestionItem.java',
         'skin/SkinConfig.java',
         'toolbar/TabCounter.java',
     ]]
 else:
     gbjar.sources += ['../app/src/australis/java/org/mozilla/gecko/' + x for x in [
+        'home/SearchEngineRow.java',
         'skin/SkinConfig.java',
         'toolbar/TabCounter.java',
     ]]

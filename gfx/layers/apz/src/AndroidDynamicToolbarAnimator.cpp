@@ -131,8 +131,6 @@ AndroidDynamicToolbarAnimator::ReceiveInputEvent(InputData& aEvent, const Screen
   case MultiTouchInput::MULTITOUCH_CANCEL:
     mControllerTouchCount -= multiTouch.mTouches.Length();
     break;
-  case MultiTouchInput::MULTITOUCH_SENTINEL:
-    MOZ_FALLTHROUGH_ASSERT("Invalid value");
   case MultiTouchInput::MULTITOUCH_MOVE:
     break;
   }
@@ -202,9 +200,6 @@ AndroidDynamicToolbarAnimator::ReceiveInputEvent(InputData& aEvent, const Screen
     if (mControllerTouchCount == 0) {
       HandleTouchEnd(currentToolbarState, currentTouch);
     }
-    break;
-  case MultiTouchInput::MULTITOUCH_SENTINEL:
-    MOZ_ASSERT_UNREACHABLE("Invalid value");
     break;
   }
 
@@ -1022,10 +1017,10 @@ AndroidDynamicToolbarAnimator::UpdateFrameMetrics(ScreenPoint aScrollOffset,
     }
     RefPtr<UiCompositorControllerParent> uiController = UiCompositorControllerParent::GetFromRootLayerTreeId(mRootLayerTreeId);
     MOZ_ASSERT(uiController);
-    CompositorThreadHolder::Loop()->PostTask(NewRunnableMethod<ScreenPoint, CSSToScreenScale, CSSRect>(
+    CompositorThreadHolder::Loop()->PostTask(NewRunnableMethod<ScreenPoint, CSSToScreenScale>(
                                                "UiCompositorControllerParent::SendRootFrameMetrics",
                                                uiController, &UiCompositorControllerParent::SendRootFrameMetrics,
-                                               aScrollOffset, aScale, aCssPageRect));
+                                               aScrollOffset, aScale));
   }
 }
 
@@ -1035,9 +1030,14 @@ AndroidDynamicToolbarAnimator::PageTooSmallEnsureToolbarVisible()
   MOZ_ASSERT(APZThreadUtils::IsControllerThread());
   // if the page is too small then the toolbar can not be hidden
   if ((float)mControllerSurfaceHeight >= (mControllerFrameMetrics.mPageRect.YMost() * SHRINK_FACTOR)) {
-    // If the toolbar is partial hidden, show it.
-    if ((mControllerToolbarHeight != mControllerMaxToolbarHeight) && !mPinnedFlags) {
-      StartCompositorAnimation(MOVE_TOOLBAR_DOWN, eImmediate, mControllerToolbarHeight, /* wait for page resize */ true);
+    if (!mPinnedFlags) {
+      // If the toolbar is partial hidden, show it.
+      if (mControllerToolbarHeight != mControllerMaxToolbarHeight) {
+        StartCompositorAnimation(MOVE_TOOLBAR_DOWN, eImmediate, mControllerToolbarHeight, /* wait for page resize */ true);
+      } else {
+        // If the static snapshot is visible, then make sure the real toolbar is visible
+        ShowToolbarIfNotVisible(mToolbarState);
+      }
     }
     return true;
   }

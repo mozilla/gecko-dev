@@ -617,7 +617,9 @@ nsHttpConnectionMgr::ClearConnectionHistory()
             ent->mActiveConns.Length()  == 0 &&
             ent->mHalfOpens.Length()    == 0 &&
             ent->mUrgentStartQ.Length() == 0 &&
-            ent->PendingQLength()       == 0) {
+            ent->PendingQLength()       == 0 &&
+            ent->mHalfOpenFastOpenBackups.Length() == 0 &&
+            !ent->mDoNotDestroy) {
             iter.Remove();
         }
     }
@@ -952,7 +954,7 @@ nsHttpConnectionMgr::DispatchPendingQ(nsTArray<RefPtr<nsHttpConnectionMgr::Pendi
             // httpConnection does not have a transaction any more and a
             // ReclaimConnection is dispatched). But if an error occurred the
             // connection will be closed, it will exist but CanReused will be
-            // false. 
+            // false.
             if (activeConn &&
                 ((activeConn->Transaction() &&
                   activeConn->Transaction()->IsNullTransaction()) ||
@@ -2165,6 +2167,8 @@ nsHttpConnectionMgr::OnMsgShutdown(int32_t, ARefBase *param)
             ent->mHalfOpens[i]->Abandon();
         }
 
+        MOZ_DIAGNOSTIC_ASSERT(ent->mHalfOpenFastOpenBackups.Length() == 0 &&
+                              !ent->mDoNotDestroy);
         iter.Remove();
     }
 
@@ -2501,6 +2505,8 @@ nsHttpConnectionMgr::OnMsgPruneDeadConnections(int32_t, ARefBase *)
                 ent->mHalfOpens.Length()    == 0 &&
                 ent->PendingQLength()       == 0 &&
                 ent->mUrgentStartQ.Length() == 0 &&
+                ent->mHalfOpenFastOpenBackups.Length() == 0 &&
+                !ent->mDoNotDestroy &&
                 (!ent->mUsingSpdy || mCT.Count() > 300)) {
                 LOG(("    removing empty connection entry\n"));
                 iter.Remove();
@@ -2778,6 +2784,14 @@ nsHttpConnectionMgr::OnMsgUpdateParam(int32_t inParam, ARefBase *)
 // nsHttpConnectionMgr::nsConnectionEntry
 nsHttpConnectionMgr::nsConnectionEntry::~nsConnectionEntry()
 {
+    MOZ_DIAGNOSTIC_ASSERT(!mIdleConns.Length());
+    MOZ_DIAGNOSTIC_ASSERT(!mActiveConns.Length());
+    MOZ_DIAGNOSTIC_ASSERT(!mHalfOpens.Length());
+    MOZ_DIAGNOSTIC_ASSERT(!mUrgentStartQ.Length());
+    MOZ_DIAGNOSTIC_ASSERT(!PendingQLength());
+    MOZ_DIAGNOSTIC_ASSERT(!mHalfOpenFastOpenBackups.Length());
+    MOZ_DIAGNOSTIC_ASSERT(!mDoNotDestroy);
+
     MOZ_COUNT_DTOR(nsConnectionEntry);
 }
 
@@ -3893,8 +3907,10 @@ nsHttpConnectionMgr::nsHalfOpenSocket::Abandon()
     CancelBackupTimer();
 
     // Remove the half open from the connection entry.
-    if (mEnt)
+    if (mEnt) {
+        mEnt->mDoNotDestroy = false;
         mEnt->RemoveHalfOpen(this);
+    }
     mEnt = nullptr;
 }
 
@@ -3961,6 +3977,7 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
          this, mEnt->mConnInfo->Origin(),
          out == mStreamOut ? "primary" : "backup"));
 
+    mEnt->mDoNotDestroy = true;
     gHttpHandler->ConnMgr()->RecvdConnect();
 
     CancelBackupTimer();
@@ -4013,8 +4030,12 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
         mFastOpenInProgress = false;
         mConnectionNegotiatingFastOpen = nullptr;
     }
-
-    return SetupConn(out, false);
+    MOZ_DIAGNOSTIC_ASSERT(mEnt);
+    nsresult rv =  SetupConn(out, false);
+    if (mEnt) {
+        mEnt->mDoNotDestroy = false;
+    }
+    return rv;
 }
 
 bool
@@ -4022,6 +4043,8 @@ nsHttpConnectionMgr::
 nsHalfOpenSocket::FastOpenEnabled()
 {
     LOG(("nsHalfOpenSocket::FastOpenEnabled [this=%p]\n", this));
+
+    MOZ_DIAGNOSTIC_ASSERT(mEnt);
 
     if (!mEnt) {
         return false;
@@ -4090,8 +4113,10 @@ nsHalfOpenSocket::StartFastOpen()
         mStreamIn = nullptr;
         mSocketTransport = nullptr;
         mFastOpenInProgress = false;
+        Abandon();
         return NS_ERROR_ABORT;
     }
+    mEnt->mDoNotDestroy = true;
     MOZ_ASSERT(gHttpHandler->ConnMgr()->mNumHalfOpenConns);
     if (gHttpHandler->ConnMgr()->mNumHalfOpenConns) { // just in case
         gHttpHandler->ConnMgr()->mNumHalfOpenConns--;
@@ -4139,6 +4164,9 @@ nsHalfOpenSocket::StartFastOpen()
             SetupBackupTimer();
         }
     }
+    if (mEnt) {
+      mEnt->mDoNotDestroy = false;
+    }
     return rv;
 }
 
@@ -4167,6 +4195,8 @@ nsHalfOpenSocket::SetFastOpenConnected(nsresult aError, bool aWillRetry)
     }
 
     RefPtr<nsHalfOpenSocket> deleteProtector(this);
+
+    mEnt->mDoNotDestroy = true;
 
     // Delete 2 points of entry to FastOpen function so that we do not reenter.
     mEnt->mHalfOpenFastOpenBackups.RemoveElement(this);
@@ -4241,6 +4271,7 @@ nsHalfOpenSocket::SetFastOpenConnected(nsresult aError, bool aWillRetry)
 
     mFastOpenInProgress = false;
     mConnectionNegotiatingFastOpen = nullptr;
+    mEnt->mDoNotDestroy = false;
 }
 
 void
@@ -4513,6 +4544,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
 {
     MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
+    MOZ_DIAGNOSTIC_ASSERT(mEnt);
     if (mTransaction) {
         RefPtr<PendingTransactionInfo> info = FindTransactionHelper(false);
         if ((trans == mSocketTransport) ||
@@ -4698,6 +4730,7 @@ nsConnectionEntry::nsConnectionEntry(nsHttpConnectionInfo *ci)
     , mPreferIPv4(false)
     , mPreferIPv6(false)
     , mUsedForConnection(false)
+    , mDoNotDestroy(false)
 {
     MOZ_COUNT_CTOR(nsConnectionEntry);
     mUseFastOpen = gHttpHandler->UseFastOpen();

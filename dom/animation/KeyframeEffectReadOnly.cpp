@@ -301,8 +301,7 @@ KeyframeEffectReadOnly::UpdateProperties(nsStyleContext* aStyleContext)
     return;
   }
 
-  const ServoComputedValues* currentStyle =
-    aStyleContext->ComputedValues();
+  const ServoComputedValues* currentStyle = aStyleContext->ComputedValues();
 
   DoUpdateProperties(currentStyle);
 }
@@ -514,11 +513,12 @@ KeyframeEffectReadOnly::EnsureBaseStyles(
              "supposed to be called right after getting computed values with "
              "a valid nsPresContext");
 
-  RefPtr<ServoComputedValues> baseComputedValues;
+  RefPtr<const ServoComputedValues> baseComputedValues;
   for (const AnimationProperty& property : aProperties) {
     EnsureBaseStyle(property,
                     mTarget->mPseudoType,
                     presContext,
+                    aComputedValues,
                     baseComputedValues);
   }
 }
@@ -528,7 +528,8 @@ KeyframeEffectReadOnly::EnsureBaseStyle(
   const AnimationProperty& aProperty,
   CSSPseudoElementType aPseudoType,
   nsPresContext* aPresContext,
-  RefPtr<ServoComputedValues>& aBaseComputedValues)
+  const ServoComputedValues* aComputedStyle,
+  RefPtr<const ServoComputedValues>& aBaseComputedValues)
 {
   bool hasAdditiveValues = false;
 
@@ -545,8 +546,10 @@ KeyframeEffectReadOnly::EnsureBaseStyle(
 
   if (!aBaseComputedValues) {
     aBaseComputedValues =
-      aPresContext->StyleSet()->AsServo()->
-        GetBaseComputedValuesForElement(mTarget->mElement, aPseudoType);
+      aPresContext->StyleSet()->AsServo()->GetBaseComputedValuesForElement(
+          mTarget->mElement,
+          aPseudoType,
+          aComputedStyle);
   }
   RefPtr<RawServoAnimationValue> baseValue =
     Servo_ComputedValues_ExtractAnimationValue(aBaseComputedValues,
@@ -957,12 +960,13 @@ KeyframeEffectReadOnly::UpdateTargetRegistration()
   MOZ_ASSERT(isRelevant == IsCurrent() || IsInEffect(),
              "Out of date Animation::IsRelevant value");
 
-  if (isRelevant) {
+  if (isRelevant && !mInEffectSet) {
     EffectSet* effectSet =
       EffectSet::GetOrCreateEffectSet(mTarget->mElement, mTarget->mPseudoType);
     effectSet->AddEffect(*this);
+    mInEffectSet = true;
     UpdateEffectSet(effectSet);
-  } else {
+  } else if (!isRelevant && mInEffectSet) {
     UnregisterTarget();
   }
 }
@@ -970,8 +974,15 @@ KeyframeEffectReadOnly::UpdateTargetRegistration()
 void
 KeyframeEffectReadOnly::UnregisterTarget()
 {
+  if (!mInEffectSet) {
+    return;
+  }
+
   EffectSet* effectSet =
     EffectSet::GetEffectSet(mTarget->mElement, mTarget->mPseudoType);
+  MOZ_ASSERT(effectSet, "If mInEffectSet is true, there must be an EffectSet"
+                        " on the target element");
+  mInEffectSet = false;
   if (effectSet) {
     effectSet->RemoveEffect(*this);
 
@@ -1834,6 +1845,10 @@ KeyframeEffectReadOnly::ContainsAnimatedScale(const nsIFrame* aFrame) const
 void
 KeyframeEffectReadOnly::UpdateEffectSet(EffectSet* aEffectSet) const
 {
+  if (!mInEffectSet) {
+    return;
+  }
+
   EffectSet* effectSet =
     aEffectSet ? aEffectSet
                : EffectSet::GetEffectSet(mTarget->mElement,

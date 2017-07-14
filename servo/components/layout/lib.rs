@@ -8,7 +8,6 @@
 #![feature(conservative_impl_trait)]
 #![feature(nonzero)]
 #![feature(raw)]
-#![feature(step_by)]
 
 extern crate app_units;
 extern crate atomic_refcell;
@@ -38,6 +37,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 #[macro_use] extern crate serde;
 extern crate serde_json;
+extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;

@@ -771,7 +771,7 @@ CacheFile::OpenInputStream(nsICacheEntry *aEntryHandle, nsIInputStream **_retval
     // a failed state.  This is the only way to protect consumers correctly
     // from reading a broken entry.  When the file is in the failed state,
     // it's also doomed, so reopening the entry won't make any difference -
-    // data will still be inaccessible anymore.  Note that for just doomed 
+    // data will still be inaccessible anymore.  Note that for just doomed
     // files, we must allow reading the data.
     return mStatus;
   }
@@ -825,7 +825,7 @@ CacheFile::OpenAlternativeInputStream(nsICacheEntry *aEntryHandle,
     // a failed state.  This is the only way to protect consumers correctly
     // from reading a broken entry.  When the file is in the failed state,
     // it's also doomed, so reopening the entry won't make any difference -
-    // data will still be inaccessible anymore.  Note that for just doomed 
+    // data will still be inaccessible anymore.  Note that for just doomed
     // files, we must allow reading the data.
     return mStatus;
   }
@@ -900,6 +900,16 @@ CacheFile::OpenOutputStream(CacheOutputCloseListener *aCloseListener, nsIOutputS
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  if (NS_FAILED(mStatus)) {
+    LOG(("CacheFile::OpenOutputStream() - CacheFile is in a failure state "
+         "[this=%p, status=0x%08" PRIx32 "]", this,
+         static_cast<uint32_t>(mStatus)));
+
+    // The CacheFile is already doomed. It make no sense to allow to write any
+    // data to such entry.
+    return mStatus;
+  }
+
   // Fail if there is any input stream opened for alternative data
   for (uint32_t i = 0; i < mInputs.Length(); ++i) {
     if (mInputs[i]->IsAlternativeData()) {
@@ -956,6 +966,16 @@ CacheFile::OpenAlternativeOutputStream(CacheOutputCloseListener *aCloseListener,
          "stream %p [this=%p]", mOutput, this));
 
     return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  if (NS_FAILED(mStatus)) {
+    LOG(("CacheFile::OpenAlternativeOutputStream() - CacheFile is in a failure "
+         "state [this=%p, status=0x%08" PRIx32 "]", this,
+         static_cast<uint32_t>(mStatus)));
+
+    // The CacheFile is already doomed. It make no sense to allow to write any
+    // data to such entry.
+    return mStatus;
   }
 
   // Fail if there is any input stream opened for alternative data
@@ -1982,9 +2002,9 @@ CacheFile::Truncate(int64_t aOffset)
     MOZ_RELEASE_ASSERT(bytesInNewLastChunk == kChunkSize);
     newLastChunk++;
     bytesInNewLastChunk = 0;
-    LOG(("CacheFileTruncate() - chunk %p is still in use, using newLastChunk=%u"
-         " and bytesInNewLastChunk=%u", mChunks.GetWeak(newLastChunk),
-         newLastChunk, bytesInNewLastChunk));
+    LOG(("CacheFile::Truncate() - chunk %p is still in use, using "
+         "newLastChunk=%u and bytesInNewLastChunk=%u",
+         mChunks.GetWeak(newLastChunk), newLastChunk, bytesInNewLastChunk));
   }
 
   // Discard all truncated chunks in mChunks

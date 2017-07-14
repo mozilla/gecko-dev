@@ -82,6 +82,14 @@ nsBrowserStatusFilter::GetDOMWindowID(uint64_t *aResult)
 }
 
 NS_IMETHODIMP
+nsBrowserStatusFilter::GetInnerDOMWindowID(uint64_t *aResult)
+{
+    *aResult = 0;
+    NS_NOTREACHED("nsBrowserStatusFilter::GetInnerDOMWindowID");
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 nsBrowserStatusFilter::GetIsTopLevel(bool *aIsTopLevel)
 {
     *aIsTopLevel = false;
@@ -317,9 +325,9 @@ nsBrowserStatusFilter::ResetMembers()
 }
 
 void
-nsBrowserStatusFilter::MaybeSendProgress() 
+nsBrowserStatusFilter::MaybeSendProgress()
 {
-    if (mCurProgress > mMaxProgress || mCurProgress <= 0) 
+    if (mCurProgress > mMaxProgress || mCurProgress <= 0)
         return;
 
     // check our percentage

@@ -18,6 +18,7 @@
 #include "mozilla/ComputedTimingFunction.h"
 #include "nsChangeHint.h"
 #include "nsCSSPseudoClasses.h"
+#include "nsIDocument.h"
 #include "nsStyleStruct.h"
 
 /*
@@ -136,24 +137,24 @@ void Gecko_DestroyAnonymousContentList(nsTArray<nsIContent*>* anon_content);
 // By default, Servo walks the DOM by traversing the siblings of the DOM-view
 // first child. This generally works, but misses anonymous children, which we
 // want to traverse during styling. To support these cases, we create an
-// optional heap-allocated iterator for nodes that need it. If the creation
-// method returns null, Servo falls back to the aforementioned simpler (and
-// faster) sibling traversal.
-StyleChildrenIteratorOwnedOrNull Gecko_MaybeCreateStyleChildrenIterator(RawGeckoNodeBorrowed node);
-void Gecko_DropStyleChildrenIterator(StyleChildrenIteratorOwned it);
-RawGeckoNodeBorrowedOrNull Gecko_GetNextStyleChild(StyleChildrenIteratorBorrowedMut it);
+// optional stack-allocated iterator in aIterator for nodes that need it.
+void Gecko_ConstructStyleChildrenIterator(RawGeckoElementBorrowed aElement,
+                                          RawGeckoStyleChildrenIteratorBorrowedMut aIterator);
+void Gecko_DestroyStyleChildrenIterator(RawGeckoStyleChildrenIteratorBorrowedMut aIterator);
+RawGeckoNodeBorrowedOrNull Gecko_GetNextStyleChild(RawGeckoStyleChildrenIteratorBorrowedMut it);
 
-void Gecko_LoadStyleSheet(mozilla::css::Loader* loader,
-                          mozilla::ServoStyleSheet* parent,
-                          mozilla::css::LoaderReusableStyleSheets* reusable_sheets,
-                          RawServoStyleSheetBorrowed child_sheet,
-                          RawGeckoURLExtraData* base_url_data,
-                          const uint8_t* url_bytes,
-                          uint32_t url_length,
-                          RawServoMediaListStrong media_list);
+mozilla::ServoStyleSheet*
+Gecko_LoadStyleSheet(mozilla::css::Loader* loader,
+                     mozilla::ServoStyleSheet* parent,
+                     mozilla::css::LoaderReusableStyleSheets* reusable_sheets,
+                     RawGeckoURLExtraData* base_url_data,
+                     const uint8_t* url_bytes,
+                     uint32_t url_length,
+                     RawServoMediaListStrong media_list);
 
 // Selector Matching.
 uint64_t Gecko_ElementState(RawGeckoElementBorrowed element);
+uint64_t Gecko_DocumentState(const nsIDocument* aDocument);
 bool Gecko_IsTextNode(RawGeckoNodeBorrowed node);
 bool Gecko_IsRootElement(RawGeckoElementBorrowed element);
 bool Gecko_MatchesElement(mozilla::CSSPseudoClassType type, RawGeckoElementBorrowed element);
@@ -164,6 +165,7 @@ bool Gecko_MatchLang(RawGeckoElementBorrowed element,
                      nsIAtom* override_lang, bool has_override_lang,
                      const char16_t* value);
 nsIAtom* Gecko_GetXMLLangValue(RawGeckoElementBorrowed element);
+nsIDocument::DocumentTheme Gecko_GetDocumentLWTheme(const nsIDocument* aDocument);
 
 // Attributes.
 #define SERVO_DECLARE_ELEMENT_ATTR_MATCHING_FUNCTIONS(prefix_, implementor_)  \
@@ -235,6 +237,7 @@ double Gecko_GetPositionInSegment(
   RawGeckoAnimationPropertySegmentBorrowed aSegment,
   double aProgress,
   mozilla::ComputedTimingFunction::BeforeFlag aBeforeFlag);
+bool Gecko_IsFramesTimingEnabled();
 // Get servo's AnimationValue for |aProperty| from the cached base style
 // |aBaseStyles|.
 // |aBaseStyles| is nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue>.
@@ -262,6 +265,8 @@ void Gecko_AppendMozBorderColors(nsStyleBorder* aBorder, mozilla::Side aSide,
                                  nscolor aColor);
 void Gecko_CopyMozBorderColors(nsStyleBorder* aDest, const nsStyleBorder* aSrc,
                                mozilla::Side aSide);
+const nsBorderColors* Gecko_GetMozBorderColors(const nsStyleBorder* aBorder,
+                                               mozilla::Side aSide);
 
 // Font style
 void Gecko_FontFamilyList_Clear(FontFamilyList* aList);
@@ -273,6 +278,11 @@ void Gecko_CopyFontFamilyFrom(nsFont* dst, const nsFont* src);
 void Gecko_nsFont_InitSystem(nsFont* dst, int32_t font_id,
                              const nsStyleFont* font, RawGeckoPresContextBorrowed pres_context);
 void Gecko_nsFont_Destroy(nsFont* dst);
+
+// Font variant alternates
+void Gecko_ClearAlternateValues(nsFont* font, size_t length);
+void Gecko_AppendAlternateValues(nsFont* font, uint32_t alternate_name, nsIAtom* atom);
+void Gecko_CopyAlternateValuesFrom(nsFont* dest, const nsFont* src);
 
 // Visibility style
 void Gecko_SetImageOrientation(nsStyleVisibility* aVisibility,
@@ -311,7 +321,12 @@ nsStyleGradient* Gecko_CreateGradient(uint8_t shape,
                                       uint8_t size,
                                       bool repeating,
                                       bool legacy_syntax,
+                                      bool moz_legacy_syntax,
                                       uint32_t stops);
+
+const mozilla::css::URLValueData* Gecko_GetURLValue(const nsStyleImage* image);
+nsIAtom* Gecko_GetImageElement(const nsStyleImage* image);
+const nsStyleGradient* Gecko_GetGradientImageValue(const nsStyleImage* image);
 
 // list-style-image style.
 void Gecko_SetListStyleImageNone(nsStyleList* style_struct);
@@ -550,6 +565,12 @@ void InitializeServo();
 void ShutdownServo();
 void AssertIsMainThreadOrServoLangFontPrefsCacheLocked();
 
+mozilla::ServoStyleSheet* Gecko_StyleSheet_Clone(
+    const mozilla::ServoStyleSheet* aSheet,
+    const mozilla::ServoStyleSheet* aNewParentSheet);
+void Gecko_StyleSheet_AddRef(const mozilla::ServoStyleSheet* aSheet);
+void Gecko_StyleSheet_Release(const mozilla::ServoStyleSheet* aSheet);
+
 const nsMediaFeature* Gecko_GetMediaFeatures();
 nsCSSKeyword Gecko_LookupCSSKeyword(const uint8_t* string, uint32_t len);
 const char* Gecko_CSSKeywordString(nsCSSKeyword keyword, uint32_t* len);
@@ -618,6 +639,20 @@ void Gecko_SetJemallocThreadLocalArena(bool enabled);
 #define SERVO_BINDING_FUNC(name_, return_, ...) return_ name_(__VA_ARGS__);
 #include "mozilla/ServoBindingList.h"
 #undef SERVO_BINDING_FUNC
+
+mozilla::css::ErrorReporter* Gecko_CreateCSSErrorReporter(mozilla::ServoStyleSheet* sheet,
+                                                          mozilla::css::Loader* loader,
+                                                          nsIURI* uri);
+void Gecko_DestroyCSSErrorReporter(mozilla::css::ErrorReporter* reporter);
+void Gecko_ReportUnexpectedCSSError(mozilla::css::ErrorReporter* reporter,
+                                    const char* message,
+                                    const char* param,
+                                    uint32_t paramLen,
+                                    const char* source,
+                                    uint32_t sourceLen,
+                                    uint32_t lineNumber,
+                                    uint32_t colNumber,
+                                    nsIURI* aURI);
 
 } // extern "C"
 

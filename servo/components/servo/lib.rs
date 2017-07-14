@@ -244,20 +244,12 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         self.compositor.handle_events(events)
     }
 
-    pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {
-        self.compositor.set_webrender_profiler_enabled(enabled);
-    }
-
     pub fn repaint_synchronously(&mut self) {
         self.compositor.repaint_synchronously()
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
         self.compositor.pinch_zoom_level()
-    }
-
-    pub fn request_title_for_main_frame(&self) {
-        self.compositor.title_for_main_frame()
     }
 
     pub fn setup_logging(&self) {

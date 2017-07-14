@@ -2158,17 +2158,35 @@ impl Fragment {
             let block_flow = flow.as_block();
             let start_margin = block_flow.fragment.margin.block_start;
             let end_margin = block_flow.fragment.margin.block_end;
-            if style.get_box().overflow_y == overflow_x::T::visible {
-                if let Some(baseline_offset) = flow.baseline_offset_of_last_line_box_in_flow() {
-                    let ascent = baseline_offset + start_margin;
-                    let space_below_baseline = block_flow.fragment.border_box.size.block -
-                        baseline_offset + end_margin;
-                    return InlineMetrics::new(ascent, space_below_baseline, baseline_offset)
-                }
-            }
-            let ascent = block_flow.fragment.border_box.size.block + end_margin;
-            let space_above_baseline = start_margin + ascent;
-            InlineMetrics::new(space_above_baseline, Au(0), ascent)
+            let border_box_block_size = block_flow.fragment.border_box.size.block;
+
+            //     --------
+            //      margin
+            // top -------- + +
+            //              | |
+            //              | |
+            //  A  ..pogo.. | + baseline_offset_of_last_line_box_in_flow()
+            //              |
+            //     -------- + border_box_block_size
+            //      margin
+            //  B  --------
+            //
+            // § 10.8.1 says that the baseline (and thus ascent, which is the
+            // distance from the baseline to the top) should be A if it has an
+            // in-flow line box and if overflow: visible, and B otherwise.
+            let ascent =
+                match (flow.baseline_offset_of_last_line_box_in_flow(),
+                       style.get_box().overflow_y) {
+                // Case A
+                (Some(baseline_offset), overflow_x::T::visible) => baseline_offset,
+                // Case B
+                _ => border_box_block_size + end_margin,
+            };
+
+            let space_below_baseline = border_box_block_size + end_margin - ascent;
+            let space_above_baseline = ascent + start_margin;
+
+            InlineMetrics::new(space_above_baseline, space_below_baseline, ascent)
         }
     }
 
@@ -2551,9 +2569,8 @@ impl Fragment {
 
         // Box shadows cause us to draw outside our border box.
         for box_shadow in &self.style().get_effects().box_shadow.0 {
-            let offset = Vector2D::new(box_shadow.offset_x, box_shadow.offset_y);
-            let inflation = box_shadow.spread_radius + box_shadow.blur_radius *
-                BLUR_INFLATION_FACTOR;
+            let offset = Vector2D::new(box_shadow.base.horizontal, box_shadow.base.vertical);
+            let inflation = box_shadow.spread + box_shadow.base.blur * BLUR_INFLATION_FACTOR;
             overflow.paint = overflow.paint.union(&border_box.translate(&offset)
                                                              .inflate(inflation, inflation))
         }

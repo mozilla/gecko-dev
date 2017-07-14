@@ -28,10 +28,10 @@ use values::computed::Context;
 ///
 /// The first one is for Animation cascade level, and the second one is for
 /// Transition cascade level.
-pub struct AnimationRules<'a>(pub Option<&'a Arc<Locked<PropertyDeclarationBlock>>>,
-                              pub Option<&'a Arc<Locked<PropertyDeclarationBlock>>>);
+pub struct AnimationRules(pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
+                          pub Option<Arc<Locked<PropertyDeclarationBlock>>>);
 
-impl<'a> AnimationRules<'a> {
+impl AnimationRules {
     /// Returns whether these animation rules represents an actual rule or not.
     pub fn is_empty(&self) -> bool {
         self.0.is_none() && self.1.is_none()
@@ -908,10 +908,17 @@ pub fn parse_one_declaration_into(declarations: &mut SourcePropertyDeclaration,
                                      parsing_mode,
                                      quirks_mode);
     let mut input = ParserInput::new(input);
-    Parser::new(&mut input).parse_entirely(|parser| {
+    let mut parser = Parser::new(&mut input);
+    let start = parser.position();
+    parser.parse_entirely(|parser| {
         PropertyDeclaration::parse_into(declarations, id, &context, parser)
             .map_err(|e| e.into())
-    }).map_err(|_| ())
+    }).map_err(|err| {
+        let end = parser.position();
+        let error = ContextualParseError::UnsupportedPropertyDeclaration(
+            parser.slice(start..end), err);
+        log_css_error(&mut parser, start, error, &context);
+    })
 }
 
 /// A struct to parse property declarations.

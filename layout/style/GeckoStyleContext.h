@@ -31,6 +31,11 @@ public:
   void* GetUniqueStyleData(const nsStyleStructID& aSID);
   void* CreateEmptyStyleData(const nsStyleStructID& aSID);
 
+  /**
+   * Ensures the same structs are cached on this style context as would be
+   * done if we called aOther->CalcDifference(this).
+   */
+  void EnsureSameStructsCached(nsStyleContext* aOldContext);
 
   /**
    * Sets the NS_STYLE_INELIGIBLE_FOR_SHARING bit on this style context
@@ -186,6 +191,40 @@ private:
   GeckoStyleContext* mNextSibling;
   RefPtr<nsRuleNode> mRuleNode;
 
+#ifdef DEBUG
+public:
+  struct AutoCheckDependency {
+
+    GeckoStyleContext* mStyleContext;
+    nsStyleStructID mOuterSID;
+
+    AutoCheckDependency(GeckoStyleContext* aContext, nsStyleStructID aInnerSID)
+      : mStyleContext(aContext)
+    {
+      mOuterSID = aContext->mComputingStruct;
+      MOZ_ASSERT(mOuterSID == nsStyleStructID_None ||
+                 DependencyAllowed(mOuterSID, aInnerSID),
+                 "Undeclared dependency, see generate-stylestructlist.py");
+      aContext->mComputingStruct = aInnerSID;
+    }
+
+    ~AutoCheckDependency()
+    {
+      mStyleContext->mComputingStruct = mOuterSID;
+    }
+
+  };
+
+private:
+  // Used to check for undeclared dependencies.
+  // See AUTO_CHECK_DEPENDENCY in nsStyleContextInlines.h.
+  nsStyleStructID         mComputingStruct;
+
+#define AUTO_CHECK_DEPENDENCY(gecko_, sid_) \
+  mozilla::GeckoStyleContext::AutoCheckDependency checkNesting_(gecko_, sid_)
+#else
+#define AUTO_CHECK_DEPENDENCY(gecko_, sid_)
+#endif
 };
 }
 

@@ -91,11 +91,11 @@ var StarUI = {
 
           if (this._uriForRemoval) {
             if (this._isNewBookmark) {
-              if (!PlacesUtils.useAsyncTransactions) {
+              if (!PlacesUIUtils.useAsyncTransactions) {
                 PlacesUtils.transactionManager.undoTransaction();
                 break;
               }
-              PlacesTransactions().undo().catch(Cu.reportError);
+              PlacesTransactions.undo().catch(Cu.reportError);
               break;
             }
             // Remove all bookmarks for the bookmark's url, this also removes
@@ -380,6 +380,14 @@ var StarUI = {
   }
 };
 
+// Checks if an element is visible without flushing layout changes.
+function isVisible(element) {
+  let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIDOMWindowUtils);
+  let bounds = windowUtils.getBoundsWithoutFlushing(element);
+  return bounds.height > 0 && bounds.width > 0;
+}
+
 var PlacesCommandHook = {
   /**
    * Adds a bookmark to the page loaded in the given browser.
@@ -448,14 +456,14 @@ var PlacesCommandHook = {
     // 1. the bookmarks menu button
     // 2. the identity icon
     // 3. the content area
-    if (BookmarkingUI.anchor) {
+    if (BookmarkingUI.anchor && isVisible(BookmarkingUI.anchor)) {
       StarUI.showEditBookmarkPopup(itemId, BookmarkingUI.anchor,
                                    "bottomcenter topright", isNewBookmark);
       return;
     }
 
     let identityIcon = document.getElementById("identity-icon");
-    if (isElementVisible(identityIcon)) {
+    if (isVisible(identityIcon)) {
       StarUI.showEditBookmarkPopup(itemId, identityIcon,
                                    "bottomcenter topright", isNewBookmark);
     } else {
@@ -523,14 +531,14 @@ var PlacesCommandHook = {
     // 1. the bookmarks menu button
     // 2. the identity icon
     // 3. the content area
-    if (BookmarkingUI.anchor) {
+    if (BookmarkingUI.anchor && isVisible(BookmarkingUI.anchor)) {
       StarUI.showEditBookmarkPopup(node, BookmarkingUI.anchor,
                                    "bottomcenter topright", isNewBookmark);
       return;
     }
 
     let identityIcon = document.getElementById("identity-icon");
-    if (isElementVisible(identityIcon)) {
+    if (isVisible(identityIcon)) {
       StarUI.showEditBookmarkPopup(node, identityIcon,
                                    "bottomcenter topright", isNewBookmark);
     } else {
@@ -697,6 +705,20 @@ var PlacesCommandHook = {
     } else {
       organizer.PlacesOrganizer.selectLeftPaneContainerByHierarchy(aLeftPaneRoot);
       organizer.focus();
+    }
+  },
+
+  searchBookmarks() {
+    if (!focusAndSelectUrlBar()) {
+      return;
+    }
+    for (let char of ["*", " "]) {
+      let code = char.charCodeAt(0);
+      gURLBar.inputField.dispatchEvent(new KeyboardEvent("keypress", {
+        keyCode: code,
+        charCode: code,
+        bubbles: true
+      }));
     }
   }
 };
@@ -883,7 +905,7 @@ var BookmarksEventHandler = {
         PlacesUIUtils.openContainerNodeInTabs(target._placesNode, aEvent, aView);
     } else if (aEvent.button == 1) {
       // left-clicks with modifier are already served by onCommand
-      this.onCommand(aEvent, aView);
+      this.onCommand(aEvent);
     }
   },
 
@@ -893,13 +915,11 @@ var BookmarksEventHandler = {
    * Opens the item.
    * @param aEvent
    *        DOMEvent for the command
-   * @param aView
-   *        The places view which aEvent should be associated with.
    */
-  onCommand: function BEH_onCommand(aEvent, aView) {
+  onCommand: function BEH_onCommand(aEvent) {
     var target = aEvent.originalTarget;
     if (target._placesNode)
-      PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent, aView);
+      PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent);
   },
 
   fillInBHTooltip: function BEH_fillInBHTooltip(aDocument, aEvent) {
@@ -1356,7 +1376,7 @@ var BookmarkingUI = {
     // overflow panel, we want to show a subview instead.
     if (this.button.getAttribute("cui-areatype") == CustomizableUI.TYPE_MENU_PANEL ||
         (AppConstants.MOZ_PHOTON_THEME && this.button.hasAttribute("overflowedItem"))) {
-      this._showSubview();
+      this._showSubView();
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -1671,7 +1691,7 @@ var BookmarkingUI = {
     this._uninitView();
 
     if (this._hasBookmarksObserver) {
-      PlacesUtils.removeLazyBookmarkObserver(this);
+      PlacesUtils.bookmarks.removeObserver(this);
     }
 
     if (this._pendingUpdate) {
@@ -1716,7 +1736,7 @@ var BookmarkingUI = {
          // Start observing bookmarks if needed.
          if (!this._hasBookmarksObserver) {
            try {
-             PlacesUtils.addLazyBookmarkObserver(this);
+             PlacesUtils.bookmarks.addObserver(this);
              this._hasBookmarksObserver = true;
            } catch (ex) {
              Components.utils.reportError("BookmarkingUI failed adding a bookmarks observer: " + ex);
@@ -1840,11 +1860,14 @@ var BookmarkingUI = {
     }, 1000);
   },
 
-  _showSubview() {
+  showSubView(anchor) {
+    this._showSubView(anchor);
+  },
+
+  _showSubView(anchor = document.getElementById(this.BOOKMARK_BUTTON_ID)) {
     let view = document.getElementById("PanelUI-bookmarks");
     view.addEventListener("ViewShowing", this);
     view.addEventListener("ViewHiding", this);
-    let anchor = document.getElementById(this.BOOKMARK_BUTTON_ID);
     anchor.setAttribute("closemenu", "none");
     PanelUI.showSubView("PanelUI-bookmarks", anchor,
                         CustomizableUI.AREA_PANEL);
@@ -1857,7 +1880,7 @@ var BookmarkingUI = {
 
     // Handle special case when the button is in the panel.
     if (this.button.getAttribute("cui-areatype") == CustomizableUI.TYPE_MENU_PANEL) {
-      this._showSubview();
+      this._showSubView();
       return;
     }
     let widget = CustomizableUI.getWidget(this.BOOKMARK_BUTTON_ID)
@@ -1896,28 +1919,39 @@ var BookmarkingUI = {
   },
 
   onPanelMenuViewShowing: function BUI_onViewShowing(aEvent) {
+    let panelview = aEvent.target;
     this.updateBookmarkPageMenuItem();
     // Update checked status of the toolbar toggle.
     let viewToolbar = document.getElementById("panelMenu_viewBookmarksToolbar");
-    let personalToolbar = document.getElementById("PersonalToolbar");
-    if (personalToolbar.collapsed)
-      viewToolbar.removeAttribute("checked");
-    else
-      viewToolbar.setAttribute("checked", "true");
+    if (viewToolbar) {
+      let personalToolbar = document.getElementById("PersonalToolbar");
+      if (personalToolbar.collapsed)
+        viewToolbar.removeAttribute("checked");
+      else
+        viewToolbar.setAttribute("checked", "true");
+    }
     // Get all statically placed buttons to supply them with keyboard shortcuts.
-    let staticButtons = viewToolbar.parentNode.getElementsByTagName("toolbarbutton");
+    let staticButtons = panelview.getElementsByTagName("toolbarbutton");
     for (let i = 0, l = staticButtons.length; i < l; ++i)
       CustomizableUI.addShortcut(staticButtons[i]);
     // Setup the Places view.
-    this._panelMenuView = new PlacesPanelMenuView("place:folder=BOOKMARKS_MENU",
-                                                  "panelMenu_bookmarksMenu",
-                                                  "panelMenu_bookmarksMenu", {
-                                                    extraClasses: {
-                                                      entry: "subviewbutton",
-                                                      footer: "panel-subview-footer"
-                                                    }
-                                                  });
-    aEvent.target.removeEventListener("ViewShowing", this);
+    if (gPhotonStructure) {
+      // We restrict the amount of results to 42. Not 50, but 42. Why? Because 42.
+      let query = "place:queryType=" + Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
+        "&sort=" + Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_DESCENDING +
+        "&maxResults=42&excludeQueries=1";
+      this._panelMenuView = new PlacesPanelview(document.getElementById("panelMenu_bookmarksMenu"),
+        panelview, query);
+    } else {
+      this._panelMenuView = new PlacesPanelMenuView("place:folder=BOOKMARKS_MENU",
+        "panelMenu_bookmarksMenu", "panelMenu_bookmarksMenu", {
+          extraClasses: {
+            entry: "subviewbutton",
+            footer: "panel-subview-footer"
+          }
+        });
+    }
+    panelview.removeEventListener("ViewShowing", this);
   },
 
   onPanelMenuViewHiding: function BUI_onViewHiding(aEvent) {
@@ -1926,14 +1960,14 @@ var BookmarkingUI = {
     aEvent.target.removeEventListener("ViewHiding", this);
   },
 
-  onPanelMenuViewCommand: function BUI_onPanelMenuViewCommand(aEvent, aView) {
+  onPanelMenuViewCommand: function BUI_onPanelMenuViewCommand(aEvent) {
     let target = aEvent.originalTarget;
     if (!target._placesNode)
       return;
     if (PlacesUtils.nodeIsContainer(target._placesNode))
       PlacesCommandHook.showPlacesOrganizer([ "BookmarksMenu", target._placesNode.itemId ]);
     else
-      PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent, aView);
+      PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent);
     PanelUI.hide();
   },
 

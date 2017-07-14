@@ -100,6 +100,7 @@ const ROLE_PUSHBUTTON = nsIAccessibleRole.ROLE_PUSHBUTTON;
 const ROLE_RADIOBUTTON = nsIAccessibleRole.ROLE_RADIOBUTTON;
 const ROLE_RADIO_GROUP = nsIAccessibleRole.ROLE_RADIO_GROUP;
 const ROLE_RADIO_MENU_ITEM = nsIAccessibleRole.ROLE_RADIO_MENU_ITEM;
+const ROLE_REGION = nsIAccessibleRole.ROLE_REGION;
 const ROLE_RICH_OPTION = nsIAccessibleRole.ROLE_RICH_OPTION;
 const ROLE_ROW = nsIAccessibleRole.ROLE_ROW;
 const ROLE_ROWHEADER = nsIAccessibleRole.ROLE_ROWHEADER;
@@ -154,7 +155,7 @@ function getRole(aAccOrElmOrID)
   var role = -1;
   try {
     role = acc.role;
-  } catch(e) {
+  } catch (e) {
     ok(false, "Role for " + aAccOrElmOrID + " could not be retrieved!");
   }
 

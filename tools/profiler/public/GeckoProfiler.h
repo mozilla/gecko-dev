@@ -253,18 +253,23 @@ PROFILER_FUNC(double profiler_time(), 0)
 // Get the current thread's ID.
 PROFILER_FUNC(int profiler_current_thread_id(), 0)
 
+// This is the function type of the callback passed to profiler_suspend_and_sample_thread.
+//
+// The callback is passed the following arguments:
+//   void** aPCs         The program counters for the target thread's stack.
+//   size_t aCount       The number of program counters in the aPCs array.
+//   bool aIsMainThread  Whether the target thread was the main thread.
+typedef void ProfilerStackCallback(void** aPCs, size_t aCount, bool aIsMainThread);
+
 // This method suspends the thread identified by aThreadId, optionally samples
-// it for its native stack, and then calls the callback. The callback is passed
-// the native stack's program counters and length as two arguments if
-// aSampleNative is true.
+// it for its native stack, and then calls the callback.
 //
 // WARNING: The target thread is suspended during the callback. Do not try to
 // allocate or acquire any locks, or you could deadlock. The target thread will
 // have resumed by the time this function returns.
 PROFILER_FUNC_VOID(
   profiler_suspend_and_sample_thread(int aThreadId,
-                                     const std::function<void(void**, size_t)>&
-                                       aCallback,
+                                     const std::function<ProfilerStackCallback>& aCallback,
                                      bool aSampleNative = true))
 
 struct ProfilerBacktraceDestructor
@@ -364,7 +369,9 @@ PROFILER_FUNC(PseudoStack* profiler_get_pseudo_stack(), nullptr)
 // important happening such as the first paint. Unlike labels, which are only
 // recorded in the profile buffer if a sample is collected while the label is
 // on the pseudostack, markers will always be recorded in the profile buffer.
-// A no-op if the profiler is inactive or in privacy mode.
+// aMarkerName is copied, so the caller does not need to ensure it lives for a
+// certain length of time. A no-op if the profiler is inactive or in privacy
+// mode.
 PROFILER_FUNC_VOID(profiler_add_marker(const char* aMarkerName))
 PROFILER_FUNC_VOID(
   profiler_add_marker(const char* aMarkerName,

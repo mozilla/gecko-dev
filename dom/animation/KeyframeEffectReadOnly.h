@@ -384,7 +384,8 @@ protected:
   void EnsureBaseStyle(const AnimationProperty& aProperty,
                        CSSPseudoElementType aPseudoType,
                        nsPresContext* aPresContext,
-                       RefPtr<ServoComputedValues>& aBaseComputedValues);
+                       const ServoComputedValues* aComputedValues,
+                       RefPtr<const ServoComputedValues>& aBaseComputedValues);
 
   Maybe<OwningAnimationTarget> mTarget;
 
@@ -416,6 +417,11 @@ protected:
   nsDataHashtable<nsUint32HashKey, StyleAnimationValue> mBaseStyleValues;
   nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue>
     mBaseStyleValuesForServo;
+
+  // True if this effect is in the EffectSet for its target element. This is
+  // used as an optimization to avoid unnecessary hashmap lookups on the
+  // EffectSet.
+  bool mInEffectSet = false;
 
   // We only want to record telemetry data for "ContentTooLarge" warnings once
   // per effect:target pair so we use this member to record if we have already

@@ -61,9 +61,7 @@ public interface BaseHlsPlayer {
     // =======================================================================
     // API for GeckoHLSResourceWrapper
     // =======================================================================
-    public void addResourceWrapperCallbackListener(ResourceCallbacks callback);
-
-    public void init(String url);
+    public void init(String url, ResourceCallbacks callback);
 
     public boolean isLiveStream();
 
@@ -73,8 +71,6 @@ public interface BaseHlsPlayer {
     public void addDemuxerWrapperCallbackListener(DemuxerCallbacks callback);
 
     public ConcurrentLinkedQueue<GeckoHLSSample> getSamples(TrackType trackType, int number);
-
-    public long getDuration();
 
     public long getBufferedPosition();
 

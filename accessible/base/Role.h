@@ -130,7 +130,7 @@ enum Role {
   CHART = 17,
 
   /**
-   * Represents a dialog box or message box. It is used for xul:dialog, 
+   * Represents a dialog box or message box. It is used for xul:dialog,
    * role="dialog".
    */
   DIALOG = 18,
@@ -295,7 +295,7 @@ enum Role {
    * html:input@type="checkbox", role="checkbox".
    */
   CHECKBUTTON = 44,
-  
+
   /**
    * Represents an option button, also called a radio button. It is one of a
    * group of mutually exclusive options. All objects sharing a single parent
@@ -304,7 +304,7 @@ enum Role {
    * role="radio".
    */
   RADIOBUTTON = 45,
-  
+
   /**
    * Represents a combo box; an edit control with an associated list box that
    * provides a set of predefined choices. It is used for html:select,
@@ -353,7 +353,7 @@ enum Role {
    * Represents a graphical image used to diagram data. It is used for svg:svg.
    */
   DIAGRAM = 53,
-  
+
   /**
    * Represents an animation control, which contains content that changes over
    * time, such as a control that displays a series of bitmap frames.
@@ -1007,7 +1007,15 @@ enum Role {
    */
   ARTICLE = 172,
 
-  LAST_ROLE = ARTICLE
+  /**
+   * A perceivable section containing content that is relevant to a specific,
+   * author-specified purpose and sufficiently important that users will likely
+   * want to be able to navigate to the section easily and to have it listed in
+   * a summary of the page.
+   */
+  REGION = 173,
+
+  LAST_ROLE = REGION
 };
 
 } // namespace role

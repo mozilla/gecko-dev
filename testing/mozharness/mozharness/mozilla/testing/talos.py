@@ -29,6 +29,11 @@ from mozharness.mozilla.testing.errors import TinderBoxPrintRe
 from mozharness.mozilla.buildbot import TBPL_SUCCESS, TBPL_WORST_LEVEL_TUPLE
 from mozharness.mozilla.buildbot import TBPL_RETRY, TBPL_FAILURE, TBPL_WARNING
 from mozharness.mozilla.tooltool import TooltoolMixin
+from mozharness.mozilla.testing.codecoverage import (
+    CodeCoverageMixin,
+    code_coverage_config_options
+)
+
 
 scripts_path = os.path.abspath(os.path.dirname(os.path.dirname(mozharness.__file__)))
 external_tools_path = os.path.join(scripts_path, 'external_tools')
@@ -89,7 +94,7 @@ class TalosOutputParser(OutputParser):
 
 
 class Talos(TestingMixin, MercurialScript, BlobUploadMixin, TooltoolMixin,
-            Python3Virtualenv):
+            Python3Virtualenv, CodeCoverageMixin):
     """
     install and run Talos tests:
     https://wiki.mozilla.org/Buildbot/Talos
@@ -137,7 +142,8 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin, TooltoolMixin,
             "default": 0,
             "help": "The interval between samples taken by the profiler (milliseconds)"
         }],
-    ] + testing_config_options + copy.deepcopy(blobupload_config_options)
+    ] + testing_config_options + copy.deepcopy(blobupload_config_options) \
+                               + copy.deepcopy(code_coverage_config_options)
 
     def __init__(self, **kwargs):
         kwargs.setdefault('config_options', self.config_options)
@@ -173,6 +179,7 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin, TooltoolMixin,
         self.gecko_profile_interval = self.config.get('gecko_profile_interval')
         self.pagesets_name = None
         self.mitmproxy_recording_set = None # zip file found on tooltool that contains all of the mitmproxy recordings
+        self.mitmproxy_recordings_file_list = self.config.get('mitmproxy', None) # files inside the recording set
         self.mitmdump = None # path to mitdump tool itself, in py3 venv
 
     # We accept some configuration options from the try commit message in the format mozharness: <options>
@@ -240,6 +247,19 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin, TooltoolMixin,
             self.pagesets_name = self.talos_json_config['suites'][self.suite].get('pagesets_name')
             return self.pagesets_name
 
+    def query_mitmproxy_recordings_file_list(self):
+        """ When using mitmproxy we also need the name of the playback files that are included
+        inside the playback archive.
+        """
+        if self.mitmproxy_recordings_file_list:
+            return self.mitmproxy_recordings_file_list
+        if self.query_talos_json_config() and self.suite is not None:
+            talos_opts = self.talos_json_config['suites'][self.suite].get('talos_options', None)
+            for index, val in enumerate(talos_opts):
+                if val == '--mitmproxy':
+                    self.mitmproxy_recordings_file_list = talos_opts[index + 1]
+            return self.mitmproxy_recordings_file_list
+
     def get_suite_from_test(self):
         """ Retrieve the talos suite name from a given talos test name."""
         # running locally, single test name provided instead of suite; go through tests and find suite name
@@ -293,6 +313,14 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin, TooltoolMixin,
         # for it; need to add the path to that env/mitdump tool
         if self.mitmdump:
             kw_options['mitmdumpPath'] = self.mitmdump
+            # also need to have recordings list; get again here from talos.json, in case talos was
+            # invoked via '-a' and therefore the --mitmproxy param wasn't used on command line
+            if not self.config.get('mitmproxy', None):
+                file_list = self.query_mitmproxy_recordings_file_list()
+                if file_list is not None:
+                    kw_options['mitmproxy'] = file_list
+                else:
+                    self.fatal("Talos requires list of mitmproxy playback files, use --mitmproxy")
         kw_options.update(kw)
         # talos expects tests to be in the format (e.g.) 'ts:tp5:tsvg'
         tests = kw_options.get('activeTests')
@@ -559,7 +587,7 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin, TooltoolMixin,
                 tbpl_level = TBPL_RETRY
 
             parser.update_worst_log_and_tbpl_levels(log_level, tbpl_level)
-        else:
+        elif '--no-upload-results' not in options:
             if not self.gecko_profile:
                 self._validate_treeherder_data(parser)
                 if not self.run_local:

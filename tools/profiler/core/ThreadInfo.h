@@ -14,9 +14,6 @@
 #include "ProfileBuffer.h"
 #include "js/ProfilingStack.h"
 
-// Stub eventMarker function for js-engine event generation.
-void ProfilerJSEventMarker(const char* aEvent);
-
 // This class contains the info for a single thread that is accessible without
 // protection from gPSMutex in platform.cpp. Because there is no external
 // protection against data races, it must provide internal protection. Hence
@@ -159,6 +156,13 @@ private:
 };
 
 // This class contains the info for a single thread.
+//
+// Note: A thread's ThreadInfo can be held onto after the thread itself exits,
+// because we may need to output profiling information about that thread. But
+// some of the fields in this class are only relevant while the thread is
+// alive. It's possible that this class could be refactored so there is a
+// clearer split between those fields and the fields that are still relevant
+// after the thread exists.
 class ThreadInfo final
 {
 public:
@@ -283,8 +287,7 @@ public:
       if (mJSSampling == ACTIVE_REQUESTED) {
         mJSSampling = ACTIVE;
         js::EnableContextProfilingStack(mContext, true);
-        js::RegisterContextProfilingEventMarker(mContext,
-                                                &ProfilerJSEventMarker);
+        js::RegisterContextProfilingEventMarker(mContext, profiler_add_marker);
 
       } else if (mJSSampling == INACTIVE_REQUESTED) {
         mJSSampling = INACTIVE;

@@ -70,7 +70,7 @@ ${helpers.single_keyword("mask-mode",
                          animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
 
-<%helpers:vector_longhand name="mask-repeat" products="gecko" animation_value_type="none" extra_prefixes="webkit"
+<%helpers:vector_longhand name="mask-repeat" products="gecko" animation_value_type="discrete" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat">
     pub use properties::longhands::background_repeat::single_value::parse;
     pub use properties::longhands::background_repeat::single_value::SpecifiedValue;
@@ -89,12 +89,17 @@ ${helpers.single_keyword("mask-mode",
 </%helpers:vector_longhand>
 
 % for (axis, direction) in [("x", "Horizontal"), ("y", "Vertical")]:
-    ${helpers.predefined_type("mask-position-" + axis, "position::" + direction + "Position",
-                              products="gecko", extra_prefixes="webkit",
-                              initial_value="computed::LengthOrPercentage::zero()",
-                              initial_specified_value="specified::PositionComponent::Center",
-                              spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position",
-                              animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
+    ${helpers.predefined_type(
+        "mask-position-" + axis,
+        "position::" + direction + "Position",
+        products="gecko",
+        extra_prefixes="webkit",
+        initial_value="computed::LengthOrPercentage::zero()",
+        initial_specified_value="specified::PositionComponent::Center",
+        spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position",
+        animation_value_type="ComputedValue",
+        vector=True,
+    )}
 % endfor
 
 ${helpers.single_keyword("mask-clip",
@@ -150,6 +155,6 @@ ${helpers.predefined_type("mask-image", "ImageLayer",
     vector=True,
     products="gecko",
     extra_prefixes="webkit",
-    animation_value_type="none",
+    animation_value_type="discrete",
     flags="CREATES_STACKING_CONTEXT",
     has_uncacheable_values="True" if product == "gecko" else "False")}

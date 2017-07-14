@@ -45,8 +45,10 @@
 
 class nsIDOMWindowUtils;
 class nsIHttpChannel;
+class nsISerialEventTarget;
 
 namespace mozilla {
+class AbstractThread;
 namespace layout {
 class RenderFrameChild;
 } // namespace layout
@@ -69,7 +71,6 @@ class TabChild;
 class TabGroup;
 class ClonedMessageData;
 class CoalescedWheelData;
-class TabChildBase;
 
 class TabChildGlobal : public DOMEventTargetHelper,
                        public nsIContentFrameMessageManager,
@@ -78,7 +79,7 @@ class TabChildGlobal : public DOMEventTargetHelper,
                        public nsSupportsWeakReference
 {
 public:
-  explicit TabChildGlobal(TabChildBase* aTabChild);
+  explicit TabChildGlobal(TabChild* aTabChild);
   void Init();
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TabChildGlobal, DOMEventTargetHelper)
@@ -149,8 +150,19 @@ public:
     MOZ_CRASH("TabChildGlobal doesn't use DOM bindings!");
   }
 
+  // Dispatch a runnable related to the global.
+  virtual nsresult Dispatch(const char* aName,
+                            mozilla::TaskCategory aCategory,
+                            already_AddRefed<nsIRunnable>&& aRunnable) override;
+
+  virtual nsISerialEventTarget*
+  EventTargetFor(mozilla::TaskCategory aCategory) const override;
+
+  virtual AbstractThread*
+  AbstractMainThreadFor(mozilla::TaskCategory aCategory) override;
+
   nsCOMPtr<nsIContentFrameMessageManager> mMessageManager;
-  RefPtr<TabChildBase> mTabChild;
+  RefPtr<TabChild> mTabChild;
 
 protected:
   ~TabChildGlobal();
@@ -694,6 +706,15 @@ public:
   }
 #endif
 
+  void AddPendingDocShellBlocker();
+  void RemovePendingDocShellBlocker();
+
+  // The HANDLE object for the widget this TabChild in.
+  WindowsHandle WidgetNativeData()
+  {
+    return mWidgetNativeData;
+  }
+
 protected:
   virtual ~TabChild();
 
@@ -734,6 +755,8 @@ protected:
   virtual mozilla::ipc::IPCResult RecvSetWindowName(const nsString& aName) override;
 
   virtual mozilla::ipc::IPCResult RecvSetOriginAttributes(const OriginAttributes& aOriginAttributes) override;
+
+  virtual mozilla::ipc::IPCResult RecvSetWidgetNativeData(const WindowsHandle& aWidgetNativeData) override;
 
 private:
   void HandleDoubleTap(const CSSPoint& aPoint, const Modifiers& aModifiers,
@@ -789,6 +812,9 @@ private:
   void DispatchWheelEvent(const WidgetWheelEvent& aEvent,
                           const ScrollableLayerGuid& aGuid,
                           const uint64_t& aInputBlockId);
+
+  void InternalSetDocShellIsActive(bool aIsActive,
+                                   bool aPreserveLayers);
 
   class DelayedDeleteRunnable;
 
@@ -869,6 +895,13 @@ private:
 #if defined(ACCESSIBILITY)
   PDocAccessibleChild* mTopLevelDocAccessibleChild;
 #endif
+
+  bool mPendingDocShellIsActive;
+  bool mPendingDocShellPreserveLayers;
+  bool mPendingDocShellReceivedMessage;
+  uint32_t mPendingDocShellBlockers;
+
+  WindowsHandle mWidgetNativeData;
 
   DISALLOW_EVIL_CONSTRUCTORS(TabChild);
 };

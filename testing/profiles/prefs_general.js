@@ -7,6 +7,7 @@ user_pref("browser.firstrun.show.uidiscovery", false);
 user_pref("browser.startup.page", 0); // use about:blank, not browser.startup.homepage
 user_pref("browser.search.suggest.timeout", 10000); // use a 10s suggestion timeout in tests
 user_pref("browser.ui.layout.tablet", 0); // force tablet UI off
+user_pref("browser.urlbar.speculativeConnection.enabled", false);
 user_pref("dom.allow_scripts_to_close_windows", true);
 user_pref("dom.disable_open_during_load", false);
 user_pref("dom.experimental_forms", true); // on for testing
@@ -58,6 +59,7 @@ user_pref("app.update.url.android", "");
 // Make sure GMPInstallManager won't hit the network.
 user_pref("media.gmp-manager.url.override", "http://%(server)s/dummy-gmp-manager.xml");
 user_pref("media.gmp-manager.updateEnabled", false);
+user_pref("media.hls.server.url", "http://%(server)s/tests/dom/media/test/hls");
 user_pref("dom.w3c_touch_events.enabled", 1);
 user_pref("layout.accessiblecaret.enabled_on_touch", false);
 user_pref("dom.webcomponents.enabled", true);
@@ -100,8 +102,6 @@ user_pref("geo.wifi.logging.enabled", true);
 // Prevent connection to the push server for tests.
 user_pref("dom.push.connection.enabled", false);
 
-// Make url-classifier updates so rare that they won't affect tests
-user_pref("urlclassifier.updateinterval", 172800);
 // Point the url-classifier to the local testing server for fast failures
 user_pref("browser.safebrowsing.downloads.remote.url", "http://%(server)s/safebrowsing-dummy/update");
 user_pref("browser.safebrowsing.provider.google.gethashURL", "http://%(server)s/safebrowsing-dummy/gethash");
@@ -291,6 +291,9 @@ user_pref("browser.translation.engine", "bing");
 
 // Make sure we don't try to load snippets from the network.
 user_pref("browser.aboutHomeSnippets.updateUrl", "nonexistent://test");
+
+// Use an empty list of sites to avoid fetching
+user_pref("browser.newtabpage.activity-stream.default.sites", "");
 
 // Don't fetch directory tiles data from real servers
 user_pref("browser.newtabpage.directory.source", 'data:application/json,{"testing":1}');

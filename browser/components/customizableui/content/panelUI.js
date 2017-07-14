@@ -121,9 +121,11 @@ const PanelUI = {
       this.overflowFixedList.previousSibling.hidden = false;
       CustomizableUI.registerMenuPanel(this.overflowFixedList, CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
       this.navbar.setAttribute("photon-structure", "true");
+      document.documentElement.setAttribute("photon-structure", "true");
       this.updateOverflowStatus();
     } else {
       this.navbar.removeAttribute("photon-structure");
+      document.documentElement.removeAttribute("photon-structure");
     }
   },
 
@@ -532,8 +534,9 @@ const PanelUI = {
           CustomizableUI.removePanelCloseListeners(tempPanel);
           tempPanel.removeEventListener("popuphidden", panelRemover);
 
-          let evt = new CustomEvent("ViewHiding", {detail: viewNode});
-          viewNode.dispatchEvent(evt);
+          let currentView = multiView.current || viewNode;
+          let evt = new CustomEvent("ViewHiding", {detail: currentView});
+          currentView.dispatchEvent(evt);
         }
         aAnchor.open = false;
 

@@ -33,6 +33,7 @@ class ServoRestyleManager;
 class ServoStyleSheet;
 struct Keyframe;
 class ServoElementSnapshotTable;
+class ServoStyleContext;
 class ServoStyleRuleMap;
 } // namespace mozilla
 class nsCSSCounterStyleRule;
@@ -76,29 +77,6 @@ class ServoStyleSet
   typedef ServoElementSnapshotTable SnapshotTable;
 
 public:
-  class AutoAllowStaleStyles
-  {
-  public:
-    explicit AutoAllowStaleStyles(ServoStyleSet* aStyleSet)
-      : mStyleSet(aStyleSet)
-    {
-      if (mStyleSet) {
-        MOZ_ASSERT(!mStyleSet->mAllowResolveStaleStyles);
-        mStyleSet->mAllowResolveStaleStyles = true;
-      }
-    }
-
-    ~AutoAllowStaleStyles()
-    {
-      if (mStyleSet) {
-        mStyleSet->mAllowResolveStaleStyles = false;
-      }
-    }
-
-  private:
-    ServoStyleSet* mStyleSet;
-  };
-
   static bool IsInServoTraversal()
   {
     // The callers of this function are generally main-thread-only _except_
@@ -121,7 +99,7 @@ public:
   ServoStyleSet();
   ~ServoStyleSet();
 
-  void Init(nsPresContext* aPresContext);
+  void Init(nsPresContext* aPresContext, nsBindingManager* aBindingManager);
   void BeginShutdown();
   void Shutdown();
 
@@ -226,7 +204,7 @@ public:
   // Get a style context for an anonymous box.  aPseudoTag is the pseudo-tag to
   // use and must be non-null.  It must be an anon box, and must be one that
   // inherits style from the given aParentContext.
-  already_AddRefed<nsStyleContext>
+  already_AddRefed<ServoStyleContext>
   ResolveInheritingAnonymousBoxStyle(nsIAtom* aPseudoTag,
                                      nsStyleContext* aParentContext);
 
@@ -253,6 +231,8 @@ public:
 
   int32_t SheetCount(SheetType aType) const;
   ServoStyleSheet* StyleSheetAt(SheetType aType, int32_t aIndex) const;
+
+  void AppendAllXBLStyleSheets(nsTArray<StyleSheet*>& aArray) const;
 
   template<typename Func>
   void EnumerateStyleSheetArrays(Func aCallback) const {
@@ -385,7 +365,6 @@ public:
 
   bool GetKeyframesForName(const nsString& aName,
                            const nsTimingFunction& aTimingFunction,
-                           const ServoComputedValues* aComputedValues,
                            nsTArray<Keyframe>& aKeyframes);
 
   nsTArray<ComputedKeyframeValues>
@@ -405,7 +384,8 @@ public:
 
   already_AddRefed<ServoComputedValues>
   GetBaseComputedValuesForElement(dom::Element* aElement,
-                                  CSSPseudoElementType aPseudoType);
+                                  CSSPseudoElementType aPseudoType,
+                                  ServoComputedValuesBorrowed aStyle);
 
   /**
    * Resolve style for a given declaration block with/without the parent style.
@@ -455,7 +435,8 @@ public:
    * the modified attribute doesn't appear in an attribute selector in
    * a style sheet.
    */
-  bool MightHaveAttributeDependency(nsIAtom* aAttribute);
+  bool MightHaveAttributeDependency(const dom::Element& aElement,
+                                    nsIAtom* aAttribute) const;
 
   /**
    * Returns true if a change in event state on an element might require
@@ -465,7 +446,8 @@ public:
    * the changed state isn't depended upon by any pseudo-class selectors
    * in a style sheet.
    */
-  bool HasStateDependency(EventStates aState);
+  bool HasStateDependency(const dom::Element& aElement,
+                          EventStates aState) const;
 
 private:
   // On construction, sets sInServoTraversal to the given ServoStyleSet.
@@ -492,17 +474,17 @@ private:
     ServoStyleSet* mSet;
   };
 
-  already_AddRefed<nsStyleContext> GetContext(already_AddRefed<ServoComputedValues>,
-                                              nsStyleContext* aParentContext,
-                                              nsIAtom* aPseudoTag,
-                                              CSSPseudoElementType aPseudoType,
-                                              dom::Element* aElementForAnimation);
+  already_AddRefed<ServoStyleContext> GetContext(already_AddRefed<ServoComputedValues>,
+                                                 nsStyleContext* aParentContext,
+                                                 nsIAtom* aPseudoTag,
+                                                 CSSPseudoElementType aPseudoType,
+                                                 dom::Element* aElementForAnimation);
 
-  already_AddRefed<nsStyleContext> GetContext(nsIContent* aContent,
-                                              nsStyleContext* aParentContext,
-                                              nsIAtom* aPseudoTag,
-                                              CSSPseudoElementType aPseudoType,
-                                              LazyComputeBehavior aMayCompute);
+  already_AddRefed<ServoStyleContext> GetContext(nsIContent* aContent,
+                                                 nsStyleContext* aParentContext,
+                                                 nsIAtom* aPseudoTag,
+                                                 CSSPseudoElementType aPseudoType,
+                                                 LazyComputeBehavior aMayCompute);
 
   /**
    * Rebuild the style data. This will force a stylesheet flush, and also
@@ -599,7 +581,6 @@ private:
   UniquePtr<RawServoStyleSet> mRawSet;
   EnumeratedArray<SheetType, SheetType::Count,
                   nsTArray<RefPtr<ServoStyleSheet>>> mSheets;
-  bool mAllowResolveStaleStyles;
   bool mAuthorStyleDisabled;
   StylistState mStylistState;
   uint64_t mUserFontSetUpdateGeneration;
@@ -621,6 +602,9 @@ private:
   // Map from raw Servo style rule to Gecko's wrapper object.
   // Constructed lazily when requested by devtools.
   RefPtr<ServoStyleRuleMap> mStyleRuleMap;
+
+  // This can be null if we are used to hold XBL style sheets.
+  RefPtr<nsBindingManager> mBindingManager;
 
   static ServoStyleSet* sInServoTraversal;
 };

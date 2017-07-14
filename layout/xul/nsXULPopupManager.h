@@ -67,7 +67,7 @@ enum CloseMenuMode {
 /**
  * nsNavigationDirection: an enum expressing navigation through the menus in
  * terms which are independent of the directionality of the chrome. The
- * terminology, derived from XSL-FO and CSS3 (e.g. 
+ * terminology, derived from XSL-FO and CSS3 (e.g.
  * http://www.w3.org/TR/css3-text/#TextLayout), is BASE (Before, After, Start,
  * End), with the addition of First and Last (mapped to Home and End
  * respectively).
@@ -87,7 +87,7 @@ enum CloseMenuMode {
  *           After              |
  *           ...                |
  *           Last               V
- * 
+ *
  */
 
 enum nsNavigationDirection {
@@ -451,7 +451,7 @@ public:
    * measured in CSS pixels.
    *
    * This fires the popupshowing event synchronously.
-   * 
+   *
    * If aIsContextMenu is true, the popup is positioned at a slight
    * offset from aXPos/aYPos to ensure that it is not under the mouse
    * cursor.
@@ -731,10 +731,14 @@ protected:
    * aPopup - the popup to open
    * aIsContextMenu - true for context menus
    * aSelectFirstItem - true to select the first item in the menu
+   * aTriggerEvent - the event that triggered the showing event.
+   *                 This is currently used to propagate the
+   *                 inputSource attribute. May be null.
    */
   void FirePopupShowingEvent(nsIContent* aPopup,
                              bool aIsContextMenu,
-                             bool aSelectFirstItem);
+                             bool aSelectFirstItem,
+                             nsIDOMEvent* aTriggerEvent);
 
   /**
    * Fire a popuphiding event and then hide the popup. This will be called
@@ -751,7 +755,7 @@ protected:
    * aNextPopup - the next popup to hide
    * aLastPopup - the last popup in the chain to hide
    * aPresContext - nsPresContext for the popup's frame
-   * aPopupType - the PopupType of the frame. 
+   * aPopupType - the PopupType of the frame.
    * aDeselectMenu - true to unhighlight the menu when hiding it
    * aIsCancel - true if this popup is hiding due to being cancelled.
    */

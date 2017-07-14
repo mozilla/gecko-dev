@@ -44,6 +44,7 @@ using mozilla::Unused;
 #include "nsLayoutUtils.h"
 #include "nsViewManager.h"
 
+#include "nsContentUtils.h"
 #include "WidgetUtils.h"
 
 #include "nsIDOMSimpleGestureEvent.h"
@@ -422,9 +423,13 @@ public:
         };
 
         NativePanZoomController::GlobalRef npzc = mNPZC;
-        AndroidBridge::Bridge()->PostTaskToUiThread(NewRunnableFunction(
+        RefPtr<nsThread> uiThread = GetAndroidUiThread();
+        if (!uiThread) {
+            return;
+        }
+        uiThread->Dispatch(NewRunnableFunction(
                 static_cast<void(*)(const NPZCRef&)>(callDestroy),
-                mozilla::Move(npzc)), 0);
+                mozilla::Move(npzc)), nsIThread::DISPATCH_NORMAL);
     }
 
 public:
@@ -1405,6 +1410,7 @@ nsWindow::GeckoViewSupport::LoadUri(jni::String::Param aUri, int32_t aFlags)
 
     if (NS_FAILED(browserWin->OpenURI(
             uri, nullptr, flags, nsIBrowserDOMWindow::OPEN_EXTERNAL,
+            nsContentUtils::GetSystemPrincipal(),
             getter_AddRefs(newWin)))) {
         NS_WARNING("Failed to open URI");
     }
@@ -2345,15 +2351,12 @@ nsWindow::RecvToolbarAnimatorMessageFromCompositor(int32_t aMessage)
 }
 
 void
-nsWindow::UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset, const CSSToScreenScale& aZoom, const CSSRect& aPage)
+nsWindow::UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset, const CSSToScreenScale& aZoom)
 {
-
   MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
   if (NativePtr<LayerViewSupport>::Locked lvs{mLayerViewSupport}) {
     GeckoLayerClient::LocalRef client = lvs->GetLayerClient();
-    client->UpdateRootFrameMetrics(aScrollOffset.x, aScrollOffset.y, aZoom.scale,
-                                   aPage.x, aPage.y,
-                                   aPage.XMost(), aPage.YMost());
+    client->UpdateRootFrameMetrics(aScrollOffset.x, aScrollOffset.y, aZoom.scale);
   }
 }
 

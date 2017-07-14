@@ -41,6 +41,7 @@ pub mod webdriver_msg;
 
 use app_units::Au;
 use bluetooth_traits::BluetoothRequest;
+use canvas_traits::CanvasData;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Size2D, Length, Point2D, Vector2D, Rect, ScaleFactor, TypedSize2D};
 use gfx_traits::Epoch;
@@ -746,9 +747,6 @@ pub enum ConstellationMsg {
     /// Request that the constellation send the current focused top-level browsing context id,
     /// over a provided channel.
     GetFocusTopLevelBrowsingContext(IpcSender<Option<TopLevelBrowsingContextId>>),
-    /// Requests that the constellation inform the compositor of the title of the pipeline
-    /// immediately.
-    GetPipelineTitle(PipelineId),
     /// Request to load the initial page.
     InitLoadUrl(ServoUrl),
     /// Query the constellation to see if the current compositor output is stable
@@ -826,12 +824,12 @@ impl From<RecvTimeoutError> for PaintWorkletError {
     }
 }
 
-/// Execute paint code in the worklet thread pool.<
-pub trait PaintWorkletExecutor: Sync + Send {
+/// Execute paint code in the worklet thread pool.
+pub trait Painter: Sync + Send {
     /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
     fn draw_a_paint_image(&self,
-                          name: Atom,
-                          concrete_object_size: Size2D<Au>)
-                          -> Result<Image, PaintWorkletError>;
+                          concrete_object_size: Size2D<Au>,
+                          properties: Vec<(Atom, String)>,
+                          sender: IpcSender<CanvasData>);
 }
 

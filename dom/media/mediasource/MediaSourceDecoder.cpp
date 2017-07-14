@@ -39,7 +39,9 @@ MediaSourceDecoder::CreateStateMachine()
 {
   MOZ_ASSERT(NS_IsMainThread());
   mDemuxer = new MediaSourceDemuxer(AbstractMainThread());
-  mReader = new MediaFormatReader(this, mDemuxer, GetVideoFrameContainer());
+  MediaDecoderReaderInit init(this);
+  init.mVideoFrameContainer = GetVideoFrameContainer();
+  mReader = new MediaFormatReader(init, mDemuxer);
   return new MediaDecoderStateMachine(this, mReader);
 }
 
@@ -188,7 +190,7 @@ void
 MediaSourceDecoder::Ended(bool aEnded)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  static_cast<MediaSourceResource*>(GetResource())->SetEnded(aEnded);
+  static_cast<MediaSourceResource*>(mResource.get())->SetEnded(aEnded);
   if (aEnded) {
     // We want the MediaSourceReader to refresh its buffered range as it may
     // have been modified (end lined up).
@@ -245,7 +247,9 @@ void
 MediaSourceDecoder::GetMozDebugReaderData(nsACString& aString)
 {
   if (mReader && mDemuxer) {
-    mReader->GetMozDebugReaderData(aString);
+    // This is definitely a MediaFormatReader. See CreateStateMachine() above.
+    auto reader = static_cast<MediaFormatReader*>(mReader.get());
+    reader->GetMozDebugReaderData(aString);
     mDemuxer->GetMozDebugReaderData(aString);
   }
 }

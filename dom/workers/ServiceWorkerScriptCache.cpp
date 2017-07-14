@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ServiceWorkerScriptCache.h"
+#include "mozilla/SystemGroup.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/CacheBinding.h"
 #include "mozilla/dom/cache/CacheStorage.h"
@@ -472,7 +473,7 @@ private:
 
       Request* request;
       JS::Rooted<JSObject*> requestObj(aCx, &val.toObject());
-      if (NS_WARN_IF(NS_FAILED(UNWRAP_OBJECT(Request, requestObj, request)))) {
+      if (NS_WARN_IF(NS_FAILED(UNWRAP_OBJECT(Request, &requestObj, request)))) {
         return;
       };
 
@@ -509,7 +510,7 @@ private:
     }
 
     Cache* cache = nullptr;
-    rv = UNWRAP_OBJECT(Cache, obj, cache);
+    rv = UNWRAP_OBJECT(Cache, &obj, cache);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return;
     }
@@ -1123,7 +1124,7 @@ CompareCache::ManageValueResult(JSContext* aCx, JS::Handle<JS::Value> aValue)
   }
 
   Response* response = nullptr;
-  nsresult rv = UNWRAP_OBJECT(Response, obj, response);
+  nsresult rv = UNWRAP_OBJECT(Response, &obj, response);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     Finish(rv, false);
     return;
@@ -1136,7 +1137,14 @@ CompareCache::ManageValueResult(JSContext* aCx, JS::Handle<JS::Value> aValue)
   MOZ_ASSERT(inputStream);
 
   MOZ_ASSERT(!mPump);
-  rv = NS_NewInputStreamPump(getter_AddRefs(mPump), inputStream);
+  rv = NS_NewInputStreamPump(getter_AddRefs(mPump),
+                             inputStream,
+                             -1, /* default streamPos */
+                             -1, /* default streamLen */
+                             0, /* default segsize */
+                             0, /* default segcount */
+                             false, /* default closeWhenDone */
+                             SystemGroup::EventTargetFor(TaskCategory::Other));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     Finish(rv, false);
     return;

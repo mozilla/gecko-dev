@@ -479,7 +479,7 @@ private:
     int64_t ComputeTelemetryBucketNumber(int64_t difftime_ms);
 
     // Report telemetry and stats to about:networking
-    void ReportRcwnStats(nsIRequest* firstResponseRequest, bool isFromNet);
+    void ReportRcwnStats(bool isFromNet);
 
     // Create a aggregate set of the current notification callbacks
     // and ensure the transaction is updated to use it.
@@ -708,6 +708,8 @@ private:
     // Will be true if the onCacheEntryAvailable callback is not called by the
     // time we send the network request
     Atomic<bool> mRaceCacheWithNetwork;
+    uint32_t mRaceDelay;
+    bool mCacheAsyncOpenCalled;
 
 protected:
     virtual void DoNotifyListenerCleanup() override;

@@ -6,11 +6,13 @@
 
 #include "mozilla/mscom/MainThreadRuntime.h"
 
+#if defined(ACCESSIBILITY)
+#include "mozilla/a11y/Compatibility.h"
+#endif
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
-#include "nsDebug.h"
 #include "nsWindowsHelpers.h"
 #include "nsXULAppAPI.h"
 
@@ -41,6 +43,9 @@ MainThreadRuntime* MainThreadRuntime::sInstance = nullptr;
 
 MainThreadRuntime::MainThreadRuntime()
   : mInitResult(E_UNEXPECTED)
+#if defined(ACCESSIBILITY)
+  , mActCtxRgn(a11y::Compatibility::GetActCtxResourceId())
+#endif // defined(ACCESSIBILITY)
 {
   // We must be the outermost COM initialization on this thread. The COM runtime
   // cannot be configured once we start manipulating objects

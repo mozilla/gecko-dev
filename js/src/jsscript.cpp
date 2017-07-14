@@ -50,6 +50,7 @@
 #include "vm/SelfHosting.h"
 #include "vm/Shape.h"
 #include "vm/SharedImmutableStringsCache.h"
+#include "vm/StringBuffer.h"
 #include "vm/Xdr.h"
 #include "vtune/VTuneWrapper.h"
 
@@ -1158,11 +1159,27 @@ static inline ScriptCountsMap::Ptr GetScriptCountsMapEntry(JSScript* script)
     return p;
 }
 
+static inline ScriptNameMap::Ptr
+GetScriptNameMapEntry(JSScript* script)
+{
+    ScriptNameMap* map = script->compartment()->scriptNameMap;
+    auto p = map->lookup(script);
+    MOZ_ASSERT(p);
+    return p;
+}
+
 ScriptCounts&
 JSScript::getScriptCounts()
 {
     ScriptCountsMap::Ptr p = GetScriptCountsMapEntry(this);
     return *p->value();
+}
+
+const char*
+JSScript::getScriptName()
+{
+    auto p = GetScriptNameMapEntry(this);
+    return p->value();
 }
 
 js::PCCounts*
@@ -1347,6 +1364,24 @@ JSScript::destroyScriptCounts(FreeOp* fop)
 }
 
 void
+JSScript::destroyScriptName()
+{
+    auto p = GetScriptNameMapEntry(this);
+    js_delete(p->value());
+    compartment()->scriptNameMap->remove(p);
+}
+
+bool
+JSScript::hasScriptName()
+{
+    if (!compartment()->scriptNameMap)
+        return false;
+
+    auto p = compartment()->scriptNameMap->lookup(this);
+    return p.found();
+}
+
+void
 ScriptSourceObject::trace(JSTracer* trc, JSObject* obj)
 {
     ScriptSourceObject* sso = static_cast<ScriptSourceObject*>(obj);
@@ -1366,12 +1401,6 @@ ScriptSourceObject::finalize(FreeOp* fop, JSObject* obj)
 {
     MOZ_ASSERT(fop->onActiveCooperatingThread());
     ScriptSourceObject* sso = &obj->as<ScriptSourceObject>();
-
-    // If code coverage is enabled, record the filename associated with this
-    // source object.
-    if (fop->runtime()->lcovOutput().isEnabled())
-        sso->compartment()->lcovOutput.collectSourceFile(sso->compartment(), sso);
-
     sso->source()->decref();
     sso->setReservedSlot(SOURCE_SLOT, PrivateValue(nullptr));
 }
@@ -1486,11 +1515,11 @@ JSScript::sourceData(JSContext* cx, HandleScript script)
     return script->scriptSource()->substring(cx, script->sourceStart(), script->sourceEnd());
 }
 
-/* static */ JSFlatString*
-JSScript::sourceDataForToString(JSContext* cx, HandleScript script)
+bool
+JSScript::appendSourceDataForToString(JSContext* cx, StringBuffer& buf)
 {
-    MOZ_ASSERT(script->scriptSource()->hasSourceData());
-    return script->scriptSource()->substring(cx, script->toStringStart(), script->toStringEnd());
+    MOZ_ASSERT(scriptSource()->hasSourceData());
+    return scriptSource()->appendSubstring(cx, buf, toStringStart(), toStringEnd());
 }
 
 UncompressedSourceCache::AutoHoldEntry::AutoHoldEntry()
@@ -1794,6 +1823,22 @@ ScriptSource::substringDontDeflate(JSContext* cx, size_t start, size_t stop)
     if (!chars.get())
         return nullptr;
     return NewStringCopyNDontDeflate<CanGC>(cx, chars.get(), len);
+}
+
+bool
+ScriptSource::appendSubstring(JSContext* cx, StringBuffer& buf, size_t start, size_t stop)
+{
+    MOZ_ASSERT(start <= stop);
+    size_t len = stop - start;
+    UncompressedSourceCache::AutoHoldEntry holder;
+    PinnedChars chars(cx, this, holder, start, len);
+    if (!chars.get())
+        return false;
+    // Sources can be large and we don't want to check "is this char Latin1"
+    // for each source code character, so inflate the buffer here.
+    if (len > 100 && !buf.ensureTwoByteChars())
+        return false;
+    return buf.append(chars.get(), len);
 }
 
 JSFlatString*
@@ -2649,6 +2694,8 @@ JSScript::Create(JSContext* cx, const ReadOnlyCompileOptions& options,
     MOZ_ASSERT(script->getVersion() == options.version);     // assert that no overflow occurred
 
     script->setSourceObject(sourceObject);
+    if (cx->runtime()->lcovOutput().isEnabled() && !script->initScriptName(cx))
+        return nullptr;
     script->sourceStart_ = bufStart;
     script->sourceEnd_ = bufEnd;
     script->toStringStart_ = toStringStart;
@@ -2659,6 +2706,48 @@ JSScript::Create(JSContext* cx, const ReadOnlyCompileOptions& options,
 #endif
 
     return script;
+}
+
+bool
+JSScript::initScriptName(JSContext* cx)
+{
+    MOZ_ASSERT(!hasScriptName());
+
+    if (!filename())
+        return true;
+
+    // Create compartment's scriptNameMap if necessary.
+    ScriptNameMap* map = compartment()->scriptNameMap;
+    if (!map) {
+        map = cx->new_<ScriptNameMap>();
+        if (!map) {
+            ReportOutOfMemory(cx);
+            return false;
+        }
+
+        if (!map->init()) {
+            js_delete(map);
+            ReportOutOfMemory(cx);
+            return false;
+        }
+
+        compartment()->scriptNameMap = map;
+    }
+
+    char* name = js_strdup(filename());
+    if (!name) {
+        ReportOutOfMemory(cx);
+        return false;
+    }
+
+    // Register the script name in the compartment's map.
+    if (!map->putNew(this, name)) {
+        js_delete(name);
+        ReportOutOfMemory(cx);
+        return false;
+    }
+
+    return true;
 }
 
 static inline uint8_t*
@@ -3073,8 +3162,11 @@ JSScript::finalize(FreeOp* fop)
 
     // Collect code coverage information for this script and all its inner
     // scripts, and store the aggregated information on the compartment.
-    if (fop->runtime()->lcovOutput().isEnabled())
-        compartment()->lcovOutput.collectCodeCoverageInfo(compartment(), sourceObject(), this);
+    MOZ_ASSERT_IF(hasScriptName(), fop->runtime()->lcovOutput().isEnabled());
+    if (fop->runtime()->lcovOutput().isEnabled() && hasScriptName()) {
+        compartment()->lcovOutput.collectCodeCoverageInfo(compartment(), this, getScriptName());
+        destroyScriptName();
+    }
 
     fop->runtime()->geckoProfiler().onScriptFinalized(this);
 

@@ -516,6 +516,33 @@
         ]]></body>
       </method>
 
+      <!-- Determine if a URI is an about: page pointing to a local resource. -->
+      <method name="_isLocalAboutURI">
+        <parameter name="aURI"/>
+        <parameter name="aResolvedURI"/>
+        <body><![CDATA[
+          if (!aURI.schemeIs("about")) {
+            return false;
+          }
+
+          // Specially handle about:blank as local
+          if (aURI.path === "blank") {
+            return true;
+          }
+
+          // Use the passed in resolvedURI if we have one
+          const resolvedURI = aResolvedURI || Services.io.newChannelFromURI2(
+            aURI,
+            null, // loadingNode
+            Services.scriptSecurityManager.getSystemPrincipal(), // loadingPrincipal
+            null, // triggeringPrincipal
+            Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL, // securityFlags
+            Ci.nsIContentPolicy.TYPE_OTHER // contentPolicyType
+          ).URI;
+          return resolvedURI.schemeIs("jar") || resolvedURI.schemeIs("file");
+        ]]></body>
+      </method>
+
       <!-- A web progress listener object definition for a given tab. -->
       <method name="mTabProgressListener">
         <parameter name="aTab"/>
@@ -569,9 +596,9 @@
               // Don't show progress indicators in tabs for about: URIs
               // pointing to local resources.
               if ((aRequest instanceof Ci.nsIChannel) &&
-                  aRequest.originalURI.schemeIs("about") &&
-                  (aRequest.URI.schemeIs("jar") || aRequest.URI.schemeIs("file")))
+                  this.mTabBrowser._isLocalAboutURI(aRequest.originalURI, aRequest.URI)) {
                 return false;
+              }
 
               return true;
             },
@@ -1125,12 +1152,10 @@
             this.showTab(this.mCurrentTab);
 
             var forwardButtonContainer = document.getElementById("urlbar-wrapper");
-            if (forwardButtonContainer) {
-              forwardButtonContainer.setAttribute("switchingtabs", "true");
-              window.addEventListener("MozAfterPaint", function() {
-                forwardButtonContainer.removeAttribute("switchingtabs");
-              }, {once: true});
-            }
+            forwardButtonContainer.setAttribute("switchingtabs", "true");
+            window.addEventListener("MozAfterPaint", function() {
+              forwardButtonContainer.removeAttribute("switchingtabs");
+            }, {once: true});
 
             this._appendStatusPanel();
 
@@ -2160,9 +2185,9 @@
         "characterSet", "fullZoom", "textZoom", "webProgress",
         "addProgressListener", "removeProgressListener", "audioPlaybackStarted",
         "audioPlaybackStopped", "pauseMedia", "stopMedia",
-        "blockMedia", "resumeMedia", "mute", "unmute", "blockedPopups", "lastURI",
+        "resumeMedia", "mute", "unmute", "blockedPopups", "lastURI",
         "purgeSessionHistory", "stopScroll", "startScroll",
-        "userTypedValue", "userTypedClear"
+        "userTypedValue", "userTypedClear", "mediaBlocked"
       ]</field>
 
       <method name="_createLazyBrowser">
@@ -2226,8 +2251,20 @@
                     };
                   };
                   break;
+                case "resumeMedia":
+                  getter = () => {
+                    return () => {
+                      // No need to insert a browser, so we just call the browser's
+                      // method.
+                      aTab.addEventListener("SSTabRestoring", () => {
+                        browser[name]();
+                      }, { once: true });
+                    };
+                  };
+                  break;
                 case "userTypedValue":
                 case "userTypedClear":
+                case "mediaBlocked":
                   getter = () => {
                     return SessionStore.getLazyTabValue(aTab, name);
                   };
@@ -4179,13 +4216,14 @@
                 // 1. The tab has just crashed, and we haven't started showing the
                 //    tab crashed page yet (in this case, the TabParent is null)
                 // 2. The tab has never presented, and has not finished loading
-                //    a non-blank page.
+                //    a non-local-about: page.
                 //
-                // For (2), "finished loading a non-blank page" is determined by
-                // looking at the loaded URI and the busy state on the tab element.
+                // For (2), "finished loading a non-local-about: page" is
+                // determined by the busy state on the tab element and checking
+                // if the loaded URI is local.
                 let hasSufficientlyLoaded =
                   !this.requestedTab.hasAttribute("busy") &&
-                  requestedBrowser.currentURI.spec != "about:blank";
+                  !this.tabbrowser._isLocalAboutURI(requestedBrowser.currentURI);
 
                 let fl = requestedBrowser.frameLoader;
                 shouldBeBlank = !this.minimizedOrFullyOccluded &&
@@ -5081,7 +5119,7 @@
                 "tabs.muteAudio.tooltip";
               label = stringWithShortcut(stringID, "key_toggleMute");
             } else {
-              if (tab.linkedBrowser.audioBlocked) {
+              if (tab.hasAttribute("activemedia-blocked")) {
                 stringID = "tabs.unblockAudio.tooltip";
               } else {
                 stringID = tab.linkedBrowser.audioMuted ?
@@ -5740,9 +5778,9 @@
             return;
           }
 
-          if (!tab.hasAttribute("blocked")) {
-            tab.setAttribute("blocked", true);
-            this._tabAttrModified(tab, ["blocked"]);
+          if (!tab.hasAttribute("activemedia-blocked")) {
+            tab.setAttribute("activemedia-blocked", true);
+            this._tabAttrModified(tab, ["activemedia-blocked"]);
             tab.startMediaBlockTimer();
           }
         ]]>
@@ -5754,9 +5792,9 @@
             return;
           }
 
-          if (tab.hasAttribute("blocked")) {
-            tab.removeAttribute("blocked");
-            this._tabAttrModified(tab, ["blocked"]);
+          if (tab.hasAttribute("activemedia-blocked")) {
+            tab.removeAttribute("activemedia-blocked");
+            this._tabAttrModified(tab, ["activemedia-blocked"]);
             let hist = Services.telemetry.getHistogramById("TAB_AUDIO_INDICATOR_USED");
             hist.add(2 /* unblockByVisitingTab */);
             tab.finishMediaBlockTimer();
@@ -6063,11 +6101,11 @@
       </method>
 
       <property name="_isCustomizing" readonly="true">
-        <getter>
+        <getter><![CDATA[
           let root = document.documentElement;
           return root.getAttribute("customizing") == "true" ||
-                 root.getAttribute("customize-exiting") == "true";
-        </getter>
+                 (!AppConstants.MOZ_PHOTON_THEME && root.getAttribute("customize-exiting") == "true");
+        ]]></getter>
       </property>
 
       <method name="_setPositionalAttributes">
@@ -7352,7 +7390,7 @@
                      anonid="sharing-icon"
                      class="tab-sharing-icon-overlay"
                      role="presentation"/>
-          <xul:image xbl:inherits="crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected"
+          <xul:image xbl:inherits="crashed,busy,soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked"
                      anonid="overlay-icon"
                      class="tab-icon-overlay"
                      role="presentation"/>
@@ -7365,7 +7403,7 @@
                        xbl:inherits="xbl:text=label,accesskey,fadein,pinned,selected=visuallyselected,attention"
                        role="presentation"/>
           </xul:hbox>
-          <xul:image xbl:inherits="soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected"
+          <xul:image xbl:inherits="soundplaying,soundplaying-scheduledremoval,pinned,muted,blocked,selected=visuallyselected,activemedia-blocked"
                      anonid="soundplaying-icon"
                      class="tab-icon-sound"
                      role="presentation"/>
@@ -7438,11 +7476,6 @@
           return this.getAttribute("muted") == "true";
         </getter>
       </property>
-      <property name="blocked" readonly="true">
-        <getter>
-          return this.getAttribute("blocked") == "true";
-        </getter>
-      </property>
       <!--
       Describes how the tab ended up in this mute state. May be any of:
 
@@ -7467,9 +7500,9 @@
         </getter>
       </property>
 
-      <property name="soundBlocked" readonly="true">
+      <property name="activeMediaBlocked" readonly="true">
         <getter>
-          return this.getAttribute("blocked") == "true";
+          return this.getAttribute("activemedia-blocked") == "true";
         </getter>
       </property>
 
@@ -7490,7 +7523,7 @@
         <getter><![CDATA[
           let iconVisible = this.hasAttribute("soundplaying") ||
                             this.hasAttribute("muted") ||
-                            this.hasAttribute("blocked");
+                            this.hasAttribute("activemedia-blocked");
           let soundPlayingIcon =
             document.getAnonymousElementByAttribute(this, "anonid", "soundplaying-icon");
           let overlayIcon =
@@ -7587,9 +7620,9 @@
           let modifiedAttrs = [];
           let hist = Services.telemetry.getHistogramById("TAB_AUDIO_INDICATOR_USED");
 
-          if (browser.audioBlocked) {
-            this.removeAttribute("blocked");
-            modifiedAttrs.push("blocked");
+          if (this.hasAttribute("activemedia-blocked")) {
+            this.removeAttribute("activemedia-blocked");
+            modifiedAttrs.push("activemedia-blocked");
 
             browser.resumeMedia();
             hist.add(3 /* unblockByClickingIcon */);

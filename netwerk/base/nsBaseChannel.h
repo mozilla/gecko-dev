@@ -6,6 +6,7 @@
 #ifndef nsBaseChannel_h__
 #define nsBaseChannel_h__
 
+#include "mozilla/net/NeckoTargetHolder.h"
 #include "nsString.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
@@ -47,6 +48,7 @@ class nsBaseChannel : public nsHashPropertyBag
                     , public nsITransportEventSink
                     , public nsIAsyncVerifyRedirectCallback
                     , public mozilla::net::PrivateBrowsingChannel<nsBaseChannel>
+                    , public mozilla::net::NeckoTargetHolder
                     , protected nsIStreamListener
                     , protected nsIThreadRetargetableStreamListener
 {
@@ -60,7 +62,7 @@ public:
   NS_DECL_NSITHREADRETARGETABLEREQUEST
   NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
-  nsBaseChannel(); 
+  nsBaseChannel();
 
   // This method must be called to initialize the basechannel instance.
   nsresult Init() {
@@ -164,7 +166,7 @@ public:
   // The security info is a property of the transport-layer, which should be
   // assigned by the subclass.
   nsISupports *SecurityInfo() {
-    return mSecurityInfo; 
+    return mSecurityInfo;
   }
   void SetSecurityInfo(nsISupports *info) {
     mSecurityInfo = info;
@@ -226,6 +228,8 @@ protected:
   void DisallowThreadRetargeting() {
     mAllowThreadRetargeting = false;
   }
+
+  virtual void SetupNeckoTarget();
 
 private:
   NS_DECL_NSISTREAMLISTENER

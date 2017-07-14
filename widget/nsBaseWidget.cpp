@@ -1273,6 +1273,10 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
   CreateCompositorVsyncDispatcher();
 
   bool enableWR = gfx::gfxVars::UseWebRender();
+  if (enableWR && !WidgetTypeSupportsAcceleration()) {
+    // fall back to basic
+    return;
+  }
   bool enableAPZ = UseAPZ();
   CompositorOptions options(enableAPZ, enableWR);
 
@@ -2323,6 +2327,19 @@ nsIWidget::GetEditCommands(nsIWidget::NativeKeyBindingsType aType,
 
 namespace mozilla {
 namespace widget {
+
+const char*
+ToChar(InputContext::Origin aOrigin)
+{
+  switch (aOrigin) {
+    case InputContext::ORIGIN_MAIN:
+      return "ORIGIN_MAIN";
+    case InputContext::ORIGIN_CONTENT:
+      return "ORIGIN_CONTENT";
+    default:
+      return "Unexpected value";
+  }
+}
 
 const char*
 ToChar(IMEMessage aIMEMessage)

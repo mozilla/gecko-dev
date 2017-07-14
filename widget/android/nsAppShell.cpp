@@ -242,7 +242,18 @@ public:
 
     static int64_t RunUiThreadCallback()
     {
-        return AndroidUiThread::RunDelayedTasksIfValid();
+        return RunAndroidUiTasks();
+    }
+
+    static void ForceQuit()
+    {
+        nsCOMPtr<nsIAppStartup> appStartup =
+            do_GetService(NS_APPSTARTUP_CONTRACTID);
+
+        if (appStartup) {
+            appStartup->Quit(nsIAppStartup::eForceQuit);
+        }
+
     }
 };
 

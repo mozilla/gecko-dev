@@ -38,11 +38,11 @@ const {CustomizableUI} = Cu.import("resource:///modules/CustomizableUI.jsm", {})
 // browser-remote.ini. When running from browser-remote.ini, the tests are
 // copied to the sub-directory "test-oop-extensions", which we detect here, and
 // use to select our configuration.
-if (gTestPath.includes("test-oop-extensions")) {
-  SpecialPowers.pushPrefEnv({set: [
-    ["extensions.webextensions.remote", true],
-    ["layers.popups.compositing.enabled", true],
-  ]});
+let remote = gTestPath.includes("test-oop-extensions");
+SpecialPowers.pushPrefEnv({set: [
+  ["extensions.webextensions.remote", remote],
+]});
+if (remote) {
   // We don't want to reset this at the end of the test, so that we don't have
   // to spawn a new extension child process for each test unit.
   SpecialPowers.setIntPref("dom.ipc.keepProcessesAlive.extension", 1);
@@ -320,7 +320,7 @@ async function openExtensionContextMenu(selector = "#img1") {
     return null;
   }
 
-  let extensionMenu = topLevelMenu[0].childNodes[0];
+  let extensionMenu = topLevelMenu[0];
   let popupShownPromise = BrowserTestUtils.waitForEvent(contextMenu, "popupshown");
   EventUtils.synthesizeMouseAtCenter(extensionMenu, {});
   await popupShownPromise;
@@ -331,7 +331,10 @@ async function closeExtensionContextMenu(itemToSelect, modifiers = {}) {
   let contentAreaContextMenu = document.getElementById("contentAreaContextMenu");
   let popupHiddenPromise = BrowserTestUtils.waitForEvent(contentAreaContextMenu, "popuphidden");
   EventUtils.synthesizeMouseAtCenter(itemToSelect, modifiers);
-  return popupHiddenPromise;
+  await popupHiddenPromise;
+
+  // Bug 1351638: parent menu fails to close intermittently, make sure it does.
+  contentAreaContextMenu.hidePopup();
 }
 
 async function openChromeContextMenu(menuId, target, win = window) {

@@ -41,28 +41,10 @@ typedef nsDataHashtable<nsCStringHashKey, nsCString> MetadataTags;
 class AbstractMediaDecoder : public nsIObserver
 {
 public:
-  // Get the current MediaResource being used. Its URI will be returned
-  // by currentSrc. Returns what was passed to Load(), if Load() has been called.
-  virtual MediaResource* GetResource() const = 0;
-
   // Increments the parsed, decoded and dropped frame counters by the passed in
   // counts.
   // Can be called on any thread.
   virtual void NotifyDecodedFrames(const FrameStatisticsData& aStats) = 0;
-
-  virtual AbstractCanonical<media::NullableTimeUnit>* CanonicalDurationOrNull()
-  {
-    return nullptr;
-  };
-
-  // Return an event that will be notified when data arrives in MediaResource.
-  // MediaDecoderReader will register with this event to receive notifications
-  // in order to update buffer ranges.
-  // Return null if this decoder doesn't support the event.
-  virtual MediaEventSource<void>* DataArrivedEvent()
-  {
-    return nullptr;
-  }
 
   // Returns an event that will be notified when the owning document changes state
   // and we might have a new compositor. If this new compositor requires us to

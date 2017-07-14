@@ -328,7 +328,7 @@ DoTypeUpdateFallback(JSContext* cx, BaselineFrame* frame, ICUpdatedStub* stub, H
         AddTypePropertyId(cx, group, maybeSingleton, id, value);
     }
 
-    if (MOZ_UNLIKELY(!stub->addUpdateStubForValue(cx, script, obj, id, value))) {
+    if (MOZ_UNLIKELY(!stub->addUpdateStubForValue(cx, script, obj, group, id, value))) {
         // The calling JIT code assumes this function is infallible (for
         // instance we may reallocate dynamic slots before calling this),
         // so ignore OOMs if we failed to attach a stub.
@@ -2877,8 +2877,10 @@ ICCallStubCompiler::guardFunApply(MacroAssembler& masm, AllocatableGeneralRegist
     if (checkNative) {
         masm.branchIfInterpreted(target, failure);
     } else {
-        masm.branchIfFunctionHasNoScript(target, failure);
         Register temp = regs.takeAny();
+        masm.branchIfFunctionHasNoScript(target, failure);
+        masm.branchFunctionKind(Assembler::Equal, JSFunction::ClassConstructor,
+                                callee, temp, failure);
         masm.loadPtr(Address(target, JSFunction::offsetOfNativeOrScript()), temp);
         masm.loadBaselineOrIonRaw(temp, temp, failure);
         regs.add(temp);
@@ -3940,6 +3942,8 @@ ICCall_ScriptedFunCall::Compiler::generateStubCode(MacroAssembler& masm)
     masm.branchTestObjClass(Assembler::NotEqual, callee, regs.getAny(), &JSFunction::class_,
                             &failure);
     masm.branchIfFunctionHasNoScript(callee, &failure);
+    masm.branchFunctionKind(Assembler::Equal, JSFunction::ClassConstructor,
+                            callee, regs.getAny(), &failure);
     masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
 
     // Load the start of the target JitCode.

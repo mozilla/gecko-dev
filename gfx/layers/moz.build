@@ -238,6 +238,7 @@ EXPORTS.mozilla.layers += [
     'wr/WebRenderScrollData.h',
     'wr/WebRenderScrollDataWrapper.h',
     'wr/WebRenderTextureHost.h',
+    'wr/WebRenderUserData.h',
 ]
 
 if CONFIG['MOZ_X11']:
@@ -427,7 +428,6 @@ UNIFIED_SOURCES += [
     'mlgpu/PaintedLayerMLGPU.cpp',
     'mlgpu/RenderPassMLGPU.cpp',
     'mlgpu/RenderViewMLGPU.cpp',
-    'mlgpu/ShaderDefinitionsMLGPU.cpp',
     'mlgpu/SharedBufferMLGPU.cpp',
     'mlgpu/StagingBuffer.cpp',
     'mlgpu/TexturedLayerMLGPU.cpp',
@@ -467,6 +467,7 @@ UNIFIED_SOURCES += [
     'wr/WebRenderPaintedLayerBlob.cpp',
     'wr/WebRenderScrollData.cpp',
     'wr/WebRenderTextLayer.cpp',
+    'wr/WebRenderUserData.cpp',
     # XXX here are some unified build error.
     #'wr/WebRenderTextureHost.cpp'
 ]

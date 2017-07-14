@@ -232,7 +232,7 @@ gfxFontCache::HashEntry::KeyEquals(const KeyTypePointer aKey) const
              aKey->mUnicodeRangeMap->Equals(fontUnicodeRangeMap)));
 }
 
-already_AddRefed<gfxFont>
+gfxFont*
 gfxFontCache::Lookup(const gfxFontEntry* aFontEntry,
                      const gfxFontStyle* aStyle,
                      const gfxCharacterMap* aUnicodeRangeMap)
@@ -244,8 +244,7 @@ gfxFontCache::Lookup(const gfxFontEntry* aFontEntry,
     if (!entry)
         return nullptr;
 
-    RefPtr<gfxFont> font = entry->mFont;
-    return font.forget();
+    return entry->mFont;
 }
 
 void
@@ -1646,7 +1645,7 @@ private:
         buf.mGlyphs = mGlyphBuffer;
         buf.mNumGlyphs = mNumGlyphs;
 
-        gfxContext::AzureState state = mRunParams.context->CurrentState();
+        const gfxContext::AzureState &state = mRunParams.context->CurrentState();
         if (mRunParams.drawMode & DrawMode::GLYPH_FILL) {
             if (state.pattern || mFontParams.contextPaint) {
                 Pattern *pat;
@@ -1662,7 +1661,9 @@ private:
                 }
                 if (!fillPattern) {
                     if (state.pattern) {
-                        pat = state.pattern->GetPattern(mRunParams.dt,
+                        RefPtr<gfxPattern> statePattern =
+                          mRunParams.context->CurrentState().pattern;
+                        pat = statePattern->GetPattern(mRunParams.dt,
                                       state.patternTransformChanged ?
                                           &state.patternTransform : nullptr);
                     } else {
@@ -2071,10 +2072,12 @@ gfxFont::Draw(const gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
         aOrientation == gfx::ShapedTextFlags::TEXT_ORIENT_VERTICAL_UPRIGHT;
 
     bool sideways = false;
+    gfxContextMatrixAutoSaveRestore matrixRestore;
+
     gfxPoint origPt = *aPt;
     if (aRunParams.isVerticalRun && !fontParams.isVerticalFont) {
         sideways = true;
-        aRunParams.context->Save();
+        matrixRestore.SetContext(aRunParams.context);
         gfxPoint p(aPt->x * aRunParams.devPerApp,
                    aPt->y * aRunParams.devPerApp);
         const Metrics& metrics = GetMetrics(eHorizontal);
@@ -2086,9 +2089,9 @@ gfxFont::Draw(const gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
                        ? -M_PI / 2.0 : M_PI / 2.0;
         gfxMatrix mat =
             aRunParams.context->CurrentMatrix().
-            Translate(p).     // translate origin for rotation
-            Rotate(rotation). // turn 90deg CCW (sideways-left) or CW (*-right)
-            Translate(-p);    // undo the translation
+            PreTranslate(p).     // translate origin for rotation
+            PreRotate(rotation). // turn 90deg CCW (sideways-left) or CW (*-right)
+            PreTranslate(-p);    // undo the translation
 
         // If we're drawing rotated horizontal text for an element styled
         // text-orientation:mixed, the dominant baseline will be vertical-
@@ -2101,7 +2104,7 @@ gfxFont::Draw(const gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
         // [1] See http://www.microsoft.com/typography/otspec/base.htm
         if (aTextRun->UseCenterBaseline()) {
             gfxPoint baseAdj(0, (metrics.emAscent - metrics.emDescent) / 2);
-            mat.Translate(baseAdj);
+            mat.PreTranslate(baseAdj);
         }
 
         aRunParams.context->SetMatrix(mat);
@@ -2199,7 +2202,6 @@ gfxFont::Draw(const gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
     aRunParams.dt->SetPermitSubpixelAA(oldSubpixelAA);
 
     if (sideways) {
-        aRunParams.context->Restore();
         // adjust updated aPt to account for the transform we were using
         gfxFloat advance = aPt->x - origPt.x;
         if (aOrientation ==
@@ -2223,15 +2225,13 @@ gfxFont::RenderSVGGlyph(gfxContext *aContext, gfxPoint aPoint,
         GetAdjustedSize() / GetFontEntry()->UnitsPerEm();
     gfxContextMatrixAutoSaveRestore matrixRestore(aContext);
 
-    aContext->Save();
     aContext->SetMatrix(
-      aContext->CurrentMatrix().Translate(aPoint.x, aPoint.y).
-                                Scale(devUnitsPerSVGUnit, devUnitsPerSVGUnit));
+      aContext->CurrentMatrix().PreTranslate(aPoint.x, aPoint.y).
+                                PreScale(devUnitsPerSVGUnit, devUnitsPerSVGUnit));
 
     aContextPaint->InitStrokeGeometry(aContext, devUnitsPerSVGUnit);
 
     GetFontEntry()->RenderSVGGlyph(aContext, aGlyphId, aContextPaint);
-    aContext->Restore();
     aContext->NewPath();
     return true;
 }
@@ -3327,7 +3327,7 @@ gfxFont::InitFakeSmallCapsRun(DrawTarget     *aDrawTarget,
                                 aScript, aSyntheticLower, aSyntheticUpper);
 }
 
-already_AddRefed<gfxFont>
+gfxFont*
 gfxFont::GetSmallCapsFont()
 {
     gfxFontStyle style(*GetStyle());
@@ -3338,7 +3338,7 @@ gfxFont::GetSmallCapsFont()
     return fe->FindOrMakeFont(&style, needsBold, mUnicodeRangeMap);
 }
 
-already_AddRefed<gfxFont>
+gfxFont*
 gfxFont::GetSubSuperscriptFont(int32_t aAppUnitsPerDevPixel)
 {
     gfxFontStyle style(*GetStyle());

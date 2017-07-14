@@ -15,7 +15,7 @@
 %include ../shared/browser.inc.css
 
 :root {
-  --titlebar-text-color: inherit;
+  --titlebar-text-color: currentColor;
 
   --toolbarbutton-vertical-text-padding: calc(var(--toolbarbutton-inner-padding) - 1px);
 
@@ -141,6 +141,7 @@ toolbar[brighttext] {
   background-image: linear-gradient(@toolbarHighlight@, @toolbarHighlight@);
 }
 
+%ifndef MOZ_PHOTON_THEME
 @media (-moz-os-version: windows-win7) {
   #nav-bar {
     background-image: linear-gradient(@toolbarHighlight@, transparent) !important;
@@ -150,7 +151,7 @@ toolbar[brighttext] {
     background-image: none;
   }
 }
-
+%endif
 #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar):not(:-moz-lwtheme) {
   background-color: -moz-Dialog;
 }
@@ -825,23 +826,12 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
 .urlbar-textbox-container {
   -moz-box-align: stretch;
 }
-
 .urlbar-input-box {
   margin: 0;
 }
-
-.urlbar-input-box,
-#urlbar-display-box {
-  padding-inline-start: 4px;
-  border-inline-start: 1px solid var(--urlbar-separator-color);
-  border-image: linear-gradient(transparent 15%, var(--urlbar-separator-color) 15%, var(--urlbar-separator-color) 85%, transparent 85%);
-  border-image-slice: 1;
-}
-
 #urlbar-icons {
   -moz-box-align: center;
 }
-
 .urlbar-icon {
   padding: 0 3px;
   /* 16x16 icon with border-box sizing */
@@ -909,7 +899,7 @@ html|*.urlbar-input:-moz-lwtheme::placeholder,
 
 /* identity box */
 
-#identity-box:-moz-focusring {
+#identity-box:not(:active):-moz-focusring {
   outline: 1px dotted;
   outline-offset: -3px;
 }
@@ -1838,6 +1828,7 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
   transform: perspective(0.01px);
 }
 
+%ifndef MOZ_PHOTON_THEME
 #main-window[customize-entered] > #tab-view-deck {
   background-image: url("chrome://browser/skin/customizableui/customizeMode-gridTexture.png");
   background-attachment: fixed;
@@ -1860,6 +1851,7 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
 #main-window[customize-entered] #browser-bottombox {
   border-bottom: 1px solid @toolbarShadowColor@;
 }
+%endif
 
 #customization-tipPanel > .panel-arrowcontainer > .panel-arrowbox > .panel-arrow[side="left"] {
   margin-right: -2px;
@@ -1970,8 +1962,8 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton {
 %include ../shared/contextmenu.inc.css
 
 /* Make context menu items larger when opened through touch. */
-#contentAreaContextMenu[touchmode] menu,
-#contentAreaContextMenu[touchmode] menuitem {
+menupopup[touchmode] menu,
+menupopup[touchmode] menuitem {
   padding-top: 12px;
   padding-bottom: 12px;
 }

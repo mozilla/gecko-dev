@@ -58,7 +58,6 @@ const LOGGER_PREFIX = "TelemetrySession" + (Utils.isContentProcess ? "#content::
 const PREF_BRANCH = "toolkit.telemetry.";
 const PREF_PREVIOUS_BUILDID = PREF_BRANCH + "previousBuildID";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
-const PREF_ASYNC_PLUGIN_INIT = "dom.ipc.plugins.asyncInit.enabled";
 const PREF_UNIFIED = PREF_BRANCH + "unified";
 const PREF_SHUTDOWN_PINGSENDER = PREF_BRANCH + "shutdownPingSender.enabled";
 
@@ -91,6 +90,10 @@ const SCHEDULER_TICK_IDLE_INTERVAL_MS = Preferences.get("toolkit.telemetry.sched
 
 // The tolerance we have when checking if it's midnight (15 minutes).
 const SCHEDULER_MIDNIGHT_TOLERANCE_MS = 15 * 60 * 1000;
+
+// The maximum time (ms) until the tick should moved from the idle
+// queue to the regular queue if it hasn't been executed yet.
+const SCHEDULER_TICK_MAX_IDLE_DELAY_MS = 60 * 1000;
 
 // Seconds of idle time before pinging.
 // On idle-daily a gather-telemetry notification is fired, during it probes can
@@ -414,23 +417,25 @@ var TelemetryScheduler = {
       case "active":
         // User is back to work, restore the original tick interval.
         this._isUserIdle = false;
-        return this._onSchedulerTick();
+        return this._onSchedulerTick(true);
       case "wake_notification":
         // The machine woke up from sleep, trigger a tick to avoid sessions
         // spanning more than a day.
         // This is needed because sleep time does not count towards timeouts
         // on Mac & Linux - see bug 1262386, bug 1204823 et al.
-        return this._onSchedulerTick();
+        return this._onSchedulerTick(true);
     }
     return undefined;
   },
 
   /**
    * Performs a scheduler tick. This function manages Telemetry recurring operations.
+   * @param {Boolean} [dispatchOnIdle=false] If true, the tick is dispatched in the
+   *                  next idle cycle of the main thread.
    * @return {Promise} A promise, only used when testing, resolved when the scheduled
    *                   operation completes.
    */
-  _onSchedulerTick() {
+  _onSchedulerTick(dispatchOnIdle = false) {
     // This call might not be triggered from a timeout. In that case we don't want to
     // leave any previously scheduled timeouts pending.
     this._clearTimeout();
@@ -442,7 +447,13 @@ var TelemetryScheduler = {
 
     let promise = Promise.resolve();
     try {
-      promise = this._schedulerTickLogic();
+      if (dispatchOnIdle) {
+        promise = new Promise((resolve, reject) =>
+          Services.tm.idleDispatchToMainThread(() => this._schedulerTickLogic().then(resolve, reject)),
+                                               SCHEDULER_TICK_MAX_IDLE_DELAY_MS);
+      } else {
+        promise = this._schedulerTickLogic();
+      }
     } catch (e) {
       Telemetry.getHistogramById("TELEMETRY_SCHEDULER_TICK_EXCEPTION").add(1);
       this._log.error("_onSchedulerTick - There was an exception", e);
@@ -1062,7 +1073,6 @@ var Impl = {
     let ret = {
       reason,
       revision: AppConstants.SOURCE_REVISION_URL,
-      asyncPluginInit: Preferences.get(PREF_ASYNC_PLUGIN_INIT, false),
 
       // Date.getTimezoneOffset() unintuitively returns negative values if we are ahead of
       // UTC and vice versa (e.g. -60 for UTC+1). We invert the sign here.
@@ -1163,7 +1173,6 @@ var Impl = {
     b("MEMORY_VSIZE_MAX_CONTIGUOUS", "vsizeMaxContiguous");
     b("MEMORY_RESIDENT_FAST", "residentFast");
     b("MEMORY_UNIQUE", "residentUnique");
-    b("MEMORY_HEAP_ALLOCATED", "heapAllocated");
     p("MEMORY_HEAP_OVERHEAD_FRACTION", "heapOverheadFraction");
     b("MEMORY_JS_GC_HEAP", "JSMainRuntimeGCHeap");
     c("MEMORY_JS_COMPARTMENTS_SYSTEM", "JSMainRuntimeCompartmentsSystem");
@@ -1173,6 +1182,15 @@ var Impl = {
     cc("LOW_MEMORY_EVENTS_VIRTUAL", "lowMemoryEventsVirtual");
     cc("LOW_MEMORY_EVENTS_PHYSICAL", "lowMemoryEventsPhysical");
     cc("PAGE_FAULTS_HARD", "pageFaultsHard");
+
+    try {
+      mgr.getHeapAllocatedAsync(heapAllocated => {
+        boundHandleMemoryReport("MEMORY_HEAP_ALLOCATED",
+                                Ci.nsIMemoryReporter.UNITS_BYTES,
+                                heapAllocated);
+      });
+    } catch (e) {
+    }
 
     if (!Utils.isContentProcess && !this._totalMemoryTimeout) {
       // Only the chrome process should gather total memory
@@ -1974,7 +1992,13 @@ var Impl = {
       if (!gLastMemoryPoll
           || (TELEMETRY_INTERVAL <= now - gLastMemoryPoll)) {
         gLastMemoryPoll = now;
-        this.gatherMemory();
+
+        this._log.trace("Dispatching idle gatherMemory task");
+        Services.tm.idleDispatchToMainThread(() => {
+          this._log.trace("Running idle gatherMemory task");
+          this.gatherMemory();
+          return true;
+        });
       }
       break;
     case "xul-window-visible":

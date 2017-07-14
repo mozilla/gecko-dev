@@ -60,7 +60,7 @@ public:
   friend class mozilla::ServoRestyleManager;
 
   nsCSSFrameConstructor(nsIDocument* aDocument, nsIPresShell* aPresShell);
-  ~nsCSSFrameConstructor(void) {
+  ~nsCSSFrameConstructor() {
     MOZ_ASSERT(mUpdateCount == 0, "Dying in the middle of our own update?");
   }
 
@@ -584,7 +584,7 @@ private:
                                nsFrameItems&            aFrameItems);
 
 private:
-  /* An enum of possible parent types for anonymous table or ruby object 
+  /* An enum of possible parent types for anonymous table or ruby object
      construction */
   enum ParentType {
     eTypeBlock = 0, /* This includes all non-table-related frames */

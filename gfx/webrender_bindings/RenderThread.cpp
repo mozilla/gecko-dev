@@ -7,6 +7,7 @@
 #include "GeckoProfiler.h"
 #include "RenderThread.h"
 #include "nsThreadUtils.h"
+#include "mtransport/runnable_utils.h"
 #include "mozilla/layers/CompositorThread.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/StaticPtr.h"
@@ -23,6 +24,7 @@ RenderThread::RenderThread(base::Thread* aThread)
   : mThread(aThread)
   , mPendingFrameCountMapLock("RenderThread.mPendingFrameCountMapLock")
   , mRenderTextureMapLock("RenderThread.mRenderTextureMapLock")
+  , mHasShutdown(false)
 {
 
 }
@@ -66,9 +68,27 @@ RenderThread::ShutDown()
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(sRenderThread);
 
-  // TODO(nical): sync with the render thread
+  {
+    MutexAutoLock lock(sRenderThread->mRenderTextureMapLock);
+    sRenderThread->mHasShutdown = true;
+  }
+
+  layers::SynchronousTask task("RenderThread");
+  RefPtr<Runnable> runnable = WrapRunnable(
+    RefPtr<RenderThread>(sRenderThread.get()),
+    &RenderThread::ShutDownTask,
+    &task);
+  sRenderThread->Loop()->PostTask(runnable.forget());
+  task.Wait();
 
   sRenderThread = nullptr;
+}
+
+void
+RenderThread::ShutDownTask(layers::SynchronousTask* aTask)
+{
+  layers::AutoCompleteTask complete(aTask);
+  MOZ_ASSERT(IsInRenderThread());
 }
 
 // static
@@ -89,6 +109,11 @@ void
 RenderThread::AddRenderer(wr::WindowId aWindowId, UniquePtr<RendererOGL> aRenderer)
 {
   MOZ_ASSERT(IsInRenderThread());
+
+  if (mHasShutdown) {
+    return;
+  }
+
   mRenderers[aWindowId] = Move(aRenderer);
 
   MutexAutoLock lock(mPendingFrameCountMapLock);
@@ -99,6 +124,11 @@ void
 RenderThread::RemoveRenderer(wr::WindowId aWindowId)
 {
   MOZ_ASSERT(IsInRenderThread());
+
+  if (mHasShutdown) {
+    return;
+  }
+
   mRenderers.erase(aWindowId);
 
   MutexAutoLock lock(mPendingFrameCountMapLock);
@@ -123,6 +153,10 @@ RenderThread::GetRenderer(wr::WindowId aWindowId)
 void
 RenderThread::NewFrameReady(wr::WindowId aWindowId)
 {
+  if (mHasShutdown) {
+    return;
+  }
+
   if (!IsInRenderThread()) {
     Loop()->PostTask(
       NewRunnableMethod<wr::WindowId>("wr::RenderThread::NewFrameReady",
@@ -134,22 +168,6 @@ RenderThread::NewFrameReady(wr::WindowId aWindowId)
 
   UpdateAndRender(aWindowId);
   DecPendingFrameCount(aWindowId);
-}
-
-void
-RenderThread::NewScrollFrameReady(wr::WindowId aWindowId, bool aCompositeNeeded)
-{
-  if (!IsInRenderThread()) {
-    Loop()->PostTask(NewRunnableMethod<wr::WindowId, bool>(
-      "wr::RenderThread::NewScrollFrameReady",
-      this,
-      &RenderThread::NewScrollFrameReady,
-      aWindowId,
-      aCompositeNeeded));
-    return;
-  }
-
-  UpdateAndRender(aWindowId);
 }
 
 void
@@ -201,7 +219,11 @@ RenderThread::UpdateAndRender(wr::WindowId aWindowId)
 
   TimeStamp start = TimeStamp::Now();
 
-  renderer->Render();
+  bool ret = renderer->Render();
+  if (!ret) {
+    // Render did not happen, do not call NotifyDidRender.
+    return;
+  }
 
   TimeStamp end = TimeStamp::Now();
 
@@ -289,6 +311,9 @@ RenderThread::RegisterExternalImage(uint64_t aExternalImageId, already_AddRefed<
 {
   MutexAutoLock lock(mRenderTextureMapLock);
 
+  if (mHasShutdown) {
+    return;
+  }
   MOZ_ASSERT(!mRenderTextures.GetWeak(aExternalImageId));
   mRenderTextures.Put(aExternalImageId, Move(aTexture));
 }
@@ -297,6 +322,9 @@ void
 RenderThread::UnregisterExternalImage(uint64_t aExternalImageId)
 {
   MutexAutoLock lock(mRenderTextureMapLock);
+  if (mHasShutdown) {
+    return;
+  }
   MOZ_ASSERT(mRenderTextures.GetWeak(aExternalImageId));
   if (!IsInRenderThread()) {
     // The RenderTextureHost should be released in render thread. So, post the
@@ -356,8 +384,10 @@ void wr_notifier_new_frame_ready(WrWindowId aWindowId)
 
 void wr_notifier_new_scroll_frame_ready(WrWindowId aWindowId, bool aCompositeNeeded)
 {
-  mozilla::wr::RenderThread::Get()->NewScrollFrameReady(mozilla::wr::WindowId(aWindowId),
-                                                        aCompositeNeeded);
+  // It is not necessary to update rendering with new_scroll_frame_ready.
+  // WebRenderBridgeParent::CompositeToTarget() is implemented to call
+  // WebRenderAPI::GenerateFrame() if it is necessary to trigger UpdateAndRender().
+  // See Bug 1377688.
 }
 
 void wr_notifier_external_event(WrWindowId aWindowId, size_t aRawEvent)

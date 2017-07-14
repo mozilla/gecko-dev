@@ -835,6 +835,11 @@ class nsIWidget : public nsISupports
     virtual void SetSizeMode(nsSizeMode aMode) = 0;
 
     /**
+     * Suppress animations that are applied to a window by OS.
+     */
+    virtual void SuppressAnimation(bool aSuppress) {}
+
+    /**
      * Return size mode (minimized, maximized, normalized).
      * Returns a value from nsSizeMode (see nsIWidgetListener.h)
      */
@@ -2072,9 +2077,8 @@ public:
      *
      * @param aScrollOffset  page scroll offset value in screen pixels.
      * @param aZoom          current page zoom.
-     * @param aPage          bounds of the page in CSS coordinates.
      */
-    virtual void UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset, const CSSToScreenScale& aZoom, const CSSRect& aPage) = 0;
+    virtual void UpdateRootFrameMetrics(const ScreenPoint& aScrollOffset, const CSSToScreenScale& aZoom) = 0;
 
     /**
      * RecvScreenPixels Buffer containing the pixel from the frame buffer. Used for android robocop tests.

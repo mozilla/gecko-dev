@@ -22,8 +22,9 @@ WaveDecoder::Clone(MediaDecoderInit& aInit)
 MediaDecoderStateMachine*
 WaveDecoder::CreateStateMachine()
 {
-  return new MediaDecoderStateMachine(
-    this, new MediaFormatReader(this, new WAVDemuxer(GetResource())));
+  MediaDecoderReaderInit init(this);
+  mReader = new MediaFormatReader(init, new WAVDemuxer(mResource));
+  return new MediaDecoderStateMachine(this, mReader);
 }
 
 /* static */ bool

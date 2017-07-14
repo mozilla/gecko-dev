@@ -143,13 +143,15 @@ private:
 
   // Counter of samples that is compared against kTotalSamplesReportLimit.
   static uint32_t sRecordCnt;
- 
+
   // Hit rate statistics for every cache size range.
   static HitRate sHRStats[kNumOfRanges];
 };
 
 class CachePerfStats {
 public:
+  // perfStatTypes in displayRcwnStats() in toolkit/content/aboutNetworking.js
+  // must match EDataType
   enum EDataType {
     IO_OPEN    = 0,
     IO_READ    = 1,
@@ -160,7 +162,9 @@ public:
 
   static void     AddValue(EDataType aType, uint32_t aValue, bool aShortOnly);
   static uint32_t GetAverage(EDataType aType, bool aFiltered);
+  static uint32_t GetStdDev(EDataType aType, bool aFiltered);
   static bool     IsCacheSlow();
+  static void     GetSlowStats(uint32_t *aSlow, uint32_t *aNotSlow);
 
 private:
 
@@ -211,6 +215,8 @@ private:
   static StaticMutex sLock;
 
   static PerfData sData[LAST];
+  static uint32_t sCacheSlowCnt;
+  static uint32_t sCacheNotSlowCnt;
 };
 
 void

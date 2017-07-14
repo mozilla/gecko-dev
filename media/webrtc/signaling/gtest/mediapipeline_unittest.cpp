@@ -43,7 +43,7 @@ class FakeSourceMediaStream : public mozilla::SourceMediaStream {
 public:
 
   FakeSourceMediaStream()
-    : SourceMediaStream(nullptr)
+    : SourceMediaStream()
   {
   }
 
@@ -91,8 +91,9 @@ public:
   {
     mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
     mTimer->SetTarget(test_utils->sts_target());
-    mTimer->InitWithFuncCallback(FakeAudioStreamTrackGenerateData, this, 20,
-                                 nsITimer::TYPE_REPEATING_SLACK);
+    mTimer->InitWithNamedFuncCallback(FakeAudioStreamTrackGenerateData, this, 20,
+                                      nsITimer::TYPE_REPEATING_SLACK,
+                                      "FakeAudioStreamTrack::FakeAudioStreamTrackGenerateData");
 
   }
 

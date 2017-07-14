@@ -272,9 +272,6 @@ public:
     case ScrollDirection::VERTICAL:
       EXPECT_EQ(PANNING_LOCKED_Y, mState);
       break;
-    case ScrollDirection::SENTINEL:
-      MOZ_ASSERT(false, "Invalid value");
-      break;
     }
   }
 
@@ -290,9 +287,9 @@ public:
     mcc->AdvanceBy(aIncrement);
     bool ret = AdvanceAnimations(mcc->Time());
     if (aOutTransform) {
-      *aOutTransform = GetCurrentAsyncTransform(AsyncPanZoomController::NORMAL);
+      *aOutTransform = GetCurrentAsyncTransform(AsyncPanZoomController::eForHitTesting);
     }
-    aScrollOffset = GetCurrentAsyncScrollOffset(AsyncPanZoomController::NORMAL);
+    aScrollOffset = GetCurrentAsyncScrollOffset(AsyncPanZoomController::eForHitTesting);
     return ret;
   }
 

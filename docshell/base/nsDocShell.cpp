@@ -205,6 +205,7 @@
 #include "nsIIDNService.h"
 #include "nsIInputStreamChannel.h"
 #include "nsINestedURI.h"
+#include "nsIOService.h"
 #include "nsISHContainer.h"
 #include "nsISHistory.h"
 #include "nsISecureBrowserUI.h"
@@ -10962,11 +10963,17 @@ nsDocShell::DoURILoad(nsIURI* aURI,
   bool inherit = false;
 
   if (aPrincipalToInherit) {
+    bool isData;
+    bool isURIUniqueOrigin = nsIOService::IsDataURIUniqueOpaqueOrigin() &&
+                             NS_SUCCEEDED(aURI->SchemeIs("data", &isData)) &&
+                             isData;
+    // If aURI is data: URI and is treated as a unique opaque origin, we don't
+    // want to inherit principal.
     inherit = nsContentUtils::ChannelShouldInheritPrincipal(
       aPrincipalToInherit,
       aURI,
       true, // aInheritForAboutBlank
-      isSrcdoc);
+      isSrcdoc) && !isURIUniqueOrigin ;
   }
 
   nsLoadFlags loadFlags = mDefaultLoadFlags;
@@ -11008,7 +11015,7 @@ nsDocShell::DoURILoad(nsIURI* aURI,
     if (isDataURI) {
       // In all cases where the toplevel document is navigated to a data: URI
       // the triggeringPrincipal is a CodeBasePrincipal. In all other cases
-      // e.g. typing a data: URL into the URL-Bar or also clicking a bookmark 
+      // e.g. typing a data: URL into the URL-Bar or also clicking a bookmark
       // uses a SystemPrincipal as the triggeringPrincipal.
       if (aTriggeringPrincipal->GetIsCodebasePrincipal()) {
         Telemetry::Accumulate(Telemetry::DOCUMENT_DATA_URI_LOADS, DATA_NAVIGATED);

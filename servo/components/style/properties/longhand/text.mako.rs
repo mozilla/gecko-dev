@@ -12,7 +12,7 @@
                                              Method("has_overline", "bool"),
                                              Method("has_line_through", "bool")]) %>
 
-<%helpers:longhand name="text-overflow" animation_value_type="none" boxed="True"
+<%helpers:longhand name="text-overflow" animation_value_type="discrete" boxed="True"
                    spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow">
     use std::fmt;
     use style_traits::ToCss;
@@ -27,8 +27,8 @@
         String(Box<str>),
     }
 
-    #[derive(PartialEq, Eq, Clone, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, Eq, PartialEq, ToCss)]
     pub struct SpecifiedValue {
         pub first: Side,
         pub second: Option<Side>
@@ -128,17 +128,6 @@
                 }
                 other => Err(BasicParseError::UnexpectedToken(other).into()),
             }
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.first.to_css(dest)?;
-            if let Some(ref second) = self.second {
-                dest.write_str(" ")?;
-                second.to_css(dest)?;
-            }
-            Ok(())
         }
     }
 </%helpers:longhand>
@@ -261,8 +250,7 @@ ${helpers.single_keyword("unicode-bidi",
         fn cascade_property_custom(_declaration: &PropertyDeclaration,
                                    _inherited_style: &ComputedValues,
                                    context: &mut computed::Context,
-                                   _cacheable: &mut bool,
-                                   _error_reporter: &ParseErrorReporter) {
+                                   _cacheable: &mut bool) {
             longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
         }
     % endif

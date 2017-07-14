@@ -94,7 +94,6 @@ ${helpers.predefined_type(
     None,
     "parse_non_negative",
     vector=True,
-    delegate_animate=True,
     products="gecko",
     animation_value_type="ComputedValue",
     separator="CommaWithSpace",
@@ -119,19 +118,19 @@ ${helpers.single_keyword("clip-rule", "nonzero evenodd",
 ${helpers.predefined_type("marker-start", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           boxed="True" if product == "gecko" else "False",
-                          animation_value_type="none",
+                          animation_value_type="discrete",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-mid", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           boxed="True" if product == "gecko" else "False",
-                          animation_value_type="none",
+                          animation_value_type="discrete",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           boxed="True" if product == "gecko" else "False",
-                          animation_value_type="none",
+                          animation_value_type="discrete",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 <%helpers:longhand name="paint-order"

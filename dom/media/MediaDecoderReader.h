@@ -26,6 +26,7 @@ namespace mozilla {
 class CDMProxy;
 class MediaDecoderReader;
 class TaskQueue;
+class VideoFrameContainer;
 
 struct WaitForDataRejectValue
 {
@@ -59,6 +60,18 @@ struct MetadataHolder
 {
   UniquePtr<MediaInfo> mInfo;
   UniquePtr<MetadataTags> mTags;
+};
+
+struct MOZ_STACK_CLASS MediaDecoderReaderInit
+{
+  AbstractMediaDecoder* const mDecoder;
+  MediaResource* mResource = nullptr;
+  VideoFrameContainer* mVideoFrameContainer = nullptr;
+
+  explicit MediaDecoderReaderInit(AbstractMediaDecoder* aDecoder)
+    : mDecoder(aDecoder)
+  {
+  }
 };
 
 // Encapsulates the decoding and reading of media data. Reading can either
@@ -97,7 +110,7 @@ public:
 
   // The caller must ensure that Shutdown() is called before aDecoder is
   // destroyed.
-  explicit MediaDecoderReader(AbstractMediaDecoder* aDecoder);
+  explicit MediaDecoderReader(const MediaDecoderReaderInit& aInit);
 
   // Initializes the reader, returns NS_OK on success, or NS_ERROR_FAILURE
   // on failure.
@@ -118,6 +131,8 @@ public:
   {
     return OwnerThread()->IsCurrentThreadIn();
   }
+
+  void UpdateDuration(const media::TimeUnit& aDuration);
 
   // Resets all state related to decoding, emptying all buffers etc.
   // Cancels all pending Request*Data() request callbacks, rejects any
@@ -288,17 +303,13 @@ protected:
   // Decode task queue.
   RefPtr<TaskQueue> mTaskQueue;
 
-  // State-watching manager.
-  WatchManager<MediaDecoderReader> mWatchManager;
-
   // Buffered range.
   Canonical<media::TimeIntervals> mBuffered;
 
   // Stores presentation info required for playback.
   MediaInfo mInfo;
 
-  // Duration, mirrored from the state machine task queue.
-  Mirror<media::NullableTimeUnit> mDuration;
+  media::NullableTimeUnit mDuration;
 
   // Whether we should accept media that we know we can't play
   // directly, because they have a number of channel higher than
@@ -321,14 +332,10 @@ protected:
   // Notify if we are waiting for a decryption key.
   MediaEventProducer<TrackInfo::TrackType> mOnTrackWaitingForKey;
 
+  RefPtr<MediaResource> mResource;
+
 private:
   virtual nsresult InitInternal() { return NS_OK; }
-
-  // Does any spinup that needs to happen on this task queue. This runs on a
-  // different thread than Init, and there should not be ordering dependencies
-  // between the two (even though in practice, Init will always run first right
-  // now thanks to the tail dispatcher).
-  void InitializationTask();
 
   // Read header data for all bitstreams in the file. Fills aInfo with
   // the data required to present the media, and optionally fills *aTags
@@ -375,8 +382,6 @@ private:
   // of Request{Audio,Video}Data.
   MozPromiseHolder<AudioDataPromise> mBaseAudioPromise;
   MozPromiseHolder<VideoDataPromise> mBaseVideoPromise;
-
-  MediaEventListener mDataArrivedListener;
 };
 
 } // namespace mozilla

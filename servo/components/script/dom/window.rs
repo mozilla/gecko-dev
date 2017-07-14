@@ -152,6 +152,7 @@ pub enum ReflowReason {
     ImageLoaded,
     RequestAnimationFrame,
     WebFontLoaded,
+    WorkletLoaded,
     FramedContentChanged,
     IFrameLoadEvent,
     MissingExplicitReflow,
@@ -345,8 +346,15 @@ impl Window {
         self.window_proxy.get().unwrap()
     }
 
-    pub fn maybe_window_proxy(&self) -> Option<Root<WindowProxy>> {
+    /// Returns the window proxy if it has not been discarded.
+    /// https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
+    pub fn undiscarded_window_proxy(&self) -> Option<Root<WindowProxy>> {
         self.window_proxy.get()
+            .and_then(|window_proxy| if window_proxy.is_browsing_context_discarded() {
+                None
+            } else {
+                Some(window_proxy)
+            })
     }
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -378,10 +386,7 @@ impl Window {
 
     fn new_paint_worklet(&self) -> Root<Worklet> {
         debug!("Creating new paint worklet.");
-        let worklet = Worklet::new(self, WorkletGlobalScopeType::Paint);
-        let executor = Arc::new(worklet.executor());
-        let _ = self.layout_chan.send(Msg::SetPaintWorkletExecutor(executor));
-        worklet
+        Worklet::new(self, WorkletGlobalScopeType::Paint)
     }
 
     pub fn permission_state_invocation_results(&self) -> &DOMRefCell<HashMap<String, PermissionState>> {
@@ -670,13 +675,10 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn GetParent(&self) -> Option<Root<WindowProxy>> {
         // Steps 1-3.
-        let window_proxy = match self.maybe_window_proxy() {
+        let window_proxy = match self.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy,
             None => return None,
         };
-        if window_proxy.is_browsing_context_discarded() {
-            return None;
-        }
         // Step 4.
         if let Some(parent) = window_proxy.parent() {
             return Some(Root::from_ref(parent));
@@ -688,13 +690,10 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-top
     fn GetTop(&self) -> Option<Root<WindowProxy>> {
         // Steps 1-3.
-        let window_proxy = match self.maybe_window_proxy() {
+        let window_proxy = match self.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy,
             None => return None,
         };
-        if window_proxy.is_browsing_context_discarded() {
-            return None;
-        }
         // Steps 4-5.
         Some(Root::from_ref(window_proxy.top()))
     }
@@ -1938,6 +1937,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowReason::ImageLoaded => "\tImageLoaded",
         ReflowReason::RequestAnimationFrame => "\tRequestAnimationFrame",
         ReflowReason::WebFontLoaded => "\tWebFontLoaded",
+        ReflowReason::WorkletLoaded => "\tWorkletLoaded",
         ReflowReason::FramedContentChanged => "\tFramedContentChanged",
         ReflowReason::IFrameLoadEvent => "\tIFrameLoadEvent",
         ReflowReason::MissingExplicitReflow => "\tMissingExplicitReflow",
@@ -1997,7 +1997,8 @@ impl Runnable for PostMessageHandler {
 impl Window {
     pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
         let runnable = PostMessageHandler::new(self, origin, data);
-        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DomEvent, box runnable);
+        let runnable = self.get_runnable_wrapper().wrap_runnable(box runnable);
+        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DomEvent, runnable);
         // TODO(#12718): Use the "posted message task source".
         let _ = self.script_chan.send(msg);
     }

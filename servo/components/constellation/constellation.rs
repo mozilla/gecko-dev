@@ -919,10 +919,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     .map(|pipeline| pipeline.top_level_browsing_context_id);
                 let _ = resp_chan.send(focus_browsing_context);
             }
-            FromCompositorMsg::GetPipelineTitle(pipeline_id) => {
-                debug!("constellation got get-pipeline-title message");
-                self.handle_get_pipeline_title_msg(pipeline_id);
-            }
             FromCompositorMsg::KeyEvent(ch, key, state, modifiers) => {
                 debug!("constellation got key event message");
                 self.handle_key_msg(ch, key, state, modifiers);
@@ -1916,16 +1912,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_get_pipeline_title_msg(&mut self, pipeline_id: PipelineId) {
-        let result = match self.pipelines.get(&pipeline_id) {
-            None => return self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, None)),
-            Some(pipeline) => pipeline.event_loop.send(ConstellationControlMsg::GetTitle(pipeline_id)),
-        };
-        if let Err(e) = result {
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
     fn handle_post_message_msg(&mut self,
                                browsing_context_id: BrowsingContextId,
                                origin: Option<ImmutableOrigin>,
@@ -2870,13 +2856,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // with low-resource scenarios.
         debug!("Sending frame tree for browsing context {}.", browsing_context_id);
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
-            let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-            self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree,
-                                                                     chan));
-            if port.recv().is_err() {
-                warn!("Compositor has discarded SetFrameTree");
-                return; // Our message has been discarded, probably shutting down.
-            }
+            self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree));
         }
     }
 

@@ -75,6 +75,11 @@ public:
   {
     return mPresContext ? mPresContext->GetRootWidget() : nullptr;
   }
+  // Returns the tab parent which has this composition in its remote process.
+  TabParent* GetTabParent() const
+  {
+    return mTabParent;
+  }
   // Returns true if the composition is started with synthesized event which
   // came from nsDOMWindowUtils.
   bool IsSynthesizedForTests() const { return mIsSynthesizedForTests; }
@@ -177,7 +182,10 @@ public:
 
 private:
   // Private destructor, to discourage deletion outside of Release():
-  ~TextComposition();
+  ~TextComposition()
+  {
+    // WARNING: mPresContext may be destroying, so, be careful if you touch it.
+  }
 
   // sHandlingSelectionEvent is true while TextComposition sends a selection
   // event to ContentEventHandler.
@@ -259,10 +267,6 @@ private:
   // when DispatchCompositionEvent() is called.
   bool mWasCompositionStringEmpty;
 
-  // mHasDispatchedCompositionEvents is true if the instance has dispatched
-  // one or more composition events.
-  bool mHasDispatchedCompositionEvents;
-
   // Hide the default constructor and copy constructor.
   TextComposition()
     : mPresContext(nullptr)
@@ -278,7 +282,6 @@ private:
     , mWasNativeCompositionEndEventDiscarded(false)
     , mAllowControlCharacters(false)
     , mWasCompositionStringEmpty(true)
-    , mHasDispatchedCompositionEvents(false)
   {}
   TextComposition(const TextComposition& aOther);
 

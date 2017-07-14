@@ -489,6 +489,9 @@ body,
   width: 8%;
 }
 
+.requests-list-response-header {
+  width: 13%;
+}
 
 .requests-list-domain.requests-list-column {
   text-align: start;
@@ -737,10 +740,6 @@ body,
 }
 
 /* Network details panel toggle */
-
-.network-details-panel-toggle[disabled] {
-  display: none;
-}
 
 .network-details-panel-toggle:dir(ltr)::before,
 .network-details-panel-toggle.pane-collapsed:dir(rtl)::before {

@@ -267,6 +267,8 @@ pub enum AudioCodecSpecific {
     ES_Descriptor(ES_Descriptor),
     FLACSpecificBox(FLACSpecificBox),
     OpusSpecificBox(OpusSpecificBox),
+    AC3SpecificBox,
+    EC3SpecificBox,
     MP3,
 }
 
@@ -285,6 +287,7 @@ pub enum VideoCodecSpecific {
     AVCConfig(Vec<u8>),
     VPxConfig(VPxConfigBox),
     ESDSConfig(Vec<u8>),
+    JPEG,
 }
 
 #[derive(Debug, Clone)]
@@ -413,6 +416,9 @@ pub enum CodecType {
     VP8,
     EncryptedVideo,
     EncryptedAudio,
+    JPEG,   // QT JPEG atom
+    AC3,    // Digital Audio Compression (AC-3, Enhanced AC-3) Standard, ETSI TS 102 366.
+    EC3,    // Digital Audio Compression (AC-3, Enhanced AC-3) Standard, ETSI TS 102 366.
 }
 
 impl Default for CodecType {
@@ -1668,7 +1674,11 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<(CodecType, 
         BoxType::VP8SampleEntry => CodecType::VP8,
         BoxType::VP9SampleEntry => CodecType::VP9,
         BoxType::ProtectedVisualSampleEntry => CodecType::EncryptedVideo,
-        _ => CodecType::Unknown,
+        BoxType::JPEGAtom => CodecType::JPEG,
+        _ => {
+            log!("Unsupported video codec, box {:?} found", name);
+            CodecType::Unknown
+        }
     };
 
     // Skip uninteresting fields.
@@ -1686,7 +1696,11 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<(CodecType, 
     skip(src, 50)?;
 
     // Skip clap/pasp/etc. for now.
-    let mut codec_specific = None;
+    let mut codec_specific = if name == BoxType::JPEGAtom {
+        Some(VideoCodecSpecific::JPEG)
+    } else {
+        None
+    };
     let mut protection_info = Vec::new();
     let mut iter = src.box_iter();
     while let Some(mut b) = iter.next_box()? {
@@ -1723,6 +1737,11 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<(CodecType, 
                 let esds = read_buf(&mut b.content, esds_size as usize)?;
                 codec_specific = Some(VideoCodecSpecific::ESDSConfig(esds));
             }
+            BoxType::JPEGAtom => {
+                if name != BoxType::JPEGAtom || codec_specific.is_some() {
+                    return Err(Error::InvalidData("malformed video sample entry"));
+                }
+            }
             BoxType::ProtectionSchemeInformationBox => {
                 if name != BoxType::ProtectedVisualSampleEntry {
                     return Err(Error::InvalidData("malformed video sample entry"));
@@ -1731,20 +1750,23 @@ fn read_video_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<(CodecType, 
                 log!("{:?} (sinf)", sinf);
                 protection_info.push(sinf);
             }
-            _ => skip_box_content(&mut b)?,
+            _ => {
+                log!("Unsupported video codec, box {:?} found", b.head.name);
+                skip_box_content(&mut b)?;
+            }
         }
         check_parser_state!(b.content);
     }
 
-    codec_specific
-        .map(|codec_specific| (codec_type, SampleEntry::Video(VideoSampleEntry {
+    Ok(codec_specific.map_or((CodecType::Unknown, SampleEntry::Unknown),
+        |codec_specific| (codec_type, SampleEntry::Video(VideoSampleEntry {
             data_reference_index: data_reference_index,
             width: width,
             height: height,
             codec_specific: codec_specific,
             protection_info: protection_info,
         })))
-        .ok_or_else(|| Error::InvalidData("malformed video sample entry"))
+    )
 }
 
 fn read_qt_wave_atom<T: Read>(src: &mut BMFFBox<T>) -> Result<ES_Descriptor> {
@@ -1853,13 +1875,36 @@ fn read_audio_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<(CodecType, 
                 codec_type = CodecType::EncryptedAudio;
                 protection_info.push(sinf);
             }
-            _ => skip_box_content(&mut b)?,
+            BoxType::AC3SpecificBox => {
+                if name != BoxType::AC3SampleEntry {
+                    return Err(Error::InvalidData("malformed AC3 sample entry"));
+                }
+                // TODO: AC3SpecificBox needs to be parsed for detail information.
+                skip_box_remain(&mut b)?;
+                log!("(ac3)");
+                codec_type = CodecType::AC3;
+                codec_specific = Some(AudioCodecSpecific::AC3SpecificBox);
+            }
+            BoxType::EC3SpecificBox => {
+                if name != BoxType::EC3SpecificBox {
+                    return Err(Error::InvalidData("malformed EC3 sample entry"));
+                }
+                // TODO: EC3SpecificBox needs to be parsed for detail information.
+                skip_box_remain(&mut b)?;
+                log!("(ec3)");
+                codec_type = CodecType::EC3;
+                codec_specific = Some(AudioCodecSpecific::EC3SpecificBox);
+            }
+            _ => {
+                log!("Unsupported audio codec, box {:?} found", b.head.name);
+                skip_box_content(&mut b)?;
+            }
         }
         check_parser_state!(b.content);
     }
 
-    codec_specific
-        .map(|codec_specific| (codec_type, SampleEntry::Audio(AudioSampleEntry {
+    Ok(codec_specific.map_or((CodecType::Unknown, SampleEntry::Unknown),
+        |codec_specific| (codec_type, SampleEntry::Audio(AudioSampleEntry {
             data_reference_index: data_reference_index,
             channelcount: channelcount,
             samplesize: samplesize,
@@ -1867,7 +1912,7 @@ fn read_audio_sample_entry<T: Read>(src: &mut BMFFBox<T>) -> Result<(CodecType, 
             codec_specific: codec_specific,
             protection_info: protection_info,
         })))
-        .ok_or_else(|| Error::InvalidData("malformed audio sample entry"))
+    )
 }
 
 /// Parse a stsd box.

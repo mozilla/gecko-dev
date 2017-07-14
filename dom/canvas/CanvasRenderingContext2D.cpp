@@ -2812,7 +2812,8 @@ CreateDeclarationForServo(nsCSSPropertyID aProperty,
                         &value,
                         data,
                         ParsingMode::Default,
-                        aDocument->GetCompatibilityMode()).Consume();
+                        aDocument->GetCompatibilityMode(),
+                        aDocument->CSSLoader()).Consume();
 
   if (!servoDeclarations) {
     // We got a syntax error.  The spec says this value must be ignored.
@@ -2829,7 +2830,8 @@ CreateDeclarationForServo(nsCSSPropertyID aProperty,
                                            false,
                                            data,
                                            ParsingMode::Default,
-                                           aDocument->GetCompatibilityMode());
+                                           aDocument->GetCompatibilityMode(),
+                                           aDocument->CSSLoader());
   }
 
   return servoDeclarations.forget();
@@ -5464,9 +5466,9 @@ CanvasRenderingContext2D::DrawDirectlyToCanvas(
     return;
   }
   context->SetMatrix(contextMatrix.
-                       Scale(1.0 / contextScale.width,
-                             1.0 / contextScale.height).
-                       Translate(aDest.x - aSrc.x, aDest.y - aSrc.y));
+                       PreScale(1.0 / contextScale.width,
+                                1.0 / contextScale.height).
+                       PreTranslate(aDest.x - aSrc.x, aDest.y - aSrc.y));
 
   // FLAG_CLAMP is added for increased performance, since we never tile here.
   uint32_t modifiedFlags = aImage.mDrawingFlags | imgIContainer::FLAG_CLAMP;

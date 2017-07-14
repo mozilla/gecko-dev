@@ -266,59 +266,60 @@ bool DecoderTraits::ShouldHandleMediaType(const char* aMIMEType,
 
 // Instantiates but does not initialize decoder.
 static already_AddRefed<ChannelMediaDecoder>
-InstantiateDecoder(const MediaContainerType& aType,
-                   MediaDecoderInit& aInit,
+InstantiateDecoder(MediaDecoderInit& aInit,
                    DecoderDoctorDiagnostics* aDiagnostics)
 {
   MOZ_ASSERT(NS_IsMainThread());
   RefPtr<ChannelMediaDecoder> decoder;
 
+  const MediaContainerType& type = aInit.mContainerType;
+
 #ifdef MOZ_ANDROID_HLS_SUPPORT
-  if (HLSDecoder::IsSupportedType(aType)) {
+  if (HLSDecoder::IsSupportedType(type)) {
     decoder = new HLSDecoder(aInit);
     return decoder.forget();
   }
 #endif
 #ifdef MOZ_FMP4
-  if (MP4Decoder::IsSupportedType(aType, aDiagnostics)) {
+  if (MP4Decoder::IsSupportedType(type, aDiagnostics)) {
     decoder = new MP4Decoder(aInit);
     return decoder.forget();
   }
 #endif
-  if (MP3Decoder::IsSupportedType(aType)) {
+  if (MP3Decoder::IsSupportedType(type)) {
     decoder = new MP3Decoder(aInit);
     return decoder.forget();
   }
-  if (ADTSDecoder::IsSupportedType(aType)) {
+  if (ADTSDecoder::IsSupportedType(type)) {
     decoder = new ADTSDecoder(aInit);
     return decoder.forget();
   }
-  if (OggDecoder::IsSupportedType(aType)) {
+  if (OggDecoder::IsSupportedType(type)) {
     decoder = new OggDecoder(aInit);
     return decoder.forget();
   }
-  if (WaveDecoder::IsSupportedType(aType)) {
+  if (WaveDecoder::IsSupportedType(type)) {
     decoder = new WaveDecoder(aInit);
     return decoder.forget();
   }
-  if (FlacDecoder::IsSupportedType(aType)) {
+  if (FlacDecoder::IsSupportedType(type)) {
     decoder = new FlacDecoder(aInit);
     return decoder.forget();
   }
 #ifdef MOZ_ANDROID_OMX
   if (MediaDecoder::IsAndroidMediaPluginEnabled() &&
-      EnsureAndroidMediaPluginHost()->FindDecoder(aType, nullptr)) {
-    decoder = new AndroidMediaDecoder(aInit, aType);
+      EnsureAndroidMediaPluginHost()->FindDecoder(type, nullptr)) {
+    decoder = new AndroidMediaDecoder(aInit, type);
     return decoder.forget();
   }
 #endif
 
-  if (WebMDecoder::IsSupportedType(aType)) {
+  if (WebMDecoder::IsSupportedType(type)) {
     decoder = new WebMDecoder(aInit);
     return decoder.forget();
   }
 
-  if (DecoderTraits::IsHttpLiveStreamingType(aType)) {
+  if (DecoderTraits::IsHttpLiveStreamingType(type)) {
     // We don't have an HLS decoder.
     Telemetry::Accumulate(Telemetry::MEDIA_HLS_DECODER_SUCCESS, false);
   }
@@ -328,60 +329,56 @@ InstantiateDecoder(const MediaContainerType& aType,
 
 /* static */
 already_AddRefed<ChannelMediaDecoder>
-DecoderTraits::CreateDecoder(const nsACString& aType,
-                             MediaDecoderInit& aInit,
+DecoderTraits::CreateDecoder(MediaDecoderInit& aInit,
                              DecoderDoctorDiagnostics* aDiagnostics)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  Maybe<MediaContainerType> type = MakeMediaContainerType(aType);
-  if (!type) {
-    return nullptr;
-  }
-  return InstantiateDecoder(*type, aInit, aDiagnostics);
+  return InstantiateDecoder(aInit, aDiagnostics);
 }
 
 /* static */
 MediaDecoderReader*
 DecoderTraits::CreateReader(const MediaContainerType& aType,
-                            AbstractMediaDecoder* aDecoder)
+                            const MediaDecoderReaderInit& aInit)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MediaDecoderReader* decoderReader = nullptr;
 
-  if (!aDecoder) {
+  if (!aInit.mDecoder) {
     return decoderReader;
   }
+
+  MediaResource* resource = aInit.mResource;
 
 #ifdef MOZ_FMP4
   if (MP4Decoder::IsSupportedType(aType,
                                   /* DecoderDoctorDiagnostics* */ nullptr)) {
-    decoderReader = new MediaFormatReader(aDecoder, new MP4Demuxer(aDecoder->GetResource()));
+    decoderReader = new MediaFormatReader(aInit, new MP4Demuxer(resource));
   } else
 #endif
   if (MP3Decoder::IsSupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new MP3Demuxer(aDecoder->GetResource()));
+    decoderReader = new MediaFormatReader(aInit, new MP3Demuxer(resource));
   } else
   if (ADTSDecoder::IsSupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new ADTSDemuxer(aDecoder->GetResource()));
+    decoderReader = new MediaFormatReader(aInit, new ADTSDemuxer(resource));
   } else
   if (WaveDecoder::IsSupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new WAVDemuxer(aDecoder->GetResource()));
+    decoderReader = new MediaFormatReader(aInit, new WAVDemuxer(resource));
   } else
   if (FlacDecoder::IsSupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new FlacDemuxer(aDecoder->GetResource()));
+    decoderReader = new MediaFormatReader(aInit, new FlacDemuxer(resource));
   } else
   if (OggDecoder::IsSupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new OggDemuxer(aDecoder->GetResource()));
+    decoderReader = new MediaFormatReader(aInit, new OggDemuxer(resource));
   } else
 #ifdef MOZ_ANDROID_OMX
   if (MediaDecoder::IsAndroidMediaPluginEnabled() &&
       EnsureAndroidMediaPluginHost()->FindDecoder(aType, nullptr)) {
-    decoderReader = new AndroidMediaReader(aDecoder, aType);
+    decoderReader = new AndroidMediaReader(aType, aInit);
   } else
 #endif
   if (WebMDecoder::IsSupportedType(aType)) {
-    decoderReader =
-      new MediaFormatReader(aDecoder, new WebMDemuxer(aDecoder->GetResource()));
+    decoderReader = new MediaFormatReader(aInit, new WebMDemuxer(resource));
   }
 
   return decoderReader;

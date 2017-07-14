@@ -53,8 +53,8 @@
 
     <color name="photon_notification_bg">#0096DD</color>
 
-    <!-- opacity: 10% -->
-    <color name="photon_notification_bg_pressed">#19000000</color>
+    <!-- opacity: 20% -->
+    <color name="photon_notification_bg_pressed">#33000000</color>
 
     <color name="photon_toolbar_text_color">#3B3B3B</color>
     <color name="photon_toolbar_text_color_private">#FFFFFF</color>
@@ -85,6 +85,13 @@
     <color name="photon_url_bar_certificate_owner_private">#16DA00</color>
     <color name="photon_url_bar_domain">@color/photon_text_main</color>
     <color name="photon_url_bar_domain_private">@color/photon_text_main_private</color>
+
+    <!-- Tab strip colors on tablet -->
+    <color name="photon_tab_strip_bg">#272727</color>
+    <color name="photon_tab_strip_item_checked_pressed">#19272727</color>
+    <color name="photon_tab_strip_item_checked_pressed_private">#19FFFFFF</color>
+    <color name="photon_tab_strip_item_checked">#F9F9FA</color>
+    <color name="photon_tab_strip_item_checked_private">#38383D</color>
 
     <!-- Fennec color palette (bug 1127517) -->
     <color name="fennec_ui_orange">#FF9500</color>
@@ -182,14 +189,20 @@
     <color name="doorhanger_link">#FF2AA1FE</color>
 
     <color name="validation_message_text">#ffffff</color>
-    <color name="url_bar_text_highlight_pb">#FFD06BFF</color>
+    <color name="url_bar_text_highlight">@color/photon_text_selected_highlight</color>
+    <color name="url_bar_text_highlight_private">@color/photon_text_selected_highlight_private</color>
     <color name="tab_row_pressed">#4D000000</color>
 
-    <color name="url_bar_urltext">#AFB1B3</color>
-    <color name="url_bar_urltext_private">#777777</color>
-    <color name="url_bar_domaintext">#363B40</color>
-    <color name="url_bar_domaintext_private">#FFFFFF</color>
-    <color name="url_bar_blockedtext">#b14646</color>
+    <color name="url_bar_urltext">@color/photon_text_placeholder</color>
+    <color name="url_bar_urltext_private">@color/photon_text_placeholder_private</color>
+    <color name="url_bar_domaintext">@color/photon_url_bar_domain</color>
+    <color name="url_bar_domaintext_private">@color/photon_url_bar_domain_private</color>
+    <color name="url_bar_blockedtext">@color/photon_url_bar_blocked</color>
+    <color name="url_bar_blockedtext_private">@color/photon_url_bar_blocked_private</color>
+    <color name="url_bar_certificate_owner">@color/photon_url_bar_certificate_owner</color>
+    <color name="url_bar_certificate_owner_private">
+        @color/photon_url_bar_certificate_owner_private
+    </color>
     <color name="url_bar_shadow">#12000000</color>
 
     <color name="panel_image_item_background">#D1D9E1</color>

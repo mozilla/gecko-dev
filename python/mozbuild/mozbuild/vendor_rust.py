@@ -273,12 +273,17 @@ license file's hash.
             ('mozjs_sys', 'js/src'),
             ('geckodriver', 'testing/geckodriver'),
         )
+
+        lockfiles = []
         for (lib, crate_root) in crates_and_roots:
             path = mozpath.join(self.topsrcdir, crate_root)
             # We use check_call instead of mozprocess to ensure errors are displayed.
             # We do an |update -p| here to regenerate the Cargo.lock file with minimal changes. See bug 1324462
             subprocess.check_call([cargo, 'update', '--manifest-path', mozpath.join(path, 'Cargo.toml'), '-p', lib], cwd=self.topsrcdir)
-            subprocess.check_call([cargo, 'vendor', '--quiet', '--no-delete', '--sync', mozpath.join(path, 'Cargo.lock'), vendor_dir], cwd=self.topsrcdir)
+            lockfiles.append('--sync')
+            lockfiles.append(mozpath.join(path, 'Cargo.lock'))
+
+        subprocess.check_call([cargo, 'vendor', '--quiet', '--no-delete'] + lockfiles + [vendor_dir], cwd=self.topsrcdir)
 
         if not self._check_licenses(vendor_dir):
             self.log(logging.ERROR, 'license_check_failed', {},
@@ -311,7 +316,7 @@ peer about the particular large files you are adding.
 
 The changes from `mach vendor rust` will NOT be added to version control.
 '''.format(files='\n'.join(sorted(large_files)), size=FILESIZE_LIMIT))
-            self.repository.forget_add_remove_files()
+            self.repository.forget_add_remove_files(vendor_dir)
             sys.exit(1)
 
         # Only warn for large imports, since we may just have large code

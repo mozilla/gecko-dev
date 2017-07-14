@@ -15,7 +15,6 @@ Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/AsyncPrefs.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "WindowsUIUtils", "@mozilla.org/windows-ui-utils;1", "nsIWindowsUIUtils");
-XPCOMUtils.defineLazyServiceGetter(this, "AlertsService", "@mozilla.org/alerts-service;1", "nsIAlertsService");
 XPCOMUtils.defineLazyGetter(this, "WeaveService", () =>
   Cc["@mozilla.org/weave/service;1"].getService().wrappedJSObject
 );
@@ -260,6 +259,7 @@ function BrowserGlue() {
     });
 
   XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts", "resource://gre/modules/FxAccounts.jsm");
+  XPCOMUtils.defineLazyServiceGetter(this, "AlertsService", "@mozilla.org/alerts-service;1", "nsIAlertsService");
 
   this._init();
 }
@@ -272,10 +272,6 @@ const OBSERVE_LASTWINDOW_CLOSE_TOPICS = AppConstants.platform != "macosx";
 
 BrowserGlue.prototype = {
   _saveSession: false,
-  _isPlacesInitObserver: false,
-  _isPlacesLockedObserver: false,
-  _isPlacesShutdownObserver: false,
-  _isPlacesDatabaseLocked: false,
   _migrationImportsDefaultBookmarks: false,
 
   _setPrefToSaveSession: function BG__setPrefToSaveSession(aForce) {
@@ -366,6 +362,9 @@ BrowserGlue.prototype = {
       case "fxaccounts:device_connected":
         this._onDeviceConnected(data);
         break;
+      case "fxaccounts:verify_login":
+        this._onVerifyLoginNotification(JSON.parse(data));
+        break;
       case "fxaccounts:device_disconnected":
         data = JSON.parse(data);
         if (data.isLocalDevice) {
@@ -381,21 +380,9 @@ BrowserGlue.prototype = {
         subject.data = true;
         break;
       case "places-init-complete":
+        Services.obs.removeObserver(this, "places-init-complete");
         if (!this._migrationImportsDefaultBookmarks)
           this._initPlaces(false);
-
-        Services.obs.removeObserver(this, "places-init-complete");
-        this._isPlacesInitObserver = false;
-        // no longer needed, since history was initialized completely.
-        Services.obs.removeObserver(this, "places-database-locked");
-        this._isPlacesLockedObserver = false;
-        break;
-      case "places-database-locked":
-        this._isPlacesDatabaseLocked = true;
-        // Stop observing, so further attempts to load history service
-        // will not show the prompt.
-        Services.obs.removeObserver(this, "places-database-locked");
-        this._isPlacesLockedObserver = false;
         break;
       case "idle":
         this._backupBookmarks();
@@ -423,6 +410,10 @@ BrowserGlue.prototype = {
           });
         } else if (data == "mock-fxaccounts") {
           Object.defineProperty(this, "fxAccounts", {
+            value: subject.wrappedJSObject
+          });
+        } else if (data == "mock-alerts-service") {
+          Object.defineProperty(this, "AlertsService", {
             value: subject.wrappedJSObject
           });
         }
@@ -523,13 +514,11 @@ BrowserGlue.prototype = {
     os.addObserver(this, "weave:service:ready");
     os.addObserver(this, "fxaccounts:onverified");
     os.addObserver(this, "fxaccounts:device_connected");
+    os.addObserver(this, "fxaccounts:verify_login");
     os.addObserver(this, "fxaccounts:device_disconnected");
     os.addObserver(this, "weave:engine:clients:display-uris");
     os.addObserver(this, "session-save");
     os.addObserver(this, "places-init-complete");
-    this._isPlacesInitObserver = true;
-    os.addObserver(this, "places-database-locked");
-    this._isPlacesLockedObserver = true;
     os.addObserver(this, "distribution-customization-complete");
     os.addObserver(this, "handle-xul-text-link");
     os.addObserver(this, "profile-before-change");
@@ -569,6 +558,7 @@ BrowserGlue.prototype = {
     os.removeObserver(this, "weave:service:ready");
     os.removeObserver(this, "fxaccounts:onverified");
     os.removeObserver(this, "fxaccounts:device_connected");
+    os.removeObserver(this, "fxaccounts:verify_login");
     os.removeObserver(this, "fxaccounts:device_disconnected");
     os.removeObserver(this, "weave:engine:clients:display-uris");
     os.removeObserver(this, "session-save");
@@ -580,10 +570,9 @@ BrowserGlue.prototype = {
       this._idleService.removeIdleObserver(this._mediaTelemetryIdleObserver, MEDIA_TELEMETRY_IDLE_TIME_SEC);
       delete this._mediaTelemetryIdleObserver;
     }
-    if (this._isPlacesInitObserver)
+    try {
       os.removeObserver(this, "places-init-complete");
-    if (this._isPlacesLockedObserver)
-      os.removeObserver(this, "places-database-locked");
+    } catch (ex) { /* Could have been removed already */ }
     os.removeObserver(this, "handle-xul-text-link");
     os.removeObserver(this, "profile-before-change");
     os.removeObserver(this, "keyword-search");
@@ -1071,12 +1060,6 @@ BrowserGlue.prototype = {
     if (Services.prefs.prefHasUserValue("app.update.postupdate"))
       this._showUpdateNotification();
 
-    // Load the "more info" page for a locked places.sqlite
-    // This property is set earlier by places-database-locked topic.
-    if (this._isPlacesDatabaseLocked) {
-      this._showPlacesLockedNotificationBox();
-    }
-
     ExtensionsUI.init();
 
     let signingRequired;
@@ -1445,7 +1428,7 @@ BrowserGlue.prototype = {
     try {
       // This will throw NS_ERROR_NOT_AVAILABLE if the notification cannot
       // be displayed per the idl.
-      AlertsService.showAlertNotification(null, title, text,
+      this.AlertsService.showAlertNotification(null, title, text,
                                           true, url, clickCallback);
     } catch (e) {
       Cu.reportError(e);
@@ -1479,6 +1462,18 @@ BrowserGlue.prototype = {
     // If the database is corrupt or has been newly created we should
     // import bookmarks.
     let dbStatus = PlacesUtils.history.databaseStatus;
+
+    // Show a notification with a "more info" link for a locked places.sqlite.
+    if (dbStatus == PlacesUtils.history.DATABASE_STATUS_LOCKED) {
+      // Note: initPlaces should always happen when the first window is ready,
+      // in any case, better safe than sorry.
+      this._firstWindowReady.then(() => {
+        this._showPlacesLockedNotificationBox();
+        Services.obs.notifyObservers(null, "places-browser-init-complete");
+      });
+      return;
+    }
+
     let importBookmarks = !aInitialMigrationPerformed &&
                           (dbStatus == PlacesUtils.history.DATABASE_STATUS_CREATE ||
                            dbStatus == PlacesUtils.history.DATABASE_STATUS_CORRUPT);
@@ -1711,12 +1706,12 @@ BrowserGlue.prototype = {
         return;
       this._openPreferences("sync", { origin: "doorhanger" });
     }
-    AlertsService.showAlertNotification(null, title, body, true, null, clickCallback);
+    this.AlertsService.showAlertNotification(null, title, body, true, null, clickCallback);
   },
 
   // eslint-disable-next-line complexity
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 48;
+    const UI_VERSION = 49;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul";
 
     let currentUIVersion;
@@ -2054,6 +2049,11 @@ BrowserGlue.prototype = {
       xulStore.removeValue(BROWSER_DOCURL, "sidebar-box", "checked");
     }
 
+    if (currentUIVersion < 49) {
+      // Annotate that a user haven't seen any onboarding tour
+      Services.prefs.setIntPref("browser.onboarding.seen-tourset-version", 0);
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
   },
@@ -2293,9 +2293,37 @@ BrowserGlue.prototype = {
       if (AppConstants.platform == "win") {
         imageURL = "chrome://branding/content/icon64.png";
       }
-      AlertsService.showAlertNotification(imageURL, title, body, true, null, clickCallback);
+      this.AlertsService.showAlertNotification(imageURL, title, body, true, null, clickCallback);
     } catch (ex) {
       Cu.reportError("Error displaying tab(s) received by Sync: " + ex);
+    }
+  },
+
+  async _onVerifyLoginNotification({body, title, url}) {
+    let tab;
+    let imageURL;
+    if (AppConstants.platform == "win") {
+      imageURL = "chrome://branding/content/icon64.png";
+    }
+    let win = RecentWindow.getMostRecentBrowserWindow({private: false});
+    if (!win) {
+      win = await this._openURLInNewWindow(url);
+      let tabs = win.gBrowser.tabs;
+      tab = tabs[tabs.length - 1];
+    } else {
+      tab = win.gBrowser.addTab(url);
+    }
+    tab.setAttribute("attention", true);
+    let clickCallback = (subject, topic, data) => {
+      if (topic != "alertclickcallback")
+        return;
+      win.gBrowser.selectedTab = tab;
+    };
+
+    try {
+      this.AlertsService.showAlertNotification(imageURL, title, body, true, null, clickCallback);
+    } catch (ex) {
+      Cu.reportError("Error notifying of a verify login event: " + ex);
     }
   },
 
@@ -2321,7 +2349,7 @@ BrowserGlue.prototype = {
     };
 
     try {
-      AlertsService.showAlertNotification(null, title, body, true, null, clickCallback);
+      this.AlertsService.showAlertNotification(null, title, body, true, null, clickCallback);
     } catch (ex) {
       Cu.reportError("Error notifying of a new Sync device: " + ex);
     }
@@ -2337,7 +2365,7 @@ BrowserGlue.prototype = {
         return;
       this._openPreferences("sync", { origin: "devDisconnectedAlert"});
     }
-    AlertsService.showAlertNotification(null, title, body, true, null, clickCallback);
+    this.AlertsService.showAlertNotification(null, title, body, true, null, clickCallback);
   },
 
   _handleFlashHang() {

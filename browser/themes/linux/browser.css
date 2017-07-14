@@ -327,24 +327,13 @@ menuitem.bookmark-item {
   -moz-appearance: none;
   -moz-box-align: stretch;
 }
-
 .urlbar-input-box {
   margin: 0;
 }
-
-.urlbar-input-box,
-#urlbar-display-box {
-  padding-inline-start: 4px;
-  border-inline-start: 1px solid var(--urlbar-separator-color);
-  border-image: linear-gradient(transparent 15%, var(--urlbar-separator-color) 15%, var(--urlbar-separator-color) 85%, transparent 85%);
-  border-image-slice: 1;
-}
-
 .urlbar-history-dropmarker {
   -moz-appearance: toolbarbutton-dropdown;
   transition: opacity 0.15s ease;
 }
-
 #urlbar-wrapper[switchingtabs] > #urlbar > .urlbar-textbox-container > .urlbar-history-dropmarker {
   transition: none;
 }
@@ -467,7 +456,7 @@ menuitem.bookmark-item {
   border-bottom-right-radius: 1.5px;
 }
 
-#identity-box:-moz-focusring {
+#identity-box:not(:active):-moz-focusring {
   outline: 1px dotted;
   outline-offset: -3px;
 }
@@ -1181,6 +1170,7 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton:not(:h
 
 %include ../shared/customizableui/customizeMode.inc.css
 
+%ifndef MOZ_PHOTON_THEME
 #main-window[customize-entered] > #tab-view-deck {
   background-image: url("chrome://browser/skin/customizableui/customizeMode-gridTexture.png"),
                     linear-gradient(to bottom, #bcbcbc, #b5b5b5);
@@ -1220,6 +1210,7 @@ notification.pluginVulnerable > .notification-inner > .messageCloseButton:not(:h
   border-right: 3px solid transparent;
   border-left: 3px solid transparent;
 }
+%endif
 
 /* The :hover:active style from toolkit doesn't seem to work in this panel so just use :active. */
 .customization-tipPanel-closeBox > .close-icon:active {

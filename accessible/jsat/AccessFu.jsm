@@ -377,11 +377,11 @@ this.AccessFu = { // jshint ignore:line
           // We delay this for half a second so the awesomebar could close,
           // and we could use the current coordinates for the content item.
           // XXX TODO figure out how to avoid magic wait here.
-	  this.autoMove({
-	    delay: 500,
-	    forcePresent: true,
-	    noOpIfOnScreen: true,
-	    moveMethod: 'moveFirst' });
+          this.autoMove({
+            delay: 500,
+            forcePresent: true,
+            noOpIfOnScreen: true,
+            moveMethod: 'moveFirst' });
         }
         break;
       }
@@ -594,7 +594,7 @@ var Output = {
           androidEvent.bounds, aBrowser);
       }
 
-      switch(androidEvent.eventType) {
+      switch (androidEvent.eventType) {
         case ANDROID_VIEW_TEXT_CHANGED:
           androidEvent.brailleOutput = this.brailleState.adjustText(
             androidEvent.text);

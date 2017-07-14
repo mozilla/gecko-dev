@@ -50,6 +50,9 @@
 #  define APZCTM_LOG(...)
 #endif
 
+// #define APZ_KEY_LOG(...) printf_stderr("APZKEY: " __VA_ARGS__)
+#define APZ_KEY_LOG(...)
+
 namespace mozilla {
 namespace layers {
 
@@ -185,7 +188,16 @@ public:
   {
     if (mMayChangeFocus) {
       mFocusState.ReceiveFocusChangingEvent();
+
+      APZ_KEY_LOG("Marking input with type=%d as focus changing with seq=%" PRIu64 "\n",
+                  (int)mEvent.mInputType,
+                  mFocusState.LastAPZProcessedEvent());
+    } else {
+      APZ_KEY_LOG("Marking input with type=%d as non focus changing with seq=%" PRIu64 "\n",
+                  (int)mEvent.mInputType,
+                  mFocusState.LastAPZProcessedEvent());
     }
+
     mEvent.mFocusSequenceNumber = mFocusState.LastAPZProcessedEvent();
   }
 
@@ -488,7 +500,7 @@ APZCTreeManager::PushStateToWR(wr::WebRenderAPI* aWrApi,
         httnMap.emplace(guid, aNode);
 
         ParentLayerPoint layerTranslation = apzc->GetCurrentAsyncTransform(
-            AsyncPanZoomController::RESPECT_FORCE_DISABLE).mTranslation;
+            AsyncPanZoomController::eForCompositing).mTranslation;
         // The positive translation means the painted content is supposed to
         // move down (or to the right), and that corresponds to a reduction in
         // the scroll offset. Since we are effectively giving WR the async
@@ -839,7 +851,7 @@ APZCTreeManager::PrepareNodeForLayer(const ScrollNode& aLayer,
       }
       // Note that the async scroll offset is in ParentLayer pixels
       aState.mPaintLogger.LogTestData(aMetrics.GetScrollId(), "asyncScrollOffset",
-          apzc->GetCurrentAsyncScrollOffset(AsyncPanZoomController::NORMAL));
+          apzc->GetCurrentAsyncScrollOffset(AsyncPanZoomController::eForHitTesting));
     }
 
     if (newApzc) {
@@ -944,7 +956,7 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
     MutexAutoLock lock(mTreeLock);
     RefPtr<AsyncPanZoomController> apzc = FindRootContentOrRootApzc();
     if (apzc) {
-      scrollOffset = ViewAs<ScreenPixel>(apzc->GetCurrentAsyncScrollOffset(AsyncPanZoomController::NORMAL),
+      scrollOffset = ViewAs<ScreenPixel>(apzc->GetCurrentAsyncScrollOffset(AsyncPanZoomController::eForHitTesting),
                                          PixelCastJustification::ScreenIsParentLayerForRoot);
     }
   }
@@ -1249,6 +1261,7 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
       // Disable async keyboard scrolling when accessibility.browsewithcaret is enabled
       if (!gfxPrefs::APZKeyboardEnabled() ||
           gfxPrefs::AccessibilityBrowseWithCaret()) {
+        APZ_KEY_LOG("Skipping key input from invalid prefs\n");
         return result;
       }
 
@@ -1258,6 +1271,8 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
       Maybe<KeyboardShortcut> shortcut = mKeyboardMap.FindMatch(keyInput);
 
       if (!shortcut) {
+        APZ_KEY_LOG("Skipping key input with no shortcut\n");
+
         // If we don't have a shortcut for this key event, then we can keep our focus
         // only if we know there are no key event listeners for this target
         if (mFocusState.CanIgnoreKeyboardShortcutMisses()) {
@@ -1269,6 +1284,7 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
       // Check if this shortcut needs to be dispatched to content. Anything matching
       // this is assumed to be able to change focus.
       if (shortcut->mDispatchToContent) {
+        APZ_KEY_LOG("Skipping key input with dispatch-to-content shortcut\n");
         return result;
       }
 
@@ -1289,32 +1305,30 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
           targetGuid = mFocusState.GetVerticalTarget();
           break;
         }
-
-        case KeyboardScrollAction::eSentinel: {
-          MOZ_ASSERT_UNREACHABLE("Invalid KeyboardScrollActionType");
-        }
       }
 
       // If we don't have a scroll target then either we have a stale focus target,
       // the focused element has event listeners, or the focused element doesn't have a
       // layerized scroll frame. In any case we need to dispatch to content.
       if (!targetGuid) {
+        APZ_KEY_LOG("Skipping key input with no current focus target\n");
         return result;
       }
 
       RefPtr<AsyncPanZoomController> targetApzc = GetTargetAPZC(targetGuid->mLayersId,
                                                                 targetGuid->mScrollId);
 
-      // Scroll snapping behavior with keyboard input is more complicated, so
-      // ignore any input events that are targeted at an Apzc with scroll snap
-      // points.
-      if (!targetApzc || targetApzc->HasScrollSnapping()) {
+      if (!targetApzc) {
+        APZ_KEY_LOG("Skipping key input with focus target but no APZC\n");
         return result;
       }
 
       // Attach the keyboard scroll action to the input event for processing
       // by the input queue.
       keyInput.mAction = action;
+
+      APZ_KEY_LOG("Dispatching key input with apzc=%p\n",
+                  targetApzc.get());
 
       // Dispatch the event to the input queue.
       result = mInputQueue->ReceiveInputEvent(
@@ -1329,9 +1343,6 @@ APZCTreeManager::ReceiveInputEvent(InputData& aEvent,
       keyInput.mHandledByAPZ = true;
       focusSetter.MarkAsNonFocusChanging();
 
-      break;
-    } case SENTINEL_INPUT: {
-      MOZ_ASSERT_UNREACHABLE("Invalid InputType.");
       break;
     }
   }
@@ -2414,7 +2425,7 @@ APZCTreeManager::GetScreenToApzcTransform(const AsyncPanZoomController *aApzc) c
     // ancestorUntransform is updated to RC.Inverse() * QC.Inverse() when parent == P
     ancestorUntransform = parent->GetAncestorTransform().Inverse();
     // asyncUntransform is updated to PA.Inverse() when parent == P
-    Matrix4x4 asyncUntransform = parent->GetCurrentAsyncTransformWithOverscroll(AsyncPanZoomController::NORMAL).Inverse().ToUnknownMatrix();
+    Matrix4x4 asyncUntransform = parent->GetCurrentAsyncTransformWithOverscroll(AsyncPanZoomController::eForHitTesting).Inverse().ToUnknownMatrix();
     // untransformSinceLastApzc is RC.Inverse() * QC.Inverse() * PA.Inverse()
     Matrix4x4 untransformSinceLastApzc = ancestorUntransform * asyncUntransform;
 
@@ -2446,7 +2457,7 @@ APZCTreeManager::GetApzcToGeckoTransform(const AsyncPanZoomController *aApzc) co
   // leftmost matrix in a multiplication is applied first.
 
   // asyncUntransform is LA.Inverse()
-  Matrix4x4 asyncUntransform = aApzc->GetCurrentAsyncTransformWithOverscroll(AsyncPanZoomController::NORMAL).Inverse().ToUnknownMatrix();
+  Matrix4x4 asyncUntransform = aApzc->GetCurrentAsyncTransformWithOverscroll(AsyncPanZoomController::eForHitTesting).Inverse().ToUnknownMatrix();
 
   // aTransformToGeckoOut is initialized to LA.Inverse() * LD * MC * NC * OC * PC
   result = asyncUntransform * aApzc->GetTransformToLastDispatchedPaint() * aApzc->GetAncestorTransform();
@@ -2541,7 +2552,7 @@ APZCTreeManager::ComputeTransformForNode(const HitTestingTreeNode* aNode) const
     // from its APZC.
     return aNode->GetTransform() *
         CompleteAsyncTransform(
-          apzc->GetCurrentAsyncTransformWithOverscroll(AsyncPanZoomController::NORMAL));
+          apzc->GetCurrentAsyncTransformWithOverscroll(AsyncPanZoomController::eForHitTesting));
   } else if (aNode->IsScrollThumbNode()) {
     // If the node represents a scrollbar thumb, compute and apply the
     // transformation that will be applied to the thumb in

@@ -648,9 +648,9 @@ protected:
                          dom::DocumentFragment** aFragment, bool aTrustedInput);
   void CreateListOfNodesToPaste(dom::DocumentFragment& aFragment,
                                 nsTArray<OwningNonNull<nsINode>>& outNodeList,
-                                nsINode* aStartNode,
+                                nsINode* aStartContainer,
                                 int32_t aStartOffset,
-                                nsINode* aEndNode,
+                                nsINode* aEndContainer,
                                 int32_t aEndOffset);
   nsresult CreateTagStack(nsTArray<nsString>& aTagStack,
                           nsIDOMNode* aNode);
@@ -858,10 +858,8 @@ protected:
                                   nsIDOMEventListener* aListener,
                                   bool aUseCapture,
                                   Element* aElement,
-                                  nsIContent* aParentContent,
                                   nsIPresShell* aShell);
   void DeleteRefToAnonymousNode(nsIContent* aContent,
-                                nsIContent* aParentContent,
                                 nsIPresShell* aShell);
 
   nsresult ShowResizersInner(nsIDOMElement *aResizedElement);

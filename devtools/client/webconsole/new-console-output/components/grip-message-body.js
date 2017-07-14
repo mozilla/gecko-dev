@@ -14,15 +14,19 @@ if (typeof define === "undefined") {
 
 // React
 const {
-  PropTypes
+  createFactory,
+  PropTypes,
 } = require("devtools/client/shared/vendor/react");
+const { ObjectClient } = require("devtools/shared/client/main");
+const {
+  MESSAGE_TYPE,
+} = require("../constants");
 
-const VariablesViewLink = require("devtools/client/webconsole/new-console-output/components/variables-view-link");
-
-const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
-const Rep = REPS.Rep;
-const Grip = REPS.Grip;
-const StringRep = REPS.StringRep.rep;
+const actions = require("devtools/client/webconsole/new-console-output/actions/messages");
+const reps = require("devtools/client/shared/components/reps/reps");
+const { REPS, MODE } = reps;
+const ObjectInspector = createFactory(reps.ObjectInspector);
+const { Grip } = REPS;
 
 GripMessageBody.displayName = "GripMessageBody";
 
@@ -34,10 +38,13 @@ GripMessageBody.propTypes = {
   ]).isRequired,
   serviceContainer: PropTypes.shape({
     createElement: PropTypes.func.isRequired,
+    hudProxyClient: PropTypes.object.isRequired,
   }),
   userProvidedStyle: PropTypes.string,
   useQuotes: PropTypes.bool,
   escapeWhitespace: PropTypes.bool,
+  loadedObjectProperties: PropTypes.object,
+  type: PropTypes.string,
 };
 
 GripMessageBody.defaultProps = {
@@ -46,11 +53,16 @@ GripMessageBody.defaultProps = {
 
 function GripMessageBody(props) {
   const {
+    dispatch,
+    messageId,
     grip,
     userProvidedStyle,
     serviceContainer,
     useQuotes,
-    escapeWhitespace
+    escapeWhitespace,
+    mode = MODE.LONG,
+    loadedObjectProperties,
+    type,
   } = props;
 
   let styleObject;
@@ -67,30 +79,50 @@ function GripMessageBody(props) {
       : null;
     onDOMNodeMouseOut = serviceContainer.unHighlightDomElement;
     onInspectIconClick = serviceContainer.openNodeInInspector
-      ? (object) => serviceContainer.openNodeInInspector(object)
+      ? (object, e) => {
+        // Stop the event propagation so we don't trigger ObjectInspector expand/collapse.
+        e.stopPropagation();
+        serviceContainer.openNodeInInspector(object);
+      }
       : null;
   }
 
-  return (
-    // @TODO once there is a longString rep, also turn off quotes for those.
-    typeof grip === "string"
-      ? StringRep({
-        object: grip,
-        useQuotes: useQuotes,
-        escapeWhitespace: escapeWhitespace,
-        mode: props.mode,
-        style: styleObject
-      })
-      : Rep({
-        object: grip,
-        objectLink: VariablesViewLink,
-        onDOMNodeMouseOver,
-        onDOMNodeMouseOut,
-        onInspectIconClick,
-        defaultRep: Grip,
-        mode: props.mode,
-      })
-  );
+  const objectInspectorProps = {
+    // Auto-expand the ObjectInspector when the message is a console.dir one.
+    autoExpandDepth: type === MESSAGE_TYPE.DIR ? 1 : 0,
+    mode,
+    // TODO: we disable focus since it's not currently working well in ObjectInspector.
+    // Let's remove the property below when problem are fixed in OI.
+    disabledFocus: true,
+    roots: [{
+      path: grip.actor || JSON.stringify(grip),
+      contents: {
+        value: grip
+      }
+    }],
+    getObjectProperties: actor => loadedObjectProperties && loadedObjectProperties[actor],
+    loadObjectProperties: object => {
+      const client = new ObjectClient(serviceContainer.hudProxyClient, object);
+      dispatch(actions.messageObjectPropertiesLoad(messageId, client, object));
+    },
+  };
+
+  if (typeof grip === "string" || grip.type === "longString") {
+    Object.assign(objectInspectorProps, {
+      useQuotes,
+      escapeWhitespace,
+      style: styleObject
+    });
+  } else {
+    Object.assign(objectInspectorProps, {
+      onDOMNodeMouseOver,
+      onDOMNodeMouseOut,
+      onInspectIconClick,
+      defaultRep: Grip,
+    });
+  }
+
+  return ObjectInspector(objectInspectorProps);
 }
 
 // Regular expression that matches the allowed CSS property names.

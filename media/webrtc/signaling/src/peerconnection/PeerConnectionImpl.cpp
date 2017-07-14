@@ -380,7 +380,7 @@ PeerConnectionImpl::MakeMediaStream()
 {
   MediaStreamGraph* graph =
     MediaStreamGraph::GetInstance(MediaStreamGraph::AUDIO_THREAD_DRIVER,
-                                  AudioChannel::Normal);
+                                  AudioChannel::Normal, GetWindow());
 
   RefPtr<DOMMediaStream> stream =
     DOMMediaStream::CreateSourceStreamAsInput(GetWindow(), graph);
@@ -2523,8 +2523,9 @@ PeerConnectionImpl::InsertDTMF(mozilla::dom::RTCRtpSender& sender,
   state->mDuration = duration;
   state->mInterToneGap = interToneGap;
   if (!state->mTones.IsEmpty()) {
-    state->mSendTimer->InitWithFuncCallback(DTMFSendTimerCallback_m, state, 0,
-                                            nsITimer::TYPE_ONE_SHOT);
+    state->mSendTimer->InitWithNamedFuncCallback(DTMFSendTimerCallback_m, state, 0,
+                                                 nsITimer::TYPE_ONE_SHOT,
+                                                 "DTMFSendTimerCallback_m");
   }
   return NS_OK;
 }
@@ -3834,16 +3835,19 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
           double bitrateMean;
           double bitrateStdDev;
           uint32_t discardedPackets;
+          uint32_t framesDecoded;
           if (mp.Conduit()->GetVideoDecoderStats(&framerateMean,
                                                  &framerateStdDev,
                                                  &bitrateMean,
                                                  &bitrateStdDev,
-                                                 &discardedPackets)) {
+                                                 &discardedPackets,
+                                                 &framesDecoded)) {
             s.mFramerateMean.Construct(framerateMean);
             s.mFramerateStdDev.Construct(framerateStdDev);
             s.mBitrateMean.Construct(bitrateMean);
             s.mBitrateStdDev.Construct(bitrateStdDev);
             s.mDiscardedPackets.Construct(discardedPackets);
+            s.mFramesDecoded.Construct(framesDecoded);
           }
         }
         query->report->mInboundRTPStreamStats.Value().AppendElement(s,
@@ -4048,13 +4052,15 @@ PeerConnectionImpl::DTMFSendTimerCallback_m(nsITimer* timer, void* closure)
     state->mTones.Cut(0, 1);
 
     if (tone == -1) {
-      state->mSendTimer->InitWithFuncCallback(DTMFSendTimerCallback_m, state,
-                                              2000, nsITimer::TYPE_ONE_SHOT);
+      state->mSendTimer->InitWithNamedFuncCallback(DTMFSendTimerCallback_m, state,
+                                                   2000, nsITimer::TYPE_ONE_SHOT,
+                                                   "DTMFSendTimerCallback_m");
     } else {
       // Reset delay if necessary
-      state->mSendTimer->InitWithFuncCallback(DTMFSendTimerCallback_m, state,
-                                              state->mDuration + state->mInterToneGap,
-                                              nsITimer::TYPE_ONE_SHOT);
+      state->mSendTimer->InitWithNamedFuncCallback(DTMFSendTimerCallback_m, state,
+                                                   state->mDuration + state->mInterToneGap,
+                                                   nsITimer::TYPE_ONE_SHOT,
+                                                   "DTMFSendTimerCallback_m");
 
       RefPtr<AudioSessionConduit> conduit =
         state->mPeerConnectionImpl->mMedia->GetAudioConduit(state->mLevel);

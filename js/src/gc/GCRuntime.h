@@ -38,11 +38,19 @@ class AutoRunParallelTask;
 class AutoTraceSession;
 class MarkingValidator;
 struct MovingTracer;
+class WeakCacheSweepIterator;
 
 enum IncrementalProgress
 {
     NotFinished = 0,
     Finished
+};
+
+enum SweepActionList
+{
+    PerSweepGroupActionList,
+    PerZoneActionList,
+    SweepActionListCount
 };
 
 class ChunkPool
@@ -52,7 +60,12 @@ class ChunkPool
 
   public:
     ChunkPool() : head_(nullptr), count_(0) {}
+    ~ChunkPool() {
+        // TODO: We should be able to assert that the chunk pool is empty but
+        // this causes XPCShell test failures on Windows 2012. See bug 1379232.
+    }
 
+    bool empty() const { return !head_; }
     size_t count() const { return count_; }
 
     Chunk* head() { MOZ_ASSERT(head_); return head_; }
@@ -681,7 +694,8 @@ class GCRuntime
     MOZ_MUST_USE bool triggerGC(JS::gcreason::Reason reason);
     void maybeAllocTriggerZoneGC(Zone* zone, const AutoLockGC& lock);
     // The return value indicates if we were able to do the GC.
-    bool triggerZoneGC(Zone* zone, JS::gcreason::Reason reason);
+    bool triggerZoneGC(Zone* zone, JS::gcreason::Reason reason,
+                       size_t usedBytes, size_t thresholdBytes);
     void maybeGC(Zone* zone);
     // The return value indicates whether a major GC was performed.
     bool gcIfRequested();
@@ -702,7 +716,7 @@ class GCRuntime
     }
 
     void runDebugGC();
-    inline void poke();
+    void notifyRootsRemoved();
 
     enum TraceOrMarkRuntime {
         TraceRuntime,
@@ -789,7 +803,10 @@ class GCRuntime
     MOZ_MUST_USE bool addBlackRootsTracer(JSTraceDataOp traceOp, void* data);
     void removeBlackRootsTracer(JSTraceDataOp traceOp, void* data);
 
-    bool triggerGCForTooMuchMalloc() { return triggerGC(JS::gcreason::TOO_MUCH_MALLOC); }
+    bool triggerGCForTooMuchMalloc() {
+        stats().recordTrigger(mallocCounter.bytes(), mallocCounter.maxBytes());
+        return triggerGC(JS::gcreason::TOO_MUCH_MALLOC);
+    }
     int32_t getMallocBytes() const { return mallocCounter.bytes(); }
     size_t maxMallocBytesAllocated() const { return mallocCounter.maxBytes(); }
     bool isTooMuchMalloc() const { return mallocCounter.isTooMuchMalloc(); }
@@ -907,6 +924,14 @@ class GCRuntime
 
     void bufferGrayRoots();
 
+    /*
+     * Concurrent sweep infrastructure.
+     */
+    void startTask(GCParallelTask& task, gcstats::PhaseKind phase, AutoLockHelperThreadState& locked);
+    void joinTask(GCParallelTask& task, gcstats::PhaseKind phase, AutoLockHelperThreadState& locked);
+
+  private:
+
   private:
     enum IncrementalResult
     {
@@ -1006,10 +1031,11 @@ class GCRuntime
                                                     SliceBudget& budget, AllocKind kind);
     static IncrementalProgress mergeSweptObjectArenas(GCRuntime* gc, FreeOp* fop, Zone* zone,
                                                       SliceBudget& budget, AllocKind kind);
-    static IncrementalProgress sweepAtomsTable(GCRuntime* gc, FreeOp* fop, Zone* zone,
-                                               SliceBudget& budget, AllocKind kind);
+    static IncrementalProgress sweepAtomsTable(GCRuntime* gc, SliceBudget& budget);
     void startSweepingAtomsTable();
     IncrementalProgress sweepAtomsTable(SliceBudget& budget);
+    static IncrementalProgress sweepWeakCaches(GCRuntime* gc, SliceBudget& budget);
+    IncrementalProgress sweepWeakCaches(SliceBudget& budget);
     static IncrementalProgress finalizeAllocKind(GCRuntime* gc, FreeOp* fop, Zone* zone,
                                                  SliceBudget& budget, AllocKind kind);
     static IncrementalProgress sweepShapeTree(GCRuntime* gc, FreeOp* fop, Zone* zone,
@@ -1227,20 +1253,18 @@ class GCRuntime
     /*
      * Incremental sweep state.
      */
+
     ActiveThreadData<JS::Zone*> sweepGroups;
     ActiveThreadOrGCTaskData<JS::Zone*> currentSweepGroup;
+    ActiveThreadData<SweepActionList> sweepActionList;
     ActiveThreadData<size_t> sweepPhaseIndex;
-    ActiveThreadData<JS::Zone*> sweepZone;
+    ActiveThreadOrGCTaskData<JS::Zone*> sweepZone;
     ActiveThreadData<size_t> sweepActionIndex;
     ActiveThreadData<mozilla::Maybe<AtomSet::Enum>> maybeAtomsToSweep;
+    ActiveThreadOrGCTaskData<JS::detail::WeakCacheBase*> sweepCache;
     ActiveThreadData<bool> abortSweepAfterCurrentGroup;
 
-    /*
-     * Concurrent sweep infrastructure.
-     */
-    void startTask(GCParallelTask& task, gcstats::PhaseKind phase, AutoLockHelperThreadState& locked);
-    void joinTask(GCParallelTask& task, gcstats::PhaseKind phase, AutoLockHelperThreadState& locked);
-    friend class AutoRunParallelTask;
+    friend class WeakCacheSweepIterator;
 
     /*
      * List head of arenas allocated during the sweep phase.
@@ -1279,7 +1303,7 @@ class GCRuntime
      */
     ActiveThreadData<bool> compactingEnabled;
 
-    ActiveThreadData<bool> poked;
+    ActiveThreadData<bool> rootsRemoved;
 
     /*
      * These options control the zealousness of the GC. At every allocation,
@@ -1295,7 +1319,8 @@ class GCRuntime
      *     (see the help for details)
      *
      * If gcZeal_ == 1 then we perform GCs in select places (during MaybeGC and
-     * whenever a GC poke happens). This option is mainly useful to embedders.
+     * whenever we are notified that GC roots have been removed). This option is
+     * mainly useful to embedders.
      *
      * We use zeal_ == 4 to enable write barrier verification. See the comment
      * in jsgc.cpp for more information about this.

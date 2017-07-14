@@ -476,7 +476,7 @@
                            command="PageAction:emailLink"/>
             <toolbarbutton id="page-action-send-to-device-button"
                            class="subviewbutton subviewbutton-iconic subviewbutton-nav"
-                           label="&sendToDevice.label;"
+                           label="&sendToDevice.label2;"
                            closemenu="none"
                            oncommand="gPageActionButton.showSendToDeviceView(this);"/>
           </vbox>
@@ -786,11 +786,19 @@
                            class="toolbarbutton-1"
                            command="Browser:ReloadOrDuplicate"
                            onclick="checkForMiddleClick(this, event);"
-                           tooltip="dynamic-shortcut-tooltip"/>
+                           tooltip="dynamic-shortcut-tooltip">
+              <box class="toolbarbutton-animatable-box">
+                <image class="toolbarbutton-animatable-image"/>
+              </box>
+            </toolbarbutton>
             <toolbarbutton id="stop-button"
                            class="toolbarbutton-1"
                            command="Browser:Stop"
-                           tooltip="dynamic-shortcut-tooltip"/>
+                           tooltip="dynamic-shortcut-tooltip">
+              <box class="toolbarbutton-animatable-box">
+                <image class="toolbarbutton-animatable-image"/>
+              </box>
+            </toolbarbutton>
           </toolbaritem>
 #endif
           <hbox id="urlbar-wrapper" flex="1">
@@ -850,8 +858,8 @@
                 </box>
                 <box id="notification-popup-box"
                      hidden="true"
-                     onmouseover="document.getElementById('identity-icon').classList.add('no-hover');"
-                     onmouseout="document.getElementById('identity-icon').classList.remove('no-hover');"
+                     onmouseover="document.getElementById('identity-box').classList.add('no-hover');"
+                     onmouseout="document.getElementById('identity-box').classList.remove('no-hover');"
                      align="center">
                   <image id="default-notification-icon" class="notification-anchor-icon" role="button"
                          tooltiptext="&urlbar.defaultNotificationAnchor.tooltip;"/>
@@ -979,7 +987,7 @@
                      placespopup="true"
                      context="placesContext"
                      openInTabs="children"
-                     oncommand="BookmarksEventHandler.onCommand(event, this.parentNode._placesView);"
+                     oncommand="BookmarksEventHandler.onCommand(event);"
                      onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
                      onpopupshowing="BookmarkingUI.onPopupShowing(event);
                                      BookmarkingUI.attachPlacesView(event, this);"
@@ -1088,7 +1096,11 @@
       <toolbarbutton id="nav-bar-overflow-button"
                      class="toolbarbutton-1 chromeclass-toolbar-additional overflow-button"
                      skipintoolbarset="true"
-                     tooltiptext="&navbarOverflow.label;"/>
+                     tooltiptext="&navbarOverflow.label;">
+        <box class="toolbarbutton-animatable-box">
+          <image class="toolbarbutton-animatable-image"/>
+        </box>
+      </toolbarbutton>
 
       <toolbaritem id="PanelUI-button"
                    class="chromeclass-toolbar-additional"
@@ -1143,7 +1155,7 @@
               id="PlacesToolbar"
               context="placesContext"
               onclick="BookmarksEventHandler.onClick(event, this._placesView);"
-              oncommand="BookmarksEventHandler.onCommand(event, this._placesView);"
+              oncommand="BookmarksEventHandler.onCommand(event);"
               tooltip="bhTooltip"
               popupsinherittooltip="true">
           <hbox flex="1">
@@ -1213,6 +1225,7 @@
 #ifdef MOZ_PHOTON_THEME
       <toolbarbutton id="library-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                      oncommand="PanelUI.showSubView('appMenu-libraryView', this, null, true);"
+                     closemenu="none"
                      label="&places.library.title;"/>
 #endif
     </toolbarpalette>

@@ -33,10 +33,6 @@
 #include "nsProxyRelease.h"
 #include "nsIContentPolicy.h"
 
-#ifdef MOZ_ANDROID_HLS_SUPPORT
-#include "HLSResource.h"
-#endif
-
 using mozilla::media::TimeUnit;
 
 #undef LOG
@@ -79,13 +75,11 @@ NS_IMPL_ADDREF(MediaResource)
 NS_IMPL_RELEASE_WITH_DESTROY(MediaResource, Destroy())
 NS_IMPL_QUERY_INTERFACE0(MediaResource)
 
-ChannelMediaResource::ChannelMediaResource(
-  MediaResourceCallback* aCallback,
-  nsIChannel* aChannel,
-  nsIURI* aURI,
-  const MediaContainerType& aContainerType,
-  bool aIsPrivateBrowsing)
-  : BaseMediaResource(aCallback, aChannel, aURI, aContainerType)
+ChannelMediaResource::ChannelMediaResource(MediaResourceCallback* aCallback,
+                                           nsIChannel* aChannel,
+                                           nsIURI* aURI,
+                                           bool aIsPrivateBrowsing)
+  : BaseMediaResource(aCallback, aChannel, aURI)
   , mOffset(0)
   , mReopenOnError(false)
   , mIgnoreClose(false)
@@ -100,9 +94,8 @@ ChannelMediaResource::ChannelMediaResource(
   MediaResourceCallback* aCallback,
   nsIChannel* aChannel,
   nsIURI* aURI,
-  const MediaContainerType& aContainerType,
   const MediaChannelStatistics& aStatistics)
-  : BaseMediaResource(aCallback, aChannel, aURI, aContainerType)
+  : BaseMediaResource(aCallback, aChannel, aURI)
   , mOffset(0)
   , mReopenOnError(false)
   , mIgnoreClose(false)
@@ -186,6 +179,14 @@ ChannelMediaResource::Listener::GetInterface(const nsIID & aIID, void **aResult)
   return QueryInterface(aIID, aResult);
 }
 
+static bool
+IsPayloadCompressed(nsIHttpChannel* aChannel)
+{
+  nsAutoCString encoding;
+  Unused << aChannel->GetResponseHeader(NS_LITERAL_CSTRING("Content-Encoding"), encoding);
+  return encoding.Length() > 0;
+}
+
 nsresult
 ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
 {
@@ -258,7 +259,10 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
     bool dataIsBounded = false;
 
     int64_t contentLength = -1;
-    hc->GetContentLength(&contentLength);
+    const bool isCompressed = IsPayloadCompressed(hc);
+    if (!isCompressed) {
+      hc->GetContentLength(&contentLength);
+    }
     if (contentLength >= 0 &&
         (responseStatus == HTTP_OK_CODE ||
          responseStatus == HTTP_PARTIAL_RESPONSE_CODE)) {
@@ -271,7 +275,9 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
     // Content-Range header tells us otherwise.
     bool boundedSeekLimit = true;
     // Check response code for byte-range requests (seeking, chunk requests).
-    if (responseStatus == HTTP_PARTIAL_RESPONSE_CODE) {
+    // We don't expect to get a 206 response for a compressed stream, but
+    // double check just to be sure.
+    if (!isCompressed && responseStatus == HTTP_PARTIAL_RESPONSE_CODE) {
       // Parse Content-Range header.
       int64_t rangeStart = 0;
       int64_t rangeEnd = 0;
@@ -320,8 +326,8 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
 
     // If we get an HTTP_OK_CODE response to our byte range request,
     // and the server isn't sending Accept-Ranges:bytes then we don't
-    // support seeking.
-    seekable = acceptsRanges;
+    // support seeking. We also can't seek in compressed streams.
+    seekable = !isCompressed && acceptsRanges;
     if (seekable && boundedSeekLimit) {
       // If range requests are supported, and we did not see an unbounded
       // upper range limit, we assume the resource is bounded.
@@ -419,15 +425,19 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
   // cases where we don't need to reopen are when *we* closed the stream.
   // But don't reopen if we need to seek and we don't think we can... that would
   // cause us to just re-read the stream, which would be really bad.
-  if (mReopenOnError &&
-      aStatus != NS_ERROR_PARSED_DATA_CACHED && aStatus != NS_BINDING_ABORTED &&
-      (mOffset == 0 || mCacheStream.IsTransportSeekable())) {
-    // If the stream did close normally, then if the server is seekable we'll
-    // just seek to the end of the resource and get an HTTP 416 error because
-    // there's nothing there, so this isn't bad.
+  if (mReopenOnError && aStatus != NS_ERROR_PARSED_DATA_CACHED &&
+      aStatus != NS_BINDING_ABORTED &&
+      (mOffset == 0 || (GetLength() > 0 && mOffset != GetLength() &&
+                        mCacheStream.IsTransportSeekable()))) {
+    // If the stream did close normally, restart the channel if we're either
+    // at the start of the resource, or if the server is seekable and we're
+    // not at the end of stream. We don't restart the stream if we're at the
+    // end because not all web servers handle this case consistently; see:
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1373618#c36
     nsresult rv = CacheClientSeek(mOffset, false);
-    if (NS_SUCCEEDED(rv))
+    if (NS_SUCCEEDED(rv)) {
       return rv;
+    }
     // If the reopen/reseek fails, just fall through and treat this
     // error as fatal.
   }
@@ -534,7 +544,7 @@ nsresult ChannelMediaResource::Open(nsIStreamListener **aStreamListener)
   int64_t cl = -1;
   if (mChannel) {
     nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(mChannel);
-    if (hc) {
+    if (hc && !IsPayloadCompressed(hc)) {
       if (NS_FAILED(hc->GetContentLength(&cl))) {
         cl = -1;
       }
@@ -572,7 +582,7 @@ nsresult ChannelMediaResource::OpenChannel(nsIStreamListener** aStreamListener)
   // that expect to know the length of a resource can get it before
   // OnStartRequest() fires.
   nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(mChannel);
-  if (hc) {
+  if (hc && !IsPayloadCompressed(hc)) {
     int64_t cl = -1;
     if (NS_SUCCEEDED(hc->GetContentLength(&cl)) && cl != -1) {
       mCacheStream.NotifyDataLength(cl);
@@ -659,8 +669,8 @@ already_AddRefed<MediaResource> ChannelMediaResource::CloneData(MediaResourceCal
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   NS_ASSERTION(mCacheStream.IsAvailableForSharing(), "Stream can't be cloned");
 
-  RefPtr<ChannelMediaResource> resource = new ChannelMediaResource(
-    aCallback, nullptr, mURI, GetContentType(), mChannelStatistics);
+  RefPtr<ChannelMediaResource> resource =
+    new ChannelMediaResource(aCallback, nullptr, mURI, mChannelStatistics);
   if (resource) {
     // Initially the clone is treated as suspended by the cache, because
     // we don't have a channel. If the cache needs to read data from the clone
@@ -858,11 +868,6 @@ ChannelMediaResource::RecreateChannel()
                               loadFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // We have cached the Content-Type, which should not change. Give a hint to
-  // the channel to avoid a sniffing failure, which would be expected because we
-  // are probably seeking in the middle of the bitstream, and sniffing relies
-  // on the presence of a magic number at the beginning of the stream.
-  mChannel->SetContentType(GetContentType().OriginalString());
   mSuspendAgent.NotifyChannelOpened(mChannel);
 
   // Tell the cache to reset the download status when the channel is reopened.
@@ -1117,12 +1122,11 @@ class FileMediaResource : public BaseMediaResource
 public:
   FileMediaResource(MediaResourceCallback* aCallback,
                     nsIChannel* aChannel,
-                    nsIURI* aURI,
-                    const MediaContainerType& aContainerType) :
-    BaseMediaResource(aCallback, aChannel, aURI, aContainerType),
-    mSize(-1),
-    mLock("FileMediaResource.mLock"),
-    mSizeInitialized(false)
+                    nsIURI* aURI)
+    : BaseMediaResource(aCallback, aChannel, aURI)
+    , mSize(-1)
+    , mLock("FileMediaResource.mLock")
+    , mSizeInitialized(false)
   {
   }
   ~FileMediaResource()
@@ -1135,8 +1139,6 @@ public:
   void     Suspend(bool aCloseImmediately) override {}
   void     Resume() override {}
   already_AddRefed<nsIPrincipal> GetCurrentPrincipal() override;
-  bool     CanClone() override;
-  already_AddRefed<MediaResource> CloneData(MediaResourceCallback* aCallback) override;
   nsresult ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount) override;
 
   // These methods are called off the main thread.
@@ -1268,30 +1270,26 @@ nsresult FileMediaResource::GetCachedRanges(MediaByteRangeSet& aRanges)
 nsresult FileMediaResource::Open(nsIStreamListener** aStreamListener)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+  MOZ_ASSERT(aStreamListener);
 
-  if (aStreamListener) {
-    *aStreamListener = nullptr;
-  }
-
+  *aStreamListener = nullptr;
   nsresult rv = NS_OK;
-  if (aStreamListener) {
-    // The channel is already open. We need a synchronous stream that
-    // implements nsISeekableStream, so we have to find the underlying
-    // file and reopen it
-    nsCOMPtr<nsIFileChannel> fc(do_QueryInterface(mChannel));
-    if (fc) {
-      nsCOMPtr<nsIFile> file;
-      rv = fc->GetFile(getter_AddRefs(file));
-      NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = NS_NewLocalFileInputStream(
-        getter_AddRefs(mInput), file, -1, -1, nsIFileInputStream::SHARE_DELETE);
-    } else if (IsBlobURI(mURI)) {
-      rv = NS_GetStreamForBlobURI(mURI, getter_AddRefs(mInput));
-    }
-  } else {
-    rv = mChannel->Open2(getter_AddRefs(mInput));
+  // The channel is already open. We need a synchronous stream that
+  // implements nsISeekableStream, so we have to find the underlying
+  // file and reopen it
+  nsCOMPtr<nsIFileChannel> fc(do_QueryInterface(mChannel));
+  if (fc) {
+    nsCOMPtr<nsIFile> file;
+    rv = fc->GetFile(getter_AddRefs(file));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = NS_NewLocalFileInputStream(
+      getter_AddRefs(mInput), file, -1, -1, nsIFileInputStream::SHARE_DELETE);
+  } else if (IsBlobURI(mURI)) {
+    rv = NS_GetStreamForBlobURI(mURI, getter_AddRefs(mInput));
   }
+
   NS_ENSURE_SUCCESS(rv, rv);
 
   mSeekable = do_QueryInterface(mInput);
@@ -1330,52 +1328,6 @@ already_AddRefed<nsIPrincipal> FileMediaResource::GetCurrentPrincipal()
     return nullptr;
   secMan->GetChannelResultPrincipal(mChannel, getter_AddRefs(principal));
   return principal.forget();
-}
-
-bool FileMediaResource::CanClone()
-{
-  return true;
-}
-
-already_AddRefed<MediaResource> FileMediaResource::CloneData(MediaResourceCallback* aCallback)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-
-  MediaDecoderOwner* owner = mCallback->GetMediaOwner();
-  if (!owner) {
-    // The decoder is being shut down, so we can't clone
-    return nullptr;
-  }
-  dom::HTMLMediaElement* element = owner->GetMediaElement();
-  if (!element) {
-    // The decoder is being shut down, so we can't clone
-    return nullptr;
-  }
-  nsCOMPtr<nsILoadGroup> loadGroup = element->GetDocumentLoadGroup();
-  NS_ENSURE_TRUE(loadGroup, nullptr);
-
-  MOZ_ASSERT(element->IsAnyOfHTMLElements(nsGkAtoms::audio, nsGkAtoms::video));
-  nsContentPolicyType contentPolicyType = element->IsHTMLElement(nsGkAtoms::audio) ?
-    nsIContentPolicy::TYPE_INTERNAL_AUDIO : nsIContentPolicy::TYPE_INTERNAL_VIDEO;
-
-  nsLoadFlags loadFlags = nsIRequest::LOAD_NORMAL | nsIChannel::LOAD_CLASSIFY_URI;
-
-  nsCOMPtr<nsIChannel> channel;
-  nsresult rv =
-    NS_NewChannel(getter_AddRefs(channel),
-                  mURI,
-                  element,
-                  nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
-                  contentPolicyType,
-                  loadGroup,
-                  nullptr,  // aCallbacks
-                  loadFlags);
-
-  if (NS_FAILED(rv))
-    return nullptr;
-
-  RefPtr<MediaResource> resource(new FileMediaResource(aCallback, channel, mURI, GetContentType()));
-  return resource.forget();
 }
 
 nsresult FileMediaResource::ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount)
@@ -1506,17 +1458,10 @@ MediaResource::Create(MediaResourceCallback* aCallback,
 
   RefPtr<MediaResource> resource;
 
-#ifdef MOZ_ANDROID_HLS_SUPPORT
-  if (DecoderTraits::IsHttpLiveStreamingType(containerType.value())) {
-    resource = new HLSResource(aCallback, aChannel, uri, *containerType);
-    return resource.forget();
-  }
-#endif
-
   // Let's try to create a FileMediaResource in case the channel is a nsIFile
   nsCOMPtr<nsIFileChannel> fc = do_QueryInterface(aChannel);
   if (fc) {
-    resource = new FileMediaResource(aCallback, aChannel, uri, *containerType);
+    resource = new FileMediaResource(aCallback, aChannel, uri);
   }
 
   // If the URL is blobURL with a seekable inputStream, we can still use a
@@ -1529,15 +1474,13 @@ MediaResource::Create(MediaResourceCallback* aCallback,
     if (IsBlobURI(uri) &&
         NS_SUCCEEDED(NS_GetStreamForBlobURI(uri, getter_AddRefs(stream))) &&
         (seekableStream = do_QueryInterface(stream))) {
-      resource =
-        new FileMediaResource(aCallback, aChannel, uri, *containerType);
+      resource = new FileMediaResource(aCallback, aChannel, uri);
     }
   }
 
   if (!resource) {
     resource =
-      new ChannelMediaResource(aCallback, aChannel, uri, *containerType,
-                               aIsPrivateBrowsing);
+      new ChannelMediaResource(aCallback, aChannel, uri, aIsPrivateBrowsing);
   }
 
   return resource.forget();

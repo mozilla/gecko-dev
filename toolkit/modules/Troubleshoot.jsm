@@ -18,6 +18,9 @@ try {
 } catch (e) {
 }
 
+const env = Cc["@mozilla.org/process/environment;1"]
+              .getService(Ci.nsIEnvironment);
+
 // We use a preferences whitelist to make sure we only show preferences that
 // are useful for support and won't compromise the user's privacy.  Note that
 // entries are *prefixes*: for example, "accessibility." applies to all prefs
@@ -66,6 +69,7 @@ const PREFS_WHITELIST = [
   "keyword.",
   "layers.",
   "layout.css.dpi",
+  "layout.css.servo.enabled",
   "media.",
   "mousewheel.",
   "network.",
@@ -221,6 +225,13 @@ var dataProviders = {
     } catch (e) {
       data.autoStartStatus = -1;
     }
+
+    data.styloBuild = AppConstants.MOZ_STYLO;
+    data.styloDefault = Services.prefs.getDefaultBranch(null)
+                                .getBoolPref("layout.css.servo.enabled", false);
+    data.styloResult =
+      !!env.get("STYLO_FORCE_ENABLED") ||
+      Services.prefs.getBoolPref("layout.css.servo.enabled", false);
 
     const keyGoogle = Services.urlFormatter.formatURL("%GOOGLE_API_KEY%").trim();
     data.keyGoogleFound = keyGoogle != "no-google-api-key" && keyGoogle.length > 0;

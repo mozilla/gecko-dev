@@ -10,8 +10,8 @@ use euclid::{Point2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, Typed
 use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, CONTROL};
+use ipc_channel::ipc::{self, IpcSharedMemory};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, TraversalDirection};
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::time::{self, ProfilerCategory, profile};
@@ -459,11 +459,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_page_title(pipeline_id, title);
             }
 
-            (Msg::SetFrameTree(frame_tree, response_chan),
+            (Msg::SetFrameTree(frame_tree),
              ShutdownState::NotShuttingDown) => {
-                self.set_frame_tree(&frame_tree, response_chan);
+                self.set_frame_tree(&frame_tree);
                 self.send_viewport_rects();
-                self.title_for_main_frame();
             }
 
             (Msg::ScrollFragmentPoint(scroll_root_id, point, _),
@@ -673,13 +672,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn set_frame_tree(&mut self,
-                      frame_tree: &SendableFrameTree,
-                      response_chan: IpcSender<()>) {
+    fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         debug!("Setting the frame tree for pipeline {}", frame_tree.pipeline.id);
-        if let Err(e) = response_chan.send(()) {
-            warn!("Sending reponse to set frame tree failed ({}).", e);
-        }
 
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
@@ -829,6 +823,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending reload to constellation failed ({}).", e);
                 }
+            }
+
+            WindowEvent::ToggleWebRenderProfiler => {
+                let profiler_enabled = self.webrender.get_profiler_enabled();
+                self.webrender.set_profiler_enabled(!profiler_enabled);
+                self.webrender_api.generate_frame(None);
             }
         }
     }
@@ -1318,18 +1318,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     key: Key,
                     state: KeyState,
                     modifiers: KeyModifiers) {
-        // Steal a few key events for webrender debug options.
-        if modifiers.contains(CONTROL) && state == KeyState::Pressed {
-            match key {
-                Key::F12 => {
-                    let profiler_enabled = self.webrender.get_profiler_enabled();
-                    self.webrender.set_profiler_enabled(!profiler_enabled);
-                    return;
-                }
-                _ => {}
-            }
-        }
-
         let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending key event to constellation failed ({}).", e);
@@ -1644,11 +1632,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.shutdown_state != ShutdownState::FinishedShuttingDown
     }
 
-    pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {
-        self.webrender.set_profiler_enabled(enabled);
-        self.webrender_api.generate_frame(None);
-    }
-
     /// Repaints and recomposites synchronously. You must be careful when calling this, as if a
     /// paint is not scheduled the compositor will hang forever.
     ///
@@ -1674,17 +1657,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn pinch_zoom_level(&self) -> f32 {
         // TODO(gw): Access via WR.
         1.0
-    }
-
-    pub fn title_for_main_frame(&self) {
-        let root_pipeline_id = match self.root_pipeline {
-            None => return,
-            Some(ref root_pipeline) => root_pipeline.id,
-        };
-        let msg = ConstellationMsg::GetPipelineTitle(root_pipeline_id);
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Failed to send pipeline title ({}).", e);
-        }
     }
 }
 

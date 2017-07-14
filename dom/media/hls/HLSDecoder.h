@@ -33,8 +33,10 @@ public:
   // If provided, codecs are checked for support.
   static bool IsSupportedType(const MediaContainerType& aContainerType);
 
-private:
-  RefPtr<MediaFormatReader> mReader;
+  nsresult Load(nsIChannel* aChannel,
+                bool aIsPrivateBrowsing,
+                nsIStreamListener**) override;
+  nsresult Load(MediaResource*) override;
 };
 
 } // namespace mozilla

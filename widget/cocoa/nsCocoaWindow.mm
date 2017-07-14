@@ -7,6 +7,7 @@
 #include "nsCocoaWindow.h"
 
 #include "NativeKeyBindings.h"
+#include "ScreenHelperCocoa.h"
 #include "TextInputHandler.h"
 #include "nsObjCExceptions.h"
 #include "nsCOMPtr.h"
@@ -894,6 +895,7 @@ nsCocoaWindow::Show(bool bState)
           }
         }
         [mWindow setAnimationBehavior:behavior];
+        mWindowAnimationBehavior = behavior;
       }
       [mWindow makeKeyAndOrderFront:nil];
       NS_OBJC_END_TRY_ABORT_BLOCK;
@@ -1297,6 +1299,18 @@ nsCocoaWindow::SetSizeMode(nsSizeMode aMode)
   }
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+
+void
+nsCocoaWindow::SuppressAnimation(bool aSuppress)
+{
+  if ([mWindow respondsToSelector:@selector(setAnimationBehavior:)]) {
+    if (aSuppress) {
+      [mWindow setAnimationBehavior:NSWindowAnimationBehaviorNone];
+    } else {
+      [mWindow setAnimationBehavior:mWindowAnimationBehavior];
+    }
+  }
 }
 
 // This has to preserve the window's frame bounds.

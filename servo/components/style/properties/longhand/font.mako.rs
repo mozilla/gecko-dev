@@ -16,7 +16,7 @@
 </%def>
 
 #[cfg(feature = "gecko")]
-macro_rules! impl_gecko_keyword_from_trait {
+macro_rules! impl_gecko_keyword_conversions {
     ($name: ident, $utype: ty) => {
         impl From<$utype> for $name {
             fn from(bits: $utype) -> $name {
@@ -35,16 +35,6 @@ macro_rules! impl_gecko_keyword_from_trait {
 // Define ToComputedValue, ToCss, and other boilerplate for a specified value
 // which is of the form `enum SpecifiedValue {Value(..), System(SystemFont)}`
 <%def name="simple_system_boilerplate(name)">
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Value(ref v) => v.to_css(dest),
-                SpecifiedValue::System(_) => Ok(())
-            }
-        }
-    }
-
-
     impl SpecifiedValue {
         pub fn system_font(f: SystemFont) -> Self {
             SpecifiedValue::System(f)
@@ -78,7 +68,7 @@ macro_rules! impl_gecko_keyword_from_trait {
     }
 </%def>
 
-<%helpers:longhand name="font-family" animation_value_type="none" need_index="True"  boxed="${product == 'gecko'}"
+<%helpers:longhand name="font-family" animation_value_type="discrete" need_index="True"  boxed="${product == 'gecko'}"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use properties::longhands::system_font::SystemFont;
     use self::computed_value::{FontFamily, FamilyName};
@@ -366,7 +356,7 @@ macro_rules! impl_gecko_keyword_from_trait {
                     }
                     Ok(())
                 }
-                _ => Ok(())
+                SpecifiedValue::System(sys) => sys.to_css(dest),
             }
         }
     }
@@ -409,42 +399,23 @@ ${helpers.single_keyword_system("font-variant-caps",
 
 <%helpers:longhand name="font-weight" need_clone="True" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
-    use std::fmt;
-    use style_traits::ToCss;
     use properties::longhands::system_font::SystemFont;
 
     no_viewport_percentage!(SpecifiedValue);
 
-    #[derive(Debug, Clone, PartialEq, Eq, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Normal,
         Bold,
         Bolder,
         Lighter,
-        % for weight in range(100, 901, 100):
-            Weight${weight},
-        % endfor
+        Weight(computed_value::T),
         System(SystemFont),
     }
 
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Bold => dest.write_str("bold"),
-                SpecifiedValue::Bolder => dest.write_str("bolder"),
-                SpecifiedValue::Lighter => dest.write_str("lighter"),
-                % for weight in range(100, 901, 100):
-                    SpecifiedValue::Weight${weight} => dest.write_str("${weight}"),
-                % endfor
-                SpecifiedValue::System(_) => Ok(())
-            }
-        }
-    }
-
     /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         let result = input.try(|input| {
             let ident = input.expect_ident().map_err(|_| ())?;
@@ -456,25 +427,13 @@ ${helpers.single_keyword_system("font-variant-caps",
                 _ => Err(())
             }
         });
-        result.or_else(|_| {
-            SpecifiedValue::from_int(input.expect_integer()?)
-                .map_err(|()| StyleParseError::UnspecifiedError.into())
-        })
+        result.or_else(|_| computed_value::T::parse(context, input).map(SpecifiedValue::Weight))
     }
 
     impl SpecifiedValue {
-        pub fn from_int(kw: i32) -> Result<Self, ()> {
-            match kw {
-                % for weight in range(100, 901, 100):
-                    ${weight} => Ok(SpecifiedValue::Weight${weight}),
-                % endfor
-                _ => Err(())
-            }
-        }
-
         pub fn from_gecko_keyword(kw: u32) -> Self {
-            Self::from_int(kw as i32).expect("Found unexpected value in style
-                                              struct for font-weight property")
+            computed_value::T::from_int(kw as i32).map(SpecifiedValue::Weight)
+                .expect("Found unexpected value in style struct for font-weight property")
         }
     }
 
@@ -491,64 +450,79 @@ ${helpers.single_keyword_system("font-variant-caps",
         }
     }
 
-    /// Used in @font-face, where relative keywords are not allowed.
-    impl Parse for computed_value::T {
-        fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-            match parse(context, input)? {
-                % for weight in range(100, 901, 100):
-                    SpecifiedValue::Weight${weight} => Ok(computed_value::T::Weight${weight}),
-                % endfor
-                SpecifiedValue::Normal => Ok(computed_value::T::Weight400),
-                SpecifiedValue::Bold => Ok(computed_value::T::Weight700),
-                SpecifiedValue::Bolder |
-                SpecifiedValue::Lighter => Err(StyleParseError::UnspecifiedError.into()),
-                SpecifiedValue::System(..) => unreachable!(),
-            }
-        }
-    }
-
     pub mod computed_value {
-        #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+        /// As of CSS Fonts Module Level 3, only the following values are
+        /// valid: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-        #[repr(u16)]
-        pub enum T {
-            % for weight in range(100, 901, 100):
-                Weight${weight} = ${weight},
-            % endfor
-        }
+        pub struct T(pub u16);
+
         impl T {
-            #[inline]
-            pub fn is_bold(self) -> bool {
-                match self {
-                    T::Weight900 | T::Weight800 |
-                    T::Weight700 | T::Weight600 => true,
-                    _ => false
+            /// Value for normal
+            pub fn normal() -> Self {
+                T(400)
+            }
+
+            /// Value for bold
+            pub fn bold() -> Self {
+                T(700)
+            }
+
+            /// Convert from an integer to Weight
+            pub fn from_int(n: i32) -> Result<Self, ()> {
+                if n >= 100 && n <= 900 && n % 100 == 0 {
+                    Ok(T(n as u16))
+                } else {
+                    Err(())
                 }
             }
 
-            /// Obtain a Servo computed value from a Gecko computed font-weight
+            /// Convert from an Gecko weight
             pub fn from_gecko_weight(weight: u16) -> Self {
-                match weight {
-                    % for weight in range(100, 901, 100):
-                        ${weight} => T::Weight${weight},
-                    % endfor
-                    _ => panic!("from_gecko_weight: called with invalid weight")
+                Self::from_int(weight as i32)
+                    .expect("from_gecko_weight: called with invalid weight")
+            }
+
+            /// Weither this weight is bold
+            pub fn is_bold(&self) -> bool {
+                self.0 > 500
+            }
+
+            /// Return the bolder weight
+            pub fn bolder(self) -> Self {
+                if self.0 < 400 {
+                    T(400)
+                } else if self.0 < 600 {
+                    T(700)
+                } else {
+                    T(900)
+                }
+            }
+
+            /// Returns the lighter weight
+            pub fn lighter(self) -> Self {
+                if self.0 < 600 {
+                    T(100)
+                } else if self.0 < 800 {
+                    T(400)
+                } else {
+                    T(700)
                 }
             }
         }
     }
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                % for weight in range(100, 901, 100):
-                    computed_value::T::Weight${weight} => dest.write_str("${weight}"),
-                % endfor
+
+    impl Parse for computed_value::T {
+        fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
+            -> Result<Self, ParseError<'i>> {
+                Self::from_int(input.expect_integer()?)
+                    .map_err(|_| StyleParseError::UnspecifiedError.into())
             }
-        }
     }
+
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Weight400  // normal
+        computed_value::T::normal()
     }
 
     #[inline]
@@ -562,33 +536,13 @@ ${helpers.single_keyword_system("font-variant-caps",
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
-                % for weight in range(100, 901, 100):
-                    SpecifiedValue::Weight${weight} => computed_value::T::Weight${weight},
-                % endfor
-                SpecifiedValue::Normal => computed_value::T::Weight400,
-                SpecifiedValue::Bold => computed_value::T::Weight700,
-                SpecifiedValue::Bolder => match context.inherited_style().get_font().clone_font_weight() {
-                    computed_value::T::Weight100 => computed_value::T::Weight400,
-                    computed_value::T::Weight200 => computed_value::T::Weight400,
-                    computed_value::T::Weight300 => computed_value::T::Weight400,
-                    computed_value::T::Weight400 => computed_value::T::Weight700,
-                    computed_value::T::Weight500 => computed_value::T::Weight700,
-                    computed_value::T::Weight600 => computed_value::T::Weight900,
-                    computed_value::T::Weight700 => computed_value::T::Weight900,
-                    computed_value::T::Weight800 => computed_value::T::Weight900,
-                    computed_value::T::Weight900 => computed_value::T::Weight900,
-                },
-                SpecifiedValue::Lighter => match context.inherited_style().get_font().clone_font_weight() {
-                    computed_value::T::Weight100 => computed_value::T::Weight100,
-                    computed_value::T::Weight200 => computed_value::T::Weight100,
-                    computed_value::T::Weight300 => computed_value::T::Weight100,
-                    computed_value::T::Weight400 => computed_value::T::Weight100,
-                    computed_value::T::Weight500 => computed_value::T::Weight100,
-                    computed_value::T::Weight600 => computed_value::T::Weight400,
-                    computed_value::T::Weight700 => computed_value::T::Weight400,
-                    computed_value::T::Weight800 => computed_value::T::Weight700,
-                    computed_value::T::Weight900 => computed_value::T::Weight700,
-                },
+                SpecifiedValue::Weight(weight) => weight,
+                SpecifiedValue::Normal => computed_value::T::normal(),
+                SpecifiedValue::Bold => computed_value::T::bold(),
+                SpecifiedValue::Bolder =>
+                    context.inherited_style().get_font().clone_font_weight().bolder(),
+                SpecifiedValue::Lighter =>
+                    context.inherited_style().get_font().clone_font_weight().lighter(),
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
                         context.cached_system_font.as_ref().unwrap().font_weight.clone()
@@ -599,11 +553,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                % for weight in range(100, 901, 100):
-                    computed_value::T::Weight${weight} => SpecifiedValue::Weight${weight},
-                % endfor
-            }
+            SpecifiedValue::Weight(*computed)
         }
     }
 </%helpers:longhand>
@@ -627,7 +577,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Keyword(kw, _) => kw.to_css(dest),
                 SpecifiedValue::Smaller => dest.write_str("smaller"),
                 SpecifiedValue::Larger => dest.write_str("larger"),
-                SpecifiedValue::System(_) => Ok(()),
+                SpecifiedValue::System(sys) => sys.to_css(dest),
             }
         }
     }
@@ -1038,29 +988,15 @@ ${helpers.single_keyword_system("font-variant-caps",
 <%helpers:longhand products="gecko" name="font-size-adjust" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
     use properties::longhands::system_font::SystemFont;
-    use std::fmt;
-    use style_traits::ToCss;
 
     no_viewport_percentage!(SpecifiedValue);
 
-    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
         Number(specified::Number),
         System(SystemFont),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-            where W: fmt::Write,
-        {
-            match *self {
-                SpecifiedValue::None => dest.write_str("none"),
-                SpecifiedValue::Number(number) => number.to_css(dest),
-                SpecifiedValue::System(_) => Ok(()),
-            }
-        }
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -1272,19 +1208,123 @@ ${helpers.single_keyword_system("font-kerning",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-kerning",
                                 animation_value_type="discrete")}
 
-/// FIXME: Implement proper handling of each values.
-/// https://github.com/servo/servo/issues/15957
 <%helpers:longhand name="font-variant-alternates" products="gecko" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-alternates">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
+    use values::CustomIdent;
 
     no_viewport_percentage!(SpecifiedValue);
 
+    #[derive(PartialEq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum VariantAlternates {
+        Stylistic(CustomIdent),
+        Styleset(Box<[CustomIdent]>),
+        CharacterVariant(Box<[CustomIdent]>),
+        Swash(CustomIdent),
+        Ornaments(CustomIdent),
+        Annotation(CustomIdent),
+        HistoricalForms,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct VariantAlternatesList(pub Box<[VariantAlternates]>);
+
+    #[derive(Debug, Clone, PartialEq, ToCss)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Value(VariantAlternatesList),
+        System(SystemFont)
+    }
+
+    <%self:simple_system_boilerplate name="font_variant_alternates"></%self:simple_system_boilerplate>
+
+    impl ToCss for VariantAlternates {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                % for value in "swash stylistic ornaments annotation".split():
+                VariantAlternates::${to_camel_case(value)}(ref atom) => {
+                    dest.write_str("${value}")?;
+                    dest.write_str("(")?;
+                    atom.to_css(dest)?;
+                    dest.write_str(")")
+                },
+                % endfor
+                % for value in "styleset character-variant".split():
+                VariantAlternates::${to_camel_case(value)}(ref vec) => {
+                    dest.write_str("${value}")?;
+                    dest.write_str("(")?;
+                    let mut iter = vec.iter();
+                    iter.next().unwrap().to_css(dest)?;
+                    for c in iter {
+                        dest.write_str(", ")?;
+                        c.to_css(dest)?;
+                    }
+                    dest.write_str(")")
+                },
+                % endfor
+                VariantAlternates::HistoricalForms => {
+                    dest.write_str("historical-forms")
+                },
+            }
+        }
+    }
+
+    impl ToCss for VariantAlternatesList {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.0.is_empty() {
+                return dest.write_str("normal");
+            }
+
+            let mut iter = self.0.iter();
+            iter.next().unwrap().to_css(dest)?;
+            for alternate in iter {
+                dest.write_str(" ")?;
+                alternate.to_css(dest)?;
+            }
+            Ok(())
+        }
+    }
+
+    impl VariantAlternatesList {
+        /// Returns the length of all variant alternates.
+        pub fn len(&self) -> usize {
+            self.0.iter().fold(0, |acc, alternate| {
+                match *alternate {
+                    % for value in "Swash Stylistic Ornaments Annotation".split():
+                        VariantAlternates::${value}(_) => {
+                            acc + 1
+                        },
+                    % endfor
+                    % for value in "Styleset CharacterVariant".split():
+                        VariantAlternates::${value}(ref slice) => {
+                            acc + slice.len()
+                        }
+                    % endfor
+                    _ => acc,
+                }
+            })
+        }
+    }
+
+    pub mod computed_value {
+        pub type T = super::VariantAlternatesList;
+    }
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        VariantAlternatesList(vec![].into_boxed_slice())
+    }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Value(VariantAlternatesList(vec![].into_boxed_slice()))
+    }
+
     bitflags! {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub flags VariantAlternates: u8 {
+        pub flags ParsingFlags: u8 {
             const NORMAL = 0,
             const HISTORICAL_FORMS = 0x01,
             const STYLISTIC = 0x02,
@@ -1294,69 +1334,6 @@ ${helpers.single_keyword_system("font-kerning",
             const ORNAMENTS = 0x20,
             const ANNOTATION = 0x40,
         }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
-    pub enum SpecifiedValue {
-        Value(VariantAlternates),
-        System(SystemFont)
-    }
-
-    <%self:simple_system_boilerplate name="font_variant_alternates"></%self:simple_system_boilerplate>
-
-    <% font_variant_alternates_map = { "HISTORICAL_FORMS": "HISTORICAL",
-                                       "STYLISTIC": "STYLISTIC",
-                                       "STYLESET": "STYLESET",
-                                       "CHARACTER_VARIANT": "CHARACTER_VARIANT",
-                                       "SWASH": "SWASH",
-                                       "ORNAMENTS": "ORNAMENTS",
-                                       "ANNOTATION": "ANNOTATION" } %>
-    ${helpers.gecko_bitflags_conversion(font_variant_alternates_map, 'NS_FONT_VARIANT_ALTERNATES_',
-                                        'VariantAlternates', kw_type='u16')}
-
-    impl ToCss for VariantAlternates {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.is_empty() {
-                return dest.write_str("normal")
-            }
-
-            let mut has_any = false;
-
-            macro_rules! write_value {
-                ($ident:ident => $str:expr) => {
-                    if self.intersects($ident) {
-                        if has_any {
-                            dest.write_str(" ")?;
-                        }
-                        has_any = true;
-                        dest.write_str($str)?;
-                    }
-                }
-            }
-
-            write_value!(HISTORICAL_FORMS => "historical-forms");
-            write_value!(STYLISTIC => "stylistic");
-            write_value!(STYLESET => "styleset");
-            write_value!(CHARACTER_VARIANT => "character-variant");
-            write_value!(SWASH => "swash");
-            write_value!(ORNAMENTS => "ornaments");
-            write_value!(ANNOTATION => "annotation");
-
-            debug_assert!(has_any);
-            Ok(())
-        }
-    }
-
-    pub mod computed_value {
-        pub type T = super::VariantAlternates;
-    }
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::empty()
-    }
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Value(VariantAlternates::empty())
     }
 
     /// normal |
@@ -1369,35 +1346,63 @@ ${helpers.single_keyword_system("font-kerning",
     ///    annotation(<feature-value-name>) ]
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        let mut result = VariantAlternates::empty();
-
+        let mut alternates = Vec::new();
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            return Ok(SpecifiedValue::Value(result))
+            return Ok(SpecifiedValue::Value(VariantAlternatesList(alternates.into_boxed_slice())));
         }
 
-        while let Ok(flag) = input.try(|input| {
-            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
-                "stylistic" => STYLISTIC,
-                "historical-forms" => HISTORICAL_FORMS,
-                "styleset" => STYLESET,
-                "character-variant" => CHARACTER_VARIANT,
-                "swash" => SWASH,
-                "ornaments" => ORNAMENTS,
-                "annotation" => ANNOTATION,
-                _ => return Err(()),
-            })
-        }) {
-            if result.intersects(flag) {
-                return Err(StyleParseError::UnspecifiedError.into())
+        let mut parsed_alternates = ParsingFlags::empty();
+        macro_rules! check_if_parsed(
+            ($flag:ident) => (
+                if parsed_alternates.contains($flag) {
+                    return Err(StyleParseError::UnspecifiedError.into())
+                }
+                parsed_alternates |= $flag;
+            )
+        );
+        while let Ok(_) = input.try(|input| {
+            match input.next()? {
+                Token::Ident(ident) => {
+                    if ident == "historical-forms" {
+                        check_if_parsed!(HISTORICAL_FORMS);
+                        alternates.push(VariantAlternates::HistoricalForms);
+                        Ok(())
+                    } else {
+                        return Err(StyleParseError::UnspecifiedError.into());
+                    }
+                },
+                Token::Function(name) => {
+                    input.parse_nested_block(|i| {
+                        match_ignore_ascii_case! { &name,
+                            % for value in "swash stylistic ornaments annotation".split():
+                            "${value}" => {
+                                check_if_parsed!(${value.upper()});
+                                let ident = CustomIdent::from_ident(i.expect_ident()?, &[])?;
+                                alternates.push(VariantAlternates::${to_camel_case(value)}(ident));
+                                Ok(())
+                            },
+                            % endfor
+                            % for value in "styleset character-variant".split():
+                            "${value}" => {
+                                check_if_parsed!(${to_rust_ident(value).upper()});
+                                let idents = i.parse_comma_separated(|i|
+                                    CustomIdent::from_ident(i.expect_ident()?, &[]))?;
+                                alternates.push(VariantAlternates::${to_camel_case(value)}(idents.into_boxed_slice()));
+                                Ok(())
+                            },
+                            % endfor
+                            _ => return Err(StyleParseError::UnspecifiedError.into()),
+                        }
+                    })
+                },
+                _ => Err(StyleParseError::UnspecifiedError.into()),
             }
-            result.insert(flag);
-        }
+        }) { }
 
-        if !result.is_empty() {
-            Ok(SpecifiedValue::Value(result))
-        } else {
-            Err(StyleParseError::UnspecifiedError.into())
+        if parsed_alternates.is_empty() {
+            return Err(StyleParseError::UnspecifiedError.into());
         }
+        Ok(SpecifiedValue::Value(VariantAlternatesList(alternates.into_boxed_slice())))
     }
 </%helpers:longhand>
 
@@ -1437,7 +1442,7 @@ macro_rules! exclusive_value {
     }
 
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Value(VariantEastAsian),
         System(SystemFont)
@@ -1554,7 +1559,7 @@ macro_rules! exclusive_value {
     }
 
     #[cfg(feature = "gecko")]
-    impl_gecko_keyword_from_trait!(VariantEastAsian, u16);
+    impl_gecko_keyword_conversions!(VariantEastAsian, u16);
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="discrete"
@@ -1582,7 +1587,7 @@ macro_rules! exclusive_value {
     }
 
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Value(VariantLigatures),
         System(SystemFont)
@@ -1713,7 +1718,7 @@ macro_rules! exclusive_value {
     }
 
     #[cfg(feature = "gecko")]
-    impl_gecko_keyword_from_trait!(VariantLigatures, u16);
+    impl_gecko_keyword_conversions!(VariantLigatures, u16);
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="discrete"
@@ -1741,7 +1746,7 @@ macro_rules! exclusive_value {
 
 
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Value(VariantNumeric),
         System(SystemFont)
@@ -1861,7 +1866,7 @@ macro_rules! exclusive_value {
     }
 
     #[cfg(feature = "gecko")]
-    impl_gecko_keyword_from_trait!(VariantNumeric, u8);
+    impl_gecko_keyword_conversions!(VariantNumeric, u8);
 </%helpers:longhand>
 
 ${helpers.single_keyword_system("font-variant-position",
@@ -1872,15 +1877,13 @@ ${helpers.single_keyword_system("font-variant-position",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
                                 animation_value_type="discrete")}
 
-<%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="discrete"
                    extra_prefixes="moz" boxed="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
     use properties::longhands::system_font::SystemFont;
-    use std::fmt;
-    use style_traits::ToCss;
     use values::generics::FontSettings;
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Value(computed_value::T),
         System(SystemFont)
@@ -1968,7 +1971,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
             match *self {
                 SpecifiedValue::Normal => dest.write_str("normal"),
                 SpecifiedValue::Override(ref lang) => lang.to_css(dest),
-                SpecifiedValue::System(_) => Ok(())
+                SpecifiedValue::System(sys) => sys.to_css(dest),
             }
         }
     }
@@ -2336,8 +2339,9 @@ ${helpers.single_keyword("-moz-math-variant",
         //! whenever a font longhand on the same element needs the system font.
 
         use app_units::Au;
-        use cssparser::Parser;
+        use cssparser::{Parser, ToCss};
         use properties::longhands;
+        use std::fmt;
         use std::hash::{Hash, Hasher};
         use style_traits::ParseError;
         use values::computed::{ToComputedValue, Context};
@@ -2347,9 +2351,8 @@ ${helpers.single_keyword("-moz-math-variant",
                               -moz-info -moz-dialog -moz-button -moz-pull-down-menu
                               -moz-list -moz-field""".split()
             kw_font_props = """font_style font_variant_caps font_stretch
-                               font_kerning font_variant_position font_variant_alternates
-                               font_variant_ligatures font_variant_east_asian
-                               font_variant_numeric""".split()
+                               font_kerning font_variant_position font_variant_ligatures
+                               font_variant_east_asian font_variant_numeric""".split()
             kw_cast = """font_style font_variant_caps font_stretch
                          font_kerning font_variant_position""".split()
         %>
@@ -2428,6 +2431,7 @@ ${helpers.single_keyword("-moz-math-variant",
                     font_language_override: longhands::font_language_override::computed_value
                                                      ::T(system.languageOverride),
                     font_feature_settings: longhands::font_feature_settings::get_initial_value(),
+                    font_variant_alternates: longhands::font_variant_alternates::get_initial_value(),
                     system_font: *self,
                 };
                 unsafe { bindings::Gecko_nsFont_Destroy(&mut system); }
@@ -2469,6 +2473,14 @@ ${helpers.single_keyword("-moz-math-variant",
                 }
             }
         }
+
+        impl ToCss for SystemFont {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                // We may want to do something better in the future, see
+                // w3c/csswg-drafts#1586.
+                dest.write_str("-moz-use-system-font")
+            }
+        }
     }
 % else:
     pub mod system_font {
@@ -2478,7 +2490,7 @@ ${helpers.single_keyword("-moz-math-variant",
         // a lot of code with `if product == gecko` conditionals, we have a
         // dummy system font module that does nothing
 
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ToCss)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         /// void enum for system font, can never exist
         pub enum SystemFont {}

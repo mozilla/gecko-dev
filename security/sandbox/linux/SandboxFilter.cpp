@@ -11,6 +11,10 @@
 #include "SandboxInfo.h"
 #include "SandboxInternal.h"
 #include "SandboxLogging.h"
+#ifdef MOZ_GMP_SANDBOX
+#include "SandboxOpenedFiles.h"
+#endif
+#include "mozilla/PodOperations.h"
 #include "mozilla/UniquePtr.h"
 
 #include <errno.h>
@@ -23,6 +27,7 @@
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
+#include <sys/utsname.h>
 #include <time.h>
 #include <unistd.h>
 #include <vector>
@@ -108,7 +113,7 @@ private:
   }
 
 public:
-  virtual ResultExpr InvalidSyscall() const override {
+  ResultExpr InvalidSyscall() const override {
     return Trap(BlockedSyscallTrap, nullptr);
   }
 
@@ -155,7 +160,7 @@ public:
       .Default(InvalidSyscall());
   }
 
-  virtual Maybe<ResultExpr> EvaluateSocketCall(int aCall) const override {
+  Maybe<ResultExpr> EvaluateSocketCall(int aCall) const override {
     switch (aCall) {
     case SYS_RECVMSG:
     case SYS_SENDMSG:
@@ -165,7 +170,7 @@ public:
     }
   }
 
-  virtual ResultExpr EvaluateSyscall(int sysno) const override {
+  ResultExpr EvaluateSyscall(int sysno) const override {
     switch (sysno) {
       // Timekeeping
     case __NR_clock_gettime: {
@@ -520,13 +525,13 @@ public:
                                 const std::vector<int>& aSyscallWhitelist)
     : mBroker(aBroker),
       mSyscallWhitelist(aSyscallWhitelist) {}
-  virtual ~ContentSandboxPolicy() { }
-  virtual ResultExpr PrctlPolicy() const override {
+  ~ContentSandboxPolicy() override = default;
+  ResultExpr PrctlPolicy() const override {
     // Ideally this should be restricted to a whitelist, but content
     // uses enough things that it's not trivial to determine it.
     return Allow();
   }
-  virtual Maybe<ResultExpr> EvaluateSocketCall(int aCall) const override {
+  Maybe<ResultExpr> EvaluateSocketCall(int aCall) const override {
     switch(aCall) {
     case SYS_RECVFROM:
     case SYS_SENDTO:
@@ -570,7 +575,7 @@ public:
   }
 
 #ifdef DESKTOP
-  virtual Maybe<ResultExpr> EvaluateIpcCall(int aCall) const override {
+  Maybe<ResultExpr> EvaluateIpcCall(int aCall) const override {
     switch(aCall) {
       // These are a problem: SysV shared memory follows the Unix
       // "same uid policy" and can't be restricted/brokered like file
@@ -591,7 +596,7 @@ public:
   }
 #endif
 
-  virtual ResultExpr EvaluateSyscall(int sysno) const override {
+  ResultExpr EvaluateSyscall(int sysno) const override {
     // Straight allow for anything that got overriden via prefs
     if (std::find(mSyscallWhitelist.begin(), mSyscallWhitelist.end(), sysno)
         != mSyscallWhitelist.end()) {
@@ -893,7 +898,7 @@ class GMPSandboxPolicy : public SandboxPolicyCommon {
   static intptr_t OpenTrap(const sandbox::arch_seccomp_data& aArgs,
                            void* aux)
   {
-    auto plugin = static_cast<SandboxOpenedFile*>(aux);
+    const auto files = static_cast<const SandboxOpenedFiles*>(aux);
     const char* path;
     int flags;
 
@@ -914,20 +919,15 @@ class GMPSandboxPolicy : public SandboxPolicyCommon {
       MOZ_CRASH("unexpected syscall number");
     }
 
-    if (strcmp(path, plugin->mPath) != 0) {
-      SANDBOX_LOG_ERROR("attempt to open file %s (flags=0%o) which is not the"
-                        " media plugin %s", path, flags, plugin->mPath);
-      return -EPERM;
-    }
     if ((flags & O_ACCMODE) != O_RDONLY) {
       SANDBOX_LOG_ERROR("non-read-only open of file %s attempted (flags=0%o)",
                         path, flags);
-      return -EPERM;
+      return -EROFS;
     }
-    int fd = plugin->mFd.exchange(-1);
+    int fd = files->GetDesc(path);
     if (fd < 0) {
-      SANDBOX_LOG_ERROR("multiple opens of media plugin file unimplemented");
-      return -ENOSYS;
+      // SandboxOpenedFile::GetDesc already logged about this, if appropriate.
+      return -ENOENT;
     }
     return fd;
   }
@@ -949,24 +949,50 @@ class GMPSandboxPolicy : public SandboxPolicyCommon {
     return BlockedSyscallTrap(aArgs, nullptr);
   }
 
-  SandboxOpenedFile* mPlugin;
-public:
-  explicit GMPSandboxPolicy(SandboxOpenedFile* aPlugin)
-  : mPlugin(aPlugin)
+  static intptr_t UnameTrap(const sandbox::arch_seccomp_data& aArgs,
+                            void* aux)
   {
-    MOZ_ASSERT(aPlugin->mPath[0] == '/', "plugin path should be absolute");
+    const auto buf = reinterpret_cast<struct utsname*>(aArgs.args[0]);
+    PodZero(buf);
+    // The real uname() increases fingerprinting risk for no benefit.
+    // This is close enough.
+    strcpy(buf->sysname, "Linux");
+    strcpy(buf->version, "3");
+    return 0;
+  };
+
+  static intptr_t FcntlTrap(const sandbox::arch_seccomp_data& aArgs,
+                            void* aux)
+  {
+    const auto cmd = static_cast<int>(aArgs.args[1]);
+    switch (cmd) {
+      // This process can't exec, so the actual close-on-exec flag
+      // doesn't matter; have it always read as true and ignore writes.
+    case F_GETFD:
+      return O_CLOEXEC;
+    case F_SETFD:
+      return 0;
+    default:
+      return -ENOSYS;
+    }
   }
 
-  virtual ~GMPSandboxPolicy() { }
+  const SandboxOpenedFiles* mFiles;
+public:
+  explicit GMPSandboxPolicy(const SandboxOpenedFiles* aFiles)
+  : mFiles(aFiles)
+  { }
 
-  virtual ResultExpr EvaluateSyscall(int sysno) const override {
+  ~GMPSandboxPolicy() override = default;
+
+  ResultExpr EvaluateSyscall(int sysno) const override {
     switch (sysno) {
       // Simulate opening the plugin file.
 #ifdef __NR_open
     case __NR_open:
 #endif
     case __NR_openat:
-      return Trap(OpenTrap, mPlugin);
+      return Trap(OpenTrap, mFiles);
 
       // ipc::Shmem
     case __NR_mprotect:
@@ -999,6 +1025,15 @@ public:
     case __NR_times:
       return Allow();
 
+    // Bug 1372428
+    case __NR_uname:
+      return Trap(UnameTrap, nullptr);
+    CASES_FOR_fcntl:
+      return Trap(FcntlTrap, nullptr);
+
+    case __NR_dup:
+      return Allow();
+
     default:
       return SandboxPolicyCommon::EvaluateSyscall(sysno);
     }
@@ -1006,11 +1041,11 @@ public:
 };
 
 UniquePtr<sandbox::bpf_dsl::Policy>
-GetMediaSandboxPolicy(SandboxOpenedFile* aPlugin)
+GetMediaSandboxPolicy(const SandboxOpenedFiles* aFiles)
 {
-  return UniquePtr<sandbox::bpf_dsl::Policy>(new GMPSandboxPolicy(aPlugin));
+  return UniquePtr<sandbox::bpf_dsl::Policy>(new GMPSandboxPolicy(aFiles));
 }
 
 #endif // MOZ_GMP_SANDBOX
 
-}
+} // namespace mozilla

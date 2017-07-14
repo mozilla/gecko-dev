@@ -35,9 +35,7 @@
 #include "TextRenderer.h"               // for TextRenderer
 #include <vector>
 #include "GeckoProfiler.h"              // for GeckoProfiler
-#ifdef MOZ_GECKO_PROFILER
 #include "ProfilerMarkerPayload.h"      // for LayerTranslationMarkerPayload
-#endif
 
 #define CULLING_LOG(...)
 // #define CULLING_LOG(...) printf_stderr("CULLING: " __VA_ARGS__)
@@ -83,7 +81,6 @@ DrawLayerInfo(const RenderTargetIntRect& aClipRect,
 static void
 PrintUniformityInfo(Layer* aLayer)
 {
-#ifdef MOZ_GECKO_PROFILER
   if (!profiler_is_active()) {
     return;
   }
@@ -102,8 +99,8 @@ PrintUniformityInfo(Layer* aLayer)
   Point translation = transform.As2D().GetTranslation();
   profiler_add_marker(
     "LayerTranslation",
-    MakeUnique<LayerTranslationMarkerPayload>(aLayer, translation));
-#endif
+    MakeUnique<LayerTranslationMarkerPayload>(aLayer, translation,
+                                              TimeStamp::Now()));
 }
 
 static Maybe<gfx::Polygon>
@@ -188,6 +185,12 @@ ContainerPrepare(ContainerT* aContainer,
                  LayerManagerComposite* aManager,
                  const RenderTargetIntRect& aClipRect)
 {
+  // We can end up calling prepare multiple times if we duplicated
+  // layers due to preserve-3d plane splitting. The results
+  // should be identical, so we only need to do it once.
+  if (aContainer->mPrepared) {
+    return;
+  }
   aContainer->mPrepared = MakeUnique<PreparedData>();
   aContainer->mPrepared->mNeedsSurfaceCopy = false;
 
@@ -290,7 +293,7 @@ RenderMinimap(ContainerT* aContainer, LayerManagerComposite* aManager,
     return;
   }
 
-  ParentLayerPoint scrollOffset = controller->GetCurrentAsyncScrollOffset(AsyncPanZoomController::RESPECT_FORCE_DISABLE);
+  ParentLayerPoint scrollOffset = controller->GetCurrentAsyncScrollOffset(AsyncPanZoomController::eForCompositing);
 
   // Options
   const int verticalPadding = 10;
@@ -480,7 +483,7 @@ RenderLayers(ContainerT* aContainer, LayerManagerComposite* aManager,
                                                    asyncTransform * aContainer->GetEffectiveTransform());
         if (AsyncPanZoomController* apzc = layer->GetAsyncPanZoomController(i - 1)) {
           asyncTransform =
-              apzc->GetCurrentAsyncTransformWithOverscroll(AsyncPanZoomController::RESPECT_FORCE_DISABLE).ToUnknownMatrix()
+              apzc->GetCurrentAsyncTransformWithOverscroll(AsyncPanZoomController::eForCompositing).ToUnknownMatrix()
             * asyncTransform;
         }
       }
@@ -588,7 +591,6 @@ ContainerRender(ContainerT* aContainer,
     }
 
     if (!surface) {
-      aContainer->mPrepared = nullptr;
       return;
     }
 
@@ -631,7 +633,7 @@ ContainerRender(ContainerT* aContainer,
     for (LayerMetricsWrapper i(aContainer); i; i = i.GetFirstChild()) {
       if (AsyncPanZoomController* apzc = i.GetApzc()) {
         if (!apzc->GetAsyncTransformAppliedToContent()
-            && !AsyncTransformComponentMatrix(apzc->GetCurrentAsyncTransform(AsyncPanZoomController::NORMAL)).IsIdentity()) {
+            && !AsyncTransformComponentMatrix(apzc->GetCurrentAsyncTransform(AsyncPanZoomController::eForHitTesting)).IsIdentity()) {
           aManager->UnusedApzTransformWarning();
           break;
         }
@@ -691,6 +693,10 @@ void
 ContainerLayerComposite::Cleanup()
 {
   mPrepared = nullptr;
+
+  for (Layer* l = GetFirstChild(); l; l = l->GetNextSibling()) {
+    static_cast<LayerComposite*>(l->AsHostLayer())->Cleanup();
+  }
 }
 
 void
@@ -756,6 +762,16 @@ void
 RefLayerComposite::Prepare(const RenderTargetIntRect& aClipRect)
 {
   ContainerPrepare(this, mCompositeManager, aClipRect);
+}
+
+void
+RefLayerComposite::Cleanup()
+{
+  mPrepared = nullptr;
+
+  for (Layer* l = GetFirstChild(); l; l = l->GetNextSibling()) {
+    static_cast<LayerComposite*>(l->AsHostLayer())->Cleanup();
+  }
 }
 
 void

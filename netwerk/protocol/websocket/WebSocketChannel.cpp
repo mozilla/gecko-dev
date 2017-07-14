@@ -1471,7 +1471,7 @@ WebSocketChannel::UpdateReadBuffer(uint8_t *buffer, uint32_t count,
   if (mBuffered + count <= mBufferSize) {
     // append to existing buffer
     LOG(("WebSocketChannel: update read buffer absorbed %u\n", count));
-  } else if (mBuffered + count - 
+  } else if (mBuffered + count -
              (mFramePtr - accumulatedFragments - mBuffer) <= mBufferSize) {
     // make room in existing buffer by shifting unused data to start
     mBuffered -= (mFramePtr - mBuffer - accumulatedFragments);
@@ -1970,7 +1970,7 @@ WebSocketChannel::ApplyMask(uint32_t mask, uint8_t *data, uint64_t len)
   len  = len % 4;
 
   // There maybe up to 3 trailing bytes that need to be dealt with
-  // individually 
+  // individually
 
   while (len) {
     *data ^= mask >> 24;
@@ -2869,7 +2869,7 @@ WebSocketChannel::SetupRequest()
   if (!b64)
     return NS_ERROR_OUT_OF_MEMORY;
   secKeyString.Assign(b64);
-  PR_Free(b64);
+  PR_Free(b64); // PL_Base64Encode() uses PR_Malloc.
   rv = mHttpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Sec-WebSocket-Key"),
                                       secKeyString, false);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
@@ -2932,7 +2932,7 @@ WebSocketChannel::ApplyForAdmission()
   rv = pps->AsyncResolve(mHttpChannel,
                          nsIProtocolProxyService::RESOLVE_PREFER_HTTPS_PROXY |
                          nsIProtocolProxyService::RESOLVE_ALWAYS_TUNNEL,
-                         this, getter_AddRefs(mCancelable));
+                         this, nullptr, getter_AddRefs(mCancelable));
   NS_ASSERTION(NS_FAILED(rv) || mCancelable,
                "nsIProtocolProxyService::AsyncResolve succeeded but didn't "
                "return a cancelable object!");
@@ -3023,7 +3023,7 @@ WebSocketChannel::StartPinging()
 
 void
 WebSocketChannel::ReportConnectionTelemetry()
-{ 
+{
   // 3 bits are used. high bit is for wss, middle bit for failed,
   // and low bit for proxy..
   // 0 - 7 : ws-ok-plain, ws-ok-proxy, ws-failed-plain, ws-failed-proxy,
@@ -3043,7 +3043,7 @@ WebSocketChannel::ReportConnectionTelemetry()
       didProxy = true;
   }
 
-  uint8_t value = (mEncrypted ? (1 << 2) : 0) | 
+  uint8_t value = (mEncrypted ? (1 << 2) : 0) |
     (!mGotUpgradeOK ? (1 << 1) : 0) |
     (didProxy ? (1 << 0) : 0);
 
@@ -3370,7 +3370,7 @@ WebSocketChannel::AsyncOpen(nsIURI *aURI,
   if (prefService) {
     int32_t intpref;
     bool boolpref;
-    rv = prefService->GetIntPref("network.websocket.max-message-size", 
+    rv = prefService->GetIntPref("network.websocket.max-message-size",
                                  &intpref);
     if (NS_SUCCEEDED(rv)) {
       mMaxMessageSize = clamped(intpref, 1024, INT32_MAX);
@@ -3867,7 +3867,7 @@ WebSocketChannel::OnStartRequest(nsIRequest *aRequest,
   if (!mProtocol.IsEmpty()) {
     nsAutoCString respProtocol;
     rv = mHttpChannel->GetResponseHeader(
-                         NS_LITERAL_CSTRING("Sec-WebSocket-Protocol"), 
+                         NS_LITERAL_CSTRING("Sec-WebSocket-Protocol"),
                          respProtocol);
     if (NS_SUCCEEDED(rv)) {
       rv = NS_ERROR_ILLEGAL_VALUE;

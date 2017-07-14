@@ -8199,10 +8199,12 @@ class MRegExp : public MNullaryInstruction
 {
     CompilerGCPointer<RegExpObject*> source_;
     bool mustClone_;
+    bool hasShared_;
 
-    MRegExp(CompilerConstraintList* constraints, RegExpObject* source)
+    MRegExp(CompilerConstraintList* constraints, RegExpObject* source, bool hasShared)
       : source_(source),
-        mustClone_(true)
+        mustClone_(true),
+        hasShared_(hasShared)
     {
         setResultType(MIRType::Object);
         setResultTypeSet(MakeSingletonTypeSet(constraints, source));
@@ -8217,6 +8219,9 @@ class MRegExp : public MNullaryInstruction
     }
     bool mustClone() const {
         return mustClone_;
+    }
+    bool hasShared() const {
+        return hasShared_;
     }
     RegExpObject* source() const {
         return source_;
@@ -13420,6 +13425,23 @@ class MHasClass
     }
 };
 
+// Note: we might call a proxy trap, so this instruction is effectful.
+class MIsArray
+  : public MUnaryInstruction,
+    public BoxExceptPolicy<0, MIRType::Object>::Data
+{
+    explicit MIsArray(MDefinition* value)
+      : MUnaryInstruction(value)
+    {
+        setResultType(MIRType::Boolean);
+    }
+
+  public:
+    INSTRUCTION_HEADER(IsArray)
+    TRIVIAL_NEW_WRAPPERS
+    NAMED_OPERANDS((0, value))
+};
+
 class MCheckReturn
   : public MBinaryInstruction,
     public BoxInputsPolicy::Data
@@ -13766,6 +13788,20 @@ class MDebugCheckSelfHosted
     TRIVIAL_NEW_WRAPPERS
     NAMED_OPERANDS((0, checkValue))
 
+};
+
+class MFinishBoundFunctionInit
+  : public MTernaryInstruction,
+    public Mix3Policy<ObjectPolicy<0>, ObjectPolicy<1>, IntPolicy<2>>::Data
+{
+    MFinishBoundFunctionInit(MDefinition* bound, MDefinition* target, MDefinition* argCount)
+      : MTernaryInstruction(bound, target, argCount)
+    { }
+
+  public:
+    INSTRUCTION_HEADER(FinishBoundFunctionInit)
+    TRIVIAL_NEW_WRAPPERS
+    NAMED_OPERANDS((0, bound), (1, target), (2, argCount))
 };
 
 // Flips the input's sign bit, independently of the rest of the number's

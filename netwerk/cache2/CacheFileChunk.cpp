@@ -64,14 +64,14 @@ CacheFileChunkBuffer::FillInvalidRanges(CacheFileChunkBuffer *aOther,
     MOZ_RELEASE_ASSERT(invalidOffset <= validOffset);
     invalidLength = validOffset - invalidOffset;
     if (invalidLength > 0) {
-      MOZ_RELEASE_ASSERT(invalidOffset + invalidLength <= aOther->mBufSize);
+      MOZ_RELEASE_ASSERT(invalidOffset + invalidLength <= aOther->mDataSize);
       memcpy(mBuf + invalidOffset, aOther->mBuf + invalidOffset, invalidLength);
     }
     invalidOffset = validOffset + validLength;
   }
 
-  if (invalidOffset < aOther->mBufSize) {
-    invalidLength = aOther->mBufSize - invalidOffset;
+  if (invalidOffset < aOther->mDataSize) {
+    invalidLength = aOther->mDataSize - invalidOffset;
     memcpy(mBuf + invalidOffset, aOther->mBuf + invalidOffset, invalidLength);
   }
 
@@ -567,7 +567,6 @@ CacheFileChunk::Index() const
 CacheHash::Hash16_t
 CacheFileChunk::Hash() const
 {
-  MOZ_ASSERT(!mListener);
   MOZ_ASSERT(IsReady());
 
   return CacheHash::Hash16(mBuf->Buf(), mBuf->DataSize());

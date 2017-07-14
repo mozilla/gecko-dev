@@ -15,7 +15,7 @@ use data::ElementData;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
-use properties::{ComputedValues, PropertyDeclarationBlock};
+use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
@@ -31,6 +31,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
 use stylearc::Arc;
+use stylist::Stylist;
 use thread_state;
 
 pub use style_traits::UnsafeNode;
@@ -126,10 +127,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
 
     /// Get this node's children from the perspective of a restyle traversal.
     fn traversal_children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
-
-    /// Returns whether `children()` and `traversal_children()` might return
-    /// iterators over different nodes.
-    fn children_and_traversal_children_might_differ(&self) -> bool;
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -299,7 +296,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     ///
     /// XXXManishearth It would be better to make this a type parameter on
     /// ThreadLocalStyleContext and StyleContext
-    type FontMetricsProvider: FontMetricsProvider;
+    type FontMetricsProvider: FontMetricsProvider + Send;
 
     /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;
@@ -380,6 +377,18 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
                                      _cascade_level: CascadeLevel)
                                      -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         None
+    }
+
+    /// Get the combined animation and transition rules.
+    fn get_animation_rules(&self) -> AnimationRules {
+        if !self.may_have_animations() {
+            return AnimationRules(None, None)
+        }
+
+        AnimationRules(
+            self.get_animation_rule(),
+            self.get_transition_rule(),
+        )
     }
 
     /// Get this element's animation rule.
@@ -627,13 +636,32 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         }
     }
 
-    /// Gets declarations from XBL bindings from the element. Only gecko element could have this.
-    fn get_declarations_from_xbl_bindings<V>(&self,
-                                             _pseudo_element: Option<&PseudoElement>,
-                                             _applicable_declarations: &mut V)
-                                             -> bool
-        where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
+    /// Implements Gecko's `nsBindingManager::WalkRules`.
+    ///
+    /// Returns whether to cut off the inheritance.
+    fn each_xbl_stylist<F>(&self, _: F) -> bool
+    where
+        F: FnMut(&Stylist),
+    {
         false
+    }
+
+    /// Gets declarations from XBL bindings from the element.
+    fn get_declarations_from_xbl_bindings<V>(
+        &self,
+        pseudo_element: Option<&PseudoElement>,
+        applicable_declarations: &mut V
+    ) -> bool
+    where
+        V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>
+    {
+        self.each_xbl_stylist(|stylist| {
+            stylist.push_applicable_declarations_as_xbl_only_stylist(
+                self,
+                pseudo_element,
+                applicable_declarations
+            );
+        })
     }
 
     /// Gets the current existing CSS transitions, by |property, end value| pairs in a HashMap.

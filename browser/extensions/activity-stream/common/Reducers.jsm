@@ -25,6 +25,10 @@ const INITIAL_STATE = {
   Prefs: {
     initialized: false,
     values: {}
+  },
+  Dialog: {
+    visible: false,
+    data: {}
   }
 };
 
@@ -47,9 +51,44 @@ function App(prevState = INITIAL_STATE.App, action) {
   }
 }
 
+/**
+ * insertPinned - Inserts pinned links in their specified slots
+ *
+ * @param {array} a list of links
+ * @param {array} a list of pinned links
+ * @return {array} resulting list of links with pinned links inserted
+ */
+function insertPinned(links, pinned) {
+  // Remove any pinned links
+  const pinnedUrls = pinned.map(link => link && link.url);
+  let newLinks = links.filter(link => (link ? !pinnedUrls.includes(link.url) : false));
+  newLinks = newLinks.map(link => {
+    if (link && link.isPinned) {
+      delete link.isPinned;
+      delete link.pinTitle;
+      delete link.pinIndex;
+    }
+    return link;
+  });
+
+  // Then insert them in their specified location
+  pinned.forEach((val, index) => {
+    if (!val) { return; }
+    let link = Object.assign({}, val, {isPinned: true, pinIndex: index, pinTitle: val.title});
+    if (index > newLinks.length) {
+      newLinks[index] = link;
+    } else {
+      newLinks.splice(index, 0, link);
+    }
+  });
+
+  return newLinks;
+}
+
 function TopSites(prevState = INITIAL_STATE.TopSites, action) {
   let hasMatch;
   let newRows;
+  let pinned;
   switch (action.type) {
     case at.TOP_SITES_UPDATED:
       if (!action.data) {
@@ -58,7 +97,7 @@ function TopSites(prevState = INITIAL_STATE.TopSites, action) {
       return Object.assign({}, prevState, {initialized: true, rows: action.data});
     case at.SCREENSHOT_UPDATED:
       newRows = prevState.rows.map(row => {
-        if (row.url === action.data.url) {
+        if (row && row.url === action.data.url) {
           hasMatch = true;
           return Object.assign({}, row, {screenshot: action.data.screenshot});
         }
@@ -67,7 +106,7 @@ function TopSites(prevState = INITIAL_STATE.TopSites, action) {
       return hasMatch ? Object.assign({}, prevState, {rows: newRows}) : prevState;
     case at.PLACES_BOOKMARK_ADDED:
       newRows = prevState.rows.map(site => {
-        if (site.url === action.data.url) {
+        if (site && site.url === action.data.url) {
           const {bookmarkGuid, bookmarkTitle, lastModified} = action.data;
           return Object.assign({}, site, {bookmarkGuid, bookmarkTitle, bookmarkDateCreated: lastModified});
         }
@@ -76,7 +115,7 @@ function TopSites(prevState = INITIAL_STATE.TopSites, action) {
       return Object.assign({}, prevState, {rows: newRows});
     case at.PLACES_BOOKMARK_REMOVED:
       newRows = prevState.rows.map(site => {
-        if (site.url === action.data.url) {
+        if (site && site.url === action.data.url) {
           const newSite = Object.assign({}, site);
           delete newSite.bookmarkGuid;
           delete newSite.bookmarkTitle;
@@ -88,8 +127,25 @@ function TopSites(prevState = INITIAL_STATE.TopSites, action) {
       return Object.assign({}, prevState, {rows: newRows});
     case at.PLACES_LINK_DELETED:
     case at.PLACES_LINK_BLOCKED:
-      newRows = prevState.rows.filter(val => val.url !== action.data.url);
+      newRows = prevState.rows.filter(val => val && val.url !== action.data.url);
       return Object.assign({}, prevState, {rows: newRows});
+    case at.PINNED_SITES_UPDATED:
+      pinned = action.data;
+      newRows = insertPinned(prevState.rows, pinned);
+      return Object.assign({}, prevState, {rows: newRows});
+    default:
+      return prevState;
+  }
+}
+
+function Dialog(prevState = INITIAL_STATE.Dialog, action) {
+  switch (action.type) {
+    case at.DIALOG_OPEN:
+      return Object.assign({}, prevState, {visible: true, data: action.data});
+    case at.DIALOG_CANCEL:
+      return Object.assign({}, prevState, {visible: false});
+    case at.DELETE_HISTORY_URL:
+      return Object.assign({}, INITIAL_STATE.Dialog);
     default:
       return prevState;
   }
@@ -110,6 +166,7 @@ function Prefs(prevState = INITIAL_STATE.Prefs, action) {
 }
 
 this.INITIAL_STATE = INITIAL_STATE;
-this.reducers = {TopSites, App, Prefs};
+this.reducers = {TopSites, App, Prefs, Dialog};
+this.insertPinned = insertPinned;
 
-this.EXPORTED_SYMBOLS = ["reducers", "INITIAL_STATE"];
+this.EXPORTED_SYMBOLS = ["reducers", "INITIAL_STATE", "insertPinned"];

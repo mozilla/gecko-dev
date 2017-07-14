@@ -9,15 +9,22 @@ var gSearchResultsPane = {
   listSearchMenuitemIndicators: new Set(),
   searchResultsCategory: null,
   searchInput: null,
+  inited: false,
 
   init() {
+    if (this.inited) {
+      return;
+    }
+    this.inited = true;
     this.searchResultsCategory = document.getElementById("category-search-results");
-
     this.searchInput = document.getElementById("searchInput");
     this.searchInput.hidden = !Services.prefs.getBoolPref("browser.preferences.search");
     if (!this.searchInput.hidden) {
       this.searchInput.addEventListener("command", this);
-      this.searchInput.addEventListener("focus", this);
+      window.addEventListener("load", () => {
+        this.searchInput.focus();
+        this.initializeCategories();
+      });
 
       // Throttling the resize event to reduce the callback frequency
       let callbackId;
@@ -37,8 +44,6 @@ var gSearchResultsPane = {
   handleEvent(event) {
     if (event.type === "command") {
       this.searchFunction(event);
-    } else if (event.type === "focus") {
-      this.initializeCategories();
     }
   },
 
@@ -262,6 +267,7 @@ var gSearchResultsPane = {
           strings.getFormattedString("searchResults.sorryMessageUnix", [this.query]);
         let helpUrl = Services.urlFormatter.formatURLPref("app.support.baseURL") + "preferences";
         let brandName = document.getElementById("bundleBrand").getString("brandShortName");
+        // eslint-disable-next-line no-unsanitized/property
         document.getElementById("need-help").innerHTML =
           strings.getFormattedString("searchResults.needHelp2", [helpUrl, brandName]);
       } else {
@@ -407,7 +413,8 @@ var gSearchResultsPane = {
     searchTooltip.setAttribute("class", "search-tooltip");
     searchTooltip.textContent = query;
 
-    anchorNode.setAttribute("data-has-tooltip", "true");
+    // Set tooltipNode property to track corresponded tooltip node.
+    anchorNode.tooltipNode = searchTooltip;
     anchorNode.parentElement.classList.add("search-tooltip-parent");
     anchorNode.parentElement.appendChild(searchTooltip);
 
@@ -415,8 +422,7 @@ var gSearchResultsPane = {
   },
 
   calculateTooltipPosition(anchorNode) {
-    let searchTooltip = anchorNode.parentElement.querySelector(":scope > .search-tooltip");
-
+    let searchTooltip = anchorNode.tooltipNode;
     // In order to get the up-to-date position of each of the nodes that we're
     // putting tooltips on, we have to flush layout intentionally, and that
     // this is the result of a XUL limitation (bug 1363730).
@@ -424,11 +430,14 @@ var gSearchResultsPane = {
     let tooltipRect = searchTooltip.getBoundingClientRect();
     let parentRect = anchorNode.parentElement.getBoundingClientRect();
 
-    let offSet = (anchorRect.width / 2) - (tooltipRect.width / 2);
+    let offSetLeft = (anchorRect.width / 2) - (tooltipRect.width / 2);
     let relativeOffset = anchorRect.left - parentRect.left;
-    offSet += relativeOffset > 0 ? relativeOffset : 0;
+    offSetLeft += relativeOffset > 0 ? relativeOffset : 0;
+    // 20.5 is reserved for tooltip position
+    let offSetTop = anchorRect.top - parentRect.top - 20.5;
 
-    searchTooltip.style.setProperty("left", `${offSet}px`);
+    searchTooltip.style.setProperty("left", `${offSetLeft}px`);
+    searchTooltip.style.setProperty("top", `${offSetTop}px`);
   },
 
   /**
@@ -440,7 +449,7 @@ var gSearchResultsPane = {
       searchTooltip.parentElement.classList.remove("search-tooltip-parent");
       searchTooltip.remove();
     }
-    this.listSearchTooltips.forEach((anchorNode) => anchorNode.removeAttribute("data-has-tooltip"));
+    this.listSearchTooltips.forEach((anchorNode) => anchorNode.tooltipNode.remove());
     this.listSearchTooltips.clear();
   },
 

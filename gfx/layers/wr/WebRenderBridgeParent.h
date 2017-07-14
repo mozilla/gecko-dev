@@ -55,6 +55,8 @@ public:
                         RefPtr<WebRenderCompositableHolder>&& aHolder,
                         RefPtr<CompositorAnimationStorage>&& aAnimStorage);
 
+  static WebRenderBridgeParent* CeateDestroyed();
+
   wr::PipelineId PipelineId() { return mPipelineId; }
   wr::WebRenderAPI* GetWebRenderAPI() { return mApi; }
   wr::Epoch WrEpoch() { return wr::NewEpoch(mWrEpoch); }
@@ -69,6 +71,7 @@ public:
 
   mozilla::ipc::IPCResult RecvCreate(const gfx::IntSize& aSize) override;
   mozilla::ipc::IPCResult RecvShutdown() override;
+  mozilla::ipc::IPCResult RecvShutdownSync() override;
   mozilla::ipc::IPCResult RecvAddImage(const wr::ImageKey& aImageKey,
                                        const gfx::IntSize& aSize,
                                        const uint32_t& aStride,
@@ -98,7 +101,8 @@ public:
                                     const WrSize& aContentSize,
                                     const ByteBuffer& dl,
                                     const WrBuiltDisplayListDescriptor& dlDesc,
-                                    const WebRenderScrollData& aScrollData) override;
+                                    const WebRenderScrollData& aScrollData,
+                                    const uint32_t& aIdNameSpace) override;
   mozilla::ipc::IPCResult RecvDPSyncEnd(const gfx::IntSize& aSize,
                                         InfallibleTArray<WebRenderParentCommand>&& aCommands,
                                         InfallibleTArray<OpDestroy>&& aToDestroy,
@@ -107,7 +111,8 @@ public:
                                         const WrSize& aContentSize,
                                         const ByteBuffer& dl,
                                         const WrBuiltDisplayListDescriptor& dlDesc,
-                                        const WebRenderScrollData& aScrollData) override;
+                                        const WebRenderScrollData& aScrollData,
+                                        const uint32_t& aIdNameSpace) override;
   mozilla::ipc::IPCResult RecvParentCommands(nsTArray<WebRenderParentCommand>&& commands) override;
   mozilla::ipc::IPCResult RecvDPGetSnapshot(PTextureParent* aTexture) override;
 
@@ -125,6 +130,14 @@ public:
 
   mozilla::ipc::IPCResult RecvSetConfirmedTargetAPZC(const uint64_t& aBlockId,
                                                      nsTArray<ScrollableLayerGuid>&& aTargets) override;
+
+  mozilla::ipc::IPCResult RecvSetTestSampleTime(const TimeStamp& aTime) override;
+  mozilla::ipc::IPCResult RecvLeaveTestMode() override;
+  mozilla::ipc::IPCResult RecvGetAnimationOpacity(const uint64_t& aCompositorAnimationsId,
+                                                  float* aOpacity,
+                                                  bool* aHasAnimationOpacity) override;
+  mozilla::ipc::IPCResult RecvGetAnimationTransform(const uint64_t& aCompositorAnimationsId,
+                                                    MaybeTransform* aTransform) override;
   mozilla::ipc::IPCResult RecvSetAsyncScrollOffset(const FrameMetrics::ViewID& aScrollId,
                                                    const float& aX,
                                                    const float& aY) override;
@@ -189,7 +202,13 @@ public:
 
   void ScheduleComposition();
 
+  void UpdateWebRender(CompositorVsyncScheduler* aScheduler,
+                       wr::WebRenderAPI* aApi,
+                       WebRenderCompositableHolder* aHolder,
+                       CompositorAnimationStorage* aAnimStorage);
+
 private:
+  WebRenderBridgeParent();
   virtual ~WebRenderBridgeParent();
 
   uint64_t GetLayersId() const;
@@ -200,7 +219,8 @@ private:
                                 const wr::Epoch& aEpoch,
                                 const WrSize& aContentSize,
                                 const ByteBuffer& dl,
-                                const WrBuiltDisplayListDescriptor& dlDesc);
+                                const WrBuiltDisplayListDescriptor& dlDesc,
+                                const uint32_t& aIdNameSpace);
   void ClearResources();
   uint64_t GetChildLayerObserverEpoch() const { return mChildLayerObserverEpoch; }
   bool ShouldParentObserveEpoch();
@@ -212,8 +232,11 @@ private:
                    const WrSize& aContentSize,
                    const ByteBuffer& dl,
                    const WrBuiltDisplayListDescriptor& dlDesc,
-                   const WebRenderScrollData& aScrollData);
+                   const WebRenderScrollData& aScrollData,
+                   const uint32_t& aIdNameSpace);
+  mozilla::ipc::IPCResult HandleShutdown();
 
+  void AdvanceAnimations();
   void SampleAnimations(nsTArray<WrOpacityProperty>& aOpacityArray,
                         nsTArray<WrTransformProperty>& aTransformArray);
 

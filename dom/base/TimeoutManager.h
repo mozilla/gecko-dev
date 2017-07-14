@@ -49,8 +49,6 @@ public:
 
   // The timeout implementation functions.
   void RunTimeout(const TimeStamp& aNow, const TimeStamp& aTargetDeadline);
-  // Return true if |aTimeout| needs to be reinserted into the timeout list.
-  bool RescheduleTimeout(mozilla::dom::Timeout* aTimeout, const TimeStamp& now);
 
   void ClearAllTimeouts();
   uint32_t GetTimeoutId(mozilla::dom::Timeout::Reason aReason);
@@ -84,7 +82,7 @@ public:
 
   // The document finished loading
   void OnDocumentLoaded();
-  void StartThrottlingTrackingTimeouts();
+  void StartThrottlingTimeouts();
 
   // Run some code for each Timeout in our list.  Note that this function
   // doesn't guarantee that Timeouts are iterated in any particular order.
@@ -115,9 +113,16 @@ public:
   static const uint32_t InvalidFiringId;
 
 private:
-  void MaybeStartThrottleTrackingTimout();
+  void MaybeStartThrottleTimeout();
+
+  // Return true if |aTimeout| needs to be reinserted into the timeout list.
+  bool RescheduleTimeout(mozilla::dom::Timeout* aTimeout,
+                         const TimeStamp& aLastCallbackTime,
+                         const TimeStamp& aCurrentNow);
 
   bool IsBackground() const;
+
+  bool IsActive() const;
 
   uint32_t
   CreateFiringId();
@@ -134,8 +139,14 @@ private:
   TimeDuration
   MinSchedulingDelay() const;
 
-  void RecordExecution(mozilla::dom::Timeout* aRunningTimeout,
-                       mozilla::dom::Timeout* aTimeout);
+  nsresult MaybeSchedule(const TimeStamp& aWhen,
+                         const TimeStamp& aNow = TimeStamp::Now());
+
+  void RecordExecution(Timeout* aRunningTimeout,
+                       Timeout* aTimeout);
+
+  void UpdateBudget(const TimeStamp& aNow,
+                    const TimeDuration& aDuration = TimeDuration());
 
 private:
   struct Timeouts {
@@ -221,8 +232,13 @@ private:
    // The current idle request callback timeout handle
   uint32_t                    mIdleCallbackTimeoutCounter;
 
-  nsCOMPtr<nsITimer>          mThrottleTrackingTimeoutsTimer;
+  nsCOMPtr<nsITimer>          mThrottleTimeoutsTimer;
+  mozilla::TimeStamp          mLastBudgetUpdate;
+  mozilla::TimeDuration       mExecutionBudget;
+
+  bool                        mThrottleTimeouts;
   bool                        mThrottleTrackingTimeouts;
+  bool                        mBudgetThrottleTimeouts;
 
   static uint32_t             sNestingLevel;
 };

@@ -75,7 +75,7 @@ add_impls_for_keyword_enum!(FontDisplay);
 /// A font-weight value for a @font-face rule.
 /// The font-weight CSS property specifies the weight or boldness of the font.
 #[cfg(feature = "gecko")]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub enum FontWeight {
     /// Numeric font weights for fonts that provide more than just normal and bold.
     Weight(font_weight::T),
@@ -83,17 +83,6 @@ pub enum FontWeight {
     Normal,
     /// Bold font weight. Same as 700.
     Bold,
-}
-
-#[cfg(feature = "gecko")]
-impl ToCss for FontWeight {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            FontWeight::Normal => dest.write_str("normal"),
-            FontWeight::Bold => dest.write_str("bold"),
-            FontWeight::Weight(ref weight) => weight.to_css(dest),
-        }
-    }
 }
 
 #[cfg(feature = "gecko")]
@@ -109,29 +98,13 @@ impl Parse for FontWeight {
             }
         });
         result.or_else(|_| {
-            FontWeight::from_int(input.expect_integer()?)
+            font_weight::T::from_int(input.expect_integer()?)
+                .map(FontWeight::Weight)
                 .map_err(|()| StyleParseError::UnspecifiedError.into())
         })
     }
 }
 
-#[cfg(feature = "gecko")]
-impl FontWeight {
-    fn from_int(kw: i32) -> Result<Self, ()> {
-        match kw {
-            100 => Ok(FontWeight::Weight(font_weight::T::Weight100)),
-            200 => Ok(FontWeight::Weight(font_weight::T::Weight200)),
-            300 => Ok(FontWeight::Weight(font_weight::T::Weight300)),
-            400 => Ok(FontWeight::Weight(font_weight::T::Weight400)),
-            500 => Ok(FontWeight::Weight(font_weight::T::Weight500)),
-            600 => Ok(FontWeight::Weight(font_weight::T::Weight600)),
-            700 => Ok(FontWeight::Weight(font_weight::T::Weight700)),
-            800 => Ok(FontWeight::Weight(font_weight::T::Weight800)),
-            900 => Ok(FontWeight::Weight(font_weight::T::Weight900)),
-            _ => Err(())
-        }
-    }
-}
 /// Parse the block inside a `@font-face` rule.
 ///
 /// Note that the prelude parsing code lives in the `stylesheets` module.

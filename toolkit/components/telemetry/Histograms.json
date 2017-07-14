@@ -129,24 +129,6 @@
     "bug_numbers": [1172689],
     "description": "Recorded when application reputation remote lookup is performed, `true` is recorded if the lookup times out."
   },
-  "APPLICATION_REPUTATION_BLOCKLIST_MATCH": {
-    "record_in_processes": ["main", "content"],
-    "alert_emails": ["safebrowsing-telemetry@mozilla.org"],
-    "expires_in_version": "60",
-    "kind": "enumerated",
-    "n_values": 4,
-    "bug_numbers": [1331139],
-    "description": "For each Application Reputation lookup against both the V2 and V4 Google lists, note which version of block list returned a match (0 = no match, 1 = match only V2, 2 = match only V4, 3 = match both V2 and V4)"
-  },
-  "APPLICATION_REPUTATION_ALLOWLIST_MATCH": {
-    "record_in_processes": ["main", "content"],
-    "alert_emails": ["safebrowsing-telemetry@mozilla.org"],
-    "expires_in_version": "60",
-    "kind": "enumerated",
-    "n_values": 4,
-    "bug_numbers": [1331139],
-    "description": "For each Application Reputation lookup against both the V2 and V4 Google lists, note which version of the allow list returned a match (0 = no match, 1 = match only V2, 2 = match only V4, 3 = match both V2 and V4)"
-  },
   "ASYNC_ANIMATION_CONTENT_TOO_LARGE_FRAME_SIZE": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["bbirtles@mozilla.com"],
@@ -2401,14 +2383,14 @@
       "n_buckets": 100,
       "description": "Time in milliseconds that http channel spent suspended between AsyncOpen and OnStartRequest."
   },
-  "NETWORK_RACE_CACHE_WITH_NETWORK_USAGE": {
+  "NETWORK_RACE_CACHE_WITH_NETWORK_USAGE_2": {
     "record_in_processes": ["main", "content"],
     "expires_in_version": "58",
     "alert_emails": ["necko@mozilla.com"],
-    "bug_numbers": [1354409],
-    "kind": "enumerated",
-    "n_values": 4,
-    "description": "Whether we raced network with the cache. (0=network & no racing, 1=cache & no racing, 2=network & raced, 3=cache & raced)"
+    "bug_numbers": [1377340],
+    "kind": "categorical",
+    "labels": ["NetworkNoRace", "CacheNoRace", "NetworkRace", "CacheRace", "NetworkDelayedRace", "CacheDelayedRace"],
+    "description": "Whether we raced network with the cache."
   },
   "NETWORK_RACE_CACHE_WITH_NETWORK_SAVED_TIME": {
     "record_in_processes": ["main", "content"],
@@ -5028,6 +5010,15 @@
     "expires_in_version": "60",
     "kind": "boolean",
     "description": "Whether a document with a CSP policy (report-only or enforcing) contains a referrer directive ('true') or not ('false')."
+  },
+  "PLACES_DATABASE_CORRUPTION_HANDLING_STAGE": {
+    "record_in_processes": ["main"],
+    "alert_emails": ["firefox-dev@mozilla.org"],
+    "expires_in_version": "never",
+    "kind": "enumerated",
+    "n_values": 6,
+    "releaseChannelCollection": "opt-out",
+    "description": "PLACES: stage reached when trying to fix a database corruption , see Places::Database::eCorruptDBReplaceStatus"
   },
   "PLACES_PAGES_COUNT": {
     "record_in_processes": ["main", "content"],
@@ -8492,6 +8483,16 @@
     "n_buckets": 66,
     "description": "Maximum MediaCache buffer size reached, in KB. Recorded at every MediaCache destruction, i.e., whenever there is no more media data to be downloaded or kept for playback."
   },
+  "MEDIACACHE_MEMORY_WATERMARK": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["gsquelart@mozilla.com"],
+    "bug_numbers": [1377575],
+    "expires_in_version": "60",
+    "kind": "linear",
+    "high": 520000000,
+    "n_buckets": 66,
+    "description": "Maximum memory-backed-MediaCache memory usage reached, in bytes. Recorded at every Firefox shutdown if memory-backed-MediaCache was used."
+  },
   "MEDIACACHE_BLOCKOWNERS_WATERMARK": {
     "record_in_processes": ["main", "content"],
     "alert_emails": ["gsquelart@mozilla.com"],
@@ -10070,13 +10071,13 @@
     "description": "The amount of time spent in a specific performance tool view, keyed by view name (waterfall, js-calltree, js-flamegraph, etc)."
   },
   "DEVTOOLS_JAVASCRIPT_ERROR_DISPLAYED": {
+    "alert_emails": ["nicolas.b.pierron@mozilla.com"],
     "record_in_processes": ["main", "content"],
-    "alert_emails": ["mphillips@mozilla.com"],
-    "bug_numbers": [1255133],
-    "expires_in_version": "55",
+    "bug_numbers": [1255133, 1378449],
+    "expires_in_version": "never",
     "kind": "boolean",
     "keyed": true,
-    "description": "Measures whether a particular JavaScript error has been displayed in the webconsole."
+    "description": "Records the key-identifiers of error messages when they are displayed in the webconsole of the debugger. Nothing should be recorded unless they are visible on the user screen."
   },
   "DEVTOOLS_TOOLBOX_HOST": {
     "record_in_processes": ["main", "content"],
@@ -13017,9 +13018,9 @@
   },
   "CONTENT_PAINT_TIME": {
     "record_in_processes": ["main", "content"],
-    "alert_emails": ["danderson@mozilla.com"],
+    "alert_emails": ["danderson@mozilla.com","gfx-telemetry-alerts@mozilla.com"],
     "bug_numbers": [1309442],
-    "expires_in_version": "56",
+    "expires_in_version": "60",
     "kind": "exponential",
     "high": 1000,
     "n_buckets": 50,
@@ -13027,9 +13028,9 @@
   },
   "CONTENT_LARGE_PAINT_PHASE_WEIGHT": {
     "record_in_processes": ["main", "content"],
-    "alert_emails": ["danderson@mozilla.com"],
+    "alert_emails": ["danderson@mozilla.com","gfx-telemetry-alerts@mozilla.com"],
     "bug_numbers": [1309442],
-    "expires_in_version": "56",
+    "expires_in_version": "60",
     "keyed": true,
     "kind": "linear",
     "high": 100,
@@ -13619,6 +13620,28 @@
     "high": 50000,
     "n_buckets": 100,
     "description": "The amount of time it takes for a PageAction popup to open."
+  },
+  "WEBEXT_STORAGE_LOCAL_GET_MS": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["addons-dev-internal@mozilla.com"],
+    "bug_numbers": [1371398],
+    "expires_in_version": "60",
+    "kind": "exponential",
+    "releaseChannelCollection": "opt-out",
+    "high": 50000,
+    "n_buckets": 100,
+    "description": "The amount of time it takes to perform a get via storage.local."
+  },
+  "WEBEXT_STORAGE_LOCAL_SET_MS": {
+    "record_in_processes": ["main", "content"],
+    "alert_emails": ["addons-dev-internal@mozilla.com"],
+    "bug_numbers": [1371398],
+    "expires_in_version": "60",
+    "kind": "exponential",
+    "releaseChannelCollection": "opt-out",
+    "high": 50000,
+    "n_buckets": 100,
+    "description": "The amount of time it takes to perform a set via storage.local."
   },
   "NOTIFY_OBSERVERS_LATENCY_MS": {
     "record_in_processes": ["main", "content", "gpu"],

@@ -19,6 +19,7 @@
 #include "mozilla/layers/IAPZCTreeManager.h"
 #include "mozilla/layers/APZCTreeManagerChild.h"
 #include "mozilla/layers/LayerTransactionChild.h"
+#include "mozilla/layers/PaintThread.h"
 #include "mozilla/layers/PLayerTransactionChild.h"
 #include "mozilla/layers/PTextureChild.h"
 #include "mozilla/layers/TextureClient.h"// for TextureClient
@@ -89,6 +90,9 @@ CompositorBridgeChild::CompositorBridgeChild(CompositorManagerChild *aManager)
   , mMessageLoop(MessageLoop::current())
   , mProcessToken(0)
   , mSectionAllocator(nullptr)
+  , mPaintLock("CompositorBridgeChild.mPaintLock")
+  , mOutstandingAsyncPaints(0)
+  , mIsWaitingForPaint(false)
 {
   MOZ_ASSERT(NS_IsMainThread());
 }
@@ -159,12 +163,12 @@ CompositorBridgeChild::Destroy()
     layers->Destroy();
   }
 
-  AutoTArray<PWebRenderBridgeChild*, 16> wRBridges;
-  ManagedPWebRenderBridgeChild(wRBridges);
-  for (int i = wRBridges.Length() - 1; i >= 0; --i) {
-    RefPtr<WebRenderBridgeChild> wRBridge =
-      static_cast<WebRenderBridgeChild*>(wRBridges[i]);
-    wRBridge->Destroy();
+  AutoTArray<PWebRenderBridgeChild*, 16> wrBridges;
+  ManagedPWebRenderBridgeChild(wrBridges);
+  for (int i = wrBridges.Length() - 1; i >= 0; --i) {
+    RefPtr<WebRenderBridgeChild> wrBridge =
+      static_cast<WebRenderBridgeChild*>(wrBridges[i]);
+    wrBridge->Destroy(/* aIsSync */ false);
   }
 
   const ManagedContainer<PTextureChild>& textures = ManagedPTextureChild();
@@ -188,7 +192,7 @@ CompositorBridgeChild::Destroy()
   // CompositorBridgeChild before it gets destroyed. It suffices to ensure that
   // events already in the MessageLoop get processed before the
   // CompositorBridgeChild is destroyed, so we add a task to the MessageLoop to
-  // handle compositor desctruction.
+  // handle compositor destruction.
 
   // From now on we can't send any message message.
   MessageLoop::current()->PostTask(NewRunnableMethod(
@@ -542,8 +546,20 @@ CompositorBridgeChild::ActorDestroy(ActorDestroyReason aWhy)
     gfxCriticalNote << "Receive IPC close with reason=AbnormalShutdown";
   }
 
-  mCanSend = false;
-  mActorDestroyed = true;
+  {
+    // We take the lock to update these fields, since they are read from the
+    // paint thread. We don't need the lock to init them, since that happens
+    // on the main thread before the paint thread can ever grab a reference
+    // to the CompositorBridge object.
+    //
+    // Note that it is useful to take this lock for one other reason: It also
+    // tells us whether GetIPCChannel is safe to call. If we access the IPC
+    // channel within this lock, when mCanSend is true, then we know it has not
+    // been zapped by IPDL.
+    MonitorAutoLock lock(mPaintLock);
+    mCanSend = false;
+    mActorDestroyed = true;
+  }
 
   if (mProcessToken && XRE_IsParentProcess()) {
     GPUProcessManager::Get()->NotifyRemoteActorDestroyed(mProcessToken);
@@ -1114,6 +1130,86 @@ CompositorBridgeChild::GetNextPipelineId()
   return wr::AsPipelineId(GetNextResourceId());
 }
 
+void
+CompositorBridgeChild::NotifyBeginAsyncPaint()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  MonitorAutoLock lock(mPaintLock);
+
+  // We must not be waiting for paints to complete yet. This would imply we
+  // started a new paint without waiting for a previous one, which could lead to
+  // incorrect rendering or IPDL deadlocks.
+  MOZ_ASSERT(!mIsWaitingForPaint);
+
+  mOutstandingAsyncPaints++;
+}
+
+void
+CompositorBridgeChild::NotifyFinishedAsyncPaint()
+{
+  MOZ_ASSERT(PaintThread::IsOnPaintThread());
+
+  MonitorAutoLock lock(mPaintLock);
+
+  mOutstandingAsyncPaints--;
+
+  // It's possible that we painted so fast that the main thread never reached
+  // the code that starts delaying messages. If so, mIsWaitingForPaint will be
+  // false, and we can safely return.
+  if (mIsWaitingForPaint && mOutstandingAsyncPaints == 0) {
+    ResumeIPCAfterAsyncPaint();
+
+    // Notify the main thread in case it's blocking. We do this unconditionally
+    // to avoid deadlocking.
+    lock.Notify();
+  }
+}
+
+void
+CompositorBridgeChild::PostponeMessagesIfAsyncPainting()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  MonitorAutoLock lock(mPaintLock);
+
+  MOZ_ASSERT(!mIsWaitingForPaint);
+
+  if (mOutstandingAsyncPaints > 0) {
+    mIsWaitingForPaint = true;
+    GetIPCChannel()->BeginPostponingSends();
+  }
+}
+
+void
+CompositorBridgeChild::ResumeIPCAfterAsyncPaint()
+{
+  // Note: the caller is responsible for holding the lock.
+  mPaintLock.AssertCurrentThreadOwns();
+  MOZ_ASSERT(PaintThread::IsOnPaintThread());
+  MOZ_ASSERT(mOutstandingAsyncPaints == 0);
+  MOZ_ASSERT(mIsWaitingForPaint);
+
+  mIsWaitingForPaint = false;
+
+  // It's also possible that the channel has shut down already.
+  if (!mCanSend || mActorDestroyed) {
+    return;
+  }
+
+  GetIPCChannel()->StopPostponingSends();
+}
+
+void
+CompositorBridgeChild::FlushAsyncPaints()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  MonitorAutoLock lock(mPaintLock);
+  while (mIsWaitingForPaint) {
+    lock.Wait();
+  }
+}
+
 } // namespace layers
 } // namespace mozilla
-

@@ -9,6 +9,7 @@
 #include "mozilla/ContentEvents.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/SVGAnimationElement.h"
+#include "mozilla/TaskCategory.h"
 #include "nsAutoPtr.h"
 #include "nsSMILTimedElement.h"
 #include "nsAttrValueInlines.h"
@@ -216,13 +217,13 @@ nsSMILTimedElement::RemoveInstanceTimes(InstanceTimeList& aArray,
 //----------------------------------------------------------------------
 // Static members
 
-nsAttrValue::EnumTable nsSMILTimedElement::sFillModeTable[] = {
+const nsAttrValue::EnumTable nsSMILTimedElement::sFillModeTable[] = {
       {"remove", FILL_REMOVE},
       {"freeze", FILL_FREEZE},
       {nullptr, 0}
 };
 
-nsAttrValue::EnumTable nsSMILTimedElement::sRestartModeTable[] = {
+const nsAttrValue::EnumTable nsSMILTimedElement::sRestartModeTable[] = {
       {"always", RESTART_ALWAYS},
       {"whenNotActive", RESTART_WHENNOTACTIVE},
       {"never", RESTART_NEVER},
@@ -2378,7 +2379,8 @@ nsSMILTimedElement::FireTimeEventAsync(EventMessage aMsg, int32_t aDetail)
 
   nsCOMPtr<nsIRunnable> event =
     new AsyncTimeEventRunner(mAnimationElement, aMsg, aDetail);
-  NS_DispatchToMainThread(event);
+  mAnimationElement->OwnerDoc()->Dispatch("AsyncTimeEventRunner", TaskCategory::Other,
+                                          event.forget());
 }
 
 const nsSMILInstanceTime*

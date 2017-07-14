@@ -282,7 +282,7 @@ nsStyleSet::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 }
 
 void
-nsStyleSet::Init(nsPresContext *aPresContext)
+nsStyleSet::Init(nsPresContext* aPresContext, nsBindingManager* aBindingManager)
 {
   mFirstLineRule = new nsEmptyStyleRule;
   mFirstLetterRule = new nsEmptyStyleRule;
@@ -290,6 +290,7 @@ nsStyleSet::Init(nsPresContext *aPresContext)
   mDisableTextZoomStyleRule = new nsDisableTextZoomStyleRule;
 
   mRuleTree = nsRuleNode::CreateRootNode(aPresContext);
+  mBindingManager = aBindingManager;
 
   // Make an explicit GatherRuleProcessors call for the levels that
   // don't have style sheets.  The other levels will have their calls
@@ -744,19 +745,10 @@ nsStyleSet::AddDocStyleSheet(CSSStyleSheet* aSheet, nsIDocument* aDocument)
 }
 
 void
-nsStyleSet::AppendAllXBLStyleSheets(nsTArray<mozilla::CSSStyleSheet*>& aArray) const
+nsStyleSet::AppendAllXBLStyleSheets(nsTArray<StyleSheet*>& aArray) const
 {
   if (mBindingManager) {
-    // XXXheycam stylo: AppendAllSheets will need to be able to return either
-    // CSSStyleSheets or ServoStyleSheets, on request (and then here requesting
-    // CSSStyleSheets).
-    AutoTArray<StyleSheet*, 32> sheets;
-    mBindingManager->AppendAllSheets(sheets);
-    for (StyleSheet* handle : sheets) {
-      MOZ_ASSERT(handle->IsGecko(), "stylo: AppendAllSheets shouldn't give us "
-                                    "ServoStyleSheets yet");
-      aArray.AppendElement(handle->AsGecko());
-    }
+    mBindingManager->AppendAllSheets(aArray);
   }
 }
 
@@ -1707,6 +1699,23 @@ nsStyleSet::RuleNodeWithReplacement(Element* aElement,
   return ruleWalker.CurrentNode();
 }
 
+static bool
+SkipsParentDisplayBasedStyleFixup(nsStyleContext* aStyleContext)
+{
+  CSSPseudoElementType type = aStyleContext->GetPseudoType();
+  switch (type) {
+    case CSSPseudoElementType::InheritingAnonBox:
+       return nsCSSAnonBoxes::AnonBoxSkipsParentDisplayBasedStyleFixup(
+                aStyleContext->GetPseudo());
+    case CSSPseudoElementType::NonInheritingAnonBox:
+       return true;
+    case CSSPseudoElementType::NotPseudo:
+       return false;
+    default:
+       return !nsCSSPseudoElements::PseudoElementIsFlexOrGridItem(type);
+  }
+}
+
 already_AddRefed<nsStyleContext>
 nsStyleSet::ResolveStyleWithReplacement(Element* aElement,
                                         Element* aPseudoElement,
@@ -1777,11 +1786,13 @@ nsStyleSet::ResolveStyleWithReplacement(Element* aElement,
 #endif
   }
 
-  if (aElement && aElement->IsRootOfAnonymousSubtree()) {
+  if ((aElement && aElement->IsRootOfAnonymousSubtree()) ||
+      SkipsParentDisplayBasedStyleFixup(aOldStyleContext)) {
     // For anonymous subtree roots, don't tweak "display" value based on whether
     // or not the parent is styled as a flex/grid container. (If the parent
     // has anonymous-subtree kids, then we know it's not actually going to get
-    // a flex/grid container frame, anyway.)
+    // a flex/grid container frame, anyway.)  Same for certain anonymous boxes
+    // and most pseudos.
     flags |= eSkipParentDisplayBasedStyleFixup;
   }
 
@@ -1953,11 +1964,11 @@ nsStyleSet::ResolvePseudoElementStyleInternal(
     if (aAnimationFlag == eWithAnimation) {
       flags |= eDoAnimation;
     }
-  } else {
-    // Flex and grid containers don't expect to have any pseudo-element children
-    // aside from ::before and ::after.  So if we have such a child, we're not
-    // actually in a flex/grid container, and we should skip flex/grid item
-    // style fixup.
+  }
+
+  if (!nsCSSPseudoElements::PseudoElementIsFlexOrGridItem(aType)) {
+    // Only pseudo-elements that act as items in flex and grid containers
+    // have parent display-based style fixup.
     flags |= eSkipParentDisplayBasedStyleFixup;
   }
 
@@ -2051,11 +2062,11 @@ nsStyleSet::ProbePseudoElementStyle(Element* aParentElement,
   if (aType == CSSPseudoElementType::before ||
       aType == CSSPseudoElementType::after) {
     flags |= eDoAnimation;
-  } else {
-    // Flex and grid containers don't expect to have any pseudo-element children
-    // aside from ::before and ::after.  So if we have such a child, we're not
-    // actually in a flex/grid container, and we should skip flex/grid item
-    // style fixup.
+  }
+
+  if (!nsCSSPseudoElements::PseudoElementIsFlexOrGridItem(aType)) {
+    // Only pseudo-elements that act as items in flex and grid containers
+    // have parent display-based style fixup.
     flags |= eSkipParentDisplayBasedStyleFixup;
   }
 
@@ -2510,13 +2521,12 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   }
 
   if ((aElement && aElement->IsRootOfAnonymousSubtree()) ||
-      (aStyleContext->IsAnonBox() &&
-       nsCSSAnonBoxes::AnonBoxSkipsParentDisplayBasedStyleFixup(
-         aStyleContext->GetPseudo()))) {
+      SkipsParentDisplayBasedStyleFixup(aStyleContext)) {
     // For anonymous subtree roots, don't tweak "display" value based on whether
     // or not the parent is styled as a flex/grid container. (If the parent
     // has anonymous-subtree kids, then we know it's not actually going to get
-    // a flex/grid container frame, anyway.)  Same for certain anonymous boxes.
+    // a flex/grid container frame, anyway.)  Same for certain anonymous boxes
+    // and most pseudos.
     flags |= eSkipParentDisplayBasedStyleFixup;
   }
 

@@ -30,11 +30,6 @@ describe("TelemetryFeed", () => {
     "common/PerfService.jsm": {perfService}
   });
 
-  function addSession(id) {
-    instance.addSession(id);
-    return instance.sessions.get(id);
-  }
-
   beforeEach(() => {
     globals = new GlobalOverrider();
     sandbox = globals.sandbox;
@@ -47,20 +42,16 @@ describe("TelemetryFeed", () => {
     globals.restore();
   });
   describe("#init", () => {
-    it("should add .telemetrySender, a TelemetrySender instance", async () => {
-      assert.isNull(instance.telemetrySender);
-      await instance.init();
+    it("should add .telemetrySender, a TelemetrySender instance", () => {
       assert.instanceOf(instance.telemetrySender, TelemetrySender);
     });
     it("should add .telemetryClientId from the ClientID module", async () => {
-      assert.isNull(instance.telemetryClientId);
-      await instance.init();
-      assert.equal(instance.telemetryClientId, FAKE_TELEMETRY_ID);
+      assert.equal(await instance.telemetryClientId, FAKE_TELEMETRY_ID);
     });
-    it("should make this.browserOpenNewtabStart() observe browser-open-newtab-start", async () => {
+    it("should make this.browserOpenNewtabStart() observe browser-open-newtab-start", () => {
       sandbox.spy(Services.obs, "addObserver");
 
-      await instance.init();
+      instance.init();
 
       assert.calledOnce(Services.obs.addObserver);
       assert.calledWithExactly(Services.obs.addObserver,
@@ -68,25 +59,51 @@ describe("TelemetryFeed", () => {
     });
   });
   describe("#addSession", () => {
-    it("should add a session", () => {
-      addSession("foo");
-      assert.isTrue(instance.sessions.has("foo"));
+    it("should add a session and return it", () => {
+      const session = instance.addSession("foo");
+
+      assert.equal(instance.sessions.get("foo"), session);
     });
     it("should set the start_time", () => {
       sandbox.spy(Components.utils, "now");
-      const session = addSession("foo");
+
+      const session = instance.addSession("foo");
+
       assert.calledOnce(Components.utils.now);
       assert.equal(session.start_time, Components.utils.now.firstCall.returnValue);
     });
     it("should set the session_id", () => {
       sandbox.spy(global.gUUIDGenerator, "generateUUID");
-      const session = addSession("foo");
+
+      const session = instance.addSession("foo");
+
       assert.calledOnce(global.gUUIDGenerator.generateUUID);
       assert.equal(session.session_id, global.gUUIDGenerator.generateUUID.firstCall.returnValue);
     });
     it("should set the page", () => {
-      const session = addSession("foo");
+      const session = instance.addSession("foo");
+
       assert.equal(session.page, "about:newtab"); // This is hardcoded for now.
+    });
+    it("should set the perf type when lacking timestamp", () => {
+      const session = instance.addSession("foo");
+
+      assert.propertyVal(session.perf, "load_trigger_type", "unexpected");
+    });
+    it("should set the perf type with timestamp", () => {
+      const session = instance.addSession("foo", 123);
+
+      assert.propertyVal(session.perf, "load_trigger_type", "menu_plus_or_keyboard"); // This is hardcoded for now.
+    });
+    it("should save visibility time", () => {
+      const session = instance.addSession("foo", 123);
+
+      assert.propertyVal(session.perf, "visibility_event_rcvd_ts", 123);
+    });
+    it("should not save visibility time when lacking timestamp", () => {
+      const session = instance.addSession("foo");
+
+      assert.propertyVal(session.perf, "visibility_event_rcvd_ts", undefined);
     });
   });
   describe("#browserOpenNewtabStart", () => {
@@ -106,20 +123,25 @@ describe("TelemetryFeed", () => {
     });
     it("should add a session_duration", () => {
       sandbox.stub(instance, "sendEvent");
-      const session = addSession("foo");
+      const session = instance.addSession("foo");
+
       instance.endSession("foo");
+
       assert.property(session, "session_duration");
     });
     it("should remove the session from .sessions", () => {
       sandbox.stub(instance, "sendEvent");
-      addSession("foo");
+      instance.addSession("foo");
+
       instance.endSession("foo");
+
       assert.isFalse(instance.sessions.has("foo"));
     });
     it("should call createSessionSendEvent and sendEvent with the sesssion", () => {
       sandbox.stub(instance, "sendEvent");
       sandbox.stub(instance, "createSessionEndEvent");
-      const session = addSession("foo");
+      const session = instance.addSession("foo");
+
       instance.endSession("foo");
 
       // Did we call sendEvent with the result of createSessionEndEvent?
@@ -128,35 +150,43 @@ describe("TelemetryFeed", () => {
     });
   });
   describe("ping creators", () => {
-    beforeEach(async () => await instance.init());
+    beforeEach(() => instance.init());
     describe("#createPing", () => {
-      it("should create a valid base ping without a session if no portID is supplied", () => {
-        const ping = instance.createPing();
+      it("should create a valid base ping without a session if no portID is supplied", async () => {
+        const ping = await instance.createPing();
         assert.validate(ping, BasePing);
         assert.notProperty(ping, "session_id");
       });
-      it("should create a valid base ping with session info if a portID is supplied", () => {
+      it("should create a valid base ping with session info if a portID is supplied", async () => {
         // Add a session
         const portID = "foo";
         instance.addSession(portID);
         const sessionID = instance.sessions.get(portID).session_id;
 
         // Create a ping referencing the session
-        const ping = instance.createPing(portID);
+        const ping = await instance.createPing(portID);
         assert.validate(ping, BasePing);
 
         // Make sure we added the right session-related stuff to the ping
         assert.propertyVal(ping, "session_id", sessionID);
         assert.propertyVal(ping, "page", "about:newtab");
       });
+      it("should create an unexpected base ping if no session yet portID is supplied", async () => {
+        const ping = await instance.createPing("foo");
+
+        assert.validate(ping, BasePing);
+        assert.propertyVal(ping, "page", "about:newtab");
+        assert.propertyVal(instance.sessions.get("foo").perf, "load_trigger_type", "unexpected");
+      });
     });
     describe("#createUserEvent", () => {
-      it("should create a valid event", () => {
+      it("should create a valid event", async () => {
         const portID = "foo";
         const data = {source: "TOP_SITES", event: "CLICK"};
         const action = ac.SendToMain(ac.UserEvent(data), portID);
-        const session = addSession(portID);
-        const ping = instance.createUserEvent(action);
+        const session = instance.addSession(portID);
+
+        const ping = await instance.createUserEvent(action);
 
         // Is it valid?
         assert.validate(ping, UserEventPing);
@@ -165,21 +195,23 @@ describe("TelemetryFeed", () => {
       });
     });
     describe("#createUndesiredEvent", () => {
-      it("should create a valid event without a session", () => {
+      it("should create a valid event without a session", async () => {
         const action = ac.UndesiredEvent({source: "TOP_SITES", event: "MISSING_IMAGE", value: 10});
-        const ping = instance.createUndesiredEvent(action);
+
+        const ping = await instance.createUndesiredEvent(action);
 
         // Is it valid?
         assert.validate(ping, UndesiredPing);
         // Does it have the right value?
         assert.propertyVal(ping, "value", 10);
       });
-      it("should create a valid event with a session", () => {
+      it("should create a valid event with a session", async () => {
         const portID = "foo";
         const data = {source: "TOP_SITES", event: "MISSING_IMAGE", value: 10};
         const action = ac.SendToMain(ac.UndesiredEvent(data), portID);
-        const session = addSession(portID);
-        const ping = instance.createUndesiredEvent(action);
+        const session = instance.addSession(portID);
+
+        const ping = await instance.createUndesiredEvent(action);
 
         // Is it valid?
         assert.validate(ping, UndesiredPing);
@@ -190,21 +222,22 @@ describe("TelemetryFeed", () => {
       });
     });
     describe("#createPerformanceEvent", () => {
-      it("should create a valid event without a session", () => {
+      it("should create a valid event without a session", async () => {
         const action = ac.PerfEvent({event: "SCREENSHOT_FINISHED", value: 100});
-        const ping = instance.createPerformanceEvent(action);
+        const ping = await instance.createPerformanceEvent(action);
 
         // Is it valid?
         assert.validate(ping, PerfPing);
         // Does it have the right value?
         assert.propertyVal(ping, "value", 100);
       });
-      it("should create a valid event with a session", () => {
+      it("should create a valid event with a session", async () => {
         const portID = "foo";
         const data = {event: "PAGE_LOADED", value: 100};
         const action = ac.SendToMain(ac.PerfEvent(data), portID);
-        const session = addSession(portID);
-        const ping = instance.createPerformanceEvent(action);
+        const session = instance.addSession(portID);
+
+        const ping = await instance.createPerformanceEvent(action);
 
         // Is it valid?
         assert.validate(ping, PerfPing);
@@ -215,8 +248,8 @@ describe("TelemetryFeed", () => {
       });
     });
     describe("#createSessionEndEvent", () => {
-      it("should create a valid event", () => {
-        const ping = instance.createSessionEndEvent({
+      it("should create a valid event", async () => {
+        const ping = await instance.createSessionEndEvent({
           session_id: FAKE_UUID,
           page: "about:newtab",
           session_duration: 12345,
@@ -232,24 +265,36 @@ describe("TelemetryFeed", () => {
         assert.propertyVal(ping, "page", "about:newtab");
         assert.propertyVal(ping, "session_duration", 12345);
       });
+      it("should create a valid unexpected session event", async () => {
+        const ping = await instance.createSessionEndEvent({
+          session_id: FAKE_UUID,
+          page: "about:newtab",
+          session_duration: 12345,
+          perf: {load_trigger_type: "unexpected"}
+        });
+
+        // Is it valid?
+        assert.validate(ping, SessionPing);
+        assert.propertyVal(ping, "session_id", FAKE_UUID);
+        assert.propertyVal(ping, "page", "about:newtab");
+        assert.propertyVal(ping, "session_duration", 12345);
+        assert.propertyVal(ping.perf, "load_trigger_type", "unexpected");
+      });
     });
   });
   describe("#sendEvent", () => {
     it("should call telemetrySender", async () => {
-      await instance.init();
       sandbox.stub(instance.telemetrySender, "sendPing");
       const event = {};
-      instance.sendEvent(event);
+      await instance.sendEvent(Promise.resolve(event));
       assert.calledWith(instance.telemetrySender.sendPing, event);
     });
   });
   describe("#uninit", () => {
-    it("should call .telemetrySender.uninit and remove it", async () => {
-      await instance.init();
+    it("should call .telemetrySender.uninit", () => {
       const stub = sandbox.stub(instance.telemetrySender, "uninit");
       instance.uninit();
       assert.calledOnce(stub);
-      assert.isNull(instance.telemetrySender);
     });
     it("should make this.browserOpenNewtabStart() stop observing browser-open-newtab-start", async () => {
       await instance.init();

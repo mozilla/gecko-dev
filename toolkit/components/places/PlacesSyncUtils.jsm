@@ -323,8 +323,6 @@ const BookmarkSyncUtils = PlacesSyncUtils.bookmarks = Object.freeze({
 
   /**
    * Returns a changeset containing local bookmark changes since the last sync.
-   * Updates the sync status of all "NEW" bookmarks to "NORMAL", so that Sync
-   * can recover correctly after an interrupted sync.
    *
    * @return {Promise} resolved once all items have been fetched.
    * @resolves to an object containing records for changed bookmarks, keyed by
@@ -332,9 +330,25 @@ const BookmarkSyncUtils = PlacesSyncUtils.bookmarks = Object.freeze({
    * @see pullSyncChanges for the implementation, and markChangesAsSyncing for
    *      an explanation of why we update the sync status.
    */
-  pullChanges() {
-    return PlacesUtils.withConnectionWrapper("BookmarkSyncUtils: pullChanges",
-      db => pullSyncChanges(db));
+  async pullChanges() {
+    let db = await PlacesUtils.promiseDBConnection();
+    return pullSyncChanges(db);
+  },
+
+  /**
+   * Updates the sync status of all "NEW" bookmarks to "NORMAL", so that Sync
+   * can recover correctly after an interrupted sync.
+   *
+   * @param changeRecords
+   *        A changeset containing sync change records, as returned by
+   *        `pullChanges`.
+   * @return {Promise} resolved once all records have been updated.
+   */
+  markChangesAsSyncing(changeRecords) {
+    return PlacesUtils.withConnectionWrapper(
+      "BookmarkSyncUtils: markChangesAsSyncing",
+      db => markChangesAsSyncing(db, changeRecords)
+    );
   },
 
   /**
@@ -344,7 +358,7 @@ const BookmarkSyncUtils = PlacesSyncUtils.bookmarks = Object.freeze({
    *
    * @param changeRecords
    *        A changeset containing sync change records, as returned by
-   *        `pull{All, New}Changes`.
+   *        `pullChanges`.
    * @return {Promise} resolved once all records have been updated.
    */
   pushChanges(changeRecords) {
@@ -469,8 +483,8 @@ const BookmarkSyncUtils = PlacesSyncUtils.bookmarks = Object.freeze({
     // TODO (Bug 1313890): Refactor the bookmarks engine to pull change records
     // before uploading, instead of returning records to merge into the engine's
     // initial changeset.
-    return PlacesUtils.withConnectionWrapper("BookmarkSyncUtils: remove",
-      db => pullSyncChanges(db));
+    let db = await PlacesUtils.promiseDBConnection();
+    return pullSyncChanges(db);
   },
 
   /**
@@ -1361,7 +1375,8 @@ function validateNewBookmark(info) {
       title: { validIf: b => [ BookmarkSyncUtils.KINDS.BOOKMARK,
                                BookmarkSyncUtils.KINDS.QUERY,
                                BookmarkSyncUtils.KINDS.FOLDER,
-                               BookmarkSyncUtils.KINDS.LIVEMARK ].includes(b.kind) },
+                               BookmarkSyncUtils.KINDS.LIVEMARK ].includes(b.kind) ||
+                             b.title === "" },
       query: { validIf: b => b.kind == BookmarkSyncUtils.KINDS.QUERY },
       folder: { validIf: b => b.kind == BookmarkSyncUtils.KINDS.QUERY },
       tags: { validIf: b => [ BookmarkSyncUtils.KINDS.BOOKMARK,
@@ -1420,9 +1435,11 @@ function tagItem(item, tags) {
   // tag IDs, we temporarily tag a dummy URI, ensuring the tags exist.
   let dummyURI = PlacesUtils.toURI("about:weave#BStore_tagURI");
   let bookmarkURI = PlacesUtils.toURI(item.url.href);
-  PlacesUtils.tagging.tagURI(dummyURI, newTags, SOURCE_SYNC);
+  if (newTags && newTags.length > 0)
+    PlacesUtils.tagging.tagURI(dummyURI, newTags, SOURCE_SYNC);
   PlacesUtils.tagging.untagURI(bookmarkURI, null, SOURCE_SYNC);
-  PlacesUtils.tagging.tagURI(bookmarkURI, newTags, SOURCE_SYNC);
+  if (newTags && newTags.length > 0)
+    PlacesUtils.tagging.tagURI(bookmarkURI, newTags, SOURCE_SYNC);
   PlacesUtils.tagging.untagURI(dummyURI, null, SOURCE_SYNC);
 
   return newTags;
@@ -1744,8 +1761,6 @@ var pullSyncChanges = async function(db) {
     FROM moz_bookmarks_deleted`,
     { deletedSyncStatus: PlacesUtils.bookmarks.SYNC_STATUS.NORMAL },
     row => addRowToChangeRecords(row, changeRecords));
-
-  await markChangesAsSyncing(db, changeRecords);
 
   return changeRecords;
 };

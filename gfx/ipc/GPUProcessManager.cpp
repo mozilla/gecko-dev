@@ -179,6 +179,13 @@ GPUProcessManager::DisableGPUProcess(const char* aMessage)
 
   DestroyProcess();
   ShutdownVsyncIOThread();
+
+  // We may have been in the middle of guaranteeing our various services are
+  // available when one failed. Some callers may fallback to using the same
+  // process equivalent, and we need to make sure those services are setup
+  // correctly. We cannot re-enter DisableGPUProcess from this call because we
+  // know that it is disabled in the config above.
+  EnsureProtocolsReady();
 }
 
 bool
@@ -198,6 +205,14 @@ GPUProcessManager::EnsureGPUReady()
   }
 
   return false;
+}
+
+void
+GPUProcessManager::EnsureProtocolsReady()
+{
+  EnsureCompositorManagerChild();
+  EnsureImageBridgeChild();
+  EnsureVRManager();
 }
 
 void
@@ -382,8 +397,11 @@ ShouldLimitDeviceResets(uint32_t count, int32_t deltaMilliseconds)
 }
 
 void
-GPUProcessManager::TriggerDeviceResetForTesting()
+GPUProcessManager::SimulateDeviceReset()
 {
+  // Make sure we rebuild environment and configuration for accelerated features.
+  gfxPlatform::GetPlatform()->CompositorUpdated();
+
   if (mProcess) {
     OnRemoteProcessDeviceReset(mProcess);
   } else {
@@ -412,6 +430,17 @@ GPUProcessManager::OnRemoteProcessDeviceReset(GPUProcessHost* aHost)
   if (ShouldLimitDeviceResets(mDeviceResetCount, delta)) {
     DestroyProcess();
     DisableGPUProcess("GPU processed experienced too many device resets");
+
+    // Reaches the limited TDR attempts, fallback to software solution.
+    gfxConfig::SetFailed(Feature::HW_COMPOSITING,
+      FeatureStatus::Blocked,
+      "Too many attemps of D3D11 creation, fallback to software solution.");
+    gfxConfig::SetFailed(Feature::D3D11_COMPOSITING,
+      FeatureStatus::Blocked,
+      "Too many attemps of D3D11 creation, fallback to software solution.");
+    gfxConfig::SetFailed(Feature::DIRECT2D,
+      FeatureStatus::Blocked,
+      "Too many attemps of D3D11 creation, fallback to software solution.");
 
     HandleProcessLost();
     return;
@@ -641,9 +670,7 @@ GPUProcessManager::CreateTopLevelCompositor(nsBaseWidget* aWidget,
 {
   uint64_t layerTreeId = AllocateLayerTreeId();
 
-  EnsureCompositorManagerChild();
-  EnsureImageBridgeChild();
-  EnsureVRManager();
+  EnsureProtocolsReady();
 
   RefPtr<CompositorSession> session;
 
@@ -773,12 +800,12 @@ GPUProcessManager::CreateContentCompositorManager(base::ProcessId aOtherProcess,
   ipc::Endpoint<PCompositorManagerParent> parentPipe;
   ipc::Endpoint<PCompositorManagerChild> childPipe;
 
-  base::ProcessId gpuPid = EnsureGPUReady()
-                           ? mGPUChild->OtherPid()
-                           : base::GetCurrentProcId();
+  base::ProcessId parentPid = EnsureGPUReady()
+                              ? mGPUChild->OtherPid()
+                              : base::GetCurrentProcId();
 
   nsresult rv = PCompositorManager::CreateEndpoints(
-    gpuPid,
+    parentPid,
     aOtherProcess,
     &parentPipe,
     &childPipe);
@@ -787,7 +814,7 @@ GPUProcessManager::CreateContentCompositorManager(base::ProcessId aOtherProcess,
     return false;
   }
 
-  if (EnsureGPUReady()) {
+  if (mGPUChild) {
     mGPUChild->SendNewContentCompositorManager(Move(parentPipe));
   } else {
     CompositorManagerParent::Create(Move(parentPipe));
@@ -803,14 +830,14 @@ GPUProcessManager::CreateContentImageBridge(base::ProcessId aOtherProcess,
 {
   EnsureImageBridgeChild();
 
-  base::ProcessId gpuPid = mGPUChild
-                           ? mGPUChild->OtherPid()
-                           : base::GetCurrentProcId();
+  base::ProcessId parentPid = EnsureGPUReady()
+                              ? mGPUChild->OtherPid()
+                              : base::GetCurrentProcId();
 
   ipc::Endpoint<PImageBridgeParent> parentPipe;
   ipc::Endpoint<PImageBridgeChild> childPipe;
   nsresult rv = PImageBridge::CreateEndpoints(
-    gpuPid,
+    parentPid,
     aOtherProcess,
     &parentPipe,
     &childPipe);
@@ -819,7 +846,7 @@ GPUProcessManager::CreateContentImageBridge(base::ProcessId aOtherProcess,
     return false;
   }
 
-  if (EnsureGPUReady()) {
+  if (mGPUChild) {
     mGPUChild->SendNewContentImageBridge(Move(parentPipe));
   } else {
     if (!ImageBridgeParent::CreateForContent(Move(parentPipe))) {
@@ -846,14 +873,14 @@ GPUProcessManager::CreateContentVRManager(base::ProcessId aOtherProcess,
 {
   EnsureVRManager();
 
-  base::ProcessId gpuPid = mGPUChild
-                           ? mGPUChild->OtherPid()
-                           : base::GetCurrentProcId();
+  base::ProcessId parentPid = EnsureGPUReady()
+                              ? mGPUChild->OtherPid()
+                              : base::GetCurrentProcId();
 
   ipc::Endpoint<PVRManagerParent> parentPipe;
   ipc::Endpoint<PVRManagerChild> childPipe;
   nsresult rv = PVRManager::CreateEndpoints(
-    gpuPid,
+    parentPid,
     aOtherProcess,
     &parentPipe,
     &childPipe);
@@ -862,7 +889,7 @@ GPUProcessManager::CreateContentVRManager(base::ProcessId aOtherProcess,
     return false;
   }
 
-  if (EnsureGPUReady()) {
+  if (mGPUChild) {
     mGPUChild->SendNewContentVRManager(Move(parentPipe));
   } else {
     if (!VRManagerParent::CreateForContent(Move(parentPipe))) {

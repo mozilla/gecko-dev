@@ -33,6 +33,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;
+extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;
@@ -53,6 +54,7 @@ use ipc_channel::router::ROUTER;
 use layout::animation;
 use layout::construct::ConstructionResult;
 use layout::context::LayoutContext;
+use layout::context::RegisteredPainter;
 use layout::context::heap_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
@@ -81,14 +83,13 @@ use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::layout_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
 use script_layout_interface::message::{ScriptReflow, ReflowComplete};
-use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress};
-use script_traits::PaintWorkletExecutor;
 use selectors::Element;
+use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::read_resource_file;
@@ -101,6 +102,7 @@ use std::marker::PhantomData;
 use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
+use std::slice;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -113,15 +115,17 @@ use style::error_reporting::{NullReporter, RustLogReporter};
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
+use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylearc::Arc as StyleArc;
-use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
+use style::stylesheets::{Origin, Stylesheet, StylesheetInDocument, UserAgentStylesheets};
 use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{DomTraversal, TraversalDriver, TraversalFlags};
+use style::values::CompactCowStr;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -218,14 +222,11 @@ pub struct LayoutThread {
     /// All the other elements of this struct are read-only.
     rw_data: Arc<Mutex<LayoutThreadData>>,
 
-    /// The CSS error reporter for all CSS loaded in this layout thread
-    error_reporter: CSSErrorReporter,
-
     webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder),
                                                  WebRenderImageInfo>>>,
     /// The executor for paint worklets.
     /// Will be None if the script thread hasn't added any paint worklet modules.
-    paint_worklet_executor: Option<Arc<PaintWorkletExecutor>>,
+    registered_painters: Arc<RwLock<FnvHashMap<Atom, RegisteredPainter>>>,
 
     /// Webrender interface.
     webrender_api: webrender_traits::RenderApi,
@@ -417,6 +418,17 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
     }
 }
 
+#[derive(Clone)]
+struct StylesheetIterator<'a>(slice::Iter<'a, StyleArc<Stylesheet>>);
+
+impl<'a> Iterator for StylesheetIterator<'a> {
+    type Item = &'a Stylesheet;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|s| &**s)
+    }
+}
+
 impl LayoutThread {
     /// Creates a new `LayoutThread` structure.
     fn new(id: PipelineId,
@@ -482,7 +494,7 @@ impl LayoutThread {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            paint_worklet_executor: None,
+            registered_painters: Arc::new(RwLock::new(FnvHashMap::default())),
             image_cache: image_cache.clone(),
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
@@ -520,10 +532,6 @@ impl LayoutThread {
                     text_index_response: TextIndexResponse(None),
                     nodes_from_point_response: vec![],
                 })),
-            error_reporter: CSSErrorReporter {
-                pipelineid: id,
-                script_chan: Arc::new(Mutex::new(script_chan)),
-            },
             webrender_image_cache:
                 Arc::new(RwLock::new(FnvHashMap::default())),
             timer:
@@ -568,7 +576,6 @@ impl LayoutThread {
                 guards: guards,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
-                error_reporter: &self.error_reporter,
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),
@@ -580,7 +587,7 @@ impl LayoutThread {
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
             newly_transitioning_nodes: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
-            paint_worklet_executor: self.paint_worklet_executor.clone(),
+            registered_painters: self.registered_painters.clone(),
         }
     }
 
@@ -696,10 +703,19 @@ impl LayoutThread {
             Msg::SetFinalUrl(final_url) => {
                 self.url = final_url;
             },
-            Msg::SetPaintWorkletExecutor(executor) => {
-                debug!("Setting the paint worklet executor");
-                debug_assert!(self.paint_worklet_executor.is_none());
-                self.paint_worklet_executor = Some(executor);
+            Msg::RegisterPaint(name, mut properties, painter) => {
+                debug!("Registering the painter");
+                let properties = properties.drain(..)
+                    .filter_map(|name| PropertyId::parse(CompactCowStr::from(&*name)).ok().map(|id| (name.clone(), id)))
+                    .filter(|&(_, ref id)| id.as_shorthand().is_err())
+                    .collect();
+                let registered_painter = RegisteredPainter {
+                    name: name.clone(),
+                    properties: properties,
+                    painter: painter,
+                };
+                self.registered_painters.write()
+                    .insert(name, registered_painter);
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -1146,7 +1162,7 @@ impl LayoutThread {
             marker: PhantomData,
         };
         let needs_dirtying = self.stylist.update(
-            data.document_stylesheets.iter(),
+            StylesheetIterator(data.document_stylesheets.iter()),
             &guards,
             Some(ua_stylesheets),
             data.stylesheets_changed,

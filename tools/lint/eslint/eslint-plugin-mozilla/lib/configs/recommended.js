@@ -63,7 +63,8 @@ module.exports = {
 
   // When adding items to this file please check for effects on sub-directories.
   "plugins": [
-    "mozilla"
+    "mozilla",
+    "no-unsanitized"
   ],
 
   // When adding items to this file please check for effects on all of toolkit
@@ -263,6 +264,9 @@ module.exports = {
     // Disallow multiple spaces in regular expressions
     "no-regex-spaces": "error",
 
+    // Disallows unnecessary `return await ...`.
+    "no-return-await": "error",
+
     // Disallow assignments where both sides are exactly the same
     "no-self-assign": "error",
 
@@ -277,6 +281,9 @@ module.exports = {
 
     // Disallow sparse arrays
     "no-sparse-arrays": "error",
+
+    // Disallow tabs.
+    "no-tabs": "error",
 
     // No trailing whitespace
     "no-trailing-spaces": "error",
@@ -298,6 +305,11 @@ module.exports = {
 
     // No (!foo in bar) or (!object instanceof Class)
     "no-unsafe-negation": "error",
+
+    // No unsanitized use of innerHTML=, document.write() etc.
+    // cf. https://github.com/mozilla/eslint-plugin-no-unsanitized#rule-details
+    "no-unsanitized/method": "error",
+    "no-unsanitized/property": "error",
 
     // No declaring variables that are never used
     "no-unused-vars": ["error", {

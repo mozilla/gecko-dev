@@ -23,7 +23,7 @@
 #![deny(missing_docs)]
 
 use arrayvec::ArrayVec;
-use context::TraversalStatistics;
+use context::{StyleContext, ThreadLocalStyleContext, TraversalStatistics};
 use dom::{OpaqueNode, SendNode, TElement, TNode};
 use rayon;
 use scoped_tls::ScopedTLS;
@@ -84,7 +84,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     let traversal_data = PerLevelTraversalData {
         current_dom_depth: depth,
     };
-    let tls = ScopedTLS::<D::ThreadLocalContext>::new(pool);
+    let tls = ScopedTLS::<ThreadLocalStyleContext<E>>::new(pool);
     let root = root.as_node().opaque();
 
     pool.install(|| {
@@ -92,6 +92,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
             let nodes = nodes;
             traverse_nodes(&*nodes,
                            DispatchMode::TailCall,
+                           0,
                            root,
                            traversal_data,
                            scope,
@@ -123,11 +124,11 @@ pub fn traverse_dom<E, D>(traversal: &D,
 #[inline(never)]
 fn create_thread_local_context<'scope, E, D>(
     traversal: &'scope D,
-    slot: &mut Option<D::ThreadLocalContext>)
+    slot: &mut Option<ThreadLocalStyleContext<E>>)
     where E: TElement + 'scope,
           D: DomTraversal<E>
 {
-    *slot = Some(traversal.create_thread_local_context())
+    *slot = Some(ThreadLocalStyleContext::new(traversal.shared_context()));
 }
 
 /// A parallel top-down DOM traversal.
@@ -145,12 +146,13 @@ fn create_thread_local_context<'scope, E, D>(
 #[inline(always)]
 #[allow(unsafe_code)]
 fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
+                                  recursion_depth: usize,
                                   root: OpaqueNode,
                                   mut traversal_data: PerLevelTraversalData,
                                   scope: &'a rayon::Scope<'scope>,
                                   pool: &'scope rayon::ThreadPool,
                                   traversal: &'scope D,
-                                  tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
+                                  tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>)
     where E: TElement + 'scope,
           D: DomTraversal<E>,
 {
@@ -165,7 +167,11 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
         // Scope the borrow of the TLS so that the borrow is dropped before
         // a potential recursive call when we pass TailCall.
         let mut tlc = tls.ensure(
-            |slot: &mut Option<D::ThreadLocalContext>| create_thread_local_context(traversal, slot));
+            |slot: &mut Option<ThreadLocalStyleContext<E>>| create_thread_local_context(traversal, slot));
+        let mut context = StyleContext {
+            shared: traversal.shared_context(),
+            thread_local: &mut *tlc,
+        };
 
         for n in nodes {
             // If the last node we processed produced children, spawn them off
@@ -186,6 +192,7 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
                 traversal_data_copy.current_dom_depth += 1;
                 traverse_nodes(&*children,
                                DispatchMode::NotTailCall,
+                               recursion_depth,
                                root,
                                traversal_data_copy,
                                scope,
@@ -196,15 +203,15 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
 
             let node = **n;
             let mut children_to_process = 0isize;
-            traversal.process_preorder(&traversal_data, &mut *tlc, node);
+            traversal.process_preorder(&traversal_data, &mut context, node);
             if let Some(el) = node.as_element() {
-                traversal.traverse_children(&mut *tlc, el, |_tlc, kid| {
+                traversal.traverse_children(&mut context, el, |_context, kid| {
                     children_to_process += 1;
                     discovered_child_nodes.push(unsafe { SendNode::new(kid) })
                 });
             }
 
-            traversal.handle_postorder_traversal(&mut *tlc, root, node,
+            traversal.handle_postorder_traversal(&mut context, root, node,
                                                  children_to_process);
         }
     }
@@ -216,6 +223,7 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
         traversal_data.current_dom_depth += 1;
         traverse_nodes(&discovered_child_nodes,
                        DispatchMode::TailCall,
+                       recursion_depth,
                        root,
                        traversal_data,
                        scope,
@@ -237,15 +245,22 @@ impl DispatchMode {
     fn is_tail_call(&self) -> bool { matches!(*self, DispatchMode::TailCall) }
 }
 
+// On x86_64-linux, a recursive cycle requires 3472 bytes of stack.  Limiting
+// the depth to 150 therefore should keep the stack use by the recursion to
+// 520800 bytes, which would give a generously conservative margin should we
+// decide to reduce the thread stack size from its default of 2MB down to 1MB.
+const RECURSION_DEPTH_LIMIT: usize = 150;
+
 #[inline]
 fn traverse_nodes<'a, 'scope, E, D>(nodes: &[SendNode<E::ConcreteNode>],
                                     mode: DispatchMode,
+                                    recursion_depth: usize,
                                     root: OpaqueNode,
                                     traversal_data: PerLevelTraversalData,
                                     scope: &'a rayon::Scope<'scope>,
                                     pool: &'scope rayon::ThreadPool,
                                     traversal: &'scope D,
-                                    tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
+                                    tls: &'scope ScopedTLS<'scope, ThreadLocalStyleContext<E>>)
     where E: TElement + 'scope,
           D: DomTraversal<E>,
 {
@@ -254,8 +269,13 @@ fn traverse_nodes<'a, 'scope, E, D>(nodes: &[SendNode<E::ConcreteNode>],
     // This is a tail call from the perspective of the caller. However, we only
     // want to actually dispatch the job as a tail call if there's nothing left
     // in our local queue. Otherwise we need to return to it to maintain proper
-    // breadth-first ordering.
+    // breadth-first ordering. We also need to take care to avoid stack
+    // overflow due to excessive tail recursion. The stack overflow isn't
+    // observable to content -- we're still completely correct, just not
+    // using tail recursion any more. See bug 1368302.
+    debug_assert!(recursion_depth <= RECURSION_DEPTH_LIMIT);
     let may_dispatch_tail = mode.is_tail_call() &&
+        recursion_depth != RECURSION_DEPTH_LIMIT &&
         !pool.current_thread_has_pending_tasks().unwrap();
 
     // In the common case, our children fit within a single work unit, in which
@@ -263,11 +283,13 @@ fn traverse_nodes<'a, 'scope, E, D>(nodes: &[SendNode<E::ConcreteNode>],
     if nodes.len() <= WORK_UNIT_MAX {
         let work = nodes.iter().cloned().collect::<WorkUnit<E::ConcreteNode>>();
         if may_dispatch_tail {
-            top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
+            top_down_dom(&work, recursion_depth + 1, root,
+                         traversal_data, scope, pool, traversal, tls);
         } else {
             scope.spawn(move |scope| {
                 let work = work;
-                top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
+                top_down_dom(&work, 0, root,
+                             traversal_data, scope, pool, traversal, tls);
             });
         }
     } else {
@@ -276,7 +298,8 @@ fn traverse_nodes<'a, 'scope, E, D>(nodes: &[SendNode<E::ConcreteNode>],
             let traversal_data_copy = traversal_data.clone();
             scope.spawn(move |scope| {
                 let n = nodes;
-                top_down_dom(&*n, root, traversal_data_copy, scope, pool, traversal, tls)
+                top_down_dom(&*n, 0, root,
+                             traversal_data_copy, scope, pool, traversal, tls)
             });
         }
     }

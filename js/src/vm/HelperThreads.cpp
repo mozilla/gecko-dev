@@ -111,6 +111,18 @@ js::StartOffThreadIonCompile(JSContext* cx, jit::IonBuilder* builder)
     return true;
 }
 
+bool
+js::StartOffThreadIonFree(jit::IonBuilder* builder, const AutoLockHelperThreadState& lock)
+{
+    MOZ_ASSERT(CanUseExtraThreads());
+
+    if (!HelperThreadState().ionFreeList(lock).append(builder))
+        return false;
+
+    HelperThreadState().notifyOne(GlobalHelperThreadState::PRODUCER, lock);
+    return true;
+}
+
 /*
  * Move an IonBuilder for which compilation has either finished, failed, or
  * been cancelled into the global finished compilation list. All off thread
@@ -859,6 +871,14 @@ void
 GlobalHelperThreadState::finish()
 {
     finishThreads();
+
+    // Make sure there are no Ion free tasks left. We check this here because,
+    // unlike the other tasks, we don't explicitly block on this when
+    // destroying a runtime.
+    AutoLockHelperThreadState lock;
+    auto& freeList = ionFreeList(lock);
+    while (!freeList.empty())
+        jit::FreeIonBuilder(freeList.popCopy());
 }
 
 void
@@ -1037,15 +1057,11 @@ GlobalHelperThreadState::maxGCParallelThreads() const
 }
 
 bool
-GlobalHelperThreadState::canStartWasmCompile(const AutoLockHelperThreadState& lock,
-                                             bool assumeThreadAvailable)
+GlobalHelperThreadState::canStartWasmCompile(const AutoLockHelperThreadState& lock)
 {
     // Don't execute an wasm job if an earlier one failed.
     if (wasmWorklist(lock).empty() || numWasmFailedJobs)
         return false;
-
-    if (assumeThreadAvailable)
-        return true;
 
     // Honor the maximum allowed threads to compile wasm jobs at once,
     // to avoid oversaturating the machine.
@@ -1085,6 +1101,12 @@ GlobalHelperThreadState::canStartIonCompile(const AutoLockHelperThreadState& loc
 {
     return !ionWorklist(lock).empty() &&
            checkTaskThreadLimit<jit::IonBuilder*>(maxIonCompilationThreads());
+}
+
+bool
+GlobalHelperThreadState::canStartIonFreeTask(const AutoLockHelperThreadState& lock)
+{
+    return !ionFreeList(lock).empty();
 }
 
 jit::IonBuilder*
@@ -1642,9 +1664,9 @@ HelperThread::ThreadMain(void* arg)
 }
 
 void
-HelperThread::handleWasmWorkload(AutoLockHelperThreadState& locked, bool assumeThreadAvailable)
+HelperThread::handleWasmWorkload(AutoLockHelperThreadState& locked)
 {
-    MOZ_ASSERT(HelperThreadState().canStartWasmCompile(locked, assumeThreadAvailable));
+    MOZ_ASSERT(HelperThreadState().canStartWasmCompile(locked));
     MOZ_ASSERT(idle());
 
     currentTask.emplace(HelperThreadState().wasmWorklist(locked).popCopy());
@@ -1670,33 +1692,6 @@ HelperThread::handleWasmWorkload(AutoLockHelperThreadState& locked, bool assumeT
     // Notify the active thread in case it's waiting.
     HelperThreadState().notifyAll(GlobalHelperThreadState::CONSUMER, locked);
     currentTask.reset();
-}
-
-bool
-HelperThread::handleWasmIdleWorkload(AutoLockHelperThreadState& locked)
-{
-    // Perform wasm compilation work on a HelperThread that is running
-    // ModuleGenerator instead of blocking while other compilation threads
-    // finish.  This removes a source of deadlocks, as putting all threads to
-    // work guarantees forward progress for compilation.
-
-    // The current thread has already been accounted for, so don't guard on
-    // thread subscription when checking whether we can do work.
-
-    if (HelperThreadState().canStartWasmCompile(locked, /*assumeThreadAvailable=*/ true)) {
-        HelperTaskUnion oldTask = currentTask.value();
-        currentTask.reset();
-        js::oom::ThreadType oldType = (js::oom::ThreadType)js::oom::GetThreadType();
-
-        js::oom::SetThreadType(js::oom::THREAD_TYPE_WASM);
-        handleWasmWorkload(locked, /*assumeThreadAvailable=*/ true);
-
-        js::oom::SetThreadType(oldType);
-        currentTask.emplace(oldTask);
-        return true;
-    }
-
-    return false;
 }
 
 void
@@ -1812,6 +1807,21 @@ HelperThread::handleIonWorkload(AutoLockHelperThreadState& locked)
             // unpaused wakes up.
             HelperThreadState().notifyAll(GlobalHelperThreadState::PAUSE, locked);
         }
+    }
+}
+
+void
+HelperThread::handleIonFreeWorkload(AutoLockHelperThreadState& locked)
+{
+    MOZ_ASSERT(idle());
+    MOZ_ASSERT(HelperThreadState().canStartIonFreeTask(locked));
+
+    auto& freeList = HelperThreadState().ionFreeList(locked);
+
+    jit::IonBuilder* builder = freeList.popCopy();
+    {
+        AutoUnlockHelperThreadState unlock(locked);
+        FreeIonBuilder(builder);
     }
 }
 
@@ -2125,7 +2135,8 @@ HelperThread::threadLoop()
                 HelperThreadState().canStartParseTask(lock) ||
                 HelperThreadState().canStartCompressionTask(lock) ||
                 HelperThreadState().canStartGCHelperTask(lock) ||
-                HelperThreadState().canStartGCParallelTask(lock))
+                HelperThreadState().canStartGCParallelTask(lock) ||
+                HelperThreadState().canStartIonFreeTask(lock))
             {
                 break;
             }
@@ -2153,6 +2164,9 @@ HelperThread::threadLoop()
         } else if (HelperThreadState().canStartCompressionTask(lock)) {
             js::oom::SetThreadType(js::oom::THREAD_TYPE_COMPRESS);
             handleCompressionWorkload(lock);
+        } else if (HelperThreadState().canStartIonFreeTask(lock)) {
+            js::oom::SetThreadType(js::oom::THREAD_TYPE_ION_FREE);
+            handleIonFreeWorkload(lock);
         } else {
             MOZ_CRASH("No task to perform");
         }

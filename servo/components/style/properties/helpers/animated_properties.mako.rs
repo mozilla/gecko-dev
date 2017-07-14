@@ -16,11 +16,8 @@ use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_string_cache::Atom;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
-use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
-use properties::longhands::text_shadow::computed_value::T as TextShadowList;
-use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
@@ -33,12 +30,18 @@ use std::cmp;
 #[cfg(feature = "gecko")] use fnv::FnvHashMap;
 use style_traits::ParseError;
 use super::ComputedValues;
-use values::{Auto, CSSFloat, CustomIdent, Either};
-use values::animated::effects::{Filter as AnimatedFilter, FilterList as AnimatedFilterList};
+#[cfg(any(feature = "gecko", feature = "testing"))]
+use values::Auto;
+use values::{CSSFloat, CustomIdent, Either};
+use values::animated::ToAnimatedValue;
+use values::animated::effects::BoxShadowList as AnimatedBoxShadowList;
+use values::animated::effects::Filter as AnimatedFilter;
+use values::animated::effects::FilterList as AnimatedFilterList;
+use values::animated::effects::TextShadowList as AnimatedTextShadowList;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
-use values::computed::{LengthOrPercentage, MaxLength, MozLength, Shadow, ToComputedValue};
+use values::computed::{LengthOrPercentage, MaxLength, MozLength, ToComputedValue};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::effects::Filter;
@@ -407,9 +410,15 @@ impl AnimatedProperty {
                             };
                         % endif
                         % if not prop.is_animatable_with_computed_value:
-                            let value: longhands::${prop.ident}::computed_value::T = value.into();
+                            let value: longhands::${prop.ident}::computed_value::T =
+                                ToAnimatedValue::from_animated_value(value);
                         % endif
-                        style.mutate_${prop.style_struct.ident.strip("_")}().set_${prop.ident}(value);
+                        <% method = "style.mutate_" + prop.style_struct.ident.strip("_") + "().set_" + prop.ident %>
+                        % if prop.has_uncacheable_values is "True":
+                            ${method}(value, &mut false);
+                        % else:
+                            ${method}(value);
+                        % endif
                     }
                 % endif
             % endfor
@@ -424,13 +433,21 @@ impl AnimatedProperty {
                                     -> AnimatedProperty {
         match *property {
             % for prop in data.longhands:
-                % if prop.animatable:
-                    AnimatableLonghand::${prop.camel_case} => {
-                        AnimatedProperty::${prop.camel_case}(
-                            old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}().into(),
-                            new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}().into())
-                    }
-                % endif
+            % if prop.animatable:
+                AnimatableLonghand::${prop.camel_case} => {
+                    let old_computed = old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}();
+                    let new_computed = new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}();
+                    AnimatedProperty::${prop.camel_case}(
+                    % if prop.is_animatable_with_computed_value:
+                        old_computed,
+                        new_computed,
+                    % else:
+                        old_computed.to_animated_value(),
+                        new_computed.to_animated_value(),
+                    % endif
+                    )
+                }
+            % endif
             % endfor
         }
     }
@@ -491,7 +508,7 @@ impl AnimationValue {
                                 % if prop.is_animatable_with_computed_value:
                                     from
                                 % else:
-                                    &from.clone().into()
+                                    &ToAnimatedValue::from_animated_value(from.clone())
                                 % endif
                                 ))
                             % if prop.boxed:
@@ -506,7 +523,6 @@ impl AnimationValue {
     /// Construct an AnimationValue from a property declaration
     pub fn from_declaration(decl: &PropertyDeclaration, context: &mut Context,
                             initial: &ComputedValues) -> Option<Self> {
-        use error_reporting::create_error_reporter;
         use properties::LonghandId;
         use properties::DeclaredValue;
 
@@ -519,13 +535,14 @@ impl AnimationValue {
                     longhands::system_font::resolve_system_font(sf, context);
                 }
             % endif
-                Some(AnimationValue::${prop.camel_case}(
-                % if prop.is_animatable_with_computed_value:
-                    val.to_computed_value(context)
-                % else:
-                    From::from(val.to_computed_value(context))
-                % endif
-                ))
+            let computed = val.to_computed_value(context);
+            Some(AnimationValue::${prop.camel_case}(
+            % if prop.is_animatable_with_computed_value:
+                computed
+            % else:
+                computed.to_animated_value()
+            % endif
+            ))
             },
             % endif
             % endfor
@@ -554,7 +571,7 @@ impl AnimationValue {
                             },
                         };
                         % if not prop.is_animatable_with_computed_value:
-                            let computed = From::from(computed);
+                        let computed = computed.to_animated_value();
                         % endif
                         Some(AnimationValue::${prop.camel_case}(computed))
                     },
@@ -569,7 +586,6 @@ impl AnimationValue {
             },
             PropertyDeclaration::WithVariables(id, ref variables) => {
                 let custom_props = context.style().custom_properties();
-                let reporter = create_error_reporter();
                 match id {
                     % for prop in data.longhands:
                     % if prop.animatable:
@@ -594,7 +610,6 @@ impl AnimationValue {
                                 };
                                 result = AnimationValue::from_declaration(&declaration, context, initial);
                             },
-                            &reporter,
                             quirks_mode);
                         result
                     },
@@ -616,13 +631,16 @@ impl AnimationValue {
             % for prop in data.longhands:
                 % if prop.animatable:
                     AnimatableLonghand::${prop.camel_case} => {
+                        let computed = computed_values
+                            .get_${prop.style_struct.ident.strip("_")}()
+                            .clone_${prop.ident}();
                         AnimationValue::${prop.camel_case}(
                         % if prop.is_animatable_with_computed_value:
-                            computed_values.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
+                            computed
                         % else:
-                            From::from(computed_values.get_${prop.style_struct.ident.strip("_")}()
-                                                                 .clone_${prop.ident}()))
+                            computed.to_animated_value()
                         % endif
+                        )
                     }
                 % endif
             % endfor
@@ -706,21 +724,16 @@ impl Animatable for AnimationValue {
         }
     }
 
-    fn get_zero_value(&self) -> Option<Self> {
-        match self {
+    fn get_zero_value(&self) -> Result<Self, ()> {
+        match *self {
             % for prop in data.longhands:
-                % if prop.animatable:
-                    % if prop.animation_value_type == "discrete":
-                        &AnimationValue::${prop.camel_case}(_) => {
-                            None
-                        }
-                    % else:
-                        &AnimationValue::${prop.camel_case}(ref base) => {
-                            base.get_zero_value().map(AnimationValue::${prop.camel_case})
-                        }
-                    % endif
-                % endif
+            % if prop.animatable and prop.animation_value_type != "discrete":
+            AnimationValue::${prop.camel_case}(ref base) => {
+                Ok(AnimationValue::${prop.camel_case}(base.get_zero_value()?))
+            },
+            % endif
             % endfor
+            _ => Err(()),
         }
     }
 
@@ -787,9 +800,8 @@ pub trait Animatable: Sized {
     /// This is not the necessarily the same as the initial value of a property. For example, the
     /// initial value of 'stroke-width' is 1, but the zero value is 0, since adding 1 to the
     /// underlying value will not produce the underlying value.
-    fn get_zero_value(&self) -> Option<Self> {
-        None
-    }
+    #[inline]
+    fn get_zero_value(&self) -> Result<Self, ()> { Err(()) }
 
     /// Compute distance between a value and another for a given property.
     fn compute_distance(&self, _other: &Self) -> Result<f64, ()>  { Err(()) }
@@ -813,6 +825,10 @@ macro_rules! repeated_vec_impl {
         $(impl<T: RepeatableListAnimatable> Animatable for $ty {
             fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
                 -> Result<Self, ()> {
+                // If the length of either list is zero, the least common multiple is undefined.
+                if self.is_empty() || other.is_empty() {
+                    return Err(());
+                }
                 use num_integer::lcm;
                 let len = lcm(self.len(), other.len());
                 self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
@@ -827,6 +843,10 @@ macro_rules! repeated_vec_impl {
 
             #[inline]
             fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                // If the length of either list is zero, the least common multiple is undefined.
+                if cmp::min(self.len(), other.len()) < 1 {
+                    return Err(());
+                }
                 use num_integer::lcm;
                 let len = lcm(self.len(), other.len());
                 self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
@@ -847,7 +867,7 @@ impl Animatable for Au {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> { Some(Au(0)) }
+    fn get_zero_value(&self) -> Result<Self, ()> { Ok(Au(0)) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -900,7 +920,7 @@ impl Animatable for f32 {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> { Some(0.) }
+    fn get_zero_value(&self) -> Result<Self, ()> { Ok(0.) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -916,7 +936,7 @@ impl Animatable for f64 {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> { Some(0.) }
+    fn get_zero_value(&self) -> Result<Self, ()> { Ok(0.) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -932,7 +952,7 @@ impl Animatable for i32 {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> { Some(0) }
+    fn get_zero_value(&self) -> Result<Self, ()> { Ok(0) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -969,7 +989,7 @@ impl Animatable for Percentage {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> { Some(Percentage(0.)) }
+    fn get_zero_value(&self) -> Result<Self, ()> { Ok(Percentage(0.)) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -1067,23 +1087,6 @@ impl Animatable for VerticalAlign {
     }
 }
 
-impl Animatable for BackgroundSizeList {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        self.0.add_weighted(&other.0, self_portion, other_portion).map(BackgroundSizeList)
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_distance(&other.0)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_squared_distance(&other.0)
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Animatable for CalcLengthOrPercentage {
     #[inline]
@@ -1155,7 +1158,9 @@ impl Animatable for LengthOrPercentage {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> { Some(LengthOrPercentage::zero()) }
+    fn get_zero_value(&self) -> Result<Self, ()> {
+        Ok(LengthOrPercentage::zero())
+    }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -1230,14 +1235,14 @@ impl Animatable for LengthOrPercentageOrAuto {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> {
+    fn get_zero_value(&self) -> Result<Self, ()> {
         match *self {
             LengthOrPercentageOrAuto::Length(_) |
             LengthOrPercentageOrAuto::Percentage(_) |
             LengthOrPercentageOrAuto::Calc(_) => {
-                Some(LengthOrPercentageOrAuto::Length(Au(0)))
+                Ok(LengthOrPercentageOrAuto::Length(Au(0)))
             },
-            LengthOrPercentageOrAuto::Auto => { None },
+            LengthOrPercentageOrAuto::Auto => Err(()),
         }
     }
 
@@ -1319,14 +1324,14 @@ impl Animatable for LengthOrPercentageOrNone {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> {
+    fn get_zero_value(&self) -> Result<Self, ()> {
         match *self {
             LengthOrPercentageOrNone::Length(_) |
             LengthOrPercentageOrNone::Percentage(_) |
             LengthOrPercentageOrNone::Calc(_) => {
-                Some(LengthOrPercentageOrNone::Length(Au(0)))
+                Ok(LengthOrPercentageOrNone::Length(Au(0)))
             },
-            LengthOrPercentageOrNone::None => { None },
+            LengthOrPercentageOrNone::None => Err(()),
         }
     }
 
@@ -1407,38 +1412,21 @@ impl Animatable for MaxLength {
 impl Animatable for FontWeight {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        let a = (*self as u32) as f64;
-        let b = (*other as u32) as f64;
+        let a = self.0 as f64;
+        let b = other.0 as f64;
         const NORMAL: f64 = 400.;
         let weight = (a - NORMAL) * self_portion + (b - NORMAL) * other_portion + NORMAL;
-        Ok(if weight < 150. {
-            FontWeight::Weight100
-        } else if weight < 250. {
-            FontWeight::Weight200
-        } else if weight < 350. {
-            FontWeight::Weight300
-        } else if weight < 450. {
-            FontWeight::Weight400
-        } else if weight < 550. {
-            FontWeight::Weight500
-        } else if weight < 650. {
-            FontWeight::Weight600
-        } else if weight < 750. {
-            FontWeight::Weight700
-        } else if weight < 850. {
-            FontWeight::Weight800
-        } else {
-            FontWeight::Weight900
-        })
+        let weight = (weight.min(100.).max(900.) / 100.).round() * 100.;
+        Ok(FontWeight(weight as u16))
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> { Some(FontWeight::Weight400) }
+    fn get_zero_value(&self) -> Result<Self, ()> { Ok(FontWeight::normal()) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        let a = (*self as u32) as f64;
-        let b = (*other as u32) as f64;
+        let a = self.0 as f64;
+        let b = other.0 as f64;
         a.compute_distance(&b)
     }
 }
@@ -1496,11 +1484,6 @@ impl Into<FontStretch> for f64 {
     }
 }
 
-// Like std::macros::try!, but for Option<>.
-macro_rules! option_try {
-    ($e:expr) => (match $e { Some(e) => e, None => return None })
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl<H: Animatable, V: Animatable> Animatable for generic_position::Position<H, V> {
     #[inline]
@@ -1512,10 +1495,10 @@ impl<H: Animatable, V: Animatable> Animatable for generic_position::Position<H, 
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> {
-        Some(generic_position::Position {
-            horizontal: option_try!(self.horizontal.get_zero_value()),
-            vertical: option_try!(self.vertical.get_zero_value()),
+    fn get_zero_value(&self) -> Result<Self, ()> {
+        Ok(generic_position::Position {
+            horizontal: self.horizontal.get_zero_value()?,
+            vertical: self.vertical.get_zero_value()?,
         })
     }
 
@@ -1620,19 +1603,18 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
                 result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle::zero()));
             }
             TransformOperation::Perspective(..) |
-            TransformOperation::AccumulateMatrix { .. } => {
+            TransformOperation::AccumulateMatrix { .. } |
+            TransformOperation::InterpolateMatrix { .. } => {
                 // Perspective: We convert a perspective function into an equivalent
                 //     ComputedMatrix, and then decompose/interpolate/recompose these matrices.
-                // AccumulateMatrix: We do interpolation on AccumulateMatrix by reading it as a
-                //     ComputedMatrix (with layout information), and then do matrix interpolation.
+                // AccumulateMatrix/InterpolateMatrix: We do interpolation on
+                //     AccumulateMatrix/InterpolateMatrix by reading it as a ComputedMatrix
+                //     (with layout information), and then do matrix interpolation.
                 //
                 // Therefore, we use an identity matrix to represent the identity transform list.
                 // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
                 let identity = ComputedMatrix::identity();
                 result.push(TransformOperation::Matrix(identity));
-            }
-            TransformOperation::InterpolateMatrix { .. } => {
-                panic!("Building the identity matrix for InterpolateMatrix is not supported");
             }
         }
     }
@@ -2287,9 +2269,11 @@ impl Animatable for MatrixDecomposed3D {
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
         -> Result<Self, ()> {
-        assert!(self_portion + other_portion == 1.0f64 ||
-                other_portion == 1.0f64,
-                "add_weighted should only be used for interpolating or accumulating transforms");
+        use std::f64;
+
+        debug_assert!((self_portion + other_portion - 1.0f64).abs() <= f64::EPSILON ||
+                      other_portion == 1.0f64,
+                      "add_weighted should only be used for interpolating or accumulating transforms");
 
         let mut sum = *self;
 
@@ -2640,7 +2624,7 @@ impl Animatable for TransformList {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> { Some(TransformList(None)) }
+    fn get_zero_value(&self) -> Result<Self, ()> { Ok(TransformList(None)) }
 }
 
 impl<T, U> Animatable for Either<T, U>
@@ -2663,10 +2647,14 @@ impl<T, U> Animatable for Either<T, U>
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> {
+    fn get_zero_value(&self) -> Result<Self, ()> {
         match *self {
-            Either::First(ref this) => { this.get_zero_value().map(Either::First) },
-            Either::Second(ref this) => { this.get_zero_value().map(Either::Second) },
+            Either::First(ref this) => {
+                Ok(Either::First(this.get_zero_value()?))
+            },
+            Either::Second(ref this) => {
+                Ok(Either::Second(this.get_zero_value()?))
+            },
         }
     }
 
@@ -2694,25 +2682,6 @@ impl<T, U> Animatable for Either<T, U>
             },
             _ => Err(())
         }
-    }
-}
-
-impl From<IntermediateRGBA> for RGBA {
-    fn from(extended_rgba: IntermediateRGBA) -> RGBA {
-        // RGBA::from_floats clamps each component values.
-        RGBA::from_floats(extended_rgba.red,
-                          extended_rgba.green,
-                          extended_rgba.blue,
-                          extended_rgba.alpha)
-    }
-}
-
-impl From<RGBA> for IntermediateRGBA {
-    fn from(rgba: RGBA) -> IntermediateRGBA {
-        IntermediateRGBA::new(rgba.red_f32(),
-                              rgba.green_f32(),
-                              rgba.blue_f32(),
-                              rgba.alpha_f32())
     }
 }
 
@@ -2744,6 +2713,31 @@ impl IntermediateRGBA {
     }
 }
 
+impl ToAnimatedValue for RGBA {
+    type AnimatedValue = IntermediateRGBA;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        IntermediateRGBA::new(
+            self.red_f32(),
+            self.green_f32(),
+            self.blue_f32(),
+            self.alpha_f32(),
+        )
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        // RGBA::from_floats clamps each component values.
+        RGBA::from_floats(
+            animated.red,
+            animated.green,
+            animated.blue,
+            animated.alpha,
+        )
+    }
+}
+
 /// Unlike Animatable for RGBA we don't clamp any component values.
 impl Animatable for IntermediateRGBA {
     #[inline]
@@ -2770,8 +2764,8 @@ impl Animatable for IntermediateRGBA {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> {
-        Some(IntermediateRGBA::transparent())
+    fn get_zero_value(&self) -> Result<Self, ()> {
+        Ok(IntermediateRGBA::transparent())
     }
 
     #[inline]
@@ -2798,24 +2792,6 @@ impl Animatable for IntermediateRGBA {
     }
 }
 
-impl From<Either<Color, Auto>> for Either<IntermediateColor, Auto> {
-    fn from(from: Either<Color, Auto>) -> Either<IntermediateColor, Auto> {
-        match from {
-            Either::First(from) => Either::First(from.into()),
-            Either::Second(Auto) => Either::Second(Auto),
-        }
-    }
-}
-
-impl From<Either<IntermediateColor, Auto>> for Either<Color, Auto> {
-    fn from(from: Either<IntermediateColor, Auto>) -> Either<Color, Auto> {
-        match from {
-            Either::First(from) => Either::First(from.into()),
-            Either::Second(Auto) => Either::Second(Auto),
-        }
-    }
-}
-
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
@@ -2832,7 +2808,8 @@ impl IntermediateColor {
         }
     }
 
-    fn transparent() -> Self {
+    /// Returns a transparent intermediate color.
+    pub fn transparent() -> Self {
         IntermediateColor {
             color: IntermediateRGBA::transparent(),
             foreground_ratio: 0.,
@@ -2851,6 +2828,26 @@ impl IntermediateColor {
         IntermediateRGBA {
             alpha: self.color.alpha * (1. - self.foreground_ratio),
             .. self.color
+        }
+    }
+}
+
+impl ToAnimatedValue for Color {
+    type AnimatedValue = IntermediateColor;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        IntermediateColor {
+            color: self.color.to_animated_value(),
+            foreground_ratio: self.foreground_ratio as f32 * (1. / 255.),
+        }
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        Color {
+            color: RGBA::from_animated_value(animated.color),
+            foreground_ratio: (animated.foreground_ratio * 255.).round() as u8,
         }
     }
 }
@@ -2933,41 +2930,11 @@ impl Animatable for IntermediateColor {
     }
 }
 
-impl From<Color> for IntermediateColor {
-    fn from(color: Color) -> IntermediateColor {
-        IntermediateColor {
-            color: color.color.into(),
-            foreground_ratio: color.foreground_ratio as f32 * (1. / 255.),
-        }
-    }
-}
-
-impl From<IntermediateColor> for Color {
-    fn from(color: IntermediateColor) -> Color {
-        Color {
-            color: color.color.into(),
-            foreground_ratio: (color.foreground_ratio * 255.).round() as u8,
-        }
-    }
-}
-
 /// Animatable SVGPaint
 pub type IntermediateSVGPaint = SVGPaint<IntermediateRGBA>;
+
 /// Animatable SVGPaintKind
 pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateRGBA>;
-
-impl From<::values::computed::SVGPaint> for IntermediateSVGPaint {
-    fn from(paint: ::values::computed::SVGPaint) -> IntermediateSVGPaint {
-        paint.convert(|color| (*color).into())
-    }
-}
-
-impl From<IntermediateSVGPaint> for ::values::computed::SVGPaint {
-    fn from(paint: IntermediateSVGPaint) -> ::values::computed::SVGPaint {
-        paint.convert(|color| (*color).into())
-    }
-}
-
 
 impl Animatable for IntermediateSVGPaint {
     #[inline]
@@ -2990,10 +2957,10 @@ impl Animatable for IntermediateSVGPaint {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> {
-        Some(IntermediateSVGPaint {
-            kind: option_try!(self.kind.get_zero_value()),
-            fallback: self.fallback.and_then(|v| v.get_zero_value()),
+    fn get_zero_value(&self) -> Result<Self, ()> {
+        Ok(IntermediateSVGPaint {
+            kind: self.kind.get_zero_value()?,
+            fallback: self.fallback.and_then(|v| v.get_zero_value().ok()),
         })
     }
 }
@@ -3028,188 +2995,16 @@ impl Animatable for IntermediateSVGPaintKind {
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> {
-        match self {
-            &SVGPaintKind::Color(ref color) => color.get_zero_value()
-                                                    .map(SVGPaintKind::Color),
-            &SVGPaintKind::None |
-            &SVGPaintKind::ContextFill |
-            &SVGPaintKind::ContextStroke =>  Some(self.clone()),
-            _ => None,
+    fn get_zero_value(&self) -> Result<Self, ()> {
+        match *self {
+            SVGPaintKind::Color(ref color) => {
+                Ok(SVGPaintKind::Color(color.get_zero_value()?))
+            },
+            SVGPaintKind::None |
+            SVGPaintKind::ContextFill |
+            SVGPaintKind::ContextStroke => Ok(self.clone()),
+            _ => Err(()),
         }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-/// Intermediate type for box-shadow and text-shadow.
-/// The difference from normal shadow type is that this type uses
-/// IntermediateColor instead of ParserColor.
-pub struct IntermediateShadow {
-    pub offset_x: Au,
-    pub offset_y: Au,
-    pub blur_radius: Au,
-    pub spread_radius: Au,
-    pub color: IntermediateColor,
-    pub inset: bool,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-/// Intermediate type for box-shadow list and text-shadow list.
-pub struct IntermediateShadowList(pub Vec<IntermediateShadow>);
-
-type ShadowList = Vec<Shadow>;
-
-impl From<IntermediateShadowList> for ShadowList {
-    fn from(shadow_list: IntermediateShadowList) -> Self {
-        shadow_list.0.into_iter().map(|s| s.into()).collect()
-    }
-}
-
-impl From<ShadowList> for IntermediateShadowList {
-    fn from(shadow_list: ShadowList) -> IntermediateShadowList {
-        IntermediateShadowList(shadow_list.into_iter().map(|s| s.into()).collect())
-    }
-}
-
-% for ty in "Box Text".split():
-impl From<IntermediateShadowList> for ${ty}ShadowList {
-    #[inline]
-    fn from(shadow_list: IntermediateShadowList) -> Self {
-        ${ty}ShadowList(shadow_list.into())
-    }
-}
-
-impl From<${ty}ShadowList> for IntermediateShadowList {
-    #[inline]
-    fn from(shadow_list: ${ty}ShadowList) -> IntermediateShadowList {
-        shadow_list.0.into()
-    }
-}
-% endfor
-
-impl From<IntermediateShadow> for Shadow {
-    fn from(shadow: IntermediateShadow) -> Shadow {
-        Shadow {
-            offset_x: shadow.offset_x,
-            offset_y: shadow.offset_y,
-            blur_radius: shadow.blur_radius,
-            spread_radius: shadow.spread_radius,
-            color: shadow.color.into(),
-            inset: shadow.inset,
-        }
-    }
-}
-
-impl From<Shadow> for IntermediateShadow {
-    fn from(shadow: Shadow) -> IntermediateShadow {
-        IntermediateShadow {
-            offset_x: shadow.offset_x,
-            offset_y: shadow.offset_y,
-            blur_radius: shadow.blur_radius,
-            spread_radius: shadow.spread_radius,
-            color: shadow.color.into(),
-            inset: shadow.inset,
-        }
-    }
-}
-
-impl Animatable for IntermediateShadow {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        // It can't be interpolated if inset does not match.
-        if self.inset != other.inset {
-            return Err(());
-        }
-
-        let x = self.offset_x.add_weighted(&other.offset_x, self_portion, other_portion)?;
-        let y = self.offset_y.add_weighted(&other.offset_y, self_portion, other_portion)?;
-        let color = self.color.add_weighted(&other.color, self_portion, other_portion)?;
-        let blur = self.blur_radius.add_weighted(&other.blur_radius, self_portion, other_portion)?;
-        let spread = self.spread_radius.add_weighted(&other.spread_radius, self_portion, other_portion)?;
-
-        Ok(IntermediateShadow {
-            offset_x: x,
-            offset_y: y,
-            blur_radius: blur,
-            spread_radius: spread,
-            color: color,
-            inset: self.inset,
-        })
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sd| sd.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        if self.inset != other.inset {
-            return Err(());
-        }
-        let list = [
-            self.offset_x.compute_distance(&other.offset_x)?,
-            self.offset_y.compute_distance(&other.offset_y)?,
-            self.blur_radius.compute_distance(&other.blur_radius)?,
-            self.color.compute_distance(&other.color)?,
-            self.spread_radius.compute_distance(&other.spread_radius)?,
-        ];
-        Ok(list.iter().fold(0.0f64, |sum, diff| sum + diff * diff))
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Animatable for IntermediateShadowList {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        // The inset value must change
-        let mut zero = IntermediateShadow {
-            offset_x: Au(0),
-            offset_y: Au(0),
-            blur_radius: Au(0),
-            spread_radius: Au(0),
-            color: IntermediateColor::transparent(),
-            inset: false,
-        };
-
-        let max_len = cmp::max(self.0.len(), other.0.len());
-
-        let mut result = Vec::with_capacity(max_len);
-
-        for i in 0..max_len {
-            let shadow = match (self.0.get(i), other.0.get(i)) {
-                (Some(shadow), Some(other)) => {
-                    shadow.add_weighted(other, self_portion, other_portion)?
-                }
-                (Some(shadow), None) => {
-                        zero.inset = shadow.inset;
-                        shadow.add_weighted(&zero, self_portion, other_portion).unwrap()
-                }
-                (None, Some(shadow)) => {
-                    zero.inset = shadow.inset;
-                    zero.add_weighted(&shadow, self_portion, other_portion).unwrap()
-                }
-                (None, None) => unreachable!(),
-            };
-            result.push(shadow);
-        }
-
-        Ok(IntermediateShadowList(result))
-    }
-
-    fn add(&self, other: &Self) -> Result<Self, ()> {
-        let len = self.0.len() + other.0.len();
-
-        let mut result = Vec::with_capacity(len);
-
-        result.extend(self.0.iter().cloned());
-        result.extend(other.0.iter().cloned());
-
-        Ok(IntermediateShadowList(result))
     }
 }
 

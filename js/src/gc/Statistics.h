@@ -187,6 +187,12 @@ struct Statistics
         return uint32_t(counts[s]);
     }
 
+    void recordTrigger(double amount, double threshold) {
+        triggerAmount = amount;
+        triggerThreshold = threshold;
+        thresholdTriggered = true;
+    }
+
     void beginNurseryCollection(JS::gcreason::Reason reason);
     void endNurseryCollection(JS::gcreason::Reason reason);
 
@@ -296,6 +302,12 @@ struct Statistics
     /* Allocated space before the GC started. */
     size_t preBytes;
 
+    /* If the GC was triggered by exceeding some threshold, record the
+     * threshold and the value that exceeded it. */
+    bool thresholdTriggered;
+    double triggerAmount;
+    double triggerThreshold;
+
     /* GC numbers as of the beginning of the collection. */
     uint64_t startingMinorGCNumber;
     uint64_t startingMajorGCNumber;
@@ -322,8 +334,8 @@ struct Statistics
     JS::GCNurseryCollectionCallback nurseryCollectionCallback;
 
     /*
-     * True if we saw an OOM while allocating slices. The statistics for this
-     * GC will be invalid.
+     * True if we saw an OOM while allocating slices or we saw an impossible
+     * timestamp. The statistics for this GC will be invalid.
      */
     bool aborted;
 

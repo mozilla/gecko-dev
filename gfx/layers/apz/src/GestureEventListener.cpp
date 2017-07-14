@@ -146,9 +146,6 @@ nsEventStatus GestureEventListener::HandleInputEvent(const MultiTouchInput& aEve
     mTouches.Clear();
     rv = HandleInputTouchCancel();
     break;
-  case MultiTouchInput::MULTITOUCH_SENTINEL:
-    MOZ_ASSERT_UNREACHABLE("Invalid MultTouchInput.");
-    break;
   }
 
   return rv;
@@ -288,6 +285,13 @@ nsEventStatus GestureEventListener::HandleInputTouchMove()
       CancelLongTapTimeoutTask();
       CancelMaxTapTimeoutTask();
       mSingleTapSent = Nothing();
+      if (!gfxPrefs::APZOneTouchPinchEnabled()) {
+        // If the one-touch-pinch feature is disabled, bail out of the double-
+        // tap gesture instead.
+        SetState(GESTURE_NONE);
+        break;
+      }
+
       SetState(GESTURE_ONE_TOUCH_PINCH);
 
       ParentLayerCoord currentSpan = 1.0f;

@@ -266,7 +266,7 @@ AddNamespaceRuleToMap(css::Rule* aRule, nsXMLNameSpaceMap* aMap)
   aMap->AddPrefix(nameSpaceRule->GetPrefix(), urlSpec);
 }
 
-void 
+void
 CSSStyleSheetInner::RebuildNameSpaces()
 {
   // Just nuke our existing namespace map, if any
@@ -517,34 +517,6 @@ void
 CSSStyleSheet::EnabledStateChangedInternal()
 {
   ClearRuleCascades();
-}
-
-uint64_t
-CSSStyleSheet::FindOwningWindowInnerID() const
-{
-  uint64_t windowID = 0;
-  if (mDocument) {
-    windowID = mDocument->InnerWindowID();
-  }
-
-  if (windowID == 0 && mOwningNode) {
-    windowID = mOwningNode->OwnerDoc()->InnerWindowID();
-  }
-
-  if (windowID == 0 && mOwnerRule) {
-    RefPtr<StyleSheet> sheet =
-      static_cast<css::Rule*>(mOwnerRule)->GetStyleSheet();
-    if (sheet) {
-      windowID = sheet->AsGecko()->FindOwningWindowInnerID();
-    }
-  }
-
-  if (windowID == 0 && mParent) {
-    CSSStyleSheet* parentAsCSS = mParent->AsGecko();
-    windowID = parentAsCSS->FindOwningWindowInnerID();
-  }
-
-  return windowID;
 }
 
 void

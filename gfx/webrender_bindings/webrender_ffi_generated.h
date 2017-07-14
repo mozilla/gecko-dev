@@ -2,13 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* Generated with cbindgen:0.1.10 */
+/* Generated with cbindgen:0.1.13 */
 
 /* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen.
- * To generate this file, clone `https://github.com/rlhunt/cbindgen` or run `cargo install cbindgen`,
- * then run `cbindgen gfx/webrender_bindings/ -o gfx/webrender_bindings/webrender_ffi_generated.h` */
+ * To generate this file:
+ *   1. Get the latest cbindgen using `cargo install --force cbindgen`
+ *      a. Alternatively, you can clone `https://github.com/rlhunt/cbindgen` and use a tagged release
+ *   2. Run `cbindgen toolkit/library/rust/ --crate webrender_bindings -o gfx/webrender_bindings/webrender_ffi_generated.h`
+ */
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstdlib>
 
 extern "C" {
 
@@ -316,14 +320,6 @@ struct WrRect {
   }
 };
 
-struct WrClipRegionToken {
-  bool _dummy;
-
-  bool operator==(const WrClipRegionToken& aOther) const {
-    return _dummy == aOther._dummy;
-  }
-};
-
 struct WrBorderWidths {
   float left;
   float top;
@@ -422,6 +418,16 @@ struct WrNinePatchDescriptor {
   }
 };
 
+struct WrComplexClipRegion {
+  WrRect rect;
+  WrBorderRadius radii;
+
+  bool operator==(const WrComplexClipRegion& aOther) const {
+    return rect == aOther.rect &&
+           radii == aOther.radii;
+  }
+};
+
 struct WrImageMask {
   WrImageKey image;
   WrRect rect;
@@ -431,16 +437,6 @@ struct WrImageMask {
     return image == aOther.image &&
            rect == aOther.rect &&
            repeat == aOther.repeat;
-  }
-};
-
-struct WrComplexClipRegion {
-  WrRect rect;
-  WrBorderRadius radii;
-
-  bool operator==(const WrComplexClipRegion& aOther) const {
-    return rect == aOther.rect &&
-           radii == aOther.radii;
   }
 };
 
@@ -527,8 +523,11 @@ struct WrExternalImageHandler {
 };
 
 /* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen.
- * To generate this file, clone `https://github.com/rlhunt/cbindgen` or run `cargo install cbindgen`,
- * then run `cbindgen gfx/webrender_bindings/ -o gfx/webrender_bindings/webrender_ffi_generated.h` */
+ * To generate this file:
+ *   1. Get the latest cbindgen using `cargo install --force cbindgen`
+ *      a. Alternatively, you can clone `https://github.com/rlhunt/cbindgen` and use a tagged release
+ *   2. Run `cbindgen toolkit/library/rust/ --crate webrender_bindings -o gfx/webrender_bindings/webrender_ffi_generated.h`
+ */
 
 WR_INLINE
 void wr_api_add_blob_image(WrAPI *aApi,
@@ -676,7 +675,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_border(WrState *aState,
                        WrRect aRect,
-                       WrClipRegionToken aClip,
+                       WrRect aClip,
                        WrBorderWidths aWidths,
                        WrBorderSide aTop,
                        WrBorderSide aRight,
@@ -688,7 +687,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_border_gradient(WrState *aState,
                                 WrRect aRect,
-                                WrClipRegionToken aClip,
+                                WrRect aClip,
                                 WrBorderWidths aWidths,
                                 WrPoint aStartPoint,
                                 WrPoint aEndPoint,
@@ -701,7 +700,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_border_image(WrState *aState,
                              WrRect aRect,
-                             WrClipRegionToken aClip,
+                             WrRect aClip,
                              WrBorderWidths aWidths,
                              WrImageKey aImage,
                              WrNinePatchDescriptor aPatch,
@@ -713,7 +712,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_border_radial_gradient(WrState *aState,
                                        WrRect aRect,
-                                       WrClipRegionToken aClip,
+                                       WrRect aClip,
                                        WrBorderWidths aWidths,
                                        WrPoint aCenter,
                                        WrSize aRadius,
@@ -726,7 +725,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_box_shadow(WrState *aState,
                            WrRect aRect,
-                           WrClipRegionToken aClip,
+                           WrRect aClip,
                            WrRect aBoxBounds,
                            WrPoint aOffset,
                            WrColor aColor,
@@ -745,6 +744,8 @@ WR_FUNC;
 WR_INLINE
 uint64_t wr_dp_push_clip(WrState *aState,
                          WrRect aRect,
+                         const WrComplexClipRegion *aComplex,
+                         size_t aComplexCount,
                          const WrImageMask *aMask)
 WR_FUNC;
 
@@ -755,24 +756,15 @@ void wr_dp_push_clip_and_scroll_info(WrState *aState,
 WR_FUNC;
 
 WR_INLINE
-WrClipRegionToken wr_dp_push_clip_region(WrState *aState,
-                                         WrRect aMain,
-                                         const WrComplexClipRegion *aComplex,
-                                         size_t aComplexCount,
-                                         const WrImageMask *aImageMask)
-WR_FUNC;
-
-WR_INLINE
 void wr_dp_push_iframe(WrState *aState,
                        WrRect aRect,
-                       WrClipRegionToken aClip,
                        WrPipelineId aPipelineId)
 WR_FUNC;
 
 WR_INLINE
 void wr_dp_push_image(WrState *aState,
                       WrRect aBounds,
-                      WrClipRegionToken aClip,
+                      WrRect aClip,
                       WrSize aStretchSize,
                       WrSize aTileSpacing,
                       WrImageRendering aImageRendering,
@@ -782,7 +774,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_linear_gradient(WrState *aState,
                                 WrRect aRect,
-                                WrClipRegionToken aClip,
+                                WrRect aClip,
                                 WrPoint aStartPoint,
                                 WrPoint aEndPoint,
                                 const WrGradientStop *aStops,
@@ -795,7 +787,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_radial_gradient(WrState *aState,
                                 WrRect aRect,
-                                WrClipRegionToken aClip,
+                                WrRect aClip,
                                 WrPoint aCenter,
                                 WrSize aRadius,
                                 const WrGradientStop *aStops,
@@ -808,7 +800,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_rect(WrState *aState,
                      WrRect aRect,
-                     WrClipRegionToken aClip,
+                     WrRect aClip,
                      WrColor aColor)
 WR_FUNC;
 
@@ -834,7 +826,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_text(WrState *aState,
                      WrRect aBounds,
-                     WrClipRegionToken aClip,
+                     WrRect aClip,
                      WrColor aColor,
                      WrFontKey aFontKey,
                      const WrGlyphInstance *aGlyphs,
@@ -845,7 +837,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_yuv_NV12_image(WrState *aState,
                                WrRect aBounds,
-                               WrClipRegionToken aClip,
+                               WrRect aClip,
                                WrImageKey aImageKey0,
                                WrImageKey aImageKey1,
                                WrYuvColorSpace aColorSpace,
@@ -855,7 +847,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_yuv_interleaved_image(WrState *aState,
                                       WrRect aBounds,
-                                      WrClipRegionToken aClip,
+                                      WrRect aClip,
                                       WrImageKey aImageKey0,
                                       WrYuvColorSpace aColorSpace,
                                       WrImageRendering aImageRendering)
@@ -864,7 +856,7 @@ WR_FUNC;
 WR_INLINE
 void wr_dp_push_yuv_planar_image(WrState *aState,
                                  WrRect aBounds,
-                                 WrClipRegionToken aClip,
+                                 WrRect aClip,
                                  WrImageKey aImageKey0,
                                  WrImageKey aImageKey1,
                                  WrImageKey aImageKey2,
@@ -893,7 +885,7 @@ void wr_renderer_delete(WrRenderer *aRenderer)
 WR_DESTRUCTOR_SAFE_FUNC;
 
 WR_INLINE
-WrRenderedEpochs* wr_renderer_flush_rendered_epochs(WrRenderer *aRenderer)
+WrRenderedEpochs *wr_renderer_flush_rendered_epochs(WrRenderer *aRenderer)
 WR_FUNC;
 
 WR_INLINE
@@ -936,7 +928,7 @@ void wr_state_delete(WrState *aState)
 WR_DESTRUCTOR_SAFE_FUNC;
 
 WR_INLINE
-WrState* wr_state_new(WrPipelineId aPipelineId,
+WrState *wr_state_new(WrPipelineId aPipelineId,
                       WrSize aContentSize)
 WR_FUNC;
 
@@ -945,7 +937,7 @@ void wr_thread_pool_delete(WrThreadPool *aThreadPool)
 WR_DESTRUCTOR_SAFE_FUNC;
 
 WR_INLINE
-WrThreadPool* wr_thread_pool_new()
+WrThreadPool *wr_thread_pool_new()
 WR_FUNC;
 
 WR_INLINE
@@ -966,5 +958,8 @@ WR_FUNC;
 } // extern "C"
 
 /* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen.
- * To generate this file, clone `https://github.com/rlhunt/cbindgen` or run `cargo install cbindgen`,
- * then run `cbindgen gfx/webrender_bindings/ -o gfx/webrender_bindings/webrender_ffi_generated.h` */
+ * To generate this file:
+ *   1. Get the latest cbindgen using `cargo install --force cbindgen`
+ *      a. Alternatively, you can clone `https://github.com/rlhunt/cbindgen` and use a tagged release
+ *   2. Run `cbindgen toolkit/library/rust/ --crate webrender_bindings -o gfx/webrender_bindings/webrender_ffi_generated.h`
+ */

@@ -331,6 +331,7 @@ const CustomizableWidgets = [
       let promoParentElt = doc.getElementById("PanelUI-remotetabs-mobile-promo");
       // Put it all together...
       let contents = bundle.getFormattedString("appMenuRemoteTabs.mobilePromo.text2", formatArgs);
+      // eslint-disable-next-line no-unsanitized/property
       promoParentElt.innerHTML = contents;
       // We manually manage the "click" event to open the promo links because
       // allowing the "text-link" widget handle it has 2 problems: (1) it only
@@ -442,6 +443,8 @@ const CustomizableWidgets = [
           }
         }
         this._tabsList.appendChild(fragment);
+        let panelView = this._tabsList.closest("panelview");
+        panelView.panelMultiView.descriptionHeightWorkaround(panelView);
       }).catch(err => {
         Cu.reportError(err);
       }).then(() => {
@@ -604,10 +607,15 @@ const CustomizableWidgets = [
     onCreated(aNode) {
       // Add an observer so the button is checked while the sidebar is open
       let doc = aNode.ownerDocument;
-      let obnode = doc.createElementNS(kNSXUL, "observes");
-      obnode.setAttribute("element", "sidebar-box");
-      obnode.setAttribute("attribute", "checked");
-      aNode.appendChild(obnode);
+      let obChecked = doc.createElementNS(kNSXUL, "observes");
+      obChecked.setAttribute("element", "sidebar-box");
+      obChecked.setAttribute("attribute", "checked");
+      let obPosition = doc.createElementNS(kNSXUL, "observes");
+      obPosition.setAttribute("element", "sidebar-box");
+      obPosition.setAttribute("attribute", "positionend");
+
+      aNode.appendChild(obChecked);
+      aNode.appendChild(obPosition);
     }
   }, {
     id: "social-share-button",
@@ -1175,9 +1183,9 @@ const CustomizableWidgets = [
     observe(aSubject, aTopic, aData) {
       let {instances} = CustomizableUI.getWidget("containers-panelmenu");
       for (let {node} of instances) {
-	if (node) {
-	  this.updateVisibility(node);
-	}
+        if (node) {
+          this.updateVisibility(node);
+        }
       }
     },
 

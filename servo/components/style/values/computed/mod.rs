@@ -9,7 +9,6 @@ use context::QuirksMode;
 use euclid::Size2D;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
-use num_traits::Zero;
 #[cfg(feature = "gecko")]
 use properties;
 use properties::{ComputedValues, StyleBuilder};
@@ -19,6 +18,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger, RGBA};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
+use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 use super::generics::grid::TrackList as GenericTrackList;
 use super::specified;
 
@@ -28,9 +28,9 @@ pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
 pub use self::color::{Color, RGBAColor};
-pub use self::effects::Filter;
+pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
-pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
+pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
@@ -412,38 +412,6 @@ impl ComputedValueAsSpecified for specified::AlignJustifyContent {}
 impl ComputedValueAsSpecified for specified::AlignJustifySelf {}
 impl ComputedValueAsSpecified for specified::BorderStyle {}
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct Shadow {
-    pub offset_x: Au,
-    pub offset_y: Au,
-    pub blur_radius: Au,
-    pub spread_radius: Au,
-    pub color: Color,
-    pub inset: bool,
-}
-
-impl ToCss for Shadow {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if self.inset {
-            dest.write_str("inset ")?;
-        }
-        self.offset_x.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.offset_y.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.blur_radius.to_css(dest)?;
-        dest.write_str(" ")?;
-        if self.spread_radius != Au::zero() {
-            self.spread_radius.to_css(dest)?;
-            dest.write_str(" ")?;
-        }
-        self.color.to_css(dest)?;
-        Ok(())
-    }
-}
-
 /// A `<number>` value.
 pub type Number = CSSFloat;
 
@@ -583,8 +551,8 @@ pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 /// (could also be `<auto-track-list>` or `<explicit-track-list>`)
 pub type TrackList = GenericTrackList<TrackSize>;
 
-/// `<track-list> | none`
-pub type TrackListOrNone = Either<TrackList, None_>;
+/// `<grid-template-rows> | <grid-template-columns>`
+pub type GridTemplateComponent = GenericGridTemplateComponent<TrackSize>;
 
 impl ClipRectOrAuto {
     /// Return an auto (default for clip-rect and image-region) value

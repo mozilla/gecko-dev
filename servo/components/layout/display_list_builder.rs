@@ -57,7 +57,8 @@ use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA};
 use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
-use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position, Shadow};
+use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
+use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::effects::Filter;
@@ -525,7 +526,7 @@ pub trait FragmentDisplayListBuilding {
                                             state: &mut DisplayListBuildState,
                                             text_fragment: &ScannedTextFragmentInfo,
                                             stacking_relative_content_box: &Rect<Au>,
-                                            text_shadow: Option<&Shadow>,
+                                            text_shadow: Option<&SimpleShadow>,
                                             clip: &Rect<Au>);
 
     /// Creates the display item for a text decoration: underline, overline, or line-through.
@@ -534,7 +535,7 @@ pub trait FragmentDisplayListBuilding {
                                               color: &RGBA,
                                               stacking_relative_box: &LogicalRect<Au>,
                                               clip: &Rect<Au>,
-                                              blur_radius: Au);
+                                              blur: Au);
 
     /// A helper method that `build_display_list` calls to create per-fragment-type display items.
     fn build_fragment_type_specific_display_items(&mut self,
@@ -1164,29 +1165,46 @@ impl FragmentDisplayListBuilding for Fragment {
         let size = unbordered_box.size.to_physical(style.writing_mode);
         let name = paint_worklet.name.clone();
 
-        // If the script thread has not added any paint worklet modules, there is nothing to do!
-        let executor = match state.layout_context.paint_worklet_executor {
-            Some(ref executor) => executor,
-            None => return debug!("Worklet {} called before any paint modules are added.", name),
+        // Get the painter, and the computed values for its properties.
+        let (properties, painter) = match state.layout_context.registered_painters.read().get(&name) {
+            Some(registered_painter) => (
+                registered_painter.properties
+                    .iter()
+                    .filter_map(|(name, id)| id.as_shorthand().err().map(|id| (name, id)))
+                    .map(|(name, id)| (name.clone(), style.computed_value_to_string(id)))
+                    .collect(),
+                registered_painter.painter.clone()
+            ),
+            None => return debug!("Worklet {} called before registration.", name),
         };
 
         // TODO: add a one-place cache to avoid drawing the paint image every time.
+        // https://github.com/servo/servo/issues/17369
         debug!("Drawing a paint image {}({},{}).", name, size.width.to_px(), size.height.to_px());
-        let mut image = match executor.draw_a_paint_image(name, size) {
-            Ok(image) => image,
-            Err(err) => return warn!("Error running paint worklet ({:?}).", err),
+        let (sender, receiver) = ipc::channel().unwrap();
+        painter.draw_a_paint_image(size, properties, sender);
+
+        // TODO: timeout
+        let webrender_image = match receiver.recv() {
+            Ok(CanvasData::Image(canvas_data)) => {
+                WebRenderImageInfo {
+                    // TODO: it would be nice to get this data back from the canvas
+                    width: size.width.to_px().abs() as u32,
+                    height: size.height.to_px().abs() as u32,
+                    format: PixelFormat::BGRA8,
+                    key: Some(canvas_data.image_key),
+                }
+            },
+            Ok(CanvasData::WebGL(_)) => return warn!("Paint worklet generated WebGL."),
+            Err(err) => return warn!("Paint worklet recv generated error ({}).", err),
         };
 
-        // Make sure the image has a webrender key.
-        state.layout_context.image_cache.set_webrender_image_key(&mut image);
-
-        debug!("Drew a paint image ({},{}).", image.width, image.height);
         self.build_display_list_for_webrender_image(state,
                                                     style,
                                                     display_list_section,
                                                     absolute_bounds,
                                                     clip,
-                                                    WebRenderImageInfo::from_image(&image),
+                                                    webrender_image,
                                                     index);
     }
 
@@ -1328,7 +1346,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     gradient: gradient,
                 })
             }
-            GradientKind::Radial(ref shape, ref center) => {
+            GradientKind::Radial(ref shape, ref center, _angle) => {
                 let gradient = self.convert_radial_gradient(&bounds,
                                                             &gradient.items[..],
                                                             shape,
@@ -1351,11 +1369,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        clip: &Rect<Au>) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
-            let bounds =
-                shadow_bounds(&absolute_bounds.translate(&Vector2D::new(box_shadow.offset_x,
-                                                                        box_shadow.offset_y)),
-                              box_shadow.blur_radius,
-                              box_shadow.spread_radius);
+            let bounds = shadow_bounds(
+                &absolute_bounds.translate(&Vector2D::new(
+                    box_shadow.base.horizontal,
+                    box_shadow.base.vertical,
+                )),
+                box_shadow.base.blur,
+                box_shadow.spread,
+            );
 
             // TODO(pcwalton): Multiple border radii; elliptical border radii.
             let base = state.create_base_display_item(&bounds,
@@ -1366,10 +1387,10 @@ impl FragmentDisplayListBuilding for Fragment {
             state.add_display_item(DisplayItem::BoxShadow(box BoxShadowDisplayItem {
                 base: base,
                 box_bounds: *absolute_bounds,
-                color: style.resolve_color(box_shadow.color).to_gfx_color(),
-                offset: Vector2D::new(box_shadow.offset_x, box_shadow.offset_y),
-                blur_radius: box_shadow.blur_radius,
-                spread_radius: box_shadow.spread_radius,
+                color: style.resolve_color(box_shadow.base.color).to_gfx_color(),
+                offset: Vector2D::new(box_shadow.base.horizontal, box_shadow.base.vertical),
+                blur_radius: box_shadow.base.blur,
+                spread_radius: box_shadow.spread,
                 border_radius: model::specified_border_radius(style.get_border()
                                                                    .border_top_left_radius,
                                                               absolute_bounds.size).width,
@@ -1470,7 +1491,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             }),
                         }));
                     }
-                    GradientKind::Radial(ref shape, ref center) => {
+                    GradientKind::Radial(ref shape, ref center, _angle) => {
                         let grad = self.convert_radial_gradient(&bounds,
                                                                 &gradient.items[..],
                                                                 shape,
@@ -2039,7 +2060,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                             state: &mut DisplayListBuildState,
                                             text_fragment: &ScannedTextFragmentInfo,
                                             stacking_relative_content_box: &Rect<Au>,
-                                            text_shadow: Option<&Shadow>,
+                                            text_shadow: Option<&SimpleShadow>,
                                             clip: &Rect<Au>) {
         // TODO(emilio): Allow changing more properties by ::selection
         let text_color = if let Some(shadow) = text_shadow {
@@ -2051,8 +2072,10 @@ impl FragmentDisplayListBuilding for Fragment {
         } else {
             self.style().get_color().color
         };
-        let offset = text_shadow.map(|s| Vector2D::new(s.offset_x, s.offset_y)).unwrap_or_else(Vector2D::zero);
-        let shadow_blur_radius = text_shadow.map(|s| s.blur_radius).unwrap_or(Au(0));
+        let offset = text_shadow.map_or(Vector2D::zero(), |s| {
+            Vector2D::new(s.horizontal, s.vertical)
+        });
+        let shadow_blur_radius = text_shadow.map(|s| s.blur).unwrap_or(Au(0));
 
         // Determine the orientation and cursor to use.
         let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
@@ -2885,8 +2908,8 @@ fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
 
 /// Adjusts `content_rect` as necessary for the given spread, and blur so that the resulting
 /// bounding rect contains all of a shadow's ink.
-fn shadow_bounds(content_rect: &Rect<Au>, blur_radius: Au, spread_radius: Au) -> Rect<Au> {
-    let inflation = spread_radius + blur_radius * BLUR_INFLATION_FACTOR;
+fn shadow_bounds(content_rect: &Rect<Au>, blur: Au, spread: Au) -> Rect<Au> {
+    let inflation = spread + blur * BLUR_INFLATION_FACTOR;
     content_rect.inflate(inflation, inflation)
 }
 

@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import contextlib
+import os
 import urllib
 
 from marionette_driver import By, errors, expected, Wait
@@ -16,6 +17,8 @@ from marionette_harness import (
     WindowManagerMixin,
 )
 
+here = os.path.abspath(os.path.dirname(__file__))
+
 
 def inline(doc):
     return "data:text/html;charset=utf-8,%s" % urllib.quote(doc)
@@ -26,6 +29,9 @@ class BaseNavigationTestCase(WindowManagerMixin, MarionetteTestCase):
     def setUp(self):
         super(BaseNavigationTestCase, self).setUp()
 
+        file_path = os.path.join(here, 'data', 'test.html').replace("\\", "/")
+
+        self.test_page_file_url = "file:///{}".format(file_path)
         self.test_page_frameset = self.marionette.absolute_url("frameset.html")
         self.test_page_insecure = self.fixtures.where_is("test.html", on="https")
         self.test_page_not_remote = "about:robots"
@@ -191,6 +197,41 @@ class TestNavigate(BaseNavigationTestCase):
         self.assertTrue(self.marionette.execute_script(
             "return window.visited", sandbox=None))
 
+    def test_navigate_hash_argument_identical(self):
+        test_page = "{}#foo".format(inline("<p id=foo>"))
+
+        self.marionette.navigate(test_page)
+        self.marionette.find_element(By.ID, "foo")
+        self.marionette.navigate(test_page)
+        self.marionette.find_element(By.ID, "foo")
+
+    def test_navigate_hash_argument_differnt(self):
+        test_page = "{}#Foo".format(inline("<p id=foo>"))
+
+        self.marionette.navigate(test_page)
+        self.marionette.find_element(By.ID, "foo")
+        self.marionette.navigate(test_page.lower())
+        self.marionette.find_element(By.ID, "foo")
+
+    @skip_if_mobile("Test file is only located on host machine")
+    def test_navigate_file_url(self):
+        self.marionette.navigate(self.test_page_file_url)
+        self.marionette.find_element(By.ID, "file-url")
+        self.marionette.navigate(self.test_page_remote)
+
+    @run_if_e10s("Requires e10s mode enabled")
+    @skip_if_mobile("Test file is only located on host machine")
+    def test_navigate_file_url_remoteness_change(self):
+        self.marionette.navigate("about:robots")
+        self.assertFalse(self.is_remote_tab)
+
+        self.marionette.navigate(self.test_page_file_url)
+        self.assertTrue(self.is_remote_tab)
+        self.marionette.find_element(By.ID, "file-url")
+
+        self.marionette.navigate("about:robots")
+        self.assertFalse(self.is_remote_tab)
+
     @skip_if_mobile("Bug 1334095 - Timeout: No new tab has been opened")
     def test_about_blank_for_new_docshell(self):
         self.assertEqual(self.marionette.get_url(), "about:blank")
@@ -331,6 +372,15 @@ class TestBackForwardNavigation(BaseNavigationTestCase):
             {"url": "{}#23".format(self.test_page_remote)},
             {"url": self.test_page_remote},
             {"url": "{}#42".format(self.test_page_remote)},
+        ]
+        self.run_bfcache_test(test_pages)
+
+    @skip_if_mobile("Test file is only located on host machine")
+    def test_file_url(self):
+        test_pages = [
+            {"url": self.test_page_remote},
+            {"url": self.test_page_file_url},
+            {"url": self.test_page_remote},
         ]
         self.run_bfcache_test(test_pages)
 
@@ -512,6 +562,14 @@ class TestRefresh(BaseNavigationTestCase):
         self.marionette.refresh()
         self.marionette.find_element(By.NAME, "third")
 
+    @skip_if_mobile("Test file is only located on host machine")
+    def test_file_url(self):
+        self.marionette.navigate(self.test_page_file_url)
+        self.assertEqual(self.test_page_file_url, self.marionette.get_url())
+
+        self.marionette.refresh()
+        self.assertEqual(self.test_page_file_url, self.marionette.get_url())
+
     def test_image(self):
         image = self.marionette.absolute_url('black.png')
 
@@ -613,13 +671,14 @@ class TestTLSNavigation(MarionetteTestCase):
 
 class TestPageLoadStrategy(BaseNavigationTestCase):
 
-    def setUp(self):
-        super(TestPageLoadStrategy, self).setUp()
+    def tearDown(self):
+        self.marionette.delete_session()
+        self.marionette.start_session()
 
-        if self.marionette.session is not None:
-            self.marionette.delete_session()
+        super(TestPageLoadStrategy, self).tearDown()
 
     def test_none(self):
+        self.marionette.delete_session()
         self.marionette.start_session({"desiredCapabilities": {"pageLoadStrategy": "none"}})
 
         # With a strategy of "none" there should be no wait for the page load, and the
@@ -627,6 +686,7 @@ class TestPageLoadStrategy(BaseNavigationTestCase):
         self.marionette.navigate(self.test_page_slow_resource)
 
     def test_eager(self):
+        self.marionette.delete_session()
         self.marionette.start_session({"desiredCapabilities": {"pageLoadStrategy": "eager"}})
 
         self.marionette.navigate(self.test_page_slow_resource)
@@ -635,9 +695,23 @@ class TestPageLoadStrategy(BaseNavigationTestCase):
         self.marionette.find_element(By.ID, "slow")
 
     def test_normal(self):
+        self.marionette.delete_session()
         self.marionette.start_session({"desiredCapabilities": {"pageLoadStrategy": "normal"}})
 
         self.marionette.navigate(self.test_page_slow_resource)
         self.assertEqual(self.test_page_slow_resource, self.marionette.get_url())
         self.assertEqual("complete", self.ready_state)
         self.marionette.find_element(By.ID, "slow")
+
+    @run_if_e10s("Requires e10s mode enabled")
+    def test_strategy_after_remoteness_change(self):
+        """Bug 1378191 - Reset of capabilities after listener reload"""
+        self.marionette.delete_session()
+        self.marionette.start_session({"desiredCapabilities": {"pageLoadStrategy": "eager"}})
+
+        # Trigger a remoteness change which will reload the listener script
+        self.assertTrue(self.is_remote_tab, "Initial tab doesn't have remoteness flag set")
+        self.marionette.navigate("about:robots")
+        self.assertFalse(self.is_remote_tab, "Tab has remoteness flag set")
+        self.marionette.navigate(self.test_page_slow_resource)
+        self.assertEqual("interactive", self.ready_state)

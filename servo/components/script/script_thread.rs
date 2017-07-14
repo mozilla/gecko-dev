@@ -27,7 +27,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventInit;
-use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
@@ -80,7 +79,7 @@ use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestIni
 use net_traits::storage_thread::StorageType;
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
+use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
@@ -256,6 +255,9 @@ pub enum MainThreadScriptMsg {
     DOMManipulation(DOMManipulationTask),
     /// Tasks that originate from the user interaction task source
     UserInteraction(UserInteractionTask),
+    /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
+    /// reflowed.
+    WorkletLoaded(PipelineId),
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -716,18 +718,28 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.worklet_thread_pool.borrow_mut().get_or_insert_with(|| {
-                let chan = script_thread.chan.0.clone();
                 let init = WorkletGlobalScopeInit {
+                    script_sender: script_thread.chan.0.clone(),
                     resource_threads: script_thread.resource_threads.clone(),
                     mem_profiler_chan: script_thread.mem_profiler_chan.clone(),
                     time_profiler_chan: script_thread.time_profiler_chan.clone(),
                     devtools_chan: script_thread.devtools_chan.clone(),
                     constellation_chan: script_thread.constellation_chan.clone(),
                     scheduler_chan: script_thread.scheduler_chan.clone(),
+                    image_cache: script_thread.image_cache.clone(),
                 };
-                Rc::new(WorkletThreadPool::spawn(chan, init))
+                Rc::new(WorkletThreadPool::spawn(init))
             }).clone()
         })
+    }
+
+    pub fn send_to_layout(&self, pipeline_id: PipelineId, msg: Msg) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        let window = match window {
+            Some(window) => window,
+            None => return warn!("Message sent to layout after pipeline {} closed.", pipeline_id),
+        };
+        let _ = window.layout_chan().send(msg);
     }
 
     /// Creates a new script thread.
@@ -828,6 +840,7 @@ impl ScriptThread {
         debug!("Starting script thread.");
         while self.handle_msgs() {
             // Go on...
+            debug!("Running script thread.");
         }
         debug!("Stopped script thread.");
     }
@@ -856,6 +869,7 @@ impl ScriptThread {
         let mut sequential = vec![];
 
         // Receive at least one message so we don't spinloop.
+        debug!("Waiting for event.");
         let mut event = {
             let sel = Select::new();
             let mut script_port = sel.handle(&self.port);
@@ -887,6 +901,7 @@ impl ScriptThread {
                 panic!("unexpected select result")
             }
         };
+        debug!("Got event.");
 
         // Squash any pending resize, reflow, animation tick, and mouse-move events in the queue.
         let mut mouse_move_event_index = None;
@@ -983,6 +998,7 @@ impl ScriptThread {
         }
 
         // Process the gathered events.
+        debug!("Processing events.");
         for msg in sequential {
             debug!("Processing event {:?}.", msg);
             let category = self.categorize_msg(&msg);
@@ -1025,6 +1041,7 @@ impl ScriptThread {
         // Issue batched reflows on any pages that require it (e.g. if images loaded)
         // TODO(gw): In the future we could probably batch other types of reflows
         // into this loop too, but for now it's only images.
+        debug!("Issuing batched reflows.");
         for (_, document) in self.documents.borrow().iter() {
             let window = document.window();
             let pending_reflows = window.get_pending_reflow_count();
@@ -1189,11 +1206,16 @@ impl ScriptThread {
                 // The category of the runnable is ignored by the pattern, however
                 // it is still respected by profiling (see categorize_msg).
                 if !runnable.is_cancelled() {
+                    debug!("Running runnable.");
                     runnable.main_thread_handler(self)
+                } else {
+                    debug!("Not running cancelled runnable.");
                 }
             }
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
                 self.collect_reports(reports_chan),
+            MainThreadScriptMsg::WorkletLoaded(pipeline_id) =>
+                self.handle_worklet_loaded(pipeline_id),
             MainThreadScriptMsg::DOMManipulation(task) =>
                 task.handle_task(self),
             MainThreadScriptMsg::UserInteraction(task) =>
@@ -1756,6 +1778,14 @@ impl ScriptThread {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
             self.rebuild_and_force_reflow(&document, ReflowReason::WebFontLoaded);
+        }
+    }
+
+    /// Handles a worklet being loaded. Does nothing if the page no longer exists.
+    fn handle_worklet_loaded(&self, pipeline_id: PipelineId) {
+        let document = self.documents.borrow().find_document(pipeline_id);
+        if let Some(document) = document {
+            self.rebuild_and_force_reflow(&document, ReflowReason::WorkletLoaded);
         }
     }
 

@@ -260,7 +260,7 @@ ${helpers.predefined_type("object-position",
         ${helpers.predefined_type("grid-%s-%s" % (kind, range),
                                   "GridLine",
                                   "Default::default()",
-                                  animation_value_type="none",
+                                  animation_value_type="discrete",
                                   spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-%s" % (kind, range),
                                   products="gecko",
                                   boxed=True)}
@@ -271,16 +271,14 @@ ${helpers.predefined_type("object-position",
     ${helpers.predefined_type("grid-auto-%ss" % kind,
                               "TrackSize",
                               "Default::default()",
-                              animation_value_type="none",
+                              animation_value_type="discrete",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-%ss" % kind,
                               products="gecko",
                               boxed=True)}
 
-    // NOTE: The spec lists only `none | <track-list> | <auto-track-list>`, but gecko seems to support
-    // `subgrid <line-name-list>?` in addition to this (probably old spec). We should support it soon.
     ${helpers.predefined_type("grid-template-%ss" % kind,
-                              "TrackListOrNone",
-                              "Either::Second(None_)",
+                              "GridTemplateComponent",
+                              "specified::GenericGridTemplateComponent::None",
                               products="gecko",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
                               boxed=True,
@@ -333,7 +331,7 @@ ${helpers.predefined_type("object-position",
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T {
             autoflow: computed_value::AutoFlow::Row,
-            dense: false
+            dense: false,
         }
     }
 

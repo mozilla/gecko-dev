@@ -86,7 +86,7 @@ class GlobalHelperThreadState
     // The lists below are all protected by |lock|.
 
     // Ion compilation worklist and finished jobs.
-    IonBuilderVector ionWorklist_, ionFinishedList_;
+    IonBuilderVector ionWorklist_, ionFinishedList_, ionFreeList_;
 
     // wasm worklist and finished jobs.
     wasm::CompileTaskPtrVector wasmWorklist_, wasmFinishedList_;
@@ -179,6 +179,9 @@ class GlobalHelperThreadState
     IonBuilderVector& ionFinishedList(const AutoLockHelperThreadState&) {
         return ionFinishedList_;
     }
+    IonBuilderVector& ionFreeList(const AutoLockHelperThreadState&) {
+        return ionFreeList_;
+    }
 
     wasm::CompileTaskPtrVector& wasmWorklist(const AutoLockHelperThreadState&) {
         return wasmWorklist_;
@@ -221,10 +224,10 @@ class GlobalHelperThreadState
         return gcParallelWorklist_;
     }
 
-    bool canStartWasmCompile(const AutoLockHelperThreadState& lock,
-                             bool assumeThreadAvailable = false);
+    bool canStartWasmCompile(const AutoLockHelperThreadState& lock);
     bool canStartPromiseTask(const AutoLockHelperThreadState& lock);
     bool canStartIonCompile(const AutoLockHelperThreadState& lock);
+    bool canStartIonFreeTask(const AutoLockHelperThreadState& lock);
     bool canStartParseTask(const AutoLockHelperThreadState& lock);
     bool canStartCompressionTask(const AutoLockHelperThreadState& lock);
     bool canStartGCHelperTask(const AutoLockHelperThreadState& lock);
@@ -384,13 +387,6 @@ struct HelperThread
         return maybeCurrentTaskAs<wasm::CompileTask*>();
     }
 
-    /*
-     * Perform wasm compilation work on behalf of a thread that is running a
-     * wasm ModuleGenerator and would otherwise block waiting for other
-     * compilation threads. Return true if work was performed, otherwise false.
-     */
-    bool handleWasmIdleWorkload(AutoLockHelperThreadState& locked);
-
     /* Any source being parsed/emitted on this thread. */
     ParseTask* parseTask() {
         return maybeCurrentTaskAs<ParseTask*>();
@@ -425,9 +421,10 @@ struct HelperThread
         return nullptr;
     }
 
-    void handleWasmWorkload(AutoLockHelperThreadState& locked, bool assumeThreadAvailable = false);
+    void handleWasmWorkload(AutoLockHelperThreadState& locked);
     void handlePromiseTaskWorkload(AutoLockHelperThreadState& locked);
     void handleIonWorkload(AutoLockHelperThreadState& locked);
+    void handleIonFreeWorkload(AutoLockHelperThreadState& locked);
     void handleParseWorkload(AutoLockHelperThreadState& locked);
     void handleCompressionWorkload(AutoLockHelperThreadState& locked);
     void handleGCHelperWorkload(AutoLockHelperThreadState& locked);
@@ -488,6 +485,12 @@ StartPromiseTask(JSContext* cx, UniquePtr<PromiseTask> task);
  */
 bool
 StartOffThreadIonCompile(JSContext* cx, jit::IonBuilder* builder);
+
+/*
+ * Schedule deletion of Ion compilation data.
+ */
+bool
+StartOffThreadIonFree(jit::IonBuilder* builder, const AutoLockHelperThreadState& lock);
 
 struct AllCompilations {};
 struct ZonesInState { JSRuntime* runtime; JS::Zone::GCState state; };

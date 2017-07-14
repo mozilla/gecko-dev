@@ -127,46 +127,28 @@ class TerminalLoggingHandler(logging.Handler):
             self.release()
 
 
-class BuildProgressFooter(object):
-    """Handles display of a build progress indicator in a terminal.
+class Footer(object):
+    """Handles display of a footer in a terminal.
 
-    When mach builds inside a blessings-supported terminal, it will render
-    progress information collected from a BuildMonitor. This class converts the
-    state of BuildMonitor into terminal output.
+    This class implements the functionality common to all mach commands
+    that render a footer.
     """
 
-    def __init__(self, terminal, monitor):
+    def __init__(self, terminal):
         # terminal is a blessings.Terminal.
         self._t = terminal
         self._fh = sys.stdout
-        self.tiers = monitor.tiers.tier_status.viewitems()
 
     def clear(self):
         """Removes the footer from the current terminal."""
         self._fh.write(self._t.move_x(0))
         self._fh.write(self._t.clear_eol())
 
-    def draw(self):
-        """Draws this footer in the terminal."""
+    def write(self, parts):
+        """Write some output in the footer, accounting for terminal width.
 
-        if not self.tiers:
-            return
-
-        # The drawn terminal looks something like:
-        # TIER: base nspr nss js platform app SUBTIER: static export libs tools DIRECTORIES: 06/09 (memory)
-
-        # This is a list of 2-tuples of (encoding function, input). None means
-        # no encoding. For a full reason on why we do things this way, read the
-        # big comment below.
-        parts = [('bold', 'TIER:')]
-        append = parts.append
-        for tier, status in self.tiers:
-            if status is None:
-                append(tier)
-            elif status == 'finished':
-                append(('green', tier))
-            else:
-                append(('underline_yellow', tier))
+        parts is a list of 2-tuples of (encoding_function, input).
+        None means no encoding."""
 
         # We don't want to write more characters than the current width of the
         # terminal otherwise wrapping may result in weird behavior. We can't
@@ -199,15 +181,47 @@ class BuildProgressFooter(object):
             self._fh.write(' '.join(write_pieces))
 
 
-class BuildOutputManager(LoggingMixin):
-    """Handles writing build output to a terminal, to logs, etc."""
+class BuildProgressFooter(Footer):
+    """Handles display of a build progress indicator in a terminal.
 
-    def __init__(self, log_manager, monitor):
+    When mach builds inside a blessings-supported terminal, it will render
+    progress information collected from a BuildMonitor. This class converts the
+    state of BuildMonitor into terminal output.
+    """
+
+    def __init__(self, terminal, monitor):
+        Footer.__init__(self, terminal)
+        self.tiers = monitor.tiers.tier_status.viewitems()
+
+    def draw(self):
+        """Draws this footer in the terminal."""
+
+        if not self.tiers:
+            return
+
+        # The drawn terminal looks something like:
+        # TIER: static export libs tools
+
+        parts = [('bold', 'TIER:')]
+        append = parts.append
+        for tier, status in self.tiers:
+            if status is None:
+                append(tier)
+            elif status == 'finished':
+                append(('green', tier))
+            else:
+                append(('underline_yellow', tier))
+
+        self.write(parts)
+
+
+class OutputManager(LoggingMixin):
+    """Handles writing job output to a terminal or log."""
+
+    def __init__(self, log_manager, footer):
         self.populate_logger()
 
-        self.monitor = monitor
         self.footer = None
-
         terminal = log_manager.terminal
 
         # TODO convert terminal footer to config file setting.
@@ -217,7 +231,7 @@ class BuildOutputManager(LoggingMixin):
             return
 
         self.t = terminal
-        self.footer = BuildProgressFooter(terminal, monitor)
+        self.footer = footer
 
         self._handler = TerminalLoggingHandler()
         self._handler.setFormatter(log_manager.terminal_formatter)
@@ -235,11 +249,6 @@ class BuildOutputManager(LoggingMixin):
             # Prevents the footer from being redrawn if logging occurs.
             self._handler.footer = None
 
-        # Ensure the resource monitor is stopped because leaving it running
-        # could result in the process hanging on exit because the resource
-        # collection child process hasn't been told to stop.
-        self.monitor.stop_resource_recording()
-
     def write_line(self, line):
         if self.footer:
             self.footer.clear()
@@ -255,6 +264,22 @@ class BuildOutputManager(LoggingMixin):
 
         self.footer.clear()
         self.footer.draw()
+
+class BuildOutputManager(OutputManager):
+    """Handles writing build output to a terminal, to logs, etc."""
+
+    def __init__(self, log_manager, monitor, footer):
+        self.monitor = monitor
+        OutputManager.__init__(self, log_manager, footer)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        OutputManager.__exit__(self, exc_type, exc_value, traceback)
+
+        # Ensure the resource monitor is stopped because leaving it running
+        # could result in the process hanging on exit because the resource
+        # collection child process hasn't been told to stop.
+        self.monitor.stop_resource_recording()
+
 
     def on_line(self, line):
         warning, state_changed, relevant = self.monitor.on_line(line)
@@ -331,12 +356,13 @@ class Build(MachCommandBase):
         monitor = self._spawn(BuildMonitor)
         monitor.init(warnings_path)
         ccache_start = monitor.ccache_stats()
+        footer = BuildProgressFooter(self.log_manager.terminal, monitor)
 
         # Disable indexing in objdir because it is not necessary and can slow
         # down builds.
         mkdir(self.topobjdir, not_indexed=True)
 
-        with BuildOutputManager(self.log_manager, monitor) as output:
+        with BuildOutputManager(self.log_manager, monitor, footer) as output:
             monitor.start()
 
             if directory is not None and not what:
@@ -717,6 +743,54 @@ class Build(MachCommandBase):
 
         return self._run_command_in_objdir(args=args, pass_thru=True,
             ensure_exit_code=False)
+
+
+@CommandProvider
+class CargoProvider(MachCommandBase):
+    """Invoke cargo in useful ways."""
+
+    @Command('cargo', category='build',
+             description='Invoke cargo in useful ways.')
+    def cargo(self):
+        self.parser.print_usage()
+        return 1
+
+    @SubCommand('cargo', 'check',
+                description='Run `cargo check` on a given crate.  Defaults to gkrust.')
+    @CommandArgument('crates', default=None, nargs='*', help='The crate name(s) to check.')
+    def check(self, crates=None):
+        # XXX duplication with `mach vendor rust`
+        crates_and_roots = {
+            'gkrust': 'toolkit/library/rust',
+            'gkrust-gtest': 'toolkit/library/gtest/rust',
+            'mozjs_sys': 'js/src',
+            'geckodriver': 'testing/geckodriver',
+        }
+
+        if crates == None:
+            crates = ['gkrust']
+
+        for crate in crates:
+            root = crates_and_roots.get(crate, None)
+            if not root:
+                print('Cannot locate crate %s.  Please check your spelling or '
+                      'add the crate information to the list.' % crate)
+                return 1
+
+            check_targets = [
+                'force-cargo-library-check',
+                'force-cargo-host-library-check',
+                'force-cargo-program-check',
+                'force-cargo-host-program-check',
+            ]
+
+            ret = self._run_make(srcdir=False, directory=root,
+                                 ensure_exit_code=0, silent=True,
+                                 print_directory=False, target=check_targets)
+            if ret != 0:
+                return ret
+
+        return 0
 
 @CommandProvider
 class Doctor(MachCommandBase):
@@ -1255,6 +1329,8 @@ class RunProgram(MachCommandBase):
 
         if not enable_crash_reporter:
             extra_env['MOZ_CRASHREPORTER_DISABLE'] = '1'
+        else:
+            extra_env['MOZ_CRASHREPORTER'] = '1'
 
         if disable_e10s:
             extra_env['MOZ_FORCE_DISABLE_E10S'] = '1'

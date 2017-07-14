@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,6 +7,7 @@
 #include <ostream>
 #include "platform.h"
 #include "mozilla/HashFunctions.h"
+#include "mozilla/Sprintf.h"
 
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
@@ -30,50 +32,47 @@ using mozilla::UniquePtr;
 // BEGIN ProfileBufferEntry
 
 ProfileBufferEntry::ProfileBufferEntry()
-  : mTagData(nullptr)
-  , mKind(Kind::INVALID)
-{ }
+  : mKind(Kind::INVALID)
+{
+  u.mString = nullptr;
+}
 
-// aTagData must not need release (i.e. be a string from the text segment)
-ProfileBufferEntry::ProfileBufferEntry(Kind aKind, const char *aTagData)
-  : mTagData(aTagData)
-  , mKind(aKind)
-{ }
+// aString must be a static string.
+ProfileBufferEntry::ProfileBufferEntry(Kind aKind, const char *aString)
+  : mKind(aKind)
+{
+  u.mString = aString;
+}
 
-ProfileBufferEntry::ProfileBufferEntry(Kind aKind, ProfilerMarker *aTagMarker)
-  : mTagMarker(aTagMarker)
-  , mKind(aKind)
-{ }
+ProfileBufferEntry::ProfileBufferEntry(Kind aKind, char aChars[kNumChars])
+  : mKind(aKind)
+{
+  memcpy(u.mChars, aChars, kNumChars);
+}
 
-ProfileBufferEntry::ProfileBufferEntry(Kind aKind, void *aTagPtr)
-  : mTagPtr(aTagPtr)
-  , mKind(aKind)
-{ }
+ProfileBufferEntry::ProfileBufferEntry(Kind aKind, void* aPtr)
+  : mKind(aKind)
+{
+  u.mPtr = aPtr;
+}
 
-ProfileBufferEntry::ProfileBufferEntry(Kind aKind, double aTagDouble)
-  : mTagDouble(aTagDouble)
-  , mKind(aKind)
-{ }
+ProfileBufferEntry::ProfileBufferEntry(Kind aKind, ProfilerMarker* aMarker)
+  : mKind(aKind)
+{
+  u.mMarker = aMarker;
+}
 
-ProfileBufferEntry::ProfileBufferEntry(Kind aKind, uintptr_t aTagOffset)
-  : mTagOffset(aTagOffset)
-  , mKind(aKind)
-{ }
+ProfileBufferEntry::ProfileBufferEntry(Kind aKind, double aDouble)
+  : mKind(aKind)
+{
+  u.mDouble = aDouble;
+}
 
-ProfileBufferEntry::ProfileBufferEntry(Kind aKind, Address aTagAddress)
-  : mTagAddress(aTagAddress)
-  , mKind(aKind)
-{ }
-
-ProfileBufferEntry::ProfileBufferEntry(Kind aKind, int aTagInt)
-  : mTagInt(aTagInt)
-  , mKind(aKind)
-{ }
-
-ProfileBufferEntry::ProfileBufferEntry(Kind aKind, char aTagChar)
-  : mTagChar(aTagChar)
-  , mKind(aKind)
-{ }
+ProfileBufferEntry::ProfileBufferEntry(Kind aKind, int aInt)
+  : mKind(aKind)
+{
+  u.mInt = aInt;
+}
 
 // END ProfileBufferEntry
 ////////////////////////////////////////////////////////////////////////
@@ -535,7 +534,7 @@ void UniqueStacks::StreamFrame(const OnStackFrameKey& aFrame)
 struct ProfileSample
 {
   uint32_t mStack;
-  Maybe<double> mTime;
+  double mTime;
   Maybe<double> mResponsiveness;
   Maybe<double> mRSS;
   Maybe<double> mUSS;
@@ -555,9 +554,7 @@ static void WriteSample(SpliceableJSONWriter& aWriter, ProfileSample& aSample)
 
   writer.IntElement(STACK, aSample.mStack);
 
-  if (aSample.mTime.isSome()) {
-    writer.DoubleElement(TIME, *aSample.mTime);
-  }
+  writer.DoubleElement(TIME, aSample.mTime);
 
   if (aSample.mResponsiveness.isSome()) {
     writer.DoubleElement(RESPONSIVENESS, *aSample.mResponsiveness);
@@ -572,141 +569,313 @@ static void WriteSample(SpliceableJSONWriter& aWriter, ProfileSample& aSample)
   }
 }
 
-void ProfileBuffer::StreamSamplesToJSON(SpliceableJSONWriter& aWriter, int aThreadId,
-                                        double aSinceTime, JSContext* aContext,
-                                        UniqueStacks& aUniqueStacks)
+class EntryGetter
 {
-  Maybe<ProfileSample> sample;
-  int readPos = mReadPos;
-  int currentThreadID = -1;
-  Maybe<double> currentTime;
-  UniquePtr<char[]> tagBuff = MakeUnique<char[]>(DYNAMIC_MAX_STRING);
+public:
+  explicit EntryGetter(ProfileBuffer* aBuffer)
+    : mEntries(aBuffer->mEntries.get())
+    , mReadPos(aBuffer->mReadPos)
+    , mWritePos(aBuffer->mWritePos)
+    , mEntrySize(aBuffer->mEntrySize)
+  {}
 
-  while (readPos != mWritePos) {
-    ProfileBufferEntry entry = mEntries[readPos];
-    if (entry.isThreadId()) {
-      currentThreadID = entry.mTagInt;
-      currentTime.reset();
-      int readAheadPos = (readPos + 1) % mEntrySize;
-      if (readAheadPos != mWritePos) {
-        ProfileBufferEntry readAheadEntry = mEntries[readAheadPos];
-        if (readAheadEntry.isTime()) {
-          currentTime = Some(readAheadEntry.mTagDouble);
+  bool Has() const { return mReadPos != mWritePos; }
+  const ProfileBufferEntry& Get() const { return mEntries[mReadPos]; }
+  void Next() { mReadPos = (mReadPos + 1) % mEntrySize; }
+
+private:
+  const ProfileBufferEntry* const mEntries;
+  int mReadPos;
+  const int mWritePos;
+  const int mEntrySize;
+};
+
+// Each sample is made up of multiple ProfileBuffer entries. The following
+// grammar shows legal sequences.
+//
+// (
+//   ThreadId
+//   Time
+//   Sample
+//   ( NativeLeafAddr
+//   | CodeLocation EmbeddedString* LineNumber? Category?
+//   | JitReturnAddr
+//   )+
+//   Marker*
+//   Responsiveness?
+//   ResidentMemory?
+//   UnsharedMemory?
+// )*
+//
+// The most complicated part is the stack entry sequence that begins with
+// CodeLocation. Here are some examples.
+//
+// - PseudoStack entries without a dynamic string (or with privacy enabled so
+//   that the dynamic string is hidden):
+//
+//     CodeLocation("js::RunScript")
+//     Category(ProfileEntry::Category::JS)
+//
+//     CodeLocation("XREMain::XRE_main")
+//     LineNumber(4660)
+//     Category(ProfileEntry::Category::OTHER)
+//
+//     CodeLocation("ElementRestyler::ComputeStyleChangeFor")
+//     LineNumber(3003)
+//     Category(ProfileEntry::Category::CSS)
+//
+// - PseudoStack entries with a dynamic string:
+//
+//     CodeLocation("")
+//     EmbeddedString("nsObserv")
+//     EmbeddedString("erServic")
+//     EmbeddedString("e::Notif")
+//     EmbeddedString("yObserve")
+//     EmbeddedString("rs profi")
+//     EmbeddedString("ler-star")
+//     EmbeddedString "ted")
+//     LineNumber(291)
+//     Category(ProfileEntry::Category::OTHER)
+//
+//     CodeLocation("")
+//     EmbeddedString("closeWin")
+//     EmbeddedString("dow (chr")
+//     EmbeddedString("ome://gl")
+//     EmbeddedString("obal/con")
+//     EmbeddedString("tent/glo")
+//     EmbeddedString("balOverl")
+//     EmbeddedString("ay.js:5)")
+//     EmbeddedString("")         # this string holds the closing '\0'
+//     LineNumber(25)
+//     Category(ProfileEntry::Category::JS)
+//
+//     CodeLocation("")
+//     EmbeddedString("bound (s")
+//     EmbeddedString("elf-host")
+//     EmbeddedString("ed:914)")
+//     LineNumber(945)
+//     Category(ProfileEntry::Category::JS)
+//
+// - A wasm JIT frame entry:
+//
+//     CodeLocation("")
+//     EmbeddedString("wasm-fun")
+//     EmbeddedString("ction[87")
+//     EmbeddedString("36] (blo")
+//     EmbeddedString("b:http:/")
+//     EmbeddedString("/webasse")
+//     EmbeddedString("mbly.org")
+//     EmbeddedString("/3dc5759")
+//     EmbeddedString("4-ce58-4")
+//     EmbeddedString("626-975b")
+//     EmbeddedString("-08ad116")
+//     EmbeddedString("30bc1:38")
+//     EmbeddedString("29856)")
+//
+// - A JS frame entry in a synchronous sample:
+//
+//     CodeLocation("")
+//     EmbeddedString("u (https")
+//     EmbeddedString("://perf-")
+//     EmbeddedString("html.io/")
+//     EmbeddedString("ac0da204")
+//     EmbeddedString("aaa44d75")
+//     EmbeddedString("a800.bun")
+//     EmbeddedString("dle.js:2")
+//     EmbeddedString("5)")
+//
+void
+ProfileBuffer::StreamSamplesToJSON(SpliceableJSONWriter& aWriter, int aThreadId,
+                                   double aSinceTime, JSContext* aContext,
+                                   UniqueStacks& aUniqueStacks)
+{
+  UniquePtr<char[]> strbuf = MakeUnique<char[]>(kMaxDynamicStringLength);
+
+  // Because this is a format entirely internal to the Profiler, any parsing
+  // error indicates a bug in the ProfileBuffer writing or the parser itself,
+  // or possibly flaky hardware.
+  #define ERROR_AND_SKIP_TO_NEXT_SAMPLE(msg) \
+    do { \
+      fprintf(stderr, "ProfileBuffer parse error: %s", msg); \
+      MOZ_ASSERT(false, msg); \
+      goto skip_to_next_sample; \
+    } while (0)
+
+  EntryGetter e(this);
+
+  // This block skips entries until we find the start of the next sample. This
+  // is useful in two situations.
+  //
+  // - The circular buffer overwrites old entries, so when we start parsing we
+  //   might be in the middle of a sample, and we must skip forward to the
+  //   start of the next sample.
+  //
+  // - We skip samples that don't have an appropriate ThreadId or Time.
+  //
+skip_to_next_sample:
+  while (e.Has()) {
+    if (e.Get().isThreadId()) {
+      break;
+    } else {
+      e.Next();
+    }
+  }
+
+  while (e.Has()) {
+    if (e.Get().isThreadId()) {
+      int threadId = e.Get().u.mInt;
+      e.Next();
+
+      // Ignore samples that are for the wrong thread.
+      if (threadId != aThreadId) {
+        goto skip_to_next_sample;
+      }
+    } else {
+      // Due to the skip_to_next_sample block above, if we have an entry here
+      // it must be a ThreadId entry.
+      MOZ_CRASH();
+    }
+
+    ProfileSample sample;
+
+    if (e.Has() && e.Get().isTime()) {
+      sample.mTime = e.Get().u.mDouble;
+      e.Next();
+
+      // Ignore samples that are too old.
+      if (sample.mTime < aSinceTime) {
+        goto skip_to_next_sample;
+      }
+    } else {
+      ERROR_AND_SKIP_TO_NEXT_SAMPLE("expected a Time entry");
+    }
+
+    if (e.Has() && e.Get().isSample()) {
+      e.Next();
+    } else {
+      ERROR_AND_SKIP_TO_NEXT_SAMPLE("expected a Sample entry");
+    }
+
+    UniqueStacks::Stack stack =
+      aUniqueStacks.BeginStack(UniqueStacks::OnStackFrameKey("(root)"));
+
+    int numFrames = 0;
+    while (e.Has()) {
+      if (e.Get().isNativeLeafAddr()) {
+        numFrames++;
+
+        // Bug 753041: We need a double cast here to tell GCC that we don't
+        // want to sign extend 32-bit addresses starting with 0xFXXXXXX.
+        unsigned long long pc = (unsigned long long)(uintptr_t)e.Get().u.mPtr;
+        char buf[20];
+        SprintfLiteral(buf, "%#llx", pc);
+        stack.AppendFrame(UniqueStacks::OnStackFrameKey(buf));
+        e.Next();
+
+      } else if (e.Get().isCodeLocation()) {
+        numFrames++;
+        const char* string = e.Get().u.mString;
+        e.Next();
+
+        strbuf[0] = '\0';
+        char* p = &strbuf[0];
+        while (e.Has()) {
+          if (e.Get().isEmbeddedString()) {
+            if (p < &strbuf[kMaxDynamicStringLength]) {
+              // Copy 8 chars at a time. This won't overflow strbuf so long as
+              // its length is a multiple of 8.
+              static_assert(kMaxDynamicStringLength % 8 == 0, "bad strbuf sz");
+              memcpy(p, e.Get().u.mChars, ProfileBufferEntry::kNumChars);
+              p += ProfileBufferEntry::kNumChars;
+            }
+
+            e.Next();
+          } else {
+            break;
+          }
         }
+        strbuf[kMaxDynamicStringLength - 1] = '\0';
+
+        if (strbuf[0] != '\0') {
+          // When we have EmbeddedStrings, the preceding CodeLocation's string
+          // is always empty.
+          MOZ_ASSERT(string[0] == '\0');
+          string = strbuf.get();
+        }
+
+        UniqueStacks::OnStackFrameKey frameKey(string);
+
+        if (e.Has() && e.Get().isLineNumber()) {
+          frameKey.mLine = Some(unsigned(e.Get().u.mInt));
+          e.Next();
+        }
+
+        if (e.Has() && e.Get().isCategory()) {
+          frameKey.mCategory = Some(unsigned(e.Get().u.mInt));
+          e.Next();
+        }
+
+        stack.AppendFrame(frameKey);
+
+      } else if (e.Get().isJitReturnAddr()) {
+        numFrames++;
+
+        // A JIT frame may expand to multiple frames due to inlining.
+        void* pc = e.Get().u.mPtr;
+        unsigned depth = aUniqueStacks.LookupJITFrameDepth(pc);
+        if (depth == 0) {
+          StreamJSFramesOp framesOp(pc, stack);
+          MOZ_RELEASE_ASSERT(aContext);
+          JS::ForEachProfiledFrame(aContext, pc, framesOp);
+          aUniqueStacks.AddJITFrameDepth(pc, framesOp.depth());
+        } else {
+          for (unsigned i = 0; i < depth; i++) {
+            UniqueStacks::OnStackFrameKey inlineFrameKey(pc, i);
+            stack.AppendFrame(inlineFrameKey);
+          }
+        }
+
+        e.Next();
+
+      } else {
+        break;
       }
     }
-    if (currentThreadID == aThreadId && (currentTime.isNothing() || *currentTime >= aSinceTime)) {
-      switch (entry.kind()) {
-      case ProfileBufferEntry::Kind::Responsiveness:
-        if (sample.isSome()) {
-          sample->mResponsiveness = Some(entry.mTagDouble);
-        }
-        break;
-      case ProfileBufferEntry::Kind::ResidentMemory:
-        if (sample.isSome()) {
-          sample->mRSS = Some(entry.mTagDouble);
-        }
-        break;
-      case ProfileBufferEntry::Kind::UnsharedMemory:
-        if (sample.isSome()) {
-          sample->mUSS = Some(entry.mTagDouble);
-         }
-        break;
-      case ProfileBufferEntry::Kind::Sample:
-        {
-          // end the previous sample if there was one
-          if (sample.isSome()) {
-            WriteSample(aWriter, *sample);
-            sample.reset();
-          }
-          // begin the next sample
-          sample.emplace();
-          sample->mTime = currentTime;
 
-          // Seek forward through the entire sample, looking for frames
-          // this is an easier approach to reason about than adding more
-          // control variables and cases to the loop that goes through the buffer once
-
-          UniqueStacks::Stack stack =
-            aUniqueStacks.BeginStack(UniqueStacks::OnStackFrameKey("(root)"));
-
-          int framePos = (readPos + 1) % mEntrySize;
-          ProfileBufferEntry frame = mEntries[framePos];
-          while (framePos != mWritePos && !frame.isSample() && !frame.isThreadId()) {
-            int incBy = 1;
-            frame = mEntries[framePos];
-
-            // Read ahead to the next tag, if it's an EmbeddedString
-            // tag process it now
-            const char* tagStringData = frame.mTagData;
-            int readAheadPos = (framePos + 1) % mEntrySize;
-            // Make sure the string is always null terminated if it fills up
-            // DYNAMIC_MAX_STRING-2
-            tagBuff[DYNAMIC_MAX_STRING-1] = '\0';
-
-            if (readAheadPos != mWritePos && mEntries[readAheadPos].isEmbeddedString()) {
-              tagStringData = processDynamicTag(framePos, &incBy, tagBuff.get());
-            }
-
-            // Write one frame. It can have either
-            // 1. only location - a NativeLeafAddr containing a memory address
-            // 2. location and line number - a CodeLocation followed by
-            //    EmbeddedStrings, an optional LineNumber and an
-            //    optional Category
-            // 3. a JitReturnAddress containing a native code address
-            if (frame.isNativeLeafAddr()) {
-              // Bug 753041
-              // We need a double cast here to tell GCC that we don't want to sign
-              // extend 32-bit addresses starting with 0xFXXXXXX.
-              unsigned long long pc = (unsigned long long)(uintptr_t)frame.mTagPtr;
-              snprintf(tagBuff.get(), DYNAMIC_MAX_STRING, "%#llx", pc);
-              stack.AppendFrame(UniqueStacks::OnStackFrameKey(tagBuff.get()));
-            } else if (frame.isCodeLocation()) {
-              UniqueStacks::OnStackFrameKey frameKey(tagStringData);
-              readAheadPos = (framePos + incBy) % mEntrySize;
-              if (readAheadPos != mWritePos &&
-                  mEntries[readAheadPos].isLineNumber()) {
-                frameKey.mLine = Some((unsigned) mEntries[readAheadPos].mTagInt);
-                incBy++;
-              }
-              readAheadPos = (framePos + incBy) % mEntrySize;
-              if (readAheadPos != mWritePos &&
-                  mEntries[readAheadPos].isCategory()) {
-                frameKey.mCategory = Some((unsigned) mEntries[readAheadPos].mTagInt);
-                incBy++;
-              }
-              stack.AppendFrame(frameKey);
-            } else if (frame.isJitReturnAddr()) {
-              // A JIT frame may expand to multiple frames due to inlining.
-              void* pc = frame.mTagPtr;
-              unsigned depth = aUniqueStacks.LookupJITFrameDepth(pc);
-              if (depth == 0) {
-                StreamJSFramesOp framesOp(pc, stack);
-                MOZ_RELEASE_ASSERT(aContext);
-                JS::ForEachProfiledFrame(aContext, pc, framesOp);
-                aUniqueStacks.AddJITFrameDepth(pc, framesOp.depth());
-              } else {
-                for (unsigned i = 0; i < depth; i++) {
-                  UniqueStacks::OnStackFrameKey inlineFrameKey(pc, i);
-                  stack.AppendFrame(inlineFrameKey);
-                }
-              }
-            }
-            framePos = (framePos + incBy) % mEntrySize;
-          }
-
-          sample->mStack = stack.GetOrAddIndex();
-          break;
-        }
-      default:
-        break;
-      } /* switch (entry.kind()) */
+    if (numFrames == 0) {
+      ERROR_AND_SKIP_TO_NEXT_SAMPLE("expected one or more frame entries");
     }
-    readPos = (readPos + 1) % mEntrySize;
+
+    sample.mStack = stack.GetOrAddIndex();
+
+    // Skip over the markers. We process them in StreamMarkersToJSON().
+    while (e.Has()) {
+      if (e.Get().isMarker()) {
+        e.Next();
+      } else {
+        break;
+      }
+    }
+
+    if (e.Has() && e.Get().isResponsiveness()) {
+      sample.mResponsiveness = Some(e.Get().u.mDouble);
+      e.Next();
+    }
+
+    if (e.Has() && e.Get().isResidentMemory()) {
+      sample.mRSS = Some(e.Get().u.mDouble);
+      e.Next();
+    }
+
+    if (e.Has() && e.Get().isUnsharedMemory()) {
+      sample.mUSS = Some(e.Get().u.mDouble);
+      e.Next();
+    }
+
+    WriteSample(aWriter, sample);
   }
-  if (sample.isSome()) {
-    WriteSample(aWriter, *sample);
-  }
+
+  #undef ERROR_AND_SKIP_TO_NEXT_SAMPLE
 }
 
 void
@@ -716,20 +885,22 @@ ProfileBuffer::StreamMarkersToJSON(SpliceableJSONWriter& aWriter,
                                    double aSinceTime,
                                    UniqueStacks& aUniqueStacks)
 {
-  int readPos = mReadPos;
+  EntryGetter e(this);
+
   int currentThreadID = -1;
-  while (readPos != mWritePos) {
-    ProfileBufferEntry entry = mEntries[readPos];
-    if (entry.isThreadId()) {
-      currentThreadID = entry.mTagInt;
-    } else if (currentThreadID == aThreadId && entry.isMarker()) {
-      const ProfilerMarker* marker = entry.getMarker();
+
+  // Stream all markers whose threadId matches aThreadId. All other entries are
+  // skipped, because we process them in StreamSamplesToJSON().
+  while (e.Has()) {
+    if (e.Get().isThreadId()) {
+      currentThreadID = e.Get().u.mInt;
+    } else if (currentThreadID == aThreadId && e.Get().isMarker()) {
+      const ProfilerMarker* marker = e.Get().u.mMarker;
       if (marker->GetTime() >= aSinceTime) {
-        entry.getMarker()->StreamJSON(aWriter, aProcessStartTime,
-                                      aUniqueStacks);
+        marker->StreamJSON(aWriter, aProcessStartTime, aUniqueStacks);
       }
     }
-    readPos = (readPos + 1) % mEntrySize;
+    e.Next();
   }
 }
 
@@ -754,7 +925,7 @@ ProfileBuffer::FindLastSampleOfThread(int aThreadId, const LastSample& aLS)
     // is still valid.
     MOZ_RELEASE_ASSERT(0 <= ix && ix < mEntrySize);
     ProfileBufferEntry& entry = mEntries[ix];
-    bool isStillValid = entry.isThreadId() && entry.mTagInt == aThreadId;
+    bool isStillValid = entry.isThreadId() && entry.u.mInt == aThreadId;
     return isStillValid ? ix : -1;
   }
 
@@ -775,9 +946,9 @@ ProfileBuffer::DuplicateLastSample(int aThreadId,
   }
 
   MOZ_ASSERT(mEntries[lastSampleStartPos].isThreadId() &&
-             mEntries[lastSampleStartPos].mTagInt == aThreadId);
+             mEntries[lastSampleStartPos].u.mInt == aThreadId);
 
-  addTagThreadId(aThreadId, &aLS);
+  addThreadIdEntry(aThreadId, &aLS);
 
   // Go through the whole entry and duplicate it, until we find the next one.
   for (int readPos = (lastSampleStartPos + 1) % mEntrySize;
@@ -789,15 +960,15 @@ ProfileBuffer::DuplicateLastSample(int aThreadId,
         return true;
       case ProfileBufferEntry::Kind::Time:
         // Copy with new time
-        addTag(ProfileBufferEntry::Time((TimeStamp::Now() -
-                                         aProcessStartTime).ToMilliseconds()));
+        addEntry(ProfileBufferEntry::Time(
+          (TimeStamp::Now() - aProcessStartTime).ToMilliseconds()));
         break;
       case ProfileBufferEntry::Kind::Marker:
         // Don't copy markers
         break;
       default:
         // Copy anything else we don't know about.
-        addTag(mEntries[readPos]);
+        addEntry(mEntries[readPos]);
         break;
     }
   }

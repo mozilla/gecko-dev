@@ -120,11 +120,7 @@ toolbar:-moz-lwtheme {
 }
 
 #main-window:not(:-moz-lwtheme) > #titlebar {
-%ifdef MOZ_PHOTON_THEME
-  background-color: #232323;
-%else
   -moz-appearance: -moz-window-titlebar;
-%endif
 }
 
 #main-window:not([tabsintitlebar]) > #titlebar {
@@ -176,6 +172,12 @@ toolbar:-moz-lwtheme {
   border-top: 1px solid rgba(0,0,0,0.65);
 }
 
+%ifdef MOZ_PHOTON_THEME
+#navigator-toolbox > toolbar:not(#TabsToolbar):not(:-moz-lwtheme) {
+  -moz-appearance: none;
+  background: var(--toolbar-background-color);
+}
+%else
 #navigator-toolbox > toolbar:not(#TabsToolbar):not(#nav-bar):not(:-moz-lwtheme) {
   -moz-appearance: none;
   background: url(chrome://browser/skin/Toolbar-background-noise.png) hsl(0,0%,83%);
@@ -191,6 +193,7 @@ toolbar:-moz-lwtheme {
     background-color: hsl(0,0%,95%);
   }
 }
+%endif
 
 #navigator-toolbox > toolbar:not(#toolbar-menubar):not(#TabsToolbar):not(#nav-bar):not(#addon-bar) {
   overflow: -moz-hidden-unscrollable;
@@ -204,6 +207,7 @@ toolbar:-moz-lwtheme {
   transition: min-height 170ms ease-out, max-height 170ms ease-out, visibility 170ms linear;
 }
 
+%ifndef MOZ_PHOTON_THEME
 #nav-bar {
   -moz-appearance: none;
   background: url(chrome://browser/skin/Toolbar-background-noise.png),
@@ -237,6 +241,7 @@ toolbar:-moz-lwtheme {
     background: linear-gradient(hsl(0,0%,97%), hsl(0,0%,95%));
   }
 }
+%endif
 
 /* Draw the bottom border of the tabs toolbar when it's not using
    -moz-appearance: toolbar. */
@@ -277,10 +282,12 @@ toolbar:-moz-lwtheme {
   min-height: 23px;
 }
 
+%ifndef MOZ_PHOTON_THEME
 #navigator-toolbox > toolbar:not(#TabsToolbar):-moz-lwtheme {
   background-color: @toolbarColorLWT@;
   background-image: url(chrome://browser/skin/Toolbar-background-noise.png);
 }
+%endif
 
 #PersonalToolbar:not(:-moz-lwtheme):-moz-window-inactive,
 #nav-bar:not(:-moz-lwtheme):-moz-window-inactive {
@@ -660,32 +667,21 @@ toolbarpaletteitem[place="palette"] > #personal-bookmarks > #bookmarks-toolbar-p
   border-bottom-right-radius: 2px;
 }
 
-#identity-box:-moz-focusring {
+#identity-box:not(:active):-moz-focusring {
   box-shadow: var(--focus-ring-box-shadow);
   border-inline-end-style: none;
   padding-inline-end: 5px;
 }
-
 .urlbar-input-box {
   margin: 0;
   padding: 3px 0 2px;
 }
-
-.urlbar-input-box,
-#urlbar-display-box {
-  padding-inline-start: 4px;
-  border-inline-start: 1px solid var(--urlbar-separator-color);
-  border-image: linear-gradient(transparent 15%, var(--urlbar-separator-color) 15%, var(--urlbar-separator-color) 85%, transparent 85%);
-  border-image-slice: 1;
-}
-
 .urlbar-history-dropmarker {
   padding: 0 3px;
   list-style-image: var(--urlbar-dropmarker-url);
   -moz-image-region: var(--urlbar-dropmarker-region);
   transition: opacity 0.15s ease;
 }
-
 #urlbar-wrapper[switchingtabs] > #urlbar > .urlbar-textbox-container > .urlbar-history-dropmarker {
   transition: none;
 }
@@ -1378,6 +1374,7 @@ html|span.ac-emphasize-text-url {
   /* system font size is a bit smaller in mac, so need more ems. */
   font-size: 1.4545em;
   border-bottom: 1px solid hsla(240, 5%, 5%, .1);
+  background-color: transparent;
 }
 
 .sidebar-splitter {
@@ -1558,8 +1555,12 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   margin-bottom: calc(-1 * var(--tab-toolbar-navbar-overlap));
 }
 
+%ifndef MOZ_PHOTON_THEME
 #main-window:not([customizing]) #navigator-toolbox[inFullscreen] > #TabsToolbar:not(:-moz-lwtheme),
 #main-window:not(:-moz-any([customizing],[tabsintitlebar])) #navigator-toolbox > #TabsToolbar:not(:-moz-lwtheme) {
+%else
+:root:not([customizing]):not([tabsintitlebar]):not([inFullscreen]) #TabsToolbar:not(:-moz-lwtheme) {
+%endif
   -moz-appearance: toolbar;
 }
 
@@ -1569,7 +1570,9 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 }
 
 %ifdef MOZ_PHOTON_THEME
-:root[tabsintitlebar] #TabsToolbar:not(:-moz-lwtheme) {
+:root:-moz-any([inFullscreen], [tabsintitlebar]):not([customizing]) #TabsToolbar:not(:-moz-lwtheme) {
+  -moz-appearance: none;
+  background-color: #232323;
   color: hsl(240, 9%, 98%);
   text-shadow: none;
 }
@@ -2141,6 +2144,7 @@ html|*.addon-webext-perm-list {
 
 %include ../shared/customizableui/customizeMode.inc.css
 
+%ifndef MOZ_PHOTON_THEME
 #main-window[customizing] {
   background-color: rgb(178,178,178);
 }
@@ -2204,7 +2208,9 @@ html|*.addon-webext-perm-list {
   border-right: 3px solid transparent;
   border-left: 3px solid transparent;
 }
+%endif
 
+%ifndef MOZ_PHOTON_THEME
 @media (min-resolution: 2dppx) {
   .customization-tipPanel-infoBox {
     background-image: url(chrome://browser/skin/customizableui/info-icon-customizeTip@2x.png);
@@ -2224,6 +2230,7 @@ html|*.addon-webext-perm-list {
     list-style-image: url("chrome://browser/skin/customizableui/panelarrow-customizeTip@2x.png");
   }
 }
+%endif
 
 /* End customization mode */
 

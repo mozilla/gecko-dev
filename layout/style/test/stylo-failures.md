@@ -38,9 +38,6 @@ to mochitest command.
 * Animation support:
   * SMIL Animation
     * test_restyles_in_smil_animation.html [2]
-* console support bug 1352669
-  * test_bug413958.html `monitorConsole` [3]
-  * test_parser_diagnostics_unprintables.html [550]
 * @namespace support:
   * test_namespace_rule.html: bug 1355715 [6]
 * test_font_feature_values_parsing.html: \@font-feature-values support bug 1355721 [107]
@@ -49,21 +46,7 @@ to mochitest command.
   * test_grid_container_shorthands.html [65]
   * test_grid_item_shorthands.html [23]
   * test_grid_shorthand_serialization.html [28]
-  * test_inherit_computation.html `grid` [2]
-  * test_initial_computation.html `grid` [4]
-  * test_property_syntax_errors.html `grid`: actually there are issues with this [8]
-  * test_value_storage.html `'grid` [195]
-* Unimplemented CSS properties:
-  * font-variant-alternates property bug 1355721
-    * test_property_syntax_errors.html `font-variant-alternates` [2]
-    * test_value_storage.html `'font-variant'` [14]
-    * ... `font-variant-alternates` [22]
-    * test_specified_value_serialization.html `bug-721136` [1]
-* Unsupported prefixed values
-  * moz-prefixed gradient functions bug 1337655
-    * test_value_storage.html `-moz-linear-gradient` [322]
-    * ... `-moz-radial-gradient` [309]
-    * ... `-moz-repeating-` [298]
+  * test_value_storage.html `'grid` [21]
 * Unsupported values
   * SVG-in-OpenType values not supported servo/servo#15211 bug 1355412
     * test_value_storage.html `context-` [7]
@@ -77,18 +60,8 @@ to mochitest command.
     * test_align_shorthand_serialization.html [6]
   * system font serialization with subprop specified bug 1364286
     * test_system_font_serialization.html [3]
-  * serialize subprops to -moz-use-system-font when using system font bug 1364289
-    * test_value_storage.html `'font'` [224]
   * different serialization for gradient functions in computed value bug 1367274
     * test_computed_style.html `gradient` [13]
-* Unsupported pseudo-elements or anon boxes
-  * :-moz-tree bits bug 1348488
-    * test_selectors.html `:-moz-tree` [10]
-* Unsupported pseudo-classes
-  * :-moz-lwtheme-* bug 1367312
-    * test_selectors.html `:-moz-lwtheme` [3]
-  * :-moz-window-inactive bug 1348489
-    * test_selectors.html `:-moz-window-inactive` [2]
 * Unit should be preserved after parsing servo/servo#15346
   * test_units_time.html [1]
 * getComputedStyle style doesn't contain custom properties bug 1336891
@@ -97,10 +70,8 @@ to mochitest command.
 * test_author_specified_style.html: support serializing color as author specified bug 1348165 [27]
 * browser_newtab_share_rule_processors.js: agent style sheet sharing [1]
 * :visited support (bug 1328509)
-  * test_visited_reftests.html `color-on-bullets-1.html` [2]
-  * ... `inherit-keyword-1.xhtml` [2]
+  * test_visited_reftests.html `inherit-keyword-1.xhtml` [2]
   * ... `mathml-links.html` [2]
-  * ... `caret-color-on-visited-1.html` [2]
 
 ## Assertions
 
@@ -114,7 +85,6 @@ to mochitest command.
 ## Unknown / Unsure
 
 * test_selectors_on_anonymous_content.html: xbl and :nth-child [1]
-* test_parse_rule.html `rgb(0, 128, 0)`: color properties not getting computed [5]
 
 ## Ignore
 

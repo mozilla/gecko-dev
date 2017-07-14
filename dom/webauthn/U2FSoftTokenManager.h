@@ -25,17 +25,15 @@ class U2FSoftTokenManager final : public U2FTokenTransport,
 public:
   explicit U2FSoftTokenManager(uint32_t aCounter);
 
-  virtual nsresult Register(const nsTArray<WebAuthnScopedCredentialDescriptor>& aDescriptors,
-                            const nsTArray<uint8_t>& aApplication,
-                            const nsTArray<uint8_t>& aChallenge,
-                            /* out */ nsTArray<uint8_t>& aRegistration,
-                            /* out */ nsTArray<uint8_t>& aSignature) override;
+  virtual RefPtr<U2FRegisterPromise>
+  Register(const nsTArray<WebAuthnScopedCredentialDescriptor>& aDescriptors,
+           const nsTArray<uint8_t>& aApplication,
+           const nsTArray<uint8_t>& aChallenge) override;
 
-  virtual nsresult Sign(const nsTArray<WebAuthnScopedCredentialDescriptor>& aDescriptors,
-                        const nsTArray<uint8_t>& aApplication,
-                        const nsTArray<uint8_t>& aChallenge,
-                        /* out */ nsTArray<uint8_t>& aKeyHandle,
-                        /* out */ nsTArray<uint8_t>& aSignature) override;
+  virtual RefPtr<U2FSignPromise>
+  Sign(const nsTArray<WebAuthnScopedCredentialDescriptor>& aDescriptors,
+       const nsTArray<uint8_t>& aApplication,
+       const nsTArray<uint8_t>& aChallenge) override;
 
   virtual void Cancel() override;
 

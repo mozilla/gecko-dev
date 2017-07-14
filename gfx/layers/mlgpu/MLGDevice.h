@@ -409,6 +409,8 @@ public:
   // Return the maximum number of elements that can be bound to a constant
   // buffer. This is different than the maximum size of a buffer (there is
   // no such limit on Direct3D 11.1).
+  //
+  // The return value must be a power of two.
   size_t GetMaxConstantBufferBindSize() const {
     return mMaxConstantBufferBindSize;
   }
@@ -417,6 +419,12 @@ protected:
   virtual ~MLGDevice();
 
   virtual void SetPrimitiveTopology(MLGPrimitiveTopology aTopology) = 0;
+
+  // Optionally run a runtime test to determine if constant buffer offset
+  // binding works.
+  virtual bool VerifyConstantBufferOffsetting() {
+    return true;
+  }
 
   // Used during initialization to record failure reasons.
   bool Fail(const nsCString& aFailureId, const nsCString* aMessage);

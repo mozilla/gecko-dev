@@ -226,6 +226,16 @@ HTMLEditor::CreateAnonymousElement(nsIAtom* aTag,
     }
   }
 
+  // Record the NAC on the element, so that AllChildrenIterator can find it.
+  auto nac = static_cast<ManualNAC*>(
+      parentContent->GetProperty(nsGkAtoms::manualNACProperty));
+  if (!nac) {
+    nac = new ManualNAC();
+    parentContent->SetProperty(nsGkAtoms::manualNACProperty, nac,
+                               nsINode::DeleteProperty<ManualNAC>);
+  }
+  nac->AppendElement(newContent);
+
   ElementDeletionObserver* observer =
     new ElementDeletionObserver(newContent, parentContent);
   NS_ADDREF(observer); // NodeWillBeDestroyed releases.
@@ -253,20 +263,18 @@ HTMLEditor::RemoveListenerAndDeleteRef(const nsAString& aEvent,
                                        nsIDOMEventListener* aListener,
                                        bool aUseCapture,
                                        Element* aElement,
-                                       nsIContent* aParentContent,
                                        nsIPresShell* aShell)
 {
   nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(aElement));
   if (evtTarget) {
     evtTarget->RemoveEventListener(aEvent, aListener, aUseCapture);
   }
-  DeleteRefToAnonymousNode(aElement, aParentContent, aShell);
+  DeleteRefToAnonymousNode(aElement, aShell);
 }
 
 // Deletes all references to an anonymous element
 void
 HTMLEditor::DeleteRefToAnonymousNode(nsIContent* aContent,
-                                     nsIContent* aParentContent,
                                      nsIPresShell* aShell)
 {
   // call ContentRemoved() for the anonymous content
@@ -274,6 +282,12 @@ HTMLEditor::DeleteRefToAnonymousNode(nsIContent* aContent,
   // undisplay map, and its layout frames get destroyed!
 
   if (NS_WARN_IF(!aContent)) {
+    return;
+  }
+
+  nsIContent* parentContent = aContent->GetParent();
+  if (NS_WARN_IF(!parentContent)) {
+    // aContent was already removed?
     return;
   }
 
@@ -296,13 +310,23 @@ HTMLEditor::DeleteRefToAnonymousNode(nsIContent* aContent,
       // in RestyleManager::RestyleForRemove should be changed back
       // to an assertion.
       docObserver->ContentRemoved(aContent->GetComposedDoc(),
-                                  aParentContent, aContent, -1,
+                                  parentContent, aContent, -1,
                                   aContent->GetPreviousSibling());
       if (document) {
         docObserver->EndUpdate(document, UPDATE_CONTENT_MODEL);
       }
     }
   }
+
+  // Remove reference from the parent element.
+  auto nac = static_cast<mozilla::ManualNAC*>(
+      parentContent->GetProperty(nsGkAtoms::manualNACProperty));
+  MOZ_ASSERT(nac);
+  nac->RemoveElement(aContent);
+  if (nac->IsEmpty()) {
+    parentContent->DeleteProperty(nsGkAtoms::manualNACProperty);
+  }
+
   aContent->UnbindFromTree();
 }
 

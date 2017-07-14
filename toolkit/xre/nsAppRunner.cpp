@@ -43,7 +43,6 @@
 #include <sys/sysctl.h>
 #endif
 
-#include "prmem.h"
 #include "prnetdb.h"
 #include "prprf.h"
 #include "prproces.h"
@@ -2282,6 +2281,12 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
     gDoProfileReset = true;
     gDoMigration = true;
     SaveToEnv("MOZ_RESET_PROFILE_RESTART=");
+    // We only want to restore the previous session if the profile refresh was
+    // triggered by user. And if it was a user-triggered profile refresh
+    // through, say, the safeMode dialog or the troubleshooting page, the MOZ_RESET_PROFILE_RESTART
+    // env variable would be set. Hence we set MOZ_RESET_PROFILE_MIGRATE_SESSION here so that
+    // Firefox profile migrator would migrate old session data later.
+    SaveToEnv("MOZ_RESET_PROFILE_MIGRATE_SESSION=1");
   }
 
   // reset-profile and migration args need to be checked before any profiles are chosen below.

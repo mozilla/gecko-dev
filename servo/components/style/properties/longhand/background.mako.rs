@@ -19,19 +19,23 @@ ${helpers.predefined_type("background-image", "ImageLayer",
     initial_specified_value="Either::First(None_)",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector="True",
-    animation_value_type="none",
+    animation_value_type="discrete",
     has_uncacheable_values="True" if product == "gecko" else "False",
     ignored_when_colors_disabled="True")}
 
 % for (axis, direction, initial) in [("x", "Horizontal", "left"), ("y", "Vertical", "top")]:
-    ${helpers.predefined_type("background-position-" + axis, "position::" + direction + "Position",
-                              initial_value="computed::LengthOrPercentage::zero()",
-                              initial_specified_value="SpecifiedValue::initial_specified_value()",
-                              spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
-                              animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
+    ${helpers.predefined_type(
+        "background-position-" + axis,
+        "position::" + direction + "Position",
+        initial_value="computed::LengthOrPercentage::zero()",
+        initial_specified_value="SpecifiedValue::initial_specified_value()",
+        spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
+        animation_value_type="ComputedValue",
+        vector=True,
+    )}
 % endfor
 
-<%helpers:vector_longhand name="background-repeat" animation_value_type="none"
+<%helpers:vector_longhand name="background-repeat" animation_value_type="discrete"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">
     use std::fmt;
     use style_traits::ToCss;
@@ -42,8 +46,8 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                              "round" => Round,
                              "no-repeat" => NoRepeat);
 
-    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         RepeatX,
         RepeatY,
@@ -73,22 +77,6 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                     }
                     Ok(())
                 },
-            }
-        }
-    }
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::RepeatX => dest.write_str("repeat-x"),
-                SpecifiedValue::RepeatY => dest.write_str("repeat-y"),
-                SpecifiedValue::Other(horizontal, vertical) => {
-                    horizontal.to_css(dest)?;
-                    if let Some(vertical) = vertical {
-                        dest.write_str(" ")?;
-                        vertical.to_css(dest)?;
-                    }
-                    Ok(())
-                }
             }
         }
     }

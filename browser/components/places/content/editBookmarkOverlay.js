@@ -486,7 +486,10 @@ var gEditItemOverlay = {
   },
 
   onTagsFieldChange() {
-    if (this._paneInfo.isURI || this._paneInfo.bulkTagging) {
+    // Check for _paneInfo existing as the dialog may be closing but receiving
+    // async updates from unresolved promises.
+    if (this._paneInfo &&
+        (this._paneInfo.isURI || this._paneInfo.bulkTagging)) {
       this._updateTags().then(
         anyChanges => {
           if (anyChanges)
@@ -511,7 +514,10 @@ var gEditItemOverlay = {
     if (aCurrentTags.length == 0)
       return { newTags: inputTags, removedTags: [] };
 
-    let removedTags = aCurrentTags.filter(t => !inputTags.includes(t));
+    // Do not remove tags that may be reinserted with a different
+    // case, since the tagging service may handle those more efficiently.
+    let lcInputTags = inputTags.map(t => t.toLowerCase());
+    let removedTags = aCurrentTags.filter(t => !lcInputTags.includes(t.toLowerCase()));
     let newTags = inputTags.filter(t => !aCurrentTags.includes(t));
     return { removedTags, newTags };
   },
@@ -537,13 +543,13 @@ var gEditItemOverlay = {
     }
 
     let setTags = async function() {
+      if (removedTags.length > 0) {
+        await PlacesTransactions.Untag({ urls: aURIs, tags: removedTags })
+                                .transact();
+      }
       if (newTags.length > 0) {
         await PlacesTransactions.Tag({ urls: aURIs, tags: newTags })
                                 .transact();
-      }
-      if (removedTags.length > 0) {
-        await PlacesTransactions.Untag({ urls: aURIs, tags: removedTags })
-                          .transact();
       }
     };
 
@@ -778,6 +784,11 @@ var gEditItemOverlay = {
   },
 
   onFolderMenuListCommand(aEvent) {
+    // Check for _paneInfo existing as the dialog may be closing but receiving
+    // async updates from unresolved promises.
+    if (!this._paneInfo) {
+      return;
+    }
     // Set a selectedIndex attribute to show special icons
     this._folderMenuList.setAttribute("selectedIndex",
                                       this._folderMenuList.selectedIndex);

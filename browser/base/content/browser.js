@@ -1312,8 +1312,7 @@ var gBrowserInit = {
     // have been initialized.
     Services.obs.notifyObservers(window, "browser-window-before-show");
 
-    gUIDensity.update();
-    gPrefService.addObserver(gUIDensity.prefDomain, gUIDensity);
+    gUIDensity.init();
 
     let isResistFingerprintingEnabled = gPrefService.getBoolPref("privacy.resistFingerprinting");
 
@@ -1634,8 +1633,14 @@ var gBrowserInit = {
     FullScreen.init();
     PointerLock.init();
 
+    if (AppConstants.isPlatformAndVersionAtLeast("win", "10")) {
+      ContextMenuTouchModeObserver.init();
+    }
+
     // initialize the sync UI
-    gSync.init();
+    requestIdleCallback(() => {
+      gSync.init();
+    }, {timeout: 1000 * 5});
 
     if (AppConstants.MOZ_DATA_REPORTING)
       gDataNotificationInfoBar.init();
@@ -1771,7 +1776,7 @@ var gBrowserInit = {
 
     Services.obs.removeObserver(gPluginHandler.NPAPIPluginCrashed, "plugin-crashed");
 
-    gPrefService.removeObserver(gUIDensity.prefDomain, gUIDensity);
+    gUIDensity.uninit();
 
     try {
       gBrowser.removeProgressListener(window.XULBrowserWindow);
@@ -1843,6 +1848,9 @@ var gBrowserInit = {
         this.gmpInstallManager.uninit();
       }
 
+      if (AppConstants.isPlatformAndVersionAtLeast("win", "10")) {
+        ContextMenuTouchModeObserver.uninit();
+      }
       BrowserOffline.uninit();
       IndexedDBPromptHelper.uninit();
       PanelUI.uninit();
@@ -4555,7 +4563,7 @@ var XULBrowserWindow = {
 
         // XXX: This needs to be based on window activity...
         this.stopCommand.removeAttribute("disabled");
-        CombinedStopReload.switchToStop();
+        CombinedStopReload.switchToStop(aRequest, aWebProgress);
       }
     } else if (aStateFlags & nsIWebProgressListener.STATE_STOP) {
       // This (thanks to the filter) is a network stop or the last
@@ -4609,7 +4617,7 @@ var XULBrowserWindow = {
         this._busyUI = false;
 
         this.stopCommand.setAttribute("disabled", "true");
-        CombinedStopReload.switchToReload(aRequest instanceof Ci.nsIRequest);
+        CombinedStopReload.switchToReload(aRequest, aWebProgress);
       }
     }
   },
@@ -4915,41 +4923,110 @@ var CombinedStopReload = {
     stop.addEventListener("click", this);
     this.reload = reload;
     this.stop = stop;
+    this.stopReloadContainer = this.reload.parentNode;
+
+    // Disable animations until the browser has fully loaded.
+    this.animate = false;
+    let startupInfo = Cc["@mozilla.org/toolkit/app-startup;1"]
+                        .getService(Ci.nsIAppStartup)
+                        .getStartupInfo();
+    if (startupInfo.sessionRestored) {
+      this.startAnimationPrefMonitoring();
+    } else {
+      Services.obs.addObserver(this, "sessionstore-windows-restored");
+    }
   },
 
   uninit() {
     if (!this._initialized)
       return;
 
+    Services.prefs.removeObserver("toolkit.cosmeticAnimations.enabled", this);
     this._cancelTransition();
     this._initialized = false;
     this.stop.removeEventListener("click", this);
+    this.stopReloadContainer.removeEventListener("animationend", this);
+    this.stopReloadContainer = null;
     this.reload = null;
     this.stop = null;
   },
 
   handleEvent(event) {
-    // the only event we listen to is "click" on the stop button
-    if (event.button == 0 &&
-        !this.stop.disabled)
-      this._stopClicked = true;
+    switch (event.type) {
+      case "click":
+        if (event.button == 0 &&
+            !this.stop.disabled) {
+          this._stopClicked = true;
+        }
+      case "animationend": {
+        if (event.target.classList.contains("toolbarbutton-animatable-image") &&
+            (event.animationName == "reload-to-stop" ||
+             event.animationName == "stop-to-reload" ||
+             event.animationName == "reload-to-stop-rtl" ||
+             event.animationName == "stop-to-reload-rtl")) {
+          this.stopReloadContainer.removeAttribute("animate");
+        }
+      }
+    }
   },
 
-  switchToStop() {
+  observe(subject, topic, data) {
+    if (topic == "sessionstore-windows-restored") {
+      Services.obs.removeObserver(this, "sessionstore-windows-restored");
+      this.startAnimationPrefMonitoring();
+    } else if (topic == "nsPref:changed") {
+      this.animate = Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled");
+    }
+  },
+
+  startAnimationPrefMonitoring() {
+    requestIdleCallback(() => {
+      // CombinedStopReload may have been uninitialized before the idleCallback is executed.
+      if (!this._initialized)
+        return;
+      this.animate = Services.prefs.getBoolPref("toolkit.cosmeticAnimations.enabled") &&
+                     Services.prefs.getBoolPref("browser.stopReloadAnimation.enabled");
+      Services.prefs.addObserver("toolkit.cosmeticAnimations.enabled", this);
+      this.stopReloadContainer.addEventListener("animationend", this);
+    });
+  },
+
+  switchToStop(aRequest, aWebProgress) {
     if (!this._initialized)
       return;
 
+    let shouldAnimate = AppConstants.MOZ_PHOTON_ANIMATIONS &&
+                        aRequest instanceof Ci.nsIRequest &&
+                        aWebProgress.isTopLevel &&
+                        aWebProgress.isLoadingDocument &&
+                        this.animate;
+
     this._cancelTransition();
+    if (shouldAnimate)
+      this.stopReloadContainer.setAttribute("animate", "true");
+    else
+      this.stopReloadContainer.removeAttribute("animate");
     this.reload.setAttribute("displaystop", "true");
   },
 
-  switchToReload(aDelay) {
+  switchToReload(aRequest, aWebProgress) {
     if (!this._initialized)
       return;
 
+    let shouldAnimate = AppConstants.MOZ_PHOTON_ANIMATIONS &&
+                        aRequest instanceof Ci.nsIRequest &&
+                        aWebProgress.isTopLevel &&
+                        !aWebProgress.isLoadingDocument &&
+                        this.animate;
+
+    if (shouldAnimate)
+      this.stopReloadContainer.setAttribute("animate", "true");
+    else
+      this.stopReloadContainer.removeAttribute("animate");
+
     this.reload.removeAttribute("displaystop");
 
-    if (!aDelay || this._stopClicked) {
+    if (!shouldAnimate || this._stopClicked) {
       this._stopClicked = false;
       this._cancelTransition();
       this.reload.disabled = XULBrowserWindow.reloadCommand
@@ -5116,7 +5193,7 @@ nsBrowserAccess.prototype = {
     return browser;
   },
 
-  openURI(aURI, aOpener, aWhere, aFlags) {
+  openURI(aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal) {
     // This function should only ever be called if we're opening a URI
     // from a non-remote browser window (via nsContentTreeOwner).
     if (aOpener && Cu.isCrossProcessWrapper(aOpener)) {
@@ -5148,11 +5225,9 @@ nsBrowserAccess.prototype = {
     }
 
     let referrer = aOpener ? makeURI(aOpener.location.href) : null;
-    let triggeringPrincipal = null;
     let referrerPolicy = Ci.nsIHttpChannel.REFERRER_POLICY_UNSET;
     if (aOpener && aOpener.document) {
       referrerPolicy = aOpener.document.referrerPolicy;
-      triggeringPrincipal = aOpener.document.nodePrincipal;
     }
     let isPrivate = aOpener
                   ? PrivateBrowsingUtils.isContentWindowPrivate(aOpener)
@@ -5186,7 +5261,7 @@ nsBrowserAccess.prototype = {
         let browser = this._openURIInNewTab(aURI, referrer, referrerPolicy,
                                             isPrivate, isExternal,
                                             forceNotRemote, userContextId,
-                                            openerWindow, triggeringPrincipal);
+                                            openerWindow, aTriggeringPrincipal);
         if (browser)
           newWindow = browser.contentWindow;
         break;
@@ -5197,7 +5272,7 @@ nsBrowserAccess.prototype = {
                             Ci.nsIWebNavigation.LOAD_FLAGS_FROM_EXTERNAL :
                             Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
           gBrowser.loadURIWithFlags(aURI.spec, {
-                                    triggeringPrincipal,
+                                    aTriggeringPrincipal,
                                     flags: loadflags,
                                     referrerURI: referrer,
                                     referrerPolicy,
@@ -5449,26 +5524,50 @@ function displaySecurityInfo() {
 
 // Updates the UI density (for touch and compact mode) based on the uidensity pref.
 var gUIDensity = {
+  MODE_NORMAL: 0,
   MODE_COMPACT: 1,
   MODE_TOUCH: 2,
-  prefDomain: "browser.uidensity",
+  uiDensityPref: "browser.uidensity",
+  autoTouchModePref: "browser.touchmode.auto",
+
+  init() {
+    this.update();
+    gPrefService.addObserver(this.uiDensityPref, this);
+    gPrefService.addObserver(this.autoTouchModePref, this);
+  },
+
+  uninit() {
+    gPrefService.removeObserver(this.uiDensityPref, this);
+    gPrefService.removeObserver(this.autoTouchModePref, this);
+  },
 
   observe(aSubject, aTopic, aPrefName) {
-    if (aTopic != "nsPref:changed" || aPrefName != this.prefDomain)
+    if (aTopic != "nsPref:changed" ||
+        (aPrefName != this.uiDensityPref &&
+         aPrefName != this.autoTouchModePref)) {
       return;
+    }
 
     this.update();
   },
 
-  update() {
-    let mode;
+  getCurrentDensity() {
     // Automatically override the uidensity to touch in Windows tablet mode.
     if (AppConstants.isPlatformAndVersionAtLeast("win", "10") &&
         WindowsUIUtils.inTabletMode &&
-        gPrefService.getBoolPref("browser.touchmode.auto")) {
-      mode = this.MODE_TOUCH;
-    } else {
-      mode = gPrefService.getIntPref(this.prefDomain);
+        gPrefService.getBoolPref(this.autoTouchModePref)) {
+      return { mode: this.MODE_TOUCH, overridden: true };
+    }
+    return { mode: gPrefService.getIntPref(this.uiDensityPref), overridden: false };
+  },
+
+  setCurrentMode(mode) {
+    gPrefService.setIntPref(this.uiDensityPref, mode);
+  },
+
+  update(mode) {
+    if (mode == null) {
+      mode = this.getCurrentDensity().mode;
     }
 
     let doc = document.documentElement;
@@ -5757,8 +5856,8 @@ function contentAreaClick(event, isPanelClick) {
                                          title: linkNode.getAttribute("title"),
                                          loadBookmarkInSidebar: true,
                                          hiddenRows: [ "description",
-																																																							"location",
-																																																							"keyword" ]
+                                                       "location",
+                                                       "keyword" ]
                                        }, window);
       event.preventDefault();
       return;
@@ -8169,10 +8268,11 @@ var RestoreLastSessionObserver = {
     if (SessionStore.canRestoreLastSession &&
         !PrivateBrowsingUtils.isWindowPrivate(window)) {
       if (Services.prefs.getBoolPref("browser.tabs.restorebutton")) {
-        let {restoreTabsButton} = gBrowser.tabContainer;
+        let {restoreTabsButton, restoreTabsButtonWrapperWidth} = gBrowser.tabContainer;
         let restoreTabsButtonWrapper = restoreTabsButton.parentNode;
         restoreTabsButtonWrapper.setAttribute("session-exists", "true");
         gBrowser.tabContainer.updateSessionRestoreVisibility();
+        restoreTabsButton.style.maxWidth = `${restoreTabsButtonWrapperWidth}px`;
         gBrowser.tabContainer.addEventListener("TabOpen", this);
       }
       Services.obs.addObserver(this, "sessionstore-last-session-cleared", true);
@@ -8189,17 +8289,16 @@ var RestoreLastSessionObserver = {
   },
 
   removeRestoreButton() {
-    let {restoreTabsButton, restoreTabsButtonWrapperWidth} = gBrowser.tabContainer;
+    let {restoreTabsButton} = gBrowser.tabContainer;
     let restoreTabsButtonWrapper = restoreTabsButton.parentNode;
-    restoreTabsButtonWrapper.removeAttribute("session-exists");
     gBrowser.tabContainer.addEventListener("transitionend", function maxWidthTransitionHandler(e) {
-      if (e.propertyName == "max-width") {
+      if (e.target == gBrowser.tabContainer && e.propertyName == "max-width") {
         gBrowser.tabContainer.updateSessionRestoreVisibility();
         gBrowser.tabContainer.removeEventListener("transitionend", maxWidthTransitionHandler);
       }
     });
-    restoreTabsButton.style.maxWidth = `${restoreTabsButtonWrapperWidth}px`;
-    requestAnimationFrame(() => restoreTabsButton.style.maxWidth = 0);
+    restoreTabsButtonWrapper.removeAttribute("session-exists");
+    restoreTabsButton.style.maxWidth = 0;
     gBrowser.tabContainer.removeEventListener("TabOpen", this);
   },
 
@@ -8218,6 +8317,31 @@ var RestoreLastSessionObserver = {
 function restoreLastSession() {
   SessionStore.restoreLastSession();
 }
+
+/* Observes context menus and adjusts their size for better
+ * usability when opened via a touch screen. */
+var ContextMenuTouchModeObserver = {
+  init() {
+    window.addEventListener("popupshowing", this, true);
+  },
+
+  handleEvent(event) {
+    let target = event.originalTarget;
+    if (target.localName != "menupopup") {
+      return;
+    }
+
+    if (event.mozInputSource == MouseEvent.MOZ_SOURCE_TOUCH) {
+      target.setAttribute("touchmode", "true");
+    } else {
+      target.removeAttribute("touchmode");
+    }
+  },
+
+  uninit() {
+    window.removeEventListener("popupshowing", this, true);
+  },
+};
 
 var TabContextMenu = {
   contextTab: null,
@@ -8288,7 +8412,7 @@ var TabContextMenu = {
 
     // Adjust the state of the toggle mute menu item.
     let toggleMute = document.getElementById("context_toggleMuteTab");
-    if (this.contextTab.hasAttribute("blocked")) {
+    if (this.contextTab.hasAttribute("activemedia-blocked")) {
       toggleMute.label = gNavigatorBundle.getString("playTab.label");
       toggleMute.accessKey = gNavigatorBundle.getString("playTab.accesskey");
     } else if (this.contextTab.hasAttribute("muted")) {

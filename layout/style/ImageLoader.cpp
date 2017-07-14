@@ -190,7 +190,7 @@ ImageLoader::DropRequestsForFrame(nsIFrame* aFrame)
 {
   MOZ_ASSERT(aFrame->HasImageRequest(), "why call me?");
   nsAutoPtr<RequestSet> requestSet;
-  mFrameToRequestMap.RemoveAndForget(aFrame, requestSet);
+  mFrameToRequestMap.Remove(aFrame, &requestSet);
   aFrame->SetHasImageRequest(false);
   if (MOZ_UNLIKELY(!requestSet)) {
     MOZ_ASSERT_UNREACHABLE("HasImageRequest was lying");
@@ -322,7 +322,7 @@ ImageLoader::GetPresContext()
   return shell->GetPresContext();
 }
 
-void InvalidateImagesCallback(nsIFrame* aFrame, 
+void InvalidateImagesCallback(nsIFrame* aFrame,
                               DisplayItemData* aItem)
 {
   nsDisplayItem::Type type = nsDisplayItem::GetDisplayItemTypeFromKey(aItem->GetDisplayItemKey());
@@ -416,7 +416,7 @@ ImageLoader::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aData
 
 nsresult
 ImageLoader::OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage)
-{ 
+{
   nsPresContext* presContext = GetPresContext();
   if (!presContext) {
     return NS_OK;

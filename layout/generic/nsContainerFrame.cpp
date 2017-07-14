@@ -402,8 +402,9 @@ nsContainerFrame::PeekOffsetNoAmount(bool aForward, int32_t* aOffset)
 }
 
 nsIFrame::FrameSearchResult
-nsContainerFrame::PeekOffsetCharacter(bool aForward, int32_t* aOffset,
-                                      bool aRespectClusters)
+nsContainerFrame::PeekOffsetCharacter(
+                    bool aForward, int32_t* aOffset,
+                    PeekOffsetCharacterOptions aOptions)
 {
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
   // Don't allow the caret to stay in an empty (leaf) container frame.
@@ -463,7 +464,7 @@ nsContainerFrame::ReparentFrameView(nsIFrame* aChildFrame,
     // typically be the same distance (height wise) from the
     aOldParentFrame = aOldParentFrame->GetParent();
     aNewParentFrame = aNewParentFrame->GetParent();
-    
+
     // We should never walk all the way to the root frame without finding
     // a view
     NS_ASSERTION(aOldParentFrame && aNewParentFrame, "didn't find view");
@@ -487,7 +488,7 @@ nsContainerFrame::ReparentFrameView(nsIFrame* aChildFrame,
   // found a common ancestor.
   nsView* oldParentView = aOldParentFrame->GetClosestView();
   nsView* newParentView = aNewParentFrame->GetClosestView();
-  
+
   // See if the old parent frame and the new parent frame are in the
   // same view sub-hierarchy. If they are then we don't have to do
   // anything
@@ -522,7 +523,7 @@ nsContainerFrame::ReparentFrameViewList(const nsFrameList& aChildFrameList,
     // typically be the same distance (height wise) from the
     aOldParentFrame = aOldParentFrame->GetParent();
     aNewParentFrame = aNewParentFrame->GetParent();
-    
+
     // We should never walk all the way to the root frame without finding
     // a view
     NS_ASSERTION(aOldParentFrame && aNewParentFrame, "didn't find view");
@@ -547,7 +548,7 @@ nsContainerFrame::ReparentFrameViewList(const nsFrameList& aChildFrameList,
   // found a common ancestor.
   nsView* oldParentView = aOldParentFrame->GetClosestView();
   nsView* newParentView = aNewParentFrame->GetClosestView();
-  
+
   // See if the old parent frame and the new parent frame are in the
   // same view sub-hierarchy. If they are then we don't have to do
   // anything

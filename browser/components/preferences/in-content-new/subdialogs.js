@@ -328,6 +328,7 @@ SubDialog.prototype = {
     this._overlay.style.opacity = ""; // XXX: focus hack continued from _onContentLoaded
 
     if (this._box.getAttribute("resizable") == "true") {
+      this._onResize = this._onResize.bind(this);
       this._resizeObserver = new MutationObserver(this._onResize);
       this._resizeObserver.observe(this._box, {attributes: true});
     }
@@ -338,16 +339,12 @@ SubDialog.prototype = {
     gSearchResultsPane.searchWithinNode(this._titleElement, gSearchResultsPane.query);
 
     // Search within sub-dialog document and highlight matched keyword.
-    let subDialogsChildren = this._frame.contentDocument
-      .querySelectorAll(":scope > *:not([data-hidden-from-search])");
-
-    for (let i = 0; i < subDialogsChildren.length; i++) {
-      gSearchResultsPane.searchWithinNode(subDialogsChildren[i], gSearchResultsPane.query);
-    }
+    gSearchResultsPane.searchWithinNode(this._frame.contentDocument.firstElementChild,
+      gSearchResultsPane.query);
 
     // Creating tooltips for all the instances found
     for (let node of gSearchResultsPane.listSearchTooltips) {
-      if (!node.getAttribute("data-has-tooltip")) {
+      if (!node.tooltipNode) {
         gSearchResultsPane.createSearchTooltip(node, gSearchResultsPane.query);
       }
     }
