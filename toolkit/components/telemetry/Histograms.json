@@ -4264,15 +4264,6 @@
     "kind": "count",
     "description": "Number of unique pages that contain an unsafe-eval CSP directive"
   },
-  "PLACES_DATABASE_CORRUPTION_HANDLING_STAGE": {
-    "alert_emails": ["firefox-dev@mozilla.org"],
-    "bug_numbers": [1356812],
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 6,
-    "releaseChannelCollection": "opt-out",
-    "description": "PLACES: stage reached when trying to fix a database corruption , see Places::Database::eCorruptDBReplaceStatus"
-  },
   "PLACES_PAGES_COUNT": {
     "expires_in_version": "never",
     "kind": "exponential",
