@@ -482,7 +482,7 @@ NukeRemovedCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper)
     MOZ_ASSERT(IsDeadProxyObject(wrapper));
 }
 
-JS_FRIEND_API(void)
+void
 js::NukeCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper)
 {
     JSCompartment* comp = wrapper->compartment();

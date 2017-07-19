@@ -117,7 +117,7 @@ template void PreBarrierFunctor<jsid>::operator()<JS::Symbol>(JS::Symbol*);
 template void PreBarrierFunctor<jsid>::operator()<JSString>(JSString*);
 
 template <typename T>
-/* static */ JS_PUBLIC_API(bool)
+/* static */ bool
 MovableCellHasher<T>::hasHash(const Lookup& l)
 {
     if (!l)
@@ -127,7 +127,7 @@ MovableCellHasher<T>::hasHash(const Lookup& l)
 }
 
 template <typename T>
-/* static */ JS_PUBLIC_API(bool)
+/* static */ bool
 MovableCellHasher<T>::ensureHash(const Lookup& l)
 {
     if (!l)
@@ -138,7 +138,7 @@ MovableCellHasher<T>::ensureHash(const Lookup& l)
 }
 
 template <typename T>
-/* static */ JS_PUBLIC_API(HashNumber)
+/* static */ HashNumber
 MovableCellHasher<T>::hash(const Lookup& l)
 {
     if (!l)
@@ -155,7 +155,7 @@ MovableCellHasher<T>::hash(const Lookup& l)
 }
 
 template <typename T>
-/* static */ JS_PUBLIC_API(bool)
+/* static */ bool
 MovableCellHasher<T>::match(const Key& k, const Lookup& l)
 {
     // Return true if both are null or false if only one is null.
@@ -179,7 +179,7 @@ MovableCellHasher<T>::match(const Key& k, const Lookup& l)
     return zone->getUniqueIdInfallible(k) == zone->getUniqueIdInfallible(l);
 }
 
-template struct JS_PUBLIC_API(MovableCellHasher<JSObject*>);
+template struct MovableCellHasher<JSObject*>;
 template struct MovableCellHasher<GlobalObject*>;
 template struct MovableCellHasher<SavedFrame*>;
 template struct MovableCellHasher<EnvironmentObject*>;

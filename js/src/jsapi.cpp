@@ -119,7 +119,7 @@ using JS::ToUint32;
 #define JS_ADDRESSOF_VA_LIST(ap) (&(ap))
 #endif
 
-JS_PUBLIC_API(bool)
+bool
 JS::CallArgs::requireAtLeast(JSContext* cx, const char* fnname, unsigned required) const
 {
     if (length() < required) {
@@ -3088,7 +3088,7 @@ JS_DefineConstIntegers(JSContext* cx, HandleObject obj, const JSConstIntegerSpec
     return DefineConstScalar(cx, obj, cis);
 }
 
-JS_PUBLIC_API(bool)
+bool
 JSPropertySpec::getValue(JSContext* cx, MutableHandleValue vp) const
 {
     MOZ_ASSERT(!isAccessor());
