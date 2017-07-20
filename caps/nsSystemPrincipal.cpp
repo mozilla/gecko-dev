@@ -71,6 +71,15 @@ nsSystemPrincipal::GetCsp(nsIContentSecurityPolicy** aCsp)
 }
 
 NS_IMETHODIMP
+nsSystemPrincipal::SetCsp(nsIContentSecurityPolicy* aCsp)
+{
+  // Never destroy an existing CSP on the principal.
+  // This method should only be called in rare cases.
+
+  return NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
 nsSystemPrincipal::EnsureCSP(nsIDOMDocument* aDocument,
                              nsIContentSecurityPolicy** aCSP)
 {

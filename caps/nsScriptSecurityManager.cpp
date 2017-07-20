@@ -368,6 +368,41 @@ nsScriptSecurityManager::GetChannelResultPrincipal(nsIChannel* aChannel,
               prin = nsNullPrincipal::Create(pAttrs);
             }
             prin.forget(aPrincipal);
+
+            // if the new NullPrincipal (above) loads an iframe[srcdoc], we
+            // need to inherit an existing CSP to avoid bypasses (bug 1073952).
+            // We continue inheriting for nested frames with e.g., data: URLs.
+            if (loadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_SUBDOCUMENT) {
+              nsCOMPtr<nsIURI> uri;
+              aChannel->GetURI(getter_AddRefs(uri));
+              nsAutoCString URISpec;
+              uri->GetSpec(URISpec);
+              bool isData = (NS_SUCCEEDED(uri->SchemeIs("data", &isData)) && isData);
+              if (URISpec.EqualsLiteral("about:srcdoc") || isData) {
+                nsCOMPtr<nsIPrincipal> principalToInherit = loadInfo->PrincipalToInherit();
+                if (!principalToInherit) {
+                  principalToInherit = loadInfo->TriggeringPrincipal();
+                }
+                nsCOMPtr<nsIContentSecurityPolicy> originalCSP;
+                principalToInherit->GetCsp(getter_AddRefs(originalCSP));
+                if (originalCSP) {
+                  // if the principalToInherit had a CSP,
+                  // add it to the newly created NullPrincipal
+                  // (unless it already has one)
+                  nsCOMPtr<nsIContentSecurityPolicy> nullPrincipalCSP;
+                  (*aPrincipal)->GetCsp(getter_AddRefs(nullPrincipalCSP));
+                  if (nullPrincipalCSP) {
+                    MOZ_ASSERT(nullPrincipalCSP == originalCSP,
+                              "There should be no other CSP here.");
+                    // CSPs are equal, no need to set it again.
+                    return NS_OK;
+                  } else {
+                    nsresult rv = (*aPrincipal)->SetCsp(originalCSP);
+                    NS_ENSURE_SUCCESS(rv, rv);
+                  }
+                }
+              }
+            }
             return NS_OK;
         }
 
