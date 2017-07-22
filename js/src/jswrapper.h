@@ -361,7 +361,7 @@ UnwrapOneChecked(JSObject* obj, bool stopAtWindowProxy = true);
 JS_FRIEND_API(bool)
 IsCrossCompartmentWrapper(JSObject* obj);
 
-void
+JS_FRIEND_API(void)
 NukeCrossCompartmentWrapper(JSContext* cx, JSObject* wrapper);
 
 void

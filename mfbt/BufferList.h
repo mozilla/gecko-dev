@@ -16,6 +16,9 @@
 #include "mozilla/Vector.h"
 #include <string.h>
 
+// Undo potential #include <windows.h> damage to be able to use std::min.
+#undef min
+
 // BufferList represents a sequence of buffers of data. A BufferList can choose
 // to own its buffers or not. The class handles writing to the buffers,
 // iterating over them, and reading data out. Unlike SegmentedVector, the
