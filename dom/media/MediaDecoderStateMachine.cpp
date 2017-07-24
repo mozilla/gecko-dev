@@ -902,6 +902,13 @@ private:
   {
     mSeekTaskRequest.Complete();
 
+    if (aValue.mError == NS_ERROR_DOM_MEDIA_END_OF_STREAM) {
+      mMaster->AudioQueue().Finish();
+      mMaster->VideoQueue().Finish();
+      SeekCompleted();
+      return;
+    }
+
     if (aValue.mIsAudioQueueFinished) {
       mMaster->AudioQueue().Finish();
     }
