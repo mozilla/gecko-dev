@@ -55,6 +55,8 @@ public:
 
   void BreakCycles() override;
 
+  void NotifyDataRemoved();
+
 private:
   friend class MP4Demuxer;
   void NotifyDataArrived();
@@ -197,7 +199,7 @@ void
 MP4Demuxer::NotifyDataRemoved()
 {
   for (uint32_t i = 0; i < mDemuxers.Length(); i++) {
-    mDemuxers[i]->NotifyDataArrived();
+    mDemuxers[i]->NotifyDataRemoved();
   }
 }
 
@@ -485,6 +487,19 @@ void
 MP4TrackDemuxer::NotifyDataArrived()
 {
   mNeedReIndex = true;
+}
+
+void
+MP4TrackDemuxer::NotifyDataRemoved()
+{
+  AutoPinned<MediaResource> resource(mParent->mResource);
+  MediaByteRangeSet byteRanges;
+  nsresult rv = resource->GetCachedRanges(byteRanges);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  mIndex->UpdateMoofIndex(byteRanges, true /* can evict */);
+  mNeedReIndex = false;
 }
 
 void
