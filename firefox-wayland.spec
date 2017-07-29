@@ -5,7 +5,7 @@
 
 Summary:        Mozilla Firefox Nightly Web browser
 Name:           firefox-wayland
-Version:        56.2
+Version:        56.3
 Release:        1%{?pre_tag}%{?dist}
 URL:            https://www.mozilla.org/firefox/
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
@@ -257,6 +257,8 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 #---------------------------------------------------------------------
 
 %changelog
+* Sat Jul 29 2017 Martin Stransky <stransky@redhat.com> 56.3-1
+- merged with upstream
 * Fri Jul 14 2017 Martin Stransky <stransky@redhat.com> 56.2-1
 - Fixed rhbz#1464916 - missing popup rendering (stransky@redhat.com)
 - Tweaked wl_surface_damage() calls (stransky@redhat.com)
